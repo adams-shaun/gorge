@@ -162,8 +162,10 @@ func matchesBase(g *state.Game, base string, o *state.Object) bool {
 		return !matchesBase(g, neg, o)
 	}
 	switch base {
-	case "Any", "Card", "Permanent":
+	case "Any", "Card":
 		return true
+	case "Permanent":
+		return o.Zone == state.ZBattlefield
 	case "Spell":
 		return o.Zone == state.ZStack
 	}
@@ -262,6 +264,7 @@ func UnknownPredicates(spec string) []string {
 	return out
 }
 
+// KnownPredicates lists the predicates this build implements, in sorted order.
 func KnownPredicates() []string {
 	out := make([]string, 0, len(predicates))
 	for k := range predicates {

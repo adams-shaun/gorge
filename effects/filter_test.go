@@ -170,3 +170,32 @@ func TestPlayerSpecs(t *testing.T) {
 		t.Error("You should match yourself")
 	}
 }
+
+func TestPermanentOnlyMatchesBattlefield(t *testing.T) {
+	g, id := board(t)
+	// Object is initially on the battlefield; should match Permanent.
+	if !MatchesSpec(g, "Permanent", id["myBear"], 0) {
+		t.Error("card on battlefield should match Permanent")
+	}
+	if !MatchesSpec(g, "Card", id["myBear"], 0) {
+		t.Error("card on battlefield should match Card")
+	}
+
+	// Move the object to hand (ZHand = 1 as a typical zone ID).
+	g.Obj(id["myBear"]).Zone = state.ZHand
+	if MatchesSpec(g, "Permanent", id["myBear"], 0) {
+		t.Error("card in hand must not match Permanent")
+	}
+	if !MatchesSpec(g, "Card", id["myBear"], 0) {
+		t.Error("card in hand should still match Card")
+	}
+
+	// Also verify graveyard.
+	g.Obj(id["myBear"]).Zone = state.ZGraveyard
+	if MatchesSpec(g, "Permanent", id["myBear"], 0) {
+		t.Error("card in graveyard must not match Permanent")
+	}
+	if !MatchesSpec(g, "Card", id["myBear"], 0) {
+		t.Error("card in graveyard should still match Card")
+	}
+}
