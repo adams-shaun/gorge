@@ -134,3 +134,193 @@ func TestDrawStepSkipsEliminatedActivePlayer(t *testing.T) {
 		t.Fatalf("library size for eliminated active player changed: %d -> %d", libBefore, got)
 	}
 }
+
+// TestPlayLandReplayThroughSubmit is the Task 13 fix-round regression test
+// for Ruling T13-a and T13-b as applied to handlePriority's play_land
+// branch specifically: TestReplayReconstructsPassesAndPriority above only
+// ever drives "pass" (via passAll/driveToOver), so it never exercised this
+// branch's own Priority-reset emit or the LandPlayed emit at all.
+//
+// The action under test is driven through the public Submit path only --
+// never handlePriority or legalActions directly.
+//
+// Two things make this test actually capable of catching a regression back
+// to a direct field write, rather than passing either way:
+//
+//  1. Passes is forced to a nonzero value immediately before the action.
+//     Entering a step naturally starts Passes at 0 (advanceStep's own emit
+//     resets it), so testing straight off a step change could never tell
+//     an emitted reset apart from a stale value that already happened to
+//     be 0.
+//  2. The other seat is eliminated immediately before the action, so this
+//     Submit is the one that ends the game. priorityRound emits a fresh
+//     Priority(holder, Passes) event before every decision it asks, and
+//     Submit always calls Advance (which calls priorityRound again) right
+//     after handling an intent -- so on any non-terminal action, that next
+//     round's honest emit would re-broadcast the correct live values into
+//     the log regardless of whether THIS action's own reset went through
+//     emit or a bypassing direct write, silently curing the omission. Only
+//     when no further priority round ever runs -- i.e. the action ends the
+//     game -- does omitting the emit leave the log genuinely short a step,
+//     which is what the replay comparison below is able to detect.
+//
+// This was verified empirically, not just reasoned through: see the
+// Task 13 fix-round report for the revert-and-rerun check.
+func TestPlayLandReplayThroughSubmit(t *testing.T) {
+	names := []string{"a", "b"}
+	cfg := Config{Seed: 6, Names: names,
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}}
+	e := New(cfg)
+	for p := state.PlayerID(0); p < 2; p++ {
+		e.G.SetZone(state.ZHand, p, nil)
+	}
+	mtn := card(t, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n")
+	o := e.G.AddObject(mtn, 0)
+	o.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 0, []state.ObjID{o.ID})
+	e.G.Step = state.StepMain1
+	e.G.Active, e.G.Priority = 0, 0
+	e.G.Turn = 1
+
+	e.priorityRound()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority || d.Player != 0 {
+		t.Fatalf("expected player 0's priority, got %+v", d)
+	}
+	idx := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "play_land" && opt.Obj == o.ID {
+			idx = opt.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no play_land option for the hand land: %+v", d.Options)
+	}
+
+	// Setup only (see point 1 and 2 above): neither of these is the action
+	// under test.
+	e.emit(events.Event{Kind: events.Priority, Player: 0, Amount: 1})
+	e.emit(events.Event{Kind: events.PlayerLost, Player: 1, Text: "test"})
+
+	// The action under test: a play_land intent through Submit.
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{idx}}); err != nil {
+		t.Fatalf("submit play_land: %v", err)
+	}
+
+	if !e.G.Over {
+		t.Fatal("eliminating the only other seat must end the game on this Submit")
+	}
+	if got := e.G.Players[0].LandsPlayed; got != 1 {
+		t.Fatalf("LandsPlayed = %d, want 1", got)
+	}
+	if got := o.Zone; got != state.ZBattlefield {
+		t.Fatalf("land zone = %s, want battlefield", got)
+	}
+	if e.G.Passes != 0 {
+		t.Fatalf("Passes = %d, want 0 after the land drop", e.G.Passes)
+	}
+	if e.G.Priority != 0 {
+		t.Fatalf("Priority = %d, want to stay with the acting player (0)", e.G.Priority)
+	}
+
+	// Replay through events.Apply alone -- no Engine, no rules code -- and
+	// confirm it reconstructs the state the two rulings govern.
+	fresh := state.NewGame(cfg.Names)
+	for _, ev := range e.L.Events {
+		events.Apply(fresh, ev)
+	}
+	if fresh.Passes != e.G.Passes {
+		t.Errorf("replayed Passes = %d, want %d (live)", fresh.Passes, e.G.Passes)
+	}
+	if fresh.Priority != e.G.Priority {
+		t.Errorf("replayed Priority = %d, want %d (live)", fresh.Priority, e.G.Priority)
+	}
+	for p := state.PlayerID(0); p < 2; p++ {
+		if fresh.Players[p].LandsPlayed != e.G.Players[p].LandsPlayed {
+			t.Errorf("replayed player %d LandsPlayed = %d, want %d (live)",
+				p, fresh.Players[p].LandsPlayed, e.G.Players[p].LandsPlayed)
+		}
+	}
+}
+
+// TestActivateManaAbilityReplayThroughSubmit is
+// TestPlayLandReplayThroughSubmit's sibling for the activate branch: same
+// two setup requirements (nonzero Passes beforehand, the action ends the
+// game so no later priority round can paper over an omitted emit), same
+// Submit-only path for the action under test, same replay comparison.
+//
+// The land is placed directly on the battlefield as setup (the same
+// technique legal_test.go's handEngine uses for hand cards): genesis-style
+// object placement is never logged (see the rules package doc comment), so
+// replay is not expected to, and does not need to, reconstruct the land's
+// zone or tapped state here -- only the scalar fields the two rulings
+// govern (Passes, Priority, LandsPlayed).
+//
+// resolveAbility is still the empty stub this task's brief adds (replaced
+// in Task 14), so activating the mana ability does not yet add anything to
+// the pool -- this test does not assert a pool change, and that gap is
+// noted in the Task 13 fix-round report for Task 14 to pick up.
+func TestActivateManaAbilityReplayThroughSubmit(t *testing.T) {
+	names := []string{"a", "b"}
+	cfg := Config{Seed: 9, Names: names,
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}}
+	e := New(cfg)
+	for p := state.PlayerID(0); p < 2; p++ {
+		e.G.SetZone(state.ZHand, p, nil)
+	}
+	mtn := card(t, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n")
+	o := e.G.AddObject(mtn, 0)
+	o.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{o.ID})
+	e.G.Step = state.StepMain1
+	e.G.Active, e.G.Priority = 0, 0
+	e.G.Turn = 1
+
+	e.priorityRound()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority || d.Player != 0 {
+		t.Fatalf("expected player 0's priority, got %+v", d)
+	}
+	idx := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "activate" && opt.Obj == o.ID {
+			idx = opt.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no activate option for the battlefield land: %+v", d.Options)
+	}
+
+	// Setup only: neither of these is the action under test.
+	e.emit(events.Event{Kind: events.Priority, Player: 0, Amount: 1})
+	e.emit(events.Event{Kind: events.PlayerLost, Player: 1, Text: "test"})
+
+	// The action under test: an activate intent through Submit.
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{idx}}); err != nil {
+		t.Fatalf("submit activate: %v", err)
+	}
+
+	if !e.G.Over {
+		t.Fatal("eliminating the only other seat must end the game on this Submit")
+	}
+	if !o.Tapped {
+		t.Fatal("activating the mana ability should tap the land")
+	}
+	if e.G.Passes != 0 {
+		t.Fatalf("Passes = %d, want 0 after activating", e.G.Passes)
+	}
+	if e.G.Priority != 0 {
+		t.Fatalf("Priority = %d, want to stay with the acting player (0) after activating", e.G.Priority)
+	}
+
+	fresh := state.NewGame(cfg.Names)
+	for _, ev := range e.L.Events {
+		events.Apply(fresh, ev)
+	}
+	if fresh.Passes != e.G.Passes {
+		t.Errorf("replayed Passes = %d, want %d (live)", fresh.Passes, e.G.Passes)
+	}
+	if fresh.Priority != e.G.Priority {
+		t.Errorf("replayed Priority = %d, want %d (live)", fresh.Priority, e.G.Priority)
+	}
+}
