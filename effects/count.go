@@ -14,6 +14,9 @@ import (
 // the failure mode is "the card did nothing" rather than "the card did
 // something arbitrary".
 func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
+	if c == nil {
+		c = &Ctx{}
+	}
 	raw, ok := sa.Params[key]
 	if !ok {
 		return def
@@ -36,6 +39,9 @@ func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
 // EvalCount evaluates a "Count$..." expression. The grammar in the corpus is a
 // head, an optional space-separated argument, and an optional "/Op" suffix.
 func EvalCount(h Host, c *Ctx, expr string) int32 {
+	if h == nil || c == nil {
+		return 0
+	}
 	expr = strings.TrimSpace(expr)
 	body, ok := strings.CutPrefix(expr, "Count$")
 	if !ok {
@@ -61,6 +67,9 @@ func evalCountBody(h Host, c *Ctx, body string) int32 {
 	case "xPaid":
 		return c.X
 	case "YourLifeTotal":
+		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
+			return 0
+		}
 		return g.Players[c.Controller].Life
 	case "PlayerCountPlayers":
 		return int32(g.AliveCount())
@@ -136,7 +145,17 @@ func applyCountOp(n int32, op string) int32 {
 	return n
 }
 
-// SetSVars binds the SVar table to a context.
+// SetSVars binds a copy of the SVar table to a context. A nil input leaves
+// c.SVars nil, preserving the defensive-copy convention established by
+// copyTargets in context.go.
 func SetSVars(c *Ctx, sv map[string]string) {
-	c.SVars = sv
+	if sv == nil {
+		c.SVars = nil
+		return
+	}
+	copied := make(map[string]string, len(sv))
+	for k, v := range sv {
+		copied[k] = v
+	}
+	c.SVars = copied
 }
