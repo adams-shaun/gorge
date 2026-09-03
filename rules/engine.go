@@ -1,0 +1,107 @@
+// Package rules is the authoritative rules engine: turn structure, priority,
+// the stack, combat and state-based actions. It owns the only Game instance a
+// match has and mutates it exclusively through events.Emit.
+package rules
+
+import (
+	"fmt"
+
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/state"
+)
+
+type Config struct {
+	Seed  uint64
+	Names []string
+	Decks [][]*cards.Card
+}
+
+type Engine struct {
+	G *state.Game
+	L *events.Log
+
+	rng     *rng
+	pending *decision.Decision
+}
+
+const openingHand = 7
+
+func New(cfg Config) *Engine {
+	e := &Engine{
+		G:   state.NewGame(cfg.Names),
+		L:   events.NewLog(cfg.Seed),
+		rng: newRNG(cfg.Seed),
+	}
+	e.emit(events.Event{Kind: events.GameStart, Amount: int32(len(cfg.Names))})
+	for i, deck := range cfg.Decks {
+		p := state.PlayerID(i)
+		ids := make([]state.ObjID, 0, len(deck))
+		for _, c := range deck {
+			ids = append(ids, e.G.AddObject(c, p).ID)
+		}
+		e.G.SetZone(state.ZLibrary, p, ids)
+		order := append([]state.ObjID(nil), ids...)
+		e.rng.Shuffle(order)
+		// Library order is hidden information: the event carries it because the
+		// server needs it, and view projection redacts it for everyone else.
+		e.emit(events.Event{Kind: events.Shuffle, Player: p, IDs: order, Secret: true})
+		for j := 0; j < openingHand; j++ {
+			e.drawCard(p)
+		}
+	}
+	e.beginTurn(0)
+	return e
+}
+
+func (e *Engine) emit(ev events.Event) { events.Emit(e.G, e.L, ev) }
+
+func (e *Engine) Pending() *decision.Decision { return e.pending }
+
+func (e *Engine) ask(d *decision.Decision) {
+	d.Seq = uint64(len(e.L.Events))
+	e.emit(events.Event{Kind: events.DecisionAsk, Player: d.Player, Text: string(d.Kind)})
+	e.pending = d
+}
+
+// Advance runs engine work until a decision is required or the game ends.
+func (e *Engine) Advance() {
+	for !e.G.Over && e.pending == nil {
+		e.step()
+	}
+}
+
+// Submit applies a client's answer. Anything the engine did not offer is
+// rejected, which is what keeps the client rules-ignorant.
+func (e *Engine) Submit(in decision.Intent) error {
+	d := e.pending
+	if d == nil {
+		return fmt.Errorf("no decision pending")
+	}
+	if err := d.Validate(in); err != nil {
+		return err
+	}
+	e.L.Intents = append(e.L.Intents, in)
+	e.emit(events.Event{Kind: events.DecisionMade, Player: in.Player,
+		Text: fmt.Sprintf("%s:%v", d.Kind, in.Choices)})
+	e.pending = nil
+	e.handle(d, in)
+	e.checkStateBased()
+	e.Advance()
+	return nil
+}
+
+// drawCard draws for the turn structure. Task 18 moves the body into
+// effects.DrawFor and reduces this to a call, so the draw step and the Draw
+// primitive can never disagree about what drawing means.
+func (e *Engine) drawCard(p state.PlayerID) {
+	lib := e.G.Zone(state.ZLibrary, p)
+	if len(lib) == 0 {
+		e.emit(events.Event{Kind: events.PlayerLost, Player: p, Text: "drew from an empty library"})
+		e.checkGameOver()
+		return
+	}
+	e.emit(events.Event{Kind: events.Draw, Player: p, Obj: lib[0],
+		From: state.ZLibrary, To: state.ZHand, Secret: true})
+}
