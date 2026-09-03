@@ -54,7 +54,12 @@ func (l *Log) Append(e Event) Event {
 
 	e.Seq = uint64(len(l.Events))
 
-	// Copy IDs and Pairs slices to avoid aliasing issues when the caller mutates their slices
+	// Copy IDs and Pairs so a caller mutating its own slice afterwards cannot
+	// retroactively rewrite a logged event and desync Head from HeadAt.
+	// This also normalises a non-nil empty slice to nil. That is deliberate:
+	// the encoding writes a length prefix only, so nil and empty are already
+	// indistinguishable on the wire, and collapsing them keeps the in-memory
+	// log canonical with what the chain actually hashed.
 	e.IDs = append([]state.ObjID(nil), e.IDs...)
 	e.Pairs = append([][2]state.ObjID(nil), e.Pairs...)
 
