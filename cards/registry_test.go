@@ -69,24 +69,99 @@ func TestRegistryCacheRoundTrip(t *testing.T) {
 
 func TestRegistryRejectsTruncatedCache(t *testing.T) {
 	r := fixtureRegistry(t)
-	path := filepath.Join(t.TempDir(), "ir.gob.gz")
-	if err := r.Save(path); err != nil {
-		t.Fatalf("Save: %v", err)
+	tests := []struct {
+		name    string
+		mutate  func(path string) error // corrupts the cache file
+		wantErr bool
+	}{
+		{
+			name:    "intact_cache",
+			mutate:  func(path string) error { return nil }, // no mutation
+			wantErr: false,
+		},
+		{
+			name: "truncate_by_1_byte",
+			mutate: func(path string) error {
+				fi, err := os.Stat(path)
+				if err != nil {
+					return err
+				}
+				return os.Truncate(path, fi.Size()-1)
+			},
+			wantErr: true,
+		},
+		{
+			name: "truncate_by_4_bytes",
+			mutate: func(path string) error {
+				fi, err := os.Stat(path)
+				if err != nil {
+					return err
+				}
+				return os.Truncate(path, fi.Size()-4)
+			},
+			wantErr: true,
+		},
+		{
+			name: "truncate_by_8_bytes_whole_trailer",
+			mutate: func(path string) error {
+				fi, err := os.Stat(path)
+				if err != nil {
+					return err
+				}
+				return os.Truncate(path, fi.Size()-8)
+			},
+			wantErr: true,
+		},
+		{
+			name: "truncate_by_10_bytes",
+			mutate: func(path string) error {
+				fi, err := os.Stat(path)
+				if err != nil {
+					return err
+				}
+				return os.Truncate(path, fi.Size()-10)
+			},
+			wantErr: true,
+		},
+		{
+			name: "flip_byte_in_trailer",
+			mutate: func(path string) error {
+				data, err := os.ReadFile(path)
+				if err != nil {
+					return err
+				}
+				if len(data) < 8 {
+					return nil // skip if file too small
+				}
+				// Flip a bit in the last 8 bytes (the trailer)
+				data[len(data)-3] ^= 0x01
+				return os.WriteFile(path, data, 0o644)
+			},
+			wantErr: true,
+		},
 	}
-	// Truncate the file by 10 trailing bytes to corrupt the gzip trailer
-	fi, err := os.Stat(path)
-	if err != nil {
-		t.Fatalf("Stat: %v", err)
-	}
-	newSize := fi.Size() - 10
-	if newSize < 0 {
-		t.Skipf("file too small to truncate by 10 bytes")
-	}
-	if err := os.Truncate(path, newSize); err != nil {
-		t.Fatalf("Truncate: %v", err)
-	}
-	_, err = LoadRegistry(path)
-	if err == nil {
-		t.Fatal("LoadRegistry accepted truncated cache, want non-nil error")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpdir := t.TempDir()
+			path := filepath.Join(tmpdir, "ir.gob.gz")
+			if err := r.Save(path); err != nil {
+				t.Fatalf("Save: %v", err)
+			}
+			if err := tt.mutate(path); err != nil {
+				t.Fatalf("mutate: %v", err)
+			}
+			_, err := LoadRegistry(path)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("LoadRegistry error = %v, want error = %v", err, tt.wantErr)
+			}
+			// For the intact case, verify structure survives
+			if !tt.wantErr {
+				back, _ := LoadRegistry(path)
+				bolt, ok := back.Lookup("Lightning Bolt")
+				if !ok || bolt.Faces[0].SpellAbility() == nil {
+					t.Fatal("intact cache lost structure")
+				}
+			}
+		})
 	}
 }

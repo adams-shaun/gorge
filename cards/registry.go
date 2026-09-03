@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"encoding/gob"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -118,6 +119,10 @@ func LoadRegistry(path string) (*Registry, error) {
 	}
 	var cf cacheFile
 	if err := gob.NewDecoder(zr).Decode(&cf); err != nil {
+		zr.Close()
+		return nil, err
+	}
+	if _, err := io.Copy(io.Discard, zr); err != nil {
 		zr.Close()
 		return nil, err
 	}
