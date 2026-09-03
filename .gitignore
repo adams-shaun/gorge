@@ -1,0 +1,6 @@
+bin/
+# Fetched Forge corpus and the IR compiled from it. Never committed: the
+# scripts are GPL-3.0 and mtgcore is Apache-2.0.
+.cards/
+coverage.out
+coverage.html
