@@ -1,15 +1,24 @@
 package rules
 
 import (
+	"math"
 	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/state"
 )
 
-// Cost is a parsed mana cost. Hybrid and Phyrexian symbols are folded into
-// generic for M1: the decks in scope contain none, and treating them as generic
-// is permissive rather than wrong-in-a-way-that-blocks-play.
+// Cost is a parsed mana cost. X is a flag contributing 0 to CMC; a caller that
+// resolves X folds the chosen value into Generic before paying.
+//
+// Hybrid and Phyrexian symbols are approximated as one generic mana each. This
+// approximation is deliberately over-permissive: a {W/U} cost is payable by any
+// single mana of any colour, and a {UP} cost is payable without paying life.
+// This is a known M1 limitation — correct modelling needs an alternative-payment
+// representation that a later milestone must add. The M1 acceptance decks do not
+// use hybrid or Phyrexian-restricted payment, so the approximation has no effect
+// in practice: Dismember and Gitaxian Probe (the only M1 cards with Phyrexian
+// mana) are thus mispriced (accepting payment in regular mana, not life).
 type Cost struct {
 	Colored state.Mana
 	Generic int32
@@ -32,11 +41,14 @@ func ParseCost(s string) Cost {
 		case len(sym) == 1 && strings.ContainsAny(sym, "WUBRGC"):
 			c.Colored[state.ManaIndex(sym[0])]++
 		default:
-			if n, err := strconv.Atoi(sym); err == nil {
+			// Try to parse as a numeric token. Negative and out-of-range values
+			// fall through to the +1 generic fallback.
+			if n, err := strconv.ParseInt(sym, 10, 64); err == nil && n >= 0 && n <= int64(math.MaxInt32) {
 				c.Generic += int32(n)
 				continue
 			}
-			// Hybrid ("W/U") and Phyrexian ("W/P") land here.
+			// Hybrid ("W/U", "GW", "2B"), Phyrexian ("W/P", "UP", "BP"), and
+			// invalid numeric tokens land here.
 			c.Generic++
 		}
 	}

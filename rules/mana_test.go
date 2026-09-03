@@ -78,3 +78,90 @@ func TestPayFailsCleanly(t *testing.T) {
 		t.Fatal("a failed payment must not mutate the pool")
 	}
 }
+
+// This test pins the known M1 approximation: hybrid and Phyrexian symbols
+// are treated as generic mana, not as alternative payments. This is deliberately
+// over-permissive and affects Dismember and Gitaxian Probe in M1, which are
+// mispriced (accepting regular mana, not life). A future milestone must add
+// proper alternative-payment modelling.
+func TestHybridAndPhyrexianAreApproximatedAsGeneric(t *testing.T) {
+	// Forge spells color hybrid as "GW" (Kitchen Finks), "RW" (Figure of Destiny).
+	// "1 GW" parses as numeric "1" (Generic: 1) + unrecognized "GW" (Generic: 1) = Generic: 2.
+	gwCost := ParseCost("1 GW")
+	if gwCost.Generic != 2 || gwCost.Colored.Total() != 0 {
+		t.Errorf("ParseCost(\"1 GW\") = %+v, want generic=2, colored=0", gwCost)
+	}
+	// Cost should be payable by any mana (over-permissive: no color requirement).
+	if !gwCost.CanPay(pool(2, 0, 0, 0, 0, 0)) {
+		t.Error("GW cost should be payable by WW")
+	}
+	if !gwCost.CanPay(pool(0, 0, 2, 0, 0, 0)) {
+		t.Error("GW cost should be payable by BB (over-permissive)")
+	}
+	if !gwCost.CanPay(pool(0, 0, 0, 0, 0, 2)) {
+		t.Error("GW cost should be payable by CC (over-permissive)")
+	}
+
+	// Forge spells monocolour hybrid as "2B" (Beseech the Queen).
+	// "2B" is unrecognized as a numeric token, so Generic: 1.
+	monoCost := ParseCost("2B")
+	if monoCost.Generic != 1 || monoCost.Colored.Total() != 0 {
+		t.Errorf("ParseCost(\"2B\") = %+v, want generic=1, colored=0", monoCost)
+	}
+
+	// Forge rarely spells hybrid as "W/U" (one card out of 33,669).
+	slashCost := ParseCost("W/U")
+	if slashCost.Generic != 1 || slashCost.Colored.Total() != 0 {
+		t.Errorf("ParseCost(\"W/U\") = %+v, want generic=1, colored=0", slashCost)
+	}
+
+	// Phyrexian mana (UP, BP) is also approximated as generic.
+	// Dismember is "ManaCost:1 BP BP", which parses to "1" (Generic: 1) + "BP" (Generic: 1) + "BP" (Generic: 1) = Generic: 3.
+	dismemberCost := ParseCost("1 BP BP")
+	if dismemberCost.Generic != 3 || dismemberCost.Colored.Total() != 0 {
+		t.Errorf("ParseCost(\"1 BP BP\") = %+v, want generic=3, colored=0", dismemberCost)
+	}
+	// Should be payable by any mana (BP misprice: no life payment).
+	if !dismemberCost.CanPay(pool(0, 0, 0, 3, 0, 0)) {
+		t.Error("Dismember cost should be payable by RRR (misprice: no life)")
+	}
+
+	// Gitaxian Probe is "ManaCost:UP".
+	probeCost := ParseCost("UP")
+	if probeCost.Generic != 1 || probeCost.Colored.Total() != 0 {
+		t.Errorf("ParseCost(\"UP\") = %+v, want generic=1, colored=0", probeCost)
+	}
+	if !probeCost.CanPay(pool(0, 0, 0, 0, 1, 0)) {
+		t.Error("Gitaxian Probe cost should be payable by G alone (misprice: no life)")
+	}
+}
+
+// This test pins the known numeric validation: negative and out-of-range
+// numeric tokens are treated as unrecognized symbols and contribute +1 generic.
+func TestNumericTokenValidation(t *testing.T) {
+	// Negative tokens should fall through to +1 generic.
+	negCost := ParseCost("-1")
+	if negCost.Generic != 1 || negCost.Colored.Total() != 0 {
+		t.Errorf("ParseCost(\"-1\") = %+v, want generic=1", negCost)
+	}
+
+	// Tokens above int32 max should fall through to +1 generic.
+	// int32 max is 2147483647.
+	overflowCost := ParseCost("2147483648")
+	if overflowCost.Generic != 1 || overflowCost.Colored.Total() != 0 {
+		t.Errorf("ParseCost(\"2147483648\") = %+v, want generic=1", overflowCost)
+	}
+
+	// Tokens above int64 max should fall through to +1 generic.
+	// int64 max is 9223372036854775807.
+	largeOverflowCost := ParseCost("9223372036854775808")
+	if largeOverflowCost.Generic != 1 || largeOverflowCost.Colored.Total() != 0 {
+		t.Errorf("ParseCost(\"9223372036854775808\") = %+v, want generic=1", largeOverflowCost)
+	}
+
+	// Valid boundary: int32 max should parse correctly.
+	validMaxCost := ParseCost("2147483647")
+	if validMaxCost.Generic != 2147483647 || validMaxCost.Colored.Total() != 0 {
+		t.Errorf("ParseCost(\"2147483647\") = %+v, want generic=2147483647", validMaxCost)
+	}
+}
