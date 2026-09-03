@@ -270,7 +270,7 @@ func TestApplyNeverPanics(t *testing.T) {
 	allKinds := []Kind{GameStart, Shuffle, MoveZone, Draw, LifeChange, Damage, Tap, Untap,
 		StepChange, TurnChange, Priority, PutOnStack, Resolve, ManaAdd, ManaClear,
 		CounterChange, DeclareAttackers, DeclareBlockers, PlayerLost, GameOver,
-		DecisionAsk, DecisionMade, Note, LandPlayed, TargetsChosen}
+		DecisionAsk, DecisionMade, Note, LandPlayed, TargetsChosen, FlipFace}
 
 	const badZone = state.Zone(200)
 	const badObj = state.ObjID(999999)
@@ -519,5 +519,71 @@ func TestTargetsChosenSetsObjectTargets(t *testing.T) {
 
 	if got, want := TargetsChosen.String(), "targets_chosen"; got != want {
 		t.Fatalf("TargetsChosen.String() = %q, want %q", got, want)
+	}
+}
+
+// twoFacedCard builds a two-face card for FlipFace's tests: parseSA/parse.go
+// starts a new Face on an "ALTERNATE" line.
+func twoFacedCard(t *testing.T) *cards.Card {
+	t.Helper()
+	src := "Name:Front\nTypes:Creature\nPT:1/1\nOracle:x\n\nALTERNATE\n\nName:Back\nTypes:Creature\nPT:3/3\nOracle:x\n"
+	c, d := cards.ParseBytes("t.txt", []byte(src))
+	if len(d) != 0 {
+		t.Fatalf("diags: %v", d)
+	}
+	c.Link()
+	return c
+}
+
+// TestFlipFaceChangesActiveFace is Task 18's regression test for SetState's
+// dedicated event (Ruling T18-a): FaceIdx must move through an event like
+// every other mutation, and every hostile input (nil object, a single-face
+// card, an out-of-range index) must be a no-op rather than a panic or an
+// out-of-bounds FaceIdx.
+func TestFlipFaceChangesActiveFace(t *testing.T) {
+	g, l := twoPlayer(t)
+	two := twoFacedCard(t)
+	o := g.AddObject(two, 0)
+	o.Zone = state.ZBattlefield
+	g.SetZone(state.ZBattlefield, 0, append(g.Zone(state.ZBattlefield, 0), o.ID))
+
+	if o.FaceIdx != 0 {
+		t.Fatalf("FaceIdx = %d before any event, want 0", o.FaceIdx)
+	}
+	Emit(g, l, Event{Kind: FlipFace, Obj: o.ID, Amount: 1})
+	if o.FaceIdx != 1 {
+		t.Fatalf("FaceIdx = %d, want 1", o.FaceIdx)
+	}
+	if o.Face().Name != "Back" {
+		t.Fatalf("Face().Name = %q, want Back", o.Face().Name)
+	}
+	Emit(g, l, Event{Kind: FlipFace, Obj: o.ID, Amount: 0})
+	if o.FaceIdx != 0 || o.Face().Name != "Front" {
+		t.Fatalf("flip back failed: FaceIdx=%d name=%q", o.FaceIdx, o.Face().Name)
+	}
+
+	// An index at or beyond len(Faces) must not corrupt FaceIdx.
+	Emit(g, l, Event{Kind: FlipFace, Obj: o.ID, Amount: 2})
+	if o.FaceIdx != 0 {
+		t.Fatalf("out-of-range FaceIdx accepted: %d", o.FaceIdx)
+	}
+	Emit(g, l, Event{Kind: FlipFace, Obj: o.ID, Amount: -1})
+	if o.FaceIdx != 0 {
+		t.Fatalf("negative FaceIdx accepted: %d", o.FaceIdx)
+	}
+
+	// A single-face card (the bear fixture) must never move off face 0.
+	single := g.Zone(state.ZLibrary, 1)[0]
+	Emit(g, l, Event{Kind: FlipFace, Obj: single, Amount: 1})
+	if g.Obj(single).FaceIdx != 0 {
+		t.Fatal("FlipFace moved a single-face card off its only face")
+	}
+
+	// A token (Card == nil) and a nonexistent object must both be no-ops.
+	Emit(g, l, Event{Kind: FlipFace, Obj: 0, Amount: 1})
+	Emit(g, l, Event{Kind: FlipFace, Obj: state.ObjID(99999), Amount: 1})
+
+	if got, want := FlipFace.String(), "flip_face"; got != want {
+		t.Fatalf("FlipFace.String() = %q, want %q", got, want)
 	}
 }

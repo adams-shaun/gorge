@@ -139,6 +139,12 @@ func Apply(g *state.Game, e Event) {
 				o.Targets = targets
 			}
 		}
+
+	case FlipFace:
+		if o := g.Obj(e.Obj); o != nil && o.Card != nil &&
+			e.Amount >= 0 && int(e.Amount) < len(o.Card.Faces) {
+			o.FaceIdx = uint8(e.Amount)
+		}
 	}
 }
 

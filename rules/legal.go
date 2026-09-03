@@ -91,7 +91,7 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		o := e.G.Obj(opt.Obj)
 		e.emit(events.Event{Kind: events.Tap, Obj: opt.Obj})
 		for _, ma := range o.Face().ManaAbilities() {
-			e.resolveAbility(opt.Obj, in.Player, nil, ma)
+			e.resolveAbility(opt.Obj, in.Player, nil, ma, o.Face().SVars)
 		}
 
 	case "cast":

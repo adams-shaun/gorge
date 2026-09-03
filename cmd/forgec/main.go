@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/effects"
 )
 
 func main() {
@@ -72,9 +73,10 @@ func report(dir string, top int) error {
 	if l, err := cards.ReadLock(dir); err == nil {
 		fmt.Printf("corpus: %s @ %s (%s, %d files)\n", l.Ref, l.Commit, l.License, l.Files)
 	}
-	// M0 implements no primitives; the report is still meaningful because it
-	// ranks what to build next. Later milestones pass effects.Supported().
-	cv := r.Coverage(map[string]bool{})
+	// Task 18 wires in the real primitive set; earlier milestones passed an
+	// empty map here, which made every card "not playable" but still let the
+	// report rank what to build next.
+	cv := r.Coverage(effects.Supported())
 	fmt.Printf("cards: %d  playable: %d (%.1f%%)\n",
 		cv.Cards, cv.Supported, 100*float64(cv.Supported)/float64(cv.Cards))
 	fmt.Println("\ntop missing primitives (cards unlocked):")

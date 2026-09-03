@@ -47,13 +47,23 @@ const (
 	// indistinguishable from "player 0 was targeted" -- PlayerID 0 is a real
 	// seat as well as the zero value.
 	TargetsChosen
+	// FlipFace changes an object's active face. Task 18's SetState primitive
+	// is the only source of this event. Appended here rather than inserted
+	// nearer Tap/Untap (Ruling T18-a, following TargetsChosen's own T14-b
+	// precedent) so every earlier Kind's numeric value -- and therefore the
+	// hash chain and any golden replay already locked in -- is unaffected.
+	//
+	// Amount carries the destination FaceIdx directly, not a delta: SetState
+	// resolves Mode$ (Transform/Flip/...) to a concrete index itself, so
+	// Apply does not need to know the object's current face to act on it.
+	FlipFace
 )
 
 var kindNames = [...]string{"game_start", "shuffle", "move_zone", "draw",
 	"life", "damage", "tap", "untap", "step", "turn", "priority", "stack_push",
 	"stack_resolve", "mana_add", "mana_clear", "counter", "declare_attackers",
 	"declare_blockers", "player_lost", "game_over", "decision_ask",
-	"decision_made", "note", "land_played", "targets_chosen"}
+	"decision_made", "note", "land_played", "targets_chosen", "flip_face"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

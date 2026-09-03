@@ -17,6 +17,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -104,16 +105,10 @@ func (e *Engine) Submit(in decision.Intent) error {
 	return nil
 }
 
-// drawCard draws for the turn structure. Task 18 moves the body into
-// effects.DrawFor and reduces this to a call, so the draw step and the Draw
-// primitive can never disagree about what drawing means.
+// drawCard draws for the turn structure, sharing effects.DrawFor with the
+// Draw primitive so the draw step and a card that says "draw a card" can
+// never disagree about what drawing means.
 func (e *Engine) drawCard(p state.PlayerID) {
-	lib := e.G.Zone(state.ZLibrary, p)
-	if len(lib) == 0 {
-		e.emit(events.Event{Kind: events.PlayerLost, Player: p, Text: "drew from an empty library"})
-		e.checkGameOver()
-		return
-	}
-	e.emit(events.Event{Kind: events.Draw, Player: p, Obj: lib[0],
-		From: state.ZLibrary, To: state.ZHand, Secret: true})
+	effects.DrawFor(e, p)
+	e.checkGameOver()
 }

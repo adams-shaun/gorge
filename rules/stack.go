@@ -138,7 +138,8 @@ func (e *Engine) resolveTop() {
 		// so it is parked in exile as the closest existing approximation;
 		// Task 20 owns getting this exactly right.
 		e.emit(events.Event{Kind: events.Resolve, Obj: id})
-		e.resolveAbility(id, o.Controller, o.Targets, o.Ability)
+		// No Face means no SVar table either, so this passes nil.
+		e.resolveAbility(id, o.Controller, o.Targets, o.Ability, nil)
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZExile})
 		return
 	}
@@ -146,7 +147,7 @@ func (e *Engine) resolveTop() {
 	f := o.Face()
 	e.emit(events.Event{Kind: events.Resolve, Obj: id, Text: f.Name})
 	if sa := f.SpellAbility(); sa != nil {
-		e.resolveAbility(id, o.Controller, o.Targets, sa)
+		e.resolveAbility(id, o.Controller, o.Targets, sa, f.SVars)
 	}
 	if f.IsPermanent() {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZBattlefield})
@@ -155,10 +156,15 @@ func (e *Engine) resolveTop() {
 	}
 }
 
-// resolveAbility walks an SA chain, running each API's implementation.
+// resolveAbility walks an SA chain, running each API's implementation. svars
+// is the resolving face's SVar table (nil for an ability-only stack object),
+// which is what lets Num's SVar indirection and primitives like Charm and
+// Repeat -- which run a sub-ability named by SVar rather than the
+// auto-linked "SubAbility$" -- actually resolve something outside a test.
 func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
-	targets []state.Target, sa *cards.SA) {
+	targets []state.Target, sa *cards.SA, svars map[string]string) {
 	ctx := &effects.Ctx{Source: source, Controller: controller, Targets: targets}
+	effects.SetSVars(ctx, svars)
 	effects.Resolve(e, ctx, sa)
 }
 
