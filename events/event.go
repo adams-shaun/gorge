@@ -36,13 +36,24 @@ const (
 	DecisionMade
 	Note
 	LandPlayed
+	// TargetsChosen carries a spell or ability's chosen targets. Appended here
+	// (Ruling T14-b) rather than inserted near PutOnStack/Resolve so every
+	// earlier kind's numeric value, and therefore the hash chain and the
+	// golden replays Tasks 9-13 already locked in, is unaffected.
+	//
+	// Amount is the discriminator between the two target shapes: 0 means
+	// object targets (read from IDs), 1 means a player target (read from
+	// Player). An empty IDs with a zero Player would otherwise be
+	// indistinguishable from "player 0 was targeted" -- PlayerID 0 is a real
+	// seat as well as the zero value.
+	TargetsChosen
 )
 
 var kindNames = [...]string{"game_start", "shuffle", "move_zone", "draw",
 	"life", "damage", "tap", "untap", "step", "turn", "priority", "stack_push",
 	"stack_resolve", "mana_add", "mana_clear", "counter", "declare_attackers",
 	"declare_blockers", "player_lost", "game_over", "decision_ask",
-	"decision_made", "note", "land_played"}
+	"decision_made", "note", "land_played", "targets_chosen"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

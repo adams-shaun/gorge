@@ -124,6 +124,21 @@ func Apply(g *state.Game, e Event) {
 		if validPlayer(g, e.Player) {
 			g.Players[e.Player].LandsPlayed++
 		}
+
+	case TargetsChosen:
+		if o := g.Obj(e.Obj); o != nil {
+			if e.Amount == 1 {
+				if validPlayer(g, e.Player) {
+					o.Targets = []state.Target{{Player: e.Player, IsPlayer: true}}
+				}
+			} else {
+				var targets []state.Target
+				for _, id := range e.IDs {
+					targets = append(targets, state.Target{Obj: id})
+				}
+				o.Targets = targets
+			}
+		}
 	}
 }
 

@@ -270,7 +270,7 @@ func TestApplyNeverPanics(t *testing.T) {
 	allKinds := []Kind{GameStart, Shuffle, MoveZone, Draw, LifeChange, Damage, Tap, Untap,
 		StepChange, TurnChange, Priority, PutOnStack, Resolve, ManaAdd, ManaClear,
 		CounterChange, DeclareAttackers, DeclareBlockers, PlayerLost, GameOver,
-		DecisionAsk, DecisionMade, Note, LandPlayed}
+		DecisionAsk, DecisionMade, Note, LandPlayed, TargetsChosen}
 
 	const badZone = state.Zone(200)
 	const badObj = state.ObjID(999999)
@@ -462,5 +462,62 @@ func TestApplyIsPure(t *testing.T) {
 	if g1.Turn != g2.Turn || g1.Active != g2.Active || g1.Clock != g2.Clock {
 		t.Fatalf("scalar state diverged: turn=%d/%d active=%d/%d clock=%d/%d",
 			g1.Turn, g2.Turn, g1.Active, g2.Active, g1.Clock, g2.Clock)
+	}
+}
+
+// TestTargetsChosenSetsObjectTargets is Ruling T14-b's regression test: a
+// spell or ability's chosen targets must flow through an event, the same as
+// every other state mutation, so that replaying the log alone reproduces
+// what the live game has. Covers both target shapes (Amount discriminates
+// them), a nil-object no-op, an invalid-player no-op, and String().
+func TestTargetsChosenSetsObjectTargets(t *testing.T) {
+	g, l := twoPlayer(t)
+	spell := g.Zone(state.ZLibrary, 0)[0]
+	Emit(g, l, Event{Kind: MoveZone, Obj: spell, From: state.ZLibrary, To: state.ZStack})
+
+	creature := g.Zone(state.ZLibrary, 0)[1]
+
+	// Object targets: Amount 0, read from IDs.
+	Emit(g, l, Event{Kind: TargetsChosen, Obj: spell, Amount: 0, IDs: []state.ObjID{creature}})
+	got := g.Obj(spell).Targets
+	if len(got) != 1 || got[0].Obj != creature || got[0].IsPlayer {
+		t.Fatalf("object target = %+v, want a single object target of %d", got, creature)
+	}
+
+	// A player target: Amount 1, read from Player. Overwrites the prior
+	// object target rather than accumulating.
+	Emit(g, l, Event{Kind: TargetsChosen, Obj: spell, Amount: 1, Player: 0})
+	got = g.Obj(spell).Targets
+	if len(got) != 1 || !got[0].IsPlayer || got[0].Player != 0 {
+		t.Fatalf("player target = %+v, want a single player-0 target", got)
+	}
+	// PlayerID 0 is both a real seat and the zero value: confirm this is not
+	// mistaken for "no target" by checking IsPlayer explicitly, and that
+	// seat 1 also works (rules out the discriminator secretly keying off a
+	// nonzero Player value instead of Amount).
+	Emit(g, l, Event{Kind: TargetsChosen, Obj: spell, Amount: 1, Player: 1})
+	got = g.Obj(spell).Targets
+	if len(got) != 1 || !got[0].IsPlayer || got[0].Player != 1 {
+		t.Fatalf("player-1 target = %+v, want a single player-1 target", got)
+	}
+
+	// A nil object (Obj 0, or one that does not exist) must be a no-op, not
+	// a panic.
+	before := g.Obj(spell).Targets
+	Emit(g, l, Event{Kind: TargetsChosen, Obj: 0, Amount: 1, Player: 0})
+	Emit(g, l, Event{Kind: TargetsChosen, Obj: state.ObjID(99999), Amount: 1, Player: 0})
+	if got := g.Obj(spell).Targets; !reflect.DeepEqual(got, before) {
+		t.Fatalf("a nil-object TargetsChosen event mutated something: %+v", got)
+	}
+
+	// An invalid player must be a no-op, leaving the object's existing
+	// targets (from the last valid write) untouched.
+	Emit(g, l, Event{Kind: TargetsChosen, Obj: spell, Amount: 1, Player: state.PlayerID(250)})
+	if got := g.Obj(spell).Targets; len(got) != 1 || !got[0].IsPlayer || got[0].Player != 1 {
+		t.Fatalf("invalid-player TargetsChosen changed targets to %+v, want unchanged", got)
+	}
+
+	if got, want := TargetsChosen.String(), "targets_chosen"; got != want {
+		t.Fatalf("TargetsChosen.String() = %q, want %q", got, want)
 	}
 }
