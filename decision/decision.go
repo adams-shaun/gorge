@@ -23,11 +23,13 @@ const (
 // Option is one legal choice. Obj and Player are echoed only so a client can
 // highlight the object; selection is by Index.
 type Option struct {
-	Index  int            `json:"index"`
-	Kind   string         `json:"kind"`
-	Label  string         `json:"label"`
-	Obj    state.ObjID    `json:"obj,omitempty"`
-	Player state.PlayerID `json:"player,omitempty"`
+	Index int         `json:"index"`
+	Kind  string      `json:"kind"`
+	Label string      `json:"label"`
+	Obj   state.ObjID `json:"obj,omitempty"`
+	// Player is always emitted because 0 is a valid seat (0-indexed), unlike
+	// Obj where 0 means "no object".
+	Player state.PlayerID `json:"player"`
 	// Attacker is server-side only: for a block option, which attacker this
 	// blocker would block.
 	Attacker state.ObjID `json:"-"`
@@ -79,8 +81,16 @@ func (d *Decision) Validate(in Intent) error {
 }
 
 // Chosen resolves an intent to options, in the order the client sent them.
-// Call only after Validate.
+// Returns nil if any index is out of range [0, len(d.Options)).
+// Validate is the sanctioned path for validation; Chosen returns nil rather than
+// panicking on indices it was not given a chance to validate.
 func (d *Decision) Chosen(in Intent) []Option {
+	// All-or-nothing: if ANY index is out of range, return nil
+	for _, c := range in.Choices {
+		if c < 0 || c >= len(d.Options) {
+			return nil
+		}
+	}
 	out := make([]Option, 0, len(in.Choices))
 	for _, c := range in.Choices {
 		out = append(out, d.Options[c])
