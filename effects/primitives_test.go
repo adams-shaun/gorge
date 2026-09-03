@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -776,5 +777,55 @@ func TestTokenAndCopySpellAbilityAreNotYetRegistered(t *testing.T) {
 	Resolve(h, &Ctx{Controller: 0, Source: 1}, sa(t, "DB$ Token | TokenAmount$ 1 | TokenScript$ r_1_1_goblin"))
 	if len(h.log) != 1 || h.log[0].Kind != events.Note || h.log[0].Text != "unimplemented API Token" {
 		t.Fatalf("log = %+v", h.log)
+	}
+}
+
+// TestCardflowAPIsGuardOutOfRangePlayerID is Ruling T18-a's regression test.
+// Every one of cardflow.go's nine registered APIs eventually reads a zone via
+// PlayerOf's result (a target's raw Player field) or, for NameCard,
+// Ctx.Controller directly. Neither is validated before this task's fix, and
+// Game.Zone computes int(p)*numZones+int(z) with no bounds check of its own
+// before indexing a fixed-size slice -- an out-of-range PlayerID reached that
+// arithmetic and panicked. Each API is exercised two ways: an out-of-range
+// target Player (PlayerOf returns t.Player unchecked), and an out-of-range
+// Ctx.Controller reaching the same code path via "Defined$ You" (NameCard
+// reads Ctx.Controller directly regardless of Defined$, so it skips that
+// suffix). Both must be a total no-op: no panic, and the game state
+// afterwards is reflect.DeepEqual to a clone taken beforehand.
+func TestCardflowAPIsGuardOutOfRangePlayerID(t *testing.T) {
+	apis := []string{"Draw", "Discard", "Mill", "Dig",
+		"Reveal", "RevealHand", "PeekAndReveal", "RearrangeTopOfLibrary", "NameCard"}
+
+	run := func(t *testing.T, line string, c *Ctx) {
+		t.Helper()
+		g, _ := board(t)
+		h := &fakeHost{g: g}
+		before := g.Clone()
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Fatalf("panicked resolving %q: %v", line, r)
+				}
+			}()
+			Resolve(h, c, sa(t, line))
+		}()
+		if !reflect.DeepEqual(before, g) {
+			t.Fatalf("state changed resolving %q with an out-of-range PlayerID", line)
+		}
+	}
+
+	for _, api := range apis {
+		api := api
+		t.Run(api+"/target_player_out_of_range", func(t *testing.T) {
+			run(t, "SP$ "+api, &Ctx{Controller: 0,
+				Targets: []state.Target{{Player: 250, IsPlayer: true}}})
+		})
+		t.Run(api+"/controller_out_of_range", func(t *testing.T) {
+			line := "SP$ " + api
+			if api != "NameCard" {
+				line += " | Defined$ You"
+			}
+			run(t, line, &Ctx{Controller: 250})
+		})
 	}
 }

@@ -18,11 +18,29 @@ func init() {
 	Register("NameCard", effNameCard)
 }
 
+// zoneOf is a bounds-checked g.Zone. PlayerOf returns a target's raw Player
+// field (or, for effNameCard, Ctx.Controller is passed straight through)
+// with no validation of its own, and Game.Zone computes
+// int(p)*numZones+int(z) and indexes a fixed-size slice without checking
+// that p names a real seat -- an out-of-range PlayerID reaches that
+// arithmetic and panics with index out of range (Ruling T18-a). Every call
+// site in this file that reads a zone to decide what to move goes through
+// this rather than g.Zone directly, mirroring count.go's own PlayerID bounds
+// check ahead of g.Players[c.Controller]. An invalid seat degrades to nil --
+// the same shape as a real, empty zone -- so the primitive simply finds
+// nothing there rather than panicking or erroring.
+func zoneOf(g *state.Game, z state.Zone, p state.PlayerID) []state.ObjID {
+	if int(p) >= len(g.Players) {
+		return nil
+	}
+	return g.Zone(z, p)
+}
+
 // DrawFor is exported so the rules package can use the same code path for the
 // draw step. Drawing from an empty library is a loss, checked by SBAs.
 func DrawFor(h Host, p state.PlayerID) {
 	g := h.Game()
-	lib := g.Zone(state.ZLibrary, p)
+	lib := zoneOf(g, state.ZLibrary, p)
 	if len(lib) == 0 {
 		h.Emit(events.Event{Kind: events.PlayerLost, Player: p, Text: "drew from an empty library"})
 		return
@@ -51,7 +69,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 	for _, t := range Defined(h, c, sa) {
 		p := PlayerOf(h, c, t)
 		for i := int32(0); i < n; i++ {
-			hand := g.Zone(state.ZHand, p)
+			hand := zoneOf(g, state.ZHand, p)
 			if len(hand) == 0 {
 				break
 			}
@@ -72,7 +90,7 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 	for _, t := range Defined(h, c, sa) {
 		p := PlayerOf(h, c, t)
 		for i := int32(0); i < n; i++ {
-			lib := g.Zone(state.ZLibrary, p)
+			lib := zoneOf(g, state.ZLibrary, p)
 			if len(lib) == 0 {
 				break
 			}
@@ -120,7 +138,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	for _, t := range Defined(h, c, sa) {
 		p := PlayerOf(h, c, t)
-		lib := g.Zone(state.ZLibrary, p)
+		lib := zoneOf(g, state.ZLibrary, p)
 		n := digNum
 		if int32(len(lib)) < n {
 			n = int32(len(lib))
@@ -161,7 +179,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	for _, t := range Defined(h, c, sa) {
 		p := PlayerOf(h, c, t)
-		pool := g.Zone(zone, p)
+		pool := zoneOf(g, zone, p)
 		n := amt
 		if int32(len(pool)) < n {
 			n = int32(len(pool))
@@ -186,7 +204,7 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	for _, t := range Defined(h, c, sa) {
 		p := PlayerOf(h, c, t)
-		lib := g.Zone(state.ZLibrary, p)
+		lib := zoneOf(g, state.ZLibrary, p)
 		k := n
 		if int32(len(lib)) < k {
 			k = int32(len(lib))
@@ -203,7 +221,7 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 // expects one.
 func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
-	lib := g.Zone(state.ZLibrary, c.Controller)
+	lib := zoneOf(g, state.ZLibrary, c.Controller)
 	name := ""
 	if len(lib) > 0 {
 		if o := g.Obj(lib[0]); o != nil && o.Face() != nil {
