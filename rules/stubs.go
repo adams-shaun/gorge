@@ -16,18 +16,21 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 	if d.Chosen(in)[0].Kind != "pass" {
 		return
 	}
-	e.G.Passes++
-	if e.G.Passes >= int32(e.G.AliveCount()) {
-		e.G.Passes = 0
+	passes := e.G.Passes + 1
+	if passes >= int32(e.G.AliveCount()) {
 		if len(e.G.Stack) > 0 {
 			e.resolveTop()
-			e.G.Priority = e.G.Active
+			// The pass count resets: priority returns to the active player
+			// after a resolution, same as at the start of any other step.
+			e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 			return
 		}
+		// advanceStep's own emit carries the reset pass count; the count
+		// this round reached is never itself a value anything observes.
 		e.advanceStep()
 		return
 	}
-	e.G.Priority = e.G.NextAlive(e.G.Priority)
+	e.emit(events.Event{Kind: events.Priority, Player: e.G.NextAlive(e.G.Priority), Amount: passes})
 }
 
 // Replaced in Tasks 14, 21 and 22.

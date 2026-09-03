@@ -1,6 +1,15 @@
 // Package rules is the authoritative rules engine: turn structure, priority,
 // the stack, combat and state-based actions. It owns the only Game instance a
 // match has and mutates it exclusively through events.Emit.
+//
+// The event log is NOT a complete match description by itself. Genesis --
+// state.NewGame and the initial AddObject calls that build each player's
+// deck into the object arena, both in New below -- runs before the log
+// exists and legitimately bypasses events. Replaying L.Events alone
+// reconstructs everything that happens from that point on (turn structure,
+// zone moves, life, damage, priority and so on), but it can never recover
+// deck contents or player names: those are never logged. A faithful replay
+// needs the original Config together with the log, not the log alone.
 package rules
 
 import (
@@ -75,6 +84,9 @@ func (e *Engine) Advance() {
 // Submit applies a client's answer. Anything the engine did not offer is
 // rejected, which is what keeps the client rules-ignorant.
 func (e *Engine) Submit(in decision.Intent) error {
+	if e.G.Over {
+		return fmt.Errorf("game is over")
+	}
 	d := e.pending
 	if d == nil {
 		return fmt.Errorf("no decision pending")

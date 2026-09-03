@@ -17,7 +17,8 @@ func (e *Engine) beginTurn(active state.PlayerID) {
 		}
 	}
 	e.setStep(state.StepUpkeep)
-	e.G.Priority = active
+	// Start of turn resets the pass count along with the holder.
+	e.emit(events.Event{Kind: events.Priority, Player: active})
 }
 
 func (e *Engine) setStep(s state.Step) {
@@ -62,14 +63,26 @@ func (e *Engine) priorityRound() {
 		return
 	}
 	// The active player's draw happens once, before anyone gets priority.
-	if e.G.Step == state.StepDraw && e.G.Turn > 1 && e.G.Passes == 0 && e.G.Priority == e.G.Active {
+	// An eliminated active player draws nothing: unreachable today (drawing
+	// from an empty library is the only elimination source, and that seat
+	// would already be Lost, not still due a draw), but state-based actions
+	// will add other ways to lose without touching the draw step.
+	if e.G.Step == state.StepDraw && e.G.Turn > 1 && e.G.Passes == 0 &&
+		e.G.Priority == e.G.Active && !e.G.Players[e.G.Active].Lost {
 		e.drawCard(e.G.Active)
 	}
-	if e.G.Players[e.G.Priority].Lost {
-		e.G.Priority = e.G.NextAlive(e.G.Priority)
+	// The draw above can eliminate the active player and end the game (an
+	// empty-library draw is a loss). A finished game must not hand out a
+	// fresh priority decision.
+	if e.G.Over {
+		return
 	}
-	e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority})
-	e.askPriority(e.G.Priority)
+	holder := e.G.Priority
+	if e.G.Players[holder].Lost {
+		holder = e.G.NextAlive(holder)
+	}
+	e.emit(events.Event{Kind: events.Priority, Player: holder, Amount: e.G.Passes})
+	e.askPriority(holder)
 }
 
 func (e *Engine) askPriority(p state.PlayerID) {
@@ -83,13 +96,13 @@ func (e *Engine) askPriority(p state.PlayerID) {
 }
 
 func (e *Engine) advanceStep() {
-	e.G.Passes = 0
 	if e.G.Step == state.StepCleanup {
+		// beginTurn resets the pass count along with the new holder.
 		e.beginTurn(e.G.NextAlive(e.G.Active))
 		return
 	}
 	e.setStep(e.G.Step + 1)
-	e.G.Priority = e.G.Active
+	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 }
 
 // handle dispatches a validated intent to the code that owns that decision

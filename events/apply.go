@@ -66,7 +66,14 @@ func Apply(g *state.Game, e Event) {
 		}
 
 	case Priority:
-		g.Priority = e.Player
+		if validPlayer(g, e.Player) {
+			g.Priority = e.Player
+			passes := e.Amount
+			if passes < 0 {
+				passes = 0
+			}
+			g.Passes = passes
+		}
 
 	case ManaAdd:
 		if validPlayer(g, e.Player) {
