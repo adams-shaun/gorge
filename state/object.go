@@ -1,0 +1,80 @@
+package state
+
+import "github.com/adams-shaun/gorge/cards"
+
+// Counter is one counter kind on an object. A slice, not a map: it clones by
+// copy and iterates in a fixed order.
+type Counter struct {
+	Kind string
+	N    int32
+}
+
+// Target is a chosen target. Exactly one of Obj and Player is meaningful.
+type Target struct {
+	Obj      ObjID
+	Player   PlayerID
+	IsPlayer bool
+}
+
+// Object is any game object: a card in a zone, a permanent, or a spell on the
+// stack. One struct keeps identity stable across zone changes.
+type Object struct {
+	ID         ObjID
+	Card       *cards.Card
+	FaceIdx    uint8
+	Owner      PlayerID
+	Controller PlayerID
+	Zone       Zone
+
+	Tapped     bool
+	SummonSick bool
+	Damage     int32
+	Counters   []Counter
+
+	// Stack-only.
+	Ability *cards.SA
+	Source  ObjID
+	Targets []Target
+
+	// Combat-only.
+	IsAttacking bool
+	Attacking   PlayerID
+	BlockedBy   []ObjID
+
+	// Timestamp orders continuous effects. Assigned from Game.Clock whenever
+	// the object enters the battlefield.
+	Timestamp uint32
+}
+
+func (o *Object) Face() *cards.Face {
+	if o.Card == nil || int(o.FaceIdx) >= len(o.Card.Faces) {
+		return nil
+	}
+	return o.Card.Faces[o.FaceIdx]
+}
+
+func (o *Object) Counter(kind string) int32 {
+	for _, c := range o.Counters {
+		if c.Kind == kind {
+			return c.N
+		}
+	}
+	return 0
+}
+
+// AddCounter adds n counters of a kind, creating the entry if needed. Counters
+// never go negative: removing more than present clamps at zero.
+func (o *Object) AddCounter(kind string, n int32) {
+	for i := range o.Counters {
+		if o.Counters[i].Kind == kind {
+			o.Counters[i].N += n
+			if o.Counters[i].N < 0 {
+				o.Counters[i].N = 0
+			}
+			return
+		}
+	}
+	if n > 0 {
+		o.Counters = append(o.Counters, Counter{kind, n})
+	}
+}
