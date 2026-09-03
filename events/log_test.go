@@ -92,3 +92,126 @@ func TestNoHashSkipsChainButKeepsEvents(t *testing.T) {
 		t.Fatal("NoHash must report an empty head, not a stale one")
 	}
 }
+
+// FIX 1: Test that IDs slices are copied and not aliased
+func TestIDsSliceAliasing(t *testing.T) {
+	l := NewLog(42)
+	originalIDs := []state.ObjID{1, 2, 3}
+	e := Event{Kind: DeclareAttackers, IDs: originalIDs}
+	l.Append(e)
+	head1 := l.Head()
+
+	// Mutate the caller's slice
+	originalIDs[0] = 99
+
+	// Verify that the stored event wasn't affected
+	head2 := l.HeadAt(len(l.Events))
+	if head1 != head2 {
+		t.Fatalf("IDs aliasing: Head() %s != HeadAt(1) %s after mutation", head1, head2)
+	}
+}
+
+// FIX 1: Test that Pairs slices are copied and not aliased
+func TestPairsSliceAliasing(t *testing.T) {
+	l := NewLog(42)
+	originalPairs := [][2]state.ObjID{{1, 2}, {3, 4}}
+	e := Event{Kind: DeclareBlockers, Pairs: originalPairs}
+	l.Append(e)
+	head1 := l.Head()
+
+	// Mutate the caller's slice
+	originalPairs[0][0] = 99
+
+	// Verify that the stored event wasn't affected
+	head2 := l.HeadAt(len(l.Events))
+	if head1 != head2 {
+		t.Fatalf("Pairs aliasing: Head() %s != HeadAt(1) %s after mutation", head1, head2)
+	}
+}
+
+// FIX 1: Test that nil slices remain nil after copy
+func TestNilSlicePreservation(t *testing.T) {
+	l := NewLog(42)
+	e := Event{Kind: Draw, IDs: nil, Pairs: nil}
+	l.Append(e)
+
+	if l.Events[0].IDs != nil {
+		t.Fatal("nil IDs slice not preserved")
+	}
+	if l.Events[0].Pairs != nil {
+		t.Fatal("nil Pairs slice not preserved")
+	}
+}
+
+// FIX 2: Test that NoHash immutability is enforced
+func TestNoHashImmutability(t *testing.T) {
+	// Setting NoHash before first append should work
+	l := NewLog(42)
+	l.NoHash = true
+	l.Append(Event{Kind: Draw})
+	// This should not panic
+
+	// Toggling NoHash after first append should panic
+	l2 := NewLog(42)
+	l2.NoHash = false
+	l2.Append(Event{Kind: Draw})
+	l2.NoHash = true
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("toggling NoHash after first append did not panic")
+		} else if r.(string) != "events: NoHash changed after the log was started" {
+			t.Fatalf("unexpected panic message: %v", r)
+		}
+	}()
+	l2.Append(Event{Kind: Damage})
+}
+
+// FIX 3: Test that seed affects the chain
+func TestSeedSensitivity(t *testing.T) {
+	build := func(seed uint64) *Log {
+		l := NewLog(seed)
+		l.Append(Event{Kind: Draw})
+		l.Append(Event{Kind: Damage})
+		return l
+	}
+
+	l1 := build(42)
+	l2 := build(43)
+
+	if l1.Head() == l2.Head() {
+		t.Fatal("different seeds produced identical chain heads")
+	}
+}
+
+// FIX 3: Test that same seed and events produce same chain
+func TestSeedConsistency(t *testing.T) {
+	build := func() *Log {
+		l := NewLog(42)
+		l.Append(Event{Kind: Draw})
+		l.Append(Event{Kind: Damage})
+		return l
+	}
+
+	l1 := build()
+	l2 := build()
+
+	if l1.Head() != l2.Head() {
+		t.Fatal("identical logs with same seed produced different heads")
+	}
+}
+
+// FIX 3: Test that Head() and HeadAt(len) agree with seeded chain
+func TestHeadHeadAtAgreement(t *testing.T) {
+	l := NewLog(42)
+	l.Append(Event{Kind: Draw})
+	l.Append(Event{Kind: Damage})
+	l.Append(Event{Kind: Tap})
+
+	head := l.Head()
+	headAt := l.HeadAt(len(l.Events))
+
+	if head != headAt {
+		t.Fatalf("Head() %s != HeadAt(%d) %s", head, len(l.Events), headAt)
+	}
+}
