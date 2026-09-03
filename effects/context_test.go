@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -103,6 +104,58 @@ func TestDefinedResolvesEachForm(t *testing.T) {
 	// controller, so the resulting event order is deterministic.
 	check("SP$ X | Defined$ Opponent", []state.Target{
 		{Player: 2, IsPlayer: true}, {Player: 3, IsPlayer: true}, {Player: 0, IsPlayer: true}})
+	// Player expands to every living seat including the controller, in APNAP
+	// order from the controller.
+	check("SP$ X | Defined$ Player", []state.Target{
+		{Player: 1, IsPlayer: true}, {Player: 2, IsPlayer: true},
+		{Player: 3, IsPlayer: true}, {Player: 0, IsPlayer: true}})
+}
+
+// TestDefinedReturnsCopiesNotAliases guards against Defined() handing back a
+// slice that shares a backing array with Ctx.Targets or Ctx.Remembered.
+// Ctx is threaded by pointer through Resolve, so if this aliased, the ordinary
+// Go filter-in-place idiom applied to a Defined() result would corrupt state
+// a later effect in the same Sub chain still relies on — silently, with no
+// compiler warning. Covers every path in Defined that can return c.Targets or
+// c.Remembered: the no-Defined$ case, Targeted, ParentTarget, Remembered, and
+// the unknown-form fallback.
+func TestDefinedReturnsCopiesNotAliases(t *testing.T) {
+	h := newHost(t, 2)
+	origTarget := state.Target{Player: 0, IsPlayer: true}
+	origRemembered := state.Target{Obj: 5}
+
+	lines := []string{
+		"SP$ X | NumDmg$ 1", // no Defined$: falls back to Targets
+		"SP$ X | Defined$ Targeted",
+		"SP$ X | Defined$ ParentTarget",
+		"SP$ X | Defined$ SomeFormM1DoesNotModel", // unknown-form fallback
+	}
+	for _, line := range lines {
+		ctx := &Ctx{Targets: []state.Target{origTarget}}
+		got := Defined(h, ctx, sa(t, line))
+		if len(got) != 1 {
+			t.Fatalf("%s: got %v, want 1 target", line, got)
+		}
+		got[0] = state.Target{Player: 99, IsPlayer: true}
+		if ctx.Targets[0] != origTarget {
+			t.Fatalf("%s: mutating the Defined() result changed Ctx.Targets to %v", line, ctx.Targets)
+		}
+	}
+
+	ctx := &Ctx{Remembered: []state.Target{origRemembered}}
+	got := Defined(h, ctx, sa(t, "SP$ X | Defined$ Remembered"))
+	if len(got) != 1 {
+		t.Fatalf("Defined$ Remembered = %v, want 1 target", got)
+	}
+	got[0] = state.Target{Obj: 999}
+	if ctx.Remembered[0] != origRemembered {
+		t.Fatalf("mutating the Defined() result changed Ctx.Remembered to %v", ctx.Remembered)
+	}
+
+	// A nil Targets must still come back nil, not a spurious allocation.
+	if got := Defined(h, &Ctx{}, sa(t, "SP$ X | NumDmg$ 1")); got != nil {
+		t.Fatalf("Defined() on nil Targets = %#v, want nil", got)
+	}
 }
 
 func TestDefinedOpponentSkipsEliminatedSeats(t *testing.T) {
@@ -123,4 +176,46 @@ func TestSupportedListsRegisteredAPIs(t *testing.T) {
 	if Supported()["api:NotRegistered"] {
 		t.Fatal("Supported listed an API that was never registered")
 	}
+}
+
+// TestRegistryConcurrentRegisterAndReadDoesNotRace guards the process-global
+// registry against the case Register's own doc comment advertises as
+// supported: registering (or re-registering, e.g. M3's plugin tier
+// overriding a native primitive) after init time, concurrently with the
+// engine's per-match goroutines calling Supported()/Resolve(). Run with
+// `go test -race`, this failed against the plain, unsynchronized map that
+// registry.go used before the copy-on-write atomicMap fix — see the task-15
+// fix report for the before/after -race output.
+func TestRegistryConcurrentRegisterAndReadDoesNotRace(t *testing.T) {
+	Register("TestRace", func(Host, *Ctx, *cards.SA) {})
+	t.Cleanup(func() { unregister("TestRace") })
+	line := sa(t, "SP$ TestRace | NumDmg$ 1")
+
+	const iterations = 500
+	var wg sync.WaitGroup
+
+	// One writer keeps re-registering the same API...
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < iterations; i++ {
+			Register("TestRace", func(Host, *Ctx, *cards.SA) {})
+		}
+	}()
+
+	// ...while several readers hammer the two read paths. Each reader gets
+	// its own fakeHost so any data race the detector reports is in the
+	// registry under test, not in this test's own event-log slice.
+	for r := 0; r < 4; r++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			h := newHost(t, 2)
+			for i := 0; i < iterations; i++ {
+				_ = Supported()
+				Resolve(h, &Ctx{}, line)
+			}
+		}()
+	}
+	wg.Wait()
 }
