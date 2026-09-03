@@ -32,7 +32,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			}
 			continue
 		}
-		instantSpeed := f.IsInstant() || f.HasKeyword("Flash")
+		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
 		if !instantSpeed && !sorcery {
 			continue
 		}

@@ -89,6 +89,34 @@ func TestFlashCreatureIsCastableOffTurn(t *testing.T) {
 	}
 }
 
+// TestFlashGrantedByAContinuousEffectIsCastableOffTurn is the Ruling T19-c
+// regression test: legalActions' instant-speed check must read the keyword
+// through the layer system (Engine.HasKeyword), not the printed face
+// (f.HasKeyword), so a creature granted Flash by another permanent's
+// continuous effect -- rather than printed on its own card -- is castable
+// off turn too.
+func TestFlashGrantedByAContinuousEffectIsCastableOffTurn(t *testing.T) {
+	bear := card(t, "Name:Bear\nManaCost:G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e := handEngine(t, bear)
+	e.G.Players[0].Pool[state.MG] = 1
+	e.G.Active = 1
+
+	granter := card(t, "Name:Granter\nManaCost:1 U\nTypes:Creature Wizard\nPT:1/1\nOracle:x\n")
+	granterObj := e.G.AddObject(granter, 0)
+	granterObj.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{granterObj.ID})
+	e.AddContinuous(ContinuousEffect{Source: granterObj.ID, Timestamp: 1, Layer: LAbilities,
+		Affects: "Creature.YouCtrl", Controller: 0, AddKeywords: []string{"Flash"}})
+
+	handID := e.G.Zone(state.ZHand, 0)[0]
+	if !e.HasKeyword(handID, "Flash") {
+		t.Fatal("the hand creature should see the granted Flash through the layer system")
+	}
+	if kinds(e.legalActions(0))["cast"] != 1 {
+		t.Fatal("a creature granted Flash by a continuous effect should be castable off turn")
+	}
+}
+
 func TestUntappedLandOffersItsManaAbility(t *testing.T) {
 	mtn := card(t, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n")
 	e := handEngine(t)

@@ -145,6 +145,9 @@ func Apply(g *state.Game, e Event) {
 			e.Amount >= 0 && int(e.Amount) < len(o.Card.Faces) {
 			o.FaceIdx = uint8(e.Amount)
 		}
+
+	case ClockTick:
+		g.Clock++
 	}
 }
 

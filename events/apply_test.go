@@ -270,7 +270,7 @@ func TestApplyNeverPanics(t *testing.T) {
 	allKinds := []Kind{GameStart, Shuffle, MoveZone, Draw, LifeChange, Damage, Tap, Untap,
 		StepChange, TurnChange, Priority, PutOnStack, Resolve, ManaAdd, ManaClear,
 		CounterChange, DeclareAttackers, DeclareBlockers, PlayerLost, GameOver,
-		DecisionAsk, DecisionMade, Note, LandPlayed, TargetsChosen, FlipFace}
+		DecisionAsk, DecisionMade, Note, LandPlayed, TargetsChosen, FlipFace, ClockTick}
 
 	const badZone = state.Zone(200)
 	const badObj = state.ObjID(999999)
@@ -585,5 +585,30 @@ func TestFlipFaceChangesActiveFace(t *testing.T) {
 
 	if got, want := FlipFace.String(), "flip_face"; got != want {
 		t.Fatalf("FlipFace.String() = %q, want %q", got, want)
+	}
+}
+
+// TestClockTickIncrementsClock is the carrier for Ruling T19-a: Game.Clock
+// must only ever advance through this event, never a direct field write, so
+// a game reconstructed from the log alone matches a live game's Clock (and
+// therefore the Object.Timestamp values Move stamps from it).
+func TestClockTickIncrementsClock(t *testing.T) {
+	g, l := twoPlayer(t)
+	if g.Clock != 0 {
+		t.Fatalf("Clock = %d before any event, want 0", g.Clock)
+	}
+	Emit(g, l, Event{Kind: ClockTick})
+	if g.Clock != 1 {
+		t.Fatalf("Clock = %d after one tick, want 1", g.Clock)
+	}
+	Emit(g, l, Event{Kind: ClockTick})
+	if g.Clock != 2 {
+		t.Fatalf("Clock = %d after two ticks, want 2", g.Clock)
+	}
+}
+
+func TestClockTickKindString(t *testing.T) {
+	if got, want := ClockTick.String(), "clock_tick"; got != want {
+		t.Fatalf("ClockTick.String() = %q, want %q", got, want)
 	}
 }

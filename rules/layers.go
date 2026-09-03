@@ -9,8 +9,10 @@ package rules
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -74,9 +76,16 @@ type Derived struct {
 // ordering against other effects created in the same instant need not touch
 // the clock themselves; the layer tests that DO care set Timestamp
 // explicitly and bypass this.
+//
+// Ruling T19-a: the clock advances only through a logged ClockTick event,
+// never a direct write to e.G.Clock. Object.Timestamp (see events.Move) is
+// stamped from this same clock whenever a permanent enters the battlefield,
+// so a direct write here would leave a game reconstructed from the log alone
+// off by one on every later Timestamp — the same bug class Ruling T11-a
+// already fixed for Passes/Priority.
 func (e *Engine) AddContinuous(ce ContinuousEffect) {
 	if ce.Timestamp == 0 {
-		e.G.Clock++
+		e.emit(events.Event{Kind: events.ClockTick})
 		ce.Timestamp = e.G.Clock
 	}
 	e.continuous = append(e.continuous, ce)
@@ -188,9 +197,13 @@ func (e *Engine) Derived(id state.ObjID) Derived {
 func (e *Engine) Power(id state.ObjID) int32     { return e.Derived(id).Power }
 func (e *Engine) Toughness(id state.ObjID) int32 { return e.Derived(id).Toughness }
 
+// HasKeyword matches case-insensitively, like its sibling cards.Face.HasKeyword
+// (Ruling T19-b) — every existing call site already goes through that
+// case-insensitive comparison, so an exact-match Engine.HasKeyword would have
+// been a silent trap for the first caller with non-canonical-cased input.
 func (e *Engine) HasKeyword(id state.ObjID, kw string) bool {
 	for _, k := range e.Derived(id).Keywords {
-		if cardsKeywordHead(k) == kw {
+		if strings.EqualFold(cardsKeywordHead(k), kw) {
 			return true
 		}
 	}

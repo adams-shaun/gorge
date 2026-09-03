@@ -57,13 +57,28 @@ const (
 	// resolves Mode$ (Transform/Flip/...) to a concrete index itself, so
 	// Apply does not need to know the object's current face to act on it.
 	FlipFace
+	// ClockTick advances Game.Clock by one. Ruling T19-a: rules.AddContinuous
+	// used to increment g.Clock with a direct field write to stamp a
+	// zero-Timestamp ContinuousEffect, the same bug class Ruling T11-a fixed
+	// for Passes/Priority -- Object.Timestamp is assigned from Clock whenever
+	// a permanent enters the battlefield (see Move below), so a live game
+	// that advances Clock outside Apply leaves every later Timestamp off by
+	// one in a fresh reconstruction folded from the log alone. AddContinuous
+	// now emits this and reads the result instead of writing Clock itself.
+	// It carries no fields: the tick's only effect is the increment, so
+	// nothing else needs to survive the encode/decode round trip. Appended
+	// here (following TargetsChosen's T14-b and FlipFace's T18-a precedent)
+	// so every earlier Kind's numeric value, the hash chain, and any golden
+	// replay already locked in are unaffected.
+	ClockTick
 )
 
 var kindNames = [...]string{"game_start", "shuffle", "move_zone", "draw",
 	"life", "damage", "tap", "untap", "step", "turn", "priority", "stack_push",
 	"stack_resolve", "mana_add", "mana_clear", "counter", "declare_attackers",
 	"declare_blockers", "player_lost", "game_over", "decision_ask",
-	"decision_made", "note", "land_played", "targets_chosen", "flip_face"}
+	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
+	"clock_tick"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

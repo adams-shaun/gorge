@@ -138,3 +138,64 @@ func TestEffectsFromObjectsThatLeftAreDropped(t *testing.T) {
 		t.Fatalf("power after the lord left = %d, want 2", e.Power(bear))
 	}
 }
+
+// TestAddContinuousClockAdvanceIsReplayable is the Ruling T19-a regression
+// test: AddContinuous's Timestamp auto-stamp must advance Game.Clock only
+// through a logged ClockTick event, never a direct field write, so folding
+// the events these two calls produced into a snapshot taken just before
+// them -- through events.Apply alone, no Engine, no rules code involved --
+// reaches the same Clock the live game did. This is the same invariant
+// fix1_test.go's TestReplayReconstructsPassesAndPriority locks in for
+// Passes/Priority.
+//
+// The snapshot is taken immediately before the calls under test, rather than
+// replaying the whole log from genesis, because onBoard (this file's own
+// test helper, above) stamps Object.Timestamp with a direct e.G.Clock++ of
+// its own -- test code is allowed to bypass events, but comparing from
+// genesis would conflate that unrelated bypass with the one this test
+// exists to catch.
+func TestAddContinuousClockAdvanceIsReplayable(t *testing.T) {
+	e := layerEngine(t)
+	id := onBoard(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+
+	snapshot := e.G.Clone()
+	firstNewEvent := len(e.L.Events)
+
+	e.AddContinuous(ContinuousEffect{Source: id, Layer: LPT, Sub: SubModify,
+		Affects: "Card.Self", AddPower: 1})
+	e.AddContinuous(ContinuousEffect{Source: id, Layer: LPT, Sub: SubModify,
+		Affects: "Card.Self", AddPower: 1})
+
+	wantClock := e.G.Clock
+	if wantClock != snapshot.Clock+2 {
+		t.Fatalf("live Clock advanced by %d across two AddContinuous calls, want 2", wantClock-snapshot.Clock)
+	}
+
+	for _, ev := range e.L.Events[firstNewEvent:] {
+		events.Apply(snapshot, ev)
+	}
+	if snapshot.Clock != wantClock {
+		t.Fatalf("Clock reconstructed from the log alone = %d, want %d (live)", snapshot.Clock, wantClock)
+	}
+}
+
+// TestHasKeywordIsCaseInsensitive is the Ruling T19-b regression test:
+// Engine.HasKeyword must match case-insensitively like its sibling
+// cards.Face.HasKeyword, for both a printed keyword and one granted by a
+// continuous effect.
+func TestHasKeywordIsCaseInsensitive(t *testing.T) {
+	e := layerEngine(t)
+	id := onBoard(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nK:Trample\nOracle:x\n")
+	if !e.HasKeyword(id, "trample") {
+		t.Error("HasKeyword should match a printed keyword case-insensitively (lowercase query)")
+	}
+	if !e.HasKeyword(id, "TRAMPLE") {
+		t.Error("HasKeyword should match a printed keyword case-insensitively (uppercase query)")
+	}
+
+	e.AddContinuous(ContinuousEffect{Source: id, Timestamp: 1, Layer: LAbilities,
+		Affects: "Card.Self", AddKeywords: []string{"flying"}, UntilEOT: true})
+	if !e.HasKeyword(id, "Flying") {
+		t.Error("HasKeyword should match a granted keyword case-insensitively even when the grant itself is lowercase")
+	}
+}
