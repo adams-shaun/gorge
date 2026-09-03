@@ -33,6 +33,15 @@ type Option struct {
 	// Attacker is server-side only: for a block option, which attacker this
 	// blocker would block.
 	Attacker state.ObjID `json:"-"`
+	// AltCostIndex is server-side only: for a "cast" option, which cost this
+	// option pays. Zero (the default, so every other Option literal in the
+	// tree needs no change) means the card's own (RaiseCost/ReduceCost-
+	// adjusted) cost; a value of i+1 means alternativeCosts(p, id)[i] -- an
+	// AlternativeCost static's cost instead. Ruling T19b-b: without this,
+	// castSpell had no way to tell which cost the player actually agreed to
+	// pay when a card offered more than one "cast" option, and always paid
+	// the card's own cost regardless of which option was chosen.
+	AltCostIndex int `json:"-"`
 }
 
 // Decision is the engine asking one player for one answer.

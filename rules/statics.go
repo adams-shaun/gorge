@@ -6,6 +6,7 @@ package rules
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -191,14 +192,26 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 }
 
 // parseAmount reads an Amount$ parameter, falling back to def for anything
-// that is not a plain integer (missing, empty, or a malformed value from a
-// card script this build cannot otherwise validate).
+// that is not a plain non-negative int32 (missing, empty, negative, out of
+// int32 range, or a malformed value from a card script this build cannot
+// otherwise validate).
+//
+// Ruling T19b-c: this used to cast straight to int32 with no range check at
+// all, unlike mana.go's ParseCost (which explicitly checks 0 <= n <=
+// math.MaxInt32 before ever converting). An out-of-range Amount$ silently
+// wrapped into a negative int32 -- inverting a RaiseCost into a discount and
+// a ReduceCost into a tax -- and a plain negative Amount$ was accepted as-is,
+// turning a ReduceCost into a raise (adjustedCost's sign is fixed by the
+// mode, so a negative n flips the intended direction rather than reducing
+// the magnitude). Both are reachable from card data with no need for the
+// value to be anywhere near a real int32 overflow at the mana-cost level:
+// the bug is entirely in this parse, not in anything cost-shaped.
 func parseAmount(s string, def int32) int32 {
-	n := def
-	if v, err := strconv.Atoi(strings.TrimSpace(s)); err == nil {
-		n = int32(v)
+	v, err := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
+	if err != nil || v < 0 || v > int64(math.MaxInt32) {
+		return def
 	}
-	return n
+	return int32(v)
 }
 
 func init() {

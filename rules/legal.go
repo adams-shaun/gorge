@@ -44,7 +44,13 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		}
 		for i, alt := range e.alternativeCosts(p, id) {
 			if alt.CanPay(e.G.Players[p].Pool) {
-				add("cast", altCostLabel(f.Name, i), id)
+				// AltCostIndex is i+1, not i: the zero value must mean "the
+				// card's own cost" so every other Option literal in the tree
+				// (play_land, activate, pass, and the base "cast" option
+				// added just above via the shared add closure) needs no
+				// change to keep meaning that.
+				out = append(out, decision.Option{Index: len(out), Kind: "cast",
+					Label: altCostLabel(f.Name, i), Obj: id, AltCostIndex: i + 1})
 			}
 		}
 	}
@@ -107,6 +113,6 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 
 	case "cast":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
-		e.castSpell(in.Player, opt.Obj)
+		e.castSpell(in.Player, opt)
 	}
 }

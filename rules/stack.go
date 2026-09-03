@@ -10,21 +10,41 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-func (e *Engine) castSpell(p state.PlayerID, id state.ObjID) {
+// castSpell moves opt.Obj from hand to the stack, having paid for it first.
+//
+// Which cost it pays is opt.AltCostIndex, not always adjustedCost: Ruling
+// T19b-b. legalActions gates each "cast" option on that specific option's
+// own cost being payable -- the base (RaiseCost/ReduceCost-adjusted) cost for
+// AltCostIndex == 0, or alternativeCosts(p, id)[AltCostIndex-1] otherwise --
+// so castSpell must charge that same cost, not unconditionally the base one.
+// Previously it always charged adjustedCost regardless of which option was
+// chosen; combined with payMana's old silent no-op on an unpayable cost, an
+// alt-cost option -- offered because the ALTERNATIVE cost was payable, not
+// the base one -- would fail to pay anything at all and still reach the
+// stack: a free cast reachable from ordinary, well-formed card data (e.g. a
+// 4-mana spell with an alternative {U} cost, cast with a pool of one blue).
+//
+// If the chosen cost cannot actually be paid, payMana now reports that and
+// this aborts cleanly: no MoveZone/PutOnStack is emitted, so the card stays
+// in hand, and payMana itself never emits anything unless the whole cost
+// clears (Cost.Pay is all-or-nothing), so no partial mana is deducted either.
+func (e *Engine) castSpell(p state.PlayerID, opt decision.Option) {
+	id := opt.Obj
 	o := e.G.Obj(id)
 	f := o.Face()
-	// adjustedCost, not the printed ManaCost: legalActions already gated this
-	// option on being able to pay the RaiseCost/ReduceCost-adjusted amount, so
-	// paying anything else here would charge a different amount than the one
-	// the player was shown -- silently undercharging a raised cost, or (since
-	// payMana no-ops rather than erroring on an unpayable cost) silently
-	// letting a reduced-cost spell resolve for free when the pool only holds
-	// the reduced amount. This does not yet cover AlternativeCost: which
-	// "cast" option (base vs. alternative) was chosen is not threaded through
-	// decision.Option, so an alternative-cost cast is still charged the base
-	// adjusted cost. Statics.go's alternativeCosts only affects which options
-	// legalActions offers, not what paying one of them charges.
-	e.payMana(p, e.adjustedCost(p, id))
+
+	cost := e.adjustedCost(p, id)
+	if opt.AltCostIndex > 0 {
+		if alts := e.alternativeCosts(p, id); opt.AltCostIndex-1 < len(alts) {
+			cost = alts[opt.AltCostIndex-1]
+		}
+		// An out-of-range AltCostIndex (stale option from a board state that
+		// no longer holds the granting static) falls back to the base cost
+		// rather than indexing out of bounds or paying nothing.
+	}
+	if !e.payMana(p, cost) {
+		return
+	}
 	// PutOnStack's own Move() reads the object's CURRENT Controller to pick
 	// which stack list to push onto; a hand card is only ever cast by its
 	// own owner in M1 (no stealing effects yet), so Controller already
@@ -51,26 +71,36 @@ func (e *Engine) castSpell(p state.PlayerID, id state.ObjID) {
 // out as the WUBRGC symbols events.ManaAdd's Counter field expects.
 var manaLetters = [...]string{"W", "U", "B", "R", "G", "C"}
 
-// payMana spends cost from p's pool. Every state mutation goes through
-// events, so payment cannot be a direct field write to Players[p].Pool: it
-// emits one ManaAdd event per colour bucket actually spent, with a negative
-// Amount. That reuses the existing ManaAdd kind rather than adding a new one
-// -- Apply's ManaAdd case is a plain "+=", so a negative Amount already
-// subtracts correctly, the same trick Ruling F4 uses for clearing damage.
-// legalActions only ever offers "cast" when CanPay already holds, so the
-// !ok case below is unreached in practice; it is a no-op rather than an
-// overspend if it is ever reached some other way.
-func (e *Engine) payMana(p state.PlayerID, cost Cost) {
+// payMana spends cost from p's pool and reports whether it could. Every
+// state mutation goes through events, so payment cannot be a direct field
+// write to Players[p].Pool: it emits one ManaAdd event per colour bucket
+// actually spent, with a negative Amount. That reuses the existing ManaAdd
+// kind rather than adding a new one -- Apply's ManaAdd case is a plain "+=",
+// so a negative Amount already subtracts correctly, the same trick Ruling F4
+// uses for clearing damage.
+//
+// Ruling T19b-b: this used to be silent on failure (a no-op the caller could
+// not observe), on the theory that legalActions always gates "cast" on
+// CanPay first so failure here was unreachable. That theory held for the
+// base cost but not for an alternative one: legalActions gates an alt-cost
+// option on the ALTERNATIVE cost being payable, so a caller that (as
+// castSpell used to) paid the base cost regardless of which option was
+// chosen could genuinely hit this path with real, well-formed card data --
+// and a silent no-op there is what let the spell go on the stack anyway,
+// having paid nothing. Reporting failure explicitly is what lets castSpell
+// abort the cast instead.
+func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
 	before := e.G.Players[p].Pool
 	after, ok := cost.Pay(before)
 	if !ok {
-		return
+		return false
 	}
 	for i, letter := range manaLetters {
 		if spent := before[i] - after[i]; spent != 0 {
 			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -spent})
 		}
 	}
+	return true
 }
 
 // askTarget offers every legal target for a spell. M1 handles the single-target

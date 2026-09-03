@@ -3,6 +3,7 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -285,5 +286,165 @@ func TestActiveStaticsIsDeterministicallyOrdered(t *testing.T) {
 	}
 	if len(first) != 2 || first[0] != oa.ID || first[1] != ob.ID {
 		t.Fatalf("expected [%d %d] in registration order, got %v", oa.ID, ob.ID, first)
+	}
+}
+
+// --- Fix round 1: Ruling T19b-b -- alternative-cost casting must pay the
+// alternative, and a failed payment must not put the spell on the stack ---
+//
+// The bug this closes: legalActions offers an alt-cost "cast" option gated
+// on the ALTERNATIVE cost's affordability, but castSpell always paid
+// adjustedCost -- the BASE cost. When the base cost cannot be paid (the
+// whole point of an alternative cost existing), Cost.Pay fails and payMana
+// silently no-op'd, so castSpell carried on and put the spell on the stack
+// anyway, having spent nothing. Reachable from ordinary, well-formed card
+// data (a 4-mana spell with an alternative {U} cost and a pool holding only
+// one blue), not a malformed-input edge case.
+
+// TestAlternativeCostChargesTheAlternativeAmount is the positive case:
+// choosing the alternative-cost option must charge exactly that cost, not
+// the (unpayable) base cost.
+func TestAlternativeCostChargesTheAlternativeAmount(t *testing.T) {
+	zap := card(t, "Name:Zap\nManaCost:4\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\n"+
+		"S:Mode$ AlternativeCost | ValidCard$ Card.Self | Cost$ U\nOracle:x\n")
+	e := handEngine(t, zap)
+	// Only enough for the alternative cost, nowhere near enough for the
+	// printed {4}.
+	e.G.Players[0].Pool[state.MU] = 1
+	e.askPriority(0)
+
+	d := e.Pending()
+	idx := -1
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.AltCostIndex > 0 {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no alternative-cost cast option offered: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{idx}}); err != nil {
+		t.Fatalf("submit alt-cost cast: %v", err)
+	}
+	if e.G.Players[0].Pool[state.MU] != 0 {
+		t.Fatalf("pool = %v, want the U spent for the alternative cost", e.G.Players[0].Pool)
+	}
+	if e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("pool = %v, want nothing left over", e.G.Players[0].Pool)
+	}
+	if len(e.G.Stack) != 1 {
+		t.Fatal("the spell should have reached the stack, paid for by the alternative cost")
+	}
+}
+
+// TestUnpayableCastDoesNotReachTheStack is the abort-path case: if the cost
+// actually cannot be paid, the spell must not reach the stack and nothing
+// must be deducted. Calls castSpell directly (bypassing legalActions, which
+// would never offer an unpayable option) to exercise the failure path
+// deterministically.
+func TestUnpayableCastDoesNotReachTheStack(t *testing.T) {
+	zap := card(t, "Name:Zap\nManaCost:4\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n")
+	e := handEngine(t, zap)
+	// Empty pool: the cost cannot be paid at all.
+	id := e.G.Zone(state.ZHand, 0)[0]
+	e.castSpell(0, decision.Option{Obj: id})
+
+	if len(e.G.Stack) != 0 {
+		t.Fatal("a cast that could not be paid for must not reach the stack")
+	}
+	if e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("pool = %v, want untouched after a failed cast", e.G.Players[0].Pool)
+	}
+	if len(e.G.Zone(state.ZHand, 0)) != 1 {
+		t.Fatal("the card should remain in hand after a failed cast")
+	}
+}
+
+// --- Fix round 1: Ruling T19b-c -- parseAmount bounds and sign validation ---
+//
+// Unlike mana.go's ParseCost (which checks 0 <= n <= math.MaxInt32 before
+// ever casting to int32), parseAmount cast straight to int32 with no check
+// at all, so a too-large Amount$ silently wraps negative and a negative
+// Amount$ is accepted as-is. Both invert the static's intent: a wrapped
+// RaiseCost becomes a discount, a wrapped ReduceCost becomes a tax, and a
+// plain negative ReduceCost Amount becomes a raise.
+
+// TestParseAmountRejectsOutOfRangeAndNegativeValues is the direct unit-level
+// check across the cases the reviewer found, plus the ordinary and boundary
+// cases that must keep working.
+func TestParseAmountRejectsOutOfRangeAndNegativeValues(t *testing.T) {
+	cases := []struct {
+		in   string
+		def  int32
+		want int32
+	}{
+		{"3000000000", 1, 1},          // overflows int32: must fall back, not wrap negative
+		{"-5", 1, 1},                  // negative: must fall back, not flip the sign's effect
+		{"2147483647", 1, 2147483647}, // math.MaxInt32 itself is still fine
+		{"2147483648", 1, 1},          // MaxInt32+1 overflows: must fall back
+		{"", 7, 7},                    // missing/empty: default
+		{"abc", 3, 3},                 // malformed: default
+		{"5", 1, 5},                   // ordinary case unaffected
+	}
+	for _, c := range cases {
+		if got := parseAmount(c.in, c.def); got != c.want {
+			t.Errorf("parseAmount(%q, %d) = %d, want %d", c.in, c.def, got, c.want)
+		}
+	}
+}
+
+// TestRaiseCostAmountOverflowDoesNotWrapNegative is the end-to-end
+// reproduction of the reviewer's first case: an out-of-range Amount$ on a
+// RaiseCost must not wrap into a negative adjustment that makes the spell
+// castable with an empty pool.
+func TestRaiseCostAmountOverflowDoesNotWrapNegative(t *testing.T) {
+	zap := card(t, "Name:Zap\nManaCost:1\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n")
+	tax := card(t, "Name:Tax\nManaCost:1\nTypes:Artifact\n"+
+		"S:Mode$ RaiseCost | ValidCard$ Instant | Amount$ 3000000000\nOracle:x\n")
+	e := handEngine(t, zap)
+	to := e.G.AddObject(tax, 0)
+	to.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{to.ID})
+
+	if kinds(e.legalActions(0))["cast"] != 0 {
+		t.Fatal("an out-of-range RaiseCost Amount$ must not wrap negative and make the spell castable with an empty pool")
+	}
+}
+
+// TestReduceCostAmountOverflowDoesNotIncreaseCost is the reviewer's second
+// case: the same out-of-range value on a ReduceCost must not invert into a
+// cost increase.
+func TestReduceCostAmountOverflowDoesNotIncreaseCost(t *testing.T) {
+	zap := card(t, "Name:Zap\nManaCost:1\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n")
+	discount := card(t, "Name:Discount\nManaCost:1\nTypes:Artifact\n"+
+		"S:Mode$ ReduceCost | ValidCard$ Instant | Amount$ 3000000000\nOracle:x\n")
+	e := handEngine(t, zap)
+	do := e.G.AddObject(discount, 0)
+	do.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{do.ID})
+
+	id := e.G.Zone(state.ZHand, 0)[0]
+	c := e.adjustedCost(0, id)
+	if c.Generic != 0 {
+		t.Fatalf("generic = %d, want 0: an out-of-range Amount$ should fall back to the default reduction, not inflate the cost", c.Generic)
+	}
+}
+
+// TestReduceCostNegativeAmountDoesNotBecomeARaise is the reviewer's third
+// case: a plain negative Amount$ on a ReduceCost must fall back to the
+// default reduction, not flip into a cost increase.
+func TestReduceCostNegativeAmountDoesNotBecomeARaise(t *testing.T) {
+	zap := card(t, "Name:Zap\nManaCost:1\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n")
+	discount := card(t, "Name:Discount\nManaCost:1\nTypes:Artifact\n"+
+		"S:Mode$ ReduceCost | ValidCard$ Instant | Amount$ -5\nOracle:x\n")
+	e := handEngine(t, zap)
+	do := e.G.AddObject(discount, 0)
+	do.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{do.ID})
+
+	id := e.G.Zone(state.ZHand, 0)[0]
+	c := e.adjustedCost(0, id)
+	if c.Generic != 0 {
+		t.Fatalf("generic = %d, want 0: a negative Amount$ must fall back to the default reduction, not become a raise", c.Generic)
 	}
 }
