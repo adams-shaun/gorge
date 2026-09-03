@@ -32,12 +32,20 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			}
 			continue
 		}
+		if e.castRestricted(p, id) {
+			continue
+		}
 		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
 		if !instantSpeed && !sorcery {
 			continue
 		}
-		if ParseCost(f.ManaCost).CanPay(e.G.Players[p].Pool) {
+		if e.adjustedCost(p, id).CanPay(e.G.Players[p].Pool) {
 			add("cast", "Cast "+f.Name, id)
+		}
+		for i, alt := range e.alternativeCosts(p, id) {
+			if alt.CanPay(e.G.Players[p].Pool) {
+				add("cast", altCostLabel(f.Name, i), id)
+			}
 		}
 	}
 
@@ -45,6 +53,9 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		o := e.G.Obj(id)
 		f := o.Face()
 		if f == nil || o.Tapped {
+			continue
+		}
+		if e.abilityRestricted(id) {
 			continue
 		}
 		// M1 activates only mana abilities, whose cost is always {T}. Task 18

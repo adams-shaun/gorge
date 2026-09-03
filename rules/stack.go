@@ -13,7 +13,18 @@ import (
 func (e *Engine) castSpell(p state.PlayerID, id state.ObjID) {
 	o := e.G.Obj(id)
 	f := o.Face()
-	e.payMana(p, ParseCost(f.ManaCost))
+	// adjustedCost, not the printed ManaCost: legalActions already gated this
+	// option on being able to pay the RaiseCost/ReduceCost-adjusted amount, so
+	// paying anything else here would charge a different amount than the one
+	// the player was shown -- silently undercharging a raised cost, or (since
+	// payMana no-ops rather than erroring on an unpayable cost) silently
+	// letting a reduced-cost spell resolve for free when the pool only holds
+	// the reduced amount. This does not yet cover AlternativeCost: which
+	// "cast" option (base vs. alternative) was chosen is not threaded through
+	// decision.Option, so an alternative-cost cast is still charged the base
+	// adjusted cost. Statics.go's alternativeCosts only affects which options
+	// legalActions offers, not what paying one of them charges.
+	e.payMana(p, e.adjustedCost(p, id))
 	// PutOnStack's own Move() reads the object's CURRENT Controller to pick
 	// which stack list to push onto; a hand card is only ever cast by its
 	// own owner in M1 (no stealing effects yet), so Controller already
