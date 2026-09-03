@@ -58,6 +58,32 @@ func TestAddManaDefaultsToColorlessAndAmountOne(t *testing.T) {
 	}
 }
 
+// TestDealDamageClampsNegativeNumDmgToZero is Ruling T14-f's regression test:
+// NumDmg$ is Num()'s unclamped output, and events.Apply's Damage case is a
+// plain subtraction from Life, so a negative NumDmg would otherwise heal
+// instead of doing nothing. No real card text ever specifies this, but the
+// inversion (a damage spell that heals) is stark enough to close directly.
+func TestDealDamageClampsNegativeNumDmgToZero(t *testing.T) {
+	h := newHost(t, 2)
+	h.g.Players[1].Life = 20
+	c := &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}}
+	Resolve(h, c, sa(t, "SP$ DealDamage | ValidTgts$ Any | NumDmg$ -5"))
+	if h.g.Players[1].Life != 20 {
+		t.Fatalf("life = %d, want unchanged at 20 (negative damage must not heal)", h.g.Players[1].Life)
+	}
+}
+
+// TestAddManaClampsNegativeAmountToZero is Mana's half of Ruling T14-f: a
+// negative Amount$ would otherwise drop the pool below zero.
+func TestAddManaClampsNegativeAmountToZero(t *testing.T) {
+	h := newHost(t, 2)
+	c := &Ctx{Controller: 0}
+	Resolve(h, c, sa(t, "AB$ Mana | Cost$ T | Produced$ R | Amount$ -3"))
+	if h.g.Players[0].Pool[state.MR] != 0 {
+		t.Fatalf("pool = %v, want unchanged at 0 (negative amount must not go below zero)", h.g.Players[0].Pool)
+	}
+}
+
 // TestPrimitivesAreRegistered guards against a silent unregistration: if
 // either primitive were ever dropped, Resolve would fall back to emitting a
 // Note event ("unimplemented API ...") instead of the real effect, and the

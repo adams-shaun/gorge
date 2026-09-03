@@ -341,3 +341,242 @@ func TestActivateManaAbilityProducesMana(t *testing.T) {
 		t.Errorf("replayed pool = %v, want %v (live)", fresh.Players[0].Pool, e.G.Players[0].Pool)
 	}
 }
+
+// --- Fix round 1: Ruling T14-e -- the caster keeps priority ---------------
+//
+// CR 117.3c: the player who cast a spell (or chose its target) keeps
+// priority. All three Priority emits Ruling T14-a moved behind events used
+// e.G.Active as the value, which is right only when the caster happens to
+// be the active player -- every test above casts as the active player
+// (seat 0), so none of them could have caught this. These two tests build a
+// non-active caster (seat 1, priority passed to it by seat 0) and drive a
+// cast through Submit, once with no target and once with one, asserting
+// priority ends with the caster rather than snapping back to seat 0.
+
+// passToPlayerOne has player 0 pass priority once, without resolving
+// anything, so player 1 (not the active player) is the one asked next --
+// setup shared by the three tests below, not itself the action under test.
+func passToPlayerOne(t *testing.T, e *Engine) {
+	t.Helper()
+	e.priorityRound()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority || d.Player != 0 {
+		t.Fatalf("expected player 0's priority, got %+v", d)
+	}
+	idx := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "pass" {
+			idx = opt.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no pass option: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{idx}}); err != nil {
+		t.Fatalf("submit pass: %v", err)
+	}
+	if d := e.Pending(); d == nil || d.Kind != decision.KPriority || d.Player != 1 {
+		t.Fatalf("expected player 1's priority after the pass (active stays 0), got %+v", d)
+	}
+}
+
+// TestNonActiveCasterKeepsPriorityNoTarget: player 1 casts a no-target
+// instant. Before Ruling T14-e, castSpell's trailing Priority emit used
+// e.G.Active (0), clobbering the correct value legal.go's "cast" case had
+// just emitted.
+func TestNonActiveCasterKeepsPriorityNoTarget(t *testing.T) {
+	names := []string{"a", "b"}
+	cfg := Config{Seed: 21, Names: names,
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}}
+	e := New(cfg)
+	for p := state.PlayerID(0); p < 2; p++ {
+		e.G.SetZone(state.ZHand, p, nil)
+	}
+	// A vanilla instant with no ability at all: SpellAbility() is nil, so
+	// castSpell never asks for a target.
+	quiet := card(t, "Name:Quiet Instant\nManaCost:R\nTypes:Instant\nOracle:x\n")
+	o := e.G.AddObject(quiet, 1)
+	o.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 1, []state.ObjID{o.ID})
+	e.G.Step = state.StepMain1
+	e.G.Active, e.G.Priority = 0, 0
+	e.G.Turn = 1
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 1, Counter: "R", Amount: 1})
+
+	passToPlayerOne(t, e)
+	d := e.Pending()
+	idx := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "cast" && opt.Obj == o.ID {
+			idx = opt.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no cast option for player 1's instant: %+v", d.Options)
+	}
+
+	// The action under test: player 1 (non-active) casts.
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 1, Choices: []int{idx}}); err != nil {
+		t.Fatalf("submit cast: %v", err)
+	}
+
+	if e.G.Priority != 1 {
+		t.Fatalf("Priority = %d, want 1 (the caster) per CR 117.3c", e.G.Priority)
+	}
+	next := e.Pending()
+	if next == nil || next.Kind != decision.KPriority || next.Player != 1 {
+		t.Fatalf("next decision = %+v, want another priority decision for player 1 (the caster)", next)
+	}
+}
+
+// TestNonActiveCasterKeepsPriorityWithTarget is the targeted counterpart:
+// player 1 casts Lightning Bolt and chooses its target. Before Ruling
+// T14-e, handleTarget's trailing Priority emit used e.G.Active (0) instead
+// of the submitting player.
+func TestNonActiveCasterKeepsPriorityWithTarget(t *testing.T) {
+	names := []string{"a", "b"}
+	cfg := Config{Seed: 22, Names: names,
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}}
+	e := New(cfg)
+	for p := state.PlayerID(0); p < 2; p++ {
+		e.G.SetZone(state.ZHand, p, nil)
+	}
+	bolt := card(t, "Name:Lightning Bolt\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3\nOracle:x\n")
+	o := e.G.AddObject(bolt, 1)
+	o.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 1, []state.ObjID{o.ID})
+	e.G.Step = state.StepMain1
+	e.G.Active, e.G.Priority = 0, 0
+	e.G.Turn = 1
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 1, Counter: "R", Amount: 1})
+
+	passToPlayerOne(t, e)
+	d := e.Pending()
+	idx := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "cast" && opt.Obj == o.ID {
+			idx = opt.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no cast option for player 1's instant: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 1, Choices: []int{idx}}); err != nil {
+		t.Fatalf("submit cast: %v", err)
+	}
+
+	target := e.Pending()
+	if target == nil || target.Kind != decision.KTarget || target.Player != 1 {
+		t.Fatalf("expected player 1's target decision, got %+v", target)
+	}
+	tIdx := -1
+	for _, opt := range target.Options {
+		if opt.Kind == "player" && opt.Player == 0 {
+			tIdx = opt.Index
+		}
+	}
+	if tIdx < 0 {
+		t.Fatalf("active player not offered as a target: %+v", target.Options)
+	}
+
+	// The action under test: player 1 (non-active) chooses a target.
+	if err := e.Submit(decision.Intent{Seq: target.Seq, Player: 1, Choices: []int{tIdx}}); err != nil {
+		t.Fatalf("submit target: %v", err)
+	}
+
+	if e.G.Priority != 1 {
+		t.Fatalf("Priority = %d, want 1 (the caster) per CR 117.3c", e.G.Priority)
+	}
+	next := e.Pending()
+	if next == nil || next.Kind != decision.KPriority || next.Player != 1 {
+		t.Fatalf("next decision = %+v, want another priority decision for player 1 (the caster)", next)
+	}
+}
+
+// TestNonActiveCasterReplayThroughSubmit extends TestCastReplayThroughSubmit's
+// replay coverage (rather than rewriting it and losing the active-caster
+// case) to the scenario Finding 1 exposed: player 1, not the active player,
+// casts and resolves a spell targeting the active player. Confirms the live
+// priority sequence -- caster keeps it through casting and targeting,
+// active player gets it back only once the spell actually resolves (CR
+// 117.5, unrelated to and unaffected by this fix) -- and that the scalar
+// half of that state replays.
+func TestNonActiveCasterReplayThroughSubmit(t *testing.T) {
+	names := []string{"a", "b"}
+	cfg := Config{Seed: 23, Names: names,
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}}
+	e := New(cfg)
+	for p := state.PlayerID(0); p < 2; p++ {
+		e.G.SetZone(state.ZHand, p, nil)
+	}
+	bolt := card(t, "Name:Lightning Bolt\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3\nOracle:x\n")
+	o := e.G.AddObject(bolt, 1)
+	o.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 1, []state.ObjID{o.ID})
+	e.G.Step = state.StepMain1
+	e.G.Active, e.G.Priority = 0, 0
+	e.G.Turn = 1
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 1, Counter: "R", Amount: 1})
+
+	passToPlayerOne(t, e)
+	d := e.Pending()
+	castIdx := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "cast" && opt.Obj == o.ID {
+			castIdx = opt.Index
+		}
+	}
+	if castIdx < 0 {
+		t.Fatalf("no cast option: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 1, Choices: []int{castIdx}}); err != nil {
+		t.Fatalf("submit cast: %v", err)
+	}
+
+	target := e.Pending()
+	if target == nil || target.Kind != decision.KTarget || target.Player != 1 {
+		t.Fatalf("expected player 1's target decision, got %+v", target)
+	}
+	tIdx := -1
+	for _, opt := range target.Options {
+		if opt.Kind == "player" && opt.Player == 0 {
+			tIdx = opt.Index
+		}
+	}
+	if tIdx < 0 {
+		t.Fatalf("active player not offered as a target: %+v", target.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: target.Seq, Player: 1, Choices: []int{tIdx}}); err != nil {
+		t.Fatalf("submit target: %v", err)
+	}
+	if e.G.Priority != 1 {
+		t.Fatalf("Priority = %d, want 1 (the caster) per CR 117.3c", e.G.Priority)
+	}
+
+	// Both players pass; the spell resolves.
+	for i := 0; i < 4 && len(e.G.Stack) > 0; i++ {
+		if passAll(t, e, 1) == 0 {
+			t.Fatal("expected priority decisions until the spell resolves")
+		}
+	}
+	if e.G.Players[0].Life != 17 {
+		t.Fatalf("life = %d, want 17 after Bolt resolves", e.G.Players[0].Life)
+	}
+
+	fresh := state.NewGame(cfg.Names)
+	for _, ev := range e.L.Events {
+		events.Apply(fresh, ev)
+	}
+	if fresh.Players[1].Pool != e.G.Players[1].Pool {
+		t.Errorf("replayed pool = %v, want %v (live)", fresh.Players[1].Pool, e.G.Players[1].Pool)
+	}
+	if fresh.Players[0].Life != e.G.Players[0].Life {
+		t.Errorf("replayed life = %d, want %d (live)", fresh.Players[0].Life, e.G.Players[0].Life)
+	}
+	if fresh.Passes != e.G.Passes {
+		t.Errorf("replayed Passes = %d, want %d (live)", fresh.Passes, e.G.Passes)
+	}
+	if fresh.Priority != e.G.Priority {
+		t.Errorf("replayed Priority = %d, want %d (live)", fresh.Priority, e.G.Priority)
+	}
+}

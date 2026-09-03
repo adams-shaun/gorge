@@ -24,6 +24,12 @@ func init() {
 // actions are Task 21's job.
 func dealDamage(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "NumDmg", 0)
+	if n < 0 {
+		// Ruling T14-f: no real card ever specifies a negative NumDmg, but
+		// events.Apply's Damage case is a plain subtraction from Life, so an
+		// unclamped negative value would heal instead of doing nothing.
+		n = 0
+	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			h.Emit(events.Event{Kind: events.Damage, Player: t.Player, Amount: n})
@@ -38,6 +44,11 @@ func dealDamage(h Host, c *Ctx, sa *cards.SA) {
 // vocabulary state.ManaIndex reads.
 func addMana(h Host, c *Ctx, sa *cards.SA) {
 	amt := Num(h, c, sa, "Amount", 1)
+	if amt < 0 {
+		// Ruling T14-f: same clamp as dealDamage. A negative Amount here
+		// would drop the pool below zero instead of doing nothing.
+		amt = 0
+	}
 	produced := sa.Params["Produced"]
 	if produced == "" {
 		produced = "C"

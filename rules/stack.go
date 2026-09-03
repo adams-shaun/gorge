@@ -27,7 +27,13 @@ func (e *Engine) castSpell(p state.PlayerID, id state.ObjID) {
 		e.askTarget(p, id, sa)
 		return
 	}
-	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active, Amount: 0})
+	// No trailing Priority emit here (Ruling T14-e): legal.go's "cast" case
+	// already emits Priority{Player: e.G.Priority, Amount: 0} immediately
+	// before calling castSpell, and e.G.Priority at that point is the
+	// caster (Submit already validated in.Player == d.Player == the seat
+	// that was asked). CR 117.3c: the caster keeps priority, so re-emitting
+	// here with e.G.Active would both duplicate that event and hand
+	// priority to the wrong seat whenever a non-active player casts.
 }
 
 // manaLetters is state.Mana's index order (MW, MU, MB, MR, MG, MC) spelled
@@ -87,7 +93,9 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		// The spike models that as an immediate move to the graveyard.
 		e.emit(events.Event{Kind: events.MoveZone, Obj: source,
 			From: state.ZStack, To: state.ZGraveyard, Text: "countered: no legal targets"})
-		e.emit(events.Event{Kind: events.Priority, Player: e.G.Active, Amount: 0})
+		// Ruling T14-e: p, the casting player, not e.G.Active -- CR 117.3c,
+		// the caster keeps priority even when it fizzles.
+		e.emit(events.Event{Kind: events.Priority, Player: p, Amount: 0})
 		return
 	}
 	e.ask(d)
@@ -108,7 +116,9 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 		ev.IDs = []state.ObjID{opt.Obj}
 	}
 	e.emit(ev)
-	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active, Amount: 0})
+	// Ruling T14-e: the submitting player, not e.G.Active -- CR 117.3c, the
+	// player who chose the target (the caster) keeps priority.
+	e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
 }
 
 // resolveTop resolves the object on top of the stack and moves it to
