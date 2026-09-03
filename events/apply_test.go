@@ -270,7 +270,7 @@ func TestApplyNeverPanics(t *testing.T) {
 	allKinds := []Kind{GameStart, Shuffle, MoveZone, Draw, LifeChange, Damage, Tap, Untap,
 		StepChange, TurnChange, Priority, PutOnStack, Resolve, ManaAdd, ManaClear,
 		CounterChange, DeclareAttackers, DeclareBlockers, PlayerLost, GameOver,
-		DecisionAsk, DecisionMade, Note}
+		DecisionAsk, DecisionMade, Note, LandPlayed}
 
 	const badZone = state.Zone(200)
 	const badObj = state.ObjID(999999)
@@ -337,6 +337,47 @@ func TestApplyNeverPanics(t *testing.T) {
 				})
 			}
 		})
+	}
+}
+
+// TestLandPlayedIncrementsLandsPlayed is the carrier for a land drop: nothing
+// but this event may ever change Players[p].LandsPlayed outside a
+// TurnChange reset, so a game reconstructed from the log matches the live
+// game on that field.
+func TestLandPlayedIncrementsLandsPlayed(t *testing.T) {
+	g, l := twoPlayer(t)
+	if g.Players[0].LandsPlayed != 0 {
+		t.Fatalf("LandsPlayed = %d before any event, want 0", g.Players[0].LandsPlayed)
+	}
+	Emit(g, l, Event{Kind: LandPlayed, Player: 0})
+	if g.Players[0].LandsPlayed != 1 {
+		t.Fatalf("LandsPlayed = %d, want 1", g.Players[0].LandsPlayed)
+	}
+	Emit(g, l, Event{Kind: LandPlayed, Player: 0})
+	if g.Players[0].LandsPlayed != 2 {
+		t.Fatalf("LandsPlayed = %d, want 2", g.Players[0].LandsPlayed)
+	}
+	if g.Players[1].LandsPlayed != 0 {
+		t.Fatal("LandPlayed for player 0 must not affect player 1")
+	}
+}
+
+// TestLandPlayedIgnoresInvalidPlayer mirrors the invalid-player guard every
+// other player-scoped case uses: an out-of-range player must be a no-op,
+// never a panic or a stray mutation.
+func TestLandPlayedIgnoresInvalidPlayer(t *testing.T) {
+	g, l := twoPlayer(t)
+	Emit(g, l, Event{Kind: LandPlayed, Player: state.PlayerID(99)})
+	for _, p := range g.Players {
+		if p.LandsPlayed != 0 {
+			t.Fatalf("LandsPlayed = %d after an out-of-range player event, want 0", p.LandsPlayed)
+		}
+	}
+}
+
+func TestLandPlayedKindString(t *testing.T) {
+	if got := LandPlayed.String(); got != "land_played" {
+		t.Fatalf("LandPlayed.String() = %q, want %q", got, "land_played")
 	}
 }
 

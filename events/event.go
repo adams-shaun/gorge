@@ -35,13 +35,14 @@ const (
 	DecisionAsk
 	DecisionMade
 	Note
+	LandPlayed
 )
 
 var kindNames = [...]string{"game_start", "shuffle", "move_zone", "draw",
 	"life", "damage", "tap", "untap", "step", "turn", "priority", "stack_push",
 	"stack_resolve", "mana_add", "mana_clear", "counter", "declare_attackers",
 	"declare_blockers", "player_lost", "game_over", "decision_ask",
-	"decision_made", "note"}
+	"decision_made", "note", "land_played"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

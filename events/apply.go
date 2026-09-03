@@ -119,6 +119,11 @@ func Apply(g *state.Game, e Event) {
 	case GameOver:
 		g.Over = true
 		g.Winner = e.Player
+
+	case LandPlayed:
+		if validPlayer(g, e.Player) {
+			g.Players[e.Player].LandsPlayed++
+		}
 	}
 }
 
