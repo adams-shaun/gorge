@@ -1,6 +1,7 @@
 package cards
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -63,5 +64,29 @@ func TestRegistryCacheRoundTrip(t *testing.T) {
 	mtn, _ := back.Lookup("Mountain")
 	if len(mtn.Faces[0].ManaAbilities()) != 1 {
 		t.Fatal("intrinsic mana ability lost in round trip")
+	}
+}
+
+func TestRegistryRejectsTruncatedCache(t *testing.T) {
+	r := fixtureRegistry(t)
+	path := filepath.Join(t.TempDir(), "ir.gob.gz")
+	if err := r.Save(path); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	// Truncate the file by 10 trailing bytes to corrupt the gzip trailer
+	fi, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("Stat: %v", err)
+	}
+	newSize := fi.Size() - 10
+	if newSize < 0 {
+		t.Skipf("file too small to truncate by 10 bytes")
+	}
+	if err := os.Truncate(path, newSize); err != nil {
+		t.Fatalf("Truncate: %v", err)
+	}
+	_, err = LoadRegistry(path)
+	if err == nil {
+		t.Fatal("LoadRegistry accepted truncated cache, want non-nil error")
 	}
 }

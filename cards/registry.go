@@ -116,9 +116,12 @@ func LoadRegistry(path string) (*Registry, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer zr.Close()
 	var cf cacheFile
 	if err := gob.NewDecoder(zr).Decode(&cf); err != nil {
+		zr.Close()
+		return nil, err
+	}
+	if err := zr.Close(); err != nil {
 		return nil, err
 	}
 	if cf.Version != cacheVersion {
