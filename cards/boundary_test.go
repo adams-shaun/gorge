@@ -20,12 +20,13 @@ func looksLikeForgeScript(blob string) bool {
 // scripts in .txt files, checking the working tree first, then the staged index,
 // then HEAD. This ordering catches scripts that are staged before commit,
 // committed but then modified, and merely committed.
-func checkForgeScriptsInRepo(t *testing.T, repoDir string) []string {
+// Returns (offenders, error) where error is non-nil only if git itself is unavailable.
+func checkForgeScriptsInRepo(t *testing.T, repoDir string) ([]string, error) {
 	t.Helper()
 
 	out, err := exec.Command("git", "-C", repoDir, "ls-files", "-z", "--", "*.txt").Output()
 	if err != nil {
-		t.Fatalf("git ls-files failed: %v", err)
+		return nil, err
 	}
 
 	var offenders []string
@@ -60,13 +61,16 @@ func checkForgeScriptsInRepo(t *testing.T, repoDir string) []string {
 			offenders = append(offenders, path)
 		}
 	}
-	return offenders
+	return offenders, nil
 }
 
 // TestNoForgeScriptsTracked enforces the GPL boundary from the design spec:
 // mtgcore ships a compiler, never the scripts.
 func TestNoForgeScriptsTracked(t *testing.T) {
-	offenders := checkForgeScriptsInRepo(t, "../..")
+	offenders, err := checkForgeScriptsInRepo(t, "../..")
+	if err != nil {
+		t.Skipf("git unavailable: %v", err)
+	}
 	if len(offenders) > 0 {
 		t.Fatalf("Forge card scripts are tracked in git, which breaks the GPL boundary:\n  %s",
 			strings.Join(offenders, "\n  "))
@@ -172,7 +176,10 @@ func TestForgeScriptDetection(t *testing.T) {
 			}
 
 			tt.setup(t, tmpDir)
-			offenders := checkForgeScriptsInRepo(t, tmpDir)
+			offenders, err := checkForgeScriptsInRepo(t, tmpDir)
+			if err != nil {
+				t.Fatalf("git should be available in temp repo: %v", err)
+			}
 
 			if tt.expectOffender && len(offenders) == 0 {
 				t.Errorf("expected to detect Forge script, but got none (reason: %s)", tt.reason)
