@@ -1,6 +1,9 @@
 package events
 
 import (
+	"fmt"
+	"math"
+	"reflect"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -168,5 +171,255 @@ func TestShuffleReplacesLibraryOrder(t *testing.T) {
 	want[0] = 99
 	if g.Zone(state.ZLibrary, 0)[0] == 99 {
 		t.Fatal("Shuffle aliased the caller's slice")
+	}
+}
+
+// zoneLocations enumerates every zone of every player (plus the stack) and
+// returns a label for each place id currently appears. Unlike zoneCount, it
+// names the locations, so a broken invariant is diagnosable from the
+// failure message alone.
+func zoneLocations(g *state.Game, id state.ObjID) []string {
+	var out []string
+	for p := state.PlayerID(0); p < state.PlayerID(len(g.Players)); p++ {
+		for _, z := range []state.Zone{state.ZLibrary, state.ZHand, state.ZBattlefield, state.ZGraveyard, state.ZExile} {
+			for _, x := range g.Zone(z, p) {
+				if x == id {
+					out = append(out, fmt.Sprintf("p%d:%s", p, z))
+				}
+			}
+		}
+	}
+	for _, x := range g.Stack {
+		if x == id {
+			out = append(out, "stack")
+		}
+	}
+	return out
+}
+
+// TestMoveZoneInvariantTableDriven exercises Move against exactly the
+// scenarios that a naive "trust the caller's From" implementation gets
+// wrong: a wrong From, a same-zone move, a repeated move, and a move that
+// lands after the object already moved elsewhere for real. In every case
+// the object must end up in exactly one zone.
+func TestMoveZoneInvariantTableDriven(t *testing.T) {
+	cases := []struct {
+		name string
+		run  func(g *state.Game, l *Log, id state.ObjID)
+	}{
+		{
+			name: "normal move",
+			run: func(g *state.Game, l *Log, id state.ObjID) {
+				Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZLibrary, To: state.ZHand})
+			},
+		},
+		{
+			name: "move with a wrong From",
+			run: func(g *state.Game, l *Log, id state.ObjID) {
+				// id really lives in the library; the event lies and claims
+				// graveyard. The real removal zone must still be found and
+				// used, not the claimed one.
+				Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZHand})
+			},
+		},
+		{
+			name: "move to the zone already occupied",
+			run: func(g *state.Game, l *Log, id state.ObjID) {
+				Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZLibrary, To: state.ZLibrary})
+			},
+		},
+		{
+			name: "two identical moves in a row",
+			run: func(g *state.Game, l *Log, id state.ObjID) {
+				Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZLibrary, To: state.ZHand})
+				Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZLibrary, To: state.ZHand})
+			},
+		},
+		{
+			name: "stale move after the object already moved elsewhere",
+			run: func(g *state.Game, l *Log, id state.ObjID) {
+				// The object genuinely moves to hand...
+				Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZLibrary, To: state.ZHand})
+				// ...then a second, stale event still claims it is coming
+				// from the library (its pre-move location) and sends it to
+				// the battlefield. The removal must come from hand (its
+				// real zone), not library.
+				Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			g, l := twoPlayer(t)
+			id := g.Zone(state.ZLibrary, 0)[0]
+			tc.run(g, l, id)
+			if locs := zoneLocations(g, id); len(locs) != 1 {
+				t.Fatalf("object in %d zones after %q: %v", len(locs), tc.name, locs)
+			}
+		})
+	}
+}
+
+// TestApplyNeverPanics feeds every Kind a battery of hostile field values —
+// zero/garbage ObjIDs, out-of-range players, out-of-range zones, extreme
+// amounts, and IDs/Pairs naming nothing real. Apply runs on the match's only
+// goroutine and Event reaches it from network input, so any panic here is a
+// remote kill of the whole match: every case must be a no-op, never a crash.
+func TestApplyNeverPanics(t *testing.T) {
+	allKinds := []Kind{GameStart, Shuffle, MoveZone, Draw, LifeChange, Damage, Tap, Untap,
+		StepChange, TurnChange, Priority, PutOnStack, Resolve, ManaAdd, ManaClear,
+		CounterChange, DeclareAttackers, DeclareBlockers, PlayerLost, GameOver,
+		DecisionAsk, DecisionMade, Note}
+
+	const badZone = state.Zone(200)
+	const badObj = state.ObjID(999999)
+	const badPlayer = state.PlayerID(250)
+
+	for _, k := range allKinds {
+		t.Run(k.String(), func(t *testing.T) {
+			variants := []struct {
+				name string
+				e    Event
+			}{
+				{"obj zero", Event{Kind: k, Obj: 0, Player: 0}},
+				{"obj out of range", Event{Kind: k, Obj: badObj, Player: 0}},
+				{"player out of range", Event{Kind: k, Player: badPlayer}},
+				{"from zone out of range", Event{Kind: k, Player: 0, From: badZone, To: state.ZHand}},
+				{"to zone out of range", Event{Kind: k, Player: 0, From: state.ZLibrary, To: badZone}},
+				{"amount min int32", Event{Kind: k, Player: 0, Amount: math.MinInt32}},
+				{"amount max int32", Event{Kind: k, Player: 0, Amount: math.MaxInt32}},
+				{"ids nonexistent", Event{Kind: k, Player: 0, IDs: []state.ObjID{badObj}}},
+				{"pairs nonexistent", Event{Kind: k, Player: 0, Pairs: [][2]state.ObjID{{badObj, badObj}}}},
+			}
+			for _, v := range variants {
+				t.Run(v.name, func(t *testing.T) {
+					g, _ := twoPlayer(t)
+					id := g.Zone(state.ZLibrary, 0)[0]
+					e := v.e
+					// Route the case at a real object/zone so the guard under
+					// test is actually exercised, not short-circuited by a
+					// zero Obj. "obj *", "player out of range" and
+					// "ids/pairs" variants deliberately keep Obj at its
+					// zero/bad value: for Damage in particular, Obj==0
+					// combined with a bad Player is what reaches the
+					// unguarded g.Players[e.Player] fallback branch.
+					switch v.name {
+					case "from zone out of range", "to zone out of range",
+						"amount min int32", "amount max int32":
+						e.Obj = id
+					}
+
+					Apply(g, e) // must not panic
+
+					switch v.name {
+					case "from zone out of range":
+						// From is untrusted and unused for the mutation (see
+						// Move / FIX1): a garbage From with a valid To still
+						// succeeds, landing the object in exactly one zone.
+						if (k == MoveZone || k == Draw || k == PutOnStack) && len(zoneLocations(g, id)) != 1 {
+							t.Fatalf("object must still land in exactly one zone, got %v", zoneLocations(g, id))
+						}
+					case "to zone out of range":
+						// To is the real destination; an invalid one must
+						// no-op the whole move, leaving the object exactly
+						// where it started.
+						if k == MoveZone || k == Draw || k == PutOnStack {
+							if locs := zoneLocations(g, id); len(locs) != 1 || locs[0] != "p0:library" {
+								t.Fatalf("out-of-range To must no-op the move, got %v", locs)
+							}
+						}
+					case "player out of range":
+						if k == PlayerLost && g.Players[0].Lost {
+							t.Fatal("out-of-range player must not affect player 0")
+						}
+					}
+				})
+			}
+		})
+	}
+}
+
+// TestDamageClampsAtZero mirrors AddCounter's existing clamp: Object.Damage
+// must never go negative, however large a negative Damage event's Amount is.
+func TestDamageClampsAtZero(t *testing.T) {
+	g, l := twoPlayer(t)
+	id := g.Zone(state.ZLibrary, 0)[0]
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
+
+	Emit(g, l, Event{Kind: Damage, Obj: id, Amount: 3})
+	if g.Obj(id).Damage != 3 {
+		t.Fatalf("damage = %d, want 3", g.Obj(id).Damage)
+	}
+	Emit(g, l, Event{Kind: Damage, Obj: id, Amount: -10})
+	if g.Obj(id).Damage != 0 {
+		t.Fatalf("damage clamps at zero, got %d", g.Obj(id).Damage)
+	}
+	Emit(g, l, Event{Kind: Damage, Obj: id, Amount: math.MinInt32})
+	if g.Obj(id).Damage != 0 {
+		t.Fatalf("damage clamps at zero even for extreme negative amounts, got %d", g.Obj(id).Damage)
+	}
+}
+
+// TestApplyIsPure applies a varied event sequence to two independently built
+// but initially identical games and asserts the resulting states are deeply
+// equal, including zone contents and order — not just lengths. Apply must
+// stay a pure function of (g, e): the same events on the same starting
+// state always produce the same result.
+func TestApplyIsPure(t *testing.T) {
+	build := func(t *testing.T) (*state.Game, *Log) {
+		t.Helper()
+		return twoPlayer(t)
+	}
+
+	sequence := func(g *state.Game, l *Log) {
+		lib0 := append([]state.ObjID(nil), g.Zone(state.ZLibrary, 0)...)
+		lib1 := append([]state.ObjID(nil), g.Zone(state.ZLibrary, 1)...)
+
+		Emit(g, l, Event{Kind: MoveZone, Obj: lib0[0], From: state.ZLibrary, To: state.ZHand})
+		Emit(g, l, Event{Kind: MoveZone, Obj: lib0[1], From: state.ZLibrary, To: state.ZHand})
+		Emit(g, l, Event{Kind: MoveZone, Obj: lib0[0], From: state.ZHand, To: state.ZBattlefield})
+		Emit(g, l, Event{Kind: Tap, Obj: lib0[0]})
+		Emit(g, l, Event{Kind: CounterChange, Obj: lib0[0], Counter: "P1P1", Amount: 2})
+		Emit(g, l, Event{Kind: LifeChange, Player: 1, Amount: -5})
+		Emit(g, l, Event{Kind: Damage, Player: 1, Amount: 2})
+		Emit(g, l, Event{Kind: Damage, Obj: lib0[0], Amount: 1})
+		Emit(g, l, Event{Kind: ManaAdd, Player: 0, Counter: "R", Amount: 3})
+		Emit(g, l, Event{Kind: MoveZone, Obj: lib1[0], From: state.ZLibrary, To: state.ZBattlefield})
+		Emit(g, l, Event{Kind: DeclareAttackers, Player: 0, IDs: []state.ObjID{lib0[0]}})
+		Emit(g, l, Event{Kind: DeclareBlockers, Pairs: [][2]state.ObjID{{lib1[0], lib0[0]}}})
+		Emit(g, l, Event{Kind: TurnChange, Player: 1, Amount: 2})
+		Emit(g, l, Event{Kind: MoveZone, Obj: lib0[0], From: state.ZBattlefield, To: state.ZGraveyard})
+		// A stale/incorrect From on the last move: real zone is hand, not
+		// library. Purity must hold even through the invariant-guard path.
+		Emit(g, l, Event{Kind: MoveZone, Obj: lib0[1], From: state.ZLibrary, To: state.ZExile})
+	}
+
+	g1, l1 := build(t)
+	sequence(g1, l1)
+
+	g2, l2 := build(t)
+	sequence(g2, l2)
+
+	if !reflect.DeepEqual(g1.Players, g2.Players) {
+		t.Fatalf("players diverged:\n%+v\n%+v", g1.Players, g2.Players)
+	}
+	if !reflect.DeepEqual(g1.Objs, g2.Objs) {
+		t.Fatalf("objects diverged:\n%+v\n%+v", g1.Objs, g2.Objs)
+	}
+	if !reflect.DeepEqual(g1.Stack, g2.Stack) {
+		t.Fatalf("stack diverged: %v vs %v", g1.Stack, g2.Stack)
+	}
+	for p := state.PlayerID(0); p < state.PlayerID(len(g1.Players)); p++ {
+		for _, z := range []state.Zone{state.ZLibrary, state.ZHand, state.ZBattlefield, state.ZGraveyard, state.ZExile} {
+			a, b := g1.Zone(z, p), g2.Zone(z, p)
+			if !reflect.DeepEqual(a, b) {
+				t.Fatalf("p%d:%s diverged: %v vs %v", p, z, a, b)
+			}
+		}
+	}
+	if g1.Turn != g2.Turn || g1.Active != g2.Active || g1.Clock != g2.Clock {
+		t.Fatalf("scalar state diverged: turn=%d/%d active=%d/%d clock=%d/%d",
+			g1.Turn, g2.Turn, g1.Active, g2.Active, g1.Clock, g2.Clock)
 	}
 }

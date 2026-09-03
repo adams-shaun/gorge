@@ -21,6 +21,13 @@ var zoneNames = [numZones]string{"library", "hand", "battlefield", "graveyard", 
 
 func (z Zone) String() string { return zoneNames[z] }
 
+// Valid reports whether z is one of the defined zone constants. Zone is
+// unsigned, so only the upper bound needs checking. Callers that index
+// game state by a Zone coming from outside this package (an event, a
+// network message) must check Valid first: an out-of-range Zone reaches
+// Game's zone-index arithmetic and panics with index-out-of-range.
+func (z Zone) Valid() bool { return int(z) < numZones }
+
 // Hidden reports whether a zone's contents are private to its owner. View
 // projection and event redaction both key off this.
 func (z Zone) Hidden() bool { return z == ZLibrary || z == ZHand }
