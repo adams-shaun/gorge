@@ -3,6 +3,7 @@ package cards
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -163,5 +164,82 @@ func TestRegistryRejectsTruncatedCache(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// writeCardFile drops one Forge-shaped script into dir for CompileDir to pick up.
+func writeCardFile(t *testing.T, dir, name, src string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(dir, name), []byte(src), 0o644); err != nil {
+		t.Fatalf("write %s: %v", name, err)
+	}
+}
+
+// TestCompileDirDiagnosesCardWithNoNamedFace covers the real corpus defect
+// found in bind_liberate.txt/start_fire.txt: a script built entirely from
+// CopyFaceFrom (a directive this parser doesn't resolve) parses without
+// error into a Card whose only Face has every field, including Name, at its
+// zero value. That must not vanish silently — it should surface as exactly
+// one diagnostic per card, and Coverage must still treat the card as absent
+// rather than "supported".
+func TestCompileDirDiagnosesCardWithNoNamedFace(t *testing.T) {
+	dir := t.TempDir()
+	writeCardFile(t, dir, "nameless.txt", "CopyFaceFrom:Bind\nAlternateMode:Split\n")
+
+	r, diags, err := CompileDir(dir)
+	if err != nil {
+		t.Fatalf("CompileDir: %v", err)
+	}
+	if len(diags) != 1 {
+		t.Fatalf("diags = %+v, want exactly 1", diags)
+	}
+	if !strings.HasSuffix(diags[0].Path, "nameless.txt") {
+		t.Errorf("diag path = %q, want it to name nameless.txt", diags[0].Path)
+	}
+	if !strings.Contains(diags[0].Msg, "no named face") {
+		t.Errorf("diag msg = %q, want it to say the card has no named face", diags[0].Msg)
+	}
+
+	if len(r.Cards) != 1 {
+		t.Fatalf("Cards = %d, want 1 (the card still compiles, just flagged)", len(r.Cards))
+	}
+	cv := r.Coverage(map[string]bool{})
+	if cv.Cards != 0 {
+		t.Errorf("Coverage.Cards = %d, want 0 (nameless card excluded)", cv.Cards)
+	}
+	if cv.Supported != 0 {
+		t.Errorf("Coverage.Supported = %d, want 0 (nameless card must not count as playable)", cv.Supported)
+	}
+}
+
+// TestCompileDirIgnoresNamelessAlternateFace is the regression guard for the
+// distinction the fix must preserve: a card is only diagnosed when NO face
+// has a name. A normal single-face card, and a two-face card whose primary
+// face is named and whose ALTERNATE is a nameless CopyFaceFrom stub (the
+// shape used by ~20 legitimate split/transform cards in the real corpus),
+// must both produce zero "no named face" diagnostics — otherwise the check
+// would blow through the diagnostic budget on cards that are working as
+// designed.
+func TestCompileDirIgnoresNamelessAlternateFace(t *testing.T) {
+	dir := t.TempDir()
+	writeCardFile(t, dir, "normal.txt", "Name:Normal Card\nTypes:Sorcery\nOracle:x\n")
+	writeCardFile(t, dir, "splitcard.txt",
+		"Name:Primary Face\nTypes:Creature\nOracle:x\nALTERNATE\nCopyFaceFrom:SomeAlt\n")
+
+	r, diags, err := CompileDir(dir)
+	if err != nil {
+		t.Fatalf("CompileDir: %v", err)
+	}
+	for _, d := range diags {
+		if strings.Contains(d.Msg, "no named face") {
+			t.Errorf("unexpected nameless-face diagnostic: %+v", d)
+		}
+	}
+	if len(r.Cards) != 2 {
+		t.Fatalf("Cards = %d, want 2", len(r.Cards))
+	}
+	cv := r.Coverage(map[string]bool{})
+	if cv.Cards != 2 {
+		t.Errorf("Coverage.Cards = %d, want 2 (both cards have a named face)", cv.Cards)
 	}
 }

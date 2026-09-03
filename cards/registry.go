@@ -173,6 +173,16 @@ func CompileDir(dir string) (*Registry, []Diag, error) {
 		for _, f := range c.Faces {
 			f.ApplyIntrinsics()
 		}
+		// A card with no named face parsed without error but carries no
+		// identity — e.g. a script whose only content is a directive like
+		// CopyFaceFrom that this parser doesn't resolve. That is worth a
+		// diagnostic per card, not per face: an ALTERNATE face alone being
+		// nameless is normal (legitimate CopyFaceFrom usage on a second
+		// face), but a card with no named face at all silently drops out of
+		// Coverage, and a human should be told which file did that.
+		if !c.named() {
+			diags = append(diags, Diag{p, "card has no named face on any face; excluded from coverage (likely an unresolved CopyFaceFrom or similar directive)"})
+		}
 		r.Add(c)
 	}
 	return r, diags, nil
