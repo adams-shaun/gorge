@@ -2,6 +2,7 @@ package cards
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -76,5 +77,97 @@ func TestFetchDownloadsCorpus(t *testing.T) {
 	}
 	if l.Commit == "" || l.Digest == "" {
 		t.Fatalf("lock incomplete: %+v", l)
+	}
+}
+
+func TestDigestDirNULCollisionResistance(t *testing.T) {
+	// Before length-framing, a.txt containing "X\x00b.txt\x00Y" would hash
+	// identically to two files a.txt="X" and b.txt="Y". Verify the collision
+	// is closed with the new length-framing scheme.
+	embeddedDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(embeddedDir, "a.txt"),
+		[]byte("X\x00b.txt\x00Y"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	embeddedDigest, _, _ := DigestDir(embeddedDir)
+
+	separateDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(separateDir, "a.txt"), []byte("X"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(separateDir, "b.txt"), []byte("Y"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	separateDigest, _, _ := DigestDir(separateDir)
+
+	if embeddedDigest == separateDigest {
+		t.Fatalf("digest collision: embedded NULs should not hash identically: %s", embeddedDigest)
+	}
+}
+
+func TestFetchCleansUpOnFailure(t *testing.T) {
+	// Create a local git repository that lacks the expected subpath.
+	// Verify fetchRepo returns an error and leaves no work directory behind.
+	baseDir := t.TempDir()
+	repoDir := filepath.Join(baseDir, "test.git")
+	if err := os.Mkdir(repoDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Initialize a bare repository.
+	cmd := exec.Command("git", "init", "--bare", repoDir)
+	if err := cmd.Run(); err != nil {
+		t.Skipf("git init failed: %v", err)
+	}
+
+	// Create a temporary checkout to commit a file that is NOT at forgeSubpath.
+	checkoutDir := filepath.Join(baseDir, "checkout")
+	if err := os.Mkdir(checkoutDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd = exec.Command("git", "clone", repoDir, checkoutDir)
+	if err := cmd.Run(); err != nil {
+		t.Skipf("git clone failed: %v", err)
+	}
+
+	// Create and commit a file at the root (not at the expected subpath).
+	dummyFile := filepath.Join(checkoutDir, "dummy.txt")
+	if err := os.WriteFile(dummyFile, []byte("content"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cmd = exec.Command("git", "-C", checkoutDir, "add", "dummy.txt")
+	if err := cmd.Run(); err != nil {
+		t.Skipf("git add failed: %v", err)
+	}
+	cmd = exec.Command("git", "-C", checkoutDir, "-c", "user.email=test@example.com",
+		"-c", "user.name=Test", "commit", "-m", "test")
+	if err := cmd.Run(); err != nil {
+		t.Skipf("git commit failed: %v", err)
+	}
+	cmd = exec.Command("git", "-C", checkoutDir, "push", "origin", "master")
+	if err := cmd.Run(); err != nil {
+		t.Skipf("git push failed: %v", err)
+	}
+
+	// Now attempt to fetch from this local repository, pointing at master.
+	// Use file:// URL to access the local bare repository.
+	fetchDir := filepath.Join(baseDir, "fetch")
+	if err := os.Mkdir(fetchDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	fileURL := "file://" + filepath.ToSlash(repoDir)
+	_, err := fetchRepo(fileURL, fetchDir, "master")
+	if err == nil {
+		t.Fatal("fetchRepo should have failed (missing subpath)")
+	}
+
+	// Verify the work directory was cleaned up.
+	workDir := filepath.Join(fetchDir, "forge.git-checkout")
+	if _, err := os.Stat(workDir); err == nil {
+		t.Fatalf("work directory still exists after failure: %s", workDir)
+	} else if !os.IsNotExist(err) {
+		t.Fatalf("unexpected error checking work directory: %v", err)
 	}
 }
