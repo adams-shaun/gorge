@@ -33,6 +33,10 @@ type Ctx struct {
 	Controller state.PlayerID
 	Targets    []state.Target
 	Remembered []state.Target
+	// SVars is the resolving card's SVar table, and X the value paid for {X}.
+	// Both are bound by the rules package when it builds the context.
+	SVars map[string]string
+	X     int32
 }
 
 type Effect func(h Host, c *Ctx, sa *cards.SA)
