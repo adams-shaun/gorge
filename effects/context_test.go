@@ -11,10 +11,17 @@ import (
 
 // fakeHost is the smallest thing satisfying Host: a real Game plus a captured
 // event list, so effect tests assert on emitted events rather than internals.
+// continuous captures every AddContinuous call the same way log captures
+// every Emit call -- effects package tests have no rules.Engine (and no
+// layer computation) to check the resulting Power/Toughness against, so they
+// can only assert on what got registered, not on its downstream effect; the
+// two engine-level end-to-end tests in rules/layers_pump_test.go are what
+// check the actual computed result.
 type fakeHost struct {
-	g   *state.Game
-	log []events.Event
-	n   int
+	g          *state.Game
+	log        []events.Event
+	continuous []state.ContinuousEffect
+	n          int
 }
 
 func (h *fakeHost) Game() *state.Game { return h.g }
@@ -23,6 +30,9 @@ func (h *fakeHost) Emit(e events.Event) {
 	events.Apply(h.g, e)
 }
 func (h *fakeHost) Rand(n int) int { h.n++; return 0 }
+func (h *fakeHost) AddContinuous(ce state.ContinuousEffect) {
+	h.continuous = append(h.continuous, ce)
+}
 
 func newHost(t *testing.T, seats int) *fakeHost {
 	t.Helper()

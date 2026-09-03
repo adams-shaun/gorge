@@ -25,6 +25,11 @@ type Host interface {
 	// Rand is the engine's seeded generator. Effects that need randomness must
 	// use it and nothing else, or replay breaks.
 	Rand(n int) int
+	// AddContinuous registers one continuous effect against the CR 613 layer
+	// system (rules.Engine.AddContinuous). This is how Pump, PumpAll, Animate
+	// and Protection reach the layer system without effects importing rules,
+	// which would be an import cycle (effects sits below rules). Task 19c.
+	AddContinuous(state.ContinuousEffect)
 }
 
 // Ctx carries the bindings a Forge script refers to during resolution.

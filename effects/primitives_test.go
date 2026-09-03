@@ -557,40 +557,124 @@ func TestTapTapsUntappedTargetOnly(t *testing.T) {
 	}
 }
 
-func TestPumpRecordsANoteOnTheTarget(t *testing.T) {
+// TestPumpRegistersLayerContinuousEffectsOnTheTarget is the Task 19c
+// regression test: Pump must build real state.ContinuousEffect values and
+// hand them to the Host, not just log a Note, so the layer system Task 19
+// built actually has a caller. Power/Toughness and a granted keyword go on
+// separate layers (7c and 6), so they are two effects, not one.
+func TestPumpRegistersLayerContinuousEffectsOnTheTarget(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
 	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
-		sa(t, "AB$ Pump | NumAtt$ +2 | NumDef$ +1"))
-	if len(h.log) != 1 || h.log[0].Kind != events.Note || h.log[0].Obj != ids["myBear"] {
-		t.Fatalf("log = %+v", h.log)
+		sa(t, "AB$ Pump | NumAtt$ +2 | NumDef$ +1 | KW$ Flying"))
+	if len(h.continuous) != 2 {
+		t.Fatalf("continuous = %+v, want 2 effects", h.continuous)
+	}
+	pt := h.continuous[0]
+	if pt.Source != ids["myBear"] || pt.Affects != "Card.Self" || pt.Layer != state.LPT ||
+		pt.Sub != state.SubModify || pt.AddPower != 2 || pt.AddToughness != 1 || !pt.UntilEOT {
+		t.Fatalf("P/T continuous effect = %+v", pt)
+	}
+	kw := h.continuous[1]
+	if kw.Source != ids["myBear"] || kw.Affects != "Card.Self" || kw.Layer != state.LAbilities ||
+		len(kw.AddKeywords) != 1 || kw.AddKeywords[0] != "Flying" || !kw.UntilEOT {
+		t.Fatalf("keyword continuous effect = %+v", kw)
 	}
 }
 
-func TestPumpAllRecordsNoteOnEachMatchingCreature(t *testing.T) {
+// TestPumpRequiresTheBattlefield mirrors the old Note-based zone guard: a
+// target that has left the battlefield gets no continuous effect registered.
+func TestPumpRequiresTheBattlefield(t *testing.T) {
+	g, ids := board(t)
+	h := &fakeHost{g: g}
+	moveTo(g, ids["myBear"], state.ZGraveyard)
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
+		sa(t, "AB$ Pump | NumAtt$ +2 | NumDef$ +1"))
+	if len(h.continuous) != 0 {
+		t.Fatalf("continuous = %+v, want none off the battlefield", h.continuous)
+	}
+}
+
+// TestPumpAllRegistersOneEffectPerMatchingCreatureDeterministically covers
+// both the CR 611.2c requirement that a PumpAll bakes in its affected set at
+// resolution time (one continuous effect per matching object, scoped with
+// Affects$ "Card.Self", rather than one shared filter effect that would also
+// catch creatures entering later) and the no-nondeterminism constraint: the
+// order must be the same every run, since it comes from AliveFrom/Zone
+// (fixed APNAP + slice order), never a map.
+func TestPumpAllRegistersOneEffectPerMatchingCreatureDeterministically(t *testing.T) {
+	run := func() []state.ObjID {
+		g, _ := board(t)
+		h := &fakeHost{g: g}
+		Resolve(h, &Ctx{Controller: 0}, sa(t, "DB$ PumpAll | ValidCards$ Creature.YouCtrl | NumAtt$ +1 | NumDef$ +1"))
+		var order []state.ObjID
+		for _, ce := range h.continuous {
+			order = append(order, ce.Source)
+		}
+		return order
+	}
+	_, ids := board(t)
+	first := run()
+	if len(first) != 2 || first[0] != ids["myBear"] || first[1] != ids["myFlier"] {
+		t.Fatalf("order = %v, want [myBear myFlier] (registration order)", first)
+	}
+	for i := 0; i < 10; i++ {
+		if got := run(); len(got) != len(first) || got[0] != first[0] || got[1] != first[1] {
+			t.Fatalf("run %d: order changed: %v vs %v", i, got, first)
+		}
+	}
+}
+
+// TestPumpAllSkipsNonMatchingCreatures is the filter-scoping half of the old
+// test: YouCtrl must exclude the opponent's creature.
+func TestPumpAllSkipsNonMatchingCreatures(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
 	Resolve(h, &Ctx{Controller: 0}, sa(t, "DB$ PumpAll | ValidCards$ Creature.YouCtrl | NumAtt$ +1 | NumDef$ +1"))
-	hit := map[state.ObjID]bool{}
-	for _, e := range h.log {
-		hit[e.Obj] = true
-	}
-	if !hit[ids["myBear"]] || !hit[ids["myFlier"]] {
-		t.Fatalf("expected notes on myBear and myFlier, got %+v", h.log)
-	}
-	if hit[ids["theirBig"]] {
-		t.Fatal("PumpAll with YouCtrl must not touch the opponent's creature")
+	for _, ce := range h.continuous {
+		if ce.Source == ids["theirBig"] {
+			t.Fatal("PumpAll with YouCtrl must not touch the opponent's creature")
+		}
 	}
 }
 
-func TestAnimateRecordsANoteEvenOffTheBattlefield(t *testing.T) {
+// TestAnimateRegistersASetContinuousEffectEvenOffTheBattlefield keeps the
+// original off-battlefield coverage (Forge's own Animate targets a graveyard
+// card as often as a permanent) while asserting the real layer-7b "setting"
+// registration Task 19c adds.
+func TestAnimateRegistersASetContinuousEffectEvenOffTheBattlefield(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
 	moveTo(g, ids["myBear"], state.ZGraveyard)
 	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
 		sa(t, "DB$ Animate | Power$ 4 | Toughness$ 4"))
-	if len(h.log) != 1 || h.log[0].Kind != events.Note {
-		t.Fatalf("log = %+v", h.log)
+	if len(h.continuous) != 1 {
+		t.Fatalf("continuous = %+v, want 1", h.continuous)
+	}
+	ce := h.continuous[0]
+	if ce.Source != ids["myBear"] || ce.Layer != state.LPT || ce.Sub != state.SubSet ||
+		!ce.HasSet || ce.SetPower != 4 || ce.SetToughness != 4 || !ce.UntilEOT {
+		t.Fatalf("continuous effect = %+v", ce)
+	}
+}
+
+// TestAnimateWithNoPowerOrToughnessOnlyGrantsTypes covers the real corpus
+// shape (e.g. Kitesail Larcenist, Kami of Industry) where DB$ Animate omits
+// Power$/Toughness$ entirely to grant only a type or keyword change. Without
+// this guard, Num's zero default would register a SubSet effect setting the
+// object to 0/0 -- turning a type-granting Animate into an accidental kill
+// spell.
+func TestAnimateWithNoPowerOrToughnessOnlyGrantsTypes(t *testing.T) {
+	g, ids := board(t)
+	h := &fakeHost{g: g}
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
+		sa(t, "DB$ Animate | Types$ Artifact Treasure"))
+	if len(h.continuous) != 1 {
+		t.Fatalf("continuous = %+v, want 1 (types only, no P/T set)", h.continuous)
+	}
+	ce := h.continuous[0]
+	if ce.Layer != state.LType || len(ce.AddTypes) != 2 || ce.AddTypes[0] != "Artifact" || ce.AddTypes[1] != "Treasure" {
+		t.Fatalf("continuous effect = %+v", ce)
 	}
 }
 
@@ -598,14 +682,37 @@ func TestProtectionRequiresTheBattlefield(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
 	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "AB$ Protection | Gains$ red"))
-	if len(h.log) != 1 {
-		t.Fatalf("log = %+v, want one Note", h.log)
+	if len(h.continuous) != 1 {
+		t.Fatalf("continuous = %+v, want one registration", h.continuous)
+	}
+	ce := h.continuous[0]
+	if ce.Source != ids["myBear"] || ce.Layer != state.LAbilities || len(ce.AddKeywords) != 1 ||
+		ce.AddKeywords[0] != "Protection from red" || !ce.UntilEOT {
+		t.Fatalf("continuous effect = %+v", ce)
 	}
 	moveTo(g, ids["myBear"], state.ZGraveyard)
-	h.log = nil
+	h.continuous = nil
 	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "AB$ Protection | Gains$ red"))
-	if len(h.log) != 0 {
-		t.Fatalf("log = %+v, want no events off the battlefield", h.log)
+	if len(h.continuous) != 0 {
+		t.Fatalf("continuous = %+v, want none off the battlefield", h.continuous)
+	}
+}
+
+// TestProtectionChoiceDefaultsDeterministically covers Mother of Runes'
+// shape (Gains$ Choice | Choices$ AnyColor): with no chooser mechanism yet
+// (a real choice is Task 20's job, the same simplification effCharm and
+// effVote already document), it must still resolve to a concrete, fixed
+// quality rather than granting a nonsense "Protection from Choice" keyword.
+func TestProtectionChoiceDefaultsDeterministically(t *testing.T) {
+	g, ids := board(t)
+	h := &fakeHost{g: g}
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
+		sa(t, "AB$ Protection | Gains$ Choice | Choices$ AnyColor"))
+	if len(h.continuous) != 1 {
+		t.Fatalf("continuous = %+v, want one registration", h.continuous)
+	}
+	if got := h.continuous[0].AddKeywords[0]; got != "Protection from white" {
+		t.Fatalf("AddKeywords[0] = %q, want a concrete default colour", got)
 	}
 }
 

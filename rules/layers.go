@@ -16,50 +16,36 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// Layer is CR 613's application order.
-type Layer uint8
-
-const (
-	LCopy      Layer = 1
-	LControl   Layer = 2
-	LText      Layer = 3
-	LType      Layer = 4
-	LColor     Layer = 5
-	LAbilities Layer = 6
-	LPT        Layer = 7
+// Layer, Sublayer and ContinuousEffect moved to state/continuous.go in Task
+// 19c, so effects primitives (which sit below rules and must never import
+// it) can build a ContinuousEffect and hand it to this engine through
+// effects.Host. These aliases and re-exported constants keep this package's
+// own API -- and every existing caller and test in this package -- unchanged:
+// only the canonical type definition moved, not its name or behaviour here.
+type (
+	Layer            = state.Layer
+	Sublayer         = state.Sublayer
+	ContinuousEffect = state.ContinuousEffect
 )
 
-// Sublayer is CR 613.4's breakdown of layer 7.
-type Sublayer uint8
-
 const (
-	SubNone     Sublayer = 0
-	SubCDA      Sublayer = 1 // 7a characteristic-defining
-	SubSet      Sublayer = 2 // 7b setting
-	SubModify   Sublayer = 3 // 7c modifying
-	SubCounters Sublayer = 4 // 7d counters
-	SubSwitch   Sublayer = 5 // 7e switching
+	LCopy      = state.LCopy
+	LControl   = state.LControl
+	LText      = state.LText
+	LType      = state.LType
+	LColor     = state.LColor
+	LAbilities = state.LAbilities
+	LPT        = state.LPT
 )
 
-// ContinuousEffect is one active modification. Affects is a Forge filter spec
-// evaluated with effects.MatchesSpecFrom against each object on the
-// battlefield, so continuous effects reuse the same filter language as
-// everything else rather than reimplementing predicate matching.
-type ContinuousEffect struct {
-	Source     state.ObjID
-	Timestamp  uint32
-	Layer      Layer
-	Sub        Sublayer
-	Affects    string
-	Controller state.PlayerID
-	UntilEOT   bool
-
-	AddPower, AddToughness int32
-	SetPower, SetToughness int32
-	HasSet                 bool
-	AddKeywords            []string
-	AddTypes               []string
-}
+const (
+	SubNone     = state.SubNone
+	SubCDA      = state.SubCDA
+	SubSet      = state.SubSet
+	SubModify   = state.SubModify
+	SubCounters = state.SubCounters
+	SubSwitch   = state.SubSwitch
+)
 
 // Derived is a permanent's current characteristics after every applicable
 // continuous effect has been applied in CR 613 order. Nothing outside this
