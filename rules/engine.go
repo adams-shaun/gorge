@@ -34,6 +34,10 @@ type Engine struct {
 
 	rng     *rng
 	pending *decision.Decision
+
+	// continuous holds every registered continuous effect, live or expired.
+	// The layer system (layers.go) is the only reader and writer.
+	continuous []ContinuousEffect
 }
 
 const openingHand = 7
@@ -112,3 +116,7 @@ func (e *Engine) drawCard(p state.PlayerID) {
 	effects.DrawFor(e, p)
 	e.checkGameOver()
 }
+
+// cardsKeywordHead lets layers.go strip a keyword's parameters ("Equip:2" ->
+// "Equip") without importing cards itself for one call.
+func cardsKeywordHead(k string) string { return cards.KeywordHead(k) }
