@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
@@ -235,5 +237,222 @@ func TestNoDecisionIsIssuedAfterGameOver(t *testing.T) {
 	}
 	if e.Pending() != nil {
 		t.Fatalf("a decision is still pending after Over: %+v", e.Pending())
+	}
+}
+
+// TestDestroyLethalDamageDoesNotAmplifyWhenAReplacementKeepsThePermanent is
+// the fix-round-1 regression test for the blocking finding: a MoveZone
+// replacement that keeps a lethally-damaged permanent on the battlefield
+// (a regeneration shield, "sacrifice a Clue instead", or -- as reproduced
+// here -- a straight life-gain substitute) must not make checkStateBased's
+// fixed-point loop believe something changed on every one of its
+// maxSBAPasses passes. Before the fix, destroyLethalDamage reported
+// "changed" from the MoveZone it emitted, not from whether the shield
+// actually left; two checkStateBased calls per Submit (one directly, one
+// via Advance -> step) times 32 wasted passes each meant 64 replacement
+// firings and +64 life for a single "pass" intent. After the fix, each
+// checkStateBased call attempts the destruction exactly once, sees the
+// shield is still on the battlefield, and stops: 2 firings, +2 life --
+// which is also exactly what one checkStateBased call per Submit produced
+// before this task existed at all (BASE dec046a had no pass loop to
+// exhaust in the first place).
+func TestDestroyLethalDamageDoesNotAmplifyWhenAReplacementKeepsThePermanent(t *testing.T) {
+	e := newSeats(t, 2)
+	shield := onBoard(t, e, 0, `Name:Shield
+ManaCost:1 G
+Types:Creature Wall
+PT:0/4
+R:Event$ Moved | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | ReplaceWith$ RepLife
+SVar:RepLife:DB$ GainLife | Defined$ You | LifeAmount$ 1
+Oracle:x
+`)
+	e.emit(events.Event{Kind: events.Damage, Obj: shield, Amount: 4})
+
+	d := e.Pending()
+	idx := -1
+	for _, o := range d.Options {
+		if o.Kind == "pass" {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no pass option: %+v", d.Options)
+	}
+	beforeLife := e.G.Players[0].Life
+	beforeEvents := len(e.L.Events)
+
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+		t.Fatalf("submit pass: %v", err)
+	}
+
+	if got := e.G.Obj(shield).Zone; got != state.ZBattlefield {
+		t.Fatalf("shield zone = %s, want battlefield: the replacement keeps it there", got)
+	}
+	if gained := e.G.Players[0].Life - beforeLife; gained != 2 {
+		t.Fatalf("life gained after one Submit = %d, want exactly 2 (one destruction attempt per "+
+			"checkStateBased call, not the full 32-pass budget spent 64 times over)", gained)
+	}
+	if added := len(e.L.Events) - beforeEvents; added != 6 {
+		t.Fatalf("log grew by %d events after one Submit, want exactly 6, not a 32x-amplified count", added)
+	}
+}
+
+// TestRemovePermanentsDoesNotAmplifyWhenAReplacementKeepsThePermanent is the
+// fix-round-1 regression test for the second instance of finding 1: an
+// eliminated player's own permanent staying on the battlefield (via a
+// replacement effect an alive player's own permanent carries -- ValidCard$
+// on a replacement is matched against the MOVING object, not scoped to the
+// mover's controller, so an alive player's ward can legally intercept
+// anyone's exile) must not make checkLoseConditions' removal sweep believe
+// something changed on every pass either. Ward, played by player 0
+// (who stays alive), redirects any Battlefield -> Exile move into a
+// 1-life gain instead; Victim, controlled by player 1 (who is eliminated),
+// is what the removal sweep tries and fails to exile. Before the fix, "the
+// zone was non-empty going in" was enough to report changed, regardless of
+// whether removePermanents' own MoveZone actually did anything -- against
+// the unfixed 7b68be7 code this scenario gains 32 life and grows the log by
+// 36 events from one Submit; after the fix, the pass loop notices the
+// removal is not succeeding and stops after the one pass it takes to
+// confirm that, for 2 life and 6 events -- structurally the same bound
+// destroyLethalDamage's own fix (previous test) achieves.
+func TestRemovePermanentsDoesNotAmplifyWhenAReplacementKeepsThePermanent(t *testing.T) {
+	e := newSeats(t, 2)
+	onBoard(t, e, 0, `Name:Ward
+ManaCost:1 W
+Types:Artifact
+R:Event$ Moved | Origin$ Battlefield | Destination$ Exile | ValidCard$ Card | ReplaceWith$ RepLife | Description$ x
+SVar:RepLife:DB$ GainLife | Defined$ You | LifeAmount$ 1
+Oracle:x
+`)
+	victim := onBoard(t, e, 1, `Name:Victim
+ManaCost:1
+Types:Artifact
+Oracle:x
+`)
+	e.G.Players[1].Life = 0
+
+	d := e.Pending()
+	idx := -1
+	for _, o := range d.Options {
+		if o.Kind == "pass" {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no pass option: %+v", d.Options)
+	}
+	beforeLife := e.G.Players[0].Life
+	beforeEvents := len(e.L.Events)
+
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+		t.Fatalf("submit pass: %v", err)
+	}
+
+	if !e.G.Players[1].Lost {
+		t.Fatal("player 1 should have been eliminated at 0 life")
+	}
+	if got := e.G.Obj(victim).Zone; got != state.ZBattlefield {
+		t.Fatalf("victim zone = %s, want battlefield: Ward's replacement keeps it there", got)
+	}
+	if gained := e.G.Players[0].Life - beforeLife; gained != 2 {
+		t.Fatalf("life gained after one Submit = %d, want exactly 2, not a 32-pass-amplified count", gained)
+	}
+	if added := len(e.L.Events) - beforeEvents; added != 6 {
+		t.Fatalf("log grew by %d events after one Submit, want exactly 6, not a 32x-amplified count", added)
+	}
+}
+
+// TestStateBasedActionsExhaustingThePassBudgetAreReported is the fix-round-1
+// regression test for the should-fix finding: maxSBAPasses exhaustion used
+// to fall out of checkStateBased's loop with no trace at all. A chain of
+// creatures, each independently lethal (1 damage on a 1-toughness body) but
+// kept alive by the PREVIOUS creature in the chain granting it +2
+// toughness -- the same one-death-per-pass shape TestSBALoopsUntilStable
+// uses for two creatures, scaled past maxSBAPasses (32) so a single
+// checkStateBased call cannot possibly reach a fixed point: creature i only
+// becomes actually lethal once creature i-1 has already died, one creature
+// per pass, and there are more creatures than passes in the budget. Before
+// the fix, a client could observe a creature sitting on the battlefield
+// with lethal damage marked and be handed priority over it, with nothing
+// in the log explaining why. After the fix, a Note event says the budget
+// was exhausted.
+func TestStateBasedActionsExhaustingThePassBudgetAreReported(t *testing.T) {
+	e := layerEngine(t)
+	const n = maxSBAPasses + 8
+	ids := make([]state.ObjID, n)
+	for i := 0; i < n; i++ {
+		src := fmt.Sprintf("Name:Link%d\nManaCost:1\nTypes:Creature Chain%d\nPT:1/1\nOracle:x\n", i, i)
+		ids[i] = onBoard(t, e, 0, src)
+		e.emit(events.Event{Kind: events.Damage, Obj: ids[i], Amount: 1})
+	}
+	for i := 1; i < n; i++ {
+		e.AddContinuous(ContinuousEffect{Source: ids[i-1], Timestamp: uint32(i), Layer: LPT, Sub: SubModify,
+			Affects: fmt.Sprintf("Chain%d", i), Controller: 0, AddToughness: 2})
+	}
+
+	beforeEvents := len(e.L.Events)
+	e.checkStateBased()
+
+	found := false
+	for _, ev := range e.L.Events[beforeEvents:] {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "pass budget") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("expected a Note event reporting that the state-based-action pass budget was exhausted")
+	}
+
+	survivors := 0
+	for _, id := range ids {
+		if e.G.Obj(id).Zone == state.ZBattlefield {
+			survivors++
+		}
+	}
+	if survivors == 0 {
+		t.Fatal("expected some creatures to still be on the battlefield: the chain must outlast the pass budget for this to be a real test of exhaustion")
+	}
+	if e.G.Obj(ids[0]).Zone != state.ZGraveyard {
+		t.Fatal("the first, independently-lethal creature in the chain should already be dead")
+	}
+}
+
+// TestDestructionTextDistinguishesToughnessFromLethalDamage is the
+// fix-round-1 regression test for the reviewer's note: CR 704.5f
+// (toughness <= 0) and CR 704.5g (lethal damage/deathtouch) are
+// rules-distinct -- only one of them is actually "destruction" -- and the
+// log should be able to tell them apart even though Text carries no rules
+// weight of its own.
+func TestDestructionTextDistinguishesToughnessFromLethalDamage(t *testing.T) {
+	e := layerEngine(t)
+	shrunk := onBoard(t, e, 0, "Name:Shrunk\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e.AddContinuous(ContinuousEffect{Source: shrunk, Timestamp: 1, Layer: LPT, Sub: SubModify,
+		Affects: "Card.Self", AddPower: -3, AddToughness: -3})
+	lethal := onBoard(t, e, 0, "Name:Lethal\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e.emit(events.Event{Kind: events.Damage, Obj: lethal, Amount: 2})
+
+	beforeEvents := len(e.L.Events)
+	e.checkStateBased()
+
+	var shrunkText, lethalText string
+	for _, ev := range e.L.Events[beforeEvents:] {
+		if ev.Kind != events.MoveZone {
+			continue
+		}
+		switch ev.Obj {
+		case shrunk:
+			shrunkText = ev.Text
+		case lethal:
+			lethalText = ev.Text
+		}
+	}
+	if shrunkText != "toughness <= 0" {
+		t.Fatalf("zero-toughness destruction Text = %q, want %q", shrunkText, "toughness <= 0")
+	}
+	if lethalText != "lethal damage" {
+		t.Fatalf("lethal-damage destruction Text = %q, want %q", lethalText, "lethal damage")
+	}
+	if shrunkText == lethalText {
+		t.Fatal("CR 704.5f and 704.5g are rules-distinct and must not share the same Text")
 	}
 }

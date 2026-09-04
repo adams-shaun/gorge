@@ -91,7 +91,28 @@ func New(cfg Config) *Engine {
 			return e
 		}
 	}
-	e.beginTurn(0)
+	alive := e.G.AliveFrom(0)
+	if len(alive) == 0 {
+		// Ruling T22-e: nobody survived genesis to begin a turn for --
+		// every deck too small to deal (the per-seat Over check above
+		// covers the ordinary "someone lost, someone remains" case; this
+		// is what happens when NO seat remains at all), or, the
+		// pre-existing panic this closes as a side effect, a zero-seat
+		// Config with no decks even attempted. checkGameOver's own "zero
+		// alive" branch is exactly CR 104.4a's draw, so run it rather than
+		// calling beginTurn(0) against a Players slice that may not even
+		// have an index 0: that used to reach Zone(ZBattlefield, 0)'s
+		// zoneIndex arithmetic against a zero-length g.zones and panic.
+		e.checkGameOver()
+		return e
+	}
+	// Ruling T22-f: begin with the first seat still alive, not always seat
+	// 0 -- an early seat that decked out during its own opening draw (Over
+	// still false, since other seats remain, but that seat's own Lost is
+	// true) must not receive turn 1. A player already out of the game is
+	// simply skipped in turn order everywhere else (NextAlive, priority);
+	// this is genesis's own equivalent for the very first turn.
+	e.beginTurn(alive[0])
 	return e
 }
 
