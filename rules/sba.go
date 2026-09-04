@@ -76,11 +76,24 @@ const maxSBAPasses = 32
 // while "changed" now means "attempted something NEW this pass" -- which is
 // true on pass 1 regardless of outcome, giving pass 2 the chance to see
 // whatever the replacement's own effect changed.
+//
+// Ruling T22-n (fix round 3): checkLoseConditions' own removal sweep had
+// the identical shape T22-j fixed, one loop over -- "changed" came from
+// whether a player's battlefield zone actually shrank, so a replacement
+// that blocks the exile but changes SBA-relevant state elsewhere (some
+// other player's life total) was invisible to this sweep and denied the
+// later pass that would have caught it, same as T22-j's shield. swept
+// (below) is destroyLethalDamage's attempted, one loop over: a set of
+// PlayerIDs already swept this call, so "changed" means "swept someone new
+// this pass" rather than "someone's battlefield actually shrank" -- the
+// same discipline, applied to the same function's second loop, so the two
+// no longer disagree about what "changed" means.
 func (e *Engine) checkStateBased() {
 	stable := false
 	attempted := map[state.ObjID]bool{}
+	swept := map[state.PlayerID]bool{}
 	for pass := 0; pass < maxSBAPasses; pass++ {
-		changed := e.checkLoseConditions()
+		changed := e.checkLoseConditions(swept)
 		if e.destroyLethalDamage(attempted) {
 			changed = true
 		}
@@ -111,14 +124,24 @@ func (e *Engine) checkStateBased() {
 // same logic.
 //
 // Reports whether anything changed, which is what checkStateBased's own
-// pass loop uses to decide whether to run again. Ruling T22-h: the removal
-// sweep measures its own outcome (the zone's length before versus after
-// removePermanents) rather than reporting "changed" just because the zone
-// was non-empty going in -- a replacement that keeps one of these
-// permanents on the battlefield (CR 800.4a is not itself a replaceable
-// event, but the MoveZone this emits is exactly like any other) must not
-// make this sweep re-run for no reason on every remaining pass.
-func (e *Engine) checkLoseConditions() bool {
+// pass loop uses to decide whether to run again.
+//
+// Ruling T22-h (fix round 1), superseded by T22-n (fix round 3, see
+// checkStateBased): the first fix measured the removal sweep's own outcome
+// (the zone's length before versus after removePermanents) rather than
+// reporting "changed" just because the zone was non-empty going in -- right
+// for bounding a replacement's amplification, but, like destroyLethal-
+// Damage's own T22-h before T22-j, it threw away the fact that an attempt
+// happened at all. swept is this loop's memory of that, exactly mirroring
+// destroyLethalDamage's attempted: a player already swept this call is
+// skipped entirely on later passes (one sweep attempt per player per
+// checkStateBased call, never re-run for no reason), while "changed" now
+// means "swept a player NOT already in swept this pass" -- true the moment
+// a new sweep is attempted, regardless of whether removePermanents' own
+// MoveZone events actually moved anything, so a later pass still gets to
+// see whatever a blocking replacement's own substitute effect changed
+// elsewhere.
+func (e *Engine) checkLoseConditions(swept map[state.PlayerID]bool) bool {
 	changed := false
 	for i := range e.G.Players {
 		p := &e.G.Players[i]
@@ -129,17 +152,15 @@ func (e *Engine) checkLoseConditions() bool {
 	}
 	for i := range e.G.Players {
 		p := &e.G.Players[i]
-		if !p.Lost {
+		if !p.Lost || swept[p.ID] {
 			continue
 		}
-		before := len(e.G.Zone(state.ZBattlefield, p.ID))
-		if before == 0 {
+		if len(e.G.Zone(state.ZBattlefield, p.ID)) == 0 {
 			continue
 		}
+		swept[p.ID] = true
 		e.removePermanents(p.ID)
-		if len(e.G.Zone(state.ZBattlefield, p.ID)) < before {
-			changed = true
-		}
+		changed = true
 	}
 	return changed
 }

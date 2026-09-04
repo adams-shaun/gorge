@@ -298,8 +298,9 @@ Oracle:x
 }
 
 // TestRemovePermanentsDoesNotAmplifyWhenAReplacementKeepsThePermanent is the
-// fix-round-1 regression test for the second instance of finding 1: an
-// eliminated player's own permanent staying on the battlefield (via a
+// fix-round-1 regression test for the second instance of finding 1,
+// updated in fix round 3 for the tighter bound T22-n's swept set achieves.
+// An eliminated player's own permanent staying on the battlefield (via a
 // replacement effect an alive player's own permanent carries -- ValidCard$
 // on a replacement is matched against the MOVING object, not scoped to the
 // mover's controller, so an alive player's ward can legally intercept
@@ -307,14 +308,21 @@ Oracle:x
 // something changed on every pass either. Ward, played by player 0
 // (who stays alive), redirects any Battlefield -> Exile move into a
 // 1-life gain instead; Victim, controlled by player 1 (who is eliminated),
-// is what the removal sweep tries and fails to exile. Before the fix, "the
-// zone was non-empty going in" was enough to report changed, regardless of
-// whether removePermanents' own MoveZone actually did anything -- against
-// the unfixed 7b68be7 code this scenario gains 32 life and grows the log by
-// 36 events from one Submit; after the fix, the pass loop notices the
-// removal is not succeeding and stops after the one pass it takes to
-// confirm that, for 2 life and 6 events -- structurally the same bound
-// destroyLethalDamage's own fix (previous test) achieves.
+// is what the removal sweep tries and fails to exile.
+//
+// Against the unfixed 7b68be7 code (no bound at all) this scenario gains 32
+// life and grows the log by 36 events from one Submit. Fix round 1's
+// before/after-zone-length check bounded that, but with no memory of a
+// prior attempt: pass 1 attempts the sweep (blocked); pass 2 finds the
+// zone still non-empty and attempts it AGAIN before finally reporting no
+// change and stopping -- 2 attempts, 2 life, 6 events. Fix round 3's swept
+// set (T22-n, mirroring destroyLethalDamage's attempted from round 2)
+// remembers that player 1 was already swept on pass 1, so pass 2 skips the
+// attempt entirely instead of repeating it: exactly 1 attempt per player
+// per checkStateBased call, for 1 life and 5 events -- the number moved
+// (from round 1's 2/6, confirmed by rerunning this exact scenario before
+// the round-3 fix) because the bound genuinely got tighter, not because
+// anything broke; see the fix-round-3 report section for the full trace.
 func TestRemovePermanentsDoesNotAmplifyWhenAReplacementKeepsThePermanent(t *testing.T) {
 	e := newSeats(t, 2)
 	onBoard(t, e, 0, `Name:Ward
@@ -354,11 +362,12 @@ Oracle:x
 	if got := e.G.Obj(victim).Zone; got != state.ZBattlefield {
 		t.Fatalf("victim zone = %s, want battlefield: Ward's replacement keeps it there", got)
 	}
-	if gained := e.G.Players[0].Life - beforeLife; gained != 2 {
-		t.Fatalf("life gained after one Submit = %d, want exactly 2, not a 32-pass-amplified count", gained)
+	if gained := e.G.Players[0].Life - beforeLife; gained != 1 {
+		t.Fatalf("life gained after one Submit = %d, want exactly 1 (one swept attempt per player "+
+			"per checkStateBased call, not a re-attempt on every pass and not a 32-pass-amplified count)", gained)
 	}
-	if added := len(e.L.Events) - beforeEvents; added != 6 {
-		t.Fatalf("log grew by %d events after one Submit, want exactly 6, not a 32x-amplified count", added)
+	if added := len(e.L.Events) - beforeEvents; added != 5 {
+		t.Fatalf("log grew by %d events after one Submit, want exactly 5, not a 32x-amplified count", added)
 	}
 }
 
@@ -506,6 +515,65 @@ Oracle:x
 			t.Fatalf("after submit %d: player 0 is at life %d but Lost=false -- CR 704.5a is "+
 				"outstanding on a board state the client can observe and be handed a decision over",
 				i, e.G.Players[0].Life)
+		}
+	}
+}
+
+// TestNoPendingDecisionWithAZeroLifePlayerNotYetLostViaRemovalSweep is the
+// fix-round-3 regression test: checkLoseConditions' removal sweep had the
+// identical under-report shape as destroyLethalDamage (fix round 2's N1),
+// one loop over -- "changed" came from whether a swept player's
+// battlefield actually shrank, so a replacement that blocks the exile but
+// changes SBA-relevant state elsewhere (another player's life total) was
+// invisible to this sweep and denied the later pass that would have caught
+// it.
+//
+// Ward, seat 1's own permanent, intercepts ANY Battlefield -> Exile move
+// (ValidCard$ Card, not scoped to a controller) and substitutes a 1-life
+// drain against Ward's controller's opponents -- which, with seat 0
+// already eliminated, resolves to exactly seat 2 -- instead of letting
+// seat 0's own permanent (Victim) actually leave. Seat 2 starts at low
+// life so a couple of blocked sweep attempts reach 0. Driven through
+// repeated real Submits, checking after every single one (not a fixed
+// count) that no player sits at life <= 0 with Lost=false.
+func TestNoPendingDecisionWithAZeroLifePlayerNotYetLostViaRemovalSweep(t *testing.T) {
+	e := newSeats(t, 3)
+	onBoard(t, e, 0, `Name:Victim
+ManaCost:1
+Types:Artifact
+Oracle:x
+`)
+	onBoard(t, e, 1, `Name:Ward
+ManaCost:1 W
+Types:Artifact
+R:Event$ Moved | Origin$ Battlefield | Destination$ Exile | ValidCard$ Card | ReplaceWith$ RepDrain | Description$ x
+SVar:RepDrain:DB$ LoseLife | Defined$ Opponent | LifeAmount$ 1
+Oracle:x
+`)
+	e.G.Players[0].Lost = true
+	e.G.Players[2].Life = 2
+
+	for i := 0; i < 8 && !e.G.Over; i++ {
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KPriority {
+			break
+		}
+		idx := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				idx = o.Index
+			}
+		}
+		if idx < 0 {
+			t.Fatalf("submit %d: no pass option: %+v", i, d.Options)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+			t.Fatalf("submit %d: %v", i, err)
+		}
+		if e.G.Players[2].Life <= 0 && !e.G.Players[2].Lost {
+			t.Fatalf("after submit %d: player 2 is at life %d but Lost=false -- CR 704.5a is "+
+				"outstanding on a board state the client can observe and be handed a decision over",
+				i, e.G.Players[2].Life)
 		}
 	}
 }
