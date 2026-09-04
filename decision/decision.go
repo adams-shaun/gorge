@@ -18,6 +18,27 @@ const (
 	KBlockers  Kind = "blockers"
 	KMulligan  Kind = "mulligan"
 	KModes     Kind = "modes"
+	// KTriggerOrder asks one controller for the order of the two or more
+	// triggered abilities they control that triggered simultaneously (CR
+	// 603.3b). It is Min == Max == len(Options) over exactly that
+	// controller's own pending triggers, so Validate's existing "N distinct
+	// in-range indices" rule already means "a permutation" and no new wire
+	// format is needed (Ruling U2).
+	//
+	// DIRECTION, which is silent if a client gets it backwards: Choices[0]
+	// is the trigger put on the stack FIRST, and therefore the one that
+	// resolves LAST. That matches the between-player rule the engine applies
+	// either side of this choice -- CR 603.3b's APNAP puts the active
+	// player's triggers on the stack first and resolves them last -- so one
+	// sentence describes the whole placement. The Decision's own Prompt says
+	// the same thing in words a client can show a player unchanged.
+	KTriggerOrder Kind = "trigger_order"
+	// KTriggerOptional asks whether an optional triggered ability (Forge's
+	// OptionalDecider$ on a T: line) is put on the stack at all. Min == Max
+	// == 1 over exactly two options, Kind "yes" and Kind "no", in that
+	// order. There is no default: an unanswered optional trigger never
+	// reaches the stack, and neither does a declined one.
+	KTriggerOptional Kind = "trigger_optional"
 )
 
 // Option is one legal choice. Obj and Player are echoed only so a client can

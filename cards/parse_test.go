@@ -112,3 +112,36 @@ func TestParseReportsUnkeyedLine(t *testing.T) {
 		t.Fatalf("diags = %v, want 1", diags)
 	}
 }
+
+// TestTriggerCarriesOptionalDecider pins the one field Task 27 depends on
+// reaching cards.Trigger. Established from .cards/cardsfolder rather than
+// guessed (Ruling T12-a's precedent): on a T: line, optionality is spelled
+// OptionalDecider$ and only that -- 1496 T: lines carry it, and the bare
+// Optional$ form (1141 occurrences, all on SVar:, A:, R: and S: lines) never
+// appears on one. parseParams already collects every Key$ value on the line,
+// so this needs no parser change; the test is here so a future change to
+// parseParams cannot silently drop it.
+func TestTriggerCarriesOptionalDecider(t *testing.T) {
+	src := "Name:X\nTypes:Enchantment\n" +
+		"T:Mode$ Phase | Phase$ Upkeep | OptionalDecider$ TriggeredCardController | " +
+		"Execute$ Trig | TriggerDescription$ you may do it\n" +
+		"SVar:Trig:DB$ GainLife | LifeAmount$ 1\nOracle:x\n"
+	c, d := ParseBytes("t.txt", []byte(src))
+	if len(d) != 0 {
+		t.Fatalf("diags: %v", d)
+	}
+	tr := c.Faces[0].Triggers
+	if len(tr) != 1 {
+		t.Fatalf("triggers = %d, want 1", len(tr))
+	}
+	if got := tr[0].Params["OptionalDecider"]; got != "TriggeredCardController" {
+		t.Fatalf("OptionalDecider = %q, want TriggeredCardController", got)
+	}
+	// A trigger with no OptionalDecider$ must read as mandatory, not as an
+	// empty-string decider.
+	c2, _ := ParseBytes("t.txt", []byte("Name:Y\nTypes:Enchantment\n"+
+		"T:Mode$ Phase | Phase$ Upkeep | Execute$ Trig\nSVar:Trig:DB$ GainLife\nOracle:x\n"))
+	if _, ok := c2.Faces[0].Triggers[0].Params["OptionalDecider"]; ok {
+		t.Fatal("a mandatory trigger reported an OptionalDecider")
+	}
+}

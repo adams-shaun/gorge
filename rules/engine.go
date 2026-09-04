@@ -42,6 +42,19 @@ type Engine struct {
 	// pendingTriggers holds matched triggers not yet placed on the stack.
 	// checkTriggers appends; putTriggersOnStack drains. Task 20 (trigger.go).
 	pendingTriggers []pendingTrigger
+	// orderedTriggers is how many LEADING entries of pendingTriggers have
+	// already had their order settled by an answered KTriggerOrder decision
+	// (or, for a lone trigger, by there being nothing to decide). It is the
+	// whole of Task 27's resumable-drain state, and it exists because the
+	// queue can grow while a controller is being asked: Submit runs handle,
+	// then checkStateBased, then Advance, and checkStateBased (sba.go) is a
+	// fixed-point loop whose PlayerLost/MoveZone/GameOver emits each run
+	// checkTriggers. Appends land at the END; decisions are always about the
+	// FRONT; and while this is non-zero putTriggersOnStack does not re-sort,
+	// so a trigger that arrives mid-drain can neither be shuffled into a
+	// group the player has already ordered nor make them order the same
+	// triggers twice. Zero whenever pendingTriggers is empty.
+	orderedTriggers int
 	// applyingReplacement guards re-entrancy: while a replacement effect's
 	// own resolution is running, nested emits skip the replacement check
 	// entirely, so a replacement that re-emits a matching event cannot
