@@ -577,3 +577,157 @@ Oracle:x
 		}
 	}
 }
+
+// TestLethalDamageIsRetriedWhenTheReplacementsControllerIsEliminatedMidCall
+// is the fix-round-4 regression test for the re-review's N6 finding: the
+// attempted-set discipline rounds 2 and 3 introduced (one attempt per
+// object and per player per checkStateBased call) can under-COMPLETE, which
+// is the mirror image of the under-report round 2 fixed.
+//
+// Whether a destruction attempt succeeds is decided by the replacement
+// effects that apply to it, and applyReplacements only ever looks at
+// objects controlled by a player who is still alive (trigger.go's
+// forEachObject walks AliveFrom(0)). So a blocker stops blocking the
+// instant its controller is eliminated -- and the blocked attempt's own
+// substitute effect is routinely what eliminates them, as here: Doomed is
+// a 1/1 carrying 4 damage with nothing of its own to save it, and Guardian
+// (seat 2, two life) replaces every OTHER creature's death with "Guardian's
+// controller loses 1 life". Two blocked attempts take seat 2 to 0, the
+// next pass marks it Lost, and from that moment Guardian cannot replace
+// anything at all -- but before this round Doomed was already in the
+// attempted set, so nothing retried it and the decision went out over a
+// board carrying a state-based action that nothing on it could prevent.
+//
+// The invariant is checked after every Submit rather than at a fixed count:
+// once no living player controls anything that could replace Doomed's
+// destruction (here, exactly "seat 2 is Lost"), Doomed must not still be
+// sitting on the battlefield with lethal damage marked. Against bd3c730
+// this fails on the very first Submit.
+func TestLethalDamageIsRetriedWhenTheReplacementsControllerIsEliminatedMidCall(t *testing.T) {
+	e := newSeats(t, 3)
+	doomed := onBoard(t, e, 0, "Name:Doomed\nManaCost:G\nTypes:Creature Goat\nPT:1/1\nOracle:x\n")
+	guardian := onBoard(t, e, 2, `Name:Guardian
+ManaCost:2 W
+Types:Creature Spirit
+PT:2/2
+R:Event$ Moved | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature.Other | ReplaceWith$ RepDrain | Description$ x
+SVar:RepDrain:DB$ LoseLife | Defined$ You | LifeAmount$ 1
+Oracle:x
+`)
+	e.emit(events.Event{Kind: events.Damage, Obj: doomed, Amount: 4})
+	e.G.Players[2].Life = 2
+
+	blocked := false
+	for i := 0; i < 8 && !e.G.Over; i++ {
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KPriority {
+			break
+		}
+		idx := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				idx = o.Index
+			}
+		}
+		if idx < 0 {
+			t.Fatalf("submit %d: no pass option: %+v", i, d.Options)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+			t.Fatalf("submit %d: %v", i, err)
+		}
+		if e.G.Players[2].Life < 2 {
+			blocked = true
+		}
+		if e.G.Players[2].Lost && e.G.Obj(doomed).Zone == state.ZBattlefield {
+			t.Fatalf("after submit %d: Guardian's controller is eliminated, so nothing can replace "+
+				"Doomed's destruction any more, yet Doomed is still on the battlefield with 4 damage "+
+				"marked on a 1-toughness body -- CR 704.5g is outstanding on a board the client is "+
+				"being handed a decision over", i)
+		}
+	}
+	if !blocked {
+		t.Fatal("Guardian never actually replaced anything: this scenario has to reach the " +
+			"blocked-attempt path to be a regression test at all")
+	}
+	if e.G.Obj(doomed).Zone != state.ZGraveyard {
+		t.Fatalf("doomed zone = %s, want graveyard", e.G.Obj(doomed).Zone)
+	}
+	if e.G.Obj(guardian).Zone == state.ZBattlefield {
+		t.Fatalf("guardian zone = %s, want off the battlefield: its controller left the game",
+			e.G.Obj(guardian).Zone)
+	}
+}
+
+// TestRemovalSweepFiringsDoNotScaleWithAnUnrelatedDeathChain pins the bound
+// fix round 3 established and fix round 4's re-arm had to preserve: a
+// removal sweep that a replacement keeps blocking fires exactly ONCE per
+// checkStateBased call -- twice per Submit, which makes two such calls (its
+// own, then step's before it hands out the next decision) -- no matter how
+// many passes something else drives the fixed-point loop through.
+//
+// Ward (seat 0, alive) turns any Battlefield -> Exile into a 1-life gain, so
+// seat 0's life total counts blocked sweep attempts exactly. Victim belongs
+// to seat 1, who is eliminated, so the sweep keeps trying to exile it. Seat
+// 2 carries an N-link death chain (each link only becomes lethal once the
+// previous one has died) that forces the loop through N passes with nothing
+// to do with the sweep at all.
+//
+// This was measured but never committed as a test in fix round 3; it is
+// committed now because fix round 4 makes a blocked attempt retryable, and
+// the whole point of keying that re-arm on the alive-player count alone is
+// that an unrelated death chain must not pay for one. Keying it on the
+// wider "some other state-based action actually succeeded" instead gives
+// 2/3/7/22/61 for these five chain lengths -- 29fa00d's own pre-round-3
+// amplification, measured by building that variant, not assumed -- so this
+// is the assertion that catches that mistake being made again.
+func TestRemovalSweepFiringsDoNotScaleWithAnUnrelatedDeathChain(t *testing.T) {
+	for _, chain := range []int{0, 1, 5, 20, 60} {
+		e := newSeats(t, 3)
+		onBoard(t, e, 0, `Name:Ward
+ManaCost:1 W
+Types:Artifact
+R:Event$ Moved | Origin$ Battlefield | Destination$ Exile | ValidCard$ Card | ReplaceWith$ RepLife | Description$ x
+SVar:RepLife:DB$ GainLife | Defined$ You | LifeAmount$ 1
+Oracle:x
+`)
+		onBoard(t, e, 1, "Name:Victim\nManaCost:1\nTypes:Artifact\nOracle:x\n")
+		e.G.Players[1].Life = 0
+
+		ids := make([]state.ObjID, chain)
+		for i := 0; i < chain; i++ {
+			ids[i] = onBoard(t, e, 2, fmt.Sprintf(
+				"Name:Link%d\nManaCost:1\nTypes:Creature Chain%d\nPT:1/1\nOracle:x\n", i, i))
+			e.emit(events.Event{Kind: events.Damage, Obj: ids[i], Amount: 1})
+		}
+		for i := 1; i < chain; i++ {
+			e.AddContinuous(ContinuousEffect{Source: ids[i-1], Timestamp: uint32(i), Layer: LPT,
+				Sub: SubModify, Affects: fmt.Sprintf("Chain%d", i), Controller: 2, AddToughness: 2})
+		}
+
+		for submit := 0; submit < 3; submit++ {
+			before := e.G.Players[0].Life
+			d := e.Pending()
+			if d == nil || d.Kind != decision.KPriority {
+				t.Fatalf("chain=%d submit=%d: no priority decision", chain, submit)
+			}
+			idx := -1
+			for _, o := range d.Options {
+				if o.Kind == "pass" {
+					idx = o.Index
+				}
+			}
+			if idx < 0 {
+				t.Fatalf("chain=%d submit=%d: no pass option: %+v", chain, submit, d.Options)
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+				t.Fatalf("chain=%d submit=%d: %v", chain, submit, err)
+			}
+			if got := e.G.Players[0].Life - before; got != 2 {
+				t.Fatalf("chain=%d submit=%d: blocked sweep fired %d times, want exactly 2 "+
+					"(one per checkStateBased call) regardless of chain length -- a sweep that "+
+					"scales with an unrelated death chain is the T22-h amplification returning",
+					chain, submit, got)
+			}
+		}
+	}
+}

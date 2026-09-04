@@ -32,6 +32,43 @@ import (
 // the whole match.
 const maxSBAPasses = 32
 
+// sbaAttempts is one checkStateBased call's memory of what its two
+// state-based-action loops have already tried, together with the size of
+// the alive-player set they tried it under.
+//
+// objs is destroyLethalDamage's (Ruling T22-j) and players is
+// checkLoseConditions' removal sweep's (Ruling T22-n); both are
+// membership-only -- nothing ever ranges over either, so neither can reach
+// an event or the order of a decision's options. alive is Ruling T22-p's
+// re-arm watermark, described on checkStateBased below.
+type sbaAttempts struct {
+	objs    map[state.ObjID]bool
+	players map[state.PlayerID]bool
+	alive   int
+}
+
+// rearm forgets both memories when the alive-player set has shrunk since
+// they were last refreshed, so an attempt that a now-eliminated player's
+// permanent blocked gets exactly one more chance under the smaller alive
+// set -- and none at all while nobody dies. Ruling T22-p (fix round 4):
+// this is called at each of the two points that consult the memories, not
+// once per pass, because the sweep loop and destroyLethalDamage both run
+// AFTER the pass's own eliminations are marked and must not be re-armed
+// out from under an attempt they made under the very same alive set.
+//
+// Player.Lost is monotone (events.Apply's PlayerLost case is its only
+// writer and only ever sets it true), so alive never grows and this can
+// fire at most len(Players) times per checkStateBased call: the loop stays
+// bounded by work, not just by maxSBAPasses.
+func (a *sbaAttempts) rearm(alive int) {
+	if alive >= a.alive {
+		return
+	}
+	a.alive = alive
+	clear(a.objs)
+	clear(a.players)
+}
+
 // checkStateBased applies state-based actions until none apply, which is
 // what CR 704.3 requires: they are checked and rechecked, not just once.
 // TestSBALoopsUntilStable is the regression test for the "not just once"
@@ -88,13 +125,47 @@ const maxSBAPasses = 32
 // this pass" rather than "someone's battlefield actually shrank" -- the
 // same discipline, applied to the same function's second loop, so the two
 // no longer disagree about what "changed" means.
+//
+// Ruling T22-p (fix round 4): the discipline T22-j and T22-n share can
+// under-COMPLETE, which is the mirror image of the under-report T22-j
+// fixed. Whether an attempt succeeds is decided by the replacement effects
+// that apply to it, and applyReplacements only ever looks at objects
+// controlled by a player who is still alive (trigger.go's forEachObject
+// walks AliveFrom(0)) -- so a blocker stops blocking the instant its
+// controller is eliminated, and the blocked attempt's own substitute
+// effect is routinely what eliminates them: a creature with lethal damage
+// whose destruction a Creature.Other guardian replaces with "the
+// guardian's controller loses 1 life", with that controller one life from
+// zero. The attempt that failed under the old alive set would succeed
+// under the new one, but the object was already in objs, so nothing
+// retried it and the decision went out with a state-based action
+// outstanding and nothing left on the board able to prevent it.
+//
+// tried.rearm is the fix, and the alive-player count is deliberately the
+// ONLY thing that re-arms. It is exactly the input that decides whether a
+// replacement is consulted at all, so it is precisely the condition under
+// which a previous answer can have gone stale; and it is monotone, so both
+// sets are cleared at most len(Players) times per call. Re-arming on the
+// wider "some other state-based action actually succeeded" instead would
+// re-arm a blocked attempt once per link of an entirely unrelated death
+// chain, which is the per-pass amplification T22-h exists to prevent. Built
+// and measured rather than assumed: on
+// TestRemovalSweepFiringsDoNotScaleWithAnUnrelatedDeathChain's own board,
+// re-arming whenever the battlefield population actually shrank takes the
+// blocked sweep from a flat 2 firings per Submit back to 2/3/7/22/61 for
+// chain lengths 0/1/5/20/60 -- 29fa00d's pre-round-3 figures exactly. A
+// repeatedly-blocked attempt with nobody dying is therefore still tried
+// exactly once per checkStateBased call, as T22-h requires.
 func (e *Engine) checkStateBased() {
 	stable := false
-	attempted := map[state.ObjID]bool{}
-	swept := map[state.PlayerID]bool{}
+	tried := &sbaAttempts{
+		objs:    map[state.ObjID]bool{},
+		players: map[state.PlayerID]bool{},
+		alive:   e.G.AliveCount(),
+	}
 	for pass := 0; pass < maxSBAPasses; pass++ {
-		changed := e.checkLoseConditions(swept)
-		if e.destroyLethalDamage(attempted) {
+		changed := e.checkLoseConditions(tried)
+		if e.destroyLethalDamage(tried) {
 			changed = true
 		}
 		if !changed {
@@ -132,16 +203,26 @@ func (e *Engine) checkStateBased() {
 // reporting "changed" just because the zone was non-empty going in -- right
 // for bounding a replacement's amplification, but, like destroyLethal-
 // Damage's own T22-h before T22-j, it threw away the fact that an attempt
-// happened at all. swept is this loop's memory of that, exactly mirroring
-// destroyLethalDamage's attempted: a player already swept this call is
-// skipped entirely on later passes (one sweep attempt per player per
-// checkStateBased call, never re-run for no reason), while "changed" now
-// means "swept a player NOT already in swept this pass" -- true the moment
+// happened at all. tried.players is this loop's memory of that, exactly
+// mirroring destroyLethalDamage's tried.objs: a player already swept this
+// call is skipped entirely on later passes (one sweep attempt per player
+// per checkStateBased call, never re-run for no reason), while "changed"
+// now means "swept a player NOT already swept this pass" -- true the moment
 // a new sweep is attempted, regardless of whether removePermanents' own
 // MoveZone events actually moved anything, so a later pass still gets to
 // see whatever a blocking replacement's own substitute effect changed
 // elsewhere.
-func (e *Engine) checkLoseConditions(swept map[state.PlayerID]bool) bool {
+//
+// Ruling T22-p (fix round 4): the rearm sits BETWEEN the two loops, not at
+// the top of the function. The elimination this pass's own first loop just
+// marked is exactly the one that can have made a previous pass's blocked
+// sweep worth retrying -- and doing it here rather than at the top of the
+// next pass also means a player whose ward has just gone inert is swept in
+// the same checkStateBased call, not the one after. Sweeping in the second
+// loop then records the attempt under the alive set it was actually made
+// under, so this pass's own new sweeps are not re-armed by this pass's own
+// eliminations.
+func (e *Engine) checkLoseConditions(tried *sbaAttempts) bool {
 	changed := false
 	for i := range e.G.Players {
 		p := &e.G.Players[i]
@@ -150,15 +231,16 @@ func (e *Engine) checkLoseConditions(swept map[state.PlayerID]bool) bool {
 			changed = true
 		}
 	}
+	tried.rearm(e.G.AliveCount())
 	for i := range e.G.Players {
 		p := &e.G.Players[i]
-		if !p.Lost || swept[p.ID] {
+		if !p.Lost || tried.players[p.ID] {
 			continue
 		}
 		if len(e.G.Zone(state.ZBattlefield, p.ID)) == 0 {
 			continue
 		}
-		swept[p.ID] = true
+		tried.players[p.ID] = true
 		e.removePermanents(p.ID)
 		changed = true
 	}
@@ -218,24 +300,29 @@ type casualty struct {
 // checkStateBased): the first fix reported whether a candidate actually
 // left the battlefield, not whether a MoveZone was emitted for it --
 // correct for bounding the amplification a replacement causes, but it threw
-// away the fact that an attempt happened at all. attempted is this
+// away the fact that an attempt happened at all. tried.objs is this
 // function's memory of that, shared across every pass of one
 // checkStateBased call (constructed once there, passed down here each
 // pass, never rebuilt per pass): an object already in it is skipped
 // entirely -- not re-examined, not re-emitted -- and "changed" now means
-// "found and attempted an object NOT already in attempted this pass", which
-// is true exactly once per object per call regardless of whether the
+// "found and attempted an object NOT already tried this pass", which is
+// true exactly once per object per call regardless of whether the
 // attempt actually moved it. That is what lets a later pass's
 // checkLoseConditions see whatever a replacement's own substitute effect
 // changed (T22-j's fix), while still bounding this function to one attempt
 // per object per checkStateBased call (T22-h's fix, preserved): the object
-// simply will not be found lethal-and-new again until the NEXT
-// checkStateBased call, whether or not it actually left.
-func (e *Engine) destroyLethalDamage(attempted map[state.ObjID]bool) bool {
+// will not be found lethal-and-new again until the NEXT checkStateBased
+// call, whether or not it actually left -- unless a player has been
+// eliminated in the meantime, which is Ruling T22-p's one re-arm and the
+// reason for the rearm call below (an elimination during THIS function's
+// own emits, from a substitute effect that decks a player out, is picked up
+// by the next pass's rearm rather than mid-loop).
+func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
+	tried.rearm(e.G.AliveCount())
 	var dead []casualty
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
-			if attempted[id] {
+			if tried.objs[id] {
 				continue
 			}
 			o := e.G.Obj(id)
@@ -263,7 +350,7 @@ func (e *Engine) destroyLethalDamage(attempted map[state.ObjID]bool) bool {
 		}
 	}
 	for _, c := range dead {
-		attempted[c.id] = true
+		tried.objs[c.id] = true
 		e.emit(events.Event{Kind: events.MoveZone, Obj: c.id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: c.text})
 	}
