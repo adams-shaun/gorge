@@ -376,6 +376,19 @@ func (e *Engine) takeAnsweredTrigger(d *decision.Decision) (pendingTrigger, bool
 // is recorded, and it is the whole of what a log-only replay needs. No event
 // kind and no Event field was added for Task 27.
 func (e *Engine) pushTrigger(pt pendingTrigger) {
+	// CR 800.4a / Ruling U6, fix round 2 (re-review N2): an ability
+	// controlled by a player who has left the game ceases to exist, so it is
+	// never minted. dropDepartedTriggers enforces this for the queue, but it
+	// only runs inside putTriggersOnStack -- it cannot run while a decision
+	// is pending, and an optional trigger's DECIDER may be a different,
+	// living seat (OptionalDecider$ TriggeredCardController, 40 T: lines in
+	// the corpus). So a decider could answer yes for a controller who had
+	// been eliminated in the meantime and resurrect their ability. This is
+	// the check placed at the one point a triggered ability's stack object is
+	// created, rather than at each of the paths that reach it.
+	if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+		return
+	}
 	ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
 	for _, tgt := range pt.Ctx.Remembered {
 		ids = append(ids, tgt.Obj)
@@ -415,12 +428,20 @@ func (e *Engine) triggerOf(pt pendingTrigger) (cards.Trigger, bool) {
 // The spelling is Forge's, established by grepping .cards/cardsfolder rather
 // than guessed (the precedent for not guessing is Ruling T12-a). On a T: line
 // optionality is spelled OptionalDecider$ and nothing else: 1496 T: lines
-// carry it, and the bare Optional$ form -- 1199 occurrences, on SVar:, A:, R:
-// and S: lines -- never once appears on a T: line, because it is a different
+// carry it, and the bare Optional$ form -- 1143 occurrences (SVar 884, A 225,
+// R 19, S 15) -- never once appears on a T: line, because it is a different
 // thing (a "you may" inside an ability's own resolution, not a choice about
 // whether the trigger is put on the stack). The parser needs no change to
 // carry it: parseParams already collects every Key$ value on the line into
 // Trigger.Params.
+//
+// "Bare" means the anchored pattern (^|[^A-Za-z])Optional$ and is load-
+// bearing in the count: the unanchored substring gives 1199, because Forge
+// also has RevealOptional$ (39), ChoiceOptional$ (10) and RepeatOptional$
+// (7). Three separate counts were produced for this figure across two review
+// rounds -- 1141, 1199 and 1143 -- before it was settled by anchoring the
+// pattern. The load-bearing numbers above (1496, and zero on any T: line)
+// were exact every time.
 //
 // The decider values that actually occur on T: lines, with counts:
 //

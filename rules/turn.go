@@ -170,6 +170,30 @@ func (e *Engine) grantPriority() {
 // games that no ordering decision is ever offered twice with nothing placed
 // in between.
 func (e *Engine) resumeTriggerDrain() {
+	// Fix round 2: the guard that makes termination a property of the
+	// control flow rather than of an argument about callers.
+	//
+	// checkStateBased -> releasePendingDecisionOfDepartedPlayer ->
+	// resumeTriggerDrain -> checkStateBased is a real cycle in the call
+	// graph. Round 1 argued it cannot run away because all three callers
+	// clear e.pending first, and the re-review confirmed that empirically
+	// (sbaCalls=331491, sbaMaxDepth=2, resumeCalls=9961,
+	// resumeWithPending=0) -- but also showed the argument is one
+	// statement-reorder away from failing: swapping the release hook's
+	// `e.pending = nil` and its call to this function makes recursion run
+	// away immediately, and the failure mode is a stack overflow, i.e. a
+	// totality violation. Task 22 is this repo's standing evidence for what
+	// such an argument is worth (wrong four times out of four). One line
+	// converts it into something the compiler's own control flow enforces
+	// and no future reader has to re-derive.
+	//
+	// It is also the correct behaviour on its own terms: re-entering a drain
+	// while a decision is outstanding would place triggers behind the
+	// answering player's back and overwrite the very question they were
+	// asked. TestResumeTriggerDrainIsInertWhileADecisionIsPending pins that.
+	if e.pending != nil {
+		return
+	}
 	e.checkStateBased()
 	if e.G.Over {
 		return

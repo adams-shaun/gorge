@@ -33,6 +33,16 @@ SVar:X:Count$YourLifeTotal
 Oracle:x
 `
 
+// wardenSrc is the corpus's TriggeredCardController shape: the trigger's
+// controller and its decider are different seats.
+const wardenSrc = `Name:Warden
+ManaCost:2 W
+Types:Enchantment
+T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Creature | OptionalDecider$ TriggeredCardController | Execute$ TrigGain | TriggerDescription$ its controller may have you gain 2 life
+SVar:TrigGain:DB$ GainLife | LifeAmount$ 2 | Defined$ You
+Oracle:x
+`
+
 const mournerSrc = `Name:Mourner
 ManaCost:B
 Types:Enchantment
@@ -235,13 +245,6 @@ func TestDecliningAnOptionalTriggerLeavesTheGameUntouched(t *testing.T) {
 // that carry it name a different player, and TriggeredCardController (40 of
 // them) is the commonest of those.
 func TestOptionalDeciderCanBeSomeoneOtherThanTheController(t *testing.T) {
-	const wardenSrc = `Name:Warden
-ManaCost:2 W
-Types:Enchantment
-T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Creature | OptionalDecider$ TriggeredCardController | Execute$ TrigGain | TriggerDescription$ its controller may have you gain 2 life
-SVar:TrigGain:DB$ GainLife | LifeAmount$ 2 | Defined$ You
-Oracle:x
-`
 	e := layerEngine(t)
 	onBoard(t, e, 0, wardenSrc)
 	// A creature belonging to player 1 enters the battlefield, so the
@@ -384,7 +387,7 @@ func TestTriggersOfADepartedControllerAreDropped(t *testing.T) {
 // game, so a decision pending against the eliminated player can never be
 // answered and nothing else will ever run: Advance does nothing while
 // e.pending is set, and only that player may Submit. Without
-// releaseTriggerDecisionOfDepartedPlayer this test hangs the match forever.
+// releasePendingDecisionOfDepartedPlayer this test hangs the match forever.
 func TestEliminationDuringATriggerDecisionDoesNotStrandTheEngine(t *testing.T) {
 	e := newSeats(t, 3)
 	onBoard(t, e, 1, gainerSrc)
@@ -990,4 +993,152 @@ func TestTriggerDrainInvariantsUnderRandomizedPlay(t *testing.T) {
 	}
 	t.Logf("games=%d decisions=%d orderings=%d optionals=%d eliminations=%d",
 		games, decisions, orders, optionals, eliminations)
+}
+
+// --- Fix round 2 -----------------------------------------------------------
+
+// TestASpellWhoseTargetDecisionWasReleasedDoesNotResolve is re-review finding
+// N1, which fix round 1 introduced: widening the release hook turned a stall
+// into a spell that RESOLVES with no targets at all. resolveTop's CR 608.2b
+// fizzle branch was gated on `spec != "" && len(targets) > 0`, using "has
+// targets" as a proxy for "needs targets" -- so a spell whose target decision
+// was released skipped the legality check entirely and ran, untargeted riders
+// included. CR 608.2b (a spell with no legal targets is countered) and CR
+// 800.4a (a departed player's spell ceases to exist) both say it must not.
+//
+// Before: resolveEvents=1, the eliminated caster's life 0 -> 7.
+func TestASpellWhoseTargetDecisionWasReleasedDoesNotResolve(t *testing.T) {
+	const riderboltSrc = `Name:Riderbolt
+ManaCost:R
+Types:Instant
+A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3 | SubAbility$ DBGain | SpellDescription$ x
+SVar:DBGain:DB$ GainLife | Defined$ You | LifeAmount$ 7
+Oracle:x
+`
+	e := newSeats(t, 3)
+	e.pending = nil
+	id := e.G.AddObject(card(t, riderboltSrc), 0).ID
+	e.G.Obj(id).Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 0, []state.ObjID{id})
+	e.emit(events.Event{Kind: events.PutOnStack, Obj: id, Player: 0,
+		From: state.ZHand, To: state.ZStack, Text: "Riderbolt"})
+	e.askTarget(0, id, e.G.Obj(id).Face().SpellAbility())
+	if d := e.Pending(); d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("pending = %+v, want a target decision", d)
+	}
+
+	// Eliminate the caster while their target decision is outstanding. The
+	// release hook (fix round 1) clears it so the match can continue.
+	e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: -20})
+	e.checkStateBased()
+	if !e.G.Players[0].Lost {
+		t.Fatal("the caster was not eliminated")
+	}
+	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
+		t.Fatal("the target decision was not released")
+	}
+	if len(e.G.Stack) != 1 || e.G.Stack[0] != id {
+		t.Fatalf("stack = %v, want the untargeted spell still on it", e.G.Stack)
+	}
+
+	life := e.G.Players[0].Life
+	e.resolveTop()
+
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Resolve && ev.Obj == id {
+			t.Fatal("a spell with a targeting requirement and no targets resolved — CR 608.2b")
+		}
+	}
+	if got := e.G.Players[0].Life; got != life {
+		t.Fatalf("life = %d, want %d — the spell's untargeted rider ran anyway", got, life)
+	}
+	if o := e.G.Obj(id); o.Zone != state.ZGraveyard {
+		t.Fatalf("the countered spell is in %s, want the graveyard", o.Zone)
+	}
+}
+
+// TestATriggerWhoseControllerLeftIsNotPushedByItsDecider is re-review finding
+// N2, and Ruling U6: an ability controlled by a player who has left the game
+// ceases to exist (CR 800.4a). dropDepartedTriggers enforces that during the
+// drain, but it cannot run while a decision is pending -- so an optional
+// trigger whose DECIDER is a different, living seat was still placed on the
+// stack when that decider answered yes, resurrecting an ability whose
+// controller was already gone.
+//
+// Before: TriggerPush = 1 with p0.lost=true.
+func TestATriggerWhoseControllerLeftIsNotPushedByItsDecider(t *testing.T) {
+	e := newSeats(t, 3)
+	e.pending = nil
+	onBoard(t, e, 0, wardenSrc)
+	bear := e.G.AddObject(card(t, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), 1)
+	bear.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 1, []state.ObjID{bear.ID})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: bear.ID,
+		From: state.ZHand, To: state.ZBattlefield})
+
+	if !e.putTriggersOnStack() {
+		t.Fatal("expected an optional-trigger decision")
+	}
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTriggerOptional || d.Player != 1 {
+		t.Fatalf("pending = %+v, want the optional decision for the decider (player 1)", d)
+	}
+
+	// The trigger's CONTROLLER leaves the game. The decider does not, so the
+	// decision is not released and is still answerable.
+	e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: -20})
+	e.checkStateBased()
+	if !e.G.Players[0].Lost {
+		t.Fatal("the trigger's controller was not eliminated")
+	}
+	if p := e.Pending(); p == nil || p.Kind != decision.KTriggerOptional || p.Player != 1 {
+		t.Fatalf("pending = %+v, want the decider's question still outstanding", p)
+	}
+
+	submit(t, e, 0) // the living decider says yes
+
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.TriggerPush {
+			t.Fatalf("a trigger controlled by departed player %d was placed on the stack — CR 800.4a",
+				ev.Player)
+		}
+	}
+	if len(e.G.Stack) != 0 {
+		t.Fatalf("stack = %v, want the departed controller's ability to have ceased to exist", e.G.Stack)
+	}
+}
+
+// TestResumeTriggerDrainIsInertWhileADecisionIsPending pins fix round 2's
+// structural guard. resumeTriggerDrain's termination used to rest entirely on
+// the argument that it is never entered with e.pending set -- true of all
+// three callers, but an argument every future reader has to re-derive, and
+// the re-review showed it is one statement-reorder away from unbounded
+// recursion (swapping releasePendingDecisionOfDepartedPlayer's two lines
+// makes it run away immediately). Task 22 is this repo's standing evidence
+// for what such an argument is worth: wrong four times out of four.
+//
+// The guard turns it into a control-flow property, and this is the failure it
+// prevents: re-entering the resume while a decision is outstanding used to
+// drain the queue and replace that decision with a fresh one, placing
+// triggers behind the answering player's back.
+func TestResumeTriggerDrainIsInertWhileADecisionIsPending(t *testing.T) {
+	e, _ := upkeepEngine(t, gainerSrc, drainerSrc)
+	if !e.putTriggersOnStack() {
+		t.Fatal("expected an ordering decision")
+	}
+	d := e.Pending()
+	queued, ordered := len(e.pendingTriggers), e.orderedTriggers
+
+	e.resumeTriggerDrain()
+
+	if e.Pending() != d {
+		t.Fatalf("the outstanding decision was replaced: %+v", e.Pending())
+	}
+	if len(e.G.Stack) != 0 {
+		t.Fatalf("stack = %v, want nothing placed while a decision was outstanding", e.G.Stack)
+	}
+	if len(e.pendingTriggers) != queued || e.orderedTriggers != ordered {
+		t.Fatalf("queue = %d/%d, want %d/%d — it was drained behind the player's back",
+			len(e.pendingTriggers), e.orderedTriggers, queued, ordered)
+	}
 }
