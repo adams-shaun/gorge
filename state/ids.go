@@ -52,7 +52,21 @@ var stepNames = [numSteps]string{"untap", "upkeep", "draw", "main1",
 	"begin-combat", "declare-attackers", "declare-blockers", "combat-damage",
 	"end-combat", "main2", "end", "cleanup"}
 
-func (s Step) String() string { return stepNames[s] }
+// Valid reports whether s is one of the defined step constants. Mirrors
+// Zone.Valid: a Step read back from an untrusted source (a tampered log,
+// events/apply.go's StepChange case stores e.Step with no check of its own)
+// must be validated before it indexes stepNames, or Project (view.go) and
+// this package's own String below would panic on it.
+func (s Step) Valid() bool { return int(s) < numSteps }
+
+// String returns "unknown" for an out-of-range Step rather than panicking,
+// the same total shape as events.Kind.String().
+func (s Step) String() string {
+	if !s.Valid() {
+		return "unknown"
+	}
+	return stepNames[s]
+}
 
 // IsMain reports whether sorcery-speed actions are legal in this step.
 func (s Step) IsMain() bool { return s == StepMain1 || s == StepMain2 }

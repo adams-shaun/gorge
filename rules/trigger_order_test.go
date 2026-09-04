@@ -1142,3 +1142,79 @@ func TestResumeTriggerDrainIsInertWhileADecisionIsPending(t *testing.T) {
 			len(e.pendingTriggers), e.orderedTriggers, queued, ordered)
 	}
 }
+
+// --- Task 23 -----------------------------------------------------------
+
+// TestPendingTriggersReportsQueueOrderAndOptionality is Task 23's Ruling
+// F2/R3 accessor: view.Project needs the trigger queue without importing
+// rules, so PendingTriggers exposes it built from the same
+// pendingTriggers/triggerLabel/optionalDecider machinery the drain itself
+// uses, and must not mutate any of it.
+func TestPendingTriggersReportsQueueOrderAndOptionality(t *testing.T) {
+	e, ids := upkeepEngine(t, gainerSrc, drainerSrc)
+	pts := e.PendingTriggers()
+	if len(pts) != 2 {
+		t.Fatalf("PendingTriggers = %d entries, want 2", len(pts))
+	}
+	if pts[0].Source != ids[0] || pts[1].Source != ids[1] {
+		t.Fatalf("PendingTriggers sources = %d,%d, want %d,%d (queue order)",
+			pts[0].Source, pts[1].Source, ids[0], ids[1])
+	}
+	for i, pt := range pts {
+		if pt.Controller != 0 {
+			t.Errorf("pts[%d].Controller = %d, want 0", i, pt.Controller)
+		}
+		if pt.Label == "" {
+			t.Errorf("pts[%d].Label is empty", i)
+		}
+		if pt.Optional {
+			t.Errorf("pts[%d].Optional = true, want false (no OptionalDecider$)", i)
+		}
+	}
+	// Read-only: calling it must not touch the queue the drain itself uses.
+	if len(e.pendingTriggers) != 2 || e.orderedTriggers != 0 {
+		t.Fatalf("PendingTriggers mutated engine state: queue=%d ordered=%d",
+			len(e.pendingTriggers), e.orderedTriggers)
+	}
+}
+
+// TestPendingTriggersReportsOptionalDecider covers the Optional/Decider
+// fields against mayGainSrc's OptionalDecider$ You.
+func TestPendingTriggersReportsOptionalDecider(t *testing.T) {
+	e, ids := upkeepEngine(t, mayGainSrc)
+	pts := e.PendingTriggers()
+	if len(pts) != 1 {
+		t.Fatalf("PendingTriggers = %d entries, want 1", len(pts))
+	}
+	if !pts[0].Optional {
+		t.Fatal("mayGainSrc's OptionalDecider$ You did not report Optional")
+	}
+	if pts[0].Decider != 0 {
+		t.Fatalf("Decider = %d, want the controller (0)", pts[0].Decider)
+	}
+	if pts[0].Source != ids[0] {
+		t.Fatalf("Source = %d, want %d", pts[0].Source, ids[0])
+	}
+}
+
+// TestPendingTriggersReturnsAFreshSlice guards Task 23 §10's no-aliasing
+// rule: a caller mutating the returned slice must not corrupt the engine's
+// own queue, nor a slice returned by an earlier call.
+func TestPendingTriggersReturnsAFreshSlice(t *testing.T) {
+	e, _ := upkeepEngine(t, gainerSrc, drainerSrc)
+	pts := e.PendingTriggers()
+	pts[0].Label = "corrupted"
+	again := e.PendingTriggers()
+	if again[0].Label == "corrupted" {
+		t.Fatal("PendingTriggers shared backing storage across calls")
+	}
+}
+
+// TestPendingTriggersIsEmptyWithNoQueue is the boundary Project's totality
+// rules lean on: an idle engine reports no pending triggers at all.
+func TestPendingTriggersIsEmptyWithNoQueue(t *testing.T) {
+	e := layerEngine(t)
+	if pts := e.PendingTriggers(); len(pts) != 0 {
+		t.Fatalf("PendingTriggers = %v, want none", pts)
+	}
+}

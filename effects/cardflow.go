@@ -153,7 +153,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-				From: state.ZLibrary, To: dest, Secret: true})
+				From: state.ZLibrary, To: dest, Player: p, Secret: true})
 			moved++
 		}
 	}
