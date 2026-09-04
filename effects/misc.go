@@ -184,8 +184,21 @@ func effBecomeMonarch(h Host, c *Ctx, sa *cards.SA) {
 // exiled permanents in play under the restarting player's control, per the
 // real card text) is out of M1's scope; ending the match honestly rather
 // than hanging or silently no-op-ing is the closest correct degradation.
+//
+// Ruling T22-k (fix round 2): Amount: 1 is required, not cosmetic --
+// rules/sba.go's checkGameOver is not the only GameOver emitter in this
+// tree, and Amount is the shape discriminator events.Apply's GameOver case
+// reads (0 = win, 1 = draw; Task 22 fix round 1). Left at its zero value,
+// this event's own Amount reads as "Amount 0", a win -- and Player is also
+// left at its zero value, which validates as seat 0 -- so despite this
+// function's name, its own comment and its own Text all saying "draw", the
+// event it actually emitted a win for seat 0. Every other RestartGame-style
+// primitive in this file already carries no Player of its own, so seat 0
+// winning was never a deliberate choice anywhere in this file; it was
+// simply the one call site nobody had reason to re-examine once Amount
+// became meaningful.
 func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
-	h.Emit(events.Event{Kind: events.GameOver, Text: "game restarted: ended as a draw"})
+	h.Emit(events.Event{Kind: events.GameOver, Amount: 1, Text: "game restarted: ended as a draw"})
 }
 
 // effMana implements "AB$ Mana": add Amount mana of Produced's colour(s) to

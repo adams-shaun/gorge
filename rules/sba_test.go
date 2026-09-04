@@ -456,3 +456,56 @@ func TestDestructionTextDistinguishesToughnessFromLethalDamage(t *testing.T) {
 		t.Fatal("CR 704.5f and 704.5g are rules-distinct and must not share the same Text")
 	}
 }
+
+// TestNoPendingDecisionWithAZeroLifePlayerNotYetLost is the fix-round-2
+// regression test for the re-review's N1 finding: the outcome-keyed
+// termination fix-round-1 shipped (destroyLethalDamage reporting "changed"
+// only from what actually left the battlefield) can under-report when a
+// replacement effect keeps the permanent in play but its substitute effect
+// still changes SBA-relevant state -- here, draining the caster's own life
+// instead of moving the shield. Because checkLoseConditions runs BEFORE
+// destroyLethalDamage within one pass, a life change caused by
+// destroyLethalDamage's own replacement is only visible to a SUBSEQUENT
+// pass -- and reporting "nothing left the battlefield" as "nothing changed"
+// denies it one. CR 704.5a: a player at 0 or less life must never be left
+// un-Lost while the game keeps handing out decisions. Driven through
+// repeated real Submits (the public path), checking the invariant after
+// every single one -- not just at a specific submit count -- so this
+// catches the violation regardless of which pass it would show up on.
+func TestNoPendingDecisionWithAZeroLifePlayerNotYetLost(t *testing.T) {
+	e := newSeats(t, 3)
+	shield := onBoard(t, e, 0, `Name:Shield
+ManaCost:1 G
+Types:Creature Wall
+PT:0/4
+R:Event$ Moved | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | ReplaceWith$ RepDrain
+SVar:RepDrain:DB$ LoseLife | Defined$ You | LifeAmount$ 1
+Oracle:x
+`)
+	e.emit(events.Event{Kind: events.Damage, Obj: shield, Amount: 4})
+	e.G.Players[0].Life = 4
+
+	for i := 0; i < 8 && !e.G.Over; i++ {
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KPriority {
+			break
+		}
+		idx := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				idx = o.Index
+			}
+		}
+		if idx < 0 {
+			t.Fatalf("submit %d: no pass option: %+v", i, d.Options)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+			t.Fatalf("submit %d: %v", i, err)
+		}
+		if e.G.Players[0].Life <= 0 && !e.G.Players[0].Lost {
+			t.Fatalf("after submit %d: player 0 is at life %d but Lost=false -- CR 704.5a is "+
+				"outstanding on a board state the client can observe and be handed a decision over",
+				i, e.G.Players[0].Life)
+		}
+	}
+}

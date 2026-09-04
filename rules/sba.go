@@ -52,17 +52,36 @@ const maxSBAPasses = 32
 // gain-1-life-instead reproduction) made every single pass "find" the same
 // permanent lethal again: not a one-time miscount but the full
 // maxSBAPasses budget, spent and reported as "changed", on every
-// checkStateBased call for the rest of the match. See destroyLethalDamage
-// and checkLoseConditions' removal sweep below for where the fix actually
-// lives; if maxSBAPasses is nonetheless exhausted (a genuine cycle, not a
+// checkStateBased call for the rest of the match. See checkLoseConditions'
+// removal sweep below for where that half of the fix lives; if
+// maxSBAPasses is nonetheless exhausted (a genuine cycle, not a
 // replacement -- e.g. a static that keeps making a different creature
 // lethal forever), a Note event says so rather than the game quietly
 // carrying on with state-based actions still outstanding.
+//
+// Ruling T22-j (fix round 2): destroyLethalDamage's own half of T22-h can
+// UNDER-report. Reading "did it actually leave" is right for whether THAT
+// object needs re-examining, but it threw away the fact that an attempt
+// happened at all -- and checkLoseConditions runs before destroyLethalDamage
+// within one pass, so a replacement whose substitute effect changes
+// SBA-relevant state elsewhere (the reviewer's reproduction: `ReplaceWith$`
+// a life-loss instead of a move) only becomes visible to checkLoseConditions
+// on a LATER pass. Reporting "the shield didn't move, so nothing changed"
+// denied the loop that later pass, so a player it drove to 0 life could sit
+// there, un-Lost, handed a decision. attempted (below) is the fix: a set of
+// object IDs destroyLethalDamage has already tried this call, threaded
+// through every pass of this loop rather than rebuilt per pass, so an
+// object already attempted is skipped on later passes (preserving T22-h's
+// bound: one attempt per object per checkStateBased call, not thirty-two),
+// while "changed" now means "attempted something NEW this pass" -- which is
+// true on pass 1 regardless of outcome, giving pass 2 the chance to see
+// whatever the replacement's own effect changed.
 func (e *Engine) checkStateBased() {
 	stable := false
+	attempted := map[state.ObjID]bool{}
 	for pass := 0; pass < maxSBAPasses; pass++ {
 		changed := e.checkLoseConditions()
-		if e.destroyLethalDamage() {
+		if e.destroyLethalDamage(attempted) {
 			changed = true
 		}
 		if !changed {
@@ -174,21 +193,30 @@ type casualty struct {
 // lethal, matching CR 704.3's "state-based actions are performed
 // simultaneously" for one round of this check.
 //
-// Ruling T22-h (fix round 1): reports whether a candidate actually left the
-// battlefield, not whether a MoveZone was emitted for it. Engine.emit runs
-// replacement effects ahead of logging (rules/trigger.go), and a matching
-// replacement discards the proposed MoveZone outright -- the permanent
-// never moves, but the emit call still returns normally. The previous
-// version returned len(dead) > 0, which only ever asked "did this function
-// attempt a destruction", so a permanent kept in play by a replacement (a
-// regeneration shield, "sacrifice a Clue instead") read as "changed" on
-// every single pass, burning the full maxSBAPasses budget on every
-// checkStateBased call for the rest of the match instead of the one
-// attempt CR 704.5 actually calls for.
-func (e *Engine) destroyLethalDamage() bool {
+// Ruling T22-h (fix round 1), superseded by T22-j (fix round 2, see
+// checkStateBased): the first fix reported whether a candidate actually
+// left the battlefield, not whether a MoveZone was emitted for it --
+// correct for bounding the amplification a replacement causes, but it threw
+// away the fact that an attempt happened at all. attempted is this
+// function's memory of that, shared across every pass of one
+// checkStateBased call (constructed once there, passed down here each
+// pass, never rebuilt per pass): an object already in it is skipped
+// entirely -- not re-examined, not re-emitted -- and "changed" now means
+// "found and attempted an object NOT already in attempted this pass", which
+// is true exactly once per object per call regardless of whether the
+// attempt actually moved it. That is what lets a later pass's
+// checkLoseConditions see whatever a replacement's own substitute effect
+// changed (T22-j's fix), while still bounding this function to one attempt
+// per object per checkStateBased call (T22-h's fix, preserved): the object
+// simply will not be found lethal-and-new again until the NEXT
+// checkStateBased call, whether or not it actually left.
+func (e *Engine) destroyLethalDamage(attempted map[state.ObjID]bool) bool {
 	var dead []casualty
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			if attempted[id] {
+				continue
+			}
 			o := e.G.Obj(id)
 			if o == nil {
 				continue
@@ -213,15 +241,12 @@ func (e *Engine) destroyLethalDamage() bool {
 			dead = append(dead, casualty{id, "lethal damage"})
 		}
 	}
-	changed := false
 	for _, c := range dead {
+		attempted[c.id] = true
 		e.emit(events.Event{Kind: events.MoveZone, Obj: c.id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: c.text})
-		if o := e.G.Obj(c.id); o == nil || o.Zone != state.ZBattlefield {
-			changed = true
-		}
 	}
-	return changed
+	return len(dead) > 0
 }
 
 // checkGameOver ends the game once at most one seat remains (CR 104.2a's

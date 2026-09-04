@@ -136,6 +136,30 @@ func TestNewWithNoSeatsDoesNotPanic(t *testing.T) {
 	}
 }
 
+// TestNewWithMoreDecksThanNamesDoesNotPanic is the Ruling T22-m regression
+// test (fix round 2): a Config carrying more decks than named seats used to
+// panic inside the per-deck loop, before New's zero-alive guard (this same
+// function, added for T22-e) is ever reached -- state.NewGame sizes
+// g.zones from len(cfg.Names) alone, so the deck loop's own
+// SetZone(ZLibrary, PlayerID(i), ...) call for i >= len(cfg.Names) indexes
+// outside it. Task 25 wires Config from a client, so a malformed one (the
+// same motivation as T22-e last round) must degrade rather than crash the
+// one goroutine running the whole match. A deck with no seat to belong to
+// is simply never dealt; with zero real seats left, the game is trivially
+// over, same as the zero-seat case just above.
+func TestNewWithMoreDecksThanNamesDoesNotPanic(t *testing.T) {
+	e := New(Config{Decks: [][]*cards.Card{mountainDeck(t, 40)}})
+	if !e.G.Over {
+		t.Fatal("a Config with no named seats at all should already be over")
+	}
+	if !e.G.Draw {
+		t.Fatal("a Config with no named seats has no winner to name -- it should be recorded as a draw")
+	}
+	if e.Pending() != nil {
+		t.Fatalf("a decision is pending: %+v", e.Pending())
+	}
+}
+
 // TestReplayReconstructsPassesAndPriority is the Ruling A regression test:
 // Passes and Priority must flow through events, not direct field writes, so
 // that replaying the log alone (no rules-package code involved) reproduces

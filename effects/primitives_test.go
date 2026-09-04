@@ -851,11 +851,23 @@ func TestBecomeMonarchRecordsTheTargetPlayer(t *testing.T) {
 	}
 }
 
+// TestRestartGameEndsTheGame is the fix-round-2 regression test for the
+// re-review's N3: effRestartGame's own comment and Text both say the game
+// ends as a draw, but the GameOver event it emitted left Amount at its zero
+// value, which events.Apply's GameOver case (Task 22 fix round 1) reads as
+// "Amount 0: a win" -- and Player, also left at zero, validates as seat 0.
+// So despite every piece of this primitive's own documentation, it was
+// actually encoding a seat-0 win. Asserting Draw (not just Over) is what
+// catches that; asserting Over alone, as this test used to, cannot tell a
+// win from a draw at all.
 func TestRestartGameEndsTheGame(t *testing.T) {
 	h := newHost(t, 2)
 	Resolve(h, &Ctx{Controller: 0}, sa(t, "AB$ RestartGame"))
 	if !h.g.Over {
 		t.Fatal("RestartGame must end the game")
+	}
+	if !h.g.Draw {
+		t.Fatal("RestartGame ends the game as a draw (its own Text says so), not a win for seat 0")
 	}
 }
 

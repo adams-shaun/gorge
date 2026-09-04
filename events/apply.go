@@ -149,30 +149,34 @@ func Apply(g *state.Game, e Event) {
 		}
 		// Ruling T22-a (Amount is the draw/winner discriminator, the same
 		// trick TargetsChosen already uses to tell its two target shapes
-		// apart), pinned down fully by T22-g: exactly two shapes are
-		// defined, and everything else is not a GameOver this build
-		// recognizes at all.
-		//   Amount == 0: a win. Winner is set when Player validates; a
-		//     malformed Player still ends the game (Over), just names no
-		//     winner -- Winner keeps its zero value rather than reading as
-		//     "seat 0 won" (see the untouched-on-a-bad-Player case below).
-		//   Amount == 1: CR 104.4a's draw. Winner is irrelevant; Draw says
-		//     so explicitly, since PlayerID(0) is both Winner's zero value
-		//     and a real seat and so cannot mean "nobody" on its own.
-		//   anything else: not a shape this Kind defines. Previously any
-		//     other Amount still set Over unconditionally and, since
-		//     Winner's own guard only ever checked validPlayer, a tampered
-		//     event naming an out-of-range Player under some third Amount
-		//     read as "seat 0 won" regardless -- exactly the ambiguity this
-		//     whole discriminator exists to remove. Changing nothing at all
-		//     is the safe response to a shape this build cannot interpret.
-		switch e.Amount {
-		case 0:
+		// apart), pinned down fully by T22-g and, for Amount == 0's own
+		// Player validity, T22-l: exactly two shapes are defined, and
+		// everything else is not a GameOver this build recognizes at all.
+		//   Amount == 0: a win, but ONLY when Player validates. Ruling
+		//     T22-l (fix round 2): a fix-round-1 build of this let an
+		//     invalid Player under Amount 0 still set Over, with Winner
+		//     left at its untouched zero value -- an invalid seat silently
+		//     reading as seat 0 winning, the exact defect class this whole
+		//     discriminator exists to remove. For an untrusted log,
+		//     refusing to end the game on a malformed win claim is the safe
+		//     response: it is detectable (Over stays false) rather than
+		//     manufacturing a draw the log never actually carried.
+		//   Amount == 1: CR 104.4a's draw. Player is irrelevant; Winner is
+		//     never touched and Draw says so explicitly, since PlayerID(0)
+		//     is both Winner's zero value and a real seat and so cannot
+		//     mean "nobody" on its own.
+		//   anything else (including Amount == 0 with an invalid Player):
+		//     not a shape this Kind defines. Previously any other Amount
+		//     still set Over unconditionally and, since Winner's own guard
+		//     only ever checked validPlayer, a tampered event naming an
+		//     out-of-range Player under some third Amount read as "seat 0
+		//     won" regardless. Changing nothing at all is the safe response
+		//     to a shape this build cannot interpret.
+		switch {
+		case e.Amount == 0 && validPlayer(g, e.Player):
 			g.Over = true
-			if validPlayer(g, e.Player) {
-				g.Winner = e.Player
-			}
-		case 1:
+			g.Winner = e.Player
+		case e.Amount == 1:
 			g.Over = true
 			g.Draw = true
 		}
