@@ -92,13 +92,52 @@ func (e *Engine) priorityRound() {
 	}
 	// CR 117.5: state-based actions and triggered abilities are handled
 	// before any player receives priority.
-	e.putTriggersOnStack()
+	//
+	// Task 27: putTriggersOnStack can now ASK -- a controller with two or
+	// more simultaneous triggers orders them, and an optional trigger's
+	// decider says yes or no -- so it reports whether it finished. Returning
+	// here on a true is load-bearing twice over. It stops askPriority from
+	// immediately overwriting e.pending with a second, unrelated decision;
+	// and it is why the drain resumes through resumeTriggerDrain below rather
+	// than by re-entering this function, which would run the draw step's draw
+	// a second time (nothing between the draw above and the priority emit
+	// below changes Passes or Priority, so this function is not idempotent
+	// and must not be re-entered mid-round).
+	if e.putTriggersOnStack() {
+		return
+	}
+	e.grantPriority()
+}
+
+// grantPriority is the tail of a priority round: hand priority to whoever is
+// due it and ask them what they want to do. Split out of priorityRound by Task
+// 27 so that a trigger decision asked partway through the round has an exact
+// continuation to resume into -- the part of the round that had not run yet,
+// and nothing that had already run.
+func (e *Engine) grantPriority() {
+	if e.G.Over {
+		// A state-based action during the drain can end the game. A finished
+		// game must not hand out a fresh priority decision.
+		return
+	}
 	holder := e.G.Priority
 	if e.G.Players[holder].Lost {
 		holder = e.G.NextAlive(holder)
 	}
 	e.emit(events.Event{Kind: events.Priority, Player: holder, Amount: e.G.Passes})
 	e.askPriority(holder)
+}
+
+// resumeTriggerDrain continues a half-drained trigger queue after one of its
+// decisions has been answered, and finishes the interrupted priority round
+// once the queue runs dry. Both trigger handlers end with exactly this and
+// nothing else: putTriggersOnStack is only ever entered from priorityRound, so
+// "what comes after the drain" is always, and only, grantPriority.
+func (e *Engine) resumeTriggerDrain() {
+	if e.putTriggersOnStack() {
+		return
+	}
+	e.grantPriority()
 }
 
 func (e *Engine) askPriority(p state.PlayerID) {
@@ -133,5 +172,9 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 		e.handleAttackers(d, in)
 	case decision.KBlockers:
 		e.handleBlockers(d, in)
+	case decision.KTriggerOrder:
+		e.handleTriggerOrder(d, in)
+	case decision.KTriggerOptional:
+		e.handleTriggerOptional(d, in)
 	}
 }

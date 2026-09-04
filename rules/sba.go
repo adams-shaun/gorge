@@ -21,6 +21,7 @@
 package rules
 
 import (
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -230,6 +231,7 @@ func (e *Engine) checkStateBased() {
 			Text: "state-based actions did not reach a fixed point within the pass budget"})
 	}
 	e.checkGameOver()
+	e.releaseTriggerDecisionOfDepartedPlayer()
 }
 
 // checkLoseConditions applies CR 704.5a (life 0 or less) to every player not
@@ -431,4 +433,40 @@ func (e *Engine) checkGameOver() {
 		e.emit(events.Event{Kind: events.GameOver, Amount: 1, Text: "draw"})
 	}
 	e.pending = nil
+}
+
+// releaseTriggerDecisionOfDepartedPlayer keeps a trigger decision asked of a
+// player who has since left the game from stranding the match.
+//
+// Task 27's two trigger decisions are the only ones that can be asked of a
+// player and then have that player eliminated before they answer, because
+// they are the only ones asked from inside handle: Submit runs handle, then
+// this function, then Advance, so a decision asked by handleTriggerOrder or
+// handleTriggerOptional is the only pending decision that state-based actions
+// run underneath. (Every other decision is asked from inside Advance, after
+// this has already run, and Advance does nothing at all while e.pending is
+// set -- so no further engine work can eliminate anybody until it is
+// answered.) With two seats the elimination ends the game and checkGameOver
+// above already clears e.pending; with three or more it does not, and without
+// this the engine would sit forever waiting on an answer that can never come.
+//
+// Resuming is safe here for exactly the reason resumeTriggerDrain exists: the
+// drain has one continuation, the tail of the priority round it interrupted.
+// dropDepartedTriggers has already discarded the departed controller's own
+// triggers (CR 800.4a), and an optional trigger whose DECIDER departed but
+// whose controller lives is declined by putTriggersOnStack rather than
+// re-asked, so this cannot loop.
+func (e *Engine) releaseTriggerDecisionOfDepartedPlayer() {
+	d := e.pending
+	if d == nil || e.G.Over {
+		return
+	}
+	if d.Kind != decision.KTriggerOrder && d.Kind != decision.KTriggerOptional {
+		return
+	}
+	if int(d.Player) >= len(e.G.Players) || !e.G.Players[d.Player].Lost {
+		return
+	}
+	e.pending = nil
+	e.resumeTriggerDrain()
 }
