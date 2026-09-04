@@ -266,17 +266,24 @@ func TestMoveZoneInvariantTableDriven(t *testing.T) {
 // amounts, and IDs/Pairs naming nothing real. Apply runs on the match's only
 // goroutine and Event reaches it from network input, so any panic here is a
 // remote kill of the whole match: every case must be a no-op, never a crash.
+//
+// The kind list is Kind(0)..len(kindNames)-1, not a hand-typed slice, on
+// purpose: a hand-typed list is exactly how this test used to miss coverage
+// -- the previous version of this loop enumerated every Kind up to ClockTick
+// and simply never mentioned TriggerPush, whose own Player-handling bug
+// (Ruling T20-e) this test would otherwise exist to catch. kindNames is the
+// one place already required to stay in lockstep with the Kind const block
+// (Kind.String() reads it, and every new Kind ships with its own
+// Test<Kind>KindString regression test asserting that mapping), so bounding
+// the loop by its length means a future appended Kind is covered here with
+// no edit to this test required -- exactly what "append-only, never
+// renumbered" should buy a totality test like this one.
 func TestApplyNeverPanics(t *testing.T) {
-	allKinds := []Kind{GameStart, Shuffle, MoveZone, Draw, LifeChange, Damage, Tap, Untap,
-		StepChange, TurnChange, Priority, PutOnStack, Resolve, ManaAdd, ManaClear,
-		CounterChange, DeclareAttackers, DeclareBlockers, PlayerLost, GameOver,
-		DecisionAsk, DecisionMade, Note, LandPlayed, TargetsChosen, FlipFace, ClockTick}
-
 	const badZone = state.Zone(200)
 	const badObj = state.ObjID(999999)
 	const badPlayer = state.PlayerID(250)
 
-	for _, k := range allKinds {
+	for k := Kind(0); int(k) < len(kindNames); k++ {
 		t.Run(k.String(), func(t *testing.T) {
 			variants := []struct {
 				name string
@@ -285,6 +292,7 @@ func TestApplyNeverPanics(t *testing.T) {
 				{"obj zero", Event{Kind: k, Obj: 0, Player: 0}},
 				{"obj out of range", Event{Kind: k, Obj: badObj, Player: 0}},
 				{"player out of range", Event{Kind: k, Player: badPlayer}},
+				{"player out of range with a valid obj", Event{Kind: k, Player: badPlayer}},
 				{"from zone out of range", Event{Kind: k, Player: 0, From: badZone, To: state.ZHand}},
 				{"to zone out of range", Event{Kind: k, Player: 0, From: state.ZLibrary, To: badZone}},
 				{"amount min int32", Event{Kind: k, Player: 0, Amount: math.MinInt32}},
@@ -308,8 +316,30 @@ func TestApplyNeverPanics(t *testing.T) {
 					case "from zone out of range", "to zone out of range",
 						"amount min int32", "amount max int32":
 						e.Obj = id
+					case "player out of range with a valid obj":
+						// A bear (twoPlayer's fixture card) has no T: line,
+						// so it has zero triggers -- TriggerPush would break
+						// on its trigger-index guard before ever reaching
+						// the Player-consuming AddObject call this variant
+						// exists to reach, whether or not Ruling T20-e's fix
+						// is present, which would make this variant vacuous
+						// for the one kind that motivated it. Give
+						// TriggerPush a source that actually has a trigger
+						// so an out-of-range Player has to be stopped by
+						// validPlayer specifically, not by an unrelated
+						// earlier guard.
+						if k == TriggerPush {
+							scribe := triggerCard(t)
+							src := g.AddObject(scribe, 0)
+							src.Zone = state.ZBattlefield
+							g.SetZone(state.ZBattlefield, 0, []state.ObjID{src.ID})
+							e.Obj = src.ID
+						} else {
+							e.Obj = id
+						}
 					}
 
+					before := len(g.Objs)
 					Apply(g, e) // must not panic
 
 					switch v.name {
@@ -332,6 +362,13 @@ func TestApplyNeverPanics(t *testing.T) {
 					case "player out of range":
 						if k == PlayerLost && g.Players[0].Lost {
 							t.Fatal("out-of-range player must not affect player 0")
+						}
+					case "player out of range with a valid obj":
+						// Ruling T20-e's regression: a real trigger source
+						// plus an out-of-range Player must still mint no
+						// ability object, not merely avoid a panic.
+						if k == TriggerPush && len(g.Objs) != before {
+							t.Fatal("TriggerPush with an out-of-range Player must not create the ability object")
 						}
 					}
 				})
