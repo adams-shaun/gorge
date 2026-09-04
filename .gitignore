@@ -4,3 +4,6 @@ bin/
 .cards/
 coverage.out
 coverage.html
+
+# SDD orchestration scratch (ledger, briefs, review packages).
+.superpowers/

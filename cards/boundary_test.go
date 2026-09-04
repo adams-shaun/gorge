@@ -64,12 +64,30 @@ func checkForgeScriptsInRepo(t *testing.T, repoDir string) ([]string, error) {
 	return offenders, nil
 }
 
-// TestNoForgeScriptsTracked enforces the GPL boundary from the design spec:
-// mtgcore ships a compiler, never the scripts.
-func TestNoForgeScriptsTracked(t *testing.T) {
-	offenders, err := checkForgeScriptsInRepo(t, "../..")
+// repoRoot resolves the root of the git repository containing the current
+// working directory. Test binaries run with cwd set to the package
+// directory, so this always finds this repo's root regardless of how deep
+// the package lives — unlike a hard-coded relative path (e.g. "../.."),
+// which silently drifts, and drifted outside the repo entirely, when this
+// package was transplanted to a new module root.
+func repoRoot(t *testing.T) string {
+	t.Helper()
+
+	out, err := exec.Command("git", "-C", ".", "rev-parse", "--show-toplevel").Output()
 	if err != nil {
-		t.Skipf("git unavailable: %v", err)
+		t.Fatalf("could not resolve git repo root from working directory: %v", err)
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// TestNoForgeScriptsTracked enforces the GPL boundary from the design spec:
+// gorge ships a compiler, never the scripts.
+func TestNoForgeScriptsTracked(t *testing.T) {
+	root := repoRoot(t)
+
+	offenders, err := checkForgeScriptsInRepo(t, root)
+	if err != nil {
+		t.Fatalf("git unavailable while scanning %s: %v", root, err)
 	}
 	if len(offenders) > 0 {
 		t.Fatalf("Forge card scripts are tracked in git, which breaks the GPL boundary:\n  %s",
