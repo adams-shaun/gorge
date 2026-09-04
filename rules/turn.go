@@ -130,10 +130,50 @@ func (e *Engine) grantPriority() {
 
 // resumeTriggerDrain continues a half-drained trigger queue after one of its
 // decisions has been answered, and finishes the interrupted priority round
-// once the queue runs dry. Both trigger handlers end with exactly this and
-// nothing else: putTriggersOnStack is only ever entered from priorityRound, so
-// "what comes after the drain" is always, and only, grantPriority.
+// once the queue runs dry. It is the continuation for every decision that is
+// asked from inside handle.
+//
+// The leading checkStateBased is fix round 1, review finding F1, and it is
+// what makes this a faithful continuation rather than a shortcut. Before Task
+// 27 EVERY decision was created from inside Advance -> step(), whose first
+// statement is checkStateBased() -- so a decision was never handed out with
+// state-based actions outstanding. This function runs from inside handle,
+// which Submit calls BEFORE its own tail checkStateBased, and Advance is a
+// no-op once handle has set e.pending. Without this line two things follow,
+// both reproduced:
+//
+//   - CR 117.5 is violated: a creature a state-based action is about to sweep
+//     is still alive when the drain finishes, so its death trigger reaches
+//     the stack only after the priority holder has already acted, landing
+//     above anything they cast (measured: stack = 2, queued = 1).
+//   - The match hangs: priority is granted to a player the tail
+//     checkStateBased then eliminates, and with three or more seats the game
+//     does not end, so nothing can ever answer that decision.
+//
+// Running it here rather than inside grantPriority keeps it off
+// priorityRound's own path, where step() has already reached the same fixed
+// point -- a second call there would give a replacement-blocked state-based
+// action a second attempt per step and change sba.go's measured firing counts
+// (Ruling T22-p).
+//
+// This cannot recurse. checkStateBased's own tail calls
+// releasePendingDecisionOfDepartedPlayer, which does nothing unless
+// e.pending != nil, and every caller of this function has just cleared
+// e.pending (Submit before handle, or that same release hook before calling
+// here). The ask that sets e.pending again happens strictly afterwards.
+//
+// It also cannot re-offer a settled order. The queue re-entered below is the
+// same one the answer just settled, and e.orderedTriggers suppresses the
+// APNAP re-sort over that prefix; anything checkStateBased queues is appended
+// behind it, exactly as for any other mid-drain arrival. Measured, not
+// argued: TestTriggerDrainInvariantsUnderRandomizedPlay asserts across 120
+// games that no ordering decision is ever offered twice with nothing placed
+// in between.
 func (e *Engine) resumeTriggerDrain() {
+	e.checkStateBased()
+	if e.G.Over {
+		return
+	}
 	if e.putTriggersOnStack() {
 		return
 	}

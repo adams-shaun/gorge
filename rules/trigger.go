@@ -322,10 +322,43 @@ func (e *Engine) popFrontTrigger() {
 	if len(e.pendingTriggers) == 0 {
 		return
 	}
-	e.pendingTriggers = append(e.pendingTriggers[:0], e.pendingTriggers[1:]...)
-	if e.orderedTriggers > 0 {
+	e.removeTriggerAt(0)
+}
+
+// removeTriggerAt takes one entry out of the queue, keeping orderedTriggers
+// counting the same settled entries it counted before. Entries are shifted
+// down rather than the slice re-sliced so index 0 always means the same thing
+// to every reader, including one that ran between an ask and its answer.
+func (e *Engine) removeTriggerAt(i int) pendingTrigger {
+	pt := e.pendingTriggers[i]
+	e.pendingTriggers = append(e.pendingTriggers[:i], e.pendingTriggers[i+1:]...)
+	if i < e.orderedTriggers {
 		e.orderedTriggers--
 	}
+	return pt
+}
+
+// takeAnsweredTrigger removes and returns the pending trigger an optional
+// decision was asked about.
+//
+// It is normally at the front: nothing on a reachable path removes from the
+// front of the queue between an ask and its answer. Fix round 1, review
+// finding F4: this used to be a bare front-only equality check whose failure
+// branch did nothing at all, so the drain went straight on to ask the SAME
+// trigger's question again -- the player's answer consumed, its Seq spent,
+// and silently discarded. Searching forward instead honours the answer
+// wherever the entry actually sits and never puts the same question twice,
+// which is also how handleTriggerOrder's own defensive branch behaves (it
+// forces progress rather than re-asking). A source carrying two pending
+// triggers is unambiguous here because the search runs front-first, and the
+// front one is the one that was asked about.
+func (e *Engine) takeAnsweredTrigger(d *decision.Decision) (pendingTrigger, bool) {
+	for i := range e.pendingTriggers {
+		if e.pendingTriggers[i].Source == d.Source {
+			return e.removeTriggerAt(i), true
+		}
+	}
+	return pendingTrigger{}, false
 }
 
 // pushTrigger mints one triggered ability's stack object.
@@ -351,11 +384,19 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		Obj: pt.Source, Amount: int32(pt.Idx), IDs: ids, Text: "triggered ability"})
 }
 
-// triggerOf re-reads the T: line a pending trigger came from. Nothing is
-// cached on pendingTrigger for this: a card script's parsed Trigger is static
-// text that never changes after parsing, so reading it live is equivalent to a
-// snapshot and needs no new field. A source that has ceased to exist, or a
-// stale index, reports false rather than panicking.
+// triggerOf re-reads the T: line a pending trigger came from, so nothing has
+// to be cached on pendingTrigger for it.
+//
+// Fix round 1, review finding F5: the guarantee is narrower than the previous
+// wording claimed. A parsed cards.Trigger is static text, but this reads
+// Obj.Face(), which is NOT static -- it follows the object's ACTIVE face. A
+// permanent whose face changed between the trigger matching and the drain
+// would be read against the new face's Triggers slice, giving the wrong
+// optionality flag and label. Nothing in M1 can reach that (effects.SetState
+// is the only FlipFace source and no card in play uses it), but this is
+// "correct because nothing flips faces", not "correct because the data cannot
+// change". A source that has ceased to exist, or an index the current face is
+// too short for, reports false rather than panicking.
 func (e *Engine) triggerOf(pt pendingTrigger) (cards.Trigger, bool) {
 	o := e.G.Obj(pt.Source)
 	if o == nil {
@@ -374,7 +415,7 @@ func (e *Engine) triggerOf(pt pendingTrigger) (cards.Trigger, bool) {
 // The spelling is Forge's, established by grepping .cards/cardsfolder rather
 // than guessed (the precedent for not guessing is Ruling T12-a). On a T: line
 // optionality is spelled OptionalDecider$ and nothing else: 1496 T: lines
-// carry it, and the bare Optional$ form -- 1141 occurrences, on SVar:, A:, R:
+// carry it, and the bare Optional$ form -- 1199 occurrences, on SVar:, A:, R:
 // and S: lines -- never once appears on a T: line, because it is a different
 // thing (a "you may" inside an ability's own resolution, not a choice about
 // whether the trigger is put on the stack). The parser needs no change to
@@ -537,12 +578,8 @@ func (e *Engine) handleTriggerOptional(d *decision.Decision, in decision.Intent)
 	if opts := d.Chosen(in); len(opts) == 1 {
 		yes = opts[0].Kind == "yes"
 	}
-	if len(e.pendingTriggers) > 0 && e.pendingTriggers[0].Source == d.Source {
-		pt := e.pendingTriggers[0]
-		e.popFrontTrigger()
-		if yes {
-			e.pushTrigger(pt)
-		}
+	if pt, ok := e.takeAnsweredTrigger(d); ok && yes {
+		e.pushTrigger(pt)
 	}
 	e.resumeTriggerDrain()
 }
