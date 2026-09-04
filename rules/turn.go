@@ -241,11 +241,26 @@ func (e *Engine) advanceStep() {
 		// run exactly once no matter what resolves afterward.
 		//
 		// e.G.Turn > 1 keeps CR 103.8a: the game's very first turn skips its
-		// draw. !Lost keeps an eliminated active player from drawing --
-		// unreachable today (an empty-library draw is the only way to
-		// become Lost before this point, and that seat would already be
-		// Lost, not still due a draw) but state-based actions will add
-		// other ways to lose without touching the draw step.
+		// draw. !Lost keeps an eliminated active player from drawing.
+		//
+		// Ruling T28-b (fix round 1): this guard is REACHABLE in ordinary
+		// play, not a defensive leftover -- an earlier draft of this comment
+		// called it "unreachable today" on the theory that an empty-library
+		// draw was the only way to become Lost before this point, and Task
+		// 22 already falsified that: any state-based action can eliminate
+		// the active player during their OWN turn, before their OWN draw
+		// step, for a reason that has nothing to do with drawing at all (CR
+		// 704.5a life loss is the common case). Measured: an upkeep
+		// "whenever you draw a card, lose life equal to your life total"
+		// self-drain trigger (this repo's own drainerSrc fuzz fixture)
+		// eliminates its controller during that seat's turn-2 upkeep with
+		// their library still full, and turn 2's draw step is then entered
+		// with the eliminated seat still Active. The turn structure does not
+		// skip steps for an eliminated active player, only priority -- so
+		// their draw step is still entered, and this is what stops it from
+		// drawing on their behalf. A reader who trusts "unreachable" here is
+		// invited to delete this guard, and deleting it is exactly the
+		// mutant that draws for an eliminated player.
 		e.drawCard(e.G.Active)
 		// The draw above runs checkStateBased (drawCard's own tail): an
 		// empty-library draw is itself a loss (CR 704.5c), and that can end
