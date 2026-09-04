@@ -8,10 +8,19 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+// onBoard places a card straight onto the battlefield, bypassing events the
+// same way every other direct test setup in this package does. Ruling T21-f
+// (Task 21 fix round 1): it sets SummonSick, matching what a real entry
+// (events.Move's ZBattlefield case) does -- previously it left this false,
+// so every test built on it got an attack-ready creature for free, unlike a
+// real game. A test that wants that must clear it explicitly (see
+// combat_test.go's onBoardReady), the same way a real game needs a full turn
+// to pass before a permanent loses summoning sickness.
 func onBoard(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID {
 	t.Helper()
 	o := e.G.AddObject(card(t, src), p)
 	o.Zone = state.ZBattlefield
+	o.SummonSick = true
 	e.G.Clock++
 	o.Timestamp = e.G.Clock
 	e.G.SetZone(state.ZBattlefield, p, append(e.G.Zone(state.ZBattlefield, p), o.ID))
