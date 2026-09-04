@@ -56,10 +56,60 @@ type sbaAttempts struct {
 // AFTER the pass's own eliminations are marked and must not be re-armed
 // out from under an attempt they made under the very same alive set.
 //
-// Player.Lost is monotone (events.Apply's PlayerLost case is its only
-// writer and only ever sets it true), so alive never grows and this can
-// fire at most len(Players) times per checkStateBased call: the loop stays
-// bounded by work, not just by maxSBAPasses.
+// Player.Lost is monotone (events/apply.go's PlayerLost case is its only
+// non-test writer and only ever sets it true), so alive never grows and
+// this can fire at most len(Players) times per checkStateBased call: the
+// loop stays bounded by work, not just by maxSBAPasses.
+//
+// Ruling T22-q (fix round 5, comment only -- no behaviour changed): this
+// key closes ONE of the two ways a blocker can go inert mid-call, and the
+// round-4 wording of this comment claimed both. It does not. Read it as a
+// partial fix with a known open half, because that is what it is.
+//
+//   - CLOSED, the elimination sub-case: applyReplacements discovers
+//     replacements through forEachObject, which walks AliveFrom(0), so
+//     every replacement an eliminated player owns stops being consulted the
+//     instant they are marked Lost. That is what alive tracks, and the
+//     reason a blocked attempt is worth exactly one retry when it changes.
+//
+//   - OPEN, the predicate-flip sub-case (N9, booked for the whole-branch
+//     review rather than patched here): a replacement also goes inert by
+//     ceasing to MATCH. replacementMatches evaluates ValidCard$ through
+//     effects.MatchesSpecFrom against the MOVING object, reading its Tapped
+//     flag, its P1P1 counters, its zone, its controller and its combat
+//     flags -- and every one of those is writable by a registered
+//     ReplaceWith$ primitive (effects' Tap, PutCounter, RemoveCounterAll).
+//     "The predicate is matched against the moving object" is therefore not
+//     a safety property, which is how round 4 read it; it is precisely what
+//     lets the substitute effect that blocked an attempt flip the predicate
+//     that blocked it. Measured by a probe re-implementing
+//     replacementMatches from outside the package: 0 outstanding-SBA
+//     decision points at 29fa00d, 6 at bd3c730 and 4 here, out of ~2 261 --
+//     0.18%, self-healing on the next checkStateBased call, and never
+//     touching the CR 704.5a life invariant.
+//
+// What a future author most needs from this comment: widening the key --
+// which is what a zone gate on replacements, or a ValidCard$ predicate a
+// static effect can flip, would force -- must NOT be done by re-arming on
+// "some other state-based action actually succeeded", nor on any signal a
+// removal produces. A death chain then buys one re-arm per link, and the
+// blocked removal sweep goes from a flat 2 firings per Submit back to
+// 2/3/7/22/61 for chain lengths 0/1/5/20/60 -- 29fa00d's pre-round-3
+// amplification. That variant has now been built and measured twice, once
+// in fix round 4 and once independently by the re-review, agreeing to the
+// digit. TestRemovalSweepFiringsDoNotScaleWithAnUnrelatedDeathChain is the
+// assertion that catches it being made again.
+//
+// One more thing this file has repeatedly got wrong in prose: the residue
+// above is NOT bounded by maxSBAPasses and is NOT announced by the Note
+// below. A replacement that blocks an attempt forever does not exhaust the
+// budget at all -- the attempted sets make the pass report no new work, the
+// loop goes stable, and it returns silently. That is correct behaviour (a
+// permanent block is a legitimate rules-level fixed point; there is nothing
+// to warn about), and it is measured: zero Note events over five Submits
+// for both the blocked destruction and the blocked removal sweep. The Note
+// covers the OTHER case, an unbounded cycle of genuinely new work, and has
+// never seen this one.
 func (a *sbaAttempts) rearm(alive int) {
 	if alive >= a.alive {
 		return
@@ -142,10 +192,12 @@ func (a *sbaAttempts) rearm(alive int) {
 // outstanding and nothing left on the board able to prevent it.
 //
 // tried.rearm is the fix, and the alive-player count is deliberately the
-// ONLY thing that re-arms. It is exactly the input that decides whether a
-// replacement is consulted at all, so it is precisely the condition under
-// which a previous answer can have gone stale; and it is monotone, so both
-// sets are cleared at most len(Players) times per call. Re-arming on the
+// ONLY thing that re-arms. It is the input that decides whether a
+// replacement is consulted at all, and it is monotone, so both sets are
+// cleared at most len(Players) times per call. It is NOT the only way a
+// blocker can go stale -- a replacement that stops matching goes inert just
+// as thoroughly as one whose controller died, and that half is still open;
+// see Ruling T22-q on rearm above before widening this key. Re-arming on the
 // wider "some other state-based action actually succeeded" instead would
 // re-arm a blocked attempt once per link of an entirely unrelated death
 // chain, which is the per-pass amplification T22-h exists to prevent. Built
