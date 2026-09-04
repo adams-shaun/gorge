@@ -180,7 +180,13 @@ func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 // continuation of that same priorityRound. That is what makes "finish the
 // priority round" the one correct continuation for every decision it asks,
 // and it is why the resumption goes to grantPriority rather than back through
-// priorityRound, which would run the draw step's draw a second time.
+// priorityRound -- see resumeTriggerDrain's own header (turn.go) for the
+// reason that still holds: a second call on priorityRound's path would give
+// a replacement-blocked state-based action a second attempt per step and
+// move sba.go's measured firing counts (Ruling T22-p). (Ruling T28-b: this
+// used to say re-entering priorityRound "would run the draw step's draw a
+// second time" -- true before Task 28 moved the draw out of priorityRound
+// entirely; the reason above is what actually survives that move.)
 //
 // ORDERING DIRECTION (Ruling U2, and the one thing here that is silent if it
 // is backwards): the ordering decision's choice[0] is the trigger put on the

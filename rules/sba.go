@@ -456,8 +456,15 @@ func (e *Engine) checkGameOver() {
 // The continuation is resumeTriggerDrain for every kind, and it is the right
 // one for all of them: state-based actions to a fixed point, then any queued
 // triggers onto the stack, then priority to the next player who can actually
-// take it. Re-entering priorityRound instead would re-run the draw step's
-// draw (see resumeTriggerDrain and grantPriority in turn.go).
+// take it. Re-entering priorityRound instead of resumeTriggerDrain would put
+// a second checkStateBased call on priorityRound's own path, where step() has
+// already reached the same fixed point -- giving a replacement-blocked
+// state-based action a second attempt per step and moving sba.go's own
+// measured firing counts (Ruling T22-p; see resumeTriggerDrain's header in
+// turn.go). (Ruling T28-b: this used to say re-entering priorityRound "would
+// re-run the draw step's draw" -- true before Task 28 moved the draw out of
+// priorityRound entirely; the reason above is what actually survives that
+// move.)
 //
 // This cannot loop. dropDepartedTriggers has already discarded the departed
 // player's own triggers (CR 800.4a); an optional trigger whose DECIDER

@@ -102,6 +102,53 @@ func passThroughStep(t *testing.T, e *Engine, step state.Step, limit int) int {
 	return n
 }
 
+// assertDrawPrecedesPriorityInStep is Fix round 1 (review Important #1b):
+// the brief calls "the Draw event now precedes the step's own Priority
+// event" the one externally observable consequence of moving the draw from
+// priorityRound to advanceStep, and nothing had asserted it -- moving the
+// e.drawCard call to AFTER advanceStep's trailing Priority emit (instead of
+// before it) left the whole rules suite green.
+//
+// since is the log index captured by the caller just before driving into the
+// draw step. This locates that transition's own StepChange{StepDraw} event
+// first, rather than just taking the first Draw/Priority anywhere after
+// since: the pass(es) still needed to leave the PREVIOUS step can themselves
+// emit Priority events (one per pass, to the next seat) that would otherwise
+// be mistaken for the draw step's own.
+func assertDrawPrecedesPriorityInStep(t *testing.T, e *Engine, since int) {
+	t.Helper()
+	log := e.L.Events
+	stepChangeIdx := -1
+	for i := since; i < len(log); i++ {
+		if log[i].Kind == events.StepChange && log[i].Step == state.StepDraw {
+			stepChangeIdx = i
+			break
+		}
+	}
+	if stepChangeIdx < 0 {
+		t.Fatalf("no StepChange{Draw} event found at or after log index %d", since)
+	}
+	drawIdx, priorityIdx := -1, -1
+	for i := stepChangeIdx + 1; i < len(log); i++ {
+		if log[i].Kind == events.Draw && drawIdx < 0 {
+			drawIdx = i
+		}
+		if log[i].Kind == events.Priority && priorityIdx < 0 {
+			priorityIdx = i
+		}
+		if drawIdx >= 0 && priorityIdx >= 0 {
+			break
+		}
+	}
+	if drawIdx < 0 || priorityIdx < 0 {
+		t.Fatalf("entering the draw step logged Draw at index %d and Priority at index %d, want both present", drawIdx, priorityIdx)
+	}
+	if drawIdx > priorityIdx {
+		t.Fatalf("the draw step's Draw event (index %d) did not precede its Priority event (index %d) -- "+
+			"CR 504.1 requires the turn-based draw before anyone gets priority", drawIdx, priorityIdx)
+	}
+}
+
 // TestDrawTriggerResolvingInTheDrawStepDoesNotRedraw is the brief's own
 // measurement case. Against the pre-fix code, resolveTop's post-resolution
 // Priority{Active, 0} emit (CR 117.3b) recreates exactly the state
@@ -123,7 +170,9 @@ func TestDrawTriggerResolvingInTheDrawStepDoesNotRedraw(t *testing.T) {
 	lib := len(e.G.Zone(state.ZLibrary, 1))
 	life := e.G.Players[1].Life
 
+	beforeDraw := len(e.L.Events)
 	driveToStep(t, e, 2, 1, state.StepDraw)
+	assertDrawPrecedesPriorityInStep(t, e, beforeDraw)
 	passThroughStep(t, e, state.StepDraw, 100)
 
 	handDelta := len(e.G.Zone(state.ZHand, 1)) - hand
@@ -272,9 +321,21 @@ func TestDrawStepDeckOutEndsTheGameBeforePriority(t *testing.T) {
 	if overIdx < 0 {
 		t.Fatal("e.G.Over is true but no GameOver event was logged")
 	}
+	// Fix round 1 (review Important #1a): Advance's own `for !e.G.Over` loop
+	// already suppresses any DecisionAsk once the game ends, so the scan
+	// above passes whether or not advanceStep's own `if e.G.Over { return }`
+	// (turn.go, right after the draw) is even there -- deleting that guard
+	// left the whole suite green. What it actually suppresses is the
+	// trailing `Priority` emit advanceStep would otherwise make right after
+	// the draw: without the guard, a deck-out logs one extra Priority event
+	// AFTER GameOver (measured: 102 events instead of 101). This is the
+	// name's own promise ("...BeforePriority") made into an assertion.
 	for _, ev := range e.L.Events[overIdx+1:] {
 		if ev.Kind == events.DecisionAsk {
 			t.Fatalf("a DecisionAsk (%+v) was emitted after GameOver -- a finished game must not hand out a decision", ev)
+		}
+		if ev.Kind == events.Priority {
+			t.Fatalf("a Priority event (%+v) was emitted after GameOver -- advanceStep must return before emitting it", ev)
 		}
 	}
 }
