@@ -25,7 +25,11 @@ type Game struct {
 	Passes   int32
 	Over     bool
 	Winner   PlayerID
-	NextID   ObjID
+	// Draw marks a game that ended with no surviving seats (CR 104.4a).
+	// Winner's zero value is PlayerID(0), a real seat, so Over alone cannot
+	// distinguish "seat 0 won" from "nobody did" -- Draw is what does.
+	Draw   bool
+	NextID ObjID
 	// Clock is a monotonic timestamp source for continuous-effect ordering.
 	Clock uint32
 

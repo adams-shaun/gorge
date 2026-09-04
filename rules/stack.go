@@ -164,6 +164,22 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 
 // resolveTop resolves the object on top of the stack and moves it to
 // wherever it goes next.
+//
+// CR 608.2b: before anything else runs, every target recorded when this
+// spell or ability was put on the stack is rechecked against legalTargets
+// below -- a target legal when chosen can stop being legal by the time its
+// spell reaches the top of the stack, most commonly a creature that died to
+// something else in the meantime. With no legal target left, this does not
+// resolve at all: it leaves the stack (a spell to its owner's graveyard, an
+// ability to exile per CR 608.2m just below) with no effect -- not even a
+// SubAbility chained onto it that names no target of its own (Defined$ You
+// and the like). That distinguishes this from the per-target nil-checks
+// primitives like effDealDamage already had (Task 18, effects/damage.go):
+// those already skip a target that individually vanished, but nothing
+// before this stopped the OTHER, untargeted parts of the same spell's
+// script from running anyway once every target it had was gone. With only
+// some targets still legal, resolution proceeds against exactly that
+// narrowed set -- CR 608.2b's "resolves, doing as much as possible".
 func (e *Engine) resolveTop() {
 	id := e.G.Stack[len(e.G.Stack)-1]
 	o := e.G.Obj(id)
@@ -173,6 +189,24 @@ func (e *Engine) resolveTop() {
 		// T14-c / F3 -- Face() returns nil for these, so this branch must
 		// run before anything below touches it. Task 20 is what actually
 		// puts objects like this on the stack.
+		//
+		// No triggered or activated ability this build produces ever
+		// actually populates Targets (only Remembered): Task 20's
+		// checkTriggers never calls askTarget, which is the only place
+		// TargetsChosen is ever emitted from. So this is unreachable in
+		// practice today, but a stack object is a stack object, and CR
+		// 608.2b's "spell or ability" covers this shape too if a later
+		// task ever gives a triggered ability a player-chosen target.
+		targets := o.Targets
+		if spec := o.Ability.Params["ValidTgts"]; spec != "" && len(targets) > 0 {
+			legal := e.legalTargets(targets, spec, o.Controller)
+			if len(legal) == 0 {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+					From: state.ZStack, To: state.ZExile, Text: "fizzled: no legal targets remain"})
+				return
+			}
+			targets = legal
+		}
 		// CR 608.2m: a resolved ability just ceases to exist rather than
 		// moving to a card zone. This build has no "ceases to exist" zone,
 		// so it is parked in exile as the closest existing approximation.
@@ -203,7 +237,7 @@ func (e *Engine) resolveTop() {
 		// lookup two lines above already gets this right by reading from
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
-			Targets: o.Targets, Remembered: o.Remembered}
+			Targets: targets, Remembered: o.Remembered}
 		effects.SetSVars(ctx, svars)
 		effects.Resolve(e, ctx, o.Ability)
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZExile})
@@ -211,15 +245,68 @@ func (e *Engine) resolveTop() {
 	}
 
 	f := o.Face()
+	sa := f.SpellAbility()
+	targets := o.Targets
+	if sa != nil {
+		if spec := sa.Params["ValidTgts"]; spec != "" && len(targets) > 0 {
+			legal := e.legalTargets(targets, spec, o.Controller)
+			if len(legal) == 0 {
+				// CR 608.2b: every target became illegal. This spell does
+				// not resolve -- no Resolve event, no script runs -- it goes
+				// straight to the graveyard, the same zone it would reach
+				// after an ordinary resolution (an Aura instead reaching
+				// the battlefield would be wrong here: CR 704.5m's "nothing
+				// legal to attach to" is exactly this case for that spell
+				// shape, and the graveyard is where it belongs).
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+					From: state.ZStack, To: state.ZGraveyard, Text: "fizzled: no legal targets remain"})
+				return
+			}
+			targets = legal
+		}
+	}
 	e.emit(events.Event{Kind: events.Resolve, Obj: id, Text: f.Name})
-	if sa := f.SpellAbility(); sa != nil {
-		e.resolveAbility(id, o.Controller, o.Targets, sa, f.SVars)
+	if sa != nil {
+		e.resolveAbility(id, o.Controller, targets, sa, f.SVars)
 	}
 	if f.IsPermanent() {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZBattlefield})
 	} else {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZGraveyard})
 	}
+}
+
+// legalTargets is CR 608.2b's recheck, applied at resolution: the subset of
+// targets that are still legal right now. An object target must still be on
+// the battlefield -- matchesBase's own bare-type predicates (effects/
+// filter.go), e.g. "Creature", read printed types straight off the Face
+// with no zone check of their own, so a creature that died and is sitting
+// in a graveyard would otherwise still look like a match -- and still
+// satisfy spec, via the same effects.MatchesSpec call askTarget used to
+// offer it as an option in the first place: no self-relative source, matching
+// askTarget's own simplification, so a spec that would filter on Self/Other
+// is exactly as (im)precise here as it was at cast time. A player target is
+// legal for as long as they are still in the game; askTarget never applies
+// MatchesPlayerSpec's finer You/Opponent distinction when it first offers
+// every living player as an option (targetsPlayers below it), so this does
+// not either -- rechecking against a filter the engine never enforced when
+// the target was chosen would reject targets this build always considered
+// fine.
+func (e *Engine) legalTargets(targets []state.Target, spec string, you state.PlayerID) []state.Target {
+	var legal []state.Target
+	for _, t := range targets {
+		if t.IsPlayer {
+			if int(t.Player) < len(e.G.Players) && !e.G.Players[t.Player].Lost {
+				legal = append(legal, t)
+			}
+			continue
+		}
+		if o := e.G.Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield &&
+			effects.MatchesSpec(e.G, spec, t.Obj, you) {
+			legal = append(legal, t)
+		}
+	}
+	return legal
 }
 
 // resolveAbility walks an SA chain, running each API's implementation. svars

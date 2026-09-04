@@ -1,7 +1,10 @@
 // Task 21: combat. CR 508-510 in miniature -- declare attackers, declare
-// blockers, then damage -- plus the CR 704 state-based actions (lethal
-// damage, Deathtouch) and CR 514.2 cleanup that combat depends on and that
-// nothing in this codebase implemented before now.
+// blockers, then damage -- plus the CR 514.2 cleanup that combat depends on
+// and that nothing in this codebase implemented before now. The lethal-
+// damage and Deathtouch state-based actions this file's own damage marking
+// depends on were also added here by Task 21, as destroyLethalDamage, but
+// moved to sba.go by Task 22 -- they are general state-based-action logic,
+// not combat-specific, and now live alongside the rest of CR 704.
 //
 // M1's own simplifications, matching the brief this task was built from:
 //   - Only the active player attacks, and every attacker's defending player is
@@ -406,66 +409,6 @@ func (e *Engine) damageStep(firstStrike bool) {
 	}
 }
 
-// destroyLethalDamage performs the two CR 704.5 state-based actions combat
-// damage depends on: a creature with toughness 0 or less (704.5f) is
-// destroyed regardless of damage, and a creature with damage marked on it
-// greater than or equal to its toughness, or with any damage at all from a
-// source with Deathtouch (704.5g, via the Deathtouched counter damageStep
-// marks above), is destroyed unless Indestructible.
-//
-// Nothing in this codebase checked either of these before Task 21 --
-// checkStateBased (stubs.go) was only ever a checkGameOver call -- so a
-// creature killed by an ordinary DealDamage spell never actually died either;
-// this is shared, general state-based-action logic, not combat-specific, and
-// wiring it into checkStateBased is what makes both that pre-existing gap and
-// two of this task's own tests (Deathtouch, First Strike) work.
-//
-// The Indestructible check reads the same way effDestroy/effDestroyAll
-// (effects/zone.go) already do; it is not one of the eight keywords this
-// task registers as implemented (see the init below), so a card that
-// actually carries it still reads as unsupported for deck-routing purposes,
-// but a creature that is Indestructible for some other already-working
-// reason should not spuriously die to combat damage.
-//
-// Every candidate is found in one pass before any of them actually leaves
-// (dead is collected, then destroyed), so one creature's departure this same
-// pass can never retroactively change whether another one here counts as
-// lethal, matching CR 704.3's "state-based actions are performed
-// simultaneously" for one round of this check.
-func (e *Engine) destroyLethalDamage() {
-	var dead []state.ObjID
-	for _, p := range e.G.AliveFrom(0) {
-		for _, id := range e.G.Zone(state.ZBattlefield, p) {
-			o := e.G.Obj(id)
-			if o == nil {
-				continue
-			}
-			f := o.Face()
-			if f == nil || !f.IsCreature() {
-				continue
-			}
-			if e.Toughness(id) <= 0 {
-				dead = append(dead, id)
-				continue
-			}
-			if o.Damage <= 0 {
-				continue
-			}
-			if o.Damage < e.Toughness(id) && o.Counter("Deathtouched") == 0 {
-				continue
-			}
-			if e.HasKeyword(id, "Indestructible") {
-				continue
-			}
-			dead = append(dead, id)
-		}
-	}
-	for _, id := range dead {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id,
-			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
-	}
-}
-
 // cleanupStep performs the CR 514.2 cleanup actions Task 21 owns wiring up:
 // damage marked on every permanent (combat or otherwise) is removed, this
 // turn's Deathtouched markers go with it (a deathtouch mark lasts only as
@@ -498,9 +441,9 @@ func (e *Engine) cleanupStep() {
 // Registered here: exactly the eight keywords this task actually implements
 // (Flying/Reach gate blocking in canBlock; Haste and Vigilance gate/modify
 // attacking in canAttack/handleAttackers; Deathtouch, Trample, Lifelink and
-// First Strike are all read directly in damageStep and destroyLethalDamage
-// above). Indestructible and Double Strike are read by this file's own code
-// (destroyLethalDamage and anyFirstStrike/damageStep respectively) but are
+// First Strike are all read directly in damageStep above and
+// destroyLethalDamage, sba.go). Indestructible and Double Strike are read by
+// destroyLethalDamage and anyFirstStrike/damageStep respectively, but are
 // deliberately NOT registered: neither is exercised by this task's tests, and
 // registering a keyword the build only partially or incidentally handles
 // would tell the coverage report -- and so the deck-builder gate downstream
