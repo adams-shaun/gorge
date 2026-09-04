@@ -227,29 +227,47 @@ func TestSubmitGuardsOverEvenWithStalePending(t *testing.T) {
 // TestDrawStepSkipsEliminatedActivePlayer is the Ruling C regression test:
 // the once-per-turn draw must check that the active player is still alive
 // before drawing for them.
+//
+// Ruling T28-a (rewritten for Task 28): this used to force the scenario by
+// calling e.priorityRound() directly against raw-forged state (a
+// TurnChange/StepChange/Priority/PlayerLost sequence standing in for "turn 2,
+// draw step, no passes yet, priority already on the active seat, that seat
+// eliminated" -- exactly what priorityRound's own draw guard used to
+// inspect). Task 28 deleted that guard: priorityRound no longer performs any
+// draw at all, for any player, so calling it directly now passes this
+// scenario VACUOUSLY -- there is no draw to skip because there is no draw
+// there any more. The property this pins is still real (an eliminated active
+// player must not draw once the check moves to advanceStep), so this now
+// drives a genuine elimination through the real path: a player who dies to
+// something other than drawing (here, a raw PlayerLost -- CR 704.5a covers
+// the common real case, life loss, but the mechanism is agnostic to why)
+// partway through their OWN turn, before that turn's draw step is reached.
 func TestDrawStepSkipsEliminatedActivePlayer(t *testing.T) {
 	e := newSeats(t, 4)
-	active := e.G.Active
+	driveToStep(t, e, 2, 1, state.StepUpkeep)
 
-	// Force exactly the state priorityRound's draw guard inspects: turn 2 (so
-	// Turn > 1), draw step, no passes yet, priority already on the active
-	// seat -- and that seat eliminated.
-	e.emit(events.Event{Kind: events.TurnChange, Player: active, Amount: 2})
-	e.emit(events.Event{Kind: events.StepChange, Step: state.StepDraw})
-	e.emit(events.Event{Kind: events.Priority, Player: active})
-	e.emit(events.Event{Kind: events.PlayerLost, Player: active})
+	// checkStateBased is what a real Submit would run next; it is what
+	// actually resumes the round through the newly-eliminated seat (via
+	// releasePendingDecisionOfDepartedPlayer) rather than leaving a stale
+	// priority decision addressed to a player who can no longer answer it.
+	e.emit(events.Event{Kind: events.PlayerLost, Player: 1, Text: "test"})
+	e.checkStateBased()
 
-	libBefore := len(e.G.Zone(state.ZLibrary, active))
+	libBefore := len(e.G.Zone(state.ZLibrary, 1))
 	firstNewEvent := len(e.L.Events)
 
-	e.priorityRound()
+	// Turn 2 (seat 1's own turn, already under way) still runs its steps in
+	// full -- an eliminated active player is skipped for PRIORITY, not
+	// exempted from the turn structure -- so its draw step is still entered.
+	// Turn 3 goes to NextAlive(1) = seat 2, confirming the match kept moving.
+	driveToStep(t, e, 3, 2, state.StepUpkeep)
 
 	for _, ev := range e.L.Events[firstNewEvent:] {
-		if ev.Kind == events.Draw && ev.Player == active {
-			t.Fatalf("draw event emitted for eliminated active player %d", active)
+		if ev.Kind == events.Draw && ev.Player == 1 {
+			t.Fatalf("draw event emitted for eliminated active player 1")
 		}
 	}
-	if got := len(e.G.Zone(state.ZLibrary, active)); got != libBefore {
+	if got := len(e.G.Zone(state.ZLibrary, 1)); got != libBefore {
 		t.Fatalf("library size for eliminated active player changed: %d -> %d", libBefore, got)
 	}
 }

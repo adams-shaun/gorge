@@ -66,28 +66,18 @@ func (e *Engine) priorityRound() {
 			// (layers.go) has existed since Task 19c, but nothing ever called
 			// it, so a resolved pump effect used to survive forever instead
 			// of expiring at the end of the turn it was cast in. This must
-			// run before advanceStep, not after: advanceStep's own Passes
-			// reset (via beginTurn) is load-bearing for the draw-step trigger
-			// gate and is left untouched either way, but cleanup logically
-			// belongs to the step being left, not the one being entered.
+			// run before advanceStep, not after: cleanup logically belongs to
+			// the step being left, not the one being entered, regardless of
+			// what advanceStep itself does on the way into the next one.
+			// (Ruling T23-x: this comment used to justify that by naming the
+			// draw-step's own Passes-gated draw, which advanceStep's Passes
+			// reset was load-bearing for; the draw is now a turn-based action
+			// run unconditionally on entry to the step, so there is no such
+			// gate left to protect -- but the ordering requirement here was
+			// never actually ABOUT that gate, so it stands unchanged.)
 			e.cleanupStep()
 		}
 		e.advanceStep()
-		return
-	}
-	// The active player's draw happens once, before anyone gets priority.
-	// An eliminated active player draws nothing: unreachable today (drawing
-	// from an empty library is the only elimination source, and that seat
-	// would already be Lost, not still due a draw), but state-based actions
-	// will add other ways to lose without touching the draw step.
-	if e.G.Step == state.StepDraw && e.G.Turn > 1 && e.G.Passes == 0 &&
-		e.G.Priority == e.G.Active && !e.G.Players[e.G.Active].Lost {
-		e.drawCard(e.G.Active)
-	}
-	// The draw above can eliminate the active player and end the game (an
-	// empty-library draw is a loss). A finished game must not hand out a
-	// fresh priority decision.
-	if e.G.Over {
 		return
 	}
 	// CR 117.5: state-based actions and triggered abilities are handled
@@ -96,13 +86,21 @@ func (e *Engine) priorityRound() {
 	// Task 27: putTriggersOnStack can now ASK -- a controller with two or
 	// more simultaneous triggers orders them, and an optional trigger's
 	// decider says yes or no -- so it reports whether it finished. Returning
-	// here on a true is load-bearing twice over. It stops askPriority from
-	// immediately overwriting e.pending with a second, unrelated decision;
-	// and it is why the drain resumes through resumeTriggerDrain below rather
-	// than by re-entering this function, which would run the draw step's draw
-	// a second time (nothing between the draw above and the priority emit
-	// below changes Passes or Priority, so this function is not idempotent
-	// and must not be re-entered mid-round).
+	// here on a true is load-bearing: it stops askPriority from immediately
+	// overwriting e.pending with a second, unrelated decision. The drain
+	// resumes through resumeTriggerDrain below, not by re-entering this
+	// function -- see resumeTriggerDrain's own comment for why a fresh
+	// checkStateBased has to run ahead of the resumed drain.
+	//
+	// (Ruling T23-x: this function used to also perform the draw step's own
+	// draw here, gated on a Passes/Priority proxy for "the step just began"
+	// -- see advanceStep -- and re-entering this function mid-round used to
+	// draw a second card for exactly that reason: nothing between that draw
+	// and the priority emit that followed it changed Passes or Priority. The
+	// draw has moved to advanceStep, run once on entry to the step and never
+	// again, so that specific risk is gone; resuming into grantPriority
+	// rather than back through this function is still correct, for the
+	// reason above, but is no longer load-bearing against a double draw.)
 	if e.putTriggersOnStack() {
 		return
 	}
@@ -221,6 +219,43 @@ func (e *Engine) advanceStep() {
 		return
 	}
 	e.setStep(e.G.Step + 1)
+	if e.G.Step == state.StepDraw && e.G.Turn > 1 && !e.G.Players[e.G.Active].Lost {
+		// CR 504.1: the draw step's draw is a TURN-BASED ACTION -- it happens
+		// once, automatically, at the beginning of the step, before any
+		// player receives priority, full stop. It is not conditioned on
+		// priority state in any way.
+		//
+		// Ruling T23-x: before this, the draw lived in priorityRound, gated
+		// on `Passes == 0 && Priority == Active` -- a PROXY for "the step
+		// just began" that Task 23's own test author measured is also
+		// exactly the state resolveTop's callers restore after every
+		// resolution (CR 117.3b -- Priority{Player: e.G.Active, Amount: 0};
+		// see the T14-e comments in stack.go / legal.go). So a mandatory
+		// "whenever you draw a card" trigger that resolved during the draw
+		// step made the proxy true again, drew a SECOND card, queued a
+		// second trigger, and so on until the library ran out: one seat
+		// drawing 20 cards inside what the log still called one step, the
+		// other seat never getting a turn. Keying the draw on the step
+		// being ENTERED, instead of on ambient Passes/Priority state that
+		// anything resolving later in the step can also produce, makes it
+		// run exactly once no matter what resolves afterward.
+		//
+		// e.G.Turn > 1 keeps CR 103.8a: the game's very first turn skips its
+		// draw. !Lost keeps an eliminated active player from drawing --
+		// unreachable today (an empty-library draw is the only way to
+		// become Lost before this point, and that seat would already be
+		// Lost, not still due a draw) but state-based actions will add
+		// other ways to lose without touching the draw step.
+		e.drawCard(e.G.Active)
+		// The draw above runs checkStateBased (drawCard's own tail): an
+		// empty-library draw is itself a loss (CR 704.5c), and that can end
+		// the game outright. A finished game must not emit a further
+		// Priority event or hand out a decision (mirrors priorityRound's own
+		// pre-Task-27 "if e.G.Over { return }" after a state-changing call).
+		if e.G.Over {
+			return
+		}
+	}
 	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 }
 
