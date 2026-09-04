@@ -4,6 +4,12 @@
 // the stack (the user's requirement R3) is described for every seat. It is
 // the only package a client-facing layer needs to read game state through —
 // nothing here leaks a rules concept the client would have to understand.
+//
+// RedactEvents (redact.go) does the same job for the event log: it is
+// state-aware, not merely Secret-flag-aware, because an event's Player
+// field does not always name the seat whose secret its payload is (a
+// trigger's controller and the owner of the card it remembered can be two
+// different seats) — see RedactEvents' own doc for the three rules.
 package view
 
 import (
@@ -48,8 +54,13 @@ type View struct {
 	// real seat, so a bare PlayerID field could never distinguish "seat 0
 	// won" from "the game is still going" or "it was a draw" (Task 22
 	// finding 5). A JSON null is unambiguous where a bare 0 would not be.
-	Winner  *state.PlayerID `json:"winner"`
-	Players []PlayerView    `json:"players"`
+	Winner *state.PlayerID `json:"winner"`
+	// Players, Stack and Pending (below) are every public list this type
+	// carries. All of them are built non-nil even when empty (Ruling
+	// T23-u): a client should never have to treat a bare JSON `null` and an
+	// empty `[]` as the same "nothing here" case for one of these, the way
+	// it legitimately must for Hand/Pool below.
+	Players []PlayerView `json:"players"`
 	// Stack keeps g.Stack's own order: index 0 is the bottom, the last
 	// entry is the top. Public for every seat — R3.
 	Stack []StackView `json:"stack"`
@@ -76,12 +87,20 @@ type PlayerView struct {
 	LibrarySize   int            `json:"library_size"`
 	HandSize      int            `json:"hand_size"`
 	GraveyardSize int            `json:"graveyard_size"`
-	// Hand and Pool are nil for every seat but the viewer's own.
-	Hand        []CardView       `json:"hand,omitempty"`
+	// Hand and Pool are nil (marshalling to a literal JSON null, not an
+	// omitted key -- both deliberately carry no "omitempty" tag) for every
+	// seat but the viewer's own, whose Hand/Pool are always non-nil even
+	// when empty ("[]"/"{}"). omitempty cannot express "present but
+	// possibly empty": with it, the viewer's own EMPTY hand would have
+	// marshalled identically to another seat's HIDDEN one (the key simply
+	// missing either way), which is exactly the ambiguity this type exists
+	// to avoid everywhere else (Winner's own *PlayerID is the same shaped
+	// fix). null-vs-[] is what a client checks instead.
+	Hand        []CardView       `json:"hand"`
 	Battlefield []CardView       `json:"battlefield"`
 	Graveyard   []CardView       `json:"graveyard"`
 	Exile       []CardView       `json:"exile"`
-	Pool        map[string]int32 `json:"pool,omitempty"`
+	Pool        map[string]int32 `json:"pool"`
 }
 
 // CardView is one object's public face: printed identity plus its current,
@@ -117,8 +136,10 @@ type StackView struct {
 	Text       string         `json:"text"` // what it does, in the card's own words, when known
 	Controller state.PlayerID `json:"controller"`
 	Source     state.ObjID    `json:"source,omitempty"` // ability only: the permanent it came from
-	Targets    []TargetView   `json:"targets,omitempty"`
-	Card       *CardView      `json:"card,omitempty"` // spell only
+	// Targets is a public list (Ruling T23-u): non-nil, "[]" not "null",
+	// even when nothing has been targeted yet.
+	Targets []TargetView `json:"targets"`
+	Card    *CardView    `json:"card,omitempty"` // spell only
 }
 
 // TargetView is one chosen target: exactly one of Obj and Player means
@@ -160,6 +181,9 @@ func Project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 		v.Winner = &w
 	}
 	v.Stack = stackViews(g, ch, g.Stack)
+	// Default to the non-nil empty shape (Ruling T23-u) whether or not ch
+	// is nil; a real Chars overwrites it below.
+	v.Pending = pendingViews(nil)
 	if ch != nil {
 		v.Pending = pendingViews(ch.PendingTriggers())
 	}
@@ -172,6 +196,9 @@ func Project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 	// viewer), so it is checked explicitly.
 	spectator := int(viewer) >= len(g.Players)
 
+	// Non-nil even when g.Players is empty (Ruling T23-u): an empty match
+	// still marshals "players":[], never "players":null.
+	v.Players = make([]PlayerView, 0, len(g.Players))
 	for i := range g.Players {
 		p := &g.Players[i]
 		pv := PlayerView{
@@ -231,11 +258,10 @@ func phaseOf(s state.Step) string {
 // cardViews maps a zone's object ids to CardViews, in zone order. An id
 // whose object no longer exists (a dangling entry, or a defensively
 // tampered list) is skipped rather than producing a zero CardView or
-// panicking (supplement §7).
+// panicking (supplement §7). Always non-nil (Ruling T23-u), even for an
+// empty or all-dangling ids: this is what lets the viewer's own genuinely
+// empty Hand marshal "[]" rather than the same "null" a hidden hand would.
 func cardViews(g *state.Game, ch Chars, ids []state.ObjID) []CardView {
-	if len(ids) == 0 {
-		return nil
-	}
 	out := make([]CardView, 0, len(ids))
 	for _, id := range ids {
 		if g.Obj(id) == nil {
@@ -280,10 +306,8 @@ func cardView(g *state.Game, ch Chars, id state.ObjID) CardView {
 }
 
 // stackViews maps the stack's own object ids to StackViews, bottom to top.
+// Always non-nil (Ruling T23-u).
 func stackViews(g *state.Game, ch Chars, ids []state.ObjID) []StackView {
-	if len(ids) == 0 {
-		return nil
-	}
 	out := make([]StackView, 0, len(ids))
 	for _, id := range ids {
 		o := g.Obj(id)
@@ -370,10 +394,8 @@ func spellText(f *cards.Face) string {
 // projected here or anywhere else in this package — it can name a
 // hidden-zone object (e.g. the card a "whenever you draw" trigger
 // remembered) — only Targets, which is a player-visible choice already.
+// Always non-nil (Ruling T23-u).
 func targetViews(targets []state.Target) []TargetView {
-	if len(targets) == 0 {
-		return nil
-	}
 	out := make([]TargetView, 0, len(targets))
 	for _, t := range targets {
 		out = append(out, TargetView{Obj: t.Obj, Player: t.Player, IsPlayer: t.IsPlayer})
@@ -382,11 +404,10 @@ func targetViews(targets []state.Target) []TargetView {
 }
 
 // pendingViews copies the engine's pending-trigger queue into the wire
-// shape, in the same order: R3.
+// shape, in the same order: R3. Always non-nil (Ruling T23-u), including
+// when called with nil (Project's own default before a real Chars, if any,
+// overwrites it).
 func pendingViews(pts []state.PendingTrigger) []PendingView {
-	if len(pts) == 0 {
-		return nil
-	}
 	out := make([]PendingView, 0, len(pts))
 	for _, pt := range pts {
 		pv := PendingView{Source: pt.Source, Controller: pt.Controller, Label: pt.Label, Optional: pt.Optional}

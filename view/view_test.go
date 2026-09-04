@@ -103,24 +103,103 @@ func TestOnlyTheViewerSeesTheirHandAndPool(t *testing.T) {
 // positive control): with Go's default "ID": key capitalisation the
 // negative checks would pass for ANY payload, proving nothing. The control
 // fails loudly if that regresses.
+// collectIDs walks a value decoded by json.Unmarshal into `any` (so a
+// map[string]any / []any / float64 / string / bool / nil tree) and returns
+// every number found under an id-bearing key: "id", "obj", "source", or
+// inside an "ids"/"pairs" array (including nested arrays, which is what
+// "pairs" -- []["obj","obj"] pairs -- needs). This walks the WHOLE payload
+// structurally, unlike a "id":N, substring search: after PlayerView.ID's
+// "seat" rename (Ruling T23-q), the only places a leaked object id can
+// surface are exactly these keys, wherever in the tree they occur -- inside
+// "stack", "pending", the attached "decision", a nested "targets" array,
+// anything. Review finding I-3: a fixed key name misses all of those.
+func collectIDs(v any) []int {
+	var out []int
+	var walk func(v any, idBearing bool)
+	walk = func(v any, idBearing bool) {
+		switch x := v.(type) {
+		case map[string]any:
+			for k, val := range x {
+				switch k {
+				case "id", "obj", "source":
+					if n, ok := val.(float64); ok {
+						out = append(out, int(n))
+					}
+				case "ids", "pairs":
+					walk(val, true)
+				default:
+					walk(val, false)
+				}
+			}
+		case []any:
+			for _, item := range x {
+				if idBearing {
+					if n, ok := item.(float64); ok {
+						out = append(out, int(n))
+						continue
+					}
+				}
+				walk(item, idBearing)
+			}
+		}
+	}
+	walk(v, false)
+	return out
+}
+
+// idSet turns collectIDs' output into a membership set for O(1) lookups.
+func idSet(ids []int) map[int]bool {
+	m := make(map[int]bool, len(ids))
+	for _, id := range ids {
+		m[id] = true
+	}
+	return m
+}
+
+// idsFoundIn marshals v and returns every id collectIDs finds in it.
+func idsFoundIn(t *testing.T, v View) map[int]bool {
+	t.Helper()
+	blob, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decoded any
+	if err := json.Unmarshal(blob, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	return idSet(collectIDs(decoded))
+}
+
+// TestLibraryContentsNeverAppearInAnyProjection is Task 23 review finding
+// I-3's fix: rather than searching for one literal substring, it decodes
+// the whole payload and walks it (idsFoundIn/collectIDs) so a leak surfacing
+// under ANY id-bearing key -- not just CardView.ID -- is still caught. The
+// positive control (the viewer's own hand ids must all be findable) proves
+// the walk actually reaches into the payload; without it, an empty result
+// would prove nothing.
 func TestLibraryContentsNeverAppearInAnyProjection(t *testing.T) {
 	g := fourSeatBoard(t)
 	for viewer := state.PlayerID(0); viewer < 4; viewer++ {
-		blob, err := json.Marshal(Project(g, flatChars{g}, viewer, nil))
-		if err != nil {
-			t.Fatal(err)
-		}
+		found := idsFoundIn(t, Project(g, flatChars{g}, viewer, nil))
+
 		for _, id := range g.Zone(state.ZHand, viewer) {
-			if !strings.Contains(string(blob), `"id":`+itoa(int(id))+`,`) {
-				t.Fatalf("positive control failed: viewer %d's own hand id %d is not findable in its own payload — the search pattern proves nothing", viewer, id)
+			if !found[int(id)] {
+				t.Fatalf("positive control failed: viewer %d's own hand id %d is not findable in its own payload — the walk proves nothing", viewer, id)
 			}
 		}
-		// Every library object id must be absent from the payload. Checking
-		// ids rather than a field name catches accidental leaks through any
-		// route, including a future field nobody thought about.
-		for _, id := range g.Zone(state.ZLibrary, (viewer+1)%4) {
-			if strings.Contains(string(blob), `"id":`+itoa(int(id))+`,`) {
-				t.Fatalf("viewer %d payload contains library object %d", viewer, id)
+		for other := state.PlayerID(0); other < 4; other++ {
+			if other == viewer {
+				continue
+			}
+			for _, id := range g.Zone(state.ZLibrary, other) {
+				if found[int(id)] {
+					t.Fatalf("viewer %d payload contains seat %d's library object %d", viewer, other, id)
+				}
+			}
+			for _, id := range g.Zone(state.ZHand, other) {
+				if found[int(id)] {
+					t.Fatalf("viewer %d payload contains seat %d's hand object %d", viewer, other, id)
+				}
 			}
 		}
 	}
@@ -158,6 +237,116 @@ func TestCardViewUsesDerivedCharacteristics(t *testing.T) {
 	}
 }
 
+// TestCardViewCarriesBattlefieldOnlyState is review finding I-1's mutation
+// gap: gutting Tapped/Damage/Attacking/Controller/Owner/SummonSick from
+// cardView left the suite green. Controller is deliberately set to a THIRD
+// value, neither 0 nor the object's own Owner, to prove the two are read
+// independently rather than one accidentally aliasing the other (supplement
+// §9: "Controller and Owner can differ").
+func TestCardViewCarriesBattlefieldOnlyState(t *testing.T) {
+	g := fourSeatBoard(t)
+	id := g.Zone(state.ZBattlefield, 0)[0]
+	o := g.Obj(id)
+	o.Tapped = true
+	o.Damage = 3
+	o.IsAttacking = true
+	o.Controller = 2
+	o.Owner = 3
+	o.SummonSick = true
+
+	cv := Project(g, flatChars{g}, 0, nil).Players[0].Battlefield[0]
+	if !cv.Tapped {
+		t.Error("Tapped was not projected")
+	}
+	if cv.Damage != 3 {
+		t.Errorf("Damage = %d, want 3", cv.Damage)
+	}
+	if !cv.Attacking {
+		t.Error("Attacking was not projected")
+	}
+	// Both non-zero and mutually distinct, so a gutted field can never
+	// coincidentally pass by matching the OTHER field's expected value or
+	// a shared zero default.
+	if cv.Controller != 2 {
+		t.Errorf("Controller = %d, want 2 (independent of Owner)", cv.Controller)
+	}
+	if cv.Owner != 3 {
+		t.Errorf("Owner = %d, want 3 (independent of Controller)", cv.Owner)
+	}
+	if !cv.SummonSick {
+		t.Error("SummonSick was not projected")
+	}
+}
+
+// TestPlayerViewProjectsGraveyardAndExileWithTheirSizes is review finding
+// I-1's other mutation gap: LibrarySize/GraveyardSize/Graveyard/Exile had
+// no assertion anywhere in the suite. Library is given 5 cards specifically
+// so LibrarySize's assertion cannot pass merely because an int field's zero
+// value happens to match an empty zone.
+func TestPlayerViewProjectsGraveyardAndExileWithTheirSizes(t *testing.T) {
+	g := state.NewGame([]string{"alice", "bob"})
+	c, _ := cards.ParseBytes("t.txt", []byte("Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n"))
+	c.Link()
+
+	var libIDs []state.ObjID
+	for i := 0; i < 5; i++ {
+		libIDs = append(libIDs, g.AddObject(c, 0).ID)
+	}
+	g.SetZone(state.ZLibrary, 0, libIDs)
+
+	gy := g.AddObject(c, 0)
+	gy.Zone = state.ZGraveyard
+	g.SetZone(state.ZGraveyard, 0, []state.ObjID{gy.ID})
+
+	ex := g.AddObject(c, 0)
+	ex.Zone = state.ZExile
+	g.SetZone(state.ZExile, 0, []state.ObjID{ex.ID})
+
+	pv := Project(g, flatChars{g}, 0, nil).Players[0]
+	if pv.LibrarySize != 5 {
+		t.Errorf("LibrarySize = %d, want 5", pv.LibrarySize)
+	}
+	if pv.GraveyardSize != 1 {
+		t.Errorf("GraveyardSize = %d, want 1", pv.GraveyardSize)
+	}
+	if len(pv.Graveyard) != 1 || pv.Graveyard[0].ID != gy.ID {
+		t.Errorf("Graveyard = %+v, want [%d]", pv.Graveyard, gy.ID)
+	}
+	if len(pv.Exile) != 1 || pv.Exile[0].ID != ex.ID {
+		t.Errorf("Exile = %+v, want [%d]", pv.Exile, ex.ID)
+	}
+}
+
+// TestPhaseOfCoversEveryStep is review finding I-1's third mutation gap:
+// phaseOf had no dedicated test at all. Covers all 12 defined steps plus an
+// invalid one (supplement §6's own "unknown step -> \"\"" case).
+func TestPhaseOfCoversEveryStep(t *testing.T) {
+	g := fourSeatBoard(t)
+	for _, tc := range []struct {
+		step state.Step
+		want string
+	}{
+		{state.StepUntap, "beginning"},
+		{state.StepUpkeep, "beginning"},
+		{state.StepDraw, "beginning"},
+		{state.StepMain1, "main1"},
+		{state.StepBeginCombat, "combat"},
+		{state.StepDeclareAttackers, "combat"},
+		{state.StepDeclareBlockers, "combat"},
+		{state.StepCombatDamage, "combat"},
+		{state.StepEndCombat, "combat"},
+		{state.StepMain2, "main2"},
+		{state.StepEnd, "ending"},
+		{state.StepCleanup, "ending"},
+		{state.Step(200), ""},
+	} {
+		g.Step = tc.step
+		if got := Project(g, flatChars{g}, 0, nil).Phase; got != tc.want {
+			t.Errorf("phaseOf(%v) = %q, want %q", tc.step, got, tc.want)
+		}
+	}
+}
+
 // boostedChars adds counters, standing in for the engine's layer system.
 type boostedChars struct{ flatChars }
 
@@ -168,22 +357,40 @@ func (c boostedChars) Toughness(id state.ObjID) int32 {
 	return c.flatChars.Toughness(id) + c.g.Obj(id).Counter("P1P1")
 }
 
+// TestRedactStripsSecretPayloadsFromOtherSeats is the brief's own test,
+// updated for RedactEvents' new (g, evs, viewer) signature (review C-1) and
+// strengthened per the coordinator's fix-round item 1: the Shuffle event now
+// carries Amount/Counter/Pairs too, so the "keep ONLY the shape" allowlist
+// (rule 1) is proven to zero every payload field it names, not merely the
+// three the brief's own snippet happened to touch (IDs/Obj/Text).
 func TestRedactStripsSecretPayloadsFromOtherSeats(t *testing.T) {
+	g := fourSeatBoard(t)
 	evs := []events.Event{
-		{Seq: 0, Kind: events.Shuffle, Player: 1, IDs: []state.ObjID{4, 5, 6}, Secret: true},
+		{Seq: 0, Kind: events.Shuffle, Player: 1, From: state.ZLibrary, To: state.ZLibrary,
+			Step: state.StepUpkeep, Obj: 4, Amount: 7, Counter: "R", Text: "secret",
+			IDs: []state.ObjID{4, 5, 6}, Pairs: [][2]state.ObjID{{4, 5}}, Secret: true},
 		{Seq: 1, Kind: events.Draw, Player: 1, Obj: 4, Secret: true},
 		{Seq: 2, Kind: events.Damage, Player: 1, Amount: 3},
 	}
-	own := RedactEvents(evs, 1)
+	own := RedactEvents(g, evs, 1)
 	if len(own[0].IDs) != 3 || own[1].Obj != 4 {
 		t.Fatal("the owning seat lost its own secret payloads")
 	}
-	other := RedactEvents(evs, 0)
+	if own[0].Amount != 7 || own[0].Counter != "R" || len(own[0].Pairs) != 1 {
+		t.Fatalf("the owning seat lost its own Amount/Counter/Pairs: %+v", own[0])
+	}
+
+	other := RedactEvents(g, evs, 0)
 	if other[0].IDs != nil || other[1].Obj != 0 {
 		t.Fatalf("secret payload leaked to another seat: %+v", other[:2])
 	}
-	if other[0].Kind != events.Shuffle || other[0].Player != 1 {
-		t.Fatal("redaction must keep the event's shape, only drop the payload")
+	if other[0].Obj != 0 || other[0].Amount != 0 || other[0].Counter != "" ||
+		other[0].Text != "" || other[0].Pairs != nil {
+		t.Fatalf("a Secret event's payload field survived redaction for another seat: %+v", other[0])
+	}
+	if other[0].Kind != events.Shuffle || other[0].Player != 1 ||
+		other[0].From != state.ZLibrary || other[0].To != state.ZLibrary || other[0].Step != state.StepUpkeep {
+		t.Fatalf("redaction must keep the event's shape, only drop the payload: %+v", other[0])
 	}
 	if other[2].Amount != 3 {
 		t.Fatal("public events must be untouched")
@@ -194,16 +401,314 @@ func TestRedactStripsSecretPayloadsFromOtherSeats(t *testing.T) {
 	}
 }
 
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
+// ---------------------------------------------------------------------------
+// Review finding C-1 / fix-round item 1: RedactEvents is state-aware, not
+// merely Secret-flag-aware. Two pre-existing, non-Secret emitters put
+// hidden-zone object ids into a payload -- rules/trigger.go's TriggerPush
+// (Ctx.Remembered) and effects/cardflow.go's RearrangeTopOfLibrary Note --
+// and neither can be fixed by widening Secret+Player at the emitter
+// (TriggerPush's Player is the trigger's CONTROLLER, not the remembered
+// card's OWNER). These tests build a real board (fourSeatBoard) and
+// synthetic events shaped exactly like those two emitters' real output.
+
+// TestRedactEventsStripsTriggerPushRememberingAnotherSeatsHand is the C-1
+// leak itself: a "whenever you draw a card" trigger (Mode$ ChangesZone,
+// Origin$ Library, Destination$ Hand) remembers the card that was drawn,
+// which is often the very card now sitting in ITS OWNER's hand -- a
+// different seat from the trigger's controller (Event.Player).
+func TestRedactEventsStripsTriggerPushRememberingAnotherSeatsHand(t *testing.T) {
+	g := fourSeatBoard(t)
+	seat1Hand := g.Zone(state.ZHand, 1)[0]
+	seat0Permanent := g.Zone(state.ZBattlefield, 0)[0]
+	evs := []events.Event{
+		// Player 0 controls the trigger; the remembered card belongs to
+		// player 1 -- the exact conflation RedactEvents' doc describes.
+		{Seq: 0, Kind: events.TriggerPush, Player: 0, Obj: seat0Permanent,
+			IDs: []state.ObjID{seat1Hand}},
 	}
-	var b []byte
-	for n > 0 {
-		b = append([]byte{byte('0' + n%10)}, b...)
-		n /= 10
+	for _, viewer := range []state.PlayerID{0, 200} { // the controller (not the owner), and a spectator
+		out := RedactEvents(g, evs, viewer)
+		if len(out[0].IDs) != 0 {
+			t.Fatalf("viewer %d: TriggerPush still names seat 1's hand card: %v", viewer, out[0].IDs)
+		}
+		if out[0].Kind != events.TriggerPush || out[0].Player != 0 {
+			t.Fatalf("viewer %d: the event's own shape was lost: %+v", viewer, out[0])
+		}
 	}
-	return string(b)
+	owner := RedactEvents(g, evs, 1)
+	if len(owner[0].IDs) != 1 || owner[0].IDs[0] != seat1Hand {
+		t.Fatalf("the owner lost their own remembered card: %v", owner[0].IDs)
+	}
+}
+
+// TestRedactEventsStripsNoteCarryingAnotherSeatsLibraryIDs is
+// effRearrangeTopOfLibrary's leak: a private look at the top of the
+// library, published non-Secret.
+func TestRedactEventsStripsNoteCarryingAnotherSeatsLibraryIDs(t *testing.T) {
+	g := fourSeatBoard(t)
+	libIDs := append([]state.ObjID(nil), g.Zone(state.ZLibrary, 1)[:3]...)
+	evs := []events.Event{
+		{Seq: 0, Kind: events.Note, Player: 1,
+			Text: "looks at the top of the library, order unchanged", IDs: libIDs},
+	}
+	for _, viewer := range []state.PlayerID{0, 200} {
+		out := RedactEvents(g, evs, viewer)
+		if len(out[0].IDs) != 0 {
+			t.Fatalf("viewer %d: Note still names seat 1's library ids: %v", viewer, out[0].IDs)
+		}
+	}
+	owner := RedactEvents(g, evs, 1)
+	if len(owner[0].IDs) != 3 {
+		t.Fatalf("the owner lost their own library ids: %v", owner[0].IDs)
+	}
+}
+
+// TestRedactEventsKeepsAPublicOriginMoveVisibleToEveryone is rule (2)'s own
+// boundary: a move FROM a public zone (battlefield) stays visible to
+// everyone, even though it lands IN a hidden one (hand) -- everybody already
+// saw the permanent bounce, so hiding the destination would hide something
+// that already happened in full view.
+func TestRedactEventsKeepsAPublicOriginMoveVisibleToEveryone(t *testing.T) {
+	g := fourSeatBoard(t)
+	bf := g.Zone(state.ZBattlefield, 1)[0]
+	evs := []events.Event{
+		{Seq: 0, Kind: events.MoveZone, Player: 1, Obj: bf, From: state.ZBattlefield, To: state.ZHand},
+	}
+	for _, viewer := range []state.PlayerID{0, 200} {
+		out := RedactEvents(g, evs, viewer)
+		if out[0].Obj != bf {
+			t.Fatalf("viewer %d: a move FROM a public zone was hidden: %+v", viewer, out[0])
+		}
+	}
+}
+
+// TestRedactEventsWithNilGameAppliesOnlyTheSecretRule is the documented
+// degrade: with no game state to check rules (2)/(3) against, only rule (1)
+// (Secret && Player != viewer) applies, and everything else passes through
+// unaltered rather than panicking.
+func TestRedactEventsWithNilGameAppliesOnlyTheSecretRule(t *testing.T) {
+	evs := []events.Event{
+		{Seq: 0, Kind: events.Shuffle, Player: 1, IDs: []state.ObjID{1, 2, 3}, Secret: true},
+		{Seq: 1, Kind: events.TriggerPush, Player: 0, IDs: []state.ObjID{99}},
+	}
+	out := RedactEvents(nil, evs, 0)
+	if len(out[0].IDs) != 0 {
+		t.Fatalf("Secret event not redacted with a nil game: %+v", out[0])
+	}
+	if len(out[1].IDs) != 1 || out[1].IDs[0] != 99 {
+		t.Fatalf("non-Secret event was altered with a nil game (want unchanged, no rule 2/3 to check): %+v", out[1])
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Fix-round item 1's gate: reproduce the reviewer's own probe-C measurement
+// (incremental log, real engine) and show the count of hidden-id references
+// drop from a genuine leak to zero, with a positive control proving the
+// redaction is actually selective rather than merely deleting everything.
+
+// drawWatcherSrc is a permanent whose trigger fires on ANY card drawn while
+// it is on the battlefield (Mode$ ChangesZone, Origin$ Library,
+// Destination$ Hand, ValidCard$ Card -- no controller restriction: real
+// "whenever you draw a card" text). LifeAmount$ 0 keeps the effect an inert
+// no-op; only the TriggerPush this trigger emits is under test.
+//
+// drawSpellSrc is what generates many draws to measure against, cast
+// repeatedly rather than relying on the ordinary per-turn draw step. That
+// is a deliberate choice, not a simplification: driving this through actual
+// per-turn draws (Turn > 1's automatic draw) hits a genuine, pre-existing,
+// separate defect in rules/turn.go's priorityRound -- a mandatory trigger
+// that fires AND resolves during the draw step itself re-enters
+// priorityRound with Passes reset to 0 while Step is still StepDraw, so its
+// "draw once per step" guard (the one TestOrderingDecisionInTheDrawStepDoes
+// NotDrawTwice exists to pin) fires again, and again, drawing the whole
+// library. Confirmed by instrumentation while building this test (one
+// draw-step draw ballooned to 20 in a single step, entirely within turn 2,
+// with turn 1's caster never receiving turn 3). That defect is in
+// rules/turn.go, which is not on this fix round's file list and not
+// something this round's brief asked for -- noted in the fix report as a
+// new finding, not touched here. Repeated Sorcery casts, entirely within
+// Main1, produce the identical event shape (a ChangesZone Library->Hand
+// Draw, watched by the same trigger) without ever touching StepDraw, so the
+// measurement below is unaffected by it.
+const drawWatcherSrc = `Name:DrawWatcher
+Types:Enchantment
+T:Mode$ ChangesZone | Origin$ Library | Destination$ Hand | ValidCard$ Card | Execute$ TrigNoop | TriggerDescription$ noted a draw
+SVar:TrigNoop:DB$ GainLife | LifeAmount$ 0 | Defined$ You
+Oracle:x
+`
+
+const drawSpellSrc = `Name:DrawSpell
+Types:Sorcery
+A:SP$ Draw | NumCards$ 1 | Defined$ You | SpellDescription$ Draw a card.
+Oracle:x
+`
+
+// countPushes counts TriggerPush events in a log.
+func countPushes(evs []events.Event) int {
+	n := 0
+	for _, ev := range evs {
+		if ev.Kind == events.TriggerPush {
+			n++
+		}
+	}
+	return n
+}
+
+// countHiddenRefs is the reviewer's own probe-C measurement, reproduced: it
+// walks every event's Obj/IDs/Pairs and counts references to an object
+// CURRENTLY (per g) sitting in a hidden zone not owned by exclude.
+func countHiddenRefs(g *state.Game, evs []events.Event, exclude state.PlayerID) int {
+	n := 0
+	count := func(id state.ObjID) {
+		if id == 0 {
+			return
+		}
+		o := g.Obj(id)
+		if o == nil || !o.Zone.Hidden() || o.Owner == exclude {
+			return
+		}
+		n++
+	}
+	for _, e := range evs {
+		count(e.Obj)
+		for _, id := range e.IDs {
+			count(id)
+		}
+		for _, p := range e.Pairs {
+			count(p[0])
+			count(p[1])
+		}
+	}
+	return n
+}
+
+// driveRepeatedCastsWithinMainPhase casts permanent once (whenever it
+// becomes castable) and then casts repeatable every single time it is
+// offered, falling back to pass otherwise, until at least minPushes
+// TriggerPush events have accumulated in the log or the game ends. Driven
+// through New/Advance/Pending/Submit only, same as every other
+// engine-backed test in this file. See drawSpellSrc's own doc for why this
+// stays inside one main phase rather than advancing turns.
+func driveRepeatedCastsWithinMainPhase(t *testing.T, e *rules.Engine, permanent, repeatable string, minPushes, iterLimit int) {
+	t.Helper()
+	for i := 0; i < iterLimit; i++ {
+		if e.G.Over || countPushes(e.L.Events) >= minPushes {
+			return
+		}
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KPriority {
+			t.Fatalf("unexpected pending decision: %+v", d)
+		}
+		idx := -1
+		if permanent != "" {
+			for _, o := range d.Options {
+				if o.Kind == "cast" && strings.Contains(o.Label, permanent) {
+					idx = o.Index
+					break
+				}
+			}
+			if idx >= 0 {
+				permanent = ""
+			}
+		}
+		if idx < 0 {
+			for _, o := range d.Options {
+				if o.Kind == "cast" && strings.Contains(o.Label, repeatable) {
+					idx = o.Index
+					break
+				}
+			}
+		}
+		if idx < 0 {
+			for _, o := range d.Options {
+				if o.Kind == "pass" {
+					idx = o.Index
+					break
+				}
+			}
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+			t.Fatalf("submit: %v", err)
+		}
+	}
+	t.Fatalf("did not accumulate %d TriggerPush events within %d iterations", minPushes, iterLimit)
+}
+
+// TestRedactEventsClosesTheTriggerPushLeakMeasured is the fix-round gate: a
+// real game accumulates >=20 TriggerPush events (seat 0 casts DrawSpell
+// repeatedly, drawSpellSrc's own doc says why this stays within turn 1's
+// Main1), each one remembering that draw's card -- the same event shape as
+// the reviewer's own measurement (which used the ordinary per-turn draw
+// step and found 46 in one short game; this reproduces the property with a
+// different, unaffected driver for the reason documented on drawSpellSrc).
+// The RAW log contains many references to ids hidden from seat 1; the
+// REDACTED-for-seat-1 stream contains zero; a spectator's is the same; and
+// the positive control -- redacting the identical log for the actual
+// owner, seat 0 -- shows the owner still sees their own remembered ids, so
+// the zero above is redaction actually working, not the ids being absent
+// to begin with.
+func TestRedactEventsClosesTheTriggerPushLeakMeasured(t *testing.T) {
+	deck0 := append([]*cards.Card{r3Card(t, drawWatcherSrc)}, nCopies(t, drawSpellSrc, 39)...)
+	deck1 := r3Filler(t, 40)
+	e := rules.New(rules.Config{Seed: 11, Names: []string{"alice", "bob"},
+		Decks: [][]*cards.Card{deck0, deck1}})
+	e.Advance()
+
+	driveRepeatedCastsWithinMainPhase(t, e, "DrawWatcher", "DrawSpell", 20, 4000)
+
+	pushes := countPushes(e.L.Events)
+	if pushes < 20 {
+		t.Fatalf("only %d TriggerPush events accumulated, want at least 20 to reproduce the measurement", pushes)
+	}
+
+	rawHidden := countHiddenRefs(e.G, e.L.Events, 1)
+	if rawHidden == 0 {
+		t.Fatal("test setup: the raw log has no hidden-to-seat-1 references -- this proves nothing")
+	}
+
+	for _, viewer := range []state.PlayerID{1, 200} {
+		redacted := RedactEvents(e.G, e.L.Events, viewer)
+		after := countHiddenRefs(e.G, redacted, viewer)
+		if after != 0 {
+			t.Fatalf("redacted stream for viewer %d still contains %d hidden-id references (raw was %d), want 0",
+				viewer, after, rawHidden)
+		}
+	}
+	t.Logf("TriggerPush events: %d; hidden-to-seat-1 references: raw=%d redacted=0", pushes, rawHidden)
+
+	// Positive control: the ids are not simply gone -- the owner's own
+	// redacted stream still names their own remembered cards.
+	redactedForOwner := RedactEvents(e.G, e.L.Events, 0)
+	ownFound := 0
+	for _, ev := range redactedForOwner {
+		if ev.Kind != events.TriggerPush {
+			continue
+		}
+		for _, id := range ev.IDs {
+			if o := e.G.Obj(id); o != nil && o.Owner == 0 {
+				ownFound++
+			}
+		}
+	}
+	if ownFound == 0 {
+		t.Fatal("positive control failed: the owner's own redacted stream lost every remembered id of their own")
+	}
+	t.Logf("positive control: seat 0's own redacted stream still names %d of its own remembered ids (of %d pushes)",
+		ownFound, pushes)
+}
+
+// nCopies is r3Filler's own pattern for an arbitrary source: one parsed
+// *cards.Card shared across n deck slots. g.AddObject (called once per
+// slot when the deck is dealt) gives each slot its own independent Object
+// and ObjID regardless of how many deck entries point at the same *Card.
+func nCopies(t *testing.T, src string, n int) []*cards.Card {
+	t.Helper()
+	c := r3Card(t, src)
+	out := make([]*cards.Card, n)
+	for i := range out {
+		out[i] = c
+	}
+	return out
 }
 
 // ---------------------------------------------------------------------------
@@ -303,7 +808,7 @@ func TestProjectAndRedactEventsAreTotal(t *testing.T) {
 			if cv.Keywords != nil {
 				t.Fatalf("card view with nil Chars has keywords: %v", cv.Keywords)
 			}
-			if v.Pending != nil {
+			if len(v.Pending) != 0 {
 				t.Fatalf("Pending = %v, want none with nil Chars", v.Pending)
 			}
 		}},
@@ -342,7 +847,7 @@ func TestProjectAndRedactEventsAreTotal(t *testing.T) {
 			}
 		}},
 		{"RedactEvents(nil) is an empty, non-nil slice", func(t *testing.T) {
-			out := RedactEvents(nil, 0)
+			out := RedactEvents(nil, nil, 0)
 			if out == nil {
 				t.Fatal("RedactEvents(nil, ...) returned nil, want an empty slice")
 			}
@@ -352,6 +857,72 @@ func TestProjectAndRedactEventsAreTotal(t *testing.T) {
 		}},
 	} {
 		t.Run(tc.name, tc.run)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Review finding M-4 / fix-round item 4, Ruling T23-u: wire shape.
+
+// TestEmptyPublicListsMarshalAsEmptyArraysNeverNull covers every public
+// list this package produces except Hand/Pool (which have their own test
+// below, because THEIR empty shape needs to coexist with a genuinely
+// different, privacy-driven null for every other seat) and Targets (which
+// TestR3StackViewShowsTextAndTargetsForATargetedSpell already covers, on a
+// real spell with no target chosen yet). A brand-new two-seat game with no
+// objects at all gives every list here its genuinely empty case.
+func TestEmptyPublicListsMarshalAsEmptyArraysNeverNull(t *testing.T) {
+	g := state.NewGame([]string{"alice", "bob"})
+	v := Project(g, flatChars{g}, 0, nil)
+	blob, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(blob)
+	for _, key := range []string{"players", "battlefield", "graveyard", "exile", "stack", "pending"} {
+		if strings.Contains(s, `"`+key+`":null`) {
+			t.Fatalf("%q marshalled as null, want []: %s", key, s)
+		}
+	}
+	// players is non-empty here (two seats, so this alone would not
+	// distinguish [] from omitted); battlefield/graveyard/exile/stack/
+	// pending are all genuinely empty in this fixture, which is what
+	// actually exercises non-nil-when-empty rather than non-nil-because-
+	// populated.
+	for _, key := range []string{"battlefield", "graveyard", "exile", "stack", "pending"} {
+		if !strings.Contains(s, `"`+key+`":[]`) {
+			t.Fatalf("%q did not marshal as an explicit empty array: %s", key, s)
+		}
+	}
+}
+
+// TestEmptyHandMarshalsEmptyArrayForViewerAndNullForOthers is Ruling
+// T23-u's other half: Hand/Pool cannot use plain non-nil-vs-nil the way the
+// public lists above do, because they carry a THIRD state a public list
+// never needs to -- "hidden from you entirely" -- so they drop omitempty
+// instead and rely on null (another seat) vs [] (the viewer's own, even
+// when it is genuinely empty) meaning two different things on the wire.
+// Neither player has a single card in this fixture, so alice's hand/pool
+// keys are both the interesting "present but empty" case, not merely
+// "present because non-empty".
+func TestEmptyHandMarshalsEmptyArrayForViewerAndNullForOthers(t *testing.T) {
+	g := state.NewGame([]string{"alice", "bob"})
+	v := Project(g, flatChars{g}, 0, nil)
+	blob, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(blob)
+	if !strings.Contains(s, `"hand":[]`) {
+		t.Fatalf("the viewer's empty hand did not marshal as [], got: %s", s)
+	}
+	if !strings.Contains(s, `"hand":null`) {
+		t.Fatalf("another seat's hand did not marshal as null, got: %s", s)
+	}
+	if !strings.Contains(s, `"pool":{}`) {
+		t.Fatalf("the viewer's empty pool did not marshal as {}, got: %s", s)
+	}
+	if !strings.Contains(s, `"pool":null`) {
+		t.Fatalf("another seat's pool did not marshal as null, got: %s", s)
 	}
 }
 
@@ -435,6 +1006,16 @@ const r3OptionalSrc = `Name:R3Almsgiver
 Types:Enchantment
 T:Mode$ Phase | Phase$ Upkeep | OptionalDecider$ You | Execute$ TrigGain | TriggerDescription$ you may gain 4 life
 SVar:TrigGain:DB$ GainLife | LifeAmount$ 4 | Defined$ You
+Oracle:x
+`
+
+// r3ShockSrc is a targeted instant, free to cast: review finding I-1's
+// remaining StackView gap. StackView.Targets and the spell-side half of
+// Text (SpellDescription$, not a T: line's TriggerDescription$) had no
+// assertion anywhere in the suite.
+const r3ShockSrc = `Name:R3Shock
+Types:Instant
+A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 2 | SpellDescription$ Deal 2 damage to any target.
 Oracle:x
 `
 
@@ -541,6 +1122,27 @@ func TestR3PendingTriggersAndStackAreObservableThroughAFullEngine(t *testing.T) 
 		t.Fatalf("both enchantments must be on the battlefield: gainer=%d drainer=%d", gainerID, drainerID)
 	}
 
+	// Review finding I-3's own remedy applied here too: the same
+	// collectIDs-based walk the (now-rewritten) leak test uses, run
+	// against a projection with Pending, an attached Decision and a
+	// non-empty Stack all populated at once -- the richest shape this
+	// package produces -- to prove the leak property still holds at
+	// engine scale, not merely in the flatChars-driven fixture.
+	for _, viewer := range []state.PlayerID{0, 1} {
+		other := (viewer + 1) % 2
+		found := idsFoundIn(t, Project(e.G, e, viewer, e.Pending()))
+		for _, id := range e.G.Zone(state.ZLibrary, other) {
+			if found[int(id)] {
+				t.Fatalf("viewer %d payload contains seat %d's library object %d", viewer, other, id)
+			}
+		}
+		for _, id := range e.G.Zone(state.ZHand, other) {
+			if found[int(id)] {
+				t.Fatalf("viewer %d payload contains seat %d's hand object %d", viewer, other, id)
+			}
+		}
+	}
+
 	for viewer := state.PlayerID(0); viewer < 2; viewer++ {
 		v := Project(e.G, e, viewer, e.Pending())
 		if len(v.Pending) != 2 {
@@ -591,7 +1193,11 @@ func TestR3PendingTriggersAndStackAreObservableThroughAFullEngine(t *testing.T) 
 	want := []struct {
 		source state.ObjID
 		name   string
-	}{{gainerID, "R3Gainer"}, {drainerID, "R3Drainer"}}
+		text   string // TriggerDescription$, by Effect pointer identity (supplement §3c)
+	}{
+		{gainerID, "R3Gainer", "gain 5 life"},
+		{drainerID, "R3Drainer", "lose life equal to your life total"},
+	}
 	for i, w := range want {
 		sv := v.Stack[i]
 		if sv.Kind != "ability" {
@@ -602,6 +1208,14 @@ func TestR3PendingTriggersAndStackAreObservableThroughAFullEngine(t *testing.T) 
 		}
 		if sv.Name != w.name {
 			t.Errorf("Stack[%d].Name = %q, want %q", i, sv.Name, w.name)
+		}
+		// Review finding I-1: Text (abilityText's Effect-pointer lookup, the
+		// most intricate logic in view.go) had no assertion anywhere.
+		if sv.Text != w.text {
+			t.Errorf("Stack[%d].Text = %q, want %q", i, sv.Text, w.text)
+		}
+		if sv.Targets == nil {
+			t.Errorf("Stack[%d].Targets is nil, want a non-nil empty slice (Ruling T23-u)", i)
 		}
 	}
 }
@@ -635,5 +1249,90 @@ func TestR3PendingTriggerReportsOptionality(t *testing.T) {
 	}
 	if v.Decision == nil || v.Decision.Player != 0 {
 		t.Fatalf("Decision = %+v, want the yes/no question for player 0", v.Decision)
+	}
+}
+
+// TestR3StackViewShowsTextAndTargetsForATargetedSpell is review finding
+// I-1's remaining StackView gap: a real cast spell awaiting a chosen
+// target, observed mid-decision (R3: castSpell emits PutOnStack before
+// askTarget, so the spell is on the stack before it has any target at
+// all), then again once the target is chosen.
+func TestR3StackViewShowsTextAndTargetsForATargetedSpell(t *testing.T) {
+	deck0 := append([]*cards.Card{r3Card(t, r3ShockSrc)}, r3Filler(t, 6)...)
+	deck1 := r3Filler(t, 7)
+	e := rules.New(rules.Config{Seed: 5, Names: []string{"alice", "bob"},
+		Decks: [][]*cards.Card{deck0, deck1}})
+	e.Advance()
+
+	driveThroughPriority(t, e, []string{"R3Shock"})
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("pending = %+v, want a target decision", d)
+	}
+
+	// Before the target is chosen: the spell is already observable (R3),
+	// with an empty (non-nil) Targets.
+	before := Project(e.G, e, 0, d)
+	if len(before.Stack) != 1 {
+		t.Fatalf("Stack = %d entries, want the spell awaiting its target", len(before.Stack))
+	}
+	if before.Stack[0].Targets == nil {
+		t.Fatal("Targets is nil before a target is chosen, want a non-nil empty slice (Ruling T23-u)")
+	}
+	if len(before.Stack[0].Targets) != 0 {
+		t.Fatalf("Targets = %+v before any target was chosen, want none yet", before.Stack[0].Targets)
+	}
+
+	idx := -1
+	for _, o := range d.Options {
+		if o.Kind == "player" && o.Player == 1 {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no option to target player 1: %+v", d.Options)
+	}
+	submitChoices(t, e, idx)
+
+	after := Project(e.G, e, 0, e.Pending())
+	if len(after.Stack) != 1 {
+		t.Fatalf("Stack = %d entries, want the spell still awaiting resolution", len(after.Stack))
+	}
+	sv := after.Stack[0]
+	if sv.Kind != "spell" {
+		t.Fatalf("Kind = %q, want \"spell\"", sv.Kind)
+	}
+	if sv.Text != "Deal 2 damage to any target." {
+		t.Fatalf("Text = %q, want the SpellDescription$", sv.Text)
+	}
+	if len(sv.Targets) != 1 || !sv.Targets[0].IsPlayer || sv.Targets[0].Player != 1 {
+		t.Fatalf("Targets = %+v, want a single player-1 target", sv.Targets)
+	}
+	if sv.Card == nil || sv.Card.Name != "R3Shock" {
+		t.Fatalf("Card = %+v, want the spell's own CardView", sv.Card)
+	}
+}
+
+// TestStackViewSpellTextFallsBackToOracleWithNoSpellDescription is the
+// other half of spellText's fallback chain: with no SpellDescription$ at
+// all, Text falls back to the face's own Oracle wording. A hand-built
+// board and a stack object placed directly, rather than a full engine —
+// spellText does not depend on anything an engine would add.
+func TestStackViewSpellTextFallsBackToOracleWithNoSpellDescription(t *testing.T) {
+	g := state.NewGame([]string{"alice", "bob"})
+	c, _ := cards.ParseBytes("t.txt", []byte(
+		"Name:PlainBolt\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:Deal 1 damage to any target.\n"))
+	c.Link()
+	o := g.AddObject(c, 0)
+	o.Zone = state.ZStack
+	g.SetZone(state.ZStack, 0, []state.ObjID{o.ID})
+
+	v := Project(g, flatChars{g}, 0, nil)
+	if len(v.Stack) != 1 {
+		t.Fatalf("Stack = %d entries, want 1", len(v.Stack))
+	}
+	if v.Stack[0].Text != "Deal 1 damage to any target." {
+		t.Fatalf("Text = %q, want the Oracle fallback", v.Stack[0].Text)
 	}
 }

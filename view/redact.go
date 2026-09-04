@@ -5,22 +5,140 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// RedactEvents strips the payload of secret events for every seat but their
-// owner, keeping the event's shape so a replay viewer still sees that
-// SOMETHING happened (a shuffle, a draw) without learning what. It copies
-// rather than mutating: the log is shared across every seat's projection,
-// and a live rules.Engine's own log must never be touched by a read path.
+// RedactEvents strips what a viewer must not see out of a batch of events,
+// building a copy of each -- the log is shared across every seat's
+// projection, and a live rules.Engine's own log must never be touched by a
+// read path.
 //
-// Total: a nil evs yields an empty, non-nil slice (supplement §7).
-func RedactEvents(evs []events.Event, viewer state.PlayerID) []events.Event {
+// Call with the game state as of the LAST event in evs: rules (2) and (3)
+// below ask "is this object CURRENTLY sitting in a hidden zone", and
+// "currently" means at that point in the log, not at the moment the event
+// was originally emitted. A live stream redacts each newly-appended batch
+// against the game that batch just produced; a playback viewer (Task 24)
+// passes the state reconstructed as of that point in the log, not the
+// game's eventual final state.
+//
+// Three rules, applied to a COPY of each event -- the input slice, and
+// every event in it, is never mutated:
+//
+//  1. Secret: rules (2)/(3) below never apply to a Secret event, for
+//     EITHER branch of this rule -- a Secret event is wholly its emitter's
+//     to redact-or-not, not something additionally filtered id-by-id.
+//     - Player != viewer: keep ONLY the event's shape (Seq, Kind,
+//     Player, From, To, Step, Secret) and zero every payload field
+//     (Obj, Amount, Counter, Text, IDs, Pairs). This is an allowlist
+//     of what SURVIVES redaction, not an enumerated list of what to
+//     strip from it (Ruling T23-s, closing review finding I-2): a
+//     future Secret emitter that starts carrying Pairs or Amount is
+//     covered automatically, which an enumerated strip list is not.
+//     - Player == viewer: pass through untouched -- it is their own
+//     secret.
+//  2. Not Secret, a zone-move kind (MoveZone, Draw, PutOnStack): its Obj is
+//     stripped when the move is entirely between hidden zones
+//     (From.Hidden() && To.Hidden()) and the moved object is not visible
+//     to viewer (visibleTo, below). A move FROM a public zone stays public
+//     -- everyone already saw the permanent bounce to hand.
+//  3. Not Secret, every other kind: any id referenced by Obj, IDs or Pairs
+//     is stripped when it is not visible to viewer.
+//
+// Rules (2) and (3) are what closes review finding C-1: two pre-existing,
+// non-Secret emitters put a hidden-zone object's id into an event's payload
+// -- rules/trigger.go's TriggerPush.IDs (Ctx.Remembered; for a "whenever
+// you draw a card" trigger, the ChangesZone-mode T: line this engine uses
+// to express that, this is the card now sitting in its owner's hand) and
+// effects/cardflow.go's RearrangeTopOfLibrary Note (a private look, whose
+// IDs are the top-of-library cards it looked at). Neither can be fixed by
+// widening the Secret+Player contract at the emitter: TriggerPush's Player
+// is the trigger's CONTROLLER (Apply needs it to mint the ability object),
+// which is not the same seat as the remembered card's OWNER, so
+// Secret+Player cannot express "this payload belongs to someone other than
+// the event's own Player" for that case at all. Redaction has to be
+// state-aware instead, checking each referenced id's actual owner against
+// the game rather than trusting the event's own Player field to name it.
+//
+// visibleTo's "an unresolvable id is not visible" is the safe default for
+// both rule (2) and rule (3): an id nothing can currently resolve (stale
+// data, a tampered log) cannot be proven safe to show, so it is treated the
+// same as one this function CAN prove is hidden from viewer.
+//
+// A stripped id inside IDs leaves a SHORTER slice, not a zero hole in
+// place; a Pair with either side stripped is dropped as a whole pair.
+//
+// g == nil applies rule (1) only -- there is no game state to check rules
+// (2)/(3) against -- and never panics.
+func RedactEvents(g *state.Game, evs []events.Event, viewer state.PlayerID) []events.Event {
 	out := make([]events.Event, 0, len(evs))
 	for _, e := range evs {
-		if e.Secret && e.Player != viewer {
-			e.IDs = nil
-			e.Obj = 0
-			e.Text = ""
+		if e.Secret {
+			if e.Player != viewer {
+				out = append(out, events.Event{
+					Seq: e.Seq, Kind: e.Kind, Player: e.Player,
+					From: e.From, To: e.To, Step: e.Step, Secret: e.Secret,
+				})
+				continue
+			}
+			// The owner's own secret: rule 1 does not apply to them at
+			// all, and neither do rules (2)/(3) -- a Secret event is
+			// wholly its emitter's to redact-or-not, not something this
+			// function additionally filters id-by-id even for its owner.
+			out = append(out, e)
+			continue
+		}
+		if g == nil {
+			out = append(out, e)
+			continue
+		}
+		switch e.Kind {
+		case events.MoveZone, events.Draw, events.PutOnStack:
+			if e.From.Hidden() && e.To.Hidden() && !visibleTo(g, e.Obj, viewer) {
+				e.Obj = 0
+			}
+		default:
+			if !visibleTo(g, e.Obj, viewer) {
+				e.Obj = 0
+			}
+			e.IDs = filterVisible(g, e.IDs, viewer)
+			e.Pairs = filterVisiblePairs(g, e.Pairs, viewer)
 		}
 		out = append(out, e)
+	}
+	return out
+}
+
+// visibleTo reports whether id is safe to show viewer: the object it names
+// currently exists, and either its zone is not hidden or viewer is its
+// owner. An id nothing can currently resolve (including ObjID 0, "no
+// object") is not visible -- the safe default (see RedactEvents' doc).
+func visibleTo(g *state.Game, id state.ObjID, viewer state.PlayerID) bool {
+	o := g.Obj(id)
+	if o == nil {
+		return false
+	}
+	return !o.Zone.Hidden() || o.Owner == viewer
+}
+
+// filterVisible drops every id not visible to viewer, shortening the slice
+// rather than leaving a zero hole. Always a fresh slice: never the input's
+// own backing array, so the caller's copy of ids is never touched.
+func filterVisible(g *state.Game, ids []state.ObjID, viewer state.PlayerID) []state.ObjID {
+	out := make([]state.ObjID, 0, len(ids))
+	for _, id := range ids {
+		if visibleTo(g, id, viewer) {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+// filterVisiblePairs drops a whole pair when either side is not visible to
+// viewer -- a pair with only one id redacted would still leak the other
+// half of the relationship.
+func filterVisiblePairs(g *state.Game, pairs [][2]state.ObjID, viewer state.PlayerID) [][2]state.ObjID {
+	out := make([][2]state.ObjID, 0, len(pairs))
+	for _, p := range pairs {
+		if visibleTo(g, p[0], viewer) && visibleTo(g, p[1], viewer) {
+			out = append(out, p)
+		}
 	}
 	return out
 }
