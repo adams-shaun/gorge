@@ -1,19 +1,19 @@
 package rules
 
 import (
-	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
-// Replaced in Tasks 21 and 22.
-func (e *Engine) handleAttackers(*decision.Decision, decision.Intent) {}
-func (e *Engine) handleBlockers(*decision.Decision, decision.Intent)  {}
-func (e *Engine) askAttackers()                                       { e.setStep(state.StepEndCombat) }
-func (e *Engine) askBlockers()                                        { e.setStep(state.StepCombatDamage) }
-func (e *Engine) dealCombatDamage()                                   {}
-
-func (e *Engine) checkStateBased() { e.checkGameOver() }
+// checkStateBased runs the CR 704 state-based actions this build implements:
+// destroyLethalDamage (rules/combat.go, Task 21 -- lethal/zero-toughness
+// creature destruction; nothing checked this before, so a creature damaged by
+// an ordinary spell, not only in combat, never actually died either), then
+// the game-over check that was already here.
+func (e *Engine) checkStateBased() {
+	e.destroyLethalDamage()
+	e.checkGameOver()
+}
 
 func (e *Engine) checkGameOver() {
 	alive := e.G.AliveFrom(0)

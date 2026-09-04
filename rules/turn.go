@@ -59,6 +59,18 @@ func (e *Engine) step() {
 func (e *Engine) priorityRound() {
 	// Nobody receives priority during untap or cleanup.
 	if e.G.Step == state.StepUntap || e.G.Step == state.StepCleanup {
+		if e.G.Step == state.StepCleanup {
+			// CR 514.2: cleanup removes damage and "until end of turn"
+			// effects. Wired in here by Task 21 -- Engine.EndOfTurnCleanup
+			// (layers.go) has existed since Task 19c, but nothing ever called
+			// it, so a resolved pump effect used to survive forever instead
+			// of expiring at the end of the turn it was cast in. This must
+			// run before advanceStep, not after: advanceStep's own Passes
+			// reset (via beginTurn) is load-bearing for the draw-step trigger
+			// gate and is left untouched either way, but cleanup logically
+			// belongs to the step being left, not the one being entered.
+			e.cleanupStep()
+		}
 		e.advanceStep()
 		return
 	}
