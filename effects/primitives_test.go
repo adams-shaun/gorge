@@ -267,6 +267,36 @@ func TestDigMovesMatchingCardsToDestinationLeavingTheRestOnTop(t *testing.T) {
 	}
 }
 
+// TestDigsSecretMoveNamesTheLibraryOwner is Task 23 §11's regression test: a
+// pre-existing leak. effDig's MoveZone event for a card taken from a hidden
+// library was emitted Secret with no Player at all, so under the redaction
+// contract (Player names the seat whose secret this is) PlayerID(0) -- a
+// real seat, not "nobody" -- ended up seeing every other seat's dug card
+// while the actual owner lost their own. Player must be the library's
+// owner, the same seat DrawFor (line 48) and rules/engine.go's Shuffle
+// already carry.
+func TestDigsSecretMoveNamesTheLibraryOwner(t *testing.T) {
+	h := newHost(t, 2)
+	bear := mkCard(t, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	fillLibrary(h.g, 1, bear, 3)
+	Resolve(h, &Ctx{Controller: 1},
+		sa(t, "SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 1 | ChangeValid$ Creature | DestinationZone$ Hand"))
+
+	var found bool
+	for _, e := range h.log {
+		if e.Kind != events.MoveZone || !e.Secret {
+			continue
+		}
+		found = true
+		if e.Player != 1 {
+			t.Fatalf("Dig's Secret MoveZone has Player %d, want the library's owner (1)", e.Player)
+		}
+	}
+	if !found {
+		t.Fatal("no Secret MoveZone event was emitted")
+	}
+}
+
 func TestRevealRecordsIdentitiesWithoutMovingCards(t *testing.T) {
 	h := newHost(t, 2)
 	bear := mkCard(t, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n")

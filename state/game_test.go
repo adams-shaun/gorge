@@ -133,3 +133,37 @@ func cardsFixture() (*cards.Card, error) {
 	c.Link()
 	return c, nil
 }
+
+// TestStepValidRejectsOutOfRange is Task 23's totality fix: events/apply.go's
+// StepChange case stores e.Step unvalidated, so a tampered log can reach
+// Project (and rules/trigger.go's own Step.String() call) with an
+// out-of-range step. Step.Valid mirrors Zone.Valid so callers fed an
+// untrusted Step have the same guard available.
+func TestStepValidRejectsOutOfRange(t *testing.T) {
+	if !StepCleanup.Valid() {
+		t.Error("the last defined step must be valid")
+	}
+	if !StepUntap.Valid() {
+		t.Error("the first defined step must be valid")
+	}
+	if Step(numSteps).Valid() {
+		t.Error("one past the last defined step must not be valid")
+	}
+	if Step(255).Valid() {
+		t.Error("a wildly out-of-range step must not be valid")
+	}
+}
+
+// TestStepStringIsTotal is the other half: stepNames[s] must never be reached
+// with an out-of-range index, the same shape as events.Kind.String().
+func TestStepStringIsTotal(t *testing.T) {
+	if got := StepUpkeep.String(); got != "upkeep" {
+		t.Errorf("StepUpkeep.String() = %q, want upkeep", got)
+	}
+	if got := Step(numSteps).String(); got != "unknown" {
+		t.Errorf("an out-of-range step's String() = %q, want unknown", got)
+	}
+	if got := Step(255).String(); got != "unknown" {
+		t.Errorf("a wildly out-of-range step's String() = %q, want unknown", got)
+	}
+}

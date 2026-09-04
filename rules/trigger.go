@@ -496,6 +496,35 @@ func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optiona
 	return who, true, true
 }
 
+// PendingTriggers reports the triggers matched but not yet on the stack, in
+// queue order (index 0 is placed first). Read-only; the slice is fresh, and
+// so is each entry's own Label -- neither aliases e.pendingTriggers, so a
+// caller (view.Project) mutating what it gets back cannot corrupt the drain.
+//
+// Ruling F2/R3: this is the whole of what lets view describe the trigger
+// queue without importing rules -- state.PendingTrigger is the shared
+// vocabulary, built here from the same triggerLabel and optionalDecider the
+// drain itself (putTriggersOnStack, above) already uses, so a client's view
+// of "what's about to hit the stack" can never disagree with what actually
+// does.
+func (e *Engine) PendingTriggers() []state.PendingTrigger {
+	if len(e.pendingTriggers) == 0 {
+		return nil
+	}
+	out := make([]state.PendingTrigger, 0, len(e.pendingTriggers))
+	for _, pt := range e.pendingTriggers {
+		who, optional, _ := e.optionalDecider(pt)
+		out = append(out, state.PendingTrigger{
+			Source:     pt.Source,
+			Controller: pt.Controller,
+			Label:      e.triggerLabel(pt),
+			Optional:   optional,
+			Decider:    who,
+		})
+	}
+	return out
+}
+
 // triggerLabel is what a client shows for one pending trigger. The card's own
 // TriggerDescription$ is the text a real player would recognise; the source's
 // name disambiguates two copies of the same card.
