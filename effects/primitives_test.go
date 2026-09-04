@@ -297,6 +297,36 @@ func TestDigsSecretMoveNamesTheLibraryOwner(t *testing.T) {
 	}
 }
 
+// TestRearrangeTopOfLibraryNoteIsSecretToItsOwner is fix round 2's
+// regression test (Ruling T23-w): the private look at the top of the
+// library must be Secret, with Player naming its owner -- the same shape
+// every other hidden-zone emitter in this file already uses (DrawFor,
+// effDig above). Player 1 (non-zero), not 0, so a bug that silently reads
+// PlayerID's zero value cannot pass by coincidence.
+func TestRearrangeTopOfLibraryNoteIsSecretToItsOwner(t *testing.T) {
+	h := newHost(t, 2)
+	bear := mkCard(t, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	fillLibrary(h.g, 1, bear, 3)
+	Resolve(h, &Ctx{Controller: 1}, sa(t, "SP$ RearrangeTopOfLibrary | Defined$ You | NumCards$ 3"))
+
+	var found bool
+	for _, e := range h.log {
+		if e.Kind != events.Note {
+			continue
+		}
+		found = true
+		if !e.Secret {
+			t.Fatalf("RearrangeTopOfLibrary's Note is not Secret: %+v", e)
+		}
+		if e.Player != 1 {
+			t.Fatalf("RearrangeTopOfLibrary's Note has Player %d, want the library's owner (1)", e.Player)
+		}
+	}
+	if !found {
+		t.Fatal("no Note event was emitted")
+	}
+}
+
 func TestRevealRecordsIdentitiesWithoutMovingCards(t *testing.T) {
 	h := newHost(t, 2)
 	bear := mkCard(t, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n")
