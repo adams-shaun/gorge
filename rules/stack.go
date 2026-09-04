@@ -198,7 +198,14 @@ func (e *Engine) resolveTop() {
 		// 608.2b's "spell or ability" covers this shape too if a later
 		// task ever gives a triggered ability a player-chosen target.
 		targets := o.Targets
-		if spec := o.Ability.Params["ValidTgts"]; spec != "" && len(targets) > 0 {
+		// Fix round 2 (re-review N1): the gate is `spec != ""` -- "this
+		// ability declares a targeting requirement" -- not `len(targets) > 0`
+		// -- "this ability happens to have targets right now". The old form
+		// used the latter as a proxy for the former, so an ability that NEEDS
+		// a target but has none recorded skipped CR 608.2b's recheck entirely
+		// and resolved. Zero recorded targets is zero LEGAL targets, which is
+		// exactly what 608.2b counters.
+		if spec := o.Ability.Params["ValidTgts"]; spec != "" {
 			legal := e.legalTargets(targets, spec, o.Controller)
 			if len(legal) == 0 {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
@@ -248,7 +255,19 @@ func (e *Engine) resolveTop() {
 	sa := f.SpellAbility()
 	targets := o.Targets
 	if sa != nil {
-		if spec := sa.Params["ValidTgts"]; spec != "" && len(targets) > 0 {
+		// Fix round 2 (re-review N1), the same correction as the ability
+		// branch above, and the one that was actually reachable. Widening the
+		// departed-player release hook in fix round 1 turned a stall into a
+		// spell that RESOLVES with no targets at all: the caster is
+		// eliminated while their target decision is outstanding, the hook
+		// clears it so the match can continue, and the spell is left on the
+		// stack with Targets nil. Under the old `len(targets) > 0` gate that
+		// skipped the recheck and ran the whole script -- untargeted riders
+		// included -- gaining the ELIMINATED caster 7 life in the re-review's
+		// own reproduction. CR 608.2b counters a spell with no legal targets;
+		// CR 800.4a says a departed player's spell ceases to exist. Neither
+		// permits it to resolve.
+		if spec := sa.Params["ValidTgts"]; spec != "" {
 			legal := e.legalTargets(targets, spec, o.Controller)
 			if len(legal) == 0 {
 				// CR 608.2b: every target became illegal. This spell does
