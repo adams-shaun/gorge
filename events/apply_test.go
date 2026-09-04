@@ -177,6 +177,29 @@ func TestGameOverWithUnrecognizedAmountChangesNothing(t *testing.T) {
 	}
 }
 
+// TestGameOverWithAmountZeroAndInvalidPlayerChangesNothing is the Ruling
+// T22-l regression test (fix round 2): the win shape (Amount == 0) must
+// require a validated Player, not merely use one when present. The
+// fix-round-1 version of this case set Over unconditionally on Amount 0 and
+// only guarded Winner -- so {Amount: 0, Player: <out of range>} produced
+// Over=true Winner=0 (its untouched zero value): an invalid seat silently
+// reading as a real seat-0 win, the same defect class the Amount
+// discriminator exists to remove, just for the win shape instead of some
+// third Amount. An untrusted log naming no real winner under the win shape
+// must change nothing at all -- refusing to end the game is safe and
+// detectable; manufacturing a draw would fabricate a result the log never
+// carried.
+func TestGameOverWithAmountZeroAndInvalidPlayerChangesNothing(t *testing.T) {
+	g, l := twoPlayer(t)
+	Emit(g, l, Event{Kind: GameOver, Amount: 0, Player: 250})
+	if g.Over {
+		t.Fatal("GameOver{Amount: 0} with an invalid Player names no real winner and must not end the game")
+	}
+	if g.Winner != 0 || g.Draw {
+		t.Fatalf("Winner=%d Draw=%v, want both untouched", g.Winner, g.Draw)
+	}
+}
+
 func TestTurnChangeResetsPerTurnState(t *testing.T) {
 	g, l := twoPlayer(t)
 	id := g.Zone(state.ZLibrary, 1)[0]

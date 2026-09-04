@@ -63,6 +63,19 @@ func New(cfg Config) *Engine {
 	}
 	e.emit(events.Event{Kind: events.GameStart, Amount: int32(len(cfg.Names))})
 	for i, deck := range cfg.Decks {
+		if i >= len(cfg.Names) {
+			// Ruling T22-m (fix round 2): a malformed Config with more
+			// decks than named seats has nowhere to put the rest --
+			// state.NewGame above sizes g.zones from len(cfg.Names) alone,
+			// so PlayerID(i) here would index outside it and panic
+			// (SetZone -> zoneIndex -> an out-of-range g.zones write).
+			// Task 25 wires Config from a client, so a malformed one must
+			// degrade, not crash the one goroutine running the whole
+			// match; the excess decks are simply never dealt, the same
+			// spirit as the zero-alive guard below for a Config with no
+			// seats at all.
+			break
+		}
 		p := state.PlayerID(i)
 		ids := make([]state.ObjID, 0, len(deck))
 		for _, c := range deck {
