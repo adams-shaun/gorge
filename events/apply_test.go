@@ -136,6 +136,47 @@ func TestScalarEventsFold(t *testing.T) {
 	}
 }
 
+// TestGameOverFirstWinsAndSubsequentAreNoOps is the Ruling T22-g regression
+// test (fix round 1): before this fix, GameOver had no guard against a
+// second event on an already-finished game, so a log carrying a win
+// followed by a draw (a duplicate event, a replay quirk, a tampered log)
+// produced a game that was simultaneously Winner=1 and Draw=true. The
+// first GameOver must win; anything after it is a no-op.
+func TestGameOverFirstWinsAndSubsequentAreNoOps(t *testing.T) {
+	g, l := twoPlayer(t)
+	Emit(g, l, Event{Kind: GameOver, Player: 1, Amount: 0})
+	if !g.Over || g.Winner != 1 || g.Draw {
+		t.Fatalf("after the first GameOver: Over=%v Winner=%d Draw=%v, want Over=true Winner=1 Draw=false",
+			g.Over, g.Winner, g.Draw)
+	}
+	Emit(g, l, Event{Kind: GameOver, Amount: 1})
+	if !g.Over || g.Winner != 1 || g.Draw {
+		t.Fatalf("after a second GameOver (Amount 1, a draw shape): Over=%v Winner=%d Draw=%v, "+
+			"want unchanged (Over=true Winner=1 Draw=false) -- a game already won must not become drawn too",
+			g.Over, g.Winner, g.Draw)
+	}
+}
+
+// TestGameOverWithUnrecognizedAmountChangesNothing is the second half of the
+// Ruling T22-g regression test: GameOver defines exactly two shapes (Amount
+// 0 = win, Amount 1 = draw). Before this fix, Over was set unconditionally
+// regardless of Amount, so a tampered or malformed event with some third
+// Amount and an out-of-range Player -- naming no real seat at all -- still
+// ended the game, with Winner left at its zero value: indistinguishable
+// from a real seat-0 win, the exact ambiguity the Amount discriminator
+// exists to remove.
+func TestGameOverWithUnrecognizedAmountChangesNothing(t *testing.T) {
+	g, l := twoPlayer(t)
+	Emit(g, l, Event{Kind: GameOver, Amount: 7, Player: 250})
+	if g.Over {
+		t.Fatal("a GameOver whose Amount is neither 0 nor 1 is not a shape this build defines " +
+			"and must not end the game")
+	}
+	if g.Winner != 0 || g.Draw {
+		t.Fatalf("Winner=%d Draw=%v, want both untouched by an unrecognized GameOver shape", g.Winner, g.Draw)
+	}
+}
+
 func TestTurnChangeResetsPerTurnState(t *testing.T) {
 	g, l := twoPlayer(t)
 	id := g.Zone(state.ZLibrary, 1)[0]

@@ -76,6 +76,66 @@ func TestGenesisStopsAtEliminationDuringTheOpeningDraw(t *testing.T) {
 	}
 }
 
+// TestGenesisBeginsWithTheFirstAliveSeat is the Ruling T22-f regression test
+// (fix round 1): the previous fix only ever checked Over, which is false
+// whenever the seat that decked out is not the LAST one -- three seats,
+// only the first eliminated, still leaves two others to play the game out.
+// Genesis used to end with an unconditional beginTurn(0) regardless, handing
+// turn 1 to a player who is already out of the game. It must go to the
+// first seat still alive instead.
+func TestGenesisBeginsWithTheFirstAliveSeat(t *testing.T) {
+	names := []string{"a", "b", "c"}
+	cfg := Config{Seed: 5, Names: names,
+		Decks: [][]*cards.Card{mountainDeck(t, 3), mountainDeck(t, 40), mountainDeck(t, 40)}}
+	e := New(cfg)
+	e.Advance()
+
+	if e.G.Over {
+		t.Fatal("two seats remain after seat 0 decks out; the game is not over")
+	}
+	if !e.G.Players[0].Lost {
+		t.Fatal("seat 0 should be the one who decked out")
+	}
+	if e.G.Active == 0 {
+		t.Fatalf("Active = %d, an eliminated seat must not receive turn 1", e.G.Active)
+	}
+	if e.G.Active != 1 {
+		t.Fatalf("Active = %d, want 1 (the first seat still alive)", e.G.Active)
+	}
+	if e.G.Turn != 1 {
+		t.Fatalf("Turn = %d, want 1: the game should still have started for the surviving seats", e.G.Turn)
+	}
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("expected a live decision -- the game did start, just for the right seat")
+	}
+	if d.Player == 0 {
+		t.Fatalf("decision handed to the eliminated seat: %+v", d)
+	}
+}
+
+// TestNewWithNoSeatsDoesNotPanic is the Ruling T22-e regression test: a
+// zero-seat Config used to panic inside beginTurn(0) -- Zone(ZBattlefield, 0)
+// indexes a zones slice sized numZones*len(Players), which is empty with no
+// players at all. Pre-existing at BASE (dec046a), not introduced by Task 22,
+// but the genesis rewrite that fixes T22-f touches this exact line, so a
+// guarded "first alive seat" should make the zero-seat case fall out safely
+// rather than reaching index-out-of-range. A game with nobody in it is
+// trivially over (CR 104.4a's draw, vacuously) rather than a live game
+// nobody can ever submit anything to.
+func TestNewWithNoSeatsDoesNotPanic(t *testing.T) {
+	e := New(Config{})
+	if !e.G.Over {
+		t.Fatal("a zero-seat game should already be over")
+	}
+	if !e.G.Draw {
+		t.Fatal("a zero-seat game has no winner to name -- it should be recorded as a draw")
+	}
+	if e.Pending() != nil {
+		t.Fatalf("a decision is pending on a zero-seat game: %+v", e.Pending())
+	}
+}
+
 // TestReplayReconstructsPassesAndPriority is the Ruling A regression test:
 // Passes and Priority must flow through events, not direct field writes, so
 // that replaying the log alone (no rules-package code involved) reproduces

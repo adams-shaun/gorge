@@ -137,25 +137,44 @@ func Apply(g *state.Game, e Event) {
 		}
 
 	case GameOver:
-		// Over is unconditional -- the match ending is true regardless of
-		// what Player claims -- but Winner names a seat, so it gets the same
-		// guard as every other Player-keyed field.
-		//
-		// Ruling T22-a: Amount is the draw/winner discriminator, the same
+		// Ruling T22-g (fix round 1): the first GameOver wins; a later one
+		// on an already-finished game is a no-op. Without this guard, a log
+		// carrying two GameOver events (a duplicate, a replay quirk, a
+		// tampered log) produced a game simultaneously won (Winner set by
+		// the first) and drawn (Draw set by the second) -- Over alone
+		// cannot express "this event doesn't apply", so the guard has to
+		// live here, ahead of everything else in this case.
+		if g.Over {
+			break
+		}
+		// Ruling T22-a (Amount is the draw/winner discriminator, the same
 		// trick TargetsChosen already uses to tell its two target shapes
-		// apart. Amount == 1 means CR 104.4a's draw (every seat eliminated
-		// at once, or a malformed/tampered event naming no real winner):
-		// Winner is deliberately left untouched rather than defaulting to
-		// whatever Player carries, because PlayerID(0) is both Winner's zero
-		// value and a real seat -- there is no in-band value that would mean
-		// "nobody" there. Draw is the field that actually says so. Any other
-		// Amount means Player is the winner, validated the same as every
-		// other Player-keyed field in this switch.
-		g.Over = true
-		if e.Amount == 1 {
+		// apart), pinned down fully by T22-g: exactly two shapes are
+		// defined, and everything else is not a GameOver this build
+		// recognizes at all.
+		//   Amount == 0: a win. Winner is set when Player validates; a
+		//     malformed Player still ends the game (Over), just names no
+		//     winner -- Winner keeps its zero value rather than reading as
+		//     "seat 0 won" (see the untouched-on-a-bad-Player case below).
+		//   Amount == 1: CR 104.4a's draw. Winner is irrelevant; Draw says
+		//     so explicitly, since PlayerID(0) is both Winner's zero value
+		//     and a real seat and so cannot mean "nobody" on its own.
+		//   anything else: not a shape this Kind defines. Previously any
+		//     other Amount still set Over unconditionally and, since
+		//     Winner's own guard only ever checked validPlayer, a tampered
+		//     event naming an out-of-range Player under some third Amount
+		//     read as "seat 0 won" regardless -- exactly the ambiguity this
+		//     whole discriminator exists to remove. Changing nothing at all
+		//     is the safe response to a shape this build cannot interpret.
+		switch e.Amount {
+		case 0:
+			g.Over = true
+			if validPlayer(g, e.Player) {
+				g.Winner = e.Player
+			}
+		case 1:
+			g.Over = true
 			g.Draw = true
-		} else if validPlayer(g, e.Player) {
-			g.Winner = e.Player
 		}
 
 	case LandPlayed:

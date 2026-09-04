@@ -38,15 +38,41 @@ const maxSBAPasses = 32
 // half -- a lord dying can make a creature its own static was keeping alive
 // newly lethal, and that second creature must not survive to see a second,
 // separate checkStateBased call before it is caught.
+//
+// Ruling T22-h (fix round 1): "changed" must come from checkLoseConditions
+// and destroyLethalDamage observing actual state after they emit, never
+// from the fact that they emitted something. Engine.emit runs replacement
+// effects first (rules/trigger.go), and a matching replacement can discard
+// the very MoveZone this file proposes entirely -- a permanent this pass
+// thinks it destroyed can simply still be sitting on the battlefield once
+// the emit returns. The previous version of both functions reported
+// "changed" from the event it built, not from where the object ended up,
+// so a replacement that keeps a lethally-damaged permanent in play (a
+// regeneration shield, "sacrifice a Clue instead", or the reviewer's own
+// gain-1-life-instead reproduction) made every single pass "find" the same
+// permanent lethal again: not a one-time miscount but the full
+// maxSBAPasses budget, spent and reported as "changed", on every
+// checkStateBased call for the rest of the match. See destroyLethalDamage
+// and checkLoseConditions' removal sweep below for where the fix actually
+// lives; if maxSBAPasses is nonetheless exhausted (a genuine cycle, not a
+// replacement -- e.g. a static that keeps making a different creature
+// lethal forever), a Note event says so rather than the game quietly
+// carrying on with state-based actions still outstanding.
 func (e *Engine) checkStateBased() {
+	stable := false
 	for pass := 0; pass < maxSBAPasses; pass++ {
 		changed := e.checkLoseConditions()
 		if e.destroyLethalDamage() {
 			changed = true
 		}
 		if !changed {
+			stable = true
 			break
 		}
+	}
+	if !stable {
+		e.emit(events.Event{Kind: events.Note,
+			Text: "state-based actions did not reach a fixed point within the pass budget"})
 	}
 	e.checkGameOver()
 }
@@ -66,7 +92,13 @@ func (e *Engine) checkStateBased() {
 // same logic.
 //
 // Reports whether anything changed, which is what checkStateBased's own
-// pass loop uses to decide whether to run again.
+// pass loop uses to decide whether to run again. Ruling T22-h: the removal
+// sweep measures its own outcome (the zone's length before versus after
+// removePermanents) rather than reporting "changed" just because the zone
+// was non-empty going in -- a replacement that keeps one of these
+// permanents on the battlefield (CR 800.4a is not itself a replaceable
+// event, but the MoveZone this emits is exactly like any other) must not
+// make this sweep re-run for no reason on every remaining pass.
 func (e *Engine) checkLoseConditions() bool {
 	changed := false
 	for i := range e.G.Players {
@@ -78,8 +110,15 @@ func (e *Engine) checkLoseConditions() bool {
 	}
 	for i := range e.G.Players {
 		p := &e.G.Players[i]
-		if p.Lost && len(e.G.Zone(state.ZBattlefield, p.ID)) > 0 {
-			e.removePermanents(p.ID)
+		if !p.Lost {
+			continue
+		}
+		before := len(e.G.Zone(state.ZBattlefield, p.ID))
+		if before == 0 {
+			continue
+		}
+		e.removePermanents(p.ID)
+		if len(e.G.Zone(state.ZBattlefield, p.ID)) < before {
 			changed = true
 		}
 	}
@@ -96,6 +135,18 @@ func (e *Engine) removePermanents(p state.PlayerID) {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZExile, Text: "controller left the game"})
 	}
+}
+
+// casualty is one creature destroyLethalDamage has found lethal, together
+// with which CR 704.5 clause is why -- Ruling T22-i (fix round 1): 704.5f
+// (toughness <= 0) and 704.5g (lethal damage/deathtouch) are rules-distinct
+// (only one of them is actually "destruction", so only one of them is
+// something Indestructible or a replacement effect keyed on Destroy could
+// ever apply to), and the log should be able to tell them apart even though
+// Text carries no rules weight of its own.
+type casualty struct {
+	id   state.ObjID
+	text string
 }
 
 // destroyLethalDamage performs the two CR 704.5 state-based actions combat
@@ -121,12 +172,21 @@ func (e *Engine) removePermanents(p state.PlayerID) {
 // (dead is collected, then destroyed), so one creature's departure this same
 // pass can never retroactively change whether another one here counts as
 // lethal, matching CR 704.3's "state-based actions are performed
-// simultaneously" for one round of this check. Reports whether it destroyed
-// anything, which is what checkStateBased's pass loop uses to decide
-// whether a further pass -- one where a just-removed creature's own
-// continuous effects have now actually expired -- might find something new.
+// simultaneously" for one round of this check.
+//
+// Ruling T22-h (fix round 1): reports whether a candidate actually left the
+// battlefield, not whether a MoveZone was emitted for it. Engine.emit runs
+// replacement effects ahead of logging (rules/trigger.go), and a matching
+// replacement discards the proposed MoveZone outright -- the permanent
+// never moves, but the emit call still returns normally. The previous
+// version returned len(dead) > 0, which only ever asked "did this function
+// attempt a destruction", so a permanent kept in play by a replacement (a
+// regeneration shield, "sacrifice a Clue instead") read as "changed" on
+// every single pass, burning the full maxSBAPasses budget on every
+// checkStateBased call for the rest of the match instead of the one
+// attempt CR 704.5 actually calls for.
 func (e *Engine) destroyLethalDamage() bool {
-	var dead []state.ObjID
+	var dead []casualty
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			o := e.G.Obj(id)
@@ -138,7 +198,7 @@ func (e *Engine) destroyLethalDamage() bool {
 				continue
 			}
 			if e.Toughness(id) <= 0 {
-				dead = append(dead, id)
+				dead = append(dead, casualty{id, "toughness <= 0"})
 				continue
 			}
 			if o.Damage <= 0 {
@@ -150,14 +210,18 @@ func (e *Engine) destroyLethalDamage() bool {
 			if e.HasKeyword(id, "Indestructible") {
 				continue
 			}
-			dead = append(dead, id)
+			dead = append(dead, casualty{id, "lethal damage"})
 		}
 	}
-	for _, id := range dead {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id,
-			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
+	changed := false
+	for _, c := range dead {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: c.id,
+			From: state.ZBattlefield, To: state.ZGraveyard, Text: c.text})
+		if o := e.G.Obj(c.id); o == nil || o.Zone != state.ZBattlefield {
+			changed = true
+		}
 	}
-	return len(dead) > 0
+	return changed
 }
 
 // checkGameOver ends the game once at most one seat remains (CR 104.2a's
