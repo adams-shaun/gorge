@@ -626,44 +626,52 @@ func TestReplayFromLogAloneReconstructsOrderedAndOptionalTriggers(t *testing.T) 
 
 // TestOrderingDecisionInTheDrawStepDoesNotDrawTwice is the reason
 // putTriggersOnStack resumes into grantPriority rather than into
-// priorityRound. priorityRound is NOT idempotent: nothing between its
-// draw-step draw and the priority emit that follows changes Passes or
-// Priority, so re-entering it mid-round -- which is what Advance would do if
-// the trigger handlers simply returned and let the engine take another step --
-// draws the active player a second card and mills a card off their library
-// for free. That failure is completely silent: the stack, the log's event
-// kinds, and every decision the client sees are all exactly right.
+// priorityRound: an ordering decision asked mid-draw-step, once answered,
+// must not cause a second draw.
+//
+// Ruling T28-a (rewritten for Task 28): before Task 28, the draw step's draw
+// lived in priorityRound, and this test drove to its scenario by FORGING the
+// draw step's state directly -- raw TurnChange/StepChange/Priority emits,
+// never calling advanceStep at all -- because the property under test was
+// specifically that priorityRound's OWN draw-step guard is not idempotent:
+// nothing between its draw and the priority emit that followed it changed
+// Passes or Priority, so re-entering priorityRound mid-round (which is what
+// Advance would do if the trigger handlers simply returned and let the
+// engine take another step) drew the active player a second card. Task 28
+// deleted that guard and moved the draw to advanceStep, run once on entry to
+// the step and never again -- which removes this test's old PREMISE (there
+// is no more irreversible draw-step work sitting in priorityRound for a
+// re-entry to repeat) but not the PROPERTY it exists to pin: answering an
+// ordering decision asked in the draw step must still resume the round
+// without drawing again. This now drives the real path -- genesis, then
+// Advance/Submit passes through turn 1 and into turn 2's own draw step --
+// so the draw happens exactly where advanceStep performs it today, and the
+// property is pinned against the CURRENT mechanism rather than the deleted
+// one. See the Task 28 report for the mutant this now catches (the old one,
+// "point resumeTriggerDrain at priorityRound", no longer does, precisely
+// because priorityRound no longer draws at all).
 func TestOrderingDecisionInTheDrawStepDoesNotDrawTwice(t *testing.T) {
-	const drawWatchSrc = `Name:Chronicler
-ManaCost:U
-Types:Enchantment
-T:Mode$ ChangesZone | Origin$ Library | Destination$ Hand | ValidCard$ Card | Execute$ TrigGain | TriggerDescription$ gain 1 life
-SVar:TrigGain:DB$ GainLife | LifeAmount$ 1 | Defined$ You
-Oracle:x
-`
-	e := layerEngine(t)
-	onBoard(t, e, 0, drawWatchSrc)
-	onBoard(t, e, 0, drawWatchSrc)
-	// Stand the engine in turn 2's draw step with the active player yet to
-	// draw, which is the one point in a round where priorityRound does
-	// irreversible work before it reaches the trigger drain.
-	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 2})
-	e.emit(events.Event{Kind: events.StepChange, Step: state.StepDraw})
-	e.emit(events.Event{Kind: events.Priority, Player: 0, Amount: 0})
-	hand := len(e.G.Zone(state.ZHand, 0))
-	lib := len(e.G.Zone(state.ZLibrary, 0))
+	e := newSeats(t, 2)
+	onBoard(t, e, 1, drawTriggerSrc)
+	onBoard(t, e, 1, drawTriggerSrc)
+	// Baseline one step early, at upkeep: the Submit that transitions into
+	// StepDraw already performs the (single, correct) draw as part of that
+	// same call, before this test can observe hand/library sizes in between.
+	driveToStep(t, e, 2, 1, state.StepUpkeep)
+	hand := len(e.G.Zone(state.ZHand, 1))
+	lib := len(e.G.Zone(state.ZLibrary, 1))
 
-	e.Advance()
+	driveToStep(t, e, 2, 1, state.StepDraw)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KTriggerOrder {
 		t.Fatalf("pending = %+v, want the two draw triggers to ask for an order", d)
 	}
 	submit(t, e, 1, 0)
 
-	if got := len(e.G.Zone(state.ZHand, 0)); got != hand+1 {
+	if got := len(e.G.Zone(state.ZHand, 1)); got != hand+1 {
 		t.Fatalf("hand = %d, want %d — the draw step ran %d times", got, hand+1, got-hand)
 	}
-	if got := len(e.G.Zone(state.ZLibrary, 0)); got != lib-1 {
+	if got := len(e.G.Zone(state.ZLibrary, 1)); got != lib-1 {
 		t.Fatalf("library = %d, want %d — the draw step ran more than once", got, lib-1)
 	}
 	if d := e.Pending(); d == nil || d.Kind != decision.KPriority {
@@ -671,6 +679,11 @@ Oracle:x
 	}
 	if len(e.G.Stack) != 2 {
 		t.Fatalf("stack = %v, want both draw triggers placed", e.G.Stack)
+	}
+
+	passThroughStep(t, e, state.StepDraw, 100)
+	if e.G.Step == state.StepDraw {
+		t.Fatalf("the draw step never advanced (pending = %+v)", e.Pending())
 	}
 }
 
