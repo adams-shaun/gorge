@@ -220,6 +220,15 @@ func Apply(g *state.Game, e Event) {
 		for _, id := range e.IDs {
 			o.Remembered = append(o.Remembered, state.Target{Obj: id})
 		}
+
+	case EndCombatReset:
+		// No Player or Obj to validate: this clears every object in the
+		// arena unconditionally, the same as ClockTick touches no
+		// Player/Obj-indexed field either.
+		for i := range g.Objs {
+			g.Objs[i].IsAttacking = false
+			g.Objs[i].BlockedBy = nil
+		}
 	}
 }
 

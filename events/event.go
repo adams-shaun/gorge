@@ -89,6 +89,22 @@ const (
 	// unaffected by this Kind's own shape -- only its ordinal, appended here
 	// after ClockTick, is new.
 	TriggerPush
+	// EndCombatReset clears every object's IsAttacking/BlockedBy fields.
+	// Ruling T21-a (Task 21 fix round 1): rules.setStep used to do this with
+	// a direct loop over e.G.Objs when entering StepEndCombat or
+	// StepCleanup, instead of emitting anything -- a violation of "all state
+	// mutation goes through events.Apply" that was structurally present
+	// before Task 21 but stayed inert (IsAttacking/BlockedBy were never
+	// actually set to a non-zero value by anything) until real combat made
+	// it observable: a log-only reconstruction, having never been told
+	// combat ended, kept a surviving attacker/blocker marked IsAttacking/
+	// BlockedBy forever, while the live game correctly cleared both.
+	// Carries no fields (same shape as ClockTick): the reset, applied to
+	// every object in the arena, is its whole effect. Appended here,
+	// following TriggerPush's own precedent, so every earlier Kind's
+	// ordinal, the hash chain, and any golden replay already locked in are
+	// unaffected.
+	EndCombatReset
 )
 
 var kindNames = [...]string{"game_start", "shuffle", "move_zone", "draw",
@@ -96,7 +112,7 @@ var kindNames = [...]string{"game_start", "shuffle", "move_zone", "draw",
 	"stack_resolve", "mana_add", "mana_clear", "counter", "declare_attackers",
 	"declare_blockers", "player_lost", "game_over", "decision_ask",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
-	"clock_tick", "trigger_push"}
+	"clock_tick", "trigger_push", "end_combat_reset"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

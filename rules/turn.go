@@ -30,10 +30,11 @@ func (e *Engine) setStep(s state.Step) {
 		}
 	}
 	if s == state.StepEndCombat || s == state.StepCleanup {
-		for i := range e.G.Objs {
-			e.G.Objs[i].IsAttacking = false
-			e.G.Objs[i].BlockedBy = nil
-		}
+		// Ruling T21-a: routed through an event (events.EndCombatReset), not
+		// a direct field write -- a log-only replay must learn that combat
+		// ended and IsAttacking/BlockedBy were cleared, not just observe it
+		// as a fait accompli baked into a live Engine's memory.
+		e.emit(events.Event{Kind: events.EndCombatReset})
 	}
 }
 

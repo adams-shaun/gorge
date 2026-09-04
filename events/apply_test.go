@@ -735,3 +735,42 @@ func TestTriggerPushKindString(t *testing.T) {
 		t.Fatalf("TriggerPush.String() = %q, want %q", got, want)
 	}
 }
+
+// TestEndCombatResetClearsIsAttackingAndBlockedBy is Ruling T21-a's carrier:
+// rules.setStep used to clear these two fields with a direct loop over
+// e.G.Objs instead of emitting anything, so a log-only reconstruction never
+// learned combat had ended. This exercises Apply's own EndCombatReset case in
+// isolation (no rules.Engine involved), on two objects: one still marked as
+// attacking/blocked, and one already clear, confirming the clear one is left
+// alone (not just that the case doesn't panic).
+func TestEndCombatResetClearsIsAttackingAndBlockedBy(t *testing.T) {
+	g, l := twoPlayer(t)
+	attacker := g.Obj(g.Zone(state.ZLibrary, 0)[0])
+	attacker.Zone = state.ZBattlefield
+	attacker.IsAttacking = true
+	attacker.Attacking = 1
+	blocker := g.Obj(g.Zone(state.ZLibrary, 1)[0])
+	blocker.Zone = state.ZBattlefield
+	attacker.BlockedBy = []state.ObjID{blocker.ID}
+
+	untouched := g.Obj(g.Zone(state.ZLibrary, 0)[1])
+	untouched.Zone = state.ZBattlefield
+
+	Emit(g, l, Event{Kind: EndCombatReset})
+
+	if attacker.IsAttacking {
+		t.Error("IsAttacking should be cleared")
+	}
+	if attacker.BlockedBy != nil {
+		t.Errorf("BlockedBy = %v, want nil", attacker.BlockedBy)
+	}
+	if untouched.IsAttacking || untouched.BlockedBy != nil {
+		t.Fatal("an already-clear object should stay clear, not merely not panic")
+	}
+}
+
+func TestEndCombatResetKindString(t *testing.T) {
+	if got, want := EndCombatReset.String(), "end_combat_reset"; got != want {
+		t.Fatalf("EndCombatReset.String() = %q, want %q", got, want)
+	}
+}

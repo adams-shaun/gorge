@@ -149,14 +149,28 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 // there is a real declare-blockers step but no decision whose answer could
 // differ from "block with nothing" -- both skip straight to the combat-damage
 // step, the same reasoning askAttackers applies to its own empty case.
+//
+// Ruling T21-b (Task 21 fix round 1): the attacker-collection loop below
+// additionally requires Face() != nil. DeclareAttackers's own events.Apply
+// case sets IsAttacking on any existing object with no such check (Player is
+// validated, but nothing about the object it names), so a malformed or
+// tampered event -- or a nil-Card object such as an ability's own stack
+// object (Ruling F3) -- reaching IsAttacking used to make it as far as the
+// label build a few lines down, which read e.G.Obj(aid).Face().Name
+// unconditionally: a nil-pointer panic, and therefore a remote kill of the
+// whole match (one goroutine runs it). canAttack already requires this for a
+// real attacker, so no legitimate attacker is excluded by requiring it here
+// too.
 func (e *Engine) askBlockers() {
 	var attackers []state.ObjID
 	var defender state.PlayerID
 	for _, id := range e.G.Zone(state.ZBattlefield, e.G.Active) {
-		if o := e.G.Obj(id); o != nil && o.IsAttacking {
-			attackers = append(attackers, id)
-			defender = o.Attacking
+		o := e.G.Obj(id)
+		if o == nil || !o.IsAttacking || o.Face() == nil {
+			continue
 		}
+		attackers = append(attackers, id)
+		defender = o.Attacking
 	}
 	if len(attackers) == 0 {
 		e.setStep(state.StepCombatDamage)
@@ -262,12 +276,37 @@ type assignment struct {
 	deathtouch bool
 }
 
+// actsThisDamageStep reports whether id deals damage during this pass of
+// dealCombatDamage (CR 510.5): Double Strike acts in both the first-strike
+// and the regular step; First Strike (without Double Strike) acts only in
+// the first-strike step; everything else acts only in the regular step.
+func (e *Engine) actsThisDamageStep(id state.ObjID, firstStrike bool) bool {
+	if e.HasKeyword(id, "Double Strike") {
+		return true
+	}
+	if e.HasKeyword(id, "First Strike") {
+		return firstStrike
+	}
+	return !firstStrike
+}
+
 // damageStep computes and then applies one round of combat damage --
 // first-strike creatures only, or everyone else, per firstStrike. Every
 // Power/Toughness/HasKeyword read above the emit loop happens before any
 // Damage event this step produces is applied, which is what makes two
 // creatures that would each kill the other both actually die instead of the
 // first one's death sparing the second.
+//
+// Ruling T21-c (Task 21 fix round 1): a first-strike attacker's own forward
+// damage (to its blockers or the defending player) is gated on
+// actsThisDamageStep, exactly as before, but the "blockers hit back" section
+// below is not -- it used to sit inside the same gate, so a first-strike
+// attacker skipped its own regular-step turn (correctly) but that same
+// `continue` also skipped ever collecting a surviving, non-first-strike
+// blocker's regular-step damage back at it. Each blocker's own hit-back
+// entry is now independently gated on that blocker's own
+// actsThisDamageStep, which is the only thing CR 510.4 actually conditions
+// it on.
 func (e *Engine) damageStep(firstStrike bool) {
 	var as []assignment
 	for _, aid := range e.G.Zone(state.ZBattlefield, e.G.Active) {
@@ -275,48 +314,73 @@ func (e *Engine) damageStep(firstStrike bool) {
 		if !a.IsAttacking || a.Zone != state.ZBattlefield {
 			continue
 		}
-		fs := e.HasKeyword(aid, "First Strike") || e.HasKeyword(aid, "Double Strike")
-		if fs != firstStrike && !(e.HasKeyword(aid, "Double Strike") && !firstStrike) {
-			continue
-		}
-		pw := e.Power(aid)
-		if pw <= 0 {
-			continue
-		}
-		link := e.HasKeyword(aid, "Lifelink")
-		dt := e.HasKeyword(aid, "Deathtouch")
-
 		blockers := e.liveBlockers(a)
-		if len(blockers) == 0 {
-			as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
-				lifelink: a.Controller, hasLink: link})
-			continue
+
+		if e.actsThisDamageStep(aid, firstStrike) {
+			if pw := e.Power(aid); pw > 0 {
+				link := e.HasKeyword(aid, "Lifelink")
+				dt := e.HasKeyword(aid, "Deathtouch")
+				trample := e.HasKeyword(aid, "Trample")
+				switch {
+				case len(a.BlockedBy) == 0:
+					// Genuinely unblocked: full damage to the defending player.
+					as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
+						lifelink: a.Controller, hasLink: link})
+
+				case len(blockers) == 0:
+					// Ruling T21-d (CR 509.1h): a creature that was blocked
+					// stays blocked for the rest of combat even if every
+					// creature blocking it has since left -- it deals no
+					// combat damage at all, unless Trample lets the whole
+					// amount push through to the player instead (there is no
+					// blocker left to owe any of it to).
+					if trample {
+						as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
+							lifelink: a.Controller, hasLink: link})
+					}
+
+				default:
+					// Ruling T21-e (CR 510.1c): lethal damage to each
+					// blocker, in declaration order, before any spills to
+					// the next. Which blocker(s) receive more than lethal
+					// when Trample is absent and power exceeds every
+					// blocker's combined toughness is really the attacking
+					// player's choice (CR 510.1a); turning that into a real
+					// decision is new scope this fix does not take on, so
+					// the deterministic approximation is: every blocker
+					// except the last is capped at its own need, and the
+					// last absorbs whatever remains (Trample instead caps
+					// every blocker, spilling any true excess to the
+					// defending player below).
+					remaining := pw
+					for i, bid := range blockers {
+						need := e.Toughness(bid)
+						if dt {
+							need = 1
+						}
+						give := remaining
+						if (trample || i < len(blockers)-1) && give > need {
+							give = need
+						}
+						as = append(as, assignment{toObj: bid, amount: give,
+							lifelink: a.Controller, hasLink: link, deathtouch: dt})
+						remaining -= give
+						if remaining <= 0 {
+							break
+						}
+					}
+					if remaining > 0 && trample {
+						as = append(as, assignment{toPlayer: a.Attacking, amount: remaining,
+							lifelink: a.Controller, hasLink: link})
+					}
+				}
+			}
 		}
-		remaining := pw
+
+		// Blockers hit back -- independent of whether the attacker itself
+		// acted this step above (Ruling T21-c).
 		for _, bid := range blockers {
-			need := e.Toughness(bid)
-			if dt {
-				need = 1
-			}
-			give := remaining
-			if e.HasKeyword(aid, "Trample") && give > need {
-				give = need
-			}
-			as = append(as, assignment{toObj: bid, amount: give,
-				lifelink: a.Controller, hasLink: link, deathtouch: dt})
-			remaining -= give
-			if remaining <= 0 {
-				break
-			}
-		}
-		if remaining > 0 && e.HasKeyword(aid, "Trample") {
-			as = append(as, assignment{toPlayer: a.Attacking, amount: remaining,
-				lifelink: a.Controller, hasLink: link})
-		}
-		// Blockers hit back.
-		for _, bid := range blockers {
-			bfs := e.HasKeyword(bid, "First Strike") || e.HasKeyword(bid, "Double Strike")
-			if bfs != firstStrike && !(e.HasKeyword(bid, "Double Strike") && !firstStrike) {
+			if !e.actsThisDamageStep(bid, firstStrike) {
 				continue
 			}
 			if bp := e.Power(bid); bp > 0 {
