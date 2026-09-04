@@ -38,16 +38,22 @@ import (
 //     (From.Hidden() && To.Hidden()) and the moved object is not visible
 //     to viewer (visibleTo, below). A move FROM a public zone stays public
 //     -- everyone already saw the permanent bounce to hand.
-//  3. Not Secret, every other kind: any id referenced by Obj, IDs or Pairs
-//     is stripped when it is not visible to viewer.
+//  3. Not Secret, every other kind EXCEPT Note: any id referenced by Obj,
+//     IDs or Pairs is stripped when it is not visible to viewer. Note is
+//     exempt (Ruling T23-w): a Note is the engine's explicit "tell
+//     everyone" channel -- effReveal/effRevealHand/effPeekAndReveal
+//     (effects/cardflow.go) exist specifically to show hidden cards to
+//     EVERY seat via a public Note, so a Note is public unless its own
+//     emitter says otherwise by setting Secret, which rule (1) above
+//     already handles in full. effRearrangeTopOfLibrary's Note (the one
+//     Note that must NOT be public -- a private look at the library) is
+//     therefore Secret itself, not filtered by this rule.
 //
-// Rules (2) and (3) are what closes review finding C-1: two pre-existing,
-// non-Secret emitters put a hidden-zone object's id into an event's payload
-// -- rules/trigger.go's TriggerPush.IDs (Ctx.Remembered; for a "whenever
-// you draw a card" trigger, the ChangesZone-mode T: line this engine uses
-// to express that, this is the card now sitting in its owner's hand) and
-// effects/cardflow.go's RearrangeTopOfLibrary Note (a private look, whose
-// IDs are the top-of-library cards it looked at). Neither can be fixed by
+// Rule (3) is what closes review finding C-1's TriggerPush half:
+// rules/trigger.go's TriggerPush.IDs (Ctx.Remembered; for a "whenever you
+// draw a card" trigger, the ChangesZone-mode T: line this engine uses to
+// express that, this is the card now sitting in its owner's hand) names a
+// hidden-zone object without ever setting Secret, and cannot be fixed by
 // widening the Secret+Player contract at the emitter: TriggerPush's Player
 // is the trigger's CONTROLLER (Apply needs it to mint the ability object),
 // which is not the same seat as the remembered card's OWNER, so
@@ -55,6 +61,9 @@ import (
 // the event's own Player" for that case at all. Redaction has to be
 // state-aware instead, checking each referenced id's actual owner against
 // the game rather than trusting the event's own Player field to name it.
+// C-1's other half, effRearrangeTopOfLibrary's Note, is closed by making it
+// Secret (see effects/cardflow.go) rather than by rule (3), per Ruling
+// T23-w above.
 //
 // visibleTo's "an unresolvable id is not visible" is the safe default for
 // both rule (2) and rule (3): an id nothing can currently resolve (stale
@@ -93,6 +102,16 @@ func RedactEvents(g *state.Game, evs []events.Event, viewer state.PlayerID) []ev
 			if e.From.Hidden() && e.To.Hidden() && !visibleTo(g, e.Obj, viewer) {
 				e.Obj = 0
 			}
+		case events.Note:
+			// Ruling T23-w: rule 3 does not apply to a non-Secret Note at
+			// all -- it passes through unchanged. A Note is the engine's
+			// explicit "tell everyone" channel (Reveal/RevealHand/
+			// PeekAndReveal exist to show hidden cards to every seat via
+			// one), so it is public unless the emitter opted it into
+			// Secret instead, which the branch above already handles.
+			// effRearrangeTopOfLibrary's private look is the counterexample
+			// that must NOT be public, and it is Secret for exactly that
+			// reason -- not filtered here.
 		default:
 			if !visibleTo(g, e.Obj, viewer) {
 				e.Obj = 0

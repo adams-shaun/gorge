@@ -444,17 +444,55 @@ func TestRedactEventsStripsTriggerPushRememberingAnotherSeatsHand(t *testing.T) 
 // TestRedactEventsStripsNoteCarryingAnotherSeatsLibraryIDs is
 // effRearrangeTopOfLibrary's leak: a private look at the top of the
 // library, published non-Secret.
-func TestRedactEventsStripsNoteCarryingAnotherSeatsLibraryIDs(t *testing.T) {
+// TestRedactEventsPassesANonSecretNoteThroughUnchanged is Ruling T23-w
+// (fix round 2): a Note is the engine's explicit "tell everyone" channel,
+// so rule 3 exempts it entirely -- only Secret opts a Note out of that, and
+// rule 1 already handles Secret. This is effReveal's own shape (Reveal/
+// RevealHand/PeekAndReveal): a non-Secret Note naming cards that are still
+// physically sitting in another seat's hand must reach every viewer whole,
+// including a spectator, because the whole point of a reveal is that
+// everyone now knows what those cards are.
+func TestRedactEventsPassesANonSecretNoteThroughUnchanged(t *testing.T) {
+	g := fourSeatBoard(t)
+	handIDs := append([]state.ObjID(nil), g.Zone(state.ZHand, 1)...)
+	evs := []events.Event{
+		{Seq: 0, Kind: events.Note, Player: 1, Text: "reveals cards", IDs: handIDs},
+	}
+	for _, viewer := range []state.PlayerID{0, 200} { // a non-owner, and a spectator
+		out := RedactEvents(g, evs, viewer)
+		if len(out[0].IDs) != len(handIDs) {
+			t.Fatalf("viewer %d: a revealed Note was altered: got %v, want %v", viewer, out[0].IDs, handIDs)
+		}
+		for i, id := range out[0].IDs {
+			if id != handIDs[i] {
+				t.Fatalf("viewer %d: a revealed Note's ids changed: got %v, want %v", viewer, out[0].IDs, handIDs)
+			}
+		}
+		if out[0].Text != "reveals cards" || out[0].Player != 1 {
+			t.Fatalf("viewer %d: a revealed Note's shape changed: %+v", viewer, out[0])
+		}
+	}
+}
+
+// TestRedactEventsReducesASecretNoteToItsShape is Ruling T23-w's other
+// half: effRearrangeTopOfLibrary's private look opts a Note OUT of the
+// "public by default" rule by setting Secret, so it is governed entirely
+// by rule 1 (the same shape-only reduction any other Secret event gets),
+// not by rule 3's Note exemption.
+func TestRedactEventsReducesASecretNoteToItsShape(t *testing.T) {
 	g := fourSeatBoard(t)
 	libIDs := append([]state.ObjID(nil), g.Zone(state.ZLibrary, 1)[:3]...)
 	evs := []events.Event{
 		{Seq: 0, Kind: events.Note, Player: 1,
-			Text: "looks at the top of the library, order unchanged", IDs: libIDs},
+			Text: "looks at the top of the library, order unchanged", IDs: libIDs, Secret: true},
 	}
 	for _, viewer := range []state.PlayerID{0, 200} {
 		out := RedactEvents(g, evs, viewer)
-		if len(out[0].IDs) != 0 {
-			t.Fatalf("viewer %d: Note still names seat 1's library ids: %v", viewer, out[0].IDs)
+		if len(out[0].IDs) != 0 || out[0].Text != "" {
+			t.Fatalf("viewer %d: a Secret Note kept its payload: %+v", viewer, out[0])
+		}
+		if out[0].Kind != events.Note || out[0].Player != 1 || !out[0].Secret {
+			t.Fatalf("viewer %d: a Secret Note's own shape was lost: %+v", viewer, out[0])
 		}
 	}
 	owner := RedactEvents(g, evs, 1)

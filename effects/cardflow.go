@@ -196,6 +196,14 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 // M1 keeps the existing order -- the choice of a new order is Task 20's
 // territory -- so the only observable effect is the Note recording what was
 // seen.
+//
+// Unlike effReveal's Note (a deliberate reveal, public to every seat), this
+// one is a private LOOK: only p, the library's own owner, may know what sat
+// on top. Ruling T23-w makes a Note public by default (view.RedactEvents'
+// rule 3 exempts Note entirely, on the theory that a Note IS the engine's
+// "tell everyone" channel), so the one Note that must stay private has to
+// opt OUT by being Secret -- the same shape rules/engine.go's Shuffle and
+// this file's own effDraw already use for their own hidden-zone payloads.
 func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "NumCards", 1)
 	if n < 0 {
@@ -210,8 +218,9 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 			k = int32(len(lib))
 		}
 		h.Emit(events.Event{Kind: events.Note, Player: p,
-			Text: "looks at the top of the library, order unchanged",
-			IDs:  append([]state.ObjID(nil), lib[:k]...)})
+			Text:   "looks at the top of the library, order unchanged",
+			IDs:    append([]state.ObjID(nil), lib[:k]...),
+			Secret: true})
 	}
 }
 

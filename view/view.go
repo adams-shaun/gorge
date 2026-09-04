@@ -9,7 +9,9 @@
 // state-aware, not merely Secret-flag-aware, because an event's Player
 // field does not always name the seat whose secret its payload is (a
 // trigger's controller and the owner of the card it remembered can be two
-// different seats) — see RedactEvents' own doc for the three rules.
+// different seats) — see RedactEvents' own doc for the three rules. An
+// events.Note is always public unless its own emitter marks it Secret
+// (Ruling T23-w): it is the engine's explicit "tell everyone" channel.
 package view
 
 import (
