@@ -16,9 +16,19 @@ import (
 )
 
 // pendingTrigger is a matched trigger waiting to be placed on the stack.
+//
+// Idx is Source's own Face().Triggers index for the matched T: line. SA is
+// kept alongside it (the brief's own interface names both Source and SA)
+// even though putTriggersOnStack ends up re-deriving the ability from
+// Source+Idx rather than using SA directly: Ruling T20-a means the eventual
+// stack object is created inside events.Apply, which cannot carry a raw
+// *cards.SA pointer through the log -- only data (an ObjID and a small
+// index) that lets Apply find the same *cards.SA a live engine already
+// holds.
 type pendingTrigger struct {
 	Source     state.ObjID
 	Controller state.PlayerID
+	Idx        int
 	SA         *cards.SA
 	Ctx        effects.Ctx
 }
@@ -128,6 +138,7 @@ func (e *Engine) checkTriggers(ev events.Event) {
 			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 				Source:     id,
 				Controller: o.Controller,
+				Idx:        ti,
 				SA:         t.Effect,
 				Ctx: effects.Ctx{
 					Source:     id,
@@ -190,16 +201,22 @@ func (e *Engine) putTriggersOnStack() {
 	})
 
 	for _, pt := range pending {
-		o := e.G.AddObject(nil, pt.Controller)
-		o.Ability = pt.SA
-		o.Source = pt.Source
-		o.Remembered = pt.Ctx.Remembered
-		// AddObject leaves a fresh object in ZLibrary (it was never
-		// inserted into any zone list); this Move is what actually places
-		// it in the stack's object list through the ordinary event path,
-		// same as everything else Task 20 changes about game state.
-		e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
-			From: state.ZLibrary, To: state.ZStack, Text: "triggered ability"})
+		// Ruling T20-a: the stack object itself is minted inside
+		// events.Apply's TriggerPush case, not here -- a direct,
+		// unlogged Game.AddObject call (as this used to be) names an
+		// ObjID a log-only replay never learns about, so its own
+		// zone-placement Move silently no-ops and the replayed stack
+		// permanently diverges from the live one. Player/Obj/Amount/IDs
+		// are all Apply needs to recreate the same object: the
+		// permanent (pt.Source), its Triggers index (pt.Idx, so Apply
+		// re-derives the *cards.SA rather than needing to log a
+		// pointer), the controller, and the Remembered object(s).
+		ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
+		for _, tgt := range pt.Ctx.Remembered {
+			ids = append(ids, tgt.Obj)
+		}
+		e.emit(events.Event{Kind: events.TriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Amount: int32(pt.Idx), IDs: ids, Text: "triggered ability"})
 	}
 }
 
@@ -302,11 +319,12 @@ func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events
 	}
 	// Casting a spell means an actual card entering the stack. This build
 	// also uses PutOnStack-shaped Move()s for nothing else today (triggered
-	// abilities go on the stack via a plain MoveZone -- putTriggersOnStack,
-	// above), but a Face()-less object could otherwise satisfy a bare
-	// "Any"/"Spell" ValidCard$ regardless (matchesBase's Spell/Any cases
-	// don't consult Face()), so this guard holds regardless of how a future
-	// ability-object path might reach here. Ruling F3.
+	// abilities go on the stack via a dedicated TriggerPush event --
+	// putTriggersOnStack, above, and events.Apply's TriggerPush case), but a
+	// Face()-less object could otherwise satisfy a bare "Any"/"Spell"
+	// ValidCard$ regardless (matchesBase's Spell/Any cases don't consult
+	// Face()), so this guard holds regardless of how a future ability-object
+	// path might reach here. Ruling F3.
 	obj := e.G.Obj(ev.Obj)
 	if obj == nil || obj.Face() == nil {
 		return false

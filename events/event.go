@@ -71,6 +71,24 @@ const (
 	// so every earlier Kind's numeric value, the hash chain, and any golden
 	// replay already locked in are unaffected.
 	ClockTick
+	// TriggerPush creates a triggered ability's stack object and places it
+	// on the stack, in one event. Ruling T20-a: a live rules.Engine used to
+	// mint this object with a direct, unlogged Game.AddObject call and then
+	// emit a plain MoveZone naming its (already-assigned) ObjID -- but a log
+	// replayed with no Engine behind it never learns that ID exists, so
+	// events.Move's "if o == nil { return }" guard silently no-ops and the
+	// replayed stack permanently diverges from the live one. This event
+	// carries what Apply needs to recreate the object itself: Player is its
+	// controller, Obj is the permanent whose trigger fired (Object.Source),
+	// Amount is that permanent's Face().Triggers index (so Apply re-derives
+	// the *cards.SA to run -- a raw pointer cannot be logged, only the data
+	// that lets it be found again), and IDs is the triggering event's
+	// Remembered object(s). No new Event field was added: Player/Obj/Amount/
+	// IDs already exist and are reused, exactly as the brief's Ruling
+	// requires, so the hash chain and every earlier golden replay are
+	// unaffected by this Kind's own shape -- only its ordinal, appended here
+	// after ClockTick, is new.
+	TriggerPush
 )
 
 var kindNames = [...]string{"game_start", "shuffle", "move_zone", "draw",
@@ -78,7 +96,7 @@ var kindNames = [...]string{"game_start", "shuffle", "move_zone", "draw",
 	"stack_resolve", "mana_add", "mana_clear", "counter", "declare_attackers",
 	"declare_blockers", "player_lost", "game_over", "decision_ask",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
-	"clock_tick"}
+	"clock_tick", "trigger_push"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

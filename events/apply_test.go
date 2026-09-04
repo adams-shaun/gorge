@@ -612,3 +612,89 @@ func TestClockTickKindString(t *testing.T) {
 		t.Fatalf("ClockTick.String() = %q, want %q", got, want)
 	}
 }
+
+// triggerCard is a permanent with one T: line, for TriggerPush's own tests.
+// Its Execute$ SVar (TrigDraw, a DB$ Draw) is what a resolved ability object
+// should end up carrying as its Ability.
+func triggerCard(t *testing.T) *cards.Card {
+	t.Helper()
+	c, d := cards.ParseBytes("t.txt", []byte(`Name:Scribe
+ManaCost:1 U
+Types:Creature Human
+PT:1/1
+T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDraw | TriggerDescription$ draw
+SVar:TrigDraw:DB$ Draw | NumCards$ 1 | Defined$ You
+Oracle:x
+`))
+	if len(d) != 0 {
+		t.Fatalf("diags: %v", d)
+	}
+	c.Link()
+	return c
+}
+
+// TestTriggerPushCreatesTheAbilityObjectOnTheStack is Ruling T20-a's carrier:
+// the ability object must be minted inside Apply itself (from Player/Obj/
+// Amount/IDs, no new Event field), not by a direct, unlogged Game.AddObject
+// call from rules.Engine, or a log-only replay can never recreate it.
+func TestTriggerPushCreatesTheAbilityObjectOnTheStack(t *testing.T) {
+	g, l := twoPlayer(t)
+	scribe := triggerCard(t)
+	src := g.AddObject(scribe, 0)
+	src.Zone = state.ZBattlefield
+	g.SetZone(state.ZBattlefield, 0, []state.ObjID{src.ID})
+
+	before := len(g.Objs)
+	remembered := state.ObjID(999) // an arbitrary "triggering object" id for this focused test
+	Emit(g, l, Event{Kind: TriggerPush, Player: 0, Obj: src.ID, Amount: 0, IDs: []state.ObjID{remembered}})
+
+	if len(g.Objs) != before+1 {
+		t.Fatalf("object count = %d, want %d (one ability object created)", len(g.Objs), before+1)
+	}
+	if len(g.Stack) != 1 {
+		t.Fatalf("stack = %v, want the ability object", g.Stack)
+	}
+	ability := g.Obj(g.Stack[0])
+	if ability.Card != nil {
+		t.Fatal("ability object must have no Face (Ruling F3)")
+	}
+	if ability.Ability == nil || ability.Ability.API != "Draw" {
+		t.Fatalf("Ability = %+v, want Scribe's Execute$ SVar (a Draw SA)", ability.Ability)
+	}
+	if ability.Source != src.ID {
+		t.Fatalf("Source = %d, want %d (the permanent whose trigger fired)", ability.Source, src.ID)
+	}
+	if ability.Controller != 0 || ability.Owner != 0 {
+		t.Fatalf("Controller/Owner = %d/%d, want 0/0", ability.Controller, ability.Owner)
+	}
+	if len(ability.Remembered) != 1 || ability.Remembered[0].Obj != remembered {
+		t.Fatalf("Remembered = %v, want [{Obj: %d}]", ability.Remembered, remembered)
+	}
+}
+
+// TestTriggerPushDegradesGracefullyForAMissingSourceOrIndex covers totality:
+// a nonexistent source, or a trigger index this permanent's Face doesn't
+// have (stale data, a tampered log), must no-op rather than panic.
+func TestTriggerPushDegradesGracefullyForAMissingSourceOrIndex(t *testing.T) {
+	g, l := twoPlayer(t)
+	before := len(g.Objs)
+	Emit(g, l, Event{Kind: TriggerPush, Player: 0, Obj: 999999, Amount: 0})
+	if len(g.Objs) != before {
+		t.Fatalf("object count = %d, want unchanged %d for a nonexistent source", len(g.Objs), before)
+	}
+
+	scribe := triggerCard(t)
+	src := g.AddObject(scribe, 0)
+	src.Zone = state.ZBattlefield
+	before = len(g.Objs)
+	Emit(g, l, Event{Kind: TriggerPush, Player: 0, Obj: src.ID, Amount: 99})
+	if len(g.Objs) != before {
+		t.Fatalf("object count = %d, want unchanged %d for an out-of-range trigger index", len(g.Objs), before)
+	}
+}
+
+func TestTriggerPushKindString(t *testing.T) {
+	if got, want := TriggerPush.String(), "trigger_push"; got != want {
+		t.Fatalf("TriggerPush.String() = %q, want %q", got, want)
+	}
+}

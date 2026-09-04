@@ -148,6 +148,35 @@ func Apply(g *state.Game, e Event) {
 
 	case ClockTick:
 		g.Clock++
+
+	case TriggerPush:
+		// Ruling T20-a: the ability object is minted here, inside Apply, so
+		// a log-only replay creates the exact same object a live game did --
+		// not via a direct, unlogged AddObject call from rules.Engine. e.Obj
+		// names the permanent whose trigger fired; a permanent that no
+		// longer exists, or an out-of-range trigger index (stale data, a
+		// tampered log), degrades to a no-op rather than panicking.
+		src := g.Obj(e.Obj)
+		if src == nil {
+			break
+		}
+		f := src.Face()
+		if f == nil || e.Amount < 0 || int(e.Amount) >= len(f.Triggers) {
+			break
+		}
+		o := g.AddObject(nil, e.Player)
+		// Move first (it resets Remembered, among other stack-only fields,
+		// for anything other than a battlefield destination -- see Move's
+		// own default case below), then set what the ability actually
+		// carries. Setting these before Move would have them wiped by that
+		// same reset; ordering them after is what makes Remembered actually
+		// survive onto the stack (Ruling T20-c).
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = f.Triggers[e.Amount].Effect
+		o.Source = e.Obj
+		for _, id := range e.IDs {
+			o.Remembered = append(o.Remembered, state.Target{Obj: id})
+		}
 	}
 }
 

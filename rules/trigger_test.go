@@ -1,8 +1,12 @@
 package rules
 
 import (
+	"fmt"
+	"reflect"
+	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -416,4 +420,223 @@ Oracle:x
 	if e.G.Obj(id).Zone != state.ZHand {
 		t.Fatalf("zone = %s, want hand: an unrelated destination must not be replaced", e.G.Obj(id).Zone)
 	}
+}
+
+// --- Fix round 1: Findings 1-4. These specifically verify the effect of a
+// resolved trigger lands on the *correct* object -- Defined$ You/Player (as
+// every test above uses) read c.Controller and are immune to both Ruling
+// T20-b (Ctx.Source) and T20-c (Ctx.Remembered), which is exactly why the
+// first round's 246 passing tests gave false confidence. NumAtt$ here is
+// always a literal, never an SVar reference, so these are not entangled
+// with the separate effects/count.go gaps the report already flags for
+// Piledriver/Mimic.
+
+func TestTriggerEffectAppliesToTheSourceNotTheAbilityWrapper(t *testing.T) {
+	// Ruling T20-b regression: resolveTop's ability branch used to build
+	// Ctx.Source from the transient stack-object id instead of o.Source, so
+	// Defined$ Self -- the single most common Defined$ value in real
+	// trigger scripts -- pointed at the wrapper rather than the permanent,
+	// and the pump silently applied to nothing.
+	src := `Name:Bully
+ManaCost:1 R
+Types:Creature Goblin
+PT:2/2
+T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigPump | TriggerDescription$ x
+SVar:TrigPump:DB$ Pump | Defined$ Self | NumAtt$ +3 | NumDef$ +3
+Oracle:x
+`
+	e := layerEngine(t)
+	id := onBoard(t, e, 0, src)
+	if got := e.Power(id); got != 2 {
+		t.Fatalf("power before attacking = %d, want 2", got)
+	}
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 0, IDs: []state.ObjID{id}})
+	e.putTriggersOnStack()
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack = %v, want the attack trigger queued", e.G.Stack)
+	}
+	e.resolveTop()
+	if got := e.Power(id); got != 5 {
+		t.Fatalf("power after the trigger resolved = %d, want 5 (2 base + 3 pump landed on Bully itself)", got)
+	}
+}
+
+func TestTriggerEffectAppliesToTheRememberedObject(t *testing.T) {
+	// Ruling T20-c regression: events.Move's zone-leave reset used to wipe
+	// Object.Remembered on the very MoveZone that placed the ability on the
+	// stack (ZStack falls into Move's "leaving play" default case, the same
+	// as every non-battlefield destination), so Defined$ Remembered always
+	// read back empty and the pump silently applied to nothing.
+	src := `Name:Watcher
+ManaCost:1 U
+Types:Creature Wizard
+PT:1/1
+T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Creature.Other | Execute$ TrigPump | TriggerDescription$ x
+SVar:TrigPump:DB$ Pump | Defined$ Remembered | NumAtt$ +1 | NumDef$ +1
+Oracle:x
+`
+	e := layerEngine(t)
+	watcher := onBoard(t, e, 0, src)
+	other := e.G.AddObject(card(t, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), 0)
+	other.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 0, []state.ObjID{other.ID})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: other.ID, From: state.ZHand, To: state.ZBattlefield})
+	e.putTriggersOnStack()
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack = %v, want the ChangesZone trigger queued", e.G.Stack)
+	}
+	if got := e.G.Obj(e.G.Stack[0]).Remembered; len(got) != 1 || got[0].Obj != other.ID {
+		t.Fatalf("Remembered = %v, want [{Obj: %d}] (the entering Bear, not Watcher)", got, other.ID)
+	}
+	e.resolveTop()
+	if got := e.Power(other.ID); got != 3 {
+		t.Fatalf("bear power = %d, want 3 (2 base + 1 pump landed on the remembered object)", got)
+	}
+	if got := e.Power(watcher); got != 1 {
+		t.Fatalf("watcher power = %d, want unchanged 1 -- the pump must not land on the trigger's own source", got)
+	}
+}
+
+// TestReplayFromLogAloneReconstructsTriggeredAbilities is Ruling T20-a's
+// regression test: a game log folded into a fresh Game with no rules.Engine
+// behind it -- exactly what a real replay-from-log-alone does -- must
+// reconstruct the same state a live game reached, triggered abilities
+// included. Before the fix, the ability wrapper's ObjID was assigned by a
+// direct, unlogged Game.AddObject call; a log-only reconstruction never
+// learned that ID existed, so the MoveZone that placed it on the stack
+// silently no-op'd (events.Move's "if o == nil { return }" guard) and the
+// replayed stack permanently diverged from the live one.
+func TestReplayFromLogAloneReconstructsTriggeredAbilities(t *testing.T) {
+	// The trigger-bearing creature must reach the battlefield through
+	// ordinary logged events, not the onBoard test helper every other test
+	// in this file uses -- onBoard's whole point is to bypass the log
+	// (its own doc comment says so), which is exactly what this test must
+	// not do: it is specifically checking that replaying the log *alone*
+	// reconstructs the live game, so the Scribe has to actually be part of
+	// a deck (genesis's own AddObject calls, which replayFromLog
+	// independently reconstructs the same way) and move by MoveZone events.
+	scribe := card(t, etbDrawSrc)
+	deck0 := append([]*cards.Card{scribe}, mountainDeck(t, 39)...)
+	cfg := Config{Seed: 7, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{deck0, mountainDeck(t, 40)}}
+	e := New(cfg)
+
+	// Genesis's shuffle puts the Scribe somewhere in player 0's library or
+	// opening hand; find it deterministically rather than depending on
+	// where the shuffle happened to land it.
+	var id state.ObjID
+	for _, cand := range e.G.Zone(state.ZHand, 0) {
+		if e.G.Obj(cand).Face().Name == "Scribe" {
+			id = cand
+			break
+		}
+	}
+	if id == 0 {
+		for _, cand := range e.G.Zone(state.ZLibrary, 0) {
+			if e.G.Obj(cand).Face().Name == "Scribe" {
+				id = cand
+				break
+			}
+		}
+		if id == 0 {
+			t.Fatal("Scribe not found in player 0's library or hand")
+		}
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZHand})
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	e.putTriggersOnStack()
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack = %v, want the triggered ability queued", e.G.Stack)
+	}
+	e.resolveTop()
+	if len(e.G.Stack) != 0 {
+		t.Fatalf("stack = %v, want the ability resolved off the stack", e.G.Stack)
+	}
+	afterTrigger := len(e.L.Events)
+
+	// Drive ordinary turn structure on top of the trigger too, so the
+	// replayed log also has to reconstruct Priority/Passes/StepChange/
+	// TurnChange correctly, not just the one trigger.
+	passAll(t, e, 60)
+
+	fresh := replayFromLog(t, cfg, e.L.Events)
+	if diff := diffGames(e.G, fresh); diff != "" {
+		t.Fatalf("replay from the log alone diverged from the live game:\n%s", diff)
+	}
+
+	// Control: dropping the trigger's own final event (the ability
+	// wrapper's move from the stack to exile) must be detected as a
+	// divergence, or this test could pass vacuously.
+	truncated := replayFromLog(t, cfg, e.L.Events[:afterTrigger-1])
+	if diff := diffGames(e.G, truncated); diff == "" {
+		t.Fatal("control: a truncated log should diverge from the live game, but diffGames found no difference")
+	}
+}
+
+// replayFromLog reconstructs a Game from cfg's decks (replicating rules.New's
+// own unlogged genesis AddObject calls, in the same per-deck order) plus
+// every event in log, applied via events.Apply directly -- no rules.Engine
+// involved, exactly what a real replay-from-log-alone would do.
+func replayFromLog(t *testing.T, cfg Config, log []events.Event) *state.Game {
+	t.Helper()
+	g := state.NewGame(cfg.Names)
+	for i, deck := range cfg.Decks {
+		p := state.PlayerID(i)
+		ids := make([]state.ObjID, 0, len(deck))
+		for _, c := range deck {
+			ids = append(ids, g.AddObject(c, p).ID)
+		}
+		g.SetZone(state.ZLibrary, p, ids)
+	}
+	for _, ev := range log {
+		events.Apply(g, ev)
+	}
+	return g
+}
+
+// diffGames reports every structural difference between two games, or ""
+// if they match exactly. Mirrors events.TestApplyIsPure's own comparison
+// shape (Players, Objs, Stack, each zone, and the turn-structure scalars)
+// rather than a whole-struct reflect.DeepEqual, so a mismatch is reported
+// with enough detail to diagnose.
+func diffGames(a, b *state.Game) string {
+	var diffs []string
+	if !reflect.DeepEqual(a.Players, b.Players) {
+		diffs = append(diffs, fmt.Sprintf("players: %+v vs %+v", a.Players, b.Players))
+	}
+	n := len(a.Objs)
+	if len(b.Objs) > n {
+		n = len(b.Objs)
+	}
+	for i := 0; i < n; i++ {
+		var ao, bo any
+		if i < len(a.Objs) {
+			ao = a.Objs[i]
+		}
+		if i < len(b.Objs) {
+			bo = b.Objs[i]
+		}
+		if !reflect.DeepEqual(ao, bo) {
+			diffs = append(diffs, fmt.Sprintf("obj[%d]: %+v vs %+v", i+1, ao, bo))
+		}
+	}
+	if !reflect.DeepEqual(a.Stack, b.Stack) {
+		diffs = append(diffs, fmt.Sprintf("stack: %v vs %v", a.Stack, b.Stack))
+	}
+	for p := state.PlayerID(0); int(p) < len(a.Players); p++ {
+		for _, z := range []state.Zone{state.ZLibrary, state.ZHand, state.ZBattlefield, state.ZGraveyard, state.ZExile} {
+			az, bz := a.Zone(z, p), b.Zone(z, p)
+			if !reflect.DeepEqual(az, bz) {
+				diffs = append(diffs, fmt.Sprintf("p%d:%s: %v vs %v", p, z, az, bz))
+			}
+		}
+	}
+	if a.Turn != b.Turn || a.Active != b.Active || a.Clock != b.Clock ||
+		a.Priority != b.Priority || a.Passes != b.Passes || a.Step != b.Step || a.Over != b.Over {
+		diffs = append(diffs, fmt.Sprintf(
+			"scalars: turn=%d/%d active=%d/%d clock=%d/%d priority=%d/%d passes=%d/%d step=%s/%s over=%v/%v",
+			a.Turn, b.Turn, a.Active, b.Active, a.Clock, b.Clock,
+			a.Priority, b.Priority, a.Passes, b.Passes, a.Step, b.Step, a.Over, b.Over))
+	}
+	return strings.Join(diffs, "\n")
 }

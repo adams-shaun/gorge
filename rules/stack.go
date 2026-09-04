@@ -194,7 +194,15 @@ func (e *Engine) resolveTop() {
 				svars = sf.SVars
 			}
 		}
-		ctx := &effects.Ctx{Source: id, Controller: o.Controller,
+		// Ruling T20-b: Source must be o.Source (the permanent that has this
+		// ability), not id (the transient stack-object wrapper) -- Defined$
+		// Self, the most common Defined$ value in real trigger scripts,
+		// resolves to Ctx.Source, and a wrapper ID means "Self" refers to a
+		// stack object with no Face() that leaves play the instant this
+		// resolves, so the effect would silently apply to nothing. The SVar
+		// lookup two lines above already gets this right by reading from
+		// o.Source; this was a one-line inconsistency, not a second design.
+		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
 			Targets: o.Targets, Remembered: o.Remembered}
 		effects.SetSVars(ctx, svars)
 		effects.Resolve(e, ctx, o.Ability)
