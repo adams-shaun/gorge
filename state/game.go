@@ -88,6 +88,9 @@ func (g *Game) Clone() *Game {
 		if n := g.Objs[i].Targets; n != nil {
 			c.Objs[i].Targets = append([]Target(nil), n...)
 		}
+		if n := g.Objs[i].Remembered; n != nil {
+			c.Objs[i].Remembered = append([]Target(nil), n...)
+		}
 		if n := g.Objs[i].BlockedBy; n != nil {
 			c.Objs[i].BlockedBy = append([]ObjID(nil), n...)
 		}

@@ -35,6 +35,13 @@ type Object struct {
 	Ability *cards.SA
 	Source  ObjID
 	Targets []Target
+	// Remembered carries a triggered ability's Ctx.Remembered from the
+	// moment it was queued (rules.checkTriggers) through to resolution. An
+	// ability object has no Face (Ruling F3) and therefore no card-script
+	// route back to "the object that caused this trigger" once it is
+	// sitting on the stack, so that has to be data on the object itself,
+	// the same way Targets already is for a genuine chosen target. Task 20.
+	Remembered []Target
 
 	// Combat-only.
 	IsAttacking bool

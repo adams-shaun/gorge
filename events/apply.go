@@ -189,6 +189,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.BlockedBy = nil
 		o.Counters = nil
 		o.Targets = nil
+		o.Remembered = nil
 	}
 }
 

@@ -38,6 +38,19 @@ type Engine struct {
 	// continuous holds every registered continuous effect, live or expired.
 	// The layer system (layers.go) is the only reader and writer.
 	continuous []ContinuousEffect
+
+	// pendingTriggers holds matched triggers not yet placed on the stack.
+	// checkTriggers appends; putTriggersOnStack drains. Task 20 (trigger.go).
+	pendingTriggers []pendingTrigger
+	// applyingReplacement guards re-entrancy: while a replacement effect's
+	// own resolution is running, nested emits skip the replacement check
+	// entirely, so a replacement that re-emits a matching event cannot
+	// replace itself again. Task 20.
+	applyingReplacement bool
+	// triggerFireCount and damageOnceFired are trigger.go's own bookkeeping
+	// (cascade bound and the DamageDealtOnce once-per-turn gate); see there.
+	triggerFireCount map[triggerKey]int32
+	damageOnceFired  map[triggerKey]int32
 }
 
 const openingHand = 7
@@ -69,7 +82,25 @@ func New(cfg Config) *Engine {
 	return e
 }
 
-func (e *Engine) emit(ev events.Event) { events.Emit(e.G, e.L, ev) }
+// emit is the engine's single mutation entry point. Task 20 inserts
+// replacement effects ahead of logging and trigger discovery behind it:
+// applyReplacements runs first (skipped, via applyingReplacement, while
+// another replacement's own resolution is already in flight, which is what
+// keeps a self-replacing event from looping), and if it substitutes the
+// event, the original is discarded rather than logged -- the substitute's
+// own emit (from inside effects.Resolve) already logged whatever needed
+// logging. Otherwise the event is logged and folded into state exactly as
+// before, and checkTriggers then looks for anything it just made true.
+func (e *Engine) emit(ev events.Event) events.Event {
+	if !e.applyingReplacement {
+		if replaced, handled := e.applyReplacements(ev); handled {
+			return replaced
+		}
+	}
+	stored := events.Emit(e.G, e.L, ev)
+	e.checkTriggers(stored)
+	return stored
+}
 
 func (e *Engine) Pending() *decision.Decision { return e.pending }
 

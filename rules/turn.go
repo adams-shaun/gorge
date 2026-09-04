@@ -77,6 +77,9 @@ func (e *Engine) priorityRound() {
 	if e.G.Over {
 		return
 	}
+	// CR 117.5: state-based actions and triggered abilities are handled
+	// before any player receives priority.
+	e.putTriggersOnStack()
 	holder := e.G.Priority
 	if e.G.Players[holder].Lost {
 		holder = e.G.NextAlive(holder)

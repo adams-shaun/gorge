@@ -172,15 +172,32 @@ func (e *Engine) resolveTop() {
 		// A triggered or activated ability with no printed card: Ruling
 		// T14-c / F3 -- Face() returns nil for these, so this branch must
 		// run before anything below touches it. Task 20 is what actually
-		// puts objects like this on the stack; nothing in Task 14 creates
-		// one, so this path is defensive rather than exercised here.
+		// puts objects like this on the stack.
 		// CR 608.2m: a resolved ability just ceases to exist rather than
 		// moving to a card zone. This build has no "ceases to exist" zone,
-		// so it is parked in exile as the closest existing approximation;
-		// Task 20 owns getting this exactly right.
+		// so it is parked in exile as the closest existing approximation.
 		e.emit(events.Event{Kind: events.Resolve, Obj: id})
-		// No Face means no SVar table either, so this passes nil.
-		e.resolveAbility(id, o.Controller, o.Targets, o.Ability, nil)
+		// The ability object itself has no Face, so its SVar table (needed
+		// for Num's SVar indirection, e.g. Goblin Piledriver's "NumAtt$ +X")
+		// comes from the permanent that granted it (o.Source) instead.
+		// SVars are static card-script text that never changes after
+		// parsing, so reading them live from the source's current Face at
+		// resolution time is equivalent to a snapshot taken when the
+		// trigger was queued, with no need for a new field to carry one
+		// through the stack. A source that has since left the battlefield
+		// (or ceased to exist) has nothing to read here and degrades to a
+		// nil SVar table, same as before this ability object existed at
+		// all, rather than panicking.
+		var svars map[string]string
+		if src := e.G.Obj(o.Source); src != nil {
+			if sf := src.Face(); sf != nil {
+				svars = sf.SVars
+			}
+		}
+		ctx := &effects.Ctx{Source: id, Controller: o.Controller,
+			Targets: o.Targets, Remembered: o.Remembered}
+		effects.SetSVars(ctx, svars)
+		effects.Resolve(e, ctx, o.Ability)
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZExile})
 		return
 	}
