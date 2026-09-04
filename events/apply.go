@@ -60,8 +60,18 @@ func Apply(g *state.Game, e Event) {
 			g.Turn = e.Amount
 			g.Active = e.Player
 			g.Players[e.Player].LandsPlayed = 0
+			// g.Zone(ZBattlefield, e.Player) can only ever hold IDs that Move
+			// already confirmed are real objects, so this nil check is
+			// currently unreachable in practice -- but it is one line, it
+			// matches every other zone-walk in this switch (DeclareAttackers,
+			// DeclareBlockers) that guards g.Obj before dereferencing, and it
+			// stops that invariant from becoming a silent, easy-to-reopen
+			// panic if a future Kind ever populates a zone list some other
+			// way. Found in the same audit as Ruling T20-e.
 			for _, id := range g.Zone(state.ZBattlefield, e.Player) {
-				g.Obj(id).SummonSick = false
+				if o := g.Obj(id); o != nil {
+					o.SummonSick = false
+				}
 			}
 		}
 
@@ -95,6 +105,16 @@ func Apply(g *state.Game, e Event) {
 		}
 
 	case DeclareAttackers:
+		// e.Player names the attacking player for every ID in this event, so
+		// it is validated once, like TurnChange/Priority above, rather than
+		// per object. Nothing reads Object.Attacking yet, so an unvalidated
+		// value cannot panic today -- but it is the same untrusted-seat-id
+		// pattern as Ruling T20-e, found in the same audit, and closing it
+		// now costs nothing for a well-formed event (Player is always valid
+		// there).
+		if !validPlayer(g, e.Player) {
+			break
+		}
 		for _, id := range e.IDs {
 			if o := g.Obj(id); o != nil {
 				o.IsAttacking = true
@@ -117,8 +137,16 @@ func Apply(g *state.Game, e Event) {
 		}
 
 	case GameOver:
+		// Over is unconditional -- the match ending is true regardless of
+		// what Player claims -- but Winner names a seat, so it gets the same
+		// guard as every other Player-keyed field. Like DeclareAttackers'
+		// Attacking above, nothing reads Winner yet, so this cannot panic
+		// today; guarded anyway as the same untrusted-seat-id pattern found
+		// in the Ruling T20-e audit.
 		g.Over = true
-		g.Winner = e.Player
+		if validPlayer(g, e.Player) {
+			g.Winner = e.Player
+		}
 
 	case LandPlayed:
 		if validPlayer(g, e.Player) {
@@ -156,6 +184,21 @@ func Apply(g *state.Game, e Event) {
 		// names the permanent whose trigger fired; a permanent that no
 		// longer exists, or an out-of-range trigger index (stale data, a
 		// tampered log), degrades to a no-op rather than panicking.
+		//
+		// Ruling T20-e: Player must be checked too, same as every sibling
+		// case in this switch that indexes a Player-keyed slice (LifeChange,
+		// TurnChange, Priority, ManaAdd, ManaClear). This case skipped it,
+		// and an out-of-range Player flows straight into g.AddObject below,
+		// then into Move's zoneOwner/SetZone/zoneIndex path, which indexes
+		// g.zones (sized numZones*len(g.Players) at NewGame) with no bounds
+		// check of its own -- panic: index out of range. Unreachable via
+		// ordinary self-play (Player is always sourced from a real object's
+		// controller) but directly reachable replaying an external,
+		// corrupted, or tampered log -- exactly the case this event exists
+		// to support.
+		if !validPlayer(g, e.Player) {
+			break
+		}
 		src := g.Obj(e.Obj)
 		if src == nil {
 			break
