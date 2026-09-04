@@ -1,11 +1,13 @@
 package rules
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -28,6 +30,14 @@ Types:Enchantment
 T:Mode$ Phase | Phase$ Upkeep | Execute$ TrigDrain | TriggerDescription$ lose life equal to your life total
 SVar:TrigDrain:DB$ LoseLife | LifeAmount$ X | Defined$ You
 SVar:X:Count$YourLifeTotal
+Oracle:x
+`
+
+const mournerSrc = `Name:Mourner
+ManaCost:B
+Types:Enchantment
+T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature | Execute$ TrigMourn | TriggerDescription$ gain 8 life
+SVar:TrigMourn:DB$ GainLife | LifeAmount$ 8 | Defined$ You
 Oracle:x
 `
 
@@ -270,13 +280,6 @@ Oracle:x
 // order preserved across the interruption, the late arrival placed AFTER the
 // settled group, and the player NOT asked to order the same triggers again.
 func TestTriggerArrivingDuringADecisionCannotCorruptTheQueue(t *testing.T) {
-	const mournerSrc = `Name:Mourner
-ManaCost:B
-Types:Enchantment
-T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature | Execute$ TrigMourn | TriggerDescription$ gain 8 life
-SVar:TrigMourn:DB$ GainLife | LifeAmount$ 8 | Defined$ You
-Oracle:x
-`
 	e := layerEngine(t)
 	a := onBoard(t, e, 0, gainerSrc)
 	b := onBoard(t, e, 0, mayGainSrc)
@@ -666,4 +669,325 @@ Oracle:x
 	if len(e.G.Stack) != 2 {
 		t.Fatalf("stack = %v, want both draw triggers placed", e.G.Stack)
 	}
+}
+
+// --- Fix round 1 -----------------------------------------------------------
+
+// TestPriorityIsNeverGrantedWithTriggersStillQueued is CR 117.5, and review
+// finding F1(a). Task 27 made grantPriority reachable from inside handle,
+// which runs BEFORE Submit's tail checkStateBased -- so a creature that a
+// state-based action is about to sweep was still alive when the drain
+// finished, and its death trigger reached the stack only after the priority
+// holder had already acted. That is a stack order a player can see and lose
+// to: an instant cast with that priority ends up UNDER the trigger.
+//
+// Before the fix: `stack when priority granted = 2, queued = 1`.
+func TestPriorityIsNeverGrantedWithTriggersStillQueued(t *testing.T) {
+	e := layerEngine(t)
+	a := onBoard(t, e, 0, gainerSrc)
+	b := onBoard(t, e, 0, drainerSrc)
+	mourner := onBoard(t, e, 0, mournerSrc)
+	doomed := onBoard(t, e, 0, "Name:Doomed\nManaCost:G\nTypes:Creature Bear\nPT:1/1\nOracle:x\n")
+	e.G.Obj(doomed).Damage = 5 // lethal, but no state-based action has swept it
+	e.G.Active = 0
+
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepUpkeep})
+	if !e.putTriggersOnStack() {
+		t.Fatal("expected an ordering decision")
+	}
+	submit(t, e, 0, 1)
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("pending = %+v, want priority granted", d)
+	}
+	if n := len(e.pendingTriggers); n != 0 {
+		t.Fatalf("priority granted with %d trigger(s) still queued (stack = %d) — CR 117.5",
+			n, len(e.G.Stack))
+	}
+	if e.G.Obj(doomed).Zone != state.ZGraveyard {
+		t.Fatal("the lethally-damaged creature was still on the battlefield when priority was granted")
+	}
+	want := []state.ObjID{a, b, mourner}
+	if len(e.G.Stack) != len(want) {
+		t.Fatalf("stack = %v, want all three abilities placed before priority", e.G.Stack)
+	}
+	for i, src := range want {
+		if got := e.G.Obj(e.G.Stack[i]).Source; got != src {
+			t.Fatalf("stack[%d] is from %d, want %d", i, got, src)
+		}
+	}
+}
+
+// TestPriorityIsNeverGrantedToAPlayerAboutToBeSweptOut is review finding
+// F1(b), the hang. Three seats, so the elimination does not end the game.
+// Seat 2 holds priority and is already at zero life with no state-based
+// action run yet; seat 0 answers an ordering decision. Before the fix,
+// handle granted priority to seat 2 while they were still alive, Submit's
+// tail checkStateBased then eliminated them, and the old release hook
+// covered only the two trigger kinds -- leaving a pending priority decision
+// against a departed player with G.Over false and Advance unable to make any
+// progress. One goroutine per match, so that is a leaked goroutine and a
+// dead game.
+func TestPriorityIsNeverGrantedToAPlayerAboutToBeSweptOut(t *testing.T) {
+	e := newSeats(t, 3)
+	onBoard(t, e, 0, gainerSrc)
+	onBoard(t, e, 0, drainerSrc)
+	e.G.Active = 0
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepUpkeep})
+	e.emit(events.Event{Kind: events.Priority, Player: 2})
+	e.emit(events.Event{Kind: events.LifeChange, Player: 2, Amount: -20})
+	e.pending = nil
+
+	if !e.putTriggersOnStack() {
+		t.Fatal("expected an ordering decision for player 0")
+	}
+	submit(t, e, 0, 1)
+
+	if e.G.Over {
+		t.Fatal("a three-seat game ended on one elimination")
+	}
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("the engine is stranded: nothing pending and nothing left to run it")
+	}
+	if e.G.Players[d.Player].Lost {
+		t.Fatalf("%s decision is against player %d, who has left the game — the match can never proceed",
+			d.Kind, d.Player)
+	}
+	before := len(e.L.Events)
+	e.Advance()
+	if len(e.L.Events) == before && e.Pending() == nil {
+		t.Fatal("Advance made no progress and nothing is pending")
+	}
+	if n := passAll(t, e, 6); n == 0 {
+		t.Fatal("the match could not take another action")
+	}
+}
+
+// TestADecisionAgainstADepartedPlayerIsReleased covers the widened release
+// hook directly, for a decision kind that is not one of Task 27's. Review
+// finding F2: the old hook's justification -- that the two trigger decisions
+// were the only ones asked from inside handle -- is false. handlePriority ->
+// castSpell (stack.go) -> askTarget asks a KTarget decision from inside
+// handle too, so a state-based action in Submit's tail can strand it exactly
+// the same way.
+func TestADecisionAgainstADepartedPlayerIsReleased(t *testing.T) {
+	e := newSeats(t, 3)
+	e.pending = nil
+	e.ask(&decision.Decision{Player: 1, Kind: decision.KTarget, Min: 1, Max: 1,
+		Prompt:  "choose a target",
+		Options: []decision.Option{{Index: 0, Kind: "player", Label: "a", Player: 0}}})
+	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -20})
+
+	e.checkStateBased()
+
+	if e.G.Over {
+		t.Fatal("a three-seat game ended on one elimination")
+	}
+	if !e.G.Players[1].Lost {
+		t.Fatal("player 1 was not eliminated")
+	}
+	if d := e.Pending(); d != nil && e.G.Players[d.Player].Lost {
+		t.Fatalf("%s decision left pending against departed player %d", d.Kind, d.Player)
+	}
+}
+
+// TestAnsweredOptionalTriggerIsNeverAskedTwice is review finding F4. The
+// front-of-queue guard in handleTriggerOptional used to fail into doing
+// nothing at all, so the drain immediately asked the SAME trigger's optional
+// question again: the player's answer was consumed (its Seq is spent) and
+// silently discarded. This forces that guard's mismatch by hand -- nothing on
+// a reachable path puts a different entry at the front between an ask and its
+// answer -- and asserts the answer is honoured rather than re-asked.
+func TestAnsweredOptionalTriggerIsNeverAskedTwice(t *testing.T) {
+	e, ids := upkeepEngine(t, mayGainSrc)
+	if !e.putTriggersOnStack() {
+		t.Fatal("expected an optional-trigger decision")
+	}
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTriggerOptional {
+		t.Fatalf("pending = %+v, want an optional-trigger decision", d)
+	}
+	// Put a foreign, mandatory entry at the front of the queue, which is the
+	// exact shape the defensive guard exists for.
+	other := onBoard(t, e, 0, gainerSrc)
+	foreign := pendingTrigger{Source: other, Controller: 0, Idx: 0,
+		SA:  e.G.Obj(other).Face().Triggers[0].Effect,
+		Ctx: effects.Ctx{Source: other, Controller: 0}}
+	e.pendingTriggers = append([]pendingTrigger{foreign}, e.pendingTriggers...)
+	e.orderedTriggers = 2
+
+	submit(t, e, 1) // no
+
+	if p := e.Pending(); p != nil && p.Kind == decision.KTriggerOptional && p.Source == ids[0] {
+		t.Fatalf("the same optional trigger (%d) was asked about again after being declined", ids[0])
+	}
+	for _, pt := range e.pendingTriggers {
+		if pt.Source == ids[0] {
+			t.Fatalf("the declined trigger %d is still queued", ids[0])
+		}
+	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.TriggerPush && ev.Obj == ids[0] {
+			t.Fatalf("the declined trigger %d reached the stack", ids[0])
+		}
+	}
+}
+
+// TestDiffGamesSeesTheGameResult is review finding F6. diffGames is the
+// harness every replay proof in this package leans on, and Task 24 inherits
+// it. It compared Players, Objs, Stack, the zones and most turn scalars, but
+// not Winner, Draw or NextID -- so a game that ended in a draw compared equal
+// to one seat 0 won.
+func TestDiffGamesSeesTheGameResult(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		mut  func(g *state.Game)
+	}{
+		{"winner", func(g *state.Game) { g.Over, g.Winner = true, 1 }},
+		{"draw", func(g *state.Game) { g.Over, g.Draw = true, true }},
+		{"next id", func(g *state.Game) { g.NextID = 99 }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a := state.NewGame([]string{"a", "b"})
+			a.Over = true
+			b := a.Clone()
+			tc.mut(b)
+			if diff := diffGames(a, b); diff == "" {
+				t.Fatalf("diffGames cannot see a difference in %s", tc.name)
+			}
+		})
+	}
+}
+
+// TestTriggerDrainInvariantsUnderRandomizedPlay is the measurement fix round
+// 1 owes the re-drain that resumeTriggerDrain now performs. The concern is
+// specific: re-entering putTriggersOnStack after state-based actions have
+// queued more work must not re-sort or re-offer triggers whose order a player
+// has already fixed. Rather than argue that from e.orderedTriggers, this
+// plays many games and asserts it, alongside the two properties fix round 1
+// exists to restore.
+//
+// Invariants checked after every single Submit, on every game:
+//
+//	I1  CR 117.5 — no priority decision is ever handed out with triggers
+//	    still queued.
+//	I2  No decision of any kind is ever pending against a player who has
+//	    left the game (the hang).
+//	I3  0 <= orderedTriggers <= len(pendingTriggers), and zero when empty.
+//	I4  No ordering decision is ever offered twice with the identical option
+//	    set and no TriggerPush in between — a re-offer of a settled group.
+func TestTriggerDrainInvariantsUnderRandomizedPlay(t *testing.T) {
+	const maxDecisions = 400
+	games, decisions, orders, optionals, eliminations := 0, 0, 0, 0, 0
+	for _, seats := range []int{2, 3, 4} {
+		for seed := uint64(1); seed <= 40; seed++ {
+			names := make([]string, seats)
+			decks := make([][]*cards.Card, seats)
+			for i := range names {
+				names[i] = string(rune('a' + i))
+				decks[i] = mountainDeck(t, 40)
+			}
+			e := New(Config{Seed: seed, Names: names, Decks: decks})
+			// Give every seat two or three simultaneous upkeep triggers, so
+			// several controllers are asked to order in the same round, and
+			// include the life-draining one so seats really are eliminated
+			// mid-decision.
+			for p := 0; p < seats; p++ {
+				onBoard(t, e, state.PlayerID(p), gainerSrc)
+				onBoard(t, e, state.PlayerID(p), mayGainSrc)
+				if p%2 == 0 {
+					onBoard(t, e, state.PlayerID(p), drainerSrc)
+				}
+			}
+			e.Advance()
+			games++
+
+			r := newRNG(seed * 7)
+			lastOffer, pushesAtOffer := "", -1
+			pushes := func() int {
+				n := 0
+				for _, ev := range e.L.Events {
+					if ev.Kind == events.TriggerPush {
+						n++
+					}
+				}
+				return n
+			}
+			for n := 0; n < maxDecisions && !e.G.Over; n++ {
+				d := e.Pending()
+				if d == nil {
+					break
+				}
+				// I2, checked on the decision as offered.
+				if e.G.Players[d.Player].Lost {
+					t.Fatalf("seats=%d seed=%d: %s decision pending against departed player %d",
+						seats, seed, d.Kind, d.Player)
+				}
+				// I3.
+				if e.orderedTriggers < 0 || e.orderedTriggers > len(e.pendingTriggers) {
+					t.Fatalf("seats=%d seed=%d: orderedTriggers=%d, queue=%d",
+						seats, seed, e.orderedTriggers, len(e.pendingTriggers))
+				}
+				var choices []int
+				switch d.Kind {
+				case decision.KPriority:
+					// I1.
+					if len(e.pendingTriggers) != 0 {
+						t.Fatalf("seats=%d seed=%d: priority granted with %d trigger(s) queued — CR 117.5",
+							seats, seed, len(e.pendingTriggers))
+					}
+					choices = []int{r.IntN(len(d.Options))}
+				case decision.KTriggerOrder:
+					// I4.
+					offer := fmt.Sprintf("p%d:", d.Player)
+					for _, o := range d.Options {
+						offer += fmt.Sprintf("%d,", o.Obj)
+					}
+					if offer == lastOffer && pushes() == pushesAtOffer {
+						t.Fatalf("seats=%d seed=%d: ordering decision %s offered twice with nothing placed in between — a settled group was re-offered",
+							seats, seed, offer)
+					}
+					lastOffer, pushesAtOffer = offer, pushes()
+					// Fisher-Yates over the option indices: a uniformly
+					// random permutation, which is exactly the answer shape
+					// Decision.Validate accepts for an ordering decision.
+					perm := make([]int, len(d.Options))
+					for i := range perm {
+						perm[i] = i
+					}
+					for i := len(perm) - 1; i > 0; i-- {
+						j := r.IntN(i + 1)
+						perm[i], perm[j] = perm[j], perm[i]
+					}
+					choices = perm
+					orders++
+				case decision.KTriggerOptional:
+					choices = []int{r.IntN(2)}
+					optionals++
+				case decision.KAttackers, decision.KBlockers:
+					choices = nil
+				default:
+					t.Fatalf("unexpected decision kind %q", d.Kind)
+				}
+				if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
+					t.Fatalf("seats=%d seed=%d: submit %s %v: %v", seats, seed, d.Kind, choices, err)
+				}
+				decisions++
+			}
+			for _, p := range e.G.Players {
+				if p.Lost {
+					eliminations++
+				}
+			}
+			// A game that neither ended nor left a decision pending is a
+			// stall, which is the totality constraint's own failure mode.
+			if !e.G.Over && e.Pending() == nil {
+				t.Fatalf("seats=%d seed=%d: the match stalled — not over and nothing pending", seats, seed)
+			}
+		}
+	}
+	t.Logf("games=%d decisions=%d orderings=%d optionals=%d eliminations=%d",
+		games, decisions, orders, optionals, eliminations)
 }

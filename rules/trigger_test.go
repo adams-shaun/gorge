@@ -631,12 +631,21 @@ func diffGames(a, b *state.Game) string {
 			}
 		}
 	}
+	// Ruling F6 (Task 27 fix round 1): Winner, Draw and NextID are compared
+	// too. They were missing, so "a whole-game diff of empty" claimed more
+	// than this helper delivered -- most sharply for Draw, which Task 22
+	// added precisely because Winner's zero value is a real seat, so a game
+	// that ended in a draw compared equal to one seat 0 won. Task 24 is the
+	// replay task and inherits this harness; a replay comparison that cannot
+	// see who won is a bad foundation to hand it.
 	if a.Turn != b.Turn || a.Active != b.Active || a.Clock != b.Clock ||
-		a.Priority != b.Priority || a.Passes != b.Passes || a.Step != b.Step || a.Over != b.Over {
+		a.Priority != b.Priority || a.Passes != b.Passes || a.Step != b.Step ||
+		a.Over != b.Over || a.Winner != b.Winner || a.Draw != b.Draw || a.NextID != b.NextID {
 		diffs = append(diffs, fmt.Sprintf(
-			"scalars: turn=%d/%d active=%d/%d clock=%d/%d priority=%d/%d passes=%d/%d step=%s/%s over=%v/%v",
+			"scalars: turn=%d/%d active=%d/%d clock=%d/%d priority=%d/%d passes=%d/%d step=%s/%s over=%v/%v winner=%d/%d draw=%v/%v nextid=%d/%d",
 			a.Turn, b.Turn, a.Active, b.Active, a.Clock, b.Clock,
-			a.Priority, b.Priority, a.Passes, b.Passes, a.Step, b.Step, a.Over, b.Over))
+			a.Priority, b.Priority, a.Passes, b.Passes, a.Step, b.Step, a.Over, b.Over,
+			a.Winner, b.Winner, a.Draw, b.Draw, a.NextID, b.NextID))
 	}
 	return strings.Join(diffs, "\n")
 }

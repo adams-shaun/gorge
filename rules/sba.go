@@ -21,7 +21,6 @@
 package rules
 
 import (
-	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -231,7 +230,7 @@ func (e *Engine) checkStateBased() {
 			Text: "state-based actions did not reach a fixed point within the pass budget"})
 	}
 	e.checkGameOver()
-	e.releaseTriggerDecisionOfDepartedPlayer()
+	e.releasePendingDecisionOfDepartedPlayer()
 }
 
 // checkLoseConditions applies CR 704.5a (life 0 or less) to every player not
@@ -435,33 +434,39 @@ func (e *Engine) checkGameOver() {
 	e.pending = nil
 }
 
-// releaseTriggerDecisionOfDepartedPlayer keeps a trigger decision asked of a
-// player who has since left the game from stranding the match.
+// releasePendingDecisionOfDepartedPlayer keeps a decision asked of a player
+// who has since left the game from stranding the match. Only that player may
+// answer it, Advance does nothing at all while e.pending is set, and with
+// three or more seats the elimination does not end the game -- so without
+// this the one goroutine running the match waits forever on an answer that
+// can never come. With two seats checkGameOver above has already cleared
+// e.pending, so this is the three-or-more case.
 //
-// Task 27's two trigger decisions are the only ones that can be asked of a
-// player and then have that player eliminated before they answer, because
-// they are the only ones asked from inside handle: Submit runs handle, then
-// this function, then Advance, so a decision asked by handleTriggerOrder or
-// handleTriggerOptional is the only pending decision that state-based actions
-// run underneath. (Every other decision is asked from inside Advance, after
-// this has already run, and Advance does nothing at all while e.pending is
-// set -- so no further engine work can eliminate anybody until it is
-// answered.) With two seats the elimination ends the game and checkGameOver
-// above already clears e.pending; with three or more it does not, and without
-// this the engine would sit forever waiting on an answer that can never come.
+// Fix round 1, review finding F2: this used to fire only for Task 27's two
+// trigger kinds, on the stated grounds that they were the only decisions
+// asked from inside handle -- Submit runs handle, then this, then Advance, so
+// a decision asked from inside handle is the only one state-based actions run
+// underneath. That premise was FALSE, and the review traced the
+// counterexample: handlePriority (legal.go) -> castSpell (stack.go) ->
+// askTarget asks a KTarget decision from inside handle too. It is now
+// deliberately keyed on nothing but "the player cannot answer", because
+// enumerating which decisions can reach this state is precisely the reasoning
+// that was wrong the first time.
 //
-// Resuming is safe here for exactly the reason resumeTriggerDrain exists: the
-// drain has one continuation, the tail of the priority round it interrupted.
-// dropDepartedTriggers has already discarded the departed controller's own
-// triggers (CR 800.4a), and an optional trigger whose DECIDER departed but
-// whose controller lives is declined by putTriggersOnStack rather than
-// re-asked, so this cannot loop.
-func (e *Engine) releaseTriggerDecisionOfDepartedPlayer() {
+// The continuation is resumeTriggerDrain for every kind, and it is the right
+// one for all of them: state-based actions to a fixed point, then any queued
+// triggers onto the stack, then priority to the next player who can actually
+// take it. Re-entering priorityRound instead would re-run the draw step's
+// draw (see resumeTriggerDrain and grantPriority in turn.go).
+//
+// This cannot loop. dropDepartedTriggers has already discarded the departed
+// player's own triggers (CR 800.4a); an optional trigger whose DECIDER
+// departed but whose controller lives is declined rather than re-asked; and
+// e.pending is cleared before the resume, so the nested checkStateBased that
+// resume performs finds nothing left to release.
+func (e *Engine) releasePendingDecisionOfDepartedPlayer() {
 	d := e.pending
 	if d == nil || e.G.Over {
-		return
-	}
-	if d.Kind != decision.KTriggerOrder && d.Kind != decision.KTriggerOptional {
 		return
 	}
 	if int(d.Player) >= len(e.G.Players) || !e.G.Players[d.Player].Lost {
