@@ -139,12 +139,22 @@ func Apply(g *state.Game, e Event) {
 	case GameOver:
 		// Over is unconditional -- the match ending is true regardless of
 		// what Player claims -- but Winner names a seat, so it gets the same
-		// guard as every other Player-keyed field. Like DeclareAttackers'
-		// Attacking above, nothing reads Winner yet, so this cannot panic
-		// today; guarded anyway as the same untrusted-seat-id pattern found
-		// in the Ruling T20-e audit.
+		// guard as every other Player-keyed field.
+		//
+		// Ruling T22-a: Amount is the draw/winner discriminator, the same
+		// trick TargetsChosen already uses to tell its two target shapes
+		// apart. Amount == 1 means CR 104.4a's draw (every seat eliminated
+		// at once, or a malformed/tampered event naming no real winner):
+		// Winner is deliberately left untouched rather than defaulting to
+		// whatever Player carries, because PlayerID(0) is both Winner's zero
+		// value and a real seat -- there is no in-band value that would mean
+		// "nobody" there. Draw is the field that actually says so. Any other
+		// Amount means Player is the winner, validated the same as every
+		// other Player-keyed field in this switch.
 		g.Over = true
-		if validPlayer(g, e.Player) {
+		if e.Amount == 1 {
+			g.Draw = true
+		} else if validPlayer(g, e.Player) {
 			g.Winner = e.Player
 		}
 

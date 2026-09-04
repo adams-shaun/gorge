@@ -77,6 +77,19 @@ func New(cfg Config) *Engine {
 		for j := 0; j < openingHand; j++ {
 			e.drawCard(p)
 		}
+		// Ruling T22-c: a deck smaller than the opening hand decks its owner
+		// out before genesis even finishes dealing -- drawCard's own
+		// checkStateBased call (below) can now actually set Over true here,
+		// where nothing could before Task 22 made losing real. Genesis used
+		// to plough on regardless: shuffling and dealing the NEXT seat's
+		// hand, then unconditionally calling beginTurn on a game already
+		// over. Every real deck this build ships is far larger than
+		// openingHand, so this is not reachable from ordinary play, only
+		// from a deliberately tiny Config -- but New must not hand back an
+		// Engine that has already both ended and kept moving.
+		if e.G.Over {
+			return e
+		}
 	}
 	e.beginTurn(0)
 	return e
@@ -143,9 +156,18 @@ func (e *Engine) Submit(in decision.Intent) error {
 // drawCard draws for the turn structure, sharing effects.DrawFor with the
 // Draw primitive so the draw step and a card that says "draw a card" can
 // never disagree about what drawing means.
+//
+// Ruling T22-d: this used to call checkGameOver alone -- correct as far as
+// it went (an empty-library draw is itself a loss, via the PlayerLost
+// DrawFor emits directly), but it skipped destroyLethalDamage and, now,
+// checkLoseConditions' own permanent-removal sweep. checkStateBased runs
+// both of those in addition to checkGameOver, so a player who decks out
+// here has their battlefield cleaned up the same way one who hits 0 life
+// does, rather than only on whatever later checkStateBased call happens to
+// come next.
 func (e *Engine) drawCard(p state.PlayerID) {
 	effects.DrawFor(e, p)
-	e.checkGameOver()
+	e.checkStateBased()
 }
 
 // cardsKeywordHead lets layers.go strip a keyword's parameters ("Equip:2" ->

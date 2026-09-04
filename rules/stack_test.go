@@ -159,6 +159,81 @@ func TestFizzleWhenNoLegalTargets(t *testing.T) {
 	}
 }
 
+// --- CR 608.2b: target legality is rechecked at resolution, not just at
+// cast time (TestFizzleWhenNoLegalTargets above). These two tests build the
+// stack object directly rather than through castSpell/askTarget, because
+// M1's askTarget only ever asks for a single target (Min/Max 1) -- there is
+// no way to reach a spell with two chosen targets, one legal and one not,
+// through the public casting path the way real Magic's TargetMin/TargetMax
+// would allow. Constructing the scenario directly and calling resolveTop is
+// the same white-box style layers_test.go already uses for Derived/
+// AddContinuous.
+
+// TestSpellFizzlesWhenAllTargetsBecomeIllegalBeforeResolution: the spell's
+// only target dies (to anything -- combat, another spell) after it was
+// chosen but before this spell resolves. The whole spell must do nothing --
+// not just skip the now-gone target, but also never run the SubAbility
+// chained onto it, which names no target of its own and so would otherwise
+// still fire even though CR 608.2b says the spell never resolves at all.
+func TestSpellFizzlesWhenAllTargetsBecomeIllegalBeforeResolution(t *testing.T) {
+	e := layerEngine(t)
+	victim := onBoard(t, e, 1, "Name:Goat\nManaCost:1 G\nTypes:Creature Goat\nPT:2/2\nOracle:x\n")
+	helix := card(t, "Name:Helix\nManaCost:R W\nTypes:Instant\n"+
+		"A:SP$ DealDamage | ValidTgts$ Creature | NumDmg$ 3 | SubAbility$ DBLife\n"+
+		"SVar:DBLife:DB$ GainLife | Defined$ You | LifeAmount$ 3\nOracle:x\n")
+	o := e.G.AddObject(helix, 0)
+	o.Zone = state.ZStack
+	e.G.SetZone(state.ZStack, 0, []state.ObjID{o.ID})
+	o.Targets = []state.Target{{Obj: victim}}
+
+	// The only target dies before the spell resolves.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: victim, From: state.ZBattlefield, To: state.ZGraveyard})
+	beforeLife := e.G.Players[0].Life
+
+	e.resolveTop()
+
+	if len(e.G.Stack) != 0 {
+		t.Fatalf("stack = %v, want empty", e.G.Stack)
+	}
+	if got := e.G.Obj(o.ID).Zone; got != state.ZGraveyard {
+		t.Fatalf("fizzled spell zone = %s, want graveyard", got)
+	}
+	if e.G.Players[0].Life != beforeLife {
+		t.Fatalf("caster life = %d, want unchanged %d: the chained SubAbility must not run once every "+
+			"target is illegal (CR 608.2b)", e.G.Players[0].Life, beforeLife)
+	}
+}
+
+// TestResolveDoesAsMuchAsItCanWhenSomeTargetsAreStillLegal: two targets were
+// chosen (an object target and a player target); the object target dies
+// before resolution but the player target does not. CR 608.2b: the spell
+// still resolves, applying its effect to the target that is still legal.
+func TestResolveDoesAsMuchAsItCanWhenSomeTargetsAreStillLegal(t *testing.T) {
+	e := layerEngine(t)
+	dead := onBoard(t, e, 1, "Name:Goat\nManaCost:1 G\nTypes:Creature Goat\nPT:2/2\nOracle:x\n")
+	thunder := card(t, "Name:Thunder\nManaCost:2 R\nTypes:Sorcery\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3\nOracle:x\n")
+	o := e.G.AddObject(thunder, 0)
+	o.Zone = state.ZStack
+	e.G.SetZone(state.ZStack, 0, []state.ObjID{o.ID})
+	o.Targets = []state.Target{{Obj: dead}, {Player: 1, IsPlayer: true}}
+
+	// One of the two chosen targets dies before the spell resolves; the
+	// player target does not.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: dead, From: state.ZBattlefield, To: state.ZGraveyard})
+
+	e.resolveTop()
+
+	if e.G.Players[1].Life != 17 {
+		t.Fatalf("opponent life = %d, want 17: the still-legal player target must still take damage", e.G.Players[1].Life)
+	}
+	if len(e.G.Stack) != 0 {
+		t.Fatalf("stack = %v, want empty", e.G.Stack)
+	}
+	if got := e.G.Obj(o.ID).Zone; got != state.ZGraveyard {
+		t.Fatalf("spell zone = %s, want graveyard", got)
+	}
+}
+
 // --- Task 13 gap-closing coverage -----------------------------------------
 //
 // legal_test.go and fix1_test.go's Submit-driven tests (TestPlayLandReplay-

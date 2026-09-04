@@ -41,6 +41,41 @@ func driveToOver(t *testing.T, e *Engine, limit int) {
 	}
 }
 
+// TestGenesisStopsAtEliminationDuringTheOpeningDraw is the Ruling T22-c
+// regression test: a deck smaller than the opening hand means a player
+// decks out (CR 704.5c) before genesis even finishes dealing everyone their
+// opening hand. Before Task 22, losing a game had no real consequence
+// anywhere the genesis loop could observe -- checkGameOver alone could never
+// fire mid-deal, since nothing reduced AliveCount to 1 before every seat at
+// least had a full library to draw from. Task 22 makes losing real
+// (checkStateBased, called from drawCard on every single draw, including
+// these), so New's own per-seat loop must notice Over and stop once dealing
+// further makes no sense -- not shuffle and deal a later seat's hand
+// regardless, and not call beginTurn on a game that is already finished.
+func TestGenesisStopsAtEliminationDuringTheOpeningDraw(t *testing.T) {
+	names := []string{"a", "b"}
+	cfg := Config{Seed: 5, Names: names,
+		Decks: [][]*cards.Card{mountainDeck(t, 3), mountainDeck(t, 40)}}
+	e := New(cfg)
+
+	if !e.G.Over {
+		t.Fatal("seat 0's 3-card deck cannot fill a 7-card opening hand; the game should already be over")
+	}
+	if !e.G.Players[0].Lost {
+		t.Fatal("seat 0 should be the one who decked out")
+	}
+	if e.G.Turn != 0 {
+		t.Fatalf("Turn = %d, want 0: beginTurn must not run once genesis has already ended the game", e.G.Turn)
+	}
+	if got := len(e.G.Zone(state.ZHand, 1)); got != 0 {
+		t.Fatalf("seat 1 hand = %d cards, want 0: genesis must stop before dealing a later "+
+			"seat once an earlier one has already ended the game", got)
+	}
+	if e.Pending() != nil {
+		t.Fatalf("a decision is pending on an already-finished game: %+v", e.Pending())
+	}
+}
+
 // TestReplayReconstructsPassesAndPriority is the Ruling A regression test:
 // Passes and Priority must flow through events, not direct field writes, so
 // that replaying the log alone (no rules-package code involved) reproduces
