@@ -15,6 +15,7 @@
 package view
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -108,21 +109,44 @@ type PlayerView struct {
 	Pool        map[string]int32 `json:"pool"`
 }
 
+// Printing is the identity a client resolves an image by: the exact face
+// name today. Set and Number stay empty until a printing table exists
+// (roadmap open question 1); the fields are here so the wire shape does
+// not change when it does.
+type Printing struct {
+	Name   string `json:"name"`
+	Set    string `json:"set,omitempty"`
+	Number string `json:"number,omitempty"`
+}
+
 // CardView is one object's public face: printed identity plus its current,
 // derived characteristics. Nothing here is read from a hidden zone unless
 // the viewer owns it — cardViews is only ever called with a zone list the
 // caller has already decided is visible.
 type CardView struct {
-	ID        state.ObjID      `json:"id"`
-	Name      string           `json:"name"`
-	Types     string           `json:"types"`
-	Tapped    bool             `json:"tapped"`
-	Power     int32            `json:"power"`
-	Toughness int32            `json:"toughness"`
-	Damage    int32            `json:"damage"`
-	Attacking bool             `json:"attacking"`
-	Counters  map[string]int32 `json:"counters,omitempty"`
-	Keywords  []string         `json:"keywords,omitempty"`
+	ID    state.ObjID `json:"id"`
+	Name  string      `json:"name"`
+	Types string      `json:"types"`
+	// ManaCost is the printed cost in Forge's notation ("1 W", "R", "X G").
+	// Hand lists render it as symbols.
+	ManaCost string `json:"mana_cost,omitempty"`
+	// Printing is what an image lookup keys on; Token ("#12") tells two
+	// copies of one card apart in the stack, the log and an arrow.
+	Printing Printing `json:"printing"`
+	Token    string   `json:"token"`
+	// AttackingPlayer is the seat this creature is attacking while
+	// Attacking is true, nil otherwise; BlockedBy lists the creatures
+	// blocking it. Both exist for the arrow overlay (PL-17) and come
+	// straight from the object's combat fields, which EndCombatReset clears.
+	AttackingPlayer *state.PlayerID  `json:"attacking_player,omitempty"`
+	BlockedBy       []state.ObjID    `json:"blocked_by,omitempty"`
+	Tapped          bool             `json:"tapped"`
+	Power           int32            `json:"power"`
+	Toughness       int32            `json:"toughness"`
+	Damage          int32            `json:"damage"`
+	Attacking       bool             `json:"attacking"`
+	Counters        map[string]int32 `json:"counters,omitempty"`
+	Keywords        []string         `json:"keywords,omitempty"`
 	// Controller and Owner can differ (a stolen permanent, a stack object
 	// created for someone else's turn); a client needs both. Battlefield
 	// zone lists are keyed by controller, every hidden/graveyard/exile list
@@ -133,7 +157,8 @@ type CardView struct {
 	SummonSick bool           `json:"summon_sick"`
 }
 
-// StackView is one object on the stack. Kind is "spell" or "ability".
+// StackView is one object on the stack. Kind is "spell", "trigger" (an
+// object minted by a TriggerPush) or "ability" (any other ability object).
 type StackView struct {
 	ID         state.ObjID    `json:"id"`
 	Kind       string         `json:"kind"`
@@ -153,6 +178,10 @@ type TargetView struct {
 	Obj      state.ObjID    `json:"obj,omitempty"`
 	Player   state.PlayerID `json:"player"`
 	IsPlayer bool           `json:"is_player"`
+	// Label is what the object was allowed to target, in the card's own
+	// words: its TgtPrompt$ when it has one ("Select any target"), else its
+	// ValidTgts$ ("Creature"). Empty when the object declares neither.
+	Label string `json:"label,omitempty"`
 }
 
 // PendingView is a trigger that will hit the stack once its controller has
@@ -269,7 +298,13 @@ func phaseOf(s state.Step) string {
 func cardViews(g *state.Game, ch Chars, ids []state.ObjID) []CardView {
 	out := make([]CardView, 0, len(ids))
 	for _, id := range ids {
-		if g.Obj(id) == nil {
+		o := g.Obj(id)
+		if o == nil {
+			continue
+		}
+		// An ability object (no Face) is engine bookkeeping, not a card in
+		// this zone.
+		if o.Face() == nil {
 			continue
 		}
 		out = append(out, cardView(g, ch, id))
@@ -287,9 +322,19 @@ func cardView(g *state.Game, ch Chars, id state.ObjID) CardView {
 		ID: id, Tapped: o.Tapped, Damage: o.Damage, Attacking: o.IsAttacking,
 		Controller: o.Controller, Owner: o.Owner, SummonSick: o.SummonSick,
 	}
+	cv.Token = "#" + strconv.FormatUint(uint64(id), 10)
 	if f := o.Face(); f != nil {
 		cv.Name = f.Name
 		cv.Types = strings.Join(f.Types, " ")
+		cv.ManaCost = f.ManaCost
+		cv.Printing = Printing{Name: f.Name}
+	}
+	if o.IsAttacking {
+		p := o.Attacking
+		cv.AttackingPlayer = &p
+	}
+	if len(o.BlockedBy) > 0 {
+		cv.BlockedBy = append([]state.ObjID(nil), o.BlockedBy...)
 	}
 	if ch != nil {
 		cv.Power = ch.Power(id)
@@ -323,14 +368,21 @@ func stackViews(g *state.Game, ch Chars, ids []state.ObjID) []StackView {
 			// An ability object has no Face (Ruling F3): Card == nil, set
 			// by events/apply.go's TriggerPush case. Its display name is
 			// the face name of the permanent it came from, or "Ability"
-			// when that permanent is also gone (supplement §2).
+			// when that permanent is also gone (supplement §2). Kind
+			// distinguishes a TriggerPush object from any other ability
+			// object (an activated ability, once the engine enumerates
+			// them) so a client can render them differently.
+			kind := "ability"
+			if _, ok := triggerLine(g, o); ok {
+				kind = "trigger"
+			}
 			out = append(out, StackView{
-				ID: id, Kind: "ability", Name: abilityName(g, o), Text: abilityText(g, o),
-				Controller: o.Controller, Source: o.Source, Targets: targetViews(o.Targets),
+				ID: id, Kind: kind, Name: abilityName(g, o), Text: abilityText(g, o),
+				Controller: o.Controller, Source: o.Source, Targets: targetViews(o.Targets, targetLabel(o)),
 			})
 			continue
 		}
-		sv := StackView{ID: id, Kind: "spell", Controller: o.Controller, Targets: targetViews(o.Targets)}
+		sv := StackView{ID: id, Kind: "spell", Controller: o.Controller, Targets: targetViews(o.Targets, targetLabel(o))}
 		if f := o.Face(); f != nil {
 			sv.Name = f.Name
 			sv.Text = spellText(f)
@@ -353,24 +405,36 @@ func abilityName(g *state.Game, o *state.Object) string {
 	return "Ability"
 }
 
-// abilityText finds the T: line an ability object was minted from — the
-// trigger on the source's ACTIVE face whose Effect pointer is exactly
-// o.Ability, which events/apply.go's TriggerPush case sets it to — and
-// returns its TriggerDescription$. Falling back to the SA's own
-// SpellDescription$/StackDescription$ covers an activated ability (a later
-// milestone) or a source that changed face since the trigger matched
-// (rules/trigger.go's triggerOf documents the same caveat).
+// triggerLine finds the T: line an ability object was minted from: the
+// trigger on its source's active face whose Effect is exactly o.Ability
+// (events/apply.go's TriggerPush case sets it so). ok is false for an
+// ability object that is not a trigger, or whose source has changed face.
+func triggerLine(g *state.Game, o *state.Object) (cards.Trigger, bool) {
+	src := g.Obj(o.Source)
+	if src == nil {
+		return cards.Trigger{}, false
+	}
+	f := src.Face()
+	if f == nil {
+		return cards.Trigger{}, false
+	}
+	for _, t := range f.Triggers {
+		if t.Effect == o.Ability {
+			return t, true
+		}
+	}
+	return cards.Trigger{}, false
+}
+
+// abilityText finds the T: line an ability object was minted from (see
+// triggerLine) and returns its TriggerDescription$. Falling back to the
+// SA's own SpellDescription$/StackDescription$ covers an activated ability
+// (a later milestone) or a source that changed face since the trigger
+// matched (rules/trigger.go's triggerOf documents the same caveat).
 func abilityText(g *state.Game, o *state.Object) string {
-	if src := g.Obj(o.Source); src != nil {
-		if f := src.Face(); f != nil {
-			for _, t := range f.Triggers {
-				if t.Effect == o.Ability {
-					if d := t.Params["TriggerDescription"]; d != "" {
-						return d
-					}
-					break
-				}
-			}
+	if t, ok := triggerLine(g, o); ok {
+		if d := t.Params["TriggerDescription"]; d != "" {
+			return d
 		}
 	}
 	if o.Ability != nil {
@@ -399,13 +463,37 @@ func spellText(f *cards.Face) string {
 // projected here or anywhere else in this package — it can name a
 // hidden-zone object (e.g. the card a "whenever you draw" trigger
 // remembered) — only Targets, which is a player-visible choice already.
-// Always non-nil (Ruling T23-u).
-func targetViews(targets []state.Target) []TargetView {
+// label (from targetLabel) is stamped on every entry: the object declared
+// one set of legal targets, not one per chosen target. Always non-nil
+// (Ruling T23-u).
+func targetViews(targets []state.Target, label string) []TargetView {
 	out := make([]TargetView, 0, len(targets))
 	for _, t := range targets {
-		out = append(out, TargetView{Obj: t.Obj, Player: t.Player, IsPlayer: t.IsPlayer})
+		out = append(out, TargetView{Obj: t.Obj, Player: t.Player, IsPlayer: t.IsPlayer, Label: label})
 	}
 	return out
+}
+
+// targetLabel is the object's own description of what it targets, from the
+// first SA in its chain (the SA itself, then SubAbility$ links) that
+// declares TgtPrompt$, else the first that declares ValidTgts$.
+func targetLabel(o *state.Object) string {
+	var sa *cards.SA
+	if o.Ability != nil {
+		sa = o.Ability
+	} else if f := o.Face(); f != nil {
+		sa = f.SpellAbility()
+	}
+	valid := ""
+	for s := sa; s != nil; s = s.Sub {
+		if p := s.Params["TgtPrompt"]; p != "" {
+			return p
+		}
+		if valid == "" {
+			valid = s.Params["ValidTgts"]
+		}
+	}
+	return valid
 }
 
 // pendingViews copies the engine's pending-trigger queue into the wire
