@@ -2,7 +2,6 @@ package testutil
 
 import (
 	"embed"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/deck"
 )
 
 // decksFS embeds the project's own 12 Legacy archetype deck lists -- a bare
@@ -26,16 +26,6 @@ import (
 var decksFS embed.FS
 
 const decksDir = "decks"
-
-// deckFile is the on-disk shape (verified on mono-red-goblins.json): only
-// cards[].name and cards[].count matter here; name/format/archetype/notes
-// at the top level are authoring metadata for humans and are ignored.
-type deckFile struct {
-	Cards []struct {
-		Name  string `json:"name"`
-		Count int    `json:"count"`
-	} `json:"cards"`
-}
 
 // RepoDeckNames lists the embedded decks by file stem (e.g.
 // "mono-red-goblins"), sorted. Sorting matters: callers index into this
@@ -61,38 +51,30 @@ func RepoDeckNames() []string {
 	return names
 }
 
-// LoadRepoDeck reads decks/<name>.json, resolves every card entry through
-// r.Lookup (which itself runs cards.NormalizeName -- Scryfall-shaped
-// catalogue names and Forge script names both fold to the same key) and
-// expands each entry by its count into a flat, count-many-times-repeated
-// slice of *cards.Card pointers -- the shape rules.Config.Decks wants. It is
-// the non-testing.TB variant mtgsim uses directly; RepoDeck below is the
-// t.Fatalf-on-error wrapper for tests (Ruling P11).
+// LoadRepoDeck reads decks/<name>.json and resolves it through the deck
+// package (deck.Parse then File.Resolve, which runs cards.NormalizeName so
+// Scryfall-shaped catalogue names and Forge script names fold to the same
+// key) into a flat, count-many-times-repeated slice of *cards.Card pointers
+// -- the shape rules.Config.Decks wants. It is the non-testing.TB variant
+// mtgsim uses directly; RepoDeck below is the t.Fatalf-on-error wrapper for
+// tests (Ruling P11).
 func LoadRepoDeck(r *cards.Registry, name string) ([]*cards.Card, error) {
-	// Fix round 1 (Minor #2): embed.FS paths are always slash-separated,
-	// regardless of host OS -- filepath.Join would emit "decks\name.json" on
-	// Windows and every lookup would fail there. path.Join is the correct
-	// call here; the filepath.Join calls below (OpenCorpusRegistry,
-	// CorpusRegistry) address real OS paths on disk and are unaffected.
+	// embed.FS paths are always slash-separated regardless of host OS --
+	// filepath.Join would emit "decks\name.json" on Windows and the read
+	// would fail there. path.Join is the correct call for an embed.FS path.
 	raw, err := decksFS.ReadFile(path.Join(decksDir, name+".json"))
 	if err != nil {
 		return nil, fmt.Errorf("testutil: deck %q: %w", name, err)
 	}
-	var df deckFile
-	if err := json.Unmarshal(raw, &df); err != nil {
+	f, err := deck.Parse(raw)
+	if err != nil {
 		return nil, fmt.Errorf("testutil: deck %q: %w", name, err)
 	}
-	var deck []*cards.Card
-	for _, entry := range df.Cards {
-		c, ok := r.Lookup(entry.Name)
-		if !ok {
-			return nil, fmt.Errorf("testutil: deck %q: card %q is not in the registry", name, entry.Name)
-		}
-		for i := 0; i < entry.Count; i++ {
-			deck = append(deck, c)
-		}
+	cs, err := f.Resolve(r)
+	if err != nil {
+		return nil, fmt.Errorf("testutil: %w", err)
 	}
-	return deck, nil
+	return cs, nil
 }
 
 // RepoDeck is LoadRepoDeck for tests: a missing embedded deck file or a card
@@ -108,34 +90,12 @@ func RepoDeck(t testing.TB, r *cards.Registry, name string) []*cards.Card {
 	return deck
 }
 
-// OpenCorpusRegistry loads dir's compiled IR cache (dir/ir.gob.gz), or
-// compiles dir/cardsfolder fresh if the cache is absent or older than
-// dir/cards.lock -- a fetch since the last compile-cards invalidates it,
-// the same staleness rule forgec's own Makefile pipeline (fetch-cards then
-// compile-cards) assumes a caller respects by running in order. It returns
-// a plain error, never a panic, when neither the cache nor the corpus is
-// present, so a clean checkout with nothing fetched is a decision for the
-// caller (CorpusRegistry below turns it into a Skip) rather than something
-// baked in here.
+// OpenCorpusRegistry opens dir's compiled corpus, compiling it fresh from
+// dir/cardsfolder when the cache is missing or stale. The logic now lives
+// in cards.OpenCorpus; this wrapper stays so CorpusRegistry below (and any
+// other existing caller) keeps working unchanged.
 func OpenCorpusRegistry(dir string) (*cards.Registry, error) {
-	cache := filepath.Join(dir, "ir.gob.gz")
-	cacheInfo, cacheErr := os.Stat(cache)
-	lockInfo, lockErr := os.Stat(filepath.Join(dir, "cards.lock"))
-	stale := cacheErr != nil || (lockErr == nil && lockInfo.ModTime().After(cacheInfo.ModTime()))
-
-	if !stale {
-		if r, err := cards.LoadRegistry(cache); err == nil {
-			return r, nil
-		}
-		// The cache exists but did not load (e.g. a cacheVersion bump) --
-		// fall through and compile from source scripts instead. CompileDir
-		// below already reports cleanly if the corpus itself is also gone.
-	}
-	r, _, err := cards.CompileDir(cards.CorpusDir(dir))
-	if err != nil {
-		return nil, err
-	}
-	return r, nil
+	return cards.OpenCorpus(dir)
 }
 
 // CorpusRegistry finds the repo root the way cards/boundary_test.go does --
