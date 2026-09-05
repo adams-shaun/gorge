@@ -88,7 +88,7 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		if t.IsPlayer || o == nil || o.Zone != state.ZBattlefield {
 			continue
 		}
-		if o.Face() != nil && o.Face().HasKeyword("Indestructible") {
+		if h.HasKeyword(o.ID, "Indestructible") {
 			continue
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
@@ -105,8 +105,7 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 	for _, p := range g.AliveFrom(0) {
 		ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, p)...)
 		for _, id := range ids {
-			o := g.Obj(id)
-			if o.Face() != nil && o.Face().HasKeyword("Indestructible") {
+			if h.HasKeyword(id, "Indestructible") {
 				continue
 			}
 			if MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {

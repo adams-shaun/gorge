@@ -30,6 +30,10 @@ type Host interface {
 	// and Protection reach the layer system without effects importing rules,
 	// which would be an import cycle (effects sits below rules). Task 19c.
 	AddContinuous(state.ContinuousEffect)
+	// HasKeyword reports a DERIVED keyword — printed or granted by a
+	// continuous effect (rules.Engine.HasKeyword). Effects that gate on a
+	// keyword (Destroy on Indestructible) must ask this, never the face.
+	HasKeyword(id state.ObjID, kw string) bool
 }
 
 // Ctx carries the bindings a Forge script refers to during resolution.
