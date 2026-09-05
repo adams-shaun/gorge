@@ -63,13 +63,47 @@ func (e *Engine) actorMatches(sv staticView, key string, actor state.PlayerID) b
 	return effects.MatchesPlayerSpec(e.G, spec, actor, sv.Controller)
 }
 
+// specCtx builds the SpecContext a per-source "ValidCard$"/spec match is
+// resolved against, with a resolver that answers "Chosen" (the source object's
+// ChosenNumber) and any SVar name on the source's face via EvalCount. This is
+// what a numeric-RHS restriction actually needs: Sanctum Prelate's
+// "cmcEQChosen" (read the number chosen as it entered) and Chalice of the
+// Void's "cmcEQY" (Y an SVar over the source's charge counters) both resolve
+// through here. Without the resolver those terms would silently never match
+// (numericPred's "recognised shape, unresolvable RHS never matches") and the
+// restriction would be dead. The resolver closes over source/you -- both
+// plain scalars -- so it is deterministic and Clone-safe.
+func (e *Engine) specCtx(source state.ObjID, you state.PlayerID) effects.SpecContext {
+	return effects.SpecContext{
+		You:    you,
+		Source: source,
+		Resolve: func(name string) (int32, bool) {
+			o := e.G.Obj(source)
+			if o == nil {
+				return 0, false
+			}
+			if name == "Chosen" {
+				return o.ChosenNumber, true
+			}
+			f := o.Face()
+			if f == nil {
+				return 0, false
+			}
+			if body, ok := f.SVars[name]; ok {
+				return effects.EvalCount(e, &effects.Ctx{Source: source, Controller: you, SVars: f.SVars}, body), true
+			}
+			return 0, false
+		},
+	}
+}
+
 // castRestricted reports whether p is forbidden from casting id (CantBeCast).
 func (e *Engine) castRestricted(p state.PlayerID, id state.ObjID) bool {
 	for _, sv := range e.activeStatics("CantBeCast") {
 		if !e.actorMatches(sv, "Caster", p) {
 			continue
 		}
-		if effects.MatchesSpecFrom(e.G, sv.Params["ValidCard"], id, sv.Controller, sv.Source) {
+		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
 			return true
 		}
 	}
@@ -88,7 +122,7 @@ func (e *Engine) abilityRestricted(id state.ObjID) bool {
 		if !e.actorMatches(sv, "Activator", o.Controller) {
 			continue
 		}
-		if effects.MatchesSpecFrom(e.G, sv.Params["ValidCard"], id, sv.Controller, sv.Source) {
+		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
 			return true
 		}
 	}
@@ -117,7 +151,7 @@ func (e *Engine) adjustedCost(p state.PlayerID, id state.ObjID) Cost {
 			if !e.actorMatches(sv, "Activator", p) {
 				continue
 			}
-			if !effects.MatchesSpecFrom(e.G, sv.Params["ValidCard"], id, sv.Controller, sv.Source) {
+			if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, p)) {
 				continue
 			}
 			c.Generic += sign * parseAmount(sv.Params["Amount"], 1)
@@ -147,7 +181,7 @@ func (e *Engine) adjustedCost(p state.PlayerID, id state.ObjID) Cost {
 func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []Cost {
 	var out []Cost
 	for _, sv := range e.activeStatics("AlternativeCost") {
-		if !effects.MatchesSpecFrom(e.G, sv.Params["ValidCard"], id, sv.Controller, sv.Source) {
+		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
 		out = append(out, ParseCost(sv.Params["Cost"]))
@@ -170,19 +204,19 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []Cost {
 // option generation and validation.
 func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 	for _, sv := range e.activeStatics("CantBlock") {
-		if effects.MatchesSpecFrom(e.G, sv.Params["ValidCard"], blocker, sv.Controller, sv.Source) {
+		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], blocker, e.specCtx(sv.Source, sv.Controller)) {
 			return true
 		}
 	}
 	for _, sv := range e.activeStatics("CantBlockBy") {
-		if !effects.MatchesSpecFrom(e.G, sv.Params["ValidCard"], attacker, sv.Controller, sv.Source) {
+		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], attacker, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
 		spec, ok := sv.Params["ValidBlocker"]
 		if !ok {
 			return true
 		}
-		if effects.MatchesSpecFrom(e.G, spec, blocker, sv.Controller, sv.Source) {
+		if effects.MatchesSpecCtx(e.G, spec, blocker, e.specCtx(sv.Source, sv.Controller)) {
 			return true
 		}
 	}

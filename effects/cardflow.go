@@ -227,18 +227,23 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// effNameCard is M1's simplification of a real naming choice (Task 20's
-// territory): it names the first card in the controller's library, which is
-// at least a deterministic, legal name for whatever downstream sub-ability
-// expects one.
+// effNameCard records a card-name choice. The real name is asked at cast
+// time and recorded with a Choose event before this ever resolves (plan
+// ruling R-6), so a source already carrying ChosenName is a no-op. Without
+// one -- a script that uses NameCard outside an ETB replacement -- it names
+// the first card in the controller's library, which is at least a
+// deterministic, legal name for whatever downstream sub-ability expects
+// one, recorded now as the Choose event so the choice survives replay.
 func effNameCard(h Host, c *Ctx, sa *cards.SA) {
+	if o := h.Game().Obj(c.Source); o != nil && o.ChosenName != "" {
+		return
+	}
 	g := h.Game()
-	lib := zoneOf(g, state.ZLibrary, c.Controller)
-	name := ""
-	if len(lib) > 0 {
+	name := "a card"
+	if lib := zoneOf(g, state.ZLibrary, c.Controller); len(lib) > 0 {
 		if o := g.Obj(lib[0]); o != nil && o.Face() != nil {
 			name = o.Face().Name
 		}
 	}
-	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "names " + name})
+	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "name", Text: name})
 }
