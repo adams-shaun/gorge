@@ -99,12 +99,14 @@ func (r *Registry) lookup(id TableID, k int) (*table, *match, error) {
 	for {
 		t.mu.RLock()
 		if t.cur != nil && t.cur.k == k {
+			c := t.cur // copy under the lock; run reassigns t.cur outside our RUnlock window
 			t.mu.RUnlock()
-			return t, t.cur, nil
+			return t, c, nil
 		}
 		if t.loaded != nil && t.loaded.k == k {
+			ld := t.loaded
 			t.mu.RUnlock()
-			return t, t.loaded, nil
+			return t, ld, nil
 		}
 		for _, m := range t.history {
 			if m.k == k {
