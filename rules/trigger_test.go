@@ -574,6 +574,77 @@ func TestReplayFromLogAloneReconstructsTriggeredAbilities(t *testing.T) {
 	}
 }
 
+func TestDiesTriggerSeesTheCreatureAsItWas(t *testing.T) {
+	// A creature with a dies trigger and two +1/+1 counters: Move clears the
+	// counters, so only last known information can say it had them.
+	src := "Name:Geist\nManaCost:G G\nTypes:Creature Spirit\nPT:2/1\n" +
+		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | Execute$ TrigNote | TriggerDescription$ When CARDNAME dies, note.\n" +
+		"SVar:TrigNote:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+	e, _, id := newFixtureDeck(t, 3, src)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "P1P1", Amount: 2})
+	e.pendingTriggers = nil
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("%d pending triggers", len(e.pendingTriggers))
+	}
+	lki := e.pendingTriggers[0].Ctx.LKI
+	if lki == nil || lki.ID != id || lki.Zone != state.ZBattlefield || lki.Counter("P1P1") != 2 {
+		t.Fatalf("LKI %+v", lki)
+	}
+	if e.G.Obj(id).Counter("P1P1") != 0 {
+		t.Fatal("the live object should have lost its counters on leaving")
+	}
+	lki.AddCounter("P1P1", 5)
+	if e.G.Obj(id).Counter("P1P1") != 0 {
+		t.Fatal("LKI shares a Counters array with the live object")
+	}
+}
+
+// TestETBTriggerLKIDoesNotAliasCountersEnteringPlay is the aliasing check
+// TestDiesTriggerSeesTheCreatureAsItWas above cannot actually make: a move
+// OUT of the battlefield resets Counters to nil (events/apply.go's Move,
+// default case) regardless of whether emit's LKI capture aliased them, so
+// mutating lki.Counters there can never reach the live object's Counters --
+// it's already nil by the time the assertion runs, deep copy or not. Moving
+// INTO the battlefield is the one shape where Move does NOT reset Counters
+// (Move's ZBattlefield case only sets SummonSick/Damage/Timestamp), so the
+// live object keeps whatever counters it already had, and a shallow LKI
+// copy (a bare `cp := *o` with no independent Counters backing array) would
+// let mutating the LKI's copy mutate the live object's counters too. Fix
+// round 1, Minor 3.
+func TestETBTriggerLKIDoesNotAliasCountersEnteringPlay(t *testing.T) {
+	src := "Name:Geist\nManaCost:G G\nTypes:Creature Spirit\nPT:2/1\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigNote | TriggerDescription$ x\n" +
+		"SVar:TrigNote:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+	e, _, id := newFixtureDeck(t, 3, src)
+	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "P1P1", Amount: 2})
+	e.pendingTriggers = nil
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("%d pending triggers", len(e.pendingTriggers))
+	}
+	lki := e.pendingTriggers[0].Ctx.LKI
+	if lki == nil || lki.Counter("P1P1") != 2 {
+		t.Fatalf("LKI %+v", lki)
+	}
+	if e.G.Obj(id).Counter("P1P1") != 2 {
+		t.Fatal("entering the battlefield should not reset counters (Move's ZBattlefield case)")
+	}
+	lki.AddCounter("P1P1", 5)
+	if e.G.Obj(id).Counter("P1P1") != 2 {
+		t.Fatal("LKI aliases the live object's Counters array")
+	}
+}
+
+func TestAttacksTriggerRemembersTheDefendingPlayer(t *testing.T) {
+	ids := []state.ObjID{4, 5}
+	got := triggerRemembered(events.Event{Kind: events.DeclareAttackers, Player: 2, IDs: ids}, 9)
+	if len(got) != 3 || got[0].Obj != 4 || got[1].Obj != 5 || !got[2].IsPlayer || got[2].Player != 2 {
+		t.Fatalf("%v", got)
+	}
+}
+
 // replayFromLog reconstructs a Game from cfg's decks (replicating rules.New's
 // own unlogged genesis AddObject calls, in the same per-deck order) plus
 // every event in log, applied via events.Apply directly -- no rules.Engine

@@ -135,3 +135,23 @@ func (o *Object) AddCounter(kind string, n int32) {
 		o.Counters = append(o.Counters, Counter{kind, n})
 	}
 }
+
+// CloneDeep returns a value copy of o whose slice fields (Counters, Targets,
+// Remembered, BlockedBy) are independently backed, so mutating the copy's
+// slices can never alias o's -- everything else (Card, a shared pointer into
+// the immutable compiled corpus, plus every scalar field) is correct as a
+// plain value copy. This is the one definition of "deep-copy an Object":
+// Game.Clone (the whole live arena), rules.Engine's own last-known-
+// information capture (emit, before events.Emit mutates the live object)
+// and Engine.Clone's copy of a pending trigger's Ctx.LKI all call this
+// rather than each repeating the same four-line copy, so a future slice or
+// map field added to Object needs updating in exactly one place to stay
+// deep.
+func (o *Object) CloneDeep() Object {
+	c := *o
+	c.Counters = append([]Counter(nil), o.Counters...)
+	c.Targets = append([]Target(nil), o.Targets...)
+	c.Remembered = append([]Target(nil), o.Remembered...)
+	c.BlockedBy = append([]ObjID(nil), o.BlockedBy...)
+	return c
+}

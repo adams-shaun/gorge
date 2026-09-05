@@ -28,7 +28,18 @@ type Game struct {
 	// Draw marks a game that ended with no surviving seats (CR 104.4a).
 	// Winner's zero value is PlayerID(0), a real seat, so Over alone cannot
 	// distinguish "seat 0 won" from "nobody did" -- Draw is what does.
-	Draw   bool
+	Draw bool
+	// NextID hands out object ids one at a time, starting at 1 (see NewGame)
+	// and incrementing by exactly one per AddObject call below -- it can
+	// never reach playerRefBit (1<<31, ids.go): a single match would need
+	// over two billion objects created before that collision, far beyond
+	// anything this engine's own bounds (maxTriggerFires, turn/priority
+	// limits, ...) let happen. That gap is what makes PlayerRef/ObjID.PlayerRef
+	// a safe way to smuggle a PlayerID through an []ObjID slot. Note that
+	// int(id) of such a sentinel is negative on 32-bit builds (1<<31
+	// overflows int there), so g.Obj must compare id as an ObjID/uint32 --
+	// the id&playerRefBit check in its bounds test below -- never via
+	// int(id) alone.
 	NextID ObjID
 	// Clock is a monotonic timestamp source for continuous-effect ordering.
 	Clock uint32
@@ -68,9 +79,13 @@ func (g *Game) SetZone(z Zone, p PlayerID, ids []ObjID) {
 	g.zones[g.zoneIndex(z, p)] = ids
 }
 
-// Obj returns the object with this ID, or nil for ObjID 0 and out-of-range IDs.
+// Obj returns the object with this ID, or nil for ObjID 0, a PlayerRef
+// sentinel (ids.go), and out-of-range IDs. The sentinel check must compare
+// id as an ObjID/uint32: int(id) of a PlayerRef is negative on 32-bit
+// builds, so a bare int(id) > len(g.Objs) test would let it through and
+// index Objs with a huge negative offset.
 func (g *Game) Obj(id ObjID) *Object {
-	if id == 0 || int(id) > len(g.Objs) {
+	if id == 0 || id&playerRefBit != 0 || int(id) > len(g.Objs) {
 		return nil
 	}
 	return &g.Objs[id-1]
@@ -88,20 +103,9 @@ func (g *Game) AddObject(card *cards.Card, owner PlayerID) *Object {
 func (g *Game) Clone() *Game {
 	c := *g
 	c.Players = append([]Player(nil), g.Players...)
-	c.Objs = append([]Object(nil), g.Objs...)
-	for i := range c.Objs {
-		if n := g.Objs[i].Counters; n != nil {
-			c.Objs[i].Counters = append([]Counter(nil), n...)
-		}
-		if n := g.Objs[i].Targets; n != nil {
-			c.Objs[i].Targets = append([]Target(nil), n...)
-		}
-		if n := g.Objs[i].Remembered; n != nil {
-			c.Objs[i].Remembered = append([]Target(nil), n...)
-		}
-		if n := g.Objs[i].BlockedBy; n != nil {
-			c.Objs[i].BlockedBy = append([]ObjID(nil), n...)
-		}
+	c.Objs = make([]Object, len(g.Objs))
+	for i := range g.Objs {
+		c.Objs[i] = g.Objs[i].CloneDeep()
 	}
 	c.Stack = append([]ObjID(nil), g.Stack...)
 	c.zones = make([][]ObjID, len(g.zones))

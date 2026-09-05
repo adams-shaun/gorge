@@ -267,9 +267,15 @@ func Apply(g *state.Game, e Event) {
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = f.Triggers[e.Amount].Effect
 		o.Source = e.Obj
-		for _, id := range e.IDs {
-			o.Remembered = append(o.Remembered, state.Target{Obj: id})
-		}
+		// FL-41: an id in IDs is either a real object (the ordinary case)
+		// or a player reference (state.PlayerRef, rules.pushTrigger) --
+		// triggerRemembered's DeclareAttackers case appends the defending
+		// player to Remembered, and IDs has no field of its own for a bare
+		// PlayerID, so that entry travels here encoded rather than as a bare
+		// ObjID that would decode as "object 0": playersOf (effects/context.go)
+		// filters that entry out, so Defined$ TriggeredDefendingPlayer would
+		// resolve to nothing and the effect silently no-op.
+		o.Remembered = rememberedFrom(e.IDs)
 
 	case EndCombatReset:
 		// No Player or Obj to validate: this clears every object in the
@@ -370,10 +376,28 @@ func Apply(g *state.Game, e Event) {
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = f.Abilities[e.Amount]
 		o.Source = e.Obj
-		for _, id := range e.IDs {
-			o.Remembered = append(o.Remembered, state.Target{Obj: id})
-		}
+		// Same PlayerRef decode as TriggerPush above (FL-41): an activated
+		// ability can remember a player the same way a trigger can, so the
+		// two mint paths stay symmetric through rememberedFrom.
+		o.Remembered = rememberedFrom(e.IDs)
 	}
+}
+
+// rememberedFrom decodes an event's IDs into the Remembered list an ability
+// object carries: a real object id becomes {Obj: id}, and a PlayerRef
+// sentinel (state.PlayerRef, rules.pushTrigger) becomes {Player: p,
+// IsPlayer: true}. TriggerPush and AbilityPush both use it so the two mint
+// paths stay symmetric.
+func rememberedFrom(ids []state.ObjID) []state.Target {
+	var out []state.Target
+	for _, id := range ids {
+		if p, ok := id.PlayerRef(); ok {
+			out = append(out, state.Target{Player: p, IsPlayer: true})
+			continue
+		}
+		out = append(out, state.Target{Obj: id})
+	}
+	return out
 }
 
 // Move relocates an object between zones, preserving zone order and the

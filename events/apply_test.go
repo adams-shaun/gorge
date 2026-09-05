@@ -1093,6 +1093,26 @@ func TestAbilityPushMintsAnActivatedAbilityObject(t *testing.T) {
 	}
 }
 
+// TestAbilityPushPlayerRefRememberedRoundTrips is FL-41's symmetry check for
+// AbilityPush: the same PlayerRef sentinel TriggerPush decodes must decode
+// in AbilityPush too, so an activated ability that remembered a player (the
+// same shape rules.pushTrigger produces for a DeclareAttackers trigger)
+// rebuilds {Player, IsPlayer: true} rather than {Obj: 0}.
+func TestAbilityPushPlayerRefRememberedRoundTrips(t *testing.T) {
+	g, id := gameWithOneCardSrc(t, "Name:Sailor\nManaCost:U\nTypes:Creature Spirit\nPT:1/1\nA:AB$ Draw | Cost$ 3 U | NumCards$ 1 | Defined$ You | SpellDescription$ Draw a card.\nOracle:x\n")
+	Move(g, id, state.ZHand, state.ZBattlefield)
+	Apply(g, Event{Kind: AbilityPush, Obj: id, Player: 0, Amount: 0,
+		IDs: []state.ObjID{id, state.PlayerRef(1)}})
+	if len(g.Stack) != 1 {
+		t.Fatal("no ability object")
+	}
+	ab := g.Obj(g.Stack[0])
+	if len(ab.Remembered) != 2 || ab.Remembered[0].Obj != id || ab.Remembered[0].IsPlayer ||
+		!ab.Remembered[1].IsPlayer || ab.Remembered[1].Player != 1 {
+		t.Fatalf("ability object Remembered %+v", ab.Remembered)
+	}
+}
+
 func TestAbilityPushKindString(t *testing.T) {
 	if got, want := AbilityPush.String(), "ability_push"; got != want {
 		t.Fatalf("AbilityPush.String() = %q, want %q", got, want)
