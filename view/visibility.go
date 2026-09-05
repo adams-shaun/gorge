@@ -55,8 +55,10 @@ const NoSeat state.PlayerID = 255
 
 // ProjectFor is Project with an explicit visibility. Seat is exactly
 // Project. Public forces the spectator path regardless of viewer. Omniscient
-// projects every seat's hand and pool; the decision is still attached only
-// to the seat it was asked of, so a spectator never carries one.
+// projects every seat's hand and pool, but never attaches a decision to any
+// viewer -- project is always called with a nil Decision in this branch, so
+// even the seat d was asked of sees none: an omniscient view is for
+// watching, not acting.
 func ProjectFor(g *state.Game, ch Chars, viewer state.PlayerID, vis Visibility, d *decision.Decision) View {
 	switch vis {
 	case Public:
@@ -85,10 +87,14 @@ func ProjectFor(g *state.Game, ch Chars, viewer state.PlayerID, vis Visibility, 
 // RedactEventsFor is RedactEvents with an explicit visibility. Seat and
 // Public are RedactEvents (a Public viewer is NoSeat, so every owner-only
 // branch stays closed). Omniscient passes every event through unredacted
-// except the two Secret kinds whose payload is library order — Shuffle
-// (genesis order) and a Secret Note (a private look at the top of the
-// library) — which keep only their shape. A Secret Draw or MoveZone out of
-// the library passes: the card is now in a hand the omniscient viewer sees.
+// except a Secret event whose payload is or reveals library order —
+// Shuffle (genesis order), a Secret Note (a private look at the top of the
+// library), or any Secret move landing back IN a library (a Dig/rearrange
+// that returns a card to a hidden position reveals where in the order it
+// went, per Ruling FL-9) — which keep only their shape. A Secret Draw or
+// MoveZone OUT of the library still passes: the card is now in a hand the
+// omniscient viewer sees. A non-Secret move into a library (e.g. from a
+// public zone) is not this kind of reveal and stays public.
 func RedactEventsFor(g *state.Game, evs []events.Event, viewer state.PlayerID, vis Visibility) []events.Event {
 	switch vis {
 	case Public:
@@ -98,7 +104,7 @@ func RedactEventsFor(g *state.Game, evs []events.Event, viewer state.PlayerID, v
 		for _, e := range evs {
 			e.IDs = append([]state.ObjID(nil), e.IDs...)
 			e.Pairs = append([][2]state.ObjID(nil), e.Pairs...)
-			if e.Secret && (e.Kind == events.Shuffle || e.Kind == events.Note) {
+			if e.Secret && (e.Kind == events.Shuffle || e.Kind == events.Note || e.To == state.ZLibrary) {
 				out = append(out, events.Event{
 					Seq: e.Seq, Kind: e.Kind, Player: e.Player,
 					From: e.From, To: e.To, Step: e.Step, Secret: e.Secret,

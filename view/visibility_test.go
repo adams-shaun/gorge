@@ -84,6 +84,34 @@ func TestProjectForPublicShowsNoHandNoPoolNoDecision(t *testing.T) {
 	}
 }
 
+// TestProjectForPublicIgnoresARealSeatViewer is the other half of Public's
+// defining behaviour: TestProjectForPublicShowsNoHandNoPoolNoDecision only
+// ever passes NoSeat, so it cannot tell Public's own redaction apart from
+// "a spectator has nothing to redact anyway". Passing a REAL seat (2) is the
+// only way to prove Public forces the spectator path regardless of who is
+// asking -- if ProjectFor's Public case ever stopped overriding viewer with
+// NoSeat internally, seat 2 would see its own hand/pool/decision here and
+// this test would catch it while the NoSeat-only test stayed green.
+func TestProjectForPublicIgnoresARealSeatViewer(t *testing.T) {
+	e := playSome(t, 5, 60)
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("test setup: no decision pending, positive control proves nothing")
+	}
+	v := view.ProjectFor(e.G, e, 2, view.Public, d)
+	if v.Visibility != "public" || v.Viewer != 2 {
+		t.Fatalf("header %+v", v)
+	}
+	for _, p := range v.Players {
+		if p.Hand != nil || p.Pool != nil {
+			t.Fatalf("public view for real seat 2 exposes seat %d's hand or pool", p.ID)
+		}
+	}
+	if v.Decision != nil {
+		t.Fatal("public view for real seat 2 carries a decision")
+	}
+}
+
 func TestProjectForOmniscientShowsEveryHandAndPoolButNoLibraryOrder(t *testing.T) {
 	e := playSome(t, 5, 60)
 	v := view.ProjectFor(e.G, e, view.NoSeat, view.Omniscient, e.Pending())
@@ -141,6 +169,11 @@ func TestRedactEventsForOmniscientHidesOnlyLibraryOrder(t *testing.T) {
 		switch {
 		case orig.Kind == events.Shuffle:
 			shuffles++
+			// Positive control: the raw event must actually have carried
+			// library-order IDs, or the check below proves nothing.
+			if len(orig.IDs) == 0 {
+				t.Fatalf("test setup: shuffle event %d has no IDs to redact", i)
+			}
 			if len(ev.IDs) != 0 {
 				t.Fatalf("event %d: omniscient view sees library order", i)
 			}
@@ -165,6 +198,79 @@ func TestRedactEventsForOmniscientHidesOnlyLibraryOrder(t *testing.T) {
 	}
 }
 
+// TestRedactEventsForOmniscientReducesExactlyLibraryOrderEvents is
+// TestRedactEventsForOmniscientHidesOnlyLibraryOrder's hand-built
+// complement: SampleDecks (playSome's fixture) never plays a card that
+// emits a Secret Note (only effRearrangeTopOfLibrary does, a card shape not
+// in the fuzz corpus), so that branch — and Ruling FL-9's Secret-move-into-
+// a-library branch, which nothing in SampleDecks triggers either — would
+// stay green even if visibility.go's reduction condition silently dropped
+// either check. Built directly against events.Event literals, no engine:
+// the Omniscient branch of RedactEventsFor never reads g.
+func TestRedactEventsForOmniscientReducesExactlyLibraryOrderEvents(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		ev        events.Event
+		shapeOnly bool // false means "passes through byte-identical"
+	}{
+		{
+			name:      "secret note is reduced to shape",
+			ev:        events.Event{Seq: 1, Kind: events.Note, Player: 1, Text: "looks at the top card", IDs: []state.ObjID{10, 11}, Secret: true},
+			shapeOnly: true,
+		},
+		{
+			name:      "secret shuffle is reduced to shape",
+			ev:        events.Event{Seq: 2, Kind: events.Shuffle, Player: 1, From: state.ZLibrary, To: state.ZLibrary, IDs: []state.ObjID{1, 2, 3}, Secret: true},
+			shapeOnly: true,
+		},
+		{
+			name:      "secret draw out of the library passes with Obj intact",
+			ev:        events.Event{Seq: 3, Kind: events.Draw, Player: 1, From: state.ZLibrary, To: state.ZHand, Obj: 42, Secret: true},
+			shapeOnly: false,
+		},
+		{
+			name:      "a public event is byte-identical",
+			ev:        events.Event{Seq: 4, Kind: events.Damage, Player: 0, Amount: 3},
+			shapeOnly: false,
+		},
+		{
+			// Ruling FL-9: a Dig/rearrange effect that returns a card to a
+			// hidden library position reveals where in the order it went.
+			name:      "a secret library-to-library move is reduced to shape (FL-9)",
+			ev:        events.Event{Seq: 5, Kind: events.MoveZone, Player: 1, From: state.ZLibrary, To: state.ZLibrary, Obj: 7, Secret: true},
+			shapeOnly: true,
+		},
+		{
+			// Ruling FL-9's other half: a move into a library that is NOT
+			// Secret (e.g. from a public zone) is not this kind of reveal.
+			name:      "a non-secret move into a library passes unchanged (FL-9)",
+			ev:        events.Event{Seq: 6, Kind: events.MoveZone, Player: 1, From: state.ZBattlefield, To: state.ZLibrary, Obj: 8},
+			shapeOnly: false,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out := view.RedactEventsFor(nil, []events.Event{tc.ev}, view.NoSeat, view.Omniscient)
+			if len(out) != 1 {
+				t.Fatalf("len(out) = %d, want 1", len(out))
+			}
+			got := out[0]
+			if !tc.shapeOnly {
+				if string(got.Append(nil)) != string(tc.ev.Append(nil)) {
+					t.Fatalf("event altered when it should have passed through unchanged: got %+v, want %+v", got, tc.ev)
+				}
+				return
+			}
+			if got.Obj != 0 || len(got.IDs) != 0 || len(got.Pairs) != 0 || got.Text != "" || got.Amount != 0 || got.Counter != "" {
+				t.Fatalf("event not reduced to shape only: %+v", got)
+			}
+			if got.Kind != tc.ev.Kind || got.Player != tc.ev.Player || got.From != tc.ev.From ||
+				got.To != tc.ev.To || got.Step != tc.ev.Step || got.Secret != tc.ev.Secret {
+				t.Fatalf("event's own shape was lost: got %+v, want the shape of %+v", got, tc.ev)
+			}
+		})
+	}
+}
+
 func TestRedactEventsForPublicMatchesRedactEventsForASpectator(t *testing.T) {
 	e := playSome(t, 5, 200)
 	a := view.RedactEvents(e.G, e.L.Events, view.NoSeat)
@@ -176,6 +282,42 @@ func TestRedactEventsForPublicMatchesRedactEventsForASpectator(t *testing.T) {
 		if string(a[i].Append(nil)) != string(b[i].Append(nil)) {
 			t.Fatalf("event %d differs between RedactEvents and RedactEventsFor(Public)", i)
 		}
+	}
+}
+
+// TestRedactEventsForPublicIgnoresARealSeatViewer is
+// TestProjectForPublicIgnoresARealSeatViewer's RedactEventsFor counterpart:
+// Public(viewer=2) must match RedactEvents(NoSeat) exactly (proving Public
+// really does force NoSeat rather than merely happening to redact the same
+// as seat 2 would) and must differ from RedactEvents(2) (proving seat 2's
+// own secrets -- its own Shuffle/Draw events, visible to RedactEvents when
+// Player == viewer -- are the very thing Public strips).
+func TestRedactEventsForPublicIgnoresARealSeatViewer(t *testing.T) {
+	e := playSome(t, 5, 200)
+	forRealSeat := view.RedactEventsFor(e.G, e.L.Events, 2, view.Public)
+	forNoSeat := view.RedactEvents(e.G, e.L.Events, view.NoSeat)
+	if len(forRealSeat) != len(forNoSeat) {
+		t.Fatal("lengths differ between Public(viewer=2) and RedactEvents(NoSeat)")
+	}
+	for i := range forRealSeat {
+		if string(forRealSeat[i].Append(nil)) != string(forNoSeat[i].Append(nil)) {
+			t.Fatalf("event %d: Public(viewer=2) differs from RedactEvents(NoSeat)", i)
+		}
+	}
+
+	forSeat2 := view.RedactEvents(e.G, e.L.Events, 2)
+	if len(forRealSeat) != len(forSeat2) {
+		t.Fatal("lengths differ between Public(viewer=2) and RedactEvents(2)")
+	}
+	differs := false
+	for i := range forRealSeat {
+		if string(forRealSeat[i].Append(nil)) != string(forSeat2[i].Append(nil)) {
+			differs = true
+			break
+		}
+	}
+	if !differs {
+		t.Fatal("Public(viewer=2) is identical to RedactEvents(2): Public is not ignoring the real seat")
 	}
 }
 
