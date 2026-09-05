@@ -38,6 +38,19 @@ type Options struct {
 	Ring       int
 	Cooldown   time.Duration
 	MaxIntents int
+	// ThinkTimeout is how long a HumanSeat parks on a decision before its
+	// deterministic caretaker bot (the already-seeded bot for that slot) is
+	// asked to answer in the player's place (Task M2b-3, D3). 0 — the default
+	// — means "no timeout": the seat waits for a human SubmitIntent forever,
+	// and only falls back to the caretaker when the table's context is
+	// cancelled (a disconnected human seat must never wedge play, FL-17).
+	// A non-zero value is a live clock read (host is the package allowed
+	// time) that converts an unanswered decision into exactly the intent the
+	// slot's bot would have produced, so a timed-out human game replays
+	// byte-identically (the caretaker intent is committed to the log like any
+	// other). The player may reconnect and answer later decisions via
+	// SubmitIntent (D2).
+	ThinkTimeout time.Duration
 }
 
 // defaultSleep is installed when Options.Sleep is nil. It is the package's
