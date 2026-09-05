@@ -17,6 +17,10 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Flash":          "TestFlashCreatureIsCastableOffTurn",
 		"kw:Indestructible": "TestIndestructibleSurvivesLethalDamageAndDestroy",
 		"kw:Devoid":         "TestDevoidCreatureIsColourless",
+		"kw:Undying":        "TestUndyingReturnsOnceWithACounter",
+		"kw:Evolve":         "TestEvolveGrowsOnlyForBiggerCreatures",
+		"kw:Exalted":        "TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells",
+		"kw:Prowess":        "TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells",
 	} {
 		if !sup[kw] {
 			t.Errorf("%s is not registered (proof test: %s)", kw, proof)

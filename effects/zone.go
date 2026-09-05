@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -37,6 +38,32 @@ func ParseZone(s string) state.Zone {
 
 func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	to := ParseZone(sa.Params["Destination"])
+	// WithCountersType$/WithCountersAmount$ make the move put counters on the
+	// permanent it lands on the battlefield with -- the Undying expansion's
+	// "return to the battlefield with a +1/+1 counter" (cards/keywords.go). The
+	// CounterChange is emitted AFTER the MoveZone, so it lands on the moved
+	// (new) object's back at its destination, exactly as Move waiting to run
+	// first would want, and the counter survives onto the permanent because it
+	// is added post-move. Counter (not the Move carrying it along) is what
+	// keeps events/apply.go's Move from knowing anything about counters.
+	withKind := sa.Params["WithCountersType"]
+	withAmt := int32(1)
+	if v := strings.TrimSpace(sa.Params["WithCountersAmount"]); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			// Malformed WithCountersAmount must be loud, not silently default to
+			// 1 (the reviewer's item): a wrong counter count on a Returning
+			// permanent is a hard-to-spot board-shape bug. A Note event (the way
+			// Resolve surfaces an unimplemented API) keeps this deterministic and
+			// replay-log-visible rather than dropping to a log line the event log
+			// cannot account for. The movement still proceeds with the safe
+			// default 1.
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "malformed WithCountersAmount " + v})
+		} else {
+			withAmt = int32(n)
+		}
+	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -55,6 +82,9 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: to})
+		if withKind != "" && to == state.ZBattlefield {
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: withKind, Amount: withAmt})
+		}
 	}
 }
 
