@@ -44,7 +44,7 @@ func TestParseReadsNameFormatAndEntries(t *testing.T) {
 }
 
 func TestParseRejectsMalformedInput(t *testing.T) {
-	for _, raw := range []string{"", "{", `{"cards":[{"name":"","count":1}]}`, `{"cards":[{"name":"Mountain","count":0}]}`} {
+	for _, raw := range []string{"", "{", "{}", `{"cards":[]}`, `{"cards":[{"name":"","count":1}]}`, `{"cards":[{"name":"Mountain","count":0}]}`} {
 		if _, err := Parse([]byte(raw)); err == nil {
 			t.Errorf("Parse(%q) accepted malformed input", raw)
 		}
