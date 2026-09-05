@@ -37,10 +37,17 @@ describe('session', () => {
     emit(hello('s1'));
     expect(session.id).toBe('s1');
     expect(subscribeMock).toHaveBeenCalledWith('s1', '*', 'overview');
+    await flush(); // let the hello's own resubscribe() settle before isolating focus()'s idempotency below
 
     subscribeMock.mockClear();
     await session.focus('t1');
     expect(subscribeMock).toHaveBeenCalledWith('s1', 't1', 'focus');
+    expect(subscribeMock).toHaveBeenCalledTimes(1);
+
+    // idempotent: a re-firing effect (e.g. a route re-render) must not
+    // re-issue the subscribe — the host pushes a fresh snapshot per subscribe
+    await session.focus('t1');
+    expect(subscribeMock).toHaveBeenCalledTimes(1);
 
     subscribeMock.mockClear();
     emit(hello('s2')); // server-side restart: fresh session id
