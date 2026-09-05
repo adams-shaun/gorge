@@ -4,6 +4,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -49,7 +51,9 @@ func TestLockRoundTrip(t *testing.T) {
 	want := &Lock{
 		Repo: "https://github.com/Card-Forge/forge.git", Ref: "master",
 		Commit: "deadbeef", License: "GPL-3.0",
-		FetchedPath: "forge-gui/res/cardsfolder", Files: 33669, Digest: "abc123",
+		FetchedPath:  "forge-gui/res/cardsfolder",
+		FetchedPaths: []string{"forge-gui/res/cardsfolder", "forge-gui/res/tokenscripts"},
+		Files:        33669, Digest: "abc123",
 	}
 	if err := WriteLock(dir, want); err != nil {
 		t.Fatal(err)
@@ -58,8 +62,39 @@ func TestLockRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if *got != *want {
+	// Lock now carries a slice field (FetchedPaths), so it is no longer a
+	// comparable type: reflect.DeepEqual replaces the old `*got != *want`.
+	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("lock round trip: got %+v want %+v", got, want)
+	}
+}
+
+// TestLockReadsOldFormatFetchedPath verifies a lock file written before
+// FetchedPaths existed (only the singular "fetched_path" JSON key) still
+// reads: ReadLock must not choke on the new plural field being absent.
+func TestLockReadsOldFormatFetchedPath(t *testing.T) {
+	dir := t.TempDir()
+	old := `{
+  "repo": "https://github.com/Card-Forge/forge.git",
+  "ref": "master",
+  "commit": "deadbeef",
+  "license": "GPL-3.0",
+  "fetched_path": "forge-gui/res/cardsfolder",
+  "files": 33669,
+  "digest": "abc123"
+}`
+	if err := os.WriteFile(lockPath(dir), []byte(old), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := ReadLock(dir)
+	if err != nil {
+		t.Fatalf("old-format lock failed to read: %v", err)
+	}
+	if got.FetchedPath != "forge-gui/res/cardsfolder" {
+		t.Fatalf("FetchedPath = %q", got.FetchedPath)
+	}
+	if len(got.FetchedPaths) != 0 {
+		t.Fatalf("FetchedPaths = %v, want empty for an old-format lock", got.FetchedPaths)
 	}
 }
 
@@ -169,5 +204,116 @@ func TestFetchCleansUpOnFailure(t *testing.T) {
 		t.Fatalf("work directory still exists after failure: %s", workDir)
 	} else if !os.IsNotExist(err) {
 		t.Fatalf("unexpected error checking work directory: %v", err)
+	}
+}
+
+// runGit runs a git command with dir as its working directory, failing the
+// test on error.
+func runGit(t *testing.T, dir string, args ...string) string {
+	t.Helper()
+	full := append([]string{"-C", dir}, args...)
+	cmd := exec.Command("git", full...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %s: %v: %s", strings.Join(full, " "), err, out)
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// newLocalForgeRepo builds a local, non-bare git repository seeded with a
+// forge-gui/res/cardsfolder tree, so fetchRepo can be exercised without
+// network access. `git clone` treats a repository with a working tree the
+// same as a bare one, so — unlike TestFetchCleansUpOnFailure's bare-repo +
+// push dance above — a plain `git init` is enough here.
+func newLocalForgeRepo(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	runGit(t, dir, "init")
+	cardDir := filepath.Join(dir, "forge-gui", "res", "cardsfolder")
+	if err := os.MkdirAll(cardDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(cardDir, "mountain.txt"),
+		[]byte("Name:Mountain\nTypes:Basic Land Mountain\nOracle:\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, dir, "add", "forge-gui")
+	runGit(t, dir, "-c", "user.email=test@example.com", "-c", "user.name=Test",
+		"commit", "-m", "seed cardsfolder")
+	return dir
+}
+
+// addTokenScript adds one file under forge-gui/res/tokenscripts to repo and
+// commits it, giving fetchRepo a second sparse-checkout path to pull and a
+// SHA that carries both subpaths.
+func addTokenScript(t *testing.T, repo, name, src string) {
+	t.Helper()
+	tokenDir := filepath.Join(repo, "forge-gui", "res", "tokenscripts")
+	if err := os.MkdirAll(tokenDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tokenDir, name), []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, repo, "add", "forge-gui")
+	runGit(t, repo, "-c", "user.email=test@example.com", "-c", "user.name=Test",
+		"commit", "-m", "add token script")
+}
+
+// headSHA returns repo's current HEAD commit hash.
+func headSHA(t *testing.T, repo string) string {
+	t.Helper()
+	return runGit(t, repo, "rev-parse", "HEAD")
+}
+
+// currentBranch returns repo's currently checked-out branch name. Used
+// instead of hard-coding "master"/"main": newLocalForgeRepo never sets
+// --initial-branch, so the name it gets depends on this environment's
+// init.defaultBranch.
+func currentBranch(t *testing.T, repo string) string {
+	t.Helper()
+	return runGit(t, repo, "branch", "--show-current")
+}
+
+func TestFetchByCommitSHAAndTokenScripts(t *testing.T) {
+	repo := newLocalForgeRepo(t) // the local, non-bare repo built above
+	addTokenScript(t, repo, "r_1_1_goblin.txt", goblinTokenSrc)
+	sha := headSHA(t, repo)
+	dir := t.TempDir()
+	l, err := fetchRepo(repo, dir, sha)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if l.Commit != sha || len(l.FetchedPaths) != 2 {
+		t.Fatalf("lock %+v", l)
+	}
+	if _, err := os.Stat(filepath.Join(TokensDir(dir), "r_1_1_goblin.txt")); err != nil {
+		t.Fatal("token script not fetched")
+	}
+}
+
+// TestFetchByBranchFetchesBothSparsePaths is the branch-ref counterpart to
+// TestFetchByCommitSHAAndTokenScripts: it hits the OTHER half of fetchRepo's
+// ref-kind branch (the pre-existing --branch clone path), which neither
+// TestFetchCleansUpOnFailure (deliberately missing both subpaths, so it
+// exercises only the failure path) nor TestFetchDownloadsCorpus (skipped
+// without network) actually proves fetches both sparse paths successfully.
+func TestFetchByBranchFetchesBothSparsePaths(t *testing.T) {
+	repo := newLocalForgeRepo(t)
+	addTokenScript(t, repo, "r_1_1_goblin.txt", goblinTokenSrc)
+	branch := currentBranch(t, repo)
+	dir := t.TempDir()
+	l, err := fetchRepo(repo, dir, branch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(l.FetchedPaths) != 2 {
+		t.Fatalf("lock %+v", l)
+	}
+	if _, err := os.Stat(filepath.Join(CorpusDir(dir), "mountain.txt")); err != nil {
+		t.Fatal("card script not fetched via branch ref")
+	}
+	if _, err := os.Stat(filepath.Join(TokensDir(dir), "r_1_1_goblin.txt")); err != nil {
+		t.Fatal("token script not fetched via branch ref")
 	}
 }
