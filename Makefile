@@ -1,6 +1,10 @@
 SHELL      := /bin/bash
 BIN_DIR    := bin
-GO_SRC     := $(shell find . -type f -name '*.go' 2>/dev/null) go.mod
+# node_modules is pruned the same way dot-directories (.worktrees, .git) are
+# implicitly skipped by go tooling: web/node_modules ships stray .go files
+# from transitive npm deps that Go tooling must never see.
+GO_FILES   := find . -name node_modules -prune -o -type f -name '*.go' -print
+GO_SRC     := $(shell $(GO_FILES) 2>/dev/null) go.mod
 
 # Where forgec puts the fetched corpus and the IR compiled from it. Never
 # committed — the scripts are GPL-3.0.
@@ -21,6 +25,7 @@ help:
 	@echo "  make test-web       — run web/'s Vitest suite"
 	@echo "  make lint-web       — svelte-check and eslint over web/"
 	@echo "  make test lint cover"
+	@echo "  NOTE: make test-web / npm test needs Node >=22 (vitest 5); see web/README.md"
 
 .PHONY: build
 build: $(BIN_DIR)/forgec $(BIN_DIR)/mtgsim
@@ -74,22 +79,28 @@ cover-html: cover
 tidy:
 	go mod tidy
 
-.PHONY: web web-dev test-web lint-web
-web:
-	cd web && npm ci && npm run build
+# npm's own install fingerprint; a clean checkout has no web/node_modules,
+# so lint-web/test-web/web (and web-dev) install first instead of dying with
+# "eslint: not found" / "vite: not found".
+web/node_modules/.package-lock.json: web/package-lock.json
+	cd web && npm ci
 
-web-dev:
+.PHONY: web web-dev test-web lint-web
+web: web/node_modules/.package-lock.json
+	cd web && npm run build
+
+web-dev: web/node_modules/.package-lock.json
 	cd web && npm run dev
 
-test-web:
+test-web: web/node_modules/.package-lock.json
 	cd web && npm run test
 
-lint-web:
+lint-web: web/node_modules/.package-lock.json
 	cd web && npm run check && npm run lint
 
 .PHONY: lint
 lint: lint-web
-	@out=$$(gofmt -l . 2>&1); \
+	@out=$$(gofmt -l $$($(GO_FILES)) 2>&1); \
 		if [ -n "$$out" ]; then \
 			echo "gofmt: files need formatting:"; echo "$$out"; exit 1; \
 		fi
