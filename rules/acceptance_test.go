@@ -142,6 +142,73 @@ func sameSet(a, b []string) bool {
 	return true
 }
 
+// playAcceptance plays one deterministic acceptance game -- seats seats,
+// round-robined across the 12 repo decks from testutil.RepoDeckNames() in
+// order starting from deck 0, seed 42 driven by newTestBot(7) -- to
+// completion, replays it from its own recorded (Config, Log) through the
+// package-local replayFor helper, and Fatals if the two chain Heads
+// disagree. step, when non-nil, is called once right after Advance (n==0,
+// before any intent), once every 997 intents thereafter, and once more
+// after the game loop exits, so a caller that wants per-checkpoint work
+// (invariant checks, logging) can hook into the one game loop instead of
+// keeping a second copy of it.
+//
+// TestRepoDecksPlayAtEverySeatCount and acceptanceHead (rules/heads_test.go's
+// TestHeads) both call this, so the games the invariant/replay guarantees
+// are checked against and the games the chain-head goldens pin can never
+// silently drift apart from each other.
+func playAcceptance(t *testing.T, reg *cards.Registry, seats int, step func(e *Engine, n int)) string {
+	t.Helper()
+	all := testutil.RepoDeckNames()
+	names := make([]string, seats)
+	decks := make([][]*cards.Card, seats)
+	for i := 0; i < seats; i++ {
+		names[i] = all[i%len(all)]
+		decks[i] = testutil.RepoDeck(t, reg, all[i%len(all)])
+	}
+	cfg := Config{Seed: 42, Names: names, Decks: decks}
+	e := New(cfg)
+	b := newTestBot(7)
+	e.Advance()
+	if step != nil {
+		step(e, 0)
+	}
+	n := 0
+	for !e.G.Over && e.Pending() != nil && n < 400000 {
+		// Ruling T25-b's isMain gate (rules/testbot_test.go's own doc):
+		// computed from the engine's own step, on the line before the
+		// call that consumes it, exactly like TestInvariantsUnderSeedFuzz.
+		isMain := e.G.Step.IsMain()
+		if err := e.Submit(b.answer(isMain, e.Pending())); err != nil {
+			t.Fatalf("%d seats, intent %d: %v", seats, n, err)
+		}
+		if step != nil && n%997 == 0 {
+			step(e, n)
+		}
+		n++
+	}
+	if step != nil {
+		step(e, n)
+	}
+	if !e.G.Over {
+		t.Fatalf("%d-seat game did not finish (turn %d, %d intents)", seats, e.G.Turn, n)
+	}
+	re, err := replayFor(cfg, e.L)
+	if err != nil {
+		t.Fatalf("%d seats: %v", seats, err)
+	}
+	if re.L.Head() != e.L.Head() {
+		t.Fatalf("%d seats: chain %s, replay %s", seats, e.L.Head(), re.L.Head())
+	}
+	return e.L.Head()
+}
+
+// acceptanceHead is playAcceptance with no per-checkpoint hook: just the
+// finished game's chain Head, for rules/heads_test.go's TestHeads to pin.
+func acceptanceHead(t *testing.T, reg *cards.Registry, seats int) string {
+	return playAcceptance(t, reg, seats, nil)
+}
+
 // TestRepoDecksPlayAtEverySeatCount is the M1 acceptance gate: the 12 repo
 // decks, round-robined across 2, 4, 6 and 8 seats, must each play a
 // complete game -- termination under budget, every invariant holding
@@ -154,45 +221,28 @@ func TestRepoDecksPlayAtEverySeatCount(t *testing.T) {
 		t.Skip("long")
 	}
 	reg := testutil.CorpusRegistry(t)
-	all := testutil.RepoDeckNames()
 	for _, seats := range []int{2, 4, 6, 8} {
-		names := make([]string, seats)
-		decks := make([][]*cards.Card, seats)
-		for i := 0; i < seats; i++ {
-			names[i] = all[i%len(all)]
-			decks[i] = testutil.RepoDeck(t, reg, all[i%len(all)])
-		}
-		e := New(Config{Seed: 42, Names: names, Decks: decks})
-		b := newTestBot(7)
-		e.Advance()
-		testutil.CheckInvariants(t, e.G, e.Pending(), fmt.Sprintf("%d-seat start", seats))
-		n := 0
-		for !e.G.Over && e.Pending() != nil && n < 400000 {
-			// Ruling T25-b's isMain gate (rules/testbot_test.go's own doc):
-			// computed from the engine's own step, on the line before the
-			// call that consumes it, exactly like TestInvariantsUnderSeedFuzz.
-			isMain := e.G.Step.IsMain()
-			if err := e.Submit(b.answer(isMain, e.Pending())); err != nil {
-				t.Fatalf("%d seats, intent %d: %v", seats, n, err)
+		seenStart := false
+		playAcceptance(t, reg, seats, func(e *Engine, n int) {
+			label := fmt.Sprintf("%d-seat mid", seats)
+			switch {
+			case !seenStart:
+				label = fmt.Sprintf("%d-seat start", seats)
+				seenStart = true
+			case e.G.Over:
+				label = fmt.Sprintf("%d-seat end", seats)
+				// Ruling P14: Draw before Winner -- Winner's zero value is
+				// seat 0, a real seat, so reading it unconditionally would
+				// misreport a drawn game as "seat 0 won".
+				result := "draw"
+				if !e.G.Draw {
+					result = e.G.Players[e.G.Winner].Name
+				}
+				t.Logf("%d seats: %6d intents, %6d events, %3d turns, winner=%s, chain=%s",
+					seats, n, len(e.L.Events), e.G.Turn, result, e.L.Head())
 			}
-			if n%997 == 0 {
-				testutil.CheckInvariants(t, e.G, e.Pending(), fmt.Sprintf("%d-seat mid", seats))
-			}
-			n++
-		}
-		testutil.CheckInvariants(t, e.G, e.Pending(), fmt.Sprintf("%d-seat end", seats))
-		if !e.G.Over {
-			t.Fatalf("%d-seat game did not finish (turn %d, %d intents)", seats, e.G.Turn, n)
-		}
-		// Ruling P14: Draw before Winner -- Winner's zero value is seat 0, a
-		// real seat, so reading it unconditionally would misreport a drawn
-		// game as "seat 0 won".
-		result := "draw"
-		if !e.G.Draw {
-			result = e.G.Players[e.G.Winner].Name
-		}
-		t.Logf("%d seats: %6d intents, %6d events, %3d turns, winner=%s, chain=%s",
-			seats, n, len(e.L.Events), e.G.Turn, result, e.L.Head())
+			testutil.CheckInvariants(t, e.G, e.Pending(), label)
+		})
 	}
 }
 
