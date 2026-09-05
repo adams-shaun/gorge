@@ -16,6 +16,7 @@ func (c *Card) Link() []Diag {
 }
 
 func (f *Face) link(path string) []Diag {
+	f.expandKeywords()
 	var diags []Diag
 
 	var resolve func(name string, depth int) *SA

@@ -4,7 +4,12 @@ import "sort"
 
 // Primitives lists every engine symbol this face needs, prefixed by kind. The
 // result is sorted so it is stable across runs — coverage reports and the IR
-// cache both depend on that.
+// cache both depend on that. Because Link runs expandKeywords first
+// (keywords.go), an expanded keyword's own triggers/replacements/abilities
+// are already on the Face by the time this walks it: a Batterskull lists
+// not just kw:Living Weapon and kw:Equip but also the api:Token, api:Attach
+// and trig:ChangesZone its expansion needs, exactly as if those lines had
+// been printed in the script by hand.
 func (f *Face) Primitives() []string {
 	set := map[string]struct{}{}
 	var walk func(sa *SA, depth int)
