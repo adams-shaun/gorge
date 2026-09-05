@@ -24,17 +24,13 @@ type Options struct {
 	MaxIntents int
 }
 
-// Session is declared here as a placeholder so this package compiles.
-// Task 10 replaces this with the real session type.
-type Session struct{}
-
 // Registry owns the tables and the sessions watching them.
 type Registry struct {
 	opts Options
 
 	mu       sync.RWMutex
 	tables   map[TableID]*table
-	sessions map[string]*Session // Task 10
+	sessions map[string]*Session
 	nextSess int
 	closed   bool
 	done     chan struct{} // closed by Close once every table has been told to stop
@@ -173,11 +169,13 @@ func (r *Registry) run(t *table) {
 }
 
 // halt is D15's second half for the table: it stops and stays stopped.
-// Task 13 adds the crash file and the table_halted frame.
+// Task 13 adds the crash report file.
 func (r *Registry) halt(t *table, err error) {
 	t.mu.Lock()
 	t.state = protocol.TableHalted
+	k := t.k
 	t.mu.Unlock()
+	r.sendHalted(t, k, err.Error())
 }
 
 // Tables lists every table, sorted by ID.
@@ -253,7 +251,5 @@ func (r *Registry) ids() []TableID {
 }
 
 // Stubs the later tasks replace.
-func (r *Registry) load() error                     { return nil }
-func (r *Registry) save() error                     { return nil }
-func (r *Registry) onMatchStart(t *table, m *match) {}
-func (r *Registry) closeSessions()                  {}
+func (r *Registry) load() error { return nil }
+func (r *Registry) save() error { return nil }
