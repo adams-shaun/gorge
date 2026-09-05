@@ -19,8 +19,13 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 	fi
 	[ "$remote_ref" = "refs/heads/main" ] && push_main=1
 done
-if [ "$push_main" = 1 ] && [ -z "$SKIP_RACE" ]; then
-	echo "pre-push: race gate on main, one run (SKIP_RACE=1 to bypass)" >&2
+# Ruling FL-62 (user directive 2026-09-05): the race gate is OFF by default —
+# it added ~2 min to every push of main, which is too slow to sit through.
+# FL-56 (-race runs exactly once, and only here) still holds for WHERE it
+# runs; what changed is that it no longer runs automatically. Run it
+# deliberately before a milestone merge with RACE=1 git push origin main.
+if [ "$push_main" = 1 ] && [ -n "$RACE" ]; then
+	echo "pre-push: race gate on main, one run" >&2
 	out=$(mktemp -t gorge-race-XXXXXX.log)
 	if ! go test -race -count=1 ./host/... ./rules/ ./events/ ./effects/ ./state/ >"$out" 2>&1; then
 		grep -vE '^ok' "$out" | tail -60 >&2
