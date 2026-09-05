@@ -48,7 +48,7 @@ type match struct {
 // snapshot is a cloned engine at an intent boundary that began a turn.
 type snapshot struct {
 	intent int
-	seq    uint64
+	seq    uint64 // Task 12: the persisted burst boundary this snapshot lines up with on disk.
 	e      *rules.Engine
 }
 

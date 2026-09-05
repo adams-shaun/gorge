@@ -33,6 +33,13 @@ func (r *Registry) ViewAt(id TableID, k int, seq uint64) (view.View, error) {
 		return view.View{}, err
 	}
 	m.mu.RLock()
+	// The whole log, not a prefix to seq: Log.Clone (Task 1) is a flat
+	// whole-log deep copy with no truncation parameter, and computing a
+	// correct prefix here would mean re-doing Clone's own per-event
+	// IDs/Pairs copying by hand instead of reusing it, for a saving that
+	// is usually small (most ViewAt calls land near head anyway) and is
+	// freed the moment this call returns — unlike a stored snapshot
+	// (FL-44), this copy never outlives the request.
 	l := m.e.L.Clone()
 	snaps := append([]snapshot(nil), m.snaps...)
 	cfg, vis := m.cfg, t.cfg.Spectator
@@ -41,29 +48,36 @@ func (r *Registry) ViewAt(id TableID, k int, seq uint64) (view.View, error) {
 }
 
 // Events is every redacted, described event from since (inclusive) to the
-// head, in chain order. Redaction is against the state at head (PL-15).
+// head, in chain order. Redaction is against the state at head (PL-15),
+// which holds because g is cloned at the tail's own head — RedactEventsFor
+// and Describe read "the state as of the last event in evs".
 //
-// This holds the read lock for the eventBodies call: that helper (Task 10,
-// fanout.go) is shared with the burst fan-out and its contract there is
-// "called with m.mu held", reading m.e.G/m.e.L live. Unlike ViewAt's
-// replay, it does no engine work — formatting and redaction only — and
-// that helper's file is outside this task's scope, so this keeps its
-// existing, already-reviewed locking convention rather than forking it.
+// since is caller-controlled and since=0 on a long match is the whole log,
+// so (fix round 1, FL-42) this takes the read lock only long enough to
+// clone g (state.Game.Clone) and copy the events tail, then formats
+// outside the lock — the same discipline as ViewAt, now that eventBodies
+// (host/fanout.go) takes a state/events pair instead of a live match.
 func (r *Registry) Events(id TableID, k int, since uint64) ([]protocol.EventBody, error) {
 	t, m, err := r.lookup(id, k)
 	if err != nil {
 		return nil, err
 	}
 	m.mu.RLock()
-	defer m.mu.RUnlock()
 	n := uint64(len(m.e.L.Events))
 	if n == 0 {
+		m.mu.RUnlock()
 		return nil, ErrBeyondHead{Head: 0}
 	}
 	if since >= n {
-		return nil, ErrBeyondHead{Head: n - 1}
+		head := n - 1
+		m.mu.RUnlock()
+		return nil, ErrBeyondHead{Head: head}
 	}
-	return r.eventBodies(t, m, int(since)), nil
+	g := m.e.G.Clone()
+	evs := append([]events.Event(nil), m.e.L.Events[since:]...)
+	vis := t.cfg.Spectator
+	m.mu.RUnlock()
+	return eventBodies(vis, g, evs), nil
 }
 
 // lookup finds a table's live or retained match. Task 12 teaches it to
@@ -94,7 +108,14 @@ func (r *Registry) lookup(id TableID, k int) (*table, *match, error) {
 // own game, and project. Zones, life, damage, counters and the stack are
 // exact at every seq; derived P/T from continuous effects and the pending
 // tray are as of the burst's start (at most one resolution stale).
-func viewAt(cfg rules.Config, l *events.Log, snaps []snapshot, seq uint64, vis view.Visibility) (view.View, error) {
+//
+// A reader must never crash (D15's philosophy, extended to readers by
+// fix round 1, FL-43): boundsOf already keeps a crashed match's poison
+// intent (the one Submit recorded right before a panic, spec D15) out of
+// the replay range, but the deferred recover below is the backstop for
+// any other way replaying a hand-built, corrupted, or future-buggy log
+// could panic — it turns that into a plain error instead.
+func viewAt(cfg rules.Config, l *events.Log, snaps []snapshot, seq uint64, vis view.Visibility) (v view.View, err error) {
 	n := uint64(len(l.Events))
 	if n == 0 {
 		return view.View{}, ErrBeyondHead{Head: 0}
@@ -102,7 +123,15 @@ func viewAt(cfg rules.Config, l *events.Log, snaps []snapshot, seq uint64, vis v
 	if seq >= n {
 		return view.View{}, ErrBeyondHead{Head: n - 1}
 	}
+	defer func() {
+		if p := recover(); p != nil {
+			v, err = view.View{}, fmt.Errorf("host: viewAt(seq=%d) panicked: %v", seq, p)
+		}
+	}()
 	bounds := boundsOf(l.Events)
+	if len(bounds) == 0 {
+		return view.View{}, fmt.Errorf("host: no intent boundaries found in a %d-event log", n)
+	}
 	j := 0
 	for j+1 < len(bounds) && bounds[j+1] <= seq+1 {
 		j++
