@@ -196,46 +196,63 @@ func TestRepoDecksPlayAtEverySeatCount(t *testing.T) {
 	}
 }
 
+// acceptanceHead plays one deterministic acceptance game -- seats seats,
+// round-robined across the 12 repo decks from testutil.RepoDeckNames() in
+// order starting from deck 0, seed 42 (TestRepoDecksPlayAtEverySeatCount's
+// own fixed seed) driven by newTestBot(7) -- to completion, replays it from
+// its own recorded (Config, Log) through the package-local replayFor
+// helper, and returns the chain Head both runs agree on.
+//
+// TestRepoDeckGamesReplayExactly and rules/heads_test.go's TestHeads both
+// call this rather than each building the game themselves, so the games
+// the replay guarantee is checked against and the games the chain-head
+// goldens pin can never silently drift apart from each other.
+func acceptanceHead(t *testing.T, reg *cards.Registry, seats int) string {
+	t.Helper()
+	all := testutil.RepoDeckNames()
+	names := make([]string, seats)
+	decks := make([][]*cards.Card, seats)
+	for i := 0; i < seats; i++ {
+		names[i] = all[i%len(all)]
+		decks[i] = testutil.RepoDeck(t, reg, all[i%len(all)])
+	}
+	cfg := Config{Seed: 42, Names: names, Decks: decks}
+	e := New(cfg)
+	b := newTestBot(7)
+	e.Advance()
+	n := 0
+	for !e.G.Over && e.Pending() != nil && n < 400000 {
+		isMain := e.G.Step.IsMain()
+		if err := e.Submit(b.answer(isMain, e.Pending())); err != nil {
+			t.Fatalf("%d seats, intent %d: %v", seats, n, err)
+		}
+		n++
+	}
+	if !e.G.Over {
+		t.Fatalf("%d seats did not terminate after %d intents (turn %d)", seats, n, e.G.Turn)
+	}
+	re, err := replayFor(cfg, e.L)
+	if err != nil {
+		t.Fatalf("%d seats: %v", seats, err)
+	}
+	if re.L.Head() != e.L.Head() {
+		t.Fatalf("%d seats: chain %s, replay %s", seats, e.L.Head(), re.L.Head())
+	}
+	t.Logf("%d seats: %d intents, chain %s, replay OK", seats, n, e.L.Head())
+	return e.L.Head()
+}
+
 // TestRepoDeckGamesReplayExactly ties acceptance to the replay guarantee:
-// five seeded 4-seat games over the repo decks, each re-run from its own
-// recorded (Config, Log) through the package-local replayFor helper, must
-// reach the same chain Head as the original run.
+// the deterministic acceptance game at each of 2, 4, 6 and 8 seats, each
+// re-run from its own recorded (Config, Log) through acceptanceHead's own
+// replayFor call, must reach the same chain Head as the original run.
 func TestRepoDeckGamesReplayExactly(t *testing.T) {
 	if testing.Short() {
 		t.Skip("long")
 	}
 	reg := testutil.CorpusRegistry(t)
-	all := testutil.RepoDeckNames()
-	for seed := uint64(0); seed < 5; seed++ {
-		names := make([]string, 4)
-		decks := make([][]*cards.Card, 4)
-		for i := 0; i < 4; i++ {
-			names[i] = all[(int(seed)+i)%len(all)]
-			decks[i] = testutil.RepoDeck(t, reg, names[i])
-		}
-		cfg := Config{Seed: seed, Names: names, Decks: decks}
-		e := New(cfg)
-		b := newTestBot(seed)
-		e.Advance()
-		n := 0
-		for !e.G.Over && e.Pending() != nil && n < 400000 {
-			isMain := e.G.Step.IsMain()
-			if err := e.Submit(b.answer(isMain, e.Pending())); err != nil {
-				t.Fatalf("seed %d, intent %d: %v", seed, n, err)
-			}
-			n++
-		}
-		if !e.G.Over {
-			t.Fatalf("seed %d did not terminate after %d intents (turn %d)", seed, n, e.G.Turn)
-		}
-		re, err := replayFor(cfg, e.L)
-		if err != nil {
-			t.Fatalf("seed %d: %v", seed, err)
-		}
-		if re.L.Head() != e.L.Head() {
-			t.Fatalf("seed %d chain %s, replay %s", seed, e.L.Head(), re.L.Head())
-		}
-		t.Logf("seed %d: %d intents, chain %s, replay OK", seed, n, e.L.Head())
+	for _, seats := range []int{2, 4, 6, 8} {
+		acceptanceHead(t, reg, seats)
 	}
 }
 
