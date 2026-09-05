@@ -1,0 +1,94 @@
+{
+  "v": 1,
+  "t": "snapshot",
+  "id": 4182,
+  "table": "t1",
+  "match": 7,
+  "seq": 9130,
+  "body": {
+    "view": {
+      "viewer": 255,
+      "visibility": "omniscient",
+      "turn": 3,
+      "step": "main1",
+      "phase": "main1",
+      "active": 0,
+      "priority": 0,
+      "over": false,
+      "draw": false,
+      "winner": null,
+      "players": [
+        {
+          "seat": 0,
+          "name": "mono-red-goblins",
+          "life": 20,
+          "lost": false,
+          "library_size": 0,
+          "hand_size": 0,
+          "graveyard_size": 0,
+          "hand": [],
+          "battlefield": [
+            {
+              "id": 12,
+              "name": "Goblin Guide",
+              "types": "Creature Goblin Scout",
+              "mana_cost": "R",
+              "printing": {
+                "name": "Goblin Guide"
+              },
+              "token": "#12",
+              "tapped": false,
+              "power": 2,
+              "toughness": 2,
+              "damage": 0,
+              "attacking": false,
+              "keywords": [
+                "Haste"
+              ],
+              "controller": 0,
+              "owner": 0,
+              "summon_sick": false
+            }
+          ],
+          "graveyard": [],
+          "exile": [],
+          "pool": {
+            "R": 1
+          }
+        }
+      ],
+      "stack": [
+        {
+          "id": 40,
+          "kind": "trigger",
+          "name": "Watcher",
+          "text": "When CARDNAME enters, you gain 1 life.",
+          "controller": 1,
+          "source": 30,
+          "targets": [
+            {
+              "player": 0,
+              "is_player": true,
+              "label": "Select any target"
+            }
+          ]
+        }
+      ],
+      "pending": [
+        {
+          "source": 30,
+          "controller": 1,
+          "label": "Watcher: gain 1 life",
+          "optional": true,
+          "decider": 1
+        }
+      ]
+    },
+    "turn_starts": [
+      0,
+      402,
+      1180
+    ],
+    "head": 9130
+  }
+}

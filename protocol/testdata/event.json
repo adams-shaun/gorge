@@ -1,0 +1,19 @@
+{
+  "v": 1,
+  "t": "event",
+  "id": 4182,
+  "table": "t1",
+  "match": 7,
+  "seq": 9131,
+  "body": {
+    "event": {
+      "seq": 9131,
+      "kind": "move_zone",
+      "player": 1,
+      "obj": 12,
+      "from": "hand",
+      "to": "battlefield"
+    },
+    "line": "Goblin Guide #12 moves from hand to battlefield"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "v": 1,
+  "t": "hello",
+  "id": 4182,
+  "table": "t1",
+  "match": 7,
+  "seq": 0,
+  "body": {
+    "session": "s3",
+    "tables": [
+      {
+        "id": "t1",
+        "name": "Table 1",
+        "seats": 4,
+        "spectator": "omniscient",
+        "state": "live",
+        "match": 7,
+        "perpetual": true
+      }
+    ]
+  }
+}
