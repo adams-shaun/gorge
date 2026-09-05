@@ -192,6 +192,17 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 	case "flashback":
 		cost = e.flashbackCost(id)
+	case "miracle":
+		// Task 18: a Miracle cast pays the printed Miracle cost (CR 702.93d) in
+		// place of the card's normal cost. KeywordParam is read off the face;
+		// a missing keyword (offer routed here only from a Miracle offer, and
+		// only while the card is in hand) falls back to the empty cost so a
+		// stale cast cannot strand.
+		if mc, ok := f.KeywordParam("Miracle"); ok {
+			cost = ParseCost(mc)
+		} else {
+			cost = Cost{}
+		}
 	}
 
 	e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1, cost: cost}

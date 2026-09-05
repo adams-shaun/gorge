@@ -83,14 +83,17 @@ type Engine struct {
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
 	cast *pendingCast
 
-	// drainAwaitsTarget is true while a TargetMin/TargetMax-bearing triggered
-	// ability's own KTarget decision is pending -- set by pushTrigger right
-	// after the trigger's TriggerPush, cleared by handleTarget when the
-	// answer comes back. When set, handleTarget resumes the trigger drain
-	// (resumeTriggerDrain, the same continuation handleTriggerOrder uses)
-	// instead of granting the caster priority, so a later, unrelated trigger
-	// in the same batch is still placed before any player acts. Plain scalar,
-	// so Clone copies it like every other field here. (Task 7.)
+	// drainAwaitsTarget is true while a decision asked from inside the trigger
+	// drain is pending, so its answer resumes the drain rather than granting
+	// priority. Task 7 sets it for a TargetMin/TargetMax-bearing triggered
+	// ability's own KTarget decision (pushTrigger, cleared by handleTarget);
+	// Task 18 sets it for a Miracle cast's own X/Delve/Sac decision
+	// (castMiracle, cleared by handleChoose once the cast commits). When set,
+	// the handler for the pending decision calls resumeTriggerDrain (the same
+	// continuation handleTriggerOrder uses) instead of granting the caster
+	// priority, so a later, unrelated trigger in the same batch is still
+	// placed before any player acts. Plain scalar, so Clone copies it like
+	// every other field here. (Tasks 7, 18.)
 	drainAwaitsTarget bool
 }
 

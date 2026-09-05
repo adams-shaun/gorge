@@ -38,7 +38,13 @@ type pendingTrigger struct {
 	Controller state.PlayerID
 	Idx        int
 	SA         *cards.SA
-	Ctx        effects.Ctx
+	// Miracle marks a keyword offer (Task 18) rather than a matched T: line: a
+	// Miracle drawing queued with Idx/SA unset, which the drain treats as an
+	// optional trigger whose decider is the owner and routes a yes through
+	// castMiracle (miracle.go) instead of minting a triggered-ability stack
+	// object. optionalDecider, triggerLabel and pushTrigger all special-case it.
+	Miracle bool
+	Ctx     effects.Ctx
 }
 
 // triggerKey identifies one T: line: the object that carries it, plus that
@@ -183,6 +189,14 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 			})
 		}
 	})
+	// Miracle (Task 18): a Draw that is the first of its player's turn and
+	// whose card carries Miracle gets its own offer. This runs AFTER the face
+	// loop because a Miracle pendingTrigger is per-Draw, not per-object -- it
+	// keys off the drawn card and the turn's draw count, neither of which the
+	// forEachObject walk (which iterates every object) is about.
+	if ev.Kind == events.Draw {
+		e.offerMiracle(ev)
+	}
 }
 
 // triggerRemembered is what a matched trigger's Ctx.Remembered holds: the
