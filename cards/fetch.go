@@ -64,8 +64,9 @@ func CorpusDir(dir string) string { return filepath.Join(dir, "cardsfolder") }
 
 func lockPath(dir string) string { return filepath.Join(dir, "cards.lock") }
 
-// Fetch sparse-clones the Forge card corpus at ref into dir. The scripts are
-// GPL-3.0 and must never be committed or shipped; dir is gitignored.
+// Fetch sparse-clones the Forge card corpus and token scripts at ref into
+// dir. The scripts are GPL-3.0 and must never be committed or shipped; dir
+// is gitignored.
 func Fetch(dir, ref string) (*Lock, error) {
 	return fetchRepo(forgeRepo, dir, ref)
 }
@@ -90,24 +91,36 @@ func fetchRepo(repo, dir, ref string) (*Lock, error) {
 		return strings.TrimSpace(string(out)), nil
 	}
 
+	var commit string
 	if fullCommitSHA.MatchString(ref) {
-		// A pinned commit is not necessarily any branch's tip, so it cannot
-		// be requested with --branch. Clone the repo's metadata only
-		// (--no-checkout, no blobs yet), then fetch the exact commit by
-		// hash and check it out.
-		if _, err := run("clone", "--no-checkout", "--filter=blob:none", "--sparse",
-			repo, work); err != nil {
+		// FL-11: a pinned commit is not necessarily any branch's tip, so it
+		// cannot be requested with --branch, and the earlier approach of
+		// `clone --no-checkout` first (which pulls the *whole* commit/tree
+		// history's metadata before narrowing) wastes a full-history
+		// transfer just to throw most of it away. Instead: start an empty
+		// repo with no history at all, wire up the remote and the sparse
+		// paths, then do exactly one depth-1, blob:none-filtered fetch of
+		// this single commit and check it out — nothing else is ever
+		// transferred.
+		if _, err := run("init", work); err != nil {
+			return nil, err
+		}
+		if _, err := run("-C", work, "remote", "add", "origin", repo); err != nil {
+			return nil, err
+		}
+		if _, err := run("-C", work, "sparse-checkout", "init", "--cone"); err != nil {
 			return nil, err
 		}
 		if _, err := run(append([]string{"-C", work, "sparse-checkout", "set"}, forgeSubpaths...)...); err != nil {
 			return nil, err
 		}
-		if _, err := run("-C", work, "fetch", "--depth", "1", "origin", ref); err != nil {
+		if _, err := run("-C", work, "fetch", "--depth", "1", "--filter=blob:none", "origin", ref); err != nil {
 			return nil, err
 		}
-		if _, err := run("-C", work, "checkout", ref); err != nil {
+		if _, err := run("-C", work, "checkout", "FETCH_HEAD"); err != nil {
 			return nil, err
 		}
+		commit = ref
 	} else {
 		if _, err := run("clone", "--depth", "1", "--filter=blob:none", "--sparse",
 			"--branch", ref, repo, work); err != nil {
@@ -116,11 +129,11 @@ func fetchRepo(repo, dir, ref string) (*Lock, error) {
 		if _, err := run(append([]string{"-C", work, "sparse-checkout", "set"}, forgeSubpaths...)...); err != nil {
 			return nil, err
 		}
-	}
-
-	commit, err := run("-C", work, "rev-parse", "HEAD")
-	if err != nil {
-		return nil, err
+		head, err := run("-C", work, "rev-parse", "HEAD")
+		if err != nil {
+			return nil, err
+		}
+		commit = head
 	}
 
 	var fetchedPaths []string

@@ -157,6 +157,45 @@ func LoadRegistry(path string) (*Registry, error) {
 // Paths are sorted so the resulting Cards slice — and therefore the cache
 // bytes — are byte-identical across runs.
 func CompileDir(dir string) (*Registry, []Diag, error) {
+	parsed, diags, err := compileScripts(dir)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(parsed) == 0 {
+		return nil, nil, fmt.Errorf("no card scripts under %s — run `make fetch-cards`", dir)
+	}
+
+	r := NewRegistry()
+	for _, c := range parsed {
+		// A card with no named face parsed without error but carries no
+		// identity — e.g. a script whose only content is a directive like
+		// CopyFaceFrom that this parser doesn't resolve. That is worth a
+		// diagnostic per card, not per face: an ALTERNATE face alone being
+		// nameless is normal (legitimate CopyFaceFrom usage on a second
+		// face), but a card with no named face at all silently drops out of
+		// Coverage, and a human should be told which file did that.
+		if !c.named() {
+			diags = append(diags, Diag{c.Path, "card has no named face on any face; excluded from coverage (likely an unresolved CopyFaceFrom or similar directive)"})
+		}
+		r.Add(c)
+	}
+
+	if err := compileTokens(r, dir, &diags); err != nil {
+		return nil, nil, err
+	}
+
+	return r, diags, nil
+}
+
+// compileScripts walks dir for every .txt script and parses, links and
+// applies intrinsics to each, in sorted-path order — so compilation order,
+// and therefore the cache bytes, is reproducible across runs. It is the one
+// pipeline shared by CompileDir's card loop and compileTokens' token loop:
+// the two differ only in what they do with the resulting Cards afterward
+// (add to Cards/byName plus diagnose namelessness, vs. key by file stem
+// into Tokens), never in how a script gets from bytes on disk to a fully
+// linked Card.
+func compileScripts(dir string) ([]*Card, []Diag, error) {
 	var paths []string
 	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -170,13 +209,10 @@ func CompileDir(dir string) (*Registry, []Diag, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	if len(paths) == 0 {
-		return nil, nil, fmt.Errorf("no card scripts under %s — run `make fetch-cards`", dir)
-	}
 	sort.Strings(paths)
 
-	r := NewRegistry()
 	var diags []Diag
+	out := make([]*Card, 0, len(paths))
 	for _, p := range paths {
 		c, d := Parse(p)
 		diags = append(diags, d...)
@@ -187,33 +223,18 @@ func CompileDir(dir string) (*Registry, []Diag, error) {
 		for _, f := range c.Faces {
 			f.ApplyIntrinsics()
 		}
-		// A card with no named face parsed without error but carries no
-		// identity — e.g. a script whose only content is a directive like
-		// CopyFaceFrom that this parser doesn't resolve. That is worth a
-		// diagnostic per card, not per face: an ALTERNATE face alone being
-		// nameless is normal (legitimate CopyFaceFrom usage on a second
-		// face), but a card with no named face at all silently drops out of
-		// Coverage, and a human should be told which file did that.
-		if !c.named() {
-			diags = append(diags, Diag{p, "card has no named face on any face; excluded from coverage (likely an unresolved CopyFaceFrom or similar directive)"})
-		}
-		r.Add(c)
+		out = append(out, c)
 	}
-
-	if err := compileTokens(r, dir, &diags); err != nil {
-		return nil, nil, err
-	}
-
-	return r, diags, nil
+	return out, diags, nil
 }
 
 // compileTokens walks dir's tokenscripts sibling — Fetch's TokensDir — and
 // compiles every script into r.Tokens, keyed by file stem ("r_1_1_goblin").
-// Tokens share the card scripts' parse/link/intrinsics pipeline but are
-// never Add-ed to Cards or byName: a token is not a card a deck can
-// contain, and a card's Lookup-by-name must not resolve to one. A missing
-// tokenscripts directory is not an error — plenty of fixtures (and every
-// pre-M2r cache) have no tokens at all.
+// Tokens share compileScripts' parse/link/intrinsics pipeline but are never
+// Add-ed to Cards or byName: a token is not a card a deck can contain, and
+// a card's Lookup-by-name must not resolve to one. A missing tokenscripts
+// directory is not an error — plenty of fixtures (and every pre-M2r cache)
+// have no tokens at all.
 func compileTokens(r *Registry, cardsDir string, diags *[]Diag) error {
 	tokensDir := TokensDir(filepath.Dir(cardsDir))
 	info, err := os.Stat(tokensDir)
@@ -227,32 +248,13 @@ func compileTokens(r *Registry, cardsDir string, diags *[]Diag) error {
 		return nil
 	}
 
-	var paths []string
-	err = filepath.WalkDir(tokensDir, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() && strings.HasSuffix(p, ".txt") {
-			paths = append(paths, p)
-		}
-		return nil
-	})
+	tokens, d, err := compileScripts(tokensDir)
 	if err != nil {
 		return err
 	}
-	sort.Strings(paths)
-
-	for _, p := range paths {
-		c, d := Parse(p)
-		*diags = append(*diags, d...)
-		if c == nil {
-			continue
-		}
-		*diags = append(*diags, c.Link()...)
-		for _, f := range c.Faces {
-			f.ApplyIntrinsics()
-		}
-		stem := strings.TrimSuffix(filepath.Base(p), ".txt")
+	*diags = append(*diags, d...)
+	for _, c := range tokens {
+		stem := strings.TrimSuffix(filepath.Base(c.Path), ".txt")
 		r.Tokens[stem] = c
 	}
 	return nil

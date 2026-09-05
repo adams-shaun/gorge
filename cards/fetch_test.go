@@ -266,8 +266,17 @@ func headSHA(t *testing.T, repo string) string {
 	return runGit(t, repo, "rev-parse", "HEAD")
 }
 
+// currentBranch returns repo's currently checked-out branch name. Used
+// instead of hard-coding "master"/"main": newLocalForgeRepo never sets
+// --initial-branch, so the name it gets depends on this environment's
+// init.defaultBranch.
+func currentBranch(t *testing.T, repo string) string {
+	t.Helper()
+	return runGit(t, repo, "branch", "--show-current")
+}
+
 func TestFetchByCommitSHAAndTokenScripts(t *testing.T) {
-	repo := newLocalForgeRepo(t) // the existing helper that builds a bare repo with forge-gui/res/cardsfolder
+	repo := newLocalForgeRepo(t) // the local, non-bare repo built above
 	addTokenScript(t, repo, "r_1_1_goblin.txt", goblinTokenSrc)
 	sha := headSHA(t, repo)
 	dir := t.TempDir()
@@ -280,5 +289,31 @@ func TestFetchByCommitSHAAndTokenScripts(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(TokensDir(dir), "r_1_1_goblin.txt")); err != nil {
 		t.Fatal("token script not fetched")
+	}
+}
+
+// TestFetchByBranchFetchesBothSparsePaths is the branch-ref counterpart to
+// TestFetchByCommitSHAAndTokenScripts: it hits the OTHER half of fetchRepo's
+// ref-kind branch (the pre-existing --branch clone path), which neither
+// TestFetchCleansUpOnFailure (deliberately missing both subpaths, so it
+// exercises only the failure path) nor TestFetchDownloadsCorpus (skipped
+// without network) actually proves fetches both sparse paths successfully.
+func TestFetchByBranchFetchesBothSparsePaths(t *testing.T) {
+	repo := newLocalForgeRepo(t)
+	addTokenScript(t, repo, "r_1_1_goblin.txt", goblinTokenSrc)
+	branch := currentBranch(t, repo)
+	dir := t.TempDir()
+	l, err := fetchRepo(repo, dir, branch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(l.FetchedPaths) != 2 {
+		t.Fatalf("lock %+v", l)
+	}
+	if _, err := os.Stat(filepath.Join(CorpusDir(dir), "mountain.txt")); err != nil {
+		t.Fatal("card script not fetched via branch ref")
+	}
+	if _, err := os.Stat(filepath.Join(TokensDir(dir), "r_1_1_goblin.txt")); err != nil {
+		t.Fatal("token script not fetched via branch ref")
 	}
 }
