@@ -40,8 +40,10 @@ type handler struct {
 	graceGen uint64                 // monotonic token so stale grace callbacks recognise themselves
 }
 
-// NewHandler routes the API and, when Options.Web is set, the client.
-func NewHandler(r *host.Registry, o Options) http.Handler {
+// newHandler builds the handler behind NewHandler. Tests in this package use
+// it to observe the grace map directly, which is the only way to assert the
+// reconnect cancellation as a state transition rather than as a deadline.
+func newHandler(r *host.Registry, o Options) (*handler, http.Handler) {
 	h := &handler{reg: r, opts: o.withDefaults(), grace: map[string]*graceTimer{}}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/tables", h.tables)
@@ -62,7 +64,15 @@ func NewHandler(r *host.Registry, o Options) http.Handler {
 	})
 	h.mountStream(mux) // Task 15
 	h.mountStatic(mux) // Task 15
-	return h.authorized(mux)
+	return h, h.authorized(mux)
+}
+
+// NewHandler routes the API and, when Options.Web is set, the client. It is
+// the package's only exported constructor; callers that need to observe the
+// handler's internals (tests) should use newHandler.
+func NewHandler(r *host.Registry, o Options) http.Handler {
+	_, mux := newHandler(r, o)
+	return mux
 }
 
 func methodNotAllowed(w http.ResponseWriter, r *http.Request) {

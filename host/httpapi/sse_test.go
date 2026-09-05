@@ -60,8 +60,9 @@ func readSSE(t *testing.T, body io.Reader, n int) []sseFrame {
 }
 
 // pausedServer builds a registry whose table waits on `gate` at every
-// decision so the test controls pacing, and serves it.
-func pausedServer(t *testing.T, o Options, gate chan struct{}, ring int) (*httptest.Server, *host.Registry) {
+// decision so the test controls pacing, serves it, and returns the handler
+// (via newHandler) so tests can observe the grace map directly.
+func pausedServer(t *testing.T, o Options, gate chan struct{}, ring int) (*httptest.Server, *host.Registry, *handler) {
 	t.Helper()
 	r, err := host.New(host.Options{LoadDeck: loader(t), Ring: ring, Sleep: func(time.Duration, <-chan struct{}) {
 		if gate != nil {
@@ -75,9 +76,10 @@ func pausedServer(t *testing.T, o Options, gate chan struct{}, ring int) (*httpt
 	if err := r.AddTable(host.TableConfig{ID: "t1", Name: "Table 1", Seats: 4, Decks: []string{"a", "b", "c", "d"}, Seed: 5, Spectator: view.Omniscient}); err != nil {
 		t.Fatal(err)
 	}
-	srv := httptest.NewServer(NewHandler(r, o))
+	h, mux := newHandler(r, o)
+	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
-	return srv, r
+	return srv, r, h
 }
 
 func openStream(t *testing.T, ctx context.Context, url, lastID string) *http.Response {
@@ -98,7 +100,7 @@ func openStream(t *testing.T, ctx context.Context, url, lastID string) *http.Res
 
 func TestStreamOpensWithHelloThenSnapshotThenEvents(t *testing.T) {
 	gate := make(chan struct{})
-	srv, r := pausedServer(t, Options{}, gate, 0)
+	srv, r, _ := pausedServer(t, Options{}, gate, 0)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	resp := openStream(t, ctx, srv.URL, "")
@@ -147,7 +149,7 @@ func TestStreamOpensWithHelloThenSnapshotThenEvents(t *testing.T) {
 }
 
 func TestLastEventIDResumesExactlyTheMissedFrames(t *testing.T) {
-	srv, r := pausedServer(t, Options{ResumeGrace: 5 * time.Second}, nil, 100000)
+	srv, r, _ := pausedServer(t, Options{ResumeGrace: 5 * time.Second}, nil, 100000)
 	ctx, cancel := context.WithCancel(context.Background())
 	resp := openStream(t, ctx, srv.URL, "")
 	hello := readSSE(t, resp.Body, 1)[0]
@@ -184,7 +186,7 @@ func TestLastEventIDResumesExactlyTheMissedFrames(t *testing.T) {
 }
 
 func TestAnIDOlderThanTheRingStartsOverWithHello(t *testing.T) {
-	srv, r := pausedServer(t, Options{}, nil, 0)
+	srv, r, _ := pausedServer(t, Options{}, nil, 0)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	resp := openStream(t, ctx, srv.URL, "")
@@ -212,7 +214,7 @@ func TestAnIDOlderThanTheRingStartsOverWithHello(t *testing.T) {
 }
 
 func TestWidgetsAreCoalescedToTheTicker(t *testing.T) {
-	srv, r := pausedServer(t, Options{WidgetInterval: 40 * time.Millisecond}, nil, 0)
+	srv, r, _ := pausedServer(t, Options{WidgetInterval: 40 * time.Millisecond}, nil, 0)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	resp := openStream(t, ctx, srv.URL, "")
@@ -262,7 +264,7 @@ func TestWidgetsAreCoalescedToTheTicker(t *testing.T) {
 
 func TestStaticServesTheClientWithSPAFallbackOr503(t *testing.T) {
 	web := fstest.MapFS{"index.html": {Data: []byte("<!doctype html><title>gorge</title>")}, "assets/app.js": {Data: []byte("console.log(1)")}}
-	srv, _ := pausedServer(t, Options{Web: web}, nil, 0)
+	srv, _, _ := pausedServer(t, Options{Web: web}, nil, 0)
 	for _, p := range []string{"/", "/t/t1", "/t/t1/m/3"} {
 		resp, _ := http.Get(srv.URL + p)
 		body, _ := io.ReadAll(resp.Body)
@@ -278,7 +280,7 @@ func TestStaticServesTheClientWithSPAFallbackOr503(t *testing.T) {
 	if resp.StatusCode != 404 || resp.Header.Get("Content-Type") != "application/json" {
 		t.Fatalf("api 404: %d %s", resp.StatusCode, resp.Header.Get("Content-Type"))
 	}
-	srv2, _ := pausedServer(t, Options{}, nil, 0)
+	srv2, _, _ := pausedServer(t, Options{}, nil, 0)
 	resp, _ = http.Get(srv2.URL + "/")
 	if resp.StatusCode != 503 {
 		t.Fatalf("no web build: %d", resp.StatusCode)
@@ -291,7 +293,7 @@ func TestStaticServesTheClientWithSPAFallbackOr503(t *testing.T) {
 // comment carries no data: line, so it never completes a frame), so this
 // scans raw lines instead.
 func TestKeepAlivePingsWhenNoOtherFrameIsDue(t *testing.T) {
-	srv, _ := pausedServer(t, Options{KeepAlive: 15 * time.Millisecond}, nil, 0)
+	srv, _, _ := pausedServer(t, Options{KeepAlive: 15 * time.Millisecond}, nil, 0)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	resp := openStream(t, ctx, srv.URL, "")
@@ -315,7 +317,7 @@ func TestKeepAlivePingsWhenNoOtherFrameIsDue(t *testing.T) {
 // scheduling. The handler must close with exactly one id-less overflow
 // frame and drop the session from the registry.
 func TestOverflowClosesTheStreamWithATerminalFrame(t *testing.T) {
-	srv, r := pausedServer(t, Options{}, nil, 1) // cap(out) = Ring*8 = 8
+	srv, r, _ := pausedServer(t, Options{}, nil, 1) // cap(out) = Ring*8 = 8
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	resp := openStream(t, ctx, srv.URL, "")
@@ -350,13 +352,42 @@ func TestOverflowClosesTheStreamWithATerminalFrame(t *testing.T) {
 }
 
 // TestDisconnectGraceClosesTheSessionAfterItExpires and
-// TestReconnectWithinGraceCancelsTheTimer synchronise on the session's own
-// Out() channel (closed exactly when CloseSession runs) rather than
-// sleeping a guessed duration: the only way Out() can close in either test
-// is the grace timer, since nothing else ever pushes to or closes it.
+// TestReconnectWithinGraceCancelsTheTimer cover the two halves of the grace
+// mechanism as state transitions, not wall-clock deadlines. The disconnect
+// test waits *for* the grace close on the session's own Out() channel
+// (closed exactly when CloseSession runs) with a generous ceiling — the only
+// way Out() can close without a client is the grace timer. The reconnect test
+// asserts the cancellation by polling the handler's grace map (gracePending)
+// after a reconnect; it runs with ResumeGrace at 10s so the timer cannot
+// expire during the test on any box, however loaded.
+
+// gracePending reports whether a close is armed for id. Reading h.grace under
+// h.mu is the state the reconnect is supposed to change; it is what the test
+// waits on instead of sleeping.
+func gracePending(h *handler, id string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	_, ok := h.grace[id]
+	return ok
+}
+
+// waitFor polls cond until it holds. Every use below is waiting for a
+// transition the server makes on another goroutine, so a generous ceiling
+// costs nothing when the code is right and only bounds a genuine hang.
+func waitFor(t *testing.T, what string, cond func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if cond() {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatalf("timed out waiting for %s", what)
+}
 
 func TestDisconnectGraceClosesTheSessionAfterItExpires(t *testing.T) {
-	srv, r := pausedServer(t, Options{ResumeGrace: 10 * time.Millisecond}, nil, 0)
+	srv, r, _ := pausedServer(t, Options{ResumeGrace: 10 * time.Millisecond}, nil, 0)
 	ctx, cancel := context.WithCancel(context.Background())
 	resp := openStream(t, ctx, srv.URL, "")
 	var h protocol.Hello
@@ -381,7 +412,11 @@ func TestDisconnectGraceClosesTheSessionAfterItExpires(t *testing.T) {
 }
 
 func TestReconnectWithinGraceCancelsTheTimer(t *testing.T) {
-	srv, r := pausedServer(t, Options{ResumeGrace: 30 * time.Millisecond}, nil, 100000)
+	// 10s of ResumeGrace: the point of the test is that a reconnect cancels
+	// the timer, not that the timer expires quickly. Ten seconds cannot
+	// elapse on any box, however loaded, so the grace can never fire and the
+	// whole assertion is about the cancellation state transition.
+	srv, r, hd := pausedServer(t, Options{ResumeGrace: 10 * time.Second}, nil, 100000)
 	ctx, cancel := context.WithCancel(context.Background())
 	resp := openStream(t, ctx, srv.URL, "")
 	var h protocol.Hello
@@ -390,23 +425,39 @@ func TestReconnectWithinGraceCancelsTheTimer(t *testing.T) {
 	if !ok {
 		t.Fatal("session missing right after hello")
 	}
-	cancel()
+	cancel() // disconnect the first stream
 	resp.Body.Close()
+
+	// The disconnect handler arms the grace timer on another goroutine; wait
+	// for the transition rather than assuming the whole round trip happened.
+	// This also strengthens the test: a reconnect that beat the disconnect
+	// handler to scheduleGrace would otherwise pass vacuously.
+	waitFor(t, "grace armed", func() bool { return gracePending(hd, h.Session) })
 
 	ctx2, cancel2 := context.WithCancel(context.Background())
 	defer cancel2()
 	resp2 := openStream(t, ctx2, srv.URL, h.Session+":0")
 	defer resp2.Body.Close()
 
+	// A resume within the ring sends no Hello and, on a session whose ring
+	// is still empty, no backlog frame either, so there is no frame whose
+	// SSE id prefix could prove the session id. The proof is the state
+	// transition instead: resume matches s.ID and stream calls cancelGrace(s.ID),
+	// so the original session's grace entry disappearing is definitive — a
+	// fresh session would have cancelled nothing and left this entry armed.
+	waitFor(t, "grace cancelled", func() bool { return !gracePending(hd, h.Session) })
+
+	// Assert positively that nothing closed: the session is still registered
+	// and its Out() channel is still open (non-blocking — no timer anywhere).
+	if _, ok := r.Session(h.Session); !ok {
+		t.Fatal("session was removed despite reconnecting within grace")
+	}
 	select {
 	case _, open := <-sess.Out():
 		if !open {
 			t.Fatal("session closed despite reconnecting inside the grace window")
 		}
-	case <-time.After(150 * time.Millisecond): // 5x the grace: it would have fired by now
-	}
-	if _, ok := r.Session(h.Session); !ok {
-		t.Fatal("session was removed despite reconnecting within grace")
+	default:
 	}
 }
 
@@ -475,7 +526,7 @@ func TestOlderGraceTimerCannotCloseAfterReschedule(t *testing.T) {
 // match without reading) so the ring holds the whole match, then the stream
 // resumes with a huge backlog and the client drops mid-flush.
 func TestDisconnectDuringBacklogFlushArmsGrace(t *testing.T) {
-	srv, r := pausedServer(t, Options{ResumeGrace: 50 * time.Millisecond}, nil, 100000)
+	srv, r, _ := pausedServer(t, Options{ResumeGrace: 50 * time.Millisecond}, nil, 100000)
 	s := r.OpenSession()
 	if err := r.Subscribe(s, "t1", protocol.ModeFocus); err != nil {
 		t.Fatal(err)
@@ -509,7 +560,7 @@ func TestDisconnectDuringBacklogFlushArmsGrace(t *testing.T) {
 // TestMalformedLastEventIDStartsFresh: a bad Last-Event-ID is treated as a
 // brand-new client (fresh hello) and must not panic.
 func TestMalformedLastEventIDStartsFresh(t *testing.T) {
-	srv, _ := pausedServer(t, Options{}, nil, 0)
+	srv, _, _ := pausedServer(t, Options{}, nil, 0)
 	for _, bad := range []string{"s1", "s1:", "s1:abc", ":5", "s1:999999999999999999999999999999999999"} {
 		ctx, cancel := context.WithCancel(context.Background())
 		resp := openStream(t, ctx, srv.URL, bad)
@@ -526,7 +577,7 @@ func TestMalformedLastEventIDStartsFresh(t *testing.T) {
 // TestStreamCacheControlNoTransform locks in the no-transform directive on
 // the SSE response so intermediaries cannot re-buffer the stream.
 func TestStreamCacheControlNoTransform(t *testing.T) {
-	srv, _ := pausedServer(t, Options{}, nil, 0)
+	srv, _, _ := pausedServer(t, Options{}, nil, 0)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	resp := openStream(t, ctx, srv.URL, "")
