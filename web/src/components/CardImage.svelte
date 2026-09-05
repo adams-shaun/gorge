@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { CardView } from '../protocol';
   import { images } from '../lib/images';
+  import ManaSymbols from './ManaSymbols.svelte';
 
   /**
    * Renders a card's Scryfall image when the lookup resolves, else a plain
@@ -39,7 +40,7 @@
     <div class="card-image__text">
       {#if offline}<span class="card-image__badge">offline</span>{/if}
       <div class="card-image__name">{card.name}</div>
-      {#if card.mana_cost}<div class="card-image__cost">{card.mana_cost}</div>{/if}
+      {#if card.mana_cost}<div class="card-image__cost"><ManaSymbols cost={card.mana_cost} /></div>{/if}
       <div class="card-image__types">{card.types}</div>
       {#if isCreature}<div class="card-image__pt">{card.power}/{card.toughness}</div>{/if}
     </div>
