@@ -17,6 +17,7 @@ help:
 	@echo "  make compile-cards  — compile the fetched corpus into the IR cache"
 	@echo "  make report         — print card coverage against implemented primitives"
 	@echo "  make sim            — build mtgsim and play 20 verified 4-seat games"
+	@echo "  make gentypes       — regenerate web/src/protocol.ts from package protocol"
 	@echo "  make test lint cover"
 
 .PHONY: build
@@ -46,6 +47,13 @@ compile-cards: $(BIN_DIR)/forgec
 report: $(BIN_DIR)/forgec
 	$(BIN_DIR)/forgec report -dir $(CARDS_DIR)
 
+# gentypes regenerates web/src/protocol.ts from package protocol's structs
+# (internal/tsgen does the reflection); lint below runs it with -check so a
+# stale committed file fails the build instead of drifting from the server.
+.PHONY: gentypes
+gentypes:
+	go run ./cmd/gentypes -o web/src/protocol.ts
+
 .PHONY: test
 test:
 	go test ./...
@@ -71,6 +79,7 @@ lint:
 			echo "gofmt: files need formatting:"; echo "$$out"; exit 1; \
 		fi
 	go vet ./...
+	go run ./cmd/gentypes -check
 
 .PHONY: clean
 clean:
