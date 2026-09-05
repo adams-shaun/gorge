@@ -34,6 +34,14 @@ func (h *fakeHost) AddContinuous(ce state.ContinuousEffect) {
 	h.continuous = append(h.continuous, ce)
 }
 
+// HasKeyword has no layer system to consult here (see the type doc comment),
+// so it reads the printed face directly -- enough for the effects-package
+// tests, which set up Indestructible by mutating Card.Faces[0].Keywords.
+func (h *fakeHost) HasKeyword(id state.ObjID, kw string) bool {
+	o := h.g.Obj(id)
+	return o != nil && o.Face() != nil && o.Face().HasKeyword(kw)
+}
+
 func newHost(t *testing.T, seats int) *fakeHost {
 	t.Helper()
 	return &fakeHost{g: state.NewGame(names(seats))}
