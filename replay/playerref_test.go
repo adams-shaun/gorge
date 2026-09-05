@@ -12,15 +12,14 @@ import (
 
 // raiderSrc is a Haste attacker whose own Attacks trigger reads Defined$
 // TriggeredDefendingPlayer (Task 5's form, effects/context.go's playersOf)
-// to drain the DEFENDING player specifically -- not whoever else the
-// engine might resolve a broken player reference to. FL-41: before
-// pushTrigger encoded a Remembered player entry with state.PlayerRef, that
-// entry persisted through the logged TriggerPush event as ObjID 0 (an
-// object that never exists), Apply rebuilt it as {Obj: 0}, and
-// effects.PlayerOf's fallback for "not a real object" is c.Controller --
-// the ATTACKER, the opposite of the defender this SVar names. Haste means
-// Raider can attack the very turn it resolves, so a two-seat game reaches
-// this in well under a full turn.
+// to drain the DEFENDING player specifically. FL-41: before pushTrigger
+// encoded a Remembered player entry with state.PlayerRef, that entry
+// persisted through the logged TriggerPush event as ObjID 0 (an object
+// that never exists), Apply rebuilt it as {Obj: 0}, and playersOf filters
+// that entry out -- so Defined$ TriggeredDefendingPlayer resolves to
+// nothing and the effect silently no-ops (PlayerOf is never reached).
+// Haste means Raider can attack the very turn it resolves, so a two-seat
+// game reaches this in well under a full turn.
 const raiderSrc = `Name:Raider
 ManaCost:R
 Types:Creature Goblin
@@ -102,15 +101,16 @@ func TestDeclareAttackersPlayerRefSurvivesReplay(t *testing.T) {
 	}
 	// 20 starting life; unblocked 2/2 combat damage plus the 3-life
 	// TrigLose landing correctly on the defender: 20 - 2 - 3 = 15. If FL-41
-	// regressed, LoseLife lands on the attacker instead: defender stays at
-	// 18 (combat damage only) and the attacker drops to 17.
+	// regressed, the effect silently no-ops (playersOf drops the {Obj: 0}
+	// entry): defender stays at 18 (combat damage only) and the attacker
+	// stays at 20.
 	if e.G.Players[1].Life != 15 {
 		t.Fatalf("defending player life = %d, want 15 (20 - 2 combat - 3 TrigLose on the DEFENDER)",
 			e.G.Players[1].Life)
 	}
 	if e.G.Players[0].Life != 20 {
 		t.Fatalf("attacking player life = %d, want unchanged 20 -- "+
-			"FL-41 regression: TrigLose landed on the attacker instead of the defender", e.G.Players[0].Life)
+			"FL-41 regression: TrigLose silently no-oped (playersOf dropped the Obj:0 entry)", e.G.Players[0].Life)
 	}
 
 	// Now the round trip the finding actually asked for: reconstruct from

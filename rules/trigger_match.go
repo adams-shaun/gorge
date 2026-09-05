@@ -201,20 +201,30 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 //
 // effects.context.go's Defined already recognises Defined$
 // TriggeredDefendingPlayer/TriggeredPlayer (Task 5's playersOf(Remembered),
-// merged after this task started) -- so two repo cards, Goblin Guide and
-// Ulamog, both of which carry that exact spelling, go from a silent no-op
-// (playersOf found no player entry in Remembered at all, so Defined
-// resolved to nothing and their Dig ran on zero targets) to genuinely
-// functional the moment this trailing entry exists AND survives onto the
-// stack. The latter needed FL-41's fix: pushTrigger (trigger_queue.go)
-// could not just write tgt.Obj for this entry into the logged TriggerPush
-// event's IDs (always 0 for a player target, indistinguishable from a
-// missing object once decoded) without silently resolving to the
-// controller instead of the defender -- state.PlayerRef is what lets a
-// player reference survive that log-and-replay round trip intact. Together,
-// Goblin Guide and Ulamog's Attacks abilities are a real, new source of
-// chain-head movement across the acceptance games (FL-36), on top of
-// whatever Task 5's own Defined changes already moved.
+// merged after this task started). The trailing entry only matters once it
+// survives onto the stack, which needed FL-41's fix: pushTrigger
+// (trigger_queue.go) could not just write tgt.Obj for this entry into the
+// logged TriggerPush event's IDs (always 0 for a player target) -- Apply
+// would rebuild it as {Obj: 0}, and playersOf (effects/context.go) filters
+// that entry out, so Defined$ TriggeredDefendingPlayer resolves to nothing
+// and the effect silently no-ops (PlayerOf is never reached). state.PlayerRef
+// is what lets a player reference survive that log-and-replay round trip
+// intact.
+//
+// The one acceptance-game behaviour this trailing entry actually changes is
+// Knight of Infamy's intrinsic Exalted keyword trigger (cards/keywords.go
+// expands it to Mode$ Attacks | ValidCard$ Creature.YouCtrl | Alone$ True),
+// which fires twice in the 4-seat game (mono-black-aggro is dealt in at
+// seat 0 there). Exalted's DB$ Pump | Defined$ TriggeredAttacker resolves
+// through effects/context.go's objectsOf(c.Remembered): Remembered used to
+// be [{Obj: source}] (the exalted permanent itself) and is now every
+// declared attacker, so -- because attacksMatches ignores Alone$ (a known
+// approximation, tracked separately as FL-48) -- Exalted now pumps every
+// attacker when several attack instead of only the lone one. That is the
+// measured cause of the 4-seat chain-head move 203ea3a9b2268292 ->
+// 81a8a100641b5442. Goblin Guide and Goblin Piledriver never fire in the
+// 8-seat game, and Ulamog is in the tron deck, which is never dealt at
+// 2/4/6/8 seats: neither is a cause.
 func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 	if ev.Kind == events.DeclareAttackers {
 		out := make([]state.Target, 0, len(ev.IDs)+1)

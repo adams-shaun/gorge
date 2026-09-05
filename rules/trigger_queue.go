@@ -250,8 +250,10 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// []ObjID -- there is no field here for a bare PlayerID. Encoding it
 	// with state.PlayerRef instead of just writing tgt.Obj (always 0 for a
 	// player target) is what lets events.Apply's TriggerPush case below
-	// reconstruct {Player: p, IsPlayer: true} rather than the wrong,
-	// indistinguishable-from-a-missing-object {Obj: 0}.
+	// reconstruct {Player: p, IsPlayer: true} rather than {Obj: 0} -- which
+	// playersOf (effects/context.go) would filter out, so Defined$
+	// TriggeredDefendingPlayer would resolve to nothing and the effect
+	// silently no-op (PlayerOf is never reached).
 	ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
 	for _, tgt := range pt.Ctx.Remembered {
 		if tgt.IsPlayer {

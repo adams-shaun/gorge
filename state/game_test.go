@@ -50,6 +50,9 @@ func TestObjectIDsAreDenseAndStable(t *testing.T) {
 	if g.Obj(ObjID(len(g.Objs)+1)) != nil {
 		t.Error("out-of-range ObjID must be nil, not a panic")
 	}
+	if g.Obj(PlayerRef(1)) != nil {
+		t.Error("a PlayerRef sentinel must be nil, not index Objs (int(id) is negative on 32-bit builds)")
+	}
 }
 
 func TestZonesArePerPlayerAndOrdered(t *testing.T) {
