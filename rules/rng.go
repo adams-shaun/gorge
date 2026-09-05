@@ -11,13 +11,30 @@ import (
 // possible detector for "the engine changed underneath this log".
 type rng struct {
 	src   *rand.Rand
+	pcg   *rand.PCG // kept so clone can copy the generator's exact position
 	Draws uint64
 	seed  [2]uint64
 }
 
 func newRNG(seed uint64) *rng {
 	s := [2]uint64{seed, seed ^ 0x9e3779b97f4a7c15}
-	return &rng{src: rand.New(rand.NewPCG(s[0], s[1])), seed: s}
+	pcg := rand.NewPCG(s[0], s[1])
+	return &rng{src: rand.New(pcg), pcg: pcg, seed: s}
+}
+
+// clone copies the generator at its exact position: the next IntN on the
+// copy returns what the next IntN on the original would. PCG's binary
+// marshalling is the stdlib's own round-trip for that state.
+func (r *rng) clone() *rng {
+	raw, err := r.pcg.MarshalBinary()
+	if err != nil {
+		panic("rules: PCG MarshalBinary: " + err.Error())
+	}
+	pcg := &rand.PCG{}
+	if err := pcg.UnmarshalBinary(raw); err != nil {
+		panic("rules: PCG UnmarshalBinary: " + err.Error())
+	}
+	return &rng{src: rand.New(pcg), pcg: pcg, Draws: r.Draws, seed: r.seed}
 }
 
 func (r *rng) IntN(n int) int {
