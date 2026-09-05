@@ -79,6 +79,7 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 	m := &match{table: t, k: k, seed: seed, cfg: cfg, seats: infos, decks: deckNames, e: e, state: protocol.MatchLive}
 	m.bounds = []uint64{uint64(len(e.L.Events))}
 	m.turnStarts = turnStartsIn(e.L.Events, 0)
+	m.snapshotGenesis()
 	return m, nil
 }
 
@@ -223,6 +224,3 @@ func (r *Registry) crash(t *table, m *match, err error) string {
 	r.onMatchEnd(t, m)
 	return protocol.MatchCrashed
 }
-
-// afterBurst is a hook later tasks fill in (persistence, snapshots).
-func (r *Registry) afterBurst(t *table, m *match, before int) error { return nil }
