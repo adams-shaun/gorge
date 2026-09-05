@@ -67,10 +67,16 @@ func boundsOf(evs []events.Event) []uint64 {
 // persistBurst appends the burst and its intent (PL-2). Called with m.mu
 // held; an error propagates through afterBurst to play, which crashes the
 // match (D15) — a table whose files cannot be written must not keep going.
+// m.persisted advances only on a fully-appended burst, so it is always the
+// count of a complete, durable prefix (fix round 1).
 func (r *Registry) persistBurst(t *table, m *match, before int) error {
 	if m.files == nil {
 		return nil
 	}
 	in := m.e.L.Intents[len(m.e.L.Intents)-1]
-	return m.files.append(m.e.L.Events[before:], &in)
+	if err := m.files.append(m.e.L.Events[before:], &in); err != nil {
+		return err
+	}
+	m.persisted = len(m.e.L.Events)
+	return nil
 }

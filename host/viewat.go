@@ -92,30 +92,68 @@ func (r *Registry) lookup(id TableID, k int) (*table, *match, error) {
 	if !ok {
 		return nil, nil, ErrNotFound
 	}
+	// The fast path — a live or in-memory match, or an already-loaded
+	// archived one — runs under the read lock only. Only an actual
+	// load-from-disk upgrades to the write lock (see below), so the common
+	// ViewAt/Events request never contends with the other lock holders.
+	for {
+		t.mu.RLock()
+		if t.cur != nil && t.cur.k == k {
+			t.mu.RUnlock()
+			return t, t.cur, nil
+		}
+		if t.loaded != nil && t.loaded.k == k {
+			t.mu.RUnlock()
+			return t, t.loaded, nil
+		}
+		for _, m := range t.history {
+			if m.k == k {
+				t.mu.RUnlock()
+				return t, m, nil
+			}
+		}
+		t.mu.RUnlock()
+
+		// The requested match is not in memory or already loaded. It can only
+		// be an archived match known from disk, so check that before
+		// committing to a write-locked load. Load under the write lock and
+		// re-check t.loaded after the upgrade: two concurrent readers that
+		// both miss in the read pass must not both rebuild the match, so the
+		// lock is held for the whole (slow) disk load — the second waiter
+		// blocks here, finds t.loaded already set, and reuses it.
+		sc, ok := t.archivedMatch(k)
+		if !ok {
+			return nil, nil, ErrNotFound
+		}
+		t.mu.Lock()
+		if t.loaded != nil && t.loaded.k == k {
+			t.mu.Unlock()
+			return t, t.loaded, nil
+		}
+		m, err := r.loadArchived(t, sc)
+		if err != nil {
+			t.mu.Unlock()
+			return nil, nil, err
+		}
+		t.loaded = m // under the write lock: never a bare read-lock write
+		t.mu.Unlock()
+		return t, m, nil
+	}
+}
+
+// archivedMatch returns the sidecar for archived match k on t, or ok false
+// when k is not known from disk. archived is append-only after archive()
+// (it is only ever appended to under t.mu, never mutated in place), so a
+// reader taking the read lock is fine.
+func (t *table) archivedMatch(k int) (sidecar, bool) {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	if t.cur != nil && t.cur.k == k {
-		return t, t.cur, nil
-	}
-	for _, m := range t.history {
-		if m.k == k {
-			return t, m, nil
-		}
-	}
-	if t.loaded != nil && t.loaded.k == k {
-		return t, t.loaded, nil
-	}
 	for _, sc := range t.archived {
 		if sc.Match == k {
-			m, err := r.loadArchived(t, sc)
-			if err != nil {
-				return nil, nil, err
-			}
-			t.loaded = m
-			return t, m, nil
+			return sc, true
 		}
 	}
-	return nil, nil, ErrNotFound
+	return sidecar{}, false
 }
 
 // loadArchived rebuilds enough of a finished match to serve ViewAt/Events:

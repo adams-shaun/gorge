@@ -260,7 +260,7 @@ func (r *Registry) archive(t *table, m *match) {
 	m.files = nil
 	m.snaps = nil
 	m.mu.Unlock()
-	if err := writeSidecar(r.opts.Dir, sc); err != nil {
+	if err := writeSidecar(r.opts.Dir, sc, r.opts.Sync); err != nil {
 		m.mu.Lock()
 		m.reason = "sidecar: " + err.Error()
 		m.mu.Unlock()
