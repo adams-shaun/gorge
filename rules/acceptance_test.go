@@ -27,24 +27,29 @@ import (
 // kw:etbCounter, kw:Storm, and so on) rather than whole missing APIs. The
 // M2r plan's "Ratchet schedule" table
 // (docs/superpowers/plans/2026-09-05-gorge-m2r-ratchet-to-zero.md) is the
-// authority on which task retires each entry, down to 0; this table
-// currently stands at 31 (Task 3: kw:Flash, kw:Indestructible and kw:Devoid
-// retire Snapcaster Mage, Spectral Sailor, Ulamog and World Breaker). Every
-// unimplemented ability on these
+// authority on which task retires each entry, down to 0; this table stood
+// at 31 after Task 3 (kw:Flash, kw:Indestructible and kw:Devoid retire
+// Snapcaster Mage, Spectral Sailor, Ulamog and World Breaker) and now
+// stands at 29 (Task 13: api:Token registers, deleting Wurmcoil Engine's
+// and Young Pyromancer's entries outright and shrinking Batterskull's,
+// Empty the Warrens' and Entreat the Angels' entries to whatever else they
+// still need -- kw:Living Weapon's own Attach/Equip is Task 14's, Storm and
+// CopySpellAbility and Miracle are each a separate, still-open primitive).
+// Every unimplemented ability on these
 // cards is inert for the acceptance run (Ruling U13's Sword of Fire and Ice
 // note is this same shape, one card up): the point of Task 26 is that the
 // games terminate, invariants hold and replay is exact with these cards
 // shuffled in, not that every card plays with full fidelity yet -- that is
 // M4's coverage work, and this table is its worklist.
 var knownUnsupported = map[string][]string{
-	"Batterskull":           {"api:Attach", "api:Token", "kw:Equip", "kw:Living Weapon"},
+	"Batterskull":           {"api:Attach", "kw:Equip", "kw:Living Weapon"},
 	"Cabal Therapy":         {"kw:Flashback"},
 	"Cavern of Souls":       {"api:ChooseType", "kw:ETBReplacement"},
 	"Chain Lightning":       {"api:CopySpellAbility"},
 	"Chalice of the Void":   {"kw:etbCounter"},
-	"Empty the Warrens":     {"api:CopySpellAbility", "api:Token", "kw:Storm"},
+	"Empty the Warrens":     {"api:CopySpellAbility", "kw:Storm"},
 	"Endless One":           {"kw:etbCounter"},
-	"Entreat the Angels":    {"api:Token", "kw:Miracle"},
+	"Entreat the Angels":    {"kw:Miracle"},
 	"Experiment One":        {"kw:Evolve"},
 	"Gatekeeper of Malakir": {"kw:Kicker"},
 	"Geralf's Messenger":    {"kw:Undying"},
@@ -66,8 +71,6 @@ var knownUnsupported = map[string][]string{
 	"Umezawa's Jitte":       {"api:Attach", "kw:Equip"},
 	"Vines of Vastwood":     {"kw:Kicker"},
 	"Walking Ballista":      {"kw:etbCounter"},
-	"Wurmcoil Engine":       {"api:Token"},
-	"Young Pyromancer":      {"api:Token"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card

@@ -966,22 +966,23 @@ func TestMana(t *testing.T) {
 	}
 }
 
-// TestTokenAndCopySpellAbilityAreNotYetRegistered documents a deliberate gap:
-// both need to mint a brand-new game object mid-match, which nothing in this
-// engine can do without writing to state.Game outside events.Apply. See the
-// Task 18 report for why, and for the new-event-kind design that would close
-// it. Resolve's existing "unimplemented API" fallback is exercised here, not
+// TestCopySpellAbilityIsNotYetRegistered documents a deliberate gap:
+// minting a copy of a spell or ability already on the stack needs a new
+// game object mid-match, which the effects package cannot do without
+// writing to state.Game outside events.Apply (StackCopy exists as of Task
+// 12, but nothing wires the CopySpellAbility primitive to it yet). See the
+// Task 18 report for why, and for the new-event-kind design that closed the
+// same gap for tokens (events.TokenCreate, Task 13 -- see token.go and
+// token_test.go; this test used to cover Token here too, before that).
+// Resolve's existing "unimplemented API" fallback is exercised here, not
 // bypassed.
-func TestTokenAndCopySpellAbilityAreNotYetRegistered(t *testing.T) {
-	sup := Supported()
-	for _, api := range []string{"Token", "CopySpellAbility"} {
-		if sup["api:"+api] {
-			t.Fatalf("api:%s unexpectedly registered", api)
-		}
+func TestCopySpellAbilityIsNotYetRegistered(t *testing.T) {
+	if Supported()["api:CopySpellAbility"] {
+		t.Fatal("api:CopySpellAbility unexpectedly registered")
 	}
 	h := newHost(t, 2)
-	Resolve(h, &Ctx{Controller: 0, Source: 1}, sa(t, "DB$ Token | TokenAmount$ 1 | TokenScript$ r_1_1_goblin"))
-	if len(h.log) != 1 || h.log[0].Kind != events.Note || h.log[0].Text != "unimplemented API Token" {
+	Resolve(h, &Ctx{Controller: 0, Source: 1}, sa(t, "DB$ CopySpellAbility"))
+	if len(h.log) != 1 || h.log[0].Kind != events.Note || h.log[0].Text != "unimplemented API CopySpellAbility" {
 		t.Fatalf("log = %+v", h.log)
 	}
 }

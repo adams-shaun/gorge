@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -729,5 +730,175 @@ Oracle:x
 					chain, submit, got)
 			}
 		}
+	}
+}
+
+// newFixtureDeckWithTokens is newFixtureDeck (replacement_updated_test.go)
+// plus Config.Tokens holding two token fixtures authored here -- never the
+// GPL-3.0 corpus's own .cards/tokenscripts -- so a live Engine built from
+// this Config has something in Game.Tokens for a TokenCreate event to mint.
+// Duplicated rather than threading a Tokens parameter through
+// newFixtureDeck itself: that helper is shared by every Task 26/29 test in
+// this package, and none of them needs Tokens, so widening its signature
+// for this file alone would touch a file Task 13 has no reason to modify.
+func newFixtureDeckWithTokens(t *testing.T, seed uint64, fixtureSrc string) (*Engine, Config, state.ObjID) {
+	t.Helper()
+	fixture := card(t, fixtureSrc)
+	name := fixture.Faces[0].Name
+	cfg := Config{Seed: seed, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{
+			append([]*cards.Card{fixture}, mountainDeck(t, 39)...),
+			mountainDeck(t, 40),
+		},
+		Tokens: map[string]*cards.Card{
+			"r_1_1_goblin":                      card(t, "Name:Goblin Token\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n"),
+			"c_3_3_a_phyrexian_wurm_deathtouch": card(t, "Name:Phyrexian Wurm Token\nTypes:Creature Phyrexian Wurm\nPT:3/3\nK:Deathtouch\nOracle:x\n"),
+		},
+	}
+	e := New(cfg)
+	e.Advance()
+
+	var id state.ObjID
+	for _, cand := range e.G.Zone(state.ZHand, 0) {
+		if e.G.Obj(cand).Face().Name == name {
+			id = cand
+		}
+	}
+	if id == 0 {
+		for _, cand := range e.G.Zone(state.ZLibrary, 0) {
+			if e.G.Obj(cand).Face().Name == name {
+				id = cand
+			}
+		}
+		if id == 0 {
+			t.Fatalf("fixture %q not found in seat 0's hand or library", name)
+		}
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZHand})
+	}
+	return e, cfg, id
+}
+
+// TestATokenThatDiesCeasesToExist is CR 111.7: a token that leaves the
+// battlefield ceases to exist, which this build models by parking it in
+// exile (state.Object.Ephemeral's own doc) rather than by deleting the
+// object outright. Damaging the token lethally first sends it to the
+// graveyard via destroyLethalDamage's own CR 704.5g move -- the SAME
+// checkStateBased call's exileDeadTokens pass then finds it off the
+// battlefield and relocates it to exile, so the two zones a naive
+// implementation might leave it in (graveyard, because that is where
+// ordinary lethal damage sends a creature) are both checked: it must NOT
+// still be in the graveyard, and it must be in exile.
+func TestATokenThatDiesCeasesToExist(t *testing.T) {
+	e, _, _ := newFixtureDeckWithTokens(t, 51, "Name:Pyro\nManaCost:1 R\nTypes:Creature Human Shaman\nPT:2/1\nOracle:x\n")
+	e.emit(events.Event{Kind: events.TokenCreate, Player: 0, Text: "r_1_1_goblin"})
+	tok := e.G.Zone(state.ZBattlefield, 0)[len(e.G.Zone(state.ZBattlefield, 0))-1]
+	e.emit(events.Event{Kind: events.Damage, Obj: tok, Amount: 1})
+	e.checkStateBased()
+	o := e.G.Obj(tok)
+	if o.Zone != state.ZExile || len(e.G.Zone(state.ZGraveyard, 0)) != 0 {
+		t.Fatalf("dead token in %s; graveyard %v", o.Zone, e.G.Zone(state.ZGraveyard, 0))
+	}
+	n := len(e.L.Events)
+	e.checkStateBased()
+	if len(e.L.Events) != n {
+		t.Fatal("an exiled token keeps being re-exiled")
+	}
+}
+
+// TestATokenBouncedToHandCeasesToExist covers a zone CR 111.7 applies to
+// besides "died from the battlefield, via the graveyard, like an ordinary
+// creature" (TestATokenThatDiesCeasesToExist above): a token returned to
+// hand (bounced, the same as any "return to hand" effect might do) ceases
+// to exist there just the same, exiled directly rather than lingering as a
+// hand card. The rest of seat 0's real opening hand is left in the assert
+// on purpose -- the check is that this specific token id is gone from
+// wherever it landed, not that the whole hand emptied out.
+func TestATokenBouncedToHandCeasesToExist(t *testing.T) {
+	e, _, _ := newFixtureDeckWithTokens(t, 52, "Name:Pyro\nManaCost:1 R\nTypes:Creature Human Shaman\nPT:2/1\nOracle:x\n")
+	e.emit(events.Event{Kind: events.TokenCreate, Player: 0, Text: "r_1_1_goblin"})
+	bf := e.G.Zone(state.ZBattlefield, 0)
+	tok := bf[len(bf)-1]
+	e.emit(events.Event{Kind: events.MoveZone, Obj: tok, From: state.ZBattlefield, To: state.ZHand})
+
+	e.checkStateBased()
+
+	if got := e.G.Obj(tok).Zone; got != state.ZExile {
+		t.Fatalf("bounced token zone = %s, want exile", got)
+	}
+	for _, id := range e.G.Zone(state.ZHand, 0) {
+		if id == tok {
+			t.Fatalf("hand = %v, still holds the token (it should have ceased to exist rather than "+
+				"staying put)", e.G.Zone(state.ZHand, 0))
+		}
+	}
+}
+
+// TestATokenOnTheStackIsNotPrematurelyExiled: exileDeadTokens' zone
+// exclusion list names the stack alongside the battlefield deliberately --
+// a token copy of a spell or activated ability legitimately sits on the
+// stack without being a permanent yet (Ephemeral's own IsCopy half covers
+// that shape already; this is the token half of the same "not every
+// off-battlefield placement is death" principle). Exercised directly
+// against a manufactured stack object rather than a real copy effect (Task
+// 13 does not implement CopySpellAbility) -- what exileDeadTokens reads is
+// only IsToken and Zone, so a token object placed on the stack by hand is
+// exactly as much of a test of the exclusion as a real spell copy would be.
+func TestATokenOnTheStackIsNotPrematurelyExiled(t *testing.T) {
+	e := newSeats(t, 2)
+	goblin := card(t, "Name:Goblin Token\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n")
+	o := e.G.AddObject(goblin, 0)
+	o.IsToken = true
+	events.Move(e.G, o.ID, state.ZLibrary, state.ZStack)
+
+	e.checkStateBased()
+
+	if got := e.G.Obj(o.ID).Zone; got != state.ZStack {
+		t.Fatalf("token on the stack zone = %s, want stack (unchanged)", got)
+	}
+}
+
+// TestExileDeadTokensDoesNotAmplifyWhenAReplacementBlocksTheMove is the
+// regression test for Task 13 fix round 1's tried.tokens addition (review
+// finding "minor 1"): Ward intercepts any move out of a graveyard and
+// substitutes a 1-life gain instead, permanently keeping a dead token in
+// the graveyard rather than letting it reach exile. Before tried.tokens,
+// exileDeadTokens had no memory of the attempt and rediscovered the same
+// token as a fresh candidate on every one of the 32 passes in the budget --
+// spending the whole thing, and firing Ward's own replacement 32 times, on
+// a single checkStateBased call. After, it is attempted exactly once per
+// call, the same bound checkLoseConditions' removal sweep and
+// destroyLethalDamage already hold for their own blocked attempts
+// (TestDestroyLethalDamageDoesNotAmplifyWhenAReplacementKeepsThePermanent
+// and TestRemovePermanentsDoesNotAmplifyWhenAReplacementKeepsThePermanent
+// above are the same shape for their own passes).
+func TestExileDeadTokensDoesNotAmplifyWhenAReplacementBlocksTheMove(t *testing.T) {
+	e := newSeats(t, 2)
+	onBoard(t, e, 0, `Name:Ward
+ManaCost:1 W
+Types:Artifact
+R:Event$ Moved | Origin$ Graveyard | ValidCard$ Card | ReplaceWith$ RepLife | Description$ x
+SVar:RepLife:DB$ GainLife | Defined$ You | LifeAmount$ 1
+Oracle:x
+`)
+	goblin := card(t, "Name:Goblin Token\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n")
+	o := e.G.AddObject(goblin, 0)
+	o.IsToken = true
+	events.Move(e.G, o.ID, state.ZLibrary, state.ZGraveyard)
+
+	beforeLife := e.G.Players[0].Life
+	beforeEvents := len(e.L.Events)
+
+	e.checkStateBased()
+
+	if got := e.G.Obj(o.ID).Zone; got != state.ZGraveyard {
+		t.Fatalf("token zone = %s, want graveyard (Ward's replacement keeps it there)", got)
+	}
+	if gained := e.G.Players[0].Life - beforeLife; gained != 1 {
+		t.Fatalf("life gained = %d, want exactly 1 (one exile attempt per checkStateBased call, "+
+			"not the full 32-pass budget spent 32 times over)", gained)
+	}
+	if added := len(e.L.Events) - beforeEvents; added != 1 {
+		t.Fatalf("log grew by %d events, want exactly 1 (the single blocked attempt's own "+
+			"replacement-substituted event), not a 32x-amplified count", added)
 	}
 }
