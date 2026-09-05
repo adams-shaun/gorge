@@ -1,6 +1,10 @@
 SHELL      := /bin/bash
 BIN_DIR    := bin
-GO_SRC     := $(shell find . -type f -name '*.go' 2>/dev/null) go.mod
+# Go tooling must never see web/node_modules (stray .go files from
+# transitive npm deps) or .worktrees (sibling task checkouts): go's ./...
+# skips dot-directories and stops at web/go.mod, but find/gofmt do not.
+GO_FILES   := find . \( -name node_modules -o -name .worktrees \) -prune -o -type f -name '*.go' -print
+GO_SRC     := $(shell $(GO_FILES) 2>/dev/null) go.mod
 
 # Where forgec puts the fetched corpus and the IR compiled from it. Never
 # committed — the scripts are GPL-3.0.
@@ -18,7 +22,12 @@ help:
 	@echo "  make report         — print card coverage against implemented primitives"
 	@echo "  make sim            — build mtgsim and play 20 verified 4-seat games"
 	@echo "  make gentypes       — regenerate web/src/protocol.ts from package protocol"
+	@echo "  make web            — npm ci and build the spectator client into cmd/gorged/webdist"
+	@echo "  make web-dev        — run the Vite dev server for web/"
+	@echo "  make test-web       — run web/'s Vitest suite"
+	@echo "  make lint-web       — svelte-check and eslint over web/"
 	@echo "  make test lint cover"
+	@echo "  NOTE: make test-web / npm test needs Node >=22 (vitest 5); see web/README.md"
 
 .PHONY: build
 build: $(BIN_DIR)/forgec $(BIN_DIR)/mtgsim
@@ -72,9 +81,28 @@ cover-html: cover
 tidy:
 	go mod tidy
 
+# npm's own install fingerprint; a clean checkout has no web/node_modules,
+# so lint-web/test-web/web (and web-dev) install first instead of dying with
+# "eslint: not found" / "vite: not found".
+web/node_modules/.package-lock.json: web/package-lock.json
+	cd web && npm ci
+
+.PHONY: web web-dev test-web lint-web
+web: web/node_modules/.package-lock.json
+	cd web && npm run build
+
+web-dev: web/node_modules/.package-lock.json
+	cd web && npm run dev
+
+test-web: web/node_modules/.package-lock.json
+	cd web && npm run test
+
+lint-web: web/node_modules/.package-lock.json
+	cd web && npm run check && npm run lint
+
 .PHONY: lint
-lint:
-	@out=$$(find . -name .worktrees -prune -o -name '*.go' -print | xargs gofmt -l 2>&1); \
+lint: lint-web
+	@out=$$(gofmt -l $$($(GO_FILES)) 2>&1); \
 		if [ -n "$$out" ]; then \
 			echo "gofmt: files need formatting:"; echo "$$out"; exit 1; \
 		fi
