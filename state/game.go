@@ -35,7 +35,11 @@ type Game struct {
 	// over two billion objects created before that collision, far beyond
 	// anything this engine's own bounds (maxTriggerFires, turn/priority
 	// limits, ...) let happen. That gap is what makes PlayerRef/ObjID.PlayerRef
-	// a safe way to smuggle a PlayerID through an []ObjID slot.
+	// a safe way to smuggle a PlayerID through an []ObjID slot. Note that
+	// int(id) of such a sentinel is negative on 32-bit builds (1<<31
+	// overflows int there), so g.Obj must compare id as an ObjID/uint32 --
+	// the id&playerRefBit check in its bounds test below -- never via
+	// int(id) alone.
 	NextID ObjID
 	// Clock is a monotonic timestamp source for continuous-effect ordering.
 	Clock uint32
@@ -75,9 +79,13 @@ func (g *Game) SetZone(z Zone, p PlayerID, ids []ObjID) {
 	g.zones[g.zoneIndex(z, p)] = ids
 }
 
-// Obj returns the object with this ID, or nil for ObjID 0 and out-of-range IDs.
+// Obj returns the object with this ID, or nil for ObjID 0, a PlayerRef
+// sentinel (ids.go), and out-of-range IDs. The sentinel check must compare
+// id as an ObjID/uint32: int(id) of a PlayerRef is negative on 32-bit
+// builds, so a bare int(id) > len(g.Objs) test would let it through and
+// index Objs with a huge negative offset.
 func (g *Game) Obj(id ObjID) *Object {
-	if id == 0 || int(id) > len(g.Objs) {
+	if id == 0 || id&playerRefBit != 0 || int(id) > len(g.Objs) {
 		return nil
 	}
 	return &g.Objs[id-1]
