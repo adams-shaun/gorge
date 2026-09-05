@@ -1231,3 +1231,75 @@ func TestPendingTriggersIsEmptyWithNoQueue(t *testing.T) {
 		t.Fatalf("PendingTriggers = %v, want none", pts)
 	}
 }
+
+// hunterSrc is a permanent whose upkeep trigger takes a single target
+// (Task 7): the shape a target-bearing trigger's own KTarget decision runs.
+const hunterSrc = `Name:Hunter
+ManaCost:B
+Types:Artifact Creature
+PT:1/1
+T:Mode$ Phase | Phase$ Upkeep | Execute$ TrigHunt | TriggerDescription$ exile a target permanent
+SVar:TrigHunt:DB$ ChangeZone | ValidTgts$ Permanent | TargetMin$ 1 | TargetMax$ 1 | Origin$ Battlefield | Destination$ Exile
+Oracle:x
+`
+
+// TestTriggerTargetAskResumesTheDrain is Task 7's drain-continuation test.
+// A trigger that takes targets is asked right after its TriggerPush; the
+// answer must resume the SAME drain (handleTarget -> resumeTriggerDrain, the
+// continuation handleTriggerOrder already uses -- not a parallel path through
+// turn.go) so a second, unrelated trigger behind it is still placed before
+// any player receives priority. If the target answer instead granted priority
+// mid-queue, the second trigger would sit unplaced behind the priority
+// decision (violating CR 117.5) and this test's stack count would be 1, not 2.
+func TestTriggerTargetAskResumesTheDrain(t *testing.T) {
+	e := layerEngine(t)
+	// Two simultaneous, same-controller triggers: the first (hunter) takes a
+	// target, the second (gainer) is a plain life-gain.
+	a := onBoard(t, e, 0, hunterSrc)
+	b := onBoard(t, e, 0, gainerSrc)
+	prey := onBoard(t, e, 1, "Name:Prey\nManaCost:R\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n")
+	aSA := e.G.Obj(a).Face().Triggers[0].Effect
+	bSA := e.G.Obj(b).Face().Triggers[0].Effect
+	e.pendingTriggers = []pendingTrigger{
+		{Source: a, Controller: 0, Idx: 0, SA: aSA, Ctx: effects.Ctx{Source: a, Controller: 0}},
+		{Source: b, Controller: 0, Idx: 0, SA: bSA, Ctx: effects.Ctx{Source: b, Controller: 0}},
+	}
+	// Settling the two-trigger group's order by hand lets putTriggersOnStack
+	// go straight to placing (and target-asking) the first entry rather than
+	// asking the R1 KTriggerOrder decision this test is not about.
+	e.orderedTriggers = 2
+
+	if !e.putTriggersOnStack() {
+		t.Fatal("expected a target decision, the drain did not pause")
+	}
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget || d.Min != 1 || d.Max != 1 {
+		t.Fatalf("pending %+v, want a single-target decision", d)
+	}
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack %v, want only the first trigger placed before the ask", e.G.Stack)
+	}
+	idx := -1
+	for _, o := range d.Options {
+		if o.Obj == prey {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("prey not offered as a target: %+v", d.Options)
+	}
+	submit(t, e, idx)
+
+	// The answer resumed the drain: the second life-gain trigger is ALSO now
+	// on the stack -- both were placed before any priority decision.
+	if len(e.G.Stack) != 2 {
+		t.Fatalf("stack %v after answer, want both triggers placed before priority", e.G.Stack)
+	}
+	passUntilStackEmpty(t, e, 20)
+	if e.G.Obj(prey).Zone != state.ZExile {
+		t.Fatalf("prey in %s, want exile (the targeting trigger resolved)", e.G.Obj(prey).Zone)
+	}
+	if e.G.Players[0].Life != 25 {
+		t.Fatalf("life %d, want 25 (the chained life-gain trigger also resolved)", e.G.Players[0].Life)
+	}
+}
