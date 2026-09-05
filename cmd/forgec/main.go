@@ -10,9 +10,20 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/effects"
+	// Ruling W1: forgec's report command reads effects.Supported() but never
+	// otherwise touches rules, so without this blank import none of
+	// rules/combat.go's, rules/statics.go's or rules/trigger.go's init()
+	// functions (each an effects.RegisterNonAPI call) ever run in this
+	// binary, and Supported() here sees "api:" primitives only -- the report
+	// undercounts coverage by thousands of cards (trig:ChangesZone alone
+	// gates 7008 of them). rules/coverage_test.go's
+	// TestForgecBinaryImportsRules pins that this import stays in place.
+	_ "github.com/adams-shaun/gorge/rules"
 )
 
 func main() {
@@ -83,5 +94,141 @@ func report(dir string, top int) error {
 	for i, m := range cv.TopMissing(top) {
 		fmt.Printf("%3d. %-32s %6d\n", i+1, m.Name, m.Cards)
 	}
+
+	// Ruling T16-a.
+	if bad := unknownFilterTypes(r); len(bad) > 0 {
+		fmt.Println("\nfilter base types matching no card in the registry (likely typos):")
+		for _, u := range bad {
+			fmt.Printf("%3d. %-32s %6d\n", u.rank, u.token, u.count)
+		}
+	}
 	return nil
+}
+
+// validCardFilterKeys are exactly the Params keys this engine ever feeds to
+// effects.MatchesSpec / MatchesSpecFrom -- grep-verified against every call
+// site in rules/stack.go, rules/statics.go, rules/trigger.go and
+// effects/*.go. That is the whole vocabulary matchesBase's base-type switch
+// (effects/filter.go) governs, so it is exactly the set where a typo'd type
+// token is dangerous the way Ruling T16-a describes: matchesBase's "non"
+// handling negates a base check that never succeeds for anything, so a
+// typo'd "non<Type>" silently matches EVERY object instead of none.
+// ValidPlayer$ and ValidActivatingPlayer$ (and friends) use a wholly
+// different vocabulary -- You/Opponent/Player/Any via MatchesPlayerSpec --
+// so including them here would just flood this report with tokens that were
+// never card types to begin with.
+var validCardFilterKeys = map[string]bool{
+	"ValidTgts": true, "ValidCards": true, "ValidCard": true,
+	"ValidBlocker": true, "ValidTarget": true, "ValidSource": true,
+}
+
+// pseudoFilterTypes are base tokens that are legal in a ValidTgts$-style spec
+// but deliberately match no card TYPE at all, so they are not typos:
+// "any"/"card"/"permanent"/"spell" are matchesBase's own hard-coded cases
+// (effects/filter.go); "player"/"opponent"/"you" are the player-targeting
+// alternative rules/stack.go's targetsPlayers recognises and routes to a
+// player option before the spec's card-side alternatives ever reach
+// matchesBase at all (e.g. "ValidTgts$ Creature,Player" -- a very common
+// "target a creature or a player" shape -- would otherwise make this
+// report's single biggest false positive).
+var pseudoFilterTypes = map[string]bool{
+	"any": true, "card": true, "permanent": true, "spell": true,
+	"player": true, "opponent": true, "you": true,
+}
+
+// maxSAChainWalk bounds SubAbility$ chain walks the same way
+// effects.maxChain and cards.Face.Primitives' own walk do, so a
+// pathological or cyclic Sub chain in corpus data cannot hang the report.
+const maxSAChainWalk = 32
+
+type unknownFilterType struct {
+	rank  int
+	token string
+	count int
+}
+
+// unknownFilterTypes implements Ruling T16-a: it collects every base-type
+// token named in a ValidTgts$/ValidCards$/ValidCard$/ValidBlocker$/
+// ValidTarget$/ValidSource$ spec anywhere in the registry, and flags every
+// one that is neither a pseudo type (Any/Card/Permanent/Spell) nor an actual
+// type printed on some card -- exactly the class of typo that would make
+// engine code silently over-match once it starts reading that spec.
+func unknownFilterTypes(r *cards.Registry) []unknownFilterType {
+	types := map[string]bool{}
+	for _, c := range r.Cards {
+		for _, f := range c.Faces {
+			for _, t := range f.Types {
+				types[strings.ToLower(t)] = true
+			}
+		}
+	}
+
+	counts := map[string]int{}
+	note := func(spec string) {
+		for _, alt := range strings.Split(spec, ",") {
+			alt = strings.TrimSpace(alt)
+			if alt == "" {
+				continue
+			}
+			base, _, _ := strings.Cut(alt, ".")
+			// Mirror matchesBase's own single-level "non" strip exactly
+			// (effects/filter.go): an unconditional TrimPrefix, not a
+			// case-insensitive or repeated one.
+			base = strings.TrimPrefix(base, "non")
+			if base == "" {
+				continue
+			}
+			lb := strings.ToLower(base)
+			if pseudoFilterTypes[lb] || types[lb] {
+				continue
+			}
+			counts[base]++
+		}
+	}
+	fromParams := func(p map[string]string) {
+		for k, v := range p {
+			if validCardFilterKeys[k] {
+				note(v)
+			}
+		}
+	}
+	var walkSA func(sa *cards.SA)
+	walkSA = func(sa *cards.SA) {
+		for d := 0; sa != nil && d < maxSAChainWalk; sa, d = sa.Sub, d+1 {
+			fromParams(sa.Params)
+		}
+	}
+	for _, c := range r.Cards {
+		for _, f := range c.Faces {
+			for _, a := range f.Abilities {
+				walkSA(a)
+			}
+			for _, tr := range f.Triggers {
+				fromParams(tr.Params)
+				walkSA(tr.Effect)
+			}
+			for _, s := range f.Statics {
+				fromParams(s.Params)
+			}
+			for _, rl := range f.Repls {
+				fromParams(rl.Params)
+				walkSA(rl.With)
+			}
+		}
+	}
+
+	out := make([]unknownFilterType, 0, len(counts))
+	for tok, n := range counts {
+		out = append(out, unknownFilterType{token: tok, count: n})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].count != out[j].count {
+			return out[i].count > out[j].count
+		}
+		return out[i].token < out[j].token
+	})
+	for i := range out {
+		out[i].rank = i + 1
+	}
+	return out
 }
