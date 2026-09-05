@@ -574,6 +574,83 @@ func TestReplayFromLogAloneReconstructsTriggeredAbilities(t *testing.T) {
 	}
 }
 
+func TestDiesTriggerSeesTheCreatureAsItWas(t *testing.T) {
+	// A creature with a dies trigger and two +1/+1 counters: Move clears the
+	// counters, so only last known information can say it had them.
+	src := "Name:Geist\nManaCost:G G\nTypes:Creature Spirit\nPT:2/1\n" +
+		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | Execute$ TrigNote | TriggerDescription$ When CARDNAME dies, note.\n" +
+		"SVar:TrigNote:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+	e, _, id := newFixtureDeck(t, 3, src)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "P1P1", Amount: 2})
+	e.pendingTriggers = nil
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("%d pending triggers", len(e.pendingTriggers))
+	}
+	lki := e.pendingTriggers[0].Ctx.LKI
+	if lki == nil || lki.ID != id || lki.Zone != state.ZBattlefield || lki.Counter("P1P1") != 2 {
+		t.Fatalf("LKI %+v", lki)
+	}
+	if e.G.Obj(id).Counter("P1P1") != 0 {
+		t.Fatal("the live object should have lost its counters on leaving")
+	}
+	lki.AddCounter("P1P1", 5)
+	if e.G.Obj(id).Counter("P1P1") != 0 {
+		t.Fatal("LKI shares a Counters array with the live object")
+	}
+}
+
+func TestAttacksTriggerRemembersTheDefendingPlayer(t *testing.T) {
+	ids := []state.ObjID{4, 5}
+	got := triggerRemembered(events.Event{Kind: events.DeclareAttackers, Player: 2, IDs: ids}, 9)
+	if len(got) != 3 || got[0].Obj != 4 || got[1].Obj != 5 || !got[2].IsPlayer || got[2].Player != 2 {
+		t.Fatalf("%v", got)
+	}
+}
+
+// TestAttacksTriggerStillPersistsOnlyItsOwnSource is pushTrigger's own
+// regression test for the chain-head-preservation fix above
+// TestAttacksTriggerRemembersTheDefendingPlayer's own richer content:
+// triggerRemembered now hands an Attacks-mode pendingTrigger a Ctx.Remembered
+// that lists every declared attacker plus a trailing defending-player entry
+// (Task 7 will need that at resolution), but pushTrigger must still log
+// exactly the one-object shape pre-Task-6 code always did -- the trigger's
+// own source, nothing else -- or TestHeads's pinned chain heads move for a
+// change that alters no card's actual behaviour yet (FL-2/2'; see
+// pushTrigger's own comment in trigger_queue.go). This drives two creatures
+// through the SAME DeclareAttackers event -- one bearing the trigger, one
+// not -- so a regression that started logging every attacker (not just
+// pt.Source) would be caught here even though the two would coincide for a
+// lone attacker.
+func TestAttacksTriggerStillPersistsOnlyItsOwnSource(t *testing.T) {
+	src := `Name:Raider
+ManaCost:1 R
+Types:Creature Goblin
+PT:2/2
+T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigPump | TriggerDescription$ x
+SVar:TrigPump:DB$ Pump | Defined$ Self | NumAtt$ +1
+Oracle:x
+`
+	e := layerEngine(t)
+	id := onBoard(t, e, 0, src)
+	other := onBoard(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{id, other}})
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("%d pending triggers, want 1 (only Raider carries the T: line)", len(e.pendingTriggers))
+	}
+	if got := e.pendingTriggers[0].Ctx.Remembered; len(got) != 3 || got[2].Player != 1 {
+		t.Fatalf("Ctx.Remembered = %v, want the richer 3-entry shape before push", got)
+	}
+	e.putTriggersOnStack()
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack = %v, want the attack trigger", e.G.Stack)
+	}
+	if got := e.G.Obj(e.G.Stack[0]).Remembered; len(got) != 1 || got[0].Obj != id {
+		t.Fatalf("persisted Remembered = %v, want exactly [{Obj: %d}] (pt.Source alone)", got, id)
+	}
+}
+
 // replayFromLog reconstructs a Game from cfg's decks (replicating rules.New's
 // own unlogged genesis AddObject calls, in the same per-deck order) plus
 // every event in log, applied via events.Apply directly -- no rules.Engine

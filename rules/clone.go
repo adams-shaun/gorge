@@ -51,6 +51,14 @@ func (e *Engine) Clone() *Engine {
 				}
 				pt.Ctx.SVars = m
 			}
+			if pt.Ctx.LKI != nil {
+				lki := *pt.Ctx.LKI
+				lki.Counters = append([]state.Counter(nil), pt.Ctx.LKI.Counters...)
+				lki.Targets = append([]state.Target(nil), pt.Ctx.LKI.Targets...)
+				lki.Remembered = append([]state.Target(nil), pt.Ctx.LKI.Remembered...)
+				lki.BlockedBy = append([]state.ObjID(nil), pt.Ctx.LKI.BlockedBy...)
+				pt.Ctx.LKI = &lki
+			}
 			c.pendingTriggers[i] = pt
 		}
 	}

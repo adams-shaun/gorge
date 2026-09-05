@@ -64,6 +64,12 @@ func seedInternalQueues(t *testing.T, e *Engine) state.ObjID {
 			Targets:    []state.Target{{Obj: src}},
 			Remembered: []state.Target{{Obj: src}},
 			SVars:      map[string]string{"k": "v"},
+			// LKI: a fabricated snapshot with a nonzero counter, so Clone's
+			// own deep copy of it (not just of the live object it describes,
+			// which Game.Clone already handles) has something to prove --
+			// see the LKI-aliasing assertions in
+			// TestCloneSharesNoMutableStateWithTheOriginal.
+			LKI: &state.Object{ID: src, Counters: []state.Counter{{Kind: "P1P1", N: 2}}},
 		},
 	})
 	e.triggerFireCount = map[triggerKey]int32{{Source: src, Idx: 0}: 1}
@@ -174,6 +180,10 @@ func TestCloneSharesNoMutableStateWithTheOriginal(t *testing.T) {
 	c.continuous[0].AddKeywords[0] = "Mutated"
 	c.pendingTriggers[0].Ctx.Targets[0].Obj = 9999
 	c.pendingTriggers[0].Ctx.SVars["k"] = "mutated"
+	if c.pendingTriggers[0].Ctx.LKI == nil {
+		t.Fatal("clone dropped a pending trigger's LKI")
+	}
+	c.pendingTriggers[0].Ctx.LKI.AddCounter("P1P1", 5)
 	c.triggerFireCount[triggerKey{Source: src, Idx: 0}] = 99
 	c.damageOnceFired[triggerKey{Source: 1, Idx: 0}] = 99
 
@@ -198,6 +208,10 @@ func TestCloneSharesNoMutableStateWithTheOriginal(t *testing.T) {
 		}
 		if pt.Ctx.SVars["k"] == "mutated" {
 			t.Fatal("clone shares a pending trigger's SVars map")
+		}
+		if pt.Ctx.LKI != nil && pt.Ctx.LKI.Counter("P1P1") != 2 {
+			t.Fatalf("clone shares a pending trigger's LKI: original counter = %d, want 2 (unchanged)",
+				pt.Ctx.LKI.Counter("P1P1"))
 		}
 	}
 	if e.triggerFireCount[triggerKey{Source: src, Idx: 0}] == 99 {
