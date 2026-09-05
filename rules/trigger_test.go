@@ -3,6 +3,7 @@ package rules
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -620,13 +621,20 @@ func diffGames(a, b *state.Game) string {
 			diffs = append(diffs, fmt.Sprintf("obj[%d]: %+v vs %+v", i+1, ao, bo))
 		}
 	}
-	if !reflect.DeepEqual(a.Stack, b.Stack) {
+	// Stack and per-zone ID lists use slices.Equal, not reflect.DeepEqual.
+	// events.remove (events/apply.go) always allocates via make, even for a
+	// zero-length result, so a zone that just lost its last object holds a
+	// non-nil empty slice; state.Game.Clone's append-based copy normalises
+	// that same empty zone to nil. slices.Equal compares length and elements
+	// only, so it correctly treats nil and empty as the same zone; DeepEqual
+	// does not.
+	if !slices.Equal(a.Stack, b.Stack) {
 		diffs = append(diffs, fmt.Sprintf("stack: %v vs %v", a.Stack, b.Stack))
 	}
 	for p := state.PlayerID(0); int(p) < len(a.Players); p++ {
 		for _, z := range []state.Zone{state.ZLibrary, state.ZHand, state.ZBattlefield, state.ZGraveyard, state.ZExile} {
 			az, bz := a.Zone(z, p), b.Zone(z, p)
-			if !reflect.DeepEqual(az, bz) {
+			if !slices.Equal(az, bz) {
 				diffs = append(diffs, fmt.Sprintf("p%d:%s: %v vs %v", p, z, az, bz))
 			}
 		}
