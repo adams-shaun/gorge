@@ -13,7 +13,7 @@ FORGE_REF  ?= 95f04e8a04c8925fa97cb226fc3341cabcc90a53
 help:
 	@echo "mtgcore targets:"
 	@echo "  make build          — compile forgec and mtgsim"
-	@echo "  make fetch-cards    — fetch Forge cardsfolder at FORGE_REF into $(CARDS_DIR)"
+	@echo "  make fetch-cards    — fetch Forge cardsfolder + tokenscripts at FORGE_REF into $(CARDS_DIR)"
 	@echo "  make compile-cards  — compile the fetched corpus into the IR cache"
 	@echo "  make report         — print card coverage against implemented primitives"
 	@echo "  make sim            — build mtgsim and play 20 verified 4-seat games"
