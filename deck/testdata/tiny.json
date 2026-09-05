@@ -1,0 +1,8 @@
+{
+  "name": "Tiny Test Deck",
+  "format": "legacy",
+  "cards": [
+    { "name": "Mountain", "count": 2 },
+    { "name": "Goblin Guide", "count": 1 }
+  ]
+}
