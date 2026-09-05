@@ -211,7 +211,7 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 	}
 	v.Turn = g.Turn
 	v.Step = g.Step.String()
-	v.Phase = phaseOf(g.Step)
+	v.Phase = PhaseOf(g.Step)
 	v.Active = g.Active
 	v.Priority = g.Priority
 	v.Over = g.Over
@@ -268,10 +268,9 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 	return v
 }
 
-// phaseOf groups Step into the five phases a client actually cares about
-// (supplement §6). An invalid Step (state.Step.Valid reports false) matches
-// none of the cases below and falls through to "".
-func phaseOf(s state.Step) string {
+// PhaseOf groups a Step into the five phases a client shows: beginning,
+// main1, combat, main2, ending; "" for an invalid Step.
+func PhaseOf(s state.Step) string {
 	switch s {
 	case state.StepUntap, state.StepUpkeep, state.StepDraw:
 		return "beginning"

@@ -60,8 +60,9 @@ func (c TableConfig) validate(load func(string) (Deck, error)) error {
 
 // table is one registry entry and the goroutine that plays it. started is
 // guarded by Registry.mu — Start and Wait both read/write it while already
-// holding that lock (registry.go), not t.mu — and every other field is
-// guarded by mu itself; the run loop and every reader take mu for those.
+// holding that lock (registry.go), not t.mu. mu guards every field from
+// state down to done; the run loop and every reader take it. fanMu and
+// lastLine below that are a deliberate exception — see their own docs.
 type table struct {
 	cfg TableConfig
 
@@ -79,6 +80,23 @@ type table struct {
 	history []*match
 	stop    chan struct{} // closed by Registry.Close
 	done    chan struct{} // closed when the run loop exits
+
+	// fanMu serialises a focus Subscribe's snapshot build+push (session.go)
+	// against the match loop's own fan-out push loops (fanout/onMatchStart/
+	// onMatchEnd in fanout.go), so a client that joins a live table can
+	// never receive a stale snapshot after events newer than it (Ruling
+	// FL-30). push itself never blocks, so holding fanMu across a push
+	// loop never parks the match loop on a client — the only contention is
+	// a subscribing HTTP goroutine, held only as long as it takes to build
+	// and push one frame set.
+	fanMu sync.Mutex
+	// lastLine is the most recent non-empty transcript line, carried
+	// forward for the overview widget's Last field across bursts whose own
+	// events are all line-less (e.g. an all-clock_tick burst). Touched
+	// only by this table's own run/play goroutine — fanout, onMatchStart
+	// and onMatchEnd all run there, one at a time, never concurrently with
+	// each other or with anything else — so it needs no lock of its own.
+	lastLine string
 }
 
 func newTable(cfg TableConfig) *table {

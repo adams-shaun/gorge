@@ -45,17 +45,13 @@ func defaultSleep(d time.Duration, stop <-chan struct{}) {
 	}
 }
 
-// Session is declared here as a placeholder so this package compiles.
-// Task 10 replaces this with the real session type.
-type Session struct{}
-
 // Registry owns the tables and the sessions watching them.
 type Registry struct {
 	opts Options
 
 	mu       sync.RWMutex
 	tables   map[TableID]*table
-	sessions map[string]*Session // Task 10
+	sessions map[string]*Session
 	nextSess int
 	closed   bool
 	done     chan struct{} // closed by Close once every table has been told to stop
@@ -180,7 +176,7 @@ func (r *Registry) run(t *table) {
 		t.mu.Unlock()
 		m, err := r.newMatch(t, k)
 		if err != nil {
-			r.halt(t, err) // Task 13; sets state halted
+			r.halt(t, k, err) // Task 13; sets state halted
 			return
 		}
 		t.mu.Lock()
@@ -194,7 +190,7 @@ func (r *Registry) run(t *table) {
 		t.mu.Unlock()
 		switch final {
 		case protocol.MatchCrashed:
-			r.halt(t, fmt.Errorf("%s", m.reason))
+			r.halt(t, k, fmt.Errorf("%s", m.reason))
 			return
 		case protocol.MatchAborted:
 			t.setState(protocol.TableIdle)
@@ -216,12 +212,17 @@ func (r *Registry) run(t *table) {
 }
 
 // halt is D15's second half for the table: it stops and stays stopped,
-// recording why. Task 13 adds the crash file and the table_halted frame.
-func (r *Registry) halt(t *table, err error) {
+// recording why. k is the match number the caller was building or had just
+// finished — not necessarily t.k, which the newMatch-failure path never
+// bumps, so a first-boot halt is addressed to the match that actually
+// failed, not match 0. Task 13 adds the crash report file.
+func (r *Registry) halt(t *table, k int, err error) {
+	reason := err.Error()
 	t.mu.Lock()
 	t.state = protocol.TableHalted
-	t.reason = err.Error()
+	t.reason = reason
 	t.mu.Unlock()
+	r.sendHalted(t, k, reason)
 }
 
 // Tables lists every table, sorted by ID.
@@ -297,7 +298,5 @@ func (r *Registry) ids() []TableID {
 }
 
 // Stubs the later tasks replace.
-func (r *Registry) load() error                     { return nil }
-func (r *Registry) save() error                     { return nil }
-func (r *Registry) onMatchStart(t *table, m *match) {}
-func (r *Registry) closeSessions()                  {}
+func (r *Registry) load() error { return nil }
+func (r *Registry) save() error { return nil }
