@@ -16,7 +16,12 @@
   // live mode, we still seed MatchState.match with it so a direct link to a
   // still-live match doesn't wait for the next match_start to know its number.
   let { table, match = null }: { table: string; match?: number | null } = $props();
+  // App.svelte keys <Table> by `${table}/${match}`, so a route change always
+  // remounts a fresh instance — these one-shot reads of table/match are
+  // intentional, not a stale-binding bug.
+  // svelte-ignore state_referenced_locally
   const m = new MatchState(table);
+  // svelte-ignore state_referenced_locally
   if (match !== null) m.match = match;
 
   onMount(() => {

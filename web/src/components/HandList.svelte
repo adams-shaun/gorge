@@ -1,18 +1,21 @@
 <script lang="ts">
   import type { PlayerView } from '../protocol';
+  import { visibleHand } from '../lib/board';
   import ManaSymbols from './ManaSymbols.svelte';
 
-  /** HandList is a text list of one player's revealed hand: one line per card, name plus mana symbols, headed with that seat's colour and deck. */
+  /** HandList is a text list of one player's revealed hand: one line per card, name plus mana symbols, headed with that seat's colour and deck. Rail only mounts this when visibleHand(player) is non-null, but it guards independently too, in case that ever changes. */
   let { player, deck, colour }: { player: PlayerView; deck?: string; colour: string } = $props();
+
+  const hand = $derived(visibleHand(player) ?? []);
 </script>
 
 <section class="hand" style:border-left-color={colour}>
   <h3>{player.name}'s hand{#if deck} <span class="deck">· {deck}</span>{/if}</h3>
-  {#if player.hand.length === 0}
+  {#if hand.length === 0}
     <p class="empty">empty</p>
   {:else}
     <ul>
-      {#each player.hand as c (c.id)}
+      {#each hand as c (c.id)}
         <li data-obj={c.id}>
           <span class="name">{c.name}</span>
           {#if c.mana_cost}<ManaSymbols cost={c.mana_cost} />{/if}
