@@ -3,6 +3,7 @@ package events
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -213,5 +214,46 @@ func TestHeadHeadAtAgreement(t *testing.T) {
 
 	if head != headAt {
 		t.Fatalf("Head() %s != HeadAt(%d) %s", head, len(l.Events), headAt)
+	}
+}
+
+func TestLogCloneIsIndependentAndKeepsTheChain(t *testing.T) {
+	l := NewLog(9)
+	l.Append(Event{Kind: GameStart, Amount: 2})
+	l.Append(Event{Kind: Shuffle, Player: 1, IDs: []state.ObjID{3, 1, 2}, Secret: true})
+	l.Intents = append(l.Intents, decision.Intent{Seq: 2, Player: 0, Choices: []int{1}})
+
+	c := l.Clone()
+	if c.Head() != l.Head() || c.HeadAt(2) != l.HeadAt(2) {
+		t.Fatalf("clone head %s / %s, want %s / %s", c.Head(), c.HeadAt(2), l.Head(), l.HeadAt(2))
+	}
+	if c.Seed != l.Seed || len(c.Events) != 2 || len(c.Intents) != 1 {
+		t.Fatalf("clone did not copy seed/events/intents: %+v", c)
+	}
+
+	// Appending to the original must not move the clone, and vice versa.
+	l.Append(Event{Kind: TurnChange, Player: 0, Amount: 1})
+	if len(c.Events) != 2 || c.Head() == l.Head() {
+		t.Fatal("appending to the original moved the clone")
+	}
+	c.Append(Event{Kind: Priority, Player: 1})
+	if len(l.Events) != 3 {
+		t.Fatal("appending to the clone moved the original")
+	}
+	// The clone's chain continues correctly from the copied state. This must
+	// be checked before the deliberate corruption below: HeadAt recomputes
+	// from the live Events slice, so corrupting a past event's IDs would
+	// desync it from the cached Head on ANY log, cloned or not -- that is
+	// not a Clone bug, just why the check runs on uncorrupted data.
+	if c.Head() != c.HeadAt(len(c.Events)) {
+		t.Fatalf("clone chain desynced: Head %s, HeadAt %s", c.Head(), c.HeadAt(len(c.Events)))
+	}
+
+	// No shared backing arrays: mutating a cloned event's IDs or an
+	// intent's Choices leaves the original untouched.
+	c.Events[1].IDs[0] = 99
+	c.Intents[0].Choices[0] = 42
+	if l.Events[1].IDs[0] != 3 || l.Intents[0].Choices[0] != 1 {
+		t.Fatal("clone shares a backing array with the original")
 	}
 }

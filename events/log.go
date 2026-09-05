@@ -107,3 +107,25 @@ func (l *Log) HeadAt(n int) string {
 	}
 	return hex.EncodeToString(cur[:8])
 }
+
+// Clone returns an independent copy of l: the same Seed, NoHash and chain
+// state, and fresh copies of Events and Intents (down to each event's IDs
+// and Pairs and each intent's Choices). Appending to either log afterwards
+// leaves the other untouched, and the copy's Head continues from exactly
+// where l's was. rules.Engine.Clone uses it to snapshot a match.
+func (l *Log) Clone() *Log {
+	c := *l
+	c.Events = make([]Event, len(l.Events))
+	for i, e := range l.Events {
+		e.IDs = append([]state.ObjID(nil), e.IDs...)
+		e.Pairs = append([][2]state.ObjID(nil), e.Pairs...)
+		c.Events[i] = e
+	}
+	c.Intents = make([]decision.Intent, len(l.Intents))
+	for i, in := range l.Intents {
+		in.Choices = append([]int(nil), in.Choices...)
+		c.Intents[i] = in
+	}
+	c.buf = make([]byte, 0, cap(l.buf))
+	return &c
+}
