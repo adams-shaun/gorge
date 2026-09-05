@@ -33,3 +33,11 @@ func (r *rng) Shuffle(ids []state.ObjID) {
 		ids[i], ids[j] = ids[j], ids[i]
 	}
 }
+
+// RNGDraws exposes how many values the engine's own RNG has consumed. A
+// replay (package replay) that reproduces the same event chain byte for
+// byte but a different draw count would mean the engine's random walk
+// changed even though every recorded choice still re-applied cleanly --
+// this is the cheap complementary check alongside the hash chain that this
+// type's own doc comment above already promises.
+func (e *Engine) RNGDraws() uint64 { return e.rng.Draws }
