@@ -1,0 +1,12 @@
+{
+  "v": 1,
+  "t": "error",
+  "id": 4182,
+  "table": "t1",
+  "match": 7,
+  "seq": 0,
+  "body": {
+    "code": "unknown_table",
+    "message": "no table t9"
+  }
+}

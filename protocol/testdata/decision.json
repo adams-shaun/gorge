@@ -1,0 +1,13 @@
+{
+  "v": 1,
+  "t": "decision",
+  "id": 4182,
+  "table": "t1",
+  "match": 7,
+  "seq": 9131,
+  "body": {
+    "player": 2,
+    "kind": "priority",
+    "prompt": "You have priority."
+  }
+}

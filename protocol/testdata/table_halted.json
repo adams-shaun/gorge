@@ -1,0 +1,11 @@
+{
+  "v": 1,
+  "t": "table_halted",
+  "id": 4182,
+  "table": "t1",
+  "match": 7,
+  "seq": 9500,
+  "body": {
+    "reason": "intent rejected: choice 3 out of range (2 options)"
+  }
+}
