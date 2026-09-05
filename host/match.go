@@ -224,7 +224,5 @@ func (r *Registry) crash(t *table, m *match, err error) string {
 	return protocol.MatchCrashed
 }
 
-// Hooks the later tasks fill in. They exist now so play's shape is final.
+// afterBurst is a hook later tasks fill in (persistence, snapshots).
 func (r *Registry) afterBurst(t *table, m *match, before int) error { return nil }
-func (r *Registry) fanout(t *table, m *match, before int)           {}
-func (r *Registry) onMatchEnd(t *table, m *match)                   {}
