@@ -75,6 +75,82 @@ func TestEquipAndEnchantExpandToAbilities(t *testing.T) {
 	}
 }
 
+// TestEnchantUsesTrailingFieldAsPrompt covers the K:Enchant:<spec>:<prompt>
+// three-field form (162 corpus lines): the third field is Forge's own
+// human-readable prompt and must be used verbatim, not glued onto ValidTgts.
+func TestEnchantUsesTrailingFieldAsPrompt(t *testing.T) {
+	aura := expanded(t, "Name:A\nManaCost:G\nTypes:Enchantment Aura\nK:Enchant:Creature.YouCtrl:creature you control\nOracle:x\n")
+	sp := aura.SpellAbility()
+	if sp == nil || sp.Params["ValidTgts"] != "Creature.YouCtrl" || sp.Params["TgtPrompt"] != "Select target creature you control" {
+		t.Fatalf("%+v", sp)
+	}
+}
+
+// TestEquipDropsTrailingRestrictionFromCost covers K:Equip:<cost>:<restriction>:<desc>
+// (46 corpus lines): only the first field is the cost -- the rest must never
+// reach Cost$.
+func TestEquipDropsTrailingRestrictionFromCost(t *testing.T) {
+	eq := expanded(t, "Name:S\nManaCost:3\nTypes:Artifact Equipment\nK:Equip:3:Creature.YouCtrl+Legendary:legendary creature\nOracle:x\n")
+	if len(eq.Abilities) != 1 {
+		t.Fatalf("%+v", eq.Abilities)
+	}
+	a := eq.Abilities[0]
+	if a.Params["Cost"] != "3" || a.Params["ValidTgts"] != "Creature.YouCtrl" {
+		t.Fatalf("%+v", a.Params)
+	}
+}
+
+// TestEtbCounterDropsTrailingConditionFromCounterNum covers
+// K:etbCounter:<KIND>:<N>:<CheckSVar>:<desc> (182 corpus lines): only the
+// second field is <N> -- a condition or description tacked on afterward
+// must never reach CounterNum$ (some contain a "|", which would otherwise
+// inject a spurious param).
+func TestEtbCounterDropsTrailingConditionFromCounterNum(t *testing.T) {
+	f := expanded(t, "Name:C\nManaCost:1\nTypes:Creature\nPT:1/1\nK:etbCounter:P1P1:1:CheckSVar$ WasKicked:If CARDNAME was kicked\nOracle:x\n")
+	if len(f.Repls) != 1 || f.Repls[0].With == nil {
+		t.Fatalf("%+v", f.Repls)
+	}
+	w := f.Repls[0].With
+	if w.Params["CounterNum"] != "1" || w.Params["CounterType"] != "P1P1" {
+		t.Fatalf("%+v", w.Params)
+	}
+	if _, ok := w.Params["CheckSVar"]; ok {
+		t.Fatalf("trailing condition field leaked into a param: %+v", w.Params)
+	}
+}
+
+// TestEquipExpandsEachDistinctKeywordLine is ruling FL-13: idempotency keys
+// on the full keyword line (head + params), not the head alone, so a face
+// with two distinct K:Equip: lines (different costs/restrictions -- 24 such
+// cards in the corpus) expands both, not just the first.
+func TestEquipExpandsEachDistinctKeywordLine(t *testing.T) {
+	c, diags := ParseBytes("k.txt", []byte("Name:S\nManaCost:5\nTypes:Artifact Equipment\nK:Equip:2\nK:Equip:3:Creature.YouCtrl+Legendary:legendary creature\nOracle:x\n"))
+	if len(diags) > 0 {
+		t.Fatal(diags)
+	}
+	if d := c.Link(); len(d) > 0 {
+		t.Fatal(d)
+	}
+	f := c.Faces[0]
+	if len(f.Abilities) != 2 {
+		t.Fatalf("want 2 abilities for 2 distinct K:Equip: lines, got %+v", f.Abilities)
+	}
+	costs := map[string]bool{}
+	for _, a := range f.Abilities {
+		costs[a.Params["Cost"]] = true
+	}
+	if !costs["2"] || !costs["3"] {
+		t.Fatalf("want costs {2,3}, got %+v", f.Abilities)
+	}
+	n := len(f.Abilities)
+	if d := c.Link(); len(d) > 0 {
+		t.Fatal(d)
+	}
+	if len(f.Abilities) != n {
+		t.Fatal("a second Link expanded a still-present line again")
+	}
+}
+
 func TestExpansionIsIdempotentAndTagged(t *testing.T) {
 	c, _ := ParseBytes("k.txt", []byte("Name:C\nManaCost:1\nTypes:Creature\nPT:1/1\nK:Prowess\nK:Equip:1\nOracle:x\n"))
 	c.Link()
