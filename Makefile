@@ -64,7 +64,7 @@ tidy:
 
 .PHONY: lint
 lint:
-	@out=$$(gofmt -l . 2>&1); \
+	@out=$$(find . -name .worktrees -prune -o -name '*.go' -print | xargs gofmt -l 2>&1); \
 		if [ -n "$$out" ]; then \
 			echo "gofmt: files need formatting:"; echo "$$out"; exit 1; \
 		fi
