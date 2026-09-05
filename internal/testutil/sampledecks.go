@@ -39,11 +39,13 @@ func SampleDecks(t testing.TB, n int) (names []string, decks [][]*cards.Card) {
 // deckFor builds seat i's 40-card deck: 17 basics, 7 vanilla creatures, and
 // 4 copies each of a burn spell, a pump spell, a mandatory-trigger
 // permanent and an optional-trigger permanent (17+7+4+4+4+4 = 40). Every
-// nonland card costs a single pip of the deck's own colour, so the bot's
-// simple priority policy (activate mana, then land, then cast) can actually
-// cast them from turn one and exercise KTarget/KTriggerOrder/
-// KTriggerOptional during the fuzz gate, not just KPriority/KAttackers/
-// KBlockers.
+// nonland card costs a single pip of the deck's own colour (Ruling T25-b,
+// fix round 1: the creature used to cost `1 %s`, two mana the bot's own
+// priority policy could never assemble at sorcery speed -- see bot.go's
+// isMain gating for the other half of that fix), so the bot's simple
+// priority policy can actually cast them and exercise KAttackers/KBlockers
+// and real combat damage during the fuzz gate, not only KPriority/KTarget/
+// KTriggerOrder/KTriggerOptional.
 func deckFor(t testing.TB, seat int) []*cards.Card {
 	t.Helper()
 	c := colours[seat%len(colours)]
@@ -52,7 +54,7 @@ func deckFor(t testing.TB, seat int) []*cards.Card {
 	land := parseCard(t, fmt.Sprintf(
 		"Name:%s\nTypes:Basic Land %s\nOracle:x\n", c.land, c.land))
 	creature := parseCard(t, fmt.Sprintf(
-		"Name:%s Whelp %d\nManaCost:1 %s\nTypes:Creature Whelp\nPT:%d/%d\nOracle:x\n",
+		"Name:%s Whelp %d\nManaCost:%s\nTypes:Creature Whelp\nPT:%d/%d\nOracle:x\n",
 		c.land, seat, c.letter, size, size))
 	// burnSrc and pumpSrc are the supplement's own literal texts (Ruling
 	// P9): a spell that targets a creature or a player, and one that
