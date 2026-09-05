@@ -25,6 +25,7 @@ export class MatchState {
       case 'match_start':
         this.match = f.match ?? null;
         this.seats = (f.body as MatchStart).seats;
+        this.view = null; // the previous match's board; wait for this one's snapshot before showing anything
         this.decision = null;
         this.halted = null;
         break;

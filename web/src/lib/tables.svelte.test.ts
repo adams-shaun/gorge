@@ -42,15 +42,22 @@ describe('tables', () => {
     expect(tables.list[0].seats).toEqual(seats);
     expect(tables.list[0].info.state).toBe('live');
     expect(tables.list[0].match).toBe(6);
+    // the new match hasn't had a widget burst yet: the old match's
+    // life/turn/phase/stack must not linger under the new LIVE badge
+    expect(tables.list[0].widget).toBeNull();
 
-    tables.apply({ v: 1, t: 'table_halted', seq: 3, table: 't1', body: { reason: 'panic' } });
+    const widget2: Widget = { turn: 1, step: 'upkeep', phase: 'beginning', active: 0, priority: 0, life: [20, 20], lost: [false, false], stack_depth: 0, last: 'match 6 begins', state: 'live' };
+    tables.apply({ v: 1, t: 'widget', seq: 3, table: 't1', match: 6, body: widget2 });
+    expect(tables.list[0].widget).toEqual(widget2); // repopulated by the next widget burst
+
+    tables.apply({ v: 1, t: 'table_halted', seq: 4, table: 't1', body: { reason: 'panic' } });
     expect(tables.list[0].info.state).toBe('halted');
 
-    tables.apply({ v: 1, t: 'match_end', seq: 4, table: 't2', body: { result: 'win', winner: 0, head: 'h' } });
+    tables.apply({ v: 1, t: 'match_end', seq: 5, table: 't2', body: { result: 'win', winner: 0, head: 'h' } });
     expect(tables.list[1].info.state).toBe('idle'); // t2 is not perpetual
 
     // frames for unknown tables are ignored, not crashing
-    tables.apply({ v: 1, t: 'widget', seq: 5, table: 'ghost', body: widget });
+    tables.apply({ v: 1, t: 'widget', seq: 6, table: 'ghost', body: widget });
     expect(tables.list.find((t) => t.info.id === 'ghost')).toBeUndefined();
   });
 

@@ -10,7 +10,7 @@
   let feed = $state<FeedLine[]>([]);
   onMount(() => {
     session.ensureOverview();
-    void tables.load();
+    tables.load().catch((err: unknown) => console.error('overview: failed to load tables', err));
     return session.stream.onFrame((f) => {
       if (f.t === 'widget' && f.table) feed = pushFeed(feed, { table: f.table, match: f.match ?? 0, seq: f.seq, line: (f.body as Widget).last });
     });
