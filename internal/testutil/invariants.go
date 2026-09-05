@@ -37,67 +37,102 @@ func CheckInvariants(t testing.TB, g *state.Game, d *decision.Decision, where st
 	checkOptionIndices(t, d, where)              // 5
 }
 
-// checkZones is invariants 1 and 6: every object is in exactly one zone,
-// Object.Zone agrees with the list holding it, ObjID 0 never appears in any
-// list, and no object is in both a hidden zone's list and the battlefield's.
-// It walks every zone list of every player plus g.Stack, then walks g.Objs
-// by ID -- not the maps it built while walking -- so a failure is reported
-// in a deterministic order regardless of Go's map iteration order.
+// zoneEntry is one zone list the game holds: a (zone, owner) pair -- owner
+// is meaningless for the stack, which is not player-indexed, and is only
+// ever read for a failure message -- and the ids currently in it.
+type zoneEntry struct {
+	z   state.Zone
+	p   state.PlayerID
+	ids []state.ObjID
+}
+
+// zoneEntries collects every zone list the game holds: every player's five
+// zones, in a fixed order, plus the one shared stack.
+func zoneEntries(g *state.Game) []zoneEntry {
+	out := make([]zoneEntry, 0, len(g.Players)*5+1)
+	for i := range g.Players {
+		p := state.PlayerID(i)
+		out = append(out,
+			zoneEntry{state.ZLibrary, p, g.Zone(state.ZLibrary, p)},
+			zoneEntry{state.ZHand, p, g.Zone(state.ZHand, p)},
+			zoneEntry{state.ZBattlefield, p, g.Zone(state.ZBattlefield, p)},
+			zoneEntry{state.ZGraveyard, p, g.Zone(state.ZGraveyard, p)},
+			zoneEntry{state.ZExile, p, g.Zone(state.ZExile, p)},
+		)
+	}
+	out = append(out, zoneEntry{z: state.ZStack, ids: g.Stack})
+	return out
+}
+
+// checkZones is invariants 1 and 6. It runs in two passes over the same
+// zoneEntries (Ruling T25-d, fix round 1):
+//
+//  1. Invariant 6 first, from list membership alone, before anything below
+//     ever reads Object.Zone. This ordering is load-bearing, not cosmetic:
+//     an id in two lists can have Object.Zone equal to at most one of them,
+//     so the zone-agreement check in pass 2 fires first for every way an
+//     object can be in both a hidden zone's list and the battlefield's --
+//     invariant 6's own message would never be seen if it ran after.
+//  2. Invariant 1 second: ObjID 0 never appears in any list, Object.Zone
+//     agrees with whichever list holds an id, and every object is in
+//     exactly one list. Both of invariant 1's post-walk checks (built while
+//     walking, but read back by iterating g.Objs by ID -- not the maps
+//     themselves -- so a failure is reported in a deterministic order
+//     regardless of Go's map iteration order).
 func checkZones(t testing.TB, g *state.Game, where string) {
 	t.Helper()
-	seen := make(map[state.ObjID]int, len(g.Objs))
+	entries := zoneEntries(g)
+
 	hidden := make(map[state.ObjID]bool, len(g.Objs))
 	battlefield := make(map[state.ObjID]bool, len(g.Objs))
+	for _, e := range entries {
+		for _, id := range e.ids {
+			if id == 0 {
+				continue // Invariant 1's pass below reports ObjID 0.
+			}
+			if e.z.Hidden() {
+				hidden[id] = true
+			}
+			if e.z == state.ZBattlefield {
+				battlefield[id] = true
+			}
+		}
+	}
+	for i := range g.Objs {
+		id := state.ObjID(i + 1) // Objs is dense: Objs[i] has ID i+1.
+		if hidden[id] && battlefield[id] {
+			t.Fatalf("invariants (%s): object %d is in both a hidden zone's list and the battlefield's",
+				where, id)
+			return
+		}
+	}
 
-	walk := func(z state.Zone, p state.PlayerID, ids []state.ObjID) {
-		for _, id := range ids {
+	seen := make(map[state.ObjID]int, len(g.Objs))
+	for _, e := range entries {
+		for _, id := range e.ids {
 			if id == 0 {
 				t.Fatalf("invariants (%s): ObjID 0 (no object) appears in the %s zone list for player %d",
-					where, z, p)
+					where, e.z, e.p)
 				return
 			}
 			seen[id]++
 			o := g.Obj(id)
 			if o == nil {
 				t.Fatalf("invariants (%s): the %s zone list for player %d holds object %d, which does not exist",
-					where, z, p, id)
+					where, e.z, e.p, id)
 				return
 			}
-			if o.Zone != z {
+			if o.Zone != e.z {
 				t.Fatalf("invariants (%s): object %d is in the %s zone list, but Object.Zone says %s",
-					where, id, z, o.Zone)
+					where, id, e.z, o.Zone)
 				return
-			}
-			if z.Hidden() {
-				hidden[id] = true
-			}
-			if z == state.ZBattlefield {
-				battlefield[id] = true
 			}
 		}
 	}
-
-	for i := range g.Players {
-		p := state.PlayerID(i)
-		walk(state.ZLibrary, p, g.Zone(state.ZLibrary, p))
-		walk(state.ZHand, p, g.Zone(state.ZHand, p))
-		walk(state.ZBattlefield, p, g.Zone(state.ZBattlefield, p))
-		walk(state.ZGraveyard, p, g.Zone(state.ZGraveyard, p))
-		walk(state.ZExile, p, g.Zone(state.ZExile, p))
-	}
-	// The stack is not player-indexed (Game.Zone special-cases ZStack); the
-	// PlayerID passed here is only ever used in a failure message.
-	walk(state.ZStack, 0, g.Stack)
-
 	for i := range g.Objs {
-		id := state.ObjID(i + 1) // Objs is dense: Objs[i] has ID i+1.
+		id := state.ObjID(i + 1)
 		if n := seen[id]; n != 1 {
 			t.Fatalf("invariants (%s): object %d appears in %d zone lists, want exactly 1", where, id, n)
-			return
-		}
-		if hidden[id] && battlefield[id] {
-			t.Fatalf("invariants (%s): object %d is in both a hidden zone's list and the battlefield's",
-				where, id)
 			return
 		}
 	}

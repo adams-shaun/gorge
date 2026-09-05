@@ -2,14 +2,15 @@ package rules
 
 import (
 	"math/rand/v2"
+	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
 )
 
 // testBot is a line-for-line mirror of seat.Bot's policy (seat/bot.go's
-// botDecide), duplicated here rather than imported: rules/fuzz_test.go is
-// package rules, and importing seat -- which imports view -- runs the
+// botDecide and clamp), duplicated here rather than imported: rules/fuzz_test.go
+// is package rules, and importing seat -- which imports view -- runs the
 // declared dependency order (cards -> state -> decision -> events ->
 // effects -> rules -> view -> seat -> replay -> cmd/*) backwards into the
 // package under test (Ruling F7). Task 26's acceptance harness drives the
@@ -26,23 +27,35 @@ func newTestBot(seed uint64) *testBot {
 }
 
 // answer mirrors seat.Bot's botDecide exactly -- see that function's doc for
-// the rationale of each case (Ruling P7): tap for mana, land, cast, then
-// pass; attack with everything; target an opponent over yourself; block
-// about half the time, never with the same blocker twice; order or
-// accept/decline triggers with the bot's own rng; and, for anything else (or
-// anything above that found nothing to pick), the first Min distinct
-// indices, or pass when Min == 0. Every access into d.Options is guarded
-// against the list being empty, and the intent this returns must always be
-// one Decision.Validate accepts.
-func (b *testBot) answer(d *decision.Decision) decision.Intent {
+// the rationale of each case (Ruling P7): tap for mana only in a main phase
+// (Ruling T25-b, fix round 1 -- seat.Bot reads this from the View's Phase;
+// this package has no View, so its caller (rules/fuzz_test.go) computes
+// isMain from e.G.Step.IsMain() on the line before calling answer), then
+// land, then cast, then pass; attack with everything; target an opponent
+// over yourself; block about half the time, never with the same blocker
+// twice; order or accept/decline triggers with the bot's own rng; and, for
+// anything else (or anything above that found nothing to pick), whatever
+// clamp tops up with. Every access into d.Options is guarded against the
+// list being empty, and clamp (Ruling T25-c, fix round 1) is the last thing
+// every return does, so the intent this returns always validates against d
+// for any Min/Max the wire format allows, not only today's shapes.
+func (b *testBot) answer(isMain bool, d *decision.Decision) decision.Intent {
 	in := decision.Intent{Seq: d.Seq, Player: d.Player}
 	switch d.Kind {
 	case decision.KPriority:
-		for _, want := range [...]string{"activate", "play_land", "cast"} {
+		if isMain {
+			for _, o := range d.Options {
+				if o.Kind == "activate" {
+					in.Choices = []int{o.Index}
+					return clamp(d, in)
+				}
+			}
+		}
+		for _, want := range [...]string{"play_land", "cast"} {
 			for _, o := range d.Options {
 				if o.Kind == want {
 					in.Choices = []int{o.Index}
-					return in
+					return clamp(d, in)
 				}
 			}
 		}
@@ -51,12 +64,12 @@ func (b *testBot) answer(d *decision.Decision) decision.Intent {
 		for _, o := range d.Options {
 			if o.Kind == "player" && o.Player != d.Player {
 				in.Choices = []int{o.Index}
-				return in
+				return clamp(d, in)
 			}
 		}
 		if len(d.Options) > 0 {
 			in.Choices = []int{d.Options[0].Index}
-			return in
+			return clamp(d, in)
 		}
 
 	case decision.KAttackers:
@@ -65,7 +78,7 @@ func (b *testBot) answer(d *decision.Decision) decision.Intent {
 			ch = append(ch, o.Index)
 		}
 		in.Choices = ch
-		return in
+		return clamp(d, in)
 
 	case decision.KBlockers:
 		var ch []int
@@ -77,48 +90,138 @@ func (b *testBot) answer(d *decision.Decision) decision.Intent {
 			}
 		}
 		in.Choices = ch
-		return in
+		return clamp(d, in)
 
 	case decision.KTriggerOrder:
 		if n := len(d.Options); n > 0 {
+			// M3: build from o.Index like every other branch, not a bare
+			// position literal -- identical today (Index == position
+			// everywhere a real Decision is built, and invariant 5 checks
+			// it), but this is the one branch that didn't say so.
 			perm := make([]int, n)
-			for i := range perm {
-				perm[i] = i
+			for i, o := range d.Options {
+				perm[i] = o.Index
 			}
 			for i := n - 1; i > 0; i-- {
 				j := b.r.IntN(i + 1)
 				perm[i], perm[j] = perm[j], perm[i]
 			}
 			in.Choices = perm
-			return in
+			return clamp(d, in)
 		}
 
 	case decision.KTriggerOptional:
 		if idx := b.r.IntN(2); idx < len(d.Options) {
 			in.Choices = []int{d.Options[idx].Index}
-			return in
+			return clamp(d, in)
 		}
 	}
 
-	// Last resort (Ruling P7): pass if Min == 0 and one is offered, else the
-	// first Min distinct indices.
+	// Last resort: pass if Min == 0 and one is offered; clamp below handles
+	// everything else, including topping up to Min when nothing above (or
+	// this) picked enough.
 	if d.Min == 0 {
 		for _, o := range d.Options {
 			if o.Kind == "pass" {
 				in.Choices = []int{o.Index}
-				return in
+				return clamp(d, in)
 			}
 		}
-		return in
 	}
-	n := d.Min
-	if n > len(d.Options) {
-		n = len(d.Options)
+	return clamp(d, in)
+}
+
+// clamp is seat/bot.go's clamp, mirrored line for line (Ruling F7): enforce
+// [Min, Max] on top of whatever answer's switch (or its fallback) picked
+// (Ruling T25-c). Truncate to at most Max, in the order already chosen,
+// then -- if that leaves fewer than Min -- top up with the lowest-index
+// unused options until Min is reached or none remain.
+func clamp(d *decision.Decision, in decision.Intent) decision.Intent {
+	max := d.Max
+	if max < 0 {
+		max = 0
 	}
-	ch := make([]int, 0, n)
-	for i := 0; i < n; i++ {
-		ch = append(ch, d.Options[i].Index)
+	if len(in.Choices) > max {
+		in.Choices = append([]int(nil), in.Choices[:max]...)
 	}
-	in.Choices = ch
+	min := d.Min
+	if min < 0 {
+		min = 0
+	}
+	if len(in.Choices) < min {
+		have := make(map[int]bool, len(in.Choices)) // membership only -- never ranged.
+		for _, c := range in.Choices {
+			have[c] = true
+		}
+		for _, o := range d.Options {
+			if len(in.Choices) >= min {
+				break
+			}
+			if !have[o.Index] {
+				have[o.Index] = true
+				in.Choices = append(in.Choices, o.Index)
+			}
+		}
+	}
 	return in
+}
+
+// TestTestBotTotalityUnderArbitraryMinMax is seat/bot_test.go's
+// TestBotTotalityUnderArbitraryMinMax mirrored against this package's own
+// copy of the policy (Ruling F7): 10,000 random decisions, random kind among
+// all eight, 0-8 options, 0 <= Min <= Max <= len(Options) (so every one is
+// satisfiable by construction) -- testBot.answer must validate against every
+// one and never panic (I-4/Ruling T25-c).
+func TestTestBotTotalityUnderArbitraryMinMax(t *testing.T) {
+	kinds := []decision.Kind{decision.KPriority, decision.KTarget, decision.KAttackers,
+		decision.KBlockers, decision.KMulligan, decision.KModes, decision.KTriggerOrder,
+		decision.KTriggerOptional}
+	optKinds := []string{"activate", "play_land", "cast", "pass", "player", "permanent",
+		"attacker", "block", "trigger", "yes", "no", "keep", "mulligan", "whatever"}
+
+	// A small, dependency-free xorshift, seeded once and consumed
+	// sequentially: reproducible on its own, never math/rand's global
+	// functions and never the bot's own rng.
+	var s uint64 = 0x9E3779B97F4A7C15
+	next := func(n int) int {
+		s ^= s << 13
+		s ^= s >> 7
+		s ^= s << 17
+		if n <= 0 {
+			return 0
+		}
+		return int(s % uint64(n))
+	}
+
+	b := newTestBot(42)
+	for i := 0; i < 10000; i++ {
+		nOpts := next(9) // 0..8
+		opts := make([]decision.Option, nOpts)
+		for j := range opts {
+			opts[j] = decision.Option{
+				Index:  j,
+				Kind:   optKinds[next(len(optKinds))],
+				Obj:    state.ObjID(next(5)),
+				Player: state.PlayerID(next(4)),
+			}
+		}
+		min := next(nOpts + 1)
+		max := min + next(nOpts-min+1)
+		d := decision.Decision{Seq: uint64(i), Player: state.PlayerID(next(4)),
+			Kind: kinds[next(len(kinds))], Min: min, Max: max, Options: opts}
+		isMain := next(2) == 0
+
+		var in decision.Intent
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Fatalf("case %d: answer panicked on %+v (isMain=%v): %v", i, d, isMain, r)
+				}
+			}()
+			in = b.answer(isMain, &d)
+		}()
+		if verr := d.Validate(in); verr != nil {
+			t.Fatalf("case %d: intent %+v failed Validate against %+v (isMain=%v): %v", i, in, d, isMain, verr)
+		}
+	}
 }
