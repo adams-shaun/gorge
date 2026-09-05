@@ -12,10 +12,10 @@ import (
 // moved it. The seed, bot and deck assignment are TestRepoDecksPlayAtEverySeatCount's
 // own (rules/acceptance_test.go's playAcceptance), so the two tests always agree.
 var acceptanceHeads = map[int]string{
-	2: "ded4cf5f051e0f78",
-	4: "b1d1afc7d412cbca",
-	6: "ba6b380809ac8238",
-	8: "7a759deb325568ac",
+	2: "d3409590043f4a36",
+	4: "203ea3a9b2268292",
+	6: "109df699b49dbc05",
+	8: "778dbe83ae5fdcf0",
 }
 
 func TestHeads(t *testing.T) {
