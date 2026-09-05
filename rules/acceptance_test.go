@@ -28,9 +28,12 @@ import (
 // M2r plan's "Ratchet schedule" table
 // (docs/superpowers/plans/2026-09-05-gorge-m2r-ratchet-to-zero.md) is the
 // authority on which task retires each entry, down to 0; this table
-// currently stands at 31 (Task 3: kw:Flash, kw:Indestructible and kw:Devoid
-// retire Snapcaster Mage, Spectral Sailor, Ulamog and World Breaker). Every
-// unimplemented ability on these
+// currently stands at 24 (Task 3: kw:Flash, kw:Indestructible and kw:Devoid
+// retired Snapcaster Mage, Spectral Sailor, Ulamog and World Breaker; Task 9:
+// kw:Kicker, kw:Surge, kw:Flashback and kw:Delve retired Gatekeeper of
+// Malakir, Goblin Bushwhacker, Vines of Vastwood, Reckless Bushwhacker,
+// Cabal Therapy, Gurmag Angler and Tombstalker). Every unimplemented ability
+// on these
 // cards is inert for the acceptance run (Ruling U13's Sword of Fire and Ice
 // note is this same shape, one card up): the point of Task 26 is that the
 // games terminate, invariants hold and replay is exact with these cards
@@ -38,7 +41,6 @@ import (
 // M4's coverage work, and this table is its worklist.
 var knownUnsupported = map[string][]string{
 	"Batterskull":           {"api:Attach", "api:Token", "kw:Equip", "kw:Living Weapon"},
-	"Cabal Therapy":         {"kw:Flashback"},
 	"Cavern of Souls":       {"api:ChooseType", "kw:ETBReplacement"},
 	"Chain Lightning":       {"api:CopySpellAbility"},
 	"Chalice of the Void":   {"kw:etbCounter"},
@@ -46,25 +48,19 @@ var knownUnsupported = map[string][]string{
 	"Endless One":           {"kw:etbCounter"},
 	"Entreat the Angels":    {"api:Token", "kw:Miracle"},
 	"Experiment One":        {"kw:Evolve"},
-	"Gatekeeper of Malakir": {"kw:Kicker"},
 	"Geralf's Messenger":    {"kw:Undying"},
-	"Goblin Bushwhacker":    {"kw:Kicker"},
 	"Goblin Piledriver":     {"kw:Protection from blue"},
-	"Gurmag Angler":         {"kw:Delve"},
 	"Knight of Infamy":      {"kw:Exalted", "kw:Protection from white"},
 	"Monastery Swiftspear":  {"kw:Prowess"},
 	"Phyrexian Revoker":     {"kw:ETBReplacement"},
 	"Pithing Needle":        {"kw:ETBReplacement"},
 	"Rancor":                {"api:Attach", "kw:Enchant"},
-	"Reckless Bushwhacker":  {"kw:Surge"},
 	"Sanctum Prelate":       {"api:ChooseNumber", "kw:ETBReplacement"},
 	"Strangleroot Geist":    {"kw:Undying"},
 	"Sword of Fire and Ice": {"api:Attach", "kw:Equip"},
 	"Tendrils of Agony":     {"api:CopySpellAbility", "kw:Storm"},
 	"Terminus":              {"kw:Miracle"},
-	"Tombstalker":           {"kw:Delve"},
 	"Umezawa's Jitte":       {"api:Attach", "kw:Equip"},
-	"Vines of Vastwood":     {"kw:Kicker"},
 	"Walking Ballista":      {"kw:etbCounter"},
 	"Wurmcoil Engine":       {"api:Token"},
 	"Young Pyromancer":      {"api:Token"},

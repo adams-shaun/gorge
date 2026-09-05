@@ -577,10 +577,17 @@ func TestReplayFromLogAloneReconstructsTriggeredAbilities(t *testing.T) {
 // replayFromLog reconstructs a Game from cfg's decks (replicating rules.New's
 // own unlogged genesis AddObject calls, in the same per-deck order) plus
 // every event in log, applied via events.Apply directly -- no rules.Engine
-// involved, exactly what a real replay-from-log-alone would do.
+// involved, exactly what a real replay-from-log-alone would do. Tokens is
+// wired the same way New itself wires it (g.Tokens = cfg.Tokens), so a
+// TokenCreate event in the log resolves against the same table live play
+// used -- previously missing here, latent until Task 9's cast_test.go
+// fixture helper (newFixtureDeck's own doc comment already named the
+// general hazard: an object introduced any way other than via cfg.Decks is
+// invisible to this function) started relying on it for replay fidelity.
 func replayFromLog(t *testing.T, cfg Config, log []events.Event) *state.Game {
 	t.Helper()
 	g := state.NewGame(cfg.Names)
+	g.Tokens = cfg.Tokens
 	for i, deck := range cfg.Decks {
 		p := state.PlayerID(i)
 		ids := make([]state.ObjID, 0, len(deck))

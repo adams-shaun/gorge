@@ -122,7 +122,19 @@ func newFixtureDeck(t *testing.T, seed uint64, fixtureSrc string) (*Engine, Conf
 		Decks: [][]*cards.Card{
 			append([]*cards.Card{fixture}, mountainDeck(t, 39)...),
 			mountainDeck(t, 40),
-		}}
+		},
+		// Non-nil (not just the zero value) so a caller that mints a test
+		// fixture into the live game via a logged TokenCreate event (Task
+		// 9's cast_test.go putToken, for a second card replayFromLog could
+		// otherwise never reconstruct -- see this function's own doc above)
+		// shares the same map between e.G.Tokens and the cfg this function
+		// returns: both are copies of this one Config value, and a map is a
+		// reference type, so a key added to e.G.Tokens after New() is also
+		// visible through cfg.Tokens at replayCheck time. Every caller that
+		// never touches Tokens sees no behaviour change: an empty map reads
+		// exactly like a nil one everywhere TokenCreate's Apply case reads it.
+		Tokens: map[string]*cards.Card{},
+	}
 	e := New(cfg)
 	e.Advance()
 
