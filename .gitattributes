@@ -1,0 +1,5 @@
+# TEST_HISTORY.md is an append-only measurement table: every branch adds a row
+# at the bottom, so the default merge driver conflicts on nearly every merge
+# even though both sides are simply new rows. Union keeps both sets of rows.
+# Row order within a merge is not significant; the date column is the record.
+**/TEST_HISTORY.md merge=union
