@@ -21,11 +21,10 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 done
 if [ "$push_main" = 1 ] && [ -z "$SKIP_RACE" ]; then
 	echo "pre-push: race gate on main, one run (SKIP_RACE=1 to bypass)" >&2
-	out=$(mktemp)
+	out=$(mktemp -t gorge-race-XXXXXX.log)
 	if ! go test -race -count=1 ./host/... ./rules/ ./events/ ./effects/ ./state/ >"$out" 2>&1; then
-		grep -vE '^ok' "$out" >&2
-		rm -f "$out"
-		echo "pre-push: race gate FAILED" >&2
+		grep -vE '^ok' "$out" | tail -60 >&2
+		echo "pre-push: race gate FAILED — full output kept at $out" >&2
 		exit 1
 	fi
 	rm -f "$out"

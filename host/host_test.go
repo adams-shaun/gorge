@@ -33,6 +33,7 @@ func sampleLoader(t *testing.T) func(string) (Deck, error) {
 
 func testOptions(t *testing.T) Options {
 	t.Helper()
+	takeMatchSlot(t)
 	return Options{LoadDeck: sampleLoader(t), Sleep: func(time.Duration, <-chan struct{}) {}}
 }
 
@@ -42,6 +43,7 @@ func fourSeatTable(id TableID, perpetual bool) TableConfig {
 }
 
 func TestATablePlaysOneMatchToCompletionAndGoesIdle(t *testing.T) {
+	t.Parallel()
 	r, err := New(testOptions(t))
 	if err != nil {
 		t.Fatal(err)
@@ -82,6 +84,7 @@ func TestATablePlaysOneMatchToCompletionAndGoesIdle(t *testing.T) {
 }
 
 func TestTheSameConfigurationPlaysTheSameMatch(t *testing.T) {
+	t.Parallel()
 	run := func() protocol.MatchInfo {
 		r, _ := New(testOptions(t))
 		defer r.Close()
@@ -102,6 +105,7 @@ func TestTheSameConfigurationPlaysTheSameMatch(t *testing.T) {
 }
 
 func TestAPerpetualTableStartsTheNextMatchWithTheDerivedSeed(t *testing.T) {
+	t.Parallel()
 	cooled := 0
 	o := testOptions(t)
 	o.Cooldown = time.Second
@@ -139,6 +143,7 @@ func TestAPerpetualTableStartsTheNextMatchWithTheDerivedSeed(t *testing.T) {
 }
 
 func TestCloseAbortsALiveMatch(t *testing.T) {
+	t.Parallel()
 	o := testOptions(t)
 	var r *Registry
 	n := 0
@@ -185,6 +190,7 @@ func (s blockingSeat) Decide(ctx context.Context, v view.View, d decision.Decisi
 // the table's own context is the only way to unblock it. Without that
 // wiring this test hangs — Close would wait on r.wg forever.
 func TestCloseCancelsASeatBlockedInDecide(t *testing.T) {
+	t.Parallel()
 	entered := make(chan struct{})
 	o := testOptions(t)
 	o.Seats = func(names []string, seed uint64) []seat.Seat {
@@ -232,6 +238,7 @@ func TestCloseCancelsASeatBlockedInDecide(t *testing.T) {
 // Sleep to prove the *contract* — a cooldown sleep must return as soon as
 // stop closes, not after the full duration — independent of that default.
 func TestCloseInterruptsALongCooldown(t *testing.T) {
+	t.Parallel()
 	o := testOptions(t)
 	o.Cooldown = time.Hour
 	var r *Registry
@@ -284,6 +291,7 @@ func TestCloseInterruptsALongCooldown(t *testing.T) {
 // exists for. This one reads continuously while two full matches play out
 // on a perpetual table, run under -race by the package's own test command.
 func TestConcurrentReadersDuringALiveMatch(t *testing.T) {
+	t.Parallel()
 	const cooldown = time.Millisecond
 	o := testOptions(t)
 	o.Cooldown = cooldown
@@ -327,6 +335,7 @@ func TestConcurrentReadersDuringALiveMatch(t *testing.T) {
 }
 
 func TestConfigurationIsValidated(t *testing.T) {
+	t.Parallel()
 	r, _ := New(testOptions(t))
 	defer r.Close()
 	bad := []TableConfig{
@@ -358,6 +367,7 @@ func TestConfigurationIsValidated(t *testing.T) {
 }
 
 func TestNewRequiresLoadDeckAndSleep(t *testing.T) {
+	t.Parallel()
 	if _, err := New(Options{}); err == nil {
 		t.Fatal("New accepted empty Options")
 	}

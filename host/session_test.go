@@ -54,6 +54,7 @@ func drainNow(s *Session) []protocol.Frame {
 }
 
 func TestFocusSubscriptionStreamsSnapshotThenEventsInChainOrder(t *testing.T) {
+	t.Parallel()
 	var s *Session
 	var frames []protocol.Frame
 	o := testOptions(t)
@@ -136,6 +137,7 @@ func TestFocusSubscriptionStreamsSnapshotThenEventsInChainOrder(t *testing.T) {
 }
 
 func TestPublicTableRedactsHandsInEventsAndSnapshot(t *testing.T) {
+	t.Parallel()
 	var s *Session
 	var frames []protocol.Frame
 	o := testOptions(t)
@@ -176,6 +178,7 @@ func TestPublicTableRedactsHandsInEventsAndSnapshot(t *testing.T) {
 }
 
 func TestOverviewSubscriptionCoalescesWidgets(t *testing.T) {
+	t.Parallel()
 	r, _ := New(testOptions(t))
 	defer r.Close()
 	_ = r.AddTable(fourSeatTable("t1", false))
@@ -213,6 +216,7 @@ func TestOverviewSubscriptionCoalescesWidgets(t *testing.T) {
 }
 
 func TestRingResumesExactlyTheMissedFrames(t *testing.T) {
+	t.Parallel()
 	var s *Session
 	var frames []protocol.Frame
 	o := testOptions(t)
@@ -249,6 +253,7 @@ func TestRingResumesExactlyTheMissedFrames(t *testing.T) {
 }
 
 func TestASessionThatNeverReadsIsDroppedAndTheMatchStillFinishes(t *testing.T) {
+	t.Parallel()
 	o := testOptions(t)
 	o.Ring = 16
 	r, _ := New(o)
@@ -277,6 +282,7 @@ func TestASessionThatNeverReadsIsDroppedAndTheMatchStillFinishes(t *testing.T) {
 }
 
 func TestUnsubscribeStopsFramesAndCloseSessionClosesOut(t *testing.T) {
+	t.Parallel()
 	r, _ := New(testOptions(t))
 	defer r.Close()
 	_ = r.AddTable(fourSeatTable("t1", false))
@@ -305,6 +311,7 @@ func TestUnsubscribeStopsFramesAndCloseSessionClosesOut(t *testing.T) {
 }
 
 func TestSubscribeRejectsAnUnknownMode(t *testing.T) {
+	t.Parallel()
 	r, _ := New(testOptions(t))
 	defer r.Close()
 	_ = r.AddTable(fourSeatTable("t1", false))
@@ -315,6 +322,7 @@ func TestSubscribeRejectsAnUnknownMode(t *testing.T) {
 }
 
 func TestUnsubscribeFromANeverSubscribedTableFails(t *testing.T) {
+	t.Parallel()
 	r, _ := New(testOptions(t))
 	defer r.Close()
 	_ = r.AddTable(fourSeatTable("t1", false))
@@ -325,6 +333,7 @@ func TestUnsubscribeFromANeverSubscribedTableFails(t *testing.T) {
 }
 
 func TestUnsubscribeWildcardClearsWidgetsWithNoSubscriptionLeft(t *testing.T) {
+	t.Parallel()
 	r, _ := New(testOptions(t))
 	defer r.Close()
 	_ = r.AddTable(fourSeatTable("t1", false))
@@ -358,6 +367,7 @@ func testEventFrame(t *testing.T, seq uint64) protocol.Frame {
 }
 
 func TestSessionRingAndSinceAreDeterministicWithNoEngine(t *testing.T) {
+	t.Parallel()
 	o := testOptions(t)
 	o.Ring = 4
 	r, _ := New(o)
@@ -391,6 +401,7 @@ func TestSessionRingAndSinceAreDeterministicWithNoEngine(t *testing.T) {
 }
 
 func TestSinceStillAnswersTheRingsWindowAfterOverflow(t *testing.T) {
+	t.Parallel()
 	o := testOptions(t)
 	o.Ring = 4
 	r, _ := New(o)
@@ -422,6 +433,7 @@ func TestSinceStillAnswersTheRingsWindowAfterOverflow(t *testing.T) {
 // session (an event, then a decision), and once overflowed, every one of
 // those later calls in the same burst is a genuinely undelivered frame.
 func TestOverflowedDroppedCountsEveryFrameAfterTheFirst(t *testing.T) {
+	t.Parallel()
 	o := testOptions(t)
 	o.Ring = 2
 	r, _ := New(o)
@@ -443,6 +455,7 @@ func TestOverflowedDroppedCountsEveryFrameAfterTheFirst(t *testing.T) {
 }
 
 func TestTakeWidgetsSortsRegardlessOfInsertionOrder(t *testing.T) {
+	t.Parallel()
 	r, _ := New(testOptions(t))
 	defer r.Close()
 	s := r.OpenSession()
@@ -509,6 +522,7 @@ func TestTakeWidgetsSortsRegardlessOfInsertionOrder(t *testing.T) {
 // suite: a test that can miss a reintroduced bug some fraction of the time
 // is still useful; one that fails a healthy build even once is not).
 func TestSubscribeFocusSnapshotIsSerialisedAgainstFanout(t *testing.T) {
+	t.Parallel()
 	r, _ := New(testOptions(t))
 	defer r.Close()
 	if err := r.AddTable(fourSeatTable("t1", false)); err != nil {
