@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"math"
 	"testing"
 
 	"github.com/adams-shaun/gorge/state"
@@ -23,6 +24,37 @@ func TestParseCostForms(t *testing.T) {
 		if got.Colored != want.Colored || got.Generic != want.Generic || got.X != want.X {
 			t.Errorf("ParseCost(%q) = %+v, want %+v", src, got, want)
 		}
+	}
+}
+
+// TestParseCostCleansRealSacSpec is the Ruling FL-54 addendum's regression
+// test, built on a REAL corpus string (found via grep of .cards/cardsfolder):
+//
+//	A:AB$ Draw | Cost$ 2 B Sac<1/Artifact;Creature/artifact or creature>
+//
+// The OLD nonManaCost regexp captured the whole "Artifact;Creature/artifact
+// or creature" as the Spec, so MatchesSpec saw a spec carrying a trailing
+// "/description" and a ";" OR alternation it has no way to match -- the
+// cost could never be paid and the cast was silently witheld. The parse must
+// strip the trailing "/description" and fold the ";" alternation into the
+// "," MatchesSpec already understands.
+func TestParseCostCleansRealSacSpec(t *testing.T) {
+	c := ParseCost("2 B Sac<1/Artifact;Creature/artifact or creature>")
+	if len(c.Sac) != 1 || c.Sac[0].N != 1 || c.Sac[0].Spec != "Artifact,Creature" {
+		t.Fatalf("Sac = %+v, want N=1 Spec=Artifact,Creature", c.Sac)
+	}
+	if c.Colored[state.MB] != 1 || c.Generic != 2 {
+		t.Fatalf("mana = %+v, want 1 black + 2 generic", c.Colored)
+	}
+}
+
+// TestParseCostClampsAbsurdGeneric is Task 20's hygiene guard: ParseCost sums
+// numeric tokens into Cost.Generic as raw int32, so two legitimate-per-token
+// but collectively overflowing values wrapped to a negative total. The sum
+// must be clamped at math.MaxInt32 across all tokens.
+func TestParseCostClampsAbsurdGeneric(t *testing.T) {
+	if c := ParseCost("2147483647 2147483647"); c.Generic != math.MaxInt32 {
+		t.Fatalf("generic %d", c.Generic)
 	}
 }
 
