@@ -85,27 +85,60 @@ func tailFrom(m *match, n int) int {
 	return 0
 }
 
+// hasMode reports whether modes contains mode.
+func hasMode(modes []string, mode string) bool {
+	for _, m := range modes {
+		if m == mode {
+			return true
+		}
+	}
+	return false
+}
+
 // fanout delivers one burst to every subscribed session: focus sessions
 // get the events (and the pending decision, if any) as frames; overview
 // sessions get a coalesced widget. It never blocks on a client.
+//
+// Building the per-event frames (evFrames) or the widget is gated on
+// whether a subscriber of that mode actually exists, since a burst runs up
+// to tens of thousands of times per match; eventBodies itself still runs
+// whenever anyone is subscribed, focus or overview, since both need it
+// (evFrames from it directly, the widget for its transcript line).
 func (r *Registry) fanout(t *table, m *match, before int) {
 	ss, modes := r.sessionsFor(t.cfg.ID)
 	if len(ss) == 0 {
 		return
 	}
+	focus, overview := hasMode(modes, protocol.ModeFocus), hasMode(modes, protocol.ModeOverview)
+
 	m.mu.RLock()
+	var evFrames []protocol.Frame
+	var widget protocol.Frame
 	bodies := r.eventBodies(t, m, before)
-	evFrames := make([]protocol.Frame, 0, len(bodies))
-	for _, b := range bodies {
-		evFrames = append(evFrames, frame(protocol.TEvent, t, m.k, b.Event.Seq, b))
+	if focus {
+		evFrames = make([]protocol.Frame, 0, len(bodies))
+		for _, b := range bodies {
+			evFrames = append(evFrames, frame(protocol.TEvent, t, m.k, b.Event.Seq, b))
+		}
+	}
+	t.lastLine = lastLine(bodies, t.lastLine)
+	if overview {
+		widget = r.widgetFrame(t, m, t.lastLine)
 	}
 	var decision *protocol.Frame
-	if d := m.e.Pending(); d != nil {
-		f := frame(protocol.TDecision, t, m.k, head(m), protocol.DecisionBody{Player: uint8(d.Player), Kind: string(d.Kind), Prompt: d.Prompt})
-		decision = &f
+	if focus {
+		if d := m.e.Pending(); d != nil {
+			f := frame(protocol.TDecision, t, m.k, head(m), protocol.DecisionBody{Player: uint8(d.Player), Kind: string(d.Kind), Prompt: d.Prompt})
+			decision = &f
+		}
 	}
-	widget := r.widgetFrame(t, m, lastLine(bodies, ""))
 	m.mu.RUnlock()
+
+	// fanMu serialises this push loop against a focus Subscribe's own
+	// snapshot build+push (Ruling FL-30) — see host/session.go's Subscribe
+	// and host/table.go's fanMu doc. push never blocks, so this never
+	// parks the match loop on a client.
+	t.fanMu.Lock()
 	for i, s := range ss {
 		switch modes[i] {
 		case protocol.ModeFocus:
@@ -121,6 +154,7 @@ func (r *Registry) fanout(t *table, m *match, before int) {
 			s.setWidget(t.cfg.ID, widget)
 		}
 	}
+	t.fanMu.Unlock()
 	r.dropOverflowed(ss)
 }
 
@@ -133,12 +167,22 @@ func (r *Registry) onMatchStart(t *table, m *match) {
 	if len(ss) == 0 {
 		return
 	}
+	focus, overview := hasMode(modes, protocol.ModeFocus), hasMode(modes, protocol.ModeOverview)
+
 	m.mu.RLock()
 	start := frame(protocol.TMatchStart, t, m.k, 0, protocol.MatchStart{Seats: m.seats, Seed: m.seed, Spectator: t.cfg.Spectator.String()})
-	snap := r.snapshotFrame(t, m)
-	bodies := r.eventBodies(t, m, 0)
-	widget := r.widgetFrame(t, m, lastLine(bodies, ""))
+	var snap, widget protocol.Frame
+	if focus {
+		snap = r.snapshotFrame(t, m)
+	}
+	if overview {
+		bodies := r.eventBodies(t, m, 0)
+		t.lastLine = lastLine(bodies, t.lastLine)
+		widget = r.widgetFrame(t, m, t.lastLine)
+	}
 	m.mu.RUnlock()
+
+	t.fanMu.Lock()
 	for i, s := range ss {
 		s.push(start)
 		if modes[i] == protocol.ModeFocus {
@@ -147,6 +191,7 @@ func (r *Registry) onMatchStart(t *table, m *match) {
 			s.setWidget(t.cfg.ID, widget)
 		}
 	}
+	t.fanMu.Unlock()
 	r.dropOverflowed(ss)
 }
 
@@ -157,17 +202,26 @@ func (r *Registry) onMatchEnd(t *table, m *match) {
 	if len(ss) == 0 {
 		return
 	}
+	overview := hasMode(modes, protocol.ModeOverview)
+
 	m.mu.RLock()
 	end := frame(protocol.TMatchEnd, t, m.k, head(m), protocol.MatchEnd{Result: m.result, Winner: m.winner, Head: m.head})
-	bodies := r.eventBodies(t, m, tailFrom(m, 64))
-	widget := r.widgetFrame(t, m, lastLine(bodies, ""))
+	var widget protocol.Frame
+	if overview {
+		bodies := r.eventBodies(t, m, tailFrom(m, 64))
+		t.lastLine = lastLine(bodies, t.lastLine)
+		widget = r.widgetFrame(t, m, t.lastLine)
+	}
 	m.mu.RUnlock()
+
+	t.fanMu.Lock()
 	for i, s := range ss {
 		s.push(end)
 		if modes[i] == protocol.ModeOverview {
 			s.setWidget(t.cfg.ID, widget)
 		}
 	}
+	t.fanMu.Unlock()
 	r.dropOverflowed(ss)
 }
 

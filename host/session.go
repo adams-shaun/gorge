@@ -18,8 +18,7 @@ type Session struct {
 
 	mu         sync.Mutex
 	out        chan protocol.Frame
-	ring       []protocol.Frame // oldest first, len <= ringCap
-	ringCap    int              // resumable history depth (Options.Ring); independent of cap(out)
+	ring       []protocol.Frame // oldest first, len <= cap(out); Options.Ring sizes both
 	nextID     uint64
 	subs       map[TableID]string // table -> mode; TableAll for "every table, overview"
 	widgets    map[TableID]protocol.Frame
@@ -38,8 +37,8 @@ func (r *Registry) OpenSession() *Session {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.nextSess++
-	s := &Session{ID: "s" + strconv.Itoa(r.nextSess), out: make(chan protocol.Frame, r.opts.Ring*8),
-		ringCap: r.opts.Ring, subs: map[TableID]string{}, widgets: map[TableID]protocol.Frame{}}
+	s := &Session{ID: "s" + strconv.Itoa(r.nextSess), out: make(chan protocol.Frame, r.opts.Ring),
+		subs: map[TableID]string{}, widgets: map[TableID]protocol.Frame{}}
 	r.sessions[s.ID] = s
 	return s
 }
@@ -100,16 +99,22 @@ func (s *Session) Overflowed() (int, bool) {
 // the channel without ever blocking: a full channel means the reader is
 // too slow, so the session overflows and is closed (the engine loop must
 // never wait on a client). Returns false once the session is closed or
-// overflowed.
+// overflowed; every push attempted after the overflow still counts toward
+// dropped, so Overflowed's count is the true number of frames the client
+// never received, not just the one that tipped the channel over.
 func (s *Session) push(f protocol.Frame) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.closed || s.overflowed {
+	if s.overflowed {
+		s.dropped++
+		return false
+	}
+	if s.closed {
 		return false
 	}
 	s.nextID++
 	f.ID = s.nextID
-	if len(s.ring) == s.ringCap {
+	if len(s.ring) == cap(s.out) {
 		copy(s.ring, s.ring[1:])
 		s.ring = s.ring[:len(s.ring)-1]
 	}
@@ -228,6 +233,12 @@ func (r *Registry) Subscribe(s *Session, id TableID, mode string) error {
 	s.subs[id] = mode
 	s.mu.Unlock()
 	if mode == protocol.ModeFocus {
+		// fanMu serialises this build-then-push against the match loop's
+		// own fan-out (Ruling FL-30): without it, a live burst could land
+		// between this snapshot's build and its push, permanently
+		// stranding the client behind an already-stale snapshot. push
+		// never blocks, so this never parks the match loop on a client.
+		t.fanMu.Lock()
 		t.mu.RLock()
 		m := t.cur
 		t.mu.RUnlock()
@@ -237,11 +248,16 @@ func (r *Registry) Subscribe(s *Session, id TableID, mode string) error {
 			m.mu.RUnlock()
 			s.push(f)
 		}
+		t.fanMu.Unlock()
+		r.dropOverflowed([]*Session{s})
 	}
 	return nil
 }
 
-// Unsubscribe removes one table (or the wildcard).
+// Unsubscribe removes one table (or the wildcard). Unsubscribing the
+// wildcard clears every cached widget, not just a "*" entry (which never
+// existed as a widget key), unless a specific per-table subscription still
+// justifies keeping them.
 func (r *Registry) Unsubscribe(s *Session, id TableID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -249,7 +265,13 @@ func (r *Registry) Unsubscribe(s *Session, id TableID) error {
 		return ErrNotFound
 	}
 	delete(s.subs, id)
-	delete(s.widgets, id)
+	if id == TableAll {
+		if len(s.subs) == 0 {
+			s.widgets = map[TableID]protocol.Frame{}
+		}
+	} else {
+		delete(s.widgets, id)
+	}
 	return nil
 }
 

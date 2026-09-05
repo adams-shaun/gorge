@@ -133,7 +133,7 @@ func (r *Registry) run(t *table) {
 		t.mu.Unlock()
 		m, err := r.newMatch(t, k)
 		if err != nil {
-			r.halt(t, err) // Task 13; sets state halted
+			r.halt(t, k, err) // Task 13; sets state halted
 			return
 		}
 		t.mu.Lock()
@@ -147,7 +147,7 @@ func (r *Registry) run(t *table) {
 		t.mu.Unlock()
 		switch final {
 		case protocol.MatchCrashed:
-			r.halt(t, fmt.Errorf("%s", m.reason))
+			r.halt(t, k, fmt.Errorf("%s", m.reason))
 			return
 		case protocol.MatchAborted:
 			t.setState(protocol.TableIdle)
@@ -168,14 +168,18 @@ func (r *Registry) run(t *table) {
 	}
 }
 
-// halt is D15's second half for the table: it stops and stays stopped.
-// Task 13 adds the crash report file.
-func (r *Registry) halt(t *table, err error) {
+// halt is D15's second half for the table: it stops and stays stopped. k
+// is the match number the caller was building or had just finished — not
+// necessarily t.k, which the newMatch-failure path never bumps, so a
+// first-boot halt must be addressed to the match that actually failed, not
+// match 0. Task 13 adds the crash report file (main's fix round adds
+// t.reason = reason here too; left to the controller at merge).
+func (r *Registry) halt(t *table, k int, err error) {
+	reason := err.Error()
 	t.mu.Lock()
 	t.state = protocol.TableHalted
-	k := t.k
 	t.mu.Unlock()
-	r.sendHalted(t, k, err.Error())
+	r.sendHalted(t, k, reason)
 }
 
 // Tables lists every table, sorted by ID.
