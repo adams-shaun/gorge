@@ -190,6 +190,28 @@ func TestNumCyclicSVars(t *testing.T) {
 	}
 }
 
+func TestCountCardCountersKickedAndTimes(t *testing.T) {
+	h, c := fixtureHost(t)
+	src := h.Game().Obj(c.Source)
+	src.AddCounter("CHARGE", 3)
+	if n := EvalCount(h, c, "Count$CardCounters.CHARGE"); n != 3 {
+		t.Fatalf("CardCounters.CHARGE = %d", n)
+	}
+	if n := EvalCount(h, c, "Count$CardCounters.P1P1"); n != 0 {
+		t.Fatalf("absent counter kind = %d", n)
+	}
+	if n := EvalCount(h, c, "Count$Kicked.4.0"); n != 0 {
+		t.Fatalf("not kicked = %d", n)
+	}
+	src.CastFlags = state.FlagKicked
+	if n := EvalCount(h, c, "Count$Kicked.4.0"); n != 4 {
+		t.Fatalf("kicked = %d", n)
+	}
+	if n := EvalCount(h, c, "Count$CardCounters.CHARGE/Times.2"); n != 6 {
+		t.Fatalf("Times.2 = %d", n)
+	}
+}
+
 // moveTo is a test helper: relocate an object without going through events.
 func moveTo(g *state.Game, id state.ObjID, z state.Zone) {
 	o := g.Obj(id)
