@@ -205,8 +205,10 @@ func (r *Registry) onMatchStart(t *table, m *match) {
 }
 
 // onMatchEnd sends match_end (any final state) to every subscriber and a
-// final widget to overview ones.
+// final widget to overview ones. The match is archived to disk first
+// (Task 12), so the end frame and the sidecar agree.
 func (r *Registry) onMatchEnd(t *table, m *match) {
+	r.archive(t, m)
 	ss, modes := r.sessionsFor(t.cfg.ID)
 	if len(ss) == 0 {
 		return
@@ -242,4 +244,31 @@ func (r *Registry) sendHalted(t *table, k int, reason string) {
 		s.push(frame(protocol.TTableHalted, t, k, 0, protocol.TableHaltedBody{Reason: reason}))
 	}
 	r.dropOverflowed(ss)
+}
+
+// archive writes the final sidecar, closes the files, and drops the
+// engine and snapshots: a finished match is served from disk (spec:
+// snapshots dropped when the match finishes). In memory mode the engine is
+// kept so ViewAt still works.
+func (r *Registry) archive(t *table, m *match) {
+	if r.opts.Dir == "" {
+		return
+	}
+	m.mu.Lock()
+	sc := m.sidecar()
+	m.files.close()
+	m.files = nil
+	m.snaps = nil
+	m.mu.Unlock()
+	if err := writeSidecar(r.opts.Dir, sc); err != nil {
+		m.mu.Lock()
+		m.reason = "sidecar: " + err.Error()
+		m.mu.Unlock()
+	}
+	t.mu.Lock()
+	t.archived = append(t.archived, sc)
+	t.mu.Unlock()
+	r.mu.Lock()
+	r.saveLocked()
+	r.mu.Unlock()
 }

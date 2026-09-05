@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/protocol"
 	"github.com/adams-shaun/gorge/seat"
 )
@@ -16,6 +17,12 @@ import (
 type Options struct {
 	Dir      string
 	LoadDeck func(name string) (Deck, error)
+	// Tokens is the token corpus the engine needs (rules.Config.Tokens):
+	// the token definitions the decks in this match can create. Passed into
+	// every rules.Config the host builds — live matches and the replays
+	// that serve finished ones from disk — so a persisted match replays
+	// with the same token definitions (Ruling FL-40).
+	Tokens map[string]*cards.Card
 	// Sleep is the table's only clock read (PL-11): run calls it between
 	// matches for Cooldown, and play calls it after every decision for
 	// Pace. It must return once d elapses OR stop closes, whichever comes
@@ -96,7 +103,7 @@ func (r *Registry) AddTable(c TableConfig) error {
 		return fmt.Errorf("host: table %s already exists", c.ID)
 	}
 	r.tables[c.ID] = newTable(c)
-	return r.save() // Task 12; a no-op in memory mode
+	return r.saveLocked() // Task 12; a no-op in memory mode
 }
 
 // Start launches the table's goroutine; a second Start is a no-op.
@@ -182,6 +189,9 @@ func (r *Registry) run(t *table) {
 		t.mu.Lock()
 		t.k, t.cur, t.state = k, m, protocol.TableLive
 		t.mu.Unlock()
+		r.mu.Lock()
+		r.saveLocked() // tables.json records the new match index before it plays
+		r.mu.Unlock()
 		r.onMatchStart(t, m) // Tasks 10, 12
 		final := r.play(ctx, t, m)
 		t.mu.Lock()
@@ -238,6 +248,9 @@ func (r *Registry) Tables() []protocol.TableInfo {
 }
 
 // Matches lists a table's matches in ascending order; the live one last.
+// Finished matches known only from disk (archived sidecars) come first,
+// then in-memory history entries whose match index is not already
+// archived, then the live match.
 func (r *Registry) Matches(id TableID) ([]protocol.MatchInfo, error) {
 	r.mu.RLock()
 	t, ok := r.tables[id]
@@ -246,13 +259,21 @@ func (r *Registry) Matches(id TableID) ([]protocol.MatchInfo, error) {
 		return nil, ErrNotFound
 	}
 	t.mu.RLock()
+	out := make([]protocol.MatchInfo, 0, len(t.archived)+len(t.history)+1)
+	archived := make(map[int]bool, len(t.archived))
+	for _, sc := range t.archived {
+		out = append(out, sc.info())
+		archived[sc.Match] = true
+	}
 	ms := append([]*match(nil), t.history...)
 	if t.cur != nil {
 		ms = append(ms, t.cur)
 	}
 	t.mu.RUnlock()
-	out := make([]protocol.MatchInfo, 0, len(ms))
 	for _, m := range ms {
+		if archived[m.k] {
+			continue
+		}
 		m.mu.RLock()
 		out = append(out, m.info())
 		m.mu.RUnlock()
@@ -297,6 +318,6 @@ func (r *Registry) ids() []TableID {
 	return ids
 }
 
-// Stubs the later tasks replace.
-func (r *Registry) load() error { return nil }
-func (r *Registry) save() error { return nil }
+// saveLocked is save with r.mu already held (AddTable and archive call it
+// that way); save takes the lock itself.
+func (r *Registry) saveLocked() error { return r.save() }

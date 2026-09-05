@@ -48,6 +48,19 @@ func ParseVisibility(s string) (Visibility, error) {
 	return 0, fmt.Errorf("view: unknown visibility %q (want seat, public or omniscient)", s)
 }
 
+// MarshalText/UnmarshalText make a Visibility its name in JSON and flags,
+// so a table configuration on disk reads "omniscient", not 2.
+func (v Visibility) MarshalText() ([]byte, error) { return []byte(v.String()), nil }
+
+func (v *Visibility) UnmarshalText(b []byte) error {
+	p, err := ParseVisibility(string(b))
+	if err != nil {
+		return err
+	}
+	*v = p
+	return nil
+}
+
 // NoSeat is the viewer id of a spectator. state.PlayerID is a uint8 and no
 // table has 255 seats, so it can never collide with a real seat; Project's
 // own "out-of-range viewer is a spectator" rule does the rest.
