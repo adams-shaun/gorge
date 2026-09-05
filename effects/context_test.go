@@ -47,6 +47,20 @@ func newHost(t *testing.T, seats int) *fakeHost {
 	return &fakeHost{g: state.NewGame(names(seats))}
 }
 
+// fixtureHost builds a 2-seat game with two objects already on it -- object 1
+// (ID from state.Game.AddObject's first call) controlled by seat 0, object 2
+// controlled by seat 1 -- and a Ctx sourced at object 1. context_test.go's
+// and count_test.go's own tests share this instead of each hand-rolling a
+// board, the same way filter_test.go's board(t) is shared across that file.
+func fixtureHost(t *testing.T) (*fakeHost, *Ctx) {
+	t.Helper()
+	h := newHost(t, 2)
+	card := mkCard(t, "Name:Fixture\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	src := h.g.AddObject(card, 0)
+	h.g.AddObject(card, 1)
+	return h, &Ctx{Source: src.ID, Controller: 0}
+}
+
 func names(n int) []string {
 	out := make([]string, n)
 	for i := range out {
@@ -116,8 +130,11 @@ func TestDefinedResolvesEachForm(t *testing.T) {
 	check("SP$ X | Defined$ Self", []state.Target{{Obj: 7}})
 	check("SP$ X | Defined$ Remembered", []state.Target{{Obj: 9}})
 	check("SP$ X | Defined$ Targeted", []state.Target{{Player: 3, IsPlayer: true}})
-	// No Defined$ at all falls back to the spell's chosen targets.
-	check("SP$ X | NumDmg$ 1", []state.Target{{Player: 3, IsPlayer: true}})
+	// No Defined$ and no ValidTgts$ falls back to the ability's own source
+	// (object 7), not the chosen targets -- Forge's default (R-10).
+	check("SP$ X | NumDmg$ 1", []state.Target{{Obj: 7}})
+	// No Defined$ but ValidTgts$ present falls back to the chosen targets.
+	check("SP$ X | ValidTgts$ Player | NumDmg$ 1", []state.Target{{Player: 3, IsPlayer: true}})
 	// Opponent expands to every other living seat, in APNAP order from the
 	// controller, so the resulting event order is deterministic.
 	check("SP$ X | Defined$ Opponent", []state.Target{
@@ -135,15 +152,15 @@ func TestDefinedResolvesEachForm(t *testing.T) {
 // Go filter-in-place idiom applied to a Defined() result would corrupt state
 // a later effect in the same Sub chain still relies on — silently, with no
 // compiler warning. Covers every path in Defined that can return c.Targets or
-// c.Remembered: the no-Defined$ case, Targeted, ParentTarget, Remembered, and
-// the unknown-form fallback.
+// c.Remembered: the no-Defined$-but-ValidTgts$ case, Targeted, ParentTarget,
+// Remembered, and the unknown-form fallback.
 func TestDefinedReturnsCopiesNotAliases(t *testing.T) {
 	h := newHost(t, 2)
 	origTarget := state.Target{Player: 0, IsPlayer: true}
 	origRemembered := state.Target{Obj: 5}
 
 	lines := []string{
-		"SP$ X | NumDmg$ 1", // no Defined$: falls back to Targets
+		"SP$ X | ValidTgts$ Creature | NumDmg$ 1", // no Defined$, has ValidTgts$: falls back to Targets
 		"SP$ X | Defined$ Targeted",
 		"SP$ X | Defined$ ParentTarget",
 		"SP$ X | Defined$ SomeFormM1DoesNotModel", // unknown-form fallback
@@ -170,8 +187,9 @@ func TestDefinedReturnsCopiesNotAliases(t *testing.T) {
 		t.Fatalf("mutating the Defined() result changed Ctx.Remembered to %v", ctx.Remembered)
 	}
 
-	// A nil Targets must still come back nil, not a spurious allocation.
-	if got := Defined(h, &Ctx{}, sa(t, "SP$ X | NumDmg$ 1")); got != nil {
+	// A nil Targets must still come back nil, not a spurious allocation, on
+	// the no-Defined$-but-ValidTgts$ path that defers to copyTargets.
+	if got := Defined(h, &Ctx{}, sa(t, "SP$ X | ValidTgts$ Creature | NumDmg$ 1")); got != nil {
 		t.Fatalf("Defined() on nil Targets = %#v, want nil", got)
 	}
 }
@@ -182,6 +200,54 @@ func TestDefinedOpponentSkipsEliminatedSeats(t *testing.T) {
 	got := Defined(h, &Ctx{Controller: 1}, sa(t, "SP$ X | Defined$ Opponent"))
 	if len(got) != 2 || got[0].Player != 3 || got[1].Player != 0 {
 		t.Fatalf("Defined$ Opponent = %v", got)
+	}
+}
+
+func TestDefinedDefaultsToSelfWithoutTargets(t *testing.T) {
+	h, c := fixtureHost(t) // seat 0 controls object 1
+	got := Defined(h, c, &cards.SA{Params: map[string]string{}})
+	if len(got) != 1 || got[0].Obj != c.Source {
+		t.Fatalf("no ValidTgts, no Defined: %v, want Self", got)
+	}
+	c.Targets = []state.Target{{Player: 1, IsPlayer: true}}
+	got = Defined(h, c, &cards.SA{Params: map[string]string{"ValidTgts": "Player"}})
+	if len(got) != 1 || !got[0].IsPlayer {
+		t.Fatalf("ValidTgts present: %v, want the chosen targets", got)
+	}
+	got = Defined(h, c, &cards.SA{Params: map[string]string{}})
+	if len(got) != 1 || got[0].Obj != c.Source {
+		t.Fatalf("a sub-ability without ValidTgts acts on Self even when the root had targets: %v", got)
+	}
+}
+
+func TestDefinedTriggeredForms(t *testing.T) {
+	h, c := fixtureHost(t)
+	c.Remembered = []state.Target{{Obj: 2}, {Player: 1, IsPlayer: true}}
+	for _, form := range []string{"TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy", "TriggeredSpellAbility", "TriggeredAttacker"} {
+		got := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": form}})
+		if len(got) != 1 || got[0].Obj != 2 {
+			t.Errorf("%s: %v", form, got)
+		}
+	}
+	for _, form := range []string{"TriggeredDefendingPlayer", "TriggeredPlayer"} {
+		got := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": form}})
+		if len(got) != 1 || !got[0].IsPlayer || got[0].Player != 1 {
+			t.Errorf("%s: %v", form, got)
+		}
+	}
+	got := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "TriggeredCardController"}})
+	if len(got) != 1 || !got[0].IsPlayer || got[0].Player != h.Game().Obj(2).Controller {
+		t.Errorf("TriggeredCardController: %v", got)
+	}
+	if got := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "Parent"}}); len(got) != 1 || got[0].Obj != c.Source {
+		t.Errorf("Parent: %v", got)
+	}
+	if got := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "Equipped"}}); len(got) != 0 {
+		t.Errorf("Equipped with nothing attached: %v", got)
+	}
+	h.Game().Obj(c.Source).AttachedTo = 2
+	if got := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "Equipped"}}); len(got) != 1 || got[0].Obj != 2 {
+		t.Errorf("Equipped: %v", got)
 	}
 }
 

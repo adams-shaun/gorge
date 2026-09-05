@@ -171,6 +171,57 @@ func TestPlayerSpecs(t *testing.T) {
 	}
 }
 
+// twoSeatGame builds a fresh 2-seat game holding one object parsed from src,
+// owned by seat 0, for tests that need a plain board plus an unrelated
+// "source" object of their own (SpecContext.Source).
+func twoSeatGame(t *testing.T, src string) (*state.Game, state.ObjID) {
+	t.Helper()
+	g := state.NewGame([]string{"you", "them"})
+	return g, g.AddObject(mkCard(t, src), 0).ID
+}
+
+func TestSpecContextResolvesNumericRHSAndChoices(t *testing.T) {
+	g, id := twoSeatGame(t, "Name:Bolt\nManaCost:R\nTypes:Instant\nOracle:x\n") // cmc 1; helper in this file or write it
+	src := g.AddObject(g.Obj(id).Card, 0)
+	src.ChosenName, src.ChosenType, src.ChosenNumber = "Bolt", "Goblin", 1
+	sc := SpecContext{You: 0, Source: src.ID, Resolve: func(name string) (int32, bool) {
+		switch name {
+		case "Y":
+			return 1, true
+		case "Chosen":
+			return src.ChosenNumber, true
+		}
+		return 0, false
+	}}
+	for spec, want := range map[string]bool{
+		"Card.cmcEQY":        true,
+		"Card.cmcEQChosen":   true,
+		"Card.cmcGTY":        false,
+		"Card.cmcEQZ":        false, // unresolvable: never matches
+		"Card.NamedCard":     true,
+		"Card.ChosenType":    false, // Bolt is not a Goblin
+		"Card.kicked":        false,
+		"Card.StrictlyOther": true,
+	} {
+		if got := MatchesSpecCtx(g, spec, id, sc); got != want {
+			t.Errorf("%s: %v, want %v", spec, got, want)
+		}
+	}
+	g.Obj(id).CastFlags = state.FlagKicked | state.FlagSurged
+	if !MatchesSpecCtx(g, "Card.kicked+surged", id, sc) {
+		t.Error("kicked+surged")
+	}
+	if MatchesSpecFrom(g, "Card.cmcEQY", id, 0, src.ID) {
+		t.Error("MatchesSpecFrom has no resolver and must not match an SVar-shaped RHS")
+	}
+	// A copy off the stack matches nothing.
+	g.Obj(id).IsCopy = true
+	g.Obj(id).Zone = state.ZExile
+	if MatchesSpecCtx(g, "Card", id, sc) {
+		t.Error("an exiled copy matched")
+	}
+}
+
 func TestPermanentOnlyMatchesBattlefield(t *testing.T) {
 	g, id := board(t)
 	// Object is initially on the battlefield; should match Permanent.
