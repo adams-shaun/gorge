@@ -200,8 +200,14 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 
 // continueCast runs the cast flow's stages in order -- X, Delve, each Sac
 // part -- stopping (and returning) the instant a stage asks a KChoose;
-// commitCast runs once every stage has settled.
+// commitCast runs once every stage has settled. A nil e.cast (a chooseCast
+// answer arriving with no flow in progress, only reachable from a
+// hand-built decision) is dropped rather than panicked on, mirroring
+// castAnswer's own guard.
 func (e *Engine) continueCast() {
+	if e.cast == nil {
+		return
+	}
 	if e.xAsk() {
 		return
 	}
@@ -245,7 +251,7 @@ func (e *Engine) xAsk() bool {
 		Prompt: "Choose a value for X", Source: pc.card}
 	for x := int32(0); x <= max; x++ {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "x",
-			Label: fmt.Sprintf("X = %d", x)})
+			Label: fmt.Sprintf("X = %d", x), Amount: int(x)})
 	}
 	e.choosing = chooseCast
 	e.ask(d)
@@ -255,6 +261,9 @@ func (e *Engine) xAsk() bool {
 // delveAsk offers exiling graveyard cards to pay for id's Delve, when id has
 // Delve, the caster's graveyard is non-empty and the resolved cost still
 // carries a generic requirement to reduce. Runs at most once (delveDone).
+// Max is the SHORTFALL -- generic minus what the pool can already pay --
+// not the whole generic requirement, so a caster with enough mana is not
+// offered (and a bot does not take) exiles the cost does not actually need.
 func (e *Engine) delveAsk() bool {
 	pc := e.cast
 	if pc.delveDone {
@@ -265,13 +274,40 @@ func (e *Engine) delveAsk() bool {
 		return false
 	}
 	gy := e.G.Zone(state.ZGraveyard, pc.player)
-	generic := pc.cost.WithX(pc.x).Generic
+	cost := pc.cost.WithX(pc.x)
+	generic := cost.Generic
 	if len(gy) == 0 || generic <= 0 {
 		return false
 	}
+	// Max is the SHORTFALL -- generic minus what the pool can already pay --
+	// not the whole generic requirement, so a caster with enough mana is not
+	// offered (and a bot does not take) exiles the cost does not actually
+	// need. Delve only ever covers generic, so the colored requirement is
+	// reserved out of the pool first; the rest of the pool can pay at most
+	// its total as generic (Cost.Pay's WUBRG spending order never reduces
+	// the total it can cover).
+	rest := e.G.Players[pc.player].Pool
+	for i, n := range cost.Colored {
+		if rest[i] < n {
+			// Colored unpayable: delve cannot help with it, so the whole
+			// generic requirement is the shortfall (the commit stage's own
+			// payMana will still fail honestly).
+			rest = state.Mana{}
+			break
+		}
+		rest[i] -= n
+	}
+	payable := generic
+	if rest.Total() < payable {
+		payable = rest.Total()
+	}
+	shortfall := generic - payable
+	if shortfall <= 0 {
+		return false
+	}
 	max := len(gy)
-	if int32(max) > generic {
-		max = int(generic)
+	if int32(max) > shortfall {
+		max = int(shortfall)
 	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 0, Max: max,
 		Prompt: "Delve: exile cards from your graveyard to help cast " + e.G.Obj(pc.card).Face().Name,
@@ -287,11 +323,14 @@ func (e *Engine) delveAsk() bool {
 
 // sacAsk offers the next unsettled Sac cost part, walking pc.cost.Sac in
 // order (pc.sacPart). castable already required at least N matching
-// permanents before this option was ever offered; N is clamped against the
-// board again here as a totality guard (Ruling: board state cannot actually
-// change mid-flow in this single-threaded engine, since priority never
-// leaves the caster during a multi-stage cast, but the guard costs nothing
-// and keeps this stage correct if that ever stops being true).
+// permanents before this option was ever offered, so a part with too few
+// candidates is a board that changed under a hand-built intent -- and the
+// totality rule is that the cast must not strand on an unanswerable
+// decision, so such a part is skipped (the commit stage's own payMana/
+// MoveZone will still fail honestly if the cost is genuinely unpayable)
+// rather than asked with Min=Max=0 and no options. Already-chosen
+// sacrifices are excluded from the candidates so one permanent can never
+// be chosen for two Sac parts of the same cost.
 func (e *Engine) sacAsk() bool {
 	pc := e.cast
 	for pc.sacPart < len(pc.cost.Sac) {
@@ -299,16 +338,22 @@ func (e *Engine) sacAsk() bool {
 		var candidates []state.ObjID
 		for _, oid := range e.G.Zone(state.ZBattlefield, pc.player) {
 			if effects.MatchesSpec(e.G, part.Spec, oid, pc.player) {
-				candidates = append(candidates, oid)
+				already := false
+				for _, s := range pc.sacs {
+					if s == oid {
+						already = true
+						break
+					}
+				}
+				if !already {
+					candidates = append(candidates, oid)
+				}
 			}
 		}
 		n := int(part.N)
-		if n <= 0 {
+		if n <= 0 || n > len(candidates) {
 			pc.sacPart++
 			continue
-		}
-		if n > len(candidates) {
-			n = len(candidates)
 		}
 		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
 			Prompt: "Sacrifice a permanent to cast " + e.G.Obj(pc.card).Face().Name,
@@ -334,7 +379,12 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 	switch d.Options[0].Kind {
 	case "x":
 		if len(chosen) > 0 {
-			pc.x = int32(chosen[0].Index)
+			// The value rides on Option.Amount, not Option.Index: xAsk is the
+			// first stage and appends 0..max into an empty option list, so
+			// Index happens to equal the value today, but a later task that
+			// prepends an option (a "cancel", Task 10's ability variants)
+			// would silently corrupt an Index-derived value.
+			pc.x = int32(chosen[0].Amount)
 		}
 	case "exile":
 		for _, o := range chosen {

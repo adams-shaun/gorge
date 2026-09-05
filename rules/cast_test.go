@@ -7,11 +7,14 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
-// castOptions lists the "cast" options for the first card in seat 0's hand.
+// castOptions lists every "cast" option in the current priority decision
+// (all of seat 0's castable hand and graveyard cards, in legalActions'
+// order).
 func castOptions(t *testing.T, e *Engine) []decision.Option {
 	t.Helper()
 	d := e.Pending()
@@ -65,20 +68,16 @@ func addMana(t *testing.T, e *Engine, p state.PlayerID, symbols string) {
 }
 
 // putToken adds a fresh, freely-authored fixture card (never a corpus .txt,
-// per the licensing rule) into the game via a logged TokenCreate event and,
-// if the destination isn't the battlefield, a second logged MoveZone -- both
-// real, replayable events, unlike a direct e.G.AddObject call (which
-// replayFromLog can never reconstruct: it only rebuilds from cfg.Decks, see
-// newFixtureDeck's own doc comment on exactly this hazard). TokenCreate
-// resolves the card from e.G.Tokens, keyed here by the object id about to be
-// minted; that map is shared with the test's own cfg.Tokens (newFixtureDeck
-// seeds it non-nil, replayFromLog wires g.Tokens = cfg.Tokens) precisely so
-// a later replayCheck sees the same card under the same key. These fixture
-// objects are marked IsToken by TokenCreate's own Apply case (a side effect
-// of reusing that mechanism, not real Forge tokens) -- Ephemeral() reads
-// that, but only view's client-facing projection consults Ephemeral; no
-// rules-package zone walk (Zone/HasKeyword/MatchesSpec) treats it
-// differently, so it has no effect on anything these tests exercise.
+// per the licensing rule) into the game. A card that must start in a
+// graveyard or hand is seeded as a REAL deck card through newFixtureDeck's
+// extras and moved with a logged MoveZone -- never IsToken, because a token
+// off the battlefield ceases to exist (CR 111.7; Task 13's exileDeadTokens
+// would exile it before the test's own assertions run). A card placed on
+// the battlefield via TokenCreate is a real permanent and is fine, but only
+// when it STAYS there: putCreature below deliberately uses the seeded-card
+// path too, because the flashback test's Bear is sacrificed as a cost and a
+// sacrificed token would be exiled by the SBA before the test's own
+// assertion runs.
 //
 // Deliberately leaves e.pending nil (not a fresh ask): the caller's own next
 // Advance() (or a later addMana's priorityRound) is what produces a pending
@@ -88,35 +87,63 @@ func addMana(t *testing.T, e *Engine, p state.PlayerID, symbols string) {
 // calls Advance once for both.
 func putToken(t *testing.T, e *Engine, p state.PlayerID, src string, to state.Zone) state.ObjID {
 	t.Helper()
+	if to == state.ZBattlefield {
+		// TokenCreate path: mint a token onto the battlefield. Only safe for
+		// a fixture that stays there (see the doc above); the seeded-card
+		// path below is the default for anything that can leave it.
+		toMain1(t, e)
+		c := card(t, src)
+		key := fmt.Sprintf("fixture:%d", e.G.NextID)
+		if e.G.Tokens == nil {
+			e.G.Tokens = map[string]*cards.Card{}
+		}
+		e.G.Tokens[key] = c
+		e.emit(events.Event{Kind: events.TokenCreate, Player: p, Text: key})
+		e.pending = nil
+		return e.G.NextID - 1
+	}
+	return moveSeeded(t, e, p, src, to)
+}
+
+// moveSeeded finds the fixture card named by src -- seeded into seat p's
+// deck by newFixtureDeck's extras, so genesis created it as a real card
+// (IsToken=false) at an ID replayFromLog's own genesis reproduces -- and
+// moves it to to with a logged MoveZone. The card is a real deck card, so
+// the SBA never exiles it and replayCheck sees the same object in both
+// games.
+func moveSeeded(t *testing.T, e *Engine, p state.PlayerID, src string, to state.Zone) state.ObjID {
+	t.Helper()
 	toMain1(t, e)
-	c := card(t, src)
-	key := fmt.Sprintf("fixture:%d", e.G.NextID)
-	if e.G.Tokens == nil {
-		e.G.Tokens = map[string]*cards.Card{}
+	name := card(t, src).Faces[0].Name
+	for _, z := range []state.Zone{state.ZLibrary, state.ZHand} {
+		for _, id := range e.G.Zone(z, p) {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: to})
+				e.pending = nil
+				return id
+			}
+		}
 	}
-	e.G.Tokens[key] = c
-	e.emit(events.Event{Kind: events.TokenCreate, Player: p, Text: key})
-	id := e.G.NextID - 1
-	if to != state.ZBattlefield {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: to})
-	}
-	e.pending = nil
-	return id
+	t.Fatalf("fixture card %q not found in seat %d's library or hand -- was it seeded via newFixtureDeck's extras?", name, p)
+	return 0
 }
 
 func putCreature(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID {
 	t.Helper()
-	return putToken(t, e, p, src, state.ZBattlefield)
+	// Seeded-card path, not TokenCreate: the flashback test's Bear is
+	// sacrificed as a cost, and a sacrificed token would be exiled by the
+	// SBA (CR 111.7) before the test's own assertion runs.
+	return moveSeeded(t, e, p, src, state.ZBattlefield)
 }
 
 func addToGraveyard(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID {
 	t.Helper()
-	return putToken(t, e, p, src, state.ZGraveyard)
+	return moveSeeded(t, e, p, src, state.ZGraveyard)
 }
 
 func addToHand(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID {
 	t.Helper()
-	return putToken(t, e, p, src, state.ZHand)
+	return moveSeeded(t, e, p, src, state.ZHand)
 }
 
 // castObj picks the cast option for id out of the current priority decision,
@@ -229,8 +256,9 @@ func TestKickerOffersASecondCastOptionAndFlagsTheSpell(t *testing.T) {
 
 func TestSurgeNeedsAnotherSpellThisTurn(t *testing.T) {
 	src := "Name:Reckless\nManaCost:2 R\nTypes:Creature Goblin\nPT:2/1\nK:Surge:1 R\nK:Haste\nOracle:x\n"
-	e, _, _ := newFixtureDeck(t, 24, src)
-	bolt := addToHand(t, e, 0, "Name:Bolt\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3\nOracle:x\n")
+	boltSrc := "Name:Bolt\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3\nOracle:x\n"
+	e, _, reckless := newFixtureDeck(t, 24, src, boltSrc)
+	bolt := addToHand(t, e, 0, boltSrc)
 	addMana(t, e, 0, "RRR")
 	for _, o := range castOptions(t, e) {
 		if o.Mode == "surged" {
@@ -255,13 +283,17 @@ func TestSurgeNeedsAnotherSpellThisTurn(t *testing.T) {
 	if e.G.Players[0].Pool.Total() != pool-2 {
 		t.Fatal("surge cost {1}{R} not what was paid")
 	}
+	if o := e.G.Obj(reckless); o.CastFlags&state.FlagSurged == 0 {
+		t.Fatalf("surged cast not flagged: %+v", o.CastFlags)
+	}
 }
 
 func TestFlashbackCastsFromTheGraveyardPaysASacrificeAndExiles(t *testing.T) {
 	src := "Name:Therapy\nManaCost:B\nTypes:Sorcery\nK:Flashback:Sac<1/Creature>\n" +
 		"A:SP$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
-	e, cfg, therapy := newFixtureDeck(t, 25, src)
-	bear := putCreature(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	bearSrc := "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	e, cfg, therapy := newFixtureDeck(t, 25, src, bearSrc)
+	bear := putCreature(t, e, 0, bearSrc)
 	e.emit(events.Event{Kind: events.MoveZone, Obj: therapy, From: state.ZHand, To: state.ZGraveyard})
 	e.Advance()
 	var fb *decision.Option
@@ -291,10 +323,11 @@ func TestFlashbackCastsFromTheGraveyardPaysASacrificeAndExiles(t *testing.T) {
 
 func TestDelveExilesFromTheGraveyardToPayGeneric(t *testing.T) {
 	src := "Name:Angler\nManaCost:6 B\nTypes:Creature Zombie Fish\nPT:5/5\nK:Delve\nOracle:x\n"
-	e, cfg, angler := newFixtureDeck(t, 26, src)
+	junkSrc := "Name:Junk\nManaCost:1\nTypes:Sorcery\nOracle:x\n"
+	e, cfg, angler := newFixtureDeck(t, 26, src, junkSrc, junkSrc, junkSrc, junkSrc)
 	var gy []state.ObjID
 	for i := 0; i < 4; i++ {
-		gy = append(gy, addToGraveyard(t, e, 0, "Name:Junk\nManaCost:1\nTypes:Sorcery\nOracle:x\n"))
+		gy = append(gy, addToGraveyard(t, e, 0, junkSrc))
 	}
 	addMana(t, e, 0, "BGG")
 	opts := castOptions(t, e)
@@ -321,5 +354,156 @@ func TestDelveExilesFromTheGraveyardToPayGeneric(t *testing.T) {
 	addMana(t, e2, 0, "BGG")
 	if len(castOptions(t, e2)) != 0 {
 		t.Fatal("castable without enough mana or graveyard")
+	}
+}
+
+// TestDelveSkipsCleanlyWithAnEmptyGraveyard: Delve with no graveyard cards
+// must not ask an exile decision at all -- the cast goes straight from the
+// priority option to the stack, paying the full generic requirement.
+func TestDelveSkipsCleanlyWithAnEmptyGraveyard(t *testing.T) {
+	src := "Name:Angler\nManaCost:6 B\nTypes:Creature Zombie Fish\nPT:5/5\nK:Delve\nOracle:x\n"
+	e, cfg, angler := newFixtureDeck(t, 28, src)
+	addMana(t, e, 0, "BBBBBBB")
+	opts := castOptions(t, e)
+	if len(opts) != 1 {
+		t.Fatalf("castable off six mana alone: %+v", opts)
+	}
+	submitChoices(t, e, opts[0].Index)
+	if d := e.Pending(); d != nil && d.Kind == decision.KChoose {
+		t.Fatalf("delve asked an exile decision with an empty graveyard: %+v", d)
+	}
+	if e.G.Obj(angler).Zone != state.ZStack || e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("angler %s pool %d", e.G.Obj(angler).Zone, e.G.Players[0].Pool.Total())
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestXZeroIsTheOnlyOption: with no mana at all, {X} still offers X = 0 as
+// the sole option and the spell is cast for free.
+func TestXZeroIsTheOnlyOption(t *testing.T) {
+	e, cfg, id := newFixtureDeck(t, 29, "Name:Endless\nManaCost:X\nTypes:Creature Eldrazi\nPT:0/0\nOracle:x\n")
+	toMain1(t, e)
+	castFirst(t, e, "cast")
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "x" || len(d.Options) != 1 || d.Options[0].Label != "X = 0" {
+		t.Fatalf("X decision %+v", d)
+	}
+	submitChoices(t, e, 0)
+	if o := e.G.Obj(id); o.Zone != state.ZStack || o.X != 0 {
+		t.Fatalf("after X=0: zone %s X %d", o.Zone, o.X)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestUnderDelveAbortsTheCast: a hand-built intent that promises more Delve
+// credit than the graveyard can cover reaches commitCast with an unpayable
+// cost; the cast must abort with a Note, leave the card where it was, clear
+// the flow, and let priority resume so the game is not stranded. (The
+// engine's own delve decision caps Max at the graveyard size, so this is
+// only reachable from a hand-built intent -- exactly the stranding risk the
+// review called out.)
+func TestUnderDelveAbortsTheCast(t *testing.T) {
+	src := "Name:Angler\nManaCost:6 B\nTypes:Creature Zombie Fish\nPT:5/5\nK:Delve\nOracle:x\n"
+	junkSrc := "Name:Junk\nManaCost:1\nTypes:Sorcery\nOracle:x\n"
+	e, cfg, angler := newFixtureDeck(t, 30, src, junkSrc)
+	junk := addToGraveyard(t, e, 0, junkSrc)
+	addMana(t, e, 0, "B")
+	// Claim two delved cards when only one exists: generic 6 - 2 = 4 plus
+	// {B} is not payable off a single {B} pool.
+	e.cast = &pendingCast{player: 0, card: angler, from: state.ZHand, mode: "", ability: -1,
+		cost: ParseCost("6 B"), x: 0, xDone: true, delveDone: true,
+		delve: []state.ObjID{junk, junk}}
+	e.commitCast()
+	if !hasNote(e, "cast aborted: cost no longer payable") {
+		t.Fatal("no abort Note")
+	}
+	if e.G.Obj(angler).Zone != state.ZHand {
+		t.Fatalf("angler %s, want hand (card stays put)", e.G.Obj(angler).Zone)
+	}
+	if e.cast != nil || e.choosing != chooseNone {
+		t.Fatal("cast flow not cleared after abort")
+	}
+	e.Advance()
+	if d := e.Pending(); d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("priority did not resume after abort: %+v", d)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestFlashbackedSpellCounteredGoesToExile: CR 702.33b exiles a flashbacked
+// spell "any time it would leave the stack", which includes being countered
+// -- effCounter must not send it back to the graveyard where it could be
+// flashbacked again.
+func TestFlashbackedSpellCounteredGoesToExile(t *testing.T) {
+	src := "Name:Therapy\nManaCost:B\nTypes:Sorcery\nK:Flashback:Sac<1/Creature>\n" +
+		"A:SP$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+	bearSrc := "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	e, cfg, therapy := newFixtureDeck(t, 33, src, bearSrc)
+	putCreature(t, e, 0, bearSrc)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: therapy, From: state.ZHand, To: state.ZGraveyard})
+	e.Advance()
+	var fb *decision.Option
+	for _, o := range castOptions(t, e) {
+		if o.Mode == "flashback" && o.Obj == therapy {
+			fb = &o
+		}
+	}
+	if fb == nil {
+		t.Fatal("flashback not offered from the graveyard")
+	}
+	submitChoices(t, e, fb.Index)
+	submitChoices(t, e, 0) // sacrifice the Bear
+	if e.G.Obj(therapy).Zone != state.ZStack {
+		t.Fatalf("therapy %s, want stack", e.G.Obj(therapy).Zone)
+	}
+	// Counter it with a hand-built Counter effect against the stack object.
+	effects.Resolve(e, &effects.Ctx{Controller: 1, Targets: []state.Target{{Obj: therapy}}},
+		card(t, "Name:Counterspell\nManaCost:U U\nTypes:Instant\nA:SP$ Counter | ValidTgts$ Spell\nOracle:x\n").Faces[0].SpellAbility())
+	if e.G.Obj(therapy).Zone != state.ZExile {
+		t.Fatalf("countered flashbacked spell went to %s, want exile", e.G.Obj(therapy).Zone)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestAlternativeCostWithSacPartIsGatedOnCastable: an AlternativeCost whose
+// Cost$ carries a Sac part must only be offered when the sacrifice is
+// actually satisfiable -- otherwise the cast flow would ask a sacrifice
+// decision with no options and the game could never leave the cast.
+func TestAlternativeCostWithSacPartIsGatedOnCastable(t *testing.T) {
+	src := "Name:Zap\nManaCost:2 R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\n" +
+		"S:Mode$ AlternativeCost | ValidCard$ Card.Self | Cost$ Sac<1/Creature>\nOracle:x\n"
+	// No creatures: the base cost is castable off three red, but the
+	// sacrifice alternative must NOT be offered -- the cast flow would ask a
+	// sacrifice decision with no options and the game could never leave the
+	// cast.
+	e, _, _ := newFixtureDeck(t, 31, src)
+	addMana(t, e, 0, "RRR")
+	opts := castOptions(t, e)
+	if len(opts) != 1 || opts[0].AltCostIndex != 0 {
+		t.Fatalf("alt cost offered with no creature to sacrifice: %+v", opts)
+	}
+	// With a creature on the battlefield the alt option appears and the
+	// sacrifice is asked and paid.
+	bearSrc := "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	e2, _, _ := newFixtureDeck(t, 32, src, bearSrc)
+	bear := putCreature(t, e2, 0, bearSrc)
+	addMana(t, e2, 0, "R")
+	var alt *decision.Option
+	for _, o := range castOptions(t, e2) {
+		if o.AltCostIndex != 0 {
+			alt = &o
+		}
+	}
+	if alt == nil {
+		t.Fatal("alt cost not offered with a creature to sacrifice")
+	}
+	submitChoices(t, e2, alt.Index)
+	d := e2.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "sacrifice" || d.Options[0].Obj != bear {
+		t.Fatalf("sacrifice choice %+v", d)
+	}
+	submitChoices(t, e2, 0)
+	if e2.G.Obj(bear).Zone != state.ZGraveyard {
+		t.Fatalf("bear %s, want graveyard", e2.G.Obj(bear).Zone)
 	}
 }
