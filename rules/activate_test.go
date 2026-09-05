@@ -251,3 +251,115 @@ func TestCantBeActivatedValidSASparesManaAbilities(t *testing.T) {
 		t.Fatal("the named land's mana ability must still be offered: ValidSA spares mana abilities")
 	}
 }
+
+// TestDoubleSacCostRequiresDistinctCandidates closes fix round 1's reviewer
+// Important 1: a cost with TWO Sac parts of the same spec cannot be paid by
+// the same permanent twice, so it must not be offered with only one legal
+// candidate. castable checks each part independently against the same board,
+// so a naive gate would let a single creature satisfy an offered
+// `Sac<1/Creature> Sac<1/Creature>`, then sacAsk would pay only the first
+// part (the creature is gone) and skip the second, activating with half the
+// cost unpaid. The fixed castable reserves each part's candidates (distinct),
+// so one creature makes the whole cost unpayable and the option is never
+// offered; two creatures make it offered, and BOTH are asked and sacrificed
+// before the ability resolves.
+func TestDoubleSacCostRequiresDistinctCandidates(t *testing.T) {
+	src := "Name:Feeder\nManaCost:2\nTypes:Artifact\n" +
+		"A:AB$ GainLife | Cost$ Sac<1/Creature> Sac<1/Creature> | Defined$ You | LifeAmount$ 2 | SpellDescription$ Sacrifice two creatures: you gain 2 life.\nOracle:x\n"
+	creatureSrc := "Name:Thrull\nManaCost:1\nTypes:Creature Thrull\nPT:1/1\nOracle:x\n"
+
+	// Exactly one legal candidate: the two-Sac-part cost is unpayable (one
+	// permanent cannot pay both parts), so the ability must not be offered.
+	e, _, id := newFixtureDeck(t, 38, src, creatureSrc)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	putCreature(t, e, 0, creatureSrc)
+	e.Advance()
+	if _, ok := findAbilityOption(e, id, 0); ok {
+		t.Fatal("a Sac<1/Creature> Sac<1/Creature> cost offered with exactly one creature: one permanent cannot pay both parts")
+	}
+
+	// Two legal candidates: offered, and both sacrifices are asked and paid.
+	e2, cfg2, id2 := newFixtureDeck(t, 39, src, creatureSrc, creatureSrc)
+	e2.emit(events.Event{Kind: events.MoveZone, Obj: id2, From: state.ZHand, To: state.ZBattlefield})
+	cA := putCreature(t, e2, 0, creatureSrc)
+	cB := putCreature(t, e2, 0, creatureSrc)
+	e2.Advance()
+	opt := abilityOption(t, e2, id2, 0)
+	submitChoices(t, e2, opt.Index)
+	// The two Sac parts are paid as TWO sequential decisions (sacAsk walks
+	// pc.cost.Sac one part at a time), each Min=Max=1. The first part's
+	// decision has both creatures; the second part's decision must have only
+	// ONE candidate -- the creature already chosen for the first part is
+	// excluded (pc.sacs), so the two parts cannot both pick the same one.
+	d := e2.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "sacrifice" || len(d.Options) != 2 {
+		t.Fatalf("first sacrifice choice %+v", d)
+	}
+	submitChoices(t, e2, 0) // part 1: sacrifice the first creature
+	d = e2.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "sacrifice" || len(d.Options) != 1 {
+		t.Fatalf("second sacrifice choice must offer only the un-sacrificed creature, got %+v", d)
+	}
+	submitChoices(t, e2, 0) // part 2: sacrifice the remaining creature
+	passUntilStackEmpty(t, e2, 20)
+	if e2.G.Obj(cA).Zone != state.ZGraveyard || e2.G.Obj(cB).Zone != state.ZGraveyard {
+		t.Fatalf("a %s b %s: both creatures must be sacrificed", e2.G.Obj(cA).Zone, e2.G.Obj(cB).Zone)
+	}
+	if e2.G.Obj(id2).Zone != state.ZBattlefield {
+		t.Fatalf("the activated permanent itself left the battlefield: %s", e2.G.Obj(id2).Zone)
+	}
+	replayCheck(t, e2, cfg2)
+}
+
+// TestActivateSkipsRestrictedManaAbility closes fix round 1's reviewer
+// Important 2: the tap-for-mana "activate" option must resolve exactly the
+// mana abilities whose restriction the offer gate checked. Mint has two
+// mana abilities -- the first produces {B}, the second {U} -- and a
+// CantBeActivated scoped to ManaAbility<Produce:B> singles out only the
+// {B} one (test-only ValidSA grammar; the corpus only ever uses empty /
+// "Activated" / "Activated.!ManaAbility", so adding this subset is what
+// makes the disagreement reachable). The gate offers the option because the
+// {U} ability is unrestricted, and activation must produce only {U}: gate
+// and activation agreeing is the fix.
+func TestActivateSkipsRestrictedManaAbility(t *testing.T) {
+	mint := "Name:Mint\nManaCost:C\nTypes:Artifact\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ B | SpellDescription$ Add {B}.\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ U | SpellDescription$ Add {U}.\nOracle:x\n"
+	needle := "Name:NeedleB\nManaCost:1\nTypes:Artifact\n" +
+		"S:Mode$ CantBeActivated | ValidCard$ Card.NamedCard | ValidSA$ Activated.ManaAbility<Produce:B> | Description$ Mint's {B} mana ability can't be activated.\nOracle:x\n"
+	e, _, m := newFixtureDeck(t, 40, mint, needle)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: m, From: state.ZHand, To: state.ZBattlefield})
+	n := moveSeeded(t, e, 0, needle, state.ZBattlefield)
+	e.emit(events.Event{Kind: events.Choose, Obj: n, Counter: "name", Text: "Mint"})
+	e.Advance()
+	if !hasActivateOption(e, m) {
+		t.Fatal("Mint's option must be offered: the {U} mana ability is unrestricted, only the {B} one is restricted")
+	}
+	d := e.Pending()
+	actIdx := -1
+	for _, o := range d.Options {
+		if o.Kind == "activate" && o.Obj == m {
+			actIdx = o.Index
+		}
+	}
+	if actIdx < 0 {
+		t.Fatalf("no activate option for Mint: %+v", d.Options)
+	}
+	submitChoices(t, e, actIdx)
+	pool := e.G.Players[0].Pool
+	if pool.Total() != 1 || pool[state.MU] != 1 || pool[state.MB] != 0 {
+		t.Fatalf("activation must resolve only the unrestricted {U} ability (gate and activation agree), pool %+v", pool)
+	}
+	// A bare ManaAbility restriction splashes both: the whole tap-for-mana
+	// option must disappear (gate rejects -- no unrestricted member left).
+	needleAll := "Name:NeedleAll\nManaCost:1\nTypes:Artifact\n" +
+		"S:Mode$ CantBeActivated | ValidCard$ Card.NamedCard | ValidSA$ Activated.ManaAbility | Description$ x\nOracle:x\n"
+	e2, _, m2 := newFixtureDeck(t, 41, mint, needleAll)
+	e2.emit(events.Event{Kind: events.MoveZone, Obj: m2, From: state.ZHand, To: state.ZBattlefield})
+	n2 := moveSeeded(t, e2, 0, needleAll, state.ZBattlefield)
+	e2.emit(events.Event{Kind: events.Choose, Obj: n2, Counter: "name", Text: "Mint"})
+	e2.Advance()
+	if hasActivateOption(e2, m2) {
+		t.Fatal("Mint must offer no tap option when both mana abilities are restricted")
+	}
+}
