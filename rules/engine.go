@@ -44,6 +44,19 @@ type Engine struct {
 	// The layer system (layers.go) is the only reader and writer.
 	continuous []ContinuousEffect
 
+	// staticContinuous memoizes the S:Mode$ Continuous statics on battlefield
+	// permanents (layers.go's staticEffects), keyed on staticEpoch. staticEpoch
+	// is the log length at the last build; the memo refreshes once per emitted
+	// event rather than once per Derived() call, because most events
+	// (Priority/Damage/Mana) leave the battlefield permanent set untouched
+	// while Derived is the hottest path in a turn (every legal action, combat
+	// step and trigger predicate reads it). Clone() leaves both fields zero, so
+	// a cloned engine rebuilds the memo on its first Derived -- staticEffects
+	// is a pure function of the current board, so the rebuilt result is
+	// identical and deterministic.
+	staticContinuous []ContinuousEffect
+	staticEpoch      int
+
 	// pendingTriggers holds matched triggers not yet placed on the stack.
 	// checkTriggers appends; putTriggersOnStack drains. Task 20 (trigger.go).
 	pendingTriggers []pendingTrigger

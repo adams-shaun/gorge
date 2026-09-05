@@ -78,6 +78,12 @@ type Option struct {
 	// option represents (the option's Index is its position in the list, not
 	// its value -- see rules/cast.go's xAsk).
 	Amount int `json:"-"`
+	// AbilityIndex is server-side only: for an "activate" option naming a
+	// non-mana activated ability (Equip etc.), which index into the source
+	// permanent's Face().Abilities the option activates. Zero (the default,
+	// so every existing mana "activate" option needs no change) means the
+	// ordinary mana-ability activate that predates Task 14.
+	AbilityIndex int `json:"-"`
 }
 
 // Decision is the engine asking one player for one answer.
