@@ -33,8 +33,19 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 	}
 	h.cancelGrace(s.ID) // a reconnect, resumed or fresh, cancels any pending close
 
+	// Every return from here on means the client is gone; arm the grace
+	// timer so the session is reclaimed unless a resume arrives first. One
+	// deferred path covers the initial hello/backlog flush as well as every
+	// write failure in the main loop below.
+	disconnected := false
+	defer func() {
+		if disconnected {
+			h.scheduleGrace(s.ID)
+		}
+	}()
+
 	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Cache-Control", "no-cache, no-transform")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no") // disable nginx buffering in front of us, if any
 	w.WriteHeader(http.StatusOK)
@@ -43,11 +54,13 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 
 	if fresh {
 		if err := write(h.reg.Hello(s)); err != nil {
+			disconnected = true
 			return
 		}
 	}
 	for _, f := range backlog {
 		if err := write(f); err != nil {
+			disconnected = true
 			return
 		}
 	}
@@ -73,7 +86,7 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 	for {
 		select {
 		case <-r.Context().Done():
-			h.scheduleGrace(s.ID)
+			disconnected = true
 			return
 		case f, open := <-out:
 			if !open {
@@ -81,7 +94,7 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if err := write(f); err != nil {
-				h.scheduleGrace(s.ID)
+				disconnected = true
 				return
 			}
 			// Drain whatever else is already queued before flushing once,
@@ -95,7 +108,7 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 						return
 					}
 					if err := write(f2); err != nil {
-						h.scheduleGrace(s.ID)
+						disconnected = true
 						return
 					}
 				default:
@@ -107,7 +120,7 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 			ws := s.TakeWidgets()
 			for _, f := range ws {
 				if err := writeFrame(w, "", f); err != nil {
-					h.scheduleGrace(s.ID)
+					disconnected = true
 					return
 				}
 			}
@@ -116,7 +129,7 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 			}
 		case <-keep.C:
 			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				h.scheduleGrace(s.ID)
+				disconnected = true
 				return
 			}
 			fl.Flush()
@@ -165,28 +178,52 @@ func (h *handler) resume(header string) (*host.Session, []protocol.Frame) {
 	return s, frames
 }
 
+// graceTimer is one pending disconnect-close for a session. gen lets a
+// stale timer's callback recognise that it has been superseded by a newer
+// scheduleGrace or cancelled by a reconnect.
+type graceTimer struct {
+	gen   uint64
+	timer *time.Timer
+}
+
 // scheduleGrace closes a disconnected session after ResumeGrace unless a
-// resume arrives first (PL-6).
+// resume arrives first (PL-6). The callback re-checks under h.mu that its
+// generation is still the one registered for the session: time.AfterFunc's
+// contract is that once Stop returns false the callback has already started
+// and cannot be aborted, so a reconnect that won the lock first must not
+// have its session closed by the stale callback.
 func (h *handler) scheduleGrace(id string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if t, ok := h.grace[id]; ok {
-		t.Stop()
+	if g, ok := h.grace[id]; ok {
+		g.timer.Stop()
 	}
-	h.grace[id] = time.AfterFunc(h.opts.ResumeGrace, func() {
-		h.mu.Lock()
-		delete(h.grace, id)
-		h.mu.Unlock()
-		h.reg.CloseSession(id)
-	})
+	h.graceGen++
+	g := &graceTimer{gen: h.graceGen}
+	g.timer = time.AfterFunc(h.opts.ResumeGrace, func() { h.graceExpired(id, g.gen) })
+	h.grace[id] = g
+}
+
+// graceExpired runs on the timer goroutine. It closes the session only if
+// this timer's generation is still the one registered for id — i.e. no
+// reconnect cancelled it and no newer scheduleGrace replaced it.
+func (h *handler) graceExpired(id string, gen uint64) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	g, ok := h.grace[id]
+	if !ok || g.gen != gen {
+		return
+	}
+	delete(h.grace, id)
+	h.reg.CloseSession(id)
 }
 
 // cancelGrace stops a pending close for a session that just reconnected.
 func (h *handler) cancelGrace(id string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if t, ok := h.grace[id]; ok {
-		t.Stop()
+	if g, ok := h.grace[id]; ok {
+		g.timer.Stop()
 		delete(h.grace, id)
 	}
 }

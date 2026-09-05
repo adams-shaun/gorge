@@ -409,3 +409,129 @@ func TestReconnectWithinGraceCancelsTheTimer(t *testing.T) {
 		t.Fatal("session was removed despite reconnecting within grace")
 	}
 }
+
+// --- Fix round 1: grace-timer cancellation safety and early-disconnect grace ---
+
+// TestGraceCallbackAfterCancelDoesNotCloseTheSession drives the exact race
+// the review flagged: the timer fires, its callback goroutine starts, but a
+// reconnect's cancelGrace wins h.mu first. The callback must re-check that
+// it is still the registered timer and leave the session alone.
+func TestGraceCallbackAfterCancelDoesNotCloseTheSession(t *testing.T) {
+	r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration) {}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { r.Close() })
+	h := &handler{reg: r, opts: Options{ResumeGrace: time.Hour}.withDefaults(), grace: map[string]*graceTimer{}}
+	s := r.OpenSession()
+	h.scheduleGrace(s.ID)
+	h.mu.Lock()
+	t1 := h.grace[s.ID]
+	h.mu.Unlock()
+	h.cancelGrace(s.ID)          // the reconnect wins the lock; Stop may already be false
+	h.graceExpired(s.ID, t1.gen) // the timer's callback runs anyway
+	if _, ok := r.Session(s.ID); !ok {
+		t.Fatal("stale grace callback closed a session that had reconnected")
+	}
+}
+
+// TestOlderGraceTimerCannotCloseAfterReschedule: scheduleGrace twice; the
+// older timer's callback must not close the session, and the newer one
+// still must.
+func TestOlderGraceTimerCannotCloseAfterReschedule(t *testing.T) {
+	r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration) {}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { r.Close() })
+	h := &handler{reg: r, opts: Options{ResumeGrace: 10 * time.Millisecond}.withDefaults(), grace: map[string]*graceTimer{}}
+	s := r.OpenSession()
+	h.scheduleGrace(s.ID)
+	h.mu.Lock()
+	t1 := h.grace[s.ID]
+	h.mu.Unlock()
+	h.scheduleGrace(s.ID)        // a newer disconnect replaces t1
+	h.graceExpired(s.ID, t1.gen) // t1's callback fires late
+	if _, ok := r.Session(s.ID); !ok {
+		t.Fatal("older grace timer closed the session")
+	}
+	select {
+	case _, open := <-s.Out():
+		if open {
+			t.Fatal("Out() delivered a frame instead of closing")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("grace never closed the session")
+	}
+	if _, ok := r.Session(s.ID); ok {
+		t.Fatal("session still registered after grace expired")
+	}
+}
+
+// TestDisconnectDuringBacklogFlushArmsGrace: a client that vanishes while
+// the handler is still flushing the resume backlog must arm the grace timer
+// just like a disconnect in the main loop; otherwise the session lingers
+// until overflow. The session is built directly (subscribe, play the whole
+// match without reading) so the ring holds the whole match, then the stream
+// resumes with a huge backlog and the client drops mid-flush.
+func TestDisconnectDuringBacklogFlushArmsGrace(t *testing.T) {
+	srv, r := pausedServer(t, Options{ResumeGrace: 50 * time.Millisecond}, nil, 100000)
+	s := r.OpenSession()
+	if err := r.Subscribe(s, "t1", protocol.ModeFocus); err != nil {
+		t.Fatal(err)
+	}
+	_ = r.Start("t1")
+	r.Wait("t1") // the ring now holds the whole match (~29k frames)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	resp := openStream(t, ctx, srv.URL, s.ID+":30") // resume with a huge backlog
+	cancel()                                        // vanish mid-flush
+	resp.Body.Close()
+
+	// The session's Out() is a large buffered channel full of the match's
+	// frames, so closure is detected by draining it, not by one receive.
+	closed := make(chan struct{})
+	go func() {
+		for range s.Out() {
+		}
+		close(closed)
+	}()
+	select {
+	case <-closed:
+	case <-time.After(2 * time.Second):
+		t.Fatal("grace never closed the session after a mid-flush disconnect")
+	}
+	if _, ok := r.Session(s.ID); ok {
+		t.Fatal("session still registered after grace expired")
+	}
+}
+
+// TestMalformedLastEventIDStartsFresh: a bad Last-Event-ID is treated as a
+// brand-new client (fresh hello) and must not panic.
+func TestMalformedLastEventIDStartsFresh(t *testing.T) {
+	srv, _ := pausedServer(t, Options{}, nil, 0)
+	for _, bad := range []string{"s1", "s1:", "s1:abc", ":5", "s1:999999999999999999999999999999999999"} {
+		ctx, cancel := context.WithCancel(context.Background())
+		resp := openStream(t, ctx, srv.URL, bad)
+		first := readSSE(t, resp.Body, 1)[0]
+		var h protocol.Hello
+		if first.event != "hello" || first.frame.Decode(&h) != nil || h.Session == "" {
+			t.Fatalf("Last-Event-ID %q: expected a fresh hello, got %s %+v", bad, first.event, h)
+		}
+		cancel()
+		resp.Body.Close()
+	}
+}
+
+// TestStreamCacheControlNoTransform locks in the no-transform directive on
+// the SSE response so intermediaries cannot re-buffer the stream.
+func TestStreamCacheControlNoTransform(t *testing.T) {
+	srv, _ := pausedServer(t, Options{}, nil, 0)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	resp := openStream(t, ctx, srv.URL, "")
+	defer resp.Body.Close()
+	if cc := resp.Header.Get("Cache-Control"); !strings.Contains(cc, "no-transform") {
+		t.Fatalf("Cache-Control %q lacks no-transform", cc)
+	}
+}
