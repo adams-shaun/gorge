@@ -134,6 +134,9 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		// The spike models that as an immediate move to the graveyard.
 		e.emit(events.Event{Kind: events.MoveZone, Obj: source,
 			From: state.ZStack, To: state.ZGraveyard, Text: "countered: no legal targets"})
+		e.ensureLeftTheStack(source, state.ZGraveyard, "a replacement fully discarded this "+
+			"spell's 'countered: no legal targets' move without relocating it anywhere; sent "+
+			"to the graveyard instead of re-resolving forever")
 		// Ruling T14-e: p, the casting player, not e.G.Active -- CR 117.3c,
 		// the caster keeps priority even when it fizzles.
 		e.emit(events.Event{Kind: events.Priority, Player: p, Amount: 0})
@@ -210,6 +213,9 @@ func (e *Engine) resolveTop() {
 			if len(legal) == 0 {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZExile, Text: "fizzled: no legal targets remain"})
+				e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this "+
+					"ability's 'fizzled: no legal targets' move without relocating it anywhere; "+
+					"sent to exile instead of re-resolving forever")
 				return
 			}
 			targets = legal
@@ -248,6 +254,9 @@ func (e *Engine) resolveTop() {
 		effects.SetSVars(ctx, svars)
 		effects.Resolve(e, ctx, o.Ability)
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZExile})
+		e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this resolved "+
+			"ability's own move off the stack without relocating it anywhere; sent to exile "+
+			"instead of re-resolving forever")
 		return
 	}
 
@@ -279,6 +288,9 @@ func (e *Engine) resolveTop() {
 				// shape, and the graveyard is where it belongs).
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZGraveyard, Text: "fizzled: no legal targets remain"})
+				e.ensureLeftTheStack(id, state.ZGraveyard, "a replacement fully discarded this "+
+					"spell's 'fizzled: no legal targets' move without relocating it anywhere; "+
+					"sent to the graveyard instead of re-resolving forever")
 				return
 			}
 			targets = legal
@@ -290,62 +302,59 @@ func (e *Engine) resolveTop() {
 	}
 	if f.IsPermanent() {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZBattlefield})
-		// Task 29 totality guard: a ReplacementResult$ Replaced ETB
-		// replacement (applyReplacements, trigger.go) discards the Move
-		// above entirely and runs only its own ReplaceWith$ effect -- which
-		// is correct CR 616.1 behaviour when that effect itself relocates
-		// the card (Origin$/Destination$ Exile, say), but card data is free
-		// to write one whose ReplaceWith$ never moves the object at all
-		// (e.g. an ETB replacement that just gains life). Nothing else ever
-		// removes id from e.G.Stack in that case, so the very next pass
-		// would find the same object on top and resolve it again, forever.
-		// This is defensive, not reachable from today's corpus: every
-		// shipped ReplacementResult$ Replaced line is Event$ LoseMana, which
-		// replacementMatches (only Event$ Moved) never matches -- but a
-		// future Replaced card whose ReplaceWith$ does not move the card is
-		// exactly this shape, and an unbounded loop is a totality violation
-		// this build must not allow regardless of how it is reached. CR
-		// 608.2m already treats a resolved ability that has nowhere else to
-		// go as simply ceasing to exist; a permanent spell whose entry was
-		// fully replaced away is the same idea, so it goes to its owner's
-		// graveyard -- the same landing spot a fizzled spell above already
-		// uses -- with a Note explaining why, rather than being left to
-		// loop. Narrow on purpose: only a permanent spell reaches this
-		// branch at all. The ability-object branch above has the identical
-		// hazard on its own Stack->Exile move (:250) -- a
-		// Destination$ Exile | ValidCard$ Card replacement sticks it on the
-		// stack forever, measured identical at BASE and HEAD -- but that is
-		// pre-existing and out of this task's scope, so it is not fixed
-		// here, only noted.
-		if o2 := e.G.Obj(id); o2 != nil && o2.Zone == state.ZStack {
-			// Review finding I-1 (Task 29 fix round 1): the Note and the
-			// graveyard MoveZone below used to go through e.emit with
-			// applyingReplacement left false, so applyReplacements ran on
-			// them like any other game event -- and a broad "cards would be
-			// put into a graveyard from anywhere" replacement (the shipped
-			// corpus's Rest in Peace shape: ReplaceWith$ ... Defined$
-			// ReplacedCard, which effects/context.go does not model, so it
-			// resolves against a nil Ctx.Targets and relocates nothing)
-			// matched THIS MoveZone too and swallowed it exactly the way the
-			// original ETB Move was swallowed, so the guard's own escape
-			// hatch reproduced the very stall it exists to close. These two
-			// emits are engine housekeeping under CR 608.2m -- "ceases to
-			// exist" is not a game event a card's own replacement should be
-			// able to intercept -- so they run with applyingReplacement held
-			// true (saved and restored, not just set, in case a future
-			// caller ever reaches here already inside one) exactly like
-			// ReplaceWith$'s own resolution above.
-			saved := e.applyingReplacement
-			e.applyingReplacement = true
-			e.emit(events.Event{Kind: events.Note, Obj: id, Text: "an ETB replacement fully " +
-				"replaced this permanent's entry to the battlefield without moving it anywhere; " +
-				"sent to the graveyard instead of re-resolving forever"})
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZGraveyard})
-			e.applyingReplacement = saved
-		}
+		e.ensureLeftTheStack(id, state.ZGraveyard, "an ETB replacement fully replaced this "+
+			"permanent's entry to the battlefield without moving it anywhere; sent to the "+
+			"graveyard instead of re-resolving forever")
 	} else {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZGraveyard})
+		e.ensureLeftTheStack(id, state.ZGraveyard, "a replacement fully discarded this resolved "+
+			"spell's own move off the stack without relocating it anywhere; sent to the "+
+			"graveyard instead of re-resolving forever")
 	}
+}
+
+// ensureLeftTheStack is CR 608.2m housekeeping, not a further game action:
+// every one of resolveTop's five exits (the permanent-ETB Move above, the
+// instant/sorcery Move above, and the three fizzle/ability-resolution Moves
+// earlier in this function) emits a MoveZone meant to take id off the stack
+// for good. If a ValidCard$-matching, ReplacementResult$-absent (this
+// build's "Replaced") R:Event$ Moved replacement on some OTHER object
+// intercepts that specific MoveZone and its own ReplaceWith$ does not itself
+// relocate the card (e.g. it only gains life, or -- the shipped corpus's own
+// Rest in Peace / Dryad Militant shape -- it names Defined$ ReplacedCard,
+// which effects/context.go's Defined does not model and so resolves against
+// a nil Ctx.Targets and relocates nothing), nothing else ever removes id
+// from e.G.Stack: the next priority round finds the same object on top and
+// resolves it again, forever.
+//
+// Originally added by Task 29 (Ruling T26-a) for the permanent-ETB exit
+// alone; the final whole-branch review (Critical C1) measured the identical
+// hazard, independently reachable, on the other four exits -- a two-card
+// deck (an instant or an ability-granting permanent, plus a Rest-in-Peace-
+// shaped enchantment already on the battlefield) reliably hung a real match
+// at 100 000+ intents, never terminating, on turn 1. 24 corpus cards this
+// build's own coverage gate already calls fully playable carry the shape
+// (Rest in Peace, Dryad Militant, Leyline of the Void, ...), so this is
+// reachable from ordinary deck-building, not adversarial card text. This
+// helper is what makes every exit safe with one implementation instead of
+// five copies of the same six lines.
+//
+// Held under applyingReplacement (saved and restored, not just set, in case
+// a future caller ever reaches here already inside one) for the same reason
+// the original ETB guard was (Task 29 review finding I-1): "ceases to
+// exist" is engine bookkeeping, not a game event a card's own replacement
+// gets to intercept a second time. why becomes the Note's Text, tailored by
+// each call site to name which of the five moves was actually being
+// guarded.
+func (e *Engine) ensureLeftTheStack(id state.ObjID, to state.Zone, why string) {
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZStack {
+		return
+	}
+	saved := e.applyingReplacement
+	e.applyingReplacement = true
+	e.emit(events.Event{Kind: events.Note, Obj: id, Text: why})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: to})
+	e.applyingReplacement = saved
 }
 
 // legalTargets is CR 608.2b's recheck, applied at resolution: the subset of
