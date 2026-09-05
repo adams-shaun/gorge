@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/protocol"
 	"github.com/adams-shaun/gorge/rules"
@@ -129,14 +130,19 @@ func defaultSeats(names []string, seed uint64) []seat.Seat {
 // play drives m to completion, abort or crash on the table's goroutine and
 // returns the final match state. A panic anywhere in a decision or Submit
 // is a crash (spec D15), never a dead goroutine.
-func (r *Registry) play(t *table, m *match) (final string) {
+//
+// ctx is the table's own context (run derives it once from t.stop, over the
+// table's whole lifetime, not per match): it is the only cancellation path
+// into a Seat.Decide call once the loop is blocked inside one, since t.stop
+// itself is polled only between decisions (Ruling FL-17). A bot ignores ctx
+// and never blocks; a disconnected human seat is expected to select on it.
+func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) {
 	defer func() {
 		if p := recover(); p != nil {
 			final = r.crash(t, m, fmt.Errorf("panic: %v\n%s", p, debug.Stack()))
 		}
 	}()
 	seats := r.opts.Seats(m.cfg.Names, m.seed)
-	ctx := context.Background()
 	maxIntents := r.opts.MaxIntents
 	if maxIntents == 0 {
 		maxIntents = defaultMaxIntents
@@ -161,7 +167,15 @@ func (r *Registry) play(t *table, m *match) (final string) {
 			return r.crash(t, m, fmt.Errorf("did not terminate after %d intents (turn %d)", n, m.e.G.Turn))
 		}
 		v := view.Project(m.e.G, m.e, d.Player, d)
-		in, err := seats[d.Player].Decide(ctx, v, *d)
+		// Copy the decision before handing it to the seat: *d aliases the
+		// engine's own pending decision, and dc.Options a slice header
+		// pointing at the same backing array (Ruling FL-19 minor) — the
+		// View above already deep-copies exactly this list (view/view.go)
+		// because a Seat "must not be able to corrupt the live decision
+		// through it"; the raw argument here needs the same protection.
+		dc := *d
+		dc.Options = append([]decision.Option(nil), d.Options...)
+		in, err := seats[d.Player].Decide(ctx, v, dc)
 		if err != nil {
 			return r.crash(t, m, fmt.Errorf("seat %d: %w", d.Player, err))
 		}
@@ -181,7 +195,7 @@ func (r *Registry) play(t *table, m *match) (final string) {
 			return r.crash(t, m, err)
 		}
 		r.fanout(t, m, before) // Task 10
-		r.opts.Sleep(t.cfg.Pace)
+		r.opts.Sleep(t.cfg.Pace, t.stop)
 	}
 }
 

@@ -1,6 +1,7 @@
 package host
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"sync"
@@ -10,18 +11,38 @@ import (
 	"github.com/adams-shaun/gorge/seat"
 )
 
-// Options configures a Registry. LoadDeck and Sleep are required so a
-// caller can never forget that the host reads no files for decks and owns
-// no clock of its own.
+// Options configures a Registry. LoadDeck is required so a caller can never
+// forget that the host reads no files for decks itself.
 type Options struct {
-	Dir        string
-	LoadDeck   func(name string) (Deck, error)
-	Sleep      func(time.Duration)
+	Dir      string
+	LoadDeck func(name string) (Deck, error)
+	// Sleep is the table's only clock read (PL-11): run calls it between
+	// matches for Cooldown, and play calls it after every decision for
+	// Pace. It must return once d elapses OR stop closes, whichever comes
+	// first — that is what lets Close interrupt a table sitting in a long
+	// cooldown or a slow pace (Ruling FL-18) instead of blocking up to d.
+	// A nil Sleep gets defaultSleep, which does exactly that with a real
+	// timer; it is the only place in the package that touches the clock,
+	// so a caller wanting a faster-than-realtime test still goes through
+	// this field rather than host reading time.Now/time.Sleep itself.
+	Sleep      func(d time.Duration, stop <-chan struct{})
 	Seats      func(names []string, seed uint64) []seat.Seat
 	Sync       bool
 	Ring       int
 	Cooldown   time.Duration
 	MaxIntents int
+}
+
+// defaultSleep is installed when Options.Sleep is nil. It is the package's
+// only time.Now/time.NewTimer read (PL-11's stated exception): everywhere
+// else in host reaches the clock only through the Sleep field.
+func defaultSleep(d time.Duration, stop <-chan struct{}) {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+	case <-stop:
+	}
 }
 
 // Session is declared here as a placeholder so this package compiles.
@@ -44,8 +65,11 @@ type Registry struct {
 // New validates Options and, when Dir is set, reads the registry back from
 // disk (Task 12). Nothing starts running until Start/StartAll.
 func New(o Options) (*Registry, error) {
-	if o.LoadDeck == nil || o.Sleep == nil {
-		return nil, fmt.Errorf("host: Options.LoadDeck and Options.Sleep are required")
+	if o.LoadDeck == nil {
+		return nil, fmt.Errorf("host: Options.LoadDeck is required")
+	}
+	if o.Sleep == nil {
+		o.Sleep = defaultSleep
 	}
 	if o.Seats == nil {
 		o.Seats = defaultSeats
@@ -128,9 +152,28 @@ func (r *Registry) Wait(id TableID) {
 
 // run is the table's goroutine: match after match while perpetual, until
 // a non-perpetual match ends, the registry closes, or a crash halts it.
+//
+// ctx is derived once, here, for the table's whole lifetime — not once per
+// match — and is the sole cancellation path play has into a Seat.Decide
+// call that is already blocked when Close runs (Ruling FL-17): t.stop
+// itself is only ever polled between decisions, so a seat that does not
+// return on its own (a disconnected human, Task 25) would otherwise wedge
+// this goroutine, and Close's wg.Wait with it, forever. The bridging
+// goroutine below is the only consumer of ctx.Done() other than
+// play/Decide; it exits as soon as either side fires, so it never outlives
+// run.
 func (r *Registry) run(t *table) {
 	defer r.wg.Done()
 	defer close(t.done)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		select {
+		case <-t.stop:
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
 	for {
 		t.mu.Lock()
 		k := t.k + 1
@@ -144,7 +187,7 @@ func (r *Registry) run(t *table) {
 		t.k, t.cur, t.state = k, m, protocol.TableLive
 		t.mu.Unlock()
 		r.onMatchStart(t, m) // Tasks 10, 12
-		final := r.play(t, m)
+		final := r.play(ctx, t, m)
 		t.mu.Lock()
 		t.cur = nil
 		t.history = append(t.history, m)
@@ -162,7 +205,7 @@ func (r *Registry) run(t *table) {
 			return
 		}
 		t.setState(protocol.TableCooldown)
-		r.opts.Sleep(r.opts.Cooldown)
+		r.opts.Sleep(r.opts.Cooldown, t.stop)
 		select {
 		case <-t.stop:
 			t.setState(protocol.TableIdle)
@@ -172,11 +215,12 @@ func (r *Registry) run(t *table) {
 	}
 }
 
-// halt is D15's second half for the table: it stops and stays stopped.
-// Task 13 adds the crash file and the table_halted frame.
+// halt is D15's second half for the table: it stops and stays stopped,
+// recording why. Task 13 adds the crash file and the table_halted frame.
 func (r *Registry) halt(t *table, err error) {
 	t.mu.Lock()
 	t.state = protocol.TableHalted
+	t.reason = err.Error()
 	t.mu.Unlock()
 }
 

@@ -1,12 +1,15 @@
 package host
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/protocol"
+	"github.com/adams-shaun/gorge/seat"
 	"github.com/adams-shaun/gorge/view"
 )
 
@@ -30,7 +33,7 @@ func sampleLoader(t *testing.T) func(string) (Deck, error) {
 
 func testOptions(t *testing.T) Options {
 	t.Helper()
-	return Options{LoadDeck: sampleLoader(t), Sleep: func(time.Duration) {}}
+	return Options{LoadDeck: sampleLoader(t), Sleep: func(time.Duration, <-chan struct{}) {}}
 }
 
 func fourSeatTable(id TableID, perpetual bool) TableConfig {
@@ -103,7 +106,7 @@ func TestAPerpetualTableStartsTheNextMatchWithTheDerivedSeed(t *testing.T) {
 	o := testOptions(t)
 	o.Cooldown = time.Second
 	var r *Registry
-	o.Sleep = func(d time.Duration) {
+	o.Sleep = func(d time.Duration, stop <-chan struct{}) {
 		if d == time.Second {
 			cooled++
 			if cooled == 2 {
@@ -139,7 +142,7 @@ func TestCloseAbortsALiveMatch(t *testing.T) {
 	o := testOptions(t)
 	var r *Registry
 	n := 0
-	o.Sleep = func(time.Duration) {
+	o.Sleep = func(time.Duration, <-chan struct{}) {
 		n++
 		if n == 50 {
 			go r.Close()
@@ -161,6 +164,163 @@ func TestCloseAbortsALiveMatch(t *testing.T) {
 	if r.Tables()[0].State != protocol.TableIdle {
 		t.Fatalf("table state %s after Close", r.Tables()[0].State)
 	}
+}
+
+// blockingSeat never answers on its own: Decide blocks until ctx is
+// cancelled, the shape a disconnected human seat (Task 25) will eventually
+// have. entered is closed the moment Decide is called, so a test can wait
+// for the table to be genuinely stuck inside a decision before it acts —
+// otherwise Close could win the race and abort the match at play's
+// top-of-loop stop check without ever exercising ctx cancellation at all.
+type blockingSeat struct{ entered chan struct{} }
+
+func (s blockingSeat) Decide(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
+	close(s.entered)
+	<-ctx.Done()
+	return decision.Intent{}, ctx.Err()
+}
+
+// TestCloseCancelsASeatBlockedInDecide is Ruling FL-17: t.stop is polled
+// only between decisions, so once the loop is inside Decide, cancelling
+// the table's own context is the only way to unblock it. Without that
+// wiring this test hangs — Close would wait on r.wg forever.
+func TestCloseCancelsASeatBlockedInDecide(t *testing.T) {
+	entered := make(chan struct{})
+	o := testOptions(t)
+	o.Seats = func(names []string, seed uint64) []seat.Seat {
+		out := make([]seat.Seat, len(names))
+		for i := range out {
+			out[i] = blockingSeat{entered: entered}
+		}
+		return out
+	}
+	r, err := New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.AddTable(fourSeatTable("t1", false)); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start("t1"); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("seat's Decide was never called")
+	}
+	closed := make(chan struct{})
+	go func() {
+		r.Close()
+		close(closed)
+	}()
+	select {
+	case <-closed:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Close did not return: a seat blocked in Decide was never cancelled")
+	}
+	r.Wait("t1")
+	ms, _ := r.Matches("t1")
+	if len(ms) != 1 || ms[0].State != protocol.MatchCrashed {
+		t.Fatalf("a cancelled seat should crash the match: %+v", ms)
+	}
+}
+
+// TestCloseInterruptsALongCooldown is Ruling FL-18: Options.Sleep now takes
+// the table's stop channel, and the default implementation (registry.go's
+// defaultSleep) races a real timer against it. This test supplies its own
+// Sleep to prove the *contract* — a cooldown sleep must return as soon as
+// stop closes, not after the full duration — independent of that default.
+func TestCloseInterruptsALongCooldown(t *testing.T) {
+	o := testOptions(t)
+	o.Cooldown = time.Hour
+	var r *Registry
+	stopped := make(chan struct{})
+	o.Sleep = func(d time.Duration, stop <-chan struct{}) {
+		if d != time.Hour {
+			return // the per-decision Pace sleeps (d==0); ignore them.
+		}
+		// Trigger Close from inside the cooldown sleep itself, then prove
+		// this very call returns because stop fired, not because an hour
+		// actually elapsed.
+		go r.Close()
+		select {
+		case <-stop:
+			close(stopped)
+		case <-time.After(5 * time.Second):
+			t.Error("cooldown sleep was not asked to stop")
+		}
+	}
+	r, _ = New(o)
+	if err := r.AddTable(fourSeatTable("t1", true)); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start("t1"); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan struct{})
+	go func() {
+		r.Wait("t1")
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("Close did not return promptly from a long cooldown")
+	}
+	select {
+	case <-stopped:
+	default:
+		t.Fatal("Sleep was never asked to stop")
+	}
+}
+
+// TestConcurrentReadersDuringALiveMatch is Important #4: every other
+// test's Tables()/Matches() call happens strictly before Start or after
+// Wait, so -race never actually exercised the RWMutex design this task
+// exists for. This one reads continuously while two full matches play out
+// on a perpetual table, run under -race by the package's own test command.
+func TestConcurrentReadersDuringALiveMatch(t *testing.T) {
+	const cooldown = time.Millisecond
+	o := testOptions(t)
+	o.Cooldown = cooldown
+	cooled := 0
+	var r *Registry
+	o.Sleep = func(d time.Duration, stop <-chan struct{}) {
+		if d != cooldown {
+			return
+		}
+		cooled++
+		if cooled == 2 {
+			go r.Close()
+			<-r.Done()
+		}
+	}
+	r, _ = New(o)
+	if err := r.AddTable(fourSeatTable("t1", true)); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start("t1"); err != nil {
+		t.Fatal(err)
+	}
+	readers := make(chan struct{})
+	go func() {
+		defer close(readers)
+		for {
+			select {
+			case <-r.Done():
+				return
+			default:
+			}
+			r.Tables()
+			if _, err := r.Matches("t1"); err != nil {
+				t.Error(err)
+				return
+			}
+		}
+	}()
+	r.Wait("t1")
+	<-readers
 }
 
 func TestConfigurationIsValidated(t *testing.T) {
