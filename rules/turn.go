@@ -321,6 +321,21 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 			e.resumeTriggerDrain()
 			return
 		}
+	case chooseETB:
+		// Task 12: an "as this enters" choice was answered. Record it on the
+		// card (etbAnswer, via a Choose event), then continue the flow -- the
+		// cast flow's next (or remaining) etb choice, then commitCast; for a
+		// land, commitCast moves it onto the battlefield. The drain resume is
+		// the same shape as the chooseCast case, for the same reason (a
+		// miracle cast whose own card also carried an as-enters choice would
+		// have paused here mid-drain).
+		e.etbAnswer(d, chosen)
+		e.continueCast()
+		if e.drainAwaitsTarget && e.Pending() == nil {
+			e.drainAwaitsTarget = false
+			e.resumeTriggerDrain()
+			return
+		}
 	// Tasks 12 and 18 add their cases here.
 	default:
 		e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "choose answered with no flow waiting"})

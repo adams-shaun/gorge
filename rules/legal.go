@@ -140,9 +140,26 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 
 	case "play_land":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
-		e.emit(events.Event{Kind: events.MoveZone, Obj: opt.Obj,
-			From: state.ZHand, To: state.ZBattlefield})
-		e.emit(events.Event{Kind: events.LandPlayed, Player: in.Player})
+		// Task 12: a land with an "as this enters" choice (an
+		// ETBReplacement whose ReplaceWith$ is NameCard/ChooseType/
+		// ChooseNumber, e.g. Cavern of Souls) goes through the same
+		// one-stage cast flow a spell does -- collect the choice, ask it via
+		// chooseETB, record it with a Choose event, then commitCast moves the
+		// land and logs the play. A land with none keeps the original direct
+		// path (no pendingCast, no flow), so ordinary lands are untouched.
+		// Both paths share the same continuation machinery: etbAnswer/
+		// continueCast/commitCast below, never a parallel one.
+		pc := &pendingCast{player: in.Player, card: opt.Obj, from: state.ZHand, mode: "land", ability: -1}
+		e.cast = pc
+		e.collectETBChoices(in.Player)
+		if len(pc.etbs) == 0 {
+			e.cast = nil
+			e.emit(events.Event{Kind: events.MoveZone, Obj: opt.Obj,
+				From: state.ZHand, To: state.ZBattlefield})
+			e.emit(events.Event{Kind: events.LandPlayed, Player: in.Player})
+			return
+		}
+		e.continueCast()
 
 	case "activate":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})

@@ -10,6 +10,8 @@ package rules
 
 import (
 	"fmt"
+	"sort"
+	"strconv"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
@@ -51,6 +53,24 @@ type pendingCast struct {
 
 	sacs    []state.ObjID
 	sacPart int
+
+	// Task 12: the card's "as this enters" choices (one per ETBReplacement
+	// Repl whose ReplaceWith$ is NameCard/ChooseType/ChooseNumber). Each is
+	// asked in order while choosing == chooseETB; etbIdx is the next
+	// unsettled one, so the continuation survives the chooseAnswer round trip
+	// (answer -> etbAnswer increments etbIdx -> continueCast re-enters
+	// etbAsk). Plain data, so a Clone copies it like the fields above.
+	etbs   []etbChoice
+	etbIdx int
+}
+
+// etbChoice is one "as this enters" choice, pre-computed: its kind
+// ("name"/"/type"/"number", matching the Choose event's Counter) and the
+// option list that will be offered, captured once at the start of the cast
+// flow so the decision and the recorded choice always agree.
+type etbChoice struct {
+	kind    string
+	options []decision.Option
 }
 
 // kickerCost and surgeCost resolve a face's own parameterised keyword to a
@@ -206,6 +226,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	}
 
 	e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1, cost: cost}
+	e.collectETBChoices(p)
 	e.continueCast()
 }
 
@@ -226,6 +247,9 @@ func (e *Engine) continueCast() {
 		return
 	}
 	if e.sacAsk() {
+		return
+	}
+	if e.etbAsk() {
 		return
 	}
 	e.commitCast()
@@ -380,6 +404,203 @@ func (e *Engine) sacAsk() bool {
 	return false
 }
 
+// collectETBChoices walks pc.card's printed replacement lines and, for every
+// ETBReplacement Repl whose ReplaceWith$ resolves to a NameCard/ChooseType/
+// ChooseNumber ability, adds one etbChoice with its pre-built option list.
+// The list (not just the kind) is captured up front so the offered option and
+// the recorded choice always agree, and so the choice is the same whether it
+// is asked here (cast flow) or once the object has moved (a land's
+// play_land). Nothing is asked and no choice is recorded for an etbCounter
+// replacement (its ReplaceWith$ is PutCounter) -- those need only Ctx.X, not
+// a player decision.
+func (e *Engine) collectETBChoices(you state.PlayerID) {
+	pc := e.cast
+	if pc == nil {
+		return
+	}
+	o := e.G.Obj(pc.card)
+	if o == nil {
+		return
+	}
+	f := o.Face()
+	if f == nil {
+		return
+	}
+	for i := range f.Repls {
+		r := &f.Repls[i]
+		if r.Params["Keyword"] != "ETBReplacement" || r.With == nil {
+			continue
+		}
+		kind := etbChoiceKind(r.With.API)
+		if kind == "" {
+			continue
+		}
+		pc.etbs = append(pc.etbs, etbChoice{
+			kind:    kind,
+			options: e.etbOptions(you, pc.card, kind, r.With.Params["ValidCards"]),
+		})
+	}
+}
+
+func etbChoiceKind(api string) string {
+	switch api {
+	case "NameCard":
+		return "name"
+	case "ChooseType":
+		return "type"
+	case "ChooseNumber":
+		return "number"
+	}
+	return ""
+}
+
+// etbOptions builds the option list for one "as this enters" choice. It is a
+// total list-pick -- every collectETBChoices borrower guaranteed at least one
+// legal option (a name is anything on the board/hand/yard, a type falls back
+// to "Human", a number is always 0..12) -- so no etb decision can ever be
+// handed out with zero options, and nothing asks an empty choice (R-9's
+// totality rule; see the Options here and the Min/Max 1 in etbAsk).
+//
+// Option list order is deterministic: names and types are sorted strings
+// (never from a map), numbers are ascending.
+func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards string) []decision.Option {
+	switch kind {
+	case "name":
+		if validCards == "" {
+			validCards = "Card.nonLand"
+		}
+		seen := map[string]bool{}
+		names := []string{}
+		add := func(z state.Zone, players []state.PlayerID) {
+			for _, p := range players {
+				for _, id := range e.G.Zone(z, p) {
+					o := e.G.Obj(id)
+					if o == nil || o.Face() == nil {
+						continue
+					}
+					if !effects.MatchesSpecFrom(e.G, validCards, id, you, card) {
+						continue
+					}
+					if seen[o.Face().Name] {
+						continue
+					}
+					seen[o.Face().Name] = true
+					names = append(names, o.Face().Name)
+				}
+			}
+		}
+		add(state.ZHand, []state.PlayerID{you})
+		add(state.ZBattlefield, e.G.AliveFrom(0))
+		add(state.ZGraveyard, e.G.AliveFrom(0))
+		sort.Strings(names)
+		out := make([]decision.Option, 0, len(names))
+		for _, n := range names {
+			out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n})
+		}
+		return out
+	case "type":
+		seen := map[string]bool{}
+		types := []string{}
+		for i := range e.G.Objs {
+			o := &e.G.Objs[i]
+			if o.Owner != you {
+				continue
+			}
+			f := o.Face()
+			if f == nil || !isCreatureFace(f) {
+				continue
+			}
+			for _, t := range f.Types {
+				if !effects.CreatureTypeWords(t) || seen[t] {
+					continue
+				}
+				seen[t] = true
+				types = append(types, t)
+			}
+		}
+		if len(types) == 0 {
+			types = []string{"Human"}
+		}
+		sort.Strings(types)
+		out := make([]decision.Option, 0, len(types))
+		for _, t := range types {
+			out = append(out, decision.Option{Index: len(out), Kind: "type", Label: t})
+		}
+		return out
+	default: // "number"
+		out := make([]decision.Option, 0, 13)
+		for i := 0; i <= 12; i++ {
+			out = append(out, decision.Option{Index: i, Kind: "number", Label: strconv.Itoa(i), Amount: i})
+		}
+		return out
+	}
+}
+
+// isCreatureFace is a local creature test (effects.hasType is unexported);
+// reads the printed Types, which is all any creature-subtype enumeration
+// needs.
+func isCreatureFace(f *cards.Face) bool {
+	for _, t := range f.Types {
+		if t == "Creature" {
+			return true
+		}
+	}
+	return false
+}
+
+// etbAsk asks the next unsettled "as this enters" choice (pc.etbs[pc.etbIdx]),
+// one at a time. Runs until every choice is settled; once none remain it
+// returns false and continueCast falls through to commitCast. Every choice is
+// a single-pick of its full option list, so Min==Max==1; a real option is
+// always present, so the cast cannot strand on an unanswerable decision.
+func (e *Engine) etbAsk() bool {
+	pc := e.cast
+	if pc == nil || pc.etbIdx >= len(pc.etbs) {
+		return false
+	}
+	ch := pc.etbs[pc.etbIdx]
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Choose" + etbChoicePrompt(ch.kind), Source: pc.card}
+	d.Options = append(d.Options, ch.options...)
+	e.choosing = chooseETB
+	e.ask(d)
+	return true
+}
+
+// etbChoicePrompt names the kind of an "as this enters" choice for a client
+// prompt; a cosmetic suffix on the shared "Choose" heading.
+func etbChoicePrompt(kind string) string {
+	switch kind {
+	case "name":
+		return " a card name"
+	case "type":
+		return " a creature type"
+	}
+	return " a number"
+}
+
+// etbAnswer records one answered "as this enters" choice onto the card as a
+// Choose event, before the object is put on the stack (or, for a land, before
+// it moves to the battlefield), so the recorded value survives replay exactly
+// as the player chose it. The value rides on Option.Label (name/type) or
+// Option.Amount (number), not the choice index.
+func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
+	pc := e.cast
+	if pc == nil || len(chosen) != 1 {
+		return
+	}
+	opt := chosen[0]
+	switch opt.Kind {
+	case "name":
+		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "name", Text: opt.Label})
+	case "type":
+		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "type", Text: opt.Label})
+	case "number":
+		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "number", Amount: int32(opt.Amount)})
+	}
+	pc.etbIdx++
+}
+
 // castAnswer records a chooseCast answer into the flow, keyed off which
 // stage asked it (every option in one decision shares a Kind).
 func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
@@ -437,6 +658,18 @@ func (e *Engine) commitCast() {
 	o := e.G.Obj(pc.card)
 	if o == nil || o.Zone != pc.from {
 		e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "cast aborted: the card moved"})
+		return
+	}
+	if pc.mode == "land" {
+		// Task 12: a land played through the one-stage flow (an "as this
+		// enters" choice, e.g. Cavern of Souls). The choice was already
+		// recorded by etbAnswer; now move it onto the battlefield and log the
+		// land play, exactly the two events handlePriority's no-choice
+		// play_land path emits. Its own MoveZone routes through
+		// applyReplacements, so an ETBReplacement on the land itself (or its
+		// choice already recorded) resolves on entry.
+		e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: pc.from, To: state.ZBattlefield})
+		e.emit(events.Event{Kind: events.LandPlayed, Player: pc.player})
 		return
 	}
 	mana := pc.cost.WithX(pc.x)
