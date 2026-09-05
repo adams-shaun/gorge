@@ -96,12 +96,19 @@ func (o *Object) Face() *cards.Face {
 	return o.Card.Faces[o.FaceIdx]
 }
 
-// Ephemeral reports an object that exists only while on the stack or the
-// battlefield: a token (CR 111.7), a copy of a spell or ability (CR
-// 707.10), or an ability object (no card). Off those zones it has ceased
-// to exist; this build parks such objects in exile, and view/filters skip
-// them there.
-func (o *Object) Ephemeral() bool { return o.IsToken || o.IsCopy || o.Card == nil }
+// Ephemeral reports whether this object has, right now, ceased to exist: a
+// copy of a spell or ability (CR 707.10, gone the moment it leaves the
+// stack), a token (CR 111.7, gone once it leaves the battlefield -- so
+// IsToken alone is not enough, a token on the battlefield is a perfectly
+// real permanent), or an ability object (no card, Card == nil -- always
+// ephemeral, since it never legitimately exists off the stack at all).
+// This build parks such objects in exile rather than deleting them, and
+// callers (view.cardViews and any future zone-listing code) consult this
+// single definition instead of re-deriving it, so the "copy, or token off
+// the battlefield, or cardless" rule cannot drift between call sites.
+func (o *Object) Ephemeral() bool {
+	return o.IsCopy || (o.IsToken && o.Zone != ZBattlefield) || o.Card == nil
+}
 
 func (o *Object) Counter(kind string) int32 {
 	for _, c := range o.Counters {
