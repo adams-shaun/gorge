@@ -1,6 +1,9 @@
 package rules
 
 import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -9,6 +12,25 @@ import (
 // sorcerySpeed reports whether p may take a sorcery-speed action right now.
 func (e *Engine) sorcerySpeed(p state.PlayerID) bool {
 	return e.G.Active == p && e.G.Step.IsMain() && len(e.G.Stack) == 0
+}
+
+// abilityZoneOK reports whether ability ab may be activated while the
+// source cardinal is in zone z (CR 602.1b): the printed ActivationZone$
+// when present, the battlefield by default. Values other than Battlefield /
+// Graveyard (Hand, Command, Exile, Stack) are not enumerated by this
+// build's zone walk, so they simply never offer an option.
+func abilityZoneOK(ab *cards.SA, z state.Zone) bool {
+	az, ok := ab.Params["ActivationZone"]
+	if !ok {
+		return z == state.ZBattlefield
+	}
+	switch strings.TrimSpace(az) {
+	case "Battlefield":
+		return z == state.ZBattlefield
+	case "Graveyard":
+		return z == state.ZGraveyard
+	}
+	return false
 }
 
 // legalActions enumerates everything p may legally do with priority. The
@@ -99,53 +121,73 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if f == nil || o.Tapped {
 			continue
 		}
-		if e.abilityRestricted(id) {
-			continue
-		}
-		// M1 activates only mana abilities, whose cost is always {T}. Task 18
-		// landed real activated-ability costs, but this enumeration was
-		// never widened to non-mana activated abilities (Equip, and every
-		// other AB$ ability with a real cost) -- a parked limitation
-		// (T19c-b), not a pending task.
+		// The "activate" (tap for mana) option is offered only while at least
+		// one mana ability on this permanent is itself unrestrictable: a
+		// CantBeActivated whose ValidSA$ expressly spares mana abilities
+		// (Activated.!ManaAbility) must not shut the land's tap-for-mana off
+		// (Task 10). The option is still the permanent's whole mana ability
+		// set, tapped together, exactly as before.
 		if len(f.ManaAbilities()) > 0 {
-			add("activate", "Tap "+f.Name+" for mana", id)
+			restricted := true
+			for _, ma := range f.ManaAbilities() {
+				if !e.abilityRestricted(p, id, ma) {
+					restricted = false
+					break
+				}
+			}
+			if !restricted {
+				add("activate", "Tap "+f.Name+" for mana", id)
+			}
 		}
-		// Task 14 (T19c-b's parked limitation, now in scope): Equip is an
-		// ordinary activated ability -- sorcery-speed, mana cost, one
-		// target -- offered here like any other legal action. It is the
-		// ONLY non-mana activated ability wired up (the card-script
-		// expansion tags it Params["Keyword"] == "Equip"), because a fully
-		// general non-mana activation loop (Mother of Runes' protection
-		// ability and so on) is exactly the bot-exhaustible livelock the
-		// acceptance gate would catch: the bot chooses the first
-		// "activate" option forever instead of passing, and a free or
-		// low-cost general ability then never lets the stack resolve.
-		// Restricting to Equip (whose {N} cost is a hard per-turn cap the
-		// bot cannot dodge) keeps the loop bounded. A sorcery-speed-only
-		// ability (Equip's SorcerySpeed$ True) is offered only in a main
-		// phase with an empty stack; its cost must be payable (checked
-		// the same way castable checks a cast option's cost); and a
-		// target-hungry ability needs at least one legal target on the
-		// board for the option to be worth offering (askTarget would
-		// otherwise fizzle the instant it is taken). Mana abilities were
-		// already handled above, so they are skipped here.
-		for ai, ab := range f.Abilities {
-			if ab.Kind != "AB" || ab.Params["Keyword"] != "Equip" {
+	}
+
+	// Activated abilities (Task 10): every non-mana AB$ ability on a
+	// permanent p controls, and every one on a card in p's graveyard whose
+	// ActivationZone$ names the graveyard, offered as an "ability" option the
+	// way a cast is (rules/activate.go resolves one). Each is gated on the
+	// same rules the cast options are: its own zone matches ActivationZone$,
+	// SorcerySpeed$ True needs a full sorcery window, no CantBeActivated
+	// restriction scopes down to it, a {T} cost needs an untapped source that
+	// is neither tapped nor (for a creature, CR 302.6) summoning-sick without
+	// Haste, and -- the totality gate -- the whole cost must be castable
+	// (mana payable, every Sac/SubCounter part satisfiable) before the option
+	// is ever offered. Equip (Task 14's attachments) is carried by this same
+	// loop -- its K:Equip expansion (cards/keywords.go) is an AB$ Attach with
+	// SorcerySpeed$ True, so the gates above cover it with no carve-out, and
+	// rules/activate.go resolves it exactly like any other ability. This was
+	// not always true: Task 14 round 1 shipped a second, Equip-only loop and
+	// deleted it again on the main merge (one offer path, one activation
+	// path), so do not resurrect one.
+	for _, z := range []state.Zone{state.ZBattlefield, state.ZGraveyard} {
+		for _, id := range e.G.Zone(z, p) {
+			o := e.G.Obj(id)
+			f := o.Face()
+			if f == nil {
 				continue
 			}
-			if ab.Params["SorcerySpeed"] == "True" && !sorcery {
-				continue
+			for i, ab := range f.Abilities {
+				if ab.Kind != "AB" || ab.API == "Mana" {
+					continue
+				}
+				if !abilityZoneOK(ab, z) {
+					continue
+				}
+				if ab.Params["SorcerySpeed"] == "True" && !sorcery {
+					continue
+				}
+				if e.abilityRestricted(p, id, ab) {
+					continue
+				}
+				cost := ParseCost(ab.Params["Cost"])
+				if cost.Tap && (o.Tapped || (z == state.ZBattlefield && o.SummonSick && !e.HasKeyword(id, "Haste"))) {
+					continue
+				}
+				if !e.castable(p, id, cost) {
+					continue
+				}
+				out = append(out, decision.Option{Index: len(out), Kind: "ability",
+					Label: f.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i})
 			}
-			cost := ParseCost(ab.Params["Cost"])
-			if !e.castable(p, id, cost) {
-				continue
-			}
-			if spec := ab.Params["ValidTgts"]; spec != "" && !e.hasLegalTarget(p, id, spec) {
-				continue
-			}
-			out = append(out, decision.Option{Index: len(out), Kind: "activate",
-				Label: "Activate " + f.Name + " " + ab.Params["SpellDescription"],
-				Obj:   id, Mode: "ability", AbilityIndex: ai})
 		}
 	}
 
@@ -177,21 +219,53 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 
 	case "play_land":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
-		e.emit(events.Event{Kind: events.MoveZone, Obj: opt.Obj,
-			From: state.ZHand, To: state.ZBattlefield})
-		e.emit(events.Event{Kind: events.LandPlayed, Player: in.Player})
+		// Task 12: a land with an "as this enters" choice (an
+		// ETBReplacement whose ReplaceWith$ is NameCard/ChooseType/
+		// ChooseNumber, e.g. Cavern of Souls) goes through the same
+		// one-stage cast flow a spell does -- collect the choice, ask it via
+		// chooseETB, record it with a Choose event, then commitCast moves the
+		// land and logs the play. A land with none keeps the original direct
+		// path (no pendingCast, no flow), so ordinary lands are untouched.
+		// Both paths share the same continuation machinery: etbAnswer/
+		// continueCast/commitCast below, never a parallel one.
+		pc := &pendingCast{player: in.Player, card: opt.Obj, from: state.ZHand, mode: "land", ability: -1}
+		e.cast = pc
+		e.collectETBChoices(in.Player)
+		if len(pc.etbs) == 0 {
+			e.cast = nil
+			e.emit(events.Event{Kind: events.MoveZone, Obj: opt.Obj,
+				From: state.ZHand, To: state.ZBattlefield})
+			e.emit(events.Event{Kind: events.LandPlayed, Player: in.Player})
+			return
+		}
+		e.continueCast()
 
 	case "activate":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
 		o := e.G.Obj(opt.Obj)
-		if opt.Mode == "ability" {
-			e.activateAbility(in.Player, opt.Obj, opt.AbilityIndex)
-			return
-		}
 		e.emit(events.Event{Kind: events.Tap, Obj: opt.Obj})
+		// Fix r1 (reviewer Important 2): gate and activation must agree on
+		// WHICH mana ability is activated. legalActions offers the tap-for-
+		// mana option iff at least one of the permanent's mana abilities is
+		// unrestricted; resolving every one here would also resolve a
+		// restricted member (e.g. CantBeActivated scoping down to a single
+		// mana ability), activating an ability whose restriction was never
+		// checked. Skip each mana ability abilityRestricted flags so the
+		// exact set resolved is the exact set the offer gate found legal.
 		for _, ma := range o.Face().ManaAbilities() {
+			if e.abilityRestricted(in.Player, opt.Obj, ma) {
+				continue
+			}
 			e.resolveAbility(opt.Obj, in.Player, nil, ma, o.Face().SVars)
 		}
+
+	case "ability":
+		// Task 10: an activated ability (non-mana AB$) was chosen. Reset the
+		// pass count the same way every other non-pass action does, then drive
+		// the same cost flow a cast drives (rules/activate.go's
+		// beginActivation -> pendingCast -> continueCast -> commitCast).
+		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
+		e.beginActivation(in.Player, opt)
 
 	case "cast":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})

@@ -10,6 +10,8 @@ package rules
 
 import (
 	"fmt"
+	"sort"
+	"strconv"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
@@ -51,6 +53,24 @@ type pendingCast struct {
 
 	sacs    []state.ObjID
 	sacPart int
+
+	// Task 12: the card's "as this enters" choices (one per ETBReplacement
+	// Repl whose ReplaceWith$ is NameCard/ChooseType/ChooseNumber). Each is
+	// asked in order while choosing == chooseETB; etbIdx is the next
+	// unsettled one, so the continuation survives the chooseAnswer round trip
+	// (answer -> etbAnswer increments etbIdx -> continueCast re-enters
+	// etbAsk). Plain data, so a Clone copies it like the fields above.
+	etbs   []etbChoice
+	etbIdx int
+}
+
+// etbChoice is one "as this enters" choice, pre-computed: its kind
+// ("name"/"/type"/"number", matching the Choose event's Counter) and the
+// option list that will be offered, captured once at the start of the cast
+// flow so the decision and the recorded choice always agree.
+type etbChoice struct {
+	kind    string
+	options []decision.Option
 }
 
 // kickerCost and surgeCost resolve a face's own parameterised keyword to a
@@ -111,21 +131,47 @@ func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32) in
 // not exceed id's own current counters of that kind; and Tap requires id
 // (an already-battlefield source -- Task 10 activates from there) to be
 // untapped.
+//
+// The Sac check is a distinct-candidate feasibility check, not N independent
+// head-counts against the same board (fix round 1, reviewer Important 1):
+// the Sac parts of ONE cost are paid one after another, each consuming its
+// chosen permanents, so a cost with TWO Sac parts cannot be paid by the same
+// permanent twice. A `Sac<1/Creature> Sac<1/Creature>` cost must therefore
+// not be offered with a single creature on the battlefield, and a
+// `Sac<1/Creature.Red> Sac<1/Creature.Green> Sac<1/Creature.White>` cost
+// cannot count one red-and-green creature towards both the red and the green
+// part. Each part's N candidates are reserved (distinct, in zone-walk order)
+// as the parts are walked, mirroring exactly what sacAsk offers; a part with
+// fewer than N un-reserved candidates makes the whole cost unpayable, so the
+// option is never offered (the totality rule an option that cannot be paid
+// should never be offered). Reserving the first N matches in zone order is a
+// sound test -- it never reports payable when no distinct assignment exists --
+// and never illegal: a truly-payable cost where the FIRST N happen to collide
+// with a scarcer later part is conservatively withheld (the engine's standing
+// rule is that wrongly withholding a legal option is safe, while wrongly
+// offering an unpayable one is an illegal game action).
 func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic)
 	if !mana.CanPay(e.G.Players[p].Pool) {
 		return false
 	}
+	reserved := map[state.ObjID]bool{}
 	for _, part := range cost.Sac {
-		var n int32
+		var avail []state.ObjID
 		for _, oid := range e.G.Zone(state.ZBattlefield, p) {
+			if reserved[oid] { // an earlier Sac part already claimed this one
+				continue
+			}
 			if effects.MatchesSpec(e.G, part.Spec, oid, p) {
-				n++
+				avail = append(avail, oid)
 			}
 		}
-		if n < part.N {
+		if int32(len(avail)) < part.N {
 			return false
+		}
+		for i := int32(0); i < part.N; i++ {
+			reserved[avail[i]] = true
 		}
 	}
 	if o := e.G.Obj(id); o != nil {
@@ -192,9 +238,21 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 	case "flashback":
 		cost = e.flashbackCost(id)
+	case "miracle":
+		// Task 18: a Miracle cast pays the printed Miracle cost (CR 702.93d) in
+		// place of the card's normal cost. KeywordParam is read off the face;
+		// a missing keyword (offer routed here only from a Miracle offer, and
+		// only while the card is in hand) falls back to the empty cost so a
+		// stale cast cannot strand.
+		if mc, ok := f.KeywordParam("Miracle"); ok {
+			cost = ParseCost(mc)
+		} else {
+			cost = Cost{}
+		}
 	}
 
 	e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1, cost: cost}
+	e.collectETBChoices(p)
 	e.continueCast()
 }
 
@@ -215,6 +273,9 @@ func (e *Engine) continueCast() {
 		return
 	}
 	if e.sacAsk() {
+		return
+	}
+	if e.etbAsk() {
 		return
 	}
 	e.commitCast()
@@ -322,15 +383,21 @@ func (e *Engine) delveAsk() bool {
 }
 
 // sacAsk offers the next unsettled Sac cost part, walking pc.cost.Sac in
-// order (pc.sacPart). castable already required at least N matching
-// permanents before this option was ever offered, so a part with too few
-// candidates is a board that changed under a hand-built intent -- and the
-// totality rule is that the cast must not strand on an unanswerable
-// decision, so such a part is skipped (the commit stage's own payMana/
-// MoveZone will still fail honestly if the cost is genuinely unpayable)
-// rather than asked with Min=Max=0 and no options. Already-chosen
-// sacrifices are excluded from the candidates so one permanent can never
-// be chosen for two Sac parts of the same cost.
+// order (pc.sacPart). The chosen sacrifices are excluded from each later
+// part's candidates so one permanent can never pay two Sac parts of the
+// same cost. castable already required a distinct-candidate assignment
+// before this option was ever offered (the fix-round-1 gate), so a part
+// with too few candidates here is a board that changed under the flow --
+// most directly, an earlier part of the SAME cost consumed the remaining
+// matching permanents (an `Sac` part earlier in the same cost, or a board
+// that changed under a hand-built intent) that the later part now needs.
+// The totality rule is that a cost that cannot be fully paid must not be
+// committed with only part of it paid, so rather than skip the part and
+// let commitCast validate mana only, such a part aborts the whole cast/
+// activation cleanly, exactly as if it was never offered. No sacrifice has
+// actually moved yet -- sacAsk only records the choices into pc.sacs; the
+// MoveZone events are emitted by commitCast -- so clearing e.cast restores
+// the pre-offer board and the Note leaves nothing behind.
 func (e *Engine) sacAsk() bool {
 	pc := e.cast
 	for pc.sacPart < len(pc.cost.Sac) {
@@ -352,8 +419,13 @@ func (e *Engine) sacAsk() bool {
 		}
 		n := int(part.N)
 		if n <= 0 || n > len(candidates) {
-			pc.sacPart++
-			continue
+			// A cost that can no longer be fully paid must not commit half
+			// paid (fix round 1, reviewer Important 1; see the doc above for
+			// why this is unreachable from a well-formed offer after the
+			// castable gate). Abort the whole thing; nothing has moved yet.
+			e.cast, e.choosing = nil, chooseNone
+			e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "sacrifice cost no longer payable; cast/activation aborted"})
+			return true
 		}
 		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
 			Prompt: "Sacrifice a permanent to cast " + e.G.Obj(pc.card).Face().Name,
@@ -367,6 +439,203 @@ func (e *Engine) sacAsk() bool {
 		return true
 	}
 	return false
+}
+
+// collectETBChoices walks pc.card's printed replacement lines and, for every
+// ETBReplacement Repl whose ReplaceWith$ resolves to a NameCard/ChooseType/
+// ChooseNumber ability, adds one etbChoice with its pre-built option list.
+// The list (not just the kind) is captured up front so the offered option and
+// the recorded choice always agree, and so the choice is the same whether it
+// is asked here (cast flow) or once the object has moved (a land's
+// play_land). Nothing is asked and no choice is recorded for an etbCounter
+// replacement (its ReplaceWith$ is PutCounter) -- those need only Ctx.X, not
+// a player decision.
+func (e *Engine) collectETBChoices(you state.PlayerID) {
+	pc := e.cast
+	if pc == nil {
+		return
+	}
+	o := e.G.Obj(pc.card)
+	if o == nil {
+		return
+	}
+	f := o.Face()
+	if f == nil {
+		return
+	}
+	for i := range f.Repls {
+		r := &f.Repls[i]
+		if r.Params["Keyword"] != "ETBReplacement" || r.With == nil {
+			continue
+		}
+		kind := etbChoiceKind(r.With.API)
+		if kind == "" {
+			continue
+		}
+		pc.etbs = append(pc.etbs, etbChoice{
+			kind:    kind,
+			options: e.etbOptions(you, pc.card, kind, r.With.Params["ValidCards"]),
+		})
+	}
+}
+
+func etbChoiceKind(api string) string {
+	switch api {
+	case "NameCard":
+		return "name"
+	case "ChooseType":
+		return "type"
+	case "ChooseNumber":
+		return "number"
+	}
+	return ""
+}
+
+// etbOptions builds the option list for one "as this enters" choice. It is a
+// total list-pick -- every collectETBChoices borrower guaranteed at least one
+// legal option (a name is anything on the board/hand/yard, a type falls back
+// to "Human", a number is always 0..12) -- so no etb decision can ever be
+// handed out with zero options, and nothing asks an empty choice (R-9's
+// totality rule; see the Options here and the Min/Max 1 in etbAsk).
+//
+// Option list order is deterministic: names and types are sorted strings
+// (never from a map), numbers are ascending.
+func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards string) []decision.Option {
+	switch kind {
+	case "name":
+		if validCards == "" {
+			validCards = "Card.nonLand"
+		}
+		seen := map[string]bool{}
+		names := []string{}
+		add := func(z state.Zone, players []state.PlayerID) {
+			for _, p := range players {
+				for _, id := range e.G.Zone(z, p) {
+					o := e.G.Obj(id)
+					if o == nil || o.Face() == nil {
+						continue
+					}
+					if !effects.MatchesSpecFrom(e.G, validCards, id, you, card) {
+						continue
+					}
+					if seen[o.Face().Name] {
+						continue
+					}
+					seen[o.Face().Name] = true
+					names = append(names, o.Face().Name)
+				}
+			}
+		}
+		add(state.ZHand, []state.PlayerID{you})
+		add(state.ZBattlefield, e.G.AliveFrom(0))
+		add(state.ZGraveyard, e.G.AliveFrom(0))
+		sort.Strings(names)
+		out := make([]decision.Option, 0, len(names))
+		for _, n := range names {
+			out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n})
+		}
+		return out
+	case "type":
+		seen := map[string]bool{}
+		types := []string{}
+		for i := range e.G.Objs {
+			o := &e.G.Objs[i]
+			if o.Owner != you {
+				continue
+			}
+			f := o.Face()
+			if f == nil || !isCreatureFace(f) {
+				continue
+			}
+			for _, t := range f.Types {
+				if !effects.CreatureTypeWords(t) || seen[t] {
+					continue
+				}
+				seen[t] = true
+				types = append(types, t)
+			}
+		}
+		if len(types) == 0 {
+			types = []string{"Human"}
+		}
+		sort.Strings(types)
+		out := make([]decision.Option, 0, len(types))
+		for _, t := range types {
+			out = append(out, decision.Option{Index: len(out), Kind: "type", Label: t})
+		}
+		return out
+	default: // "number"
+		out := make([]decision.Option, 0, 13)
+		for i := 0; i <= 12; i++ {
+			out = append(out, decision.Option{Index: i, Kind: "number", Label: strconv.Itoa(i), Amount: i})
+		}
+		return out
+	}
+}
+
+// isCreatureFace is a local creature test (effects.hasType is unexported);
+// reads the printed Types, which is all any creature-subtype enumeration
+// needs.
+func isCreatureFace(f *cards.Face) bool {
+	for _, t := range f.Types {
+		if t == "Creature" {
+			return true
+		}
+	}
+	return false
+}
+
+// etbAsk asks the next unsettled "as this enters" choice (pc.etbs[pc.etbIdx]),
+// one at a time. Runs until every choice is settled; once none remain it
+// returns false and continueCast falls through to commitCast. Every choice is
+// a single-pick of its full option list, so Min==Max==1; a real option is
+// always present, so the cast cannot strand on an unanswerable decision.
+func (e *Engine) etbAsk() bool {
+	pc := e.cast
+	if pc == nil || pc.etbIdx >= len(pc.etbs) {
+		return false
+	}
+	ch := pc.etbs[pc.etbIdx]
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Choose" + etbChoicePrompt(ch.kind), Source: pc.card}
+	d.Options = append(d.Options, ch.options...)
+	e.choosing = chooseETB
+	e.ask(d)
+	return true
+}
+
+// etbChoicePrompt names the kind of an "as this enters" choice for a client
+// prompt; a cosmetic suffix on the shared "Choose" heading.
+func etbChoicePrompt(kind string) string {
+	switch kind {
+	case "name":
+		return " a card name"
+	case "type":
+		return " a creature type"
+	}
+	return " a number"
+}
+
+// etbAnswer records one answered "as this enters" choice onto the card as a
+// Choose event, before the object is put on the stack (or, for a land, before
+// it moves to the battlefield), so the recorded value survives replay exactly
+// as the player chose it. The value rides on Option.Label (name/type) or
+// Option.Amount (number), not the choice index.
+func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
+	pc := e.cast
+	if pc == nil || len(chosen) != 1 {
+		return
+	}
+	opt := chosen[0]
+	switch opt.Kind {
+	case "name":
+		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "name", Text: opt.Label})
+	case "type":
+		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "type", Text: opt.Label})
+	case "number":
+		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "number", Amount: int32(opt.Amount)})
+	}
+	pc.etbIdx++
 }
 
 // castAnswer records a chooseCast answer into the flow, keyed off which
@@ -426,6 +695,62 @@ func (e *Engine) commitCast() {
 	o := e.G.Obj(pc.card)
 	if o == nil || o.Zone != pc.from {
 		e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "cast aborted: the card moved"})
+		return
+	}
+	if pc.mode == "land" {
+		// Task 12: a land played through the one-stage flow (an "as this
+		// enters" choice, e.g. Cavern of Souls). The choice was already
+		// recorded by etbAnswer; now move it onto the battlefield and log the
+		// land play, exactly the two events handlePriority's no-choice
+		// play_land path emits. Its own MoveZone routes through
+		// applyReplacements, so an ETBReplacement on the land itself (or its
+		// choice already recorded) resolves on entry.
+		e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: pc.from, To: state.ZBattlefield})
+		e.emit(events.Event{Kind: events.LandPlayed, Player: pc.player})
+		return
+	}
+	if pc.ability >= 0 {
+		// Task 10: an activated ability. The shared stages above (X, Delve --
+		// never present on an ability --, Sac) have already run and been
+		// paid/recorded through the same pendingCast flow; what differs from
+		// a spell here is the cost's remaining non-mana parts and the way the
+		// subject is put on the stack. Pay mana, then each Tap (a Tap event),
+		// each SubCounter part (a CounterChange of -N), and every chosen
+		// sacrifice; then AbilityPush mints the ability object onto the stack
+		// and, when the ability declares ValidTgts$, asks its controller for
+		// targets against the freshly minted top-of-stack object -- the same
+		// shape pushTrigger (rules/trigger_queue.go) uses for a trigger's own
+		// target ask. An unpayable pool at this stage (a stale intent from a
+		// board that changed) aborts with a Note exactly like a spell does.
+		mana := pc.cost.WithX(pc.x)
+		if !e.payMana(pc.player, mana) {
+			e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "activation aborted: cost no longer payable"})
+			return
+		}
+		for _, id := range pc.delve {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
+		}
+		if pc.cost.Tap {
+			e.emit(events.Event{Kind: events.Tap, Obj: pc.card})
+		}
+		for _, part := range pc.cost.SubCounter {
+			e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: part.Spec, Amount: -part.N})
+		}
+		for _, id := range pc.sacs {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+		}
+		e.emit(events.Event{Kind: events.AbilityPush, Obj: pc.card, Player: pc.player, Amount: int32(pc.ability)})
+		// AbilityPush mints a NEW stack object (different id from the source
+		// permanent); targets must be recorded on that object so resolveTop
+		// (stack.go's ability branch, which reads o.Targets off the object it
+		// is resolving) sees them. askTarget with the top-of-stack id, exactly
+		// pushTrigger's own post-TriggerPush ask.
+		ab := o.Face().Abilities[pc.ability]
+		if len(e.G.Stack) > 0 {
+			if top := e.G.Obj(e.G.Stack[len(e.G.Stack)-1]); top != nil && ab.Params["ValidTgts"] != "" {
+				e.askTarget(pc.player, e.G.Stack[len(e.G.Stack)-1], ab)
+			}
+		}
 		return
 	}
 	mana := pc.cost.WithX(pc.x)

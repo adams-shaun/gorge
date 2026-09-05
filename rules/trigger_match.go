@@ -38,7 +38,13 @@ type pendingTrigger struct {
 	Controller state.PlayerID
 	Idx        int
 	SA         *cards.SA
-	Ctx        effects.Ctx
+	// Miracle marks a keyword offer (Task 18) rather than a matched T: line: a
+	// Miracle drawing queued with Idx/SA unset, which the drain treats as an
+	// optional trigger whose decider is the owner and routes a yes through
+	// castMiracle (miracle.go) instead of minting a triggered-ability stack
+	// object. optionalDecider, triggerLabel and pushTrigger all special-case it.
+	Miracle bool
+	Ctx     effects.Ctx
 }
 
 // triggerKey identifies one T: line: the object that carries it, plus that
@@ -183,6 +189,14 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 			})
 		}
 	})
+	// Miracle (Task 18): a Draw that is the first of its player's turn and
+	// whose card carries Miracle gets its own offer. This runs AFTER the face
+	// loop because a Miracle pendingTrigger is per-Draw, not per-object -- it
+	// keys off the drawn card and the turn's draw count, neither of which the
+	// forEachObject walk (which iterates every object) is about.
+	if ev.Kind == events.Draw {
+		e.offerMiracle(ev)
+	}
 }
 
 // triggerRemembered is what a matched trigger's Ctx.Remembered holds: the
@@ -343,10 +357,10 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 		// (what it was the moment before the move reset it), not the live
 		// object already in the destination zone.
 		if source == ev.Obj && ev.Obj != 0 && lki != nil {
-			if !effects.MatchesObjectCtx(e.G, v, lki, effects.SpecContext{You: e.controllerOf(source), Source: source}) {
+			if !effects.MatchesObjectCtx(e.G, v, lki, e.specCtx(source, e.controllerOf(source))) {
 				return false
 			}
-		} else if !effects.MatchesSpecFrom(e.G, v, ev.Obj, e.controllerOf(source), source) {
+		} else if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, e.controllerOf(source))) {
 			return false
 		}
 	}
@@ -387,7 +401,7 @@ func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events
 	}
 	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidCard"]; ok {
-		if !effects.MatchesSpecFrom(e.G, v, ev.Obj, ctrl, source) {
+		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
 			return false
 		}
 	}
@@ -429,7 +443,7 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 	}
 	ctrl := e.controllerOf(source)
 	for _, id := range ev.IDs {
-		if effects.MatchesSpecFrom(e.G, spec, id, ctrl, source) {
+		if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, ctrl)) {
 			return true
 		}
 	}
@@ -470,13 +484,13 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidSource"]; ok {
 		src := e.damageSource()
-		if src == 0 || !effects.MatchesSpecFrom(e.G, v, src, ctrl, source) {
+		if src == 0 || !effects.MatchesSpecCtx(e.G, v, src, e.specCtx(source, ctrl)) {
 			return false
 		}
 	}
 	if v, ok := t.Params["ValidTarget"]; ok {
 		if ev.Obj != 0 {
-			if !effects.MatchesSpecFrom(e.G, v, ev.Obj, ctrl, source) {
+			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
 				return false
 			}
 		} else if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
@@ -504,7 +518,7 @@ func (e *Engine) becomesTargetMatches(t cards.Trigger, source state.ObjID, ev ev
 		return false
 	}
 	if v, ok := t.Params["ValidTarget"]; ok {
-		return effects.MatchesSpecFrom(e.G, v, source, e.controllerOf(source), source)
+		return effects.MatchesSpecCtx(e.G, v, source, e.specCtx(source, e.controllerOf(source)))
 	}
 	return true
 }
@@ -522,7 +536,7 @@ func (e *Engine) landPlayedMatches(t cards.Trigger, source state.ObjID, ev event
 		return false
 	}
 	if v, ok := t.Params["ValidCard"]; ok {
-		return effects.MatchesSpecFrom(e.G, v, ev.Obj, e.controllerOf(source), source)
+		return effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, e.controllerOf(source)))
 	}
 	return true
 }

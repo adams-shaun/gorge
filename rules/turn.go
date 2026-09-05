@@ -306,6 +306,36 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	case chooseCast:
 		e.castAnswer(d, chosen)
 		e.continueCast()
+		// Task 18: a Miracle cast originated inside the trigger drain (castMiracle
+		// set drainAwaitsTarget when it paused on this X/Delve/Sac ask). Once the
+		// cast commits -- continueCast reached commitCast and asked nothing more,
+		// so no decision is pending -- the drain must resume through the SAME
+		// continuation Task 7's target path uses, not hand caster priority: a
+		// later, unrelated trigger in the same batch is still placed before any
+		// player acts, and re-entering a fresh step would run a second state-based
+		// pass. If commitCast instead asked a target, handleTarget honours the
+		// still-true flag itself. A non-miracle cast never sets drainAwaitsTarget,
+		// so this branch is inert for an ordinary X/Delve/Sac cast.
+		if e.drainAwaitsTarget && e.Pending() == nil {
+			e.drainAwaitsTarget = false
+			e.resumeTriggerDrain()
+			return
+		}
+	case chooseETB:
+		// Task 12: an "as this enters" choice was answered. Record it on the
+		// card (etbAnswer, via a Choose event), then continue the flow -- the
+		// cast flow's next (or remaining) etb choice, then commitCast; for a
+		// land, commitCast moves it onto the battlefield. The drain resume is
+		// the same shape as the chooseCast case, for the same reason (a
+		// miracle cast whose own card also carried an as-enters choice would
+		// have paused here mid-drain).
+		e.etbAnswer(d, chosen)
+		e.continueCast()
+		if e.drainAwaitsTarget && e.Pending() == nil {
+			e.drainAwaitsTarget = false
+			e.resumeTriggerDrain()
+			return
+		}
 	// Tasks 12 and 18 add their cases here.
 	default:
 		e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "choose answered with no flow waiting"})

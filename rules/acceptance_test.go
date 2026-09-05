@@ -53,21 +53,22 @@ import (
 // kw:Living Weapon, deleting Batterskull, Rancor, Sword of Fire and Ice and
 // Umezawa's Jitte outright -- the four entries whose only gaps were those
 // primitives.
+//
+// Merge wt/r14 <- main (Task 14 fix round 1): main's M2r tasks retired nine
+// of the eighteen post-Task-16 entries before this branch merged -- Task 18's
+// kw:Miracle (Entreat the Angels, Terminus), Task 12's ETB replacement +
+// as-enters choice machinery (api:ChooseType/api:ChooseNumber/kw:ETBReplacement
+// /kw:etbCounter: Cavern of Souls, Phyrexian Revoker, Pithing Needle, Sanctum
+// Prelate, Chalice of the Void, Endless One, Walking Ballista) -- and Task 14
+// above retired the four attachment entries, so the merged table is exactly
+// the five entries BOTH sides still listed: the two CopySpellAbility+Storm
+// pairs, and the two Protection entries, nothing else. It now stands at 5.
 var knownUnsupported = map[string][]string{
-	"Cavern of Souls":     {"api:ChooseType", "kw:ETBReplacement"},
-	"Chain Lightning":     {"api:CopySpellAbility"},
-	"Chalice of the Void": {"kw:etbCounter"},
-	"Empty the Warrens":   {"api:CopySpellAbility", "kw:Storm"},
-	"Endless One":         {"kw:etbCounter"},
-	"Entreat the Angels":  {"kw:Miracle"},
-	"Goblin Piledriver":   {"kw:Protection from blue"},
-	"Knight of Infamy":    {"kw:Protection from white"},
-	"Phyrexian Revoker":   {"kw:ETBReplacement"},
-	"Pithing Needle":      {"kw:ETBReplacement"},
-	"Sanctum Prelate":     {"api:ChooseNumber", "kw:ETBReplacement"},
-	"Tendrils of Agony":   {"api:CopySpellAbility", "kw:Storm"},
-	"Terminus":            {"kw:Miracle"},
-	"Walking Ballista":    {"kw:etbCounter"},
+	"Chain Lightning":   {"api:CopySpellAbility"},
+	"Empty the Warrens": {"api:CopySpellAbility", "kw:Storm"},
+	"Goblin Piledriver": {"kw:Protection from blue"},
+	"Knight of Infamy":  {"kw:Protection from white"},
+	"Tendrils of Agony": {"api:CopySpellAbility", "kw:Storm"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card

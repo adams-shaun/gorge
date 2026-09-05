@@ -8,29 +8,6 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// abilityOption returns the nth non-mana "activate" option for obj in the
-// pending priority decision -- the one naming a real activated ability
-// (Equip) rather than the mana tap. This test file's fixtures place their
-// Equipment on the battlefield directly (never cast), so the only activate
-// option offered is the Equip ability itself.
-func abilityOption(t *testing.T, e *Engine, obj state.ObjID, n int) decision.Option {
-	t.Helper()
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KPriority {
-		t.Fatalf("not at priority: %+v", d)
-	}
-	var out []decision.Option
-	for _, o := range d.Options {
-		if o.Kind == "activate" && o.Obj == obj && o.Mode == "ability" {
-			out = append(out, o)
-		}
-	}
-	if n < 0 || n >= len(out) {
-		t.Fatalf("no non-mana activate option %d for %d in %+v", n, obj, d.Options)
-	}
-	return out[n]
-}
-
 func TestEquipAttachesAndTheStaticFollowsTheBearer(t *testing.T) {
 	sword := "Name:Sword\nManaCost:3\nTypes:Artifact Equipment\nK:Equip:2\n" +
 		"S:Mode$ Continuous | Affected$ Creature.EquippedBy | AddPower$ 2 | AddToughness$ 2 | AddKeyword$ Vigilance | Description$ x\nOracle:x\n"
