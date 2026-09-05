@@ -35,13 +35,14 @@ type handler struct {
 	reg  *host.Registry
 	opts Options
 
-	mu    sync.Mutex
-	grace map[string]*time.Timer // session id -> pending close after disconnect (Task 15)
+	mu       sync.Mutex
+	grace    map[string]*graceTimer // session id -> pending close after disconnect (Task 15)
+	graceGen uint64                 // monotonic token so stale grace callbacks recognise themselves
 }
 
 // NewHandler routes the API and, when Options.Web is set, the client.
 func NewHandler(r *host.Registry, o Options) http.Handler {
-	h := &handler{reg: r, opts: o.withDefaults(), grace: map[string]*time.Timer{}}
+	h := &handler{reg: r, opts: o.withDefaults(), grace: map[string]*graceTimer{}}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/tables", h.tables)
 	mux.HandleFunc("GET /api/tables/{t}/matches", h.matches)
