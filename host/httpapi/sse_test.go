@@ -63,7 +63,7 @@ func readSSE(t *testing.T, body io.Reader, n int) []sseFrame {
 // decision so the test controls pacing, and serves it.
 func pausedServer(t *testing.T, o Options, gate chan struct{}, ring int) (*httptest.Server, *host.Registry) {
 	t.Helper()
-	r, err := host.New(host.Options{LoadDeck: loader(t), Ring: ring, Sleep: func(time.Duration) {
+	r, err := host.New(host.Options{LoadDeck: loader(t), Ring: ring, Sleep: func(time.Duration, <-chan struct{}) {
 		if gate != nil {
 			<-gate
 		}
@@ -417,7 +417,7 @@ func TestReconnectWithinGraceCancelsTheTimer(t *testing.T) {
 // reconnect's cancelGrace wins h.mu first. The callback must re-check that
 // it is still the registered timer and leave the session alone.
 func TestGraceCallbackAfterCancelDoesNotCloseTheSession(t *testing.T) {
-	r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration) {}})
+	r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration, <-chan struct{}) {}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -439,7 +439,7 @@ func TestGraceCallbackAfterCancelDoesNotCloseTheSession(t *testing.T) {
 // older timer's callback must not close the session, and the newer one
 // still must.
 func TestOlderGraceTimerCannotCloseAfterReschedule(t *testing.T) {
-	r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration) {}})
+	r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration, <-chan struct{}) {}})
 	if err != nil {
 		t.Fatal(err)
 	}
