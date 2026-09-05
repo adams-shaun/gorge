@@ -38,7 +38,11 @@ import (
 // and now stands at 22 (Task 9: kw:Kicker, kw:Surge, kw:Flashback and
 // kw:Delve retire Gatekeeper of Malakir, Goblin Bushwhacker, Vines of
 // Vastwood, Reckless Bushwhacker, Cabal Therapy, Gurmag Angler and
-// Tombstalker). Every unimplemented ability on these
+// Tombstalker), and at 18 after Task 16 (kw:Undying, kw:Evolve, kw:Exalted
+// and kw:Prowess register: Geralf's Messenger, Strangleroot Geist, Experiment
+// One and Monastery Swiftspear retire outright, and Knight of Infamy shrinks
+// to just its still-open kw:Protection from white). Every unimplemented
+// ability on these
 // cards is inert for the acceptance run (Ruling U13's Sword of Fire and Ice
 // note is this same shape, one card up): the point of Task 26 is that the
 // games terminate, invariants hold and replay is exact with these cards
@@ -52,16 +56,12 @@ var knownUnsupported = map[string][]string{
 	"Empty the Warrens":     {"api:CopySpellAbility", "kw:Storm"},
 	"Endless One":           {"kw:etbCounter"},
 	"Entreat the Angels":    {"kw:Miracle"},
-	"Experiment One":        {"kw:Evolve"},
-	"Geralf's Messenger":    {"kw:Undying"},
 	"Goblin Piledriver":     {"kw:Protection from blue"},
-	"Knight of Infamy":      {"kw:Exalted", "kw:Protection from white"},
-	"Monastery Swiftspear":  {"kw:Prowess"},
+	"Knight of Infamy":      {"kw:Protection from white"},
 	"Phyrexian Revoker":     {"kw:ETBReplacement"},
 	"Pithing Needle":        {"kw:ETBReplacement"},
 	"Rancor":                {"api:Attach", "kw:Enchant"},
 	"Sanctum Prelate":       {"api:ChooseNumber", "kw:ETBReplacement"},
-	"Strangleroot Geist":    {"kw:Undying"},
 	"Sword of Fire and Ice": {"api:Attach", "kw:Equip"},
 	"Tendrils of Agony":     {"api:CopySpellAbility", "kw:Storm"},
 	"Terminus":              {"kw:Miracle"},

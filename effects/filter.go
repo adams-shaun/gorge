@@ -128,6 +128,47 @@ func noResolve(string) (int32, bool) { return 0, false }
 // a filter spec is either a hard "no" or "not this predicate", never a
 // silent match.
 func numericPred(name string, g *state.Game, o *state.Object, resolve func(string) (int32, bool)) (result, ok bool) {
+	// counters_<CMP><n>_<KIND>: a counter-kind comparison, e.g. counters_EQ0_P1P1
+	// ("no +1/+1 counters", the Undying condition). Reads the object's current
+	// counter count of KIND off the object it is applied to -- which for a
+	// zone-change trigger is the LKI snapshot, so a "dies" condition sees what
+	// the permanent had the moment it left the battlefield, not the reset state
+	// Move leaves behind (events/apply.go's Move clears Counters).
+	if strings.HasPrefix(name, "counters_") {
+		rest := name[len("counters_"):]
+		// Rest is "<CMP><n>_<KIND>"; at minimum "EQ0_A".
+		if len(rest) < 4 {
+			return false, false
+		}
+		cmp := rest[:2]
+		numStr, kind, okSplit := strings.Cut(rest[2:], "_")
+		if !okSplit || kind == "" {
+			return false, false
+		}
+		n, err := strconv.Atoi(numStr)
+		if err != nil {
+			v, resolved := resolve(numStr)
+			if !resolved {
+				return false, true // recognised shape, unresolvable RHS never matches
+			}
+			n = int(v)
+		}
+		have := o.Counter(kind)
+		target := int32(n)
+		switch cmp {
+		case "LE":
+			return have <= target, true
+		case "GE":
+			return have >= target, true
+		case "EQ":
+			return have == target, true
+		case "LT":
+			return have < target, true
+		case "GT":
+			return have > target, true
+		}
+		return false, false
+	}
 	for _, field := range [...]string{"power", "toughness", "cmc"} {
 		if !strings.HasPrefix(name, field) {
 			continue
@@ -223,13 +264,16 @@ type SpecContext struct {
 	Resolve func(name string) (int32, bool)
 }
 
-// MatchesSpecCtx is MatchesSpec/MatchesSpecFrom's full form: the same
-// grammar, plus the predicates and numeric-RHS resolution SpecContext
-// carries. An IsCopy object that has left the stack (CR 707.10h: a copy
-// that changes zones ceases to exist) never matches anything, regardless of
-// spec -- there is no card left for a filter to describe.
-func MatchesSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecContext) bool {
-	o := g.Obj(id)
+// MatchesObjectCtx applies one Forge filter spec to an object VALUE rather
+// than to a live-game id -- the same grammar (base type plus .A+B+...
+// predicate conjunction, alternatives ORed on ",") MatchesSpecCtx applies to
+// `g.Obj(id)`, but with the object handed in, so a caller can match against
+// something that is not (or is no longer) reachable by id: the last-known-
+// information snapshot a zone-change trigger holds (effects.Ctx.LKI, CR
+// 603.10), or a card that has since left the battlefield. An IsCopy object
+// that has left the stack (CR 707.10h: a copy that changes zones ceases to
+// exist) never matches anything regardless of spec.
+func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContext) bool {
 	if o == nil {
 		return false
 	}
@@ -276,6 +320,16 @@ func MatchesSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecContext) 
 		}
 	}
 	return false
+}
+
+// MatchesSpecCtx is MatchesSpec/MatchesSpecFrom's full form: the same
+// grammar as MatchesObjectCtx, applied to the object g.Obj(id) names.
+func MatchesSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecContext) bool {
+	o := g.Obj(id)
+	if o == nil {
+		return false
+	}
+	return MatchesObjectCtx(g, spec, o, sc)
 }
 
 // MatchesSpecFrom is MatchesSpecCtx with an explicit source object, which the
