@@ -3,6 +3,7 @@
   import { quadrantFor } from '../lib/board';
   import { seatColour } from '../lib/colours';
   import Quadrant from './Quadrant.svelte';
+  import Arrows from './Arrows.svelte';
 
   /** Board lays out one Quadrant per player at quadrantFor(seat, seats), a pure function of seat index — so the layout is deterministic regardless of arrival order. */
   let { view, seats }: { view: View; seats: SeatInfo[] } = $props();
@@ -23,6 +24,7 @@
       <Quadrant player={p} colour={seatColour(p.seat, seats)} />
     </div>
   {/each}
+  <Arrows {view} />
 </div>
 
 <style>

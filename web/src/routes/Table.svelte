@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, untrack } from 'svelte';
+  import { onMount } from 'svelte';
   import { session } from '../lib/session.svelte';
   import { tables } from '../lib/tables.svelte';
   import { MatchState } from '../lib/match.svelte';
@@ -16,11 +16,15 @@
   // match (from the /t/:table/m/:match route) names a specific, already-played
   // match. Task 21's finished mode replays it end to end via loadFinished:
   // no stream, no session.focus — everything from the JSON GETs.
+  //
+  // App.svelte keys <Table> by `${table}/${match}` (FL-38), so a route change
+  // always remounts a fresh instance — these one-shot reads of table/match
+  // are intentional, not a stale-binding bug.
   let { table, match = null }: { table: string; match?: number | null } = $props();
-  // table and match are fixed for the life of this component (a route change
-  // remounts it), so these are deliberately one-time reads, not reactive.
-  const finished = untrack(() => match !== null);
-  const m = new MatchState(untrack(() => table));
+  // svelte-ignore state_referenced_locally
+  const finished = match !== null;
+  // svelte-ignore state_referenced_locally
+  const m = new MatchState(table);
 
   // idle: the table has no live match and none imminent, so the match list
   // is the whole page rather than a strip under a "waiting" placeholder.

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { View, EventBody, CardView } from '../protocol';
-  import { recentlyMattered } from '../lib/board';
+  import { recentlyMattered, visibleHand } from '../lib/board';
   import CardImage from './CardImage.svelte';
 
   /** RecentStrip shows the last resolved object large in the board's bottom centre, or nothing — recentlyMattered picks the id, this only resolves it to a CardView already present in the view. */
@@ -8,7 +8,7 @@
 
   function findCard(v: View, obj: number): CardView | null {
     for (const p of v.players) {
-      for (const list of [p.battlefield, p.graveyard, p.exile, p.hand]) {
+      for (const list of [p.battlefield, p.graveyard, p.exile, visibleHand(p) ?? []]) {
         const c = list.find((x) => x.id === obj);
         if (c) return c;
       }

@@ -4,7 +4,7 @@
   let { life, lost, seats = [], active = -1 }: { life: number[]; lost: boolean[]; seats?: SeatInfo[]; active?: number } = $props();
 </script>
 
-<div class="grid" style:--n={life.length}>
+<div class="grid">
   {#each life as l, i (i)}
     <div class="seat" class:lost={lost[i]} class:active={i === active} style:background={seatColour(i, seats)} title={seats[i]?.name ?? `Seat ${i}`}>
       {l}
