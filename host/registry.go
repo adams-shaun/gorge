@@ -317,7 +317,3 @@ func (r *Registry) ids() []TableID {
 	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
 	return ids
 }
-
-// saveLocked is save with r.mu already held (AddTable and archive call it
-// that way); save takes the lock itself.
-func (r *Registry) saveLocked() error { return r.save() }

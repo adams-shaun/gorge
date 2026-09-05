@@ -71,8 +71,30 @@ func openMatchFiles(dir string, t TableID, k int, sync bool) (*matchFiles, error
 
 // append writes one burst: the new events and the intent that produced
 // them (nil for genesis), one JSON object per line, then fsyncs when
-// configured (PL-13).
+// configured (PL-13, opts.Sync).
+//
+// Burst atomicity (fix round 1): the intent that owns a burst is written
+// BEFORE the burst's events. The two live in separate files and can never
+// be committed atomically, and this ordering is the safe side: it guarantees
+// the events stream is never longer than the intents that account for it.
+// The one leftover a crash or kill can leave is an orphan intent at the
+// tail whose events never made it, which read-time reconcile (reconcileLog)
+// trims back so a restart always serves a consistent prefix.
 func (f *matchFiles) append(evs []events.Event, in *decision.Intent) error {
+	if in != nil {
+		b, err := json.Marshal(in)
+		if err != nil {
+			return err
+		}
+		if _, err := f.intents.Write(append(b, '\n')); err != nil {
+			return err
+		}
+		if f.sync {
+			if err := f.intents.Sync(); err != nil {
+				return err
+			}
+		}
+	}
 	w := bufio.NewWriter(f.events)
 	for _, e := range evs {
 		b, err := json.Marshal(e)
@@ -85,20 +107,8 @@ func (f *matchFiles) append(evs []events.Event, in *decision.Intent) error {
 	if err := w.Flush(); err != nil {
 		return err
 	}
-	if in != nil {
-		b, err := json.Marshal(in)
-		if err != nil {
-			return err
-		}
-		if _, err := f.intents.Write(append(b, '\n')); err != nil {
-			return err
-		}
-	}
 	if f.sync {
 		if err := f.events.Sync(); err != nil {
-			return err
-		}
-		if err := f.intents.Sync(); err != nil {
 			return err
 		}
 	}
@@ -113,8 +123,12 @@ func (f *matchFiles) close() {
 	f.intents.Close()
 }
 
-// writeSidecar writes <k>.json atomically (temp file + rename).
-func writeSidecar(dir string, sc sidecar) error {
+// writeSidecar writes <k>.json atomically (temp file + rename). When sync
+// is set the temp is fsynced before the rename and the parent directory
+// after it (fix round 1, fsync coverage) so the rename, not just the file's
+// contents, is durable. The temp file is removed on every error path and
+// consumed by the rename, so no *.tmp survives (writeFileAtomic).
+func writeSidecar(dir string, sc sidecar, sync bool) error {
 	if err := os.MkdirAll(tableDir(dir, TableID(sc.Table)), 0o755); err != nil {
 		return err
 	}
@@ -122,12 +136,47 @@ func writeSidecar(dir string, sc sidecar) error {
 	if err != nil {
 		return err
 	}
-	p := matchPath(dir, TableID(sc.Table), sc.Match, ".json")
-	tmp := p + ".tmp"
-	if err := os.WriteFile(tmp, append(b, '\n'), 0o644); err != nil {
+	return writeFileAtomic(matchPath(dir, TableID(sc.Table), sc.Match, ".json"), append(b, '\n'), sync)
+}
+
+// writeFileAtomic writes b to path via a temp file in the same directory:
+// write + fsync the temp (contents durable before the rename exposes
+// them), rename it over path, then fsync the parent directory (the rename
+// itself durable). The temp is removed on every error path and consumed by
+// the rename on success, so no *.tmp is ever left behind.
+//
+// The directory fsync is the one step some filesystems reject (e.g. EINVAL
+// on Windows); it is best-effort, because the temp already sync'd and
+// renamed is the durable part and failing the dir sync would otherwise
+// break writes to otherwise-supported paths.
+func writeFileAtomic(path string, b []byte, sync bool) error {
+	tmp := path + ".tmp"
+	f, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+	if err != nil {
 		return err
 	}
-	return os.Rename(tmp, p)
+	_, werr := f.Write(b)
+	if werr == nil && sync {
+		werr = f.Sync()
+	}
+	if cerr := f.Close(); werr == nil {
+		werr = cerr
+	}
+	if werr != nil {
+		os.Remove(tmp)
+		return werr
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		os.Remove(tmp)
+		return err
+	}
+	if sync {
+		if d, err := os.Open(filepath.Dir(path)); err == nil {
+			d.Sync()
+			d.Close()
+		}
+	}
+	return nil
 }
 
 func readSidecar(dir string, t TableID, k int) (sidecar, error) {
@@ -173,7 +222,9 @@ func readSidecars(dir string, t TableID) ([]sidecar, error) {
 
 // readLog rebuilds a match's events.Log from its files. A trailing partial
 // line (a crash mid-write) is ignored; anything malformed before it is an
-// error. The Seed comes from the sidecar.
+// error. The Seed comes from the sidecar. The two streams are reconciled to
+// a consistent prefix (fix round 1) before returning, so Events/ViewAt of a
+// match whose write was cut off never serve a log that cannot replay.
 func readLog(dir string, t TableID, k int) (*events.Log, error) {
 	sc, err := readSidecar(dir, t, k)
 	if err != nil {
@@ -200,7 +251,47 @@ func readLog(dir string, t TableID, k int) (*events.Log, error) {
 	}); err != nil {
 		return nil, err
 	}
+	reconcileLog(l)
 	return l, nil
+}
+
+// reconcileLog trims a log read from disk to the consistent prefix a replay
+// can rebuild (fix round 1, burst atomicity). A burst's events and its
+// owning intent live in two separate files and can never be committed
+// atomically, so a crash or kill mid-burst can leave either stream ahead of
+// the other: the events file can be cut inside its last burst (the
+// DecisionAsk or GameOver that would complete it never written, so the tail
+// is not a complete burst), and — because append writes the intent before
+// its burst — the intents file can hold an orphan intent whose events never
+// made it. boundsOf marks every complete burst; each non-genesis burst needs
+// exactly one intent, so a log with C complete bursts is trustworthy only up
+// to C-1 of its intents and the C bursts those account for, and neither
+// stream may run past the other. Everything past that is trimmed, so
+// Events and ViewAt always serve a prefix that replays cleanly.
+func reconcileLog(l *events.Log) {
+	bounds := boundsOf(l.Events)
+	if len(bounds) == 0 {
+		// No complete burst — not even the genesis burst (boundary 0) a
+		// wiped match would still have. Nothing here can replay, so drop
+		// both streams rather than serve events' untrustworthy tail.
+		l.Events, l.Intents = nil, nil
+		return
+	}
+	// C complete bursts want C-1 intents (genesis needs none). Clamp to
+	// whatever the intents file actually has, so the events stream never
+	// runs past what the intents can drive.
+	need := len(bounds) - 1
+	if n := len(l.Intents); n < need {
+		need = n
+	}
+	// bounds[need] is one past burst `need`, the last burst still owned by
+	// an intent we hold (for need > 0) or the genesis burst (for need == 0).
+	// Everything before that boundary replays; everything after is the tail
+	// a crash cut off and must not be served.
+	l.Events = l.Events[:bounds[need]]
+	if len(l.Intents) > need {
+		l.Intents = l.Intents[:need]
+	}
 }
 
 // readLines calls fn per complete, newline-terminated record. A file that
@@ -234,9 +325,21 @@ type tableRecord struct {
 	Match  int         `json:"match"`
 }
 
-// save writes tables.json (sorted by id) when persistence is on. Called
-// with r.mu held.
+// save writes tables.json (sorted by id) when persistence is on. It takes
+// the registry lock itself; callers that already hold r.mu use saveLocked.
+// fsync coverage (fix round 1): the temp file is synced before the rename
+// and the parent directory after it (writeFileAtomic), the same guarantees
+// as the sidecar and the events files.
 func (r *Registry) save() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.saveLocked()
+}
+
+// saveLocked is the body of save with r.mu already held (AddTable, run and
+// archive call it that way); save is saveLocked plus the lock it takes
+// itself. Persisting is no-op in memory mode.
+func (r *Registry) saveLocked() error {
 	if r.opts.Dir == "" {
 		return nil
 	}
@@ -259,9 +362,5 @@ func (r *Registry) save() error {
 	if err != nil {
 		return err
 	}
-	p := filepath.Join(r.opts.Dir, "tables.json")
-	if err := os.WriteFile(p+".tmp", append(b, '\n'), 0o644); err != nil {
-		return err
-	}
-	return os.Rename(p+".tmp", p)
+	return writeFileAtomic(filepath.Join(r.opts.Dir, "tables.json"), append(b, '\n'), r.opts.Sync)
 }

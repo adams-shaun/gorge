@@ -38,7 +38,7 @@ func (r *Registry) load() error {
 		for _, sc := range scs {
 			if sc.State == protocol.MatchLive {
 				sc.State = protocol.MatchAborted
-				if err := writeSidecar(r.opts.Dir, sc); err != nil {
+				if err := writeSidecar(r.opts.Dir, sc, r.opts.Sync); err != nil {
 					return err
 				}
 			}

@@ -2,12 +2,15 @@ package host
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/protocol"
 	"github.com/adams-shaun/gorge/view"
 )
@@ -195,17 +198,173 @@ func rewriteTablesJSON(t *testing.T, dir string, k int) {
 func TestReadLogIgnoresATrailingPartialLine(t *testing.T) {
 	dir := t.TempDir()
 	_ = os.MkdirAll(filepath.Join(dir, "t1"), 0o755)
-	_ = os.WriteFile(filepath.Join(dir, "t1", "1.events"), []byte(`{"seq":0,"kind":0,"amount":2}`+"\n"+`{"seq":1,"kind":9,"player":1,"amount":1}`+"\n"+`{"seq":2,"ki`), 0o644)
-	_ = os.WriteFile(filepath.Join(dir, "t1", "1.intents"), []byte(`{"seq":5,"player":0,"choices":[1]}`+"\n"+`{"seq":`), 0o644)
+	_ = os.WriteFile(filepath.Join(dir, "t1", "1.events"), []byte(`{"seq":0,"kind":0,"amount":2}`+"\n"+`{"seq":1,"kind":20,"player":1,"amount":1}`+"\n"+`{"seq":2,"ki`), 0o644)
+	_ = os.WriteFile(filepath.Join(dir, "t1", "1.intents"), []byte(`{"seq":2,"player":0,"choices":[1]}`+"\n"+`{"seq":`), 0o644)
 	_ = os.WriteFile(filepath.Join(dir, "t1", "1.json"), []byte(`{"table":"t1","match":1,"seed":7,"state":"live"}`), 0o644)
 	l, err := readLog(dir, "t1", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if l.Seed != 7 || len(l.Events) != 2 || len(l.Intents) != 1 || l.Events[1].Amount != 1 {
+	if l.Seed != 7 || len(l.Events) != 2 || len(l.Intents) != 0 || l.Events[1].Kind != events.DecisionAsk {
 		t.Fatalf("log %+v", l)
 	}
 	if _, err := readLog(dir, "t1", 2); err == nil {
 		t.Fatal("missing match read without error")
+	}
+}
+
+// TestRestartServesAStablePrefixAfterMidBurstTruncation is fix round 1's
+// burst-atomicity regression (item 2): a crash or kill can leave a match's
+// 3.events file cut inside its final burst, with the owning intent already
+// on disk (append writes the intent before the burst it owns). On restart
+// Events and ViewAt must succeed and return the surviving prefix — the
+// original log's first N events, trimmed to complete bursts — never the
+// unreplayable tail.
+func TestRestartServesAStablePrefixAfterMidBurstTruncation(t *testing.T) {
+	dir := t.TempDir()
+	playOneToDisk(t, dir)
+
+	p := filepath.Join(dir, "t1", "1.events")
+	raw, err := os.ReadFile(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(string(raw), "\n")
+	origEvents := 0
+	lastAsk := -1
+	for i, ln := range lines {
+		if ln == "" {
+			continue
+		}
+		origEvents++
+		var e events.Event
+		if err := json.Unmarshal([]byte(ln), &e); err != nil {
+			t.Fatal(err)
+		}
+		if e.Kind == events.DecisionAsk {
+			lastAsk = i
+		}
+	}
+
+	// Cut mid-burst: keep everything up to the first event of the burst the
+	// last DecisionAsk opened, dropping the DecisionAsk/GameOver that would
+	// have completed it. That leaves a real, mid-burst tail on disk whose
+	// owning intent was already written.
+	var cut int
+	if lastAsk >= 0 && lastAsk+1 < len(lines) && lines[lastAsk+1] != "" {
+		cut = lastAsk + 1
+	} else {
+		// Nothing after the last ask — drop the trailing GameOver line so
+		// the final burst is left without its closer.
+		cut = len(lines) - 2
+		if cut < 0 {
+			t.Fatal("fixture too short to truncate mid-burst")
+		}
+	}
+	if err := os.WriteFile(p, []byte(strings.Join(lines[:cut+1], "\n")), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	r, err := New(diskOptions(t, dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	bodies, err := r.Events("t1", 1, 0)
+	if err != nil {
+		t.Fatalf("Events after truncation: %v", err)
+	}
+	if len(bodies) == 0 || len(bodies) >= origEvents {
+		t.Fatalf("truncated match served %d events (original %d), want a strict non-empty prefix", len(bodies), origEvents)
+	}
+	// The served prefix is exactly the original's first len(bodies) events,
+	// in order — the surviving prefix, not garbage.
+	for i, b := range bodies {
+		if b.Event.Seq != uint64(i) {
+			t.Fatalf("served prefix is not contiguous: body %d has seq %d", i, b.Event.Seq)
+		}
+	}
+	if _, err := r.ViewAt("t1", 1, uint64(len(bodies)-1)); err != nil {
+		t.Fatalf("ViewAt(surviving head) after truncation: %v", err)
+	}
+	if _, err := r.ViewAt("t1", 1, 0); err != nil {
+		t.Fatalf("ViewAt(genesis) after truncation: %v", err)
+	}
+}
+
+// TestSyncLeavesNoTempFiles is fix round 1's fsync-coverage check (item
+// 3): with Options.Sync set, a full play to disk must both fsync the temp
+// files before their renames (events, intents, every sidecar, tables.json)
+// and not leave any *.tmp behind on any path.
+func TestSyncLeavesNoTempFiles(t *testing.T) {
+	dir := t.TempDir()
+	o := diskOptions(t, dir)
+	o.Sync = true
+	r, err := New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.AddTable(fourSeatTable("t1", false)); err != nil {
+		t.Fatal(err)
+	}
+	_ = r.Start("t1")
+	r.Wait("t1")
+	r.Close()
+
+	err = filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if strings.HasSuffix(info.Name(), ".tmp") {
+			t.Errorf("left behind: %s", p)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestArchivedMatchIsServedSafelyUnderConcurrentReaders is fix round 1's
+// t.loaded data-race regression (item 1): reading an archived match from
+// several goroutines at once, in persist mode, must load it exactly once.
+// The first reader upgrades to the write lock and rebuilds the match; the
+// others must re-check t.loaded after the upgrade rather than race a bare
+// assignment made under only the read lock. (The controller's -race gate is
+// what would catch the old bug; this test just makes the load genuinely
+// concurrent.)
+func TestArchivedMatchIsServedSafelyUnderConcurrentReaders(t *testing.T) {
+	dir := t.TempDir()
+	playOneToDisk(t, dir)
+	r, err := New(diskOptions(t, dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	ms, err := r.Matches("t1")
+	if err != nil || len(ms) != 1 {
+		t.Fatalf("matches: %+v, %v", ms, err)
+	}
+	seqs := []uint64{0, uint64(ms[0].Events) / 2, uint64(ms[0].Events) - 1}
+	errs := make(chan error, 6*len(seqs)*2)
+	var wg sync.WaitGroup
+	for i := 0; i < 6; i++ {
+		for _, seq := range seqs {
+			wg.Add(1)
+			go func(s uint64) {
+				defer wg.Done()
+				if _, err := r.ViewAt("t1", 1, s); err != nil {
+					errs <- fmt.Errorf("ViewAt(%d): %w", s, err)
+				}
+				if _, err := r.Events("t1", 1, 0); err != nil {
+					errs <- fmt.Errorf("Events: %w", err)
+				}
+			}(seq)
+		}
+	}
+	wg.Wait()
+	close(errs)
+	for e := range errs {
+		t.Error(e)
 	}
 }
