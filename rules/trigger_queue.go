@@ -239,6 +239,16 @@ func (e *Engine) takeAnsweredTrigger(d *decision.Decision) (pendingTrigger, bool
 // is recorded, and it is the whole of what a log-only replay needs. No event
 // kind and no Event field was added for Task 27.
 func (e *Engine) pushTrigger(pt pendingTrigger) {
+	// Task 18: a Miracle offer is placed by casting the card for its miracle
+	// cost, not by minting a triggered-ability stack object. castMiracle
+	// verifies the card is still in the owner's hand, emits the reveal Note,
+	// and begins the ordinary cast flow; it may pause on an X/target decision
+	// of its own, which is exactly Task 7's drainAwaitsTarget continuation (see
+	// castMiracle's doc).
+	if pt.Miracle {
+		e.castMiracle(pt)
+		return
+	}
 	// CR 800.4a / Ruling U6, fix round 2 (re-review N2): an ability
 	// controlled by a player who has left the game ceases to exist, so it is
 	// never minted. dropDepartedTriggers enforces this for the queue, but it
@@ -389,6 +399,16 @@ func (e *Engine) triggerOf(pt pendingTrigger) (cards.Trigger, bool) {
 // silent approximation. Closing it needs the trigger to capture the player at
 // match time, which is a change to what checkTriggers records.
 func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optional, askable bool) {
+	// Task 18: a Miracle offer is always optional and its decider is always the
+	// owner (the controller of the drawn card). It has no T: line to read, so
+	// this must be special-cased before triggerOf (which would fail for it).
+	if pt.Miracle {
+		who = pt.Controller
+		if int(who) >= len(e.G.Players) || e.G.Players[who].Lost {
+			return who, true, false
+		}
+		return who, true, true
+	}
 	t, ok := e.triggerOf(pt)
 	if !ok {
 		return 0, false, false
@@ -447,6 +467,23 @@ func (e *Engine) PendingTriggers() []state.PendingTrigger {
 // TriggerDescription$ is the text a real player would recognise; the source's
 // name disambiguates two copies of the same card.
 func (e *Engine) triggerLabel(pt pendingTrigger) string {
+	// Task 18: a Miracle offer is named by the card and its miracle cost, not by
+	// a TriggerDescription$ (there is no T: line). This is the label the brief's
+	// interface spells -- "Miracle — reveal <name> and cast it for <cost>?" --
+	// and it is what askTriggerOptional shows inside its offer prompt.
+	if pt.Miracle {
+		name := "it"
+		if o := e.G.Obj(pt.Source); o != nil {
+			if f := o.Face(); f != nil && f.Name != "" {
+				name = f.Name
+			}
+		}
+		cost, ok := e.miracleCost(pt.Source)
+		if !ok {
+			cost = ""
+		}
+		return "Miracle — reveal " + name + " and cast it for " + cost + "?"
+	}
 	name := "Triggered ability"
 	if o := e.G.Obj(pt.Source); o != nil {
 		if f := o.Face(); f != nil && f.Name != "" {
