@@ -10,3 +10,11 @@ coverage.html
 
 # Per-task git worktrees for fleet execution (SDD).
 .worktrees/
+
+# web/ (Svelte + Vite spectator client) build artefacts and tooling state.
+cmd/gorged/webdist/*
+!cmd/gorged/webdist/.keep
+web/node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/

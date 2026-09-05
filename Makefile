@@ -16,6 +16,10 @@ help:
 	@echo "  make report         — print card coverage against implemented primitives"
 	@echo "  make sim            — build mtgsim and play 20 verified 4-seat games"
 	@echo "  make gentypes       — regenerate web/src/protocol.ts from package protocol"
+	@echo "  make web            — npm ci and build the spectator client into cmd/gorged/webdist"
+	@echo "  make web-dev        — run the Vite dev server for web/"
+	@echo "  make test-web       — run web/'s Vitest suite"
+	@echo "  make lint-web       — svelte-check and eslint over web/"
 	@echo "  make test lint cover"
 
 .PHONY: build
@@ -70,8 +74,21 @@ cover-html: cover
 tidy:
 	go mod tidy
 
+.PHONY: web web-dev test-web lint-web
+web:
+	cd web && npm ci && npm run build
+
+web-dev:
+	cd web && npm run dev
+
+test-web:
+	cd web && npm run test
+
+lint-web:
+	cd web && npm run check && npm run lint
+
 .PHONY: lint
-lint:
+lint: lint-web
 	@out=$$(gofmt -l . 2>&1); \
 		if [ -n "$$out" ]; then \
 			echo "gofmt: files need formatting:"; echo "$$out"; exit 1; \
