@@ -44,14 +44,17 @@ type Chars interface {
 // whatever is theirs alone (their hand, their mana pool, a decision asked of
 // them).
 type View struct {
-	Viewer   state.PlayerID `json:"viewer"`
-	Turn     int32          `json:"turn"`
-	Step     string         `json:"step"`
-	Phase    string         `json:"phase"`
-	Active   state.PlayerID `json:"active"`
-	Priority state.PlayerID `json:"priority"`
-	Over     bool           `json:"over"`
-	Draw     bool           `json:"draw"`
+	Viewer state.PlayerID `json:"viewer"`
+	// Visibility names which rule set built this view: "seat", "public" or
+	// "omniscient" (see Visibility).
+	Visibility string         `json:"visibility"`
+	Turn       int32          `json:"turn"`
+	Step       string         `json:"step"`
+	Phase      string         `json:"phase"`
+	Active     state.PlayerID `json:"active"`
+	Priority   state.PlayerID `json:"priority"`
+	Over       bool           `json:"over"`
+	Draw       bool           `json:"draw"`
 	// Winner is nil unless Over && !Draw: PlayerID's zero value is seat 0, a
 	// real seat, so a bare PlayerID field could never distinguish "seat 0
 	// won" from "the game is still going" or "it was a draw" (Task 22
@@ -166,7 +169,13 @@ type PendingView struct {
 // nothing else unless the viewer owns it, and a decision is attached only to
 // the player it was asked of. Total: g == nil, ch == nil, and an
 // out-of-range viewer all degrade rather than panic (supplement §7).
+// Project is ProjectFor with Seat visibility.
 func Project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decision) View {
+	return ProjectFor(g, ch, viewer, Seat, d)
+}
+
+// project is Project's body, shared by every Visibility in ProjectFor.
+func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decision) View {
 	v := View{Viewer: viewer}
 	if g == nil {
 		return v
@@ -214,13 +223,7 @@ func Project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 		}
 		if p.ID == viewer {
 			pv.Hand = cardViews(g, ch, g.Zone(state.ZHand, p.ID))
-			pool := map[string]int32{}
-			for idx, sym := range [...]string{"W", "U", "B", "R", "G", "C"} {
-				if n := p.Pool[idx]; n > 0 {
-					pool[sym] = n
-				}
-			}
-			pv.Pool = pool
+			pv.Pool = poolView(p.Pool)
 		}
 		v.Players = append(v.Players, pv)
 	}
