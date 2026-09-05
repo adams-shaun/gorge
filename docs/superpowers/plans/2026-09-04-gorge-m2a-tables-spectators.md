@@ -23,7 +23,7 @@ Every task's requirements implicitly include this section. Values are copied fro
 - **Gates that must not move without a ledgered reason:** acceptance chain heads 2 seats `7705a6505954f6cd`, 4 `2d5589b31c4853cd`, 6 `bf4012092fdad38b`, 8 `01b9f48c1b6dc135`; `make sim` 20/20 replay OK; `make report` → `cards: 33667  playable: 15265 (45.3%)`; `knownUnsupported` 35/136. The engine-level tests `TestRepoDecksPlayAtEverySeatCount`, `TestRepoDeckGamesReplayExactly` and the five Task 22 pins stay green unmodified.
 - **Gates every task runs before its commit:** `make lint`, `go build ./...`, `go test -count=1 ./...`. Tasks touching `rules/`, `view/` or `replay/` also run `go test -race -count=1 ./rules/ ./view/ ./replay/`. Tasks 1–5 also run `make sim` and confirm the four chain heads are unchanged.
 - **The client holds no rules knowledge.** It renders views, options and server-supplied lines; it never computes legality, targets, costs or timing. Task 24 greps `web/src` for the forbidden vocabulary.
-- **Git.** Never bare `git stash`/`git stash pop`. Every commit ends with `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`. Work lands on `main` (the user consented at M0; push to `origin/main` is authorized). M2r runs in a parallel worktree in `cards/`, `effects/`, `rules/` — this plan touches `rules/` only in Task 1 (new file `rules/clone.go`, plus four lines in `rules/rng.go`) and `cards/` only in Task 2 (new file `cards/open.go`), so the two never edit the same file.
+- **Git.** Never bare `git stash`/`git stash pop`. No commit carries a `Co-Authored-By` or any AI-attribution trailer (user rule, 2026-09-05). Work lands on `main` (the user consented at M0; push to `origin/main` is authorized). M2r runs in a parallel worktree in `cards/`, `effects/`, `rules/` — this plan touches `rules/` only in Task 1 (new file `rules/clone.go`, plus four lines in `rules/rng.go`) and `cards/` only in Task 2 (new file `cards/open.go`), so the two never edit the same file.
 - **Comment discipline.** Doc comments state what the code does and why the shape is what it is; they do not narrate ledger history. Ruling IDs are cited only where the code would be surprising without them.
 
 ## Plan-level rulings (fixed here; the spec left names to the plan)
@@ -456,9 +456,7 @@ git commit -m "feat(rules): Engine.Clone and Log.Clone for host snapshots
 
 An engine copied at an intent boundary replays the same intents to the
 same chain head and RNG position, and shares no mutable state with the
-original. The PCG is kept on rng so its exact position can be copied.
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+original. The PCG is kept on rng so its exact position can be copied."
 ```
 
 ---
@@ -855,9 +853,7 @@ git add cards/open.go cards/open_test.go deck/ internal/testutil/decks.go
 git commit -m "feat(deck): deck-list parser and cards.OpenCorpus as leaf packages
 
 The match host and gorged need both without importing internal/testutil,
-which now delegates to them.
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+which now delegates to them."
 ```
 
 ---
@@ -1240,9 +1236,7 @@ git commit -m "feat(view): Public and Omniscient visibility for spectators
 
 ProjectFor/RedactEventsFor take an explicit Visibility. Omniscient shows
 every hand and pool and hides exactly library order (Secret Shuffle and
-Secret Note keep only their shape). NoSeat names a spectator viewer.
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+Secret Note keep only their shape). NoSeat names a spectator viewer."
 ```
 
 ---
@@ -1396,6 +1390,24 @@ func TestCardViewCarriesCombatRelationships(t *testing.T) {
 	}
 }
 
+func TestZoneListsSkipFacelessObjects(t *testing.T) {
+	// A resolved triggered ability is parked in exile (CR 608.2m has no
+	// "ceases to exist" zone here); it is not a card and must not appear as
+	// a nameless entry in anyone's exile list.
+	g, id := twoSeatWith(t, watcherSrc)
+	events.Apply(g, events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	events.Apply(g, events.Event{Kind: events.TriggerPush, Player: 0, Obj: id, Amount: 0})
+	ab := g.Stack[0]
+	events.Apply(g, events.Event{Kind: events.MoveZone, Obj: ab, From: state.ZStack, To: state.ZExile})
+	v := Project(g, flatChars{g}, 0, nil)
+	if len(v.Players[0].Exile) != 0 {
+		t.Fatalf("exile shows a faceless object: %+v", v.Players[0].Exile)
+	}
+	if len(v.Stack) != 0 {
+		t.Fatalf("stack still shows the resolved ability: %+v", v.Stack)
+	}
+}
+
 func TestTargetLabelIsEmptyWhenNothingDeclaresOne(t *testing.T) {
 	g, id := twoSeatWith(t, watcherSrc)
 	events.Apply(g, events.Event{Kind: events.PutOnStack, Obj: id, Player: 0, From: state.ZHand, To: state.ZStack})
@@ -1522,6 +1534,8 @@ func targetLabel(o *state.Object) string {
 
 and `targetViews(targets []state.Target, label string)` sets `Label: label` on each. Update the one other `targetViews` caller if any (`grep -n targetViews view/`).
 
+In `cardViews`, skip objects whose `Face()` is nil as well as nil objects: a resolved ability object parked in exile (rules/stack.go's CR 608.2m approximation) is not a card and must not render as a nameless exile entry. Add the comment "// An ability object (no Face) is engine bookkeeping, not a card in this zone." at the skip.
+
 - [ ] **Step 4: Run the tests**
 
 Run: `go test ./view/ -count=1 && go test -race -count=1 ./view/`
@@ -1534,9 +1548,7 @@ Expected: clean, `20`.
 
 ```bash
 git add view/view.go view/identity_test.go
-git commit -m "feat(view): printing identity, object token, mana cost, trigger kind, target labels
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+git commit -m "feat(view): printing identity, object token, mana cost, trigger kind, target labels"
 ```
 
 ---
@@ -1925,9 +1937,7 @@ Expected: clean, `20`.
 
 ```bash
 git add view/describe.go view/describe_test.go
-git commit -m "feat(view): Describe renders one deterministic transcript line per event
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+git commit -m "feat(view): Describe renders one deterministic transcript line per event"
 ```
 
 ---
@@ -2069,9 +2079,7 @@ Run: `make lint && go build ./... && go test -count=1 ./...`
 
 ```bash
 git add internal/archtest/
-git commit -m "test(arch): pin the time, dependency-order and math/rand constraints
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+git commit -m "test(arch): pin the time, dependency-order and math/rand constraints"
 ```
 
 ---
@@ -2569,9 +2577,7 @@ Run: `make lint && go build ./... && go test -count=1 ./...`
 
 ```bash
 git add protocol/
-git commit -m "feat(protocol): versioned envelope, frame bodies, wire event, goldens
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+git commit -m "feat(protocol): versioned envelope, frame bodies, wire event, goldens"
 ```
 
 ---
@@ -3034,9 +3040,7 @@ Run: `go build ./... && go test -count=1 ./...`
 git add internal/tsgen/ cmd/gentypes/ web/src/protocol.ts Makefile
 git commit -m "feat(gentypes): generate web/src/protocol.ts from package protocol
 
-make lint fails when the committed TypeScript is stale.
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+make lint fails when the committed TypeScript is stale."
 ```
 
 ---
@@ -3967,9 +3971,7 @@ git add host/
 git commit -m "feat(host): table registry and the match loop
 
 One goroutine per table plays bot matches with seeds derived from the
-table's own; the same configuration yields the same chain head twice.
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+table's own; the same configuration yields the same chain head twice."
 ```
 
 ---
@@ -4785,9 +4787,7 @@ git commit -m "feat(host): sessions, subscriptions, frame fan-out, ring resume, 
 
 Focus subscribers get a snapshot then events and decisions in chain
 order; overview subscribers get one coalesced widget per table; a slow
-reader overflows and is dropped without the engine ever waiting.
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+reader overflows and is dropped without the engine ever waiting."
 ```
 
 ---
@@ -5183,9 +5183,7 @@ git commit -m "feat(host): turn-start snapshots, ViewAt and Events
 
 View at seq N replays at most one turn from a cloned engine and applies
 the rest of the burst onto the clone; the property test pins it equal to
-a full replay from genesis.
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+a full replay from genesis."
 ```
 
 ---
@@ -5917,9 +5915,7 @@ git commit -m "feat(host): append-only persistence, sidecars, tables.json, resta
 
 Two runs of one configuration write byte-identical files; a restart marks
 live matches aborted, serves finished ones from disk, and continues a
-perpetual table at k+1.
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+perpetual table at k+1."
 ```
 
 ---
@@ -6145,9 +6141,7 @@ Run: `make lint && go build ./... && go test -count=1 ./...`
 
 ```bash
 git add host/
-git commit -m "feat(host): a crashed match halts its table with a report, never restarts
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+git commit -m "feat(host): a crashed match halts its table with a report, never restarts"
 ```
 
 ---
@@ -6719,9 +6713,7 @@ Run: `make lint && go build ./... && go test -count=1 ./...`
 
 ```bash
 git add host/httpapi/
-git commit -m "feat(httpapi): JSON GETs, subscribe/unsubscribe, error mapping, authorizer hook
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+git commit -m "feat(httpapi): JSON GETs, subscribe/unsubscribe, error mapping, authorizer hook"
 ```
 
 ---
@@ -7292,9 +7284,7 @@ Run: `make lint && go build ./... && go test -count=1 ./...`
 
 ```bash
 git add host/httpapi/
-git commit -m "feat(httpapi): SSE stream with Last-Event-ID resume, widget ticker, static SPA
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+git commit -m "feat(httpapi): SSE stream with Last-Event-ID resume, widget ticker, static SPA"
 ```
 
 ---
@@ -7622,9 +7612,7 @@ Expected: clean; `0`.
 
 ```bash
 git add cmd/gorged/ .gitignore Makefile README.md
-git commit -m "feat(gorged): the table server binary with the client embed point
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+git commit -m "feat(gorged): the table server binary with the client embed point"
 ```
 
 ---
@@ -8022,9 +8010,7 @@ Run: `make lint` (from the root) — clean. `go build ./cmd/gorged && ./gorged -
 git add web/ Makefile
 git commit -m "feat(web): Svelte scaffold, stream, api, router; lint gains svelte-check and eslint
 
-Svelte <x.y.z>, Vite <x.y.z>, Vitest <x.y.z>, Playwright <x.y.z>.
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+Svelte <x.y.z>, Vite <x.y.z>, Vitest <x.y.z>, Playwright <x.y.z>."
 ```
 
 (fill in the four versions from `web/package.json`). Confirm `git status` shows nothing under `cmd/gorged/webdist/` but `.keep` and no `node_modules`.
@@ -8256,9 +8242,7 @@ Run: `cd web && npm run test && npm run check && npm run lint` — PASS.
 
 ```bash
 git add web/src/lib/dvr.ts web/src/lib/dvr.test.ts
-git commit -m "feat(web): DVR cursor reducer
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+git commit -m "feat(web): DVR cursor reducer"
 ```
 
 ---
@@ -8504,9 +8488,7 @@ Run: `cd web && npm run test && npm run check && npm run lint`. Then in one term
 
 ```bash
 git add web/src
-git commit -m "feat(web): overview grid of table widgets with a shared feed
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+git commit -m "feat(web): overview grid of table widgets with a shared feed"
 ```
 
 ---
@@ -8788,9 +8770,7 @@ Run: `cd web && npm run test && npm run check && npm run lint`. With `gorged -ta
 
 ```bash
 git add web/src
-git commit -m "feat(web): focused table view — board, rail, identity bars, recent strip, transcript
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+git commit -m "feat(web): focused table view — board, rail, identity bars, recent strip, transcript"
 ```
 
 ---
@@ -9005,9 +8985,7 @@ Run: `cd web && npm run test && npm run check && npm run lint`. With `gorged -ta
 
 ```bash
 git add web/src
-git commit -m "feat(web): DVR bar, view cache, finished-match playback
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+git commit -m "feat(web): DVR bar, view cache, finished-match playback"
 ```
 
 ---
@@ -9099,9 +9077,7 @@ Run: `cd web && npm run test && npm run check && npm run lint`; with a paced `go
 
 ```bash
 git add web/src
-git commit -m "feat(web): SVG arrow overlay for targets, attacks and blocks
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+git commit -m "feat(web): SVG arrow overlay for targets, attacks and blocks"
 ```
 
 ---
@@ -9298,9 +9274,7 @@ Run: `cd web && npm run test && npm run check && npm run lint`; with a paced `go
 
 ```bash
 git add web/src
-git commit -m "feat(web): card images by exact Scryfall name with caching, spacing and text fallback
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+git commit -m "feat(web): card images by exact Scryfall name with caching, spacing and text fallback"
 ```
 
 ---
@@ -9472,9 +9446,7 @@ Run: `make test-e2e-web` — three specs PASS (needs `.cards/`; a machine withou
 
 ```bash
 git add web/playwright.config.ts web/e2e internal/archtest/arch_test.go Makefile web/src
-git commit -m "test(web): Playwright against a real gorged; client vocabulary gate
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+git commit -m "test(web): Playwright against a real gorged; client vocabulary gate"
 ```
 
 ---
@@ -9641,9 +9613,7 @@ In a browser at `http://localhost:8080/`: four live widgets; focus one → omnis
 git add host/soak_test.go Makefile README.md AGENTS.md docs/superpowers/specs/2026-09-04-gorge-m2a-tables-spectators-design.md
 git commit -m "docs+test: M2a soak test, documentation, done-when walk
 
-<paste: soak's last three heap lines; the four chain heads; sim 20/20; report 45.3%; e2e 3/3>
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+<paste: soak's last three heap lines; the four chain heads; sim 20/20; report 45.3%; e2e 3/3>"
 git ls-files | grep -c '\.txt$'   # must print 0 before pushing
 git push origin main
 ```
