@@ -1,0 +1,30 @@
+{
+  "v": 1,
+  "t": "widget",
+  "id": 4182,
+  "table": "t1",
+  "match": 7,
+  "seq": 9130,
+  "body": {
+    "turn": 3,
+    "step": "main1",
+    "phase": "main1",
+    "active": 0,
+    "priority": 2,
+    "life": [
+      20,
+      17,
+      12,
+      20
+    ],
+    "lost": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "stack_depth": 1,
+    "last": "Bob casts Bolt #2",
+    "state": "live"
+  }
+}
