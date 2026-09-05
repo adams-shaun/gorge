@@ -53,7 +53,12 @@ func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
 // TargetMin$ 0 is legal -- requirement N2: a spell that MAY target zero
 // things resolves untargeted when no legal target exists -- while a negative
 // Min or a Max below Min is clamped back to a sane bound (never below 1, so
-// a truncated 0 max still asks for at least one).
+// a truncated 0 max still asks for at least one). The rule is clamp, not
+// ignore: TargetMax$ is parsed whatever it reads (TargetMax$ 0 and even a
+// negative TargetMax$ are both taken seriously) and then clamped so
+// max >= 1 and max >= min. A discarded parameter and a clamped one both
+// resolve to the same number when used alone, but they differ the moment
+// TargetMin$ is also present -- this says which one the engine means.
 func targetBounds(sa *cards.SA) (int, int) {
 	min, max := 1, 1
 	if v, ok := sa.Params["TargetMin"]; ok {
@@ -62,12 +67,15 @@ func targetBounds(sa *cards.SA) (int, int) {
 		}
 	}
 	if v, ok := sa.Params["TargetMax"]; ok {
-		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil && n >= 1 {
+		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
 			max = n
 		}
 	}
 	if min < 0 {
 		min = 1
+	}
+	if max < 1 {
+		max = 1
 	}
 	if max < min {
 		max = min
@@ -102,6 +110,9 @@ func targetZones(sa *cards.SA) []state.Zone {
 			zones = append(zones, state.ZExile)
 		}
 	}
+	// An unknown token is deliberately dropped (reviewer minor 4): a typo'd
+	// zone falls through every case and leaves the battlefield default, and
+	// that documented, accepted behaviour is not something to fix.
 	if len(zones) == 0 {
 		zones = []state.Zone{state.ZBattlefield}
 	}
@@ -122,6 +133,10 @@ func (e *Engine) targetName(source state.ObjID) string {
 			}
 		}
 	}
+	// Falling back to the literal word "target" (reviewer minor 7) is
+	// deliberate: every caller has already given the decision a usable
+	// prompt, so this is only reached for an object with no name at all --
+	// an unreadable name there is better than a fabricated one.
 	return "target"
 }
 

@@ -285,13 +285,22 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// hand-seeded queue entry (clone_test's seeded fake), which never has
 	// ValidTgts$ -- mirror the nil-tolerance the TriggerPush out-of-range
 	// guard already provides.
-	e.drainAwaitsTarget = false
 	if pt.SA != nil && pt.SA.Params["ValidTgts"] != "" && len(e.G.Stack) > 0 &&
 		e.G.Obj(e.G.Stack[len(e.G.Stack)-1]) != nil {
 		id := e.G.Stack[len(e.G.Stack)-1]
 		e.askTarget(pt.Controller, id, pt.SA)
-		e.drainAwaitsTarget = e.Pending() != nil
 	}
+	// Fix round 1 (reviewer minor, cheap): derive drainAwaitsTarget from
+	// e.Pending() rather than clearing it first. The old form set it false
+	// up front and recomputed it only inside the ask branch, so a flag an
+	// OUTER caller had already set and not yet consumed was discarded the
+	// moment pushTrigger reached here without asking a target of its own.
+	// Deriving it from Pending() after the optional ask preserves a
+	// pre-existing true and recomputes the one decision the drain was paused
+	// on otherwise; askTarget may decline to ask (its TargetMin$ 0 / fizzle
+	// paths), which is exactly why the flag must come from the resulting
+	// pending state rather than from "we wanted to ask".
+	e.drainAwaitsTarget = e.Pending() != nil
 }
 
 // triggerOf re-reads the T: line a pending trigger came from, so nothing has
