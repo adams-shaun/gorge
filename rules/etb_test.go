@@ -86,12 +86,14 @@ func findByName(e *Engine, name string, p state.PlayerID) state.ObjID {
 	return 0
 }
 
-// findAbilityOption scans the pending decision (the current priority holder's
-// options) for an "activate" option of obj. The third parameter is the seat
-// an enriched caller might restrict to, kept for signature clarity; the
-// engine only ever activates from the priority holder, so the pending
-// decision is the right scope.
-func findAbilityOption(e *Engine, obj state.ObjID, _ state.PlayerID) (decision.Option, bool) {
+// findManaAbilityOption scans the pending decision (the current priority
+// holder's options) for an "activate" (mana) option of obj. The third
+// parameter is the seat an enriched caller might restrict to, kept for
+// signature clarity; the engine only ever activates from the priority
+// holder, so the pending decision is the right scope. (Renamed from
+// findAbilityOption so Task 10's own findAbilityOption -- which searches
+// the "ability" option kind by Ability index -- does not collide.)
+func findManaAbilityOption(e *Engine, obj state.ObjID, _ state.PlayerID) (decision.Option, bool) {
 	d := e.Pending()
 	if d == nil {
 		return decision.Option{}, false
@@ -233,7 +235,7 @@ func TestNeedleNamesACardAndCavernChoosesAType(t *testing.T) {
 		t.Fatal("name not recorded")
 	}
 	passToPlayerOne(t, e)
-	if _, ok := findAbilityOption(e, b, 0); ok {
+	if _, ok := findManaAbilityOption(e, b, 0); ok {
 		t.Fatal("the named card's ability was offered")
 	}
 	replayCheck(t, e, cfg)
