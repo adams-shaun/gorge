@@ -131,21 +131,47 @@ func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32) in
 // not exceed id's own current counters of that kind; and Tap requires id
 // (an already-battlefield source -- Task 10 activates from there) to be
 // untapped.
+//
+// The Sac check is a distinct-candidate feasibility check, not N independent
+// head-counts against the same board (fix round 1, reviewer Important 1):
+// the Sac parts of ONE cost are paid one after another, each consuming its
+// chosen permanents, so a cost with TWO Sac parts cannot be paid by the same
+// permanent twice. A `Sac<1/Creature> Sac<1/Creature>` cost must therefore
+// not be offered with a single creature on the battlefield, and a
+// `Sac<1/Creature.Red> Sac<1/Creature.Green> Sac<1/Creature.White>` cost
+// cannot count one red-and-green creature towards both the red and the green
+// part. Each part's N candidates are reserved (distinct, in zone-walk order)
+// as the parts are walked, mirroring exactly what sacAsk offers; a part with
+// fewer than N un-reserved candidates makes the whole cost unpayable, so the
+// option is never offered (the totality rule an option that cannot be paid
+// should never be offered). Reserving the first N matches in zone order is a
+// sound test -- it never reports payable when no distinct assignment exists --
+// and never illegal: a truly-payable cost where the FIRST N happen to collide
+// with a scarcer later part is conservatively withheld (the engine's standing
+// rule is that wrongly withholding a legal option is safe, while wrongly
+// offering an unpayable one is an illegal game action).
 func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic)
 	if !mana.CanPay(e.G.Players[p].Pool) {
 		return false
 	}
+	reserved := map[state.ObjID]bool{}
 	for _, part := range cost.Sac {
-		var n int32
+		var avail []state.ObjID
 		for _, oid := range e.G.Zone(state.ZBattlefield, p) {
+			if reserved[oid] { // an earlier Sac part already claimed this one
+				continue
+			}
 			if effects.MatchesSpec(e.G, part.Spec, oid, p) {
-				n++
+				avail = append(avail, oid)
 			}
 		}
-		if n < part.N {
+		if int32(len(avail)) < part.N {
 			return false
+		}
+		for i := int32(0); i < part.N; i++ {
+			reserved[avail[i]] = true
 		}
 	}
 	if o := e.G.Obj(id); o != nil {
@@ -357,15 +383,21 @@ func (e *Engine) delveAsk() bool {
 }
 
 // sacAsk offers the next unsettled Sac cost part, walking pc.cost.Sac in
-// order (pc.sacPart). castable already required at least N matching
-// permanents before this option was ever offered, so a part with too few
-// candidates is a board that changed under a hand-built intent -- and the
-// totality rule is that the cast must not strand on an unanswerable
-// decision, so such a part is skipped (the commit stage's own payMana/
-// MoveZone will still fail honestly if the cost is genuinely unpayable)
-// rather than asked with Min=Max=0 and no options. Already-chosen
-// sacrifices are excluded from the candidates so one permanent can never
-// be chosen for two Sac parts of the same cost.
+// order (pc.sacPart). The chosen sacrifices are excluded from each later
+// part's candidates so one permanent can never pay two Sac parts of the
+// same cost. castable already required a distinct-candidate assignment
+// before this option was ever offered (the fix-round-1 gate), so a part
+// with too few candidates here is a board that changed under the flow --
+// most directly, an earlier part of the SAME cost consumed the remaining
+// matching permanents (an `Sac` part earlier in the same cost, or a board
+// that changed under a hand-built intent) that the later part now needs.
+// The totality rule is that a cost that cannot be fully paid must not be
+// committed with only part of it paid, so rather than skip the part and
+// let commitCast validate mana only, such a part aborts the whole cast/
+// activation cleanly, exactly as if it was never offered. No sacrifice has
+// actually moved yet -- sacAsk only records the choices into pc.sacs; the
+// MoveZone events are emitted by commitCast -- so clearing e.cast restores
+// the pre-offer board and the Note leaves nothing behind.
 func (e *Engine) sacAsk() bool {
 	pc := e.cast
 	for pc.sacPart < len(pc.cost.Sac) {
@@ -387,8 +419,13 @@ func (e *Engine) sacAsk() bool {
 		}
 		n := int(part.N)
 		if n <= 0 || n > len(candidates) {
-			pc.sacPart++
-			continue
+			// A cost that can no longer be fully paid must not commit half
+			// paid (fix round 1, reviewer Important 1; see the doc above for
+			// why this is unreachable from a well-formed offer after the
+			// castable gate). Abort the whole thing; nothing has moved yet.
+			e.cast, e.choosing = nil, chooseNone
+			e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "sacrifice cost no longer payable; cast/activation aborted"})
+			return true
 		}
 		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
 			Prompt: "Sacrifice a permanent to cast " + e.G.Obj(pc.card).Face().Name,
@@ -670,6 +707,50 @@ func (e *Engine) commitCast() {
 		// choice already recorded) resolves on entry.
 		e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: pc.from, To: state.ZBattlefield})
 		e.emit(events.Event{Kind: events.LandPlayed, Player: pc.player})
+		return
+	}
+	if pc.ability >= 0 {
+		// Task 10: an activated ability. The shared stages above (X, Delve --
+		// never present on an ability --, Sac) have already run and been
+		// paid/recorded through the same pendingCast flow; what differs from
+		// a spell here is the cost's remaining non-mana parts and the way the
+		// subject is put on the stack. Pay mana, then each Tap (a Tap event),
+		// each SubCounter part (a CounterChange of -N), and every chosen
+		// sacrifice; then AbilityPush mints the ability object onto the stack
+		// and, when the ability declares ValidTgts$, asks its controller for
+		// targets against the freshly minted top-of-stack object -- the same
+		// shape pushTrigger (rules/trigger_queue.go) uses for a trigger's own
+		// target ask. An unpayable pool at this stage (a stale intent from a
+		// board that changed) aborts with a Note exactly like a spell does.
+		mana := pc.cost.WithX(pc.x)
+		if !e.payMana(pc.player, mana) {
+			e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "activation aborted: cost no longer payable"})
+			return
+		}
+		for _, id := range pc.delve {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
+		}
+		if pc.cost.Tap {
+			e.emit(events.Event{Kind: events.Tap, Obj: pc.card})
+		}
+		for _, part := range pc.cost.SubCounter {
+			e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: part.Spec, Amount: -part.N})
+		}
+		for _, id := range pc.sacs {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+		}
+		e.emit(events.Event{Kind: events.AbilityPush, Obj: pc.card, Player: pc.player, Amount: int32(pc.ability)})
+		// AbilityPush mints a NEW stack object (different id from the source
+		// permanent); targets must be recorded on that object so resolveTop
+		// (stack.go's ability branch, which reads o.Targets off the object it
+		// is resolving) sees them. askTarget with the top-of-stack id, exactly
+		// pushTrigger's own post-TriggerPush ask.
+		ab := o.Face().Abilities[pc.ability]
+		if len(e.G.Stack) > 0 {
+			if top := e.G.Obj(e.G.Stack[len(e.G.Stack)-1]); top != nil && ab.Params["ValidTgts"] != "" {
+				e.askTarget(pc.player, e.G.Stack[len(e.G.Stack)-1], ab)
+			}
+		}
 		return
 	}
 	mana := pc.cost.WithX(pc.x)
