@@ -1,7 +1,9 @@
 package host
 
 import (
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/protocol"
+	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
 )
 
@@ -49,15 +51,22 @@ func (r *Registry) widgetFrame(t *table, m *match, last string) protocol.Frame {
 	return frame(protocol.TWidget, t, m.k, head(m), w)
 }
 
-// eventBodies redacts and describes the events from index from, against
-// the state that produced them (RedactEventsFor's convention). Called with
-// m.mu held for reading. Describe runs on the REDACTED event so a hidden
-// card's name never reaches the line.
-func (r *Registry) eventBodies(t *table, m *match, from int) []protocol.EventBody {
-	evs := view.RedactEventsFor(m.e.G, m.e.L.Events[from:], view.NoSeat, t.cfg.Spectator)
-	out := make([]protocol.EventBody, 0, len(evs))
-	for _, ev := range evs {
-		out = append(out, protocol.EventBody{Event: protocol.EventFrom(ev), Line: view.Describe(m.e.G, ev)})
+// eventBodies redacts and describes evs against g, the state that produced
+// them (RedactEventsFor's convention). Describe runs on the REDACTED event
+// so a hidden card's name never reaches the line.
+//
+// Takes g and evs rather than a live (*table, *match) (fix round 1, FL-42)
+// so a caller that cannot hold m.mu for the whole call — Events, over a
+// caller-controlled since that can span the entire log — can copy g
+// (Clone) and evs (a slice copy) under a brief read lock and format them
+// afterwards. fanout/onMatchStart/onMatchEnd still call this under their
+// own already-held lock, passing m.e.G and m.e.L.Events[from:] directly:
+// no clone needed there, since they never release the lock mid-call.
+func eventBodies(vis view.Visibility, g *state.Game, evs []events.Event) []protocol.EventBody {
+	red := view.RedactEventsFor(g, evs, view.NoSeat, vis)
+	out := make([]protocol.EventBody, 0, len(red))
+	for _, ev := range red {
+		out = append(out, protocol.EventBody{Event: protocol.EventFrom(ev), Line: view.Describe(g, ev)})
 	}
 	return out
 }
@@ -114,7 +123,7 @@ func (r *Registry) fanout(t *table, m *match, before int) {
 	m.mu.RLock()
 	var evFrames []protocol.Frame
 	var widget protocol.Frame
-	bodies := r.eventBodies(t, m, before)
+	bodies := eventBodies(t.cfg.Spectator, m.e.G, m.e.L.Events[before:])
 	if focus {
 		evFrames = make([]protocol.Frame, 0, len(bodies))
 		for _, b := range bodies {
@@ -176,7 +185,7 @@ func (r *Registry) onMatchStart(t *table, m *match) {
 		snap = r.snapshotFrame(t, m)
 	}
 	if overview {
-		bodies := r.eventBodies(t, m, 0)
+		bodies := eventBodies(t.cfg.Spectator, m.e.G, m.e.L.Events)
 		t.lastLine = lastLine(bodies, t.lastLine)
 		widget = r.widgetFrame(t, m, t.lastLine)
 	}
@@ -208,7 +217,7 @@ func (r *Registry) onMatchEnd(t *table, m *match) {
 	end := frame(protocol.TMatchEnd, t, m.k, head(m), protocol.MatchEnd{Result: m.result, Winner: m.winner, Head: m.head})
 	var widget protocol.Frame
 	if overview {
-		bodies := r.eventBodies(t, m, tailFrom(m, 64))
+		bodies := eventBodies(t.cfg.Spectator, m.e.G, m.e.L.Events[tailFrom(m, 64):])
 		t.lastLine = lastLine(bodies, t.lastLine)
 		widget = r.widgetFrame(t, m, t.lastLine)
 	}
