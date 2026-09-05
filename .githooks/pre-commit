@@ -1,0 +1,27 @@
+#!/bin/sh
+# Enforce per-package test-time budgets (Task TT). Runs `go run ./cmd/testtime
+# -changed` when the index contains a staged .go file, then stages every
+# TEST_HISTORY.md the tool touched. SKIP_TESTTIME=1 bypasses entirely.
+if [ -n "$SKIP_TESTTIME" ]; then
+	exit 0
+fi
+
+# Skip when no staged .go file.
+if ! git diff --cached --name-only | grep -q '\.go$'; then
+	exit 0
+fi
+
+echo "pre-commit: measuring test time for changed packages"
+if ! go run ./cmd/testtime -changed; then
+	echo "pre-commit: test-time budget exceeded; raise budget_s in the package's TEST_HISTORY.md with a Test-Budget-Approved: trailer" >&2
+	exit 1
+fi
+
+# Stage every TEST_HISTORY.md the tool touched.
+touched=$(git status --porcelain | awk '$1 ~ /^[AM]/ && $2 ~ /TEST_HISTORY\.md$/ {print $2}')
+if [ -n "$touched" ]; then
+	echo "pre-commit: staging TEST_HISTORY.md:"
+	echo "$touched" | sed 's/^/  /'
+	git add $touched
+fi
+exit 0
