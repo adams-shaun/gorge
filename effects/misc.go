@@ -92,6 +92,15 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 // on the stack by the time this resolves (already resolved, or itself
 // countered by an earlier effect in the same response), it is simply skipped
 // rather than moved from wherever it now sits.
+//
+// Task 9 fix round 1 (Important 2): a spell cast for its flashback cost is
+// exiled "any time it would leave the stack" (CR 702.33b), which includes
+// being countered -- spellRestZone (rules/stack.go) covers every exit in
+// resolveTop, but this primitive hard-coded the graveyard, so a countered
+// flashbacked spell (Force of Will / Daze / Counterspell against Cabal
+// Therapy) returned to the graveyard and could be flashbacked again. The
+// cast flags are already readable here (effects/filter.go reads them the
+// same way), so the destination is chosen the same way spellRestZone does.
 func effCounter(h Host, c *Ctx, sa *cards.SA) {
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
@@ -101,8 +110,12 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZStack {
 			continue
 		}
+		to := state.ZGraveyard
+		if o.CastFlags&state.FlagFlashback != 0 {
+			to = state.ZExile
+		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
-			From: state.ZStack, To: state.ZGraveyard, Text: "countered"})
+			From: state.ZStack, To: to, Text: "countered"})
 	}
 }
 
