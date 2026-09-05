@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -110,19 +111,79 @@ func (e *Engine) castRestricted(p state.PlayerID, id state.ObjID) bool {
 	return false
 }
 
-// abilityRestricted reports whether id's (mana) ability is forbidden from
-// being activated (CantBeActivated). A nonexistent object has no ability to
-// restrict, so it degrades to false rather than dereferencing a nil Object.
-func (e *Engine) abilityRestricted(id state.ObjID) bool {
+// abilityRestricted reports whether id's specific ability ab is forbidden
+// from being activated (CantBeActivated), scoped by the restriction's
+// ValidSA$ to the ability being considered (Task 10: p, the would-be
+// activator, scopes Activator$; ab, the exact activated ability, scopes
+// ValidSA$). A nonexistent object has no ability to restrict, so it degrades
+// to false rather than dereferencing a nil Object.
+func (e *Engine) abilityRestricted(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
 	o := e.G.Obj(id)
 	if o == nil {
 		return false
 	}
 	for _, sv := range e.activeStatics("CantBeActivated") {
-		if !e.actorMatches(sv, "Activator", o.Controller) {
+		if !e.actorMatches(sv, "Activator", p) {
 			continue
 		}
-		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+			continue
+		}
+		if activatedMatchesValidSA(ab, sv.Params["ValidSA"]) {
+			return true
+		}
+	}
+	return false
+}
+
+// activatedMatchesValidSA reports whether a CantBeActivated restriction whose
+// ValidSA$ reads validSA applies to the specific activated ability ab. The
+// grammar is Forge's comma-separated OR list of "<kind>.<constraint>" values.
+//
+// An absent ValidSA$ applies to every activated ability (including mana). A
+// value whose kind is not "Activated" (a Spell / Instant / Sorcery shape)
+// describes a cast, never an activation, so it does not match an ability.
+// Within the Activated kind: no constraint matches everything; "!ManaAbility"
+// matches everything but a mana ability (ab.API == "Mana"); "ManaAbility"
+// matches only a mana ability; and a constraint this build cannot evaluate --
+// Loyalty, Equip, Crew+Vehicle, hasTapCost, ... -- DENIES, per the "a
+// restriction that cannot be evaluated must deny, not silently allow" rule:
+// erring toward applying a CantBeActivated is the safe direction, because the
+// consequence of wrongly allowing an activation a static forbids is an illegal
+// game action, while wrongly blocking one merely withholds an option the
+// activator could have taken.
+func activatedMatchesValidSA(ab *cards.SA, validSA string) bool {
+	v := strings.TrimSpace(validSA)
+	if v == "" {
+		return true // no ValidSA$: applies to every activated ability
+	}
+	for _, alt := range strings.Split(v, ",") {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		kind, constraint := alt, ""
+		if i := strings.IndexByte(alt, '.'); i >= 0 {
+			kind, constraint = alt[:i], alt[i+1:]
+		}
+		if kind != "Activated" {
+			continue
+		}
+		if constraint == "" {
+			return true
+		}
+		switch constraint {
+		case "!ManaAbility":
+			if ab.API != "Mana" {
+				return true
+			}
+			// else: mana abilities are expressly spared; try the next alt
+		case "ManaAbility":
+			if ab.API == "Mana" {
+				return true
+			}
+		default:
+			// Unevaluable constraint under the Activated kind: deny (see doc).
 			return true
 		}
 	}

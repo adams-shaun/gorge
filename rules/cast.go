@@ -672,6 +672,50 @@ func (e *Engine) commitCast() {
 		e.emit(events.Event{Kind: events.LandPlayed, Player: pc.player})
 		return
 	}
+	if pc.ability >= 0 {
+		// Task 10: an activated ability. The shared stages above (X, Delve --
+		// never present on an ability --, Sac) have already run and been
+		// paid/recorded through the same pendingCast flow; what differs from
+		// a spell here is the cost's remaining non-mana parts and the way the
+		// subject is put on the stack. Pay mana, then each Tap (a Tap event),
+		// each SubCounter part (a CounterChange of -N), and every chosen
+		// sacrifice; then AbilityPush mints the ability object onto the stack
+		// and, when the ability declares ValidTgts$, asks its controller for
+		// targets against the freshly minted top-of-stack object -- the same
+		// shape pushTrigger (rules/trigger_queue.go) uses for a trigger's own
+		// target ask. An unpayable pool at this stage (a stale intent from a
+		// board that changed) aborts with a Note exactly like a spell does.
+		mana := pc.cost.WithX(pc.x)
+		if !e.payMana(pc.player, mana) {
+			e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "activation aborted: cost no longer payable"})
+			return
+		}
+		for _, id := range pc.delve {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
+		}
+		if pc.cost.Tap {
+			e.emit(events.Event{Kind: events.Tap, Obj: pc.card})
+		}
+		for _, part := range pc.cost.SubCounter {
+			e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: part.Spec, Amount: -part.N})
+		}
+		for _, id := range pc.sacs {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+		}
+		e.emit(events.Event{Kind: events.AbilityPush, Obj: pc.card, Player: pc.player, Amount: int32(pc.ability)})
+		// AbilityPush mints a NEW stack object (different id from the source
+		// permanent); targets must be recorded on that object so resolveTop
+		// (stack.go's ability branch, which reads o.Targets off the object it
+		// is resolving) sees them. askTarget with the top-of-stack id, exactly
+		// pushTrigger's own post-TriggerPush ask.
+		ab := o.Face().Abilities[pc.ability]
+		if len(e.G.Stack) > 0 {
+			if top := e.G.Obj(e.G.Stack[len(e.G.Stack)-1]); top != nil && ab.Params["ValidTgts"] != "" {
+				e.askTarget(pc.player, e.G.Stack[len(e.G.Stack)-1], ab)
+			}
+		}
+		return
+	}
 	mana := pc.cost.WithX(pc.x)
 	mana.Generic -= int32(len(pc.delve))
 	if mana.Generic < 0 {

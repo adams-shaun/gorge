@@ -59,6 +59,18 @@ func (b *testBot) answer(isMain bool, d *decision.Decision) decision.Intent {
 				}
 			}
 		}
+		// Task 10: in a main phase, when casting found nothing to do, take the
+		// first "ability" option offered (mirror of seat/bot.go's own
+		// block, verbatim). Replacements fall through to the explicit pass
+		// below.
+		if isMain {
+			for _, o := range d.Options {
+				if o.Kind == "ability" {
+					in.Choices = []int{o.Index}
+					return clamp(d, in)
+				}
+			}
+		}
 		// Ruling T25-g (fix round 2): explicitly pass here, before clamp
 		// ever runs. This is the common case -- outside a main phase, or
 		// with nothing affordable in one -- and legalActions
