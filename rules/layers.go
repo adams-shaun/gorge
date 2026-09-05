@@ -9,12 +9,127 @@ package rules
 
 import (
 	"sort"
+	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
+
+// staticEffects reads every battlefield permanent's own S:Mode$ Continuous
+// statics into ContinuousEffects, so a card whose entire rules text is a
+// static (an Equipment's EquippedBy pump, an Aura's EnchantedBy pump, a
+// vanilla lord's global pump) actually applies instead of silently doing
+// nothing. Task 14 is what first wires static text into the layer system:
+// until it, every S: line this build cared about was a play restriction
+// (CantBeCast etc.), and the Mode$ Continuous statics every creature-lord
+// and echo of Equipment/Enchant text carries were parsed but never turned
+// into an effect -- a card with nothing but static text read as "does
+// nothing".
+//
+// Reading these live off the battlefield permanent (the same scan activeStatics
+// performs for restrictions) rather than registering them at ETB means a
+// permanent placed on the battlefield by any path -- cast, a raw MoveZone in
+// a test -- is covered, the effect expiry problem is solved for free (active()
+// only walks battlefield permanents, so a departed source contributes nothing
+// this call), and there is no registration event to keep in step with replay.
+// Each static breaks into one effect per layer it touches -- AddPower/
+// AddToughness is a layer-7 modify, AddKeyword a layer-6 grant, AddTypes a
+// layer-4 type change -- so the layer ordering Derived applies (CR 613) still
+// holds when one static carries both a pump and a keyword (exactly the Sword
+// of Fire and Ice / Umezawa shape Task 14's tests build). The scan order is
+// deterministic: AliveFrom(0) walks seats in fixed APNAP order, each
+// battlefield zone is a slice, and each face's Statics is its parsed script
+// order -- nothing here ranges a map, so the resulting option/view/settle
+// order stays reproducible run to run (determinism requirement 3 of the
+// dispatch).
+func (e *Engine) staticEffects() []ContinuousEffect {
+	var out []ContinuousEffect
+	for _, p := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o == nil {
+				continue
+			}
+			f := o.Face()
+			if f == nil {
+				continue
+			}
+			for _, st := range f.Statics {
+				if st.Mode != "Continuous" {
+					continue
+				}
+				affects := st.Params["Affected"]
+				if affects == "" {
+					continue
+				}
+				base := ContinuousEffect{
+					Source:     id,
+					Timestamp:  o.Timestamp,
+					Controller: o.Controller,
+					Affects:    affects,
+				}
+				if hasStat(st, "AddPower") || hasStat(st, "AddToughness") {
+					pt := base
+					pt.Layer, pt.Sub = LPT, SubModify
+					pt.AddPower = statInt(st, "AddPower")
+					pt.AddToughness = statInt(st, "AddToughness")
+					out = append(out, pt)
+				}
+				if hasStat(st, "AddKeyword") {
+					kw := base
+					kw.Layer = LAbilities
+					kw.AddKeywords = statList(st, "AddKeyword")
+					out = append(out, kw)
+				}
+				if hasStat(st, "AddType") || hasStat(st, "AddTypes") {
+					ty := base
+					ty.Layer = LType
+					ty.AddTypes = statList(st, "AddTypes")
+					if len(ty.AddTypes) == 0 {
+						ty.AddTypes = statList(st, "AddType")
+					}
+					out = append(out, ty)
+				}
+			}
+		}
+	}
+	return out
+}
+
+// hasStat reports whether a static line carries the named parameter.
+func hasStat(st cards.Static, key string) bool {
+	_, ok := st.Params[key]
+	return ok
+}
+
+// statInt parses an S: line's numeric parameter, defaulting to 0 for a
+// missing or unparseable value. Unlike parseAmount this tolerates negative
+// values, because a static pump can lower power/toughness (-1) while
+// parseAmount's clamp exists for the cost/characteristic modes that must
+// never go negative.
+func statInt(st cards.Static, key string) int32 {
+	n, err := strconv.Atoi(strings.TrimSpace(st.Params[key]))
+	if err != nil {
+		return 0
+	}
+	return int32(n)
+}
+
+// statList splits a comma-separated additive parameter (AddKeyword,
+// AddTypes) into its members.
+func statList(st cards.Static, key string) []string {
+	var out []string
+	for _, v := range strings.Split(st.Params[key], ",") {
+		v = strings.TrimSpace(v)
+		if v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
+}
 
 // Layer, Sublayer and ContinuousEffect moved to state/continuous.go in Task
 // 19c, so effects primitives (which sit below rules and must never import
@@ -115,6 +230,14 @@ func (e *Engine) active() []ContinuousEffect {
 		}
 		out = append(out, ce)
 	}
+	// The static-derived effects come from the memoized scan (see
+	// Engine.staticContinuous): refreshed once per emitted event, not per
+	// Derived call, so a board-wide scan does not dominate the hottest path.
+	if e.staticEpoch != len(e.L.Events) {
+		e.staticEpoch = len(e.L.Events)
+		e.staticContinuous = e.staticEffects()
+	}
+	out = append(out, e.staticContinuous...)
 	sort.SliceStable(out, func(i, j int) bool {
 		if out[i].Layer != out[j].Layer {
 			return out[i].Layer < out[j].Layer
