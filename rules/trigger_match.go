@@ -103,7 +103,16 @@ func (e *Engine) controllerOf(id state.ObjID) state.PlayerID {
 // appends to e.pendingTriggers with a context whose Remembered holds the
 // triggering object; putTriggersOnStack later drains that queue onto the
 // stack in APNAP order.
-func (e *Engine) checkTriggers(ev events.Event) {
+//
+// lki is the object a MoveZone/Draw/PutOnStack event's own Obj was, just
+// before emit applied the event (nil for every other event kind, or if that
+// object could not be found -- see emit). It is only ever meaningful for
+// the object the event was actually about, so a matched trigger's Ctx.LKI
+// is set from it only when lki.ID == ev.Obj; every other trigger this same
+// event happens to also fire (a different object's own ChangesZone
+// watching the same move) sees LKI as nil, since lki describes ev.Obj, not
+// them.
+func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 	e.forEachObject(func(id state.ObjID) {
 		o := e.G.Obj(id)
 		if o == nil {
@@ -143,6 +152,10 @@ func (e *Engine) checkTriggers(ev events.Event) {
 				// nothing to run.
 				continue
 			}
+			var objLKI *state.Object
+			if lki != nil && lki.ID == ev.Obj {
+				objLKI = lki
+			}
 			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 				Source:     id,
 				Controller: o.Controller,
@@ -152,6 +165,7 @@ func (e *Engine) checkTriggers(ev events.Event) {
 					Source:     id,
 					Controller: o.Controller,
 					Remembered: triggerRemembered(ev, id),
+					LKI:        objLKI,
 				},
 			})
 		}
@@ -165,8 +179,26 @@ func (e *Engine) checkTriggers(ev events.Event) {
 // trigger's own source. None of the eight M1 modes' Execute$ abilities in
 // the acceptance deck actually reads Remembered (they use Defined$
 // Self/You), so this is deliberately one simple, general rule rather than a
-// mode-specific one.
+// mode-specific one -- except DeclareAttackers, which carries every attacker
+// declared this combat in Event.IDs rather than a single Event.Obj (see
+// attacksMatches): Remembered there is every declared attacker, in order,
+// followed by one more entry for the defending player (handleAttackers sets
+// Event.Player to that seat, not an attacker). Task 7's Defined$
+// TriggeredDefendingPlayer is meant to read that trailing entry -- two repo
+// cards (Goblin Guide, Ulamog) already carry that Defined$ spelling, but
+// effects.Defined does not recognize it yet and falls back to Targets, so no
+// repo card's resolved BEHAVIOUR depends on this trailing entry until Task 7
+// teaches Defined about it. pushTrigger (trigger_queue.go) is what keeps
+// that from moving TestHeads in the meantime: it deliberately does not
+// persist this richer shape onto the stack object yet.
 func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
+	if ev.Kind == events.DeclareAttackers {
+		out := make([]state.Target, 0, len(ev.IDs)+1)
+		for _, id := range ev.IDs {
+			out = append(out, state.Target{Obj: id})
+		}
+		return append(out, state.Target{Player: ev.Player, IsPlayer: true})
+	}
 	if ev.Obj != 0 {
 		return []state.Target{{Obj: ev.Obj}}
 	}

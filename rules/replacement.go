@@ -117,7 +117,7 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 		// the acceptance suite): this is a real, if narrow, M1 approximation
 		// of CR 616.1, not a hypothetical.
 		stored := events.Emit(e.G, e.L, ev)
-		e.checkTriggers(stored)
+		e.checkTriggers(stored, nil)
 
 		// THEN resolve ReplaceWith$. The order is measured, not stylistic:
 		// effects.Resolve's Tap primitive (effects/combatfx.go effTap)

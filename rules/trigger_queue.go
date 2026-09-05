@@ -245,8 +245,32 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 		return
 	}
-	ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
-	for _, tgt := range pt.Ctx.Remembered {
+	// Task 6 (chain-head preservation): a DeclareAttackers-driven Attacks
+	// trigger's own Ctx.Remembered (triggerRemembered, trigger_match.go) now
+	// carries every declared attacker plus a trailing {IsPlayer: true}
+	// defending-player entry -- information Task 7 needs at resolution, but
+	// that nothing resolves against yet (Defined$ TriggeredDefendingPlayer
+	// is unimplemented; effects.Defined falls back to Targets regardless of
+	// what Remembered holds). Persisting that richer shape here would still
+	// change what this event logs for the three repo cards that already
+	// carry an Attacks-mode T: line (Goblin Guide, Goblin Piledriver,
+	// Ulamog) -- an extra, always-zero player id, or more than one attacker
+	// id, where the log always held exactly one id (the trigger's own
+	// source) before. That moves TestHeads's pinned chain heads (FL-2/2'
+	// forbids that) for a change that alters no card's actual behaviour.
+	// So: a trailing IsPlayer entry marks the new, richer shape, and this
+	// persists exactly what pre-Task-6 code always did instead -- the
+	// trigger's own source (pt.Source), the only Remembered content
+	// anything reads or resolves today. Task 7, when it wires a real
+	// consumer through to resolution, is what should change this to
+	// persist the fuller list (and update acceptanceHeads, since at that
+	// point a real card's behaviour does change).
+	remembered := pt.Ctx.Remembered
+	if n := len(remembered); n > 0 && remembered[n-1].IsPlayer {
+		remembered = []state.Target{{Obj: pt.Source}}
+	}
+	ids := make([]state.ObjID, 0, len(remembered))
+	for _, tgt := range remembered {
 		ids = append(ids, tgt.Obj)
 	}
 	e.emit(events.Event{Kind: events.TriggerPush, Player: pt.Controller,
