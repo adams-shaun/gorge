@@ -71,6 +71,13 @@ type Option struct {
 	// pay when a card offered more than one "cast" option, and always paid
 	// the card's own cost regardless of which option was chosen.
 	AltCostIndex int `json:"-"`
+	// Mode is server-side only: how a "cast" option pays -- "" the card's
+	// own cost, "kicked", "surged", "flashback", "miracle".
+	Mode string `json:"-"`
+	// Amount is server-side only: for an "x" choose option, the X value the
+	// option represents (the option's Index is its position in the list, not
+	// its value -- see rules/cast.go's xAsk).
+	Amount int `json:"-"`
 }
 
 // Decision is the engine asking one player for one answer.

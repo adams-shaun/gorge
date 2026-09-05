@@ -303,10 +303,12 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
 	switch e.choosing {
-	// Tasks 9, 12 and 18 add their cases here.
+	case chooseCast:
+		e.castAnswer(d, chosen)
+		e.continueCast()
+	// Tasks 12 and 18 add their cases here.
 	default:
 		e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "choose answered with no flow waiting"})
 		e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
 	}
-	_ = chosen
 }

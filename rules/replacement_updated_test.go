@@ -92,12 +92,16 @@ Oracle:x
 `
 
 // newFixtureDeck builds a 2-seat engine the same way newSeats does, except
-// seat 0's deck leads with fixture instead of an all-mountain 40, so
-// cfg.Decks -- and therefore replayFromLog's own genesis reconstruction --
-// actually contains it (Ruling: an object added to a live Engine after New
-// via a direct AddObject call, the way several existing tests in this
-// package do it, is invisible to replayFromLog, which only rebuilds from
-// cfg.Decks; test 5 below needs the object to line up by ID in both).
+// seat 0's deck leads with fixture (followed by each extra, in order, then
+// mountains), so cfg.Decks -- and therefore replayFromLog's own genesis
+// reconstruction -- actually contains them (Ruling: an object added to a
+// live Engine after New via a direct AddObject call, the way several
+// existing tests in this package do it, is invisible to replayFromLog,
+// which only rebuilds from cfg.Decks; test 5 below needs the object to line
+// up by ID in both). The extras are how cast_test.go's fixture helpers seed
+// a real (non-token) card that must start in a graveyard or hand: genesis
+// creates it with IsToken=false at an ID the replay reproduces, and the
+// helper moves it with a logged MoveZone.
 //
 // Genesis's shuffle (seeded, but not something this test controls the
 // outcome of) may land fixture in the opening hand or leave it in the
@@ -114,15 +118,31 @@ Oracle:x
 // mana for a cast, say) must happen BEFORE the main1 priority ask is built,
 // not after -- callers that need such setup must do it here, at upkeep,
 // then call driveToStep(t, e, 1, 0, state.StepMain1) themselves once done.
-func newFixtureDeck(t *testing.T, seed uint64, fixtureSrc string) (*Engine, Config, state.ObjID) {
+func newFixtureDeck(t *testing.T, seed uint64, fixtureSrc string, extras ...string) (*Engine, Config, state.ObjID) {
 	t.Helper()
 	fixture := card(t, fixtureSrc)
 	name := fixture.Faces[0].Name
+	deck := []*cards.Card{fixture}
+	for _, extra := range extras {
+		deck = append(deck, card(t, extra))
+	}
 	cfg := Config{Seed: seed, Names: []string{"a", "b"},
 		Decks: [][]*cards.Card{
-			append([]*cards.Card{fixture}, mountainDeck(t, 39)...),
+			append(deck, mountainDeck(t, 40-len(deck))...),
 			mountainDeck(t, 40),
-		}}
+		},
+		// Non-nil (not just the zero value) so a caller that mints a test
+		// fixture into the live game via a logged TokenCreate event (Task
+		// 9's cast_test.go putToken, for a second card replayFromLog could
+		// otherwise never reconstruct -- see this function's own doc above)
+		// shares the same map between e.G.Tokens and the cfg this function
+		// returns: both are copies of this one Config value, and a map is a
+		// reference type, so a key added to e.G.Tokens after New() is also
+		// visible through cfg.Tokens at replayCheck time. Every caller that
+		// never touches Tokens sees no behaviour change: an empty map reads
+		// exactly like a nil one everywhere TokenCreate's Apply case reads it.
+		Tokens: map[string]*cards.Card{},
+	}
 	e := New(cfg)
 	e.Advance()
 
