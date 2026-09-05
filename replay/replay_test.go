@@ -2,6 +2,7 @@ package replay
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -64,9 +65,23 @@ func playGame(t *testing.T, seed uint64) (rules.Config, *rules.Engine) {
 // only naming a field is restricted, not copying the whole struct) but owns
 // an independent Intents slice, so a test can mutate one Intent without
 // corrupting the original recording other tests may still read.
+//
+// Ruling T24-c (fix round 1, Important #2): copying the []decision.Intent
+// slice alone is not enough -- each decision.Intent is a plain struct, so
+// append-copying the slice copies every Intent's Choices SLICE HEADER, not
+// its backing array. A test that then writes into one copy's
+// Choices[j] (the duplicate-choice totality row did exactly this) was
+// silently corrupting orig's backing array too, since both headers still
+// pointed at the same underlying []int. Every Intent's Choices is now
+// copied independently so mutating one copy can never reach another, or
+// the original.
 func copyLog(orig *events.Log) *events.Log {
 	c := *orig
-	c.Intents = append([]decision.Intent(nil), orig.Intents...)
+	c.Intents = make([]decision.Intent, len(orig.Intents))
+	for i, in := range orig.Intents {
+		in.Choices = append([]int(nil), in.Choices...)
+		c.Intents[i] = in
+	}
 	return &c
 }
 
@@ -108,25 +123,95 @@ func TestReplayToPrefixMatchesHeadAt(t *testing.T) {
 	if got != want {
 		t.Errorf("Head() = %s, want HeadAt(%d) = %s", got, len(rep.L.Events), want)
 	}
+
+	// Bundled fix round 1 item: supplement §3 also says ReplayTo positions
+	// the engine at the next pending decision -- the very one intent n
+	// itself answers. Check that against two independent pieces of the
+	// recording, not just one echoing the other: Seq and Player against the
+	// recorded Intent, and Kind against the DecisionAsk event's own Text
+	// (Engine.ask logs Text: string(d.Kind)) at that same Seq -- Engine.ask
+	// assigns d.Seq = len(e.L.Events) before emitting DecisionAsk, so
+	// l.Events[in.Seq] is exactly the ask this Intent answers.
+	in := orig.L.Intents[n]
+	p := rep.Pending()
+	if p == nil {
+		t.Fatalf("Pending() = nil, want the decision intent %d answers", n)
+	}
+	if p.Seq != in.Seq {
+		t.Errorf("Pending().Seq = %d, want %d", p.Seq, in.Seq)
+	}
+	if p.Player != in.Player {
+		t.Errorf("Pending().Player = %d, want %d", p.Player, in.Player)
+	}
+	if int(in.Seq) >= len(orig.L.Events) {
+		t.Fatalf("intent %d's Seq %d is out of range of the recorded log", n, in.Seq)
+	}
+	askEvent := orig.L.Events[in.Seq]
+	if askEvent.Kind != events.DecisionAsk {
+		t.Fatalf("event at Seq %d is %s, want %s", in.Seq, askEvent.Kind, events.DecisionAsk)
+	}
+	if string(p.Kind) != askEvent.Text {
+		t.Errorf("Pending().Kind = %s, want %s (from the recorded DecisionAsk event)", p.Kind, askEvent.Text)
+	}
 }
 
-// TestResumeFromMidpointReachesTheSameEnd is the brief's test 3:
-// ReplayTo(l, cfg, len(l.Intents)) -- every recorded Intent, the same
-// prefix Replay itself would run -- reaches the same Head as the original.
-// "Playback to" and "resume from" are the same operation (Ruling P3's doc
-// on ReplayTo): this is that operation run all the way to the end.
+// TestResumeFromMidpointReachesTheSameEnd is the brief's test 3, plus the
+// bundled fix round 1 item that gives the name a real test: the brief's own
+// text uses n == len(Intents), which never resumes anything (every Intent
+// fed back is one already in the log) -- so this keeps that check as its
+// own assertion, then separately stops at a genuine midpoint and drives the
+// returned engine onward with a DIFFERENT bot seed to a fresh, ordinary
+// Over. That second half is the one thing neither this test's first half
+// nor TestReplayReproducesTheChain can exercise: both of those only ever
+// feed back recorded Intents, so neither ever calls Submit with anything
+// ReplayTo's own engine did not already see coming.
 func TestResumeFromMidpointReachesTheSameEnd(t *testing.T) {
 	cfg, orig := playGame(t, 3)
 
-	rep, err := ReplayTo(orig.L, cfg, len(orig.L.Intents))
+	// "Playback to" and "resume from" are the same operation (Ruling P3's
+	// doc on ReplayTo) with a different n: ReplayTo(l, cfg, len(l.Intents))
+	// -- every recorded Intent, the same prefix Replay itself would run --
+	// reaches the same Head as the original.
+	full, err := ReplayTo(orig.L, cfg, len(orig.L.Intents))
 	if err != nil {
 		t.Fatalf("ReplayTo(full): %v", err)
 	}
-	if got, want := rep.L.Head(), orig.L.Head(); got != want {
+	if got, want := full.L.Head(), orig.L.Head(); got != want {
 		t.Errorf("Head() = %s, want %s", got, want)
 	}
-	if got, want := len(rep.L.Events), len(orig.L.Events); got != want {
+	if got, want := len(full.L.Events), len(orig.L.Events); got != want {
 		t.Errorf("event count = %d, want %d", got, want)
+	}
+
+	// The headline "resume from" behaviour: stop at a genuine midpoint and
+	// continue with a fresh policy, not the recorded one.
+	mid := len(orig.L.Intents) / 3
+	if mid == 0 {
+		t.Fatal("recorded game too short to resume from a midpoint -- test setup assumption broke")
+	}
+	resumed, err := ReplayTo(orig.L, cfg, mid)
+	if err != nil {
+		t.Fatalf("ReplayTo(%d): %v", mid, err)
+	}
+	if resumed.G.Over {
+		t.Fatalf("game already over at intent %d -- test setup assumption broke", mid)
+	}
+	b := seat.NewBot(cfg.Seed + 777) // deliberately different from cfg.Seed's own bot.
+	n := 0
+	for !resumed.G.Over && resumed.Pending() != nil && n < maxIntents {
+		d := resumed.Pending()
+		v := view.Project(resumed.G, resumed, d.Player, d)
+		in, err := b.Decide(context.Background(), v, *d)
+		if err != nil {
+			t.Fatalf("bot Decide returned an error: %v", err)
+		}
+		if err := resumed.Submit(in); err != nil {
+			t.Fatalf("Submit intent %d after resuming: %v", n, err)
+		}
+		n++
+	}
+	if !resumed.G.Over {
+		t.Fatalf("resumed game did not terminate after %d further intents", n)
 	}
 }
 
@@ -274,18 +359,40 @@ func TestReplayTotality(t *testing.T) {
 	cases := []struct {
 		name string
 		run  func() (*rules.Engine, error)
+		// check, when non-nil, replaces the default "no panic, not both
+		// nil" assertion with a stronger, row-specific one.
+		check func(t *testing.T, e *rules.Engine, err error)
 	}{
-		{"nil log via Replay", func() (*rules.Engine, error) { return Replay(nil, cfg) }},
-		{"nil log via ReplayTo", func() (*rules.Engine, error) { return ReplayTo(nil, cfg, 1) }},
-		{"nil Intents", func() (*rules.Engine, error) { return Replay(nilIntents, cfg) }},
-		{"out-of-range choice", func() (*rules.Engine, error) { return Replay(outOfRange, cfg) }},
-		{"negative choice", func() (*rules.Engine, error) { return Replay(negative, cfg) }},
-		{"duplicate choice", func() (*rules.Engine, error) { return Replay(duplicate, cfg) }},
-		{"wrong player", func() (*rules.Engine, error) { return Replay(wrongPlayer, cfg) }},
-		{"seat count mismatch", func() (*rules.Engine, error) { return Replay(orig.L, seatMismatchCfg) }},
-		{"ReplayTo n negative", func() (*rules.Engine, error) { return ReplayTo(orig.L, cfg, -5) }},
+		{"nil log via Replay", func() (*rules.Engine, error) { return Replay(nil, cfg) }, nil},
+		{"nil log via ReplayTo", func() (*rules.Engine, error) { return ReplayTo(nil, cfg, 1) }, nil},
+		{"nil Intents", func() (*rules.Engine, error) { return Replay(nilIntents, cfg) }, nil},
+		{"out-of-range choice", func() (*rules.Engine, error) { return Replay(outOfRange, cfg) }, nil},
+		{"negative choice", func() (*rules.Engine, error) { return Replay(negative, cfg) }, nil},
+		{"duplicate choice", func() (*rules.Engine, error) { return Replay(duplicate, cfg) }, nil},
+		{"wrong player", func() (*rules.Engine, error) { return Replay(wrongPlayer, cfg) }, nil},
+		{"seat count mismatch", func() (*rules.Engine, error) { return Replay(orig.L, seatMismatchCfg) }, nil},
+		{"ReplayTo n negative", func() (*rules.Engine, error) { return ReplayTo(orig.L, cfg, -5) }, nil},
+		// Ruling T24-c (fix round 1, Important #2): this row shares orig.L
+		// with every hostile row above via copyLog. It is the canary for a
+		// repeat of the Choices-aliasing bug that let the duplicate-choice
+		// row above corrupt orig.L's own backing array -- a corrupted
+		// orig.L would make THIS row stop partway through with a plain
+		// rejection instead of completing, which "no panic and not both
+		// nil" alone would not catch (it did not, the first time). Assert
+		// the strong property instead: a clean, full, chain-matching
+		// replay of the untouched original log.
 		{"ReplayTo n too large", func() (*rules.Engine, error) {
 			return ReplayTo(orig.L, cfg, len(orig.L.Intents)+1000)
+		}, func(t *testing.T, e *rules.Engine, err error) {
+			if err != nil {
+				t.Fatalf("ReplayTo(len+1000) against the untouched original log: %v", err)
+			}
+			if got, want := e.L.Head(), orig.L.Head(); got != want {
+				t.Errorf("Head() = %s, want %s (a clean full replay of the original log)", got, want)
+			}
+			if got, want := len(e.L.Events), len(orig.L.Events); got != want {
+				t.Errorf("event count = %d, want %d", got, want)
+			}
 		}},
 	}
 
@@ -297,6 +404,10 @@ func TestReplayTotality(t *testing.T) {
 				}
 			}()
 			e, err := c.run()
+			if c.check != nil {
+				c.check(t, e, err)
+				return
+			}
 			if err == nil && e == nil {
 				t.Fatal("returned neither an error nor an engine")
 			}
@@ -370,5 +481,85 @@ func TestReplayToClampsOutOfRangeN(t *testing.T) {
 	}
 	if got, want := over.L.Head(), full.L.Head(); got != want {
 		t.Errorf("ReplayTo(over).Head() = %s, want ReplayTo(full)'s %s", got, want)
+	}
+}
+
+// TestReplayVerifiesADeserialisedLog is fix round 1's Important #1
+// (Ruling T24-a): events.Log.chain is unexported with no json tag, while
+// Seed, Events and Intents all have one, so a Log that came off disk or the
+// wire has a zero chain and Head() reports the seedless zero hash -- even
+// when every event matches the replay byte for byte. Replay must verify
+// such a log against l.HeadAt(len(l.Events)), which recomputes the chain
+// from Seed and Events alone, not against l.Head() directly.
+//
+// The deliberately wrong cfg.Seed is not the point of this test (Ruling P5
+// and TestReplayReproducesTheChain-adjacent coverage already establish that
+// l.Seed wins); it is here only to make sure the replay's success is not
+// somehow an artifact of the seed happening to match.
+func TestReplayVerifiesADeserialisedLog(t *testing.T) {
+	cfg, orig := playGame(t, 9)
+
+	raw, err := json.Marshal(orig.L)
+	if err != nil {
+		t.Fatalf("json.Marshal: %v", err)
+	}
+	var deserialised events.Log
+	if err := json.Unmarshal(raw, &deserialised); err != nil {
+		t.Fatalf("json.Unmarshal: %v", err)
+	}
+	// Confirm the fixture actually exercises the zero-chain case: if this
+	// ever stops being the zero chain (e.g. events.Log grows a json tag on
+	// its chain field), this test would otherwise pass for the wrong
+	// reason.
+	if got, want := deserialised.Head(), "0000000000000000"; got != want {
+		t.Fatalf("test fixture assumption broke: deserialised.Head() = %q, want the zero chain %q", got, want)
+	}
+
+	wrongSeedCfg := cfg
+	wrongSeedCfg.Seed = cfg.Seed + 12345
+
+	rep, err := Replay(&deserialised, wrongSeedCfg)
+	if err != nil {
+		t.Fatalf("Replay of a JSON round-tripped log: %v", err)
+	}
+	if got, want := len(rep.L.Events), len(orig.L.Events); got != want {
+		t.Errorf("event count = %d, want %d", got, want)
+	}
+	if got, want := rep.L.Head(), orig.L.HeadAt(len(orig.L.Events)); got != want {
+		t.Errorf("Head() = %s, want %s", got, want)
+	}
+}
+
+// TestReplayVerifiesANoHashLog covers the other half of Important #1:
+// HeadAt (like Head) short-circuits to "" for a NoHash log (events/log.go),
+// and the replay's own freshly-built log is always hashing (rules.Config
+// carries no NoHash field for New to propagate), so comparing the two
+// directly would fail every NoHash log for a reason that has nothing to do
+// with whether it replayed correctly. Replay must skip that comparison
+// rather than fail it.
+//
+// There is no way to produce a genuinely NoHash-recorded game through the
+// public API without a rules.Config field this fix round is not scoped to
+// add (NoHash must be set before a Log's first Append, and rules.New's own
+// genesis already appends before returning), so this flips the flag on a
+// full copy of an ordinarily-recorded log instead. NoHash only changes
+// Log.Append's own chain bookkeeping, never the Events/Intents content, so
+// this is a faithful way to exercise the code path in Replay that reads
+// l.NoHash without needing an engine change.
+func TestReplayVerifiesANoHashLog(t *testing.T) {
+	cfg, orig := playGame(t, 10)
+
+	noHash := copyLog(orig.L)
+	noHash.NoHash = true
+	if got := noHash.HeadAt(len(noHash.Events)); got != "" {
+		t.Fatalf("test fixture assumption broke: HeadAt on a NoHash log = %q, want \"\"", got)
+	}
+
+	rep, err := Replay(noHash, cfg)
+	if err != nil {
+		t.Fatalf("Replay of a NoHash log: %v", err)
+	}
+	if got, want := len(rep.L.Events), len(orig.L.Events); got != want {
+		t.Errorf("event count = %d, want %d", got, want)
 	}
 }

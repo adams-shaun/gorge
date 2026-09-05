@@ -71,8 +71,10 @@ func (d *Divergence) Error() string {
 // l: every recorded Intent is submitted, in order, to a freshly-created
 // engine, and the rebuilt event stream is compared against l.Events as it
 // is produced (Ruling P3) rather than only once at the end. On success the
-// returned engine's log has the same events, in the same order, as l, and
-// the same chain Head; the returned error is nil.
+// returned engine's log has the same events, in the same order, as l, and a
+// chain Head equal to l.HeadAt(len(l.Events)) -- l.Head() itself only if l
+// accumulated that chain live in this process, see Ruling T24-a below; the
+// returned error is nil.
 //
 // A *Divergence names the first event where the two streams part ways,
 // including the case where the replay produced more events than were ever
@@ -81,10 +83,13 @@ func (d *Divergence) Error() string {
 // duplicate choice, the wrong player, and so on -- is refused by
 // decision.Decision.Validate before it can do anything; that surfaces as a
 // plain wrapped error, not a Divergence, since nothing was compared (Ruling
-// P2). A returned engine is never nil, and reflects however far the replay
-// got before it stopped; a caller may inspect its Game and Log freely, but
-// should not expect further Submit calls against it to mean anything once
-// an error has been returned.
+// P2). A returned engine is never nil once a log was supplied; a nil log is
+// a programming error and returns (nil, error) instead (Ruling T24-b, fix
+// round 1: this sentence used to promise a non-nil engine unconditionally,
+// which the l == nil guard below directly contradicted). Otherwise the
+// engine reflects however far the replay got before it stopped; a caller
+// may inspect its Game and Log freely, but should not expect further Submit
+// calls against it to mean anything once an error has been returned.
 func Replay(l *events.Log, cfg rules.Config) (*rules.Engine, error) {
 	if l == nil {
 		return nil, fmt.Errorf("replay: nil log")
@@ -105,8 +110,33 @@ func Replay(l *events.Log, cfg rules.Config) (*rules.Engine, error) {
 	if len(e.L.Events) != len(l.Events) {
 		return e, fmt.Errorf("replay: produced %d events, recorded %d", len(e.L.Events), len(l.Events))
 	}
-	if e.L.Head() != l.Head() {
-		return e, fmt.Errorf("replay: chain %s, recorded %s", e.L.Head(), l.Head())
+	// Ruling T24-a (fix round 1, Important #1): l.Head() is wrong for any l
+	// that did not accumulate its own chain live in this process. l.chain is
+	// unexported with no json tag (events/log.go), while Seed, Events and
+	// Intents all have one -- so a Log that came off disk or the wire has a
+	// zero chain, and Head() reports the seedless zero hash even when every
+	// event matches the replay byte for byte. l.HeadAt(len(l.Events))
+	// recomputes the whole chain from Seed and Events alone, which DO
+	// round-trip; HeadAt's own doc calls this "what makes 'playback to N'
+	// verifiable against a full log", and events/log_test.go already pins
+	// Head() == HeadAt(len(Events)) for an in-memory log, so nothing changes
+	// for a log built and replayed in the same process.
+	//
+	// A NoHash log tracks no chain at all: HeadAt short-circuits to "" for
+	// one, and so does Head() (events/log.go), so there is nothing coherent
+	// to compare -- e.L is always a live, hashing log regardless of l.NoHash
+	// (rules.Config carries no NoHash field for New to propagate), so
+	// comparing e.L.Head() against l's forced-empty HeadAt would fail every
+	// NoHash log for a reason that has nothing to do with whether it
+	// replayed correctly. Every event already matched byte for byte via the
+	// incremental compare in run, and the count check just above already
+	// covers the one failure mode a chain comparison could otherwise catch,
+	// so skip it rather than fail it against an empty string that proves
+	// nothing.
+	if !l.NoHash {
+		if got, want := e.L.Head(), l.HeadAt(len(l.Events)); got != want {
+			return e, fmt.Errorf("replay: chain %s, recorded %s", got, want)
+		}
 	}
 	return e, nil
 }
