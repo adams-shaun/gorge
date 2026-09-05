@@ -51,6 +51,10 @@ func (e *Engine) Clone() *Engine {
 				}
 				pt.Ctx.SVars = m
 			}
+			if pt.Ctx.LKI != nil {
+				lki := pt.Ctx.LKI.CloneDeep()
+				pt.Ctx.LKI = &lki
+			}
 			c.pendingTriggers[i] = pt
 		}
 	}

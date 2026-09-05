@@ -46,6 +46,12 @@ type Ctx struct {
 	// Both are bound by the rules package when it builds the context.
 	SVars map[string]string
 	X     int32
+	// LKI is the object a zone-change trigger fired for, as it was just
+	// before the move (CR 603.10 "look back in time"): Move resets counters,
+	// tapped state and damage on the way out, so a "dies" condition such as
+	// Undying's "if it had no +1/+1 counters" must read this, not the live
+	// object. nil for every other trigger.
+	LKI *state.Object
 }
 
 type Effect func(h Host, c *Ctx, sa *cards.SA)

@@ -245,8 +245,21 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 		return
 	}
+	// FL-41: Remembered can hold a player entry now (triggerRemembered's
+	// DeclareAttackers case appends the defending player), but IDs is an
+	// []ObjID -- there is no field here for a bare PlayerID. Encoding it
+	// with state.PlayerRef instead of just writing tgt.Obj (always 0 for a
+	// player target) is what lets events.Apply's TriggerPush case below
+	// reconstruct {Player: p, IsPlayer: true} rather than {Obj: 0} -- which
+	// playersOf (effects/context.go) would filter out, so Defined$
+	// TriggeredDefendingPlayer would resolve to nothing and the effect
+	// silently no-op (PlayerOf is never reached).
 	ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
 	for _, tgt := range pt.Ctx.Remembered {
+		if tgt.IsPlayer {
+			ids = append(ids, state.PlayerRef(tgt.Player))
+			continue
+		}
 		ids = append(ids, tgt.Obj)
 	}
 	e.emit(events.Event{Kind: events.TriggerPush, Player: pt.Controller,
@@ -315,6 +328,18 @@ func (e *Engine) triggerOf(pt pendingTrigger) (cards.Trigger, bool) {
 // controller of the object the trigger remembered, which is the object the
 // triggering event was about (triggerRemembered, above) -- the same object
 // Forge means by both names in every T: line in the corpus that uses them.
+//
+// CAVEAT (Task 6, fix round 1): that equivalence assumes Remembered[0] is
+// the object the FIRING trigger's own T: line is on, which triggerRemembered
+// no longer guarantees for a DeclareAttackers-driven Attacks trigger --
+// Remembered there is every declared attacker in the whole combat, in
+// event order, so Remembered[0] is whichever creature attacked first, not
+// necessarily pt.Source. No repo-deck T: line combines Mode$ Attacks with
+// OptionalDecider$ TriggeredCardController/TriggeredSourceController today
+// (measured against the same corpus the table above was), so this is a
+// latent gap, not a live one -- but a future card that did would have this
+// read the wrong creature's controller whenever it attacks alongside
+// another creature that happened to be declared first.
 //
 // LIMITATION, stated rather than assumed: the remaining ten T: lines
 // (TriggeredPlayer, EnchantedController, TriggeredAttackingPlayer,

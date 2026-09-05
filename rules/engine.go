@@ -179,8 +179,21 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			return replaced
 		}
 	}
+	// LKI (CR 603.10 "look back in time") is captured HERE, before
+	// events.Emit runs Apply and mutates the object -- a zone-change trigger
+	// needs the object exactly as it was a moment ago (its counters, tapped
+	// state, damage, controller, zone), not the reset state Move leaves it
+	// in. See effects.Ctx.LKI.
+	var lki *state.Object
+	switch ev.Kind {
+	case events.MoveZone, events.Draw, events.PutOnStack:
+		if o := e.G.Obj(ev.Obj); o != nil {
+			cp := o.CloneDeep()
+			lki = &cp
+		}
+	}
 	stored := events.Emit(e.G, e.L, ev)
-	e.checkTriggers(stored)
+	e.checkTriggers(stored, lki)
 	return stored
 }
 
