@@ -86,8 +86,12 @@ type cacheFile struct {
 
 // cacheVersion 2 adds Tokens: a v1 cache predates Registry.Tokens entirely,
 // so LoadRegistry refuses it outright (see the version check below) rather
-// than silently serving a registry with no tokens compiled in.
-const cacheVersion = 2
+// than silently serving a registry with no tokens compiled in. cacheVersion
+// 3 adds keyword expansion at link time (Face.expandKeywords, keywords.go):
+// a v2 cache was compiled before Faces carried the triggers, replacements
+// and abilities that expansion adds, so its Primitives() would undercount
+// exactly the way a v1-vs-Tokens cache would.
+const cacheVersion = 3
 
 func (r *Registry) Save(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
