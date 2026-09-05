@@ -24,6 +24,7 @@ func (e *Engine) Clone() *Engine {
 		rng:                 e.rng.clone(),
 		orderedTriggers:     e.orderedTriggers,
 		applyingReplacement: e.applyingReplacement,
+		choosing:            e.choosing,
 	}
 	if e.pending != nil {
 		d := *e.pending
