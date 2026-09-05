@@ -80,7 +80,3 @@ func (h *handler) authorized(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
-
-// Stubs Task 15 replaces.
-func (h *handler) mountStream(mux *http.ServeMux) {}
-func (h *handler) mountStatic(mux *http.ServeMux) {}
