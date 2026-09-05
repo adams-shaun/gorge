@@ -167,3 +167,31 @@ func TestStepStringIsTotal(t *testing.T) {
 		t.Errorf("a wildly out-of-range step's String() = %q, want unknown", got)
 	}
 }
+
+// TestCloneCopiesTheNewFieldsAndSharesTokens is Task 4's regression test:
+// Clone is a plain struct copy for Object's new scalar fields (nothing to
+// deep-copy, unlike the slice fields Clone already walks by hand), and
+// Tokens -- set once at genesis and never mutated -- is shared between the
+// original and the clone rather than copied.
+func TestCloneCopiesTheNewFieldsAndSharesTokens(t *testing.T) {
+	g := NewGame([]string{"a", "b"})
+	g.Tokens = map[string]*cards.Card{"x": {}}
+	o := g.AddObject(nil, 0)
+	o.X, o.CastFlags, o.ChosenName, o.ChosenType, o.ChosenNumber, o.AttachedTo, o.IsToken, o.IsCopy = 2, FlagKicked, "n", "t", 4, 7, true, true
+	c := g.Clone()
+	co := c.Obj(o.ID)
+	// Object has slice fields (Counters, Targets, ...), so the whole struct
+	// is not comparable with == -- compare the eight new scalar fields by
+	// hand instead.
+	if co.X != o.X || co.CastFlags != o.CastFlags || co.ChosenName != o.ChosenName ||
+		co.ChosenType != o.ChosenType || co.ChosenNumber != o.ChosenNumber ||
+		co.AttachedTo != o.AttachedTo || co.IsToken != o.IsToken || co.IsCopy != o.IsCopy {
+		t.Fatalf("clone %+v vs %+v", *co, *o)
+	}
+	if c.Tokens["x"] != g.Tokens["x"] {
+		t.Fatal("Tokens is immutable and should be shared, not copied")
+	}
+	if !co.Ephemeral() || !(&Object{}).Ephemeral() || (&Object{Card: &cards.Card{}}).Ephemeral() {
+		t.Fatal("Ephemeral")
+	}
+}

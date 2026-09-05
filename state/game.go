@@ -33,6 +33,10 @@ type Game struct {
 	// Clock is a monotonic timestamp source for continuous-effect ordering.
 	Clock uint32
 
+	// Tokens is the token definitions this match may create, keyed by
+	// Forge script stem; set at genesis, never mutated, so Clone shares it.
+	Tokens map[string]*cards.Card
+
 	// zones is indexed by zoneIndex(z, p); the stack lives in Stack instead.
 	zones [][]ObjID
 }
