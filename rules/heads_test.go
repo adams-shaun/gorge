@@ -9,8 +9,8 @@ import (
 // acceptanceHeads pins the chain head of the deterministic acceptance game
 // at each seat count (R-14). A change here is a change to what the 12 repo
 // decks do; the commit that makes it must name the card behaviour that
-// moved it. The seeds and deck assignment are TestRepoDeckGamesReplayExactly's
-// own (rules/acceptance_test.go), so the two tests always agree.
+// moved it. The seed, bot and deck assignment are TestRepoDecksPlayAtEverySeatCount's
+// own (rules/acceptance_test.go's playAcceptance), so the two tests always agree.
 var acceptanceHeads = map[int]string{
 	2: "7705a6505954f6cd",
 	4: "2d5589b31c4853cd",
@@ -19,6 +19,9 @@ var acceptanceHeads = map[int]string{
 }
 
 func TestHeads(t *testing.T) {
+	if testing.Short() {
+		t.Skip("long")
+	}
 	reg := testutil.CorpusRegistry(t)
 	for _, seats := range []int{2, 4, 6, 8} {
 		got := acceptanceHead(t, reg, seats)
