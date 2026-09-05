@@ -103,6 +103,19 @@ func botDecide(isMain bool, d *decision.Decision, r *rand.Rand) decision.Intent 
 				}
 			}
 		}
+		// Task 10: in a main phase, when casting found nothing to do, take the
+		// first "ability" option offered (legalActions only offers them as
+		// legal sorcery-speed actions, so no extra isMain gate is needed here
+		// beyond this block's own check). Replacements fall through to the
+		// explicit pass below.
+		if isMain {
+			for _, o := range d.Options {
+				if o.Kind == "ability" {
+					in.Choices = []int{o.Index}
+					return clamp(d, in)
+				}
+			}
+		}
 		// Ruling T25-g (fix round 2): explicitly pass here, before clamp
 		// ever runs. This is the common case -- outside a main phase, or
 		// with nothing affordable in one -- and legalActions
