@@ -49,7 +49,18 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	withKind := sa.Params["WithCountersType"]
 	withAmt := int32(1)
 	if v := strings.TrimSpace(sa.Params["WithCountersAmount"]); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			// Malformed WithCountersAmount must be loud, not silently default to
+			// 1 (the reviewer's item): a wrong counter count on a Returning
+			// permanent is a hard-to-spot board-shape bug. A Note event (the way
+			// Resolve surfaces an unimplemented API) keeps this deterministic and
+			// replay-log-visible rather than dropping to a log line the event log
+			// cannot account for. The movement still proceeds with the safe
+			// default 1.
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "malformed WithCountersAmount " + v})
+		} else {
 			withAmt = int32(n)
 		}
 	}
