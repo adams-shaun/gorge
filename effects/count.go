@@ -89,6 +89,22 @@ func evalCountBody(h Host, c *Ctx, body string) int32 {
 		return 0
 	}
 
+	// CardCounters.<KIND> counts a counter kind on the source.
+	if kind, ok := strings.CutPrefix(head, "CardCounters."); ok {
+		if o := g.Obj(c.Source); o != nil {
+			return o.Counter(kind)
+		}
+		return 0
+	}
+	// Kicked.<yes>.<no> is <yes> when the source was kicked, else <no>.
+	if rest, ok := strings.CutPrefix(head, "Kicked."); ok {
+		yes, no := splitDot(rest)
+		if o := g.Obj(c.Source); o != nil && o.CastFlags&state.FlagKicked != 0 {
+			return yes
+		}
+		return no
+	}
+
 	// Valid / ValidZone forms count objects in a zone matching a filter.
 	if zone, ok := countZone(head); ok {
 		var n int32
@@ -102,6 +118,16 @@ func evalCountBody(h Host, c *Ctx, body string) int32 {
 		return n
 	}
 	return 0
+}
+
+// splitDot splits an "a.b" pair into two integers, defaulting either side to
+// zero if it does not parse -- the same forgiving-not-panicking convention
+// applyCountOp already follows.
+func splitDot(s string) (a, b int32) {
+	x, y, _ := strings.Cut(s, ".")
+	av, _ := strconv.Atoi(x)
+	bv, _ := strconv.Atoi(y)
+	return int32(av), int32(bv)
 }
 
 // countZone maps a Count$ head to the zone it scopes over.
@@ -132,6 +158,10 @@ func applyCountOp(n int32, op string) int32 {
 	case strings.HasPrefix(op, "Minus"):
 		if v, err := strconv.Atoi(op[len("Minus"):]); err == nil {
 			return n - int32(v)
+		}
+	case strings.HasPrefix(op, "Times."):
+		if v, err := strconv.Atoi(op[len("Times."):]); err == nil {
+			return n * int32(v)
 		}
 	case op == "Twice":
 		return n * 2
