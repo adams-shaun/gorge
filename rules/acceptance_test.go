@@ -162,7 +162,7 @@ func TestRepoDecksPlayAtEverySeatCount(t *testing.T) {
 			names[i] = all[i%len(all)]
 			decks[i] = testutil.RepoDeck(t, reg, all[i%len(all)])
 		}
-		e := New(Config{Seed: 42, Names: names, Decks: decks})
+		e := New(Config{Seed: 42, Names: names, Decks: decks, Tokens: reg.Tokens})
 		b := newTestBot(7)
 		e.Advance()
 		testutil.CheckInvariants(t, e.G, e.Pending(), fmt.Sprintf("%d-seat start", seats))
@@ -213,7 +213,7 @@ func TestRepoDeckGamesReplayExactly(t *testing.T) {
 			names[i] = all[(int(seed)+i)%len(all)]
 			decks[i] = testutil.RepoDeck(t, reg, names[i])
 		}
-		cfg := Config{Seed: seed, Names: names, Decks: decks}
+		cfg := Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens}
 		e := New(cfg)
 		b := newTestBot(seed)
 		e.Advance()

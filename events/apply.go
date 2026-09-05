@@ -187,12 +187,29 @@ func Apply(g *state.Game, e Event) {
 		}
 
 	case TargetsChosen:
+		// Amount discriminates the target shape (Ruling T14-b's own
+		// discriminator, extended by Task 4 with two more shapes that
+		// APPEND rather than replace -- a spell can gain a second target
+		// from a later effect without losing the first):
+		//   0 (default): replace with object targets, read from IDs.
+		//   1: replace with a single player target, read from Player.
+		//   2: append one object target per entry in IDs.
+		//   3: append a single player target, read from Player.
 		if o := g.Obj(e.Obj); o != nil {
-			if e.Amount == 1 {
+			switch e.Amount {
+			case 1:
 				if validPlayer(g, e.Player) {
 					o.Targets = []state.Target{{Player: e.Player, IsPlayer: true}}
 				}
-			} else {
+			case 2:
+				for _, id := range e.IDs {
+					o.Targets = append(o.Targets, state.Target{Obj: id})
+				}
+			case 3:
+				if validPlayer(g, e.Player) {
+					o.Targets = append(o.Targets, state.Target{Player: e.Player, IsPlayer: true})
+				}
+			default:
 				var targets []state.Target
 				for _, id := range e.IDs {
 					targets = append(targets, state.Target{Obj: id})
@@ -262,6 +279,87 @@ func Apply(g *state.Game, e Event) {
 			g.Objs[i].IsAttacking = false
 			g.Objs[i].BlockedBy = nil
 		}
+
+	case CastInfo:
+		if o := g.Obj(e.Obj); o != nil {
+			o.X = e.Amount
+			o.CastFlags = FlagsFrom(e.Counter)
+		}
+
+	case Choose:
+		if o := g.Obj(e.Obj); o != nil {
+			switch e.Counter {
+			case "name":
+				o.ChosenName = e.Text
+			case "type":
+				o.ChosenType = e.Text
+			case "number":
+				o.ChosenNumber = e.Amount
+			}
+		}
+
+	case TokenCreate:
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		def, ok := g.Tokens[e.Text]
+		if !ok || def == nil {
+			break
+		}
+		o := g.AddObject(def, e.Player)
+		o.IsToken = true
+		Move(g, o.ID, state.ZLibrary, state.ZBattlefield)
+
+	case StackCopy:
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		src := g.Obj(e.Obj)
+		if src == nil || src.Zone != state.ZStack {
+			break
+		}
+		o := g.AddObject(src.Card, e.Player)
+		o.Controller = e.Player
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.FaceIdx, o.Ability, o.Source = src.FaceIdx, src.Ability, src.Source
+		// Deep-copy, never alias: the copy's Targets/Remembered must be
+		// able to change independently of the original's once both sit on
+		// the stack.
+		o.Targets = append([]state.Target(nil), src.Targets...)
+		o.Remembered = append([]state.Target(nil), src.Remembered...)
+		o.X, o.CastFlags, o.IsCopy = src.X, src.CastFlags, true
+
+	case Attach:
+		if o := g.Obj(e.Obj); o != nil {
+			if len(e.IDs) == 0 {
+				o.AttachedTo = 0
+			} else if g.Obj(e.IDs[0]) != nil {
+				o.AttachedTo = e.IDs[0]
+			}
+		}
+
+	case AbilityPush:
+		// Mirrors TriggerPush above (Ruling T20-a): the ability object is
+		// minted here, inside Apply, so a log-only replay creates the same
+		// object a live game did.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		src := g.Obj(e.Obj)
+		if src == nil {
+			break
+		}
+		f := src.Face()
+		if f == nil || e.Amount < 0 || int(e.Amount) >= len(f.Abilities) {
+			break
+		}
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = f.Abilities[e.Amount]
+		o.Source = e.Obj
+		for _, id := range e.IDs {
+			o.Remembered = append(o.Remembered, state.Target{Obj: id})
+		}
 	}
 }
 
@@ -283,6 +381,13 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	if o == nil || !o.Zone.Valid() || !to.Valid() {
 		return
 	}
+	// The object's real (pre-move) zone, captured before o.Zone is
+	// overwritten below -- Task 4's X/CastFlags/Chosen* reset needs to know
+	// whether this object is actually LEAVING the battlefield, not merely
+	// where the caller-supplied from claims it came from (the same
+	// real-zone-over-claimed-zone rule this function already applies to the
+	// removal itself, a few lines below).
+	wasBattlefield := o.Zone == state.ZBattlefield
 	remove(g, id, o.Zone, zoneOwner(o, o.Zone))
 	dst := zoneOwner(o, to)
 	g.SetZone(to, dst, append(g.Zone(to, dst), id))
@@ -304,6 +409,20 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.Counters = nil
 		o.Targets = nil
 		o.Remembered = nil
+		// X/CastFlags/Chosen* carry cast-time and choose-time information
+		// forward from the stack onto the permanent it resolves into (an
+		// ETB "if it was kicked" trigger needs to read X/CastFlags off the
+		// permanent, not just the spell) -- so hand/stack -> battlefield
+		// must NOT reset them, and they only reset once the permanent
+		// genuinely leaves the battlefield again. AttachedTo has no legal
+		// life off the battlefield at all (an Aura/Equipment that isn't a
+		// permanent cannot be "attached"), so it always resets here
+		// regardless of where the object came from.
+		if wasBattlefield {
+			o.X, o.CastFlags = 0, 0
+			o.ChosenName, o.ChosenType, o.ChosenNumber = "", "", 0
+		}
+		o.AttachedTo = 0
 	}
 }
 

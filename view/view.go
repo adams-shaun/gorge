@@ -263,10 +263,15 @@ func phaseOf(s state.Step) string {
 // panicking (supplement §7). Always non-nil (Ruling T23-u), even for an
 // empty or all-dangling ids: this is what lets the viewer's own genuinely
 // empty Hand marshal "[]" rather than the same "null" a hidden hand would.
+//
+// Ephemeral objects (copies, tokens off the battlefield, ability objects)
+// have ceased to exist; they are parked in exile by the engine and are not
+// cards in this zone, so they are skipped here too (Task 4).
 func cardViews(g *state.Game, ch Chars, ids []state.ObjID) []CardView {
 	out := make([]CardView, 0, len(ids))
 	for _, id := range ids {
-		if g.Obj(id) == nil {
+		o := g.Obj(id)
+		if o == nil || o.IsCopy || (o.IsToken && o.Zone != state.ZBattlefield) {
 			continue
 		}
 		out = append(out, cardView(g, ch, id))
