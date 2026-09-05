@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { DvrState } from '../lib/dvr';
+  import type { DvrAction, DvrState } from '../lib/dvr';
   import { behindLive, turnOf } from '../lib/dvr';
-  let { dvr, onAction, finished = false }: { dvr: DvrState; onAction: (a: import('../lib/dvr').DvrAction) => void; finished?: boolean } = $props();
+  let { dvr, onAction, finished = false }: { dvr: DvrState; onAction: (a: DvrAction) => void; finished?: boolean } = $props();
   const turn = $derived(turnOf(dvr, dvr.cursor));
 </script>
 
@@ -17,7 +17,7 @@
     oninput={(e) => onAction({ type: 'scrub', seq: Number((e.target as HTMLInputElement).value) })} aria-label="scrub" />
   <datalist id="turn-ticks">{#each dvr.turnStarts as t (t)}<option value={t}></option>{/each}</datalist>
   <span class="badge" class:live={dvr.live}>
-    {#if dvr.live}LIVE{:else}PAUSED · {behindLive(dvr)} behind{/if}
+    {#if finished}REPLAY{:else if dvr.live}LIVE{:else}PAUSED · {behindLive(dvr)} behind{/if}
   </span>
   <span class="seq">seq {dvr.cursor} / {dvr.head} · turn {turn + 1}</span>
 </div>

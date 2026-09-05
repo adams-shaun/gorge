@@ -12,6 +12,7 @@ export class MatchState {
   dvr = $state<DvrState>(initialDvr);
   decision = $state<DecisionBody | null>(null);
   halted = $state<string | null>(null);
+  loadError = $state<string | null>(null);
   private inflight = false;
   private again = false;
   private cache = new ViewCache((seq) => fetchView(this.table, this.match!, seq));
@@ -54,8 +55,14 @@ export class MatchState {
   }
 
   dispatch(a: DvrAction) {
+    const wasLive = this.dvr.live;
     this.dvr = dvrReducer(this.dvr, a);
     if (a.type === 'snapshot' || a.type === 'reset') this.cache.clear();
+    // Going live — whether by an explicit 'live' action or a new match's
+    // snapshot arriving live — permanently invalidates any paused-cursor
+    // fetch still in flight: bump the token so a late resolution can never
+    // win the "am I still the freshest request" check in showCursor.
+    if (!wasLive && this.dvr.live) this.seeking++;
     if (!this.dvr.live && a.type !== 'event') void this.showCursor();
     if (a.type === 'live') void this.refreshLive();
   }
@@ -87,20 +94,35 @@ export class MatchState {
       this.dispatch({ type: 'backfill', events: older.filter((e) => e.event.seq < first) });
     }
     const v = await this.cache.get(seq).catch(() => null);
-    if (v && token === this.seeking) this.view = v;
+    // !this.dvr.live is belt-and-suspenders: dispatch() already bumps
+    // seeking on any transition to live, but this guards directly against
+    // ever writing a paused-cursor view once we're no longer paused,
+    // regardless of how the token bookkeeping got there.
+    if (v && token === this.seeking && !this.dvr.live) this.view = v;
   }
 
-  /** loadFinished renders a match that is not live: no subscription, everything from the JSON GETs. */
+  /**
+   * loadFinished renders a match that is not live: no subscription,
+   * everything from the JSON GETs. Never rejects — a missing match or a
+   * failed fetch is reported through loadError instead, so a stale
+   * `/t/{t}/m/{k}` link (fire-and-forget from Table.svelte) can't leave an
+   * unhandled rejection behind. Callers render from loadError, not a catch.
+   */
   async loadFinished(k: number) {
-    const infos = await fetchMatches(this.table);
-    const info = infos.find((m) => m.match === k);
-    if (!info || info.events === 0) throw new Error(`no match ${k}`);
-    this.match = k;
-    this.seats = info.seats;
-    const all = await fetchEvents(this.table, k, 0);
-    this.dispatch({ type: 'snapshot', match: `${this.table}/${k}`, head: info.events - 1, turnStarts: turnStartsFrom(all) });
-    this.dispatch({ type: 'backfill', events: all });
-    this.dispatch({ type: 'pause' });
-    this.dispatch({ type: 'scrub', seq: info.events - 1 });
+    this.loadError = null;
+    try {
+      const infos = await fetchMatches(this.table);
+      const info = infos.find((m) => m.match === k);
+      if (!info || info.events === 0) throw new Error(`no match ${k}`);
+      this.match = k;
+      this.seats = info.seats;
+      const all = await fetchEvents(this.table, k, 0);
+      this.dispatch({ type: 'snapshot', match: `${this.table}/${k}`, head: info.events - 1, turnStarts: turnStartsFrom(all) });
+      this.dispatch({ type: 'backfill', events: all });
+      this.dispatch({ type: 'pause' });
+      this.dispatch({ type: 'scrub', seq: info.events - 1 });
+    } catch (e) {
+      this.loadError = e instanceof Error ? e.message : String(e);
+    }
   }
 }
