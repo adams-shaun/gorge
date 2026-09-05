@@ -1,6 +1,8 @@
 import type { DecisionBody, Frame, MatchStart, SeatInfo, Snapshot, View, EventBody, TableHaltedBody } from '../protocol';
 import { dvrReducer, initialDvr, type DvrAction, type DvrState } from './dvr';
-import { fetchView } from './api';
+import { fetchEvents, fetchMatches, fetchView } from './api';
+import { ViewCache } from './viewcache';
+import { turnStartsFrom } from './turns';
 
 /** MatchState is everything the focused view renders for one table. */
 export class MatchState {
@@ -10,8 +12,11 @@ export class MatchState {
   dvr = $state<DvrState>(initialDvr);
   decision = $state<DecisionBody | null>(null);
   halted = $state<string | null>(null);
+  loadError = $state<string | null>(null);
   private inflight = false;
   private again = false;
+  private cache = new ViewCache((seq) => fetchView(this.table, this.match!, seq));
+  private seeking = 0;
 
   constructor(readonly table: string) {}
 
@@ -50,7 +55,16 @@ export class MatchState {
   }
 
   dispatch(a: DvrAction) {
+    const wasLive = this.dvr.live;
     this.dvr = dvrReducer(this.dvr, a);
+    if (a.type === 'snapshot' || a.type === 'reset') this.cache.clear();
+    // Going live — whether by an explicit 'live' action or a new match's
+    // snapshot arriving live — permanently invalidates any paused-cursor
+    // fetch still in flight: bump the token so a late resolution can never
+    // win the "am I still the freshest request" check in showCursor.
+    if (!wasLive && this.dvr.live) this.seeking++;
+    if (!this.dvr.live && a.type !== 'event') void this.showCursor();
+    if (a.type === 'live') void this.refreshLive();
   }
 
   /** refreshLive is PL-16: one GET per burst, coalesced. */
@@ -65,6 +79,50 @@ export class MatchState {
     finally {
       this.inflight = false;
       if (this.again) { this.again = false; void this.refreshLive(); }
+    }
+  }
+
+  /** showCursor renders the view at the cursor (paused) and backfills the transcript when the cursor precedes the known events. */
+  async showCursor() {
+    if (this.match === null || this.dvr.live) return;
+    const seq = this.dvr.cursor;
+    const token = ++this.seeking;
+    const first = this.dvr.events[0]?.event.seq ?? this.dvr.head + 1;
+    if (seq < first) {
+      const since = Math.max(0, seq - 200);
+      const older = await fetchEvents(this.table, this.match, since).catch(() => []);
+      this.dispatch({ type: 'backfill', events: older.filter((e) => e.event.seq < first) });
+    }
+    const v = await this.cache.get(seq).catch(() => null);
+    // !this.dvr.live is belt-and-suspenders: dispatch() already bumps
+    // seeking on any transition to live, but this guards directly against
+    // ever writing a paused-cursor view once we're no longer paused,
+    // regardless of how the token bookkeeping got there.
+    if (v && token === this.seeking && !this.dvr.live) this.view = v;
+  }
+
+  /**
+   * loadFinished renders a match that is not live: no subscription,
+   * everything from the JSON GETs. Never rejects — a missing match or a
+   * failed fetch is reported through loadError instead, so a stale
+   * `/t/{t}/m/{k}` link (fire-and-forget from Table.svelte) can't leave an
+   * unhandled rejection behind. Callers render from loadError, not a catch.
+   */
+  async loadFinished(k: number) {
+    this.loadError = null;
+    try {
+      const infos = await fetchMatches(this.table);
+      const info = infos.find((m) => m.match === k);
+      if (!info || info.events === 0) throw new Error(`no match ${k}`);
+      this.match = k;
+      this.seats = info.seats;
+      const all = await fetchEvents(this.table, k, 0);
+      this.dispatch({ type: 'snapshot', match: `${this.table}/${k}`, head: info.events - 1, turnStarts: turnStartsFrom(all) });
+      this.dispatch({ type: 'backfill', events: all });
+      this.dispatch({ type: 'pause' });
+      this.dispatch({ type: 'scrub', seq: info.events - 1 });
+    } catch (e) {
+      this.loadError = e instanceof Error ? e.message : String(e);
     }
   }
 }
