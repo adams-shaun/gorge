@@ -50,21 +50,14 @@ import (
 // M4's coverage work, and this table is its worklist.
 var knownUnsupported = map[string][]string{
 	"Batterskull":           {"api:Attach", "kw:Equip", "kw:Living Weapon"},
-	"Cavern of Souls":       {"api:ChooseType", "kw:ETBReplacement"},
 	"Chain Lightning":       {"api:CopySpellAbility"},
-	"Chalice of the Void":   {"kw:etbCounter"},
 	"Empty the Warrens":     {"api:CopySpellAbility", "kw:Storm"},
-	"Endless One":           {"kw:etbCounter"},
 	"Goblin Piledriver":     {"kw:Protection from blue"},
 	"Knight of Infamy":      {"kw:Protection from white"},
-	"Phyrexian Revoker":     {"kw:ETBReplacement"},
-	"Pithing Needle":        {"kw:ETBReplacement"},
 	"Rancor":                {"api:Attach", "kw:Enchant"},
-	"Sanctum Prelate":       {"api:ChooseNumber", "kw:ETBReplacement"},
 	"Sword of Fire and Ice": {"api:Attach", "kw:Equip"},
 	"Tendrils of Agony":     {"api:CopySpellAbility", "kw:Storm"},
 	"Umezawa's Jitte":       {"api:Attach", "kw:Equip"},
-	"Walking Ballista":      {"kw:etbCounter"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card

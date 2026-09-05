@@ -357,10 +357,10 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 		// (what it was the moment before the move reset it), not the live
 		// object already in the destination zone.
 		if source == ev.Obj && ev.Obj != 0 && lki != nil {
-			if !effects.MatchesObjectCtx(e.G, v, lki, effects.SpecContext{You: e.controllerOf(source), Source: source}) {
+			if !effects.MatchesObjectCtx(e.G, v, lki, e.specCtx(source, e.controllerOf(source))) {
 				return false
 			}
-		} else if !effects.MatchesSpecFrom(e.G, v, ev.Obj, e.controllerOf(source), source) {
+		} else if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, e.controllerOf(source))) {
 			return false
 		}
 	}
@@ -401,7 +401,7 @@ func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events
 	}
 	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidCard"]; ok {
-		if !effects.MatchesSpecFrom(e.G, v, ev.Obj, ctrl, source) {
+		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
 			return false
 		}
 	}
@@ -443,7 +443,7 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 	}
 	ctrl := e.controllerOf(source)
 	for _, id := range ev.IDs {
-		if effects.MatchesSpecFrom(e.G, spec, id, ctrl, source) {
+		if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, ctrl)) {
 			return true
 		}
 	}
@@ -484,13 +484,13 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidSource"]; ok {
 		src := e.damageSource()
-		if src == 0 || !effects.MatchesSpecFrom(e.G, v, src, ctrl, source) {
+		if src == 0 || !effects.MatchesSpecCtx(e.G, v, src, e.specCtx(source, ctrl)) {
 			return false
 		}
 	}
 	if v, ok := t.Params["ValidTarget"]; ok {
 		if ev.Obj != 0 {
-			if !effects.MatchesSpecFrom(e.G, v, ev.Obj, ctrl, source) {
+			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
 				return false
 			}
 		} else if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
@@ -518,7 +518,7 @@ func (e *Engine) becomesTargetMatches(t cards.Trigger, source state.ObjID, ev ev
 		return false
 	}
 	if v, ok := t.Params["ValidTarget"]; ok {
-		return effects.MatchesSpecFrom(e.G, v, source, e.controllerOf(source), source)
+		return effects.MatchesSpecCtx(e.G, v, source, e.specCtx(source, e.controllerOf(source)))
 	}
 	return true
 }
@@ -536,7 +536,7 @@ func (e *Engine) landPlayedMatches(t cards.Trigger, source state.ObjID, ev event
 		return false
 	}
 	if v, ok := t.Params["ValidCard"]; ok {
-		return effects.MatchesSpecFrom(e.G, v, ev.Obj, e.controllerOf(source), source)
+		return effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, e.controllerOf(source)))
 	}
 	return true
 }
