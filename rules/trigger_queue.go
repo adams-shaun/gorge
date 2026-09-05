@@ -117,6 +117,13 @@ func (e *Engine) putTriggersOnStack() bool {
 		}
 		e.popFrontTrigger()
 		e.pushTrigger(pt)
+		if e.Pending() != nil {
+			// Task 7: the trigger asked for its targets right after its
+			// TriggerPush. Return immediately without granting priority, exactly
+			// as for the ordering and optional asks above; the drain resumes
+			// through handleTarget -> resumeTriggerDrain.
+			return true
+		}
 	}
 }
 
@@ -264,6 +271,27 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	}
 	e.emit(events.Event{Kind: events.TriggerPush, Player: pt.Controller,
 		Obj: pt.Source, Amount: int32(pt.Idx), IDs: ids, Text: "triggered ability"})
+	// Task 7: a trigger that declares ValidTgts$ asks its controller for
+	// targets RIGHT AFTER its TriggerPush -- the ability object is now top of
+	// stack, and the choice is asked before any player receives priority. The
+	// drain records drainAwaitsTarget (Clone copies it) so handleTarget knows
+	// to resume the drain through the SAME continuation handleTriggerOrder
+	// uses rather than granting priority; putTriggersOnStack sees the new
+	// pending decision and returns true. If the TriggerPush no-opped (Apply's
+	// own guard), the stack never grew and there is no ability object to
+	// target for -- skip the ask. askTarget itself may decline to ask (its
+	// TargetMin$ 0 / fizzle paths), which is why the flag is derived from
+	// e.Pending(), not from "we wanted to ask". SA is nil only for a
+	// hand-seeded queue entry (clone_test's seeded fake), which never has
+	// ValidTgts$ -- mirror the nil-tolerance the TriggerPush out-of-range
+	// guard already provides.
+	e.drainAwaitsTarget = false
+	if pt.SA != nil && pt.SA.Params["ValidTgts"] != "" && len(e.G.Stack) > 0 &&
+		e.G.Obj(e.G.Stack[len(e.G.Stack)-1]) != nil {
+		id := e.G.Stack[len(e.G.Stack)-1]
+		e.askTarget(pt.Controller, id, pt.SA)
+		e.drainAwaitsTarget = e.Pending() != nil
+	}
 }
 
 // triggerOf re-reads the T: line a pending trigger came from, so nothing has

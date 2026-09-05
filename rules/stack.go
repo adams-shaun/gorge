@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -46,67 +47,207 @@ func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
 	return true
 }
 
-// askTarget offers every legal target for a spell. M1 handles the single-target
-// case; TargetMin/TargetMax widen it once multi-target cards are in scope.
+// targetBounds resolves a targeting subject's TargetMin$/TargetMax$ to the
+// decision's Min/Max. Missing bounds default to 1 (the M1 single-target
+// contract: a spell or ability that targets at all targets one thing).
+// TargetMin$ 0 is legal -- requirement N2: a spell that MAY target zero
+// things resolves untargeted when no legal target exists -- while a negative
+// Min or a Max below Min is clamped back to a sane bound (never below 1, so
+// a truncated 0 max still asks for at least one).
+func targetBounds(sa *cards.SA) (int, int) {
+	min, max := 1, 1
+	if v, ok := sa.Params["TargetMin"]; ok {
+		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+			min = n
+		}
+	}
+	if v, ok := sa.Params["TargetMax"]; ok {
+		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil && n >= 1 {
+			max = n
+		}
+	}
+	if min < 0 {
+		min = 1
+	}
+	if max < min {
+		max = min
+	}
+	return min, max
+}
+
+// targetMin is the Min half of targetBounds, inlined for resolveTop's N2 gate.
+func targetMin(sa *cards.SA) int {
+	min, _ := targetBounds(sa)
+	return min
+}
+
+// targetZones resolves TgtZone$ (comma-separated) into the zones to search
+// for target options. The default is the battlefield. An unknown token is
+// dropped; every unknown token leaves the battlefield default.
+func targetZones(sa *cards.SA) []state.Zone {
+	spec := sa.Params["TgtZone"]
+	if strings.TrimSpace(spec) == "" {
+		return []state.Zone{state.ZBattlefield}
+	}
+	var zones []state.Zone
+	for _, z := range strings.Split(spec, ",") {
+		switch strings.TrimSpace(z) {
+		case "Battlefield":
+			zones = append(zones, state.ZBattlefield)
+		case "Graveyard":
+			zones = append(zones, state.ZGraveyard)
+		case "Hand":
+			zones = append(zones, state.ZHand)
+		case "Exile":
+			zones = append(zones, state.ZExile)
+		}
+	}
+	if len(zones) == 0 {
+		zones = []state.Zone{state.ZBattlefield}
+	}
+	return zones
+}
+
+// targetName is the object's name for a target prompt, tolerating the ability
+// stack object (no Face) a triggered ability's own target ask produces by
+// falling back to its source permanent's name.
+func (e *Engine) targetName(source state.ObjID) string {
+	if o := e.G.Obj(source); o != nil {
+		if f := o.Face(); f != nil && f.Name != "" {
+			return f.Name
+		}
+		if s := e.G.Obj(o.Source); s != nil {
+			if sf := s.Face(); sf != nil && sf.Name != "" {
+				return sf.Name
+			}
+		}
+	}
+	return "target"
+}
+
+// askTarget offers every legal target for a spell or ability. TargetMin$
+// and TargetMax$ set how many the chooser must pick; TgtZone$ (battlefield by
+// default, Graveyard/Hand/Exile for a targeting-off-the-board effect like
+// Snapcaster's flashback grant, comma-separated for a mixed list) says where
+// the candidates live. Options are offered in AliveFrom(0) x zone-slice order
+// (never a map, so no map iteration order reaches a wire decision) -- players
+// first, when the spec can name one -- and the choice is total: a decision is
+// never handed out with fewer options than Min (TargetMin$ 0 resolves
+// untargeted; otherwise the existing CR 608.2b counter/fizzle runs).
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	spec := sa.Params["ValidTgts"]
-	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: 1, Max: 1,
-		Prompt: "Choose a target for " + e.G.Obj(source).Face().Name,
+	min, max := targetBounds(sa)
+	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
+		Prompt: "Choose a target for " + e.targetName(source),
 		Source: source}
 	add := func(kind, label string, obj state.ObjID, pl state.PlayerID) {
 		d.Options = append(d.Options, decision.Option{
 			Index: len(d.Options), Kind: kind, Label: label, Obj: obj, Player: pl})
 	}
-	if targetsPlayers(spec) {
+	zones := targetZones(sa)
+	// Players are offered only alongside the default battlefield search and
+	// only when the spec can name one. A spec that routes elsewhere
+	// (TgtZone$ Graveyard/Hand/Exile) targets objects only -- never a player.
+	offerPlayers := len(zones) == 1 && zones[0] == state.ZBattlefield && targetsPlayers(spec)
+	if offerPlayers {
 		for _, q := range e.G.AliveFrom(0) {
 			add("player", e.G.Players[q].Name, 0, q)
 		}
 	}
-	if targetsPermanents(spec) {
-		for _, q := range e.G.AliveFrom(0) {
-			for _, oid := range e.G.Zone(state.ZBattlefield, q) {
+	for _, z := range zones {
+		// Hand is the chooser's own hand only (CR 701.15a); the other
+		// non-battlefield zones are public, so every seat's slice is offered.
+		players := e.G.AliveFrom(0)
+		if z == state.ZHand {
+			players = []state.PlayerID{p}
+		}
+		for _, q := range players {
+			for _, oid := range e.G.Zone(z, q) {
 				o := e.G.Obj(oid)
-				if effects.MatchesSpec(e.G, spec, oid, p) {
+				if o != nil && effects.MatchesSpecFrom(e.G, spec, oid, p, source) {
+
 					add("permanent", o.Face().Name+" ("+e.G.Players[q].Name+")", oid, q)
 				}
 			}
 		}
 	}
-	if len(d.Options) == 0 {
-		// CR 608.2b: a spell with no legal targets is countered on
-		// resolution. The spike models that as an immediate move to the
-		// spell's normal resting place -- exile instead of the graveyard
-		// for one cast via Flashback (CR 702.32b), same as every exit in
-		// resolveTop below.
+	if min == 0 {
+		// Requirement N2 / totality: a target-hungry subject whose minimum
+		// is zero resolves untargeted when NO legal target exists. When at
+		// least one exists it is still offered (Min 0 lets the chooser take
+		// none); a zero-option decision would strand the cast, never asked.
+		if len(d.Options) == 0 {
+			return
+		}
+	} else if len(d.Options) < min {
+		// A target-hungry subject with fewer legal targets than Min uses CR
+		// 608.2b's existing counter/fizzle exit: an immediate move to its
+		// normal resting place (exile instead of the graveyard for a
+		// Flashback cast, and for a triggered ability object -- which has no
+		// graveyard -- exile per CR 608.2m, same as every ability fizzle in
+		// resolveTop).
 		rest := spellRestZone(e.G.Obj(source))
+		if o := e.G.Obj(source); o != nil && o.Ability != nil {
+			rest = state.ZExile
+		}
 		e.emit(events.Event{Kind: events.MoveZone, Obj: source,
 			From: state.ZStack, To: rest, Text: "countered: no legal targets"})
 		e.ensureLeftTheStack(source, rest, "a replacement fully discarded this "+
 			"spell's 'countered: no legal targets' move without relocating it anywhere; sent "+
 			"to its resting zone instead of re-resolving forever")
 		// Ruling T14-e: p, the casting player, not e.G.Active -- CR 117.3c,
-		// the caster keeps priority even when it fizzles.
-		e.emit(events.Event{Kind: events.Priority, Player: p, Amount: 0})
+		// the caster keeps priority even when it fizzles. Only a SPELL keeps
+		// priority this way: an ability fizzling is parked in exile (ceases
+		// to exist) mid-drain, and handing out priority from inside the
+		// trigger drain would double-emit against the drain's own tail.
+		if o := e.G.Obj(source); o == nil || o.Ability == nil {
+			e.emit(events.Event{Kind: events.Priority, Player: p, Amount: 0})
+		}
 		return
 	}
 	e.ask(d)
 }
 
-// handleTarget records the chosen target(s) via a TargetsChosen event (Ruling
+// handleTarget records the chosen target(s) via TargetsChosen events (Ruling
 // T14-b) rather than writing state.Object.Targets directly: apply.go clears
 // Targets on a zone change but nothing else ever set it, so a direct write
 // here would leave a replayed game with no targets while the live game had
-// them.
+// them. N targets record as TargetMin$ asks for: the first option replaces
+// with targets (TargetsChosen shape 0 for an object, 1 for a player), each
+// further option appends one (shape 2 object, 3 player) -- see apply.go's
+// TargetsChosen case and its test TestTargetsChosenAppendShapes.
 func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
-	opt := d.Chosen(in)[0]
-	ev := events.Event{Kind: events.TargetsChosen, Obj: d.Source}
-	if opt.Kind == "player" {
-		ev.Amount = 1
-		ev.Player = opt.Player
-	} else {
-		ev.IDs = []state.ObjID{opt.Obj}
+	for i, opt := range d.Chosen(in) {
+		ev := events.Event{Kind: events.TargetsChosen, Obj: d.Source}
+		if opt.Kind == "player" {
+			// shape 1 replace / shape 3 append a single player target.
+			ev.Amount = 1
+			if i > 0 {
+				ev.Amount = 3
+			}
+			ev.Player = opt.Player
+		} else {
+			// shape 0 replace / shape 2 append one object target.
+			if i > 0 {
+				ev.Amount = 2
+			}
+			ev.IDs = []state.ObjID{opt.Obj}
+		}
+		e.emit(ev)
 	}
-	e.emit(ev)
+	// A target decision asked by a trigger drain (putTriggersOnStack's
+	// pushTrigger, immediately after the trigger's TriggerPush -- Task 20's
+	// checkTriggers never asked targets, so only a spell's cast-time ask
+	// reached here before) does not hand out priority: the drain's own tail
+	// does, through the SAME continuation handleTriggerOrder uses
+	// (resumeTriggerDrain, turn.go), so a second, later trigger is still
+	// placed before any player acts. A spell's cast-time target decision
+	// keeps its caster's priority (CR 117.3c) via the emit below.
+	if e.drainAwaitsTarget {
+		e.drainAwaitsTarget = false
+		e.resumeTriggerDrain()
+		return
+	}
 	// Ruling T14-e: the submitting player, not e.G.Active -- CR 117.3c, the
 	// player who chose the target (the caster) keeps priority.
 	e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
@@ -155,7 +296,10 @@ func (e *Engine) resolveTop() {
 		// a target but has none recorded skipped CR 608.2b's recheck entirely
 		// and resolved. Zero recorded targets is zero LEGAL targets, which is
 		// exactly what 608.2b counters.
-		if spec := o.Ability.Params["ValidTgts"]; spec != "" {
+		// Requirement N2: an ability that MAY target zero things (TargetMin$ 0)
+		// and has none recorded resolves untargeted rather than fizzling --
+		// targetMin(o.Ability)==0 && len(targets)==0 is the exemption.
+		if spec := o.Ability.Params["ValidTgts"]; spec != "" && !(targetMin(o.Ability) == 0 && len(targets) == 0) {
 			legal := e.legalTargets(targets, spec, o.Controller)
 			if len(legal) == 0 {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
@@ -223,7 +367,9 @@ func (e *Engine) resolveTop() {
 		// own reproduction. CR 608.2b counters a spell with no legal targets;
 		// CR 800.4a says a departed player's spell ceases to exist. Neither
 		// permits it to resolve.
-		if spec := sa.Params["ValidTgts"]; spec != "" {
+		// Requirement N2, the same exemption as the ability branch: an
+		// untargeted-with-Min-0 spell resolves rather than fizzling.
+		if spec := sa.Params["ValidTgts"]; spec != "" && !(targetMin(sa) == 0 && len(targets) == 0) {
 			legal := e.legalTargets(targets, spec, o.Controller)
 			if len(legal) == 0 {
 				// CR 608.2b: every target became illegal. This spell does

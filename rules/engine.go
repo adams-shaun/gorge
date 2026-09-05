@@ -82,6 +82,16 @@ type Engine struct {
 	// cast holds the in-progress cast-flow state while choosing ==
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
 	cast *pendingCast
+
+	// drainAwaitsTarget is true while a TargetMin/TargetMax-bearing triggered
+	// ability's own KTarget decision is pending -- set by pushTrigger right
+	// after the trigger's TriggerPush, cleared by handleTarget when the
+	// answer comes back. When set, handleTarget resumes the trigger drain
+	// (resumeTriggerDrain, the same continuation handleTriggerOrder uses)
+	// instead of granting the caster priority, so a later, unrelated trigger
+	// in the same batch is still placed before any player acts. Plain scalar,
+	// so Clone copies it like every other field here. (Task 7.)
+	drainAwaitsTarget bool
 }
 
 // chooseFor names the flow a pending KChoose decision belongs to. Task 9
