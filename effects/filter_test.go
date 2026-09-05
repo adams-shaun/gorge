@@ -222,6 +222,62 @@ func TestSpecContextResolvesNumericRHSAndChoices(t *testing.T) {
 	}
 }
 
+// TestCountersPredicateFamily covers the counters_<CMP><n>_<KIND> family that
+// Undying's expansion uses (counters_EQ0_P1P1 -- "as it died, with no +1/+1
+// counter"), read off the object the spec is applied to.
+func TestCountersPredicateFamily(t *testing.T) {
+	g, id := board(t)
+	g.Obj(id["myBear"]).AddCounter("P1P1", 2)
+	g.Obj(id["myBear"]).AddCounter("M1M1", 1)
+	cases := []struct {
+		spec string
+		want bool
+	}{
+		{"Creature.counters_EQ0_P1P1", false}, // has two
+		{"Creature.counters_GE1_P1P1", true},
+		{"Creature.counters_EQ2_P1P1", true},
+		{"Creature.counters_LT2_P1P1", false},
+		{"Creature.counters_GT1_P1P1", true},
+		{"Creature.counters_LE1_P1P1", false},
+		{"Creature.counters_EQ0_M1M1", false},
+		{"Creature.counters_EQ1_M1M1", true},
+	}
+	for _, c := range cases {
+		if got := MatchesSpec(g, c.spec, id["myBear"], 0); got != c.want {
+			t.Errorf("%s = %v, want %v", c.spec, got, c.want)
+		}
+	}
+	// The recognised shape is not reported unknown.
+	if un := UnknownPredicates("Creature.counters_EQ0_P1P1"); len(un) != 0 {
+		t.Errorf("counters_EQ0_P1P1 reported unknown: %v", un)
+	}
+}
+
+// TestMatchesObjectCtxOnAnObjectValue is the LKI matcher: the same grammar
+// applied to an object handed in, not a live id, so a zone-change trigger can
+// match the object as it was the moment before the move reset it.
+func TestMatchesObjectCtxOnAnObjectValue(t *testing.T) {
+	g, id := board(t)
+	o := g.Obj(id["myBear"])
+	o.AddCounter("P1P1", 0)
+	// MatchesObjectCtx against an LKI-style snapshot that is NOT reachable by
+	// any live id (the card has been moved away) still evaluates normally.
+	clone := *o
+	clone.Zone = state.ZGraveyard
+	if !MatchesObjectCtx(g, "Card.Self+counters_EQ0_P1P1", &clone, SpecContext{You: 0, Source: o.ID}) {
+		t.Error("object-value Card.Self+counters_EQ0_P1P1 should match")
+	}
+	clone.AddCounter("P1P1", 1)
+	if MatchesObjectCtx(g, "Card.Self+counters_EQ0_P1P1", &clone, SpecContext{You: 0, Source: o.ID}) {
+		t.Error("a counter-bearing LKI copy must fail counters_EQ0_P1P1")
+	}
+	// A stack-copy that has left the stack matches nothing (CR 707.10h).
+	clone.IsCopy = true
+	if MatchesObjectCtx(g, "Card", &clone, SpecContext{}) {
+		t.Error("an exiled copy matched via an object value")
+	}
+}
+
 func TestPermanentOnlyMatchesBattlefield(t *testing.T) {
 	g, id := board(t)
 	// Object is initially on the battlefield; should match Permanent.
