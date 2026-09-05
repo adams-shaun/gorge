@@ -56,6 +56,14 @@ func (e *Engine) Clone() *Engine {
 	}
 	c.triggerFireCount = cloneCounts(e.triggerFireCount)
 	c.damageOnceFired = cloneCounts(e.damageOnceFired)
+	if e.cast != nil {
+		pc := *e.cast
+		pc.cost.Sac = append([]CostPart(nil), e.cast.cost.Sac...)
+		pc.cost.SubCounter = append([]CostPart(nil), e.cast.cost.SubCounter...)
+		pc.delve = append([]state.ObjID(nil), e.cast.delve...)
+		pc.sacs = append([]state.ObjID(nil), e.cast.sacs...)
+		c.cast = &pc
+	}
 	return c
 }
 

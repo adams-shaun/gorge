@@ -10,63 +10,6 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// castSpell moves opt.Obj from hand to the stack, having paid for it first.
-//
-// Which cost it pays is opt.AltCostIndex, not always adjustedCost: Ruling
-// T19b-b. legalActions gates each "cast" option on that specific option's
-// own cost being payable -- the base (RaiseCost/ReduceCost-adjusted) cost for
-// AltCostIndex == 0, or alternativeCosts(p, id)[AltCostIndex-1] otherwise --
-// so castSpell must charge that same cost, not unconditionally the base one.
-// Previously it always charged adjustedCost regardless of which option was
-// chosen; combined with payMana's old silent no-op on an unpayable cost, an
-// alt-cost option -- offered because the ALTERNATIVE cost was payable, not
-// the base one -- would fail to pay anything at all and still reach the
-// stack: a free cast reachable from ordinary, well-formed card data (e.g. a
-// 4-mana spell with an alternative {U} cost, cast with a pool of one blue).
-//
-// If the chosen cost cannot actually be paid, payMana now reports that and
-// this aborts cleanly: no MoveZone/PutOnStack is emitted, so the card stays
-// in hand, and payMana itself never emits anything unless the whole cost
-// clears (Cost.Pay is all-or-nothing), so no partial mana is deducted either.
-func (e *Engine) castSpell(p state.PlayerID, opt decision.Option) {
-	id := opt.Obj
-	o := e.G.Obj(id)
-	f := o.Face()
-
-	cost := e.adjustedCost(p, id)
-	if opt.AltCostIndex > 0 {
-		if alts := e.alternativeCosts(p, id); opt.AltCostIndex-1 < len(alts) {
-			cost = alts[opt.AltCostIndex-1]
-		}
-		// An out-of-range AltCostIndex (stale option from a board state that
-		// no longer holds the granting static) falls back to the base cost
-		// rather than indexing out of bounds or paying nothing.
-	}
-	if !e.payMana(p, cost) {
-		return
-	}
-	// PutOnStack's own Move() reads the object's CURRENT Controller to pick
-	// which stack list to push onto; a hand card is only ever cast by its
-	// own owner in M1 (no stealing effects yet), so Controller already
-	// equals p here and needs no write. The same Move() also resets
-	// Targets to nil for any object leaving to a non-battlefield zone, so a
-	// freshly-cast spell needs no explicit reset either.
-	e.emit(events.Event{Kind: events.PutOnStack, Obj: id, Player: p,
-		From: state.ZHand, To: state.ZStack, Text: f.Name})
-
-	if sa := f.SpellAbility(); sa != nil && sa.Params["ValidTgts"] != "" {
-		e.askTarget(p, id, sa)
-		return
-	}
-	// No trailing Priority emit here (Ruling T14-e): legal.go's "cast" case
-	// already emits Priority{Player: e.G.Priority, Amount: 0} immediately
-	// before calling castSpell, and e.G.Priority at that point is the
-	// caster (Submit already validated in.Player == d.Player == the seat
-	// that was asked). CR 117.3c: the caster keeps priority, so re-emitting
-	// here with e.G.Active would both duplicate that event and hand
-	// priority to the wrong seat whenever a non-active player casts.
-}
-
 // manaLetters is state.Mana's index order (MW, MU, MB, MR, MG, MC) spelled
 // out as the WUBRGC symbols events.ManaAdd's Counter field expects.
 var manaLetters = [...]string{"W", "U", "B", "R", "G", "C"}
@@ -130,13 +73,17 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		}
 	}
 	if len(d.Options) == 0 {
-		// CR 608.2b: a spell with no legal targets is countered on resolution.
-		// The spike models that as an immediate move to the graveyard.
+		// CR 608.2b: a spell with no legal targets is countered on
+		// resolution. The spike models that as an immediate move to the
+		// spell's normal resting place -- exile instead of the graveyard
+		// for one cast via Flashback (CR 702.32b), same as every exit in
+		// resolveTop below.
+		rest := spellRestZone(e.G.Obj(source))
 		e.emit(events.Event{Kind: events.MoveZone, Obj: source,
-			From: state.ZStack, To: state.ZGraveyard, Text: "countered: no legal targets"})
-		e.ensureLeftTheStack(source, state.ZGraveyard, "a replacement fully discarded this "+
+			From: state.ZStack, To: rest, Text: "countered: no legal targets"})
+		e.ensureLeftTheStack(source, rest, "a replacement fully discarded this "+
 			"spell's 'countered: no legal targets' move without relocating it anywhere; sent "+
-			"to the graveyard instead of re-resolving forever")
+			"to its resting zone instead of re-resolving forever")
 		// Ruling T14-e: p, the casting player, not e.G.Active -- CR 117.3c,
 		// the caster keeps priority even when it fizzles.
 		e.emit(events.Event{Kind: events.Priority, Player: p, Amount: 0})
@@ -281,16 +228,19 @@ func (e *Engine) resolveTop() {
 			if len(legal) == 0 {
 				// CR 608.2b: every target became illegal. This spell does
 				// not resolve -- no Resolve event, no script runs -- it goes
-				// straight to the graveyard, the same zone it would reach
-				// after an ordinary resolution (an Aura instead reaching
-				// the battlefield would be wrong here: CR 704.5m's "nothing
-				// legal to attach to" is exactly this case for that spell
-				// shape, and the graveyard is where it belongs).
+				// straight to its normal resting place, the same zone it
+				// would reach after an ordinary resolution (an Aura instead
+				// reaching the battlefield would be wrong here: CR 704.5m's
+				// "nothing legal to attach to" is exactly this case for
+				// that spell shape, and the resting zone is where it
+				// belongs) -- exile instead of the graveyard for one cast
+				// via Flashback (CR 702.32b).
+				rest := spellRestZone(o)
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
-					From: state.ZStack, To: state.ZGraveyard, Text: "fizzled: no legal targets remain"})
-				e.ensureLeftTheStack(id, state.ZGraveyard, "a replacement fully discarded this "+
+					From: state.ZStack, To: rest, Text: "fizzled: no legal targets remain"})
+				e.ensureLeftTheStack(id, rest, "a replacement fully discarded this "+
 					"spell's 'fizzled: no legal targets' move without relocating it anywhere; "+
-					"sent to the graveyard instead of re-resolving forever")
+					"sent to its resting zone instead of re-resolving forever")
 				return
 			}
 			targets = legal
@@ -302,15 +252,28 @@ func (e *Engine) resolveTop() {
 	}
 	if f.IsPermanent() {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZBattlefield})
-		e.ensureLeftTheStack(id, state.ZGraveyard, "an ETB replacement fully replaced this "+
-			"permanent's entry to the battlefield without moving it anywhere; sent to the "+
-			"graveyard instead of re-resolving forever")
+		e.ensureLeftTheStack(id, spellRestZone(o), "an ETB replacement fully replaced this "+
+			"permanent's entry to the battlefield without moving it anywhere; sent to its "+
+			"resting zone instead of re-resolving forever")
 	} else {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZGraveyard})
-		e.ensureLeftTheStack(id, state.ZGraveyard, "a replacement fully discarded this resolved "+
-			"spell's own move off the stack without relocating it anywhere; sent to the "+
-			"graveyard instead of re-resolving forever")
+		rest := spellRestZone(o)
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: rest})
+		e.ensureLeftTheStack(id, rest, "a replacement fully discarded this resolved "+
+			"spell's own move off the stack without relocating it anywhere; sent to its "+
+			"resting zone instead of re-resolving forever")
 	}
+}
+
+// spellRestZone is where a resolved (or fizzled) spell goes instead of the
+// graveyard: exile for one cast via Flashback (CR 702.32b), the graveyard
+// for everything else. o is read before the MoveZone that takes it off the
+// stack, so its CastFlags (set by commitCast's CastInfo, if any) still
+// reflect how it was cast.
+func spellRestZone(o *state.Object) state.Zone {
+	if o != nil && o.CastFlags&state.FlagFlashback != 0 {
+		return state.ZExile
+	}
+	return state.ZGraveyard
 }
 
 // ensureLeftTheStack is CR 608.2m housekeeping, not a further game action:

@@ -43,6 +43,21 @@ func (f *Face) HasKeyword(k string) bool {
 	return false
 }
 
+// KeywordParam returns the text after the colon of a parameterised keyword
+// ("Kicker:B" -> "B"; "Equip:2" -> "2") and reports whether the keyword is
+// printed at all ("Flash" -> "", true; absent -> "", false).
+func (f *Face) KeywordParam(head string) (string, bool) {
+	for _, k := range f.Keywords {
+		if strings.EqualFold(KeywordHead(k), head) {
+			if i := strings.IndexByte(k, ':'); i >= 0 {
+				return strings.TrimSpace(k[i+1:]), true
+			}
+			return "", true
+		}
+	}
+	return "", false
+}
+
 // SpellAbility is the SP$ ability a card casts with, if any.
 func (f *Face) SpellAbility() *SA {
 	for _, a := range f.Abilities {
