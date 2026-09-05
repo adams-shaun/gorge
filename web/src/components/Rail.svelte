@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { View, SeatInfo, DecisionBody } from '../protocol';
   import { seatColour } from '../lib/colours';
+  import { visibleHand } from '../lib/board';
   import HandList from './HandList.svelte';
   import StackTile from './StackTile.svelte';
   import PendingTray from './PendingTray.svelte';
@@ -15,7 +16,9 @@
 
 <div class="rail-inner">
   {#each view.players as p (p.seat)}
-    <HandList player={p} deck={seats[p.seat]?.deck} colour={seatColour(p.seat, seats)} />
+    {#if visibleHand(p) !== null}
+      <HandList player={p} deck={seats[p.seat]?.deck} colour={seatColour(p.seat, seats)} />
+    {/if}
   {/each}
 
   <section>

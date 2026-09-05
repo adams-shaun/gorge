@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { StackView, View, TargetView } from '../protocol';
+  import { visibleHand } from '../lib/board';
   import CardImage from './CardImage.svelte';
 
   /** StackTile is one stack entry: a band coloured by kind, its card face when it has one, its text, and its targets. Resolving a target's object id to a display name is a rendering concern — it reads every visible zone in `view` but decides nothing about the game. */
@@ -7,7 +8,7 @@
 
   function nameFor(obj: number): string | null {
     for (const p of view.players) {
-      for (const list of [p.battlefield, p.hand, p.graveyard, p.exile]) {
+      for (const list of [p.battlefield, visibleHand(p) ?? [], p.graveyard, p.exile]) {
         const c = list.find((x) => x.id === obj);
         if (c) return c.name;
       }
