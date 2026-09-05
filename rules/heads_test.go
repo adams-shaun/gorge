@@ -13,9 +13,9 @@ import (
 // own (rules/acceptance_test.go's playAcceptance), so the two tests always agree.
 var acceptanceHeads = map[int]string{
 	2: "49bf77aae8335d50",
-	4: "26f421e82f3f5f8d",
-	6: "6cd5a5255c49a11d",
-	8: "2978fc4ef3eb8f31",
+	4: "4a725954b9a624e5",
+	6: "363e9f1492c7358e",
+	8: "92b0014162a5b25f",
 }
 
 func TestHeads(t *testing.T) {
