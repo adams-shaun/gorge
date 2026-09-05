@@ -227,6 +227,47 @@ func TestBotTotalityUnderArbitraryMinMax(t *testing.T) {
 	}
 }
 
+// TestBotPassesOutsideMainWithNoCastOrLandDrop is Ruling T25-g's regression
+// test, using the engine's REAL shape for a non-main priority decision
+// (rules/legal.go's legalActions never offers play_land or cast outside
+// sorcery speed/an affordable instant): one or more "activate" options
+// followed by "pass" last. Fix round 1's own regression case for this
+// (TestBotAlwaysAnswersEveryDecisionKind's "priority (combat)" case, above)
+// included a play_land option that the switch's un-gated second loop
+// matches regardless of phase, so it never actually reached the fallback
+// path that reintroduced I-1(b) in a live game (clamp topping up a
+// Min:1/Max:1 decision with the first unused option, which legalActions
+// always lists as an activation before pass). This decision has no
+// play_land and no cast, so the bot must fall through to the explicit pass
+// added in botDecide's KPriority case -- not clamp's top-up -- for every
+// phase that isn't a main phase.
+func TestBotPassesOutsideMainWithNoCastOrLandDrop(t *testing.T) {
+	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
+		Options: []decision.Option{
+			{Index: 0, Kind: "activate", Obj: 100},
+			{Index: 1, Kind: "activate", Obj: 101},
+			{Index: 2, Kind: "pass"},
+		}}
+	for _, phase := range []string{"", "beginning", "combat", "ending"} {
+		in, err := NewBot(1).Decide(context.Background(), view.View{Phase: phase}, d)
+		if err != nil {
+			t.Fatalf("phase %q: Decide returned an error: %v", phase, err)
+		}
+		if err := d.Validate(in); err != nil {
+			t.Fatalf("phase %q: intent %+v failed Validate: %v", phase, in, err)
+		}
+		if len(in.Choices) != 1 || d.Options[in.Choices[0]].Kind != "pass" {
+			t.Errorf("phase %q: priority = %+v, want pass chosen -- not an activation -- outside a main phase", phase, in)
+		}
+	}
+	// And inside a main phase, the same decision DOES prefer activate --
+	// confirming this test isn't just checking "never activate ever".
+	in, err := NewBot(1).Decide(context.Background(), view.View{Phase: "main1"}, d)
+	if err != nil || len(in.Choices) != 1 || d.Options[in.Choices[0]].Kind != "activate" {
+		t.Errorf("phase \"main1\": priority = %+v (err=%v), want an activation chosen", in, err)
+	}
+}
+
 // TestBotAlwaysAnswersEveryDecisionKind checks the brief's four headline
 // kinds behave like the aggro policy the doc comment promises, not merely
 // that they validate: priority prefers tapping mana over a land drop or a

@@ -59,6 +59,26 @@ func (b *testBot) answer(isMain bool, d *decision.Decision) decision.Intent {
 				}
 			}
 		}
+		// Ruling T25-g (fix round 2): explicitly pass here, before clamp
+		// ever runs. This is the common case -- outside a main phase, or
+		// with nothing affordable in one -- and legalActions
+		// (rules/legal.go) lists every "activate" option before "pass", so
+		// without this, clamp's blind first-unused-index top-up (needed
+		// because a priority decision is always Min:1/Max:1, so falling
+		// through with in.Choices empty is not itself a legal answer) would
+		// reach for an activation and reintroduce I-1(b) through the
+		// fallback path -- exactly what fix round 1 missed, because its own
+		// synthetic regression decision carried a play_land option the loop
+		// above matches unconditionally, a shape the live engine never
+		// offers outside sorcery speed. Pass is offered on every priority
+		// decision the engine emits; if it is somehow absent, this falls
+		// through to the shared last resort below, same as any other kind.
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				in.Choices = []int{o.Index}
+				return clamp(d, in)
+			}
+		}
 
 	case decision.KTarget:
 		for _, o := range d.Options {
@@ -136,6 +156,16 @@ func (b *testBot) answer(isMain bool, d *decision.Decision) decision.Intent {
 // (Ruling T25-c). Truncate to at most Max, in the order already chosen,
 // then -- if that leaves fewer than Min -- top up with the lowest-index
 // unused options until Min is reached or none remain.
+//
+// Ruling T25-g (fix round 2): the top-up prefers an unused "pass" option
+// over anything else. The KPriority branch above already returns "pass"
+// explicitly before clamp ever runs, so this is defense in depth for
+// whatever reaches here anyway (an absent "pass", or a future caller) --
+// without it, a blind first-unused-index top-up would reach for whatever
+// legalActions (rules/legal.go) happens to list first, which is every
+// "activate" option, before "pass". That is precisely how fix round 1's own
+// clamp reintroduced I-1(b): a Min:1 priority decision falling through with
+// nothing chosen got topped up into an activation instead of a pass.
 func clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 	max := d.Max
 	if max < 0 {
@@ -157,6 +187,15 @@ func clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 			if len(in.Choices) >= min {
 				break
 			}
+			if o.Kind == "pass" && !have[o.Index] {
+				have[o.Index] = true
+				in.Choices = append(in.Choices, o.Index)
+			}
+		}
+		for _, o := range d.Options {
+			if len(in.Choices) >= min {
+				break
+			}
 			if !have[o.Index] {
 				have[o.Index] = true
 				in.Choices = append(in.Choices, o.Index)
@@ -164,6 +203,36 @@ func clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 		}
 	}
 	return in
+}
+
+// TestTestBotPassesOutsideMainWithNoCastOrLandDrop mirrors
+// seat/bot_test.go's TestBotPassesOutsideMainWithNoCastOrLandDrop against
+// this package's own copy (Ruling F7): the engine's REAL shape for a
+// non-main priority decision (rules/legal.go's legalActions never offers
+// play_land or cast outside sorcery speed/an affordable instant) is one or
+// more "activate" options followed by "pass" last -- no play_land, so the
+// switch's un-gated play_land/cast loop cannot mask the fallback path the
+// way fix round 1's own regression case accidentally did.
+func TestTestBotPassesOutsideMainWithNoCastOrLandDrop(t *testing.T) {
+	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
+		Options: []decision.Option{
+			{Index: 0, Kind: "activate", Obj: 100},
+			{Index: 1, Kind: "activate", Obj: 101},
+			{Index: 2, Kind: "pass"},
+		}}
+	b := newTestBot(1)
+	in := b.answer(false, &d)
+	if err := d.Validate(in); err != nil {
+		t.Fatalf("isMain=false: intent %+v failed Validate: %v", in, err)
+	}
+	if len(in.Choices) != 1 || d.Options[in.Choices[0]].Kind != "pass" {
+		t.Errorf("isMain=false: priority = %+v, want pass chosen -- not an activation -- outside a main phase", in)
+	}
+	// And inside a main phase, the same decision DOES prefer activate.
+	in = b.answer(true, &d)
+	if len(in.Choices) != 1 || d.Options[in.Choices[0]].Kind != "activate" {
+		t.Errorf("isMain=true: priority = %+v, want an activation chosen", in)
+	}
 }
 
 // TestTestBotTotalityUnderArbitraryMinMax is seat/bot_test.go's
