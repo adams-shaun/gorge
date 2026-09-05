@@ -154,12 +154,12 @@ func TestDealDamageHitsPlayersAndPermanents(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
 	c := &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}}
-	Resolve(h, c, sa(t, "SP$ DealDamage | NumDmg$ 3"))
+	Resolve(h, c, sa(t, "SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3"))
 	if g.Players[1].Life != 17 {
 		t.Fatalf("life = %d, want 17", g.Players[1].Life)
 	}
 	c.Targets = []state.Target{{Obj: ids["theirBig"]}}
-	Resolve(h, c, sa(t, "SP$ DealDamage | NumDmg$ 2"))
+	Resolve(h, c, sa(t, "SP$ DealDamage | ValidTgts$ Creature | NumDmg$ 2"))
 	if g.Obj(ids["theirBig"]).Damage != 2 {
 		t.Fatalf("damage = %d", g.Obj(ids["theirBig"]).Damage)
 	}
@@ -173,7 +173,7 @@ func TestDealDamageIgnoresObjectsOffTheBattlefield(t *testing.T) {
 	h := &fakeHost{g: g}
 	moveTo(g, ids["myBear"], state.ZGraveyard)
 	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
-		sa(t, "SP$ DealDamage | NumDmg$ 3"))
+		sa(t, "SP$ DealDamage | ValidTgts$ Creature | NumDmg$ 3"))
 	if g.Obj(ids["myBear"]).Damage != 0 {
 		t.Fatal("damage applied to a card in the graveyard")
 	}
@@ -264,6 +264,33 @@ func TestDigMovesMatchingCardsToDestinationLeavingTheRestOnTop(t *testing.T) {
 	}
 	if lib := g.Zone(state.ZLibrary, 0); len(lib) != 2 || lib[0] != c0 || lib[1] != c2 {
 		t.Fatalf("library = %v, want [%d %d], unchanged relative order", lib, c0, c2)
+	}
+}
+
+// TestDigChangeNumAllMovesEveryMatchingCardOfTheTopN is Task 5's regression
+// test for "ChangeNum$ All" (e.g. Goblin Guide's own Dig): every matching
+// card within the top DigNum cards moves, not just the first ChangeNum of
+// them, with no cap short of DigNum itself. A card outside the DigNum window
+// is never even inspected, let alone moved.
+func TestDigChangeNumAllMovesEveryMatchingCardOfTheTopN(t *testing.T) {
+	h := newHost(t, 2)
+	land := mkCard(t, "Name:Isle\nTypes:Basic Land Island\nOracle:x\n")
+	bear := mkCard(t, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	g := h.g
+	c0 := g.AddObject(land, 0).ID
+	c1 := g.AddObject(bear, 0).ID
+	c2 := g.AddObject(land, 0).ID
+	c3 := g.AddObject(bear, 0).ID // outside DigNum$ 3, never inspected
+	g.SetZone(state.ZLibrary, 0, []state.ObjID{c0, c1, c2, c3})
+
+	Resolve(h, &Ctx{Controller: 0}, sa(t,
+		"SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ All | ChangeValid$ Land | DestinationZone$ Hand"))
+
+	if hand := g.Zone(state.ZHand, 0); len(hand) != 2 || hand[0] != c0 || hand[1] != c2 {
+		t.Fatalf("hand = %v, want [%d %d] (both lands in the top 3)", hand, c0, c2)
+	}
+	if lib := g.Zone(state.ZLibrary, 0); len(lib) != 2 || lib[0] != c1 || lib[1] != c3 {
+		t.Fatalf("library = %v, want [%d %d], unchanged relative order", lib, c1, c3)
 	}
 }
 
@@ -400,7 +427,7 @@ func TestChangeZoneMovesTheTarget(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
 	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
-		sa(t, "SP$ ChangeZone | Destination$ Hand"))
+		sa(t, "SP$ ChangeZone | ValidTgts$ Permanent | Destination$ Hand"))
 	if g.Obj(ids["myBear"]).Zone != state.ZHand {
 		t.Fatalf("zone = %v, want Hand", g.Obj(ids["myBear"]).Zone)
 	}
@@ -415,7 +442,7 @@ func TestChangeZoneSkipsObjectNoLongerAtOrigin(t *testing.T) {
 	h := &fakeHost{g: g}
 	moveTo(g, ids["myBear"], state.ZGraveyard)
 	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
-		sa(t, "SP$ ChangeZone | Origin$ Battlefield | Destination$ Exile"))
+		sa(t, "SP$ ChangeZone | ValidTgts$ Permanent | Origin$ Battlefield | Destination$ Exile"))
 	if g.Obj(ids["myBear"]).Zone != state.ZGraveyard {
 		t.Fatalf("zone = %v, want unchanged Graveyard", g.Obj(ids["myBear"]).Zone)
 	}
@@ -449,7 +476,7 @@ func TestChangeZoneAllSweepsMatchingLibraryCards(t *testing.T) {
 func TestDestroyMovesToGraveyard(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "SP$ Destroy"))
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "SP$ Destroy | ValidTgts$ Creature"))
 	if g.Obj(ids["myBear"]).Zone != state.ZGraveyard {
 		t.Fatal("destroyed permanent did not move to the graveyard")
 	}
@@ -461,7 +488,7 @@ func TestDestroySkipsIndestructible(t *testing.T) {
 	h := &fakeHost{g: g}
 	o := g.Obj(ids["myBear"])
 	o.Card.Faces[0].Keywords = append(o.Card.Faces[0].Keywords, "Indestructible")
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: o.ID}}}, sa(t, "SP$ Destroy"))
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: o.ID}}}, sa(t, "SP$ Destroy | ValidTgts$ Creature"))
 	if o.Zone != state.ZBattlefield {
 		t.Fatal("indestructible permanent was destroyed")
 	}
@@ -496,7 +523,7 @@ func TestSacrificeIgnoresIndestructible(t *testing.T) {
 	h := &fakeHost{g: g}
 	o := g.Obj(ids["myBear"])
 	o.Card.Faces[0].Keywords = append(o.Card.Faces[0].Keywords, "Indestructible")
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: o.ID}}}, sa(t, "SP$ Sacrifice"))
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: o.ID}}}, sa(t, "SP$ Sacrifice | ValidTgts$ Creature"))
 	if o.Zone != state.ZGraveyard {
 		t.Fatal("sacrifice must ignore Indestructible")
 	}
@@ -548,7 +575,7 @@ func TestPutCounterAddsToTarget(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
 	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
-		sa(t, "SP$ PutCounter | CounterType$ P1P1 | CounterNum$ 2"))
+		sa(t, "SP$ PutCounter | ValidTgts$ Creature | CounterType$ P1P1 | CounterNum$ 2"))
 	if got := g.Obj(ids["myBear"]).Counter("P1P1"); got != 2 {
 		t.Fatalf("P1P1 counters = %d, want 2", got)
 	}
@@ -557,7 +584,7 @@ func TestPutCounterAddsToTarget(t *testing.T) {
 func TestPutCounterDefaultsToOneP1P1(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "SP$ PutCounter"))
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "SP$ PutCounter | ValidTgts$ Creature"))
 	if got := g.Obj(ids["myBear"]).Counter("P1P1"); got != 1 {
 		t.Fatalf("P1P1 counters = %d, want 1", got)
 	}
@@ -594,7 +621,7 @@ func TestRemoveCounterAllHonoursAllCounters(t *testing.T) {
 func TestRegenerateGrantsAShieldCounter(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "AB$ Regenerate"))
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "AB$ Regenerate | ValidTgts$ Creature"))
 	if got := g.Obj(ids["myBear"]).Counter("Shield"); got != 1 {
 		t.Fatalf("Shield counters = %d, want 1", got)
 	}
@@ -606,12 +633,12 @@ func TestRegenerateGrantsAShieldCounter(t *testing.T) {
 func TestTapTapsUntappedTargetOnly(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "AB$ Tap"))
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "AB$ Tap | ValidTgts$ Creature"))
 	if !g.Obj(ids["myBear"]).Tapped {
 		t.Fatal("target was not tapped")
 	}
 	before := len(h.log)
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "AB$ Tap"))
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "AB$ Tap | ValidTgts$ Creature"))
 	if len(h.log) != before {
 		t.Fatal("tapping an already-tapped permanent should not emit a second Tap event")
 	}
@@ -626,7 +653,7 @@ func TestPumpRegistersLayerContinuousEffectsOnTheTarget(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
 	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
-		sa(t, "AB$ Pump | NumAtt$ +2 | NumDef$ +1 | KW$ Flying"))
+		sa(t, "AB$ Pump | ValidTgts$ Creature | NumAtt$ +2 | NumDef$ +1 | KW$ Flying"))
 	if len(h.continuous) != 2 {
 		t.Fatalf("continuous = %+v, want 2 effects", h.continuous)
 	}
@@ -649,7 +676,7 @@ func TestPumpRequiresTheBattlefield(t *testing.T) {
 	h := &fakeHost{g: g}
 	moveTo(g, ids["myBear"], state.ZGraveyard)
 	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
-		sa(t, "AB$ Pump | NumAtt$ +2 | NumDef$ +1"))
+		sa(t, "AB$ Pump | ValidTgts$ Creature | NumAtt$ +2 | NumDef$ +1"))
 	if len(h.continuous) != 0 {
 		t.Fatalf("continuous = %+v, want none off the battlefield", h.continuous)
 	}
@@ -707,7 +734,7 @@ func TestAnimateRegistersASetContinuousEffectEvenOffTheBattlefield(t *testing.T)
 	h := &fakeHost{g: g}
 	moveTo(g, ids["myBear"], state.ZGraveyard)
 	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
-		sa(t, "DB$ Animate | Power$ 4 | Toughness$ 4"))
+		sa(t, "DB$ Animate | ValidTgts$ Creature | Power$ 4 | Toughness$ 4"))
 	if len(h.continuous) != 1 {
 		t.Fatalf("continuous = %+v, want 1", h.continuous)
 	}
@@ -728,7 +755,7 @@ func TestAnimateWithNoPowerOrToughnessOnlyGrantsTypes(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
 	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
-		sa(t, "DB$ Animate | Types$ Artifact Treasure"))
+		sa(t, "DB$ Animate | ValidTgts$ Creature | Types$ Artifact Treasure"))
 	if len(h.continuous) != 1 {
 		t.Fatalf("continuous = %+v, want 1 (types only, no P/T set)", h.continuous)
 	}
@@ -741,7 +768,7 @@ func TestAnimateWithNoPowerOrToughnessOnlyGrantsTypes(t *testing.T) {
 func TestProtectionRequiresTheBattlefield(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "AB$ Protection | Gains$ red"))
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "AB$ Protection | ValidTgts$ Creature | Gains$ red"))
 	if len(h.continuous) != 1 {
 		t.Fatalf("continuous = %+v, want one registration", h.continuous)
 	}
@@ -752,7 +779,7 @@ func TestProtectionRequiresTheBattlefield(t *testing.T) {
 	}
 	moveTo(g, ids["myBear"], state.ZGraveyard)
 	h.continuous = nil
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "AB$ Protection | Gains$ red"))
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "AB$ Protection | ValidTgts$ Creature | Gains$ red"))
 	if len(h.continuous) != 0 {
 		t.Fatalf("continuous = %+v, want none off the battlefield", h.continuous)
 	}
@@ -767,7 +794,7 @@ func TestProtectionChoiceDefaultsDeterministically(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
 	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
-		sa(t, "AB$ Protection | Gains$ Choice | Choices$ AnyColor"))
+		sa(t, "AB$ Protection | ValidTgts$ Creature | Gains$ Choice | Choices$ AnyColor"))
 	if len(h.continuous) != 1 {
 		t.Fatalf("continuous = %+v, want one registration", h.continuous)
 	}
@@ -802,7 +829,7 @@ func TestSetStateFlipsToTheOtherFace(t *testing.T) {
 	o.Zone = state.ZBattlefield
 	h.g.SetZone(state.ZBattlefield, 0, []state.ObjID{o.ID})
 
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: o.ID}}}, sa(t, "DB$ SetState | Mode$ Transform"))
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: o.ID}}}, sa(t, "DB$ SetState | ValidTgts$ Permanent | Mode$ Transform"))
 	if o.FaceIdx != 1 || o.Face().Name != "Back" {
 		t.Fatalf("FaceIdx = %d, name = %q", o.FaceIdx, o.Face().Name)
 	}
@@ -811,7 +838,7 @@ func TestSetStateFlipsToTheOtherFace(t *testing.T) {
 func TestSetStateNoOpsOnASingleFaceCard(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "DB$ SetState | Mode$ Flip"))
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}, sa(t, "DB$ SetState | ValidTgts$ Permanent | Mode$ Flip"))
 	if len(h.log) != 0 {
 		t.Fatalf("log = %+v, want no events for a single-face card", h.log)
 	}
@@ -824,7 +851,7 @@ func TestCounterMovesTheTargetedSpellToItsOwnersGraveyard(t *testing.T) {
 	o.Zone = state.ZStack
 	o.Controller = 1
 	h.g.Stack = []state.ObjID{o.ID}
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: o.ID}}}, sa(t, "SP$ Counter"))
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: o.ID}}}, sa(t, "SP$ Counter | ValidTgts$ Spell"))
 	if o.Zone != state.ZGraveyard {
 		t.Fatalf("zone = %v, want Graveyard", o.Zone)
 	}
@@ -843,7 +870,7 @@ func TestCounterIgnoresATargetNoLongerOnTheStack(t *testing.T) {
 	o.Zone = state.ZGraveyard
 	o.Owner, o.Controller = 1, 1
 	h.g.SetZone(state.ZGraveyard, 1, []state.ObjID{o.ID})
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: o.ID}}}, sa(t, "SP$ Counter"))
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: o.ID}}}, sa(t, "SP$ Counter | ValidTgts$ Spell"))
 	if len(h.log) != 0 {
 		t.Fatalf("log = %+v, want no events for a target already off the stack", h.log)
 	}
@@ -905,7 +932,7 @@ func TestVoteRecordsANotePerVotingPlayer(t *testing.T) {
 
 func TestBecomeMonarchRecordsTheTargetPlayer(t *testing.T) {
 	h := newHost(t, 2)
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}}, sa(t, "AB$ BecomeMonarch"))
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}}, sa(t, "AB$ BecomeMonarch | ValidTgts$ Player"))
 	if len(h.log) != 1 || h.log[0].Kind != events.Note || h.log[0].Player != 1 {
 		t.Fatalf("log = %+v", h.log)
 	}
@@ -996,7 +1023,7 @@ func TestCardflowAPIsGuardOutOfRangePlayerID(t *testing.T) {
 	for _, api := range apis {
 		api := api
 		t.Run(api+"/target_player_out_of_range", func(t *testing.T) {
-			run(t, "SP$ "+api, &Ctx{Controller: 0,
+			run(t, "SP$ "+api+" | ValidTgts$ Player", &Ctx{Controller: 0,
 				Targets: []state.Target{{Player: 250, IsPlayer: true}}})
 		})
 		t.Run(api+"/controller_out_of_range", func(t *testing.T) {

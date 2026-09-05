@@ -112,17 +112,20 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 // RearrangeTopOfLibrary makes for its own remainder.
 //
 // A real card can also write "ChangeNum$ All" (e.g. Goblin Guide's own Dig)
-// instead of a number. Num has no notion of "All" and falls back to its
-// zero default, so today that degrades to "look, but move nothing" rather
-// than moving every matching card -- a documented, non-crashing degradation
-// of the same kind as the Repeat/MaxRepeat one below, not a special case
-// this function papers over.
+// to mean every matching card within the DigNum look, with no cap short of
+// that. changeNum's own upper bound is already the size of the dug slice, so
+// defaulting it to digNum and only overriding that default for a literal or
+// SVar ChangeNum$ handles "All" for free: it is simply the case where
+// nothing narrows the cap below the number of cards looked at.
 func effDig(h Host, c *Ctx, sa *cards.SA) {
 	digNum := Num(h, c, sa, "DigNum", 1)
 	if digNum < 0 {
 		digNum = 0
 	}
-	changeNum := Num(h, c, sa, "ChangeNum", digNum)
+	changeNum := digNum
+	if raw := sa.Params["ChangeNum"]; raw != "" && raw != "All" {
+		changeNum = Num(h, c, sa, "ChangeNum", digNum)
+	}
 	if changeNum < 0 {
 		changeNum = 0
 	}
