@@ -188,9 +188,12 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 // cards (Goblin Guide, Ulamog) already carry that Defined$ spelling, but
 // effects.Defined does not recognize it yet and falls back to Targets, so no
 // repo card's resolved BEHAVIOUR depends on this trailing entry until Task 7
-// teaches Defined about it. pushTrigger (trigger_queue.go) is what keeps
-// that from moving TestHeads in the meantime: it deliberately does not
-// persist this richer shape onto the stack object yet.
+// teaches Defined about it. pushTrigger (trigger_queue.go) persists this
+// Remembered exactly as built here -- every declared attacker plus the
+// defending-player entry -- onto the TriggerPush event it logs; that moves
+// TestHeads's pinned chain heads for the 4- and 8-seat acceptance games
+// (Attacks-mode triggers already fire there), a named, expected move per
+// FL-36, not a defect.
 func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 	if ev.Kind == events.DeclareAttackers {
 		out := make([]state.Target, 0, len(ev.IDs)+1)
