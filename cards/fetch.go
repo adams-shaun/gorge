@@ -10,26 +10,53 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 )
 
 const (
 	forgeRepo    = "https://github.com/Card-Forge/forge.git"
-	forgeSubpath = "forge-gui/res/cardsfolder"
 	forgeLicense = "GPL-3.0"
 )
+
+// forgeSubpaths are the sparse-checkout paths Fetch pulls from Forge: the
+// card corpus itself, and the token scripts a card's TokenScript$ parameter
+// (e.g. "make a 1/1 red Goblin") references by file stem. Order matters:
+// index 0 is always the card corpus, matched against Lock.FetchedPath for
+// old lock readers.
+var forgeSubpaths = []string{"forge-gui/res/cardsfolder", "forge-gui/res/tokenscripts"}
+
+// fullCommitSHA matches a full 40-hex-character git commit hash, as opposed
+// to a branch or tag name. A full SHA needs a different clone strategy (see
+// fetchRepo): a --branch clone only reaches refs a remote advertises at
+// their tips, but an arbitrary pinned commit may not be one.
+var fullCommitSHA = regexp.MustCompile(`^[0-9a-f]{40}$`)
+
+// destFor returns where fetchRepo moves one fetched sparse-checkout path
+// once it lands inside dir.
+func destFor(dir, subpath string) string {
+	if subpath == forgeSubpaths[1] {
+		return TokensDir(dir)
+	}
+	return CorpusDir(dir)
+}
 
 // Lock records exactly which upstream card data a build used, so a match's
 // card definitions are as reproducible as its seed.
 type Lock struct {
-	Repo        string `json:"repo"`
-	Ref         string `json:"ref"`
-	Commit      string `json:"commit"`
-	License     string `json:"license"`
-	FetchedPath string `json:"fetched_path"`
-	Files       int    `json:"files"`
-	Digest      string `json:"digest"`
+	Repo    string `json:"repo"`
+	Ref     string `json:"ref"`
+	Commit  string `json:"commit"`
+	License string `json:"license"`
+	// FetchedPath is the card corpus path alone, kept (and still populated)
+	// for readers of a lock written before FetchedPaths existed.
+	FetchedPath string `json:"fetched_path,omitempty"`
+	// FetchedPaths lists every sparse-checkout path this fetch pulled —
+	// today the card corpus and the token scripts.
+	FetchedPaths []string `json:"fetched_paths"`
+	Files        int      `json:"files"`
+	Digest       string   `json:"digest"`
 }
 
 // CorpusDir is where Fetch places the scripts inside dir.
@@ -62,40 +89,75 @@ func fetchRepo(repo, dir, ref string) (*Lock, error) {
 		}
 		return strings.TrimSpace(string(out)), nil
 	}
-	if _, err := run("clone", "--depth", "1", "--filter=blob:none", "--sparse",
-		"--branch", ref, repo, work); err != nil {
-		return nil, err
+
+	if fullCommitSHA.MatchString(ref) {
+		// A pinned commit is not necessarily any branch's tip, so it cannot
+		// be requested with --branch. Clone the repo's metadata only
+		// (--no-checkout, no blobs yet), then fetch the exact commit by
+		// hash and check it out.
+		if _, err := run("clone", "--no-checkout", "--filter=blob:none", "--sparse",
+			repo, work); err != nil {
+			return nil, err
+		}
+		if _, err := run(append([]string{"-C", work, "sparse-checkout", "set"}, forgeSubpaths...)...); err != nil {
+			return nil, err
+		}
+		if _, err := run("-C", work, "fetch", "--depth", "1", "origin", ref); err != nil {
+			return nil, err
+		}
+		if _, err := run("-C", work, "checkout", ref); err != nil {
+			return nil, err
+		}
+	} else {
+		if _, err := run("clone", "--depth", "1", "--filter=blob:none", "--sparse",
+			"--branch", ref, repo, work); err != nil {
+			return nil, err
+		}
+		if _, err := run(append([]string{"-C", work, "sparse-checkout", "set"}, forgeSubpaths...)...); err != nil {
+			return nil, err
+		}
 	}
-	if _, err := run("-C", work, "sparse-checkout", "set", forgeSubpath); err != nil {
-		return nil, err
-	}
+
 	commit, err := run("-C", work, "rev-parse", "HEAD")
 	if err != nil {
 		return nil, err
 	}
 
-	dest := CorpusDir(dir)
-	if err := os.RemoveAll(dest); err != nil {
-		return nil, err
-	}
-	if err := os.Rename(filepath.Join(work, forgeSubpath), dest); err != nil {
-		return nil, err
+	var fetchedPaths []string
+	for _, sub := range forgeSubpaths {
+		dest := destFor(dir, sub)
+		if err := os.RemoveAll(dest); err != nil {
+			return nil, err
+		}
+		if err := os.Rename(filepath.Join(work, sub), dest); err != nil {
+			return nil, err
+		}
+		fetchedPaths = append(fetchedPaths, sub)
 	}
 
-	digest, files, err := DigestDir(dest)
+	digest, files, err := DigestDir(CorpusDir(dir))
 	if err != nil {
 		return nil, err
 	}
-	l := &Lock{Repo: repo, Ref: ref, Commit: commit, License: forgeLicense,
-		FetchedPath: forgeSubpath, Files: files, Digest: digest}
+	_, tokenFiles, err := DigestDir(TokensDir(dir))
+	if err != nil {
+		return nil, err
+	}
+
+	l := &Lock{
+		Repo: repo, Ref: ref, Commit: commit, License: forgeLicense,
+		FetchedPath:  forgeSubpaths[0],
+		FetchedPaths: fetchedPaths,
+		Files:        files, Digest: digest,
+	}
 	if err := WriteLock(dir, l); err != nil {
 		return nil, err
 	}
 	fmt.Fprintf(os.Stderr,
-		"fetched %d card scripts from %s at %s (%s)\n"+
+		"fetched %d card scripts and %d token scripts from %s at %s (%s)\n"+
 			"These scripts are licensed %s. They are a build input only:\n"+
 			"never commit them, never include them in a published image.\n",
-		files, repo, commit[:min(8, len(commit))], ref, forgeLicense)
+		files, tokenFiles, repo, commit[:min(8, len(commit))], ref, forgeLicense)
 	return l, nil
 }
 
