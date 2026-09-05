@@ -442,14 +442,18 @@ func (e *Engine) cleanupStep() {
 // (Flying/Reach gate blocking in canBlock; Haste and Vigilance gate/modify
 // attacking in canAttack/handleAttackers; Deathtouch, Trample, Lifelink and
 // First Strike are all read directly in damageStep above and
-// destroyLethalDamage, sba.go). Indestructible and Double Strike are read by
-// destroyLethalDamage and anyFirstStrike/damageStep respectively, but are
-// deliberately NOT registered: neither is exercised by this task's tests, and
-// registering a keyword the build only partially or incidentally handles
-// would tell the coverage report -- and so the deck-builder gate downstream
-// of it -- that a card carrying it is safe to play, which is worse than
-// leaving it reported as unsupported.
+// destroyLethalDamage, sba.go), plus three the M2r ratchet adds, each with a
+// named proof test in keyword_registration_test.go: Flash (legal.go's
+// instant-speed gate), Indestructible (destroyLethalDamage and, via
+// Host.HasKeyword, Destroy/DestroyAll) and Devoid (effects.ColorsOf). Double
+// Strike is still deliberately NOT registered: it is read by
+// anyFirstStrike/damageStep but has no proof test of its own, and registering
+// a keyword the build only partially or incidentally handles would tell the
+// coverage report -- and so the deck-builder gate downstream of it -- that a
+// card carrying it is safe to play, which is worse than leaving it reported
+// as unsupported.
 func init() {
 	effects.RegisterNonAPI("kw:Flying", "kw:Reach", "kw:Haste", "kw:Vigilance",
-		"kw:Deathtouch", "kw:Trample", "kw:Lifelink", "kw:First Strike")
+		"kw:Deathtouch", "kw:Trample", "kw:Lifelink", "kw:First Strike",
+		"kw:Flash", "kw:Indestructible", "kw:Devoid")
 }

@@ -20,54 +20,54 @@ import (
 // project does not grow the "supported" set just to make the ratchet green).
 //
 // Measured 2026-09-04 against the compiled IR cache at .cards/ir.gob.gz
-// (corpus master @ 95f04e8a04c8925fa97cb226fc3341cabcc90a53): 35 of the 136
-// distinct cards across the 12 decks need at least one primitive this build
-// does not implement -- overwhelmingly individual keywords (kw:Equip,
-// kw:Flash, kw:Kicker, kw:Delve, kw:Undying, kw:etbCounter, kw:Storm, and so
-// on) rather than whole missing APIs, since Task 26 lands after the API/
-// trigger/static/replacement families that gate the most cards (see the
-// forgec report's top-missing list). Every unimplemented ability on these
+// (corpus master @ 95f04e8a04c8925fa97cb226fc3341cabcc90a53): originally 35
+// of the 136 distinct cards across the 12 decks needed at least one
+// primitive this build did not implement -- overwhelmingly individual
+// keywords (kw:Equip, kw:Flash, kw:Kicker, kw:Delve, kw:Undying,
+// kw:etbCounter, kw:Storm, and so on) rather than whole missing APIs. The
+// M2r plan's "Ratchet schedule" table
+// (docs/superpowers/plans/2026-09-05-gorge-m2r-ratchet-to-zero.md) is the
+// authority on which task retires each entry, down to 0; this table
+// currently stands at 31 (Task 3: kw:Flash, kw:Indestructible and kw:Devoid
+// retire Snapcaster Mage, Spectral Sailor, Ulamog and World Breaker). Every
+// unimplemented ability on these
 // cards is inert for the acceptance run (Ruling U13's Sword of Fire and Ice
 // note is this same shape, one card up): the point of Task 26 is that the
 // games terminate, invariants hold and replay is exact with these cards
 // shuffled in, not that every card plays with full fidelity yet -- that is
 // M4's coverage work, and this table is its worklist.
 var knownUnsupported = map[string][]string{
-	"Batterskull":                  {"kw:Equip", "kw:Living Weapon"},
-	"Cabal Therapy":                {"kw:Flashback"},
-	"Cavern of Souls":              {"kw:ETBReplacement"},
-	"Chain Lightning":              {"api:CopySpellAbility"},
-	"Chalice of the Void":          {"kw:etbCounter"},
-	"Empty the Warrens":            {"api:Token", "kw:Storm"},
-	"Endless One":                  {"kw:etbCounter"},
-	"Entreat the Angels":           {"api:Token", "kw:Miracle"},
-	"Experiment One":               {"kw:Evolve"},
-	"Gatekeeper of Malakir":        {"kw:Kicker"},
-	"Geralf's Messenger":           {"kw:Undying"},
-	"Goblin Bushwhacker":           {"kw:Kicker"},
-	"Goblin Piledriver":            {"kw:Protection from blue"},
-	"Gurmag Angler":                {"kw:Delve"},
-	"Knight of Infamy":             {"kw:Exalted", "kw:Protection from white"},
-	"Monastery Swiftspear":         {"kw:Prowess"},
-	"Phyrexian Revoker":            {"kw:ETBReplacement"},
-	"Pithing Needle":               {"kw:ETBReplacement"},
-	"Rancor":                       {"kw:Enchant"},
-	"Reckless Bushwhacker":         {"kw:Surge"},
-	"Sanctum Prelate":              {"kw:ETBReplacement"},
-	"Snapcaster Mage":              {"kw:Flash"},
-	"Spectral Sailor":              {"kw:Flash"},
-	"Strangleroot Geist":           {"kw:Undying"},
-	"Sword of Fire and Ice":        {"kw:Equip"},
-	"Tendrils of Agony":            {"kw:Storm"},
-	"Terminus":                     {"kw:Miracle"},
-	"Tombstalker":                  {"kw:Delve"},
-	"Ulamog, the Ceaseless Hunger": {"kw:Indestructible"},
-	"Umezawa's Jitte":              {"kw:Equip"},
-	"Vines of Vastwood":            {"kw:Kicker"},
-	"Walking Ballista":             {"kw:etbCounter"},
-	"World Breaker":                {"kw:Devoid"},
-	"Wurmcoil Engine":              {"api:Token"},
-	"Young Pyromancer":             {"api:Token"},
+	"Batterskull":           {"kw:Equip", "kw:Living Weapon"},
+	"Cabal Therapy":         {"kw:Flashback"},
+	"Cavern of Souls":       {"kw:ETBReplacement"},
+	"Chain Lightning":       {"api:CopySpellAbility"},
+	"Chalice of the Void":   {"kw:etbCounter"},
+	"Empty the Warrens":     {"api:Token", "kw:Storm"},
+	"Endless One":           {"kw:etbCounter"},
+	"Entreat the Angels":    {"api:Token", "kw:Miracle"},
+	"Experiment One":        {"kw:Evolve"},
+	"Gatekeeper of Malakir": {"kw:Kicker"},
+	"Geralf's Messenger":    {"kw:Undying"},
+	"Goblin Bushwhacker":    {"kw:Kicker"},
+	"Goblin Piledriver":     {"kw:Protection from blue"},
+	"Gurmag Angler":         {"kw:Delve"},
+	"Knight of Infamy":      {"kw:Exalted", "kw:Protection from white"},
+	"Monastery Swiftspear":  {"kw:Prowess"},
+	"Phyrexian Revoker":     {"kw:ETBReplacement"},
+	"Pithing Needle":        {"kw:ETBReplacement"},
+	"Rancor":                {"kw:Enchant"},
+	"Reckless Bushwhacker":  {"kw:Surge"},
+	"Sanctum Prelate":       {"kw:ETBReplacement"},
+	"Strangleroot Geist":    {"kw:Undying"},
+	"Sword of Fire and Ice": {"kw:Equip"},
+	"Tendrils of Agony":     {"kw:Storm"},
+	"Terminus":              {"kw:Miracle"},
+	"Tombstalker":           {"kw:Delve"},
+	"Umezawa's Jitte":       {"kw:Equip"},
+	"Vines of Vastwood":     {"kw:Kicker"},
+	"Walking Ballista":      {"kw:etbCounter"},
+	"Wurmcoil Engine":       {"api:Token"},
+	"Young Pyromancer":      {"api:Token"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card

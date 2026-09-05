@@ -59,10 +59,15 @@ func init() {
 			return o.Face() == nil || !o.Face().HasKeyword(k)
 		}
 	}
+	// colorLetter maps the predicate's English name to its WUBRG letter --
+	// note Blue is "U", not "B" (col[:1] would collide with Black). These read
+	// ColorsOf, not the face directly, so Devoid (effects.ColorsOf) correctly
+	// stops a card from matching any colour predicate, Green included.
+	colorLetter := map[string]string{"White": "W", "Blue": "U", "Black": "B", "Red": "R", "Green": "G"}
 	for _, c := range [...]string{"White", "Blue", "Black", "Red", "Green"} {
-		col := c
-		predicates[col] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
-			return o.Face() != nil && strings.Contains(o.Face().Colors, col[:1])
+		letter := colorLetter[c]
+		predicates[c] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+			return strings.Contains(ColorsOf(o), letter)
 		}
 	}
 }
