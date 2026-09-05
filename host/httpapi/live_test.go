@@ -24,7 +24,7 @@ import (
 // .../events?since=0 concurrently, throughout a real, un-paced, running
 // match, and the match must still finish cleanly underneath them.
 func TestConcurrentRESTReadsAgainstALiveMatch(t *testing.T) {
-	r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration) {}})
+	r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration, <-chan struct{}) {}})
 	if err != nil {
 		t.Fatal(err)
 	}
