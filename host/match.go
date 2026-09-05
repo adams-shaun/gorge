@@ -29,6 +29,12 @@ type match struct {
 	cfg   rules.Config
 	seats []protocol.SeatInfo
 	decks []string
+	// slots is the actual []seat.Seat the current match built in play().
+	// Registry methods that must reach a per-seat *HumanSeat (Pending,
+	// SubmitIntent, Task M2b-2) go through it. Installed once at the top
+	// of play(), never reassigned, so a resolved *HumanSeat stays stable
+	// for the match's whole lifetime.
+	slots []seat.Seat
 
 	mu sync.RWMutex
 	e  *rules.Engine
@@ -184,6 +190,9 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 		}
 	}()
 	seats := r.opts.Seats(m.cfg.Names, m.seed)
+	m.mu.Lock()
+	m.slots = seats
+	m.mu.Unlock()
 	maxIntents := r.opts.MaxIntents
 	if maxIntents == 0 {
 		maxIntents = defaultMaxIntents
