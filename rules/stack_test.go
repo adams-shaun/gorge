@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -674,15 +675,24 @@ func putLands(t *testing.T, e *Engine, p state.PlayerID, n int) []state.ObjID {
 	return out
 }
 
-// TestASpellCastTriggerAsksForTwoTargetsAndExilesBoth is Task 7's headline
-// trigger-with-targets case, Ulamog's shape reduced: "when you cast this
-// spell, exile two target permanents". The trigger's controller is asked for
-// EXACTLY two targets (TargetMin 2 / TargetMax 2) over the three mountains on
-// the only nonempty battlefield, the answer is recorded onto the trigger's
-// own stack object (which sits on the stack above the spell), and the two
-// chosen mountains actually leave the battlefield for exile while the Titan
-// spell resolves to the battlefield.
-func TestASpellCastTriggerAsksForTwoTargetsAndExilesBoth(t *testing.T) {
+// TestStackZoneCastTriggerAsksForTwoTargetsAndExilesBoth pins a cast trigger
+// with an EXPLICIT TriggerZones$ Stack zone, Ulamog's shape reduced: "when
+// you cast this spell, exile two target permanents". The trigger's controller
+// is asked for EXACTLY two targets (TargetMin 2 / TargetMax 2) over the three
+// mountains on the only nonempty battlefield, the answer is recorded onto the
+// trigger's own stack object (which sits on the stack above the spell), and
+// the two chosen mountains actually leave the battlefield for exile while the
+// Titan spell resolves to the battlefield.
+//
+// Why the TriggerZones$ Stack is load-bearing here instead of the brief's
+// unmodified fixture (a bare `T:Mode$ SpellCast` with no TriggerZones$): the
+// spell's own source sits ON the stack when its cast trigger fires, and
+// zoneGate's default trigger zone is Battlefield, so a spell-on-stack source
+// never qualifies and the trigger would not fire at all -- the same pre-
+// existing gap the d2e2bf4 commit records for Ulamog/World Breaker, outside
+// this task's file scope. Naming the Stack zone explicitly is what lets this
+// test drive the cast-trigger-takes-two-targets behaviour at all.
+func TestStackZoneCastTriggerAsksForTwoTargetsAndExilesBoth(t *testing.T) {
 	src := "Name:Titan\nManaCost:1\nTypes:Creature Eldrazi\nPT:10/10\n" +
 		"T:Mode$ SpellCast | TriggerZones$ Stack | ValidCard$ Card.Self | Execute$ TrigChange | TriggerDescription$ When you cast this spell, exile two target permanents.\n" +
 		"SVar:TrigChange:DB$ ChangeZone | ValidTgts$ Permanent | TargetMin$ 2 | TargetMax$ 2 | Origin$ Battlefield | Destination$ Exile\nOracle:x\n"
@@ -751,5 +761,48 @@ func TestTgtZoneGraveyardOffersGraveyardCards(t *testing.T) {
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KTarget || len(d.Options) != 1 || d.Options[0].Obj != bolt {
 		t.Fatalf("decision %+v", d)
+	}
+}
+
+// TestTargetBoundsClampsTargetMaxNotDiscardsIt is fix-round-1's rendering of
+// targetBounds' documented contract: the rule is clamp, not ignore. A
+// TargetMax$ that parses to 0 (or a negative number) is taken seriously and
+// clamped to >= 1 and >= Min -- never silently dropped back to the default of
+// 1, which would behave differently the moment TargetMin$ is also present in
+// the same script. The observable result for a lone TargetMax$ 0 is the same
+// either way, which is what makes "discard" and "clamp" easy to conflate;
+// this table pins the clamped behaviour (and the Min-0 untargeted stand-outs
+// that must NOT be clobbered).
+func TestTargetBoundsClampsTargetMaxNotDiscardsIt(t *testing.T) {
+	sa := func(params ...string) *cards.SA {
+		m := map[string]string{}
+		for _, p := range params {
+			k, v, ok := strings.Cut(p, "$")
+			if !ok {
+				t.Fatalf("bad param %q", p)
+			}
+			m[strings.TrimSpace(k)] = strings.TrimSpace(v)
+		}
+		return &cards.SA{Params: m}
+	}
+	for _, tc := range []struct {
+		name             string
+		sa               *cards.SA
+		wantMin, wantMax int
+	}{
+		{"absent defaults to one each", sa(), 1, 1},
+		{"TargetMax zero clamps to one", sa("TargetMax$ 0"), 1, 1},
+		{"TargetMax negative clamps to one", sa("TargetMax$ -3"), 1, 1},
+		{"TargetMin zero stays zero (N2 untargeted)", sa("TargetMin$ 0"), 0, 1},
+		{"TargetMin zero keeps an explicit TargetMax zero at one", sa("TargetMin$ 0", "TargetMax$ 0"), 0, 1},
+		{"TargetMax below TargetMin clamps up to Min", sa("TargetMin$ 3", "TargetMax$ 1"), 3, 3},
+		{"both present and sane are kept", sa("TargetMin$ 2", "TargetMax$ 4"), 2, 4},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			min, max := targetBounds(tc.sa)
+			if min != tc.wantMin || max != tc.wantMax {
+				t.Fatalf("targetBounds = (%d, %d), want (%d, %d)", min, max, tc.wantMin, tc.wantMax)
+			}
+		})
 	}
 }
