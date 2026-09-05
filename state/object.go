@@ -16,6 +16,16 @@ type Target struct {
 	IsPlayer bool
 }
 
+// CastFlags bits record how an object was cast. Several can be set at once
+// (a spell can be both kicked and cast via flashback), so they are
+// OR-combined into one byte rather than modeled as separate bools.
+const (
+	FlagKicked uint8 = 1 << iota // CR 601.2b: paid an optional additional cost
+	FlagSurged
+	FlagFlashback
+	FlagMiracle
+)
+
 // Object is any game object: a card in a zone, a permanent, or a spell on the
 // stack. One struct keeps identity stable across zone changes.
 type Object struct {
@@ -51,6 +61,32 @@ type Object struct {
 	// Timestamp orders continuous effects. Assigned from Game.Clock whenever
 	// the object enters the battlefield.
 	Timestamp uint32
+
+	// Cast-time metadata. X and CastFlags matter while this object is a
+	// spell on the stack and, once it resolves, on the permanent it becomes
+	// (an ETB "if it was kicked" trigger needs to read them off the
+	// permanent) -- events.Move resets both when the object leaves the
+	// battlefield.
+	X         int32
+	CastFlags uint8
+
+	// Chosen* record answers to "as this enters/resolves, choose ..."
+	// effects: a card name, a creature type, a number. Reset alongside X/
+	// CastFlags when the object leaves the battlefield.
+	ChosenName   string
+	ChosenType   string
+	ChosenNumber int32
+
+	// AttachedTo is the permanent this Aura or Equipment is attached to; 0
+	// means unattached. Reset whenever the object itself leaves the
+	// battlefield (events.Move) -- an Aura or Equipment cannot stay
+	// "attached" once it isn't a permanent.
+	AttachedTo ObjID
+
+	// IsToken and IsCopy mark an object that only ever exists on the stack
+	// or the battlefield (CR 111.7 tokens, CR 707.10 copies). See Ephemeral.
+	IsToken bool
+	IsCopy  bool
 }
 
 func (o *Object) Face() *cards.Face {
@@ -58,6 +94,20 @@ func (o *Object) Face() *cards.Face {
 		return nil
 	}
 	return o.Card.Faces[o.FaceIdx]
+}
+
+// Ephemeral reports whether this object has, right now, ceased to exist: a
+// copy of a spell or ability (CR 707.10, gone the moment it leaves the
+// stack), a token (CR 111.7, gone once it leaves the battlefield -- so
+// IsToken alone is not enough, a token on the battlefield is a perfectly
+// real permanent), or an ability object (no card, Card == nil -- always
+// ephemeral, since it never legitimately exists off the stack at all).
+// This build parks such objects in exile rather than deleting them, and
+// callers (view.cardViews and any future zone-listing code) consult this
+// single definition instead of re-deriving it, so the "copy, or token off
+// the battlefield, or cardless" rule cannot drift between call sites.
+func (o *Object) Ephemeral() bool {
+	return o.IsCopy || (o.IsToken && o.Zone != ZBattlefield) || o.Card == nil
 }
 
 func (o *Object) Counter(kind string) int32 {

@@ -5,6 +5,7 @@ package events
 
 import (
 	"encoding/binary"
+	"strings"
 
 	"github.com/adams-shaun/gorge/state"
 )
@@ -105,6 +106,43 @@ const (
 	// ordinal, the hash chain, and any golden replay already locked in are
 	// unaffected.
 	EndCombatReset
+	// CastInfo records how a spell was cast: Amount is the value chosen for
+	// {X} (state.Object.X), and Counter is a comma-separated list of flag
+	// names (FlagsFrom/FlagsString) folded into state.Object.CastFlags. Task
+	// 4. Appended here, after EndCombatReset, following every prior Kind's
+	// own append-only precedent, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	CastInfo
+	// Choose records an answer to an "as this enters/resolves, choose ..."
+	// effect. Counter discriminates the shape ("name", "type", "number");
+	// Text carries a chosen name or creature type, Amount a chosen number.
+	// An unrecognized Counter is a no-op, not an error, the same totality
+	// stance as every other case in Apply's switch.
+	Choose
+	// TokenCreate mints a token onto the battlefield. Player is its owner
+	// and controller; Text is the key into Game.Tokens (a Forge token
+	// script stem, e.g. "r_1_1_goblin") -- token definitions live on the
+	// game, set at genesis, never in the event itself, so Apply stays a
+	// pure function of (g, e) with no card data smuggled through Text.
+	TokenCreate
+	// StackCopy duplicates the spell or ability named by Obj (which must
+	// currently be on the stack) and places the copy on top of the stack.
+	// Player is the copy's controller (CR 707.10a: a copy's controller is
+	// whoever the copy effect says, not necessarily the original's).
+	StackCopy
+	// Attach records or clears what Aura/Equipment permanent Obj is
+	// attached to. IDs holds zero or one entries: empty detaches (sets
+	// AttachedTo to 0), one attaches to that id.
+	Attach
+	// AbilityPush creates an activated ability's stack object and places it
+	// on the stack, in one event -- the same shape TriggerPush already
+	// uses for triggered abilities, for the same reason (Ruling T20-a): a
+	// log-only replay must be able to recreate the object itself, not rely
+	// on a live Engine's direct, unlogged AddObject call. Player is the
+	// ability's controller, Obj is the source permanent, Amount is that
+	// permanent's Face().Abilities index, and IDs is whatever the
+	// activation remembered (mirrors TriggerPush's own IDs usage).
+	AbilityPush
 )
 
 var kindNames = [...]string{"game_start", "shuffle", "move_zone", "draw",
@@ -112,7 +150,8 @@ var kindNames = [...]string{"game_start", "shuffle", "move_zone", "draw",
 	"stack_resolve", "mana_add", "mana_clear", "counter", "declare_attackers",
 	"declare_blockers", "player_lost", "game_over", "decision_ask",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
-	"clock_tick", "trigger_push", "end_combat_reset"}
+	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
+	"token_create", "stack_copy", "attach", "ability_push"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -182,4 +221,46 @@ func appendStr(dst []byte, s string) []byte {
 	binary.LittleEndian.PutUint32(b[:], uint32(len(s)))
 	dst = append(dst, b[:]...)
 	return append(dst, s...)
+}
+
+// flagNames pairs each CastFlags bit with the name CastInfo's Counter field
+// carries for it, in a fixed order -- so FlagsString(FlagsFrom(s)) is
+// canonical (a determinism requirement: this order must never depend on map
+// iteration).
+var flagNames = [...]struct {
+	name string
+	bit  uint8
+}{
+	{"kicked", state.FlagKicked},
+	{"surged", state.FlagSurged},
+	{"flashback", state.FlagFlashback},
+	{"miracle", state.FlagMiracle},
+}
+
+// FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
+// into a CastFlags byte. Unrecognized names are silently ignored, the same
+// totality stance as everywhere else in this package: a stray or future
+// flag name in an untrusted log must not make this panic.
+func FlagsFrom(s string) uint8 {
+	var f uint8
+	for _, part := range strings.Split(s, ",") {
+		for _, fn := range flagNames {
+			if strings.TrimSpace(part) == fn.name {
+				f |= fn.bit
+			}
+		}
+	}
+	return f
+}
+
+// FlagsString is FlagsFrom's inverse: a canonical, fixed-order csv of the
+// flag names set in f.
+func FlagsString(f uint8) string {
+	var parts []string
+	for _, fn := range flagNames {
+		if f&fn.bit != 0 {
+			parts = append(parts, fn.name)
+		}
+	}
+	return strings.Join(parts, ",")
 }

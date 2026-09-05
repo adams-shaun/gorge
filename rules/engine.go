@@ -26,6 +26,11 @@ type Config struct {
 	Seed  uint64
 	Names []string
 	Decks [][]*cards.Card
+	// Tokens is the token definitions the decks in this match can create --
+	// cards.Registry.Tokens. Copied onto Game.Tokens in New so
+	// events.Apply's TokenCreate case has something to mint from. Replay
+	// must pass the same table a live match's Config did.
+	Tokens map[string]*cards.Card
 }
 
 type Engine struct {
@@ -90,6 +95,7 @@ func New(cfg Config) *Engine {
 		L:   events.NewLog(cfg.Seed),
 		rng: newRNG(cfg.Seed),
 	}
+	e.G.Tokens = cfg.Tokens
 	e.emit(events.Event{Kind: events.GameStart, Amount: int32(len(cfg.Names))})
 	for i, deck := range cfg.Decks {
 		if i >= len(cfg.Names) {

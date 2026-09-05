@@ -166,7 +166,7 @@ func playAcceptance(t *testing.T, reg *cards.Registry, seats int, step func(e *E
 		names[i] = all[i%len(all)]
 		decks[i] = testutil.RepoDeck(t, reg, all[i%len(all)])
 	}
-	cfg := Config{Seed: 42, Names: names, Decks: decks}
+	cfg := Config{Seed: 42, Names: names, Decks: decks, Tokens: reg.Tokens}
 	e := New(cfg)
 	b := newTestBot(7)
 	e.Advance()
@@ -263,7 +263,7 @@ func TestRepoDeckGamesReplayExactly(t *testing.T) {
 			names[i] = all[(int(seed)+i)%len(all)]
 			decks[i] = testutil.RepoDeck(t, reg, names[i])
 		}
-		cfg := Config{Seed: seed, Names: names, Decks: decks}
+		cfg := Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens}
 		e := New(cfg)
 		b := newTestBot(seed)
 		e.Advance()
