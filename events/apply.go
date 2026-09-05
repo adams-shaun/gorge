@@ -318,16 +318,29 @@ func Apply(g *state.Game, e Event) {
 		if src == nil || src.Zone != state.ZStack {
 			break
 		}
-		o := g.AddObject(src.Card, e.Player)
-		o.Controller = e.Player
-		Move(g, o.ID, state.ZLibrary, state.ZStack)
-		o.FaceIdx, o.Ability, o.Source = src.FaceIdx, src.Ability, src.Source
+		// Snapshot everything read from src into locals before AddObject:
+		// AddObject appends to g.Objs and may reallocate its backing array,
+		// and src is a pointer into that array (g.Obj returns &g.Objs[id-1])
+		// -- so a *src field read after AddObject would come from whatever
+		// the old backing array still holds, not necessarily kept in sync
+		// with the live object src names. Correct today only because
+		// nothing between AddObject and the reads below mutates src; this
+		// is the engine's one mutation path, so it does not get to rely on
+		// that happening to remain true.
+		card, faceIdx, ability, source := src.Card, src.FaceIdx, src.Ability, src.Source
+		x, castFlags := src.X, src.CastFlags
 		// Deep-copy, never alias: the copy's Targets/Remembered must be
 		// able to change independently of the original's once both sit on
 		// the stack.
-		o.Targets = append([]state.Target(nil), src.Targets...)
-		o.Remembered = append([]state.Target(nil), src.Remembered...)
-		o.X, o.CastFlags, o.IsCopy = src.X, src.CastFlags, true
+		targets := append([]state.Target(nil), src.Targets...)
+		remembered := append([]state.Target(nil), src.Remembered...)
+
+		o := g.AddObject(card, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.FaceIdx, o.Ability, o.Source = faceIdx, ability, source
+		o.Targets = targets
+		o.Remembered = remembered
+		o.X, o.CastFlags, o.IsCopy = x, castFlags, true
 
 	case Attach:
 		if o := g.Obj(e.Obj); o != nil {

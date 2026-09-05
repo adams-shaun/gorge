@@ -264,14 +264,17 @@ func phaseOf(s state.Step) string {
 // empty or all-dangling ids: this is what lets the viewer's own genuinely
 // empty Hand marshal "[]" rather than the same "null" a hidden hand would.
 //
-// Ephemeral objects (copies, tokens off the battlefield, ability objects)
-// have ceased to exist; they are parked in exile by the engine and are not
-// cards in this zone, so they are skipped here too (Task 4).
+// Ephemeral objects (copies, tokens off the battlefield) have ceased to
+// exist -- state.Object.Ephemeral is the single definition of that, consulted
+// here rather than re-spelled inline so it cannot drift from any other call
+// site -- and an ability object (Card == nil, so Face() == nil too) never
+// legitimately sits in a card zone at all. Both are parked in exile by the
+// engine and are skipped here (Task 4).
 func cardViews(g *state.Game, ch Chars, ids []state.ObjID) []CardView {
 	out := make([]CardView, 0, len(ids))
 	for _, id := range ids {
 		o := g.Obj(id)
-		if o == nil || o.IsCopy || (o.IsToken && o.Zone != state.ZBattlefield) {
+		if o == nil || o.Face() == nil || o.Ephemeral() {
 			continue
 		}
 		out = append(out, cardView(g, ch, id))

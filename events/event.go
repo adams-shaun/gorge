@@ -126,7 +126,7 @@ const (
 	// pure function of (g, e) with no card data smuggled through Text.
 	TokenCreate
 	// StackCopy duplicates the spell or ability named by Obj (which must
-	// currently be on the stack) and places the copy directly above it.
+	// currently be on the stack) and places the copy on top of the stack.
 	// Player is the copy's controller (CR 707.10a: a copy's controller is
 	// whoever the copy effect says, not necessarily the original's).
 	StackCopy

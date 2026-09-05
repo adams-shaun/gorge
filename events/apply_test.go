@@ -16,6 +16,16 @@ func bearCard() *cards.Card {
 	return c
 }
 
+// sailorCard is a permanent with one activated ability -- the same fixture
+// TestAbilityPushMintsAnActivatedAbilityObject uses -- for exercising
+// AbilityPush's actual mint path (as opposed to only its guard) in
+// TestApplyIsPure, where a no-abilities bear cannot.
+func sailorCard() *cards.Card {
+	c, _ := cards.ParseBytes("s.txt", []byte("Name:Sailor\nManaCost:U\nTypes:Creature Spirit\nPT:1/1\nA:AB$ Draw | Cost$ 3 U | NumCards$ 1 | Defined$ You | SpellDescription$ Draw a card.\nOracle:x\n"))
+	c.Link()
+	return c
+}
+
 // gameWithOneCardSrc builds a two-seat game (Ann/Bob) with one card, parsed
 // from src, sitting in seat 0's hand. Task 4's own object-field tests need a
 // single known object to apply CastInfo/Choose/... events to, rather than
@@ -542,6 +552,11 @@ func TestApplyIsPure(t *testing.T) {
 		// bearCard's own source is enough to prove the mutation is
 		// deterministic; it need not be a "real" token script.
 		g.Tokens = map[string]*cards.Card{"bear": bearCard()}
+		// A sixth card in seat 0's library with one activated ability, so
+		// AbilityPush below can actually mint an ability object rather than
+		// only exercise its no-abilities guard.
+		sailor := g.AddObject(sailorCard(), 0)
+		g.SetZone(state.ZLibrary, 0, append(g.Zone(state.ZLibrary, 0), sailor.ID))
 		return g, l
 	}
 
@@ -570,7 +585,11 @@ func TestApplyIsPure(t *testing.T) {
 		Emit(g, l, Event{Kind: TokenCreate, Player: 0, Text: "bear"})
 		Emit(g, l, Event{Kind: PutOnStack, Obj: lib1[1], Player: 1, From: state.ZLibrary, To: state.ZStack})
 		Emit(g, l, Event{Kind: StackCopy, Obj: lib1[1], Player: 1})
-		Emit(g, l, Event{Kind: AbilityPush, Obj: lib0[1], Player: 0, Amount: 0}) // no abilities: exercises the guard, not a mint
+		// lib0[5] is the sailor build added: on the battlefield with one
+		// activated ability, so this actually mints an ability object
+		// rather than only exercising the no-abilities guard.
+		Emit(g, l, Event{Kind: MoveZone, Obj: lib0[5], From: state.ZLibrary, To: state.ZBattlefield})
+		Emit(g, l, Event{Kind: AbilityPush, Obj: lib0[5], Player: 0, Amount: 0})
 
 		Emit(g, l, Event{Kind: DeclareAttackers, Player: 0, IDs: []state.ObjID{lib0[0]}})
 		Emit(g, l, Event{Kind: DeclareBlockers, Pairs: [][2]state.ObjID{{lib1[0], lib0[0]}}})
@@ -910,6 +929,22 @@ func TestCastInfoRecordsXAndFlags(t *testing.T) {
 func TestCastInfoKindString(t *testing.T) {
 	if got, want := CastInfo.String(), "cast_info"; got != want {
 		t.Fatalf("CastInfo.String() = %q, want %q", got, want)
+	}
+}
+
+// TestFlagsFromTrimsWhitespaceAndIgnoresUnknownNames pins down the two
+// FlagsFrom behaviors TestCastInfoRecordsXAndFlags' clean "kicked,flashback"
+// round trip does not exercise: surrounding whitespace around a flag name
+// (a log or a hand-typed Counter string might carry it) must not stop that
+// name from matching, an unrecognized name must be silently ignored rather
+// than panicking or matching something else, and the empty string -- CastInfo
+// with no flags at all -- must parse to zero.
+func TestFlagsFromTrimsWhitespaceAndIgnoresUnknownNames(t *testing.T) {
+	if got, want := FlagsFrom(" kicked , bogus "), state.FlagKicked; got != want {
+		t.Fatalf("FlagsFrom(%q) = %d, want %d (kicked only, trimmed, bogus ignored)", " kicked , bogus ", got, want)
+	}
+	if got := FlagsFrom(""); got != 0 {
+		t.Fatalf("FlagsFrom(\"\") = %d, want 0", got)
 	}
 }
 

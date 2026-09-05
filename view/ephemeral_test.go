@@ -8,10 +8,11 @@ import (
 )
 
 // TestZoneListsSkipEphemeralObjects is Task 4's regression test for
-// cardViews' ephemeral skip: a token that has left the battlefield (this
-// build parks such an object in exile rather than deleting it -- see
-// state.Object.Ephemeral) and a copy sitting in exile must not appear in
-// any zone view, while a token genuinely on the battlefield still does.
+// cardViews' ephemeral skip: none of a token that has left the battlefield
+// (this build parks such an object in exile rather than deleting it -- see
+// state.Object.Ephemeral), a copy sitting in exile, or a cardless ability
+// object sitting in exile may appear in any zone view, while a token
+// genuinely on the battlefield still does.
 //
 // This is a self-contained fixture (its own two-seat game and card) rather
 // than a parallel M2a task's twoSeatWith/watcherSrc helpers, which do not
@@ -39,7 +40,16 @@ func TestZoneListsSkipEphemeralObjects(t *testing.T) {
 	deadCopy := g.AddObject(bear, 0)
 	deadCopy.IsCopy = true
 	deadCopy.Zone = state.ZExile
-	g.SetZone(state.ZExile, 0, []state.ObjID{deadToken.ID, deadCopy.ID})
+	// A cardless ability object (Card == nil, minted by AbilityPush/
+	// TriggerPush) sitting in exile: never legitimately a card in any zone,
+	// so it must not appear either -- cardViews' explicit Face() == nil
+	// guard catches it regardless of Ephemeral() (Object.Ephemeral's own
+	// Card == nil clause would too, but the explicit guard is what a
+	// future FaceIdx-out-of-range object, which is not "ephemeral" in any
+	// other sense, also needs).
+	abilityObj := g.AddObject(nil, 0)
+	abilityObj.Zone = state.ZExile
+	g.SetZone(state.ZExile, 0, []state.ObjID{deadToken.ID, deadCopy.ID, abilityObj.ID})
 
 	v := Project(g, nil, 0, nil)
 	bf := v.Players[0].Battlefield
@@ -47,6 +57,6 @@ func TestZoneListsSkipEphemeralObjects(t *testing.T) {
 		t.Fatalf("battlefield = %+v, want only the live token %d", bf, live.ID)
 	}
 	if ex := v.Players[0].Exile; len(ex) != 0 {
-		t.Fatalf("exile = %+v, want ephemeral objects skipped", ex)
+		t.Fatalf("exile = %+v, want ephemeral objects (including the cardless ability object) skipped", ex)
 	}
 }
