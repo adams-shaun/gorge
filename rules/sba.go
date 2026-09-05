@@ -241,6 +241,9 @@ func (e *Engine) checkStateBased() {
 		if e.exileDeadTokens(tried) {
 			changed = true
 		}
+		if e.attachmentSBAs() {
+			changed = true
+		}
 		if !changed {
 			stable = true
 			break

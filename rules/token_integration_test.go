@@ -169,16 +169,23 @@ func TestBatterskullLivingWeaponCreatesAGermAndReachesAttach(t *testing.T) {
 	if got := germ.Face().Name; got != wantGermName {
 		t.Fatalf("token name = %q, want %q (b_0_0_phyrexian_germ)", got, wantGermName)
 	}
-
-	noted := false
-	for _, ev := range e.L.Events[beforeEvents:] {
-		if ev.Kind == events.Note && ev.Text == "unimplemented API Attach" {
-			noted = true
-		}
+	// Task 14: the Living Weapon's __kwLWAttach sub-ability now reaches a
+	// working effects.Attach, so the germ is actually attached to Batterskull
+	// and Batterskull's own EquippedBy static (+4/+4) keeps the 0/0 germ alive
+	// at 4/4 -- the reason the token is still on the battlefield at the end,
+	// rather than dying to CR 704.5f and being tucked into exile by
+	// exileDeadTokens the way pre-14 it always did. assert the real attach.
+	if got := germ.Zone; got != state.ZBattlefield {
+		t.Fatalf("germ zone = %s after passUntilStackEmpty, want battlefield (Batterskull's +4/+4 "+
+			"should have kept it alive at 4/4)", got)
 	}
-	if !noted {
-		t.Fatal("expected a Note event for the unimplemented Attach sub-ability -- either " +
-			"Ctx.Remembered never reached __kwLWAttach, or Attach has since been implemented and " +
-			"this test should now assert the real attach instead (Task 14)")
+	if got := e.G.Obj(id).AttachedTo; got != germID {
+		t.Fatalf("Batterskull.AttachedTo = %d, want %d (the living-weapon germ)", got, germID)
 	}
+	if got := e.Power(germID); got != 4 {
+		t.Fatalf("germ power = %d, want 4 from Batterskull's +4/+4", got)
+	}
+	// identity fields (Owner/Controller/Card) are never reset by leaving the
+	// battlefield, unlike Tapped/Damage/Counters/etc., so this remains
+	// assertable regardless.
 }

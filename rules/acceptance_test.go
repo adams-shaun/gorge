@@ -48,25 +48,26 @@ import (
 // games terminate, invariants hold and replay is exact with these cards
 // shuffled in, not that every card plays with full fidelity yet -- that is
 // M4's coverage work, and this table is its worklist.
+//
+// Task 14 (attachments) registered api:Attach, kw:Equip, kw:Enchant and
+// kw:Living Weapon, deleting Batterskull, Rancor, Sword of Fire and Ice and
+// Umezawa's Jitte outright -- the four entries whose only gaps were those
+// primitives.
 var knownUnsupported = map[string][]string{
-	"Batterskull":           {"api:Attach", "kw:Equip", "kw:Living Weapon"},
-	"Cavern of Souls":       {"api:ChooseType", "kw:ETBReplacement"},
-	"Chain Lightning":       {"api:CopySpellAbility"},
-	"Chalice of the Void":   {"kw:etbCounter"},
-	"Empty the Warrens":     {"api:CopySpellAbility", "kw:Storm"},
-	"Endless One":           {"kw:etbCounter"},
-	"Entreat the Angels":    {"kw:Miracle"},
-	"Goblin Piledriver":     {"kw:Protection from blue"},
-	"Knight of Infamy":      {"kw:Protection from white"},
-	"Phyrexian Revoker":     {"kw:ETBReplacement"},
-	"Pithing Needle":        {"kw:ETBReplacement"},
-	"Rancor":                {"api:Attach", "kw:Enchant"},
-	"Sanctum Prelate":       {"api:ChooseNumber", "kw:ETBReplacement"},
-	"Sword of Fire and Ice": {"api:Attach", "kw:Equip"},
-	"Tendrils of Agony":     {"api:CopySpellAbility", "kw:Storm"},
-	"Terminus":              {"kw:Miracle"},
-	"Umezawa's Jitte":       {"api:Attach", "kw:Equip"},
-	"Walking Ballista":      {"kw:etbCounter"},
+	"Cavern of Souls":     {"api:ChooseType", "kw:ETBReplacement"},
+	"Chain Lightning":     {"api:CopySpellAbility"},
+	"Chalice of the Void": {"kw:etbCounter"},
+	"Empty the Warrens":   {"api:CopySpellAbility", "kw:Storm"},
+	"Endless One":         {"kw:etbCounter"},
+	"Entreat the Angels":  {"kw:Miracle"},
+	"Goblin Piledriver":   {"kw:Protection from blue"},
+	"Knight of Infamy":    {"kw:Protection from white"},
+	"Phyrexian Revoker":   {"kw:ETBReplacement"},
+	"Pithing Needle":      {"kw:ETBReplacement"},
+	"Sanctum Prelate":     {"api:ChooseNumber", "kw:ETBReplacement"},
+	"Tendrils of Agony":   {"api:CopySpellAbility", "kw:Storm"},
+	"Terminus":            {"kw:Miracle"},
+	"Walking Ballista":    {"kw:etbCounter"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card

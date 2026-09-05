@@ -753,6 +753,10 @@ func newFixtureDeckWithTokens(t *testing.T, seed uint64, fixtureSrc string) (*En
 		Tokens: map[string]*cards.Card{
 			"r_1_1_goblin":                      card(t, "Name:Goblin Token\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n"),
 			"c_3_3_a_phyrexian_wurm_deathtouch": card(t, "Name:Phyrexian Wurm Token\nTypes:Creature Phyrexian Wurm\nPT:3/3\nK:Deathtouch\nOracle:x\n"),
+			// b_0_0_phyrexian_germ is the Living Weapon token this task's test
+			// needs (Book of a Skull's K:Living Weapon mints it, then a
+			// __kwLWAttach Attach fastens the Equipment onto it).
+			"b_0_0_phyrexian_germ": card(t, "Name:Phyrexian Germ Token\nTypes:Creature Phyrexian Germ\nPT:0/0\nOracle:x\n"),
 		},
 	}
 	e := New(cfg)

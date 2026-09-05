@@ -537,9 +537,24 @@ func (e *Engine) Rand(n int) int       { return e.rng.IntN(n) }
 
 // targetsPlayers and targetsPermanents read the coarse shape of a ValidTgts
 // spec. The per-object predicate work is effects.MatchesSpec.
+
+// targetsPlayers reports whether a spec can name a player as a target, by
+// looking at each alternative's BASE type (the part before any "."), never
+// a substring scan: "Any" targets either an object or a player, "Player"/
+// "Opponent"/"You" a player, while a predicate like "Creature.YouCtrl" IS an
+// object filter (its ".YouCtrl" clause scopes the creature's controller,
+// not the target being a player). The old substring form matched the "You"
+// inside "YouCtrl" and wrongly offered players as Equip targets (Task 14
+// found it: an Equip onto Creature.YouCtrl offered both players as options,
+// which effAttach then had to refuse).
 func targetsPlayers(spec string) bool {
-	return strings.Contains(spec, "Player") || strings.Contains(spec, "Any") ||
-		strings.Contains(spec, "Opponent") || strings.Contains(spec, "You")
+	for _, alt := range strings.Split(spec, ",") {
+		switch base, _, _ := strings.Cut(strings.TrimSpace(alt), "."); base {
+		case "Player", "Any", "Opponent", "You":
+			return true
+		}
+	}
+	return false
 }
 
 func targetsPermanents(spec string) bool {

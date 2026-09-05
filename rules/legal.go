@@ -110,6 +110,43 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if len(f.ManaAbilities()) > 0 {
 			add("activate", "Tap "+f.Name+" for mana", id)
 		}
+		// Task 14 (T19c-b's parked limitation, now in scope): Equip is an
+		// ordinary activated ability -- sorcery-speed, mana cost, one
+		// target -- offered here like any other legal action. It is the
+		// ONLY non-mana activated ability wired up (the card-script
+		// expansion tags it Params["Keyword"] == "Equip"), because a fully
+		// general non-mana activation loop (Mother of Runes' protection
+		// ability and so on) is exactly the bot-exhaustible livelock the
+		// acceptance gate would catch: the bot chooses the first
+		// "activate" option forever instead of passing, and a free or
+		// low-cost general ability then never lets the stack resolve.
+		// Restricting to Equip (whose {N} cost is a hard per-turn cap the
+		// bot cannot dodge) keeps the loop bounded. A sorcery-speed-only
+		// ability (Equip's SorcerySpeed$ True) is offered only in a main
+		// phase with an empty stack; its cost must be payable (checked
+		// the same way castable checks a cast option's cost); and a
+		// target-hungry ability needs at least one legal target on the
+		// board for the option to be worth offering (askTarget would
+		// otherwise fizzle the instant it is taken). Mana abilities were
+		// already handled above, so they are skipped here.
+		for ai, ab := range f.Abilities {
+			if ab.Kind != "AB" || ab.Params["Keyword"] != "Equip" {
+				continue
+			}
+			if ab.Params["SorcerySpeed"] == "True" && !sorcery {
+				continue
+			}
+			cost := ParseCost(ab.Params["Cost"])
+			if !e.castable(p, id, cost) {
+				continue
+			}
+			if spec := ab.Params["ValidTgts"]; spec != "" && !e.hasLegalTarget(p, id, spec) {
+				continue
+			}
+			out = append(out, decision.Option{Index: len(out), Kind: "activate",
+				Label: "Activate " + f.Name + " " + ab.Params["SpellDescription"],
+				Obj:   id, Mode: "ability", AbilityIndex: ai})
+		}
 	}
 
 	// Pass is last so a client can safely default to the final option.
@@ -147,6 +184,10 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 	case "activate":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
 		o := e.G.Obj(opt.Obj)
+		if opt.Mode == "ability" {
+			e.activateAbility(in.Player, opt.Obj, opt.AbilityIndex)
+			return
+		}
 		e.emit(events.Event{Kind: events.Tap, Obj: opt.Obj})
 		for _, ma := range o.Face().ManaAbilities() {
 			e.resolveAbility(opt.Obj, in.Player, nil, ma, o.Face().SVars)
