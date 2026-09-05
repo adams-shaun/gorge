@@ -753,6 +753,10 @@ func newFixtureDeckWithTokens(t *testing.T, seed uint64, fixtureSrc string) (*En
 		Tokens: map[string]*cards.Card{
 			"r_1_1_goblin":                      card(t, "Name:Goblin Token\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n"),
 			"c_3_3_a_phyrexian_wurm_deathtouch": card(t, "Name:Phyrexian Wurm Token\nTypes:Creature Phyrexian Wurm\nPT:3/3\nK:Deathtouch\nOracle:x\n"),
+			// Task 18's Miracle test (miracle_test.go) casts Entreat ft. the Angels,
+			// whose TokenScript$ is w_4_4_angel_flying; tokenized here so that test
+			// and every TokenCreate firing it shares a source.
+			"w_4_4_angel_flying": card(t, "Name:Angel Token\nTypes:Creature Angel\nPT:4/4\nK:Flying\nOracle:x\n"),
 		},
 	}
 	e := New(cfg)

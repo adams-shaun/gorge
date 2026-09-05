@@ -306,6 +306,21 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	case chooseCast:
 		e.castAnswer(d, chosen)
 		e.continueCast()
+		// Task 18: a Miracle cast originated inside the trigger drain (castMiracle
+		// set drainAwaitsTarget when it paused on this X/Delve/Sac ask). Once the
+		// cast commits -- continueCast reached commitCast and asked nothing more,
+		// so no decision is pending -- the drain must resume through the SAME
+		// continuation Task 7's target path uses, not hand caster priority: a
+		// later, unrelated trigger in the same batch is still placed before any
+		// player acts, and re-entering a fresh step would run a second state-based
+		// pass. If commitCast instead asked a target, handleTarget honours the
+		// still-true flag itself. A non-miracle cast never sets drainAwaitsTarget,
+		// so this branch is inert for an ordinary X/Delve/Sac cast.
+		if e.drainAwaitsTarget && e.Pending() == nil {
+			e.drainAwaitsTarget = false
+			e.resumeTriggerDrain()
+			return
+		}
 	// Tasks 12 and 18 add their cases here.
 	default:
 		e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "choose answered with no flow waiting"})
