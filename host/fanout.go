@@ -51,9 +51,12 @@ func (r *Registry) widgetFrame(t *table, m *match, last string) protocol.Frame {
 	return frame(protocol.TWidget, t, m.k, head(m), w)
 }
 
-// eventBodies redacts and describes evs against g, the state that produced
-// them (RedactEventsFor's convention). Describe runs on the REDACTED event
-// so a hidden card's name never reaches the line.
+// eventBodiesFor redacts and describes evs against g for one viewer, the
+// state that produced them (RedactEventsFor's convention): the viewer/vis
+// pair is exactly what RedactEventsFor takes, so Events (spectator) and
+// EventsSeat (seat) and the fan-out (the table's spectator) all share this
+// one body and can only drift through that pair. Describe runs on the
+// REDACTED event so a hidden card's name never reaches the line.
 //
 // Takes g and evs rather than a live (*table, *match) (fix round 1, FL-42)
 // so a caller that cannot hold m.mu for the whole call — Events, over a
@@ -62,8 +65,8 @@ func (r *Registry) widgetFrame(t *table, m *match, last string) protocol.Frame {
 // afterwards. fanout/onMatchStart/onMatchEnd still call this under their
 // own already-held lock, passing m.e.G and m.e.L.Events[from:] directly:
 // no clone needed there, since they never release the lock mid-call.
-func eventBodies(vis view.Visibility, g *state.Game, evs []events.Event) []protocol.EventBody {
-	red := view.RedactEventsFor(g, evs, view.NoSeat, vis)
+func eventBodiesFor(viewer state.PlayerID, vis view.Visibility, g *state.Game, evs []events.Event) []protocol.EventBody {
+	red := view.RedactEventsFor(g, evs, viewer, vis)
 	out := make([]protocol.EventBody, 0, len(red))
 	for _, ev := range red {
 		out = append(out, protocol.EventBody{Event: protocol.EventFrom(ev), Line: view.Describe(g, ev)})
@@ -123,7 +126,7 @@ func (r *Registry) fanout(t *table, m *match, before int) {
 	m.mu.RLock()
 	var evFrames []protocol.Frame
 	var widget protocol.Frame
-	bodies := eventBodies(t.cfg.Spectator, m.e.G, m.e.L.Events[before:])
+	bodies := eventBodiesFor(view.NoSeat, t.cfg.Spectator, m.e.G, m.e.L.Events[before:])
 	if focus {
 		evFrames = make([]protocol.Frame, 0, len(bodies))
 		for _, b := range bodies {
@@ -185,7 +188,7 @@ func (r *Registry) onMatchStart(t *table, m *match) {
 		snap = r.snapshotFrame(t, m)
 	}
 	if overview {
-		bodies := eventBodies(t.cfg.Spectator, m.e.G, m.e.L.Events)
+		bodies := eventBodiesFor(view.NoSeat, t.cfg.Spectator, m.e.G, m.e.L.Events)
 		t.lastLine = lastLine(bodies, t.lastLine)
 		widget = r.widgetFrame(t, m, t.lastLine)
 	}
@@ -219,7 +222,7 @@ func (r *Registry) onMatchEnd(t *table, m *match) {
 	end := frame(protocol.TMatchEnd, t, m.k, head(m), protocol.MatchEnd{Result: m.result, Winner: m.winner, Head: m.head})
 	var widget protocol.Frame
 	if overview {
-		bodies := eventBodies(t.cfg.Spectator, m.e.G, m.e.L.Events[tailFrom(m, 64):])
+		bodies := eventBodiesFor(view.NoSeat, t.cfg.Spectator, m.e.G, m.e.L.Events[tailFrom(m, 64):])
 		t.lastLine = lastLine(bodies, t.lastLine)
 		widget = r.widgetFrame(t, m, t.lastLine)
 	}
