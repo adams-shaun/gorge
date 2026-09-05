@@ -45,7 +45,8 @@ export function dvrReducer(s: DvrState, a: DvrAction): DvrState {
     }
     case 'event': {
       const seq = a.body.event.seq;
-      if (seq <= s.head && s.events.some((e) => e.event.seq === seq)) return s; // duplicate
+      if (seq <= s.head) return s; // already accounted for: a duplicate, or redelivered after a snapshot dropped events
+      // sticky until 'snapshot' or 'reset': the caller must re-snapshot to clear it
       if (seq !== s.head + 1) return { ...s, gap: true };
       return { ...s, head: seq, cursor: s.live ? seq : s.cursor, events: [...s.events, a.body] };
     }

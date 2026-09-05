@@ -88,4 +88,39 @@ describe('dvr reducer', () => {
     expect(s.events).toEqual([]); // the client re-fetches the range it needs
     expect(s.gap).toBe(false);
   });
+  it('ignores a redelivered event at or below head right after a snapshot dropped events', () => {
+    let s = dvrReducer(initialDvr, { type: 'snapshot', match: 't4/1', head: 5, turnStarts: [0] });
+    const before = s;
+    s = dvrReducer(s, { type: 'event', body: ev(5) });
+    expect(s).toBe(before); // untouched: seq 5 is not newer than head, nothing to do
+    expect(s.gap).toBe(false);
+    s = dvrReducer(s, { type: 'event', body: ev(6) });
+    expect(s.head).toBe(6);
+    expect(s.events.map((e) => e.event.seq)).toEqual([6]);
+    expect(s.gap).toBe(false);
+  });
+  it('step by -1 walks past the first known event down to the hard floor of 0', () => {
+    let s = live([101, 102]);
+    expect(s.events[0].event.seq).toBe(101); // firstSeq
+    s = dvrReducer(s, { type: 'step', by: -1 });
+    expect(s.cursor).toBe(101); // at firstSeq
+    s = dvrReducer(s, { type: 'step', by: -1 });
+    expect(s.cursor).toBe(100); // below firstSeq: no event recorded there
+    expect(eventAt(s, s.cursor)).toBeUndefined();
+    for (let i = 0; i < 200; i++) s = dvrReducer(s, { type: 'step', by: -1 });
+    expect(s.cursor).toBe(0); // clamps at 0, never negative
+  });
+  it('a gap leaves head and events untouched', () => {
+    let s = live([101, 102]);
+    const head = s.head;
+    const events = s.events;
+    s = dvrReducer(s, { type: 'event', body: ev(110) });
+    expect(s.gap).toBe(true);
+    expect(s.head).toBe(head);
+    expect(s.events).toEqual(events);
+  });
+  it('turnOf returns -1 when turnStarts is empty', () => {
+    const s = dvrReducer(initialDvr, { type: 'snapshot', match: 't5/1', head: 10, turnStarts: [] });
+    expect(turnOf(s, 5)).toBe(-1);
+  });
 });
