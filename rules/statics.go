@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -63,32 +64,156 @@ func (e *Engine) actorMatches(sv staticView, key string, actor state.PlayerID) b
 	return effects.MatchesPlayerSpec(e.G, spec, actor, sv.Controller)
 }
 
+// specCtx builds the SpecContext a per-source "ValidCard$"/spec match is
+// resolved against, with a resolver that answers "Chosen" (the source object's
+// ChosenNumber) and any SVar name on the source's face via EvalCount. This is
+// what a numeric-RHS restriction actually needs: Sanctum Prelate's
+// "cmcEQChosen" (read the number chosen as it entered) and Chalice of the
+// Void's "cmcEQY" (Y an SVar over the source's charge counters) both resolve
+// through here. Without the resolver those terms would silently never match
+// (numericPred's "recognised shape, unresolvable RHS never matches") and the
+// restriction would be dead. The resolver closes over source/you -- both
+// plain scalars -- so it is deterministic and Clone-safe.
+func (e *Engine) specCtx(source state.ObjID, you state.PlayerID) effects.SpecContext {
+	return effects.SpecContext{
+		You:    you,
+		Source: source,
+		Resolve: func(name string) (int32, bool) {
+			o := e.G.Obj(source)
+			if o == nil {
+				return 0, false
+			}
+			if name == "Chosen" {
+				return o.ChosenNumber, true
+			}
+			f := o.Face()
+			if f == nil {
+				return 0, false
+			}
+			if body, ok := f.SVars[name]; ok {
+				return effects.EvalCount(e, &effects.Ctx{Source: source, Controller: you, SVars: f.SVars}, body), true
+			}
+			return 0, false
+		},
+	}
+}
+
 // castRestricted reports whether p is forbidden from casting id (CantBeCast).
 func (e *Engine) castRestricted(p state.PlayerID, id state.ObjID) bool {
 	for _, sv := range e.activeStatics("CantBeCast") {
 		if !e.actorMatches(sv, "Caster", p) {
 			continue
 		}
-		if effects.MatchesSpecFrom(e.G, sv.Params["ValidCard"], id, sv.Controller, sv.Source) {
+		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
 			return true
 		}
 	}
 	return false
 }
 
-// abilityRestricted reports whether id's (mana) ability is forbidden from
-// being activated (CantBeActivated). A nonexistent object has no ability to
-// restrict, so it degrades to false rather than dereferencing a nil Object.
-func (e *Engine) abilityRestricted(id state.ObjID) bool {
+// abilityRestricted reports whether id's specific ability ab is forbidden
+// from being activated (CantBeActivated), scoped by the restriction's
+// ValidSA$ to the ability being considered (Task 10: p, the would-be
+// activator, scopes Activator$; ab, the exact activated ability, scopes
+// ValidSA$). A nonexistent object has no ability to restrict, so it degrades
+// to false rather than dereferencing a nil Object.
+func (e *Engine) abilityRestricted(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
 	o := e.G.Obj(id)
 	if o == nil {
 		return false
 	}
 	for _, sv := range e.activeStatics("CantBeActivated") {
-		if !e.actorMatches(sv, "Activator", o.Controller) {
+		if !e.actorMatches(sv, "Activator", p) {
 			continue
 		}
-		if effects.MatchesSpecFrom(e.G, sv.Params["ValidCard"], id, sv.Controller, sv.Source) {
+		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+			continue
+		}
+		if activatedMatchesValidSA(ab, sv.Params["ValidSA"]) {
+			return true
+		}
+	}
+	return false
+}
+
+// activatedMatchesValidSA reports whether a CantBeActivated restriction whose
+// ValidSA$ reads validSA applies to the specific activated ability ab. The
+// grammar is Forge's comma-separated OR list of "<kind>.<constraint>" values.
+//
+// An absent ValidSA$ applies to every activated ability (including mana). A
+// value whose kind is not "Activated" (a Spell / Instant / Sorcery shape)
+// describes a cast, never an activation, so it does not match an ability.
+// Within the Activated kind: no constraint matches everything; "!ManaAbility"
+// matches everything but a mana ability (ab.API == "Mana"); "ManaAbility"
+// matches only a mana ability, and "ManaAbility<Produce:C>" the subset that
+// produces colour C (test-only grammar, fix round 1 -- see the case below);
+// and a constraint this build cannot evaluate --
+// Loyalty, Equip, Crew+Vehicle, hasTapCost, ... -- DENIES, per the "a
+// restriction that cannot be evaluated must deny, not silently allow" rule:
+// erring toward applying a CantBeActivated is the safe direction, because the
+// consequence of wrongly allowing an activation a static forbids is an illegal
+// game action, while wrongly blocking one merely withholds an option the
+// activator could have taken.
+func activatedMatchesValidSA(ab *cards.SA, validSA string) bool {
+	v := strings.TrimSpace(validSA)
+	if v == "" {
+		return true // no ValidSA$: applies to every activated ability
+	}
+	for _, alt := range strings.Split(v, ",") {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		kind, constraint := alt, ""
+		if i := strings.IndexByte(alt, '.'); i >= 0 {
+			kind, constraint = alt[:i], alt[i+1:]
+		}
+		if kind != "Activated" {
+			continue
+		}
+		if constraint == "" {
+			return true
+		}
+		switch {
+		case constraint == "!ManaAbility":
+			if ab.API != "Mana" {
+				return true
+			}
+			// else: mana abilities are expressly spared; try the next alt
+		case constraint == "ManaAbility" || strings.HasPrefix(constraint, "ManaAbility<"):
+			if ab.API != "Mana" {
+				break // not a mana ability; try the next alt
+			}
+			// Bare ManaAbility matches every mana ability. A
+			// ManaAbility<Produce:C> scopes to a mana ability that produces
+			// colour C (fix round 1, reviewer Important 2): a permanent with
+			// several mana abilities can then have one singled out by a
+			// CantBeActivated while the others stay activatable -- the shape
+			// that exposed the gate/activation disagreement Test
+			// TestActivateSkipsRestrictedManaAbility exercises. The corpus has
+			// no such value (grep shows CantBeActivated ValidSA$ is empty,
+			// "Activated", or "Activated.!ManaAbility"), so this extension is
+			// test-only grammar, but it makes the per-ability agreement
+			// reachable instead of hypothetical.
+			if constraint != "ManaAbility" && strings.HasSuffix(constraint, ">") {
+				inner := constraint[len("ManaAbility<") : len(constraint)-1]
+				color := inner
+				if j := strings.IndexByte(inner, ':'); j >= 0 {
+					color = inner[j+1:]
+				}
+				produced := strings.TrimSpace(ab.Params["Produced"])
+				if produced == "" {
+					produced = "C"
+				}
+				target := strings.TrimSpace(color)
+				if target != "" && (produced == target || (len(target) == 1 && strings.Contains(produced, target))) {
+					return true
+				}
+				break // this mana ability produces a different colour; next alt
+			}
+			return true // bare ManaAbility
+		default:
+			// Unevaluable constraint under the Activated kind: deny (see doc).
 			return true
 		}
 	}
@@ -117,7 +242,7 @@ func (e *Engine) adjustedCost(p state.PlayerID, id state.ObjID) Cost {
 			if !e.actorMatches(sv, "Activator", p) {
 				continue
 			}
-			if !effects.MatchesSpecFrom(e.G, sv.Params["ValidCard"], id, sv.Controller, sv.Source) {
+			if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, p)) {
 				continue
 			}
 			c.Generic += sign * parseAmount(sv.Params["Amount"], 1)
@@ -147,7 +272,7 @@ func (e *Engine) adjustedCost(p state.PlayerID, id state.ObjID) Cost {
 func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []Cost {
 	var out []Cost
 	for _, sv := range e.activeStatics("AlternativeCost") {
-		if !effects.MatchesSpecFrom(e.G, sv.Params["ValidCard"], id, sv.Controller, sv.Source) {
+		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
 		out = append(out, ParseCost(sv.Params["Cost"]))
@@ -170,19 +295,19 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []Cost {
 // option generation and validation.
 func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 	for _, sv := range e.activeStatics("CantBlock") {
-		if effects.MatchesSpecFrom(e.G, sv.Params["ValidCard"], blocker, sv.Controller, sv.Source) {
+		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], blocker, e.specCtx(sv.Source, sv.Controller)) {
 			return true
 		}
 	}
 	for _, sv := range e.activeStatics("CantBlockBy") {
-		if !effects.MatchesSpecFrom(e.G, sv.Params["ValidCard"], attacker, sv.Controller, sv.Source) {
+		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], attacker, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
 		spec, ok := sv.Params["ValidBlocker"]
 		if !ok {
 			return true
 		}
-		if effects.MatchesSpecFrom(e.G, spec, blocker, sv.Controller, sv.Source) {
+		if effects.MatchesSpecCtx(e.G, spec, blocker, e.specCtx(sv.Source, sv.Controller)) {
 			return true
 		}
 	}

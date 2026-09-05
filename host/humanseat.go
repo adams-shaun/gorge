@@ -4,15 +4,21 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/seat"
 	"github.com/adams-shaun/gorge/view"
 )
 
 // HumanSeat is a seat.Seat that can hold one decision pending and be answered
 // from outside (Task M2b-2's SubmitIntent). It is "just another seat.Seat":
 // the engine hands it the same view.View and decision.Decision it hands any
-// bot, and blocks on Decide until an intent is submitted or ctx is cancelled.
+// bot, and blocks on Decide until an intent is submitted, ctx is cancelled, or
+// ThinkTimeout elapses. It carries a caretaker seat (Task M2b-3): the
+// deterministic bot that would have occupied this slot in a pure-bot game, so
+// an unanswered decision is turned by exactly the intent that bot would have
+// produced and the logged game replays byte-identically (D3).
 type HumanSeat struct {
 	mu sync.Mutex
 	// slot is the decision currently being answered, together with the recv
@@ -23,6 +29,26 @@ type HumanSeat struct {
 	// to a channel nobody will ever read again, instead of poisoning the next
 	// decision (the abandoned-slot leak this fix round is named for).
 	slot *pendingSlot
+	// timeout is the per-decision think budget in force (Options.ThinkTimeout
+	// at the time play configured this seat). 0 means no timeout: the seat
+	// waits for a submit or ctx cancel as it always did.
+	timeout time.Duration
+	// caretaker is the deterministic bot that answers a timed-out or
+	// ctx-cancelled decision in the player's place. Configuring walk sets it
+	// to the bot defaultSeats would have built for this slot.
+	caretaker seat.Seat
+}
+
+// configure arms the seat with its caretaker and think budget. play calls it
+// once per match, on the match goroutine, before any Decide, so it never
+// races a parked Decide; the fields are copied under the mutex in Decide
+// (M2b-2's copy-under-the-lock shape). A zero timeout still installs the
+// caretaker so ctx cancellation falls back to it.
+func (s *HumanSeat) configure(timeout time.Duration, caretaker seat.Seat) {
+	s.mu.Lock()
+	s.timeout = timeout
+	s.caretaker = caretaker
+	s.mu.Unlock()
 }
 
 // pendingSlot binds one decision to the recv channel that answers it. Keep
@@ -39,22 +65,32 @@ func NewHumanSeat() *HumanSeat {
 }
 
 // Decide records d as the pending decision and blocks until a matching intent
-// is submitted or ctx is done. It satisfies seat.Seat. Task M2b-3 wires ctx to
-// the caretaker/think-timeout; today a cancellation simply errors Decide, which
-// is exactly what lets a caller break a parked match goroutine (the failure
-// this design is judged on -- a seat that can park forever with no way out).
+// is submitted, ctx is done, or ThinkTimeout elapses. It satisfies seat.Seat.
+// Task M2b-3 wires the two exit-but-still-playable paths (timeout and ctx
+// cancel) to the caretaker: instead of erroring (which would crash the match
+// and, worse, leave a disconnected human able to wedge play's blocked Decide
+// forever -- FL-17), the seat answers with the deterministic bot's intent for
+// that slot, which play submits like any other, so the logged game continues as
+// if the slot had been a bot all along (D3). A human reconnect still works via
+// SubmitIntent against the oncoming decisions (D2). With no caretaker (a bare
+// NewHumanSeat, as today's unit tests build) or a zero ThinkTimeout, ctx
+// cancellation alone is what unblocks Decide and returns ctx.Err().
 //
-// Every return path -- success and cancellation alike -- clears the seat's
-// slot, but only if it is still this call's own slot: identity comparison
-// stops an earlier Decide from un-publishing the slot an overlapping later
-// Decide installed (Decide is not called concurrently today, but defensive
-// here costs nothing). With the slot gone, a later submit finds no current
-// decision to answer and is rejected, and the next Decide parks on a brand-new
-// channel.
-func (s *HumanSeat) Decide(ctx context.Context, _ view.View, d decision.Decision) (decision.Intent, error) {
+// Every return path -- human answer, caretaker answer and cancellation alike
+// -- clears the seat's slot, but only if it is still this call's own slot:
+// identity comparison stops an earlier Decide from un-publishing the slot an
+// overlapping later Decide installed (Decide is not called concurrently
+// today, but defensive here costs nothing). With the slot gone, a later submit
+// finds no current decision to answer and is rejected, and the next Decide
+// parks on a brand-new channel. The caretaker path is no exception: it clears
+// the slot through the same defer, so after a timeout the seat is clean for
+// the next decision -- no leftover slot, no buffered intent.
+func (s *HumanSeat) Decide(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
 	slot := &pendingSlot{dec: d, recv: make(chan decision.Intent, 1)}
 	s.mu.Lock()
 	s.slot = slot
+	timeout := s.timeout
+	caretaker := s.caretaker
 	s.mu.Unlock()
 	defer func() {
 		s.mu.Lock()
@@ -63,12 +99,36 @@ func (s *HumanSeat) Decide(ctx context.Context, _ view.View, d decision.Decision
 		}
 		s.mu.Unlock()
 	}()
-	c := decision.Intent{}
+
+	if timeout > 0 {
+		timer := time.NewTimer(timeout)
+		defer timer.Stop()
+		select {
+		case in := <-slot.recv:
+			return in, nil
+		case <-ctx.Done():
+			if caretaker != nil {
+				return caretaker.Decide(ctx, v, d)
+			}
+			return decision.Intent{}, ctx.Err()
+		case <-timer.C:
+			if caretaker != nil {
+				return caretaker.Decide(ctx, v, d)
+			}
+			// A timeout configured but no caretaker to fall back to is an
+			// unarmed seat (unreachable when play configured it); rather than
+			// error a decision nobody asked us to abandon, drop through to the
+			// blocking select and keep waiting on submit/ctx.
+		}
+	}
 	select {
-	case <-ctx.Done():
-		return c, ctx.Err()
 	case in := <-slot.recv:
 		return in, nil
+	case <-ctx.Done():
+		if caretaker != nil {
+			return caretaker.Decide(ctx, v, d)
+		}
+		return decision.Intent{}, ctx.Err()
 	}
 }
 

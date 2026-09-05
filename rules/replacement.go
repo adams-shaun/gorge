@@ -73,6 +73,13 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 
 	o := e.G.Obj(matchID)
 	ctx := &effects.Ctx{Source: matchID, Controller: o.Controller,
+		// X is the {X} paid for the moving object, so an ETB replacement that
+		// reads it (etbCounter's CounterNum$ X, e.g. Endless One / Walking
+		// Ballista / Chalice of the Void) sees the value the player actually
+		// chose. Move preserves X from the stack onto the permanent (events/
+		// apply.go, the "hand/stack -> battlefield must NOT reset them"
+		// comment), so o.X is the cast-time value here.
+		X:          o.X,
 		Remembered: []state.Target{{Obj: ev.Obj}},
 		// Replaced names the object the replaced event (ev) was about, so a
 		// ReplaceWith$ that says Defined$ ReplacedCard (the Rest in Peace / Dryad
@@ -170,4 +177,13 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 		return effects.MatchesSpecFrom(e.G, v, ev.Obj, e.controllerOf(source), source)
 	}
 	return true
+}
+
+func init() {
+	// kw:etbCounter and kw:ETBReplacement are implemented wholly by the
+	// machinery above: both are R:Event$ Moved replacements (expanded from a
+	// K: line by cards/keywords.go) matched and applied here. Reading a card's
+	// own tags is what a replacement registration means -- nothing elsewhere
+	// in the tree registers them.
+	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement")
 }
