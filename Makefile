@@ -14,14 +14,23 @@ help:
 	@echo "  make fetch-cards    — fetch Forge cardsfolder at FORGE_REF into $(CARDS_DIR)"
 	@echo "  make compile-cards  — compile the fetched corpus into the IR cache"
 	@echo "  make report         — print card coverage against implemented primitives"
+	@echo "  make sim            — build mtgsim and play 20 verified 4-seat games"
 	@echo "  make test lint cover"
 
 .PHONY: build
-build: $(BIN_DIR)/forgec
+build: $(BIN_DIR)/forgec $(BIN_DIR)/mtgsim
 
 $(BIN_DIR)/forgec: $(GO_SRC)
 	@mkdir -p $(BIN_DIR)
 	CGO_ENABLED=0 go build -o $@ ./cmd/forgec
+
+$(BIN_DIR)/mtgsim: $(GO_SRC)
+	@mkdir -p $(BIN_DIR)
+	CGO_ENABLED=0 go build -o $@ ./cmd/mtgsim
+
+.PHONY: sim
+sim: $(BIN_DIR)/mtgsim
+	$(BIN_DIR)/mtgsim -seats 4 -games 20 -verify
 
 .PHONY: fetch-cards
 fetch-cards: $(BIN_DIR)/forgec
