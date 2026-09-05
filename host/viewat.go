@@ -4,10 +4,12 @@ import (
 	"fmt"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/protocol"
 	"github.com/adams-shaun/gorge/replay"
 	"github.com/adams-shaun/gorge/rules"
+	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
 )
 
@@ -45,7 +47,46 @@ func (r *Registry) ViewAt(id TableID, k int, seq uint64) (view.View, error) {
 	snaps := append([]snapshot(nil), m.snaps...)
 	cfg, vis := m.cfg, t.cfg.Spectator
 	m.mu.RUnlock()
-	return viewAt(cfg, l, snaps, seq, vis)
+	return viewAt(cfg, l, snaps, seq, view.NoSeat, vis, nil)
+}
+
+// ViewAtSeat is one seat's own view of the board as of event seq
+// (inclusive): their hand and mana pool — every other seat's hidden zones
+// are counts only — and, when the projection is exactly at the live head
+// and the engine is parked on that seat, the decision asked of them (Task
+// M2b-4, FL-73). It shares viewAt with ViewAt; the two differ only in the
+// (viewer, vis, decision) triple they hand it, i.e. only in how the common
+// replay calls view.ProjectFor.
+//
+// Same lock discipline as ViewAt: read the shared fields under the read
+// lock — the log, the snapshots, the config, and a COPY of the pending
+// decision (never the engine's own pointer, which play replaces between
+// bursts) — then project outside it.
+func (r *Registry) ViewAtSeat(id TableID, k int, seq uint64, player state.PlayerID) (view.View, error) {
+	_, m, err := r.lookup(id, k)
+	if err != nil {
+		return view.View{}, err
+	}
+	m.mu.RLock()
+	l := m.e.L.Clone()
+	snaps := append([]snapshot(nil), m.snaps...)
+	cfg := m.cfg
+	// The decision belongs in the view only when the board is projected
+	// exactly at the live head. At an earlier seq the decision that went
+	// with that moment cannot be reconstructed here — the replayed engine
+	// sits at the burst's start, where the decision about to be asked (or
+	// already answered) is a different one than the board shows — so it
+	// stays nil: a historical view never misrepresents what was pending.
+	var d *decision.Decision
+	if seq == head(m) {
+		if p := m.e.Pending(); p != nil {
+			cp := *p
+			cp.Options = append([]decision.Option(nil), p.Options...)
+			d = &cp
+		}
+	}
+	m.mu.RUnlock()
+	return viewAt(cfg, l, snaps, seq, player, view.Seat, d)
 }
 
 // Events is every redacted, described event from since (inclusive) to the
@@ -78,7 +119,35 @@ func (r *Registry) Events(id TableID, k int, since uint64) ([]protocol.EventBody
 	evs := append([]events.Event(nil), m.e.L.Events[since:]...)
 	vis := t.cfg.Spectator
 	m.mu.RUnlock()
-	return eventBodies(vis, g, evs), nil
+	return eventBodiesFor(view.NoSeat, vis, g, evs), nil
+}
+
+// EventsSeat is every event from since (inclusive) to the head, redacted
+// for player as a seat (Task M2b-4): their own secret draws keep their
+// cards, a card that entered any other seat's hidden zone never surfaces.
+// Mirrors Events — the only difference is the redaction mode, Seat instead
+// of the table's spectator visibility, i.e. only the viewer/visibility pair
+// handed to the common eventBodiesFor.
+func (r *Registry) EventsSeat(id TableID, k int, since uint64, player state.PlayerID) ([]protocol.EventBody, error) {
+	_, m, err := r.lookup(id, k)
+	if err != nil {
+		return nil, err
+	}
+	m.mu.RLock()
+	n := uint64(len(m.e.L.Events))
+	if n == 0 {
+		m.mu.RUnlock()
+		return nil, ErrBeyondHead{Head: 0}
+	}
+	if since >= n {
+		head := n - 1
+		m.mu.RUnlock()
+		return nil, ErrBeyondHead{Head: head}
+	}
+	g := m.e.G.Clone()
+	evs := append([]events.Event(nil), m.e.L.Events[since:]...)
+	m.mu.RUnlock()
+	return eventBodiesFor(player, view.Seat, g, evs), nil
 }
 
 // lookup finds a table's live or retained match, loading a finished match
@@ -198,7 +267,7 @@ func (r *Registry) loadArchived(t *table, sc sidecar) (*match, error) {
 // the replay range, but the deferred recover below is the backstop for
 // any other way replaying a hand-built, corrupted, or future-buggy log
 // could panic — it turns that into a plain error instead.
-func viewAt(cfg rules.Config, l *events.Log, snaps []snapshot, seq uint64, vis view.Visibility) (v view.View, err error) {
+func viewAt(cfg rules.Config, l *events.Log, snaps []snapshot, seq uint64, viewer state.PlayerID, vis view.Visibility, d *decision.Decision) (v view.View, err error) {
 	n := uint64(len(l.Events))
 	if n == 0 {
 		return view.View{}, ErrBeyondHead{Head: 0}
@@ -248,5 +317,5 @@ func viewAt(cfg rules.Config, l *events.Log, snaps []snapshot, seq uint64, vis v
 	for s := bounds[j]; s <= seq; s++ {
 		events.Apply(e.G, l.Events[s])
 	}
-	return view.ProjectFor(e.G, e, view.NoSeat, vis, nil), nil
+	return view.ProjectFor(e.G, e, viewer, vis, d), nil
 }

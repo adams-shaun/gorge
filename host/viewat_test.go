@@ -177,7 +177,7 @@ func TestViewAtFromSnapshotsEqualsViewAtFromGenesis(t *testing.T) {
 		if seq > head {
 			continue
 		}
-		fast, err := viewAt(m.cfg, m.e.L, m.snaps, seq, view.Omniscient)
+		fast, err := viewAt(m.cfg, m.e.L, m.snaps, seq, view.NoSeat, view.Omniscient, nil)
 		if err != nil {
 			t.Fatalf("seq %d (snapshots): %v", seq, err)
 		}
@@ -189,11 +189,11 @@ func TestViewAtFromSnapshotsEqualsViewAtFromGenesis(t *testing.T) {
 	// viewAt's own snapshot-less branch (a full replay per call) still has
 	// to agree; three seqs cover its from==j==0, mid-log, and head cases.
 	for _, seq := range []uint64{0, seqs[len(seqs)/2], head} {
-		fast, err := viewAt(m.cfg, m.e.L, m.snaps, seq, view.Omniscient)
+		fast, err := viewAt(m.cfg, m.e.L, m.snaps, seq, view.NoSeat, view.Omniscient, nil)
 		if err != nil {
 			t.Fatalf("seq %d (snapshots): %v", seq, err)
 		}
-		slow, err := viewAt(m.cfg, m.e.L, nil, seq, view.Omniscient)
+		slow, err := viewAt(m.cfg, m.e.L, nil, seq, view.NoSeat, view.Omniscient, nil)
 		if err != nil {
 			t.Fatalf("seq %d (genesis): %v", seq, err)
 		}
@@ -229,11 +229,11 @@ func TestViewAtTracksIntraBurstStateChanges(t *testing.T) {
 		if ev.Kind != events.LifeChange || ev.Amount == 0 {
 			continue
 		}
-		before, err := viewAt(m.cfg, m.e.L, m.snaps, ev.Seq-1, view.Omniscient)
+		before, err := viewAt(m.cfg, m.e.L, m.snaps, ev.Seq-1, view.NoSeat, view.Omniscient, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
-		after, err := viewAt(m.cfg, m.e.L, m.snaps, ev.Seq, view.Omniscient)
+		after, err := viewAt(m.cfg, m.e.L, m.snaps, ev.Seq, view.NoSeat, view.Omniscient, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -279,11 +279,11 @@ func TestViewAtSurvivesATruncatedFinalBurst(t *testing.T) {
 	l, k := truncatedMidBurst(t, m)
 	head := uint64(len(l.Events) - 1)
 
-	fromSnaps, err := viewAt(m.cfg, l, m.snaps, head, view.Omniscient)
+	fromSnaps, err := viewAt(m.cfg, l, m.snaps, head, view.NoSeat, view.Omniscient, nil)
 	if err != nil {
 		t.Fatalf("viewAt(head) with snapshots panicked or errored: %v", err)
 	}
-	fromGenesis, err := viewAt(m.cfg, l, nil, head, view.Omniscient)
+	fromGenesis, err := viewAt(m.cfg, l, nil, head, view.NoSeat, view.Omniscient, nil)
 	if err != nil {
 		t.Fatalf("viewAt(head) from genesis panicked or errored: %v", err)
 	}
