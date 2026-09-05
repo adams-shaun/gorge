@@ -25,6 +25,7 @@ func (e *Engine) Clone() *Engine {
 		orderedTriggers:     e.orderedTriggers,
 		applyingReplacement: e.applyingReplacement,
 		choosing:            e.choosing,
+		drainAwaitsTarget:   e.drainAwaitsTarget,
 	}
 	if e.pending != nil {
 		d := *e.pending

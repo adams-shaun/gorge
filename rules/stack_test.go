@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -653,5 +654,155 @@ func TestNonActiveCasterReplayThroughSubmit(t *testing.T) {
 	}
 	if fresh.Priority != e.G.Priority {
 		t.Errorf("replayed Priority = %d, want %d (live)", fresh.Priority, e.G.Priority)
+	}
+}
+
+// putLands places n fixture Mountains directly onto seat p's battlefield with
+// the same bypass-the-events direct-zone write the package's other onBoard
+// helper uses, and returns their IDs. The brief's "three Mountains onto seat
+// 1's battlefield" arms a multi-target cast trigger with candidates.
+func putLands(t *testing.T, e *Engine, p state.PlayerID, n int) []state.ObjID {
+	t.Helper()
+	out := make([]state.ObjID, 0, n)
+	for i := 0; i < n; i++ {
+		o := e.G.AddObject(card(t, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n"), p)
+		o.Zone = state.ZBattlefield
+		e.G.Clock++
+		o.Timestamp = e.G.Clock
+		e.G.SetZone(state.ZBattlefield, p, append(e.G.Zone(state.ZBattlefield, p), o.ID))
+		out = append(out, o.ID)
+	}
+	return out
+}
+
+// TestStackZoneCastTriggerAsksForTwoTargetsAndExilesBoth pins a cast trigger
+// with an EXPLICIT TriggerZones$ Stack zone, Ulamog's shape reduced: "when
+// you cast this spell, exile two target permanents". The trigger's controller
+// is asked for EXACTLY two targets (TargetMin 2 / TargetMax 2) over the three
+// mountains on the only nonempty battlefield, the answer is recorded onto the
+// trigger's own stack object (which sits on the stack above the spell), and
+// the two chosen mountains actually leave the battlefield for exile while the
+// Titan spell resolves to the battlefield.
+//
+// Why the TriggerZones$ Stack is load-bearing here instead of the brief's
+// unmodified fixture (a bare `T:Mode$ SpellCast` with no TriggerZones$): the
+// spell's own source sits ON the stack when its cast trigger fires, and
+// zoneGate's default trigger zone is Battlefield, so a spell-on-stack source
+// never qualifies and the trigger would not fire at all -- the same pre-
+// existing gap the d2e2bf4 commit records for Ulamog/World Breaker, outside
+// this task's file scope. Naming the Stack zone explicitly is what lets this
+// test drive the cast-trigger-takes-two-targets behaviour at all.
+func TestStackZoneCastTriggerAsksForTwoTargetsAndExilesBoth(t *testing.T) {
+	src := "Name:Titan\nManaCost:1\nTypes:Creature Eldrazi\nPT:10/10\n" +
+		"T:Mode$ SpellCast | TriggerZones$ Stack | ValidCard$ Card.Self | Execute$ TrigChange | TriggerDescription$ When you cast this spell, exile two target permanents.\n" +
+		"SVar:TrigChange:DB$ ChangeZone | ValidTgts$ Permanent | TargetMin$ 2 | TargetMax$ 2 | Origin$ Battlefield | Destination$ Exile\nOracle:x\n"
+	e, _, titan := newFixtureDeck(t, 11, src)
+	addMana(t, e, 0, "R") // the cast option is only offered once {1} is payable
+	lands := putLands(t, e, 1, 3)
+	castFirst(t, e, "cast")
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget || d.Min != 2 || d.Max != 2 || len(d.Options) != 3 {
+		t.Fatalf("decision %+v", d)
+	}
+	submitChoices(t, e, 0, 1)
+	top := e.G.Obj(e.G.Stack[len(e.G.Stack)-1])
+	if top.Ability == nil || len(top.Targets) != 2 {
+		t.Fatalf("top of stack %+v", top)
+	}
+	passUntilStackEmpty(t, e, 50)
+	exiled := 0
+	for _, id := range lands {
+		if e.G.Obj(id).Zone == state.ZExile {
+			exiled++
+		}
+	}
+	if exiled != 2 || e.G.Obj(titan).Zone != state.ZBattlefield {
+		t.Fatalf("exiled %d, titan in %s", exiled, e.G.Obj(titan).Zone)
+	}
+}
+
+// TestTargetMinZeroResolvesWithNoTargets is requirement N2: a spell whose
+// ValidTgts enumeration comes up empty but whose TargetMin$ is 0 is NOT
+// countered and does NOT ask a zero-option decision -- it goes on the stack
+// untargeted and still resolves its untargeted rider (the draw). The hand
+// count is unchanged because casting took one card and the rider drew one.
+func TestTargetMinZeroResolvesWithNoTargets(t *testing.T) {
+	src := "Name:Optional\nManaCost:R\nTypes:Instant\n" +
+		"A:SP$ DealDamage | ValidTgts$ Creature | TargetMin$ 0 | TargetMax$ 1 | NumDmg$ 2 | SubAbility$ DBDraw | SpellDescription$ x\n" +
+		"SVar:DBDraw:DB$ Draw | Defined$ You | NumCards$ 1\nOracle:x\n"
+	e, _, _ := newFixtureDeck(t, 12, src)
+	addMana(t, e, 0, "R") // the cast option is only offered once {R} is payable
+	hand := len(e.G.Zone(state.ZHand, 0))
+	castFirst(t, e, "cast")
+	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
+		t.Fatal("asked for a target with none available and TargetMin 0")
+	}
+	passUntilStackEmpty(t, e, 50)
+	if len(e.G.Zone(state.ZHand, 0)) != hand { // cast -1, draw +1
+		t.Fatal("the untargeted spell did not resolve its rider")
+	}
+}
+
+// TestTgtZoneGraveyardOffersGraveyardCards is the Snapcaster ETB shape,
+// reduced: a trigger that targets "instant or sorcery card in your
+// graveyard" (TgtZone$ Graveyard) must offer exactly the graveyard card that
+// satisfies the YouCtrl spec -- and NOT any player, even though "YouCtrl"
+// contains the substring "You" that the coarse targetsPlayers heuristic keys
+// on. Routing to an off-board zone is what suppresses the player slots.
+func TestTgtZoneGraveyardOffersGraveyardCards(t *testing.T) {
+	boltSrc := "Name:Bolt\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3\nOracle:x\n"
+	src := "Name:Mage\nManaCost:1 U\nTypes:Creature Human Wizard\nPT:2/1\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigPump | TriggerDescription$ x\n" +
+		"SVar:TrigPump:DB$ Pump | ValidTgts$ Instant.YouCtrl,Sorcery.YouCtrl | TgtZone$ Graveyard | KW$ Flashback | PumpZone$ Graveyard\nOracle:x\n"
+	e, _, mage := newFixtureDeck(t, 13, src, boltSrc)
+	bolt := addToGraveyard(t, e, 0, boltSrc)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: mage, From: state.ZHand, To: state.ZBattlefield})
+	e.Advance()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget || len(d.Options) != 1 || d.Options[0].Obj != bolt {
+		t.Fatalf("decision %+v", d)
+	}
+}
+
+// TestTargetBoundsClampsTargetMaxNotDiscardsIt is fix-round-1's rendering of
+// targetBounds' documented contract: the rule is clamp, not ignore. A
+// TargetMax$ that parses to 0 (or a negative number) is taken seriously and
+// clamped to >= 1 and >= Min -- never silently dropped back to the default of
+// 1, which would behave differently the moment TargetMin$ is also present in
+// the same script. The observable result for a lone TargetMax$ 0 is the same
+// either way, which is what makes "discard" and "clamp" easy to conflate;
+// this table pins the clamped behaviour (and the Min-0 untargeted stand-outs
+// that must NOT be clobbered).
+func TestTargetBoundsClampsTargetMaxNotDiscardsIt(t *testing.T) {
+	sa := func(params ...string) *cards.SA {
+		m := map[string]string{}
+		for _, p := range params {
+			k, v, ok := strings.Cut(p, "$")
+			if !ok {
+				t.Fatalf("bad param %q", p)
+			}
+			m[strings.TrimSpace(k)] = strings.TrimSpace(v)
+		}
+		return &cards.SA{Params: m}
+	}
+	for _, tc := range []struct {
+		name             string
+		sa               *cards.SA
+		wantMin, wantMax int
+	}{
+		{"absent defaults to one each", sa(), 1, 1},
+		{"TargetMax zero clamps to one", sa("TargetMax$ 0"), 1, 1},
+		{"TargetMax negative clamps to one", sa("TargetMax$ -3"), 1, 1},
+		{"TargetMin zero stays zero (N2 untargeted)", sa("TargetMin$ 0"), 0, 1},
+		{"TargetMin zero keeps an explicit TargetMax zero at one", sa("TargetMin$ 0", "TargetMax$ 0"), 0, 1},
+		{"TargetMax below TargetMin clamps up to Min", sa("TargetMin$ 3", "TargetMax$ 1"), 3, 3},
+		{"both present and sane are kept", sa("TargetMin$ 2", "TargetMax$ 4"), 2, 4},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			min, max := targetBounds(tc.sa)
+			if min != tc.wantMin || max != tc.wantMax {
+				t.Fatalf("targetBounds = (%d, %d), want (%d, %d)", min, max, tc.wantMin, tc.wantMax)
+			}
+		})
 	}
 }
