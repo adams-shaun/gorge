@@ -7,3 +7,6 @@ coverage.html
 
 # SDD orchestration scratch (ledger, briefs, review packages).
 .superpowers/
+
+# Per-task git worktrees for fleet execution (SDD).
+.worktrees/
