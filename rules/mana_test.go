@@ -16,7 +16,7 @@ func TestParseCostForms(t *testing.T) {
 		"{2}{R}":  {Colored: pool(0, 0, 0, 1, 0, 0), Generic: 2},
 		"no cost": {},
 		"":        {},
-		"X R":     {Colored: pool(0, 0, 0, 1, 0, 0), X: true},
+		"X R":     {Colored: pool(0, 0, 0, 1, 0, 0), X: 1},
 		"C":       {Colored: pool(0, 0, 0, 0, 0, 1)},
 	} {
 		got := ParseCost(src)
@@ -163,5 +163,33 @@ func TestNumericTokenValidation(t *testing.T) {
 	validMaxCost := ParseCost("2147483647")
 	if validMaxCost.Generic != 2147483647 || validMaxCost.Colored.Total() != 0 {
 		t.Errorf("ParseCost(\"2147483647\") = %+v, want generic=2147483647", validMaxCost)
+	}
+}
+
+func TestParseCostNonManaParts(t *testing.T) {
+	c := ParseCost("2 C Sac<1/Land>")
+	if c.Generic != 2 || c.Colored[state.MC] != 1 || len(c.Sac) != 1 || c.Sac[0] != (CostPart{1, "Land"}) {
+		t.Fatalf("%+v", c)
+	}
+	c = ParseCost("SubCounter<2/P1P1>")
+	if c.CMC() != 0 || len(c.SubCounter) != 1 || c.SubCounter[0] != (CostPart{2, "P1P1"}) || !c.HasNonMana() {
+		t.Fatalf("%+v", c)
+	}
+	c = ParseCost("T")
+	if !c.Tap || c.CMC() != 0 {
+		t.Fatalf("%+v", c)
+	}
+	c = ParseCost("X X W W W")
+	if c.X != 2 || c.Colored[state.MW] != 3 || c.CMC() != 3 {
+		t.Fatalf("%+v", c)
+	}
+	if w := c.WithX(2); w.X != 0 || w.Generic != 4 || w.CMC() != 7 {
+		t.Fatalf("WithX %+v", w)
+	}
+	if p := ParseCost("R").Plus(ParseCost("R")); p.Colored[state.MR] != 2 {
+		t.Fatalf("Plus %+v", p)
+	}
+	if ParseCost("3 U").HasNonMana() {
+		t.Fatal("mana-only cost reports non-mana parts")
 	}
 }

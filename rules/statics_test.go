@@ -341,7 +341,7 @@ func TestAlternativeCostChargesTheAlternativeAmount(t *testing.T) {
 
 // TestUnpayableCastDoesNotReachTheStack is the abort-path case: if the cost
 // actually cannot be paid, the spell must not reach the stack and nothing
-// must be deducted. Calls castSpell directly (bypassing legalActions, which
+// must be deducted. Calls beginCast directly (bypassing legalActions, which
 // would never offer an unpayable option) to exercise the failure path
 // deterministically.
 func TestUnpayableCastDoesNotReachTheStack(t *testing.T) {
@@ -349,7 +349,7 @@ func TestUnpayableCastDoesNotReachTheStack(t *testing.T) {
 	e := handEngine(t, zap)
 	// Empty pool: the cost cannot be paid at all.
 	id := e.G.Zone(state.ZHand, 0)[0]
-	e.castSpell(0, decision.Option{Obj: id})
+	e.beginCast(0, decision.Option{Obj: id})
 
 	if len(e.G.Stack) != 0 {
 		t.Fatal("a cast that could not be paid for must not reach the stack")

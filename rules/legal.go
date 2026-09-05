@@ -39,11 +39,19 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !instantSpeed && !sorcery {
 			continue
 		}
-		if e.adjustedCost(p, id).CanPay(e.G.Players[p].Pool) {
+		base := e.adjustedCost(p, id)
+		if e.castable(p, id, base) {
 			add("cast", "Cast "+f.Name, id)
 		}
 		for i, alt := range e.alternativeCosts(p, id) {
-			if alt.CanPay(e.G.Players[p].Pool) {
+			// Ruling (Task 9 fix round 1, Important 1): this used to gate on
+			// mana-only alt.CanPay, but ParseCost now produces Sac/SubCounter/
+			// Tap parts that the cast flow enforces -- an AlternativeCost whose
+			// Cost$ carries Sac<N/...> was offered without checking that N
+			// matching permanents exist, and beginCast then asked a sacrifice
+			// decision with zero options that no answer could escape. castable
+			// is the same gate every other "cast" option uses.
+			if e.castable(p, id, alt) {
 				// AltCostIndex is i+1, not i: the zero value must mean "the
 				// card's own cost" so every other Option literal in the tree
 				// (play_land, activate, pass, and the base "cast" option
@@ -52,6 +60,36 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				out = append(out, decision.Option{Index: len(out), Kind: "cast",
 					Label: altCostLabel(f.Name, i), Obj: id, AltCostIndex: i + 1})
 			}
+		}
+		if kc, ok := kickerCost(f); ok && e.castable(p, id, base.Plus(kc)) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (kicked)", Obj: id, Mode: "kicked"})
+		}
+		if sc, ok := surgeCost(f); ok && e.spellsCastThisTurn(p) > 0 && e.castable(p, id, sc) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (surged)", Obj: id, Mode: "surged"})
+		}
+	}
+
+	// Flashback: a graveyard walk, same instant-speed timing as hand cards,
+	// gated on the derived keyword (so a continuous-effect grant, e.g.
+	// Snapcaster Mage, counts) rather than the printed one.
+	for _, id := range e.G.Zone(state.ZGraveyard, p) {
+		o := e.G.Obj(id)
+		f := o.Face()
+		if f == nil || !e.HasKeyword(id, "Flashback") {
+			continue
+		}
+		if e.castRestricted(p, id) {
+			continue
+		}
+		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
+		if !instantSpeed && !sorcery {
+			continue
+		}
+		if fc := e.flashbackCost(id); e.castable(p, id, fc) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (flashback)", Obj: id, Mode: "flashback"})
 		}
 	}
 
@@ -116,6 +154,6 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 
 	case "cast":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
-		e.castSpell(in.Player, opt)
+		e.beginCast(in.Player, opt)
 	}
 }

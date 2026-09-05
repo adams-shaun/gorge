@@ -78,6 +78,10 @@ type Engine struct {
 	// chooseCast in cast.go, and Tasks 12 and 18 add the "as this enters" and
 	// miracle cases in their own files.
 	choosing chooseFor
+
+	// cast holds the in-progress cast-flow state while choosing ==
+	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
+	cast *pendingCast
 }
 
 // chooseFor names the flow a pending KChoose decision belongs to. Task 9
