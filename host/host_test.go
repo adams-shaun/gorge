@@ -263,15 +263,18 @@ func TestCloseInterruptsALongCooldown(t *testing.T) {
 		r.Wait("t1")
 		close(done)
 	}()
-	select {
-	case <-done:
-	case <-time.After(10 * time.Second):
-		t.Fatal("Close did not return promptly from a long cooldown")
-	}
+	// The match itself takes seconds (more under -race); the promptness
+	// clock starts only once the cooldown sleep has been reached and Close
+	// has been triggered from inside it.
 	select {
 	case <-stopped:
-	default:
-		t.Fatal("Sleep was never asked to stop")
+	case <-time.After(2 * time.Minute):
+		t.Fatal("the match never reached its cooldown sleep")
+	}
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Close did not return promptly from a long cooldown")
 	}
 }
 
