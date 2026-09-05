@@ -403,7 +403,10 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 }
 
 // Game, Emit and Rand satisfy effects.Host, which is how effects reach the
-// engine without importing it.
+// engine without importing it. AddContinuous (layers.go) and HasKeyword
+// (layers.go) round out the interface -- HasKeyword already existed for the
+// layer system's own callers before effects.Host grew a method of the same
+// name, and needed no change to satisfy it.
 func (e *Engine) Game() *state.Game    { return e.G }
 func (e *Engine) Emit(ev events.Event) { e.emit(ev) }
 func (e *Engine) Rand(n int) int       { return e.rng.IntN(n) }
