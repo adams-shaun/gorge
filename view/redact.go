@@ -75,6 +75,12 @@ import (
 //
 // g == nil applies rule (1) only -- there is no game state to check rules
 // (2)/(3) against -- and never panics.
+//
+// RedactEventsFor (visibility.go) is this function plus one more mode:
+// RedactEventsFor(..., Seat) and RedactEventsFor(..., Public) are exactly
+// RedactEvents (Public always passes NoSeat, so every owner-only branch
+// above stays closed); Omniscient is the one case RedactEvents itself never
+// implements -- every event visible except library order.
 func RedactEvents(g *state.Game, evs []events.Event, viewer state.PlayerID) []events.Event {
 	out := make([]events.Event, 0, len(evs))
 	for _, e := range evs {
