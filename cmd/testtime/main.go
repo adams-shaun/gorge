@@ -34,6 +34,14 @@ import (
 	"time"
 )
 
+// Exit codes. exitBudget (1) means a package's wall time exceeded its budget;
+// exitInfra (3) means the measurement itself failed (no package produced a
+// result), so the hook can tell an infrastructure failure from a budget one.
+const (
+	exitBudget = 1
+	exitInfra  = 3
+)
+
 type pkgInfo struct {
 	importPath string
 	dir        string // relative to cwd
@@ -70,17 +78,7 @@ func main() {
 		if len(files) == 0 {
 			return // no staged .go file: skip entirely
 		}
-		byDir := map[string]pkgInfo{}
-		for _, p := range pkgs {
-			byDir[p.dir] = p
-		}
-		seen := map[string]bool{}
-		for _, f := range files {
-			if p, ok := byDir[filepath.Dir(f)]; ok && !seen[p.importPath] {
-				seen[p.importPath] = true
-				selected = append(selected, p.importPath)
-			}
-		}
+		selected = packagesForFiles(files, pkgs)
 	case *all:
 		for _, p := range pkgs {
 			if p.hasTests {
@@ -95,7 +93,15 @@ func main() {
 	}
 	sort.Strings(selected)
 
-	results := runGoTest(selected)
+	results, runErr := runGoTest(selected)
+	if len(results) == 0 {
+		if runErr != nil {
+			fmt.Fprintf(os.Stderr, "testtime: go test failed: %v\n", runErr)
+		} else {
+			fmt.Fprintf(os.Stderr, "testtime: go test produced no results for %d selected package(s); nothing was measured\n", len(selected))
+		}
+		os.Exit(exitInfra)
+	}
 
 	runnerName := *runner
 	if runnerName == "" {
@@ -120,12 +126,34 @@ func main() {
 		fmt.Printf("testtime: %s %.1fs %d tests budget %ds\n", p.dir, res.elapsed, res.tests, budget)
 		fmt.Printf("testtime: wrote %s\n", path)
 		if res.elapsed > float64(budget) {
-			fmt.Printf("testtime: %s took %.1fs, budget %ds (raise budget_s in %s with a Test-Budget-Approved: trailer)\n",
+			fmt.Fprintf(os.Stderr, "testtime: %s took %.1fs, budget %ds (raise budget_s in %s with a Test-Budget-Approved: trailer)\n",
 				p.dir, res.elapsed, budget, path)
-			exitCode = 1
+			exitCode = exitBudget
 		}
 	}
 	os.Exit(exitCode)
+}
+
+// packagesForFiles maps staged file paths to the import paths of the packages
+// that contain them. A file whose directory is not a package (no _test.go and
+// no .go files) is skipped. The result is deterministic (sorted by the caller).
+func packagesForFiles(files []string, pkgs []pkgInfo) []string {
+	byDir := map[string]pkgInfo{}
+	for _, p := range pkgs {
+		byDir[p.dir] = p
+	}
+	seen := map[string]bool{}
+	var selected []string
+	for _, f := range files {
+		if !strings.HasSuffix(f, ".go") {
+			continue
+		}
+		if p, ok := byDir[filepath.Dir(f)]; ok && !seen[p.importPath] {
+			seen[p.importPath] = true
+			selected = append(selected, p.importPath)
+		}
+	}
+	return selected
 }
 
 // listPackages enumerates every package in the module via `go list ./...`.
@@ -189,15 +217,17 @@ func expandArgs(args []string) []string {
 }
 
 // runGoTest runs a single `go test -count=1 -json` over all selected packages
-// and returns each package's elapsed time and top-level test count.
-func runGoTest(pkgs []string) map[string]testResult {
+// and returns each package's elapsed time and top-level test count, plus the
+// command's error (nil on success). The exit code is otherwise irrelevant; we
+// parse the JSON stream.
+func runGoTest(pkgs []string) (map[string]testResult, error) {
 	cmdArgs := append([]string{"test", "-count=1", "-json"}, pkgs...)
 	cmd := exec.Command("go", cmdArgs...)
 	var buf bytes.Buffer
 	cmd.Stdout = &buf
 	cmd.Stderr = os.Stderr
-	_ = cmd.Run() // exit code is irrelevant; we parse the JSON stream
-	return parseJSON(&buf)
+	err := cmd.Run()
+	return parseJSON(&buf), err
 }
 
 // parseJSON parses a `go test -json` stream. The package-level pass/fail event

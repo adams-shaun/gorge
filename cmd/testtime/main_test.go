@@ -63,6 +63,65 @@ func TestBudgetForFresh(t *testing.T) {
 	}
 }
 
+func TestPackagesForFiles(t *testing.T) {
+	pkgs := []pkgInfo{
+		{importPath: "example.com/gorge/host", dir: "host", hasTests: true},
+		{importPath: "example.com/gorge/state", dir: "state", hasTests: true},
+		{importPath: "example.com/gorge/cmd/testtime", dir: "cmd/testtime", hasTests: true},
+		{importPath: "example.com/gorge/cmd/forgec", dir: "cmd/forgec", hasTests: false},
+	}
+
+	tests := []struct {
+		name  string
+		files []string
+		want  []string
+	}{
+		{
+			name:  "empty input",
+			files: nil,
+			want:  nil,
+		},
+		{
+			name:  "non-go files only",
+			files: []string{"host/README.md", "state/doc.txt"},
+			want:  nil,
+		},
+		{
+			name:  "several files in one package",
+			files: []string{"host/a.go", "host/b.go", "host/a_test.go"},
+			want:  []string{"example.com/gorge/host"},
+		},
+		{
+			name:  "files in several packages",
+			files: []string{"host/a.go", "state/b.go"},
+			want:  []string{"example.com/gorge/host", "example.com/gorge/state"},
+		},
+		{
+			name:  "file in a package with no _test.go",
+			files: []string{"cmd/forgec/main.go"},
+			want:  []string{"example.com/gorge/cmd/forgec"},
+		},
+		{
+			name:  "file not in any known package",
+			files: []string{"vendor/unknown/x.go"},
+			want:  nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := packagesForFiles(tt.files, pkgs)
+			if len(got) != len(tt.want) {
+				t.Fatalf("packagesForFiles(%v) = %v, want %v", tt.files, got, tt.want)
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("packagesForFiles(%v)[%d] = %q, want %q", tt.files, i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
 func TestWriteHistoryCreatesAndAppends(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "TEST_HISTORY.md")
