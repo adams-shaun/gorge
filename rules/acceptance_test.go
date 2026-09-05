@@ -55,7 +55,6 @@ var knownUnsupported = map[string][]string{
 	"Chalice of the Void":   {"kw:etbCounter"},
 	"Empty the Warrens":     {"api:CopySpellAbility", "kw:Storm"},
 	"Endless One":           {"kw:etbCounter"},
-	"Entreat the Angels":    {"kw:Miracle"},
 	"Goblin Piledriver":     {"kw:Protection from blue"},
 	"Knight of Infamy":      {"kw:Protection from white"},
 	"Phyrexian Revoker":     {"kw:ETBReplacement"},
@@ -64,7 +63,6 @@ var knownUnsupported = map[string][]string{
 	"Sanctum Prelate":       {"api:ChooseNumber", "kw:ETBReplacement"},
 	"Sword of Fire and Ice": {"api:Attach", "kw:Equip"},
 	"Tendrils of Agony":     {"api:CopySpellAbility", "kw:Storm"},
-	"Terminus":              {"kw:Miracle"},
 	"Umezawa's Jitte":       {"api:Attach", "kw:Equip"},
 	"Walking Ballista":      {"kw:etbCounter"},
 }
