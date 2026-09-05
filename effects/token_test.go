@@ -85,10 +85,15 @@ func TestTokenUnknownScriptNotesAndCreatesNothing(t *testing.T) {
 }
 
 // TestTokenAmountZeroCreatesNothing: TokenAmount$ 0 is a legal (if useless)
-// value -- Num's own default-on-missing-or-unparseable behaviour is 1, not
-// 0, so this is checking the explicit-zero path specifically, not the
-// missing-parameter default TestTokenCreatesEachScriptTheGivenNumberOfTimes
-// already covers with TokenAmount$ absent on its RememberTokens$ call.
+// value. This checks the explicit-zero path specifically, which is distinct
+// from Num's own default: a MISSING TokenAmount$ falls back to 1 (Num's def
+// parameter, which TestTokenCreatesEachScriptTheGivenNumberOfTimes already
+// exercises with TokenAmount$ absent on its RememberTokens$ call) -- an
+// unparseable-but-present value falls to Num's own zero fallback instead
+// (Num returns 0 for a present-but-unparseable value, not the default; only
+// a MISSING key returns the default), which happens to read the same as
+// this test's explicit "0" but is a different code path and not what this
+// test is pinning down.
 func TestTokenAmountZeroCreatesNothing(t *testing.T) {
 	h, c := fixtureHostWithTokens(t)
 	Resolve(h, c, &cards.SA{Kind: "DB", API: "Token", Params: map[string]string{"TokenAmount": "0", "TokenScript": "r_1_1_goblin"}})
@@ -150,5 +155,32 @@ func TestTokenOwnerDefaultsToYou(t *testing.T) {
 	Resolve(h, c, &cards.SA{Kind: "DB", API: "Token", Params: map[string]string{"TokenScript": "r_1_1_goblin"}})
 	if bf := h.Game().Zone(state.ZBattlefield, c.Controller); len(bf) != 1 {
 		t.Fatalf("controller's battlefield = %v, want 1 token", bf)
+	}
+}
+
+// TestTokenOwnerUnrecognizedFormNotesAndDefaultsToController: a
+// TokenOwner$ this build does not model (e.g. "Defined$"-style forms
+// beyond You/Opponent) still creates the token under the controller --
+// the brief's own stated fallback -- but now says so with a Note, so the
+// fidelity gap is visible in the log rather than silently indistinguishable
+// from the ordinary "You" default.
+func TestTokenOwnerUnrecognizedFormNotesAndDefaultsToController(t *testing.T) {
+	h, c := fixtureHostWithTokens(t)
+	Resolve(h, c, &cards.SA{Kind: "DB", API: "Token",
+		Params: map[string]string{"TokenScript": "r_1_1_goblin", "TokenOwner": "Player"}})
+
+	if bf := h.Game().Zone(state.ZBattlefield, c.Controller); len(bf) != 1 {
+		t.Fatalf("controller's battlefield = %v, want 1 token (unrecognised TokenOwner$ still "+
+			"defaults to the controller)", bf)
+	}
+	want := "unrecognized TokenOwner Player, defaulting to the controller"
+	found := false
+	for _, ev := range h.log {
+		if ev.Kind == events.Note && ev.Text == want {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("log = %+v, want a Note %q", h.log, want)
 	}
 }

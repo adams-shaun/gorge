@@ -13,8 +13,11 @@ func init() { Register("Token", effToken) }
 // effToken creates TokenAmount$ tokens of each TokenScript$ (a comma-
 // separated list of Game.Tokens stems) for TokenOwner$ (the controller by
 // default; only "Opponent" is resolved specially, matching Defined's own
-// "You"/"Opponent" pair in context.go -- every other TokenOwner$ form the
-// corpus uses falls back to the controller rather than doing nothing).
+// "You"/"Opponent" pair in context.go). Every other TokenOwner$ form the
+// corpus uses (a fidelity gap this task does not close) still falls back to
+// the controller rather than doing nothing, but now says so: a Note names
+// the unrecognised value, so the gap is visible rather than silently
+// papered over the way an unqualified fallback would be.
 //
 // Every token is its own TokenCreate event, in the order this loop visits
 // them (outer: TokenScript$ stems left to right; inner: TokenAmount$ copies
@@ -39,7 +42,9 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	n := Num(h, c, sa, "TokenAmount", 1)
 	owner := c.Controller
-	switch sa.Params["TokenOwner"] {
+	switch v := sa.Params["TokenOwner"]; v {
+	case "", "You":
+		// The default: the controller, already set above.
 	case "Opponent":
 		for _, p := range g.AliveFrom(c.Controller) {
 			if p != c.Controller {
@@ -47,6 +52,9 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 		}
+	default:
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unrecognized TokenOwner " + v + ", defaulting to the controller"})
 	}
 	remember := sa.Params["RememberTokens"] == "True"
 
@@ -60,10 +68,15 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		for i := int32(0); i < n; i++ {
-			before := len(g.Objs)
+			// want is the ID the new object will get if TokenCreate's own
+			// Apply case actually mints one (state.Game.AddObject assigns
+			// NextID, then increments it) -- a direct, positive identity
+			// check, rather than inferring a mint happened from g.Objs
+			// having grown by watching its length before and after.
+			want := g.NextID
 			h.Emit(events.Event{Kind: events.TokenCreate, Player: owner, Text: key})
-			if remember && len(g.Objs) > before {
-				c.Remembered = append(c.Remembered, state.Target{Obj: g.Objs[len(g.Objs)-1].ID})
+			if remember && g.Obj(want) != nil {
+				c.Remembered = append(c.Remembered, state.Target{Obj: want})
 			}
 		}
 	}

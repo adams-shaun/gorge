@@ -32,29 +32,45 @@ import (
 // the whole match.
 const maxSBAPasses = 32
 
-// sbaAttempts is one checkStateBased call's memory of what its two
-// state-based-action loops have already tried, together with the size of
+// sbaAttempts is one checkStateBased call's memory of what its
+// state-based-action passes have already tried, together with the size of
 // the alive-player set they tried it under.
 //
-// objs is destroyLethalDamage's (Ruling T22-j) and players is
-// checkLoseConditions' removal sweep's (Ruling T22-n); both are
-// membership-only -- nothing ever ranges over either, so neither can reach
-// an event or the order of a decision's options. alive is Ruling T22-p's
-// re-arm watermark, described on checkStateBased below.
+// objs is destroyLethalDamage's (Ruling T22-j), players is
+// checkLoseConditions' removal sweep's (Ruling T22-n), and tokens is
+// exileDeadTokens' own (Task 13 fix round 1, review finding "minor 1" --
+// added after the fact, once the same failure shape checkLoseConditions and
+// destroyLethalDamage document at length -- a replacement permanently
+// blocking the move -- was pointed out as reachable here too, even though
+// nothing in today's corpus is known to actually do it: with no memory of
+// its own, a blocked attempt would re-match every single pass and burn the
+// entire maxSBAPasses budget on one checkStateBased call, forever, rather
+// than the one attempt per call every other pass here gets). All three are
+// membership-only -- nothing ever ranges over any of them, so none can
+// reach an event or the order of a decision's options. tokens is
+// deliberately its OWN map, not shared with objs: a token that is ALSO a
+// creature can be found lethal by destroyLethalDamage (which marks it in
+// objs) and then, in the very same pass, need exileDeadTokens to move it
+// again (graveyard -> exile) -- sharing one map would have objs's mark
+// wrongly block exileDeadTokens from ever attempting an object destroy
+// LethalDamage had already touched. alive is Ruling T22-p's re-arm
+// watermark, described on checkStateBased below.
 type sbaAttempts struct {
 	objs    map[state.ObjID]bool
+	tokens  map[state.ObjID]bool
 	players map[state.PlayerID]bool
 	alive   int
 }
 
-// rearm forgets both memories when the alive-player set has shrunk since
-// they were last refreshed, so an attempt that a now-eliminated player's
+// rearm forgets every memory when the alive-player set has shrunk since it
+// was last refreshed, so an attempt that a now-eliminated player's
 // permanent blocked gets exactly one more chance under the smaller alive
 // set -- and none at all while nobody dies. Ruling T22-p (fix round 4):
-// this is called at each of the two points that consult the memories, not
-// once per pass, because the sweep loop and destroyLethalDamage both run
-// AFTER the pass's own eliminations are marked and must not be re-armed
-// out from under an attempt they made under the very same alive set.
+// this is called at each of the points that consult the memories, not once
+// per pass, because the sweep loop, destroyLethalDamage and exileDeadTokens
+// all run AFTER the pass's own eliminations are marked and must not be
+// re-armed out from under an attempt they made under the very same alive
+// set.
 //
 // Player.Lost is monotone (events/apply.go's PlayerLost case is its only
 // non-test writer and only ever sets it true), so alive never grows and
@@ -116,6 +132,7 @@ func (a *sbaAttempts) rearm(alive int) {
 	}
 	a.alive = alive
 	clear(a.objs)
+	clear(a.tokens)
 	clear(a.players)
 }
 
@@ -212,6 +229,7 @@ func (e *Engine) checkStateBased() {
 	stable := false
 	tried := &sbaAttempts{
 		objs:    map[state.ObjID]bool{},
+		tokens:  map[state.ObjID]bool{},
 		players: map[state.PlayerID]bool{},
 		alive:   e.G.AliveCount(),
 	}
@@ -220,7 +238,7 @@ func (e *Engine) checkStateBased() {
 		if e.destroyLethalDamage(tried) {
 			changed = true
 		}
-		if e.exileDeadTokens() {
+		if e.exileDeadTokens(tried) {
 			changed = true
 		}
 		if !changed {
@@ -433,30 +451,43 @@ type tokenCasualty struct {
 // 13 does not implement CopySpellAbility, so no card can produce this
 // today, but the exclusion costs nothing and matches the brief exactly).
 //
-// Unlike checkLoseConditions and destroyLethalDamage above, this needs no
-// "tried" memory of its own to stay a one-shot-per-object action: moving a
-// token to exile changes ITS OWN zone to the very value this function's
-// own condition excludes, so the object simply stops matching on the next
-// pass or the next checkStateBased call -- the zone update IS the marker.
-// (A replacement that permanently blocked this exact move -- some
-// "cards can't leave your graveyard" effect intercepting the move FROM
-// graveyard, say -- would instead re-attempt the same token every pass for
-// the rest of this call, same as any other blocked state-based action
-// spends the full maxSBAPasses budget; nothing in the corpus this build
-// targets does that to a token today, and adding an attempted-set purely
-// to pre-empt it would be scope this task's brief does not ask for.)
+// Task 13 fix round 1 (review finding "minor 1"): this now takes the same
+// tried memory checkLoseConditions and destroyLethalDamage do, in its own
+// tried.tokens map (see sbaAttempts' own doc for why it cannot share
+// tried.objs). The original version relied only on the zone update itself
+// -- moving a token to exile changes its own zone to the value the check
+// excludes, so it naturally stops matching -- which is correct for the
+// ordinary case and remains exactly how a SUCCESSFUL move retires itself
+// here. What it did not bound was a replacement PERMANENTLY blocking the
+// move (some "cards can't leave your graveyard" effect intercepting the
+// move FROM graveyard, say): with no memory of the attempt, that token
+// would be rediscovered and re-attempted on every single one of the 32
+// passes in the budget, every checkStateBased call, forever -- exactly the
+// amplification T22-h/T22-j/T22-n exist to prevent for the other two
+// passes. tried.tokens closes the same gap here: an object already
+// attempted this call is skipped on later passes, "changed" means
+// "attempted something NEW this pass" (true the moment a new attempt
+// happens, regardless of whether the move actually lands, mirroring
+// destroyLethalDamage's own convention), and tried.rearm at the top gives a
+// blocked attempt one more chance the instant the alive-player set shrinks,
+// the same as its siblings.
 //
 // Walks e.G.Objs by index -- the dense arena, never a map -- so multiple
 // tokens dying at once are exiled in a fixed, reproducible order.
-func (e *Engine) exileDeadTokens() bool {
+func (e *Engine) exileDeadTokens(tried *sbaAttempts) bool {
+	tried.rearm(e.G.AliveCount())
 	var dead []tokenCasualty
 	for i := range e.G.Objs {
 		o := &e.G.Objs[i]
+		if tried.tokens[o.ID] {
+			continue
+		}
 		if o.IsToken && o.Zone != state.ZBattlefield && o.Zone != state.ZStack && o.Zone != state.ZExile {
 			dead = append(dead, tokenCasualty{o.ID, o.Zone})
 		}
 	}
 	for _, c := range dead {
+		tried.tokens[c.id] = true
 		e.emit(events.Event{Kind: events.MoveZone, Obj: c.id,
 			From: c.from, To: state.ZExile, Text: "ceased to exist"})
 	}
