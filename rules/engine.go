@@ -188,11 +188,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	switch ev.Kind {
 	case events.MoveZone, events.Draw, events.PutOnStack:
 		if o := e.G.Obj(ev.Obj); o != nil {
-			cp := *o
-			cp.Counters = append([]state.Counter(nil), o.Counters...)
-			cp.Targets = append([]state.Target(nil), o.Targets...)
-			cp.Remembered = append([]state.Target(nil), o.Remembered...)
-			cp.BlockedBy = append([]state.ObjID(nil), o.BlockedBy...)
+			cp := o.CloneDeep()
 			lki = &cp
 		}
 	}
