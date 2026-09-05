@@ -8,7 +8,12 @@ export default ts.config(
   ...ts.configs.recommended,
   ...svelte.configs['flat/recommended'],
   { languageOptions: { globals: { ...globals.browser } } },
-  { files: ['**/*.svelte'], languageOptions: { parserOptions: { parser: ts.parser } } },
+  // eslint-plugin-svelte's recommended config also parses .svelte.ts/.svelte.js
+  // "Svelte module" files (Svelte 5 rune stores) with svelte-eslint-parser, but
+  // doesn't wire a nested TS parser for them the way it does for .svelte SFCs —
+  // without this they fail to parse (e.g. `import type { ... }`). Task 19 is
+  // the first to add such a file (session.svelte.ts, tables.svelte.ts).
+  { files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'], languageOptions: { parserOptions: { parser: ts.parser } } },
   { rules: { '@typescript-eslint/no-explicit-any': 'error' } },
   { ignores: ['dist/', 'node_modules/', '../cmd/gorged/webdist/', 'src/protocol.ts'] },
 );
