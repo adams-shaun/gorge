@@ -393,13 +393,14 @@ func TestPlayLandReplayThroughSubmit(t *testing.T) {
 // zone or tapped state here -- only the scalar fields the two rulings
 // govern (Passes, Priority, LandsPlayed).
 //
-// resolveAbility is fully implemented (Task 14); the reason this test still
-// does not assert a pool change is simpler and unrelated -- the fixture
-// card above is a bare "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x"
-// with no printed A:AB$ Mana line at all, so legal.go's "activate" case
-// finds zero entries in o.Face().ManaAbilities() and its resolveAbility loop
-// never runs. This test is exercising the activate/replay path (Passes,
-// Priority, Tapped), not real mana production.
+// The pool DOES change here: the bare Mountain fixture has no printed
+// A:AB$ Mana line, but cards/intrinsic.go's ApplyIntrinsics grants every
+// basic land its subtype's tap ability regardless, so ManaAbilities()
+// returns 1, legal.go's "activate" case finds it, resolveAbility runs, and
+// one ManaAdd R 1 is emitted (0 -> 1) -- Submit below relies on exactly
+// that: activateManaAbility's own t.Fatalf("no activate option...") would
+// fire if it did not. This test simply does not ASSERT the pool change; it
+// is about Passes/Priority/Tapped surviving Submit+replay, not mana.
 func TestActivateManaAbilityReplayThroughSubmit(t *testing.T) {
 	names := []string{"a", "b"}
 	cfg := Config{Seed: 9, Names: names,
