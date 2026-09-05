@@ -1299,8 +1299,11 @@ func TestR3PendingTriggersAndStackAreObservableThroughAFullEngine(t *testing.T) 
 	}
 	for i, w := range want {
 		sv := v.Stack[i]
-		if sv.Kind != "ability" {
-			t.Errorf("Stack[%d].Kind = %q, want \"ability\"", i, sv.Kind)
+		// Both are TriggerPush objects (gainer/drainer are triggered
+		// abilities the engine pushed via the ordering decision above), so
+		// Kind is "trigger", not the generic "ability" (Task 4).
+		if sv.Kind != "trigger" {
+			t.Errorf("Stack[%d].Kind = %q, want \"trigger\"", i, sv.Kind)
 		}
 		if sv.Source != w.source {
 			t.Errorf("Stack[%d].Source = %d, want %d", i, sv.Source, w.source)
