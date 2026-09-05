@@ -78,6 +78,26 @@ import (
 func RedactEvents(g *state.Game, evs []events.Event, viewer state.PlayerID) []events.Event {
 	out := make([]events.Event, 0, len(evs))
 	for _, e := range evs {
+		// Final review finding I2: e is a struct copy of the loop variable,
+		// but e.IDs and e.Pairs are slice HEADERS -- copying the header does
+		// not copy the backing array, so every branch below that appended e
+		// (or a struct literal that reused these fields) unchanged still
+		// pointed at the caller's own arrays. filterVisible/filterVisiblePairs
+		// already return fresh slices, so the rule-3 default branch below was
+		// never the problem; the owner's-own-secret pass-through, the g==nil
+		// degrade, and the zone-move/Note paths that fall through to the
+		// final append all were. Deep-copying both, unconditionally, before
+		// any branch runs, is what actually makes this function's own doc
+		// comment ("the input slice, and every event in it, is never
+		// mutated") true: a caller can now freely mutate a returned event's
+		// IDs/Pairs without ever touching the engine's own log. Measured
+		// before this fix: redacting a real game's log for one seat returned
+		// 50 events whose IDs[0] aliased the engine's own logged event (that
+		// seat's own Shuffle, i.e. its entire library order); mutating one
+		// permanently desynced Log.Head() from Log.HeadAt(len(Log.Events)),
+		// breaking replay of that match for good.
+		e.IDs = append([]state.ObjID(nil), e.IDs...)
+		e.Pairs = append([][2]state.ObjID(nil), e.Pairs...)
 		if e.Secret {
 			if e.Player != viewer {
 				out = append(out, events.Event{
@@ -102,6 +122,14 @@ func RedactEvents(g *state.Game, evs []events.Event, viewer state.PlayerID) []ev
 			if e.From.Hidden() && e.To.Hidden() && !visibleTo(g, e.Obj, viewer) {
 				e.Obj = 0
 			}
+			// T23-z: rule 2 above only ever narrowed Obj; IDs/Pairs on a
+			// zone-move kind got no filtering at all, unlike every other
+			// kind (rule 3's default branch below). Measured behaviour-
+			// neutral today (0 non-test emitters of MoveZone/Draw/PutOnStack
+			// carry IDs or Pairs), so no chain head can move -- this closes
+			// the allowlist gap for whenever one starts to.
+			e.IDs = filterVisible(g, e.IDs, viewer)
+			e.Pairs = filterVisiblePairs(g, e.Pairs, viewer)
 		case events.Note:
 			// Ruling T23-w: rule 3 does not apply to a non-Secret Note at
 			// all -- it passes through unchanged. A Note is the engine's

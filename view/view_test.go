@@ -8,6 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/replay"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -441,9 +442,6 @@ func TestRedactEventsStripsTriggerPushRememberingAnotherSeatsHand(t *testing.T) 
 	}
 }
 
-// TestRedactEventsStripsNoteCarryingAnotherSeatsLibraryIDs is
-// effRearrangeTopOfLibrary's leak: a private look at the top of the
-// library, published non-Secret.
 // TestRedactEventsPassesANonSecretNoteThroughUnchanged is Ruling T23-w
 // (fix round 2): a Note is the engine's explicit "tell everyone" channel,
 // so rule 3 exempts it entirely -- only Secret opts a Note out of that, and
@@ -535,6 +533,69 @@ func TestRedactEventsWithNilGameAppliesOnlyTheSecretRule(t *testing.T) {
 	}
 	if len(out[1].IDs) != 1 || out[1].IDs[0] != 99 {
 		t.Fatalf("non-Secret event was altered with a nil game (want unchanged, no rule 2/3 to check): %+v", out[1])
+	}
+}
+
+// TestRedactEventsDoesNotAliasTheEngineLog is the final whole-branch
+// review's Important finding I2: RedactEvents' own doc comment promises "the
+// input slice, and every event in it, is never mutated", but before this fix
+// three branches appended the loop's e (a struct copy whose IDs/Pairs slice
+// HEADERS still pointed at the caller's backing arrays) unchanged -- the
+// owner's own Secret event, the g == nil degrade, and (via the Note case's
+// intentional no-op and the zone-move case only ever touching Obj) the final
+// catch-all append. Reviewer-measured: redacting a real game's log for one
+// seat returned events whose IDs aliased the engine's own logged Shuffle;
+// mutating the client's copy permanently desynced Log.Head() (the rolling
+// chain, computed once) from Log.HeadAt(len(Log.Events)) (recomputed from
+// the stored events), breaking replay of that match for good, from a pure
+// read path that never should have been able to touch it.
+//
+// Redacts a real 2-seat engine's whole log for seat 1 -- a real seat, not a
+// spectator, so it exercises rule 1's OWNER branch on seat 1's own Shuffle
+// (the exact shape the reviewer measured) as well as the non-owner and
+// default branches on seat 0's events in the same pass -- mutates every
+// IDs/Pairs slice the redacted copy holds, and checks the live engine's log
+// both internally (Head still equals a fresh HeadAt) and externally
+// (replay.Replay, a wholly separate reconstruction from cfg+Log, still
+// verifies with no error).
+func TestRedactEventsDoesNotAliasTheEngineLog(t *testing.T) {
+	cfg := rules.Config{Seed: 21, Names: []string{"alice", "bob"},
+		Decks: [][]*cards.Card{r3Filler(t, 40), r3Filler(t, 40)}}
+	e := rules.New(cfg)
+	e.Advance()
+
+	beforeHead := e.L.Head()
+	if want := e.L.HeadAt(len(e.L.Events)); beforeHead != want {
+		t.Fatalf("engine log already inconsistent before redaction: Head=%s HeadAt=%s", beforeHead, want)
+	}
+
+	redacted := RedactEvents(e.G, e.L.Events, 1)
+	mutated := 0
+	for i := range redacted {
+		for j := range redacted[i].IDs {
+			redacted[i].IDs[j] = 999999
+			mutated++
+		}
+		for j := range redacted[i].Pairs {
+			redacted[i].Pairs[j][0] = 999999
+			redacted[i].Pairs[j][1] = 999999
+			mutated++
+		}
+	}
+	if mutated == 0 {
+		t.Fatal("no IDs/Pairs in the redacted copy to mutate -- this test would pass vacuously")
+	}
+
+	if got := e.L.Head(); got != beforeHead {
+		t.Fatalf("mutating the redacted copy changed the engine's own rolling Head: before=%s after=%s",
+			beforeHead, got)
+	}
+	if got := e.L.HeadAt(len(e.L.Events)); got != beforeHead {
+		t.Fatalf("mutating the redacted copy desynced Head from a fresh HeadAt: Head=%s HeadAt=%s",
+			beforeHead, got)
+	}
+	if _, err := replay.Replay(e.L, cfg); err != nil {
+		t.Fatalf("replay no longer verifies after mutating a redacted copy: %v", err)
 	}
 }
 
