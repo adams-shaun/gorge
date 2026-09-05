@@ -132,8 +132,18 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 			// carry triggered abilities.
 			return
 		}
+		// objLKI is the whole-event LKI snapshot, hoisted here because every
+		// trigger this loop matches for this event shares it (lki.ID == ev.Obj
+		// always holds when lki != nil -- see checkTriggers's own doc above; a
+		// defensive belt-and-braces check against a future emit change that
+		// might one day pass a mismatched lki). triggerMatches and the matched
+		// trigger's Ctx both read it.
+		var objLKI *state.Object
+		if lki != nil && lki.ID == ev.Obj {
+			objLKI = lki
+		}
 		for ti, t := range f.Triggers {
-			if !e.triggerMatches(t, id, ev) {
+			if !e.triggerMatches(t, id, ev, objLKI) {
 				continue
 			}
 			key := triggerKey{Source: id, Idx: ti}
@@ -158,14 +168,6 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 				// that failed to parse): the trigger matched, but there is
 				// nothing to run.
 				continue
-			}
-			// Defensive, not a per-trigger gate: lki.ID == ev.Obj always
-			// holds when lki != nil (see checkTriggers's own doc above), so
-			// every trigger this loop matches for this event gets the same
-			// objLKI.
-			var objLKI *state.Object
-			if lki != nil && lki.ID == ev.Obj {
-				objLKI = lki
 			}
 			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 				Source:     id,
@@ -216,15 +218,16 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 // expands it to Mode$ Attacks | ValidCard$ Creature.YouCtrl | Alone$ True),
 // which fires twice in the 4-seat game (mono-black-aggro is dealt in at
 // seat 3 there). Exalted's DB$ Pump | Defined$ TriggeredAttacker resolves
-// through effects/context.go's objectsOf(c.Remembered): Remembered used to
-// be [{Obj: source}] (the exalted permanent itself) and is now every
-// declared attacker, so -- because attacksMatches ignores Alone$ (a known
-// approximation, tracked separately as FL-48) -- Exalted now pumps every
-// attacker when several attack instead of only the lone one. That is the
-// measured cause of the 4-seat chain-head move 203ea3a9b2268292 ->
-// 81a8a100641b5442. Goblin Guide and Goblin Piledriver never fire in the
-// 8-seat game, and Ulamog is in the tron deck, which is never dealt at
-// 2/4/6/8 seats: neither is a cause.
+// through effects/context.go's objectsOf(c.Remembered): Remembered is every
+// declared attacker (plus the defending player). On top of FL-48 (task 16),
+// attacksMatches honours Alone$ True, so the trigger now fires only when
+// exactly one attacker is declared and pumps that single attacker -- which is
+// the measured cause of the four-seat chain-head move 81a8a100641b5442's
+// successor (see commit 75be2a3's merge note); before FL-48, Remembered listed
+// several attackers and attacksMatches, ignoring Alone$, pumped every one.
+// Goblin Guide and Goblin Piledriver never fire in the 8-seat game, and
+// Ulamog is in the tron deck, which is never dealt at 2/4/6/8 seats: neither
+// is a cause.
 func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 	if ev.Kind == events.DeclareAttackers {
 		out := make([]state.Target, 0, len(ev.IDs)+1)
@@ -239,15 +242,18 @@ func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 	return []state.Target{{Obj: source}}
 }
 
-// triggerMatches decides whether one cards.Trigger fires for ev. zoneGate
-// (TriggerZones$) applies uniformly first; the rest is mode-specific.
-func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+// triggerMatches decides whether one cards.Trigger fires for ev. lki is the
+// event's LKI snapshot (the moving object as it was a moment ago), threaded
+// to a ChangesZone trigger so its ValidCard$ -- a "dies" condition such as
+// Undying's counters_EQ0_P1P1 -- can see the object as it was before Move
+// reset it, not the live object already in the destination zone.
+func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
 	if !e.zoneGate(t, source, ev) {
 		return false
 	}
 	switch t.Mode {
 	case "ChangesZone":
-		return e.zoneChangeMatches(t, source, ev)
+		return e.zoneChangeMatches(t, source, ev, lki)
 	case "SpellCast":
 		return e.spellCastMatches(t, source, ev)
 	case "Attacks":
@@ -313,8 +319,14 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 	return false
 }
 
-// zoneChangeMatches implements Mode$ ChangesZone.
-func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+// zoneChangeMatches implements Mode$ ChangesZone. The two keyword triggers
+// this task expands through it are both handled here (cards/keywords.go):
+// Undying's Origin$ Graveyard -> Destination$ Battlefield return is an
+// ordinary ChangeZone, and its ValidCard$ Card.Self+counters_EQ0_P1P1 "no
+// counters when it died" is read against the LKI; Evolve's Evolve$ True
+// gating (the entering creature's derived power OR toughness must exceed the
+// source's, CR 702.99a) is checked below once the rest of the spec matches.
+func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
 	if ev.Kind != events.MoveZone && ev.Kind != events.Draw && ev.Kind != events.PutOnStack {
 		return false
 	}
@@ -325,7 +337,32 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 		return false
 	}
 	if v, ok := t.Params["ValidCard"]; ok {
-		return effects.MatchesSpecFrom(e.G, v, ev.Obj, e.controllerOf(source), source)
+		// The trigger's own source moving (source == ev.Obj) with an LKI
+		// snapshot available is a dying card asserting a property about
+		// itself, e.g. Undying's counters_EQ0_P1P1: read it against the LKI
+		// (what it was the moment before the move reset it), not the live
+		// object already in the destination zone.
+		if source == ev.Obj && ev.Obj != 0 && lki != nil {
+			if !effects.MatchesObjectCtx(e.G, v, lki, effects.SpecContext{You: e.controllerOf(source), Source: source}) {
+				return false
+			}
+		} else if !effects.MatchesSpecFrom(e.G, v, ev.Obj, e.controllerOf(source), source) {
+			return false
+		}
+	}
+	// Evolve$ True (CR 702.99a): the trigger fires only when the entering
+	// creature's derived power OR toughness exceeds the source's, so an
+	// equal-or-smaller creature entering does not evolve the source. The
+	// ordinary ChangesZone path above (Destination$ Battlefield in the
+	// expansion) has already narrowed ev.To, so the extra battlefield guard
+	// is belt-and-braces.
+	if _, hasEvolve := t.Params["Evolve"]; hasEvolve {
+		if ev.To != state.ZBattlefield {
+			return false
+		}
+		if e.Power(ev.Obj) <= e.Power(source) && e.Toughness(ev.Obj) <= e.Toughness(source) {
+			return false
+		}
 	}
 	return true
 }
@@ -367,8 +404,18 @@ func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events
 // (IDs), so -- like every other mode here -- this fires at most once per
 // event rather than once per qualifying attacker: a documented M1
 // simplification, not a missed multi-attacker case.
+//
+// Alone$ True (Exalted's expansion, cards/keywords.go -- Ruling FL-48, which
+// was previously a known approximation here) gates the trigger to "exactly
+// one attacker declared this combat": Exalted must pump only a single lone
+// attacker, and with several declared it must not fire at all. Because this
+// fires once per event, the lone-attacker check is len(IDs)==1 and the rest
+// of the matching selects that one attacker against ValidCard.
 func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.DeclareAttackers {
+		return false
+	}
+	if v, ok := t.Params["Alone"]; ok && strings.EqualFold(v, "True") && len(ev.IDs) != 1 {
 		return false
 	}
 	spec, ok := t.Params["ValidCard"]
@@ -504,5 +551,10 @@ func init() {
 		"trig:ChangesZone", "trig:SpellCast", "trig:Attacks", "trig:DamageDone",
 		"trig:DamageDealtOnce", "trig:BecomesTarget", "trig:LandPlayed", "trig:Phase",
 		"repl:Moved",
+		// Task 16 keyword triggers, expanded by cards/keywords.go into ordinary
+		// ChangesZone / Attacks / SpellCast triggers routed through the modes
+		// above: Undying and Evolve are ChangesZone triggers, Exalted is
+		// (Alone$) Attacks, Prowess is SpellCast.
+		"kw:Undying", "kw:Evolve", "kw:Exalted", "kw:Prowess",
 	)
 }
