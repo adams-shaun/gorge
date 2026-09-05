@@ -856,3 +856,49 @@ func TestATokenOnTheStackIsNotPrematurelyExiled(t *testing.T) {
 		t.Fatalf("token on the stack zone = %s, want stack (unchanged)", got)
 	}
 }
+
+// TestExileDeadTokensDoesNotAmplifyWhenAReplacementBlocksTheMove is the
+// regression test for Task 13 fix round 1's tried.tokens addition (review
+// finding "minor 1"): Ward intercepts any move out of a graveyard and
+// substitutes a 1-life gain instead, permanently keeping a dead token in
+// the graveyard rather than letting it reach exile. Before tried.tokens,
+// exileDeadTokens had no memory of the attempt and rediscovered the same
+// token as a fresh candidate on every one of the 32 passes in the budget --
+// spending the whole thing, and firing Ward's own replacement 32 times, on
+// a single checkStateBased call. After, it is attempted exactly once per
+// call, the same bound checkLoseConditions' removal sweep and
+// destroyLethalDamage already hold for their own blocked attempts
+// (TestDestroyLethalDamageDoesNotAmplifyWhenAReplacementKeepsThePermanent
+// and TestRemovePermanentsDoesNotAmplifyWhenAReplacementKeepsThePermanent
+// above are the same shape for their own passes).
+func TestExileDeadTokensDoesNotAmplifyWhenAReplacementBlocksTheMove(t *testing.T) {
+	e := newSeats(t, 2)
+	onBoard(t, e, 0, `Name:Ward
+ManaCost:1 W
+Types:Artifact
+R:Event$ Moved | Origin$ Graveyard | ValidCard$ Card | ReplaceWith$ RepLife | Description$ x
+SVar:RepLife:DB$ GainLife | Defined$ You | LifeAmount$ 1
+Oracle:x
+`)
+	goblin := card(t, "Name:Goblin Token\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n")
+	o := e.G.AddObject(goblin, 0)
+	o.IsToken = true
+	events.Move(e.G, o.ID, state.ZLibrary, state.ZGraveyard)
+
+	beforeLife := e.G.Players[0].Life
+	beforeEvents := len(e.L.Events)
+
+	e.checkStateBased()
+
+	if got := e.G.Obj(o.ID).Zone; got != state.ZGraveyard {
+		t.Fatalf("token zone = %s, want graveyard (Ward's replacement keeps it there)", got)
+	}
+	if gained := e.G.Players[0].Life - beforeLife; gained != 1 {
+		t.Fatalf("life gained = %d, want exactly 1 (one exile attempt per checkStateBased call, "+
+			"not the full 32-pass budget spent 32 times over)", gained)
+	}
+	if added := len(e.L.Events) - beforeEvents; added != 1 {
+		t.Fatalf("log grew by %d events, want exactly 1 (the single blocked attempt's own "+
+			"replacement-substituted event), not a 32x-amplified count", added)
+	}
+}
