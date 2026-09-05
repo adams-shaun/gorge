@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/host
 
-budget_s: 60
+budget_s: 15
 
 | date (UTC) | commit | wall_s | tests | runner |
 |---|---|---|---|---|

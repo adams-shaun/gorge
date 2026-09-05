@@ -30,6 +30,11 @@ if [ "$code" -ne 0 ]; then
 	exit 1
 fi
 
+# Show the measurement itself. Capturing the tool's output to find the written
+# paths also swallowed the per-package timing line, which is the only feedback a
+# committer gets on how close a package is to its budget before it trips.
+printf '%s\n' "$out" | grep -v '^testtime: wrote ' || true
+
 # Stage every TEST_HISTORY.md the tool touched, using the paths the tool itself
 # printed (git status cannot see a brand-new package's file as a file).
 touched=$(printf '%s\n' "$out" | sed -n 's/^testtime: wrote //p')

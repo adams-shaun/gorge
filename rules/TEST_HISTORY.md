@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/rules
 
-budget_s: 26
+budget_s: 10
 
 | date (UTC) | commit | wall_s | tests | runner |
 |---|---|---|---|---|

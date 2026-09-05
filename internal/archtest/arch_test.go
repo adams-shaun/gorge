@@ -50,11 +50,17 @@ func set(s string) map[string]bool {
 // the SSE writer's ticker/keep-alive and gorged's shutdown timeout are the
 // only clocks in the system. Every other package must be a pure function
 // of its inputs.
+//
+// cmd/testtime is exempt because it is a build-time developer tool, not part
+// of the engine or the server: it stamps each TEST_HISTORY.md row with the
+// UTC time the measurement was taken. Nothing it produces reaches a game, an
+// event, a view or a replay, so D16's determinism argument does not apply.
 func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 	allowed := map[string]bool{
 		module + "/host":         true,
 		module + "/host/httpapi": true,
 		module + "/cmd/gorged":   true,
+		module + "/cmd/testtime": true,
 	}
 	for path, p := range packages(t) {
 		if p.imports["time"] && !allowed[path] {
