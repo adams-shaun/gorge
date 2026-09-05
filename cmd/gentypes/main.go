@@ -1,0 +1,69 @@
+// Command gentypes writes web/src/protocol.ts from package protocol's
+// structs. `make gentypes` regenerates; `make lint` runs it with -check and
+// fails when the committed file is stale, so the client's types can never
+// drift from the server's.
+package main
+
+import (
+	"bytes"
+	"flag"
+	"fmt"
+	"os"
+	"path/filepath"
+	"reflect"
+
+	"github.com/adams-shaun/gorge/internal/tsgen"
+	"github.com/adams-shaun/gorge/protocol"
+)
+
+const header = "// TypeScript twins of package protocol (github.com/adams-shaun/gorge/protocol).\n" +
+	"// Regenerate with `make gentypes`; `make lint` fails when this file is stale.\n"
+
+// Render is the whole generation, shared by main and the freshness test.
+func Render() (string, error) {
+	roots := []reflect.Type{
+		reflect.TypeOf(protocol.Frame{}), reflect.TypeOf(protocol.Hello{}), reflect.TypeOf(protocol.TableInfo{}),
+		reflect.TypeOf(protocol.Widget{}), reflect.TypeOf(protocol.SeatInfo{}), reflect.TypeOf(protocol.MatchStart{}),
+		reflect.TypeOf(protocol.Snapshot{}), reflect.TypeOf(protocol.Event{}), reflect.TypeOf(protocol.EventBody{}),
+		reflect.TypeOf(protocol.DecisionBody{}), reflect.TypeOf(protocol.MatchEnd{}), reflect.TypeOf(protocol.TableHaltedBody{}),
+		reflect.TypeOf(protocol.Overflow{}), reflect.TypeOf(protocol.ErrorBody{}), reflect.TypeOf(protocol.MatchInfo{}),
+		reflect.TypeOf(protocol.Subscribe{}), reflect.TypeOf(protocol.Unsubscribe{}),
+	}
+	unions := map[string][]string{
+		"FrameType":  {"hello", "widget", "match_start", "snapshot", "event", "decision", "match_end", "table_halted", "overflow", "error"},
+		"Mode":       {protocol.ModeOverview, protocol.ModeFocus},
+		"TableState": {protocol.TableIdle, protocol.TableLive, protocol.TableCooldown, protocol.TableHalted},
+		"MatchState": {protocol.MatchLive, protocol.MatchFinished, protocol.MatchAborted, protocol.MatchCrashed},
+		"Visibility": {"seat", "public", "omniscient"},
+		"StackKind":  {"spell", "ability", "trigger"},
+		"Phase":      {"beginning", "main1", "combat", "main2", "ending", ""},
+	}
+	return tsgen.Generate(tsgen.Options{Roots: roots, Unions: unions, Header: header})
+}
+
+func main() {
+	out := flag.String("o", "web/src/protocol.ts", "output path")
+	check := flag.Bool("check", false, "exit 1 if the output file is stale instead of writing it")
+	flag.Parse()
+	src, err := Render()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "gentypes:", err)
+		os.Exit(1)
+	}
+	if *check {
+		cur, err := os.ReadFile(*out)
+		if err != nil || !bytes.Equal(cur, []byte(src)) {
+			fmt.Fprintf(os.Stderr, "gentypes: %s is stale; run make gentypes\n", *out)
+			os.Exit(1)
+		}
+		return
+	}
+	if err := os.MkdirAll(filepath.Dir(*out), 0o755); err != nil {
+		fmt.Fprintln(os.Stderr, "gentypes:", err)
+		os.Exit(1)
+	}
+	if err := os.WriteFile(*out, []byte(src), 0o644); err != nil {
+		fmt.Fprintln(os.Stderr, "gentypes:", err)
+		os.Exit(1)
+	}
+}
