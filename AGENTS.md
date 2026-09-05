@@ -53,18 +53,24 @@ keywords (kw:Equip, kw:Flash, kw:Kicker, kw:Delve, kw:Undying, kw:etbCounter,
 kw:Storm, ...), which is M4's worklist; every such card is still shuffled
 into its deck and simply inert (Ruling U13).
 
-**Known concern**: `rules/trigger.go`'s `applyReplacements` does not honour
-Forge's `ReplacementResult$` parameter -- every matching replacement
-discards the original event (correct only for `ReplacementResult$
-Replaced`), so a permanent whose `R:Event$ Moved` replacement uses
-`ReplacementResult$ Updated` (the "enters the battlefield modified" idiom,
-e.g. Geralf's Messenger's and Hallowed Fountain's "enters tapped") never
-actually moves off the stack: the same top-of-stack object resolves forever
-and the game does not terminate. Confirmed via `mono-black-aggro` (Geralf's
-Messenger) and `uw-control` (Hallowed Fountain, Celestial Colonnade); see
+**Resolved concern** (Task 26 found it, Task 29 -- `831d8a0` -- fixed it):
+`rules/trigger.go`'s `applyReplacements` did not honour Forge's
+`ReplacementResult$` parameter -- every matching replacement discarded the
+original event (correct only for `ReplacementResult$ Replaced`), so a
+permanent whose `R:Event$ Moved` replacement used `ReplacementResult$
+Updated` (the "enters the battlefield modified" idiom, e.g. Geralf's
+Messenger's and Hallowed Fountain's "enters tapped") never actually moved
+off the stack: the same top-of-stack object kept re-resolving and the game
+never reached completion on its own. It did not hang the process, though --
+Task 26's 400000-intent budget caught it cleanly every time, exhausting the
+budget in roughly ten seconds and reporting a failure with exit 1 rather
+than blocking forever, exactly as the budget guard is meant to. Confirmed
+via `mono-black-aggro` (Geralf's Messenger) and `uw-control` (Hallowed
+Fountain, Celestial Colonnade); see
 `docs/superpowers/plans/2026-09-03-mtgcore-m0-m1/task-26-report.md` for the
-full repro. Not fixed here per this task's mandate (test files only,
-`rules/*.go` untouched, `rules/sba.go` never touched).
+full repro. `TestRepoDecksPlayAtEverySeatCount` and
+`TestRepoDeckGamesReplayExactly` now pass unmodified at 2/4/6/8 seats and
+all five seeds, and `make sim` goes 20/20, on top of Task 29's fix.
 
 Acceptance commands:
 

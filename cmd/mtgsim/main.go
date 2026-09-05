@@ -10,6 +10,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -49,7 +50,12 @@ func main() {
 // asks for. Everything runs on the caller's own goroutine, one match at a
 // time: no goroutines, so two runs with the same arguments print the same
 // lines in the same order every time.
-func run(decksFlag string, seats int, baseSeed uint64, games int, verify, verbose bool, dir string, out *os.File) error {
+//
+// out is io.Writer, not *os.File (fix round 1, Minor #3): main passes
+// os.Stdout, but main_test.go passes a *bytes.Buffer so this body is
+// actually exercised by a test, which the old *os.File signature made
+// impossible without writing to a real file.
+func run(decksFlag string, seats int, baseSeed uint64, games int, verify, verbose bool, dir string, out io.Writer) error {
 	if seats < 1 {
 		return fmt.Errorf("-seats must be at least 1, got %d", seats)
 	}
@@ -122,7 +128,7 @@ func deckNames(flagVal string, seats int) ([]string, error) {
 // its one-line summary, then -- if verify is set -- a second line reporting
 // the replay outcome. It returns false for anything Ruling §5 counts as
 // failure: non-termination, a replay error or a chain divergence.
-func playOne(out *os.File, seed uint64, names []string, decks [][]*cards.Card, verify bool) bool {
+func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, verify bool) bool {
 	cfg := rules.Config{Seed: seed, Names: append([]string(nil), names...), Decks: decks}
 	e := rules.New(cfg)
 	b := seat.NewBot(seed)
@@ -164,8 +170,23 @@ func playOne(out *os.File, seed uint64, names []string, decks [][]*cards.Card, v
 		return true
 	}
 	re, err := replay.Replay(e.L, cfg)
+	head := ""
+	if re != nil {
+		head = re.L.Head()
+	}
+	return printReplayOutcome(out, err, head)
+}
+
+// printReplayOutcome prints the -verify line for one game -- "replay OK"
+// with its chain head, or the divergence in the shape supplement §5 asks
+// for: Seq, both Kinds, and Missing honoured (no zero events.Event printed
+// when the recorded log simply ended first). Factored out of playOne (fix
+// round 1, Minor #3) so it can be driven directly from a hand-built
+// *replay.Divergence in a test, without needing to corrupt a real event log
+// to force one out of replay.Replay.
+func printReplayOutcome(out io.Writer, err error, chainHead string) bool {
 	if err == nil {
-		fmt.Fprintf(out, "  replay OK (chain %s)\n", re.L.Head())
+		fmt.Fprintf(out, "  replay OK (chain %s)\n", chainHead)
 		return true
 	}
 	var div *replay.Divergence
