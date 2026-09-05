@@ -66,4 +66,20 @@ describe('images', () => {
     const { env } = fakeEnv({ A: { image_uris: { normal: 'a' } } });
     expect(await createImages({ ...env, storage: null }).url('A')).toBe('a');
   });
+  it('re-checks offline before dispatching an already-queued lookup', async () => {
+    const { env, calls, tick } = fakeEnv({
+      A: new Error('net down'),
+      B: { image_uris: { normal: 'b' } },
+      C: { image_uris: { normal: 'c' } },
+    });
+    const im = createImages(env);
+    const all = Promise.all([im.url('A'), im.url('B'), im.url('C')]);
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    expect(calls.length).toBe(1);
+    expect(im.offline()).toBe(true);
+    tick(100); await Promise.resolve(); await Promise.resolve();
+    tick(100); await Promise.resolve(); await Promise.resolve();
+    expect(calls.length).toBe(1);
+    expect(await all).toEqual([null, null, null]);
+  });
 });

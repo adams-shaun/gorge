@@ -62,6 +62,10 @@ export function createImages(src: Partial<ImageSource> = {}) {
     const idle = queue.length === 0 && pending.size === 0;
     const p = new Promise<string | null>((resolve) => {
       const run = () => {
+        // A queued lookup can sit for a while before its turn; re-check here
+        // too, so a source that went offline after this was queued doesn't
+        // still fire the request once its slot comes up.
+        if (offline()) { resolve(null); return; }
         lookup(name).then((u) => { memo.set(name, u); toStorage(name, u); resolve(u); })
           .catch(() => { offlineUntil = env.now() + OFFLINE_FOR; resolve(null); });
       };
