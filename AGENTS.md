@@ -12,7 +12,8 @@ primitives that IR references. See
 ## Hard rules
 
 - **Never commit Forge card scripts.** They are GPL-3.0; gorge is Apache-2.0.
-  `forgec fetch` pulls them into `.cards/`, which is gitignored.
+  `forgec fetch` pulls the card corpus and token scripts into `.cards/`,
+  pinned to a commit SHA (`FORGE_REF` in the Makefile), which is gitignored.
   `cards/boundary_test.go` fails the build if any are tracked.
 - **No cgo, no third-party deps** in the card pipeline and rules core.
   `wazero` arrives with the plugin tier in M3.
@@ -25,7 +26,7 @@ primitives that IR references. See
 ## Build / run / test
 
 ```sh
-make fetch-cards          # one-time; ~25 MB from Card-Forge/forge
+make fetch-cards          # one-time; ~25 MB, pinned commit from Card-Forge/forge
 make compile-cards        # parse into the IR cache
 make report               # card coverage against implemented primitives
 make sim                  # build mtgsim and play 20 verified 4-seat games

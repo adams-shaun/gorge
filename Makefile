@@ -5,7 +5,9 @@ GO_SRC     := $(shell find . -type f -name '*.go' 2>/dev/null) go.mod
 # Where forgec puts the fetched corpus and the IR compiled from it. Never
 # committed — the scripts are GPL-3.0.
 CARDS_DIR  ?= .cards
-FORGE_REF  ?= master
+# Pinned to the lock's commit for M2r; a corpus bump is a deliberate,
+# ledgered change, not a side effect of Forge's master moving.
+FORGE_REF  ?= 95f04e8a04c8925fa97cb226fc3341cabcc90a53
 
 .PHONY: help
 help:

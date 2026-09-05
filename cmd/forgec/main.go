@@ -72,7 +72,8 @@ func compile(dir string) error {
 	if err := r.Save(cachePath(dir)); err != nil {
 		return err
 	}
-	fmt.Printf("compiled %d cards, %d diagnostics -> %s\n", len(r.Cards), len(diags), cachePath(dir))
+	fmt.Printf("compiled %d cards, %d tokens, %d diagnostics -> %s\n",
+		len(r.Cards), len(r.Tokens), len(diags), cachePath(dir))
 	return nil
 }
 
@@ -90,6 +91,7 @@ func report(dir string, top int) error {
 	cv := r.Coverage(effects.Supported())
 	fmt.Printf("cards: %d  playable: %d (%.1f%%)\n",
 		cv.Cards, cv.Supported, 100*float64(cv.Supported)/float64(cv.Cards))
+	fmt.Printf("tokens: %d\n", len(r.Tokens))
 	fmt.Println("\ntop missing primitives (cards unlocked):")
 	for i, m := range cv.TopMissing(top) {
 		fmt.Printf("%3d. %-32s %6d\n", i+1, m.Name, m.Cards)

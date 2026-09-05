@@ -17,10 +17,17 @@ import (
 type Registry struct {
 	Cards  []*Card
 	byName map[string]*Card
+
+	// Tokens holds compiled token scripts (forge-gui/res/tokenscripts),
+	// keyed by file stem — e.g. "r_1_1_goblin" — the name a card's
+	// TokenScript$ parameter references. Tokens are never Add-ed to Cards
+	// or byName: a token is not a card a deck can contain, and Lookup must
+	// not resolve a token's printed name to one.
+	Tokens map[string]*Card
 }
 
 func NewRegistry() *Registry {
-	return &Registry{byName: map[string]*Card{}}
+	return &Registry{byName: map[string]*Card{}, Tokens: map[string]*Card{}}
 }
 
 // NormalizeName folds case, collapses whitespace and drops punctuation so
@@ -69,14 +76,18 @@ func (r *Registry) Lookup(name string) (*Card, bool) {
 	return c, ok
 }
 
-// cacheFile is the on-disk shape. Only Cards is encoded; the index is rebuilt
-// on load so the two can never disagree.
+// cacheFile is the on-disk shape. Only Cards and Tokens are encoded; the
+// byName index is rebuilt on load so it can never disagree with Cards.
 type cacheFile struct {
 	Version int
 	Cards   []*Card
+	Tokens  map[string]*Card
 }
 
-const cacheVersion = 1
+// cacheVersion 2 adds Tokens: a v1 cache predates Registry.Tokens entirely,
+// so LoadRegistry refuses it outright (see the version check below) rather
+// than silently serving a registry with no tokens compiled in.
+const cacheVersion = 2
 
 func (r *Registry) Save(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -92,7 +103,7 @@ func (r *Registry) Save(path string) error {
 		f.Close()
 		return err
 	}
-	if err := gob.NewEncoder(zw).Encode(cacheFile{Version: cacheVersion, Cards: r.Cards}); err != nil {
+	if err := gob.NewEncoder(zw).Encode(cacheFile{Version: cacheVersion, Cards: r.Cards, Tokens: r.Tokens}); err != nil {
 		zw.Close()
 		f.Close()
 		return err
@@ -135,6 +146,9 @@ func LoadRegistry(path string) (*Registry, error) {
 	r := NewRegistry()
 	for _, c := range cf.Cards {
 		r.Add(c)
+	}
+	if cf.Tokens != nil {
+		r.Tokens = cf.Tokens
 	}
 	return r, nil
 }
@@ -185,5 +199,61 @@ func CompileDir(dir string) (*Registry, []Diag, error) {
 		}
 		r.Add(c)
 	}
+
+	if err := compileTokens(r, dir, &diags); err != nil {
+		return nil, nil, err
+	}
+
 	return r, diags, nil
+}
+
+// compileTokens walks dir's tokenscripts sibling — Fetch's TokensDir — and
+// compiles every script into r.Tokens, keyed by file stem ("r_1_1_goblin").
+// Tokens share the card scripts' parse/link/intrinsics pipeline but are
+// never Add-ed to Cards or byName: a token is not a card a deck can
+// contain, and a card's Lookup-by-name must not resolve to one. A missing
+// tokenscripts directory is not an error — plenty of fixtures (and every
+// pre-M2r cache) have no tokens at all.
+func compileTokens(r *Registry, cardsDir string, diags *[]Diag) error {
+	tokensDir := TokensDir(filepath.Dir(cardsDir))
+	info, err := os.Stat(tokensDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	if !info.IsDir() {
+		return nil
+	}
+
+	var paths []string
+	err = filepath.WalkDir(tokensDir, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() && strings.HasSuffix(p, ".txt") {
+			paths = append(paths, p)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	sort.Strings(paths)
+
+	for _, p := range paths {
+		c, d := Parse(p)
+		*diags = append(*diags, d...)
+		if c == nil {
+			continue
+		}
+		*diags = append(*diags, c.Link()...)
+		for _, f := range c.Faces {
+			f.ApplyIntrinsics()
+		}
+		stem := strings.TrimSuffix(filepath.Base(p), ".txt")
+		r.Tokens[stem] = c
+	}
+	return nil
 }
