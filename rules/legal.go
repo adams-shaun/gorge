@@ -238,7 +238,18 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
 		o := e.G.Obj(opt.Obj)
 		e.emit(events.Event{Kind: events.Tap, Obj: opt.Obj})
+		// Fix r1 (reviewer Important 2): gate and activation must agree on
+		// WHICH mana ability is activated. legalActions offers the tap-for-
+		// mana option iff at least one of the permanent's mana abilities is
+		// unrestricted; resolving every one here would also resolve a
+		// restricted member (e.g. CantBeActivated scoping down to a single
+		// mana ability), activating an ability whose restriction was never
+		// checked. Skip each mana ability abilityRestricted flags so the
+		// exact set resolved is the exact set the offer gate found legal.
 		for _, ma := range o.Face().ManaAbilities() {
+			if e.abilityRestricted(in.Player, opt.Obj, ma) {
+				continue
+			}
 			e.resolveAbility(opt.Obj, in.Player, nil, ma, o.Face().SVars)
 		}
 

@@ -145,7 +145,9 @@ func (e *Engine) abilityRestricted(p state.PlayerID, id state.ObjID, ab *cards.S
 // describes a cast, never an activation, so it does not match an ability.
 // Within the Activated kind: no constraint matches everything; "!ManaAbility"
 // matches everything but a mana ability (ab.API == "Mana"); "ManaAbility"
-// matches only a mana ability; and a constraint this build cannot evaluate --
+// matches only a mana ability, and "ManaAbility<Produce:C>" the subset that
+// produces colour C (test-only grammar, fix round 1 -- see the case below);
+// and a constraint this build cannot evaluate --
 // Loyalty, Equip, Crew+Vehicle, hasTapCost, ... -- DENIES, per the "a
 // restriction that cannot be evaluated must deny, not silently allow" rule:
 // erring toward applying a CantBeActivated is the safe direction, because the
@@ -172,16 +174,44 @@ func activatedMatchesValidSA(ab *cards.SA, validSA string) bool {
 		if constraint == "" {
 			return true
 		}
-		switch constraint {
-		case "!ManaAbility":
+		switch {
+		case constraint == "!ManaAbility":
 			if ab.API != "Mana" {
 				return true
 			}
 			// else: mana abilities are expressly spared; try the next alt
-		case "ManaAbility":
-			if ab.API == "Mana" {
-				return true
+		case constraint == "ManaAbility" || strings.HasPrefix(constraint, "ManaAbility<"):
+			if ab.API != "Mana" {
+				break // not a mana ability; try the next alt
 			}
+			// Bare ManaAbility matches every mana ability. A
+			// ManaAbility<Produce:C> scopes to a mana ability that produces
+			// colour C (fix round 1, reviewer Important 2): a permanent with
+			// several mana abilities can then have one singled out by a
+			// CantBeActivated while the others stay activatable -- the shape
+			// that exposed the gate/activation disagreement Test
+			// TestActivateSkipsRestrictedManaAbility exercises. The corpus has
+			// no such value (grep shows CantBeActivated ValidSA$ is empty,
+			// "Activated", or "Activated.!ManaAbility"), so this extension is
+			// test-only grammar, but it makes the per-ability agreement
+			// reachable instead of hypothetical.
+			if constraint != "ManaAbility" && strings.HasSuffix(constraint, ">") {
+				inner := constraint[len("ManaAbility<") : len(constraint)-1]
+				color := inner
+				if j := strings.IndexByte(inner, ':'); j >= 0 {
+					color = inner[j+1:]
+				}
+				produced := strings.TrimSpace(ab.Params["Produced"])
+				if produced == "" {
+					produced = "C"
+				}
+				target := strings.TrimSpace(color)
+				if target != "" && (produced == target || (len(target) == 1 && strings.Contains(produced, target))) {
+					return true
+				}
+				break // this mana ability produces a different colour; next alt
+			}
+			return true // bare ManaAbility
 		default:
 			// Unevaluable constraint under the Activated kind: deny (see doc).
 			return true
