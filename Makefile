@@ -67,6 +67,13 @@ gentypes:
 test:
 	go test ./...
 
+# test-time measures every package's test wall time and records it, plus its
+# budget, in each package's TEST_HISTORY.md (Task TT). The pre-commit hook
+# enforces the budget on changed packages.
+.PHONY: test-time
+test-time:
+	go run ./cmd/testtime -all
+
 COVER_OUT  ?= coverage.out
 COVER_HTML ?= coverage.html
 .PHONY: cover cover-html

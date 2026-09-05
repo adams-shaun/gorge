@@ -1,0 +1,43 @@
+#!/bin/sh
+# Enforce per-package test-time budgets (Task TT). Runs `go run ./cmd/testtime
+# -changed` when the index contains a staged .go file, then stages every
+# TEST_HISTORY.md the tool touched. SKIP_TESTTIME=1 bypasses entirely.
+if [ -n "$SKIP_TESTTIME" ]; then
+	exit 0
+fi
+
+# Skip when no staged .go file.
+if ! git diff --cached --name-only | grep -q '\.go$'; then
+	exit 0
+fi
+
+# The hooks directory is shared by every worktree; some predate cmd/testtime.
+# If the tool is not present in this working tree, there is nothing to enforce.
+if [ ! -f cmd/testtime/main.go ]; then
+	exit 0
+fi
+
+echo "pre-commit: measuring test time for changed packages"
+out=$(go run ./cmd/testtime -changed 2>&1)
+code=$?
+if [ "$code" -ne 0 ]; then
+	if [ "$code" -eq 3 ]; then
+		echo "pre-commit: test-time measurement failed (infrastructure error, not a budget problem); see the testtime output above" >&2
+	else
+		echo "pre-commit: test-time budget exceeded; raise budget_s in the package's TEST_HISTORY.md with a Test-Budget-Approved: trailer" >&2
+	fi
+	printf '%s\n' "$out" >&2
+	exit 1
+fi
+
+# Stage every TEST_HISTORY.md the tool touched, using the paths the tool itself
+# printed (git status cannot see a brand-new package's file as a file).
+touched=$(printf '%s\n' "$out" | sed -n 's/^testtime: wrote //p')
+if [ -n "$touched" ]; then
+	echo "pre-commit: staging TEST_HISTORY.md:"
+	printf '%s\n' "$touched" | sed 's/^/  /'
+	printf '%s\n' "$touched" | while IFS= read -r f; do
+		git add -- "$f"
+	done
+fi
+exit 0
