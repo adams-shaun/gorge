@@ -65,6 +65,20 @@ func TestVisibilityStringsRoundTrip(t *testing.T) {
 	}
 }
 
+func TestVisibilityJSONIsItsName(t *testing.T) {
+	b, _ := json.Marshal(struct{ V view.Visibility }{view.Omniscient})
+	if string(b) != `{"V":"omniscient"}` {
+		t.Fatalf("%s", b)
+	}
+	var back struct{ V view.Visibility }
+	if err := json.Unmarshal([]byte(`{"V":"public"}`), &back); err != nil || back.V != view.Public {
+		t.Fatalf("%v %v", back, err)
+	}
+	if err := json.Unmarshal([]byte(`{"V":"x"}`), &back); err == nil {
+		t.Fatal("unknown name accepted")
+	}
+}
+
 func TestProjectForPublicShowsNoHandNoPoolNoDecision(t *testing.T) {
 	e := playSome(t, 5, 60)
 	v := view.ProjectFor(e.G, e, view.NoSeat, view.Public, e.Pending())

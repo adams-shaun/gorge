@@ -78,8 +78,16 @@ type table struct {
 	k       int    // index of the current or most recent match; 0 before any
 	cur     *match // the live match, or nil
 	history []*match
-	stop    chan struct{} // closed by Registry.Close
-	done    chan struct{} // closed when the run loop exits
+	// archived holds finished matches known only from disk, ascending by
+	// match index (Task 12). They are served from their files, never kept
+	// in memory.
+	archived []sidecar
+	// loaded caches the last archived match rebuilt from disk, so a DVR
+	// session stepping through a finished match does not replay it per
+	// request (Task 12).
+	loaded *match
+	stop   chan struct{} // closed by Registry.Close
+	done   chan struct{} // closed when the run loop exits
 
 	// fanMu serialises a focus Subscribe's snapshot build+push (session.go)
 	// against the match loop's own fan-out push loops (fanout/onMatchStart/
