@@ -12,6 +12,7 @@
   import MatchList from '../components/MatchList.svelte';
   import { quadrantFor } from '../lib/board';
   import { seatColour } from '../lib/colours';
+  import { href, navigate } from '../lib/router';
 
   // match (from the /t/:table/m/:match route) names a specific, already-played
   // match. Task 21's finished mode replays it end to end via loadFinished:
@@ -77,6 +78,11 @@
         <DvrBar dvr={m.dvr} onAction={(a) => m.dispatch(a)} {finished} />
         <div class="log"><Transcript dvr={m.dvr} onSeek={(seq) => m.dispatch({ type: 'scrub', seq })} /></div>
       </footer>
+    {:else if finished && m.loadError}
+      <div class="load-error">
+        <p>Match {match} isn't available on {table} ({m.loadError}).</p>
+        <a href={href({ kind: 'table', table })} onclick={(e) => { e.preventDefault(); navigate({ kind: 'table', table }); }}>Back to {table}</a>
+      </div>
     {:else if finished}
       <p class="waiting">Loading match {match}…</p>
     {:else}
@@ -101,4 +107,6 @@
   .halted { position: absolute; inset: 0 auto auto 0; background: #b00; color: white; padding: .5rem 1rem; z-index: 10; }
   .idle-inline { grid-column: 1 / -1; grid-row: 1 / -1; overflow-y: auto; }
   .waiting { padding: 2rem; opacity: .6; }
+  .load-error { padding: 2rem; }
+  .load-error a { color: #6cf; }
 </style>

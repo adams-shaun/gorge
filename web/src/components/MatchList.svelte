@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import type { MatchInfo } from '../protocol';
   import { fetchMatches } from '../lib/api';
-  import { navigate } from '../lib/router';
+  import { href, navigate } from '../lib/router';
 
   /** MatchList is a table's match history — every finished (or in-progress) match, in host order, linking to its replay. */
   let { table }: { table: string } = $props();
@@ -40,7 +40,7 @@
         {#each matches as m (m.match)}
           <tr>
             <td>
-              <a href={`/t/${encodeURIComponent(table)}/m/${m.match}`} onclick={(e) => open(e, m.match)}>{m.match}</a>
+              <a href={href({ kind: 'match', table, match: m.match })} onclick={(e) => open(e, m.match)}>{m.match}</a>
             </td>
             <td>{m.state}</td>
             <td>{winnerLabel(m)}</td>
