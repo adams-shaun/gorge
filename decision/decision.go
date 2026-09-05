@@ -39,6 +39,14 @@ const (
 	// order. There is no default: an unanswered optional trigger never
 	// reaches the stack, and neither does a declined one.
 	KTriggerOptional Kind = "trigger_optional"
+	// KChoose is one list-pick: choose between Min and Max of the offered
+	// options. Every option in one decision shares a Kind that says what is
+	// being chosen — "x" (a value for {X}; options ascend), "exile" (cards
+	// to exile for Delve), "sacrifice" (a permanent to sacrifice as a cost),
+	// "name"/"type"/"number" (an "as this enters" choice), "yes"/"no" (a
+	// may-cast such as Miracle). The wire shape is the same as every other
+	// decision; only the vocabulary of Option.Kind is new.
+	KChoose Kind = "choose"
 )
 
 // Option is one legal choice. Obj and Player are echoed only so a client can

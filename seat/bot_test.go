@@ -268,6 +268,38 @@ func TestBotPassesOutsideMainWithNoCastOrLandDrop(t *testing.T) {
 	}
 }
 
+func TestBotChoosePolicy(t *testing.T) {
+	b := NewBot(1)
+	choose := func(kind string, n, min, max int) decision.Intent {
+		d := decision.Decision{Player: 0, Kind: decision.KChoose, Min: min, Max: max}
+		for i := 0; i < n; i++ {
+			d.Options = append(d.Options, decision.Option{Index: i, Kind: kind, Label: kind})
+		}
+		if kind == "yes" {
+			d.Options = []decision.Option{{Index: 0, Kind: "yes"}, {Index: 1, Kind: "no"}}
+		}
+		in, _ := b.Decide(context.Background(), view.View{}, d)
+		return in
+	}
+	if got := choose("x", 4, 1, 1).Choices; len(got) != 1 || got[0] != 3 {
+		t.Fatalf("x: %v, want the highest", got)
+	}
+	if got := choose("exile", 5, 0, 3).Choices; len(got) != 3 || got[0] != 0 || got[2] != 2 {
+		t.Fatalf("exile: %v, want the first three", got)
+	}
+	if got := choose("sacrifice", 2, 1, 1).Choices; len(got) != 1 || got[0] != 0 {
+		t.Fatalf("sacrifice: %v", got)
+	}
+	if got := choose("yes", 2, 1, 1).Choices; len(got) != 1 || got[0] != 0 {
+		t.Fatalf("yes/no: %v, want yes", got)
+	}
+	for _, k := range []string{"name", "type", "number"} {
+		if got := choose(k, 3, 1, 1).Choices; len(got) != 1 || got[0] != 0 {
+			t.Fatalf("%s: %v, want the first", k, got)
+		}
+	}
+}
+
 // TestBotAlwaysAnswersEveryDecisionKind checks the brief's four headline
 // kinds behave like the aggro policy the doc comment promises, not merely
 // that they validate: priority prefers tapping mana over a land drop or a

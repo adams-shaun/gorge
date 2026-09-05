@@ -135,6 +135,22 @@ func (b *testBot) answer(isMain bool, d *decision.Decision) decision.Intent {
 			in.Choices = []int{d.Options[idx].Index}
 			return clamp(d, in)
 		}
+
+	case decision.KChoose:
+		if len(d.Options) == 0 {
+			break
+		}
+		switch d.Options[0].Kind {
+		case "x":
+			in.Choices = []int{d.Options[len(d.Options)-1].Index} // the most it can pay for
+		case "exile", "sacrifice":
+			for i := 0; i < len(d.Options) && i < d.Max; i++ {
+				in.Choices = append(in.Choices, d.Options[i].Index)
+			}
+		default: // yes/no (yes is first), name, type, number: the first offer
+			in.Choices = []int{d.Options[0].Index}
+		}
+		return clamp(d, in)
 	}
 
 	// Last resort: pass if Min == 0 and one is offered; clamp below handles
@@ -203,6 +219,39 @@ func clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 		}
 	}
 	return in
+}
+
+// TestTestBotChoosePolicy mirrors seat/bot_test.go's TestBotChoosePolicy
+// against this package's own copy of the policy (Ruling F7).
+func TestTestBotChoosePolicy(t *testing.T) {
+	b := newTestBot(1)
+	choose := func(kind string, n, min, max int) decision.Intent {
+		d := decision.Decision{Player: 0, Kind: decision.KChoose, Min: min, Max: max}
+		for i := 0; i < n; i++ {
+			d.Options = append(d.Options, decision.Option{Index: i, Kind: kind, Label: kind})
+		}
+		if kind == "yes" {
+			d.Options = []decision.Option{{Index: 0, Kind: "yes"}, {Index: 1, Kind: "no"}}
+		}
+		return b.answer(false, &d)
+	}
+	if got := choose("x", 4, 1, 1).Choices; len(got) != 1 || got[0] != 3 {
+		t.Fatalf("x: %v, want the highest", got)
+	}
+	if got := choose("exile", 5, 0, 3).Choices; len(got) != 3 || got[0] != 0 || got[2] != 2 {
+		t.Fatalf("exile: %v, want the first three", got)
+	}
+	if got := choose("sacrifice", 2, 1, 1).Choices; len(got) != 1 || got[0] != 0 {
+		t.Fatalf("sacrifice: %v", got)
+	}
+	if got := choose("yes", 2, 1, 1).Choices; len(got) != 1 || got[0] != 0 {
+		t.Fatalf("yes/no: %v, want yes", got)
+	}
+	for _, k := range []string{"name", "type", "number"} {
+		if got := choose(k, 3, 1, 1).Choices; len(got) != 1 || got[0] != 0 {
+			t.Fatalf("%s: %v, want the first", k, got)
+		}
+	}
 }
 
 // TestTestBotPassesOutsideMainWithNoCastOrLandDrop mirrors

@@ -170,3 +170,16 @@ func TestChosenHappyPath(t *testing.T) {
 		t.Fatalf("Expected empty result, got %d options", len(got))
 	}
 }
+
+func TestChooseValidatesLikeAnyDecision(t *testing.T) {
+	d := &Decision{Seq: 1, Player: 0, Kind: KChoose, Min: 0, Max: 2, Options: []Option{{Index: 0, Kind: "exile"}, {Index: 1, Kind: "exile"}, {Index: 2, Kind: "exile"}}}
+	if err := d.Validate(Intent{Seq: 1, Player: 0, Choices: []int{}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Validate(Intent{Seq: 1, Player: 0, Choices: []int{0, 1, 2}}); err == nil {
+		t.Fatal("three of max two accepted")
+	}
+	if KChoose != "choose" {
+		t.Fatal("wire name")
+	}
+}
