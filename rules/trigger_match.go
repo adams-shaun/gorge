@@ -215,7 +215,7 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 // Knight of Infamy's intrinsic Exalted keyword trigger (cards/keywords.go
 // expands it to Mode$ Attacks | ValidCard$ Creature.YouCtrl | Alone$ True),
 // which fires twice in the 4-seat game (mono-black-aggro is dealt in at
-// seat 0 there). Exalted's DB$ Pump | Defined$ TriggeredAttacker resolves
+// seat 3 there). Exalted's DB$ Pump | Defined$ TriggeredAttacker resolves
 // through effects/context.go's objectsOf(c.Remembered): Remembered used to
 // be [{Obj: source}] (the exalted permanent itself) and is now every
 // declared attacker, so -- because attacksMatches ignores Alone$ (a known
