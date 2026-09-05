@@ -220,6 +220,9 @@ func (e *Engine) checkStateBased() {
 		if e.destroyLethalDamage(tried) {
 			changed = true
 		}
+		if e.exileDeadTokens() {
+			changed = true
+		}
 		if !changed {
 			stable = true
 			break
@@ -406,6 +409,56 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 		tried.objs[c.id] = true
 		e.emit(events.Event{Kind: events.MoveZone, Obj: c.id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: c.text})
+	}
+	return len(dead) > 0
+}
+
+// tokenCasualty is a token exileDeadTokens found to have left the
+// battlefield, together with the zone it left FROM -- captured before the
+// move, mirroring casualty above and the same real-zone-over-claimed-zone
+// discipline events.Move applies to the removal itself.
+type tokenCasualty struct {
+	id   state.ObjID
+	from state.Zone
+}
+
+// exileDeadTokens is CR 111.7: a token ceases to exist the instant it
+// leaves the battlefield. This build already parks every Ephemeral object
+// in exile rather than deleting it outright (state.Object.Ephemeral's own
+// doc), so the state-based action is a plain zone check -- any token whose
+// CURRENT zone is neither the battlefield nor the stack nor already exile
+// is moved to exile, Text "ceased to exist". The stack is excluded for the
+// same reason Ephemeral's own IsCopy half exists: a token copy of a spell
+// or ability legitimately sits there without being a permanent yet (Task
+// 13 does not implement CopySpellAbility, so no card can produce this
+// today, but the exclusion costs nothing and matches the brief exactly).
+//
+// Unlike checkLoseConditions and destroyLethalDamage above, this needs no
+// "tried" memory of its own to stay a one-shot-per-object action: moving a
+// token to exile changes ITS OWN zone to the very value this function's
+// own condition excludes, so the object simply stops matching on the next
+// pass or the next checkStateBased call -- the zone update IS the marker.
+// (A replacement that permanently blocked this exact move -- some
+// "cards can't leave your graveyard" effect intercepting the move FROM
+// graveyard, say -- would instead re-attempt the same token every pass for
+// the rest of this call, same as any other blocked state-based action
+// spends the full maxSBAPasses budget; nothing in the corpus this build
+// targets does that to a token today, and adding an attempted-set purely
+// to pre-empt it would be scope this task's brief does not ask for.)
+//
+// Walks e.G.Objs by index -- the dense arena, never a map -- so multiple
+// tokens dying at once are exiled in a fixed, reproducible order.
+func (e *Engine) exileDeadTokens() bool {
+	var dead []tokenCasualty
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.IsToken && o.Zone != state.ZBattlefield && o.Zone != state.ZStack && o.Zone != state.ZExile {
+			dead = append(dead, tokenCasualty{o.ID, o.Zone})
+		}
+	}
+	for _, c := range dead {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: c.id,
+			From: c.from, To: state.ZExile, Text: "ceased to exist"})
 	}
 	return len(dead) > 0
 }
