@@ -167,9 +167,14 @@ func TestRegistryRejectsTruncatedCache(t *testing.T) {
 	}
 }
 
-// writeCardFile drops one Forge-shaped script into dir for CompileDir to pick up.
+// writeCardFile drops one Forge-shaped script into dir for CompileDir to pick
+// up, creating dir (and any missing parents, e.g. a fixture's cardsfolder or
+// tokenscripts sibling) first.
 func writeCardFile(t *testing.T, dir, name, src string) {
 	t.Helper()
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("mkdir %s: %v", dir, err)
+	}
 	if err := os.WriteFile(filepath.Join(dir, name), []byte(src), 0o644); err != nil {
 		t.Fatalf("write %s: %v", name, err)
 	}
