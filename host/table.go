@@ -58,17 +58,25 @@ func (c TableConfig) validate(load func(string) (Deck, error)) error {
 	return nil
 }
 
-// table is one registry entry and the goroutine that plays it. mu guards
-// every field below cfg; the run loop and every reader take it.
+// table is one registry entry and the goroutine that plays it. started is
+// guarded by Registry.mu — Start and Wait both read/write it while already
+// holding that lock (registry.go), not t.mu — and every other field is
+// guarded by mu itself; the run loop and every reader take mu for those.
 type table struct {
 	cfg TableConfig
 
-	mu      sync.RWMutex
-	state   string // protocol.Table*
+	// started is guarded by Registry.mu, not mu below. See the struct doc.
+	started bool
+
+	mu    sync.RWMutex
+	state string // protocol.Table*
+	// reason is the halt error's message, set by Registry.halt; empty
+	// unless state is TableHalted. Task 13 surfaces it on the wire
+	// (protocol.TableInfo has no field for it yet); kept internal for now.
+	reason  string
 	k       int    // index of the current or most recent match; 0 before any
 	cur     *match // the live match, or nil
 	history []*match
-	started bool
 	stop    chan struct{} // closed by Registry.Close
 	done    chan struct{} // closed when the run loop exits
 }
