@@ -64,7 +64,23 @@ type Engine struct {
 	// (cascade bound and the DamageDealtOnce once-per-turn gate); see there.
 	triggerFireCount map[triggerKey]int32
 	damageOnceFired  map[triggerKey]int32
+
+	// choosing says which flow is waiting on the current KChoose decision
+	// (Task 8). It is plain data, not a closure, so Engine.Clone (a sibling
+	// branch, not yet in this worktree) can copy it like any other field --
+	// a closure captured over this Engine's own pointers would not survive a
+	// clone at all. handleChoose (turn.go) switches on it; Task 9 adds
+	// chooseCast in cast.go, and Tasks 12 and 18 add the "as this enters" and
+	// miracle cases in their own files.
+	choosing chooseFor
 }
+
+// chooseFor names the flow a pending KChoose decision belongs to. Task 9
+// declares chooseCast (rules/cast.go); Tasks 12 and 18 add the "as this
+// enters" and miracle cases in their own files.
+type chooseFor uint8
+
+const chooseNone chooseFor = iota
 
 const openingHand = 7
 

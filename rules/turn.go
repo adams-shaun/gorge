@@ -290,5 +290,23 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 		e.handleTriggerOrder(d, in)
 	case decision.KTriggerOptional:
 		e.handleTriggerOptional(d, in)
+	case decision.KChoose:
+		e.handleChoose(d, in)
 	}
+}
+
+// handleChoose routes a choose answer to whichever flow asked it. The flows
+// are data on the engine (never closures, so Clone copies them): the cast
+// flow (Task 9), a miracle offer (Task 18), an "as this enters" choice
+// (Task 12). A choose nobody is waiting for -- only reachable from a
+// hand-built decision -- is dropped with a Note and priority resumes.
+func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
+	chosen := d.Chosen(in)
+	switch e.choosing {
+	// Tasks 9, 12 and 18 add their cases here.
+	default:
+		e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "choose answered with no flow waiting"})
+		e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
+	}
+	_ = chosen
 }

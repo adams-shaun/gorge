@@ -64,6 +64,13 @@ func (b *Bot) Decide(_ context.Context, v view.View, d decision.Decision) (decis
 //   - KTriggerOptional: a coin from the bot's own rng between the two
 //     offered options ("yes" first, "no" second, per askTriggerOptional),
 //     so both branches get coverage.
+//   - KChoose: every option in one decision shares a Kind (Option.Kind, not
+//     d.Kind) that says what is being chosen. "x" takes the highest option
+//     (the most an {X} cost can pay for -- options ascend); "exile"/
+//     "sacrifice" take the first Max options; "yes"/"no" always answers yes
+//     (Kind "yes" is first, per how askers build the two-option list);
+//     "name"/"type"/"number" take the first offer. No rng is consumed,
+//     unlike KBlockers/KTriggerOrder/KTriggerOptional above.
 //
 // Anything else -- KMulligan, KModes, any kind added later, and any case
 // above that found nothing to pick -- falls to the last resort: pass if one
@@ -172,6 +179,22 @@ func botDecide(isMain bool, d *decision.Decision, r *rand.Rand) decision.Intent 
 			in.Choices = []int{d.Options[idx].Index}
 			return clamp(d, in)
 		}
+
+	case decision.KChoose:
+		if len(d.Options) == 0 {
+			break
+		}
+		switch d.Options[0].Kind {
+		case "x":
+			in.Choices = []int{d.Options[len(d.Options)-1].Index} // the most it can pay for
+		case "exile", "sacrifice":
+			for i := 0; i < len(d.Options) && i < d.Max; i++ {
+				in.Choices = append(in.Choices, d.Options[i].Index)
+			}
+		default: // yes/no (yes is first), name, type, number: the first offer
+			in.Choices = []int{d.Options[0].Index}
+		}
+		return clamp(d, in)
 	}
 
 	// Last resort: pass if Min == 0 and one is offered; clamp below handles
