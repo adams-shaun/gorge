@@ -165,11 +165,9 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []Cost {
 }
 
 // blockRestricted reports whether blocker is forbidden from blocking
-// attacker (CantBlock, CantBlockBy). Nothing calls this yet: real
-// declare-blockers option generation is Task 21/22's (askBlockers and
-// handleBlockers are still stubs.go's no-ops). This is defined and tested
-// here in isolation so those tasks have a working primitive to wire in, the
-// same shape layers.go's EndOfTurnCleanup already used for Task 21.
+// attacker (CantBlock, CantBlockBy). Called from rules/combat.go's canBlock,
+// which askBlockers and handleBlockers both use for real declare-blockers
+// option generation and validation.
 func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 	for _, sv := range e.activeStatics("CantBlock") {
 		if effects.MatchesSpecFrom(e.G, sv.Params["ValidCard"], blocker, sv.Controller, sv.Source) {

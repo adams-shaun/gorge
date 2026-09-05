@@ -65,7 +65,10 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		// M1 activates only mana abilities, whose cost is always {T}. Task 18
-		// widens this once activated abilities with real costs land.
+		// landed real activated-ability costs, but this enumeration was
+		// never widened to non-mana activated abilities (Equip, and every
+		// other AB$ ability with a real cost) -- a parked limitation
+		// (T19c-b), not a pending task.
 		if len(f.ManaAbilities()) > 0 {
 			add("activate", "Tap "+f.Name+" for mana", id)
 		}

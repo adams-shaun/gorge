@@ -800,7 +800,7 @@ func TestTriggerPushKindString(t *testing.T) {
 	}
 }
 
-// TestEndCombatResetClearsIsAttackingAndBlockedBy is Ruling T21-a's carrier:
+// TestEndCombatResetClearsIsAttackingAndBlockedBy is Ruling T21-e's carrier:
 // rules.setStep used to clear these two fields with a direct loop over
 // e.G.Objs instead of emitting anything, so a log-only reconstruction never
 // learned combat had ended. This exercises Apply's own EndCombatReset case in

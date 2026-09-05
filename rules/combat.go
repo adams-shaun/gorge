@@ -153,7 +153,7 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 // differ from "block with nothing" -- both skip straight to the combat-damage
 // step, the same reasoning askAttackers applies to its own empty case.
 //
-// Ruling T21-b (Task 21 fix round 1): the attacker-collection loop below
+// Ruling T21-c (Task 21 fix round 1): the attacker-collection loop below
 // additionally requires Face() != nil. DeclareAttackers's own events.Apply
 // case sets IsAttacking on any existing object with no such check (Player is
 // validated, but nothing about the object it names), so a malformed or
@@ -300,7 +300,7 @@ func (e *Engine) actsThisDamageStep(id state.ObjID, firstStrike bool) bool {
 // creatures that would each kill the other both actually die instead of the
 // first one's death sparing the second.
 //
-// Ruling T21-c (Task 21 fix round 1): a first-strike attacker's own forward
+// Ruling T21-a (Task 21 fix round 1): a first-strike attacker's own forward
 // damage (to its blockers or the defending player) is gated on
 // actsThisDamageStep, exactly as before, but the "blockers hit back" section
 // below is not -- it used to sit inside the same gate, so a first-strike
@@ -343,7 +343,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 					}
 
 				default:
-					// Ruling T21-e (CR 510.1c): lethal damage to each
+					// Ruling T21-b (CR 510.1c): lethal damage to each
 					// blocker, in declaration order, before any spills to
 					// the next. Which blocker(s) receive more than lethal
 					// when Trample is absent and power exceeds every
@@ -381,7 +381,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 		}
 
 		// Blockers hit back -- independent of whether the attacker itself
-		// acted this step above (Ruling T21-c).
+		// acted this step above (Ruling T21-a).
 		for _, bid := range blockers {
 			if !e.actsThisDamageStep(bid, firstStrike) {
 				continue

@@ -815,10 +815,10 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 		return false
 	}
 	if strings.EqualFold(t.Params["CombatDamage"], "True") {
-		// M1 has no combat-damage implementation (dealCombatDamage is a
-		// no-op stub, Task 21/22's territory) and Event carries nothing to
-		// distinguish combat from noncombat damage, so a trigger that
-		// insists on CombatDamage$ True can never fire yet.
+		// dealCombatDamage (rules/combat.go) is fully implemented, but
+		// events.Event still carries nothing to distinguish combat from
+		// noncombat damage at the point a trigger checks it, so a trigger
+		// that insists on CombatDamage$ True can never fire yet regardless.
 		return false
 	}
 	ctrl := e.controllerOf(source)
@@ -965,7 +965,7 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 		effects.SetSVars(ctx, f.SVars)
 	}
 
-	// Review finding I-3 (Task 29 fix round 1): matchRepl.Params reads a
+	// Review finding M-6 (Task 29 fix round 1): matchRepl.Params reads a
 	// map built by cards/parse.go's parseParams, which trims both key and
 	// value -- so an exact, case-sensitive "Updated" compare is deliberate,
 	// not an oversight that happens to work. Forge's own corpus is uniform

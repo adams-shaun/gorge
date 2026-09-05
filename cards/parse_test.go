@@ -120,9 +120,10 @@ func TestParseReportsUnkeyedLine(t *testing.T) {
 // Optional$ form -- 1143 occurrences by the anchored pattern
 // (^|[^A-Za-z])Optional$, all on SVar:, A:, R: and S: lines -- never appears
 // on one. The anchor matters: the unanchored substring counts 1199 because
-// Forge also has RevealOptional$, ChoiceOptional$ and RepeatOptional$. parseParams already collects every Key$ value on the line,
-// so this needs no parser change; the test is here so a future change to
-// parseParams cannot silently drop it.
+// Forge also has RevealOptional$, ChoiceOptional$ and RepeatOptional$.
+// parseParams already collects every Key$ value on the line, so this needs
+// no parser change; the test is here so a future change to parseParams
+// cannot silently drop it.
 func TestTriggerCarriesOptionalDecider(t *testing.T) {
 	src := "Name:X\nTypes:Enchantment\n" +
 		"T:Mode$ Phase | Phase$ Upkeep | OptionalDecider$ TriggeredCardController | " +

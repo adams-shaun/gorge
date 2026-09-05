@@ -370,7 +370,7 @@ func TestCleanupClearsCombatDamageDeathtouchAndUntilEOTEffects(t *testing.T) {
 // --- Fix round 1 (code review) ---------------------------------------------
 
 // TestFirstStrikeAttackerTakesSurvivingBlockersRegularDamage is Ruling
-// T21-c's carrier: damageStep used to gate the "blockers hit back" section
+// T21-a's carrier: damageStep used to gate the "blockers hit back" section
 // on whether the ATTACKER itself acted this step, so once a first-strike
 // attacker's own first-strike-step turn was done, the whole rest of its
 // block was skipped too -- including a blocker that survived the
@@ -405,7 +405,7 @@ func TestFirstStrikeAttackerTakesSurvivingBlockersRegularDamage(t *testing.T) {
 	}
 }
 
-// TestNonTrampleMultipleBlockersAssignLethalThenSpill is Ruling T21-e's
+// TestNonTrampleMultipleBlockersAssignLethalThenSpill is Ruling T21-b's
 // carrier: without Trample, damageStep used to hand the ENTIRE remaining
 // power to whichever blocker was declared first (uncapped, regardless of
 // need) and leave every later blocker at exactly 0 -- CR 510.1c instead
@@ -440,7 +440,7 @@ func TestNonTrampleMultipleBlockersAssignLethalThenSpill(t *testing.T) {
 	}
 }
 
-// TestAskBlockersSkipsAnAttackerWithNoFace is Ruling T21-b's carrier:
+// TestAskBlockersSkipsAnAttackerWithNoFace is Ruling T21-c's carrier:
 // DeclareAttackers's own events.Apply case sets IsAttacking on any existing
 // object, with no check that the object has a Face() at all -- so a
 // malformed or tampered event (or, as reproduced here, a nil-Card object:
@@ -518,7 +518,7 @@ func TestAttackerWhoseBlockerIsRemovedDealsNoDamageWithoutTrample(t *testing.T) 
 }
 
 // TestReplayReconstructsPostCombatStateExactly is the reviewer's own proof
-// method for Ruling T21-a: play a real game through a full combat round
+// method for Ruling T21-e: play a real game through a full combat round
 // (attackers declared, blocked, damage dealt, into end of combat), then fold
 // the log alone -- via events.Apply on a clone taken just before combat --
 // forward, and expect the reconstruction to match the live game exactly.

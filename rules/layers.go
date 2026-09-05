@@ -77,10 +77,9 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 	e.continuous = append(e.continuous, ce)
 }
 
-// EndOfTurnCleanup drops every "until end of turn" effect. This is called
-// from the cleanup step (CR 514.2) — by Task 21, which owns turn structure.
-// Nothing in this package calls it; it is defined and tested here in
-// isolation so Task 21 has a working primitive to wire in.
+// EndOfTurnCleanup drops every "until end of turn" effect (CR 514.2).
+// Called from rules/combat.go's cleanupStep, which runs it on entry to the
+// cleanup step.
 func (e *Engine) EndOfTurnCleanup() {
 	kept := e.continuous[:0]
 	for _, ce := range e.continuous {

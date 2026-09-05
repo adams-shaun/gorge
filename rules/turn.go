@@ -30,7 +30,7 @@ func (e *Engine) setStep(s state.Step) {
 		}
 	}
 	if s == state.StepEndCombat || s == state.StepCleanup {
-		// Ruling T21-a: routed through an event (events.EndCombatReset), not
+		// Ruling T21-e: routed through an event (events.EndCombatReset), not
 		// a direct field write -- a log-only replay must learn that combat
 		// ended and IsAttacking/BlockedBy were cleared, not just observe it
 		// as a fait accompli baked into a live Engine's memory.
@@ -251,12 +251,12 @@ func (e *Engine) advanceStep() {
 		// the active player during their OWN turn, before their OWN draw
 		// step, for a reason that has nothing to do with drawing at all (CR
 		// 704.5a life loss is the common case). Measured: an upkeep
-		// "whenever you draw a card, lose life equal to your life total"
-		// self-drain trigger (this repo's own drainerSrc fuzz fixture)
-		// eliminates its controller during that seat's turn-2 upkeep with
-		// their library still full, and turn 2's draw step is then entered
-		// with the eliminated seat still Active. The turn structure does not
-		// skip steps for an eliminated active player, only priority -- so
+		// self-drain (`Mode$ Phase | Phase$ Upkeep`) trigger (this repo's
+		// own drainerSrc fuzz fixture) eliminates its controller during
+		// that seat's turn-2 upkeep with their library still full, and turn
+		// 2's draw step is then entered with the eliminated seat still
+		// Active. The turn structure does not skip steps for an eliminated
+		// active player, only priority -- so
 		// their draw step is still entered, and this is what stops it from
 		// drawing on their behalf. A reader who trusts "unreachable" here is
 		// invited to delete this guard, and deleting it is exactly the
