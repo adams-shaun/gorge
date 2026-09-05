@@ -15,9 +15,8 @@ import (
 //
 // Call it only at an intent boundary — after New, Advance or Submit has
 // returned, so Pending() != nil or G.Over. That is the only moment the
-// fields below are not being written. The host (package host) clones at
-// every turn start to answer "view at seq N" with at most one turn of
-// replay.
+// fields below are not being written. A match host clones at every turn
+// start to answer "view at seq N" with at most one turn of replay.
 func (e *Engine) Clone() *Engine {
 	c := &Engine{
 		G:                   e.G.Clone(),
