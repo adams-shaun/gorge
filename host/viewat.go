@@ -3,6 +3,7 @@ package host
 import (
 	"fmt"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/protocol"
 	"github.com/adams-shaun/gorge/replay"
@@ -80,8 +81,10 @@ func (r *Registry) Events(id TableID, k int, since uint64) ([]protocol.EventBody
 	return eventBodies(vis, g, evs), nil
 }
 
-// lookup finds a table's live or retained match. Task 12 teaches it to
-// load finished matches from disk.
+// lookup finds a table's live or retained match, loading a finished match
+// from disk when only its sidecar is known (Task 12). The last loaded
+// match is cached per table so a DVR session stepping through a finished
+// match does not replay it per request.
 func (r *Registry) lookup(id TableID, k int) (*table, *match, error) {
 	r.mu.RLock()
 	t, ok := r.tables[id]
@@ -99,7 +102,47 @@ func (r *Registry) lookup(id TableID, k int) (*table, *match, error) {
 			return t, m, nil
 		}
 	}
+	if t.loaded != nil && t.loaded.k == k {
+		return t, t.loaded, nil
+	}
+	for _, sc := range t.archived {
+		if sc.Match == k {
+			m, err := r.loadArchived(t, sc)
+			if err != nil {
+				return nil, nil, err
+			}
+			t.loaded = m
+			return t, m, nil
+		}
+	}
 	return nil, nil, ErrNotFound
+}
+
+// loadArchived rebuilds enough of a finished match to serve ViewAt/Events:
+// the log from its files and a Config from the sidecar's names and decks.
+// The engine is the replay's end state, so head views are exact and mid
+// views take the genesis path of viewAt (no snapshots on disk).
+func (r *Registry) loadArchived(t *table, sc sidecar) (*match, error) {
+	l, err := readLog(r.opts.Dir, t.cfg.ID, sc.Match)
+	if err != nil {
+		return nil, err
+	}
+	decks := make([][]*cards.Card, len(sc.Decks))
+	for i, dn := range sc.Decks {
+		d, err := r.opts.LoadDeck(dn)
+		if err != nil {
+			return nil, fmt.Errorf("host: %s/%d: deck %q: %w", t.cfg.ID, sc.Match, dn, err)
+		}
+		decks[i] = d.Cards
+	}
+	cfg := rules.Config{Seed: sc.Seed, Names: sc.Names, Decks: decks, Tokens: r.opts.Tokens}
+	e, err := replay.Replay(l, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("host: %s/%d does not replay: %w", t.cfg.ID, sc.Match, err)
+	}
+	return &match{table: t, k: sc.Match, seed: sc.Seed, cfg: cfg, seats: sc.Seats, decks: sc.Decks, e: e,
+		bounds: boundsOf(l.Events), turnStarts: turnStartsIn(l.Events, 0), state: sc.State, result: sc.Result,
+		winner: sc.Winner, head: sc.Head}, nil
 }
 
 // viewAt is PL-1: find the last intent boundary j with bounds[j] <= seq+1,
