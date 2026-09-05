@@ -91,7 +91,7 @@ func run(decksFlag string, seats int, baseSeed uint64, games int, verify, verbos
 	failures := 0
 	for g := 0; g < games; g++ {
 		gameSeed := baseSeed + uint64(g)
-		if !playOne(out, gameSeed, names, decks, verify) {
+		if !playOne(out, gameSeed, names, decks, reg.Tokens, verify) {
 			failures++
 		}
 	}
@@ -128,8 +128,8 @@ func deckNames(flagVal string, seats int) ([]string, error) {
 // its one-line summary, then -- if verify is set -- a second line reporting
 // the replay outcome. It returns false for anything Ruling §5 counts as
 // failure: non-termination, a replay error or a chain divergence.
-func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, verify bool) bool {
-	cfg := rules.Config{Seed: seed, Names: append([]string(nil), names...), Decks: decks}
+func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, tokens map[string]*cards.Card, verify bool) bool {
+	cfg := rules.Config{Seed: seed, Names: append([]string(nil), names...), Decks: decks, Tokens: tokens}
 	e := rules.New(cfg)
 	b := seat.NewBot(seed)
 	e.Advance()
