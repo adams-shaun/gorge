@@ -13,6 +13,16 @@ described by its config plus its event log, so replaying a log and resuming a
 match from any point in it are the same operation, not separate features to
 maintain.
 
+## Test-time budgets
+
+Every Go package with tests carries a `TEST_HISTORY.md` recording how long its
+tests take and a hard `budget_s` that a commit cannot exceed. `make test-time`
+(`go run ./cmd/testtime -all`) measures every package and appends a row; the
+pre-commit hook runs `go run ./cmd/testtime -changed` on staged `.go` files and
+blocks the commit when a package exceeds its budget. To raise a budget, edit
+`budget_s` in the package's `TEST_HISTORY.md` and add a
+`Test-Budget-Approved: <who> — <why>` trailer to the commit message.
+
 ## Package layout
 
 Packages have a strict, one-directional dependency order:
