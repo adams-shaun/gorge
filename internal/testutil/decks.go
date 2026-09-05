@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -68,7 +69,12 @@ func RepoDeckNames() []string {
 // the non-testing.TB variant mtgsim uses directly; RepoDeck below is the
 // t.Fatalf-on-error wrapper for tests (Ruling P11).
 func LoadRepoDeck(r *cards.Registry, name string) ([]*cards.Card, error) {
-	raw, err := decksFS.ReadFile(filepath.Join(decksDir, name+".json"))
+	// Fix round 1 (Minor #2): embed.FS paths are always slash-separated,
+	// regardless of host OS -- filepath.Join would emit "decks\name.json" on
+	// Windows and every lookup would fail there. path.Join is the correct
+	// call here; the filepath.Join calls below (OpenCorpusRegistry,
+	// CorpusRegistry) address real OS paths on disk and are unaffected.
+	raw, err := decksFS.ReadFile(path.Join(decksDir, name+".json"))
 	if err != nil {
 		return nil, fmt.Errorf("testutil: deck %q: %w", name, err)
 	}

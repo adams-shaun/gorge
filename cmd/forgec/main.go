@@ -105,21 +105,39 @@ func report(dir string, top int) error {
 	return nil
 }
 
-// validCardFilterKeys are exactly the Params keys this engine ever feeds to
-// effects.MatchesSpec / MatchesSpecFrom -- grep-verified against every call
-// site in rules/stack.go, rules/statics.go, rules/trigger.go and
-// effects/*.go. That is the whole vocabulary matchesBase's base-type switch
+// validCardFilterKeys is the set of Params keys this scan checks: every
+// sa.Params/t.Params/s.Params/r.Params key that is passed directly as the
+// spec argument to effects.MatchesSpec / MatchesSpecFrom somewhere in this
+// build. That is the whole vocabulary matchesBase's base-type switch
 // (effects/filter.go) governs, so it is exactly the set where a typo'd type
 // token is dangerous the way Ruling T16-a describes: matchesBase's "non"
 // handling negates a base check that never succeeds for anything, so a
 // typo'd "non<Type>" silently matches EVERY object instead of none.
-// ValidPlayer$ and ValidActivatingPlayer$ (and friends) use a wholly
-// different vocabulary -- You/Opponent/Player/Any via MatchesPlayerSpec --
-// so including them here would just flood this report with tokens that were
-// never card types to begin with.
+//
+// The keys, and where each is read: ValidTgts (rules/stack.go),
+// ValidCards (effects/combatfx.go, effects/counters.go, effects/damage.go,
+// effects/zone.go), ValidCard/ValidBlocker (rules/statics.go),
+// ValidTarget/ValidSource (rules/trigger.go), ChangeType
+// (effects/zone.go's effChangeZoneAll) and ChangeValid
+// (effects/cardflow.go's effDig). Fix round 1 (Important #1): ChangeType and
+// ChangeValid were missing from this list even though the doc comment
+// claimed a complete audit of every MatchesSpec/MatchesSpecFrom call site --
+// they were not, and adding them moved several tokens materially (Remembered
+// 1 -> 50, TargetedCard 5 -> 33, Targeted 16 -> 25, plus a dozen new ones).
+//
+// Deliberately excluded: ValidPlayer$ and ValidActivatingPlayer$ (and
+// friends) use a wholly different vocabulary -- You/Opponent/Player/Any via
+// MatchesPlayerSpec -- so including them here would just flood this report
+// with tokens that were never card types to begin with. Also excluded, and
+// genuinely out of scope rather than an oversight: effects/count.go's
+// evalCountBody feeds MatchesSpecFrom an `arg` parsed out of a `Count$Valid…`
+// SVar *expression body*, not a Params key -- there is no Params key to add
+// for it, since the corpus SVar table effects.Ctx.SVars carries is not
+// itself walked by this scan.
 var validCardFilterKeys = map[string]bool{
 	"ValidTgts": true, "ValidCards": true, "ValidCard": true,
 	"ValidBlocker": true, "ValidTarget": true, "ValidSource": true,
+	"ChangeType": true, "ChangeValid": true,
 }
 
 // pseudoFilterTypes are base tokens that are legal in a ValidTgts$-style spec
