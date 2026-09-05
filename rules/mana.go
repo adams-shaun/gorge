@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/adams-shaun/gorge/state"
 )
@@ -41,8 +42,15 @@ type Cost struct {
 	SubCounter []CostPart
 }
 
-// nonManaCost matches Sac<N/Spec> and SubCounter<N/Kind> tokens.
-var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter)<(\d+)/([^>]+)>$`)
+// nonManaCost matches Sac<N/Spec> and SubCounter<N/Kind> tokens. Forge
+// appends a human-readable "/description" after the spec and separates OR
+// alternatives with ";"; the description may itself contain spaces (e.g.
+// "Sac<1/Artifact;Creature/artifact or creature>"), which is why
+// splitCostTokens keeps the whole <...> group atomic before nonManaCost ever
+// sees it. The captured group only runs up to the first "/", so the trailing
+// description is dropped right here; the ";" alternation is folded to ","
+// (MatchesSpec's own separator) at the parse site. Ruling FL-54.
+var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
 // ParseCost accepts both Forge's space-separated form ("2 U U") and the
 // bracketed oracle form ("{2}{U}{U}"). "no cost" and "" are free.
@@ -53,7 +61,7 @@ func ParseCost(s string) Cost {
 	}
 	s = strings.NewReplacer("{", " ", "}", " ").Replace(s)
 	var c Cost
-	for _, sym := range strings.Fields(s) {
+	for _, sym := range splitCostTokens(s) {
 		switch {
 		case sym == "T":
 			c.Tap = true
@@ -68,10 +76,13 @@ func ParseCost(s string) Cost {
 					// A malformed Sac/SubCounter token degrades the same way
 					// an unrecognised mana token does: one generic mana,
 					// never a hard parse error.
-					c.Generic++
+					c.Generic = addClampedGeneric(c.Generic, 1)
 					continue
 				}
-				part := CostPart{N: int32(n), Spec: m[3]}
+				// Fold Forge's ";" OR alternation into the "," MatchesSpec
+				// already uses, so "Artifact;Creature" matches either.
+				spec := strings.ReplaceAll(m[3], ";", ",")
+				part := CostPart{N: int32(n), Spec: spec}
 				if m[1] == "Sac" {
 					c.Sac = append(c.Sac, part)
 				} else {
@@ -82,15 +93,62 @@ func ParseCost(s string) Cost {
 			// Try to parse as a numeric token. Negative and out-of-range values
 			// fall through to the +1 generic fallback.
 			if n, err := strconv.ParseInt(sym, 10, 64); err == nil && n >= 0 && n <= int64(math.MaxInt32) {
-				c.Generic += int32(n)
+				c.Generic = addClampedGeneric(c.Generic, n)
 				continue
 			}
 			// Hybrid ("W/U", "GW", "2B"), Phyrexian ("W/P", "UP", "BP"), and
 			// invalid numeric tokens land here.
-			c.Generic++
+			c.Generic = addClampedGeneric(c.Generic, 1)
 		}
 	}
 	return c
+}
+
+// splitCostTokens splits a cost string on whitespace, but keeps each <...>
+// group atomic so Forge's non-mana tokens -- whose trailing "/description"
+// can contain spaces -- are not torn apart by a plain Fields split before
+// nonManaCost can see them. Ruling FL-54.
+func splitCostTokens(s string) []string {
+	var out []string
+	var cur strings.Builder
+	depth := 0
+	for _, r := range s {
+		switch {
+		case r == '<':
+			depth++
+			cur.WriteRune(r)
+		case r == '>':
+			if depth > 0 {
+				depth--
+			}
+			cur.WriteRune(r)
+		case unicode.IsSpace(r) && depth == 0:
+			if cur.Len() > 0 {
+				out = append(out, cur.String())
+				cur.Reset()
+			}
+		default:
+			cur.WriteRune(r)
+		}
+	}
+	if cur.Len() > 0 {
+		out = append(out, cur.String())
+	}
+	return out
+}
+
+// addClampedGeneric adds n to the int32 generic count, saturating at
+// math.MaxInt32 on top and refusing to go below zero, so no accumulation of
+// numeric tokens (nor a WithX fold) can ever wrap Generic negative. Task 20.
+func addClampedGeneric(v int32, n int64) int32 {
+	total := int64(v) + n
+	if total > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	if total < 0 {
+		return 0
+	}
+	return int32(total)
 }
 
 func (c Cost) CMC() int32 { return c.Colored.Total() + c.Generic }
@@ -99,7 +157,7 @@ func (c Cost) CMC() int32 { return c.Colored.Total() + c.Generic }
 // carried, then clears X: once a value is chosen, {X} is no longer a
 // distinct requirement, it is simply that much more generic mana.
 func (c Cost) WithX(x int32) Cost {
-	c.Generic += int32(c.X) * x
+	c.Generic = addClampedGeneric(c.Generic, int64(c.X)*int64(x))
 	c.X = 0
 	return c
 }

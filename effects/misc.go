@@ -125,16 +125,22 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 		Text: "registers a delayed trigger at " + sa.Params["Mode"]})
 }
 
-// effRepeat runs RepeatSubAbility$ RepeatNum$ times (default 1). The brief
-// names the amount parameter "RepeatNum$"; the fetched corpus's real cards
-// use "MaxRepeat$" instead (RepeatNum$ appears nowhere), so against real
-// cards this currently always falls back to the default of one run -- a
-// documented, non-crashing degradation, not a special-cased alias. See the
-// Task 18 report.
+// effRepeat runs RepeatSubAbility$ MaxRepeat$ times -- the fetched corpus's
+// real parameter name. RepeatNum$ (the Task 18 brief's name, which real
+// cards never use) is still honoured, as a fallback for anything that
+// predates MaxRepeat$. Either way the run count goes through Num(), so an
+// SVar-indirected Count$ works for either name. It is capped at 1000 so a
+// malformed or absurdly large repeat can never spin the engine.
 func effRepeat(h Host, c *Ctx, sa *cards.SA) {
-	n := Num(h, c, sa, "RepeatNum", 1)
+	n := Num(h, c, sa, "MaxRepeat", -1)
+	if n < 0 {
+		n = Num(h, c, sa, "RepeatNum", 1)
+	}
 	if n < 0 {
 		n = 0
+	}
+	if n > 1000 {
+		n = 1000
 	}
 	name := sa.Params["RepeatSubAbility"]
 	if name == "" || c.SVars == nil {

@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"math"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -94,6 +95,19 @@ func TestEvalCountArithmeticSuffix(t *testing.T) {
 	}
 	if got := EvalCount(h, c, "Count$Valid Creature.YouCtrl/Twice"); got != 4 {
 		t.Errorf("Twice = %d, want 4", got)
+	}
+}
+
+// TestCountOpsDoNotOverflow is Task 20's hygiene guard for applyCountOp: the
+// /Op arithmetic (Plus/Minus/Times/Twice/Negative) was computed in raw int32,
+// where MaxInt32 doubled, negated or nudged silently wrapped. It must now run
+// in int64 and clamp to the int32 range so a huge Count$ can neither overflow
+// to a sign-flipped value nor panic.
+func TestCountOpsDoNotOverflow(t *testing.T) {
+	if applyCountOp(math.MaxInt32, "Twice") != math.MaxInt32 ||
+		applyCountOp(math.MinInt32, "Negative") != math.MaxInt32 ||
+		applyCountOp(math.MaxInt32, "Plus5") != math.MaxInt32 {
+		t.Fatal("count ops overflow")
 	}
 }
 
