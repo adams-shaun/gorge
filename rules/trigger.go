@@ -965,6 +965,16 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 		effects.SetSVars(ctx, f.SVars)
 	}
 
+	// Review finding I-3 (Task 29 fix round 1): matchRepl.Params reads a
+	// map built by cards/parse.go's parseParams, which trims both key and
+	// value -- so an exact, case-sensitive "Updated" compare is deliberate,
+	// not an oversight that happens to work. Forge's own corpus is uniform
+	// here (every ReplacementResult$ occurrence across the shipped cards
+	// spells it exactly this way), and a laxer compare (case-fold, trim
+	// again, ==prefix) would silently paper over a future corpus value this
+	// build has never seen rather than surfacing it -- reading today's
+	// exact spelling is what makes a drift visible instead of quietly
+	// falling back to "Replaced" behaviour for a card that meant "Updated".
 	if matchRepl.Params["ReplacementResult"] == "Updated" {
 		// Apply the ORIGINAL event first, through the same events.Emit +
 		// checkTriggers pair emit itself uses for an unreplaced event --
@@ -973,8 +983,26 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 		// on the event it just matched: CR 616.1, a replacement effect
 		// applies only once to a given event. checkTriggers still runs
 		// unconditionally (it never checks applyingReplacement), so an ETB
-		// trigger watching this same Move fires exactly as it would for an
+		// trigger watching this same Move FIRES exactly as it would for an
 		// unreplaced entry.
+		//
+		// Review finding I-3: firing is not the whole story. checkTriggers
+		// evaluates each Trigger's ValidCard$ predicate against the object's
+		// state as of RIGHT NOW -- before ReplaceWith$ below has run -- so a
+		// trigger that inspects the very characteristic this replacement is
+		// about to change (a ValidCard$ Card.tapped/Card.untapped predicate
+		// watching an "enters tapped" permanent, say) matches against the
+		// UNTAPPED state, i.e. the opposite of the state the permanent is
+		// left in an instant later. Forge itself models Ctx as "the event,
+		// already modified by ReplaceWith$" and matches triggers against
+		// that; applying the original event verbatim and patching it
+		// afterward, the way this build's applyReplacements works, cannot
+		// reproduce that ordering without restructuring how the whole
+		// replacement/trigger pipeline threads state, which is out of this
+		// task's scope. Measured (8 corpus cards carry a tapped/untapped
+		// ChangesZone predicate; none in a repo deck, so unreachable from
+		// the acceptance suite): this is a real, if narrow, M1 approximation
+		// of CR 616.1, not a hypothetical.
 		stored := events.Emit(e.G, e.L, ev)
 		e.checkTriggers(stored)
 

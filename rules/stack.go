@@ -298,21 +298,50 @@ func (e *Engine) resolveTop() {
 		// to write one whose ReplaceWith$ never moves the object at all
 		// (e.g. an ETB replacement that just gains life). Nothing else ever
 		// removes id from e.G.Stack in that case, so the very next pass
-		// would find the same object on top and resolve it again, forever:
-		// a real non-termination hazard reachable from card text, not a
-		// hypothetical. CR 608.2m already treats a resolved ability that
-		// has nowhere else to go as simply ceasing to exist; a permanent
-		// spell whose entry was fully replaced away is the same idea, so it
-		// goes to its owner's graveyard -- the same landing spot a fizzled
-		// spell above already uses -- with a Note explaining why, rather
-		// than being left to loop. Narrow on purpose: only a permanent
-		// spell reaches this branch at all; the ability-object branch above
-		// has no equivalent zone to get stuck in.
+		// would find the same object on top and resolve it again, forever.
+		// This is defensive, not reachable from today's corpus: every
+		// shipped ReplacementResult$ Replaced line is Event$ LoseMana, which
+		// replacementMatches (only Event$ Moved) never matches -- but a
+		// future Replaced card whose ReplaceWith$ does not move the card is
+		// exactly this shape, and an unbounded loop is a totality violation
+		// this build must not allow regardless of how it is reached. CR
+		// 608.2m already treats a resolved ability that has nowhere else to
+		// go as simply ceasing to exist; a permanent spell whose entry was
+		// fully replaced away is the same idea, so it goes to its owner's
+		// graveyard -- the same landing spot a fizzled spell above already
+		// uses -- with a Note explaining why, rather than being left to
+		// loop. Narrow on purpose: only a permanent spell reaches this
+		// branch at all. The ability-object branch above has the identical
+		// hazard on its own Stack->Exile move (:250) -- a
+		// Destination$ Exile | ValidCard$ Card replacement sticks it on the
+		// stack forever, measured identical at BASE and HEAD -- but that is
+		// pre-existing and out of this task's scope, so it is not fixed
+		// here, only noted.
 		if o2 := e.G.Obj(id); o2 != nil && o2.Zone == state.ZStack {
+			// Review finding I-1 (Task 29 fix round 1): the Note and the
+			// graveyard MoveZone below used to go through e.emit with
+			// applyingReplacement left false, so applyReplacements ran on
+			// them like any other game event -- and a broad "cards would be
+			// put into a graveyard from anywhere" replacement (the shipped
+			// corpus's Rest in Peace shape: ReplaceWith$ ... Defined$
+			// ReplacedCard, which effects/context.go does not model, so it
+			// resolves against a nil Ctx.Targets and relocates nothing)
+			// matched THIS MoveZone too and swallowed it exactly the way the
+			// original ETB Move was swallowed, so the guard's own escape
+			// hatch reproduced the very stall it exists to close. These two
+			// emits are engine housekeeping under CR 608.2m -- "ceases to
+			// exist" is not a game event a card's own replacement should be
+			// able to intercept -- so they run with applyingReplacement held
+			// true (saved and restored, not just set, in case a future
+			// caller ever reaches here already inside one) exactly like
+			// ReplaceWith$'s own resolution above.
+			saved := e.applyingReplacement
+			e.applyingReplacement = true
 			e.emit(events.Event{Kind: events.Note, Obj: id, Text: "an ETB replacement fully " +
 				"replaced this permanent's entry to the battlefield without moving it anywhere; " +
 				"sent to the graveyard instead of re-resolving forever"})
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZGraveyard})
+			e.applyingReplacement = saved
 		}
 	} else {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZGraveyard})

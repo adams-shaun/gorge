@@ -70,6 +70,27 @@ SVar:TrigGain:DB$ GainLife | Defined$ You | LifeAmount$ 1
 Oracle:x
 `
 
+// graveyardBlockingReplacementSrc is the shipped corpus's Rest in Peace
+// shape (review finding I-1): a broad "if a card would be put into a
+// graveyard from anywhere, [do something else] instead" replacement, with
+// no ValidCard$ narrowing beyond "any card" and no ReplacementResult$ (so
+// today's ReplacementResult$-absent code path, unchanged by this task,
+// still discards the original Move). Its ReplaceWith$ uses Defined$
+// ReplacedCard, a Forge Defined$ form effects/context.go's Defined does not
+// model -- it falls through to Ctx.Targets, nil for a replacement context,
+// so the ChangeZone loop in effects/zone.go's effChangeZone has nothing to
+// iterate and relocates NOTHING. That is exactly what makes it a totality
+// hazard for anything else that tries to move a card to a graveyard while
+// this is in play, including -- before the I-1 fix -- resolveTop's own
+// guard.
+const graveyardBlockingReplacementSrc = `Name:Bone Vault
+ManaCost:1 W
+Types:Enchantment
+R:Event$ Moved | Destination$ Graveyard | ValidCard$ Card | ReplaceWith$ ExileInstead | Description$ if a card would go to a graveyard from anywhere, exile it instead
+SVar:ExileInstead:DB$ ChangeZone | Origin$ All | Destination$ Exile | Defined$ ReplacedCard
+Oracle:x
+`
+
 // newFixtureDeck builds a 2-seat engine the same way newSeats does, except
 // seat 0's deck leads with fixture instead of an all-mountain 40, so
 // cfg.Decks -- and therefore replayFromLog's own genesis reconstruction --
@@ -422,12 +443,81 @@ func TestPermanentSpellWhoseEntryIsFullyReplacedDoesNotStickOnTheStack(t *testin
 	}
 }
 
+// TestTotalityGuardSurvivesABroadGraveyardReplacement is review finding I-1
+// (Task 29 fix round 1): the totality guard's own escape hatch -- the Note
+// and the stack->graveyard MoveZone in resolveTop -- used to go through
+// e.emit with applyingReplacement left false, so a broad "any card that
+// would go to a graveyard from anywhere" replacement already in play (the
+// shipped corpus's Rest in Peace shape, graveyardBlockingReplacementSrc
+// above) matched the GUARD'S OWN cleanup move too and discarded it, the
+// exact same way the original ETB Move was discarded -- so the object never
+// actually left the stack and the guard's Note fired again on every single
+// re-resolution (measured pre-fix: passes=120, stack=[1], notes=60). The fix
+// runs those two emits with applyingReplacement held true, since they are
+// CR 608.2m engine housekeeping, not a further game event a card's own
+// replacement should get to intercept.
+func TestTotalityGuardSurvivesABroadGraveyardReplacement(t *testing.T) {
+	e, _, id := newFixtureDeck(t, 104, fullyReplacedEntrySrc)
+	onBoard(t, e, 1, graveyardBlockingReplacementSrc)
+	driveToStep(t, e, 1, 0, state.StepMain1)
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 2})
+	e.priorityRound()
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority || d.Player != 0 {
+		t.Fatalf("expected seat 0's priority after genesis, got %+v", d)
+	}
+	idx := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "cast" && opt.Obj == id {
+			idx = opt.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no cast option for the fixture creature: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+		t.Fatalf("submit cast: %v", err)
+	}
+
+	const bound = 60
+	n := passUntilStackEmpty(t, e, bound)
+	if len(e.G.Stack) != 0 {
+		t.Fatalf("stack = %v after %d bounded priority passes with a broad graveyard "+
+			"replacement in play -- the totality guard's own escape hatch got blocked "+
+			"the same way the original Move was (Task 29 review finding I-1)", e.G.Stack, bound)
+	}
+	if n != 2 {
+		t.Fatalf("passes to drain the stack = %d, want exactly 2 -- the same as with no "+
+			"blocking replacement in play (TestPermanentSpellWhoseEntryIsFullyReplacedDoesNotStickOnTheStack)", n)
+	}
+	if got := e.G.Obj(id).Zone; got != state.ZGraveyard {
+		t.Fatalf("zone = %s, want graveyard -- Bone Vault's ReplaceWith$ (Defined$ ReplacedCard, "+
+			"unmodeled) relocates nothing, so the guard's own graveyard move must be what lands it there", got)
+	}
+	if n := countKind(e.L.Events, events.Note, id); n != 1 {
+		t.Fatalf("logged %d Note events for the guard's escape hatch, want exactly 1 -- "+
+			"more than one means the guard re-fired instead of terminating", n)
+	}
+	if e.Pending() == nil {
+		t.Fatal("no further decision pending -- the engine did not reach the next decision")
+	}
+}
+
 // TestUpdatedReplacementReplaysFaithfully is brief test 5: fold the logs of
 // test 1 and test 2's scenarios alone into fresh state.Games (replayFromLog,
 // this package's own log-alone reconstruction harness) and diff them
 // against the live games. Separate seeds from tests 1/2 -- deliberately not
 // sharing state with them -- but the exact same helper functions, so this
 // exercises precisely what those tests exercised.
+//
+// Review finding M-4 (Task 29 fix round 1): this pins REPLAY fidelity of the
+// Updated path's log, not the Updated semantics themselves -- it would still
+// pass with applyReplacements' Updated branch reverted, as long as the
+// resolveTop guard is present (the shared helpers' own bounded drive is what
+// would then fail first, not this test's diff). Tests 1, 2 and 6 are what
+// pin Updated's actual behaviour; this one only pins that whatever it does
+// is faithfully reconstructible from the log alone.
 func TestUpdatedReplacementReplaysFaithfully(t *testing.T) {
 	t.Run("land", func(t *testing.T) {
 		e, cfg, _ := playTappedLand(t, 200)
