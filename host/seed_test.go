@@ -3,6 +3,7 @@ package host
 import "testing"
 
 func TestMatchSeedIsAPureFunctionOfTableSeedAndIndex(t *testing.T) {
+	t.Parallel()
 	if MatchSeed(1, 1) != MatchSeed(1, 1) {
 		t.Fatal("not deterministic")
 	}
