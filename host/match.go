@@ -32,6 +32,14 @@ type match struct {
 
 	mu sync.RWMutex
 	e  *rules.Engine
+	// files is the live match's append-only logs; nil in memory mode and
+	// after the match is archived (Task 12).
+	files *matchFiles
+	// persisted is the number of events confirmed appended to this match's
+	// events file at the last successful persist; only that prefix is
+	// durable, so a crash or kill records the head over it, never the
+	// in-memory tail (fix round 1, burst atomicity). 0 in memory mode.
+	persisted int
 	// bounds[j] is len(e.L.Events) after j intents: the seq one past the
 	// end of the j-th burst. bounds[0] is genesis plus the first Advance.
 	bounds []uint64
@@ -54,7 +62,9 @@ type snapshot struct {
 }
 
 // newMatch resolves decks, seeds and builds the engine through genesis and
-// the first Advance, so the returned match is at intent boundary 0.
+// the first Advance, so the returned match is at intent boundary 0. When
+// persistence is on it also opens the match's files, writes the live
+// sidecar and appends the genesis events; any error halts the table.
 func (r *Registry) newMatch(t *table, k int) (*match, error) {
 	c := t.cfg
 	seed := MatchSeed(c.Seed, k)
@@ -74,13 +84,29 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 		names[i], decks[i], deckNames[i] = d.Name, d.Cards, dn
 		infos[i] = protocol.SeatInfo{Name: d.Name, Deck: dn, Colour: protocol.SeatColours[i%len(protocol.SeatColours)]}
 	}
-	cfg := rules.Config{Seed: seed, Names: names, Decks: decks}
+	cfg := rules.Config{Seed: seed, Names: names, Decks: decks, Tokens: r.opts.Tokens}
 	e := rules.New(cfg)
 	e.Advance()
 	m := &match{table: t, k: k, seed: seed, cfg: cfg, seats: infos, decks: deckNames, e: e, state: protocol.MatchLive}
 	m.bounds = []uint64{uint64(len(e.L.Events))}
 	m.turnStarts = turnStartsIn(e.L.Events, 0)
 	m.snapshotGenesis()
+	if r.opts.Dir != "" {
+		var err error
+		m.files, err = openMatchFiles(r.opts.Dir, t.cfg.ID, k, r.opts.Sync)
+		if err != nil {
+			return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
+		}
+		if err := writeSidecar(r.opts.Dir, m.sidecar(), r.opts.Sync); err != nil {
+			m.files.close()
+			return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
+		}
+		if err := m.files.append(e.L.Events, nil); err != nil {
+			m.files.close()
+			return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
+		}
+		m.persisted = len(e.L.Events) // genesis is durable once appended
+	}
 	return m, nil
 }
 
@@ -117,6 +143,20 @@ func (m *match) info() protocol.MatchInfo {
 	return protocol.MatchInfo{Table: string(m.table.cfg.ID), Match: m.k, Seed: m.seed, Seats: m.seats,
 		State: m.state, Result: m.result, Winner: m.winner, Head: m.head,
 		Events: len(m.e.L.Events), Turns: m.e.G.Turn}
+}
+
+// sidecar is the on-disk summary of the match. Called with m.mu held.
+// For a crashed match the summary reflects the persisted prefix, not the
+// in-memory tail: crash() recorded m.head over it, and Events here is the
+// persisted count (fix round 1).
+func (m *match) sidecar() sidecar {
+	events := len(m.e.L.Events)
+	if m.files != nil && m.state == protocol.MatchCrashed {
+		events = m.persisted
+	}
+	return sidecar{Table: string(m.table.cfg.ID), Match: m.k, Seed: m.seed, Seats: m.seats, Names: m.cfg.Names,
+		Decks: m.decks, Spectator: m.table.cfg.Spectator.String(), State: m.state, Result: m.result, Winner: m.winner,
+		Head: m.head, Events: events, Turns: m.e.G.Turn, Reason: m.reason}
 }
 
 // defaultSeats is PL-14: one bot per seat, seeded from the match seed.
@@ -229,11 +269,21 @@ func (r *Registry) abort(m *match) string {
 
 // crash is spec D15's first half: the match is marked crashed with its
 // reason. Task 13 adds the crash report, the table halt frame and tests.
+// Fix round 1 (burst atomicity): the head recorded here is over the
+// persisted prefix, not the in-memory log — the in-memory log can be ahead
+// of disk because the crashed Submit's events never fully reached the
+// files, and a sidecar naming a head/count that was never written would
+// make a restart serve a log that cannot replay. m.persisted is the last
+// fully-appended boundary.
 func (r *Registry) crash(t *table, m *match, err error) string {
 	m.mu.Lock()
 	m.state = protocol.MatchCrashed
 	m.reason = err.Error()
-	m.head = m.e.L.Head()
+	if m.files != nil {
+		m.head = m.e.L.HeadAt(m.persisted)
+	} else {
+		m.head = m.e.L.Head()
+	}
 	m.mu.Unlock()
 	r.onMatchEnd(t, m)
 	return protocol.MatchCrashed
