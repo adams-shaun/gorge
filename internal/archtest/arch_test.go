@@ -1,0 +1,100 @@
+package archtest
+
+import (
+	"os/exec"
+	"strings"
+	"testing"
+)
+
+const module = "github.com/adams-shaun/gorge"
+
+type pkg struct {
+	path    string
+	imports map[string]bool // direct, non-test
+	deps    map[string]bool // transitive, non-test
+}
+
+// packages lists every package in the module with its direct and transitive
+// non-test imports. Test files are excluded on purpose: tests may import
+// anything (view's tests import rules; cards' tests import time).
+func packages(t *testing.T) map[string]pkg {
+	t.Helper()
+	out, err := exec.Command("go", "list", "-f", `{{.ImportPath}}|{{join .Imports " "}}|{{join .Deps " "}}`, module+"/...").Output()
+	if err != nil {
+		t.Fatalf("go list: %v", err)
+	}
+	pkgs := map[string]pkg{}
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		parts := strings.SplitN(line, "|", 3)
+		if len(parts) != 3 {
+			t.Fatalf("unexpected go list line %q", line)
+		}
+		p := pkg{path: parts[0], imports: set(parts[1]), deps: set(parts[2])}
+		pkgs[p.path] = p
+	}
+	if len(pkgs) < 10 {
+		t.Fatalf("go list found only %d packages", len(pkgs))
+	}
+	return pkgs
+}
+
+func set(s string) map[string]bool {
+	m := map[string]bool{}
+	for _, f := range strings.Fields(s) {
+		m[f] = true
+	}
+	return m
+}
+
+// TestTimeIsImportedOnlyByTheHost is spec D16: the host's injected sleep,
+// the SSE writer's ticker/keep-alive and gorged's shutdown timeout are the
+// only clocks in the system. Every other package must be a pure function
+// of its inputs.
+func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
+	allowed := map[string]bool{
+		module + "/host":         true,
+		module + "/host/httpapi": true,
+		module + "/cmd/gorged":   true,
+	}
+	for path, p := range packages(t) {
+		if p.imports["time"] && !allowed[path] {
+			t.Errorf("%s imports time; only host, host/httpapi and cmd/gorged may", path)
+		}
+	}
+}
+
+// TestDependencyOrderHolds pins the arrows that must never appear, direct or
+// transitive.
+func TestDependencyOrderHolds(t *testing.T) {
+	pkgs := packages(t)
+	forbidden := []struct{ from, to string }{
+		{module + "/effects", module + "/rules"},
+		{module + "/view", module + "/rules"},
+		{module + "/protocol", module + "/rules"},
+		{module + "/host", module + "/internal/testutil"},
+		{module + "/host/httpapi", module + "/internal/testutil"},
+		{module + "/cmd/gorged", module + "/internal/testutil"},
+		{module + "/cards", module + "/state"},
+		{module + "/deck", module + "/rules"},
+	}
+	for _, f := range forbidden {
+		p, ok := pkgs[f.from]
+		if !ok {
+			continue // not built yet; the constraint binds once it is
+		}
+		if p.deps[f.to] {
+			t.Errorf("%s depends on %s (transitively); the dependency order forbids it", f.from, f.to)
+		}
+	}
+}
+
+// TestNoLegacyMathRand: math/rand/v2 with an explicit seeded source is the
+// only randomness (rules/rng.go, seat/bot.go). The v1 package's global
+// functions are exactly the ambient randomness the engine spec forbids.
+func TestNoLegacyMathRand(t *testing.T) {
+	for path, p := range packages(t) {
+		if p.imports["math/rand"] {
+			t.Errorf("%s imports math/rand; use math/rand/v2 with a seeded source", path)
+		}
+	}
+}
