@@ -54,6 +54,14 @@ type Divergence struct {
 	// words instead of printing a zero events.Event (whose Kind reads
 	// "game_start" and would mislead) as if it were a real recorded event.
 	Missing bool
+	// Short is Missing's mirror image (M12, final whole-branch review): true
+	// when every event the replay DID produce matched the recording byte for
+	// byte, but the recorded log has more events at the end that the replay,
+	// having run out of recorded Intents to submit, never reached. Got is
+	// meaningless in that case, for the same reason Want is meaningless when
+	// Missing is true -- there is nothing the replay actually produced at
+	// Seq to name.
+	Short bool
 }
 
 // Error names the first differing event. Ruling P3: a missing counterpart in
@@ -62,6 +70,10 @@ func (d *Divergence) Error() string {
 	if d.Missing {
 		return fmt.Sprintf("replay diverged at event %d: recorded log ends at event %d; replay produced %s",
 			d.Seq, d.Seq, d.Got.Kind)
+	}
+	if d.Short {
+		return fmt.Sprintf("replay diverged at event %d: replay ended there; the recorded log continues with %s",
+			d.Seq, d.Want.Kind)
 	}
 	return fmt.Sprintf("replay diverged at event %d: recorded %s, replayed %s",
 		d.Seq, d.Want.Kind, d.Got.Kind)
@@ -103,12 +115,18 @@ func Replay(l *events.Log, cfg rules.Config) (*rules.Engine, error) {
 	// recorded log to have MORE events than the replay ever produced -- the
 	// mirror image of the Missing case above, and not something the
 	// incremental per-Submit compare can see, since it only ever looks at
-	// events the replay HAS produced. Equal counts plus an already-verified
-	// common prefix make Head equal by construction; the Head comparison is
-	// kept anyway as the brief asks, and as a belt-and-braces check on the
-	// chain arithmetic itself.
+	// events the replay HAS produced.
+	//
+	// M12 (final whole-branch review): this used to return a plain
+	// fmt.Errorf carrying neither a Seq nor a *Divergence, unlike compare's
+	// Missing:true case just above it -- so a caller doing the ordinary
+	// errors.As(err, &divergence) dance (cmd/mtgsim's printReplayOutcome is
+	// exactly this) fell through to a bare "replay error: ..." instead of a
+	// located divergence. Returning a *Divergence with Short:true (Missing's
+	// mirror image: see the field's own doc) and Seq set to where the
+	// replay stopped fixes that.
 	if len(e.L.Events) != len(l.Events) {
-		return e, fmt.Errorf("replay: produced %d events, recorded %d", len(e.L.Events), len(l.Events))
+		return e, &Divergence{Seq: uint64(len(e.L.Events)), Short: true, Want: l.Events[len(e.L.Events)]}
 	}
 	// Ruling T24-a (fix round 1, Important #1): l.Head() is wrong for any l
 	// that did not accumulate its own chain live in this process. l.chain is

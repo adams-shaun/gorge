@@ -191,10 +191,19 @@ func printReplayOutcome(out io.Writer, err error, chainHead string) bool {
 	}
 	var div *replay.Divergence
 	if errors.As(err, &div) {
-		if div.Missing {
+		switch {
+		case div.Missing:
 			fmt.Fprintf(out, "  replay diverged at event %d: recorded log ends there, replay produced %s\n",
 				div.Seq, div.Got.Kind)
-		} else {
+		case div.Short:
+			// M12 (final whole-branch review): Missing's mirror image -- the
+			// replay ran out of recorded Intents before the recorded log
+			// itself ended, so there is nothing the replay actually
+			// produced at Seq to name (unlike Missing, printing Got here
+			// would be a fabricated zero events.Event).
+			fmt.Fprintf(out, "  replay diverged at event %d: replay ended there, recorded log continues with %s\n",
+				div.Seq, div.Want.Kind)
+		default:
 			fmt.Fprintf(out, "  replay diverged at event %d: recorded %s, replayed %s\n",
 				div.Seq, div.Want.Kind, div.Got.Kind)
 		}

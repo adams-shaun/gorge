@@ -393,10 +393,13 @@ func TestPlayLandReplayThroughSubmit(t *testing.T) {
 // zone or tapped state here -- only the scalar fields the two rulings
 // govern (Passes, Priority, LandsPlayed).
 //
-// resolveAbility is still the empty stub this task's brief adds (replaced
-// in Task 14), so activating the mana ability does not yet add anything to
-// the pool -- this test does not assert a pool change, and that gap is
-// noted in the Task 13 fix-round report for Task 14 to pick up.
+// resolveAbility is fully implemented (Task 14); the reason this test still
+// does not assert a pool change is simpler and unrelated -- the fixture
+// card above is a bare "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x"
+// with no printed A:AB$ Mana line at all, so legal.go's "activate" case
+// finds zero entries in o.Face().ManaAbilities() and its resolveAbility loop
+// never runs. This test is exercising the activate/replay path (Passes,
+// Priority, Tapped), not real mana production.
 func TestActivateManaAbilityReplayThroughSubmit(t *testing.T) {
 	names := []string{"a", "b"}
 	cfg := Config{Seed: 9, Names: names,

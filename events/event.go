@@ -90,7 +90,7 @@ const (
 	// after ClockTick, is new.
 	TriggerPush
 	// EndCombatReset clears every object's IsAttacking/BlockedBy fields.
-	// Ruling T21-a (Task 21 fix round 1): rules.setStep used to do this with
+	// Ruling T21-e (Task 21 fix round 1): rules.setStep used to do this with
 	// a direct loop over e.G.Objs when entering StepEndCombat or
 	// StepCleanup, instead of emitting anything -- a violation of "all state
 	// mutation goes through events.Apply" that was structurally present

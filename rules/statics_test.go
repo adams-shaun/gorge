@@ -179,9 +179,11 @@ func TestCantBeActivatedSuppressesManaAbilities(t *testing.T) {
 	}
 }
 
-// TestCantBlockRemovesEveryBlockOption is row 6. Block-option generation
-// (askBlockers/handleBlockers) is still Task 21/22's stub, so this exercises
-// blockRestricted directly rather than through a decision.
+// TestCantBlockRemovesEveryBlockOption is row 6. This exercises
+// blockRestricted directly, in isolation from a real declare-blockers
+// decision -- askBlockers/handleBlockers (rules/combat.go) are fully
+// implemented and covered end-to-end elsewhere; this test is purely about
+// the static-restriction primitive the two of them call.
 func TestCantBlockRemovesEveryBlockOption(t *testing.T) {
 	blockerCard := card(t, "Name:Blocker\nManaCost:1 W\nTypes:Creature Human\nPT:1/1\nOracle:x\n")
 	attackerCard := card(t, "Name:Attacker\nManaCost:1 R\nTypes:Creature Goblin\nPT:2/2\nOracle:x\n")
