@@ -267,7 +267,18 @@ func Apply(g *state.Game, e Event) {
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = f.Triggers[e.Amount].Effect
 		o.Source = e.Obj
+		// FL-41: an id in IDs is either a real object (the ordinary case)
+		// or a player reference (state.PlayerRef, rules.pushTrigger) --
+		// triggerRemembered's DeclareAttackers case appends the defending
+		// player to Remembered, and IDs has no field of its own for a bare
+		// PlayerID, so that entry travels here encoded rather than as a bare
+		// ObjID that would decode as "object 0" and be indistinguishable
+		// from a missing object.
 		for _, id := range e.IDs {
+			if p, ok := id.PlayerRef(); ok {
+				o.Remembered = append(o.Remembered, state.Target{Player: p, IsPlayer: true})
+				continue
+			}
 			o.Remembered = append(o.Remembered, state.Target{Obj: id})
 		}
 

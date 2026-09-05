@@ -106,12 +106,19 @@ func (e *Engine) controllerOf(id state.ObjID) state.PlayerID {
 //
 // lki is the object a MoveZone/Draw/PutOnStack event's own Obj was, just
 // before emit applied the event (nil for every other event kind, or if that
-// object could not be found -- see emit). It is only ever meaningful for
-// the object the event was actually about, so a matched trigger's Ctx.LKI
-// is set from it only when lki.ID == ev.Obj; every other trigger this same
-// event happens to also fire (a different object's own ChangesZone
-// watching the same move) sees LKI as nil, since lki describes ev.Obj, not
-// them.
+// object could not be found -- see emit). It describes ev.Obj, not id (the
+// object whose T: line is being checked in a given iteration below), so it
+// is handed to EVERY trigger this event fires, not only a Card.Self trigger
+// on ev.Obj itself: a bystander's "whenever a creature you control dies"
+// wants the LKI of the creature that died, exactly the same as that
+// creature's own dies trigger would. Fix round 1, Important 2: an earlier
+// version of this doc claimed LKI was withheld from every trigger but the
+// matching object's own, which was never what the code below does (see
+// objLKI's guard) -- lki.ID == ev.Obj is already guaranteed by construction
+// in emit (lki, when non-nil, is always built from e.G.Obj(ev.Obj)), so
+// there is no per-trigger gate here at all, only a defensive belt-and-
+// braces check against a future emit change that might one day pass a
+// mismatched lki.
 func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 	e.forEachObject(func(id state.ObjID) {
 		o := e.G.Obj(id)
@@ -152,6 +159,10 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 				// nothing to run.
 				continue
 			}
+			// Defensive, not a per-trigger gate: lki.ID == ev.Obj always
+			// holds when lki != nil (see checkTriggers's own doc above), so
+			// every trigger this loop matches for this event gets the same
+			// objLKI.
 			var objLKI *state.Object
 			if lki != nil && lki.ID == ev.Obj {
 				objLKI = lki
@@ -176,24 +187,34 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 // object the triggering event was actually about (the card that changed
 // zones, was cast, or is being targeted), or -- for an event with no object
 // of its own, such as a step change, or a player-only Damage event -- the
-// trigger's own source. None of the eight M1 modes' Execute$ abilities in
-// the acceptance deck actually reads Remembered (they use Defined$
+// trigger's own source. Most of the eight M1 modes' Execute$ abilities in
+// the acceptance deck don't read Remembered at all (they use Defined$
 // Self/You), so this is deliberately one simple, general rule rather than a
 // mode-specific one -- except DeclareAttackers, which carries every attacker
 // declared this combat in Event.IDs rather than a single Event.Obj (see
 // attacksMatches): Remembered there is every declared attacker, in order,
-// followed by one more entry for the defending player (handleAttackers sets
-// Event.Player to that seat, not an attacker). Task 7's Defined$
-// TriggeredDefendingPlayer is meant to read that trailing entry -- two repo
-// cards (Goblin Guide, Ulamog) already carry that Defined$ spelling, but
-// effects.Defined does not recognize it yet and falls back to Targets, so no
-// repo card's resolved BEHAVIOUR depends on this trailing entry until Task 7
-// teaches Defined about it. pushTrigger (trigger_queue.go) persists this
-// Remembered exactly as built here -- every declared attacker plus the
-// defending-player entry -- onto the TriggerPush event it logs; that moves
-// TestHeads's pinned chain heads for the 4- and 8-seat acceptance games
-// (Attacks-mode triggers already fire there), a named, expected move per
-// FL-36, not a defect.
+// followed by one more entry for the defending player. ev.Player is set by
+// handleAttackers (rules/combat.go) to chosen[0].Player -- the FIRST
+// declared attacker's own defender, taken as the defender for the whole
+// declaration; a pre-existing simplification of this event's shape (M1 has
+// no per-attacker defender), not something this trailing entry introduces.
+//
+// effects.context.go's Defined already recognises Defined$
+// TriggeredDefendingPlayer/TriggeredPlayer (Task 5's playersOf(Remembered),
+// merged after this task started) -- so two repo cards, Goblin Guide and
+// Ulamog, both of which carry that exact spelling, go from a silent no-op
+// (playersOf found no player entry in Remembered at all, so Defined
+// resolved to nothing and their Dig ran on zero targets) to genuinely
+// functional the moment this trailing entry exists AND survives onto the
+// stack. The latter needed FL-41's fix: pushTrigger (trigger_queue.go)
+// could not just write tgt.Obj for this entry into the logged TriggerPush
+// event's IDs (always 0 for a player target, indistinguishable from a
+// missing object once decoded) without silently resolving to the
+// controller instead of the defender -- state.PlayerRef is what lets a
+// player reference survive that log-and-replay round trip intact. Together,
+// Goblin Guide and Ulamog's Attacks abilities are a real, new source of
+// chain-head movement across the acceptance games (FL-36), on top of
+// whatever Task 5's own Defined changes already moved.
 func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 	if ev.Kind == events.DeclareAttackers {
 		out := make([]state.Target, 0, len(ev.IDs)+1)

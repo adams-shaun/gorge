@@ -7,6 +7,31 @@ type (
 	Step     uint8
 )
 
+// playerRefBit marks an ObjID that does not name a real object at all, but
+// instead carries a PlayerID -- for a caller (rules.pushTrigger, for a
+// DeclareAttackers-driven Attacks trigger's defending-player entry) that
+// needs to smuggle a player reference through a slot that can only ever
+// hold object ids (events.Event.IDs, and therefore the TriggerPush event
+// that persists a pending trigger's Remembered onto the stack). See
+// Game.NextID/AddObject for why no real object id can ever collide with it.
+const playerRefBit ObjID = 1 << 31
+
+// PlayerRef encodes p as an ObjID carrying playerRefBit, so it can travel
+// through an []ObjID (an events.Event's IDs field) alongside real object
+// ids without a schema change. Decode it back with ObjID.PlayerRef.
+func PlayerRef(p PlayerID) ObjID { return playerRefBit | ObjID(p) }
+
+// PlayerRef reports whether id was produced by the package-level PlayerRef
+// and, if so, the PlayerID it carries. A real object id -- everything
+// AddObject ever hands out -- always reports false; see NextID's own
+// comment for why the two ranges can never overlap.
+func (id ObjID) PlayerRef() (PlayerID, bool) {
+	if id&playerRefBit == 0 {
+		return 0, false
+	}
+	return PlayerID(id &^ playerRefBit), true
+}
+
 const (
 	ZLibrary Zone = iota
 	ZHand
