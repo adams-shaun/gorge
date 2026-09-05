@@ -87,6 +87,24 @@ func init() {
 	// StrictlyOther is Forge's other spelling of the same "not the source"
 	// test Other already implements.
 	predicates["StrictlyOther"] = predicates["Other"]
+	// EquippedBy / EnchantedBy / AttachedBy: the candidate is the permanent
+	// source is attached to (attachedBy below). Task 14 wires all three to the
+	// same predicate -- Forge spells "attached to" three ways depending on
+	// whether the source is Equipment, an Aura, or a generic script.
+	predicates["EquippedBy"] = attachedBy
+	predicates["EnchantedBy"] = attachedBy
+	predicates["AttachedBy"] = attachedBy
+}
+
+// attachedBy reports whether o is the permanent src is currently attached
+// to. Affected$ Creature.EquippedBy on an Equipment's static matches exactly
+// the equipped creature: source.AttachedTo is that creature's ID, and the
+// candidate must be the object that field names. Only a battlefield source
+// is a possible attachment (an Aura/Equipment that is not a permanent cannot
+// be "attached" to anything), so a non-battlefield src matches no candidate.
+func attachedBy(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+	s := g.Obj(src)
+	return s != nil && s.AttachedTo == o.ID && s.Zone == state.ZBattlefield
 }
 
 func hasType(o *state.Object, t string) bool {

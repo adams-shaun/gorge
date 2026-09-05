@@ -151,7 +151,13 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 	// is neither tapped nor (for a creature, CR 302.6) summoning-sick without
 	// Haste, and -- the totality gate -- the whole cost must be castable
 	// (mana payable, every Sac/SubCounter part satisfiable) before the option
-	// is ever offered.
+	// is ever offered. Equip (Task 14's attachments) is carried by this same
+	// loop -- its K:Equip expansion (cards/keywords.go) is an AB$ Attach with
+	// SorcerySpeed$ True, so the gates above cover it with no carve-out, and
+	// rules/activate.go resolves it exactly like any other ability. This was
+	// not always true: Task 14 round 1 shipped a second, Equip-only loop and
+	// deleted it again on the main merge (one offer path, one activation
+	// path), so do not resurrect one.
 	for _, z := range []state.Zone{state.ZBattlefield, state.ZGraveyard} {
 		for _, id := range e.G.Zone(z, p) {
 			o := e.G.Obj(id)
