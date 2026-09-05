@@ -16,6 +16,41 @@ func bearCard() *cards.Card {
 	return c
 }
 
+// sailorCard is a permanent with one activated ability -- the same fixture
+// TestAbilityPushMintsAnActivatedAbilityObject uses -- for exercising
+// AbilityPush's actual mint path (as opposed to only its guard) in
+// TestApplyIsPure, where a no-abilities bear cannot.
+func sailorCard() *cards.Card {
+	c, _ := cards.ParseBytes("s.txt", []byte("Name:Sailor\nManaCost:U\nTypes:Creature Spirit\nPT:1/1\nA:AB$ Draw | Cost$ 3 U | NumCards$ 1 | Defined$ You | SpellDescription$ Draw a card.\nOracle:x\n"))
+	c.Link()
+	return c
+}
+
+// gameWithOneCardSrc builds a two-seat game (Ann/Bob) with one card, parsed
+// from src, sitting in seat 0's hand. Task 4's own object-field tests need a
+// single known object to apply CastInfo/Choose/... events to, rather than
+// twoPlayer's five-bears-per-library shape.
+func gameWithOneCardSrc(t *testing.T, src string) (*state.Game, state.ObjID) {
+	t.Helper()
+	g := state.NewGame([]string{"Ann", "Bob"})
+	c, d := cards.ParseBytes("one.txt", []byte(src))
+	if len(d) != 0 {
+		t.Fatalf("diags: %v", d)
+	}
+	c.Link()
+	o := g.AddObject(c, 0)
+	o.Zone = state.ZHand
+	g.SetZone(state.ZHand, 0, []state.ObjID{o.ID})
+	return g, o.ID
+}
+
+// gameWithOneCard is gameWithOneCardSrc with the default fixture: a 2/2
+// Bear, the same card twoPlayer/bearCard already use elsewhere in this file.
+func gameWithOneCard(t *testing.T) (*state.Game, state.ObjID) {
+	t.Helper()
+	return gameWithOneCardSrc(t, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+}
+
 func twoPlayer(t *testing.T) (*state.Game, *Log) {
 	t.Helper()
 	g := state.NewGame([]string{"a", "b"})
@@ -511,7 +546,18 @@ func TestDamageClampsAtZero(t *testing.T) {
 func TestApplyIsPure(t *testing.T) {
 	build := func(t *testing.T) (*state.Game, *Log) {
 		t.Helper()
-		return twoPlayer(t)
+		g, l := twoPlayer(t)
+		// Task 4: a token table, so TokenCreate below actually mints
+		// (rather than only exercising its no-op guard) -- reusing
+		// bearCard's own source is enough to prove the mutation is
+		// deterministic; it need not be a "real" token script.
+		g.Tokens = map[string]*cards.Card{"bear": bearCard()}
+		// A sixth card in seat 0's library with one activated ability, so
+		// AbilityPush below can actually mint an ability object rather than
+		// only exercise its no-abilities guard.
+		sailor := g.AddObject(sailorCard(), 0)
+		g.SetZone(state.ZLibrary, 0, append(g.Zone(state.ZLibrary, 0), sailor.ID))
+		return g, l
 	}
 
 	sequence := func(g *state.Game, l *Log) {
@@ -528,6 +574,23 @@ func TestApplyIsPure(t *testing.T) {
 		Emit(g, l, Event{Kind: Damage, Obj: lib0[0], Amount: 1})
 		Emit(g, l, Event{Kind: ManaAdd, Player: 0, Counter: "R", Amount: 3})
 		Emit(g, l, Event{Kind: MoveZone, Obj: lib1[0], From: state.ZLibrary, To: state.ZBattlefield})
+
+		// Task 4's six new kinds, one apiece, exercised here so any hidden
+		// non-determinism in their Apply cases (map-range order, and so on)
+		// would show up as a divergence below exactly like every other
+		// kind's already does.
+		Emit(g, l, Event{Kind: CastInfo, Obj: lib1[0], Amount: 4, Counter: "kicked,miracle"})
+		Emit(g, l, Event{Kind: Choose, Obj: lib1[0], Counter: "type", Text: "Bear"})
+		Emit(g, l, Event{Kind: Attach, Obj: lib0[0], IDs: []state.ObjID{lib1[0]}})
+		Emit(g, l, Event{Kind: TokenCreate, Player: 0, Text: "bear"})
+		Emit(g, l, Event{Kind: PutOnStack, Obj: lib1[1], Player: 1, From: state.ZLibrary, To: state.ZStack})
+		Emit(g, l, Event{Kind: StackCopy, Obj: lib1[1], Player: 1})
+		// lib0[5] is the sailor build added: on the battlefield with one
+		// activated ability, so this actually mints an ability object
+		// rather than only exercising the no-abilities guard.
+		Emit(g, l, Event{Kind: MoveZone, Obj: lib0[5], From: state.ZLibrary, To: state.ZBattlefield})
+		Emit(g, l, Event{Kind: AbilityPush, Obj: lib0[5], Player: 0, Amount: 0})
+
 		Emit(g, l, Event{Kind: DeclareAttackers, Player: 0, IDs: []state.ObjID{lib0[0]}})
 		Emit(g, l, Event{Kind: DeclareBlockers, Pairs: [][2]state.ObjID{{lib1[0], lib0[0]}}})
 		Emit(g, l, Event{Kind: TurnChange, Player: 1, Amount: 2})
@@ -836,5 +899,223 @@ func TestEndCombatResetClearsIsAttackingAndBlockedBy(t *testing.T) {
 func TestEndCombatResetKindString(t *testing.T) {
 	if got, want := EndCombatReset.String(), "end_combat_reset"; got != want {
 		t.Fatalf("EndCombatReset.String() = %q, want %q", got, want)
+	}
+}
+
+// TestCastInfoRecordsXAndFlags is Task 4's carrier for CastInfo: X and
+// CastFlags must survive a spell resolving onto the battlefield (an ETB
+// "if it was kicked" trigger needs to read them off the permanent) and
+// reset once that permanent actually leaves the battlefield again.
+func TestCastInfoRecordsXAndFlags(t *testing.T) {
+	g, id := gameWithOneCard(t)
+	Apply(g, Event{Kind: CastInfo, Obj: id, Amount: 3, Counter: "kicked,flashback"})
+	o := g.Obj(id)
+	if o.X != 3 || o.CastFlags != state.FlagKicked|state.FlagFlashback {
+		t.Fatalf("%+v", o)
+	}
+	if FlagsString(o.CastFlags) != "kicked,flashback" || FlagsFrom("surged,miracle") != state.FlagSurged|state.FlagMiracle {
+		t.Fatal("flag round trip")
+	}
+	Move(g, id, state.ZHand, state.ZBattlefield)
+	if g.Obj(id).X != 3 || g.Obj(id).CastFlags == 0 {
+		t.Fatal("cast info must survive onto the battlefield (ETB 'if it was kicked')")
+	}
+	Move(g, id, state.ZBattlefield, state.ZGraveyard)
+	if g.Obj(id).X != 0 || g.Obj(id).CastFlags != 0 {
+		t.Fatal("cast info must reset when the permanent leaves the battlefield")
+	}
+}
+
+func TestCastInfoKindString(t *testing.T) {
+	if got, want := CastInfo.String(), "cast_info"; got != want {
+		t.Fatalf("CastInfo.String() = %q, want %q", got, want)
+	}
+}
+
+// TestFlagsFromTrimsWhitespaceAndIgnoresUnknownNames pins down the two
+// FlagsFrom behaviors TestCastInfoRecordsXAndFlags' clean "kicked,flashback"
+// round trip does not exercise: surrounding whitespace around a flag name
+// (a log or a hand-typed Counter string might carry it) must not stop that
+// name from matching, an unrecognized name must be silently ignored rather
+// than panicking or matching something else, and the empty string -- CastInfo
+// with no flags at all -- must parse to zero.
+func TestFlagsFromTrimsWhitespaceAndIgnoresUnknownNames(t *testing.T) {
+	if got, want := FlagsFrom(" kicked , bogus "), state.FlagKicked; got != want {
+		t.Fatalf("FlagsFrom(%q) = %d, want %d (kicked only, trimmed, bogus ignored)", " kicked , bogus ", got, want)
+	}
+	if got := FlagsFrom(""); got != 0 {
+		t.Fatalf("FlagsFrom(\"\") = %d, want 0", got)
+	}
+}
+
+// TestChooseRecordsNameTypeAndNumber is Task 4's carrier for Choose: each of
+// its three shapes lands on the right field, an unrecognized shape is a
+// no-op (not a panic), and a nil object is a no-op too.
+func TestChooseRecordsNameTypeAndNumber(t *testing.T) {
+	g, id := gameWithOneCard(t)
+	Apply(g, Event{Kind: Choose, Obj: id, Counter: "name", Text: "Lightning Bolt"})
+	Apply(g, Event{Kind: Choose, Obj: id, Counter: "type", Text: "Goblin"})
+	Apply(g, Event{Kind: Choose, Obj: id, Counter: "number", Amount: 2})
+	o := g.Obj(id)
+	if o.ChosenName != "Lightning Bolt" || o.ChosenType != "Goblin" || o.ChosenNumber != 2 {
+		t.Fatalf("%+v", o)
+	}
+	Apply(g, Event{Kind: Choose, Obj: id, Counter: "colour", Text: "x"}) // unknown kind: no-op, no panic
+	Apply(g, Event{Kind: Choose, Obj: 999, Counter: "name", Text: "x"})
+}
+
+func TestChooseKindString(t *testing.T) {
+	if got, want := Choose.String(), "choose"; got != want {
+		t.Fatalf("Choose.String() = %q, want %q", got, want)
+	}
+}
+
+// TestTokenCreateMintsFromTheGameTokenTable is Task 4's carrier for
+// TokenCreate: the minted object comes from Game.Tokens (never from data
+// smuggled through the event itself), lands on the battlefield summoning
+// sick, and an unknown key or invalid player is a no-op.
+func TestTokenCreateMintsFromTheGameTokenTable(t *testing.T) {
+	g, _ := gameWithOneCard(t)
+	tok, _ := cards.ParseBytes("tok.txt", []byte("Name:Goblin Token\nManaCost:no cost\nTypes:Creature Goblin\nColors:red\nPT:1/1\nOracle:\n"))
+	g.Tokens = map[string]*cards.Card{"r_1_1_goblin": tok}
+	before := len(g.Objs)
+	Apply(g, Event{Kind: TokenCreate, Player: 1, Text: "r_1_1_goblin"})
+	if len(g.Objs) != before+1 {
+		t.Fatal("no object minted")
+	}
+	o := g.Obj(state.ObjID(before + 1))
+	if !o.IsToken || o.Owner != 1 || o.Controller != 1 || o.Zone != state.ZBattlefield || o.Face().Name != "Goblin Token" || !o.SummonSick {
+		t.Fatalf("token %+v", o)
+	}
+	if bf := g.Zone(state.ZBattlefield, 1); len(bf) != 1 || bf[0] != o.ID {
+		t.Fatal("token not in its controller's battlefield list")
+	}
+	Apply(g, Event{Kind: TokenCreate, Player: 1, Text: "no_such_token"}) // unknown key: no-op
+	Apply(g, Event{Kind: TokenCreate, Player: 9, Text: "r_1_1_goblin"})  // invalid player: no-op
+	if len(g.Objs) != before+1 {
+		t.Fatal("bad TokenCreate minted something")
+	}
+}
+
+func TestTokenCreateKindString(t *testing.T) {
+	if got, want := TokenCreate.String(), "token_create"; got != want {
+		t.Fatalf("TokenCreate.String() = %q, want %q", got, want)
+	}
+}
+
+// TestStackCopyDuplicatesASpellAboveIt is Task 4's carrier for StackCopy:
+// the copy shares the original's Card/FaceIdx/X/CastFlags/Targets by value
+// (never by aliasing a shared slice), lands directly above the original on
+// the stack, and a missing or off-stack source is a no-op.
+func TestStackCopyDuplicatesASpellAboveIt(t *testing.T) {
+	g, id := gameWithOneCard(t)
+	Apply(g, Event{Kind: PutOnStack, Obj: id, Player: 0, From: state.ZHand, To: state.ZStack})
+	Apply(g, Event{Kind: TargetsChosen, Obj: id, Player: 1, Amount: 1})
+	Apply(g, Event{Kind: CastInfo, Obj: id, Amount: 2, Counter: "kicked"})
+	Apply(g, Event{Kind: StackCopy, Obj: id, Player: 0})
+	if len(g.Stack) != 2 || g.Stack[1] == id {
+		t.Fatalf("stack %v", g.Stack)
+	}
+	c := g.Obj(g.Stack[1])
+	if !c.IsCopy || c.Card != g.Obj(id).Card || c.FaceIdx != g.Obj(id).FaceIdx || c.Controller != 0 || c.X != 2 || c.CastFlags != state.FlagKicked {
+		t.Fatalf("copy %+v", c)
+	}
+	if len(c.Targets) != 1 || !c.Targets[0].IsPlayer || c.Targets[0].Player != 1 {
+		t.Fatalf("copy targets %v", c.Targets)
+	}
+	c.Targets[0].Player = 0
+	if g.Obj(id).Targets[0].Player != 1 {
+		t.Fatal("copy shares its Targets array with the original")
+	}
+	Apply(g, Event{Kind: StackCopy, Obj: 999, Player: 0}) // nothing there: no-op
+	Move(g, id, state.ZStack, state.ZGraveyard)
+	Apply(g, Event{Kind: StackCopy, Obj: id, Player: 0}) // not on the stack: no-op
+	if len(g.Stack) != 1 {
+		t.Fatalf("stack %v", g.Stack)
+	}
+}
+
+func TestStackCopyKindString(t *testing.T) {
+	if got, want := StackCopy.String(), "stack_copy"; got != want {
+		t.Fatalf("StackCopy.String() = %q, want %q", got, want)
+	}
+}
+
+// TestAttachAndDetach is Task 4's carrier for Attach: an IDs entry attaches,
+// an empty IDs detaches, leaving the battlefield always detaches, and an
+// unknown target is a no-op.
+func TestAttachAndDetach(t *testing.T) {
+	g, eq := gameWithOneCard(t)
+	tgt := g.AddObject(g.Obj(eq).Card, 0).ID
+	Move(g, eq, state.ZLibrary, state.ZBattlefield)
+	Move(g, tgt, state.ZLibrary, state.ZBattlefield)
+	Apply(g, Event{Kind: Attach, Obj: eq, IDs: []state.ObjID{tgt}})
+	if g.Obj(eq).AttachedTo != tgt {
+		t.Fatal("not attached")
+	}
+	Apply(g, Event{Kind: Attach, Obj: eq})
+	if g.Obj(eq).AttachedTo != 0 {
+		t.Fatal("not detached")
+	}
+	Apply(g, Event{Kind: Attach, Obj: eq, IDs: []state.ObjID{tgt}})
+	Move(g, eq, state.ZBattlefield, state.ZGraveyard)
+	if g.Obj(eq).AttachedTo != 0 {
+		t.Fatal("leaving the battlefield must detach")
+	}
+	Apply(g, Event{Kind: Attach, Obj: eq, IDs: []state.ObjID{999}}) // unknown target: no-op
+}
+
+func TestAttachKindString(t *testing.T) {
+	if got, want := Attach.String(), "attach"; got != want {
+		t.Fatalf("Attach.String() = %q, want %q", got, want)
+	}
+}
+
+// TestAbilityPushMintsAnActivatedAbilityObject is Task 4's carrier for
+// AbilityPush: the ability object is minted inside Apply (no Face, per
+// Ruling F3), carries the source's chosen Ability and Source, and an
+// out-of-range ability index or invalid player is a no-op.
+func TestAbilityPushMintsAnActivatedAbilityObject(t *testing.T) {
+	g, id := gameWithOneCardSrc(t, "Name:Sailor\nManaCost:U\nTypes:Creature Spirit\nPT:1/1\nA:AB$ Draw | Cost$ 3 U | NumCards$ 1 | Defined$ You | SpellDescription$ Draw a card.\nOracle:x\n")
+	Move(g, id, state.ZHand, state.ZBattlefield)
+	Apply(g, Event{Kind: AbilityPush, Obj: id, Player: 0, Amount: 0})
+	if len(g.Stack) != 1 {
+		t.Fatal("no ability object")
+	}
+	ab := g.Obj(g.Stack[0])
+	if ab.Card != nil || ab.Ability != g.Obj(id).Face().Abilities[0] || ab.Source != id || ab.Controller != 0 {
+		t.Fatalf("ability object %+v", ab)
+	}
+	Apply(g, Event{Kind: AbilityPush, Obj: id, Player: 0, Amount: 7}) // index out of range: no-op
+	Apply(g, Event{Kind: AbilityPush, Obj: id, Player: 9, Amount: 0}) // invalid player: no-op
+	if len(g.Stack) != 1 {
+		t.Fatal("bad AbilityPush minted something")
+	}
+}
+
+func TestAbilityPushKindString(t *testing.T) {
+	if got, want := AbilityPush.String(), "ability_push"; got != want {
+		t.Fatalf("AbilityPush.String() = %q, want %q", got, want)
+	}
+}
+
+// TestTargetsChosenAppendShapes is Task 4's carrier for TargetsChosen's two
+// new shapes (Amount 2 appends an object target, Amount 3 appends a player
+// target); shapes 0 and 1 must keep replacing exactly as before, so every
+// pre-Task-4 log still applies unchanged.
+func TestTargetsChosenAppendShapes(t *testing.T) {
+	g, id := gameWithOneCard(t)
+	other := g.AddObject(g.Obj(id).Card, 1).ID
+	Apply(g, Event{Kind: PutOnStack, Obj: id, Player: 0, From: state.ZHand, To: state.ZStack})
+	Apply(g, Event{Kind: TargetsChosen, Obj: id, IDs: []state.ObjID{other}})         // replace with objects
+	Apply(g, Event{Kind: TargetsChosen, Obj: id, Player: 1, Amount: 3})              // append player
+	Apply(g, Event{Kind: TargetsChosen, Obj: id, IDs: []state.ObjID{id}, Amount: 2}) // append object
+	tg := g.Obj(id).Targets
+	if len(tg) != 3 || tg[0].Obj != other || !tg[1].IsPlayer || tg[1].Player != 1 || tg[2].Obj != id {
+		t.Fatalf("targets %+v", tg)
+	}
+	Apply(g, Event{Kind: TargetsChosen, Obj: id, Player: 0, Amount: 1}) // shape 1 still replaces
+	if tg := g.Obj(id).Targets; len(tg) != 1 || !tg[0].IsPlayer {
+		t.Fatalf("targets %+v", tg)
 	}
 }
