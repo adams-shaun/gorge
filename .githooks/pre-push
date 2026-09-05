@@ -1,0 +1,19 @@
+#!/bin/sh
+# Refuse to push any commit whose message carries an AI-attribution trailer.
+zero=0000000000000000000000000000000000000000
+while read -r local_ref local_sha remote_ref remote_sha; do
+	[ "$local_sha" = "$zero" ] && continue
+	if [ "$remote_sha" = "$zero" ]; then
+		range="$local_sha"
+	else
+		range="$remote_sha..$local_sha"
+	fi
+	bad=$(git log --format='%h %s%n%b' "$range" | grep -Ei '^Co-Authored-By:|Generated with .*Claude' | head -3)
+	if [ -n "$bad" ]; then
+		echo "pre-push: refusing $local_ref — attribution trailer in pushed commits:" >&2
+		echo "$bad" >&2
+		echo "amend/rebase the offending commit(s), then push again" >&2
+		exit 1
+	fi
+done
+exit 0

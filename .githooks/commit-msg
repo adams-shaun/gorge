@@ -1,0 +1,6 @@
+#!/bin/sh
+# Reject commit messages carrying AI-attribution trailers (repo rule, 2026-09-05).
+if grep -Eiq '^(Co-Authored-By:|Signed-off-by:.*(claude|anthropic)|.*Generated with .*Claude)' "$1"; then
+	echo "commit-msg: attribution trailer found; remove Co-Authored-By / 'Generated with' lines" >&2
+	exit 1
+fi
