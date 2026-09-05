@@ -73,7 +73,13 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 
 	o := e.G.Obj(matchID)
 	ctx := &effects.Ctx{Source: matchID, Controller: o.Controller,
-		Remembered: []state.Target{{Obj: ev.Obj}}}
+		Remembered: []state.Target{{Obj: ev.Obj}},
+		// Replaced names the object the replaced event (ev) was about, so a
+		// ReplaceWith$ that says Defined$ ReplacedCard (the Rest in Peace / Dryad
+		// Militant / Leyline of the Void shape: "exile it instead") can act on
+		// exactly the card being kept out of the graveyard -- not the source that
+		// owns the replacement.
+		Replaced: ev.Obj}
 	if f := o.Face(); f != nil {
 		effects.SetSVars(ctx, f.SVars)
 	}

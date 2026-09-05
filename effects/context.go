@@ -41,6 +41,17 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		// ability-vs-card distinction separately: every one of these forms
 		// names the same Remembered object entry a trigger captured.
 		return objectsOf(c.Remembered)
+	case "ReplacedCard":
+		// The card a replacement is acting on (Rest in Peace shape: the R: line
+		// intercepts a "would go to the graveyard" Move, ReplaceWith$ needs to
+		// name the object the replaced event was about). "Replaced" is set only
+		// on a replacement's own context, so outside a replacement -- and for a
+		// replaced object that has since ceased to exist -- Defined falls back to
+		// nil (nothing to act on) rather than the chosen targets.
+		if c.Replaced != 0 && g.Obj(c.Replaced) != nil {
+			return []state.Target{{Obj: c.Replaced}}
+		}
+		return nil
 	case "TriggeredDefendingPlayer", "TriggeredPlayer":
 		return playersOf(c.Remembered)
 	case "TriggeredCardController":

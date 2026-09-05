@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"math"
 	"strconv"
 	"strings"
 
@@ -149,30 +150,42 @@ func countZone(head string) (state.Zone, bool) {
 	return 0, false
 }
 
+// applyCountOp applies the /Op suffix of a Count$ expression. The arithmetic
+// runs in int64 and the result clamps to [math.MinInt32, math.MaxInt32], so a
+// huge count can neither overflow to a sign-flipped value nor panic. Task 20
+// hygiene: the old raw-int32 version made MaxInt32 doubled, negated or nudged
+// silently wrap.
 func applyCountOp(n int32, op string) int32 {
+	v := int64(n)
 	switch {
 	case strings.HasPrefix(op, "Plus"):
-		if v, err := strconv.Atoi(op[len("Plus"):]); err == nil {
-			return n + int32(v)
+		if x, err := strconv.Atoi(op[len("Plus"):]); err == nil {
+			v += int64(x)
 		}
 	case strings.HasPrefix(op, "Minus"):
-		if v, err := strconv.Atoi(op[len("Minus"):]); err == nil {
-			return n - int32(v)
+		if x, err := strconv.Atoi(op[len("Minus"):]); err == nil {
+			v -= int64(x)
 		}
 	case strings.HasPrefix(op, "Times."):
-		if v, err := strconv.Atoi(op[len("Times."):]); err == nil {
-			return n * int32(v)
+		if x, err := strconv.Atoi(op[len("Times."):]); err == nil {
+			v *= int64(x)
 		}
 	case op == "Twice":
-		return n * 2
+		v *= 2
 	case op == "HalfDown":
-		return n / 2
+		v /= 2
 	case op == "HalfUp":
-		return (n + 1) / 2
+		v = (v + 1) / 2
 	case op == "Negative":
-		return -n
+		v = -v
 	}
-	return n
+	if v > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	if v < math.MinInt32 {
+		return math.MinInt32
+	}
+	return int32(v)
 }
 
 // SetSVars binds a copy of the SVar table to a context. A nil input leaves
