@@ -290,6 +290,30 @@ func (e *Engine) resolveTop() {
 	}
 	if f.IsPermanent() {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZBattlefield})
+		// Task 29 totality guard: a ReplacementResult$ Replaced ETB
+		// replacement (applyReplacements, trigger.go) discards the Move
+		// above entirely and runs only its own ReplaceWith$ effect -- which
+		// is correct CR 616.1 behaviour when that effect itself relocates
+		// the card (Origin$/Destination$ Exile, say), but card data is free
+		// to write one whose ReplaceWith$ never moves the object at all
+		// (e.g. an ETB replacement that just gains life). Nothing else ever
+		// removes id from e.G.Stack in that case, so the very next pass
+		// would find the same object on top and resolve it again, forever:
+		// a real non-termination hazard reachable from card text, not a
+		// hypothetical. CR 608.2m already treats a resolved ability that
+		// has nowhere else to go as simply ceasing to exist; a permanent
+		// spell whose entry was fully replaced away is the same idea, so it
+		// goes to its owner's graveyard -- the same landing spot a fizzled
+		// spell above already uses -- with a Note explaining why, rather
+		// than being left to loop. Narrow on purpose: only a permanent
+		// spell reaches this branch at all; the ability-object branch above
+		// has no equivalent zone to get stuck in.
+		if o2 := e.G.Obj(id); o2 != nil && o2.Zone == state.ZStack {
+			e.emit(events.Event{Kind: events.Note, Obj: id, Text: "an ETB replacement fully " +
+				"replaced this permanent's entry to the battlefield without moving it anywhere; " +
+				"sent to the graveyard instead of re-resolving forever"})
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZGraveyard})
+		}
 	} else {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZGraveyard})
 	}

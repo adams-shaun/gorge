@@ -911,8 +911,24 @@ func (e *Engine) phaseMatches(t cards.Trigger, source state.ObjID, ev events.Eve
 // oversight. A match resolves ReplaceWith$'s ability (which itself emits
 // whatever events its own primitives call for -- Ruling: applyingReplacement
 // is already true by then, so those nested emits skip this check entirely
-// rather than potentially replacing themselves forever) and reports true, so
-// emit discards the original event instead of logging it.
+// rather than potentially replacing themselves forever).
+//
+// Task 29 (Ruling T26-a): what happens to the ORIGINAL event once a
+// replacement matches depends on Forge's ReplacementResult$, which this used
+// to ignore entirely -- every match was treated as ReplacementResult$
+// Replaced, discarding the original event unconditionally. That is right for
+// "Replaced" (and for no ReplacementResult$ at all: Task 22's four pins were
+// measured against fixtures with neither, and must keep reading as
+// Replaced), but wrong for ReplacementResult$ Updated -- Forge's idiom for
+// "the event still happens, augmented" (CR 616.1's "an effect that modifies
+// how an event occurs"), which is by far the dominant shape in the corpus:
+// 838 of 842 ReplacementResult$-bearing R: lines say Updated, and 835 of
+// those are exactly this "enters the battlefield tapped" pattern (Hallowed
+// Fountain, Celestial Colonnade, Geralf's Messenger, ...). Treating Updated
+// as a full replace discarded the permanent's own MoveZone onto the
+// battlefield, so it never left the stack and resolveTop kept re-resolving
+// the same object forever (see Task 26's report and the resolveTop guard
+// below for the other half of this fix).
 func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	if ev.Kind != events.MoveZone {
 		return ev, false
@@ -948,6 +964,42 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	if f := o.Face(); f != nil {
 		effects.SetSVars(ctx, f.SVars)
 	}
+
+	if matchRepl.Params["ReplacementResult"] == "Updated" {
+		// Apply the ORIGINAL event first, through the same events.Emit +
+		// checkTriggers pair emit itself uses for an unreplaced event --
+		// but calling them directly here, rather than routing back through
+		// e.emit, is what keeps this from re-running replacement matching
+		// on the event it just matched: CR 616.1, a replacement effect
+		// applies only once to a given event. checkTriggers still runs
+		// unconditionally (it never checks applyingReplacement), so an ETB
+		// trigger watching this same Move fires exactly as it would for an
+		// unreplaced entry.
+		stored := events.Emit(e.G, e.L, ev)
+		e.checkTriggers(stored)
+
+		// THEN resolve ReplaceWith$. The order is measured, not stylistic:
+		// effects.Resolve's Tap primitive (effects/combatfx.go effTap)
+		// only taps an object already on the battlefield (it treats one
+		// anywhere else, including still on the stack, as nothing to do)
+		// and events.Apply's Move only assigns battlefield-entry fields
+		// (SummonSick, Timestamp, ...) for the destination named in the
+		// Move it is actually given, so a Tap attempted before the object
+		// has really moved is silently a no-op, not merely undone by a
+		// later reset. Running the Move first means DBTap (or whatever
+		// ReplaceWith$ does) lands on an object already in its new zone,
+		// so "enters tapped" actually sticks.
+		e.applyingReplacement = true
+		effects.Resolve(e, ctx, matchRepl.With)
+		e.applyingReplacement = false
+		return stored, true
+	}
+
+	// Anything else -- ReplacementResult$ absent or "Replaced", or any
+	// other value -- keeps today's behaviour: the original event is
+	// discarded and only ReplaceWith$'s own effect happens. Task 22's four
+	// pins are exactly this shape (no ReplacementResult$ at all) and must
+	// not move.
 	e.applyingReplacement = true
 	effects.Resolve(e, ctx, matchRepl.With)
 	e.applyingReplacement = false
