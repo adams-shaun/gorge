@@ -203,15 +203,15 @@ func TestAbilityObjectResolvingUnderAnExileReplacementDoesNotStickOnTheStack(t *
 // watcherSrc's untargeted GainLife -- the shape the review names for
 // stack.go:216, the ability branch's own CR 608.2b recheck.
 //
-// No board state is needed to make the target illegal: resolveTop's own
-// comment on that branch (rules/stack.go, just above the ValidTgts$ check)
-// records that no triggered or activated ability this build produces ever
-// actually populates a stack object's Targets (only Remembered) --
-// checkTriggers/pushTrigger (rules/trigger.go) never call askTarget, which
-// is the only place TargetsChosen is ever emitted from. So the recheck
-// always runs against zero recorded targets, and CR 608.2b's "zero legal
-// targets" counts zero recorded ones the same way -- this trigger fizzles
-// every time it resolves, with or without a matching creature anywhere.
+// No board state is needed to make the target illegal: under Task 7 a
+// triggered ability with ValidTgts$ pops askTarget the instant it is placed
+// (pushTrigger, immediately after its TriggerPush), so with no matching
+// creature anywhere this trigger is miscast at ASK time -- askTarget's CR
+// 608.2b fizzle moves the just-created ability object straight to exile,
+// before it ever sits on the stack to be rechecked at resolution. That means
+// the totality guard tested below (ensureLeftTheStack under an exile-blocking
+// replacement) is now exercised at ask time, not at resolution -- the C1
+// hang this file exists to forbid cannot occur either way.
 const damageWatcherSrc = `Name:Reflex Sentinel
 ManaCost:1
 Types:Artifact
@@ -221,18 +221,20 @@ Oracle:x
 `
 
 // TestAbilityFizzlingAtResolutionUnderAnExileReplacementDoesNotStickOnTheStack
-// is final review R1(a): stack.go:216, the ability branch's own CR 608.2b
-// fizzle -- distinct from TestAbilityObjectResolvingUnderAnExileReplacementDoesNotStickOnTheStack
-// above, which pins that branch's NORMAL resolution exit at :257 (reached
-// only once a resolving ability has no ValidTgts$ of its own, or its
-// recheck still finds a legal target). Before the fix, deleting the :216
-// call alone leaves a reachable game hung forever, exactly the reviewer's
-// own probe: the fizzle's own Stack->Exile Move is discarded by
-// exileBlockingReplacementSrc (its ReplaceWith$ relocates nothing, the same
-// unmodeled Defined$ ReplacedCard as everywhere else in this file), and
-// nothing else ever takes the ability off the stack -- the next priority
-// round finds the same object on top and resolves (and refizzles) it again,
-// forever.
+// is final review R1(a): the ability branch's own CR 608.2b fizzle. Task 7
+// moved WHEN that fizzle runs for a ValidTgts$ trigger from resolution-time
+// (resolveTop's recheck) to ask-time: pushTrigger now asks targets the
+// instant the trigger is placed, and askTarget with no legal target fizzles
+// the just-created ability straight to exile rather than letting it sit on
+// the stack. The totality property this file exists to pin -- a fizzling
+// ability whose own Stack->Exile Move is discarded by
+// exileBlockingReplacementSrc (ReplaceWith$ relocates nothing) must not hang
+// or re-resolve forever -- is the same, but it is now exercised at ask time:
+// the ability is created in the same Submit as the land entry and
+// immediately parked in exile, the match terminates, and no Resolve ever
+// runs. Before the guard, deleting askTarget's ensureLeftTheStack call
+// leaves the ability stuck on the stack forever; this asserts the terminal
+// state that guard delivers.
 func TestAbilityFizzlingAtResolutionUnderAnExileReplacementDoesNotStickOnTheStack(t *testing.T) {
 	e, _, landID := newFixtureDeck(t, 112, plainLandSrc)
 	onBoard(t, e, 0, damageWatcherSrc)
@@ -255,20 +257,26 @@ func TestAbilityFizzlingAtResolutionUnderAnExileReplacementDoesNotStickOnTheStac
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
 		t.Fatalf("submit play_land: %v", err)
 	}
-	if len(e.G.Stack) != 1 {
-		t.Fatalf("stack = %v, want the Sentinel's targeted ETB trigger queued", e.G.Stack)
+	// Task 7: the Sentinel's ValidTgts ETB trigger fizzles AT ASK TIME (no
+	// creature to target), so the ability object never finishes its turn on
+	// the stack -- it is created by its own TriggerPush and immediately
+	// parked in exile by askTarget's CR 608.2b fizzle. Void Ward discards
+	// that fizzle MoveZone (its ReplaceWith$ relocates nothing), so the
+	// logged to-exile move is the guard's own re-emit; find the ability id
+	// by that move (the only thing this board ever moves to exile).
+	abilityID := state.ObjID(0)
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.MoveZone && ev.To == state.ZExile {
+			abilityID = ev.Obj
+			break
+		}
 	}
-	abilityID := e.G.Stack[0]
-
-	const bound = 60
-	n := passUntilStackEmpty(t, e, bound)
+	if abilityID == 0 {
+		t.Fatal("no guarded ask-time fizzle MoveZone to exile found in the log")
+	}
 	if len(e.G.Stack) != 0 {
-		t.Fatalf("stack = %v after %d bounded priority passes with an exile-blocking "+
-			"replacement in play -- the ability-fizzle resolve exit is unguarded (final "+
-			"review R1(a), stack.go:216)", e.G.Stack, bound)
-	}
-	if n != 2 {
-		t.Fatalf("passes to drain the stack = %d, want exactly 2", n)
+		t.Fatalf("stack = %v, want empty -- the trigger's ability never sat on the stack "+
+			"(ask-time fizzle)", e.G.Stack)
 	}
 	if got := e.G.Obj(abilityID).Zone; got != state.ZExile {
 		t.Fatalf("zone = %s, want exile -- Void Ward's ReplaceWith$ (Defined$ ReplacedCard, "+
@@ -276,20 +284,20 @@ func TestAbilityFizzlingAtResolutionUnderAnExileReplacementDoesNotStickOnTheStac
 			"it there", got)
 	}
 	noteCount := 0
-	noteMentionsFizzled := false
+	noneLeft := false
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && ev.Obj == abilityID {
+		if ev.Kind == events.Note {
 			noteCount++
-			if strings.Contains(ev.Text, "fizzled: no legal targets") {
-				noteMentionsFizzled = true
+			if strings.Contains(ev.Text, "no legal targets") {
+				noneLeft = true
 			}
 		}
 	}
 	if noteCount < 1 {
 		t.Fatal("no guard Note logged for the fizzled ability")
 	}
-	if !noteMentionsFizzled {
-		t.Fatal(`no guard Note mentions "fizzled: no legal targets"`)
+	if !noneLeft {
+		t.Fatal(`no guard Note mentions "no legal targets"`)
 	}
 	if n := countKind(e.L.Events, events.Resolve, abilityID); n != 0 {
 		t.Fatalf("logged %d Resolve events for the fizzled ability, want 0 -- a fizzle "+
@@ -406,6 +414,16 @@ PT:1/1
 Oracle:x
 `
 
+// removalSparkSrc is a creature-killing instant, cast AFTER Reflex Sentinel's
+// triggered ability has already taken a legal target, to make that target stop
+// being legal before the ability resolves. Five damage is lethal to a 1/1.
+const removalSparkSrc = `Name:Murder Spark
+ManaCost:B
+Types:Instant
+A:SP$ DealDamage | ValidTgts$ Creature | NumDmg$ 5
+Oracle:x
+`
+
 // TestSpellFizzlingAtResolutionUnderAGraveyardReplacementDoesNotStickOnTheStack
 // is final review R1(c): stack.go:291, the spell branch's own CR 608.2b
 // resolution-time recheck -- a target legal when chosen (fieldRatSrc, alive
@@ -496,6 +514,134 @@ func TestSpellFizzlingAtResolutionUnderAGraveyardReplacementDoesNotStickOnTheSta
 	}
 	if !noteMentionsFizzled {
 		t.Fatal(`no guard Note mentions "fizzled: no legal targets"`)
+	}
+	if e.Pending() == nil {
+		t.Fatal("no further decision pending -- the engine did not reach the next decision")
+	}
+}
+
+// TestAbilityFizzlesAtResolutionWhenItsTargetDiesBeforeResolving closes the
+// resolution-time gap the reworked ask-time test above deliberately leaves:
+// Task 7 moved the WHEN of a ValidTgts$ trigger's fizzle for a trigger that
+// finds no legal target AT ASK TIME to askTarget, so the legacy fixture no
+// longer drives resolveTop's ability-branch recheck. That recheck (CR 608.2b)
+// is still reachable for a target that WAS legal when chosen and stops being
+// legal by the time the ability resolves -- and it is now untested. Here a
+// target is chosen legally and then undergoes exactly that transition: play a
+// Mountain, Reflex Sentinel's ETB trigger (damageWatcherSrc) asks for and is
+// given the alive 1/1 rat as its target, then seat 0 casts removal at the rat
+// before the trigger resolves. The removal is an instant, so it resolves
+// first and kills the rat; when the sentinel ability's turn to resolve comes,
+// its only target is dead, resolveTop's recheck finds zero legal targets, and
+// it fizzles -- moved to exile, never resolving, never running its script.
+//
+// Void Ward (exileBlockingReplacementSrc) is left in play so this also
+// re-pins the totality guard at the resolution-time exit: it intercepts the
+// fizzle's own Stack->Exile MoveZone (ReplaceWith$ relocates nothing), so the
+// logged to-exile move is ensureLeftTheStack's re-emit -- the same guarantee
+// the ask-time test above asserts, reached here through the public
+// cast->resolve path rather than a direct ability-object fizzle.
+func TestAbilityFizzlesAtResolutionWhenItsTargetDiesBeforeResolving(t *testing.T) {
+	mountain := card(t, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n")
+	removal := card(t, removalSparkSrc)
+	e := handEngine(t, mountain, removal)
+	sentinel := onBoard(t, e, 0, damageWatcherSrc)
+	if got := e.G.Obj(sentinel).Zone; got != state.ZBattlefield {
+		t.Fatalf("sentinel zone = %s, want battlefield", got)
+	}
+	rat := onBoard(t, e, 1, fieldRatSrc)
+	onBoard(t, e, 1, exileBlockingReplacementSrc)
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "B", Amount: 1})
+	e.askPriority(0)
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("expected priority before playing the land, got %+v", d)
+	}
+	playLand := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "play_land" {
+			playLand = opt.Index
+		}
+	}
+	if playLand < 0 {
+		t.Fatalf("no play_land option: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{playLand}}); err != nil {
+		t.Fatalf("submit play_land: %v", err)
+	}
+
+	// The sentinel's ValidTgts trigger is now the target of its own drain,
+	// asking seat 0 for a target -- the alive rat -- before any player acts.
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected the sentinel trigger's target decision, got %+v", d)
+	}
+	ratChoice := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "permanent" && opt.Obj == rat {
+			ratChoice = opt.Index
+		}
+	}
+	if ratChoice < 0 {
+		t.Fatalf("no target option for the rat at ask time: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{ratChoice}}); err != nil {
+		t.Fatalf("submit sentinel target: %v", err)
+	}
+	abilityID := e.G.Stack[len(e.G.Stack)-1]
+	if len(e.G.Stack) != 1 || e.G.Obj(abilityID).Ability == nil {
+		t.Fatalf("stack = %v, want the sentinel's targeted ability on it", e.G.Stack)
+	}
+
+	// The drain finished and granted priority while the trigger sat on the
+	// stack. Seat 0 now casts removal at the SAME rat -- an instant, so it
+	// enters the stack above the trigger and resolves first.
+	castFirst(t, e, "cast")
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected the removal's target decision, got %+v", d)
+	}
+	ratChoice = -1
+	for _, opt := range d.Options {
+		if opt.Kind == "permanent" && opt.Obj == rat {
+			ratChoice = opt.Index
+		}
+	}
+	if ratChoice < 0 {
+		t.Fatalf("no target option for the removal's rat: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{ratChoice}}); err != nil {
+		t.Fatalf("submit removal target: %v", err)
+	}
+
+	passUntilStackEmpty(t, e, 60)
+	if len(e.G.Stack) != 0 {
+		t.Fatalf("stack = %v, want empty -- the sentinel ability did not leave it", e.G.Stack)
+	}
+	if got := e.G.Obj(rat).Zone; got != state.ZGraveyard {
+		t.Fatalf("rat zone = %s, want graveyard -- the removal should have killed it", got)
+	}
+	// The sentinel ability fizzled at RESOLUTION time (no legal targets
+	// remain): its target ceased to exist before its turn to resolve. Void
+	// Ward discarded its fizzle MoveZone (ReplaceWith$ relocates nothing), so
+	// ensureLeftTheStack re-emitted it, landing it in exile.
+	if got := e.G.Obj(abilityID).Zone; got != state.ZExile {
+		t.Fatalf("ability zone = %s, want exile -- the resolution-time fizzle must land "+
+			"it there (via the guard, under the exile-blocking replacement)", got)
+	}
+	fizzleNote := false
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && ev.Obj == abilityID && strings.Contains(ev.Text, "fizzled: no legal targets") {
+			fizzleNote = true
+		}
+	}
+	if !fizzleNote {
+		t.Fatal("no guard Note records the sentinel ability fizzling for no legal targets")
+	}
+	if n := countKind(e.L.Events, events.Resolve, abilityID); n != 0 {
+		t.Fatalf("logged %d Resolve events for the fizzled ability, want 0 -- a fizzle "+
+			"returns before the Resolve emit and never runs the script", n)
 	}
 	if e.Pending() == nil {
 		t.Fatal("no further decision pending -- the engine did not reach the next decision")
