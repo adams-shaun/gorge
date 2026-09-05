@@ -285,6 +285,7 @@ func (r *Registry) crash(t *table, m *match, err error) string {
 		m.head = m.e.L.Head()
 	}
 	m.mu.Unlock()
+	r.writeCrashReport(t, m, err.Error())
 	r.onMatchEnd(t, m)
 	return protocol.MatchCrashed
 }
