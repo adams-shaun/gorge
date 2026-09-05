@@ -1,6 +1,8 @@
 #!/bin/sh
-# Refuse to push any commit whose message carries an AI-attribution trailer.
+# 1. Refuse to push any commit whose message carries an AI-attribution trailer.
+# 2. When main is pushed, run the race detector once (FL-56): nobody else runs -race.
 zero=0000000000000000000000000000000000000000
+push_main=0
 while read -r local_ref local_sha remote_ref remote_sha; do
 	[ "$local_sha" = "$zero" ] && continue
 	if [ "$remote_sha" = "$zero" ]; then
@@ -15,5 +17,17 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 		echo "amend/rebase the offending commit(s), then push again" >&2
 		exit 1
 	fi
+	[ "$remote_ref" = "refs/heads/main" ] && push_main=1
 done
+if [ "$push_main" = 1 ] && [ -z "$SKIP_RACE" ]; then
+	echo "pre-push: race gate on main, one run (SKIP_RACE=1 to bypass)" >&2
+	out=$(mktemp)
+	if ! go test -race -count=1 ./host/... ./rules/ ./events/ ./effects/ ./state/ >"$out" 2>&1; then
+		grep -vE '^ok' "$out" >&2
+		rm -f "$out"
+		echo "pre-push: race gate FAILED" >&2
+		exit 1
+	fi
+	rm -f "$out"
+fi
 exit 0
