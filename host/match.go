@@ -193,6 +193,17 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	m.mu.Lock()
 	m.slots = seats
 	m.mu.Unlock()
+	// Task M2b-3: arm every human seat with its think budget and its
+	// deterministic caretaker bot — the one defaultSeats would have built
+	// for that slot (seed ^ slot+1), so a timed-out human decision is
+	// answered by exactly the intent a pure-bot game would have logged for
+	// that seat, keeping the replay byte-identical (D3). Done here, once, on
+	// the match goroutine before the loop, so it never races a Decide.
+	for i, s := range seats {
+		if hs, ok := s.(*HumanSeat); ok {
+			hs.configure(r.opts.ThinkTimeout, seat.NewBot(m.seed^uint64(i+1)))
+		}
+	}
 	maxIntents := r.opts.MaxIntents
 	if maxIntents == 0 {
 		maxIntents = defaultMaxIntents
