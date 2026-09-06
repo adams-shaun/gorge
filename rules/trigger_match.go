@@ -80,16 +80,55 @@ const maxTriggerFires = 256
 // duplicated. Game.Zone ignores its player argument for ZStack (the stack is
 // shared across controllers, not per-seat), so that zone is visited only
 // once, on the first living seat, rather than once per living player.
+//
+// Memory: the live zone slice is copied into e.foreachBuf (engine.go) before
+// the walk, because fn can move objects between zones (a trigger match
+// putting something on the stack), so iterating the live, mutating slice
+// would be a bug. The copy is kept and grown with append(buf[:0], zone...),
+// so it settles at the size of the largest zone seen and stops allocating;
+// a fresh []state.ObjID allocation per zone per event used to be this
+// package's single largest allocation site (Task A2). fn is NEVER called
+// after the zone it is walking mutates.
+//
+// Re-entry safety: each rendering passes its snapshot buffer separately --
+// the depth-0 call (from checkTriggers or applyReplacements, always) reuses
+// e.foreachBuf; a re-entrant call (fn reaching forEachObject again, directly
+// or through emit -> checkTriggers) takes a fresh local buffer instead, so
+// the inner walk can never overwrite the outer walk's snapshot mid-range.
+// That re-entry is not reachable today -- the only two callers' fns are
+// checkTriggers' and applyReplacements', neither of which calls emit or
+// forEachObject -- but the guard makes the shape safe if one ever does,
+// which is why this file does not rely on "re-entry cannot happen" to keep a
+// single shared buffer correct.
 func (e *Engine) forEachObject(fn func(id state.ObjID)) {
+	e.foreachDepth++
+	defer func() { e.foreachDepth-- }()
+	buf := e.foreachBuf
+	if e.foreachDepth > 1 {
+		// Re-entrant: own a private snapshot, never the shared field.
+		buf = nil
+	}
 	for si, p := range e.G.AliveFrom(0) {
 		for z := state.ZLibrary; z <= state.ZStack; z++ {
 			if z == state.ZStack && si != 0 {
 				continue
 			}
-			for _, id := range append([]state.ObjID(nil), e.G.Zone(z, p)...) {
+			// Reassign (not append inline) so the grown snapshot is carried into
+			// e.foreachBuf: buf[:0] then append-in-place reuses the backing array
+			// from the previous zone / previous call, settling at the largest
+			// zone and stopping allocation. Walking the returned slice, not a
+			// throwaway append expression, keeps the range over the persisted
+			// snapshot rather than a discarded temporary.
+			buf = append(buf[:0], e.G.Zone(z, p)...)
+			for _, id := range buf {
 				fn(id)
 			}
 		}
+	}
+	if e.foreachDepth <= 1 {
+		// Keep the grown buffer on the Engine for the next depth-0 walk; a
+		// re-entrant call's private buffer is discarded on return.
+		e.foreachBuf = buf
 	}
 }
 
