@@ -30,6 +30,13 @@ type Card struct {
 	Basic    bool
 }
 
+// braceForm normalises a brace-form mana cost ("{2}{U}{U}") to the
+// space-separated form CmcOf parses. It is built once at package scope, not
+// per call: a strings.Replacer is immutable and safe for concurrent use, and
+// CmcOf runs on every card of every zone of every projected board — building
+// the trie inside the function cost ~165MB of garbage per host test.
+var braceForm = strings.NewReplacer("{", " ", "}", " ")
+
 // CmcOf is the converted-mana-cost count a botpolicy.Card reads, a re-read
 // of a card's Forge ManaCost string ("R", "U U", "1 BP BP", "X G", "no
 // cost"). It deliberately re-derives rules/mana.go's ParseCost.CMC() by hand
@@ -40,7 +47,7 @@ type Card struct {
 // colourless symbol approximates as one generic, and a brace-form cost
 // ("{2}{U}{U}") is normalised to the space-separated form first.
 func CmcOf(mc string) int32 {
-	mc = strings.NewReplacer("{", " ", "}", " ").Replace(mc)
+	mc = braceForm.Replace(mc)
 	mc = strings.TrimSpace(mc)
 	if mc == "" || strings.EqualFold(mc, "no cost") {
 		return 0
