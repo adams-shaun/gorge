@@ -13,6 +13,16 @@
 //   - nothing outside those inputs reaches the output -- no wall clock, no
 //     map-range order, no global rand.
 //
+// Wins are attributed by seat, not by policy name: each win is credited to
+// whichever side held the winning seat that game. That matters most for the
+// baseline run `-a bot -b bot`, where both sides run the same policy and
+// every non-draw winner carries the same name -- the seat is the only thing
+// that can split the run. The summary therefore always reports the wins per
+// seat (for the two-seat case, with a rate and confidence interval) beside
+// the A/B split, and marks the A/B line when both sides are the same policy:
+// that split is ~50% by construction, and the seat split is the number that
+// measures a play/draw advantage.
+//
 // `-a bot -b bot` is the meaningful run today: seat.NewBot is the only
 // registered policy, so pitting it against itself measures seat bias and
 // gives every later policy a baseline to beat. Registering a second policy
@@ -73,7 +83,10 @@ func gameSeed(base uint64, game int) uint64 { return base + uint64(game) }
 // the games of an even run -- the property TestSeatAssignmentAlternates
 // pins. Every (policy, seat) pair therefore plays the same number of games,
 // so a seating advantage cannot masquerade as a policy advantage regardless
-// of how many seats the run uses.
+// of how many seats the run uses. This function is the single source of
+// truth for both the seat assignment AND the win attribution: the tally
+// credits each win to the side aPlaysSeat says held the winning seat, so
+// the two cannot drift apart.
 func aPlaysSeat(game, seat int) bool { return (game+seat)%2 == 0 }
 
 // resolvePolicy looks a -a/-b name up in the policies table. The error
@@ -94,19 +107,16 @@ func resolvePolicy(name string) (func(seed uint64) seat.Seat, error) {
 
 // gameOutcome is one bench game's result: the policy that won and the seat
 // it won from, how many turns the game lasted (state.Game.Turn at the
-// end), and how many intents the seats answered. The seat is part of the
-// result, not decoration: when both sides run the same policy (the
-// baseline `-a bot -b bot`), the A/B split is degenerate by construction
-// and the per-game winner seat is the only number that exposes a seat
-// advantage (first turn, deck list) -- which is what the baseline run
-// exists to measure. Intents and turns are the two numbers every later bot
-// task reads: an intent count near maxIntents is a policy that stopped
-// terminating, and mean turns is the metric the report averages.
-//
-// With aName == bName every non-draw winner maps to both names, so the
-// seat is what distinguishes the games; with distinct names it is context
-// on top of the policy split. winnerSeat is only meaningful when winner
-// is non-empty.
+// end), and how many intents the seats answered. The seat is what the tally
+// attributes by: each win is credited to whichever side held the winning
+// seat that game (aPlaysSeat), so the split is correct whether or not the
+// two policy names collide. With aName == bName the seat is the only thing
+// that can tell the sides apart -- with both names "bot", the A/B split
+// would read as "both sides won everything" without it. Intents and turns
+// are the two numbers every later bot task reads: an intent count near
+// maxIntents is a policy that stopped terminating, and mean turns is the
+// metric the report averages. winnerSeat is only meaningful when winner is
+// non-empty.
 type gameOutcome struct {
 	winner     string // policy name of the winning seat; "" for a draw
 	winnerSeat int    // the seat the winner sat in (valid when winner != "")
@@ -199,9 +209,8 @@ func seatLabels(pols []string) string {
 
 // winnerLabel renders the per-game winner: "policy@seat" for a real win,
 // "draw" for CR 104.4a's no-surviving-seats ending. The seat is why the
-// baseline same-policy run can show a seat advantage at all -- with both
-// policies named "bot" the raw name alone would attribute every non-draw
-// game to both sides and reveal nothing.
+// per-game lines can show a same-policy run's seat bias at all -- with both
+// policies named "bot" the raw name alone is identical on both sides.
 func winnerLabel(o gameOutcome) string {
 	if o.winner == "" {
 		return "draw"
@@ -209,18 +218,131 @@ func winnerLabel(o gameOutcome) string {
 	return fmt.Sprintf("%s@%d", o.winner, o.winnerSeat)
 }
 
-// run is main's testable body: it plays `games` matches between the named
-// policies and writes the per-game lines and the summary to out. Every
-// match is seeded from base+i (gameSeed) and the seat assignment alternates
+// matchPlayer plays one game of a bench run: given a game's seed and the
+// policy name sitting at each seat, it returns that game's outcome. run
+// wires the real engine into this shape (playMatch with per-seat bots);
+// tests inject synthetic players to pin the attribution and the report
+// without paying an engine game each.
+type matchPlayer func(seed uint64, pols []string) (gameOutcome, error)
+
+// bench is the testable body of the bench: it plays `games` matches between
+// the named policies, crediting each win to the side that held the winning
+// seat, and writes the per-game lines and the summary to out. Every match
+// is seeded from base+game (gameSeed) and the seat assignment alternates
 // (aPlaysSeat), so the output is byte-identical across runs with the same
-// (base, policies, games). Tests drive this body directly through a
-// *bytes.Buffer exactly like cmd/mtgsim's run.
+// (base, policies, games). run() resolves the corpus and decks and wires
+// the real engine in; the tests drive bench directly with a synthetic
+// matchPlayer, exactly like the tests of cmd/mtgsim drive its run.
 //
-// run never touches a *state.Game or a *rules.Engine field: it drives
+// Attribution is by seat, not by name: with distinct policies the two agree
+// (pols[seat] is the policy at that seat), and with aName == bName the seat
+// is the only thing that can split the run. aPlaysSeat decides both the
+// assignment and the attribution, so they cannot drift apart.
+//
+// bench never touches a *state.Game or a *rules.Engine field: it drives
 // engines the way hosts and sims do -- view.Project, Seat.Decide,
 // Engine.Submit -- so a bench run exercises the same seat-facing path a
 // real match does, and the engine and seat packages stay untouched by this
 // command.
+func bench(baseSeed uint64, games, seats int, aName, bName string, play matchPlayer, out io.Writer) error {
+	if games < 1 {
+		return fmt.Errorf("-games must be at least 1, got %d", games)
+	}
+	if seats < 2 {
+		return fmt.Errorf("-seats must be at least 2 (a bench pits two policies), got %d", seats)
+	}
+
+	var aWins, bWins, draws int
+	seatWins := make([]int, seats)
+	var totalTurns int64
+	for g := 0; g < games; g++ {
+		s := gameSeed(baseSeed, g)
+		pols := make([]string, seats)
+		for seat := 0; seat < seats; seat++ {
+			pols[seat] = bName
+			if aPlaysSeat(g, seat) {
+				pols[seat] = aName
+			}
+		}
+		oc, err := play(s, pols)
+		if err != nil {
+			// playMatch's error already names the seed; the game index is
+			// the only context this frame can add.
+			fmt.Fprintf(out, "game %d: %v\n", g, err)
+			return err
+		}
+		// The per-game line carries the seed next to the result, so a run
+		// that ever played the same game twice would show it -- the seed
+		// column stops grinding forward. That is the symptom the bench
+		// exists to make impossible, and it is visible in the report if it
+		// ever regresses.
+		fmt.Fprintf(out, "game %d: seed %d, %s, %6d intents, %3d turns, winner=%s\n",
+			g, s, seatLabels(pols), oc.intents, oc.turns, winnerLabel(oc))
+		switch {
+		case oc.winner == "":
+			draws++
+		default:
+			// A real win: credit the side that held the winning seat this
+			// game. aPlaysSeat is the same predicate that assigned the
+			// seats, so attribution agrees with the assignment by
+			// construction.
+			if oc.winnerSeat < 0 || oc.winnerSeat >= seats {
+				return fmt.Errorf("game %d: winner seat %d out of range [0,%d)", g, oc.winnerSeat, seats)
+			}
+			seatWins[oc.winnerSeat]++
+			if aPlaysSeat(g, oc.winnerSeat) {
+				aWins++
+			} else {
+				bWins++
+			}
+		}
+		totalTurns += int64(oc.turns)
+	}
+
+	lo, hi := ci95(aWins, games)
+	rate := float64(aWins) / float64(games)
+	fmt.Fprintf(out, "\ngames played: %d\n", games)
+	ab := fmt.Sprintf("A wins: %d  B wins: %d  draws: %d", aWins, bWins, draws)
+	if aName == bName {
+		// Same policy on both sides: every non-draw winner carries the same
+		// name, so the A/B split is whichever side happened to hold the
+		// winning seat -- ~50% by construction, not a comparison. Say so
+		// openly; the seat split below is the informative number.
+		ab += fmt.Sprintf("  (same policy %q on both sides: the split is ~50%% by construction; read the seat split below)", aName)
+	}
+	fmt.Fprintln(out, ab)
+	fmt.Fprintf(out, "A win rate: %.1f%%  95%% CI [%.1f%%, %.1f%%] (normal approximation to the binomial)\n",
+		rate*100, lo*100, hi*100)
+	if seats == 2 {
+		// The two-seat baseline: seat 0's rate and interval over the whole
+		// run (drawn games win no seat, so the per-seat rates sum to less
+		// than 100% when draws occur; the game count is printed beside the
+		// interval as always). This is the number the -a -b baseline run
+		// exists to produce.
+		sLo, sHi := ci95(seatWins[0], games)
+		fmt.Fprintf(out, "seat 0 wins: %d  seat 1 wins: %d  seat 0 win rate: %.1f%%  95%% CI [%.1f%%, %.1f%%] (normal approximation to the binomial)\n",
+			seatWins[0], seatWins[1], float64(seatWins[0])/float64(games)*100, sLo*100, sHi*100)
+	} else {
+		// More than two seats: counts per seat, no rate -- the two-seat
+		// case is the one the bench's consumers compare policies through,
+		// and a bare rate per seat across many seats would be noise without
+		// the paired policy result.
+		parts := make([]string, seats)
+		for s := 0; s < seats; s++ {
+			parts[s] = fmt.Sprintf("seat %d wins: %d", s, seatWins[s])
+		}
+		fmt.Fprintln(out, strings.Join(parts, "  "))
+	}
+	fmt.Fprintf(out, "mean turns per game: %.1f\n", float64(totalTurns)/float64(games))
+	return nil
+}
+
+// run is main's entry through the real engine: it validates the flags,
+// opens the corpus and the per-seat repo decks, and plays `games` matches
+// between the named policies via bench. It exists so the whole flag-driven
+// path stays open to tests that need it (determinism, end-to-end); the loop
+// and the report live in bench, which tests can also drive directly with a
+// synthetic matchPlayer.
 func run(baseSeed uint64, games, seats int, aName, bName, dir string, out io.Writer) error {
 	if games < 1 {
 		return fmt.Errorf("-games must be at least 1, got %d", games)
@@ -261,56 +383,18 @@ func run(baseSeed uint64, games, seats int, aName, bName, dir string, out io.Wri
 	fmt.Fprintf(out, "bot bench: base seed %d, %s vs %s, %d games, %d seats, decks %s\n",
 		baseSeed, aName, bName, games, seats, strings.Join(names[:seats], ","))
 
-	var aWins, bWins, draws int
-	var totalTurns int64
-	for g := 0; g < games; g++ {
-		s := gameSeed(baseSeed, g)
-		pols := make([]string, seats)
+	play := func(s uint64, pols []string) (gameOutcome, error) {
 		botSeats := make([]seat.Seat, seats)
 		for seat := 0; seat < seats; seat++ {
-			pols[seat] = bName
-			if aPlaysSeat(g, seat) {
-				pols[seat] = aName
-			}
 			// One bot per seat, each seeded from the game's seed the same
 			// way host/defaultSeats does (seed ^ seat+1) so a policy's RNG
 			// is distinct from the engine's and from every other seat's.
 			botSeats[seat] = policies[pols[seat]](s ^ uint64(seat+1))
 		}
 		cfg := rules.Config{Seed: s, Names: names[:seats], Decks: decks, Tokens: reg.Tokens}
-		oc, err := playMatch(cfg, pols, botSeats)
-		if err != nil {
-			// playMatch's error already names the seed; the game index is
-			// the only context this frame can add.
-			fmt.Fprintf(out, "game %d: %v\n", g, err)
-			return err
-		}
-		// The per-game line carries the seed next to the result, so a run
-		// that ever played the same game twice would show it -- the seed
-		// column stops grinding forward. That is the symptom the bench
-		// exists to make impossible, and it is visible in the report if it
-		// ever regresses.
-		fmt.Fprintf(out, "game %d: seed %d, %s, %6d intents, %3d turns, winner=%s\n",
-			g, s, seatLabels(pols), oc.intents, oc.turns, winnerLabel(oc))
-		switch oc.winner {
-		case aName:
-			aWins++
-		case bName:
-			bWins++
-		default:
-			draws++
-		}
-		totalTurns += int64(oc.turns)
+		return playMatch(cfg, pols, botSeats)
 	}
-
-	lo, hi := ci95(aWins, games)
-	rate := float64(aWins) / float64(games)
-	fmt.Fprintf(out, "\ngames played: %d\n", games)
-	fmt.Fprintf(out, "A wins: %d  B wins: %d  draws: %d\n", aWins, bWins, draws)
-	fmt.Fprintf(out, "A win rate: %.1f%%  95%% CI [%.1f%%, %.1f%%] (normal approximation to the binomial)\n",
-		rate*100, lo*100, hi*100)
-	fmt.Fprintf(out, "mean turns per game: %.1f\n", float64(totalTurns)/float64(games))
-	return nil
+	return bench(baseSeed, games, seats, aName, bName, play, out)
 }
 
 func main() {
