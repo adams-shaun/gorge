@@ -11,6 +11,8 @@
   import DvrBar from '../components/DvrBar.svelte';
   import MatchList from '../components/MatchList.svelte';
   import SeatPanel from '../components/SeatPanel.svelte';
+  import PhaseTrack from '../components/PhaseTrack.svelte';
+  import { SeatPanelState } from '../lib/seatpanel.svelte';
   import { quadrantFor } from '../lib/board';
   import { seatColour } from '../lib/colours';
   import { href, navigate } from '../lib/router';
@@ -43,6 +45,22 @@
     return state === 'idle' || state === 'halted';
   });
 
+  // One SeatPanelState per match, created here rather than inside SeatPanel
+  // so the phase track above the board and the panel share ONE stop set and
+  // ONE autopilot. Built in a $derived (not a $effect) because the SSR pass
+  // renders the seat surface and effects never run there; the cache keeps a
+  // recompute from throwing away the seat's live decision, and only a new
+  // match number replaces the instance.
+  let panelCache: { match: number; state: SeatPanelState } | null = null;
+  const panel = $derived.by(() => {
+    const mm = m.match;
+    if (!seated || seatCtx === null || mm === null || finished) return null;
+    if (panelCache === null || panelCache.match !== mm) {
+      panelCache = { match: mm, state: new SeatPanelState(table, mm, seatCtx) };
+    }
+    return panelCache.state;
+  });
+
   onMount(() => {
     if (match !== null) {
       void m.loadFinished(match);
@@ -67,6 +85,21 @@
   <main class="table">
     {#if m.halted}<div class="halted">Table halted: {m.halted}</div>{/if}
     {#if m.view}
+      <!-- The clock goes across the top of the page, above both registers.
+           Inside the felt it would sit on top of the corner identity bars
+           and under the seat panel; here it is never occluded, never
+           occludes anything, and is the first thing on screen — which is
+           what "prominent display of user turn and phase" asks for. It is
+           the same band for a spectator, with nothing focusable on it. -->
+      <div class="track">
+        <PhaseTrack
+          view={m.view}
+          seats={m.seats}
+          seat={panel ? seatCtx?.seat ?? null : null}
+          stops={panel ? panel.stops : null}
+          onToggle={panel ? (step, side) => panel.toggleStop(step, side) : null}
+        />
+      </div>
       <section class="board">
         <Board view={m.view} seats={m.seats} />
         {#each m.view.players as p (p.seat)}
@@ -90,7 +123,7 @@
              A seat acts only on the live table route. -->
         {#if seated && seatCtx && m.match !== null && !finished}
           {#key m.match}
-            <SeatPanel view={m.view} seats={m.seats} ctx={seatCtx} table={table} match={m.match} />
+            <SeatPanel view={m.view} seats={m.seats} ctx={seatCtx} table={table} match={m.match} state={panel} />
           {/key}
         {/if}
       </section>
@@ -133,9 +166,15 @@
   .table {
     display: grid;
     grid-template-columns: 1fr minmax(17rem, 18%);
-    grid-template-rows: 1fr 10rem;
+    grid-template-rows: auto 1fr 10rem;
     height: 100vh;
     background: var(--felt);
+  }
+  /* The clock spans both registers, like the transcript beneath them: it
+     describes the whole table rather than either half of it. */
+  .track {
+    grid-column: 1 / -1;
+    min-width: 0;
   }
   .board {
     position: relative;
