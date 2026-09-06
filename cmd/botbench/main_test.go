@@ -114,12 +114,130 @@ func TestPerGameSeedVariesWithTheIndex(t *testing.T) {
 	}
 }
 
-// summaryRe is the shape of the report block run() appends after the
-// per-game lines; the E2E test below parses it to prove the run actually
-// reported, and that the numbers are coherent with each other.
+// summaryRe is the shape of the report block bench() appends after the
+// per-game lines; the E2E and attribution tests below parse it to prove the
+// run actually reported, that the numbers are coherent with each other, and
+// that the seat split is in the output. The A/B line's optional same-policy
+// marker suffix is swallowed by the `.*`, and the seat line is the two-seat
+// form (a `-seats` run above 2 prints per-seat counts without a rate; no
+// test here uses that shape).
+//
+// Groups: 1 played, 2 A wins, 3 B wins, 4 draws, 5 A rate, 6 CI lo,
+// 7 CI hi, 8 seat 0 wins, 9 seat 1 wins, 10 seat-0 rate, 11 seat-0 CI lo,
+// 12 seat-0 CI hi, 13 mean turns.
 var summaryRe = regexp.MustCompile(
-	`(?m)^games played: (\d+)$\n^A wins: (\d+)  B wins: (\d+)  draws: (\d+)$\n` +
-		`^A win rate: ([\d.]+)%  95% CI \[([\d.]+)%, ([\d.]+)%\].*$\n^mean turns per game: ([\d.]+)$`)
+	`(?m)^games played: (\d+)$\n` +
+		`^A wins: (\d+)  B wins: (\d+)  draws: (\d+).*$\n` +
+		`^A win rate: ([\d.]+)%  95% CI \[([\d.]+)%, ([\d.]+)%\].*$\n` +
+		`^seat 0 wins: (\d+)  seat 1 wins: (\d+)  seat 0 win rate: ([\d.]+)%  95% CI \[([\d.]+)%, ([\d.]+)%\].*$\n` +
+		`^mean turns per game: ([\d.]+)$`)
+
+// atoi and atof unwrap the summary parse results; the regex already matched,
+// so a conversion failure is a bug in the test or the format, not in the
+// bench.
+func atoi(s string) int {
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		panic(err)
+	}
+	return n
+}
+
+func atof(s string) float64 {
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		panic(err)
+	}
+	return f
+}
+
+// runSynthetic drives bench with a synthetic match player -- no engine game
+// is played -- and returns the parsed summary block. Synthetic outcomes are
+// what the attribution tests pin: real game outcomes would couple the
+// assertions to what the bot happens to play, which later bot work is
+// allowed to change. Both sides are named "bot" in every synthetic run,
+// which is exactly the collision the attribution fix is about.
+func runSynthetic(t *testing.T, games, seats int, play matchPlayer) []string {
+	t.Helper()
+	var buf bytes.Buffer
+	if err := bench(0, games, seats, "bot", "bot", play, &buf); err != nil {
+		t.Fatalf("bench: %v", err)
+	}
+	m := summaryRe.FindStringSubmatch(buf.String())
+	if m == nil {
+		t.Fatalf("report block missing or malformed:\n%s", buf.String())
+	}
+	return m
+}
+
+// TestSamePolicyDoesNotCreditOneSideWithEverything is the regression for
+// the by-name attribution defect: while both sides were named "bot", every
+// non-draw winner matched the -a case first and A was credited with all of
+// them -- a confident 100% with a zero-width interval on the only run that
+// existed. Attribution must follow the winning seat: A holds seat 0 on even
+// games and seat 1 on odd games, so a fixed seat-0 winner over an even N
+// splits the run exactly in half. A pass here means the tally reads the
+// seat, not the name.
+func TestSamePolicyDoesNotCreditOneSideWithEverything(t *testing.T) {
+	const games, seats = 8, 2
+	m := runSynthetic(t, games, seats, func(_ uint64, _ []string) (gameOutcome, error) {
+		return gameOutcome{winner: "bot", winnerSeat: 0, turns: 10, intents: 50}, nil
+	})
+	aWins, bWins := atoi(m[2]), atoi(m[3])
+	if aWins != games/2 || bWins != games/2 {
+		t.Errorf("same-policy run, seat 0 won all %d games: A = %d, B = %d, want %d/%d (attribution must follow the seat, not the name)",
+			games, aWins, bWins, games/2, games/2)
+	}
+	// The degenerate line must also say it is degenerate, not read like a
+	// policy comparison.
+	if !strings.Contains(strings.Join(m, "\n"), "same policy") {
+		t.Errorf("same-policy run: A/B line carries no same-policy marker:\n%s", strings.Join(m, "\n"))
+	}
+}
+
+// TestWinsAreAttributedBySeatNotName pins the direction the tally reads:
+// a win from a seat B holds is credited to B even when both sides carry the
+// same name. Both games of the run end with seat 1 winning; A holds seat 1
+// only on odd games, so exactly one of the two wins is A's -- the other is
+// B's. Under the old by-name attribution every winner (named "bot") matched
+// the -a case first and A took both.
+func TestWinsAreAttributedBySeatNotName(t *testing.T) {
+	m := runSynthetic(t, 2, 2, func(_ uint64, _ []string) (gameOutcome, error) {
+		return gameOutcome{winner: "bot", winnerSeat: 1, turns: 10, intents: 50}, nil
+	})
+	aWins, bWins := atoi(m[2]), atoi(m[3])
+	if aWins != 1 || bWins != 1 {
+		t.Errorf("two seat-1 wins, A held seat 1 once: A = %d, B = %d, want 1/1", aWins, bWins)
+	}
+	seat0, seat1 := atoi(m[8]), atoi(m[9])
+	if seat0 != 0 || seat1 != 2 {
+		t.Errorf("seat wins = %d/%d, want 0/2 (both winners sat in seat 1)", seat0, seat1)
+	}
+}
+
+// TestTheSummaryReportsSeatWins: the seat split is part of the summary, not
+// something a reader must reconstruct by grepping the per-game lines. Every
+// game's winner sits in seat 1 here, so the seat line must report 0/2 with
+// the seat-0 rate at 0% beside its (degenerate, Wald-edge) CI -- the CI
+// behaviour itself is TestTheIntervalWidensOnASmallSample's job; this test
+// only pins that the line exists in the summary and adds up.
+func TestTheSummaryReportsSeatWins(t *testing.T) {
+	const games = 2
+	m := runSynthetic(t, games, 2, func(_ uint64, _ []string) (gameOutcome, error) {
+		return gameOutcome{winner: "bot", winnerSeat: 1, turns: 10, intents: 50}, nil
+	})
+	seat0, seat1 := atoi(m[8]), atoi(m[9])
+	if seat0 != 0 || seat1 != games {
+		t.Errorf("seat wins = %d/%d, want 0/%d", seat0, seat1, games)
+	}
+	if rate := atof(m[10]); rate != 0 {
+		t.Errorf("seat 0 win rate = %.1f%%, want 0.0%%", rate)
+	}
+	// The per-seat counts partition the non-draw wins.
+	if seat0+seat1 != atoi(m[2])+atoi(m[3]) {
+		t.Errorf("seat wins %d+%d do not match A+B %s+%s", seat0, seat1, m[2], m[3])
+	}
+}
 
 // TestShortEndToEndRun is the required short end-to-end check: a small N
 // actually completes and reports. It is deliberately two games -- the
@@ -129,7 +247,8 @@ var summaryRe = regexp.MustCompile(
 // (TEST_HISTORY.md records what the whole suite costs at commit time).
 // It asserts the report's arithmetic: the win/draw counts partition the
 // games played, the stated rate is the wins over games, the CI brackets
-// that rate, and the mean turns is over the same denominator.
+// that rate, the seat split partitions the non-draw wins, and the mean
+// turns is over the same denominator.
 func TestShortEndToEndRun(t *testing.T) {
 	dir := corpusDirOrSkip(t)
 	var buf bytes.Buffer
@@ -148,18 +267,21 @@ func TestShortEndToEndRun(t *testing.T) {
 		t.Errorf("expected 2 per-game lines, got %d:\n%s", gameLines, out)
 	}
 
+	// With both sides "bot" the A/B line must be marked same-policy, not
+	// read like a policy comparison.
+	if !strings.Contains(out, "same policy") {
+		t.Errorf("same-policy run: A/B line is not marked:\n%s", out)
+	}
+
 	m := summaryRe.FindStringSubmatch(out)
 	if m == nil {
 		t.Fatalf("report block missing or malformed:\n%s", out)
 	}
-	played, _ := strconv.Atoi(m[1])
-	aWins, _ := strconv.Atoi(m[2])
-	bWins, _ := strconv.Atoi(m[3])
-	draws, _ := strconv.Atoi(m[4])
-	rate, _ := strconv.ParseFloat(m[5], 64)
-	lo, _ := strconv.ParseFloat(m[6], 64)
-	hi, _ := strconv.ParseFloat(m[7], 64)
-	meanTurns, _ := strconv.ParseFloat(m[8], 64)
+	played, aWins, bWins, draws := atoi(m[1]), atoi(m[2]), atoi(m[3]), atoi(m[4])
+	rate, lo, hi := atof(m[5]), atof(m[6]), atof(m[7])
+	seat0, seat1 := atoi(m[8]), atoi(m[9])
+	seatRate := atof(m[10])
+	meanTurns := atof(m[13])
 
 	if played != 2 {
 		t.Errorf("games played = %d, want 2", played)
@@ -174,6 +296,13 @@ func TestShortEndToEndRun(t *testing.T) {
 	}
 	if lo > rate || hi < rate {
 		t.Errorf("CI [%.1f%%, %.1f%%] does not bracket the reported rate %.1f%%", lo, hi, rate)
+	}
+	if seat0+seat1 != aWins+bWins {
+		t.Errorf("seat wins %d+%d do not partition the A+B wins %d+%d", seat0, seat1, aWins, bWins)
+	}
+	seatRatePct := float64(seat0) / float64(played) * 100
+	if diff := seatRate - seatRatePct; diff > 0.05 || diff < -0.05 {
+		t.Errorf("seat 0 rate %.1f%% does not match %d/%d games", seatRate, seat0, played)
 	}
 	if meanTurns <= 0 {
 		t.Errorf("mean turns per game = %.1f, want > 0", meanTurns)
