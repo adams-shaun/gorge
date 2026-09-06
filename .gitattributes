@@ -1,5 +1,8 @@
-# TEST_HISTORY.md is an append-only measurement table: every branch adds a row
-# at the bottom, so the default merge driver conflicts on nearly every merge
-# even though both sides are simply new rows. Union keeps both sets of rows.
-# Row order within a merge is not significant; the date column is the record.
-**/TEST_HISTORY.md merge=union
+# TEST_HISTORY.md and ALLOC_HISTORY.md are append-only measurement tables that
+# every branch writes a row to, so they conflict on essentially every parallel
+# merge -- four times in one afternoon during the M3 Commander round, always
+# with the same trivial "keep both sides" resolution. A union merge takes both
+# sides' lines automatically. Row order within a merge is not meaningful (each
+# row carries its own timestamp), and cmd/testtime and cmd/allocgate only ever
+# append, so there is no resolution a union can get wrong here.
+*_HISTORY.md merge=union
