@@ -1,15 +1,17 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import type { CardView, Option, SeatInfo, View } from '../protocol';
   import type { SeatCtx } from '../lib/seat';
-  import { SeatPanelState, isConcede, mulliganPhase, toneOf } from '../lib/seatpanel.svelte';
+  import { SeatPanelState, autoNoteText, isConcede, mulliganPhase, toneOf } from '../lib/seatpanel.svelte';
   import CardImage from './CardImage.svelte';
   import CardTile from './CardTile.svelte';
   import ManaPool from './ManaPool.svelte';
 
   /**
    * SeatPanel is a human seat's whole surface, overlaid on the board: the
-   * four-fact status readout (survey item 4), the seat's floating mana, the
+   * status readout (survey item 4) — priority and stack depth; turn number
+   * and step belong to PhaseTrack above the board and are not restated
+   * here — the auto/manual control, the seat's floating mana, the
    * prompt as TEXT over the board naming the source (item 18 — never a
    * modal), and the options, with the primary button resolved by kind (item
    * 5 / R-E4-1) and the concede option visually separated and doubly
@@ -28,14 +30,21 @@
    * else. See toneOf — the distinction comes from option kinds, not from the
    * prompt text.
    */
-  let { view, seats, ctx, table, match }: {
+  let { view, seats, ctx, table, match, state = null }: {
     view: View; seats: SeatInfo[]; ctx: SeatCtx; table: string; match: number;
+    /**
+     * state lets the route hand in the seat's SeatPanelState so the phase
+     * track above the board and this panel share ONE set of stops and ONE
+     * autopilot. Left out, the panel owns its own, which is what the
+     * component tests exercise.
+     */
+    state?: SeatPanelState | null;
   } = $props();
 
   // The props are constants per mount (Table keys the panel by match); the
   // state object captures only their initial values, like MatchState itself.
   // svelte-ignore state_referenced_locally
-  const logic = new SeatPanelState(table, match, ctx);
+  const logic = state ?? new SeatPanelState(table, match, ctx);
   // Adopting the first view here rather than only in the effect below means
   // the panel's first paint already carries the decision — including on the
   // server, where effects never run.
@@ -51,6 +60,16 @@
   });
   onMount(() => {
     void logic.refreshPending();
+    // Stops are per table and per seat and live in localStorage; they can
+    // only be read where storage exists, so they load here rather than in
+    // the constructor (SSR has none).
+    logic.mountStops();
+    // Escape is the panic key: it takes the game back from auto wherever
+    // the focus happens to be. It is on the window because the player's
+    // hands are not necessarily on the panel when auto does something they
+    // did not expect.
+    const onKey = (e: KeyboardEvent) => logic.onKeydown(e.key);
+    window.addEventListener('keydown', onKey);
     // The panel used to learn about a new decision ONLY from view.decision,
     // which is refreshed by the SSE 'decision' frame. That makes the stream a
     // single point of failure for a seat: miss one frame -- a dropped
@@ -66,7 +85,23 @@
     const t = setInterval(() => {
       if (logic.pending === null && !logic.busy) void logic.refreshPending();
     }, 1000);
-    return () => clearInterval(t);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener('keydown', onKey);
+    };
+  });
+
+  // The autopilot loop. The dependencies are listed explicitly and the call
+  // itself is untracked: considerAuto both reads and writes the seat's
+  // state, and a self-triggering effect around a thing that posts to the
+  // server is exactly the runaway this task exists to prevent.
+  $effect(() => {
+    void logic.auto;
+    void logic.pending?.seq;
+    void logic.stops;
+    void view.step;
+    void view.turn;
+    untrack(() => logic.considerAuto(view));
   });
 
   const decision = $derived(logic.pending && logic.pending.seq !== logic.postedSeq ? logic.pending : null);
@@ -116,18 +151,36 @@
           <span class="v">{view.priority === ctx.seat ? 'you' : waitingName}</span>
         </div>
         <div class="fact">
-          <span class="k">Turn</span>
-          <span class="v"><span class="num">{view.turn}</span> {seats[view.active]?.name ?? `Seat ${view.active}`}</span>
-        </div>
-        <div class="fact">
-          <span class="k">Phase</span>
-          <span class="v">{stepLabel}</span>
-        </div>
-        <div class="fact">
           <span class="k">Stack</span>
           <span class="v num">{view.stack.length}</span>
         </div>
         {#if mine}<ManaPool pool={mine.pool} />{/if}
+      </div>
+    {/if}
+
+    {#if mull === null}
+      <div class="autobar" data-autobar>
+        <div class="autoline">
+          <button
+            class="autotoggle"
+            class:on={logic.auto}
+            type="button"
+            role="switch"
+            aria-checked={logic.auto}
+            data-auto-toggle
+            onclick={() => logic.setAuto(!logic.auto)}
+          >
+            <span class="dot" aria-hidden="true"></span>
+            <span class="word">{logic.auto ? 'Auto' : 'Manual'}</span>
+          </button>
+          {#if logic.autoPassed > 0}
+            <span class="passed" data-auto-count>
+              auto-passed <span class="num">{logic.autoPassed}</span>
+              {logic.autoPassed === 1 ? 'priority window' : 'priority windows'}
+            </span>
+          {/if}
+        </div>
+        <p class="autonote" data-auto-note>{autoNoteText(logic.note)}</p>
       </div>
     {/if}
 
@@ -332,6 +385,68 @@
   .num {
     font-family: var(--font-data);
     font-variant-numeric: tabular-nums;
+  }
+
+  /* The auto control is a switch, not a button that looks like an action:
+     its own state is the message, and the line under it is the only place
+     the panel explains what auto is doing. Never an enum — see
+     autoNoteText. */
+  .autobar {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--sp-2) var(--sp-3);
+    width: 100%;
+  }
+  .autoline {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    min-width: 0;
+  }
+  .autotoggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    background: var(--instrument-raised);
+    color: var(--ink-dim);
+    border: 1px solid var(--edge-inst);
+    border-radius: var(--radius);
+    padding: 0.15rem var(--sp-2);
+    font-family: var(--font-ui);
+    font-size: var(--t-12);
+    font-weight: 600;
+    cursor: pointer;
+    flex: none;
+  }
+  .autotoggle.on {
+    color: var(--felt-sunk);
+    background: var(--offered);
+    border-color: var(--offered);
+  }
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.5;
+  }
+  .autotoggle.on .dot {
+    opacity: 1;
+  }
+  .passed {
+    font-size: 0.6875rem;
+    color: var(--ink-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .autonote {
+    margin: 0;
+    font-size: 0.6875rem;
+    line-height: 1.35;
+    color: var(--ink-faint);
   }
 
   .prompt {

@@ -1,4 +1,4 @@
-import type { Stops } from './autopilot';
+import { STOPPABLE_STEPS, type Stops, type TurnSide } from './autopilot';
 
 /**
  * stops persists a seat's stop sets in localStorage, keyed per table AND
@@ -60,4 +60,23 @@ export function saveStops(storage: Storage | null, table: string, seat: number, 
   } catch {
     /* private mode or quota: keep the in-memory copy */
   }
+}
+
+/**
+ * toggleStop returns a NEW Stops with one step flipped on one turn side.
+ * The two sides are separate sets on purpose: stopping in your own combat
+ * and stopping in an opponent's are different intentions, and a stop set on
+ * one side must never mark the other. A step that grants no priority
+ * (untap, cleanup) cannot take a stop and the value comes back unchanged.
+ *
+ * It copies rather than mutating so a caller holding it in reactive state
+ * can swap the whole value and see the change, without either side needing
+ * a reactive Set.
+ */
+export function toggleStop(stops: Stops, side: TurnSide, step: string): Stops {
+  if (!STOPPABLE_STEPS.includes(step)) return stops;
+  const next: Stops = { yours: new Set(stops.yours), opponents: new Set(stops.opponents) };
+  if (next[side].has(step)) next[side].delete(step);
+  else next[side].add(step);
+  return next;
 }
