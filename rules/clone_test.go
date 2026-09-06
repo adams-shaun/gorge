@@ -189,8 +189,16 @@ func TestCloneSharesNoMutableStateWithTheOriginal(t *testing.T) {
 	// aliased the original, silently passing even a Clone that aliased
 	// everything. An in-place write only leaves the original untouched if
 	// Clone actually copied the backing storage.
+	//
+	// Log is deliberately NOT in this battery: a stored Event or Intent is
+	// append-only, hash-chained history, so since A3 Log.Clone shares the
+	// backing arrays (each capped at len, so the first append reallocates)
+	// and an in-place write to c.L.Events[i] now writes the ORIGINAL's
+	// slot too. That is not a Clone defect -- it is the contract: you do
+	// not mutate a stored event, on either log, any more than you mutate
+	// one already in the chain. The two logs still diverge cleanly by
+	// appending, which events.TestLogCloneAppendsDiverge pins.
 	c.G.Players[0].Life = -100
-	c.L.Events[0].Kind = 200
 	if c.pending != nil && len(c.pending.Options) > 0 {
 		c.pending.Options[0].Label = "mutated"
 	}
@@ -207,7 +215,7 @@ func TestCloneSharesNoMutableStateWithTheOriginal(t *testing.T) {
 	c.cast.sacs[0] = 9999
 	c.cast.cost.Sac[0].N = 99
 
-	if e.G.Players[0].Life == -100 || e.L.Events[0].Kind == 200 {
+	if e.G.Players[0].Life == -100 {
 		t.Fatal("clone shares Game or Log storage with the original")
 	}
 	if e.pending != nil && len(e.pending.Options) > 0 && e.pending.Options[0].Label == "mutated" {

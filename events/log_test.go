@@ -249,11 +249,70 @@ func TestLogCloneIsIndependentAndKeepsTheChain(t *testing.T) {
 		t.Fatalf("clone chain desynced: Head %s, HeadAt %s", c.Head(), c.HeadAt(len(c.Events)))
 	}
 
-	// No shared backing arrays: mutating a cloned event's IDs or an
-	// intent's Choices leaves the original untouched.
-	c.Events[1].IDs[0] = 99
-	c.Intents[0].Choices[0] = 42
-	if l.Events[1].IDs[0] != 3 || l.Intents[0].Choices[0] != 1 {
-		t.Fatal("clone shares a backing array with the original")
+	// A stored Event or Intent is append-only, hash-chained history, so a
+	// clone shares the backing arrays rather than deep-copying them -- an
+	// in-place edit of a stored event's IDs/Pairs (or an intent's Choices)
+	// is not a sanctioned operation on a clone, exactly as it is not on the
+	// original: it would desync Head from HeadAt. The only mutation the
+	// contract allows is append, and the divergence guarantees that come
+	// with sharing are pinned by TestLogCloneAppendsDiverge below.
+}
+
+// TestLogCloneAppendsDiverge is the named regression test for Log.Clone
+// sharing its backing arrays. Stored events/intents are append-only and
+// hash-chained, so a clone may share them -- but only if the two logs can
+// never write into each other's storage. The full-slice form
+// c.Events = l.Events[:len:len] and c.Intents = l.Intents[:len:len] set
+// cap == len, forcing the first append on either side to allocate a fresh
+// array. Drop the cap (Mutation 1: share the spare capacity instead) and
+// the interleaved appends below land on the other log's slots, silently
+// corrupting its chain -- an assertion this test catches.
+func TestLogCloneAppendsDiverge(t *testing.T) {
+	mk := func(seed uint64) *Log {
+		// Three appends so the backing array has been grown past its length
+		// (len 3, cap 4) -- the spare capacity the safety relay depends on.
+		l := NewLog(seed)
+		l.Append(Event{Kind: GameStart, Player: 0, IDs: []state.ObjID{1, 2}})
+		l.Append(Event{Kind: Draw, Player: 1})
+		l.Append(Event{Kind: ManaAdd, Player: 0})
+		return l
+	}
+	l := mk(7)
+	c := l.Clone()
+
+	// Append to the ORIGINAL first.
+	l.Append(Event{Kind: TurnChange, Player: 0})
+	l.Intents = append(l.Intents, decision.Intent{Seq: 2, Player: 0, Choices: []int{1}})
+	if len(c.Events) != 3 || len(c.Intents) != 0 {
+		t.Fatalf("append to the original leaked into the clone: %d events / %d intents",
+			len(c.Events), len(c.Intents))
+	}
+
+	// Then append to the CLONE. Under sharing this is where corruption
+	// would land: unless cap was truncated to len, the clone's append writes
+	// into the same backing array at the slot the original just used and
+	// clobbers its TurnChange (the original grew into the spare capacity the
+	// clone still holds).
+	c.Append(Event{Kind: Priority, Player: 1})
+	c.Intents = append(c.Intents, decision.Intent{Seq: 3, Player: 1, Choices: []int{0}})
+
+	// The original's appended event must survive, and its chain must still
+	// describe its own events -- a clobber desyncs Head from HeadAt.
+	if len(l.Events) != 4 || l.Events[3].Kind != TurnChange {
+		t.Fatalf("clone append clobbered the original's event: %d events, [3]=%s",
+			len(l.Events), l.Events[3].Kind)
+	}
+	if len(l.Intents) != 1 || l.Intents[0].Seq != 2 {
+		t.Fatalf("clone intent append clobbered the original's intent")
+	}
+	if l.HeadAt(len(l.Events)) != l.Head() {
+		t.Fatalf("original chain desynced: HeadAt=%s Head=%s", l.HeadAt(len(l.Events)), l.Head())
+	}
+	if c.HeadAt(len(c.Events)) != c.Head() {
+		t.Fatalf("clone chain desynced: HeadAt=%s Head=%s", c.HeadAt(len(c.Events)), c.Head())
+	}
+	// And the two logs really have diverged: independent chains now.
+	if l.Head() == c.Head() {
+		t.Fatal("logs did not diverge after independent appends")
 	}
 }
