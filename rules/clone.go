@@ -96,6 +96,12 @@ func (e *Engine) Clone() *Engine {
 	// activeVersion / continuousVersion start at zero in the fresh struct, so
 	// the cloned engine misses the cache and rebuilds the identical,
 	// deterministic list on its first Derived after the clone boundary.
+	//
+	// derivedKW / derivedTypes / derivedDepth (engine.go, layers.go) are the
+	// same class: Derived's reusable keyword/type scratch buffers and their
+	// re-entry guard. A clone starts with nil buffers and grows its own on its
+	// first full Derived, never aliasing the original's mutable scratch — the
+	// A2 buffer / C3 digest precedent, spelled out in clone.go's contract.
 	if e.cast != nil {
 		pc := *e.cast
 		pc.cost.Sac = append([]CostPart(nil), e.cast.cost.Sac...)
