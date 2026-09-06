@@ -108,24 +108,25 @@ func (l *Log) HeadAt(n int) string {
 	return hex.EncodeToString(cur[:8])
 }
 
-// Clone returns an independent copy of l: the same Seed, NoHash and chain
-// state, and fresh copies of Events and Intents (down to each event's IDs
-// and Pairs and each intent's Choices). Appending to either log afterwards
-// leaves the other untouched, and the copy's Head continues from exactly
-// where l's was. rules.Engine.Clone uses it to snapshot a match.
+// Clone returns a log that continues the same chain from exactly where l's
+// was: the same Seed, NoHash and chain state. Events and Intents are shared
+// by backing array, not copied — a stored Event or Intent is append-only,
+// hash-chained history: once Append has folded it into the chain, mutating
+// it (or its IDs/Pairs/Choices) in place would desync Head from HeadAt, so
+// the engine never does. Because nothing writes to the shared region, both
+// logs can read it freely. The full-slice expressions below are the point:
+// each fixes cap == len, so the first append on EITHER side allocates a
+// fresh array and the two logs diverge cleanly, never writing into the
+// other's storage (pinned by TestLogCloneAppendsDiverge). buf is a scratch
+// buffer reused only by Append, so a clone starts from nil and gets its own
+// backing on first use — sharing it could race two append paths. Sharing
+// here is what keeps memory-profile hot: ViewAt clones per time-travel query
+// and Engine.Clone per turn-start snapshot, and a deep copy of an ever-
+// growing log was ~17 GB of allocated space in the host test.
 func (l *Log) Clone() *Log {
 	c := *l
-	c.Events = make([]Event, len(l.Events))
-	for i, e := range l.Events {
-		e.IDs = append([]state.ObjID(nil), e.IDs...)
-		e.Pairs = append([][2]state.ObjID(nil), e.Pairs...)
-		c.Events[i] = e
-	}
-	c.Intents = make([]decision.Intent, len(l.Intents))
-	for i, in := range l.Intents {
-		in.Choices = append([]int(nil), in.Choices...)
-		c.Intents[i] = in
-	}
-	c.buf = make([]byte, 0, cap(l.buf))
+	c.Events = l.Events[:len(l.Events):len(l.Events)]
+	c.Intents = l.Intents[:len(l.Intents):len(l.Intents)]
+	c.buf = nil
 	return &c
 }
