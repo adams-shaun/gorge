@@ -26,6 +26,14 @@ func (e *Engine) Clone() *Engine {
 		applyingReplacement: e.applyingReplacement,
 		choosing:            e.choosing,
 		drainAwaitsTarget:   e.drainAwaitsTarget,
+		// E2 held-out cast suppression (cast.go): the set of card ids whose
+		// cast option is held out of the current window after an unpayable
+		// decline. A clone taken at any intent boundary carries it forward so
+		// a cloned engine offers exactly the same cast options the original
+		// would (a declined card stays held out until a state change
+		// re-enables it, in both engines alike). It is a plain map of object
+		// ids, so it must be re-allocated, not shared.
+		suppressedCast: cloneSuppressed(e.suppressedCast),
 	}
 	if e.pending != nil {
 		d := *e.pending
@@ -88,6 +96,19 @@ func cloneCounts(m map[triggerKey]int32) map[triggerKey]int32 {
 		return nil
 	}
 	out := make(map[triggerKey]int32, len(m))
+	for k, v := range m {
+		out[k] = v
+	}
+	return out
+}
+
+// cloneSuppressed copies the held-out cast set (suppressedCast, engine.go),
+// preserving nil (cast.go allocates it lazily; a nil set reads as empty).
+func cloneSuppressed(m map[state.ObjID]bool) map[state.ObjID]bool {
+	if m == nil {
+		return nil
+	}
+	out := make(map[state.ObjID]bool, len(m))
 	for k, v := range m {
 		out[k] = v
 	}
