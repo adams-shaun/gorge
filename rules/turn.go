@@ -44,6 +44,15 @@ func (e *Engine) step() {
 	if e.G.Over {
 		return
 	}
+	// The London mulligan round (Config.Mulligans > 0) runs between the
+	// opening deal and turn 1. While e.pregame, stepPregame issues the single
+	// next round decision; it must NOT leaf into the ordinary step switch,
+	// whose cases assume a live turn with an active player. Once the round
+	// hand to beginTurn it clears pregame itself.
+	if e.pregame {
+		e.stepPregame()
+		return
+	}
 	switch e.G.Step {
 	case state.StepDeclareAttackers:
 		e.askAttackers()
@@ -292,6 +301,11 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 		e.handleTriggerOptional(d, in)
 	case decision.KChoose:
 		e.handleChoose(d, in)
+	case decision.KMulligan:
+		// The London mulligan round's keep/mulligan and bottoming asks
+		// (rules/mulligan.go). pregame is set exactly while the round runs, so
+		// handleMulligan is only ever reached with the round live.
+		e.handleMulligan(d, in)
 	}
 }
 
