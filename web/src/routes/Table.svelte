@@ -10,9 +10,11 @@
   import Transcript from '../components/Transcript.svelte';
   import DvrBar from '../components/DvrBar.svelte';
   import MatchList from '../components/MatchList.svelte';
+  import SeatPanel from '../components/SeatPanel.svelte';
   import { quadrantFor } from '../lib/board';
   import { seatColour } from '../lib/colours';
   import { href, navigate } from '../lib/router';
+  import { getSeat } from '../lib/seat';
 
   // match (from the /t/:table/m/:match route) names a specific, already-played
   // match. Task 21's finished mode replays it end to end via loadFinished:
@@ -24,8 +26,14 @@
   let { table, match = null }: { table: string; match?: number | null } = $props();
   // svelte-ignore state_referenced_locally
   const finished = match !== null;
+
+  // The seat identity is read once from the join URL (?seat=N&token=…,
+  // M2e-3's FL-99). With no seat, every line below is the spectator path
+  // it always was (R-E4-4).
+  const seatCtx = getSeat();
+  const seated = seatCtx !== null;
   // svelte-ignore state_referenced_locally
-  const m = new MatchState(table);
+  const m = new MatchState(table, seatCtx ?? undefined);
 
   // idle: the table has no live match and none imminent, so the match list
   // is the whole page rather than a strip under a "waiting" placeholder.
@@ -72,11 +80,18 @@
           />
         {/each}
         <RecentStrip view={m.view} events={m.dvr.events} />
+        {#if seated && seatCtx && m.match !== null}
+          {#key m.match}
+            <SeatPanel view={m.view} seats={m.seats} ctx={seatCtx} table={table} match={m.match} />
+          {/key}
+        {/if}
       </section>
-      <aside class="rail"><Rail view={m.view} seats={m.seats} decision={m.decision} /></aside>
+      <aside class="rail"><Rail view={m.view} seats={m.seats} decision={seated ? null : m.decision} emphasizeTop={seated} /></aside>
       <footer class="transcript">
-        <DvrBar dvr={m.dvr} onAction={(a) => m.dispatch(a)} {finished} />
-        <div class="log"><Transcript dvr={m.dvr} onSeek={(seq) => m.dispatch({ type: 'scrub', seq })} /></div>
+        {#if !seated}
+          <DvrBar dvr={m.dvr} onAction={(a) => m.dispatch(a)} {finished} />
+        {/if}
+        <div class="log"><Transcript dvr={m.dvr} onSeek={seated ? () => {} : (seq) => m.dispatch({ type: 'scrub', seq })} /></div>
       </footer>
     {:else if finished && m.loadError}
       <div class="load-error">

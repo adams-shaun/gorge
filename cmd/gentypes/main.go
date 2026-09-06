@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/internal/tsgen"
 	"github.com/adams-shaun/gorge/protocol"
 )
@@ -28,6 +29,12 @@ func Render() (string, error) {
 		reflect.TypeOf(protocol.DecisionBody{}), reflect.TypeOf(protocol.MatchEnd{}), reflect.TypeOf(protocol.TableHaltedBody{}),
 		reflect.TypeOf(protocol.Overflow{}), reflect.TypeOf(protocol.ErrorBody{}), reflect.TypeOf(protocol.MatchInfo{}),
 		reflect.TypeOf(protocol.Subscribe{}), reflect.TypeOf(protocol.Unsubscribe{}),
+		// decision.Intent is the client's ANSWER — the one wire type a human
+		// needs. Every other decision type reaches the client through View,
+		// but nothing reaches it from the server's offered decisions, so
+		// without this root the wire-drift gate could never see drift on the
+		// request shape (M2e-4, R-E4-3).
+		reflect.TypeOf(decision.Intent{}),
 	}
 	unions := map[string][]string{
 		"FrameType":  {"hello", "widget", "match_start", "snapshot", "event", "decision", "match_end", "table_halted", "overflow", "error"},

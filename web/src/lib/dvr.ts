@@ -19,6 +19,12 @@ export interface DvrState {
 export type DvrAction =
   | { type: 'snapshot'; match: string; head: number; turnStarts: number[] }
   | { type: 'event'; body: EventBody }
+  // 'head' advances the cursor/head WITHOUT storing a transcript line: the
+  // seated path receives the spectator frame stream but must not render its
+  // bodies (they are redacted for the table's spectator visibility, not for
+  // a seat), so it chits the public seq and backfills redacted lines via
+  // REST instead (M2e-4).
+  | { type: 'head'; seq: number }
   | { type: 'backfill'; events: EventBody[] }
   | { type: 'pause' }
   | { type: 'live' }
@@ -49,6 +55,10 @@ export function dvrReducer(s: DvrState, a: DvrAction): DvrState {
       // sticky until 'snapshot' or 'reset': the caller must re-snapshot to clear it
       if (seq !== s.head + 1) return { ...s, gap: true };
       return { ...s, head: seq, cursor: s.live ? seq : s.cursor, events: [...s.events, a.body] };
+    }
+    case 'head': {
+      if (a.seq <= s.head) return s;
+      return { ...s, head: a.seq, cursor: s.live ? a.seq : s.cursor };
     }
     case 'backfill': {
       const known = new Set(s.events.map((e) => e.event.seq));
