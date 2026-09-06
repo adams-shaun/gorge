@@ -28,6 +28,51 @@ export function isConcede(o: Option): boolean {
   return o.kind === 'concede';
 }
 
+/**
+ * Tone is how loudly the panel presents its state, and it is resolved from
+ * option KINDS alone — never a label, never a position (R-E4-1).
+ *
+ * `offered` is a window this seat may decline: the decision carries a `pass`
+ * option, so doing nothing is a legal answer and the game moves on without
+ * you. `initiative` is a decision the game is blocked on — a target, a
+ * mulligan, a block assignment, a mode — where there is no pass and nothing
+ * happens anywhere at the table until this seat answers. Those two deserve
+ * different colours because they demand different things of the player, and
+ * painting them alike is what made the old panel unreadable across a room.
+ */
+export type Tone = 'initiative' | 'offered' | 'idle';
+
+export function toneOf(d: Decision | null): Tone {
+  if (d === null) return 'idle';
+  return d.options.some((o) => o.kind === 'pass') ? 'offered' : 'initiative';
+}
+
+/**
+ * MulliganPhase names which half of the London round a `mulligan` decision is
+ * in, so the seat panel can lay it out. The two halves are told apart by their
+ * option KINDS — `keep`/`mulligan` in the first, `bottom` in the second — and
+ * never by option count, position or label text (FL-101).
+ *
+ * A mulligan decision carrying any other kind returns null and falls back to
+ * the generic option list, so an option this layout does not understand is
+ * still reachable rather than silently dropped.
+ */
+export type MulliganPhase =
+  | { phase: 'keep'; choices: Option[] }
+  | { phase: 'bottom'; cards: Option[] }
+  | null;
+
+export function mulliganPhase(d: Decision | null): MulliganPhase {
+  if (d === null || d.kind !== 'mulligan' || d.options.length === 0) return null;
+  if (d.options.every((o) => o.kind === 'keep' || o.kind === 'mulligan')) {
+    return { phase: 'keep', choices: d.options };
+  }
+  if (d.options.every((o) => o.kind === 'bottom')) {
+    return { phase: 'bottom', cards: d.options };
+  }
+  return null;
+}
+
 export class SeatPanelState {
   readonly table: string;
   readonly ctx: SeatCtx;
@@ -113,6 +158,23 @@ export class SeatPanelState {
       void this.post([index]);
       return;
     }
+    const at = this.picked.indexOf(index);
+    if (at >= 0) this.picked = this.picked.filter((i) => i !== index);
+    else this.picked = [...this.picked, index];
+  }
+
+  /**
+   * toggle adds or removes one option from `picked` and never posts. click()
+   * posts straight away on a min==max==1 decision because there the click IS
+   * the answer, which is right for a priority option and wrong for bottoming:
+   * bottoming one card has exactly that shape and is irreversible, so those
+   * cards toggle and the player commits with the submit button.
+   */
+  toggle(index: number) {
+    const d = this.pending;
+    if (d === null || d.seq === this.postedSeq || this.busy) return;
+    if (d.options[index] === undefined) return;
+    this.confirming = false;
     const at = this.picked.indexOf(index);
     if (at >= 0) this.picked = this.picked.filter((i) => i !== index);
     else this.picked = [...this.picked, index];
