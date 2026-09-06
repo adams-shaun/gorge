@@ -289,60 +289,125 @@ func (e *Engine) active() []ContinuousEffect {
 	return buf
 }
 
+// derivedScalar returns only an object's derived power and toughness — the
+// subset of Derived that combat, legal, cast, trigger and bot predicates read
+// constantly (and, through the Chars interface, every projected view). It
+// never builds the keyword/type slices Derived carries, and its effect list
+// comes from active()'s cached, buffer-reused build, so it allocates nothing
+// per call. Its P/T is identical to what the full Derived computes because an
+// LPT effect's applicability never depends on the derived keyword/type
+// grants: MatchesSpecFrom (effects/filter.go) resolves every predicate
+// against the object's *printed* face (o.Face().HasKeyword / o.Face().Types),
+// never against the grants Derived accumulates. So no layer-6/4 grant can
+// flip a layer-7 pump, and a pass that reads only LPT effects reproduces the
+// same power and toughness Derived did before — skipping the other layers is
+// a saving, never a behaviour change.
+func (e *Engine) derivedScalar(id state.ObjID) (power, toughness int32) {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return 0, 0
+	}
+	f := o.Face()
+	power, toughness = int32(f.Power()), int32(f.Toughness())
+	for _, ce := range e.active() {
+		if ce.Layer != LPT {
+			continue
+		}
+		if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+			continue
+		}
+		switch ce.Sub {
+		case SubSet:
+			if ce.HasSet {
+				power, toughness = ce.SetPower, ce.SetToughness
+			}
+		case SubModify:
+			power += ce.AddPower
+			toughness += ce.AddToughness
+		}
+	}
+	// 7d: counters apply after every other layer-7 effect (CR 613.4).
+	if n := o.Counter("P1P1"); n != 0 {
+		power += n
+		toughness += n
+	}
+	if n := o.Counter("M1M1"); n != 0 {
+		power -= n
+		toughness -= n
+	}
+	return power, toughness
+}
+
 // Derived computes an object's current characteristics: printed values from
 // its face, then every applicable continuous effect in layer order, then
 // layer 7d counters last. A malformed or missing object degrades to the
 // zero Derived rather than panicking — layer inputs ultimately come from
 // parsed card text, and a nonexistent ObjID or an ability/token object with
 // no Face() must never crash the match goroutine.
+//
+// The Keywords and Types slices alias the Engine's scratch buffers
+// (derivedKW / derivedTypes, engine.go) and are reused across calls: after
+// the first call's buffers grow to size they are rewritten, never
+// reallocated, so repeated Derived builds are allocation-free. That is only
+// sound because every caller treats the returned slices as read-only and
+// does not retain them past building its own view — view.Project and
+// botpolicy both copy (append([]string(nil), ...)) synchronously, and the
+// loops in HasKeyword and protectedFrom only range. Sharing would be wrong
+// if a caller held one Derived's slices while calling Derived again (the
+// next call would rewrite the shared buffers), so the discipline is
+// load-bearing; derivedDepth guards re-entry the way active()'s activeDepth
+// guards its cache (a nested Derived mid-build gets private owned buffers
+// instead of clobbering the outer build's).
 func (e *Engine) Derived(id state.ObjID) Derived {
+	power, toughness := e.derivedScalar(id)
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
-		return Derived{}
+		return Derived{Power: power, Toughness: toughness}
 	}
 	f := o.Face()
-	d := Derived{
-		Power:     int32(f.Power()),
-		Toughness: int32(f.Toughness()),
-		Types:     append([]string(nil), f.Types...),
+	e.derivedDepth++
+	kw := e.derivedKW
+	ty := e.derivedTypes
+	if e.derivedDepth > 1 {
+		// Re-entrant (a nested Derived mid-build): own private buffers rather
+		// than overwrite the outer call's backing arrays mid-range. Same guard
+		// Task A2 uses for forEachObject and this file uses for active(). (This
+		// path is effectively unreachable — MatchesSpecFrom reads faces, never
+		// calls Derived — but it keeps the buffer discipline airtight.)
+		kw = nil
+		ty = nil
 	}
-	d.Keywords = append(d.Keywords, f.Keywords...)
-
+	kw = append(kw[:0], f.Keywords...)
+	ty = ty[:0]
 	for _, ce := range e.active() {
 		if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
 			continue
 		}
 		switch ce.Layer {
 		case LAbilities:
-			d.Keywords = append(d.Keywords, ce.AddKeywords...)
+			kw = append(kw, ce.AddKeywords...)
 		case LType:
-			d.Types = append(d.Types, ce.AddTypes...)
-		case LPT:
-			switch ce.Sub {
-			case SubSet:
-				if ce.HasSet {
-					d.Power, d.Toughness = ce.SetPower, ce.SetToughness
-				}
-			case SubModify:
-				d.Power += ce.AddPower
-				d.Toughness += ce.AddToughness
-			}
+			ty = append(ty, ce.AddTypes...)
 		}
 	}
-	// 7d: counters apply after every other layer-7 effect (CR 613.4).
-	if n := o.Counter("P1P1"); n != 0 {
-		d.Power += n
-		d.Toughness += n
+	if e.derivedDepth <= 1 {
+		// Keep the grown buffers on the Engine for the next build; a re-entrant
+		// build's private buffers are discarded on return.
+		e.derivedKW = kw
+		e.derivedTypes = ty
 	}
-	if n := o.Counter("M1M1"); n != 0 {
-		d.Power -= n
-		d.Toughness -= n
-	}
-	return d
+	e.derivedDepth--
+	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty}
 }
 
-func (e *Engine) Power(id state.ObjID) int32     { return e.Derived(id).Power }
-func (e *Engine) Toughness(id state.ObjID) int32 { return e.Derived(id).Toughness }
+func (e *Engine) Power(id state.ObjID) int32 {
+	p, _ := e.derivedScalar(id)
+	return p
+}
+func (e *Engine) Toughness(id state.ObjID) int32 {
+	_, t := e.derivedScalar(id)
+	return t
+}
 
 // HasKeyword matches case-insensitively, like its sibling cards.Face.HasKeyword
 // (Ruling T19-b) — every existing call site already goes through that

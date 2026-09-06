@@ -108,6 +108,20 @@ type Engine struct {
 	// because active() guards hits on version as well.
 	continuousVersion int
 
+	// derivedKW / derivedTypes are Derived's scratch keyword and type buffers
+	// (rules/layers.go): the full Derived(struct) build rewrites them in place
+	// so repeated derived-characteristic reads do not allocate. They are pure
+	// per-call scratch, rebuilt from the face and active() every call, so they
+	// carry no cross-call state beyond capacity; Clone() copies none of them
+	// (see clone.go), so a cloned engine grows its own — never aliasing the
+	// original's mutable scratch, exactly the A2 buffer / C3 digest precedent.
+	// derivedDepth is the re-entry guard for the reuse (the A2/active()
+	// pattern): a nested Derived mid-build owns private buffers instead of
+	// clobbering the outer build's.
+	derivedKW    []string
+	derivedTypes []string
+	derivedDepth int
+
 	// pendingTriggers holds matched triggers not yet placed on the stack.
 	// checkTriggers appends; putTriggersOnStack drains. Task 20 (trigger.go).
 	pendingTriggers []pendingTrigger
