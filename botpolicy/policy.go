@@ -27,10 +27,11 @@ import (
 // View a real client receives, and BoardFromGame (combat.go) lifts it off
 // the engine's state.Game — so whatever the heuristic sees, whichever host
 // asks, is the same board (pinned over a whole game by seat/integration_test.go's
-// TestBotAdaptersAgreeOverWholeGame). The fields are deliberately not
-// speculative: a board fact no policy branch reads would be untested
-// surface. Priority reads IsMain, Cards and Life; combat reads
-// Creatures and Life.
+// TestBotAdaptersAgreeOverWholeGame, and the commander twin pinned the
+// same way by TestBotAdaptersAgreeOverCommanderGame). The fields are
+// deliberately not speculative: a board fact no policy branch reads would
+// be untested surface. Priority reads IsMain, Cards, Life and
+// Commanders; combat reads Creatures, Life and Commanders.
 type Board struct {
 	// IsMain reports whether sorcery-speed actions are legal right now.
 	// The seat adapter lifts it off the projected View's Phase
@@ -50,18 +51,71 @@ type Board struct {
 	Life map[state.PlayerID]int32
 	// Cards is the casting ranking's card-facts table, keyed by ObjID and
 	// filled by both adapters for the DECIDING seat's own legally-seen
-	// zones (its hand, graveyard and battlefield) from cast.go (creature,
-	// power, mana value, basic-ness). The casting policy (cast.go) reads an
-	// offered "cast"/"play_land" option's facts here by Obj. The seat
-	// adapter fills it off the projected CardViews the viewer receives;
-	// BoardFromGame fills it off state.Game for the deciding seat — the two
-	// fill exactly the same legal zones with the same derived facts, so a
-	// card ranks the same whichever host asks (pinned over a whole game by
-	// seat/integration_test.go's TestBotAdaptersAgreeOverWholeGame). A
-	// hand/graveyard/battlefield fact is the deciding seat's own, so
-	// carrying it in the Board is no information leak (Ruling C0): it is
-	// exactly what that seat may see.
+	// zones (its hand, graveyard, battlefield and command zone) from
+	// cast.go (creature, power, mana value, basic-ness). The casting
+	// policy (cast.go) reads an offered "cast"/"play_land" option's facts
+	// here by Obj. The seat adapter fills it off the projected CardViews
+	// the viewer receives; BoardFromGame fills it off state.Game for the
+	// deciding seat — the two fill exactly the same legal zones with the
+	// same derived facts, so a card ranks the same whichever host asks
+	// (pinned over a whole game by seat/integration_test.go's
+	// TestBotAdaptersAgreeOverWholeGame). A hand/graveyard/battlefield/
+	// command-zone fact is the deciding seat's own, so carrying it in the
+	// Board is no information leak (Ruling C0): it is exactly what that
+	// seat may see.
 	Cards map[state.ObjID]Card
+	// Commanders is the CR 903.6/903.10 commander bookkeeping, keyed by
+	// object id: every commander object in the match (each player's
+	// Commanders list, in Config order), with the CR 903.8 tax base
+	// (Casts: times it has been cast from the command zone — the next such
+	// cast costs an additional {2} per entry), whether it currently sits
+	// in its owner's command zone (InCommandZone — the only zone a cast
+	// of it is taxed), and the 21-damage clock (Damage: cumulative combat
+	// damage it has dealt, keyed by the player who took it; nil when it
+	// has dealt none). Both adapter halves fill it from public facts — the
+	// command zone is public (m30 made ZCommand project), and commander
+	// identity, cast counts and damage are open information — so the
+	// casting rule and the combat clock read the same facts whichever
+	// host asks. Damage is keyed by the commander, not its controller:
+	// CR 903.10 charges a commander's tally whether the object currently
+	// attacks for its owner or anyone else. A fact the policy never reads
+	// (the commander's owner) is deliberately not carried.
+	Commanders map[state.ObjID]Commander
+}
+
+// Commander is the Board's per-commander commander-format bookkeeping,
+// filled identically by both adapter halves (seat/bot.go's boardFromView
+// off the projected View's Commanders/CommanderCasts/CmdDamage fields,
+// BoardFromGame off state.Game's Player.Commanders/CmdCasts/CmdDamage —
+// combat.go). Casts is the CR 903.8 tax base: the next command-zone cast
+// of this commander costs an additional {2} for each prior such cast, and
+// the casting rule prices exactly that. InCommandZone is whether the
+// commander currently sits in its owner's command zone — the only zone a
+// "cast" of it is taxed (a hand cast is an ordinary cast). Damage is the
+// CR 903.10 21-clock: cumulative combat damage this commander has dealt,
+// keyed by the player who took it; nil (on BOTH halves) until it has
+// dealt some.
+type Commander struct {
+	Casts         int32
+	InCommandZone bool
+	Damage        map[state.PlayerID]int32
+}
+
+// closesClock reports whether an unblocked swing from the creature id —
+// whose creature facts are a — would take player p to 21 or more
+// commander damage from that commander (CR 903.10: a loss that ignores
+// life). It is the single expression behind all four clock rules
+// (cast.go's CR1 reads Damage only indirectly through the tax; combat.go's
+// AR5/BR3/BR4 read it directly), so the attack and block heuristics price
+// the same second track. A creature that is not a commander (no
+// Commanders entry) or whose commander has never hit p (no Damage entry)
+// never closes a clock.
+func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
+	cm, ok := b.Commanders[id]
+	if !ok {
+		return false
+	}
+	return cm.Damage[p]+a.Power >= 21
 }
 
 // Decide implements every decision.Kind the engine (or a future one) can

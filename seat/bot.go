@@ -83,10 +83,11 @@ func (b *Bot) DecideBoard(_ context.Context, brd botpolicy.Board, d decision.Dec
 // two halves to the same facts over a whole game.
 func boardFromView(v view.View) botpolicy.Board {
 	b := botpolicy.Board{
-		IsMain:    v.Phase == "main1" || v.Phase == "main2",
-		Creatures: make(map[state.ObjID]botpolicy.Creature, 32),
-		Life:      make(map[state.PlayerID]int32, len(v.Players)),
-		Cards:     make(map[state.ObjID]botpolicy.Card, 16),
+		IsMain:     v.Phase == "main1" || v.Phase == "main2",
+		Creatures:  make(map[state.ObjID]botpolicy.Creature, 32),
+		Life:       make(map[state.PlayerID]int32, len(v.Players)),
+		Cards:      make(map[state.ObjID]botpolicy.Card, 16),
+		Commanders: make(map[state.ObjID]botpolicy.Commander, 8),
 	}
 	for _, p := range v.Players {
 		b.Life[p.ID] = p.Life
@@ -103,11 +104,49 @@ func boardFromView(v view.View) botpolicy.Board {
 				Controller: cv.Controller,
 			}
 		}
+		// The commander bookkeeping: the projected roster (p.Commanders,
+		// never shrunk as commanders are cast) carries identity and the CR
+		// 903.8 cast counts; p.Command's zone-list membership is
+		// InCommandZone's exact mirror of the game half's
+		// g.Zone(ZCommand, owner) read; every player's CmdDamage re-keys
+		// the CR 903.10 clock by commander object id exactly as the game
+		// half's dense-index transpose does.
+		for k, cv := range p.Commanders {
+			var casts int32
+			if k < len(p.CommanderCasts) {
+				casts = p.CommanderCasts[k]
+			}
+			cmdr := botpolicy.Commander{Casts: casts}
+			for _, cz := range p.Command {
+				if cz.ID == cv.ID {
+					cmdr.InCommandZone = true
+					break
+				}
+			}
+			b.Commanders[cv.ID] = cmdr
+		}
 	}
-	// The casting Card census: the viewer's own hand, graveyard and
-	// battlefield CardViews — the deciding seat's own legally-seen zones —
-	// mirroring exactly what BoardFromGame fills from state.Game for that
-	// seat (cast.go's CmcOf and the type-word check on the same printed
+	// The CR 903.10 clock, filled from every player's damage keys. The map
+	// iteration order is irrelevant: each entry lands in b.Commanders[id]'s
+	// own Damage map keyed by the player who took it, and no policy branch
+	// reads anything in order this fill could disturb (ties break on ObjID
+	// or option index). A commander a damaged player names is always
+	// already in b.Commanders (damage only ever accrues to a commander) —
+	// the nil-map read would be a zero entry otherwise, never a crash.
+	for _, q := range v.Players {
+		for id, tally := range q.CmdDamage {
+			cmdr := b.Commanders[id]
+			if cmdr.Damage == nil {
+				cmdr.Damage = make(map[state.PlayerID]int32, 2)
+			}
+			cmdr.Damage[q.ID] = tally
+			b.Commanders[id] = cmdr
+		}
+	}
+	// The casting Card census: the viewer's own hand, graveyard, battlefield
+	// and command-zone CardViews — the deciding seat's own legally-seen
+	// zones — mirroring exactly what BoardFromGame fills from state.Game for
+	// that seat (cast.go's CmcOf and the type-word check on the same printed
 	// fields, and the engine's derived Power that the View already projects
 	// as cv.Power), so the casting policy ranks the same card the same way
 	// on both halves.
@@ -115,7 +154,7 @@ func boardFromView(v view.View) botpolicy.Board {
 		if p.ID != v.Viewer {
 			continue
 		}
-		for _, cv := range append(append(append([]view.CardView(nil), p.Hand...), p.Graveyard...), p.Battlefield...) {
+		for _, cv := range append(append(append(append([]view.CardView(nil), p.Hand...), p.Graveyard...), p.Battlefield...), p.Command...) {
 			b.Cards[cv.ID] = botpolicy.Card{
 				Creature: isCreatureView(cv),
 				Power:    cv.Power,
