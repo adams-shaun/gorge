@@ -33,6 +33,11 @@ type config struct {
 	pace, cooldown                     time.Duration
 	seed                               uint64
 	perpetual                          bool
+	// mulligans is the London mulligan allowance the served tables hand the
+	// engine: each player may take up to this many mulligans between the deal
+	// and turn 1 (R-E5-1). Defaults to 1 — a mulligan is the first decision of
+	// a real game — and 0 restores the pre-task behaviour exactly (no round).
+	mulligans int
 	// humansRaw is the -humans flag: a comma-separated list of table t1's
 	// slot indices that are real people. Empty stays all-bot, identical to
 	// today. applyHumans parses it into humans at serve time so a malformed
@@ -58,6 +63,7 @@ func main() {
 	flag.StringVar(&c.spectator, "spectator", "omniscient", "spectator visibility: public or omniscient")
 	flag.Uint64Var(&c.seed, "seed", 1, "seed of table 1; table i uses seed+i-1")
 	flag.BoolVar(&c.perpetual, "perpetual", true, "start a new match when one ends")
+	flag.IntVar(&c.mulligans, "mulligans", 1, "London mulligans per player before turn 1; 0 disables the pre-game round")
 	flag.StringVar(&c.humansRaw, "humans", "", "comma-separated slots of table t1 that are real people (e.g. 0,2); t2..tN stay bot tables")
 	flag.StringVar(&c.seatToken, "seat-token", "", "fixed bearer token for the first human slot (tests and local use only; default mints a random token per slot)")
 	flag.Parse()
@@ -194,7 +200,7 @@ func (c config) tableConfigs(names []string, vis view.Visibility) []host.TableCo
 	cfgs := make([]host.TableConfig, 0, c.tables)
 	for i := 1; i <= c.tables; i++ {
 		cfg := host.TableConfig{ID: host.TableID(fmt.Sprintf("t%d", i)), Name: fmt.Sprintf("Table %d", i), Seats: c.seats,
-			Decks: names, Seed: c.seed + uint64(i-1), Pace: c.pace, Spectator: vis, Perpetual: c.perpetual}
+			Decks: names, Seed: c.seed + uint64(i-1), Pace: c.pace, Spectator: vis, Perpetual: c.perpetual, Mulligans: c.mulligans}
 		if i == 1 && len(c.humans) > 0 {
 			cfg.Humans = c.humans
 			cfg.Perpetual = false

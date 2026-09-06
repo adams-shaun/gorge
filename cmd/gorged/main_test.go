@@ -295,6 +295,75 @@ func TestHumanSeatTakesADecisionEndToEnd(t *testing.T) {
 	}
 }
 
+// TestTheHumanSeatIsAskedToMulligan is the product half of M2e-5: with
+// -mulligans 1 (the flag default), the London round runs and the very first
+// decision the human seat is offered is its keep/mulligan choice — the
+// mulligan, unreachable from gorged before this task, becomes the first
+// decision a real player meets. Answering "keep" must move the match past
+// the round.
+func TestTheHumanSeatIsAskedToMulligan(t *testing.T) {
+	url, cancel, done := startServe(t, config{tables: 1, seats: 2, humansRaw: "0", pace: 0, perpetual: true, seatToken: "tok", mulligans: 1})
+	defer cancel()
+	waitTables(t, url, 1)
+
+	pendingURL := url + "/api/tables/t1/matches/1/pending"
+	first := waitDecision(t, pendingURL, "0", "tok")
+	if first.Kind != decision.KMulligan {
+		t.Fatalf("first decision offered to the human seat is %q, want mulligan", first.Kind)
+	}
+
+	// Answer "keep" — the first Min option of the keep/mulligan ask — and
+	// confirm the match moves past the round: the next decision asked of the
+	// seat has a strictly higher Seq (the engine stamps Seq from the event
+	// count, which only grows).
+	in := decision.Intent{Seq: first.Seq, Player: first.Player, Choices: make([]int, first.Min)}
+	for i := range in.Choices {
+		in.Choices[i] = i
+	}
+	body, err := json.Marshal(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest(http.MethodPost, url+"/api/tables/t1/matches/1/intent", bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer tok")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("mulligan answer returned %d, want 204", resp.StatusCode)
+	}
+
+	advanced := false
+	deadline := time.Now().Add(15 * time.Second)
+	for {
+		d, status := decisionOnce(t, pendingURL, "0", "tok")
+		if status == http.StatusOK && d.Seq > first.Seq {
+			advanced = true
+			break
+		}
+		if time.Now().After(deadline) {
+			if seatViewOver(t, url) {
+				advanced = true
+				break
+			}
+			t.Fatalf("game did not advance past the mulligan (last status %d)", status)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if !advanced {
+		t.Fatal("game did not advance past the mulligan")
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatalf("serve: %v", err)
+	}
+}
+
 // TestHumanSeatRefusesTheOtherSeat: a token minted for seat 0 is refused
 // when the request names seat 1 — the claim≠requested comparison of M2e-2,
 // and the whole reason the resolver cannot be a rubber stamp (R-E3-3).

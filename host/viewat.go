@@ -258,7 +258,7 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 		}
 		decks[i] = d.Cards
 	}
-	cfg := rules.Config{Seed: sc.Seed, Names: sc.Names, Decks: decks, Tokens: r.opts.Tokens}
+	cfg := rules.Config{Seed: sc.Seed, Names: sc.Names, Decks: decks, Tokens: r.opts.Tokens, Mulligans: sc.Mulligans}
 	e, err := replay.Replay(l, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("host: %s/%d does not replay: %w", t.cfg.ID, sc.Match, err)
