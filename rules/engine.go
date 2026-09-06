@@ -508,6 +508,27 @@ func (e *Engine) emit(ev events.Event) events.Event {
 func (e *Engine) Pending() *decision.Decision { return e.pending }
 
 func (e *Engine) ask(d *decision.Decision) {
+	// Option.Index/position identity (finding bi). Every decision that can
+	// reach a seat flows through ask -- ask is what sets d.Seq and e.pending,
+	// so a decision that skipped it is not pending and no seat can answer it
+	// -- which makes this the ONE place the invariant is enforced for every
+	// construction site at once, including the sites that never call
+	// decision.New (all but mulligan's two build the struct literal directly;
+	// effects' two mid-resolution asks reach e.pending through Engine.Ask,
+	// which calls back into ask below). A mis-indexed list is a programming
+	// error, not a bad client answer: Chosen resolves an intent by position,
+	// so an option whose Index has drifted off its slot makes the engine
+	// resolve a different option than the client named, silently. Panic here
+	// rather than return an error because an error hands the caller the
+	// choice to swallow it and ship the broken Decision to a seat -- exactly
+	// the silent wrong-option failure the invariant exists to make
+	// unrepresentable.
+	for i := range d.Options {
+		if d.Options[i].Index != i {
+			panic(fmt.Sprintf("rules: decision option %d has Index %d, want position %d (%s)",
+				i, d.Options[i].Index, i, d.Kind))
+		}
+	}
 	d.Seq = uint64(len(e.L.Events))
 	e.emit(events.Event{Kind: events.DecisionAsk, Player: d.Player, Text: string(d.Kind)})
 	e.pending = d
