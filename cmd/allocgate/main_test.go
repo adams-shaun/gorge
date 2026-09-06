@@ -187,3 +187,35 @@ func TestWriteHistoryCreatesAndAppends(t *testing.T) {
 		t.Errorf("budget keys duplicated on append\n%s", s)
 	}
 }
+
+// TestPackagesForFilesSkipsToolArtifact is the mutation surface for the
+// feedback-loop fix: a package whose only staged change is one of the gate
+// tools' history files must not be treated as changed, or a measurement that
+// did not land (a failed commit) makes the next -changed run re-measure every
+// affected package.
+func TestPackagesForFilesSkipsToolArtifact(t *testing.T) {
+	pkgs := []pkgInfo{
+		{importPath: "example.com/gorge/host", dir: "host", hasTests: true},
+		{importPath: "example.com/gorge/state", dir: "state", hasTests: true},
+	}
+	if got := packagesForFiles([]string{"host/ALLOC_HISTORY.md"}, pkgs); len(got) != 0 {
+		t.Errorf("ALLOC_HISTORY.md alone selected %v, want none", got)
+	}
+	if got := packagesForFiles([]string{"state/TEST_HISTORY.md"}, pkgs); len(got) != 0 {
+		t.Errorf("TEST_HISTORY.md alone selected %v, want none", got)
+	}
+	if got := packagesForFiles([]string{"host/b.go", "host/ALLOC_HISTORY.md"}, pkgs); len(got) != 1 || got[0] != "example.com/gorge/host" {
+		t.Errorf("bookkeeping beside real code changed selection to %v, want just host", got)
+	}
+}
+
+// TestNonArtifactsWedged is the mutation surface for the wedged-state fix: a
+// staging of ONLY gate bookkeeping is a wedge and must yield no valid change.
+func TestNonArtifactsWedged(t *testing.T) {
+	if got := nonArtifacts([]string{"host/TEST_HISTORY.md", "state/ALLOC_HISTORY.md"}); len(got) != 0 {
+		t.Errorf("nonArtifacts(bookkeeping-only) = %v, want empty", got)
+	}
+	if touched := nonArtifacts([]string{"host/a.go", "host/ALLOC_HISTORY.md"}); len(touched) != 1 || touched[0] != "host/a.go" {
+		t.Errorf("nonArtifacts dropped a real file: %v", touched)
+	}
+}

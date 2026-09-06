@@ -45,7 +45,9 @@
 //		go run ./cmd/allocgate [-changed] [-all] [-runner NAME]
 //			[-maxprocs 32] [-memlimit 5GiB] [pkgs...]
 //
-//	-changed  measure packages whose staged files include a .go file
+//	-changed  measure packages whose staged files include a real change
+//	          (a .go file, or any file other than THIS tool's ALLOC_HISTORY.md
+//	          / testtime's TEST_HISTORY.md bookkeeping)
 //	-all      measure every package with _test.go files
 //	pkgs...   explicit package patterns (e.g. ./host/)
 package main
@@ -92,7 +94,7 @@ type budgets struct {
 }
 
 func main() {
-	changed := flag.Bool("changed", false, "measure packages whose staged files include a .go file")
+	changed := flag.Bool("changed", false, "measure packages whose staged files include a real change (a non-history file)")
 	all := flag.Bool("all", false, "measure every package with _test.go files")
 	runner := flag.String("runner", "", "runner name recorded in ALLOC_HISTORY.md")
 	procs := flag.Int("maxprocs", 32, "GOMAXPROCS for each run; pinned so the budget is a property of the code, not the box")
@@ -114,11 +116,21 @@ func main() {
 	var selected []string // import paths
 	switch {
 	case *changed:
-		files := stagedGoFiles()
-		if len(files) == 0 {
-			return // no staged .go file: skip entirely
+		staged := stagedFiles()
+		// The gate's own bookkeeping must never feed back into which packages
+		// are measured: this tool appends ALLOC_HISTORY.md rows (and testtime
+		// appends TEST_HISTORY.md rows) to every package it measures, and a
+		// commit that failed after that left those files staged and dirty and
+		// made the next -changed run re-measure the packages. A package whose
+		// only staged change is a history file is NOT a changed package.
+		touched := nonArtifacts(staged)
+		if len(touched) == 0 {
+			if len(staged) > 0 {
+				fmt.Println("allocgate: staged changes are only gate bookkeeping (TEST_HISTORY.md / ALLOC_HISTORY.md), no code changed; nothing measured")
+			}
+			return
 		}
-		selected = packagesForFiles(files, pkgs)
+		selected = packagesForFiles(touched, pkgs)
 	case *all:
 		for _, p := range pkgs {
 			if p.hasTests {
@@ -387,9 +399,12 @@ func writeHistory(path, importPath string, b budgets, date, commit string, m mea
 	}
 }
 
-// packagesForFiles maps staged file paths to the import paths of the packages
+// packagesForFiles maps changed file paths to the import paths of the packages
 // that contain them. A file whose directory is not a package (no _test.go and
-// no .go files) is skipped. The result is deterministic (sorted by the caller).
+// no .go files, so it is not in pkgs) is skipped. A history file the gate tools
+// write is skipped too: it is bookkeeping, never a real change, so it can never
+// select a package (defence in depth on top of the nonArtifacts scrub). The
+// result is deterministic (sorted by the caller).
 func packagesForFiles(files []string, pkgs []pkgInfo) []string {
 	byDir := map[string]pkgInfo{}
 	for _, p := range pkgs {
@@ -398,7 +413,7 @@ func packagesForFiles(files []string, pkgs []pkgInfo) []string {
 	seen := map[string]bool{}
 	var selected []string
 	for _, f := range files {
-		if !strings.HasSuffix(f, ".go") {
+		if isToolArtifact(f) {
 			continue
 		}
 		if p, ok := byDir[filepath.Dir(f)]; ok && !seen[p.importPath] {
@@ -434,19 +449,42 @@ func listPackages(cwd string) []pkgInfo {
 	return pkgs
 }
 
-// stagedGoFiles returns the staged file paths that end in .go.
-func stagedGoFiles() []string {
+// stagedFiles returns every staged file path. Unlike a .go-only scan it is the
+// full change set, so a package is "changed" when ANY real file in it is staged
+// -- the history-file scrub in nonArtifacts/packagesForFiles is what keeps the
+// gate's own bookkeeping from counting as a change.
+func stagedFiles() []string {
 	out, err := exec.Command("git", "diff", "--cached", "--name-only").Output()
 	if err != nil {
 		fatal("git diff --cached: %v", err)
 	}
 	var files []string
 	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-		if strings.HasSuffix(line, ".go") {
+		if line != "" {
 			files = append(files, line)
 		}
 	}
 	return files
+}
+
+// isToolArtifact reports whether path is one of the history files the gate
+// tools (this one and cmd/testtime) append to a package when they measure it.
+// Those files are the tools' own output, so a package whose ONLY change is one
+// of them is not a changed package.
+func isToolArtifact(path string) bool {
+	base := filepath.Base(path)
+	return base == "TEST_HISTORY.md" || base == "ALLOC_HISTORY.md"
+}
+
+// nonArtifacts drops the gate tools' own bookkeeping from a staged-file list.
+func nonArtifacts(files []string) []string {
+	var out []string
+	for _, f := range files {
+		if !isToolArtifact(f) {
+			out = append(out, f)
+		}
+	}
+	return out
 }
 
 // expandArgs resolves explicit package patterns (e.g. ./host/, ./...) to
