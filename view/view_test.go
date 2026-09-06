@@ -2,6 +2,7 @@ package view
 
 import (
 	"encoding/json"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -864,24 +865,75 @@ func TestWinnerDistinguishesAWinFromADrawFromSeatZero(t *testing.T) {
 func TestDecisionMarshalOmitsServerOnlyFields(t *testing.T) {
 	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KTarget, Source: 42,
 		Options: []decision.Option{{Index: 0, Kind: "permanent", Label: "x", Obj: 7,
-			Player: 0, Attacker: 9, AltCostIndex: 3}}}
+			Player: 0, Attacker: 9, AltCostIndex: 3, Mode: "kicked", Amount: 2, Ability: 1}}}
 	blob, err := json.Marshal(d)
 	if err != nil {
 		t.Fatal(err)
 	}
 	s := string(blob)
-	// Source and AltCostIndex stay server-only; Attacker has been on the
-	// wire since Task U0 (the browser's declare-blockers step reads it).
-	for _, forbidden := range []string{"source", "Source", "alt_cost_index", "AltCostIndex"} {
+	// ResumeKind and ResumeSA are the only fields left server-only: they
+	// carry a *cards.SA and are the engine's mid-resolution bookkeeping
+	// (how it re-enters a suspended Ask). The five Part-A discriminators and
+	// the block option's attacker are on the wire since Task U0/W1.
+	for _, forbidden := range []string{"resume_kind", "resume_sa", "ResumeKind", "ResumeSA"} {
 		if strings.Contains(s, forbidden) {
 			t.Fatalf("marshalled decision leaked a server-only field %q: %s", forbidden, s)
 		}
 	}
-	if !strings.Contains(s, `"player":0`) {
-		t.Fatalf("marshalled decision missing \"player\":0 for an option about seat 0: %s", s)
+	for _, want := range []string{`"source":42`, `"alt_cost_index":3`, `"mode":"kicked"`, `"amount":2`, `"ability":1`, `"attacker":9`, `"player":0`} {
+		if !strings.Contains(s, want) {
+			t.Fatalf("marshalled decision missing %s: %s", want, s)
+		}
 	}
-	if !strings.Contains(s, `"attacker":9`) {
-		t.Fatalf("marshalled decision missing the block option's attacker: %s", s)
+}
+
+// TestCardViewAttachedToRoundTripsJSON is the Part-B contract: a permanent
+// an Aura or Equipment is attached to carries the attachment on the wire
+// (attached_to), so a client can render it beneath the permanent it
+// modifies. omitempty keeps the field off an unattached permanent -- 0
+// means "not attached", the same zero-value convention Obj uses -- so
+// today's payloads are unchanged for it.
+func TestCardViewAttachedToRoundTripsJSON(t *testing.T) {
+	g := state.NewGame([]string{"alice"})
+	c, _ := cards.ParseBytes("a.txt", []byte("Name:Aura\nTypes:Enchantment Aura\nOracle:x\n"))
+	c.Link()
+	ench := g.AddObject(c, 0)
+	bear := g.AddObject(c, 0)
+	ench.Zone = state.ZBattlefield
+	bear.Zone = state.ZBattlefield
+	g.SetZone(state.ZBattlefield, 0, []state.ObjID{ench.ID, bear.ID})
+	// Re-fetch: AddObject appends to g.Objs, so the earlier pointer goes
+	// stale (backing-array reallocation) once the later object is added.
+	g.Obj(ench.ID).AttachedTo = bear.ID
+
+	v := Project(g, flatChars{g}, 0, nil)
+	cv := v.Players[0].Battlefield[0]
+	if cv.AttachedTo != bear.ID {
+		t.Fatalf("AttachedTo = %d, want %d", cv.AttachedTo, bear.ID)
+	}
+	blob, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := string(blob); !strings.Contains(s, `"attached_to":`+strconv.FormatUint(uint64(bear.ID), 10)) {
+		t.Fatalf("attached permanent JSON missing attached_to: %s", s)
+	}
+	var back View
+	if err := json.Unmarshal(blob, &back); err != nil {
+		t.Fatal(err)
+	}
+	if back.Players[0].Battlefield[0].AttachedTo != bear.ID {
+		t.Fatalf("round-trip lost AttachedTo: got %d, want %d", back.Players[0].Battlefield[0].AttachedTo, bear.ID)
+	}
+
+	g.Obj(ench.ID).AttachedTo = 0
+	plain := Project(g, flatChars{g}, 0, nil)
+	pb, err := json.Marshal(plain)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(pb), "attached_to") {
+		t.Fatalf("an unattached permanent leaked an attached_to field: %s", pb)
 	}
 }
 
