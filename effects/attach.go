@@ -14,9 +14,12 @@ func init() {
 // Attachable reports whether obj may legally be attached to target. Task 14
 // leaves this always-true: the full check includes "the target is not
 // protected from the attachment's colours" (CR 702.16e for being attached
-// despite protection), which Task 15 adds. The hook exists now so effAttach
-// never hard-codes "always attach" -- the one decision the attachment SBA
-// does not own on its own.
+// despite protection). That half is NOT added here, and is deliberately NOT
+// a host hook on this interface: the protection tasks keep enforcement
+// inside rules' emit, where an Attach event is re-checked against its
+// target, and effects.Host must never host a protection decision. The hook
+// exists so effAttach never hard-codes "always attach" — the one decision
+// the attachment SBA does not own on its own.
 func Attachable(g *state.Game, obj state.ObjID, target state.ObjID) bool {
 	_ = g
 	return true

@@ -67,7 +67,7 @@ func (e *Engine) protectedFrom(target, source state.ObjID) bool {
 // stray trailing token) yields nothing.
 func protectionQuality(kw string) (string, bool) {
 	const prefix = "Protection from "
-	if !strings.HasPrefix(kw, prefix) {
+	if len(kw) < len(prefix) || !strings.EqualFold(kw[:len(prefix)], prefix) {
 		return "", false
 	}
 	q := strings.TrimSpace(kw[len(prefix):])
@@ -128,14 +128,25 @@ func protecColourLetter(q string) rune {
 	return 0
 }
 
-// Registered here: the five single-colour "Protection from" keywords — the
+// Registered here: the five single-colour "Protection from" keywords, the
 // exact shape Goblin Piledriver and Knight of Infamy (the last two ratchet
-// entries) carry, and the only protection keywords the M2r ratchet schedule
-// files a registration for. Neither "everything"-protection nor the
-// type-word protections appear on any of the 12 repo decks, so registering
-// them would grow the "supported" set without a card test to prove it —
-// Ruling W2 forbids that; protectedFrom still handles all of them correctly
-// if a future deck carries one, it just won't be REPORTED as supported yet.
+// entries) carry and the only protection keywords the M2r ratchet schedule
+// files a registration for — and, honestly, the ONLY protection syntax
+// protectionQuality parses. The corpus's dominant form is actually the
+// K:Protection:<Spec> syntax (K:Protection:Creature, K:Protection:Instant:
+// instants, K:Protection:Card.MultiColor, ... — 40+ distinct shapes across
+// .cards/cardsfolder), none of which protectionQuality parses: it matches
+// only "Protection from <colour>" plus the general words in sourceHasQuality's
+// switch, which five do not cover what the corpus actually spells. The plural
+// type words (artifacts/creatures/enchantments/instants/sorceries) the switch
+// handles never appear in Forge keyword syntax at all — the corpus writes
+// K:Protection:Creature, not "Protection from creatures" — and a
+// K:Protection from each color parses to a quality matching nothing.
+// Registering the type/everything protections would grow the "supported" set
+// without a card test to prove it (Ruling W2), and protectedFrom does NOT in
+// fact handle the corpus's other forms correctly: parsing and registering
+// them is real future work, and until a card test retires a ratchet entry
+// for one they will not be reported as supported.
 func init() {
 	effects.RegisterNonAPI("kw:Protection from white", "kw:Protection from blue",
 		"kw:Protection from black", "kw:Protection from red", "kw:Protection from green")

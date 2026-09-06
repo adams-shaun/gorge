@@ -409,16 +409,31 @@ func (e *Engine) damageStep(firstStrike bool) {
 		// damage when the recipient is protected from it (CR 702.16d); reset
 		// before the next assignment.
 		e.damaging = x.from
+		var prevented bool
 		if x.toObj != 0 {
-			e.emit(events.Event{Kind: events.Damage, Obj: x.toObj, Amount: x.amount})
-			if x.deathtouch {
+			// Task 15 fix round 1 (Critical C1): the return value of the
+			// Damage emit is read here. emit swallows a protected permanent's
+			// damage and returns a Note instead of a Damage event, but the
+			// FOLLOW-ON emits that ride the damage -- the deathtouch marker and
+			// the lifelink life gain -- used to run regardless, so a 2/2 blue
+			// Merfolk with Lifelink + Deathtouch blocked by a creature with
+			// protection from blue would both slap a Deathtouched counter on
+			// it (lethal under CR 704.5g) and gain its controller life (CR
+			// 702.15a: lifelink triggers only on damage actually dealt) even
+			// though the damage itself was prevented. Checking the emitted
+			// event's Kind -- the recipient-armed bet here is that a Note (or
+			// any replacement-substituted non-Damage kind) means the damage
+			// did NOT land -- skips both riders for a prevented assignment.
+			ev := e.emit(events.Event{Kind: events.Damage, Obj: x.toObj, Amount: x.amount})
+			prevented = ev.Kind != events.Damage
+			if x.deathtouch && !prevented {
 				e.emit(events.Event{Kind: events.CounterChange, Obj: x.toObj,
 					Counter: "Deathtouched", Amount: 1})
 			}
 		} else {
 			e.emit(events.Event{Kind: events.Damage, Player: x.toPlayer, Amount: x.amount})
 		}
-		if x.hasLink {
+		if x.hasLink && !prevented {
 			e.emit(events.Event{Kind: events.LifeChange, Player: x.lifelink, Amount: x.amount})
 		}
 		e.damaging = 0
