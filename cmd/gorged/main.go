@@ -140,7 +140,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		for _, s := range c.humans {
 			seat := state.PlayerID(s)
 			fmt.Fprintf(os.Stderr, "gorged: table t1 seat %d joins at http://%s/?seat=%d&token=%s\n",
-				s, ln.Addr(), s, gate.token(seat))
+				s, joinHost(ln.Addr()), s, gate.token(seat))
 		}
 	}
 	select {

@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 
@@ -78,6 +79,24 @@ func (g *seatGate) resolve(r *http.Request) (httpapi.SeatClaim, bool) {
 // token returns the slot's join token, for the startup print.
 func (g *seatGate) token(seat state.PlayerID) string {
 	return g.seatTokens[seat]
+}
+
+// joinHost renders a listener address as something a browser can open. A
+// listener bound to the default ":8080" reports its address as "[::]:8080" —
+// the unspecified address, which is a legal thing to listen on and not a
+// legal thing to dial — so a join URL built straight from ln.Addr() cannot be
+// pasted anywhere, which is the only reason it is printed. Substitute the
+// loopback host in that case and leave an explicit -addr host alone.
+func joinHost(addr net.Addr) string {
+	s := addr.String()
+	host, port, err := net.SplitHostPort(s)
+	if err != nil {
+		return s
+	}
+	if ip := net.ParseIP(host); host == "" || (ip != nil && ip.IsUnspecified()) {
+		return net.JoinHostPort("127.0.0.1", port)
+	}
+	return s
 }
 
 // bearerToken reads an Authorization: Bearer <tok> header; absent returns "".
