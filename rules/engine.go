@@ -127,6 +127,20 @@ type Engine struct {
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
 	cast *pendingCast
 
+	// suppressedCast holds the card object ids whose cast option is held out
+	// of the current priority window because their last cast attempt aborted
+	// unpayable with no state change (E2 round 2: see commitCast). This is
+	// the no-progress answer for a hash-chained, replayable engine: instead
+	// of counting no-progress aborts and killing the match, suppress the
+	// exact card that produced one, so the re-offer loop cannot even begin a
+	// second iteration -- nobody's match dies, and the seat may still do
+	// anything else. Cleared on any genuinely state-changing event (see
+	// emit), so a declined card's option comes back the moment the window
+	// ends or the mana/board changes. The id already names the one seat that
+	// holds it, so two different cards' declines never interact and two
+	// seats' never do either.
+	suppressedCast map[state.ObjID]bool
+
 	// drainAwaitsTarget is true while a decision asked from inside the trigger
 	// drain is pending, so its answer resumes the drain rather than granting
 	// priority. Task 7 sets it for a TargetMin/TargetMax-bearing triggered
@@ -323,6 +337,20 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	stored := events.Emit(e.G, e.L, ev)
 	e.checkTriggers(stored, lki)
+	// E2: any genuinely state-changing event proves the game is making
+	// progress, so it clears the held-out cast suppression (suppressedCast,
+	// see engine.go): a declined card's option comes back the moment the
+	// game does anything else, which is exactly when ending the current
+	// priority window (a spell resolves, a step or turn changes) and any
+	// mana/board change both land. The four kinds a declined-Delve abort
+	// emits -- a Priority regrant, the KChoose decision bookkeeping, and the
+	// abort Note -- are excluded, so suppression survives only as long as
+	// NOTHING else is happening, which is precisely the no-progress-interval
+	// it is there to bound.
+	if ev.Kind != events.Priority && ev.Kind != events.DecisionAsk &&
+		ev.Kind != events.DecisionMade && ev.Kind != events.Note {
+		e.suppressedCast = nil
+	}
 	return stored
 }
 

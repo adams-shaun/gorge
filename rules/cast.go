@@ -724,6 +724,15 @@ func (e *Engine) commitCast() {
 		// board that changed) aborts with a Note exactly like a spell does.
 		mana := pc.cost.WithX(pc.x)
 		if !e.payMana(pc.player, mana) {
+			// E2 (round 2): an unpayable activation aborts with no state
+			// change and priority re-offers it. An activation's cost is gated
+			// by castable at offer time and its pool and Sac parts cannot
+			// change while the pendingCast flow runs, so reaching this branch
+			// needs a stale hand-built intent, not ordinary play. Suppress the
+			// offending card the same way a declined spell is (suppressCast)
+			// so even that cannot loop, and never kill the match (round 1's
+			// fatal is gone).
+			e.suppressCast(pc.card)
 			e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "activation aborted: cost no longer payable"})
 			return
 		}
@@ -759,6 +768,24 @@ func (e *Engine) commitCast() {
 		mana.Generic = 0
 	}
 	if !e.payMana(pc.player, mana) {
+		// E2 (round 2). This is the reachable no-progress arm: a Delve exile
+		// ask (Min:0, Max the shortfall) was answered with fewer cards than
+		// the shortfall needs, so the cast aborts with no state change and
+		// priority re-offers it. Declining is a legal, conforming answer --
+		// CR 601.2h rewinds the cast (the card stays in hand), so merely
+		// re-attempting it is correct -- but the engine must not re-offer the
+		// SAME unpayable cast forever. The mechanism is NOT to count the
+		// aborts and kill the match (round 1 shipped that and it was wrong: a
+		// legal decline, twice, on different cards, put a human seat into an
+		// unrecoverable dead match). Instead, hold THIS card's cast option
+		// out of the remaining priority window (suppressCast): the seat can
+		// still do anything else, and because the thing being repeated is no
+		// longer offered, the loop cannot repeat. No match dies, ever. The
+		// suppression clears on the first state-changing event (engine.go's
+		// emit), so the option returns as soon as the window ends or the
+		// mana/board changes -- which is when re-attempting can succeed
+		// again.
+		e.suppressCast(pc.card)
 		e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "cast aborted: cost no longer payable"})
 		return
 	}
@@ -775,6 +802,29 @@ func (e *Engine) commitCast() {
 	if sa := o.Face().SpellAbility(); sa != nil && sa.Params["ValidTgts"] != "" {
 		e.askTarget(pc.player, pc.card, sa)
 	}
+}
+
+// suppressCast holds id's cast option out of the current priority window
+// (suppressedCast, engine.go) because its last cast/activation attempt
+// aborted unpayable with no state change. The offer walks (rules/legal.go)
+// skip it via castSuppressed, so the no-progress re-offer loop commitCast
+// describes cannot repeat -- a legal decline never kills the match, and the
+// seat may still do anything else; the suppressed card's option comes back
+// on the first state-changing event (engine.go's emit clears the whole set),
+// which is when the window ends or the mana/board changes.
+func (e *Engine) suppressCast(id state.ObjID) {
+	if e.suppressedCast == nil {
+		e.suppressedCast = map[state.ObjID]bool{}
+	}
+	e.suppressedCast[id] = true
+}
+
+// castSuppressed reports whether id's cast option is currently held out of
+// p's priority offers (see suppressCast). The id names the one seat holding
+// it, so p is not consulted beyond matching that id's zone in the walk that
+// called it.
+func (e *Engine) castSuppressed(p state.PlayerID, id state.ObjID) bool {
+	return e.suppressedCast != nil && e.suppressedCast[id]
 }
 
 func init() {
