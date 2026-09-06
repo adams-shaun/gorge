@@ -183,6 +183,58 @@ func TestCommanderCastTaxesEveryCastBeyondTheFirst(t *testing.T) {
 	}
 }
 
+// TestCommanderCastPathActuallyPaysTheTax is the till-side test the other
+// commander tests miss: every one of them asserts on commanderTaxFor's RETURN
+// (the calculator) or on the offer, so a beginCast that computes the tax and
+// never spends it passes the whole suite. This test asserts on what the pool
+// ACTUALLY PAID through the real decision path -- the mana commitCast deducted
+// when a seat's cast intent resolves -- so the tax must be applied by the cast
+// flow itself, not merely derived. Fund exactly the taxed cost, cast, and
+// require the pool to fall by exactly that cost: {0} base + {2} tax on the
+// second command-zone cast and {4} on the third. Delete the
+// `cost = e.commanderTaxFor(p, id, cost)` line in beginCast and this fails by
+// name -- the tax function still returns {2}/{4}, but commitCast pays {0}.
+func TestCommanderCastPathActuallyPaysTheTax(t *testing.T) {
+	e, _, cmd0 := commanderGame(t, 38)
+
+	// First cast from the command zone: {0} base cost, tax {0}. The option is
+	// offered with an empty pool (castable holds for zero), and the cast pays
+	// nothing -- the untaxed baseline the second cast must exceed by exactly
+	// the {2} tax.
+	castCommanderAndReturn(t, e, cmd0)
+
+	// Second cast: CR 903.8 adds {2} on top of the {0} base. Fund exactly the
+	// taxed cost through the real path, and assert on the deduction, not on
+	// commanderTaxFor's return.
+	fundAndRefresh(t, e, 2)
+	opt := commanderCastOption(e, cmd0)
+	if opt == nil {
+		t.Fatalf("funded second command-zone cast not offered: %+v", e.Pending().Options)
+	}
+	before := e.G.Players[0].Pool[state.MC]
+	submitChoices(t, e, opt.Index)
+	if paid := before - e.G.Players[0].Pool[state.MC]; paid != 2 {
+		t.Fatalf("second command-zone cast paid %d mana from the pool, want exactly 2 ({0} base + {2} tax)", paid)
+	}
+	passUntilStackEmpty(t, e, 30)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: cmd0, From: state.ZBattlefield, To: state.ZCommand})
+	e.pending = nil
+	e.Advance()
+
+	// Third cast: the tax scales -- two prior command-zone casts push it to
+	// {4}, so a tax that is applied once but never grows would fail HERE.
+	fundAndRefresh(t, e, 4)
+	opt = commanderCastOption(e, cmd0)
+	if opt == nil {
+		t.Fatalf("funded third command-zone cast not offered: %+v", e.Pending().Options)
+	}
+	before = e.G.Players[0].Pool[state.MC]
+	submitChoices(t, e, opt.Index)
+	if paid := before - e.G.Players[0].Pool[state.MC]; paid != 4 {
+		t.Fatalf("third command-zone cast paid %d mana from the pool, want exactly 4 ({0} base + {4} tax)", paid)
+	}
+}
+
 // TestCommanderCounteredSpellStillRaisesTheTax pins the cast-time (not
 // resolve-time) increment: CmdCasts is incremented the instant the spell is
 // put on the stack, so a commander spell that is countered before it resolves
