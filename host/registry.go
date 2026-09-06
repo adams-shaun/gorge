@@ -263,7 +263,10 @@ func (r *Registry) run(t *table) {
 			t.setState(protocol.TableIdle)
 			return
 		}
-		if !t.cfg.Perpetual {
+		// Task M2c-2: a human-seated table stops at game over exactly like a
+		// non-perpetual one; singleShot captures both. StartAll revives a
+		// restored human table for a fresh single match, never an autoplay.
+		if t.cfg.singleShot() {
 			t.setState(protocol.TableIdle)
 			return
 		}
