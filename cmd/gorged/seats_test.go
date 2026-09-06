@@ -64,3 +64,27 @@ func TestSeatGateMintsAndResolvesTokens(t *testing.T) {
 		}
 	}
 }
+
+// TestJoinHostIsDialable pins that the printed join URL can actually be
+// opened. A listener on the default ":8080" reports "[::]:8080" — the
+// unspecified address is listenable but not dialable — and a join URL is
+// printed for exactly one reason, to be pasted into a browser.
+func TestJoinHostIsDialable(t *testing.T) {
+	for _, tc := range []struct{ in, want string }{
+		{"[::]:8080", "127.0.0.1:8080"},
+		{"0.0.0.0:8080", "127.0.0.1:8080"},
+		{"127.0.0.1:8080", "127.0.0.1:8080"},
+		{"192.168.1.5:8080", "192.168.1.5:8080"},
+	} {
+		if got := joinHost(stubAddr(tc.in)); got != tc.want {
+			t.Errorf("joinHost(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
+// stubAddr is a net.Addr with a literal String, so the table above can name
+// addresses this machine cannot actually bind.
+type stubAddr string
+
+func (a stubAddr) Network() string { return "tcp" }
+func (a stubAddr) String() string  { return string(a) }
