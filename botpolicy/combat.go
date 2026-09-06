@@ -77,9 +77,10 @@ func (c Creature) pt() int32 { return c.Power + c.Toughness }
 // count the Life map is sized to (len(g.Players) at the time).
 func NewBoard(numPlayers int) Board {
 	return Board{
-		Creatures: make(map[state.ObjID]Creature, 32),
-		Life:      make(map[state.PlayerID]int32, numPlayers),
-		Cards:     make(map[state.ObjID]Card, 16),
+		Creatures:  make(map[state.ObjID]Creature, 32),
+		Life:       make(map[state.PlayerID]int32, numPlayers),
+		Cards:      make(map[state.ObjID]Card, 16),
+		Commanders: make(map[state.ObjID]Commander, 8),
 	}
 }
 
@@ -122,6 +123,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 	clear(b.Creatures)
 	clear(b.Life)
 	clear(b.Cards)
+	clear(b.Commanders)
 	b.IsMain = g.Step.IsMain()
 	for i := range g.Players {
 		p := &g.Players[i]
@@ -141,14 +143,54 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			}
 		}
 	}
+	// The commander bookkeeping: every commander in the match, in the
+	// dense order rules.New assigns at genesis (player order, then each
+	// player's CmdCasts-parallel Commanders order) — the same index every
+	// player's CmdDamage slice is keyed by, transposed here to the
+	// per-commander, per-damaged-player shape the clock rules read
+	// (closesClock). InCommandZone is zone-LIST membership, the exact
+	// mirror of the view half's p.Command membership, so a cast commander
+	// (moved out of the zone list) reads false on both halves.
+	dense := 0
+	for i := range g.Players {
+		p := &g.Players[i]
+		for k, id := range p.Commanders {
+			var casts int32
+			if k < len(p.CmdCasts) {
+				casts = p.CmdCasts[k]
+			}
+			cmdr := Commander{Casts: casts}
+			for _, zid := range g.Zone(state.ZCommand, p.ID) {
+				if zid == id {
+					cmdr.InCommandZone = true
+					break
+				}
+			}
+			for q := range g.Players {
+				// Guarded to totality: a game whose CmdDamage was never
+				// sized (a non-Commander game, or a hand-built state) reads
+				// nothing here, never a panic.
+				if dense < len(g.Players[q].CmdDamage) && g.Players[q].CmdDamage[dense] != 0 {
+					if cmdr.Damage == nil {
+						cmdr.Damage = make(map[state.PlayerID]int32, len(g.Players))
+					}
+					cmdr.Damage[g.Players[q].ID] = g.Players[q].CmdDamage[dense]
+				}
+			}
+			b.Commanders[id] = cmdr
+			dense++
+		}
+	}
 	// The casting Card census: every object in the deciding seat's own hand,
-	// graveyard and battlefield — exactly the zones boardFromView fills from
-	// the viewer's own Hand/Graveyard/Battlefield CardViews. Reading the
-	// face's Types and ManaCost and the engine's derived Power here, and the
-	// CardView's matching fields on the view side, fills the same fact with
-	// the same function (CmcOf, hasTypeWord), so a card ranks identically on
-	// both halves.
-	for _, z := range [...]state.Zone{state.ZHand, state.ZGraveyard, state.ZBattlefield} {
+	// graveyard, battlefield and command zone — exactly the zones
+	// boardFromView fills from the viewer's own Hand/Graveyard/Battlefield/
+	// Command CardViews. Reading the face's Types and ManaCost and the
+	// engine's derived Power here, and the CardView's matching fields on the
+	// view side, fills the same fact with the same function (CmcOf,
+	// hasTypeWord), so a card ranks identically on both halves — including
+	// a commander sitting in the command zone, which is why the casting
+	// rule can read its power and mana value like any other castable.
+	for _, z := range [...]state.Zone{state.ZHand, state.ZGraveyard, state.ZBattlefield, state.ZCommand} {
 		for _, id := range g.Zone(z, me) {
 			o := g.Obj(id)
 			if o == nil || o.Ephemeral() {
@@ -377,11 +419,25 @@ func killBlockCost(def []blocker, a Creature) (int32, bool) {
 //     toughness) — a free kill, a chump-plus-finisher team, a First-Strike
 //     or Deathtouch ambush — it stays home; it only attacks when every way
 //     the defender can kill it is a trade the attacker wins or survives.
+//   - AR5 (the clock wins, CR 903.10): an exception to AR3 — a commander
+//     whose unblocked swing would take the defender to 21 or more
+//     commander damage from it (closesClock) attacks even when the
+//     defender could kill it for less than it is worth. The swing ends the
+//     game on the second track if it gets through, so it is worth
+//     presenting every turn: the defender must answer it or lose, and
+//     every answer (even a cheap block) spends resources the defender must
+//     keep spending. When the swing does NOT close the clock yet (the
+//     tally is, say, 16 and the power 4 — 20 of 21), AR3's veto stands:
+//     the commander dies for a block that only delays the closing, and the
+//     tax makes that recast a losing exchange.
 //   - AR4 (leave a blocker): if attacking with the chosen set would leave
 //     the board with no untapped creature that can block (an attacker with
 //     Vigilance never taps and still blocks) while the defender has a
 //     creature of its own, the best blockable attacker is held back, so an
-//     attack never leaves the board undefended.
+//     attack never leaves the board undefended. A commander whose swing
+//     closes the defender's clock (AR5) is never the one held back — it is
+//     the swing the rest of the attack exists to enable; the hold-back
+//     picks from the other chosen attackers instead.
 //
 // The decision is purely a function of the offered options and the board
 // facts both adapters supply; no rng is consumed, and no map iteration
@@ -423,7 +479,12 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 			continue
 		}
 		if cost, ok := killBlockCost(theirBlockers, a); ok && cost < a.pt() {
-			continue // AR3: it dies for less than it is worth
+			if !b.closesClock(defender, o.Obj, a) {
+				continue // AR3: it dies for less than it is worth
+			}
+			// AR5: the swing closes the defender's commander clock — the
+			// game ends on the second track if it gets through, so the
+			// deadly-block veto yields.
 		}
 		chosen = append(chosen, o.Index)
 	}
@@ -465,6 +526,11 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 			if !blockable {
 				continue
 			}
+			// AR5: a commander whose swing closes the defender's clock is
+			// never held back -- the attack's game-ending piece.
+			if b.closesClock(defender, d.Options[oi].Obj, a) {
+				continue
+			}
 			if a.pt() > holdScore || (a.pt() == holdScore && d.Options[oi].Obj < holdID) {
 				hold, holdScore, holdID = oi, a.pt(), d.Options[oi].Obj
 			}
@@ -489,6 +555,19 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 //     otherwise be lethal (life - damage <= 0). A chump against a trample
 //     attacker saves only the blocker's own toughness, which is exactly
 //     what the bookkeeping subtracts.
+//   - BR3 (the clock is a second lethal line, CR 903.10): BR2's "would
+//     otherwise kill" also fires when the attacker is a commander whose
+//     unblocked swing would take THIS defender to 21 or more commander
+//     damage from it (closesClock) — a loss the commander's own cumulative
+//     track records regardless of life. A healthy life total is no excuse
+//     to let a 19-tally 2/2 commander through; blocking it (even as a
+//     chump) keeps the clock from turning.
+//   - BR4 (the clock ranks first): attackers are processed biggest-threat-
+//     first, and a commander whose unblocked swing would close its clock
+//     against this defender counts as power 21 for that ordering — a
+//     must-answer threat outranks every plain attacker, whatever its power,
+//     because an unanswered one ends the game on the second track. Among
+//     non-closing attackers the ordering stays power-descending.
 //   - Nothing else blocks: a creature that dies holding the line while the
 //     attacker survives is thrown away for nothing.
 //
@@ -524,7 +603,17 @@ func (b Board) chooseBlockers(d *decision.Decision) []int {
 		at.opts = append(at.opts, i)
 	}
 	sort.SliceStable(attackers, func(i, j int) bool {
-		pi, pj := attackers[i].a.Power, attackers[j].a.Power
+		// BR4: a commander whose unblocked swing would close THIS defender's
+		// clock ranks as power 21 -- a must-answer threat above every plain
+		// attacker, whatever its power. Non-closing attackers keep the
+		// plain power ordering.
+		clock := func(at *atk) int32 {
+			if b.closesClock(me, at.id, at.a) {
+				return 21
+			}
+			return 0
+		}
+		pi, pj := attackers[i].a.Power+clock(attackers[i]), attackers[j].a.Power+clock(attackers[j])
 		if pi != pj {
 			return pi > pj // biggest threat first
 		}
@@ -574,8 +663,11 @@ func (b Board) chooseBlockers(d *decision.Decision) []int {
 			unblocked -= at.a.Power // a dead attacker deals nothing, trample or not
 			continue
 		}
-		// BR2: chump only when the unblocked damage would otherwise kill.
-		if myLife-unblocked <= 0 {
+		// BR2: chump only when the unblocked damage would otherwise kill —
+		// where "kill" includes the commander clock (BR3): an unblocked
+		// swing from a commander that would take this defender to 21+ from
+		// it is lethal on the second track no matter the life total.
+		if myLife-unblocked <= 0 || b.closesClock(me, at.id, at.a) {
 			chump := -1
 			for _, oi := range at.opts {
 				if used[d.Options[oi].Obj] {

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
 )
 
@@ -211,5 +212,50 @@ func TestBotPassesOutsideMainWithNoCastOrLandDrop(t *testing.T) {
 		if err != nil || len(in.Choices) == 0 || d.Options[in.Choices[0]].Kind == "concede" {
 			t.Errorf("phase %q: bot chose concede or errored: %+v (err=%v)", phase, in, err)
 		}
+	}
+}
+
+// TestBoardFromViewCommanderClockFill pins the view-shaped half's CR 903.10
+// clock fill directly: the projected CmdDamage maps (keyed by commander
+// object id, one per damaged player) must land in the Board's per-commander
+// Damage maps, keyed by the player who took the damage. The whole-game
+// commander parity test cannot pin this on its own — a whole game of sample
+// commanders can end without a single unblocked commander swing — so the
+// fill gets a hand-built View here, exactly the shape a real client
+// receives.
+func TestBoardFromViewCommanderClockFill(t *testing.T) {
+	cmdA := state.ObjID(500)
+	cmdB := state.ObjID(501)
+	v := view.View{Viewer: 0, Players: []view.PlayerView{
+		{
+			ID: 0, Life: 20,
+			Commanders:     []view.CardView{{ID: cmdA}},
+			CommanderCasts: []int32{2},
+			Command:        []view.CardView{{ID: cmdA}},
+			// seat 0 has taken 7 from seat 1's commander, 0 from its own
+			CmdDamage: map[state.ObjID]int32{cmdB: 7},
+		},
+		{
+			ID: 1, Life: 20,
+			Commanders:     []view.CardView{{ID: cmdB}},
+			CommanderCasts: []int32{0},
+			// seat 1 has taken 4 from seat 0's commander
+			CmdDamage: map[state.ObjID]int32{cmdA: 4},
+		},
+	}}
+	b := boardFromView(v)
+	a := b.Commanders[cmdA]
+	if !a.InCommandZone || a.Casts != 2 {
+		t.Errorf("seat 0's commander = %+v, want in the zone with 2 casts", a)
+	}
+	if a.Damage[1] != 4 || len(a.Damage) != 1 {
+		t.Errorf("seat 0's commander damage = %v, want {seat 1: 4}", a.Damage)
+	}
+	bb := b.Commanders[cmdB]
+	if bb.InCommandZone || bb.Casts != 0 {
+		t.Errorf("seat 1's commander = %+v, want not in seat 0's zone with 0 casts", bb)
+	}
+	if bb.Damage[0] != 7 || len(bb.Damage) != 1 {
+		t.Errorf("seat 1's commander damage = %v, want {seat 0: 7}", bb.Damage)
 	}
 }

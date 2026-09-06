@@ -4,6 +4,7 @@ import (
 	"context"
 	"maps"
 	"math/rand/v2"
+	"reflect"
 	"slices"
 	"testing"
 
@@ -117,6 +118,77 @@ func TestBotAdaptersAgreePerStep(t *testing.T) {
 		if !slices.Equal(inView.Choices, inGame.Choices) {
 			t.Errorf("step %s: view-shaped choices %v, game-shaped choices %v", s, inView.Choices, inGame.Choices)
 		}
+	}
+}
+
+// TestBotAdaptersAgreeOverCommanderGame is TestBotAdaptersAgreeOverWholeGame's
+// commander-format twin: the two adapter halves must derive IDENTICAL
+// commander facts from the same game — the Board.Commanders map (roster,
+// CR 903.8 cast counts, InCommandZone, and the CR 903.10 per-commander
+// damage clock) is pinned with reflect.DeepEqual on every decision, the
+// way the casting Card census is pinned over the Constructed game above,
+// because those facts drive the commander cast rule and the combat clock.
+// The game is a two-seat Commander-format sample: each seat's first
+// vanilla creature is its commander, so the cast, the tax, and the clock
+// all genuinely happen over a whole game. The View additions this task
+// made (the projected command zone, roster + cast counts, and CmdDamage)
+// are exactly the wire facts this test's view-shaped half reads.
+func TestBotAdaptersAgreeOverCommanderGame(t *testing.T) {
+	names, decks := testutil.SampleDecks(t, 2)
+	cmds := [][]int{{17}, {17}} // each seat's first vanilla creature leaves the deck for the command zone
+	cfg := rules.Config{Seed: 0, Names: names, Decks: decks,
+		Commanders: cmds, StartingLife: 20, Format: rules.FormatCommander}
+	eView := rules.New(cfg)
+	eGame := rules.New(cfg)
+	eView.Advance()
+	eGame.Advance()
+	botView := NewBot(7)
+	botGame := rand.New(rand.NewPCG(7, 7^0x9e3779b97f4a7c15))
+	cmdPinned := 0
+	n := 0
+	for !eView.G.Over && !eGame.G.Over && eView.Pending() != nil && eGame.Pending() != nil && n < 200000 {
+		d := eView.Pending()
+		// One projection per decision, shared by both consumers: the same
+		// projected View a real client would receive feeds Decide AND the
+		// view-shaped Board adapter — projecting twice is what the original
+		// whole-game test does, but a commander game's projections carry real
+		// roster/clock content, and the suite's allocation is budgeted.
+		v := view.Project(eView.G, eView, d.Player, d)
+		inView, err := botView.Decide(context.Background(), v, *d)
+		if err != nil {
+			t.Fatalf("intent %d: view-shaped Decide: %v", n, err)
+		}
+		boardGame := botpolicy.BoardFromGame(eGame.G, eGame, d.Player)
+		boardView := boardFromView(v)
+		if !maps.Equal(boardView.Cards, boardGame.Cards) {
+			t.Fatalf("intent %d: casting Card census diverged (step %s)", n, eGame.G.Step)
+		}
+		// The commander facts: identical maps on both halves, pinned on
+		// every decision (not only when a ranking flips a choice).
+		if !reflect.DeepEqual(boardView.Commanders, boardGame.Commanders) {
+			t.Fatalf("intent %d: commander facts diverged:\nview: %+v\ngame: %+v (step %s)", n, boardView.Commanders, boardGame.Commanders, eGame.G.Step)
+		}
+		cmdPinned++
+		inGame := botpolicy.Decide(boardGame, eGame.Pending(), botGame)
+		if inView.Seq != inGame.Seq || inView.Player != inGame.Player || !slices.Equal(inView.Choices, inGame.Choices) {
+			t.Fatalf("intent %d: adapters diverged: view %+v vs game %+v (step %s)", n, inView, inGame, eGame.G.Step)
+		}
+		if err := eView.Submit(inView); err != nil {
+			t.Fatalf("intent %d: view-shaped Submit: %v", n, err)
+		}
+		if err := eGame.Submit(inGame); err != nil {
+			t.Fatalf("intent %d: game-shaped Submit: %v", n, err)
+		}
+		n++
+	}
+	if !eView.G.Over || !eGame.G.Over {
+		t.Fatalf("game did not terminate after %d intents (view over=%v, game over=%v)", n, eView.G.Over, eGame.G.Over)
+	}
+	if cmdPinned == 0 {
+		t.Fatal("no decision ever carried a commander fact to pin — the game never projected one")
+	}
+	if h1, h2 := eView.L.Head(), eGame.L.Head(); h1 != h2 {
+		t.Fatalf("chains diverged: view %s, game %s", h1, h2)
 	}
 }
 
