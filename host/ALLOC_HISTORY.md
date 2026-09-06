@@ -1,7 +1,7 @@
 # Allocation history — github.com/adams-shaun/gorge/host
 
-alloc_budget_mb: 212729
-rss_budget_mb: 7164
+alloc_budget_mb: 20000
+rss_budget_mb: 1400
 
 | date (UTC) | commit | rss_mb | alloc_mb | runner |
 |---|---|---|---|---|

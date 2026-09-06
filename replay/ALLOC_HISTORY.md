@@ -1,7 +1,7 @@
 # Allocation history — github.com/adams-shaun/gorge/replay
 
-alloc_budget_mb: 24980
-rss_budget_mb: 64
+alloc_budget_mb: 1900
+rss_budget_mb: 120
 
 | date (UTC) | commit | rss_mb | alloc_mb | runner |
 |---|---|---|---|---|

@@ -1,7 +1,7 @@
 # Allocation history — github.com/adams-shaun/gorge/cards
 
-alloc_budget_mb: 100
-rss_budget_mb: 43
+alloc_budget_mb: 850
+rss_budget_mb: 220
 
 | date (UTC) | commit | rss_mb | alloc_mb | runner |
 |---|---|---|---|---|

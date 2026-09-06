@@ -1,7 +1,7 @@
 # Allocation history — github.com/adams-shaun/gorge/seat
 
-alloc_budget_mb: 2020
-rss_budget_mb: 34
+alloc_budget_mb: 1650
+rss_budget_mb: 60
 
 | date (UTC) | commit | rss_mb | alloc_mb | runner |
 |---|---|---|---|---|
