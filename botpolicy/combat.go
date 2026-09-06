@@ -68,6 +68,21 @@ func (c Creature) remTough() int32 { return c.Toughness - c.Damage }
 // chooseAttackers/chooseBlockers say exactly where.
 func (c Creature) pt() int32 { return c.Power + c.Toughness }
 
+// NewBoard returns a Board whose three maps are allocated at the sizes
+// BoardFromGame fills them to (empty, but ready to grow without reallocating
+// their buckets), for a caller that intends to reuse them across decisions
+// via BoardFromGameInto. The host match loop keeps one such Board per match
+// (Task d2): a cleared map keeps its buckets, so reusing it costs none of
+// the per-call allocation a fresh make(map, n) would. capCapitals is the seat
+// count the Life map is sized to (len(g.Players) at the time).
+func NewBoard(numPlayers int) Board {
+	return Board{
+		Creatures: make(map[state.ObjID]Creature, 32),
+		Life:      make(map[state.PlayerID]int32, numPlayers),
+		Cards:     make(map[state.ObjID]Card, 16),
+	}
+}
+
 // BoardFromGame is the game-shaped half of the adapter pair: the Board a
 // decision is answered from, derived from the engine's own state.Game the
 // way seat/bot.go's boardFromView derives it from the projected View a real
@@ -84,12 +99,30 @@ func (c Creature) pt() int32 { return c.Power + c.Toughness }
 // boardFromView filters on the joined type list (cards/face.go's hasType is
 // an EqualFold membership check on exactly those words).
 func BoardFromGame(g *state.Game, ch Chars, me state.PlayerID) Board {
-	b := Board{
-		IsMain:    g.Step.IsMain(),
-		Creatures: make(map[state.ObjID]Creature, 32),
-		Life:      make(map[state.PlayerID]int32, len(g.Players)),
-		Cards:     make(map[state.ObjID]Card, 16),
-	}
+	b := NewBoard(len(g.Players))
+	return BoardFromGameInto(g, ch, me, &b)
+}
+
+// BoardFromGameInto is BoardFromGame's buffered-reuse form (Task d2): it
+// fills the Board derivable from state.Game into the caller-owned Board b,
+// clearing and reusing b's own three maps rather than allocating fresh ones
+// — clear on a map keeps its buckets, so a Board built once (NewBoard) and
+// refilled per decision costs no per-decision map allocation, which is the
+// bulk of BoardFromGame's measured cumulative in ./host. It returns *b.
+//
+// OWNERSHIP CONTRACT: the returned Board's maps ARE b's maps (shared
+// references), only repopulated. The host match loop refills one Board per
+// decision, so a Board is only valid until the next refill overwrites it: a
+// caller (a seat, the policy) must not read or retain a Board, or any of
+// its maps, once the decision has been answered. botpolicy.Decide and
+// everything it calls never retain the Board or its maps beyond the call
+// (pinned by TestBoardOwnership), which is what makes the host's
+// build-under-lock → Decide → reuse-next loop safe.
+func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Board {
+	clear(b.Creatures)
+	clear(b.Life)
+	clear(b.Cards)
+	b.IsMain = g.Step.IsMain()
 	for i := range g.Players {
 		p := &g.Players[i]
 		b.Life[p.ID] = p.Life
@@ -133,7 +166,7 @@ func BoardFromGame(g *state.Game, ch Chars, me state.PlayerID) Board {
 			}
 		}
 	}
-	return b
+	return *b
 }
 
 // canBlockLike is the policy's approximation of the engine's canBlock for

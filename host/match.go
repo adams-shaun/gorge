@@ -230,9 +230,17 @@ type parkedData struct {
 // cardViews' string round-trip. The deciding seat is stable for the match, so
 // this agrees with parkSeat's own assertion on the same seat.
 //
+// brd is the per-match botpolicy.Board the host loop keeps and refills for
+// every BoardSeat decision (Task d2): BoardFromGameInto clears and reuses its
+// three maps instead of allocating them per call — the measured bulk of
+// BoardFromGame's cumulative in ./host. The ownership contract is in
+// botpolicy.BoardFromGameInto's doc comment: brd's maps are built here under
+// the match lock, consumed by the answer's DecideBoard outside it, and never
+// read after the next decision refills them.
+//
 // Returns nil when there is no pending decision (game over, or a stall the
 // caller resolves via G.Over). Call on the match goroutine, under m.mu.
-func projectNext(m *match, seats []seat.Seat) *parkedData {
+func projectNext(m *match, seats []seat.Seat, brd *botpolicy.Board) *parkedData {
 	d := m.e.Pending()
 	if d == nil {
 		return nil
@@ -259,7 +267,7 @@ func projectNext(m *match, seats []seat.Seat) *parkedData {
 		return &parkedData{
 			p:       d.Player,
 			dc:      dc,
-			brd:     botpolicy.BoardFromGame(m.e.G, m.e, d.Player),
+			brd:     botpolicy.BoardFromGameInto(m.e.G, m.e, d.Player, brd),
 			isBoard: true,
 		}
 	}
@@ -353,6 +361,16 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	// abort that raced the first park.
 	var parked *parkedDecision
 	var before int
+	// Task d2 (buffered reuse): one botpolicy.Board for the whole match,
+	// refilled for every decision a BoardSeat answers. projectNext fills it
+	// under the match's exclusive lock via BoardFromGameInto (shared maps,
+	// cleared-and-reused, no per-decision map allocation); parkSeat consumes
+	// it in DecideBoard outside the lock; it is never read after the next
+	// decision's refill (botpolicy.BoardFromGameInto's doc comment states the
+	// contract, and botpolicy.TestBoardOwnership pins that Decide never
+	// retains the Board). Sized to len(m.e.G.Players) like BoardFromGame's own
+	// Life map, once per match — three small maps, nothing per decision.
+	brd := botpolicy.NewBoard(len(m.e.G.Players))
 	for n := 0; ; n++ {
 		select {
 		case <-t.stop:
@@ -378,7 +396,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 		if parked == nil {
 			var data *parkedData
 			err := m.locked(func() error {
-				data = projectNext(m, seats)
+				data = projectNext(m, seats, &brd)
 				return nil
 			})
 			if err != nil {
@@ -416,7 +434,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 			// Derived cache). The old loop got the same serialization because
 			// its projection immediately preceded this Submit; this keeps it
 			// now that the park happens after the Submit.
-			nextData = projectNext(m, seats)
+			nextData = projectNext(m, seats, &brd)
 			return nil
 		})
 		if err != nil {
