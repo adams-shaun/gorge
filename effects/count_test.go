@@ -36,6 +36,19 @@ func TestNumFollowsSVarIndirection(t *testing.T) {
 	}
 }
 
+// TestNumEvaluatesInlineCountExpression locks in Task 17's Num extension:
+// Storm's expansion puts Count$ThisTurnCast/Minus1 inline in the Amount$
+// param (cards/keywords.go), not behind an SVar name -- before the extension
+// Num mistook that literal for an SVar lookup, failed it, and judged the
+// whole amount zero, silencing every Storm copy.
+func TestNumEvaluatesInlineCountExpression(t *testing.T) {
+	h, c := fixtureHost(t)
+	got := Num(h, c, sa(t, "SP$ Draw | Amount$ Count$PlayerCountPlayers/Minus1"), "Amount", 9)
+	if got != 1 {
+		t.Errorf("Num inline Count$ = %d, want 1 (2 players minus 1)", got)
+	}
+}
+
 func TestEvalCountValidCountsTheBattlefield(t *testing.T) {
 	g, _ := board(t)
 	h := &fakeHost{g: g}

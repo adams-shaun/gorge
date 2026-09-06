@@ -431,7 +431,7 @@ func (e *Engine) resolveTop() {
 // stack, so its CastFlags (set by commitCast's CastInfo, if any) still
 // reflect how it was cast.
 func spellRestZone(o *state.Object) state.Zone {
-	if o != nil && o.CastFlags&state.FlagFlashback != 0 {
+	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.IsCopy) {
 		return state.ZExile
 	}
 	return state.ZGraveyard
@@ -534,6 +534,27 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 func (e *Engine) Game() *state.Game    { return e.G }
 func (e *Engine) Emit(ev events.Event) { e.emit(ev) }
 func (e *Engine) Rand(n int) int       { return e.rng.IntN(n) }
+
+// CastThisTurn satisfies effects.Host's CastThisTurn for Count$ThisTurnCast
+// (Task 17/Storm): the spells cast this turn by ANY player, counted from
+// the same event log spellsCastThisTurn reads, so a replay that rebuilds the
+// game derives the identical number -- never a live-only engine counter.
+// Storm subtracts one (Count$ThisTurnCast/Minus1) because the resolving
+// spell's own PutOnStack is already in the log by the time its trigger
+// effect runs, which would otherwise overcount by exactly one.
+func (e *Engine) CastThisTurn() int {
+	n := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.PutOnStack {
+			n++
+		}
+	}
+	return n
+}
 
 // targetsPlayers and targetsPermanents read the coarse shape of a ValidTgts
 // spec. The per-object predicate work is effects.MatchesSpec.

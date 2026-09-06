@@ -31,6 +31,15 @@ func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
 			return EvalCount(h, c, body)
 		}
 	}
+	// An inline Count$ expression (Storm's own Amount$ Count$ThisTurnCast/
+	// Minus1, Task 17) is a body in its own right, not an SVar name -- a
+	// param value of "Count$..." evaluates directly rather than being
+	// mistaken for an SVar lookup (which would fail and degrade the count to
+	// zero, silencing the whole SpellCopy/amount the expression was meant to
+	// size). The SVar-indirection form above stays authoritative for names.
+	if strings.HasPrefix(raw, "Count$") {
+		return EvalCount(h, c, raw)
+	}
 	if raw == "X" {
 		return c.X
 	}
@@ -76,6 +85,12 @@ func evalCountBody(h Host, c *Ctx, body string) int32 {
 		return int32(g.AliveCount())
 	case "PlayerCountOpponents":
 		return int32(g.AliveCount() - 1)
+	case "ThisTurnCast":
+		// Task 17 (Storm): spells cast this turn by anyone, read off the
+		// log via h.CastThisTurn() so a replay derives the same count. The
+		// classic idiom is Count$ThisTurnCast/Minus1 (storm copies the spell
+		// once per spell cast before it, i.e. everyone's casts minus itself).
+		return int32(h.CastThisTurn())
 	case "RememberedSize":
 		return int32(len(c.Remembered))
 	case "CardPower":
