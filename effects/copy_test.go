@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -82,5 +83,47 @@ func TestCopySpellAbilityDeclinesUnlessCostWithANote(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("no declined-may-pay Note recorded")
+	}
+}
+
+// TestCopySpellAbilityAsksTheUnlessPayToTheTargetsController covers the
+// effects side of the R-8 closure: with a host that can ask, the first pass
+// poses a KModes pay/decline decision to the TARGET's controller (the
+// UnlessPayer$ TargetedOrController shape Chain Lightning uses), and the
+// resolution suspends before any copy is made. The re-entry then takes the
+// Ctx.UnlessPay branch: "decline" makes no copy, "pay" makes the copy (the
+// payment itself is rules' job -- events/payMana -- so the Ctx contract here
+// is just the flag).
+func TestCopySpellAbilityAsksTheUnlessPayToTheTargetsController(t *testing.T) {
+	h := &askHost{}
+	h.g = state.NewGame(names(2))
+	o := spellOnStack(t, &h.fakeHost, "A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3", 0)
+	Resolve(h, &Ctx{Source: o.ID, Controller: 0,
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}},
+		sa(t, "SP$ CopySpellAbility | Defined$ Parent | UnlessCost$ R R | UnlessPayer$ TargetedOrController"))
+	if h.asked == nil {
+		t.Fatal("no pay decision was posed")
+	}
+	d := h.asked
+	if d.Kind != decision.KModes || d.Player != 1 || d.Min != 1 || d.Max != 1 {
+		t.Fatalf("decision = %+v, want a Min==Max==1 KModes for the TARGET's controller (seat 1)", d)
+	}
+	if len(d.Options) != 2 {
+		t.Fatalf("options = %+v, want the pay/decline pair", d.Options)
+	}
+	if got := copyEvents(&h.fakeHost); got != 0 {
+		t.Fatalf("%d copies made before the pay decision was answered", got)
+	}
+	// Re-entry, decline: no copy.
+	Resolve(h, &Ctx{Source: o.ID, Controller: 0, UnlessPay: "decline"},
+		sa(t, "SP$ CopySpellAbility | Defined$ Parent | UnlessCost$ R R | UnlessPayer$ TargetedOrController"))
+	if got := copyEvents(&h.fakeHost); got != 0 {
+		t.Fatalf("%d copies made on a decline", got)
+	}
+	// Re-entry, pay: the copy loop runs (the pool payment is rules' job).
+	Resolve(h, &Ctx{Source: o.ID, Controller: 0, UnlessPay: "pay"},
+		sa(t, "SP$ CopySpellAbility | Defined$ Parent | UnlessCost$ R R | UnlessPayer$ TargetedOrController"))
+	if got := copyEvents(&h.fakeHost); got != 1 {
+		t.Fatalf("%d copies made on a pay, want 1", got)
 	}
 }

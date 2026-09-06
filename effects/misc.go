@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -155,9 +156,18 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// effCharm chooses CharmNum$ of the Choices$ sub-abilities and runs it. M1
-// always takes the first choice, regardless of CharmNum$ -- turning this into
-// a real choice is Task 20's KModes decision.
+// effCharm chooses CharmNum$ of the Choices$ sub-abilities and runs it, in
+// the chosen order (M2d-2). When the host can ask (a live rules.Engine), it
+// poses the modal choice as a KModes decision -- one "mode" option per
+// Choices$ entry, labelled with the entry's SpellDescription$, Min == Max ==
+// CharmNum$ (default 1) -- and the resolution suspends until the answer
+// re-enters it (rules' resumeResolution sets Ctx.Modes to the chosen SVar
+// names before re-running this effect, so the re-entry below runs exactly
+// the chosen modes; the first pass never reaches that branch). When the
+// host cannot ask (an effects-package test double, or any context with no
+// engine), it falls back to today's deterministic first-mode stand-in with
+// a Note, which is what keeps R-9's no-engine default alive for those
+// contexts.
 func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	if c.SVars == nil {
 		return
@@ -166,9 +176,58 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	if len(choices) == 0 {
 		return
 	}
-	name := strings.TrimSpace(choices[0])
-	if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
-		Resolve(h, c, sub)
+	for i := range choices {
+		choices[i] = strings.TrimSpace(choices[i])
+	}
+	// Re-entry after the modal choice was answered: Ctx.Modes already names
+	// the chosen SVars in execution order, so run exactly those and do not
+	// ask again.
+	if c.Modes != nil {
+		for _, name := range c.Modes {
+			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+				Resolve(h, c, sub)
+			}
+		}
+		return
+	}
+	// Subs is resolved once per choice, so the label (SpellDescription$ on
+	// the choice's own SVar body) and the mode-run share one parse; the
+	// ordering of options mirrors Choices$ order, which is also how the
+	// engine maps a chosen index back to an SVar name.
+	subs := make([]*cards.SA, len(choices))
+	for i, name := range choices {
+		subs[i] = cards.ResolveSVar(c.SVars, name)
+	}
+	charmNum := Num(h, c, sa, "CharmNum", 1)
+	if charmNum < 1 {
+		charmNum = 1
+	}
+	if int(charmNum) > len(choices) {
+		charmNum = int32(len(choices))
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
+		Min: int(charmNum), Max: int(charmNum), Source: c.Source,
+		ResumeKind: "modes", ResumeSA: sa,
+		Prompt: "Choose " + strconv.Itoa(int(charmNum)) + " mode(s)"}
+	for i, name := range choices {
+		label := name
+		if subs[i] != nil {
+			if d := strings.TrimSpace(subs[i].Params["SpellDescription"]); d != "" {
+				label = d
+			}
+		}
+		d.Options = append(d.Options, decision.Option{
+			Index: i, Kind: "mode", Label: label, Obj: c.Source, Player: c.Controller})
+	}
+	if h.Ask(d) {
+		return // resolution suspended; the answer re-enters this effect with Ctx.Modes set.
+	}
+	// Fuzz/no-engine host: the deterministic first-mode default (R-9), with
+	// the Note that records why the richer path did not run.
+	h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+		Text: "chose its first mode (no engine host to ask)"})
+	if subs[0] != nil {
+		Resolve(h, c, subs[0])
 	}
 }
 
@@ -224,7 +283,7 @@ func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
 // DealDamage's -- events.Apply's ManaAdd case is a plain "+=", so an
 // unclamped negative would drop the pool below zero instead of doing
 // nothing. Folded in on top of that: "Any"/"Combo Any" resolves to colourless
-// rather than asking (a real choice is Task 20's job), and a dual-producing
+// rather than asking (a real choice awaits the milestone that makes every R-9 stand-in real), and a dual-producing
 // ability such as "Add {R}{R}" is walked one symbol at a time rather than
 // split on whitespace, since Produced$ carries no spaces of its own.
 func effMana(h Host, c *Ctx, sa *cards.SA) {

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -89,29 +90,130 @@ func TestStormCopiesTheSpellOncePerSpellCastBefore(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestChainLightningDeclinesTheMayPay is Task 17's R-8 carrier: Chain
-// Lightning's CopySpellAbility has an UnlessCost (RR), a rider this build
-// cannot present as a player choice mid-resolution, so the build records a
-// Note and makes no copy at all.
-func TestChainLightningDeclinesTheMayPay(t *testing.T) {
+// TestChainLightningAsksForThePayAndMakesTheCopyWhenPaid is the M2d-2
+// carrier for the mid-resolution ask closing R-8: Chain Lightning's
+// CopySpellAbility has an UnlessCost (RR), so on the first pass the target's
+// controller is asked a KModes pay/decline decision mid-resolution — the
+// engine must present it with the spell STILL on the stack — and on "pay"
+// (the payer has RR in the pool) the copy is made, the original resolves to
+// the graveyard, and the copy deals its own damage. The full log replays
+// byte-for-byte (replayCheck), so the suspended resolution is event-sourced
+// like everything else.
+func TestChainLightningAsksForThePayAndMakesTheCopyWhenPaid(t *testing.T) {
 	chain := "Name:Chain\nManaCost:R\nTypes:Sorcery\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3 | SubAbility$ DBCopy1\n" +
 		"SVar:DBCopy1:DB$ CopySpellAbility | Defined$ Parent | Controller$ TargetedOrController | UnlessPayer$ TargetedOrController | UnlessCost$ R R | UnlessSwitched$ True | MayChooseTarget$ True\nOracle:x\n"
 	e, cfg, ch := newFixtureDeck(t, 92, chain)
 	addMana(t, e, 0, "R")
 	addMana(t, e, 1, "RR")
 	life := e.G.Players[1].Life
-	castTarget(t, e, ch, 1)
+	// Cast at seat 1 (the opponent, whose controller will be asked), then
+	// pass priority until the engine poses the mid-resolution pay decision.
+	d := e.Pending()
+	idx := -1
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == ch {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no cast option for %d: %+v", ch, d.Options)
+	}
+	submitChoices(t, e, idx)
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected a target decision, got %+v", d)
+	}
+	tIdx := -1
+	for _, o := range d.Options {
+		if o.Kind == "player" && o.Player == 1 {
+			tIdx = o.Index
+		}
+	}
+	if tIdx < 0 {
+		t.Fatalf("seat 1 not offered as a target: %+v", d.Options)
+	}
+	submitChoices(t, e, tIdx)
+	d = passUntilNonPriority(t, e, 20)
+	if d == nil || d.Kind != decision.KModes {
+		t.Fatalf("expected a mid-resolution pay decision, got %+v", d)
+	}
+	// The resolution must have suspended WITH the spell on the stack: the
+	// asked object is not popped just because it is pending.
+	if o := e.G.Obj(ch); o.Zone != state.ZStack {
+		t.Fatalf("resolution must suspend WITH the spell on the stack, zone %s", o.Zone)
+	}
+	submitChoices(t, e, 0) // "Pay R R — make a copy"
+	// The paid copy is itself a Chain Lightning (copies copy all text), so
+	// its own copy clause re-asks mid-resolution; the payer's pool is now
+	// empty, so the engine declines that second ask and no second copy is
+	// made. Drain with a loop that answers both shapes.
+	drainToEnd(t, e, 30)
+	if e.G.Players[1].Life != life-3-3 {
+		t.Fatalf("life = %d, want %d (original + paid copy each deal 3)", e.G.Players[1].Life, life-6)
+	}
+	if z := e.G.Obj(ch).Zone; z != state.ZGraveyard {
+		t.Errorf("original went to %s, want Graveyard", z)
+	}
+	copies := 0
+	for _, o := range e.G.Objs {
+		if o.IsCopy {
+			copies++
+			if o.Zone != state.ZExile {
+				t.Errorf("a resolved copy sits in %s", o.Zone)
+			}
+		}
+	}
+	if copies != 1 {
+		t.Errorf("%d copies, want exactly 1 (the paid one)", copies)
+	}
+	if !hasEventKind(e, events.ModeChosen) {
+		t.Error("no ModeChosen event recorded the pay decision")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestChainLightningDeclinesThePayWhenThePayerCannotAffordIt drives the same
+// shape with NO red in the payer's pool: the bot-shaped answer is "pay"
+// (option 0), but the engine cannot make the payment, so it declines and no
+// copy is made — deterministic, and the log still replays. This is the
+// acceptance games' ordinary Chain Lightning (a tapped-out opponent) and the
+// keep of the old R-8 decline behaviour, now via a real ask instead of a
+// blanket Note.
+func TestChainLightningDeclinesThePayWhenThePayerCannotAffordIt(t *testing.T) {
+	chain := "Name:Chain\nManaCost:R\nTypes:Sorcery\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3 | SubAbility$ DBCopy1\n" +
+		"SVar:DBCopy1:DB$ CopySpellAbility | Defined$ Parent | Controller$ TargetedOrController | UnlessPayer$ TargetedOrController | UnlessCost$ R R | UnlessSwitched$ True | MayChooseTarget$ True\nOracle:x\n"
+	e, cfg, ch := newFixtureDeck(t, 93, chain)
+	addMana(t, e, 0, "R")
+	life := e.G.Players[1].Life
+	d := e.Pending()
+	idx := -1
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == ch {
+			idx = o.Index
+		}
+	}
+	submitChoices(t, e, idx)
+	d = e.Pending()
+	tIdx := -1
+	for _, o := range d.Options {
+		if o.Kind == "player" && o.Player == 1 {
+			tIdx = o.Index
+		}
+	}
+	submitChoices(t, e, tIdx)
+	d = passUntilNonPriority(t, e, 20)
+	if d == nil || d.Kind != decision.KModes {
+		t.Fatalf("expected a mid-resolution pay decision, got %+v", d)
+	}
+	submitChoices(t, e, 0) // "Pay" — unaffordable
 	passUntilStackEmpty(t, e, 20)
 	if e.G.Players[1].Life != life-3 {
-		t.Fatal("chain lightning did not resolve")
+		t.Fatalf("life = %d, want %d (no copy without payment)", e.G.Players[1].Life, life-3)
 	}
 	for _, o := range e.G.Objs {
 		if o.IsCopy {
-			t.Fatal("a may-pay copy was created: UnlessCost is declined in this build (R-8)")
+			t.Fatal("a copy was made despite the payer not covering the cost")
 		}
-	}
-	if !hasNote(e, "declined") {
-		t.Fatal("no Note recorded the declined may-pay")
 	}
 	replayCheck(t, e, cfg)
 }
