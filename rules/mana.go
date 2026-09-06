@@ -181,6 +181,50 @@ func (c Cost) Plus(d Cost) Cost {
 	return c
 }
 
+// commanderTaxFor composes base with the CR 903.8 commander tax: an
+// additional generic {2} -- on top of everything else -- for each previous
+// time id has been cast from the command zone this game. It is the ONE place
+// a command-zone cast's extra cost is composed, and BOTH sides of the
+// two-sided gate apply it to the same base: the legality offer (the
+// command-zone walk in rules/legal.go calls commanderTaxFor(base) before
+// castable) and the payment (rules/cast.go's beginCast applies
+// commanderTaxFor to the cost it resolves). Because both derive the taxed
+// cost from this same function over
+// the same board, an offered command-zone cast and the cost it charges are
+// structurally incapable of disagreeing -- the no-progress spin
+// stalledCastLimit bounds is exactly what that disagreement used to cause.
+//
+// base is expected to be the already-reduced output of adjustedCost (kicker/
+// surge/flashback recast it afterwards, but a card in the command zone is
+// only ever cast here by its plain cost). Applying the tax to base means cost
+// reductions land BEFORE it and never spill onto it: an additional cost is
+// outside a plain "cost to cast" reduction, exactly how Kicker's own
+// additional {N} composes in beginCast. Colored requirements are untouched.
+//
+// The Commander-format gate is explicit, not incidental: outside the format
+// -- even when a card sits in the (usually empty) command zone -- base passes
+// through unchanged. A card that is not its owner's commander, or a commander
+// no longer in the command zone, is likewise untaxed.
+func (e *Engine) commanderTaxFor(p state.PlayerID, id state.ObjID, base Cost) Cost {
+	if e.format != FormatCommander {
+		return base
+	}
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZCommand {
+		return base
+	}
+	for k, cid := range e.G.Players[p].Commanders {
+		if cid != id {
+			continue
+		}
+		if n := e.G.Players[p].CmdCasts[k]; n > 0 {
+			base.Generic += 2 * int32(n)
+		}
+		return base
+	}
+	return base
+}
+
 // HasNonMana reports whether paying this cost takes more than mana.
 func (c Cost) HasNonMana() bool {
 	return c.Tap || len(c.Sac) > 0 || len(c.SubCounter) > 0
