@@ -870,13 +870,18 @@ func TestDecisionMarshalOmitsServerOnlyFields(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := string(blob)
-	for _, forbidden := range []string{"source", "Source", "attacker", "Attacker", "alt_cost_index", "AltCostIndex"} {
+	// Source and AltCostIndex stay server-only; Attacker has been on the
+	// wire since Task U0 (the browser's declare-blockers step reads it).
+	for _, forbidden := range []string{"source", "Source", "alt_cost_index", "AltCostIndex"} {
 		if strings.Contains(s, forbidden) {
 			t.Fatalf("marshalled decision leaked a server-only field %q: %s", forbidden, s)
 		}
 	}
 	if !strings.Contains(s, `"player":0`) {
 		t.Fatalf("marshalled decision missing \"player\":0 for an option about seat 0: %s", s)
+	}
+	if !strings.Contains(s, `"attacker":9`) {
+		t.Fatalf("marshalled decision missing the block option's attacker: %s", s)
 	}
 }
 

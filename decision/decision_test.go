@@ -171,6 +171,36 @@ func TestChosenHappyPath(t *testing.T) {
 	}
 }
 
+// TestBlockOptionAttackerRoundTripsJSON is the Part-B contract: a block
+// option's Attacker rides on the wire (the browser's declare-blockers step
+// must see which attacker each blocker covers). omitempty keeps the field
+// off options that have no attacker, the same zero-value rule as Obj.
+func TestBlockOptionAttackerRoundTripsJSON(t *testing.T) {
+	block := Option{Index: 0, Kind: "block", Label: "Bear blocks Bear", Obj: 3, Attacker: 9, Player: 1}
+	b, err := json.Marshal(block)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := string(b); !strings.Contains(s, `"attacker":9`) {
+		t.Fatalf("block option JSON missing attacker: %s", s)
+	}
+	var back Option
+	if err := json.Unmarshal(b, &back); err != nil {
+		t.Fatal(err)
+	}
+	if back.Attacker != 9 {
+		t.Fatalf("round-trip lost Attacker: got %d, want 9", back.Attacker)
+	}
+	plain := Option{Index: 1, Kind: "pass", Label: "Pass", Player: 1}
+	pb, err := json.Marshal(plain)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(pb), "attacker") {
+		t.Fatalf("a non-block option leaked an attacker field: %s", pb)
+	}
+}
+
 func TestChooseValidatesLikeAnyDecision(t *testing.T) {
 	d := &Decision{Seq: 1, Player: 0, Kind: KChoose, Min: 0, Max: 2, Options: []Option{{Index: 0, Kind: "exile"}, {Index: 1, Kind: "exile"}, {Index: 2, Kind: "exile"}}}
 	if err := d.Validate(Intent{Seq: 1, Player: 0, Choices: []int{}}); err != nil {
