@@ -62,6 +62,22 @@ make test
 make lint
 ```
 
+## Running gorged
+
+`gorged` is the M2a deliverable: perpetual bot tables served to a browser.
+One command after the corpus is compiled:
+
+```sh
+make gorged
+```
+
+This builds and runs `bin/gorged` with 4 tables of 4 seats on `:8080`.
+Open `http://localhost:8080/` to watch the tables. The Svelte client it
+serves is built separately with `make web` (Needs Node); until that build
+exists the server answers the web root with `503` but the `/api/*` REST
+endpoints (e.g. `/api/tables`) work regardless. Match files accumulate in
+`gorged-data/` (override with `-dir`). See `gorged -h` for all flags.
+
 ## Status
 
 Milestone M0/M1 work — module skeleton, card fetch/compile pipeline, and

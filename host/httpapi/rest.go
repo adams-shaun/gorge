@@ -2,11 +2,15 @@ package httpapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/host"
 	"github.com/adams-shaun/gorge/protocol"
+	"github.com/adams-shaun/gorge/state"
+	"github.com/adams-shaun/gorge/view"
 )
 
 func (h *handler) tables(w http.ResponseWriter, r *http.Request) {
@@ -49,12 +53,68 @@ func uintQuery(w http.ResponseWriter, r *http.Request, name string) (uint64, boo
 	return n, true, true
 }
 
+// claimSeat resolves the request through Options.Seat. nil means nobody may
+// act as a seat — spectator-only, today's behaviour — so every request that
+// names a seat on such a server is refused outright (403, not a nil-call
+// panic); a non-nil resolver that declines the request is refused like an
+// Authorize failure (401). The claim's seat is the only value the http layer
+// trusts from the resolver: a request's ?seat= must equal it (seatFromQuery)
+// and Pending/SubmitIntent act through it, so the resolver is the seat trust
+// boundary exactly as Authorize is the request trust boundary.
+func (h *handler) claimSeat(w http.ResponseWriter, r *http.Request) (SeatClaim, bool) {
+	if h.opts.Seat == nil {
+		writeError(w, http.StatusForbidden, "forbidden", "this server is spectator-only: no seat claims")
+		return SeatClaim{}, false
+	}
+	claim, ok := h.opts.Seat(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "request does not hold a seat claim")
+		return SeatClaim{}, false
+	}
+	return claim, true
+}
+
+// seatFromQuery resolves the optional ?seat= parameter. scoped is false (and
+// ok true) when the parameter is absent: no claim is consulted and today's
+// spectator behaviour runs byte-identical. A present ?seat= must name a seat
+// the request actually holds — the resolver must answer, and the claim's seat
+// must equal the requested one — so seat A can never read seat B's hand or
+// decision through any endpoint that takes a seat parameter. ok false means
+// the handler already wrote the rejection. (SubmitIntent takes no ?seat=; it
+// acts through claimSeat alone, and the intent body's own Player field is the
+// fence.)
+func (h *handler) seatFromQuery(w http.ResponseWriter, r *http.Request) (seat state.PlayerID, scoped, ok bool) {
+	raw := r.URL.Query().Get("seat")
+	if raw == "" {
+		return 0, false, true
+	}
+	n, err := strconv.ParseUint(raw, 10, 8)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", "seat must be a non-negative integer")
+		return 0, false, false
+	}
+	claim, granted := h.claimSeat(w, r)
+	if !granted {
+		return 0, false, false
+	}
+	if claim.Seat != state.PlayerID(n) {
+		writeError(w, http.StatusForbidden, "forbidden",
+			fmt.Sprintf("claim holds seat %d, not the requested seat %d", claim.Seat, n))
+		return 0, false, false
+	}
+	return claim.Seat, true, true
+}
+
 func (h *handler) view(w http.ResponseWriter, r *http.Request) {
 	t, k, ok := matchKey(w, r)
 	if !ok {
 		return
 	}
 	seq, given, ok := uintQuery(w, r, "seq")
+	if !ok {
+		return
+	}
+	seat, scoped, ok := h.seatFromQuery(w, r)
 	if !ok {
 		return
 	}
@@ -75,7 +135,15 @@ func (h *handler) view(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	v, err := h.reg.ViewAt(t, k, seq)
+	var (
+		v   view.View
+		err error
+	)
+	if scoped {
+		v, err = h.reg.ViewAtSeat(t, k, seq, seat)
+	} else {
+		v, err = h.reg.ViewAt(t, k, seq)
+	}
 	if err != nil {
 		writeHostError(w, err)
 		return
@@ -92,7 +160,19 @@ func (h *handler) events(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	evs, err := h.reg.Events(t, k, since)
+	seat, scoped, ok := h.seatFromQuery(w, r)
+	if !ok {
+		return
+	}
+	var (
+		evs []protocol.EventBody
+		err error
+	)
+	if scoped {
+		evs, err = h.reg.EventsSeat(t, k, since, seat)
+	} else {
+		evs, err = h.reg.Events(t, k, since)
+	}
 	if err != nil {
 		writeHostError(w, err)
 		return
@@ -101,6 +181,59 @@ func (h *handler) events(w http.ResponseWriter, r *http.Request) {
 		evs = []protocol.EventBody{}
 	}
 	writeJSON(w, http.StatusOK, evs)
+}
+
+// pending serves the decision currently asked of one seat (M2e-2). It needs
+// ?seat= — there is no spectator notion of a pending decision — and the seat
+// must be the claim's own, so a seat can never read another seat's pending
+// decision. Rejections (match not live, seat not human, nothing pending) are
+// 409 conflicts whose body carries the registry's own reason.
+func (h *handler) pending(w http.ResponseWriter, r *http.Request) {
+	t, k, ok := matchKey(w, r)
+	if !ok {
+		return
+	}
+	seat, scoped, ok := h.seatFromQuery(w, r)
+	if !ok {
+		return
+	}
+	if !scoped {
+		writeError(w, http.StatusBadRequest, "bad_request", "pending requires a seat")
+		return
+	}
+	d, err := h.reg.Pending(t, k, seat)
+	if err != nil {
+		writeSeatError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, d)
+}
+
+// intent answers the pending decision through the claim's own seat. It takes
+// no ?seat= parameter: the claim alone names the seat, and the intent body's
+// own Player field is validated against the pending decision by
+// decision.Decision.Validate inside the registry — the one fence — so a claim
+// can never answer a decision asked of another seat. Every rejection becomes
+// an HTTP status plus the registry's reason body (audit item 17); a 204 means
+// the intent was accepted and the parked seat is free.
+func (h *handler) intent(w http.ResponseWriter, r *http.Request) {
+	t, k, ok := matchKey(w, r)
+	if !ok {
+		return
+	}
+	claim, granted := h.claimSeat(w, r)
+	if !granted {
+		return
+	}
+	var in decision.Intent
+	if !decodeBody(w, r, &in) {
+		return
+	}
+	if err := h.reg.SubmitIntent(t, k, claim.Seat, in); err != nil {
+		writeSeatError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // decodeBody reads a small JSON body; anything malformed is a 400.
