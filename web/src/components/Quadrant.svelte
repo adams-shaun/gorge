@@ -1,23 +1,34 @@
 <script lang="ts">
   import type { PlayerView } from '../protocol';
-  import { attachedTo, groupBattlefield } from '../lib/board';
-  import CardTile from './CardTile.svelte';
+  import { attachedTo, groupBattlefield, stackIdentical } from '../lib/board';
+  import CardStack from './CardStack.svelte';
 
-  /** Quadrant shows one player's battlefield, split into the three rows board.ts groups it into. It has no rules knowledge: grouping and ordering come entirely from groupBattlefield. */
+  /** Quadrant shows one player's battlefield, split into the three rows board.ts groups it into. It has no rules knowledge: grouping and ordering come entirely from groupBattlefield; stackIdentical then collapses interchangeable permanents within a row into one tile with a count (CardStack renders the group). Attachments still come from attachedTo for a group of one — a stacked group has none by the stacking rule. */
   let { player, colour }: { player: PlayerView; colour: string } = $props();
 
-  const groups = $derived(groupBattlefield(player.battlefield));
+  const battlefieldGroups = $derived(groupBattlefield(player.battlefield));
+  const stacks = $derived({
+    lands: stackIdentical(battlefieldGroups.lands),
+    creatures: stackIdentical(battlefieldGroups.creatures),
+    others: stackIdentical(battlefieldGroups.others),
+  });
 </script>
 
 <div class="quadrant" style:--seat={colour}>
   <div class="row lands">
-    {#each groups.lands as c (c.id)}<CardTile card={c} attachments={attachedTo(player.battlefield, c.id)} />{/each}
+    {#each stacks.lands as g (g.key)}
+      <CardStack group={g} attachments={g.cards.length === 1 ? attachedTo(player.battlefield, g.cards[0].id) : []} />
+    {/each}
   </div>
   <div class="row creatures">
-    {#each groups.creatures as c (c.id)}<CardTile card={c} size="large" attachments={attachedTo(player.battlefield, c.id)} />{/each}
+    {#each stacks.creatures as g (g.key)}
+      <CardStack group={g} size="large" attachments={g.cards.length === 1 ? attachedTo(player.battlefield, g.cards[0].id) : []} />
+    {/each}
   </div>
   <div class="row others">
-    {#each groups.others as c (c.id)}<CardTile card={c} attachments={attachedTo(player.battlefield, c.id)} />{/each}
+    {#each stacks.others as g (g.key)}
+      <CardStack group={g} attachments={g.cards.length === 1 ? attachedTo(player.battlefield, g.cards[0].id) : []} />
+    {/each}
   </div>
 </div>
 

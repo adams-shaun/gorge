@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { attachedTo, groupBattlefield, quadrantFor, recentlyMattered, visibleHand } from './board';
+import { attachedTo, groupBattlefield, quadrantFor, recentlyMattered, stackFaces, stackIdentical, visibleHand } from './board';
 import type { CardView, EventBody, PlayerView } from '../protocol';
 
 const card = (id: number, types: string): CardView => ({ id, name: `c${id}`, types, tapped: false, power: 0, toughness: 0, damage: 0, attacking: false, controller: 0, owner: 0, summon_sick: false, printing: { name: `c${id}` }, token: `#${id}` });
@@ -62,5 +62,127 @@ describe('attachments', () => {
     expect(groups.creatures.map((c) => c.id)).toEqual([1]);
     expect(groups.lands.map((c) => c.id)).toEqual([2]);
     expect(attachedTo(bf, 1)).toEqual([]);
+  });
+});
+
+// Stacking fixtures: same-printing Zombie tokens with every key field present
+// as a default, so a test can flip one field and watch the group split.
+type StackOver = Partial<Pick<CardView, 'name' | 'types' | 'printing' | 'tapped' | 'summon_sick' | 'attacking' | 'damage' | 'power' | 'toughness' | 'counters' | 'keywords' | 'controller' | 'owner' | 'attacking_player' | 'blocked_by' | 'attached_to'>>;
+const zombie = (id: number, o: StackOver = {}): CardView => ({
+  id, name: 'Zombie', types: 'Creature Zombie',
+  printing: { name: 'Zombie', set: 'TOK', number: '25' }, token: `#${id}`,
+  tapped: false, power: 2, toughness: 2, damage: 0, attacking: false,
+  controller: 0, owner: 0, summon_sick: false, ...o,
+});
+
+describe('stackIdentical', () => {
+  it('four identical tokens collapse into one group of four, id-sorted', () => {
+    const groups = stackIdentical([zombie(9), zombie(4), zombie(7), zombie(1)]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].cards.map((c) => c.id)).toEqual([1, 4, 7, 9]);
+  });
+
+  it('one tapped separates two otherwise identical permanents', () => {
+    const groups = stackIdentical([zombie(1), zombie(2, { tapped: true }), zombie(3)]);
+    expect(groups.map((g) => g.cards.map((c) => c.id))).toEqual([[1, 3], [2]]);
+  });
+
+  it('different counters separate two otherwise identical permanents', () => {
+    const groups = stackIdentical([
+      zombie(1, { counters: { 'p1p1': 2 } }),
+      zombie(2, { counters: { 'p1p1': 1 } }),
+      zombie(3, { counters: { 'p1p1': 2 } }),
+    ]);
+    expect(groups.map((g) => g.cards.map((c) => c.id))).toEqual([[1, 3], [2]]);
+  });
+
+  it('counter keys are compared as a set, not by object identity or wire order', () => {
+    const groups = stackIdentical([
+      zombie(1, { counters: { a: 1, b: 2 } }),
+      zombie(2, { counters: { b: 2, a: 1 } }),
+    ]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].cards.map((c) => c.id)).toEqual([1, 2]);
+  });
+
+  it('different derived power separates two otherwise identical permanents', () => {
+    // power on the wire is derived: an anthem on one of them showed up there.
+    const groups = stackIdentical([
+      zombie(1, { power: 3 }),
+      zombie(2, { power: 2 }),
+      zombie(3, { power: 3 }),
+    ]);
+    expect(groups.map((g) => g.cards.map((c) => c.id))).toEqual([[1, 3], [2]]);
+  });
+
+  it('a permanent with an attachment on it never joins a group', () => {
+    const groups = stackIdentical([
+      zombie(1),
+      zombie(2, { attached_to: 1 }), // a rider on 1
+      zombie(3),
+    ]);
+    // 1 hosts 2, so 1 is individual; 2 is itself attached, so it is too. Only
+    // 3 is freely mergeable, but there is nothing left for it to merge with.
+    expect(groups.map((g) => g.cards.map((c) => c.id))).toEqual([[1], [2], [3]]);
+    expect(groups.every((g) => g.cards.length === 1)).toBe(true);
+  });
+
+  it('a permanent that is itself attached never joins a group', () => {
+    const groups = stackIdentical([
+      zombie(1),
+      zombie(2, { attached_to: 9 }), // host 9 is off this row (stolen/elsewhere)
+    ]);
+    expect(groups.map((g) => g.cards.map((c) => c.id))).toEqual([[1], [2]]);
+  });
+
+  it('different controller separates two otherwise identical permanents', () => {
+    const groups = stackIdentical([zombie(1, { controller: 0 }), zombie(2, { controller: 1 })]);
+    expect(groups).toHaveLength(2);
+  });
+
+  it('a blocked attacker is not the same board object as an unblocked one', () => {
+    const unblocked = stackIdentical([zombie(1), zombie(2, { attacking: true, attacking_player: 1 })]);
+    expect(unblocked).toHaveLength(2);
+    const blocked = stackIdentical([
+      zombie(1, { attacking: true, attacking_player: 1 }),
+      zombie(2, { attacking: true, attacking_player: 1, blocked_by: [5] }),
+    ]);
+    expect(blocked).toHaveLength(2);
+    const sameBlocker = stackIdentical([
+      zombie(1, { attacking: true, attacking_player: 1, blocked_by: [5] }),
+      zombie(2, { attacking: true, attacking_player: 1, blocked_by: [5] }),
+    ]);
+    expect(sameBlocker).toHaveLength(1);
+  });
+
+  it('different keywords separate two otherwise identical permanents', () => {
+    const groups = stackIdentical([zombie(1, { keywords: ['flying'] }), zombie(2, { keywords: ['flying', 'vigilance'] })]);
+    expect(groups).toHaveLength(2);
+    // same keyword set in a different wire order is still one group
+    const same = stackIdentical([zombie(1, { keywords: ['flying', 'vigilance'] }), zombie(2, { keywords: ['vigilance', 'flying'] })]);
+    expect(same).toHaveLength(1);
+  });
+
+  it('group and member order is stable and id-sorted from unsorted input', () => {
+    const groups = stackIdentical([
+      zombie(6), zombie(2), zombie(4, { tapped: true }), zombie(3), zombie(1), zombie(5),
+    ]);
+    expect(groups.map((g) => g.cards.map((c) => c.id))).toEqual([[1, 2, 3, 5, 6], [4]]);
+  });
+
+  it('a board with no duplicates produces one group of one per card, in id order', () => {
+    const groups = stackIdentical([
+      zombie(8, { printing: { name: 'A', set: 'S1', number: '1' } }),
+      zombie(3, { printing: { name: 'B', set: 'S1', number: '1' } }),
+      zombie(5, { printing: { name: 'A', set: 'S1', number: '2' } }),
+    ]);
+    expect(groups.map((g) => g.cards.map((c) => c.id))).toEqual([[3], [5], [8]]);
+    expect(groups.every((g) => g.cards.length === 1)).toBe(true);
+  });
+
+  it('stackFaces: collapsed shows only the first card; expanded shows every member', () => {
+    const g = stackIdentical([zombie(2), zombie(5), zombie(9)])[0];
+    expect(stackFaces(g, false).map((c) => c.id)).toEqual([2]);
+    expect(stackFaces(g, true).map((c) => c.id)).toEqual([2, 5, 9]);
   });
 });
