@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/adams-shaun/gorge/cards"
 )
 
 // A Forge card script is identifiable by content, not path: it begins with a
@@ -16,6 +18,17 @@ func looksLikeForgeScript(blob string) bool {
 	return strings.HasPrefix(blob, "Name:") && strings.Contains(blob, "\nOracle:")
 }
 
+// gitCmd builds a git command running with cards.GitEnv()'s environment:
+// os.Environ() with every inherited GIT_* variable stripped. These tests
+// init, add and commit throwaway repositories; a hook or wrapper that
+// exported GIT_DIR or GIT_INDEX_FILE would otherwise redirect those writes
+// into whatever repository the test runs under (the gitiso bug).
+func gitCmd(args ...string) *exec.Cmd {
+	cmd := exec.Command("git", args...)
+	cmd.Env = cards.GitEnv()
+	return cmd
+}
+
 // checkForgeScriptsInRepo inspects a git repository at repoDir for Forge card
 // scripts in .txt files, checking the working tree first, then the staged index,
 // then HEAD. This ordering catches scripts that are staged before commit,
@@ -24,7 +37,7 @@ func looksLikeForgeScript(blob string) bool {
 func checkForgeScriptsInRepo(t *testing.T, repoDir string) ([]string, error) {
 	t.Helper()
 
-	out, err := exec.Command("git", "-C", repoDir, "ls-files", "-z", "--", "*.txt").Output()
+	out, err := gitCmd("-C", repoDir, "ls-files", "-z", "--", "*.txt").Output()
 	if err != nil {
 		return nil, err
 	}
@@ -43,11 +56,11 @@ func checkForgeScriptsInRepo(t *testing.T, repoDir string) ([]string, error) {
 			blob = data
 		} else {
 			// 2. Try staged blob in index
-			if data, err := exec.Command("git", "-C", repoDir, "show", ":"+path).Output(); err == nil {
+			if data, err := gitCmd("-C", repoDir, "show", ":"+path).Output(); err == nil {
 				blob = data
 			} else {
 				// 3. Try HEAD
-				if data, err := exec.Command("git", "-C", repoDir, "show", "HEAD:"+path).Output(); err == nil {
+				if data, err := gitCmd("-C", repoDir, "show", "HEAD:"+path).Output(); err == nil {
 					blob = data
 				}
 				// If none exist, skip this path
@@ -73,7 +86,7 @@ func checkForgeScriptsInRepo(t *testing.T, repoDir string) ([]string, error) {
 func repoRoot(t *testing.T) string {
 	t.Helper()
 
-	out, err := exec.Command("git", "-C", ".", "rev-parse", "--show-toplevel").Output()
+	out, err := gitCmd("-C", ".", "rev-parse", "--show-toplevel").Output()
 	if err != nil {
 		t.Fatalf("could not resolve git repo root from working directory: %v", err)
 	}
@@ -113,7 +126,7 @@ func TestForgeScriptDetection(t *testing.T) {
 				if err := os.WriteFile(path, []byte(forgeSignature), 0644); err != nil {
 					t.Fatalf("write failed: %v", err)
 				}
-				if err := exec.Command("git", "-C", repoDir, "add", "card.txt").Run(); err != nil {
+				if err := gitCmd("-C", repoDir, "add", "card.txt").Run(); err != nil {
 					t.Fatalf("git add failed: %v", err)
 				}
 			},
@@ -127,10 +140,10 @@ func TestForgeScriptDetection(t *testing.T) {
 				if err := os.WriteFile(path, []byte(forgeSignature), 0644); err != nil {
 					t.Fatalf("write failed: %v", err)
 				}
-				if err := exec.Command("git", "-C", repoDir, "add", "card.txt").Run(); err != nil {
+				if err := gitCmd("-C", repoDir, "add", "card.txt").Run(); err != nil {
 					t.Fatalf("git add failed: %v", err)
 				}
-				if err := exec.Command("git", "-C", repoDir, "-c", "user.email=test@test.com", "-c", "user.name=Test",
+				if err := gitCmd("-C", repoDir, "-c", "user.email=test@test.com", "-c", "user.name=Test",
 					"commit", "-m", "test").Run(); err != nil {
 					t.Fatalf("git commit failed: %v", err)
 				}
@@ -145,10 +158,10 @@ func TestForgeScriptDetection(t *testing.T) {
 				if err := os.WriteFile(path, []byte(innocentText), 0644); err != nil {
 					t.Fatalf("write failed: %v", err)
 				}
-				if err := exec.Command("git", "-C", repoDir, "add", "readme.txt").Run(); err != nil {
+				if err := gitCmd("-C", repoDir, "add", "readme.txt").Run(); err != nil {
 					t.Fatalf("git add failed: %v", err)
 				}
-				if err := exec.Command("git", "-C", repoDir, "-c", "user.email=test@test.com", "-c", "user.name=Test",
+				if err := gitCmd("-C", repoDir, "-c", "user.email=test@test.com", "-c", "user.name=Test",
 					"commit", "-m", "test").Run(); err != nil {
 					t.Fatalf("git commit failed: %v", err)
 				}
@@ -163,10 +176,10 @@ func TestForgeScriptDetection(t *testing.T) {
 				if err := os.WriteFile(path, []byte(forgeSignature), 0644); err != nil {
 					t.Fatalf("write failed: %v", err)
 				}
-				if err := exec.Command("git", "-C", repoDir, "add", "card.txt").Run(); err != nil {
+				if err := gitCmd("-C", repoDir, "add", "card.txt").Run(); err != nil {
 					t.Fatalf("git add failed: %v", err)
 				}
-				if err := exec.Command("git", "-C", repoDir, "-c", "user.email=test@test.com", "-c", "user.name=Test",
+				if err := gitCmd("-C", repoDir, "-c", "user.email=test@test.com", "-c", "user.name=Test",
 					"commit", "-m", "test").Run(); err != nil {
 					t.Fatalf("git commit failed: %v", err)
 				}
@@ -185,10 +198,10 @@ func TestForgeScriptDetection(t *testing.T) {
 			tmpDir := t.TempDir()
 
 			// Initialize a git repo with an initial commit
-			if err := exec.Command("git", "-C", tmpDir, "init").Run(); err != nil {
+			if err := gitCmd("-C", tmpDir, "init").Run(); err != nil {
 				t.Fatalf("git init failed: %v", err)
 			}
-			if err := exec.Command("git", "-C", tmpDir, "-c", "user.email=test@test.com", "-c", "user.name=Test",
+			if err := gitCmd("-C", tmpDir, "-c", "user.email=test@test.com", "-c", "user.name=Test",
 				"commit", "--allow-empty", "-m", "initial").Run(); err != nil {
 				t.Fatalf("initial commit failed: %v", err)
 			}

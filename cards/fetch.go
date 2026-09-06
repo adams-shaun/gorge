@@ -84,6 +84,7 @@ func fetchRepo(repo, dir, ref string) (*Lock, error) {
 	defer os.RemoveAll(work)
 	run := func(args ...string) (string, error) {
 		cmd := exec.Command("git", args...)
+		cmd.Env = GitEnv()
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			return "", fmt.Errorf("git %s: %w: %s", strings.Join(args, " "), err, out)

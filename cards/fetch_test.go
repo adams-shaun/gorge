@@ -1,6 +1,7 @@
 package cards
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -150,8 +151,7 @@ func TestFetchCleansUpOnFailure(t *testing.T) {
 	}
 
 	// Initialize a bare repository.
-	cmd := exec.Command("git", "init", "--bare", repoDir)
-	if err := cmd.Run(); err != nil {
+	if err := gitCmd("init", "--bare", repoDir).Run(); err != nil {
 		t.Skipf("git init failed: %v", err)
 	}
 
@@ -161,8 +161,7 @@ func TestFetchCleansUpOnFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cmd = exec.Command("git", "clone", repoDir, checkoutDir)
-	if err := cmd.Run(); err != nil {
+	if err := gitCmd("clone", repoDir, checkoutDir).Run(); err != nil {
 		t.Skipf("git clone failed: %v", err)
 	}
 
@@ -171,17 +170,14 @@ func TestFetchCleansUpOnFailure(t *testing.T) {
 	if err := os.WriteFile(dummyFile, []byte("content"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cmd = exec.Command("git", "-C", checkoutDir, "add", "dummy.txt")
-	if err := cmd.Run(); err != nil {
+	if err := gitCmd("-C", checkoutDir, "add", "dummy.txt").Run(); err != nil {
 		t.Skipf("git add failed: %v", err)
 	}
-	cmd = exec.Command("git", "-C", checkoutDir, "-c", "user.email=test@example.com",
-		"-c", "user.name=Test", "commit", "-m", "test")
-	if err := cmd.Run(); err != nil {
+	if err := gitCmd("-C", checkoutDir, "-c", "user.email=test@example.com",
+		"-c", "user.name=Test", "commit", "-m", "test").Run(); err != nil {
 		t.Skipf("git commit failed: %v", err)
 	}
-	cmd = exec.Command("git", "-C", checkoutDir, "push", "origin", "master")
-	if err := cmd.Run(); err != nil {
+	if err := gitCmd("-C", checkoutDir, "push", "origin", "master").Run(); err != nil {
 		t.Skipf("git push failed: %v", err)
 	}
 
@@ -207,12 +203,23 @@ func TestFetchCleansUpOnFailure(t *testing.T) {
 	}
 }
 
+// gitCmd builds a git command whose environment is scrubbed of every
+// inherited GIT_* variable (see GitEnv). These tests init, add, commit and
+// push throwaway repositories; a hook or wrapper that exported GIT_DIR or
+// GIT_INDEX_FILE would otherwise redirect those writes into whatever
+// repository the test runs under (the gitiso bug).
+func gitCmd(args ...string) *exec.Cmd {
+	cmd := exec.Command("git", args...)
+	cmd.Env = GitEnv()
+	return cmd
+}
+
 // runGit runs a git command with dir as its working directory, failing the
 // test on error.
 func runGit(t *testing.T, dir string, args ...string) string {
 	t.Helper()
 	full := append([]string{"-C", dir}, args...)
-	cmd := exec.Command("git", full...)
+	cmd := gitCmd(full...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("git %s: %v: %s", strings.Join(full, " "), err, out)
@@ -315,5 +322,76 @@ func TestFetchByBranchFetchesBothSparsePaths(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(TokensDir(dir), "r_1_1_goblin.txt")); err != nil {
 		t.Fatal("token script not fetched via branch ref")
+	}
+}
+
+// TestFetchIgnoresInheritedGitEnv is the regression test for the gitiso bug:
+// fetchRepo used to hand its child git processes the caller's whole
+// environment, so under a git hook -- git exports GIT_DIR, GIT_INDEX_FILE and
+// friends pointing at the ENCLOSING repository -- every run() invocation
+// silently operated on that repository instead of on the throwaway `work`
+// directory it names: `git init` reinitialized the wrong repository, `git
+// remote add` and `git sparse-checkout` wrote config into it, `git fetch`
+// pulled into its object store, and `git checkout FETCH_HEAD` rewrote its
+// index. This destroyed a gorge repository's index twice in two days.
+//
+// The test arms the same environment -- GIT_DIR, GIT_WORK_TREE and
+// GIT_INDEX_FILE pointing at a throwaway outer repo -- via t.Setenv so
+// fetchRepo literally inherits them, runs fetchRepo against the local
+// fixture (no network), and asserts the outer repo came through unchanged.
+// On the unfixed fetchRepo the redirect changes the outer repo's config
+// (remote origin, extensions.worktreeConfig) and index, so the test fails;
+// with the scrub in place every child git process addresses its own
+// repository explicitly and the outer repo is untouched.
+func TestFetchIgnoresInheritedGitEnv(t *testing.T) {
+	// A throwaway "enclosing" repository standing in for the repository a
+	// caller might be operating under when fetchRepo runs.
+	outer := t.TempDir()
+	runGit(t, outer, "init")
+	runGit(t, outer, "-c", "user.email=test@example.com", "-c", "user.name=Test",
+		"commit", "--allow-empty", "-m", "init")
+	beforeConfig, err := os.ReadFile(filepath.Join(outer, ".git", "config"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeListing := runGit(t, outer, "ls-files")
+
+	// Simulate the git-hook environment: GIT_DIR, GIT_WORK_TREE and
+	// GIT_INDEX_FILE exported, pointing at the enclosing repo. t.Setenv runs
+	// in this test process, so fetchRepo and the fixtures built below inherit
+	// them exactly as a hook's child would.
+	t.Setenv("GIT_DIR", filepath.Join(outer, ".git"))
+	t.Setenv("GIT_WORK_TREE", outer)
+	t.Setenv("GIT_INDEX_FILE", filepath.Join(outer, ".git", "index"))
+
+	// The local fixture (no network) and the fetch into a fresh dir, under
+	// the hostile environment.
+	repo := newLocalForgeRepo(t)
+	addTokenScript(t, repo, "r_1_1_goblin.txt", goblinTokenSrc)
+	sha := headSHA(t, repo)
+	dir := t.TempDir()
+	l, ferr := fetchRepo(repo, dir, sha)
+
+	// Every assertion is about the OUTER repo, which must be untouched
+	// regardless of whether the fetch itself succeeded.
+	afterConfig, err := os.ReadFile(filepath.Join(outer, ".git", "config"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(afterConfig, beforeConfig) {
+		t.Errorf("fetchRepo rewrote the enclosing repository's .git/config:\n--- after ---\n%s--- before ---\n%s", afterConfig, beforeConfig)
+	}
+	if _, err := os.Stat(filepath.Join(outer, ".git", "config.worktree")); !os.IsNotExist(err) {
+		t.Errorf("fetchRepo created the enclosing repository's .git/config.worktree")
+	}
+	if afterListing := runGit(t, outer, "ls-files"); afterListing != beforeListing {
+		t.Errorf("enclosing repository index changed: %d entries before, %d after",
+			len(strings.Fields(beforeListing)), len(strings.Fields(afterListing)))
+	}
+	if ferr != nil {
+		t.Fatalf("fetchRepo failed: %v", ferr)
+	}
+	if l.Commit != sha {
+		t.Fatalf("fetchRepo lock commit = %s, want %s", l.Commit, sha)
 	}
 }
