@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -39,6 +40,15 @@ type Host interface {
 	// number (Task 17's Count$ThisTurnCast backing — a copy/Storm count
 	// must be replay-derivable, never a live-only engine counter).
 	CastThisTurn() int
+	// Ask poses a decision in the middle of a resolution. It sets the host's
+	// pending decision, sets the mid-resolution resume state, and returns
+	// true. A true return tells the calling effect to stop and wait: the
+	// resolution is suspended, and the answered decision re-enters it
+	// (rules' Engine.Ask is what runs the resume continuation). false means
+	// the host cannot ask now — an effects-package test double, or a
+	// rules-internal context with no engine to drive — and the calling
+	// effect falls back to its deterministic stand-in (R-9). M2d-2.
+	Ask(d *decision.Decision) bool
 }
 
 // Ctx carries the bindings a Forge script refers to during resolution.
@@ -65,6 +75,20 @@ type Ctx struct {
 	// Undying's "if it had no +1/+1 counters" must read this, not the live
 	// object. nil for every other trigger.
 	LKI *state.Object
+	// Modes is the answered modal choice on a re-entered mid-resolution
+	// resolution (M2d-2): the SVar names of the chosen Choices$ sub-abilities,
+	// in execution order. rules' resumeResolution sets it from the recorded
+	// answer before re-running the suspended sub-ability, so effCharm's
+	// re-entry runs exactly the chosen modes instead of asking again. Nil on
+	// the first pass and on any non-modes resume.
+	Modes []string
+	// UnlessPay is the answered unless-pay choice on a re-entered
+	// mid-resolution resolution (M2d-2): "pay" means rules' resumeResolution
+	// has already paid the UnlessCost$ from the payer's pool and the asking
+	// effect proceeds with its body; "decline" means it proceeds as if the
+	// player declined (no effect). "" on the first pass, where the effect
+	// poses the ask instead.
+	UnlessPay string
 }
 
 type Effect func(h Host, c *Ctx, sa *cards.SA)

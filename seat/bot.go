@@ -79,9 +79,12 @@ func (b *Bot) Decide(_ context.Context, v view.View, d decision.Decision) (decis
 //     "mulligan" option is offered (the determinism mirror of
 //     KTriggerOptional), otherwise keeps (the "keep" option at index 0). The
 //     rng is consumed only where a real mulligan choice exists.
+//   - KModes: the mid-resolution modal pick -- choose the first Min options
+//     in order (Choices [0, 1, …, Min-1]), the recorded mirror of the
+//     engine-side first-mode stand-in, no rng.
 //
-// Anything else -- KModes, any kind added later, and any case
-// above that found nothing to pick -- falls to the last resort: pass if one
+// Anything else — any kind added later, and any case
+// above that found nothing to pick — falls to the last resort: pass if one
 // is offered and Min == 0, otherwise whatever clamp below tops up with.
 //
 // Ruling T25-c (fix round 1): every branch used to return its pick
@@ -242,6 +245,20 @@ func botDecide(isMain bool, d *decision.Decision, r *rand.Rand) decision.Intent 
 			in.Choices = []int{d.Options[0].Index} // keep
 			return clamp(d, in)
 		}
+
+	case decision.KModes:
+		// The mid-resolution modal pick (M2d-2): choose the first Min options
+		// in order — the recorded mirror of the engine-side first-mode
+		// stand-in, so bot-vs-bot behaviour is largely unchanged, and the
+		// answer stays seed-deterministic. This also answers an UnlessCost$
+		// may-pay, shaped as the same KModes kind: option 0 is "Pay … — make
+		// a copy", so the bot always offers to pay and the engine declines
+		// for it only when the payer's pool cannot cover the cost. No rng is
+		// consumed: the first modes are a fixed policy, not a coin.
+		for j := 0; j < len(d.Options) && j < d.Min; j++ {
+			in.Choices = append(in.Choices, d.Options[j].Index)
+		}
+		return clamp(d, in)
 	}
 
 	// Last resort: pass if Min == 0 and one is offered; clamp below handles

@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -23,19 +24,62 @@ func init() {
 //
 // Amount$ copies are placed on the stack by StackCopy events (default 1),
 // each copy keeping its targets. MayChooseTarget$ True is a player's
-// mid-resolution choice this build cannot ask (R-8/R-9), so the copies keep
-// their targets and each records a Note saying so.
+// mid-resolution choice this build still cannot ask (stay-down in the M2r
+// approximations list — switching the copy's targets is a later task), so
+// the copies keep their targets and each records a Note saying so.
 //
-// UnlessCost$ (Chain Lightning) is a may-pay this build also cannot present
-// (R-8): the build declines on the player's behalf with a Note and makes no
-// copy at all — A card that pays nothing and gets nothing is the safe,
-// deterministic failure mode.
+// UnlessCost$ (Chain Lightning, String of Disappearances) is a real
+// mid-resolution ask since M2d-2 closed R-8: on the first pass the target's
+// controller is offered a KModes pay/decline decision and the resolution
+// suspends; the answer re-enters this effect with Ctx.UnlessPay set, rules'
+// resumeResolution having already paid the cost (payMana) when the payer
+// said yes — so the copy loop below runs, or not, exactly once. A host that
+// cannot ask (an effects-package test double) keeps the deterministic
+// decline with a Note.
 func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	if _, hasUnless := sa.Params["UnlessCost"]; hasUnless {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "may pay declined (UnlessCost is not asked in this build)"})
-		return
+		switch c.UnlessPay {
+		case "pay":
+			// Re-entry: the payer paid the UnlessCost$ in rules'
+			// resumeResolution (payMana, so it replays); fall through to the
+			// ordinary copy body below.
+		case "decline":
+			return
+		default:
+			// First pass: pose the pay decision when the host can ask. The
+			// payer is the UnlessPayer$: for the corpus's copy shapes that is
+			// the targeted player or the controller of the targeted object
+			// ("TargetedOrController", "Targeted"), so it resolves from the
+			// first target; the resolving effect's own controller is the
+			// fallback. The asked decision is the same KModes shape effCharm
+			// uses, tagged "unless_pay" so the engine resumes the right
+			// continuation.
+			payer := c.Controller
+			switch strings.TrimSpace(sa.Params["UnlessPayer"]) {
+			case "TargetedOrController", "Targeted", "TargetedController":
+				if len(c.Targets) > 0 {
+					payer = PlayerOf(h, c, c.Targets[0])
+				}
+			}
+			cost := strings.TrimSpace(sa.Params["UnlessCost"])
+			d := &decision.Decision{Player: payer, Kind: decision.KModes,
+				Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay",
+				ResumeSA: sa,
+				Prompt:   "Pay " + cost + " to copy the spell, or decline",
+				Options: []decision.Option{
+					{Index: 0, Kind: "mode", Label: "Pay " + cost + " — make a copy", Obj: c.Source, Player: payer},
+					{Index: 1, Kind: "mode", Label: "Don't pay", Obj: c.Source, Player: payer},
+				}}
+			if h.Ask(d) {
+				return // resolution suspended; the answer re-enters this effect.
+			}
+			// Fuzz/no-engine host: the deterministic decline (R-9), as
+			// today — a card that pays nothing gets nothing.
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "may pay declined (UnlessCost not asked on this host)"})
+			return
+		}
 	}
 
 	// Resolve which spell to copy. For a trigger the remembered entry is the

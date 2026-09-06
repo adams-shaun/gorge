@@ -35,7 +35,7 @@ func newTestBot(seed uint64) *testBot {
 // over yourself; block about half the time, never with the same blocker
 // twice; order or accept/decline triggers with the bot's own rng; answer the
 // London mulligan round (keep, or mulligan 1/3 off the rng; bottom the
-// lowest-indexed cards); and, for
+// lowest-indexed cards); take the first Min modes on a modal pick; and, for
 // anything else (or anything above that found nothing to pick), whatever
 // clamp tops up with. Every access into d.Options is guarded against the
 // list being empty, and clamp (Ruling T25-c, fix round 1) is the last thing
@@ -191,6 +191,18 @@ func (b *testBot) answer(isMain bool, d *decision.Decision) decision.Intent {
 			in.Choices = []int{d.Options[0].Index} // keep
 			return clamp(d, in)
 		}
+
+	case decision.KModes:
+		// The mid-resolution modal pick (M2d-2) -- seat/bot.go's KModes
+		// case, mirrored verbatim (Ruling F7): choose the first Min options
+		// in order, the recorded mirror of the engine-side first-mode
+		// stand-in, no rng. Also answers an UnlessCost$ may-pay (option 0 is
+		// "Pay … — make a copy"); the engine declines when the payer's pool
+		// cannot cover it.
+		for j := 0; j < len(d.Options) && j < d.Min; j++ {
+			in.Choices = append(in.Choices, d.Options[j].Index)
+		}
+		return clamp(d, in)
 	}
 
 	// Last resort: pass if Min == 0 and one is offered; clamp below handles

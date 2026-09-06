@@ -15,10 +15,14 @@ func Emit(g *state.Game, l *Log, e Event) Event {
 // no randomness, no clock, no reads outside g.
 func Apply(g *state.Game, e Event) {
 	switch e.Kind {
-	case GameStart, DecisionAsk, DecisionMade, Note, Resolve:
+	case GameStart, DecisionAsk, DecisionMade, Note, Resolve, ModeChosen:
 		// Markers. Resolve is deliberately inert: the resolving object leaves
 		// the stack through its own MoveZone event, and popping here as well
-		// would drop a second object.
+		// would drop a second object. ModeChosen (M2d-2) is a marker too: the
+		// choice it records lives on the suspended resolution's Ctx when the
+		// engine re-enters it, so nothing on state needs writing -- the event
+		// exists only so the log carries the answered modal pick and a replay
+		// can re-derive it.
 
 	case Shuffle:
 		if validPlayer(g, e.Player) {
