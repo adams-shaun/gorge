@@ -84,7 +84,7 @@ func TestPackagesForFiles(t *testing.T) {
 		{
 			name:  "non-go files only",
 			files: []string{"host/README.md", "state/doc.txt"},
-			want:  nil,
+			want:  []string{"example.com/gorge/host", "example.com/gorge/state"},
 		},
 		{
 			name:  "several files in one package",
@@ -119,6 +119,50 @@ func TestPackagesForFiles(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestPackagesForFilesSkipsToolArtifact is the mutation surface for the
+// feedback-loop fix. The gate tools append a TEST_HISTORY.md / ALLOC_HISTORY.md
+// row to every package they measure; if a commit fails after they measure, that
+// bookkeeping stays staged and dirty, and the next -changed run must NOT treat
+// the package as changed because of it (doing so would re-measure everything
+// under self-inflicted load and report wall times it did not earn). A package
+// whose only staged change is one of these history files is not a changed
+// package.
+func TestPackagesForFilesSkipsToolArtifact(t *testing.T) {
+	pkgs := []pkgInfo{
+		{importPath: "example.com/gorge/host", dir: "host", hasTests: true},
+		{importPath: "example.com/gorge/state", dir: "state", hasTests: true},
+	}
+
+	// Bookkeeping alone must never select a package.
+	if got := packagesForFiles([]string{"host/TEST_HISTORY.md"}, pkgs); len(got) != 0 {
+		t.Errorf("one TEST_HISTORY.md on its own selected %v, want none (the tool's own bookkeeping is not a change)", got)
+	}
+	if got := packagesForFiles([]string{"state/ALLOC_HISTORY.md"}, pkgs); len(got) != 0 {
+		t.Errorf("one ALLOC_HISTORY.md on its own selected %v, want none", got)
+	}
+
+	// Neither tool's bookkeeping selects, even where a real file does.
+	if got := packagesForFiles([]string{"host/testtime.go", "host/TEST_HISTORY.md", "host/ALLOC_HISTORY.md"}, pkgs); len(got) != 1 || got[0] != "example.com/gorge/host" {
+		t.Errorf("bookkeeping beside host/testtime.go changed selection to %v, want just host", got)
+	}
+}
+
+// TestNonArtifactsWedged is the mutation surface for the wedged-state fix: a
+// staging that carries ONLY the gates' own bookkeeping is a wedge, and the
+// changed-file list it yields must be empty so -changed measures nothing and
+// reports the wedge.
+func TestNonArtifactsWedged(t *testing.T) {
+	staged := []string{"host/TEST_HISTORY.md", "state/ALLOC_HISTORY.md"}
+	if got := nonArtifacts(staged); len(got) != 0 {
+		t.Errorf("nonArtifacts(bookkeeping-only) = %v, want empty (a wedge must measure nothing)", got)
+	}
+
+	touched := nonArtifacts([]string{"host/a.go", "host/TEST_HISTORY.md"})
+	if len(touched) != 1 || touched[0] != "host/a.go" {
+		t.Errorf("nonArtifacts dropped a real file: %v", touched)
 	}
 }
 
