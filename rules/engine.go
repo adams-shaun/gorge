@@ -171,6 +171,22 @@ type Engine struct {
 	// from crossing. So the field is always zero at a clone boundary and
 	// copying it would copy a constant.
 	damaging state.ObjID
+
+	// foreachBuf is forEachObject's (trigger_match.go) scratch snapshot
+	// buffer. forEachObject copies each zone into it before walking it -- fn
+	// may move objects between zones (a trigger match putting something on
+	// the stack), so iterating the live, mutating zone slice would be a bug.
+	// append(buf[:0], zone...) grows it in place, so it settles at the size
+	// of the largest zone seen and then stops allocating -- a fresh zone
+	// copy per zone per event used to be forEachObject's 11.51 GB allocation
+	// footprint (Task A2), the single largest allocator in this package.
+	// Owned by this Engine alone: Clone leaves both fields zero, so a clone
+	// and the original share no snapshot mid-walk (the clone just lets it
+	// grow again). foreachDepth guards re-entry (see forEachObject): zero
+	// outside a walk, one inside the depth-0 walk, higher inside a
+	// re-entrant nested walk.
+	foreachBuf   []state.ObjID
+	foreachDepth int
 }
 
 // chooseFor names the flow a pending KChoose decision belongs to. Task 9
