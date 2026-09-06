@@ -21,19 +21,32 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// Board is the plain-data picture of the game the policy reads. Today it
-// carries exactly one fact -- the thing the policy's priority branch gates
-// on -- and every later heuristic that needs another board fact adds a
-// field here, with both adapters learning to fill it. The fields are
-// deliberately not speculative: a board fact no policy branch reads would
-// be untested surface.
+// Board is the plain-data picture of the game the policy reads. Every fact
+// the policy branches on lives here, produced identically by the two
+// adapter halves — seat/bot.go's boardFromView lifts it off the projected
+// View a real client receives, and BoardFromGame (combat.go) lifts it off
+// the engine's state.Game — so whatever the heuristic sees, whichever host
+// asks, is the same board (pinned over a whole game by seat/integration_test.go's
+// TestBotAdaptersAgreeOverWholeGame). The fields are deliberately not
+// speculative: a board fact no policy branch reads would be untested
+// surface. Priority reads IsMain; combat reads Creatures and Life.
 type Board struct {
 	// IsMain reports whether sorcery-speed actions are legal right now.
 	// The seat adapter lifts it off the projected View's Phase
 	// ("main1"/"main2", seat/bot.go); the rules test adapter lifts it off
-	// the engine's own step (rules/testbot_test.go's callers evaluate
-	// e.G.Step.IsMain() on the line before calling answer).
+	// the engine's own step (g.Step.IsMain), which is the same function of
+	// the same five-phase string.
 	IsMain bool
+	// Creatures is every creature on every battlefield, keyed by object id:
+	// the attacker and blocker census the combat heuristic reads. Both
+	// adapters fill it from public facts only — a battlefield is public
+	// for every seat — so the bot reasons about exactly the creatures the
+	// seat can legally see, and the two halves agree on every one of them.
+	Creatures map[state.ObjID]Creature
+	// Life is every player's life total, keyed by seat. The blocking rule
+	// reads the defender's own life to decide when a chump block is
+	// warranted, which is public on both halves.
+	Life map[state.PlayerID]int32
 }
 
 // Decide implements every decision.Kind the engine (or a future one) can
@@ -53,10 +66,10 @@ type Board struct {
 //     otherwise never chosen by this switch at all.
 //   - KTarget: prefer an opposing player; fall back to the first legal
 //     target.
-//   - KAttackers: attack with everything that can.
-//   - KBlockers: block with roughly half the legal (blocker, attacker)
-//     pairs, at most once per blocker -- used is a membership set only,
-//     ranged never, so it does not reach the chosen order.
+//   - KAttackers/KBlockers: the combat heuristic in combat.go's
+//     chooseAttackers/chooseBlockers (AR1-AR4 / BR1-BR2, stated there).
+//     Neither consumes the rng: the choice is a pure function of the
+//     offered options and the board facts both adapters supply.
 //   - KTriggerOrder: a permutation of the offered indices drawn from the
 //     bot's own rng, so ordering paths get fuzz coverage too.
 //   - KTriggerOptional: a coin from the bot's own rng between the two
@@ -167,23 +180,11 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 		}
 
 	case decision.KAttackers:
-		ch := make([]int, 0, len(d.Options))
-		for _, o := range d.Options {
-			ch = append(ch, o.Index)
-		}
-		in.Choices = ch
+		in.Choices = b.chooseAttackers(d)
 		return clamp(d, in)
 
 	case decision.KBlockers:
-		var ch []int
-		used := map[state.ObjID]bool{} // membership only -- never ranged.
-		for _, o := range d.Options {
-			if !used[o.Obj] && r.IntN(2) == 0 {
-				used[o.Obj] = true
-				ch = append(ch, o.Index)
-			}
-		}
-		in.Choices = ch
+		in.Choices = b.chooseBlockers(d)
 		return clamp(d, in)
 
 	case decision.KTriggerOrder:

@@ -138,11 +138,17 @@ func TestEveryKind(t *testing.T) {
 
 	attackers := decision.Decision{Seq: 3, Player: 0, Kind: decision.KAttackers, Min: 0, Max: 2,
 		Options: []decision.Option{
-			{Index: 0, Kind: "attacker", Obj: 10},
-			{Index: 1, Kind: "attacker", Obj: 11},
+			{Index: 0, Kind: "attacker", Obj: 10, Player: 1},
+			{Index: 1, Kind: "attacker", Obj: 11, Player: 1},
 		}}
-	if in := Decide(Board{}, &attackers, rng(1)); len(in.Choices) != 2 {
-		t.Errorf("attackers = %+v, want every legal attacker chosen", in)
+	// Combat-specific expectations live in combat_test.go; here, with a
+	// defender that has no creatures, both legal 2/2 attackers go (AR2 —
+	// there is nothing to punish the swing).
+	if in := Decide(Board{Creatures: map[state.ObjID]Creature{
+		10: {Power: 2, Toughness: 2, Controller: 0},
+		11: {Power: 2, Toughness: 2, Controller: 0},
+	}}, &attackers, rng(1)); len(in.Choices) != 2 {
+		t.Errorf("attackers = %+v, want every legal attacker chosen against a defender with no creatures", in)
 	}
 
 	// M2 (fix round 1): a single fixed seed is fragile -- with seed 1 the
@@ -282,10 +288,12 @@ func TestEveryKind(t *testing.T) {
 // TestDeterministic is Ruling P8's point at the policy level: the same rng
 // seed answering the same decision sequence produces identical intents, and
 // a different seed does not produce the same intents everywhere. The
-// sequence deliberately includes the two rng-consuming kinds (KBlockers,
-// KTriggerOrder) as well as a coin-flip one (KTriggerOptional). The seat
-// package keeps a copy of this through Bot, for when a bot whose rng leaked
-// would only show it on paths that draw from it.
+// sequence deliberately includes the two rng-consuming kinds (KTriggerOrder,
+// KTriggerOptional) and a coin-flip one-shot (KMulligan would need a
+// second option to flip; combat kinds consume no rng at all — B2, see
+// chooseAttackers/chooseBlockers). The seat package keeps a copy of this
+// through Bot, for when a bot whose rng leaked would only show it on paths
+// that draw from it.
 func TestDeterministic(t *testing.T) {
 	seq := []decision.Decision{
 		{Seq: 1, Player: 0, Kind: decision.KBlockers, Min: 0, Max: 3, Options: []decision.Option{

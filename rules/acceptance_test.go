@@ -190,11 +190,9 @@ func playAcceptance(t *testing.T, reg *cards.Registry, seats int, step func(e *E
 	}
 	n := 0
 	for !e.G.Over && e.Pending() != nil && n < 400000 {
-		// Ruling T25-b's isMain gate (rules/testbot_test.go's own doc):
-		// computed from the engine's own step, on the line before the
-		// call that consumes it, exactly like TestInvariantsUnderSeedFuzz.
-		isMain := e.G.Step.IsMain()
-		if err := e.Submit(b.answer(isMain, e.Pending())); err != nil {
+		// answer builds the board off the engine itself (botpolicy.BoardFromGame);
+		// see rules/testbot_test.go's own doc.
+		if err := e.Submit(b.answer(e, e.Pending())); err != nil {
 			t.Fatalf("%d seats, intent %d: %v", seats, n, err)
 		}
 		if step != nil && n%997 == 0 {
@@ -288,8 +286,7 @@ func TestRepoDeckGamesReplayExactly(t *testing.T) {
 		e.Advance()
 		n := 0
 		for !e.G.Over && e.Pending() != nil && n < 400000 {
-			isMain := e.G.Step.IsMain()
-			if err := e.Submit(b.answer(isMain, e.Pending())); err != nil {
+			if err := e.Submit(b.answer(e, e.Pending())); err != nil {
 				t.Fatalf("seed %d, intent %d: %v", seed, n, err)
 			}
 			n++
