@@ -182,6 +182,14 @@ type Engine struct {
 	// miracle cases in their own files.
 	choosing chooseFor
 
+	// format is the game's construction format, captured from Config at New.
+	// Task m33 (commander damage, CR 903.10) needs it at combat-damage time
+	// and in the state-based-action pass, long after New has returned, so it is
+	// stored here rather than re-derived. It is a plain value, so Clone copies
+	// it; a Commander-format game keeps commanding damage and its loss
+	// condition through a clone exactly as the live one does.
+	format Format
+
 	// resume is non-nil while a mid-resolution decision is pending: an
 	// effect (effCharm's modal pick, effCopySpellAbility's UnlessCost$
 	// may-pay — M2d-2, closing R-8) asked through effects.Host.Ask and the
@@ -298,6 +306,7 @@ func New(cfg Config) *Engine {
 		rng: newRNG(cfg.Seed),
 	}
 	e.G.Tokens = cfg.Tokens
+	e.format = cfg.Format
 	e.emit(events.Event{Kind: events.GameStart, Amount: int32(len(cfg.Names))})
 	// Match-wide dense commander indexing for Player.CmdDamage (assigned at
 	// genesis): a commander's dense index is the sum of (valid commanders in
