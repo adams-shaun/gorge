@@ -78,6 +78,14 @@ func (e *Engine) Clone() *Engine {
 	}
 	c.triggerFireCount = cloneCounts(e.triggerFireCount)
 	c.damageOnceFired = cloneCounts(e.damageOnceFired)
+	// foreachBuf / foreachDepth (Task A2) are deliberately NOT copied: they
+	// are forEachObject's scratch snapshot buffer and re-entry depth counter
+	// (engine.go), live only for the duration of a single walk. A clone is
+	// taken at an intent boundary (never mid-walk, so foreachDepth is zero);
+	// sharing the buffer field between the original and the clone would be a
+	// bug, because either one walking would clobber the other's zone snapshot
+	// mid-range. Leaving both zero lets each engine grow its own buffer on
+	// its next depth-0 forEachObject call.
 	if e.cast != nil {
 		pc := *e.cast
 		pc.cost.Sac = append([]CostPart(nil), e.cast.cost.Sac...)
