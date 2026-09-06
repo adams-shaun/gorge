@@ -58,6 +58,24 @@ type Face struct {
 	toughness              int32
 	characteristicDefining bool
 	cmc                    int32
+
+	// colourIdentity is the face's colour identity, a bitmask over the five
+	// colours (see ColourIdentity in face.go), derived once at load from the
+	// printed text and never written into the gob cache: like the other
+	// derived values below it stays unexported so a stale cache decodes it as
+	// zero and derive() repairs it immediately after decode.
+	colourIdentity uint8
+}
+
+// ColourIdentity returns the card's colour identity, the bitwise union of
+// every face's (so a double-faced card carries the colours of both sides). A
+// commander's identity must be a superset of it for the card to be legal.
+func (c *Card) ColourIdentity() uint8 {
+	var m uint8
+	for _, f := range c.Faces {
+		m |= f.ColourIdentity()
+	}
+	return m
 }
 
 // Card is one script file.
