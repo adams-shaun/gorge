@@ -77,6 +77,9 @@ func TestDependencyOrderHolds(t *testing.T) {
 	forbidden := []struct{ from, to string }{
 		{module + "/effects", module + "/rules"},
 		{module + "/view", module + "/rules"},
+		{module + "/botpolicy", module + "/view"},
+		{module + "/botpolicy", module + "/rules"},
+		{module + "/botpolicy", module + "/seat"},
 		{module + "/protocol", module + "/rules"},
 		{module + "/host", module + "/internal/testutil"},
 		{module + "/host/httpapi", module + "/internal/testutil"},
