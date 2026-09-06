@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -19,6 +20,7 @@ import (
 	"github.com/adams-shaun/gorge/deck"
 	"github.com/adams-shaun/gorge/host"
 	"github.com/adams-shaun/gorge/host/httpapi"
+	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
 )
 
@@ -31,6 +33,16 @@ type config struct {
 	pace, cooldown                     time.Duration
 	seed                               uint64
 	perpetual                          bool
+	// humansRaw is the -humans flag: a comma-separated list of table t1's
+	// slot indices that are real people. Empty stays all-bot, identical to
+	// today. applyHumans parses it into humans at serve time so a malformed
+	// list fails before any table is added (R-E3-1).
+	humansRaw string
+	humans    []int
+	// seatToken is the -seat-token flag: a fixed bearer token for the first
+	// human slot instead of a random per-slot one. Tests and local use only
+	// (R-E3-3) — production runs mint random tokens.
+	seatToken string
 }
 
 func main() {
@@ -46,6 +58,8 @@ func main() {
 	flag.StringVar(&c.spectator, "spectator", "omniscient", "spectator visibility: public or omniscient")
 	flag.Uint64Var(&c.seed, "seed", 1, "seed of table 1; table i uses seed+i-1")
 	flag.BoolVar(&c.perpetual, "perpetual", true, "start a new match when one ends")
+	flag.StringVar(&c.humansRaw, "humans", "", "comma-separated slots of table t1 that are real people (e.g. 0,2); t2..tN stay bot tables")
+	flag.StringVar(&c.seatToken, "seat-token", "", "fixed bearer token for the first human slot (tests and local use only; default mints a random token per slot)")
 	flag.Parse()
 
 	ln, err := net.Listen("tcp", c.addr)
@@ -83,15 +97,20 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if len(names) == 0 {
 		return fmt.Errorf("no deck files in %s", c.decks)
 	}
+	// R-E3-1: -humans applies to table t1 alone (SeatClaim carries no
+	// table, so one human table is the only configuration in which an
+	// un-table-scoped claim is honest). Parse it now so a malformed list or
+	// "-humans with -tables 0" fails before anything listens.
+	if err := c.applyHumans(); err != nil {
+		return err
+	}
 
 	r, err := host.New(c.hostOptions(reg, deckLoader(reg, c.decks)))
 	if err != nil {
 		return err
 	}
 	if len(r.Tables()) == 0 {
-		for i := 1; i <= c.tables; i++ {
-			cfg := host.TableConfig{ID: host.TableID(fmt.Sprintf("t%d", i)), Name: fmt.Sprintf("Table %d", i), Seats: c.seats,
-				Decks: names, Seed: c.seed + uint64(i-1), Pace: c.pace, Spectator: vis, Perpetual: c.perpetual}
+		for _, cfg := range c.tableConfigs(names, vis) {
 			if err := r.AddTable(cfg); err != nil {
 				return err
 			}
@@ -100,10 +119,30 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if err := r.StartAll(); err != nil {
 		return err
 	}
-	srv := &http.Server{Handler: httpapi.NewHandler(r, httpapi.Options{Web: webFS()})}
+	opts := httpapi.Options{Web: webFS()}
+	var gate *seatGate
+	if len(c.humans) > 0 {
+		// R-E3-3: arm Options.Seat with a real token check — one opaque
+		// token per human slot, minted at startup. With no humans the
+		// resolver stays nil and the server is spectator-only, exactly as
+		// before the flag existed.
+		gate, err = newSeatGate(c.seatToken, c.humans)
+		if err != nil {
+			return err
+		}
+		opts.Seat = gate.resolve
+	}
+	srv := &http.Server{Handler: httpapi.NewHandler(r, opts)}
 	errc := make(chan error, 1)
 	go func() { errc <- srv.Serve(ln) }()
 	fmt.Fprintf(os.Stderr, "gorged: %d tables of %d on %s (dir %s)\n", len(r.Tables()), c.seats, ln.Addr(), c.dir)
+	if gate != nil {
+		for _, s := range c.humans {
+			seat := state.PlayerID(s)
+			fmt.Fprintf(os.Stderr, "gorged: table t1 seat %d joins at http://%s/?seat=%d&token=%s\n",
+				s, ln.Addr(), s, gate.token(seat))
+		}
+	}
 	select {
 	case err := <-errc:
 		r.Close()
@@ -114,6 +153,55 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	defer cancel()
 	_ = srv.Shutdown(shutdown)
 	return r.Close()
+}
+
+// applyHumans parses the -humans flag into c.humans and rejects the
+// configurations R-E3-1 forbids up front: a malformed list, or humans with
+// no table to seat them on. A slot index out of range is deliberately not
+// checked again here — TableConfig.validate owns that check, and the t1
+// AddTable fails with the same information.
+func (c *config) applyHumans() error {
+	if strings.TrimSpace(c.humansRaw) == "" {
+		c.humans = nil
+		return nil
+	}
+	parts := strings.Split(c.humansRaw, ",")
+	humans := make([]int, 0, len(parts))
+	for _, p := range parts {
+		n, err := strconv.Atoi(strings.TrimSpace(p))
+		if err != nil {
+			return fmt.Errorf("-humans %q: %q is not a slot index", c.humansRaw, p)
+		}
+		humans = append(humans, n)
+	}
+	if c.tables < 1 {
+		return fmt.Errorf("-humans %s: needs at least one table (-tables 1..)", c.humansRaw)
+	}
+	c.humans = humans
+	return nil
+}
+
+// tableConfigs builds one TableConfig per table, in ID order. R-E3-1: the
+// human slots apply to table t1 alone — SeatClaim carries no table, so a
+// claim minted for t1 seat s would satisfy the same seat on every table.
+// R-E3-2: a human-seated table is single-shot by definition, and the
+// -perpetual flag defaults to true, so a naive copy of the bot config
+// would make AddTable reject it (perpetual+humans); Perpetual is forced
+// false for t1, regardless of the flag, and the bot tables keep the flag.
+// AddTable still validates the result (slot range, duplicates), so serve
+// fails before listening on a bad -humans list.
+func (c config) tableConfigs(names []string, vis view.Visibility) []host.TableConfig {
+	cfgs := make([]host.TableConfig, 0, c.tables)
+	for i := 1; i <= c.tables; i++ {
+		cfg := host.TableConfig{ID: host.TableID(fmt.Sprintf("t%d", i)), Name: fmt.Sprintf("Table %d", i), Seats: c.seats,
+			Decks: names, Seed: c.seed + uint64(i-1), Pace: c.pace, Spectator: vis, Perpetual: c.perpetual}
+		if i == 1 && len(c.humans) > 0 {
+			cfg.Humans = c.humans
+			cfg.Perpetual = false
+		}
+		cfgs = append(cfgs, cfg)
+	}
+	return cfgs
 }
 
 // hostOptions builds the Registry options for a config, threading the FL-40
