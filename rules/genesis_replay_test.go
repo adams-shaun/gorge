@@ -54,12 +54,15 @@ func driveToOver(t *testing.T, e *Engine, limit int) {
 // regardless, and not call beginTurn on a game that is already finished.
 func TestGenesisStopsAtEliminationDuringTheOpeningDraw(t *testing.T) {
 	names := []string{"a", "b"}
-	cfg := Config{Seed: 5, Names: names,
+	cfg := Config{Seed: 5, Names: names, Mulligans: 3,
 		Decks: [][]*cards.Card{mountainDeck(t, 3), mountainDeck(t, 40)}}
 	e := New(cfg)
 
 	if !e.G.Over {
 		t.Fatal("seat 0's 3-card deck cannot fill a 7-card opening hand; the game should already be over")
+	}
+	if e.pregame {
+		t.Fatal("the mulligan round must never start on a game already Over (decked out at genesis)")
 	}
 	if !e.G.Players[0].Lost {
 		t.Fatal("seat 0 should be the one who decked out")

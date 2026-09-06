@@ -174,7 +174,14 @@ func playAcceptance(t *testing.T, reg *cards.Registry, seats int, step func(e *E
 		names[i] = all[i%len(all)]
 		decks[i] = testutil.RepoDeck(t, reg, all[i%len(all)])
 	}
-	cfg := Config{Seed: 42, Names: names, Decks: decks, Tokens: reg.Tokens}
+	cfg := Config{Seed: 42, Names: names, Decks: decks, Tokens: reg.Tokens,
+		// Ruling R-M1: the mulligan is NOT configurable off for the acceptance
+		// decks -- a mulligan the suite never exercises is a mulligan nobody
+		// tests. Mulligans = 1 makes the keep/mulligan and bottoming round run
+		// in every acceptance game (M2d-1), which is why the four chain heads
+		// in rules/heads_test.go move; standalone fixture Configs never set it,
+		// so the zero value leaves them byte-identical to before (R-8.4).
+		Mulligans: 1}
 	e := New(cfg)
 	b := newTestBot(7)
 	e.Advance()
@@ -271,7 +278,11 @@ func TestRepoDeckGamesReplayExactly(t *testing.T) {
 			names[i] = all[(int(seed)+i)%len(all)]
 			decks[i] = testutil.RepoDeck(t, reg, names[i])
 		}
-		cfg := Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens}
+		cfg := Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens,
+			// R-8.4: Mulligans must travel in the same Config replay is handed;
+			// this replay-exactness test exercises the round so a concession of
+			// mutating it silently would be caught here (M2d-1).
+			Mulligans: 1}
 		e := New(cfg)
 		b := newTestBot(seed)
 		e.Advance()

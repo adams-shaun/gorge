@@ -143,6 +143,20 @@ const (
 	// permanent's Face().Abilities index, and IDs is whatever the
 	// activation remembered (mirrors TriggerPush's own IDs usage).
 	AbilityPush
+	// ModeChosen records the answer to a mid-resolution modal decision
+	// (effects.Host.Ask, decided by rules' handleModes -- the KModes
+	// decision effCharm poses over its Choices$, or the unless-pay yes/no
+	// effCopySpellAbility poses over its UnlessCost$). Obj is the stack
+	// object whose resolution was suspended, Player the chooser, and Text
+	// the chosen option labels (csv, in execution order). It is a marker
+	// like Note: the choice itself lives on the suspended resolution's Ctx
+	// when the engine re-enters it, so Apply records nothing on state --
+	// the event exists only to carry the choice into the log, which is
+	// what makes a replay able to re-derive the same branch. Appended
+	// here, after AbilityPush, following every prior Kind's own append-only
+	// precedent, so no earlier ordinal, hash chain or golden replay is
+	// affected (M2d-2).
+	ModeChosen
 )
 
 var kindNames = [...]string{"game_start", "shuffle", "move_zone", "draw",
@@ -151,7 +165,7 @@ var kindNames = [...]string{"game_start", "shuffle", "move_zone", "draw",
 	"declare_blockers", "player_lost", "game_over", "decision_ask",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
-	"token_create", "stack_copy", "attach", "ability_push"}
+	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

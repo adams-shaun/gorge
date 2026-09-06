@@ -32,6 +32,15 @@ func (e *Engine) Clone() *Engine {
 		d.Options = append([]decision.Option(nil), e.pending.Options...)
 		c.pending = &d
 	}
+	if e.resume != nil {
+		// Plain value data (kind/obj plus a *cards.SA into the shared
+		// immutable corpus — the same pointer class every other field here
+		// shares), so one struct copy is a faithful clone (M2d-2). A clone
+		// made while a mid-resolution decision is pending sees the same
+		// suspended resolution the original does.
+		rp := *e.resume
+		c.resume = &rp
+	}
 	if e.continuous != nil {
 		c.continuous = make([]ContinuousEffect, len(e.continuous))
 		for i, ce := range e.continuous {
