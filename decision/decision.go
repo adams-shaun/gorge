@@ -16,8 +16,16 @@ const (
 	KTarget    Kind = "target"
 	KAttackers Kind = "attackers"
 	KBlockers  Kind = "blockers"
-	KMulligan  Kind = "mulligan"
-	KModes     Kind = "modes"
+	// KMulligan drives the pre-game London mulligan round (rules/mulligan.go),
+	// which Config.Mulligans > 0 runs between the opening deal and turn 1. It
+	// is one kind with two phases distinguished by option vocabulary and
+	// Min/Max: a keep/mulligan ask is Min == Max == 1 over a "keep" (and,
+	// while the seat still has a free mulligan, a "mulligan") option; a
+	// bottoming ask is Min == Max == taken over one "bottom" option per kept-
+	// hand card -- exactly the distinct-index shape Validate already enforces
+	// for KTriggerOrder, so no new wire format is needed (Ruling U2).
+	KMulligan Kind = "mulligan"
+	KModes    Kind = "modes"
 	// KTriggerOrder asks one controller for the order of the two or more
 	// triggered abilities they control that triggered simultaneously (CR
 	// 603.3b). It is Min == Max == len(Options) over exactly that
