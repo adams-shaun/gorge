@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { CardView } from '../protocol';
   import CardImage from './CardImage.svelte';
+  import CardDetail from './CardDetail.svelte';
+  import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
 
   /**
    * CardTile is the battlefield/stack/strip face of one object. It has no
@@ -8,7 +10,9 @@
    * name/mana symbols/types/P-T); this wrapper only adds per-instance state
    * that is not part of the card's printed identity — tapped, damage,
    * counters, summoning sickness, attachments — plus the data-obj anchor
-   * arrows use.
+   * arrows use, and the hover/focus detail: a pointer dwell (~250ms) or
+   * keyboard focus opens the large CardDetail panel, pointer leave / blur /
+   * Escape close it.
    *
    * `keywords` on the wire are DERIVED (view.go reads ch.Keywords), so a
    * granted ability shows here exactly like a printed one. The abbreviations
@@ -35,9 +39,38 @@
       })
       .filter((m): m is string => m !== undefined),
   );
+
+  // One hover state per tile: pointer dwell or keyboard focus opens the
+  // detail; leave/blur/Escape close it. onOpen captures this tile's rect so
+  // the fixed panel anchors where the card is. The tile is a tooltip
+  // trigger in the ARIA sense (reveals extra info on hover/focus), which is
+  // why the div carries role="button" + tabindex + aria-describedby; there
+  // is deliberately no click activation.
+  const hover = new HoverCard();
+  let root = $state<HTMLElement | null>(null);
+  let anchor = $state<AnchorRect | null>(null);
+
+  function capture(): void {
+    const r = root?.getBoundingClientRect();
+    anchor = r ? { left: r.left, top: r.top, right: r.right } : null;
+  }
 </script>
 
-<div class="card-tile" class:tapped={card.tapped} class:sick={card.summon_sick} data-obj={card.id}>
+<div
+  class="card-tile"
+  class:tapped={card.tapped}
+  class:sick={card.summon_sick}
+  data-obj={card.id}
+  bind:this={root}
+  tabindex="0"
+  role="button"
+  onpointerenter={() => hover.arm(capture)}
+  onpointerleave={() => hover.close()}
+  onfocus={() => hover.open(capture)}
+  onblur={() => hover.close()}
+  onkeydown={(e) => hover.keydown(e)}
+  aria-describedby={hover.show ? `card-detail-${card.id}` : undefined}
+>
   <CardImage {card} {size} />
   {#if card.damage > 0}<span class="damage" title="damage marked">{card.damage}</span>{/if}
   {#if marks.length}
@@ -60,6 +93,10 @@
     </div>
   {/if}
 </div>
+
+{#if hover.show && anchor}
+  <CardDetail {card} anchor={anchor} />
+{/if}
 
 <style>
   .card-tile {
