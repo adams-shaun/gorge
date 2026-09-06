@@ -92,35 +92,77 @@ func NewHumanSeat() *HumanSeat {
 // parks on a brand-new channel. The caretaker path is no exception: it clears
 // the slot through the same defer, so after a timeout the seat is clean for
 // the next decision -- no leftover slot, no buffered intent.
-func (s *HumanSeat) Decide(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
+// parking is the slate of one parked-but-not-yet-answered decision. park()
+// installs the seat's slot (so Pending/SubmitIntent find and can answer it)
+// and returns a parking whose await() blocks for the answer. Split that way,
+// play() can make a decision answerable BEFORE it is ever published, which is
+// exactly the ordering that closes the publish-before-park race: nothing may
+// observe a pending decision before the seat that owns it is able to accept
+// an answer for it. Between park returning and await being called the seat is
+// already accept-ready.
+type parking struct {
+	s         *HumanSeat
+	slot      *pendingSlot
+	ctx       context.Context
+	v         view.View
+	d         decision.Decision
+	timeout   time.Duration
+	caretaker seat.Seat
+}
+
+// park installs d as the seat's pending decision without blocking, returning
+// a handle whose await() blocks for the answer. It snapshots the think budget
+// and caretaker under the same mutex Decide took, so await behaves exactly as
+// the old one-shot Decide did.
+func (s *HumanSeat) park(ctx context.Context, v view.View, d decision.Decision) *parking {
 	slot := &pendingSlot{dec: d, recv: make(chan decision.Intent, 1)}
 	s.mu.Lock()
 	s.slot = slot
 	timeout := s.timeout
 	caretaker := s.caretaker
 	s.mu.Unlock()
+	return &parking{s: s, slot: slot, ctx: ctx, v: v, d: d, timeout: timeout, caretaker: caretaker}
+}
+
+// Decide records d as the pending decision and blocks until a matching intent
+// is submitted, ctx is done, or ThinkTimeout elapses — park immediately
+// followed by await. It satisfies seat.Seat.
+func (s *HumanSeat) Decide(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
+	return s.park(ctx, v, d).await()
+}
+
+// await is the blocking second half of Decide: it waits until the parked
+// decision is answered by a SubmitIntent, ctx is done, or ThinkTimeout
+// elapses (falling back to the caretaker), with the same slot-clear-on-return
+// discipline as the old Decide. Every return path clears the seat's slot, but
+// only if it is still this parking's own slot, so a mistaken re-use cannot
+// un-publish a later decision; and the caretaker path shares the same
+// clearing, so after a timeout or cancellation the seat is clean for the next
+// decision.
+func (p *parking) await() (decision.Intent, error) {
+	s := p.s
 	defer func() {
 		s.mu.Lock()
-		if s.slot == slot {
+		if s.slot == p.slot {
 			s.slot = nil
 		}
 		s.mu.Unlock()
 	}()
 
-	if timeout > 0 {
-		timer := time.NewTimer(timeout)
+	if p.timeout > 0 {
+		timer := time.NewTimer(p.timeout)
 		defer timer.Stop()
 		select {
-		case in := <-slot.recv:
+		case in := <-p.slot.recv:
 			return in, nil
-		case <-ctx.Done():
-			if caretaker != nil {
-				return s.viaCaretaker(ctx, v, d, caretaker)
+		case <-p.ctx.Done():
+			if p.caretaker != nil {
+				return s.viaCaretaker(p.ctx, p.v, p.d, p.caretaker)
 			}
-			return decision.Intent{}, ctx.Err()
+			return decision.Intent{}, p.ctx.Err()
 		case <-timer.C:
-			if caretaker != nil {
-				return s.viaCaretaker(ctx, v, d, caretaker)
+			if p.caretaker != nil {
+				return s.viaCaretaker(p.ctx, p.v, p.d, p.caretaker)
 			}
 			// A timeout configured but no caretaker to fall back to is an
 			// unarmed seat (unreachable when play configured it); rather than
@@ -129,13 +171,13 @@ func (s *HumanSeat) Decide(ctx context.Context, v view.View, d decision.Decision
 		}
 	}
 	select {
-	case in := <-slot.recv:
+	case in := <-p.slot.recv:
 		return in, nil
-	case <-ctx.Done():
-		if caretaker != nil {
-			return s.viaCaretaker(ctx, v, d, caretaker)
+	case <-p.ctx.Done():
+		if p.caretaker != nil {
+			return s.viaCaretaker(p.ctx, p.v, p.d, p.caretaker)
 		}
-		return decision.Intent{}, ctx.Err()
+		return decision.Intent{}, p.ctx.Err()
 	}
 }
 
