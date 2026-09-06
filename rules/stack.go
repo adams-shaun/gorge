@@ -179,7 +179,12 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		for _, q := range players {
 			for _, oid := range e.G.Zone(z, q) {
 				o := e.G.Obj(oid)
-				if o != nil && effects.MatchesSpecFrom(e.G, spec, oid, p, source) {
+				// CR 702.16c: a permanent protected from the targeting
+				// source's qualities cannot be the target of the spell or
+				// ability, so it is never offered even when the ValidTgts$
+				// spec would name it.
+				if o != nil && effects.MatchesSpecFrom(e.G, spec, oid, p, source) &&
+					!e.protectedFrom(oid, source) {
 
 					add("permanent", o.Face().Name+" ("+e.G.Players[q].Name+")", oid, q)
 				}
@@ -315,7 +320,7 @@ func (e *Engine) resolveTop() {
 		// and has none recorded resolves untargeted rather than fizzling --
 		// targetMin(o.Ability)==0 && len(targets)==0 is the exemption.
 		if spec := o.Ability.Params["ValidTgts"]; spec != "" && !(targetMin(o.Ability) == 0 && len(targets) == 0) {
-			legal := e.legalTargets(targets, spec, o.Controller)
+			legal := e.legalTargets(targets, spec, o.Controller, o.Source)
 			if len(legal) == 0 {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZExile, Text: "fizzled: no legal targets remain"})
@@ -358,7 +363,9 @@ func (e *Engine) resolveTop() {
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
 			Targets: targets, Remembered: o.Remembered}
 		effects.SetSVars(ctx, svars)
+		e.damaging = o.Source
 		effects.Resolve(e, ctx, o.Ability)
+		e.damaging = 0
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZExile})
 		e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this resolved "+
 			"ability's own move off the stack without relocating it anywhere; sent to exile "+
@@ -385,7 +392,7 @@ func (e *Engine) resolveTop() {
 		// Requirement N2, the same exemption as the ability branch: an
 		// untargeted-with-Min-0 spell resolves rather than fizzling.
 		if spec := sa.Params["ValidTgts"]; spec != "" && !(targetMin(sa) == 0 && len(targets) == 0) {
-			legal := e.legalTargets(targets, spec, o.Controller)
+			legal := e.legalTargets(targets, spec, o.Controller, id)
 			if len(legal) == 0 {
 				// CR 608.2b: every target became illegal. This spell does
 				// not resolve -- no Resolve event, no script runs -- it goes
@@ -409,7 +416,9 @@ func (e *Engine) resolveTop() {
 	}
 	e.emit(events.Event{Kind: events.Resolve, Obj: id, Text: f.Name})
 	if sa != nil {
+		e.damaging = id
 		e.resolveAbility(id, o.Controller, targets, sa, f.SVars)
+		e.damaging = 0
 	}
 	if f.IsPermanent() {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZBattlefield})
@@ -497,7 +506,7 @@ func (e *Engine) ensureLeftTheStack(id state.ObjID, to state.Zone, why string) {
 // not either -- rechecking against a filter the engine never enforced when
 // the target was chosen would reject targets this build always considered
 // fine.
-func (e *Engine) legalTargets(targets []state.Target, spec string, you state.PlayerID) []state.Target {
+func (e *Engine) legalTargets(targets []state.Target, spec string, you state.PlayerID, source state.ObjID) []state.Target {
 	var legal []state.Target
 	for _, t := range targets {
 		if t.IsPlayer {
@@ -506,8 +515,13 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, you state.Pla
 			}
 			continue
 		}
+		// CR 702.16c: a permanent that became protected from the resolving
+		// source's qualities since the target was chosen is no longer a legal
+		// target, exactly as askTarget withheld it at cast time -- so a
+		// previously-offered target that gained matching protection mid-race
+		// is dropped from resolution too (CR 608.2b).
 		if o := e.G.Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield &&
-			effects.MatchesSpec(e.G, spec, t.Obj, you) {
+			effects.MatchesSpec(e.G, spec, t.Obj, you) && !e.protectedFrom(t.Obj, source) {
 			legal = append(legal, t)
 		}
 	}

@@ -74,6 +74,11 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	if b.Tapped || b.Controller != a.Attacking {
 		return false
 	}
+	// CR 509.1a / 702.16j: a creature that the attacker is protected from
+	// cannot block it.
+	if e.protectedFrom(attacker, blocker) {
+		return false
+	}
 	if e.HasKeyword(attacker, "Flying") && !e.HasKeyword(blocker, "Flying") && !e.HasKeyword(blocker, "Reach") {
 		return false
 	}
@@ -277,6 +282,11 @@ type assignment struct {
 	lifelink   state.PlayerID
 	hasLink    bool
 	deathtouch bool
+	// from is the creature dealing this assignment (the attacker for its own
+	// assignments, each blocker for its hit-back), kept so the damage emit
+	// loop can set e.damaging (engine.go) and let protection prevent damage
+	// from a protected source (CR 702.16d).
+	from state.ObjID
 }
 
 // actsThisDamageStep reports whether id deals damage during this pass of
@@ -328,7 +338,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 				case len(a.BlockedBy) == 0:
 					// Genuinely unblocked: full damage to the defending player.
 					as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
-						lifelink: a.Controller, hasLink: link})
+						lifelink: a.Controller, hasLink: link, from: aid})
 
 				case len(blockers) == 0:
 					// Ruling T21-d (CR 509.1h): a creature that was blocked
@@ -339,7 +349,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 					// blocker left to owe any of it to).
 					if trample {
 						as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
-							lifelink: a.Controller, hasLink: link})
+							lifelink: a.Controller, hasLink: link, from: aid})
 					}
 
 				default:
@@ -366,7 +376,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 							give = need
 						}
 						as = append(as, assignment{toObj: bid, amount: give,
-							lifelink: a.Controller, hasLink: link, deathtouch: dt})
+							lifelink: a.Controller, hasLink: link, deathtouch: dt, from: aid})
 						remaining -= give
 						if remaining <= 0 {
 							break
@@ -374,7 +384,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 					}
 					if remaining > 0 && trample {
 						as = append(as, assignment{toPlayer: a.Attacking, amount: remaining,
-							lifelink: a.Controller, hasLink: link})
+							lifelink: a.Controller, hasLink: link, from: aid})
 					}
 				}
 			}
@@ -389,11 +399,16 @@ func (e *Engine) damageStep(firstStrike bool) {
 			if bp := e.Power(bid); bp > 0 {
 				as = append(as, assignment{toObj: aid, amount: bp,
 					lifelink: e.G.Obj(bid).Controller, hasLink: e.HasKeyword(bid, "Lifelink"),
-					deathtouch: e.HasKeyword(bid, "Deathtouch")})
+					deathtouch: e.HasKeyword(bid, "Deathtouch"), from: bid})
 			}
 		}
 	}
 	for _, x := range as {
+		// e.damaging names the dealing creature for the whole of this
+		// assignment so emit's protection check (Task 15) can prevent the
+		// damage when the recipient is protected from it (CR 702.16d); reset
+		// before the next assignment.
+		e.damaging = x.from
 		if x.toObj != 0 {
 			e.emit(events.Event{Kind: events.Damage, Obj: x.toObj, Amount: x.amount})
 			if x.deathtouch {
@@ -406,6 +421,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 		if x.hasLink {
 			e.emit(events.Event{Kind: events.LifeChange, Player: x.lifelink, Amount: x.amount})
 		}
+		e.damaging = 0
 	}
 }
 
