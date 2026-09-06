@@ -397,3 +397,194 @@ func TestCloneAndParentAppendConcurrentlyWithoutSharingTheDigest(t *testing.T) {
 		}
 	}
 }
+
+// TestLogReservePreallocatesTheBacking is the naming test for the Reserve size
+// hint: after a Reserve the backing array has at least the requested capacity,
+// and appending up to it never touches growEvents (the backing header is not
+// replaced, so the chain still holds and cap stays put). Reserve is a pure
+// capacity hint and must not disturb length, contents or the chain.
+func TestLogReservePreallocatesTheBacking(t *testing.T) {
+	l := NewLog(11)
+	l.Reserve(4096)
+	if cap(l.Events) < 4096 {
+		t.Fatalf("after Reserve(4096) cap = %d, want >= 4096", cap(l.Events))
+	}
+	first := cap(l.Events)
+	for i := 0; i < 2000; i++ { // far under the reserve; must never reallocate
+		l.Append(Event{Kind: Draw, Player: state.PlayerID(i % 2), Amount: int32(i)})
+		if cap(l.Events) != first {
+			t.Fatalf("append %d under the reserve reallocated: cap %d -> %d", i, first, cap(l.Events))
+		}
+		if l.Events[i].Seq != uint64(i) {
+			t.Fatalf("event %d lost its Seq: %d", i, l.Events[i].Seq)
+		}
+	}
+	if l.HeadAt(len(l.Events)) != l.Head() {
+		t.Fatalf("chain desynced: HeadAt=%s Head=%s", l.HeadAt(len(l.Events)), l.Head())
+	}
+}
+
+// TestLogReservePreservesExistingEventsAndChain pins that Reserve is legal to
+// call after the log has already appended (host calls it right after
+// rules.New has written genesis): it reallocates the backing array once and
+// copies the existing events over, so length, order and the running chain are
+// all untouched.
+func TestLogReservePreservesExistingEventsAndChain(t *testing.T) {
+	l := NewLog(12)
+	l.Append(Event{Kind: GameStart, Amount: 2})
+	l.Append(Event{Kind: Shuffle, Player: 1, IDs: []state.ObjID{3, 1, 2}, Secret: true})
+	l.Append(Event{Kind: Draw, Player: 0, Obj: 9})
+	beforeHead := l.Head()
+	beforeLen := len(l.Events)
+
+	l.Reserve(4096)
+	if len(l.Events) != beforeLen {
+		t.Fatalf("Reserve changed len: %d -> %d", beforeLen, len(l.Events))
+	}
+	if cap(l.Events) < 4096 {
+		t.Fatalf("Reserve left cap %d, want >= 4096", cap(l.Events))
+	}
+	// Contents survived the copy: the fold over the retained events is the
+	// same, so the running chain head is unchanged.
+	if l.HeadAt(beforeLen) != l.Head() {
+		t.Fatalf("Reserve desynced the chain: HeadAt=%s Head=%s", l.HeadAt(beforeLen), l.Head())
+	}
+	if l.Head() != beforeHead || l.HeadAt(beforeLen) != beforeHead {
+		t.Fatal("Reserve corrupted existing events: head moved")
+	}
+	// The log keeps working past the reserve.
+	l.Append(Event{Kind: Damage, Player: 1, Amount: 3})
+	if len(l.Events) != beforeLen+1 {
+		t.Fatalf("append after Reserve: len = %d, want %d", len(l.Events), beforeLen+1)
+	}
+	if l.HeadAt(len(l.Events)) != l.Head() {
+		t.Fatalf("chain desynced after Reserve+append: HeadAt=%s Head=%s", l.HeadAt(len(l.Events)), l.Head())
+	}
+}
+
+// TestLogReserveDoesNotLeakSpareCapacityToClone is the named invariant test
+// for Reserve's only correctness footgun. Reserve grows the PARENT's backing
+// array to hold the whole (expected) log up front, leaving lots of spare
+// capacity beyond len. If a Clone inherited that spare capacity — i.e. if
+// Clone shared c.Events = l.Events[:len] instead of truncating to
+// [len:len:len] — then the first append on either side would land in the
+// shared reserved region and clobber the other log's slot, silently
+// corrupting its chain. Clone's full-slice truncation is what guarantees a
+// clone always starts at cap == len regardless of how much the parent
+// reserved. Drop the cap (Mutation: share the reserve) and the interleaved
+// appends below write into the other log's storage, which the chain
+// assertions catch.
+func TestLogReserveDoesNotLeakSpareCapacityToClone(t *testing.T) {
+	// Reserve BEFORE any appends, so the parent's backing has a huge empty
+	// reserve the clone would (under the bug) be handed.
+	l := NewLog(13)
+	l.Reserve(4096)
+	l.Append(Event{Kind: GameStart, Player: 0, IDs: []state.ObjID{1, 2}})
+	l.Append(Event{Kind: Draw, Player: 1})
+	l.Append(Event{Kind: ManaAdd, Player: 0})
+
+	c := l.Clone()
+	if cap(c.Events) != len(c.Events) {
+		t.Fatalf("clone should never inherit reserved spare capacity: len=%d cap=%d",
+			len(c.Events), cap(c.Events))
+	}
+
+	// Append to the ORIGINAL first.
+	l.Append(Event{Kind: TurnChange, Player: 0})
+	l.Intents = append(l.Intents, decision.Intent{Seq: 2, Player: 0, Choices: []int{1}})
+	if len(c.Events) != 3 || len(c.Intents) != 0 {
+		t.Fatalf("append to the original leaked into the clone: %d events / %d intents",
+			len(c.Events), len(c.Intents))
+	}
+
+	// Then append to the CLONE. Unless cap was truncated to len, the clone's
+	// append writes into the parent's reserved region and clobbers the
+	// TurnChange the original just wrote there.
+	c.Append(Event{Kind: Priority, Player: 1})
+	c.Intents = append(c.Intents, decision.Intent{Seq: 3, Player: 1, Choices: []int{0}})
+
+	if len(l.Events) != 4 || l.Events[3].Kind != TurnChange {
+		t.Fatalf("clone append clobbered the original's event: %d events, [3]=%s",
+			len(l.Events), l.Events[3].Kind)
+	}
+	if len(l.Intents) != 1 || l.Intents[0].Seq != 2 {
+		t.Fatalf("clone intent append clobbered the original's intent")
+	}
+	if l.HeadAt(len(l.Events)) != l.Head() {
+		t.Fatalf("original chain desynced: HeadAt=%s Head=%s", l.HeadAt(len(l.Events)), l.Head())
+	}
+	if c.HeadAt(len(c.Events)) != c.Head() {
+		t.Fatalf("clone chain desynced: HeadAt=%s Head=%s", c.HeadAt(len(c.Events)), c.Head())
+	}
+	if l.Head() == c.Head() {
+		t.Fatal("logs did not diverge after independent appends into separate arrays")
+	}
+}
+
+// TestLogReserveCloneConcurrentAppendsAreIndependent is the concurrent
+// ownership test for a reserved parent. It pins, under -race, that a clone of
+// a reserved log (host: the live match log, reserved at match start) owns its
+// own backing array even while the parent and the clone are appended to from
+// different goroutines. A clone that shared the parent's reserved spare
+// capacity would be two goroutines writing one backing array, which -race
+// detects; this is the condition the brief's "if the change is about reuse
+// or sharing, write the concurrent test" asks for.
+func TestLogReserveCloneConcurrentAppendsAreIndependent(t *testing.T) {
+	parent := NewLog(7)
+	parent.Reserve(4096) // the reserved backing a buggy clone would share
+	for i := 0; i < 8; i++ {
+		parent.Append(Event{Kind: Note, Text: "seed"})
+	}
+	clone := parent.Clone()
+	if cap(clone.Events) != len(clone.Events) {
+		t.Fatal("clone inherited reserved spare capacity; concurrent appends would race it")
+	}
+
+	var wg sync.WaitGroup
+	for _, l := range []*Log{parent, clone} {
+		wg.Add(1)
+		go func(l *Log) {
+			defer wg.Done()
+			for i := 0; i < 200; i++ {
+				l.Append(Event{Kind: Note, Text: "x"})
+			}
+		}(l)
+	}
+	wg.Wait()
+
+	for name, l := range map[string]*Log{"parent": parent, "clone": clone} {
+		if got, want := l.Head(), l.HeadAt(len(l.Events)); got != want {
+			t.Errorf("%s: Head() = %s but HeadAt(%d) = %s — the chain was corrupted by a shared reserved array",
+				name, got, len(l.Events), want)
+		}
+	}
+}
+
+// TestGrowEventsTaperKeepsTheLengthAndChain pins the post-growTaperAt half of
+// the growth policy: past growTaperAt the growth factor drops to 1.25x (the
+// clone-heavy region of a real log), and that switch must not disturb the
+// growth contract that every other grow test relies on -- growEvents returns s
+// with len exactly need, each new event lands at its own Seq, and the whole
+// stream still folds into one chain. A helper that, say, returned [len-1]
+// capacity growth on the taper path would drop the tail exactly as
+// TestGrowEventsReturnsExactlyTheNamedLength guards for the doubling path.
+func TestGrowEventsTaperKeepsTheLengthAndChain(t *testing.T) {
+	l := NewLog(5)
+	const n = 6000 // well past growTaperAt (4096): exercises the 1.25x branch
+	for i := 0; i < n; i++ {
+		kind := Draw
+		if i%2 == 0 {
+			kind = LifeChange
+		}
+		l.Append(Event{Kind: kind, Player: state.PlayerID(i % 2), Amount: int32(i)})
+		if len(l.Events) != i+1 {
+			t.Fatalf("after append %d, len = %d, want %d", i, len(l.Events), i+1)
+		}
+		if l.Events[i].Seq != uint64(i) {
+			t.Fatalf("event %d has Seq %d, want %d", i, l.Events[i].Seq, i)
+		}
+	}
+	if l.HeadAt(n) != l.Head() {
+		t.Fatalf("chain desynced after taper growth: HeadAt=%s Head=%s", l.HeadAt(n), l.Head())
+	}
+}
