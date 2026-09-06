@@ -6,8 +6,8 @@
   import StackTile from './StackTile.svelte';
   import PendingTray from './PendingTray.svelte';
 
-  /** Rail is every hand, the stack, the pending tray, and the live decision line — in that order, per the survey. */
-  let { view, seats, decision }: { view: View; seats: SeatInfo[]; decision: DecisionBody | null } = $props();
+  /** Rail is every hand, the stack, the pending tray, and the live decision line — in that order, per the survey. emphasizeTop (seat view) applies survey item 10 — top-of-stack by contrast — while the spectator path leaves it off, unchanged. */
+  let { view, seats, decision, emphasizeTop = false }: { view: View; seats: SeatInfo[]; decision: DecisionBody | null; emphasizeTop?: boolean } = $props();
 
   // view.stack lists bottom of the stack first (push order); the rail shows
   // what resolves next at the top, so it is reversed for display only.
@@ -23,8 +23,8 @@
 
   <section>
     <h3>Stack</h3>
-    {#each topFirst as s (s.id)}
-      <StackTile stack={s} {view} />
+    {#each topFirst as s, i (s.id)}
+      <StackTile stack={s} {view} emphasized={emphasizeTop && i === 0} dimmed={emphasizeTop && i > 0} />
     {/each}
   </section>
 

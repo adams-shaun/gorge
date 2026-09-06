@@ -3,8 +3,15 @@ import { dvrReducer, initialDvr, type DvrAction, type DvrState } from './dvr';
 import { fetchEvents, fetchMatches, fetchView } from './api';
 import { ViewCache } from './viewcache';
 import { turnStartsFrom } from './turns';
+import type { SeatCtx } from './seat';
 
-/** MatchState is everything the focused view renders for one table. */
+/** frameSeq reads the seq an event/decision frame was addressed at, for the seated path's seq chit. */
+function frameSeq(f: Frame): number | null {
+  const b = f.body as EventBody;
+  return b?.event?.seq ?? null;
+}
+
+/** MatchState is everything the focused view renders for one table. A seat context (M2e-4) is additive: when present, views and events are fetched seat-scoped (ViewAtSeat/EventsSeat) so the rendered board and log are the seat's own redacted truth, and the spectator-frame bodies are never rendered; when absent, every fetch and render is byte-identical to the spectator path. */
 export class MatchState {
   match = $state<number | null>(null);
   view = $state<View | null>(null);
@@ -15,10 +22,13 @@ export class MatchState {
   loadError = $state<string | null>(null);
   private inflight = false;
   private again = false;
-  private cache = new ViewCache((seq) => fetchView(this.table, this.match!, seq));
+  private cache = new ViewCache((seq) => this.fetchViewAt(seq));
   private seeking = 0;
+  // seatSince is the last seq the seated path backfilled redacted transcript
+  // lines up to; the next decision boundary fetches from here, never 0.
+  private seatSince = 0;
 
-  constructor(readonly table: string) {}
+  constructor(readonly table: string, readonly seat?: SeatCtx) {}
 
   apply(f: Frame) {
     if (f.table !== this.table) return;
@@ -29,24 +39,54 @@ export class MatchState {
         this.view = null; // the previous match's board; wait for this one's snapshot before showing anything
         this.decision = null;
         this.halted = null;
+        this.seatSince = 0;
         break;
       case 'snapshot': {
         const s = f.body as Snapshot;
         this.match = f.match ?? this.match;
         this.dispatch({ type: 'snapshot', match: `${this.table}/${this.match}`, head: s.head, turnStarts: s.turn_starts });
-        if (this.dvr.live) this.view = s.view;
+        if (this.dvr.live) {
+          if (this.seat) {
+            // The pushed snapshot is the table's spectator view (redacted
+            // for the spectator visibility, which for a fixture table is
+            // omniscient — a god view). A seat must not render it: fetch
+            // the seat's own projection at head, and start the redacted
+            // transcript from the top.
+            this.seatSince = 0;
+            void this.refreshLive();
+            void this.backfillEvents(0);
+          } else {
+            this.view = s.view;
+          }
+        }
         break;
       }
-      case 'event':
+      case 'event': {
+        if (this.seat) {
+          // Chit the public seq so head/cursor track the match; the
+          // REDACTED lines for these events are backfilled on the next
+          // decision boundary (backfillEvents), because the frame body is
+          // redacted for the spectator, not for this seat.
+          const seq = frameSeq(f);
+          if (seq !== null) this.dispatch({ type: 'head', seq });
+          break;
+        }
         this.dispatch({ type: 'event', body: f.body as EventBody });
         break;
+      }
       case 'decision':
         this.decision = f.body as DecisionBody;
-        if (this.dvr.live) void this.refreshLive();
+        if (this.dvr.live) {
+          void this.refreshLive();
+          if (this.seat) void this.backfillEvents(this.seatSince + 1);
+        }
         break;
       case 'match_end':
         this.decision = null;
-        if (this.dvr.live) void this.refreshLive();
+        if (this.dvr.live) {
+          void this.refreshLive();
+          if (this.seat) void this.backfillEvents(this.seatSince + 1);
+        }
         break;
       case 'table_halted':
         this.halted = (f.body as TableHaltedBody).reason;
@@ -67,19 +107,38 @@ export class MatchState {
     if (a.type === 'live') void this.refreshLive();
   }
 
+  private fetchViewAt(seq: number): Promise<View> {
+    return this.seat ? fetchView(this.table, this.match!, seq, this.seat) : fetchView(this.table, this.match!, seq);
+  }
+
+  private fetchEventsAt(k: number, since: number): Promise<EventBody[]> {
+    return this.seat ? fetchEvents(this.table, k, since, this.seat) : fetchEvents(this.table, k, since);
+  }
+
   /** refreshLive is PL-16: one GET per burst, coalesced. */
   async refreshLive() {
     if (this.match === null) return;
     if (this.inflight) { this.again = true; return; }
     this.inflight = true;
     try {
-      const v = await fetchView(this.table, this.match, this.dvr.head);
+      const v = await this.fetchViewAt(this.dvr.head);
       if (this.dvr.live) this.view = v;
     } catch { /* a 409 while the head moved: the next burst refetches */ }
     finally {
       this.inflight = false;
       if (this.again) { this.again = false; void this.refreshLive(); }
     }
+  }
+
+  /** backfillEvents paints the redacted transcript lines for the seated path: events since `since`, capped at the current head (anything past it is a race the next backfill covers). Returns normally on failure — the next decision boundary retries. */
+  async backfillEvents(since: number) {
+    if (this.match === null || !this.seat) return;
+    try {
+      const head = this.dvr.head;
+      const all = await this.fetchEventsAt(this.match, since);
+      this.dispatch({ type: 'backfill', events: all.filter((b) => b.event.seq <= head) });
+      this.seatSince = head;
+    } catch { /* next boundary retries */ }
   }
 
   /** showCursor renders the view at the cursor (paused) and backfills the transcript when the cursor precedes the known events. */
@@ -90,7 +149,7 @@ export class MatchState {
     const first = this.dvr.events[0]?.event.seq ?? this.dvr.head + 1;
     if (seq < first) {
       const since = Math.max(0, seq - 200);
-      const older = await fetchEvents(this.table, this.match, since).catch(() => []);
+      const older = await this.fetchEventsAt(this.match, since).catch(() => []);
       this.dispatch({ type: 'backfill', events: older.filter((e) => e.event.seq < first) });
     }
     const v = await this.cache.get(seq).catch(() => null);
