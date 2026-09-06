@@ -81,6 +81,45 @@ Every fact these need is already on the wire.
 - **Never default to the last option.** The final option on every priority
   decision is `concede` (FL-101). Resolve by `kind`, never by position.
 
+## Modifier provenance — seeing WHY a card is what it is
+
+**Requirement (user, 2026-09-06):** it is not enough for counters and effects to
+be silently folded into the number. A player must see *that* a counter or effect
+is modifying a card, and ideally *what is doing it*.
+
+An earlier version of this registry called derived power/toughness "already
+solved". **That was wrong.** Derived values give the right number and destroy
+the reason for it.
+
+What is on the wire today:
+
+- `CardView.power` / `toughness` — the **final** values, via `ch.Power(id)`.
+- `CardView.counters` — the counter map, so `+1/+1 x2` is visible as counters.
+- `CardView.keywords` — derived, so granted keywords appear.
+
+What is missing:
+
+- **Base printed power/toughness.** Not on `CardView` at all, so a client cannot
+  render "4/4 (2/2 base)" without a Scryfall lookup.
+- **The modifier breakdown.** `rules.Derived` is
+  `{Power, Toughness, Keywords, Types}` — final values only
+  (`rules/layers.go:169`). No contributions, no sources.
+- **The source of each modification.** This is the frustrating part: the layer
+  walk at `rules/layers.go:272` iterates `e.active()` continuous effects and
+  each one **carries `ce.Source` and `ce.Controller`**, which the walk uses for
+  matching and then discards. The engine knows exactly which permanent is
+  pumping which creature and throws that away before the view is built.
+
+So the shape of the work is additive, not a redesign: retain a per-contribution
+list during the layer walk (`{source, layer, delta}` and granted keywords with
+their source), expose it on `CardView` alongside base P/T. Counter contributions
+can be derived client-side from `counters` once base P/T is present, but a
+static's contribution cannot be derived by anyone but the engine.
+
+Classified: **engine** (retain provenance) then **wire** (expose it). It gates
+any UI that explains a board state rather than merely displaying it, and in a
+4-seat game with several anthems in play, explaining it is the whole job.
+
 ## The label/discriminator gap — one class, five fields
 
 **This is the single biggest obstacle to the "client must not guess" rule**, and
@@ -129,8 +168,7 @@ as lacking (8 inference sites).
 |---|---|
 | **Mulligan view** | `KMulligan`, with keep/mulligan and bottoming option kinds. Reachable in served games since M2e-5. |
 | **Mana pool rendering** | `PlayerView.pool` — `Record<string, number>`. |
-| **+X/+Y counters vs actual strength** | **Already solved and worth knowing.** `CardView.power`/`toughness` are **derived**, read through `ch.Power(id)`, not printed fields — counters and effects are already applied. `CardView.counters` ships alongside, so "3/3 (2/2 +1/+1)" needs no inference. |
-| **Ability/keyword icons (deathtouch, double strike)** | `CardView.keywords` is **derived** too, so *granted* keywords appear, not just printed ones. |
+| **Ability/keyword icons (deathtouch, double strike)** | `CardView.keywords` is **derived**, so *granted* keywords appear and not only printed ones. Sufficient to draw the icon; **not** sufficient to say where the keyword came from — see modifier provenance below. |
 | **Identical-card stacking** | Group by `printing` — no 100 separate zombie tokens. |
 | **Graveyard / exile stack viewers** | `PlayerView.graveyard`, `.exile`. |
 | **Targeting and attack effect overlays** | `StackView.targets[]` plus `Option.Attacker` (U0). |
