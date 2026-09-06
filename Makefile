@@ -99,6 +99,20 @@ gentypes:
 test:
 	go test $(GO_TEST_FLAGS) ./...
 
+# gc-gate budgets the share of consumed CPU a package's tests spend collecting
+# garbage. GC_PROCS pins GOMAXPROCS so the figure is a property of the code
+# rather than of the box that ran it — idle-mark CPU scales with core count,
+# and it is real CPU taken from everything else on a shared machine, so the
+# budget counts it. GC_BUDGET is a fraction of user+sys, NOT the percentage
+# gctrace prints (that one divides by every core the process could have used
+# and reads ~1% however badly the code allocates).
+GC_PKG    ?= ./host
+GC_PROCS  ?= 32
+GC_BUDGET ?= 0.30
+.PHONY: gc-gate
+gc-gate:
+	go run ./cmd/gcgate -pkg $(GC_PKG) -maxprocs $(GC_PROCS) -budget $(GC_BUDGET)
+
 # test-time measures every package's test wall time and records it, plus its
 # budget, in each package's TEST_HISTORY.md (Task TT). The pre-commit hook
 # enforces the budget on changed packages.
