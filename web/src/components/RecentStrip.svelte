@@ -30,5 +30,21 @@
 {/if}
 
 <style>
-  .recent { position: absolute; bottom: 1rem; left: 50%; transform: translateX(-50%); z-index: 4; pointer-events: none; filter: drop-shadow(0 4px 10px rgb(0 0 0 / 0.5)); }
+  /* The last resolved object, lifted off the felt (survey #26). One lift
+     token, the same one the inspector uses, so "this is off the surface"
+     looks the same wherever it happens. */
+  .recent {
+    position: absolute;
+    /* Large enough to read across the table, small enough not to become a
+       lid on it: at the full 220px this sat in the middle of a four-seat
+       board and covered the seam where combat happens. */
+    --card-w-large: 132px;
+    bottom: var(--sp-4);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 4;
+    pointer-events: none;
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-lift);
+  }
 </style>
