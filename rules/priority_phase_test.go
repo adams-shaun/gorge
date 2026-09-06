@@ -38,8 +38,7 @@ func TestTestBotOnlyActivatesInAMainPhase(t *testing.T) {
 	for !e.G.Over && e.Pending() != nil && n < 200000 {
 		d := e.Pending()
 		step := e.G.Step
-		isMain := step.IsMain()
-		in := b.answer(isMain, d)
+		in := b.answer(e, d)
 		if d.Kind == decision.KPriority {
 			if chosen := d.Chosen(in); len(chosen) == 1 && chosen[0].Kind == "activate" {
 				hist[step]++
@@ -85,8 +84,7 @@ func TestBotMatchIsDeterministicAcrossRuns(t *testing.T) {
 		e.Advance()
 		n := 0
 		for !e.G.Over && e.Pending() != nil && n < 200000 {
-			isMain := e.G.Step.IsMain()
-			if err := e.Submit(b.answer(isMain, e.Pending())); err != nil {
+			if err := e.Submit(b.answer(e, e.Pending())); err != nil {
 				t.Fatalf("intent %d: %v", n, err)
 			}
 			n++

@@ -16,7 +16,7 @@ func drive(t *testing.T, e *Engine, b *testBot, n int) []decision.Intent {
 	var out []decision.Intent
 	for i := 0; i < n && !e.G.Over && e.Pending() != nil; i++ {
 		d := e.Pending()
-		in := b.answer(e.G.Step.IsMain(), d)
+		in := b.answer(e, d)
 		if err := e.Submit(in); err != nil {
 			t.Fatalf("intent %d: %v", i, err)
 		}
