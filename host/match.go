@@ -19,6 +19,14 @@ import (
 
 const defaultMaxIntents = 400000
 
+// defaultExpectedEvents is the expected-size hint passed to a live match log's
+// Reserve: just above the measured top of a real match's event count (~74k for
+// the 4-seat repo-deck match), so a typical match never reallocates and the
+// biggest observed one grows with at most one doubling. Sized from the profile,
+// not from defaultMaxIntents: reserving at the intent cap would hold ~5x too
+// much of a typical match's final length live.
+const defaultExpectedEvents = 80000
+
 // match is one game on a table: the engine, the intent boundaries and
 // turn starts a view request needs, and the outcome. mu guards everything
 // below cfg: the run loop holds it for the duration of each Submit and its
@@ -94,6 +102,17 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 	}
 	cfg := rules.Config{Seed: seed, Names: names, Decks: decks, Tokens: r.opts.Tokens, Mulligans: c.Mulligans}
 	e := rules.New(cfg)
+	// Events growEvents was the top allocator in ./host (2.87 GB of the test
+	// binary's profile: every live match log reallocated ~2x its final length
+	// on the way up). Preallocating the live log to just above a real match's
+	// event count makes the common case grow without reallocating at all, and
+	// the one make at Reserve time costs less than the doubling series it
+	// replaces. The value is a hint, sized from the measured top of a real
+	// match (the 4-seat repo-deck match runs ~74k events; stays under defaultMaxIntents);
+	// a match that overruns it doubles once and is still correct. Reserve is a
+	// pure capacity hint on the live log and cannot leak spare capacity to a
+	// clone (Clone truncates to len), so the clone-sharing invariant is intact.
+	e.L.Reserve(defaultExpectedEvents)
 	e.Advance()
 	m := &match{table: t, k: k, seed: seed, cfg: cfg, seats: infos, decks: deckNames, e: e, state: protocol.MatchLive}
 	m.bounds = []uint64{uint64(len(e.L.Events))}
