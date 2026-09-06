@@ -2,8 +2,11 @@ package seat
 
 import (
 	"context"
+	"math/rand/v2"
+	"slices"
 	"testing"
 
+	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/rules"
@@ -76,5 +79,83 @@ func TestBotOnlyActivatesInAMainPhase(t *testing.T) {
 	}
 	if hist[state.StepMain1]+hist[state.StepMain2] == 0 {
 		t.Error("seat.Bot never activated during a main phase across the whole game")
+	}
+}
+
+// TestBotAdaptersAgreePerStep pins Ruling F7's "keep the two in step" as a
+// measured property, per step: for every step the engine can be in, the two
+// adapter halves must build the same botpolicy.Board from the same facts --
+// the view-shaped half (boardFromView, fed the Phase string view.PhaseOf
+// projects for that step, which is exactly what a real seat receives) and
+// the game-shaped half (the rules test host's e.G.Step.IsMain()). The policy
+// must then answer the same; this uses the priority decision where IsMain
+// changes the choice (in a main phase the policy taps mana, outside it the
+// same options are passed on), with the two sides' rngs seeded identically.
+// This is the test that dies on mutation M1: invert boardFromView's IsMain
+// and the halves disagree precisely on StepMain1/StepMain2.
+func TestBotAdaptersAgreePerStep(t *testing.T) {
+	prio := decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
+		Options: []decision.Option{
+			{Index: 0, Kind: "activate", Obj: 100},
+			{Index: 1, Kind: "pass"},
+		}}
+	for _, s := range allSteps {
+		boardView := boardFromView(view.View{Phase: view.PhaseOf(s)})
+		boardGame := botpolicy.Board{IsMain: s.IsMain()} // the rules host's expression
+		if boardView != boardGame {
+			t.Errorf("step %s: view-shaped Board %+v, game-shaped Board %+v", s, boardView, boardGame)
+		}
+		inView, err := NewBot(1).Decide(context.Background(), view.View{Phase: view.PhaseOf(s)}, prio)
+		if err != nil {
+			t.Fatalf("step %s: view-shaped Decide: %v", s, err)
+		}
+		inGame := botpolicy.Decide(boardGame, &prio, rand.New(rand.NewPCG(1, 1^0x9e3779b97f4a7c15)))
+		if !slices.Equal(inView.Choices, inGame.Choices) {
+			t.Errorf("step %s: view-shaped choices %v, game-shaped choices %v", s, inView.Choices, inGame.Choices)
+		}
+	}
+}
+
+// TestBotAdaptersAgreeOverWholeGame drives two byte-identical acceptance
+// games from the same (engine seed, bot seed) -- one through this package's
+// view-shaped adapter (projecting a View every decision, exactly like a real
+// client), one through the rules host's game-shaped adapter (e.G.Step.IsMain
+// on the engine's own step). Every intent the two produce must be identical
+// -- same Seq/Player/Choices -- so the two chains reach the same head. This
+// is the copy-paste mirror's guarantee (Ruling F7) turned into a measured
+// property of the two real adapter halves over a whole game.
+func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
+	names, decks := testutil.SampleDecks(t, 4)
+	cfg := rules.Config{Seed: 0, Names: names, Decks: decks}
+	eView := rules.New(cfg)
+	eGame := rules.New(cfg)
+	eView.Advance()
+	eGame.Advance()
+	botView := NewBot(7)
+	botGame := rand.New(rand.NewPCG(7, 7^0x9e3779b97f4a7c15))
+	n := 0
+	for !eView.G.Over && !eGame.G.Over && eView.Pending() != nil && eGame.Pending() != nil && n < 200000 {
+		d := eView.Pending()
+		inView, err := botView.Decide(context.Background(), view.Project(eView.G, eView, d.Player, d), *d)
+		if err != nil {
+			t.Fatalf("intent %d: view-shaped Decide: %v", n, err)
+		}
+		inGame := botpolicy.Decide(botpolicy.Board{IsMain: eGame.G.Step.IsMain()}, eGame.Pending(), botGame)
+		if inView.Seq != inGame.Seq || inView.Player != inGame.Player || !slices.Equal(inView.Choices, inGame.Choices) {
+			t.Fatalf("intent %d: adapters diverged: view %+v vs game %+v (step %s)", n, inView, inGame, eGame.G.Step)
+		}
+		if err := eView.Submit(inView); err != nil {
+			t.Fatalf("intent %d: view-shaped Submit: %v", n, err)
+		}
+		if err := eGame.Submit(inGame); err != nil {
+			t.Fatalf("intent %d: game-shaped Submit: %v", n, err)
+		}
+		n++
+	}
+	if !eView.G.Over || !eGame.G.Over {
+		t.Fatalf("game did not terminate after %d intents (view over=%v, game over=%v)", n, eView.G.Over, eGame.G.Over)
+	}
+	if h1, h2 := eView.L.Head(), eGame.L.Head(); h1 != h2 {
+		t.Fatalf("chains diverged: view %s, game %s", h1, h2)
 	}
 }
