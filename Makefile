@@ -6,6 +6,27 @@ BIN_DIR    := bin
 GO_FILES   := find . \( -name node_modules -o -name .worktrees \) -prune -o -type f -name '*.go' -print
 GO_SRC     := $(shell $(GO_FILES) 2>/dev/null) go.mod
 
+# Resource caps for every Go invocation below. `go test ./...` defaults -p to
+# GOMAXPROCS (32 on this box), so the full tree can hold 32 test binaries
+# resident at once; with a second worktree gating at the same time and the
+# local agent fleet on the machine, that OOMed and locked the box. -p bounds
+# how many package binaries run concurrently, and GOMEMLIMIT gives each one's
+# GC a soft ceiling to collect against instead of growing until the kernel
+# steps in (host/ peaks at 8.5G unbounded, 5.2G under this limit, and
+# still finishes inside its 30s budget at 24.8s -- 4GiB thrashes it to 33.5s).
+#
+# -parallel and GOMAXPROCS are deliberately left at their defaults: capping
+# them to 2 was measured and bought only ~1.4G more headroom while doubling
+# rules/ (4.6s -> 11.0s) and pushing every package past its recorded budget.
+#
+# GOMEMLIMIT bounds the Go HEAP only. The race detector's shadow memory sits
+# outside it, so -race stays one package at a time, and never in two
+# worktrees at once.
+#
+# Both ?= so a caller can raise them for a deliberate one-off measurement.
+export GOMEMLIMIT ?= 5GiB
+GO_TEST_FLAGS ?= -p=2
+
 # Where forgec puts the fetched corpus and the IR compiled from it. Never
 # committed — the scripts are GPL-3.0.
 CARDS_DIR  ?= .cards
@@ -65,7 +86,7 @@ gentypes:
 
 .PHONY: test
 test:
-	go test ./...
+	go test $(GO_TEST_FLAGS) ./...
 
 # test-time measures every package's test wall time and records it, plus its
 # budget, in each package's TEST_HISTORY.md (Task TT). The pre-commit hook
@@ -78,7 +99,7 @@ COVER_OUT  ?= coverage.out
 COVER_HTML ?= coverage.html
 .PHONY: cover cover-html
 cover:
-	go test -covermode=atomic -coverprofile=$(COVER_OUT) -coverpkg=./... ./...
+	go test $(GO_TEST_FLAGS) -covermode=atomic -coverprofile=$(COVER_OUT) -coverpkg=./... ./...
 	@go tool cover -func=$(COVER_OUT) | tail -1
 
 cover-html: cover
