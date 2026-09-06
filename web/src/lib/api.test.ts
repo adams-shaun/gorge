@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { eventsURL, matchesURL, pendingURL, seatQuery, tablesURL, viewURL, fetchView, fetchEvents, fetchPending, postIntent } from './api';
+import { afterEach } from 'vitest';
+import { eventsURL, matchesURL, pendingURL, seatQuery, tablesURL, viewURL, fetchView, fetchEvents, fetchPending, postIntent, subscribe } from './api';
+import { setBasePathForTests, withBase } from './basepath';
 import type { Intent } from '../protocol';
 
 const ctx = { seat: 2, token: 'tok-abc' };
@@ -66,5 +68,46 @@ describe('api urls', () => {
     fetchMock.mockReset();
     fetchMock.mockResolvedValueOnce({ ok: false, status: 409, json: async () => ({ code: 'conflict', message: 'no decision pending for this seat' }) });
     await expect(fetchPending('t1', 3, ctx)).rejects.toMatchObject({ status: 409, code: 'conflict' });
+  });
+});
+
+describe('base path', () => {
+  afterEach(() => setBasePathForTests(''));
+
+  it('an empty base path builds exactly the URLs it builds today', async () => {
+    // The vitest page has no <meta name="gorge-base">, so the base is the
+    // default ""; every constructed URL must be byte-identical to the
+    // pre-base client: a REST GET, the SSE stream, and a POST.
+    expect(viewURL('t1', 3)).toBe('/api/tables/t1/matches/3/view');
+    // withBase('/api/stream') is the path the session opens (./session.svelte).
+    expect(withBase('/api/stream')).toBe('/api/stream');
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 204, json: async () => ({}) });
+    await subscribe('s1', 't1', 'focus');
+    expect(fetchMock).toHaveBeenCalledWith('/api/subscribe', expect.anything());
+  });
+
+  it('a base path prefixes every constructed URL', async () => {
+    setBasePathForTests('/gorge');
+    expect(tablesURL()).toBe('/gorge/api/tables');
+    expect(viewURL('t1', 3, 5)).toBe('/gorge/api/tables/t1/matches/3/view?seq=5');
+    expect(withBase('/api/stream')).toBe('/gorge/api/stream');
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 204, json: async () => ({}) });
+    await subscribe('s1', 't1', 'focus');
+    expect(fetchMock).toHaveBeenCalledWith('/gorge/api/subscribe', expect.anything());
+  });
+
+  it('a base path with a trailing slash and one without produce the same URL', () => {
+    setBasePathForTests('/gorge/');
+    const slashed = { tables: tablesURL(), stream: withBase('/api/stream'), view: viewURL('t1', 3), pending: pendingURL('t1', 3) };
+    setBasePathForTests('/gorge');
+    expect(tablesURL()).toBe(slashed.tables);
+    expect(withBase('/api/stream')).toBe(slashed.stream);
+    expect(viewURL('t1', 3)).toBe(slashed.view);
+    expect(pendingURL('t1', 3)).toBe(slashed.pending);
+    expect(slashed.tables).toBe('/gorge/api/tables');
+    expect(slashed.view).toBe('/gorge/api/tables/t1/matches/3/view');
+    expect(slashed.stream).toBe('/gorge/api/stream');
   });
 });
