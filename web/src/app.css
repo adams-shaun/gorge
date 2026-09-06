@@ -1,12 +1,132 @@
+/*
+ * The design system. See docs/superpowers/specs/2026-09-06-client-design-system.md.
+ *
+ * Two registers, deliberately unlike each other: FELT is the board — warm,
+ * dark, tactile, card art dominant, chrome almost absent. INSTRUMENT is the
+ * rails — cooler, flatter, denser, hairline structure and tabular figures,
+ * where the engine explains what it did. The seam between them is the
+ * identity: most Magic clients are uniformly cool blue-grey, and this product's
+ * selling point is that the machine is visible.
+ *
+ * Saturation MEANS something here. A saturated colour is mana, card colour, or
+ * seat identity. Nothing decorative is saturated.
+ */
+
 :root {
-  color-scheme: light dark;
-  font: 16px/1.4 system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* Felt — the board. Warm near-black with a green-brown cast, like a card
+     table under low light. Not a tinted black standing in for #000. */
+  --felt: #17150f;
+  --felt-raised: #1f1c15;
+  --felt-sunk: #100e0a;
+  --edge-felt: #2a2721;
+
+  /* Instrument — the rails. Cooler and bluer than the felt; the temperature
+     difference is the register marker and should be felt without being read. */
+  --instrument: #14161a;
+  --instrument-raised: #1a1d22;
+  --edge-inst: #23262c;
+
+  --ink: #e8e4da;
+  --ink-inst: #c9cfd6;
+  --ink-dim: #8a8579;
+  --ink-faint: #5d594f;
+
+  /* Mana keeps its conventional identities: colour is the sport's native
+     language and a player reads it faster than any label. */
+  --mana-w: #f5eedb;
+  --mana-u: #4a8fd4;
+  --mana-b: #5b4e6b;
+  --mana-r: #d0473e;
+  --mana-g: #4a9e63;
+  --mana-c: #9a958c;
+
+  /* State. Warm when the initiative is yours, cool when you are merely being
+     offered a window (survey #5). */
+  --initiative: #d8a24a;
+  --offered: #5b7f9e;
+  --danger: #d0473e;
+
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-6: 1.5rem;
+  --sp-8: 2rem;
+
+  /* Plex was drawn for technical material; the slight mechanical squareness
+     suits an instrument, and its tabular figures are real. Mono is for VALUES
+     — the transcript, chain heads, sequence numbers, counts — never for
+     decorative small labels. */
+  --font-ui: 'IBM Plex Sans', ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-data: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --t-12: 0.75rem;
+  --t-14: 0.875rem;
+  --t-16: 1rem;
+  --t-20: 1.25rem;
+  --t-28: 1.75rem;
+  --t-40: 2.5rem;
+
+  --radius: 3px;
+  --radius-card: 5px;
+
+  color-scheme: dark;
+  font: var(--t-16) / 1.45 var(--font-ui);
+  color: var(--ink);
+  background: var(--felt);
+
+  /* Tabular figures everywhere: a life total that reflows as it changes is
+     harder to read at a glance than one that does not. */
+  font-variant-numeric: tabular-nums;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  background: var(--felt);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
 }
 
 #app {
   min-height: 100svh;
+}
+
+/* Values read in a mono face with tabular figures: sequence numbers, chain
+   heads, life, counts. This is the instrument's voice. */
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-12);
+  letter-spacing: -0.01em;
+}
+
+/* Keyboard focus stays visible everywhere — part of the quality floor, not a
+   decoration to be styled away per component. */
+:where(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--initiative);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* Motion answers actions. The only unprompted motion in this client is a
+   permanent's ring when it changes and the pending -> stack transition; there
+   are no entrance animations and no hover transitions on everything. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

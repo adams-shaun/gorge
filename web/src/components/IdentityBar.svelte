@@ -23,28 +23,97 @@
   class="identity"
   class:active
   class:lost={player.lost}
-  style={`position:absolute;${CORNER[corner]};border-color:${colour}`}
+  style={`position:absolute;${CORNER[corner]};--seat:${colour}`}
   data-seat={player.seat}
 >
   <div class="name">
+    {#if priority}<span class="dot" title="has priority"></span>{/if}
     {seat?.name ?? `Seat ${player.seat}`}
-    {#if priority}<span class="dot" style:background={colour} title="has priority"></span>{/if}
   </div>
   {#if seat?.deck}<div class="deck">{seat.deck}</div>{/if}
   <div class="life">{player.life}</div>
-  <div class="counts">{player.library_size} lib · {player.hand_size} hand · {player.graveyard_size} gy</div>
+  <dl class="counts">
+    <div><dt>Library</dt><dd>{player.library_size}</dd></div>
+    <div><dt>Hand</dt><dd>{player.hand_size}</dd></div>
+    <div><dt>Graveyard</dt><dd>{player.graveyard_size}</dd></div>
+  </dl>
 </div>
 
 <style>
+  /*
+   * Anchored to the seat's OUTER corner so it never collides with board
+   * content (survey #25), with life anchored in the bar's horizontal centre
+   * like the Pro Tour shields. The seat's colour is a left rule rather than a
+   * full border: an outline in eight different hues around a four-seat table
+   * is noise, a rule is identity.
+   */
   .identity {
-    background: #1b1b1fdd; border: 2px solid transparent; border-radius: 8px;
-    padding: .4rem .7rem; min-width: 8rem; text-align: center; z-index: 5;
+    background: color-mix(in srgb, var(--felt-sunk) 88%, transparent);
+    border: 1px solid var(--edge-felt);
+    border-left: 3px solid var(--seat);
+    border-radius: var(--radius);
+    padding: var(--sp-2) var(--sp-3);
+    min-width: 9rem;
+    text-align: center;
+    z-index: 5;
+    backdrop-filter: blur(6px);
   }
-  .identity.active { box-shadow: 0 0 0 2px currentColor inset; }
-  .identity.lost .name, .identity.lost .life { text-decoration: line-through; opacity: .5; }
-  .name { font-weight: 600; display: flex; align-items: center; justify-content: center; gap: .3rem; }
-  .dot { width: .5em; height: .5em; border-radius: 999px; display: inline-block; }
-  .deck { font-size: .7rem; opacity: .7; }
-  .life { font: 700 1.6rem/1 system-ui, sans-serif; margin: .2rem 0; }
-  .counts { font-size: .65rem; opacity: .7; }
+  /* The active player is stated once, by the seat rule growing — not by a
+     second colour competing with the first. */
+  .identity.active {
+    border-left-width: 6px;
+    background: color-mix(in srgb, var(--felt-raised) 92%, transparent);
+  }
+  .identity.lost .name,
+  .identity.lost .life {
+    text-decoration: line-through;
+    color: var(--ink-faint);
+  }
+  .name {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35em;
+    font-size: var(--t-14);
+    font-weight: 600;
+  }
+  .dot {
+    width: 0.45em;
+    height: 0.45em;
+    border-radius: 999px;
+    background: var(--seat);
+    flex: none;
+  }
+  .deck {
+    font-size: var(--t-12);
+    color: var(--ink-dim);
+  }
+  /* Life is the one place type is a visual element rather than a label. */
+  .life {
+    font-size: var(--t-28);
+    font-weight: 600;
+    line-height: 1.1;
+    margin: var(--sp-1) 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .counts {
+    display: flex;
+    justify-content: center;
+    gap: var(--sp-3);
+    margin: 0;
+    font-family: var(--font-data);
+    font-size: 0.6875rem;
+    color: var(--ink-faint);
+  }
+  .counts div {
+    display: flex;
+    gap: 0.3em;
+  }
+  .counts dt {
+    font-weight: 400;
+  }
+  .counts dd {
+    margin: 0;
+    color: var(--ink-dim);
+  }
 </style>
