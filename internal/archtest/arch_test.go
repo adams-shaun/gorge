@@ -2,6 +2,7 @@ package archtest
 
 import (
 	"os/exec"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -90,6 +91,50 @@ func TestDependencyOrderHolds(t *testing.T) {
 		}
 		if p.deps[f.to] {
 			t.Errorf("%s depends on %s (transitively); the dependency order forbids it", f.from, f.to)
+		}
+	}
+}
+
+// TestNoExportLeaksAnEngineGame is D6's compile-time half: no exported
+// function or method of host or host/httpapi may expose a *state.Game or a
+// *rules.Engine through its signature — by return type, or by any parameter
+// shape a caller could funnel back into a leaked live game. Every value that
+// crosses either package is already a view.View, a protocol.* or a
+// decision.* payload; the engine and its game never leave rules/ at all (a
+// client layer must read state only through view).
+//
+// The scan is deliberately structural and text-restricted: it reads `go doc
+// -all` output and considers ONLY the `func` declaration lines — the
+// signatures — never the doc prose. A bare-substring sweep over the whole
+// doc block (the plan's sketch) would false-positive on the Events method's
+// own doc, which legitimately says "state.Game.Clone" to explain what it
+// copies; matching only the declaration lines keeps that prose out of scope.
+// The token is boundary-matched so an identifier that merely STARTS with one
+// of these type names (were state.GameX or rules.EngineY ever to exist)
+// still does not trip it.
+func TestNoExportLeaksAnEngineGame(t *testing.T) {
+	// These exact type names (state.Game, rules.Engine) are what a leak's
+	// signature would carry; a legitimate client-facing type never has an
+	// element in either package. Word boundaries stop the match from
+	// prefix-colliding with a hypothetical longer identifier.
+	leaks := []*regexp.Regexp{
+		regexp.MustCompile(`\bstate\.Game\b`),
+		regexp.MustCompile(`\brules\.Engine\b`),
+	}
+	for _, pkg := range []string{module + "/host", module + "/host/httpapi"} {
+		out, err := exec.Command("go", "doc", "-all", pkg).CombinedOutput()
+		if err != nil {
+			t.Fatalf("go doc -all %s: %v", pkg, err)
+		}
+		for _, line := range strings.Split(string(out), "\n") {
+			if !strings.HasPrefix(line, "func ") {
+				continue // signatures only; prose that merely names the type is not a leak
+			}
+			for _, re := range leaks {
+				if re.MatchString(line) {
+					t.Errorf("%s exposes an engine game through %q", pkg, line)
+				}
+			}
 		}
 	}
 }
