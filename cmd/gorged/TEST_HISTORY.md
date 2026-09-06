@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/cmd/gorged
 
-budget_s: 5
+budget_s: 10
 
 | date (UTC) | commit | wall_s | tests | runner |
 |---|---|---|---|---|
@@ -11,3 +11,5 @@ budget_s: 5
 | 2026-09-06T05:44Z | 96da27c+ | 3.5 | 12 | sadams |
 | 2026-09-06T05:45Z | 96da27c+ | 0.0 | 12 | sadams |
 | 2026-09-06T06:53Z | 196af48+ | 3.1 | 13 | sadams |
+| 2026-09-06T05:54Z | 196af48+ | 0.0 | 13 | sadams |
+| 2026-09-06T07:29Z | e6410d6+ | 8.5 | 14 | sadams |
