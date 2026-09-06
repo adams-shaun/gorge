@@ -31,13 +31,21 @@ done
 # runs; what changed is that it no longer runs automatically. Run it
 # deliberately before a milestone merge with RACE=1 git push origin main.
 if [ "$push_main" = 1 ] && [ -n "$RACE" ]; then
-	echo "pre-push: race gate on main, one run" >&2
+	echo "pre-push: race gate on main, one package at a time" >&2
 	out=$(mktemp -t gorge-race-XXXXXX.log)
-	if ! go test -race -count=1 ./host/... ./rules/ ./events/ ./effects/ ./state/ >"$out" 2>&1; then
-		grep -vE '^ok' "$out" | tail -60 >&2
-		echo "pre-push: race gate FAILED — full output kept at $out" >&2
-		exit 1
-	fi
+	# Ruling FL-89: ONE package per invocation, and -p=1 inside each. This
+	# used to be a single `go test -race ./host/... ./rules/ ...`, which
+	# lets -p default to GOMAXPROCS (32 here) and holds that many race
+	# binaries resident at once. The race detector's shadow memory sits
+	# OUTSIDE GOMEMLIMIT, so the Makefile's cap does not bound it -- that
+	# combination is what OOMed and locked the box (peak 17.8G).
+	for p in ./state/ ./events/ ./effects/ ./rules/ ./seat/ ./replay/ ./host/ ./host/httpapi/; do
+		if ! go test -race -p=1 -count=1 "$p" >>"$out" 2>&1; then
+			grep -vE '^ok' "$out" | tail -60 >&2
+			echo "pre-push: race gate FAILED on $p — full output kept at $out" >&2
+			exit 1
+		fi
+	done
 	rm -f "$out"
 fi
 exit 0
