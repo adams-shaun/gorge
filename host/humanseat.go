@@ -37,6 +37,13 @@ type HumanSeat struct {
 	// ctx-cancelled decision in the player's place. Configuring walk sets it
 	// to the bot defaultSeats would have built for this slot.
 	caretaker seat.Seat
+	// caretakerFires counts how many decisions this seat has delegated to its
+	// caretaker. Task M2b-5 reads it to assert positively that a human who
+	// answered every decision was never substituted for. Without a counter it
+	// would be unobservable: by design D3 a caretaker's intent is byte-identical
+	// to the human's, so absence-of-something is the only signal available, and
+	// a counter is that signal.
+	caretakerFires uint64
 }
 
 // configure arms the seat with its caretaker and think budget. play calls it
@@ -108,12 +115,12 @@ func (s *HumanSeat) Decide(ctx context.Context, v view.View, d decision.Decision
 			return in, nil
 		case <-ctx.Done():
 			if caretaker != nil {
-				return caretaker.Decide(ctx, v, d)
+				return s.viaCaretaker(ctx, v, d)
 			}
 			return decision.Intent{}, ctx.Err()
 		case <-timer.C:
 			if caretaker != nil {
-				return caretaker.Decide(ctx, v, d)
+				return s.viaCaretaker(ctx, v, d)
 			}
 			// A timeout configured but no caretaker to fall back to is an
 			// unarmed seat (unreachable when play configured it); rather than
@@ -126,10 +133,32 @@ func (s *HumanSeat) Decide(ctx context.Context, v view.View, d decision.Decision
 		return in, nil
 	case <-ctx.Done():
 		if caretaker != nil {
-			return caretaker.Decide(ctx, v, d)
+			return s.viaCaretaker(ctx, v, d)
 		}
 		return decision.Intent{}, ctx.Err()
 	}
+}
+
+// viaCaretaker records a caretaker substitution and performs it. The counter
+// is Task M2b-5's positive signal that a human answered every decision: it is
+// incremented under the same mutex that guards the seat's other fields, before
+// the (deterministic) caretaker intent is produced, so a test can read it only
+// after Decide has returned (the match goroutine is the sole writer).
+func (s *HumanSeat) viaCaretaker(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
+	s.mu.Lock()
+	s.caretakerFires++
+	s.mu.Unlock()
+	return s.caretaker.Decide(ctx, v, d)
+}
+
+// caretakerCount reports how many decisions the caretaker has answered in
+// this seat's place. 0 after a full match means every decision was answered
+// by a human submit. Package-internal; Task M2b-5 reads it to assert the
+// caretaker never fired.
+func (s *HumanSeat) caretakerCount() uint64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.caretakerFires
 }
 
 // pending returns whether a decision is currently being answered, and the
