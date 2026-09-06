@@ -3,8 +3,8 @@
   import { visibleHand } from '../lib/board';
   import CardImage from './CardImage.svelte';
 
-  /** StackTile is one stack entry: a band coloured by kind, its card face when it has one, its text, and its targets. Resolving a target's object id to a display name is a rendering concern — it reads every visible zone in `view` but decides nothing about the game. */
-  let { stack, view }: { stack: StackView; view: View } = $props();
+  /** StackTile is one stack entry: a band coloured by kind, its card face when it has one, its text, and its targets. Resolving a target's object id to a display name is a rendering concern — it reads every visible zone in `view` but decides nothing about the game. emphasized/dimmed express survey item 10 (the top of the stack reads by contrast): the seat view passes emphasized for the top entry and dimmed for the rest; the spectator path renders them unset, unchanged. */
+  let { stack, view, emphasized = false, dimmed = false }: { stack: StackView; view: View; emphasized?: boolean; dimmed?: boolean } = $props();
 
   function nameFor(obj: number): string | null {
     for (const p of view.players) {
@@ -23,7 +23,7 @@
   }
 </script>
 
-<div class="stack-tile kind-{stack.kind}" data-obj={stack.id}>
+<div class="stack-tile kind-{stack.kind}" class:emphasized class:dimmed data-obj={stack.id}>
   {#if stack.card}<CardImage card={stack.card} />{/if}
   <div class="info">
     <header>
@@ -41,6 +41,8 @@
 
 <style>
   .stack-tile { display: flex; gap: .5rem; padding: .4rem; border-radius: 6px; background: #1b1b1f; border-left: 4px solid #666; margin-bottom: .4rem; }
+  .stack-tile.emphasized { background: #262a36; box-shadow: 0 0 0 1px #3b82f6 inset; }
+  .stack-tile.dimmed { opacity: .55; }
   .stack-tile.kind-spell { border-left-color: #3b82f6; }
   .stack-tile.kind-ability { border-left-color: #22c55e; }
   .stack-tile.kind-trigger { border-left-color: #eab308; }

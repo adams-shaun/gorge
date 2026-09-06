@@ -245,3 +245,9 @@ export interface Unsubscribe {
   session: string;
   table: string;
 }
+
+export interface Intent {
+  seq: number;
+  player: number;
+  choices: number[];
+}
