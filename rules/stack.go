@@ -400,6 +400,15 @@ func (e *Engine) resolveTop() {
 		e.damaging = o.Source
 		effects.Resolve(e, ctx, o.Ability)
 		e.damaging = 0
+		if e.resume != nil {
+			// A mid-resolution ask (M2d-2): the effect that asked has set a
+			// decision pending and recorded a resume point. The object stays
+			// on the stack waiting for the answer -- entering the exile exit
+			// below would discard it mid-resolution. The answered decision
+			// re-enters the suspended effect through resumeResolution
+			// (rules/resolution.go), which runs the rest of this same tail.
+			return
+		}
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZExile})
 		e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this resolved "+
 			"ability's own move off the stack without relocating it anywhere; sent to exile "+
@@ -453,19 +462,15 @@ func (e *Engine) resolveTop() {
 		e.damaging = id
 		e.resolveAbility(id, o.Controller, targets, sa, f.SVars)
 		e.damaging = 0
+		if e.resume != nil {
+			// A mid-resolution ask (M2d-2): same as the ability branch above
+			// — the resolution is suspended with the object still on the
+			// stack, and the answered decision re-enters it through
+			// resumeResolution instead of this tail.
+			return
+		}
 	}
-	if f.IsPermanent() {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZBattlefield})
-		e.ensureLeftTheStack(id, spellRestZone(o), "an ETB replacement fully replaced this "+
-			"permanent's entry to the battlefield without moving it anywhere; sent to its "+
-			"resting zone instead of re-resolving forever")
-	} else {
-		rest := spellRestZone(o)
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: rest})
-		e.ensureLeftTheStack(id, rest, "a replacement fully discarded this resolved "+
-			"spell's own move off the stack without relocating it anywhere; sent to its "+
-			"resting zone instead of re-resolving forever")
-	}
+	e.moveResolvedOffStack(o)
 }
 
 // spellRestZone is where a resolved (or fizzled) spell goes instead of the
@@ -578,10 +583,10 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 }
 
 // Game, Emit and Rand satisfy effects.Host, which is how effects reach the
-// engine without importing it. AddContinuous (layers.go) and HasKeyword
-// (layers.go) round out the interface -- HasKeyword already existed for the
-// layer system's own callers before effects.Host grew a method of the same
-// name, and needed no change to satisfy it.
+// engine without importing it. AddContinuous (layers.go), HasKeyword
+// (layers.go) and Ask (resolution.go) round out the interface -- HasKeyword
+// already existed for the layer system's own callers before effects.Host
+// grew a method of the same name, and needed no change to satisfy it.
 func (e *Engine) Game() *state.Game    { return e.G }
 func (e *Engine) Emit(ev events.Event) { e.emit(ev) }
 func (e *Engine) Rand(n int) int       { return e.rng.IntN(n) }
