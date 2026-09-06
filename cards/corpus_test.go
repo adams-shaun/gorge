@@ -2,6 +2,7 @@ package cards
 
 import (
 	"os"
+	"sync"
 	"testing"
 )
 
@@ -16,14 +17,39 @@ func corpusDir(t *testing.T) string {
 	return dir
 }
 
+// compiledCorpus is the corpus registry every test that needs the *whole*
+// corpus consumes, compiled once per package run. Compiling the 33k scripts
+// is the single largest allocation in the cards package; before this helper
+// existed each test that touched the corpus (the M0 compile gate, the
+// primitive-surface gate, and now the colour-identity corpus tests) compiled
+// a fresh registry, and each full compile added a large, identical amount to
+// the package's total allocation. Sharing one build keeps the allocation
+// budget real while the coverage is identical.
+var compiled struct {
+	once  sync.Once
+	reg   *Registry
+	diags []Diag
+	err   error
+}
+
+func compiledCorpus(t *testing.T) *Registry {
+	t.Helper()
+	dir := corpusDir(t) // Skips when there is no corpus
+	compiled.once.Do(func() {
+		compiled.reg, compiled.diags, compiled.err = CompileDir(dir)
+	})
+	if compiled.err != nil {
+		t.Fatalf("CompileDir: %v", compiled.err)
+	}
+	return compiled.reg
+}
+
 // TestWholeCorpusCompiles is the M0 acceptance gate. The diagnostic budget is
 // deliberately tight: a jump means either a parser regression or an upstream
 // data change, and both are worth a human look.
 func TestWholeCorpusCompiles(t *testing.T) {
-	r, diags, err := CompileDir(corpusDir(t))
-	if err != nil {
-		t.Fatalf("CompileDir: %v", err)
-	}
+	r := compiledCorpus(t)
+	diags := compiled.diags
 	if len(r.Cards) < 30000 {
 		t.Fatalf("compiled %d cards, expected >30000", len(r.Cards))
 	}
@@ -42,10 +68,7 @@ func TestWholeCorpusCompiles(t *testing.T) {
 }
 
 func TestCorpusPrimitiveSurface(t *testing.T) {
-	r, _, err := CompileDir(corpusDir(t))
-	if err != nil {
-		t.Fatal(err)
-	}
+	r := compiledCorpus(t)
 	all := map[string]bool{}
 	for _, c := range r.Cards {
 		for _, p := range c.Primitives() {
