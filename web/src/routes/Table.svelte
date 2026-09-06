@@ -118,18 +118,74 @@
 {/if}
 
 <style>
-  .matches-page { min-height: 100vh; }
-  .table { display: grid; grid-template-columns: 1fr 18%; grid-template-rows: 1fr 10rem; height: 100vh; }
-  .board { position: relative; overflow: hidden; }
-  .rail { border-left: 1px solid #333; overflow-y: auto; padding: .5rem; }
-  .transcript {
-    grid-column: 1 / -1; border-top: 1px solid #333; display: flex; flex-direction: column;
-    font-family: ui-monospace, monospace; font-size: .85rem; overflow: hidden;
+  /*
+   * Two registers on one grid. The board is felt — warm, dark, card art
+   * dominant, chrome absent. The rail is instrument — cooler, denser, hairline
+   * structure. The temperature difference between them is the seam, and the
+   * seam is the identity (design plan).
+   *
+   * The transcript spans the full width beneath both, because the log is the
+   * one thing that describes the whole table rather than either half of it.
+   */
+  .matches-page {
+    min-height: 100vh;
   }
-  .log { flex: 1; overflow-y: auto; min-height: 0; }
-  .halted { position: absolute; inset: 0 auto auto 0; background: #b00; color: white; padding: .5rem 1rem; z-index: 10; }
-  .idle-inline { grid-column: 1 / -1; grid-row: 1 / -1; overflow-y: auto; }
-  .waiting { padding: 2rem; opacity: .6; }
-  .load-error { padding: 2rem; }
-  .load-error a { color: #6cf; }
+  .table {
+    display: grid;
+    grid-template-columns: 1fr minmax(17rem, 18%);
+    grid-template-rows: 1fr 10rem;
+    height: 100vh;
+    background: var(--felt);
+  }
+  .board {
+    position: relative;
+    overflow: hidden;
+  }
+  .rail {
+    background: var(--instrument);
+    border-left: 1px solid var(--edge-inst);
+    overflow-y: auto;
+    color: var(--ink-inst);
+  }
+  .transcript {
+    grid-column: 1 / -1;
+    background: var(--instrument);
+    border-top: 1px solid var(--edge-inst);
+    display: flex;
+    flex-direction: column;
+    font-family: var(--font-data);
+    font-size: var(--t-12);
+    overflow: hidden;
+  }
+  .log {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+  /* A halted table is the one thing that must interrupt: it is the only
+     element in the client allowed to sit over the board. */
+  .halted {
+    position: absolute;
+    inset: 0 auto auto 0;
+    background: var(--danger);
+    color: var(--felt-sunk);
+    font-weight: 600;
+    padding: var(--sp-2) var(--sp-4);
+    z-index: 10;
+  }
+  .idle-inline {
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+    overflow-y: auto;
+  }
+  .waiting {
+    padding: var(--sp-8);
+    color: var(--ink-dim);
+  }
+  .load-error {
+    padding: var(--sp-8);
+  }
+  .load-error a {
+    color: var(--mana-u);
+  }
 </style>

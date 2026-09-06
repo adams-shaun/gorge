@@ -22,7 +22,7 @@
   {/each}
 
   <section>
-    <h3>Stack</h3>
+    <h3>Stack{#if topFirst.length > 0} <span class="count">{topFirst.length}</span>{/if}</h3>
     {#each topFirst as s, i (s.id)}
       <StackTile stack={s} {view} emphasized={emphasizeTop && i === 0} dimmed={emphasizeTop && i > 0} />
     {/each}
@@ -34,12 +34,57 @@
   </section>
 
   {#if decision}
-    <p class="decision">Seat {decision.player} · {decision.kind} · {decision.prompt}</p>
+    <p class="decision">
+      <span class="who">Seat {decision.player}</span>
+      {decision.prompt}
+    </p>
   {/if}
 </div>
 
 <style>
-  .rail-inner { display: flex; flex-direction: column; gap: 1rem; }
-  h3 { margin: 0 0 .4rem; font-size: .8rem; opacity: .8; }
-  .decision { font-size: .8rem; padding: .5rem; background: #1b1b1f; border-radius: 6px; }
+  /*
+   * The instrument register: cooler and flatter than the felt, structured by
+   * hairlines rather than by cards. Sections are divided, not boxed — a
+   * stack of identically-rounded panels would read as chrome, and this rail
+   * is meant to read as an instrument face.
+   */
+  .rail-inner {
+    display: flex;
+    flex-direction: column;
+  }
+  .rail-inner > :global(section),
+  .rail-inner > :global(*) {
+    padding: var(--sp-3);
+    border-bottom: 1px solid var(--edge-inst);
+  }
+  .rail-inner > :global(*:last-child) {
+    border-bottom: 0;
+  }
+  h3 {
+    margin: 0 0 var(--sp-2);
+    font-size: var(--t-12);
+    font-weight: 600;
+    color: var(--ink-dim);
+    display: flex;
+    align-items: baseline;
+    gap: 0.4em;
+  }
+  /* The depth is always visible, panel open or closed (survey #11). */
+  .count {
+    font-family: var(--font-data);
+    font-size: 0.6875rem;
+    color: var(--ink-faint);
+  }
+  .decision {
+    margin: 0;
+    font-size: var(--t-12);
+    line-height: 1.4;
+    color: var(--ink-inst);
+  }
+  .who {
+    display: block;
+    font-family: var(--font-data);
+    font-size: 0.6875rem;
+    color: var(--ink-faint);
+  }
 </style>
