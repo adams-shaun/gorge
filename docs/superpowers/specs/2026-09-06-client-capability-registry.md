@@ -159,8 +159,53 @@ as lacking (8 inference sites).
 |---|---|
 | **Scry X** | Not registered. `grep Register` in `effects/` has `Mill` and no `Scry`. |
 | **"View Z from the top, put N back in any order"** | `effRearrangeTopOfLibrary` (`effects/cardflow.go:210`) looks at the top N and **emits a Note with the order unchanged** — the reorder is never asked. Already listed as a known approximation in `AGENTS.md`. |
-| **Auto mode: autopay mana** | There is no autopay. `legalActions` offers one `activate` per permanent that taps its **whole mana ability set together** (`rules/legal.go:139`); there is no remaining-cost figure and no choice of which mana a dual produces. |
-| **Auto mode: skip priority intelligently** | "Do not pause unless cards can be played and another player has something on the stack; on your own turn, pass each phase." Client-side this round-trips every priority window; engine-side it is real backend work. Same open question as #2/#6. |
+| **Auto mode: pay mana** | **Settled 2026-09-06: server-side, and not optional.** See the section below. |
+| **Cost visibility** | `adjustedCost` (Raise/Reduce statics) is engine-side and never reaches the wire. `CardView.mana_cost` is the **printed** cost, so a client showing "what does this actually cost me right now" is guessing. Falls out of the mana-payment work below. |
+
+## Mana payment — why auto-pay cannot be client-side
+
+**Settled 2026-09-06.** Auto *mode* (when to stop for priority) is client-side:
+easier to extend and customise, and the round trip per priority window is
+acceptable. Auto *mana payment* is not, and cannot be.
+
+`castable` (`rules/cast.go:153-158`) tests `mana.CanPay(e.G.Players[p].Pool)` —
+**the pool only, never the untapped sources.** The current flow is:
+
+1. tap a permanent via an `activate` priority option, which taps its whole mana
+   ability set at once (`rules/legal.go:139`) and puts mana in the pool;
+2. repeat until the pool covers the cost;
+3. only *then* does the spell's `cast` option appear.
+
+For a client to auto-pay it would have to know which sources produce which
+colours and which subset to tap. That is mana rules in the client — the one
+thing the architecture forbids (`interface-comparison.md` row 4). And it could
+not do it correctly anyway: `adjustedCost` is never on the wire, so the client
+does not know the real cost.
+
+There is also a UX consequence not previously recorded: **a spell you could cast
+does not appear castable until you have already tapped for it**, because the
+`cast` option is not offered until the pool covers the cost. Any hand rendering
+that greys out unaffordable cards is wrong today for exactly the cards the
+player is about to play.
+
+### Recommended shape
+
+A **pay-cost decision**, asked after `cast` is chosen, whose options are
+tap-sets the engine has verified as legal:
+
+- **Manual mode** renders those options — a real choice, with zero inference.
+- **Auto mode** answers it automatically, client-side, by taking the first
+  offered set. The auto/manual split stays a client concern, as decided.
+- `cast` becomes offerable when the cost is payable *from available sources*,
+  not merely from the pool, which fixes the greying-out problem.
+- The decision carries the remaining cost, which hands survey **#19** (show the
+  remaining cost as mana symbols, auto-tap by default, allow manual tapping,
+  always offer Cancel) almost in full.
+
+This fits the existing architecture rather than bending it: a new
+`decision.Kind` whose options the engine enumerates, exactly like every other
+choice. It is engine work, and it is the prerequisite for both the auto mode
+and the manual mana UI.
 
 ## Client-only (added 2026-09-06)
 
@@ -184,6 +229,8 @@ as lacking (8 inference sites).
 - **Auto vs manual mode** is two features wearing one name: "autopay mana" is an
   engine feature, "skip priority intelligently" is a stops/yield policy. They
   can ship independently and should be scoped separately.
-- **Where does auto-mode policy live?** Client-local is cheap and does not
-  survive a reconnect; engine-side survives and avoids a round trip per
-  priority window. Same decision as #2 and #6 — answer it once for all three.
+- ~~Where does auto-mode policy live?~~ **Settled: client-side** (2026-09-06),
+  for extensibility and customisation; the round trip per priority window is
+  accepted. This covers #2 and #6 as well. Mana payment is the carve-out — see
+  the mana section; it is server-side because client-side is impossible without
+  putting mana rules in the client.
