@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -80,6 +81,73 @@ Oracle:x
 	e.putTriggersOnStack()
 	if len(e.G.Stack) != 1 {
 		t.Fatal("the graveyard trigger did not fire from the graveyard")
+	}
+}
+
+// TestZoneSpecContainsMatchesSplitSemantics pins the invariant the hand-rolled,
+// allocation-free zoneSpecContains (which replaced strings.Split in zoneGate)
+// relies on: for every TriggerZones$ string, it must report exactly the same
+// membership as the old strings.Split+TrimSpace+ParseZone loop did -- including
+// the edge shapes that hand-rolled scanners get wrong (a trailing/leading comma
+// making a phantom graveyard part, a doubled comma in the middle, whitespace
+// after a separator). The reference computation below IS the old code, so a
+// regression that drops a part or mishandles an empty segment fails here.
+func TestZoneSpecContainsMatchesSplitSemantics(t *testing.T) {
+	candidates := []state.Zone{
+		state.ZBattlefield, state.ZLibrary, state.ZGraveyard,
+		state.ZExile, state.ZStack, state.ZHand,
+	}
+	for _, tc := range []struct {
+		spec string
+	}{
+		{"Battlefield"},
+		{"Battlefield,Library"},
+		{"Library,Graveyard"},
+		{"Stack"},
+		{"Graveyard,Exile,Library"},
+		{"Battlefield,"},         // trailing empty part -> graveyard.
+		{",Battlefield"},         // leading empty part -> graveyard.
+		{"Battlefield,,Library"}, // doubled separator -> phantom graveyard.
+		{"Graveyard, Stack"},     // a space; the reference trims, ParseZone does too.
+	} {
+		want := map[state.Zone]bool{}
+		for _, z := range strings.Split(tc.spec, ",") {
+			want[effects.ParseZone(strings.TrimSpace(z))] = true
+		}
+		for _, zone := range candidates {
+			if got := zoneSpecContains(tc.spec, zone); got != want[zone] {
+				t.Errorf("zoneSpecContains(%q, %s) = %v, want %v (split semantics)",
+					tc.spec, zone, got, want[zone])
+			}
+		}
+	}
+}
+
+// TestMultiZoneTriggerZonesFiresFromEachZone is the end-to-end guard that a
+// comma-separated TriggerZones$ triggers from every listed zone, not just the
+// first. The allocation-free scanner must still recognize the second and later
+// parts of the spec; a last-part-drop regression would make a Library,Graveyard
+// trigger fire only from the library.
+func TestMultiZoneTriggerZonesFiresFromEachZone(t *testing.T) {
+	src := `Name:Ghost
+ManaCost:B
+Types:Creature Spirit
+PT:1/1
+T:Mode$ Phase | Phase$ Upkeep | TriggerZones$ Library,Graveyard | Execute$ TrigLose | TriggerDescription$ x
+SVar:TrigLose:DB$ LoseLife | LifeAmount$ 1 | Defined$ You
+Oracle:x
+`
+	for _, zone := range []state.Zone{state.ZLibrary, state.ZGraveyard} {
+		e := layerEngine(t)
+		obj := e.G.AddObject(card(t, src), 0)
+		id := obj.ID
+		obj.Zone = zone
+		e.G.SetZone(zone, 0, []state.ObjID{id})
+		e.emit(events.Event{Kind: events.StepChange, Step: state.StepUpkeep})
+		e.putTriggersOnStack()
+		if len(e.G.Stack) != 1 {
+			t.Errorf("Library,Graveyard trigger did not fire from %s", zone)
+		}
 	}
 }
 
