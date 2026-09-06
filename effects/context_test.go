@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -45,6 +46,13 @@ func (h *fakeHost) HasKeyword(id state.ObjID, kw string) bool {
 	o := h.g.Obj(id)
 	return o != nil && o.Face() != nil && o.Face().HasKeyword(kw)
 }
+
+// Ask reports false: an effects-package test double has no engine to drive,
+// so a mid-resolution ask falls back to the primitive's deterministic
+// stand-in (effCharm's first mode, effCopySpellAbility's decline) -- which
+// is exactly today's no-ask behaviour, now with the engines it is a fallback
+// for clearly named (R-9).
+func (h *fakeHost) Ask(d *decision.Decision) bool { return false }
 
 func newHost(t *testing.T, seats int) *fakeHost {
 	t.Helper()

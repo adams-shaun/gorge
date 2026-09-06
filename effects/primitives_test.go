@@ -2,9 +2,11 @@ package effects
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -918,6 +920,70 @@ func TestCharmRunsOnlyTheFirstChoice(t *testing.T) {
 	Resolve(h, c, sa(t, "SP$ Charm | Choices$ DoGain,DoLose"))
 	if h.g.Players[0].Life != 15 {
 		t.Fatalf("life = %d, want 15 (only the first choice runs)", h.g.Players[0].Life)
+	}
+	// A host that cannot ask keeps the deterministic first-mode stand-in
+	// WITH the Note that records why the richer path did not run (the R-9
+	// fallback, M2d-2: real asks now go to an engine host instead).
+	found := false
+	for _, ev := range h.log {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "first mode") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("no Note recorded the first-mode fallback")
+	}
+}
+
+// askHost is a fakeHost whose Ask captures the posed decision and returns
+// true -- the effects-package stand-in for a rules.Engine that can suspend
+// a resolution. The test then inspects what was asked, and simulates the
+// engine's re-entry by re-running the same ability with the answer (Ctx.Modes
+// / Ctx.UnlessPay) attached, which is exactly what rules' resumeResolution
+// does.
+type askHost struct {
+	fakeHost
+	asked *decision.Decision
+}
+
+func (h *askHost) Ask(d *decision.Decision) bool {
+	cp := *d
+	cp.Options = append([]decision.Option(nil), d.Options...)
+	h.asked = &cp
+	return true
+}
+
+func TestCharmAsksForItsModeBeforeAnySubAbilityRuns(t *testing.T) {
+	h := &askHost{}
+	h.g = state.NewGame(names(2))
+	h.g.Players[0].Life = 10
+	src := "SP$ Charm | Choices$ DoGain,DoLose"
+	c := &Ctx{Controller: 0, SVars: map[string]string{
+		"DoGain": "DB$ GainLife | Defined$ You | LifeAmount$ 5 | SpellDescription$ Gain 5 life",
+		"DoLose": "DB$ LoseLife | Defined$ You | LifeAmount$ 5 | SpellDescription$ Lose 5 life",
+	}}
+	Resolve(h, c, sa(t, src))
+	if h.asked == nil {
+		t.Fatal("no KModes decision was posed")
+	}
+	d := h.asked
+	if d.Kind != decision.KModes || d.Min != 1 || d.Max != 1 || d.Player != 0 {
+		t.Fatalf("decision = %+v, want a Min==Max==1 KModes for the controller", d)
+	}
+	if len(d.Options) != 2 || d.Options[0].Kind != "mode" ||
+		d.Options[0].Label != "Gain 5 life" || d.Options[1].Label != "Lose 5 life" {
+		t.Fatalf("mode options: %+v", d.Options)
+	}
+	// The resolution suspended BEFORE executing any mode sub-ability.
+	if h.g.Players[0].Life != 10 {
+		t.Fatalf("life = %d, want 10: a mode ran before the choice was made", h.g.Players[0].Life)
+	}
+	// Re-entry, the engine's contract: Ctx.Modes carries the chosen SVar
+	// names in execution order; the chosen mode — the SECOND one, to prove
+	// the choice is honoured — is what runs.
+	Resolve(h, &Ctx{Controller: 0, SVars: c.SVars, Modes: []string{"DoLose"}}, sa(t, src))
+	if h.g.Players[0].Life != 5 {
+		t.Fatalf("life = %d, want 5 (the chosen Lose 5 life ran)", h.g.Players[0].Life)
 	}
 }
 

@@ -111,6 +111,18 @@ type Engine struct {
 	// miracle cases in their own files.
 	choosing chooseFor
 
+	// resume is non-nil while a mid-resolution decision is pending: an
+	// effect (effCharm's modal pick, effCopySpellAbility's UnlessCost$
+	// may-pay — M2d-2, closing R-8) asked through effects.Host.Ask and the
+	// resolution of the top-of-stack object is suspended with the object
+	// still on the stack. It is plain value/pointer data (resumePoint:
+	// kind, obj and the shared-immutable *cards.SA that asked), never a
+	// closure, so Clone copies it like cast/choosing and a replay re-derives
+	// the same branch. resolveTop checks it after each resolution pass;
+	// handleModes clears it and calls resumeResolution (rules/resolution.go)
+	// with the recorded answer. Nil whenever no resolution is suspended.
+	resume *resumePoint
+
 	// cast holds the in-progress cast-flow state while choosing ==
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
 	cast *pendingCast
