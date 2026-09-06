@@ -149,10 +149,22 @@ func LoadRegistry(path string) (*Registry, error) {
 	}
 	r := NewRegistry()
 	for _, c := range cf.Cards {
+		// The derived fields are unexported, so gob never encodes them and a
+		// stale cache decodes them as zero. derive recomputes them here — the
+		// gob construction route must end with the same derived values as the
+		// ParseBytes route.
+		for _, f := range c.Faces {
+			f.derive()
+		}
 		r.Add(c)
 	}
 	if cf.Tokens != nil {
 		r.Tokens = cf.Tokens
+		for _, c := range r.Tokens {
+			for _, f := range c.Faces {
+				f.derive()
+			}
+		}
 	}
 	return r, nil
 }

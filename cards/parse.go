@@ -25,7 +25,12 @@ func ParseBytes(path string, src []byte) (*Card, []Diag) {
 	var diags []Diag
 
 	sc := bufio.NewScanner(bytes.NewReader(src))
-	sc.Buffer(make([]byte, 0, 64*1024), 1<<20)
+	// Initial buffer is the stdlib default (4096): the pinned corpus's longest
+	// line is ~911 bytes, so a 64 KiB initial buffer was sixteen times too
+	// large and, allocated once per script file, was ParseBytes' single
+	// largest allocation (4.25 GB across the whole corpus). A tighter initial
+	// buffer never grows here.
+	sc.Buffer(make([]byte, 0, 4096), 1<<20)
 	for sc.Scan() {
 		line := strings.TrimRight(sc.Text(), " \t\r")
 		if line == "" || strings.HasPrefix(line, "#") {
@@ -89,6 +94,13 @@ func ParseBytes(path string, src []byte) (*Card, []Diag) {
 	}
 	if err := sc.Err(); err != nil {
 		diags = append(diags, Diag{path, err.Error()})
+	}
+	// derive every face now, once the printed fields are final: ParseBytes is
+	// one of the two construction routes into a *Face (the other is the gob
+	// decode in LoadRegistry), and both must end with identical derived
+	// values.
+	for _, f := range c.Faces {
+		f.derive()
 	}
 	return c, diags
 }

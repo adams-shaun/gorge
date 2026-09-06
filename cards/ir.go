@@ -48,6 +48,16 @@ type Face struct {
 	Statics   []Static
 	Repls     []Repl
 	SVars     map[string]string
+
+	// Derived values, computed once at load (Face.derive), never written
+	// into the gob cache: a stale cache decodes these as zero and derive
+	// repairs them immediately after decode, so Power(), Toughness() and
+	// Cmc() read parsed values instead of re-parsing the printed text on
+	// every call.
+	power                  int32
+	toughness              int32
+	characteristicDefining bool
+	cmc                    int32
 }
 
 // Card is one script file.
