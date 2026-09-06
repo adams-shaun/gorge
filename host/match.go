@@ -245,7 +245,17 @@ func projectNext(m *match, seats []seat.Seat) *parkedData {
 	// view.Project entirely — cardViews' string encode/parse round-trip is the
 	// measured bulk of the suite's allocations, and a bot is the seat that
 	// does it per decision.
-	if _, ok := seats[d.Player].(seat.BoardSeat); ok {
+	//
+	// The HumanSeat test comes FIRST, and must, because parkSeat tests in that
+	// order too: it hands a HumanSeat pd.v before it ever considers BoardSeat.
+	// *HumanSeat does not implement BoardSeat today, so the two orders agree
+	// either way — but if one ever gained a DecideBoard method, the opposite
+	// order here would build only the Board and then park the human on a zero
+	// View, blanking a live player's board with nothing failing. Testing the
+	// same thing first in both places makes that unrepresentable rather than
+	// merely unlikely.
+	_, isHuman := seats[d.Player].(*HumanSeat)
+	if _, ok := seats[d.Player].(seat.BoardSeat); ok && !isHuman {
 		return &parkedData{
 			p:       d.Player,
 			dc:      dc,
