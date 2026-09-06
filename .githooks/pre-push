@@ -5,12 +5,18 @@ zero=0000000000000000000000000000000000000000
 push_main=0
 while read -r local_ref local_sha remote_ref remote_sha; do
 	[ "$local_sha" = "$zero" ] && continue
+	# A NEW branch has no remote_sha, and "git log <sha>" would then walk the
+	# ENTIRE history -- which still carries attribution trailers from before
+	# this rule existed, so every new branch was refused for commits already
+	# on origin. Scan only what this push actually adds: the new commits minus
+	# whatever origin already has.
 	if [ "$remote_sha" = "$zero" ]; then
-		range="$local_sha"
+		bad=$(git log --format='%h %s%n%b' "$local_sha" --not --remotes=origin |
+			grep -Ei '^Co-Authored-By:|Generated with .*Claude' | head -3)
 	else
-		range="$remote_sha..$local_sha"
+		bad=$(git log --format='%h %s%n%b' "$remote_sha..$local_sha" |
+			grep -Ei '^Co-Authored-By:|Generated with .*Claude' | head -3)
 	fi
-	bad=$(git log --format='%h %s%n%b' "$range" | grep -Ei '^Co-Authored-By:|Generated with .*Claude' | head -3)
 	if [ -n "$bad" ]; then
 		echo "pre-push: refusing $local_ref — attribution trailer in pushed commits:" >&2
 		echo "$bad" >&2
