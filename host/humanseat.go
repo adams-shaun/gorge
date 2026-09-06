@@ -115,12 +115,12 @@ func (s *HumanSeat) Decide(ctx context.Context, v view.View, d decision.Decision
 			return in, nil
 		case <-ctx.Done():
 			if caretaker != nil {
-				return s.viaCaretaker(ctx, v, d)
+				return s.viaCaretaker(ctx, v, d, caretaker)
 			}
 			return decision.Intent{}, ctx.Err()
 		case <-timer.C:
 			if caretaker != nil {
-				return s.viaCaretaker(ctx, v, d)
+				return s.viaCaretaker(ctx, v, d, caretaker)
 			}
 			// A timeout configured but no caretaker to fall back to is an
 			// unarmed seat (unreachable when play configured it); rather than
@@ -133,22 +133,27 @@ func (s *HumanSeat) Decide(ctx context.Context, v view.View, d decision.Decision
 		return in, nil
 	case <-ctx.Done():
 		if caretaker != nil {
-			return s.viaCaretaker(ctx, v, d)
+			return s.viaCaretaker(ctx, v, d, caretaker)
 		}
 		return decision.Intent{}, ctx.Err()
 	}
 }
 
-// viaCaretaker records a caretaker substitution and performs it. The counter
-// is Task M2b-5's positive signal that a human answered every decision: it is
-// incremented under the same mutex that guards the seat's other fields, before
-// the (deterministic) caretaker intent is produced, so a test can read it only
-// after Decide has returned (the match goroutine is the sole writer).
-func (s *HumanSeat) viaCaretaker(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
+// viaCaretaker records a caretaker substitution and performs it. The caretaker
+// argument is the copy the caller took under the mutex (and validated non-nil
+// on the same copy), so this helper performs the substitution against that
+// validated copy rather than re-reading the field -- the nil guard and the
+// dereference can never diverge. The counter is Task M2b-5's positive signal
+// that a human answered every decision: it is incremented under the same mutex
+// that guards the seat's other fields, before the (deterministic) caretaker
+// intent is produced, so a test can read it only after Decide has returned
+// (the match goroutine is the sole writer). The counter increment is the only
+// field access this helper makes.
+func (s *HumanSeat) viaCaretaker(ctx context.Context, v view.View, d decision.Decision, caretaker seat.Seat) (decision.Intent, error) {
 	s.mu.Lock()
 	s.caretakerFires++
 	s.mu.Unlock()
-	return s.caretaker.Decide(ctx, v, d)
+	return caretaker.Decide(ctx, v, d)
 }
 
 // caretakerCount reports how many decisions the caretaker has answered in
