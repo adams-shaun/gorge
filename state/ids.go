@@ -39,10 +39,16 @@ const (
 	ZGraveyard
 	ZExile
 	ZStack
-	numZones = int(ZStack) + 1
+	// ZCommand is the command zone (CR 903.6). It is appended AFTER ZStack, not
+	// in Magic's conventional order, so every earlier zone constant keeps its
+	// numeric value -- no serialized event log and no chain head shifts from
+	// renumbering. It is public information: every seat sees it, so Hidden()
+	// stays false for it.
+	ZCommand
+	numZones = int(ZCommand) + 1
 )
 
-var zoneNames = [numZones]string{"library", "hand", "battlefield", "graveyard", "exile", "stack"}
+var zoneNames = [numZones]string{"library", "hand", "battlefield", "graveyard", "exile", "stack", "command"}
 
 func (z Zone) String() string { return zoneNames[z] }
 

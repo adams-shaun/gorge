@@ -9,6 +9,19 @@ type Player struct {
 	Lost        bool
 	LandsPlayed int32
 	Pool        Mana
+
+	// Commanders lists this seat's commanders, in Config order, sized at
+	// genesis and never grown. CmdCasts runs parallel to it: entry k counts
+	// how many times Commanders[k] has been cast from the command zone.
+	// CmdDamage records combat damage this seat has taken (a per-match
+	// cumulative total), indexed by the match-wide dense commander index
+	// assigned at genesis -- see rules.New. All three are populated by the
+	// Commander genesis and written by other tasks (the commander tax, CR
+	// 903.9 and commander damage hand off through them); Clone deep-copies
+	// them so a cloned game's bookkeeping never aliases the live one's.
+	Commanders []ObjID
+	CmdCasts   []int32
+	CmdDamage  []int32
 }
 
 // Game is the complete authoritative state. Everything a client sees is a
@@ -54,10 +67,18 @@ type Game struct {
 
 const startingLife = 20
 
-func NewGame(names []string) *Game {
+// NewGame builds a game with the default starting life total (20). It keeps
+// the every-existing-caller spelling: NewGameLife is the life-taking variant,
+// so callers that never set a life total observe exactly what they always
+// did.
+func NewGame(names []string) *Game { return NewGameLife(names, startingLife) }
+
+// NewGameLife is NewGame with an explicit starting life total (Config.
+// StartingLife's 0-means-20 convention is resolved by the caller).
+func NewGameLife(names []string, life int32) *Game {
 	g := &Game{NextID: 1, zones: make([][]ObjID, numZones*len(names))}
 	for i, n := range names {
-		g.Players = append(g.Players, Player{ID: PlayerID(i), Name: n, Life: startingLife})
+		g.Players = append(g.Players, Player{ID: PlayerID(i), Name: n, Life: life})
 	}
 	return g
 }
@@ -99,10 +120,22 @@ func (g *Game) AddObject(card *cards.Card, owner PlayerID) *Object {
 }
 
 // Clone deep-copies the game. Everything is slices of value types, so this is
-// a handful of copy() calls rather than a graph walk.
+// a handful of copy() calls rather than a graph walk. Player's Commander
+// bookkeeping slices (Commanders/CmdCasts/CmdDamage) are deep-copied as well
+// -- they are sized once at genesis and written throughout a match, so a
+// clone that shared the live one's backing arrays would let either evolve
+// and silently corrupt the other. Game.Clone is the hottest path in the
+// engine; three small copy() calls per seat (nil slices cost nothing) is the
+// whole price.
 func (g *Game) Clone() *Game {
 	c := *g
-	c.Players = append([]Player(nil), g.Players...)
+	c.Players = make([]Player, len(g.Players))
+	for i := range g.Players {
+		c.Players[i] = g.Players[i]
+		c.Players[i].Commanders = append([]ObjID(nil), g.Players[i].Commanders...)
+		c.Players[i].CmdCasts = append([]int32(nil), g.Players[i].CmdCasts...)
+		c.Players[i].CmdDamage = append([]int32(nil), g.Players[i].CmdDamage...)
+	}
 	c.Objs = make([]Object, len(g.Objs))
 	for i := range g.Objs {
 		c.Objs[i] = g.Objs[i].CloneDeep()

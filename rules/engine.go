@@ -22,10 +22,35 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+// Format is the game's construction format. FormatConstructed is the zero
+// value -- every existing Config that never sets it (all today's fixtures
+// and every non-Commander game) is unchanged.
+type Format int
+
+const (
+	FormatConstructed Format = iota
+	FormatCommander
+)
+
 type Config struct {
 	Seed  uint64
 	Names []string
 	Decks [][]*cards.Card
+	// Format names the construction format. Zero means Constructed; the other
+	// tasks in the Commander milestone (the tax, CR 903.9, commander damage)
+	// read it. This task is plumbing: it reads Commanders and StartingLife
+	// only.
+	Format Format
+	// StartingLife is a game's opening life total. 0 (the zero value) means
+	// the existing 20, so every Config that never sets it observes exactly
+	// what it always did.
+	StartingLife int32
+	// Commanders holds, for each seat i, the indices into Decks[i] that are
+	// that seat's commanders; nil or absent means none. Genesis places those
+	// objects in the command zone instead of the library. An index out of
+	// range for its deck is a config error degraded the same way New degrades
+	// more decks than seats: the offending entry is skipped, not a crash.
+	Commanders [][]int
 	// Mulligans is the number of London mulligans each player may take in the
 	// pre-game round between the opening deal and turn 1. 0 (the zero value)
 	// skips the round entirely, so every Config that never sets it is
@@ -242,16 +267,55 @@ type chooseFor uint8
 
 const chooseNone chooseFor = iota
 
+// commandersFor returns the VALID commander indices (into deck of length
+// deckLen) that Config names for seat i, in Config order. An index out of
+// range for the deck, or a seat with no Commanders entry, contributes
+// nothing -- the same degrade-don't-crash stance New already takes for more
+// decks than seats: the bogus entry is skipped, never a panic.
+func (c *Config) commandersFor(i, deckLen int) []int {
+	if i < 0 || i >= len(c.Commanders) {
+		return nil
+	}
+	var out []int
+	for _, idx := range c.Commanders[i] {
+		if idx >= 0 && idx < deckLen {
+			out = append(out, idx)
+		}
+	}
+	return out
+}
+
 const openingHand = 7
 
 func New(cfg Config) *Engine {
+	life := int32(20)
+	if cfg.StartingLife > 0 {
+		life = cfg.StartingLife
+	}
 	e := &Engine{
-		G:   state.NewGame(cfg.Names),
+		G:   state.NewGameLife(cfg.Names, life),
 		L:   events.NewLog(cfg.Seed),
 		rng: newRNG(cfg.Seed),
 	}
 	e.G.Tokens = cfg.Tokens
 	e.emit(events.Event{Kind: events.GameStart, Amount: int32(len(cfg.Names))})
+	// Match-wide dense commander indexing for Player.CmdDamage (assigned at
+	// genesis): a commander's dense index is the sum of (valid commanders in
+	// seats before its owner) + (its own position within its owner's
+	// Commanders list, which is the order Commanders is built in the loop
+	// below) -- both deterministically derivable from this Config, so no
+	// separate index needs storing. Every seat's CmdDamage is sized to total
+	// (the whole match's commander count) so it can be indexed by ANY
+	// commander's match-wide dense index: seat B's damage holds a slot for
+	// seat A's commander at A's commander's dense index. Sized here and
+	// never grown; three small copy() calls per seat carry all three across
+	// Game.Clone.
+	totalCmd := 0
+	for i := range cfg.Names {
+		if i < len(cfg.Decks) {
+			totalCmd += len(cfg.commandersFor(i, len(cfg.Decks[i])))
+		}
+	}
 	for i, deck := range cfg.Decks {
 		if i >= len(cfg.Names) {
 			// Ruling T22-m (fix round 2): a malformed Config with more
@@ -272,7 +336,32 @@ func New(cfg Config) *Engine {
 			ids = append(ids, e.G.AddObject(c, p).ID)
 		}
 		e.G.SetZone(state.ZLibrary, p, ids)
-		order := append([]state.ObjID(nil), ids...)
+		// Commanders leave the library for the command zone here, BEFORE the
+		// shuffle and BEFORE the opening hand is dealt, so they are neither
+		// shuffled into the library nor drawable. Emitted as real MoveZone
+		// events (one per commander, in Config order) -- the log is the only
+		// source of truth, and replay, which folds the logged events back
+		// through this same New, reproduces the identical command zone. For a
+		// non-Commander Config commandersFor is empty, so nothing is emitted
+		// and the Shuffle below covers the whole library exactly as before.
+		var myCmds []state.ObjID
+		for _, idx := range cfg.commandersFor(i, len(deck)) {
+			id := ids[idx]
+			myCmds = append(myCmds, id)
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+				From: state.ZLibrary, To: state.ZCommand})
+		}
+		e.G.Players[p].Commanders = myCmds
+		if len(myCmds) > 0 {
+			e.G.Players[p].CmdCasts = make([]int32, len(myCmds))
+		}
+		if totalCmd > 0 {
+			e.G.Players[p].CmdDamage = make([]int32, totalCmd)
+		}
+		// Shuffle only what is left in the library -- the commanders have just
+		// moved out, so a non-Commander seat's library and the original ids
+		// are one and the same and the event is byte-identical to before.
+		order := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, p)...)
 		e.rng.Shuffle(order)
 		// Library order is hidden information: the event carries it because the
 		// server needs it, and view projection redacts it for everyone else.
