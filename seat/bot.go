@@ -33,6 +33,13 @@ type Bot struct {
 // seat.go and bot.go otherwise never reference each other.
 var _ Seat = (*Bot)(nil)
 
+// M4: Bot also satisfies BoardSeat — the game-shaped half of the adapter
+// pair, answered without a projected View. host builds the botpolicy.Board
+// (via BoardFromGame, the same Board boardFromView would lift off the View)
+// under the match's exclusive lock and calls this instead of Decide, so a
+// bot seat never forces cardViews' string round-trip.
+var _ BoardSeat = (*Bot)(nil)
+
 // NewBot seeds the bot's own PCG source. Never math/rand's global functions
 // and never the engine's rng: a match's outcome must be a pure function of
 // (engine seed, bot seed), nothing else.
@@ -51,6 +58,16 @@ func NewBot(seed uint64) *Bot {
 // same Board for the same game facts.
 func (b *Bot) Decide(_ context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
 	return botpolicy.Decide(boardFromView(v), &d, b.r), nil
+}
+
+// DecideBoard is the game-shaped half of Decide: the Board is already built
+// (under the match lock, from botpolicy.BoardFromGame reading state.Game and
+// the engine's derived P/T/keywords) and handed in as a value, so the bot
+// answers without the view->Board string round-trip. The engine the Board
+// was built from derives exactly the facts the projected View would have
+// carried (TestBotAdaptersAgreeOverWholeGame pins the two halves).
+func (b *Bot) DecideBoard(_ context.Context, brd botpolicy.Board, d decision.Decision) (decision.Intent, error) {
+	return botpolicy.Decide(brd, &d, b.r), nil
 }
 
 // boardFromView is the view-shaped adapter: the Board the policy reads,
