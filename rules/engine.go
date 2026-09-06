@@ -76,6 +76,38 @@ type Engine struct {
 	staticContinuous []ContinuousEffect
 	staticEpoch      int
 
+	// activeBuf is the cached, fully CR-613-sorted result of layers.go's
+	// active(), the effect list every Derived() call ranges over for every
+	// object of every board build and projection. Rebuilding that sorted list
+	// once per emitted event instead of once per Derived() call is the whole
+	// saving here -- active() used to allocate a fresh slice per call, and
+	// Derived is the hottest path in a turn. The cache key is the pair
+	// (activeEpoch, activeVersion): activeEpoch is the log length at the last
+	// build and activeVersion the continuousVersion (bumped by AddContinuous
+	// and EndOfTurnCleanup), because the effect list is a pure function of the
+	// current board plus e.continuous, and those are exactly the two inputs
+	// the key captures -- every board change moves the log head (emit), and
+	// e.continuous changes through exactly the two mutators above. activeDepth
+	// is a re-entry guard (Task A2's forEachObject pattern): it lets a nested
+	// Derived (HasKeyword inside a MatchesSpecFrom) atomically share the
+	// cached list and, on the never-happens-in-practice rebuild-mid-range
+	// path, build a private list instead of clobbering the outer call's.
+	// Clone() copies none of these fields (see clone.go); a cloned engine
+	// starts with a zero key and rebuilds identically on its first Derived.
+	activeBuf     []ContinuousEffect
+	activeEpoch   int
+	activeVersion int
+	activeDepth   int
+	// continuousVersion is bumped by every direct mutation of e.continuous
+	// (layers.go's AddContinuous and EndOfTurnCleanup). It stands in for the
+	// events a board change would signal through the log head: while
+	// AddContinuous also emits a ClockTick, EndOfTurnCleanup rewrites
+	// e.continuous in place with no event, and the active() cache must see
+	// that drop (an UntilEOT pump expiring) even though the log head did not
+	// move. A zero value is never taken as a valid cache hit across rebuilds
+	// because active() guards hits on version as well.
+	continuousVersion int
+
 	// pendingTriggers holds matched triggers not yet placed on the stack.
 	// checkTriggers appends; putTriggersOnStack drains. Task 20 (trigger.go).
 	pendingTriggers []pendingTrigger

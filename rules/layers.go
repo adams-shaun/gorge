@@ -190,6 +190,12 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 		ce.Timestamp = e.G.Clock
 	}
 	e.continuous = append(e.continuous, ce)
+	// Bump the cache version: active() (below) caches its sorted effect list
+	// on (log head, continuousVersion), and this is the write that changes
+	// e.continuous. The ClockTick above moved the log head too, but naming
+	// the dependency explicitly here keeps active()'s invalidation correct
+	// even if a future caller adds a continuous effect without an event.
+	e.continuousVersion++
 }
 
 // EndOfTurnCleanup drops every "until end of turn" effect (CR 514.2).
@@ -203,6 +209,11 @@ func (e *Engine) EndOfTurnCleanup() {
 		}
 	}
 	e.continuous = kept
+	// Bump the version for the same reason AddContinuous does: the cache is
+	// keyed on continuousVersion, and this in-place rewrite (which emits no
+	// event and moves no log head) drops every UntilEOT pump. Without the
+	// bump, a stale active() cache would keep reporting a dead pump's P/T.
+	e.continuousVersion++
 }
 
 // active returns the effects that still exist, sorted into CR 613 order:
@@ -219,35 +230,63 @@ func (e *Engine) EndOfTurnCleanup() {
 // (Giant Growth), so it outlives its source and is only removed by
 // EndOfTurnCleanup.
 func (e *Engine) active() []ContinuousEffect {
-	out := make([]ContinuousEffect, 0, len(e.continuous))
+	e.activeDepth++
+	defer func() { e.activeDepth-- }()
+	// Cached hit: derived only reads the returned slice, never mutates it, so
+	// every Derived call of a board build shares this one sorted list. The
+	// key is the log head plus the continuous-mutation version; a mismatch
+	// means something the list depends on changed and the cache is stale.
+	if e.activeEpoch == len(e.L.Events) && e.activeVersion == e.continuousVersion {
+		return e.activeBuf
+	}
+	e.activeEpoch = len(e.L.Events)
+	e.activeVersion = e.continuousVersion
+	buf := e.activeBuf[:0]
+	if e.activeDepth > 1 {
+		// Re-entrant (a nested Derived mid-rebuild): own a private list rather
+		// than overwrite the outer call's result mid-range. Same guard Task A2
+		// uses for forEachObject. (This path is effectively unreachable — a
+		// Derived call never emits an event, so the epoch cannot move mid-
+		// range — but it keeps the buffer discipline airtight.
+		buf = nil
+	}
 	for _, ce := range e.continuous {
 		if ce.UntilEOT {
-			out = append(out, ce)
+			buf = append(buf, ce)
 			continue
 		}
 		if o := e.G.Obj(ce.Source); o == nil || o.Zone != state.ZBattlefield {
 			continue
 		}
-		out = append(out, ce)
+		buf = append(buf, ce)
 	}
 	// The static-derived effects come from the memoized scan (see
 	// Engine.staticContinuous): refreshed once per emitted event, not per
 	// Derived call, so a board-wide scan does not dominate the hottest path.
+	// A version-only rebuild (EndOfTurnCleanup dropping an UntilEOT pump) is a
+	// subset of the rebuild condition that leaves the battlefield permanent
+	// set, and therefore the static memo, untouched — so the two are checked
+	// independently exactly as before.
 	if e.staticEpoch != len(e.L.Events) {
 		e.staticEpoch = len(e.L.Events)
 		e.staticContinuous = e.staticEffects()
 	}
-	out = append(out, e.staticContinuous...)
-	sort.SliceStable(out, func(i, j int) bool {
-		if out[i].Layer != out[j].Layer {
-			return out[i].Layer < out[j].Layer
+	buf = append(buf, e.staticContinuous...)
+	sort.SliceStable(buf, func(i, j int) bool {
+		if buf[i].Layer != buf[j].Layer {
+			return buf[i].Layer < buf[j].Layer
 		}
-		if out[i].Sub != out[j].Sub {
-			return out[i].Sub < out[j].Sub
+		if buf[i].Sub != buf[j].Sub {
+			return buf[i].Sub < buf[j].Sub
 		}
-		return out[i].Timestamp < out[j].Timestamp
+		return buf[i].Timestamp < buf[j].Timestamp
 	})
-	return out
+	if e.activeDepth <= 1 {
+		// Keep the grown, sorted buffer on the Engine for the next build or
+		// cache hit; a re-entrant build's private buffer is discarded on return.
+		e.activeBuf = buf
+	}
+	return buf
 }
 
 // Derived computes an object's current characteristics: printed values from
