@@ -7,7 +7,22 @@ import (
 	"time"
 
 	"github.com/adams-shaun/gorge/host"
+	"github.com/adams-shaun/gorge/state"
 )
+
+// SeatClaim is what Options.Seat resolves a request to when it may act as a
+// seat: the seat the request acts for. The http layer's only use of a claim
+// is to refuse a request whose own ?seat= names a different seat — the claim
+// and the request must agree before the seat-scoped Registry method runs, so
+// one claim can never read another seat's hand or pending decision, or
+// submit for it. Everything else about the claim (who holds it, whether they
+// still do) is the resolver's business: local gorged resolves the request's
+// session, which claims a seat and holds it, and a pod would resolve a
+// signed header instead. That indirection is the whole of the pod-readiness
+// (design M2e-2), and it costs this one field.
+type SeatClaim struct {
+	Seat state.PlayerID
+}
 
 // Options configures the handler. Every duration defaults when zero.
 type Options struct {
@@ -16,6 +31,14 @@ type Options struct {
 	KeepAlive      time.Duration             // SSE comment cadence; 0 = 15s (Task 15)
 	ResumeGrace    time.Duration             // how long a disconnected session survives; 0 = 30s (Task 15)
 	Web            fs.FS                     // the built client (has index.html); nil = 503 for non-API paths (Task 15)
+	// Seat resolves which seat a request may act for, separately from
+	// Authorize: nil — the default — keeps today's spectator-only behaviour,
+	// nobody may act as a seat, so any request that names one is refused
+	// outright. A non-nil resolver that declines a request is refused like
+	// an Authorize failure (401); a claim whose seat disagrees with the
+	// ?seat= a request asks for is refused (403); only an agreeing claim
+	// reaches the seat-scoped Registry methods. See SeatClaim.
+	Seat func(*http.Request) (SeatClaim, bool) // nil = spectator-only (M2e-2)
 }
 
 func (o Options) withDefaults() Options {
@@ -50,13 +73,16 @@ func newHandler(r *host.Registry, o Options) (*handler, http.Handler) {
 	mux.HandleFunc("GET /api/tables/{t}/matches", h.matches)
 	mux.HandleFunc("GET /api/tables/{t}/matches/{k}/view", h.view)
 	mux.HandleFunc("GET /api/tables/{t}/matches/{k}/events", h.events)
+	mux.HandleFunc("GET /api/tables/{t}/matches/{k}/pending", h.pending)
+	mux.HandleFunc("POST /api/tables/{t}/matches/{k}/intent", h.intent)
 	mux.HandleFunc("POST /api/subscribe", h.subscribe)
 	mux.HandleFunc("POST /api/unsubscribe", h.unsubscribe)
 	// Method-less twins of every API pattern: the mux prefers the
 	// method-specific pattern, so these only ever see the wrong method and
 	// answer 405 in JSON rather than the mux's default text body.
 	for _, p := range []string{"/api/tables", "/api/tables/{t}/matches", "/api/tables/{t}/matches/{k}/view",
-		"/api/tables/{t}/matches/{k}/events", "/api/subscribe", "/api/unsubscribe", "/api/stream"} {
+		"/api/tables/{t}/matches/{k}/events", "/api/tables/{t}/matches/{k}/pending", "/api/tables/{t}/matches/{k}/intent",
+		"/api/subscribe", "/api/unsubscribe", "/api/stream"} {
 		mux.HandleFunc(p, methodNotAllowed)
 	}
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
