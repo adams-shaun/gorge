@@ -8,9 +8,41 @@ import (
 	"time"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/protocol"
 	"github.com/adams-shaun/gorge/seat"
 )
+
+// OnBurstFunc observes one recorded burst of a match's event chain: evs is
+// that burst's events (the slice appended since the previous burst), in is
+// the intent that drove it (nil for the genesis burst, which has no
+// decision). t is the producing table and k the match number, so one sink
+// can serve many tables and matches (Task M2c-1, FL-81: mtgserve runs the
+// registry in-process and persists every match to SQLite through this
+// hook).
+//
+// The callback runs on the match's own goroutine, while the table's match
+// lock is held — so it must NOT call back into the Registry (that re-enters
+// the same goroutine holding the lock and deadlocks), and it must not block
+// on anything that could, in turn, wait on this goroutine. It should copy
+// anything it wants to keep: evs is a fresh slice (a stable snapshot of this
+// burst) but the events' guts and in are read-only references into the live
+// match. Returning an error crashes the match exactly as a persist failure
+// does (D15): the table halts and the event chain does not continue.
+//
+// A nil OnBurst is today's behaviour — nothing fires — so an embedder that
+// does not set it pays no cost and sees no change.
+type OnBurstFunc func(t TableID, k int, evs []events.Event, in *decision.Intent) error
+
+// OnMatchEndFunc observes the terminal state of a finished, aborted or
+// crashed match. It runs on the match's own goroutine after the match's
+// final state has already been recorded, and like OnBurstFunc it must not
+// call back into the Registry or block. Its error return cannot change that
+// already-decided outcome and is only surfaceable by the embedder itself;
+// a non-nil sink that needs an outcome to succeed should log/verify inside
+// the callback.
+type OnMatchEndFunc func(t TableID, k int, m protocol.MatchInfo) error
 
 // Options configures a Registry. LoadDeck is required so a caller can never
 // forget that the host reads no files for decks itself.
@@ -51,6 +83,18 @@ type Options struct {
 	// other). The player may reconnect and answer later decisions via
 	// SubmitIntent (D2).
 	ThinkTimeout time.Duration
+
+	// OnBurst, when non-nil, is invoked after every recorded burst of every
+	// match created by this registry, including the genesis burst, so an
+	// embedder sees the whole chain from its first event (Task M2c-1). It is
+	// the SQLite-persistence hook for mtgserve. See OnBurstFunc for the
+	// contract — most importantly, the callback runs on the match goroutine
+	// holding the match lock and must not re-enter the Registry.
+	OnBurst OnBurstFunc
+	// OnMatchEnd, when non-nil, is invoked once per match once it reaches a
+	// terminal state (finished, aborted or crashed), with that match's final
+	// MatchInfo (Task M2c-1). See OnMatchEndFunc.
+	OnMatchEnd OnMatchEndFunc
 }
 
 // defaultSleep is installed when Options.Sleep is nil. It is the package's

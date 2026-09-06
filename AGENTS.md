@@ -79,3 +79,11 @@ Acceptance commands:
 go test ./rules/ -run 'TestEveryRepoDeck|TestRepoDecks|TestRepoDeckGames' -v
 make sim
 ```
+
+## Host behaviour notes (embedder observer hooks, D15)
+
+`OnBurst` errors crash the match like a persist failure (D15): the table
+halts and the chain does not continue. `OnMatchEnd` errors are discarded
+because the outcome is already recorded and an error cannot un-record it, so
+an embedder that persists through `OnMatchEnd` must handle its own
+persistence failures inside the callback.

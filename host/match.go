@@ -189,6 +189,17 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 			final = r.crash(t, m, fmt.Errorf("panic: %v\n%s", p, debug.Stack()))
 		}
 	}()
+	// Task M2c-1: if an embedder observes bursts, deliver the genesis burst
+	// first so the sink sees the whole chain from its first event — genesis
+	// goes through the same observeBurst as every Submit burst, on the match
+	// goroutine under m.mu (genesis has no intent, so in is nil). A genesis
+	// observation error crashes the match exactly as a per-burst one would
+	// (D15).
+	if r.opts.OnBurst != nil {
+		if err := m.locked(func() error { return r.observeBurst(t, m, 0) }); err != nil {
+			return r.crash(t, m, err)
+		}
+	}
 	seats := r.opts.Seats(m.cfg.Names, m.seed)
 	m.mu.Lock()
 	m.slots = seats
@@ -273,7 +284,8 @@ func (r *Registry) finish(t *table, m *match) string {
 		m.winner = &w
 	}
 	m.mu.Unlock()
-	r.onMatchEnd(t, m) // Tasks 10, 12
+	r.onMatchEnd(t, m)      // Tasks 10, 12
+	r.observeMatchEnd(t, m) // Task M2c-1
 	return protocol.MatchFinished
 }
 
@@ -284,6 +296,7 @@ func (r *Registry) abort(m *match) string {
 	m.head = m.e.L.Head()
 	m.mu.Unlock()
 	r.onMatchEnd(m.table, m)
+	r.observeMatchEnd(m.table, m) // Task M2c-1
 	return protocol.MatchAborted
 }
 
@@ -307,5 +320,6 @@ func (r *Registry) crash(t *table, m *match, err error) string {
 	m.mu.Unlock()
 	r.writeCrashReport(t, m, err.Error())
 	r.onMatchEnd(t, m)
+	r.observeMatchEnd(t, m) // Task M2c-1
 	return protocol.MatchCrashed
 }
