@@ -339,6 +339,39 @@ func TestDeterminizePublicZonesByteIdentical(t *testing.T) {
 	}
 }
 
+// TestDeterminizePreservesOpponentCompositionByDesign pins the determinization
+// assumption by name. Re-dealing an opponent's hidden zones (hand + library)
+// preserves the true card multiset EXACTLY -- composition, not merely counts.
+// This is not an incidental property but the load-bearing strategic assumption,
+// and the reason SearchingSeatKnowsOpponentComposition is true: a
+// determinization models a searching seat that knows each opponent's decklist
+// AND has perfect recall of every card that has left it, so it can reconstruct
+// precisely which cards remain hidden. It is deliberately not a pool-sampling
+// model (gorge has no card-pool model); if the re-deal ever dropped or gained a
+// card, this test fails by name.
+func TestDeterminizePreservesOpponentCompositionByDesign(t *testing.T) {
+	g := determFixture(t)
+	for _, seat := range []PlayerID{0, 1, 2, 3} {
+		for s := uint64(0); s < 16; s++ {
+			d := g.Determinize(seat, rand.New(rand.NewPCG(s, s^0xdeadbeef)))
+			// Opponent hidden zones, every seat but the searcher's, as one
+			// multiset. Composition must be preserved even though the searching
+			// seat sees only per-zone totals of these zones.
+			var got, want []ObjID
+			for p := PlayerID(0); p < PlayerID(len(g.Players)); p++ {
+				if p == seat {
+					continue
+				}
+				got = append(got, concat(d.Zone(ZHand, p), d.Zone(ZLibrary, p))...)
+				want = append(want, concat(g.Zone(ZHand, p), g.Zone(ZLibrary, p))...)
+			}
+			if !multisetEqual(got, want) {
+				t.Fatalf("seat %d seed %d: opponent hidden-zone composition changed -- the re-deal must randomise location, not composition", seat, s)
+			}
+		}
+	}
+}
+
 // TestDeterminizeOpponentZoneCountsPreserved — breaks if a card moves between
 // an opponent's hand and library (per-zone counts change).
 func TestDeterminizeOpponentZoneCountsPreserved(t *testing.T) {
