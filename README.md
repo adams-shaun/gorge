@@ -28,7 +28,7 @@ blocks the commit when a package exceeds its budget. To raise a budget, edit
 Packages have a strict, one-directional dependency order:
 
 ```
-cards → state → decision → events → effects → rules → cmd/*
+cards → deck → state → decision → events → effects → rules → cmd/*
 ```
 
 `cards` depends on nothing in this module. Each later package may depend on
@@ -36,6 +36,9 @@ anything earlier in the chain, never the reverse — in particular, `effects`
 must never import `rules`.
 
 - `cards` — Forge card script parser, IR types, IR cache load/store
+- `deck` — the bare {name, count} deck-list JSON, resolved against a
+  `cards.Registry` into the repeated `[]*cards.Card` the rules core deals; the
+  one parser the test fixtures and the match host share
 - `state` — objects, zones, players, game state
 - `decision` — the choice/option types the rules core presents to a seat
 - `events` — the event union, `Apply`, the log, the hash chain
@@ -48,9 +51,10 @@ must never import `rules`.
 gorge itself is Apache-2.0. Card *behaviour* is compiled from
 [Card-Forge/forge](https://github.com/Card-Forge/forge)'s card scripts, which
 are GPL-3.0 — this repo ships a compiler for that script format, never the
-scripts themselves. `forgec fetch` pulls the corpus into `.cards/`, which is
-gitignored and never committed. `cards/boundary_test.go` fails the build if
-any Forge `.txt` script is ever tracked in git, working tree, index, or HEAD.
+scripts themselves. `forgec fetch` pulls the card corpus and its token
+scripts into `.cards/`, which is gitignored and never committed.
+`cards/boundary_test.go` fails the build if any Forge `.txt` script is ever
+tracked in git, working tree, index, or HEAD.
 
 ## Getting started
 
