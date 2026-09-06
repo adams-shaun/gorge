@@ -6,6 +6,7 @@ import (
 	"runtime/debug"
 	"sync"
 
+	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
@@ -201,10 +202,15 @@ func (pd *parkedDecision) answer() (decision.Intent, error) {
 // parkedData is the projected shape of one pending decision, split out of the
 // park step so the projection — which touches the live engine — can be held
 // under the match's exclusive lock while the seat step runs without it.
+// Exactly one of v (the projected View) and brd (the botpolicy.Board) is set:
+// a BoardSeat gets brd built from the engine under the same lock view.Project
+// would occupy, and no View is projected for it at all.
 type parkedData struct {
-	p  state.PlayerID
-	v  view.View
-	dc decision.Decision
+	p       state.PlayerID
+	v       view.View
+	dc      decision.Decision
+	brd     botpolicy.Board
+	isBoard bool
 }
 
 // projectNext reads the engine's current pending decision and projects the
@@ -216,30 +222,57 @@ type parkedData struct {
 // (rules/layers.go Engine.active), so projecting the live engine must not run
 // concurrently with a focus subscriber's own snapshot projection (which takes
 // only m.mu.RLock); running it inside the Submit's exclusive section keeps
-// the two from ever overlapping. Returns nil when there is no pending
-// decision (game over, or a stall the caller resolves via G.Over). Call on
-// the match goroutine, under m.mu.
-func projectNext(m *match) *parkedData {
+// the two from ever overlapping.
+//
+// seats lets it type-assert the deciding seat: a seat that implements
+// seat.BoardSeat gets a botpolicy.Board built from the engine (under the same
+// exclusive lock) instead of a projected View, so a bot seat never pays for
+// cardViews' string round-trip. The deciding seat is stable for the match, so
+// this agrees with parkSeat's own assertion on the same seat.
+//
+// Returns nil when there is no pending decision (game over, or a stall the
+// caller resolves via G.Over). Call on the match goroutine, under m.mu.
+func projectNext(m *match, seats []seat.Seat) *parkedData {
 	d := m.e.Pending()
 	if d == nil {
 		return nil
 	}
-	v := view.Project(m.e.G, m.e, d.Player, d)
 	dc := *d
 	dc.Options = append([]decision.Option(nil), d.Options...)
-	return &parkedData{p: d.Player, v: v, dc: dc}
+	// A BoardSeat answers from a botpolicy.Board and needs no projected View:
+	// build the Board from the engine the way BoardFromGame reads it (same
+	// zones, same derived P/T and keywords the View would carry) and skip
+	// view.Project entirely — cardViews' string encode/parse round-trip is the
+	// measured bulk of the suite's allocations, and a bot is the seat that
+	// does it per decision.
+	if _, ok := seats[d.Player].(seat.BoardSeat); ok {
+		return &parkedData{
+			p:       d.Player,
+			dc:      dc,
+			brd:     botpolicy.BoardFromGame(m.e.G, m.e, d.Player),
+			isBoard: true,
+		}
+	}
+	return &parkedData{p: d.Player, v: view.Project(m.e.G, m.e, d.Player, d), dc: dc}
 }
 
 // parkSeat installs the answerable slot for a projected decision: for a
 // HumanSeat it installs the slot without blocking, for any other seat (a bot,
-// or an embedder's blocking seat) it calls Decide. It is NEVER called under
+// or an embedder's blocking seat) it calls Decide — a BoardSeat via
+// DecideBoard, matching the half projectNext built. It is NEVER called under
 // m.mu — a blocking seat must not hold the match mutex across a Decide — but
 // by the time play calls it the next decision is already fully projected, and
 // the caller publishes (fanout) only after it returns, so publish-outranks-park
-// stays closed.
+// stays closed. The decision's owner seat is stable, so the BoardSeat/HumanSeat
+// assertions here match projectNext's, and exactly the field that was built is
+// consumed.
 func parkSeat(ctx context.Context, seats []seat.Seat, pd *parkedData) *parkedDecision {
 	if hs, ok := seats[pd.p].(*HumanSeat); ok {
 		return &parkedDecision{p: pd.p, hs: hs.park(ctx, pd.v, pd.dc)}
+	}
+	if bs, ok := seats[pd.p].(seat.BoardSeat); ok && pd.isBoard {
+		in, err := bs.DecideBoard(ctx, pd.brd, pd.dc)
+		return &parkedDecision{p: pd.p, in: in, err: err}
 	}
 	in, err := seats[pd.p].Decide(ctx, pd.v, pd.dc)
 	return &parkedDecision{p: pd.p, in: in, err: err}
@@ -335,7 +368,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 		if parked == nil {
 			var data *parkedData
 			err := m.locked(func() error {
-				data = projectNext(m)
+				data = projectNext(m, seats)
 				return nil
 			})
 			if err != nil {
@@ -373,7 +406,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 			// Derived cache). The old loop got the same serialization because
 			// its projection immediately preceded this Submit; this keeps it
 			// now that the park happens after the Submit.
-			nextData = projectNext(m)
+			nextData = projectNext(m, seats)
 			return nil
 		})
 		if err != nil {
