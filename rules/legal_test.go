@@ -138,8 +138,14 @@ func TestPassIsAlwaysOffered(t *testing.T) {
 	if kinds(e.legalActions(0))["pass"] != 1 {
 		t.Fatal("pass must always be available")
 	}
-	if e.legalActions(0)[len(e.legalActions(0))-1].Kind != "pass" {
-		t.Error("pass should be the last option so clients can default to it")
+	// M2d-3 (R-M3): pass is second-to-last, immediately before the final
+	// "concede" option. The old contract -- pass last so a client can
+	// default to the final option -- stopped being true the moment concede
+	// existed (a default-to-final client would concede on every priority),
+	// so this pins the new ordering instead.
+	opts := e.legalActions(0)
+	if len(opts) < 2 || opts[len(opts)-1].Kind != "concede" || opts[len(opts)-2].Kind != "pass" {
+		t.Errorf("options = %+v, want pass second-to-last and concede last", opts)
 	}
 }
 
