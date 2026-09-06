@@ -387,7 +387,7 @@ func TestBoardFromGameCensusSkipsNonCreatures(t *testing.T) {
 	whelp := g.AddObject(cardFace(t, "R Whelp", "Creature Whelp", 2, 2), 0)
 	land := g.AddObject(cardFace(t, "Mountain", "Basic Land Mountain", 0, 0), 0)
 	g.SetZone(state.ZBattlefield, 0, []state.ObjID{whelp.ID, land.ID})
-	got := BoardFromGame(g, stubChars{})
+	got := BoardFromGame(g, stubChars{}, 0)
 	if len(got.Creatures) != 1 {
 		t.Fatalf("census has %d creatures, want 1 (the land must be dropped)", len(got.Creatures))
 	}

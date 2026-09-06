@@ -2,6 +2,7 @@ package seat
 
 import (
 	"context"
+	"maps"
 	"math/rand/v2"
 	"slices"
 	"testing"
@@ -148,7 +149,19 @@ func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
 		// census and life from eGame.G) -- the exact expression the rules
 		// test host's answer uses, so a divergence between the two adapter
 		// halves fails here on the intent where it first appears.
-		inGame := botpolicy.Decide(botpolicy.BoardFromGame(eGame.G, eGame), eGame.Pending(), botGame)
+		boardGame := botpolicy.BoardFromGame(eGame.G, eGame, d.Player)
+		// The casting Card census (B4): the view-shaped half fills the same
+		// map for the same deciding player off the projected Hand/Graveyard/
+		// Battlefield CardViews. It is the new field this task's widening adds
+		// to Board, so it is pinned here explicitly -- not only through the
+		// intents below (which would catch a divergence only when a ranking
+		// actually flips a choice): a Cards map one half fills and the other
+		// leaves zero is a bot that casts differently depending on who asked.
+		boardView := boardFromView(view.Project(eView.G, eView, d.Player, d))
+		if !maps.Equal(boardView.Cards, boardGame.Cards) {
+			t.Fatalf("intent %d: casting Card census diverged: view %v vs game %v (step %s)", n, boardView.Cards, boardGame.Cards, eGame.G.Step)
+		}
+		inGame := botpolicy.Decide(boardGame, eGame.Pending(), botGame)
 		if inView.Seq != inGame.Seq || inView.Player != inGame.Player || !slices.Equal(inView.Choices, inGame.Choices) {
 			t.Fatalf("intent %d: adapters diverged: view %+v vs game %+v (step %s)", n, inView, inGame, eGame.G.Step)
 		}

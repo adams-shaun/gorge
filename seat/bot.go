@@ -69,6 +69,7 @@ func boardFromView(v view.View) botpolicy.Board {
 		IsMain:    v.Phase == "main1" || v.Phase == "main2",
 		Creatures: make(map[state.ObjID]botpolicy.Creature, 32),
 		Life:      make(map[state.PlayerID]int32, len(v.Players)),
+		Cards:     make(map[state.ObjID]botpolicy.Card, 16),
 	}
 	for _, p := range v.Players {
 		b.Life[p.ID] = p.Life
@@ -86,6 +87,26 @@ func boardFromView(v view.View) botpolicy.Board {
 			}
 		}
 	}
+	// The casting Card census: the viewer's own hand, graveyard and
+	// battlefield CardViews — the deciding seat's own legally-seen zones —
+	// mirroring exactly what BoardFromGame fills from state.Game for that
+	// seat (cast.go's CmcOf and the type-word check on the same printed
+	// fields, and the engine's derived Power that the View already projects
+	// as cv.Power), so the casting policy ranks the same card the same way
+	// on both halves.
+	for _, p := range v.Players {
+		if p.ID != v.Viewer {
+			continue
+		}
+		for _, cv := range append(append(append([]view.CardView(nil), p.Hand...), p.Graveyard...), p.Battlefield...) {
+			b.Cards[cv.ID] = botpolicy.Card{
+				Creature: isCreatureView(cv),
+				Power:    cv.Power,
+				CMC:      botpolicy.CmcOf(cv.ManaCost),
+				Basic:    hasBasicView(cv),
+			}
+		}
+	}
 	return b
 }
 
@@ -97,6 +118,20 @@ func boardFromView(v view.View) botpolicy.Board {
 func isCreatureView(cv view.CardView) bool {
 	for _, t := range strings.Fields(cv.Types) {
 		if strings.EqualFold(t, "Creature") {
+			return true
+		}
+	}
+	return false
+}
+
+// hasBasicView is the view-shaped half of "is this a basic land": the
+// game-shaped half reads the face's own type list (BoardFromGame's
+// Card.Basic via hasTypeWord), and the View carries the same type words
+// joined into one string, so this mirrors exactly that check on the
+// joined list.
+func hasBasicView(cv view.CardView) bool {
+	for _, t := range strings.Fields(cv.Types) {
+		if strings.EqualFold(t, "Basic") {
 			return true
 		}
 	}
