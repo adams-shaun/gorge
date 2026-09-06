@@ -361,15 +361,49 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 		zones[1] = ev.From
 		n = 2
 	}
-	for _, z := range strings.Split(spec, ",") {
-		want := effects.ParseZone(strings.TrimSpace(z))
-		for _, zone := range zones[:n] {
-			if want == zone {
-				return true
-			}
+	for _, zone := range zones[:n] {
+		if zoneSpecContains(spec, zone) {
+			return true
 		}
 	}
 	return false
+}
+
+// zoneSpecContains reports whether spec (a Forge TriggerZones value -- a
+// comma-separated list of zone names, constant for the life of the card)
+// lists want. It scans the string by slicing comma-separated parts apart with
+// strings.Cut, which shares the backing string and allocates nothing, instead
+// of strings.Split (whose []string is a fresh allocation per call). zoneGate
+// runs from the per-event trigger walk -- the same hot path Task A2 fixed the
+// zone copy in -- so this avoids churning an allocation for every trigger on
+// every event. Parts are handed to effects.ParseZone unchanged (it trims each
+// name itself), so the result is byte-identical to the old
+// strings.Split+TrimSpace+ParseZone loop, including its handling of empty
+// leading/trailing/double-separator segments: an empty zone name parses to
+// the graveyard, exactly as it always did.
+func zoneSpecContains(spec string, want state.Zone) bool {
+	// Walk separator-delimited segments by index so that, like strings.Split,
+	// a spec ending in a separator still yields a final empty segment (which
+	// effects.ParseZone resolves to the graveyard). strings.Cut would drop
+	// that trailing Phantom Graveyard part and change behaviour on a malformed
+	// spec; slicing keeps every segment while allocating nothing.
+	i := 0
+	for {
+		j := strings.IndexByte(spec[i:], ',')
+		var part string
+		if j < 0 {
+			part = spec[i:]
+		} else {
+			part = spec[i : i+j]
+		}
+		if effects.ParseZone(part) == want {
+			return true
+		}
+		if j < 0 {
+			return false
+		}
+		i += j + 1
+	}
 }
 
 // zoneChangeMatches implements Mode$ ChangesZone. The two keyword triggers
