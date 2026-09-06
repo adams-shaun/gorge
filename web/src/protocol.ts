@@ -91,6 +91,7 @@ export interface CardView {
   controller: number;
   owner: number;
   summon_sick: boolean;
+  attached_to?: number;
 }
 
 export interface PlayerView {
@@ -141,6 +142,10 @@ export interface Option {
   obj?: number;
   player: number;
   attacker?: number;
+  alt_cost_index?: number;
+  mode?: string;
+  amount?: number;
+  ability?: number;
 }
 
 export interface Decision {
@@ -151,6 +156,7 @@ export interface Decision {
   min: number;
   max: number;
   options: Option[];
+  source?: number;
 }
 
 export interface View {
