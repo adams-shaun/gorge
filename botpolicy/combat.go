@@ -118,8 +118,11 @@ func BoardFromGame(g *state.Game, ch Chars, me state.PlayerID) Board {
 	for _, z := range [...]state.Zone{state.ZHand, state.ZGraveyard, state.ZBattlefield} {
 		for _, id := range g.Zone(z, me) {
 			o := g.Obj(id)
+			if o == nil || o.Ephemeral() {
+				continue
+			}
 			f := o.Face()
-			if o == nil || f == nil || o.Ephemeral() {
+			if f == nil {
 				continue
 			}
 			b.Cards[id] = Card{
