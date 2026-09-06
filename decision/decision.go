@@ -84,28 +84,36 @@ type Option struct {
 	// mirrors Obj: an ObjID of 0 means "no object", so an option that has
 	// no attacker (any non-block option) emits no field.
 	Attacker state.ObjID `json:"attacker,omitempty"`
-	// AltCostIndex is server-side only: for a "cast" option, which cost this
-	// option pays. Zero (the default, so every other Option literal in the
-	// tree needs no change) means the card's own (RaiseCost/ReduceCost-
-	// adjusted) cost; a value of i+1 means alternativeCosts(p, id)[i] -- an
-	// AlternativeCost static's cost instead. Ruling T19b-b: without this,
-	// castSpell had no way to tell which cost the player actually agreed to
-	// pay when a card offered more than one "cast" option, and always paid
-	// the card's own cost regardless of which option was chosen.
-	AltCostIndex int `json:"-"`
-	// Mode is server-side only: how a "cast" option pays -- "" the card's
-	// own cost, "kicked", "surged", "flashback", "miracle".
-	Mode string `json:"-"`
-	// Amount is server-side only: for an "x" choose option, the X value the
-	// option represents (the option's Index is its position in the list, not
-	// its value -- see rules/cast.go's xAsk).
-	Amount int `json:"-"`
-	// Ability is server-side only: for an "ability" option, the index into
-	// the source Face().Abilities of the activated ability being offered
-	// (Task 10). Its zero value (default, so every other Option literal needs
-	// no change) means "the card's own spell ability" -- the same reuse
-	// AltCostIndex's zero value already describes.
-	Ability int `json:"-"`
+	// AltCostIndex says which cost a "cast" option pays: 0 is the card's own
+	// (RaiseCost/ReduceCost-adjusted) cost, i+1 is alternativeCosts(p, id)[i]
+	// -- an AlternativeCost static's cost instead -- so a client can show
+	// which of several costs the option pays. omitempty mirrors Obj: an
+	// option paying the card's own cost (the common case, and the default
+	// every other Option literal in the tree relies on) carries no field, so
+	// today's payloads are unchanged for it.
+	AltCostIndex int `json:"alt_cost_index,omitempty"`
+	// Mode distinguishes a "cast" option's payment kind: "" the card's own
+	// cost, "kicked", "surged", "flashback", "miracle" -- what the engine
+	// reads in beginCast's switch. A client renders a kicked/surged/
+	// flashback/miracle cast differently from an ordinary one instead of
+	// parsing the label for a keyword. omitempty: an ordinary cast (Mode "")
+	// carries no field.
+	Mode string `json:"mode,omitempty"`
+	// Amount is the X value an "x" choose option represents. The option's
+	// Index is its position in the list, not its value (see rules/cast.go's
+	// xAsk), so without this field a client could not tell "X = 4" from
+	// "X = 1" without rereading the label. omitempty: only x options carry
+	// it, and on an x option a missing field is exactly X = 0 (the one value
+	// that omits), which the option's own label "X = 0" already shows.
+	Amount int `json:"amount,omitempty"`
+	// Ability anchors an "ability" option to its exact activated ability:
+	// the index into the source Face().Abilities being offered (Task 10), so
+	// a client can pop that ability's own text up beside the right ability
+	// on the card. The engine reads it in beginActivation, where a stale
+	// index degrades to a no-op. omitempty: options that are not ability
+	// options carry no field, and on an ability option a missing field is
+	// index 0 (the first ability), the one value that omits.
+	Ability int `json:"ability,omitempty"`
 }
 
 // Decision is the engine asking one player for one answer.
@@ -117,8 +125,14 @@ type Decision struct {
 	Min     int            `json:"min"`
 	Max     int            `json:"max"`
 	Options []Option       `json:"options"`
-	// Source is server-side only: the object this decision resolves for.
-	Source state.ObjID `json:"-"`
+	// Source names the object this decision resolves for -- the spell whose
+	// {X} is being chosen, the card whose "as it enters" choice is pending
+	// -- so a prompt can always name its source (survey #18) without the
+	// client guessing it from the option labels. omitempty mirrors Obj: an
+	// ObjID of 0 means "no object", so decisions that do not resolve for a
+	// specific object (priority, mulligan, trigger order) carry no field and
+	// today's payloads are unchanged for them.
+	Source state.ObjID `json:"source,omitempty"`
 	// ResumeKind and ResumeSA are server-side only: how an effects.Host.Ask
 	// mid-resolution decision (M2d-2) suspends and re-enters the resolution
 	// it interrupted. The asking primitive sets them -- ResumeKind tags the
