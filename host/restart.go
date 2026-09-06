@@ -41,6 +41,13 @@ func (r *Registry) load() error {
 				if err := writeSidecar(r.opts.Dir, sc, r.opts.Sync); err != nil {
 					return err
 				}
+				// Task M2c-1: a match the previous process was cut off in is
+				// recorded here as aborted; an embedder that persists every
+				// match needs to observe it as such, so OnMatchEnd fires with
+				// the rewritten (aborted) MatchInfo, like any other terminal
+				// transition. Sidecar-derived, not a live match — see
+				// callOnMatchEnd.
+				r.callOnMatchEnd(rec.Config.ID, sc.Match, sc.info())
 			}
 			t.archived = append(t.archived, sc)
 			if sc.Match > t.k {
