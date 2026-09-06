@@ -308,6 +308,34 @@ func (e *Engine) checkLoseConditions(tried *sbaAttempts) bool {
 			changed = true
 		}
 	}
+	// CR 903.10 (commander damage, Task m33): a player that has been dealt 21
+	// or more COMBAT damage by the same commander over the course of the game
+	// loses. This is a state-based action exactly like the life loss above,
+	// checked with all the others in the same fixed seat order (reusing
+	// PlayerLost means the loss itself is processed exactly the way a life
+	// loss is -- same event, same removal sweep below, same GameOver). It is
+	// gated on the construction format so that NOTHING here runs in a
+	// non-Commander game: a Constructed-format Config has no Commander book-
+	// keeping at all (cmdDamage is nil), so the loop over it is skipped
+	// wholesale. Commanders record damage per-commander, so the slice is
+	// walked as two indices -- candidate player, then that player's commander
+	// slots -- in the same deterministic order a life check uses.
+	if e.format == FormatCommander {
+		for i := range e.G.Players {
+			p := &e.G.Players[i]
+			if p.Lost {
+				continue
+			}
+			for _, dmg := range p.CmdDamage {
+				if dmg >= 21 {
+					e.emit(events.Event{Kind: events.PlayerLost, Player: p.ID,
+						Text: "commander damage (21 or more from one commander)"})
+					changed = true
+					break
+				}
+			}
+		}
+	}
 	tried.rearm(e.G.AliveCount())
 	for i := range e.G.Players {
 		p := &e.G.Players[i]

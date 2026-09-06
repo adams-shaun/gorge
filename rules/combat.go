@@ -303,6 +303,31 @@ func (e *Engine) actsThisDamageStep(id state.ObjID, firstStrike bool) bool {
 	return !firstStrike
 }
 
+// tallyCmdDamage records that the commander object from dealt amount combat
+// damage to the player p (CR 903.10), by emitting the CmdDamage event that
+// events.Apply folds into that player's cumulative commander-damage tally
+// (state.Player.CmdDamage). It must only be called from the combat damage
+// step, for a Player-targeted assignment whose damage actually landed (not
+// prevented or replaced), in a Commander-format game -- the caller in
+// damageStep arms all three, and the Apply case derives the commander's
+// match-wide dense index (the same slot m30's genesis sizes and New's
+// Commanders bookkeeping names) from g.Players[].Commanders, which is what
+// keeps a commander keyed to the same slot for the whole match.
+//
+// The tally is carried in an event of its own rather than written directly:
+// the existing Damage event does not record which commander the source was
+// (events.Event's fields are append-only, so its field set is frozen), so a
+// reconstruction starting from the log alone cannot re-derive the per-
+// commander tally from the Damage events it already has. Recording the tally
+// in a CmdDamage event -- appended after every earlier Kind, so no ordinal,
+// hash chain or golden replay is affected -- makes that same log-only replay
+// fold the tally back exactly, which is the deciding question the brief poses
+// (and answers "carried in an event of its own"). It also keeps every state
+// mutation on the events.Apply path, the build's standing invariant.
+func (e *Engine) tallyCmdDamage(p state.PlayerID, from state.ObjID, amount int32) {
+	e.emit(events.Event{Kind: events.CmdDamage, Player: p, Obj: from, Amount: amount})
+}
+
 // damageStep computes and then applies one round of combat damage --
 // first-strike creatures only, or everyone else, per firstStrike. Every
 // Power/Toughness/HasKeyword read above the emit loop happens before any
@@ -431,7 +456,28 @@ func (e *Engine) damageStep(firstStrike bool) {
 					Counter: "Deathtouched", Amount: 1})
 			}
 		} else {
-			e.emit(events.Event{Kind: events.Damage, Player: x.toPlayer, Amount: x.amount})
+			// Combat damage to a player. The existing (Task 15) protection
+			// prevention path only armed the Obj branch; the player branch
+			// never read the emit's return value. In a Commander-format game
+			// (CR 903.10, Task m33) this branch must know whether the damage
+			// actually landed before it tallies commander damage -- so it
+			// reads the returned kind exactly the way the Obj branch already
+			// does, and only tallies when it is still a Damage event (a
+			// replacement-substituted Note means prevented/replaced damage,
+			// which must not add to the tally). Reusing `prevented` here also
+			// makes the shared lifelink rider below skip a prevented
+			// player-hit, consistent with the Obj branch. Non-Commander games
+			// take the original single-emit path untouched, so this task
+			// changes nothing about them.
+			if e.format == FormatCommander {
+				ev := e.emit(events.Event{Kind: events.Damage, Player: x.toPlayer, Amount: x.amount})
+				prevented = ev.Kind != events.Damage
+				if !prevented {
+					e.tallyCmdDamage(x.toPlayer, x.from, x.amount)
+				}
+			} else {
+				e.emit(events.Event{Kind: events.Damage, Player: x.toPlayer, Amount: x.amount})
+			}
 		}
 		if x.hasLink && !prevented {
 			e.emit(events.Event{Kind: events.LifeChange, Player: x.lifelink, Amount: x.amount})

@@ -157,6 +157,21 @@ const (
 	// precedent, so no earlier ordinal, hash chain or golden replay is
 	// affected (M2d-2).
 	ModeChosen
+	// CmdDamage records a commander dealing combat damage to a player (CR
+	// 903.10, Task m33). Player is the damaged player, Obj the source
+	// commander (whose Object ID is stable across zone moves), and Amount
+	// the damage that actually landed (prevented/replaced damage is never
+	// emitted). events.Apply folds it into that player's cumulative
+	// commander-damage tally (state.Player.CmdDamage), keyed by the source
+	// commander's match-wide dense index derived from g.Players[].Commanders.
+	// Carried as a dedicated event rather than derived from the existing
+	// Damage events because those do not record which commander the source
+	// was -- this event is what lets a reconstruction starting from the log
+	// alone rebuild the per-commander tally. Appended after ModeChosen,
+	// following every prior Kind's append-only precedent, so no earlier
+	// ordinal, hash chain or golden replay is affected. Only ever emitted in
+	// a Commander-format game.
+	CmdDamage
 )
 
 var kindNames = [...]string{"game_start", "shuffle", "move_zone", "draw",
@@ -165,7 +180,7 @@ var kindNames = [...]string{"game_start", "shuffle", "move_zone", "draw",
 	"declare_blockers", "player_lost", "game_over", "decision_ask",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
-	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen"}
+	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

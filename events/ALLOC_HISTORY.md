@@ -6,3 +6,4 @@ rss_budget_mb: 16
 | date (UTC) | commit | rss_mb | alloc_mb | runner |
 |---|---|---|---|---|
 | 2026-09-06T17:49Z | 22d1f2e+ | 9 | 37 | sadams |
+| 2026-09-06T22:49Z | 8d467a7+ | 10 | 16 | sadams |

@@ -384,7 +384,55 @@ func Apply(g *state.Game, e Event) {
 		// ability can remember a player the same way a trigger can, so the
 		// two mint paths stay symmetric through rememberedFrom.
 		o.Remembered = rememberedFrom(e.IDs)
+
+	case CmdDamage:
+		// Commander combat damage to a player (CR 903.10, Task m33): fold
+		// Amount into Player's cumulative tally at the source commander's
+		// match-wide dense index, exactly the slot m30's genesis sizes and
+		// New's Commanders bookkeeping names, so commander B keeps one slot
+		// - and one cumulative total - for the whole match, across zone
+		// changes and recasts (state.ObjID is stable across moves). A
+		// log-only reconstruction reproduces the tally because the event
+		// itself carries it; deriving it from the existing Damage events is
+		// impossible because those carry no source. Guarded to totality
+		// like every case here: an out-of-range Player, a nonexistent
+		// source, or a game whose CmdDamage was never sized (a non-
+		// Commander game, or a hand-built state) is a no-op, never a panic.
+		if validPlayer(g, e.Player) && e.Obj != 0 {
+			if idx, ok := commanderDenseIndex(g, e.Obj); ok {
+				if idx >= 0 && idx < len(g.Players[e.Player].CmdDamage) {
+					g.Players[e.Player].CmdDamage[idx] += e.Amount
+				}
+			}
+		}
 	}
+}
+
+// commanderDenseIndex returns id's match-wide dense commander index - (valid
+// commanders in every seat before its owner) plus (its position within its
+// owner's Commanders list) - and whether id is a commander at all, mirroring
+// the exact indexing rules.New assigns at genesis (see rules/engine.go):
+// seat B's CmdDamage holds a slot for seat A's commander at A's commander's
+// dense index, so the k-th commander of seat p is index
+// sum(len(Commanders[s]) for s<p) + k. Walked deterministically by index over
+// the seat slice and each seat's Commanders slice - never a map - so the
+// order cannot and does not matter to the result.
+func commanderDenseIndex(g *state.Game, id state.ObjID) (int, bool) {
+	if id == 0 {
+		return 0, false
+	}
+	for p := range g.Players {
+		for k, c := range g.Players[p].Commanders {
+			if c == id {
+				idx := 0
+				for s := 0; s < p; s++ {
+					idx += len(g.Players[s].Commanders)
+				}
+				return idx + k, true
+			}
+		}
+	}
+	return 0, false
 }
 
 // rememberedFrom decodes an event's IDs into the Remembered list an ability
