@@ -45,6 +45,16 @@ type TableConfig struct {
 	// Perpetual (validation rejects that combination); a human-seated table
 	// always ends at game over.
 	Humans []int `json:"humans,omitempty"`
+	// Mulligans is the London mulligan allowance: each player may take up to
+	// this many mulligans in the pre-game round between the opening deal and
+	// turn 1 (rules.Config.Mulligans). 0 — the zero value, and what every
+	// table before M2e-5 played with — skips the round entirely, so a table
+	// that never sets it behaves byte-identically to today. It travels on the
+	// same TableConfig that seed/decks/names travel on, so both the live
+	// match and a restart's replays rebuild the same rules.Config (R-8.4: the
+	// replay's Config must carry it too, or a match played with a round stops
+	// replaying). Negative values are rejected by validate.
+	Mulligans int `json:"mulligans,omitempty"`
 }
 
 var ErrNotFound = errors.New("host: not found")
@@ -55,6 +65,8 @@ func (c TableConfig) validate(load func(string) (Deck, error)) error {
 		return fmt.Errorf("host: table has no id")
 	case c.Seats < 1 || c.Seats > 8:
 		return fmt.Errorf("host: table %s: seats %d, want 1..8", c.ID, c.Seats)
+	case c.Mulligans < 0:
+		return fmt.Errorf("host: table %s: mulligans %d, want >= 0 (0 disables the London round)", c.ID, c.Mulligans)
 	case len(c.Decks) == 0:
 		return fmt.Errorf("host: table %s: no decks", c.ID)
 	case c.Spectator != view.Public && c.Spectator != view.Omniscient:

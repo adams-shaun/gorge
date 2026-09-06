@@ -33,6 +33,14 @@ type sidecar struct {
 	Events    int                 `json:"events"`
 	Turns     int32               `json:"turns"`
 	Reason    string              `json:"reason,omitempty"`
+	// Mulligans is the London-mulligan allowance the match's rules.Config ran
+	// with, persisted so a restart rebuilds a replay Config that reproduces
+	// the match (R-8.4; host/viewat.go rebuilds its Config from this sidecar
+	// alone, not from the live TableConfig). omitempty keeps both an old
+	// sidecar that predates the field and a no-mulligan match loading as
+	// exactly 0 — the value those matches played with — so nothing is
+	// migrated or versioned (R-E5-2).
+	Mulligans int `json:"mulligans,omitempty"`
 }
 
 func (sc sidecar) info() protocol.MatchInfo {
