@@ -64,8 +64,11 @@ type Board struct {
 //     fallback, and clamp's top-up prefers "pass" (Ruling T25-g), which
 //     legalActions (rules/legal.go) always offers. Unknown option kinds are
 //     otherwise never chosen by this switch at all.
-//   - KTarget: prefer an opposing player; fall back to the first legal
-//     target.
+//   - KTarget: the targeting heuristic in target.go's chooseTargets (R1-R5,
+//     stated there): never target your own permanent while an opposing
+//     option exists, prefer the opponent's best battlefield creature over
+//     their face (ranked by threat(), not pt() or raw Power), and honour
+//     Min/Max without leaning on clamp. Consumes no rng.
 //   - KAttackers/KBlockers: the combat heuristic in combat.go's
 //     chooseAttackers/chooseBlockers (AR1-AR4 / BR1-BR2, stated there).
 //     Neither consumes the rng: the choice is a pure function of the
@@ -168,16 +171,8 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 		}
 
 	case decision.KTarget:
-		for _, o := range d.Options {
-			if o.Kind == "player" && o.Player != d.Player {
-				in.Choices = []int{o.Index}
-				return clamp(d, in)
-			}
-		}
-		if len(d.Options) > 0 {
-			in.Choices = []int{d.Options[0].Index}
-			return clamp(d, in)
-		}
+		in.Choices = b.chooseTargets(d)
+		return clamp(d, in)
 
 	case decision.KAttackers:
 		in.Choices = b.chooseAttackers(d)
