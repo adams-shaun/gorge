@@ -364,6 +364,124 @@ func TestTheHumanSeatIsAskedToMulligan(t *testing.T) {
 	}
 }
 
+// playDeadline bounds a full human-driven match. The loop's assertions
+// never depend on it — the seat view reporting over is the only exit — but
+// a wedged drive must fail with what it got, not hang the suite (R-E6-3).
+const playDeadline = 60 * time.Second
+
+// playMatchToCompletion drives the whole product: the human seat answers
+// every decision of the match through the HTTP surface — the exact URL
+// shapes web/src/lib/api.ts builds — until the seat view reports over. It
+// returns the census of decision kinds met (one count per kind), the answer
+// count, and whether any posted choice named a concede option.
+//
+// The driver answers each decision with its first Min option indices: never
+// a card name, never a label, never the last option. Validate only checks
+// range/count/duplicates, and with Min == Max == taken (mulligan bottoming,
+// trigger order) the first Min indices are a legal permutation, so this
+// prefix is a legal answer to every kind the engine can ask — a
+// rules-ignorant client, exactly like the seat panel.
+func playMatchToCompletion(t *testing.T, url, seat, tok string) (census map[decision.Kind]int, answers int, conceded bool) {
+	t.Helper()
+	pendingURL := url + "/api/tables/t1/matches/1/pending"
+	intentURL := url + "/api/tables/t1/matches/1/intent"
+	census = make(map[decision.Kind]int)
+	deadline := time.Now().Add(playDeadline)
+	for {
+		d, status := decisionOnce(t, pendingURL, seat, tok)
+		if status == http.StatusOK {
+			in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: make([]int, d.Min)}
+			for i := range in.Choices {
+				in.Choices[i] = i
+			}
+			// R-E6-1 (FL-101 in test code): the final option on every
+			// priority decision is "concede". Report it if a choice ever
+			// names one — the driver must never pick it, and the census is
+			// the context that says what the game asked instead.
+			for _, c := range in.Choices {
+				if d.Options[c].Kind == "concede" {
+					conceded = true
+				}
+			}
+			body, err := json.Marshal(in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			req, err := http.NewRequest(http.MethodPost, intentURL, bytes.NewReader(body))
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Header.Set("Authorization", "Bearer "+tok)
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatalf("intent post: %v", err)
+			}
+			resp.Body.Close()
+			// The intent is built from the decision just offered, and the
+			// engine parks on it, so a rejection here is a real bug — a
+			// stale seq, wrong player or bad index — never a transient.
+			if resp.StatusCode != http.StatusNoContent {
+				t.Fatalf("intent for %s seq %d answered %d, want 204", d.Kind, d.Seq, resp.StatusCode)
+			}
+			census[d.Kind]++
+			answers++
+			continue // the engine is waiting on this seat: poll again now
+		}
+		// No decision parked: the other seat is deciding, or the match is
+		// over. The seat view is the oracle for over; only a stalled drive
+		// may hit the deadline, and it must report the census it got.
+		if seatViewOver(t, url) {
+			return census, answers, conceded
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("match did not reach over within %s: %d answers, census %v (last pending status %d)",
+				playDeadline, answers, census, status)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+// TestAHumanPlaysAMatchToCompletion is the Ruling FL-102 gate: it plays a
+// complete two-seat match through the HTTP surface as a human seat and
+// asserts the census of decision kinds a real player actually meets. Every
+// other gate measures the engine against itself; this one plays the product
+// (the route that found the London mulligan unreachable from gorged). The
+// assertions are reachability, not exact counts: a seed, deck or engine
+// change that moves a count is not a failure; one that removes a kind a
+// player can meet is.
+func TestAHumanPlaysAMatchToCompletion(t *testing.T) {
+	url, cancel, done := startServe(t, config{tables: 1, seats: 2, humansRaw: "0", pace: 0, perpetual: true, seatToken: "tok", mulligans: 1})
+	defer cancel()
+	waitTables(t, url, 1)
+
+	// The driver returns only once the seat view reports over, so "reached
+	// over" is the loop's contract, asserted by construction.
+	census, answers, conceded := playMatchToCompletion(t, url, "0", "tok")
+
+	// A real game, not a stall: the mulligan keep alone is not a game.
+	if answers < 2 {
+		t.Fatalf("match ended after %d answer(s), census %v: a real game asks the seat more than once", answers, census)
+	}
+	// R-E6-1: choosing the last option would have conceded on the first
+	// priority decision and "passed" a one-answer game.
+	if conceded {
+		t.Fatalf("a posted choice named a concede option, census %v: the driver must pick 0..Min-1, never the last option", census)
+	}
+	// The mulligan reachability is the point of the test (finding bb):
+	// with -mulligans 1 the keep ask is the first decision of the game, and
+	// a failure here means served games silently skip the London round.
+	if census[decision.KMulligan] == 0 {
+		t.Fatalf("the human met no mulligan decision, census %v: the London round did not reach the served game — is Config.Mulligans threaded into the table config?", census)
+	}
+	if census[decision.KPriority] == 0 {
+		t.Fatalf("the human met no priority decision, census %v", census)
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatalf("serve: %v", err)
+	}
+}
+
 // TestHumanSeatRefusesTheOtherSeat: a token minted for seat 0 is refused
 // when the request names seat 1 — the claim≠requested comparison of M2e-2,
 // and the whole reason the resolver cannot be a rubber stamp (R-E3-3).
