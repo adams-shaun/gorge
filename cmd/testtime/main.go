@@ -113,6 +113,24 @@ func main() {
 	commit := headCommit()
 	date := time.Now().UTC().Format("2006-01-02T15:04Z")
 
+	// A package that did not COMPILE still produces a package-level "fail"
+	// event, so results is non-empty and the len(results)==0 branch above
+	// never fires; its result is 0 tests in 0.0s, which sails under every
+	// budget. That combination used to record a "0 tests" row in
+	// TEST_HISTORY.md and let the commit through -- a gate that cannot tell
+	// "passed" from "never ran" is not a gate. Tests that ran and FAILED are
+	// a different case and still measure fine (they report a real count), so
+	// the guard is specifically runErr plus a package that produced no test
+	// events at all.
+	if runErr != nil {
+		for _, imp := range selected {
+			if res, ok := results[imp]; ok && res.tests == 0 {
+				fmt.Fprintf(os.Stderr, "testtime: %s produced no test events and go test failed (%v) -- almost certainly a build failure; nothing was measured\n", imp, runErr)
+				os.Exit(exitInfra)
+			}
+		}
+	}
+
 	exitCode := 0
 	for _, imp := range selected {
 		res, ok := results[imp]
