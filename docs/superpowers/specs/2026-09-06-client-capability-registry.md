@@ -81,6 +81,61 @@ Every fact these need is already on the wire.
 - **Never default to the last option.** The final option on every priority
   decision is `concede` (FL-101). Resolve by `kind`, never by position.
 
+## The label/discriminator gap — one class, five fields
+
+**This is the single biggest obstacle to the "client must not guess" rule**, and
+it is one root cause, not five bugs.
+
+`decision.Option` and `decision.Decision` carry a human-readable `Label` and
+hide the machine-readable discriminator behind it:
+
+| Field | `json` | What the client cannot do without it |
+|---|---|---|
+| `Option.Ability` | `-` | Anchor an ability popup to the right ability on the card. It gets `kind:"ability"` and a label, and nothing tying it to a specific ability. |
+| `Option.Mode` | `-` | Tell a kicked / surged / flashback / miracle cast from an ordinary one. |
+| `Option.AltCostIndex` | `-` | Tell which of several costs a `cast` option pays. |
+| `Option.Amount` | `-` | Know what X value an `x` option represents; the index is its position, not its value. |
+| `Decision.Source` | `-` | Name the source object in the prompt — survey #18, "always name the source". |
+
+`Option.Attacker` was the sixth and was fixed in U0. **The remaining five should
+be fixed the same way, as one task**, before UI is built on top of label
+parsing. A client that reads `"Cast Bolt (kicked)"` to discover the mode is
+doing rules inference by string-match, which is precisely the property
+`interface-comparison.md` row 4 records gorge as having and the legacy client
+as lacking (8 inference sites).
+
+`ResumeKind` and `ResumeSA` are genuine engine internals and stay hidden.
+
+## Needs wire work (added 2026-09-06)
+
+| Item | What the UI wants | Gap |
+|---|---|---|
+| **Equipment/Auras ride under the attachee** | An attachment rendered beneath the permanent it modifies, clearly visible. | `state.Object.AttachedTo` exists (`state/object.go:84`) and is **not on `CardView`**. The client cannot tell what is attached to what. Same shape as `Option.Attacker`. |
+| **Game-level counters (storm count, etc.)** | "Storm count: 3" and its siblings, rendered as board state. | Storm is computed inside `effects/count.go` from the log (`Count$ThisTurnCast`). No game-level count reaches the wire; a client would have to re-derive it by counting events — guessing. |
+| **Card-anchored ability shortcuts** | Tap-for-effect shortcuts on the card, with a popup to pick which ("tap for red", "pay 2 life, sacrifice, draw"). | Needs `Option.Ability` above. Options exist and are legal; they simply cannot be attached to the card that owns them. |
+
+## Needs engine work (added 2026-09-06)
+
+| Item | Why it is blocked |
+|---|---|
+| **Scry X** | Not registered. `grep Register` in `effects/` has `Mill` and no `Scry`. |
+| **"View Z from the top, put N back in any order"** | `effRearrangeTopOfLibrary` (`effects/cardflow.go:210`) looks at the top N and **emits a Note with the order unchanged** — the reorder is never asked. Already listed as a known approximation in `AGENTS.md`. |
+| **Auto mode: autopay mana** | There is no autopay. `legalActions` offers one `activate` per permanent that taps its **whole mana ability set together** (`rules/legal.go:139`); there is no remaining-cost figure and no choice of which mana a dual produces. |
+| **Auto mode: skip priority intelligently** | "Do not pause unless cards can be played and another player has something on the stack; on your own turn, pass each phase." Client-side this round-trips every priority window; engine-side it is real backend work. Same open question as #2/#6. |
+
+## Client-only (added 2026-09-06)
+
+| Item | Support |
+|---|---|
+| **Mulligan view** | `KMulligan`, with keep/mulligan and bottoming option kinds. Reachable in served games since M2e-5. |
+| **Mana pool rendering** | `PlayerView.pool` — `Record<string, number>`. |
+| **+X/+Y counters vs actual strength** | **Already solved and worth knowing.** `CardView.power`/`toughness` are **derived**, read through `ch.Power(id)`, not printed fields — counters and effects are already applied. `CardView.counters` ships alongside, so "3/3 (2/2 +1/+1)" needs no inference. |
+| **Ability/keyword icons (deathtouch, double strike)** | `CardView.keywords` is **derived** too, so *granted* keywords appear, not just printed ones. |
+| **Identical-card stacking** | Group by `printing` — no 100 separate zombie tokens. |
+| **Graveyard / exile stack viewers** | `PlayerView.graveyard`, `.exile`. |
+| **Targeting and attack effect overlays** | `StackView.targets[]` plus `Option.Attacker` (U0). |
+| **Hover for art and oracle text** | `CardView.printing{name,set,number}` is explicitly "the identity a client resolves an image by". **Resolve art and oracle text from mtgbld's Scryfall catalog, not the gorge wire** — gorge compiles Forge scripts and deliberately ships no card text, so adding oracle text to this wire would raise a licensing question that the catalog already answers. |
+
 ## Open questions
 
 - **#6 and #2**: client-local or engine-modelled? Affects whether they survive
@@ -88,3 +143,9 @@ Every fact these need is already on the wire.
 - **Reconnect/resync**: `interface-comparison.md` row 10 records this as *not
   implemented* on the gorge side. Unverified since; re-check before designing
   anything that depends on it.
+- **Auto vs manual mode** is two features wearing one name: "autopay mana" is an
+  engine feature, "skip priority intelligently" is a stops/yield policy. They
+  can ship independently and should be scoped separately.
+- **Where does auto-mode policy live?** Client-local is cheap and does not
+  survive a reconnect; engine-side survives and avoids a round trip per
+  priority window. Same decision as #2 and #6 — answer it once for all three.
