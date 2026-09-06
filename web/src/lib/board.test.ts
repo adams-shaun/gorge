@@ -10,7 +10,7 @@ const card = (id: number, types: string): CardView => ({ id, name: `c${id}`, typ
 // that real shape for the test.
 const player = (hand: CardView[] | null): PlayerView => ({
   seat: 0, name: 'p', life: 20, lost: false, library_size: 0, hand_size: 0, graveyard_size: 0,
-  hand: hand as CardView[], battlefield: [], graveyard: [], exile: [], pool: {},
+  hand: hand as CardView[], battlefield: [], graveyard: [], exile: [], pool: {}, command: [], commanders: [], commander_casts: [],
 });
 
 describe('board', () => {

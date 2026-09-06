@@ -107,6 +107,10 @@ export interface PlayerView {
   graveyard: CardView[];
   exile: CardView[];
   pool: Record<string, number>;
+  command: CardView[];
+  commanders: CardView[];
+  commander_casts: number[];
+  cmd_damage?: Record<string, number>;
 }
 
 export interface TargetView {

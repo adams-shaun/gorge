@@ -75,7 +75,8 @@ func assertKeysClosed(t *testing.T, typeName string, typ reflect.Type, want map[
 // priority, over, draw, winner, players, stack, pending, decision}. The same
 // allowlist treatment is applied to PlayerView (the type that actually
 // carries hand/pool/library_size — the leak surface D6 most protects against
-// — 12 fields) and StackView (8 fields).
+// — 16 fields, four of them this Task's public commander facts) and
+// StackView (8 fields).
 //
 // Second it marshals a real OMniscient projection — the widest-everywhere
 // view, the one a leaked endpoint would send — and asserts that what is
@@ -97,12 +98,17 @@ func TestViewMarshalsClosed(t *testing.T) {
 	// PlayerView is where the hidden zones actually live, so it gets the
 	// same strict allowlist View does — a future LibraryTop/Sideboard/
 	// Revealed/untagged Deck here fails even when it is not one of the two
-	// names this test used to spot-check.
+	// names this test used to spot-check. The four commander fields added
+	// by Task m37 (command/commanders/commander_casts/cmd_damage) carry
+	// public-for-every-seat facts — the command zone, the roster, the CR
+	// 903.8 cast counts and the CR 903.10 clock — so they join the other
+	// public zones here, not the hidden-zone class the test guards against.
 	assertKeysClosed(t, "view.PlayerView", reflect.TypeOf(view.PlayerView{}), map[string]bool{
 		"seat": true, "name": true, "life": true, "lost": true,
 		"library_size": true, "hand_size": true, "graveyard_size": true,
 		"hand": true, "battlefield": true, "graveyard": true, "exile": true,
-		"pool": true,
+		"pool": true, "command": true, "commanders": true,
+		"commander_casts": true, "cmd_damage": true,
 	})
 	// StackView is public (R3) so it is a lesser leak surface, but the
 	// reflection is the same shape and cheap, so it is pinned too.

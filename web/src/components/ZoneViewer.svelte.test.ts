@@ -10,7 +10,7 @@ const card = (id: number, name: string, types: string): CardView => ({
 
 const player = (graveyard: CardView[], exile: CardView[], librarySize = 30): PlayerView => ({
   seat: 0, name: 'P0', life: 20, lost: false, library_size: librarySize, hand_size: 7, graveyard_size: graveyard.length,
-  hand: [], battlefield: [], graveyard, exile, pool: {},
+  hand: [], battlefield: [], graveyard, exile, pool: {}, command: [], commanders: [], commander_casts: [],
 });
 
 describe('ZoneViewer', () => {
