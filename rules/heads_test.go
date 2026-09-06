@@ -41,11 +41,27 @@ import (
 //   - M2d-3, concede (R-M3): moves NOTHING. It only adds an option to every
 //     priority decision, and neither bot mirror ever picks it; an offered
 //     but untaken option is not an event.
+//
+// B2 (combat heuristics) is the next regeneration, and it moves 4, 6 and 8.
+// The bot stopped attacking with everything unconditionally and stopped
+// blocking on a coin flip per option: it now weighs whether an attacker
+// survives, gets through or trades up, and blocks for favourable and even
+// trades, chumping only against lethal. Different attacks and different
+// blocks mean different damage, different deaths and a different game from
+// the first combat onward, so every acceptance game with a combat step
+// diverges.
+//
+//   - The 2-seat head is UNCHANGED at 45e0671d07b60d9e. Measured, not
+//     assumed: that game's only combat decisions are five attacker
+//     declarations the new policy also makes in full, and it has no blocker
+//     decisions at all, so there is nothing for the new policy to decide
+//     differently. A seat count that does not move is evidence the change is
+//     the one described rather than a broad perturbation.
 var acceptanceHeads = map[int]string{
 	2: "45e0671d07b60d9e",
-	4: "795a100313094d6c",
-	6: "0311852b655e44d0",
-	8: "1216344ec91e5881",
+	4: "04950e3969039a7b",
+	6: "d70bc7e30c0fccdd",
+	8: "496784e7fbcf37be",
 }
 
 func TestHeads(t *testing.T) {
