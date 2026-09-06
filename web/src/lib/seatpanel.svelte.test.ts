@@ -41,6 +41,47 @@ describe('SeatPanelState', () => {
     postIntentMock.mockResolvedValue(undefined);
   });
 
+  // Regression: the panel used to learn about a new decision ONLY from
+  // view.decision, refreshed by the SSE 'decision' frame, so the stream was a
+  // single point of failure — miss one frame and the panel sat empty forever
+  // while the server held a decision for this seat. Seen in the first real
+  // game played through this client. refreshPending must recover on its own,
+  // with adoptView never called again.
+  it('recovers a decision the stream never delivered: refreshPending alone picks up the next ask', async () => {
+    const p = new SeatPanelState('t1', 1, ctx);
+    p.adoptView(priority(5, [cast(0), pass(1), concede(2)]));
+    p.click(1);
+    await settle(() => p.postedSeq === 5);
+    expect(p.pending).toBeNull();
+
+    // The stream is dead from here on: no further adoptView. The server has
+    // moved on and only /pending knows it.
+    fetchPendingMock.mockResolvedValue(priority(9, [cast(0), pass(1), concede(2)]));
+    await p.refreshPending();
+    await settle(() => p.pending?.seq === 9);
+    expect(p.pending?.seq).toBe(9);
+
+    // and it is answerable, not merely displayed
+    p.click(1);
+    await settle(() => p.postedSeq === 9);
+    expect(postIntentMock).toHaveBeenLastCalledWith('t1', 1, { seq: 9, player: 0, choices: [1] }, ctx);
+  });
+
+  // The poll must not re-open a decision this seat already answered: while the
+  // server still reports the answered ask, /pending returns it again.
+  it('a poll that returns the decision just answered does not re-open it', async () => {
+    const p = new SeatPanelState('t1', 1, ctx);
+    const d = priority(5, [cast(0), pass(1), concede(2)]);
+    p.adoptView(d);
+    p.click(1);
+    await settle(() => p.postedSeq === 5);
+
+    fetchPendingMock.mockResolvedValue(d);
+    await p.refreshPending();
+    await drain();
+    expect(p.pending).toBeNull();
+  });
+
   it('test 1 — the panel posts the option the user picked: its index and the decision seq', async () => {
     const p = new SeatPanelState('t1', 1, ctx);
     const d = priority(5, [cast(0), pass(1), concede(2)]);

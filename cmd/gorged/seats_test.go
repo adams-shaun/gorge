@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -88,3 +89,24 @@ type stubAddr string
 
 func (a stubAddr) Network() string { return "tcp" }
 func (a stubAddr) String() string  { return string(a) }
+
+// TestJoinURLPointsAtTheLiveTable pins the path of the printed join URL. "/"
+// is the lobby; clicking a live match there navigates to /t/t1/m/1, the
+// finished-match REPLAY route, which paints a frozen snapshot with no stream
+// and never advances. The first person to play through this client joined at
+// "/" and spent the game looking at history while the real one waited. The
+// URL must land on the live table route.
+func TestJoinURLPointsAtTheLiveTable(t *testing.T) {
+	g, err := newSeatGate("tok", []int{0})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := fmt.Sprintf("http://%s/t/t1?seat=%d&token=%s", joinHost(stubAddr("[::]:8080")), 0, g.token(0))
+	want := "http://127.0.0.1:8080/t/t1?seat=0&token=tok"
+	if got != want {
+		t.Fatalf("join URL = %q, want %q", got, want)
+	}
+	if strings.Contains(got, "/?seat=") {
+		t.Fatalf("join URL %q lands on the lobby, not the live table", got)
+	}
+}
