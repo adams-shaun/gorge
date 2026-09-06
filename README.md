@@ -28,12 +28,16 @@ blocks the commit when a package exceeds its budget. To raise a budget, edit
 Packages have a strict, one-directional dependency order:
 
 ```
-cards → deck → state → decision → events → effects → rules → cmd/*
+cards → state → decision → events → effects → rules → cmd/*
 ```
 
 `cards` depends on nothing in this module. Each later package may depend on
 anything earlier in the chain, never the reverse — in particular, `effects`
 must never import `rules`.
+
+`deck` sits off that chain: it imports `cards` and nothing else, and its
+consumers are `cmd/*` and the test fixtures. It is deliberately not a link in
+the order above — no package in the chain may import it.
 
 - `cards` — Forge card script parser, IR types, IR cache load/store
 - `deck` — the bare {name, count} deck-list JSON, resolved against a
