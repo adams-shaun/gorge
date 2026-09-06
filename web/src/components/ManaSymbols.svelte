@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { manaSymbols } from '../lib/mana';
+  import { manaSymbols, type ManaSymbol } from '../lib/mana';
 
   /**
    * Renders a Forge-notation mana cost as pips; unrecognised notation renders
@@ -21,22 +21,30 @@
 
   const COLOUR: Record<string, string> = { W: 'w', U: 'u', B: 'b', R: 'r', G: 'g', C: 'c' };
 
-  /** kind maps one symbol to its pip class: a single colour, a two-colour hybrid, or generic. */
-  function kind(s: string): string {
-    if (COLOUR[s]) return `p-${COLOUR[s]}`;
-    const half = s.split('/');
-    if (half.length === 2) {
-      const a = COLOUR[half[0]] ?? 'x';
-      const b = COLOUR[half[1]] ?? 'x';
-      return `p-split p-${a}-${b}`;
+  /** kind maps a parsed symbol to its pip class: a single colour, a two-colour hybrid, or generic. */
+  function kind(s: ManaSymbol): string {
+    switch (s.kind) {
+      case 'colour': return `p-${COLOUR[s.colour]}`;
+      case 'colourless': return 'p-c';
+      case 'snow':
+      case 'variable':
+      case 'generic':
+      case 'unknown': return 'p-x';
+      case 'twobrid': return `p-split p-x-${COLOUR[s.colour]}`;
+      case 'phyrexian': return `p-split p-${COLOUR[s.colour]}-x`;
+      case 'phyrexianHybrid': return `p-split p-${COLOUR[s.a]}-${COLOUR[s.b]}`;
+      case 'hybrid': {
+        // colourless halves have no gradient class; fall back to a defined stone disc rather than a half-empty pip.
+        if (s.a === 'C' || s.b === 'C') return 'p-x';
+        return `p-split p-${COLOUR[s.a]}-${COLOUR[s.b]}`;
+      }
     }
-    return 'p-x';
   }
 </script>
 
 {#if symbols.length}
   <span class="mana-symbols">
-    {#each symbols as s, i (i)}<span class="pip {kind(s)}" class:wide={s.length > 1}>{s}</span>{/each}
+    {#each symbols as s, i (i)}<span class="pip {kind(s)}" class:wide={s.text.length > 1}>{s.text}</span>{/each}
   </span>
 {/if}
 
