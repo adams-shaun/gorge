@@ -250,6 +250,17 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 			cost = Cost{}
 		}
 	}
+	// CR 903.8: the commander tax, applied to whatever cost this cast pays
+	// (the base/alternative/kicked/flashback/surged/miracle cost resolved
+	// above) -- the exact same commanderTaxFor the command-zone offer in
+	// legal.go gated castable on, over the same board, so this charge and
+	// that offer can never disagree. For a command-zone commander this is the
+	// plain base + the tax; for every other card/zone it passes cost through
+	// unchanged (commanderTaxFor is a no-op outside the Commander format and
+	// off the command zone). It lands AFTER cost reduction and any keyword
+	// recast, so an additional cost is never reduced by them, in line with how
+	// Kicker's own additional cost composes.
+	cost = e.commanderTaxFor(p, id, cost)
 
 	e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1, cost: cost}
 	e.collectETBChoices(p)
@@ -799,8 +810,48 @@ func (e *Engine) commitCast() {
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.x, Counter: flags})
 	}
 	e.emit(events.Event{Kind: events.PutOnStack, Obj: pc.card, Player: pc.player, From: pc.from, To: state.ZStack, Text: o.Face().Name})
+	// CR 903.8: the cast counter increments the INSTANT the spell is put on
+	// the stack, never when it resolves -- so a commander spell that is later
+	// countered still raises the next cast's tax. Only a cast FROM the
+	// command zone counts (casting the commander from hand neither taxes nor
+	// counts), and recordCmdCast itself carries the Commander-format gate.
+	if pc.from == state.ZCommand {
+		e.recordCmdCast(pc.player, pc.card)
+	}
 	if sa := o.Face().SpellAbility(); sa != nil && sa.Params["ValidTgts"] != "" {
 		e.askTarget(pc.player, pc.card, sa)
+	}
+}
+
+// recordCmdCast increments the CmdCasts[k] bookkeeping parallel to
+// Commanders[k] for a commander cast from the command zone. It is called by
+// commitCast only when a command-zone cast's PutOnStack was just appended, so
+// a cast from any other zone (hand, graveyard-flashback, ...) is never
+// counted here.
+//
+// The count it maintains is DERIVED state, and the brief's "derived from
+// events on replay" is the right of its two options for exactly this reason:
+// CmdCasts[k] is a deterministic pure function of the already-logged
+// PutOnStack events (From == ZCommand, per commander id). The generic,
+// format-agnostic events.Apply handler is the wrong home for it -- this is a
+// Commander-format rule, not a universally-applicable state transition -- so
+// it is maintained as a projection at the exact point its authoritative event
+// is appended, which introduces no new degree of freedom: a faithful replay,
+// which re-runs this same beginCast -> commitCast path against the recorded
+// Intents, appends the identical PutOnStack events and so lands on the
+// identical count. Clone deep-copies the slice (state goes through
+// Game.Clone) so the O(1) tax read (commanderTaxFor) survives a clone; the
+// number itself comes from the event stream alone. No event of its own is
+// needed, and events/ is outside this task's boundary.
+func (e *Engine) recordCmdCast(p state.PlayerID, id state.ObjID) {
+	if e.format != FormatCommander {
+		return
+	}
+	for k, cid := range e.G.Players[p].Commanders {
+		if cid == id {
+			e.G.Players[p].CmdCasts[k]++
+			return
+		}
 	}
 }
 

@@ -70,6 +70,14 @@ type Engine struct {
 	G *state.Game
 	L *events.Log
 
+	// format is the construction format New was configured with (Config.
+	// Format). It is the explicit gate the Commander rules (the tax, CR
+	// 903.9, commander damage) check -- "in a non-Commander game none of
+	// this runs at all" -- rather than inferring the format from the
+	// incidental shape of the zones. Plain Format value; Clone copies it so
+	// a cloned Commander engine still gates its command-zone rules.
+	format Format
+
 	rng     *rng
 	pending *decision.Decision
 
@@ -301,9 +309,10 @@ func New(cfg Config) *Engine {
 		life = cfg.StartingLife
 	}
 	e := &Engine{
-		G:   state.NewGameLife(cfg.Names, life),
-		L:   events.NewLog(cfg.Seed),
-		rng: newRNG(cfg.Seed),
+		G:      state.NewGameLife(cfg.Names, life),
+		L:      events.NewLog(cfg.Seed),
+		format: cfg.Format,
+		rng:    newRNG(cfg.Seed),
 	}
 	e.G.Tokens = cfg.Tokens
 	e.format = cfg.Format
