@@ -1,5 +1,6 @@
 import { openStream, type Stream } from './stream';
 import { subscribe, unsubscribe } from './api';
+import { withBase } from './basepath';
 import type { Frame } from '../protocol';
 
 /**
@@ -15,7 +16,9 @@ class Session {
   get id(): string | null { return this.#id; }
 
   constructor() {
-    this.stream = openStream('/api/stream');
+    // The SSE stream is just another same-origin request path and rides the
+    // same base as everyone else.
+    this.stream = openStream(withBase('/api/stream'));
     this.stream.onFrame((f: Frame) => {
       if (f.t !== 'hello') return;
       this.#id = this.stream.session;

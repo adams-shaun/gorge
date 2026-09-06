@@ -3,11 +3,15 @@ import type { Frame, Hello } from '../protocol';
 
 // session.svelte.ts opens a real browser EventSource by default; stub the
 // stream and api modules so this stays hermetic (no network, no EventSource).
-const { fakeStream, subscribeMock, unsubscribeMock, emit } = vi.hoisted(() => {
+// The openStream mock records the URL it is given, which is what the
+// base-path wiring tests below assert on (streaming rides the same base as
+// every other request path).
+const { fakeStream, subscribeMock, unsubscribeMock, emit, streamUrls } = vi.hoisted(() => {
   const handlers = new Set<(f: Frame) => void>();
   let sessionId: string | null = null;
   const subscribeMock = vi.fn().mockResolvedValue(undefined);
   const unsubscribeMock = vi.fn().mockResolvedValue(undefined);
+  const streamUrls: string[] = [];
   const fakeStream = {
     get session() { return sessionId; },
     onFrame(h: (f: Frame) => void) { handlers.add(h); return () => handlers.delete(h); },
@@ -17,9 +21,9 @@ const { fakeStream, subscribeMock, unsubscribeMock, emit } = vi.hoisted(() => {
     if (f.t === 'hello') sessionId = (f.body as Hello).session;
     for (const h of handlers) h(f);
   };
-  return { fakeStream, subscribeMock, unsubscribeMock, emit };
+  return { fakeStream, subscribeMock, unsubscribeMock, emit, streamUrls };
 });
-vi.mock('./stream', () => ({ openStream: () => fakeStream }));
+vi.mock('./stream', () => ({ openStream: (url: string) => { streamUrls.push(url); return fakeStream; } }));
 vi.mock('./api', () => ({ subscribe: subscribeMock, unsubscribe: unsubscribeMock }));
 
 const { session } = await import('./session.svelte');
@@ -30,6 +34,9 @@ const flush = () => new Promise((r) => setTimeout(r, 0));
 describe('session', () => {
   it('subscribes on hello and re-subscribes overview + focused tables across a reconnect', async () => {
     expect(session.id).toBeNull();
+    // With an empty base (the default) the session opens the stream at the
+    // root, byte-identical to the pre-base client.
+    expect(streamUrls[0]).toBe('/api/stream');
 
     session.ensureOverview(); // no session yet: just remembers the intent
     expect(subscribeMock).not.toHaveBeenCalled();
@@ -64,5 +71,20 @@ describe('session', () => {
     await flush();
     expect(subscribeMock).toHaveBeenCalledWith('s3', '*', 'overview');
     expect(subscribeMock).not.toHaveBeenCalledWith('s3', 't1', 'focus');
+  });
+
+  it('opens the stream under the base path when the served page sets one', async () => {
+    // The session is a module singleton constructed at import time, so a
+    // base set after the first import cannot reach the instance the other
+    // tests hold; re-import in a fresh registry with the base already set
+    // proves the constructor really does prefix the stream URL (./basepath
+    // is real in these tests — only ./stream and ./api are mocked).
+    vi.resetModules();
+    const bp = await import('./basepath');
+    bp.setBasePathForTests('/gorge');
+    const mod = await import('./session.svelte');
+    expect(mod.session).toBeDefined();
+    expect(streamUrls.at(-1)).toBe('/gorge/api/stream');
+    bp.setBasePathForTests('');
   });
 });
