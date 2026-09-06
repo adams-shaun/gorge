@@ -145,7 +145,15 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if gate != nil {
 		for _, s := range c.humans {
 			seat := state.PlayerID(s)
-			fmt.Fprintf(os.Stderr, "gorged: table t1 seat %d joins at http://%s/?seat=%d&token=%s\n",
+			// The path is the LIVE table route, not "/". "/" is the
+			// lobby, and clicking a live match there navigates to
+			// /t/t1/m/1 -- the finished-match replay route, which paints
+			// a frozen snapshot and never advances. A player who joined
+			// through the lobby therefore ended up watching history while
+			// the real game waited for them. The join URL goes straight
+			// to the seat. Humans are on t1 alone (FL-97), so the table
+			// is not a guess.
+			fmt.Fprintf(os.Stderr, "gorged: table t1 seat %d joins at http://%s/t/t1?seat=%d&token=%s\n",
 				s, joinHost(ln.Addr()), s, gate.token(seat))
 		}
 	}

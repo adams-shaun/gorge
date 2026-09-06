@@ -80,7 +80,15 @@
           />
         {/each}
         <RecentStrip view={m.view} events={m.dvr.events} />
-        {#if seated && seatCtx && m.match !== null}
+        <!-- `finished` is the /t/:table/m/:match route: loadFinished paints a
+             FROZEN replay of an already-played match, with no stream and no
+             session.focus, so view.decision is whatever was pending at that
+             point in history and never advances. A seat panel there offers
+             buttons that post a long-stale seq, the server rejects every one,
+             and the page looks hung while the live game waits elsewhere --
+             which is exactly what happened the first time this was played.
+             A seat acts only on the live table route. -->
+        {#if seated && seatCtx && m.match !== null && !finished}
           {#key m.match}
             <SeatPanel view={m.view} seats={m.seats} ctx={seatCtx} table={table} match={m.match} />
           {/key}

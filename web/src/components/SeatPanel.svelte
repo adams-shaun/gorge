@@ -32,6 +32,22 @@
   });
   onMount(() => {
     void logic.refreshPending();
+    // The panel used to learn about a new decision ONLY from view.decision,
+    // which is refreshed by the SSE 'decision' frame. That makes the stream a
+    // single point of failure for a seat: miss one frame -- a dropped
+    // subscription, a reconnect, a race between the intent POST resolving and
+    // the frame arriving -- and the panel sits empty forever while the server
+    // holds a decision addressed to this seat, with no way back. Observed in
+    // the first real game played through this client.
+    //
+    // A seat is one person clicking, so a slow poll costs nothing and makes
+    // the stream an optimisation rather than a dependency. It only fires when
+    // the panel believes it has nothing to answer, so a decision on screen is
+    // never refetched out from under the user.
+    const t = setInterval(() => {
+      if (logic.pending === null && !logic.busy) void logic.refreshPending();
+    }, 1000);
+    return () => clearInterval(t);
   });
 
   const decision = $derived(logic.pending && logic.pending.seq !== logic.postedSeq ? logic.pending : null);
