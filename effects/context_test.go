@@ -34,6 +34,10 @@ func (h *fakeHost) AddContinuous(ce state.ContinuousEffect) {
 	h.continuous = append(h.continuous, ce)
 }
 
+// CastThisTurn has no real turn log to count here (Task 17); the effects
+// package tests set up their own boards, so the double reports zero.
+func (h *fakeHost) CastThisTurn() int { return 0 }
+
 // HasKeyword has no layer system to consult here (see the type doc comment),
 // so it reads the printed face directly -- enough for the effects-package
 // tests, which set up Indestructible by mutating Card.Faces[0].Keywords.
