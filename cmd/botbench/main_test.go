@@ -2,13 +2,17 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
+
+	"github.com/adams-shaun/gorge/internal/testutil"
 )
 
 // corpusDirOrSkip resolves the repo root the way testutil.CorpusRegistry and
@@ -306,5 +310,299 @@ func TestShortEndToEndRun(t *testing.T) {
 	}
 	if meanTurns <= 0 {
 		t.Errorf("mean turns per game = %.1f, want > 0", meanTurns)
+	}
+}
+
+// ---- deck-pair matrix mode ----
+
+// matrixText runs runPairs + writeMatrixText over the synthetic play and
+// returns the text report. It keeps the matrix report tests away from the
+// engine (the attribution and CI assertions are testing the report logic,
+// not the bot), the same separation the single-pair synthetic tests use.
+func matrixText(t *testing.T, games, workers int, pairs []pairDef, play pairPlayer) string {
+	t.Helper()
+	results, err := runPairs(0, games, "a", "b", pairs, play, workers, nil)
+	if err != nil {
+		t.Fatalf("runPairs: %v", err)
+	}
+	var buf bytes.Buffer
+	if err := writeMatrixText(&buf, "a", "b", 0, games, results); err != nil {
+		t.Fatalf("writeMatrixText: %v", err)
+	}
+	return buf.String()
+}
+
+// TestFullPairsIteratesSorted pins the pair generator: 12 decks must yield
+// the 66 unordered pairs, strictly sorted (a < b and lexicographically
+// ascending sequence), no duplicates, and the FIRST pair must be the
+// historical single-pair run (death-n-taxes : dimir-tempo) so a matrix row
+// reproduces it. Sorting is the whole guarantee that pair order never
+// depends on map iteration -- the mutation TestMatrixReportOrderIsSorted
+// checks the report, this checks the generator.
+func TestFullPairsIteratesSorted(t *testing.T) {
+	names := testutil.RepoDeckNames()
+	if len(names) != 12 {
+		t.Fatalf("expected 12 repo decks, got %d: %v", len(names), names)
+	}
+	ps := fullPairs(names)
+	want := len(names) * (len(names) - 1) / 2
+	if len(ps) != want {
+		t.Fatalf("fullPairs(%d decks) = %d pairs, want %d (= 66)", len(names), len(ps), want)
+	}
+	if ps[0].String() != "death-n-taxes:dimir-tempo" {
+		t.Errorf("first pair = %s, want death-n-taxes:dimir-tempo (the single-pair run must be a matrix row)", ps[0])
+	}
+	seen := map[string]bool{}
+	prev := ""
+	for _, p := range ps {
+		if p.a >= p.b {
+			t.Errorf("pair %s not in a<b order", p)
+		}
+		s := p.String()
+		if seen[s] {
+			t.Errorf("duplicate pair %s", s)
+		}
+		seen[s] = true
+		if prev != "" && s <= prev {
+			t.Errorf("pairs not strictly ascending after %s: %s (order must be sorted, not map order)", prev, s)
+		}
+		prev = s
+	}
+}
+
+// TestParsePairs covers the -pairs spec: "all" expands to every e66pair,
+// the named "a:b,c:d" form parses, and an unknown deck name is rejected.
+func TestParsePairs(t *testing.T) {
+	names := testutil.RepoDeckNames()
+
+	ps, err := parsePairs("all", names)
+	if err != nil {
+		t.Fatalf("parsePairs(all): %v", err)
+	}
+	if len(ps) != 66 {
+		t.Errorf("parsePairs(all) = %d pairs, want 66", len(ps))
+	}
+
+	ps, err = parsePairs("death-n-taxes:dimir-tempo,tron:ur-delver", names)
+	if err != nil {
+		t.Fatalf("parsePairs(named): %v", err)
+	}
+	if len(ps) != 2 || ps[0].String() != "death-n-taxes:dimir-tempo" || ps[1].String() != "tron:ur-delver" {
+		t.Errorf("parsePairs(named) = %v, want [death-n-taxes:dimir-tempo tron:ur-delver]", ps)
+	}
+
+	if _, err := parsePairs("death-n-taxes:not-a-deck", names); err == nil {
+		t.Error("parsePairs with an unknown deck name returned no error")
+	}
+}
+
+// TestMatrixTradesPoliciesEveryGame pins the property that makes a matrix a
+// policy measurement rather than a deck measurement: within each pair, seats
+// still trade policies every game, so each policy holds each seat in exactly
+// half of an even run. If policies stopped trading (e.g. A always on seat 0),
+// the deck list a seat holds would masquerade as a policy advantage.
+func TestMatrixTradesPoliciesEveryGame(t *testing.T) {
+	const games = 6
+	byPolicy := map[string]int{} // policy*2+seat -> count
+	var mu sync.Mutex
+	play := func(pos int, seed uint64, pols []string) (gameOutcome, error) {
+		mu.Lock()
+		for s := 0; s < 2; s++ {
+			byPolicy[pols[s]+"/"+strconv.Itoa(s)]++
+		}
+		mu.Unlock()
+		return gameOutcome{winner: "a", winnerSeat: 0, turns: 5, intents: 10}, nil
+	}
+	if _, err := runPairs(0, games, "a", "b", []pairDef{{a: "dnt", b: "dim"}}, play, 1, nil); err != nil {
+		t.Fatalf("runPairs: %v", err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	for _, pol := range []string{"a", "b"} {
+		for s := 0; s < 2; s++ {
+			want := games / 2
+			if got := byPolicy[pol+"/"+strconv.Itoa(s)]; got != want {
+				t.Errorf("policy %q held seat %d in %d games, want %d (policies must trade seats within a pair)",
+					pol, s, got, want)
+			}
+		}
+	}
+}
+
+// TestMatrixGamesArePerPair pins that -games means games PER PAIR, not the
+// total: each pair tallies exactly `games` games (A+B+draws == games, not
+// the total), the report header states it unambiguously, and the pooled
+// total
+// is games x the pair count. This is the regression that catches a "make
+// -games mean the total" mutation, which a reader of a per-pair row would
+// silently misread.
+func TestMatrixGamesArePerPair(t *testing.T) {
+	const games = 7
+	play := func(pos int, seed uint64, pols []string) (gameOutcome, error) {
+		return gameOutcome{winner: "a", winnerSeat: 0, turns: 9, intents: 20}, nil
+	}
+	pairs := []pairDef{{a: "d1", b: "d2"}, {a: "d3", b: "d4"}}
+	results, err := runPairs(0, games, "a", "b", pairs, play, 1, nil)
+	if err != nil {
+		t.Fatalf("runPairs: %v", err)
+	}
+	for _, r := range results {
+		if got := r.aWins + r.bWins + r.draws; got != games {
+			t.Errorf("pair %s tallied %d games, want %d per pair (-games is PER PAIR, not total)", r.pd, got, games)
+		}
+	}
+	out := matrixText(t, games, 1, pairs, play)
+	if !strings.Contains(out, "games per pair: 7") {
+		t.Errorf("report must state games-per-pair explicitly:\n%s", out)
+	}
+	if !strings.Contains(out, "7 games PER PAIR (total 14 games)") {
+		t.Errorf("header must state per-pair count unambiguously:\n%s", out)
+	}
+}
+
+// TestPooledCIPoolsCountsNotRates pins that the pooled CI is computed over
+// pooled COUNTS (sum of wins over sum of games), not by averaging the
+// per-pair win rates. With unequal pair sizes the two disagree (0.0 and 0.10
+// average to 0.05; 100 in 1010 is 0.099), so a mean-rate pooling mutation is
+// caught. Real matrices use equal per-pair N where the two coincide
+// numerically -- exactly why this guard needs unequal denominators to prove
+// the arithmetic it relies on.
+func TestPooledCIPoolsCountsNotRates(t *testing.T) {
+	results := []pairResult{
+		{pd: pairDef{a: "d1", b: "d2"}, games: 10, aWins: 0, bWins: 10, seatWins: [2]int{0, 10}, totalTurns: 100},
+		{pd: pairDef{a: "d3", b: "d4"}, games: 1000, aWins: 100, bWins: 900, seatWins: [2]int{100, 900}, totalTurns: 9000},
+	}
+	wantRate := 100.0 / 1010.0 // pooled counts, NOT (0.00+0.10)/2 = 0.05
+	lo, hi := ci95(100, 1010)
+	var buf bytes.Buffer
+	// games param only drives the header's per-pair line; the pooled math
+	// reads each pair's own game count.
+	if err := writeMatrixText(&buf, "a", "b", 0, 10, results); err != nil {
+		t.Fatalf("writeMatrixText: %v", err)
+	}
+	out := buf.String()
+	wantPct := wantRate * 100
+	wantPctStr := strconv.FormatFloat(wantPct, 'f', 1, 64) // "9.9"
+	if !strings.Contains(out, "pooled a win rate: "+wantPctStr+"%") {
+		t.Errorf("pooled rate must pool counts (100/1010 = 9.9%%), not average rates (5.0%%):\n%s", out)
+	}
+	wantLo, wantHi := strconv.FormatFloat(lo*100, 'f', 1, 64), strconv.FormatFloat(hi*100, 'f', 1, 64)
+	if !strings.Contains(out, "["+wantLo+"%, "+wantHi+"%]") {
+		t.Errorf("pooled CI must be the Wald interval on pooled counts (%s..%s):\n%s", wantLo, wantHi, out)
+	}
+}
+
+// TestMatrixReportOrderIsSorted pins that the report prints pairs in the
+// deterministic sorted generation order (never map iteration) by asserting
+// each tabular row's deck pair equals fullPairs' output element for element.
+func TestMatrixReportOrderIsSorted(t *testing.T) {
+	names := testutil.RepoDeckNames()
+	ps := fullPairs(names)
+	play := func(pos int, seed uint64, pols []string) (gameOutcome, error) {
+		return gameOutcome{winner: "a", winnerSeat: 0, turns: 3, intents: 5}, nil
+	}
+	results, err := runPairs(0, 1, "a", "b", ps, play, 4, nil)
+	if err != nil {
+		t.Fatalf("runPairs: %v", err)
+	}
+	var buf bytes.Buffer
+	if err := writeMatrixText(&buf, "a", "b", 0, 1, results); err != nil {
+		t.Fatalf("writeMatrixText: %v", err)
+	}
+	// Table rows are aligned by tabwriter into space padding, so a row's deck
+	// pair is its first whitespace field. Match each row against the known
+	// pair list (by position) to prove the report follows sorted generation
+	// order rather than any map iteration.
+	order := make(map[string]int, len(ps))
+	for i, p := range ps {
+		order[p.String()] = i
+	}
+	row := 0
+	for _, ln := range strings.Split(buf.String(), "\n") {
+		fields := strings.Fields(ln)
+		if len(fields) == 0 {
+			continue
+		}
+		if idx, ok := order[fields[0]]; ok {
+			if idx != row {
+				t.Fatalf("pair %q sits at report row %d but its sorted index is %d (report must follow sorted pair order, not map order)",
+					fields[0], row, idx)
+			}
+			row++
+		}
+	}
+	if row != len(ps) {
+		t.Errorf("expected %d pair rows in the report, got %d", len(ps), row)
+	}
+}
+
+// TestMatrixDeterministicUnderWorkers pins that the matrix result and its
+// report are byte-identical regardless of how many parallel workers run the
+// pairs -- the concurrency the matrix mode adds must not leak into the
+// deterministic report. Every pair's tally is written to its own slice
+// position and read back in pair order, so worker count is orthogonal to
+// the output.
+func TestMatrixDeterministicUnderWorkers(t *testing.T) {
+	play := func(pos int, seed uint64, pols []string) (gameOutcome, error) {
+		if seed%2 == 0 {
+			return gameOutcome{winner: "a", winnerSeat: 0, turns: int32(pos), intents: int(seed)}, nil
+		}
+		return gameOutcome{winner: "b", winnerSeat: 1, turns: int32(seed), intents: int(seed)}, nil
+	}
+	pairs := fullPairs(testutil.RepoDeckNames())
+	r1, err1 := runPairs(3, 50, "a", "b", pairs, play, 1, nil)
+	r8, err8 := runPairs(3, 50, "a", "b", pairs, play, 8, nil)
+	if err1 != nil || err8 != nil {
+		t.Fatalf("runPairs: %v / %v", err1, err8)
+	}
+	if len(r1) != len(r8) {
+		t.Fatalf("result counts differ: %d vs %d", len(r1), len(r8))
+	}
+	for i := range r1 {
+		if r1[i] != r8[i] {
+			t.Errorf("result %d differs between workers=1 and workers=8: %+v vs %+v", i, r1[i], r8[i])
+		}
+	}
+	var b1, b2 bytes.Buffer
+	if err := writeMatrixText(&b1, "a", "b", 3, 50, r1); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeMatrixText(&b2, "a", "b", 3, 50, r8); err != nil {
+		t.Fatal(err)
+	}
+	if b1.String() != b2.String() {
+		t.Errorf("text reports differ between workers=1 and workers=8")
+	}
+}
+
+// TestMatrixEndToEnd runs the matrix path through the real engine (two
+// named pairs, 2 games each) and asserts the report both deterministically
+// repeats and contains a row per pair -- the smallest possible matrix is
+// still a real two-pair measurement, not a formatting exercise.
+func TestMatrixEndToEnd(t *testing.T) {
+	dir := corpusDirOrSkip(t)
+	pairs, err := parsePairs("death-n-taxes:dimir-tempo,mono-red-goblins:tron", testutil.RepoDeckNames())
+	if err != nil {
+		t.Fatalf("parsePairs: %v", err)
+	}
+	var b1, b2 bytes.Buffer
+	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "text", pairs, 2, &b1, io.Discard); err != nil {
+		t.Fatalf("runMatrix: %v", err)
+	}
+	out := b1.String()
+	for _, want := range []string{"death-n-taxes:dimir-tempo", "mono-red-goblins:tron"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("report missing pair %q:\n%s", want, out)
+		}
+	}
+	if !strings.Contains(out, "games per pair: 2") {
+		t.Errorf("report must state games-per-pair:\n%s", out)
+	}
+	// Deterministic: a second identical run is byte-identical.
+	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "text", pairs, 2, &b2, io.Discard); err != nil {
+		t.Fatalf("runMatrix(second): %v", err)
+	}
+	if b1.String() != b2.String() {
+		t.Errorf("matrix end-to-end report not deterministic across identical runs")
 	}
 }
