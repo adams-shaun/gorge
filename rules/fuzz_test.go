@@ -64,11 +64,10 @@ func TestInvariantsUnderSeedFuzz(t *testing.T) {
 				testutil.CheckInvariants(t, e.G, e.Pending(), "start")
 				n := 0
 				for !e.G.Over && e.Pending() != nil && n < 200000 {
-					// Ruling T25-b: isMain is testBot's own caller computing it from
-					// its own source (the rules package's counterpart to seat.Bot
-					// reading v.Phase) on the line before the call it feeds.
-					isMain := e.G.Step.IsMain()
-					if err := e.Submit(b.answer(isMain, e.Pending())); err != nil {
+					// Ruling T25-b: isMain is now answer's own business, computed
+					// from the engine's step inside botpolicy.BoardFromGame --
+					// the rules package's counterpart to seat.Bot reading v.Phase.
+					if err := e.Submit(b.answer(e, e.Pending())); err != nil {
 						t.Fatalf("seed %d intent %d: %v", seed, n, err)
 					}
 					if n%97 == 0 {
