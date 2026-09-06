@@ -143,28 +143,73 @@ func (l *Log) Clone() *Log {
 	return &c
 }
 
-// growEvents grows s's backing array by a fixed geometric factor (doubling)
-// instead of relying on the built-in append growth, which tapers to 1.25x
-// for slices past 1024 elements. A match log that grows to a few tens of
-// thousands of events is the common case in ./host, and the runtime default
-// reallocates (and copies) on the order of 5x its final length there; a
-// constant doubling factor keeps the total realloc at ~2x final length for a
-// slice of any size. It returns s with len == need, whether in place or in a
-// freshly-allocated array, so the ordinary no-realloc Append path costs
-// nothing. Clone safety is untouched: Clone has already fixed a clone's
-// cap == len, so the first append on either side arrives here with no spare
-// capacity, allocates a fresh array, and the two logs diverge cleanly
-// (pinned by TestLogCloneAppendsDiverge).
+// Reserve grows the Events backing array's CAPACITY to at least n events,
+// leaving length and every stored event untouched. It is an expected-size
+// hint: a caller who knows a real match runs to roughly n events (host caps
+// intents and can name a bound just above a real match's length) preallocates
+// once so the log's common growth path never reallocates -- growEvents then
+// charges a single make at Reserve time instead of a whole doubling series as
+// the log climbs. Appends beyond n fall back to growEvents's doubling exactly
+// as before, so a bad (too-small) hint only costs one extra growth, never a
+// wrong result. It is a pure capacity hint and touches no chain state, so it
+// is safe to call at any point (including after appends, e.g. host right after
+// rules.New has written genesis): it reallocates the backing array once and
+// copies existing events, and because stored Events are append-only history no
+// one holds a reference to the old backing array to be invalidated. Clone
+// safety is unchanged: Clone still fixes c.Events = l.Events[:len:len], so a
+// clone never inherits reserved spare capacity and the first append on either
+// side reallocates and the two logs diverge (pinned by
+// TestLogReserveDoesNotLeakSpareCapacityToClone).
+func (l *Log) Reserve(n int) {
+	if n <= cap(l.Events) {
+		return
+	}
+	old := l.Events
+	l.Events = make([]Event, len(old), n)
+	copy(l.Events, old)
+}
+
+// growEvents grows the backing array geometrically, then returns s with len ==
+// need. It replaces the built-in append's growth in one way: it doubles
+// (factor 2) while the target stays small, and tapers to 1.25x past
+// growTaperAt. Why: a fresh log climbs from cap 16 to its final length and
+// doubling is the lowest-total-allocation policy there (a geometric series to
+// a final capacity C sums to ~2C for factor 2, ~4C for factor 1.25), so small
+// logs double. But most of growEvents' allocation is a log that a Clone made
+// cap == len at a fully-grown length L and then appended to — a time-travel
+// view replays into a clone of the live log; the first append must copy L
+// elements and the doubling rule would allocate 2L (a 73823-event log jumps to
+// 147456) for a replay that lands a few events past head. Tapering past
+// growTaperAt makes that first grow cost ~1.25L instead, which is the measured
+// win in ./host (growEvents was the top allocator; the large-start grows that
+// doubling saddled with 2x dominate it 9:1). It returns s with len == need,
+// whether in place or in a freshly-allocated array, so the ordinary no-realloc
+// Append path costs nothing. Growth never overshoots need by more than the
+// taper factor at any single step and always bounds the total, and the policy
+// change does not touch the hash chain. Clone safety is untouched: Clone has
+// already fixed a clone's cap == len, so the first append on either side
+// arrives here with no spare capacity, allocates a fresh array, and the two
+// logs diverge cleanly (pinned by TestLogCloneAppendsDiverge).
+const (
+	growMinCap   = 16
+	growTaperAt  = 4096 // double below this many elements, taper above
+	growTaperDiv = 4    // past growTaperAt, grow by (1 + 1/growTaperDiv) = 1.25x
+)
+
 func growEvents(s []Event, need int) []Event {
 	if need <= cap(s) {
 		return s[:need]
 	}
 	newCap := cap(s)
-	if newCap < 16 {
-		newCap = 16
+	if newCap < growMinCap {
+		newCap = growMinCap
 	}
 	for newCap < need {
-		newCap *= 2
+		if newCap < growTaperAt {
+			newCap *= 2
+		} else {
+			newCap += newCap / growTaperDiv
+		}
 	}
 	out := make([]Event, need, newCap)
 	copy(out, s)
