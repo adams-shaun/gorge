@@ -228,14 +228,28 @@ func (t *table) archivedMatch(k int) (sidecar, bool) {
 }
 
 // loadArchived rebuilds enough of a finished match to serve ViewAt/Events:
-// the log from its files and a Config from the sidecar's names and decks.
-// The engine is the replay's end state, so head views are exact and mid
-// views take the genesis path of viewAt (no snapshots on disk).
+// the log from its files, then matchForLog for everything else. It is the
+// on-disk entry to the read side; an embedder's persisted observer log
+// (Task M2c-3) takes the same matchForLog with the log already in hand,
+// so both sources are served through the exact same shape.
 func (r *Registry) loadArchived(t *table, sc sidecar) (*match, error) {
 	l, err := readLog(r.opts.Dir, t.cfg.ID, sc.Match)
 	if err != nil {
 		return nil, err
 	}
+	return r.matchForLog(t, sc, l)
+}
+
+// matchForLog builds the read-side shape of a finished match whose log is
+// already in hand — the readLog-equivalent for a non-file source, e.g. an
+// embedder's persisted observer log (Task M2c-3). Only the log's origin
+// differs from loadArchived: a Config is rebuilt from the sidecar's names
+// and decks and the log is replayed to its end state, so ViewAt/EventsSeat
+// serve a sink-sourced match exactly as a live or on-disk one. head views
+// are exact and mid views take the genesis path of viewAt (no snapshots on
+// disk). replay.Replay is the gate: a log that does not reproduce the
+// engine's own event stream is refused here, before it can be served.
+func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, error) {
 	decks := make([][]*cards.Card, len(sc.Decks))
 	for i, dn := range sc.Decks {
 		d, err := r.opts.LoadDeck(dn)
