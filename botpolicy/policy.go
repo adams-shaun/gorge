@@ -295,10 +295,14 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 	case decision.KCommanderZone:
 		// CR 903.9 (Task m32): a commander about to leave for the graveyard,
 		// hand, library or exile may be put into the command zone instead, by
-		// its owner. The command zone is a strict upgrade for a bot (the
-		// commander can simply be recast), so every answer takes it: option 0
-		// is always "command_zone", option 1 "leave", built by
-		// rules.askCommandZone. No rng -- this is a certainty, not a guess.
+		// its owner. Every answer takes it: option 0 is always
+		// "command_zone", option 1 "leave", built by rules.askCommandZone.
+		// No rng -- a fixed preference, not a guess. The preference is NOT a
+		// cost calculation: since CR 903.8 (m31) each return to the command
+		// zone makes the commander's next cast {2} more expensive, so a
+		// commander whose tax keeps climbing is not unconditionally better
+		// off there. A tax-aware heuristic is deliberately out of scope
+		// here (m37 owns botpolicy); this branch keeps the fixed answer.
 		if len(d.Options) > 0 && d.Options[0].Kind == "command_zone" {
 			in.Choices = []int{d.Options[0].Index}
 		}
