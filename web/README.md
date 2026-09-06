@@ -44,6 +44,19 @@ EBADENGINE warnings (documented, not silenced) rather than a hard failure;
 Revisit this pin once the gate machine's npm is upgraded past 9.2.0, or once
 Node 20 support lands for a non-4.0.x vitest release.
 
+## Mounting under a path prefix
+
+Every same-origin request this client builds is prefixed with a base path
+read once at startup from the served page's
+`<meta name="gorge-base" content="/gorge">` tag (see
+`src/lib/basepath.ts`). The default is "", so a page without the tag gets
+root-relative URLs exactly as before — `cmd/gorged` serves that way and is
+unchanged. An embedding server (e.g. mtgserve, Ruling FL-81) that mounts the
+client under a prefix injects the tag in its template; nothing else is
+needed, and the same built bundle works at any mount point. The value may
+carry a trailing slash (`/gorge/`); it is normalised away. It is read once,
+so the tag must be present when the bundle first runs.
+
 ## Toolchain versions (produced by `npm create vite@latest -- --template svelte-ts` + `npm install`)
 
 - Svelte 5.57.0

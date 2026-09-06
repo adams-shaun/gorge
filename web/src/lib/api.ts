@@ -1,5 +1,6 @@
 import type { Decision, ErrorBody, EventBody, Intent, MatchInfo, TableInfo, View } from '../protocol';
 import type { SeatCtx } from './seat';
+import { withBase } from './basepath';
 
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string, public head?: number) {
@@ -8,10 +9,13 @@ export class ApiError extends Error {
 }
 
 const enc = encodeURIComponent;
-export const tablesURL = () => '/api/tables';
-export const matchesURL = (t: string) => `/api/tables/${enc(t)}/matches`;
-export const pendingURL = (t: string, k: number) => `/api/tables/${enc(t)}/matches/${k}/pending`;
-export const intentURL = (t: string, k: number) => `/api/tables/${enc(t)}/matches/${k}/intent`;
+// Every path below is built with withBase (./basepath), the one base-path
+// value the client reads once at startup. With an empty base (the default)
+// each one is byte-identical to the pre-base client.
+export const tablesURL = () => withBase('/api/tables');
+export const matchesURL = (t: string) => withBase(`/api/tables/${enc(t)}/matches`);
+export const pendingURL = (t: string, k: number) => withBase(`/api/tables/${enc(t)}/matches/${k}/pending`);
+export const intentURL = (t: string, k: number) => withBase(`/api/tables/${enc(t)}/matches/${k}/intent`);
 
 // seatQuery is the seat/token query threading on the seat-scoped GETs
 // (M2e-3's FL-99: ?seat=N&token=…). The token is a bearer credential for
@@ -30,7 +34,7 @@ export const viewURL = (t: string, k: number, seq?: number, ctx?: SeatCtx) => {
     q.set('token', ctx.token);
   }
   const s = q.toString();
-  return `/api/tables/${enc(t)}/matches/${k}/view${s === '' ? '' : `?${s}`}`;
+  return withBase(`/api/tables/${enc(t)}/matches/${k}/view${s === '' ? '' : `?${s}`}`);
 };
 export const eventsURL = (t: string, k: number, since: number, ctx?: SeatCtx) => {
   const q = new URLSearchParams({ since: String(since) });
@@ -38,7 +42,7 @@ export const eventsURL = (t: string, k: number, since: number, ctx?: SeatCtx) =>
     q.set('seat', String(ctx.seat));
     q.set('token', ctx.token);
   }
-  return `/api/tables/${enc(t)}/matches/${k}/events?${q.toString()}`;
+  return withBase(`/api/tables/${enc(t)}/matches/${k}/events?${q.toString()}`);
 };
 
 export async function getJSON<T>(path: string): Promise<T> {
@@ -79,5 +83,5 @@ export async function postIntent(t: string, k: number, intent: Intent, ctx: Seat
   }
 }
 export const subscribe = (session: string, table: string, mode: 'overview' | 'focus') =>
-  postJSON('/api/subscribe', { session, table, mode });
-export const unsubscribe = (session: string, table: string) => postJSON('/api/unsubscribe', { session, table });
+  postJSON(withBase('/api/subscribe'), { session, table, mode });
+export const unsubscribe = (session: string, table: string) => postJSON(withBase('/api/unsubscribe'), { session, table });
