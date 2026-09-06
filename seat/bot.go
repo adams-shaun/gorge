@@ -71,8 +71,16 @@ func (b *Bot) Decide(_ context.Context, v view.View, d decision.Decision) (decis
 //     (Kind "yes" is first, per how askers build the two-option list);
 //     "name"/"type"/"number" take the first offer. No rng is consumed,
 //     unlike KBlockers/KTriggerOrder/KTriggerOptional above.
+//   - KMulligan: the London round (Config.Mulligans > 0) offers two shapes on
+//     one kind. A bottoming decision (every option Kind "bottom", Min ==
+//     Max == taken) bottoms the taken lowest-indexed cards -- Choices
+//     [0,1,...,taken-1] in ascending index order. A keep/mulligan decision
+//     mulligans with probability 1/3 off the bot's own rng when a
+//     "mulligan" option is offered (the determinism mirror of
+//     KTriggerOptional), otherwise keeps (the "keep" option at index 0). The
+//     rng is consumed only where a real mulligan choice exists.
 //
-// Anything else -- KMulligan, KModes, any kind added later, and any case
+// Anything else -- KModes, any kind added later, and any case
 // above that found nothing to pick -- falls to the last resort: pass if one
 // is offered and Min == 0, otherwise whatever clamp below tops up with.
 //
@@ -208,6 +216,32 @@ func botDecide(isMain bool, d *decision.Decision, r *rand.Rand) decision.Intent 
 			in.Choices = []int{d.Options[0].Index}
 		}
 		return clamp(d, in)
+
+	case decision.KMulligan:
+		// The London round, two shapes on one kind (rules/mulligan.go).
+		// Bottoming: every option is a "bottom"; take the d.Min lowest-indexed
+		// cards (the seat bottoms its oldest-held cards), no rng.
+		if len(d.Options) > 0 && d.Options[0].Kind == "bottom" {
+			for j := 0; j < len(d.Options) && j < d.Min; j++ {
+				in.Choices = append(in.Choices, d.Options[j].Index)
+			}
+			return clamp(d, in)
+		}
+		// Keep/mulligan: mulligan with probability 1/3 when one is offered
+		// (consuming the bot rng only where a real choice exists, the
+		// determinism mirror of KTriggerOptional), else keep.
+		if len(d.Options) > 1 {
+			for _, o := range d.Options {
+				if o.Kind == "mulligan" && r.IntN(3) == 0 {
+					in.Choices = []int{o.Index}
+					return clamp(d, in)
+				}
+			}
+		}
+		if len(d.Options) > 0 {
+			in.Choices = []int{d.Options[0].Index} // keep
+			return clamp(d, in)
+		}
 	}
 
 	// Last resort: pass if Min == 0 and one is offered; clamp below handles

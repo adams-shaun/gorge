@@ -26,6 +26,14 @@ type Config struct {
 	Seed  uint64
 	Names []string
 	Decks [][]*cards.Card
+	// Mulligans is the number of London mulligans each player may take in the
+	// pre-game round between the opening deal and turn 1. 0 (the zero value)
+	// skips the round entirely, so every Config that never sets it is
+	// unchanged (all standalone fixture Configs). It sits in the same Config
+	// replay is handed, so a replay reproduces the round (Ruling R-8.4): the
+	// acceptance config sets it so the 12-deck suite exercises keep/mulligan
+	// and bottoming.
+	Mulligans int
 	// Tokens is the token definitions the decks in this match can create --
 	// cards.Registry.Tokens. Copied onto Game.Tokens in New so
 	// events.Apply's TokenCreate case has something to mint from. Replay
@@ -43,6 +51,17 @@ type Engine struct {
 	// continuous holds every registered continuous effect, live or expired.
 	// The layer system (layers.go) is the only reader and writer.
 	continuous []ContinuousEffect
+
+	// pregame is true while the London mulligan round runs, between the
+	// opening deal and turn 1. Config.Mulligans > 0 sets it in New; step()
+	// dispatches to stepPregame (rules/mulligan.go) while it is true, and the
+	// round's end clears it and hands to beginTurn. Bool field, so Clone
+	// copies it like every other value field.
+	pregame bool
+	// mulligan is the round's plain-value state (rules/mulligan.go) -- seats,
+	// kept/taken counts and the phase cursor. Never a closure, so Clone copies
+	// it like cast/choosing.
+	mulligan mulliganRound
 
 	// staticContinuous memoizes the S:Mode$ Continuous statics on battlefield
 	// permanents (layers.go's staticEffects), keyed on staticEpoch. staticEpoch
@@ -208,7 +227,23 @@ func New(cfg Config) *Engine {
 	// true) must not receive turn 1. A player already out of the game is
 	// simply skipped in turn order everywhere else (NextAlive, priority);
 	// this is genesis's own equivalent for the very first turn.
-	e.beginTurn(alive[0])
+	if !e.G.Over {
+		if cfg.Mulligans > 0 {
+			// Ruling R-8.4: the London mulligan round lives between the deal
+			// and turn 1. e.pregame makes step() dispatch to stepPregame
+			// (rules/mulligan.go) instead of the ordinary turn steps; the
+			// round's end calls beginTurn below. Over is already false (the
+			// per-seat deck-out guard above returned early) -- a game that
+			// ended during the deal never starts a round.
+			e.pregame = true
+			e.mulligan = mulliganRound{
+				seats: alive, kept: make([]bool, len(alive)),
+				taken: make([]int, len(alive)), limit: cfg.Mulligans,
+			}
+		} else {
+			e.beginTurn(alive[0])
+		}
+	}
 	return e
 }
 
