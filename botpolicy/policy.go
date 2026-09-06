@@ -29,7 +29,8 @@ import (
 // asks, is the same board (pinned over a whole game by seat/integration_test.go's
 // TestBotAdaptersAgreeOverWholeGame). The fields are deliberately not
 // speculative: a board fact no policy branch reads would be untested
-// surface. Priority reads IsMain; combat reads Creatures and Life.
+// surface. Priority reads IsMain, Cards and Life; combat reads
+// Creatures and Life.
 type Board struct {
 	// IsMain reports whether sorcery-speed actions are legal right now.
 	// The seat adapter lifts it off the projected View's Phase
@@ -47,6 +48,20 @@ type Board struct {
 	// reads the defender's own life to decide when a chump block is
 	// warranted, which is public on both halves.
 	Life map[state.PlayerID]int32
+	// Cards is the casting ranking's card-facts table, keyed by ObjID and
+	// filled by both adapters for the DECIDING seat's own legally-seen
+	// zones (its hand, graveyard and battlefield) from cast.go (creature,
+	// power, mana value, basic-ness). The casting policy (cast.go) reads an
+	// offered "cast"/"play_land" option's facts here by Obj. The seat
+	// adapter fills it off the projected CardViews the viewer receives;
+	// BoardFromGame fills it off state.Game for the deciding seat — the two
+	// fill exactly the same legal zones with the same derived facts, so a
+	// card ranks the same whichever host asks (pinned over a whole game by
+	// seat/integration_test.go's TestBotAdaptersAgreeOverWholeGame). A
+	// hand/graveyard/battlefield fact is the deciding seat's own, so
+	// carrying it in the Board is no information leak (Ruling C0): it is
+	// exactly what that seat may see.
+	Cards map[state.ObjID]Card
 }
 
 // Decide implements every decision.Kind the engine (or a future one) can
@@ -57,7 +72,15 @@ type Board struct {
 //     worth spending it on), then make a land drop, then cast, then pass.
 //     IsMain comes from b, so whichever adapter built the Board decides
 //     the gate (the seat reads the View's Phase; the rules test host reads
-//     e.G.Step.IsMain()).
+//     e.G.Step.IsMain()). The "activate" block before everything reaches
+//     the bot's tap-for-mana activations: legalActions (rules/legal.go)
+//     offers only mana abilities as "activate" options ("Tap X for mana"),
+//     never non-mana activated abilities (those are "ability"), so it
+//     fills the pool in a main phase before the land drop and cast; it is
+//     position-first within that group, harmless because the pool empties
+//     at the end of the step and every "activate" is a mana produce (T25-b
+//     is the gate, not a promise about which land). The land drop and the
+//     cast then order with chooseLand before chooseCast (G0, cast.go).
 //   - "concede" (M2d-3): never picked. It is another priority option kind,
 //     served last after "pass", but no policy wants to leave the game it
 //     is winning; the explicit kind scans below return before any blind
@@ -124,13 +147,22 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 				}
 			}
 		}
-		for _, want := range [...]string{"play_land", "cast"} {
-			for _, o := range d.Options {
-				if o.Kind == want {
-					in.Choices = []int{o.Index}
-					return clamp(d, in)
-				}
-			}
+		// G0 (cast.go): the land drop ranks before the cast. A land drop is
+		// free and unconditional and only raises the mana ceiling for the
+		// rest of the turn, so taking it first is weakly strictly better
+		// than casting first (which would only tie — you would play the
+		// land next priority anyway — and can never enable more). The one
+		// "cast before land" argument, choosing the right-coloured land for
+		// the spell you intend, is the chooseLand ranking's own job (L1),
+		// not this ordering's. chooseLand picks the best land, chooseCast the
+		// best spell.
+		if pick := b.chooseLand(d); pick >= 0 {
+			in.Choices = []int{pick}
+			return clamp(d, in)
+		}
+		if pick := b.chooseCast(d); pick >= 0 {
+			in.Choices = []int{pick}
+			return clamp(d, in)
 		}
 		// Task 10: in a main phase, when casting found nothing to do, take the
 		// first "ability" option offered (legalActions only offers them as

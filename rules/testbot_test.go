@@ -46,7 +46,7 @@ func newTestBot(seed uint64) *testBot {
 // the intent this forwards always validates against d for any Min/Max the
 // wire format allows, not only today's shapes.
 func (b *testBot) answer(e *Engine, d *decision.Decision) decision.Intent {
-	return botpolicy.Decide(botpolicy.BoardFromGame(e.G, e), d, b.r)
+	return botpolicy.Decide(botpolicy.BoardFromGame(e.G, e, d.Player), d, b.r)
 }
 
 // TestTestBotDelegatesToBotPolicy pins answer's wiring: for representative
@@ -100,7 +100,7 @@ func TestTestBotDelegatesToBotPolicy(t *testing.T) {
 		b := newTestBot(99)
 		got := b.answer(e, &d)
 		r := rand.New(rand.NewPCG(99, 99^0x9e3779b97f4a7c15))
-		want := botpolicy.Decide(botpolicy.BoardFromGame(e.G, e), &d, r)
+		want := botpolicy.Decide(botpolicy.BoardFromGame(e.G, e, d.Player), &d, r)
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("kinds=%q: answer = %+v, botpolicy.Decide = %+v", d.Kind, got, want)
 		}
