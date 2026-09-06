@@ -79,6 +79,37 @@ func (e *Engine) stepPregame() {
 // (taken < limit) it offers both the "keep" and "mulligan" options; once it
 // has used its whole allowance, London offers only "keep" -- you keep what
 // you have.
+// putCount is the number phrase for a London bottoming penalty: "1 card" or
+// "2 cards" -- real English singular and plural, not "(s)" (finding bh). It
+// is the human-facing count every mulligan prompt embeds.
+func putCount(n int) string {
+	if n == 1 {
+		return "1 card"
+	}
+	return fmt.Sprintf("%d cards", n)
+}
+
+// bottomingPrompt is the human-readable wording for a London bottoming ask:
+// `taken` cards leave the kept hand for the bottom of the library. It is the
+// last real sentence a player reads in the mulligan round, so it is written
+// for a human -- finding bh: no "(s)", no "bottoms" as a verb.
+func bottomingPrompt(taken int) string {
+	return fmt.Sprintf("Put %s on the bottom of your library", putCount(taken))
+}
+
+// keepMulliganPrompt is the human-readable wording for a keep/mulligan ask.
+// It names the bottoming penalty a keep accepts, in the same real English as
+// bottomingPrompt (finding bh: the old "keeps 7 and bottoms 1, or mulligans"
+// was engine-speak). With a free mulligan remaining the seat has a choice;
+// once the allowance is spent London offers only a keep.
+func keepMulliganPrompt(taken, limit int) string {
+	penalty := fmt.Sprintf("put %s on the bottom of your library", putCount(taken))
+	if taken < limit {
+		return fmt.Sprintf("Keep your hand (%s) or take a mulligan?", penalty)
+	}
+	return fmt.Sprintf("Keep your hand (%s)", penalty)
+}
+
 func (e *Engine) askKeepMulligan(i int) {
 	m := &e.mulligan
 	p := m.seats[i]
@@ -86,15 +117,10 @@ func (e *Engine) askKeepMulligan(i int) {
 	if m.taken[i] < m.limit {
 		opts = append(opts, decision.Option{Index: 1, Kind: "mulligan", Label: "mulligan"})
 	}
-	e.ask(&decision.Decision{
-		Player: p, Kind: decision.KMulligan, Min: 1, Max: 1,
-		// CR 103.4: the seat re-drew a full openingHand on every mulligan, so
-		// while it is deciding it always holds seven and will bottom `taken`
-		// of them if it keeps -- the bottoming is the entire penalty.
-		Prompt: fmt.Sprintf("London mulligan: %s keeps %d and bottoms %d, or mulligans",
-			e.G.Players[p].Name, openingHand, m.taken[i]),
-		Options: opts,
-	})
+	// CR 103.4: the seat re-drew a full openingHand on every mulligan, so
+	// while it is deciding it always holds seven and will bottom `taken`
+	// of them if it keeps -- the bottoming is the entire penalty.
+	e.ask(decision.New(p, decision.KMulligan, keepMulliganPrompt(m.taken[i], m.limit), 1, 1, opts))
 }
 
 // askBottoming offers seat i a bottoming decision over its kept hand: one
@@ -110,11 +136,7 @@ func (e *Engine) askBottoming(i int) {
 		opts[j] = decision.Option{Index: j, Kind: "bottom",
 			Label: e.G.Obj(id).Face().Name, Obj: id, Player: p}
 	}
-	e.ask(&decision.Decision{
-		Player: p, Kind: decision.KMulligan, Min: m.taken[i], Max: m.taken[i],
-		Prompt:  fmt.Sprintf("London mulligan: %s bottoms %d card(s)", e.G.Players[p].Name, m.taken[i]),
-		Options: opts,
-	})
+	e.ask(decision.New(p, decision.KMulligan, bottomingPrompt(m.taken[i]), m.taken[i], m.taken[i], opts))
 }
 
 // handleMulligan applies a KMulligan answer. In the keep/mulligan phase (the

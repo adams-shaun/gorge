@@ -132,6 +132,55 @@ func TestChosenBoundsChecking(t *testing.T) {
 	}
 }
 
+// TestNewPanicsOnMisindexedOptions is the guard for finding bi: it is a
+// convention today that Option.Index equals the option's position, and
+// rules/cast.go:570 and rules/mulligan.go:110 are the two sites where a future
+// edit breaks that identity silently -- after which Chosen returns a different
+// option than the client named, with nothing failing anywhere. New makes the
+// broken state unrepresentable: a Decision whose Options[i].Index != i cannot
+// be built on the sanctioned path at all, because New panics. This test is the
+// named witness for that guard.
+func TestNewPanicsOnMisindexedOptions(t *testing.T) {
+	mustPanic := func(t *testing.T, opts []Option) {
+		t.Helper()
+		defer func() {
+			if recover() == nil {
+				t.Fatal("New accepted mis-indexed options without panicking")
+			}
+		}()
+		New(1, KPriority, "choose", 1, 1, opts)
+	}
+	// A single option whose Index drifts off its position zero.
+	mustPanic(t, []Option{{Index: 1, Kind: "pass", Label: "Pass", Player: 1}})
+	// A later option drifting away from the flowing cast options it follows.
+	mustPanic(t, []Option{
+		{Index: 0, Kind: "cast", Label: "A", Player: 1},
+		{Index: 3, Kind: "cast", Label: "B", Player: 1},
+	})
+	// The same, with the first option the drifting one.
+	mustPanic(t, []Option{
+		{Index: 2, Kind: "pass", Label: "Pass", Player: 1},
+		{Index: 1, Kind: "cast", Label: "A", Player: 1},
+	})
+}
+
+// TestNewAcceptsWellFormedOptions pins the normal path through New: a fully
+// legal option list still constructs, and the options survive intact, so the
+// identity guard did not break the common case.
+func TestNewAcceptsWellFormedOptions(t *testing.T) {
+	opts := []Option{
+		{Index: 0, Kind: "pass", Label: "Pass", Player: 0},
+		{Index: 1, Kind: "cast", Label: "Cast", Player: 0},
+	}
+	d := New(0, KPriority, "choose", 1, 1, opts)
+	if d.Player != 0 || d.Kind != KPriority || d.Min != 1 || d.Max != 1 || d.Prompt != "choose" {
+		t.Fatalf("New did not preserve its arguments: %+v", d)
+	}
+	if d.Options[0].Index != 0 || d.Options[1].Index != 1 {
+		t.Fatalf("New did not preserve well-formed options: %+v", d.Options)
+	}
+}
+
 // TestChosenHappyPath verifies that valid intents still return the expected options
 // in order, so the bounds guard did not break the normal case.
 func TestChosenHappyPath(t *testing.T) {
