@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
+	"sync"
 )
 
 func TestEncodingIsDeterministicAndDiscriminating(t *testing.T) {
@@ -314,5 +315,85 @@ func TestLogCloneAppendsDiverge(t *testing.T) {
 	// And the two logs really have diverged: independent chains now.
 	if l.Head() == c.Head() {
 		t.Fatal("logs did not diverge after independent appends")
+	}
+}
+
+// TestGrowEventsReturnsExactlyTheNamedLength pins the invariant events.Append
+// relies on with Task c3's custom growth (loggerAppend -> growEvents): for
+// every append along a log's growth, Append writes the new event at index
+// len-1, which is only safe if growEvents returns a slice whose length is
+// exactly need. A regression that forgets the s[:need] slice on the no-realloc
+// path (the growth helper is called on every append, in-place or not) leaves
+// the length stuck at the pre-append value, so the new event overwrites
+// element len-1 — silently dropping the previous tail and truncating the log.
+// The surrounding Log.Append tests already catch that corrupts the chain, but
+// this one names the exact growth-place contract: appending back-to-back must
+// keep every prior event at its Seq and land each new one at its own Seq.
+func TestGrowEventsReturnsExactlyTheNamedLength(t *testing.T) {
+	l := NewLog(5)
+	const n = 513 // > 16 and > 512 so it crosses several growth steps
+	for i := 0; i < n; i++ {
+		kind := Draw
+		if i%2 == 0 {
+			kind = LifeChange
+		}
+		l.Append(Event{Kind: kind, Player: state.PlayerID(i % 2), Amount: int32(i)})
+		if got := len(l.Events); got != i+1 {
+			t.Fatalf("after append %d, len = %d, want %d", i, got, i+1)
+		}
+		if l.Events[i].Seq != uint64(i) {
+			t.Fatalf("event %d has Seq %d, want %d", i, l.Events[i].Seq, i)
+		}
+		if l.Events[i].Amount != int32(i) {
+			t.Fatalf("event %d lost its Amount: got %d, want %d", i, l.Events[i].Amount, i)
+		}
+	}
+	// Length must keep growing monotonically to the full stream; a helper
+	// that never extends the no-realloc slice would stop at 1.
+	if len(l.Events) != n {
+		t.Fatalf("final len = %d, want %d", len(l.Events), n)
+	}
+	// The whole stream still chains as one log: HeadAt(n) equals Head.
+	if l.HeadAt(n) != l.Head() {
+		t.Fatalf("chain desynced: HeadAt=%s Head=%s", l.HeadAt(n), l.Head())
+	}
+}
+
+// A clone and its parent are appended to from different goroutines: host
+// snapshots an engine per turn (host/snapshot.go) and ViewAt replays into a
+// clone while the match goroutine keeps appending to the live log. Append
+// folds each event into the chain through a reused digest, so a clone that
+// shared its parent's digest would be two goroutines writing one hash.Hash.
+// Reset makes that safe when the two interleave sequentially, which is why
+// this has to run under -race to mean anything: it pins the ownership, not
+// the arithmetic. Clone giving each log its own digest is the enforcement
+// point (events/log.go), and removing it fails this test under -race.
+func TestCloneAndParentAppendConcurrentlyWithoutSharingTheDigest(t *testing.T) {
+	parent := NewLog(7)
+	for i := 0; i < 8; i++ {
+		parent.Append(Event{Kind: Note, Text: "seed"})
+	}
+	clone := parent.Clone()
+
+	var wg sync.WaitGroup
+	for _, l := range []*Log{parent, clone} {
+		wg.Add(1)
+		go func(l *Log) {
+			defer wg.Done()
+			for i := 0; i < 200; i++ {
+				l.Append(Event{Kind: Note, Text: "x"})
+			}
+		}(l)
+	}
+	wg.Wait()
+
+	// Both logs must still be internally consistent: Head is the running
+	// chain, HeadAt recomputes it from scratch, and they can only agree if
+	// neither goroutine wrote through the other's digest.
+	for name, l := range map[string]*Log{"parent": parent, "clone": clone} {
+		if got, want := l.Head(), l.HeadAt(len(l.Events)); got != want {
+			t.Errorf("%s: Head() = %s but HeadAt(%d) = %s — the chain was corrupted by a shared digest",
+				name, got, len(l.Events), want)
+		}
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"hash"
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
@@ -22,14 +23,17 @@ type Log struct {
 	// Must be set before the first Append and never changed after.
 	NoHash bool `json:"-"`
 
-	chain     [sha256.Size]byte
-	buf       []byte
-	started   bool
+	chain    [sha256.Size]byte
+	buf      []byte
+	headHash hash.Hash
+	started  bool
+	// noHashSet records NoHash's value on the first Append to pin it from
+	// changing (see the check in Append).
 	noHashSet bool
 }
 
 func NewLog(seed uint64) *Log {
-	l := &Log{Seed: seed, buf: make([]byte, 0, 128)}
+	l := &Log{Seed: seed, buf: make([]byte, 0, 128), headHash: sha256.New()}
 	// Seed the chain with the seed value
 	var b [8]byte
 	binary.LittleEndian.PutUint64(b[:], seed)
@@ -63,15 +67,20 @@ func (l *Log) Append(e Event) Event {
 	e.IDs = append([]state.ObjID(nil), e.IDs...)
 	e.Pairs = append([][2]state.ObjID(nil), e.Pairs...)
 
-	l.Events = append(l.Events, e)
+	l.Events = growEvents(l.Events, len(l.Events)+1)
+	l.Events[len(l.Events)-1] = e
 	if l.NoHash {
 		return e
 	}
 	l.buf = e.Append(l.buf[:0])
-	h := sha256.New()
-	h.Write(l.chain[:])
-	h.Write(l.buf)
-	h.Sum(l.chain[:0])
+	// Reuse one digest instead of sha256.New() per event — a fresh hasher per
+	// append was a measurable per-event allocation on a long log. Reset
+	// restores the initial (empty) state, so the fold into the chain is
+	// byte-identical to a fresh hasher's: sha256(chain || encode(e)).
+	l.headHash.Reset()
+	l.headHash.Write(l.chain[:])
+	l.headHash.Write(l.buf)
+	l.headHash.Sum(l.chain[:0])
 	return e
 }
 
@@ -128,5 +137,36 @@ func (l *Log) Clone() *Log {
 	c.Events = l.Events[:len(l.Events):len(l.Events)]
 	c.Intents = l.Intents[:len(l.Intents):len(l.Intents)]
 	c.buf = nil
+	// headHash is mutable scratch Append reuses; two appended-to logs must not
+	// share it, exactly as they must not share buf. A clone gets its own.
+	c.headHash = sha256.New()
 	return &c
+}
+
+// growEvents grows s's backing array by a fixed geometric factor (doubling)
+// instead of relying on the built-in append growth, which tapers to 1.25x
+// for slices past 1024 elements. A match log that grows to a few tens of
+// thousands of events is the common case in ./host, and the runtime default
+// reallocates (and copies) on the order of 5x its final length there; a
+// constant doubling factor keeps the total realloc at ~2x final length for a
+// slice of any size. It returns s with len == need, whether in place or in a
+// freshly-allocated array, so the ordinary no-realloc Append path costs
+// nothing. Clone safety is untouched: Clone has already fixed a clone's
+// cap == len, so the first append on either side arrives here with no spare
+// capacity, allocates a fresh array, and the two logs diverge cleanly
+// (pinned by TestLogCloneAppendsDiverge).
+func growEvents(s []Event, need int) []Event {
+	if need <= cap(s) {
+		return s[:need]
+	}
+	newCap := cap(s)
+	if newCap < 16 {
+		newCap = 16
+	}
+	for newCap < need {
+		newCap *= 2
+	}
+	out := make([]Event, need, newCap)
+	copy(out, s)
+	return out
 }
