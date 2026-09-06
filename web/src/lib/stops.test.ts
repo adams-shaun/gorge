@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultStops, loadStops, saveStops, stopsKey } from './stops';
+import { defaultStops, loadStops, saveStops, stopsKey, toggleStop } from './stops';
 import type { Stops } from './autopilot';
 
 /** fakeStorage is a minimum Storage: a Map with getItem/setItem. Uses ServerResponse-like map semantics for determinism. */
@@ -87,5 +87,36 @@ describe('stops storage', () => {
     first.yours.add('end');
     expect(defaultStops().yours.has('end')).toBe(false);
     expect(defaultStops()).toEqual({ yours: new Set(['main1', 'declare-attackers', 'main2']), opponents: new Set(['declare-attackers', 'declare-blockers']) });
+  });
+});
+
+describe('toggleStop', () => {
+  const empty = (): Stops => ({ yours: new Set(), opponents: new Set() });
+
+  it('adds and removes a step on the named side only', () => {
+    const on = toggleStop(empty(), 'yours', 'main1');
+    expect([...on.yours]).toEqual(['main1']);
+    expect([...on.opponents]).toEqual([]);
+    const off = toggleStop(on, 'yours', 'main1');
+    expect([...off.yours]).toEqual([]);
+  });
+
+  it('the two sides are independent: the same step can be set on one and not the other', () => {
+    const theirs = toggleStop(empty(), 'opponents', 'declare-blockers');
+    expect(theirs.opponents.has('declare-blockers')).toBe(true);
+    expect(theirs.yours.has('declare-blockers')).toBe(false);
+  });
+
+  it('returns a new value and never mutates the one it was given', () => {
+    const before = empty();
+    const after = toggleStop(before, 'yours', 'end');
+    expect(after).not.toBe(before);
+    expect(before.yours.size).toBe(0);
+  });
+
+  it('refuses untap and cleanup, returning the value unchanged', () => {
+    const before = empty();
+    expect(toggleStop(before, 'yours', 'untap')).toBe(before);
+    expect(toggleStop(before, 'opponents', 'cleanup')).toBe(before);
   });
 });

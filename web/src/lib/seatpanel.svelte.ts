@@ -1,6 +1,8 @@
-import type { Decision, Intent, Option } from '../protocol';
+import type { Decision, Intent, Option, View } from '../protocol';
 import { fetchPending, postIntent, ApiError } from './api';
 import type { SeatCtx } from './seat';
+import { decide, type StopReason, type Stops, type TurnSide } from './autopilot';
+import { defaultStops, loadStops, saveStops, toggleStop } from './stops';
 
 /**
  * SeatPanelState is everything a human seat answers with. It holds the
@@ -73,13 +75,87 @@ export function mulliganPhase(d: Decision | null): MulliganPhase {
   return null;
 }
 
+/**
+ * AUTO_PASS_CAP bounds how many priority windows auto may pass in an
+ * unbroken run before it switches itself off. A runaway autopasser is not a
+ * cosmetic bug: it hammers the server and it passes the game away in
+ * silence. Forty is roughly two turn cycles of an uneventful four-seat
+ * game — long enough that a normal quiet stretch never trips it, short
+ * enough that a stuck loop is caught in seconds.
+ */
+export const AUTO_PASS_CAP = 40;
+
+/**
+ * AutoOffReason is why auto is no longer running, as distinct from
+ * StopReason (why auto declined THIS window but stays armed). The two are
+ * separate vocabularies because they need separate words on screen: one is
+ * "waiting for you here", the other is "auto is off now".
+ */
+export type AutoOffReason = 'loop' | 'cap' | 'human' | 'escape';
+
+/**
+ * AutoNote is the one line the panel shows about what auto is doing. It is
+ * an enum-shaped value, never a string to print: autoNoteText turns it into
+ * words, so no StopReason identifier can reach the screen.
+ */
+export type AutoNote =
+  | { kind: 'off' }
+  | { kind: 'armed' }
+  | { kind: 'passing'; count: number }
+  | { kind: 'waiting'; reason: StopReason }
+  | { kind: 'stopped'; reason: AutoOffReason };
+
+const WAITING_TEXT: Record<StopReason, string> = {
+  'disabled': 'Auto is off.',
+  'not-priority': 'Auto is waiting: this decision needs you, not a pass.',
+  'unexpected-shape': 'Auto is waiting: it does not recognise this window.',
+  'stop-set': 'Auto stopped here: you set a stop on this step.',
+  'has-action-and-stack': 'Auto stopped here: something is on the stack and you can respond.',
+};
+
+const OFF_TEXT: Record<AutoOffReason, string> = {
+  'loop': 'Auto switched itself off: the same decision came back after it answered.',
+  'cap': `Auto switched itself off after ${AUTO_PASS_CAP} passes in a row.`,
+  'human': 'Auto switched off: you took the decision yourself.',
+  'escape': 'Auto switched off: you pressed Escape.',
+};
+
+/** autoNoteText renders an AutoNote as plain words. No enum identifier ever reaches the screen. */
+export function autoNoteText(note: AutoNote): string {
+  switch (note.kind) {
+    case 'off':
+      return 'Auto is off. You answer every window.';
+    case 'armed':
+      return 'Auto is on. It passes windows where you have nothing to do, and stops at your stops.';
+    case 'passing':
+      return note.count === 1
+        ? 'Auto passed 1 priority window.'
+        : `Auto passed ${note.count} priority windows.`;
+    case 'waiting':
+      return WAITING_TEXT[note.reason];
+    case 'stopped':
+      return OFF_TEXT[note.reason];
+  }
+}
+
+/** safeStorage is localStorage where it exists and is reachable; null under SSR and in a browser that refuses site data. Same guard as images.ts. */
+function safeStorage(): Storage | null {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage;
+  } catch {
+    return null;
+  }
+}
+
 export class SeatPanelState {
   readonly table: string;
   readonly ctx: SeatCtx;
+  private readonly storage: Storage | null;
 
-  constructor(table: string, readonly match: number, ctx: SeatCtx) {
+  constructor(table: string, readonly match: number, ctx: SeatCtx, storage: Storage | null = safeStorage()) {
     this.table = table;
     this.ctx = ctx;
+    this.storage = storage;
   }
 
   /** pending is the decision this seat must answer right now, or null when the game is waiting on someone else. */
@@ -94,6 +170,110 @@ export class SeatPanelState {
   error = $state<string | null>(null);
   busy = $state(false);
 
+  // ---- autopilot ------------------------------------------------------
+  //
+  // decide() (lib/autopilot) is pure and already tested; what lives here is
+  // the LOOP around it, which is the dangerous half. A mis-firing
+  // autopasser loses a game in silence, so every field below exists to make
+  // it stop rather than to make it go.
+
+  /** auto is the player's opt-in. It starts OFF on every load and is never persisted: a seat that comes back to a page must choose to hand the game over again. */
+  auto = $state(false);
+  /** stops is this seat's per-step stop set, loaded from storage on mount and saved on every toggle. */
+  stops = $state<Stops>(defaultStops());
+  /** autoPassed counts every window auto has answered this session, so the pass is visible after the fact. */
+  autoPassed = $state(0);
+  /** autoRun is the current unbroken run of auto-passes; the cap is on this, not on the session total. */
+  autoRun = $state(0);
+  /** note is what the panel says about auto, as a value — autoNoteText turns it into words. */
+  note = $state<AutoNote>({ kind: 'off' });
+  /**
+   * autoActedSeq is the seq auto last posted for. If a decision with that
+   * seq is put in front of auto again, the answer did not take and auto
+   * would post it forever: that is the loop guard, and it disables auto.
+   */
+  private autoActedSeq: number | null = null;
+
+  /** mountStops loads this seat's saved stops. Called from the component on mount, where storage exists. */
+  mountStops() {
+    this.stops = loadStops(this.storage, this.table, this.ctx.seat);
+  }
+
+  /**
+   * toggleStop flips one step's stop on one turn side and persists it. The
+   * two sides are separate sets on purpose: stopping in your own combat and
+   * stopping in an opponent's are different intentions, and a stop set on
+   * one side must never mark the other.
+   */
+  toggleStop(step: string, side: TurnSide) {
+    const next = toggleStop(this.stops, side, step);
+    if (next === this.stops) return; // a step that cannot take a stop
+    this.stops = next;
+    saveStops(this.storage, this.table, this.ctx.seat, next);
+  }
+
+  /** setAuto is the Auto/Manual control. Turning it on clears the previous run so an old count never trips the cap. */
+  setAuto(on: boolean) {
+    this.auto = on;
+    this.autoRun = 0;
+    this.autoActedSeq = null;
+    this.note = on ? { kind: 'armed' } : { kind: 'off' };
+  }
+
+  /** suspendAuto switches auto off with a stated reason. A human always wins: any answer this seat gives by hand takes the wheel back. */
+  suspendAuto(reason: AutoOffReason) {
+    if (!this.auto) return;
+    this.auto = false;
+    this.autoRun = 0;
+    this.autoActedSeq = null;
+    this.note = { kind: 'stopped', reason };
+  }
+
+  /** onKeydown is the panel's key handler: Escape, and only Escape, suspends auto. */
+  onKeydown(key: string) {
+    if (key === 'Escape') this.suspendAuto('escape');
+  }
+
+  /**
+   * considerAuto is the whole autopilot loop, run once per decision/view
+   * change. Order matters and every early return is a refusal to act:
+   * nothing pending, in flight, already answered, seen before (loop), the
+   * run cap, then and only then decide().
+   */
+  considerAuto(view: View) {
+    if (!this.auto) return;
+    const d = this.pending;
+    if (d === null || this.busy || d.seq === this.postedSeq) return;
+
+    // Loop guard: auto already answered this seq and here it is again. The
+    // answer did not take, so posting it a second time is the start of an
+    // unbounded retry against the server.
+    if (this.autoActedSeq !== null && d.seq === this.autoActedSeq) {
+      this.suspendAuto('loop');
+      return;
+    }
+
+    const verdict = decide({ decision: d, view, seat: this.ctx.seat, stops: this.stops, enabled: true });
+    if (verdict.act === 'stop') {
+      // A stop is a hand-back, not a failure: auto stays armed and the run
+      // resets, because the player is about to look at this window.
+      this.autoRun = 0;
+      this.note = { kind: 'waiting', reason: verdict.reason };
+      return;
+    }
+
+    if (this.autoRun >= AUTO_PASS_CAP) {
+      this.suspendAuto('cap');
+      return;
+    }
+
+    this.autoActedSeq = d.seq;
+    this.autoRun += 1;
+    this.autoPassed += 1;
+    this.note = { kind: 'passing', count: this.autoPassed };
+    void this.post([verdict.index]);
+  }
+
   /** begin resets the seat across a match boundary. (The component keys the panel by match, so a new match is a fresh instance — this is belt and braces.) */
   begin() {
     this.pending = null;
@@ -101,6 +281,13 @@ export class SeatPanelState {
     this.postedSeq = null;
     this.confirming = false;
     this.error = null;
+    // A new match is a new opt-in: auto never carries across a match
+    // boundary on its own.
+    this.auto = false;
+    this.autoRun = 0;
+    this.autoPassed = 0;
+    this.autoActedSeq = null;
+    this.note = { kind: 'off' };
   }
 
   /**
@@ -148,6 +335,9 @@ export class SeatPanelState {
     if (d === null || d.seq === this.postedSeq || this.busy) return;
     const opt = d.options[index];
     if (opt === undefined) return;
+    // A human always wins: touching an option takes the wheel back before
+    // anything is posted, so auto cannot answer the next window either.
+    this.suspendAuto('human');
     if (isConcede(opt)) {
       if (this.confirming) void this.post([index]);
       else this.confirming = true;
@@ -174,6 +364,7 @@ export class SeatPanelState {
     const d = this.pending;
     if (d === null || d.seq === this.postedSeq || this.busy) return;
     if (d.options[index] === undefined) return;
+    this.suspendAuto('human');
     this.confirming = false;
     const at = this.picked.indexOf(index);
     if (at >= 0) this.picked = this.picked.filter((i) => i !== index);
@@ -185,6 +376,7 @@ export class SeatPanelState {
     const d = this.pending;
     const p = d ? primaryOf(d) : null;
     if (d === null || p === null || d.seq === this.postedSeq || this.busy) return;
+    this.suspendAuto('human');
     void this.post([p.index]);
   }
 
@@ -194,6 +386,7 @@ export class SeatPanelState {
     if (d === null || !this.confirming || this.busy) return;
     const idx = d.options.findIndex(isConcede);
     if (idx < 0) return;
+    this.suspendAuto('human');
     void this.post([idx]);
   }
 
@@ -202,6 +395,7 @@ export class SeatPanelState {
     const d = this.pending;
     if (d === null || d.seq === this.postedSeq || this.busy) return;
     if (this.picked.length < d.min || this.picked.length > d.max) return;
+    this.suspendAuto('human');
     void this.post([...this.picked]);
   }
 
