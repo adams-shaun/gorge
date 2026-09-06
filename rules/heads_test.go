@@ -11,11 +11,31 @@ import (
 // decks do; the commit that makes it must name the card behaviour that
 // moved it. The seed, bot and deck assignment are TestRepoDecksPlayAtEverySeatCount's
 // own (rules/acceptance_test.go's playAcceptance), so the two tests always agree.
+// M2d moved all four heads, and owns exactly ONE regeneration -- this one,
+// at the milestone merge gate, not once per sub-task. Build-bisected causes
+// (FL-76), measured per seat count rather than assumed:
+//
+//   - M2d-1, the London mulligan (R-M1): moves ALL FOUR. playAcceptance now
+//     sets Mulligans: 1, so every acceptance game runs a keep/mulligan round
+//     and, for any seat that mulligans, a re-shuffle, a fresh seven and a
+//     bottoming round -- all of it emitted, so every head shifts.
+//     Intermediate heads after M2d-1 alone: 2 45e0671d07b60d9e,
+//     4 dcee545be139ca21, 6 642a239a24d3a1fe, 8 acf4ad4bafda267f.
+//   - M2d-2, KModes and the mid-resolution ask (R-8): moves 4, 6 and 8 only.
+//     It emits the new ModeChosen kind, and counting that kind in each
+//     acceptance log gives 2 seats: 0, and 4/6/8 seats: 1 apiece. The 2-seat
+//     game is not modal-free by deck -- dimir-tempo carries Spell Pierce,
+//     whose UnlessCost$ 2 is served through this same kind -- it simply
+//     never casts it under this seed and bot policy. So the 2-seat golden
+//     below is M2d-1's value, unchanged by M2d-2.
+//   - M2d-3, concede (R-M3): moves NOTHING. It only adds an option to every
+//     priority decision, and neither bot mirror ever picks it; an offered
+//     but untaken option is not an event.
 var acceptanceHeads = map[int]string{
-	2: "f549efb67dc4276e",
-	4: "2359e6d5379a5ce2",
-	6: "85f72b9d665bbe7a",
-	8: "86a6965ce5bb06a8",
+	2: "45e0671d07b60d9e",
+	4: "795a100313094d6c",
+	6: "0311852b655e44d0",
+	8: "1216344ec91e5881",
 }
 
 func TestHeads(t *testing.T) {
