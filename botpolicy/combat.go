@@ -71,19 +71,24 @@ func (c Creature) pt() int32 { return c.Power + c.Toughness }
 // BoardFromGame is the game-shaped half of the adapter pair: the Board a
 // decision is answered from, derived from the engine's own state.Game the
 // way seat/bot.go's boardFromView derives it from the projected View a real
-// client would receive. Both halves read public facts only — every
-// player's battlefield, each player's life — so agreeing on them is
-// agreeing on what the seat can legally see, not cheating that happens to
-// be consistent. The census matches the View's exactly: every object the
-// View lists in a battlefield (it already drops cardless ability objects
-// and off-battlefield ephemerals), further filtered to creatures the same
-// way boardFromView filters on the joined type list (cards/face.go's
-// hasType is an EqualFold membership check on exactly those words).
-func BoardFromGame(g *state.Game, ch Chars) Board {
+// client would receive. me is the player the decision that will be answered
+// is asked of — the same seat whose hand the view-shaped half projects — so
+// the casting Card facts below come from exactly the zones that seat may
+// legally see. Both halves read public facts (every player's battlefield,
+// each player's life) plus the deciding seat's own private ones (its hand
+// and graveyard), so agreeing on them is agreeing on what that seat can
+// see, not cheating that happens to be consistent. The creature census
+// matches the View's exactly: every object the View lists in each
+// battlefield (it already drops cardless ability objects and
+// off-battlefield ephemerals), further filtered to creatures the same way
+// boardFromView filters on the joined type list (cards/face.go's hasType is
+// an EqualFold membership check on exactly those words).
+func BoardFromGame(g *state.Game, ch Chars, me state.PlayerID) Board {
 	b := Board{
 		IsMain:    g.Step.IsMain(),
 		Creatures: make(map[state.ObjID]Creature, 32),
 		Life:      make(map[state.PlayerID]int32, len(g.Players)),
+		Cards:     make(map[state.ObjID]Card, 16),
 	}
 	for i := range g.Players {
 		p := &g.Players[i]
@@ -100,6 +105,28 @@ func BoardFromGame(g *state.Game, ch Chars) Board {
 				Keywords:   append([]string(nil), ch.Keywords(id)...),
 				Tapped:     o.Tapped,
 				Controller: o.Controller,
+			}
+		}
+	}
+	// The casting Card census: every object in the deciding seat's own hand,
+	// graveyard and battlefield — exactly the zones boardFromView fills from
+	// the viewer's own Hand/Graveyard/Battlefield CardViews. Reading the
+	// face's Types and ManaCost and the engine's derived Power here, and the
+	// CardView's matching fields on the view side, fills the same fact with
+	// the same function (CmcOf, hasTypeWord), so a card ranks identically on
+	// both halves.
+	for _, z := range [...]state.Zone{state.ZHand, state.ZGraveyard, state.ZBattlefield} {
+		for _, id := range g.Zone(z, me) {
+			o := g.Obj(id)
+			f := o.Face()
+			if o == nil || f == nil || o.Ephemeral() {
+				continue
+			}
+			b.Cards[id] = Card{
+				Creature: f.IsCreature(),
+				Power:    ch.Power(id),
+				CMC:      CmcOf(f.ManaCost),
+				Basic:    hasTypeWord(f.Types, "Basic"),
 			}
 		}
 	}
