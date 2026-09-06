@@ -132,6 +132,54 @@ func TestEndOfTurnCleanupDropsUntilEOTEffects(t *testing.T) {
 	}
 }
 
+// TestActiveCacheInvalidatesWhenEffectsEnterAndLeave is the Task c5 cache
+// invalidation regression test. active() (layers.go) caches its sorted effect
+// list on the pair (log head, continuousVersion) so Derived stops rebuilding
+// it once per object; the enforced point is that the cache is invalidated
+// whenever a continuous effect ENTERS (AddContinuous) or LEAVES
+// (EndOfTurnCleanup) the live set. The leave direction is the load-bearing
+// one: EndOfTurnCleanup rewrites e.continuous in place and emits NO event, so
+// only the continuousVersion bump can ever invalidate the cache there. If
+// that bump is removed (or the key widened to the log head alone), the cached
+// list keeps the dropped UntilEOT pump and the engine reports a dead pump's
+// P/T -- a stale derived characteristic, which is a wrong game, not a slow
+// one.
+//
+// The test deliberately primes the cache by reading Derived before each
+// mutation and re-primes before the leave, so it fails exactly when
+// invalidation is missing rather than when the cache happens not to be built.
+func TestActiveCacheInvalidatesWhenEffectsEnterAndLeave(t *testing.T) {
+	e := layerEngine(t)
+	id := onBoard(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+
+	// Prime the cache on the bare board.
+	if got := e.Power(id); got != 2 {
+		t.Fatalf("prime: power = %d, want 2", got)
+	}
+
+	// Enter: an UntilEOT +3/+3 pump. The ClockTick and the version both move,
+	// so the cached list must rebuild and the pump must be visible.
+	e.AddContinuous(ContinuousEffect{Source: id, Layer: LPT, Sub: SubModify,
+		Affects: "Card.Self", AddPower: 3, AddToughness: 3, UntilEOT: true})
+	if got := e.Power(id); got != 5 {
+		t.Fatalf("after enter: power = %d, want 5 (pump must appear)", got)
+	}
+
+	// Re-prime on the pumped board so the leave below is the only possible
+	// source of staleness.
+	if got := e.Power(id); got != 5 {
+		t.Fatalf("re-prime: power = %d, want 5", got)
+	}
+
+	// Leave: EndOfTurnCleanup drops the UntilEOT pump with no log event. Only
+	// the continuousVersion bump invalidates the cache here; without it the
+	// dead pump would leak into derived P/T.
+	e.EndOfTurnCleanup()
+	if got := e.Power(id); got != 2 {
+		t.Fatalf("after leave: power = %d, want 2 (cleaned-up pump must vanish)", got)
+	}
+}
+
 func TestEffectsFromObjectsThatLeftAreDropped(t *testing.T) {
 	e := layerEngine(t)
 	lord := onBoard(t, e, 0, "Name:Lord\nManaCost:2 W\nTypes:Creature Human\nPT:2/2\nOracle:x\n")
