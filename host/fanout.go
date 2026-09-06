@@ -74,10 +74,16 @@ func (r *Registry) widgetFrame(t *table, m *match, last string) protocol.Frame {
 // own already-held lock, passing m.e.G and m.e.L.Events[from:] directly:
 // no clone needed there, since they never release the lock mid-call.
 func eventBodiesFor(viewer state.PlayerID, vis view.Visibility, g *state.Game, evs []events.Event) []protocol.EventBody {
-	red := view.RedactEventsFor(g, evs, viewer, vis)
-	out := make([]protocol.EventBody, 0, len(red))
-	for _, ev := range red {
-		out = append(out, protocol.EventBody{Event: protocol.EventFrom(ev), Line: view.Describe(g, ev)})
+	// One-pass body build: redact each event into its own protocol.EventBody
+	// inline (view.RedactEventFor) instead of first materialising a full
+	// len(evs) []events.Event via RedactEventsFor and copying that into this
+	// output. The (viewer, vis) pair is exactly the same pair the burst
+	// version applied to the whole slice, and Describe still runs on the
+	// redacted event, so a hidden card's name never reaches the line.
+	out := make([]protocol.EventBody, 0, len(evs))
+	for _, ev := range evs {
+		r := view.RedactEventFor(g, ev, viewer, vis)
+		out = append(out, protocol.EventBody{Event: protocol.EventFrom(r), Line: view.Describe(g, r)})
 	}
 	return out
 }

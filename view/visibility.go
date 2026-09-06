@@ -109,26 +109,40 @@ func ProjectFor(g *state.Game, ch Chars, viewer state.PlayerID, vis Visibility, 
 // omniscient viewer sees. A non-Secret move into a library (e.g. from a
 // public zone) is not this kind of reveal and stays public.
 func RedactEventsFor(g *state.Game, evs []events.Event, viewer state.PlayerID, vis Visibility) []events.Event {
+	out := make([]events.Event, 0, len(evs))
+	for _, e := range evs {
+		out = append(out, RedactEventFor(g, e, viewer, vis))
+	}
+	return out
+}
+
+// RedactEventFor is RedactEventsFor's single-event half: redacts one event
+// for one (viewer, visibility) pair. Split out so a hot caller (host's
+// eventBodiesFor) that reads through every event can redact each into its
+// own output without first building a len(evs) intermediate []events.Event
+// (the whole-slice wrapper still allocates one for callers that want it).
+// Visibility is a property of the viewer's relationship to a table, so the
+// (viewer, vis) pair, taken together, is exactly the key that determines
+// what a projection may reveal -- two callers may share a result only when
+// their pair is identical.
+func RedactEventFor(g *state.Game, e events.Event, viewer state.PlayerID, vis Visibility) events.Event {
 	switch vis {
 	case Public:
-		return RedactEvents(g, evs, NoSeat)
+		// Public forces the NoSeat path regardless of who is asking -- a
+		// real seat passed in with Public must not see its own hand.
+		return RedactEvent(g, e, NoSeat)
 	case Omniscient:
-		out := make([]events.Event, 0, len(evs))
-		for _, e := range evs {
-			e.IDs = append([]state.ObjID(nil), e.IDs...)
-			e.Pairs = append([][2]state.ObjID(nil), e.Pairs...)
-			if e.Secret && (e.Kind == events.Shuffle || e.Kind == events.Note || e.To == state.ZLibrary) {
-				out = append(out, events.Event{
-					Seq: e.Seq, Kind: e.Kind, Player: e.Player,
-					From: e.From, To: e.To, Step: e.Step, Secret: e.Secret,
-				})
-				continue
+		e.IDs = append([]state.ObjID(nil), e.IDs...)
+		e.Pairs = append([][2]state.ObjID(nil), e.Pairs...)
+		if e.Secret && (e.Kind == events.Shuffle || e.Kind == events.Note || e.To == state.ZLibrary) {
+			return events.Event{
+				Seq: e.Seq, Kind: e.Kind, Player: e.Player,
+				From: e.From, To: e.To, Step: e.Step, Secret: e.Secret,
 			}
-			out = append(out, e)
 		}
-		return out
+		return e
 	default:
-		return RedactEvents(g, evs, viewer)
+		return RedactEvent(g, e, viewer)
 	}
 }
 

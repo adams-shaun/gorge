@@ -84,78 +84,84 @@ import (
 func RedactEvents(g *state.Game, evs []events.Event, viewer state.PlayerID) []events.Event {
 	out := make([]events.Event, 0, len(evs))
 	for _, e := range evs {
-		// Final review finding I2: e is a struct copy of the loop variable,
-		// but e.IDs and e.Pairs are slice HEADERS -- copying the header does
-		// not copy the backing array, so every branch below that appended e
-		// (or a struct literal that reused these fields) unchanged still
-		// pointed at the caller's own arrays. filterVisible/filterVisiblePairs
-		// already return fresh slices, so the rule-3 default branch below was
-		// never the problem; the owner's-own-secret pass-through, the g==nil
-		// degrade, and the zone-move/Note paths that fall through to the
-		// final append all were. Deep-copying both, unconditionally, before
-		// any branch runs, is what actually makes this function's own doc
-		// comment ("the input slice, and every event in it, is never
-		// mutated") true: a caller can now freely mutate a returned event's
-		// IDs/Pairs without ever touching the engine's own log. Measured
-		// before this fix: redacting a real game's log for one seat returned
-		// 50 events whose IDs[0] aliased the engine's own logged event (that
-		// seat's own Shuffle, i.e. its entire library order); mutating one
-		// permanently desynced Log.Head() from Log.HeadAt(len(Log.Events)),
-		// breaking replay of that match for good.
-		e.IDs = append([]state.ObjID(nil), e.IDs...)
-		e.Pairs = append([][2]state.ObjID(nil), e.Pairs...)
-		if e.Secret {
-			if e.Player != viewer {
-				out = append(out, events.Event{
-					Seq: e.Seq, Kind: e.Kind, Player: e.Player,
-					From: e.From, To: e.To, Step: e.Step, Secret: e.Secret,
-				})
-				continue
-			}
-			// The owner's own secret: rule 1 does not apply to them at
-			// all, and neither do rules (2)/(3) -- a Secret event is
-			// wholly its emitter's to redact-or-not, not something this
-			// function additionally filters id-by-id even for its owner.
-			out = append(out, e)
-			continue
-		}
-		if g == nil {
-			out = append(out, e)
-			continue
-		}
-		switch e.Kind {
-		case events.MoveZone, events.Draw, events.PutOnStack:
-			if e.From.Hidden() && e.To.Hidden() && !visibleTo(g, e.Obj, viewer) {
-				e.Obj = 0
-			}
-			// T23-z: rule 2 above only ever narrowed Obj; IDs/Pairs on a
-			// zone-move kind got no filtering at all, unlike every other
-			// kind (rule 3's default branch below). Measured behaviour-
-			// neutral today (0 non-test emitters of MoveZone/Draw/PutOnStack
-			// carry IDs or Pairs), so no chain head can move -- this closes
-			// the allowlist gap for whenever one starts to.
-			e.IDs = filterVisible(g, e.IDs, viewer)
-			e.Pairs = filterVisiblePairs(g, e.Pairs, viewer)
-		case events.Note:
-			// Ruling T23-w: rule 3 does not apply to a non-Secret Note at
-			// all -- it passes through unchanged. A Note is the engine's
-			// explicit "tell everyone" channel (Reveal/RevealHand/
-			// PeekAndReveal exist to show hidden cards to every seat via
-			// one), so it is public unless the emitter opted it into
-			// Secret instead, which the branch above already handles.
-			// effRearrangeTopOfLibrary's private look is the counterexample
-			// that must NOT be public, and it is Secret for exactly that
-			// reason -- not filtered here.
-		default:
-			if !visibleTo(g, e.Obj, viewer) {
-				e.Obj = 0
-			}
-			e.IDs = filterVisible(g, e.IDs, viewer)
-			e.Pairs = filterVisiblePairs(g, e.Pairs, viewer)
-		}
-		out = append(out, e)
+		out = append(out, RedactEvent(g, e, viewer))
 	}
 	return out
+}
+
+// RedactEvent redacts ONE event for viewer; the per-event half of
+// RedactEvents, split out so a hot caller that wants the redacted form of
+// each input can redact into its own output without first building an
+// intermediate []events.Event (the whole-slice version has to allocate a
+// len(evs) backing array just to have something to append into). Rules are
+// identical to RedactEvents'; see its doc for rules (1)/(2)/(3) and the
+// state-as-of-last-event convention.
+//
+// Deep-copying (final review finding I2): e is a struct copy of the caller's
+// event, but e.IDs and e.Pairs are slice HEADERS -- copying the header does
+// not copy the backing array. Every branch below that returns e unchanged
+// would otherwise still point at the caller's own arrays. filterVisible/
+// filterVisiblePairs already return fresh slices, so the rule-3 default
+// branch is never the problem; the owner's-own-secret pass-through, the
+// g==nil degrade, and the zone-move/Note paths that fall through to the
+// final return all are. Deep-copying both, unconditionally, before any
+// branch runs, is what makes this function's "the input event is never
+// mutated" promise true: a caller can now freely mutate the returned
+// event's IDs/Pairs without ever touching the engine's own log. Measured
+// before this fix: redacting a real game's log for one seat returned 50
+// events whose IDs[0] aliased the engine's own logged event (that seat's
+// own Shuffle, i.e. its entire library order); mutating one permanently
+// desynced Log.Head() from Log.HeadAt(len(Log.Events)), breaking replay of
+// that match for good.
+func RedactEvent(g *state.Game, e events.Event, viewer state.PlayerID) events.Event {
+	e.IDs = append([]state.ObjID(nil), e.IDs...)
+	e.Pairs = append([][2]state.ObjID(nil), e.Pairs...)
+	if e.Secret {
+		if e.Player != viewer {
+			return events.Event{
+				Seq: e.Seq, Kind: e.Kind, Player: e.Player,
+				From: e.From, To: e.To, Step: e.Step, Secret: e.Secret,
+			}
+		}
+		// The owner's own secret: rule 1 does not apply to them at all,
+		// and neither do rules (2)/(3) -- a Secret event is wholly its
+		// emitter's to redact-or-not, not something this function
+		// additionally filters id-by-id even for its owner.
+		return e
+	}
+	if g == nil {
+		return e
+	}
+	switch e.Kind {
+	case events.MoveZone, events.Draw, events.PutOnStack:
+		if e.From.Hidden() && e.To.Hidden() && !visibleTo(g, e.Obj, viewer) {
+			e.Obj = 0
+		}
+		// T23-z: rule 2 above only ever narrowed Obj; IDs/Pairs on a
+		// zone-move kind got no filtering at all, unlike every other kind
+		// (rule 3's default branch below). Measured behaviour-neutral
+		// today (0 non-test emitters of MoveZone/Draw/PutOnStack carry IDs
+		// or Pairs), so no chain head can move -- this closes the allowlist
+		// gap for whenever one starts to.
+		e.IDs = filterVisible(g, e.IDs, viewer)
+		e.Pairs = filterVisiblePairs(g, e.Pairs, viewer)
+	case events.Note:
+		// Ruling T23-w: rule 3 does not apply to a non-Secret Note at all
+		// -- it passes through unchanged. A Note is the engine's explicit
+		// "tell everyone" channel (Reveal/RevealHand/PeekAndReveal exist
+		// to show hidden cards to every seat via one), so it is public
+		// unless the emitter opted it into Secret instead, which the
+		// branch above already handles. effRearrangeTopOfLibrary's private
+		// look is the counterexample that must NOT be public, and it is
+		// Secret for exactly that reason -- not filtered here.
+	default:
+		if !visibleTo(g, e.Obj, viewer) {
+			e.Obj = 0
+		}
+		e.IDs = filterVisible(g, e.IDs, viewer)
+		e.Pairs = filterVisiblePairs(g, e.Pairs, viewer)
+	}
+	return e
 }
 
 // visibleTo reports whether id is safe to show viewer: the object it names
