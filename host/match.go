@@ -90,7 +90,7 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 		names[i], decks[i], deckNames[i] = d.Name, d.Cards, dn
 		infos[i] = protocol.SeatInfo{Name: d.Name, Deck: dn, Colour: protocol.SeatColours[i%len(protocol.SeatColours)]}
 	}
-	cfg := rules.Config{Seed: seed, Names: names, Decks: decks, Tokens: r.opts.Tokens}
+	cfg := rules.Config{Seed: seed, Names: names, Decks: decks, Tokens: r.opts.Tokens, Mulligans: c.Mulligans}
 	e := rules.New(cfg)
 	e.Advance()
 	m := &match{table: t, k: k, seed: seed, cfg: cfg, seats: infos, decks: deckNames, e: e, state: protocol.MatchLive}
@@ -162,7 +162,7 @@ func (m *match) sidecar() sidecar {
 	}
 	return sidecar{Table: string(m.table.cfg.ID), Match: m.k, Seed: m.seed, Seats: m.seats, Names: m.cfg.Names,
 		Decks: m.decks, Spectator: m.table.cfg.Spectator.String(), State: m.state, Result: m.result, Winner: m.winner,
-		Head: m.head, Events: events, Turns: m.e.G.Turn, Reason: m.reason}
+		Head: m.head, Events: events, Turns: m.e.G.Turn, Reason: m.reason, Mulligans: m.cfg.Mulligans}
 }
 
 // defaultSeats is PL-14: one bot per seat, seeded from the match seed.
