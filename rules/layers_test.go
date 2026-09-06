@@ -45,6 +45,49 @@ func TestDerivedStartsFromPrintedCharacteristics(t *testing.T) {
 	}
 }
 
+// TestDerivedSeedsTypesFromPrintedThenAddsGrantedTypes pins the layer-4 seed
+// (rules/layers.go): Derived.Types must start from the object's printed type
+// line, exactly as Keywords starts from the printed keyword line, and then
+// accumulate any LType-granted types. This is the regression test for the
+// fix-round-1 defect where the printed types were dropped (ty was reset but
+// never seeded from f.Types), leaving the field holding only granted types --
+// a change no consumer exercised, so no suite caught it. Removing the seed
+// makes the printed type disappear from Derived.Types and fails this test by
+// name.
+func TestDerivedSeedsTypesFromPrintedThenAddsGrantedTypes(t *testing.T) {
+	e := layerEngine(t)
+	id := onBoard(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	if got := e.Derived(id).Types; len(got) != 2 || got[0] != "Creature" || got[1] != "Bear" {
+		t.Fatalf("printed types missing from Derived.Types before any effect: %v", got)
+	}
+	e.AddContinuous(ContinuousEffect{Source: id, Timestamp: 1, Layer: LType,
+		Affects: "Card.Self", AddTypes: []string{"Bird"}, UntilEOT: true})
+	got := e.Derived(id).Types
+	if len(got) != 3 || got[0] != "Creature" || got[1] != "Bear" || got[2] != "Bird" {
+		t.Fatalf("Derived.Types = %v, want [Creature Bear Bird] (printed then granted)", got)
+	}
+}
+
+// TestDerivedSeedsKeywordsFromPrintedThenAddsGrantedKeywords is the same pin
+// for the layer-6 seed: Derived.Keywords must contain the printed keyword
+// AND any LAbilities-granted keyword. It has the same shape as the types seed
+// and, before this fix round, the same missing test, so it gets the same
+// guard; removing the seed makes the printed keyword disappear and fails this
+// test by name.
+func TestDerivedSeedsKeywordsFromPrintedThenAddsGrantedKeywords(t *testing.T) {
+	e := layerEngine(t)
+	id := onBoard(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nK:Trample\nOracle:x\n")
+	if got := e.Derived(id).Keywords; len(got) != 1 || got[0] != "Trample" {
+		t.Fatalf("printed keyword missing from Derived.Keywords before any effect: %v", got)
+	}
+	e.AddContinuous(ContinuousEffect{Source: id, Timestamp: 1, Layer: LAbilities,
+		Affects: "Card.Self", AddKeywords: []string{"Flying"}, UntilEOT: true})
+	d := e.Derived(id)
+	if len(d.Keywords) != 2 || d.Keywords[0] != "Trample" || d.Keywords[1] != "Flying" {
+		t.Fatalf("Derived.Keywords = %v, want [Trample Flying] (printed then granted)", d.Keywords)
+	}
+}
+
 func TestLayer7dCountersAddToPowerAndToughness(t *testing.T) {
 	e := layerEngine(t)
 	id := onBoard(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")

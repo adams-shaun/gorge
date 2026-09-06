@@ -378,7 +378,7 @@ func (e *Engine) Derived(id state.ObjID) Derived {
 		ty = nil
 	}
 	kw = append(kw[:0], f.Keywords...)
-	ty = ty[:0]
+	ty = append(ty[:0], f.Types...)
 	for _, ce := range e.active() {
 		if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
 			continue
