@@ -67,11 +67,16 @@ import (
 // Task 17 (Storm and CopySpellAbility) registered api:CopySpellAbility and
 // kw:Storm, deleting Chain Lightning, Empty the Warrens and Tendrils of Agony
 // outright -- three more of the post-Task-16 entries -- leaving only the two
-// Protection entries, which M4's keyword work retires. It now stands at 2.
-var knownUnsupported = map[string][]string{
-	"Goblin Piledriver": {"kw:Protection from blue"},
-	"Knight of Infamy":  {"kw:Protection from white"},
-}
+// Protection entries.
+//
+// Task 15 (protection) registered the five kw:Protection from <colour>
+// keywords, retiring Goblin Piledriver (Protection from blue) and Knight of
+// Infamy (Protection from white) -- the last two entries on this table -- so
+// the ratchet is now EMPTY: every one of the 136 distinct cards across the
+// 12 repo decks is fully supported by this build. The table that follows is
+// intentionally left as an empty literal rather than deleted, so the ancient
+// comment history above it survives verbatim as the table's own provenance.
+var knownUnsupported = map[string][]string{}
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card
 // in the 12 Legacy decks is either fully playable, or is named in
