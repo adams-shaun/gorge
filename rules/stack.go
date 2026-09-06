@@ -140,6 +140,27 @@ func (e *Engine) targetName(source state.ObjID) string {
 	return "target"
 }
 
+// protectionSource resolves the object whose characteristics decide whether
+// "protection from X" filters out a candidate target or a Damage recipient
+// (Task 15 fix round 1, Critical C2): for an ability stack object -- the
+// top-of-stack wrapper events.Apply mints via AbilityPush/TriggerPush with no
+// Face -- that is the Source permanent that carries the ability, because
+// effects.ColorsOf and the Face-type reads in sourceHasQuality both return
+// nothing for a Face-less object (CR 606.3: targeting checks the spell or
+// ability's source, and for an activated or triggered ability that source is
+// the permanent that granted it). For everything else -- a spell's own stack
+// object, which IS the card and so carries a Face, or a plain permanent -- it
+// is the object itself. This is the single definition both askTarget (which
+// in the same round discovered it was passing the Face-less ability object)
+// and legalTargets consult, so the two sites always agree on what "the
+// source" is.
+func (e *Engine) protectionSource(source state.ObjID) state.ObjID {
+	if o := e.G.Obj(source); o != nil && o.Ability != nil && o.Source != 0 {
+		return o.Source
+	}
+	return source
+}
+
 // askTarget offers every legal target for a spell or ability. TargetMin$
 // and TargetMax$ set how many the chooser must pick; TgtZone$ (battlefield by
 // default, Graveyard/Hand/Exile for a targeting-off-the-board effect like
@@ -169,6 +190,15 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 			add("player", e.G.Players[q].Name, 0, q)
 		}
 	}
+	// Task 15 fix round 1 (Critical C2 / Important 2): resolve the source ONCE
+	// for the whole ask -- for an ability this is the Source permanent, not the
+	// Face-less stack object (protectionSource). And guard the filter on the
+	// candidate's zone (CR 604.3: a permanent's static ability -- protection is
+	// one -- functions only on the battlefield), exactly as legalTargets does,
+	// so protection is not applied to a target sitting in a Graveyard/Hand/
+	// Exile the TgtZone$ spec is asking about. With both in place the two
+	// call sites share one predicate and one rule-set.
+	protSrc := e.protectionSource(source)
 	for _, z := range zones {
 		// Hand is the chooser's own hand only (CR 701.15a); the other
 		// non-battlefield zones are public, so every seat's slice is offered.
@@ -182,9 +212,13 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 				// CR 702.16c: a permanent protected from the targeting
 				// source's qualities cannot be the target of the spell or
 				// ability, so it is never offered even when the ValidTgts$
-				// spec would name it.
-				if o != nil && effects.MatchesSpecFrom(e.G, spec, oid, p, source) &&
-					!e.protectedFrom(oid, source) {
+				// spec would name it -- but only while that protection actually
+				// FUNCTIONS, which is on the battlefield (CR 604.3), so a
+				// Graveyard target is not withheld by a printed protection the
+				// dead card can no longer exercise.
+				if o != nil && o.Face() != nil &&
+					effects.MatchesSpecFrom(e.G, spec, oid, p, source) &&
+					!(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc)) {
 
 					add("permanent", o.Face().Name+" ("+e.G.Players[q].Name+")", oid, q)
 				}
@@ -519,9 +553,12 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, you state.Pla
 		// source's qualities since the target was chosen is no longer a legal
 		// target, exactly as askTarget withheld it at cast time -- so a
 		// previously-offered target that gained matching protection mid-race
-		// is dropped from resolution too (CR 608.2b).
+		// is dropped from resolution too (CR 608.2b). The source is resolved
+		// through protectionSource so an ability fizzling here judges "the
+		// source" as its Source permanent, the same object askTarget's own
+		// filter has now been made to see (Critical C2 -- one definition).
 		if o := e.G.Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield &&
-			effects.MatchesSpec(e.G, spec, t.Obj, you) && !e.protectedFrom(t.Obj, source) {
+			effects.MatchesSpec(e.G, spec, t.Obj, you) && !e.protectedFrom(t.Obj, e.protectionSource(source)) {
 			legal = append(legal, t)
 		}
 	}

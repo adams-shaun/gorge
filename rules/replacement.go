@@ -144,7 +144,7 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 		// ReplaceWith$ does) lands on an object already in its new zone,
 		// so "enters tapped" actually sticks.
 		e.applyingReplacement = true
-		effects.Resolve(e, ctx, matchRepl.With)
+		e.resolveReplacementWith(ctx, matchRepl.With)
 		e.applyingReplacement = false
 		return stored, true
 	}
@@ -155,9 +155,32 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	// pins are exactly this shape (no ReplacementResult$ at all) and must
 	// not move.
 	e.applyingReplacement = true
-	effects.Resolve(e, ctx, matchRepl.With)
+	e.resolveReplacementWith(ctx, matchRepl.With)
 	e.applyingReplacement = false
 	return ev, true
+}
+
+// resolveReplacementWith runs a ReplaceWith$ effect with e.damaging set to
+// the permanent that owns the replacement and then restores whatever it was
+// beforehand (Task 15 fix round 1, Important I3). A ReplaceWith$ resolves
+// inside emit, where the only write to e.damaging so far was around
+// resolveTop's own resolution calls and damageStep's assignment loop -- so a
+// replacement that emits damage normally inherited whichever value that outer
+// context happened to hold: the combat attacker when the replaced event came
+// from damageStep's loop, or 0 (no source) during ordinary turn structure.
+// Either way the damage was attributed to the wrong thing, or to nothing.
+// The reading chosen here is: the damage a replacement emits is dealt by the
+// permanent whose R: line owns the replacement (ctx.Source) -- it is an
+// effect of that permanent, exactly as resolveTop attributes a resolved
+// ability's damage to its source -- and CR 609.7a asks for the source of the
+// effect, which is the permanent granting the replacement. The PREVIOUS
+// damaging is saved and restored (never zeroed) so an outer in-flight
+// assignment keeps its own attribution once the replacement returns.
+func (e *Engine) resolveReplacementWith(ctx *effects.Ctx, with *cards.SA) {
+	saved := e.damaging
+	e.damaging = ctx.Source
+	effects.Resolve(e, ctx, with)
+	e.damaging = saved
 }
 
 // replacementMatches implements R:Event$ Moved's own Origin$/Destination$/

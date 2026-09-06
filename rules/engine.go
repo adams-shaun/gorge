@@ -117,6 +117,14 @@ type Engine struct {
 	// damage to a protection-bearer whose protecting quality the source
 	// carries (CR 702.16d). Zero when nothing is resolving/assigning damage;
 	// a zero damaging never suppresses a Damage event.
+	//
+	// Not copied by Clone (Task 15 fix round 1, M5): Clone runs only at an
+	// intent boundary, after New/Advance/Submit has returned, at which point
+	// every resolution and damage-step that EVER sets damaging has completed
+	// and reset it to zero -- an unset non-zero damaging would mean an emit
+	// was still in flight, which is exactly the boundary Clone is prohibited
+	// from crossing. So the field is always zero at a clone boundary and
+	// copying it would copy a constant.
 	damaging state.ObjID
 }
 
@@ -231,6 +239,21 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	if ev.Kind == events.Attach && ev.Obj != 0 && len(ev.IDs) > 0 &&
 		e.protectedFrom(ev.IDs[0], ev.Obj) {
+		// Task 15 fix round 1 (Important I1): this clause is defence-in-depth.
+		// Under the five registered colour protections there is NO reachable
+		// path that fires it -- askTarget withholds a coloured Aura from ever
+		// targeting a protected permanent (CR 702.16c) so no such Attach is
+		// ever offered to resolve, and for Equip the legalTargets fizzle in
+		// resolveTop fires first (the equipment's source is colourless, so a
+		// colour-protected permanent was never going to be non-legal by
+		// protection anyway). The clause stays because it is the engine's one
+		// guard for the moment a future task registers type or "everything"
+		// protection (or an Aura that enters the battlefield pre-attached, or
+		// any Attach emit produced without a targeting step) makes a actually
+		// protected permanent the direct object of an Attach; removing it now
+		// would silently re-open that hole. Do not test it by driving emit
+		// directly -- that would prove only that the if-lookup works, not that
+		// a game state reaches it.
 		return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "cannot attach: protected"})
 	}
 	if !e.applyingReplacement {
