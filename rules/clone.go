@@ -86,6 +86,16 @@ func (e *Engine) Clone() *Engine {
 	// bug, because either one walking would clobber the other's zone snapshot
 	// mid-range. Leaving both zero lets each engine grow its own buffer on
 	// its next depth-0 forEachObject call.
+	//
+	// activeBuf / activeEpoch / activeVersion / activeDepth / continuousVersion
+	// (engine.go, layers.go) are likewise deliberately NOT copied, with the
+	// same precedent. activeBuf is active()'s shared sorted effect list and
+	// activeDepth its re-entry guard; a clone must grow its own buffer, never
+	// alias the original's scratch, or the copy's next rebuild would clobber
+	// the original's live cache mid-range (or vice versa). activeEpoch /
+	// activeVersion / continuousVersion start at zero in the fresh struct, so
+	// the cloned engine misses the cache and rebuilds the identical,
+	// deterministic list on its first Derived after the clone boundary.
 	if e.cast != nil {
 		pc := *e.cast
 		pc.cost.Sac = append([]CostPart(nil), e.cast.cost.Sac...)
