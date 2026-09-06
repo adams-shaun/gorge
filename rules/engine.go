@@ -74,8 +74,11 @@ type Engine struct {
 	// Format). It is the explicit gate the Commander rules (the tax, CR
 	// 903.9, commander damage) check -- "in a non-Commander game none of
 	// this runs at all" -- rather than inferring the format from the
-	// incidental shape of the zones. Plain Format value; Clone copies it so
-	// a cloned Commander engine still gates its command-zone rules.
+	// incidental shape of the zones. It is read long after New returns: at
+	// cast time for the CR 903.8 tax, at combat-damage time and in the
+	// state-based-action pass for CR 903.10. Plain Format value; Clone
+	// copies it so a cloned Commander engine still gates its command-zone
+	// rules and keeps its commander-damage loss condition.
 	format Format
 
 	rng     *rng
@@ -189,14 +192,6 @@ type Engine struct {
 	// chooseCast in cast.go, and Tasks 12 and 18 add the "as this enters" and
 	// miracle cases in their own files.
 	choosing chooseFor
-
-	// format is the game's construction format, captured from Config at New.
-	// Task m33 (commander damage, CR 903.10) needs it at combat-damage time
-	// and in the state-based-action pass, long after New has returned, so it is
-	// stored here rather than re-derived. It is a plain value, so Clone copies
-	// it; a Commander-format game keeps commanding damage and its loss
-	// condition through a clone exactly as the live one does.
-	format Format
 
 	// resume is non-nil while a mid-resolution decision is pending: an
 	// effect (effCharm's modal pick, effCopySpellAbility's UnlessCost$
