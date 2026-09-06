@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groupBattlefield, quadrantFor, recentlyMattered, visibleHand } from './board';
+import { attachedTo, groupBattlefield, quadrantFor, recentlyMattered, visibleHand } from './board';
 import type { CardView, EventBody, PlayerView } from '../protocol';
 
 const card = (id: number, types: string): CardView => ({ id, name: `c${id}`, types, tapped: false, power: 0, toughness: 0, damage: 0, attacking: false, controller: 0, owner: 0, summon_sick: false, printing: { name: `c${id}` }, token: `#${id}` });
@@ -33,5 +33,34 @@ describe('board', () => {
     expect(visibleHand(player(null))).toBeNull();
     expect(visibleHand(player([]))).toEqual([]);
     expect(visibleHand(player([card(1, 'Creature')]))).toEqual([card(1, 'Creature')]);
+  });
+});
+
+describe('attachments', () => {
+  const perm = (id: number, types: string, attachedTo?: number): CardView =>
+    ({ id, name: `c${id}`, types, printing: { name: `c${id}` }, token: '', tapped: false,
+       power: 0, toughness: 0, damage: 0, attacking: false, controller: 0, owner: 0,
+       summon_sick: false, attached_to: attachedTo }) as CardView;
+
+  it('an attachment rides under its host instead of taking a slot of its own', () => {
+    const bf = [perm(1, 'Creature'), perm(2, 'Artifact Equipment', 1)];
+    const groups = groupBattlefield(bf);
+    expect(groups.creatures.map((c) => c.id)).toEqual([1]);
+    expect(groups.others).toEqual([]);
+    expect(attachedTo(bf, 1).map((c) => c.id)).toEqual([2]);
+  });
+
+  it('an attachment whose host is not on this battlefield still gets drawn', () => {
+    // A stolen host, or one that left: the attachment must not vanish.
+    const bf = [perm(2, 'Enchantment Aura', 99)];
+    expect(groupBattlefield(bf).others.map((c) => c.id)).toEqual([2]);
+  });
+
+  it('an unattached permanent is unaffected', () => {
+    const bf = [perm(1, 'Creature'), perm(2, 'Land')];
+    const groups = groupBattlefield(bf);
+    expect(groups.creatures.map((c) => c.id)).toEqual([1]);
+    expect(groups.lands.map((c) => c.id)).toEqual([2]);
+    expect(attachedTo(bf, 1)).toEqual([]);
   });
 });
