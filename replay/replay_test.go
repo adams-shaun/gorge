@@ -1,7 +1,6 @@
 package replay
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -12,7 +11,6 @@ import (
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/seat"
-	"github.com/adams-shaun/gorge/view"
 )
 
 // maxIntents bounds every drive loop below so a genuine engine bug (an
@@ -40,8 +38,7 @@ func playGame(t *testing.T, seed uint64) (rules.Config, *rules.Engine) {
 	n := 0
 	for !e.G.Over && e.Pending() != nil && n < maxIntents {
 		d := e.Pending()
-		v := view.Project(e.G, e, d.Player, d)
-		in, err := b.Decide(context.Background(), v, *d)
+		in, err := botAnswer(b, e, d)
 		if err != nil {
 			t.Fatalf("bot Decide returned an error: %v", err)
 		}
@@ -200,8 +197,7 @@ func TestResumeFromMidpointReachesTheSameEnd(t *testing.T) {
 	n := 0
 	for !resumed.G.Over && resumed.Pending() != nil && n < maxIntents {
 		d := resumed.Pending()
-		v := view.Project(resumed.G, resumed, d.Player, d)
-		in, err := b.Decide(context.Background(), v, *d)
+		in, err := botAnswer(b, resumed, d)
 		if err != nil {
 			t.Fatalf("bot Decide returned an error: %v", err)
 		}
