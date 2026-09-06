@@ -147,6 +147,31 @@ type Decision struct {
 	ResumeSA   *cards.SA `json:"-"`
 }
 
+// New builds a Decision and asserts its one construction-time invariant:
+// Options[i].Index == i for every option -- the position/Index identity a
+// client's intent and Chosen both rely on (a client names option i by
+// choosing index i, and Chosen returns Options[i]). Every engine ask funnels
+// its options through here, so the "future edit breaks the identity" defect
+// (finding bi) cannot reach a seat as a silently-different option: a
+// mis-indexed option is a programming error -- an option list's position is
+// the only source an Index may have -- so New panics the moment one is
+// built, instead of letting it ride a replay into an answer that resolves a
+// different option than the client named. It deliberately panics rather
+// than returning an error because an error hands the caller the choice to
+// swallow it and ship the broken Decision to a seat -- exactly the silent
+// wrong-option failure this constructor exists to make unrepresentable.
+// Source, if any, is set by the caller on the returned Decision; it carries
+// no invariant.
+func New(player state.PlayerID, kind Kind, prompt string, min, max int, options []Option) *Decision {
+	for i := range options {
+		if options[i].Index != i {
+			panic(fmt.Sprintf("decision: option %d has Index %d, want position %d (%s)",
+				i, options[i].Index, i, kind))
+		}
+	}
+	return &Decision{Player: player, Kind: kind, Prompt: prompt, Min: min, Max: max, Options: options}
+}
+
 // Intent is a client's answer.
 type Intent struct {
 	Seq     uint64         `json:"seq"`
