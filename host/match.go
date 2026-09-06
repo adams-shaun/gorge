@@ -12,6 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/protocol"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/seat"
+	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
 )
 
@@ -174,6 +175,76 @@ func defaultSeats(names []string, seed uint64) []seat.Seat {
 	return out
 }
 
+// parkedDecision is the outcome of installing (parking) the seat that owns one
+// pending decision, done — as the loop's structure now requires — before that
+// decision is ever published. For a bot seat the Decision runs synchronously
+// in parkSeat and in/err are already resolved; for a human seat park installed
+// the answerable slot and answer() blocks until a SubmitIntent (or ctx/timeout
+// caretaker) arrives. p is the decision's owner seat, kept for the crash line.
+type parkedDecision struct {
+	p   state.PlayerID
+	hs  *parking
+	in  decision.Intent
+	err error
+}
+
+// answer returns the parked decision's intent: immediately for a bot, after
+// blocking on the human seat's parked slot otherwise — the same intent/error
+// pair the old loop got straight out of seat.S Decide.
+func (pd *parkedDecision) answer() (decision.Intent, error) {
+	if pd.hs != nil {
+		return pd.hs.await()
+	}
+	return pd.in, pd.err
+}
+
+// parkedData is the projected shape of one pending decision, split out of the
+// park step so the projection — which touches the live engine — can be held
+// under the match's exclusive lock while the seat step runs without it.
+type parkedData struct {
+	p  state.PlayerID
+	v  view.View
+	dc decision.Decision
+}
+
+// projectNext reads the engine's current pending decision and projects the
+// board for it, copying options exactly as the old loop did (Ruling FL-19
+// minor: *d aliases the engine's pending, and dc.Options a slice header into
+// the same backing array, so the copy is required). It touches only the
+// engine — never a seat — so the loop can hold it under m.mu.Lock. That is
+// the fix's lock discipline: view.Project mutates the engine's Derived cache
+// (rules/layers.go Engine.active), so projecting the live engine must not run
+// concurrently with a focus subscriber's own snapshot projection (which takes
+// only m.mu.RLock); running it inside the Submit's exclusive section keeps
+// the two from ever overlapping. Returns nil when there is no pending
+// decision (game over, or a stall the caller resolves via G.Over). Call on
+// the match goroutine, under m.mu.
+func projectNext(m *match) *parkedData {
+	d := m.e.Pending()
+	if d == nil {
+		return nil
+	}
+	v := view.Project(m.e.G, m.e, d.Player, d)
+	dc := *d
+	dc.Options = append([]decision.Option(nil), d.Options...)
+	return &parkedData{p: d.Player, v: v, dc: dc}
+}
+
+// parkSeat installs the answerable slot for a projected decision: for a
+// HumanSeat it installs the slot without blocking, for any other seat (a bot,
+// or an embedder's blocking seat) it calls Decide. It is NEVER called under
+// m.mu — a blocking seat must not hold the match mutex across a Decide — but
+// by the time play calls it the next decision is already fully projected, and
+// the caller publishes (fanout) only after it returns, so publish-outranks-park
+// stays closed.
+func parkSeat(ctx context.Context, seats []seat.Seat, pd *parkedData) *parkedDecision {
+	if hs, ok := seats[pd.p].(*HumanSeat); ok {
+		return &parkedDecision{p: pd.p, hs: hs.park(ctx, pd.v, pd.dc)}
+	}
+	in, err := seats[pd.p].Decide(ctx, pd.v, pd.dc)
+	return &parkedDecision{p: pd.p, in: in, err: err}
+}
+
 // play drives m to completion, abort or crash on the table's goroutine and
 // returns the final match state. A panic anywhere in a decision or Submit
 // is a crash (spec D15), never a dead goroutine.
@@ -229,6 +300,16 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	if maxIntents == 0 {
 		maxIntents = defaultMaxIntents
 	}
+	// parked is the decision currently awaiting its answer (nil before the
+	// first live iteration). It is parked — installed, accept-ready — before
+	// any fan-out that could publish it, so no decision is ever visible before
+	// its seat can accept an answer. The first decision is parked on the first
+	// live iteration, after the stop/over checks, so that if parking it blocks
+	// (a seat that never answers, ctx-cancelled by Close) and that seat then
+	// errors, the error is surfaced as a crash rather than masked by a stop
+	// abort that raced the first park.
+	var parked *parkedDecision
+	var before int
 	for n := 0; ; n++ {
 		select {
 		case <-t.stop:
@@ -241,27 +322,41 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 		if m.e.G.Over {
 			return r.finish(t, m)
 		}
-		d := m.e.Pending()
-		if d == nil {
-			return r.crash(t, m, fmt.Errorf("engine stalled: game not over and no decision pending"))
-		}
 		if n >= maxIntents {
 			return r.crash(t, m, fmt.Errorf("did not terminate after %d intents (turn %d)", n, m.e.G.Turn))
 		}
-		v := view.Project(m.e.G, m.e, d.Player, d)
-		// Copy the decision before handing it to the seat: *d aliases the
-		// engine's own pending decision, and dc.Options a slice header
-		// pointing at the same backing array (Ruling FL-19 minor) — the
-		// View above already deep-copies exactly this list (view/view.go)
-		// because a Seat "must not be able to corrupt the live decision
-		// through it"; the raw argument here needs the same protection.
-		dc := *d
-		dc.Options = append([]decision.Option(nil), d.Options...)
-		in, err := seats[d.Player].Decide(ctx, v, dc)
-		if err != nil {
-			return r.crash(t, m, fmt.Errorf("seat %d: %w", d.Player, err))
+		// Park the decision if this is the first live iteration, or the
+		// previous iteration's end-of-loop park produced nothing because the
+		// game just ended (the Over check above would already have caught
+		// that; a non-over nil here is the old "engine stalled" crash). The
+		// projection runs under the exclusive lock so a focus subscriber
+		// cannot project the live engine concurrently; parkSeat — which may
+		// call a blocking Decide — runs without holding m.mu.
+		if parked == nil {
+			var data *parkedData
+			err := m.locked(func() error {
+				data = projectNext(m)
+				return nil
+			})
+			if err != nil {
+				return r.crash(t, m, err)
+			}
+			if data == nil {
+				return r.crash(t, m, fmt.Errorf("engine stalled: game not over and no decision pending"))
+			}
+			parked = parkSeat(ctx, seats, data)
 		}
-		var before int
+		// Await the answer to the parked decision (parked at the first live
+		// iteration or at the end of the previous one). A bot seat resolved
+		// synchronously in parkSeat and returns immediately; a human seat
+		// parks here on its slot until a SubmitIntent arrives or ctx/timeout
+		// fires the caretaker.
+		in, err := parked.answer()
+		if err != nil {
+			return r.crash(t, m, fmt.Errorf("seat %d: %w", parked.p, err))
+		}
+		var next *parkedDecision
+		var nextData *parkedData
 		err = m.locked(func() error {
 			before = len(m.e.L.Events)
 			if err := m.e.Submit(in); err != nil {
@@ -271,11 +366,33 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 			if err := r.afterBurst(t, m, before); err != nil { // Tasks 11, 12
 				return fmt.Errorf("persist: %w", err)
 			}
+			// Still exclusive: project the engine's NEXT decision (nil when the
+			// game just ended) so a focus subscriber, which projects the live
+			// engine under RLock to build its snapshot, can never run that
+			// projection concurrently with this one (view.Project writes the
+			// Derived cache). The old loop got the same serialization because
+			// its projection immediately preceded this Submit; this keeps it
+			// now that the park happens after the Submit.
+			nextData = projectNext(m)
 			return nil
 		})
 		if err != nil {
 			return r.crash(t, m, err)
 		}
+		// Install the next decision's answerable slot OUTSIDE the match lock:
+		// parkSeat may call a blocking Decide (an embedder's seat), and the
+		// match mutex must never be held across one. Publishing happens only
+		// after this, so the park-before-publish ordering still holds.
+		if nextData != nil {
+			next = parkSeat(ctx, seats, nextData)
+		}
+		// Park the engine's NEXT decision BEFORE publishing it: the seat that
+		// owns it is now accept-ready, so the fan-out below cannot expose a
+		// decision no seat is waiting to answer — the race defect B fixes.
+		// When the game just ended, next stays nil and the top-of-loop Over
+		// check finishes. This ordering, on the match goroutine, holds for
+		// every consumer of the published state.
+		parked = next
 		r.fanout(t, m, before) // Task 10
 		r.opts.Sleep(t.cfg.Pace, t.stop)
 	}

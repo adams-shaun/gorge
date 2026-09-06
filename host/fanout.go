@@ -32,8 +32,16 @@ func head(m *match) uint64 {
 // the turn starts. Called with m.mu held for reading.
 func (r *Registry) snapshotFrame(t *table, m *match) protocol.Frame {
 	v := view.ProjectFor(m.e.G, m.e, view.NoSeat, t.cfg.Spectator, nil)
+	// TurnStarts must never marshal as null on the wire (its protocol tag has
+	// no omitempty, and web/src/protocol.ts types it as a plain number[]): a
+	// nil slice would break every client before the first TurnChange — e.g.
+	// a table with a London mulligan round, whose seats are decided before
+	// turn 1 — because the DVR dereferences it as iterable. Appending onto an
+	// empty literal (not a nil one) both copies m.turnStarts (no aliasing)
+	// and keeps a zero-length TurnStarts a non-nil [] that marshals as []
+	// rather than null.
 	return frame(protocol.TSnapshot, t, m.k, head(m), protocol.Snapshot{
-		View: v, TurnStarts: append([]uint64(nil), m.turnStarts...), Head: head(m)})
+		View: v, TurnStarts: append([]uint64{}, m.turnStarts...), Head: head(m)})
 }
 
 // widgetFrame is the overview cell. Called with m.mu held for reading.
