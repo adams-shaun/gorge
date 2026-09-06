@@ -37,11 +37,12 @@ FORGE_REF  ?= 95f04e8a04c8925fa97cb226fc3341cabcc90a53
 .PHONY: help
 help:
 	@echo "mtgcore targets:"
-	@echo "  make build          — compile forgec and mtgsim"
+	@echo "  make build          — compile forgec, mtgsim and gorged"
 	@echo "  make fetch-cards    — fetch Forge cardsfolder + tokenscripts at FORGE_REF into $(CARDS_DIR)"
 	@echo "  make compile-cards  — compile the fetched corpus into the IR cache"
 	@echo "  make report         — print card coverage against implemented primitives"
 	@echo "  make sim            — build mtgsim and play 20 verified 4-seat games"
+	@echo "  make gorged         — run the M2a table server (browser client at the addr)"
 	@echo "  make gentypes       — regenerate web/src/protocol.ts from package protocol"
 	@echo "  make web            — npm ci and build the spectator client into cmd/gorged/webdist"
 	@echo "  make web-dev        — run the Vite dev server for web/"
@@ -51,7 +52,7 @@ help:
 	@echo "  NOTE: make test-web / npm test needs Node >=22 (vitest 5); see web/README.md"
 
 .PHONY: build
-build: $(BIN_DIR)/forgec $(BIN_DIR)/mtgsim
+build: $(BIN_DIR)/forgec $(BIN_DIR)/mtgsim $(BIN_DIR)/gorged
 
 $(BIN_DIR)/forgec: $(GO_SRC)
 	@mkdir -p $(BIN_DIR)
@@ -60,6 +61,16 @@ $(BIN_DIR)/forgec: $(GO_SRC)
 $(BIN_DIR)/mtgsim: $(GO_SRC)
 	@mkdir -p $(BIN_DIR)
 	CGO_ENABLED=0 go build -o $@ ./cmd/mtgsim
+
+$(BIN_DIR)/gorged: $(GO_SRC)
+	@mkdir -p $(BIN_DIR)
+	CGO_ENABLED=0 go build -o $@ ./cmd/gorged
+
+.PHONY: gorged
+# gorged runs the M2a table server: perpetual bot tables served to a browser
+# at the listen address. make web builds the Svelte client it embeds first.
+gorged: $(BIN_DIR)/gorged
+	$(BIN_DIR)/gorged -decks internal/testutil/decks -tables 4 -seats 4 -pace 1.5s
 
 .PHONY: sim
 sim: $(BIN_DIR)/mtgsim
