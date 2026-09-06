@@ -1,6 +1,8 @@
 package deck
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -129,6 +131,52 @@ func TestValidateCommanderNamesEveryOffender(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "Orc") || !strings.Contains(err.Error(), "43 cards") {
 		t.Fatalf("want Orc and 43-card errors, got %v", err)
+	}
+}
+
+// corpusCardScript reads one pinned corpus script by its cardsfolder path so
+// an eligibility test can run on real Forge data — a real card's Types:/Oracle:
+// — rather than a hand-built face (the m35 fix1 hole was exactly a test set
+// whose faces were all hand-built around the half of the condition the author
+// was thinking about). It Skips on a clean checkout with no .cards/ corpus,
+// the same contract cards/corpus_test.go sets.
+func corpusCardScript(t *testing.T, rel string) []byte {
+	t.Helper()
+	blob, err := os.ReadFile(filepath.Join("..", ".cards", "cardsfolder", rel))
+	if err != nil {
+		if os.IsNotExist(err) {
+			t.Skip("corpus not fetched; run `make fetch-cards compile-cards`")
+		}
+		t.Fatalf("reading corpus script %s: %v", rel, err)
+	}
+	return blob
+}
+
+// TestIsCommanderEligibleRejectsLegendaryNonCreature pins the half of CR
+// 903.3's eligibility condition the other tests never exercised: a legendary
+// non-creature — artifact, land, enchantment or sorcery — is not a legal
+// commander unless its Oracle says it can be. Karakas is a legendary land
+// from the pinned corpus. Deleting `&& f.IsCreature()` from IsCommanderEligible
+// makes this test fail by name.
+func TestIsCommanderEligibleRejectsLegendaryNonCreature(t *testing.T) {
+	blob := corpusCardScript(t, "k/karakas.txt")
+	c, diags := cards.ParseBytes("karakas.txt", blob)
+	if len(diags) > 0 {
+		t.Fatalf("Karakas parse: %v", diags)
+	}
+	if len(c.Faces) != 1 {
+		t.Fatalf("Karakas has %d faces, want 1", len(c.Faces))
+	}
+	// Pin the face predicates on the real corpus data first: the eligibility
+	// assertion below is only meaningful if Karakas really is a legendary
+	// non-creature (a corpus-pin drift that grows a creature type or a
+	// commander phrase on it is a fixture problem, not a pass).
+	f := c.Faces[0]
+	if !f.IsLegendary() || f.IsCreature() || !f.IsLand() {
+		t.Fatalf("fixture drift: Karakas parsed as Types %v; want a Legendary Land with no creature type", f.Types)
+	}
+	if IsCommanderEligible(c) {
+		t.Fatal("IsCommanderEligible(Karakas) = true: a legendary land is not a legal commander (CR 903.3)")
 	}
 }
 
