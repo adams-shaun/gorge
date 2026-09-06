@@ -46,10 +46,10 @@ func twoCommanderDeck(t *testing.T, cmd0Src, cmd1Src string) []*cards.Card {
 	return append([]*cards.Card{c0, c1}, mountainDeck(t, 38)...)
 }
 
-// commanderGame builds a two-seat Commander game (both seats commander at
+// commanderTaxGame builds a two-seat Commander game (both seats commander at
 // index 0) and drives seat 0 to turn 1 Main1, returning the engine, its
 // Config and seat 0's commander object.
-func commanderGame(t *testing.T, seed uint64) (*Engine, Config, state.ObjID) {
+func commanderTaxGame(t *testing.T, seed uint64) (*Engine, Config, state.ObjID) {
 	t.Helper()
 	deck0, deck1 := commanderDeck(t, commanderBeatstickSrc), commanderDeck(t, commanderBeatstickSrc)
 	cfg := Config{Seed: seed, Names: []string{"a", "b"},
@@ -129,7 +129,7 @@ func castCommanderOnce(t *testing.T, e *Engine, id state.ObjID) {
 // cost actually lands in the legality gate (an unfunded {2}-taxed cast is not
 // offered at all).
 func TestCommanderCastTaxesEveryCastBeyondTheFirst(t *testing.T) {
-	e, _, cmd0 := commanderGame(t, 31)
+	e, _, cmd0 := commanderTaxGame(t, 31)
 
 	// First cast: untaxed (CmdCasts[0] == 0), offered with an empty pool.
 	if c := e.commanderTaxFor(0, cmd0, Cost{}); c.Generic != 0 {
@@ -195,7 +195,7 @@ func TestCommanderCastTaxesEveryCastBeyondTheFirst(t *testing.T) {
 // `cost = e.commanderTaxFor(p, id, cost)` line in beginCast and this fails by
 // name -- the tax function still returns {2}/{4}, but commitCast pays {0}.
 func TestCommanderCastPathActuallyPaysTheTax(t *testing.T) {
-	e, _, cmd0 := commanderGame(t, 38)
+	e, _, cmd0 := commanderTaxGame(t, 38)
 
 	// First cast from the command zone: {0} base cost, tax {0}. The option is
 	// offered with an empty pool (castable holds for zero), and the cast pays
@@ -240,7 +240,7 @@ func TestCommanderCastPathActuallyPaysTheTax(t *testing.T) {
 // put on the stack, so a commander spell that is countered before it resolves
 // still pushes the next cast's tax up by {2}.
 func TestCommanderCounteredSpellStillRaisesTheTax(t *testing.T) {
-	e, _, cmd0 := commanderGame(t, 33)
+	e, _, cmd0 := commanderTaxGame(t, 33)
 
 	opt := commanderCastOption(e, cmd0)
 	if opt == nil {
@@ -273,7 +273,7 @@ func TestCommanderCounteredSpellStillRaisesTheTax(t *testing.T) {
 // only condition: casting the commander from the hand is a plain cast -- no
 // tax, and no increment.
 func TestCommanderCastFromHandIsNeitherTaxedNorCounted(t *testing.T) {
-	e, _, cmd0 := commanderGame(t, 34)
+	e, _, cmd0 := commanderTaxGame(t, 34)
 
 	// The commander is in the command zone; move it to the hand (a fixture --
 	// getting it there only ever happens through some other effect).
@@ -304,7 +304,7 @@ func TestCommanderCastFromHandIsNeitherTaxedNorCounted(t *testing.T) {
 // to bound -- is structurally impossible here because both sides derive from
 // commanderTaxFor.
 func TestCommanderNoOfferWithoutPayableTax(t *testing.T) {
-	e, _, cmd0 := commanderGame(t, 35)
+	e, _, cmd0 := commanderTaxGame(t, 35)
 
 	// Get the tax to {2} through a real cast+return.
 	castCommanderAndReturn(t, e, cmd0)

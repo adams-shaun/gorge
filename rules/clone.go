@@ -27,7 +27,6 @@ func (e *Engine) Clone() *Engine {
 		applyingReplacement: e.applyingReplacement,
 		choosing:            e.choosing,
 		drainAwaitsTarget:   e.drainAwaitsTarget,
-		format:              e.format,
 		// E2 held-out cast suppression (cast.go): the set of card ids whose
 		// cast option is held out of the current window after an unpayable
 		// decline. A clone taken at any intent boundary carries it forward so
