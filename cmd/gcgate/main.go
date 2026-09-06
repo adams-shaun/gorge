@@ -55,7 +55,6 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
 )
 
 func main() {
@@ -102,9 +101,7 @@ func gate(pkg string, procs int, budget float64, memLimit, run string, compulsor
 		cmd.Stdout = os.Stdout
 	}
 
-	start := time.Now()
 	runErr := cmd.Run()
-	wall := time.Since(start)
 
 	// Parse before reporting the test failure: a suite that fails still
 	// produced a real GC trace, and the numbers help explain the failure.
@@ -126,7 +123,6 @@ func gate(pkg string, procs int, budget float64, memLimit, run string, compulsor
 	share := gc / busy
 
 	fmt.Printf("gcgate %s  GOMAXPROCS=%d  GOMEMLIMIT=%s\n", pkg, procs, memLimit)
-	fmt.Printf("  wall                %8.2fs\n", wall.Seconds())
 	fmt.Printf("  consumed CPU        %8.2fs   (user+sys, the denominator)\n", busy)
 	fmt.Printf("  GC cycles           %8d\n", s.cycles)
 	fmt.Printf("    sweep termination %8.2fs\n", s.sweep)
