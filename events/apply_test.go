@@ -590,6 +590,7 @@ func TestApplyIsPure(t *testing.T) {
 		// rather than only exercising the no-abilities guard.
 		Emit(g, l, Event{Kind: MoveZone, Obj: lib0[5], From: state.ZLibrary, To: state.ZBattlefield})
 		Emit(g, l, Event{Kind: AbilityPush, Obj: lib0[5], Player: 0, Amount: 0})
+		Emit(g, l, Event{Kind: ModeChosen, Obj: lib1[1], Player: 1, Text: "mode one"}) // M2d-2 marker
 
 		Emit(g, l, Event{Kind: DeclareAttackers, Player: 0, IDs: []state.ObjID{lib0[0]}})
 		Emit(g, l, Event{Kind: DeclareBlockers, Pairs: [][2]state.ObjID{{lib1[0], lib0[0]}}})
@@ -1137,5 +1138,34 @@ func TestTargetsChosenAppendShapes(t *testing.T) {
 	Apply(g, Event{Kind: TargetsChosen, Obj: id, Player: 0, Amount: 1}) // shape 1 still replaces
 	if tg := g.Obj(id).Targets; len(tg) != 1 || !tg[0].IsPlayer {
 		t.Fatalf("targets %+v", tg)
+	}
+}
+
+// TestModeChosenIsAMarkerOnly is M2d-2's purity append for the new kind: the
+// event records nothing on state — no object field, no player field — so a
+// valid targeted application and an invalid player application both leave
+// every object and player untouched, and a replay applies it identically.
+func TestModeChosenIsAMarkerOnly(t *testing.T) {
+	build := func(t *testing.T) (*state.Game, *Log) {
+		t.Helper()
+		g, l := twoPlayer(t)
+		return g, l
+	}
+	g1, l1 := build(t)
+	lib := g1.Zone(state.ZLibrary, 1)
+	Emit(g1, l1, Event{Kind: ModeChosen, Obj: lib[0], Player: 1, Text: "Gain 5 life"})
+	// An out-of-range player must not panic — the same no-panic stance every
+	// other marker takes.
+	Emit(g1, l1, Event{Kind: ModeChosen, Obj: lib[0], Player: 99, Text: "x"})
+	g2, l2 := build(t)
+	Emit(g2, l2, Event{Kind: ModeChosen, Obj: 0, Player: 0})
+	if !reflect.DeepEqual(g1.Objs, g2.Objs) {
+		t.Fatalf("ModeChosen mutated an object: %+v vs %+v", g1.Objs, g2.Objs)
+	}
+	if !reflect.DeepEqual(g1.Players, g2.Players) {
+		t.Fatalf("ModeChosen mutated a player: %+v vs %+v", g1.Players, g2.Players)
+	}
+	if got, want := ModeChosen.String(), "mode_chosen"; got != want {
+		t.Fatalf("ModeChosen.String() = %q, want %q", got, want)
 	}
 }

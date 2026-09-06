@@ -191,8 +191,17 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		}
 	}
 
-	// Pass is last so a client can safely default to the final option.
+	// Pass is second-to-last. A client that wants to do nothing must choose
+	// it explicitly: from M2d-3 the FINAL option is "concede" (R-M3, always
+	// last), and a client defaulting to the final option would concede on
+	// every single priority decision.
 	add("pass", "Pass priority", 0)
+	// M2d-3 (R-M3): concession, last after pass. Choosing it emits the
+	// existing PlayerLost event with Text "conceded" (CR 104.3a) -- see
+	// handlePriority. Offered on every priority decision, i.e. to every
+	// living seat: grantPriority never hands a Lost seat priority, so no
+	// extra guard is needed here.
+	add("concede", "Concede", 0)
 	return out
 }
 
@@ -266,6 +275,19 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		// beginActivation -> pendingCast -> continueCast -> commitCast).
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
 		e.beginActivation(in.Player, opt)
+
+	case "concede":
+		// M2d-3 (R-M3): choosing the concede option emits the existing
+		// PlayerLost event with Text "conceded" (CR 104.3a) -- one event,
+		// the same one a 0-life elimination emits. PlayerLost's Apply marks
+		// the seat Lost; this checkStateBased then sweeps its permanents
+		// (CR 800.4a) and ends the game with the last remaining seat the
+		// winner (checkGameOver, CR 104.2a) -- a concession is just another
+		// way to be Lost. With three or more seats still alive, Submit's own
+		// tail Advance continues the match with the Lost seat skipped
+		// everywhere (grantPriority, NextAlive, beginTurn).
+		e.emit(events.Event{Kind: events.PlayerLost, Player: in.Player, Text: "conceded"})
+		e.checkStateBased()
 
 	case "cast":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})

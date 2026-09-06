@@ -499,6 +499,9 @@ func (e *Engine) exileDeadTokens(tried *sbaAttempts) bool {
 
 // checkGameOver ends the game once at most one seat remains (CR 104.2a's
 // "the last player left in the game wins", CR 104.4a's draw when nobody is).
+// A concession is a way to be Lost (M2d-3 emits the same PlayerLost the
+// life-loss path does), so a conceded game ends here exactly like one whose
+// losers lost to life or the library.
 // Ruling T22-b: this used to default the winner to seat 0 whenever nobody
 // survived -- PlayerID's zero value is a real seat, so an unconditional
 // `w := state.PlayerID(0)` silently crowned it every time elimination was

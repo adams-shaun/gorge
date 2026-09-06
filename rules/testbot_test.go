@@ -31,9 +31,15 @@ func newTestBot(seed uint64) *testBot {
 // (Ruling T25-b, fix round 1 -- seat.Bot reads this from the View's Phase;
 // this package has no View, so its caller (rules/fuzz_test.go) computes
 // isMain from e.G.Step.IsMain() on the line before calling answer), then
-// land, then cast, then pass; attack with everything; target an opponent
+// land, then cast, then pass; "concede" (M2d-3) is never picked -- its
+// option sits last after "pass", and the explicit kind scans below return
+// before any blind fallback, so the bot stays in every game it is playing
+// (that guarantee is what keeps the acceptance decks from conceding on turn
+// one); attack with everything; target an opponent
 // over yourself; block about half the time, never with the same blocker
-// twice; order or accept/decline triggers with the bot's own rng; and, for
+// twice; order or accept/decline triggers with the bot's own rng; answer the
+// London mulligan round (keep, or mulligan 1/3 off the rng; bottom the
+// lowest-indexed cards); take the first Min modes on a modal pick; and, for
 // anything else (or anything above that found nothing to pick), whatever
 // clamp tops up with. Every access into d.Options is guarded against the
 // list being empty, and clamp (Ruling T25-c, fix round 1) is the last thing
@@ -85,6 +91,10 @@ func (b *testBot) answer(isMain bool, d *decision.Decision) decision.Intent {
 		// offers outside sorcery speed. Pass is offered on every priority
 		// decision the engine emits; if it is somehow absent, this falls
 		// through to the shared last resort below, same as any other kind.
+		// M2d-3: the "concede" option sits directly after "pass" in the
+		// option list, so this explicit scan is also what keeps the bot from
+		// ever conceding -- it returns pass before clamp, or any
+		// position-based fallback, can reach the new final option.
 		for _, o := range d.Options {
 			if o.Kind == "pass" {
 				in.Choices = []int{o.Index}
@@ -161,6 +171,44 @@ func (b *testBot) answer(isMain bool, d *decision.Decision) decision.Intent {
 			}
 		default: // yes/no (yes is first), name, type, number: the first offer
 			in.Choices = []int{d.Options[0].Index}
+		}
+		return clamp(d, in)
+
+	case decision.KMulligan:
+		// The London round, two shapes on one kind (rules/mulligan.go) --
+		// seat/bot.go's KMulligan case, mirrored verbatim (Ruling F7).
+		// Bottoming: every option is a "bottom"; take the d.Min lowest-indexed
+		// cards, no rng. Keep/mulligan: mulligan with probability 1/3 when one
+		// is offered (consuming the bot rng only where a real choice exists),
+		// else keep.
+		if len(d.Options) > 0 && d.Options[0].Kind == "bottom" {
+			for j := 0; j < len(d.Options) && j < d.Min; j++ {
+				in.Choices = append(in.Choices, d.Options[j].Index)
+			}
+			return clamp(d, in)
+		}
+		if len(d.Options) > 1 {
+			for _, o := range d.Options {
+				if o.Kind == "mulligan" && b.r.IntN(3) == 0 {
+					in.Choices = []int{o.Index}
+					return clamp(d, in)
+				}
+			}
+		}
+		if len(d.Options) > 0 {
+			in.Choices = []int{d.Options[0].Index} // keep
+			return clamp(d, in)
+		}
+
+	case decision.KModes:
+		// The mid-resolution modal pick (M2d-2) -- seat/bot.go's KModes
+		// case, mirrored verbatim (Ruling F7): choose the first Min options
+		// in order, the recorded mirror of the engine-side first-mode
+		// stand-in, no rng. Also answers an UnlessCost$ may-pay (option 0 is
+		// "Pay … — make a copy"); the engine declines when the payer's pool
+		// cannot cover it.
+		for j := 0; j < len(d.Options) && j < d.Min; j++ {
+			in.Choices = append(in.Choices, d.Options[j].Index)
 		}
 		return clamp(d, in)
 	}
@@ -280,6 +328,7 @@ func TestTestBotPassesOutsideMainWithNoCastOrLandDrop(t *testing.T) {
 			{Index: 0, Kind: "activate", Obj: 100},
 			{Index: 1, Kind: "activate", Obj: 101},
 			{Index: 2, Kind: "pass"},
+			{Index: 3, Kind: "concede"},
 		}}
 	b := newTestBot(1)
 	in := b.answer(false, &d)
@@ -294,6 +343,15 @@ func TestTestBotPassesOutsideMainWithNoCastOrLandDrop(t *testing.T) {
 	if len(in.Choices) != 1 || d.Options[in.Choices[0]].Kind != "activate" {
 		t.Errorf("isMain=true: priority = %+v, want an activation chosen", in)
 	}
+	// M2d-3: the trailing "concede" option is never chosen in either phase
+	// -- the mirror of the seat.Bot guarantee, so the acceptance games (this
+	// bot drives them, Ruling F7) cannot end on turn one.
+	for _, isMain := range []bool{false, true} {
+		in := b.answer(isMain, &d)
+		if len(in.Choices) == 0 || d.Options[in.Choices[0]].Kind == "concede" {
+			t.Errorf("isMain=%v: bot chose concede: %+v", isMain, in)
+		}
+	}
 }
 
 // TestTestBotTotalityUnderArbitraryMinMax is seat/bot_test.go's
@@ -306,7 +364,7 @@ func TestTestBotTotalityUnderArbitraryMinMax(t *testing.T) {
 	kinds := []decision.Kind{decision.KPriority, decision.KTarget, decision.KAttackers,
 		decision.KBlockers, decision.KMulligan, decision.KModes, decision.KTriggerOrder,
 		decision.KTriggerOptional}
-	optKinds := []string{"activate", "play_land", "cast", "pass", "player", "permanent",
+	optKinds := []string{"activate", "play_land", "cast", "pass", "concede", "player", "permanent",
 		"attacker", "block", "trigger", "yes", "no", "keep", "mulligan", "whatever"}
 
 	// A small, dependency-free xorshift, seeded once and consumed

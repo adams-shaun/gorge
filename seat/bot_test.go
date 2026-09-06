@@ -174,7 +174,7 @@ func TestBotTotalityUnderArbitraryMinMax(t *testing.T) {
 	kinds := []decision.Kind{decision.KPriority, decision.KTarget, decision.KAttackers,
 		decision.KBlockers, decision.KMulligan, decision.KModes, decision.KTriggerOrder,
 		decision.KTriggerOptional}
-	optKinds := []string{"activate", "play_land", "cast", "pass", "player", "permanent",
+	optKinds := []string{"activate", "play_land", "cast", "pass", "concede", "player", "permanent",
 		"attacker", "block", "trigger", "yes", "no", "keep", "mulligan", "whatever"}
 
 	// A small, dependency-free xorshift so this test needs no package-level
@@ -247,6 +247,7 @@ func TestBotPassesOutsideMainWithNoCastOrLandDrop(t *testing.T) {
 			{Index: 0, Kind: "activate", Obj: 100},
 			{Index: 1, Kind: "activate", Obj: 101},
 			{Index: 2, Kind: "pass"},
+			{Index: 3, Kind: "concede"},
 		}}
 	for _, phase := range []string{"", "beginning", "combat", "ending"} {
 		in, err := NewBot(1).Decide(context.Background(), view.View{Phase: phase}, d)
@@ -265,6 +266,15 @@ func TestBotPassesOutsideMainWithNoCastOrLandDrop(t *testing.T) {
 	in, err := NewBot(1).Decide(context.Background(), view.View{Phase: "main1"}, d)
 	if err != nil || len(in.Choices) != 1 || d.Options[in.Choices[0]].Kind != "activate" {
 		t.Errorf("phase \"main1\": priority = %+v (err=%v), want an activation chosen", in, err)
+	}
+	// M2d-3: the trailing "concede" option is never chosen in either phase
+	// -- the whole reason it sits after "pass", where only an explicit
+	// pick (or a blind default-to-final client) could reach it.
+	for _, phase := range []string{"", "beginning", "combat", "ending", "main1", "main2"} {
+		in, err := NewBot(1).Decide(context.Background(), view.View{Phase: phase}, d)
+		if err != nil || len(in.Choices) == 0 || d.Options[in.Choices[0]].Kind == "concede" {
+			t.Errorf("phase %q: bot chose concede or errored: %+v (err=%v)", phase, in, err)
+		}
 	}
 }
 
