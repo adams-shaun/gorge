@@ -96,6 +96,42 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		}
 	}
 
+	// Command zone (CR 903.8, Commander format): a player may cast a
+	// commander they own from the command zone. This is a SECOND cast source
+	// alongside the hand walk above, never a replacement for it. A
+	// commander's timing is its own card's -- a creature commander is
+	// sorcery-speed, an instant/flash one instant-speed -- gated by the same
+	// sorcery check every other cast uses. The offer is gated on castable
+	// with the SAME taxed cost beginCast will charge (commanderTaxFor over
+	// the same board), so an offered command-zone cast and the cost it pays
+	// structurally cannot disagree. Only a Commander game offers anything
+	// here; the explicit format gate is what keeps these rules out of every
+	// other game (and TestCommanderTaxGatedOffOutsideCommanderFormat exercises
+	// it with a commander actually present in the command zone of a
+	// Constructed game), not the
+	// incident that a Constructed command zone is normally empty.
+	for _, id := range e.G.Zone(state.ZCommand, p) {
+		if e.format != FormatCommander {
+			continue
+		}
+		o := e.G.Obj(id)
+		f := o.Face()
+		if f == nil {
+			continue
+		}
+		if e.castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
+		if !instantSpeed && !sorcery {
+			continue
+		}
+		cost := e.commanderTaxFor(p, id, e.adjustedCost(p, id))
+		if e.castable(p, id, cost) {
+			add("cast", "Cast "+f.Name, id)
+		}
+	}
+
 	// Flashback: a graveyard walk, same instant-speed timing as hand cards,
 	// gated on the derived keyword (so a continuous-effect grant, e.g.
 	// Snapcaster Mage, counts) rather than the printed one.

@@ -70,6 +70,17 @@ type Engine struct {
 	G *state.Game
 	L *events.Log
 
+	// format is the construction format New was configured with (Config.
+	// Format). It is the explicit gate the Commander rules (the tax, CR
+	// 903.9, commander damage) check -- "in a non-Commander game none of
+	// this runs at all" -- rather than inferring the format from the
+	// incidental shape of the zones. It is read long after New returns: at
+	// cast time for the CR 903.8 tax, at combat-damage time and in the
+	// state-based-action pass for CR 903.10. Plain Format value; Clone
+	// copies it so a cloned Commander engine still gates its command-zone
+	// rules and keeps its commander-damage loss condition.
+	format Format
+
 	rng     *rng
 	pending *decision.Decision
 
@@ -182,14 +193,6 @@ type Engine struct {
 	// miracle cases in their own files.
 	choosing chooseFor
 
-	// format is the game's construction format, captured from Config at New.
-	// Task m33 (commander damage, CR 903.10) needs it at combat-damage time
-	// and in the state-based-action pass, long after New has returned, so it is
-	// stored here rather than re-derived. It is a plain value, so Clone copies
-	// it; a Commander-format game keeps commanding damage and its loss
-	// condition through a clone exactly as the live one does.
-	format Format
-
 	// resume is non-nil while a mid-resolution decision is pending: an
 	// effect (effCharm's modal pick, effCopySpellAbility's UnlessCost$
 	// may-pay — M2d-2, closing R-8) asked through effects.Host.Ask and the
@@ -301,9 +304,10 @@ func New(cfg Config) *Engine {
 		life = cfg.StartingLife
 	}
 	e := &Engine{
-		G:   state.NewGameLife(cfg.Names, life),
-		L:   events.NewLog(cfg.Seed),
-		rng: newRNG(cfg.Seed),
+		G:      state.NewGameLife(cfg.Names, life),
+		L:      events.NewLog(cfg.Seed),
+		format: cfg.Format,
+		rng:    newRNG(cfg.Seed),
 	}
 	e.G.Tokens = cfg.Tokens
 	e.format = cfg.Format
