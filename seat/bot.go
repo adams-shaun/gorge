@@ -53,6 +53,12 @@ func (b *Bot) Decide(_ context.Context, v view.View, d decision.Decision) (decis
 //   - KPriority: tap for mana only in a main phase (Ruling T25-b -- tapping
 //     during the upkeep or combat empties the pool before there is anything
 //     worth spending it on), then make a land drop, then cast, then pass.
+//   - "concede" (M2d-3): never picked. It is another priority option kind,
+//     served last after "pass", but no policy wants to leave the game it
+//     is winning; the explicit kind scans below return before any blind
+//     fallback, and clamp's top-up prefers "pass" (Ruling T25-g), which
+//     legalActions (rules/legal.go) always offers. Unknown option kinds are
+//     otherwise never chosen by this switch at all.
 //   - KTarget: prefer an opposing player; fall back to the first legal
 //     target.
 //   - KAttackers: attack with everything that can.
@@ -141,6 +147,10 @@ func botDecide(isMain bool, d *decision.Decision, r *rand.Rand) decision.Intent 
 		// offers outside sorcery speed. Pass is offered on every priority
 		// decision the engine emits; if it is somehow absent, this falls
 		// through to the shared last resort below, same as any other kind.
+		// M2d-3: the "concede" option sits directly after "pass" in the
+		// option list, so this explicit scan is also what keeps the bot from
+		// ever conceding -- it returns pass before clamp, or any
+		// position-based fallback, can reach the new final option.
 		for _, o := range d.Options {
 			if o.Kind == "pass" {
 				in.Choices = []int{o.Index}
