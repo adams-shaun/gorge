@@ -60,6 +60,13 @@
   --font-ui: 'IBM Plex Sans', ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
   --font-data: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
+  /* 10 and 11 exist for one reason: the board tile is a 90px box and the
+     scale's smallest step does not fit inside it. Three components had each
+     invented their own sub-12px size (9px, 10px, 11px) — exactly the drift a
+     token system is for. Two steps below 12, and nothing below 10, which is
+     the floor at which Plex's figures stay countable. */
+  --t-10: 0.625rem;
+  --t-11: 0.6875rem;
   --t-12: 0.75rem;
   --t-14: 0.875rem;
   --t-16: 1rem;
@@ -69,6 +76,12 @@
 
   --radius: 3px;
   --radius-card: 5px;
+
+  /* The one lift in the client: an object that has left the surface — the
+     hover inspector, the recently-resolved card. Two components had already
+     invented the same shadow separately. Nothing else casts one; the felt is
+     flat and the instrument is flatter. */
+  --shadow-lift: 0 10px 28px rgb(0 0 0 / 0.5);
 
   color-scheme: dark;
   font: var(--t-16) / 1.45 var(--font-ui);
