@@ -31,7 +31,7 @@ const card = (id: number, name: string): CardView => ({
 
 const player = (seat: number, hand: CardView[], pool: Record<string, number> = {}): PlayerView => ({
   seat, name: seats[seat].name, life: 20, lost: false, library_size: 53,
-  hand_size: hand.length, graveyard_size: 0, hand, battlefield: [], graveyard: [], exile: [], pool,
+  hand_size: hand.length, graveyard_size: 0, hand, battlefield: [], graveyard: [], exile: [], pool, command: [], commanders: [], commander_casts: [],
 });
 
 const opt = (index: number, kind: string, label: string, obj?: number): Option =>

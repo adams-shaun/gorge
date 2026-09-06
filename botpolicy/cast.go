@@ -148,6 +148,22 @@ func (b Board) castScore(o decision.Option) int32 {
 //     (see castScore), read off Option.Mode never the label.
 //   - C5 (unreadable): an option whose Obj carries no board card facts
 //     scores as a non-creature of mana value 0, a low rank, never a crash.
+//   - CR1 (the command zone is taxed, CR 903.8): a "cast" whose Obj is a
+//     commander currently sitting in its owner's command zone ranks as its
+//     ordinary castScore minus 20 per previous command-zone cast, and an
+//     option scoring below zero is NOT cast at all. The tax is per prior
+//     cast — the extra {2} this very cast pays — so the bot casts its
+//     commander while the creature is still worth the growing outlay, and
+//     stops when the exchange turns losing: a 4/4 is cast up to its third
+//     command-zone cast (46, 26, 6), a 2/2 up to its second, and a
+//     commander that keeps dying is not re-recruited forever. A commander
+//     cast from the HAND scores as an ordinary card — NoTax (a hand cast
+//     neither costs {2} nor counts), which is the whole reason the rule is
+//     gated on InCommandZone and not on "is a commander". The 20-point
+//     price is five power on the creature scale (30 + 4P), so the first
+//     {2} tax of a 3/3 leaves it worth about a 2/2, and the scale lands
+//     the second recast of a 4/4 just above any spell the bot can read
+//     (26 vs a one-shot's mana value).
 //   - C6 (deterministic tie): ties break on option index, so no map
 //     iteration order reaches the answer.
 //
@@ -161,6 +177,12 @@ func (b Board) chooseCast(d *decision.Decision) int {
 			continue
 		}
 		s := b.castScore(o)
+		if cmdr, ok := b.Commanders[o.Obj]; ok && cmdr.InCommandZone {
+			s -= 20 * cmdr.Casts
+			if s < 0 {
+				continue // CR1: the tax has made this a losing exchange — do not cast
+			}
+		}
 		if best == -1 || s > bestScore || (s == bestScore && o.Index < best) {
 			best, bestScore = o.Index, s
 		}

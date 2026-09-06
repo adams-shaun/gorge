@@ -1034,7 +1034,7 @@ func TestEmptyPublicListsMarshalAsEmptyArraysNeverNull(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := string(blob)
-	for _, key := range []string{"players", "battlefield", "graveyard", "exile", "stack", "pending"} {
+	for _, key := range []string{"players", "battlefield", "graveyard", "exile", "stack", "pending", "command", "commanders", "commander_casts"} {
 		if strings.Contains(s, `"`+key+`":null`) {
 			t.Fatalf("%q marshalled as null, want []: %s", key, s)
 		}
@@ -1044,7 +1044,7 @@ func TestEmptyPublicListsMarshalAsEmptyArraysNeverNull(t *testing.T) {
 	// pending are all genuinely empty in this fixture, which is what
 	// actually exercises non-nil-when-empty rather than non-nil-because-
 	// populated.
-	for _, key := range []string{"battlefield", "graveyard", "exile", "stack", "pending"} {
+	for _, key := range []string{"battlefield", "graveyard", "exile", "stack", "pending", "command", "commanders", "commander_casts"} {
 		if !strings.Contains(s, `"`+key+`":[]`) {
 			t.Fatalf("%q did not marshal as an explicit empty array: %s", key, s)
 		}

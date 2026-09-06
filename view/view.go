@@ -76,6 +76,31 @@ type View struct {
 	Decision *decision.Decision `json:"decision,omitempty"`
 }
 
+// commanderViews builds a player's commander roster and its parallel
+// command-zone cast counts in one pass, so a commander whose object is
+// somehow absent (defensive -- a dangling roster id) is dropped from BOTH
+// lists and the pair stays aligned. The roster CardViews project the
+// commander's current zone's state like ordinary zone CardViews; the cast
+// count is Player.CmdCasts's entry for that commander, whatever zone it
+// currently occupies.
+func commanderViews(g *state.Game, ch Chars, ids []state.ObjID, casts []int32) ([]CardView, []int32) {
+	cmds := make([]CardView, 0, len(ids))
+	cs := make([]int32, 0, len(ids))
+	for k, id := range ids {
+		o := g.Obj(id)
+		if o == nil || o.Face() == nil || o.Ephemeral() {
+			continue
+		}
+		cmds = append(cmds, cardView(g, ch, id))
+		if k < len(casts) {
+			cs = append(cs, casts[k])
+		} else {
+			cs = append(cs, 0)
+		}
+	}
+	return cmds, cs
+}
+
 // PlayerView is one seat's own public state, plus (only when this is the
 // viewer's own seat) the private parts.
 //
@@ -107,6 +132,35 @@ type PlayerView struct {
 	Graveyard   []CardView       `json:"graveyard"`
 	Exile       []CardView       `json:"exile"`
 	Pool        map[string]int32 `json:"pool"`
+	// Command is the command zone (CR 903.6): the player's commanders
+	// currently sitting there, in zone order. A commander leaves it when it
+	// is cast (the object itself moves; its id is stable), so Command is the
+	// ever-shrinking subset of Commanders that can still be cast from the
+	// command zone under the CR 903.8 tax. Public for every seat -- ZCommand
+	// is not a hidden zone, and commander identity is open information.
+	Command []CardView `json:"command"`
+	// Commanders is the player's full commander roster -- the same list
+	// m30's genesis built, in the same order, never shrunk as commanders
+	// are cast or die. A roster CardView projects the commander's CURRENT
+	// zone's state (a cast commander is a battlefield object, a dead one a
+	// graveyard object), so the roster is what lets a client -- and the bot
+	// policy's view-shaped half -- tell that a battlefield creature is a
+	// commander (the CR 903.10 clock's subject) even when it has left the
+	// command zone and not yet dealt damage. Public for every seat: the
+	// identity of a player's commanders is the premise of the format.
+	Commanders []CardView `json:"commanders"`
+	// CommanderCasts runs parallel to Commanders: entry k is how many times
+	// Commanders[k] has been cast from the command zone, the CR 903.8 tax
+	// base for its next command-zone cast (an additional {2} per prior
+	// cast). Public for every seat -- the count is derived from public
+	// events.
+	CommanderCasts []int32 `json:"commander_casts"`
+	// CmdDamage is the commander damage this player has taken (CR 903.10),
+	// keyed by each commander's object id -- the 21-damage clock, public
+	// for every seat like a life total. nil/absent when the player has
+	// taken no commander damage (omitempty: absence is zero), so a
+	// Constructed game never pays for a per-player empty map.
+	CmdDamage map[state.ObjID]int32 `json:"cmd_damage,omitempty"`
 }
 
 // Printing is the identity a client resolves an image by: the exact face
@@ -248,16 +302,45 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 	// Non-nil even when g.Players is empty (Ruling T23-u): an empty match
 	// still marshals "players":[], never "players":null.
 	v.Players = make([]PlayerView, 0, len(g.Players))
+	// denseCmd is every commander object in the match, in the match-wide
+	// dense order rules.New assigns at genesis (player order, then each
+	// player's Commanders order) -- the index Player.CmdDamage is keyed by,
+	// so each player's tally slice can be re-keyed by object identity for
+	// the wire (CmdDamage map). Nil when the match has no commanders; the
+	// single small slice is shared by every player's clock below.
+	var denseCmd []state.ObjID
+	for i := range g.Players {
+		denseCmd = append(denseCmd, g.Players[i].Commanders...)
+	}
 	for i := range g.Players {
 		p := &g.Players[i]
+		roster, casts := commanderViews(g, ch, p.Commanders, p.CmdCasts)
 		pv := PlayerView{
 			ID: p.ID, Name: p.Name, Life: p.Life, Lost: p.Lost,
-			LibrarySize:   len(g.Zone(state.ZLibrary, p.ID)),
-			HandSize:      len(g.Zone(state.ZHand, p.ID)),
-			GraveyardSize: len(g.Zone(state.ZGraveyard, p.ID)),
-			Battlefield:   cardViews(g, ch, g.Zone(state.ZBattlefield, p.ID)),
-			Graveyard:     cardViews(g, ch, g.Zone(state.ZGraveyard, p.ID)),
-			Exile:         cardViews(g, ch, g.Zone(state.ZExile, p.ID)),
+			LibrarySize:    len(g.Zone(state.ZLibrary, p.ID)),
+			HandSize:       len(g.Zone(state.ZHand, p.ID)),
+			GraveyardSize:  len(g.Zone(state.ZGraveyard, p.ID)),
+			Battlefield:    cardViews(g, ch, g.Zone(state.ZBattlefield, p.ID)),
+			Graveyard:      cardViews(g, ch, g.Zone(state.ZGraveyard, p.ID)),
+			Exile:          cardViews(g, ch, g.Zone(state.ZExile, p.ID)),
+			Command:        cardViews(g, ch, g.Zone(state.ZCommand, p.ID)),
+			Commanders:     roster,
+			CommanderCasts: casts,
+		}
+		// The 21-damage clock: this player's cumulative commander damage,
+		// keyed by the commander that dealt it (re-keyed off the dense
+		// slice CmdDamage is indexed by). Only built when any tally is
+		// nonzero -- nil/absent means zero -- so no map is allocated for a
+		// player (or a game) with no commander damage.
+		if len(p.CmdDamage) > 0 {
+			for j, id := range denseCmd {
+				if j < len(p.CmdDamage) && p.CmdDamage[j] != 0 {
+					if pv.CmdDamage == nil {
+						pv.CmdDamage = make(map[state.ObjID]int32, len(denseCmd))
+					}
+					pv.CmdDamage[id] = p.CmdDamage[j]
+				}
+			}
 		}
 		if p.ID == viewer {
 			pv.Hand = cardViews(g, ch, g.Zone(state.ZHand, p.ID))
