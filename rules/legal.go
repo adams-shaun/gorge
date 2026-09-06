@@ -57,6 +57,9 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if e.castRestricted(p, id) {
 			continue
 		}
+		if e.castSuppressed(p, id) {
+			continue
+		}
 		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
 		if !instantSpeed && !sorcery {
 			continue
@@ -103,6 +106,9 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		if e.castRestricted(p, id) {
+			continue
+		}
+		if e.castSuppressed(p, id) {
 			continue
 		}
 		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
