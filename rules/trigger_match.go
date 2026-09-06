@@ -570,5 +570,10 @@ func init() {
 		// above: Undying and Evolve are ChangesZone triggers, Exalted is
 		// (Alone$) Attacks, Prowess is SpellCast.
 		"kw:Undying", "kw:Evolve", "kw:Exalted", "kw:Prowess",
+		// Task 17: Storm's expansion (cards/keywords.go) is a SpellCast
+		// trigger whose effect is CopySpellAbility -- the expansion existed
+		// since Task 11; registering the keyword here completes its
+		// semantics now that api:CopySpellAbility is implemented.
+		"kw:Storm",
 	)
 }

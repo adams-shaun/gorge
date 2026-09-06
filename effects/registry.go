@@ -34,6 +34,11 @@ type Host interface {
 	// continuous effect (rules.Engine.HasKeyword). Effects that gate on a
 	// keyword (Destroy on Indestructible) must ask this, never the face.
 	HasKeyword(id state.ObjID, kw string) bool
+	// CastThisTurn counts the spells cast this turn by anyone, derived from
+	// the event log so a replay that rebuilds the game arrives at the same
+	// number (Task 17's Count$ThisTurnCast backing — a copy/Storm count
+	// must be replay-derivable, never a live-only engine counter).
+	CastThisTurn() int
 }
 
 // Ctx carries the bindings a Forge script refers to during resolution.

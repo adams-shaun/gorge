@@ -970,26 +970,11 @@ func TestMana(t *testing.T) {
 	}
 }
 
-// TestCopySpellAbilityIsNotYetRegistered documents a deliberate gap:
-// minting a copy of a spell or ability already on the stack needs a new
-// game object mid-match, which the effects package cannot do without
-// writing to state.Game outside events.Apply (StackCopy exists as of Task
-// 12, but nothing wires the CopySpellAbility primitive to it yet). See the
-// Task 18 report for why, and for the new-event-kind design that closed the
-// same gap for tokens (events.TokenCreate, Task 13 -- see token.go and
-// token_test.go; this test used to cover Token here too, before that).
-// Resolve's existing "unimplemented API" fallback is exercised here, not
-// bypassed.
-func TestCopySpellAbilityIsNotYetRegistered(t *testing.T) {
-	if Supported()["api:CopySpellAbility"] {
-		t.Fatal("api:CopySpellAbility unexpectedly registered")
-	}
-	h := newHost(t, 2)
-	Resolve(h, &Ctx{Controller: 0, Source: 1}, sa(t, "DB$ CopySpellAbility"))
-	if len(h.log) != 1 || h.log[0].Kind != events.Note || h.log[0].Text != "unimplemented API CopySpellAbility" {
-		t.Fatalf("log = %+v", h.log)
-	}
-}
+// TestCopySpellAbilityIsNotYetRegistered documented the pre-Task-17 gap
+// (StackCopy existed as of Task 12 but nothing wired the primitive to it).
+// Task 17 implemented effCopySpellAbility (effects/copy.go); the primitive's
+// behaviour is now covered by effects/copy_test.go and rules/storm_test.go,
+// so this interim marker is removed rather than kept asserting the opposite.
 
 // TestCardflowAPIsGuardOutOfRangePlayerID is Ruling T18-a's regression test.
 // Every one of cardflow.go's nine registered APIs eventually reads a zone via
