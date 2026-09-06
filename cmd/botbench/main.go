@@ -23,11 +23,13 @@
 // that split is ~50% by construction, and the seat split is the number that
 // measures a play/draw advantage.
 //
-// `-a bot -b bot` is the meaningful run today: seat.NewBot is the only
-// registered policy, so pitting it against itself measures seat bias and
-// gives every later policy a baseline to beat. Registering a second policy
-// is one line in the policies map. Same names on both sides is a valid and
-// expected run.
+// `-a bot -b bot` is the same-policy baseline that measures seating bias:
+// seat.NewBot is the production policy, and pitting it against itself
+// (252/248 at N=500) shows how big a seat/play-order artifact is before
+// any real comparison is read. The head-to-head that credits a policy:
+// -a bot -b legacy, where legacy is the pre-B2 fuzz-driver combat frozen
+// in botpolicy.LegacyDecide. Registering a third policy is one entry in
+// the policies map. Same names on both sides is a valid and expected run.
 package main
 
 import (
@@ -36,11 +38,14 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/rand/v2"
 	"os"
 	"sort"
 	"strings"
 
+	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/seat"
@@ -59,6 +64,27 @@ var policies = map[string]func(seed uint64) seat.Seat{
 	// seat.Seat, and the wrapper keeps a future policy free to return any
 	// Seat implementation.
 	"bot": func(seed uint64) seat.Seat { return seat.NewBot(seed) },
+	// legacy is the pre-B2 policy, frozen in botpolicy.LegacyDecide: attack
+	// with everything that can, block half the legal pairs on a coin. It is
+	// not a production policy -- nothing but the bench drives it -- it is
+	// the head-to-head baseline that measures whether the heuristic bot is
+	// any better than the fuzz driver it replaced (-a bot -b legacy).
+	"legacy": func(seed uint64) seat.Seat {
+		return &legacySeat{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))}
+	},
+}
+
+// legacySeat is the bench seat for the old policy: it reads the same view
+// any seat receives but hands the board's IsMain fact only, which is all
+// the pre-B2 policy ever read (botpolicy.LegacyDecide), and it seeds its
+// rng exactly like seat.NewBot so the legacy policy's consumption is the
+// seed-deterministic one.
+type legacySeat struct {
+	r *rand.Rand
+}
+
+func (s *legacySeat) Decide(_ context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
+	return botpolicy.LegacyDecide(botpolicy.Board{IsMain: v.Phase == "main1" || v.Phase == "main2"}, &d, s.r), nil
 }
 
 // maxIntents bounds a single game the same way rules/acceptance_test.go and

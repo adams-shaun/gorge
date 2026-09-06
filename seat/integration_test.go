@@ -87,12 +87,15 @@ func TestBotOnlyActivatesInAMainPhase(t *testing.T) {
 // adapter halves must build the same botpolicy.Board from the same facts --
 // the view-shaped half (boardFromView, fed the Phase string view.PhaseOf
 // projects for that step, which is exactly what a real seat receives) and
-// the game-shaped half (the rules test host's e.G.Step.IsMain()). The policy
-// must then answer the same; this uses the priority decision where IsMain
-// changes the choice (in a main phase the policy taps mana, outside it the
-// same options are passed on), with the two sides' rngs seeded identically.
-// This is the test that dies on mutation M1: invert boardFromView's IsMain
-// and the halves disagree precisely on StepMain1/StepMain2.
+// the game-shaped half (the rules test host's g.Step.IsMain()). A bare
+// step has no game behind it, so the only fact either half can report is
+// IsMain; the creature/life census agreement is TestBotAdaptersAgreeOverWholeGame's
+// territory instead. The policy must then answer the same; this uses the
+// priority decision where IsMain changes the choice (in a main phase the
+// policy taps mana, outside it the same options are passed on), with the
+// two sides' rngs seeded identically. This is the test that dies on
+// mutation M1: invert boardFromView's IsMain and the halves disagree
+// precisely on StepMain1/StepMain2.
 func TestBotAdaptersAgreePerStep(t *testing.T) {
 	prio := decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
 		Options: []decision.Option{
@@ -102,8 +105,8 @@ func TestBotAdaptersAgreePerStep(t *testing.T) {
 	for _, s := range allSteps {
 		boardView := boardFromView(view.View{Phase: view.PhaseOf(s)})
 		boardGame := botpolicy.Board{IsMain: s.IsMain()} // the rules host's expression
-		if boardView != boardGame {
-			t.Errorf("step %s: view-shaped Board %+v, game-shaped Board %+v", s, boardView, boardGame)
+		if boardView.IsMain != boardGame.IsMain {
+			t.Errorf("step %s: view-shaped IsMain %v, game-shaped IsMain %v", s, boardView.IsMain, boardGame.IsMain)
 		}
 		inView, err := NewBot(1).Decide(context.Background(), view.View{Phase: view.PhaseOf(s)}, prio)
 		if err != nil {
@@ -140,7 +143,12 @@ func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
 		if err != nil {
 			t.Fatalf("intent %d: view-shaped Decide: %v", n, err)
 		}
-		inGame := botpolicy.Decide(botpolicy.Board{IsMain: eGame.G.Step.IsMain()}, eGame.Pending(), botGame)
+		// The game-shaped half builds the same Board straight off the engine
+		// (botpolicy.BoardFromGame: IsMain from eGame.G.Step, the creature
+		// census and life from eGame.G) -- the exact expression the rules
+		// test host's answer uses, so a divergence between the two adapter
+		// halves fails here on the intent where it first appears.
+		inGame := botpolicy.Decide(botpolicy.BoardFromGame(eGame.G, eGame), eGame.Pending(), botGame)
 		if inView.Seq != inGame.Seq || inView.Player != inGame.Player || !slices.Equal(inView.Choices, inGame.Choices) {
 			t.Fatalf("intent %d: adapters diverged: view %+v vs game %+v (step %s)", n, inView, inGame, eGame.G.Step)
 		}
