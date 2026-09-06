@@ -120,6 +120,15 @@ gc-gate:
 test-time:
 	go run ./cmd/testtime -all
 
+# alloc-gate measures every package's test peak RSS and total allocation and
+# records them, plus hard budgets, in each package's ALLOC_HISTORY.md (Task
+# A4). The budgets bind: a package over its alloc_budget_mb (total GC work)
+# or rss_budget_mb (what actually OOMs a shared box) fails the gate. This is
+# the absolute-scale counterpart to gc-gate's ratio budget.
+.PHONY: alloc-gate
+alloc-gate:
+	go run ./cmd/allocgate -all
+
 COVER_OUT  ?= coverage.out
 COVER_HTML ?= coverage.html
 .PHONY: cover cover-html
