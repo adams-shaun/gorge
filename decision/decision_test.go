@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -198,6 +199,158 @@ func TestBlockOptionAttackerRoundTripsJSON(t *testing.T) {
 	}
 	if strings.Contains(string(pb), "attacker") {
 		t.Fatalf("a non-block option leaked an attacker field: %s", pb)
+	}
+}
+
+// TestAbilityOptionRoundTripsJSON is the Part-A contract for Option.Ability:
+// an activated-ability option carries the index into the source face's
+// Abilities, so a client can anchor an ability popup to the exact ability
+// offered -- kind:"ability" and a label tie it to nothing on the card.
+func TestAbilityOptionRoundTripsJSON(t *testing.T) {
+	opt := Option{Index: 4, Kind: "ability", Label: "Bear: rumble", Obj: 7, Ability: 3, Player: 1}
+	b, err := json.Marshal(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := string(b); !strings.Contains(s, `"ability":3`) {
+		t.Fatalf("ability option JSON missing ability: %s", s)
+	}
+	var back Option
+	if err := json.Unmarshal(b, &back); err != nil {
+		t.Fatal(err)
+	}
+	if back.Ability != 3 {
+		t.Fatalf("round-trip lost Ability: got %d, want 3", back.Ability)
+	}
+}
+
+// TestKickedCastModeRoundTripsJSON is the Part-A contract for Option.Mode: a
+// kicked/surged/flashback/miracle cast carries its payment kind, so the
+// client can distinguish it from an ordinary cast.
+func TestKickedCastModeRoundTripsJSON(t *testing.T) {
+	opt := Option{Index: 2, Kind: "cast", Label: "Cast Burst Lightning with kicker", Obj: 5, Mode: "kicked", Player: 1}
+	b, err := json.Marshal(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := string(b); !strings.Contains(s, `"mode":"kicked"`) {
+		t.Fatalf("kicked cast JSON missing mode: %s", s)
+	}
+	var back Option
+	if err := json.Unmarshal(b, &back); err != nil {
+		t.Fatal(err)
+	}
+	if back.Mode != "kicked" {
+		t.Fatalf("round-trip lost Mode: got %q, want %q", back.Mode, "kicked")
+	}
+}
+
+// TestAltCostIndexOptionRoundTripsJSON is the Part-A contract for
+// Option.AltCostIndex: a "cast" option paying an AlternativeCost static's
+// cost carries its index (i+1 naming alternativeCosts[i]), so a client can
+// say which of several costs the option pays.
+func TestAltCostIndexOptionRoundTripsJSON(t *testing.T) {
+	opt := Option{Index: 3, Kind: "cast", Label: "Cast Tormod's Crypt for its alternative cost", Obj: 9, AltCostIndex: 2, Player: 1}
+	b, err := json.Marshal(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := string(b); !strings.Contains(s, `"alt_cost_index":2`) {
+		t.Fatalf("alternative-cost cast JSON missing alt_cost_index: %s", s)
+	}
+	var back Option
+	if err := json.Unmarshal(b, &back); err != nil {
+		t.Fatal(err)
+	}
+	if back.AltCostIndex != 2 {
+		t.Fatalf("round-trip lost AltCostIndex: got %d, want 2", back.AltCostIndex)
+	}
+}
+
+// TestXOptionAmountRoundTripsJSON is the Part-A contract for Option.Amount:
+// an "x" choose option carries its X value, which is not its Index (the
+// option's position in the list).
+func TestXOptionAmountRoundTripsJSON(t *testing.T) {
+	opt := Option{Index: 3, Kind: "x", Label: "X = 4", Obj: 5, Amount: 4, Player: 1}
+	b, err := json.Marshal(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := string(b); !strings.Contains(s, `"amount":4`) {
+		t.Fatalf("x option JSON missing amount: %s", s)
+	}
+	if s := string(b); strings.Contains(s, `"amount":3`) {
+		t.Fatalf("x option emitted its Index as its Amount: %s", s)
+	}
+	var back Option
+	if err := json.Unmarshal(b, &back); err != nil {
+		t.Fatal(err)
+	}
+	if back.Amount != 4 {
+		t.Fatalf("round-trip lost Amount: got %d, want 4", back.Amount)
+	}
+}
+
+// TestDecisionSourceRoundTripsJSON is the Part-A contract for
+// Decision.Source: the object a decision resolves for rides on the wire, so
+// a prompt can always name its source (survey #18).
+func TestDecisionSourceRoundTripsJSON(t *testing.T) {
+	d := Decision{Seq: 11, Player: 1, Kind: KChoose, Min: 1, Max: 1, Source: 12,
+		Options: []Option{{Index: 0, Kind: "x", Label: "X = 1", Amount: 1}}}
+	b, err := json.Marshal(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := string(b); !strings.Contains(s, `"source":12`) {
+		t.Fatalf("decision JSON missing source: %s", s)
+	}
+	var back Decision
+	if err := json.Unmarshal(b, &back); err != nil {
+		t.Fatal(err)
+	}
+	if back.Source != 12 {
+		t.Fatalf("round-trip lost Source: got %d, want 12", back.Source)
+	}
+}
+
+// TestResumeFieldsStayOffTheWire is the guard that keeps the engine's
+// mid-resolution bookkeeping private: ResumeKind and ResumeSA are how an
+// effects.Host.Ask decision suspends and re-enters the resolution it
+// interrupted -- ResumeSA carries a *cards.SA, and the pair is selected by
+// the engine only inside rules. Neither may ever reach a client, even with
+// non-zero values set, which is also exactly what a later "helpful" change
+// exposing one of them would trip.
+func TestResumeFieldsStayOffTheWire(t *testing.T) {
+	d := Decision{Seq: 9, Player: 0, Kind: KModes, ResumeKind: "modes",
+		ResumeSA: &cards.SA{Kind: "SP", API: "Charm", Params: map[string]string{"Choices$": "a,b"}}}
+	b, err := json.Marshal(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, forbidden := range []string{`"resume_kind":`, `"resume_sa":`} {
+		if strings.Contains(string(b), forbidden) {
+			t.Fatalf("marshalled decision leaked engine internal %s: %s", forbidden, b)
+		}
+	}
+}
+
+// TestZeroValueOptionsOmitNewFields is the zero-value contract: an option
+// with nothing to report (an ordinary cast, a pass, a non-x choose) and a
+// decision with no source object marshal exactly as they did before the
+// Part-A fields existed, so today's payloads are unchanged for everything
+// that has no value to report.
+func TestZeroValueOptionsOmitNewFields(t *testing.T) {
+	d := Decision{Seq: 4, Player: 2, Kind: KPriority, Min: 1, Max: 1,
+		Options: []Option{{Index: 0, Kind: "pass", Label: "Pass", Player: 2},
+			{Index: 1, Kind: "cast", Label: "Cast Bear", Obj: 5, Player: 2}}}
+	b, err := json.Marshal(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{`"mode":`, `"ability":`, `"alt_cost_index":`, `"amount":`, `"source":`} {
+		if strings.Contains(string(b), key) {
+			t.Fatalf("a zero-valued option/decision emitted %s: %s", key, b)
+		}
 	}
 }
 

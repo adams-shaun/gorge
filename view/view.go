@@ -155,6 +155,15 @@ type CardView struct {
 	Controller state.PlayerID `json:"controller"`
 	Owner      state.PlayerID `json:"owner"`
 	SummonSick bool           `json:"summon_sick"`
+	// AttachedTo is the permanent this Aura or Equipment is currently
+	// attached to, 0 meaning unattached -- the same zero-value convention
+	// Obj uses, so omitempty keeps an unattached permanent (or a non-
+	// permanent: a spell, a card in a hand) from emitting a field. It comes
+	// straight from state.Object.AttachedTo, which the engine's Attach event
+	// sets and clears; without it a client could not render an attachment
+	// beneath the permanent it modifies -- could not tell what is attached
+	// to what at all.
+	AttachedTo state.ObjID `json:"attached_to,omitempty"`
 }
 
 // StackView is one object on the stack. Kind is "spell", "trigger" (an
@@ -324,6 +333,7 @@ func cardView(g *state.Game, ch Chars, id state.ObjID) CardView {
 	cv := CardView{
 		ID: id, Tapped: o.Tapped, Damage: o.Damage, Attacking: o.IsAttacking,
 		Controller: o.Controller, Owner: o.Owner, SummonSick: o.SummonSick,
+		AttachedTo: o.AttachedTo,
 	}
 	cv.Token = "#" + strconv.FormatUint(uint64(id), 10)
 	if f := o.Face(); f != nil {
