@@ -21,6 +21,7 @@ func (e *Engine) Clone() *Engine {
 	c := &Engine{
 		G:                   e.G.Clone(),
 		L:                   e.L.Clone(),
+		format:              e.format,
 		rng:                 e.rng.clone(),
 		orderedTriggers:     e.orderedTriggers,
 		applyingReplacement: e.applyingReplacement,
