@@ -4,26 +4,33 @@ import (
 	"math/rand/v2"
 )
 
-// KnownOpponentDecklists is the strategic assumption a determinization carries
-// about whether the searching seat knows what is in the opponents' decks.
+// SearchingSeatKnowsOpponentComposition is the strategic assumption a
+// determinization carries about the searching seat's knowledge of what is in
+// the opponents' hidden zones (their libraries and hands).
 //
-// gorge's decks come from repo decklists, so the information is *available* to
-// a search that wants it. Whether it may assume it is a genuine strategic
-// question: true after game 1 of a match taught the seat the opponents' lists,
-// false at the start of game 1 or across unknown opponents.
+// A determinization re-deals each opponent's TRUE remaining cards (the pool is
+// that opponent's actual hand + library), so it randomises LOCATION, never
+// COMPOSITION: the determinized hidden-zone multiset is exactly the cards that
+// opponent really has left, merely permuted between hand and library. That is
+// the strictly stronger claim than "knows the decklist": it assumes the seat
+// knows each opponent's list AND has perfect recall of every card that has
+// already left it, so it can reconstruct precisely which cards remain hidden.
 //
-// This round chooses false -- the honest default -- and the choice is defended
-// in the D1 report against the case where it is wrong.
+// That is a real strategic assumption, defensible for gorge -- decks come from
+// published repo decklists and play is self-play, so the cards an opponent has
+// hidden are in principle knowable. It is NOT defensible as a general claim
+// about a search agent: a genuine opponent who never showed their list would
+// have to be sampled from a plausible pool consistent with public knowledge --
+// a much larger space, and the honest alternative. gorge has no card-pool
+// model with which to build that pool, so that sampling is deferred, not
+// solved; this constant records that composition is assumed stable because the
+// engine only knows how to preserve the true multiset.
 //
-// Note that this flag is deliberately a NO-OP on Determinize's output: a
-// determinization always re-deals the TRUE hidden cards (the pool is the
-// opponents' actual hand + library), so the underlying multiset is identical
-// whether the seat "knows" the lists or not. What the flag governs is a
-// downstream search's priors -- e.g. whether it may lean on known archetype
-// shape when pruning or pre-computing plans. It is carried here as the single
-// documented place the assumption lives, so C2 does not re-derive it in two
-// spots and let the two drift apart.
-const KnownOpponentDecklists = false
+// This flag is therefore NOT a NO-OP on Determinize's output: the output here
+// embodies composition-is-preserved (true). The flag is carried here as the
+// single documented place the assumption lives, so C2 reads it from this one
+// spot rather than re-deriving it in two places and letting the two drift.
+const SearchingSeatKnowsOpponentComposition = true
 
 // Determinize returns a NEW game (built on Clone; the receiver is never
 // mutated) in which every fact fromSeat cannot legally see has been
@@ -90,13 +97,21 @@ func shuffleZone(g *Game, z Zone, p PlayerID, rng *rand.Rand) {
 	rng.Shuffle(len(ids), func(i, j int) { ids[i], ids[j] = ids[j], ids[i] })
 }
 
-// redistributeHidden pools the ids in seat p's hidden zones (library + hand),
-// shuffles them, and re-deals them to the same per-zone counts it started
-// with. Cards never cross owners: the pool is p's alone. Each object's own
-// Zone field is kept consistent with its new zone membership, because
-// events.Move reads o.Zone as the authoritative source zone and the zones
-// arrays must agree with it. Both ends of the re-deal are explicitly set (not
-// appended) so no stale ids leak from a prior shuffle.
+// WARNING -- the assumption behind pooling (see the package doc and
+// SearchingSeatKnowsOpponentComposition): this pools each opponent's ACTUAL
+// remaining cards and re-deals them, so it preserves COMPOSITION exactly and
+// randomises only LOCATION. That models a seat that knows the opponent's
+// decklist AND has perfect recall of every card that has left it -- not a seat
+// that genuinely did not know the list (which would have to sample from a
+// plausible pool consistent with public knowledge). gorge has no card-pool
+// model to do that sampling with, so it is deferred, not solved. If you change
+// what is pooled here, you change the assumption this determinization carries.
+//
+// Cards never cross owners: the pool is p's alone. Each object's own Zone
+// field is kept consistent with its new zone membership, because events.Move
+// reads o.Zone as the authoritative source zone and the zones arrays must
+// agree with it. Both ends of the re-deal are explicitly set (not appended) so
+// no stale ids leak from a prior shuffle.
 func redistributeHidden(g *Game, p PlayerID, rng *rand.Rand) {
 	lib := g.Zone(ZLibrary, p)
 	hand := g.Zone(ZHand, p)
