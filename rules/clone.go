@@ -111,6 +111,14 @@ func (e *Engine) Clone() *Engine {
 		pc.sacs = append([]state.ObjID(nil), e.cast.sacs...)
 		c.cast = &pc
 	}
+	if e.cmdZone != nil {
+		// The parked commander zone changes (CR 903.9, Task m32): a clone
+		// taken while a KCommanderZone decision is outstanding must carry the
+		// same queue the original does, or answering the copied decision
+		// would find no parked move and the commander would never move.
+		// Plain value entries, so one slice copy is a faithful clone.
+		c.cmdZone = append([]cmdZoneMove(nil), e.cmdZone...)
+	}
 	return c
 }
 

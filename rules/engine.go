@@ -209,6 +209,21 @@ type Engine struct {
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
 	cast *pendingCast
 
+	// cmdZone is the queue of parked commander zone changes (CR 903.9, Task
+	// m32, rules/replacement.go): MoveZone events a commander is about to
+	// undergo, deferred until its owner answers the KCommanderZone decision
+	// for the FRONT entry. Multiple commanders can be parked by one burst (a
+	// board wipe, one state-based-action pass), but only one decision can be
+	// pending at a time, so the queue hands from one answer to the next
+	// (handleCmdZone asks the new front after emitting the old one). Entries
+	// are deduplicated by object id, so a re-offered SBA pass can never
+	// enqueue the same commander twice (the no-progress failure shape a
+	// replacement must not spin on). Never mutated while e.pending is nil
+	// except by a park that also asks; Clone deep-copies it (clone.go) so a
+	// clone taken with a decision outstanding carries the same queue. It is
+	// always empty in a non-Commander game: nothing ever parks there.
+	cmdZone []cmdZoneMove
+
 	// suppressedCast holds the card object ids whose cast option is held out
 	// of the current priority window because their last cast attempt aborted
 	// unpayable with no state change (E2 round 2: see commitCast). This is

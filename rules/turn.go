@@ -44,6 +44,19 @@ func (e *Engine) step() {
 	if e.G.Over {
 		return
 	}
+	// The CR 903.9 commander replacement (Task m32) can leave a decision
+	// pending from inside checkStateBased: a state-based action that moves a
+	// commander parks the move and asks its owner, and checkStateBased
+	// returns with that decision outstanding. The step switch below must not
+	// then run -- askAttackers/priorityRound would hand out a SECOND,
+	// unrelated decision and silently overwrite the parked commander's
+	// (Advance pauses on the first e.pending regardless, so this guard is
+	// what keeps the switch from clobbering it). Nothing else in the engine
+	// leaves a pending decision after checkStateBased, so the guard is inert
+	// for every pre-existing path.
+	if e.pending != nil {
+		return
+	}
 	// The London mulligan round (Config.Mulligans > 0) runs between the
 	// opening deal and turn 1. While e.pregame, stepPregame issues the single
 	// next round decision; it must NOT leaf into the ordinary step switch,
@@ -299,6 +312,13 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 		e.handleTriggerOrder(d, in)
 	case decision.KTriggerOptional:
 		e.handleTriggerOptional(d, in)
+	case decision.KCommanderZone:
+		// The CR 903.9 "put it into the command zone instead" choice (Task
+		// m32): the answered decision emits the parked MoveZone for real --
+		// to the command zone on an accept, verbatim on a decline -- and
+		// hands the queue to the next parked commander if any. See
+		// handleCmdZone (rules/replacement.go).
+		e.handleCmdZone(d, in)
 	case decision.KChoose:
 		e.handleChoose(d, in)
 	case decision.KMulligan:

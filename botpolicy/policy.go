@@ -292,6 +292,18 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 			return clamp(d, in)
 		}
 
+	case decision.KCommanderZone:
+		// CR 903.9 (Task m32): a commander about to leave for the graveyard,
+		// hand, library or exile may be put into the command zone instead, by
+		// its owner. The command zone is a strict upgrade for a bot (the
+		// commander can simply be recast), so every answer takes it: option 0
+		// is always "command_zone", option 1 "leave", built by
+		// rules.askCommandZone. No rng -- this is a certainty, not a guess.
+		if len(d.Options) > 0 && d.Options[0].Kind == "command_zone" {
+			in.Choices = []int{d.Options[0].Index}
+		}
+		return clamp(d, in)
+
 	case decision.KChoose:
 		if len(d.Options) == 0 {
 			break

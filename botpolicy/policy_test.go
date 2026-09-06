@@ -359,9 +359,10 @@ func TestDeterministic(t *testing.T) {
 func TestTotalityUnderArbitraryMinMax(t *testing.T) {
 	kinds := []decision.Kind{decision.KPriority, decision.KTarget, decision.KAttackers,
 		decision.KBlockers, decision.KMulligan, decision.KModes, decision.KTriggerOrder,
-		decision.KTriggerOptional}
+		decision.KTriggerOptional, decision.KCommanderZone}
 	optKinds := []string{"activate", "play_land", "cast", "pass", "concede", "player", "permanent",
-		"attacker", "block", "trigger", "yes", "no", "keep", "mulligan", "whatever"}
+		"attacker", "block", "trigger", "yes", "no", "keep", "mulligan", "whatever",
+		"command_zone", "leave"}
 
 	// A small, dependency-free xorshift, seeded once and consumed
 	// sequentially: reproducible on its own, never math/rand's global
