@@ -78,9 +78,12 @@ type Option struct {
 	// Player is always emitted because 0 is a valid seat (0-indexed), unlike
 	// Obj where 0 means "no object".
 	Player state.PlayerID `json:"player"`
-	// Attacker is server-side only: for a block option, which attacker this
-	// blocker would block.
-	Attacker state.ObjID `json:"-"`
+	// Attacker tells a block option's client which attacker this blocker
+	// would block, so a human can see the pairing an in-process bot already
+	// can (the declare-blockers step is otherwise guessing). omitempty
+	// mirrors Obj: an ObjID of 0 means "no object", so an option that has
+	// no attacker (any non-block option) emits no field.
+	Attacker state.ObjID `json:"attacker,omitempty"`
 	// AltCostIndex is server-side only: for a "cast" option, which cost this
 	// option pays. Zero (the default, so every other Option literal in the
 	// tree needs no change) means the card's own (RaiseCost/ReduceCost-

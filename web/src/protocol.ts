@@ -140,6 +140,7 @@ export interface Option {
   label: string;
   obj?: number;
   player: number;
+  attacker?: number;
 }
 
 export interface Decision {
