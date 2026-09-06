@@ -201,6 +201,16 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 		}
 	}
 	seats := r.opts.Seats(m.cfg.Names, m.seed)
+	// Task M2c-2: honor the TableConfig.Humans plan — every listed slot is a
+	// real person, so replace the bot that Options.Seats built for it (by
+	// default defaultSeats, one bot per seat) with a fresh HumanSeat. The
+	// remaining slots stay exactly what Options.Seats produced, so a pure-bot
+	// table (Humans nil) is byte-identical to today. Each HumanSeat is armed
+	// with its deterministic caretaker a few lines below, exactly like the
+	// M2b-5 seats an embedder builds itself through the Seats option.
+	for _, h := range t.cfg.Humans {
+		seats[h] = NewHumanSeat()
+	}
 	m.mu.Lock()
 	m.slots = seats
 	m.mu.Unlock()

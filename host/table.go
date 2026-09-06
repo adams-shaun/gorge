@@ -35,6 +35,16 @@ type TableConfig struct {
 	Pace      time.Duration   `json:"pace"`
 	Spectator view.Visibility `json:"spectator"` // Public or Omniscient
 	Perpetual bool            `json:"perpetual"`
+	// Humans is the set of slot indices that are real people: a non-nil,
+	// non-empty value makes the table single-shot and seats every listed slot
+	// with a HumanSeat (driven from outside via Pending/SubmitIntent) instead
+	// of a bot. nil (the default) means all bots — byte-identical to today.
+	// The bot slots are the complement: every index in [0, Seats) that Humans
+	// does not list, so a human index is disjoint from the bots by
+	// construction once it is in range. A table with Humans must not also be
+	// Perpetual (validation rejects that combination); a human-seated table
+	// always ends at game over.
+	Humans []int `json:"humans,omitempty"`
 }
 
 var ErrNotFound = errors.New("host: not found")
@@ -49,6 +59,32 @@ func (c TableConfig) validate(load func(string) (Deck, error)) error {
 		return fmt.Errorf("host: table %s: no decks", c.ID)
 	case c.Spectator != view.Public && c.Spectator != view.Omniscient:
 		return fmt.Errorf("host: table %s: spectator visibility must be public or omniscient", c.ID)
+	}
+	// Task M2c-2: a human-seated table is single-shot by definition, so an
+	// explicit Perpetual: true alongside Humans is a caller contradicting
+	// itself. Reject rather than silently force single-shot — silently
+	// ignoring an explicit Perpetual is the kind of thing discovered in
+	// production.
+	if c.Perpetual && len(c.Humans) > 0 {
+		return fmt.Errorf("host: table %s: perpetual and humans cannot be combined; a human-seated table is single-shot", c.ID)
+	}
+	// Human indices must be in range, unique, and — because every bot slot is
+	// the complement of this set — thereby disjoint from the bot slots.
+	// Reject out of range before the duplicate pass so a bad index can never
+	// reach a map or slot access (no panic, no half-created table).
+	if c.Humans != nil {
+		for i, h := range c.Humans {
+			if h < 0 || h >= c.Seats {
+				return fmt.Errorf("host: table %s: human seat %d (element %d) out of range 0..%d", c.ID, h, i, c.Seats-1)
+			}
+		}
+		seen := make(map[int]bool, len(c.Humans))
+		for _, h := range c.Humans {
+			if seen[h] {
+				return fmt.Errorf("host: table %s: duplicate human seat %d", c.ID, h)
+			}
+			seen[h] = true
+		}
 	}
 	for _, d := range c.Decks {
 		if _, err := load(d); err != nil {
@@ -116,6 +152,18 @@ func (t *table) info() protocol.TableInfo {
 	defer t.mu.RUnlock()
 	return protocol.TableInfo{ID: string(t.cfg.ID), Name: t.cfg.Name, Seats: t.cfg.Seats,
 		Spectator: t.cfg.Spectator.String(), State: t.state, Match: t.k, Perpetual: t.cfg.Perpetual}
+}
+
+// singleShot reports whether the run loop should stop after exactly one
+// match instead of autoplaying the next. A non-perpetual table is single-
+// shot; so is a human-seated table (Task M2c-2) — a real person must not be
+// pulled into a fresh match behind their back. AddTable already rejects
+// Perpetual+Humans, so in practice the Humans term makes singleShot true for
+// the same table a non-Perpetual flag would; keeping both explicit documents
+// the intent and stays correct even if the two flags ever disagree (e.g. a
+// hand-edited persisted table).
+func (c TableConfig) singleShot() bool {
+	return !c.Perpetual || len(c.Humans) > 0
 }
 
 func (t *table) setState(s string) {
