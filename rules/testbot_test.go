@@ -33,7 +33,9 @@ func newTestBot(seed uint64) *testBot {
 // isMain from e.G.Step.IsMain() on the line before calling answer), then
 // land, then cast, then pass; attack with everything; target an opponent
 // over yourself; block about half the time, never with the same blocker
-// twice; order or accept/decline triggers with the bot's own rng; and, for
+// twice; order or accept/decline triggers with the bot's own rng; answer the
+// London mulligan round (keep, or mulligan 1/3 off the rng; bottom the
+// lowest-indexed cards); and, for
 // anything else (or anything above that found nothing to pick), whatever
 // clamp tops up with. Every access into d.Options is guarded against the
 // list being empty, and clamp (Ruling T25-c, fix round 1) is the last thing
@@ -163,6 +165,32 @@ func (b *testBot) answer(isMain bool, d *decision.Decision) decision.Intent {
 			in.Choices = []int{d.Options[0].Index}
 		}
 		return clamp(d, in)
+
+	case decision.KMulligan:
+		// The London round, two shapes on one kind (rules/mulligan.go) --
+		// seat/bot.go's KMulligan case, mirrored verbatim (Ruling F7).
+		// Bottoming: every option is a "bottom"; take the d.Min lowest-indexed
+		// cards, no rng. Keep/mulligan: mulligan with probability 1/3 when one
+		// is offered (consuming the bot rng only where a real choice exists),
+		// else keep.
+		if len(d.Options) > 0 && d.Options[0].Kind == "bottom" {
+			for j := 0; j < len(d.Options) && j < d.Min; j++ {
+				in.Choices = append(in.Choices, d.Options[j].Index)
+			}
+			return clamp(d, in)
+		}
+		if len(d.Options) > 1 {
+			for _, o := range d.Options {
+				if o.Kind == "mulligan" && b.r.IntN(3) == 0 {
+					in.Choices = []int{o.Index}
+					return clamp(d, in)
+				}
+			}
+		}
+		if len(d.Options) > 0 {
+			in.Choices = []int{d.Options[0].Index} // keep
+			return clamp(d, in)
+		}
 	}
 
 	// Last resort: pass if Min == 0 and one is offered; clamp below handles
