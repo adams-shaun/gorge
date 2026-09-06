@@ -42,3 +42,19 @@ func writeHostError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusInternalServerError, "internal", err.Error())
 	}
 }
+
+// writeSeatError maps the seat methods' (Pending, SubmitIntent) errors onto
+// statuses. An unknown table/match stays 404; every other rejection is a 409
+// conflict whose reason body is gorge's own error message: the match is not
+// in the state the request assumed — not live, the seat is not a human seat,
+// no decision is parked, or the intent is stale, for the wrong player,
+// out-of-range, duplicated or violates min/max. The handler adds no second
+// validation layer; the one fence is decision.Decision.Validate inside the
+// registry, and this status-plus-reason surface is audit item 17's answer.
+func writeSeatError(w http.ResponseWriter, err error) {
+	if errors.Is(err, host.ErrNotFound) {
+		writeHostError(w, err)
+		return
+	}
+	writeError(w, http.StatusConflict, "conflict", err.Error())
+}
