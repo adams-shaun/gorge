@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -292,6 +293,81 @@ func TestKeptPregameRoundReplaysExactly(t *testing.T) {
 	}
 	if re.L.Head() != e.L.Head() {
 		t.Fatalf("replay head %s != live %s", re.L.Head(), e.L.Head())
+	}
+}
+
+// capturePrompts drives a pre-game round in which seat 0 mulligans `take`
+// times before keeping (so it will bottom `take`), seat 1 keeps untouched, and
+// returns the keep/mulligan prompt the round first showed seat 0 and the
+// bottoming prompt it shows the seat that must bottom -- the two human-visible
+// sentences of the mulligan round.
+func capturePrompts(t *testing.T, mulligans, take int) (keepPrompt, bottomPrompt string) {
+	t.Helper()
+	cfg := twoSeatConfig(t, 50, mulligans)
+	e := New(cfg)
+	took := 0
+	decide := func(d *decision.Decision) decision.Intent {
+		if d.Kind == decision.KMulligan && len(d.Options) > 0 && d.Options[0].Kind == "bottom" {
+			if bottomPrompt == "" {
+				bottomPrompt = d.Prompt
+			}
+			ch := make([]int, 0, d.Min)
+			for j := 0; j < len(d.Options) && j < d.Min; j++ {
+				ch = append(ch, d.Options[j].Index)
+			}
+			return decision.Intent{Seq: d.Seq, Player: d.Player, Choices: ch}
+		}
+		if d.Player == 0 && took < take {
+			for _, o := range d.Options {
+				if o.Kind == "mulligan" {
+					if keepPrompt == "" {
+						keepPrompt = d.Prompt
+					}
+					took++
+					return decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{o.Index}}
+				}
+			}
+		}
+		if keepPrompt == "" {
+			keepPrompt = d.Prompt
+		}
+		return decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}} // keep
+	}
+	playPregame(t, e, decide)
+	return keepPrompt, bottomPrompt
+}
+
+// TestBottomingPromptIsRealEnglish pins finding bh's singular and plural
+// forms: the bottoming ask's Prompt is the last real sentence a player reads
+// in the mulligan round, and it must be written for a human -- "Put 1 card on
+// the bottom of your library" for a one-card bottom, "Put 2 cards on the
+// bottom of your library" for two -- never the engine-speak "bottoms 2
+// card(s)" it replaced.
+func TestBottomingPromptIsRealEnglish(t *testing.T) {
+	_, singular := capturePrompts(t, 1, 1)
+	if want := "Put 1 card on the bottom of your library"; singular != want {
+		t.Errorf("one-card bottom prompt = %q, want %q", singular, want)
+	}
+	_, plural := capturePrompts(t, 2, 2)
+	if want := "Put 2 cards on the bottom of your library"; plural != want {
+		t.Errorf("two-card bottom prompt = %q, want %q", plural, want)
+	}
+}
+
+// TestKeepMulliganPromptHasNoEngineSpeak pins finding bh's sweep through the
+// round's other prompt: the keep/mulligan ask, the FIRST sentence a player
+// reads in a game, had the same tell as the bottoming one -- "keeps 7 and
+// bottoms 1, or mulligans" -- and must no longer use "bottoms" as a verb or
+// the "(s)" shorthand.
+func TestKeepMulliganPromptHasNoEngineSpeak(t *testing.T) {
+	keep, _ := capturePrompts(t, 2, 1)
+	for _, bad := range []string{"bottoms", "card(s)", "London mulligan:", "mulligans"} {
+		if strings.Contains(keep, bad) {
+			t.Errorf("keep/mulligan prompt %q still carries engine-speak %q", keep, bad)
+		}
+	}
+	if !strings.Contains(keep, "mulligan") {
+		t.Errorf("keep/mulligan prompt %q no longer names the mulligan choice", keep)
 	}
 }
 

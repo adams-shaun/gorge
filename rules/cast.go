@@ -567,7 +567,7 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 	default: // "number"
 		out := make([]decision.Option, 0, 13)
 		for i := 0; i <= 12; i++ {
-			out = append(out, decision.Option{Index: i, Kind: "number", Label: strconv.Itoa(i), Amount: i})
+			out = append(out, decision.Option{Index: len(out), Kind: "number", Label: strconv.Itoa(i), Amount: i})
 		}
 		return out
 	}

@@ -147,6 +147,37 @@ type Decision struct {
 	ResumeSA   *cards.SA `json:"-"`
 }
 
+// New is a convenience constructor that fills a Decision's Player, Kind,
+// Prompt, Min, Max and Options fields from positionally-presented arguments.
+// It also enforces Options[i].Index == i for the options it is handed -- the
+// position/Index identity a client's intent and Chosen both rely on (a
+// client names option i by choosing index i, and Chosen returns Options[i])
+// -- so a call that passes a drifting list fails loudly here rather than on
+// the path to a seat.
+//
+// Note that New is NOT the enforcement point for that identity: the engine's
+// authoritative guard lives in rules' Engine.ask, through which every
+// Decision that can reach a seat flows (casting a decision away from there
+// leaves it not pending, so no seat is ever offered it). New's own check
+// therefore backstops call sites that use it -- today only the mulligan
+// round -- and is redundant there, not load-bearing. The great majority of
+// construction sites build &decision.Decision struct literals directly and
+// are covered by ask alone. New deliberately panics on a mis-indexed list
+// rather than returning an error, and it preserves that behaviour as a
+// convenience for its handful of callers, but the invariant is guarded
+// regardless of which side of the constructor an option list arrives on.
+// Source, if any, is set by the caller on the returned Decision; it carries
+// no invariant.
+func New(player state.PlayerID, kind Kind, prompt string, min, max int, options []Option) *Decision {
+	for i := range options {
+		if options[i].Index != i {
+			panic(fmt.Sprintf("decision: option %d has Index %d, want position %d (%s)",
+				i, options[i].Index, i, kind))
+		}
+	}
+	return &Decision{Player: player, Kind: kind, Prompt: prompt, Min: min, Max: max, Options: options}
+}
+
 // Intent is a client's answer.
 type Intent struct {
 	Seq     uint64         `json:"seq"`
