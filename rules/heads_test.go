@@ -78,10 +78,25 @@ import (
 //	  so m34's own chain contribution is a blank at 2 seats and the golden
 //	  below stays 1d5dc4e2727cf2d8, unchanged from the pre-m34 measured
 //	  value.
+//
+// Task D1's OWN single regeneration (the task is this milestone's ONE golden
+// regeneration, FL-83; attributed to the commit as a whole per FL-76). D1
+// implements CR 514.1 -- the cleanup step discards the active player down to
+// seven cards (a new KChoose "discard" decision). Measured per seat count
+// (counted hand->grave MoveZone events in each acceptance log plus the moved
+// heads themselves), the cleanup discard fires ONCE in the 2-seat game and
+// ONCE in the 6-seat game, and never in the 4-seat or 8-seat games -- those
+// games end before any player's hand ever exceeds seven (fewer turns per
+// seat; the lone hand->grave move in the 8-seat log is a card-driven discard,
+// pre-existing and unchanged). So only the 2-seat (1d5dc4e2727cf2d8 ->
+// 630573758e2019a8) and 6-seat (9207c51fd1e4ed6a -> 2563530049855042) heads
+// move; 4 and 8 stay byte-identical to the golden. This contravenes the
+// brief's expectation that every acceptance trajectory changes, and the
+// measurement is reported as the honest cause.
 var acceptanceHeads = map[int]string{
-	2: "1d5dc4e2727cf2d8",
+	2: "630573758e2019a8",
 	4: "609a2c6bfe81f26d",
-	6: "9207c51fd1e4ed6a",
+	6: "2563530049855042",
 	8: "2c25aaefa82c95f6",
 }
 

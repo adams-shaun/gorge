@@ -127,7 +127,11 @@ func LegacyDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 		switch d.Options[0].Kind {
 		case "x":
 			in.Choices = []int{d.Options[len(d.Options)-1].Index}
-		case "exile", "sacrifice":
+		case "exile", "sacrifice", "discard":
+			// "discard" joins "exile"/"sacrifice": take the first Max options.
+			// Deliberately naive (discards oldest-held cards without judging
+			// them), matching policy.go; bot decision quality is out of scope
+			// for the cleanup-discard task (findings ck/cl).
 			for i := 0; i < len(d.Options) && i < d.Max; i++ {
 				in.Choices = append(in.Choices, d.Options[i].Index)
 			}
