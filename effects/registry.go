@@ -89,6 +89,16 @@ type Ctx struct {
 	// player declined (no effect). "" on the first pass, where the effect
 	// poses the ask instead.
 	UnlessPay string
+	// Discard is the answered "Mode$ RevealYouChoose" discard choice on a
+	// re-entered mid-resolution resolution: the object(s) the caster named
+	// to be discarded from the target's hand. rules' resumeResolution sets
+	// it from the recorded answer before re-running the suspended sub-ability,
+	// so effDiscard's re-entry discards exactly the chosen cards instead of
+	// asking again. Nil on the first pass and on any non-discard resume. The
+	// ask itself carries the caster as the chooser and the target as the
+	// discarder, which is why a plain ObjID is not enough state to rebuild:
+	// the two player roles are re-derived from Ctx on re-entry.
+	Discard []state.ObjID
 }
 
 type Effect func(h Host, c *Ctx, sa *cards.SA)
