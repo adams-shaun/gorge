@@ -144,6 +144,24 @@ func (e *Engine) resumeResolution(rp resumePoint, chosen []decision.Option) {
 			} else {
 				ctx.UnlessPay = "decline"
 			}
+		case "discard":
+			// A "Mode$ RevealYouChoose" discard (Thoughtseize/Duress) was
+			// answered: the caster picked which object leaves the target's
+			// hand. The chosen options carry the object in Obj (the same
+			// Obj a cleanup-step discard option carries), so the id list is
+			// read straight off them — the one place a mid-resolution answer
+			// moves an object by identity rather than an SVar name, which is
+			// why Ctx carries a Discard []ObjID rather than a Modes []string.
+			// Counter's UnlessCost$ and RearrangeTopOfLibrary (Ponder) can
+			// both reuse this same answer-shape and resume retrofitted onto
+			// their own asking primitive — see task-dc1-brief scope.
+			ids := make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ids = append(ids, o.Obj)
+				}
+			}
+			ctx.Discard = ids
 		default: // "modes"
 			ctx.Modes = modeChoiceNames(rp.sa, chosen)
 		}
