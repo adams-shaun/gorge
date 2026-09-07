@@ -16,7 +16,7 @@ vi.mock('./api', () => ({ fetchTables: fetchTablesMock }));
 const { tables } = await import('./tables.svelte');
 
 const info = (id: string, overrides: Partial<TableInfo> = {}): TableInfo =>
-  ({ id, name: id, seats: 2, spectator: '', state: 'idle', match: 0, perpetual: false, ...overrides });
+  ({ id, name: id, seats: 2, spectator: '', state: 'idle', match: 0, perpetual: false, format: 'constructed', ...overrides });
 
 describe('tables', () => {
   it('loads in host order and updates via apply(frame)', async () => {
