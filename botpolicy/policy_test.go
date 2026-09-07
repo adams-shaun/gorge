@@ -69,10 +69,12 @@ func TestChoosePolicy(t *testing.T) {
 // followed by "pass" last -- no play_land, so the switch's un-gated
 // play_land/cast loop cannot mask the fallback path the way fix round 1's
 // own regression case accidentally did. Board.IsMain false must pass, true
-// must prefer activate, and the trailing "concede" option is never chosen
-// either way (M2d-3) -- the guarantee that keeps the acceptance games from
-// ending on turn one. Moved here from the two mirror copies (seat/bot_test.go,
-// rules/testbot_test.go).
+// must prefer activate (when a castable card needs mana; the need gate of
+// tap.go, T1, gates the tap on the pool -- the main-phase Board carries an
+// unpayable hand card and an empty pool, so a tap is wanted), and the
+// trailing "concede" option is never chosen either way (M2d-3) -- the
+// guarantee that keeps the acceptance games from ending on turn one. Moved
+// here from the two mirror copies (seat/bot_test.go, rules/testbot_test.go).
 func TestPassesOutsideMainWithNoCastOrLandDrop(t *testing.T) {
 	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
 		Options: []decision.Option{
@@ -88,8 +90,15 @@ func TestPassesOutsideMainWithNoCastOrLandDrop(t *testing.T) {
 	if len(in.Choices) != 1 || d.Options[in.Choices[0]].Kind != "pass" {
 		t.Errorf("isMain=false: priority = %+v, want pass chosen -- not an activation -- outside a main phase", in)
 	}
-	// And inside a main phase, the same decision DOES prefer activate.
-	in = Decide(Board{IsMain: true}, &d, rng(1))
+	// And inside a main phase, the same decision DOES prefer activate --
+	// the tap gate (T1) wants a tap when a castable card in hand needs
+	// mana the empty pool does not yet have.
+	wanting := Board{IsMain: true,
+		Cards: map[state.ObjID]Card{
+			// A hand card whose CMC 1 the empty pool cannot pay: a tap.
+			200: {CMC: 1, ManaCost: "1", Castable: true},
+		}}
+	in = Decide(wanting, &d, rng(1))
 	if len(in.Choices) != 1 || d.Options[in.Choices[0]].Kind != "activate" {
 		t.Errorf("isMain=true: priority = %+v, want an activation chosen", in)
 	}
@@ -99,7 +108,11 @@ func TestPassesOutsideMainWithNoCastOrLandDrop(t *testing.T) {
 	// acceptance games (this policy drives them, via either adapter) cannot
 	// end on turn one.
 	for _, isMain := range []bool{false, true} {
-		in := Decide(Board{IsMain: isMain}, &d, rng(1))
+		b := Board{IsMain: isMain}
+		if isMain {
+			b = wanting
+		}
+		in := Decide(b, &d, rng(1))
 		if len(in.Choices) == 0 || d.Options[in.Choices[0]].Kind == "concede" {
 			t.Errorf("isMain=%v: bot chose concede: %+v", isMain, in)
 		}
@@ -116,7 +129,9 @@ func TestPassesOutsideMainWithNoCastOrLandDrop(t *testing.T) {
 // Ported here from seat/bot_test.go's TestBotAlwaysAnswersEveryDecisionKind
 // and widened to the kinds that test did not reach.
 func TestEveryKind(t *testing.T) {
-	// Priority: in a main phase the lone activate option is tapped first.
+	// Priority: in a main phase the lone activate option is tapped first --
+	// the T1 need gate wants it: a hand card (Obj 3's cast) costs more than
+	// the empty pool holds.
 	priority := decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
 		Options: []decision.Option{
 			{Index: 0, Kind: "play_land", Obj: 1},
@@ -124,13 +139,48 @@ func TestEveryKind(t *testing.T) {
 			{Index: 2, Kind: "cast", Obj: 3},
 			{Index: 3, Kind: "pass"},
 		}}
-	if in := Decide(Board{IsMain: true}, &priority, rng(1)); len(in.Choices) != 1 || priority.Options[in.Choices[0]].Kind != "activate" {
+	wanting := Board{IsMain: true,
+		Cards: map[state.ObjID]Card{
+			3: {CMC: 2, ManaCost: "2", Castable: true}, // in hand, pool can't pay it
+		}}
+	if in := Decide(wanting, &priority, rng(1)); len(in.Choices) != 1 || priority.Options[in.Choices[0]].Kind != "activate" {
 		t.Errorf("priority (main phase) = %+v, want the lone activate option chosen first", in)
 	}
 	// Outside a main phase the same options must NOT prefer activate -- it
 	// would rather play its land.
 	if in := Decide(Board{}, &priority, rng(1)); len(in.Choices) != 1 || priority.Options[in.Choices[0]].Kind == "activate" {
 		t.Errorf("priority (non-main) = %+v, want activate NOT chosen outside a main phase", in)
+	}
+	// T1 (tap.go): the need gate stops the tap the moment the pool can pay a
+	// castable card -- the pool of 2 pays the CMC-2 hand card, so the land
+	// drop (play_land, first offered) is chosen instead of another tap, and
+	// a hand with no castable card never taps at all.
+	satisfied := wanting
+	satisfied.Pool = state.Mana{state.MC: 2} // 2 colourless already floats
+	if in := Decide(satisfied, &priority, rng(1)); len(in.Choices) != 1 || priority.Options[in.Choices[0]].Kind == "activate" {
+		t.Errorf("priority (pool pays the hand) = %+v, want no tap -- the cast can already be made", in)
+	}
+	// The coloured-pip gate: {U}{U} against a pool of one blue still wants a
+	// tap (a colour-blind tap would stop here and never cast).
+	pipWant := Board{IsMain: true,
+		Cards: map[state.ObjID]Card{
+			3: {CMC: 2, ManaCost: "U U", Castable: true},
+		},
+		Pool: state.Mana{state.MU: 1},
+	}
+	if in := Decide(pipWant, &priority, rng(1)); len(in.Choices) != 1 || priority.Options[in.Choices[0]].Kind != "activate" {
+		t.Errorf("priority (pool one blue vs UU) = %+v, want a tap -- the pool cannot pay {U}{U}", in)
+	}
+	// A battlefield permanent (Castable false) and a hand land (CMC 0) never
+	// justify a tap: nothing in hand wants mana, so the policy passes even
+	// with activate options on the table.
+	idle := Board{IsMain: true,
+		Cards: map[state.ObjID]Card{
+			4: {CMC: 2, ManaCost: "2", Castable: false}, // already on the battlefield
+			5: {CMC: 0, ManaCost: "", Castable: true},   // a land in hand
+		}}
+	if in := Decide(idle, &priority, rng(1)); len(in.Choices) != 1 || priority.Options[in.Choices[0]].Kind == "activate" {
+		t.Errorf("priority (nothing castable wants mana) = %+v, want no tap", in)
 	}
 
 	target := decision.Decision{Seq: 2, Player: 0, Kind: decision.KTarget, Min: 1, Max: 1,

@@ -146,6 +146,7 @@ func TestBotAdaptersAgreeOverCommanderGame(t *testing.T) {
 	botView := NewBot(7)
 	botGame := rand.New(rand.NewPCG(7, 7^0x9e3779b97f4a7c15))
 	cmdPinned := 0
+	poolN := 0
 	n := 0
 	for !eView.G.Over && !eGame.G.Over && eView.Pending() != nil && eGame.Pending() != nil && n < 200000 {
 		d := eView.Pending()
@@ -169,6 +170,14 @@ func TestBotAdaptersAgreeOverCommanderGame(t *testing.T) {
 		if !reflect.DeepEqual(boardView.Commanders, boardGame.Commanders) {
 			t.Fatalf("intent %d: commander facts diverged:\nview: %+v\ngame: %+v (step %s)", n, boardView.Commanders, boardGame.Commanders, eGame.G.Step)
 		}
+		// op6 (the tap gate's pool), the commander twin of the whole-game
+		// test's own pool agreement.
+		if boardView.Pool != boardGame.Pool {
+			t.Fatalf("intent %d: pool diverged: view %v vs game %v (step %s)", n, boardView.Pool, boardGame.Pool, eGame.G.Step)
+		}
+		if boardView.Pool.Total() > 0 {
+			poolN++
+		}
 		cmdPinned++
 		inGame := botpolicy.Decide(boardGame, eGame.Pending(), botGame)
 		if inView.Seq != inGame.Seq || inView.Player != inGame.Player || !slices.Equal(inView.Choices, inGame.Choices) {
@@ -187,6 +196,9 @@ func TestBotAdaptersAgreeOverCommanderGame(t *testing.T) {
 	}
 	if cmdPinned == 0 {
 		t.Fatal("no decision ever carried a commander fact to pin — the game never projected one")
+	}
+	if poolN == 0 {
+		t.Fatal("no decision ever carried a non-zero Pool -- the tap gate's pool fact was never exercised over the commander game")
 	}
 	if h1, h2 := eView.L.Head(), eGame.L.Head(); h1 != h2 {
 		t.Fatalf("chains diverged: view %s, game %s", h1, h2)
@@ -306,6 +318,7 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 	botView := NewBot(7)
 	botGame := rand.New(rand.NewPCG(7, 7^0x9e3779b97f4a7c15))
 	attachedN := 0
+	poolN := 0
 	n := 0
 	for !eView.G.Over && !eGame.G.Over && eView.Pending() != nil && eGame.Pending() != nil && n < 200000 {
 		d := eView.Pending()
@@ -333,6 +346,17 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 		boardView := boardFromView(view.Project(eView.G, eView, d.Player, d))
 		if !maps.Equal(boardView.Cards, boardGame.Cards) {
 			t.Fatalf("intent %d: casting Card census diverged: view %v vs game %v (step %s)", n, boardView.Cards, boardGame.Cards, eGame.G.Step)
+		}
+		// op6 (the tap gate's pool): the deciding seat's own mana pool must
+		// be the same numbers on both halves -- the projected poolView map
+		// and state.Game's Pool field -- and it must actually go non-zero
+		// over the game (poolN), so the T1 need gate is exercised with a
+		// real pool and the agreement is not vacuous.
+		if boardView.Pool != boardGame.Pool {
+			t.Fatalf("intent %d: pool diverged: view %v vs game %v (step %s)", n, boardView.Pool, boardGame.Pool, eGame.G.Step)
+		}
+		if boardView.Pool.Total() > 0 {
+			poolN++
 		}
 		// op3 (A1, the attachment fact): an AttachedTo divergence is the
 		// adapters reading different facts, and the non-zero count besides
@@ -363,6 +387,9 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 	}
 	if wantAttached && attachedN == 0 {
 		t.Fatal("no decision ever carried a non-zero AttachedTo on Card -- the attachment fact was never exercised over the whole game")
+	}
+	if poolN == 0 {
+		t.Fatal("no decision ever carried a non-zero Pool -- the tap gate's pool fact was never exercised over the whole game")
 	}
 	if h1, h2 := eView.L.Head(), eGame.L.Head(); h1 != h2 {
 		t.Fatalf("chains diverged: view %s, game %s", h1, h2)
