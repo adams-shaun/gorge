@@ -220,17 +220,20 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 			in.Choices = []int{pick}
 			return clamp(d, in)
 		}
-		// Task 10: in a main phase, when casting found nothing to do, take the
-		// first "ability" option offered (legalActions only offers them as
-		// legal sorcery-speed actions, so no extra isMain gate is needed here
-		// beyond this block's own check). Replacements fall through to the
-		// explicit pass below.
+		// chooseAbility (ability.go, A1-A4) ranks the offered "ability"
+		// options by value instead of taking the first: a provable no-op
+		// (an equip on an already-attached permanent, or one with no
+		// creature to attach to, A1 — equipNoOp reads the attachment state
+		// itself, never a projected target) is never activated, cheaper
+		// abilities outrank costlier ones (A2), ties break on option index
+		// (A3), and the block falls through to the explicit pass below when
+		// nothing ranks as worth taking (A4). legalActions only offers
+		// non-mana activated abilities as legal sorcery-speed actions here,
+		// so no extra isMain gate is needed beyond this block's own check.
 		if b.IsMain {
-			for _, o := range d.Options {
-				if o.Kind == "ability" {
-					in.Choices = []int{o.Index}
-					return clamp(d, in)
-				}
+			if pick := b.chooseAbility(d); pick >= 0 {
+				in.Choices = []int{pick}
+				return clamp(d, in)
 			}
 		}
 		// Ruling T25-g (fix round 2): explicitly pass here, before clamp
