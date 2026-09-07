@@ -18,9 +18,73 @@ type TableID string
 // Deck is a resolved deck list: the name a seat is called and the cards it
 // is dealt. Options.LoadDeck produces it; the host never reads files for
 // decks itself.
+//
+// Commanders is the flat indices into Cards that are this deck's
+// commanders, in the deck file's order (one today — deck.File.Commander);
+// the engine places those objects in the command zone at genesis. nil for
+// a constructed deck. The loader — which owns the deck files — computes it
+// (deck.File.CommanderIndex, validated by deck.ValidateCommander), so the
+// host never guesses which card a deck means by its commander.
 type Deck struct {
 	Name  string
 	Cards []*cards.Card
+
+	Commanders []int
+}
+
+// Format is a table's construction format, named on the wire like a
+// Visibility: "constructed" is the zero value and the only value every
+// table before m39 carried; "commander" runs the CR 903 rules the engine
+// gates on its own rules.Format. The host-local enum exists so TableConfig
+// — persisted verbatim in tables.json — reads as names, the same
+// convention Spectator follows; newMatch converts it to the engine's int
+// format at match build, so the two never need to grow in lockstep.
+type Format uint8
+
+const (
+	// FormatConstructed is a 20-life game with no command zone — the zero
+	// value, so a tables.json written before the field existed loads as
+	// constructed and validates exactly as it always did.
+	FormatConstructed Format = iota
+	// FormatCommander is a Commander game: 40 life (CR 903.6), a command
+	// zone built from each seat's deck's commanders, and the CR 903.8 tax
+	// and CR 903.10 damage clock — whatever the engine's FormatCommander
+	// gates on.
+	FormatCommander
+)
+
+var formatNames = [...]string{"constructed", "commander"}
+
+// String is the wire name; an out-of-range value prints "unknown", the
+// same total shape as state.Step.String.
+func (f Format) String() string {
+	if int(f) < len(formatNames) {
+		return formatNames[f]
+	}
+	return "unknown"
+}
+
+// ParseFormat is String's inverse for flags and table configs.
+func ParseFormat(s string) (Format, error) {
+	for i, n := range formatNames {
+		if n == s {
+			return Format(i), nil
+		}
+	}
+	return 0, fmt.Errorf("host: unknown format %q (want constructed or commander)", s)
+}
+
+// MarshalText/UnmarshalText make a Format its name in JSON, so a table
+// configuration on disk reads "commander", not 1.
+func (f Format) MarshalText() ([]byte, error) { return []byte(f.String()), nil }
+
+func (f *Format) UnmarshalText(b []byte) error {
+	p, err := ParseFormat(string(b))
+	if err != nil {
+		return err
+	}
+	*f = p
+	return nil
 }
 
 // TableConfig is everything a table needs; it is persisted verbatim in
@@ -55,6 +119,23 @@ type TableConfig struct {
 	// replay's Config must carry it too, or a match played with a round stops
 	// replaying). Negative values are rejected by validate.
 	Mulligans int `json:"mulligans,omitempty"`
+	// Format names the table's construction format: constructed (the zero
+	// value, and every table before m39) or commander. A commander table
+	// plays the CR 903 rules — 40 life (CR 903.6), a command zone built
+	// from each seat's deck's commanders, the CR 903.8 tax and the CR
+	// 903.10 clock — so every deck it deals must itself name a commander
+	// (validate enforces it through the loaded Deck). Named on the wire
+	// like Spectator; a tables.json written before the field existed loads
+	// as constructed.
+	Format Format `json:"format,omitempty"`
+	// StartingLife overrides a game's opening life total; 0 (the zero
+	// value) means the format's default — 20 constructed, 40 for a
+	// commander table (CR 903.6) — so a commander table that never sets it
+	// still plays 40. newMatch resolves the default once, on the copy it
+	// builds the match from, and the resolved value travels on every
+	// rules.Config and on its sidecar, so a replay rebuilds the life the
+	// match actually played with.
+	StartingLife int32 `json:"starting_life,omitempty"`
 }
 
 var ErrNotFound = errors.New("host: not found")
@@ -99,8 +180,25 @@ func (c TableConfig) validate(load func(string) (Deck, error)) error {
 		}
 	}
 	for _, d := range c.Decks {
-		if _, err := load(d); err != nil {
+		dd, err := load(d)
+		if err != nil {
 			return fmt.Errorf("host: table %s: deck %q: %w", c.ID, d, err)
+		}
+		// A commander table dealt a deck that names no commander is a
+		// config error, not a game: the seat would play without a command
+		// zone, and a commander index out of range would be silently
+		// skipped by the engine's New. Reject both here, at the boundary
+		// where the table is configured, so a half-started commander
+		// table is impossible rather than merely unlikely.
+		if c.Format == FormatCommander {
+			if len(dd.Commanders) == 0 {
+				return fmt.Errorf("host: table %s: commander table deck %q names no commander", c.ID, d)
+			}
+			for _, ci := range dd.Commanders {
+				if ci < 0 || ci >= len(dd.Cards) {
+					return fmt.Errorf("host: table %s: deck %q commander index %d out of range 0..%d for %d cards", c.ID, d, ci, len(dd.Cards)-1, len(dd.Cards))
+				}
+			}
 		}
 	}
 	return nil

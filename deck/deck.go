@@ -43,6 +43,28 @@ type Entry struct {
 // scripts.
 const commanderOraclePhrase = "can be your commander"
 
+// CommanderIndex returns the flat index of f.Commander's card in the deck
+// Resolve produces: the position its single copy (CR 903.4 singleton) lands
+// at when entries are expanded by count in file order. This is the index
+// rules.Config.Commanders expects — genesis moves that object to the
+// command zone instead of the library. Computed rather than assumed 0 so a
+// deck that does not print its commander first keeps working; the result is
+// only meaningful for a deck that passed ValidateCommander (which
+// guarantees the commander is one of the deck's entries), and a deck with
+// no commander at all returns the count-expanded length, which is why
+// callers gate on Commander != "" before calling it.
+func (f File) CommanderIndex() int {
+	cmdr := cards.NormalizeName(f.Commander)
+	idx := 0
+	for _, e := range f.Cards {
+		if cards.NormalizeName(e.Name) == cmdr {
+			return idx
+		}
+		idx += e.Count
+	}
+	return idx
+}
+
 // IsCommanderEligible reports whether a card may be a commander: it is a
 // legendary creature, or one of the cards the corpus marks as saying it can
 // be a commander (planeswalker-legends, Partner/choose-a-background cases,

@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
-	"github.com/adams-shaun/gorge/deck"
 	"github.com/adams-shaun/gorge/internal/testutil"
 )
 
@@ -41,27 +40,6 @@ var repoCommanderGames = []struct {
 	{"foundations-tramplesaurus-rex", "foundations-wretched-ranks", 1005, 5005, []uint64{1005, 1015, 1009}},
 }
 
-// commanderIndex returns the flat index of f.Commander's card in the
-// resolved deck: the position its single copy (CR 903.4 singleton) lands at
-// when entries are expanded by count in file order. This is the index
-// Config.Commanders expects — genesis moves that object to the command
-// zone. The commander is guaranteed present by default: every commander
-// deck file passes deck.ValidateCommander (the table-driven gate in
-// internal/testutil), so the scan always terminates; the index is computed
-// rather than assumed 0 so a future deck that does not print its commander
-// first keeps working.
-func commanderIndex(f deck.File) int {
-	cmdr := cards.NormalizeName(f.Commander)
-	idx := 0
-	for _, e := range f.Cards {
-		if cards.NormalizeName(e.Name) == cmdr {
-			return idx
-		}
-		idx += e.Count
-	}
-	return idx
-}
-
 // TestRepoCommanderDecksPlayAndCastTheirCommander is the m38 play evidence
 // (Ruling M3-P): one real Commander game per interim deck — command zone,
 // CR 903.8 tax on, 40 life, London mulligan — driven by the same botpolicy
@@ -86,8 +64,13 @@ func TestRepoCommanderDecksPlayAndCastTheirCommander(t *testing.T) {
 			}
 			deck0 := testutil.RepoDeck(t, reg, this)
 			deck1 := testutil.RepoDeck(t, reg, that)
-			cmdr0 := commanderIndex(testutil.RepoDeckFile(t, this))
-			cmdr1 := commanderIndex(testutil.RepoDeckFile(t, that))
+			// The commander's flat position in each resolved deck is the
+			// index Config.Commanders wants (genesis moves that object to
+			// the command zone); deck.File owns the one shared resolution
+			// (deck.CommanderIndex, m39) so gorged cannot disagree with the
+			// engine on where a commander sits.
+			cmdr0 := testutil.RepoDeckFile(t, this).CommanderIndex()
+			cmdr1 := testutil.RepoDeckFile(t, that).CommanderIndex()
 			maxCasts := int32(0)
 			for _, seed := range seeds {
 				cfg := Config{

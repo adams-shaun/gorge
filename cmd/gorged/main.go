@@ -38,6 +38,14 @@ type config struct {
 	// and turn 1 (R-E5-1). Defaults to 1 — a mulligan is the first decision of
 	// a real game — and 0 restores the pre-task behaviour exactly (no round).
 	mulligans int
+	// formatsRaw is the -format flag: a comma-separated table-format list,
+	// table i taking formats[(i-1) mod n]. "constructed" (the default) and
+	// "commander" are the two names — the smallest thing that lets a person
+	// run both formats on one server is a two-element list, no table
+	// configuration language. applyFormats parses it into formats at serve
+	// time so a malformed list fails before any table is added (R-E3-1).
+	formatsRaw string
+	formats    []host.Format
 	// humansRaw is the -humans flag: a comma-separated list of table t1's
 	// slot indices that are real people. Empty stays all-bot, identical to
 	// today. applyHumans parses it into humans at serve time so a malformed
@@ -64,6 +72,7 @@ func main() {
 	flag.Uint64Var(&c.seed, "seed", 1, "seed of table 1; table i uses seed+i-1")
 	flag.BoolVar(&c.perpetual, "perpetual", true, "start a new match when one ends")
 	flag.IntVar(&c.mulligans, "mulligans", 1, "London mulligans per player before turn 1; 0 disables the pre-game round")
+	flag.StringVar(&c.formatsRaw, "format", "constructed", "comma-separated table formats (constructed, commander); table i uses formats[i-1 mod n], e.g. -format commander,constructed runs one of each")
 	flag.StringVar(&c.humansRaw, "humans", "", "comma-separated slots of table t1 that are real people (e.g. 0,2); t2..tN stay bot tables")
 	flag.StringVar(&c.seatToken, "seat-token", "", "fixed bearer token for the first human slot (tests and local use only; default mints a random token per slot)")
 	flag.Parse()
@@ -96,13 +105,6 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if err != nil {
 		return fmt.Errorf("opening corpus at %s: %w (run make fetch-cards compile-cards)", c.cards, err)
 	}
-	names, err := deckFiles(c.decks)
-	if err != nil {
-		return err
-	}
-	if len(names) == 0 {
-		return fmt.Errorf("no deck files in %s", c.decks)
-	}
 	// R-E3-1: -humans applies to table t1 alone (SeatClaim carries no
 	// table, so one human table is the only configuration in which an
 	// un-table-scoped claim is honest). Parse it now so a malformed list or
@@ -110,13 +112,37 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if err := c.applyHumans(); err != nil {
 		return err
 	}
+	if err := c.applyFormats(); err != nil {
+		return err
+	}
+	// The deck directory is split into the two pools the tables deal: the
+	// commander-declared files (each validated up front, below) and the
+	// constructed rest. One directory serves both formats, so the numbered
+	// tables can run a Commander game and a constructed game side by side
+	// without any table-level deck configuration.
+	cmdPool, conPool, err := splitDecks(reg, c.decks)
+	if err != nil {
+		return err
+	}
+	if len(cmdPool)+len(conPool) == 0 {
+		return fmt.Errorf("no deck files in %s", c.decks)
+	}
+	// A format with no deck to deal is a configuration error, not a table
+	// that fills its seats with the wrong pool: name the gap so a misbuild
+	// is fixed, not guessed.
+	if c.wantsFormat(host.FormatCommander) && len(cmdPool) == 0 {
+		return fmt.Errorf("-format includes commander but no deck in %s names a commander", c.decks)
+	}
+	if c.wantsFormat(host.FormatConstructed) && len(conPool) == 0 {
+		return fmt.Errorf("-format includes constructed but no deck in %s is a constructed deck", c.decks)
+	}
 
 	r, err := host.New(c.hostOptions(reg, deckLoader(reg, c.decks)))
 	if err != nil {
 		return err
 	}
 	if len(r.Tables()) == 0 {
-		for _, cfg := range c.tableConfigs(names, vis) {
+		for _, cfg := range c.tableConfigs(cmdPool, conPool, vis) {
 			if err := r.AddTable(cfg); err != nil {
 				return err
 			}
@@ -195,20 +221,102 @@ func (c *config) applyHumans() error {
 	return nil
 }
 
-// tableConfigs builds one TableConfig per table, in ID order. R-E3-1: the
-// human slots apply to table t1 alone — SeatClaim carries no table, so a
-// claim minted for t1 seat s would satisfy the same seat on every table.
-// R-E3-2: a human-seated table is single-shot by definition, and the
-// -perpetual flag defaults to true, so a naive copy of the bot config
-// would make AddTable reject it (perpetual+humans); Perpetual is forced
-// false for t1, regardless of the flag, and the bot tables keep the flag.
-// AddTable still validates the result (slot range, duplicates), so serve
-// fails before listening on a bad -humans list.
-func (c config) tableConfigs(names []string, vis view.Visibility) []host.TableConfig {
+// applyFormats parses the -format flag into c.formats. The list is cycled
+// over the tables — a single -format commander makes every table a
+// Commander game, and -format commander,constructed runs one of each — and
+// a name that is neither constructed nor commander fails here, before any
+// table is added (R-E3-1), so a typo'd format can never half-start a
+// server of wrong-format tables.
+func (c *config) applyFormats() error {
+	c.formats = nil
+	// The zero value (no -format flag at all — tests, and a config that
+	// never sets the field) means constructed, exactly what every table
+	// before this flag was; applyHumans follows the same empty-means-
+	// default convention.
+	if strings.TrimSpace(c.formatsRaw) == "" {
+		c.formats = []host.Format{host.FormatConstructed}
+		return nil
+	}
+	for _, p := range strings.Split(c.formatsRaw, ",") {
+		f, err := host.ParseFormat(strings.TrimSpace(p))
+		if err != nil {
+			return err
+		}
+		c.formats = append(c.formats, f)
+	}
+	return nil
+}
+
+// wantsFormat reports whether any table in the configuration plays format f.
+func (c config) wantsFormat(f host.Format) bool {
+	for _, g := range c.formats {
+		if g == f {
+			return true
+		}
+	}
+	return false
+}
+
+// splitDecks lists the deck stems in dir (deckFiles) and splits them into
+// the commander and constructed pools a table of each format deals, then
+// validates every commander deck up front (deck.ValidateCommander, the m35
+// CR 903.4/903.5 gate) so a deployed commander table can never half-start
+// on an illegal deck — the deck is named in the error. A file that names a
+// commander belongs to the commander pool and every other file to the
+// constructed pool: the two pools are disjoint and the five Foundations
+// decks can never be dealt as 100-card constructed piles. Both pools keep
+// deckFiles' sorted order, so seat assignment stays deterministic.
+func splitDecks(reg *cards.Registry, dir string) (commander, constructed []string, err error) {
+	names, err := deckFiles(dir)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, n := range names {
+		f, _, lerr := deck.Load(reg, filepath.Join(dir, n+".json"))
+		if lerr != nil {
+			return nil, nil, lerr
+		}
+		if f.Commander == "" {
+			constructed = append(constructed, n)
+			continue
+		}
+		if verr := f.ValidateCommander(reg); verr != nil {
+			return nil, nil, fmt.Errorf("commander deck %q: %w", n, verr)
+		}
+		commander = append(commander, n)
+	}
+	return commander, constructed, nil
+}
+
+// tableConfigs builds one TableConfig per table, in ID order, dealing each
+// table the deck pool of its format — commander tables the commander pool,
+// constructed tables the constructed pool — so one server runs both formats
+// side by side and a commander deck is never dealt as a 100-card
+// constructed pile. A table the -format list does not reach (fewer entries
+// than tables) is constructed, the zero value. R-E3-1: the human slots
+// apply to table t1 alone — SeatClaim carries no table, so a claim minted
+// for t1 seat s would satisfy the same seat on every table. R-E3-2: a
+// human-seated table is single-shot by definition, and the -perpetual flag
+// defaults to true, so a naive copy of the bot config would make AddTable
+// reject it (perpetual+humans); Perpetual is forced false for t1,
+// regardless of the flag, and the bot tables keep the flag. AddTable still
+// validates the result (slot range, duplicates, commander decks), so serve
+// fails before listening on a bad -humans list or a commander table dealt
+// a deck with no commander.
+func (c config) tableConfigs(cmdPool, conPool []string, vis view.Visibility) []host.TableConfig {
 	cfgs := make([]host.TableConfig, 0, c.tables)
 	for i := 1; i <= c.tables; i++ {
+		format := host.FormatConstructed
+		if len(c.formats) > 0 {
+			format = c.formats[(i-1)%len(c.formats)]
+		}
+		pool := conPool
+		if format == host.FormatCommander {
+			pool = cmdPool
+		}
 		cfg := host.TableConfig{ID: host.TableID(fmt.Sprintf("t%d", i)), Name: fmt.Sprintf("Table %d", i), Seats: c.seats,
-			Decks: names, Seed: c.seed + uint64(i-1), Pace: c.pace, Spectator: vis, Perpetual: c.perpetual, Mulligans: c.mulligans}
+			Decks: pool, Seed: c.seed + uint64(i-1), Pace: c.pace, Spectator: vis, Perpetual: c.perpetual,
+			Mulligans: c.mulligans, Format: format}
 		if i == 1 && len(c.humans) > 0 {
 			cfg.Humans = c.humans
 			cfg.Perpetual = false
@@ -247,7 +355,13 @@ func deckFiles(dir string) ([]string, error) {
 }
 
 // deckLoader resolves a name to dir/<name>.json once and caches it: the
-// host asks for the same decks every match.
+// host asks for the same decks every match. The seat is named after the
+// file stem (PL-14), not the deck file's own name field; the File is read
+// anyway because a deck that names a commander carries its command-zone
+// index on the host Deck (deck.File.CommanderIndex — the same resolution
+// rules' own commander games use, and the pool split validated up front),
+// so a commander table's seats get their command zone and a constructed
+// table's seats get none.
 func deckLoader(reg *cards.Registry, dir string) func(string) (host.Deck, error) {
 	var mu sync.Mutex
 	cache := map[string]host.Deck{}
@@ -257,13 +371,14 @@ func deckLoader(reg *cards.Registry, dir string) func(string) (host.Deck, error)
 		if d, ok := cache[name]; ok {
 			return d, nil
 		}
-		// The seat is named after the file stem (PL-14), not the deck
-		// file's own name field, so the parsed File is not needed here.
-		_, cs, err := deck.Load(reg, filepath.Join(dir, name+".json"))
+		f, cs, err := deck.Load(reg, filepath.Join(dir, name+".json"))
 		if err != nil {
 			return host.Deck{}, err
 		}
 		d := host.Deck{Name: name, Cards: cs}
+		if f.Commander != "" {
+			d.Commanders = []int{f.CommanderIndex()}
+		}
 		cache[name] = d
 		return d, nil
 	}

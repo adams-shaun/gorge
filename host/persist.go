@@ -41,6 +41,19 @@ type sidecar struct {
 	// exactly 0 — the value those matches played with — so nothing is
 	// migrated or versioned (R-E5-2).
 	Mulligans int `json:"mulligans,omitempty"`
+	// Format, StartingLife and Commanders are the rest of the match's
+	// rules.Config, for a Commander match: the construction format, the
+	// opening life it actually played with (40, not the 0 TableConfig
+	// carried) and each seat's commander indices, parallel to Decks.
+	// Persisted so a
+	// restart rebuilds a replay Config that reproduces a Commander match
+	// exactly (R-8.4, viewat.go). omitempty keeps an old sidecar that
+	// predates the fields loading as Format zero (constructed), life 0 (the
+	// engine's 20) and no commanders — exactly the values those matches
+	// played with (R-E5-2).
+	Format       Format  `json:"format,omitempty"`
+	StartingLife int32   `json:"starting_life,omitempty"`
+	Commanders   [][]int `json:"commanders,omitempty"`
 }
 
 func (sc sidecar) info() protocol.MatchInfo {

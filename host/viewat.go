@@ -259,6 +259,17 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 		decks[i] = d.Cards
 	}
 	cfg := rules.Config{Seed: sc.Seed, Names: sc.Names, Decks: decks, Tokens: r.opts.Tokens, Mulligans: sc.Mulligans}
+	// A persisted Commander match carries its format, the opening life it
+	// played with and its per-seat commander indices, so the replay
+	// reproduces the live match branch for branch (R-8.4: the replay Config
+	// is rebuilt from this sidecar alone, and the engine builds a command
+	// zone — and a 40-life start — off exactly those values). An old
+	// sidecar's zero Format is constructed, which needs none of this.
+	if sc.Format == FormatCommander {
+		cfg.Format = rules.FormatCommander
+		cfg.StartingLife = sc.StartingLife
+		cfg.Commanders = sc.Commanders
+	}
 	e, err := replay.Replay(l, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("host: %s/%d does not replay: %w", t.cfg.ID, sc.Match, err)
