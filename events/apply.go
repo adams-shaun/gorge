@@ -282,12 +282,22 @@ func Apply(g *state.Game, e Event) {
 		o.Remembered = rememberedFrom(e.IDs)
 
 	case EndCombatReset:
-		// No Player or Obj to validate: this clears every object in the
-		// arena unconditionally, the same as ClockTick touches no
-		// Player/Obj-indexed field either.
+		// Obj zero retains the original whole-combat reset. A nonzero Obj
+		// removes only that permanent (regeneration). Keep a zero tombstone
+		// in attackers' blocker lists: they remain blocked (CR 509.1h),
+		// while liveBlockers ignores the removed blocker, even if it lives.
 		for i := range g.Objs {
-			g.Objs[i].IsAttacking = false
-			g.Objs[i].BlockedBy = nil
+			o := &g.Objs[i]
+			if e.Obj == 0 || o.ID == e.Obj {
+				o.IsAttacking = false
+				o.BlockedBy = nil
+			} else {
+				for j, id := range o.BlockedBy {
+					if id == e.Obj {
+						o.BlockedBy[j] = 0
+					}
+				}
+			}
 		}
 
 	case CastInfo:

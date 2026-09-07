@@ -712,6 +712,10 @@ func (e *Engine) cleanupBody() {
 			if o.Damage > 0 {
 				e.emit(events.Event{Kind: events.Damage, Obj: id, Amount: -o.Damage})
 			}
+			if n := o.Counter("Shield"); n > 0 {
+				e.emit(events.Event{Kind: events.CounterChange, Obj: id,
+					Counter: "Shield", Amount: -n})
+			}
 			if n := o.Counter("Deathtouched"); n > 0 {
 				e.emit(events.Event{Kind: events.CounterChange, Obj: id,
 					Counter: "Deathtouched", Amount: -n})

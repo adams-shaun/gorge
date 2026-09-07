@@ -109,7 +109,7 @@ still owing it.
 | `Sacrifice` with a player target is skipped and `SacValid$` is never read (Gatekeeper of Malakir's kicked ETB) | `effects/zone.go:151-160` | M4 |
 | `Counter` is unconditional: `UnlessCost$` is never read, so "counter unless its controller pays {N}" is not offered (Mana Leak, Spell Pierce, Daze, Mausoleum Wanderer; M2d-2's unless-pay ask serves only `CopySpellAbility`) | `effects/misc.go:103-119` | M4 |
 | `Effect` (a continuous effect from `StaticAbilities$`/`Triggers$` for `Duration$`) records a Note only (Palace Jailer's "until it leaves", Vines of Vastwood's can't-be-targeted) | `effects/misc.go:49-56` | M4 |
-| `Regenerate` grants a Shield counter the state-based actions never consume (Experiment One still dies) | `effects/counters.go:80-90` | M4 (CR 701.16) |
+| Regeneration now replaces lethal-damage destruction and `Destroy`/`DestroyAll`, consuming one this-turn Shield, clearing damage, tapping and removing the permanent from combat; unused shields expire at cleanup. "Can't be regenerated" restrictions are not modelled (no destroy flag or keyword gate) | `effects/regeneration.go`, `effects/zone.go`, `rules/sba.go`, `rules/combat.go` | M4 (regeneration restrictions) |
 | `DelayedTrigger` records a registration Note and never fires (Flickerwisp's return at the next end step) | `effects/misc.go:124-127` | M4 |
 | `Vote` gives every voter the first `Choices$` entry and records one Note per vote (Council's Judgment) | `effects/misc.go:239-247` | M4 |
 | `BecomeMonarch` records a Note only; the monarch's end-step draw does not exist (Palace Jailer) | `effects/misc.go:251-257` | M4 |

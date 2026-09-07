@@ -90,7 +90,9 @@ const (
 	// unaffected by this Kind's own shape -- only its ordinal, appended here
 	// after ClockTick, is new.
 	TriggerPush
-	// EndCombatReset clears every object's IsAttacking/BlockedBy fields.
+	// EndCombatReset clears every object's IsAttacking/BlockedBy fields
+	// when Obj is zero. Nonzero Obj removes only that permanent from combat,
+	// retaining zero blocker-list tombstones so attackers stay blocked.
 	// Ruling T21-e (Task 21 fix round 1): rules.setStep used to do this with
 	// a direct loop over e.G.Objs when entering StepEndCombat or
 	// StepCleanup, instead of emitting anything -- a violation of "all state
