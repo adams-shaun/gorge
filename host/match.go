@@ -19,6 +19,21 @@ import (
 
 const defaultMaxIntents = 400000
 
+// DefaultMaxDecisionsPerTurn is the recommended value for
+// Options.MaxDecisionsPerTurn — the one gorged installs for its served
+// tables. The number is sized from measurement, not chosen round: the
+// largest legitimate single turn measured across the gate population
+// (sample-deck and repo-deck matches at 2/4/6/8 seats) is 244 decisions,
+// and the observed policy stall ran ~10000 decisions per turn without the
+// turn advancing, so 25000 clears the legitimate ceiling by ~100x and is
+// swept by that stall class within three stall-turns. See the Options
+// field's comment for the full reasoning, including why the unit is a
+// count and never a duration.
+//
+// Note this is NOT installed when the field is 0: zero means "no guard",
+// so every caller that does not opt in keeps exactly today's behaviour.
+const DefaultMaxDecisionsPerTurn = 25000
+
 // defaultExpectedEvents is the expected-size hint passed to a live match log's
 // Reserve: just above the measured top of a real match's event count (~74k for
 // the 4-seat repo-deck match), so a typical match never reallocates and the
@@ -398,6 +413,21 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	if maxIntents == 0 {
 		maxIntents = defaultMaxIntents
 	}
+	// Task HW1: the per-turn progress guard. lastTurn is the turn the game
+	// was in when the previous decision was answered; decisionsThisTurn is
+	// how many decisions have been answered since the last turn advance. A
+	// turn that ADVANCES resets the count — a legitimately long turn of
+	// hundreds of decisions keeps passing — while a turn whose decisions
+	// never advance it (seed 175's 20000-intent equip loop) accumulates
+	// until it trips the limit and the match crashes with a stall reason,
+	// halting the table through run()'s ordinary MatchCrashed path. The
+	// limit is a count of DECISIONS, never a duration: see
+	// Options.MaxDecisionsPerTurn for why the determinism the engine is
+	// built on forbids a wall clock here. 0 — the zero value — disables the
+	// guard entirely.
+	lastTurn := m.e.G.Turn
+	decisionsThisTurn := 0
+	perTurnLimit := r.opts.MaxDecisionsPerTurn
 	// parked is the decision currently awaiting its answer (nil before the
 	// first live iteration). It is parked — installed, accept-ready — before
 	// any fan-out that could publish it, so no decision is ever visible before
@@ -486,6 +516,28 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 		})
 		if err != nil {
 			return r.crash(t, m, err)
+		}
+		// Task HW1: advance the per-turn progress counter now that the
+		// Submit's burst is applied. G.Turn only ever increases, so a turn
+		// greater than lastTurn means this very decision carried the game
+		// into a new turn — reset the count. Otherwise count the decision
+		// and, once the whole turn's unanswered decisions reach the limit,
+		// crash with a reason naming the stall, the count and the turn (the
+		// monospace crash report and the table_halted frame carry it, so an
+		// operator sees what happened rather than a generic failure). Read
+		// without the lock like the top-of-loop Over check: the loop is the
+		// only writer, and readers holding RLock see a stable boundary
+		// either side of this section.
+		if perTurnLimit > 0 {
+			if m.e.G.Turn > lastTurn {
+				lastTurn = m.e.G.Turn
+				decisionsThisTurn = 0
+			} else {
+				decisionsThisTurn++
+				if decisionsThisTurn >= perTurnLimit {
+					return r.crash(t, m, fmt.Errorf("stalled: %d decisions answered with no turn advance in turn %d (limit %d)", decisionsThisTurn, m.e.G.Turn, perTurnLimit))
+				}
+			}
 		}
 		// Install the next decision's answerable slot OUTSIDE the match lock:
 		// parkSeat may call a blocking Decide (an embedder's seat), and the
