@@ -1,6 +1,9 @@
 package cards
 
-import "testing"
+import (
+	"path/filepath"
+	"testing"
+)
 
 // mpOf parses a one-line script and returns the face's mana production, the
 // way the view and the bot policy both read it (off the compiled face). It
@@ -101,6 +104,55 @@ func TestManaProductionChosenMirrorsExecutor(t *testing.T) {
 	mp := mpOf(t, "Name:Chosen\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Chosen | Oracle:x\n")
 	if !mp.Any || mp.Colour[5] != 6 {
 		t.Errorf("Chosen = %v, want Any with 6 colourless", mp)
+	}
+}
+
+// Both cache collections must reconstruct the unexported derived field.
+func TestManaProductionDerivedRoundTrip(t *testing.T) {
+	r := NewRegistry()
+	for _, src := range []string{
+		"Name:Dual\nTypes:Land Plains Island\n",
+		"Name:Rock\nTypes:Artifact\nA:AB$ Mana | Produced$ Combo Any | Amount$ 2\n",
+		"Name:Empty\nTypes:Creature\n",
+	} {
+		c, _ := ParseBytes("fixture", []byte(src))
+		c.Link()
+		f := c.Faces[0]
+		f.ApplyIntrinsics()
+		want := f.ManaProduction()
+		f.ApplyIntrinsics()
+		if got := f.ManaProduction(); got != want {
+			t.Fatalf("repeated intrinsics: %v != %v", got, want)
+		}
+		r.Add(c)
+		r.Tokens[f.Name] = c
+	}
+	path := filepath.Join(t.TempDir(), "ir.gob.gz")
+	if err := r.Save(path); err != nil {
+		t.Fatal(err)
+	}
+	back, err := LoadRegistry(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, c := range r.Cards {
+		f := c.Faces[0]
+		var want ManaProduction
+		for _, a := range f.ManaAbilities() {
+			want.add(a)
+		}
+		for _, got := range []ManaProduction{f.ManaProduction(), back.Cards[i].Faces[0].ManaProduction(), back.Tokens[f.Name].Faces[0].ManaProduction()} {
+			if got != want {
+				t.Errorf("%s: got %v, want %v", f.Name, got, want)
+			}
+		}
+		if n := testing.AllocsPerRun(100, func() {
+			if f.ManaProduction() != want {
+				panic("production changed")
+			}
+		}); n != 0 {
+			t.Errorf("%s: getter allocates %g times", f.Name, n)
+		}
 	}
 }
 

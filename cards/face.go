@@ -134,6 +134,10 @@ func (f *Face) ColourIdentity() uint8 { return f.colourIdentity }
 func (f *Face) derive() {
 	f.power, f.toughness, f.characteristicDefining = parsePT(f.PT)
 	f.cmc = cmcFromManaCost(f.ManaCost)
+	f.manaProduction = ManaProduction{}
+	for _, a := range f.ManaAbilities() {
+		f.manaProduction.add(a)
+	}
 	f.colourIdentity = f.deriveColourIdentity()
 }
 

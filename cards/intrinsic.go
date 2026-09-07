@@ -30,4 +30,7 @@ func (f *Face) ApplyIntrinsics() {
 			Line:   "intrinsic: basic land mana",
 		})
 	}
+	// Parsing derives before intrinsics are granted; refresh at this final
+	// load-time step so fresh scripts and decoded caches agree.
+	f.derive()
 }
