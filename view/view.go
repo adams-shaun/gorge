@@ -181,6 +181,12 @@ type CardView struct {
 	ID    state.ObjID `json:"id"`
 	Name  string      `json:"name"`
 	Types string      `json:"types"`
+	// Text is the card's oracle text, the same string botpolicy.Card.Text
+	// lifts for the casting classification (cast.go's classifyCard). It is
+	// public card knowledge for the zone the card sits in (the viewer's own
+	// hand, or any public zone), so projecting it leaks nothing a client
+	// could not already know; a card with no oracle reads empty.
+	Text string `json:"text,omitempty"`
 	// ManaCost is the printed cost in Forge's notation ("1 W", "R", "X G").
 	// Hand lists render it as symbols.
 	ManaCost string `json:"mana_cost,omitempty"`
@@ -423,6 +429,7 @@ func cardView(g *state.Game, ch Chars, id state.ObjID) CardView {
 		cv.Name = f.Name
 		cv.Types = strings.Join(f.Types, " ")
 		cv.ManaCost = f.ManaCost
+		cv.Text = f.Oracle
 		cv.Printing = Printing{Name: f.Name}
 	}
 	if o.IsAttacking {

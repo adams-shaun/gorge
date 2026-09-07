@@ -231,7 +231,87 @@ func TestChooseCastAndLandPickOneWithoutClamp(t *testing.T) {
 	}
 }
 
-// TestCmcOf is the parser the cast ranking reads: the converted-mana-cost
+// TestCastClassifiesByEffectNotCost is the task dp3 defect at cast.go:141:
+// a non-creature used to be ranked by CMC alone, so Counterspell and
+// Lightning Bolt at equal CMC were indistinguishable and the tie broke on
+// option index -- the first-offered spell, whatever it did. Now the rank is
+// CMC plus the class the oracle text places it in (classifyCard), so two
+// equal-cost spells of different classes separate by what they do, not by
+// list order.
+func TestCastClassifiesByEffectNotCost(t *testing.T) {
+	// Removal (3 damage to a creature) vs a card-draw at the same CMC: the
+	// removal answers a threat, so it ranks above plain card advantage.
+	b := priorityCards(map[state.ObjID]Card{
+		1: {CMC: 2, Types: "Instant", Text: "Destroy target creature."},
+		2: {CMC: 2, Types: "Sorcery", Text: "Draw two cards."},
+	})
+	got, d := castDecision(b, []decision.Option{
+		castSpell(0, 2), // draw listed first
+		castSpell(1, 1), // removal listed second
+	})
+	if got != 1 {
+		t.Fatalf("cast = option %d (obj %d), want the removal (obj 1) over the equal-cost draw", got, d.Options[got].Obj)
+	}
+	// A counterspell at the same CMC outranks the removal: stopping the
+	// opponent's play beats killing a creature already on the board.
+	b2 := priorityCards(map[state.ObjID]Card{
+		1: {CMC: 2, Types: "Instant", Text: "Counter target spell."},
+		2: {CMC: 2, Types: "Instant", Text: "Destroy target creature."},
+	})
+	got2, d2 := castDecision(b2, []decision.Option{
+		castSpell(0, 2), // removal listed first
+		castSpell(1, 1), // counterspell listed second
+	})
+	if got2 != 1 {
+		t.Fatalf("cast = option %d (obj %d), want the counterspell (obj 1) over the equal-cost removal", got2, d2.Options[got2].Obj)
+	}
+}
+
+// TestCastClassificationReadsClassNotCost is the honest contract of
+// classifyCard: it places a non-creature by its oracle phrase, and a text it
+// cannot read falls back to classPlain (ranked by cost alone, C5). The plain
+// fallback is what keeps the old cost-only behavior for unreadable cards.
+func TestCastClassificationReadsClassNotCost(t *testing.T) {
+	// A 4-mana plain artifact (unreadable) still outranks a 1-mana burn:
+	// within the plain pile CMC is the tiebreak, and the class term on the
+	// burn is small.
+	b := priorityCards(map[state.ObjID]Card{
+		1: {CMC: 4, Types: "Artifact", Text: ""},
+		2: {CMC: 1, Types: "Sorcery", Text: "Deals 3 damage to any target."},
+	})
+	got, d := castDecision(b, []decision.Option{
+		castSpell(0, 2), // a 1-mana burn listed first
+		castSpell(1, 1), // a 3-mana unreadable artifact listed second
+	})
+	if got != 1 {
+		t.Fatalf("cast = option %d (obj %d), want the bigger unreadable card (obj 1): cost still ranks within the plain pile", got, d.Options[got].Obj)
+	}
+}
+
+// TestClassifyCard pins the phrase-to-class mapping the casting ranking
+// reads. It is the piece task dp3 adds, so it is pinned directly rather than
+// only through choices a real game happens to reach.
+func TestClassifyCard(t *testing.T) {
+	cases := []struct {
+		text string
+		want spellClass
+	}{
+		{"Counter target spell.", classCounterspell},
+		{"Destroy target creature.", classRemoval},
+		{"Exile target artifact.", classRemoval},
+		{"Deals 3 damage to any target.", classBurn},
+		{"Draw two cards.", classDraw},
+		{"Search your library for a basic land card and put it onto the battlefield.", classRamp},
+		{"", classPlain},       // no oracle text: ranked by cost alone
+		{"Flying", classPlain}, // a keyword line with no effect class phrase
+	}
+	for _, c := range cases {
+		if got := classifyCard(Card{Text: c.text}); got != c.want {
+			t.Errorf("classifyCard(%q) = %v, want %v", c.text, got, c.want)
+		}
+	}
+}
+
 // of Forge ManaCost strings, mirroring rules/mana.go's ParseCost.CMC() the
 // way both adapter halves need it (no rules import, Ruling F7). {X} counts
 // as 0 off the stack, hybrid/Phyrexian/colourless as one generic, brace
