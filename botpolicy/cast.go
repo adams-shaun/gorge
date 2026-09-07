@@ -16,8 +16,19 @@ import (
 // rules below read, produced identically by boardFromView (off the
 // projected CardViews the seat receives) and BoardFromGame (off
 // state.Game), so a card the policy ranks means the same thing whichever
-// host asked. A field no rule reads would be untested surface; these five
-// are the ones chooseCast, chooseLand and the ability ranking branch on.
+// host asked. Every field below is read by a rule branch, so none is
+// untested surface: the set is the ones chooseCast (Creature, Power,
+// CMC), chooseLand (Basic), the ability ranking (AttachedTo) and the tap
+// gate (Castable, ManaCost, Produces, and the creature facts it shares
+// with chooseCast) actually branch on. The obligation that both halves
+// fill every field identically is enforced, not aspirational: the
+// adapter-parity tests (seat/integration_test.go's
+// TestBotAdaptersAgreeOverWholeGame and
+// TestBotAdaptersAgreeOverCommanderGame) compare the two halves' Card
+// maps with maps.Equal -- every field of botpolicy.Card, on every intent
+// of two whole games -- so a field one half fills and the other leaves
+// zero is caught. A new Card field must be filled on both halves or not
+// added at all.
 //
 // Power is the engine's derived power (ch.Power), which for a card in a
 // hand or graveyard is its printed power — no continuous effect applies to
@@ -46,25 +57,6 @@ type Card struct {
 	// pricing, which is where a colour-blind tap policy would otherwise
 	// float the wrong colour and stall against a multi-coloured cost.
 	ManaCost string
-	// Types is the printed type line as a single space-joined string
-	// ("Instant", "Basic Land Island", "Enchantment Aura") -- the exact
-	// shape the projected CardView.Types already carries and the join of
-	// the face's own Types slice on the game half, so the two adapter halves
-	// produce the identical string. It is a projected fact (the view fills
-	// it) that no policy branch prices an effect off, so it is carried so
-	// the two halves agree on what a card exposes -- it is not evidence of
-	// an effect class.
-	Types string
-	// Text is the card's oracle text, the same string both adapter halves
-	// carry (boardFromView lifts it off the projected CardView.Text, which
-	// the view fills from the face's Oracle; BoardFromGame reads the face's
-	// Oracle directly). It is a readable fact the policy keeps on the Card --
-	// alongside Types and ManaCost -- but no branch currently matches it to
-	// price an effect, because an oracle phrase is a guess about what a
-	// spell does, not a read of the effect that resolves (the reason the
-	// effect-class bonus was withdrawn). It is carried so the two adapter
-	// halves agree on what a card exposes.
-	Text string
 	// Castable reports whether the deciding seat could cast this card from
 	// where it currently sits, given enough mana: true for the seat's own
 	// hand, for the command zone (this engine only ever puts commanders

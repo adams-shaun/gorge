@@ -237,7 +237,7 @@ func TestChooseCastAndLandPickOneWithoutClamp(t *testing.T) {
 // (classifyCard read an anti-removal word like "destroy"/"exile" and priced
 // it above a draw or a burn). That bonus rested on oracle-phrase guessing
 // about what a spell does -- it never read what the removal answers, never
-// read Card.Types even though it is projected, and cannot tell a burn from
+// read a card's printed type line or oracle text, and cannot tell a burn from
 // a draw whose texts differ only in words the matcher did not happen to
 // list -- so it is gone. A cast the policy cannot separate ranks by CMC
 // alone, and an equal-CMC tie breaks on option index (C6), the
@@ -245,8 +245,8 @@ func TestChooseCastAndLandPickOneWithoutClamp(t *testing.T) {
 // does, because the policy has no honest basis to tell it apart.
 func TestCastEqualCostNonCreaturesTieOnIndex(t *testing.T) {
 	b := priorityCards(map[state.ObjID]Card{
-		1: {CMC: 2, Types: "Instant", Text: "Destroy target creature."},
-		2: {CMC: 2, Types: "Sorcery", Text: "Draw two cards."},
+		1: {CMC: 2},
+		2: {CMC: 2},
 	})
 	got, d := castDecision(b, []decision.Option{
 		castSpell(0, 2), // draw listed first
@@ -265,8 +265,8 @@ func TestCastEqualCostNonCreaturesTieOnIndex(t *testing.T) {
 // what their texts say.
 func TestCastNonCreatureRanksByCostNotOracle(t *testing.T) {
 	b := priorityCards(map[state.ObjID]Card{
-		1: {CMC: 4, Types: "Artifact", Text: ""},
-		2: {CMC: 1, Types: "Sorcery", Text: "Deals 3 damage to any target."},
+		1: {CMC: 4},
+		2: {CMC: 1},
 	})
 	got, d := castDecision(b, []decision.Option{
 		castSpell(0, 2), // a 1-mana burn listed first
