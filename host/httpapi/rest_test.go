@@ -224,6 +224,90 @@ func TestTableListReportsFormat(t *testing.T) {
 	}
 }
 
+// TestTableListSeaNames pins seat names on the table list wire field, decoded
+// from the JSON response so the omitempty decision is covered: a table with a
+// live match reports its seats' deck names in seat order, and a table that has
+// never run a match reports the field absent (nil slice omits it, so the
+// decoded value is nil and stays that way even when a second call re-decodes).
+func TestTableListSeatNames(t *testing.T) {
+	r, err := host.New(host.Options{LoadDeck: formatsLoader(t), Sleep: func(time.Duration, <-chan struct{}) {}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { r.Close() })
+	live := host.TableConfig{ID: "lv", Name: "Live", Seats: 2,
+		Decks: []string{"foundations-calling-all-angels", "foundations-keen-engineering"},
+		Seed:  1001, Spectator: view.Omniscient, Perpetual: true}
+	idle := host.TableConfig{ID: "id", Name: "Idle", Seats: 4,
+		Decks: []string{"a", "b", "c", "d"}, Seed: 5, Spectator: view.Omniscient}
+	for _, c := range []host.TableConfig{live, idle} {
+		if err := r.AddTable(c); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := r.Start("lv"); err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(NewHandler(r, Options{}))
+	t.Cleanup(srv.Close)
+
+	var tables []protocol.TableInfo
+	// Poll until the live table's first match is in flight and its names
+	// show: the perpetual loop keeps cur a live match almost always, but the
+	// brief gap between matches makes one read racing it flaky.
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		tables = tables[:0]
+		var code int
+		var e protocol.ErrorBody
+		if code, e = getJSON(t, srv.URL+"/api/tables", &tables); code != 200 {
+			t.Fatalf("GET /api/tables: %d %+v", code, e)
+		}
+		if time.Now().After(deadline) {
+			break
+		}
+		if lv := findTable(tables, "lv"); lv != nil && len(lv.SeatNames) == 2 {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	lv := findTable(tables, "lv")
+	if lv == nil {
+		t.Fatalf("live table missing from list: %+v", tables)
+	}
+	// Match 1 plays Decks[(i+1)%2] in seat order, so its seats are the two
+	// decks rotated: seat 0 gets the second deck, seat 1 the first.
+	want := []string{"foundations-keen-engineering", "foundations-calling-all-angels"}
+	if len(lv.SeatNames) != len(want) {
+		t.Fatalf("live table seat_names = %q, want %q", lv.SeatNames, want)
+	}
+	for i, n := range want {
+		if lv.SeatNames[i] != n {
+			t.Errorf("live table seat %d = %q, want %q", i, lv.SeatNames[i], n)
+		}
+	}
+
+	// A table that has never started a match omits the field: the decoded
+	// value is nil, proving no "" rows and no "Seat N" placeholders leak.
+	id := findTable(tables, "id")
+	if id == nil {
+		t.Fatalf("idle table missing from list: %+v", tables)
+	}
+	if id.SeatNames != nil {
+		t.Fatalf("idle table seat_names = %q, want absent (nil)", id.SeatNames)
+	}
+}
+
+func findTable(tables []protocol.TableInfo, id string) *protocol.TableInfo {
+	for i := range tables {
+		if tables[i].ID == id {
+			return &tables[i]
+		}
+	}
+	return nil
+}
+
 func TestSubscribeAndUnsubscribe(t *testing.T) {
 	srv, r := finishedServer(t, Options{})
 	s := r.OpenSession()

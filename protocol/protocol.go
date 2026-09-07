@@ -107,6 +107,15 @@ type TableInfo struct {
 	// Format is "constructed", a real value, so an omitted field
 	// would be indistinguishable from it.
 	Format string `json:"format"`
+	// SeatNames names the table's seats in seat order: the deck name each
+	// seat is playing, as MatchStart carries them. Empty when no match
+	// has started on this table yet. It is public information -- the
+	// overview already shows every table's life totals and deck
+	// identities in its transcript -- so it is not redacted per viewer.
+	// omitempty is right here, unlike Format: an absent list and an empty
+	// list mean the same thing (no match yet), so there is no value that
+	// omitting would make ambiguous.
+	SeatNames []string `json:"seat_names,omitempty"`
 }
 
 // Widget is the overview cell: enough to draw a 2x2 life grid, a turn
