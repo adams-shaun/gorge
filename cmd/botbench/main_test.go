@@ -48,7 +48,7 @@ func TestBenchIsDeterministic(t *testing.T) {
 	for _, buf := range []*bytes.Buffer{&b1, &b2} {
 		// maxTurns=0 keeps this an uncapped determinism run, exactly today's
 		// behaviour; the turn watchdog must not be what makes it pass.
-		if err := run(11, 3, 2, 0, "bot", "bot", dir, 0, 0, false, buf); err != nil {
+		if err := run(11, 3, 2, 0, 0, "bot", "bot", dir, 0, 0, false, buf); err != nil {
 			t.Fatalf("run: %v", err)
 		}
 	}
@@ -259,7 +259,7 @@ func TestTheSummaryReportsSeatWins(t *testing.T) {
 func TestShortEndToEndRun(t *testing.T) {
 	dir := corpusDirOrSkip(t)
 	var buf bytes.Buffer
-	if err := run(0, 2, 2, 0, "bot", "bot", dir, 200, 0, false, &buf); err != nil {
+	if err := run(0, 2, 2, 0, 0, "bot", "bot", dir, 200, 0, false, &buf); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	out := buf.String()
@@ -645,7 +645,7 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	if err := run(0, 20, 2, 0, "bot", "legacy", dir, 200, 0, false, &buf); err != nil {
+	if err := run(0, 20, 2, 0, 0, "bot", "legacy", dir, 200, 0, false, &buf); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	m := summaryRe.FindStringSubmatch(buf.String())
@@ -757,7 +757,7 @@ func TestRotateIsValidated(t *testing.T) {
 		{5, 4},
 		{2, 2},
 	} {
-		err := run(1, 1, tc.seats, tc.rotate, "bot", "bot", ".", 200, 0, false, io.Discard)
+		err := run(1, 1, tc.seats, tc.rotate, 0, "bot", "bot", ".", 200, 0, false, io.Discard)
 		if err == nil || !strings.Contains(err.Error(), "-rotate must be in") {
 			t.Errorf("rotate=%d seats=%d: err = %v, want the -rotate bounds error", tc.rotate, tc.seats, err)
 		}
@@ -773,7 +773,7 @@ func TestRotateIsValidated(t *testing.T) {
 func TestCommanderRunRotateSeatsTheRotatedOrder(t *testing.T) {
 	dir := corpusDirOrSkip(t)
 	var buf bytes.Buffer
-	if err := run(1, 2, 4, 1, "bot", "bot", dir, 200, 0, true, &buf); err != nil {
+	if err := run(1, 2, 4, 1, 0, "bot", "bot", dir, 200, 0, true, &buf); err != nil {
 		t.Fatalf("run(rotate=1): %v", err)
 	}
 	out := buf.String()
@@ -881,7 +881,7 @@ func TestCommanderNamedNonCommanderIsError(t *testing.T) {
 func TestTurnWatchdogEndsGameAtMaxTurns(t *testing.T) {
 	dir := corpusDirOrSkip(t)
 	var buf bytes.Buffer
-	if err := run(0, 1, 2, 0, "bot", "bot", dir, 2, 0, false, &buf); err != nil {
+	if err := run(0, 1, 2, 0, 0, "bot", "bot", dir, 2, 0, false, &buf); err != nil {
 		t.Fatalf("run(maxTurns=2): %v", err)
 	}
 	out := buf.String()
@@ -972,7 +972,7 @@ func TestCommanderMatrixJSONReproducible(t *testing.T) {
 func TestMaxIntentsEndsNonTerminatingGameAsStall(t *testing.T) {
 	dir := corpusDirOrSkip(t)
 	var buf bytes.Buffer
-	if err := run(0, 1, 2, 0, "bot", "bot", dir, 0, 5, false, &buf); err != nil {
+	if err := run(0, 1, 2, 0, 0, "bot", "bot", dir, 0, 5, false, &buf); err != nil {
 		t.Fatalf("run(maxIntents=5): %v", err)
 	}
 	out := buf.String()
