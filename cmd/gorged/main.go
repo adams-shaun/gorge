@@ -334,7 +334,20 @@ func (g config) hostOptions(reg *cards.Registry, load func(string) (host.Deck, e
 	// Sleep is left nil: host installs its default interruptible sleep, the
 	// package's only sanctioned clock read, so a long pace or cooldown still
 	// yields to Close.
-	return host.Options{Dir: g.dir, LoadDeck: load, Tokens: reg.Tokens, Sync: true, Cooldown: g.cooldown}
+	//
+	// MaxDecisionsPerTurn arms the host's per-turn progress guard (Task HW1)
+	// for every served table at the recommended value: a bot policy stall
+	// that re-offers one no-op action forever — the 36-of-200 frozen
+	// four-seat Commander games measured on main — previously left the table
+	// TableLive with no match ever following, because ThinkTimeout only
+	// covers a parked human seat. The value cannot fire on a legitimate
+	// turn (measured legit ceiling 244 decisions; the stall ran ~10000 per
+	// turn; 25000 is 100x the first and swept by the second within three
+	// stall-turns); the count-based design keeps a match's outcome a pure
+	// function of its seed on every machine and every replay, exactly like
+	// the engine and the bots themselves.
+	return host.Options{Dir: g.dir, LoadDeck: load, Tokens: reg.Tokens, Sync: true, Cooldown: g.cooldown,
+		MaxDecisionsPerTurn: host.DefaultMaxDecisionsPerTurn}
 }
 
 // deckFiles lists the deck names (file stems) in dir, sorted, so seat
