@@ -20,9 +20,9 @@ func rng(seed uint64) *rand.Rand {
 
 // TestChoosePolicy pins the KChoose branch: the offer vocabulary decides
 // the pick, not d.Kind -- "x" takes the highest option (the most an {X}
-// cost can pay for; options ascend), "exile"/"sacrifice" take the first Max
-// options, "yes" answers yes, and "name"/"type"/"number" take the first
-// offer. Moved here from seat/bot_test.go's TestBotChoosePolicy and
+// cost can pay for; options ascend), "exile"/"sacrifice"/"discard" (the
+// CR 514.1 cleanup discard, Task D1) take the first Max options, "yes"
+// answers yes, and "name"/"type"/"number" take the first offer. Moved here from seat/bot_test.go's TestBotChoosePolicy and
 // rules/testbot_test.go's mirror of it, which were the same test twice
 // (Ruling F7).
 func TestChoosePolicy(t *testing.T) {
@@ -45,6 +45,12 @@ func TestChoosePolicy(t *testing.T) {
 	}
 	if got := choose("sacrifice", 2, 1, 1).Choices; len(got) != 1 || got[0] != 0 {
 		t.Fatalf("sacrifice: %v", got)
+	}
+	// CR 514.1 (Task D1): "discard" joins "exile"/"sacrifice" in the
+	// first-Max family. A cleanup discard (Min == Max == hand - 7) must take
+	// the first Max hand cards, the naive policy findings ck/cl name.
+	if got := choose("discard", 9, 2, 2).Choices; len(got) != 2 || got[0] != 0 || got[1] != 1 {
+		t.Fatalf("discard: %v, want the first two", got)
 	}
 	if got := choose("yes", 2, 1, 1).Choices; len(got) != 1 || got[0] != 0 {
 		t.Fatalf("yes/no: %v, want yes", got)

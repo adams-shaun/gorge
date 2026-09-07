@@ -495,6 +495,16 @@ func driveTriggerGame(t *testing.T, e *Engine, limit int, orders [][]int, yesNo 
 		}
 		var choices []int
 		switch d.Kind {
+		case decision.KChoose:
+			// CR 514.1 (Task D1): a cleanup discard. Answer it naively
+			// (first-Max, the botpolicy policy) and continue -- it is not a
+			// priority, ordering or optional decision.
+			if len(d.Options) == 0 || d.Options[0].Kind != "discard" {
+				t.Fatalf("unexpected KChoose option kind %q", d.Options[0].Kind)
+			}
+			for k := 0; k < len(d.Options) && k < d.Max; k++ {
+				choices = append(choices, k)
+			}
 		case decision.KPriority:
 			idx := -1
 			for _, o := range d.Options {

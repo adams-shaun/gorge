@@ -317,7 +317,13 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 		switch d.Options[0].Kind {
 		case "x":
 			in.Choices = []int{d.Options[len(d.Options)-1].Index} // the most it can pay for
-		case "exile", "sacrifice":
+		case "exile", "sacrifice", "discard":
+			// "discard" joins "exile"/"sacrifice": take the first Max options.
+			// This is deliberately NAIVE -- the bot discards its oldest-held
+			// hand cards rather than evaluating which are least useful -- and
+			// bot decision quality is explicitly out of scope for the cleanup
+			// discard task (findings ck/cl in the task ledger point at it).
+			// The board is deterministic on it regardless.
 			for i := 0; i < len(d.Options) && i < d.Max; i++ {
 				in.Choices = append(in.Choices, d.Options[i].Index)
 			}

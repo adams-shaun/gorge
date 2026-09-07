@@ -74,9 +74,12 @@ const (
 	// options. Every option in one decision shares a Kind that says what is
 	// being chosen — "x" (a value for {X}; options ascend), "exile" (cards
 	// to exile for Delve), "sacrifice" (a permanent to sacrifice as a cost),
-	// "name"/"type"/"number" (an "as this enters" choice), "yes"/"no" (a
-	// may-cast such as Miracle). The wire shape is the same as every other
-	// decision; only the vocabulary of Option.Kind is new.
+	// "discard" (cards the active player's cleanup step discards down to the
+	// maximum hand size, CR 514.1; Min == Max == len(hand) - maxHandSize over
+	// exactly one option per hand card, in hand order), "name"/"type"/"number"
+	// (an "as this enters" choice), "yes"/"no" (a may-cast such as Miracle).
+	// The wire shape is the same as every other decision; only the vocabulary
+	// of Option.Kind is new.
 	KChoose Kind = "choose"
 )
 

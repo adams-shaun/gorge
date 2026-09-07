@@ -607,17 +607,70 @@ func (e *Engine) damageStep(firstStrike bool) {
 	}
 }
 
-// cleanupStep performs the CR 514.2 cleanup actions Task 21 owns wiring up:
-// damage marked on every permanent (combat or otherwise) is removed, this
-// turn's Deathtouched markers go with it (a deathtouch mark lasts only as
-// long as the damage it accompanied, CR 702.2c), and every "until end of
-// turn" continuous effect the layer system is holding is dropped
+// maxHandSize is CR 514.1: at the beginning of a player's cleanup step, if
+// their hand contains more than this many cards, they discard cards from it
+// until it contains exactly this many (normally seven). Task D1 made the
+// discard a real decision and verified that no effect in the corpus modifies
+// the maximum hand size today -- a grep for maximum-hand-size text across
+// cards/ and effects/ found nothing that sets or reads it (see the task
+// report) -- so it is a plain package constant, not a game field an effect
+// can reach. A card that one day DOES modify it is a separate finding and
+// must not silently change this constant.
+const maxHandSize = 7
+
+// cleanupStep is the CR 514 cleanup step's turn-based actions, Task D1
+// adding CR 514.1 on top of the CR 514.2 body Task 21 owns. Ordering:
+// CR 514.1 (discard down to maxHandSize) runs first, then the 514.2 body --
+// the two are simultaneous under the rules (nothing about the discard
+// affects what the 514.2 body clears and vice versa), so the engine picks
+// this order and the discard is offered before any permanent cleanup is
+// emitted, keeping the transcript's discard lines ahead of the damage-/
+// effect-clear lines it is a turn-based action of the same step. Called from
+// turn.go's priorityRound.
+//
+// When the active player's hand exceeds maxHandSize, this ASKS a KChoose
+// "discard" decision -- exactly one option per card in hand, in hand-zone
+// order (never built from a map), with Min == Max == the number to discard --
+// and returns with the decision pending, suspending the cleanup step until
+// the answer arrives (discardCleanup). With a hand of maxHandSize or fewer
+// there is nothing to discard and no decision is asked at all -- a zero-option
+// or zero-count decision must never reach a seat (brief decision 5). Only the
+// ACTIVE player discards (CR 514.1); nobody else is asked during their turn's
+// cleanup.
+func (e *Engine) cleanupStep() {
+	hand := e.G.Zone(state.ZHand, e.G.Active)
+	if len(hand) > maxHandSize {
+		n := len(hand) - maxHandSize
+		opts := make([]decision.Option, 0, len(hand))
+		for _, id := range hand {
+			name := "a card"
+			if o := e.G.Obj(id); o != nil && o.Face() != nil {
+				name = o.Face().Name
+			}
+			opts = append(opts, decision.Option{Index: len(opts), Kind: "discard",
+				Label: "Discard " + name, Obj: id, Player: e.G.Active})
+		}
+		e.choosing = chooseCleanup
+		e.ask(&decision.Decision{Player: e.G.Active, Kind: decision.KChoose, Min: n, Max: n,
+			Prompt:  fmt.Sprintf("turn %d — discard %d card(s) down to the hand-size limit", e.G.Turn, n),
+			Options: opts})
+		return
+	}
+	e.cleanupBody()
+}
+
+// cleanupBody is the CR 514.2 portion of the cleanup step, run exactly once
+// per cleanup step. It removes damage marked on every permanent (combat or
+// otherwise), clears this turn's Deathtouched markers (a deathtouch mark lasts
+// only as long as the damage it accompanied, CR 702.2c), and drops every
+// "until end of turn" continuous effect the layer system is holding
 // (Engine.EndOfTurnCleanup, layers.go -- built and tested since Task 19c, but
 // nothing ever called it, so a resolved pump effect such as Giant Growth used
 // to survive forever instead of expiring at the end of the turn it was cast
-// in). Called from turn.go's priorityRound, immediately before it advances
-// past the cleanup step exactly as it already did.
-func (e *Engine) cleanupStep() {
+// in). Called either directly from cleanupStep when no discard is owed, or
+// from discardCleanup after the discard answer is recorded -- never both, so
+// the 514.2 actions are never doubled.
+func (e *Engine) cleanupBody() {
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			o := e.G.Obj(id)
@@ -634,6 +687,41 @@ func (e *Engine) cleanupStep() {
 		}
 	}
 	e.EndOfTurnCleanup()
+}
+
+// chooseCleanup is the chooseFor the pending KChoose discard decision belongs
+// to (engine.go): it lets handleChoose route the answer to discardCleanup
+// rather than to a cast/etb/miracle flow or the no-flow Note fallback. It
+// extends the chooseFor enum in its own file, the same pattern Tasks 12 and
+// 18 used for chooseETB and chooseMiracle. iota+4 is pairwise distinct from
+// the shared package set chooseCast=1 / chooseETB=2 / chooseMiracle=3 (cast.
+// go); the exact numbers only need to differ, never to be adjacent.
+const chooseCleanup chooseFor = iota + 4
+
+// discardCleanup applies an answered CR 514.1 discard decision: each chosen
+// card moves from the active player's hand to their graveyard (a plain
+// MoveZone event per card, in the order the client selected them), then the
+// CR 514.2 body runs (cleanupBody), then the turn hands to the next player's
+// turn (advanceStep). The move events ride the ordinary emit path, so
+// state-based actions and triggered abilities matched by the discard are
+// queued exactly as for any other zone change and handled by the same
+// machinery the next priority round already drives (see the 514.3 follow-up
+// note in the task report: a cleanup-created trigger is placed at the next
+// player's first priority rather than in a repeated cleanup step, because
+// implementing the CR 514.3 repeated-step control flow -- the no-priority
+// turn loop re-entering itself to grant priority and then redoing cleanup --
+// was judged not a small, clearly-correct addition at this point of
+// priorityRound; an honest recorded gap beats a speculative turn-loop
+// change, and the brief directs exactly that). advanceStep is called from
+// here only after EVERY part of the cleanup -- the discard and the 514.2
+// body -- has run, so the step is never advanced mid-cleanup.
+func (e *Engine) discardCleanup(chosen []decision.Option) {
+	for _, opt := range chosen {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: opt.Obj,
+			From: state.ZHand, To: state.ZGraveyard, Player: e.G.Active})
+	}
+	e.cleanupBody()
+	e.advanceStep()
 }
 
 // Registered here: exactly the eight keywords this task actually implements
