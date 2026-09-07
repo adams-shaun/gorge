@@ -101,6 +101,33 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 // cast flags are already readable here (effects/filter.go reads them the
 // same way), so the destination is chosen the same way spellRestZone does.
 //
+// unlessCostLabel renders an UnlessCost$ value for the humans a
+// decision.Decision can reach. A plain mana cost ("1", "3", "2 U", "R R") is
+// already readable and comes back verbatim -- that is every repo-deck Counter
+// with an UnlessCost$ except Mausoleum Wanderer and Reality Smasher.
+// Everything else is raw Forge script: a bare SVar name (X, Y, Z, whose value
+// this engine does not read at all) or a bracket form (Discard<1/Hand>,
+// ExileFromGrave<1/All>, PayLife<5>). Those must not reach a player's screen,
+// so they render as "the cost". Display only: the amount actually charged is
+// still ParseCost(sa.Params["UnlessCost"]) in rules' resumeResolution, and
+// AGENTS.md records what that substitution really costs.
+func unlessCostLabel(cost string) string {
+	fields := strings.Fields(cost)
+	if len(fields) == 0 {
+		return "the cost"
+	}
+	for _, f := range fields {
+		if _, err := strconv.Atoi(f); err == nil {
+			continue // generic amount
+		}
+		if strings.Trim(f, "WUBRGC") == "" {
+			continue // colour/colourless symbols
+		}
+		return "the cost"
+	}
+	return cost
+}
+
 // UnlessCost$ (Mana Leak, Spell Pierce, Daze, Rust Tick, Runeboggle) is the
 // "counter target spell unless its controller pays {N}" shape -- a real
 // mid-resolution ask since M2d-2 closed R-8. On the first pass the
@@ -113,14 +140,27 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 // payMana reports it could not cover -- counters it.
 //
 // Unlike effCopySpellAbility, the default payer is the first target's
-// controller. UnlessPayer$ is NOT read here. The corpus's targeted Counter
-// shapes name TargetedController or ThisTargetedController, matching that
-// default; untargeted shapes fall back to c.Controller, which does NOT
-// implement general payer selectors such as Player or RememberedController.
-// See AGENTS.md for the unsupported cost, switched and multi-target shapes.
+// controller. UnlessPayer$ is NOT read here. All 12 of the corpus's targeted
+// Counter lines carrying it name TargetedController (9) or
+// ThisTargetedController (3), matching that default; the other 22 lines are
+// untargeted and fall back to c.Controller, which is the right player for
+// only the 3 that say You. The remaining 19 name someone else -- 14
+// Triggered* selectors (TriggeredSourceSAController x7, TriggeredActivator
+// x4, TriggeredSpellAbilityController, TriggeredCardController,
+// NonTriggeredCardController), Player x4 and RememberedController x1 -- and
+// general payer selection is NOT implemented, so those ask the wrong player.
+// Reality Smasher (eldrazi-stompy) is one of them. Counts are raw
+// .cards/cardsfolder lines from GNU grep; see AGENTS.md for the commands and
+// for the unsupported cost, switched and multi-target shapes.
+//
+// UnlessSwitched$ True inverts the whole ask -- paying CAUSES the counter --
+// and is not implemented. The ask is therefore SUPPRESSED on those five
+// corpus shapes rather than posed backwards, which keeps the unconditional
+// counter they had before this ask existed. See .superpowers/ISSUES.md I-4.
 func effCounter(h Host, c *Ctx, sa *cards.SA) {
 	skip := false
-	if cost := strings.TrimSpace(sa.Params["UnlessCost"]); cost != "" {
+	switched := strings.EqualFold(strings.TrimSpace(sa.Params["UnlessSwitched"]), "True")
+	if cost := strings.TrimSpace(sa.Params["UnlessCost"]); cost != "" && !switched {
 		switch c.UnlessPay {
 		case "pay":
 			// Re-entry, paid: the spell resolves normally, so do NOT counter.
@@ -135,11 +175,12 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 			if len(c.Targets) > 0 {
 				payer = PlayerOf(h, c, c.Targets[0])
 			}
+			shown := unlessCostLabel(cost)
 			d := &decision.Decision{Player: payer, Kind: decision.KModes,
 				Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay",
-				ResumeSA: sa, Prompt: "Pay " + cost + " to save the spell, or decline",
+				ResumeSA: sa, Prompt: "Pay " + shown + " to save the spell, or decline",
 				Options: []decision.Option{
-					{Index: 0, Kind: "mode", Label: "Pay " + cost + " — don't counter", Obj: c.Source, Player: payer},
+					{Index: 0, Kind: "mode", Label: "Pay " + shown + " — don't counter", Obj: c.Source, Player: payer},
 					{Index: 1, Kind: "mode", Label: "Don't pay", Obj: c.Source, Player: payer},
 				}}
 			if h.Ask(d) {

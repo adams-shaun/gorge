@@ -202,3 +202,157 @@ func TestCounterNoAskHostDeclinesDeterministically(t *testing.T) {
 		t.Fatal("no Note recorded the no-ask decline stand-in")
 	}
 }
+
+// corpusSwitchedCounterSA returns the REAL compiled Counter SA of a named
+// corpus card that carries UnlessSwitched$ True. All five of the corpus's
+// switched Counter shapes hang off a T: line's Execute$ SVar rather than a
+// face ability, so unlike corpusCounterSA this walks Abilities, every
+// Trigger.Effect, every Repl.With and each of their Sub chains. It also
+// asserts that the SA it found really carries both UnlessCost$ and
+// UnlessSwitched$ True: a synthetic map[string]string fixture would prove
+// nothing about the corpus, and that shortcut has shipped a regression here
+// before.
+func corpusSwitchedCounterSA(t *testing.T, name string) *cards.SA {
+	t.Helper()
+	return corpusUnlessCounterSA(t, name, func(sa *cards.SA) bool {
+		return strings.EqualFold(sa.Params["UnlessSwitched"], "True")
+	})
+}
+
+// corpusUnlessCounterSA finds the first compiled Counter SA of a corpus card
+// that carries a non-empty UnlessCost$ and satisfies extra, searching
+// Abilities, every Trigger.Effect, every Repl.With and each of their Sub
+// chains. It asserts the UnlessCost$ is really there, so a caller can never
+// be handed something that only looks like the shape under test.
+func corpusUnlessCounterSA(t *testing.T, name string, extra func(*cards.SA) bool) *cards.SA {
+	t.Helper()
+	reg := testutil.CorpusRegistry(t)
+	c, ok := reg.Lookup(name)
+	if !ok {
+		t.Fatalf("corpus has no %q", name)
+	}
+	var found *cards.SA
+	walk := func(sa *cards.SA) {
+		for ; sa != nil && found == nil; sa = sa.Sub {
+			if sa.API != "Counter" || strings.TrimSpace(sa.Params["UnlessCost"]) == "" {
+				continue
+			}
+			if extra == nil || extra(sa) {
+				found = sa
+				return
+			}
+		}
+	}
+	for _, f := range c.Faces {
+		for _, a := range f.Abilities {
+			walk(a)
+		}
+		for _, tr := range f.Triggers {
+			walk(tr.Effect)
+		}
+		for _, r := range f.Repls {
+			walk(r.With)
+		}
+	}
+	if found == nil {
+		t.Fatalf("corpus card %q has no compiled Counter SA with UnlessCost$ matching the predicate", name)
+	}
+	return found
+}
+
+// TestCounterUnlessSwitchedSuppressesTheAsk pins the suppression on all five
+// REAL compiled corpus Counter SAs that carry UnlessSwitched$ True.
+//
+// UnlessSwitched$ True inverts the deal: paying CAUSES the counter. The
+// engine does not implement that, and posing the ordinary ask on these cards
+// is worse than posing nothing -- it is backwards, letting a player prevent
+// a counter by paying for it. So effCounter must not pose the ask at all on
+// a switched shape, and must counter unconditionally, which is exactly what
+// main did before the UnlessCost$ ask existed.
+//
+// This FAILS without the `&& !switched` guard: every one of these SAs has a
+// non-empty UnlessCost$, so the unguarded branch poses the decision and
+// suspends instead of countering. Verified by running it on a tree without
+// the guard, not asserted.
+func TestCounterUnlessSwitchedSuppressesTheAsk(t *testing.T) {
+	for _, name := range []string{
+		"Brain Gorgers", "Dash Hopes", "Ice Cave", "Phantasmagorian", "Temporal Extortion",
+	} {
+		t.Run(name, func(t *testing.T) {
+			sa := corpusSwitchedCounterSA(t, name)
+			h := &askHost{}
+			h.g = state.NewGame(names(2))
+			src := counterSource(t, &h.fakeHost, 0)
+			target := spellOnStack(t, &h.fakeHost, "A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3", 1)
+			// Defined$ TriggeredSpellAbility reads the trigger's remembered
+			// object, which is how these SAs name the spell being countered.
+			Resolve(h, &Ctx{Source: src, Controller: 0,
+				Remembered: []state.Target{{Obj: target.ID}}}, sa)
+
+			if h.asked != nil {
+				t.Fatalf("%s (UnlessCost$ %q, UnlessSwitched$ True) posed the backwards pay ask: %+v",
+					name, sa.Params["UnlessCost"], h.asked)
+			}
+			if target.Zone != state.ZGraveyard {
+				t.Fatalf("%s: countered spell zone = %s, want Graveyard (switched shapes counter unconditionally)",
+					name, target.Zone)
+			}
+			if got := counterMoves(&h.fakeHost, target.ID, state.ZGraveyard); got != 1 {
+				t.Fatalf("%s: move-to-graveyard count = %d, want exactly 1", name, got)
+			}
+		})
+	}
+}
+
+// TestCounterUnlessCostPromptNeverLeaksScriptSyntax pins the rendering of the
+// ask on REAL compiled corpus SAs whose UnlessCost$ is not a mana cost.
+// decision.Decision crosses to every seat, human ones included, so the prompt
+// and the option labels must not carry raw Forge script -- neither a bare
+// SVar name (Mausoleum Wanderer's UnlessCost$ X, whose value the engine never
+// reads) nor a bracket form (Reality Smasher's Discard<1/Card>). Both cards
+// ship in repo decks (mono-blue-tempo / uw-tempo and eldrazi-stompy).
+//
+// This FAILS without unlessCostLabel: the unmodified tree interpolates the
+// raw UnlessCost$ into both strings. Verified by running it on a tree without
+// the helper, not asserted. Plain mana costs are unaffected -- Mana Leak's
+// "Pay 3" is pinned by TestCounterUnlessCostAsksTheCounteredSpellsController
+// above, and that is what keeps the acceptance chain heads still.
+func TestCounterUnlessCostPromptNeverLeaksScriptSyntax(t *testing.T) {
+	for _, tc := range []struct{ card, cost string }{
+		{"Mausoleum Wanderer", "X"},
+		{"Reality Smasher", "Discard<1/Card>"},
+	} {
+		t.Run(tc.card, func(t *testing.T) {
+			sa := corpusUnlessCounterSA(t, tc.card, nil)
+			if got := strings.TrimSpace(sa.Params["UnlessCost"]); got != tc.cost {
+				t.Fatalf("%s UnlessCost$ = %q, want %q -- the corpus changed under this test", tc.card, got, tc.cost)
+			}
+			h := &askHost{}
+			h.g = state.NewGame(names(2))
+			src := counterSource(t, &h.fakeHost, 0)
+			target := spellOnStack(t, &h.fakeHost, "A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3", 1)
+			Resolve(h, &Ctx{Source: src, Controller: 0,
+				Targets:    []state.Target{{Obj: target.ID}},
+				Remembered: []state.Target{{Obj: target.ID}}}, sa)
+
+			if h.asked == nil {
+				t.Fatalf("%s posed no pay decision for UnlessCost$ %s", tc.card, tc.cost)
+			}
+			shown := []string{h.asked.Prompt}
+			for _, o := range h.asked.Options {
+				shown = append(shown, o.Label)
+			}
+			for _, s := range shown {
+				if strings.Contains(s, tc.cost) {
+					t.Fatalf("%s: %q leaks the raw script cost %q to the seat", tc.card, s, tc.cost)
+				}
+			}
+			if h.asked.Prompt != "Pay the cost to save the spell, or decline" {
+				t.Fatalf("%s prompt = %q", tc.card, h.asked.Prompt)
+			}
+			if h.asked.Options[0].Label != "Pay the cost — don't counter" {
+				t.Fatalf("%s pay label = %q", tc.card, h.asked.Options[0].Label)
+			}
+		})
+	}
+}
