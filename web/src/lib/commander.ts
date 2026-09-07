@@ -20,19 +20,24 @@ export type CommanderZone = 'command' | 'battlefield' | 'graveyard' | 'exile' | 
 
 /**
  * How the board's command-zone tile draws a commander. Three states, and the
- * state is a property of WHERE the card is, never of what it is:
+ * state is a property of WHERE the card is, never of what it is. The tile is
+ * the command zone itself — a place on the board, not a picture of a card —
+ * so the box is always there, with a little dotted border, and what is IN it
+ * depends on where the commander actually is:
  *
- *   command      it is in the command zone — the tile is the card, full
- *                strength, and the only state a next cast can be priced for
+ *   command      it is sitting in the command zone. The art is greyed: the
+ *                card is here, in the box, but not in play, and greying says
+ *                "in the zone". It is the only state a next cast can be
+ *                priced for, so the CR 903.8 tax chip stays with it.
  *   battlefield  the real permanent is drawn in the creatures row two inches
- *                away, so the tile is ghosted and says so: two full-colour
- *                copies of one card in one quadrant is a lie about how many
- *                there are
+ *                away, and it is in play — so the box shows FULL art, the
+ *                same card visible twice because both are true of one object.
  *   away         anywhere else — graveyard, exile, hand, the stack, or a zone
- *                this viewer cannot see into at all. Greyed, and still fully
- *                inspectable, because reading an opponent's commander while
- *                it sits somewhere nobody can browse is the whole point of
- *                drawing it on the board.
+ *                this viewer cannot see into at all. An EMPTY box: no art,
+ *                because the card is not somewhere you can look, but still
+ *                fully inspectable, because reading an opponent's commander
+ *                while it sits somewhere nobody can browse is the whole point
+ *                of drawing it on the board.
  */
 export type CommanderPresence = 'command' | 'battlefield' | 'away';
 
