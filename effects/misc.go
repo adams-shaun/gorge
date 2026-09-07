@@ -118,12 +118,109 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// effDelayedTrigger records that a delayed trigger would be registered.
-// Actually firing Execute$ at Mode$ needs Task 20's trigger queue; M1 has
-// nothing to hold the registration on, so it only leaves a Note.
+// effDelayedTrigger implements Mode$ Phase delayed triggers -- the
+// "at the beginning of the next end step, return it" shape (Flickerwisp and
+// its family, CR 603.7). It registers a delayed trigger by emitting a
+// DelayedRegister event, which events.Apply folds into state.Game.Delayed so
+// the registration survives replay (a delayed trigger is registered during
+// one resolution and fires later, in general a different turn). The engine
+// then, on entering the registered phase, mints a triggered-ability stack
+// object for it through events.DelayedPush and it resolves like any other
+// triggered ability.
+//
+// The registration carries the source object (whose face's SVar table holds
+// the Execute$ sub-ability), the controller, the phase to fire in, the
+// Execute$ SVar name, and the Remembered captured at registration -- which
+// is what a later Defined$ DelayTriggerRememberedLKI resolves against when
+// the delayed trigger fires (Flickerwisp's DelTrig remembers the exiled
+// permanent via the ChangeZone's RememberChanged$ True, so TrigBounce knows
+// which object to return).
+//
+// Only Mode$ Phase is implemented. The other Mode$ values (ChangesZone,
+// SpellCast, ChangesController, DamageDone, AttackersDeclared) stay the
+// deterministic Note-only recording, so a card that needs one still says
+// what it intended without pretending to have fired.
 func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
-	h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-		Text: "registers a delayed trigger at " + sa.Params["Mode"]})
+	mode := sa.Params["Mode"]
+	if mode != "Phase" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "registers a delayed trigger at " + mode + " (not implemented)"})
+		return
+	}
+	phase, ok := delayedPhaseStep(sa.Params["Phase"])
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "registers a delayed trigger at unrecognized phase " + sa.Params["Phase"]})
+		return
+	}
+	exec := sa.Params["Execute"]
+	if exec == "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "registers a delayed trigger with no Execute"})
+		return
+	}
+	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+		Player: c.Controller, Step: phase, Counter: exec,
+		IDs: encodeRemembered(c.Remembered), Text: sa.Params["Phase"]})
+}
+
+// delayedPhaseStep maps a Forge Phase$ value to the state.Step whose entry
+// fires the delayed trigger. The matching is by substring against the step
+// names and the Forge spellings, the same loose tolerance phaseMatches uses
+// for a T: line's Phase$; an unrecognized value returns ok=false and the
+// caller records a Note rather than firing at the wrong phase. A delayed
+// trigger fires on entering the mapped step, which for the common
+// "beginning of the next end step" / "beginning of the next upkeep" shapes
+// is exactly the first such step after the trigger is registered; the
+// one-shot removal in events.Apply's DelayedPush case keeps it from firing
+// again on later occurrences.
+func delayedPhaseStep(phase string) (state.Step, bool) {
+	p := strings.ToLower(phase)
+	switch {
+	case strings.Contains(p, "upkeep"):
+		return state.StepUpkeep, true
+	case strings.Contains(p, "draw"):
+		return state.StepDraw, true
+	case strings.Contains(p, "end combat"), strings.Contains(p, "endcombat"):
+		return state.StepEndCombat, true
+	case strings.Contains(p, "begin combat"), strings.Contains(p, "begincombat"):
+		return state.StepBeginCombat, true
+	case strings.Contains(p, "declare attackers"), p == "attackers":
+		return state.StepDeclareAttackers, true
+	case strings.Contains(p, "declare blockers"), p == "blockers":
+		return state.StepDeclareBlockers, true
+	case strings.Contains(p, "combat damage"), strings.Contains(p, "damage"):
+		return state.StepCombatDamage, true
+	case strings.Contains(p, "main 2"), strings.Contains(p, "main2"):
+		return state.StepMain2, true
+	case strings.Contains(p, "main 1"), strings.Contains(p, "main1"), strings.Contains(p, "main"):
+		return state.StepMain1, true
+	case strings.Contains(p, "end of turn"), strings.Contains(p, "endstep"), p == "end",
+		strings.Contains(p, "end step"):
+		return state.StepEnd, true
+	case strings.Contains(p, "cleanup"):
+		return state.StepCleanup, true
+	case strings.Contains(p, "untap"):
+		return state.StepUntap, true
+	}
+	return 0, false
+}
+
+// encodeRemembered turns a Remembered target list into the []ObjID an event
+// carries, PlayerRef-encoding a player target the same way rules.pushTrigger
+// does (FL-41) so events.Apply's rememberedFrom decodes it back to a player
+// target rather than a zero object id. It mirrors the rule in effects since
+// effects cannot import rules.
+func encodeRemembered(remembered []state.Target) []state.ObjID {
+	var out []state.ObjID
+	for _, t := range remembered {
+		if t.IsPlayer {
+			out = append(out, state.PlayerRef(t.Player))
+			continue
+		}
+		out = append(out, t.Obj)
+	}
+	return out
 }
 
 // effRepeat runs RepeatSubAbility$ MaxRepeat$ times -- the fetched corpus's

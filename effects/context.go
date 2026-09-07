@@ -41,6 +41,13 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		// ability-vs-card distinction separately: every one of these forms
 		// names the same Remembered object entry a trigger captured.
 		return objectsOf(c.Remembered)
+	case "DelayTriggerRememberedLKI", "RememberedLKI", "TriggeredAttackerLKICopy":
+		// A delayed trigger's Execute$ (Flickerwisp's TrigBounce) resolves its
+		// referent through Defined$ DelayTriggerRememberedLKI: the object(s)
+		// the delayed trigger captured at registration, which rules pushes
+		// onto the fired ability's Remembered. DelayTriggerRememberedLKI and
+		// the other LKI spellings are the same Remembered object set.
+		return objectsOf(c.Remembered)
 	case "ReplacedCard":
 		// The card a replacement is acting on (Rest in Peace shape: the R: line
 		// intercepts a "would go to the graveyard" Move, ReplaceWith$ needs to

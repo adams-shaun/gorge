@@ -44,7 +44,19 @@ type pendingTrigger struct {
 	// castMiracle (miracle.go) instead of minting a triggered-ability stack
 	// object. optionalDecider, triggerLabel and pushTrigger all special-case it.
 	Miracle bool
-	Ctx     effects.Ctx
+	// Delayed marks a Mode$ Phase delayed trigger registration (CR 603.7)
+	// rather than a matched T: line. It is queued by checkDelayedTriggers when
+	// the registered phase is entered, and pushTrigger routes it to a
+	// DelayedPush event instead of a TriggerPush (whose Ability derives from a
+	// face Triggers index -- a delayed trigger's effect is an SVar-named
+	// sub-ability, not a face trigger). DelayedID is the registration's
+	// state.DelayedTrigger.ID (so the fired event can remove exactly it), and
+	// Execute is the Execute$ SVar name (which events.Apply's DelayedPush case
+	// resolves from the source's SVar table).
+	Delayed   bool
+	DelayedID uint32
+	Execute   string
+	Ctx       effects.Ctx
 }
 
 // triggerKey identifies one T: line: the object that carries it, plus that
@@ -164,6 +176,61 @@ func (e *Engine) controllerOf(id state.ObjID) state.PlayerID {
 // there is no per-trigger gate here at all, only a defensive belt-and-
 // braces check against a future emit change that might one day pass a
 // mismatched lki.
+// checkDelayedTriggers queues a pending trigger for every delayed-trigger
+// registration (state.Game.Delayed) registered to fire on the step just
+// entered. It runs from checkTriggers after a StepChange event, alongside
+// the ordinary face-trigger walk, so a delayed trigger reaches the stack
+// through exactly the same putTriggersOnStack drain as any T: line trigger.
+// The registration carries everything the drain needs: the source permanent
+// (whose SVar table holds the Execute$ sub-ability), the controller, the
+// Execute$ SVar name and the Remembered captured at registration.
+//
+// CR 603.7: a delayed trigger fires even when its source has left the
+// battlefield (the registration is independent of it once created), so the
+// source is read only to resolve the Execute$ SVar table -- an object that
+// has moved zones (in a graveyard, exiled) still has a Face and SVars, so
+// the trigger still fires; a source that has ceased to exist entirely (a
+// token or copy gone from the board) has nothing to read and degrades to a
+// no-op. The one-shot removal happens in events.Apply's DelayedPush case, so
+// the drain never re-fires the same registration on a later occurrence of
+// the phase.
+func (e *Engine) checkDelayedTriggers(ev events.Event) {
+	for i := range e.G.Delayed {
+		dt := &e.G.Delayed[i]
+		if dt.Phase != ev.Step {
+			continue
+		}
+		if int(dt.Controller) >= len(e.G.Players) || e.G.Players[dt.Controller].Lost {
+			continue
+		}
+		src := e.G.Obj(dt.Source)
+		if src == nil {
+			continue
+		}
+		f := src.Face()
+		if f == nil {
+			continue
+		}
+		sa := cards.ResolveSVar(f.SVars, dt.Execute)
+		if sa == nil {
+			continue
+		}
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			Source:     dt.Source,
+			Controller: dt.Controller,
+			Delayed:    true,
+			DelayedID:  dt.ID,
+			Execute:    dt.Execute,
+			SA:         sa,
+			Ctx: effects.Ctx{
+				Source:     dt.Source,
+				Controller: dt.Controller,
+				Remembered: append([]state.Target(nil), dt.Remembered...),
+			},
+		})
+	}
+}
+
 func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 	e.forEachObject(func(id state.ObjID) {
 		o := e.G.Obj(id)
@@ -235,6 +302,16 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 	// forEachObject walk (which iterates every object) is about.
 	if ev.Kind == events.Draw {
 		e.offerMiracle(ev)
+	}
+	// Delayed triggers (CR 603.7, Mode$ Phase): the registrations are game
+	// state (state.Game.Delayed), folded by events.Apply, so they are not T:
+	// lines on an object's face and the face loop above cannot see them. A
+	// StepChange into a registered phase queues each matching registration as
+	// a pending trigger alongside the ordinary ones, so it reaches the stack
+	// through the same drain (APNAP order, ordering/optional asks, the whole
+	// existing machinery) rather than a parallel path.
+	if ev.Kind == events.StepChange {
+		e.checkDelayedTriggers(ev)
 	}
 }
 

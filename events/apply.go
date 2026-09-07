@@ -1,6 +1,9 @@
 package events
 
-import "github.com/adams-shaun/gorge/state"
+import (
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/state"
+)
 
 // Emit is the engine's only mutation path: append to the log, then fold into
 // state. Replay calls Apply directly with logged events, so post-replay state
@@ -384,6 +387,66 @@ func Apply(g *state.Game, e Event) {
 		// ability can remember a player the same way a trigger can, so the
 		// two mint paths stay symmetric through rememberedFrom.
 		o.Remembered = rememberedFrom(e.IDs)
+
+	case DelayedRegister:
+		// Ruling dt1-a: the registration is game state folded here, so a
+		// log-only replay rebuilds the same set a live game held. Totality
+		// like every case: an invalid controller, a nonexistent source, or a
+		// non-canonical Step (at the very least a zero Step is untap, which
+		// every DelayedRegister this build emits carries a real phase for)
+		// degrades to a no-op rather than panicking.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		if g.Obj(e.Obj) == nil || !e.Step.Valid() {
+			break
+		}
+		g.Delayed = append(g.Delayed, state.DelayedTrigger{
+			ID:         g.DelayedNext,
+			Phase:      e.Step,
+			Source:     e.Obj,
+			Controller: e.Player,
+			Execute:    e.Counter,
+			Remembered: rememberedFrom(e.IDs),
+		})
+		g.DelayedNext++
+
+	case DelayedPush:
+		// Ruling dt1-a: the ability object is minted here, inside Apply, so a
+		// log-only replay creates the same object a live game did (the
+		// Ruling T20-a precedent TriggerPush and AbilityPush already set).
+		// Unlike those two, the Ability is not a face Triggers index -- a
+		// delayed trigger's Effect is an SVar-named sub-ability on the
+		// source's face -- so it is resolved here from e.Counter (the
+		// Execute$ name) via cards.ResolveSVar. Firing is one-shot: the
+		// matching registration is removed, which is what keeps a delayed
+		// trigger from firing every turn.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		src := g.Obj(e.Obj)
+		if src == nil {
+			break
+		}
+		f := src.Face()
+		if f == nil {
+			break
+		}
+		sa := cards.ResolveSVar(f.SVars, e.Counter)
+		if sa == nil {
+			break
+		}
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		o.Source = e.Obj
+		o.Remembered = rememberedFrom(e.IDs)
+		for i := range g.Delayed {
+			if g.Delayed[i].ID == uint32(e.Amount) {
+				g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
+				break
+			}
+		}
 
 	case CmdDamage:
 		// Commander combat damage to a player (CR 903.10, Task m33): fold
