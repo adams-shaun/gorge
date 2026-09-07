@@ -131,6 +131,32 @@ type Option struct {
 	Ability int `json:"ability,omitempty"`
 }
 
+// TargetEffect describes only the active SA being targeted, not its parent,
+// sub-abilities or the eventual outcome. API is the compiled primitive name
+// (e.g. DealDamage, Destroy, Counter, Draw). Consumers must treat unfamiliar
+// APIs conservatively; ChangeZone alone does not imply hostile removal.
+// This contains no script text, hidden state or server continuation pointers.
+type TargetEffect struct {
+	API string `json:"api"`
+	// Damage is present only for recognised direct damage primitives
+	// (DealDamage and DamageAll). Absence is not proof that a whole spell's
+	// other abilities cannot deal damage.
+	Damage *DamageEffect `json:"damage,omitempty"`
+}
+
+// DamageEffect describes nominal scripted damage, NEVER guaranteed damage.
+// Prevention, replacement, conditions, division among targets and resolution
+// legality are not evaluated. Spell damage is not commander combat damage.
+type DamageEffect struct {
+	// Amount is a nonnegative literal, or nil (JSON null) if absent, dynamic,
+	// invalid or outside the supported literal range. In particular X and
+	// SVar expressions stay unknown even if the engine could evaluate them.
+	// A known zero is a non-nil pointer to 0. There is deliberately no numeric
+	// default: Go consumers must check nil before dereferencing; wire consumers
+	// must check null before arithmetic. This is not a lethal-damage claim.
+	Amount *int `json:"amount"`
+}
+
 // Decision is the engine asking one player for one answer.
 type Decision struct {
 	Seq     uint64         `json:"seq"`
@@ -148,6 +174,9 @@ type Decision struct {
 	// specific object (priority, mulligan, trigger order) carry no field and
 	// today's payloads are unchanged for them.
 	Source state.ObjID `json:"source,omitempty"`
+	// TargetEffect is host-independent targeting context. It is absent on
+	// other decision kinds and on older servers; absent means unknown.
+	TargetEffect *TargetEffect `json:"target_effect,omitempty"`
 	// ResumeKind and ResumeSA are server-side only: how an effects.Host.Ask
 	// mid-resolution decision (M2d-2) suspends and re-enters the resolution
 	// it interrupted. The asking primitive sets them -- ResumeKind tags the
