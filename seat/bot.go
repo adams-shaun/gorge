@@ -172,6 +172,10 @@ func boardFromView(v view.View) botpolicy.Board {
 		}
 		fillZone := func(zone []view.CardView, castable func(view.CardView) bool) {
 			for _, cv := range zone {
+				var produces cards.ManaProduction
+				if cv.Produces != nil {
+					produces = *cv.Produces
+				}
 				b.Cards[cv.ID] = botpolicy.Card{
 					Creature:   isCreatureView(cv),
 					Power:      cv.Power,
@@ -180,6 +184,7 @@ func boardFromView(v view.View) botpolicy.Board {
 					AttachedTo: cv.AttachedTo,
 					ManaCost:   cv.ManaCost,
 					Castable:   castable(cv),
+					Produces:   produces,
 				}
 			}
 		}
