@@ -23,7 +23,7 @@ export type ManaSymbol =
   | { kind: 'phyrexianHybrid'; a: ManaColour; b: ManaColour; text: string }
   | { kind: 'unknown'; text: string };
 
-const COLOURS = 'WUBR G';
+const COLOURS = 'WUBRG';
 const FACES = COLOURS + 'C';
 
 /**
@@ -35,24 +35,24 @@ const FACES = COLOURS + 'C';
 function parseSymbol(t: string): ManaSymbol {
   if (/^\d+$/.test(t)) return { kind: 'generic', value: Number(t), text: t };
   if (/^[XYZ]$/.test(t)) return { kind: 'variable', letter: t as 'X' | 'Y' | 'Z', text: t };
-  if (/^[WUBRG]$/.test(t)) return { kind: 'colour', colour: t as ManaColour, text: t };
+  if (new RegExp(`^[${COLOURS}]$`).test(t)) return { kind: 'colour', colour: t as ManaColour, text: t };
   if (t === 'C') return { kind: 'colourless', text: t };
   if (t === 'S') return { kind: 'snow', text: t };
   // Phyrexian hybrids — two colours plus a Phyrexian face, P leading or
   // trailing (the corpus writes both: "GUP"/"RWP" and "PRG").
   const col = (s: string): ManaColour => s as ManaColour;
   const face = (s: string): ManaFace => s as ManaFace;
-  let m = t.match(/^([WUBRG])([WUBRG])P$/);
+  let m = t.match(new RegExp(`^([${COLOURS}])([${COLOURS}])P$`));
   if (m) return { kind: 'phyrexianHybrid', a: col(m[1]), b: col(m[2]), text: t };
-  m = t.match(/^P([WUBRG])([WUBRG])$/);
+  m = t.match(new RegExp(`^P([${COLOURS}])([${COLOURS}])$`));
   if (m) return { kind: 'phyrexianHybrid', a: col(m[1]), b: col(m[2]), text: t };
   // Phyrexian single colour.
-  m = t.match(/^([WUBRG])P$/);
+  m = t.match(new RegExp(`^([${COLOURS}])P$`));
   if (m) return { kind: 'phyrexian', colour: col(m[1]), text: t };
   // Twobrid — {2/X} in both corpus notations, slashed and unslashed.
-  m = t.match(/^2\/([WUBRG])$/);
+  m = t.match(new RegExp(`^2/([${COLOURS}])$`));
   if (m) return { kind: 'twobrid', colour: col(m[1]), text: t };
-  m = t.match(/^2([WUBRG])$/);
+  m = t.match(new RegExp(`^2([${COLOURS}])$`));
   if (m) return { kind: 'twobrid', colour: col(m[1]), text: t };
   // Two-face hybrids — {W/U} slashed and {WU} unslashed, face can be
   // colourless too ({C/W}, corpus: "CW").

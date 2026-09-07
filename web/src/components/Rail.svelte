@@ -3,6 +3,7 @@
   import { seatColour } from '../lib/colours';
   import { visibleHand } from '../lib/board';
   import HandList from './HandList.svelte';
+  import CommandZone from './CommandZone.svelte';
   import ZoneViewer from './ZoneViewer.svelte';
   import StackTile from './StackTile.svelte';
   import PendingTray from './PendingTray.svelte';
@@ -20,6 +21,10 @@
     {#if visibleHand(p) !== null}
       <HandList player={p} deck={seats[p.seat]?.deck} colour={seatColour(p.seat, seats)} />
     {/if}
+  {/each}
+
+  {#each view.players as p (p.seat)}
+    <CommandZone player={p} colour={seatColour(p.seat, seats)} stack={view.stack} />
   {/each}
 
   <section>
