@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hiddenKinds, isHiddenKind, visibleLog, type LogLine } from './logfilter';
+import { hiddenKinds, isHiddenKind, isStepKind, visibleLog, type LogLine } from './logfilter';
 import { dvrReducer, initialDvr } from './dvr';
 
 // Realistic mixed event list: the noise kinds among real game actions, plus a
@@ -34,7 +34,44 @@ describe('logfilter hiddenKinds', () => {
   });
 });
 
+describe('logfilter step lines (B4)', () => {
+  it('step lines are hidden by default and are not part of the engine-noise set', () => {
+    expect(isHiddenKind('step')).toBe(false);
+    expect(isStepKind('step')).toBe(true);
+    expect(isStepKind('turn')).toBe(false);
+  });
+
+  it('visibleLog drops step lines unless revealSteps, and the toggles are independent', () => {
+    const list: LogLine[] = [
+      line('step', 'Step: main-1'),
+      line('land_played', 'Ari plays a Mountain'),
+      line('step', 'Step: main-2'),
+      line('priority', 'Ari has priority'),
+      line('turn', 'Turn 3: Ari'),
+    ];
+    // default: steps and noise hidden, real actions and turn lines kept
+    expect(visibleLog(list, false).map((l) => l.event.kind)).toEqual(['land_played', 'turn']);
+    // revealSteps without revealing noise: steps come back, priority stays hidden
+    expect(visibleLog(list, false, true).map((l) => l.event.kind)).toEqual(['step', 'land_played', 'step', 'turn']);
+    // revealAll shows everything
+    expect(visibleLog(list, true).map((l) => l.event.kind)).toEqual(['step', 'land_played', 'step', 'priority', 'turn']);
+  });
+
+  it('a step line is still a valid DVR scrub target — the filter never touches seq reachability', () => {
+    const list: LogLine[] = [line('step', 'Step: main-1'), line('draw', 'Ari draws a card')];
+    const hidden = visibleLog(list, false).map((l) => l.event.kind);
+    expect(hidden).toEqual(['draw']);
+    // the step seq is still reachable even though it is hidden from render
+    let s = dvrReducer(initialDvr, { type: 'snapshot', match: 't1/1', head: 0, turnStarts: [0] });
+    s = dvrReducer(s, { type: 'event', body: { event: { seq: 1, kind: 'step', player: 0 }, line: 'Step: main-1' } });
+    s = dvrReducer(s, { type: 'scrub', seq: 1 });
+    expect(s.cursor).toBe(1);
+    expect(s.live).toBe(false);
+  });
+});
+
 describe('visibleLog', () => {
+
   it('by default excludes exactly the three hidden kinds and keeps everything else', () => {
     const visible = visibleLog(MIX, false);
     const kinds = visible.map((l) => l.event.kind);
