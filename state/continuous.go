@@ -55,4 +55,29 @@ type ContinuousEffect struct {
 	HasSet                 bool
 	AddKeywords            []string
 	AddTypes               []string
+
+	// Restriction carries an Effect-created S: mode (CantTarget,
+	// CantRegenerate) rather than a layer change. When non-empty the effect is
+	// a rules-mod, consulted by the decision point the mode names (rules'
+	// askTarget for CantTarget, effects.ReplaceDestruction via the Host for
+	// CantRegenerate); the layer fields above are ignored for it, and it is
+	// never handed to the CR 613 layer sorter as a characteristic change.
+	// A zero value means the effect is an ordinary layer effect.
+	Restriction string
+	// RestrictParams carries the restriction's S: parameters (ValidCard$,
+	// ValidTarget$, Activator$...) so the consultation point can resolve the
+	// same logic the registered static carries. Map-only, never read by the
+	// layer sorter.
+	RestrictParams map[string]string
+	// Remembered is the objects the Effect captured for its restriction
+	// (Vines of Vastwood's targeted creature, Incinerate's damaged creature),
+	// so a restriction whose ValidCard$/ValidTarget$ says "Card.IsRemembered"
+	// can be resolved against the set the effect actually held, not against
+	// nothing. Objects only; a player-only remembered target yields an empty
+	// slice.
+	Remembered []ObjID
+	// Duration is the original Duration$ value ("" means Permanent, the
+	// effEffect default) preserved for reporting and for the expiry decision
+	// in rules/layers.go. Cosmetic for a layer effect.
+	Duration string
 }
