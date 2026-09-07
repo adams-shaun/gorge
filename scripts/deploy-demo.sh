@@ -98,6 +98,13 @@ start_one() {
 	# (Ledger finding cp.) The demo is disposable; determinism beats
 	# history here.
 	rm -rf "$dir"
+	# 9>&- CLOSES THE DEPLOY LOCK'S FD IN THE SERVER. The post-merge hook
+	# holds its flock on fd 9, and a child inherits every open descriptor --
+	# so without this the servers themselves keep the lock file open for
+	# their entire life, and the NEXT deploy blocks on a lock held by the
+	# processes it is trying to replace. That is a deadlock the flock was
+	# meant to prevent: observed as a merge whose deploy sat waiting behind
+	# its own predecessor's servers. Harmless when fd 9 is not open.
 	setsid nohup "$BIN" \
 		-addr "127.0.0.1:$port" \
 		-spectator "$spectator" \
@@ -108,7 +115,7 @@ start_one() {
 		-pace "$PACE" \
 		-format "$FORMATS" \
 		-seed "$SEED" \
-		>"$log" 2>&1 </dev/null &
+		>"$log" 2>&1 </dev/null 9>&- &
 	say "started $spectator on 127.0.0.1:$port (log $log)"
 }
 
