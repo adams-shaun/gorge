@@ -50,6 +50,13 @@ func passAll(t *testing.T, e *Engine, limit int) int {
 	t.Helper()
 	n := 0
 	for ; n < limit && !e.G.Over; n++ {
+		if answerIfDiscard(t, e) {
+			// CR 514.1 (Task D1): a cleanup-step discard is a real decision now.
+			// Answer it naively (first-Max, like botpolicy) so the turn keeps
+			// rotating; it is not a priority decision and must not be returned
+			// as an early stop.
+			continue
+		}
 		d := e.Pending()
 		if d == nil || d.Kind != decision.KPriority {
 			return n

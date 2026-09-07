@@ -49,6 +49,12 @@ func driveToStep(t *testing.T, e *Engine, turn int32, active state.PlayerID, ste
 			t.Fatalf("game ended before reaching turn %d seat %d step %s (stopped at turn %d seat %d step %s)",
 				turn, active, step, e.G.Turn, e.G.Active, e.G.Step)
 		}
+		if answerIfDiscard(t, e) {
+			// CR 514.1: a cleanup-step discard crossed on the way to the
+			// target step. Answer it naively (first-Max) and keep driving;
+			// it is a real, expected decision, not a stopping condition.
+			continue
+		}
 		d := e.Pending()
 		if d == nil || d.Kind != decision.KPriority {
 			t.Fatalf("non-priority decision %+v encountered while driving to turn %d seat %d step %s",
@@ -82,6 +88,13 @@ func passThroughStep(t *testing.T, e *Engine, step state.Step, limit int) int {
 	t.Helper()
 	n := 0
 	for ; n < limit && !e.G.Over && e.G.Step == step; n++ {
+		if answerIfDiscard(t, e) {
+			// CR 514.1: answer a cleanup discard naively; it does not end the
+			// step and must not be counted as a pass (the step it happens in
+			// is the caller's own bound, but a StepNeverChanges failure should
+			// never be a discard stuck un-answered).
+			continue
+		}
 		d := e.Pending()
 		if d == nil || d.Kind != decision.KPriority {
 			return n
