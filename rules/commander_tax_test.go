@@ -46,18 +46,23 @@ func twoCommanderDeck(t *testing.T, cmd0Src, cmd1Src string) []*cards.Card {
 	return append([]*cards.Card{c0, c1}, mountainDeck(t, 38)...)
 }
 
-// commanderTaxGame builds a two-seat Commander game (both seats commander at
-// index 0) and drives seat 0 to turn 1 Main1, returning the engine, its
-// Config and seat 0's commander object.
+// commanderTaxGame is the m31 commander-tax fixture, now a thin wrapper over
+// the ONE shared commanderGame (rules/commander_damage_test.go): both seats
+// lead their deck with the same decision-free Beatstick commander (one per
+// seat, at deck index 0), life is the default 20 (StartingLife 0 -- the zero
+// value New maps to 20), and the game is driven to turn 1 Main1, the only
+// point a command-zone cast can be offered (a creature is sorcery-speed: no
+// Flash). The wrapper exists because the tax suite needs a DRIVEN session
+// with the commander object extracted, while the shared fixture deliberately
+// returns the bare, un-advanced engine the damage and zone-replacement suites
+// hand-drive (their swing / fieldCommander helpers write Active/Step
+// themselves); one function serving both postures would have to hide that
+// driving behind a flag and return a third value, which makes the fixture's
+// contract ambiguous. The seed passes through untouched, so each tax test
+// keeps the exact stream it always measured.
 func commanderTaxGame(t *testing.T, seed uint64) (*Engine, Config, state.ObjID) {
 	t.Helper()
-	deck0, deck1 := commanderDeck(t, commanderBeatstickSrc), commanderDeck(t, commanderBeatstickSrc)
-	cfg := Config{Seed: seed, Names: []string{"a", "b"},
-		Decks:      [][]*cards.Card{deck0, deck1},
-		Commanders: [][]int{{0}, {0}},
-		Format:     FormatCommander,
-	}
-	e := New(cfg)
+	e, cfg := commanderGame(t, seed, FormatCommander, 0, [][]string{{commanderBeatstickSrc}, {commanderBeatstickSrc}})
 	e.Advance()
 	driveToStep(t, e, 1, 0, state.StepMain1)
 	return e, cfg, e.G.Players[0].Commanders[0]
