@@ -89,34 +89,74 @@ func targetMin(sa *cards.SA) int {
 	return min
 }
 
-// targetZones resolves TgtZone$ (comma-separated) into the zones to search
-// for target options. The default is the battlefield. An unknown token is
-// dropped; every unknown token leaves the battlefield default.
+// targetZones resolves TgtZone$ (comma-separated) and TargetType$ into the
+// zones to search for target options. TgtZone$ is the explicit zone
+// declaration; TargetType$ (Forge) names the KIND of thing targeted, and
+// when it names a stack object -- Spell, Instant, Sorcery, Activated,
+// Triggered, SpellAbility -- the target lives on the stack. Mana Leak is
+// scripted `TargetType$ Spell | ValidTgts$ Card` with NO TgtZone$ at all, so
+// without reading TargetType$ the search defaulted to the battlefield and
+// offered every permanent of every seat for a counterspell -- the bug this
+// fixes (every counterspell in the corpus was inert, targeting a permanent
+// so effCounter found o.Zone != state.ZStack and did nothing). The default
+// remains the battlefield. An unknown TgtZone$ token is dropped (reviewer
+// minor 4), but the battlefield default applies only when NEITHER source
+// named a zone -- a typo'd TgtZone$ on a TargetType$ Spell card must not
+// silently widen a stack target back to the battlefield.
 func targetZones(sa *cards.SA) []state.Zone {
-	spec := sa.Params["TgtZone"]
-	if strings.TrimSpace(spec) == "" {
-		return []state.Zone{state.ZBattlefield}
-	}
 	var zones []state.Zone
-	for _, z := range strings.Split(spec, ",") {
+	for _, z := range strings.Split(sa.Params["TgtZone"], ",") {
 		switch strings.TrimSpace(z) {
 		case "Battlefield":
-			zones = append(zones, state.ZBattlefield)
+			zones = appendUniqueZone(zones, state.ZBattlefield)
 		case "Graveyard":
-			zones = append(zones, state.ZGraveyard)
+			zones = appendUniqueZone(zones, state.ZGraveyard)
 		case "Hand":
-			zones = append(zones, state.ZHand)
+			zones = appendUniqueZone(zones, state.ZHand)
 		case "Exile":
-			zones = append(zones, state.ZExile)
+			zones = appendUniqueZone(zones, state.ZExile)
+		case "Stack":
+			zones = appendUniqueZone(zones, state.ZStack)
 		}
 	}
-	// An unknown token is deliberately dropped (reviewer minor 4): a typo'd
-	// zone falls through every case and leaves the battlefield default, and
-	// that documented, accepted behaviour is not something to fix.
+	// A stack-targeting TargetType$ adds the stack even when no TgtZone$ is
+	// present (the counterspell shape) and even alongside a TgtZone$
+	// Battlefield for a spell-or-permanent effect (TgtZone$ Stack,Battlefield).
+	if targetsStackObjects(sa.Params["TargetType"]) {
+		zones = appendUniqueZone(zones, state.ZStack)
+	}
 	if len(zones) == 0 {
 		zones = []state.Zone{state.ZBattlefield}
 	}
 	return zones
+}
+
+// appendUniqueZone appends z to zones when it is not already present,
+// preserving the deterministic TgtZone$/TargetType$ order both askTarget and
+// legalTargets share (never a map, so no map iteration order reaches a wire
+// decision).
+func appendUniqueZone(zones []state.Zone, z state.Zone) []state.Zone {
+	for _, existing := range zones {
+		if existing == z {
+			return zones
+		}
+	}
+	return append(zones, z)
+}
+
+// targetsStackObjects reports whether a Forge TargetType$ value names a
+// target that lives on the stack: a spell (Spell/Instant/Sorcery), or an
+// activated/triggered/spell-ability object. The base token precedes any "."
+// qualifier (Spell.singleTarget, Instant.singleTarget, ...).
+func targetsStackObjects(tt string) bool {
+	for _, t := range strings.Split(tt, ",") {
+		base, _, _ := strings.Cut(strings.TrimSpace(t), ".")
+		switch base {
+		case "Spell", "Instant", "Sorcery", "Activated", "Triggered", "SpellAbility":
+			return true
+		}
+	}
+	return false
 }
 
 // targetName is the object's name for a target prompt, tolerating the ability
@@ -200,6 +240,33 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	// call sites share one predicate and one rule-set.
 	protSrc := e.protectionSource(source)
 	for _, z := range zones {
+		// The stack is a single, shared sequence, not a per-seat zone, so its
+		// objects are offered ONCE each -- labelled with the object's own
+		// controller -- rather than once per alive seat (which would offer the
+		// same spell N times for an N-seat game and drift the option list).
+		if z == state.ZStack {
+			for _, oid := range e.G.Zone(state.ZStack, 0) {
+				o := e.G.Obj(oid)
+				if o == nil || o.Face() == nil {
+					continue
+				}
+				// CR 114.4: a spell or ability on the stack is an illegal
+				// target for itself. askTarget is called after PutOnStack
+				// (cast.go) or AbilityPush (cast.go), so source is already
+				// that object atop the stack -- its own id must never be
+				// offered, or the counterspell would counter itself. Only
+				// the source OBJECT is excluded, never a *different* copy of
+				// the same card, and never a permanent targeting itself.
+				if oid == source {
+					continue
+				}
+				if effects.MatchesSpecFrom(e.G, spec, oid, p, source) &&
+					!(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc)) {
+					add("permanent", o.Face().Name+" ("+e.G.Players[o.Controller].Name+")", oid, o.Controller)
+				}
+			}
+			continue
+		}
 		// Hand is the chooser's own hand only (CR 701.15a); the other
 		// non-battlefield zones are public, so every seat's slice is offered.
 		players := e.G.AliveFrom(0)
@@ -217,6 +284,13 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 				// Graveyard target is not withheld by a printed protection the
 				// dead card can no longer exercise.
 				if o != nil && o.Face() != nil &&
+					// CR 114.4: the source object (the spell/ability this
+					// ask serves) is an illegal target for itself. It is a
+					// single object with a single zone and is always on the
+					// stack here, so no other zone can hold it; excluding it
+					// wherever it appears also covers a source that somehow
+					// stopped being on the stack before resolution.
+					oid != source &&
 					effects.MatchesSpecFrom(e.G, spec, oid, p, source) &&
 					!(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc)) {
 
@@ -354,7 +428,7 @@ func (e *Engine) resolveTop() {
 		// and has none recorded resolves untargeted rather than fizzling --
 		// targetMin(o.Ability)==0 && len(targets)==0 is the exemption.
 		if spec := o.Ability.Params["ValidTgts"]; spec != "" && !(targetMin(o.Ability) == 0 && len(targets) == 0) {
-			legal := e.legalTargets(targets, spec, o.Controller, o.Source)
+			legal := e.legalTargets(targets, spec, targetZones(o.Ability), o.Controller, o.Source, id)
 			if len(legal) == 0 {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZExile, Text: "fizzled: no legal targets remain"})
@@ -435,7 +509,7 @@ func (e *Engine) resolveTop() {
 		// Requirement N2, the same exemption as the ability branch: an
 		// untargeted-with-Min-0 spell resolves rather than fizzling.
 		if spec := sa.Params["ValidTgts"]; spec != "" && !(targetMin(sa) == 0 && len(targets) == 0) {
-			legal := e.legalTargets(targets, spec, o.Controller, id)
+			legal := e.legalTargets(targets, spec, targetZones(sa), o.Controller, id, id)
 			if len(legal) == 0 {
 				// CR 608.2b: every target became illegal. This spell does
 				// not resolve -- no Resolve event, no script runs -- it goes
@@ -530,28 +604,44 @@ func (e *Engine) ensureLeftTheStack(id state.ObjID, to state.Zone, why string) {
 }
 
 // legalTargets is CR 608.2b's recheck, applied at resolution: the subset of
-// targets that are still legal right now. An object target must still be on
-// the battlefield -- matchesBase's own bare-type predicates (effects/
-// filter.go), e.g. "Creature", read printed types straight off the Face
-// with no zone check of their own, so a creature that died and is sitting
-// in a graveyard would otherwise still look like a match -- and still
-// satisfy spec, via the same effects.MatchesSpec call askTarget used to
-// offer it as an option in the first place: no self-relative source, matching
-// askTarget's own simplification, so a spec that would filter on Self/Other
-// is exactly as (im)precise here as it was at cast time. A player target is
-// legal for as long as they are still in the game; askTarget never applies
-// MatchesPlayerSpec's finer You/Opponent distinction when it first offers
-// every living player as an option (targetsPlayers below it), so this does
-// not either -- rechecking against a filter the engine never enforced when
-// the target was chosen would reject targets this build always considered
-// fine.
-func (e *Engine) legalTargets(targets []state.Target, spec string, you state.PlayerID, source state.ObjID) []state.Target {
+// targets that are still legal right now. An object target must still be in
+// a zone the spec legitimately targets -- zones, computed by the same
+// targetZones the offering askTarget used, is what no-longer-hardcodes the
+// battlefield -- because matchesBase's own bare-type predicates (effects/
+// filter.go), e.g. "Creature", read printed types straight off the Face with
+// no zone check of their own, so a creature that died and is sitting in a
+// graveyard would otherwise still look like a match. The old form required
+// o.Zone == state.ZBattlefield, which made every non-battlefield legal
+// target offered by askTarget (a stack spell for a counterspell; a
+// Graveyard card for the Snapcaster shape) fizzle at resolution. It still
+// satisfies spec, via the same effects.MatchesSpec call askTarget used to
+// offer it as an option in the first place: no self-relative source,
+// matching askTarget's own simplification, so a spec that would filter on
+// Self/Other is exactly as (im)precise here as it was at cast time. A player
+// target is legal for as long as they are still in the game; askTarget never
+// applies MatchesPlayerSpec's finer You/Opponent distinction when it first
+// offers every living player as an option (targetsPlayers below it), so this
+// does not either -- rechecking against a filter the engine never enforced
+// when the target was chosen would reject targets this build always
+// considered fine.
+func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state.Zone, you state.PlayerID, source state.ObjID, self state.ObjID) []state.Target {
 	var legal []state.Target
 	for _, t := range targets {
 		if t.IsPlayer {
 			if int(t.Player) < len(e.G.Players) && !e.G.Players[t.Player].Lost {
 				legal = append(legal, t)
 			}
+			continue
+		}
+		// CR 114.4: the resolving spell or ability is an illegal target for
+		// itself. self is the stack object being resolved (not source, which
+		// for an ability is the source PERMANENT and so is a legal target of
+		// its own ability -- e.g. a creature's "target creature" ability on
+		// itself). A target chosen at cast time for a different spell -- a
+		// different copy of the same card, or a permanent -- is unaffected.
+		// This is why the exclusion is keyed on the resolving object id, and
+		// mirrors askTarget's own withholding so the two sites always agree.
+		if t.Obj == self {
 			continue
 		}
 		// CR 702.16c: a permanent that became protected from the resolving
@@ -562,12 +652,22 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, you state.Pla
 		// through protectionSource so an ability fizzling here judges "the
 		// source" as its Source permanent, the same object askTarget's own
 		// filter has now been made to see (Critical C2 -- one definition).
-		if o := e.G.Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield &&
+		if o := e.G.Obj(t.Obj); o != nil && zoneIn(o.Zone, zones) &&
 			effects.MatchesSpec(e.G, spec, t.Obj, you) && !e.protectedFrom(t.Obj, e.protectionSource(source)) {
 			legal = append(legal, t)
 		}
 	}
 	return legal
+}
+
+// zoneIn reports whether z is one of the zones in the set.
+func zoneIn(z state.Zone, zones []state.Zone) bool {
+	for _, candidate := range zones {
+		if candidate == z {
+			return true
+		}
+	}
+	return false
 }
 
 // resolveAbility walks an SA chain, running each API's implementation. svars

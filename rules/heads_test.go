@@ -188,11 +188,37 @@ import (
 // says the head churn is paid for by arms other than the one being advertised.
 //
 // Ruling FL-90: an attributed regeneration is not a spend against FL-83.
+// tg1, the stack-targeting fix, moves all four. Counterspells were INERT: a
+// "target spell" ask searched the battlefield, so Mana Leak was offered every
+// permanent, resolved, and effCounter no-opped on o.Zone != ZStack. They now
+// find spells, and a spell is no longer offered as a target of itself
+// (CR 114.4).
+//
+// Measured per seat count, `countered` MoveZone events and Counter resolves:
+//
+//	tree                      countered (2/4/6/8)   Counter resolves   self-target
+//	587f31d before the line   0/1/2/5               0/2/1/3            0/0/0/0
+//	e4bfbb9 round 1           0/4/3/8               0/2/1/3            0/0/1/3  <- self!
+//	7f89c50 round 2           0/4/2/5               0/2/0/0            0/0/0/0
+//
+// Round 1 made counterspells work and simultaneously let three of them counter
+// THEMSELVES; round 2's exclusion is why the 6/8 resolves fall back to zero —
+// those casts were the self-targeting ones and now correctly fizzle.
+//
+// The 2-seat head moves too, which it did NOT against 587f31d, and the reason
+// is a genuine interaction rather than noise: dp1b (0751802) changed the policy
+// enough to put a counterspell into the 2-seat game, where it resolved and
+// countered nothing (countered=0, the inert mistarget). tg1 makes that same
+// cast bite. So the 2-seat move is dp1b and tg1 compounding, and neither alone
+// produces it — the same shape as op6/op7 above, arrived at across two merges
+// instead of one.
+//
+// Ruling FL-90: an attributed regeneration is not a spend against FL-83.
 var acceptanceHeads = map[int]string{
-	2: "b984373baa683987",
-	4: "7d178f2232d5e1e7",
-	6: "78c5c443d7e290a6",
-	8: "a5ec8770907c1496",
+	2: "1dd3db84ffc3ec86",
+	4: "0ad87b5071c0f6b6",
+	6: "7bb7acac651fffdb",
+	8: "b4bbbba9aee86eff",
 }
 
 func TestHeads(t *testing.T) {
