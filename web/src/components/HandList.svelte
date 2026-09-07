@@ -19,6 +19,17 @@
   let hovered = $state<CardView | null>(null);
   let anchor = $state<AnchorRect | null>(null);
 
+  // TIE THE PANEL TO THE OBJECT, NOT TO A POINTER EVENT. When the hovered
+  // card leaves the hand (played, discarded, exiled) its <li> is removed from
+  // the DOM while the pointer may still be over it, so pointerleave never
+  // fires — the panel would hang on a card that no longer exists. So on every
+  // change to the hand we re-feed the set of present cards and HoverCard
+  // closes when the one it is showing is gone. $effect: runs only client-side,
+  // which is the only place a panel can open.
+  $effect(() => {
+    if (hovered !== null) hover.supervise(hovered.id, hand);
+  });
+
   function rectOf(el: HTMLElement): AnchorRect {
     const r = el.getBoundingClientRect();
     return { left: r.left, top: r.top, right: r.right };
