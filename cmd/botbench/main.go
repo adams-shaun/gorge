@@ -1165,18 +1165,43 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 	return writeMatrixText(out, aName, bName, baseSeed, games, results, commander)
 }
 
+// seatedDeckNames returns the deck-list order a run seats, with seat s
+// holding names[(s+rotate)%len(names)] -- rotate=0 is the historical fixed
+// assignment (seat 0 = names[0] etc.), and over the rotate=0..seats-1 cycle
+// every deck sits at every seat exactly once, which is the property a
+// rotate experiment relies on: if a four-seat imbalance follows the seat
+// index it cannot be a fixed deck sitting there, and vice versa.
+func seatedDeckNames(names []string, rotate int) []string {
+	n := len(names)
+	seated := make([]string, n)
+	for s := 0; s < n; s++ {
+		seated[s] = names[(s+rotate)%n]
+	}
+	return seated
+}
+
 // run is main's entry through the real engine: it validates the flags,
 // opens the corpus and the per-seat repo decks, and plays `games` matches
 // between the named policies via bench. It exists so the whole flag-driven
 // path stays open to tests that need it (determinism, end-to-end); the loop
 // and the report live in bench, which tests can also drive directly with a
 // synthetic matchPlayer.
-func run(baseSeed uint64, games, seats int, aName, bName, dir string, maxTurns, maxIntents int, commander bool, out io.Writer) error {
+//
+// rotate shifts which deck-list a seat holds (seatDeckIndex: seat s holds
+// the pool's (s+rotate)%seats-th deck), so a four-seat commander run can
+// be repeated with each deck at each seat -- the experiment that tells a
+// seat-index artifact from a deck-strength difference. rotate must be in
+// [0, seats); 0 is today's assignment, so a run without the flag is
+// byte-identical to the pre-flag bench.
+func run(baseSeed uint64, games, seats, rotate int, aName, bName, dir string, maxTurns, maxIntents int, commander bool, out io.Writer) error {
 	if games < 1 {
 		return fmt.Errorf("-games must be at least 1, got %d", games)
 	}
 	if seats < 2 {
 		return fmt.Errorf("-seats must be at least 2 (a bench pits two policies), got %d", seats)
+	}
+	if rotate < 0 || rotate >= seats {
+		return fmt.Errorf("-rotate must be in [0,%d) with %d seats, got %d", seats, seats, rotate)
 	}
 	if _, err := resolvePolicy(aName); err != nil {
 		return err
@@ -1211,25 +1236,31 @@ func run(baseSeed uint64, games, seats int, aName, bName, dir string, maxTurns, 
 	if seats > len(names) {
 		return fmt.Errorf("-seats %d exceeds the %d %s decks available", seats, len(names), deckKind(commander))
 	}
+	// The deck a seat holds is the pool's (s+rotate)%seats-th entry, so
+	// rotate=0 is the historical assignment and the header, the Config and
+	// the loaded lists all describe the same seated order. The deck list
+	// stays sorted (names is sorted); only which seat holds which entry
+	// changes.
+	seated := seatedDeckNames(names[:seats], rotate)
 	decks := make([][]*cards.Card, seats)
 	commanders := make([][]int, seats) // commander mode only
-	for i := 0; i < seats; i++ {
-		d, err := testutil.LoadRepoDeck(reg, names[i])
+	for s := 0; s < seats; s++ {
+		d, err := testutil.LoadRepoDeck(reg, seated[s])
 		if err != nil {
 			return err
 		}
-		decks[i] = d
+		decks[s] = d
 		if commander {
-			ci, err := commanderIndex(reg, names[i])
+			ci, err := commanderIndex(reg, seated[s])
 			if err != nil {
 				return err
 			}
-			commanders[i] = []int{ci}
+			commanders[s] = []int{ci}
 		}
 	}
 
 	hdr := fmt.Sprintf("bot bench: base seed %d, %s vs %s, %d games, %d seats, decks %s",
-		baseSeed, aName, bName, games, seats, strings.Join(names[:seats], ","))
+		baseSeed, aName, bName, games, seats, strings.Join(seated, ","))
 	if commander {
 		// The header names the format so a Commander number cannot be quoted
 		// as a constructed baseline -- the mix-up this task exists to end.
@@ -1245,7 +1276,7 @@ func run(baseSeed uint64, games, seats int, aName, bName, dir string, maxTurns, 
 			// is distinct from the engine's and from every other seat's.
 			botSeats[seat] = policies[pols[seat]](s ^ uint64(seat+1))
 		}
-		cfg := buildGameConfig(s, names[:seats], decks, commanders, commander)
+		cfg := buildGameConfig(s, seated, decks, commanders, commander)
 		cfg.Tokens = reg.Tokens
 		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents)
 	}
@@ -1283,6 +1314,7 @@ func main() {
 	games := flag.Int("games", 100, "number of games to play (matrix mode: per pair)")
 	seed := flag.Uint64("seed", 0, "base seed; game i plays at seed+i")
 	seats := flag.Int("seats", 2, "number of seats")
+	rotate := flag.Int("rotate", 0, "rotate the seat-to-deck assignment by N positions (seat s holds the (s+N)%%seats-th deck); 0 is today's fixed assignment")
 	pairs := flag.String("pairs", "", "deck-pair matrix: \"all\" for every unordered repo-deck pair, or a comma-separated \"a:b,c:d\" list; empty keeps today's single-pair behaviour")
 	format := flag.String("format", "constructed", "construction format: constructed or commander (commander deals commander decks into the command zone, starts at 40 life, and plays for -max-turns before a game is recorded as a stall)")
 	out := flag.String("out", "text", "matrix output format: text or json (json is machine-readable for diffing runs)")
@@ -1321,6 +1353,10 @@ func main() {
 	}
 
 	if *pairs != "" {
+		if *rotate != 0 {
+			fmt.Fprintln(os.Stderr, "botbench: -rotate applies to the single-run bench only, not -pairs (a 2-seat pair already plays both seatings)")
+			os.Exit(1)
+		}
 		ps, err := parsePairsForMode(*pairs, deckPool, commander)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "botbench:", err)
@@ -1332,7 +1368,7 @@ func main() {
 		}
 		return
 	}
-	if err := run(*seed, *games, *seats, *a, *b, *dir, *maxTurns, *maxIntents, commander, os.Stdout); err != nil {
+	if err := run(*seed, *games, *seats, *rotate, *a, *b, *dir, *maxTurns, *maxIntents, commander, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "botbench:", err)
 		os.Exit(1)
 	}
