@@ -123,6 +123,16 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		if h.HasKeyword(o.ID, "Indestructible") {
 			continue
 		}
+		// NoRegen$ is compared against "True", not against empty: an explicit
+		// NoRegen$ False PERMITS regeneration, and reading it as "set, so
+		// suppress" would invert the card. The corpus splits 144 True / 1
+		// False (creepy_doll.txt), and that one is unreachable today because
+		// cards/link.go auto-links only SubAbility$, not the WinSubAbility$ it
+		// hangs off -- so this is correctness insurance for when that changes,
+		// not a live fix.
+		if sa.Params["NoRegen"] != "True" && ReplaceDestruction(h, o.ID) {
+			continue
+		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 	}
@@ -141,6 +151,10 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 			if MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
+				// NoRegen$ != "True", not == "": see effDestroy above.
+				if sa.Params["NoRegen"] != "True" && ReplaceDestruction(h, id) {
+					continue
+				}
 				h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 			}

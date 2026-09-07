@@ -21,6 +21,7 @@
 package rules
 
 import (
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -378,7 +379,7 @@ type casualty struct {
 
 // destroyLethalDamage performs the two CR 704.5 state-based actions combat
 // damage depends on: a creature with toughness 0 or less (704.5f) is
-// destroyed regardless of damage or Indestructible, and a creature with
+// put into its owner's graveyard (not destroyed), and a creature with
 // damage marked on it greater than or equal to its toughness, or with any
 // damage at all from a source with Deathtouch (704.5g, via the Deathtouched
 // counter damageStep marks), is destroyed unless Indestructible.
@@ -456,6 +457,9 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 	}
 	for _, c := range dead {
 		tried.objs[c.id] = true
+		if c.text == "lethal damage" && effects.ReplaceDestruction(e, c.id) {
+			continue
+		}
 		e.emit(events.Event{Kind: events.MoveZone, Obj: c.id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: c.text})
 	}

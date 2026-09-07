@@ -72,11 +72,7 @@ func effRemoveCounterAll(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// effRegenerate is M1's version of "mark the target as regenerating": grant a
-// Shield counter and record the grant. The actual CR 701.16 behaviour --
-// clearing damage and untapping instead of dying, consuming the shield --
-// only happens once state-based actions exist to consume it, which is
-// Task 21's job.
+// effRegenerate grants a this-turn shield consumed by ReplaceDestruction.
 func effRegenerate(h Host, c *Ctx, sa *cards.SA) {
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
@@ -86,7 +82,6 @@ func effRegenerate(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZBattlefield {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.Note, Obj: o.ID, Text: "regeneration shield granted"})
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: "Shield", Amount: 1})
 	}
 }

@@ -11,6 +11,12 @@ coverage.html
 # Per-task git worktrees for fleet execution (SDD).
 .worktrees/
 
+# Agent scratch: task briefs, reports, pi session transcripts. Written inside
+# whichever worktree an agent runs in, so a `git add -A` sweeps them into the
+# diff -- which is how one branch's reports reached a merge before this line
+# existed. Orchestration records belong in .superpowers/, not in history.
+.ds4/
+
 # web/ (Svelte + Vite spectator client) build artefacts and tooling state.
 cmd/gorged/webdist/*
 !cmd/gorged/webdist/.keep
