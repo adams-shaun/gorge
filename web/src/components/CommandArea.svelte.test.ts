@@ -13,10 +13,18 @@ import Rail from './Rail.svelte';
  * assertion the removed CommandZone.svelte.test.ts made is made here against
  * the new component — the derived CR 903.8 tax and never the raw count, the
  * zone each commander resolves to, a stack cast not counting as "in the
- * command zone", a constructed table drawing nothing, and one area per
+ * command zone", a constructed table drawing nothing, and one tile per
  * commander seat in seat order — and the rest are new: the three drawing
  * states, inspectability in every one of them, art-free legibility, and the
  * rail no longer carrying any of it.
+ *
+ * CZ2 moved the tiles OUT of a private, rim-pinned area and INTO the seat's
+ * creatures row, at creature scale, so CommandArea no longer renders a
+ * wrapping element or a corner-dependent side: it is a plain `{#each}` and
+ * the tiles it produces are direct flex children of whatever includes it.
+ * The tests that used to assert a `data-command-area` wrapper and a
+ * `side-start`/`side-end` placement were replaced accordingly — see the
+ * "one tile per seat" and "the private area is gone" blocks below.
  */
 
 const card = (id: number, name: string, manaCost?: string): CardView => ({
@@ -172,17 +180,16 @@ describe('CommandArea — one seat"s commanders, on the board', () => {
     expect(html.replace(/<!--[\s\S]*?-->/g, '').trim()).toBe('');
   });
 
-  it('the area sits at the end of the rim opposite the seat"s identity plate, from the corner the board passed', () => {
+  it('the private rim-pinned area is gone (CZ2): no wrapper element, no corner-dependent placement, no recess', () => {
     const c = card(1, 'Isamaru');
     const p = player({ commanders: [c], command: [c] });
-    // plate on the left of the rim (tl/bl/l) → tiles at the right end
-    for (const corner of ['tl', 'bl', 'l'] as const) {
-      expect(render(CommandArea, { props: { player: p, corner } }).html).toContain('side-end');
-    }
-    // plate on the right (tr/br/r) → tiles at the left end
-    for (const corner of ['tr', 'br', 'r'] as const) {
-      expect(render(CommandArea, { props: { player: p, corner } }).html).toContain('side-start');
-    }
+    const { html } = render(CommandArea, { props: { player: p } });
+    // CommandArea takes no `corner` prop any more — placement is entirely
+    // the creatures row's, not this component's
+    expect(html).not.toContain('data-command-area');
+    expect(html).not.toContain('side-start');
+    expect(html).not.toContain('side-end');
+    expect(html).not.toContain('command-area');
   });
 });
 
@@ -206,7 +213,7 @@ describe('the inspector opens on a commander tile in every state', () => {
     it(`${name}: the full card face and the engine's ledger open from the tile`, () => {
       const hover = new HoverCard();
       hover.open(7);
-      const { html } = render(CommanderTile, { props: { status: statusFor(over), player: 'P0', hover, anchor } });
+      const { html } = render(CommanderTile, { props: { status: statusFor(over), player: 'P0', seat: 0, hover, anchor } });
       expect(html).toContain('card-detail');
       expect(html).toContain('Ghoulcaller Gisa');
       expect(html).toContain('#7'); // the panel names the object it describes
@@ -217,7 +224,7 @@ describe('the inspector opens on a commander tile in every state', () => {
 
   it('a closed tile renders no panel — the inspector is opened, never permanently mounted', () => {
     const { html } = render(CommanderTile, {
-      props: { status: statusFor({ graveyard: [card(7, 'Ghoulcaller Gisa', '3 B B')] }), player: 'P0', anchor },
+      props: { status: statusFor({ graveyard: [card(7, 'Ghoulcaller Gisa', '3 B B')] }), player: 'P0', seat: 0, anchor },
     });
     expect(html).not.toContain('card-detail');
     expect(html).not.toContain('aria-describedby');
@@ -230,7 +237,7 @@ describe('the inspector opens on a commander tile in every state', () => {
   });
 });
 
-describe('the board mounts one command area per commander seat', () => {
+describe('the board draws one commander tile per roster commander, inline in each seat"s creatures row', () => {
   const seats: SeatInfo[] = [0, 1, 2, 3].map((i) => ({ name: `S${i}`, deck: `deck-${i}`, colour: `#00000${i}` }));
   const view = (): View => ({
     viewer: 4, visibility: 'public', turn: 5, step: 'main1', phase: 'main1', active: 0, priority: 0,
@@ -252,20 +259,22 @@ describe('the board mounts one command area per commander seat', () => {
     ],
   });
 
-  it('draws an area for every seat that has a roster, in seat order, and none for a seat that has not', () => {
+  it('draws a tile for every seat that has a roster, in seat order, and none for a seat that has not', () => {
     const { html } = render(Board, { props: { view: view(), seats } });
-    const areas = [...html.matchAll(/data-command-area="" data-seat="(\d)"/g)].map((m) => m[1]);
-    expect(areas).toEqual(['0', '1', '2']);
-    // four tiles across three seats: 1 + 1 + 2
-    expect(html.match(/data-cmd-state=/g)).toHaveLength(4);
+    // each cmd-tile carries the owning seat as its own data-seat attribute
+    // now that there is no wrapping area to carry it instead (CZ2)
+    const bySeat = [...html.matchAll(/data-cmd-state="[a-z]+" data-cmd-zone="[a-z]+" data-seat="(\d)"/g)].map((m) => m[1]);
+    // seat 0: one tile, seat 1: one tile, seat 2: two tiles (its roster order), seat 3: none
+    expect(bySeat).toEqual(['0', '1', '2', '2']);
   });
 
-  it('a constructed table draws no command area anywhere on the board', () => {
+  it('a constructed table draws no commander tiles anywhere on the board', () => {
     const v = view();
     v.players = v.players.map((p) => ({ ...p, commanders: [], command: [], commander_casts: [] }));
     const { html } = render(Board, { props: { view: v, seats } });
     expect(html).not.toContain('data-command-area');
     expect(html).not.toContain('data-commander');
+    expect(html).not.toContain('data-cmd-state');
   });
 
   it('the tax on the board is the derived number for the seat that owns it', () => {

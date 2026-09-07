@@ -6,7 +6,11 @@
   import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
 
   /**
-   * One commander, drawn as a card in its seat's command area.
+   * One commander, drawn as a card in its seat's CREATURES row (CZ2) — a
+   * commander is a creature, so it is drawn at the same --card-w the row
+   * scales every other creature to, and reads the ambient `--card-w`
+   * cascading from `.row.creatures` in Quadrant.svelte rather than setting a
+   * scale of its own. Nothing here decides the number; it only inherits it.
    *
    * Commander identity is the premise of the format and a line of text is not
    * how anyone recognises a commander — you recognise it by its art. So this
@@ -47,9 +51,14 @@
   // event can ever open the panel and $effect never runs. Production renders
   // never pass them and the defaults are what this component would have built
   // for itself.
-  let { status, player, hover = new HoverCard(), anchor: anchorProp = null }: {
+  //
+  // `seat` is carried only as a data attribute for the board test that counts
+  // "one command area per commander seat" now that the tiles have no
+  // wrapping element of their own (CZ2) — nothing here reads it.
+  let { status, player, seat, hover = new HoverCard(), anchor: anchorProp = null }: {
     status: CommanderStatus;
     player: string;
+    seat: number;
     hover?: HoverCard;
     anchor?: AnchorRect | null;
   } = $props();
@@ -61,7 +70,7 @@
   //
   // The printed cost is deliberately NOT re-typeset here: with no art the
   // blank already sets it on the face's title line, so a second copy under
-  // the tile would print the same cost twice on an 80px card; with art it is
+  // the tile would print the same cost twice on a creature-scale card; with art it is
   // one hover away in the inspector, which sets it in the panel header. The
   // tax chip is the number that is NOT on any face — it is derived, it
   // changes, and it is the reason this moved off the rail.
@@ -105,6 +114,7 @@
   data-obj={card.id}
   data-cmd-state={status.presence}
   data-cmd-zone={status.zone}
+  data-seat={seat}
   data-next-cost={nextCastCost(card.mana_cost, status.casts)}
   bind:this={root}
   tabindex="0"
@@ -141,16 +151,20 @@
   /* A card lying in its own spot on the felt, with a state band under it
      rather than over it: the band is the one thing that must stay readable
      when the face is a ghost or a grey, so it never sits on the art. */
+  /* Width comes straight from the row's own --card-w (104px in the creatures
+     row) — a commander is a creature, drawn at creature scale, not at a
+     private scale of its own (CZ2). No fallback is set here: outside a row
+     that defines --card-w, CardImage's own 90px default applies, which only
+     ever happens in a test render. */
   .cmd-tile {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    width: var(--cmd-w);
+    width: var(--card-w, 104px);
     flex: none;
   }
   .face {
-    --card-w: var(--cmd-w);
     line-height: 0;
   }
   /* Already on the battlefield: the permanent itself is drawn in the
@@ -172,8 +186,9 @@
   }
 
   /* The name, OUTSIDE the face and at full ink. It is not a duplicate of the
-     blank's own title line: at 80px the blank sets the name beside the mana
-     pips and clips it to a few characters, and in the two dimmed states the
+     blank's own title line: the blank sets the name beside the mana pips and
+     clips it to a few characters even at creature scale, and in the two
+     dimmed states the
      whole face — typeset name included — is drawn at 40-50%, which is
      exactly when the reader most needs to know which commander the ghost is.
      One line, clipped, with the full name (and where it is) in the tile's
@@ -191,7 +206,7 @@
   }
 
   /* The band wraps rather than clips: "on the battlefield" is three words
-     against a 72px card and half of it ("on the battlef…") is not a state
+     against a narrow card and half of it ("on the battlef…") is not a state
      anyone can read. A second line costs 13px at the rim, where there is
      room; an ellipsis costs the meaning. */
   .band {
