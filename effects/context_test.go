@@ -54,6 +54,15 @@ func (h *fakeHost) HasKeyword(id state.ObjID, kw string) bool {
 // for clearly named (R-9).
 func (h *fakeHost) Ask(d *decision.Decision) bool { return false }
 
+// Suspended reports false: an effects-package test double never actually
+// suspends a resolution (its Ask always returns false, so the asking effect
+// falls back to its deterministic stand-in and the chain — if it had a
+// SubAbility — finishes in one pass). This keeps effects.Resolve's
+// suspended-check from breaking the chain on a host that never asked; the
+// real suspension behaviour is exercised through the rules engine, where
+// Engine.Suspended reports e.resume != nil.
+func (h *fakeHost) Suspended() bool { return false }
+
 func newHost(t *testing.T, seats int) *fakeHost {
 	t.Helper()
 	return &fakeHost{g: state.NewGame(names(seats))}
