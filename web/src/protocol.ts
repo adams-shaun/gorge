@@ -74,6 +74,11 @@ export interface Printing {
   number?: string;
 }
 
+export interface ManaProduction {
+  colour: [number, number, number, number, number, number];
+  any: boolean;
+}
+
 export interface CardView {
   id: number;
   name: string;
@@ -94,6 +99,7 @@ export interface CardView {
   owner: number;
   summon_sick: boolean;
   attached_to?: number;
+  produces?: ManaProduction | null;
 }
 
 export interface PlayerView {

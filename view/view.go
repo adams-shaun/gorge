@@ -224,6 +224,18 @@ type CardView struct {
 	// beneath the permanent it modifies -- could not tell what is attached
 	// to what at all.
 	AttachedTo state.ObjID `json:"attached_to,omitempty"`
+	// Produces is what this card's mana abilities add to the pool when a
+	// tap-for-mana activation runs them, derived from the compiled abilities
+	// (cards.Face.ManaProduction) rather than land subtypes: a basic land's
+	// intrinsic {W}, a dual's {W}{U}, an "add any colour" source's resolved
+	// colourless, a colourless rock's {C}{C}. nil when the card has no mana
+	// ability at all, so a creature or a spell never pays for the six-entry
+	// array on the wire. It is a projected characteristic like ManaCost and
+	// Keywords -- a mana ability's production is a card fact every seat sees,
+	// and it is projected for the same zones the card itself is visible in.
+	// This is what the bot policy's colour-aware tap and land heuristics read
+	// (carried into botpolicy.Card as plain data, never the view type).
+	Produces *cards.ManaProduction `json:"produces,omitempty"`
 }
 
 // StackView is one object on the stack. Kind is "spell", "trigger" (an
@@ -431,6 +443,13 @@ func cardView(g *state.Game, ch Chars, id state.ObjID) CardView {
 		cv.ManaCost = f.ManaCost
 		cv.Text = f.Oracle
 		cv.Printing = Printing{Name: f.Name}
+		// The mana-production projection (Task dp2): what tapping this card
+		// puts in the pool, from its own abilities. A nil pointer keeps a card
+		// with no mana ability off the wire; p is a fresh value per call, so
+		// the address is never aliased across object views.
+		if p := f.ManaProduction(); !p.IsZero() {
+			cv.Produces = &p
+		}
 	}
 	if o.IsAttacking {
 		p := o.Attacking

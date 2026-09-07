@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -74,6 +75,17 @@ type Card struct {
 	// zone lists; the engine's zone walk plus the derived keyword list), so
 	// the gate sees the same castability whichever host asks.
 	Castable bool
+	// Produces is what this card's mana abilities add to the pool when a
+	// tap-for-mana activation runs them (cards.ManaProduction, plain data
+	// -- botpolicy must not import view or rules, Ruling F7). It is filled
+	// by both adapter halves from the same source -- the projected
+	// CardView.Produces on the view half, cards.Face.ManaProduction on the
+	// game half -- so the tap heuristic reads the same production whichever
+	// host asks. It lets chooseTap pick a source that produces a colour a cast
+	// needs and spend the least flexible one first. It also describes a land
+	// card while it is still in hand, so a future land-drop ranking can use the
+	// same fact.
+	Produces cards.ManaProduction
 }
 
 // braceForm normalises a brace-form mana cost ("{2}{U}{U}") to the
@@ -157,21 +169,11 @@ func hasTypeWord(words []string, want string) bool {
 // non-creature of mana value 0 (C5): it can only win against another
 // zero-fact card, and never beats a real read.
 func (b Board) castScore(o decision.Option) int32 {
-	c := b.Cards[o.Obj]
-	var s int32
-	if c.Creature {
-		s = 30 + c.Power*4
-	} else {
-		// A non-creature is ranked by what it does first, by its cost
-		// second: the CMC the bot actually spends plus the value of the
-		// broad class the oracle text places it in (see classifyCard). Cost
-		// alone made a 3-mana counterspell and a 3-mana burn
-		// indistinguishable, so the tie fell to option index -- the
-		// first-offered spell, whatever it did. The class term is
-		// deliberately small relative to the creature term below (a 1/1 at
-		// 34 still outranks the best non-creature this policy can read), so
-		// C1's board-over-one-shots preference survives.
-		s = c.CMC + classValue(classifyCard(c))
+	s := b.cardWorth(o.Obj)
+	if c := b.Cards[o.Obj]; !c.Creature {
+		// Keep the effect-class bonus local to casting: cardWorth also
+		// serves commander-zone choices and must retain its shared contract.
+		s += classValue(classifyCard(c))
 	}
 	switch o.Mode {
 	case "kicked", "surged":
@@ -284,6 +286,25 @@ func classifyCard(c Card) spellClass {
 	return classPlain
 }
 
+// cmdrTaxScale prices each prior command-zone cast by the commander's mana
+// value. Five is the old 20-point penalty normalized to a CMC-4 reference;
+// using the mana axis makes the recast value judgment track its cost.
+const cmdrTaxScale = 5
+
+// cardWorth prices cast desirability, not the usefulness of keeping a hand card.
+func (b Board) cardWorth(id state.ObjID) int32 {
+	c := b.Cards[id]
+	if c.Creature {
+		return 30 + 4*c.Power
+	}
+	return c.CMC
+}
+
+// commandTax shares CR1's mana-value-scaled recast penalty with commander_zone.
+func (b Board) commandTax(id state.ObjID) int32 {
+	return cmdrTaxScale * b.Commanders[id].Casts * b.Cards[id].CMC
+}
+
 // chooseCast is the KPriority cast ranking: it picks ONE of the offered
 // "cast" options, or returns -1 when none is offered. The rules, each
 // stated for what it reads:
@@ -307,20 +328,22 @@ func classifyCard(c Card) spellClass {
 //     scores as a non-creature of mana value 0, a low rank, never a crash.
 //   - CR1 (the command zone is taxed, CR 903.8): a "cast" whose Obj is a
 //     commander currently sitting in its owner's command zone ranks as its
-//     ordinary castScore minus 20 per previous command-zone cast, and an
-//     option scoring below zero is NOT cast at all. The tax is per prior
-//     cast — the extra {2} this very cast pays — so the bot casts its
-//     commander while the creature is still worth the growing outlay, and
-//     stops when the exchange turns losing: a 4/4 is cast up to its third
-//     command-zone cast (46, 26, 6), a 2/2 up to its second, and a
+//     ordinary castScore minus cmdrTaxScale*Casts*CMC — the tax priced on
+//     the commander's own mana value (see the cmdrTaxScale comment), and
+//     an option scoring below zero is NOT cast at all. The tax is per
+//     prior cast, so the bot casts its commander while the recast is
+//     still worth the mana it costs — a cheap commander is recast many
+//     times (a 2/2, CMC 2, scores 38, 28, 18, 8 through its fourth cast
+//     and refuses only the fifth), an expensive one is abandoned early (a
+//     12/12, CMC 12, scores 78, 18 and refuses its third), and a
 //     commander that keeps dying is not re-recruited forever. A commander
 //     cast from the HAND scores as an ordinary card — NoTax (a hand cast
-//     neither costs {2} nor counts), which is the whole reason the rule is
-//     gated on InCommandZone and not on "is a commander". The 20-point
-//     price is five power on the creature scale (30 + 4P), so the first
-//     {2} tax of a 3/3 leaves it worth about a 2/2, and the scale lands
-//     the second recast of a 4/4 just above any spell the bot can read
-//     (26 vs a one-shot's mana value).
+//     neither costs {2} nor counts), which is the whole reason the rule
+//     is gated on InCommandZone and not on "is a commander". This price
+//     is a value judgment on what the recast costs, NOT an affordability
+//     check: the engine already refuses what the pool cannot pay
+//     (rules/cast.go's commanderTaxFor gates the offer), so this is purely
+//     "is the recast still worth bothering with".
 //   - C6 (deterministic tie): ties break on option index, so no map
 //     iteration order reaches the answer.
 //
@@ -335,9 +358,16 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		}
 		s := b.castScore(o)
 		if cmdr, ok := b.Commanders[o.Obj]; ok && cmdr.InCommandZone {
-			s -= 20 * cmdr.Casts
+			// CR1: price the tax on the commander's mana value, not a flat
+			// power-equivalent, so a costly commander is abandoned before a
+			// cheap one. CMC 0 (an unreadable commander, should not happen)
+			// prices the tax at 0 and so casts at its base score (C5's own
+			// degenerate shape); a real commander always carries CMC on both
+			// adapter halves (combat.go's census fills it for the command
+			// zone, and seat/bot.go's boardFromView the same).
+			s -= b.commandTax(o.Obj)
 			if s < 0 {
-				continue // CR1: the tax has made this a losing exchange — do not cast
+				continue // CR1: the recast has priced itself out — do not cast
 			}
 		}
 		if best == -1 || s > bestScore || (s == bestScore && o.Index < best) {
@@ -356,9 +386,8 @@ func (b Board) chooseCast(d *decision.Decision) int {
 //     can carry any of those (enters tapped, pays life, requires a
 //     threshold), and the policy cannot read most of them from the facts
 //     both adapters carry, so the reliable basic is preferred whenever one
-//     is offered. Colour-aware choice — picking the land whose colour the
-//     hand's spells need — is a follow-up (the View does not carry a
-//     nonbasic's produced colour; see the report).
+//     is offered. Colour-aware choice is deliberately deferred: it needs
+//     land-entry facts as well as this card's possible production.
 //   - L2 (deterministic tie): two lands of equal basic-ness tie on option
 //     index, so the answer is a pure function of the options plus the one
 //     readable land fact. No rng, no map order.

@@ -65,7 +65,7 @@ func main() {
 	flag.StringVar(&c.decks, "decks", "internal/testutil/decks", "directory of deck JSON files")
 	flag.IntVar(&c.tables, "tables", 4, "number of tables")
 	flag.IntVar(&c.seats, "seats", 4, "seats per table")
-	flag.DurationVar(&c.pace, "pace", 1500*time.Millisecond, "sleep after every decision; 0 = as fast as possible")
+	flag.DurationVar(&c.pace, "pace", 500*time.Millisecond, "sleep after every decision; 0 = as fast as possible")
 	flag.DurationVar(&c.cooldown, "cooldown", 5*time.Second, "pause between matches on a perpetual table")
 	flag.StringVar(&c.dir, "dir", "gorged-data", "persistence directory")
 	flag.StringVar(&c.spectator, "spectator", "omniscient", "spectator visibility: public or omniscient")

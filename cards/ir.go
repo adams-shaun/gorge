@@ -58,6 +58,7 @@ type Face struct {
 	toughness              int32
 	characteristicDefining bool
 	cmc                    int32
+	manaProduction         ManaProduction
 
 	// colourIdentity is the face's colour identity, a bitmask over the five
 	// colours (see ColourIdentity in face.go), derived once at load from the
