@@ -666,6 +666,45 @@ func gameSeedPair(baseSeed uint64, pos, games, g int) uint64 {
 	return baseSeed + uint64(pos*games+g)
 }
 
+// gamePool is the one shared execution budget for a matrix run. Pair workers
+// submit individual games to it instead of creating a worker pool per pair;
+// therefore -workers bounds live games even when many pairs are active.
+type gamePool struct {
+	jobs chan func()
+	wg   sync.WaitGroup
+}
+
+func newGamePool(workers int) *gamePool {
+	if workers < 1 {
+		workers = 1
+	}
+	p := &gamePool{jobs: make(chan func())}
+	p.wg.Add(workers)
+	for i := 0; i < workers; i++ {
+		go func() {
+			defer p.wg.Done()
+			for job := range p.jobs {
+				job()
+			}
+		}()
+	}
+	return p
+}
+
+func (p *gamePool) submit(job func()) {
+	p.jobs <- job
+}
+
+func (p *gamePool) close() {
+	close(p.jobs)
+	p.wg.Wait()
+}
+
+type gameResult struct {
+	outcome gameOutcome
+	err     error
+}
+
 // playOnePair plays `games` matches of one deck pair and tallies them into a
 // pairResult. Seats trade policies every game (aPlaysSeat), exactly as the
 // single-pair bench does, so the deck a seat holds is fixed for the pair but
@@ -674,6 +713,16 @@ func gameSeedPair(baseSeed uint64, pos, games, g int) uint64 {
 // seeded from gameSeedPair so the whole matrix is a pure function of (base
 // seed, per-pair game count, pair list) and nothing else.
 func playOnePair(baseSeed uint64, pos, games int, aName, bName string, pd pairDef, play pairPlayer, prog *progressWriter) (pairResult, error) {
+	pool := newGamePool(runtime.NumCPU())
+	defer pool.close()
+	return playOnePairWithPool(baseSeed, pos, games, aName, bName, pd, play, prog, pool)
+}
+
+// playOnePairWithPool runs all games concurrently, but folds their slots in
+// ascending game order. The fold is the only place that mutates pairResult,
+// so tallying and the first error remain identical to the old sequential loop
+// regardless of completion order.
+func playOnePairWithPool(baseSeed uint64, pos, games int, aName, bName string, pd pairDef, play pairPlayer, prog *progressWriter, pool *gamePool) (pairResult, error) {
 	var r pairResult
 	r.pd = pd
 	r.games = games
@@ -681,7 +730,12 @@ func playOnePair(baseSeed uint64, pos, games int, aName, bName string, pd pairDe
 	if step > 1000 {
 		step = 1000
 	}
+
+	slots := make([]gameResult, games)
+	var done sync.WaitGroup
+	done.Add(games)
 	for g := 0; g < games; g++ {
+		g := g
 		s := gameSeedPair(baseSeed, pos, games, g)
 		pols := make([]string, 2)
 		for seat := 0; seat < 2; seat++ {
@@ -690,14 +744,21 @@ func playOnePair(baseSeed uint64, pos, games int, aName, bName string, pd pairDe
 				pols[seat] = aName
 			}
 		}
-		oc, err := play(pos, s, pols)
-		if err != nil {
-			// playMatch's error already names the seed; the pair is the
-			// context this frame adds. An intent-cap overrun therefore
-			// surfaces loudly with both the pair and the seed, which is
-			// the liveness signal a matrix run is supposed to catch.
-			return pairResult{}, fmt.Errorf("pair %s: %w", pd, err)
+		pool.submit(func() {
+			defer done.Done()
+			slots[g].outcome, slots[g].err = play(pos, s, pols)
+		})
+	}
+	done.Wait()
+
+	for g, result := range slots {
+		if result.err != nil {
+			// All games have completed, so selecting the first error from the
+			// ordered slots preserves the sequential loop's lowest failing
+			// game, not whichever worker happened to finish first.
+			return pairResult{}, fmt.Errorf("pair %s: %w", pd, result.err)
 		}
+		oc := result.outcome
 		switch {
 		case oc.isStalled():
 			// A stalled game is a distinct outcome -- not a win, not a draw,
@@ -774,6 +835,11 @@ func runPairs(baseSeed uint64, games int, aName, bName string, pairs []pairDef, 
 	if prog == nil {
 		prog = &progressWriter{}
 	}
+	// Pair coordinators share this one game pool. Keeping the execution
+	// budget here prevents a matrix with many pairs from multiplying the
+	// inner game workers.
+	pool := newGamePool(workers)
+	defer pool.close()
 
 	var (
 		next int32
@@ -806,7 +872,7 @@ func runPairs(baseSeed uint64, games int, aName, bName string, pairs []pairDef, 
 				default:
 				}
 				prog.line("pair %d/%d (%s): playing %d games", pos+1, total, pairs[pos], games)
-				r, err := playOnePair(baseSeed, pos, games, aName, bName, pairs[pos], play, prog)
+				r, err := playOnePairWithPool(baseSeed, pos, games, aName, bName, pairs[pos], play, prog, pool)
 				if err != nil {
 					record(err)
 					return
@@ -1318,7 +1384,7 @@ func main() {
 	pairs := flag.String("pairs", "", "deck-pair matrix: \"all\" for every unordered repo-deck pair, or a comma-separated \"a:b,c:d\" list; empty keeps today's single-pair behaviour")
 	format := flag.String("format", "constructed", "construction format: constructed or commander (commander deals commander decks into the command zone, starts at 40 life, and plays for -max-turns before a game is recorded as a stall)")
 	out := flag.String("out", "text", "matrix output format: text or json (json is machine-readable for diffing runs)")
-	workers := flag.Int("workers", 0, "matrix parallelism across pairs; 0 = use all cores (result is deterministic regardless)")
+	workers := flag.Int("workers", 0, "matrix parallelism budget across pairs and games; 0 = use all cores (result is deterministic regardless)")
 	// The two watchdog caps catch different pathologies and must not be
 	// conflated: -max-turns ends a game that runs long in turn count (a cap
 	// a frozen-turn loop never reaches, because its turn number stops);
