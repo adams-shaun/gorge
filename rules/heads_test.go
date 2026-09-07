@@ -93,10 +93,33 @@ import (
 // move; 4 and 8 stay byte-identical to the golden. This contravenes the
 // brief's expectation that every acceptance trajectory changes, and the
 // measurement is reported as the honest cause.
+//
+// The opponents milestone's OWN single regeneration (FL-83; attributed per
+// FL-76). ONE cause, and it moves ONE seat count: botpolicy now declines an
+// Equip whose equipment is already attached to something, instead of
+// re-activating it forever. The no-op detector reads the attachment state
+// (Card.AttachedTo != 0) rather than predicting which creature the target
+// branch will elect -- the previous attempt re-derived the target with the
+// policy's own threat ranking, the two rankings disagreed on the stuck board
+// (obj=41 attachedTo=9 bestOwn=8), and the loop survived.
+//
+// Measured by instrumented replay, not inferred: the 6-seat game's
+// death-n-taxes pilot reaches 21 priority decisions offering an Equip on an
+// already-attached Sword of Fire and Ice, and the new rule declines every
+// one where the position-first block re-activated it. The 2-, 4- and 8-seat
+// games reach ZERO attached-equip decisions, so their heads cannot move and
+// do not: replaying this build with the old position-first block restores
+// all four goldens byte-for-byte. Only the 6-seat head moves
+// (2563530049855042 -> 7a043ce3e84f6f39).
+//
+// This is the second recorded case of a botpolicy change moving a strict
+// subset of the heads, and the subset is exactly the seat counts whose games
+// reach the changed code path -- the same shape D1 found above, arrived at
+// from the opposite direction.
 var acceptanceHeads = map[int]string{
 	2: "630573758e2019a8",
 	4: "609a2c6bfe81f26d",
-	6: "2563530049855042",
+	6: "7a043ce3e84f6f39",
 	8: "2c25aaefa82c95f6",
 }
 
