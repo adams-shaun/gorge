@@ -84,15 +84,28 @@ func TestManaProductionAnyIsHonest(t *testing.T) {
 	}
 }
 
-// TestManaProductionComboKeptOutOfColourSlots is the other conservative
-// case: "Produced$ Combo W U" is a usable choice on the real card, but the
-// engine's executor walks the string's letters into the pool, so it cannot be
-// treated as a reliable {W}{U} colour fixer. The projection flags Any so a
-// policy knows the coloured side is a degraded stand-in, and does not report
-// the W/U its own word's letters happen to emit as dependable colour.
-func TestManaProductionComboKeptOutOfColourSlots(t *testing.T) {
-	mp := mpOf(t, "Name:Shock\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Combo W U | Oracle:x\n")
-	if !mp.Any {
-		t.Error("Combo production must be flagged as flexible/conditional")
+// TestManaProductionComboMirrorsExecutor pins the executor's unusual but
+// real rune-by-rune handling: Combo R G emits its two listed colours plus
+// five colourless runes from "Combo". It remains Any because its script-level
+// choice is not modelled.
+func TestManaProductionComboMirrorsExecutor(t *testing.T) {
+	mp := mpOf(t, "Name:Shock\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Combo R G | Oracle:x\n")
+	if !mp.Any || mp.Colour[3] != 1 || mp.Colour[4] != 1 || mp.Colour[5] != 5 {
+		t.Errorf("Combo R G = %v, want Any with 5C, R, and G", mp)
+	}
+}
+
+// TestManaProductionChosenMirrorsExecutor ensures an unrecognised word is
+// not silently dropped: every rune in Chosen maps to colourless in effMana.
+func TestManaProductionChosenMirrorsExecutor(t *testing.T) {
+	mp := mpOf(t, "Name:Chosen\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Chosen | Oracle:x\n")
+	if !mp.Any || mp.Colour[5] != 6 {
+		t.Errorf("Chosen = %v, want Any with 6 colourless", mp)
+	}
+}
+
+func TestManaProductionAnyIsMostFlexible(t *testing.T) {
+	if got := (ManaProduction{Any: true}).DistinctColours(); got != 5 {
+		t.Errorf("Any DistinctColours = %d, want 5", got)
 	}
 }
