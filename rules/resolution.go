@@ -61,6 +61,16 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 	return true
 }
 
+// Suspended implements effects.Host.Suspended: the resolution is suspended
+// when a mid-resolution ask set e.resume and the answer has not yet arrived
+// to clear it. effects.Resolve checks this after every sub-ability so that a
+// suspended ask stops the SubAbility chain instead of running what sits
+// beneath it (B1). It is the rules-side half of the pairing with Ask: Ask
+// sets e.resume, and handleModes clears it the moment the answer lands, so
+// the resume pass re-enters the chain with nothing suspended and walks the
+// rest of it exactly once.
+func (e *Engine) Suspended() bool { return e.resume != nil }
+
 // handleModes applies an answered KModes decision — the engine's one KModes
 // handler, serving both the Charm modal pick ("modes") and the UnlessCost$
 // may-pay ("unless_pay"), which the decision's ResumeKind tags. It records
@@ -144,6 +154,24 @@ func (e *Engine) resumeResolution(rp resumePoint, chosen []decision.Option) {
 			} else {
 				ctx.UnlessPay = "decline"
 			}
+		case "discard":
+			// A "Mode$ RevealYouChoose" discard (Thoughtseize/Duress) was
+			// answered: the caster picked which object leaves the target's
+			// hand. The chosen options carry the object in Obj (the same
+			// Obj a cleanup-step discard option carries), so the id list is
+			// read straight off them — the one place a mid-resolution answer
+			// moves an object by identity rather than an SVar name, which is
+			// why Ctx carries a Discard []ObjID rather than a Modes []string.
+			// Counter's UnlessCost$ and RearrangeTopOfLibrary (Ponder) can
+			// both reuse this same answer-shape and resume retrofitted onto
+			// their own asking primitive — see task-dc1-brief scope.
+			ids := make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ids = append(ids, o.Obj)
+				}
+			}
+			ctx.Discard = ids
 		default: // "modes"
 			ctx.Modes = modeChoiceNames(rp.sa, chosen)
 		}

@@ -234,11 +234,27 @@ import (
 // identical SHA-256, so no historical log's bytes moved.
 //
 // Ruling FL-90: an attributed regeneration is not a spend against FL-83.
+// dc1, the discard ask, moves ONE head — and the single-seat move is the whole
+// attribution, traced to one card in one game.
+//
+// Only the 8-seat game changes. The gate instrumented it: Duress resolves once,
+// Thoughtseize / Cabal Therapy / Faithless Looting never do, and the game's one
+// ModeChosen belongs to a Charm, not the Duress. So Duress's ask is never even
+// posed — its DiscardValid$ Card.nonCreature+nonLand filter finds nothing
+// eligible in that hand — and the branch correctly discards NOTHING where the
+// old deterministic stand-in took hand[0]. That one card declining to discard
+// is the entire move.
+//
+// The B1/B2/B3 repairs move nothing: the gate measured `3cfab11 + 69cdced` and
+// got this identical 8-seat head, so the mover is the RevealYouChoose feature
+// itself, not the suspension fix that made it safe.
+//
+// Ruling FL-90: an attributed regeneration is not a spend against FL-83.
 var acceptanceHeads = map[int]string{
 	2: "6ade7e2262bc8787",
 	4: "c8cbd9c6b4851767",
 	6: "baafe0b87f436bec",
-	8: "496d277350f64a69",
+	8: "700f85d871d35367",
 }
 
 func TestHeads(t *testing.T) {

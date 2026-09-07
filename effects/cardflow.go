@@ -1,7 +1,10 @@
 package effects
 
 import (
+	"strconv"
+
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -59,24 +62,143 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// effDiscard discards from the top of hand order. Real discard is a choice;
-// M1's decks discard only to the cleanup step and to Delve-style costs, where
-// "first in hand" is deterministic and adequate. Task 20's choice plumbing is
-// where a player-chosen discard would hook in.
+// effDiscard moves cards from a player's hand to their graveyard. Which
+// cards, and who chooses, is driven by the two corpus params that the real
+// discard spells use and that this primitive now reads:
+//
+//   - Mode$ RevealYouChoose (Thoughtseize, Duress): the CASTER — c.Controller,
+//     not the discarding player — looks at the target's hand and chooses which
+//     card is discarded. This is a real mid-resolution ask: the effect poses a
+//     KModes decision over the DiscardValid$-filtered hand, suspends, and on
+//     re-entry discards exactly the card Ctx.Discard names (the continuation
+//     arm in rules/resolution.go set it from the recorded answer). A host
+//     that cannot ask falls back to the deterministic front-card stand-in.
+//   - Mode$ RevealDiscardAll (Cabal Therapy): a FILTER, not a choice. Every
+//     card in the target's hand matching DiscardValid$ is discarded, no ask.
+//   - Mode$ absent (the cleanup step and Delve-style costs): the deterministic
+//     front-of-hand discard NumCards times — right, because those paths have
+//     no player choice to make, and must not become a question.
+//
+// DiscardValid$ is a Forge filter spec ("Card.nonLand", "Card.NamedCard"),
+// evaluated with MatchesSpecFrom (the same resolver effDig uses for
+// ChangeValid$). Its default is "Card". The chooser/target split is what keeps
+// Thoughtseize from letting the opponent pick their own discard.
 func effDiscard(h Host, c *Ctx, sa *cards.SA) {
-	n := Num(h, c, sa, "NumCards", 1)
 	g := h.Game()
+	mode := sa.Params["Mode"]
+	valid := sa.Params["DiscardValid"]
+	if valid == "" {
+		valid = "Card"
+	}
 	for _, t := range Defined(h, c, sa) {
 		p := PlayerOf(h, c, t)
-		for i := int32(0); i < n; i++ {
-			hand := zoneOf(g, state.ZHand, p)
-			if len(hand) == 0 {
-				break
+		hand := zoneOf(g, state.ZHand, p)
+
+		switch mode {
+		case "RevealYouChoose":
+			// Re-entry: the caster's choice was answered and the continuation
+			// set Ctx.Discard to the chosen object(s). Discard exactly those
+			// that sit in this target's hand — a single-target spell resolves
+			// to one card, and the per-hand filter keeps a stray answer from
+			// moving an object that left the hand meanwhile.
+			if c.Discard != nil {
+				for _, id := range c.Discard {
+					if !containsID(hand, id) {
+						continue
+					}
+					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
+						From: state.ZHand, To: state.ZGraveyard, Player: p})
+				}
+				continue
 			}
-			h.Emit(events.Event{Kind: events.MoveZone, Obj: hand[0],
-				From: state.ZHand, To: state.ZGraveyard, Player: p})
+			// First pass: narrow the target's hand to the cards DiscardValid$
+			// allows, then ask the CASTER which to discard.
+			eligible := make([]state.ObjID, 0, len(hand))
+			for _, id := range hand {
+				if MatchesSpecFrom(g, valid, id, c.Controller, c.Source) {
+					eligible = append(eligible, id)
+				}
+			}
+			if len(eligible) == 0 {
+				continue
+			}
+			n := Num(h, c, sa, "NumCards", 1)
+			if n < 1 {
+				n = 1
+			}
+			if int(n) > len(eligible) {
+				n = int32(len(eligible))
+			}
+			opts := make([]decision.Option, 0, len(eligible))
+			for _, id := range eligible {
+				name := "a card"
+				if o := g.Obj(id); o != nil && o.Face() != nil {
+					name = o.Face().Name
+				}
+				opts = append(opts, decision.Option{Index: len(opts), Kind: "discard",
+					Label: "Discard " + name, Obj: id, Player: c.Controller})
+			}
+			d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
+				Min: int(n), Max: int(n), Source: c.Source,
+				ResumeKind: "discard", ResumeSA: sa,
+				Prompt:  "Choose " + strconv.Itoa(int(n)) + " card(s) to discard",
+				Options: opts}
+			if h.Ask(d) {
+				return // resolution suspended; the answer re-enters with Ctx.Discard set.
+			}
+			// Fuzz/no-engine host: the deterministic front-card stand-in
+			// (R-9), with the Note that records why the richer path did not run.
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "discards its first card (no engine host to ask)"})
+			if len(hand) > 0 {
+				h.Emit(events.Event{Kind: events.MoveZone, Obj: hand[0],
+					From: state.ZHand, To: state.ZGraveyard, Player: p})
+			}
+
+		case "RevealDiscardAll":
+			// A FILTER, not a choice (Cabal Therapy): discard every card in
+			// the target's hand that DiscardValid$ allows, no matter what
+			// NumCards$ says. No ask.
+			for _, id := range hand {
+				if MatchesSpecFrom(g, valid, id, c.Controller, c.Source) {
+					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
+						From: state.ZHand, To: state.ZGraveyard, Player: p})
+				}
+			}
+
+		default:
+			// Deterministic discard from the top of hand order. Real discard is
+			// a choice, but the clean-up step and Delve-style costs have no
+			// player to ask and must stay exactly as they were; "first in hand"
+			// is deterministic and adequate there.
+			n := Num(h, c, sa, "NumCards", 1)
+			for i := int32(0); i < n; i++ {
+				// Re-read the hand each iteration (B2): events.remove rebuilds
+				// the zone slice rather than mutating it in place, so a hand
+				// captured once — as this primitive used to — never sees the
+				// card it just moved, and a NumCards$ >= 2 discard emits the
+				// SAME front card N times instead of N distinct cards. Reading
+				// the zone per iteration is what the original pre-hoist code
+				// did, and is what makes the N-card discard honest.
+				cur := zoneOf(g, state.ZHand, p)
+				if len(cur) == 0 {
+					break
+				}
+				h.Emit(events.Event{Kind: events.MoveZone, Obj: cur[0],
+					From: state.ZHand, To: state.ZGraveyard, Player: p})
+			}
 		}
 	}
+}
+
+// containsID reports whether id is present in ids.
+func containsID(ids []state.ObjID, id state.ObjID) bool {
+	for _, v := range ids {
+		if v == id {
+			return true
+		}
+	}
+	return false
 }
 
 // effMill moves cards from the top of a player's library straight to their
