@@ -828,16 +828,28 @@ func runPairs(baseSeed uint64, games int, aName, bName string, pairs []pairDef, 
 	if workers <= 0 {
 		workers = runtime.NumCPU()
 	}
-	if workers > total {
-		workers = total
+	// TWO budgets, deliberately not the same number.
+	//
+	// `workers` is the total live-game budget and is NOT clamped by the pair
+	// count: a one-pair run must still be able to play its games across every
+	// core, which is the whole point of the inner pool. Clamping it here is
+	// what made a single-pair matrix run sequential again -- measured, before
+	// this fix: 1 pair x 40 games took 0.46s at 158% CPU both with and without
+	// the inner pool, because the pool had been sized to 1.
+	//
+	// `coords` is how many pair COORDINATORS to spawn, and there is no use for
+	// more of those than there are pairs.
+	coords := workers
+	if coords > total {
+		coords = total
 	}
 	results := make([]pairResult, total)
 	if prog == nil {
 		prog = &progressWriter{}
 	}
-	// Pair coordinators share this one game pool. Keeping the execution
-	// budget here prevents a matrix with many pairs from multiplying the
-	// inner game workers.
+	// Every pair coordinator submits into this one pool, so the number of
+	// games actually in flight is `workers` no matter how many pairs are
+	// active -- a matrix cannot multiply pair workers by game workers.
 	pool := newGamePool(workers)
 	defer pool.close()
 
@@ -857,8 +869,8 @@ func runPairs(baseSeed uint64, games int, aName, bName string, pairs []pairDef, 
 		mu.Unlock()
 	}
 
-	wg.Add(workers)
-	for w := 0; w < workers; w++ {
+	wg.Add(coords)
+	for w := 0; w < coords; w++ {
 		go func() {
 			defer wg.Done()
 			for {
