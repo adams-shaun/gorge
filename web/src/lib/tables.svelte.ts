@@ -25,9 +25,20 @@ class Tables {
   // Seats for a freshly-seen table: a hello/load for one this client already
   // has richer SeatInfos for (from a match_start frame) must keep them —
   // seat_names is the fallback for the common mid-match spectator arrival,
-  // whose match_start went out before they connected.
+  // whose match_start went out before they connected. The cache only belongs
+  // to the match it came from, though: deck assignment rotates every match
+  // (host/table.go: Decks[(i+k)%len]), so a hello that lands after a
+  // rollover this client missed (disconnected across match_start) carries
+  // the fresh names on the wire and must win over the stale cache. Both
+  // seat-writing paths write TableState.match together with the seats
+  // (hello/load seed it from info.match, match_start/widget from f.match,
+  // which the server always sets from the live match number m.k), so the
+  // comparison is trustworthy — a mismatch means the cache is a different
+  // match's.
   private seedSeats(id: string, info: TableInfo): SeatInfo[] {
-    return this.find(id)?.seats ?? seatsFromInfo(info);
+    const cur = this.find(id);
+    if (cur && cur.match === info.match && cur.seats.length > 0) return cur.seats;
+    return seatsFromInfo(info);
   }
 
   apply(f: Frame) {
