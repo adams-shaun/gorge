@@ -77,7 +77,6 @@ export interface Printing {
 export interface ManaProduction {
   colour: [number, number, number, number, number, number];
   any: boolean;
-  indeterminate?: boolean;
 }
 
 export interface CardView {

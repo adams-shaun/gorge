@@ -1,6 +1,10 @@
 package cards
 
-import "testing"
+import (
+	"encoding/json"
+	"strings"
+	"testing"
+)
 
 // TestManaProductionIndeterminateFlag pins the bl1 distinction between the
 // two honesty flags on a source that mixes a known and an unknown amount:
@@ -28,5 +32,30 @@ func TestManaProductionIndeterminateFlag(t *testing.T) {
 	}
 	if !mp.ProducesColour(1) || mp.ProducesColour(4) {
 		t.Errorf("mixed source must produce blue but not green; got %v", mp.Colour)
+	}
+}
+
+// TestManaProductionJSONOmitsIndeterminate pins that the Indeterminate flag
+// is a server-only field and must not ride the human wire: the web client
+// consumes nothing in ManaProduction, so surfacing it as
+// `indeterminate?: boolean` in protocol.ts is dead payload on every card
+// view that projects a Produces (view/view.go). json:"-" keeps it out of
+// tsgen's jsonName. The Go field stays -- botpolicy/chooseTap and both
+// adapters read it -- but the JSON of a projectable ManaProduction must
+// carry colour and any and never "indeterminate".
+func TestManaProductionJSONOmitsIndeterminate(t *testing.T) {
+	mp := ManaProduction{Colour: [6]int32{0, 1, 0, 0, 0, 0}, Indeterminate: true}
+	blob, err := json.Marshal(mp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(blob)
+	if strings.Contains(s, "indeterminate") {
+		t.Fatalf("marshalled ManaProduction leaked the server-only Indeterminate flag: %s", s)
+	}
+	for _, want := range []string{`"colour":`, `"any":false`} {
+		if !strings.Contains(s, want) {
+			t.Fatalf("marshalled ManaProduction missing %s: %s", want, s)
+		}
 	}
 }
