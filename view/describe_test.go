@@ -92,7 +92,14 @@ func TestDescribeTemplates(t *testing.T) {
 
 func TestDescribeCoversEveryKind(t *testing.T) {
 	g, bear, _ := describeFixture(t)
-	for k := events.GameStart; k <= events.EndCombatReset; k++ {
+	// The bound derives from the enum (events.NumKinds), never a kind name:
+	// the old loop ran to EndCombatReset, which stopped being the last Kind
+	// when TargetsChosen was appended, so the eight kinds after it (CastInfo
+	// through CmdDamage) fell outside the loop and rendered "unknown event"
+	// for months without a single failure. With the bound derived from
+	// NumKinds, appending a Kind and not describing it fails this test by
+	// construction -- no edit to this loop is ever needed again.
+	for k := events.GameStart; int(k) < events.NumKinds; k++ {
 		ev := events.Event{Kind: k, Player: 0, Obj: bear, Amount: 1, IDs: []state.ObjID{bear}, Pairs: [][2]state.ObjID{{bear, bear}}}
 		got := Describe(g, ev)
 		if k == events.ClockTick {
@@ -110,9 +117,16 @@ func TestDescribeCoversEveryKind(t *testing.T) {
 func TestDescribeNeverPanics(t *testing.T) {
 	g, _, _ := describeFixture(t)
 	for _, gg := range []*state.Game{nil, g, state.NewGame(nil)} {
-		for k := events.Kind(0); k < 40; k++ {
-			ev := events.Event{Kind: k, Player: 250, Obj: 1 << 30, Amount: -7, Step: 99, From: 99, To: 99,
-				IDs: []state.ObjID{0, 1 << 30}, Pairs: [][2]state.ObjID{{0, 1 << 30}}}
+		// Every defined Kind plus an over-large tail of undefined values:
+		// Describe must return "unknown event" rather than panic for a kind
+		// it has no case for, even hostile fields. The bound is the enum's
+		// own count plus a fixed guard tail -- the old hardcoded 40 silently
+		// shrank as kinds were appended, until it would have stopped fuzzing
+		// them entirely. The +8 tail keeps a few undefined kind values in
+		// the fuzz; new kinds always land inside the loop.
+		for k := 0; k < int(events.NumKinds)+8; k++ {
+				ev := events.Event{Kind: events.Kind(k), Player: 250, Obj: 1 << 30, Amount: -7, Step: 99, From: 99, To: 99,
+					IDs: []state.ObjID{0, 1 << 30}, Pairs: [][2]state.ObjID{{0, 1 << 30}}}
 			_ = Describe(gg, ev)
 		}
 	}
