@@ -112,16 +112,12 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 // countered; "decline" -- including an affordable-looking "pay" that
 // payMana reports it could not cover -- counters it.
 //
-// The payer default deliberately differs from effCopySpellAbility's: there
-// the default is c.Controller (the resolving effect's controller) because
-// the corpus copy shapes (Chain Lightning, Storm) carry UnlessPayer$ and
-// resolve it to the target's controller. A counterspell charges its tax to
-// the CONTROLLER OF THE COUNTERED SPELL, and the corpus counterspells carry
-// no UnlessPayer$ at all -- so copying that default verbatim would ask the
-// countering player to pay their own counterspell's tax. UnlessPayer$ is
-// still honoured when a card does name one (Reasonable Doubt's
-// ThisTargetedController), and every corpus UnlessPayer$ value resolves to
-// the controller of the first target, so both routes land on the same player.
+// Unlike effCopySpellAbility, the default payer is the first target's
+// controller. UnlessPayer$ is NOT read here. The corpus's targeted Counter
+// shapes name TargetedController or ThisTargetedController, matching that
+// default; untargeted shapes fall back to c.Controller, which does NOT
+// implement general payer selectors such as Player or RememberedController.
+// See AGENTS.md for the unsupported cost, switched and multi-target shapes.
 func effCounter(h Host, c *Ctx, sa *cards.SA) {
 	skip := false
 	if cost := strings.TrimSpace(sa.Params["UnlessCost"]); cost != "" {
@@ -133,9 +129,8 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 			// Re-entry, declined: counter it below.
 		default:
 			// First pass: pose the pay decision to the controller of the
-			// countered spell. The fallback to c.Controller only stands in
-			// for a zero-target degenerate script; the real cards all have
-			// a target.
+			// countered spell. Untargeted scripts fall back to c.Controller;
+			// their explicit UnlessPayer selectors are not implemented.
 			payer := c.Controller
 			if len(c.Targets) > 0 {
 				payer = PlayerOf(h, c, c.Targets[0])
