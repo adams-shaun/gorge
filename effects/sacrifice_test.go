@@ -74,8 +74,8 @@ func TestGatekeeperOfMalakirKickedETBMakesPlayerSacrifice(t *testing.T) {
 	gk := h.g.AddObject(card, 0) // Gatekeeper permanent, controlled by seat 0
 	h.g.Obj(gk.ID).Zone = state.ZBattlefield
 	h.g.SetZone(state.ZBattlefield, 0, append(h.g.Zone(state.ZBattlefield, 0), gk.ID))
-	oppCreature := putBattlefield(h, 1, "Name:Victim\nManaCost:1 B\nTypes:Creature Zombie\nPT:2/2\nOracle:x\n")
 	oppLand := putBattlefield(h, 1, "Name:Swamp\nTypes:Basic Land Swamp\nOracle:x\n")
+	oppCreature := putBattlefield(h, 1, "Name:Victim\nManaCost:1 B\nTypes:Creature Zombie\nPT:2/2\nOracle:x\n")
 
 	// The engine would put the "target player" decision onto the stack and
 	// later resolve the trigger's Execute$ with that chosen target; here the
@@ -100,9 +100,14 @@ func TestGatekeeperOfMalakirKickedETBMakesPlayerSacrifice(t *testing.T) {
 // gate: a player hands over a creature, never their land or artifact.
 func TestSacValidCreatureNeverSacrificesLandOrArtifact(t *testing.T) {
 	h := newHost(t, 2)
-	creature := putBattlefield(h, 1, "Name:Grizzly\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	// Land and artifact go on the battlefield FIRST, in zone order, so a
+	// SacValid$ that is ever dropped (defaulting to "Permanent") would hand
+	// the player's land or artifact over first and fail the assertions below.
+	// Adding the creature first would let both a correct SacValid$ and an
+	// implementation that ignores the filter pass -- the guard is the order.
 	land := putBattlefield(h, 1, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n")
 	artifact := putBattlefield(h, 1, "Name:Sigil\nManaCost:2\nTypes:Artifact\nOracle:x\n")
+	creature := putBattlefield(h, 1, "Name:Grizzly\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 
 	c := &Ctx{Source: 1, Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}}
 	sac := sacrificeParams(map[string]string{"Defined": "Targeted", "SacValid": "Creature"})
@@ -120,15 +125,36 @@ func TestSacValidCreatureNeverSacrificesLandOrArtifact(t *testing.T) {
 }
 
 // TestSacrificePlayerWithNoMatchingPermanentSacrificesNothing: no matching
-// permanent means nothing is sacrificed and nothing crashes.
+// permanent means nothing is sacrificed and nothing crashes. This one must be
+// made to discriminate the fix rather than pass vacuously: on the unmodified
+// base the player target was skipped entirely (t.IsPlayer -> continue), so
+// "nothing happens" was true for the wrong reason. The test therefore runs a
+// positive control first -- the SAME board plus one matching creature, which a
+// working player-target path sacrifices and an absent fix leaves on the
+// battlefield -- and then asserts the no-match board stays untouched.
 func TestSacrificePlayerWithNoMatchingPermanentSacrificesNothing(t *testing.T) {
+	// Positive control: with a matching permanent present, the player-target
+	// path must fire. If this fails, the fix is absent and the no-match
+	// assertions below would be vacuous.
+	{
+		h := newHost(t, 2)
+		land := putBattlefield(h, 1, "Name:Mountainside\nTypes:Basic Land Mountain\nOracle:x\n")
+		creature := putBattlefield(h, 1, "Name:Grizzly\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+		c := &Ctx{Source: 1, Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}}
+		effSacrifice(h, c, sacrificeParams(map[string]string{"Defined": "Targeted", "SacValid": "Creature"}))
+		if sacZone(h, creature) != state.ZGraveyard {
+			t.Fatalf("control: matching creature zone = %v, want graveyard (player-target sacrifice never fired)", sacZone(h, creature))
+		}
+		if sacZone(h, land) != state.ZBattlefield {
+			t.Fatalf("control: land zone = %v, want battlefield", sacZone(h, land))
+		}
+	}
+
+	// The actual no-match case: only a land, SacValid$ Creature -> nothing.
 	h := newHost(t, 2)
 	land := putBattlefield(h, 1, "Name:Mountainside\nTypes:Basic Land Mountain\nOracle:x\n")
-
 	c := &Ctx{Source: 1, Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}}
-	sac := sacrificeParams(map[string]string{"Defined": "Targeted", "SacValid": "Creature"})
-	effSacrifice(h, c, sac)
-
+	effSacrifice(h, c, sacrificeParams(map[string]string{"Defined": "Targeted", "SacValid": "Creature"}))
 	if sacZone(h, land) != state.ZBattlefield {
 		t.Fatalf("land zone = %v, want battlefield", sacZone(h, land))
 	}
@@ -192,6 +218,19 @@ func TestSacrificeDoesNotConsumeRegenerationShield(t *testing.T) {
 		if e.Kind == events.CounterChange && e.Counter == "Shield" {
 			t.Fatalf("sacrifice consumed a regeneration shield: %+v", e)
 		}
+	}
+}
+
+// TestSacrificeOutOfRangePlayerTargetDoesNotPanic: a target-supplied player
+// id that is out of range must be ignored, not crash the table. g.Zone indexes
+// g.zones[zoneIndex(z, p)] and zoneIndex has no bounds check, so without the
+// guard an out-of-range t.Player panics with "index out of range".
+func TestSacrificeOutOfRangePlayerTargetDoesNotPanic(t *testing.T) {
+	h := newHost(t, 2)
+	c := &Ctx{Source: 1, Controller: 0, Targets: []state.Target{{Player: 99, IsPlayer: true}}}
+	effSacrifice(h, c, sacrificeParams(map[string]string{"Defined": "Targeted", "SacValid": "Creature"}))
+	if len(h.log) != 0 {
+		t.Fatalf("expected no events for an out-of-range player target, got %+v", h.log)
 	}
 }
 
