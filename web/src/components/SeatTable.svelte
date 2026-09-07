@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { SeatInfo, View } from '../protocol';
   import { seatColour } from '../lib/colours';
-  import { seatRows, stateLabel, type SeatState } from '../lib/seattable';
+  import { lossCauses, seatRows, stateLabel, type SeatState } from '../lib/seattable';
 
   /**
    * SeatTable is the rail's one table across seats (U4). Rows are seats;
@@ -16,26 +16,33 @@
    *
    * State is drawn in the vocabulary IdentityBar already uses on the felt, so
    * it is learned once: the seat's colour is a left rule, the rule GROWS on
-   * the active seat, priority is the initiative-coloured dot, and a seat that
-   * has lost is struck through. No pill, no second colour, no shouting; the
+   * the active seat, priority changes the name's initiative colour and
+   * underline, and a seat that has lost is struck through. No pill, no
+   * second colour, no shouting; the
    * words themselves live in each row's accessible name.
    *
    * The seat cell is a button because the table also drives the detail pane:
    * pressing a row focuses that seat's hand and zones beneath.
    */
-  let { view, seats = [], focus = null, onFocus }: {
+  let { view, seats = [], focus = null, onFocus, events = [] }: {
     view: View; seats?: SeatInfo[]; focus?: number | null; onFocus: (seat: number) => void;
+    /** the DVR's own event list (EventBody-shaped), read only for player_lost causes (seattable.ts's lossCauses); optional so every existing caller keeps working with no cause shown. */
+    events?: { event: { kind: string; player: number; text?: string } }[];
   } = $props();
 
-  const rows = $derived(seatRows(view, seats));
+  const rows = $derived(seatRows(view, seats, lossCauses(events)));
 
-  // The row says its state with a rule and a dot; the words go here, where a
-  // screen reader and a hover both find them, so the table stays quiet.
-  function describe(name: string, deck: string | null, state: SeatState): string {
+  // The row says its state with a rule and name treatment; the words go here,
+  // where a screen reader and a hover both find them, so the table stays quiet.
+  function describe(name: string, deck: string | null, state: SeatState, lostReason: string | null): string {
     const parts = [name];
     if (deck) parts.push(deck);
-    const word = stateLabel(state);
-    if (word) parts.push(word);
+    if (state === 'lost') {
+      parts.push(lostReason ? `eliminated — ${lostReason}` : 'eliminated');
+    } else {
+      const word = stateLabel(state);
+      if (word) parts.push(word);
+    }
     return parts.join(' — ');
   }
 </script>
@@ -67,13 +74,17 @@
               type="button"
               class="pick"
               aria-pressed={focus === r.seat}
-              title={`${describe(r.name, r.deck, r.state)} — press to show this seat's hand and zones`}
-              aria-label={describe(r.name, r.deck, r.state)}
+              title={`${describe(r.name, r.deck, r.state, r.lostReason)} — press to show this seat's hand and zones`}
+              aria-label={describe(r.name, r.deck, r.state, r.lostReason)}
               onclick={() => onFocus(r.seat)}
             >
-              {#if r.priority}<span class="dot" aria-hidden="true"></span>{/if}
-              <span class="name">{r.name}</span>
+              <span class="name" class:priority={r.priority}>{r.name}</span>
             </button>
+            {#if r.lost}
+              <p class="eliminated" data-eliminated>
+                <span class="eliminated__tag">Eliminated</span>{#if r.lostReason}<span class="eliminated__cause"> — {r.lostReason}</span>{/if}
+              </p>
+            {/if}
           </th>
           <td class="life">{r.life}</td>
           <td class="data num" data-hand-hidden={r.handVisible ? undefined : ''}>{r.hand}</td>
@@ -178,19 +189,18 @@
   tr.selected .pick {
     color: var(--ink);
   }
-  /* Priority is the initiative, and the initiative has its own colour in this
-     palette; repeating the seat hue would say "seat" twice. */
-  .dot {
-    width: 0.4em;
-    height: 0.4em;
-    border-radius: 999px;
-    background: var(--initiative);
-    flex: none;
-  }
+  /* Priority changes paint only: unlike a conditional dot, it cannot move the
+     name or reflow the row. The underline remains visible to readers who do
+     not distinguish the initiative colour. */
   .name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .name.priority {
+    color: var(--initiative);
+    text-decoration: underline 2px dotted;
+    text-underline-offset: 0.16em;
   }
   /* Life is the one place type is a visual element rather than a label
      (design system): interface face, semibold, tabular — a scoreboard column
@@ -216,5 +226,27 @@
   tr.lost .life {
     text-decoration: line-through;
     color: var(--ink-faint);
+  }
+  /* A strikethrough alone reads as "unremarkable" at a glance -- exactly the
+     complaint (survey: "their health doesn't reflect 0", i.e. a dead seat
+     was easy to miss). Forcing life to 0 would state something false (a
+     commander-damage or empty-library loss can happen at any life total), so
+     the fix is a loud WORD instead: danger-coloured, bold, naming the cause
+     the engine actually gave (PlayerLost's own Text) when this client has
+     seen it. */
+  .eliminated {
+    margin: 1px 0 0;
+    padding-left: var(--sp-2);
+    font-size: var(--t-10);
+    color: var(--danger);
+    line-height: 1.3;
+  }
+  .eliminated__tag {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .eliminated__cause {
+    color: color-mix(in srgb, var(--danger) 82%, var(--ink-inst));
   }
 </style>

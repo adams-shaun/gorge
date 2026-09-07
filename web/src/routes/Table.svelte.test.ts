@@ -86,7 +86,11 @@ describe('Table.svelte seat gating (R-E4-4 / R-E4-5)', () => {
     const { html } = render(Table, { props: { table: 't1' } });
 
     expect(html).toContain('data-seat-panel'); // the seat surface is mounted
-    expect(html).toContain('Ari draws a card'); // the transcript renders
+    // The transcript renders the line, AND (Task 3) Ari's own name in Ari's
+    // own seat colour — a strictly stronger check than the line's raw text
+    // alone, which the colour-coding change now splits across markup.
+    expect(html).toContain('draws a card');
+    expect(html).toMatch(/<span class="who[^"]*"[^>]*color:\s*#e5484d[^>]*>Ari<\/span>/);
     expect(html).not.toContain('TOPSECRETVALUEnEVERseen'); // R-E4-5: the token is never rendered
     expect(fakeMatch.shared.lastSeat).toEqual({ seat: 0, token: 'TOPSECRETVALUEnEVERseen' });
 

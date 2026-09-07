@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/adams-shaun/gorge/internal/testutil"
@@ -1021,15 +1022,20 @@ func TestIntentStalledExcludedFromWinRate(t *testing.T) {
 // rest; bench must not fail, and both the stalled game and the finished ones
 // appear in the report.
 func TestIntentCapIsNotAnError(t *testing.T) {
-	var caused, continued bool
+	// bench plays its games in parallel on a pool, so several goroutines run
+	// this synthetic player at once: the two branch flags are atomic because
+	// the assertion below is that BOTH branches were exercised, and a plain
+	// bool written from two games at once is a data race even when every
+	// writer stores the same value.
+	var caused, continued atomic.Bool
 	play := func(seed uint64, _ []string) (gameOutcome, error) {
 		if seed == 0 {
-			caused = true
+			caused.Store(true)
 			// A stall is returned as a normal outcome, not an error: a single
 			// hung game must not abort the whole run.
 			return gameOutcome{stallOn: "intents", turns: 3, intents: 20000}, nil
 		}
-		continued = true
+		continued.Store(true)
 		return gameOutcome{winner: "bot", winnerSeat: 0, turns: 12, intents: 200}, nil
 	}
 	var buf bytes.Buffer
@@ -1037,7 +1043,7 @@ func TestIntentCapIsNotAnError(t *testing.T) {
 		t.Fatalf("bench must not error on an intent-capped game (one hung game should be stepped over): %v", err)
 	}
 	out := buf.String()
-	if !caused || !continued {
+	if !caused.Load() || !continued.Load() {
 		t.Fatalf("synthetic player did not exercise both the stall and the continuation branches")
 	}
 	if !strings.Contains(out, "winner=stalled") || !strings.Contains(out, "winner=bot@0") {
