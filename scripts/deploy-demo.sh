@@ -56,6 +56,14 @@ gorged_pids() {
 	if [ "$SWEEP" != "all" ]; then
 		filter="(:$PUB_PORT|:$OMNI_PORT)[[:space:]]"
 	fi
+	# `|| true` is load-bearing, not defensive noise. grep exits 1 when it
+	# matches nothing, and with `set -o pipefail` that failure becomes the
+	# pipeline's status, which `set -e` then turns into an exit -- from a
+	# command substitution, so the script dies at `pids=$(gorged_pids)`
+	# BEFORE its first line of output: exit 1, no server, no message.
+	# "Nothing is listening" is the ordinary case for a free port, and it is
+	# invisible on 8080/8081 precisely because something is always bound
+	# there. Found by the distill thread deploying a review server to 8082.
 	ss -lptn 2>/dev/null |
 		grep -E "$filter" |
 		grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u |
@@ -63,7 +71,8 @@ gorged_pids() {
 			[ -r "/proc/$pid/comm" ] || continue
 			[ "$(cat "/proc/$pid/comm")" = "gorged" ] || continue
 			echo "$pid"
-		done
+		done || true
+	return 0
 }
 
 stop_all() {
