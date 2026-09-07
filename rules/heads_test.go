@@ -214,11 +214,31 @@ import (
 // instead of one.
 //
 // Ruling FL-90: an attributed regeneration is not a spend against FL-83.
+// dt1, delayed triggers, moves all four — and here a partial move was never
+// available. `playAcceptance` assigns decks as all[i%12], so seat 0 holds
+// death-n-taxes at EVERY seat count, and death-n-taxes runs Flickerwisp. The
+// gate counted register/push/return-from-exile at 2/4/6/8 as 1/1/1, 1/1/1,
+// 3/3/3, 1/1/1: the card fires everywhere, so every head must move.
+//
+// Before this, `effDelayedTrigger` emitted a Note and stopped. Flickerwisp
+// exiled a permanent and never returned it. It now registers into
+// state.Game.Delayed via an appended DelayedRegister event and, on entering the
+// registered phase, fires through the ORDINARY trigger drain (APNAP, raising a
+// real CR 603.3b trigger_order decision when several are waiting) as a
+// DelayedPush minted ability.
+//
+// The append is the part that had to be right: two kinds were appended at
+// ordinals 37/38 AFTER CmdDamage, with no existing kind reordered and no
+// events.Event field added or retyped. The gate hashed the Append encoding of
+// all 37 pre-existing kinds with populated fields on both trees and got
+// identical SHA-256, so no historical log's bytes moved.
+//
+// Ruling FL-90: an attributed regeneration is not a spend against FL-83.
 var acceptanceHeads = map[int]string{
-	2: "1dd3db84ffc3ec86",
-	4: "0ad87b5071c0f6b6",
-	6: "7bb7acac651fffdb",
-	8: "b4bbbba9aee86eff",
+	2: "6ade7e2262bc8787",
+	4: "c8cbd9c6b4851767",
+	6: "baafe0b87f436bec",
+	8: "496d277350f64a69",
 }
 
 func TestHeads(t *testing.T) {

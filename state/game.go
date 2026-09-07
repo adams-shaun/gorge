@@ -61,8 +61,36 @@ type Game struct {
 	// Forge script stem; set at genesis, never mutated, so Clone shares it.
 	Tokens map[string]*cards.Card
 
+	// Delayed holds delayed-trigger registrations (CR 603.7, Mode$ Phase)
+	// that have not yet fired. It is game state -- a delayed trigger is
+	// registered during one resolution and fires later, in general a
+	// different turn, so the registration has to survive the event log to
+	// survive replay, and only events.Apply may write it. Each entry records
+	// the phase it fires in, the source object whose SVar table carries the
+	// Execute$ ability, the controller, and the Remembered captured at
+	// registration. Firing is one-shot: the DelayedPush event removes the
+	// entry, so a delayed trigger fires exactly once. DelayedNext hands out
+	// the registration IDs monotonically so a firing can remove precisely the
+	// registration it belongs to (a source may register several).
+	Delayed     []DelayedTrigger
+	DelayedNext uint32
+
 	// zones is indexed by zoneIndex(z, p); the stack lives in Stack instead.
 	zones [][]ObjID
+}
+
+// DelayedTrigger is one registered delayed triggered ability awaiting its
+// phase. It is reconstructed from the event log by events.Apply's
+// DelayedRegister case, so a replay that folds the logged registrations
+// arrives at the same set. Firing (events.Apply's DelayedPush case) removes
+// the entry, which is what keeps a delayed trigger one-shot.
+type DelayedTrigger struct {
+	ID         uint32
+	Phase      Step
+	Source     ObjID
+	Controller PlayerID
+	Execute    string // the SVar name of the ability to run when it fires
+	Remembered []Target
 }
 
 const startingLife = 20
@@ -141,6 +169,19 @@ func (g *Game) Clone() *Game {
 		c.Objs[i] = g.Objs[i].CloneDeep()
 	}
 	c.Stack = append([]ObjID(nil), g.Stack...)
+	// Delayed is written in place (append on registration, remove on firing),
+	// so a clone must own its own registrations -- sharing the live one's
+	// backing array would let either evolve and corrupt the other (the same
+	// rule as every other mutated slice in this struct). Each entry's
+	// Remembered slice is deep-copied too. DelayedNext is a plain value and
+	// travels with the struct copy above.
+	if g.Delayed != nil {
+		c.Delayed = make([]DelayedTrigger, len(g.Delayed))
+		for i, dt := range g.Delayed {
+			dt.Remembered = append([]Target(nil), dt.Remembered...)
+			c.Delayed[i] = dt
+		}
+	}
 	c.zones = make([][]ObjID, len(g.zones))
 	for i, z := range g.zones {
 		if z != nil {
