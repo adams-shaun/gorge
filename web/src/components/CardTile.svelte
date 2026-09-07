@@ -92,6 +92,17 @@
   let root = $state<HTMLElement | null>(null);
   let anchor = $state<AnchorRect | null>(null);
 
+  // Same lifecycle tie as HandList: when this tile's object no longer exists
+  // (destroyed, bounced, merged into a stacked group) the tile is removed from
+  // the DOM under the pointer and pointerleave never fires; the panel must
+  // close because the object is gone, not wait on a pointer event. On the
+  // board the panel lives inside the tile so it is torn down with it anyway,
+  // but the card prop changing on a kept instance must also close an open
+  // panel — the state is tied to the object existing, whichever way it went.
+  $effect(() => {
+    hover.supervise(card.id, [card]);
+  });
+
   function capture(): void {
     const r = root?.getBoundingClientRect();
     anchor = r ? { left: r.left, top: r.top, right: r.right } : null;
