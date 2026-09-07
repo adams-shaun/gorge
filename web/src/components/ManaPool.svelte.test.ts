@@ -16,6 +16,19 @@ describe('ManaPool', () => {
     expect(drawn(render(ManaPool, { props: { pool: {} } }).html)).toBe('');
   });
 
+  it('a NULL pool renders nothing — a hidden pool is not an error', () => {
+    // view.PlayerView.Pool is nil for every seat but the viewer's own, and
+    // it deliberately carries no omitempty, so it reaches the client as a
+    // literal JSON null (view/view.go: "null-vs-[] is what a client checks
+    // instead"). A public spectator has no seat, so EVERY seat's pool is
+    // null -- which is the ordinary case for the demo on :8080, not an edge.
+    expect(drawn(render(ManaPool, { props: { pool: null } }).html)).toBe('');
+  });
+
+  it('an absent pool renders nothing', () => {
+    expect(drawn(render(ManaPool, { props: { pool: undefined } }).html)).toBe('');
+  });
+
   it('a pool whose every symbol is zero renders nothing', () => {
     expect(drawn(render(ManaPool, { props: { pool: { R: 0, G: 0 } } }).html)).toBe('');
   });
