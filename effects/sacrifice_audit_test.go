@@ -132,12 +132,16 @@ func TestSacrificeCorpusAudit(t *testing.T) {
 	}
 
 	amt := map[string]int{}
+	amtCount := 0
 	optionalAll, rememberAll, validCardAll := 0, 0, 0
-	player := 0
+	player, inherit := 0, 0
 	pAmt, pOptional, pRemember, pValidCard := 0, 0, 0, 0
+	pAmtDist := map[string]int{}
+	inhAmt, inhOptional, inhRemember := 0, 0, 0
 	for _, sa := range sacs {
 		if v := sa.Params["Amount"]; v != "" {
 			amt[v]++
+			amtCount++
 		}
 		if sa.Params["Optional"] == "True" {
 			optionalAll++
@@ -148,21 +152,33 @@ func TestSacrificeCorpusAudit(t *testing.T) {
 		if sa.Params["ValidCard"] != "" {
 			validCardAll++
 		}
-		if sacTargetKind(sa) != "player" {
-			continue
-		}
-		player++
-		if v := sa.Params["Amount"]; v != "" && v != "1" {
-			pAmt++
-		}
-		if sa.Params["Optional"] == "True" {
-			pOptional++
-		}
-		if sa.Params["RememberSacrificed"] != "" {
-			pRemember++
-		}
-		if sa.Params["ValidCard"] != "" {
-			pValidCard++
+		switch sacTargetKind(sa) {
+		case "player":
+			player++
+			if v := sa.Params["Amount"]; v != "" && v != "1" {
+				pAmt++
+				pAmtDist[v]++
+			}
+			if sa.Params["Optional"] == "True" {
+				pOptional++
+			}
+			if sa.Params["RememberSacrificed"] != "" {
+				pRemember++
+			}
+			if sa.Params["ValidCard"] != "" {
+				pValidCard++
+			}
+		case "inherit":
+			inherit++
+			if v := sa.Params["Amount"]; v != "" && v != "1" {
+				inhAmt++
+			}
+			if sa.Params["Optional"] == "True" {
+				inhOptional++
+			}
+			if sa.Params["RememberSacrificed"] != "" {
+				inhRemember++
+			}
 		}
 	}
 	fmt.Printf("\nUnread narrowings on player-targeted sacrifice\n")
@@ -171,8 +187,21 @@ func TestSacrificeCorpusAudit(t *testing.T) {
 	fmt.Printf("  player-targeted Optional$ True                                       = %d\n", pOptional)
 	fmt.Printf("  player-targeted RememberSacrificed$                                  = %d\n", pRemember)
 	fmt.Printf("  player-targeted ValidCard$                                           = %d\n", pValidCard)
+	fmt.Printf("  player-targeted Amount$ != 1 distribution:\n")
+	pks := make([]string, 0, len(pAmtDist))
+	for k := range pAmtDist {
+		pks = append(pks, k)
+	}
+	sort.Strings(pks)
+	for _, k := range pks {
+		fmt.Printf("    %-8s x%d\n", k, pAmtDist[k])
+	}
+	fmt.Printf("\nPlayer-branch upper bound (player + inherit, n=%d)\n", player+inherit)
+	fmt.Printf("  Amount$ != 1               = %d\n", pAmt+inhAmt)
+	fmt.Printf("  Optional$ True             = %d\n", pOptional+inhOptional)
+	fmt.Printf("  RememberSacrificed$        = %d\n", pRemember+inhRemember)
 	fmt.Printf("  any-SA Amount$ != \"\"    = %d  |  Optional$ True = %d  |  RememberSacrificed$ = %d  |  ValidCard$ = %d\n",
-		len(amt), optionalAll, rememberAll, validCardAll)
+		amtCount, optionalAll, rememberAll, validCardAll)
 	fmt.Printf("  Amount$ distribution (any Sacrifice SA):\n")
 	ks := make([]string, 0, len(amt))
 	for k := range amt {
