@@ -151,13 +151,7 @@ func hasTypeWord(words []string, want string) bool {
 // non-creature of mana value 0 (C5): it can only win against another
 // zero-fact card, and never beats a real read.
 func (b Board) castScore(o decision.Option) int32 {
-	c := b.Cards[o.Obj]
-	var s int32
-	if c.Creature {
-		s = 30 + c.Power*4
-	} else {
-		s = c.CMC
-	}
+	s := b.cardWorth(o.Obj)
 	switch o.Mode {
 	case "kicked", "surged":
 		s += 6
@@ -171,6 +165,20 @@ func (b Board) castScore(o decision.Option) int32 {
 // value. Five is the old 20-point penalty normalized to a CMC-4 reference;
 // using the mana axis makes the recast value judgment track its cost.
 const cmdrTaxScale = 5
+
+// cardWorth prices cast desirability, not the usefulness of keeping a hand card.
+func (b Board) cardWorth(id state.ObjID) int32 {
+	c := b.Cards[id]
+	if c.Creature {
+		return 30 + 4*c.Power
+	}
+	return c.CMC
+}
+
+// commandTax shares CR1's mana-value-scaled recast penalty with commander_zone.
+func (b Board) commandTax(id state.ObjID) int32 {
+	return cmdrTaxScale * b.Commanders[id].Casts * b.Cards[id].CMC
+}
 
 // chooseCast is the KPriority cast ranking: it picks ONE of the offered
 // "cast" options, or returns -1 when none is offered. The rules, each
@@ -223,7 +231,6 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		if o.Kind != "cast" {
 			continue
 		}
-		c := b.Cards[o.Obj]
 		s := b.castScore(o)
 		if cmdr, ok := b.Commanders[o.Obj]; ok && cmdr.InCommandZone {
 			// CR1: price the tax on the commander's mana value, not a flat
@@ -233,7 +240,7 @@ func (b Board) chooseCast(d *decision.Decision) int {
 			// degenerate shape); a real commander always carries CMC on both
 			// adapter halves (combat.go's census fills it for the command
 			// zone, and seat/bot.go's boardFromView the same).
-			s -= cmdrTaxScale * cmdr.Casts * c.CMC
+			s -= b.commandTax(o.Obj)
 			if s < 0 {
 				continue // CR1: the recast has priced itself out — do not cast
 			}

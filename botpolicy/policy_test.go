@@ -1,6 +1,7 @@
 package botpolicy
 
 import (
+	"fmt"
 	"math/rand/v2"
 	"testing"
 
@@ -21,7 +22,7 @@ func rng(seed uint64) *rand.Rand {
 // TestChoosePolicy pins the KChoose branch: the offer vocabulary decides
 // the pick, not d.Kind -- "x" takes the highest option (the most an {X}
 // cost can pay for; options ascend), "exile"/"sacrifice"/"discard" (the
-// CR 514.1 cleanup discard, Task D1) take the first Max options, "yes"
+// CR 514.1 cleanup discard, Task D1) rank Max options, "yes"
 // answers yes, and "name"/"type"/"number" take the first offer. Moved here from seat/bot_test.go's TestBotChoosePolicy and
 // rules/testbot_test.go's mirror of it, which were the same test twice
 // (Ruling F7).
@@ -46,11 +47,12 @@ func TestChoosePolicy(t *testing.T) {
 	if got := choose("sacrifice", 2, 1, 1).Choices; len(got) != 1 || got[0] != 0 {
 		t.Fatalf("sacrifice: %v", got)
 	}
-	// CR 514.1 (Task D1): "discard" joins "exile"/"sacrifice" in the
-	// first-Max family. A cleanup discard (Min == Max == hand - 7) must take
-	// the first Max hand cards, the naive policy findings ck/cl name.
-	if got := choose("discard", 9, 2, 2).Choices; len(got) != 2 || got[0] != 0 || got[1] != 1 {
-		t.Fatalf("discard: %v, want the first two", got)
+	discard := decision.Decision{Kind: decision.KChoose, Min: 2, Max: 2, Options: []decision.Option{
+		{Index: 0, Kind: "discard", Obj: 1}, {Index: 1, Kind: "discard", Obj: 2}, {Index: 2, Kind: "discard", Obj: 3},
+	}}
+	b := Board{Cards: map[state.ObjID]Card{1: {Basic: true}, 2: {CMC: 1}, 3: {Creature: true, CMC: 8}}}
+	if got := Decide(b, &discard, r).Choices; len(got) != 2 || got[0] != 1 || got[1] != 2 {
+		t.Fatalf("discard: %v, want both spells, keeping land development", got)
 	}
 	if got := choose("yes", 2, 1, 1).Choices; len(got) != 1 || got[0] != 0 {
 		t.Fatalf("yes/no: %v, want yes", got)
@@ -275,14 +277,22 @@ func TestEveryKind(t *testing.T) {
 	if in := Decide(Board{}, &keepOnly, rng(1)); len(in.Choices) != 1 || in.Choices[0] != 0 {
 		t.Errorf("keep-only mulligan = %+v, want keep", in)
 	}
-	// Bottoming: every option is a "bottom"; take the d.Min lowest-indexed
-	// cards -- Choices [0..Min-1] in ascending index order, no rng.
+	// Bottoming: every option is a "bottom"; bottom the d.Min LEAST valuable
+	// kept cards (chooseWorst), no rng -- so a kept hand keeps its best and
+	// puts its worst on the bottom, not its oldest-held (lowest-indexed).
 	bottoming := decision.Decision{Seq: 7, Player: 0, Kind: decision.KMulligan, Min: 2, Max: 2,
 		Options: []decision.Option{
-			{Index: 0, Kind: "bottom"}, {Index: 1, Kind: "bottom"}, {Index: 2, Kind: "bottom"},
+			{Index: 0, Kind: "bottom", Obj: 100},
+			{Index: 1, Kind: "bottom", Obj: 101},
+			{Index: 2, Kind: "bottom", Obj: 102},
 		}}
-	if in := Decide(Board{}, &bottoming, rng(1)); len(in.Choices) != 2 || in.Choices[0] != 0 || in.Choices[1] != 1 {
-		t.Errorf("bottoming = %+v, want the two lowest-indexed cards in order", in)
+	worstBoard := Board{Cards: map[state.ObjID]Card{
+		100: {Creature: true, Power: 4, CMC: 0}, // cheap — kept
+		101: {CMC: 1},                           // cardWorth 1 — worst, bottomed
+		102: {Creature: true, Power: 2, CMC: 4}, // expensive — bottomed
+	}}
+	if in := Decide(worstBoard, &bottoming, rng(1)); len(in.Choices) != 2 || in.Choices[0] != 1 || in.Choices[1] != 2 {
+		t.Errorf("bottoming = %+v, want the two least valuable cards (obj 101, 102) bottomed", in)
 	}
 
 	// Modes (M2d-2): the first Min options in order, no rng.
@@ -316,40 +326,31 @@ func TestEveryKind(t *testing.T) {
 		}
 	}
 
-	// Trigger optional: the rng coin picks "yes" (index 0) or "no" (index 1)
-	// -- mirrored by drawing the same stream, an exact consumption check.
+	// Trigger optional: no more coin. The policy accepts an optional trigger
+	// (a controller benefit it cannot read), so every seed answers "yes"
+	// (index 0), deterministic rather than a coin.
 	opt := decision.Decision{Seq: 10, Player: 0, Kind: decision.KTriggerOptional, Min: 1, Max: 1,
 		Options: []decision.Option{
 			{Index: 0, Kind: "yes", Obj: 50},
 			{Index: 1, Kind: "no", Obj: 50},
 		}}
-	yeses, nos := 0, 0
 	for seed := uint64(0); seed < 40; seed++ {
-		idx := rng(seed).IntN(2)
 		in := Decide(Board{}, &opt, rng(seed))
-		if len(in.Choices) != 1 || in.Choices[0] != idx {
-			t.Fatalf("seed %d: trigger optional = %+v, want option %d", seed, in, idx)
+		if len(in.Choices) != 1 || in.Choices[0] != 0 {
+			t.Fatalf("seed %d: trigger optional = %+v, want the deterministic accept (option 0, yes)", seed, in)
 		}
-		if idx == 0 {
-			yeses++
-		} else {
-			nos++
-		}
-	}
-	if yeses == 0 || nos == 0 {
-		t.Fatalf("40 seeds produced only %d yeses and %d nos -- the coin never flipped", yeses, nos)
 	}
 }
 
 // TestDeterministic is Ruling P8's point at the policy level: the same rng
 // seed answering the same decision sequence produces identical intents, and
-// a different seed does not produce the same intents everywhere. The
-// sequence deliberately includes the two rng-consuming kinds (KTriggerOrder,
-// KTriggerOptional) and a coin-flip one-shot (KMulligan would need a
-// second option to flip; combat kinds consume no rng at all — B2, see
-// chooseAttackers/chooseBlockers). The seat package keeps a copy of this
-// through Bot, for when a bot whose rng leaked would only show it on paths
-// that draw from it.
+// the rng is still load-bearing somewhere. dp1 made KTriggerOrder and
+// KTriggerOptional deterministic (they no longer draw from the rng), so the
+// one remaining rng consumer in this sequence is the KMulligan keep/mulligan
+// coin (a 1-in-3 mulligan); the combat kinds (KBlockers here) consume no rng
+// at all — B2, see chooseAttackers/chooseBlockers. The seat package keeps a
+// copy of this through Bot, for when a bot whose rng leaked would only show
+// it on paths that draw from it.
 func TestDeterministic(t *testing.T) {
 	seq := []decision.Decision{
 		{Seq: 1, Player: 0, Kind: decision.KBlockers, Min: 0, Max: 3, Options: []decision.Option{
@@ -364,6 +365,9 @@ func TestDeterministic(t *testing.T) {
 		}},
 		{Seq: 3, Player: 0, Kind: decision.KTriggerOptional, Min: 1, Max: 1, Options: []decision.Option{
 			{Index: 0, Kind: "yes"}, {Index: 1, Kind: "no"},
+		}},
+		{Seq: 4, Player: 0, Kind: decision.KMulligan, Min: 1, Max: 1, Options: []decision.Option{
+			{Index: 0, Kind: "keep"}, {Index: 1, Kind: "mulligan"},
 		}},
 	}
 	run := func(seed uint64) []decision.Intent {
@@ -393,15 +397,17 @@ func TestDeterministic(t *testing.T) {
 		}
 	}
 
-	c := run(8)
-	allSame := true
-	for i := range seq {
-		if !same(a[i], c[i]) {
-			allSame = false
-		}
+	// The same seed is deterministic (above); the together-with-other-kinds
+	// note is that the rng is still consumed SOMEWHERE -- the KMulligan coin
+	// -- so across a spread of seeds the outcome sequence is not constant.
+	// KTriggerOrder/KTriggerOptional/KBlockers are now deterministic, so this
+	// is the one load-bearing rng path left in the sequence.
+	seen := map[string]bool{}
+	for s := uint64(0); s < 64; s++ {
+		seen[fmt.Sprint(run(s))] = true
 	}
-	if allSame {
-		t.Fatal("seeds 7 and 8 produced identical intents on every decision -- the rng may not be load-bearing")
+	if len(seen) < 2 {
+		t.Fatal("64 seeds produced a single identical outcome sequence -- the rng stream is not load-bearing")
 	}
 }
 
