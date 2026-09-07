@@ -1,19 +1,41 @@
 <script lang="ts">
   import type { DvrState } from '../lib/dvr';
+  import { visibleLog } from '../lib/logfilter';
 
-  /** Transcript is the rules log: one line per event, the cursor's line highlighted and scrolled into view, clicking a line scrubs to it. Lines with no text (state-only events) are skipped. */
+  /**
+   * Transcript is the rules log: one line per event, the cursor's line
+   * highlighted and scrolled into view, clicking a line scrubs to it. Lines
+   * with no text (state-only events) are skipped. The three engine-noise
+   * kinds (priority, decision_ask, decision_made) are hidden by default so
+   * land plays, casts and triggers surface; the toggle reveals them.
+   */
   let { dvr, onSeek }: { dvr: DvrState; onSeek: (seq: number) => void } = $props();
 
   let container: HTMLDivElement | undefined;
-  const lines = $derived(dvr.events.filter((e) => e.line));
+  let revealAll = $state(false);
+  const lines = $derived(visibleLog(dvr.events, revealAll));
 
   $effect(() => {
+    // The cursor is always a valid DVR target, but if it landed on a hidden
+    // line there is no rendered row to bring into view, so the log simply
+    // stays put; revealing all brings that row back and the scroll resumes.
     const seq = dvr.cursor;
     container?.querySelector<HTMLElement>(`[data-seq="${seq}"]`)?.scrollIntoView({ block: 'nearest' });
   });
 </script>
 
 <div class="transcript" bind:this={container}>
+  <div class="bar">
+    <span class="note">Engine noise (priority &amp; decisions) hidden by default.</span>
+    <button
+      type="button"
+      class="toggle"
+      aria-pressed={revealAll}
+      onclick={() => (revealAll = !revealAll)}
+    >
+      {revealAll ? 'Hide engine noise' : 'Show everything'}
+    </button>
+  </div>
   {#each lines as e (e.event.seq)}
     <button
       type="button"
@@ -33,6 +55,33 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
+    border-bottom: 1px solid var(--edge-inst);
+    font-size: .72rem;
+    flex: none;
+  }
+  .note {
+    color: var(--ink-faint);
+  }
+  .toggle {
+    background: none;
+    border: 1px solid var(--edge-inst);
+    border-radius: 4px;
+    color: var(--ink-inst);
+    font: inherit;
+    padding: 2px var(--sp-3);
+    cursor: pointer;
+    flex: none;
+  }
+  .toggle:hover {
+    border-color: var(--ink-dim);
+    color: var(--ink);
   }
   .line {
     display: flex;
