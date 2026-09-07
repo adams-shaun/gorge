@@ -54,7 +54,10 @@
           "exile": [],
           "pool": {
             "R": 1
-          }
+          },
+          "command": null,
+          "commanders": null,
+          "commander_casts": null
         }
       ],
       "stack": [
