@@ -125,6 +125,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 	clear(b.Cards)
 	clear(b.Commanders)
 	b.IsMain = g.Step.IsMain()
+	b.Pool = g.Players[me].Pool
 	for i := range g.Players {
 		p := &g.Players[i]
 		b.Life[p.ID] = p.Life
@@ -189,7 +190,16 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 	// view side, fills the same fact with the same function (CmcOf,
 	// hasTypeWord), so a card ranks identically on both halves — including
 	// a commander sitting in the command zone, which is why the casting
-	// rule can read its power and mana value like any other castable.
+	// rule can read its power and mana value like any other castable. The
+	// zone walk also fills the two tap-gate facts (tap.go, T1): ManaCost is
+	// the printed cost the gate re-parses for coloured pips, and Castable
+	// is the zone membership that says whether a card is worth mana at all
+	// — true for a hand card (the engine offers its cast as soon as the
+	// pool pays the cost), true for the command zone (a commander the CR
+	// 903.8 tax prices), true for a graveyard card with the Flashback
+	// keyword (derived, mirroring rules/legal.go's own flashback gate read
+	// off the same Derived keyword list the View projects), and false for
+	// the battlefield, whose permanents are already cast.
 	for _, z := range [...]state.Zone{state.ZHand, state.ZGraveyard, state.ZBattlefield, state.ZCommand} {
 		for _, id := range g.Zone(z, me) {
 			o := g.Obj(id)
@@ -206,6 +216,8 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				CMC:        CmcOf(f.ManaCost),
 				Basic:      hasTypeWord(f.Types, "Basic"),
 				AttachedTo: o.AttachedTo,
+				ManaCost:   f.ManaCost,
+				Castable:   z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(ch.Keywords(id))),
 			}
 		}
 	}
