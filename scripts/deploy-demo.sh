@@ -11,7 +11,12 @@ BIN=${BIN:-bin/gorged}
 DECKS=${DECKS:-internal/testutil/decks}
 TABLES=${TABLES:-4}
 SEATS=${SEATS:-4}
-PACE=${PACE:-1.5s}
+# Wall-clock delay gorged inserts per decision. 1.5s was chosen when the
+# demo was something you glanced at; watching a game actually play needs it
+# an order of magnitude tighter. Override for a single deploy with
+# `PACE=1.5s make deploy-demo` -- the flag itself has always been there,
+# it was the default that made the demo feel fixed.
+PACE=${PACE:-250ms}
 # Two Commander tables and two constructed ones, so the overview's
 # per-format sections both have something in them. The list is cycled over
 # the tables, so this is exactly "half and half" at -tables 4.
