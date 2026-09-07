@@ -73,6 +73,19 @@ describe('manaSymbols', () => {
     expect(manaSymbols(undefined as unknown as string)).toEqual([]);
   });
 
+  it('no parsed pip ever contains a space — the token grammar is whitespace-split, so a literal space in the colour string stays inert (Ruling C12)', () => {
+    // The colour constant once read "WUBR G": the space could never reach a
+    // token because tokens are whitespace-delimited, but a future reader
+    // could depend on the constant as a plain string. Pin the invariant that
+    // keeps such a typo harmless: no symbol's authored text carries a space.
+    const samples = ['1 W', 'W/U 2W GUP', 'X G G', 'CW CG', '2/B 2G', '10 2', 'no cost', 'PRG RWP'];
+    for (const cost of samples) {
+      for (const s of manaSymbols(cost)) {
+        expect(s.text, `${cost} -> ${s.text}`).not.toMatch(/\s/);
+      }
+    }
+  });
+
   describe('unknown pips guard', () => {
     it('renders an unknown pip instead of blanking the whole cost', () => {
       const s = manaSymbols('W 2W NOPE G');

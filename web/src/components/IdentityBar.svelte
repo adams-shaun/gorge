@@ -1,16 +1,32 @@
 <script lang="ts">
   import type { PlayerView, SeatInfo } from '../protocol';
+  import { commanderDamageOf } from '../lib/commander';
 
   /**
    * IdentityBar sits at one seat's outer corner: who, life centred big, the
    * zone counts, an outline while active, a dot while holding priority,
    * strike-through once lost. data-seat carries the seat index (not the seat
    * prop below, which is that seat's SeatInfo) for Task 22's arrows.
+   *
+   * Under life sits the second clock, commander damage (CR 903.10): one line
+   * per commander that has actually hurt this seat, each with its own amount
+   * and its own danger state — never a sum, because 11 from two different
+   * commanders is not the 22 that is lethal. 21 from any single commander
+   * is lethal regardless of life total, so the clock must read next to the
+   * life it ignores; `players` is the match-wide roster commanderDamageOf
+   * resolves dealer names from. The block renders nothing when the seat has
+   * taken no commander damage.
    */
-  let { player, seat, colour, active, priority, corner }: {
+  let { player, seat, colour, active, priority, corner, players = [] }: {
     player: PlayerView; seat?: SeatInfo; colour: string; active: boolean; priority: boolean;
     corner: 'tl' | 'tr' | 'bl' | 'br' | 'l' | 'r';
+    players?: PlayerView[];
   } = $props();
+
+  // The commander clock, resolved once per render: one entry per commander
+  // that has dealt this seat damage (CR 903.10), never summed across
+  // commanders — 11 + 11 is two entries, 21 from one is lethal.
+  const cmdDamage = $derived(commanderDamageOf(player, players));
 
   // The table knows a seat's name; a bare host that never registered one does
   // not, and PlayerView always carries a name of its own. Falling straight
@@ -41,6 +57,25 @@
   </div>
   {#if deck}<div class="deck">{deck}</div>{/if}
   <div class="life">{player.life}</div>
+  {#if cmdDamage.length > 0}
+    <div class="cmd" data-commander-damage>
+      <span class="cmd-h">Commander</span>
+      {#each cmdDamage as d (d.id)}
+        <div
+          class="cmd-row"
+          class:crit={d.crit && !d.lethal}
+          class:lethal={d.lethal}
+          data-cmd-damage={d.id}
+          data-cmd-amount={d.amount}
+          data-cmd-state={d.lethal ? 'lethal' : d.crit ? 'critical' : 'low'}
+          title="{d.amount} commander damage from {d.name} — {d.lethal ? 'lethal (CR 903.10)' : d.crit ? 'two or fewer from lethal' : ''}"
+        >
+          <span class="cmd-name">{d.name}</span>
+          <span class="cmd-amount data">{d.amount}</span>
+        </div>
+      {/each}
+    </div>
+  {/if}
   <dl class="counts">
     <div><dt>Library</dt><dd class="data">{player.library_size}</dd></div>
     <div><dt>Hand</dt><dd class="data">{player.hand_size}</dd></div>
@@ -109,6 +144,59 @@
     line-height: 1.05;
     margin: var(--sp-1) 0 var(--sp-2);
     font-variant-numeric: tabular-nums;
+  }
+  /* The second clock. It shares life's corner because it overrides life
+     completely: 21 from one commander is lethal whatever the number beside
+     it says, so the two must be read as one pair, not cross-referenced
+     across panels. Each commander is its own row with its own state. */
+  .cmd {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin: calc(var(--sp-1) * -1) 0 var(--sp-2);
+    text-align: left;
+  }
+  .cmd-h {
+    font-size: var(--t-10);
+    color: var(--ink-faint);
+    letter-spacing: 0.02em;
+  }
+  .cmd-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--sp-2);
+    font-size: var(--t-12);
+    line-height: 1.4;
+    color: var(--ink-inst);
+    border-left: 2px solid transparent;
+    padding-left: 0.3em;
+  }
+  .cmd-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .cmd-amount {
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+    flex: none;
+  }
+  /* 19–20: two or fewer points from lethal; the seat rule is already the
+     danger hue the client reserves for a clock that is nearly done. */
+  .cmd-row.crit {
+    color: var(--danger);
+    font-weight: 600;
+    border-left-color: var(--danger);
+  }
+  /* 21+: lethal. A game state that can only exist until the next state-based
+     action, so it is drawn as already over. */
+  .cmd-row.lethal {
+    background: var(--danger);
+    color: var(--mana-w);
+    font-weight: 600;
+    border-left-color: var(--felt-sunk);
   }
   /* Labels are words and read in the interface face; the counts beside them
      are values and read in the data face. Mono is for values, never for
