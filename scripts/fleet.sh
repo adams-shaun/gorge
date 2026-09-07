@@ -28,8 +28,12 @@ die() { echo "fleet: $*" >&2; exit 1; }
 # agent's `gorged-after` build does not read as "gorged" -- which is why the
 # port, not the name, is the index.
 port_owner() {
+	# `|| true`: grep exits 1 on no match, and under `set -o pipefail` +
+	# `set -e` that kills the caller from inside a command substitution. A
+	# port with nothing on it is the ordinary case here.
 	ss -lptn 2>/dev/null | grep -E "127.0.0.1:$1[[:space:]]|\*:$1[[:space:]]" |
-		grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u
+		grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u || true
+	return 0
 }
 
 lane_for() {
