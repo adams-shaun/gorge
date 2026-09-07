@@ -386,6 +386,13 @@ func TestCommanderFormatSurvivesARestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer r2.Close()
+	// The restored table still answers its format on the wire: a commander
+	// table rebuilt from tables.json must report "commander", not degrade
+	// to the zero-value constructed name.
+	tbls := r2.Tables()
+	if len(tbls) != 1 || tbls[0].ID != "t1" || tbls[0].Format != "commander" {
+		t.Fatalf("restored table format = %+v, want t1/commander", tbls)
+	}
 	ms, err := r2.Matches("t1")
 	if err != nil || len(ms) != 1 || ms[0].State != protocol.MatchFinished {
 		t.Fatalf("after restart: %+v, %v", ms, err)

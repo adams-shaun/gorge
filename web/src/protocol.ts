@@ -34,6 +34,7 @@ export interface TableInfo {
   state: string;
   match: number;
   perpetual: boolean;
+  format: string;
 }
 
 export interface Hello {
