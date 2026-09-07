@@ -716,6 +716,13 @@ const chooseCleanup chooseFor = iota + 4
 // here only after EVERY part of the cleanup -- the discard and the 514.2
 // body -- has run, so the step is never advanced mid-cleanup.
 func (e *Engine) discardCleanup(chosen []decision.Option) {
+	// Matching the cast flows (cast.go), clear the choosing marker this flow
+	// itself set in cleanupStep: once the discard answer is recorded there is
+	// no pending choose anymore, and leaving chooseCleanup behind would let a
+	// later KChoose answered with no flow waiting route into the destructive
+	// discard path (handleChoose's default arm is the no-flow fallback and
+	// expects chooseNone here).
+	e.choosing = chooseNone
 	for _, opt := range chosen {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: opt.Obj,
 			From: state.ZHand, To: state.ZGraveyard, Player: e.G.Active})

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -245,6 +246,81 @@ func Test3141DiscardedCardsAreTheIntentNamed(t *testing.T) {
 	}
 	if gySet[hand[0]] {
 		t.Fatalf("an un-named first card %d was discarded (engine must honour the intent, not grab the first N)", hand[0])
+	}
+}
+
+// Test3141ChoosingIsClearedByDiscardCleanup pins that answering the cleanup
+// discard does NOT leave e.choosing = chooseCleanup behind (Task D1 finding
+// 1). cleanupStep sets e.choosing before it asks and discardCleanup must set
+// it back to chooseNone, the invariant the cast flows maintain explicitly
+// (cast.go: e.cast, e.choosing = nil, chooseNone at the end of their flow).
+// A stale chooseCleanup sitting in the engine would turn handleChoose's
+// no-flow default -- which is supposed to catch a KChoose answered with no
+// flow waiting and emit a harmless Note -- into a second, destructive
+// discardCleanup run (it would move the cards hand -> graveyard, run the CR
+// 514.2 body, and advance the step, i.e. a defensive fallback became a
+// destructive one).
+func Test3141ChoosingIsClearedByDiscardCleanup(t *testing.T) {
+	e := layerEngine(t)
+	e.G.Active = 0
+	e.G.Step = state.StepCleanup
+	// Two extra cards -> hand of 9 at cleanup, so a discard IS asked.
+	onHand(t, e, 0, "Name:Axe\nManaCost:1\nTypes:Artifact\nOracle:x\n")
+	onHand(t, e, 0, "Name:Mace\nManaCost:1\nTypes:Artifact\nOracle:x\n")
+
+	e.priorityRound()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "discard" {
+		t.Fatalf("expected a cleanup discard decision, got %+v", d)
+	}
+	// While the discard is pending the choosing marker must be chooseCleanup.
+	if e.choosing != chooseCleanup {
+		t.Fatalf("choosing during pending discard = %v, want chooseCleanup", e.choosing)
+	}
+	// Answer it, then assert the marker is cleared -- the fix under test.
+	hand := e.G.Zone(state.ZHand, 0)
+	submitDiscard(t, e, hand[len(hand)-2], hand[len(hand)-1])
+	if e.choosing != chooseNone {
+		t.Fatalf("choosing after the discard answer = %v, want chooseNone (a stale chooseCleanup would make a later no-flow choose hit the destructive discardCleanup instead of the Note fallback)", e.choosing)
+	}
+
+	// Prove the downstream consequence behaviourally: a KChoose answered with
+	// no flow waiting must still take handleChoose's Note fallback, exactly
+	// as it did before CR 514.1 existed. We hand-build the pending decision
+	// the way handleChoose's default-arm comment describes ("only reachable
+	// from a hand-built decision"), naming a real remaining hand card as the
+	// discard option. With a correct reset this hits the default (a Note is
+	// emitted and the hand is untouched); the pre-fix stale chooseCleanup
+	// instead routes it into discardCleanup, which would move that card out
+	// of the hand, re-run the CR 514.2 body and advance the step -- so the
+	// hand check below fails.
+	keep := e.G.Zone(state.ZHand, 0)
+	if len(keep) == 0 {
+		t.Fatal("no hand cards left to protect from a no-flow choose")
+	}
+	stray := &decision.Decision{Player: 0, Kind: decision.KChoose, Min: 0, Max: 1,
+		Options: []decision.Option{{Kind: "discard", Label: "Discard the kept card", Obj: keep[0], Player: 0}}}
+	e.pending = stray
+	if err := e.Submit(decision.Intent{Seq: 0, Player: 0, Choices: []int{0}}); err != nil {
+		t.Fatalf("submit no-flow choose: %v", err)
+	}
+	var noted bool
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note {
+			noted = true
+		}
+	}
+	if !noted {
+		t.Fatal("a no-flow choose answer did not take the Note fallback")
+	}
+	handAfter := e.G.Zone(state.ZHand, 0)
+	if len(handAfter) != len(keep) {
+		t.Fatalf("a no-flow choose changed the hand (%d -> %d): it was routed into discardCleanup by a stale choosing marker", len(keep), len(handAfter))
+	}
+	for _, id := range keep {
+		if len(e.G.Zone(state.ZGraveyard, 0)) == 1 && e.G.Zone(state.ZGraveyard, 0)[0] == id {
+			t.Fatalf("no-flow choose discarded a kept hand card %d into the graveyard (the stale choosing marker routed into discardCleanup); remaining hand %v", id, handAfter)
+		}
 	}
 }
 
