@@ -52,6 +52,8 @@ help:
 	@echo "  make test-web       — run web/'s Vitest suite"
 	@echo "  make lint-web       — svelte-check and eslint over web/"
 	@echo "  make test lint cover"
+	@echo "  make conformance    — run the CR 601 suite (KNOWN-RED; failing today is the \
+expected outcome — see the target's comment)"
 	@echo "  NOTE: make test-web / npm test needs Node >=22 (vitest 5); see web/README.md"
 
 .PHONY: build
@@ -123,6 +125,25 @@ gentypes:
 .PHONY: test
 test:
 	go test $(GO_TEST_FLAGS) ./...
+
+# conformance runs the CR 601 conformance suite (rules/cr601_conformance_test.go)
+# as an OPT-IN, KNOWN-RED lane. Those tests are RED BY DESIGN: they pin unfixed
+# defects (I-2: cast legality is checked AFTER committing, so an illegal target
+# is taken before the cost is paid and only then reversed; I-7: a counterspell
+# with only itself on the stack fizzles rather than counter itself, whose
+# current assertion pins graveyard card-loss that CR 733.1 says is wrong). They
+# are gated behind GORGE_CR_CONFORMANCE=1 precisely because a PASS here means a
+# defect got fixed and the corresponding opt-in guard should be REMOVED -- so
+# failure TODAY is the expected outcome, not a regression, and a green run is
+# the signal to act, not a reason to celebrate.
+#
+# It is intentionally NOT reachable from `make test`, `go test ./...`, or any
+# default gate (there is no CI here): wiring it into the default tree would make
+# the tree red by construction, strictly worse than the status quo.
+.PHONY: conformance
+conformance:
+	@echo "== CR 601 conformance: KNOWN-RED lane — failure is the EXPECTED outcome today; a PASS means a defect (I-2/I-7) was fixed and the opt-in guard should be removed =="
+	GORGE_CR_CONFORMANCE=1 go test $(GO_TEST_FLAGS) -count=1 ./rules -run TestCR601 -v
 
 # gc-gate budgets the share of consumed CPU a package's tests spend collecting
 # garbage. GC_PROCS pins GOMAXPROCS so the figure is a property of the code
