@@ -48,6 +48,37 @@ lane_for() {
 	esac
 }
 
+# seat_kind says which harness is driving a seat and, for the ones the
+# dashboard cannot see, when it last did anything.
+#
+# The monitor at :8765 globs <repo>/.worktrees/*/.ds4/{transcripts,pi-sessions}
+# for its jsonl, so it shows pi and ds4 seats only. A CLAUDE subagent -- which
+# is what visual tasks get, deliberately -- writes none of those files and is
+# therefore invisible there, permanently and by construction, not because
+# anything went wrong. That is worth stating in the one place someone goes to
+# ask "where is my agent", rather than leaving them to conclude it died.
+seat_kind() {
+	local wt="$ROOT/.worktrees/$1"
+	[ -d "$wt" ] || { echo "no worktree"; return 0; }
+	if compgen -G "$wt/.ds4/pi-sessions/*.jsonl" >/dev/null 2>&1 ||
+		compgen -G "$wt/.ds4/transcripts/*.jsonl" >/dev/null 2>&1; then
+		echo "pi/ds4 — on the dash :8765"
+		return 0
+	fi
+	# Newest file it has written, excluding the two directories that churn
+	# for reasons unrelated to the agent (node_modules is copied wholesale;
+	# .git moves on every command run against the worktree).
+	local newest age
+	newest=$(find "$wt" \( -name node_modules -o -name .git \) -prune -o -type f -printf '%T@\n' 2>/dev/null |
+		sort -rn | head -1 | cut -d. -f1)
+	if [ -n "$newest" ]; then
+		age=$(( ( $(date +%s) - newest ) / 60 ))
+		echo "Claude subagent — NOT on the dash; wrote ${age}m ago"
+	else
+		echo "Claude subagent — NOT on the dash; no writes yet"
+	fi
+}
+
 cmd_status() {
 	echo "fleet status — you are the '$THREAD' thread"
 	echo
@@ -59,7 +90,10 @@ cmd_status() {
 	echo "== seats ($(ls "$SEATS" 2>/dev/null | wc -l)/$MAX_SEATS claimed)"
 	if [ -n "$(ls -A "$SEATS" 2>/dev/null)" ]; then
 		for s in "$SEATS"/*; do
-			printf '  %-28s %s\n' "$(basename "$s")" "$(cat "$s/why" 2>/dev/null || echo '')"
+			local name id
+			name=$(basename "$s")
+			id=${name#*-}
+			printf '  %-22s %-38s %s\n' "$name" "$(seat_kind "$id")" "$(cat "$s/why" 2>/dev/null || echo '')"
 		done
 	else
 		echo "  (none)"
