@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CardView, PlayerView, SeatInfo, View } from '../protocol';
-import { focusSeat, seatRows, seatStateOf, stateLabel } from './seattable';
+import { focusSeat, lossCauses, seatRows, seatStateOf, stateLabel } from './seattable';
 
 const card = (id: number, name: string): CardView => ({
   id, name, types: 'Legendary Creature', tapped: false, power: 0, toughness: 0, damage: 0,
@@ -95,6 +95,43 @@ describe('seatRows', () => {
   it('reads a null graveyard through the _size fallback rather than counting an absent array', () => {
     const v = view({ players: [player({ seat: 0, graveyard: null as unknown as CardView[], graveyard_size: 4 })] });
     expect(seatRows(v, [])[0].graveyard).toBe(4);
+  });
+
+  it('a live seat carries no elimination cause, whatever the events say', () => {
+    const v = view({ players: [player({ seat: 0, lost: false })] });
+    const rows = seatRows(v, [], { 0: 'life total is 0 or less' });
+    expect(rows[0].lostReason).toBeNull();
+  });
+
+  it('a lost seat surfaces the cause this client actually saw — never a fake "0 life"', () => {
+    const v = view({ players: [player({ seat: 0, life: 39, lost: true })] });
+    const rows = seatRows(v, [], { 0: 'commander damage (21 or more from one commander)' });
+    expect(rows[0].life).toBe(39); // the true, untouched life total — not forced to 0
+    expect(rows[0].lostReason).toBe('commander damage (21 or more from one commander)');
+  });
+
+  it('a lost seat with no matching event in this client\'s history reads lost with no invented cause', () => {
+    const v = view({ players: [player({ seat: 0, lost: true })] });
+    expect(seatRows(v, [])[0].lostReason).toBeNull();
+  });
+});
+
+describe('lossCauses', () => {
+  it('maps a seat to the PlayerLost event\'s own Text', () => {
+    const events = [
+      { event: { kind: 'life_change', player: 0, text: undefined } },
+      { event: { kind: 'player_lost', player: 2, text: 'drew from an empty library' } },
+    ];
+    expect(lossCauses(events)).toEqual({ 2: 'drew from an empty library' });
+  });
+
+  it('a player_lost event with no text (a malformed or fuzz event) is not recorded as a cause', () => {
+    const events = [{ event: { kind: 'player_lost', player: 1, text: '' } }];
+    expect(lossCauses(events)).toEqual({});
+  });
+
+  it('an empty transcript yields no causes at all', () => {
+    expect(lossCauses([])).toEqual({});
   });
 });
 
