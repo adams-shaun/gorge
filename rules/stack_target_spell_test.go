@@ -107,7 +107,7 @@ func TestTargetTypeSpellOffersOnlyStackObjectsAndCounters(t *testing.T) {
 		}
 	}
 	// 2. The spell on the stack IS offered, and the counterspell itself is
-	// NOT: CR 114.4 makes a spell on the stack an illegal target for itself,
+	// NOT: CR 115.5 makes a spell on the stack an illegal target for itself,
 	// and askTarget runs after PutOnStack, so the counterspell's own id is
 	// sitting in the stack zone next to the Bear it should be able to hit.
 	spellIdx := -1
@@ -144,7 +144,7 @@ func TestTargetTypeSpellOffersOnlyStackObjectsAndCounters(t *testing.T) {
 	}
 }
 
-// TestCounterspellWithOnlyItselfOnStackFizzles pins CR 114.4's consequential
+// TestCounterspellWithOnlyItselfOnStackFizzles pins CR 115.5's consequential
 // arm: when a counterspell is cast with NOTHING else on the stack, the only
 // candidate for its "Select target spell" prompt is itself. It must not be
 // offered and the spell must fizzle -- no KTarget decision ever handed to the

@@ -192,7 +192,7 @@ import (
 // "target spell" ask searched the battlefield, so Mana Leak was offered every
 // permanent, resolved, and effCounter no-opped on o.Zone != ZStack. They now
 // find spells, and a spell is no longer offered as a target of itself
-// (CR 114.4).
+// (CR 115.5).
 //
 // Measured per seat count, `countered` MoveZone events and Counter resolves:
 //
