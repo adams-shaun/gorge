@@ -30,7 +30,7 @@ import (
 // TestBotAdaptersAgreeOverWholeGame, and the commander twin pinned the
 // same way by TestBotAdaptersAgreeOverCommanderGame). The fields are
 // deliberately not speculative: a board fact no policy branch reads would
-// be untested surface. Priority reads IsMain, Cards, Life and
+// be untested surface. Priority reads IsMain, Pool, Cards, Life and
 // Commanders; combat reads Creatures, Life and Commanders.
 type Board struct {
 	// IsMain reports whether sorcery-speed actions are legal right now.
@@ -54,16 +54,29 @@ type Board struct {
 	// zones (its hand, graveyard, battlefield and command zone) from
 	// cast.go (creature, power, mana value, basic-ness). The casting
 	// policy (cast.go) reads an offered "cast"/"play_land" option's facts
-	// here by Obj. The seat adapter fills it off the projected CardViews
-	// the viewer receives; BoardFromGame fills it off state.Game for the
-	// deciding seat — the two fill exactly the same legal zones with the
-	// same derived facts, so a card ranks the same whichever host asks
-	// (pinned over a whole game by seat/integration_test.go's
-	// TestBotAdaptersAgreeOverWholeGame). A hand/graveyard/battlefield/
-	// command-zone fact is the deciding seat's own, so carrying it in the
-	// Board is no information leak (Ruling C0): it is exactly what that
-	// seat may see.
+	// here by Obj; the tap gate (tap.go) reads a card's printed mana cost
+	// and its castability (which zone it sits in). The seat adapter fills
+	// it off the projected CardViews the viewer receives; BoardFromGame
+	// fills it off state.Game for the deciding seat — the two fill exactly
+	// the same legal zones with the same derived facts, so a card ranks
+	// the same whichever host asks (pinned over a whole game by
+	// seat/integration_test.go's TestBotAdaptersAgreeOverWholeGame). A
+	// hand/graveyard/battlefield/command-zone fact is the deciding seat's
+	// own, so carrying it in the Board is no information leak (Ruling C0):
+	// it is exactly what that seat may see.
 	Cards map[state.ObjID]Card
+	// Pool is the deciding seat's current mana pool. The tap gate
+	// (tap.go) reads it to decide whether another tap could newly enable a
+	// cast: a pool that already pays some castable card's cost is a pool
+	// that needs no more tapping, and a pool that pays none of them is the
+	// "keep tapping" signal. Both halves fill it from the same numbers —
+	// the projected View's own-pool map (poolView, the exact pool the
+	// engine state carries) and state.Game's Pool field — so the gate sees
+	// the same pool whichever host asks (pinned non-vacuously by
+	// seat/integration_test.go's pool agreement). A mana pool is the
+	// deciding seat's own private state, like its hand, so carrying it in
+	// the Board is no information leak (Ruling C0).
+	Pool state.Mana
 	// Commanders is the CR 903.6/903.10 commander bookkeeping, keyed by
 	// object id: every commander object in the match (each player's
 	// Commanders list, in Config order), with the CR 903.8 tax base
@@ -130,11 +143,23 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 //     the bot's tap-for-mana activations: legalActions (rules/legal.go)
 //     offers only mana abilities as "activate" options ("Tap X for mana"),
 //     never non-mana activated abilities (those are "ability"), so it
-//     fills the pool in a main phase before the land drop and cast; it is
-//     position-first within that group, harmless because the pool empties
-//     at the end of the step and every "activate" is a mana produce (T25-b
-//     is the gate, not a promise about which land). The land drop and the
-//     cast then order with chooseLand before chooseCast (G0, cast.go).
+//     fills the pool in a main phase before the land drop and cast. Which
+//     "activate" is tapped stays position-first within the offered group;
+//     WHAT the gate asks before tapping any of them is need (tap.go, T1):
+//     activate only while the pool cannot currently pay ANY card the seat
+//     could cast from a castable zone (hand, command zone, graveyard with
+//     Flashback), priced with the CR 903.8 commander tax when the card sits
+//     in the command zone, and fall through to the land drop and the cast
+//     the moment it can. The pool the gate reads is b.Pool, filled
+//     identically by both adapter halves. The old position-first block
+//     tapped until nothing untapped was left, floating mana in bulk and
+//     letting each step's end (CR 500.4) empty whatever a cast never
+//     spent; the need gate keeps the tap until the first cast opens and
+//     lets the cast take over (measured, op6: the waste share of floated
+//     mana fell from 32.9% to 22.8% constructed and 28.0% to 24.6%
+//     four-seat commander, see the task report). The land
+//     drop and the cast then order with chooseLand before chooseCast (G0,
+//     cast.go).
 //   - "concede" (M2d-3): never picked. It is another priority option kind,
 //     served last after "pass", but no policy wants to leave the game it
 //     is winning; the explicit kind scans below return before any blind
@@ -196,11 +221,18 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 	switch d.Kind {
 	case decision.KPriority:
 		if b.IsMain {
-			for _, o := range d.Options {
-				if o.Kind == "activate" {
-					in.Choices = []int{o.Index}
-					return clamp(d, in)
-				}
+			// T1 (tap.go): the need-aware tap gate. The block this replaced
+			// tapped the first "activate" option in every main phase until
+			// every source was spent -- need-blind and position-first -- which
+			// floated mana in bulk and let each step's end (CR 500.4) empty
+			// whatever the cast never spent. chooseTap taps only while the
+			// pool cannot pay any card the seat could cast from a castable
+			// zone, and falls through (returns -1) the moment it can or there
+			// is nothing to pay for, so the land drop below is reached with
+			// unmade taps instead of exhausted ones.
+			if pick := b.chooseTap(d); pick >= 0 {
+				in.Choices = []int{pick}
+				return clamp(d, in)
 			}
 		}
 		// G0 (cast.go): the land drop ranks before the cast. A land drop is

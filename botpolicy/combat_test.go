@@ -472,6 +472,50 @@ func attackDecisionDefsFull(b Board, pairs ...[2]int) attackAnswer {
 	return attackAnswer{&d, Decide(b, &d, rng(1)).Choices}
 }
 
+// TestAttackDefenderLifeTiebreak pins AR6's order: tier, lowest life, then
+// first option. In particular a later, higher-numbered seat must win a life
+// comparison, but low life must never override block risk or a closing clock.
+func TestAttackDefenderLifeTiebreak(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		life1      int32
+		life2      int32
+		reverse    bool
+		blocker    bool
+		clock      bool
+		wantOption int
+	}{
+		{name: "lower life beats seat and option", life1: 40, life2: 10, wantOption: 1},
+		{name: "lower life beats reversed options", life1: 10, life2: 40, reverse: true, wantOption: 1},
+		{name: "equal life keeps first option not lowest seat", life1: 20, life2: 20, reverse: true},
+		{name: "missing life keeps first option", reverse: true},
+		{name: "unblockable tier beats low life", life1: 1, life2: 40, blocker: true, wantOption: 1},
+		{name: "closing clock beats low life", life1: 40, life2: 1, blocker: true, clock: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			b := boardOf(atk(1, 4, 4), atk(2, 0, 2)) // AR4 cannot mask the choice
+			if tc.life1 != 0 || tc.life2 != 0 {
+				b.Life[1], b.Life[2] = tc.life1, tc.life2
+			}
+			if tc.blocker {
+				f := defN(1, 1, 4, 4) // even trade (tier 1), vs empty seat 2 (tier 2)
+				b.Creatures[f.id] = f.c
+			}
+			if tc.clock {
+				b.Commanders = map[state.ObjID]Commander{101: zoneCmd(1, map[state.PlayerID]int32{1: 18})}
+			}
+			pairs := [][2]int{{1, 1}, {2, 1}}
+			if tc.reverse {
+				pairs[0], pairs[1] = pairs[1], pairs[0]
+			}
+			got := attackDecisionDefs(b, pairs...)
+			if len(got) != 1 || got[0] != tc.wantOption {
+				t.Fatalf("attack choices = %v, want [%d]", got, tc.wantOption)
+			}
+		})
+	}
+}
+
 // TestAttackChoosesTheDefenderItCanHurt is AR6's carrier: with the same
 // creature offered against two defenders, the policy attacks the defender
 // where the swing is guaranteed (AR2, unblockable) rather than the one that

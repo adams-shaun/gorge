@@ -103,7 +103,12 @@ func TestBotOnlyChoosesOfferedOptions(t *testing.T) {
 				{Index: 1, Kind: "play_land", Obj: 2},
 				{Index: 2, Kind: "cast", Obj: 3},
 				{Index: 3, Kind: "pass"},
-			}}, view.View{Phase: "main1"}},
+			}}, view.View{Phase: "main1", Viewer: 0,
+			// A hand card the T1 tap gate prices: the empty pool cannot pay
+			// it, so the activate branch genuinely fires in this case.
+			Players: []view.PlayerView{
+				{ID: 0, Hand: []view.CardView{{ID: 3, ManaCost: "2"}}},
+			}}},
 		{"target", decision.Decision{Seq: 2, Player: 0, Kind: decision.KTarget, Min: 1, Max: 1,
 			Options: []decision.Option{
 				{Index: 0, Kind: "player", Player: 0},
@@ -199,8 +204,14 @@ func TestBotPassesOutsideMainWithNoCastOrLandDrop(t *testing.T) {
 		}
 	}
 	// And inside a main phase, the same decision DOES prefer activate --
-	// confirming this test isn't just checking "never activate ever".
-	in, err := NewBot(1).Decide(context.Background(), view.View{Phase: "main1"}, d)
+	// confirming this test isn't just checking "never activate ever". The
+	// View's player record carries a hand card the tap gate (tap.go, T1)
+	// prices: the empty pool cannot pay its cost, so a tap is wanted.
+	wanting := view.View{Phase: "main1", Viewer: 0,
+		Players: []view.PlayerView{
+			{ID: 0, Hand: []view.CardView{{ID: 200, ManaCost: "1"}}},
+		}}
+	in, err := NewBot(1).Decide(context.Background(), wanting, d)
 	if err != nil || len(in.Choices) != 1 || d.Options[in.Choices[0]].Kind != "activate" {
 		t.Errorf("phase \"main1\": priority = %+v (err=%v), want an activation chosen", in, err)
 	}

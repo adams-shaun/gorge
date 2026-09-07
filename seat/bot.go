@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/botpolicy"
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
@@ -91,6 +92,15 @@ func boardFromView(v view.View) botpolicy.Board {
 	}
 	for _, p := range v.Players {
 		b.Life[p.ID] = p.Life
+		if p.ID == v.Viewer {
+			// The tap gate's pool (tap.go): the projecting viewer's own mana
+			// pool, the same numbers poolView lifted off the engine state
+			// that BoardFromGameInto reads directly, so the two halves agree
+			// (pinned non-vacuously by integration_test.go's pool agreement).
+			for sym, n := range p.Pool {
+				b.Pool[state.ManaIndex(sym[0])] = n
+			}
+		}
 		for _, cv := range p.Battlefield {
 			if !isCreatureView(cv) {
 				continue
@@ -149,22 +159,53 @@ func boardFromView(v view.View) botpolicy.Board {
 	// that seat (cast.go's CmcOf and the type-word check on the same printed
 	// fields, and the engine's derived Power that the View already projects
 	// as cv.Power), so the casting policy ranks the same card the same way
-	// on both halves.
+	// on both halves. The fill is per zone, because the tap gate (tap.go)
+	// reads Castable from the zone a card sits in: a hand or command-zone
+	// card is worth mana (its cast is offered as soon as the pool pays the
+	// cost; a command-zone card is a commander the CR 903.8 tax prices), a
+	// graveyard card only when the View's derived keyword list carries
+	// Flashback (the same Derived list the engine's own flashback gate
+	// reads), and a battlefield permanent never.
 	for _, p := range v.Players {
 		if p.ID != v.Viewer {
 			continue
 		}
-		for _, cv := range append(append(append(append([]view.CardView(nil), p.Hand...), p.Graveyard...), p.Battlefield...), p.Command...) {
-			b.Cards[cv.ID] = botpolicy.Card{
-				Creature:   isCreatureView(cv),
-				Power:      cv.Power,
-				CMC:        botpolicy.CmcOf(cv.ManaCost),
-				Basic:      hasBasicView(cv),
-				AttachedTo: cv.AttachedTo,
+		fillZone := func(zone []view.CardView, castable func(view.CardView) bool) {
+			for _, cv := range zone {
+				b.Cards[cv.ID] = botpolicy.Card{
+					Creature:   isCreatureView(cv),
+					Power:      cv.Power,
+					CMC:        botpolicy.CmcOf(cv.ManaCost),
+					Basic:      hasBasicView(cv),
+					AttachedTo: cv.AttachedTo,
+					ManaCost:   cv.ManaCost,
+					Castable:   castable(cv),
+				}
 			}
 		}
+		aCastable := func(view.CardView) bool { return true }
+		notCastable := func(view.CardView) bool { return false }
+		fillZone(p.Hand, aCastable)
+		fillZone(p.Graveyard, hasFlashbackView)
+		fillZone(p.Battlefield, notCastable)
+		fillZone(p.Command, aCastable)
 	}
 	return b
+}
+
+// hasFlashbackView is the view-shaped half of the tap gate's
+// graveyard-castability test (botpolicy.combat.go's game-shaped half): the
+// projected keyword list is the engine's Derived() output, so checking the
+// card's keywords for "Flashback" (cards.KeywordHead-stripped, the same
+// head test the game half runs) agrees with the engine's own flashback
+// gate read.
+func hasFlashbackView(cv view.CardView) bool {
+	for _, k := range cv.Keywords {
+		if strings.EqualFold(cards.KeywordHead(k), "Flashback") {
+			return true
+		}
+	}
+	return false
 }
 
 // isCreatureView is the view-shaped half of "is this battlefield object a
