@@ -17,10 +17,22 @@
    * is a card face, not a row: CardImage draws the Scryfall art when it
    * resolves and the typeset blank when it does not, and the blank is the
    * NORMAL state (cmd/gorged ships no catalog, and an offline box resolves
-   * nothing). The name, the state and the tax therefore sit OUTSIDE the face,
-   * under it, at full ink: they read the same whichever half CardImage drew,
-   * and they survive the two dimmed states, where the face — the blank's own
+   * nothing). The name and the state therefore sit OUTSIDE the face, under
+   * it, at full ink: they read the same whichever half CardImage drew, and
+   * they survive the two dimmed states, where the face — the blank's own
    * typeset name included — is deliberately faded.
+   *
+   * THE TAX SITS ON THE FACE, in the corner a printed mana cost occupies —
+   * by explicit request, in place of an earlier design that deliberately
+   * kept it OFF the face (a derived value in the printed cost's own spot can
+   * read as though it IS the printed cost). That risk is real, so the tile
+   * marks it as computed rather than printed: parenthesised, `(+N)` rather
+   * than a bare number the way a real pip would be, in the initiative colour
+   * (not the blank's own text colour) and inside its own translucent chip
+   * rather than CardImage's opaque pip disc. It overlays BOTH halves
+   * CardImage can draw — the Scryfall art has no DOM hook of its own to
+   * anchor a corner value to, so this tile draws its own corner independent
+   * of which half rendered.
    *
    * THREE STATES, and every one of them is inspectable. The state is a
    * property of where the card currently is (lib/commander.ts, presenceOf):
@@ -70,10 +82,11 @@
   //
   // The printed cost is deliberately NOT re-typeset here: with no art the
   // blank already sets it on the face's title line, so a second copy under
-  // the tile would print the same cost twice on a creature-scale card; with art it is
-  // one hover away in the inspector, which sets it in the panel header. The
-  // tax chip is the number that is NOT on any face — it is derived, it
-  // changes, and it is the reason this moved off the rail.
+  // the tile would print the same cost twice on a creature-scale card; with
+  // art it is one hover away in the inspector, which sets it in the panel
+  // header. The tax IS drawn on the face (in the mana-cost corner, see the
+  // component doc comment) but as its own marked-derived `(+N)` chip, never
+  // as a rewrite of the printed cost itself.
   const label = $derived(
     status.presence === 'command' ? 'command zone' : status.presence === 'battlefield' ? 'on the battlefield' : status.zone,
   );
@@ -128,18 +141,20 @@
   onkeydown={(e) => hover.keydown(e)}
   aria-describedby={hover.show ? `card-detail-${card.id}` : undefined}
 >
-  <div class="face"><CardImage {card} pt={false} /></div>
-  <div class="who">{card.name}</div>
-  <div class="band">
-    <span class="state">{label}</span>
+  <div class="face">
+    <CardImage {card} pt={false} />
     {#if status.presence === 'command' && status.tax > 0}
       <span
         class="tax data"
         data-tax={status.tax}
         data-casts={status.casts}
         title="Commander tax (CR 903.8): {status.tax} generic on the next cast, for {status.casts} prior cast{status.casts === 1 ? '' : 's'}"
-      >+{status.tax}</span>
+      >(+{status.tax})</span>
     {/if}
+  </div>
+  <div class="who">{card.name}</div>
+  <div class="band">
+    <span class="state">{label}</span>
   </div>
 </div>
 
@@ -164,7 +179,13 @@
     width: var(--card-w, 104px);
     flex: none;
   }
+  /* position:relative gives the tax chip below a corner to anchor to — the
+     same corner CardImage's own blank puts a printed mana cost in — that
+     works over BOTH halves CardImage can draw: the blank (a DOM title line
+     we could otherwise have shared) and the Scryfall art (a bare <img> with
+     no cost hook of its own to anchor to). */
   .face {
+    position: relative;
     line-height: 0;
   }
   /* Already on the battlefield: the permanent itself is drawn in the
@@ -188,11 +209,10 @@
   /* The name, OUTSIDE the face and at full ink. It is not a duplicate of the
      blank's own title line: the blank sets the name beside the mana pips and
      clips it to a few characters even at creature scale, and in the two
-     dimmed states the
-     whole face — typeset name included — is drawn at 40-50%, which is
-     exactly when the reader most needs to know which commander the ghost is.
-     One line, clipped, with the full name (and where it is) in the tile's
-     title and accessible name. */
+     dimmed states the whole face — typeset name included — is drawn at
+     40-50%, which is exactly when the reader most needs to know which
+     commander the ghost is. One line, clipped, with the full name (and where
+     it is) in the tile's title and accessible name. */
   .who {
     max-width: 100%;
     font-size: var(--t-10);
@@ -229,11 +249,28 @@
   .cmd-tile--command .state {
     color: var(--initiative);
   }
-  /* The tax is a value, so it reads in the data face: +6, never "3 casts". */
+  /* The tax sits where a printed mana cost lives — the corner the reader
+     already scans for "what does this cost" — but it is not typeset like a
+     printed pip, because it is not one: CardImage's own pips are opaque
+     colour discs, printed values, one per card, permanent. This is a
+     parenthesised, computed, CHANGING number, so it gets its own translucent
+     chip, its own colour (the initiative hue this tile already reserves for
+     "castable now" on the state band below), and parentheses no printed
+     cost would ever carry — three signals that this is what the NEXT cast
+     costs on top of the print, not the print itself. `line-height:0` on
+     `.face` would otherwise collapse this to nothing, so it sets its own. */
   .tax {
-    flex: none;
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    line-height: 1.3;
     font-family: var(--font-data);
     font-variant-numeric: tabular-nums;
-    color: var(--ink-dim);
+    font-size: var(--t-10);
+    font-weight: 600;
+    color: var(--initiative);
+    background: color-mix(in srgb, var(--felt-sunk) 85%, transparent);
+    border-radius: 2px;
+    padding: 0 3px;
   }
 </style>

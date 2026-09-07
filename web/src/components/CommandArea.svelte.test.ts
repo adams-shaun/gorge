@@ -116,11 +116,34 @@ describe('CommandArea — one seat"s commanders, on the board', () => {
     const { html } = render(CommandArea, { props: { player: p } });
     expect(html).toContain('data-tax="6"');
     expect(html).toContain('data-casts="3"');
-    expect(html).toContain('>+6<');
+    // parenthesised — a derived value, marked as not the printed cost, in
+    // the corner the printed cost occupies
+    expect(html).toContain('>(+6)<');
     // three prior casts is a 6, never a 3
     expect(html).not.toContain('data-tax="3"');
     // …and a commander that has never been cast carries no chip at all
     expect(html.match(/data-tax=/g)).toHaveLength(1);
+  });
+
+  it('the tax renders in the mana-cost corner of the FACE (CZ3), not below it, and keeps its CR 903.8 tooltip', () => {
+    const c = card(1, 'Edgar', '2 W B');
+    const p = player({ commanders: [c], command: [c], commander_casts: [3] });
+    const { html } = render(CommandArea, { props: { player: p } });
+    // the tax span is a child of .face — it appears before .who in document
+    // order, since .face is the FIRST thing the tile renders
+    const faceIdx = html.indexOf('class="face');
+    const taxIdx = html.indexOf('data-tax="6"');
+    const whoIdx = html.indexOf('class="who');
+    expect(faceIdx).toBeGreaterThanOrEqual(0);
+    expect(taxIdx).toBeGreaterThan(faceIdx);
+    expect(taxIdx).toBeLessThan(whoIdx);
+    // marked as a derived, not printed, value: parenthesised
+    expect(html).toContain('>(+6)<');
+    expect(html).not.toContain('>+6<');
+    // the specific CR 903.8 tooltip survives the move
+    expect(html).toContain('title="Commander tax (CR 903.8): 6 generic on the next cast, for 3 prior casts"');
+    // …and the tile's own accessible name still mentions it too
+    expect(html).toContain('next cast pays 6 generic commander tax (CR 903.8)');
   });
 
   it('a commander on the battlefield with prior casts still shows no tax — the tax prices a cast from the zone', () => {
@@ -167,10 +190,11 @@ describe('CommandArea — one seat"s commanders, on the board', () => {
     // the name is also set OUTSIDE the face, at full ink, so it survives both
     // the blank's clipping and the two dimmed states
     expect(html).toContain('<div class="who');
-    // the state band and the tax sit OUTSIDE the face, so they read the same
-    // whichever half CardImage drew
+    // the state band sits OUTSIDE the face, so it reads the same whichever
+    // half CardImage drew; the tax overlays the face itself, in the corner a
+    // printed cost would occupy, marked as computed with parentheses
     expect(html).toContain('command zone');
-    expect(html).toContain('>+2<');
+    expect(html).toContain('>(+2)<');
   });
 
   it('a constructed seat renders NOTHING — no tile, no slot, no frame, no heading', () => {
