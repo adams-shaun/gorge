@@ -1,6 +1,7 @@
 package view
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -67,8 +68,19 @@ func TestStackViewKindIsTriggerForATriggerPushObject(t *testing.T) {
 	if sv.Kind != "trigger" || sv.Name != "Watcher" || sv.Source != id {
 		t.Fatalf("stack view %+v", sv)
 	}
-	if sv.Text != "When CARDNAME enters, you gain 1 life." {
-		t.Fatalf("text %q", sv.Text)
+	// Defect 1: the T: line's TriggerDescription$ carries Forge's CARDNAME
+	// self-reference; the view must substitute the source's own face name
+	// and leave no placeholder behind. Defect 3: the trigger band must also
+	// get the source permanent's CardView for artwork.
+	const wantText = "When Watcher enters, you gain 1 life."
+	if sv.Text != wantText {
+		t.Fatalf("text %q, want %q (CARDNAME substituted)", sv.Text, wantText)
+	}
+	if strings.Contains(sv.Text, "CARDNAME") || strings.Contains(sv.Text, "NICKNAME") {
+		t.Fatalf("text %q still carries a Forge placeholder", sv.Text)
+	}
+	if sv.Card == nil || sv.Card.Name != "Watcher" || sv.Card.ID != id {
+		t.Fatalf("Card = %+v, want the source permanent's CardView (defect 3)", sv.Card)
 	}
 }
 
