@@ -422,6 +422,85 @@ func (e *Engine) HasKeyword(id state.ObjID, kw string) bool {
 	return false
 }
 
+// RegenerationDisallowed implements effects.Host for the CantRegenerate
+// restriction (Task ce1): reports whether an Effect-registered restriction
+// forbids id from regenerating. Consulted by effects.ReplaceDestruction, so
+// Incinerate's "creature can't be regenerated this turn" actually blocks the
+// shield-consumption path instead of being a Note. Scanning e.active() keeps
+// the expiry discipline identical to every other continuous effect: a
+// this-turn restriction is UntilEOT and is dropped at cleanup, a permanent-
+// sourced one disappears when its source leaves the battlefield.
+func (e *Engine) RegenerationDisallowed(id state.ObjID) bool {
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantRegenerate" {
+			continue
+		}
+		if e.restrictionApplies(ce, id) {
+			return true
+		}
+	}
+	return false
+}
+
+// restrictionBlocksTarget reports whether an Effect-registered CantTarget
+// restriction (Vines of Vastwood) prevents the player actor from targeting id
+// with a spell or ability. Called from rules/stack.go's askTarget alongside
+// the protectedFrom check, so a creature granted "can't be the target of
+// spells or abilities your opponents control this turn" is actually withheld
+// from the opponent's targeting options.
+func (e *Engine) restrictionBlocksTarget(id state.ObjID, actor state.PlayerID) bool {
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantTarget" {
+			continue
+		}
+		if !e.restrictionApplies(ce, id) {
+			continue
+		}
+		if !e.restrictionActorMatches(ce, actor) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// restrictionApplies reports whether a registered restriction's ValidCard$/
+// ValidTarget$ spec selects the object id. The Forge filter grammar has no
+// IsRemembered predicate, so the remembered-object set the Effect captured is
+// matched directly (the dominant shape for Vines/Incinerate); any other spec
+// falls back to the ordinary spec matcher so a restriction that names a
+// quality (CantTarget with ValidCard$ Creature, say) still works.
+func (e *Engine) restrictionApplies(ce ContinuousEffect, id state.ObjID) bool {
+	spec := ce.RestrictParams["ValidCard"]
+	if spec == "" {
+		spec = ce.RestrictParams["ValidTarget"]
+	}
+	if spec != "" && strings.Contains(spec, "IsRemembered") {
+		for _, r := range ce.Remembered {
+			if r == id {
+				return true
+			}
+		}
+	}
+	if spec == "" {
+		return len(ce.Remembered) > 0
+	}
+	return effects.MatchesSpecFrom(e.G, spec, id, ce.Controller, ce.Source)
+}
+
+// restrictionActorMatches scopes a CantTarget restriction by Activator$:
+// Vines of Vastwood's Activator$ Player.Opponent means the restriction only
+// bites when the player targeting the creature is an opponent of the effect's
+// controller (the caster of Vines). A restriction with no Activator$ applies
+// to any actor.
+func (e *Engine) restrictionActorMatches(ce ContinuousEffect, actor state.PlayerID) bool {
+	spec, ok := ce.RestrictParams["Activator"]
+	if !ok {
+		return true
+	}
+	return effects.MatchesPlayerSpec(e.G, spec, actor, ce.Controller)
+}
+
 // Keywords exists for Ruling F2: Task 23's view.Chars interface needs a
 // Keywords(state.ObjID) []string method, and Engine.Derived already returns
 // a Derived struct — a method of the same name on Engine could not satisfy

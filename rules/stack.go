@@ -313,7 +313,12 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 					// stopped being on the stack before resolution.
 					oid != source &&
 					effects.MatchesSpecFrom(e.G, spec, oid, p, source) &&
-					!(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc)) {
+					!(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc)) &&
+					// Task ce1: a CantTarget restriction (Vines of Vastwood) makes
+					// a creature an illegal target for the spoke player, exercised
+					// while it is on the battlefield (CR 604.3, same gate as
+					// protection just above).
+					!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p)) {
 
 					add("permanent", o.Face().Name+" ("+e.G.Players[q].Name+")", oid, q)
 				}

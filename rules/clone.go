@@ -75,6 +75,14 @@ func (e *Engine) Clone() *Engine {
 		for i, ce := range e.continuous {
 			ce.AddKeywords = append([]string(nil), ce.AddKeywords...)
 			ce.AddTypes = append([]string(nil), ce.AddTypes...)
+			if ce.RestrictParams != nil {
+				m := make(map[string]string, len(ce.RestrictParams))
+				for k, v := range ce.RestrictParams {
+					m[k] = v
+				}
+				ce.RestrictParams = m
+			}
+			ce.Remembered = append([]state.ObjID(nil), ce.Remembered...)
 			c.continuous[i] = ce
 		}
 	}

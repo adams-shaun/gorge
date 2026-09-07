@@ -40,20 +40,160 @@ func init() {
 // "unimplemented API" Note fallback applies, and Coverage correctly
 // excludes any card that needs it.
 
-// effEffect is M1's version of "create a nameless effect object holding
-// StaticAbilities$/Triggers$ for Duration$": like Pump/Animate/Protection,
-// the actual registration needs Task 19's rules.Layers (and, for Duration$
-// forms that outlive the current resolution, a holding zone this build does
-// not have -- state.Zone has no Command-zone equivalent). M1 records the
-// intent as a Note.
+// effEffect creates a lasting effect object holding StaticAbilities$ for
+// Duration$. This is the part of Task ce1 that turns the M1 Note into a real
+// registration: a StaticAbilities$ entry naming a RESTRICTION static
+// (CantTarget for Vines of Vastwood, CantRegenerate for Incinerate) is
+// registered into the engine's continuous-effect registry (rules' layer
+// system, reached through Host.AddContinuous) so the rule it modifies is
+// actually consulted rather than left as a silent Note.
+//
+// Registration is deliberately scoped: only the CantTarget and CantRegenerate
+// modes become real effects this round. Every other StaticAbilities$ mode ---
+// and every Triggers$ entry (Palace Jailer's "exile until an opponent becomes
+// the monarch" is a command-zone trigger this build does not model) --- is
+// still recorded as a Note, so nothing silently no-ops into looking supported
+// when it is not. The registry entry the engine (rules/layers.go active())
+// expires is the same until-end-of-turn / source-leaves discipline every other
+// continuous effect uses: an Effect from an instant or sorcery (a one-shot
+// spell) or carrying an explicit this-turn Duration$ is UntilEOT, dropped at
+// end-of-turn cleanup; anything else persists while its source stays on the
+// battlefield.
 func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	dur := sa.Params["Duration"]
 	if dur == "" {
 		dur = "Permanent"
 	}
 	what := strings.TrimSpace(sa.Params["StaticAbilities"] + " " + sa.Params["Triggers"])
-	h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-		Text: "registers a continuous effect (" + what + ") for " + dur})
+	remembered := effectRemembered(h, c, sa)
+	registered := false
+	for _, name := range strings.Fields(sa.Params["StaticAbilities"]) {
+		mode, params := parseStaticLine(c.SVars, name)
+		switch mode {
+		case "CantTarget", "CantRegenerate":
+			ce := state.ContinuousEffect{
+				Source:         c.Source,
+				Controller:     c.Controller,
+				UntilEOT:       effectUntilEOT(h, c.Source, dur),
+				Restriction:    mode,
+				RestrictParams: params,
+				Remembered:     remembered,
+				Duration:       dur,
+			}
+			h.AddContinuous(ce)
+			registered = true
+		default:
+			// A resolvable but unsupported mode is reported honestly; an
+			// unresolvable name (mode "") falls through to the generic Note
+			// below rather than emitting an empty-mode message.
+			if mode != "" {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+			}
+		}
+	}
+	// Nothing registered (an unsupported StaticAbilities$ mode, or a
+	// Triggers$-only effect such as Palace Jailer's command-zone trigger):
+	// keep the original Note wording so a card whose effect this build still
+	// does not make real does not move the chain for a purely cosmetic
+	// reason. The registry is the feature; a Note that names what was asked
+	// for is the honest stand-in until the mode is implemented.
+	if !registered {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "registers a continuous effect (" + what + ") for " + dur})
+	}
+}
+
+// parseStaticLine parses an S: static body an SVar holds ("Mode$ CantTarget |
+// ValidTarget$ Card.IsRemembered | ...") into its mode and parameter map. The
+// body has no SP$/AB$/DB$ head, so cards' parseSA is the wrong shape; this is
+// the S: line's own grammar (cards/parse.go's "S" case). An empty or
+// malformed body degrades to "" mode and a nil map, which the switch in
+// effEffect treats as unimplemented rather than as a registration.
+func parseStaticLine(svars map[string]string, name string) (string, map[string]string) {
+	body := strings.TrimSpace(svars[name])
+	if body == "" {
+		return "", nil
+	}
+	params := make(map[string]string)
+	mode := ""
+	for _, seg := range strings.Split(body, "|") {
+		seg = strings.TrimSpace(seg)
+		if seg == "" {
+			continue
+		}
+		key, val, ok := strings.Cut(seg, "$")
+		if !ok {
+			continue
+		}
+		key = strings.TrimSpace(key)
+		val = strings.TrimSpace(val)
+		params[key] = val
+		if key == "Mode" {
+			mode = val
+		}
+	}
+	return mode, params
+}
+
+// effectRemembered resolves RememberObjects$ into the concrete object ids the
+// Effect captured. "Targeted"/"ParentTarget" remember the chosen targets;
+// "Remembered" (and creature-flavoured spellings) remember the objects the
+// resolution already had; "You & Targeted" and the default degrade to the
+// source plus the chosen targets. Objects only: a player-only remember yields
+// an empty slice, which a restriction whose ValidCard$ is Card.IsRemembered
+// then applies to nothing.
+func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
+	ro := sa.Params["RememberObjects"]
+	if ro == "" {
+		ro = "Targeted"
+	}
+	var out []state.ObjID
+	for _, part := range strings.FieldsFunc(ro, func(r rune) bool {
+		return r == '&' || r == ',' || r == ' '
+	}) {
+		part = strings.TrimSpace(part)
+		switch part {
+		case "You", "Self", "Source":
+			out = append(out, c.Source)
+		case "Targeted", "ParentTarget":
+			for _, t := range c.Targets {
+				if !t.IsPlayer && h.Game().Obj(t.Obj) != nil {
+					out = append(out, t.Obj)
+				}
+			}
+		case "Remembered", "Remembered.Creature", "Remembered.Permanent":
+			for _, t := range c.Remembered {
+				if !t.IsPlayer && h.Game().Obj(t.Obj) != nil {
+					out = append(out, t.Obj)
+				}
+			}
+		}
+	}
+	return out
+}
+
+// effectUntilEOT decides expiry for an Effect registration: a one-shot spell
+// (instant/sorcery) source, or an explicit this-turn Duration$, is UntilEOT
+// and is dropped at end-of-turn cleanup (rules' EndOfTurnCleanup); anything
+// else -- Duration$ Permanent on a permanent, an until-untap form, ... ---
+// persists while its source stays on the battlefield, the same rule the
+// layer effects use. Forms that outlive the current turn (UntilYourNextTurn
+// and friends) are NOT modelled and fall into the source-leaves branch, which
+// is a documented approximation rather than a silent wrong answer.
+func effectUntilEOT(h Host, source state.ObjID, dur string) bool {
+	if o := h.Game().Obj(source); o != nil {
+		if f := o.Face(); f != nil && (f.IsInstant() || f.IsSorcery()) {
+			return true
+		}
+	}
+	switch strings.ToLower(strings.TrimSpace(dur)) {
+	case "eot", "endofturn", "untilendofturn", "untilyournextendstep",
+		"untilhostleavesplayoreot", "untilendofcombat", "end of turn",
+		"this turn", "thisturnandnextturn":
+		return true
+	}
+	return false
 }
 
 // effCleanup is "DB$ Cleanup | ClearRemembered$ True": nothing in this build
