@@ -328,6 +328,22 @@ func winnerLabel(o gameOutcome) string {
 	return fmt.Sprintf("%s@%d", o.winner, o.winnerSeat)
 }
 
+// polsFor returns the policy name sitting at each seat of game g: B sits
+// everywhere and A takes the seats aPlaysSeat gives it, so seats trade
+// policies every game. It is the single builder both the single-pair bench
+// and the matrix pair worker use, so the two can never disagree about which
+// policy a seat holds in a given game.
+func polsFor(g, seats int, aName, bName string) []string {
+	pols := make([]string, seats)
+	for seat := 0; seat < seats; seat++ {
+		pols[seat] = bName
+		if aPlaysSeat(g, seat) {
+			pols[seat] = aName
+		}
+	}
+	return pols
+}
+
 // matchPlayer plays one game of a bench run: given a game's seed and the
 // policy name sitting at each seat, it returns that game's outcome. run
 // wires the real engine into this shape (playMatch with per-seat bots);
@@ -335,14 +351,59 @@ func winnerLabel(o gameOutcome) string {
 // without paying an engine game each.
 type matchPlayer func(seed uint64, pols []string) (gameOutcome, error)
 
-// bench is the testable body of the bench: it plays `games` matches between
-// the named policies, crediting each win to the side that held the winning
-// seat, and writes the per-game lines and the summary to out. Every match
-// is seeded from base+game (gameSeed) and the seat assignment alternates
-// (aPlaysSeat), so the output is byte-identical across runs with the same
-// (base, policies, games). run() resolves the corpus and decks and wires
-// the real engine in; the tests drive bench directly with a synthetic
-// matchPlayer, exactly like the tests of cmd/mtgsim drive its run.
+// outcomeKind is the shared classification of one finished bench game,
+// produced by classifyOutcome and applied by both the single-pair fold and
+// the matrix pair fold, so the two tallies can never drift apart. A real win
+// credits whichever side held the winning seat in that game (aPlaysSeat),
+// which is the one source of truth for both the seat assignment and the win
+// attribution.
+type outcomeKind struct {
+	stall      bool
+	stallOn    string
+	draw       bool
+	winnerSeat int
+	aWin       bool
+	bWin       bool
+}
+
+// classifyOutcome splits one gameOutcome into the classification the singles
+// and matrix folds share. The game index g is needed only because attribution
+// reads it; seats bounds the winner-seat check. It returns a BARE
+// winner-seat-out-of-range error that the callers wrap with their own
+// "game N:" / "pair P, game N:" context, so the folded error messages stay
+// exactly as they were before this helper existed.
+func classifyOutcome(g int, oc gameOutcome, seats int) (outcomeKind, error) {
+	var k outcomeKind
+	switch {
+	case oc.isStalled():
+		k.stall = true
+		k.stallOn = oc.stallOn
+	case oc.winner == "":
+		k.draw = true
+	default:
+		if oc.winnerSeat < 0 || oc.winnerSeat >= seats {
+			return outcomeKind{}, fmt.Errorf("winner seat %d out of range [0,%d)", oc.winnerSeat, seats)
+		}
+		k.winnerSeat = oc.winnerSeat
+		if aPlaysSeat(g, oc.winnerSeat) {
+			k.aWin = true
+		} else {
+			k.bWin = true
+		}
+	}
+	return k, nil
+}
+
+// bench is the testable entry of the bench: it validates `games`/`seats`,
+// plays `games` matches using the default worker budget (all cores), and
+// writes the per-game lines and the summary to out. Every match is seeded
+// from base+game (gameSeed) and the seat assignment alternates (aPlaysSeat),
+// so the output is byte-identical across runs with the same
+// (base, policies, games). run() resolves the corpus and decks, wires the
+// real engine in, and passes a caller-sized -workers budget through
+// benchWithPool; the tests drive bench directly with a synthetic
+// matchPlayer, exactly like the tests of cmd/mtgsim drive its run. The
+// parallel body and the full semantics of the fold live on benchWithPool.
 //
 // Attribution is by seat, not by name: with distinct policies the two agree
 // (pols[seat] is the policy at that seat), and with aName == bName the seat
@@ -355,6 +416,21 @@ type matchPlayer func(seed uint64, pols []string) (gameOutcome, error)
 // real match does, and the engine and seat packages stay untouched by this
 // command.
 func bench(baseSeed uint64, games, seats int, aName, bName string, play matchPlayer, out io.Writer) error {
+	pool := newGamePool(runtime.NumCPU())
+	defer pool.close()
+	return benchWithPool(baseSeed, games, seats, aName, bName, play, out, pool)
+}
+
+// benchWithPool is bench's parallel body. It plays every game into a
+// per-game slot across `pool` (games are seeded base+i, so each is
+// independent exactly as the matrix's are), waits for all of them, then
+// folds the slots in ascending game order. The fold is the only place that
+// mutates the running tally or writes a per-game line, so the output and the
+// first error are identical to the old sequential loop regardless of
+// completion order: the per-game lines stay in ascending game order, and the
+// first error returned is the LOWEST failing game index, not whichever
+// goroutine happened to finish first.
+func benchWithPool(baseSeed uint64, games, seats int, aName, bName string, play matchPlayer, out io.Writer, pool *gamePool) error {
 	if games < 1 {
 		return fmt.Errorf("-games must be at least 1, got %d", games)
 	}
@@ -362,25 +438,34 @@ func bench(baseSeed uint64, games, seats int, aName, bName string, play matchPla
 		return fmt.Errorf("-seats must be at least 2 (a bench pits two policies), got %d", seats)
 	}
 
+	slots := make([]gameResult, games)
+	var done sync.WaitGroup
+	done.Add(games)
+	for g := 0; g < games; g++ {
+		g := g
+		s := gameSeed(baseSeed, g)
+		pols := polsFor(g, seats, aName, bName)
+		pool.submit(func() {
+			defer done.Done()
+			slots[g].outcome, slots[g].err = play(s, pols)
+		})
+	}
+	done.Wait()
+
 	var aWins, bWins, draws, stallTurns, stallIntents int
 	seatWins := make([]int, seats)
 	var totalTurns int64
-	for g := 0; g < games; g++ {
+	for g, result := range slots {
+		if result.err != nil {
+			// All games have completed, so the first error picked from the
+			// ordered slots is the sequential loop's lowest failing game
+			// index, not whichever game finished first.
+			fmt.Fprintf(out, "game %d: %v\n", g, result.err)
+			return result.err
+		}
+		oc := result.outcome
 		s := gameSeed(baseSeed, g)
-		pols := make([]string, seats)
-		for seat := 0; seat < seats; seat++ {
-			pols[seat] = bName
-			if aPlaysSeat(g, seat) {
-				pols[seat] = aName
-			}
-		}
-		oc, err := play(s, pols)
-		if err != nil {
-			// playMatch's error already names the seed; the game index is
-			// the only context this frame can add.
-			fmt.Fprintf(out, "game %d: %v\n", g, err)
-			return err
-		}
+		pols := polsFor(g, seats, aName, bName)
 		// The per-game line carries the seed next to the result, so a run
 		// that ever played the same game twice would show it -- the seed
 		// column stops grinding forward. That is the symptom the bench
@@ -388,29 +473,30 @@ func bench(baseSeed uint64, games, seats int, aName, bName string, play matchPla
 		// ever regresses.
 		fmt.Fprintf(out, "game %d: seed %d, %s, %6d intents, %3d turns, winner=%s\n",
 			g, s, seatLabels(pols), oc.intents, oc.turns, winnerLabel(oc))
+		kind, err := classifyOutcome(g, oc, seats)
+		if err != nil {
+			return fmt.Errorf("game %d: %w", g, err)
+		}
 		switch {
-		case oc.isStalled():
+		case kind.stall:
 			// A stalled game is neither a win nor a draw: it credits no seat
 			// and is excluded from the win-rate denominator below. The two
 			// caps are tallied apart so the stall notice can say which
 			// pathology ended the game.
-			if oc.stallOn == "intents" {
+			if kind.stallOn == "intents" {
 				stallIntents++
 			} else {
 				stallTurns++
 			}
-		case oc.winner == "":
+		case kind.draw:
 			draws++
 		default:
 			// A real win: credit the side that held the winning seat this
-			// game. aPlaysSeat is the same predicate that assigned the
-			// seats, so attribution agrees with the assignment by
-			// construction.
-			if oc.winnerSeat < 0 || oc.winnerSeat >= seats {
-				return fmt.Errorf("game %d: winner seat %d out of range [0,%d)", g, oc.winnerSeat, seats)
-			}
-			seatWins[oc.winnerSeat]++
-			if aPlaysSeat(g, oc.winnerSeat) {
+			// game. classifyOutcome resolved attribution via aPlaysSeat, the
+			// same predicate that assigned the seats, so the tally agrees
+			// with the assignment by construction.
+			seatWins[kind.winnerSeat]++
+			if kind.aWin {
 				aWins++
 			} else {
 				bWins++
@@ -737,13 +823,7 @@ func playOnePairWithPool(baseSeed uint64, pos, games int, aName, bName string, p
 	for g := 0; g < games; g++ {
 		g := g
 		s := gameSeedPair(baseSeed, pos, games, g)
-		pols := make([]string, 2)
-		for seat := 0; seat < 2; seat++ {
-			pols[seat] = bName
-			if aPlaysSeat(g, seat) {
-				pols[seat] = aName
-			}
-		}
+		pols := polsFor(g, 2, aName, bName)
 		pool.submit(func() {
 			defer done.Done()
 			slots[g].outcome, slots[g].err = play(pos, s, pols)
@@ -759,26 +839,27 @@ func playOnePairWithPool(baseSeed uint64, pos, games int, aName, bName string, p
 			return pairResult{}, fmt.Errorf("pair %s: %w", pd, result.err)
 		}
 		oc := result.outcome
+		kind, err := classifyOutcome(g, oc, 2)
+		if err != nil {
+			return pairResult{}, fmt.Errorf("pair %s, game %d: %w", pd, g, err)
+		}
 		switch {
-		case oc.isStalled():
+		case kind.stall:
 			// A stalled game is a distinct outcome -- not a win, not a draw,
 			// credited to no seat -- and is excluded from the win-rate
 			// denominator when the pair is reported. The cause is tallied
 			// apart so the pooled notice can name the cap that ended the game.
 			r.stalls++
-			if oc.stallOn == "intents" {
+			if kind.stallOn == "intents" {
 				r.stallIntents++
 			} else {
 				r.stallTurns++
 			}
-		case oc.winner == "":
+		case kind.draw:
 			r.draws++
 		default:
-			if oc.winnerSeat < 0 || oc.winnerSeat > 1 {
-				return pairResult{}, fmt.Errorf("pair %s, game %d: winner seat %d out of range [0,2)", pd, g, oc.winnerSeat)
-			}
-			r.seatWins[oc.winnerSeat]++
-			if aPlaysSeat(g, oc.winnerSeat) {
+			r.seatWins[kind.winnerSeat]++
+			if kind.aWin {
 				r.aWins++
 			} else {
 				r.bWins++
@@ -1260,10 +1341,11 @@ func seatedDeckNames(names []string, rotate int) []string {
 
 // run is main's entry through the real engine: it validates the flags,
 // opens the corpus and the per-seat repo decks, and plays `games` matches
-// between the named policies via bench. It exists so the whole flag-driven
-// path stays open to tests that need it (determinism, end-to-end); the loop
-// and the report live in bench, which tests can also drive directly with a
-// synthetic matchPlayer.
+// between the named policies via benchWithPool, sized by the -workers budget
+// (0 uses all cores). It exists so the whole flag-driven path stays open to
+// tests that need it (determinism, end-to-end); the loop and the report live
+// in benchWithPool, which tests can also drive directly with a synthetic
+// matchPlayer.
 //
 // rotate shifts which deck-list a seat holds (seatDeckIndex: seat s holds
 // the pool's (s+rotate)%seats-th deck), so a four-seat commander run can
@@ -1271,7 +1353,7 @@ func seatedDeckNames(names []string, rotate int) []string {
 // seat-index artifact from a deck-strength difference. rotate must be in
 // [0, seats); 0 is today's assignment, so a run without the flag is
 // byte-identical to the pre-flag bench.
-func run(baseSeed uint64, games, seats, rotate int, aName, bName, dir string, maxTurns, maxIntents int, commander bool, out io.Writer) error {
+func run(baseSeed uint64, games, seats, rotate, workers int, aName, bName, dir string, maxTurns, maxIntents int, commander bool, out io.Writer) error {
 	if games < 1 {
 		return fmt.Errorf("-games must be at least 1, got %d", games)
 	}
@@ -1358,7 +1440,12 @@ func run(baseSeed uint64, games, seats, rotate int, aName, bName, dir string, ma
 		cfg.Tokens = reg.Tokens
 		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents)
 	}
-	return bench(baseSeed, games, seats, aName, bName, play, out)
+	if workers <= 0 {
+		workers = runtime.NumCPU()
+	}
+	pool := newGamePool(workers)
+	defer pool.close()
+	return benchWithPool(baseSeed, games, seats, aName, bName, play, out, pool)
 }
 
 // buildGameConfig turns one game's seat assignment into its rules.Config,
@@ -1396,7 +1483,7 @@ func main() {
 	pairs := flag.String("pairs", "", "deck-pair matrix: \"all\" for every unordered repo-deck pair, or a comma-separated \"a:b,c:d\" list; empty keeps today's single-pair behaviour")
 	format := flag.String("format", "constructed", "construction format: constructed or commander (commander deals commander decks into the command zone, starts at 40 life, and plays for -max-turns before a game is recorded as a stall)")
 	out := flag.String("out", "text", "matrix output format: text or json (json is machine-readable for diffing runs)")
-	workers := flag.Int("workers", 0, "matrix parallelism budget across pairs and games; 0 = use all cores (result is deterministic regardless)")
+	workers := flag.Int("workers", 0, "parallelism budget for bench games, single-pair and matrix, across pairs and games; 0 = use all cores (result is deterministic regardless)")
 	// The two watchdog caps catch different pathologies and must not be
 	// conflated: -max-turns ends a game that runs long in turn count (a cap
 	// a frozen-turn loop never reaches, because its turn number stops);
@@ -1446,7 +1533,7 @@ func main() {
 		}
 		return
 	}
-	if err := run(*seed, *games, *seats, *rotate, *a, *b, *dir, *maxTurns, *maxIntents, commander, os.Stdout); err != nil {
+	if err := run(*seed, *games, *seats, *rotate, *workers, *a, *b, *dir, *maxTurns, *maxIntents, commander, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "botbench:", err)
 		os.Exit(1)
 	}
