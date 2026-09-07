@@ -123,6 +123,9 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		if h.HasKeyword(o.ID, "Indestructible") {
 			continue
 		}
+		if ReplaceDestruction(h, o.ID) {
+			continue
+		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 	}
@@ -141,6 +144,9 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 			if MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
+				if ReplaceDestruction(h, id) {
+					continue
+				}
 				h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 			}
