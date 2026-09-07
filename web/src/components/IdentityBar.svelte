@@ -1,11 +1,12 @@
 <script lang="ts">
   import type { PlayerView, SeatInfo } from '../protocol';
   import { commanderDamageOf } from '../lib/commander';
+  import ManaPool from './ManaPool.svelte';
 
   /**
    * IdentityBar sits at one seat's outer corner: who, life centred big, the
    * zone counts, an outline while active, a dot while holding priority,
-   * strike-through once lost. data-seat carries the seat index (not the seat
+   * ELIMINATED once lost. data-seat carries the seat index (not the seat
    * prop below, which is that seat's SeatInfo) for Task 22's arrows.
    *
    * Under life sits the second clock, commander damage (CR 903.10): one line
@@ -16,6 +17,25 @@
    * life it ignores; `players` is the match-wide roster commanderDamageOf
    * resolves dealer names from. The block renders nothing when the seat has
    * taken no commander damage.
+   *
+   * LOST SEATS. A seat can be eliminated with its life total untouched — 21+
+   * commander damage from one commander, drawing from an empty library,
+   * conceding — so the fix for "a dead player's box doesn't say so" is never
+   * to force life to 0 (rules/sba.go's other loss conditions would make that
+   * a lie). It is stating it in words: an ELIMINATED band, always drawn when
+   * `player.lost`, that does not depend on or alter the life number beside
+   * it. The elimination CAUSE (the PlayerLost event's Text) is the rail's
+   * job, not this component's — this only says THAT the seat is out.
+   *
+   * FLOATING MANA. `.mana-row` is a fixed-height band, always rendered,
+   * whether the seat has floating mana or not — see its own comment below
+   * for why a reserved, non-grow-to-fit box is the actual point of the
+   * feature. `player.pool` reaches ManaPool untouched, including when it is
+   * a literal JSON `null` (every seat's pool on a public-spectator client,
+   * view/view.go): ManaPool already treats a hidden pool as "draw nothing",
+   * which is exactly the right reading here too — an unknown pool is not the
+   * same claim as an empty one, and this component makes neither claim on
+   * its own.
    */
   let { player, seat, colour, active, priority, corner, players = [] }: {
     player: PlayerView; seat?: SeatInfo; colour: string; active: boolean; priority: boolean;
@@ -55,8 +75,12 @@
     {#if priority}<span class="dot" title="has priority"></span>{/if}
     {who}
   </div>
+  {#if player.lost}<div class="eliminated" data-eliminated>Eliminated</div>{/if}
   {#if deck}<div class="deck">{deck}</div>{/if}
   <div class="life">{player.life}</div>
+  <div class="mana-row" data-mana-row>
+    <ManaPool pool={player.pool} />
+  </div>
   {#if cmdDamage.length > 0}
     <div class="cmd" data-commander-damage>
       <span class="cmd-h">Commander</span>
@@ -102,16 +126,59 @@
     z-index: 5;
     backdrop-filter: blur(6px);
   }
-  /* The active player is stated once, by the seat rule growing — not by a
-     second colour competing with the first. */
+  /* The active player is stated as a full perimeter in the seat's OWN colour
+     — not a generic "it's someone's turn" hue — so the ring says both "the
+     turn is here" and "here is who" in one glance (survey report: two edges
+     read as decoration, not as a signal you can find at a glance). The
+     border goes fully saturated and thickens on all four sides at once
+     (the shorthand below overrides the inactive state's left-only accent),
+     and a soft matching glow pushes the whole plate visually forward without
+     filling it with colour — a wash across the plate would compete with the
+     life total and the card art it sits over. */
   .identity.active {
-    border-left-width: 6px;
+    border: 2px solid var(--seat);
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--seat) 45%, transparent),
+      0 0 14px 2px color-mix(in srgb, var(--seat) 55%, transparent);
     background: color-mix(in srgb, var(--felt-raised) 92%, transparent);
   }
   .identity.lost .name,
   .identity.lost .life {
     text-decoration: line-through;
     color: var(--ink-faint);
+  }
+  /* Stated in words, not only implied by a struck-through life total that
+     may not even have moved (commander damage, an empty library and a
+     concession all end a seat without touching life). Danger red is already
+     reserved for "this clock is done" (the lethal commander-damage row
+     below), and this is exactly that state for the whole seat. */
+  .eliminated {
+    font-size: var(--t-10);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--danger);
+    margin-top: 1px;
+  }
+  /* A fixed-height band for floating mana, ALWAYS rendered — this is the
+     actual point of the feature (survey report: "player boxes resizing and
+     bouncing around turn by turn"). ManaPool itself draws nothing at all for
+     an empty or hidden pool (its own contract), so without a reserved slot
+     around it the box would grow a row when mana is floated and shrink back
+     the moment it is spent — exactly the bounce the report is about. The
+     height here is fixed (not min-height, not padding sized to content), so
+     the box is the identical height whether the pool is full, empty, or
+     null (every seat but the viewer's own on a public-spectator client).
+     overflow hidden is a backstop, never the normal case: six symbols at
+     this size comfortably fit the box's own width before it would ever
+     clip. */
+  .mana-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.2rem;
+    margin: 0 0 var(--sp-2);
+    overflow: hidden;
   }
   .name {
     display: flex;
