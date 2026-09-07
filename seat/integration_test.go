@@ -319,6 +319,7 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 	botGame := rand.New(rand.NewPCG(7, 7^0x9e3779b97f4a7c15))
 	attachedN := 0
 	poolN := 0
+	sawUnequalLife := false
 	n := 0
 	for !eView.G.Over && !eGame.G.Over && eView.Pending() != nil && eGame.Pending() != nil && n < 200000 {
 		d := eView.Pending()
@@ -344,6 +345,16 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 		// BoardFromGame off state.Object.AttachedTo, so a divergence here is
 		// the two adapters reading different attachment facts.
 		boardView := boardFromView(view.Project(eView.G, eView, d.Player, d))
+		// AR6 also reads defender life to break equal combat tiers. Compare
+		// the fact itself, not just choices that may never need a tiebreak.
+		if !maps.Equal(boardView.Life, boardGame.Life) {
+			t.Fatalf("intent %d: life census diverged: view %v vs game %v", n, boardView.Life, boardGame.Life)
+		}
+		for _, p := range eView.G.Players {
+			if boardView.Life[p.ID] != boardView.Life[d.Player] {
+				sawUnequalLife = true
+			}
+		}
 		if !maps.Equal(boardView.Cards, boardGame.Cards) {
 			t.Fatalf("intent %d: casting Card census diverged: view %v vs game %v (step %s)", n, boardView.Cards, boardGame.Cards, eGame.G.Step)
 		}
@@ -384,6 +395,9 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 	}
 	if !eView.G.Over || !eGame.G.Over {
 		t.Fatalf("game did not terminate after %d intents (view over=%v, game over=%v)", n, eView.G.Over, eGame.G.Over)
+	}
+	if !sawUnequalLife {
+		t.Fatal("no unequal life totals observed -- the life comparison was vacuous")
 	}
 	if wantAttached && attachedN == 0 {
 		t.Fatal("no decision ever carried a non-zero AttachedTo on Card -- the attachment fact was never exercised over the whole game")
