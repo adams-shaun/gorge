@@ -45,13 +45,13 @@ Oracle:x
 `
 
 // cmdZoneGame builds a two-seat Commander game with the given per-seat
-// commander card sources (delegating to m33's commanderGame, which parks
+// commander card sources (delegating to the shared commanderGame, which parks
 // each configured commander in the command zone at genesis), positioned so
 // the tests can drive a lethal-damage state-based action directly: the game
 // is at turn 1 upkeep with no decision pending.
 func cmdZoneGame(t *testing.T, seatCmds [][]string) (*Engine, Config) {
 	t.Helper()
-	return commanderGame(t, FormatCommander, 40, seatCmds)
+	return commanderGame(t, commanderDamageSeed, FormatCommander, 40, seatCmds)
 }
 
 // assertAskCount pins how many KCommanderZone DecisionAsk events the log
@@ -351,7 +351,7 @@ func TestCommanderMovingToBattlefieldOrStackIsNotReplaced(t *testing.T) {
 // decision, no queue and no commander-zone events anywhere in the log.
 // Deleting the format gate fails this test by name.
 func TestNonCommanderGameNeverRunsTheReplacement(t *testing.T) {
-	e, _ := commanderGame(t, FormatConstructed, 40, [][]string{{tinyCmdSrc}, {}})
+	e, _ := commanderGame(t, commanderDamageSeed, FormatConstructed, 40, [][]string{{tinyCmdSrc}, {}})
 	cmd := fieldCommander(t, e, 0, 0)
 	e.G.Obj(cmd).Damage = 1
 
