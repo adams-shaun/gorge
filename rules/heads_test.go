@@ -250,9 +250,37 @@ import (
 // itself, not the suspension fix that made it safe.
 //
 // Ruling FL-90: an attributed regeneration is not a spend against FL-83.
+//
+// uc1 (Counter's UnlessCost$) moves 2 and 4 and leaves 6 and 8 alone. Both
+// movers are one card in one seat: Daze#95, dimir-tempo seat 1, which now poses
+// the "pay {1} or it is countered" ask that never existed before. The two seat
+// counts move for DIFFERENT reasons, and the difference is the point:
+//
+//	2 seats  LOG CHURN ONLY. ModeChosen at seq 1172 is followed immediately by
+//	         obj 79 "countered" with no mana_add -- the payer had nothing
+//	         floating, so the payment FAILED and the spell is countered exactly
+//	         as before. The board is identical (countered 1 -> 1); the head
+//	         moves because two new events are in the chain.
+//	4 seats  A REAL BOARD DIVERGENCE. Same card, same seat, but here the
+//	         payment SUCCEEDS: ModeChosen at seq 1907 is followed by
+//	         mana_add(-1, "B") at 1908, and a spell that used to be countered
+//	         now resolves.
+//	6, 8     UNCHANGED, and this is the check that the attribution is honest:
+//	         Daze never resolves at those seat counts, so no unless-pay ask is
+//	         posed and the only ModeChosen in either game is Warping Wail's,
+//	         byte-identical on both trees.
+//
+// A PARTIAL move is a stronger result than a full one: if all four had moved,
+// nothing would distinguish "the feature fired" from "something unrelated
+// perturbed every game". Two moving with named causes and two provably not
+// moving is the shape that rules the second explanation out.
+//
+// The gate measured these on top of 63ee22d (the sc1 merge) and got values
+// byte-identical to the measurement on e7fec05, so sc1's sacrifice work does
+// not interact with these four games.
 var acceptanceHeads = map[int]string{
-	2: "6ade7e2262bc8787",
-	4: "c8cbd9c6b4851767",
+	2: "a95fd3b1da972438",
+	4: "ba76d1bb389a3c2b",
 	6: "baafe0b87f436bec",
 	8: "700f85d871d35367",
 }
