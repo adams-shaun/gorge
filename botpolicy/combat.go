@@ -125,6 +125,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 	clear(b.Cards)
 	clear(b.Commanders)
 	b.IsMain = g.Step.IsMain()
+	b.Pool = g.Players[me].Pool
 	for i := range g.Players {
 		p := &g.Players[i]
 		b.Life[p.ID] = p.Life
@@ -189,7 +190,16 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 	// view side, fills the same fact with the same function (CmcOf,
 	// hasTypeWord), so a card ranks identically on both halves — including
 	// a commander sitting in the command zone, which is why the casting
-	// rule can read its power and mana value like any other castable.
+	// rule can read its power and mana value like any other castable. The
+	// zone walk also fills the two tap-gate facts (tap.go, T1): ManaCost is
+	// the printed cost the gate re-parses for coloured pips, and Castable
+	// is the zone membership that says whether a card is worth mana at all
+	// — true for a hand card (the engine offers its cast as soon as the
+	// pool pays the cost), true for the command zone (a commander the CR
+	// 903.8 tax prices), true for a graveyard card with the Flashback
+	// keyword (derived, mirroring rules/legal.go's own flashback gate read
+	// off the same Derived keyword list the View projects), and false for
+	// the battlefield, whose permanents are already cast.
 	for _, z := range [...]state.Zone{state.ZHand, state.ZGraveyard, state.ZBattlefield, state.ZCommand} {
 		for _, id := range g.Zone(z, me) {
 			o := g.Obj(id)
@@ -206,6 +216,8 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				CMC:        CmcOf(f.ManaCost),
 				Basic:      hasTypeWord(f.Types, "Basic"),
 				AttachedTo: o.AttachedTo,
+				ManaCost:   f.ManaCost,
+				Castable:   z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(ch.Keywords(id))),
 			}
 		}
 	}
@@ -423,9 +435,9 @@ func killBlockCost(def []blocker, a Creature) (int32, bool) {
 //     the swing closes ranks highest (AR5 -- a second-track win), then a
 //     defender that cannot block it at all (AR2 -- guaranteed damage), then
 //     one whose every block fails to kill it, then one it can only trade
-//     even-or-worse with; ties break on the lower defender id. With a
-//     single opponent the pair list is one option per creature and this
-//     reduces to the M1 choice verbatim.
+//     even-or-worse with; ties favour the lowest defender life, then the
+//     first offered option. With a single opponent the pair list is one
+//     option per creature and this reduces to the M1 choice verbatim.
 //   - AR2 (unblockable): if no creature OF THAT DEFENDER can block it
 //     (Flying against a defender with no Flying/Reach; no untapped
 //     defenders), that defender gets the swing -- the damage is guaranteed
@@ -461,8 +473,8 @@ func killBlockCost(def []blocker, a Creature) (int32, bool) {
 //
 // The decision is purely a function of the offered options and the board
 // facts both adapters supply; no rng is consumed, and no map iteration
-// order reaches the answer (ties break on ObjID, defender id or option
-// index; the per-defender and per-opponent maps below are membership sets
+// order reaches the answer (ties break on ObjID or option index after
+// game facts; the per-defender and per-opponent maps below are membership sets
 // and order-independent aggregates, never ranged into a choice).
 func (b Board) chooseAttackers(d *decision.Decision) []int {
 	if len(d.Options) == 0 {
@@ -545,14 +557,18 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 		}
 		best := -1
 		bestTier := -1
-		var bestDef state.PlayerID
+		var bestLife int32
 		for _, oi := range at.opts {
 			t, ok := score(at, oi)
 			if !ok {
 				continue
 			}
-			if t > bestTier || (t == bestTier && d.Options[oi].Player < bestDef) {
-				best, bestTier, bestDef = oi, t, d.Options[oi].Player
+			// At equal combat risk, pressure the opponent closest to dying
+			// rather than the lowest seat. Life is public on both adapters.
+			// Equal life keeps the first option (opts is in offered order).
+			life := b.Life[d.Options[oi].Player]
+			if t > bestTier || (t == bestTier && life < bestLife) {
+				best, bestTier, bestLife = oi, t, life
 			}
 		}
 		if best >= 0 {

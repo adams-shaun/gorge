@@ -38,6 +38,24 @@ type Card struct {
 	// a non-zero AttachedTo; a hand or graveyard card reads 0 on both
 	// halves, which is what lets them stay a plain casting fact.
 	AttachedTo state.ObjID
+	// ManaCost is the printed cost in Forge notation ("1 W", "U U",
+	// "X G") -- the same string both understanding halves already read for
+	// CMC (CmcOf) and the View carries as CardView.ManaCost. The tap gate
+	// (tap.go) re-parses it for the coloured-pip demands of the card it is
+	// pricing, which is where a colour-blind tap policy would otherwise
+	// float the wrong colour and stall against a multi-coloured cost.
+	ManaCost string
+	// Castable reports whether the deciding seat could cast this card from
+	// where it currently sits, given enough mana: true for the seat's own
+	// hand, for the command zone (this engine only ever puts commanders
+	// there), and for the graveyard when the card has the Flashback
+	// keyword; false for the battlefield (a permanent is already cast).
+	// The tap gate reads it to restrict "a spell worth mana" to spells the
+	// seat can actually cast -- a battlefield permanent never justifies a
+	// tap. Both halves fill it from the same zone membership (the projected
+	// zone lists; the engine's zone walk plus the derived keyword list), so
+	// the gate sees the same castability whichever host asks.
+	Castable bool
 }
 
 // braceForm normalises a brace-form mana cost ("{2}{U}{U}") to the
