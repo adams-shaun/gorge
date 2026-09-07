@@ -72,6 +72,28 @@ $(BIN_DIR)/gorged: $(GO_SRC)
 gorged: $(BIN_DIR)/gorged
 	$(BIN_DIR)/gorged -decks internal/testutil/decks -tables 4 -seats 4 -pace 1.5s -format commander,constructed
 
+.PHONY: deploy-demo stop-demo
+# deploy-demo refreshes the local demo: two servers on 127.0.0.1, public
+# spectator on :8080 and omniscient on :8081, each with two Commander and
+# two constructed tables so the overview's per-format sections are both
+# populated. .githooks/post-merge runs it in the background after a merge
+# into main, so what is on :8080 is never older than main.
+#
+# The binary is rebuilt unconditionally rather than through
+# $(BIN_DIR)/gorged: that rule depends on the Go sources, but the client
+# reaches the server through //go:embed all:webdist, so a web-only change
+# leaves every .go file untouched and the embedded client stale -- which is
+# precisely the change a demo exists to show.
+deploy-demo: web
+	@mkdir -p $(BIN_DIR)
+	CGO_ENABLED=0 go build -o $(BIN_DIR)/gorged ./cmd/gorged
+	scripts/deploy-demo.sh
+
+# stop-demo takes the demo down without starting it again. Same socket
+# lookup as the deploy: never `pkill -f`.
+stop-demo:
+	scripts/deploy-demo.sh --stop-only
+
 .PHONY: sim
 sim: $(BIN_DIR)/mtgsim
 	$(BIN_DIR)/mtgsim -seats 4 -games 20 -verify
