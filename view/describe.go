@@ -124,6 +124,109 @@ func Describe(g *state.Game, ev events.Event) string {
 		return obj(g, ev.Obj) + " triggers"
 	case events.EndCombatReset:
 		return "Combat ends"
+	case events.CastInfo:
+		// Records how a spell was cast, right before the PutOnStack line
+		// (Task 4): Amount is the value chosen for {X}, Counter the comma-
+		// separated mode flags ("kicked", ...). Described, not "": X and
+		// the kicker are the caster's own decisions and nothing else in the
+		// transcript shows them (mana-spend lines record totals, not what
+		// they paid for), and the line is self-contained, so a DVR scrub
+		// landing on it needs no neighbouring line. It carries no Player
+		// field, so the caster is the card's controller. The two lines read
+		// as one cast: the how, then the fact.
+		cast := player(g, objController(g, ev.Obj)) + " casts " + obj(g, ev.Obj)
+		how := make([]string, 0, 2)
+		if ev.Amount != 0 {
+			how = append(how, "X = "+itoa(int64(ev.Amount)))
+		}
+		if ev.Counter != "" {
+			how = append(how, ev.Counter)
+		}
+		if len(how) == 0 {
+			return cast
+		}
+		return cast + " (" + strings.Join(how, ", ") + ")"
+	case events.Choose:
+		// Records an "as this enters, choose ..." answer (etbAsk/etbAnswer):
+		// Counter discriminates the shape ("name", "type", "number"; the
+		// chosen name/type rides on Text, the number on Amount). Like
+		// CastInfo it carries no Player field, so the chooser is the card's
+		// controller. An unrecognized Counter (a fuzz event, a future
+		// shape) degrades to a generic "chooses a value" line rather than
+		// inventing a field.
+		what := "a value"
+		switch ev.Counter {
+		case "name":
+			what = "the name " + ev.Text
+		case "type":
+			what = "the type " + ev.Text
+		case "number":
+			what = "the number " + itoa(int64(ev.Amount))
+		}
+		return player(g, objController(g, ev.Obj)) + " chooses " + what + " for " + obj(g, ev.Obj)
+	case events.TokenCreate:
+		// A token minted onto the battlefield (Player is its owner and
+		// controller). The event names the token by its script key -- the
+		// minted object's id is assigned inside Apply, so there is nothing
+		// to read from ev.Obj -- and the display name comes from the game's
+		// token table; an unresolvable key (a hand-built game, the fuzz)
+		// degrades to a plain "creates a token".
+		if name := tokenName(g, ev.Text); name != "" {
+			return player(g, ev.Player) + " creates a " + name + " token"
+		}
+		return player(g, ev.Player) + " creates a token"
+	case events.StackCopy:
+		// A copy of the stack object Obj, controlled by Player (CR
+		// 707.10a), placed on top of the stack. The copy itself gets a new
+		// id Apply assigns, so the line names the original it duplicates.
+		return player(g, ev.Player) + " copies " + obj(g, ev.Obj)
+	case events.Attach:
+		// Aura/Equipment permanent Obj attaches to (IDs[0]) or detaches
+		// from (empty IDs) its bearer. rules/attach.go's one detach-with-
+		// reason site carries the why on Text; when present it is appended,
+		// because "detaches" alone cannot explain an Equipment floating
+		// free of its bearer mid-combat.
+		if len(ev.IDs) > 0 {
+			return obj(g, ev.Obj) + " attaches to " + obj(g, ev.IDs[0])
+		}
+		s := obj(g, ev.Obj) + " detaches"
+		if ev.Text != "" {
+			s += " (" + ev.Text + ")"
+		}
+		return s
+	case events.AbilityPush:
+		// An activated ability minted onto the stack (the same shape
+		// TriggerPush uses for triggers, Ruling T20-a): Player is the
+		// activator, Obj the source permanent. The mirror of "X triggers":
+		// the IR carries no ability names, so the source permanent is what
+		// a line can name.
+		return player(g, ev.Player) + " activates " + obj(g, ev.Obj)
+	case events.ModeChosen:
+		// The answer to a mid-resolution modal decision (M2d-2): the
+		// "modes" Charm pick or the "unless_pay" yes/no. Player chose;
+		// Text carries the chosen option labels as csv. Mirrors
+		// DecisionMade's "answers" shape; an empty Text (a fuzz event)
+		// degrades to "a mode".
+		labels := strings.ReplaceAll(ev.Text, ",", ", ")
+		if labels == "" {
+			labels = "a mode"
+		}
+		return player(g, ev.Player) + " chooses " + labels
+	case events.CmdDamage:
+		// Commander combat damage to a player (CR 903.10, task m33): Obj
+		// is the source commander, Player the damaged player, Amount what
+		// actually landed. The ordinary Damage event already says "Bob
+		// takes N damage"; this line is the second clock -- the
+		// per-commander cumulative tally and its lethal threshold -- the
+		// thing this event adds and the only reason it exists. The tally
+		// is read as of g (the batch's last Apply already folded this hit
+		// in); it is unknown in a non-Commander game or when the source is
+		// not on any roster, so the parenthetical drops then.
+		s := obj(g, ev.Obj) + " deals " + itoa(int64(ev.Amount)) + " commander damage to " + player(g, ev.Player)
+		if total, ok := cmdDamageTally(g, ev.Player, ev.Obj); ok {
+			s += " (" + itoa(int64(total)) + " total; 21 is lethal)"
+		}
+		return s
 	}
 	return "unknown event"
 }
@@ -157,6 +260,20 @@ func objs(g *state.Game, ids []state.ObjID) string {
 	return strings.Join(parts, ", ")
 }
 
+// objController is the player who controls id, or seat 0 when g cannot
+// resolve it. CastInfo and Choose carry no Player field of their own (a
+// card's controller is its caster/chooser at cast time), so their lines
+// derive it from the object rather than reading the event's zero Player.
+func objController(g *state.Game, id state.ObjID) state.PlayerID {
+	if g == nil {
+		return 0
+	}
+	if o := g.Obj(id); o != nil {
+		return o.Controller
+	}
+	return 0
+}
+
 // player is the seat's name, or "seat N" when g cannot resolve it.
 func player(g *state.Game, p state.PlayerID) string {
 	if g != nil && int(p) < len(g.Players) && g.Players[p].Name != "" {
@@ -171,6 +288,46 @@ func life(g *state.Game, p state.PlayerID) string {
 		return itoa(int64(g.Players[p].Life))
 	}
 	return "?"
+}
+
+// tokenName is the display name of the token definition a TokenCreate
+// event's script key names ("Goblin" for "r_1_1_goblin"), or "" when the
+// game has no such definition (a hand-built game, an unknown key, the
+// fuzz).
+func tokenName(g *state.Game, key string) string {
+	if g == nil {
+		return ""
+	}
+	c, ok := g.Tokens[key]
+	if !ok || c == nil || len(c.Faces) == 0 {
+		return ""
+	}
+	return c.Faces[0].Name
+}
+
+// cmdDamageTally returns player p's cumulative commander damage as of g
+// from the commander id -- CR 903.10's second clock, the tally 21 is
+// lethal against -- and whether id is on any roster. It mirrors the
+// match-wide dense index events.Apply folds CmdDamage into (seat order,
+// then each seat's genesis Commanders order; never a map), so the total
+// reads the same slot a log-only reconstruction would rebuild.
+func cmdDamageTally(g *state.Game, p state.PlayerID, id state.ObjID) (int32, bool) {
+	if g == nil || int(p) >= len(g.Players) {
+		return 0, false
+	}
+	idx := 0
+	for s := range g.Players {
+		for _, c := range g.Players[s].Commanders {
+			if c == id {
+				if idx < len(g.Players[p].CmdDamage) {
+					return g.Players[p].CmdDamage[idx], true
+				}
+				return 0, false
+			}
+			idx++
+		}
+	}
+	return 0, false
 }
 
 // zone is the zone's name, total over out-of-range values.
