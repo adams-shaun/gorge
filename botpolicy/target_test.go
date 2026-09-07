@@ -93,8 +93,11 @@ func TestTargetEveryOptionIsOursFallsBackToBestOwn(t *testing.T) {
 // sensible pick, so the fallback to a player option is covered too.
 func TestTargetPreferCreatureOverFace(t *testing.T) {
 	// The 6/6 is offered at index 1, the face at index 0; a positional
-	// (Options[0]) pick would hit the face and fail this.
+	// (Options[0]) pick would hit the face and fail this. The opponent is
+	// at a healthy 20 life, so the face is merely legal and loses to the
+	// board (the do-not-suicide half of the dp3 face rule).
 	b := boardOf(def(1, 6, 6))
+	b.Life[1] = 20
 	got, d := targetDecision(b, []tgt{face(), opp(201)}, 1, 1)
 	if len(got) != 1 || objAt(d, got[0]) != 201 {
 		t.Errorf("board creature preferred over face = %v (obj %d), want the 6/6 (obj 201)", got, objAt(d, got[0]))
@@ -230,6 +233,93 @@ func TestChooseTargetsHonoursMinAndMaxDirect(t *testing.T) {
 	}
 	if ch := b.chooseTargets(&decision.Decision{Player: 0, Kind: decision.KTarget, Min: 3, Max: 3, Options: opts}); len(ch) != 3 {
 		t.Fatalf("chooseTargets(Min 3) = %v, want three targets without clamp", ch)
+	}
+}
+
+// TestTargetSizeIncludesOwnPlayer is a determinism guard on the corner
+// where a "player" option names the deciding seat itself (never produced
+// by askTarget, but a valid wire shape): it is treated as an own option,
+// so it is only ever chosen when nothing opposing is offered, and the
+// answer validates.
+// TestTargetLowLifeDoesNotClaimBurnReach is the inverted half of the
+// removed goal-scoring: the policy cannot read the effect that produced the
+// KTarget decision, so it cannot prove a targetable-at-player effect deals
+// any damage at all. A player at 2 life is not therefore a win target --
+// when a creature is also a legal target the bot answers the board, exactly
+// as it does for a healthy player. The face is a neutral target, chosen only
+// when nothing else is offered (see faceScore).
+func TestTargetLowLifeDoesNotClaimBurnReach(t *testing.T) {
+	b := boardOf(def(1, 5, 5))
+	b.Life[1] = 2 // a burn "would" reach -- but the policy cannot prove the effect deals damage
+	got, d := targetDecision(b, []tgt{opp(201), face()}, 1, 1)
+	if len(got) != 1 || objAt(d, got[0]) != 201 {
+		t.Fatalf("target = %v (obj %d), want the 5/5 (obj 201) even at 2 life: low life is not provable burn reach", got, objAt(d, got[0]))
+	}
+}
+
+// TestTargetCreatureOverHealthyFace is the "do not suicide into the board"
+// guard: away from any claimed lethal, the face is merely legal, so the bot
+// answers the best battlefield creature rather than throwing the effect at
+// a face that can take it. This holds for a healthy player and, since the
+// policy cannot prove the effect reaches the player, for a low-life player
+// too (TestTargetLowLifeDoesNotClaimBurnReach).
+func TestTargetCreatureOverHealthyFace(t *testing.T) {
+	b := boardOf(def(1, 6, 6))
+	b.Life[1] = 18 // healthy
+	got, d := targetDecision(b, []tgt{face(), opp(201)}, 1, 1)
+	if len(got) != 1 || objAt(d, got[0]) != 201 {
+		t.Fatalf("target = obj %d, want the 6/6 (obj 201) over the healthy face", objAt(d, got[0]))
+	}
+}
+
+// TestTargetFaceIsNeutralAcrossLife is the graded half of the withdrawn
+// goal-scoring rule: the face's value was to climb as the opponent neared
+// dead, so a player at 15 life kept the board over the face while a player
+// at 2 flipped it. With the effect unread the face is neutral at every life
+// total, so the board stays preferred at 15, at 2 and everywhere between --
+// the same conservative answer, never a claimed kill the policy cannot
+// prove.
+func TestTargetFaceIsNeutralAcrossLife(t *testing.T) {
+	for _, life := range []int32{20, 15, 2, 0} {
+		b := boardOf(def(1, 4, 4))
+		b.Life[1] = life
+		got, d := targetDecision(b, []tgt{opp(201), face()}, 1, 1)
+		if len(got) != 1 || objAt(d, got[0]) != 201 {
+			t.Errorf("at %d life target = %v (obj %d), want the 4/4 (obj 201): the face is neutral, not burn reach", life, got, objAt(d, got[0]))
+		}
+	}
+}
+
+// TestTargetCommanderClockIsNotSpellReach pins the CR 903.10 property the
+// old rule got wrong: the 21 commander-damage clock counts only the COMBAT
+// damage one commander has dealt, so ordinary non-combat spell damage never
+// advances it. An opponent at 20 life with 19 commander damage is therefore
+// not a burn target -- pointing a spell at their face touches neither the
+// life track nor the combat-damage clock with a number the policy can read
+// -- so the board is still preferred over the face.
+func TestTargetCommanderClockIsNotSpellReach(t *testing.T) {
+	b := boardOf(def(1, 3, 3))
+	b.Life[1] = 20
+	b.Commanders = map[state.ObjID]Commander{
+		300: {Damage: map[state.PlayerID]int32{1: 19}},
+	}
+	got, d := targetDecision(b, []tgt{opp(201), face()}, 1, 1)
+	if len(got) != 1 || objAt(d, got[0]) != 201 {
+		t.Fatalf("target = %v (obj %d), want the 3/3 (obj 201): commander-damage proximity is not spell burn reach", got, objAt(d, got[0]))
+	}
+}
+
+// TestTargetFaceStillChosenWhenNoBoard is the neutral policy's positive
+// half: when no opposing creature is a legal target, the face remains a
+// valid, preferred pick -- a burn at a face, a drain, or a life-gain that
+// only targets players all offer only the player. Removing the face entirely
+// would leave such a decision to clamp, so this pins that the neutral face
+// is still chosen.
+func TestTargetFaceStillChosenWhenNoBoard(t *testing.T) {
+	b := boardOf()
+	got, d := targetDecision(b, []tgt{face()}, 1, 1)
+	if len(got) != 1 || d.Options[got[0]].Kind != "player" {
+		t.Fatalf("target = %v, want the opponent player: the face is still the pick when it is the only target", got)
 	}
 }
 

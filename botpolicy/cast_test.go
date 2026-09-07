@@ -231,7 +231,52 @@ func TestChooseCastAndLandPickOneWithoutClamp(t *testing.T) {
 	}
 }
 
-// TestCmcOf is the parser the cast ranking reads: the converted-mana-cost
+// TestCastEqualCostNonCreaturesTieOnIndex pins the withdrawal of the
+// effect-class bonus the task checkpoint added: two non-creatures at equal
+// CMC previously separated by the oracle-phrase class their text matched
+// (classifyCard read an anti-removal word like "destroy"/"exile" and priced
+// it above a draw or a burn). That bonus rested on oracle-phrase guessing
+// about what a spell does -- it never read what the removal answers, never
+// read a card's printed type line or oracle text, and cannot tell a burn from
+// a draw whose texts differ only in words the matcher did not happen to
+// list -- so it is gone. A cast the policy cannot separate ranks by CMC
+// alone, and an equal-CMC tie breaks on option index (C6), the
+// deterministic answer: the first-offered spell is the pick, whatever it
+// does, because the policy has no honest basis to tell it apart.
+func TestCastEqualCostNonCreaturesTieOnIndex(t *testing.T) {
+	b := priorityCards(map[state.ObjID]Card{
+		1: {CMC: 2},
+		2: {CMC: 2},
+	})
+	got, d := castDecision(b, []decision.Option{
+		castSpell(0, 2), // draw listed first
+		castSpell(1, 1), // removal listed second
+	})
+	if got != 0 {
+		t.Fatalf("cast = option %d (obj %d), want the lower-index equal-cost spell (obj 2 at index 0): no class bonus separates them", got, d.Options[got].Obj)
+	}
+}
+
+// TestCastNonCreatureRanksByCostNotOracle is C3's honest contract now that
+// the class bonus is gone: a non-creature ranks by printed mana value, its
+// best guess at the bigger effect when it cannot read effects, and an
+// unreadable (blank-text) card is ranked by the same cost -- never by an
+// oracle phrase. A higher-CMC card outranks a lower-CMC one regardless of
+// what their texts say.
+func TestCastNonCreatureRanksByCostNotOracle(t *testing.T) {
+	b := priorityCards(map[state.ObjID]Card{
+		1: {CMC: 4},
+		2: {CMC: 1},
+	})
+	got, d := castDecision(b, []decision.Option{
+		castSpell(0, 2), // a 1-mana burn listed first
+		castSpell(1, 1), // a 4-mana unreadable artifact listed second
+	})
+	if got != 1 {
+		t.Fatalf("cast = option %d (obj %d), want the higher-CMC unreadable card (obj 1): cost ranks, not oracle", got, d.Options[got].Obj)
+	}
+}
+
 // of Forge ManaCost strings, mirroring rules/mana.go's ParseCost.CMC() the
 // way both adapter halves need it (no rules import, Ruling F7). {X} counts
 // as 0 off the stack, hybrid/Phyrexian/colourless as one generic, brace
