@@ -411,89 +411,162 @@ func killBlockCost(def []blocker, a Creature) (int32, bool) {
 //
 //   - AR1 (nothing to gain): a creature with power <= 0 deals no damage and
 //     trades nothing; it stays home.
-//   - AR2 (unblockable): if no defender creature can block it (Flying
-//     against a defender with no Flying/Reach; no untapped defenders), it
-//     attacks — the damage is guaranteed and no block can punish it.
-//   - AR3 (deadly block): if the defender has a block that kills it while
+//   - AR6 (the defender is a choice, CR 506.2): every option is one
+//     (attacker, defender) pair, and a creature may attack at most one
+//     opponent -- the engine rejects an intent naming it twice, so the
+//     policy itself picks one defender per attacker. Each attacker is
+//     evaluated against EVERY defender it was offered against, a defender
+//     on which AR3 applies is vetoed, and the best remaining defender's
+//     option is chosen. "Best" is a tiered ranking of how hard that
+//     defender has to answer the swing: a defender whose commander clock
+//     the swing closes ranks highest (AR5 -- a second-track win), then a
+//     defender that cannot block it at all (AR2 -- guaranteed damage), then
+//     one whose every block fails to kill it, then one it can only trade
+//     even-or-worse with; ties break on the lower defender id. With a
+//     single opponent the pair list is one option per creature and this
+//     reduces to the M1 choice verbatim.
+//   - AR2 (unblockable): if no creature OF THAT DEFENDER can block it
+//     (Flying against a defender with no Flying/Reach; no untapped
+//     defenders), that defender gets the swing -- the damage is guaranteed
+//     and no block can punish it.
+//   - AR3 (deadly block): if THAT defender has a block that kills it while
 //     costing the defender less than the creature's own pt (its power plus
-//     toughness) — a free kill, a chump-plus-finisher team, a First-Strike
-//     or Deathtouch ambush — it stays home; it only attacks when every way
-//     the defender can kill it is a trade the attacker wins or survives.
-//   - AR5 (the clock wins, CR 903.10): an exception to AR3 — a commander
-//     whose unblocked swing would take the defender to 21 or more
-//     commander damage from it (closesClock) attacks even when the
-//     defender could kill it for less than it is worth. The swing ends the
-//     game on the second track if it gets through, so it is worth
-//     presenting every turn: the defender must answer it or lose, and
-//     every answer (even a cheap block) spends resources the defender must
-//     keep spending. When the swing does NOT close the clock yet (the
-//     tally is, say, 16 and the power 4 — 20 of 21), AR3's veto stands:
-//     the commander dies for a block that only delays the closing, and the
-//     tax makes that recast a losing exchange.
+//     toughness) -- a free kill, a chump-plus-finisher team, a First-Strike
+//     or Deathtouch ambush -- the creature does not attack THAT defender; it
+//     only swings there when every way the defender can kill it is a trade
+//     the attacker wins or survives.
+//   - AR5 (the clock wins, CR 903.10): an exception to AR3 -- a commander
+//     whose unblocked swing would take THAT defender to 21 or more
+//     commander damage from it (closesClock) attacks even when the defender
+//     could kill it for less than it is worth. The swing ends the game on
+//     the second track if it gets through, so it is worth presenting every
+//     turn: the defender must answer it or lose, and every answer (even a
+//     cheap block) spends resources the defender must keep spending. When
+//     the swing does NOT close the clock yet (the tally is, say, 16 and the
+//     power 4 -- 20 of 21), AR3's veto stands: the commander dies for a
+//     block that only delays the closing, and the tax makes that recast a
+//     losing exchange. closesClock is read against the defender each option
+//     names, so a commander pounding one opponent's clock attacks that
+//     opponent -- the clock is per (commander, damaged player) -- and is
+//     evaluated normally against every other.
 //   - AR4 (leave a blocker): if attacking with the chosen set would leave
 //     the board with no untapped creature that can block (an attacker with
-//     Vigilance never taps and still blocks) while the defender has a
+//     Vigilance never taps and still blocks) while ANY opponent has a
 //     creature of its own, the best blockable attacker is held back, so an
 //     attack never leaves the board undefended. A commander whose swing
-//     closes the defender's clock (AR5) is never the one held back — it is
+//     closes its target's clock (AR5) is never the one held back -- it is
 //     the swing the rest of the attack exists to enable; the hold-back
 //     picks from the other chosen attackers instead.
 //
 // The decision is purely a function of the offered options and the board
 // facts both adapters supply; no rng is consumed, and no map iteration
-// order reaches the answer (ties break on ObjID or option index).
+// order reaches the answer (ties break on ObjID, defender id or option
+// index; the per-defender and per-opponent maps below are membership sets
+// and order-independent aggregates, never ranged into a choice).
 func (b Board) chooseAttackers(d *decision.Decision) []int {
 	if len(d.Options) == 0 {
 		return nil
 	}
 	me := d.Player
-	defender := d.Options[0].Player // M1: every attacker swings at the same seat.
 
-	var theirBlockers []blocker
-	defHasThreat := false
+	// The per-defender board facts: each opponent's creatures -- the block
+	// risk an option against them carries -- and whether any of them has a
+	// creature with power (AR4's "could attack back"). Keyed by the
+	// defender each option names: every attacker may now choose its own
+	// opponent (CR 506.2), so the analysis the M1 policy ran against ONE
+	// defender runs here against each option's own.
+	defBlockers := make(map[state.PlayerID][]blocker, len(d.Options))
+	defHasThreat := make(map[state.PlayerID]bool, len(d.Options))
 	for id, c := range b.Creatures {
-		if c.Controller != defender {
+		if c.Controller == me {
 			continue
 		}
-		theirBlockers = append(theirBlockers, blocker{id, c})
+		defBlockers[c.Controller] = append(defBlockers[c.Controller], blocker{id, c})
 		if c.Power > 0 {
-			defHasThreat = true
+			defHasThreat[c.Controller] = true
 		}
 	}
 
-	var chosen []int
-	for _, o := range d.Options {
-		a := b.Creatures[o.Obj] // zero facts (not on a battlefield) read as a 0/0 — never an attacker
-		if a.Power <= 0 {
-			continue // AR1
+	// Group the offered options by attacker, preserving the engine's
+	// enumeration order (first-seen position is the deterministic tiebreak,
+	// exactly like chooseBlockers). One attacker contributes one option per
+	// defender and may attack at most one of them (AR6).
+	type atk struct {
+		id   state.ObjID
+		a    Creature
+		pos  int
+		opts []int
+	}
+	var attackers []*atk
+	byID := make(map[state.ObjID]*atk, len(d.Options))
+	for i := range d.Options {
+		o := &d.Options[i]
+		at, ok := byID[o.Obj]
+		if !ok {
+			at = &atk{id: o.Obj, a: b.Creatures[o.Obj], pos: i}
+			byID[o.Obj] = at
+			attackers = append(attackers, at)
+		}
+		at.opts = append(at.opts, i)
+	}
+
+	// score ranks one attacker's option against its own defender: higher
+	// tier is a better swing, ok == false vetoes that defender outright
+	// (AR3). An option naming a creature with no facts reads as a 0/0 and
+	// never reaches score (AR1 above).
+	score := func(at *atk, oi int) (int, bool) {
+		o := &d.Options[oi]
+		a := at.a
+		defender := o.Player
+		if b.closesClock(defender, at.id, a) {
+			return 3, true // AR5: the swing closes THIS defender's clock
 		}
 		blockable := false
-		for _, db := range theirBlockers {
+		for _, db := range defBlockers[defender] {
 			if canBlockLike(a, db.c) {
 				blockable = true
 				break
 			}
 		}
 		if !blockable {
-			chosen = append(chosen, o.Index) // AR2: nothing can block it
-			continue
+			return 2, true // AR2: nothing of theirs can block it
 		}
-		if cost, ok := killBlockCost(theirBlockers, a); ok && cost < a.pt() {
-			if !b.closesClock(defender, o.Obj, a) {
-				continue // AR3: it dies for less than it is worth
+		if cost, ok := killBlockCost(defBlockers[defender], a); ok && cost < a.pt() {
+			return 0, false // AR3: it dies for less than it is worth
+		}
+		return 1, true // blockable, but every block trades even-or-worse for them
+	}
+
+	var chosen []int
+	for _, at := range attackers {
+		if at.a.Power <= 0 {
+			continue // AR1
+		}
+		best := -1
+		bestTier := -1
+		var bestDef state.PlayerID
+		for _, oi := range at.opts {
+			t, ok := score(at, oi)
+			if !ok {
+				continue
 			}
-			// AR5: the swing closes the defender's commander clock — the
-			// game ends on the second track if it gets through, so the
-			// deadly-block veto yields.
+			if t > bestTier || (t == bestTier && d.Options[oi].Player < bestDef) {
+				best, bestTier, bestDef = oi, t, d.Options[oi].Player
+			}
 		}
-		chosen = append(chosen, o.Index)
+		if best >= 0 {
+			chosen = append(chosen, best)
+		}
 	}
 
 	// AR4: hold back a best blocker if attacking leaves nobody to block
 	// with. Zero remaining after the attack (attackers tap without
-	// Vigilance) plus a defender that could attack back is the trigger;
+	// Vigilance) plus an opponent that could attack back is the trigger;
 	// only blockable attackers are candidates, since an unblockable one is
-	// the way a defensive board still wins.
+	// the way a defensive board still wins. Task m34 generalizes the M1
+	// check from the single defender to ANY opponent: "leave the board
+	// undefended" is a fact about the whole table, and any opponent with a
+	// threat creature can punish it.
 	canStillBlock := 0
 	for id, c := range b.Creatures {
 		if c.Controller != me || c.Tapped {
@@ -510,29 +583,48 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 			canStillBlock++
 		}
 	}
-	if canStillBlock == 0 && defHasThreat && len(chosen) > 0 {
-		hold := -1
+	anyOppThreat := false
+	for _, has := range defHasThreat {
+		if has {
+			anyOppThreat = true
+			break
+		}
+	}
+	if canStillBlock == 0 && anyOppThreat && len(chosen) > 0 {
+		hold := -1 // position in chosen, NOT an option index -- the slice
+		// below cuts at it (a latent M1 bug wrote the option index here,
+		// which only happened to equal the position while every attacker
+		// had exactly one option and none were skipped; the Task-m34
+		// cross-product option list made the mismatch reachable).
 		var holdScore int32 = -1
 		var holdID state.ObjID
-		for _, oi := range chosen {
+		for j, oi := range chosen {
 			a := b.Creatures[d.Options[oi].Obj]
+			// Blockable by any opponent's creature: the held-back creature
+			// defends the board against every future attacker (an
+			// order-independent any-match over the defenders).
 			blockable := false
-			for _, db := range theirBlockers {
-				if canBlockLike(a, db.c) {
-					blockable = true
+			for _, dbs := range defBlockers {
+				for _, db := range dbs {
+					if canBlockLike(a, db.c) {
+						blockable = true
+						break
+					}
+				}
+				if blockable {
 					break
 				}
 			}
 			if !blockable {
 				continue
 			}
-			// AR5: a commander whose swing closes the defender's clock is
+			// AR5: a commander whose swing closes its target's clock is
 			// never held back -- the attack's game-ending piece.
-			if b.closesClock(defender, d.Options[oi].Obj, a) {
+			if b.closesClock(d.Options[oi].Player, d.Options[oi].Obj, a) {
 				continue
 			}
 			if a.pt() > holdScore || (a.pt() == holdScore && d.Options[oi].Obj < holdID) {
-				hold, holdScore, holdID = oi, a.pt(), d.Options[oi].Obj
+				hold, holdScore, holdID = j, a.pt(), d.Options[oi].Obj
 			}
 		}
 		if hold >= 0 {

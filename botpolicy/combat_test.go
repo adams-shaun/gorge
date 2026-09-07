@@ -438,3 +438,109 @@ func cardFace(t *testing.T, name, types string, p, tn int32) *cards.Card {
 	c.Link()
 	return c
 }
+
+// ---------------------------------------------------------------------------
+// Task m34: the defender is a per-attacker choice (CR 506.2 / CR 903.14).
+
+// defN is def for a defending seat of the caller's choosing (the atk/def
+// helpers hard-code seats 0 and 1): the same Creature shape, controller n,
+// object ids in the 300+ range so they cannot collide with atk/def's
+// 100/200 bases.
+func defN(n state.PlayerID, id int, p int32, t int32, kw ...string) fact {
+	return fact{state.ObjID(300 + int(n)*100 + id), Creature{Power: p, Toughness: t, Keywords: kw, Controller: n}}
+}
+
+// attackDecisionDefs builds a KAttackers decision for seat 0 (the attacker)
+// with one option per (defender, attacker id) pair -- the Task-m34 shape,
+// where the same attacker may be offered against several defenders -- and
+// returns the choices Decide made. The attacker facts come from atk() (ids
+// 100+), the same base attackDecision uses.
+func attackDecisionDefs(b Board, pairs ...[2]int) []int {
+	return attackDecisionDefsFull(b, pairs...).choices
+}
+
+// attackDecisionDefsFull is attackDecisionDefs plus the decision it
+// answered, so a test can name the defender a chosen option attacks.
+// attackAnswer (blockDecisionFull's type) serves both.
+func attackDecisionDefsFull(b Board, pairs ...[2]int) attackAnswer {
+	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KAttackers, Min: 0, Max: len(pairs),
+		Options: []decision.Option{}}
+	for _, p := range pairs {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "attacker",
+			Obj: state.ObjID(100 + p[1]), Player: state.PlayerID(p[0])})
+	}
+	return attackAnswer{&d, Decide(b, &d, rng(1)).Choices}
+}
+
+// TestAttackChoosesTheDefenderItCanHurt is AR6's carrier: with the same
+// creature offered against two defenders, the policy attacks the defender
+// where the swing is guaranteed (AR2, unblockable) rather than the one that
+// kills it for free (AR3 veto). Offered only against the killer, the same
+// creature stays home -- the veto is per defender, not a board-wide
+// decision.
+func TestAttackChoosesTheDefenderItCanHurt(t *testing.T) {
+	// A 3/3 flier against seat 1 (a plain 4/4: unblockable, guaranteed
+	// damage) and seat 2 (a Reach 4/4: it dies for free) swings at seat 1.
+	// The 0/2 stand-in on my side stays home by AR1 and still counts as a
+	// leave-a-blocker for AR4, so the hold-back rule cannot mask the
+	// defender choice under test.
+	b := boardOf(atk(1, 3, 3, "Flying"), atk(2, 0, 2), defN(1, 1, 4, 4), defN(2, 1, 4, 4, "Reach"))
+	fa := attackDecisionDefsFull(b, [2]int{1, 1}, [2]int{2, 1})
+	if len(fa.choices) != 1 {
+		t.Fatalf("flier vs {ground 4/4, reach 4/4} = %v, want exactly one swing", fa.choices)
+	}
+	if got := fa.d.Options[fa.choices[0]].Player; got != 1 {
+		t.Errorf("flier swung at seat %d, want 1 (the defender that cannot block it)", got)
+	}
+	// Only the reach defender offered: the flier stays home instead of
+	// dying for free.
+	b = boardOf(atk(1, 3, 3, "Flying"), defN(2, 1, 4, 4, "Reach"))
+	if got := attackDecisionDefs(b, [2]int{2, 1}); len(got) != 0 {
+		t.Errorf("flier vs lone reach 4/4 = %v, want none (it dies for free)", got)
+	}
+}
+
+// TestAttackSplitsTwoAttackersAcrossTwoDefenders is the multiplayer
+// behaviour Task m34 exists to enable, at the policy level: each attacker
+// independently chooses the defender it can hurt most -- seat 1 takes the
+// flier it cannot block, seat 2 takes the ground 4/4 nobody attends -- so
+// one combat points at two opponents at once. The 0/1 on my side stays
+// home by AR1 and keeps AR4 (leave a blocker) from firing, so the split is
+// the defender choice alone.
+func TestAttackSplitsTwoAttackersAcrossTwoDefenders(t *testing.T) {
+	// my board: 3/3 flier, 4/4, and a 0/1 that is never an attacker (AR1)
+	// but still blocks next turn. seat 1: a ground 4/4 (cannot block the
+	// flier; trades even with the 4/4). seat 2: nothing.
+	b := boardOf(atk(1, 3, 3, "Flying"), atk(2, 4, 4), atk(3, 0, 1), defN(1, 1, 4, 4))
+	fa := attackDecisionDefsFull(b, [2]int{1, 1}, [2]int{1, 2}, [2]int{1, 3}, [2]int{2, 1}, [2]int{2, 2}, [2]int{2, 3})
+	got := map[state.ObjID]state.PlayerID{}
+	for _, c := range fa.choices {
+		got[fa.d.Options[c].Obj] = fa.d.Options[c].Player
+	}
+	if len(got) != 2 || got[101] != 1 || got[102] != 2 {
+		t.Errorf("split attack = %v, want flier(101)->seat 1 and 4/4(102)->seat 2; choices=%v",
+			got, fa.choices)
+	}
+}
+
+// TestAttackClockClosesAgainstOnlyOneDefender is AR5 against a real
+// defender choice (the Task-m34 brief's open question about m37): the
+// commander clock is per (commander, damaged player), so closesClock is
+// read against the defender each option names. A commander pounding seat
+// 1's clock swings at seat 1 even though seat 1 can kill it for free --
+// the swing is a second-track win, and it outranks the unblockable swing
+// at the empty seat 2 -- while the same commander at 16/21 (not closing)
+// stays home from seat 1 and takes the safe swing at seat 2 instead.
+func TestAttackClockClosesAgainstOnlyOneDefender(t *testing.T) {
+	b := boardOf(atk(1, 4, 4), atk(2, 0, 2), defN(1, 1, 1, 1, "Deathtouch"))
+	b.Commanders = map[state.ObjID]Commander{101: zoneCmd(1, map[state.PlayerID]int32{1: 18})}
+	fa := attackDecisionDefsFull(b, [2]int{1, 1}, [2]int{2, 1})
+	if len(fa.choices) != 1 || fa.d.Options[fa.choices[0]].Player != 1 {
+		t.Fatalf("closing commander vs {1/1 deathtouch, empty} = %v, want the seat-1 swing (18+4 closes)", fa.choices)
+	}
+	b.Commanders = map[state.ObjID]Commander{101: zoneCmd(1, map[state.PlayerID]int32{1: 16})}
+	fa = attackDecisionDefsFull(b, [2]int{1, 1}, [2]int{2, 1})
+	if len(fa.choices) != 1 || fa.d.Options[fa.choices[0]].Player != 2 {
+		t.Fatalf("non-closing commander vs {1/1 deathtouch, empty} = %v, want the seat-2 swing (16+4 does not close)", fa.choices)
+	}
+}

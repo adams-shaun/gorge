@@ -147,9 +147,11 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 //     their face (ranked by threat(), not pt() or raw Power), and honour
 //     Min/Max without leaning on clamp. Consumes no rng.
 //   - KAttackers/KBlockers: the combat heuristic in combat.go's
-//     chooseAttackers/chooseBlockers (AR1-AR4 / BR1-BR2, stated there).
-//     Neither consumes the rng: the choice is a pure function of the
-//     offered options and the board facts both adapters supply.
+//     chooseAttackers/chooseBlockers (AR1-AR6 / BR1-BR4, stated there),
+//     including the per-attacker defender choice (AR6) and the commander
+//     clock (AR5/BR3/BR4). Neither consumes the rng: the choice is a pure
+//     function of the offered options and the board facts both adapters
+//     supply.
 //   - KTriggerOrder: a permutation of the offered indices drawn from the
 //     bot's own rng, so ordering paths get fuzz coverage too.
 //   - KTriggerOptional: a coin from the bot's own rng between the two

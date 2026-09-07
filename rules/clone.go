@@ -27,6 +27,13 @@ func (e *Engine) Clone() *Engine {
 		applyingReplacement: e.applyingReplacement,
 		choosing:            e.choosing,
 		drainAwaitsTarget:   e.drainAwaitsTarget,
+		// blockerRound (combat.go, Task m34): the declare-blockers round's
+		// defender list and cursor, plain-value state like the mulligan round.
+		// The order slice itself is never mutated (askBlockers only advances
+		// the cursor), so sharing it between a clone and its original is safe,
+		// the same reference-sharing Clone already practises for
+		// orderedTriggers.
+		blockerRound: e.blockerRound,
 		// E2 held-out cast suppression (cast.go): the set of card ids whose
 		// cast option is held out of the current window after an unpayable
 		// decline. A clone taken at any intent boundary carries it forward so
