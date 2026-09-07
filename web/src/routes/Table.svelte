@@ -15,6 +15,7 @@
   import { SeatPanelState } from '../lib/seatpanel.svelte';
   import { quadrantFor } from '../lib/board';
   import { seatColour } from '../lib/colours';
+  import { seatRows } from '../lib/seattable';
   import { href, navigate } from '../lib/router';
   import { getSeat } from '../lib/seat';
 
@@ -60,6 +61,16 @@
     }
     return panelCache.state;
   });
+
+  // Task 3's colour-coded log: the same name/colour resolution SeatTable's
+  // rows use (seats[seat].name falling back to the wire's own player name),
+  // off whichever view is currently on screen. Guarded for the pre-snapshot
+  // instant when m.view is still null — the template only mounts Transcript
+  // once m.view is truthy, but this $derived is read at module scope, not
+  // inside that block, so it has to handle null itself.
+  const logIdentities = $derived(
+    m.view ? seatRows(m.view, m.seats).map((r) => ({ name: r.name, colour: r.colour || seatColour(r.seat, m.seats) })) : [],
+  );
 
   onMount(() => {
     if (match !== null) {
@@ -128,12 +139,12 @@
           {/key}
         {/if}
       </section>
-      <aside class="rail"><Rail view={m.view} seats={m.seats} decision={seated ? null : m.decision} emphasizeTop={seated} /></aside>
+      <aside class="rail"><Rail view={m.view} seats={m.seats} decision={seated ? null : m.decision} emphasizeTop={seated} events={m.dvr.events} /></aside>
       <footer class="transcript">
         {#if !seated}
           <DvrBar dvr={m.dvr} onAction={(a) => m.dispatch(a)} {finished} />
         {/if}
-        <div class="log"><Transcript dvr={m.dvr} onSeek={seated ? () => {} : (seq) => m.dispatch({ type: 'scrub', seq })} /></div>
+        <div class="log"><Transcript dvr={m.dvr} identities={logIdentities} onSeek={seated ? () => {} : (seq) => m.dispatch({ type: 'scrub', seq })} /></div>
       </footer>
     {:else if finished && m.loadError}
       <div class="load-error">

@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { DvrState } from '../lib/dvr';
   import { visibleLog } from '../lib/logfilter';
+  import { colourSegments, type LogSeatIdentity } from '../lib/logcolour';
 
   /**
    * Transcript is the rules log: one line per event, the cursor's line
@@ -8,8 +9,17 @@
    * with no text (state-only events) are skipped. The three engine-noise
    * kinds (priority, decision_ask, decision_made) are hidden by default so
    * land plays, casts and triggers surface; the toggle reveals them.
+   *
+   * Task 3 ("each log should note the player name in colour"): `identities`
+   * is the caller's already-resolved seat name/colour list (Table.svelte
+   * builds it the same way SeatTable does, off the same view+seats), and
+   * every line is run through logcolour.ts's colourSegments so a seat's own
+   * name is coloured wherever it reads as that PLAYER rather than as part of
+   * a card's name — see logcolour.ts for how the two are told apart.
+   * Optional so a caller with no seats yet (or every existing test) renders
+   * every line as plain text, unchanged.
    */
-  let { dvr, onSeek }: { dvr: DvrState; onSeek: (seq: number) => void } = $props();
+  let { dvr, onSeek, identities = [] }: { dvr: DvrState; onSeek: (seq: number) => void; identities?: LogSeatIdentity[] } = $props();
 
   let container: HTMLDivElement | undefined;
   let revealAll = $state(false);
@@ -45,7 +55,7 @@
       onclick={() => onSeek(e.event.seq)}
     >
       <span class="seq">{e.event.seq}</span>
-      <span class="text">{e.line}</span>
+      <span class="text">{#each colourSegments(e.line, identities) as seg, i (i)}{#if seg.colour}<span class="who" style:color={seg.colour}>{seg.text}</span>{:else}{seg.text}{/if}{/each}</span>
     </button>
   {/each}
 </div>
@@ -117,5 +127,11 @@
   }
   .text {
     overflow-wrap: anywhere;
+  }
+  /* The seat's own identity colour (Task 3), inline with the sentence rather
+     than a separate column — the same "learned once" register the rest of
+     the rail uses colour for. */
+  .who {
+    font-weight: 600;
   }
 </style>
