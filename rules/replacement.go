@@ -8,6 +8,7 @@ package rules
 
 import (
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -45,6 +46,27 @@ import (
 func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	if ev.Kind != events.MoveZone {
 		return ev, false
+	}
+	// CR 903.9 (Task m32): a commander about to be put into its owner's
+	// graveyard, hand or library from anywhere, or exiled from anywhere, may
+	// instead be put into the command zone by its OWNER. This is a
+	// replacement effect exactly like the R: lines below -- it applies before
+	// the object would change zones, so the commander never touches the
+	// destination -- but it is a construct rule, not a card line, so it is
+	// matched first (before any card-text replacement the same move might
+	// also match, which per CR 616.1 would then apply to whichever zone
+	// change actually happens). Matching parks the event: the owner is asked
+	// (decision.KCommanderZone) and the parked move is emitted for real only
+	// when the answer arrives -- to the command zone on an accept, verbatim
+	// on a decline -- so the log always carries the zone change that actually
+	// happened and a log-only replay reproduces it. The choice itself is a
+	// player decision recorded as an Intent plus the DecisionAsk/DecisionMade
+	// events every ask produces. Returning handled discards the original
+	// event, which is exactly right: nothing has happened yet, and whatever
+	// happens is the owner's answer, not this park.
+	if e.commanderZoneReplacementApplies(ev) {
+		e.parkCommanderZoneMove(ev)
+		return ev, true
 	}
 	var matchID state.ObjID
 	var matchRepl *cards.Repl
@@ -209,4 +231,174 @@ func init() {
 	// own tags is what a replacement registration means -- nothing elsewhere
 	// in the tree registers them.
 	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement")
+}
+
+// cmdZoneMove is one parked commander zone change (CR 903.9, Task m32): the
+// MoveZone event a commander is about to undergo, deferred until its owner
+// decides whether to put it into the command zone instead. The answer
+// re-emits the park as a real MoveZone -- to ZCommand on an accept, to the
+// parked destination verbatim on a decline -- so the event log always
+// carries the zone change that actually happened and a log-only replay
+// reproduces it. Plain value data (an events.Event plus the moving object's
+// id), so Clone copies the queue with one slice copy.
+type cmdZoneMove struct {
+	ev  events.Event
+	obj state.ObjID
+}
+
+// commanderZoneReplacementApplies is CR 903.9's match predicate: a
+// commander, in a Commander-format game, about to be put into its owner's
+// graveyard, hand or library -- from ANYWHERE -- or about to be exiled from
+// anywhere. The five points of the rule each live in exactly one place here
+// (mutation guards, Task m32 brief item 7):
+//
+//   - FormatCommander gate: no format check, no mechanic. A Constructed
+//     game never runs any of this.
+//   - The four destinations: graveyard, hand, library, exile -- a
+//     commander moving to the battlefield or the stack is not replaced.
+//   - "From anywhere": ev.From is never consulted. The battlefield, the
+//     stack, the graveyard, a hand a library or exile are all sources.
+//   - Ownership, not control: the lookup is the owner's Commanders list,
+//     not the controller's -- a commander stolen by an opponent goes to its
+//     owner's command zone and its owner is asked.
+func (e *Engine) commanderZoneReplacementApplies(ev events.Event) bool {
+	if e.format != FormatCommander {
+		return false
+	}
+	switch ev.To {
+	case state.ZGraveyard, state.ZHand, state.ZLibrary, state.ZExile:
+	default:
+		return false
+	}
+	o := e.G.Obj(ev.Obj)
+	if o == nil || int(o.Owner) >= len(e.G.Players) {
+		return false
+	}
+	for _, c := range e.G.Players[o.Owner].Commanders {
+		if c == ev.Obj {
+			return true
+		}
+	}
+	return false
+}
+
+// parkCommanderZoneMove applies the CR 903.9 replacement to one matching
+// zone change: the event is deferred (never logged, never applied -- the
+// commander stays where it is) and its owner is asked whether to put the
+// commander into the command zone instead. handleCmdZone emits the parked
+// move for real when the answer lands.
+//
+// Dedup by object: while a commander's decision is outstanding the only
+// engine work that can run is (a) the resolution-chain tail that already
+// emitted the first park and (b) Submit's repeating state-based-action pass.
+// A second park for the same commander is therefore either the SAME zone
+// change being re-offered (the SBA pass re-finding a commander it already
+// had tried -- the no-progress shape a replacement must not loop on, the
+// stalledCastLimit lesson: the already-pending decision covers it, so the
+// duplicate is dropped) or a second effect in the same chain that in the
+// real rules would resolve AFTER the commander has already moved (its own
+// CR 608.2b Origin$-driven recheck would then skip it, so dropping is the
+// more-correct outcome, not merely safe). The move itself always happens
+// exactly once, through the front decision.
+//
+// An owner who has left the game cannot exercise a "may" choice (CR 800.4a:
+// a departed player makes no choices), so the unexercised choice is a
+// decline: the original move happens unchanged, emitted here under
+// applyingReplacement so the commander check that just matched cannot
+// re-park it (CR 616.1, a replacement applies only once). This is reachable
+// when removePermanents sweeps a Lost player's own commander to exile.
+func (e *Engine) parkCommanderZoneMove(ev events.Event) {
+	o := e.G.Obj(ev.Obj)
+	if o == nil {
+		return
+	}
+	owner := o.Owner
+	if e.G.Players[owner].Lost {
+		saved := e.applyingReplacement
+		e.applyingReplacement = true
+		e.emit(ev)
+		e.applyingReplacement = saved
+		return
+	}
+	for _, pm := range e.cmdZone {
+		if pm.obj == ev.Obj {
+			return
+		}
+	}
+	e.cmdZone = append(e.cmdZone, cmdZoneMove{ev: ev, obj: ev.Obj})
+	if e.pending == nil {
+		e.askCommandZone(owner)
+	}
+}
+
+// askCommandZone poses the CR 903.9 choice for the FRONT parked move to its
+// owner, following askTriggerOptional's shape: Min == Max == 1 over two
+// options, first the "change the outcome" one, then the "let it happen"
+// one. Only the front of the queue is ever asked -- see handleCmdZone's
+// resumption for how the queue hands from one decision to the next.
+func (e *Engine) askCommandZone(owner state.PlayerID) {
+	pm := e.cmdZone[0]
+	name := "this commander"
+	if o := e.G.Obj(pm.obj); o != nil && o.Face() != nil && o.Face().Name != "" {
+		name = o.Face().Name
+	}
+	dest := pm.ev.To.String()
+	into := "Put " + name + " into the command zone"
+	d := &decision.Decision{Player: owner, Kind: decision.KCommanderZone, Min: 1, Max: 1,
+		Prompt: name + " would go to the " + dest + ": put it into the command zone instead?",
+		Source: pm.obj,
+		Options: []decision.Option{
+			{Index: 0, Kind: "command_zone", Label: into, Obj: pm.obj, Player: owner},
+			{Index: 1, Kind: "leave", Label: "Let it go to the " + dest, Obj: pm.obj, Player: owner},
+		}}
+	e.ask(d)
+}
+
+// handleCmdZone applies an answered CR 903.9 decision: the front parked move
+// is emitted for real -- to the command zone if the owner chose
+// "command_zone", verbatim (the destination it was heading for) if they
+// chose "leave" -- and, if more moves are parked, the next one's owner is
+// asked. The de-park emit runs under applyingReplacement: the CR 903.9
+// replacement has already applied to this zone change, and CR 616.1 lets a
+// replacement effect apply only once, so the final move is never re-parked
+// and never re-asked -- a decline therefore cannot spin the engine by
+// re-offering the same choice, and the SBA pass that re-finds the commander
+// after this answer degrades the same way it would for any other completed
+// replacement (the dedup in parkCommanderZoneMove handled its in-flight
+// copy).
+//
+// The owner's choice is in the log as the Intents entry plus the
+// DecisionAsk/DecisionMade events every decision emits; the outcome is the
+// MoveZone event below, so a log-only replay reproduces both branches from
+// the log alone. An answer with no parked move (only reachable from a
+// hand-built decision -- every real ask parks one) degrades to a Note, the
+// same totality stance as handleModes.
+func (e *Engine) handleCmdZone(d *decision.Decision, in decision.Intent) {
+	if len(e.cmdZone) == 0 {
+		e.emit(events.Event{Kind: events.Note, Player: in.Player,
+			Text: "commander-zone decision answered with no move parked"})
+		return
+	}
+	pm := e.cmdZone[0]
+	e.cmdZone = e.cmdZone[1:]
+	to := pm.ev.To
+	if opts := d.Chosen(in); len(opts) == 1 && opts[0].Kind == "command_zone" {
+		to = state.ZCommand
+	}
+	saved := e.applyingReplacement
+	e.applyingReplacement = true
+	e.emit(events.Event{Kind: events.MoveZone, Obj: pm.ev.Obj, From: pm.ev.From,
+		To: to, Player: pm.ev.Player, Text: pm.ev.Text})
+	e.applyingReplacement = saved
+	if len(e.cmdZone) > 0 && e.pending == nil {
+		// More commanders were parked in the same burst (a board wipe, a
+		// multiple-SBA pass): hand the front of the queue to its owner the
+		// same way handleTriggerOptional resumes its own drain. The queue is
+		// empty exactly when the previous answer WAS the front, so popping
+		// above and asking here keeps every decision aligned with the move
+		// it resolves.
+		if o := e.G.Obj(e.cmdZone[0].obj); o != nil && int(o.Owner) < len(e.G.Players) {
+			e.askCommandZone(o.Owner)
+		}
+	}
 }
