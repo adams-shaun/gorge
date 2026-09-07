@@ -379,14 +379,16 @@ func (e *Engine) triggerOf(pt pendingTrigger) (cards.Trigger, bool) {
 // CAVEAT (Task 6, fix round 1): that equivalence assumes Remembered[0] is
 // the object the FIRING trigger's own T: line is on, which triggerRemembered
 // no longer guarantees for a DeclareAttackers-driven Attacks trigger --
-// Remembered there is every declared attacker in the whole combat, in
-// event order, so Remembered[0] is whichever creature attacked first, not
-// necessarily pt.Source. No repo-deck T: line combines Mode$ Attacks with
-// OptionalDecider$ TriggeredCardController/TriggeredSourceController today
-// (measured against the same corpus the table above was), so this is a
-// latent gap, not a live one -- but a future card that did would have this
-// read the wrong creature's controller whenever it attacks alongside
-// another creature that happened to be declared first.
+// Remembered there is every attacker declared against one defending player
+// (handleAttackers emits one event per defender since Task m34), in event
+// order, so Remembered[0] is whichever creature attacking that defender was
+// declared first, not necessarily pt.Source. No repo-deck T: line combines
+// Mode$ Attacks with OptionalDecider$ TriggeredCardController/
+// TriggeredSourceController today (measured against the same corpus the
+// table above was), so this is a latent gap, not a live one -- but a future
+// card that did would have this read the wrong creature's controller
+// whenever it attacks alongside another creature that happened to be
+// declared first.
 //
 // LIMITATION, stated rather than assumed: the remaining ten T: lines
 // (TriggeredPlayer, EnchantedController, TriggeredAttackingPlayer,

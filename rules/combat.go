@@ -7,12 +7,17 @@
 // not combat-specific, and now live alongside the rest of CR 704.
 //
 // M1's own simplifications, matching the brief this task was built from:
-//   - Only the active player attacks, and every attacker's defending player is
-//     the same single seat: the next living one after the active player (CR
-//     508.1's "each attacking creature's controller announces which opponent
-//     ... it's attacking" is a real choice in a 3+ player game, deferred to
-//     M2's UI work -- decision.Option.Player already carries that value, so
-//     widening this later is additive, not a rewrite).
+//   - Only the active player attacks. The defending player is a real, per-
+//     attacker choice since Task m34: each attacking creature may be declared
+//     against ANY one living opponent, independently (CR 506.2 / CR 903.14),
+//     and the KAttackers decision offers one option per (attacker, defender)
+//     pair -- decision.Option.Player carries the pair's defender, so widening
+//     M1's single-fixed-defender simplification into the true choice was
+//     additive, exactly as this comment always promised. The engine rejects
+//     an intent that declares one creature against two defenders
+//     (validateAttackers), and with a single opponent the pair list is one
+//     option per attacker at that one defender, so a two-player game
+//     observes exactly the M1 surface.
 //   - No priority is offered mid-combat: declare attackers, declare blockers
 //     and combat damage each resolve in one automatic step, same as every
 //     other engine-only step (untap, cleanup).
@@ -27,6 +32,7 @@ package rules
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
@@ -88,9 +94,23 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	return true
 }
 
-// askAttackers builds a KAttackers decision, one option per creature passing
-// canAttack, with the (M1-fixed) defending player already filled into each
-// option's Player field.
+// askAttackers builds a KAttackers decision, one option per (attacker,
+// defender) pair: every creature passing canAttack, offered once against
+// every living opponent of the active player (CR 506.2: each attacking
+// creature's controller announces which opponent it is attacking, one
+// independent choice per creature). Task m34 replaces M1's single fixed
+// defender (the next living seat) with this real choice; each option's
+// Player field carries its own defender, and handleAttackers groups the
+// chosen options back into one DeclareAttackers event per defender. Options
+// are ordered defender-major: for each living opponent in ascending seat
+// order, for each legal attacker in battlefield order -- deterministic, and
+// the same order the declare-blockers step asks those defenders in.
+//
+// A creature may be declared attacking at most one opponent (CR 506.2), but
+// the pair list offers it once per defender: an intent that names the same
+// creature against two defenders is REJECTED by the engine's
+// validateAttackers guard, never resolved by the engine picking one defender
+// for a client that could not decide.
 //
 // With no possible attacker, there is nothing this decision could change (an
 // empty answer is the only legal one, since Max would be 0), and no legal
@@ -105,18 +125,29 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 // how to answer.
 func (e *Engine) askAttackers() {
 	p := e.G.Active
-	defender := e.G.NextAlive(p)
-	var opts []decision.Option
+	var attackers []state.ObjID
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
-		if !e.canAttack(id) {
-			continue
+		if e.canAttack(id) {
+			attackers = append(attackers, id)
 		}
-		opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
-			Label: "Attack with " + e.G.Obj(id).Face().Name, Obj: id, Player: defender})
 	}
-	if len(opts) == 0 {
+	if len(attackers) == 0 {
 		e.setStep(state.StepEndCombat)
 		return
+	}
+	var defenders []state.PlayerID
+	for _, q := range e.G.AliveFrom(0) {
+		if q != p {
+			defenders = append(defenders, q)
+		}
+	}
+	var opts []decision.Option
+	for _, d := range defenders {
+		for _, id := range attackers {
+			opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
+				Label: "Attack with " + e.G.Obj(id).Face().Name + " at " + e.G.Players[d].Name,
+				Obj:   id, Player: d})
+		}
 	}
 	e.ask(&decision.Decision{Player: p, Kind: decision.KAttackers, Min: 0, Max: len(opts),
 		Prompt: fmt.Sprintf("turn %d — declare attackers", e.G.Turn), Options: opts})
@@ -126,81 +157,166 @@ func (e *Engine) askAttackers() {
 // causes triggered abilities matching "Attacks" to fire, via checkTriggers
 // running behind every emit) and taps each one unless it has Vigilance (CR
 // 508.1f, 702.20b).
+//
+// Each chosen option carries its own defender (the KAttackers option list is
+// one entry per (attacker, defender) pair, Task m34), so the declaration is
+// grouped by defender into one DeclareAttackers event per defending player,
+// emitted in ascending seat order -- deterministic, and the same order the
+// declare-blockers step asks the defenders in. The chosen set is guaranteed
+// to hold distinct attackers (validateAttackers ran before this handler), so
+// each creature lands in exactly one group. Within a defender, the event's
+// IDs keep the order the client submitted them (what an Attacks trigger's
+// Remembered reads, in trigger_match.go).
 func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
 	if len(chosen) == 0 {
 		e.advanceStep()
 		return
 	}
-	ids := make([]state.ObjID, 0, len(chosen))
-	defender := chosen[0].Player
+	var defenders []state.PlayerID
+	byDef := make(map[state.PlayerID][]state.ObjID, len(chosen))
 	for _, opt := range chosen {
-		ids = append(ids, opt.Obj)
+		if _, ok := byDef[opt.Player]; !ok {
+			defenders = append(defenders, opt.Player)
+		}
+		byDef[opt.Player] = append(byDef[opt.Player], opt.Obj)
 	}
-	e.emit(events.Event{Kind: events.DeclareAttackers, Player: defender, IDs: ids})
-	for _, id := range ids {
-		if !e.HasKeyword(id, "Vigilance") {
-			e.emit(events.Event{Kind: events.Tap, Obj: id})
+	sort.Slice(defenders, func(i, j int) bool { return defenders[i] < defenders[j] })
+	for _, d := range defenders {
+		e.emit(events.Event{Kind: events.DeclareAttackers, Player: d, IDs: byDef[d]})
+	}
+	for _, opt := range chosen {
+		if !e.HasKeyword(opt.Obj, "Vigilance") {
+			e.emit(events.Event{Kind: events.Tap, Obj: opt.Obj})
 		}
 	}
 	e.advanceStep()
 }
 
-// askBlockers builds a KBlockers decision, one option per (blocker, attacker)
-// pair passing canBlock, with the attacker recorded in Option.Attacker (server-
-// side only, same as castSpell's AltCostIndex) so handleBlockers knows which
-// attacker each chosen blocker is blocking without the client needing to.
+// validateAttackers is the KAttackers legality guard behind Option A's
+// cross-product option list (Task m34). One creature may be declared
+// attacking at most one opponent (CR 506.2, CR 903.14), but the option list
+// offers every (attacker, defender) pair, so an intent naming the same
+// creature twice -- against two different defenders -- passes decision.
+// Decision.Validate's per-index checks (two distinct, in-range options)
+// while declaring one creature attacking two players. Rejecting here, before
+// the intent is recorded and the decision consumed, is the enforcement
+// boundary: the legality of an attacker set is a property of the DECLARATION
+// as a whole, not of any single option, so it cannot live in Validate's
+// option-shape checks, and it must not be trusted to a client to avoid (a
+// rules-ignorant client only knows it may pick any subset of the pairs it
+// was offered). With a single opponent the pair list has exactly one option
+// per creature, so this guard is inert in two-player games.
+func validateAttackers(d *decision.Decision, in decision.Intent) error {
+	seen := make(map[state.ObjID]bool, len(in.Choices))
+	for _, o := range d.Chosen(in) {
+		if seen[o.Obj] {
+			return fmt.Errorf("attacker %d declared against more than one defender", o.Obj)
+		}
+		seen[o.Obj] = true
+	}
+	return nil
+}
+
+// blockerRound is the declare-blockers step's plain-value cursor, the same
+// one-decision-at-a-time pattern as the London mulligan round (rules/
+// mulligan.go): Task m34 lets one attack split across several defending
+// players (CR 506.2), and each defender declares its own blocks (CR
+// 509.1c). order lists the defenders that have at least one attacking
+// creature, in ascending seat order -- the same order handleAttackers
+// emitted their DeclareAttackers events in; cursor is the next defender to
+// ask. askBlockers builds the list on the step's first entry, asks one
+// defender per call, and hands the step to combat damage once every
+// defender has declared. Plain data (a slice plus an index), never a
+// closure, so Engine.Clone copies it like the mulligan round.
+//
+// zero value: order == nil means "not yet built", the step's first-entry
+// state; an empty-but-built round (order with len 0) means "nothing to
+// block", which askBlockers resolves by moving straight to combat damage.
+type blockerRound struct {
+	order  []state.PlayerID
+	cursor int
+}
+
+// askBlockers runs the declare-blockers step one defending player at a
+// time. The first entry to the step builds the defender list; each call
+// then asks the next defender with at least one legal block option, and the
+// last one exhausted moves the step to combat damage. A defender with
+// attackers but zero legal options for them is skipped without a decision:
+// its only legal answer would be "block with nothing", and asking would
+// change nothing (the same skip askAttackers applies to its own no-option
+// case). Between two defenders' answers the Advance loop stays on
+// StepDeclareBlockers (handleBlockers only advances the round cursor), so a
+// split attack on two opponents produces two KBlockers decisions, one per
+// defender, in seat order.
 //
 // With no attackers this combat (declared 0, or all already gone), there is
-// nothing to block; with attackers but zero legal blockers for them (every
+// nothing to block: the round is empty and the step skips straight to
+// combat damage. With attackers but zero legal blockers for them (every
 // candidate fails canBlock, e.g. a lone ground creature against a flier),
-// there is a real declare-blockers step but no decision whose answer could
-// differ from "block with nothing" -- both skip straight to the combat-damage
-// step, the same reasoning askAttackers applies to its own empty case.
+// the same reasoning skips each such defender.
+func (e *Engine) askBlockers() {
+	if e.blockerRound.order == nil {
+		order := make([]state.PlayerID, 0, len(e.G.Players))
+		for _, q := range e.G.AliveFrom(0) {
+			if q == e.G.Active || len(e.blockAttackers(q)) == 0 {
+				continue
+			}
+			order = append(order, q)
+		}
+		e.blockerRound = blockerRound{order: order}
+	}
+	br := &e.blockerRound
+	for br.cursor < len(br.order) {
+		defender := br.order[br.cursor]
+		var opts []decision.Option
+		for _, bid := range e.G.Zone(state.ZBattlefield, defender) {
+			for _, aid := range e.blockAttackers(defender) {
+				if !e.canBlock(bid, aid) {
+					continue
+				}
+				opts = append(opts, decision.Option{Index: len(opts), Kind: "block",
+					Label: e.G.Obj(bid).Face().Name + " blocks " + e.G.Obj(aid).Face().Name,
+					Obj:   bid, Attacker: aid, Player: defender})
+			}
+		}
+		if len(opts) == 0 {
+			br.cursor++
+			continue
+		}
+		e.ask(&decision.Decision{Player: defender, Kind: decision.KBlockers, Min: 0, Max: len(opts),
+			Prompt: fmt.Sprintf("turn %d — declare blockers", e.G.Turn), Options: opts})
+		return
+	}
+	e.blockerRound = blockerRound{}
+	e.setStep(state.StepCombatDamage)
+}
+
+// blockAttackers lists the creatures currently declared attacking defender
+// (CR 509.1): every battlefield object under the active player's control
+// marked IsAttacking with Attacking == defender and a Face().
 //
-// Ruling T21-c (Task 21 fix round 1): the attacker-collection loop below
-// additionally requires Face() != nil. DeclareAttackers's own events.Apply
-// case sets IsAttacking on any existing object with no such check (Player is
-// validated, but nothing about the object it names), so a malformed or
-// tampered event -- or a nil-Card object such as an ability's own stack
-// object (Ruling F3) -- reaching IsAttacking used to make it as far as the
-// label build a few lines down, which read e.G.Obj(aid).Face().Name
+// Ruling T21-c (Task 21 fix round 1): the census additionally requires
+// Face() != nil. DeclareAttackers's own events.Apply case sets IsAttacking
+// on any existing object with no such check (Player is validated, but
+// nothing about the object it names), so a malformed or tampered event -- or
+// a nil-Card object such as an ability's own stack object (Ruling F3) --
+// reaching IsAttacking used to make it as far as the label build in the
+// single-defender askBlockers, which read e.G.Obj(aid).Face().Name
 // unconditionally: a nil-pointer panic, and therefore a remote kill of the
 // whole match (one goroutine runs it). canAttack already requires this for a
 // real attacker, so no legitimate attacker is excluded by requiring it here
 // too.
-func (e *Engine) askBlockers() {
-	var attackers []state.ObjID
-	var defender state.PlayerID
+func (e *Engine) blockAttackers(defender state.PlayerID) []state.ObjID {
+	var out []state.ObjID
 	for _, id := range e.G.Zone(state.ZBattlefield, e.G.Active) {
 		o := e.G.Obj(id)
-		if o == nil || !o.IsAttacking || o.Face() == nil {
+		if o == nil || !o.IsAttacking || o.Face() == nil || o.Attacking != defender {
 			continue
 		}
-		attackers = append(attackers, id)
-		defender = o.Attacking
+		out = append(out, id)
 	}
-	if len(attackers) == 0 {
-		e.setStep(state.StepCombatDamage)
-		return
-	}
-	var opts []decision.Option
-	for _, bid := range e.G.Zone(state.ZBattlefield, defender) {
-		for _, aid := range attackers {
-			if !e.canBlock(bid, aid) {
-				continue
-			}
-			opts = append(opts, decision.Option{Index: len(opts), Kind: "block",
-				Label: e.G.Obj(bid).Face().Name + " blocks " + e.G.Obj(aid).Face().Name,
-				Obj:   bid, Attacker: aid, Player: defender})
-		}
-	}
-	if len(opts) == 0 {
-		e.setStep(state.StepCombatDamage)
-		return
-	}
-	e.ask(&decision.Decision{Player: defender, Kind: decision.KBlockers, Min: 0, Max: len(opts),
-		Prompt: fmt.Sprintf("turn %d — declare blockers", e.G.Turn), Options: opts})
+	return out
 }
 
 // handleBlockers records the chosen (attacker, blocker) pairs in one
@@ -208,6 +324,11 @@ func (e *Engine) askBlockers() {
 // is what BlockedBy preserves (events.Apply's DeclareBlockers case is a plain
 // append per pair) and so what dealCombatDamage's damage-assignment loop
 // below reads as "blocker order" for CR 510.1c's ordered damage assignment.
+//
+// Task m34: this advances only the blockers-round cursor, never the step.
+// Each defending player declares its own blocks (CR 509.1c -- a split attack
+// can involve several), and the Advance loop re-enters askBlockers for the
+// next defender, which is what decides when the step moves to combat damage.
 func (e *Engine) handleBlockers(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
 	if len(chosen) > 0 {
@@ -217,7 +338,7 @@ func (e *Engine) handleBlockers(d *decision.Decision, in decision.Intent) {
 		}
 		e.emit(events.Event{Kind: events.DeclareBlockers, Pairs: pairs})
 	}
-	e.advanceStep()
+	e.blockerRound.cursor++
 }
 
 // dealCombatDamage runs first-strike damage and then regular damage. Damage
