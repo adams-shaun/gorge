@@ -43,6 +43,8 @@ help:
 	@echo "  make report         — print card coverage against implemented primitives"
 	@echo "  make sim            — build mtgsim and play 20 verified 4-seat games"
 	@echo "  make gorged         — run the M2a table server (browser client at the addr)"
+	@echo "  make deploy-demo    — rebuild and (re)serve the demo on :8080 public / :8081 omniscient"
+	@echo "  make stop-demo      — stop every running gorged, start nothing"
 	@echo "  make gentypes       — regenerate web/src/protocol.ts from package protocol"
 	@echo "  make web            — npm ci and build the spectator client into cmd/gorged/webdist"
 	@echo "  make web-dev        — run the Vite dev server for web/"
