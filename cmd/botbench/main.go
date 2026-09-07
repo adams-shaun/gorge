@@ -25,11 +25,13 @@
 //
 // `-a bot -b bot` is the same-policy baseline that measures seating bias:
 // seat.NewBot is the production policy, and pitting it against itself
-// (252/248 at N=500) shows how big a seat/play-order artifact is before
-// any real comparison is read. The head-to-head that credits a policy:
-// -a bot -b legacy, where legacy is the pre-B2 fuzz-driver combat frozen
-// in botpolicy.LegacyDecide. Registering a third policy is one entry in
-// the policies map. Same names on both sides is a valid and expected run.
+// shows how big a seat/play-order artifact is before any real comparison
+// is read (the split is ~50% by construction, and it moves with the seed
+// and game count, so no single figure is quoted here). The head-to-head
+// that credits a policy: -a bot -b legacy, where legacy is the pre-B2
+// fuzz-driver combat frozen in botpolicy.LegacyDecide. Registering a
+// third policy is one entry in the policies map. Same names on both sides
+// is a valid and expected run.
 //
 // -pairs switches the bench to a deck-pair matrix. The default run (no
 // -pairs) plays one deck list per seat and is unchanged; the defect it

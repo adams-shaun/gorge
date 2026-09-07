@@ -302,11 +302,42 @@ import (
 // the gate, from values the gate measured on branch+current-main. One seat
 // moving with a named card and a named tier, and three provably not moving, is
 // the strongest shape available.
+//
+// REGENERATED at the bl1 merge (the land drop picks the colour the hand needs).
+// THREE seat counts moved -- 4, 6 and 8 -- and 2 did NOT. Causes were measured
+// per seat count by dumping both event logs, locating the FIRST divergent event,
+// and then instrumenting chooseLand to print the ranking inputs (unmet / cover /
+// basic / flex) for every offered land at exactly that decision:
+//
+//	2 seats  UNMOVED, a95fd3b1da972438. The event log is byte-identical to
+//	         main's at 1353 events, which is the check that the rest of this
+//	         attribution is honest.
+//	4 seats  ba76d1bb389a3c2b -> 9bd7c9ea7917f512. LEVEL 3, fewest distinct
+//	         colours. At seq 1206 the seat holds Cavern of Souls (obj 134) and
+//	         Ancient Tomb (obj 122) with no unmet coloured need, so coverage
+//	         ties at 0 and neither is basic; Cavern's Any production reports
+//	         five distinct colours against Ancient Tomb's zero, so Ancient Tomb
+//	         is played where basic-first-then-lowest-index took Cavern.
+//	6 seats  baafe0b87f436bec -> 56cad0755f3f8c78. Same level, same two cards,
+//	         same objects, first divergence at seq 1995.
+//	8 seats  dbe58b710d39e5ec -> 0964cc00aed0c02c. LEVEL 1, colour coverage. At
+//	         seq 425 the unmet need is four blue and one black; Underground Sea
+//	         (obj 61) covers 2 of it against a basic Island's (obj 65) 1, so
+//	         coverage outranks basic-ness and the dual is played. This seat
+//	         count now has TWO STACKED CAUSES: ft1's target ranking moved it
+//	         from 700f85d871d35367 (above), and the land drop moves it again --
+//	         and the land drop's divergence is the EARLIER of the two in the log.
+//
+// The branch's other change moves NOTHING: TestHeads passes on b4c04ea (the
+// non-literal Amount$ honesty fix) alone with all four heads at their pre-branch
+// values, so chooseLand owns the whole movement. The gate build-bisected that
+// rather than assuming it, and it corrects the branch report's own claim that
+// both commits contributed.
 var acceptanceHeads = map[int]string{
 	2: "a95fd3b1da972438",
-	4: "ba76d1bb389a3c2b",
-	6: "baafe0b87f436bec",
-	8: "dbe58b710d39e5ec",
+	4: "9bd7c9ea7917f512",
+	6: "56cad0755f3f8c78",
+	8: "0964cc00aed0c02c",
 }
 
 func TestHeads(t *testing.T) {
