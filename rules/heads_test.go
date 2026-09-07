@@ -147,11 +147,34 @@ import (
 // BYTE-IDENTICAL to op6's, so op7 contributes nothing there, exactly as its
 // mechanism predicts. On 4/6/8 both causes compound and neither alone
 // reproduces the combined head.
+//
+// dp2, the colour-aware tap gate, moves all four again. ONE cause, and this
+// time the attribution is a bisect rather than a per-cause bench, because the
+// branch carried a performance patch that had to be proven inert:
+//
+//	commit     what it is                        TestHeads
+//	63eb3ab    main, before the branch           PASS -- matches the old goldens
+//	12f27b3    the tap feature, merged           all four move, to the values below
+//	f46ee97    + the load-time production cache  all four IDENTICAL to 12f27b3
+//
+// So the feature moved every head and the perf patch moved none. The
+// mechanism predicts exactly that: chooseTap now prefers a source whose
+// produced colour matches a coloured pip the pool still owes, so the ORDER in
+// which permanents are tapped changes, which reorders the ManaAdd event stream
+// in every game at every seat count -- while deriving that same production at
+// load instead of per projection changes WHEN it is computed and never WHAT it
+// is. Verified separately rather than assumed: the 12f27b3 and f46ee97 trees'
+// -decision-stats output over 400 commander games is byte-identical (md5
+// ad75c845c3002bf866f162ca975bbdc9).
+//
+// This is the regeneration Ruling FL-90 describes: an attributed move, proven
+// against the parent tree, is not a spend against FL-83's budget. An
+// unattributed one still is.
 var acceptanceHeads = map[int]string{
-	2: "0876361619998e2a",
-	4: "d74b8a889f09be48",
-	6: "ea3d87a74c4c954d",
-	8: "5e573c76021a419f",
+	2: "e6cfa5853c674b1b",
+	4: "082262b548424173",
+	6: "761486a7d9f76753",
+	8: "968be0bdc1f6a43b",
 }
 
 func TestHeads(t *testing.T) {
