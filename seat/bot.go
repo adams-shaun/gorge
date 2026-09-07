@@ -179,6 +179,8 @@ func boardFromView(v view.View) botpolicy.Board {
 					Basic:      hasBasicView(cv),
 					AttachedTo: cv.AttachedTo,
 					ManaCost:   cv.ManaCost,
+					Types:      cv.Types,
+					Text:       cv.Text,
 					Castable:   castable(cv),
 				}
 			}

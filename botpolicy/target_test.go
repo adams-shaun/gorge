@@ -93,8 +93,11 @@ func TestTargetEveryOptionIsOursFallsBackToBestOwn(t *testing.T) {
 // sensible pick, so the fallback to a player option is covered too.
 func TestTargetPreferCreatureOverFace(t *testing.T) {
 	// The 6/6 is offered at index 1, the face at index 0; a positional
-	// (Options[0]) pick would hit the face and fail this.
+	// (Options[0]) pick would hit the face and fail this. The opponent is
+	// at a healthy 20 life, so the face is merely legal and loses to the
+	// board (the do-not-suicide half of the dp3 face rule).
 	b := boardOf(def(1, 6, 6))
+	b.Life[1] = 20
 	got, d := targetDecision(b, []tgt{face(), opp(201)}, 1, 1)
 	if len(got) != 1 || objAt(d, got[0]) != 201 {
 		t.Errorf("board creature preferred over face = %v (obj %d), want the 6/6 (obj 201)", got, objAt(d, got[0]))
@@ -230,6 +233,76 @@ func TestChooseTargetsHonoursMinAndMaxDirect(t *testing.T) {
 	}
 	if ch := b.chooseTargets(&decision.Decision{Player: 0, Kind: decision.KTarget, Min: 3, Max: 3, Options: opts}); len(ch) != 3 {
 		t.Fatalf("chooseTargets(Min 3) = %v, want three targets without clamp", ch)
+	}
+}
+
+// TestTargetSizeIncludesOwnPlayer is a determinism guard on the corner
+// where a "player" option names the deciding seat itself (never produced
+// by askTarget, but a valid wire shape): it is treated as an own option,
+// so it is only ever chosen when nothing opposing is offered, and the
+// answer validates.
+// TestTargetFaceWhenOpponentNearLethal is the task dp3 defect at
+// target.go:67: a flat faceScore of 0 made the face a last resort, so a
+// removal with a burn reach against a player at 2 life went to their 1/1
+// instead of winning. When the opponent is within reach of the end of the
+// life track (life running out) the face outranks the board.
+func TestTargetFaceWhenOpponentNearLethal(t *testing.T) {
+	b := boardOf(def(1, 5, 5))
+	b.Life[1] = 2 // a burn's reach
+	got, d := targetDecision(b, []tgt{opp(201), face()}, 1, 1)
+	if len(got) != 1 || d.Options[got[0]].Kind != "player" {
+		t.Fatalf("target = %v, want the face (a player option): the 2-life opponent is within burn reach", got)
+	}
+}
+
+// TestTargetCreatureOverHealthyFace is the "do not suicide into the board"
+// guard the task names: away from lethal, the face is merely legal, so the
+// bot must still answer the best battlefield creature rather than throwing
+// damage at a face that can take it. This is the defect a face that is
+// attractive in general would reintroduce.
+func TestTargetCreatureOverHealthyFace(t *testing.T) {
+	b := boardOf(def(1, 6, 6))
+	b.Life[1] = 18 // healthy: no lethal track in reach
+	got, d := targetDecision(b, []tgt{face(), opp(201)}, 1, 1)
+	if len(got) != 1 || objAt(d, got[0]) != 201 {
+		t.Fatalf("target = obj %d, want the 6/6 (obj 201) over the healthy face", objAt(d, got[0]))
+	}
+}
+
+// TestTargetFaceScalesTowardLethal is the graded half of the face rule: the
+// face's value climbs with how near the opponent is to dead, not just flips
+// on a threshold. A player at 15 life keeps the board over the face; a
+// player at 2 life (or dead on the second track) flips it.
+func TestTargetFaceScalesTowardLethal(t *testing.T) {
+	// At 15 life the 4/4 defender stays preferred.
+	distant := boardOf(def(1, 4, 4))
+	distant.Life[1] = 15
+	got, d := targetDecision(distant, []tgt{opp(201), face()}, 1, 1)
+	if len(got) != 1 || objAt(d, got[0]) != 201 {
+		t.Fatalf("at 15 life target = obj %d, want the 4/4 (obj 201)", objAt(d, got[0]))
+	}
+	// At 2 life the same creature is passed over for the win.
+	near := boardOf(def(1, 4, 4))
+	near.Life[1] = 2
+	got, d = targetDecision(near, []tgt{opp(201), face()}, 1, 1)
+	if len(got) != 1 || d.Options[got[0]].Kind != "player" {
+		t.Fatalf("at 2 life target = %v, want the face (the win)", got)
+	}
+}
+
+// TestTargetFaceNearCommanderClock is the second-lethal-track half of the
+// face rule: CR 903.10's 21 commander damage is a life-independent loss, so
+// an opponent at 20 life but 19 commander damage is close to dead and the
+// face outranks the board.
+func TestTargetFaceNearCommanderClock(t *testing.T) {
+	b := boardOf(def(1, 3, 3))
+	b.Life[1] = 20
+	b.Commanders = map[state.ObjID]Commander{
+		300: {Damage: map[state.PlayerID]int32{1: 19}},
+	}
+	got, d := targetDecision(b, []tgt{opp(201), face()}, 1, 1)
+	if len(got) != 1 || d.Options[got[0]].Kind != "player" {
+		t.Fatalf("target = %v, want the face: the opponent is 2 commander damage from losing (CR 903.10)", got)
 	}
 }
 
