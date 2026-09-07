@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -105,11 +106,17 @@ func TestTargetTypeSpellOffersOnlyStackObjectsAndCounters(t *testing.T) {
 			t.Fatalf("battlefield permanent %d offered for 'Select target spell': %+v", gurmagID, d.Options)
 		}
 	}
-	// 2. The spell on the stack IS offered.
+	// 2. The spell on the stack IS offered, and the counterspell itself is
+	// NOT: CR 114.4 makes a spell on the stack an illegal target for itself,
+	// and askTarget runs after PutOnStack, so the counterspell's own id is
+	// sitting in the stack zone next to the Bear it should be able to hit.
 	spellIdx := -1
 	for _, o := range d.Options {
 		if o.Obj == targetSpell {
 			spellIdx = o.Index
+		}
+		if o.Obj == leakID {
+			t.Fatalf("counterspell %d offered itself as a target: %+v", leakID, d.Options)
 		}
 	}
 	if spellIdx < 0 {
@@ -134,5 +141,101 @@ func TestTargetTypeSpellOffersOnlyStackObjectsAndCounters(t *testing.T) {
 	}
 	if got := e.G.Obj(gurmagID).Zone; got != state.ZBattlefield {
 		t.Fatalf("battlefield creature moved to %s", got)
+	}
+}
+
+// TestCounterspellWithOnlyItselfOnStackFizzles pins CR 114.4's consequential
+// arm: when a counterspell is cast with NOTHING else on the stack, the only
+// candidate for its "Select target spell" prompt is itself. It must not be
+// offered and the spell must fizzle -- no KTarget decision ever handed to the
+// seat, no Resolve event -- rather than resolve and counter itself
+// (effCounter would otherwise move its own spell to the graveyard as
+// "countered").
+func TestCounterspellWithOnlyItselfOnStackFizzles(t *testing.T) {
+	e, leakID, _, _ := targetSpellFixture(t)
+	e.G.Players[0].Pool[state.MU] = 5
+	e.askPriority(0)
+
+	submitChoices(t, e, passToCast(t, e, leakID))
+
+	// No target decision may have been offered: with itself excluded there is
+	// nothing legal, so askTarget's min>0/no-options exit fires the fizzle
+	// instead of asking (which the buggy code did, offering only itself).
+	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
+		t.Fatalf("counterspell with only itself on the stack offered a target decision (self-target): %+v", d.Options)
+	}
+	// The fizzle path sends it to the graveyard and never resolves it. A
+	// self-counter would have emitted Resolve and then a "countered" move.
+	if z := e.G.Obj(leakID).Zone; z != state.ZGraveyard {
+		t.Fatalf("fizzled counterspell ended in %s, want graveyard", z)
+	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Resolve && ev.Obj == leakID {
+			t.Fatalf("counterspell resolved instead of fizzling (self-counter): %+v", ev)
+		}
+	}
+}
+
+const graveRaisingSrc = "Name:Grave Raising\nManaCost:1 B\nTypes:Sorcery\n" +
+	"A:SP$ ChangeZone | TargetType$ Card | TgtZone$ Graveyard | ValidTgts$ Card | " +
+	"Origin$ Graveyard | Destination$ Hand | SpellDescription$ Return target card from graveyard to hand.\nOracle:x\n"
+
+// TestTgtZoneGraveyardTargetOfferedAndResolves is the 122-card-shape test the
+// legalTargets zone-widening exposed: a TgtZone$ Graveyard spell is offered a
+// graveyard card at cast time, that target stays LEGAL at resolution (the old
+// hard `o.Zone == ZBattlefield` check rejected it, fizzling every such spell),
+// and the effect really happens -- the card returns to its owner's hand. It
+// fails on the tree before the legalTargets zoneIn fix.
+func TestTgtZoneGraveyardTargetOfferedAndResolves(t *testing.T) {
+	raiseSrc := graveRaisingSrc
+	wastedSrc := "Name:Wasted\nManaCost:1\nTypes:Creature\nPT:1/1\nOracle:x\n"
+	e := handEngine(t, card(t, raiseSrc))
+
+	// A card sitting in seat 0's graveyard, the only legal target.
+	w := e.G.AddObject(card(t, wastedSrc), 0)
+	w.Zone = state.ZGraveyard
+	e.G.SetZone(state.ZGraveyard, 0, []state.ObjID{w.ID})
+
+	var raiseID state.ObjID
+	for _, id := range e.G.Zone(state.ZHand, 0) {
+		if e.G.Obj(id).Face().Name == "Grave Raising" {
+			raiseID = id
+		}
+	}
+	if raiseID == 0 {
+		t.Fatalf("grave-reclaim spell not in hand")
+	}
+
+	e.G.Players[0].Pool[state.MB] = 2
+	e.askPriority(0)
+	submitChoices(t, e, passToCast(t, e, raiseID))
+
+	// 1. Offered at cast time: the graveyard card is a candidate.
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected a target decision, got %+v", d)
+	}
+	gIdx := -1
+	for _, o := range d.Options {
+		if o.Obj == w.ID {
+			gIdx = o.Index
+		}
+	}
+	if gIdx < 0 {
+		t.Fatalf("graveyard card %d not offered for the TgtZone$ Graveyard spell: %+v", w.ID, d.Options)
+	}
+
+	// 2. Choose it and let everything resolve.
+	submitChoices(t, e, gIdx)
+	for i := 0; i < 8 && len(e.G.Stack) > 0; i++ {
+		castFirst(t, e, "pass")
+	}
+	if len(e.G.Stack) != 0 {
+		t.Fatalf("stack did not empty: %v", e.G.Stack)
+	}
+	// 3. The effect happened: the graveyard target reached the hand, not
+	// fizzled back where it was.
+	if z := e.G.Obj(w.ID).Zone; z != state.ZHand {
+		t.Fatalf("graveyard target ended in %s, want hand (spell fizzled at resolution?)", z)
 	}
 }

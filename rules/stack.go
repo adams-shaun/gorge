@@ -250,6 +250,16 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 				if o == nil || o.Face() == nil {
 					continue
 				}
+				// CR 114.4: a spell or ability on the stack is an illegal
+				// target for itself. askTarget is called after PutOnStack
+				// (cast.go) or AbilityPush (cast.go), so source is already
+				// that object atop the stack -- its own id must never be
+				// offered, or the counterspell would counter itself. Only
+				// the source OBJECT is excluded, never a *different* copy of
+				// the same card, and never a permanent targeting itself.
+				if oid == source {
+					continue
+				}
 				if effects.MatchesSpecFrom(e.G, spec, oid, p, source) &&
 					!(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc)) {
 					add("permanent", o.Face().Name+" ("+e.G.Players[o.Controller].Name+")", oid, o.Controller)
@@ -274,6 +284,13 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 				// Graveyard target is not withheld by a printed protection the
 				// dead card can no longer exercise.
 				if o != nil && o.Face() != nil &&
+					// CR 114.4: the source object (the spell/ability this
+					// ask serves) is an illegal target for itself. It is a
+					// single object with a single zone and is always on the
+					// stack here, so no other zone can hold it; excluding it
+					// wherever it appears also covers a source that somehow
+					// stopped being on the stack before resolution.
+					oid != source &&
 					effects.MatchesSpecFrom(e.G, spec, oid, p, source) &&
 					!(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc)) {
 
@@ -411,7 +428,7 @@ func (e *Engine) resolveTop() {
 		// and has none recorded resolves untargeted rather than fizzling --
 		// targetMin(o.Ability)==0 && len(targets)==0 is the exemption.
 		if spec := o.Ability.Params["ValidTgts"]; spec != "" && !(targetMin(o.Ability) == 0 && len(targets) == 0) {
-			legal := e.legalTargets(targets, spec, targetZones(o.Ability), o.Controller, o.Source)
+			legal := e.legalTargets(targets, spec, targetZones(o.Ability), o.Controller, o.Source, id)
 			if len(legal) == 0 {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZExile, Text: "fizzled: no legal targets remain"})
@@ -492,7 +509,7 @@ func (e *Engine) resolveTop() {
 		// Requirement N2, the same exemption as the ability branch: an
 		// untargeted-with-Min-0 spell resolves rather than fizzling.
 		if spec := sa.Params["ValidTgts"]; spec != "" && !(targetMin(sa) == 0 && len(targets) == 0) {
-			legal := e.legalTargets(targets, spec, targetZones(sa), o.Controller, id)
+			legal := e.legalTargets(targets, spec, targetZones(sa), o.Controller, id, id)
 			if len(legal) == 0 {
 				// CR 608.2b: every target became illegal. This spell does
 				// not resolve -- no Resolve event, no script runs -- it goes
@@ -607,13 +624,24 @@ func (e *Engine) ensureLeftTheStack(id state.ObjID, to state.Zone, why string) {
 // does not either -- rechecking against a filter the engine never enforced
 // when the target was chosen would reject targets this build always
 // considered fine.
-func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state.Zone, you state.PlayerID, source state.ObjID) []state.Target {
+func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state.Zone, you state.PlayerID, source state.ObjID, self state.ObjID) []state.Target {
 	var legal []state.Target
 	for _, t := range targets {
 		if t.IsPlayer {
 			if int(t.Player) < len(e.G.Players) && !e.G.Players[t.Player].Lost {
 				legal = append(legal, t)
 			}
+			continue
+		}
+		// CR 114.4: the resolving spell or ability is an illegal target for
+		// itself. self is the stack object being resolved (not source, which
+		// for an ability is the source PERMANENT and so is a legal target of
+		// its own ability -- e.g. a creature's "target creature" ability on
+		// itself). A target chosen at cast time for a different spell -- a
+		// different copy of the same card, or a permanent -- is unaffected.
+		// This is why the exclusion is keyed on the resolving object id, and
+		// mirrors askTarget's own withholding so the two sites always agree.
+		if t.Obj == self {
 			continue
 		}
 		// CR 702.16c: a permanent that became protected from the resolving
