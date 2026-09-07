@@ -35,7 +35,7 @@ func fixtures(t *testing.T) []Frame {
 			{ID: 12, Name: "Goblin Guide", Types: "Creature Goblin Scout", ManaCost: "R", Power: 2, Toughness: 2,
 				Printing: view.Printing{Name: "Goblin Guide"}, Token: "#12", Keywords: []string{"Haste"}}},
 			Graveyard: []view.CardView{}, Exile: []view.CardView{}, Pool: map[string]int32{"R": 1}}},
-		Stack: []view.StackView{{ID: 40, Kind: "trigger", Name: "Watcher", Text: "When CARDNAME enters, you gain 1 life.", Controller: 1, Source: 30,
+		Stack: []view.StackView{{ID: 40, Kind: "trigger", Name: "Watcher", Text: "When Watcher enters, you gain 1 life.", Controller: 1, Source: 30,
 			Targets: []view.TargetView{{Player: 0, IsPlayer: true, Label: "Select any target"}}}},
 		// view.PendingView.Decider is *state.PlayerID, a distinct named type
 		// from seat's *uint8; the explicit conversion is legal because both
