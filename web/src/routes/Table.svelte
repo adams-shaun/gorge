@@ -16,6 +16,7 @@
   import { quadrantFor } from '../lib/board';
   import { seatColour } from '../lib/colours';
   import { seatRows } from '../lib/seattable';
+  import { buildCardColour } from '../lib/logrender';
   import { href, navigate } from '../lib/router';
   import { getSeat } from '../lib/seat';
 
@@ -70,6 +71,21 @@
   // inside that block, so it has to handle null itself.
   const logIdentities = $derived(
     m.view ? seatRows(m.view, m.seats).map((r) => ({ name: r.name, colour: r.colour || seatColour(r.seat, m.seats) })) : [],
+  );
+
+  // Task ui9 (B2): colour each card name in the log by its mana-colour
+  // identity. The described line carries a card's name and id but not its
+  // colour, so it is looked up from the current view's cards (every visible
+  // zone) via buildCardColour; a name not in the view (a card that has left)
+  // resolves null and renders uncoloured. Rebuilt each render, so a card
+  // stays coloured while it is in any visible zone and degrades to plain if
+  // it leaves them all.
+  const logCardColour = $derived(
+    m.view
+      ? buildCardColour(m.view.players.flatMap((p) => [
+          ...p.hand, ...p.battlefield, ...p.graveyard, ...p.exile, ...p.command, ...p.commanders,
+        ]))
+      : null,
   );
 
   onMount(() => {
@@ -144,7 +160,7 @@
         {#if !seated}
           <DvrBar dvr={m.dvr} onAction={(a) => m.dispatch(a)} {finished} />
         {/if}
-        <div class="log"><Transcript dvr={m.dvr} identities={logIdentities} onSeek={seated ? () => {} : (seq) => m.dispatch({ type: 'scrub', seq })} /></div>
+        <div class="log"><Transcript dvr={m.dvr} identities={logIdentities} cardColour={logCardColour} onSeek={seated ? () => {} : (seq) => m.dispatch({ type: 'scrub', seq })} /></div>
       </footer>
     {:else if finished && m.loadError}
       <div class="load-error">

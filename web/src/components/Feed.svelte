@@ -1,6 +1,18 @@
 <script lang="ts">
   import { isRoutineLine, latestPerTable, notableLines, type FeedLine } from '../lib/feed';
   import { SEAT_COLOURS } from '../lib/colours';
+  import { parseLogLine } from '../lib/logrender';
+  import ManaSymbols from './ManaSymbols.svelte';
+
+  /**
+   * Feed lines are the same server-described lines the match transcript uses
+   * (widget.last, view/describe.go), so they get the same readable-log
+   * rendering (ui9): a card/permanent reference's `#<id>` is suppressed onto
+   * a hover title (the id is still load-bearing — two copies of the same card
+   * — so it stays reachable), mana symbols render as pips, and a faceless
+   * ability reference is italicised. There is no match view at the lobby rail
+   * to look a card's colour up from, so card names render uncoloured here.
+   */
 
   /**
    * The lobby rail, in two registers (Task L2).
@@ -45,7 +57,7 @@
     {#each now as n (n.table)}
       <div class="line" class:routine={n.routine} style:--tag={tagColour(n.table)}>
         <span class="tag">{n.table}</span>
-        <span class="text">{n.line || '—'}</span>
+        <span class="text">{#if n.line}{#each parseLogLine(n.line) as p, i (i)}{#if p.kind === 'text'}{p.text}{:else if p.kind === 'mana'}<ManaSymbols cost={p.token} />{:else if p.kind === 'card'}<span class="obj card" title="{p.name} #{p.id}">{p.name}</span>{:else if p.kind === 'ability'}<span class="obj ability" title="an ability #{p.id}">{p.name}</span>{/if}{/each}{:else}—{/if}</span>
         {#if n.count > 1}<span class="run">&times;{n.count}</span>{/if}
       </div>
     {/each}
@@ -62,7 +74,7 @@
       {#each notable as l (`${l.table}:${l.match}:${l.seq}`)}
         <div class="line" class:routine={isRoutineLine(l.line)} style:--tag={tagColour(l.table)}>
           <span class="tag">{l.table}</span>
-          <span class="text">{l.line}</span>
+          <span class="text">{#each parseLogLine(l.line) as p, i (i)}{#if p.kind === 'text'}{p.text}{:else if p.kind === 'mana'}<ManaSymbols cost={p.token} />{:else if p.kind === 'card'}<span class="obj card" title="{p.name} #{p.id}">{p.name}</span>{:else if p.kind === 'ability'}<span class="obj ability" title="an ability #{p.id}">{p.name}</span>{/if}{/each}</span>
         </div>
       {:else}
         <p class="none">Nothing yet but priority.</p>
@@ -149,6 +161,13 @@
   }
   .text {
     overflow-wrap: anywhere;
+  }
+  /* Same readable-log rendering as the match transcript (ui9). */
+  .obj.card {
+    font-weight: 600;
+  }
+  .obj.ability {
+    font-style: italic;
   }
   /* The repeat count is a value, so it reads in the data face. */
   .run {
