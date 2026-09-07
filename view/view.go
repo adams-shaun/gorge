@@ -182,10 +182,14 @@ type CardView struct {
 	Name  string      `json:"name"`
 	Types string      `json:"types"`
 	// Text is the card's oracle text, the same string botpolicy.Card.Text
-	// lifts for the casting classification (cast.go's classifyCard). It is
-	// public card knowledge for the zone the card sits in (the viewer's own
-	// hand, or any public zone), so projecting it leaks nothing a client
-	// could not already know; a card with no oracle reads empty.
+	// carries on the game half, so the two adapter halves expose an
+	// identical Card. botpolicy keeps it as a projected fact but no branch
+	// matches it to price an effect (the oracle-phrase classification was
+	// withdrawn), so it is carried for the halves' comparability, not as an
+	// effect read. It is public card knowledge for the zone the card sits
+	// in (the viewer's own hand, or any public zone), so projecting it leaks
+	// nothing a client could not already know; a card with no oracle reads
+	// empty.
 	Text string `json:"text,omitempty"`
 	// ManaCost is the printed cost in Forge's notation ("1 W", "R", "X G").
 	// Hand lists render it as symbols.
