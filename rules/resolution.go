@@ -145,8 +145,29 @@ func (e *Engine) resumeResolution(rp resumePoint, chosen []decision.Option) {
 			// re-derives the identical payment. An answer to pay from a pool
 			// that cannot cover it is a decline: the copy is not made,
 			// deterministically.
-			if len(chosen) > 0 && chosen[0].Index == 0 {
-				if e.payMana(chosen[0].Player, ParseCost(rp.sa.Params["UnlessCost"])) {
+			paid := ParseCost(rp.sa.Params["UnlessCost"])
+			if !paid.Priceable() {
+				// I-5: an unless-cost the payment API cannot price is a hard
+				// DECLINE. ParseCost("X") is {Generic:0, X:1}; payMana never
+				// charges the unfolded X, so an empty pool "pays" it for free
+				// and the counterspell stays inert. An unpriceable cost must
+				// counter, never resolve at zero. This is the conservative
+				// correct behaviour: a cleared counter is closer to the card
+				// than a no-op. The real fix (M4) is cost-grammar work — a
+				// value for X from CastInfo/ModeChosen or an SVar folded into
+				// Generic via WithX before payment, and a payer that can
+				// actually tap-to-pay mid-resolution — and belongs in
+				// rules/mana.go's cost grammar, not here. Until then the
+				// ask is still posed to the payer (the answer is recorded by
+				// ModeChosen) but neither "pay" nor "decline" can save the
+				// spell, so every unpriceable unless-pay resolves to the
+				// counter. Declining here (rather than suppressing the ask in
+				// effects, which cannot import rules' cost type) keeps the
+				// decision on the wire for hosts to observe while never
+				// letting an empty pool satisfy it.
+				ctx.UnlessPay = "decline"
+			} else if len(chosen) > 0 && chosen[0].Index == 0 {
+				if e.payMana(chosen[0].Player, paid) {
 					ctx.UnlessPay = "pay"
 				} else {
 					ctx.UnlessPay = "decline"
