@@ -230,6 +230,28 @@ func (c Cost) HasNonMana() bool {
 	return c.Tap || len(c.Sac) > 0 || len(c.SubCounter) > 0
 }
 
+// Priceable reports whether the mana-only payment path (Pay, and therefore
+// payMana) can actually charge every part of this cost. Pay charges only
+// Colored and Generic: an {X} component that has not been folded into
+// Generic by WithX is not a drain the pool can be asked to satisfy -- a cost
+// "X" parses as {Generic:0, X:1}, which Pay would satisfy from an EMPTY
+// pool -- and a non-mana part (Tap/Sac/SubCounter) is likewise invisible to
+// Pay, which handles mana only. Such a cost is unpriceable by the payment
+// API and must be DECLINED, never silently priced at zero. This is the
+// predicate I-5 routes through: every component ParseCost collapses into a
+// shape Pay cannot charge -- an SVar-sourced X, a cast-time-chosen X, a
+// Sac/SubCounter/Tap part -- travels through the same predicate rather than
+// a `if cost == "X"` special case.
+//
+// This is deliberately NOT consulted by Cost.Pay itself. The cast flow folds
+// a chosen X via WithX and settles its non-mana parts itself
+// (rules/cast.go), so Pay INEVITABLY sees an unfolded X or a non-mana part
+// as a normal intermediate there; rejecting those inside Pay would break
+// ordinary casting. Priceable is the "is this a chargeable mana-only cost"
+// question the mid-resolution unless-pay answer must ask before trusting the
+// pool.
+func (c Cost) Priceable() bool { return c.X == 0 && !c.HasNonMana() }
+
 func (c Cost) CanPay(p state.Mana) bool {
 	_, ok := c.Pay(p)
 	return ok
