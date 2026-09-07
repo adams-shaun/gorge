@@ -19,8 +19,15 @@
    * NORMAL state (cmd/gorged ships no catalog, and an offline box resolves
    * nothing). The name and the state therefore sit OUTSIDE the face, under
    * it, at full ink: they read the same whichever half CardImage drew, and
-   * they survive the two dimmed states, where the face — the blank's own
-   * typeset name included — is deliberately faded.
+   * they survive the two states where the face is not full-strength — the
+   * command zone's greyed art and the away state's empty box.
+   *
+   * THE TILE IS THE COMMAND ZONE, NOT A PICTURE OF A CARD. The box is always
+   * there, drawn with a little dotted border, marking the place on the board
+   * that is the command zone; what is inside it depends on where the
+   * commander actually is. Art means "the card is somewhere you can see it",
+   * full ink means "it is in play", grey means "it is in the zone", and an
+   * empty dotted box means "it is not here".
    *
    * THE TAX SITS ON THE FACE, in the corner a printed mana cost occupies —
    * by explicit request, in place of an earlier design that deliberately
@@ -37,21 +44,29 @@
    * THREE STATES, and every one of them is inspectable. The state is a
    * property of where the card currently is (lib/commander.ts, presenceOf):
    *
-   *   command      full strength, plus the CR 903.8 next-cast tax when there
+   *   command      it sits in the command zone — greyed art, marked
+   *                "command zone", plus the CR 903.8 next-cast tax when there
    *                is one — {2} per prior command-zone cast, the DERIVED
-   *                number, never the raw count. It is here rather than on the
-   *                rail because this is where the cast is decided from.
-   *   battlefield  ghosted, and marked "on the battlefield". The real
-   *                permanent is drawn in the creatures row of this same
-   *                quadrant; two full-colour copies of one card in one
-   *                quadrant is a lie about how many there are.
-   *   away         greyed, and named with the zone it is in. A commander in a
-   *                zone this viewer cannot browse resolves to "library" and
-   *                is drawn exactly the same — not being able to see into a
-   *                zone is not an error state.
+   *                number, never the raw count. The tax chip stays on this
+   *                in-zone state (it is where the next cast is priced from),
+   *                but it no longer justifies full ink: the art is greyed.
+   *   battlefield  it is in play, so the box shows FULL art, and it is
+   *                marked "on the battlefield". The real permanent is also
+   *                drawn in the creatures row of this same quadrant; two
+   *                full-colour copies of one card in one quadrant is not a
+   *                lie about how many there are — both are true of the same
+   *                object.
+   *   away         anywhere else — graveyard, exile, hand, the stack, or a
+   *                zone this viewer cannot browse. An EMPTY box: no art at
+   *                all, because the card is not somewhere you can look. The
+   *                box, the name and the state band all stay, and the tile
+   *                stays inspectable. A commander in a zone this viewer
+   *                cannot browse resolves to "library" and is drawn exactly
+   *                the same — not being able to see into a zone is not an
+   *                error state.
    *
    * Hover dwell or keyboard focus opens the existing CardDetail inspector, in
-   * EVERY state including the greyed one: an opponent's commander must be
+   * EVERY state including the empty one: an opponent's commander must be
    * readable at any time, including while it sits in a zone nobody can
    * otherwise browse, and that is the reason this feature is on the board
    * rather than in a rail. The wiring is CardTile's — one HoverCard, an
@@ -141,8 +156,10 @@
   onkeydown={(e) => hover.keydown(e)}
   aria-describedby={hover.show ? `card-detail-${card.id}` : undefined}
 >
-  <div class="face">
-    <CardImage {card} pt={false} />
+  <div class="face cmd-zone-box">
+    {#if status.presence !== 'away'}
+      <CardImage {card} pt={false} />
+    {/if}
     {#if status.presence === 'command' && status.tax > 0}
       <span
         class="tax data"
@@ -165,7 +182,8 @@
 <style>
   /* A card lying in its own spot on the felt, with a state band under it
      rather than over it: the band is the one thing that must stay readable
-     when the face is a ghost or a grey, so it never sits on the art. */
+     when the face is greyed (in the zone) or an empty box (away), so it
+     never sits on the art. */
   /* Width comes straight from the row's own --card-w (104px in the creatures
      row) — a commander is a creature, drawn at creature scale, not at a
      private scale of its own (CZ2). No fallback is set here: outside a row
@@ -179,40 +197,57 @@
     width: var(--card-w, 104px);
     flex: none;
   }
-  /* position:relative gives the tax chip below a corner to anchor to — the
-     same corner CardImage's own blank puts a printed mana cost in — that
-     works over BOTH halves CardImage can draw: the blank (a DOM title line
-     we could otherwise have shared) and the Scryfall art (a bare <img> with
-     no cost hook of its own to anchor to). */
+  /* The box IS the command zone — a place on the board, not a picture of a
+     card — so it is always there, card-sized (--card-w, the row's own
+     creature scale, CZ2), and framed by a little dotted border. `position:`
+     relative gives the tax chip below a corner to anchor to, and `overflow:`
+     hidden clips the card art to the box. What is inside the box depends on
+     where the commander actually is: the art when it is somewhere you can
+     see it, nothing when it is not here. */
   .face {
     position: relative;
+    width: var(--card-w, 104px);
+    aspect-ratio: 63 / 88;
+    border: 1px dashed var(--ink-faint);
+    border-radius: var(--card-radius, var(--radius-card));
+    box-sizing: border-box;
+    overflow: hidden;
     line-height: 0;
   }
-  /* Already on the battlefield: the permanent itself is drawn in the
-     creatures row of this quadrant, so the tile is a placeholder for a card
-     that is not here — a ghost of the face, not a second copy of it. */
-  .cmd-tile--battlefield .face {
-    opacity: 0.4;
-  }
-  /* Anywhere else: greyed, not hidden. Desaturated rather than faded to
-     nothing, because it still has to be recognisable enough to be worth
-     hovering — which is the whole point of drawing it at all. */
-  .cmd-tile--away .face {
+  /* In the command zone: the card is HERE, in the box, but not in play, so
+     the art is greyed — greying says "in the zone". The CR 903.8 tax chip
+     still belongs to this in-zone state (it is where the next cast is priced
+     from), but it no longer justifies full ink; the chip is drawn outside the
+     greyed art, in its own colour, so it does not go grey with it. */
+  .cmd-tile--command .face :global(.card-image) {
     filter: grayscale(1);
-    opacity: 0.5;
   }
+  /* In play: the real permanent is in the creatures row of this quadrant and
+     it is on the battlefield, so the box shows FULL art — the same card is
+     visible twice only because both are true of one object, and this is the
+     command-zone slot the card has left, drawn the way a filled slot reads.
+     No dimming rule here: full ink is the default. */
+  .cmd-tile--battlefield .face :global(.card-image) {
+    filter: none;
+    opacity: 1;
+  }
+  /* Away: the card is in a zone this tile cannot show — graveyard, exile,
+     hand, the stack, or one the viewer cannot browse — so the box is EMPTY:
+     no art element at all, because the card is not somewhere you can look.
+     (The #if above simply does not mount CardImage in this state.) The box,
+     the name and the state band all stay, and the tile stays inspectable. */
   .cmd-tile:focus-visible {
     outline: 2px solid var(--initiative);
     outline-offset: 2px;
   }
 
-  /* The name, OUTSIDE the face and at full ink. It is not a duplicate of the
+  /* The name, OUTSIDE the box and at full ink. It is not a duplicate of the
      blank's own title line: the blank sets the name beside the mana pips and
-     clips it to a few characters even at creature scale, and in the two
-     dimmed states the whole face — typeset name included — is drawn at
-     40-50%, which is exactly when the reader most needs to know which
-     commander the ghost is. One line, clipped, with the full name (and where
-     it is) in the tile's title and accessible name. */
+     clips it to a few characters even at creature scale, and in the command
+     zone's greyed art and the away state's empty box the face is not
+     full-strength — which is exactly when the reader most needs to know which
+     commander the box is. One line, clipped, with the full name (and where it
+     is) in the tile's title and accessible name. */
   .who {
     max-width: 100%;
     font-size: var(--t-10);
