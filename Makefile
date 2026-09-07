@@ -172,6 +172,17 @@ tidy:
 # so lint-web/test-web/web (and web-dev) install first instead of dying with
 # "eslint: not found" / "vite: not found".
 web/node_modules/.package-lock.json: web/package-lock.json
+	@# REFUSE to install through a symlink. Task worktrees get web/node_modules
+	@# as a symlink to the main checkout's install (agent-worktree.sh --web), so
+	@# ~166MB is shared instead of copied. `npm ci` DELETES node_modules before
+	@# installing, and through a symlink that delete lands on the SHARED
+	@# directory -- wiping web tooling for the main checkout and every other
+	@# worktree at once. It has happened: an agent ran `make web`, this rule
+	@# fired because package-lock.json was newer than the marker, and four
+	@# concurrent worktrees lost their install. The agent had been told not to
+	@# run `npm ci` and did not -- make did. So the guard belongs here, where
+	@# the command actually is, not in a brief nobody can enforce.
+	@if [ -L web/node_modules ]; then 		echo "make: refusing to run 'npm ci' -- web/node_modules is a SYMLINK to $$(readlink web/node_modules)."; 		echo "      npm ci deletes node_modules first, which would wipe the SHARED install"; 		echo "      used by the main checkout and every other task worktree."; 		echo "      Run 'make web' (or npm ci) in the MAIN checkout instead, then re-run here."; 		exit 1; 	fi
 	cd web && npm ci
 
 .PHONY: web web-dev test-web lint-web
