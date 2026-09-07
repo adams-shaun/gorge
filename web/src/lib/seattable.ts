@@ -47,7 +47,7 @@ export interface SeatRow {
   active: boolean;
   priority: boolean;
   state: SeatState;
-  /** roster size: 0 on a constructed seat, which is how the caller knows not to draw a command zone at all */
+  /** roster size: 0 on a constructed seat. The command zone itself is drawn on the board now (CommandArea), not from this row */
   commanders: number;
 }
 
@@ -120,14 +120,4 @@ export function focusSeat(selected: number | null, view: View): number | null {
   if (at(view.viewer) && visibleHand(players.find((p) => p.seat === view.viewer)!) !== null) return view.viewer;
   if (at(view.active)) return view.active;
   return players[0].seat;
-}
-
-/**
- * commanderSeats is the seats that actually have a commander roster, in seat
- * order. A constructed table returns [] and the caller draws NO command-zone
- * section at all — not four "no commanders" panels, which is the hole the
- * old rail left in exactly the format the panel does not apply to.
- */
-export function commanderSeats(view: View): PlayerView[] {
-  return (view.players ?? []).filter((p) => (p.commanders ?? []).length > 0);
 }

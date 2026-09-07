@@ -18,6 +18,37 @@ export const TAX_PER_CAST = 2;
 /** The zone a commander currently sits in, resolved from the wire's zone lists. */
 export type CommanderZone = 'command' | 'battlefield' | 'graveyard' | 'exile' | 'hand' | 'stack' | 'library';
 
+/**
+ * How the board's command-zone tile draws a commander. Three states, and the
+ * state is a property of WHERE the card is, never of what it is:
+ *
+ *   command      it is in the command zone — the tile is the card, full
+ *                strength, and the only state a next cast can be priced for
+ *   battlefield  the real permanent is drawn in the creatures row two inches
+ *                away, so the tile is ghosted and says so: two full-colour
+ *                copies of one card in one quadrant is a lie about how many
+ *                there are
+ *   away         anywhere else — graveyard, exile, hand, the stack, or a zone
+ *                this viewer cannot see into at all. Greyed, and still fully
+ *                inspectable, because reading an opponent's commander while
+ *                it sits somewhere nobody can browse is the whole point of
+ *                drawing it on the board.
+ */
+export type CommanderPresence = 'command' | 'battlefield' | 'away';
+
+/**
+ * presenceOf collapses the seven zones a commander can be in into the three
+ * states the board tile has. Everything that is neither the command zone nor
+ * the battlefield is one state: a commander in the graveyard and a commander
+ * in a library the viewer cannot see are read the same way — it is not here,
+ * and here is where you can still read it.
+ */
+export function presenceOf(zone: CommanderZone): CommanderPresence {
+  if (zone === 'command') return 'command';
+  if (zone === 'battlefield') return 'battlefield';
+  return 'away';
+}
+
 /** One commander of one seat, as the command-zone reader needs it. */
 export interface CommanderStatus {
   /** index into the parallel wire arrays `commanders`/`commander_casts` */
@@ -29,6 +60,8 @@ export interface CommanderStatus {
   tax: number;
   /** where the commander currently sits, resolved off the wire's zone lists */
   zone: CommanderZone;
+  /** the three-way state the board tile draws — presenceOf(zone) */
+  presence: CommanderPresence;
   /** true while the commander is in the command zone — the only state a next cast is offered from */
   inZone: boolean;
 }
@@ -88,13 +121,18 @@ function zoneOf(id: number, zoneIds: Record<Exclude<CommanderZone, 'stack' | 'li
 }
 
 /**
- * commandZoneOf projects one seat's command zone for the rail: every roster
- * commander with its CR 903.8 tax and its current zone, in genesis order.
+ * commandZoneOf projects one seat's command zone for the board's command
+ * area: every roster commander with its CR 903.8 tax, its current zone and
+ * the presence state its tile draws, in genesis order. `commanders` is the
+ * roster built once at genesis and never shrunk, so it — not `command` — is
+ * what is iterated: a commander that has left the zone still has a tile, and
+ * that is the state the tile exists to show.
+ *
  * `command` (the zone) is a public wire field for every seat and every
  * viewer, so inZone is decided purely from the wire — a seat-scoped reader
- * sees every seat's command zone exactly as a spectator does. Empty rosters
- * (a Constructed game) yield an empty list the caller renders as an explicit
- * "no commanders" state, never as a missing panel.
+ * sees every seat's command zone exactly as a spectator does. An empty roster
+ * (a Constructed game) yields an empty list, and the caller draws NOTHING for
+ * it: no tile, no slot, no heading, no empty frame.
  */
 export function commandZoneOf(p: PlayerView, stackIds: ReadonlySet<number> = new Set()): CommanderStatus[] {
   const zoneIds = {
@@ -118,6 +156,7 @@ export function commandZoneOf(p: PlayerView, stackIds: ReadonlySet<number> = new
       casts: n,
       tax: taxOf(n),
       zone,
+      presence: presenceOf(zone),
       inZone: zone === 'command',
     });
   }

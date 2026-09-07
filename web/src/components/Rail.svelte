@@ -2,10 +2,9 @@
   import type { View, SeatInfo, DecisionBody } from '../protocol';
   import { seatColour } from '../lib/colours';
   import { visibleHand } from '../lib/board';
-  import { commanderSeats, focusSeat } from '../lib/seattable';
+  import { focusSeat } from '../lib/seattable';
   import SeatTable from './SeatTable.svelte';
   import HandList from './HandList.svelte';
-  import CommandZone from './CommandZone.svelte';
   import ZoneViewer from './ZoneViewer.svelte';
   import ManaPool from './ManaPool.svelte';
   import StackTile from './StackTile.svelte';
@@ -24,10 +23,11 @@
    *   - Facts every seat has (life, hand, library, graveyard) become COLUMNS
    *     of one table, so they are compared down a column instead of hunted
    *     across four panels — and four seats cost four rows, not four panels.
-   *   - The command zone becomes one section of short rows, drawn only for
-   *     seats that actually have a roster. A constructed table draws NO
-   *     section rather than four panels each saying "no commanders", so
-   *     nothing is left where it would have been.
+   *   - The command zone LEFT this rail entirely (CZ1). A line of text is
+   *     not how anyone recognises a commander, so each seat's commanders are
+   *     drawn as art tiles in a command area at that seat's own rim on the
+   *     board, with the CR 903.8 tax on the tile. Nothing takes the section's
+   *     place here: the rail is one section shorter.
    *   - The genuinely per-seat LISTS — the hand, the graveyard and exile
    *     cards, the floating mana — are shown for ONE seat at a time in the
    *     detail pane, which follows the active player until the reader picks
@@ -35,8 +35,8 @@
    *
    * The rail then never scrolls as a whole: every section is intrinsically
    * sized except the detail pane, which takes the leftover and scrolls
-   * inside itself. Nothing can push the command zone off the bottom again,
-   * because nothing above it grows.
+   * inside itself. Nothing can push a section off the bottom again, because
+   * nothing above the detail pane grows.
    *
    * emphasizeTop (seat view) applies survey item 10 — top-of-stack by
    * contrast — while the spectator path leaves it off, unchanged.
@@ -50,9 +50,6 @@
   const focus = $derived(focusSeat(picked, view));
   const focused = $derived(view.players.find((p) => p.seat === focus) ?? null);
 
-  // Only the seats that have a commander roster; [] on a constructed table.
-  const cmdSeats = $derived(commanderSeats(view));
-
   // view.stack lists bottom of the stack first (push order); the rail shows
   // what resolves next at the top, so it is reversed for display only.
   const topFirst = $derived([...view.stack].reverse());
@@ -60,15 +57,6 @@
 
 <div class="rail-inner">
   <SeatTable {view} {seats} {focus} onFocus={(s) => (picked = picked === s ? null : s)} />
-
-  {#if cmdSeats.length > 0}
-    <section class="commanders">
-      <h3>Commanders</h3>
-      {#each cmdSeats as p (p.seat)}
-        <CommandZone player={p} colour={seatColour(p.seat, seats)} stack={view.stack} />
-      {/each}
-    </section>
-  {/if}
 
   <section class="focus" data-focus-pane data-focus-seat={focused?.seat}>
     {#if focused}
@@ -146,12 +134,6 @@
      so a bare `.focus` loses to it and the whole column silently reverts to
      flex: none — which is exactly how the first cut of this still overflowed
      by 250px. */
-  section.commanders {
-    flex: 0 1 auto;
-    min-height: 0;
-    max-height: 9rem;
-    overflow-y: auto;
-  }
   section.focus {
     flex: 1 1 6rem;
     min-height: 4rem;
