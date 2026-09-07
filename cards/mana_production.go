@@ -41,7 +41,14 @@ type ManaProduction struct {
 	// PREFER an indeterminate source over one that demonstrably produces.
 	// Indeterminate is a statement about the AMOUNT, orthogonal to Any,
 	// which is a statement about the PRODUCED colour choice.
-	Indeterminate bool `json:"indeterminate,omitempty"`
+	//
+	// It is a server-only field: the bot policy reads it, but it must not
+	// ride the human wire (CardView) -- no web component consumes
+	// CardView.produces at all, so surfacing it as `indeterminate?: boolean`
+	// in protocol.ts is dead payload on every card view. json:"-" keeps it
+	// out of tsgen's jsonName (internal/tsgen/tsgen.go) while the Go field
+	// stays for the two adapters and the policy that reads it.
+	Indeterminate bool `json:"-"`
 }
 
 // manaProductionForm normalises Produced$ exactly as effMana does. Like
