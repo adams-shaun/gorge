@@ -258,7 +258,7 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 		}
 		decks[i] = d.Cards
 	}
-	cfg := rules.Config{Seed: sc.Seed, Names: sc.Names, Decks: decks, Tokens: r.opts.Tokens, Mulligans: sc.Mulligans}
+	cfg := rules.Config{Seed: sc.Seed, Names: sc.Names, PlayerNames: sc.PlayerNames, Decks: decks, Tokens: r.opts.Tokens, Mulligans: sc.Mulligans}
 	// A persisted Commander match carries its format, the opening life it
 	// played with and its per-seat commander indices, so the replay
 	// reproduces the live match branch for branch (R-8.4: the replay Config

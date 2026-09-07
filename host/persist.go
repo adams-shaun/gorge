@@ -19,20 +19,27 @@ import (
 // intents. Rewritten whole at start and at end; never carries a timestamp
 // (PL-11), so two runs of one configuration write identical files.
 type sidecar struct {
-	Table     string              `json:"table"`
-	Match     int                 `json:"match"`
-	Seed      uint64              `json:"seed"`
-	Seats     []protocol.SeatInfo `json:"seats"`
-	Names     []string            `json:"names"`
-	Decks     []string            `json:"decks"`
-	Spectator string              `json:"spectator"`
-	State     string              `json:"state"`
-	Result    string              `json:"result,omitempty"`
-	Winner    *uint8              `json:"winner"`
-	Head      string              `json:"head,omitempty"`
-	Events    int                 `json:"events"`
-	Turns     int32               `json:"turns"`
-	Reason    string              `json:"reason,omitempty"`
+	Table string              `json:"table"`
+	Match int                 `json:"match"`
+	Seed  uint64              `json:"seed"`
+	Seats []protocol.SeatInfo `json:"seats"`
+	Names []string            `json:"names"`
+	// PlayerNames is the display player name per seat (rules.Config.
+	// PlayerNames), independent of the deck. Persisted so a restarted or
+	// archived match rebuilds a view whose player box names the seat the
+	// same way the live one did (R-8.4). Omitted/older sidecars rebuild
+	// without it, which replays the display names back to the deck stem — the
+	// pre-B3 behaviour — so nothing migrates (R-E5-2).
+	PlayerNames []string `json:"player_names,omitempty"`
+	Decks       []string `json:"decks"`
+	Spectator   string   `json:"spectator"`
+	State       string   `json:"state"`
+	Result      string   `json:"result,omitempty"`
+	Winner      *uint8   `json:"winner"`
+	Head        string   `json:"head,omitempty"`
+	Events      int      `json:"events"`
+	Turns       int32    `json:"turns"`
+	Reason      string   `json:"reason,omitempty"`
 	// Mulligans is the London-mulligan allowance the match's rules.Config ran
 	// with, persisted so a restart rebuilds a replay Config that reproduces
 	// the match (R-8.4; host/viewat.go rebuilds its Config from this sidecar
