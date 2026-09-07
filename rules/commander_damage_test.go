@@ -35,16 +35,25 @@ func cmdCreature(pw int32) string {
 		strconv.Itoa(int(pw)) + "/99\nK:Trample\nOracle:x\n"
 }
 
-// commanderGame builds a two-seat game with the given construction format
-// (FormatCommander for the mechanics, FormatConstructed for the gate probe)
-// and the given per-seat commander card sources (seat p's slice lists its
-// commanders in deck order; an empty slice means no commanders for that
-// seat). m30's genesis pulls each configured commander to the command zone
-// and sizes CmdDamage regardless of Format, so the format gate is the ONLY
-// thing that should keep a Constructed game from running the mechanic. The
-// engine is returned together with its Config for log-only replay, left so
-// the test can drive combat directly (the combatEngine pattern).
-func commanderGame(t *testing.T, format Format, life int32, seatCmds [][]string) (*Engine, Config) {
+// commanderGame is the ONE shared Commander fixture: a two-seat game with
+// the given construction format (FormatCommander for the mechanics,
+// FormatConstructed for the gate probe) and the given per-seat commander card
+// sources (seat p's slice lists its commanders in deck order; an empty slice
+// means no commanders for that seat). m30's genesis pulls each configured
+// commander to the command zone and sizes CmdDamage regardless of Format, so
+// the format gate is the ONLY thing that should keep a Constructed game from
+// running the mechanic. The engine is returned together with its Config for
+// log-only replay, deliberately NOT advanced, so a test can drive combat
+// directly (the combatEngine pattern); the m31 commander-tax suite reaches it
+// through commanderTaxGame (rules/commander_tax_test.go), which drives to
+// turn 1 Main1 on top of it.
+//
+// seed seeds the shuffle: the m33 damage suite and the m32 zone-replacement
+// suite pass the fixed commanderDamageSeed they were written against (its
+// original Config.Seed was 9), the m31 tax suite passes its own per-test
+// seed. One fixture, three suites, each under exactly the stream it always
+// measured.
+func commanderGame(t *testing.T, seed uint64, format Format, life int32, seatCmds [][]string) (*Engine, Config) {
 	t.Helper()
 	names := make([]string, len(seatCmds))
 	decks := make([][]*cards.Card, len(seatCmds))
@@ -59,10 +68,16 @@ func commanderGame(t *testing.T, format Format, life int32, seatCmds [][]string)
 		deck = append(deck, mountainDeck(t, 40-len(deck))...)
 		decks[p] = deck
 	}
-	cfg := Config{Seed: 9, Names: names, Decks: decks,
+	cfg := Config{Seed: seed, Names: names, Decks: decks,
 		Commanders: cmds, StartingLife: life, Format: format}
 	return New(cfg), cfg
 }
+
+// commanderDamageSeed is the seed the m33 commander-damage tests were written
+// against (the original fixture hard-coded Config.Seed: 9). The m32
+// zone-replacement suite shares it through cmdZoneGame; the m31 tax suite
+// passes its own per-test seeds instead.
+const commanderDamageSeed uint64 = 9
 
 // fieldCommander moves the k-th commander of seat p (in the command-zone
 // order m30's genesis produced) onto the battlefield through a LOGGED
@@ -125,7 +140,7 @@ func swing(t *testing.T, e *Engine, attackers ...state.ObjID) {
 // threshold: 20 combat damage from a single commander is one short, so the
 // defender (health 40, 20 left) survives the state-based-action pass.
 func TestTwentyCommanderDamageDoesNotLose(t *testing.T) {
-	e, _ := commanderGame(t, FormatCommander, 40, [][]string{{cmdCreature(20)}, {}})
+	e, _ := commanderGame(t, commanderDamageSeed, FormatCommander, 40, [][]string{{cmdCreature(20)}, {}})
 	cmd := fieldCommander(t, e, 0, 0)
 	swing(t, e, cmd)
 
@@ -142,7 +157,7 @@ func TestTwentyCommanderDamageDoesNotLose(t *testing.T) {
 // though their life total (19) is still positive -- commander damage is an
 // independent loss condition, not a proxy for life.
 func TestTwentyOneCommanderDamageLoses(t *testing.T) {
-	e, _ := commanderGame(t, FormatCommander, 40, [][]string{{cmdCreature(21)}, {}})
+	e, _ := commanderGame(t, commanderDamageSeed, FormatCommander, 40, [][]string{{cmdCreature(21)}, {}})
 	cmd := fieldCommander(t, e, 0, 0)
 	swing(t, e, cmd)
 
@@ -165,7 +180,7 @@ func TestTwentyOneCommanderDamageLoses(t *testing.T) {
 // collapsing every commander onto slot 0 turns 11+11 into a single 22 and
 // fails this test by making the defender lose.
 func TestTwoCommandersElevenEachDoesNotLose(t *testing.T) {
-	e, _ := commanderGame(t, FormatCommander, 40, [][]string{{cmdCreature(11), cmdCreature(11)}, {}})
+	e, _ := commanderGame(t, commanderDamageSeed, FormatCommander, 40, [][]string{{cmdCreature(11), cmdCreature(11)}, {}})
 	cmds := e.G.Zone(state.ZCommand, 0)
 	a := fieldCommanderByID(t, e, cmds[0])
 	b := fieldCommanderByID(t, e, cmds[1])
@@ -187,7 +202,7 @@ func TestTwoCommandersElevenEachDoesNotLose(t *testing.T) {
 // 11 across that zone round-trip, because state.ObjID is stable across a
 // commander's moves (m30 keeps one game object throughout).
 func TestSameCommanderTwiceCumulatesToTwentyTwoAndLoses(t *testing.T) {
-	e, _ := commanderGame(t, FormatCommander, 40, [][]string{{cmdCreature(11)}, {}})
+	e, _ := commanderGame(t, commanderDamageSeed, FormatCommander, 40, [][]string{{cmdCreature(11)}, {}})
 	cmd := fieldCommander(t, e, 0, 0)
 
 	swing(t, e, cmd)
@@ -235,7 +250,7 @@ func TestSameCommanderTwiceCumulatesToTwentyTwoAndLoses(t *testing.T) {
 // at zero (the defender's 19-life survival is the proof that the zero tally
 // was not masked by a life-loss death).
 func TestNonCombatCommanderDamageDoesNotTally(t *testing.T) {
-	e, _ := commanderGame(t, FormatCommander, 40, [][]string{{cmdCreature(1)}, {}})
+	e, _ := commanderGame(t, commanderDamageSeed, FormatCommander, 40, [][]string{{cmdCreature(1)}, {}})
 	fieldCommander(t, e, 0, 0)
 
 	// A resolved ping/burn/triggered effect: damage to the player that is not
@@ -265,7 +280,7 @@ func TestNonCombatCommanderDamageDoesNotTally(t *testing.T) {
 // exactly like the blocker branch does, so the moment such a prevention
 // exists this same guard declines the tally; see the report.)
 func TestPreventedCombatDamageDoesNotInflateTheTally(t *testing.T) {
-	e, _ := commanderGame(t, FormatCommander, 40, [][]string{{cmdCreature(10)}, {}})
+	e, _ := commanderGame(t, commanderDamageSeed, FormatCommander, 40, [][]string{{cmdCreature(10)}, {}})
 	atk := fieldCommander(t, e, 0, 0)
 
 	blk := onBoard(t, e, 1, "Name:Guard\nManaCost:1 R\nTypes:Creature Goblin\nPT:1/2\nK:Protection from green\nOracle:x\n")
@@ -293,7 +308,7 @@ func TestPreventedCombatDamageDoesNotInflateTheTally(t *testing.T) {
 // leaves them alive and the tally untouched. Removing either gate lets the
 // defender lose here and fails this test by name.
 func TestNonCommanderGameIgnoresCommanderDamage(t *testing.T) {
-	e, _ := commanderGame(t, FormatConstructed, 40, [][]string{{cmdCreature(21)}, {}})
+	e, _ := commanderGame(t, commanderDamageSeed, FormatConstructed, 40, [][]string{{cmdCreature(21)}, {}})
 	cmd := fieldCommander(t, e, 0, 0)
 	swing(t, e, cmd)
 
@@ -313,7 +328,7 @@ func TestNonCommanderGameIgnoresCommanderDamage(t *testing.T) {
 // written directly or re-derived from the existing Damage events (which do
 // not record which commander the source was).
 func TestCommanderDamageReplaysFromTheLogAlone(t *testing.T) {
-	e, cfg := commanderGame(t, FormatCommander, 40, [][]string{{cmdCreature(21)}, {}})
+	e, cfg := commanderGame(t, commanderDamageSeed, FormatCommander, 40, [][]string{{cmdCreature(21)}, {}})
 	cmd := fieldCommander(t, e, 0, 0)
 	swing(t, e, cmd)
 	live := e.G.Players[1].CmdDamage
@@ -329,7 +344,7 @@ func TestCommanderDamageReplaysFromTheLogAlone(t *testing.T) {
 // Engine.Clone (Game.Clone deep-copies CmdDamage; clone.go carries format),
 // so a cloned engine sees the identical tally and stays a Commander game.
 func TestCommanderDamageSurvivesClone(t *testing.T) {
-	e, _ := commanderGame(t, FormatCommander, 40, [][]string{{cmdCreature(20)}, {}})
+	e, _ := commanderGame(t, commanderDamageSeed, FormatCommander, 40, [][]string{{cmdCreature(20)}, {}})
 	cmd := fieldCommander(t, e, 0, 0)
 	swing(t, e, cmd)
 	if e.Pending() == nil && !e.G.Over {
