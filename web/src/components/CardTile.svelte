@@ -43,7 +43,17 @@
    * granted ability shows here exactly like a printed one. The abbreviations
    * below are display only; nothing here decides what a keyword does.
    */
-  let { card, size = 'tile', attachments = [] }: { card: CardView; size?: 'tile' | 'large'; attachments?: CardView[] } = $props();
+  // hover and anchor are injectable so the repo's SSR test harness (no DOM,
+  // no pointer events, no $effect) can drive the panel's lifecycle through
+  // the same HoverCard the component owns; production renders never pass them
+  // and the defaults are exactly what the component built for itself before.
+  let { card, size = 'tile', attachments = [], hover = new HoverCard(), anchor: anchorProp = null }: {
+    card: CardView;
+    size?: 'tile' | 'large';
+    attachments?: CardView[];
+    hover?: HoverCard;
+    anchor?: AnchorRect | null;
+  } = $props();
 
   // Ability shorthand for the keywords players scan for during combat. A
   // keyword with no shorthand is deliberately NOT drawn as a mark: an
@@ -88,19 +98,28 @@
   // trigger in the ARIA sense (reveals extra info on hover/focus), which is
   // why the div carries role="button" + tabindex + aria-describedby; there
   // is deliberately no click activation.
-  const hover = new HoverCard();
   let root = $state<HTMLElement | null>(null);
-  let anchor = $state<AnchorRect | null>(null);
+  // The panel's anchor. In production only capture() sets it (from the tile's
+  // rect once a pointer event arrives); a test injects one so the open panel
+  // can be rendered without a DOM. initialAnchor reads the prop once, at
+  // mount/SSR time, so the compiler never sees a prop read in a reactive
+  // position — the injected anchor is a seed, not a stream.
+  const initialAnchor = () => anchorProp ?? null;
+  let anchor = $state<AnchorRect | null>(initialAnchor());
 
-  // Same lifecycle tie as HandList: when this tile's object no longer exists
-  // (destroyed, bounced, merged into a stacked group) the tile is removed from
-  // the DOM under the pointer and pointerleave never fires; the panel must
-  // close because the object is gone, not wait on a pointer event. On the
-  // board the panel lives inside the tile so it is torn down with it anyway,
-  // but the card prop changing on a kept instance must also close an open
-  // panel — the state is tied to the object existing, whichever way it went.
+  // PANEL LIFETIME FOLLOWS THE OBJECT, NOT THE MOUNTING. When this tile's
+  // object no longer exists (destroyed, bounced, merged into a stacked group)
+  // the tile leaves the DOM under the pointer and pointerleave never fires
+  // — and worse, when the board re-renders, Svelte can hand this same
+  // instance a DIFFERENT card with no pointer event at all, silently
+  // re-targeting the open panel to a card the reader never asked for (the
+  // exact reported bug). So on every card change the tile re-feeds the id it
+  // is now rendering and HoverCard closes a panel opened for another object
+  // or re-points an armed dwell. superviseRendering is the rendering half of
+  // the contract; supervise ("the object left the visible set") still serves
+  // HandList, whose triggers are keyed per card and never re-used.
   $effect(() => {
-    hover.supervise(card.id, [card]);
+    hover.superviseRendering(card.id);
   });
 
   function capture(): void {
@@ -118,9 +137,9 @@
   bind:this={root}
   tabindex="0"
   role="button"
-  onpointerenter={() => hover.arm(capture)}
+  onpointerenter={() => hover.arm(card.id, capture)}
   onpointerleave={() => hover.close()}
-  onfocus={() => hover.open(capture)}
+  onfocus={() => hover.open(card.id, capture)}
   onblur={() => hover.close()}
   onkeydown={(e) => hover.keydown(e)}
   aria-describedby={hover.show ? `card-detail-${card.id}` : undefined}
