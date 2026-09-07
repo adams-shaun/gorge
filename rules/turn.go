@@ -83,6 +83,18 @@ func (e *Engine) priorityRound() {
 	// Nobody receives priority during untap or cleanup.
 	if e.G.Step == state.StepUntap || e.G.Step == state.StepCleanup {
 		if e.G.Step == state.StepCleanup {
+			// CR 514.1 (Task D1): the discard-down-to-maximum-hand-size
+			// turn-based action runs FIRST, then CR 514.2. cleanupStep asks a
+			// KChoose "discard" decision when the active player's hand is
+			// over seven and returns with e.pending set; when it does, the
+			// step SUSPENDS -- advanceStep must not hand to the next turn
+			// while a player's discard choice is outstanding. The Advance
+			// loop would pause on e.pending regardless, but returning here
+			// keeps this round from advancing anyway; the answer resumes via
+			// Submit -> handleChoose -> e.discardCleanup (combat.go), which
+			// emits the discard moves, runs the 514.2 body, and then advances
+			// the step itself.
+			//
 			// CR 514.2: cleanup removes damage and "until end of turn"
 			// effects. Wired in here by Task 21 -- Engine.EndOfTurnCleanup
 			// (layers.go) has existed since Task 19c, but nothing ever called
@@ -97,7 +109,15 @@ func (e *Engine) priorityRound() {
 			// run unconditionally on entry to the step, so there is no such
 			// gate left to protect -- but the ordering requirement here was
 			// never actually ABOUT that gate, so it stands unchanged.)
+			//
+			// The 514.2 body runs either from cleanupStep directly (no
+			// discard owed, the ordinary path with a hand of seven or fewer)
+			// or from discardCleanup after the discard answer is recorded --
+			// never from both, so no 514.2 action is ever done twice.
 			e.cleanupStep()
+			if e.pending != nil {
+				return
+			}
 		}
 		e.advanceStep()
 		return
@@ -377,7 +397,16 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 			e.resumeTriggerDrain()
 			return
 		}
-	// Tasks 12 and 18 add their cases here.
+	case chooseCleanup:
+		// Task D1 (CR 514.1): the cleanup-step discard decision was answered.
+		// discardCleanup moves the chosen cards hand -> graveyard, runs the
+		// CR 514.2 body, and advances the step -- the cleanup step's resume,
+		// the mirror of the cast-flow resume cases above. There is no drain
+		// to resume: a discard answer is never handed out from inside a
+		// trigger drain (only the turn structure asks it, when no step is
+		// mid-resolution), so e.drainAwaitsTarget is necessarily false here.
+		e.discardCleanup(chosen)
+	// Tasks 12, 18 add their cases here; Task D1 adds chooseCleanup.
 	default:
 		e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "choose answered with no flow waiting"})
 		e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
