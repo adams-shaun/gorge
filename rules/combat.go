@@ -143,13 +143,30 @@ func (e *Engine) askAttackers() {
 	// starts at seat 0 for every attacker at the table, a bot that prefers
 	// the earliest option (or the lowest Option.Player) among equally-scored
 	// defenders sends the whole table's attacks at the lowest-numbered living
-	// seat; that seat dies, the next-lowest becomes the target, and the
-	// seats die in index order. Measured on main at four seats, 200 games:
-	// wins by seat were 37 / 2 / 102 / 23 against a fair 25% each. The
-	// engine's order is not the defect -- it has to be deterministic and it
-	// has to match declare-blockers -- but it is the thing a positional
-	// tiebreak turns into focus fire, so a defender preference belongs on a
-	// game fact (life, clock, board) rather than on seat index.
+	// seat, which biases the whole table's aggression toward low seats.
+	//
+	// Measured, four seats, 800 games (four deck->seat rotations x 200, so
+	// deck strength is rotated out): defender totals 6170 / 5898 / 5038 /
+	// 4835, a 1.28x gradient toward the low seats -- real, but mild, because
+	// the tier ranking dominates and the spread survives. Seat win totals
+	// over the same 800 are 115 / 183 / 247 / 255: seat 0 takes 14.4%
+	// against a fair 25%, the minimum cell for all four decks (sign test
+	// P ~ 0.004).
+	//
+	// Do NOT read a single rotation's win spread as this effect. At one
+	// fixed assignment the table reads 37 / 2 / 102 / 23, and that shape is
+	// deck strength, not targeting: seat 1 wins 2/200 holding
+	// keen-engineering and 91/200 holding reign-of-dragons. Rotate before
+	// concluding anything about a seat.
+	//
+	// Seat 0 is also always the starting player (genesis beginTurn of the
+	// first living seat), so the residual seat-0 deficit is turn order and
+	// this tiebreak confounded; they have not been separated.
+	//
+	// The engine's order is not the defect -- it has to be deterministic and
+	// it has to match declare-blockers -- but it is what a positional
+	// tiebreak turns into a bias, so a defender preference belongs on a game
+	// fact (life, clock, board) rather than on seat index.
 	var defenders []state.PlayerID
 	for _, q := range e.G.AliveFrom(0) {
 		if q != p {
