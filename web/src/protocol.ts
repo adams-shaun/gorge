@@ -35,6 +35,7 @@ export interface TableInfo {
   match: number;
   perpetual: boolean;
   format: string;
+  seat_names?: string[];
 }
 
 export interface Hello {

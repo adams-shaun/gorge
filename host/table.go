@@ -260,9 +260,20 @@ func newTable(cfg TableConfig) *table {
 func (t *table) info() protocol.TableInfo {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	return protocol.TableInfo{ID: string(t.cfg.ID), Name: t.cfg.Name, Seats: t.cfg.Seats,
+	info := protocol.TableInfo{ID: string(t.cfg.ID), Name: t.cfg.Name, Seats: t.cfg.Seats,
 		Spectator: t.cfg.Spectator.String(), State: t.state, Match: t.k, Perpetual: t.cfg.Perpetual,
 		Format: t.cfg.Format.String()}
+	// SeatNames come from the live match's own seat list — the same
+	// []protocol.SeatInfo that MatchStart carries — so the two can never
+	// drift. cur is guarded by t.mu, which we already hold; reading its
+	// seat names drives no engine state.
+	if m := t.cur; m != nil {
+		info.SeatNames = make([]string, len(m.seats))
+		for i, s := range m.seats {
+			info.SeatNames[i] = s.Name
+		}
+	}
+	return info
 }
 
 // singleShot reports whether the run loop should stop after exactly one
