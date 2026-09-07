@@ -261,7 +261,8 @@ func (t *table) info() protocol.TableInfo {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	return protocol.TableInfo{ID: string(t.cfg.ID), Name: t.cfg.Name, Seats: t.cfg.Seats,
-		Spectator: t.cfg.Spectator.String(), State: t.state, Match: t.k, Perpetual: t.cfg.Perpetual}
+		Spectator: t.cfg.Spectator.String(), State: t.state, Match: t.k, Perpetual: t.cfg.Perpetual,
+		Format: t.cfg.Format.String()}
 }
 
 // singleShot reports whether the run loop should stop after exactly one

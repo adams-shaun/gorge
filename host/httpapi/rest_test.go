@@ -148,6 +148,82 @@ func TestViewAndEvents(t *testing.T) {
 	}
 }
 
+// formatsLoader resolves one commander table's two decks and one constructed
+// table's four decks: the commander decks carry their commander index exactly
+// as gorged's loader attaches it, so a commander TableConfig validates.
+func formatsLoader(t *testing.T) func(string) (host.Deck, error) {
+	t.Helper()
+	reg := testutil.CorpusRegistry(t)
+	byName := map[string]host.Deck{}
+	for _, n := range []string{"foundations-calling-all-angels", "foundations-keen-engineering"} {
+		f := testutil.RepoDeckFile(t, n)
+		d := host.Deck{Name: n, Cards: testutil.RepoDeck(t, reg, n)}
+		if f.Commander != "" {
+			d.Commanders = []int{f.CommanderIndex()}
+		}
+		byName[n] = d
+	}
+	names, decks := testutil.SampleDecks(t, 4)
+	for i, nm := range names {
+		byName[nm] = host.Deck{Name: nm, Cards: decks[i]}
+	}
+	return func(name string) (host.Deck, error) {
+		d, ok := byName[name]
+		if !ok {
+			return host.Deck{}, host.ErrNotFound
+		}
+		return d, nil
+	}
+}
+
+// TestTableListReportsFormat pins the table list's format wire field, decoded
+// from the JSON response (not the Go struct, so the json tag and the
+// no-omitempty decision are both exercised): a commandeught table reports
+// "commander" and a default (zero-value constructed) table reports
+// "constructed", never an empty string.
+func TestTableListReportsFormat(t *testing.T) {
+	r, err := host.New(host.Options{LoadDeck: formatsLoader(t), Sleep: func(time.Duration, <-chan struct{}) {}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { r.Close() })
+	cmdr := host.TableConfig{ID: "cm", Name: "Commander", Seats: 2,
+		Decks: []string{"foundations-calling-all-angels", "foundations-keen-engineering"},
+		Seed:  1001, Spectator: view.Omniscient, Format: host.FormatCommander}
+	con := host.TableConfig{ID: "co", Name: "Constructed", Seats: 4,
+		Decks: []string{"a", "b", "c", "d"}, Seed: 5, Spectator: view.Omniscient}
+	if err := r.AddTable(cmdr); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.AddTable(con); err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(NewHandler(r, Options{}))
+	t.Cleanup(srv.Close)
+
+	var tables []protocol.TableInfo
+	if code, e := getJSON(t, srv.URL+"/api/tables", &tables); code != 200 {
+		t.Fatalf("GET /api/tables: %d %+v", code, e)
+	}
+	byID := map[string]string{}
+	for _, tbl := range tables {
+		byID[tbl.ID] = tbl.Format
+	}
+	// Assert on the decoded JSON so tag + no-omitempty are both covered: a
+	// zero-format "constructed" would come back empty if the field were
+	// omitted (omitempty drops the zero value), so "constructed" here proves
+	// the field is always emitted.
+	if byID["cm"] != "commander" {
+		t.Fatalf("commander table format = %q, want commander", byID["cm"])
+	}
+	if byID["co"] != "constructed" {
+		t.Fatalf("constructed table format = %q, want constructed", byID["co"])
+	}
+	if len(tables) != 2 {
+		t.Fatalf("served %d tables, want 2", len(tables))
+	}
+}
+
 func TestSubscribeAndUnsubscribe(t *testing.T) {
 	srv, r := finishedServer(t, Options{})
 	s := r.OpenSession()

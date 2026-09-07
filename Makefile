@@ -70,7 +70,7 @@ $(BIN_DIR)/gorged: $(GO_SRC)
 # gorged runs the M2a table server: perpetual bot tables served to a browser
 # at the listen address. make web builds the Svelte client it embeds first.
 gorged: $(BIN_DIR)/gorged
-	$(BIN_DIR)/gorged -decks internal/testutil/decks -tables 4 -seats 4 -pace 1.5s
+	$(BIN_DIR)/gorged -decks internal/testutil/decks -tables 4 -seats 4 -pace 1.5s -format commander,constructed
 
 .PHONY: sim
 sim: $(BIN_DIR)/mtgsim
