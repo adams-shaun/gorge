@@ -16,8 +16,9 @@
    *
    * State is drawn in the vocabulary IdentityBar already uses on the felt, so
    * it is learned once: the seat's colour is a left rule, the rule GROWS on
-   * the active seat, priority is the initiative-coloured dot, and a seat that
-   * has lost is struck through. No pill, no second colour, no shouting; the
+   * the active seat, priority changes the name's initiative colour and
+   * underline, and a seat that has lost is struck through. No pill, no
+   * second colour, no shouting; the
    * words themselves live in each row's accessible name.
    *
    * The seat cell is a button because the table also drives the detail pane:
@@ -31,8 +32,8 @@
 
   const rows = $derived(seatRows(view, seats, lossCauses(events)));
 
-  // The row says its state with a rule and a dot; the words go here, where a
-  // screen reader and a hover both find them, so the table stays quiet.
+  // The row says its state with a rule and name treatment; the words go here,
+  // where a screen reader and a hover both find them, so the table stays quiet.
   function describe(name: string, deck: string | null, state: SeatState, lostReason: string | null): string {
     const parts = [name];
     if (deck) parts.push(deck);
@@ -77,8 +78,7 @@
               aria-label={describe(r.name, r.deck, r.state, r.lostReason)}
               onclick={() => onFocus(r.seat)}
             >
-              {#if r.priority}<span class="dot" aria-hidden="true"></span>{/if}
-              <span class="name">{r.name}</span>
+              <span class="name" class:priority={r.priority}>{r.name}</span>
             </button>
             {#if r.lost}
               <p class="eliminated" data-eliminated>
@@ -189,19 +189,18 @@
   tr.selected .pick {
     color: var(--ink);
   }
-  /* Priority is the initiative, and the initiative has its own colour in this
-     palette; repeating the seat hue would say "seat" twice. */
-  .dot {
-    width: 0.4em;
-    height: 0.4em;
-    border-radius: 999px;
-    background: var(--initiative);
-    flex: none;
-  }
+  /* Priority changes paint only: unlike a conditional dot, it cannot move the
+     name or reflow the row. The underline remains visible to readers who do
+     not distinguish the initiative colour. */
   .name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .name.priority {
+    color: var(--initiative);
+    text-decoration: underline 2px dotted;
+    text-underline-offset: 0.16em;
   }
   /* Life is the one place type is a visual element rather than a label
      (design system): interface face, semibold, tabular — a scoreboard column
