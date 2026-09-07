@@ -34,14 +34,40 @@
    *     a row. Four hands stacked is precisely what did not fit.
    *
    * The rail then never scrolls as a whole: every section is intrinsically
-   * sized except the detail pane, which takes the leftover and scrolls
-   * inside itself. Nothing can push a section off the bottom again, because
-   * nothing above the detail pane grows.
+   * sized or explicitly capped except the STACK, which takes the leftover
+   * height and scrolls inside itself. Nothing can push a section off the
+   * bottom, because nothing but the stack grows.
+   *
+   * Revisited (U-rail-2, "the stack is very important in a lot of games, we
+   * can hardly see 1 card"): the stack used to be capped small like every
+   * other section and the detail pane (hand/pool/zones) was the one that
+   * grew, which is backwards — the stack is read constantly during a
+   * spectated game and the detail pane is read occasionally, on demand. So
+   * the flex roles swap: the detail pane becomes a capped, collapsible
+   * section like pending always was, and the stack becomes the ONE region
+   * with `flex: 1` — it fills whatever height the seat table, the detail
+   * pane and pending do not need, at any viewport, because it is still
+   * capped by a `min-height` rather than a fixed one (a fixed height is
+   * exactly the mistake this rail was rewritten to stop making: it is either
+   * too small on a tall screen or overflows a short one).
    *
    * emphasizeTop (seat view) applies survey item 10 — top-of-stack by
    * contrast — while the spectator path leaves it off, unchanged.
    */
-  let { view, seats, decision, emphasizeTop = false }: { view: View; seats: SeatInfo[]; decision: DecisionBody | null; emphasizeTop?: boolean } = $props();
+  let {
+    view,
+    seats,
+    decision,
+    emphasizeTop = false,
+    events = [],
+  }: {
+    view: View;
+    seats: SeatInfo[];
+    decision: DecisionBody | null;
+    emphasizeTop?: boolean;
+    /** the DVR's own event list, forwarded to SeatTable for the PlayerLost cause (Task: dead seats say why) and read by no one else here. Optional so every existing caller/test keeps rendering exactly as before with no cause shown. */
+    events?: { event: { kind: string; player: number; text?: string } }[];
+  } = $props();
 
   // The reader's explicit pick, or null to follow (focusSeat decides what
   // "follow" means). Pressing the row that is already focused releases the
@@ -56,7 +82,7 @@
 </script>
 
 <div class="rail-inner">
-  <SeatTable {view} {seats} {focus} onFocus={(s) => (picked = picked === s ? null : s)} />
+  <SeatTable {view} {seats} {focus} {events} onFocus={(s) => (picked = picked === s ? null : s)} />
 
   <section class="focus" data-focus-pane data-focus-seat={focused?.seat}>
     {#if focused}
@@ -108,11 +134,13 @@
    * stack of identically-rounded panels would read as chrome, and this rail
    * is meant to read as an instrument face.
    *
-   * The column is the height contract. Everything is intrinsically sized
-   * except the detail pane, which takes exactly the leftover; the stack and
-   * the pending tray are capped and scroll inside themselves. So the rail's
-   * content is the rail's height whatever the game does, and no section can
-   * push another off the bottom (U2).
+   * The column is the height contract. Everything is capped or intrinsically
+   * sized except the STACK, which is the one section with `flex: 1` and
+   * takes exactly the leftover; the detail pane and the pending tray are
+   * capped and scroll inside themselves instead. So the rail's content is
+   * the rail's height whatever the game does, and no section can push
+   * another off the bottom (U2) — and the section that most needs the room
+   * (the stack, U-rail-2) is the one that gets it.
    */
   .rail-inner {
     display: flex;
@@ -135,20 +163,26 @@
      flex: none — which is exactly how the first cut of this still overflowed
      by 250px. */
   section.focus {
-    flex: 1 1 6rem;
-    min-height: 4rem;
-    overflow-y: auto;
-  }
-  section.stack {
     flex: 0 1 auto;
     min-height: 2.25rem;
-    max-height: 10rem;
+    max-height: 11rem;
+    overflow-y: auto;
+  }
+  /* The stack is the rail's primary region (U-rail-2): the only section that
+     grows, so it fills whatever the seat table, the detail pane and pending
+     leave over — at a tall viewport that is many entries at once, at a short
+     one it is still more than the fixed cap this replaced ever gave it, and
+     `min-height` (not a fixed height) is what keeps it from ever demanding
+     more room than a short viewport has. */
+  section.stack {
+    flex: 1 1 8rem;
+    min-height: 6rem;
     overflow-y: auto;
   }
   section.pending {
     flex: 0 1 auto;
     min-height: 2.25rem;
-    max-height: 6rem;
+    max-height: 5rem;
     overflow-y: auto;
   }
   h3 {

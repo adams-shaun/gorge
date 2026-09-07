@@ -220,6 +220,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				Types:      strings.Join(f.Types, " "),
 				Text:       f.Oracle,
 				Castable:   z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(ch.Keywords(id))),
+				Produces:   f.ManaProduction(),
 			}
 		}
 	}

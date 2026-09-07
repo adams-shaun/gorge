@@ -306,42 +306,45 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 		return clamp(d, in)
 
 	case decision.KTriggerOrder:
+		// dp1: no more Fisher-Yates. The order the bot's own simultaneous
+		// triggers hit the stack is a deterministic ranking of the offered
+		// triggers by their source card's worth (trigger.go's
+		// chooseTriggerOrder), reading the same card-worth arithmetic the
+		// cast rule reads and consuming no rng -- so the same game state
+		// always orders the same way, and the randomisation that widened
+		// the bench's confidence intervals is gone.
 		if n := len(d.Options); n > 0 {
-			// M3: build from o.Index like every other branch, not a bare
-			// position literal -- identical today (Index == position
-			// everywhere a real Decision is built, and invariant 5 checks
-			// it), but this is the one branch that didn't say so.
-			perm := make([]int, n)
-			for i, o := range d.Options {
-				perm[i] = o.Index
-			}
-			for i := n - 1; i > 0; i-- {
-				j := r.IntN(i + 1)
-				perm[i], perm[j] = perm[j], perm[i]
-			}
-			in.Choices = perm
+			in.Choices = b.chooseTriggerOrder(d)
 			return clamp(d, in)
 		}
 
 	case decision.KTriggerOptional:
-		if idx := r.IntN(2); idx < len(d.Options) {
-			in.Choices = []int{d.Options[idx].Index}
-			return clamp(d, in)
+		// dp1: no more coin flip. An optional trigger is a controller
+		// benefit the policy cannot read, so it accepts it (see the rule
+		// stated in trigger.go) rather than gambling -- deterministic, so the same
+		// game state always answers the same way and the coin's variance is
+		// gone. The "yes" option is index 0 (askTriggerOptional builds
+		// yes-first, per the kind's contract).
+		if len(d.Options) > 0 && d.Options[0].Kind == "yes" {
+			in.Choices = []int{d.Options[0].Index}
 		}
+		return clamp(d, in)
 
 	case decision.KCommanderZone:
-		// CR 903.9 (Task m32): a commander about to leave for the graveyard,
-		// hand, library or exile may be put into the command zone instead, by
-		// its owner. Every answer takes it: option 0 is always
-		// "command_zone", option 1 "leave", built by rules.askCommandZone.
-		// No rng -- a fixed preference, not a guess. The preference is NOT a
-		// cost calculation: since CR 903.8 (m31) each return to the command
-		// zone makes the commander's next cast {2} more expensive, so a
-		// commander whose tax keeps climbing is not unconditionally better
-		// off there. A tax-aware heuristic is deliberately out of scope
-		// here (m37 owns botpolicy); this branch keeps the fixed answer.
+		// Share CR1's CMC-scaled penalty and its nonnegative acceptance
+		// boundary. Leaving does not guarantee access from the destination.
 		if len(d.Options) > 0 && d.Options[0].Kind == "command_zone" {
-			in.Choices = []int{d.Options[0].Index}
+			src := d.Options[0].Obj
+			if b.cardWorth(src)-b.commandTax(src) >= 0 {
+				in.Choices = []int{d.Options[0].Index}
+			} else {
+				for _, o := range d.Options {
+					if o.Kind == "leave" {
+						in.Choices = []int{o.Index}
+						break
+					}
+				}
+			}
 		}
 		return clamp(d, in)
 
@@ -352,16 +355,10 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 		switch d.Options[0].Kind {
 		case "x":
 			in.Choices = []int{d.Options[len(d.Options)-1].Index} // the most it can pay for
-		case "exile", "sacrifice", "discard":
-			// "discard" joins "exile"/"sacrifice": take the first Max options.
-			// This is deliberately NAIVE -- the bot discards its oldest-held
-			// hand cards rather than evaluating which are least useful -- and
-			// bot decision quality is explicitly out of scope for the cleanup
-			// discard task (findings ck/cl in the task ledger point at it).
-			// The board is deterministic on it regardless.
-			for i := 0; i < len(d.Options) && i < d.Max; i++ {
-				in.Choices = append(in.Choices, d.Options[i].Index)
-			}
+		case "discard":
+			in.Choices = b.chooseDiscard(d)
+		case "exile", "sacrifice":
+			in.Choices = b.chooseWorst(d)
 		default: // yes/no (yes is first), name, type, number: the first offer
 			in.Choices = []int{d.Options[0].Index}
 		}
@@ -369,12 +366,9 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 
 	case decision.KMulligan:
 		// The London round, two shapes on one kind (rules/mulligan.go).
-		// Bottoming: every option is a "bottom"; take the d.Min lowest-indexed
-		// cards (the seat bottoms its oldest-held cards), no rng.
+		// Bottoming is a hand-retention decision, like discard.
 		if len(d.Options) > 0 && d.Options[0].Kind == "bottom" {
-			for j := 0; j < len(d.Options) && j < d.Min; j++ {
-				in.Choices = append(in.Choices, d.Options[j].Index)
-			}
+			in.Choices = b.chooseDiscard(d)
 			return clamp(d, in)
 		}
 		// Keep/mulligan: mulligan with probability 1/3 when one is offered

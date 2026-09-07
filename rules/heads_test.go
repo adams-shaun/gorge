@@ -147,11 +147,52 @@ import (
 // BYTE-IDENTICAL to op6's, so op7 contributes nothing there, exactly as its
 // mechanism predicts. On 4/6/8 both causes compound and neither alone
 // reproduces the combined head.
+//
+// dp2, the colour-aware tap gate, moves all four again. ONE cause, and this
+// time the attribution is a bisect rather than a per-cause bench, because the
+// branch carried a performance patch that had to be proven inert:
+//
+//	commit     what it is                        TestHeads
+//	63eb3ab    main, before the branch           PASS -- matches the old goldens
+//	12f27b3    the tap feature, merged           all four move, to the values below
+//	f46ee97    + the load-time production cache  all four IDENTICAL to 12f27b3
+//
+// So the feature moved every head and the perf patch moved none. The
+// mechanism predicts exactly that: chooseTap now prefers a source whose
+// produced colour matches a coloured pip the pool still owes, so the ORDER in
+// which permanents are tapped changes, which reorders the ManaAdd event stream
+// in every game at every seat count -- while deriving that same production at
+// load instead of per projection changes WHEN it is computed and never WHAT it
+// is. Verified separately rather than assumed: the 12f27b3 and f46ee97 trees'
+// -decision-stats output over 400 commander games is byte-identical (md5
+// ad75c845c3002bf866f162ca975bbdc9).
+//
+// This is the regeneration Ruling FL-90 describes: an attributed move, proven
+// against the parent tree, is not a spend against FL-83's budget. An
+// unattributed one still is.
+// dp1b, the policy determinism pass, moves all four. Attribution here is an
+// ABLATION rather than a bisect: the branch changes four decision arms at once,
+// so each was reverted to main's behaviour in turn and the heads re-measured.
+//
+//	arm reverted to main            resulting heads (2/4/6/8)
+//	(none -- branch as-is)          b984373b 7d178f22 78c5c443 a5ec8770
+//	KMulligan bottoming             8c79889e d212ee6d 223856cf 0c85486d  <- all four
+//	KTriggerOrder -> Fisher-Yates   fa993f4e 7d178f22 756d4d9e 8074e8b2  <- 2/6/8
+//	KTriggerOptional -> coin        b984373b 7d178f22 78c5c443 a3d8d825  <- 8 only
+//	KChoose discard/exile/sacrifice b984373b 7d178f22 78c5c443 a5ec8770  <- NOTHING
+//
+// So the bottoming reroute is the universal driver, trigger-order and
+// trigger-optional contribute at the seat counts whose games reach them, and
+// the headline discard ranking -- the change the branch is named for -- does
+// not touch the acceptance games at all. That last row is worth keeping: it
+// says the head churn is paid for by arms other than the one being advertised.
+//
+// Ruling FL-90: an attributed regeneration is not a spend against FL-83.
 var acceptanceHeads = map[int]string{
-	2: "0876361619998e2a",
-	4: "d74b8a889f09be48",
-	6: "ea3d87a74c4c954d",
-	8: "5e573c76021a419f",
+	2: "b984373baa683987",
+	4: "7d178f2232d5e1e7",
+	6: "78c5c443d7e290a6",
+	8: "a5ec8770907c1496",
 }
 
 func TestHeads(t *testing.T) {

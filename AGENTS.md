@@ -55,7 +55,7 @@ goldens in `rules/heads_test.go`:
 
 | seats | 2 | 4 | 6 | 8 |
 |---|---|---|---|---|
-| chain head | `45e0671d07b60d9e` | `795a100313094d6c` | `0311852b655e44d0` | `1216344ec91e5881` |
+| chain head | `0876361619998e2a` | `d74b8a889f09be48` | `ea3d87a74c4c954d` | `5e573c76021a419f` |
 
 `make sim` plays 20 verified 4-seat games from the same seed set, every one
 replaying byte-identically (20/20 `replay OK`).
@@ -114,7 +114,8 @@ still owing it.
 | `Vote` gives every voter the first `Choices$` entry and records one Note per vote (Council's Judgment) | `effects/misc.go:239-247` | M4 |
 | `BecomeMonarch` records a Note only; the monarch's end-step draw does not exist (Palace Jailer) | `effects/misc.go:251-257` | M4 |
 | `RearrangeTopOfLibrary` looks at the top N but keeps the order unchanged -- the reorder choice is never asked (Ponder) | `effects/cardflow.go:210-229` | M4 |
-| The need-aware tap gate (op6) prices a tap only against how much mana a castable card needs, never against which colour this particular source produces: the View projects no per-permanent mana production, so the policy cannot tell a Plains from an Island before tapping it and the colour resolution of a multi-coloured hand leans on tapping every source (a demand-side colour check does exist: the pool pays a card only when its coloured pips match) | `botpolicy/tap.go` (`chooseTap`/`poolPays`) | none -- the View carries no produced colour; the fix is a View field, not a policy rule |
+| The tap gate is colour-aware for plain `Produced$` strings, but `Any`/`Combo Any` still resolve to colourless, and `Combo X Y`/`Chosen` retain the executor's degenerate rune output rather than a selectable colour; land drops remain colour-blind and prefer basics only | `effects/misc.go:289-293` (`effMana`); `botpolicy/cast.go` (`chooseLand`) | M4 mana-choice decisions and a land-entry/production-aware `chooseLand` |
+| The tap gate's production collector reads a non-literal `Amount$` as **1** where the executor's `Num` reads it as `X`-or-0, so a source is recorded as producing mana the pool never receives. 122 corpus mana abilities are affected (109 `Amount$ X`, 7 `Amount$ Y`, 3 `UrzaAmount`, and `Sacrificed$CardPower`/`IncubationAmount`/`Count$Valid Goblin.YouCtrl`); 50 of them pair it with a plain coloured `Produced$`, which makes `ProducesColour` true and lets `chooseTap` actively PREFER a source that adds nothing. Only zero-vs-nonzero reaches the decision -- the magnitude never does -- and all real production still comes from `effMana` via `events.Apply`, so this is a bot-quality defect, not a state-correctness one | `cards/mana_production.go` (`manaAbilityAmount`) vs `effects/count.go:43-46` (`Num`) | M4 mana-choice decisions |
 | A host that cannot answer a decision gets the deterministic fallback: `Charm` takes its first mode with a Note (the modes ask itself is a real KModes decision since M2d-2) | `effects/misc.go:171-233` | none -- the no-ask host is the fuzz/test degradation contract |
 
 ## Host behaviour notes (embedder observer hooks, D15)

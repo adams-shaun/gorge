@@ -49,6 +49,35 @@ export interface SeatRow {
   state: SeatState;
   /** roster size: 0 on a constructed seat. The command zone itself is drawn on the board now (CommandArea), not from this row */
   commanders: number;
+  /**
+   * Why this seat is out, straight from the PlayerLost event's own Text
+   * (commander damage, an empty-library draw, a concession, life at 0 or
+   * less — never invented, and never "0 life": a player can lose with life
+   * untouched, and forcing 0 would state something false). Null when the
+   * seat has not lost, OR when it has but this client never saw the event
+   * that said why (a spectator who joined after the loss, with no event
+   * history behind the snapshot) — a known gap, not a guess papered over.
+   */
+  lostReason: string | null;
+}
+
+/**
+ * lossCauses scans the transcript this client actually holds for
+ * `player_lost` events and maps each seat to the cause text the engine gave
+ * (rules/sba.go, rules/legal.go: "life total is 0 or less", "commander
+ * damage (21 or more from one commander)", "drew from an empty library",
+ * "conceded"). Player.Lost is monotone (events/apply.go), so at most one
+ * such event exists per seat and the map never needs to pick a "latest".
+ * Reads `event.text`/`event.player` off whatever EventBody shape the caller
+ * holds (Rail is handed the DVR's own list) rather than importing the wire
+ * Event type, so a lib test can pass a minimal fixture.
+ */
+export function lossCauses(events: { event: { kind: string; player: number; text?: string } }[]): Record<number, string> {
+  const out: Record<number, string> = {};
+  for (const e of events) {
+    if (e.event.kind === 'player_lost' && e.event.text) out[e.event.player] = e.event.text;
+  }
+  return out;
 }
 
 /** seatStateOf folds the view's active/priority/lost facts into the one mark a row can carry. */
@@ -73,8 +102,8 @@ export function stateLabel(s: SeatState): string {
   }
 }
 
-/** seatRows projects every seat of the view into a table row, in seat order. */
-export function seatRows(view: View, seats: SeatInfo[] = []): SeatRow[] {
+/** seatRows projects every seat of the view into a table row, in seat order. `causes` is this client's own lossCauses() map — optional so every existing caller (and every existing test) keeps working with every seat's lostReason simply null. */
+export function seatRows(view: View, seats: SeatInfo[] = [], causes: Record<number, string> = {}): SeatRow[] {
   return (view.players ?? []).map((p) => {
     const counts = countsFor(p);
     const name = seats[p.seat]?.name || p.name || `Seat ${p.seat}`;
@@ -95,6 +124,7 @@ export function seatRows(view: View, seats: SeatInfo[] = []): SeatRow[] {
       priority: view.priority === p.seat,
       state: seatStateOf(view, p),
       commanders: (p.commanders ?? []).length,
+      lostReason: p.lost ? (causes[p.seat] ?? null) : null,
     };
   });
 }

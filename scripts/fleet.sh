@@ -19,8 +19,12 @@ TOKENS="$FLEET/tokens"
 # what that limit is protecting. Paid seats get their own ceiling for a
 # different reason -- they share one ChatGPT plan's rate limit and throttle
 # each other and the user's own sessions.
-MAX_SEATS=${MAX_SEATS:-4}          # local seats: what the BOX can carry
-MAX_PAID=${MAX_PAID:-2}            # paid seats: what the PLAN can carry
+# Lowered to 3/1 by user ruling 2026-09-07, after a CUDA OOM in the vLLM
+# engine killed three concurrent local seats within 2.1 seconds of each other.
+# The engine runs at gpu_memory_utilization 0.975 with ~2 GiB of headroom, so
+# concurrent streams are the amplifier even though KV cache was only at 15%.
+MAX_SEATS=${MAX_SEATS:-3}          # local seats: what the BOX and the GPU carry
+MAX_PAID=${MAX_PAID:-1}            # paid seats: what the PLAN can carry
 
 # Which thread is running this. Set FLEET_THREAD in the session's environment;
 # the file is the fallback so a session that forgets still identifies itself.
@@ -35,13 +39,96 @@ die() { echo "fleet: $*" >&2; exit 1; }
 # conservative reading (it counts against the scarcer, box-bound pool).
 kind_of() { cat "$1/kind" 2>/dev/null || echo local; }
 
-# count_pool counts claimed seats in one pool. Never use `ls | wc -l` for this:
-# the two pools now share one directory.
+# --- liveness ---------------------------------------------------------------
+# A seat is a CLAIM. A claim is not a running agent: an agent that finished or
+# crashed used to hold its seat forever and cap the pool for nothing. So a seat
+# now records WHICH PROCESS it is for, and liveness is read from the process
+# table -- never from a file's mtime. A transcript's mtime says when it was
+# last written, not whether the writer still exists.
+#
+# Identity is (pid, start time), not pid alone: pids are recycled, and after a
+# recycle a bare `kill -0` on the old number says "alive" about a process that
+# has nothing to do with the agent. /proc/<pid>/stat field 22 is the process's
+# start time in clock ticks since boot -- fixed for the process's whole life,
+# unforgeable by it, and different for whatever later inherits the number. It
+# is preferred over cmdline, which a process can rewrite and which is identical
+# across sibling agents anyway.
+#
+# NOTHING here signals a process. Existence is a read of /proc/<pid>/stat;
+# `kill -0` on a specific numeric pid is the only other permitted probe. A
+# cmdline PATTERN (`pkill -f`, bare `pgrep -f`) must never appear in this file:
+# the pattern matches the searching process's own cmdline and has already
+# killed a session on this box.
+proc_starttime() {
+	local pid=$1 stat rest
+	case "$pid" in ''|*[!0-9]*) return 1 ;; esac
+	stat=$(cat "/proc/$pid/stat" 2>/dev/null) || return 1
+	[ -n "$stat" ] || return 1
+	# Field 2 (comm) is parenthesised and may contain spaces and ')', so the
+	# only safe split is at the LAST ')'. Fields resume at 3 (state), which
+	# makes starttime -- field 22 -- the 20th of what is left.
+	rest=${stat##*)}
+	awk '{print $20}' <<<"$rest"
+}
+
+# seat_state prints exactly one of:
+#   LIVE     recorded pid is running AND is the process that was claimed
+#   DEAD     recorded pid is gone, or the number was reused by something else
+#   REMOTE   runner is not a local process (a Claude subagent) -- never dead
+#   PENDING  claimed by this protocol but no pid attached yet (fleet.sh attach)
+#   UNKNOWN  no runner record at all: a seat that predates pid tracking, or one
+#            whose pid was written without a start time. Unknown is NOT alive
+#            and NOT dead -- it is unproven, and it is resolved by a human.
+seat_state() {
+	local seat=$1 runner pid want got
+	runner=$(cat "$seat/runner" 2>/dev/null || echo '')
+	case "$runner" in
+		remote)  echo REMOTE;  return 0 ;;
+		pending) echo PENDING; return 0 ;;
+	esac
+	pid=$(cat "$seat/pid" 2>/dev/null || echo '')
+	[ -n "$pid" ] || { echo UNKNOWN; return 0; }
+	want=$(cat "$seat/pidstart" 2>/dev/null || echo '')
+	# A pid with no recorded start time cannot be told apart from a recycled
+	# one, so it stays unproven rather than being called alive.
+	[ -n "$want" ] || { echo UNKNOWN; return 0; }
+	got=$(proc_starttime "$pid" 2>/dev/null || echo '')
+	[ -n "$got" ] || { echo DEAD; return 0; }
+	[ "$want" = "$got" ] && echo LIVE || echo DEAD
+}
+
+# seat_holds says whether a seat still occupies its slot in a pool. Only a seat
+# with a running (or deliberately remote) runner does. A DEAD seat holds
+# nothing -- that is the whole point of tracking the process. An UNKNOWN seat
+# holds nothing either: it is unproven, and pretending otherwise is what let
+# six exited agents cap the pool. Status prints unknowns loudly so they get
+# resolved instead of quietly accumulating.
+seat_holds() {
+	case "$(seat_state "$1")" in
+		LIVE|REMOTE|PENDING) return 0 ;;
+		*) return 1 ;;
+	esac
+}
+
+# count_pool counts OCCUPIED seats in one pool. Never use `ls | wc -l` for
+# this: the two pools share one directory, and a directory's existence is a
+# claim, not a running process.
 count_pool() {
 	local want=$1 n=0 s
 	for s in "$SEATS"/*; do
 		[ -d "$s" ] || continue
-		[ "$(kind_of "$s")" = "$want" ] && n=$((n + 1))
+		[ "$(kind_of "$s")" = "$want" ] || continue
+		seat_holds "$s" && n=$((n + 1))
+	done
+	echo "$n"
+}
+
+# count_state counts seats in one state, across both pools.
+count_state() {
+	local want=$1 n=0 s
+	for s in "$SEATS"/*; do
+		[ -d "$s" ] || continue
+		[ "$(seat_state "$s")" = "$want" ] && n=$((n + 1))
 	done
 	echo "$n"
 }
@@ -73,7 +160,10 @@ lane_for() {
 }
 
 # seat_kind says which harness is driving a seat and, for the ones the
-# dashboard cannot see, when it last did anything.
+# dashboard cannot see, when it last did anything. Read the "wrote Nm ago"
+# it prints as ORIENTATION ONLY, never as liveness: a file's mtime is when
+# the writer last wrote, which says nothing about whether the writer still
+# exists. Liveness lives in seat_state, which reads the process table.
 #
 # The monitor at :8765 globs <repo>/.worktrees/*/.ds4/{transcripts,pi-sessions}
 # for its jsonl, so it shows pi and ds4 seats only. A CLAUDE subagent -- which
@@ -111,14 +201,32 @@ cmd_status() {
 	remote=$(git -C "$ROOT" log --oneline origin/main -1 2>/dev/null || echo '(no origin)')
 	echo "origin/main: $remote"
 	echo
-	echo "== seats (local $(count_pool local)/$MAX_SEATS · paid $(count_pool paid)/$MAX_PAID)"
+	local dead unknown
+	dead=$(count_state DEAD)
+	unknown=$(count_state UNKNOWN)
+	echo "== seats (LIVE only: local $(count_pool local)/$MAX_SEATS · paid $(count_pool paid)/$MAX_PAID; $dead dead, $unknown unknown)"
 	if [ -n "$(ls -A "$SEATS" 2>/dev/null)" ]; then
 		for s in "$SEATS"/*; do
-			local name id
+			[ -d "$s" ] || continue
+			local name id state pidcol
 			name=$(basename "$s")
 			id=${name#*-}
-			printf '  %-22s [%-5s] %-38s %s\n' "$name" "$(kind_of "$s")" "$(seat_kind "$id")" "$(cat "$s/why" 2>/dev/null || echo '')"
+			state=$(seat_state "$s")
+			case "$state" in
+				REMOTE)  pidcol="no local pid" ;;
+				PENDING) pidcol="awaiting attach" ;;
+				UNKNOWN) pidcol="pid $(cat "$s/pid" 2>/dev/null || echo 'not recorded')" ;;
+				*)       pidcol="pid $(cat "$s/pid" 2>/dev/null || echo '?')" ;;
+			esac
+			printf '  %-7s %-20s [%-5s] %-17s %-34s %s\n' \
+				"$state" "$name" "$(kind_of "$s")" "$pidcol" \
+				"$(seat_kind "$id")" "$(cat "$s/why" 2>/dev/null || echo '')"
 		done
+		echo "  LIVE=recorded pid is running and is the process claimed · DEAD=that process is gone"
+		echo "  REMOTE=Claude subagent, no local pid (never reaped) · PENDING=claimed, pid not attached yet"
+		echo "  UNKNOWN=no pid on record (predates pid tracking) — not counted as alive, and never reaped"
+		[ "$dead" -gt 0 ] && echo "  -> $dead dead seat(s): 'fleet.sh reap' releases them." || true
+		[ "$unknown" -gt 0 ] && echo "  -> $unknown unknown seat(s): prove or retire each by hand — 'fleet.sh attach <id> <pid>', 'fleet.sh attach <id> --remote', or 'fleet.sh release <id>'." || true
 	else
 		echo "  (none)"
 	fi
@@ -178,16 +286,33 @@ cmd_port() {
 }
 
 cmd_claim() {
-	local id=${1:?usage: fleet.sh claim <task-id> [--paid|--local] [why]}
+	local id=${1:?usage: fleet.sh claim <task-id> [--paid|--local] [--pid N|--remote] [why]}
 	shift || true
 	# The pool is a flag, not a guess: a dispatch knows which seat it is about
 	# to spend, and inferring it later from a transcript is how a paid run gets
 	# miscounted as free.
-	local kind=local
-	case "${1:-}" in
-		--paid)  kind=paid;  shift ;;
-		--local) kind=local; shift ;;
-	esac
+	#
+	# The runner is a flag for the same reason. It is optional because the usual
+	# order is claim-then-launch: the pid does not exist yet at claim time. Such
+	# a seat is PENDING -- it holds its slot, and `fleet.sh attach` turns it into
+	# a tracked LIVE one. Claiming this process's own $$ would be a lie: fleet.sh
+	# exits the moment this function returns.
+	local kind=local runner=pending pid=''
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			--paid)   kind=paid;    shift ;;
+			--local)  kind=local;   shift ;;
+			--remote) runner=remote; shift ;;
+			--pid)    runner=pid; pid=${2:?--pid needs a process id}; shift 2 ;;
+			--pid=*)  runner=pid; pid=${1#--pid=}; shift ;;
+			*) break ;;
+		esac
+	done
+	local pidstart=''
+	if [ "$runner" = pid ]; then
+		pidstart=$(proc_starttime "$pid") ||
+			die "no process $pid to claim a seat for (nothing at /proc/$pid)"
+	fi
 	local cap=$MAX_SEATS
 	[ "$kind" = paid ] && cap=$MAX_PAID
 	local n
@@ -204,9 +329,18 @@ cmd_claim() {
 		die "all $cap LOCAL seats are claimed — use a paid seat ($(count_pool paid)/$MAX_PAID in use) or a Claude subagent rather than waiting"
 	fi
 	mkdir "$seat" || die "seat $THREAD-$id already claimed"
-	# Write the kind BEFORE re-counting, or the re-count cannot see this seat's
-	# own pool and every racing claim reads as local.
+	# Write the kind AND the runner BEFORE re-counting. The kind, or the
+	# re-count cannot see this seat's own pool and every racing claim reads as
+	# local. The runner, or the re-count cannot see this seat as OCCUPIED at
+	# all -- count_pool now counts running seats, and a seat with no runner
+	# record is UNKNOWN, which holds nothing. Without this the re-check can
+	# never fire and two threads can both take the last seat.
 	echo "$kind" > "$seat/kind"
+	echo "$runner" > "$seat/runner"
+	if [ "$runner" = pid ]; then
+		echo "$pid" > "$seat/pid"
+		echo "$pidstart" > "$seat/pidstart"
+	fi
 	n=$(count_pool "$kind")
 	if [ "$n" -gt "$cap" ]; then
 		rm -rf "$seat"
@@ -215,6 +349,64 @@ cmd_claim() {
 	{ echo "${*:-}"; } > "$seat/why"
 	date -Iseconds > "$seat/since"
 	echo "fleet: claimed $kind seat $THREAD-$id ($n/$cap $kind; local $(count_pool local)/$MAX_SEATS, paid $(count_pool paid)/$MAX_PAID)"
+	case "$runner" in
+		pid)     echo "fleet: tracking pid $pid (start $pidstart)" ;;
+		remote)  echo "fleet: runner is REMOTE (no local pid) — reap will never touch it" ;;
+		pending) echo "fleet: no runner yet — run 'fleet.sh attach $id <pid>' once the agent is up, or 'fleet.sh attach $id --remote' for a Claude subagent, or this seat holds its slot untracked" ;;
+	esac
+}
+
+# attach binds a seat to the process that is actually doing its work, after the
+# fact. This is the half of claim that a claim-then-launch dispatch cannot do.
+cmd_attach() {
+	local id=${1:?usage: fleet.sh attach <task-id> <pid>|--remote}
+	local what=${2:?usage: fleet.sh attach <task-id> <pid>|--remote}
+	local seat="$SEATS/$THREAD-$id"
+	[ -d "$seat" ] || die "no seat $THREAD-$id — claim it first"
+	if [ "$what" = --remote ]; then
+		rm -f "$seat/pid" "$seat/pidstart"
+		echo remote > "$seat/runner"
+		echo "fleet: seat $THREAD-$id is REMOTE (Claude subagent, no local pid) — it holds its slot and reap will never release it"
+		return 0
+	fi
+	case "$what" in ''|*[!0-9]*) die "attach takes a numeric pid or --remote, got '$what'" ;; esac
+	local pidstart
+	pidstart=$(proc_starttime "$what") ||
+		die "no process $what to attach (nothing at /proc/$what) — do not attach a pid you have not seen"
+	echo "$what" > "$seat/pid"
+	echo "$pidstart" > "$seat/pidstart"
+	echo pid > "$seat/runner"
+	echo "fleet: seat $THREAD-$id now tracks pid $what (start $pidstart) — state $(seat_state "$seat")"
+}
+
+# reap releases every seat whose recorded process is provably gone. It is a
+# separate verb on purpose: `status` must never mutate state, or the one
+# command you run to find out what is happening becomes the command that
+# changes it.
+#
+# reap RELEASES DIRECTORIES. It never signals, kills, or touches a process. It
+# skips UNKNOWN (unproven, a human decides) and REMOTE (a Claude subagent has
+# no local pid and its absence from the process table proves nothing).
+cmd_reap() {
+	local n=0 s name state
+	for s in "$SEATS"/*; do
+		[ -d "$s" ] || continue
+		state=$(seat_state "$s")
+		[ "$state" = DEAD ] || continue
+		name=$(basename "$s")
+		echo "fleet: reaped $(kind_of "$s") seat $name — pid $(cat "$s/pid" 2>/dev/null || echo '?') is gone (claimed $(cat "$s/since" 2>/dev/null || echo '?')) — $(cat "$s/why" 2>/dev/null || echo '')"
+		rm -rf "$s"
+		n=$((n + 1))
+	done
+	if [ "$n" = 0 ]; then
+		echo "fleet: nothing to reap — no seat has a dead recorded process."
+	else
+		echo "fleet: released $n dead seat(s) (local $(count_pool local)/$MAX_SEATS, paid $(count_pool paid)/$MAX_PAID)"
+	fi
+	local unknown
+	unknown=$(count_state UNKNOWN)
+	[ "$unknown" -gt 0 ] && echo "fleet: $unknown seat(s) are UNKNOWN (no pid on record) and were left alone — resolve each with 'fleet.sh attach <id> <pid>|--remote' or 'fleet.sh release <id>'." || true
+	return 0
 }
 
 cmd_release() {
@@ -301,9 +493,11 @@ case "${1:-status}" in
 	ports)   cmd_ports ;;
 	port)    cmd_port ;;
 	claim)   shift; cmd_claim "$@" ;;
+	attach)  shift; cmd_attach "$@" ;;
+	reap)    cmd_reap ;;
 	release) shift; cmd_release "$@" ;;
 	token)   shift; cmd_token "$@" ;;
 	lane)    shift; cmd_lane "$@" ;;
 	merge)   shift; cmd_merge "$@" ;;
-	*) die "unknown command '${1}' (status|ports|port|claim|release|token|lane|merge)" ;;
+	*) die "unknown command '${1}' (status|ports|port|claim|attach|reap|release|token|lane|merge)" ;;
 esac
