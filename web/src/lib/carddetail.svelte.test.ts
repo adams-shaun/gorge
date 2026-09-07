@@ -99,6 +99,43 @@ describe('HoverCard', () => {
     tick(DWELL);
     expect(h.show).toBe(false);
   });
+
+  it('stays open while the object it describes is still present', () => {
+    const { env, tick } = fakeTimer();
+    const h = new HoverCard(env);
+    h.arm();
+    tick(DWELL);
+    expect(h.show).toBe(true);
+    // the surface re-feeds the cards it currently shows; this one is still there
+    const closed = h.supervise(42, [card({ id: 42 }), card({ id: 7 })]);
+    expect(closed).toBe(false);
+    expect(h.show).toBe(true);
+  });
+
+  it('closes when the object it describes goes away, with no pointer event delivered', () => {
+    const { env, tick } = fakeTimer();
+    const h = new HoverCard(env);
+    // pointer dwell opens the panel on object 42
+    h.arm();
+    tick(DWELL);
+    expect(h.show).toBe(true);
+    // the card is played: it leaves the hand, so the trigger <li> is removed
+    // from the DOM while the pointer is over it and pointerleave NEVER fires.
+    const closed = h.supervise(42, [card({ id: 7 })]);
+    expect(closed).toBe(true);
+    expect(h.show).toBe(false);
+  });
+
+  it('close-on-gone only acts when something is open (nothing open stays a no-op)', () => {
+    const h = new HoverCard();
+    expect(h.supervise(null, [])).toBe(false);
+    expect(h.supervise(42, [])).toBe(false); // nothing open for 42 yet
+    expect(h.show).toBe(false);
+    h.open();
+    expect(h.supervise(42, [card({ id: 42 })])).toBe(false); // present: open stays
+    expect(h.supervise(42, [])).toBe(true); // gone: closes
+    expect(h.show).toBe(false);
+  });
 });
 
 describe('placePanel', () => {

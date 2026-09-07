@@ -63,6 +63,26 @@ export class HoverCard {
     this.show = false;
   }
 
+  /**
+   * supervise is the lifecycle half of the tight contract: a trigger can be
+   * removed from the DOM *while the pointer is still over it* — a card played
+   * from hand, a permanent destroyed — and a removed element never fires
+   * pointerleave, so the panel would be left open on an object that no longer
+   * exists, its artwork hanging on screen attached to nothing. Every surface
+   * therefore re-feeds the objects it currently shows through this whenever
+   * that set changes; when the object the panel describes is no longer among
+   * them the panel closes without any pointer event being delivered. Returns
+   * true when a live panel was closed (the object went away), false when the
+   * object stays present or the panel was not open.
+   */
+  supervise(objectId: number | null | undefined, present: readonly { id: number }[]): boolean {
+    if (objectId === null || objectId === undefined) return false;
+    if (present.some((c) => c.id === objectId)) return false;
+    const wasOpen = this.show;
+    this.close();
+    return wasOpen;
+  }
+
   /** keydown feeds the panel's keyboard contract: Escape closes it. */
   keydown(e: { key: string }) {
     if (e.key === 'Escape') this.close();
