@@ -20,19 +20,21 @@ import (
 // it one ability per subtype sums both here: tapping it adds both colours.
 //
 // Any reports that at least one mana ability's Produced$ was not a plain
-// colour string: "Any"/"Combo Any" (the engine resolves those to colourless),
-// a listed "Combo X Y" choice, or a "Chosen"/"Special" word. Such a source's
-// production is conditional on a choice this build cannot make, so a policy
-// must not treat it as a dependable colour fixer; for a listed combo or a
-// Chosen/Special word the digits are also not counted (the engine's executor
-// walks the word's own letters into the pool, a degenerate by-product rather
-// than a colour choice), so the production of those is exactly Any with no
-// asserted colour. Only "Any"/"Combo Any", whose colourless amount this build
-// genuinely resolves, contributes to Colour.
+// colour string: "Any"/"Combo Any", a listed "Combo X Y" choice, or a
+// "Chosen"/"Special" word. Such a source is conditional in the card script,
+// so a policy must not treat it as a dependable colour fixer. Colour still
+// mirrors every rune effMana emits: its unrecognised runes become colourless
+// through state.ManaIndex, including the words in Combo and Chosen.
 type ManaProduction struct {
-	Colour [6]int32
-	Any    bool
+	Colour [6]int32 `json:"colour"`
+	Any    bool     `json:"any"`
 }
+
+// manaProductionForm normalises Produced$ exactly as effMana does. Like
+// botpolicy's braceForm, it is package-scoped: strings.Replacer is immutable
+// and safe for concurrent use, while building its trie in this hot collector
+// once per mana ability creates needless garbage on every projected board.
+var manaProductionForm = strings.NewReplacer("{", "", "}", "", " ", "")
 
 // manaAbilityAmount is the Amount$ a mana ability produces: a literal integer
 // when present, else 1 (effMana's own default). A non-literal Amount (an SVar
@@ -54,38 +56,20 @@ func manaAbilityAmount(a *SA) int32 {
 	return amt
 }
 
-// add folds one mana ability's production into the collector. A blank /
-// "Any" / "Combo Any" Produced$ resolves to colourless -- the one choice this
-// build can actually make -- and that colourless amount is counted, because
-// it is exactly what effMana places in the pool. Any other Produced$ is
-// examined one brace/space-stripped letter at a time: a string made entirely
-// of WUBRGC letters ("R R", "C", "G G G") is a plain colour production and is
-// counted per letter; a string that is not ("Combo W U", "Chosen",
-// "Special") is a choice this build cannot model -- effMana walks the word's
-// own letters into the pool, a degenerate by-product rather than the card's
-// colour choice -- so it is flagged Any and NOT counted, because asserting a
-// colour a combination word happens to contain would be a lie a policy could
-// lean on.
+// add folds one mana ability's production into the collector. It mirrors
+// effMana exactly: blank / "Any" / "Combo Any" become one C; otherwise every
+// brace/space-stripped rune adds its matching WUBRG colour, or colourless for
+// an unrecognised rune. Non-plain productions remain flagged Any because
+// their script-level choice is not modelled, even where effMana's degenerate
+// rune walk happens to emit a listed colour.
 func (mp *ManaProduction) add(a *SA) {
 	amt := manaAbilityAmount(a)
 	raw := strings.TrimSpace(a.Params["Produced"])
 	if raw == "" || raw == "Any" || raw == "Combo Any" {
-		mp.Colour[5] += amt
+		raw = "C"
 		mp.Any = true
-		return
 	}
-	s := strings.NewReplacer("{", "", "}", "", " ", "").Replace(raw)
-	clean := true
-	for _, r := range s {
-		if r != 'W' && r != 'U' && r != 'B' && r != 'R' && r != 'G' && r != 'C' {
-			clean = false
-			break
-		}
-	}
-	if !clean {
-		mp.Any = true
-		return
-	}
+	s := manaProductionForm.Replace(raw)
 	for _, r := range s {
 		switch r {
 		case 'W':
@@ -98,9 +82,12 @@ func (mp *ManaProduction) add(a *SA) {
 			mp.Colour[3] += amt
 		case 'G':
 			mp.Colour[4] += amt
-		case 'C':
+		default:
 			mp.Colour[5] += amt
 		}
+	}
+	if s != "" && strings.Trim(s, "WUBRGC") != "" {
+		mp.Any = true
 	}
 }
 
@@ -124,11 +111,14 @@ func (f *Face) ManaProduction() ManaProduction {
 const manaColourStart, manaColourEnd = 0, 5
 
 // DistinctColours is the number of distinct coloured (WUBRG) mana kinds the
-// production yields. It is the policy's measure of flexibility: a source that
-// produces exactly one colour (a basic Plains) reports 1 and is spent before a
-// dual that reports 2, so the most targeted source is consumed first and the
-// one that fixes more of the hand is kept for the colour it is needed for.
+// production yields. An Any production reports all five: it is conditional in
+// script, but still must sort after a basic rather than masquerading as a
+// zero-flexibility source. Otherwise a source that produces exactly one colour
+// (a basic Plains) reports 1 and is spent before a dual that reports 2.
 func (mp ManaProduction) DistinctColours() int {
+	if mp.Any {
+		return manaColourEnd - manaColourStart
+	}
 	n := 0
 	for i := manaColourStart; i < manaColourEnd; i++ {
 		if mp.Colour[i] > 0 {

@@ -114,6 +114,7 @@ still owing it.
 | `Vote` gives every voter the first `Choices$` entry and records one Note per vote (Council's Judgment) | `effects/misc.go:239-247` | M4 |
 | `BecomeMonarch` records a Note only; the monarch's end-step draw does not exist (Palace Jailer) | `effects/misc.go:251-257` | M4 |
 | `RearrangeTopOfLibrary` looks at the top N but keeps the order unchanged -- the reorder choice is never asked (Ponder) | `effects/cardflow.go:210-229` | M4 |
+| The tap gate is colour-aware for plain `Produced$` strings, but `Any`/`Combo Any` still resolve to colourless, and `Combo X Y`/`Chosen` retain the executor's degenerate rune output rather than a selectable colour; land drops remain colour-blind and prefer basics only | `effects/misc.go:289-293` (`effMana`); `botpolicy/cast.go` (`chooseLand`) | M4 mana-choice decisions and a land-entry/production-aware `chooseLand` |
 | A host that cannot answer a decision gets the deterministic fallback: `Charm` takes its first mode with a Note (the modes ask itself is a real KModes decision since M2d-2) | `effects/misc.go:171-233` | none -- the no-ask host is the fuzz/test degradation contract |
 
 ## Host behaviour notes (embedder observer hooks, D15)
