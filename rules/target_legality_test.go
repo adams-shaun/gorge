@@ -16,7 +16,7 @@ import (
 // It exists because that invariant was silently false. `askTarget` (which
 // builds the offer) and `legalTargets` (which rechecks at resolution) are two
 // separate implementations of the same rule kept in agreement by hand, and
-// they drifted: a counterspell was offered as a target of ITSELF (CR 114.4),
+// they drifted: a counterspell was offered as a target of ITSELF (CR 115.5),
 // the bot dutifully picked it, and the spell countered itself into its own
 // graveyard. Three of the eight counters in the 8-seat game did exactly that,
 // and nothing in the suite noticed -- the two existing Counter tests set
@@ -63,12 +63,12 @@ func TestNoTargetDecisionOffersAnIllegalTarget(t *testing.T) {
 							continue // a player target carries no object
 						}
 						checked++
-						// CR 114.4: a spell or ability on the stack is an
+						// CR 115.5: a spell or ability on the stack is an
 						// illegal target for itself. askTarget runs after the
 						// object is already on the stack, so this is reachable
 						// whenever the offer forgets to exclude it.
 						if o.Obj == d.Source {
-							t.Fatalf("%d seats, intent %d: target decision seq %d offered its own source %d (%q) — CR 114.4: a spell or ability on the stack is an illegal target for itself",
+							t.Fatalf("%d seats, intent %d: target decision seq %d offered its own source %d (%q) — CR 115.5: a spell or ability on the stack is an illegal target for itself",
 								seats, n, d.Seq, o.Obj, o.Label)
 						}
 						if e.G.Obj(o.Obj) == nil {

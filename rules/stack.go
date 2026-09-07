@@ -271,7 +271,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 				if o == nil || o.Face() == nil {
 					continue
 				}
-				// CR 114.4: a spell or ability on the stack is an illegal
+				// CR 115.5: a spell or ability on the stack is an illegal
 				// target for itself. askTarget is called after PutOnStack
 				// (cast.go) or AbilityPush (cast.go), so source is already
 				// that object atop the stack -- its own id must never be
@@ -305,7 +305,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 				// Graveyard target is not withheld by a printed protection the
 				// dead card can no longer exercise.
 				if o != nil && o.Face() != nil &&
-					// CR 114.4: the source object (the spell/ability this
+					// CR 115.5: the source object (the spell/ability this
 					// ask serves) is an illegal target for itself. It is a
 					// single object with a single zone and is always on the
 					// stack here, so no other zone can hold it; excluding it
@@ -654,7 +654,7 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state
 			}
 			continue
 		}
-		// CR 114.4: the resolving spell or ability is an illegal target for
+		// CR 115.5: the resolving spell or ability is an illegal target for
 		// itself. self is the stack object being resolved (not source, which
 		// for an ability is the source PERMANENT and so is a legal target of
 		// its own ability -- e.g. a creature's "target creature" ability on
