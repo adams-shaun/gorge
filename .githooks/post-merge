@@ -1,0 +1,31 @@
+#!/bin/sh
+# post-merge: keep the local demo in step with main.
+#
+# Fires after any successful merge (including `git pull`). It refreshes the
+# demo on :8080/:8081 only when main itself moved, and it does the work in
+# the background: the build is a Go compile plus an npm build, and nobody
+# wants 30-60s added to every merge.
+#
+# GORGE_NO_DEPLOY=1 opts out -- set it for agent seats, CI, or any session
+# that must not take the demo's ports.
+[ "${GORGE_NO_DEPLOY:-}" = "1" ] && exit 0
+
+# Only from the main checkout on main. A linked worktree has its own
+# .git FILE and a git-dir that differs from the common dir, so this also
+# keeps the fleet's task worktrees from each racing to own the ports.
+[ "$(git rev-parse --git-dir)" = "$(git rev-parse --git-common-dir)" ] || exit 0
+[ "$(git symbolic-ref --short -q HEAD)" = "main" ] || exit 0
+
+root=$(git rev-parse --show-toplevel) || exit 0
+log=/tmp/gorge-deploy.log
+
+# setsid so the build outlives the hook's process group -- git reaps the
+# hook as soon as it returns, and a plain background job dies with it.
+# flock -n so two merges in quick succession do not fight over the ports:
+# the second sees the lock held and leaves the first to finish. The lock is
+# held for the whole build+restart, not just the test.
+setsid sh -c 'flock -n 9 || exit 0; exec make -C "$1" deploy-demo' _ "$root" \
+	9>/tmp/gorge-deploy.lock >"$log" 2>&1 </dev/null &
+
+echo "post-merge: refreshing the demo in the background — tail -f $log"
+exit 0
