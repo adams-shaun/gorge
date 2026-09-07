@@ -22,6 +22,7 @@ func describeFixture(t *testing.T) (*state.Game, state.ObjID, state.ObjID) {
 	t.Helper()
 	bear, _ := cards.ParseBytes("b.txt", []byte("Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"))
 	bolt, _ := cards.ParseBytes("l.txt", []byte(boltSrc))
+	goblin, _ := cards.ParseBytes("g.txt", []byte("Name:Goblin\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n"))
 	g := state.NewGame([]string{"Ann", "Bob"})
 	b := g.AddObject(bear, 0)
 	l := g.AddObject(bolt, 1)
@@ -30,6 +31,16 @@ func describeFixture(t *testing.T) (*state.Game, state.ObjID, state.ObjID) {
 	g.SetZone(state.ZHand, 1, []state.ObjID{l.ID})
 	l.Zone = state.ZHand
 	g.Players[0].Life = 17
+	// TokenCreate's template needs a token table, and CmdDamage's needs a
+	// roster: bear is Ann's only commander, so its match-wide dense index
+	// is 0, and every seat's tally is sized to the roster the way rules.New
+	// sizes it. The nonzero CmdDamage entries stand for the cumulative
+	// totals as of the event being described (Ann 7, Bob 6) -- Describe's
+	// "game as of the last event in ev's batch" contract.
+	g.Tokens = map[string]*cards.Card{"r_1_1_goblin": goblin}
+	g.Players[0].Commanders = []state.ObjID{b.ID}
+	g.Players[0].CmdDamage = []int32{7}
+	g.Players[1].CmdDamage = []int32{6}
 	return g, b.ID, l.ID
 }
 
@@ -79,6 +90,22 @@ func TestDescribeTemplates(t *testing.T) {
 		{"clock", events.Event{Kind: events.ClockTick}, ""},
 		{"trigger", events.Event{Kind: events.TriggerPush, Player: 0, Obj: bear}, "Bear #1 triggers"},
 		{"end combat", events.Event{Kind: events.EndCombatReset}, "Combat ends"},
+		{"cast info x", events.Event{Kind: events.CastInfo, Obj: bolt, Amount: 3}, "Bob casts Bolt #2 (X = 3)"},
+		{"cast info mode", events.Event{Kind: events.CastInfo, Obj: bolt, Counter: "kicked"}, "Bob casts Bolt #2 (kicked)"},
+		{"choose name", events.Event{Kind: events.Choose, Obj: bolt, Counter: "name", Text: "Giant Growth"}, "Bob chooses the name Giant Growth for Bolt #2"},
+		{"choose type", events.Event{Kind: events.Choose, Obj: bolt, Counter: "type", Text: "Elf"}, "Bob chooses the type Elf for Bolt #2"},
+		{"choose number", events.Event{Kind: events.Choose, Obj: bolt, Counter: "number", Amount: 3}, "Bob chooses the number 3 for Bolt #2"},
+		{"token", events.Event{Kind: events.TokenCreate, Player: 1, Text: "r_1_1_goblin"}, "Bob creates a Goblin token"},
+		{"token unknown script", events.Event{Kind: events.TokenCreate, Player: 1, Text: "nope"}, "Bob creates a token"},
+		{"copy", events.Event{Kind: events.StackCopy, Obj: bolt, Player: 0}, "Ann copies Bolt #2"},
+		{"attach", events.Event{Kind: events.Attach, Obj: bolt, IDs: []state.ObjID{bear}}, "Bolt #2 attaches to Bear #1"},
+		{"detach", events.Event{Kind: events.Attach, Obj: bolt}, "Bolt #2 detaches"},
+		{"detach with reason", events.Event{Kind: events.Attach, Obj: bolt, Text: "Equipmentbearer is no longer a creature"}, "Bolt #2 detaches (Equipmentbearer is no longer a creature)"},
+		{"activate", events.Event{Kind: events.AbilityPush, Obj: bear, Player: 0, Amount: 0}, "Ann activates Bear #1"},
+		{"modes", events.Event{Kind: events.ModeChosen, Player: 0, Text: "Fear,Terror"}, "Ann chooses Fear, Terror"},
+		{"unless pay", events.Event{Kind: events.ModeChosen, Player: 1, Text: "Don't pay"}, "Bob chooses Don't pay"},
+		{"commander damage", events.Event{Kind: events.CmdDamage, Player: 1, Obj: bear, Amount: 2}, "Bear #1 deals 2 commander damage to Bob (6 total; 21 is lethal)"},
+		{"commander damage unknown clock", events.Event{Kind: events.CmdDamage, Player: 1, Amount: 2}, "a card deals 2 commander damage to Bob"},
 		{"unknown kind", events.Event{Kind: 250}, "unknown event"},
 		{"unknown seat", events.Event{Kind: events.Priority, Player: 9}, "seat 9 has priority"},
 		{"unknown object", events.Event{Kind: events.Tap, Obj: 77}, "#77 taps"},
@@ -125,8 +152,8 @@ func TestDescribeNeverPanics(t *testing.T) {
 		// them entirely. The +8 tail keeps a few undefined kind values in
 		// the fuzz; new kinds always land inside the loop.
 		for k := 0; k < int(events.NumKinds)+8; k++ {
-				ev := events.Event{Kind: events.Kind(k), Player: 250, Obj: 1 << 30, Amount: -7, Step: 99, From: 99, To: 99,
-					IDs: []state.ObjID{0, 1 << 30}, Pairs: [][2]state.ObjID{{0, 1 << 30}}}
+			ev := events.Event{Kind: events.Kind(k), Player: 250, Obj: 1 << 30, Amount: -7, Step: 99, From: 99, To: 99,
+				IDs: []state.ObjID{0, 1 << 30}, Pairs: [][2]state.ObjID{{0, 1 << 30}}}
 			_ = Describe(gg, ev)
 		}
 	}
