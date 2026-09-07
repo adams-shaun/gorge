@@ -49,6 +49,18 @@ type Host interface {
 	// rules-internal context with no engine to drive — and the calling
 	// effect falls back to its deterministic stand-in (R-9). M2d-2.
 	Ask(d *decision.Decision) bool
+	// Suspended reports whether the resolution is currently suspended on a
+	// mid-resolution ask — Ask returned true and set the host's resume state,
+	// which has not yet been cleared by the answer arriving. effects.Resolve
+	// calls it after every sub-ability in a chain so that a suspended ask
+	// STOPS the chain rather than running the sub-abilities beneath it (B1: a
+	// chained SA such as Thoughtseize's Discard | SubAbility$ DBLoseLife must
+	// not fire its SubAbility on the initial pass, before the answer exists,
+	// nor again on the resume pass — the resume re-enters at the asking SA
+	// and walks the rest of the chain exactly once). An effects-package test
+	// double that cannot suspend reports false; the rules engine reports
+	// e.resume != nil, which Ask sets and the handled answer clears.
+	Suspended() bool
 }
 
 // Ctx carries the bindings a Forge script refers to during resolution.
@@ -225,5 +237,18 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		fn(h, c, sa)
+		if h.Suspended() {
+			// A sub-ability in this chain posed a mid-resolution ask and
+			// suspended the resolution: do NOT descend into the rest of the
+			// chain. The B1 bug was that this loop kept walking sa.Sub
+			// unconditionally, so a chained SA ran its SubAbility$ on the
+			// initial pass (before the answer existed) AND again when the
+			// answered decision re-entered at the asking SA — Thoughtseize's
+			// Discard | SubAbility$ DBLoseLife lost 4 life instead of 2. The
+			// resume re-enters at THIS asking SA (rules' resumeResolution),
+			// which re-runs the asking effect to apply the answer and then
+			// continues walking sa.Sub exactly once.
+			return
+		}
 	}
 }

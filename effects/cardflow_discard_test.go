@@ -130,11 +130,16 @@ func TestDiscardRevealDiscardAllAsksNothingAndDiscardsEveryMatch(t *testing.T) {
 
 // TestDiscardNoModeStaysFrontOfHand guards the deterministic path: a Discard
 // with no Mode$ (the cleanup-step and Delve-style cost shape) still takes the
-// front card NumCards times and never asks — the change must not have turned
-// every discard into a question.
+// front cards and never asks — the change must not have turned every discard
+// into a question. This test is the B2 regression: it uses NumCards$ 2 (it
+// used to use NumCards$ 1, which passed on both the buggy and the fixed code
+// and therefore never discriminated). With the zone re-read per iteration,
+// NumCards$ 2 discards TWO DIFFERENT cards (frog, then bird) and emits two
+// DISTINCT MoveZone events, instead of emitting the SAME front card (frog)
+// twice and leaving bird in hand.
 func TestDiscardNoModeStaysFrontOfHand(t *testing.T) {
-	ah, _, ids := discardBoard(t, creature(t, "Frog"), creature(t, "Bird"))
-	s := sa(t, "SP$ Discard | ValidTgts$ Player | NumCards$ 1")
+	ah, _, ids := discardBoard(t, creature(t, "Frog"), creature(t, "Bird"), creature(t, "Cat"))
+	s := sa(t, "SP$ Discard | ValidTgts$ Player | NumCards$ 2")
 
 	effDiscard(ah, &Ctx{Source: 1, Controller: 0,
 		Targets: []state.Target{{Player: 1, IsPlayer: true}}}, s)
@@ -142,10 +147,60 @@ func TestDiscardNoModeStaysFrontOfHand(t *testing.T) {
 	if ah.asked != nil {
 		t.Fatal("a no-Mode discard asked a decision")
 	}
+	// Two DIFFERENT front cards left the hand (frog, then bird) — not the same
+	// object twice — and the third card (cat) stayed.
 	if !inZone(ah.g, state.ZGraveyard, 1, ids[0]) {
-		t.Fatal("front card was not discarded")
+		t.Fatal("front card (frog) was not discarded")
 	}
-	if !inZone(ah.g, state.ZHand, 1, ids[1]) {
-		t.Fatal("a non-front card was discarded")
+	if !inZone(ah.g, state.ZGraveyard, 1, ids[1]) {
+		t.Fatal("second card (bird) was not discarded — the same card was taken twice")
+	}
+	if !inZone(ah.g, state.ZHand, 1, ids[2]) {
+		t.Fatal("the third card (cat) was discarded — more cards than NumCards$ 2")
+	}
+	// Exactly two MoveZone events, for two distinct objects.
+	moves := make(map[state.ObjID]int)
+	for _, ev := range ah.log {
+		if ev.Kind == events.MoveZone && ev.To == state.ZGraveyard {
+			moves[ev.Obj]++
+		}
+	}
+	if len(moves) != 2 {
+		t.Fatalf("discard moved %d distinct cards, want exactly 2 (%v)", len(moves), moves)
+	}
+	for id, n := range moves {
+		if n != 1 {
+			t.Fatalf("card %d moved %d times, want once (the same card was emitted repeatedly)", id, n)
+		}
+	}
+}
+
+// TestDiscardNoModeIntoOneCardHandEmitsOneMove is B2's second regression: a
+// NumCards$ 3 discard into a one-card hand must emit exactly ONE MoveZone
+// event (the hand empties after the first take), not three. Because the
+// captured hand slice was never refreshed between iterations, the buggy code
+// saw a still-full one-card hand three times and emitted the same object
+// three times.
+func TestDiscardNoModeIntoOneCardHandEmitsOneMove(t *testing.T) {
+	ah, _, ids := discardBoard(t, creature(t, "Frog"))
+	s := sa(t, "SP$ Discard | ValidTgts$ Player | NumCards$ 3")
+
+	effDiscard(ah, &Ctx{Source: 1, Controller: 0,
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}}, s)
+
+	if !inZone(ah.g, state.ZGraveyard, 1, ids[0]) {
+		t.Fatal("the single card was not discarded")
+	}
+	if inZone(ah.g, state.ZHand, 1, ids[0]) {
+		t.Fatal("the single card is still in hand after the discard")
+	}
+	moves := 0
+	for _, ev := range ah.log {
+		if ev.Kind == events.MoveZone && ev.To == state.ZGraveyard {
+			moves++
+		}
+	}
+	if moves != 1 {
+		t.Fatalf("MoveZone events = %d, want exactly 1 (an empty hand must stop the discard)", moves)
 	}
 }

@@ -61,6 +61,16 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 	return true
 }
 
+// Suspended implements effects.Host.Suspended: the resolution is suspended
+// when a mid-resolution ask set e.resume and the answer has not yet arrived
+// to clear it. effects.Resolve checks this after every sub-ability so that a
+// suspended ask stops the SubAbility chain instead of running what sits
+// beneath it (B1). It is the rules-side half of the pairing with Ask: Ask
+// sets e.resume, and handleModes clears it the moment the answer lands, so
+// the resume pass re-enters the chain with nothing suspended and walks the
+// rest of it exactly once.
+func (e *Engine) Suspended() bool { return e.resume != nil }
+
 // handleModes applies an answered KModes decision — the engine's one KModes
 // handler, serving both the Charm modal pick ("modes") and the UnlessCost$
 // may-pay ("unless_pay"), which the decision's ResumeKind tags. It records

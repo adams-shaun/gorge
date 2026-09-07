@@ -173,10 +173,18 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			// is deterministic and adequate there.
 			n := Num(h, c, sa, "NumCards", 1)
 			for i := int32(0); i < n; i++ {
-				if len(hand) == 0 {
+				// Re-read the hand each iteration (B2): events.remove rebuilds
+				// the zone slice rather than mutating it in place, so a hand
+				// captured once — as this primitive used to — never sees the
+				// card it just moved, and a NumCards$ >= 2 discard emits the
+				// SAME front card N times instead of N distinct cards. Reading
+				// the zone per iteration is what the original pre-hoist code
+				// did, and is what makes the N-card discard honest.
+				cur := zoneOf(g, state.ZHand, p)
+				if len(cur) == 0 {
 					break
 				}
-				h.Emit(events.Event{Kind: events.MoveZone, Obj: hand[0],
+				h.Emit(events.Event{Kind: events.MoveZone, Obj: cur[0],
 					From: state.ZHand, To: state.ZGraveyard, Player: p})
 			}
 		}
