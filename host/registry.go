@@ -64,12 +64,51 @@ type Options struct {
 	// timer; it is the only place in the package that touches the clock,
 	// so a caller wanting a faster-than-realtime test still goes through
 	// this field rather than host reading time.Now/time.Sleep itself.
-	Sleep      func(d time.Duration, stop <-chan struct{})
-	Seats      func(names []string, seed uint64) []seat.Seat
-	Sync       bool
-	Ring       int
-	Cooldown   time.Duration
+	Sleep    func(d time.Duration, stop <-chan struct{})
+	Seats    func(names []string, seed uint64) []seat.Seat
+	Sync     bool
+	Ring     int
+	Cooldown time.Duration
+	// MaxIntents caps a whole match's total intent count (play's final
+	// termination guard, 400000 by default — see match.go). It bounds a
+	// match that will not terminate but says nothing about where it is
+	// stuck, so it is a different question from MaxDecisionsPerTurn below.
 	MaxIntents int
+	// MaxDecisionsPerTurn is the host's progress guard for the stall that
+	// keeps the SAME turn alive forever — the shape observed in the wild when
+	// a bot re-offers one no-op action repeatedly (seed 175's 20000 intents
+	// inside 2 turns; the measured 36 of 200 four-seat Commander games frozen
+	// on main by a policy that kept re-activating an Equip on the creature
+	// already carrying it). play counts decisions answered since the last
+	// turn advance and, when the count reaches this limit with the turn
+	// still unchanged, crashes the match with a stall reason and halts the
+	// table through the ordinary crash path. Before this guard such a match
+	// sat TableLive forever — the lobby showed LIVE, no match ever followed —
+	// because Options.ThinkTimeout covers only a HumanSeat parked on a
+	// decision, and a bot loop parks on nothing.
+	//
+	// The unit is a DECISIONS count, never a duration. A wall-clock watchdog
+	// would make a match's outcome depend on how loaded the box was, which
+	// destroys the determinism the whole engine is built on: the same seed
+	// must produce the same event chain and the same result on every machine
+	// and every replay (botbench's own watchdog is a -max-intents count for
+	// the same reason). A turn that is merely LONG still passes: the counter
+	// resets on every turn advance, and that reset is what distinguishes
+	// "one very long turn" from "a turn that never ends". The measured
+	// stall did ~10000 decisions per turn without the turn advancing; the
+	// largest LEGITIMATE single turn across this repo's whole gate
+	// population (2/4/6/8-seat sample-deck and legacy and Commander
+	// repo-deck matches, 40+ games, measured for this task's sizing) is 244
+	// decisions.
+	//
+	// DefaultMaxDecisionsPerTurn (25000) is the recommended production value
+	// — 100x the measured legit ceiling above, and below the observed
+	// stall's own ~10000-per-turn rate, so the stall class that froze the
+	// demo trips within its third turn instead of freezing the table. 0 —
+	// the zero value — means "no guard": every existing test and embedder
+	// that never sets the field keeps exactly today's behaviour, so this
+	// option is strictly opt-in.
+	MaxDecisionsPerTurn int
 	// ThinkTimeout is how long a HumanSeat parks on a decision before its
 	// deterministic caretaker bot (the already-seeded bot for that slot) is
 	// asked to answer in the player's place (Task M2b-3, D3). 0 — the default
