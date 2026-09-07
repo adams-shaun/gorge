@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { attachedTo, groupBattlefield, quadrantFor, recentlyMattered, stackFaces, stackIdentical, visibleHand } from './board';
+import { attachedTo, groupBattlefield, quadrantFor, RECENT_RESOLVE_WINDOW, recentlyMattered, stackFaces, stackIdentical, visibleHand } from './board';
 import type { CardView, EventBody, PlayerView } from '../protocol';
 
 const card = (id: number, types: string): CardView => ({ id, name: `c${id}`, types, tapped: false, power: 0, toughness: 0, damage: 0, attacking: false, controller: 0, owner: 0, summon_sick: false, printing: { name: `c${id}` }, token: `#${id}` });
@@ -28,6 +28,39 @@ describe('board', () => {
     const ev = (seq: number, kind: string, obj?: number): EventBody => ({ event: { seq, kind, player: 0, obj }, line: '' });
     expect(recentlyMattered([ev(1, 'stack_push', 4), ev(2, 'stack_resolve', 4), ev(3, 'tap', 9)])).toBe(4);
     expect(recentlyMattered([ev(1, 'tap', 9)])).toBeNull();
+  });
+  it('shows a fresh resolve that is inside the recency window', () => {
+    const ev = (seq: number, kind: string, obj?: number): EventBody => ({ event: { seq, kind, player: 0, obj }, line: '' });
+    // A resolve a few events back from the newest is still within the trailing
+    // RECENT_RESOLVE_WINDOW, so the strip shows it.
+    const arr = Array.from({ length: RECENT_RESOLVE_WINDOW + 1 }, (_, i) => ev(i, 'tap', i));
+    arr[RECENT_RESOLVE_WINDOW - 5] = ev(RECENT_RESOLVE_WINDOW - 5, 'stack_resolve', 42);
+    expect(recentlyMattered(arr)).toBe(42);
+  });
+  it('shows a resolve at the very newest position regardless of the window', () => {
+    const ev = (seq: number, kind: string, obj?: number): EventBody => ({ event: { seq, kind, player: 0, obj }, line: '' });
+    expect(recentlyMattered([ev(0, 'stack_resolve', 7)])).toBe(7);
+  });
+  it('clears a resolve that is further back than the window (shows NOTHING)', () => {
+    const ev = (seq: number, kind: string, obj?: number): EventBody => ({ event: { seq, kind, player: 0, obj }, line: '' });
+    // The only resolve is the OLDEST event of a buffer one longer than the
+    // window, so it lies just outside the trailing RECENT_RESOLVE_WINDOW.
+    const arr = Array.from({ length: RECENT_RESOLVE_WINDOW + 1 }, (_, i) => ev(i, 'tap', i));
+    arr[0] = ev(0, 'stack_resolve', 99);
+    expect(recentlyMattered(arr)).toBeNull();
+  });
+  it('treats the window boundary as inclusive: W events back still shows', () => {
+    const ev = (seq: number, kind: string, obj?: number): EventBody => ({ event: { seq, kind, player: 0, obj }, line: '' });
+    // Exactly RECENT_RESOLVE_WINDOW events, the resolve at index 0 is the
+    // oldest of the trailing window -> still shown.
+    const atBoundary = Array.from({ length: RECENT_RESOLVE_WINDOW }, (_, i) => ev(i, 'tap', i));
+    atBoundary[0] = ev(0, 'stack_resolve', 11);
+    expect(recentlyMattered(atBoundary)).toBe(11);
+    // One event more, the same resolve at index 0 falls just outside the
+    // trailing window -> cleared.
+    const pastBoundary = Array.from({ length: RECENT_RESOLVE_WINDOW + 1 }, (_, i) => ev(i, 'tap', i));
+    pastBoundary[0] = ev(0, 'stack_resolve', 11);
+    expect(recentlyMattered(pastBoundary)).toBeNull();
   });
   it('treats a wire-null hand as invisible, not an empty array', () => {
     expect(visibleHand(player(null))).toBeNull();
