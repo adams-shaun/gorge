@@ -49,20 +49,21 @@ type Card struct {
 	// Types is the printed type line as a single space-joined string
 	// ("Instant", "Basic Land Island", "Enchantment Aura") -- the exact
 	// shape the projected CardView.Types already carries and the join of
-	// the face's own Types slice on the game half, so the two adapter
-	// halves produce the identical string and the Card stays comparable
-	// (the adapter-parity test compares whole Cards). classifyCard reads
-	// it alongside Text to separate a one-shot from a permanent, but the
-	// classification is coarse: it cannot tell a removal from a counterspell
-	// off a type line alone, which is why Text is the primary signal.
+	// the face's own Types slice on the game half, so the two adapter halves
+	// produce the identical string. It is a projected fact (the view fills
+	// it) that no policy branch prices an effect off, so it is carried so
+	// the two halves agree on what a card exposes -- it is not evidence of
+	// an effect class.
 	Types string
 	// Text is the card's oracle text, the same string both adapter halves
 	// carry (boardFromView lifts it off the projected CardView.Text, which
 	// the view fills from the face's Oracle; BoardFromGame reads the face's
-	// Oracle directly). It is what classifyCard matches to place a non-
-	// creature spell in a class -- the one readable signal that separates a
-	// counterspell from a removal from a burn when their type lines (and so
-	// their costs) are identical.
+	// Oracle directly). It is a readable fact the policy keeps on the Card --
+	// alongside Types and ManaCost -- but no branch currently matches it to
+	// price an effect, because an oracle phrase is a guess about what a
+	// spell does, not a read of the effect that resolves (the reason the
+	// effect-class bonus was withdrawn). It is carried so the two adapter
+	// halves agree on what a card exposes.
 	Text string
 	// Castable reports whether the deciding seat could cast this card from
 	// where it currently sits, given enough mana: true for the seat's own
@@ -170,11 +171,6 @@ func hasTypeWord(words []string, want string) bool {
 // zero-fact card, and never beats a real read.
 func (b Board) castScore(o decision.Option) int32 {
 	s := b.cardWorth(o.Obj)
-	if c := b.Cards[o.Obj]; !c.Creature {
-		// Keep the effect-class bonus local to casting: cardWorth also
-		// serves commander-zone choices and must retain its shared contract.
-		s += classValue(classifyCard(c))
-	}
 	switch o.Mode {
 	case "kicked", "surged":
 		s += 6
@@ -182,108 +178,6 @@ func (b Board) castScore(o decision.Option) int32 {
 		s += 4
 	}
 	return s
-}
-
-// spellClass is the broad effect class a non-creature cast is ranked in,
-// the coarse read classifyCard produces. It is NOT a card catalog: it is a
-// handful of classes whose worth a casting bot can reason about, matched by
-// oracle phrase.
-type spellClass int
-
-const (
-	classPlain spellClass = iota // nothing matched: ranked by cost alone (C5)
-	classRemoval
-	classBurn
-	classDraw
-	classRamp
-	classCounterspell
-)
-
-// classValue is the score term a class adds to a non-creature's CMC. The
-// ordering the casting policy wants: a counterspell (stops whatever the
-// opponent is about to do) and a removal (answers the threat already on the
-// board) rank above card advantage, above burn, above ramp, above a spell
-// the classifier cannot place. All are small next to the creature term so
-// C1 (board over one-shots) still keeps a creature ahead of every
-// non-creature the policy can read -- this term only decides the order
-// WITHIN the non-creature pile, which is exactly the tie task dp3 the audit
-// found degenerating to option index.
-func classValue(k spellClass) int32 {
-	switch k {
-	case classCounterspell:
-		return 8
-	case classRemoval:
-		return 6
-	case classDraw:
-		return 4
-	case classBurn:
-		return 2
-	case classRamp:
-		return 2
-	default:
-		return 0
-	}
-}
-
-// classifyCard is the effect-class read a non-creature cast is ranked by.
-// It reads exactly what both adapter halves already carry for the same card
-// -- the printed type words (Card.Types), the oracle text (Card.Text) -- and
-// returns the broad class the spell falls into, or classPlain when nothing
-// matches.
-//
-// It deliberately does not try to understand arbitrary card effects. It
-// matches a small set of oracle phrases that identify the classes the
-// casting order cares about, classifies by what it can read, and leaves what
-// it cannot read as classPlain, ranked by cost alone. What it cannot see:
-//
-//   - it cannot read game state, so it cannot tell a removal that only hits
-//     a 5/5 from one that whiffs, nor whether a burn is at lethal range;
-//   - it cannot size an effect, so a 1-mana burn and a 5-mana burn are both
-//     classBurn (their costs separate them);
-//   - a plain artifact or enchantment (a 5-cost bomb and a 5-cost mana
-//     rock) read alike as classPlain, ranked by cost;
-//   - a card with no oracle text, or one whose phrases it does not match,
-//     reads classPlain.
-//
-// The phrases are matched on the lowercased oracle text and are deliberately
-// loose: "destroy" and "exile" identify removal whether the effect is a
-// spell, a trigger or an activated ability, because the class the casting
-// policy cares about is "this removes something the opponent controls".
-func classifyCard(c Card) spellClass {
-	text := strings.ToLower(c.Text)
-	if text == "" {
-		return classPlain
-	}
-	has := func(subs ...string) bool {
-		for _, sub := range subs {
-			if strings.Contains(text, sub) {
-				return true
-			}
-		}
-		return false
-	}
-	switch {
-	case has("counter target", "counter that", "counter a ", "counter the",
-		"counter it", "counter up to", "counters target", "counters the",
-		"counter spell", "counterspell"):
-		return classCounterspell
-	case has("destroy", "exile", "return target", "return up to",
-		"sacrifice target", "gets -", "-x/-x", "fight target",
-		"damage equal to", "damage to target creature"):
-		return classRemoval
-	case has("damage to any target", "damage to target player",
-		"damage to target opponent", "damage to target creature or player",
-		"damage to target"):
-		return classBurn
-	case has("draw a card", "draws a card", "draw two", "draw three",
-		"draw x cards", "draw cards", "draw that many", "draw :", "draw "):
-		return classDraw
-	case has("search your library for a", "search your library for up to",
-		"basic land card", "to your mana pool", "produce mana",
-		"mana pool", "untap"):
-		return classRamp
-	}
-	return classPlain
 }
 
 // cmdrTaxScale prices each prior command-zone cast by the commander's mana

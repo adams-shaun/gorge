@@ -55,73 +55,41 @@ func (c Creature) threat() int32 {
 	return v
 }
 
-// faceScore is what pointing a targetable-at-player effect at the opponent's
-// face is worth. It is not a constant: a flat 0 made the face a last
-// resort, chosen only when the opponent had no targetable creature at all,
-// so a Lightning Bolt with the opponent at 2 life went to their 1/1 instead
-// of winning the game. Two facts price it, both already on the Board:
+// faceScore is what pointing a targetable-at-player effect at the
+// opponent's face is worth, and it is deliberately a neutral constant.
+// The policy cannot read the effect that produced the KTarget decision
+// (askTarget emits only the source and the legal target identities, and
+// Board.Cards carries no stack objects, so the resolving spell is
+// unrecoverable), so it cannot tell a burn -- an effect that actually
+// reduces a player's life -- from a draw or a removal whose effect never
+// touches the face. With that fact absent, any bonus keyed on the
+// opponent's life, their proximity to a lethal track's end, or their
+// biggest creature would be a kill the policy cannot prove:
 //
-//   - bestThreat, the largest threat among the opponent's offered creatures
-//     that the same decision could remove instead. The face's standing
-//     value is a hair below it, so R2's board-over-face preference holds
-//     while the face is merely legal -- a removal answers the board rather
-//     than throwing damage at a face that can take it.
-//   - closeness to the end of either lethal track: life running out (the
-//     opponent loses at 0) or commander damage nearing 21 (CR 903.10, the
-//     second clock). The policy cannot read the spell's damage, so it prices
-//     the face by the opponent's proximity to dead, not by the damage the
-//     spell would deal: a player at 2 life is a face worth the win, a
-//     player at 18 is not.
+//   - a player at 2 life is no more a win than one at 18 when the effect
+//     may deal no damage at all;
+//   - "near" the 21 commander-damage clock is not burn reach: ordinary
+//     non-combat spell damage never advances that clock (CR 903.10 counts
+//     only the combat damage one commander has dealt), so it must not
+//     attract face targeting;
+//   - keying the score on the target's biggest creature can prefer the
+//     healthier player in a multiplayer game.
 //
-// The lethal term is a steep bonus gated on the opponent being within
-// reach -- never on the face being merely legal -- so a healthy board is
-// not ignored: away from lethal the face sits under the best creature and
-// the removal answers the board (the "do not suicide into the board"
-// guard). players and off-battlefield objects never share a target decision
-// the way a burned-out face would need it to, so no tie to a board creature
-// is ever left to position order here.
-const (
-	// faceStand is how much the face's standing value sits below the best
-	// creature the same effect could remove, so R2 holds while the face is
-	// merely legal.
-	faceStand int32 = 1
-	// faceLethalNear is how close to the end of a lethal track the opponent
-	// must be (life-like points remaining) for the face to become the win.
-	faceLethalNear int32 = 3
-	// faceLethalStep is how much the face's value climbs per point nearer a
-	// track's end once within reach, steep enough that a face in reach
-	// outranks any creature the board can offer.
-	faceLethalStep int32 = 16
-)
-
-func (b Board) faceScore(opponent state.PlayerID, bestThreat int32) int32 {
-	life := b.Life[opponent]
-	// CR 903.10: the greatest combat damage one commander has dealt this
-	// player -- the second, life-independent lethal track.
-	var cmdMax int32
-	for _, cm := range b.Commanders {
-		if d := cm.Damage[opponent]; d > cmdMax {
-			cmdMax = d
-		}
-	}
-	// Standing: just under the best creature the effect would otherwise
-	// answer, so a merely-legal face loses to the board.
-	s := bestThreat - faceStand
-	if s < 0 {
-		s = 0
-	}
-	// The opponent is nearest dead on whichever track has the least
-	// life-like headroom: life points left, or (21 - cmd) before the
-	// commander clock closes.
-	headroom := life
-	if cmd := int32(21) - cmdMax; cmd < headroom {
-		headroom = cmd
-	}
-	if headroom <= faceLethalNear {
-		s += (faceLethalNear - headroom + 1) * faceLethalStep
-	}
-	return s
+// So the face ranks neutrally, beneath every on-board creature threat, and
+// is only chosen when no opposing creature is a legal target (a burn at a
+// face, a drain, a life-gain that only targets players) or as a later pick
+// in a multi-target decision. R2's board-over-face holds by construction:
+// any creature ranks above it, so the face is never picked over a creature
+// the policy cannot be sure the effect is better than. Ties among equal
+// faces (the multiplayer case) break on option index (R7), the
+// deterministic answer.
+func (b Board) faceScore() int32 {
+	return faceNeutral
 }
+
+// faceNeutral is the standing value of the opponent's face as a target:
+// neutral, and below every on-board creature threat.
+const faceNeutral int32 = 0
 
 // targetRank is one option's standing for chooseTargets: a score, the
 // option's index (the deterministic tiebreak), and whether it belongs to
@@ -135,18 +103,17 @@ type targetRank struct {
 // rankOption scores one KTarget option for seat me. `ours` separates "a
 // permanent/player of my own" from everything else, which is the only fact
 // a targeting decision's owner-rule needs. An opponent's player option is
-// worth faceScore (priced against that player's best offered creature threat
-// and their proximity to a lethal track's end -- see faceScore); an
-// opponent's permanent is worth its on-board threat when it is a battlefield
-// creature in the census, or 0 when its Obj is in no zone this Board can
-// read (a battlefield artifact/enchantment a removal could target, or a
+// worth faceScore -- a neutral constant (see faceScore); an opponent's
+// permanent is worth its on-board threat when it is a battlefield creature
+// in the census, or 0 when its Obj is in no zone this Board can read (a
+// battlefield artifact/enchantment a removal could target, or a
 // Graveyard/Hand/Exile object) -- never a crash, just a low rank.
-func (b Board) rankOption(o decision.Option, me state.PlayerID, bestThreat map[state.PlayerID]int32) targetRank {
+func (b Board) rankOption(o decision.Option, me state.PlayerID) targetRank {
 	if o.Kind == "player" {
 		if o.Player == me {
 			return targetRank{score: 0, idx: o.Index, ours: true}
 		}
-		return targetRank{score: b.faceScore(o.Player, bestThreat[o.Player]), idx: o.Index}
+		return targetRank{score: b.faceScore(), idx: o.Index}
 	}
 	if o.Player == me {
 		// My own permanent (or a "player" option naming me): a target a
@@ -176,22 +143,19 @@ func (b Board) rankOption(o decision.Option, me state.PlayerID, bestThreat map[s
 //     themselves. When any opposing option exists, the seat's own
 //     permanents are never touched.
 //   - R2 (board over face): the opponent's best battlefield creature is
-//     preferred over the opponent's face whenever the opponent has one and
-//     the face is merely legal -- that is, whenever the opponent is not
-//     within reach of a lethal track's end. The policy cannot read the
-//     effect, so its proxy for "this is a stop-the-board removal" is that
-//     the opponent has a battlefield creature offered at all; away from
-//     lethal that creature's threat outranks the face (faceScore is a hair
-//     below the best such threat). When the opponent has no battlefield
-//     creature worth an option, or is close enough to dead that damage to
-//     the face is the win, the face is the pick.
-//     R6 (the face is the win): the face outranks the board only when the
-//     opponent is within reach of a lethal track's end -- life running
-//     out, or commander damage nearing 21 (CR 903.10) -- and never because
-//     the face is merely a legal target. The boost scales with how near
-//     the end the opponent is, so a player at 1 life prices the face above
-//     a player at 4, and a healthy 18-life player's face stays below their
-//     best creature: the bot answers the board instead of ignoring it.
+//     always preferred over the opponent's face when one is a legal target.
+//     The policy cannot read the effect that produced the decision, so it
+//     cannot prove it reaches the player at all -- a burn and a draw read
+//     identically -- which makes a face target a claim the policy cannot
+//     support. So the face ranks neutrally (faceScore is a constant) below
+//     every on-board creature threat, and a creature offered alongside it
+//     is always the pick. A player target is chosen only when no opposing
+//     creature is a legal target (a burn at a face, a drain, a life-gain
+//     that only targets players), or as a later pick in a multi-target
+//     decision.
+//     R7 (deterministic neutral tie): equal faces -- the multiplayer case,
+//     or a face beside a zero-fact option -- break on option index, so no
+//     map iteration order reaches the answer.
 //   - R3 (rank better than pt): opposing creatures rank by threat(), which
 //     prices remTough, Tapped and evasion keywords on top of power, not by
 //     a bare power or power+toughness figure.
@@ -236,21 +200,8 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 	}
 
 	var own, foreign []targetRank
-	// bestThreat: the largest threat among each opposing player's offered
-	// battlefield creatures -- what a face hit against THAT player would
-	// otherwise trade with. It is computed off the offered options, not the
-	// whole board, because only the options this decision allows are legal
-	// targets the removal could actually take instead.
-	bestThreat := make(map[state.PlayerID]int32)
 	for _, o := range d.Options {
-		if c, ok := b.Creatures[o.Obj]; ok && c.Controller != me {
-			if t := c.threat(); t > bestThreat[c.Controller] {
-				bestThreat[c.Controller] = t
-			}
-		}
-	}
-	for _, o := range d.Options {
-		r := b.rankOption(o, me, bestThreat)
+		r := b.rankOption(o, me)
 		if r.ours {
 			own = append(own, r)
 		} else {
