@@ -110,6 +110,44 @@ func TestRegenerationDestroy(t *testing.T) {
 		})
 	}
 }
+func TestRegenerationCannotReplaceNoRegen(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	for _, name := range []string{"Terror", "Wrath of God", "Nekrataal"} {
+		t.Run(name, func(t *testing.T) {
+			card, ok := reg.Lookup(name)
+			if !ok {
+				t.Fatalf("missing corpus card %s", name)
+			}
+			abilities := append([]*cards.SA(nil), card.Faces[0].Abilities...)
+			for _, trigger := range card.Faces[0].Triggers {
+				abilities = append(abilities, trigger.Effect)
+			}
+			var destroy *cards.SA
+			for _, sa := range abilities {
+				if sa != nil && (sa.API == "Destroy" || sa.API == "DestroyAll") {
+					destroy = sa
+					break
+				}
+			}
+			if destroy == nil || destroy.Params["NoRegen"] != "True" {
+				t.Fatal("missing real NoRegen destruction SA")
+			}
+			e, id := regenFixture(t)
+			source := e.G.AddObject(card, 0)
+			start := len(e.L.Events)
+			effects.Resolve(e, &effects.Ctx{Source: source.ID, Controller: 0, Targets: []state.Target{{Obj: id}}}, destroy)
+			if e.G.Obj(id).Zone != state.ZGraveyard {
+				t.Fatalf("shielded creature survived; zone=%v", e.G.Obj(id).Zone)
+			}
+			for _, ev := range e.L.Events[start:] {
+				if ev.Kind == events.CounterChange && ev.Counter == "Shield" && ev.Amount < 0 {
+					t.Fatal("NoRegen destruction consumed a regeneration shield")
+				}
+			}
+		})
+	}
+}
+
 func TestRegenerationDoesNotReplaceOtherMoves(t *testing.T) {
 	for _, api := range []string{"Sacrifice", "ChangeZone", "zero toughness"} {
 		t.Run(api, func(t *testing.T) {
@@ -150,8 +188,14 @@ func TestRegenerationTwoShields(t *testing.T) {
 	if e.G.Obj(id).Zone != state.ZBattlefield || e.G.Obj(id).Counter("Shield") != 1 {
 		t.Fatal("first destruction should consume exactly one shield")
 	}
+	start := len(e.L.Events)
 	regenEffect(e, id, "Destroy", nil)
 	regenSurvived(t, e, id)
+	for _, ev := range e.L.Events[start:] {
+		if ev.Kind == events.Tap && ev.Obj == id {
+			t.Fatal("already-tapped regenerator emitted a redundant Tap")
+		}
+	}
 	regenEffect(e, id, "Destroy", nil)
 	if e.G.Obj(id).Zone != state.ZGraveyard {
 		t.Fatal("third destruction must kill")
