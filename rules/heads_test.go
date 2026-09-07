@@ -116,11 +116,42 @@ import (
 // subset of the heads, and the subset is exactly the seat counts whose games
 // reach the changed code path -- the same shape D1 found above, arrived at
 // from the opposite direction.
+//
+// The opponents milestone's SECOND regeneration -- an explicit exception to
+// FL-83's one-per-milestone, taken deliberately because the alternative was
+// worse: op6 and op7 were both gated and both move heads, so landing them
+// separately would have cost TWO further regenerations instead of this one.
+// Recorded as an exception rather than dressed up as a milestone boundary.
+//
+// TWO causes, and the seat counts separate them cleanly:
+//
+//   - op6, the tap-for-mana gate: the policy now taps a permanent for mana
+//     only while some castable card exists whose cost the pool cannot yet
+//     pay, instead of tapping whichever permanent was offered first. That
+//     changes the ManaAdd event stream in every game, so it moves ALL FOUR
+//     heads.
+//   - op7, the attack-target tiebreak: equal-tier attack options now prefer
+//     the lowest-life defender instead of the lowest seat index. A two-player
+//     game offers one defender and therefore has no tie to break, so this
+//     cause CANNOT move the 2-seat head, and does not.
+//
+// Measured, not inferred -- each cause was benched alone before stacking:
+//
+//	seats   op6 alone           op7 alone           both (this commit)
+//	2       0876361619998e2a    unchanged           0876361619998e2a
+//	4       355ae7ceb40e9ac9    c4d8a9de11cca37d    d74b8a889f09be48
+//	6       9940f5be8b29e4d6    f8d7e167ab30c173    ea3d87a74c4c954d
+//	8       25ce1c7603a1bd0f    224fd2dda5a59ff4    5e573c76021a419f
+//
+// The 2-seat column is the attribution proof: the combined head is
+// BYTE-IDENTICAL to op6's, so op7 contributes nothing there, exactly as its
+// mechanism predicts. On 4/6/8 both causes compound and neither alone
+// reproduces the combined head.
 var acceptanceHeads = map[int]string{
-	2: "630573758e2019a8",
-	4: "609a2c6bfe81f26d",
-	6: "7a043ce3e84f6f39",
-	8: "2c25aaefa82c95f6",
+	2: "0876361619998e2a",
+	4: "d74b8a889f09be48",
+	6: "ea3d87a74c4c954d",
+	8: "5e573c76021a419f",
 }
 
 func TestHeads(t *testing.T) {
