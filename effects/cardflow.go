@@ -63,7 +63,7 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 }
 
 // effDiscard moves cards from a player's hand to their graveyard. Which
-// cards, and who chooses, is driven by the two corpus params that the real
+// cards, and who chooses, is driven by the corpus params that the real
 // discard spells use and that this primitive now reads:
 //
 //   - Mode$ RevealYouChoose (Thoughtseize, Duress): the CASTER — c.Controller,
@@ -73,16 +73,29 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 //     re-entry discards exactly the card Ctx.Discard names (the continuation
 //     arm in rules/resolution.go set it from the recorded answer). A host
 //     that cannot ask falls back to the deterministic front-card stand-in.
+//   - Mode$ TgtChoose (Mind Rot, Faithless Looting, Thirst for Knowledge,
+//     Riddlesmith): the ordinary "discard N cards" — the DISCARDING player,
+//     p (the target, not the caster), chooses which of their own cards to
+//     drop, without the hand being revealed first. Same mid-resolution ask
+//     shape as RevealYouChoose, same ResumeKind "discard", but the decision's
+//     Player is p and the no-ask fallback takes the front of the FILTERED
+//     hand. A hand with fewer eligible cards than NumCards$ discards what it
+//     owns and asks nothing (there is no choice to be made), and a hand
+//     whose eligible count is at or below NumCards$ likewise resolves
+//     deterministically with no question.
 //   - Mode$ RevealDiscardAll (Cabal Therapy): a FILTER, not a choice. Every
 //     card in the target's hand matching DiscardValid$ is discarded, no ask.
-//   - Mode$ absent (the cleanup step and Delve-style costs): the deterministic
-//     front-of-hand discard NumCards times — right, because those paths have
-//     no player choice to make, and must not become a question.
+//   - Mode$ absent / Hand / Random / Defined / LookYouChoose / YouChoose /
+//     RevealTgtChoose (the cleanup step, Delve-style costs and the wheel
+//     family): still the deterministic front-of-hand discard NumCards times —
+//     right, because those paths have no player choice to make (or the
+//     approximation is elsewhere), and must not become a question.
 //
 // DiscardValid$ is a Forge filter spec ("Card.nonLand", "Card.NamedCard"),
 // evaluated with MatchesSpecFrom (the same resolver effDig uses for
 // ChangeValid$). Its default is "Card". The chooser/target split is what keeps
-// Thoughtseize from letting the opponent pick their own discard.
+// Thoughtseize from letting the opponent pick their own discard, and what
+// keeps a Mind Rot target's own choice from being made by the caster.
 func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	mode := sa.Params["Mode"]
@@ -152,6 +165,77 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 				Text: "discards its first card (no engine host to ask)"})
 			if len(hand) > 0 {
 				h.Emit(events.Event{Kind: events.MoveZone, Obj: hand[0],
+					From: state.ZHand, To: state.ZGraveyard, Player: p})
+			}
+
+		case "TgtChoose":
+			// Re-entry: the discarding player's choice was answered and the
+			// continuation set Ctx.Discard to the chosen object(s). Discard
+			// exactly those that sit in this target's hand (a per-hand filter
+			// keeps a stray answer from moving an object that left the hand
+			// meanwhile).
+			if c.Discard != nil {
+				for _, id := range c.Discard {
+					if !containsID(hand, id) {
+						continue
+					}
+					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
+						From: state.ZHand, To: state.ZGraveyard, Player: p})
+				}
+				continue
+			}
+			// First pass: narrow the target's hand to the cards DiscardValid$
+			// allows. This is the discarding player's own hand, so the choice
+			// is presented to p.
+			eligible := make([]state.ObjID, 0, len(hand))
+			for _, id := range hand {
+				if MatchesSpecFrom(g, valid, id, c.Controller, c.Source) {
+					eligible = append(eligible, id)
+				}
+			}
+			if len(eligible) == 0 {
+				continue
+			}
+			n := Num(h, c, sa, "NumCards", 1)
+			if n < 1 {
+				n = 1
+			}
+			// Only a real choice when there are STRICTLY more eligible cards
+			// than must be discarded. A hand with NumCards$ eligible cards (or
+			// fewer) must drop all of them with no question: the player could
+			// not answer differently, so emitting a decision nobody can
+			// meaningfully resolve would just be noise (R-9 contract).
+			if int32(len(eligible)) <= n {
+				for _, id := range eligible {
+					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
+						From: state.ZHand, To: state.ZGraveyard, Player: p})
+				}
+				continue
+			}
+			opts := make([]decision.Option, 0, len(eligible))
+			for _, id := range eligible {
+				name := "a card"
+				if o := g.Obj(id); o != nil && o.Face() != nil {
+					name = o.Face().Name
+				}
+				opts = append(opts, decision.Option{Index: len(opts), Kind: "discard",
+					Label: "Discard " + name, Obj: id, Player: p})
+			}
+			d := &decision.Decision{Player: p, Kind: decision.KModes,
+				Min: int(n), Max: int(n), Source: c.Source,
+				ResumeKind: "discard", ResumeSA: sa,
+				Prompt:  "Choose " + strconv.Itoa(int(n)) + " card(s) to discard",
+				Options: opts}
+			if h.Ask(d) {
+				return // resolution suspended; the answer re-enters with Ctx.Discard set.
+			}
+			// Fuzz/no-engine host: the deterministic front-of-ELIGIBLE-hand
+			// stand-in (R-9) for the discarding player, with the Note that
+			// records why the richer path did not run.
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "discards its first card (no engine host to ask)"})
+			for i := int32(0); i < n; i++ {
+				h.Emit(events.Event{Kind: events.MoveZone, Obj: eligible[i],
 					From: state.ZHand, To: state.ZGraveyard, Player: p})
 			}
 
