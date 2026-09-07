@@ -7,11 +7,14 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/host"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/protocol"
 	"github.com/adams-shaun/gorge/view"
@@ -577,7 +580,7 @@ func TestBotTablesStayPerpetualBesideAHumanTable(t *testing.T) {
 	if err := c.applyHumans(); err != nil {
 		t.Fatal(err)
 	}
-	cfgs := c.tableConfigs(nil, view.Omniscient)
+	cfgs := c.tableConfigs(nil, nil, view.Omniscient)
 	if len(cfgs) != 2 {
 		t.Fatalf("want 2 table configs, got %d", len(cfgs))
 	}
@@ -605,5 +608,214 @@ func TestNoHumansIsSpectatorOnly(t *testing.T) {
 	cancel()
 	if err := <-done; err != nil {
 		t.Fatalf("serve: %v", err)
+	}
+}
+
+// --- Task m39: gorged runs Commander tables ---------------------------------
+
+// TestFormatFlagParsing pins the -format flag's two shapes: a single name
+// makes every table that format, and a comma-separated list is cycled over
+// the tables so one server runs constructed and Commander games side by
+// side. A name that is neither is a startup error — before any table is
+// added — and the zero config (no flag at all) stays all-constructed,
+// byte-identical to every pre-m39 gorged.
+func TestFormatFlagParsing(t *testing.T) {
+	// Zero config: applyFormats defaults to constructed.
+	var c config
+	if err := c.applyFormats(); err != nil {
+		t.Fatal(err)
+	}
+	if len(c.formats) != 1 || c.formats[0] != host.FormatConstructed {
+		t.Fatalf("zero config formats %v, want [constructed]", c.formats)
+	}
+
+	// A single commander makes every table a Commander table.
+	c = config{formatsRaw: "commander", tables: 4}
+	if err := c.applyFormats(); err != nil {
+		t.Fatal(err)
+	}
+	cfgs := c.tableConfigs(nil, nil, view.Omniscient)
+	if len(cfgs) != 4 {
+		t.Fatalf("want 4 configs, got %d", len(cfgs))
+	}
+	for i, cfg := range cfgs {
+		if cfg.Format != host.FormatCommander {
+			t.Fatalf("t%d format %v, want commander", i+1, cfg.Format)
+		}
+	}
+
+	// A two-name list cycles: t1 commander, t2 constructed, t3 commander.
+	c = config{formatsRaw: "commander,constructed", tables: 3}
+	if err := c.applyFormats(); err != nil {
+		t.Fatal(err)
+	}
+	cfgs = c.tableConfigs(nil, nil, view.Omniscient)
+	want := []host.Format{host.FormatCommander, host.FormatConstructed, host.FormatCommander}
+	for i, w := range want {
+		if cfgs[i].Format != w {
+			t.Fatalf("t%d format %v, want %v", i+1, cfgs[i].Format, w)
+		}
+	}
+
+	// Each table deals the deck pool of its format: the commander pool to
+	// commander tables, the constructed pool to the rest.
+	cfgs = c.tableConfigs([]string{"c1", "c2"}, []string{"x", "y", "z"}, view.Omniscient)
+	if len(cfgs[0].Decks) != 2 || cfgs[0].Decks[0] != "c1" {
+		t.Fatalf("commander table decks %v, want the commander pool", cfgs[0].Decks)
+	}
+	if len(cfgs[1].Decks) != 3 || cfgs[1].Decks[0] != "x" {
+		t.Fatalf("constructed table decks %v, want the constructed pool", cfgs[1].Decks)
+	}
+
+	// A junk name fails at apply time, naming the value.
+	c = config{formatsRaw: "constructed,commander,blitz"}
+	if err := c.applyFormats(); err == nil || !strings.Contains(err.Error(), "blitz") {
+		t.Fatalf("junk format accepted or unnamed: %v", err)
+	}
+}
+
+// commanderView polls a served table's view — the head when seqs is blank,
+// the given sequence otherwise — and returns the first decoded one that
+// reports a match, so a request never races the server still booting or
+// the first match still starting.
+func commanderView(t *testing.T, url, seqs string) view.View {
+	t.Helper()
+	query := ""
+	if seqs != "" {
+		query = "?seq=" + seqs
+	}
+	deadline := time.Now().Add(30 * time.Second)
+	for {
+		resp, err := http.Get(url + "/api/tables/t1/matches/1/view" + query)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			var v view.View
+			if err := json.NewDecoder(resp.Body).Decode(&v); err == nil && len(v.Players) > 0 {
+				resp.Body.Close()
+				return v
+			}
+			resp.Body.Close()
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("no commander view served (err %v)", err)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+// TestCommanderTableServesACommanderGameEndToEnd is the delivery proof for
+// the wire: a real gorged server on a Commander table with the five m38
+// decks serves a game whose seats start at 40 life (CR 903.6) with their
+// commanders in the command zone and a full roster, and whose logged
+// commander_casts climb past zero — the m36 command-zone panel on a table
+// that will actually exist. The seed is pinned to the m38 cast evidence:
+// match 1 seat 0 plays foundations-keen-engineering at engine seed 1001
+// (the repoCommanderGames row that casts Sai), so a cast is guaranteed by
+// the same evidence the engine milestone was gated on, not hoped for.
+func TestCommanderTableServesACommanderGameEndToEnd(t *testing.T) {
+	url, cancel, done := startServe(t, config{tables: 1, seats: 2, pace: 0, perpetual: false,
+		formatsRaw: "commander", seed: 12833769953399007376})
+	defer cancel()
+	waitTables(t, url, 1)
+
+	// Genesis (seq 0, the first Advance): every seat at 40 life with its
+	// commander in the zone and on the roster — the wire evidence that a
+	// Commander game, not a 100-card constructed pile, is being served.
+	// A pace-0 bot match finishes in under a second, so the head view
+	// would already show the game over; the start is read from the
+	// recorded chain like a DVR scrub, which is exactly how the client
+	// sees it.
+	g := commanderView(t, url, "0")
+	for _, p := range g.Players {
+		if p.Life != 40 {
+			t.Fatalf("seat %s started at %d life, want 40", p.Name, p.Life)
+		}
+		if len(p.Command) == 0 {
+			t.Fatalf("seat %s started with an empty command zone", p.Name)
+		}
+		if len(p.Commanders) == 0 {
+			t.Fatalf("seat %s projected no commanders roster", p.Name)
+		}
+		if len(p.CommanderCasts) != len(p.Commanders) {
+			t.Fatalf("seat %s casts %d parallel to %d commanders", p.Name, len(p.CommanderCasts), len(p.Commanders))
+		}
+	}
+
+	// The cast: poll until some seat's commander_casts is non-zero (the
+	// seeded game casts Sai, but which seat is the first is up to the game
+	// — any non-zero cast proves the command zone is being played, not
+	// merely displayed). The match also runs to a winner; the cast
+	// assertion is the point, so it is checked on every poll and the
+	// match-end fallback is only the deadline's last resort.
+	couldCast := false
+	deadline := time.Now().Add(30 * time.Second)
+	for !couldCast {
+		if time.Now().After(deadline) {
+			t.Fatalf("no seat cast a commander from the command zone within 30s")
+		}
+		v := commanderView(t, url, "")
+		for _, p := range v.Players {
+			for _, c := range p.CommanderCasts {
+				if c > 0 {
+					couldCast = true
+				}
+			}
+		}
+		if v.Over {
+			// The match ended with no cast: the seed/pod must have drifted
+			// from the evidence — fail loudly, don't poll forever.
+			if !couldCast {
+				t.Fatalf("match ended with no commander cast: the seeded gun died")
+			}
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatalf("serve: %v", err)
+	}
+}
+
+// TestCommanderTableDealtAnInvalidDeckFailsAtStartup is the startup
+// validation: a deck directory whose commander-declared file fails
+// deck.ValidateCommander makes serve refuse with the deck named — before
+// anything listens — so a Commander table can never half-start on an
+// illegal deck. The fixture is a commander-declared Mountain: real corpus
+// card names, wrong on eligibility (CR 903.3), and the error names the
+// deck, not vaguely "a deck".
+func TestCommanderTableDealtAnInvalidDeckFailsAtStartup(t *testing.T) {
+	dir := t.TempDir()
+	bad := `{"name":"bad-commander","commander":"Mountain","cards":[{"name":"Mountain","count":100}]}`
+	if err := os.WriteFile(filepath.Join(dir, "bad-commander.json"), []byte(bad), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ln.Close()
+	cfg := config{cards: "../../.cards", decks: dir, tables: 1, seats: 2, pace: 0,
+		cooldown: 0, dir: t.TempDir(), spectator: "omniscient", seed: 1, perpetual: false, formatsRaw: "commander"}
+	// serve is driven on a cancellable context so a neutralised validation
+	// — the very failure this test exists to catch — fails the test by
+	// assertion (serve succeeds and simply keeps serving, instead of
+	// refusing), not by hanging the suite.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	errc := make(chan error, 1)
+	go func() { errc <- serve(ctx, cfg, ln) }()
+	select {
+	case err := <-errc:
+		if err == nil {
+			t.Fatal("serve accepted a commander table dealt an invalid deck")
+		}
+		if !strings.Contains(err.Error(), "bad-commander") {
+			t.Fatalf("startup error does not name the deck: %v", err)
+		}
+		if !strings.Contains(err.Error(), "Mountain") {
+			t.Fatalf("startup error does not name the offending card: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		cancel()
+		t.Fatal("serve did not refuse the invalid commander deck at startup (validation gone?)")
 	}
 }

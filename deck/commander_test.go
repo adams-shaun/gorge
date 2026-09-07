@@ -225,3 +225,35 @@ func TestParseReadsCommanderField(t *testing.T) {
 		t.Fatalf("legacy file misparsed: %+v", f2)
 	}
 }
+
+// TestFileCommanderIndex pins the shared commander-index resolution: the
+// flat position of f.Commander's card in the count-expanded deck, whatever
+// row it sits on. This is the index rules.Config.Commanders wants (genesis
+// moves that object to the command zone) and the one resolution gorged and
+// the engine's own commander tests both use, so a deck that does not print
+// its commander first must resolve exactly as a deck that does. m39 moved
+// the one copy of this scan out of rules/commander_decks_test.go into the
+// deck package so the product and the engine cannot disagree.
+func TestFileCommanderIndex(t *testing.T) {
+	// First row, ordinary row, duplicate-count rows before the commander.
+	if got := (File{Name: "x", Commander: "Zed", Cards: []Entry{
+		{"Zed", 1},         // 0 — it is the first entry
+		{"A", 2}, {"B", 3}, // 2, 5 — counts accumulate past row 0
+		{"C", 1}, // 9
+	}}).CommanderIndex(); got != 0 {
+		t.Fatalf("first-row commander index = %d, want 0", got)
+	}
+	if got := (File{Name: "x", Commander: "Zed", Cards: []Entry{
+		{"A", 2}, {"Zed", 1}, {"B", 3},
+	}}).CommanderIndex(); got != 2 {
+		t.Fatalf("mid-deck commander index = %d, want 2 (the two A copies before it)", got)
+	}
+	if got := (File{Name: "x", Commander: "Zed", Cards: []Entry{
+		{"A", 1}, {"B", 1}, {"C", 1},
+	}}).CommanderIndex(); got != 3 {
+		t.Fatalf("absent commander index = %d, want 3 (the count-expanded length: the caller validates first)", got)
+	}
+	if got := (File{Name: "none"}).CommanderIndex(); got != 0 {
+		t.Fatalf("commander-less File index = %d, want 0 (never called by anyone who checked Commander first)", got)
+	}
+}

@@ -87,6 +87,11 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 	names := make([]string, c.Seats)
 	decks := make([][]*cards.Card, c.Seats)
 	deckNames := make([]string, c.Seats)
+	// cmds holds each seat's commander indices, parallel to decks: the
+	// Deck the loader produced for that seat carries its own commanders,
+	// so a commander table's seats get a command zone from their own deck
+	// and a constructed table's seats never do.
+	cmds := make([][]int, c.Seats)
 	infos := make([]protocol.SeatInfo, c.Seats)
 	for i := 0; i < c.Seats; i++ {
 		dn := c.Decks[(i+k)%len(c.Decks)]
@@ -97,10 +102,32 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 		if d.Name == "" {
 			d.Name = dn
 		}
-		names[i], decks[i], deckNames[i] = d.Name, d.Cards, dn
+		names[i], decks[i], deckNames[i], cmds[i] = d.Name, d.Cards, dn, d.Commanders
 		infos[i] = protocol.SeatInfo{Name: d.Name, Deck: dn, Colour: protocol.SeatColours[i%len(protocol.SeatColours)]}
 	}
 	cfg := rules.Config{Seed: seed, Names: names, Decks: decks, Tokens: r.opts.Tokens, Mulligans: c.Mulligans}
+	// The format the table was configured with is threaded into the engine
+	// once, here, so the match's rules.Config is the single value both the
+	// live game and its replay are built from (R-8.4). A commander table
+	// also resolves its starting life — CR 903.6's 40 (TableConfig's
+	// 0-means-format-default convention) — and its per-seat commanders
+	// from the loaded decks; validate has already rejected a commander
+	// table whose deck names no commander, so a seat can never silently
+	// play without a command zone.
+	switch c.Format {
+	case FormatCommander:
+		cfg.Format = rules.FormatCommander
+		life := c.StartingLife
+		if life == 0 {
+			life = 40
+		}
+		cfg.StartingLife = life
+		cfg.Commanders = make([][]int, c.Seats)
+		for i := range cfg.Commanders {
+			cfg.Commanders[i] = append([]int(nil), cmds[i]...)
+		}
+	default: // FormatConstructed: the zero rules.Config, every field stays unset.
+	}
 	e := rules.New(cfg)
 	// Events growEvents was the top allocator in ./host (2.87 GB of the test
 	// binary's profile: every live match log reallocated ~2x its final length
@@ -183,7 +210,8 @@ func (m *match) sidecar() sidecar {
 	}
 	return sidecar{Table: string(m.table.cfg.ID), Match: m.k, Seed: m.seed, Seats: m.seats, Names: m.cfg.Names,
 		Decks: m.decks, Spectator: m.table.cfg.Spectator.String(), State: m.state, Result: m.result, Winner: m.winner,
-		Head: m.head, Events: events, Turns: m.e.G.Turn, Reason: m.reason, Mulligans: m.cfg.Mulligans}
+		Head: m.head, Events: events, Turns: m.e.G.Turn, Reason: m.reason, Mulligans: m.cfg.Mulligans,
+		Format: Format(m.cfg.Format), StartingLife: m.cfg.StartingLife, Commanders: m.cfg.Commanders}
 }
 
 // defaultSeats is PL-14: one bot per seat, seeded from the match seed.
