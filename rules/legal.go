@@ -228,7 +228,8 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 					continue
 				}
 				out = append(out, decision.Option{Index: len(out), Kind: "ability",
-					Label: f.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i})
+					Label: f.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i,
+					Grant: e.abilityGrant(id, ab)})
 			}
 		}
 	}
@@ -335,4 +336,111 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
 		e.beginCast(in.Player, opt)
 	}
+}
+
+// abilityGrant builds the server-side decision.Grant no-op flag for an
+// activated ability ab on the permanent id (the option's Obj), only when the
+// ability's whole effect is a pure, idempotent keyword grant. It returns nil
+// for every other ability, so an additive or non-grant activation is never
+// mistaken for a repeatable no-op. For a pure keyword grant it sets the two
+// independent redundant halves the bot policy's no-op rule (A1) reads:
+// Already (the granting permanent currently has every granted keyword, so
+// the grant is already in effect) and Duplicate (an identical grant from the
+// same source is already on the stack unresolved).
+func (e *Engine) abilityGrant(id state.ObjID, ab *cards.SA) *decision.Grant {
+	kw := pureGrantKeywords(ab)
+	if len(kw) == 0 {
+		return nil
+	}
+	g := &decision.Grant{Keywords: kw}
+	all := true
+	for _, k := range kw {
+		if !e.HasKeyword(id, k) {
+			all = false
+			break
+		}
+	}
+	g.Already = all
+	g.Duplicate = e.grantPending(id, kw)
+	return g
+}
+
+// pureGrantKeywords returns the keywords an SA grants when its whole effect
+// is a pure, idempotent keyword grant -- an ability (in practice a Pump or
+// PumpAll) that adds only keywords (a non-empty KW$) and no additive
+// component (no NumAtt/NumDef stat change, no counters, no damage, no
+// draw). nil means the activation is not such a grant, so it stacks and must
+// never be treated as a no-op. This is the engine-side definition of
+// "idempotent keyword grant" the decision.Grant flag is built from.
+func pureGrantKeywords(ab *cards.SA) []string {
+	if ab == nil || (ab.API != "Pump" && ab.API != "PumpAll") {
+		return nil
+	}
+	if _, att := ab.Params["NumAtt"]; att {
+		return nil
+	}
+	if _, def := ab.Params["NumDef"]; def {
+		return nil
+	}
+	return grantKeywords(ab.Params["KW"])
+}
+
+// grantKeywords splits a KW$ parameter's "&"-joined keyword list into
+// head-stripped words (the same separator effects' splitKeywords uses,
+// re-expressed here because this package cannot import effects).
+func grantKeywords(kw string) []string {
+	kw = strings.TrimSpace(kw)
+	if kw == "" {
+		return nil
+	}
+	parts := strings.Split(kw, "&")
+	var out []string
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		out = append(out, cards.KeywordHead(p))
+	}
+	return out
+}
+
+// grantPending reports whether an identical keyword grant (the same granted
+// keyword set) from the same source permanent id is already on the stack
+// unresolved. It walks the shared stack order -- never a map -- and matches
+// an ability object whose Source is id and whose own whole effect is the
+// same pure keyword grant, so a stack spell, a trigger, or an additive
+// activation from id never counts as a duplicate of an idempotent grant.
+func (e *Engine) grantPending(id state.ObjID, kw []string) bool {
+	for _, oid := range e.G.Zone(state.ZStack, 0) {
+		o := e.G.Obj(oid)
+		if o == nil || o.Source != id {
+			continue
+		}
+		if grantSetsEqual(pureGrantKeywords(o.Ability), kw) {
+			return true
+		}
+	}
+	return false
+}
+
+// grantSetsEqual reports whether two granted keyword sets are the same,
+// order-independently and case-insensitively.
+func grantSetsEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for _, x := range a {
+		found := false
+		for _, y := range b {
+			if strings.EqualFold(x, y) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }

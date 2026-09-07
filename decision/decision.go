@@ -129,6 +129,41 @@ type Option struct {
 	// options carry no field, and on an ability option a missing field is
 	// index 0 (the first ability), the one value that omits.
 	Ability int `json:"ability,omitempty"`
+	// Grant is server-side only (json:"-") and present only on an "ability"
+	// option whose whole activation is a PURE, IDEMPOTENT keyword grant (the
+	// ability adds one or more keywords and nothing additive -- no
+	// power/toughness change, no counters, no damage, no draw). It is what
+	// lets the bot policy's no-op rule (A1) tell a keyword grant that can
+	// gain nothing (already in effect, or an identical one already pending
+	// from the same source) from an additive ability that genuinely stacks
+	// and must stay freely repeatable. It is filled by rules/legal.go from
+	// the engine's own derived-keyword facts and the stack -- a human
+	// client never sees it, so it is never on the wire.
+	Grant *Grant `json:"-"`
+}
+
+// Grant describes the idempotent keyword grant of one "ability" option
+// (decision.Option.Grant, server-side only). A nil Grant on an ability
+// means the activation is NOT a pure keyword grant -- it has an additive
+// component (a stat change, a counter, damage, a draw) or is not a keyword
+// grant at all -- and such abilities always stack, so they are never a
+// no-op. Only a non-nil Grant can be redundant, and it is redundant exactly
+// when a granted keyword is already in effect on the granting permanent
+// (Already) or an identical grant from the same source is already on the
+// stack unresolved (Duplicate) -- the two independent halves of "does
+// activating this again change anything".
+type Grant struct {
+	// Keywords are the keywords this activation adds, in the ability's own
+	// KW$ order.
+	Keywords []string
+	// Already is true when the granting permanent already has every keyword
+	// in Keywords -- the grant is already in effect from an earlier
+	// resolution this turn, so activating it again changes nothing.
+	Already bool
+	// Duplicate is true when an identical activation from the same source
+	// (same granted keywords) is already on the stack unresolved, so
+	// resolving another copy would not add the keyword a second time.
+	Duplicate bool
 }
 
 // TargetEffect describes only the active SA being targeted, not its parent,
