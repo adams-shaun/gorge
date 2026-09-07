@@ -28,6 +28,27 @@ import (
 type ManaProduction struct {
 	Colour [6]int32 `json:"colour"`
 	Any    bool     `json:"any"`
+	// Indeterminate reports that at least one mana ability on the face
+	// carries a non-literal Amount$ ("X", "Y", "UrzaAmount", a Count$
+	// expression, "Sacrificed$...") whose value the projection cannot
+	// statically price. Such an ability yields no amount the pool is
+	// guaranteed to receive -- the executor's Num (effects/count.go)
+	// resolves it to an SVar/count/X that is zero on a plain tap-for-mana
+	// activation or unknown at projection time -- so the collector claims
+	// no colour slot from it (every contribution is zero). The flag is what
+	// lets a policy distinguish "this source produces mana I can count on"
+	// from "this source might produce something"; chooseTap must never
+	// PREFER an indeterminate source over one that demonstrably produces.
+	// Indeterminate is a statement about the AMOUNT, orthogonal to Any,
+	// which is a statement about the PRODUCED colour choice.
+	//
+	// It is a server-only field: the bot policy reads it, but it must not
+	// ride the human wire (CardView) -- no web component consumes
+	// CardView.produces at all, so surfacing it as `indeterminate?: boolean`
+	// in protocol.ts is dead payload on every card view. json:"-" keeps it
+	// out of tsgen's jsonName (internal/tsgen/tsgen.go) while the Go field
+	// stays for the two adapters and the policy that reads it.
+	Indeterminate bool `json:"-"`
 }
 
 // manaProductionForm normalises Produced$ exactly as effMana does. Like
@@ -36,24 +57,34 @@ type ManaProduction struct {
 // once per mana ability creates needless garbage on every projected board.
 var manaProductionForm = strings.NewReplacer("{", "", "}", "", " ", "")
 
-// manaAbilityAmount is the Amount$ a mana ability produces: a literal integer
-// when present, else 1 (effMana's own default). A non-literal Amount (an SVar
-// expression such as "{X}") is not statically known; the collector defaults it
-// to 1 rather than guess a count the pool will not receive. Negative values
-// are clamped to 0, matching effMana's T14-f clamp.
-func manaAbilityAmount(a *SA) int32 {
+// manaAbilityAmount is the Amount$ a mana ability produces. It returns the
+// amount and whether the amount is known at projection time:
+//
+//   - a blank Amount is the executor's own default of 1 (Num's def), known;
+//   - a literal integer is used directly, known (negative clamped to 0,
+//     effMana's T14-f clamp);
+//   - anything else ("X", "Y", "UrzaAmount", a Count$ expression,
+//     "Sacrificed$...") is a value the projection cannot price -- the
+//     executor's Num resolves it through the SVar/count/$X machinery to a
+//     count the collector has no game context for -- so it is returned
+//     as (0, false): NOT a guaranteed amount. The collector must not
+//     record a source as producing mana the pool will never be promised.
+//
+// The contract mirrors effMana exactly in the cases that are statically
+// decidable (blank -> 1, literal -> literal) and diverges only where effMana
+// would need a live game, where claiming a count would be a lie.
+func manaAbilityAmount(a *SA) (int32, bool) {
 	raw := strings.TrimSpace(a.Params["Amount"])
 	if raw == "" {
-		return 1
+		return 1, true
 	}
-	amt := int32(1)
 	if v, err := strconv.Atoi(raw); err == nil {
-		amt = int32(v)
+		if v < 0 {
+			v = 0
+		}
+		return int32(v), true
 	}
-	if amt < 0 {
-		amt = 0
-	}
-	return amt
+	return 0, false
 }
 
 // add folds one mana ability's production into the collector. It mirrors
@@ -63,7 +94,15 @@ func manaAbilityAmount(a *SA) int32 {
 // their script-level choice is not modelled, even where effMana's degenerate
 // rune walk happens to emit a listed colour.
 func (mp *ManaProduction) add(a *SA) {
-	amt := manaAbilityAmount(a)
+	amt, known := manaAbilityAmount(a)
+	if !known {
+		// The amount this ability would add is not statically known, so it
+		// contributes nothing to the guaranteed-production counts the policy
+		// relies on; the Indeterminate flag carries that it might produce
+		// something. Keep off the wire-claim path: an unknown-amplitude
+		// source must never make ProducesColour true.
+		mp.Indeterminate = true
+	}
 	raw := strings.TrimSpace(a.Params["Produced"])
 	if raw == "" || raw == "Any" || raw == "Combo Any" {
 		raw = "C"
@@ -73,7 +112,7 @@ func (mp *ManaProduction) add(a *SA) {
 	for _, r := range s {
 		switch r {
 		case 'W':
-			mp.Colour[0] += amt
+			mp.Colour[0] += amt // amt is 0 for an indeterminate amount
 		case 'U':
 			mp.Colour[1] += amt
 		case 'B':

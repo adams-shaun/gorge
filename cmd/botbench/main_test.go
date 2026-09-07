@@ -631,11 +631,11 @@ var winRe = regexp.MustCompile(`winner=([^\s]+)`)
 
 // TestConstructedDefaultIsByteIdentical pins Part A's non-negotiable: the
 // default constructed path must produce today's exact numbers for a fixed
-// seed (the historical 14/6 split at seed 0, games 20), and the Config the
+// seed (the 15/5 split at seed 0, games 20), and the Config the
 // default builds must carry NO commander settings -- a mutation that made
 // the default path apply commander life/command-zone settings would move
-// the seat split and fail here. The 14/6 is asserted directly (not just
-// determinism) because this bench's historical numbers are quoted.
+// the seat split and fail here. The 15/5 is asserted directly (not just
+// determinism) because this bench's numbers are quoted as a golden.
 func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	dir := corpusDirOrSkip(t)
 
@@ -653,10 +653,12 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	if m == nil {
 		t.Fatalf("summary block missing:\n%s", buf.String())
 	}
-	// seat 0 wins: 14, seat 1 wins: 6 -- the historical split at this seed
-	// (groups 8, 9). Any change to the default bench makes these move.
-	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != 14 || seat1 != 6 {
-		t.Errorf("constructed default split = %d/%d, want the historical 14/6", seat0, seat1)
+	// seat 0 wins: 15, seat 1 wins: 5 -- the split at this seed (groups 8, 9)
+	// since the colour-aware land drop (chooseLand ranks colour coverage
+	// first) changed seat 0's land sequencing. Any change to the default
+	// bench makes these move.
+	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != 15 || seat1 != 5 {
+		t.Errorf("constructed default split = %d/%d, want 15/5", seat0, seat1)
 	}
 	if strings.Contains(buf.String(), "STALLED") {
 		t.Errorf("constructed default (no stalls) must not print a stall line")

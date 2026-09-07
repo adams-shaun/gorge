@@ -211,14 +211,15 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				continue
 			}
 			b.Cards[id] = Card{
-				Creature:   f.IsCreature(),
-				Power:      ch.Power(id),
-				CMC:        CmcOf(f.ManaCost),
-				Basic:      hasTypeWord(f.Types, "Basic"),
-				AttachedTo: o.AttachedTo,
-				ManaCost:   f.ManaCost,
-				Castable:   z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(ch.Keywords(id))),
-				Produces:   f.ManaProduction(),
+				Creature:      f.IsCreature(),
+				Power:         ch.Power(id),
+				CMC:           CmcOf(f.ManaCost),
+				Basic:         hasTypeWord(f.Types, "Basic"),
+				AttachedTo:    o.AttachedTo,
+				ManaCost:      f.ManaCost,
+				Castable:      z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(ch.Keywords(id))),
+				OnBattlefield: z == state.ZBattlefield,
+				Produces:      f.ManaProduction(),
 			}
 		}
 	}
