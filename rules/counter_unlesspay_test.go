@@ -156,42 +156,33 @@ func TestCounterUnlessCostEmptyPoolCannotPayAndCounters(t *testing.T) {
 // is posed and the test fails at that check.
 func TestCounterWithSubAbilityRunsChainExactlyOnce(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	e, _, bearID := counterFixture(t, reg, "Runeboggle", "Grizzly Bears")
-
-	var pay *decision.Decision
-	for i := 0; i < 30 && len(e.G.Stack) > 0; i++ {
-		d := e.Pending()
-		if d == nil {
-			t.Fatalf("no pending decision while the stack is non-empty")
-		}
-		if d.Kind == decision.KModes {
-			pay = d
-			break
-		}
-		if d.Kind == decision.KPriority {
-			castFirst(t, e, "pass")
-			continue
-		}
-		t.Fatalf("unexpected decision %+v", d)
-	}
-	if pay == nil {
-		t.Fatalf("no unless_pay ask posed for Runeboggle")
-	}
-	// Baseline: the log already carries the opening-hand draws (7 per seat),
-	// so the SubAbility metric is the DELTA across this resolution, not the
-	// absolute count.
-	baseline := countDraw(e)
-	// On the suspended first pass the SubAbility (DBDraw) must NOT have run.
-	if got := countDraw(e); got != baseline {
-		t.Fatalf("draw grew from %d to %d before the pay was answered — SubAbility ran on the suspended pass", baseline, got)
-	}
-	// Decline: the spell is countered and the draw happens once.
-	submitChoices(t, e, pay.Options[1].Index)
-	passUntilStackEmpty(t, e, 20)
-	if got := countDraw(e); got != baseline+1 {
-		t.Fatalf("SubAbility (draw) ran %d times, want exactly 1 (baseline %d)", got-baseline, baseline)
-	}
-	if z := e.G.Obj(bearID).Zone; z != state.ZGraveyard {
-		t.Fatalf("declined spell zone = %s, want Graveyard", z)
+	for _, branch := range []string{"decline", "pay"} {
+		t.Run(branch, func(t *testing.T) {
+			e, _, bearID := counterFixture(t, reg, "Runeboggle", "Grizzly Bears")
+			// Capture BEFORE resolution, not after the suspended pass.
+			pre := countDraw(e)
+			pay := drainUntilUnlessPay(t, e, 30)
+			if pay == nil {
+				t.Fatal("no unless_pay ask posed for Runeboggle")
+			}
+			suspended := countDraw(e)
+			if suspended != pre {
+				t.Fatalf("suspended draw count = %d, want %d", suspended, pre)
+			}
+			choice, wantZone := 1, state.ZGraveyard
+			if branch == "pay" {
+				choice, wantZone = 0, state.ZBattlefield
+			}
+			submitChoices(t, e, pay.Options[choice].Index)
+			passUntilStackEmpty(t, e, 20)
+			after := countDraw(e)
+			t.Logf("draws pre=%d suspended=%d resumed=%d", pre, suspended, after)
+			if after != pre+1 {
+				t.Fatalf("resumed draw count = %d, want %d", after, pre+1)
+			}
+			if z := e.G.Obj(bearID).Zone; z != wantZone {
+				t.Fatalf("%s spell zone = %s, want %s", branch, z, wantZone)
+			}
+		})
 	}
 }
