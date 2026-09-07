@@ -90,3 +90,61 @@ describe('IdentityBar — the commander-damage clock (CR 903.10)', () => {
     expect(names).toEqual(['Isamaru', 'Zur']);
   });
 });
+
+describe('IdentityBar — the active seat is a full perimeter in its OWN colour', () => {
+  it('the active class carries the seat colour var the perimeter/glow rules key off', () => {
+    const html = render(IdentityBar, {
+      props: { player: player(), players: [player()], colour: '#3b82f6', active: true, priority: false, corner: 'bl' },
+    }).html;
+    expect(html).toMatch(/class="identity[^"]*\bactive\b/);
+    expect(html).toContain('--seat:#3b82f6');
+  });
+
+  it('an inactive seat carries no active class, though the same --seat var is still set', () => {
+    const html = render(IdentityBar, {
+      props: { player: player(), players: [player()], colour: '#3b82f6', active: false, priority: false, corner: 'bl' },
+    }).html;
+    expect(html).not.toMatch(/class="identity[^"]*\bactive\b/);
+    expect(html).toContain('--seat:#3b82f6');
+  });
+});
+
+describe('IdentityBar — an eliminated seat (Task 3: "there are 2 dead players, but their health doesn\'t reflect 0")', () => {
+  it('a lost seat reads ELIMINATED, without touching the life number beside it', () => {
+    // life untouched is the point: commander damage, an empty library and a
+    // concession all end a game with life wherever it happened to be
+    const html = bar(player({ life: 39, lost: true }));
+    expect(html).toContain('data-eliminated');
+    expect(html).toContain('>Eliminated<');
+    expect(html).toContain('>39<'); // life is reported exactly as it is, not forced to 0
+  });
+
+  it('a live seat renders no eliminated band at all', () => {
+    const html = bar(player({ life: 39, lost: false }));
+    expect(html).not.toContain('data-eliminated');
+    expect(html).not.toContain('Eliminated');
+  });
+});
+
+describe('IdentityBar — floating mana, in preallocated space (Task 4)', () => {
+  it('the mana row is ALWAYS rendered, even with an empty pool — the space is reserved, not grow-to-fit', () => {
+    const html = bar(player({ pool: {} }));
+    expect(html).toContain('data-mana-row');
+  });
+
+  it('the mana row is rendered even when the pool is a literal null — every non-viewer seat on a public spectator client', () => {
+    const html = bar(player({ pool: null as unknown as Record<string, number> }));
+    expect(html).toContain('data-mana-row');
+    // ManaPool itself draws no chip for a hidden pool — an unknown pool is
+    // not the same claim as an empty one
+    expect(html).not.toContain('data-mana-pool');
+  });
+
+  it('a floating pool renders its chips inside the reserved row', () => {
+    const html = bar(player({ pool: { U: 2, B: 1 } }));
+    expect(html).toContain('data-mana-row');
+    expect(html).toContain('data-mana-pool');
+    expect(html).toContain('data-mana="U"');
+    expect(html).toContain('data-mana="B"');
+  });
+});
