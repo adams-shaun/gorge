@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/state"
 )
 
 // Card is the casting half of the policy's picture of one object the
@@ -14,8 +15,8 @@ import (
 // rules below read, produced identically by boardFromView (off the
 // projected CardViews the seat receives) and BoardFromGame (off
 // state.Game), so a card the policy ranks means the same thing whichever
-// host asked. A field no rule reads would be untested surface; these four
-// are the ones chooseCast and chooseLand branch on.
+// host asked. A field no rule reads would be untested surface; these five
+// are the ones chooseCast, chooseLand and the ability ranking branch on.
 //
 // Power is the engine's derived power (ch.Power), which for a card in a
 // hand or graveyard is its printed power — no continuous effect applies to
@@ -28,6 +29,15 @@ type Card struct {
 	Power    int32
 	CMC      int32
 	Basic    bool
+	// AttachedTo is the permanent this Aura or Equipment is currently
+	// attached to, 0 when unattached (state.ObjID's own zero convention).
+	// It comes straight from state.Object.AttachedTo (and the projected
+	// CardView.AttachedTo, which is that same field) on the two adapter
+	// halves, so A1's equip no-op detection (ability.go) judges a re-attach
+	// identically whichever host asks. Only a battlefield permanent carries
+	// a non-zero AttachedTo; a hand or graveyard card reads 0 on both
+	// halves, which is what lets them stay a plain casting fact.
+	AttachedTo state.ObjID
 }
 
 // braceForm normalises a brace-form mana cost ("{2}{U}{U}") to the

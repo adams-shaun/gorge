@@ -156,10 +156,11 @@ func boardFromView(v view.View) botpolicy.Board {
 		}
 		for _, cv := range append(append(append(append([]view.CardView(nil), p.Hand...), p.Graveyard...), p.Battlefield...), p.Command...) {
 			b.Cards[cv.ID] = botpolicy.Card{
-				Creature: isCreatureView(cv),
-				Power:    cv.Power,
-				CMC:      botpolicy.CmcOf(cv.ManaCost),
-				Basic:    hasBasicView(cv),
+				Creature:   isCreatureView(cv),
+				Power:      cv.Power,
+				CMC:        botpolicy.CmcOf(cv.ManaCost),
+				Basic:      hasBasicView(cv),
+				AttachedTo: cv.AttachedTo,
 			}
 		}
 	}

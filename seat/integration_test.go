@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/botpolicy"
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/rules"
@@ -201,14 +202,110 @@ func TestBotAdaptersAgreeOverCommanderGame(t *testing.T) {
 // is the copy-paste mirror's guarantee (Ruling F7) turned into a measured
 // property of the two real adapter halves over a whole game.
 func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
+	// Scenario 1: the historical SampleDecks(4) whole game -- every decision
+	// of a full four-seat Constructed game. Its decks carry no Aura/Equipment,
+	// so (op3) a second scenario below is what actually exercises Card.
+	// AttachedTo non-zero; this one pins the general two-adapter agreement
+	// over the whole game, including an AttachedTo that stays at 0 on both
+	// halves (the agreement must still hold when the fact is "unattached").
 	names, decks := testutil.SampleDecks(t, 4)
-	cfg := rules.Config{Seed: 0, Names: names, Decks: decks}
+	agreeOverGame(t, names, decks, 0, false)
+
+	// Scenario 2 (op3, the attachment fact): a controlled two-seat game
+	// whose seat-0 deck includes two free Equip:0 Equipments (bareGreavesSrc,
+	// the Lightning Greaves shape) beside lands and creatures, so across the
+	// game the bot casts and equips them onto its own creatures and both
+	// adapter halves genuinely read a non-zero Card.AttachedTo. The plain
+	// SampleDecks above cannot do this (no Aura/Equipment in the lists), so
+	// without this scenario the whole-game agreement on AttachedTo would be
+	// vacuously all-zero and the gate "never fills AttachedTo" would pass for
+	// the wrong reason. agreeOverGame fails on any divergence between the two
+	// halves AND asserts the field actually went non-zero (wantAttached).
+	names2, decks2 := equippingDeck(t)
+	agreeOverGame(t, names2, decks2, 3, true)
+}
+
+// TestOp3Seed13GreavesLoopTerminates is the measured op3 regression test: a
+// whole two-seat game of foundations-keen-engineering (seat 0) vs
+// mono-red-goblins (seat 1) at engine seed 13 must TERMINATE. Before the
+// fix-round-2 A1 (botpolicy/ability.go) this exact game froze: from turn 25,
+// a free Lightning Greaves Equip re-attached the equipment onto the creature
+// it already carried at every main-phase priority — byte-stable, to the
+// bench's -max-intents cap. The fix reads the attachment state (AttachedTo)
+// instead of predicting the target, so the re-attach is declined and the
+// game ends (measured: over=true turn=35). Names, deck order, bot seeds and
+// the intent cap reproduce the cmd/botbench pair exactly: seat k's bot is
+// seeded seed^(k+1) (cmd/botbench's playMatch wiring),
+// foundations-keen-engineering is dealt as a constructed pile (the bench's
+// default -format constructed), and 20000 is the bench's default
+// -max-intents — the cap the broken build reached before recording the
+// stall.
+func TestOp3Seed13GreavesLoopTerminates(t *testing.T) {
+	reg := testutil.CorpusRegistry(t) // skips without a corpus, like the repo-deck tests in rules/
+	names := []string{"foundations-keen-engineering", "mono-red-goblins"}
+	e := rules.New(rules.Config{Seed: 13, Names: names,
+		Decks:  [][]*cards.Card{testutil.RepoDeck(t, reg, names[0]), testutil.RepoDeck(t, reg, names[1])},
+		Tokens: reg.Tokens})
+	e.Advance()
+	bots := []*Bot{NewBot(13 ^ 1), NewBot(13 ^ 2)}
+	n := 0
+	for !e.G.Over && e.Pending() != nil && n < 20000 {
+		d := e.Pending()
+		in, err := bots[d.Player].Decide(context.Background(), view.Project(e.G, e, d.Player, d), *d)
+		if err != nil {
+			t.Fatalf("intent %d: Decide: %v", n, err)
+		}
+		if err := e.Submit(in); err != nil {
+			t.Fatalf("intent %d: Submit: %v", n, err)
+		}
+		n++
+	}
+	if !e.G.Over {
+		t.Fatalf("seed 13 did not terminate: %d intents at turn %d — the Lightning Greaves re-attach loop is back", n, e.G.Turn)
+	}
+	t.Logf("seed 13: over=true turn=%d intents=%d", e.G.Turn, n)
+}
+
+// equippingDeck returns the (names, decks) of scenario 2, whose seat-0 list
+// forces an Equipment attach across a whole game so the attachment fact is
+// genuinely exercised (see TestBotAdaptersAgreeOverWholeGame). Seat 1 is
+// pure lands and never threatening, so seat 0's equip actually resolves
+// instead of the game ending first.
+func equippingDeck(t testing.TB) ([]string, [][]*cards.Card) {
+	greaves := parseTestCard(t, bareGreavesSrc)
+	bear := parseTestCard(t, "Name:Bear\nManaCost:1\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	island := parseTestCard(t, "Name:Island\nTypes:Basic Land Island\nOracle:x\n")
+	mountain := parseTestCard(t, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n")
+	var d0, d1 []*cards.Card
+	for i := 0; i < 30; i++ {
+		d0 = append(d0, island)
+		d1 = append(d1, mountain)
+	}
+	for i := 0; i < 4; i++ {
+		d0 = append(d0, bear)
+	}
+	d0 = append(d0, greaves, greaves)
+	return []string{"a", "b"}, [][]*cards.Card{d0, d1}
+}
+
+// agreeOverGame drives one whole game through BOTH adapter halves -- the
+// view-shaped half (seat/Bot.Decide off a projected View, exactly like a real
+// client) and the game-shaped half (botpolicy.BoardFromGame + Decide, like
+// the rules test host) -- and demands they agree on every intent, every
+// Card in the casting census (which since op3 includes AttachedTo), and the
+// final chain head. wantAttached additionally requires that at least one
+// decision carried a non-zero Card.AttachedTo, so a deck-set that never
+// attaches the two halves can not pass the AttachedTo agreement vacuously.
+func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uint64, wantAttached bool) {
+	t.Helper()
+	cfg := rules.Config{Seed: seed, Names: names, Decks: decks}
 	eView := rules.New(cfg)
 	eGame := rules.New(cfg)
 	eView.Advance()
 	eGame.Advance()
 	botView := NewBot(7)
 	botGame := rand.New(rand.NewPCG(7, 7^0x9e3779b97f4a7c15))
+	attachedN := 0
 	n := 0
 	for !eView.G.Over && !eGame.G.Over && eView.Pending() != nil && eGame.Pending() != nil && n < 200000 {
 		d := eView.Pending()
@@ -229,9 +326,25 @@ func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
 		// intents below (which would catch a divergence only when a ranking
 		// actually flips a choice): a Cards map one half fills and the other
 		// leaves zero is a bot that casts differently depending on who asked.
+		// Since op3 the comparison also covers Card.AttachedTo (the A1
+		// attachment fact): boardFromView fills it off CardView.AttachedTo,
+		// BoardFromGame off state.Object.AttachedTo, so a divergence here is
+		// the two adapters reading different attachment facts.
 		boardView := boardFromView(view.Project(eView.G, eView, d.Player, d))
 		if !maps.Equal(boardView.Cards, boardGame.Cards) {
 			t.Fatalf("intent %d: casting Card census diverged: view %v vs game %v (step %s)", n, boardView.Cards, boardGame.Cards, eGame.G.Step)
+		}
+		// op3 (A1, the attachment fact): an AttachedTo divergence is the
+		// adapters reading different facts, and the non-zero count besides
+		// proves the field actually BOTHERS to run rather than staying at 0
+		// on both halves by luck (the wantAttached assertion below).
+		for id, cv := range boardView.Cards {
+			if cv.AttachedTo != 0 {
+				if boardGame.Cards[id].AttachedTo != cv.AttachedTo {
+					t.Fatalf("intent %d: AttachedTo diverged for %d: view %d, game %d (step %s)", n, id, cv.AttachedTo, boardGame.Cards[id].AttachedTo, eGame.G.Step)
+				}
+				attachedN++
+			}
 		}
 		inGame := botpolicy.Decide(boardGame, eGame.Pending(), botGame)
 		if inView.Seq != inGame.Seq || inView.Player != inGame.Player || !slices.Equal(inView.Choices, inGame.Choices) {
@@ -248,7 +361,37 @@ func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
 	if !eView.G.Over || !eGame.G.Over {
 		t.Fatalf("game did not terminate after %d intents (view over=%v, game over=%v)", n, eView.G.Over, eGame.G.Over)
 	}
+	if wantAttached && attachedN == 0 {
+		t.Fatal("no decision ever carried a non-zero AttachedTo on Card -- the attachment fact was never exercised over the whole game")
+	}
 	if h1, h2 := eView.L.Head(), eGame.L.Head(); h1 != h2 {
 		t.Fatalf("chains diverged: view %s, game %s", h1, h2)
 	}
+}
+
+// bareGreavesSrc is a free Equip:0 Equipment, the op3 hang's own shape
+// (Lightning Greaves), authored inline so the adapter-agreement test drives
+// a real non-zero AttachedTo without a corpus fixture.
+const bareGreavesSrc = `Name:Bare Greaves
+ManaCost:0
+Types:Artifact Equipment
+K:Equip:0
+Oracle:x
+`
+
+// parseTestCard is the seat package's re-authoring of testutil.parseCard
+// (which is unexported there): parse the inline card source, link its
+// SVar/trigger chain, and apply the intrinsics the corpus assumes (basic
+// land mana etc.), so a test can hand the engine a bespoke Equipment.
+func parseTestCard(t testing.TB, src string) *cards.Card {
+	t.Helper()
+	c, diags := cards.ParseBytes("integration_test.txt", []byte(src))
+	if len(diags) != 0 {
+		t.Fatalf("parseTestCard: %v", diags)
+	}
+	c.Link()
+	for _, f := range c.Faces {
+		f.ApplyIntrinsics()
+	}
+	return c
 }
