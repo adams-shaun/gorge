@@ -4,7 +4,7 @@
   import CardStack from './CardStack.svelte';
   import CommandArea from './CommandArea.svelte';
 
-  /** Quadrant shows one player's battlefield, split into the three rows board.ts groups it into, plus the seat's command area at its own rim (CommandArea, which draws nothing at all for a seat with no commander roster). It has no rules knowledge: grouping and ordering come entirely from groupBattlefield; stackIdentical then collapses interchangeable permanents within a row into one tile with a count (CardStack renders the group). Attachments still come from attachedTo for a group of one — a stacked group has none by the stacking rule. `stack` is passed through to the command area only: a commander mid-cast is a spell on the stack, not in any zone list. */
+  /** Quadrant shows one player's battlefield, split into the three rows board.ts groups it into. It has no rules knowledge: grouping and ordering come entirely from groupBattlefield; stackIdentical then collapses interchangeable permanents within a row into one tile with a count (CardStack renders the group). Attachments still come from attachedTo for a group of one — a stacked group has none by the stacking rule. The seat's command zone (CommandArea) draws directly into the creatures row, at creature scale, alongside the CardStacks — not into a private area of its own (CZ2); it draws nothing at all for a seat with no commander roster. `stack` is passed through to it alone: a commander mid-cast is a spell on the stack, not in any zone list. */
   let { player, colour, corner = 'bl', stack = [] }: { player: PlayerView; colour: string; corner?: 'tl' | 'tr' | 'bl' | 'br' | 'l' | 'r'; stack?: StackView[] } = $props();
 
   const battlefieldGroups = $derived(groupBattlefield(player.battlefield));
@@ -29,10 +29,16 @@
   const FACING: Record<string, string> = { tl: 'facing-down', tr: 'facing-down', bl: 'facing-up', br: 'facing-up', l: 'facing-side', r: 'facing-side' };
 </script>
 
-<div class="quadrant rule-{OUTER[corner]} {FACING[corner]}" style:--seat={colour}>
+<div class="quadrant rule-{OUTER[corner]} {FACING[corner]}" class:lost={player.lost} style:--seat={colour} data-seat={player.seat} data-lost={player.lost}>
   <!-- Nonlands above, lands below (survey #22), so a board stays parseable as
-       it grows and the row a combat is read from is always in the same place. -->
+       it grows and the row a combat is read from is always in the same place.
+       The seat's commanders draw first in the creatures row (CZ2): a
+       commander is a creature, so it takes the row's own --card-w rather
+       than a scale of its own, and it sits beside the CardStacks it competes
+       with in combat instead of in a private area elsewhere on the seat's
+       rim. Nothing is drawn here for a seat with no commander roster. -->
   <div class="row creatures">
+    <CommandArea {player} {stack} />
     {#each stacks.creatures as g (g.key)}
       <CardStack group={g} attachments={g.cards.length === 1 ? attachedTo(player.battlefield, g.cards[0].id) : []} />
     {/each}
@@ -47,11 +53,6 @@
       <CardStack group={g} attachments={g.cards.length === 1 ? attachedTo(player.battlefield, g.cards[0].id) : []} />
     {/each}
   </div>
-  <!-- The seat's own command zone, at the seat's own rim: last in the column
-       so the auto margin below can park it against that rim, and outside the
-       three rows so it can never displace one. Nothing is drawn for a seat
-       with no roster. -->
-  <CommandArea {player} {stack} {corner} />
 </div>
 
 <style>
@@ -62,6 +63,7 @@
    * says the same thing. Same vocabulary as the identity bar and life grid.
    */
   .quadrant {
+    position: relative;
     box-sizing: border-box;
     width: 100%;
     height: 100%;
@@ -72,6 +74,33 @@
     gap: var(--sp-3);
     overflow: auto;
     overscroll-behavior: contain;
+  }
+  /* An eliminated seat's whole quadrant reads as greyed out (survey report:
+     "there are 2 dead players, but their health doesn't reflect 0" — the fix
+     is NOT forcing life to 0, which would be a lie for a commander-damage or
+     empty-library loss; it is making the board itself say "this seat is
+     done"). The scrim is a `::after` overlay rather than `filter`/`opacity`
+     on `.quadrant` itself: `filter` (like `transform`) would make `.quadrant`
+     a containing block for any `position: fixed` descendant, and CardDetail
+     — the hover inspector every commander tile and card tile opens — is
+     exactly that, nested three components deep inside these rows. Greying
+     the ANCESTOR would silently drag the inspector's popup off the viewport
+     and grey it too, breaking "a spectator still wants to see what they
+     had" the moment they hover a dead seat's card. A `::after` with
+     `backdrop-filter` dims and desaturates only what is painted BELOW it —
+     the felt and the cards — while an inspector popup, painted above it at
+     CardDetail's own z-index 6, is completely unaffected: full colour, and
+     positioned by the viewport exactly as it always was. `pointer-events:
+     none` keeps every card underneath fully hoverable and focusable through
+     the scrim, so nothing here makes a dead seat's board uninspectable. */
+  .quadrant.lost::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: color-mix(in srgb, var(--felt-sunk) 62%, transparent);
+    backdrop-filter: grayscale(0.9) brightness(0.62);
   }
   /* Seats along the top of the table read from their own rim inward, so the
      column runs the other way and packs against the seam. */
@@ -89,54 +118,6 @@
     flex-direction: column;
     justify-content: flex-end;
     padding-top: var(--sp-8);
-  }
-
-  /* The command area parks against the seat's own RIM, at the far end of the
-     column from the seam the rows pack against. Which margin does that
-     depends on which way this seat's column runs, so the rule lives here
-     beside the flex-direction it depends on rather than in CommandArea:
-     auto absorbs the whole gap between the last row and the area, so the
-     area is at the rim whenever there is room and simply follows the rows
-     into the quadrant's own scroll when there is not. Either way it takes no
-     space from a row and moves none of them.
-
-     facing-side packs its rows at the BOTTOM (justify-content: flex-end)
-     while the seat's plate and free band are at the top, so there the area
-     is ordered ahead of the rows and the auto margin pushes the rows away
-     from it instead.
-
-     The negative margin on the rim side gives the area the rim padding back.
-     That padding keeps PERMANENTS off the corner the identity plate floats
-     over; the command zone is the seat's own furniture, at the far end of
-     that same band, and it belongs at the table's edge like the plate. It
-     also buys back 32px: without it a four-seat commander quadrant measured
-     254px of content in a 244px box at 1280x748 and scrolled with an empty
-     board.
-
-     Sticky at that same rim edge. A four-seat quadrant is 246px tall at
-     1280x748 and one creature row is 145px, so a real Commander board
-     already overflows and this box already scrolls; without the pin the
-     command zone would scroll off the table exactly when the table is
-     busiest, and the whole point of drawing it is that an opponent's
-     commander can be read at any time. */
-  .facing-up > :global(.command-area) {
-    margin-top: auto;
-    margin-bottom: calc(var(--sp-8) * -1);
-    position: sticky;
-    bottom: 0;
-  }
-  .facing-down > :global(.command-area) {
-    margin-bottom: auto;
-    margin-top: calc(var(--sp-8) * -1);
-    position: sticky;
-    top: 0;
-  }
-  .facing-side > :global(.command-area) {
-    order: -1;
-    margin-bottom: auto;
-    margin-top: calc(var(--sp-8) * -1);
-    position: sticky;
-    top: 0;
   }
 
   .rule-top { border-top: 2px solid var(--seat); }
