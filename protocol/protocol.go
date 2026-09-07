@@ -102,6 +102,11 @@ type TableInfo struct {
 	State     string `json:"state"`
 	Match     int    `json:"match"`
 	Perpetual bool   `json:"perpetual"`
+	// Format is the table's construction format, "constructed" or
+	// "commander" (host.Format.String()). Always emitted: the zero
+	// Format is "constructed", a real value, so an omitted field
+	// would be indistinguishable from it.
+	Format string `json:"format"`
 }
 
 // Widget is the overview cell: enough to draw a 2x2 life grid, a turn

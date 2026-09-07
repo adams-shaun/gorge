@@ -15,7 +15,8 @@
         "spectator": "omniscient",
         "state": "live",
         "match": 7,
-        "perpetual": true
+        "perpetual": true,
+        "format": "commander"
       }
     ]
   }
