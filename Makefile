@@ -44,6 +44,7 @@ help:
 	@echo "  make sim            — build mtgsim and play 20 verified 4-seat games"
 	@echo "  make gorged         — run the M2a table server (browser client at the addr)"
 	@echo "  make deploy-demo    — rebuild and (re)serve the demo on :8080 public / :8081 omniscient"
+	@echo "                        (PACE=1.5s / TABLES / SEATS / FORMATS / SEED override the defaults)"
 	@echo "  make stop-demo      — stop every running gorged, start nothing"
 	@echo "  make gentypes       — regenerate web/src/protocol.ts from package protocol"
 	@echo "  make web            — npm ci and build the spectator client into cmd/gorged/webdist"
