@@ -183,6 +183,28 @@ func TestPlayLandBasicOverNonbasic(t *testing.T) {
 	}
 }
 
+// TestChooseLandColourAware is L1's bl1 fix: the land drop is colour-aware
+// instead of preferring basics by category. A hand that needs {U} holds a
+// basic Plains (white) and a basic Island (blue); the blind basic-first rule
+// plays whichever basic is offered first (here the Plains at index 0), a
+// colour-blind drop, and the hand never gets the blue it needs. The fix
+// ranks a land by how much of the hand's unmet colour need it covers, so the
+// Island is played. Index 1 is blue (U); index 0 white (W).
+func TestChooseLandColourAware(t *testing.T) {
+	b := priorityCards(map[state.ObjID]Card{
+		1:  {CMC: 1, ManaCost: "U", Castable: true},    // a one-blue spell in hand
+		10: {Basic: true, Produces: prod(state.MW, 1)}, // a Plains (white), offered first
+		11: {Basic: true, Produces: prod(state.MU, 1)}, // an Island (blue), offered second
+	})
+	got, d := castDecision(b, []decision.Option{
+		playLand(0, 10), // the wrong-colour basic, listed first
+		playLand(1, 11), // the blue Island, listed second
+	})
+	if d.Options[got].Obj != 11 {
+		t.Fatalf("land drop = obj %d (option %d), want the blue Island (obj 11) the hand's {U} needs, not the basic-first Plains", d.Options[got].Obj, got)
+	}
+}
+
 // TestLandBeforeSpell is G0: with a land and a cast both offered and nothing
 // to tap for mana, the land drop is taken first -- it is free, unconditional
 // and only raises the mana ceiling for the rest of the turn, so it weakly

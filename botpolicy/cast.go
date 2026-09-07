@@ -68,6 +68,19 @@ type Card struct {
 	// zone lists; the engine's zone walk plus the derived keyword list), so
 	// the gate sees the same castability whichever host asks.
 	Castable bool
+	// OnBattlefield reports whether this object is currently a permanent on
+	// a battlefield (the deciding seat's own). It is the zone signal the
+	// casting Card census carries but Castable does not: a graveyard card
+	// is also not "castable" without Flashback, and a battlefield permanent
+	// is never castable, so Castable alone cannot tell a live mana source
+	// from a spent one. chooseLand (and the availability fold behind it)
+	// reads OnBattlefield to know which cards are actually producing mana
+	// on the battlefield, so a land drop is aimed at a colour the hand
+	// still lacks rather than one a permanent already supplies. Both
+	// adapter halves fill it from the same zone-membership source (the
+	// projected battlefield list on the view half; the ZBattlefield zone
+	// walk on the game half), so the two agree.
+	OnBattlefield bool
 	// Produces is what this card's mana abilities add to the pool when a
 	// tap-for-mana activation runs them (cards.ManaProduction, plain data
 	// -- botpolicy must not import view or rules, Ruling F7). It is filled
@@ -76,8 +89,8 @@ type Card struct {
 	// game half -- so the tap heuristic reads the same production whichever
 	// host asks. It lets chooseTap pick a source that produces a colour a cast
 	// needs and spend the least flexible one first. It also describes a land
-	// card while it is still in hand, so a future land-drop ranking can use the
-	// same fact.
+	// card while it is still in hand, and it is the fact the land-drop ranking
+	// (chooseLand) reads to pick a land in the colour the hand still needs.
 	Produces cards.ManaProduction
 }
 
@@ -263,30 +276,120 @@ func (b Board) chooseCast(d *decision.Decision) int {
 	return best
 }
 
+// colourNeed is the aggregate coloured-pip demand of the seat's castable
+// non-land cards -- the colours the hand wants to be able to pay this turn.
+// It is the land-drop greedy's "what the hand wants to cast" side, expressed
+// as per-colour pip counts so a land producing a wanted colour lands where
+// the shortfall is. A card the seat cannot cast (a battlefield permanent, a
+// non-Flashback graveyard card) contributes nothing: a land drop cannot
+// enable it. A land (CMC 0) contributes nothing -- it has no pips.
+func (b Board) colourNeed() [5]int32 {
+	var need [5]int32
+	for _, c := range b.Cards {
+		if !c.Castable || c.CMC <= 0 {
+			continue
+		}
+		pips := colourPips(c.ManaCost)
+		for i := 0; i < 5; i++ {
+			need[i] += pips[i]
+		}
+	}
+	return need
+}
+
+// availableColours is the coloured mana the seat can already rely on: the
+// current pool plus the guaranteed production of every source already on the
+// battlefield (OnBattlefield). It is the land-drop greedy's "which colours
+// are already available" side. Only demonstrably-produced colours count: an
+// Any production reports its colourless amount and no colour slot, and an
+// Indeterminate-amount source contributes nothing, so a conditional source
+// never makes a colour look already covered. The candidate lands themselves
+// sit in the hand (OnBattlefield false) and are not counted, so their colour
+// is exactly the marginal value chooseLand scores.
+func (b Board) availableColours() [5]int32 {
+	var avail [5]int32
+	for i := 0; i < 5; i++ {
+		avail[i] = b.Pool[i]
+	}
+	for _, c := range b.Cards {
+		if !c.OnBattlefield {
+			continue
+		}
+		for i := 0; i < 5; i++ {
+			if c.Produces.Colour[i] > 0 {
+				avail[i] += c.Produces.Colour[i]
+			}
+		}
+	}
+	return avail
+}
+
 // chooseLand is the KPriority land-drop ranking: it picks ONE of the
 // offered "play_land" options, or -1 when none is offered.
 //
-//   - L1 (reliable first): a basic land outranks a nonbasic. A basic land
-//     unconditionally produces exactly one coloured mana and never enters
-//     the battlefield tapped nor demands life or a condition; a nonbasic
-//     can carry any of those (enters tapped, pays life, requires a
-//     threshold), and the policy cannot read most of them from the facts
-//     both adapters carry, so the reliable basic is preferred whenever one
-//     is offered. Colour-aware choice is deliberately deferred: it needs
-//     land-entry facts as well as this card's possible production.
-//   - L2 (deterministic tie): two lands of equal basic-ness tie on option
-//     index, so the answer is a pure function of the options plus the one
-//     readable land fact. No rng, no map order.
+//   - L1 (colour-first): a land is ranked by how much of the hand's unmet
+//     colour need it covers. The unmet need (colourNeed minus
+//     availableColours) is the per-colour shortfall the existing mana base
+//     and pool leave; a candidate land's coverage is the amount of that
+//     shortfall its own production fills. A land that produces a colour the
+//     hand still needs outranks one that does not, so a hand needing {U}{U}
+//     keeps an Island rather than a Plains, and a dual feeding a wanted
+//     colour beats a basic of an already-covered one. The greedy is pip-
+//     coverage: it aims the single land drop at the largest colour gap, the
+//     cheap proxy for "the land that unlocks the most castable cards" without
+//     walking the whole hand against the whole mana base per drop.
+//   - L2 (reliability on a tie): two lands of equal colour coverage tie on
+//     basic-ness, the reliable basic winning, because a basic unconditionally
+//     produces its colour and never enters tapped nor demands a condition the
+//     policy cannot read; basic-ness is only ever a tiebreak now, never the
+//     primary criterion. A colourless or non-producing land thus still ranks,
+//     just below any land that covers a real colour.
+//   - L3 (flexibility kept): a tied pair of equally covering, equally basic
+//     lands breaks toward the one with the FEWEST distinct colours -- the
+//     least-flexible is played and the flexible source is kept in hand, the
+//     same "spend the least flexible first" ergonomics the tap gate uses.
+//   - L4 (deterministic tie): two lands still equal (empty coverage, equal
+//     basic-ness, equal flexibility) tie on option index.
+//
+// It consumes no rng and ranges no map: the pick is a pure function of the
+// offered options plus the board facts, so no map iteration order reaches it.
 func (b Board) chooseLand(d *decision.Decision) int {
+	need := b.colourNeed()
+	avail := b.availableColours()
+	var unmet [5]int32
+	for i := 0; i < 5; i++ {
+		unmet[i] = need[i] - avail[i]
+		if unmet[i] < 0 {
+			unmet[i] = 0
+		}
+	}
 	best := -1
+	bestCover := int32(-1)
 	bestBasic := false
+	bestFlex := 0
 	for _, o := range d.Options {
 		if o.Kind != "play_land" {
 			continue
 		}
-		basic := b.Cards[o.Obj].Basic // zero facts read as nonbasic, never a crash
-		if best == -1 || basic && !bestBasic || basic == bestBasic && o.Index < best {
-			best, bestBasic = o.Index, basic
+		c := b.Cards[o.Obj] // zero facts read as no coverage/nonbasic/flex 0, never a crash
+		prod := c.Produces
+		var cover int32
+		for i := 0; i < 5; i++ {
+			if unmet[i] > 0 {
+				take := prod.Colour[i]
+				if take > unmet[i] {
+					take = unmet[i]
+				}
+				cover += take
+			}
+		}
+		basic := c.Basic
+		flex := prod.DistinctColours()
+		if best == -1 || cover > bestCover ||
+			(cover == bestCover && basic && !bestBasic) ||
+			(cover == bestCover && basic == bestBasic && flex < bestFlex) ||
+			(cover == bestCover && basic == bestBasic && flex == bestFlex && o.Index < best) {
+			best, bestCover, bestBasic, bestFlex = o.Index, cover, basic, flex
 		}
 	}
 	return best

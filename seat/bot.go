@@ -170,30 +170,31 @@ func boardFromView(v view.View) botpolicy.Board {
 		if p.ID != v.Viewer {
 			continue
 		}
-		fillZone := func(zone []view.CardView, castable func(view.CardView) bool) {
+		fillZone := func(zone []view.CardView, castable func(view.CardView) bool, battlefield bool) {
 			for _, cv := range zone {
 				var produces cards.ManaProduction
 				if cv.Produces != nil {
 					produces = *cv.Produces
 				}
 				b.Cards[cv.ID] = botpolicy.Card{
-					Creature:   isCreatureView(cv),
-					Power:      cv.Power,
-					CMC:        botpolicy.CmcOf(cv.ManaCost),
-					Basic:      hasBasicView(cv),
-					AttachedTo: cv.AttachedTo,
-					ManaCost:   cv.ManaCost,
-					Castable:   castable(cv),
-					Produces:   produces,
+					Creature:      isCreatureView(cv),
+					Power:         cv.Power,
+					CMC:           botpolicy.CmcOf(cv.ManaCost),
+					Basic:         hasBasicView(cv),
+					AttachedTo:    cv.AttachedTo,
+					ManaCost:      cv.ManaCost,
+					Castable:      castable(cv),
+					OnBattlefield: battlefield,
+					Produces:      produces,
 				}
 			}
 		}
 		aCastable := func(view.CardView) bool { return true }
 		notCastable := func(view.CardView) bool { return false }
-		fillZone(p.Hand, aCastable)
-		fillZone(p.Graveyard, hasFlashbackView)
-		fillZone(p.Battlefield, notCastable)
-		fillZone(p.Command, aCastable)
+		fillZone(p.Hand, aCastable, false)
+		fillZone(p.Graveyard, hasFlashbackView, false)
+		fillZone(p.Battlefield, notCastable, true)
+		fillZone(p.Command, aCastable, false)
 	}
 	return b
 }
