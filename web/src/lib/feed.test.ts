@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pushFeed, type FeedLine } from './feed';
+import { isRoutineLine, lastNotableByTable, latestPerTable, notableLines, pushFeed, type FeedLine } from './feed';
 
 const l = (table: string, seq: number, line = 'x'): FeedLine => ({ table, match: 1, seq, line });
 
@@ -16,5 +16,96 @@ describe('feed', () => {
   });
   it('drops empty lines', () => {
     expect(pushFeed([], l('t1', 1, ''))).toEqual([]);
+  });
+});
+
+describe('isRoutineLine', () => {
+  it('matches the two lines that say only "the engine reached a priority window"', () => {
+    expect(isRoutineLine('mono-red-goblins is asked: priority')).toBe(true);
+    expect(isRoutineLine('Ann has priority')).toBe(true);
+  });
+  it('keeps every line that reports something happening', () => {
+    expect(isRoutineLine('eldrazi-stompy is asked: attackers')).toBe(false);
+    expect(isRoutineLine('Ann is asked: mulligan')).toBe(false);
+    expect(isRoutineLine('Ann casts Lightning Bolt')).toBe(false);
+    expect(isRoutineLine('Ann answers priority: pass')).toBe(false);
+    expect(isRoutineLine('')).toBe(false);
+  });
+});
+
+describe('latestPerTable', () => {
+  const feed: FeedLine[] = [
+    l('t1', 1, 'a has priority'),
+    l('t2', 1, 'b has priority'),
+    l('t1', 2, 'a has priority'),
+    l('t2', 2, 'b is asked: attackers'),
+    l('t1', 3, 'a has priority'),
+  ];
+
+  it('collapses a table\'s own repeat run across interleaved tables', () => {
+    const now = latestPerTable(feed, ['t1', 't2']);
+    expect(now[0]).toEqual({ table: 't1', line: 'a has priority', count: 3, routine: true });
+    expect(now[1]).toEqual({ table: 't2', line: 'b is asked: attackers', count: 1, routine: false });
+  });
+
+  it('returns one row per table in the order given, silent tables included', () => {
+    const now = latestPerTable(feed, ['t2', 't1', 't3']);
+    expect(now.map((n) => n.table)).toEqual(['t2', 't1', 't3']);
+    expect(now[2]).toEqual({ table: 't3', line: '', count: 0, routine: false });
+  });
+
+  it('counts a priority run across the players it names', () => {
+    const now = latestPerTable(
+      [
+        l('t1', 1, 'a is asked: priority'),
+        l('t1', 2, 'b has priority'),
+        l('t1', 3, 'c is asked: priority'),
+      ],
+      ['t1'],
+    );
+    expect(now[0].count).toBe(3);
+    expect(now[0].line).toBe('c is asked: priority');
+  });
+
+  it('restarts the count when the line changes', () => {
+    const now = latestPerTable([...feed, l('t1', 4, 'a casts Shock')], ['t1']);
+    expect(now[0].count).toBe(1);
+    expect(now[0].line).toBe('a casts Shock');
+  });
+});
+
+describe('lastNotableByTable', () => {
+  it('keeps the newest non-routine line per table and skips silent ones', () => {
+    const m = lastNotableByTable([
+      l('t1', 1, 'a casts Shock'),
+      l('t2', 1, 'b has priority'),
+      l('t1', 2, 'a is asked: priority'),
+      l('t1', 3, 'a is asked: attackers'),
+    ]);
+    expect(m.get('t1')).toBe('a is asked: attackers');
+    expect(m.has('t2')).toBe(false);
+    expect(lastNotableByTable([]).size).toBe(0);
+  });
+});
+
+describe('notableLines', () => {
+  const feed: FeedLine[] = [
+    l('t1', 1, 'a has priority'),
+    l('t2', 1, 'b is asked: attackers'),
+    l('t1', 2, 'a is asked: priority'),
+    l('t1', 3, 'a casts Shock'),
+  ];
+
+  it('drops routine lines and keeps chronological order', () => {
+    expect(notableLines(feed).map((x) => x.line)).toEqual(['b is asked: attackers', 'a casts Shock']);
+  });
+  it('shows everything when asked', () => {
+    expect(notableLines(feed, true).length).toBe(4);
+  });
+  it('caps to the newest lines', () => {
+    const many = Array.from({ length: 50 }, (_, i) => l('t1', i, `a casts ${i}`));
+    const out = notableLines(many, false, 10);
+    expect(out.length).toBe(10);
+    expect(out[out.length - 1].line).toBe('a casts 49');
   });
 });
