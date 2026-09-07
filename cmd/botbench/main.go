@@ -129,6 +129,15 @@ func (s *legacySeat) Decide(_ context.Context, v view.View, d decision.Decision)
 // exists to rule out is literally this function returning a constant.
 func gameSeed(base uint64, game int) uint64 { return base + uint64(game) }
 
+// decisionStatsEnabled is switched on by the -decision-stats flag when main
+// starts a run. It lives at package scope (not as a run/runMatrix parameter)
+// so the dozens of test call sites that exercise the normal path keep their
+// current signature and behaviour: when disabled, no collector is created,
+// nothing is recorded and nothing is appended, so the normal report is
+// byte-identical to a pre-flag build. main sets it once; it is read-only
+// thereafter.
+var decisionStatsEnabled bool
+
 // aPlaysSeat reports whether policy A (the -a side) holds seat s in game i.
 // A holds a seat when (game+seat) is even: with two seats the assignment
 // flips every game, and for any seat count a seat sees A in exactly half
@@ -208,7 +217,10 @@ func (o gameOutcome) isStalled() bool { return o.stallOn != "" }
 // Reaching either cap is a stalled outcome, never an error: one hung game
 // records a stall and the rest of the run keeps going instead of aborting
 // the whole matrix.
-func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, maxIntents int) (gameOutcome, error) {
+func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, maxIntents int, collect *decisionStats) (gameOutcome, error) {
+	if collect != nil {
+		collect.game()
+	}
 	e := rules.New(cfg)
 	e.Advance()
 	n := 0
@@ -226,6 +238,9 @@ func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, max
 		in, err := seats[d.Player].Decide(context.Background(), v, *d)
 		if err != nil {
 			return gameOutcome{}, fmt.Errorf("seed %d, intent %d, seat %d: %w", cfg.Seed, n, d.Player, err)
+		}
+		if collect != nil {
+			collect.record(d, in)
 		}
 		if err := e.Submit(in); err != nil {
 			return gameOutcome{}, fmt.Errorf("seed %d, intent %d: %w", cfg.Seed, n, err)
@@ -1296,6 +1311,13 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 		}
 	}
 
+	// collect is the -decision-stats histogram for this run; nil when the
+	// flag is off, so a default run records nothing and appends nothing.
+	var collect *decisionStats
+	if decisionStatsEnabled {
+		collect = newDecisionStats()
+	}
+
 	play := func(pos int, seed uint64, pols []string) (gameOutcome, error) {
 		pd := pairs[pos]
 		botSeats := make([]seat.Seat, 2)
@@ -1311,7 +1333,7 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 		cfg := buildGameConfig(seed, []string{pd.a, pd.b},
 			[][]*cards.Card{deckByName[pd.a], deckByName[pd.b]}, commanders, commander)
 		cfg.Tokens = reg.Tokens
-		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents)
+		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect)
 	}
 
 	results, err := runPairs(baseSeed, games, aName, bName, pairs, play, workers, &progressWriter{w: prog})
@@ -1319,9 +1341,17 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 		return err
 	}
 	if format == "json" {
-		return writeMatrixJSON(out, aName, bName, baseSeed, games, results, commander)
+		if err := writeMatrixJSON(out, aName, bName, baseSeed, games, results, commander); err != nil {
+			return err
+		}
+		collect.write(out)
+		return nil
 	}
-	return writeMatrixText(out, aName, bName, baseSeed, games, results, commander)
+	if err := writeMatrixText(out, aName, bName, baseSeed, games, results, commander); err != nil {
+		return err
+	}
+	collect.write(out)
+	return nil
 }
 
 // seatedDeckNames returns the deck-list order a run seats, with seat s
@@ -1428,6 +1458,13 @@ func run(baseSeed uint64, games, seats, rotate, workers int, aName, bName, dir s
 	}
 	fmt.Fprintln(out, hdr)
 
+	// collect is the -decision-stats histogram for this run; nil when the
+	// flag is off, so a default run records nothing and appends nothing.
+	var collect *decisionStats
+	if decisionStatsEnabled {
+		collect = newDecisionStats()
+	}
+
 	play := func(s uint64, pols []string) (gameOutcome, error) {
 		botSeats := make([]seat.Seat, seats)
 		for seat := 0; seat < seats; seat++ {
@@ -1438,14 +1475,18 @@ func run(baseSeed uint64, games, seats, rotate, workers int, aName, bName, dir s
 		}
 		cfg := buildGameConfig(s, seated, decks, commanders, commander)
 		cfg.Tokens = reg.Tokens
-		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents)
+		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect)
 	}
 	if workers <= 0 {
 		workers = runtime.NumCPU()
 	}
 	pool := newGamePool(workers)
 	defer pool.close()
-	return benchWithPool(baseSeed, games, seats, aName, bName, play, out, pool)
+	if err := benchWithPool(baseSeed, games, seats, aName, bName, play, out, pool); err != nil {
+		return err
+	}
+	collect.write(out)
+	return nil
 }
 
 // buildGameConfig turns one game's seat assignment into its rules.Config,
@@ -1495,7 +1536,9 @@ func main() {
 	maxTurns := flag.Int("max-turns", 200, "maximum turns per game before it ends as a stall (not a win, not a draw); catches a game that runs long in turn count; 0 = no cap")
 	maxIntents := flag.Int("max-intents", 20000, "maximum intents per game before it ends as a stall (not a win, not a draw); catches a game whose turn count never advances but that keeps submitting intents; 0 = no cap")
 	dir := flag.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
+	decisionStats := flag.Bool("decision-stats", false, "append a per-decision-kind histogram (count, mean per game, mean option count, singleton share, first-option share) at the end of a run; default off so the normal report is unchanged")
 	flag.Parse()
+	decisionStatsEnabled = *decisionStats
 
 	commander, err := parseGameFormat(*format)
 	if err != nil {
