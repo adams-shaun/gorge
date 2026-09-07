@@ -105,6 +105,34 @@ free. A seat directory with no `kind` file predates pools and counts as local.
 Claude subagents load neither pool, so a full fleet routes visual/rescue work
 there rather than into a queue.
 
+## Thinking level and model preference (user, 2026-09-07)
+
+- **ds4 seats run at `--thinking medium`.** A previous round found medium
+  outperformed high on this repo for the local model. Do not raise it to high
+  without a measurement that says so.
+- **Prefer the gpt seats for non-ds4 work** — `gpt-5.6-terra`, `gpt-5.6-luna`,
+  `gpt-5.6-sol`. When a task is going to a paid seat rather than the local one,
+  a codex model is the default choice, not Claude.
+
+## Stopping a pi-agent: kill the TREE, by explicit pid
+
+`pi-agent` is a wrapper. Sending TERM to the pid you launched **orphans its
+children rather than stopping them** — the `pi` process and its bwrap jail
+survive, reparent to init, and keep writing into the worktree. Observed
+2026-09-07: four seats were "stopped" and relaunched, and the result was two
+agents per worktree editing the same files, with the tree reset underneath
+both.
+
+Walk the tree first and kill every pid in it, deepest first:
+
+    ps -eo pid,ppid,lstart,args --no-headers | grep -- '[-]-name <id>'
+
+then `kill` each number. Never a `-f` pattern. Verify the count is zero before
+relaunching, and `git reset --hard` the worktree AFTER the last process is
+gone, never before.
+
+Launch with `setsid` so the run survives the dispatching shell.
+
 ## Always evaluate an agent's tool errors when it completes
 
 Standing rule, user, 2026-09-07. `STATUS=DONE` does not mean the run was clean.
