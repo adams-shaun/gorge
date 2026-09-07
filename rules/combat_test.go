@@ -611,3 +611,163 @@ func TestReplayReconstructsPostCombatStateExactly(t *testing.T) {
 		t.Fatal("perturbed-log control unexpectedly matched the live game -- the comparison above is not discriminating")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Task m34: free-for-all attack targeting -- every attacker may choose its
+// own defender (CR 506.2 / CR 903.14).
+
+// TestSplitAttackAcrossTwoDefenders is the behaviour this task exists to
+// add: in a four-seat game one combat declares an attacker against seat 2
+// and a different attacker against seat 3, and BOTH deal damage. No
+// pre-m34 build could express this -- askAttackers stamped the next living
+// seat onto every option, so an attack could never point at two opponents
+// at once, let alone land on both.
+func TestSplitAttackAcrossTwoDefenders(t *testing.T) {
+	e := newSeats(t, 4)
+	atk2 := onBoardReady(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	atk3 := onBoardReady(t, e, 0, "Name:Wolf\nManaCost:2 G\nTypes:Creature Wolf\nPT:3/3\nOracle:x\n")
+	driveToStep(t, e, 1, 0, state.StepDeclareAttackers)
+
+	e.askAttackers()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers {
+		t.Fatalf("expected an attackers decision, got %+v", d)
+	}
+	// Six options: each creature offered against each of the three living
+	// opponents (seats 1, 2, 3), defender-major.
+	if len(d.Options) != 6 {
+		t.Fatalf("attacker options = %d, want 6 (2 creatures x 3 defenders)", len(d.Options))
+	}
+	idx := func(id state.ObjID, def state.PlayerID) int {
+		for _, o := range d.Options {
+			if o.Obj == id && o.Player == def {
+				return o.Index
+			}
+		}
+		return -1
+	}
+	i1, i2 := idx(atk2, 2), idx(atk3, 3)
+	if i1 < 0 || i2 < 0 {
+		t.Fatalf("split-attack options missing: %d@2 = %d, %d@3 = %d", atk2, i1, atk3, i2)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{i1, i2}}); err != nil {
+		t.Fatalf("submit split attack: %v", err)
+	}
+	// Neither defender has a creature to block with (mountain-only seats),
+	// so combat cascades straight to damage: seat 2 took the 2/2, seat 3
+	// took the 3/3, and seat 1 -- the next living seat, the ONLY pre-m34
+	// legal defender -- was never attacked at all.
+	if got := e.G.Players[2].Life; got != 18 {
+		t.Fatalf("seat 2 life = %d, want 18 (the 2/2 landed on it)", got)
+	}
+	if got := e.G.Players[3].Life; got != 17 {
+		t.Fatalf("seat 3 life = %d, want 17 (the 3/3 landed on it)", got)
+	}
+	if got := e.G.Players[1].Life; got != 20 {
+		t.Fatalf("seat 1 life = %d, want 20 (it was not attacked)", got)
+	}
+}
+
+// TestSameAttackerCannotAttackTwoDefenders is the Option-A legality guard
+// (CR 506.2): the KAttackers option list offers every (attacker, defender)
+// pair, so a client COULD pick one creature against two defenders. That
+// intent must be rejected by the engine -- the legality of an attacker set
+// is a property of the declaration, not of any single option -- and the
+// pending decision must survive for a legal answer.
+func TestSameAttackerCannotAttackTwoDefenders(t *testing.T) {
+	e := newSeats(t, 4)
+	atk := onBoardReady(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	driveToStep(t, e, 1, 0, state.StepDeclareAttackers)
+
+	e.askAttackers()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers {
+		t.Fatalf("expected an attackers decision, got %+v", d)
+	}
+	idx := func(def state.PlayerID) int {
+		for _, o := range d.Options {
+			if o.Obj == atk && o.Player == def {
+				return o.Index
+			}
+		}
+		return -1
+	}
+	i1, i2 := idx(1), idx(3)
+	if i1 < 0 || i2 < 0 {
+		t.Fatalf("options missing: %d@1 = %d, %d@3 = %d", atk, i1, atk, i2)
+	}
+	before := len(e.L.Intents)
+	// The same creature against two defenders: rejected, and the rejection
+	// records nothing and consumes nothing.
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{i1, i2}}); err == nil {
+		t.Fatal("the same attacker declared against two defenders was accepted")
+	}
+	if e.Pending() == nil {
+		t.Fatal("the rejected intent consumed the pending decision")
+	}
+	if len(e.L.Intents) != before {
+		t.Fatalf("rejected intent was recorded: %v", e.L.Intents[before:])
+	}
+	// A legal answer -- the creature at exactly one defender -- now works.
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{i1}}); err != nil {
+		t.Fatalf("legal attack rejected after the guard: %v", err)
+	}
+	if got := e.G.Players[1].Life; got != 18 {
+		t.Fatalf("seat 1 life = %d, want 18 (the lone swing landed)", got)
+	}
+}
+
+// TestAttackersOfferEveryLivingOpponentOnce is the option-list gate for the
+// Task-m34 option construction: the attack decision offers each legal
+// attacker against every LIVING opponent, defender-major, in ascending seat
+// order, and never against the active player or a departed seat. In a
+// two-player game the same construction is exactly one option per attacker
+// -- the M1 shape -- which is what keeps pre-m34 two-player behaviour
+// byte-identical (the 2-seat acceptance chain head does not move under this
+// task).
+func TestAttackersOfferEveryLivingOpponentOnce(t *testing.T) {
+	e := newSeats(t, 4)
+	a := onBoardReady(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	b := onBoardReady(t, e, 0, "Name:Wolf\nManaCost:2 G\nTypes:Creature Wolf\nPT:3/3\nOracle:x\n")
+	// Eliminate seat 3: a departed seat must never be offered as a defender.
+	e.emit(events.Event{Kind: events.PlayerLost, Player: 3})
+	driveToStep(t, e, 1, 0, state.StepDeclareAttackers)
+
+	e.askAttackers()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers {
+		t.Fatalf("expected an attackers decision, got %+v", d)
+	}
+	// Seat 3 is dead: 2 living defenders (1, 2) x 2 attackers = 4 options,
+	// defender-major.
+	if len(d.Options) != 4 {
+		t.Fatalf("attacker options = %d, want 4 (2 attackers x living seats 1,2)", len(d.Options))
+	}
+	for i, o := range d.Options {
+		if o.Player == 0 {
+			t.Fatalf("option %d offers attacking the active player's own seat", i)
+		}
+		if o.Player == 3 {
+			t.Fatalf("option %d offers a departed seat as defender", i)
+		}
+	}
+	wantObj := []state.ObjID{a, b, a, b}
+	wantDef := []state.PlayerID{1, 1, 2, 2}
+	for i, o := range d.Options {
+		if o.Obj != wantObj[i] {
+			t.Fatalf("option %d = attacker %d, want %d (defender-major order)", i, o.Obj, wantObj[i])
+		}
+		if o.Player != wantDef[i] {
+			t.Fatalf("option %d = defender %d, want %d (ascending seat order)", i, o.Player, wantDef[i])
+		}
+	}
+	// Two-player identity: the same construction is one option per attacker
+	// at the sole legal defender.
+	e2 := combatEngine(t)
+	a2 := onBoardReady(t, e2, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e2.askAttackers()
+	d2 := e2.Pending()
+	if d2 == nil || len(d2.Options) != 1 || d2.Options[0].Obj != a2 || d2.Options[0].Player != 1 {
+		t.Fatalf("two-player attackers decision = %+v, want one option (bear at seat 1)", d2)
+	}
+}

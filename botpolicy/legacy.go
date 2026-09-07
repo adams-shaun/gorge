@@ -69,8 +69,20 @@ func LegacyDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 		}
 
 	case decision.KAttackers:
+		// Attack with every legal attacker -- at most ONE defender each (CR
+		// 506.2; Task m34 offers every (attacker, defender) pair, and the
+		// engine rejects an intent naming the same creature twice, so a
+		// naive "every option" would be rejected in a multiplayer game).
+		// The first option per creature is already deterministic: the
+		// engine offers the pairs defender-major in seat order, so the
+		// first option of a creature names its lowest-numbered defender.
+		used := map[state.ObjID]bool{} // membership only -- never ranged.
 		ch := make([]int, 0, len(d.Options))
 		for _, o := range d.Options {
+			if used[o.Obj] {
+				continue
+			}
+			used[o.Obj] = true
 			ch = append(ch, o.Index)
 		}
 		in.Choices = ch

@@ -98,6 +98,12 @@ type Engine struct {
 	// kept/taken counts and the phase cursor. Never a closure, so Clone copies
 	// it like cast/choosing.
 	mulligan mulliganRound
+	// blockerRound is the declare-blockers step's per-defender cursor
+	// (rules/combat.go, Task m34): an attack may be split across several
+	// defending players, and each declares its own blocks, one KBlockers
+	// decision at a time. Plain-value state (a defender list plus an index),
+	// never a closure, so Clone copies it like the mulligan round.
+	blockerRound blockerRound
 
 	// staticContinuous memoizes the S:Mode$ Continuous statics on battlefield
 	// permanents (layers.go's staticEffects), keyed on staticEpoch. staticEpoch
@@ -581,6 +587,17 @@ func (e *Engine) Submit(in decision.Intent) error {
 	}
 	if err := d.Validate(in); err != nil {
 		return err
+	}
+	if d.Kind == decision.KAttackers {
+		// Ruling m34: the KAttackers option list offers every (attacker,
+		// defender) pair, so an intent naming the same creature twice --
+		// against two different defenders -- passes Validate's per-index
+		// checks while declaring it attacking two players (CR 506.2).
+		// Reject before the intent is recorded and the decision consumed,
+		// so the pending attackers decision survives for a legal answer.
+		if err := validateAttackers(d, in); err != nil {
+			return err
+		}
 	}
 	e.L.Intents = append(e.L.Intents, in)
 	e.emit(events.Event{Kind: events.DecisionMade, Player: in.Player,
