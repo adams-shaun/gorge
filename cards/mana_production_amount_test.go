@@ -40,9 +40,14 @@ func TestManaProductionIndeterminateFlag(t *testing.T) {
 // consumes nothing in ManaProduction, so surfacing it as
 // `indeterminate?: boolean` in protocol.ts is dead payload on every card
 // view that projects a Produces (view/view.go). json:"-" keeps it out of
-// tsgen's jsonName. The Go field stays -- botpolicy/chooseTap and both
-// adapters read it -- but the JSON of a projectable ManaProduction must
-// carry colour and any and never "indeterminate".
+// tsgen's jsonName. The Go field is kept as the signal a future policy
+// tier needs (the batched "is any ability on this source
+// indeterminate" fact), it is off the human wire behind json:"-", and
+// today it is written once (cards/mana_production.go) and read only by
+// tests -- no production Go reads it: chooseTap keys on prod.Colour[i] > 0
+// and both adapters copy the struct wholesale, so the field rides along
+// unread. The JSON of a projectable ManaProduction must carry colour and
+// any and never "indeterminate".
 func TestManaProductionJSONOmitsIndeterminate(t *testing.T) {
 	mp := ManaProduction{Colour: [6]int32{0, 1, 0, 0, 0, 0}, Indeterminate: true}
 	blob, err := json.Marshal(mp)

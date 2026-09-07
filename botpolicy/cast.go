@@ -302,10 +302,11 @@ func (b Board) colourNeed() [5]int32 {
 // battlefield (OnBattlefield). It is the land-drop greedy's "which colours
 // are already available" side. Only demonstrably-produced colours count: an
 // Any production reports its colourless amount and no colour slot, and an
-// Indeterminate-amount source contributes nothing, so a conditional source
-// never makes a colour look already covered. The candidate lands themselves
-// sit in the hand (OnBattlefield false) and are not counted, so their colour
-// is exactly the marginal value chooseLand scores.
+// Indeterminate-amount source contributes 0 to every colour slot (detected
+// via Colour, never by reading the Indeterminate flag), so a conditional
+// source never makes a colour look already covered. The candidate lands
+// themselves sit in the hand (OnBattlefield false) and are not counted, so
+// their colour is exactly the marginal value chooseLand scores.
 func (b Board) availableColours() [5]int32 {
 	var avail [5]int32
 	for i := 0; i < 5; i++ {
