@@ -52,7 +52,7 @@
 //     playable in parallel;
 //   - pair order is the sorted i<j order over RepoDeckNames(), never map
 //     iteration, so a matrix is byte-identical run to run and allows an
-//     exact -format json diff between two builds.
+//     exact -out json diff between two builds.
 //
 // The report is a per-pair table (pair, A/B wins, A win rate with its 95%
 // CI, the seat split with its CI, mean turns) plus a pooled line over all
@@ -121,14 +121,6 @@ func (s *legacySeat) Decide(_ context.Context, v view.View, d decision.Decision)
 	return botpolicy.LegacyDecide(botpolicy.Board{IsMain: v.Phase == "main1" || v.Phase == "main2"}, &d, s.r), nil
 }
 
-// maxIntents bounds a single game the same way rules/acceptance_test.go and
-// cmd/mtgsim do: a game that has not produced a decision inside this many
-// intents is not "slow", it is not terminating, and the bench reports that
-// as an error rather than spinning forever. The same budget the fuzz gate
-// and the sim run under, so a policy that stops making progress is caught
-// here exactly where it would have broken those.
-const maxIntents = 400000
-
 // gameSeed returns the seed game i of a run at base seed b plays. The
 // engine's log and rng and every seat bot's PCG all derive from this one
 // number, seeded base+i -- so the run as a whole is reproducible from
@@ -173,28 +165,62 @@ func resolvePolicy(name string) (func(seed uint64) seat.Seat, error) {
 // two policy names collide. With aName == bName the seat is the only thing
 // that can tell the sides apart -- with both names "bot", the A/B split
 // would read as "both sides won everything" without it. Intents and turns
-// are the two numbers every later bot task reads: an intent count near
-// maxIntents is a policy that stopped terminating, and mean turns is the
-// metric the report averages. winnerSeat is only meaningful when winner is
-// non-empty.
+// are the two numbers every later bot task reads: an intent count reaching
+// the -max-intents cap is a policy that stopped terminating, and mean turns
+// is the metric the report averages. winnerSeat is only meaningful when
+// winner is non-empty.
 type gameOutcome struct {
 	winner     string // policy name of the winning seat; "" for a draw
 	winnerSeat int    // the seat the winner sat in (valid when winner != "")
 	turns      int32
 	intents    int
+	// stallOn names the watchdog cap that ended the game before it could
+	// finish, distinguishing the two failure modes a reader must tell apart:
+	// "turns" (the turn watchdog fired at -max-turns -- the game ran long)
+	// and "intents" (the intent watchdog fired at -max-intents -- the turn
+	// number stopped advancing while intents kept coming). "" means the game
+	// is not stalled. A stalled game is a distinct outcome -- NOT a win and
+	// NOT a draw -- excluded from the win-rate denominator, so a runner
+	// cannot mistake the rate of whatever happened to terminate for an
+	// honest win rate.
+	stallOn string
 }
 
-// playMatch plays one game between the given per-seat seats to completion
-// (or to maxIntents) and returns its outcome. pols is the policy name
-// sitting at each seat, used only to map the winner's seat back to a
-// policy. The seats each own their RNG (seeded by the caller), the engine
-// replays from its own Config.Seed, and nothing reads the wall clock, so
-// the outcome is a pure function of the inputs.
-func playMatch(cfg rules.Config, pols []string, seats []seat.Seat) (gameOutcome, error) {
+// isStalled reports whether the game was ended by either watchdog cap.
+func (o gameOutcome) isStalled() bool { return o.stallOn != "" }
+
+// playMatch plays one game between the given per-seat seats to completion, or
+// ends it as a stall at whichever watchdog cap fires first. pols is the
+// policy name sitting at each seat, used only to map the winner's seat back
+// to a policy. The seats each own their RNG (seeded by the caller), the
+// engine replays from its own Config.Seed, and nothing reads the wall clock,
+// so the outcome is a pure function of the inputs.
+//
+// The two caps catch two different pathologies and are both harneess props,
+// not engine rules:
+//   - maxTurns (the -max-turns flag): a game that runs long in turn count.
+//     0 means no cap. It cannot catch a frozen-turn loop, because the turn
+//     number never advances to it.
+//   - maxIntents (the -max-intents flag): a game whose turn number stops
+//     advancing but that keeps submitting intents forever (the re-arming a
+//     {0} Equip onto its own target loop). 0 means no cap.
+//
+// Reaching either cap is a stalled outcome, never an error: one hung game
+// records a stall and the rest of the run keeps going instead of aborting
+// the whole matrix.
+func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, maxIntents int) (gameOutcome, error) {
 	e := rules.New(cfg)
 	e.Advance()
 	n := 0
-	for !e.G.Over && e.Pending() != nil && n < maxIntents {
+	for !e.G.Over && e.Pending() != nil && (maxIntents <= 0 || n < maxIntents) {
+		// The turn watchdog: a game whose turn count reaches the cap is
+		// stalled -- neither a win nor a draw (and so excluded from the
+		// win-rate denominator) -- and maxTurns==0 means no cap. It reads
+		// the turn number the engine already reports (state.Game.Turn) and
+		// caps nothing under rules/.
+		if maxTurns > 0 && e.G.Turn >= int32(maxTurns) {
+			return gameOutcome{stallOn: "turns", turns: e.G.Turn, intents: n}, nil
+		}
 		d := e.Pending()
 		v := view.Project(e.G, e, d.Player, d)
 		in, err := seats[d.Player].Decide(context.Background(), v, *d)
@@ -207,7 +233,12 @@ func playMatch(cfg rules.Config, pols []string, seats []seat.Seat) (gameOutcome,
 		n++
 	}
 	if !e.G.Over {
-		return gameOutcome{}, fmt.Errorf("seed %d: did not terminate within %d intents (turn %d)", cfg.Seed, maxIntents, e.G.Turn)
+		// The loop exited with the game still live: the intent cap was the
+		// limiter (maxIntents <= 0 with a live game would mean a nil pending
+		// decision mid-game, itself a non-terminating stall). This is a
+		// stalled outcome -- NOT an error -- so the run records it and steps
+		// over the pair instead of killing the whole matrix.
+		return gameOutcome{stallOn: "intents", turns: e.G.Turn, intents: n}, nil
 	}
 	return outcomeFrom(e, pols, n), nil
 }
@@ -225,6 +256,22 @@ func outcomeFrom(e *rules.Engine, pols []string, intents int) gameOutcome {
 		o.winnerSeat = int(e.G.Winner)
 	}
 	return o
+}
+
+// stallNotice is the loud, unmistakable summary line a run with any stalled
+// games prints beside its win rates. It exists so a run that threw games
+// away to either watchdog cap cannot be mistaken for a clean run -- the very
+// mistake the win-rate-over-non-stalled-games change exists to prevent. It
+// names the two caps separately because they mean different things: a game
+// that hit -max-turns ran long, while one that hit -max-intents froze its
+// turn count -- a reader who cannot tell them apart cannot act on either. A
+// run with no stalls prints nothing, so the constructed default report is
+// byte-identical to a run that never saw a watchdog.
+func stallNotice(turnStalls, intentStalls, eff int) string {
+	if turnStalls == 0 && intentStalls == 0 {
+		return ""
+	}
+	return fmt.Sprintf("\n@@ STALLED: %d game(s) hit the -max-turns cap, %d hit the -max-intents cap; win rates are over %d non-stalled game(s) @@\n", turnStalls, intentStalls, eff)
 }
 
 // ci95 returns the 95% confidence interval on a success rate using the
@@ -272,6 +319,9 @@ func seatLabels(pols []string) string {
 // per-game lines can show a same-policy run's seat bias at all -- with both
 // policies named "bot" the raw name alone is identical on both sides.
 func winnerLabel(o gameOutcome) string {
+	if o.isStalled() {
+		return "stalled"
+	}
 	if o.winner == "" {
 		return "draw"
 	}
@@ -312,7 +362,7 @@ func bench(baseSeed uint64, games, seats int, aName, bName string, play matchPla
 		return fmt.Errorf("-seats must be at least 2 (a bench pits two policies), got %d", seats)
 	}
 
-	var aWins, bWins, draws int
+	var aWins, bWins, draws, stallTurns, stallIntents int
 	seatWins := make([]int, seats)
 	var totalTurns int64
 	for g := 0; g < games; g++ {
@@ -339,6 +389,16 @@ func bench(baseSeed uint64, games, seats int, aName, bName string, play matchPla
 		fmt.Fprintf(out, "game %d: seed %d, %s, %6d intents, %3d turns, winner=%s\n",
 			g, s, seatLabels(pols), oc.intents, oc.turns, winnerLabel(oc))
 		switch {
+		case oc.isStalled():
+			// A stalled game is neither a win nor a draw: it credits no seat
+			// and is excluded from the win-rate denominator below. The two
+			// caps are tallied apart so the stall notice can say which
+			// pathology ended the game.
+			if oc.stallOn == "intents" {
+				stallIntents++
+			} else {
+				stallTurns++
+			}
 		case oc.winner == "":
 			draws++
 		default:
@@ -359,8 +419,12 @@ func bench(baseSeed uint64, games, seats int, aName, bName string, play matchPla
 		totalTurns += int64(oc.turns)
 	}
 
-	lo, hi := ci95(aWins, games)
-	rate := float64(aWins) / float64(games)
+	// The win-rate denominator excludes stalled games: a rate over "whatever
+	// happened to terminate" is a biased sample, which is the exact defect
+	// the turn watchdog exists to expose. With no stalls this is `games`, so
+	// the constructed default report stays byte-identical to today.
+	eff := games - (stallTurns + stallIntents)
+	lo, hi := ci95(aWins, eff)
 	fmt.Fprintf(out, "\ngames played: %d\n", games)
 	ab := fmt.Sprintf("A wins: %d  B wins: %d  draws: %d", aWins, bWins, draws)
 	if aName == bName {
@@ -371,17 +435,17 @@ func bench(baseSeed uint64, games, seats int, aName, bName string, play matchPla
 		ab += fmt.Sprintf("  (same policy %q on both sides: the split is ~50%% by construction; read the seat split below)", aName)
 	}
 	fmt.Fprintln(out, ab)
-	fmt.Fprintf(out, "A win rate: %.1f%%  95%% CI [%.1f%%, %.1f%%] (normal approximation to the binomial)\n",
-		rate*100, lo*100, hi*100)
+	fmt.Fprintf(out, "A win rate: %s\n", rateFmt(aWins, eff, lo, hi, "(normal approximation to the binomial)"))
 	if seats == 2 {
-		// The two-seat baseline: seat 0's rate and interval over the whole
-		// run (drawn games win no seat, so the per-seat rates sum to less
-		// than 100% when draws occur; the game count is printed beside the
-		// interval as always). This is the number the -a -b baseline run
-		// exists to produce.
-		sLo, sHi := ci95(seatWins[0], games)
-		fmt.Fprintf(out, "seat 0 wins: %d  seat 1 wins: %d  seat 0 win rate: %.1f%%  95%% CI [%.1f%%, %.1f%%] (normal approximation to the binomial)\n",
-			seatWins[0], seatWins[1], float64(seatWins[0])/float64(games)*100, sLo*100, sHi*100)
+		// The two-seat baseline: seat 0's rate and interval (over the
+		// non-stalled games, so it shares the win rate's denominator and a
+		// stalled game is not silently credited to a seat). Drawn games win
+		// no seat, so the per-seat rates sum to less than 100% when draws
+		// occur. This is the number the -a -b baseline run exists to
+		// produce.
+		sLo, sHi := ci95(seatWins[0], eff)
+		fmt.Fprintf(out, "seat 0 wins: %d  seat 1 wins: %d  seat 0 win rate: %s\n",
+			seatWins[0], seatWins[1], rateFmt(seatWins[0], eff, sLo, sHi, "(normal approximation to the binomial)"))
 	} else {
 		// More than two seats: counts per seat, no rate -- the two-seat
 		// case is the one the bench's consumers compare policies through,
@@ -394,6 +458,12 @@ func bench(baseSeed uint64, games, seats int, aName, bName string, play matchPla
 		fmt.Fprintln(out, strings.Join(parts, "  "))
 	}
 	fmt.Fprintf(out, "mean turns per game: %.1f\n", float64(totalTurns)/float64(games))
+	if notice := stallNotice(stallTurns, stallIntents, eff); notice != "" {
+		// A run with any stalls must say so loudly -- a line that cannot be
+		// mistaken for a clean run. Nothing is printed when there are no
+		// stalls, so the constructed default report is unchanged.
+		fmt.Fprint(out, notice)
+	}
 	return nil
 }
 
@@ -424,11 +494,72 @@ func fullPairs(names []string) []pairDef {
 	return ps
 }
 
+// commanderDeckNames returns the repo decks whose deck.File names a
+// commander, in RepoDeckNames' sorted order (filtering preserves it). A
+// Commander bench only seats these: a Commander game needs commander decks,
+// so an -pairs all or -seats run over the full list would otherwise deal a
+// 100-card Commander list as a constructed pile -- exactly the defect part A
+// fixes. There are five (the foundations-* precon lists).
+func commanderDeckNames() ([]string, error) {
+	var cmd []string
+	for _, n := range testutil.RepoDeckNames() {
+		f, err := testutil.LoadRepoDeckFile(n)
+		if err != nil {
+			return nil, err
+		}
+		if f.Commander != "" {
+			cmd = append(cmd, n)
+		}
+	}
+	return cmd, nil
+}
+
+// parsePairsForMode parses a -pairs spec against the deck pool the run's
+// format selects: "all" expands over the pool, named pairs are validated
+// against it. In commander mode an explicitly named deck that is a repo deck
+// but names no commander is a clear flag error -- silently turning it into a
+// constructed game would misrepresent the run. Every named deck in the pool
+// is validated as a commander deck (with its command-zone index and the
+// deck.ValidateCommander CR 903.4/903.5 gate) when the games are set up.
+func parsePairsForMode(spec string, pool []string, commander bool) ([]pairDef, error) {
+	if spec == "all" {
+		return parsePairs("all", pool)
+	}
+	if commander {
+		inPool := make(map[string]bool, len(pool))
+		for _, n := range pool {
+			inPool[n] = true
+		}
+		repo := testutil.RepoDeckNames()
+		inRepo := make(map[string]bool, len(repo))
+		for _, n := range repo {
+			inRepo[n] = true
+		}
+		for _, tok := range strings.Split(spec, ",") {
+			tok = strings.TrimSpace(tok)
+			if tok == "" {
+				continue
+			}
+			parts := strings.SplitN(tok, ":", 2)
+			if len(parts) != 2 {
+				continue // parsePairs reports the shape error
+			}
+			for _, name := range []string{strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])} {
+				if inRepo[name] && !inPool[name] {
+					return nil, fmt.Errorf("-format commander: deck %q is a repo deck but names no commander -- pick a Commander deck (foundations-*)", name)
+				}
+			}
+		}
+	}
+	return parsePairs(spec, pool)
+}
+
 // parsePairs parses a -pairs spec: "all" for every unordered pair of the
 // given (sorted) deck names, or a comma-separated list of colon-separated
 // deck pairs "a:b,c:d". Deck names must exist in names. The lookup map is
 // only probed by key -- never ranged over in the report path -- so iteration
-// order cannot reach the output.
+// order cannot reach the output. names is the pool for the run's format
+// (commander mode passes the commander-only list).
 func parsePairs(spec string, names []string) ([]pairDef, error) {
 	if spec == "all" {
 		return fullPairs(names), nil
@@ -449,10 +580,10 @@ func parsePairs(spec string, names []string) ([]pairDef, error) {
 		}
 		a, b := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
 		if !known[a] {
-			return nil, fmt.Errorf("-pairs: unknown deck %q (not one of the %d repo decks)", a, len(names))
+			return nil, fmt.Errorf("-pairs: unknown deck %q (not one of the %d decks in this format's pool)", a, len(names))
 		}
 		if !known[b] {
-			return nil, fmt.Errorf("-pairs: unknown deck %q (not one of the %d repo decks)", b, len(names))
+			return nil, fmt.Errorf("-pairs: unknown deck %q (not one of the %d decks in this format's pool)", b, len(names))
 		}
 		ps = append(ps, pairDef{a, b})
 	}
@@ -472,15 +603,55 @@ type pairPlayer func(pos int, seed uint64, pols []string) (gameOutcome, error)
 
 // pairResult tallies one deck pair: the raw A/B and seat counts plus mean
 // turns, exactly the numbers a single-pair run reports, so a matrix row is
-// directly comparable to the historical single-pair number.
+// directly comparable to the historical single-pair number. stalls counts
+// the games either watchdog ended -- they are neither A/B wins nor draws,
+// credit no seat, and are excluded from the pair's win-rate denominator --
+// split into stallTurns (the -max-turns cap: the game ran long) and
+// stallIntents (the -max-intents cap: the turn count froze), so the pooled
+// notice can say which pathology each dropped game hit.
 type pairResult struct {
-	pd         pairDef
-	games      int
-	aWins      int
-	bWins      int
-	draws      int
-	seatWins   [2]int
-	totalTurns int64
+	pd           pairDef
+	games        int
+	aWins        int
+	bWins        int
+	draws        int
+	stalls       int
+	stallTurns   int
+	stallIntents int
+	seatWins     [2]int
+	totalTurns   int64
+}
+
+// commanderIndex returns the command-zone index a deck names -- its File's
+// CommanderIndex -- validating the deck against the Commander deck rules
+// first (deck.ValidateCommander, the m35 CR 903.4/903.5 gate cmd/gorged
+// applies up front) so a commander bench never half-starts on an illegal
+// deck. A deck with no commander is an error, the same gate the deck-pool
+// selection enforces: a Commander game must seat commander decks.
+func commanderIndex(reg *cards.Registry, name string) (int, error) {
+	f, err := testutil.LoadRepoDeckFile(name)
+	if err != nil {
+		return 0, err
+	}
+	if f.Commander == "" {
+		return 0, fmt.Errorf("-format commander: deck %q is a repo deck but names no commander", name)
+	}
+	if verr := f.ValidateCommander(reg); verr != nil {
+		return 0, fmt.Errorf("commander deck %q: %w", name, verr)
+	}
+	return f.CommanderIndex(), nil
+}
+
+// parseGameFormat turns the -format flag's string into the commander flag
+// that threads through run/runMatrix. "constructed" is the zero value.
+func parseGameFormat(s string) (bool, error) {
+	switch s {
+	case "constructed", "":
+		return false, nil
+	case "commander":
+		return true, nil
+	}
+	return false, fmt.Errorf("-format must be \"constructed\" or \"commander\", got %q", s)
 }
 
 // gameSeedPair returns the seed game g of pair number pos in a matrix run at
@@ -528,6 +699,17 @@ func playOnePair(baseSeed uint64, pos, games int, aName, bName string, pd pairDe
 			return pairResult{}, fmt.Errorf("pair %s: %w", pd, err)
 		}
 		switch {
+		case oc.isStalled():
+			// A stalled game is a distinct outcome -- not a win, not a draw,
+			// credited to no seat -- and is excluded from the win-rate
+			// denominator when the pair is reported. The cause is tallied
+			// apart so the pooled notice can name the cap that ended the game.
+			r.stalls++
+			if oc.stallOn == "intents" {
+				r.stallIntents++
+			} else {
+				r.stallTurns++
+			}
 		case oc.winner == "":
 			r.draws++
 		default:
@@ -650,13 +832,16 @@ func runPairs(baseSeed uint64, games int, aName, bName string, pairs []pairDef, 
 // over-weight the small pairs -- the mutation TestPooledCIPoolsCountsNotRates
 // exists to catch.
 type mergedResult struct {
-	pairs      int
-	games      int
-	aWins      int
-	bWins      int
-	draws      int
-	seatWins   [2]int
-	totalTurns int64
+	pairs        int
+	games        int
+	aWins        int
+	bWins        int
+	draws        int
+	stalls       int
+	stallTurns   int
+	stallIntents int
+	seatWins     [2]int
+	totalTurns   int64
 }
 
 func mergeResults(results []pairResult) mergedResult {
@@ -667,6 +852,9 @@ func mergeResults(results []pairResult) mergedResult {
 		m.aWins += r.aWins
 		m.bWins += r.bWins
 		m.draws += r.draws
+		m.stalls += r.stalls
+		m.stallTurns += r.stallTurns
+		m.stallIntents += r.stallIntents
 		m.seatWins[0] += r.seatWins[0]
 		m.seatWins[1] += r.seatWins[1]
 		m.totalTurns += r.totalTurns
@@ -676,12 +864,14 @@ func mergeResults(results []pairResult) mergedResult {
 
 // excludeCounts classifies the per-pair intervals against 50%: a pair whose
 // whole A-win interval sits below 50% is a pair where policy A loses; above
-// is a pair where A wins; the rest are undecided. This is the honest summary
-// a single pooled percentage hides -- one that reads "beats B on 41 of 66,
-// loses on 3, undecided on 22" says more than "53% overall".
+// is a pair where A wins; the rest are undecided. The interval is over the
+// pair's NON-stalled games (a stalled game is not a win for either side), so
+// the honest summary a single pooled percentage hides stays honest when the
+// watchdog dropped games -- one that reads "beats B on 41 of 66, loses on 3,
+// undecided on 22" says more than "53% overall".
 func excludeCounts(results []pairResult) (below, above, undecided int) {
 	for _, r := range results {
-		lo, hi := ci95(r.aWins, r.games)
+		lo, hi := ci95(r.aWins, r.games-r.stalls)
 		if hi < 0.5 {
 			below++
 		} else if lo > 0.5 {
@@ -697,35 +887,86 @@ func excludeCounts(results []pairResult) (below, above, undecided int) {
 // states plainly that -games is PER PAIR, because a reader who mistakes the
 // total for the per-pair N draws wrong conclusions from every row -- that
 // the number is per-pair is the whole point of the flag.
-func writeMatrixText(out io.Writer, aName, bName string, baseSeed uint64, games int, results []pairResult) error {
+func writeMatrixText(out io.Writer, aName, bName string, baseSeed uint64, games int, results []pairResult, commander bool) error {
 	m := mergeResults(results)
-	fmt.Fprintf(out, "bot bench matrix: base seed %d, %s vs %s, %d deck pairs, %d games PER PAIR (total %d games)\n",
+	// staleHeader is the header's per-row arithmetic denominator: a pair's
+	// A win rate and seat 0 rate are over ITS non-stalled games, not over
+	// the byte N, so a stalled game is never distorted into a win or a loss
+	// for either side. mEff is the pooled analogue.
+	hdr := fmt.Sprintf("bot bench matrix: base seed %d, %s vs %s, %d deck pairs, %d games PER PAIR (total %d games)",
 		baseSeed, aName, bName, len(results), games, m.games)
+	if commander {
+		// The header must say which format the run used, so a Commander
+		// number cannot be mistaken for a constructed baseline in a
+		// scrollback.
+		hdr += " (commander format)"
+	}
+	fmt.Fprintln(out, hdr)
 	tw := tabwriter.NewWriter(out, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(tw, "deck pair\tA wins\tB wins\tdraws\tA win rate (95% CI)\tseat 0 rate (95% CI)\tmean turns")
+	fmt.Fprintln(tw, "deck pair\tA wins\tB wins\tdraws\tstalls\tA win rate (95% CI)\tseat 0 rate (95% CI)\tmean turns")
 	for _, r := range results {
-		lo, hi := ci95(r.aWins, r.games)
-		sLo, sHi := ci95(r.seatWins[0], r.games)
-		fmt.Fprintf(tw, "%s\t%d\t%d\t%d\t%.1f%% [%.1f%%, %.1f%%]\t%.1f%% [%.1f%%, %.1f%%]\t%.1f\n",
-			r.pd, r.aWins, r.bWins, r.draws,
-			float64(r.aWins)/float64(r.games)*100, lo*100, hi*100,
-			float64(r.seatWins[0])/float64(r.games)*100, sLo*100, sHi*100,
+		eff := r.games - r.stalls
+		lo, hi := ci95(r.aWins, eff)
+		sLo, sHi := ci95(r.seatWins[0], eff)
+		// rateCell renders "no rate" for an all-stalled pair, which a bare
+		// "0.0%" would otherwise mis-represent as a real rate over no games.
+		fmt.Fprintf(tw, "%s\t%d\t%d\t%d\t%d\t%s\t%s\t%.1f\n",
+			r.pd, r.aWins, r.bWins, r.draws, r.stalls,
+			rateCell(r.aWins, eff, lo, hi),
+			rateCell(r.seatWins[0], eff, sLo, sHi),
 			float64(r.totalTurns)/float64(r.games))
 	}
 	tw.Flush()
 
-	blo, bhi := ci95(m.aWins, m.games)
-	sLo, sHi := ci95(m.seatWins[0], m.games)
+	mEff := m.games - m.stalls
+	blo, bhi := ci95(m.aWins, mEff)
+	sLo, sHi := ci95(m.seatWins[0], mEff)
 	below, above, undecided := excludeCounts(results)
 	fmt.Fprintf(out, "\ngames per pair: %d  (total %d games across %d pairs)\n", games, m.games, m.pairs)
-	fmt.Fprintf(out, "pooled across %d pairs: %s wins %d, B wins %d, draws %d\n", m.pairs, aName, m.aWins, m.bWins, m.draws)
-	fmt.Fprintf(out, "pooled %s win rate: %.1f%%  95%% CI [%.1f%%, %.1f%%] (normal approximation to the binomial, pooled over counts)\n",
-		aName, float64(m.aWins)/float64(m.games)*100, blo*100, bhi*100)
-	fmt.Fprintf(out, "pooled seat 0 win rate: %.1f%%  95%% CI [%.1f%%, %.1f%%] (normal approximation to the binomial)\n",
-		float64(m.seatWins[0])/float64(m.games)*100, sLo*100, sHi*100)
+	fmt.Fprintf(out, "pooled across %d pairs: %s wins %d, B wins %d, draws %d", m.pairs, aName, m.aWins, m.bWins, m.draws)
+	if m.stalls > 0 {
+		// The pooled line names the thrown-away games so a reader sees how
+		// much of the run the stalls cost.
+		fmt.Fprintf(out, ", %d stalled", m.stalls)
+	}
+	fmt.Fprintln(out)
+	fmt.Fprintf(out, "pooled %s win rate: %s\n", aName,
+		rateFmt(m.aWins, mEff, blo, bhi, "(normal approximation to the binomial, pooled over counts)"))
+	fmt.Fprintf(out, "pooled seat 0 win rate: %s\n",
+		rateFmt(m.seatWins[0], mEff, sLo, sHi, "(normal approximation to the binomial)"))
 	fmt.Fprintf(out, "mean turns per game (pooled): %.1f\n", float64(m.totalTurns)/float64(m.games))
 	fmt.Fprintf(out, "pairs whose A-win interval excludes 50%%: A loses on %d, A wins on %d, undecided on %d\n", below, above, undecided)
+	if notice := stallNotice(m.stallTurns, m.stallIntents, mEff); notice != "" {
+		// A matrix with any stalls says so loudly, like the single-pair run.
+		fmt.Fprint(out, notice)
+	}
 	return nil
+}
+
+// rateFmt renders a rate with its CI and a trailing suffix for the long-form
+// report lines ("A win rate:", "pooled ... win rate:"). Over zero
+// non-stalled games a rate is not 0%, it is undefined -- a "0.0%" over no
+// games is a number that gets quoted as if it meant something -- so it prints
+// a phrase that cannot be parsed as a win rate.
+func rateFmt(wins, eff int, lo, hi float64, suffix string) string {
+	if eff <= 0 {
+		return "no rate (all games stalled)"
+	}
+	s := fmt.Sprintf("%.1f%%  95%% CI [%.1f%%, %.1f%%]", float64(wins)/float64(eff)*100, lo*100, hi*100)
+	if suffix != "" {
+		s += " " + suffix
+	}
+	return s
+}
+
+// rateCell is the tabwriter column variant of rateFmt: the terse
+// "12.3% [1.2%, 23.4%]" shape a matrix row's width needs, with the same
+// all-stalled guard.
+func rateCell(wins, eff int, lo, hi float64) string {
+	if eff <= 0 {
+		return "no rate"
+	}
+	return fmt.Sprintf("%.1f%% [%.1f%%, %.1f%%]", float64(wins)/float64(eff)*100, lo*100, hi*100)
 }
 
 // jsonPair and jsonPooled are the machine-readable report, one element per
@@ -737,6 +978,7 @@ type jsonPair struct {
 	AWins      int       `json:"a_wins"`
 	BWins      int       `json:"b_wins"`
 	Draws      int       `json:"draws"`
+	Stalls     int       `json:"stalls"`
 	AWinRate   float64   `json:"a_win_rate"`
 	AWinRateCI []float64 `json:"a_win_rate_ci"`
 	Seat0Wins  int       `json:"seat0_wins"`
@@ -753,6 +995,7 @@ type jsonPooled struct {
 	AWins        int       `json:"a_wins"`
 	BWins        int       `json:"b_wins"`
 	Draws        int       `json:"draws"`
+	Stalls       int       `json:"stalls"`
 	AWinRate     float64   `json:"a_win_rate"`
 	AWinRateCI   []float64 `json:"a_win_rate_ci"`
 	Seat0Rate    float64   `json:"seat0_rate"`
@@ -767,33 +1010,41 @@ type jsonDoc struct {
 	PolicyA      string     `json:"policy_a"`
 	PolicyB      string     `json:"policy_b"`
 	BaseSeed     uint64     `json:"base_seed"`
+	Format       string     `json:"format"`
 	GamesPerPair int        `json:"games_per_pair"`
 	Pairs        []jsonPair `json:"pairs"`
 	Pooled       jsonPooled `json:"pooled"`
 }
 
-func writeMatrixJSON(out io.Writer, aName, bName string, baseSeed uint64, games int, results []pairResult) error {
+func writeMatrixJSON(out io.Writer, aName, bName string, baseSeed uint64, games int, results []pairResult, commander bool) error {
 	m := mergeResults(results)
-	doc := jsonDoc{PolicyA: aName, PolicyB: bName, BaseSeed: baseSeed, GamesPerPair: games}
+	format := "constructed"
+	if commander {
+		format = "commander"
+	}
+	doc := jsonDoc{PolicyA: aName, PolicyB: bName, BaseSeed: baseSeed, Format: format, GamesPerPair: games}
 	for _, r := range results {
-		lo, hi := ci95(r.aWins, r.games)
-		sLo, sHi := ci95(r.seatWins[0], r.games)
+		eff := r.games - r.stalls
+		lo, hi := ci95(r.aWins, eff)
+		sLo, sHi := ci95(r.seatWins[0], eff)
 		doc.Pairs = append(doc.Pairs, jsonPair{
 			Pair:       r.pd.String(),
 			AWins:      r.aWins,
 			BWins:      r.bWins,
 			Draws:      r.draws,
-			AWinRate:   float64(r.aWins) / float64(r.games),
+			Stalls:     r.stalls,
+			AWinRate:   winRateFrac(r.aWins, eff),
 			AWinRateCI: []float64{lo, hi},
 			Seat0Wins:  r.seatWins[0],
 			Seat1Wins:  r.seatWins[1],
-			Seat0Rate:  float64(r.seatWins[0]) / float64(r.games),
+			Seat0Rate:  winRateFrac(r.seatWins[0], eff),
 			Seat0CI:    []float64{sLo, sHi},
 			MeanTurns:  float64(r.totalTurns) / float64(r.games),
 		})
 	}
-	blo, bhi := ci95(m.aWins, m.games)
-	sLo, sHi := ci95(m.seatWins[0], m.games)
+	mEff := m.games - m.stalls
+	blo, bhi := ci95(m.aWins, mEff)
+	sLo, sHi := ci95(m.seatWins[0], mEff)
 	below, above, undecided := excludeCounts(results)
 	doc.Pooled = jsonPooled{
 		Pairs:        m.pairs,
@@ -802,9 +1053,10 @@ func writeMatrixJSON(out io.Writer, aName, bName string, baseSeed uint64, games 
 		AWins:        m.aWins,
 		BWins:        m.bWins,
 		Draws:        m.draws,
-		AWinRate:     float64(m.aWins) / float64(m.games),
+		Stalls:       m.stalls,
+		AWinRate:     winRateFrac(m.aWins, mEff),
 		AWinRateCI:   []float64{blo, bhi},
-		Seat0Rate:    float64(m.seatWins[0]) / float64(m.games),
+		Seat0Rate:    winRateFrac(m.seatWins[0], mEff),
 		Seat0CI:      []float64{sLo, sHi},
 		MeanTurns:    float64(m.totalTurns) / float64(m.games),
 		ExcludeBelow: below,
@@ -816,13 +1068,24 @@ func writeMatrixJSON(out io.Writer, aName, bName string, baseSeed uint64, games 
 	return enc.Encode(doc)
 }
 
+// winRateFrac is a 0..1 rate with a guarded denominator, the machine-readable
+// counterpart of rateFmt/rateCell; it stays 0 when eff <= 0 (the JSON
+// consumers diff runs numerically, where a 0 for a no-rate pair is an honest
+// less-than-any-real-rate rather than prose that might get quoted).
+func winRateFrac(wins, eff int) float64 {
+	if eff <= 0 {
+		return 0
+	}
+	return float64(wins) / float64(eff)
+}
+
 // runMatrix is the matrix mode's entry through the real engine: it opens the
 // corpus, resolves every distinct deck the pairs name, plays each pair for
 // `games` matches (parallelised across pairs by runPairs), and prints either
 // the text table+pooled line or the JSON document. It shares playMatch, the
 // policies table and ci95 with run(), so the seat-trades-policies and
 // seed-determinism properties are the same two seats a single-pair run has.
-func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format string, pairs []pairDef, workers int, out, prog io.Writer) error {
+func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format string, pairs []pairDef, workers, maxTurns, maxIntents int, commander bool, out, prog io.Writer) error {
 	if seats != 2 {
 		return fmt.Errorf("-pairs requires -seats 2 (a matrix pits one deck pair against another), got %d", seats)
 	}
@@ -830,7 +1093,7 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 		return fmt.Errorf("-games must be at least 1 per pair, got %d", games)
 	}
 	if format != "text" && format != "json" {
-		return fmt.Errorf("-format must be \"text\" or \"json\", got %q", format)
+		return fmt.Errorf("-out must be \"text\" or \"json\", got %q", format)
 	}
 	if _, err := resolvePolicy(aName); err != nil {
 		return err
@@ -847,8 +1110,13 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 	// Resolve each distinct deck once; pairs share decks so one deck list
 	// maps to many pairs. The map is only looked up by key during play --
 	// never ranged over in the reporting path -- so its iteration order
-	// cannot reach the output.
+	// cannot reach the output. commander mode also resolves each deck's
+	// command-zone index and validates the deck against the Commander deck
+	// rules (deck.ValidateCommander) up front, so a commander bench never
+	// half-starts on an illegal deck or a deck with no commander (which an
+	// explicit pair or the -seats path could otherwise slip past).
 	deckByName := make(map[string][]*cards.Card, len(pairs)*2)
+	cmdrByName := make(map[string]int, len(pairs)*2) // commander mode only
 	for _, pd := range pairs {
 		for _, name := range []string{pd.a, pd.b} {
 			if _, ok := deckByName[name]; ok {
@@ -859,6 +1127,13 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 				return err
 			}
 			deckByName[name] = d
+			if commander {
+				ci, err := commanderIndex(reg, name)
+				if err != nil {
+					return err
+				}
+				cmdrByName[name] = ci
+			}
 		}
 	}
 
@@ -870,13 +1145,14 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 			// from the engine's and from every other seat's.
 			botSeats[seat] = policies[pols[seat]](seed ^ uint64(seat+1))
 		}
-		cfg := rules.Config{
-			Seed:   seed,
-			Names:  []string{pd.a, pd.b},
-			Decks:  [][]*cards.Card{deckByName[pd.a], deckByName[pd.b]},
-			Tokens: reg.Tokens,
+		var commanders [][]int
+		if commander {
+			commanders = [][]int{{cmdrByName[pd.a]}, {cmdrByName[pd.b]}}
 		}
-		return playMatch(cfg, pols, botSeats)
+		cfg := buildGameConfig(seed, []string{pd.a, pd.b},
+			[][]*cards.Card{deckByName[pd.a], deckByName[pd.b]}, commanders, commander)
+		cfg.Tokens = reg.Tokens
+		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents)
 	}
 
 	results, err := runPairs(baseSeed, games, aName, bName, pairs, play, workers, &progressWriter{w: prog})
@@ -884,9 +1160,9 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 		return err
 	}
 	if format == "json" {
-		return writeMatrixJSON(out, aName, bName, baseSeed, games, results)
+		return writeMatrixJSON(out, aName, bName, baseSeed, games, results, commander)
 	}
-	return writeMatrixText(out, aName, bName, baseSeed, games, results)
+	return writeMatrixText(out, aName, bName, baseSeed, games, results, commander)
 }
 
 // run is main's entry through the real engine: it validates the flags,
@@ -895,7 +1171,7 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 // path stays open to tests that need it (determinism, end-to-end); the loop
 // and the report live in bench, which tests can also drive directly with a
 // synthetic matchPlayer.
-func run(baseSeed uint64, games, seats int, aName, bName, dir string, out io.Writer) error {
+func run(baseSeed uint64, games, seats int, aName, bName, dir string, maxTurns, maxIntents int, commander bool, out io.Writer) error {
 	if games < 1 {
 		return fmt.Errorf("-games must be at least 1, got %d", games)
 	}
@@ -915,25 +1191,51 @@ func run(baseSeed uint64, games, seats int, aName, bName, dir string, out io.Wri
 	}
 
 	// Decks are tied to seats for the whole run (seat 0 always holds the
-	// first repo deck), and seats trade policies every game, so each policy
-	// plays each deck-list the same number of times -- the deck can no more
-	// masquerade as a policy advantage than seat order can. RepoDeckNames is
-	// sorted, so the assignment is identical on every machine.
-	names := testutil.RepoDeckNames()
+	// first deck of the pool), and seats trade policies every game, so each
+	// policy plays each deck-list the same number of times -- the deck can
+	// no more masquerade as a policy advantage than seat order can. The pool
+	// is the full deck list for a constructed run and the commander-only
+	// list for a commander run (a Commander game must seat commander decks;
+	// dealing a 100-card Commander list as a constructed pile is exactly the
+	// defect this command fixes). Both lists stay sorted, so the assignment
+	// is identical on every machine.
+	var names []string
+	if commander {
+		names, err = commanderDeckNames()
+		if err != nil {
+			return err
+		}
+	} else {
+		names = testutil.RepoDeckNames()
+	}
 	if seats > len(names) {
-		return fmt.Errorf("-seats %d exceeds the %d repo decks available", seats, len(names))
+		return fmt.Errorf("-seats %d exceeds the %d %s decks available", seats, len(names), deckKind(commander))
 	}
 	decks := make([][]*cards.Card, seats)
+	commanders := make([][]int, seats) // commander mode only
 	for i := 0; i < seats; i++ {
 		d, err := testutil.LoadRepoDeck(reg, names[i])
 		if err != nil {
 			return err
 		}
 		decks[i] = d
+		if commander {
+			ci, err := commanderIndex(reg, names[i])
+			if err != nil {
+				return err
+			}
+			commanders[i] = []int{ci}
+		}
 	}
 
-	fmt.Fprintf(out, "bot bench: base seed %d, %s vs %s, %d games, %d seats, decks %s\n",
+	hdr := fmt.Sprintf("bot bench: base seed %d, %s vs %s, %d games, %d seats, decks %s",
 		baseSeed, aName, bName, games, seats, strings.Join(names[:seats], ","))
+	if commander {
+		// The header names the format so a Commander number cannot be quoted
+		// as a constructed baseline -- the mix-up this task exists to end.
+		hdr += " (commander format)"
+	}
+	fmt.Fprintln(out, hdr)
 
 	play := func(s uint64, pols []string) (gameOutcome, error) {
 		botSeats := make([]seat.Seat, seats)
@@ -943,10 +1245,36 @@ func run(baseSeed uint64, games, seats int, aName, bName, dir string, out io.Wri
 			// is distinct from the engine's and from every other seat's.
 			botSeats[seat] = policies[pols[seat]](s ^ uint64(seat+1))
 		}
-		cfg := rules.Config{Seed: s, Names: names[:seats], Decks: decks, Tokens: reg.Tokens}
-		return playMatch(cfg, pols, botSeats)
+		cfg := buildGameConfig(s, names[:seats], decks, commanders, commander)
+		cfg.Tokens = reg.Tokens
+		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents)
 	}
 	return bench(baseSeed, games, seats, aName, bName, play, out)
+}
+
+// buildGameConfig turns one game's seat assignment into its rules.Config,
+// applying commander mode's life and command-zone settings. Extracted from
+// run/runMatrix so the commander Config is unit-testable without paying an
+// engine game: commander mode sets FormatCommander, exactly 40 starting life
+// (CR 903.6) and each seat's command-zone commander index, matching how
+// cmd/gorged's deckLoader seats a commander table.
+func buildGameConfig(seed uint64, names []string, decks [][]*cards.Card, commanders [][]int, commander bool) rules.Config {
+	cfg := rules.Config{Seed: seed, Names: names, Decks: decks}
+	if commander {
+		cfg.Format = rules.FormatCommander
+		cfg.StartingLife = 40
+		cfg.Commanders = commanders
+	}
+	return cfg
+}
+
+// deckKind names the deck pool a run selects, for an error message that
+// says why a -seats count is too high.
+func deckKind(commander bool) string {
+	if commander {
+		return "commander"
+	}
+	return "repo"
 }
 
 func main() {
@@ -956,24 +1284,55 @@ func main() {
 	seed := flag.Uint64("seed", 0, "base seed; game i plays at seed+i")
 	seats := flag.Int("seats", 2, "number of seats")
 	pairs := flag.String("pairs", "", "deck-pair matrix: \"all\" for every unordered repo-deck pair, or a comma-separated \"a:b,c:d\" list; empty keeps today's single-pair behaviour")
-	format := flag.String("format", "text", "matrix output format: text or json (json is machine-readable for diffing runs)")
+	format := flag.String("format", "constructed", "construction format: constructed or commander (commander deals commander decks into the command zone, starts at 40 life, and plays for -max-turns before a game is recorded as a stall)")
+	out := flag.String("out", "text", "matrix output format: text or json (json is machine-readable for diffing runs)")
 	workers := flag.Int("workers", 0, "matrix parallelism across pairs; 0 = use all cores (result is deterministic regardless)")
+	// The two watchdog caps catch different pathologies and must not be
+	// conflated: -max-turns ends a game that runs long in turn count (a cap
+	// a frozen-turn loop never reaches, because its turn number stops);
+	// -max-intents ends a game whose turn count freezes but that keeps
+	// submitting intents forever. Both end the game as a stall -- not a win,
+	// not a draw, excluded from the win-rate denominator. Healthy constructed
+	// games measure 171-1136 intents, so the 20000 default is ~17x the worst
+	// of those with room for Commander's longer games.
+	maxTurns := flag.Int("max-turns", 200, "maximum turns per game before it ends as a stall (not a win, not a draw); catches a game that runs long in turn count; 0 = no cap")
+	maxIntents := flag.Int("max-intents", 20000, "maximum intents per game before it ends as a stall (not a win, not a draw); catches a game whose turn count never advances but that keeps submitting intents; 0 = no cap")
 	dir := flag.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
 	flag.Parse()
 
-	if *pairs != "" {
-		ps, err := parsePairs(*pairs, testutil.RepoDeckNames())
+	commander, err := parseGameFormat(*format)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "botbench:", err)
+		os.Exit(1)
+	}
+
+	// The deck pool is the format's: a Commander run seats only commander
+	// decks, so -pairs all and -seats both expand over that pool rather than
+	// dealing a 100-card Commander list as a constructed pile.
+	var deckPool []string
+	if commander {
+		deckPool, err = commanderDeckNames()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "botbench:", err)
 			os.Exit(1)
 		}
-		if err := runMatrix(*seed, *games, *seats, *a, *b, *dir, *format, ps, *workers, os.Stdout, os.Stderr); err != nil {
+	} else {
+		deckPool = testutil.RepoDeckNames()
+	}
+
+	if *pairs != "" {
+		ps, err := parsePairsForMode(*pairs, deckPool, commander)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "botbench:", err)
+			os.Exit(1)
+		}
+		if err := runMatrix(*seed, *games, *seats, *a, *b, *dir, *out, ps, *workers, *maxTurns, *maxIntents, commander, os.Stdout, os.Stderr); err != nil {
 			fmt.Fprintln(os.Stderr, "botbench:", err)
 			os.Exit(1)
 		}
 		return
 	}
-	if err := run(*seed, *games, *seats, *a, *b, *dir, os.Stdout); err != nil {
+	if err := run(*seed, *games, *seats, *a, *b, *dir, *maxTurns, *maxIntents, commander, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "botbench:", err)
 		os.Exit(1)
 	}
