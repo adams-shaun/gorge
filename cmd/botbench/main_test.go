@@ -48,7 +48,7 @@ func TestBenchIsDeterministic(t *testing.T) {
 	for _, buf := range []*bytes.Buffer{&b1, &b2} {
 		// maxTurns=0 keeps this an uncapped determinism run, exactly today's
 		// behaviour; the turn watchdog must not be what makes it pass.
-		if err := run(11, 3, 2, "bot", "bot", dir, 0, false, buf); err != nil {
+		if err := run(11, 3, 2, "bot", "bot", dir, 0, 0, false, buf); err != nil {
 			t.Fatalf("run: %v", err)
 		}
 	}
@@ -259,7 +259,7 @@ func TestTheSummaryReportsSeatWins(t *testing.T) {
 func TestShortEndToEndRun(t *testing.T) {
 	dir := corpusDirOrSkip(t)
 	var buf bytes.Buffer
-	if err := run(0, 2, 2, "bot", "bot", dir, 200, false, &buf); err != nil {
+	if err := run(0, 2, 2, "bot", "bot", dir, 200, 0, false, &buf); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	out := buf.String()
@@ -593,7 +593,7 @@ func TestMatrixEndToEnd(t *testing.T) {
 		t.Fatalf("parsePairs: %v", err)
 	}
 	var b1, b2 bytes.Buffer
-	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "text", pairs, 2, 200, false, &b1, io.Discard); err != nil {
+	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "text", pairs, 2, 200, 0, false, &b1, io.Discard); err != nil {
 		t.Fatalf("runMatrix: %v", err)
 	}
 	out := b1.String()
@@ -606,7 +606,7 @@ func TestMatrixEndToEnd(t *testing.T) {
 		t.Errorf("report must state games-per-pair:\n%s", out)
 	}
 	// Deterministic: a second identical run is byte-identical.
-	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "text", pairs, 2, 200, false, &b2, io.Discard); err != nil {
+	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "text", pairs, 2, 200, 0, false, &b2, io.Discard); err != nil {
 		t.Fatalf("runMatrix(second): %v", err)
 	}
 	if b1.String() != b2.String() {
@@ -617,10 +617,12 @@ func TestMatrixEndToEnd(t *testing.T) {
 // ---- task op1: commander construction format and the turn watchdog ----
 
 // stallRe captures the loud stall line bench/run and the matrix writers emit
-// when any game hit -max-turns. Group 1 is the stall count. It is extra to
-// summaryRe (the normal block still prints when stalls occurred), and it
-// proves the run said so loudly rather than silently dropping games.
-var stallRe = regexp.MustCompile(`@@ STALLED: (\d+) game\(s\) reached -max-turns and were recorded as stalled.* non-stalled game\(s\) @@`)
+// when any game hit either watchdog cap. Group 1 is the number that hit
+// -max-turns, group 2 the number that hit -max-intents, group 3 the
+// non-stalled denominator. It is extra to summaryRe (the normal block still
+// prints when stalls occurred), and it proves the run said so loudly and
+// distinguished the two causes rather than silently dropping games.
+var stallRe = regexp.MustCompile(`@@ STALLED: (\d+) game\(s\) hit the -max-turns cap, (\d+) hit the -max-intents cap; win rates are over (\d+) non-stalled game\(s\) @@`)
 
 // seatLineRe captures the per-game line's winner token so a stall's
 // winner=stalled marker is assertable directly.
@@ -643,7 +645,7 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	if err := run(0, 20, 2, "bot", "legacy", dir, 200, false, &buf); err != nil {
+	if err := run(0, 20, 2, "bot", "legacy", dir, 200, 0, false, &buf); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	m := summaryRe.FindStringSubmatch(buf.String())
@@ -752,7 +754,7 @@ func TestCommanderNamedNonCommanderIsError(t *testing.T) {
 func TestTurnWatchdogEndsGameAtMaxTurns(t *testing.T) {
 	dir := corpusDirOrSkip(t)
 	var buf bytes.Buffer
-	if err := run(0, 1, 2, "bot", "bot", dir, 2, false, &buf); err != nil {
+	if err := run(0, 1, 2, "bot", "bot", dir, 2, 0, false, &buf); err != nil {
 		t.Fatalf("run(maxTurns=2): %v", err)
 	}
 	out := buf.String()
@@ -776,11 +778,12 @@ func TestTurnWatchdogEndsGameAtMaxTurns(t *testing.T) {
 // dropped count.
 func TestStalledExcludedFromWinRate(t *testing.T) {
 	play := func(seed uint64, _ []string) (gameOutcome, error) {
-		// even seeds (games 0, 2) are seat-0 wins for A; odd seeds are stalls.
+		// even seeds (games 0, 2) are seat-0 wins for A; odd seeds are intent
+		// stalls (a frozen turn that keeps answering intents).
 		if seed%2 == 0 {
 			return gameOutcome{winner: "bot", winnerSeat: 0, turns: 10, intents: 50}, nil
 		}
-		return gameOutcome{stalled: true, turns: 3, intents: 10}, nil
+		return gameOutcome{stallOn: "intents", turns: 3, intents: 20000}, nil
 	}
 	var buf bytes.Buffer
 	if err := bench(0, 4, 2, "bot", "bot", play, &buf); err != nil {
@@ -795,8 +798,8 @@ func TestStalledExcludedFromWinRate(t *testing.T) {
 		t.Errorf("A win rate = %.1f%%, want 100%% (2 wins over 4-2=2 non-stalled games)", rate)
 	}
 	sm := stallRe.FindStringSubmatch(out)
-	if sm == nil || atoi(sm[1]) != 2 {
-		t.Errorf("stall line must name 2 dropped games:\n%s", out)
+	if sm == nil || atoi(sm[2]) != 2 {
+		t.Errorf("stall line must name 2 intent-stalled drops:\n%s", out)
 	}
 }
 
@@ -816,16 +819,154 @@ func TestCommanderMatrixJSONReproducible(t *testing.T) {
 		t.Fatalf("parsePairsForMode: %v", err)
 	}
 	var b1, b2 bytes.Buffer
-	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "json", pairs, 2, 200, true, &b1, io.Discard); err != nil {
+	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "json", pairs, 2, 200, 0, true, &b1, io.Discard); err != nil {
 		t.Fatalf("runMatrix(json): %v", err)
 	}
 	if b1.String() == "" || !strings.Contains(b1.String(), `"format": "commander"`) {
 		t.Fatalf("commander JSON must carry the format:\n%s", b1.String())
 	}
-	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "json", pairs, 2, 200, true, &b2, io.Discard); err != nil {
+	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "json", pairs, 2, 200, 0, true, &b2, io.Discard); err != nil {
 		t.Fatalf("runMatrix(json, second): %v", err)
 	}
 	if b1.String() != b2.String() {
 		t.Errorf("commander matrix JSON not deterministic across identical runs")
+	}
+}
+
+// ---- fix round 1: the intent watchdog (stalled, not error) ----
+
+// TestMaxIntentsEndsNonTerminatingGameAsStall pins that -max-intents ends a
+// game that does not finish inside the cap, recorded as a stall (not an
+// error). It drives a real engine game (bot vs bot) with a trivially small
+// cap of 5 intents and no turn cap: a healthy game is never over in 5
+// intents, so the intent cap fires immediately and the watchdog records it
+// as a stall -- the synthetic-shaped loop the fix exists for, without
+// depending on any specific pathological deck.
+func TestMaxIntentsEndsNonTerminatingGameAsStall(t *testing.T) {
+	dir := corpusDirOrSkip(t)
+	var buf bytes.Buffer
+	if err := run(0, 1, 2, "bot", "bot", dir, 0, 5, false, &buf); err != nil {
+		t.Fatalf("run(maxIntents=5): %v", err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "winner=stalled") {
+		t.Errorf("per-game line must call the intent-capped game a stall:\n%s", out)
+	}
+	m := stallRe.FindStringSubmatch(out)
+	if m == nil {
+		t.Fatalf("no stall notice:\n%s", out)
+	}
+	if atoi(m[2]) != 1 {
+		t.Errorf("intent stall count = %s, want 1", m[2])
+	}
+}
+
+// TestIntentStalledExcludedFromWinRate pins the win-rate sampling rule for
+// intent-capped games, mirroring what TestStalledExcludedFromWinRate proves
+// for the turn cap: 2 wins + 2 intent stalls over 4 games report A win rate
+// 100%% (2/2 non-stalled), never 50%% (2/4).
+func TestIntentStalledExcludedFromWinRate(t *testing.T) {
+	play := func(seed uint64, _ []string) (gameOutcome, error) {
+		// even seeds are seat-0 wins for A; odd seeds are intent stalls.
+		if seed%2 == 0 {
+			return gameOutcome{winner: "bot", winnerSeat: 0, turns: 10, intents: 100}, nil
+		}
+		return gameOutcome{stallOn: "intents", turns: 5, intents: 20000}, nil
+	}
+	var buf bytes.Buffer
+	if err := bench(0, 4, 2, "bot", "bot", play, &buf); err != nil {
+		t.Fatalf("bench: %v", err)
+	}
+	out := buf.String()
+	m := summaryRe.FindStringSubmatch(out)
+	if m == nil {
+		t.Fatalf("summary block missing:\n%s", out)
+	}
+	if rate := atof(m[5]); rate != 100 {
+		t.Errorf("A win rate = %.1f%%, want 100%% (2 wins / 2 non-stalled)", rate)
+	}
+}
+
+// TestIntentCapIsNotAnError pins the whole point of the fix: reaching the
+// intent cap is a stalled outcome, not a fatal error, so the run continues
+// and the games/pairs after the hung one still report. The synthetic player
+// stalls game 0 on the intent cap (returns a stall, nil error) and wins the
+// rest; bench must not fail, and both the stalled game and the finished ones
+// appear in the report.
+func TestIntentCapIsNotAnError(t *testing.T) {
+	var caused, continued bool
+	play := func(seed uint64, _ []string) (gameOutcome, error) {
+		if seed == 0 {
+			caused = true
+			// A stall is returned as a normal outcome, not an error: a single
+			// hung game must not abort the whole run.
+			return gameOutcome{stallOn: "intents", turns: 3, intents: 20000}, nil
+		}
+		continued = true
+		return gameOutcome{winner: "bot", winnerSeat: 0, turns: 12, intents: 200}, nil
+	}
+	var buf bytes.Buffer
+	if err := bench(0, 3, 2, "bot", "bot", play, &buf); err != nil {
+		t.Fatalf("bench must not error on an intent-capped game (one hung game should be stepped over): %v", err)
+	}
+	out := buf.String()
+	if !caused || !continued {
+		t.Fatalf("synthetic player did not exercise both the stall and the continuation branches")
+	}
+	if !strings.Contains(out, "winner=stalled") || !strings.Contains(out, "winner=bot@0") {
+		t.Errorf("both the intent-stalled game and the later win must be reported:\n%s", out)
+	}
+}
+
+// TestStallNoticeDistinguishesCauses pins that the stall notice names the
+// turn cap and the intent cap separately, and counts each -- a reader must
+// be able to tell a game that ran long (turns) from one whose turn froze
+// (intents) to act on either.
+func TestStallNoticeDistinguishesCauses(t *testing.T) {
+	play := func(seed uint64, _ []string) (gameOutcome, error) {
+		switch seed % 3 {
+		case 0:
+			return gameOutcome{winner: "bot", winnerSeat: 0, turns: 10, intents: 100}, nil
+		case 1:
+			return gameOutcome{stallOn: "turns", turns: 200, intents: 300}, nil
+		default:
+			return gameOutcome{stallOn: "intents", turns: 5, intents: 20000}, nil
+		}
+	}
+	var buf bytes.Buffer
+	if err := bench(0, 3, 2, "bot", "bot", play, &buf); err != nil {
+		t.Fatalf("bench: %v", err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "-max-turns cap") || !strings.Contains(out, "-max-intents cap") {
+		t.Errorf("notice must name the turn cap and intent cap separately:\n%s", out)
+	}
+	m := stallRe.FindStringSubmatch(out)
+	if m == nil {
+		t.Fatalf("no stall notice:\n%s", out)
+	}
+	if atoi(m[1]) != 1 || atoi(m[2]) != 1 {
+		t.Errorf("turn/intent stall counts = %s/%s, want 1/1", m[1], m[2])
+	}
+}
+
+// TestAllStalledReportsNoRate pins the all-stalled denominator fix: a run
+// where every game stalled has no non-stalled games, so a reported "0.0%%"
+// would be a rate over nothing -- a lie that gets quoted as a real win
+// rate. The report must instead say the rate is unavailable.
+func TestAllStalledReportsNoRate(t *testing.T) {
+	play := func(seed uint64, _ []string) (gameOutcome, error) {
+		return gameOutcome{stallOn: "intents", turns: 4, intents: 20000}, nil
+	}
+	var buf bytes.Buffer
+	if err := bench(0, 3, 2, "bot", "bot", play, &buf); err != nil {
+		t.Fatalf("bench: %v", err)
+	}
+	out := buf.String()
+	if strings.Contains(out, "A win rate: 0.0%") {
+		t.Errorf("all-stalled run must not print 0.0%% as a win rate:\n%s", out)
+	}
+	if !strings.Contains(out, "no rate") {
+		t.Errorf("all-stalled run must say the rate is unavailable, not 0:\n%s", out)
 	}
 }
