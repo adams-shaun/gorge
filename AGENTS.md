@@ -152,3 +152,17 @@ is the BINARY's name -- if you built `gorged-after`, its `comm` is
 
 `scripts/fleet.sh ports` prints the current allocation, and `scripts/fleet.sh
 port` prints a free one in your range.
+
+## Working in a task worktree
+
+Task worktrees are created with `scripts/agent-worktree.sh <id> [base] [--web]`,
+never with a bare `git worktree add`. A worktree carries only tracked files, and
+this repo needs one untracked thing to test honestly: the `.cards` corpus. Without
+it `internal/testutil`'s `CorpusRegistry` calls `t.Skip`, so every
+corpus-dependent test SKIPS instead of running, the package still prints `ok` --
+in about 2ms -- and the run reads green to you, to the review pre-filter and to
+the gate while having executed almost nothing. If you find yourself in a worktree
+with no `.cards`, stop and say so rather than reporting a green suite.
+
+Which agent seats exist, what they cost and when to escalate between them is
+recorded in `docs/superpowers/agent-seats.md`.
