@@ -275,3 +275,76 @@ func TestCloneOfAFinishedGameIsFinished(t *testing.T) {
 		t.Fatal("clone of a finished game accepted an intent")
 	}
 }
+
+// TestCloneCarriesTheMulliganRound pins the pregame half of Clone's own
+// contract. Engine.pregame and Engine.mulligan are both documented as
+// "Clone copies it like every other value field" (engine.go) — and neither
+// is in Clone's struct literal, so a clone taken while the London mulligan
+// round is running comes back with pregame false and a zero mulliganRound.
+// Answering the very decision the original was parked on then finds no seat
+// in mulligan.seats, leaves the round index at -1 and indexes kept[-1].
+//
+// That is not a theoretical hazard: host.viewAt reaches an intent boundary
+// by cloning a snapshot and RE-SUBMITTING the recorded intents, so every
+// GET /api/tables/{t}/matches/{k}/view?seq=N inside a live match's mulligan
+// window 500s with "viewAt(seq=N) panicked: index out of range [-1]" — a
+// spectator scrubbing the DVR into the opening hand gets a blank board.
+func TestCloneCarriesTheMulliganRound(t *testing.T) {
+	names, decks := testutil.SampleDecks(t, 4)
+	e := New(Config{Seed: 7, Names: names, Decks: decks, Mulligans: 1})
+	e.Advance()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KMulligan {
+		t.Fatalf("fixture did not park on a mulligan decision: %+v", d)
+	}
+
+	c := e.Clone()
+	if !c.pregame {
+		t.Fatal("clone lost pregame: the mulligan round is not running on the copy")
+	}
+	if len(c.mulligan.seats) != len(e.mulligan.seats) || len(c.mulligan.kept) != len(e.mulligan.kept) ||
+		len(c.mulligan.taken) != len(e.mulligan.taken) || c.mulligan.limit != e.mulligan.limit {
+		t.Fatalf("clone lost the mulligan round: seats %d/%d kept %d/%d taken %d/%d limit %d/%d",
+			len(c.mulligan.seats), len(e.mulligan.seats), len(c.mulligan.kept), len(e.mulligan.kept),
+			len(c.mulligan.taken), len(e.mulligan.taken), c.mulligan.limit, e.mulligan.limit)
+	}
+
+	// The panic itself: the same intent, answered on both engines, must
+	// reach the same chain head instead of indexing kept[-1] on the copy.
+	bot := newTestBot(7)
+	in := bot.answer(e, d)
+	if err := c.Submit(in); err != nil {
+		t.Fatalf("clone rejected the pending mulligan answer: %v", err)
+	}
+	if err := e.Submit(in); err != nil {
+		t.Fatalf("original rejected the pending mulligan answer: %v", err)
+	}
+	if e.L.Head() != c.L.Head() {
+		t.Fatalf("chain heads differ after the same mulligan answer: %s vs %s", e.L.Head(), c.L.Head())
+	}
+
+	// The round's mutable slices must be re-allocated, not aliased: kept
+	// (mulligan.go:173, kept[i] = true) and taken (mulligan.go:179,
+	// taken[i]++) are both written in place, so a shallow struct copy would
+	// let one engine's answer show up in the other's round. seats is only
+	// ever replaced wholesale, but it is copied too and pinned here so the
+	// round has no shared backing array at all.
+	if len(c.mulligan.kept) > 0 {
+		c.mulligan.kept[0] = !c.mulligan.kept[0]
+		if e.mulligan.kept[0] == c.mulligan.kept[0] {
+			t.Fatal("clone aliases the original's mulligan.kept slice")
+		}
+	}
+	if len(c.mulligan.taken) > 0 {
+		c.mulligan.taken[0] += 100
+		if e.mulligan.taken[0] == c.mulligan.taken[0] {
+			t.Fatal("clone aliases the original's mulligan.taken slice")
+		}
+	}
+	if len(c.mulligan.seats) > 0 {
+		c.mulligan.seats[0] = c.mulligan.seats[0] + 1
+		if e.mulligan.seats[0] == c.mulligan.seats[0] {
+			t.Fatal("clone aliases the original's mulligan.seats slice")
+		}
+	}
+}
