@@ -93,17 +93,12 @@ func (mp *ManaProduction) add(a *SA) {
 
 // ManaProduction returns the production of every mana ability on the face,
 // folded together -- the exact mana a tap-for-mana activation adds to the
-// pool. It is derived from the face's abilities (ManaAbilities), so a card the
+// pool. It is derived once at load from the face's abilities (ManaAbilities),
+// refreshed after ApplyIntrinsics adds abilities, so a card the
 // intrinsic layer granted its mana from subtypes (a Plains, a dual with a
 // Plains and an Island half) is covered by the same path as a card whose
 // script spells the ability out.
-func (f *Face) ManaProduction() ManaProduction {
-	var mp ManaProduction
-	for _, a := range f.ManaAbilities() {
-		mp.add(a)
-	}
-	return mp
-}
+func (f *Face) ManaProduction() ManaProduction { return f.manaProduction }
 
 // Distinguishes the five coloured pool slots from colourless: the index of a
 // colour the policy can spend on a coloured pip. Index 5 (colourless) is not a
