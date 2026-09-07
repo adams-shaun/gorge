@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -56,6 +57,17 @@ type Card struct {
 	// zone lists; the engine's zone walk plus the derived keyword list), so
 	// the gate sees the same castability whichever host asks.
 	Castable bool
+	// Produces is what this card's mana abilities add to the pool when a
+	// tap-for-mana activation runs them (cards.ManaProduction, plain data
+	// -- botpolicy must not import view or rules, Ruling F7). It is filled
+	// by both adapter halves from the same source -- the projected
+	// CardView.Produces on the view half, cards.Face.ManaProduction on the
+	// game half -- so the tap heuristic reads the same production whichever
+	// host asks. It lets chooseTap pick a source that produces a colour a cast
+	// needs and spend the least flexible one first. It also describes a land
+	// card while it is still in hand, so a future land-drop ranking can use the
+	// same fact.
+	Produces cards.ManaProduction
 }
 
 // braceForm normalises a brace-form mana cost ("{2}{U}{U}") to the
@@ -242,9 +254,8 @@ func (b Board) chooseCast(d *decision.Decision) int {
 //     can carry any of those (enters tapped, pays life, requires a
 //     threshold), and the policy cannot read most of them from the facts
 //     both adapters carry, so the reliable basic is preferred whenever one
-//     is offered. Colour-aware choice — picking the land whose colour the
-//     hand's spells need — is a follow-up (the View does not carry a
-//     nonbasic's produced colour; see the report).
+//     is offered. Colour-aware choice is deliberately deferred: it needs
+//     land-entry facts as well as this card's possible production.
 //   - L2 (deterministic tie): two lands of equal basic-ness tie on option
 //     index, so the answer is a pure function of the options plus the one
 //     readable land fact. No rng, no map order.
