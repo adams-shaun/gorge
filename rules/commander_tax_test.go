@@ -276,8 +276,17 @@ func TestCommanderCastFromHandIsNeitherTaxedNorCounted(t *testing.T) {
 	e, _, cmd0 := commanderTaxGame(t, 34)
 
 	// The commander is in the command zone; move it to the hand (a fixture --
-	// getting it there only ever happens through some other effect).
-	e.emit(events.Event{Kind: events.MoveZone, Obj: cmd0, From: state.ZCommand, To: state.ZHand})
+	// getting it there only ever happens through some other effect). The
+	// engine route is not available: emitting that MoveZone is itself a CR
+	// 903.9 event ("from anywhere" includes the command zone, so the owner
+	// would be asked whether to keep the commander in the command zone
+	// instead), so the zone lists are written directly -- the fixture
+	// convention commander_zone_replacement_test.go uses for the same
+	// reason (m32 fix round 1: this test predates the replacement, and its
+	// raw emit of a replaceable event was what the CR 903.9 change broke).
+	e.G.Obj(cmd0).Zone = state.ZHand
+	e.G.SetZone(state.ZCommand, 0, withoutID(e.G.Zone(state.ZCommand, 0), cmd0))
+	e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), cmd0))
 	e.pending = nil
 	e.Advance()
 

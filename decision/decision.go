@@ -58,6 +58,18 @@ const (
 	// order. There is no default: an unanswered optional trigger never
 	// reaches the stack, and neither does a declined one.
 	KTriggerOptional Kind = "trigger_optional"
+	// KCommanderZone asks a commander's OWNER what happens to the commander
+	// when it is about to be put into its owner's graveyard, hand or library
+	// from anywhere, or exiled from anywhere: the owner may put it into the
+	// command zone instead (CR 903.9). Min == Max == 1 over exactly two
+	// options, in this order: index 0 Kind "command_zone" (put it into the
+	// command zone), index 1 Kind "leave" (let the zone change happen as it
+	// would have). It is the OWNER who answers, never the controller -- a
+	// stolen commander is sent to its owner's command zone by its owner's
+	// choice -- so Player is always the owner. A decline changes nothing: the
+	// original zone change happens unchanged (the engine's park re-emits the
+	// deferred event verbatim).
+	KCommanderZone Kind = "commander_zone"
 	// KChoose is one list-pick: choose between Min and Max of the offered
 	// options. Every option in one decision shares a Kind that says what is
 	// being chosen — "x" (a value for {X}; options ascend), "exile" (cards
