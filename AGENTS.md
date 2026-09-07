@@ -114,7 +114,6 @@ still owing it.
 | `Vote` gives every voter the first `Choices$` entry and records one Note per vote (Council's Judgment) | `effects/misc.go:239-247` | M4 |
 | `BecomeMonarch` records a Note only; the monarch's end-step draw does not exist (Palace Jailer) | `effects/misc.go:251-257` | M4 |
 | `RearrangeTopOfLibrary` looks at the top N but keeps the order unchanged -- the reorder choice is never asked (Ponder) | `effects/cardflow.go:210-229` | M4 |
-| The need-aware tap gate (op6) prices a tap only against how much mana a castable card needs, never against which colour this particular source produces: the View projects no per-permanent mana production, so the policy cannot tell a Plains from an Island before tapping it and the colour resolution of a multi-coloured hand leans on tapping every source (a demand-side colour check does exist: the pool pays a card only when its coloured pips match) | `botpolicy/tap.go` (`chooseTap`/`poolPays`) | none -- the View carries no produced colour; the fix is a View field, not a policy rule |
 | A host that cannot answer a decision gets the deterministic fallback: `Charm` takes its first mode with a Note (the modes ask itself is a real KModes decision since M2d-2) | `effects/misc.go:171-233` | none -- the no-ask host is the fuzz/test degradation contract |
 
 ## Host behaviour notes (embedder observer hooks, D15)
