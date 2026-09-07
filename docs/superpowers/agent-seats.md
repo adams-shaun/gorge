@@ -64,16 +64,59 @@ the dash: an invented heartbeat is worse than an honest gap.
    for the two local rounds.
 5. **Claude implementer last.**
 
-## Concurrency
+## Concurrency — two pools, not one cap
 
-- **4 local agents total**, across both orchestrator threads — claimed with
-  `scripts/fleet.sh claim`. Past four the box saturates and load-sensitive tests
-  fail for reasons unrelated to any diff.
-- **Codex seats do not load the box** but share one ChatGPT plan's rate limit,
-  and will throttle each other and the user's own sessions. Treat **2
-  concurrent** as the ceiling until measured.
-- Claude subagents load neither, so a full seat pool routes work there rather
-  than into a queue.
+User ruling, 2026-09-07. The seat limit is **two independent pools**, because
+the two ceilings exist for unrelated reasons:
+
+| pool | cap | claimed with | what the cap protects |
+|---|---|---|---|
+| **local** | 4 | `fleet.sh claim <id> --local` (the default) | THIS BOX. Past four local agents it saturates and load-sensitive tests fail for reasons unrelated to any diff. |
+| **paid** | 2 | `fleet.sh claim <id> --paid` | The PLAN. Codex seats run on someone else's hardware and load the box not at all, but share one ChatGPT plan's rate limit and throttle each other and the user's own sessions. |
+
+So **6 agents can run at once** — 4 local plus 2 paid. A full local pool does
+NOT block a codex dispatch, and a full paid pool does not block a local one;
+`fleet.sh claim` says which pool is full and points at the other. Counting them
+against one number was wrong: it made a free seat and a paid seat
+interchangeable when they are limited by different resources entirely.
+
+Pass the pool as a flag. A dispatch knows which seat it is about to spend, and
+recovering it afterwards from a transcript is how a paid run gets miscounted as
+free. A seat directory with no `kind` file predates pools and counts as local.
+
+Claude subagents load neither pool, so a full fleet routes visual/rescue work
+there rather than into a queue.
+
+## Always evaluate an agent's tool errors when it completes
+
+Standing rule, user, 2026-09-07. `STATUS=DONE` does not mean the run was clean.
+Every finished agent's tool-error count must be READ and JUDGED before the diff
+is gated — the dash shows it per row (`tool errs N`) and the `--out` JSON
+carries it as `tool_errors`.
+
+The count on its own means nothing; only the errors themselves do. Pull them
+out of the transcript (match each `toolResult` with `isError` back to the
+`toolCall` that caused it) and sort each into one of three buckets:
+
+- **Expected** — the error IS the deliverable. A mutation test disables a guard
+  and runs the suite; the suite fails; that failure is recorded as a tool error
+  even though it proves the guard works. Task mt1 finished with 4 tool errors of
+  which 3 were exactly this. Never treat these as a defect.
+- **Benign** — a `read` of a path that does not exist, a grep with no match. The
+  agent recovered and moved on. Note and drop.
+- **Real** — a gate the agent could not run, a command it retried and abandoned,
+  a compile failure it worked around rather than fixed. These change the merge
+  decision: whatever that command was going to verify is UNVERIFIED, and the
+  agent's report may claim otherwise.
+
+Record the bucket counts in the merge note. An agent that reports `DONE` while
+its transcript shows a real error on the very gate its report claims to have
+run is the "fabricated evidence" case, and it is grounds for escalation.
+
+Related: `--out`'s `report_written` is computed against the WRAPPER's cwd, not
+the worktree, so a report written to the brief's worktree-relative path reads as
+`false` even when the file is there. Check the file yourself before believing
+that field — it is the same shape of lie as `commits: []`.
 
 ## Every seat gets a worktree from the script
 

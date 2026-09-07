@@ -12,7 +12,15 @@ ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")
 FLEET="$ROOT/.superpowers/fleet"
 SEATS="$FLEET/seats"
 TOKENS="$FLEET/tokens"
-MAX_SEATS=${MAX_SEATS:-4}
+# Two POOLS, not one cap (user ruling 2026-09-07). The four-seat limit was
+# only ever about this box saturating: past four local agents, load-sensitive
+# tests fail for reasons unrelated to any diff. A paid seat (codex/Claude) runs
+# on someone else's hardware and does not load the box at all, so it cannot be
+# what that limit is protecting. Paid seats get their own ceiling for a
+# different reason -- they share one ChatGPT plan's rate limit and throttle
+# each other and the user's own sessions.
+MAX_SEATS=${MAX_SEATS:-4}          # local seats: what the BOX can carry
+MAX_PAID=${MAX_PAID:-2}            # paid seats: what the PLAN can carry
 
 # Which thread is running this. Set FLEET_THREAD in the session's environment;
 # the file is the fallback so a session that forgets still identifies itself.
@@ -21,6 +29,22 @@ THREAD=${FLEET_THREAD:-$(cat "$FLEET/thread" 2>/dev/null || echo engine)}
 mkdir -p "$SEATS" "$TOKENS"
 
 die() { echo "fleet: $*" >&2; exit 1; }
+
+# kind_of prints the pool a claimed seat belongs to. A seat directory written
+# before pools existed carries no `kind` file; it is local, which is the
+# conservative reading (it counts against the scarcer, box-bound pool).
+kind_of() { cat "$1/kind" 2>/dev/null || echo local; }
+
+# count_pool counts claimed seats in one pool. Never use `ls | wc -l` for this:
+# the two pools now share one directory.
+count_pool() {
+	local want=$1 n=0 s
+	for s in "$SEATS"/*; do
+		[ -d "$s" ] || continue
+		[ "$(kind_of "$s")" = "$want" ] && n=$((n + 1))
+	done
+	echo "$n"
+}
 
 # --- ports -----------------------------------------------------------------
 # Resolved from listening sockets, never from a process-name pattern: a bare
@@ -87,13 +111,13 @@ cmd_status() {
 	remote=$(git -C "$ROOT" log --oneline origin/main -1 2>/dev/null || echo '(no origin)')
 	echo "origin/main: $remote"
 	echo
-	echo "== seats ($(ls "$SEATS" 2>/dev/null | wc -l)/$MAX_SEATS claimed)"
+	echo "== seats (local $(count_pool local)/$MAX_SEATS · paid $(count_pool paid)/$MAX_PAID)"
 	if [ -n "$(ls -A "$SEATS" 2>/dev/null)" ]; then
 		for s in "$SEATS"/*; do
 			local name id
 			name=$(basename "$s")
 			id=${name#*-}
-			printf '  %-22s %-38s %s\n' "$name" "$(seat_kind "$id")" "$(cat "$s/why" 2>/dev/null || echo '')"
+			printf '  %-22s [%-5s] %-38s %s\n' "$name" "$(kind_of "$s")" "$(seat_kind "$id")" "$(cat "$s/why" 2>/dev/null || echo '')"
 		done
 	else
 		echo "  (none)"
@@ -154,33 +178,53 @@ cmd_port() {
 }
 
 cmd_claim() {
-	local id=${1:?usage: fleet.sh claim <task-id> [why]}
+	local id=${1:?usage: fleet.sh claim <task-id> [--paid|--local] [why]}
 	shift || true
+	# The pool is a flag, not a guess: a dispatch knows which seat it is about
+	# to spend, and inferring it later from a transcript is how a paid run gets
+	# miscounted as free.
+	local kind=local
+	case "${1:-}" in
+		--paid)  kind=paid;  shift ;;
+		--local) kind=local; shift ;;
+	esac
+	local cap=$MAX_SEATS
+	[ "$kind" = paid ] && cap=$MAX_PAID
 	local n
-	n=$(ls "$SEATS" 2>/dev/null | wc -l)
+	n=$(count_pool "$kind")
 	local seat="$SEATS/$THREAD-$id"
 	[ -d "$seat" ] && die "seat $THREAD-$id already claimed"
 	# mkdir is the atomic primitive: two threads racing for the last seat
 	# cannot both succeed. The count is checked first and re-checked after,
 	# because the check itself is not atomic with the mkdir.
-	[ "$n" -ge "$MAX_SEATS" ] && die "all $MAX_SEATS seats are claimed — use a Claude subagent instead of waiting (PROTOCOL.md §3)"
+	if [ "$n" -ge "$cap" ]; then
+		if [ "$kind" = paid ]; then
+			die "all $cap PAID seats are claimed — wait, or use a local seat ($(count_pool local)/$MAX_SEATS in use)"
+		fi
+		die "all $cap LOCAL seats are claimed — use a paid seat ($(count_pool paid)/$MAX_PAID in use) or a Claude subagent rather than waiting"
+	fi
 	mkdir "$seat" || die "seat $THREAD-$id already claimed"
-	n=$(ls "$SEATS" | wc -l)
-	if [ "$n" -gt "$MAX_SEATS" ]; then
-		rmdir "$seat"
-		die "lost the race for the last seat — use a Claude subagent instead of waiting"
+	# Write the kind BEFORE re-counting, or the re-count cannot see this seat's
+	# own pool and every racing claim reads as local.
+	echo "$kind" > "$seat/kind"
+	n=$(count_pool "$kind")
+	if [ "$n" -gt "$cap" ]; then
+		rm -rf "$seat"
+		die "lost the race for the last $kind seat — use the other pool or a Claude subagent"
 	fi
 	{ echo "${*:-}"; } > "$seat/why"
 	date -Iseconds > "$seat/since"
-	echo "fleet: claimed seat $THREAD-$id ($n/$MAX_SEATS)"
+	echo "fleet: claimed $kind seat $THREAD-$id ($n/$cap $kind; local $(count_pool local)/$MAX_SEATS, paid $(count_pool paid)/$MAX_PAID)"
 }
 
 cmd_release() {
 	local id=${1:?usage: fleet.sh release <task-id>}
 	local seat="$SEATS/$THREAD-$id"
 	[ -d "$seat" ] || die "no seat $THREAD-$id to release"
+	local kind
+	kind=$(kind_of "$seat")
 	rm -rf "$seat"
-	echo "fleet: released seat $THREAD-$id ($(ls "$SEATS" | wc -l)/$MAX_SEATS)"
+	echo "fleet: released $kind seat $THREAD-$id (local $(count_pool local)/$MAX_SEATS, paid $(count_pool paid)/$MAX_PAID)"
 }
 
 cmd_token() {
