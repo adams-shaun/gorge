@@ -170,11 +170,29 @@ import (
 // This is the regeneration Ruling FL-90 describes: an attributed move, proven
 // against the parent tree, is not a spend against FL-83's budget. An
 // unattributed one still is.
+// dp1b, the policy determinism pass, moves all four. Attribution here is an
+// ABLATION rather than a bisect: the branch changes four decision arms at once,
+// so each was reverted to main's behaviour in turn and the heads re-measured.
+//
+//	arm reverted to main            resulting heads (2/4/6/8)
+//	(none -- branch as-is)          b984373b 7d178f22 78c5c443 a5ec8770
+//	KMulligan bottoming             8c79889e d212ee6d 223856cf 0c85486d  <- all four
+//	KTriggerOrder -> Fisher-Yates   fa993f4e 7d178f22 756d4d9e 8074e8b2  <- 2/6/8
+//	KTriggerOptional -> coin        b984373b 7d178f22 78c5c443 a3d8d825  <- 8 only
+//	KChoose discard/exile/sacrifice b984373b 7d178f22 78c5c443 a5ec8770  <- NOTHING
+//
+// So the bottoming reroute is the universal driver, trigger-order and
+// trigger-optional contribute at the seat counts whose games reach them, and
+// the headline discard ranking -- the change the branch is named for -- does
+// not touch the acceptance games at all. That last row is worth keeping: it
+// says the head churn is paid for by arms other than the one being advertised.
+//
+// Ruling FL-90: an attributed regeneration is not a spend against FL-83.
 var acceptanceHeads = map[int]string{
-	2: "e6cfa5853c674b1b",
-	4: "082262b548424173",
-	6: "761486a7d9f76753",
-	8: "968be0bdc1f6a43b",
+	2: "b984373baa683987",
+	4: "7d178f2232d5e1e7",
+	6: "78c5c443d7e290a6",
+	8: "a5ec8770907c1496",
 }
 
 func TestHeads(t *testing.T) {
