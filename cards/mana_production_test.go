@@ -161,3 +161,25 @@ func TestManaProductionAnyIsMostFlexible(t *testing.T) {
 		t.Errorf("Any DistinctColours = %d, want 5", got)
 	}
 }
+
+// TestManaProductionUnknownAmountDoesNotClaimColour is the bl1 fix for the
+// tap gate believing mana that never arrives: a mana ability whose Amount$
+// is a non-literal expression ("X", "Y", "UrzaAmount", a Count$ expression,
+// "Sacrificed$...") has an amount the projection cannot statically price.
+// The old collector defaulted such an amount to 1 and so recorded a colour
+// slot the pool is never promised; the honest projection claims no colour
+// from it (the executor's Num resolves it through the SVar/count/$X
+// machinery to zero on a plain tap-for-mana activation, or to a count the
+// projection has no context for). Index 1 is blue (U); index 4 is green.
+func TestManaProductionUnknownAmountDoesNotClaimColour(t *testing.T) {
+	mp := mpOf(t, "Name:ManaBug\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ U | Amount$ X | Oracle:x\n")
+	if mp.ProducesColour(1) {
+		t.Errorf("Amount$ X source claims a blue pip the pool is not promised: %v", mp.Colour)
+	}
+	if mp.Colour[1] != 0 {
+		t.Errorf("Amount$ X source records %d blue, want 0 (production the executor will not deliver)", mp.Colour[1])
+	}
+	if mp.Colour[4] != 0 {
+		t.Errorf("Amount$ X source records %d green, want 0", mp.Colour[4])
+	}
+}

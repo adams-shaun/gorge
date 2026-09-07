@@ -188,20 +188,28 @@ func (b Board) neededColours(c Card) [5]bool {
 // enable -- in which case the caller falls through to the land drop and the
 // cast.
 //
-// T2 (Task dp2): the WHICH source is now colour-aware instead of
-// position-first. chooseTap names the intended card (the best-scoring castable
-// card the pool cannot pay) and taps toward its colour need:
+// T2 (Task dp2): the WHICH source is colour-aware instead of position-first.
+// chooseTap names the intended card (the best-scoring castable card the pool
+// cannot pay) and taps toward its colour need, ordered by a three-tier
+// preference that the production honesty fix (bl1) tightened:
 //
-//   - a source that produces a colour the intended card needs outranks one
-//     that does not, so the bot stops floating the wrong colour (the old
-//     behaviour tapped the first offered source whatever it produced);
-//   - among sources producing a needed colour, the one with the FEWEST
-//     distinct colours is tapped first -- the mono-colour source before the
-//     dual -- so the flexible source that fixes more of the hand is kept for
-//     the colour it is still needed for (Task dp2's least-flexible-first);
-//   - if no source produces a needed colour (a screw in colour, or a pure
-//     generic shortfall), it falls back to the least-flexible source, then
-//     option index, which is still no worse than the old first-offered pick.
+//   - tier 0: a source that DEMONSTRABLY produces a colour the intended card
+//     needs (producesColour, which is only true for a known, guaranteed
+//     colour slot -- an indeterminate source contributes nothing to claim
+//     it). This is the only tier a tap is aimed at a specific pip.
+//   - tier 1: a source that demonstrably produces some mana, but none of a
+//     needed colour (a screw in colour, or a pure generic shortfall): it at
+//     least adds to the pool, so it outranks a source that may produce
+//     nothing at all.
+//   - tier 2: a source that demonstrably produces nothing -- no known colour
+//     slot, which includes an Indeterminate amount source, whose production
+//     the projection cannot price. Such a source is a last resort only: it
+//     might produce nothing, so chooseTap never PREFERS it over a source
+//     that demonstrably produces.
+//   - within a tier, the source with the FEWEST distinct colours is tapped
+//     first (Task dp2's least-flexible-first: the mono-colour source before
+//     the dual, keeping the flexible source for the colour it is still
+//     needed for); a tie breaks on option index.
 //
 // It consumes no rng: the pick is a pure function of the offered options and
 // the board facts.
@@ -215,7 +223,7 @@ func (b Board) chooseTap(d *decision.Decision) int {
 	}
 	need := b.neededColours(c)
 	best := -1
-	bestMatch := false
+	bestTier := 3
 	bestFlex := 0
 	for _, o := range d.Options {
 		if o.Kind != "activate" {
@@ -229,11 +237,22 @@ func (b Board) chooseTap(d *decision.Decision) int {
 				break
 			}
 		}
+		// demonstrable: a colour slot > 0 is production the pool will
+		// actually receive (an indeterminate amount contributes 0 to every
+		// slot, so it cannot make this true).
+		demonstrable := prod.Colour[0] > 0 || prod.Colour[1] > 0 || prod.Colour[2] > 0 ||
+			prod.Colour[3] > 0 || prod.Colour[4] > 0 || prod.Colour[5] > 0
+		tier := 2
+		if matches {
+			tier = 0
+		} else if demonstrable {
+			tier = 1
+		}
 		flex := prod.DistinctColours()
-		if best == -1 || (matches && !bestMatch) ||
-			(matches == bestMatch && flex < bestFlex) ||
-			(matches == bestMatch && flex == bestFlex && o.Index < best) {
-			best, bestMatch, bestFlex = o.Index, matches, flex
+		if best == -1 || tier < bestTier ||
+			(tier == bestTier && flex < bestFlex) ||
+			(tier == bestTier && flex == bestFlex && o.Index < best) {
+			best, bestTier, bestFlex = o.Index, tier, flex
 		}
 	}
 	return best
