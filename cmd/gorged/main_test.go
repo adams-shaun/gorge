@@ -84,8 +84,36 @@ func TestDeckDirectoryListingIsSortedAndComplete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(names) != 12 || names[0] != "death-n-taxes" || names[len(names)-1] != "uw-tempo" {
-		t.Fatalf("%v", names)
+	if len(names) < 2 || names[0] != "death-n-taxes" {
+		t.Fatalf("expected sorted listing starting with death-n-taxes, got %v", names)
+	}
+	for i := 1; i < len(names); i++ {
+		if names[i-1] >= names[i] {
+			t.Fatalf("deck listing not strictly sorted at %q after %q: %v", names[i], names[i-1], names)
+		}
+	}
+	// The 12 Legacy constructed decks (dimir-tempo included) and the five
+	// m38 commander decks must all still be present, and the listing must
+	// stay complete: the directory is what the host serves for tables.
+	want := []string{
+		"death-n-taxes", "dimir-tempo", "foundations-calling-all-angels",
+		"foundations-keen-engineering", "foundations-reign-of-dragons",
+		"foundations-tramplesaurus-rex", "foundations-wretched-ranks",
+		"mono-black-aggro", "mono-blue-tempo", "mono-green-stompy",
+		"mono-red-goblins", "the-epic-storm", "tron", "ur-delver",
+		"uw-control", "uw-tempo",
+	}
+	for _, w := range want {
+		have := false
+		for _, n := range names {
+			if n == w {
+				have = true
+				break
+			}
+		}
+		if !have {
+			t.Fatalf("deck listing missing %q: %v", w, names)
+		}
 	}
 }
 

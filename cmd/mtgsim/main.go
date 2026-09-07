@@ -103,12 +103,17 @@ func run(decksFlag string, seats int, baseSeed uint64, games int, verify, verbos
 
 // deckNames resolves the -decks flag against the embedded repo decks: an
 // explicit comma-separated list, or (when empty) the first `seats` names
-// from testutil.RepoDeckNames(), which is already sorted -- so the default
+// from testutil.LegacyDeckNames(), which is already sorted -- so the default
 // assignment is the same on every machine and every run, never whatever
-// order a directory listing happened to produce.
+// order a directory listing happened to produce. The default is the 12
+// pinned Legacy constructed decks, not RepoDeckNames(): the directory also
+// holds the five interim foundations-* commander decks, which mtgsim plays
+// as 20-life constructed games and which must not silently change what the
+// default -verify pool is (Ruling M38-P). Pass -decks to play any of them
+// explicitly.
 func deckNames(flagVal string, seats int) ([]string, error) {
 	if flagVal == "" {
-		all := testutil.RepoDeckNames()
+		all := testutil.LegacyDeckNames()
 		if seats > len(all) {
 			return nil, fmt.Errorf("-seats %d exceeds the %d repo decks available; pass -decks explicitly to repeat one", seats, len(all))
 		}

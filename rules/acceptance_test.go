@@ -73,13 +73,18 @@ import (
 // keywords, retiring Goblin Piledriver (Protection from blue) and Knight of
 // Infamy (Protection from white) -- the last two entries on this table -- so
 // the ratchet is now EMPTY: every one of the 136 distinct cards across the
-// 12 repo decks is fully supported by this build. The table that follows is
-// intentionally left as an empty literal rather than deleted, so the ancient
-// comment history above it survives verbatim as the table's own provenance.
+// 12 Legacy decks is fully supported by this build. The table that follows
+// is intentionally left as an empty literal rather than deleted, so the
+// ancient comment history above it survives verbatim as the table's own
+// provenance. Task m38 (Ruling M38-P) extended the ratchet's scope: the test
+// below iterates RepoDeckNames() whole (the 12 Legacy decks PLUS the five
+// interim foundations-* commander decks), so the five new 100-card,
+// singleton lists are held to the same no-gap standard from day one.
 var knownUnsupported = map[string][]string{}
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card
-// in the 12 Legacy decks is either fully playable, or is named in
+// across every deck file (the 12 Legacy decks and the m38 commander decks)
+// is either fully playable, or is named in
 // knownUnsupported with the exact primitives it is missing. A card missing
 // something knownUnsupported does not list is a regression (fails); a card
 // knownUnsupported lists that is now fully supported is a stale entry that
@@ -151,23 +156,29 @@ func sameSet(a, b []string) bool {
 }
 
 // playAcceptance plays one deterministic acceptance game -- seats seats,
-// round-robined across the 12 repo decks from testutil.RepoDeckNames() in
-// order starting from deck 0, seed 42 driven by newTestBot(7) -- to
-// completion, replays it from its own recorded (Config, Log) through the
-// package-local replayFor helper, and Fatals if the two chain Heads
-// disagree. step, when non-nil, is called once right after Advance (n==0,
-// before any intent), once every 997 intents thereafter, and once more
-// after the game loop exits, so a caller that wants per-checkpoint work
-// (invariant checks, logging) can hook into the one game loop instead of
-// keeping a second copy of it.
+// round-robined across the 12 pinned Legacy decks from
+// testutil.LegacyDeckNames() in order starting from deck 0, seed 42 driven
+// by newTestBot(7) -- to completion, replays it from its own recorded
+// (Config, Log) through the package-local replayFor helper, and Fatals if
+// the two chain Heads disagree. step, when non-nil, is called once right
+// after Advance (n==0, before any intent), once every 997 intents
+// thereafter, and once more after the game loop exits, so a caller that
+// wants per-checkpoint work (invariant checks, logging) can hook into the
+// one game loop instead of keeping a second copy of it.
 //
 // TestRepoDecksPlayAtEverySeatCount and acceptanceHead (rules/heads_test.go's
 // TestHeads) both call this, so the games the invariant/replay guarantees
 // are checked against and the games the chain-head goldens pin can never
 // silently drift apart from each other.
+//
+// The pool is LegacyDeckNames, never RepoDeckNames (which also lists the
+// five interim commander decks, Ruling M38-P): the golden heads are
+// byte-identical games over the 12 constructed decks, and seating them by
+// index over a directory that grew would move every head for no behavioural
+// reason.
 func playAcceptance(t *testing.T, reg *cards.Registry, seats int, step func(e *Engine, n int)) string {
 	t.Helper()
-	all := testutil.RepoDeckNames()
+	all := testutil.LegacyDeckNames()
 	names := make([]string, seats)
 	decks := make([][]*cards.Card, seats)
 	for i := 0; i < seats; i++ {
@@ -260,15 +271,16 @@ func TestRepoDecksPlayAtEverySeatCount(t *testing.T) {
 }
 
 // TestRepoDeckGamesReplayExactly ties acceptance to the replay guarantee:
-// five seeded 4-seat games over the repo decks, each re-run from its own
-// recorded (Config, Log) through the package-local replayFor helper, must
-// reach the same chain Head as the original run.
+// five seeded 4-seat games over the pinned Legacy decks (the same 12
+// LegacyDeckNames the golden seat-count games and heads use, Ruling M38-P),
+// each re-run from its own recorded (Config, Log) through the package-local
+// replayFor helper, must reach the same chain Head as the original run.
 func TestRepoDeckGamesReplayExactly(t *testing.T) {
 	if testing.Short() {
 		t.Skip("long")
 	}
 	reg := testutil.CorpusRegistry(t)
-	all := testutil.RepoDeckNames()
+	all := testutil.LegacyDeckNames()
 	for seed := uint64(0); seed < 5; seed++ {
 		names := make([]string, 4)
 		decks := make([][]*cards.Card, 4)

@@ -332,22 +332,25 @@ func matrixText(t *testing.T, games, workers int, pairs []pairDef, play pairPlay
 	return buf.String()
 }
 
-// TestFullPairsIteratesSorted pins the pair generator: 12 decks must yield
-// the 66 unordered pairs, strictly sorted (a < b and lexicographically
+// TestFullPairsIteratesSorted pins the pair generator: N decks must yield
+// the N*(N-1)/2 unordered pairs, strictly sorted (a < b and lexicographically
 // ascending sequence), no duplicates, and the FIRST pair must be the
 // historical single-pair run (death-n-taxes : dimir-tempo) so a matrix row
-// reproduces it. Sorting is the whole guarantee that pair order never
-// depends on map iteration -- the mutation TestMatrixReportOrderIsSorted
-// checks the report, this checks the generator.
+// reproduces it. N is the repo deck directory's size, whatever it is now
+// (12 Legacy decks plus the m38 commander decks: the pair count is a
+// property of the list, not a pinned constant). Sorting is the whole
+// guarantee that pair order never depends on map iteration -- the mutation
+// TestMatrixReportOrderIsSorted checks the report, this checks the
+// generator.
 func TestFullPairsIteratesSorted(t *testing.T) {
 	names := testutil.RepoDeckNames()
-	if len(names) != 12 {
-		t.Fatalf("expected 12 repo decks, got %d: %v", len(names), names)
+	if len(names) < 2 {
+		t.Fatalf("expected at least 2 repo decks, got %d: %v", len(names), names)
 	}
 	ps := fullPairs(names)
 	want := len(names) * (len(names) - 1) / 2
 	if len(ps) != want {
-		t.Fatalf("fullPairs(%d decks) = %d pairs, want %d (= 66)", len(names), len(ps), want)
+		t.Fatalf("fullPairs(%d decks) = %d pairs, want %d (= N*(N-1)/2)", len(names), len(ps), want)
 	}
 	if ps[0].String() != "death-n-taxes:dimir-tempo" {
 		t.Errorf("first pair = %s, want death-n-taxes:dimir-tempo (the single-pair run must be a matrix row)", ps[0])
@@ -370,8 +373,9 @@ func TestFullPairsIteratesSorted(t *testing.T) {
 	}
 }
 
-// TestParsePairs covers the -pairs spec: "all" expands to every e66pair,
-// the named "a:b,c:d" form parses, and an unknown deck name is rejected.
+// TestParsePairs covers the -pairs spec: "all" expands to every unordered
+// pair over the current deck list (N*(N-1)/2), the named "a:b,c:d" form
+// parses, and an unknown deck name is rejected.
 func TestParsePairs(t *testing.T) {
 	names := testutil.RepoDeckNames()
 
@@ -379,8 +383,8 @@ func TestParsePairs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parsePairs(all): %v", err)
 	}
-	if len(ps) != 66 {
-		t.Errorf("parsePairs(all) = %d pairs, want 66", len(ps))
+	if want := len(names) * (len(names) - 1) / 2; len(ps) != want {
+		t.Errorf("parsePairs(all) = %d pairs, want %d", len(ps), want)
 	}
 
 	ps, err = parsePairs("death-n-taxes:dimir-tempo,tron:ur-delver", names)
