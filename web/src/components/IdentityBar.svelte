@@ -1,61 +1,49 @@
 <script lang="ts">
   import type { PlayerView, SeatInfo } from '../protocol';
-  import { commanderDamageOf } from '../lib/commander';
   import ManaPool from './ManaPool.svelte';
 
   /**
-   * IdentityBar sits at one seat's outer corner: who, life centred big, the
-   * zone counts, an outline while active, a dot while holding priority,
-   * ELIMINATED once lost. data-seat carries the seat index (not the seat
-   * prop below, which is that seat's SeatInfo) for Task 22's arrows.
+   * IdentityBar sits at one seat's outer corner and is the whole player
+   * box, on exactly three lines (B1 / I-10: the user's spec — "player
+   * name/state box is wasteful on real estate"):
    *
-   * Under life sits the second clock, commander damage (CR 903.10): one line
-   * per commander that has actually hurt this seat, each with its own amount
-   * and its own danger state — never a sum, because 11 from two different
-   * commanders is not the 22 that is lethal. 21 from any single commander
-   * is lethal regardless of life total, so the clock must read next to the
-   * life it ignores; `players` is the match-wide roster commanderDamageOf
-   * resolves dealer names from. The block renders nothing when the seat has
-   * taken no commander damage.
+   *   1. the truncated player name, then the life-total bubble
+   *   2. `library X  hand Y  graveyard Z` on one row (spacing is ours)
+   *   3. the mana pool as bubbles, colourless included
    *
-   * LOST SEATS. A seat can be eliminated with its life total untouched — 21+
-   * commander damage from one commander, drawing from an empty library,
-   * conceding — so the fix for "a dead player's box doesn't say so" is never
-   * to force life to 0 (rules/sba.go's other loss conditions would make that
-   * a lie). It is stating it in words: an ELIMINATED band, always drawn when
-   * `player.lost`, that does not depend on or alter the life number beside
-   * it. The elimination CAUSE (the PlayerLost event's Text) is the rail's
-   * job, not this component's — this only says THAT the seat is out.
+   * It used to also carry the deck name and the CR 903.10 commander-damage
+   * clock, and the user dropped both: a deck is not a player (B3, the name
+   * is now an independent PlayerName) and the commander tile — the real
+   * command-zone control — lives on the board in the creatures row
+   * (CommanderTile, out of scope here). Dropping the second clock is a
+   * deliberate spec choice, not an accidental regression: the box is three
+   * lines and that is the contract.
    *
-   * FLOATING MANA. `.mana-row` is a fixed-height band, always rendered,
-   * whether the seat has floating mana or not — see its own comment below
-   * for why a reserved, non-grow-to-fit box is the actual point of the
-   * feature. `player.pool` reaches ManaPool untouched, including when it is
-   * a literal JSON `null` (every seat's pool on a public-spectator client,
-   * view/view.go): ManaPool already treats a hidden pool as "draw nothing",
-   * which is exactly the right reading here too — an unknown pool is not the
-   * same claim as an empty one, and this component makes neither claim on
-   * its own.
+   * Seat colour stays a left rule and the active seat stays a full
+   * perimeter in its own colour; LOST seats stay struck through and dimmed
+   * (an eliminated seat's box reads greyed no matter what the life bubble
+   * says, because a seat can lose with life untouched — commander damage,
+   * an empty library, a concession).
    */
-  let { player, seat, colour, active, priority, corner, players = [] }: {
+  let { player, seat, colour, active, priority, corner }: {
     player: PlayerView; seat?: SeatInfo; colour: string; active: boolean; priority: boolean;
     corner: 'tl' | 'tr' | 'bl' | 'br' | 'l' | 'r';
     players?: PlayerView[];
   } = $props();
 
-  // The commander clock, resolved once per render: one entry per commander
-  // that has dealt this seat damage (CR 903.10), never summed across
-  // commanders — 11 + 11 is two entries, 21 from one is lethal.
-  const cmdDamage = $derived(commanderDamageOf(player, players));
-
   // The table knows a seat's name; a bare host that never registered one does
   // not, and PlayerView always carries a name of its own. Falling straight
   // through to "Seat 2" while the rail two inches away calls the same player
-  // "dimir-tempo" is the kind of small incoherence that makes a product feel
-  // unfinished, so the wire's name is preferred over the placeholder.
+  // something else is the kind of small incoherence that makes a product feel
+  // unfinished, so the wire's name is preferred over the placeholder. The
+  // deck is no longer shown here (B1), so the deck resolution is gone.
   const who = $derived(seat?.name ?? player.name ?? `Seat ${player.seat}`);
-  // …and the deck line is dropped when it would only repeat that name.
-  const deck = $derived(seat?.deck && seat.deck !== who ? seat.deck : null);
+
+  // The player name is a DISPLAY concern for the 10-char limit (B3): the wire
+  // always carries the full name, and only the box clips it. The full name
+  // stays reachable in the title/aria-label.
+  const DISPLAY_MAX = 10;
+  const truncated = $derived(who.length > DISPLAY_MAX ? `${who.slice(0, DISPLAY_MAX)}…` : who);
 
   const CORNER: Record<string, string> = {
     tl: 'top:var(--sp-2);left:var(--sp-2)', tr: 'top:var(--sp-2);right:var(--sp-2)',
@@ -72,7 +60,7 @@
   style={`position:absolute;${CORNER[corner]};--seat:${colour}`}
   data-seat={player.seat}
 >
-  <div class:priority={priority} class="name">
+  <div class="name">
     <span
       class="dot"
       class:held={priority}
@@ -81,47 +69,25 @@
       aria-label={priority ? 'Has priority' : undefined}
       aria-hidden={priority ? undefined : 'true'}
     ></span>
-    {who}
+    <span class="who" title={who} data-player-name={who}>{truncated}</span>
+    <span class="life" title={`${player.life} life`} data-life>{player.life}</span>
   </div>
-  {#if player.lost}<div class="eliminated" data-eliminated>Eliminated</div>{/if}
-  {#if deck}<div class="deck">{deck}</div>{/if}
-  <div class="life">{player.life}</div>
+  <div class="counts">
+    <span class="count">library {player.library_size}</span>
+    <span class="count">hand {player.hand_size}</span>
+    <span class="count">graveyard {player.graveyard_size}</span>
+  </div>
   <div class="mana-row" data-mana-row>
     <ManaPool pool={player.pool} />
   </div>
-  {#if cmdDamage.length > 0}
-    <div class="cmd" data-commander-damage>
-      <span class="cmd-h">Commander</span>
-      {#each cmdDamage as d (d.id)}
-        <div
-          class="cmd-row"
-          class:crit={d.crit && !d.lethal}
-          class:lethal={d.lethal}
-          data-cmd-damage={d.id}
-          data-cmd-amount={d.amount}
-          data-cmd-state={d.lethal ? 'lethal' : d.crit ? 'critical' : 'low'}
-          title="{d.amount} commander damage from {d.name} — {d.lethal ? 'lethal (CR 903.10)' : d.crit ? 'two or fewer from lethal' : ''}"
-        >
-          <span class="cmd-name">{d.name}</span>
-          <span class="cmd-amount data">{d.amount}</span>
-        </div>
-      {/each}
-    </div>
-  {/if}
-  <dl class="counts">
-    <div><dt>Library</dt><dd class="data">{player.library_size}</dd></div>
-    <div><dt>Hand</dt><dd class="data">{player.hand_size}</dd></div>
-    <div><dt>Graveyard</dt><dd class="data">{player.graveyard_size}</dd></div>
-  </dl>
 </div>
 
 <style>
   /*
    * Anchored to the seat's OUTER corner so it never collides with board
-   * content (survey #25), with life anchored in the bar's horizontal centre
-   * like the Pro Tour shields. The seat's colour is a left rule rather than a
-   * full border: an outline in eight different hues around a four-seat table
-   * is noise, a rule is identity.
+   * content (survey #25). The seat's colour is a left rule rather than a full
+   * border: an outline in eight different hues around a four-seat table is
+   * noise, a rule is identity.
    */
   .identity {
     background: color-mix(in srgb, var(--felt-sunk) 88%, transparent);
@@ -136,13 +102,7 @@
   }
   /* The active player is stated as a full perimeter in the seat's OWN colour
      — not a generic "it's someone's turn" hue — so the ring says both "the
-     turn is here" and "here is who" in one glance (survey report: two edges
-     read as decoration, not as a signal you can find at a glance). The
-     border goes fully saturated and thickens on all four sides at once
-     (the shorthand below overrides the inactive state's left-only accent),
-     and a soft matching glow pushes the whole plate visually forward without
-     filling it with colour — a wash across the plate would compete with the
-     life total and the card art it sits over. */
+     turn is here" and "here is who" in one glance. */
   .identity.active {
     border: 2px solid var(--seat);
     box-shadow:
@@ -150,57 +110,40 @@
       0 0 14px 2px color-mix(in srgb, var(--seat) 55%, transparent);
     background: color-mix(in srgb, var(--felt-raised) 92%, transparent);
   }
-  .identity.lost .name,
+  .identity.lost .who,
   .identity.lost .life {
     text-decoration: line-through;
     color: var(--ink-faint);
   }
-  /* Stated in words, not only implied by a struck-through life total that
-     may not even have moved (commander damage, an empty library and a
-     concession all end a seat without touching life). Danger red is already
-     reserved for "this clock is done" (the lethal commander-damage row
-     below), and this is exactly that state for the whole seat. */
-  .eliminated {
-    font-size: var(--t-10);
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--danger);
-    margin-top: 1px;
-  }
-  /* A fixed-height band for floating mana, ALWAYS rendered — this is the
-     actual point of the feature (survey report: "player boxes resizing and
-     bouncing around turn by turn"). ManaPool itself draws nothing at all for
-     an empty or hidden pool (its own contract), so without a reserved slot
-     around it the box would grow a row when mana is floated and shrink back
-     the moment it is spent — exactly the bounce the report is about. The
-     height here is fixed (not min-height, not padding sized to content), so
-     the box is the identical height whether the pool is full, empty, or
-     null (every seat but the viewer's own on a public-spectator client).
-     overflow hidden is a backstop, never the normal case: six symbols at
-     this size comfortably fit the box's own width before it would ever
-     clip. */
-  .mana-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 1.2rem;
-    margin: 0 0 var(--sp-2);
-    overflow: hidden;
-  }
+  /* Line 1: name then the life bubble, on one row. The name clips at the
+     10-char display limit and keeps the full name in the title; the life is
+     a bubble that sits beside it rather than a giant number that owns the
+     box. */
   .name {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.4em;
+    gap: var(--sp-2);
     font-size: var(--t-14);
     font-weight: 600;
     line-height: 1.2;
   }
-  /* The marker is always in the name line: only its paint changes, never the
-     space available to the name. The dotted underline is the non-colour cue
-     for priority; the marker's accessible label preserves the state for
-     screen readers. */
+  .who {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .identity.priority .who {
+    color: var(--initiative);
+    text-decoration: underline 2px dotted;
+    text-underline-offset: 0.16em;
+  }
+  .identity.lost.priority .who {
+    color: var(--ink-faint);
+    text-decoration: line-through;
+  }
+  /* The marker is always in the name line: only its paint changes. */
   .dot {
     width: 0.4em;
     height: 0.4em;
@@ -212,106 +155,39 @@
   .dot.held {
     opacity: 1;
   }
-  .name.priority {
-    color: var(--initiative);
-    text-decoration: underline 2px dotted;
-    text-underline-offset: 0.16em;
-  }
-  /* A lost seat remains visibly eliminated even if a stale view happens to
-     name it as holding priority too. */
-  .identity.lost .name.priority {
-    color: var(--ink-faint);
-    text-decoration: line-through;
-  }
-  .deck {
-    font-size: var(--t-11);
-    color: var(--ink-dim);
-    line-height: 1.3;
-  }
-  /* Life is the one place type is a visual element rather than a label. */
   .life {
-    font-size: var(--t-28);
-    font-weight: 600;
-    line-height: 1.05;
-    margin: var(--sp-1) 0 var(--sp-2);
-    font-variant-numeric: tabular-nums;
-  }
-  /* The second clock. It shares life's corner because it overrides life
-     completely: 21 from one commander is lethal whatever the number beside
-     it says, so the two must be read as one pair, not cross-referenced
-     across panels. Each commander is its own row with its own state. */
-  .cmd {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    margin: calc(var(--sp-1) * -1) 0 var(--sp-2);
-    text-align: left;
-  }
-  .cmd-h {
-    font-size: var(--t-10);
-    color: var(--ink-faint);
-    letter-spacing: 0.02em;
-  }
-  .cmd-row {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--sp-2);
-    font-size: var(--t-12);
-    line-height: 1.4;
-    color: var(--ink-inst);
-    border-left: 2px solid transparent;
-    padding-left: 0.3em;
-  }
-  .cmd-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-  }
-  .cmd-amount {
     font-family: var(--font-data);
     font-variant-numeric: tabular-nums;
+    font-size: var(--t-16);
+    line-height: 1;
+    color: var(--ink);
+    background: color-mix(in srgb, var(--felt-raised) 55%, transparent);
+    border: 1px solid var(--edge-felt);
+    border-radius: 999px;
+    padding: 0.15em 0.5em;
     flex: none;
   }
-  /* 19–20: two or fewer points from lethal; the seat rule is already the
-     danger hue the client reserves for a clock that is nearly done. */
-  .cmd-row.crit {
-    color: var(--danger);
-    font-weight: 600;
-    border-left-color: var(--danger);
-  }
-  /* 21+: lethal. A game state that can only exist until the next state-based
-     action, so it is drawn as already over. */
-  .cmd-row.lethal {
-    background: var(--danger);
-    color: var(--mana-w);
-    font-weight: 600;
-    border-left-color: var(--felt-sunk);
-  }
-  /* Labels are words and read in the interface face; the counts beside them
-     are values and read in the data face. Mono is for values, never for
-     small labels — the labels had been set in mono, which is the tell of a
-     dashboard rather than an instrument. */
+  /* Line 2: the three zone counts on one row, in the data face. */
   .counts {
     display: flex;
     justify-content: center;
     gap: var(--sp-3);
-    margin: 0;
-    font-size: var(--t-10);
-  }
-  .counts div {
-    display: flex;
-    align-items: baseline;
-    gap: 0.35em;
-  }
-  .counts dt {
-    color: var(--ink-faint);
-    font-weight: 400;
-  }
-  .counts dd {
-    margin: 0;
+    margin: var(--sp-1) 0 var(--sp-2);
     font-size: var(--t-10);
     color: var(--ink-dim);
+    white-space: nowrap;
+  }
+  .count {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Line 3: the floating mana pool as bubbles, always rendered so the box
+     does not grow a row when mana is floated and shrink the moment it is
+     spent (the bounce the old preallocated band existed to stop). */
+  .mana-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.2rem;
+    overflow: hidden;
   }
 </style>

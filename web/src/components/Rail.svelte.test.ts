@@ -43,10 +43,12 @@ const baseView = (over: Partial<View> = {}): View => ({
 });
 
 describe('Rail — public spectator (every seat\'s hand and pool are null)', () => {
-  it('renders with no crash and no fabricated data: a null hand reads as "not visible", not empty', () => {
+  it('renders with no crash and no fabricated data: a null hand reads as a plain count row, not an apology or an empty list', () => {
     const { html } = render(Rail, { props: { view: baseView(), seats, decision: null } });
-    expect(html).toContain('data-hand-redacted');
-    expect(html).toContain('not visible');
+    expect(html).toContain('data-hand-count');
+    expect(html).not.toContain('not visible');
+    // the count is true even when the cards are hidden — hand_size, not a lie
+    expect(html).toContain('hand');
   });
 
   it('ManaPool renders nothing for a null pool rather than throwing', () => {

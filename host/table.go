@@ -95,6 +95,12 @@ type TableConfig struct {
 	Seats int      `json:"seats"`
 	Decks []string `json:"decks"` // deck names for Options.LoadDeck; seat i of match k plays Decks[(i+k)%len]
 	Seed  uint64   `json:"seed"`
+	// PlayerNames names each seat, independently of its deck, for the wire's
+	// player box (view.PlayerView.Name). Seat i of match k uses
+	// PlayerNames[i]; a missing or short list falls back to the deterministic
+	// "Player 1".."Player N" (seat-indexed, stable under replay). The deck
+	// identity stays on Deck and on the engine's own Names.
+	PlayerNames []string `json:"player_names,omitempty"`
 	// Pace is the sleep after every decision; 0 plays as fast as possible.
 	Pace      time.Duration   `json:"pace"`
 	Spectator view.Visibility `json:"spectator"` // Public or Omniscient

@@ -277,8 +277,12 @@ func TestTableListSeatNames(t *testing.T) {
 		t.Fatalf("live table missing from list: %+v", tables)
 	}
 	// Match 1 plays Decks[(i+1)%2] in seat order, so its seats are the two
-	// decks rotated: seat 0 gets the second deck, seat 1 the first.
-	want := []string{"foundations-keen-engineering", "foundations-calling-all-angels"}
+	// decks rotated: seat 0 gets the second deck, seat 1 the first. But
+	// SeatNames are the PLAYER names (seat-indexed, independent of the deck
+	// rotation), so they are "Player 1"/"Player 2" whatever deck sits where
+	// (B3: a player name is not a deck name). The deck identity is on
+	// SeatInfo.Deck, not here.
+	want := []string{"Player 1", "Player 2"}
 	if len(lv.SeatNames) != len(want) {
 		t.Fatalf("live table seat_names = %q, want %q", lv.SeatNames, want)
 	}
