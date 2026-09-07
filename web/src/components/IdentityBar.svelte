@@ -76,7 +76,7 @@
     <span
       class="dot"
       class:held={priority}
-      title="has priority"
+      title={priority ? 'has priority' : undefined}
       role={priority ? 'img' : undefined}
       aria-label={priority ? 'Has priority' : undefined}
       aria-hidden={priority ? undefined : 'true'}
