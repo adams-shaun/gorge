@@ -123,3 +123,32 @@ halts and the chain does not continue. `OnMatchEnd` errors are discarded
 because the outcome is already recorded and an error cannot un-record it, so
 an embedder that persists through `OnMatchEnd` must handle its own
 persistence failures inside the callback.
+
+## Running a gorged server while you work
+
+Two orchestrator sessions share this box, and one of them serves a live demo
+that is redeployed automatically after every merge into `main`. So ports are
+allocated, not first-come:
+
+| range | who |
+|---|---|
+| 8080-8081 | the demo. **Never bind these**, and never run `make deploy-demo` |
+| 8082-8089 | the bot-policy / botbench workstream |
+| 8090-8099 | task agents on the engine side — pick one of these |
+
+Put persistence under `/tmp/gorge-<something-unique>`, never the repo-root
+default `gorged-data`: several servers sharing one persistence directory
+silently corrupt each other, and a resumed directory written by an older binary
+comes back with the fields that binary lacked set to their zero values
+(`Format`'s zero is `constructed`, a real value, so `-format` is ignored with
+nothing in the output to say so).
+
+**Stopping a server: never `pkill -f` or a bare `pgrep -f`.** The pattern is
+matched against every process's `/proc/<pid>/cmdline` including your own shell's,
+and it has killed a session here. Find the server by its listening socket
+(`ss -lptn`), confirm the pid, then signal that pid. Note that `/proc/<pid>/comm`
+is the BINARY's name -- if you built `gorged-after`, its `comm` is
+`gorged-after`, not `gorged` -- so match on the port rather than the name.
+
+`scripts/fleet.sh ports` prints the current allocation, and `scripts/fleet.sh
+port` prints a free one in your range.
