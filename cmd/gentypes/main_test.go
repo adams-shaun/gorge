@@ -30,7 +30,7 @@ func TestFrameTypeUnionListsEveryConstant(t *testing.T) {
 			t.Errorf("FrameType union lacks %q", ft)
 		}
 	}
-	for _, name := range []string{"View", "PlayerView", "CardView", "StackView", "TargetView", "PendingView", "Printing", "Decision", "Option"} {
+	for _, name := range []string{"View", "PlayerView", "CardView", "StackView", "TargetView", "PendingView", "Printing", "Decision", "Option", "TargetEffect", "DamageEffect"} {
 		if !strings.Contains(src, "export interface "+name+" {") {
 			t.Errorf("view/decision type %s missing from the generated output", name)
 		}

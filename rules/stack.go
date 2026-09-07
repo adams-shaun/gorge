@@ -201,6 +201,27 @@ func (e *Engine) protectionSource(source state.ObjID) state.ObjID {
 	return source
 }
 
+// describeTargetEffect is intentionally independent of game state and host.
+// Only literal damage is known: evaluating Num here would collapse unresolved
+// SVars to zero and would mistake a current X/count for a resolution forecast.
+func describeTargetEffect(sa *cards.SA) *decision.TargetEffect {
+	if sa == nil {
+		return nil
+	}
+	out := &decision.TargetEffect{API: sa.API}
+	switch sa.API {
+	case "DealDamage", "DamageAll":
+		out.Damage = &decision.DamageEffect{}
+		// Fixed-width parsing is architecture-independent and safely representable
+		// by the wire's JavaScript number. Negative/overflow/missing stay unknown.
+		if n, err := strconv.ParseInt(sa.Params["NumDmg"], 10, 32); err == nil && n >= 0 {
+			amount := int(n)
+			out.Damage.Amount = &amount
+		}
+	}
+	return out
+}
+
 // askTarget offers every legal target for a spell or ability. TargetMin$
 // and TargetMax$ set how many the chooser must pick; TgtZone$ (battlefield by
 // default, Graveyard/Hand/Exile for a targeting-off-the-board effect like
@@ -215,7 +236,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max := targetBounds(sa)
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
-		Source: source}
+		Source: source, TargetEffect: describeTargetEffect(sa)}
 	add := func(kind, label string, obj state.ObjID, pl state.PlayerID) {
 		d.Options = append(d.Options, decision.Option{
 			Index: len(d.Options), Kind: kind, Label: label, Obj: obj, Player: pl})

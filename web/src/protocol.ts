@@ -160,6 +160,15 @@ export interface Option {
   ability?: number;
 }
 
+export interface DamageEffect {
+  amount: number | null;
+}
+
+export interface TargetEffect {
+  api: string;
+  damage?: DamageEffect | null;
+}
+
 export interface Decision {
   seq: number;
   player: number;
@@ -169,6 +178,7 @@ export interface Decision {
   max: number;
   options: Option[];
   source?: number;
+  target_effect?: TargetEffect | null;
 }
 
 export interface View {
