@@ -208,7 +208,7 @@
     position: relative;
     width: var(--card-w, 104px);
     aspect-ratio: 63 / 88;
-    border: 1px dashed var(--ink-faint);
+    border: 1px dotted var(--ink-faint);
     border-radius: var(--card-radius, var(--radius-card));
     box-sizing: border-box;
     overflow: hidden;
