@@ -26,14 +26,14 @@
 
 <div class="transcript" bind:this={container}>
   <div class="bar">
-    <span class="note">Engine noise (priority &amp; decisions) hidden by default.</span>
     <button
       type="button"
       class="toggle"
       aria-pressed={revealAll}
+      title="Priority, decision asks and decision answers are engine bookkeeping; they are hidden unless this is on."
       onclick={() => (revealAll = !revealAll)}
     >
-      {revealAll ? 'Hide engine noise' : 'Show everything'}
+      {revealAll ? 'Hide engine noise' : 'Show engine noise'}
     </button>
   </div>
   {#each lines as e (e.event.seq)}
@@ -56,18 +56,20 @@
     flex-direction: column;
     height: 100%;
   }
+  /* The bar used to carry a sentence explaining the default. A permanent
+     sentence is a permanent line of a 160px band whose whole job is log
+     lines, and the button already says what it does; the explanation moved
+     to the button's own title, where it is one hover away and costs nothing
+     when it is not wanted. */
   .bar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: var(--sp-3);
-    padding: var(--sp-2) var(--sp-3);
+    padding: var(--sp-1) var(--sp-3);
     border-bottom: 1px solid var(--edge-inst);
     font-size: .72rem;
     flex: none;
-  }
-  .note {
-    color: var(--ink-faint);
   }
   .toggle {
     background: none;
