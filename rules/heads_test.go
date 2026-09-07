@@ -278,11 +278,35 @@ import (
 // The gate measured these on top of 63ee22d (the sc1 merge) and got values
 // byte-identical to the measurement on e7fec05, so sc1's sacrifice work does
 // not interact with these four games.
+//
+// REGENERATED at the ft1 merge (the bot may aim at a face, by Ruling FL-108's
+// three tiers). ONE seat count moved -- 8, from 700f85d871d35367 -- and 2, 4 and
+// 6 are byte-identical to the values above. The mover is ONE decision, found by
+// instrumenting every effect-path KTarget in all four acceptance games and
+// printing each divergence between the effect-aware pick and the effect-blind
+// one:
+//
+//	8 seats  obj 407 Lightning Bolt (DealDamage 3), asked of p6 at 17 life.
+//	         p2 is at 3 life, so 3 <= 3 is provably lethal and the bolt is now
+//	         aimed at p2's FACE; the effect-blind policy pointed it at p5's
+//	         permanent obj 348. This is TIER 2 (an opponent when the damage is
+//	         potentially lethal). spare=false, so tier 3 played no part.
+//	2, 4, 6  UNCHANGED, and that is the check that the attribution is honest:
+//	         across those three games there is not a single divergent target
+//	         decision. Tier 1 (a threat that may kill you this round) and tier 3
+//	         (the best creature it can kill, given spare mana) fired ZERO times
+//	         anywhere in the acceptance corpus.
+//
+// Ruling FL-107 governs this regeneration: there is no quota, ATTRIBUTION is the
+// only requirement, and agents never write this map -- the orchestrator does, at
+// the gate, from values the gate measured on branch+current-main. One seat
+// moving with a named card and a named tier, and three provably not moving, is
+// the strongest shape available.
 var acceptanceHeads = map[int]string{
 	2: "a95fd3b1da972438",
 	4: "ba76d1bb389a3c2b",
 	6: "baafe0b87f436bec",
-	8: "700f85d871d35367",
+	8: "dbe58b710d39e5ec",
 }
 
 func TestHeads(t *testing.T) {
