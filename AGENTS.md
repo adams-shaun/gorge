@@ -55,7 +55,7 @@ goldens in `rules/heads_test.go`:
 
 | seats | 2 | 4 | 6 | 8 |
 |---|---|---|---|---|
-| chain head | `45e0671d07b60d9e` | `795a100313094d6c` | `0311852b655e44d0` | `1216344ec91e5881` |
+| chain head | `0876361619998e2a` | `d74b8a889f09be48` | `ea3d87a74c4c954d` | `5e573c76021a419f` |
 
 `make sim` plays 20 verified 4-seat games from the same seed set, every one
 replaying byte-identically (20/20 `replay OK`).

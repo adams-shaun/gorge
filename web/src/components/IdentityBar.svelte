@@ -68,11 +68,19 @@
   class="identity"
   class:active
   class:lost={player.lost}
+  class:priority
   style={`position:absolute;${CORNER[corner]};--seat:${colour}`}
   data-seat={player.seat}
 >
-  <div class="name">
-    {#if priority}<span class="dot" title="has priority"></span>{/if}
+  <div class:priority={priority} class="name">
+    <span
+      class="dot"
+      class:held={priority}
+      title={priority ? 'has priority' : undefined}
+      role={priority ? 'img' : undefined}
+      aria-label={priority ? 'Has priority' : undefined}
+      aria-hidden={priority ? undefined : 'true'}
+    ></span>
     {who}
   </div>
   {#if player.lost}<div class="eliminated" data-eliminated>Eliminated</div>{/if}
@@ -189,15 +197,31 @@
     font-weight: 600;
     line-height: 1.2;
   }
-  /* Priority is the initiative, and the initiative has its own colour in this
-     palette. Repeating the seat hue here would say "seat" twice and "whose
-     turn it is to act" not at all. */
+  /* The marker is always in the name line: only its paint changes, never the
+     space available to the name. The dotted underline is the non-colour cue
+     for priority; the marker's accessible label preserves the state for
+     screen readers. */
   .dot {
     width: 0.4em;
     height: 0.4em;
     border-radius: 999px;
     background: var(--initiative);
     flex: none;
+    opacity: 0;
+  }
+  .dot.held {
+    opacity: 1;
+  }
+  .name.priority {
+    color: var(--initiative);
+    text-decoration: underline 2px dotted;
+    text-underline-offset: 0.16em;
+  }
+  /* A lost seat remains visibly eliminated even if a stale view happens to
+     name it as holding priority too. */
+  .identity.lost .name.priority {
+    color: var(--ink-faint);
+    text-decoration: line-through;
   }
   .deck {
     font-size: var(--t-11);

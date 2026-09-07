@@ -59,9 +59,13 @@ func TestCastCommanderSecondCastStillCasts(t *testing.T) {
 }
 
 // TestCastCommanderRefusedWhenTaxLoses is CR1's "never recast forever"
-// side: the same 4/4 on its FOURTH command-zone cast pays {6} extra, which
-// prices the exchange below zero (46 - 60 = -14) — the option is not cast
-// at all, and the decision falls through to pass. Deleting the tax
+// side: the tax eventually prices a recast out, and the decision falls
+// through to pass. A 4/4 on its FOURTH command-zone cast (Casts 3, {6}
+// extra) prices the exchange below zero (46 - 5*3*4 = -14); a 12/12 on its
+// THIRD (Casts 2, {4} extra) is priced out too (78 - 5*2*12 = -42). The
+// rule now prices the tax on the commander's MANA VALUE, not its power, so
+// a commander that costs a lot is abandoned while a cheap one is still
+// recast (see TestCastCommanderCheapOutlastsExpensive). Deleting the tax
 // subtraction, or the below-zero refusal, picks the commander and fails
 // this test by name.
 func TestCastCommanderRefusedWhenTaxLoses(t *testing.T) {
@@ -75,17 +79,82 @@ func TestCastCommanderRefusedWhenTaxLoses(t *testing.T) {
 	if got != 1 || d.Options[got].Kind != "pass" {
 		t.Fatalf("priority = option %d (kind %q), want pass — the fourth command-zone cast is a losing exchange", got, d.Options[got].Kind)
 	}
-	// A 2/2 refuses its third command-zone cast (38 - 40 < 0), where a 4/4
-	// still takes its third (46 - 40 = 6): the tax cap prices power.
+	// A 12/12 on its third command-zone cast is priced out: 78 - 5*2*12 =
+	// -42. Under the old flat 20-per-cast cap it would still score 38 and
+	// keep going; pricing on mana value abandons the expensive one first.
 	b = commanderBoard(map[state.ObjID]Card{
-		1: {Creature: true, Power: 2, CMC: 2},
+		1: {Creature: true, Power: 12, CMC: 12},
 	}, map[state.ObjID]Commander{1: zoneCmd(2, nil)})
 	got, d = castDecision(b, []decision.Option{
 		castCreature(0, 1),
 		{Index: 1, Kind: "pass"},
 	})
 	if got != 1 || d.Options[got].Kind != "pass" {
-		t.Fatalf("priority = option %d (kind %q), want pass — a 2/2 on its third command-zone cast", got, d.Options[got].Kind)
+		t.Fatalf("priority = option %d (kind %q), want pass — a 12/12 on its third command-zone cast", got, d.Options[got].Kind)
+	}
+}
+
+// TestCastCommanderCheapOutlastsExpensive is the finding-ck asymmetry the
+// new CR1 is built around: at the SAME number of prior command-zone casts,
+// a cheap commander is still recast while an expensive one is priced out. A
+// 2/2 (CMC 2) on its third command-zone cast scores 38 - 5*2*2 = 18 and
+// casts; a 12/12 (CMC 12) on the same third cast scores 78 - 5*2*12 = -42
+// and refuses. Under the old flat 20-per-cast penalty both stayed castable
+// (18 and 38), and the power-tracked cap (20 removes five power) let the
+// expensive 12/12 last LONGER than the 2/2 — exactly the inversion finding
+// ck flags. Deleting the cmdrTaxScale*Casts*CMC term (or reverting to the
+// flat 20*Casts) makes the 12/12 cast here and fails this test by name.
+func TestCastCommanderCheapOutlastsExpensive(t *testing.T) {
+	cheap := commanderBoard(map[state.ObjID]Card{
+		1: {Creature: true, Power: 2, CMC: 2},
+	}, map[state.ObjID]Commander{1: zoneCmd(2, nil)})
+	got, d := castDecision(cheap, []decision.Option{
+		castCreature(0, 1),
+		{Index: 1, Kind: "pass"},
+	})
+	if got != 0 {
+		t.Fatalf("cheap 2/2 on its third cast = option %d (kind %q), want the recast (obj 1)", got, d.Options[got].Kind)
+	}
+
+	expensive := commanderBoard(map[state.ObjID]Card{
+		1: {Creature: true, Power: 12, CMC: 12},
+	}, map[state.ObjID]Commander{1: zoneCmd(2, nil)})
+	got, d = castDecision(expensive, []decision.Option{
+		castCreature(0, 1),
+		{Index: 1, Kind: "pass"},
+	})
+	if got != 1 || d.Options[got].Kind != "pass" {
+		t.Fatalf("expensive 12/12 on its third cast = option %d (kind %q), want pass", got, d.Options[got].Kind)
+	}
+}
+
+// TestCastCommanderTaxPricesManaNotPower is constraint 1's "responds to
+// mana, not to power alone": two creatures of the SAME power (4) but
+// different mana value at the same cast count (Casts 2). The CMC-2 one
+// still casts (46 - 5*2*2 = 26), the CMC-8 one is priced out (46 - 5*2*8 =
+// -34). The old flat 20-per-cast penalty scored both at 46 - 40 = 6, so it
+// could not tell them apart and let the expensive one keep going.
+func TestCastCommanderTaxPricesManaNotPower(t *testing.T) {
+	cheap := commanderBoard(map[state.ObjID]Card{
+		1: {Creature: true, Power: 4, CMC: 2},
+	}, map[state.ObjID]Commander{1: zoneCmd(2, nil)})
+	got, _ := castDecision(cheap, []decision.Option{
+		castCreature(0, 1),
+		{Index: 1, Kind: "pass"},
+	})
+	if got != 0 {
+		t.Fatalf("4/4 CMC2 on its third cast = option %d, want the recast", got)
+	}
+
+	expensive := commanderBoard(map[state.ObjID]Card{
+		1: {Creature: true, Power: 4, CMC: 8},
+	}, map[state.ObjID]Commander{1: zoneCmd(2, nil)})
+	got, d := castDecision(expensive, []decision.Option{
+		castCreature(0, 1),
+		{Index: 1, Kind: "pass"},
+	})
+	if got != 1 || d.Options[got].Kind != "pass" {
+		t.Fatalf("4/4 CMC8 on its third cast = option %d (kind %q), want pass", got, d.Options[got].Kind)
 	}
 }
 

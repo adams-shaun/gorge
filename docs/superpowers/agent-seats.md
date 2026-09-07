@@ -89,10 +89,11 @@ the two ceilings exist for unrelated reasons:
 
 | pool | cap | claimed with | what the cap protects |
 |---|---|---|---|
-| **local** | 4 | `fleet.sh claim <id> --local` (the default) | THIS BOX. Past four local agents it saturates and load-sensitive tests fail for reasons unrelated to any diff. |
-| **paid** | 2 | `fleet.sh claim <id> --paid` | The PLAN. Codex seats run on someone else's hardware and load the box not at all, but share one ChatGPT plan's rate limit and throttle each other and the user's own sessions. |
+| **local** | 3 | `fleet.sh claim <id> --local` (the default) | THIS BOX **and the GPU**. Past the cap it saturates and load-sensitive tests fail for reasons unrelated to any diff. |
+| **paid** | 1 | `fleet.sh claim <id> --paid` | The PLAN. Codex seats run on someone else's hardware and load the box not at all, but share one ChatGPT plan's rate limit and throttle each other and the user's own sessions. |
 
-So **6 agents can run at once** — 4 local plus 2 paid. A full local pool does
+So **4 agents can run at once** — 3 local plus 1 paid (user ruling
+2026-09-07, lowered from 4+2; see "The local cap is about the GPU too" below). A full local pool does
 NOT block a codex dispatch, and a full paid pool does not block a local one;
 `fleet.sh claim` says which pool is full and points at the other. Counting them
 against one number was wrong: it made a free seat and a paid seat
@@ -104,6 +105,62 @@ free. A seat directory with no `kind` file predates pools and counts as local.
 
 Claude subagents load neither pool, so a full fleet routes visual/rescue work
 there rather than into a queue.
+
+## The local cap is about the GPU too, not just the box
+
+Lowered to 3 local / 1 paid by user ruling 2026-09-07. On that date a CUDA OOM
+in the vLLM engine serving `ds4-r8-vision` killed **three concurrent local
+seats within 2.1 seconds of each other** — one event, not three failures. The
+engine runs at `gpu_memory_utilization: 0.975` (weights 83.06 GiB, KV cache
+7.97 GiB, of 94.97 GiB), so a transient runtime allocation has nowhere to go:
+the crash was a 34 MiB allocation failing with 73 MiB free, inside the
+attention forward pass while NCCL was lazily initialising a communicator.
+
+Two things follow that are easy to get wrong:
+
+- **It was not KV-cache exhaustion.** Usage was 15-19% and `Running: 2-3 reqs`
+  against `max_num_seqs: 4`. So "N agents saturates the box" is not the
+  mechanism, and host RAM is not either (`/proc/vmstat` `oom_kill 0` — the
+  kernel OOM killer has never fired). Concurrent streams are an amplifier of
+  peak activation memory, not the cause.
+- **The harness reports a dead engine as a CLEAN EXIT.** All three seats wrote
+  `"exit_code": 0` with `"status": "UNKNOWN"`, because the agent was cut off
+  before emitting its `STATUS=` trailer. A seat that vanishes with exit 0 and
+  no status has probably NOT finished — check for uncommitted work in its
+  worktree before you reset it. Two of those three trees held a near-complete
+  implementation; a fresh agent dropped on top would have destroyed it.
+
+The permanent fix is on the deployment, not here: lower
+`gpu_memory_utilization` to ~0.93, or pin the KV cache with
+`--kv-cache-memory=8190094951` as the engine's own startup log suggests.
+
+## Thinking level and model preference (user, 2026-09-07)
+
+- **ds4 seats run at `--thinking medium`.** A previous round found medium
+  outperformed high on this repo for the local model. Do not raise it to high
+  without a measurement that says so.
+- **Prefer the gpt seats for non-ds4 work** — `gpt-5.6-terra`, `gpt-5.6-luna`,
+  `gpt-5.6-sol`. When a task is going to a paid seat rather than the local one,
+  a codex model is the default choice, not Claude.
+
+## Stopping a pi-agent: kill the TREE, by explicit pid
+
+`pi-agent` is a wrapper. Sending TERM to the pid you launched **orphans its
+children rather than stopping them** — the `pi` process and its bwrap jail
+survive, reparent to init, and keep writing into the worktree. Observed
+2026-09-07: four seats were "stopped" and relaunched, and the result was two
+agents per worktree editing the same files, with the tree reset underneath
+both.
+
+Walk the tree first and kill every pid in it, deepest first:
+
+    ps -eo pid,ppid,lstart,args --no-headers | grep -- '[-]-name <id>'
+
+then `kill` each number. Never a `-f` pattern. Verify the count is zero before
+relaunching, and `git reset --hard` the worktree AFTER the last process is
+gone, never before.
+
+Launch with `setsid` so the run survives the dispatching shell.
 
 ## Always evaluate an agent's tool errors when it completes
 
