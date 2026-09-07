@@ -42,26 +42,47 @@ import (
 //     priority decision, and neither bot mirror ever picks it; an offered
 //     but untaken option is not an event.
 //
-// B2 (combat heuristics) is the next regeneration, and it moves 4, 6 and 8.
-// The bot stopped attacking with everything unconditionally and stopped
-// blocking on a coin flip per option: it now weighs whether an attacker
-// survives, gets through or trades up, and blocks for favourable and even
-// trades, chumping only against lethal. Different attacks and different
-// blocks mean different damage, different deaths and a different game from
-// the first combat onward, so every acceptance game with a combat step
-// diverges.
+// M3's OWN regeneration (Ruling FL-83 allows exactly one per milestone,
+// and m34 is that one). The previous golden set (2 45e0671d07b60d9e,
+// 4 04950e3969039a7b, 6 d70bc7e30c0fccdd, 8 496784e7fbcf37be) is from the
+// B2 era; everything M3 merged on top was verified UNMOVED at every merge
+// (m30, m31, m32, m33, m35, m37), so the whole gap between those goldens
+// and the pre-m34 computed heads is B3 and B4, and m34 supplies the third
+// cause (see the commit body for the regression's full naming). The four
+// pre-m34 computed heads, verified at 11fc153 before m34's own change:
 //
-//   - The 2-seat head is UNCHANGED at 45e0671d07b60d9e. Measured, not
-//     assumed: that game's only combat decisions are five attacker
-//     declarations the new policy also makes in full, and it has no blocker
-//     decisions at all, so there is nothing for the new policy to decide
-//     differently. A seat count that does not move is evidence the change is
-//     the one described rather than a broad perturbation.
+//	2 1d5dc4e2727cf2d8, 4 1c581d6dfe425410, 6 09345bb7f2a73286,
+//	8 1f5644eaaa0fbe40.
+//
+//	- B3 (e13a3ee / merge 60b8981): the botpolicy targeting heuristic --
+//	  never own, board over face, rank by threat, honour Min/Max. Spells
+//	  and abilities now pick different targets, so different permanents
+//	  die and different life totals remain. Moves ALL FOUR seats.
+//	- B4 (d2d4a6e / merge 36be378): cast and play_land ranking in the
+//	  priority policy -- which spells are cast and in what order, which
+//	  lands are played, hence different boards from the first main phase
+//	  on. Moves ALL FOUR seats (including the 2-seat head, which had been
+//	  fixed since M2d-1: the 2-seat game now casts differently, so
+//	  45e0671d07b60d9e finally moves to 1d5dc4e2727cf2d8).
+//	- m34 (fcea152): the free-for-all defender choice (CR 506.2 / CR
+//	  903.14). Every KAttackers option is now one (attacker, defender)
+//	  pair, so the recorded attacker intents -- and therefore the
+//	  DeclareAttackers events, combat damage, blocks and deaths -- change
+//	  shape from the first combat on, and an attack can split across two
+//	  defenders (one combat in the 4-seat game emits two DeclareAttackers
+//	  events, 14 total instead of 13). Also asks one KBlockers decision
+//	  per defender instead of one for the whole declaration. Measured, 4
+//	  seats: 8 of the game's 13 attacker choices target a defender the
+//	  fixed-defender build could not express. Moves 4, 6 and 8 ONLY: the
+//	  2-seat game still sees one option per creature at its sole defender,
+//	  so m34's own chain contribution is a blank at 2 seats and the golden
+//	  below stays 1d5dc4e2727cf2d8, unchanged from the pre-m34 measured
+//	  value.
 var acceptanceHeads = map[int]string{
-	2: "45e0671d07b60d9e",
-	4: "04950e3969039a7b",
-	6: "d70bc7e30c0fccdd",
-	8: "496784e7fbcf37be",
+	2: "1d5dc4e2727cf2d8",
+	4: "609a2c6bfe81f26d",
+	6: "9207c51fd1e4ed6a",
+	8: "2c25aaefa82c95f6",
 }
 
 func TestHeads(t *testing.T) {
