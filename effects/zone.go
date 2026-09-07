@@ -84,6 +84,18 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: to})
+		// RememberChanged$ True (Forge's spelling on the ChangeZone in the
+		// Flickerwisp delayed-trigger family): the moved object joins the
+		// ability's Remembered, so a DelayedTrigger that runs as a later
+		// SubAbility of this same chain captures it (TrigBounce's Defined$
+		// DelayTriggerRememberedLKI resolves against it when the delayed
+		// trigger fires). The value is a parameter of the ongoing resolution
+		// (Ctx), not game state, so mutating it here is fine -- the recall
+		// is persisted into the DelayedRegister event, not written to state
+		// directly.
+		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
+			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+		}
 		if withKind != "" && to == state.ZBattlefield {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: withKind, Amount: withAmt})
 		}
