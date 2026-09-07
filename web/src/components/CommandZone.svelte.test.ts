@@ -79,18 +79,28 @@ describe('a four-seat game renders every seat"s command zone (rail mount)', () =
     ],
   });
 
-  it('renders one command section per seat, including the empty and the absent ones', () => {
+  it('renders a command group for every seat that has a roster, in seat order, and none for a seat that has not', () => {
     const { html } = render(Rail, { props: { view: view(), seats, decision: null } });
-    // every seat, in seat order
-    const sections = [...html.matchAll(/data-command-zone="" data-seat="(\d)"/g)].map((m) => m[1]);
-    expect(sections).toEqual(['0', '1', '2', '3']);
-    // seat 0's zone is occupied; seats 1 and 3 have no command-zone commander
-    expect(html).toContain('data-command-zone="" data-seat="0"');
-    expect(html).toContain('data-command-zone="" data-seat="1"');
-    expect(html).toContain('data-command-zone="" data-seat="2"');
-    expect(html).toContain('data-command-zone="" data-seat="3"');
+    // seats 0, 1 and 2 have rosters; seat 3 has none, so it contributes NO
+    // group at all — a "no commanders" panel is a hole where the format does
+    // not apply, and the rail's height is what U2 was about.
+    const groups = [...html.matchAll(/data-command-zone="" data-seat="(\d)"/g)].map((m) => m[1]);
+    expect(groups).toEqual(['0', '1', '2']);
+    expect(html).not.toContain('data-seat="3"');
+    // seat 1's commander has left the zone: that is a state, and it is stated
     expect(html.match(/data-command-zone-empty/g)).toHaveLength(1);
-    expect(html.match(/data-command-empty/g)).toHaveLength(1);
+    // and nothing renders the absent-roster state, because nothing mounts it
+    expect(html).not.toContain('data-command-empty');
+    // the section exists and is named once, not once per seat
+    expect(html.match(/>Commanders</g)).toHaveLength(1);
+  });
+
+  it('a constructed table renders no commanders section at all — no heading, no rows, no hole', () => {
+    const v = view();
+    v.players = v.players.map((p) => ({ ...p, commanders: [], command: [], commander_casts: [] }));
+    const { html } = render(Rail, { props: { view: v, seats, decision: null } });
+    expect(html).not.toContain('data-command-zone');
+    expect(html).not.toContain('>Commanders<');
   });
 
   it('the displayed next-cast tax is the derived number — {2} × commander_casts — never the raw count', () => {
