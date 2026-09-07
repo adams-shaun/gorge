@@ -3,7 +3,15 @@
   import { navigate } from '../lib/router';
   import LifeGrid from './LifeGrid.svelte';
 
-  let { table }: { table: TableState } = $props();
+  // `roomy` is the page's call, not the cell's: the lobby sizes its grid from
+  // how many tables it is showing (lib/lobby.ts), and a roomy cell spends the
+  // extra space on seat names and a life total you can read across a room.
+  // One component either way — a Commander cell and a constructed cell differ
+  // only in which section they sit in.
+  // `note` is the last thing that actually happened at this table (the feed's
+  // last non-routine line). A compact cell has no room for it and does not
+  // ask for one.
+  let { table, roomy = false, note = '' }: { table: TableState; roomy?: boolean; note?: string } = $props();
 
   const state = $derived(table.info.state);
   const halted = $derived(state === 'halted');
@@ -14,14 +22,18 @@
   }
 </script>
 
-<button type="button" class="cell" class:halted onclick={onclick}>
+<button type="button" class="cell" class:halted class:roomy onclick={onclick}>
   <header>
     <span class="name">{table.info.name}</span>
     <span class="state state-{state}">{state}</span>
   </header>
 
   {#if w}
-    <LifeGrid life={w.life} lost={w.lost} seats={table.seats} active={w.active} />
+    <!-- The life grid is the cell's content, so it takes the height the
+         header and footer do not; the wrapper exists only to hand it that
+         height. -->
+    <div class="life"><LifeGrid life={w.life} lost={w.lost} seats={table.seats} active={w.active} names={roomy} /></div>
+    {#if roomy}<p class="note">{note}</p>{/if}
     <footer>
       <span class="turn">Turn {w.turn}</span>
       <span class="phase">{w.phase}</span>
@@ -50,6 +62,28 @@
   }
   .cell:hover {
     border-color: var(--ink-faint);
+  }
+  /* A roomy cell is the same cell with more air. The life total's size is not
+     set here: the page sets --life-size once (lib/lobby.ts), so every cell on
+     the page reads at one size whichever section it is in. */
+  .cell.roomy {
+    gap: var(--sp-4);
+    padding: var(--sp-4);
+  }
+  .life {
+    flex: 1;
+    display: grid;
+  }
+  /* What last happened here. One line, truncated, and its height is held even
+     when there is nothing to say, so a cell never resizes as the game runs. */
+  .note {
+    margin: 0;
+    min-height: 1.35em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--t-12);
+    color: var(--ink-dim);
   }
   .cell.halted {
     border-color: var(--danger);
@@ -106,7 +140,12 @@
   .stack {
     color: var(--ink-faint);
   }
+  /* A table between matches keeps its size — the grid must not reflow every
+     time a cooldown ends somewhere on the page. */
   .empty {
+    flex: 1;
+    display: grid;
+    place-items: center;
     padding: var(--sp-6) 0;
     text-align: center;
     font-size: var(--t-14);
