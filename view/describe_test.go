@@ -11,6 +11,7 @@
 package view
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -42,6 +43,26 @@ func describeFixture(t *testing.T) (*state.Game, state.ObjID, state.ObjID) {
 	g.Players[0].CmdDamage = []int32{7}
 	g.Players[1].CmdDamage = []int32{6}
 	return g, b.ID, l.ID
+}
+
+// TestDescribeDamageCarriesNoSource is the defect-2 finding, pinned. The
+// user's ask -- any time damage is assigned to a player, state the source
+// card and the player target -- cannot be honoured: the Damage event carries
+// no source field (events.Event has none, and neither effects/DealDamage nor
+// rules/combat.go's emitters set one), so Describe cannot name what dealt the
+// damage even when the game state has an obvious source. Fixing it requires
+// adding a source to events.Event, which is forbidden (the binary encoding is
+// hash-chained and replayed). This test documents the BLOCKED state and must
+// be updated to assert the source the day the event gains one.
+func TestDescribeDamageCarriesNoSource(t *testing.T) {
+	g, _, _ := describeFixture(t)
+	line := Describe(g, events.Event{Kind: events.Damage, Player: 1, Amount: 3})
+	if line != "Bob takes 3 damage" {
+		t.Fatalf("Describe = %q, want the source-less line (defect 2 is BLOCKED)", line)
+	}
+	if strings.Contains(line, "#") || strings.Contains(line, "Bolt") {
+		t.Fatalf("Describe = %q named a source the Damage event does not carry", line)
+	}
 }
 
 func TestDescribeTemplates(t *testing.T) {

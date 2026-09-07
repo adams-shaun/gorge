@@ -65,7 +65,7 @@
           "id": 40,
           "kind": "trigger",
           "name": "Watcher",
-          "text": "When CARDNAME enters, you gain 1 life.",
+          "text": "When Watcher enters, you gain 1 life.",
           "controller": 1,
           "source": 30,
           "targets": [

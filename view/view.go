@@ -472,10 +472,24 @@ func stackViews(g *state.Game, ch Chars, ids []state.ObjID) []StackView {
 			if _, ok := triggerLine(g, o); ok {
 				kind = "trigger"
 			}
-			out = append(out, StackView{
+			sv := StackView{
 				ID: id, Kind: kind, Name: abilityName(g, o), Text: abilityText(g, o),
 				Controller: o.Controller, Source: o.Source, Targets: targetViews(o.Targets, targetLabel(o)),
-			})
+			}
+			// The ability object has no face of its own (Ruling F3), so the
+			// artwork a client shows for a trigger/ability band has to come
+			// from the permanent it was minted from -- the same cardView the
+			// spell branch uses for its own id. Fill Card only while that
+			// source is a visible object: the source may have left the
+			// battlefield to a hidden zone (a "leaves the battlefield"
+			// trigger whose card is now in its owner's hand) or be gone
+			// entirely, and neither may be exposed here. This is the same
+			// projection everything else uses, never a hand-built view.
+			if src := g.Obj(o.Source); src != nil && src.Face() != nil && !src.Zone.Hidden() && !src.Ephemeral() {
+				cv := cardView(g, ch, o.Source)
+				sv.Card = &cv
+			}
+			out = append(out, sv)
 			continue
 		}
 		sv := StackView{ID: id, Kind: "spell", Controller: o.Controller, Targets: targetViews(o.Targets, targetLabel(o))}
@@ -526,33 +540,114 @@ func triggerLine(g *state.Game, o *state.Object) (cards.Trigger, bool) {
 // triggerLine) and returns its TriggerDescription$. Falling back to the
 // SA's own SpellDescription$/StackDescription$ covers an activated ability
 // (a later milestone) or a source that changed face since the trigger
-// matched (rules/trigger.go's triggerOf documents the same caveat).
+// matched (rules/trigger.go's triggerOf documents the same caveat). The
+// text is then placeholder-substituted with the same display name the
+// StackView.Name uses -- the source's face name, or "Ability" when the
+// source is gone (see abilityName and substitutePlaceholders).
 func abilityText(g *state.Game, o *state.Object) string {
+	text := ""
 	if t, ok := triggerLine(g, o); ok {
 		if d := t.Params["TriggerDescription"]; d != "" {
-			return d
+			text = d
 		}
 	}
-	if o.Ability != nil {
+	if text == "" && o.Ability != nil {
 		if d := o.Ability.Params["SpellDescription"]; d != "" {
-			return d
+			text = d
 		}
-		if d := o.Ability.Params["StackDescription"]; d != "" {
-			return d
+		if text == "" {
+			if d := o.Ability.Params["StackDescription"]; d != "" {
+				text = d
+			}
 		}
 	}
-	return ""
+	return substitutePlaceholders(text, abilityName(g, o))
 }
 
 // spellText is SpellDescription$ of the face's own cast ability, falling
-// back to the printed Oracle text.
+// back to the printed Oracle text, with Forge's self-reference placeholders
+// substituted by the card's own name (see substitutePlaceholders).
 func spellText(f *cards.Face) string {
+	text := f.Oracle
 	if sa := f.SpellAbility(); sa != nil {
 		if d := sa.Params["SpellDescription"]; d != "" {
-			return d
+			text = d
 		}
 	}
-	return f.Oracle
+	return substitutePlaceholders(text, f.Name)
+}
+
+// substitutePlaceholders replaces Forge's self-reference placeholders in a
+// rules-text string with the card's own display name. CARDNAME is Forge's
+// token for the card's full name; NICKNAME is the same token narrowed to the
+// name's first word (Forge's default nickname -- the corpus carries no
+// Nickname$ or Nickname: line and the parser has no field for one, so the
+// first word is the whole of what the engine can know). Both are matched on
+// a word boundary -- a letter or digit on either side is not a match -- so a
+// token inside a larger word ("CARDNAMES") is left alone, and the substituted
+// name is written out and never re-scanned, so a name that legitimately
+// contains the letters ("Forked Bolt") is inserted whole and a name that
+// happened to be a placeholder token as a whole word would not be rewritten
+// a second time.
+//
+// The set is what the corpus actually uses in the text this package renders:
+// CARDNAME is pervasive in SpellDescription$/TriggerDescription$/
+// StackDescription$ (and, like NICKNAME, is always the uppercase token in
+// those fields), NICKNAME occurs in about a thousand of them, and the "~"
+// shorthand does not occur in any of them (it appears only in Forge SVar
+// arithmetic, which is never rendered) -- see the task report for the grep.
+func substitutePlaceholders(text, name string) string {
+	if text == "" || name == "" {
+		return text
+	}
+	nick := firstWord(name)
+	var b strings.Builder
+	b.Grow(len(text))
+	i := 0
+	for i < len(text) {
+		if !isWordByte(text[i]) {
+			b.WriteByte(text[i])
+			i++
+			continue
+		}
+		j := i
+		for j < len(text) && isWordByte(text[j]) {
+			j++
+		}
+		tok := text[i:j]
+		switch tok {
+		case "CARDNAME":
+			b.WriteString(name)
+		case "NICKNAME":
+			b.WriteString(nick)
+		default:
+			b.WriteString(tok)
+		}
+		i = j
+	}
+	return b.String()
+}
+
+// firstWord is the first whitespace-delimited word of a name -- Forge's
+// NICKNAME default ("Forked Bolt" -> "Forked"). A trailing comma, the
+// separator between a legendary title and its epithet ("Ambergris, Agent of
+// Destruction" -> "Ambergris"), is dropped so the substitution does not
+// render "Ambergris, deals ..."; a hyphen inside the first word is kept
+// ("A-Alrund, God of the Cosmos" -> "A-Alrund").
+func firstWord(s string) string {
+	i := strings.IndexByte(s, ' ')
+	if i < 0 {
+		i = len(s)
+	}
+	return strings.TrimRight(s[:i], ",")
+}
+
+// isWordByte is the word-character edge the placeholder scan matches on:
+// letters and digits only. A placeholder token at either end of the string,
+// or adjacent to punctuation (an apostrophe, a comma, a period), is still a
+// whole word; a placeholder inside a larger word is not.
+func isWordByte(c byte) bool {
+	return c >= '0' && c <= '9' || c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z'
 }
 
 // targetViews copies an object's chosen targets. Object.Remembered is NEVER
