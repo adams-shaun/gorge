@@ -100,7 +100,65 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 // Therapy) returned to the graveyard and could be flashbacked again. The
 // cast flags are already readable here (effects/filter.go reads them the
 // same way), so the destination is chosen the same way spellRestZone does.
+//
+// UnlessCost$ (Mana Leak, Spell Pierce, Daze, Rust Tick, Runeboggle) is the
+// "counter target spell unless its controller pays {N}" shape -- a real
+// mid-resolution ask since M2d-2 closed R-8. On the first pass the
+// CONTROLLER OF THE COUNTERED SPELL (the object in c.Targets[0], per CR
+// 119) is offered a KModes pay/decline decision and the resolution suspends;
+// the answer re-enters this effect with Ctx.UnlessPay set, rules'
+// resumeResolution (rules/resolution.go) having already paid the cost via
+// payMana on an affordable "pay". "pay" therefore means the spell is NOT
+// countered; "decline" -- including an affordable-looking "pay" that
+// payMana reports it could not cover -- counters it.
+//
+// The payer default deliberately differs from effCopySpellAbility's: there
+// the default is c.Controller (the resolving effect's controller) because
+// the corpus copy shapes (Chain Lightning, Storm) carry UnlessPayer$ and
+// resolve it to the target's controller. A counterspell charges its tax to
+// the CONTROLLER OF THE COUNTERED SPELL, and the corpus counterspells carry
+// no UnlessPayer$ at all -- so copying that default verbatim would ask the
+// countering player to pay their own counterspell's tax. UnlessPayer$ is
+// still honoured when a card does name one (Reasonable Doubt's
+// ThisTargetedController), and every corpus UnlessPayer$ value resolves to
+// the controller of the first target, so both routes land on the same player.
 func effCounter(h Host, c *Ctx, sa *cards.SA) {
+	skip := false
+	if cost := strings.TrimSpace(sa.Params["UnlessCost"]); cost != "" {
+		switch c.UnlessPay {
+		case "pay":
+			// Re-entry, paid: the spell resolves normally, so do NOT counter.
+			skip = true
+		case "decline":
+			// Re-entry, declined: counter it below.
+		default:
+			// First pass: pose the pay decision to the controller of the
+			// countered spell. The fallback to c.Controller only stands in
+			// for a zero-target degenerate script; the real cards all have
+			// a target.
+			payer := c.Controller
+			if len(c.Targets) > 0 {
+				payer = PlayerOf(h, c, c.Targets[0])
+			}
+			d := &decision.Decision{Player: payer, Kind: decision.KModes,
+				Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay",
+				ResumeSA: sa, Prompt: "Pay " + cost + " to save the spell, or decline",
+				Options: []decision.Option{
+					{Index: 0, Kind: "mode", Label: "Pay " + cost + " — don't counter", Obj: c.Source, Player: payer},
+					{Index: 1, Kind: "mode", Label: "Don't pay", Obj: c.Source, Player: payer},
+				}}
+			if h.Ask(d) {
+				return // resolution suspended; the answer re-enters this effect.
+			}
+			// Fuzz/no-engine host: the deterministic decline (R-9). The pay
+			// was never posed, so resolve as if the player declined: counter.
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "may pay declined (UnlessCost not asked on this host)"})
+		}
+	}
+	if skip {
+		return
+	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
