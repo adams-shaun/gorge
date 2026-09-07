@@ -172,9 +172,24 @@ const (
 	// ordinal, hash chain or golden replay is affected. Only ever emitted in
 	// a Commander-format game.
 	CmdDamage
+	// NumKinds is the number of defined Kind constants, one past the last
+	// (state.Zone's numZones, next package over, is the same shape). It
+	// exists for the scans that must visit every kind: view's
+	// Describe-coverage test used to bound its loop with a kind NAME
+	// (EndCombatReset) that silently stopped being the last Kind, so eight
+	// kinds landed past the loop and were never described; bounding by
+	// NumKinds instead means a Kind appended here is covered by
+	// construction, with no edit to the scan. It must stay AFTER the last
+	// Kind: appending a Kind below it would renumber every later ordinal
+	// and corrupt the hash chain, so new kinds always go above it.
+	NumKinds = int(CmdDamage) + 1
 )
 
-var kindNames = [...]string{"game_start", "shuffle", "move_zone", "draw",
+// kindNames is declared with NumKinds's length, never [...] inferred, so
+// kindNames and the enum cannot drift apart: a Kind added without a name (or
+// a name added without a Kind) is a compile error, the same lockstep
+// zoneNames has with numZones.
+var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"life", "damage", "tap", "untap", "step", "turn", "priority", "stack_push",
 	"stack_resolve", "mana_add", "mana_clear", "counter", "declare_attackers",
 	"declare_blockers", "player_lost", "game_over", "decision_ask",
