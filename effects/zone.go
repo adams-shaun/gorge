@@ -174,14 +174,71 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// Sacrifice ignores Indestructible: sacrificing is not destruction. Same
-// CR 608.2b caveat as effDestroy: only existence-and-zone is rechecked.
+// effSacrifice moves permanents to the graveyard. Sacrifice ignores
+// Indestructible: sacrificing is not destruction (CR 701.16), so no
+// HasKeyword/Indestructible gate and no ReplaceDestruction/regeneration
+// consultation -- a regenerated creature does not survive being sacrificed.
+// Same CR 608.2b caveat as effDestroy: only existence-and-zone is rechecked.
 func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
+	// SacValid$ narrows WHAT may be sacrificed ("Creature.nonToken",
+	// "Artifact"). With no SacValid$ at all the default is "Permanent" (any
+	// permanent). The older justification -- that the self-sacrifice and
+	// at-end-of-step lines need "Permanent" because the object they sacrifice
+	// may be an artifact, a land or a creature -- is empirically false: those
+	// lines carry no Defined$ and no ValidTgts$, so Defined() resolves them
+	// to the SOURCE object (effects/context.go) and they take the object-target
+	// path below, where spec is never consulted at all. Measured at the corpus
+	// pin (for the command, see the sc1b report): of 892 Sacrifice SAs, 328
+	// carry no SacValid$; 327 of those resolve to an object (or an inherited
+	// target) and never reach the default, and exactly one -- Expert-Level
+	// Safe's DB$ Sacrifice | Defined$ You | ValidCard$ Card.Self -- reaches it.
+	// So "Permanent" is a harmless default rather than a correct reading of
+	// the corpus, and no player-targeted line carries SacValid$ Self. (That one
+	// reachable line means its controller hands over whichever permanent sits
+	// first in zone order -- for Expert-Level Safe, "this artifact" -- instead
+	// of the no-op before this fix; see AGENTS.md.)
+	spec := sa.Params["SacValid"]
+	if spec == "" {
+		spec = "Permanent"
+	}
 	for _, t := range Defined(h, c, sa) {
-		o := h.Game().Obj(t.Obj)
-		if t.IsPlayer || o == nil || o.Zone != state.ZBattlefield {
+		if t.IsPlayer {
+			// Bounds guard: g.Zone indexes g.zones[zoneIndex(z, p)] and
+			// zoneIndex has no bounds check, so an out-of-range target-supplied
+			// player id would panic with "index out of range" and halt the
+			// table. Player targets normally come from askTarget or AliveFrom
+			// and are bounded, but the package's idiom (see cardflow.go and
+			// count.go) is not to trust a target blindly.
+			if int(t.Player) >= len(g.Players) {
+				continue
+			}
+			// A sacrifice aimed at a player: that player sacrifices one
+			// matching permanent. Real Magic has the player choose; this
+			// engine does not ask (the mid-resolution ask machinery is being
+			// reworked elsewhere), so the stand-in is deterministic and
+			// replay-stable: the first permanent in battlefield order that
+			// satisfies SacValid$. "You" in the spec is the sacrificing
+			// player, since they choose from their own permanents.
+			ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, t.Player)...)
+			for _, id := range ids {
+				if MatchesSpecFrom(g, spec, id, t.Player, c.Source) {
+					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
+						From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+					break
+				}
+			}
 			continue
 		}
+		o := g.Obj(t.Obj)
+		if o == nil || o.Zone != state.ZBattlefield {
+			continue
+		}
+		// A specific object target is sacrificed as-is: the choice of which
+		// object was already made by the effect's targeting, so SacValid$'
+		// "which one may be sacrificed" step does not re-filter a concrete
+		// object (and would misfire on the corpus's SacValid$ Self lines,
+		// where "Self" is not a type the filter grammar knows).
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
 	}
