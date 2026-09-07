@@ -14,19 +14,31 @@ enabled. Dispatching a model outside that set fails at launch.
 
 `enabledModels` in `~/.pi/agent/settings.json` is the authority:
 
-| Seat | `--provider` / `--model` | Context / max out | Cost | Use for |
-|---|---|---|---|---|
-| **Local (default)** | `bm-llms` / `DeepSeek-V4-Flash` | 262K / 32K | free | all ordinary task work |
-| Codex | `openai-codex` / `gpt-6-astra` | 272K / 128K | ChatGPT plan | escalation |
-| Codex | `openai-codex` / `gpt-5.6-sol` | 272K / 128K | ChatGPT plan | escalation |
-| Codex | `openai-codex` / `gpt-5.6-terra` | 272K / 128K | ChatGPT plan | escalation |
-| Codex | `openai-codex` / `gpt-5.6-luna` | 272K / 128K | ChatGPT plan | escalation |
-| Codex | `openai-codex` / `gpt-5.5` | 272K / 128K | ChatGPT plan | escalation |
-| Codex | `openai-codex` / `gpt-5.3-codex-spark` | 128K / 128K | ChatGPT plan | escalation |
+| Seat | `--provider` / `--model` | Context / max out | Images | Cost | Use for |
+|---|---|---|---|---|---|
+| **Local (default)** | `bm-llms` / `DeepSeek-V4-Flash` | 262K / 32K | no | free | all ordinary task work |
+| **Local vision** | `bm-llms-vision` / `DeepSeek-V4-Flash-Vision-Exp` | 1M / 32K | **yes** | free | visual/UI work, screenshot review |
+| Codex | `openai-codex` / `gpt-6-astra` | 272K / 128K | yes | ChatGPT plan | escalation |
+| Codex | `openai-codex` / `gpt-5.6-sol` | 272K / 128K | yes | ChatGPT plan | escalation |
+| Codex | `openai-codex` / `gpt-5.6-terra` | 272K / 128K | yes | ChatGPT plan | escalation |
+| Codex | `openai-codex` / `gpt-5.6-luna` | 272K / 128K | yes | ChatGPT plan | escalation |
+| Codex | `openai-codex` / `gpt-5.5` | 272K / 128K | yes | ChatGPT plan | escalation |
+| Codex | `openai-codex` / `gpt-5.3-codex-spark` | 128K / 128K | yes | ChatGPT plan | escalation |
 
-The local engine serves exactly one model (`curl $DS4_BASE_URL/models` →
-`DeepSeek-V4-Flash`). The codex seats were **authenticated** at the time of
-writing (`pi auth check --provider openai-codex`).
+There are TWO local providers, on different hosts:
+
+- `bm-llms` → `http://ds4-active.llm.local/v1`, text only.
+- `bm-llms-vision` → `http://ds4-r8-vision.llm.local/v1`, text **and images**,
+  1M context. Both must appear in `enabledModels` to be dispatchable;
+  `bm-llms-vision/*` was added 2026-09-07.
+
+Check a local seat's HOST before blaming a model: the two are served
+separately and one can be down while the other is up. `curl -o /dev/null -w
+'%{http_code}' <baseUrl>/models` is the whole diagnosis, and a `000` means DNS
+or routing, not the model.
+
+The codex seats were **authenticated** at the time of writing
+(`pi auth check --provider openai-codex`).
 
 **The 5.6 variants are unbenchmarked on this repo.** luna / terra / sol have not
 been compared here, and neither has astra against them. Do not assert one is
@@ -35,15 +47,19 @@ the way the pi-vs-ds4 A/B was run.
 
 ## Claude subagents
 
-The `Agent` tool takes a `model` of `opus`, `sonnet`, `haiku` or `fable`. These
-cost real money and are **not** for ordinary implementation work.
+The `Agent` tool takes a `model` of `opus`, `sonnet`, `haiku` or `fable`. On a
+Claude subscription these draw on the user's plan rather than being billed per
+token; they are still a limited seat, not the default implementer.
 
-They are the right seat for exactly two things:
+**The old "visual and design work always goes to Claude first, no ladder" rule
+is REMOVED (user, 2026-09-07).** It existed because the only local model could
+not see images. `bm-llms-vision` can, so a UI task with a screenshot to review
+is ordinary local work and takes the ordinary ladder. Do not route a task to
+Claude merely because it is visual.
 
-- **Visual and design work** — standing preference: UI tasks split at the
-  logic/appearance seam, and appearance goes to Claude. Design quality is the
-  local model's weakest axis.
-- **Rescue**, after a task has failed two local fix rounds.
+Claude subagents remain the right seat for **rescue**, after a task has failed
+two local fix rounds, and for work that genuinely needs their design judgement
+rather than merely needing to see a picture.
 
 A Claude subagent is **invisible to the monitor at :8765**, which globs
 `.worktrees/*/.ds4/{transcripts,pi-sessions}/*.jsonl` — Claude seats write none
@@ -55,7 +71,9 @@ the dash: an invented heartbeat is worse than an honest gap.
 
 1. **Default to the local seat.** It is free and good enough when the brief is
    sharp. A vague brief is the usual cause of a bad local diff, not the model.
-2. **Visual/design → Claude subagent**, first time, no ladder.
+2. **A visual task goes to the local VISION seat** (`bm-llms-vision`), not to
+   Claude. It can read a screenshot, so it takes the ordinary ladder like any
+   other task.
 3. **Escalate on evidence, not on the task feeling important.** Two failed local
    fix rounds, or fabricated evidence (a report claiming a test passed that your
    own run fails), or the same failure signature twice.
