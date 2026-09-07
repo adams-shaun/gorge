@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/internal/testutil"
+	"github.com/adams-shaun/gorge/rules"
 )
 
 // corpusDirOrSkip resolves the repo root the way testutil.CorpusRegistry and
@@ -45,7 +46,9 @@ func TestBenchIsDeterministic(t *testing.T) {
 	dir := corpusDirOrSkip(t)
 	var b1, b2 bytes.Buffer
 	for _, buf := range []*bytes.Buffer{&b1, &b2} {
-		if err := run(11, 3, 2, "bot", "bot", dir, buf); err != nil {
+		// maxTurns=0 keeps this an uncapped determinism run, exactly today's
+		// behaviour; the turn watchdog must not be what makes it pass.
+		if err := run(11, 3, 2, "bot", "bot", dir, 0, false, buf); err != nil {
 			t.Fatalf("run: %v", err)
 		}
 	}
@@ -256,7 +259,7 @@ func TestTheSummaryReportsSeatWins(t *testing.T) {
 func TestShortEndToEndRun(t *testing.T) {
 	dir := corpusDirOrSkip(t)
 	var buf bytes.Buffer
-	if err := run(0, 2, 2, "bot", "bot", dir, &buf); err != nil {
+	if err := run(0, 2, 2, "bot", "bot", dir, 200, false, &buf); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	out := buf.String()
@@ -326,7 +329,7 @@ func matrixText(t *testing.T, games, workers int, pairs []pairDef, play pairPlay
 		t.Fatalf("runPairs: %v", err)
 	}
 	var buf bytes.Buffer
-	if err := writeMatrixText(&buf, "a", "b", 0, games, results); err != nil {
+	if err := writeMatrixText(&buf, "a", "b", 0, games, results, false); err != nil {
 		t.Fatalf("writeMatrixText: %v", err)
 	}
 	return buf.String()
@@ -481,7 +484,7 @@ func TestPooledCIPoolsCountsNotRates(t *testing.T) {
 	var buf bytes.Buffer
 	// games param only drives the header's per-pair line; the pooled math
 	// reads each pair's own game count.
-	if err := writeMatrixText(&buf, "a", "b", 0, 10, results); err != nil {
+	if err := writeMatrixText(&buf, "a", "b", 0, 10, results, false); err != nil {
 		t.Fatalf("writeMatrixText: %v", err)
 	}
 	out := buf.String()
@@ -510,7 +513,7 @@ func TestMatrixReportOrderIsSorted(t *testing.T) {
 		t.Fatalf("runPairs: %v", err)
 	}
 	var buf bytes.Buffer
-	if err := writeMatrixText(&buf, "a", "b", 0, 1, results); err != nil {
+	if err := writeMatrixText(&buf, "a", "b", 0, 1, results, false); err != nil {
 		t.Fatalf("writeMatrixText: %v", err)
 	}
 	// Table rows are aligned by tabwriter into space padding, so a row's deck
@@ -568,10 +571,10 @@ func TestMatrixDeterministicUnderWorkers(t *testing.T) {
 		}
 	}
 	var b1, b2 bytes.Buffer
-	if err := writeMatrixText(&b1, "a", "b", 3, 50, r1); err != nil {
+	if err := writeMatrixText(&b1, "a", "b", 3, 50, r1, false); err != nil {
 		t.Fatal(err)
 	}
-	if err := writeMatrixText(&b2, "a", "b", 3, 50, r8); err != nil {
+	if err := writeMatrixText(&b2, "a", "b", 3, 50, r8, false); err != nil {
 		t.Fatal(err)
 	}
 	if b1.String() != b2.String() {
@@ -590,7 +593,7 @@ func TestMatrixEndToEnd(t *testing.T) {
 		t.Fatalf("parsePairs: %v", err)
 	}
 	var b1, b2 bytes.Buffer
-	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "text", pairs, 2, &b1, io.Discard); err != nil {
+	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "text", pairs, 2, 200, false, &b1, io.Discard); err != nil {
 		t.Fatalf("runMatrix: %v", err)
 	}
 	out := b1.String()
@@ -603,10 +606,226 @@ func TestMatrixEndToEnd(t *testing.T) {
 		t.Errorf("report must state games-per-pair:\n%s", out)
 	}
 	// Deterministic: a second identical run is byte-identical.
-	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "text", pairs, 2, &b2, io.Discard); err != nil {
+	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "text", pairs, 2, 200, false, &b2, io.Discard); err != nil {
 		t.Fatalf("runMatrix(second): %v", err)
 	}
 	if b1.String() != b2.String() {
 		t.Errorf("matrix end-to-end report not deterministic across identical runs")
+	}
+}
+
+// ---- task op1: commander construction format and the turn watchdog ----
+
+// stallRe captures the loud stall line bench/run and the matrix writers emit
+// when any game hit -max-turns. Group 1 is the stall count. It is extra to
+// summaryRe (the normal block still prints when stalls occurred), and it
+// proves the run said so loudly rather than silently dropping games.
+var stallRe = regexp.MustCompile(`@@ STALLED: (\d+) game\(s\) reached -max-turns and were recorded as stalled.* non-stalled game\(s\) @@`)
+
+// seatLineRe captures the per-game line's winner token so a stall's
+// winner=stalled marker is assertable directly.
+var winRe = regexp.MustCompile(`winner=([^\s]+)`)
+
+// TestConstructedDefaultIsByteIdentical pins Part A's non-negotiable: the
+// default constructed path must produce today's exact numbers for a fixed
+// seed (the historical 14/6 split at seed 0, games 20), and the Config the
+// default builds must carry NO commander settings -- a mutation that made
+// the default path apply commander life/command-zone settings would move
+// the seat split and fail here. The 14/6 is asserted directly (not just
+// determinism) because this bench's historical numbers are quoted.
+func TestConstructedDefaultIsByteIdentical(t *testing.T) {
+	dir := corpusDirOrSkip(t)
+
+	// buildGameConfig with commander=false leaves the zero value untouched.
+	con := buildGameConfig(0, []string{testutil.RepoDeckNames()[0], testutil.RepoDeckNames()[1]}, nil, nil, false)
+	if con.Format != rules.FormatConstructed || con.StartingLife != 0 || con.Commanders != nil {
+		t.Errorf("constructed default Config must carry no commander settings: %+v", con)
+	}
+
+	var buf bytes.Buffer
+	if err := run(0, 20, 2, "bot", "legacy", dir, 200, false, &buf); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	m := summaryRe.FindStringSubmatch(buf.String())
+	if m == nil {
+		t.Fatalf("summary block missing:\n%s", buf.String())
+	}
+	// seat 0 wins: 14, seat 1 wins: 6 -- the historical split at this seed
+	// (groups 8, 9). Any change to the default bench makes these move.
+	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != 14 || seat1 != 6 {
+		t.Errorf("constructed default split = %d/%d, want the historical 14/6", seat0, seat1)
+	}
+	if strings.Contains(buf.String(), "STALLED") {
+		t.Errorf("constructed default (no stalls) must not print a stall line")
+	}
+}
+
+// TestCommanderConfig pins Part A's commander Config: FormatCommander, 40
+// starting life (CR 903.6), and the command-zone indices equal to each
+// seat's deck.File.CommanderIndex() -- asserted against CommanderIndex(),
+// never a hard-coded integer, so a deck authoring change that moves the
+// commander's position re-flags this. The engine's own genesis is what
+// these settings drive; here we pin that the command built the Config the
+// brief demands.
+func TestCommanderConfig(t *testing.T) {
+	name := "foundations-calling-all-angels"
+	f, err := testutil.LoadRepoDeckFile(name)
+	if err != nil {
+		t.Fatalf("LoadRepoDeckFile: %v", err)
+	}
+
+	con := buildGameConfig(7, []string{name}, nil, nil, false)
+	if con.Format != rules.FormatConstructed || con.StartingLife != 0 {
+		t.Errorf("constructed config carries a commander setting: format=%v life=%d", con.Format, con.StartingLife)
+	}
+
+	cmd := buildGameConfig(7, []string{name}, nil, [][]int{{f.CommanderIndex()}}, true)
+	if cmd.StartingLife != 40 {
+		t.Errorf("commander starting life = %d, want 40 (CR 903.6)", cmd.StartingLife)
+	}
+	if cmd.Format != rules.FormatCommander {
+		t.Errorf("commander format = %d, want FormatCommander", cmd.Format)
+	}
+	if len(cmd.Commanders) != 1 || len(cmd.Commanders[0]) != 1 || cmd.Commanders[0][0] != f.CommanderIndex() {
+		t.Errorf("commander indices = %v, want %q's CommanderIndex", cmd.Commanders, name)
+	}
+}
+
+// commanderSet is a sorted name set for builder tests.
+type commanderSet map[string]bool
+
+func (c commanderSet) has(n string) bool { return c[n] }
+
+// TestCommanderAllExpandsToCommanderDecks pins Part A's deck selection: in
+// commander mode -pairs all expands over ONLY the commander decks (the five
+// foundations-*), giving 5 choose 2 = 10 unordered pairs, and never names a
+// constructed deck -- dealing a 100-card Commander list as a constructed
+// pile is the defect the whole task exists to end.
+func TestCommanderAllExpandsToCommanderDecks(t *testing.T) {
+	cmd, err := commanderDeckNames()
+	if err != nil {
+		t.Fatalf("commanderDeckNames: %v", err)
+	}
+	if len(cmd) != 5 {
+		t.Errorf("commander deck count = %d, want 5, got %v", len(cmd), cmd)
+	}
+	set := commanderSet{}
+	for _, n := range cmd {
+		set[n] = true
+	}
+	ps, err := parsePairsForMode("all", cmd, true)
+	if err != nil {
+		t.Fatalf("parsePairsForMode(all, commander): %v", err)
+	}
+	if len(ps) != 10 {
+		t.Errorf("commander -pairs all = %d pairs, want 10 (5 choose 2)", len(ps))
+	}
+	for _, p := range ps {
+		if !set.has(p.a) || !set.has(p.b) {
+			t.Errorf("pair %s names a non-commander deck", p)
+		}
+	}
+}
+
+// TestCommanderNamedNonCommanderIsError pins Part A's flag-validation rule:
+// an explicitly named -pairs a:b) naming a repo deck with no commander is a
+// clear flag error in commander mode, never a silently constructed game.
+func TestCommanderNamedNonCommanderIsError(t *testing.T) {
+	cmd, err := commanderDeckNames()
+	if err != nil {
+		t.Fatalf("commanderDeckNames: %v", err)
+	}
+	_, err = parsePairsForMode("tron:mono-red-goblins", cmd, true)
+	if err == nil {
+		t.Fatal("naming a constructed deck in commander mode returned no error")
+	}
+	if !strings.Contains(err.Error(), "commander") {
+		t.Errorf("error must say the deck names no commander, got: %v", err)
+	}
+}
+
+// TestTurnWatchdogEndsGameAtMaxTurns pins Part B: a real engine game whose
+// turn count reaches -max-turns ends as a stall (not a win, not a draw). A
+// seed-0 constructed game at default life lasts ~18 turns, so capping at 2
+// forces the watchdog to fire immediately, and the per-game line must say
+// winner=stalled while the summary reports it as a stall.
+func TestTurnWatchdogEndsGameAtMaxTurns(t *testing.T) {
+	dir := corpusDirOrSkip(t)
+	var buf bytes.Buffer
+	if err := run(0, 1, 2, "bot", "bot", dir, 2, false, &buf); err != nil {
+		t.Fatalf("run(maxTurns=2): %v", err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "winner=stalled") {
+		t.Errorf("per-game line must call the outcome a stall:\n%s", out)
+	}
+	m := stallRe.FindStringSubmatch(out)
+	if m == nil {
+		t.Fatalf("no stall line:\n%s", out)
+	}
+	if atoi(m[1]) != 1 {
+		t.Errorf("stall count = %s, want 1", m[1])
+	}
+}
+
+// TestStalledExcludedFromWinRate pins Part B's sampling rule: a stalled
+// game is excluded from the win-rate denominator. Here 2 wins and 2 stalls
+// over 4 games must report A win rate 100%% (2/2 non-stalled), not 50%%
+// (2/4) -- silently counting deterministic drops would be the biased-sample
+// defect the watchdog exists to expose. The STALLED line must carry the
+// dropped count.
+func TestStalledExcludedFromWinRate(t *testing.T) {
+	play := func(seed uint64, _ []string) (gameOutcome, error) {
+		// even seeds (games 0, 2) are seat-0 wins for A; odd seeds are stalls.
+		if seed%2 == 0 {
+			return gameOutcome{winner: "bot", winnerSeat: 0, turns: 10, intents: 50}, nil
+		}
+		return gameOutcome{stalled: true, turns: 3, intents: 10}, nil
+	}
+	var buf bytes.Buffer
+	if err := bench(0, 4, 2, "bot", "bot", play, &buf); err != nil {
+		t.Fatalf("bench: %v", err)
+	}
+	out := buf.String()
+	m := summaryRe.FindStringSubmatch(out)
+	if m == nil {
+		t.Fatalf("summary block missing:\n%s", out)
+	}
+	if rate := atof(m[5]); rate != 100 {
+		t.Errorf("A win rate = %.1f%%, want 100%% (2 wins over 4-2=2 non-stalled games)", rate)
+	}
+	sm := stallRe.FindStringSubmatch(out)
+	if sm == nil || atoi(sm[1]) != 2 {
+		t.Errorf("stall line must name 2 dropped games:\n%s", out)
+	}
+}
+
+// TestCommanderMatrixJSONReproducible pins Part B's determinism gate for the
+// commander matrix: two runs at the same (base seed, pairs, games, max-turns)
+// produce identical JSON. It runs a commander subset that does not involve
+// foundations-keen-engineering -- the deck whose pathological games hang the
+// bench (op2's lane); the set of pairs is part of the determinism input.
+func TestCommanderMatrixJSONReproducible(t *testing.T) {
+	dir := corpusDirOrSkip(t)
+	cmdNames, err := commanderDeckNames()
+	if err != nil {
+		t.Fatalf("commanderDeckNames: %v", err)
+	}
+	pairs, err := parsePairsForMode("foundations-calling-all-angels:foundations-reign-of-dragons,foundations-reign-of-dragons:foundations-tramplesaurus-rex", cmdNames, true)
+	if err != nil {
+		t.Fatalf("parsePairsForMode: %v", err)
+	}
+	var b1, b2 bytes.Buffer
+	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "json", pairs, 2, 200, true, &b1, io.Discard); err != nil {
+		t.Fatalf("runMatrix(json): %v", err)
+	}
+	if b1.String() == "" || !strings.Contains(b1.String(), `"format": "commander"`) {
+		t.Fatalf("commander JSON must carry the format:\n%s", b1.String())
+	}
+	if err := runMatrix(0, 2, 2, "bot", "bot", dir, "json", pairs, 2, 200, true, &b2, io.Discard); err != nil {
+		t.Fatalf("runMatrix(json, second): %v", err)
+	}
+	if b1.String() != b2.String() {
+		t.Errorf("commander matrix JSON not deterministic across identical runs")
 	}
 }

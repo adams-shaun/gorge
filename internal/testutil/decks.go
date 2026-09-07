@@ -125,21 +125,36 @@ func RepoDeck(t testing.TB, r *cards.Registry, name string) []*cards.Card {
 	return deck
 }
 
-// RepoDeckFile reads and parses one embedded deck file, un-resolved: the
-// deck.File shape commander-format callers need to find which entry is the
-// commander (the m38 commander play tests seat decks with Config.Commanders
-// indices, and the index is the flat position of the commander entry in the
-// resolved deck, which only the File knows). The loaded-card view is
-// RepoDeck/LoadRepoDeck.
-func RepoDeckFile(t testing.TB, name string) deck.File {
-	t.Helper()
+// LoadRepoDeckFile reads and parses one embedded deck file un-resolved,
+// for non-test callers that need the deck.File shape (cmd/botbench's
+// commander mode needs CommanderIndex, and a deck that names a commander
+// carries it to tell a commander deck from a constructed one). It is
+// RepoDeckFile's non-test sibling, exactly as LoadRepoDeck is RepoDeck's.
+func LoadRepoDeckFile(name string) (deck.File, error) {
+	// embed.FS paths are always slash-separated regardless of host OS;
+	// path.Join keeps an embed path on every platform (the comment in
+	// LoadRepoDeck explains why filepath.Join would be wrong here).
 	raw, err := decksFS.ReadFile(path.Join(decksDir, name+".json"))
 	if err != nil {
-		t.Fatalf("testutil: deck %q: %v", name, err)
+		return deck.File{}, fmt.Errorf("testutil: deck %q: %w", name, err)
 	}
 	f, err := deck.Parse(raw)
 	if err != nil {
-		t.Fatalf("testutil: deck %q: %v", name, err)
+		return deck.File{}, fmt.Errorf("testutil: deck %q: %w", name, err)
+	}
+	return f, nil
+}
+
+// RepoDeckFile is LoadRepoDeckFile for tests: a missing embedded deck file
+// is a fixture problem the test has no useful way to continue past, so it
+// fails immediately via t.Fatalf rather than handing the caller an error to
+// (potentially inconsistently) check -- the same wrapper RepoDeck is over
+// LoadRepoDeck (Ruling P11).
+func RepoDeckFile(t testing.TB, name string) deck.File {
+	t.Helper()
+	f, err := LoadRepoDeckFile(name)
+	if err != nil {
+		t.Fatalf("%v", err)
 	}
 	return f
 }
