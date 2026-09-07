@@ -10,12 +10,22 @@
    * precisely because it is unusual, and a permanent empty slot teaches the
    * eye to skip the one place where the unusual thing will appear.
    *
+   * A HIDDEN pool renders nothing either, and it is the ordinary case rather
+   * than an edge. view.PlayerView.Pool is filled only for the viewer's own
+   * seat (view/view.go: `if p.ID == viewer`), and it deliberately carries no
+   * omitempty so a hidden pool arrives as a literal JSON null. A spectator
+   * has no seat, so on a spectator client EVERY seat's pool is null. The
+   * generated `protocol.ts` types the field as a plain Record, which is why
+   * neither svelte-check nor the type checker can catch a caller that hands
+   * this component a null — so the check lives here, at the one place that
+   * owns "an absent pool draws nothing".
+   *
    * Colour carries the identity and the mono figure carries the amount: this
    * is the instrument register, so the symbol is a plain colour chip rather
    * than a card-face pip, and the count sits beside it in the data face where
    * every other number in this client lives.
    */
-  let { pool }: { pool: Record<string, number> } = $props();
+  let { pool }: { pool: Record<string, number> | null | undefined } = $props();
 
   const ORDER = ['W', 'U', 'B', 'R', 'G', 'C'] as const;
   const NAMES: Record<string, string> = {
@@ -23,7 +33,7 @@
   };
 
   const held = $derived(
-    ORDER.map((sym) => ({ sym, n: pool[sym] ?? 0 })).filter((h) => h.n > 0),
+    ORDER.map((sym) => ({ sym, n: pool?.[sym] ?? 0 })).filter((h) => h.n > 0),
   );
   const summary = $derived(held.map((h) => `${h.n} ${NAMES[h.sym]}`).join(', '));
 </script>
