@@ -435,9 +435,9 @@ func killBlockCost(def []blocker, a Creature) (int32, bool) {
 //     the swing closes ranks highest (AR5 -- a second-track win), then a
 //     defender that cannot block it at all (AR2 -- guaranteed damage), then
 //     one whose every block fails to kill it, then one it can only trade
-//     even-or-worse with; ties break on the lower defender id. With a
-//     single opponent the pair list is one option per creature and this
-//     reduces to the M1 choice verbatim.
+//     even-or-worse with; ties favour the lowest defender life, then the
+//     first offered option. With a single opponent the pair list is one
+//     option per creature and this reduces to the M1 choice verbatim.
 //   - AR2 (unblockable): if no creature OF THAT DEFENDER can block it
 //     (Flying against a defender with no Flying/Reach; no untapped
 //     defenders), that defender gets the swing -- the damage is guaranteed
@@ -473,8 +473,8 @@ func killBlockCost(def []blocker, a Creature) (int32, bool) {
 //
 // The decision is purely a function of the offered options and the board
 // facts both adapters supply; no rng is consumed, and no map iteration
-// order reaches the answer (ties break on ObjID, defender id or option
-// index; the per-defender and per-opponent maps below are membership sets
+// order reaches the answer (ties break on ObjID or option index after
+// game facts; the per-defender and per-opponent maps below are membership sets
 // and order-independent aggregates, never ranged into a choice).
 func (b Board) chooseAttackers(d *decision.Decision) []int {
 	if len(d.Options) == 0 {
@@ -557,14 +557,18 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 		}
 		best := -1
 		bestTier := -1
-		var bestDef state.PlayerID
+		var bestLife int32
 		for _, oi := range at.opts {
 			t, ok := score(at, oi)
 			if !ok {
 				continue
 			}
-			if t > bestTier || (t == bestTier && d.Options[oi].Player < bestDef) {
-				best, bestTier, bestDef = oi, t, d.Options[oi].Player
+			// At equal combat risk, pressure the opponent closest to dying
+			// rather than the lowest seat. Life is public on both adapters.
+			// Equal life keeps the first option (opts is in offered order).
+			life := b.Life[d.Options[oi].Player]
+			if t > bestTier || (t == bestTier && life < bestLife) {
+				best, bestTier, bestLife = oi, t, life
 			}
 		}
 		if best >= 0 {
