@@ -220,6 +220,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				Castable:      z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(ch.Keywords(id))),
 				OnBattlefield: z == state.ZBattlefield,
 				Produces:      f.ManaProduction(),
+				InstantSpeed:  hasTypeWord(f.Types, "Instant") || hasFlash(ch.Keywords(id)),
 			}
 		}
 	}

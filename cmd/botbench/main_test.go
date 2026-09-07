@@ -663,12 +663,15 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	if m == nil {
 		t.Fatalf("summary block missing:\n%s", buf.String())
 	}
-	// seat 0 wins: 15, seat 1 wins: 5 -- the split at this seed (groups 8, 9)
-	// since the colour-aware land drop (chooseLand ranks colour coverage
-	// first) changed seat 0's land sequencing. Any change to the default
-	// bench makes these move.
-	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != 15 || seat1 != 5 {
-		t.Errorf("constructed default split = %d/%d, want 15/5", seat0, seat1)
+	// seat 0 wins: 13, seat 1 wins: 7 -- the split at this seed (groups 8, 9)
+	// on the current main plus ba1. bl1's colour-aware land drop moved the
+	// historical 14/6 to 15/5; the ba1 B2 mana reserve (chooseCast's C7
+	// prefers a cast that keeps the pool at or above the cheapest
+	// instant-speed card in hand) then moved it on to 13/7, bisected by
+	// building the B1-only commit (B1 alone holds 15/5, so B2 owns the whole
+	// 15/5 → 13/7 move). Any change to the default bench makes these move.
+	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != 13 || seat1 != 7 {
+		t.Errorf("constructed default split = %d/%d, want 13/7", seat0, seat1)
 	}
 	if strings.Contains(buf.String(), "STALLED") {
 		t.Errorf("constructed default (no stalls) must not print a stall line")

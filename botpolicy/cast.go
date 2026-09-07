@@ -81,6 +81,16 @@ type Card struct {
 	// projected battlefield list on the view half; the ZBattlefield zone
 	// walk on the game half), so the two agree.
 	OnBattlefield bool
+	// InstantSpeed reports whether the card can be cast at instant speed:
+	// it is an Instant, or it carries the Flash keyword (a permanent with
+	// flash enters at instant speed, and an instant with flash is still an
+	// instant). Both halves fill it from the same sources -- the projected
+	// CardView.Types/Keywords on the view half, the face's Types and the
+	// engine's derived keyword list on the game half -- so the mana reserve
+	// (reserve()) prices the same hand whichever host asks. A battlefield
+	// permanent that has neither is not instant-speed, which is what keeps
+	// the reserve from counting a spell the seat has already cast.
+	InstantSpeed bool
 	// Produces is what this card's mana abilities add to the pool when a
 	// tap-for-mana activation runs them (cards.ManaProduction, plain data
 	// -- botpolicy must not import view or rules, Ruling F7). It is filled
@@ -245,29 +255,58 @@ func (b Board) commandTax(id state.ObjID) int32 {
 //     "is the recast still worth bothering with".
 //   - C6 (deterministic tie): ties break on option index, so no map
 //     iteration order reaches the answer.
+//   - C7 (the mana reserve, B2): the bot keeps the mana pool at or above the
+//     cost of the cheapest instant-speed card it holds (an Instant, or a
+//     permanent with Flash; reserve() is 0 when it holds none, making C7
+//     inert) by PREFERRING a cast that leaves that reserve over a
+//     comparable one that empties it -- the reserve is a score bonus a
+//     reserve-keeping cast earns, so among equivalent cards the bot holds
+//     mana for an instant-speed play, but a clearly better cast (a strong
+//     creature, an unprotected commander) is still made even if it spends
+//     the reserve. A hard block here made the bot decline casting its good
+//     hands and sit on mana the phase threw away, so C7 is deliberately a
+//     preference, not a refusal. A command-zone commander cast is priced by
+//     value alone, never held for the reserve.
 //
 // Like the target and combat branches it consumes no rng: the pick is a
 // pure function of the offered options and the board facts.
 func (b Board) chooseCast(d *decision.Decision) int {
 	best := -1
 	var bestScore int32 = -1
+	// C7 (the mana reserve, B2): the reserve is the cost of the cheapest
+	// instant-speed card the seat holds (0 when it holds none, in which case
+	// C7 is inert). It is a PREFERENCE, not a hard block: a cast that would
+	// leave the pool at or above the reserve scores reserve points higher, so
+	// among comparable cards the bot keeps mana for an instant-speed play
+	// rather than emptying the pool -- but a cast that is clearly better
+	// (a strong creature, an unprotected commander) still gets made even if
+	// it spends the reserve, because refusing the seat's best play to hoard
+	// mana is not the point (and is exactly what a deck that never casts its
+	// commander does). A hard block, by contrast, made the bot decline
+	// casting its good hands and sat passively on mana the phase threw away.
+	res := b.reserve()
 	for _, o := range d.Options {
 		if o.Kind != "cast" {
 			continue
 		}
+		// CR1: price the command-zone tax on the commander's mana value, not
+		// a flat power-equivalent, so a costly commander is abandoned before
+		// a cheap one. CMC 0 (an unreadable commander, should not happen)
+		// prices the tax at 0 and so casts at its base score (C5's own
+		// degenerate shape); a real commander always carries CMC on both
+		// adapter halves (combat.go's census fills it for the command zone,
+		// and seat/bot.go's boardFromView the same). A command-zone cast is
+		// also never held for the reserve's sake (the deck must be able to
+		// cast its commander), so it is priced by value alone.
+		inCmd := b.Commanders[o.Obj].InCommandZone
 		s := b.castScore(o)
-		if cmdr, ok := b.Commanders[o.Obj]; ok && cmdr.InCommandZone {
-			// CR1: price the tax on the commander's mana value, not a flat
-			// power-equivalent, so a costly commander is abandoned before a
-			// cheap one. CMC 0 (an unreadable commander, should not happen)
-			// prices the tax at 0 and so casts at its base score (C5's own
-			// degenerate shape); a real commander always carries CMC on both
-			// adapter halves (combat.go's census fills it for the command
-			// zone, and seat/bot.go's boardFromView the same).
+		if inCmd {
 			s -= b.commandTax(o.Obj)
 			if s < 0 {
 				continue // CR1: the recast has priced itself out — do not cast
 			}
+		} else if res > 0 && b.Pool.Total()-b.castCost(o.Obj, b.Cards[o.Obj]) >= res {
+			s += res * reserveBonusScale // C7: prefer a cast that keeps the reserve
 		}
 		if best == -1 || s > bestScore || (s == bestScore && o.Index < best) {
 			best, bestScore = o.Index, s
@@ -323,6 +362,57 @@ func (b Board) availableColours() [5]int32 {
 		}
 	}
 	return avail
+}
+
+// reserveBonusScale prices the C7 reserve preference: a cast that keeps the
+// pool at or above the reserve earns reserve*reserveBonusScale points, so
+// among comparable cards the bot holds mana for an instant-speed play
+// rather than emptying the pool. It is a pricing constant like the target
+// tier offsets -- not the reserve amount itself, which is evidence-driven
+// (cheapest instant-speed card in hand) -- and it is sized so a
+// reserve-keeping cheap card beats a comparable draining one (5 points per
+// reserved mana) but never outranks a clearly better play (a creature's 30+
+// base, an unprotected commander), which is what keeps the bot from sitting
+// on its good hands forever.
+const reserveBonusScale int32 = 5
+
+// reserve is the mana the policy keeps unspent in its own main phase so it
+// can answer on another seat's turn. It is evidence-driven, not a constant:
+// the cheapest castable card in hand (or the command zone) that can be cast
+// at instant speed -- an Instant, or a permanent with Flash -- its converted
+// cost, or 0 when the seat holds no instant-speed castable card at all (in
+// which case nothing is reserved and the policy behaves exactly as it did
+// before). The rule reads this in one sentence: in its own main phase the
+// bot prefers a cast that leaves the mana pool at or above the cost of the
+// cheapest instant-speed card it holds over a comparable cast that empties
+// it, but a clearly better cast (a strong creature, an unprotected
+// commander) is still made even if it spends that reserve.
+func (b Board) reserve() int32 {
+	var min int32 = -1
+	for _, c := range b.Cards {
+		if !c.Castable || !c.InstantSpeed || c.CMC <= 0 {
+			continue
+		}
+		if min == -1 || c.CMC < min {
+			min = c.CMC
+		}
+	}
+	if min < 0 {
+		return 0
+	}
+	return min
+}
+
+// castCost prices one card's cast: its printed converted cost plus the CR
+// 903.8 command-zone tax ({2} per prior command-zone cast) when the card is
+// its owner's commander sitting in the command zone -- the same number
+// poolPays reads, so the reserve and the tap gate price the same cast.
+func (b Board) castCost(id state.ObjID, c Card) int32 {
+	cost := c.CMC
+	if cmdr, ok := b.Commanders[id]; ok && cmdr.InCommandZone {
+		cost += 2 * cmdr.Casts
+	}
+	return cost
 }
 
 // chooseLand is the KPriority land-drop ranking: it picks ONE of the

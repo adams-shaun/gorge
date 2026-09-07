@@ -186,6 +186,7 @@ func boardFromView(v view.View) botpolicy.Board {
 					Castable:      castable(cv),
 					OnBattlefield: battlefield,
 					Produces:      produces,
+					InstantSpeed:  instantSpeedView(cv),
 				}
 			}
 		}
@@ -236,6 +237,25 @@ func isCreatureView(cv view.CardView) bool {
 func hasBasicView(cv view.CardView) bool {
 	for _, t := range strings.Fields(cv.Types) {
 		if strings.EqualFold(t, "Basic") {
+			return true
+		}
+	}
+	return false
+}
+
+// instantSpeedView is the view-shaped half of "can this card be cast at
+// instant speed" (botpolicy.Card.InstantSpeed): the card is an Instant, or
+// it carries the Flash keyword. The game-shaped half (BoardFromGame) reads
+// the face's own type list and the engine's derived keyword list, which the
+// View carries as cv.Types and cv.Keywords, so the two halves agree.
+func instantSpeedView(cv view.CardView) bool {
+	for _, t := range strings.Fields(cv.Types) {
+		if strings.EqualFold(t, "Instant") {
+			return true
+		}
+	}
+	for _, k := range cv.Keywords {
+		if strings.EqualFold(cards.KeywordHead(k), "Flash") {
 			return true
 		}
 	}
