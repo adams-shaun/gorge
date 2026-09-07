@@ -93,10 +93,30 @@ func main() {
 				// nothing, and say so plainly instead of silently re-running every
 				// package under load.
 				fmt.Println("testtime: staged changes are only gate bookkeeping (TEST_HISTORY.md / ALLOC_HISTORY.md), no code changed; nothing measured")
+			} else {
+				// Empty index: -changed selects packages from the STAGED set, and
+				// right after a commit or a rebase there is nothing staged, so the
+				// selection is empty. Exit 0 is deliberate -- this is not a failure
+				// to measure, it is nothing to measure, and the pre-commit hook never
+				// reaches the tool in this state anyway (it filters .go-free commits
+				// before calling it, so nothing staged can never reach it). The fix
+				// is the stderr message: a human reading a terminal must not be able
+				// to mistake an empty selection for a clean measurement.
+				fmt.Fprintln(os.Stderr,
+					"testtime: -changed selects packages from the staged set (git diff --cached --name-only); nothing is staged, so no packages were measured -- this is an empty selection, not a measurement. Stage the files you changed, or name packages explicitly, e.g. go run ./cmd/testtime ./rules")
 			}
 			return
 		}
 		selected = packagesForFiles(touched, pkgs)
+		if len(selected) == 0 {
+			// Staged files exist but none of them is inside a Go package (a doc
+			// change, a web/ file...): the same empty-selection trap as an empty
+			// index, and the same answer -- name the packages instead of expecting
+			// the staged set to imply them.
+			fmt.Fprintln(os.Stderr,
+				"testtime: -changed selects packages from the staged set (git diff --cached --name-only); none of the staged files is inside a Go package, so no packages were measured -- this is an empty selection, not a measurement. Name packages explicitly, e.g. go run ./cmd/testtime ./rules")
+			return
+		}
 	case *all:
 		for _, p := range pkgs {
 			if p.hasTests {
