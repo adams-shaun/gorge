@@ -101,33 +101,6 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 // cast flags are already readable here (effects/filter.go reads them the
 // same way), so the destination is chosen the same way spellRestZone does.
 //
-// unlessCostLabel renders an UnlessCost$ value for the humans a
-// decision.Decision can reach. A plain mana cost ("1", "3", "2 U", "R R") is
-// already readable and comes back verbatim -- that is every repo-deck Counter
-// with an UnlessCost$ except Mausoleum Wanderer and Reality Smasher.
-// Everything else is raw Forge script: a bare SVar name (X, Y, Z, whose value
-// this engine does not read at all) or a bracket form (Discard<1/Hand>,
-// ExileFromGrave<1/All>, PayLife<5>). Those must not reach a player's screen,
-// so they render as "the cost". Display only: the amount actually charged is
-// still ParseCost(sa.Params["UnlessCost"]) in rules' resumeResolution, and
-// AGENTS.md records what that substitution really costs.
-func unlessCostLabel(cost string) string {
-	fields := strings.Fields(cost)
-	if len(fields) == 0 {
-		return "the cost"
-	}
-	for _, f := range fields {
-		if _, err := strconv.Atoi(f); err == nil {
-			continue // generic amount
-		}
-		if strings.Trim(f, "WUBRGC") == "" {
-			continue // colour/colourless symbols
-		}
-		return "the cost"
-	}
-	return cost
-}
-
 // UnlessCost$ (Mana Leak, Spell Pierce, Daze, Rust Tick, Runeboggle) is the
 // "counter target spell unless its controller pays {N}" shape -- a real
 // mid-resolution ask since M2d-2 closed R-8. On the first pass the
@@ -210,6 +183,33 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 			From: state.ZStack, To: to, Text: "countered"})
 	}
+}
+
+// unlessCostLabel renders an UnlessCost$ value for the humans a
+// decision.Decision can reach. A plain mana cost ("1", "3", "2 U", "R R") is
+// already readable and comes back verbatim -- that is every repo-deck Counter
+// with an UnlessCost$ except Mausoleum Wanderer and Reality Smasher.
+// Everything else is raw Forge script: a bare SVar name (X, Y, Z, whose value
+// this engine does not read at all) or a bracket form (Discard<1/Hand>,
+// ExileFromGrave<1/All>, PayLife<5>). Those must not reach a player's screen,
+// so they render as "the cost". Display only: the amount actually charged is
+// still ParseCost(sa.Params["UnlessCost"]) in rules' resumeResolution, and
+// AGENTS.md records what that substitution really costs.
+func unlessCostLabel(cost string) string {
+	fields := strings.Fields(cost)
+	if len(fields) == 0 {
+		return "the cost"
+	}
+	for _, f := range fields {
+		if _, err := strconv.Atoi(f); err == nil {
+			continue // generic amount
+		}
+		if strings.Trim(f, "WUBRGC") == "" {
+			continue // colour/colourless symbols
+		}
+		return "the cost"
+	}
+	return cost
 }
 
 // effDelayedTrigger implements Mode$ Phase delayed triggers -- the
