@@ -117,9 +117,24 @@ export function quadrantFor(seat: number, seats: number): 'tl' | 'tr' | 'bl' | '
   return (['bl', 'tl', 'tr', 'br'] as const)[seat % 4];
 }
 
-/** recentlyMattered is the object id of the most recent stack_resolve, for the strip. */
+/**
+ * RECENT_RESOLVE_WINDOW bounds how far back the resolved-card spotlight looks.
+ * Measured against live games on the demo server: ~166-203 events arrive per
+ * player turn; consecutive resolves in an active burst are 10-40 events apart;
+ * the dominant "one resolve per turn" cluster is 161-230 events; and multi-turn
+ * quiet periods are 230+. 100 sits comfortably above the burst cluster (so the
+ * strip never flickers during active play) and above the ~85-events-per-action
+ * bookkeeping density, yet below the one-per-turn cluster (so a card no longer
+ * pedals the spotlight from turn to turn and instead clears within roughly half
+ * a player turn). Bounded by event distance, not wall clock, so the module stays
+ * pure and its tests stay deterministic.
+ */
+export const RECENT_RESOLVE_WINDOW = 100;
+
+/** recentlyMattered is the object id of the most recent stack_resolve, for the strip, but only if that resolution sits inside the trailing RECENT_RESOLVE_WINDOW events. A resolve further back than the window returns null, so the strip clears itself instead of parking a stale card over the board's bottom centre indefinitely. */
 export function recentlyMattered(events: EventBody[]): number | null {
-  for (let i = events.length - 1; i >= 0; i--) {
+  const lo = Math.max(0, events.length - RECENT_RESOLVE_WINDOW);
+  for (let i = events.length - 1; i >= lo; i--) {
     const e = events[i].event;
     if (e.kind === 'stack_resolve' && e.obj) return e.obj;
   }
