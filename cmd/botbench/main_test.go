@@ -48,7 +48,7 @@ func TestBenchIsDeterministic(t *testing.T) {
 	for _, buf := range []*bytes.Buffer{&b1, &b2} {
 		// maxTurns=0 keeps this an uncapped determinism run, exactly today's
 		// behaviour; the turn watchdog must not be what makes it pass.
-		if err := run(11, 3, 2, "bot", "bot", dir, 0, 0, false, buf); err != nil {
+		if err := run(11, 3, 2, 0, "bot", "bot", dir, 0, 0, false, buf); err != nil {
 			t.Fatalf("run: %v", err)
 		}
 	}
@@ -259,7 +259,7 @@ func TestTheSummaryReportsSeatWins(t *testing.T) {
 func TestShortEndToEndRun(t *testing.T) {
 	dir := corpusDirOrSkip(t)
 	var buf bytes.Buffer
-	if err := run(0, 2, 2, "bot", "bot", dir, 200, 0, false, &buf); err != nil {
+	if err := run(0, 2, 2, 0, "bot", "bot", dir, 200, 0, false, &buf); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	out := buf.String()
@@ -645,7 +645,7 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	if err := run(0, 20, 2, "bot", "legacy", dir, 200, 0, false, &buf); err != nil {
+	if err := run(0, 20, 2, 0, "bot", "legacy", dir, 200, 0, false, &buf); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	m := summaryRe.FindStringSubmatch(buf.String())
@@ -697,6 +697,133 @@ func TestCommanderConfig(t *testing.T) {
 type commanderSet map[string]bool
 
 func (c commanderSet) has(n string) bool { return c[n] }
+
+// TestSeatedDeckNamesRotatePinsTheRotation pins the -rotate seating rule:
+// seat s holds names[(s+rotate)%len(names)], so rotate=0 is the historical
+// fixed assignment and the rotate=0..seats-1 cycle deals every deck to every
+// seat exactly once (the property the op5 four-seat experiment relies on: a
+// win share that follows the seat index shows up in every rotation, one that
+// follows the deck follows each deck around the table). It also pins the
+// concrete first rotation:
+//
+//	rotate 0: A B C D    rotate 1: B C D A    rotate 2: C D A B    rotate 3: D A B C
+//
+// each a permutation of the input order.
+func TestSeatedDeckNamesRotatePinsTheRotation(t *testing.T) {
+	names := []string{"a", "b", "c", "d"}
+	seat := func(rotate int) []string { return seatedDeckNames(names, rotate) }
+	if got := strings.Join(seat(0), " "); got != "a b c d" {
+		t.Errorf("rotate 0 must be the input order verbatim, got %q", got)
+	}
+	want := [][]string{
+		{"a", "b", "c", "d"},
+		{"b", "c", "d", "a"},
+		{"c", "d", "a", "b"},
+		{"d", "a", "b", "c"},
+	}
+	for r := 0; r < len(names); r++ {
+		got := seat(r)
+		same := len(got) == len(want[r])
+		for i := range got {
+			same = same && got[i] == want[r][i]
+		}
+		if !same {
+			t.Errorf("rotate %d = %v, want %v", r, got, want[r])
+		}
+	}
+	// Each rotation is a permutation (no deck duplicated, none dropped), and
+	// across the cycle every deck sits at every seat exactly once -- the
+	// bijection the whole experiment's interpretation depends on.
+	seen := map[string]int{}
+	for r := 0; r < len(names); r++ {
+		seen[seat(r)[0]]++
+	}
+	for _, n := range names {
+		if seen[n] != 1 {
+			t.Errorf("deck %q sits at seat 0 in %d rotations, want exactly 1", n, seen[n])
+		}
+	}
+}
+
+// TestRotateIsValidatedPins the -rotate bounds: a rotation index outside
+// [0, seats) is a clear flag error, never a silently truncated or wrapped
+// seating.
+func TestRotateIsValidated(t *testing.T) {
+	for _, tc := range []struct {
+		rotate, seats int
+	}{
+		{-1, 4},
+		{4, 4},
+		{5, 4},
+		{2, 2},
+	} {
+		err := run(1, 1, tc.seats, tc.rotate, "bot", "bot", ".", 200, 0, false, io.Discard)
+		if err == nil || !strings.Contains(err.Error(), "-rotate must be in") {
+			t.Errorf("rotate=%d seats=%d: err = %v, want the -rotate bounds error", tc.rotate, tc.seats, err)
+		}
+	}
+}
+
+// TestCommanderRunRotateSeatsTheRotatedOrder drives a real 2-game commander
+// run with -rotate 1 and pins the header and summary shape: the header must
+// name the rotated deck order (so the per-game seat tallies below it are
+// attributable to the right deck lists), and the run must still produce one
+// winner per game. It is the end-to-end companion of the pure-function test
+// above: it proves the rotation reaches the games, not just the helper.
+func TestCommanderRunRotateSeatsTheRotatedOrder(t *testing.T) {
+	dir := corpusDirOrSkip(t)
+	var buf bytes.Buffer
+	if err := run(1, 2, 4, 1, "bot", "bot", dir, 200, 0, true, &buf); err != nil {
+		t.Fatalf("run(rotate=1): %v", err)
+	}
+	out := buf.String()
+	// The four youngest commander decks in sorted order, rotated by one: seat
+	// s holds names[(s+1)%4] of the four decks a 4-seat run seats. Built
+	// from the same source the run uses, never a hand-typed string.
+	cmd, err := commanderDeckNames()
+	if err != nil {
+		t.Fatalf("commanderDeckNames: %v", err)
+	}
+	seated := seatedDeckNames(cmd[:4], 1)
+	hdr := "decks " + strings.Join(seated, ",")
+	if !strings.Contains(out, hdr) {
+		t.Errorf("header must name the rotated order %q:\n%s", hdr, out)
+	}
+	hdrLine := out[:strings.Index(out, "\n")]
+	if !strings.Contains(hdrLine, "(commander format)") {
+		t.Errorf("rotated commander run must still mark the header: %q", hdrLine)
+	}
+	gameLines := 0
+	for _, line := range strings.Split(out, "\n") {
+		if strings.HasPrefix(line, "game ") {
+			gameLines++
+			if !strings.Contains(line, "winner=bot@") && !strings.Contains(line, "winner=stalled") {
+				t.Errorf("game line must record a winner seat or a stall: %s", line)
+			}
+		}
+	}
+	if gameLines != 2 {
+		t.Errorf("expected 2 per-game lines, got %d", gameLines)
+	}
+	// The seat-tally block (4-seat shape: bare counts, no rate) must sum to
+	// the winner count (2 games, no stalls at these caps): the rotated
+	// seating still credits wins to real seats.
+	seatRe := regexp.MustCompile(`(?m)^seat 0 wins: (\d+)  seat 1 wins: (\d+)  seat 2 wins: (\d+)  seat 3 wins: (\d+)$`)
+	m := seatRe.FindStringSubmatch(out)
+	if m == nil {
+		t.Fatalf("4-seat seat-tally block missing:\n%s", out)
+	}
+	seat0, seat1 := atoi(m[1]), atoi(m[2])
+	seat2, seat3 := atoi(m[3]), atoi(m[4])
+	ab := regexp.MustCompile(`(?m)^A wins: (\d+)  B wins: (\d+).*$`).FindStringSubmatch(out)
+	if ab == nil {
+		t.Fatalf("A/B line missing:\n%s", out)
+	}
+	if aWins, bWins := atoi(ab[1]), atoi(ab[2]); seat0+seat1+seat2+seat3 != aWins+bWins {
+		t.Errorf("seat wins %d+%d+%d+%d do not partition the A+B wins %d+%d",
+			seat0, seat1, seat2, seat3, aWins, bWins)
+	}
+}
 
 // TestCommanderAllExpandsToCommanderDecks pins Part A's deck selection: in
 // commander mode -pairs all expands over ONLY the commander decks (the five
@@ -754,7 +881,7 @@ func TestCommanderNamedNonCommanderIsError(t *testing.T) {
 func TestTurnWatchdogEndsGameAtMaxTurns(t *testing.T) {
 	dir := corpusDirOrSkip(t)
 	var buf bytes.Buffer
-	if err := run(0, 1, 2, "bot", "bot", dir, 2, 0, false, &buf); err != nil {
+	if err := run(0, 1, 2, 0, "bot", "bot", dir, 2, 0, false, &buf); err != nil {
 		t.Fatalf("run(maxTurns=2): %v", err)
 	}
 	out := buf.String()
@@ -845,7 +972,7 @@ func TestCommanderMatrixJSONReproducible(t *testing.T) {
 func TestMaxIntentsEndsNonTerminatingGameAsStall(t *testing.T) {
 	dir := corpusDirOrSkip(t)
 	var buf bytes.Buffer
-	if err := run(0, 1, 2, "bot", "bot", dir, 0, 5, false, &buf); err != nil {
+	if err := run(0, 1, 2, 0, "bot", "bot", dir, 0, 5, false, &buf); err != nil {
 		t.Fatalf("run(maxIntents=5): %v", err)
 	}
 	out := buf.String()
