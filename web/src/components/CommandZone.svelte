@@ -16,6 +16,19 @@
    * `data-tax`/`data-casts` carry the structured numbers for tests and for
    * the design pass.
    *
+   * U2/U4: this is a GROUP of rows inside the rail's one "Commanders"
+   * section, not a panel with a heading of its own. Four "…'s command"
+   * headings are four lines saying what the seat's colour rule already says,
+   * and the measured cost of that repetition was the command zone falling
+   * below the fold on the only format it exists for. Which seats get a group
+   * at all is the rail's decision (commanderSeats): a constructed table draws
+   * no section.
+   *
+   * The seat is therefore carried by the colour rule — the same rule, in the
+   * same colour, that the seat table directly above uses, in the same seat
+   * order, so identity carries across without being spelled twice — and by
+   * every row's own title and accessible name, which do spell it.
+   *
    * The in-zone/away split is the "distinguishable from the battlefield"
    * contract: a commander in the command zone renders with the command-zone
    * marker and its cast cost; one that has left the zone renders with its
@@ -29,8 +42,7 @@
   const commanders = $derived(commandZoneOf(player, stackIdsOf(stack)));
 </script>
 
-<section class="command" data-command-zone data-seat={player.seat} style:border-left-color={colour}>
-  <h3>{player.name}'s command</h3>
+<div class="command" data-command-zone data-seat={player.seat} style:border-left-color={colour}>
   {#if commanders.length === 0}
     <p class="empty" data-command-empty>No commanders</p>
   {:else}
@@ -39,13 +51,16 @@
         <li
           data-commander={c.index}
           data-next-cost={nextCastCost(c.commander.mana_cost, c.casts)}
+          title={c.inZone
+            ? `${player.name} — ${c.commander.name} is in the command zone`
+            : `${player.name} — ${c.commander.name} is in the ${c.zone}`}
           aria-label={c.inZone
-            ? `Next commander cast from the command zone: ${c.commander.name}${c.tax > 0 ? `, plus ${c.tax} generic commander tax` : ', no commander tax'}`
-            : `${c.commander.name} is in the ${c.zone}`}
+            ? `${player.name} — next commander cast from the command zone: ${c.commander.name}${c.tax > 0 ? `, plus ${c.tax} generic commander tax` : ', no commander tax'}`
+            : `${player.name} — ${c.commander.name} is in the ${c.zone}`}
         >
           <span class="name">{c.commander.name}</span>
           {#if c.inZone}
-            <span class="tag in-zone" data-cmd-zone="command" title="In the command zone — castable">command zone</span>
+            <span class="tag in-zone" data-cmd-zone="command" title="In the command zone — castable">in zone</span>
             <ManaSymbols cost={c.commander.mana_cost ?? ''} />
             {#if c.tax > 0}
               <span class="tax data" data-tax={c.tax} data-casts={c.casts} title="Commander tax (CR 903.8): {c.tax} generic for {c.casts} prior cast{c.casts === 1 ? '' : 's'}">+{c.tax}</span>
@@ -57,42 +72,37 @@
       {/each}
     </ul>
     {#if !commanders.some((c) => c.inZone)}
-      <p class="empty" data-command-zone-empty>The command zone is empty</p>
+      <p class="empty" data-command-zone-empty>{player.name}'s command zone is empty</p>
     {/if}
   {/if}
-</section>
+</div>
 
 <style>
   /* The instrument register, like the rest of the rail: hairlines and flat
      raised panels. The seat colour is the only saturated thing, and it stays
      at the edge where HandList puts it. */
   .command {
-    margin-bottom: var(--sp-3);
     border-left: 3px solid transparent;
     padding-left: var(--sp-2);
   }
-  h3 {
-    margin: 0;
-    font-size: var(--t-12);
-    font-weight: 600;
-    color: var(--ink-inst);
-    line-height: 1.3;
-  }
   ul {
     list-style: none;
-    margin: var(--sp-1) 0 0;
+    margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 1px;
   }
+  /* The row wraps rather than clips: the rail is ~250px of content width and
+     a long commander name beside a marker and a cost will not always fit on
+     one line. Wrapping costs a line only when it must. */
   li {
     display: flex;
     align-items: baseline;
-    gap: var(--sp-2);
-    padding: 1px var(--sp-1);
-    font-size: var(--t-12);
-    line-height: 1.5;
+    flex-wrap: wrap;
+    gap: 0 var(--sp-2);
+    padding: 0 var(--sp-1);
+    font-size: var(--t-11);
+    line-height: 1.4;
     min-width: 0;
   }
   .name {
@@ -127,8 +137,10 @@
     white-space: nowrap;
   }
   .empty {
-    margin: var(--sp-1) 0 0;
-    font-size: var(--t-12);
+    margin: 0;
+    padding: 0 var(--sp-1);
+    font-size: var(--t-11);
+    line-height: 1.5;
     color: var(--ink-faint);
   }
 </style>
