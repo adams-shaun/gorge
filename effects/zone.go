@@ -208,8 +208,8 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			// zoneIndex has no bounds check, so an out-of-range target-supplied
 			// player id would panic with "index out of range" and halt the
 			// table. Player targets normally come from askTarget or AliveFrom
-			// and are bounded, but the package's idiom (validPlayer in
-			// events/apply.go) is not to trust a target blindly.
+			// and are bounded, but the package's idiom (see cardflow.go and
+			// count.go) is not to trust a target blindly.
 			if int(t.Player) >= len(g.Players) {
 				continue
 			}
