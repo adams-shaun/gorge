@@ -7,6 +7,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/internal/testutil"
+	"github.com/adams-shaun/gorge/state"
 )
 
 // BenchmarkFormatCost is a measurement, not an optimisation: it answers, with
@@ -41,6 +42,19 @@ func BenchmarkFormatCost(b *testing.B) {
 	// 4-seat constructed case: same decks, seed, turns.
 	b.Run("constructed-2seat", func(b *testing.B) {
 		runFormatBench(b, constructedBenchConfig(b, reg, 2))
+	})
+	// Round 1: bucket the same 4-seat games' decisions by STEP (not turn), for
+	// both formats, then compute the wall time of the two step windows the user
+	// actually watched (main1->main2 on the Commander table, begin-combat->end on
+	// the constructed table) at 1.5s per decision, so the report can say whether
+	// step selection -- not format -- is what produced the ~2x the user saw.
+	// Both rows here are 4 seats: the constructed-2seat case above IS the round-0
+	// artifact, and this comparison deliberately excludes it.
+	b.Run("commander-perstep", func(b *testing.B) {
+		logStepWindows(b, "commander(4seats)", perTurnPerStep(b, commanderBenchConfig(b, reg)))
+	})
+	b.Run("constructed-perstep", func(b *testing.B) {
+		logStepWindows(b, "constructed(4seats)", perTurnPerStep(b, constructedBenchConfig(b, reg, 4)))
 	})
 }
 
@@ -188,4 +202,86 @@ func playFormatTurns(b *testing.B, e *Engine, bot *testBot, targetTurn int32) (i
 		b.Fatalf("stopped at turn %d, want completed turn %d (next turn %d)", e.G.Turn, targetTurn, targetTurn+1)
 	}
 	return decisions, time.Since(start)
+}
+
+// spendPace is the gorged default per-decision sleep the round-0 report named
+// as the demonstrator's pacing knob (cmd/gorged/main.go `-pace` default). A
+// step's wall time in the served-game model is its decision count x this pace;
+// the only thing that varies between the two windows below is which steps the
+// user watched, so the pace constant cancels out of their ratio. Kept as a
+// named constant here so the report's arithmetic is exactly reproducible.
+const spendPace = 1500 * time.Millisecond
+
+// perTurnPerStep plays one deterministic benchTurns-turn game of cfg at the
+// benchmark seed and returns the average decision count per full step per
+// turn. It reads e.G.Step before each Submit (a struct-field read: no
+// allocation, no wall clock, deterministic), so a decision is attributed to
+// the step it was asked in. The game is deterministic at a fixed seed, so one
+// play is enough; the existing timing/allocation sub-cases keep the repeated
+// b.N loop.
+func perTurnPerStep(b *testing.B, cfg Config) []float64 {
+	e := New(cfg)
+	bot := newTestBot(cfg.Seed)
+	e.Advance()
+	// Pre-game London mulligan round, excluded exactly as playFormatTurns
+	// excludes it: a mulligan is not a turn and its steps are not the ones the
+	// user watched.
+	for e.Pending() != nil && !e.G.Over && e.G.Turn <= 0 {
+		e.Submit(bot.answer(e, e.Pending()))
+	}
+	counts := make([]int64, int(state.StepCleanup)+1)
+	for e.Pending() != nil && !e.G.Over && e.G.Turn <= benchTurns {
+		s := e.G.Step
+		if !s.Valid() {
+			b.Fatalf("invalid step %d during turn %d", int(s), e.G.Turn)
+		}
+		counts[int(s)]++
+		e.Submit(bot.answer(e, e.Pending()))
+	}
+	if e.G.Over {
+		b.Fatalf("game ended during turn %d before completing turn %d", e.G.Turn, benchTurns)
+	}
+	if e.G.Turn != benchTurns+1 {
+		b.Fatalf("stopped at turn %d, want completed turn %d", e.G.Turn, benchTurns)
+	}
+	per := make([]float64, len(counts))
+	for s := range counts {
+		per[s] = float64(counts[s]) / benchTurns
+	}
+	return per
+}
+
+// sumSteps totals per[s] over the inclusive step range [lo, hi], the window
+// arithmetic the report re-states from the per-step table.
+func sumSteps(per []float64, lo, hi state.Step) float64 {
+	var tot float64
+	for s := int(lo); s <= int(hi); s++ {
+		tot += per[s]
+	}
+	return tot
+}
+
+// logStepWindows logs one format's per-step decision table and the two windows
+// the user watched -- main1->main2 (the main-phase pair where casting decisions
+// land) and begin-combat->end (the late, decision-sparse steps) -- with their
+// decision counts and, at spendPace, the wall time a served game would show
+// between those step markers. This is the "decisions per STEP" alternative the
+// round-0 report never considered.
+func logStepWindows(b *testing.B, label string, per []float64) {
+	mainW := sumSteps(per, state.StepMain1, state.StepMain2)
+	cbeW := sumSteps(per, state.StepBeginCombat, state.StepEnd)
+	total := sumSteps(per, state.StepUntap, state.StepCleanup)
+	// Summary first -- Go truncates verbose benchmark logs, and the window
+	// wall-times below are the whole point of this round.
+	b.Logf("== %s: window wall-times (avg/turn, %d turns) @ %v pace ==", label, benchTurns, spendPace)
+	b.Logf("   window main1->main2   %6.2f dec/turn -> %.1fs/turn @ %v", mainW, mainW*spendPace.Seconds(), spendPace)
+	b.Logf("   window begin-combat->end %5.2f dec/turn -> %.1fs/turn @ %v", cbeW, cbeW*spendPace.Seconds(), spendPace)
+	b.Logf("   total per turn        %6.2f decisions -> %.1fs @ %v", total, total*spendPace.Seconds(), spendPace)
+	// Per-step breakdown, only the steps that see a decision (the rest are 0.00
+	// for both formats and would only pad the log).
+	for s := range per {
+		if per[s] > 0 {
+			b.Logf("   step %-16s %5.2f dec/turn", state.Step(s).String(), per[s])
+		}
+	}
 }
