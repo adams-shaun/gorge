@@ -34,6 +34,19 @@ func (e *Engine) Clone() *Engine {
 		// the same reference-sharing Clone already practises for
 		// orderedTriggers.
 		blockerRound: e.blockerRound,
+		// pregame / mulligan (rules/mulligan.go, engine.go): the London
+		// round's own state. Both are documented on the Engine as fields
+		// Clone copies, and neither was here — so a clone taken between the
+		// opening deal and turn 1 came back with the round not running and a
+		// zero mulliganRound, and re-submitting the recorded mulligan intent
+		// found no seat in mulligan.seats and indexed kept[-1]. That is the
+		// exact path host.viewAt takes (clone a snapshot, re-Submit the
+		// intents), so every view?seq= inside the mulligan window 500'd.
+		// The three slices are re-allocated, not shared: kept and taken are
+		// written in place, so this is the cast/pendingTriggers class, not
+		// the blockerRound class above.
+		pregame:  e.pregame,
+		mulligan: cloneMulligan(e.mulligan),
 		// E2 held-out cast suppression (cast.go): the set of card ids whose
 		// cast option is held out of the current window after an unpayable
 		// decline. A clone taken at any intent boundary carries it forward so
@@ -153,4 +166,14 @@ func cloneSuppressed(m map[state.ObjID]bool) map[state.ObjID]bool {
 		out[k] = v
 	}
 	return out
+}
+
+// cloneMulligan deep-copies the London round: the phase flags and counters
+// are plain values, but seats/kept/taken are written in place while the
+// round runs (rules/mulligan.go), so the copy must own its own arrays.
+func cloneMulligan(m mulliganRound) mulliganRound {
+	m.seats = append([]state.PlayerID(nil), m.seats...)
+	m.kept = append([]bool(nil), m.kept...)
+	m.taken = append([]int(nil), m.taken...)
+	return m
 }
