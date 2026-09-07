@@ -182,23 +182,37 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	// SacValid$ narrows WHAT may be sacrificed ("Creature.nonToken",
-	// "Artifact"). With no SacValid$ at all the default is "Permanent"
-	// (any permanent). That is the corpus's own implicit contract: the
-	// self-sacrifice and at-end-of-step sacrifice lines sacrifice a specific
-	// object (Defined$ Self / Remembered) that may be an artifact, a land or
-	// a creature, so a narrower default ("Creature") would silently stop an
-	// artifact or land being sacrificed. Every player-targeted edict-style
-	// sacrifice that narrows the player's choice carries an explicit
-	// SacValid$ (Diabolic Edict and Gatekeeper of Malakir both say
-	// SacValid$ Creature), so the default is never relied on to narrow a
-	// player's choice -- and where it genuinely isn't read, "any permanent"
-	// is the honest reading, not a restricted guess.
+	// "Artifact"). With no SacValid$ at all the default is "Permanent" (any
+	// permanent). The older justification -- that the self-sacrifice and
+	// at-end-of-step lines need "Permanent" because the object they sacrifice
+	// may be an artifact, a land or a creature -- is empirically false: those
+	// lines carry no Defined$ and no ValidTgts$, so Defined() resolves them
+	// to the SOURCE object (effects/context.go) and they take the object-target
+	// path below, where spec is never consulted at all. Measured at the corpus
+	// pin (for the command, see the sc1b report): of 892 Sacrifice SAs, 328
+	// carry no SacValid$; 327 of those resolve to an object (or an inherited
+	// target) and never reach the default, and exactly one -- Expert-Level
+	// Safe's DB$ Sacrifice | Defined$ You | ValidCard$ Card.Self -- reaches it.
+	// So "Permanent" is a harmless default rather than a correct reading of
+	// the corpus, and no player-targeted line carries SacValid$ Self. (That one
+	// reachable line means its controller hands over whichever permanent sits
+	// first in zone order -- for Expert-Level Safe, "this artifact" -- instead
+	// of the no-op before this fix; see AGENTS.md.)
 	spec := sa.Params["SacValid"]
 	if spec == "" {
 		spec = "Permanent"
 	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
+			// Bounds guard: g.Zone indexes g.zones[zoneIndex(z, p)] and
+			// zoneIndex has no bounds check, so an out-of-range target-supplied
+			// player id would panic with "index out of range" and halt the
+			// table. Player targets normally come from askTarget or AliveFrom
+			// and are bounded, but the package's idiom (validPlayer in
+			// events/apply.go) is not to trust a target blindly.
+			if int(t.Player) >= len(g.Players) {
+				continue
+			}
 			// A sacrifice aimed at a player: that player sacrifices one
 			// matching permanent. Real Magic has the player choose; this
 			// engine does not ask (the mid-resolution ask machinery is being
