@@ -82,10 +82,54 @@ describe('CommandArea — one seat"s commanders, on the board', () => {
     expect(html).toContain('>command zone<');
     expect(html).toContain('>graveyard<');
     // …and the three states are drawn differently, not only labelled
-    // differently: full strength, ghosted, greyed
+    // differently: greyed art in the zone, full ink in play, and an empty
+    // box (no art) when away
     expect(html).toContain('cmd-tile--command');
     expect(html).toContain('cmd-tile--battlefield');
     expect(html).toContain('cmd-tile--away');
+  });
+
+  it('ALL THREE states carry the command-zone dotted box, and the away box is empty', () => {
+    const inZone = card(1, 'Isamaru', 'W');
+    const onBoard = card(2, 'Zur', '1 U U');
+    const dead = card(3, 'Liliana', '2 B B');
+    const p = player({
+      commanders: [inZone, onBoard, dead],
+      command: [inZone], battlefield: [onBoard], graveyard: [dead],
+    });
+    const { html } = render(CommandArea, { props: { player: p } });
+    // one dotted command-zone box per tile, all three states
+    expect(html.match(/cmd-zone-box/g)).toHaveLength(3);
+    // away is an EMPTY box: no art element at all — not an <img>, not even
+    // the blank's .card-image wrapper the other two states still render
+    const awayHtml = html.slice(html.indexOf('cmd-tile--away'));
+    expect(awayHtml).not.toContain('card-image');
+  });
+
+  it('away draws NO art — the card is not somewhere you can look — but still names and frames it', () => {
+    const dead = card(3, 'Liliana', '2 B B');
+    const p = player({ commanders: [dead], graveyard: [dead] });
+    const { html } = render(CommandArea, { props: { player: p } });
+    // no art element of any kind
+    expect(html).not.toContain('<img');
+    expect(html).not.toContain('card-image');
+    // the box, the name and the state band all stay
+    expect(html).toContain('cmd-zone-box');
+    expect(html).toContain('>Liliana<');
+    expect(html).toContain('>graveyard<');
+  });
+
+  it('the empty away box is STILL inspectable and still names its card', () => {
+    const dead = card(3, 'Liliana', '2 B B');
+    const p = player({ commanders: [dead], graveyard: [dead] });
+    const { html } = render(CommandArea, { props: { player: p } });
+    // it is the NEW empty dotted box (the thing that replaced the greyed art)
+    expect(html).toContain('cmd-zone-box');
+    // focusable, describable, and names the commander even with no art
+    expect(html).toContain('role="button"');
+    expect(html).toContain('tabindex="0"');
+    expect(html).toContain('aria-label=');
+    expect(html).toContain('P0 — Liliana is in the graveyard');
   });
 
   it('exile, hand and an unseen zone are all the same "away" state — an unbrowsable zone is not an error', () => {
@@ -161,7 +205,7 @@ describe('CommandArea — one seat"s commanders, on the board', () => {
     expect(html).toContain('data-next-cost="2 W B 4"');
   });
 
-  it('EVERY state is inspectable — a greyed commander in a zone nobody can browse opens the same inspector', () => {
+  it('EVERY state is inspectable — a commander in an unbrowsable zone is an empty box, but opens the same inspector', () => {
     const inZone = card(1, 'Isamaru', 'W');
     const onBoard = card(2, 'Zur', '1 U U');
     const hidden = card(3, 'Edgar', '2 W B');
@@ -269,7 +313,7 @@ describe('the board draws one commander tile per roster commander, inline in eac
     players: [
       // seat 0: commander still in the zone, one prior cast
       player({ seat: 0, name: 'S0', commanders: [card(10, 'Isamaru', 'W')], commander_casts: [1], command: [card(10, 'Isamaru', 'W')] }),
-      // seat 1: commander already on the battlefield — ghosted, not a second copy
+      // seat 1: commander already on the battlefield — in play, so full art
       player({ seat: 1, name: 'S1', commanders: [card(11, 'Zur', '1 U U')], commander_casts: [2], battlefield: [card(11, 'Zur', '1 U U')] }),
       // seat 2: two commanders, one in the zone after three prior casts
       player({
@@ -311,7 +355,7 @@ describe('the board draws one commander tile per roster commander, inline in eac
     expect(html.match(/data-tax=/g)).toHaveLength(2);
   });
 
-  it('the commander on the battlefield is ghosted on its tile — the real permanent is the one in the creatures row', () => {
+  it('the commander on the battlefield is FULL art on its tile — in play, so the slot is filled', () => {
     const { html } = render(Board, { props: { view: view(), seats } });
     expect(html).toContain('cmd-tile--battlefield');
     expect(html).toContain('S1 — Zur is on the battlefield');
