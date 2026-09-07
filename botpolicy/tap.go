@@ -202,10 +202,11 @@ func (b Board) neededColours(c Card) [5]bool {
 //     least adds to the pool, so it outranks a source that may produce
 //     nothing at all.
 //   - tier 2: a source that demonstrably produces nothing -- no known colour
-//     slot, which includes an Indeterminate amount source, whose production
-//     the projection cannot price. Such a source is a last resort only: it
-//     might produce nothing, so chooseTap never PREFERS it over a source
-//     that demonstrably produces.
+//     slot. An Indeterminate-amount source lands here because it contributes
+//     contributes zero to every colour slot (detected via Colour, never by reading the
+//     Indeterminate flag), so such a source is a last resort only: it might
+//     produce nothing, so chooseTap never PREFERS it over a source that
+//     demonstrably produces.
 //   - within a tier, the source with the FEWEST distinct colours is tapped
 //     first (Task dp2's least-flexible-first: the mono-colour source before
 //     the dual, keeping the flexible source for the colour it is still

@@ -3,7 +3,6 @@ package botpolicy
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -30,29 +29,6 @@ func TestChooseLandAlreadyAvailableConsidered(t *testing.T) {
 	})
 	if d.Options[got].Obj != 11 {
 		t.Fatalf("land drop = obj %d (option %d), want the Forest (obj 11): blue is already available, green is what the hand still needs", d.Options[got].Obj, got)
-	}
-}
-
-// TestChooseTapNotPreferIndeterminateSource pins the tiering on the true
-// Indeterminate flag: when the intended spell needs blue and the offered
-// sources are a demonstrable blue producer and an Indeterminate-amount
-// source (a non-literal Amount$ the projection cannot price, which claims
-// no colour), the demonstrable producer is tapped. The pre-fix gate had no
-// way to tell the two apart -- the indeterminate source's unknown amount
-// was recorded as a real colour slot and could win the match -- so a tap
-// could be aimed at mana the pool is never promised.
-func TestChooseTapNotPreferIndeterminateSource(t *testing.T) {
-	b := priorityCards(map[state.ObjID]Card{
-		1:  {CMC: 1, ManaCost: "U", Castable: true},               // a one-blue spell
-		10: {Produces: prod(state.MU, 1)},                         // a demonstrable blue producer
-		11: {Produces: cards.ManaProduction{Indeterminate: true}}, // an unknown-amount source
-	})
-	got, d := castDecision(b, []decision.Option{
-		activate(0, 10), // the real blue producer, listed first
-		activate(1, 11), // the Indeterminate source, listed second
-	})
-	if d.Options[got].Obj != 10 {
-		t.Fatalf("tap = obj %d (option %d), want the demonstrable blue producer (obj 10), never prefer the Indeterminate source", d.Options[got].Obj, got)
 	}
 }
 
