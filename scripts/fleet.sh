@@ -19,8 +19,12 @@ TOKENS="$FLEET/tokens"
 # what that limit is protecting. Paid seats get their own ceiling for a
 # different reason -- they share one ChatGPT plan's rate limit and throttle
 # each other and the user's own sessions.
-MAX_SEATS=${MAX_SEATS:-4}          # local seats: what the BOX can carry
-MAX_PAID=${MAX_PAID:-2}            # paid seats: what the PLAN can carry
+# Lowered to 3/1 by user ruling 2026-09-07, after a CUDA OOM in the vLLM
+# engine killed three concurrent local seats within 2.1 seconds of each other.
+# The engine runs at gpu_memory_utilization 0.975 with ~2 GiB of headroom, so
+# concurrent streams are the amplifier even though KV cache was only at 15%.
+MAX_SEATS=${MAX_SEATS:-3}          # local seats: what the BOX and the GPU carry
+MAX_PAID=${MAX_PAID:-1}            # paid seats: what the PLAN can carry
 
 # Which thread is running this. Set FLEET_THREAD in the session's environment;
 # the file is the fallback so a session that forgets still identifies itself.
