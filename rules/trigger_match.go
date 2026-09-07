@@ -246,13 +246,15 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 // the acceptance deck don't read Remembered at all (they use Defined$
 // Self/You), so this is deliberately one simple, general rule rather than a
 // mode-specific one -- except DeclareAttackers, which carries every attacker
-// declared this combat in Event.IDs rather than a single Event.Obj (see
-// attacksMatches): Remembered there is every declared attacker, in order,
-// followed by one more entry for the defending player. ev.Player is set by
-// handleAttackers (rules/combat.go) to chosen[0].Player -- the FIRST
-// declared attacker's own defender, taken as the defender for the whole
-// declaration; a pre-existing simplification of this event's shape (M1 has
-// no per-attacker defender), not something this trailing entry introduces.
+// declared against one defending player in Event.IDs rather than a single
+// Event.Obj (see attacksMatches): Remembered there is every declared
+// attacker, in order, followed by one more entry for that event's defending
+// player. ev.Player is set by handleAttackers (rules/combat.go); since Task
+// m34 an attack may split across several defenders, so the engine emits ONE
+// DeclareAttackers event per defending player and each event's Player is
+// that event's own defender -- a trigger matching one of its attackers
+// resolves TriggeredDefendingPlayer against the opponent that creature is
+// actually attacking, the same value a two-player game always produced.
 //
 // effects.context.go's Defined already recognises Defined$
 // TriggeredDefendingPlayer/TriggeredPlayer (Task 5's playersOf(Remembered),
@@ -487,10 +489,11 @@ func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events
 }
 
 // attacksMatches implements Mode$ Attacks against a DeclareAttackers event.
-// DeclareAttackers carries every attacker declared this combat in one event
-// (IDs), so -- like every other mode here -- this fires at most once per
-// event rather than once per qualifying attacker: a documented M1
-// simplification, not a missed multi-attacker case.
+// DeclareAttackers carries the attackers declared against ONE defending
+// player in one event (IDs; Task m34 emits one event per defender), so like
+// every other mode here it fires at most once per event -- a creature
+// attacking a single opponent therefore fires exactly once, in its own
+// defender's event.
 //
 // Alone$ True (Exalted's expansion, cards/keywords.go -- Ruling FL-48, which
 // was previously a known approximation here) gates the trigger to "exactly
