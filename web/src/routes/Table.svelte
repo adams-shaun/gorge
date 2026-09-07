@@ -110,6 +110,7 @@
             active={m.view.active === p.seat}
             priority={m.view.priority === p.seat}
             corner={quadrantFor(p.seat, m.view.players.length)}
+            players={m.view.players}
           />
         {/each}
         <RecentStrip view={m.view} events={m.dvr.events} />
