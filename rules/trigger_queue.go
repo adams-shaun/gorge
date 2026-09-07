@@ -245,8 +245,45 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// and begins the ordinary cast flow; it may pause on an X/target decision
 	// of its own, which is exactly Task 7's drainAwaitsTarget continuation (see
 	// castMiracle's doc).
+	// Task 18: a Miracle offer is placed by casting the card for its miracle
+	// cost, not by minting a triggered-ability stack object. castMiracle
+	// verifies the card is still in the owner's hand, emits the reveal Note,
+	// and begins the ordinary cast flow; it may pause on an X/target decision
+	// of its own, which is exactly Task 7's drainAwaitsTarget continuation
+	// (see castMiracle's doc). A Miracle trigger is NOT delayed, so the flag
+	// order matters: a Miracle offer must reach castMiracle, never the
+	// DelayedPush path below.
 	if pt.Miracle {
 		e.castMiracle(pt)
+		return
+	}
+	// A Mode$ Phase delayed trigger (CR 603.7): its stack object is minted by
+	// a DelayedPush event rather than a TriggerPush. The difference is the
+	// Ability: TriggerPush re-derives it from a face Triggers index, while a
+	// delayed trigger's Effect is the Execute$ SVar-named sub-ability on the
+	// source's face, so the fired event carries the Execute$ name (Counter)
+	// for events.Apply to resolve. Everything else -- the controller guard
+	// below, the CR 800.4a check shared with the ordinary path, and the
+	// Remembered/PlayerRef encoding -- is the same. A delayed trigger's
+	// Execute in the Mode$ Phase shape this build implements declares no
+	// ValidTgts$ (Flickerwisp's TrigBounce re-derives its referent from
+	// Defined$ DelayTriggerRememberedLKI), so no target ask follows the push.
+	if pt.Delayed {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
+		for _, tgt := range pt.Ctx.Remembered {
+			if tgt.IsPlayer {
+				ids = append(ids, state.PlayerRef(tgt.Player))
+				continue
+			}
+			ids = append(ids, tgt.Obj)
+		}
+		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller,
+			Obj: pt.Source, Amount: int32(pt.DelayedID), Counter: pt.Execute,
+			IDs: ids, Text: "delayed trigger"})
+		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
 	// CR 800.4a / Ruling U6, fix round 2 (re-review N2): an ability

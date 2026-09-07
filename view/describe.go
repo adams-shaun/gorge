@@ -227,6 +227,23 @@ func Describe(g *state.Game, ev events.Event) string {
 			s += " (" + itoa(int64(total)) + " total; 21 is lethal)"
 		}
 		return s
+	case events.DelayedRegister:
+		// A delayed trigger being registered (CR 603.7, dt1): Obj is the
+		// source that created it, Text the phase it waits for. The line says
+		// only that the promise was made -- what it will DO is the Execute$
+		// sub-ability, which is named by the DelayedPush line below when it
+		// actually happens, so saying it twice here would double-report an
+		// effect that may never fire (the source can leave, the controller
+		// can lose, the game can end first).
+		if ev.Text == "" {
+			return obj(g, ev.Obj) + " sets up a delayed trigger"
+		}
+		return obj(g, ev.Obj) + " sets up a delayed trigger for " + ev.Text
+	case events.DelayedPush:
+		// The registered phase arrived and the delayed ability went on the
+		// stack. Obj is the minted stack object; its source name is what a
+		// reader recognises, so prefer it and fall back to the minted id.
+		return obj(g, ev.Obj) + " triggers (delayed)"
 	}
 	return "unknown event"
 }

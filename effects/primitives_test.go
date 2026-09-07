@@ -882,9 +882,35 @@ func TestCounterIgnoresATargetNoLongerOnTheStack(t *testing.T) {
 	}
 }
 
-func TestDelayedTriggerRecordsANote(t *testing.T) {
+// TestDelayedTriggerPhaseRegisters pins the Mode$ Phase branch: a Phase
+// delayed trigger now emits a DelayedRegister event (folded by events.Apply
+// into state.Game.Delayed, so the registration survives replay) rather than
+// the M1 Note-only recording. The event carries the source, controller, the
+// phase step resolved from Phase$, the Execute$ SVar name and the Remembered;
+// See also TestDelayedTriggerNonPhaseStillRecordsANote for the other modes,
+// which stay the deterministic Note recording.
+func TestDelayedTriggerPhaseRegisters(t *testing.T) {
 	h := newHost(t, 2)
-	Resolve(h, &Ctx{Controller: 0, Source: 1}, sa(t, "DB$ DelayedTrigger | Mode$ Phase | Phase$ End of Turn | Execute$ X"))
+	c := &Ctx{Controller: 0, Source: 1,
+		Remembered: []state.Target{{Obj: 7}}}
+	Resolve(h, c, sa(t, "DB$ DelayedTrigger | Mode$ Phase | Phase$ End of Turn | Execute$ X"))
+	if len(h.log) != 1 || h.log[0].Kind != events.DelayedRegister {
+		t.Fatalf("log = %+v", h.log)
+	}
+	ev := h.log[0]
+	if ev.Obj != 1 || ev.Player != 0 || ev.Step != state.StepEnd || ev.Counter != "X" ||
+		len(ev.IDs) != 1 || ev.IDs[0] != 7 {
+		t.Fatalf("DelayedRegister = %+v", ev)
+	}
+}
+
+// TestDelayedTriggerNonPhaseStillRecordsANote pins the scope gate: the other
+// Mode$ values (ChangesZone, SpellCast, ...) are not implemented and keep
+// recording a Note, so a card that needs one says what it intended without
+// pretending to have fired.
+func TestDelayedTriggerNonPhaseStillRecordsANote(t *testing.T) {
+	h := newHost(t, 2)
+	Resolve(h, &Ctx{Controller: 0, Source: 1}, sa(t, "DB$ DelayedTrigger | Mode$ ChangesZone | Execute$ X"))
 	if len(h.log) != 1 || h.log[0].Kind != events.Note {
 		t.Fatalf("log = %+v", h.log)
 	}

@@ -174,6 +174,35 @@ const (
 	// ordinal, hash chain or golden replay is affected. Only ever emitted in
 	// a Commander-format game.
 	CmdDamage
+	// DelayedRegister records a delayed-trigger registration (CR 603.7,
+	// effects.effDelayedTrigger's Mode$ Phase branch). A delayed trigger is
+	// registered during one resolution and fires later -- in general a
+	// different turn -- so the registration is game state, folded here into
+	// state.Game.Delayed so a log-only replay rebuilds the same set. Event
+	// field reuse: Obj is the source object (whose face's SVar table carries
+	// the Execute$ ability), Player the controller, Step the phase to fire
+	// in, Counter the Execute$ SVar name, IDs the Remembered object(s)
+	// captured at registration (PlayerRef-encoded, as TriggerPush does), and
+	// Text the Forge Phase$ string for description. Appended here, after
+	// CmdDamage, following every prior Kind's own append-only precedent, so
+	// no earlier ordinal, hash chain or golden replay is affected.
+	DelayedRegister
+	// DelayedPush mints a delayed triggered ability's stack object and fires
+	// it -- the "goes on the stack like any other triggered ability" half of
+	// a Mode$ Phase delayed trigger, created when the registered phase is
+	// entered. It is a sibling of TriggerPush/AbilityPush and exists for the
+	// same reason (Ruling T20-a): the ability object is minted inside Apply,
+	// so a log-only replay creates the exact object a live game did. Unlike
+	// TriggerPush (whose Ability re-derives from a face Triggers index), a
+	// delayed trigger's Ability is an SVar-named sub-ability on the source's
+	// face, so the Execute$ name is carried in Counter and Apply resolves it
+	// via cards.ResolveSVar. Obj is the source, Player the controller,
+	// Amount the registration's ID (state.DelayedTrigger.ID) so Apply can
+	// remove exactly the registration it fired, and IDs the Remembered
+	// objects (PlayerRef-encoded). Firing is one-shot: Apply's case both
+	// mints the object and drops the registration. Appended after
+	// DelayedRegister, following every prior Kind's append-only precedent.
+	DelayedPush
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -184,7 +213,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(CmdDamage) + 1
+	NumKinds = int(DelayedPush) + 1
 )
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
@@ -197,7 +226,8 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"declare_blockers", "player_lost", "game_over", "decision_ask",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
-	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage"}
+	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
+	"delayed_register", "delayed_push"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
