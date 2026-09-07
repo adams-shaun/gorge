@@ -29,6 +29,14 @@ export interface AnchorRect {
 export class HoverCard {
   /** show is true while the detail panel is open. */
   show = $state(false);
+  /**
+   * The object the panel is (or would be) describing — learned from arm/open
+   * when the caller knows whose panel this is, so a surface can later prove
+   * an open panel describes an object it is no longer rendering (see
+   * superviseRendering). Null for callers that never pass one (HandList
+   * manages its subject through supervise instead).
+   */
+  private showingId: number | null = null;
   private timer: unknown = null;
   private readonly env: TimerEnv;
 
@@ -39,10 +47,19 @@ export class HoverCard {
     };
   }
 
-  /** arm starts the pointer dwell; calling it again while armed is a no-op, so a pointerenter never stacks two timers. */
-  arm(onOpen?: () => void) {
+  /**
+   * arm starts the pointer dwell; calling it again while armed is a no-op, so
+   * a pointerenter never stacks two timers. objectId is the object the panel
+   * is being prepared for — HoverCard remembers it as the panel's subject, so
+   * a surface that later re-renders a different object can prove the open
+   * panel describes the wrong one. A callback-only call (HandList's dwell) is
+   * accepted for surfaces that manage the subject themselves via supervise.
+   */
+  arm(objectIdOrOnOpen?: (() => void) | number | null | undefined, onOpen?: () => void) {
+    const objectId = typeof objectIdOrOnOpen === 'function' ? null : (objectIdOrOnOpen ?? null);
+    const cb = typeof objectIdOrOnOpen === 'function' ? objectIdOrOnOpen : onOpen;
+    if (objectId !== null) this.showingId = objectId;
     if (this.timer !== null) return;
-    const cb = onOpen;
     this.timer = this.env.setTimeout(() => {
       this.timer = null;
       this.show = true;
@@ -50,11 +67,18 @@ export class HoverCard {
     }, DWELL);
   }
 
-  /** open shows the panel immediately (keyboard focus path), cancelling any armed dwell. */
-  open(onOpen?: () => void) {
+  /**
+   * open shows the panel immediately (keyboard focus path), cancelling any
+   * armed dwell. objectId, when given, is remembered as the panel's subject
+   * (same contract as arm).
+   */
+  open(objectIdOrOnOpen?: (() => void) | number | null | undefined, onOpen?: () => void) {
+    const objectId = typeof objectIdOrOnOpen === 'function' ? null : (objectIdOrOnOpen ?? null);
+    const cb = typeof objectIdOrOnOpen === 'function' ? objectIdOrOnOpen : onOpen;
+    if (objectId !== null) this.showingId = objectId;
     this.cancel();
     this.show = true;
-    onOpen?.();
+    cb?.();
   }
 
   /** close hides the panel and cancels any armed dwell (pointer leave, blur). */
@@ -80,6 +104,33 @@ export class HoverCard {
     if (present.some((c) => c.id === objectId)) return false;
     const wasOpen = this.show;
     this.close();
+    return wasOpen;
+  }
+
+  /**
+   * superviseRendering is the rendering half of the same lifecycle contract:
+   * on the board Svelte KEEPS a CardTile instance alive when the object under
+   * it changes (a permanent dies, the tile is handed the next object) and the
+   * pointer never leaves — no pointerleave fires, so nothing would close the
+   * panel, and worse, the panel would describe a card the reader never asked
+   * for. Every surface therefore re-feeds the object id it is currently
+   * rendering whenever its card prop changes: when the panel is open for an
+   * object that is no longer the one being rendered, it closes — the panel's
+   * lifetime follows the object it was opened for, not the mounting. An
+   * armed-but-not-open dwell is re-pointed at the object being rendered now,
+   * so the timer can never open a panel labelled for a stale id. Returns true
+   * when a live panel was closed.
+   */
+  superviseRendering(objectId: number | null | undefined): boolean {
+    if (objectId === null || objectId === undefined) return false;
+    if (this.showingId === objectId) return false;
+    const wasOpen = this.show;
+    // close() also cancels any timer — but a timer can never be pending while
+    // the panel is open (arm/open/close keep those mutually exclusive), so
+    // when the panel is closed this branch is skipped entirely and a pending
+    // dwell survives, re-pointed below.
+    if (wasOpen) this.close();
+    this.showingId = objectId;
     return wasOpen;
   }
 

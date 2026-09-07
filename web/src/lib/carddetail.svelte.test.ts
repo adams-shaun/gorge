@@ -136,6 +136,66 @@ describe('HoverCard', () => {
     expect(h.supervise(42, [])).toBe(true); // gone: closes
     expect(h.show).toBe(false);
   });
+
+  // --- superviseRendering: the panel's lifetime follows the OBJECT the
+  // panel was opened for, not the mounted instance. On the board Svelte
+  // keeps a CardTile instance alive when its card prop changes (the
+  // permanent it showed was destroyed, the tile is handed the next one)
+  // and the pointer never fires a leave — so nothing else closes the
+  // panel, and worse, the tile now renders a card the reader never asked
+  // for. The surface therefore re-feeds the id it is rendering and the
+  // panel closes when it describes a different object. HandList's
+  // supervise ('the object left the visible set') is a separate contract
+  // and stays untouched above.
+
+  it('closes a panel opened for object 16 when the tile now renders object 12 — the kept-instance re-target bug', () => {
+    const { env, tick } = fakeTimer();
+    const h = new HoverCard(env);
+    h.arm(16); // the pointer dwells on the tile showing object 16
+    tick(DWELL); // dwell completes: the panel opens on 16
+    expect(h.show).toBe(true);
+    // object 16 is destroyed; the board re-renders and Svelte hands this
+    // SAME tile instance to object 12. The pointer has not moved, so no
+    // pointerleave fires — only this check can close the panel now.
+    const closed = h.superviseRendering(12);
+    expect(closed).toBe(true); // a live panel was closed
+    expect(h.show).toBe(false);
+  });
+
+  it('stays open while the tile renders the same object the panel describes', () => {
+    const { env, tick } = fakeTimer();
+    const h = new HoverCard(env);
+    h.arm(16);
+    tick(DWELL);
+    expect(h.show).toBe(true);
+    // the surface re-feeds the same id on an unrelated re-render
+    const closed = h.superviseRendering(16);
+    expect(closed).toBe(false);
+    expect(h.show).toBe(true);
+  });
+
+  it('re-points an armed dwell at the object the tile renders now instead of cancelling it', () => {
+    const { env, tick } = fakeTimer();
+    const h = new HoverCard(env);
+    h.arm(16); // dwell pending on 16...
+    h.superviseRendering(12); // ...when the tile is handed object 12 before the timer fires
+    expect(h.show).toBe(false); // nothing was open, so nothing closed
+    tick(DWELL);
+    expect(h.show).toBe(true); // the dwell still completes
+    expect(h.superviseRendering(12)).toBe(false); // for the object being rendered
+    expect(h.show).toBe(true);
+    expect(h.superviseRendering(16)).toBe(true); // the old id is now the wrong one
+    expect(h.show).toBe(false);
+  });
+
+  it('open (keyboard focus path) learns the object too, so the same check holds', () => {
+    const h = new HoverCard();
+    h.open(16);
+    expect(h.show).toBe(true);
+    expect(h.superviseRendering(16)).toBe(false);
+    expect(h.superviseRendering(12)).toBe(true);
+    expect(h.show).toBe(false);
+  });
 });
 
 describe('placePanel', () => {
