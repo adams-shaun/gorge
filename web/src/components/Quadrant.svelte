@@ -1,10 +1,11 @@
 <script lang="ts">
-  import type { PlayerView } from '../protocol';
+  import type { PlayerView, StackView } from '../protocol';
   import { attachedTo, groupBattlefield, stackIdentical } from '../lib/board';
   import CardStack from './CardStack.svelte';
+  import CommandArea from './CommandArea.svelte';
 
-  /** Quadrant shows one player's battlefield, split into the three rows board.ts groups it into. It has no rules knowledge: grouping and ordering come entirely from groupBattlefield; stackIdentical then collapses interchangeable permanents within a row into one tile with a count (CardStack renders the group). Attachments still come from attachedTo for a group of one — a stacked group has none by the stacking rule. */
-  let { player, colour, corner = 'bl' }: { player: PlayerView; colour: string; corner?: 'tl' | 'tr' | 'bl' | 'br' | 'l' | 'r' } = $props();
+  /** Quadrant shows one player's battlefield, split into the three rows board.ts groups it into, plus the seat's command area at its own rim (CommandArea, which draws nothing at all for a seat with no commander roster). It has no rules knowledge: grouping and ordering come entirely from groupBattlefield; stackIdentical then collapses interchangeable permanents within a row into one tile with a count (CardStack renders the group). Attachments still come from attachedTo for a group of one — a stacked group has none by the stacking rule. `stack` is passed through to the command area only: a commander mid-cast is a spell on the stack, not in any zone list. */
+  let { player, colour, corner = 'bl', stack = [] }: { player: PlayerView; colour: string; corner?: 'tl' | 'tr' | 'bl' | 'br' | 'l' | 'r'; stack?: StackView[] } = $props();
 
   const battlefieldGroups = $derived(groupBattlefield(player.battlefield));
   const stacks = $derived({
@@ -46,6 +47,11 @@
       <CardStack group={g} attachments={g.cards.length === 1 ? attachedTo(player.battlefield, g.cards[0].id) : []} />
     {/each}
   </div>
+  <!-- The seat's own command zone, at the seat's own rim: last in the column
+       so the auto margin below can park it against that rim, and outside the
+       three rows so it can never displace one. Nothing is drawn for a seat
+       with no roster. -->
+  <CommandArea {player} {stack} {corner} />
 </div>
 
 <style>
@@ -83,6 +89,54 @@
     flex-direction: column;
     justify-content: flex-end;
     padding-top: var(--sp-8);
+  }
+
+  /* The command area parks against the seat's own RIM, at the far end of the
+     column from the seam the rows pack against. Which margin does that
+     depends on which way this seat's column runs, so the rule lives here
+     beside the flex-direction it depends on rather than in CommandArea:
+     auto absorbs the whole gap between the last row and the area, so the
+     area is at the rim whenever there is room and simply follows the rows
+     into the quadrant's own scroll when there is not. Either way it takes no
+     space from a row and moves none of them.
+
+     facing-side packs its rows at the BOTTOM (justify-content: flex-end)
+     while the seat's plate and free band are at the top, so there the area
+     is ordered ahead of the rows and the auto margin pushes the rows away
+     from it instead.
+
+     The negative margin on the rim side gives the area the rim padding back.
+     That padding keeps PERMANENTS off the corner the identity plate floats
+     over; the command zone is the seat's own furniture, at the far end of
+     that same band, and it belongs at the table's edge like the plate. It
+     also buys back 32px: without it a four-seat commander quadrant measured
+     254px of content in a 244px box at 1280x748 and scrolled with an empty
+     board.
+
+     Sticky at that same rim edge. A four-seat quadrant is 246px tall at
+     1280x748 and one creature row is 145px, so a real Commander board
+     already overflows and this box already scrolls; without the pin the
+     command zone would scroll off the table exactly when the table is
+     busiest, and the whole point of drawing it is that an opponent's
+     commander can be read at any time. */
+  .facing-up > :global(.command-area) {
+    margin-top: auto;
+    margin-bottom: calc(var(--sp-8) * -1);
+    position: sticky;
+    bottom: 0;
+  }
+  .facing-down > :global(.command-area) {
+    margin-bottom: auto;
+    margin-top: calc(var(--sp-8) * -1);
+    position: sticky;
+    top: 0;
+  }
+  .facing-side > :global(.command-area) {
+    order: -1;
+    margin-bottom: auto;
+    margin-top: calc(var(--sp-8) * -1);
+    position: sticky;
+    top: 0;
   }
 
   .rule-top { border-top: 2px solid var(--seat); }

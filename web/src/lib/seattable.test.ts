@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CardView, PlayerView, SeatInfo, View } from '../protocol';
-import { commanderSeats, focusSeat, seatRows, seatStateOf, stateLabel } from './seattable';
+import { focusSeat, seatRows, seatStateOf, stateLabel } from './seattable';
 
 const card = (id: number, name: string): CardView => ({
   id, name, types: 'Legendary Creature', tapped: false, power: 0, toughness: 0, damage: 0,
@@ -134,22 +134,5 @@ describe('focusSeat', () => {
 
   it('a view with no players has no seat to focus', () => {
     expect(focusSeat(null, view({ players: [] }))).toBeNull();
-  });
-});
-
-describe('commanderSeats', () => {
-  it('a constructed table yields no seats at all, so the rail draws no command zone and leaves no hole', () => {
-    expect(commanderSeats(view())).toEqual([]);
-  });
-
-  it('yields only the seats that actually have a roster, in seat order', () => {
-    const v = view({
-      players: [
-        player({ seat: 0, commanders: [card(10, 'Isamaru')] }),
-        player({ seat: 1 }),
-        player({ seat: 2, commanders: [card(12, 'Edgar'), card(13, 'Liliana')] }),
-      ],
-    });
-    expect(commanderSeats(v).map((p) => p.seat)).toEqual([0, 2]);
   });
 });
