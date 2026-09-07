@@ -101,6 +101,7 @@ still owing it.
 
 | Stand-in | Where | Removed by |
 |---|---|---|
+| Target decisions expose only the active SA API and nominal literal damage (`target_effect`); missing/dynamic/X/SVar/invalid amounts are null, not zero. This is not a lethal forecast: prevention, replacement, conditions, divided damage, target legality at resolution, and parent/sub-ability effects are not modelled by this summary. `ChangeZone` alone does not identify hostile removal; unknown APIs must stay uninterpreted. No policy consumes the new metadata yet. | `decision/decision.go` (`TargetEffect`, `DamageEffect`), `rules/stack.go` (`describeTargetEffect`) | follow-up effect-aware policy / richer outcome modelling |
 | "As this enters, choose ..." is asked at cast/play time, so the choice is recorded and visible a resolution early; the mid-resolution machinery that could move it to resolution time exists (M2d-2) but the asks have not migrated | `rules/cast.go:453-630` | M4 |
 | `Mana` with `Produced$ Any`/`Combo Any` adds colourless instead of asking (Cavern of Souls, Chromatic Star, Lion's Eye Diamond, Lotus Petal) | `effects/misc.go:289-293` | M4 |
 | `RestrictValid$` spend restrictions are never read (Cavern of Souls' second mana ability, Eldrazi Temple's {C}{C}) -- colour and restriction both come out as plain colourless | `effects/misc.go:289-293` | M4 (mana restrictions) |
