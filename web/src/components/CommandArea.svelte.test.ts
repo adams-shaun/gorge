@@ -205,7 +205,7 @@ describe('CommandArea — one seat"s commanders, on the board', () => {
     expect(html).toContain('data-next-cost="2 W B 4"');
   });
 
-  it('EVERY state is inspectable — a greyed commander in a zone nobody can browse opens the same inspector', () => {
+  it('EVERY state is inspectable — a commander in an unbrowsable zone is an empty box, but opens the same inspector', () => {
     const inZone = card(1, 'Isamaru', 'W');
     const onBoard = card(2, 'Zur', '1 U U');
     const hidden = card(3, 'Edgar', '2 W B');
