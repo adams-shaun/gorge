@@ -51,6 +51,41 @@ func RepoDeckNames() []string {
 	return names
 }
 
+// legacyDeckNames is the 12 60-card constructed Legacy decks the acceptance
+// suite pins its golden games to (Ruling M38-P). The deck directory also
+// holds the five interim 100-card Commander decks (foundations-*), which are
+// not part of the 12: the acceptance chain heads in rules/heads_test.go are
+// byte-identical games over these 12, and adding commander decks earlier
+// silently moved those heads by changing the index-based round-robin seat
+// assignment (i % len(all)). Seating the golden games off an explicit,
+// closed list -- never RepoDeckNames() -- keeps "add a deck file" from
+// perturbing the replay-golden games, which is the contract heads_test.go
+// documents. Kept sorted so the seat assignment is the same order the 12
+// were always seated in.
+var legacyDeckNames = [...]string{
+	"death-n-taxes",
+	"dimir-tempo",
+	"eldrazi-stompy",
+	"mono-black-aggro",
+	"mono-blue-tempo",
+	"mono-green-stompy",
+	"mono-red-goblins",
+	"the-epic-storm",
+	"tron",
+	"ur-delver",
+	"uw-control",
+	"uw-tempo",
+}
+
+// LegacyDeckNames is the closed, sorted list of the 12 60-card constructed
+// Legacy repo decks that the replay-golden acceptance games seat from. The
+// captain of the replay chain: a deck file added to the directory must never
+// change what these games are, or every golden head in rules/heads_test.go
+// moves for no behavioural reason.
+func LegacyDeckNames() []string {
+	return legacyDeckNames[:]
+}
+
 // LoadRepoDeck reads decks/<name>.json and resolves it through the deck
 // package (deck.Parse then File.Resolve, which runs cards.NormalizeName so
 // Scryfall-shaped catalogue names and Forge script names fold to the same
@@ -88,6 +123,25 @@ func RepoDeck(t testing.TB, r *cards.Registry, name string) []*cards.Card {
 		t.Fatalf("%v", err)
 	}
 	return deck
+}
+
+// RepoDeckFile reads and parses one embedded deck file, un-resolved: the
+// deck.File shape commander-format callers need to find which entry is the
+// commander (the m38 commander play tests seat decks with Config.Commanders
+// indices, and the index is the flat position of the commander entry in the
+// resolved deck, which only the File knows). The loaded-card view is
+// RepoDeck/LoadRepoDeck.
+func RepoDeckFile(t testing.TB, name string) deck.File {
+	t.Helper()
+	raw, err := decksFS.ReadFile(path.Join(decksDir, name+".json"))
+	if err != nil {
+		t.Fatalf("testutil: deck %q: %v", name, err)
+	}
+	f, err := deck.Parse(raw)
+	if err != nil {
+		t.Fatalf("testutil: deck %q: %v", name, err)
+	}
+	return f
 }
 
 // OpenCorpusRegistry opens dir's compiled corpus, compiling it fresh from
