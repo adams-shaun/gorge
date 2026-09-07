@@ -21,11 +21,23 @@ log=/tmp/gorge-deploy.log
 
 # setsid so the build outlives the hook's process group -- git reaps the
 # hook as soon as it returns, and a plain background job dies with it.
-# flock -n so two merges in quick succession do not fight over the ports:
-# the second sees the lock held and leaves the first to finish. The lock is
-# held for the whole build+restart, not just the test.
-setsid sh -c 'flock -n 9 || exit 0; exec make -C "$1" deploy-demo' _ "$root" \
-	9>/tmp/gorge-deploy.lock >"$log" 2>&1 </dev/null &
+#
+# flock WAITS rather than gives up. It used to be flock -n, and that quietly
+# lost a deploy: a merge landed while the previous deploy still held the
+# lock, the hook exited 0 having already truncated the log, and the demo
+# went on serving the older tree with nothing anywhere saying why. A skipped
+# deploy is indistinguishable from a finished one, which is the worst
+# property a deploy can have. Waiting is correct because the second deploy
+# rebuilds from the working tree as it is when it starts, so the newest
+# merge is what ends up served. -w bounds the wait so a wedged build cannot
+# strand every later merge behind it.
+setsid sh -c '
+	if ! flock -w 600 9; then
+		echo "deploy-demo: TIMED OUT waiting for the deploy lock — demo NOT refreshed" >&2
+		exit 1
+	fi
+	exec make -C "$1" deploy-demo
+' _ "$root" 9>/tmp/gorge-deploy.lock >"$log" 2>&1 </dev/null &
 
 echo "post-merge: refreshing the demo in the background — tail -f $log"
 exit 0

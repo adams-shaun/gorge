@@ -32,7 +32,18 @@ OMNI_DIR=${OMNI_DIR:-/tmp/gorge-demo-omni}
 
 say() { printf 'deploy-demo: %s\n' "$*"; }
 
-# gorged_pids lists the pids of every LISTENING gorged on this box.
+# SWEEP=ports (default) stops only the gorged serving the two demo ports.
+# SWEEP=all stops every gorged on the box.
+#
+# The default is narrow on purpose. A wide sweep once killed a task agent's
+# own measurement server mid-run: agents are told to serve on 8090-8099 to
+# stay clear of the demo, and a deploy that kills everything makes that
+# instruction worthless and silently corrupts their results. "Kill the thing
+# occupying the ports I am about to bind" is the actual requirement; killing
+# every gorged on the machine is a bigger hammer than the job needs.
+SWEEP=${SWEEP:-ports}
+
+# gorged_pids lists the pids of the LISTENING gorged this deploy should stop.
 #
 # Deliberately not `pkill -f gorged` or `pgrep -f`: a bare -f pattern is
 # matched against every process's /proc/<pid>/cmdline INCLUDING this
@@ -41,7 +52,12 @@ say() { printf 'deploy-demo: %s\n' "$*"; }
 # a listening socket -- and /proc/<pid>/comm is an exact process name, not
 # a substring of a command line, so nothing else can match it.
 gorged_pids() {
+	local filter='LISTEN'
+	if [ "$SWEEP" != "all" ]; then
+		filter="(:$PUB_PORT|:$OMNI_PORT)[[:space:]]"
+	fi
 	ss -lptn 2>/dev/null |
+		grep -E "$filter" |
 		grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u |
 		while read -r pid; do
 			[ -r "/proc/$pid/comm" ] || continue
