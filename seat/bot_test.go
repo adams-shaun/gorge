@@ -2,6 +2,7 @@ package seat
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
@@ -12,10 +13,10 @@ import (
 // TestBotIsDeterministic is Ruling P8's whole point: the same bot seed
 // answering the same decision sequence produces identical intents, so a
 // match is reproducible from (engine seed, bot seed) alone. The sequence
-// below deliberately includes the two rng-consuming kinds (KBlockers,
-// KTriggerOrder) as well as a coin-flip one (KTriggerOptional), since a bot
-// whose rng leaked from the engine or the process clock would only show it
-// on paths that actually draw from it.
+// below deliberately includes the KMulligan keep/mulligan coin (the one
+// rng-consuming path; dp1 made KBlockers/KTriggerOrder/KTriggerOptional
+// deterministic), since a bot whose rng leaked from the engine or the
+// process clock would only show it on paths that actually draw from it.
 //
 // M1 (fix round 1): run(7) is also compared against run(8) -- comparing
 // run(7) to itself alone cannot tell "seeded" from "constant"; deleting the
@@ -35,6 +36,9 @@ func TestBotIsDeterministic(t *testing.T) {
 		}},
 		{Seq: 3, Player: 0, Kind: decision.KTriggerOptional, Min: 1, Max: 1, Options: []decision.Option{
 			{Index: 0, Kind: "yes"}, {Index: 1, Kind: "no"},
+		}},
+		{Seq: 4, Player: 0, Kind: decision.KMulligan, Min: 1, Max: 1, Options: []decision.Option{
+			{Index: 0, Kind: "keep"}, {Index: 1, Kind: "mulligan"},
 		}},
 	}
 	run := func(seed uint64) []decision.Intent {
@@ -68,15 +72,19 @@ func TestBotIsDeterministic(t *testing.T) {
 		}
 	}
 
-	c := run(8)
-	allSame := true
-	for i := range seq {
-		if !same(a[i], c[i]) {
-			allSame = false
-		}
+	// KBlockers/KTriggerOrder/KTriggerOptional are all deterministic now (no
+	// rng); the KMulligan keep/mulligan coin above is the one path that still
+	// draws from the stream, so across a spread of seeds the outcome sequence
+	// must not be constant -- that is what proves the seed is load-bearing
+	// rather than a fixed choice behind a seeded-looking API. The M1 fix
+	// round's point stands: run(7) alone cannot tell "seeded" from
+	// "constant", so we compare across seeds, not to itself.
+	seen := map[string]bool{}
+	for s := uint64(0); s < 64; s++ {
+		seen[fmt.Sprint(run(s))] = true
 	}
-	if allSame {
-		t.Fatal("seeds 7 and 8 produced identical intents on every decision -- the rng may not be load-bearing")
+	if len(seen) < 2 {
+		t.Fatal("64 seeds produced a single identical outcome sequence -- the rng may not be load-bearing")
 	}
 }
 
