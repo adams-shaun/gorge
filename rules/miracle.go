@@ -1,4 +1,4 @@
-// miracle.go implements the Miracle keyword (CR 702.93), Task 18.
+// miracle.go implements the Miracle keyword (CR 702.94), Task 18.
 //
 // Miracle is not a triggered ability in the T: sense -- it has no trigger
 // line to fire -- but it shares the trigger machinery's queue: when a card
