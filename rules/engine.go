@@ -615,7 +615,15 @@ func (e *Engine) Submit(in decision.Intent) error {
 		Text: fmt.Sprintf("%s:%v", d.Kind, in.Choices)})
 	e.pending = nil
 	e.handle(d, in)
-	e.checkStateBased()
+	// CR 704.4: nobody receives priority in the middle of a resolution. A
+	// handler may have resumed an effect only far enough to pose another
+	// mid-resolution decision; in that case state-based actions wait until
+	// the resolution finishes. The answer that finishes it clears resume, so
+	// this same boundary performs the deferred check before Advance can grant
+	// priority.
+	if !e.Suspended() {
+		e.checkStateBased()
+	}
 	e.Advance()
 	return nil
 }

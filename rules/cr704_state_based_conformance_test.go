@@ -20,7 +20,6 @@ import (
 )
 
 func TestCR704NoLifeSBAInsideSmallpoxDiscard(t *testing.T) {
-	requireCR601Audit(t, "CR 704.3/704.4: Submit checks SBAs while Smallpox is suspended for a discard")
 	e := crResolutionEngine(t, []string{"Smallpox"}, nil, nil)
 	id := crAbortMove(t, e, 0, "Smallpox", state.ZHand)
 	sa := e.G.Obj(id).Face().SpellAbility()
@@ -42,6 +41,13 @@ func TestCR704NoLifeSBAInsideSmallpoxDiscard(t *testing.T) {
 	}
 	if e.G.Players[1].Lost {
 		t.Errorf("CR 704.3/704.4/704.5a Smallpox seq %d: seat 1 eliminated during seat 0's discard ask, before spell completion; life zero must wait for the next priority boundary", start)
+	}
+	if len(d.Options) == 0 {
+		t.Fatalf("CR 704.4 Smallpox seq %d: discard decision has no options", d.Seq)
+	}
+	crAbortAnswer(t, e, "Smallpox", d.Options[0].Index)
+	if !e.G.Players[1].Lost {
+		t.Errorf("CR 704.3/704.5a Smallpox seq %d: seat 1 survived at zero life after spell completion; deferred SBA must run before priority", len(e.L.Events))
 	}
 }
 
