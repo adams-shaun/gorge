@@ -215,7 +215,6 @@ func TestCR704NoncombatDeathtouchDestroysDamagedCreature(t *testing.T) {
 }
 
 func TestCR704AuraBecomesIllegalAfterProtection(t *testing.T) {
-	requireCR601Audit(t, "CR 704.5m: attachment SBA ignores newly gained protection")
 	e := crResolutionEngine(t, []string{"Rancor", "Dominaria's Judgment", "Plains", "Island", "Swamp", "Mountain", "Forest"}, nil)
 	bearer := crAbortMove(t, e, 0, "Delver of Secrets", state.ZBattlefield)
 	aura := crAbortMove(t, e, 0, "Rancor", state.ZBattlefield)
