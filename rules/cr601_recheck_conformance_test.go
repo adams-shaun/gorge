@@ -24,7 +24,6 @@ import (
 // This is end-to-end conformance, not proof that adding castRestricted at
 // one line fixes it: the current cmc predicate also ignores stack X.
 func TestCR601RecheckAfterXAndLegalTarget(t *testing.T) {
-	requireCR601Audit(t, "CR 601.2e: chosen X makes a targetable proposal forbidden")
 	reg := testutil.CorpusRegistry(t)
 	checked := 0
 	for _, x := range []int{1, 2} {
@@ -33,6 +32,11 @@ func TestCR601RecheckAfterXAndLegalTarget(t *testing.T) {
 			name = "legal_X2_control"
 		}
 		t.Run(name, func(t *testing.T) {
+			// The legal control already passes; only the forbidden proposal
+			// belongs behind the known-red guard (Makefile conformance rule).
+			if x == 1 {
+				requireCR601Audit(t, "CR 601.2e: chosen X makes a targetable proposal forbidden")
+			}
 			e := crAbortEngine(t, reg, "ur-delver", "Power Sink")
 			prelate := crAbortMove(t, e, 1, "Sanctum Prelate", state.ZBattlefield)
 			e.emit(events.Event{Kind: events.Choose, Obj: prelate, Counter: "number", Amount: 2})
