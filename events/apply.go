@@ -550,6 +550,25 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	// real-zone-over-claimed-zone rule this function already applies to the
 	// removal itself, a few lines below).
 	wasBattlefield := o.Zone == state.ZBattlefield
+	if wasBattlefield && to != state.ZBattlefield {
+		// Leaving combat removes this permanent as a blocker, but does not
+		// make creatures it blocked unblocked (CR 506.4, 509.1h). Preserve
+		// each attacker's blocker-list length with the same zero tombstone
+		// EndCombatReset uses for regeneration. Dense arena order keeps this
+		// deterministic, and the departing object's own state is cleared by
+		// the zone reset below.
+		for i := range g.Objs {
+			other := &g.Objs[i]
+			if other.ID == id {
+				continue
+			}
+			for j, blocker := range other.BlockedBy {
+				if blocker == id {
+					other.BlockedBy[j] = 0
+				}
+			}
+		}
+	}
 	remove(g, id, o.Zone, zoneOwner(o, o.Zone))
 	if to != state.ZCeased {
 		dst := zoneOwner(o, to)

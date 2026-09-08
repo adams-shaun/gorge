@@ -203,7 +203,6 @@ func TestCR510PriorityBetweenDoubleStrikeDamageSteps(t *testing.T) {
 }
 
 func TestCR506ReturnedBlockerIsRemovedFromCombat(t *testing.T) {
-	requireCR601Audit(t, "CR 506.4: a blinked blocker is treated as still blocking when it returns")
 	e := crResolutionEngine(t, []string{"Memnite"}, []string{"Memnite", "Ghostly Flicker"})
 	a := crAbortMove(t, e, 0, "Memnite", state.ZBattlefield)
 	b := crAbortMove(t, e, 1, "Memnite", state.ZBattlefield)

@@ -109,6 +109,37 @@ func TestMoveKeepsExactlyOneZone(t *testing.T) {
 	}
 }
 
+func TestMoveLeavingBattlefieldTombstonesBlockerReferences(t *testing.T) {
+	g, l := twoPlayer(t)
+	attackerID := g.Zone(state.ZLibrary, 0)[0]
+	blockerID := g.Zone(state.ZLibrary, 1)[0]
+	otherID := g.Zone(state.ZLibrary, 1)[1]
+	for _, id := range []state.ObjID{attackerID, blockerID, otherID} {
+		Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
+	}
+	attacker := g.Obj(attackerID)
+	blocker := g.Obj(blockerID)
+	other := g.Obj(otherID)
+	attacker.BlockedBy = []state.ObjID{blockerID}
+	blocker.BlockedBy = []state.ObjID{otherID}
+	other.BlockedBy = []state.ObjID{otherID}
+
+	Emit(g, l, Event{Kind: MoveZone, Obj: blockerID, From: state.ZBattlefield, To: state.ZExile})
+
+	if got := attacker.BlockedBy; !reflect.DeepEqual(got, []state.ObjID{0}) {
+		t.Fatalf("attacker BlockedBy = %v, want one zero tombstone", got)
+	}
+	if blocker.BlockedBy != nil {
+		t.Fatalf("departing blocker's own BlockedBy = %v, want nil", blocker.BlockedBy)
+	}
+	if got := other.BlockedBy; !reflect.DeepEqual(got, []state.ObjID{otherID}) {
+		t.Fatalf("unrelated BlockedBy = %v, want [%d]", got, otherID)
+	}
+	if blocker.Zone != state.ZExile {
+		t.Fatalf("blocker zone = %s, want exile", blocker.Zone)
+	}
+}
+
 func TestPutOnStackDoesNotDoublePush(t *testing.T) {
 	g, l := twoPlayer(t)
 	id := g.Zone(state.ZLibrary, 0)[0]
