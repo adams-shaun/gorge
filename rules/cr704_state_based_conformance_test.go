@@ -115,7 +115,6 @@ func TestCR704CorpusLegendDuplicatesCannotReachPriority(t *testing.T) {
 }
 
 func TestCR704RepoCreatureOppositeCountersAnnihilate(t *testing.T) {
-	requireCR601Audit(t, "CR 704.5q: opposite counters remain, even though their P/T contributions cancel")
 	reg := testutil.CorpusRegistry(t)
 	seen := map[string]bool{}
 	checked := 0
