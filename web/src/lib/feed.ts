@@ -50,6 +50,18 @@ export function isRoutineLine(line: string): boolean {
 }
 
 /**
+ * isStepLine reports whether a line is a phase/step boundary. view/describe.go
+ * renders a StepChange event literally as "Step: <phase>", so this is a match
+ * against the server's own documented contract, not a guess. There is no event
+ * kind on the rail (host/fanout.go puts a bare string in Widget.Last), so the
+ * literal is the only handle; the transcript filters the same lines by the
+ * 'step' event kind (logfilter.ts).
+ */
+export function isStepLine(line: string): boolean {
+  return /^Step: /.test(line);
+}
+
+/**
  * The key a repeat run is counted over. Two routine lines that name
  * different players still say the same thing — "this table is passing
  * priority around" — and in a four-seat game the name changes every burst,
@@ -76,7 +88,9 @@ export interface FeedNow {
  * have said nothing yet, so the rail's row count matches the grid's table
  * count and rows never jump position. `count` collapses the repeat run at
  * the end of that table's own lines (see runKey), ignoring the other tables
- * interleaved between them.
+ * interleaved between them. A table's current line skips step lines (ui9,
+ * B4): a phase boundary is clock noise, so a table whose only recent lines
+ * are "Step: …" reports an empty line rather than flashing the clock.
  */
 export function latestPerTable(lines: FeedLine[], order: readonly string[]): FeedNow[] {
   const byTable = new Map<string, string[]>();
@@ -87,10 +101,15 @@ export function latestPerTable(lines: FeedLine[], order: readonly string[]): Fee
   }
   return order.map((table) => {
     const own = byTable.get(table) ?? [];
-    const line = own.length ? own[own.length - 1] : '';
+    const last = [...own].reverse().find((x) => !isStepLine(x));
+    const line = last ?? '';
     const key = runKey(line);
     let count = 0;
-    for (let i = own.length - 1; i >= 0 && runKey(own[i]) === key; i--) count++;
+    for (let i = own.length - 1; i >= 0; i--) {
+      if (isStepLine(own[i])) continue; // step lines are not part of an action's repeat run
+      if (runKey(own[i]) === key) count++;
+      else break;
+    }
     return { table, line, count, routine: isRoutineLine(line) };
   });
 }
@@ -108,7 +127,7 @@ export function latestPerTable(lines: FeedLine[], order: readonly string[]): Fee
  */
 export function lastNotableByTable(lines: FeedLine[]): Map<string, string> {
   const out = new Map<string, string>();
-  for (const l of lines) if (!isRoutineLine(l.line)) out.set(l.table, l.line);
+  for (const l of lines) if (!isRoutineLine(l.line) && !isStepLine(l.line)) out.set(l.table, l.line);
   return out;
 }
 
@@ -118,6 +137,6 @@ export function lastNotableByTable(lines: FeedLine[]): Map<string, string> {
  * list bounded independently of the feed's own cap.
  */
 export function notableLines(lines: FeedLine[], all = false, cap = 80): FeedLine[] {
-  const out = all ? lines.slice() : lines.filter((l) => !isRoutineLine(l.line));
+  const out = all ? lines.slice() : lines.filter((l) => !isRoutineLine(l.line) && !isStepLine(l.line));
   return out.length > cap ? out.slice(out.length - cap) : out;
 }
