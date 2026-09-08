@@ -369,6 +369,21 @@ Oracle:x
 		t.Fatalf("no pass option: %+v", d.Options)
 	}
 	beforeLife := e.G.Players[0].Life
+	beforeEvents := len(e.L.Events)
+	// CR 800.4a cessation emits one MoveZone per card the departing player
+	// owns, so the old fixed count of 5 no longer holds. It is still exactly
+	// determined, though, and dropping the assertion would retire the only
+	// tripwire that catches amplification in the LOG rather than in life
+	// totals -- so it is retargeted rather than deleted: one cessation per
+	// owned card, plus the same 4 non-cessation events the constant 5
+	// counted. Keyed to the measured owned count, not to a literal, so it
+	// survives a change to the deck this fixture is built from.
+	owned1 := 0
+	for k := range e.G.Objs {
+		if o := &e.G.Objs[k]; o.ID != 0 && o.Owner == 1 && o.Card != nil {
+			owned1++
+		}
+	}
 
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
 		t.Fatalf("submit pass: %v", err)
@@ -383,6 +398,9 @@ Oracle:x
 	if gained := e.G.Players[0].Life - beforeLife; gained != 1 {
 		t.Fatalf("life gained after one Submit = %d, want exactly 1 (one swept attempt per player "+
 			"per checkStateBased call, not a re-attempt on every pass and not a 32-pass-amplified count)", gained)
+	}
+	if added, want := len(e.L.Events)-beforeEvents, owned1+4; added != want {
+		t.Fatalf("log grew by %d events after one Submit, want exactly %d (%d cessation moves for player 1's owned cards plus 4), not a 32x-amplified count", added, want, owned1)
 	}
 }
 
