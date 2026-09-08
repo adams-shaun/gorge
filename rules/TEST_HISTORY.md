@@ -21,10 +21,10 @@ Every 2.1-4.8s row here predates the corpus tests and is honest -- the
 count column is the tell: those runs are at 208-300 tests, before the
 corpus lane existed.
 
-The 2026-09-08 rows at 445-446 tests are a different animal. Three were
+The 2026-09-08 rows at 445-446 tests are a different animal. Four were
 vacuous. The one for 2ea102f+ was re-measured with the corpus present
 and corrected in place (3.2 -> 13.5). The other two, written from the
-fx13 and fx11 worktrees at 25374ab+ and 9dc1d2e+, were REMOVED rather
+fx13, fx11 and fx15 worktrees, were REMOVED rather
 than corrected: re-measuring a superseded commit would have meant
 inventing a number, and a run that skipped the tests it was timing is
 not a slow measurement or a fast one, it is not a measurement.
@@ -198,6 +198,4 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-08T20:47Z | 9dc1d2e+ | 12.6 | 445 | sadams |
 | 2026-09-08T22:02Z | 11311e9+ | 12.0 | 445 | sadams |
 | 2026-09-08T22:22Z | 2ea102f+ | 13.5 | 446 | sadams |
-| 2026-09-08T19:09Z | 25374ab+ | 2.8 | 445 | sadams |
-| 2026-09-08T21:06Z | 9dc1d2e+ | 3.1 | 446 | sadams |
-| 2026-09-08T22:24Z | 2ea102f+ | 3.1 | 446 | sadams |
+| 2026-09-08T22:49Z | 4669ff9+ | 13.6 | 446 | sadams |

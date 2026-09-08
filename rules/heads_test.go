@@ -495,8 +495,35 @@ import (
 // heads. Re-measured on branch+current-main, which is what FL-107 requires,
 // and the 2- and 4-seat values are identical either way because fx13 moved
 // neither.
+//
+// fx15 (F42, CR 800.4e -- creatures attacking a departed player are removed
+// from combat) moves the 2-seat head to 996edb2512cdab75 and moves NOTHING
+// else. That asymmetry is the evidence, not a puzzle: the defect needs a
+// player to leave the game while creatures are attacking THEM specifically,
+// and in the 4-, 6- and 8-seat games the eliminations happen to fall
+// outside a combat aimed at the departing seat. One golden moving is the
+// narrow blast radius the fix was scoped to have.
+//
+// MEASURED on the merged main by dumping both complete 2-seat logs and
+// diffing them, rather than by trusting the head alone:
+//
+//   - 1719  end_combat_reset obj=31  Thalia, Guardian of Thraben
+//   - 1720  end_combat_reset obj=37  Flickerwisp
+//   - 1721  end_combat_reset obj=48  Palace Jailer
+//   - 1780  damage pl=1 amt=3
+//   - 1781  damage pl=1 amt=2
+//
+// 1783 -> 1784 events; 309 intents, 13 turns and the winner are all
+// unchanged. Note the net is +1, NOT +3: three of seat 0's attackers are
+// removed from combat when seat 1 departs, and the two damage assignments
+// seat 1 was still absorbing afterwards stop happening. A reviewer reading
+// only the event delta would see a single event and conclude almost nothing
+// changed; the delta is small because an addition and a removal nearly
+// cancel, which is exactly the case where the count is the wrong thing to
+// read. The removed damage is the defect: it was assigned to a seat that
+// had already left the game.
 var acceptanceHeads = map[int]string{
-	2: "1894b931ecbf7b9b",
+	2: "996edb2512cdab75",
 	4: "0d6a910b28381098",
 	6: "6fc675093861ae6e",
 	8: "5f11649a6e8dcf26",
