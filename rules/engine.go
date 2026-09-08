@@ -458,10 +458,7 @@ func New(cfg Config) *Engine {
 			// per-seat deck-out guard above returned early) -- a game that
 			// ended during the deal never starts a round.
 			e.pregame = true
-			e.mulligan = mulliganRound{
-				seats: alive, kept: make([]bool, len(alive)),
-				taken: make([]int, len(alive)), limit: cfg.Mulligans,
-			}
+			e.mulligan = newMulliganRound(alive, cfg.Mulligans)
 		} else {
 			e.beginTurn(alive[0])
 		}

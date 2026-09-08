@@ -11,14 +11,26 @@ import (
 )
 
 // twoSeatConfig builds a two-seat, one-deck-each Config over mountainDeck,
-// with Mulligans free mulligans per seat. The mulligan round only runs when
-// Mulligans > 0 (Ruling R-8.4: the zero value skips the round entirely).
+// with Mulligans permitted mulligans per seat. The mulligan round only runs
+// when Mulligans > 0 (Ruling R-8.4: the zero value skips the round entirely).
 func twoSeatConfig(t *testing.T, deckSize, mulligans int) Config {
 	t.Helper()
 	return Config{
 		Seed: 42, Mulligans: mulligans,
 		Names: []string{"a", "b"},
 		Decks: [][]*cards.Card{mountainDeck(t, deckSize), mountainDeck(t, deckSize)},
+	}
+}
+
+func fourSeatConfig(t *testing.T, deckSize, mulligans int) Config {
+	t.Helper()
+	return Config{
+		Seed: 42, Mulligans: mulligans,
+		Names: []string{"a", "b", "c", "d"},
+		Decks: [][]*cards.Card{
+			mountainDeck(t, deckSize), mountainDeck(t, deckSize),
+			mountainDeck(t, deckSize), mountainDeck(t, deckSize),
+		},
 	}
 }
 
@@ -127,6 +139,87 @@ func TestABotThatMulligansKeepsSevenAndBottomsOne(t *testing.T) {
 	}
 	if !found {
 		t.Errorf("no Shuffle event recorded for seat 0's mulligan re-shuffle")
+	}
+}
+
+// TestMultiplayerSecondMulliganBottomsOne proves CR 103.5b exempts only the
+// first mulligan's bottoming penalty in a game with three or more players.
+func TestMultiplayerSecondMulliganBottomsOne(t *testing.T) {
+	e := New(fourSeatConfig(t, 60, 2))
+	taken := 0
+	var (
+		bottomAsk      *decision.Decision
+		freeKeepPrompt string
+	)
+	decide := func(d *decision.Decision) decision.Intent {
+		if len(d.Options) > 0 && d.Options[0].Kind == "bottom" {
+			copy := *d
+			bottomAsk = &copy
+			return decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}
+		}
+		if d.Player == 0 && taken < 2 {
+			if taken == 1 {
+				freeKeepPrompt = d.Prompt
+			}
+			for _, o := range d.Options {
+				if o.Kind == "mulligan" {
+					taken++
+					return decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{o.Index}}
+				}
+			}
+		}
+		return decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}
+	}
+	playPregame(t, e, decide)
+
+	if want := "Keep your hand (keep all seven cards) or take a mulligan?"; freeKeepPrompt != want {
+		t.Errorf("first multiplayer mulligan keep prompt = %q, want %q", freeKeepPrompt, want)
+	}
+	if bottomAsk == nil {
+		t.Fatal("seat 0 received no bottoming ask after its second multiplayer mulligan")
+	}
+	if bottomAsk.Player != 0 || bottomAsk.Min != 1 || bottomAsk.Max != 1 {
+		t.Errorf("second multiplayer mulligan bottoming ask = player %d, %d..%d; want player 0, 1..1",
+			bottomAsk.Player, bottomAsk.Min, bottomAsk.Max)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != 6 {
+		t.Errorf("seat 0 hand %d, want 6 after two multiplayer mulligans and one bottom", got)
+	}
+}
+
+// TestTwoPlayerFirstMulliganStillBottomsOne proves the multiplayer exemption
+// does not leak into an ordinary two-player London mulligan round.
+func TestTwoPlayerFirstMulliganStillBottomsOne(t *testing.T) {
+	e := New(twoSeatConfig(t, 41, 1))
+	took := false
+	var bottomAsk *decision.Decision
+	decide := func(d *decision.Decision) decision.Intent {
+		if len(d.Options) > 0 && d.Options[0].Kind == "bottom" {
+			copy := *d
+			bottomAsk = &copy
+			return decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}
+		}
+		if d.Player == 0 && !took {
+			for _, o := range d.Options {
+				if o.Kind == "mulligan" {
+					took = true
+					return decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{o.Index}}
+				}
+			}
+		}
+		return decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}
+	}
+	playPregame(t, e, decide)
+
+	if bottomAsk == nil {
+		t.Fatal("seat 0 received no bottoming ask after its first two-player mulligan")
+	}
+	if bottomAsk.Player != 0 || bottomAsk.Min != 1 || bottomAsk.Max != 1 {
+		t.Errorf("first two-player mulligan bottoming ask = player %d, %d..%d; want player 0, 1..1",
+			bottomAsk.Player, bottomAsk.Min, bottomAsk.Max)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != 6 {
+		t.Errorf("seat 0 hand %d, want 6 after its first two-player mulligan and one bottom", got)
 	}
 }
 
@@ -344,6 +437,9 @@ func capturePrompts(t *testing.T, mulligans, take int) (keepPrompt, bottomPrompt
 // bottom of your library" for two -- never the engine-speak "bottoms 2
 // card(s)" it replaced.
 func TestBottomingPromptIsRealEnglish(t *testing.T) {
+	if got, want := bottomingPrompt(0), "Keep all seven cards"; got != want {
+		t.Errorf("zero-card bottom prompt = %q, want %q", got, want)
+	}
 	_, singular := capturePrompts(t, 1, 1)
 	if want := "Put 1 card on the bottom of your library"; singular != want {
 		t.Errorf("one-card bottom prompt = %q, want %q", singular, want)
