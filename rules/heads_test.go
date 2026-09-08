@@ -452,11 +452,54 @@ import (
 // The equal event counts are load-bearing here. A change to WHICH defenders
 // are asked, rather than in what order, would have changed the count, and
 // that is the failure this fix had to avoid.
+//
+// fx11 (F33, CR 800.4a) regenerated ALL FOUR, and this is the one head move
+// in the series that should be expected rather than checked for: every
+// acceptance game ends with at least one player losing, and what happens to
+// a departed player's cards is exactly what changed. A seat count that did
+// NOT move would have been the surprising result.
+//
+// Departure used to move the departing player's BATTLEFIELD permanents to
+// exile, which is CR 800.4a approximated by the nearest zone this build had.
+// Objects now cease: every card-backed object that player OWNS leaves from
+// whatever zone it is in, plus every stack object it controls, to ZCeased --
+// a zone with no membership list, so a ceased object is in no zone at all
+// rather than sitting in exile pretending to be gone. Three things follow,
+// and all three show up in the logs:
+//
+//   - the sweep now touches library, hand and graveyard cards, not just the
+//     battlefield, so it emits far MORE events than the exile sweep did;
+//   - it walks the arena in dense index order, so the first card it touches
+//     is the lowest-id owned object rather than the first battlefield one;
+//   - ownership, not control, decides. An opponent-owned card the departing
+//     player happened to control stays; the departing player's own card
+//     under someone else's control goes.
+//
+// Measured at the merge gate on this branch rebased onto current main (so
+// these values are the combined state of fx13 and fx11), first divergence
+// per seat count. Every one of them is the same signature -- the old log
+// exiling a battlefield land, the new log ceasing a lower-id library card:
+//
+//   - 2 seats: event 1718. Base exiled battlefield Island (obj 65); now
+//     Underground Sea (obj 61) ceases from the LIBRARY.
+//   - 4 seats: event 4497. Base exiled battlefield Underground Sea (obj 63);
+//     now Underground Sea (obj 61) ceases from the library.
+//   - 6 seats: event 5626. Base exiled battlefield Swamp (obj 69); now
+//     Underground Sea (obj 61) ceases from the library.
+//   - 8 seats: event 9275. Base exiled battlefield Island (obj 243); now
+//     Island (obj 241) ceases from the library.
+//
+// The 6- and 8-seat values here are NOT the ones fx11 measured on its own
+// branch (f95dceca1d442c5e and a53ae4074f80c2e3). Those were taken against a
+// main that predates fx13's APNAP blocker order, which moves those same two
+// heads. Re-measured on branch+current-main, which is what FL-107 requires,
+// and the 2- and 4-seat values are identical either way because fx13 moved
+// neither.
 var acceptanceHeads = map[int]string{
-	2: "4a6c29ab662c546a",
-	4: "e413e42321e9ed5a",
-	6: "b7afe4155830661f",
-	8: "e9bc9050a91bb001",
+	2: "1894b931ecbf7b9b",
+	4: "0d6a910b28381098",
+	6: "6fc675093861ae6e",
+	8: "5f11649a6e8dcf26",
 }
 
 func TestHeads(t *testing.T) {
