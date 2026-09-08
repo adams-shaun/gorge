@@ -66,4 +66,40 @@ describe('ManaPool', () => {
     const { html } = render(ManaPool, { props: { pool: { S: 4 } } });
     expect(drawn(html)).toBe('');
   });
+
+  // --- available mana (task mp1): the public, battlefield-derived half ---
+
+  it('available mana renders its own group, distinct from the floating pool', () => {
+    const { html } = render(ManaPool, { props: { pool: {}, available: { G: 2, W: 1 } } });
+    expect(html).toContain('data-mana-available');
+    expect(html).toContain('data-avail="G"');
+    expect(html).toContain('data-avail="W"');
+    // Only nonzero available symbols appear, in WUBRGC order.
+    expect(orderAvail(html)).toEqual(['W', 'G']);
+    // no floating pool is rendered when it is empty
+    expect(html).not.toContain('data-mana-pool');
+    expect(html).toContain('aria-label="Available by tapping: 1 white, 2 green"');
+  });
+
+  it('available renders even when the floating pool is null (a hidden/spectator pool)', () => {
+    const { html } = render(ManaPool, { props: { pool: null, available: { B: 1 } } });
+    expect(html).toContain('data-mana-available');
+    expect(html).toContain('data-avail="B"');
+    expect(html).not.toContain('data-mana-pool');
+  });
+
+  it('an absent available is not an error and draws nothing', () => {
+    expect(drawn(render(ManaPool, { props: { pool: {} } }).html)).toBe('');
+  });
+
+  it('both groups together are separated and never mistaken for one pile', () => {
+    const { html } = render(ManaPool, { props: { pool: { R: 3 }, available: { U: 2 } } });
+    expect(html).toContain('data-mana-available');
+    expect(html).toContain('data-mana-pool');
+    expect(html).toContain('data-mana-sep');
+    expect(html).toContain('aria-label="Available by tapping: 2 blue"');
+    expect(html).toContain('aria-label="Mana pool: 3 red"');
+  });
 });
+
+const orderAvail = (html: string): string[] => [...html.matchAll(/data-avail="([WUBRGC])"/g)].map((m) => m[1]);

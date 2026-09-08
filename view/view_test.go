@@ -46,6 +46,15 @@ func (c flatChars) Keywords(id state.ObjID) []string {
 // *rules.Engine instead, exactly so PendingTriggers is exercised for real.
 func (c flatChars) PendingTriggers() []state.PendingTrigger { return nil }
 
+// AvailableMana is not exercised by flatChars-driven tests that check the
+// projection: the real value is the rules.Engine's answer (pinned by
+// rules' TestAvailableMana*), and the view's job is only to project whatever
+// Chars hands it. flatChars therefore reports zero availability, so every
+// existing flatChars-driven view is an empty-availability view; the one test
+// that wants a nonzero Available drives the projection through a custom
+// Chars instead (see availableProjection below).
+func (c flatChars) AvailableMana(state.PlayerID) state.Mana { return state.Mana{} }
+
 func fourSeatBoard(t *testing.T) *state.Game {
 	t.Helper()
 	g := state.NewGame([]string{"alice", "bob", "carol", "dave"})
