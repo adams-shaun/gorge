@@ -46,11 +46,30 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
-			h.Emit(events.Event{Kind: events.Damage, Obj: t.Obj, Amount: n})
+			emitObjectDamage(h, c.Source, t.Obj, n)
 			if remember {
 				c.Remembered = append(c.Remembered, state.Target{Obj: t.Obj})
 			}
 		}
+	}
+}
+
+// emitObjectDamage marks the shared SBA witness only when positive damage from
+// a derived-deathtouch source actually increased the recipient's marked
+// damage. Host.Emit cannot expose a replacement event, so the state delta is
+// the effects-layer observation that protection or prevention did not replace
+// the Damage event.
+func emitObjectDamage(h Host, source, target state.ObjID, amount int32) {
+	o := h.Game().Obj(target)
+	if o == nil {
+		return
+	}
+	before := o.Damage
+	h.Emit(events.Event{Kind: events.Damage, Obj: target, Amount: amount})
+	o = h.Game().Obj(target)
+	if amount > 0 && o != nil && o.Damage > before && h.HasKeyword(source, "Deathtouch") {
+		h.Emit(events.Event{Kind: events.CounterChange, Obj: target,
+			Counter: "Deathtouched", Amount: 1})
 	}
 }
 
@@ -70,7 +89,7 @@ func effDamageAll(h Host, c *Ctx, sa *cards.SA) {
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
 			if MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
-				h.Emit(events.Event{Kind: events.Damage, Obj: id, Amount: n})
+				emitObjectDamage(h, c.Source, id, n)
 			}
 		}
 	}
