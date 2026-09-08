@@ -5,7 +5,7 @@ import IdentityBar from './IdentityBar.svelte';
 
 const player = (over: Partial<PlayerView> = {}): PlayerView => ({
   seat: 0, name: 'Ari', life: 38, lost: false, library_size: 30, hand_size: 7, graveyard_size: 0,
-  hand: [], battlefield: [], graveyard: [], exile: [], pool: {},
+  hand: [], battlefield: [], graveyard: [], exile: [], pool: {}, available: {},
   command: [], commanders: [], commander_casts: [], ...over,
 });
 
@@ -14,7 +14,7 @@ const bar = (p: PlayerView, seat?: SeatInfo) =>
 
 describe('IdentityBar — the three-line box (B1 / I-10)', () => {
   it('renders the name and life on one line, the zone counts on one row, and the mana pool on the third', () => {
-    const html = bar(player({ life: 38, pool: { U: 2, B: 1 } }));
+    const html = bar(player({ life: 38, pool: { U: 2, B: 1 }, available: { W: 1 } }));
     // line 1: name then life bubble
     expect(html).toContain('>Ari<');
     expect(html).toContain('>38<');
@@ -22,7 +22,10 @@ describe('IdentityBar — the three-line box (B1 / I-10)', () => {
     expect(html).toContain('library 30');
     expect(html).toContain('hand 7');
     expect(html).toContain('graveyard 0');
-    // line 3: the pool bubbles
+    // line 3: the mana readout — available (hollow) bubbles plus the
+    // floating pool (solid), both present and both named
+    expect(html).toContain('data-mana-available');
+    expect(html).toContain('data-avail="W"');
     expect(html).toContain('data-mana="U"');
     expect(html).toContain('data-mana="B"');
     // the dropped features are gone: no commander-damage clock, no deck line
@@ -30,10 +33,28 @@ describe('IdentityBar — the three-line box (B1 / I-10)', () => {
     expect(html).not.toContain('Commander');
   });
 
-  it('a public spectator (null pool) draws no pool chips but keeps the reserved row', () => {
-    const html = bar(player({ pool: null as unknown as Record<string, number> }));
+  it('a public spectator (null pool) still draws the public available mana, and the two never conflate', () => {
+    // The whole point of the feature: a spectator has a null pool for every
+    // seat, but available mana derives from the public battlefield and so
+    // still populates line 3. The floating pool stays hollow-absent while
+    // the available group appears.
+    const html = bar(player({ pool: null as unknown as Record<string, number>, available: { W: 3 } }));
     expect(html).toContain('data-mana-row');
+    expect(html).toContain('data-mana-available');
+    expect(html).toContain('data-avail="W"');
     expect(html).not.toContain('data-mana-pool');
+    expect(html).toContain('">3<');
+  });
+
+  it('available and floating mana are rendered as distinct, clearly named groups on one line', () => {
+    const html = bar(player({ pool: { R: 1 }, available: { G: 2, W: 1 } }));
+    expect(html).toContain('data-mana-available');
+    expect(html).toContain('data-mana-pool');
+    expect(html).toMatch(/Available by tapping: /);
+    expect(html).toMatch(/Mana pool: /);
+    // The divider between the two groups prevents a reader from reading them
+    // as one combined pile.
+    expect(html).toContain('data-mana-sep');
   });
 
   it('full name never truncated when within the 10-char display limit', () => {
