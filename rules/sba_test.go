@@ -34,6 +34,25 @@ func TestZeroLifeEliminatesAPlayer(t *testing.T) {
 	}
 }
 
+func TestDepartureSweepUsesOwnershipOnBattlefield(t *testing.T) {
+	e := layerEngine(t)
+	owned := onBoard(t, e, 0, "Name:Owned\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	controlled := onBoard(t, e, 1, "Name:Controlled\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e.G.Obj(owned).Controller = 1
+	e.G.Obj(controlled).Controller = 0
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{controlled})
+	e.G.SetZone(state.ZBattlefield, 1, []state.ObjID{owned})
+
+	e.ceaseDepartedObjects(0)
+
+	if got := e.G.Obj(owned).Zone; got != state.ZCeased {
+		t.Fatalf("departed player's opponent-controlled card zone = %s, want ceased", got)
+	}
+	if got := e.G.Obj(controlled).Zone; got != state.ZBattlefield {
+		t.Fatalf("opponent-owned card controlled by departed player zone = %s, want battlefield", got)
+	}
+}
+
 // TestLethalDamageDestroysACreature: damage marked at least equal to
 // toughness is a destroying state-based action (CR 704.5g).
 func TestLethalDamageDestroysACreature(t *testing.T) {
@@ -298,18 +317,18 @@ Oracle:x
 	}
 }
 
-// TestRemovePermanentsDoesNotAmplifyWhenAReplacementKeepsThePermanent is the
+// TestDepartureSweepDoesNotAmplifyWhenAReplacementKeepsThePermanent is the
 // fix-round-1 regression test for the second instance of finding 1,
 // updated in fix round 3 for the tighter bound T22-n's swept set achieves.
 // An eliminated player's own permanent staying on the battlefield (via a
 // replacement effect an alive player's own permanent carries -- ValidCard$
 // on a replacement is matched against the MOVING object, not scoped to the
-// mover's controller, so an alive player's ward can legally intercept
-// anyone's exile) must not make checkLoseConditions' removal sweep believe
-// something changed on every pass either. Ward, played by player 0
-// (who stays alive), redirects any Battlefield -> Exile move into a
-// 1-life gain instead; Victim, controlled by player 1 (who is eliminated),
-// is what the removal sweep tries and fails to exile.
+// mover's controller, so an alive player's broad Moved replacement can
+// intercept a cessation) must not make checkLoseConditions' departure sweep
+// believe something changed on every pass either. Ward, played by player 0
+// (who stays alive), redirects any move from the battlefield into a 1-life
+// gain; Victim, owned by player 1 (who is eliminated), is what the sweep
+// tries and fails to cease.
 //
 // Against the unfixed 7b68be7 code (no bound at all) this scenario gains 32
 // life and grows the log by 36 events from one Submit. Fix round 1's
@@ -319,17 +338,16 @@ Oracle:x
 // change and stopping -- 2 attempts, 2 life, 6 events. Fix round 3's swept
 // set (T22-n, mirroring destroyLethalDamage's attempted from round 2)
 // remembers that player 1 was already swept on pass 1, so pass 2 skips the
-// attempt entirely instead of repeating it: exactly 1 attempt per player
-// per checkStateBased call, for 1 life and 5 events -- the number moved
-// (from round 1's 2/6, confirmed by rerunning this exact scenario before
-// the round-3 fix) because the bound genuinely got tighter, not because
-// anything broke; see the fix-round-3 report section for the full trace.
-func TestRemovePermanentsDoesNotAmplifyWhenAReplacementKeepsThePermanent(t *testing.T) {
+// attempt entirely instead of repeating it: exactly 1 blocked attempt per
+// player per checkStateBased call. The life delta below measures that bound;
+// the event count is no longer fixed because CR 800.4a now also emits one
+// cessation move for every other card that player owns.
+func TestDepartureSweepDoesNotAmplifyWhenAReplacementKeepsThePermanent(t *testing.T) {
 	e := newSeats(t, 2)
 	onBoard(t, e, 0, `Name:Ward
 ManaCost:1 W
 Types:Artifact
-R:Event$ Moved | Origin$ Battlefield | Destination$ Exile | ValidCard$ Card | ReplaceWith$ RepLife | Description$ x
+R:Event$ Moved | Origin$ Battlefield | Destination$ Ceased | ValidCard$ Card.Other | ReplaceWith$ RepLife | Description$ x
 SVar:RepLife:DB$ GainLife | Defined$ You | LifeAmount$ 1
 Oracle:x
 `)
@@ -351,7 +369,6 @@ Oracle:x
 		t.Fatalf("no pass option: %+v", d.Options)
 	}
 	beforeLife := e.G.Players[0].Life
-	beforeEvents := len(e.L.Events)
 
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
 		t.Fatalf("submit pass: %v", err)
@@ -366,9 +383,6 @@ Oracle:x
 	if gained := e.G.Players[0].Life - beforeLife; gained != 1 {
 		t.Fatalf("life gained after one Submit = %d, want exactly 1 (one swept attempt per player "+
 			"per checkStateBased call, not a re-attempt on every pass and not a 32-pass-amplified count)", gained)
-	}
-	if added := len(e.L.Events) - beforeEvents; added != 5 {
-		t.Fatalf("log grew by %d events after one Submit, want exactly 5, not a 32x-amplified count", added)
 	}
 }
 
@@ -689,8 +703,8 @@ Oracle:x
 // A future change that legitimately adds or removes a call site now moves
 // the recorded baseline instead of forcing a hand-edited constant.
 //
-// Ward (seat 0, alive) turns any Battlefield -> Exile into a 1-life gain, so
-// seat 0's life total counts blocked sweep attempts exactly. Victim belongs
+// Ward (seat 0, alive) turns any move from the battlefield into a 1-life
+// gain, so seat 0's life total counts blocked sweep attempts exactly. Victim belongs
 // to seat 1, who is eliminated, so the sweep keeps trying to exile it. Seat
 // 2 carries an N-link death chain (each link only becomes lethal once the
 // previous one has died) that forces the loop through N passes with nothing
@@ -713,7 +727,7 @@ func TestRemovalSweepFiringsDoNotScaleWithAnUnrelatedDeathChain(t *testing.T) {
 		onBoard(t, e, 0, `Name:Ward
 ManaCost:1 W
 Types:Artifact
-R:Event$ Moved | Origin$ Battlefield | Destination$ Exile | ValidCard$ Card | ReplaceWith$ RepLife | Description$ x
+R:Event$ Moved | Origin$ Battlefield | Destination$ Ceased | ValidCard$ Card.Other | ReplaceWith$ RepLife | Description$ x
 SVar:RepLife:DB$ GainLife | Defined$ You | LifeAmount$ 1
 Oracle:x
 `)
@@ -926,7 +940,7 @@ func TestATokenOnTheStackIsNotPrematurelyExiled(t *testing.T) {
 // call, the same bound checkLoseConditions' removal sweep and
 // destroyLethalDamage already hold for their own blocked attempts
 // (TestDestroyLethalDamageDoesNotAmplifyWhenAReplacementKeepsThePermanent
-// and TestRemovePermanentsDoesNotAmplifyWhenAReplacementKeepsThePermanent
+// and TestDepartureSweepDoesNotAmplifyWhenAReplacementKeepsThePermanent
 // above are the same shape for their own passes).
 func TestExileDeadTokensDoesNotAmplifyWhenAReplacementBlocksTheMove(t *testing.T) {
 	e := newSeats(t, 2)

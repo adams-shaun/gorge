@@ -927,6 +927,28 @@ func TestCastInfoRecordsXAndFlags(t *testing.T) {
 	}
 }
 
+func TestMoveToCeasedRemovesMembershipAndResetsObject(t *testing.T) {
+	g, id := gameWithOneCard(t)
+	Move(g, id, state.ZHand, state.ZBattlefield)
+	o := g.Obj(id)
+	o.Tapped = true
+	o.Damage = 2
+	o.Counters = []state.Counter{{Kind: "P1P1", N: 1}}
+	o.AttachedTo = id
+	o.BlockedBy = []state.ObjID{id}
+
+	Move(g, id, state.ZBattlefield, state.ZCeased)
+	if o.Zone != state.ZCeased {
+		t.Fatalf("object zone = %s, want ceased", o.Zone)
+	}
+	if got := g.Zone(state.ZCeased, o.Owner); got != nil {
+		t.Fatalf("ceased membership = %v, want nil", got)
+	}
+	if o.Tapped || o.Damage != 0 || o.Counters != nil || o.AttachedTo != 0 || o.BlockedBy != nil {
+		t.Fatalf("ceased object retained zone state: %+v", o)
+	}
+}
+
 func TestCastInfoKindString(t *testing.T) {
 	if got, want := CastInfo.String(), "cast_info"; got != want {
 		t.Fatalf("CastInfo.String() = %q, want %q", got, want)

@@ -152,8 +152,8 @@ func TestDestroyedCommanderDeclineLetsTheGraveyardHappen(t *testing.T) {
 }
 
 // TestCommanderExiledAcceptsTheCommandZone is the exile destination: a
-// commander whose exile is attempted (the removePermanents / ChangeZone
-// Destination$ Exile shape) is offered the choice, exactly like a destroy.
+// commander whose exile is attempted (the ChangeZone Destination$ Exile
+// shape) is offered the choice, exactly like a destroy.
 func TestCommanderExiledAcceptsTheCommandZone(t *testing.T) {
 	e, _ := cmdZoneGame(t, [][]string{{tinyCmdSrc}, {}})
 	cmd := fieldCommander(t, e, 0, 0)

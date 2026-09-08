@@ -551,8 +551,10 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	// removal itself, a few lines below).
 	wasBattlefield := o.Zone == state.ZBattlefield
 	remove(g, id, o.Zone, zoneOwner(o, o.Zone))
-	dst := zoneOwner(o, to)
-	g.SetZone(to, dst, append(g.Zone(to, dst), id))
+	if to != state.ZCeased {
+		dst := zoneOwner(o, to)
+		g.SetZone(to, dst, append(g.Zone(to, dst), id))
+	}
 
 	o.Zone = to
 	switch to {

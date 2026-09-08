@@ -45,10 +45,14 @@ const (
 	// renumbering. It is public information: every seat sees it, so Hidden()
 	// stays false for it.
 	ZCommand
-	numZones = int(ZCommand) + 1
+	// ZCeased is an inert tombstone location for objects that have ceased to
+	// exist. It is appended so every serialized value above remains stable.
+	// Unlike game zones, it deliberately has no membership list; see Game.Zone.
+	ZCeased
+	numZones = int(ZCeased) + 1
 )
 
-var zoneNames = [numZones]string{"library", "hand", "battlefield", "graveyard", "exile", "stack", "command"}
+var zoneNames = [numZones]string{"library", "hand", "battlefield", "graveyard", "exile", "stack", "command", "ceased"}
 
 func (z Zone) String() string { return zoneNames[z] }
 
