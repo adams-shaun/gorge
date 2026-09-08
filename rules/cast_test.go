@@ -71,8 +71,8 @@ func addMana(t *testing.T, e *Engine, p state.PlayerID, symbols string) {
 // per the licensing rule) into the game. A card that must start in a
 // graveyard or hand is seeded as a REAL deck card through newFixtureDeck's
 // extras and moved with a logged MoveZone -- never IsToken, because a token
-// off the battlefield ceases to exist (CR 111.7; Task 13's exileDeadTokens
-// would exile it before the test's own assertions run). A card placed on
+// off the battlefield ceases to exist (CR 111.7; ceaseDeadTokens would move
+// it to ZCeased before the test's own assertions run). A card placed on
 // the battlefield via TokenCreate is a real permanent and is fine, but only
 // when it STAYS there: putCreature below deliberately uses the seeded-card
 // path too, because the flashback test's Bear is sacrificed as a cost and a

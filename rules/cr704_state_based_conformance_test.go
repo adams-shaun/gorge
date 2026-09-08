@@ -158,7 +158,6 @@ func TestCR704RepoCreatureOppositeCountersAnnihilate(t *testing.T) {
 }
 
 func TestCR704DepartedTokenIsNotAnExiledObject(t *testing.T) {
-	requireCR601Audit(t, "CR 704.5d: a departed token is parked in exile rather than ceasing to exist")
 	e := crResolutionEngine(t, []string{"Raise the Alarm", "Unsummon"}, nil)
 	raise := crAbortMove(t, e, 0, "Raise the Alarm", state.ZHand)
 	f := e.G.Obj(raise).Face()
