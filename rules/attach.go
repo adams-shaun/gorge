@@ -16,9 +16,9 @@ import (
 //
 //   - CR 704.5m, "an Aura is attached to something it can no longer legally
 //     be attached to": the bearer is gone (moved zones -- its state-based
-//     action below), or the bearer proved not to be a permanent whose types
-//     still match the Aura's Enchant spec, the "becomes illegal later" half
-//     of CR 704.5m the dispatch names. Either way the Aura goes to its
+//     action below), the bearer no longer matches the Aura's Enchant spec,
+//     or the bearer gained protection from the Aura. This is the "becomes
+//     illegal later" half of CR 704.5m. Either way the Aura goes to its
 //     owner's graveyard.
 //   - CR 704.5m, "an Aura attached to nothing": an Aura on the battlefield
 //     with AttachedTo == 0 goes to the graveyard. (An Equipment is allowed to
@@ -67,10 +67,10 @@ func (e *Engine) attachmentSBAs() bool {
 				changed = true
 				continue
 			}
-			if isAura(o) && !e.auraStillMatchesEnchant(o, bearer) {
+			if isAura(o) && (!e.auraStillMatchesEnchant(o, bearer) || e.protectedFrom(bearer.ID, o.ID)) {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZBattlefield, To: state.ZGraveyard,
-					Text: "attached to something its Enchant no longer allows"})
+					Text: "attached to something it can no longer legally enchant"})
 				changed = true
 				continue
 			}
