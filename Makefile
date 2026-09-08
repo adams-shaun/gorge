@@ -51,6 +51,7 @@ help:
 	@echo "  make web-dev        — run the Vite dev server for web/"
 	@echo "  make test-web       — run web/'s Vitest suite"
 	@echo "  make lint-web       — svelte-check and eslint over web/"
+	@echo "  make smoke          — headless-browser smoke gate vs two real gorged servers (public+omniscient); fails on any browser error or a hung loading state"
 	@echo "  make test lint cover"
 	@echo "  make conformance    — run the CR 601/733 suites (KNOWN-RED; failing today is \
 the expected outcome — see the target's comment)"
@@ -232,6 +233,26 @@ test-web: web/node_modules/.package-lock.json
 
 lint-web: web/node_modules/.package-lock.json
 	cd web && npm run check && npm run lint
+
+# smoke is the browser smoke gate (Task SG1): it builds the REAL client and
+# the REAL binary, starts two gorged servers — one -spectator public (the mode
+# that was broken when a null hand spread into the board killed every table
+# page, and the one the omniscient-only unit fixtures cannot see) and one
+# -spectator omniscient — on smoke ports in 8090-8099, and drives the
+# headless-browser test at web/e2e against both. It fails on any pageerror,
+# any console.error, any failed request to the server's own origin, a page
+# still in its loading state after a bounded wait, or a blank page that never
+# mounts. scripts/smoke.sh owns starting/stopping the pair and removing their
+# temp dirs on failure (a leaked gorged poisons the next run).
+#
+# Deliberately NOT part of `make test`. The Go suite must stay runnable with
+# no browser and no live servers; threading smoke into the default tree would
+# make `make test` need Playwright + two gorged on this shared box. CI and the
+# merge gate run it explicitly, exactly like the other opt-in lanes
+# (conformance, gc-gate, alloc-gate).
+.PHONY: smoke
+smoke:
+	scripts/smoke.sh
 
 .PHONY: lint
 lint: lint-web
