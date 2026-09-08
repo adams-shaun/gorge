@@ -21,13 +21,12 @@
 //   - No priority is offered mid-combat: declare attackers, declare blockers
 //     and combat damage each resolve in one automatic step, same as every
 //     other engine-only step (untap, cleanup).
-//   - A blocking creature is not prevented from being declared against more
-//     than one attacker (CR 509's one-attacker-per-blocker default, absent
-//     Menace-like exceptions this build doesn't model) -- not reachable from
-//     any legal option offered here, since askBlockers's own set of block
-//     options for one blocker only ever repeats the same attacker within one
-//     combat, but a hand-built decision.Intent could still name the same
-//     blocker in two separate options.
+//   - An ordinary blocking creature may block only one attacker (CR 509.1a).
+//     askBlockers still offers every individually legal (blocker, attacker)
+//     pair, while validateBlockers rejects a declaration that chooses two
+//     pairs for the same blocker. The build does not model any keyword or
+//     capability that grants additional blocks; validateBlockers must account
+//     for such a capability if one is added.
 package rules
 
 import (
@@ -244,6 +243,26 @@ func validateAttackers(d *decision.Decision, in decision.Intent) error {
 	for _, o := range d.Chosen(in) {
 		if seen[o.Obj] {
 			return fmt.Errorf("attacker %d declared against more than one defender", o.Obj)
+		}
+		seen[o.Obj] = true
+	}
+	return nil
+}
+
+// validateBlockers is the KBlockers whole-declaration legality guard. The
+// cross-product option list correctly offers each blocker against every
+// attacker it may block, but choosing two of those individually legal options
+// for one ordinary blocker violates CR 509.1a. Decision.Validate only checks
+// the shape of each selected option, so reject the combination here before the
+// intent is recorded or the pending decision is consumed. Multiple blockers
+// may still choose the same attacker. The build has no model for effects that
+// let one creature block additional attackers; this limit must become
+// capability-aware when such effects are implemented.
+func validateBlockers(d *decision.Decision, in decision.Intent) error {
+	seen := make(map[state.ObjID]bool, len(in.Choices))
+	for _, o := range d.Chosen(in) {
+		if seen[o.Obj] {
+			return fmt.Errorf("blocker %d declared against more than one attacker", o.Obj)
 		}
 		seen[o.Obj] = true
 	}
