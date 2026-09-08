@@ -679,7 +679,9 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state
 		// source" as its Source permanent, the same object askTarget's own
 		// filter has now been made to see (Critical C2 -- one definition).
 		if o := e.G.Obj(t.Obj); o != nil && zoneIn(o.Zone, zones) &&
-			effects.MatchesSpec(e.G, spec, t.Obj, you) && !e.protectedFrom(t.Obj, e.protectionSource(source)) {
+			effects.MatchesSpec(e.G, spec, t.Obj, you) &&
+			!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(t.Obj, you)) &&
+			!e.protectedFrom(t.Obj, e.protectionSource(source)) {
 			legal = append(legal, t)
 		}
 	}

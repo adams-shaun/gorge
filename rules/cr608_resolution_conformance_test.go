@@ -187,7 +187,6 @@ func TestCR608CorpusOrdinaryBurnFinishesInGraveyard(t *testing.T) {
 }
 
 func TestCR608ResolutionRechecksVinesTargetRestriction(t *testing.T) {
-	requireCR601Audit(t, "CR 608.2b: Vines restriction is checked when targeting, not when resolving")
 	e := crResolutionEngine(t, nil, []string{"Vines of Vastwood"})
 	bolt := crAbortMove(t, e, 0, "Lightning Bolt", state.ZHand)
 	vines := crAbortMove(t, e, 1, "Vines of Vastwood", state.ZHand)
