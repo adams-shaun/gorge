@@ -39,6 +39,13 @@ type Chars interface {
 	// controller has ordered it or its decider has accepted it, must be
 	// observable too — not only what already has.
 	PendingTriggers() []state.PendingTrigger
+	// AvailableMana is the engine's answer to the seat-box line 3: the mana
+	// this player could produce right now by activating the free-to-tap mana
+	// abilities of untapped permanents it controls. It is derived from the
+	// battlefield (a public zone), so unlike the floating Pool it may be
+	// shown for every seat and every visibility, and it is what populates
+	// that line in the ordinary case where the floating pool is empty.
+	AvailableMana(state.PlayerID) state.Mana
 }
 
 // View is one seat's complete picture of the game: everything public, plus
@@ -132,6 +139,23 @@ type PlayerView struct {
 	Graveyard   []CardView       `json:"graveyard"`
 	Exile       []CardView       `json:"exile"`
 	Pool        map[string]int32 `json:"pool"`
+	// Available is what this player could produce right now by tapping
+	// untapped permanents' free-to-tap mana abilities — the "free mana one
+	// gains by tapping lands or other effects" half of the seat box's line
+	// 3. It is derived from the battlefield (public), so it is filled for
+	// every seat under every visibility (seat, public, omniscient), never
+	// gated on "is this the viewer's own seat". It is always non-nil, even
+	// when empty ("{}"), the same Ruling T23-u shape Pool gets for the
+	// viewer's own seat but without Pool's null-for-hidden meaning: a hidden
+	// zone is the only reason Pool is ever null, and Available never comes
+	// from a hidden zone. It is separate from Pool on purpose — a reader
+	// must never mistake mana that could be tapped for mana already floating.
+	// It carries omitempty (so an empty availability is absent, never a JSON
+	// null): Available is a public quantity that is only ever present-when-
+	// nonzero, unlike Pool whose null-vs-empty distinction encodes hidden-vs-
+	// viewer-owned. This mirrors the sibling CmdDamage field, another public
+	// per-player map that is omitted when zero rather than sent as {}.
+	Available map[string]int32 `json:"available,omitempty"`
 	// Command is the command zone (CR 903.6): the player's commanders
 	// currently sitting there, in zone order. A commander leaves it when it
 	// is cast (the object itself moves; its id is stable), so Command is the
@@ -346,6 +370,16 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 			Commanders:     roster,
 			CommanderCasts: casts,
 		}
+		// Available is public (battlefield-derived) and so projected for
+		// every seat under every visibility, unlike Hand/Pool which are
+		// filled only for the viewer's own seat. A nil ch (supplement §7)
+		// degrades to an empty (zero) availability, the same way it degrades
+		// every other derived characteristic.
+		var avail state.Mana
+		if ch != nil {
+			avail = ch.AvailableMana(p.ID)
+		}
+		pv.Available = poolView(avail)
 		// The 21-damage clock: this player's cumulative commander damage,
 		// keyed by the commander that dealt it (re-keyed off the dense
 		// slice CmdDamage is indexed by). Only built when any tally is

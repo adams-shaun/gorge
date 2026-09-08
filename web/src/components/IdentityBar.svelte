@@ -9,7 +9,11 @@
    *
    *   1. the truncated player name, then the life-total bubble
    *   2. `library X  hand Y  graveyard Z` on one row (spacing is ours)
-   *   3. the mana pool as bubbles, colourless included
+   *   3. the mana readout as bubbles, colourless included: what the seat
+   *      could tap for right now (AVAILABLE, hollow chips — public, so it
+   *      shows for every seat and fills this line in the ordinary case the
+   *      floating pool cannot), plus the floating pool (solid chips) when
+   *      any, visually distinct so the two are never mistaken for each other
    *
    * It used to also carry the deck name and the CR 903.10 commander-damage
    * clock. The user dropped the deck line because a deck is not a player
@@ -82,7 +86,7 @@
     <span class="count">graveyard {player.graveyard_size}</span>
   </div>
   <div class="mana-row" data-mana-row>
-    <ManaPool pool={player.pool} />
+    <ManaPool pool={player.pool} available={player.available} />
   </div>
 </div>
 
