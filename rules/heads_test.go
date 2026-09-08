@@ -381,11 +381,24 @@ import (
 // merges older. That value is stale and is NOT what is written here: cn1's
 // Polluted Delta activation shifted the log underneath it, and the head was
 // re-measured on branch+current-main, which is what FL-107 requires.
+// fx2 (F13, CR 602.5a) regenerated all four. The summoning-sickness gate no
+// longer withholds a noncreature's tap ability on the turn it entered, so a
+// land cracked or activated a turn earlier than before. Measured per seat
+// count at the merge gate, first divergent event named:
+//
+//   - 2 seats: Karakas activated at decision seq 1313 (was Pass), event 1315.
+//   - 4 seats: Misty Rainforest cracked at decision seq 1886, event 1888.
+//   - 6 seats: Karakas again, decision seq 7440, event 7442.
+//   - 8 seats: Polluted Delta inserted at option 0 at event 5611. The bot
+//     still PASSES here -- the head moves because DecisionMade hash-chains the
+//     numeric choice index, so an option inserted ahead of Pass shifts the
+//     recorded index. An offered-but-untaken option is only free of the chain
+//     when it is appended LAST, which is why M2d-3's concede moved nothing.
 var acceptanceHeads = map[int]string{
-	2: "2af07c65b7cafec2",
-	4: "2cf5359b632bdbd3",
-	6: "56cad0755f3f8c78",
-	8: "505822c760a5f85c",
+	2: "4a6c29ab662c546a",
+	4: "a58e7aa6da6bfc9d",
+	6: "e2c2368141582c7a",
+	8: "4401a1be2f1f634d",
 }
 
 func TestHeads(t *testing.T) {
