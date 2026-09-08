@@ -21,8 +21,8 @@ const MIX: LogLine[] = [
 ];
 
 describe('logfilter hiddenKinds', () => {
-  it('hides exactly priority, decision_ask and decision_made', () => {
-    expect([...hiddenKinds].sort()).toEqual(['decision_ask', 'decision_made', 'priority']);
+  it('hides exactly priority, decision_ask, decision_made and end_combat_reset', () => {
+    expect([...hiddenKinds].sort()).toEqual(['decision_ask', 'decision_made', 'end_combat_reset', 'priority']);
   });
   it('isHiddenKind matches the set and nothing else', () => {
     for (const k of hiddenKinds) expect(isHiddenKind(k)).toBe(true);
@@ -31,6 +31,29 @@ describe('logfilter hiddenKinds', () => {
     expect(isHiddenKind('stack_push')).toBe(false);
     // never hides a kind that is not in the set
     expect(isHiddenKind('move_zone')).toBe(false);
+  });
+});
+
+describe('logfilter end_combat_reset (lc1)', () => {
+  it('end_combat_reset is engine noise: hidden by default, not part of the step set', () => {
+    expect(isHiddenKind('end_combat_reset')).toBe(true);
+    expect(isStepKind('end_combat_reset')).toBe(false);
+    expect(isStepKind('step')).toBe(true);
+  });
+
+  it('visibleLog hides "Combat ends" by default, reveals it with revealAll, and the step toggle is independent', () => {
+    const list: LogLine[] = [
+      line('end_combat_reset', 'Combat ends'),
+      line('land_played', 'Ari plays a Mountain'),
+      line('step', 'Step: end-combat'),
+      line('turn', 'Turn 3: Ari'),
+    ];
+    // default: Combat ends and the step line both hidden, real actions kept
+    expect(visibleLog(list, false).map((l) => l.event.kind)).toEqual(['land_played', 'turn']);
+    // revealSteps shows the phase boundary but NOT the end_combat_reset noise
+    expect(visibleLog(list, false, true).map((l) => l.event.kind)).toEqual(['land_played', 'step', 'turn']);
+    // revealAll shows the Combat ends line too
+    expect(visibleLog(list, true).map((l) => l.event.kind)).toEqual(['end_combat_reset', 'land_played', 'step', 'turn']);
   });
 });
 
