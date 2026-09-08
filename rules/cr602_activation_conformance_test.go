@@ -86,16 +86,12 @@ func TestCR602PhyrexianActivationCannotPayColorlessWithoutLife(t *testing.T) {
 	crActivationSA(t, e, id, "Pump", "RP")
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 1})
 	e.askPriority(0)
-	start, checked := len(e.L.Events), 0
-	checked++
+	start := len(e.L.Events)
 	crAbortAnswer(t, e, "Immolating Souleater", crAbortOption(t, e, "Immolating Souleater", "ability", id))
 	// A proper announcement may suspend; it must not already spend colorless
 	// without life. No requirement here that a particular decision kind exists.
 	if e.G.Players[0].Pool[state.MC] == 0 && e.G.Players[0].Life == 20 {
 		t.Errorf("CR 602.2b/107.4f Immolating Souleater seq %d: RP charged C1 and no life; pool=%v life=%d stack=%v", start, e.G.Players[0].Pool, e.G.Players[0].Life, e.G.Stack)
-	}
-	if checked == 0 {
-		t.Fatal("CR 602.2b Immolating Souleater seq 0: no activation examined")
 	}
 }
 
@@ -111,8 +107,7 @@ func TestCR602ActivationTargetsPrecedePayment(t *testing.T) {
 	}
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 1})
 	e.askPriority(0)
-	start, checked := len(e.L.Events), 0
-	checked++
+	start := len(e.L.Events)
 	crAbortAnswer(t, e, "Qasali Pridemage", crAbortOption(t, e, "Qasali Pridemage", "ability", id))
 	// Answer only a sacrifice selection, not the still-unanswered target ask.
 	if d := e.Pending(); d != nil && d.Kind == decision.KChoose {
@@ -125,9 +120,6 @@ func TestCR602ActivationTargetsPrecedePayment(t *testing.T) {
 	crAbortOption(t, e, "Qasali Pridemage", "permanent", target) // fixed legal artifact exists
 	if e.G.Players[0].Pool[state.MC] != 1 || e.G.Obj(id).Zone != state.ZBattlefield {
 		t.Errorf("CR 602.2b -> 601.2c/h Qasali Pridemage seq %d: target ask seq %d unanswered but pool=%v source=%s; want C1 and battlefield", start, d.Seq, e.G.Players[0].Pool, e.G.Obj(id).Zone)
-	}
-	if checked == 0 {
-		t.Fatal("CR 602.2b Qasali Pridemage seq 0: no activation examined")
 	}
 }
 
@@ -152,8 +144,7 @@ func TestCR602IllegalActivationReversesSacrificeAndConsequences(t *testing.T) {
 	}
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 1})
 	e.askPriority(0)
-	start, checked := len(e.L.Events), 0
-	checked++
+	start := len(e.L.Events)
 	// Correct offer-time rejection is also conformant; no direct manufactured
 	// option is needed to prove the currently reachable illegal action.
 	idx := -1
@@ -181,9 +172,6 @@ func TestCR602IllegalActivationReversesSacrificeAndConsequences(t *testing.T) {
 			t.Errorf("CR 602.2/733.1 Qasali Pridemage seq %d: illegal sacrifice produced Blood Artist TriggerPush seq %d", start, ev.Seq)
 		}
 	}
-	if checked == 0 {
-		t.Fatal("CR 602.2 Qasali Pridemage seq 0: no proposal examined")
-	}
 }
 
 func TestCR602ManaWindowDuringActivation(t *testing.T) {
@@ -200,9 +188,8 @@ func TestCR602ManaWindowDuringActivation(t *testing.T) {
 		t.Fatal("CR 602.2b Azure Mage seq 0: expected empty pool")
 	}
 	e.askPriority(0)
-	start, checked := len(e.L.Events), 0
+	start := len(e.L.Events)
 	e.pending = nil // defensive entry bypasses pool-only offer gate
-	checked++
 	e.beginActivation(0, decision.Option{Kind: "ability", Obj: id, Ability: ai})
 	e.Advance()
 	window := false
@@ -217,9 +204,6 @@ func TestCR602ManaWindowDuringActivation(t *testing.T) {
 	}
 	if !window {
 		t.Errorf("CR 602.2b -> 601.2g Azure Mage seq %d: four untapped Islands but no mana window inside activation; pool=%v stack=%v next=%+v", start, e.G.Players[0].Pool, e.G.Stack, e.Pending())
-	}
-	if checked == 0 {
-		t.Fatal("CR 602.2b Azure Mage seq 0: no proposal examined")
 	}
 }
 
@@ -241,15 +225,11 @@ func TestCR602ActivationCostIncludesReduction(t *testing.T) {
 	}
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "U", Amount: 4})
 	e.askPriority(0)
-	start, checked := len(e.L.Events), 0
-	checked++
+	start := len(e.L.Events)
 	crAbortAnswer(t, e, "Azure Mage", crAbortOption(t, e, "Azure Mage", "ability", id))
 	// Independent cost: {3}{U} minus {1} = {2}{U}; minimum-one floor irrelevant.
 	if len(e.G.Stack) != 1 || e.G.Players[0].Pool[state.MU] != 1 {
 		t.Errorf("CR 602.2b -> 601.2f Azure Mage/Heartstone seq %d: activation should leave U1; pool=%v stack=%v", start, e.G.Players[0].Pool, e.G.Stack)
-	}
-	if checked == 0 {
-		t.Fatal("CR 602.2b Azure Mage seq 0: no cost composition examined")
 	}
 }
 
@@ -265,15 +245,11 @@ func TestCR602NewNoncreatureCanActivateTapAbility(t *testing.T) {
 		}
 	}
 	e.askPriority(0)
-	start, checked := len(e.L.Events), 0
-	checked++
+	start := len(e.L.Events)
 	// Vial's effect is optional and untargeted. It need not have a creature
 	// available to put into play, and ONLY creatures are covered by 602.5a.
 	if _, ok := findAbilityOption(e, id, ai); !ok {
 		t.Errorf("CR 602.5a Aether Vial seq %d: untapped noncreature's T ability withheld on entry; tapped=%t summonSick=%t", start, e.G.Obj(id).Tapped, e.G.Obj(id).SummonSick)
-	}
-	if checked == 0 {
-		t.Fatal("CR 602.5a Aether Vial seq 0: no activation permission examined")
 	}
 }
 
@@ -288,8 +264,7 @@ func TestCR602OncePerTurnActivationRestriction(t *testing.T) {
 	}
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "G", Amount: 4})
 	e.askPriority(0)
-	start, checked := len(e.L.Events), 0
-	checked++
+	start := len(e.L.Events)
 	crAbortAnswer(t, e, "Basking Rootwalla", crAbortOption(t, e, "Basking Rootwalla", "ability", id))
 	if len(e.G.Stack) != 1 {
 		t.Fatalf("CR 602.5 Basking Rootwalla seq %d: first legal activation did not complete", start)
@@ -298,8 +273,5 @@ func TestCR602OncePerTurnActivationRestriction(t *testing.T) {
 		if opt.Kind == "ability" && opt.Obj == id && opt.Ability == ai {
 			t.Errorf("CR 602.1b/602.5 Basking Rootwalla seq %d: second activation offered same turn %d with first on stack (option %d)", start, e.G.Turn, opt.Index)
 		}
-	}
-	if checked == 0 {
-		t.Fatal("CR 602.5 Basking Rootwalla seq 0: no activation examined")
 	}
 }

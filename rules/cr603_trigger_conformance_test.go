@@ -62,8 +62,7 @@ func TestCR603LegalActivationTriggersRings(t *testing.T) {
 	crActivationSA(t, e, mage, "Draw", "3 U")
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "U", Amount: 4})
 	e.askPriority(0)
-	start, checked := len(e.L.Events), 0
-	checked++
+	start := len(e.L.Events)
 	crAbortAnswer(t, e, "Azure Mage", crAbortOption(t, e, "Azure Mage", "ability", mage))
 	if crTriggerStackCount(e, mage) != 1 {
 		t.Fatalf("CR 603.2 Azure Mage seq %d: legal activation did not complete", start)
@@ -77,29 +76,22 @@ func TestCR603LegalActivationTriggersRings(t *testing.T) {
 	if found != 1 {
 		t.Errorf("CR 603.2/602.2b Rings of Brighthearth seq %d: completed Azure Mage activation but trigger count=%d, want 1; stack=%v next=%+v", start, found, e.G.Stack, e.Pending())
 	}
-	if checked == 0 {
-		t.Fatal("CR 603.2 Rings of Brighthearth seq 0: no activation examined")
-	}
 }
 
 func TestCR603OptionalEffectWaitsForResolution(t *testing.T) {
 	requireCR601Audit(t, "CR 603.5: optional trigger is declined before it enters stack")
 	reg := testutil.CorpusRegistry(t)
 	e := crAbortEngine(t, reg, "ur-delver", "Stoneforge Mystic")
-	start, checked := len(e.L.Events), 0
+	start := len(e.L.Events)
 	id := crAbortMove(t, e, 0, "Stoneforge Mystic", state.ZBattlefield)
 	tr := crTriggerFixture(t, e, id, "ChangesZone", "ChangeZone")
 	if tr.Params["OptionalDecider"] != "You" {
 		t.Fatal("CR 603.5 Stoneforge Mystic seq 0: optional ETB fixture changed")
 	}
-	checked++
 	e.pending = nil // finish fixture setup and enter next priority boundary
 	e.priorityRound()
 	if crTriggerStackCount(e, id) != 1 || e.Pending() == nil || e.Pending().Kind != decision.KPriority {
 		t.Errorf("CR 603.5 Stoneforge Mystic seq %d: may-search must be on stack before any optional answer; stack=%v next=%+v", start, e.G.Stack, e.Pending())
-	}
-	if checked == 0 {
-		t.Fatal("CR 603.5 Stoneforge Mystic seq 0: no trigger examined")
 	}
 }
 
@@ -107,22 +99,18 @@ func TestCR603TriggerModesChosenAtPlacement(t *testing.T) {
 	requireCR601Audit(t, "CR 603.3c: trigger modes deferred until resolution")
 	reg := testutil.CorpusRegistry(t)
 	e := crAbortEngine(t, reg, "ur-delver", "Knight of Autumn")
-	start, checked := len(e.L.Events), 0
+	start := len(e.L.Events)
 	id := crAbortMove(t, e, 0, "Knight of Autumn", state.ZBattlefield)
 	tr := crTriggerFixture(t, e, id, "ChangesZone", "Charm")
 	if tr.Effect.Params["Choices"] == "" {
 		t.Fatal("CR 603.3c Knight of Autumn seq 0: no compiled modes")
 	}
-	checked++
 	e.pending = nil
 	e.priorityRound()
 	// The counter and life-gain modes are legal with this board. A player
 	// must choose before opponents can respond to the triggered ability.
 	if d := e.Pending(); d == nil || d.Kind != decision.KModes {
 		t.Errorf("CR 603.3c Knight of Autumn seq %d: priority returned before mode announcement; stack=%v next=%+v", start, e.G.Stack, d)
-	}
-	if checked == 0 {
-		t.Fatal("CR 603.3c Knight of Autumn seq 0: no trigger examined")
 	}
 }
 
@@ -135,8 +123,7 @@ func TestCR603InterveningIfCheckedAtTriggerTime(t *testing.T) {
 	if tr.Params["LifeAmount"] != "GE40" || e.G.Players[0].Life != 20 {
 		t.Fatal("CR 603.4 Felidar Sovereign seq 0: fixture changed")
 	}
-	start, checked := len(e.L.Events), 0
-	checked++
+	start := len(e.L.Events)
 	e.emit(events.Event{Kind: events.StepChange, Step: state.StepUpkeep})
 	found := 0
 	for _, pt := range e.pendingTriggers {
@@ -146,9 +133,6 @@ func TestCR603InterveningIfCheckedAtTriggerTime(t *testing.T) {
 	}
 	if found != 0 {
 		t.Errorf("CR 603.4 Felidar Sovereign seq %d: at 20 life (<40), queued %d win trigger(s), want 0", start, found)
-	}
-	if checked == 0 {
-		t.Fatal("CR 603.4 Felidar Sovereign seq 0: no trigger examined")
 	}
 }
 
@@ -167,8 +151,7 @@ func TestCR603InterveningIfRecheckedAtResolution(t *testing.T) {
 		t.Fatal("CR 603.4 Scute Mob seq 0: fixture changed")
 	}
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "G", Amount: 3})
-	start, checked := len(e.L.Events), 0
-	checked++
+	start := len(e.L.Events)
 	e.emit(events.Event{Kind: events.StepChange, Step: state.StepUpkeep})
 	e.pending = nil
 	e.priorityRound()
@@ -196,9 +179,6 @@ func TestCR603InterveningIfRecheckedAtResolution(t *testing.T) {
 	if got := e.G.Obj(id).Counter("P1P1"); got != 0 {
 		t.Errorf("CR 603.4 Scute Mob seq %d: after five -> four lands before resolution, gained %d counters, want 0 (end seq %d)", start, got, len(e.L.Events))
 	}
-	if checked == 0 {
-		t.Fatal("CR 603.4 Scute Mob seq 0: no trigger examined")
-	}
 }
 
 func TestCR603StateTriggerFiresWhenConditionBecomesTrue(t *testing.T) {
@@ -208,13 +188,12 @@ func TestCR603StateTriggerFiresWhenConditionBecomesTrue(t *testing.T) {
 	if len(e.G.Zone(state.ZBattlefield, 0)) != 0 {
 		t.Fatal("CR 603.8 Emperor Crocodile seq 0: initial board not empty")
 	}
-	start, checked := len(e.L.Events), 0
+	start := len(e.L.Events)
 	id := crAbortMove(t, e, 0, "Emperor Crocodile", state.ZBattlefield)
 	tr := crTriggerFixture(t, e, id, "Always", "Sacrifice")
 	if tr.Params["IsPresent"] != "Creature.Other+YouCtrl" || tr.Params["PresentCompare"] != "EQ0" {
 		t.Fatal("CR 603.8 Emperor Crocodile seq 0: compiled condition changed")
 	}
-	checked++
 	// It is our ONLY permanent. The condition holds upon entry, without
 	// waiting for a priority grant; no target/cost parser derives this oracle.
 	found := 0
@@ -225,8 +204,5 @@ func TestCR603StateTriggerFiresWhenConditionBecomesTrue(t *testing.T) {
 	}
 	if found != 1 {
 		t.Errorf("CR 603.8 Emperor Crocodile seq %d: sole creature entered but state trigger queued %d times, want 1", start, found)
-	}
-	if checked == 0 {
-		t.Fatal("CR 603.8 Emperor Crocodile seq 0: no state trigger examined")
 	}
 }
