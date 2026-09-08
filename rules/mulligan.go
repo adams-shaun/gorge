@@ -15,9 +15,14 @@ import (
 //
 // seats is the round order -- AliveFrom(0), a slice, deterministic, the same
 // APNAP shape the engine uses everywhere. kept[i], taken[i] and seats[i]
-// correspond by position. limit is Config.Mulligans (the free-mulligan count,
-// rule R-8.4). bottom is false during the keep/mulligan phase and true during
-// the bottoming phase; cursor names the next seat to ask in whichever phase.
+// correspond by position. limit is Config.Mulligans, which is the PERMITTED
+// COUNT -- the most mulligans one seat may take (Ruling FL-113, rule R-8.4).
+// It is NOT the CR 103.5b multiplayer free mulligan, which is derived from the
+// seat count and exempts a seat from the bottoming PENALTY, never from the
+// allowance; an earlier version of this comment called limit "the
+// free-mulligan count" and that wording was wrong. bottom is false during the
+// keep/mulligan phase and true during the bottoming phase; cursor names the
+// next seat to ask in whichever phase.
 type mulliganRound struct {
 	seats  []state.PlayerID
 	kept   []bool

@@ -21,13 +21,26 @@ Every 2.1-4.8s row here predates the corpus tests and is honest -- the
 count column is the tell: those runs are at 208-300 tests, before the
 corpus lane existed.
 
-The 2026-09-08 rows at 445-446 tests are a different animal. Four were
+The 2026-09-08 rows at 445-447 tests are a different animal. Six were
 vacuous. The one for 2ea102f+ was re-measured with the corpus present
-and corrected in place (3.2 -> 13.5). The other two, written from the
-fx13, fx11 and fx15 worktrees, were REMOVED rather
-than corrected: re-measuring a superseded commit would have meant
-inventing a number, and a run that skipped the tests it was timing is
-not a slow measurement or a fast one, it is not a measurement.
+and corrected in place (3.2 -> 13.5). The rest, written from the fx13,
+fx11, fx15, fx16 and fx17 worktrees, were REMOVED rather than
+corrected: re-measuring a superseded commit would have meant inventing
+a number, and a run that skipped the tests it was timing is not a slow
+measurement or a fast one, it is not a measurement.
+
+A MISSING SYMLINK IS ONE PROVEN CAUSE, NOT THE ONLY ONE. The fx16 and
+fx17 rows were written from worktrees whose .cards symlink was already
+in place (created 22:54Z, rows written 22:58Z and 23:00Z), and in both
+of those worktrees the same agent's own direct `go test ./rules` in the
+same session measured 13.8s and 14.1s. Re-running `go run ./cmd/testtime
+./rules` in .worktrees/fx16 afterwards reported 13.8s and did NOT
+reproduce the 3.2s. So a vacuous row can be produced under conditions
+that were not reconstructible after the fact, and the tool records it
+with the same confidence as a real one either way. Until cmd/testtime
+counts skips and refuses to write a row when the skip fraction jumps,
+the ONLY safe reading of a row is the wall_s/tests ratio, and the only
+trustworthy row is one whose author watched it being measured.
 
 Read any sub-5s row at 445+ tests as "the corpus was missing", not as a
 speedup. Link the worktree before trusting a row it wrote:
@@ -199,5 +212,4 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-08T22:02Z | 11311e9+ | 12.0 | 445 | sadams |
 | 2026-09-08T22:22Z | 2ea102f+ | 13.5 | 446 | sadams |
 | 2026-09-08T22:49Z | 4669ff9+ | 13.6 | 446 | sadams |
-| 2026-09-08T23:00Z | 25d61bf+ | 3.2 | 447 | sadams |
-| 2026-09-08T22:58Z | 25d61bf+ | 3.2 | 446 | sadams |
+| 2026-09-08T23:09Z | 208944d | 14.1 | 447 | sadams |
