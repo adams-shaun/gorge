@@ -423,11 +423,40 @@ import (
 //     (obj 388, controller 6) at event 14738. The restriction became active
 //     after Rancor was cast, which is exactly the case askTarget cannot
 //     catch and the resolution recheck now does.
+//
+// fx13 (F43, CR 802.4) regenerated 6 and 8 only. askBlockers built the
+// defender census from AliveFrom(0) -- absolute seat order -- so in a game
+// whose active player is not seat 0 the defenders declared blocks in the
+// wrong order. It now censuses from AliveFrom(e.G.Active), which is APNAP
+// turn order; the scope filters either side of it are unchanged, so the SET
+// of defenders asked is identical and only the ORDER of the asks moves.
+// Measured at the merge gate by dumping both complete acceptance logs and
+// diffing them, not by trusting the head alone -- both logs have the same
+// event COUNT at every seat count, which is the signature of a pure
+// reordering:
+//
+//   - 2, 4 seats: unmoved (1726 and 5353 events, identical). These games
+//     never reach a declare-blockers step whose active player is a seat
+//     whose rotation differs from absolute order, so the two censuses agree.
+//   - 6 seats: event 7817, both logs 9230 events. After active player 3
+//     takes priority at 7816, the old log asks seat 0 for blocks and the new
+//     one asks seat 5. Old 7818 is seat 0 declaring blockers:[0] and 7819 is
+//     Vampire Lacerator (obj 209, controller 3) being blocked by Flickerwisp
+//     (obj 37, controller 0); new 7818 is seat 5 declaring blockers:[] and
+//     seat 0's ask slides to 7819. Same blocks, later.
+//   - 8 seats: event 12250, both logs 15523 events. Same shape: active 3
+//     takes priority at 12249, the old log asks seat 0 and the new one asks
+//     seat 6, and seat 0's blockers:[0] against Vampire Lacerator -- blocked
+//     by Palace Jailer (obj 48, controller 0) -- moves back one event.
+//
+// The equal event counts are load-bearing here. A change to WHICH defenders
+// are asked, rather than in what order, would have changed the count, and
+// that is the failure this fix had to avoid.
 var acceptanceHeads = map[int]string{
 	2: "4a6c29ab662c546a",
 	4: "e413e42321e9ed5a",
-	6: "05d4e64c33f758d1",
-	8: "b31139c819b45d51",
+	6: "b7afe4155830661f",
+	8: "e9bc9050a91bb001",
 }
 
 func TestHeads(t *testing.T) {

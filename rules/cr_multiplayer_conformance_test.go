@@ -140,7 +140,6 @@ func TestCR800NoCombatDamageToDepartedDefender(t *testing.T) {
 }
 
 func TestCR802BlockDeclarationsFollowAPNAP(t *testing.T) {
-	requireCR601Audit(t, "CR 802.4: defenders declare in absolute seat order, not APNAP order")
 	for active := state.PlayerID(0); active < 4; active++ {
 		e := crResolutionEngine(t, []string{"Memnite", "Memnite", "Memnite"}, []string{"Memnite", "Memnite", "Memnite"}, []string{"Memnite", "Memnite", "Memnite"}, []string{"Memnite", "Memnite", "Memnite"})
 		var attackers []state.ObjID

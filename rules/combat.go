@@ -255,9 +255,9 @@ func validateAttackers(d *decision.Decision, in decision.Intent) error {
 // mulligan.go): Task m34 lets one attack split across several defending
 // players (CR 506.2), and each defender declares its own blocks (CR
 // 509.1c). order lists the defenders that have at least one attacking
-// creature, in ascending seat order -- the same order handleAttackers
-// emitted their DeclareAttackers events in; cursor is the next defender to
-// ask. askBlockers builds the list on the step's first entry, asks one
+// creature, in APNAP turn order starting after the active player; cursor is
+// the next defender to ask. askBlockers builds the list on the step's first
+// entry, asks one
 // defender per call, and hands the step to combat damage once every
 // defender has declared. Plain data (a slice plus an index), never a
 // closure, so Engine.Clone copies it like the mulligan round.
@@ -280,7 +280,7 @@ type blockerRound struct {
 // case). Between two defenders' answers the Advance loop stays on
 // StepDeclareBlockers (handleBlockers only advances the round cursor), so a
 // split attack on two opponents produces two KBlockers decisions, one per
-// defender, in seat order.
+// defender, in APNAP turn order.
 //
 // With no attackers this combat (declared 0, or all already gone), there is
 // nothing to block: the round is empty and the step skips straight to
@@ -290,7 +290,8 @@ type blockerRound struct {
 func (e *Engine) askBlockers() {
 	if e.blockerRound.order == nil {
 		order := make([]state.PlayerID, 0, len(e.G.Players))
-		for _, q := range e.G.AliveFrom(0) {
+		// CR 802.4: the active player's opponents declare in APNAP turn order.
+		for _, q := range e.G.AliveFrom(e.G.Active) {
 			if q == e.G.Active || len(e.blockAttackers(q)) == 0 {
 				continue
 			}
