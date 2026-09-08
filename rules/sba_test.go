@@ -662,9 +662,32 @@ Oracle:x
 // TestRemovalSweepFiringsDoNotScaleWithAnUnrelatedDeathChain pins the bound
 // fix round 3 established and fix round 4's re-arm had to preserve: a
 // removal sweep that a replacement keeps blocking fires exactly ONCE per
-// checkStateBased call -- twice per Submit, which makes two such calls (its
-// own, then step's before it hands out the next decision) -- no matter how
-// many passes something else drives the fixed-point loop through.
+// checkStateBased call, no matter how many passes something else drives the
+// fixed-point loop through.
+//
+// Ruling F45 (fx1): this used to assert the literal constant 2 -- "twice per
+// Submit, which makes two such calls (its own, then step's before it hands
+// out the next decision)". That constant was never the invariant; it was a
+// COUNT OF CALL SITES, and it silently depended on a bug. This fixture is a
+// THREE-seat game, and before F45 the engine wrongly skipped the starting
+// player's first draw at every seat count (CR 103.8a is two-player only).
+// Restoring that draw adds a third checkStateBased call on the one Submit
+// that crosses the draw step, because drawCard's tail runs it
+// (rules/engine.go:637). Measured at the F45 merge gate, before and after:
+//
+//	chain    0    1    5   20   60
+//	before  2/2/2 across every chain and submit
+//	after   2/3/2 across every chain -- submit 1 gained the draw's call
+//
+// So the assertion is now written as the invariant itself: the firing count
+// must not vary with chain length. The chain=0 run supplies the expected
+// count per submit and every longer chain must match it exactly. This still
+// catches the mistake it was built to catch -- keying the re-arm on "some
+// other state-based action actually succeeded" gives 2/3/7/22/61 for these
+// five chain lengths (29fa00d's pre-round-3 amplification, measured by
+// building that variant), which diverges from chain=0 at the second entry.
+// A future change that legitimately adds or removes a call site now moves
+// the recorded baseline instead of forcing a hand-edited constant.
 //
 // Ward (seat 0, alive) turns any Battlefield -> Exile into a 1-life gain, so
 // seat 0's life total counts blocked sweep attempts exactly. Victim belongs
@@ -682,6 +705,9 @@ Oracle:x
 // amplification, measured by building that variant, not assumed -- so this
 // is the assertion that catches that mistake being made again.
 func TestRemovalSweepFiringsDoNotScaleWithAnUnrelatedDeathChain(t *testing.T) {
+	// Filled by the chain=0 run, which must come first: the per-submit
+	// firing count when there is no unrelated death chain at all.
+	var want []int32
 	for _, chain := range []int{0, 1, 5, 20, 60} {
 		e := newSeats(t, 3)
 		onBoard(t, e, 0, `Name:Ward
@@ -723,11 +749,34 @@ Oracle:x
 			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
 				t.Fatalf("chain=%d submit=%d: %v", chain, submit, err)
 			}
-			if got := e.G.Players[0].Life - before; got != 2 {
-				t.Fatalf("chain=%d submit=%d: blocked sweep fired %d times, want exactly 2 "+
-					"(one per checkStateBased call) regardless of chain length -- a sweep that "+
-					"scales with an unrelated death chain is the T22-h amplification returning",
-					chain, submit, got)
+			got := e.G.Players[0].Life - before
+			// Flatness alone would not catch a UNIFORM inflation (every
+			// chain firing 9 times equally), which the old literal 2 did
+			// catch. maxSweepFiringsPerSubmit keeps that half of the
+			// protection as a bound rather than an exact count: it is the
+			// number of checkStateBased call sites one Submit can cross in
+			// this fixture -- its own, the step's, and, on the Submit that
+			// crosses the draw step, drawCard's (rules/engine.go:637).
+			const maxSweepFiringsPerSubmit = 3
+			if got > maxSweepFiringsPerSubmit {
+				t.Fatalf("chain=%d submit=%d: blocked sweep fired %d times, more than the %d "+
+					"checkStateBased call sites one Submit can cross here -- a blocked sweep "+
+					"must fire at most once per call, not once per fixed-point pass",
+					chain, submit, got, maxSweepFiringsPerSubmit)
+			}
+			if chain == 0 {
+				if got < 1 {
+					t.Fatalf("chain=0 submit=%d: blocked sweep fired %d times; the "+
+						"fixture is vacuous unless the replacement blocks at least one sweep", submit, got)
+				}
+				want = append(want, got)
+				continue
+			}
+			if got != want[submit] {
+				t.Fatalf("chain=%d submit=%d: blocked sweep fired %d times, want %d "+
+					"(one per checkStateBased call, as measured at chain=0) regardless of "+
+					"chain length -- a sweep that scales with an unrelated death chain is "+
+					"the T22-h amplification returning", chain, submit, got, want[submit])
 			}
 		}
 	}
