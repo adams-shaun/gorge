@@ -179,7 +179,6 @@ func TestCR802BlockDeclarationsFollowAPNAP(t *testing.T) {
 }
 
 func TestCR800MultiplayerFirstMulliganIsFree(t *testing.T) {
-	requireCR601Audit(t, "CR 800.6: first multiplayer mulligan incurs a bottoming penalty")
 	cfg := crMultiplayerConfig(t, testutil.CorpusRegistry(t), "ur-delver")
 	cfg.Mulligans = 2
 	e := New(cfg)
