@@ -2,7 +2,7 @@
   import type { DvrState } from '../lib/dvr';
   import { visibleLog } from '../lib/logfilter';
   import type { LogSeatIdentity } from '../lib/logcolour';
-  import { parseLogLine, cardColourVar, type CardColourResolver } from '../lib/logrender';
+  import { parseLogLine, type CardOwnerColour } from '../lib/logrender';
   import ManaSymbols from './ManaSymbols.svelte';
 
   /**
@@ -28,25 +28,27 @@
    * its own structure rather than as prose:
    *   - mana symbols (`{R}{G}{W/U}`) are drawn as pips (ManaSymbols),
    *   - a card/permanent/spell reference `<Name> #<id>` is coloured by the
-   *     card's mana-colour identity (B2) with its `#<id>` suppressed from
-   *     the visible text and kept as a hover title (B3) — the id is
+   *     colour of the seat that OWNS it (lc1) with its `#<id>` suppressed
+   *     from the visible text and kept as a hover title (B3) — the id is
    *     load-bearing when two copies of the same card are in play, so it is
    *     reachable, not dropped;
-   *   - a faceless ability reference ("an ability #id") gets an italic
-   *     ability treatment (B2).
-   * `cardColour` is the caller's card-name -> colour-key resolver, built
-   * from the current view's cards (buildCardColour). It also carries the
-   * view's exact card-name keys, so logrender.ts resolves a card reference
-   * by longest exact match against them rather than by word shape (a comma
-   * in `Jace, the Mind Sculptor` cannot split the name). It is optional, so
-   * a caller with no cards (or a test) renders card names uncoloured by the
+   *   - a faceless ability reference (`<Source>'s ability #id`, or the
+   *     `an ability #id` fallback) gets an italic ability treatment (lc1,
+   *     B2);
+   * `cardColour` is the caller's object-id -> owner-seat-colour resolver,
+   * built from the current view's cards (buildCardOwnerColour) with the same
+   * seat palette that colours each seat's name. It also carries the view's
+   * exact card-name keys, so logrender.ts resolves a card reference by
+   * longest exact match against them rather than by word shape (a comma in
+   * `Jace, the Mind Sculptor` cannot split the name). It is optional, so a
+   * caller with no cards (or a test) renders card names uncoloured by the
    * word-shape fallback.
    */
   let { dvr, onSeek, identities = [], cardColour = null }: {
     dvr: DvrState;
     onSeek: (seq: number) => void;
     identities?: LogSeatIdentity[];
-    cardColour?: CardColourResolver | null;
+    cardColour?: CardOwnerColour | null;
   } = $props();
 
   let container: HTMLDivElement | undefined;
@@ -94,7 +96,7 @@
     >
       <span class="seq">{e.event.seq}</span>
       <span class="text">{#each parseLogLine(e.line, { identities, cardColour }) as p, i (i)}
-        {#if p.kind === 'text'}{p.text}{:else if p.kind === 'mana'}<ManaSymbols cost={p.token} />{:else if p.kind === 'seat'}<span class="who" style:color={p.colour}>{p.text}</span>{:else if p.kind === 'card'}<span class="obj card" style:color={cardColourVar(p.colour) ?? undefined} title="{p.name} #{p.id}">{p.name}</span>{:else if p.kind === 'ability'}<span class="obj ability" title="an ability #{p.id}">{p.name}</span>{/if}
+        {#if p.kind === 'text'}{p.text}{:else if p.kind === 'mana'}<ManaSymbols cost={p.token} />{:else if p.kind === 'seat'}<span class="who" style:color={p.colour}>{p.text}</span>{:else if p.kind === 'card'}<span class="obj card" style:color={p.colour ?? undefined} title="{p.name} #{p.id}">{p.name}</span>{:else if p.kind === 'ability'}<span class="obj ability" title="{p.name} #{p.id}">{p.name}</span>{/if}
       {/each}</span>
     </button>
   {/each}
@@ -175,15 +177,15 @@
   .who {
     font-weight: 600;
   }
-  /* A card name (B2/B3) is coloured by its mana identity, the same palette a
-     card frame wears, and the "#<id>" is off the visible text and on the
-     hover title instead. */
+  /* A card name (lc1/B3) is coloured by its owner's seat colour — the same
+     colour that seat's name renders in — and the "#<id>" is off the visible
+     text and on the hover title instead. */
   .obj.card {
     font-weight: 600;
   }
-  /* An ability reference (the faceless "an ability #id" shape) gets its own
-     treatment — italic, not the card weight — because on the stack an
-     ability is not a card and should not read as one. */
+  /* An ability reference (the source-named "<Source>'s ability #id" shape)
+     gets its own treatment — italic, not the card weight — because on the
+     stack an ability is not a card and should not read as one. */
   .obj.ability {
     font-style: italic;
     color: var(--ink-inst);

@@ -138,6 +138,51 @@ func TestDescribeTemplates(t *testing.T) {
 	}
 }
 
+// TestDescribeAbilityObjectNamesSource pins the lc1 object-rendering change:
+// a faceless ability stack object (minted by events.Apply's
+// TriggerPush/AbilityPush/DelayedPush paths, which set o.Source to the source
+// permanent) must be named by its source card rather than the unhelpful "an
+// ability", and must degrade to the old phrasing when the source is 0,
+// unresolvable, or itself faceless.
+func TestDescribeAbilityObjectNamesSource(t *testing.T) {
+	bear, _ := cards.ParseBytes("b.txt", []byte("Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"))
+	// A source card with a real face, plus a faceless ability object.
+	g := state.NewGame([]string{"Ann", "Bob"})
+	b := g.AddObject(bear, 0)
+
+	mint := func(source state.ObjID) *state.Object {
+		o := g.AddObject(nil, 0)
+		o.Ability = &cards.SA{API: "X"}
+		o.Source = source
+		return o
+	}
+
+	// A triggered/activated ability names its source card (task lc1 req 3).
+	sourced := mint(b.ID)
+	if got := obj(g, sourced.ID); got != "Bear's ability #"+itoa(int64(sourced.ID)) {
+		t.Fatalf("obj with resolvable source = %q", got)
+	}
+
+	// A source id of 0 (never set, or redacted) degrades to the bare phrasing.
+	zero := mint(0)
+	if got := obj(g, zero.ID); got != "an ability #"+itoa(int64(zero.ID)) {
+		t.Fatalf("obj with zero source = %q", got)
+	}
+
+	// A source id the game no longer holds also degrades, never an empty possessive.
+	stale := mint(1 << 30)
+	if got := obj(g, stale.ID); got != "an ability #"+itoa(int64(stale.ID)) {
+		t.Fatalf("obj with unresolvable source = %q", got)
+	}
+
+	// A source that is itself faceless (an ability object) degrades too.
+	faceless := mint(0)
+	fromAbility := mint(faceless.ID)
+	if got := obj(g, fromAbility.ID); got != "an ability #"+itoa(int64(fromAbility.ID)) {
+		t.Fatalf("obj with faceless source = %q", got)
+	}
+}
+
 func TestDescribeCoversEveryKind(t *testing.T) {
 	g, bear, _ := describeFixture(t)
 	// The bound derives from the enum (events.NumKinds), never a kind name:
