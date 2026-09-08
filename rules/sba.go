@@ -236,6 +236,9 @@ func (e *Engine) checkStateBased() {
 	}
 	for pass := 0; pass < maxSBAPasses; pass++ {
 		changed := e.checkLoseConditions(tried)
+		if e.annihilateOppositeCounters() {
+			changed = true
+		}
 		if e.destroyLethalDamage(tried) {
 			changed = true
 		}
@@ -256,6 +259,31 @@ func (e *Engine) checkStateBased() {
 	}
 	e.checkGameOver()
 	e.releasePendingDecisionOfDepartedPlayer()
+}
+
+// annihilateOppositeCounters applies CR 704.5q to permanents in fixed seat
+// and battlefield order. Both removals are events so replay reconstructs the
+// same counter state as the live game.
+func (e *Engine) annihilateOppositeCounters() bool {
+	changed := false
+	for _, p := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o == nil {
+				continue
+			}
+			n := min(o.Counter("P1P1"), o.Counter("M1M1"))
+			if n <= 0 {
+				continue
+			}
+			e.emit(events.Event{Kind: events.CounterChange, Obj: id,
+				Counter: "P1P1", Amount: -n})
+			e.emit(events.Event{Kind: events.CounterChange, Obj: id,
+				Counter: "M1M1", Amount: -n})
+			changed = true
+		}
+	}
+	return changed
 }
 
 // checkLoseConditions applies CR 704.5a (life 0 or less) to every player not
