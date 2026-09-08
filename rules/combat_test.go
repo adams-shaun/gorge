@@ -93,6 +93,66 @@ func submitBlockers(t *testing.T, e *Engine, blockerIDs ...state.ObjID) {
 	}
 }
 
+func TestBlockerDeclarationLegality(t *testing.T) {
+	const creature = "Name:Memnite\nManaCost:0\nTypes:Artifact Creature Construct\nPT:1/1\nOracle:x\n"
+
+	t.Run("one blocker cannot block two attackers", func(t *testing.T) {
+		e := combatEngine(t)
+		first := onBoardReady(t, e, 0, creature)
+		second := onBoardReady(t, e, 0, creature)
+		blocker := onBoard(t, e, 1, creature)
+		e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{first, second}})
+		e.G.Step = state.StepDeclareBlockers
+		e.askBlockers()
+
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KBlockers {
+			t.Fatalf("expected a blockers decision, got %+v", d)
+		}
+		var choices []int
+		for _, o := range d.Options {
+			if o.Obj == blocker {
+				choices = append(choices, o.Index)
+			}
+		}
+		if len(choices) != 2 {
+			t.Fatalf("block options for blocker %d = %v, want one per attacker", blocker, choices)
+		}
+		beforeIntents, beforeEvents := len(e.L.Intents), len(e.L.Events)
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err == nil {
+			t.Fatal("one ordinary blocker was allowed to block two attackers")
+		}
+		if e.Pending() != d {
+			t.Fatalf("rejected declaration consumed pending decision: got %+v, want %+v", e.Pending(), d)
+		}
+		if len(e.L.Intents) != beforeIntents || len(e.L.Events) != beforeEvents {
+			t.Fatalf("rejected declaration changed log: intents %d -> %d, events %d -> %d", beforeIntents, len(e.L.Intents), beforeEvents, len(e.L.Events))
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices[:1]}); err != nil {
+			t.Fatalf("pending decision was not answerable with a legal block: %v", err)
+		}
+	})
+
+	t.Run("two blockers may block one attacker", func(t *testing.T) {
+		e := combatEngine(t)
+		attacker := onBoardReady(t, e, 0, creature)
+		onBoard(t, e, 1, creature)
+		onBoard(t, e, 1, creature)
+		e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{attacker}})
+		e.G.Step = state.StepDeclareBlockers
+		e.askBlockers()
+
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KBlockers || len(d.Options) != 2 {
+			t.Fatalf("expected two block options for one attacker, got %+v", d)
+		}
+		in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index, d.Options[1].Index}}
+		if err := e.Submit(in); err != nil {
+			t.Fatalf("valid multi-block was rejected: %v", err)
+		}
+	})
+}
+
 func TestUnblockedAttackerDamagesTheDefendingPlayer(t *testing.T) {
 	e := combatEngine(t)
 	atk := onBoardReady(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")

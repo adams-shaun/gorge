@@ -610,6 +610,14 @@ func (e *Engine) Submit(in decision.Intent) error {
 			return err
 		}
 	}
+	if d.Kind == decision.KBlockers {
+		// CR 509.1a: the blockers option list similarly offers every legal
+		// (blocker, attacker) pair. Reject choosing the same ordinary blocker
+		// against multiple attackers while preserving the pending decision.
+		if err := validateBlockers(d, in); err != nil {
+			return err
+		}
+	}
 	e.L.Intents = append(e.L.Intents, in)
 	e.emit(events.Event{Kind: events.DecisionMade, Player: in.Player,
 		Text: fmt.Sprintf("%s:%v", d.Kind, in.Choices)})
