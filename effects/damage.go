@@ -1,6 +1,8 @@
 package effects
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -30,6 +32,14 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	if n < 0 {
 		n = 0
 	}
+	// RememberDamaged$ True makes the resolution remember the objects it
+	// damaged, so a SubAbility$ (Incinerate's DB$ Effect reading
+	// RememberObjects$ Remembered.Creature) can act on exactly what took the
+	// damage. Ctx is threaded by pointer through Resolve, so appending here is
+	// visible to the sub-ability without any state write -- the remembered set
+	// is per-resolution context, not game state, and replay re-derives it by
+	// re-running the same resolution (Task ce1).
+	remember := strings.TrimSpace(sa.Params["RememberDamaged"]) != ""
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			h.Emit(events.Event{Kind: events.Damage, Player: t.Player, Amount: n})
@@ -37,6 +47,9 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
 			h.Emit(events.Event{Kind: events.Damage, Obj: t.Obj, Amount: n})
+			if remember {
+				c.Remembered = append(c.Remembered, state.Target{Obj: t.Obj})
+			}
 		}
 	}
 }

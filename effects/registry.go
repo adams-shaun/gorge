@@ -31,6 +31,13 @@ type Host interface {
 	// and Protection reach the layer system without effects importing rules,
 	// which would be an import cycle (effects sits below rules). Task 19c.
 	AddContinuous(state.ContinuousEffect)
+	// RegenerationDisallowed reports whether an Effect-registered
+	// CantRegenerate restriction makes id unable to be regenerated (Incinerate's
+	// "can't be regenerated this turn"). Consulted by ReplaceDestruction before
+	// it would consume a shield, so a banned regeneration is never honoured.
+	// Implemented by rules.Engine against its continuous-effect registry; the
+	// effects test double reports false (no engine to consult). Task ce1.
+	RegenerationDisallowed(id state.ObjID) bool
 	// HasKeyword reports a DERIVED keyword — printed or granted by a
 	// continuous effect (rules.Engine.HasKeyword). Effects that gate on a
 	// keyword (Destroy on Indestructible) must ask this, never the face.

@@ -361,11 +361,31 @@ import (
 // The 6-seat non-move is the check that the rest of this attribution is honest:
 // the same code is live at every seat count, so a cause that claimed to be
 // unconditional would have moved it too.
+// REGENERATED again at the ce1 merge (DB$ Effect registers CantTarget and
+// CantRegenerate as real continuous effects). ONLY the 8-seat head moves, and
+// the cause is a SINGLE EVENT, measured by dumping both full logs on this exact
+// base rather than carried over from the review:
+//
+//	2, 4, 6  UNMOVED.
+//	8 seats  adb26a03b5daa734 -> 505822c760a5f85c. Both logs are 15132 events
+//	         and exactly ONE differs. At seq 14414, immediately after seq
+//	         14413's stack_resolve of Vines of Vastwood (obj 355, seat 0), main
+//	         emits note "registers a continuous effect (STCantTarget) for
+//	         Permanent" and this build emits clock_tick from AddContinuous's
+//	         Timestamp == 0 branch. NO DECISION DIVERGED: every decision_made in
+//	         the two logs is byte-identical, so the CantTarget restriction never
+//	         actually withheld a target in that game. The head moves because a
+//	         Note was replaced by a real registration, nothing more.
+//
+// The review measured this same move as e3c5d5c3a411e641 against a main two
+// merges older. That value is stale and is NOT what is written here: cn1's
+// Polluted Delta activation shifted the log underneath it, and the head was
+// re-measured on branch+current-main, which is what FL-107 requires.
 var acceptanceHeads = map[int]string{
 	2: "2af07c65b7cafec2",
 	4: "2cf5359b632bdbd3",
 	6: "56cad0755f3f8c78",
-	8: "adb26a03b5daa734",
+	8: "505822c760a5f85c",
 }
 
 func TestHeads(t *testing.T) {
