@@ -394,11 +394,21 @@ import (
 //     numeric choice index, so an option inserted ahead of Pass shifts the
 //     recorded index. An offered-but-untaken option is only free of the chain
 //     when it is appended LAST, which is why M2d-3's concede moved nothing.
+//
+// fx1 (F45, CR 103.8a/800.7) regenerated 4, 6 and 8. The starting player's
+// first draw is no longer skipped in a multiplayer free-for-all, so every
+// multiplayer acceptance game deals one more card on turn 1 and every hidden
+// hand downstream of it differs.
+//
+// The 2-seat head is DELIBERATELY unmoved and is the falsifier for this
+// change: CR 103.8a's skip is correct at two players, so the predicate is
+// keyed to the constructed seat count. A 2-seat head that moved here would
+// have meant the fix was wrong, not that the golden was stale.
 var acceptanceHeads = map[int]string{
 	2: "4a6c29ab662c546a",
-	4: "a58e7aa6da6bfc9d",
-	6: "e2c2368141582c7a",
-	8: "4401a1be2f1f634d",
+	4: "e413e42321e9ed5a",
+	6: "05d4e64c33f758d1",
+	8: "b7219a3aec7d29c9",
 }
 
 func TestHeads(t *testing.T) {
