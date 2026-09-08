@@ -1,13 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
-import type { CardView, PlayerView, SeatInfo } from '../protocol';
+import type { PlayerView, SeatInfo } from '../protocol';
 import IdentityBar from './IdentityBar.svelte';
-
-const card = (id: number, name: string): CardView => ({
-  id, name, types: 'Legendary Creature',
-  tapped: false, power: 0, toughness: 0, damage: 0, attacking: false,
-  controller: 0, owner: 0, summon_sick: false, printing: { name }, token: `#${id}`,
-});
 
 const player = (over: Partial<PlayerView> = {}): PlayerView => ({
   seat: 0, name: 'Ari', life: 38, lost: false, library_size: 30, hand_size: 7, graveyard_size: 0,
@@ -55,6 +49,14 @@ describe('IdentityBar — the three-line box (B1 / I-10)', () => {
     // the visible text is clipped
     expect(html).toContain('Avery Long…');
     expect(html).not.toContain('>Avery Longplayer Name<');
+  });
+
+  it('exactly 10 characters is the last untruncated name; 11 clips', () => {
+    expect(bar(player({ name: 'ABCDEFGHIJ' }))).toContain('>ABCDEFGHIJ<');
+    expect(bar(player({ name: 'ABCDEFGHIJ' }))).not.toContain('…');
+    const over = bar(player({ name: 'ABCDEFGHIJK' }));
+    expect(over).toContain('>ABCDEFGHIJ…<');
+    expect(over).toContain('title="ABCDEFGHIJK"');
   });
 });
 

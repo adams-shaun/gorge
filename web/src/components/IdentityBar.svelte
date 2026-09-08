@@ -12,12 +12,16 @@
    *   3. the mana pool as bubbles, colourless included
    *
    * It used to also carry the deck name and the CR 903.10 commander-damage
-   * clock, and the user dropped both: a deck is not a player (B3, the name
-   * is now an independent PlayerName) and the commander tile — the real
-   * command-zone control — lives on the board in the creatures row
-   * (CommanderTile, out of scope here). Dropping the second clock is a
-   * deliberate spec choice, not an accidental regression: the box is three
-   * lines and that is the contract.
+   * clock. The user dropped the deck line because a deck is not a player
+   * (B3, the name is now an independent PlayerName); the commander-damage
+   * clock is gone because the three-line contract removed the clock from the
+   * client entirely — a box may not be taller than three rows. The commander
+   * tile (CommanderTile) on the board still tracks the command zone and is
+   * out of scope here, but it renders no damage readout, so commander damage
+   * is now unreadable anywhere in this client. Where that clock comes back is
+   * an open product question, and this comment is deliberately not defending
+   * a rationale for dropping it: it is a consequence of the spec, not a judged
+   * removal.
    *
    * Seat colour stays a left rule and the active seat stays a full
    * perimeter in its own colour; LOST seats stay struck through and dimmed
