@@ -214,7 +214,6 @@ func TestCR800MultiplayerFirstMulliganIsFree(t *testing.T) {
 }
 
 func TestCR800StartingPlayerDrawsInMultiplayer(t *testing.T) {
-	requireCR601Audit(t, "CR 800.7: starting player skips first draw even with four seats")
 	e := New(crMultiplayerConfig(t, testutil.CorpusRegistry(t), "ur-delver"))
 	e.Advance()
 	before := len(e.G.Zone(state.ZHand, 0))

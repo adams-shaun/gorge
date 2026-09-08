@@ -261,7 +261,7 @@ func (e *Engine) advanceStep() {
 		return
 	}
 	e.setStep(e.G.Step + 1)
-	if e.G.Step == state.StepDraw && e.G.Turn > 1 && !e.G.Players[e.G.Active].Lost {
+	if e.G.Step == state.StepDraw && (len(e.G.Players) != 2 || e.G.Turn > 1) && !e.G.Players[e.G.Active].Lost {
 		// CR 504.1: the draw step's draw is a TURN-BASED ACTION -- it happens
 		// once, automatically, at the beginning of the step, before any
 		// player receives priority, full stop. It is not conditioned on
@@ -282,8 +282,12 @@ func (e *Engine) advanceStep() {
 		// anything resolving later in the step can also produce, makes it
 		// run exactly once no matter what resolves afterward.
 		//
-		// e.G.Turn > 1 keeps CR 103.8a: the game's very first turn skips its
-		// draw. !Lost keeps an eliminated active player from drawing.
+		// Ruling F45: CR 103.8a skips the starting player's first draw only
+		// in a two-player game. Multiplayer free-for-all games take that draw
+		// normally (CR 800.7). len(e.G.Players) is the constructed seat count;
+		// eliminated players remain in the slice, so the rule cannot change as
+		// players lose. e.G.Turn > 1 preserves the draw on every later turn.
+		// !Lost keeps an eliminated active player from drawing.
 		//
 		// Ruling T28-b (fix round 1): this guard is REACHABLE in ordinary
 		// play, not a defensive leftover -- an earlier draft of this comment
