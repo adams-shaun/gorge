@@ -13,16 +13,21 @@ import (
 // "ability" option, or treats every ability the same, changes it:
 //
 //   - A1 (no no-ops): an ability that provably changes nothing on the current
-//     board is never activated. The one case the Board can see (it now
-//     carries each permanent's AttachedTo) is a re-attach: an equipment
-//     that is ALREADY attached to any permanent is declined, because an
-//     already-attached permanent's activated ability is never worth
-//     re-activating — an equip can only re-site the equipment, and whether
-//     the move is a gain is a value read this policy cannot make (it
-//     cannot read the granted abilities that make a different bearer
-//     better) (equipNoOp). Where the policy cannot prove a no-op it may
-//     still activate — this rule is exactly the set of changes the Board
-//     can prove are nil, not a guess. A1 scoring as not-worth-taking is
+//     board is never activated. Two shapes are provable: a re-attach (an
+//     equipment that is ALREADY attached to any permanent is declined,
+//     because an already-attached permanent's activated ability is never
+//     worth re-activating — an equip can only re-site the equipment, and
+//     whether the move is a gain is a value read this policy cannot make)
+//     (equipNoOp), and a redundant keyword grant (an activation whose whole
+//     effect is a pure idempotent keyword grant that the granting permanent
+//     already has, or an identical grant already pending from the same
+//     source, is declined — grantNoOp, read off the engine-supplied
+//     decision.Option.Grant). Additive abilities (+1/+1 pumps, counters,
+//     damage, draw) are never a no-op under grantNoOp and stay freely
+//     repeatable; a pure keyword grant is the one activation this policy can
+//     prove gains nothing the second time. Where the policy cannot prove a
+//     no-op it may still activate — this rule is exactly the set of changes
+//     it can prove are nil, not a guess. A1 scoring as not-worth-taking is
 //     what lets the priority policy fall through to its explicit pass and
 //     end a turn it would otherwise loop on.
 //   - A2 (free before costly): among abilities worth activating, the cheaper
@@ -53,6 +58,9 @@ import (
 func (b Board) abilityScore(o decision.Option, me state.PlayerID) (score int32, worth bool) {
 	if b.equipNoOp(o, me) {
 		return 0, false // A1: a provable no-op is never activated.
+	}
+	if b.grantNoOp(o) {
+		return 0, false // A1: a redundant keyword grant is never activated.
 	}
 	// A2: cheaper ranks higher (only among worth-taking abilities; A1 above
 	// already returned for the no-op case).
@@ -105,6 +113,25 @@ func (b Board) equipNoOp(o decision.Option, me state.PlayerID) bool {
 		return true
 	}
 	return b.Cards[o.Obj].AttachedTo != 0
+}
+
+// grantNoOp is A1's other provable no-op: an activation whose whole effect
+// is a pure, idempotent keyword grant (decision.Option.Grant non-nil) gains
+// nothing when either independent half holds -- the granting permanent
+// already has every granted keyword (Already), or an identical activation
+// from the same source is already on the stack unresolved (Duplicate). The
+// stack half is the one that actually failed here (a Goblin Balloon Brigade
+// granted flying three times in one main phase, all three pending), so
+// checking only the resolved keyword set would miss it; checking only the
+// stack would miss a re-activation after the first resolved. Additive
+// abilities carry a nil Grant and always stack, so only a pure keyword
+// grant can be a no-op here -- a +1/+1 pump or a damage/ draw effect is
+// never suppressed. The Grant fact is engine-filled server-side (json:"-"),
+// never derived from the option label, and both adapter halves receive the
+// same Decision, so they agree on it.
+func (b Board) grantNoOp(o decision.Option) bool {
+	g := o.Grant
+	return g != nil && (g.Already || g.Duplicate)
 }
 
 // hasOwnCreature is A1's no-legal-target census: does the deciding seat
