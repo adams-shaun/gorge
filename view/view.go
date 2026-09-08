@@ -269,6 +269,13 @@ type PendingView struct {
 	Decider    *state.PlayerID `json:"decider,omitempty"` // nil unless Optional
 }
 
+func displayName(p *state.Player) string {
+	if p.PlayerName != "" {
+		return p.PlayerName
+	}
+	return p.Name
+}
+
 // Project builds one seat's view. A hidden zone contributes a count and
 // nothing else unless the viewer owns it, and a decision is attached only to
 // the player it was asked of. Total: g == nil, ch == nil, and an
@@ -328,7 +335,7 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 		p := &g.Players[i]
 		roster, casts := commanderViews(g, ch, p.Commanders, p.CmdCasts)
 		pv := PlayerView{
-			ID: p.ID, Name: p.Name, Life: p.Life, Lost: p.Lost,
+			ID: p.ID, Name: displayName(p), Life: p.Life, Lost: p.Lost,
 			LibrarySize:    len(g.Zone(state.ZLibrary, p.ID)),
 			HandSize:       len(g.Zone(state.ZHand, p.ID)),
 			GraveyardSize:  len(g.Zone(state.ZGraveyard, p.ID)),

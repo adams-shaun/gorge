@@ -35,7 +35,13 @@ const (
 type Config struct {
 	Seed  uint64
 	Names []string
-	Decks [][]*cards.Card
+	// PlayerNames is a per-seat display name independent of the deck
+	// (the wire's PlayerView.Name carries it; Names is the deck identity
+	// the engine uses in event text, which is replay-hashed). nil or a
+	// short slice falls back to Names, so every Config that never sets it
+	// behaves byte-identically to today.
+	PlayerNames []string
+	Decks       [][]*cards.Card
 	// Format names the construction format. Zero means Constructed; the other
 	// tasks in the Commander milestone (the tax, CR 903.9, commander damage)
 	// read it. This task is plumbing: it reads Commanders and StartingLife
@@ -332,6 +338,11 @@ func New(cfg Config) *Engine {
 	}
 	e.G.Tokens = cfg.Tokens
 	e.format = cfg.Format
+	for i := range e.G.Players {
+		if i < len(cfg.PlayerNames) && cfg.PlayerNames[i] != "" {
+			e.G.Players[i].PlayerName = cfg.PlayerNames[i]
+		}
+	}
 	e.emit(events.Event{Kind: events.GameStart, Amount: int32(len(cfg.Names))})
 	// Match-wide dense commander indexing for Player.CmdDamage (assigned at
 	// genesis): a commander's dense index is the sum of (valid commanders in

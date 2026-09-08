@@ -5,6 +5,7 @@ import "github.com/adams-shaun/gorge/cards"
 type Player struct {
 	ID          PlayerID
 	Name        string
+	PlayerName  string
 	Life        int32
 	Lost        bool
 	LandsPlayed int32
