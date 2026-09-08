@@ -325,8 +325,7 @@ func (e *Engine) commanderZoneReplacementApplies(ev events.Event) bool {
 // a departed player makes no choices), so the unexercised choice is a
 // decline: the original move happens unchanged, emitted here under
 // applyingReplacement so the commander check that just matched cannot
-// re-park it (CR 616.1, a replacement applies only once). This is reachable
-// when removePermanents sweeps a Lost player's own commander to exile.
+// re-park it (CR 616.1, a replacement applies only once).
 func (e *Engine) parkCommanderZoneMove(ev events.Event) {
 	o := e.G.Obj(ev.Obj)
 	if o == nil {

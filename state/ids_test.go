@@ -2,6 +2,15 @@ package state
 
 import "testing"
 
+func TestCeasedZoneIsAppendedAndValid(t *testing.T) {
+	if ZCeased <= ZCommand {
+		t.Fatalf("ZCeased = %d, want appended after ZCommand %d", ZCeased, ZCommand)
+	}
+	if !ZCeased.Valid() || ZCeased.String() != "ceased" {
+		t.Fatalf("ZCeased validity/name = %v/%q, want true/ceased", ZCeased.Valid(), ZCeased.String())
+	}
+}
+
 // TestPlayerRefRoundTripsAndRealObjectIDsNeverDecode is PlayerRef/
 // ObjID.PlayerRef's own guard test (FL-41): the sentinel bit only exists
 // because a real object id must never collide with it, so this pins both
