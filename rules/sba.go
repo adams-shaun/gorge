@@ -39,7 +39,7 @@ const maxSBAPasses = 32
 //
 // objs is destroyLethalDamage's (Ruling T22-j), players is
 // checkLoseConditions' removal sweep's (Ruling T22-n), and tokens is
-// exileDeadTokens' own (Task 13 fix round 1, review finding "minor 1" --
+// ceaseDeadTokens' own (Task 13 fix round 1, review finding "minor 1" --
 // added after the fact, once the same failure shape checkLoseConditions and
 // destroyLethalDamage document at length -- a replacement permanently
 // blocking the move -- was pointed out as reachable here too, even though
@@ -51,9 +51,9 @@ const maxSBAPasses = 32
 // reach an event or the order of a decision's options. tokens is
 // deliberately its OWN map, not shared with objs: a token that is ALSO a
 // creature can be found lethal by destroyLethalDamage (which marks it in
-// objs) and then, in the very same pass, need exileDeadTokens to move it
-// again (graveyard -> exile) -- sharing one map would have objs's mark
-// wrongly block exileDeadTokens from ever attempting an object destroy
+// objs) and then, in the very same pass, need ceaseDeadTokens to move it
+// again (graveyard -> ceased) -- sharing one map would have objs's mark
+// wrongly block ceaseDeadTokens from ever attempting an object destroy
 // LethalDamage had already touched. alive is Ruling T22-p's re-arm
 // watermark, described on checkStateBased below.
 type sbaAttempts struct {
@@ -68,7 +68,7 @@ type sbaAttempts struct {
 // permanent blocked gets exactly one more chance under the smaller alive
 // set -- and none at all while nobody dies. Ruling T22-p (fix round 4):
 // this is called at each of the points that consult the memories, not once
-// per pass, because the sweep loop, destroyLethalDamage and exileDeadTokens
+// per pass, because the sweep loop, destroyLethalDamage and ceaseDeadTokens
 // all run AFTER the pass's own eliminations are marked and must not be
 // re-armed out from under an attempt they made under the very same alive
 // set.
@@ -242,7 +242,7 @@ func (e *Engine) checkStateBased() {
 		if e.destroyLethalDamage(tried) {
 			changed = true
 		}
-		if e.exileDeadTokens(tried) {
+		if e.ceaseDeadTokens(tried) {
 			changed = true
 		}
 		if e.attachmentSBAs() {
@@ -498,7 +498,7 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 	return len(dead) > 0
 }
 
-// tokenCasualty is a token exileDeadTokens found to have left the
+// tokenCasualty is a token ceaseDeadTokens found to have left the
 // battlefield, together with the zone it left FROM -- captured before the
 // move, mirroring casualty above and the same real-zone-over-claimed-zone
 // discipline events.Move applies to the removal itself.
@@ -507,22 +507,21 @@ type tokenCasualty struct {
 	from state.Zone
 }
 
-// exileDeadTokens is CR 111.7: a token ceases to exist the instant it
-// leaves the battlefield. This build already parks every Ephemeral object
-// in exile rather than deleting it outright (state.Object.Ephemeral's own
-// doc), so the state-based action is a plain zone check -- any token whose
-// CURRENT zone is neither the battlefield nor the stack nor already exile
-// is moved to exile, Text "ceased to exist". The stack is excluded for the
-// same reason Ephemeral's own IsCopy half exists: a token copy of a spell
-// or ability legitimately sits there without being a permanent yet (Task
-// 13 does not implement CopySpellAbility, so no card can produce this
+// ceaseDeadTokens is CR 704.5d: a token ceases to exist the instant it
+// leaves the battlefield. The state-based action is a plain zone check --
+// any token whose CURRENT zone is neither the battlefield nor the stack nor
+// already ceased is moved to ZCeased, the replay-stable arena tombstone with
+// no game-zone membership, with Text "ceased to exist". The stack is excluded
+// for the same reason Ephemeral's own IsCopy half exists: a token copy of a
+// spell or ability legitimately sits there without being a permanent yet
+// (Task 13 does not implement CopySpellAbility, so no card can produce this
 // today, but the exclusion costs nothing and matches the brief exactly).
 //
 // Task 13 fix round 1 (review finding "minor 1"): this now takes the same
 // tried memory checkLoseConditions and destroyLethalDamage do, in its own
 // tried.tokens map (see sbaAttempts' own doc for why it cannot share
 // tried.objs). The original version relied only on the zone update itself
-// -- moving a token to exile changes its own zone to the value the check
+// -- moving a token to ZCeased changes its own zone to the value the check
 // excludes, so it naturally stops matching -- which is correct for the
 // ordinary case and remains exactly how a SUCCESSFUL move retires itself
 // here. What it did not bound was a replacement PERMANENTLY blocking the
@@ -540,8 +539,8 @@ type tokenCasualty struct {
 // the same as its siblings.
 //
 // Walks e.G.Objs by index -- the dense arena, never a map -- so multiple
-// tokens dying at once are exiled in a fixed, reproducible order.
-func (e *Engine) exileDeadTokens(tried *sbaAttempts) bool {
+// tokens dying at once cease in a fixed, reproducible order.
+func (e *Engine) ceaseDeadTokens(tried *sbaAttempts) bool {
 	tried.rearm(e.G.AliveCount())
 	var dead []tokenCasualty
 	for i := range e.G.Objs {
@@ -549,14 +548,14 @@ func (e *Engine) exileDeadTokens(tried *sbaAttempts) bool {
 		if tried.tokens[o.ID] {
 			continue
 		}
-		if o.IsToken && o.Zone != state.ZBattlefield && o.Zone != state.ZStack && o.Zone != state.ZExile {
+		if o.IsToken && o.Zone != state.ZBattlefield && o.Zone != state.ZStack && o.Zone != state.ZCeased {
 			dead = append(dead, tokenCasualty{o.ID, o.Zone})
 		}
 	}
 	for _, c := range dead {
 		tried.tokens[c.id] = true
 		e.emit(events.Event{Kind: events.MoveZone, Obj: c.id,
-			From: c.from, To: state.ZExile, Text: "ceased to exist"})
+			From: c.from, To: state.ZCeased, Text: "ceased to exist"})
 	}
 	return len(dead) > 0
 }

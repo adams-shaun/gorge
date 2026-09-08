@@ -144,7 +144,7 @@ func TestBatterskullLivingWeaponCreatesAGermAndReachesAttach(t *testing.T) {
 	// Cross-check against the resulting object: a 0/0 Phyrexian Germ with no
 	// Attach to grant Batterskull's own +4/+4 (Attach is unregistered -- Task
 	// 14) is immediately lethal to itself under CR 704.5f, and this build's
-	// own exileDeadTokens (Task 13) correctly cleans it up the moment it
+	// own ceaseDeadTokens (Task 13) correctly cleans it up the moment it
 	// dies -- so by the time passUntilStackEmpty returns, the germ is
 	// legitimately gone from the battlefield again. That is the CORRECT,
 	// expected interaction of two working systems (Token creation,
@@ -173,8 +173,8 @@ func TestBatterskullLivingWeaponCreatesAGermAndReachesAttach(t *testing.T) {
 	// working effects.Attach, so the germ is actually attached to Batterskull
 	// and Batterskull's own EquippedBy static (+4/+4) keeps the 0/0 germ alive
 	// at 4/4 -- the reason the token is still on the battlefield at the end,
-	// rather than dying to CR 704.5f and being tucked into exile by
-	// exileDeadTokens the way pre-14 it always did. assert the real attach.
+	// rather than dying to CR 704.5f and being moved to ZCeased by
+	// ceaseDeadTokens the way pre-14 it always did. assert the real attach.
 	if got := germ.Zone; got != state.ZBattlefield {
 		t.Fatalf("germ zone = %s after passUntilStackEmpty, want battlefield (Batterskull's +4/+4 "+
 			"should have kept it alive at 4/4)", got)
