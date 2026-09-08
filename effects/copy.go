@@ -39,22 +39,47 @@ func init() {
 func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	if _, hasUnless := sa.Params["UnlessCost"]; hasUnless {
+		// effCopySpellAbility's hardcoded orientation is SWITCHED: paying the
+		// UnlessCost$ CAUSES the copy ("If the player does, they may copy").
+		// This is the OPPOSITE of effCounter, whose hardcoded default is
+		// UNSWITCHED (paying PREVENTS the counter), so the same guard
+		// expression means opposite things in the two primitives. Every
+		// UnlessSwitched$ True copy shape already agrees with THIS default
+		// and must stay exactly as written; only an UnlessCost$ with NO
+		// UnlessSwitched$ is the UNSWITCHED shape, which inverts it ("If
+		// they don't, you may copy" — Wandering Archaic, the sole corpus
+		// carrier) and is what the reversal below fixes. Do not paste
+		// effCounter's guard here: it would break the switched copy shapes
+		// that main already gets right.
+		switched := strings.EqualFold(strings.TrimSpace(sa.Params["UnlessSwitched"]), "True")
 		switch c.UnlessPay {
 		case "pay":
 			// Re-entry: the payer paid the UnlessCost$ in rules'
-			// resumeResolution (payMana, so it replays); fall through to the
-			// ordinary copy body below.
+			// resumeResolution (payMana, so it replays). On the UNSWITCHED
+			// shape paying stops the copy; only the SWITCHED shape falls
+			// through to the ordinary copy body.
+			if !switched {
+				return
+			}
 		case "decline":
-			return
+			// Re-entry: the payer declined. On the SWITCHED shape that stops
+			// the copy; on the UNSWITCHED shape the decline IS the copy path
+			// ("if they don't, you may copy"), so fall through.
+			if switched {
+				return
+			}
 		default:
 			// First pass: pose the pay decision when the host can ask. The
 			// payer is the UnlessPayer$: for the corpus's copy shapes that is
 			// the targeted player or the controller of the targeted object
 			// ("TargetedOrController", "Targeted"), so it resolves from the
 			// first target; the resolving effect's own controller is the
-			// fallback. The asked decision is the same KModes shape effCharm
-			// uses, tagged "unless_pay" so the engine resumes the right
-			// continuation.
+			// fallback (Wandering Archaic's "TriggeredActivator" resolves to
+			// the trigger's controller, which is c.Controller). The asked
+			// decision is the same KModes shape effCharm uses, tagged
+			// "unless_pay" so the engine resumes the right continuation. The
+			// prompt and labels are keyed on the orientation so the seat sees
+			// the real consequence of each choice.
 			payer := c.Controller
 			switch strings.TrimSpace(sa.Params["UnlessPayer"]) {
 			case "TargetedOrController", "Targeted", "TargetedController":
@@ -63,22 +88,35 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 				}
 			}
 			cost := strings.TrimSpace(sa.Params["UnlessCost"])
+			var prompt, payLabel, declineLabel string
+			if switched {
+				prompt = "Pay " + cost + " to copy the spell, or decline"
+				payLabel = "Pay " + cost + " — make a copy"
+				declineLabel = "Don't pay"
+			} else {
+				prompt = "Pay " + cost + " to stop the copy, or decline to copy"
+				payLabel = "Pay " + cost + " — no copy"
+				declineLabel = "Don't pay — make a copy"
+			}
 			d := &decision.Decision{Player: payer, Kind: decision.KModes,
 				Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay",
 				ResumeSA: sa,
-				Prompt:   "Pay " + cost + " to copy the spell, or decline",
+				Prompt:   prompt,
 				Options: []decision.Option{
-					{Index: 0, Kind: "mode", Label: "Pay " + cost + " — make a copy", Obj: c.Source, Player: payer},
-					{Index: 1, Kind: "mode", Label: "Don't pay", Obj: c.Source, Player: payer},
+					{Index: 0, Kind: "mode", Label: payLabel, Obj: c.Source, Player: payer},
+					{Index: 1, Kind: "mode", Label: declineLabel, Obj: c.Source, Player: payer},
 				}}
 			if h.Ask(d) {
 				return // resolution suspended; the answer re-enters this effect.
 			}
-			// Fuzz/no-engine host: the deterministic decline (R-9), as
-			// today — a card that pays nothing gets nothing.
+			// Fuzz/no-engine host: the deterministic decline (R-9). A
+			// SWITCHED shape declines to nothing; an UNSWITCHED shape's
+			// deterministic decline is the copy path, so it falls through.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "may pay declined (UnlessCost not asked on this host)"})
-			return
+			if switched {
+				return
+			}
 		}
 	}
 
