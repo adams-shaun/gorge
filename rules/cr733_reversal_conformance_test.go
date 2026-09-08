@@ -67,8 +67,9 @@ func cr733CounterProposal(t *testing.T, reg *cards.Registry, deckName, name stri
 // The latter deliberately bypasses legalActions: fixing only the offer gate
 // must not make the reversal test vacuous. It does not hand-construct an SA or
 // mutate Game. beginCast is the same entry called by handlePriority.
-// A fixed client path may withhold the impossible option; that is acceptable,
-// but the direct proposal must still be rejected/reversed without loss.
+// The client arm independently asserts the impossible option is ABSENT from
+// legalActions (I-2), even once withholding it means no Submit is possible.
+// The direct proposal must still be rejected/reversed without loss.
 func cr733Propose(t *testing.T, e *Engine, source state.ObjID, direct bool) {
 	t.Helper()
 	if direct {
@@ -76,6 +77,11 @@ func cr733Propose(t *testing.T, e *Engine, source state.ObjID, direct bool) {
 		return
 	}
 	d := e.Pending()
+	for _, opt := range e.legalActions(0) {
+		if opt.Kind == "cast" && opt.Obj == source {
+			t.Errorf("CR 601.2c/115.5: %q seq %d: legalActions must omit every cast option on this empty stack; offered %+v", e.G.Obj(source).Face().Name, d.Seq, opt)
+		}
+	}
 	for _, opt := range d.Options {
 		if opt.Kind == "cast" && opt.Obj == source && opt.AltCostIndex == 0 && opt.Mode == "" {
 			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{opt.Index}}); err != nil {
@@ -84,7 +90,7 @@ func cr733Propose(t *testing.T, e *Engine, source state.ObjID, direct bool) {
 			return
 		}
 	}
-	t.Logf("CR 601.2e: %q correctly withheld at seq %d; direct-proposal sibling still exercises reversal", e.G.Obj(source).Face().Name, d.Seq)
+	t.Logf("CR 601.2c/115.5: %q withheld at seq %d; legalActions absence asserted; direct-proposal sibling still exercises reversal", e.G.Obj(source).Face().Name, d.Seq)
 }
 
 // TestCR733IllegalCounterProposalReverses checks an independent oracle:
