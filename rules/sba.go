@@ -375,12 +375,18 @@ func (e *Engine) checkLoseConditions(tried *sbaAttempts) bool {
 	return changed
 }
 
-// ceaseDepartedObjects applies CR 800.4a in stable arena order. A departed
-// player's card-backed owned objects leave regardless of their current zone;
-// stack objects that player controls cease whether card-backed or cardless.
-// Ownership is deliberate on the battlefield: an opponent-owned card does not
-// leave merely because the departed player controlled it. ZCeased retains the
-// replay-stable arena tombstone without adding it to a zone.
+// ceaseDepartedObjects applies CR 800.4a and 800.4e in stable arena order. A
+// departed player's card-backed owned objects leave regardless of their current
+// zone; stack objects that player controls cease whether card-backed or
+// cardless. Ownership is deliberate on the battlefield: an opponent-owned card
+// does not leave merely because the departed player controlled it. ZCeased
+// retains the replay-stable arena tombstone without adding it to a zone.
+//
+// Moving an owned attacker clears its combat state, so that case continues
+// before the 800.4e check rather than emitting a redundant EndCombatReset. The
+// owner check also prevents that duplicate when multiple departed players are
+// swept in seat order and an attacker owned by a later seat attacks an earlier
+// one.
 func (e *Engine) ceaseDepartedObjects(p state.PlayerID) {
 	for i := range e.G.Objs {
 		o := &e.G.Objs[i]
@@ -389,11 +395,18 @@ func (e *Engine) ceaseDepartedObjects(p state.PlayerID) {
 		}
 		ownedCard := o.Owner == p && o.Card != nil
 		controlledStackObject := o.Controller == p && o.Zone == state.ZStack
-		if !ownedCard && !controlledStackObject {
+		if ownedCard || controlledStackObject {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
+				From: o.Zone, To: state.ZCeased, Text: "player left the game"})
 			continue
 		}
-		e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
-			From: o.Zone, To: state.ZCeased, Text: "player left the game"})
+		if !o.IsAttacking || int(o.Attacking) >= len(e.G.Players) || !e.G.Players[o.Attacking].Lost {
+			continue
+		}
+		if o.Card != nil && int(o.Owner) < len(e.G.Players) && e.G.Players[o.Owner].Lost {
+			continue
+		}
+		e.emit(events.Event{Kind: events.EndCombatReset, Obj: o.ID})
 	}
 }
 
