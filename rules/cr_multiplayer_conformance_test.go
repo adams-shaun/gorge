@@ -33,7 +33,6 @@ func crMultiplayerConfig(t *testing.T, reg *cards.Registry, deck string) Config 
 // battlefield candidates must be permanents. The oracle is zone membership,
 // not arena deletion (an implementation may retain inert historical records).
 func TestCR800DepartedOwnersCardsLeaveEveryZone(t *testing.T) {
-	requireCR601Audit(t, "CR 800.4a: departure only exiles controlled battlefield objects; owned cards stay in game zones")
 	reg := testutil.CorpusRegistry(t)
 	checked := 0
 	zones := []state.Zone{state.ZLibrary, state.ZHand, state.ZGraveyard, state.ZExile, state.ZBattlefield}
@@ -81,7 +80,6 @@ func TestCR800DepartedOwnersCardsLeaveEveryZone(t *testing.T) {
 func TestCR800DepartedControllersStackObjectsCease(t *testing.T) {
 	for _, name := range []string{"Lightning Bolt", "Azure Mage"} {
 		t.Run(name, func(t *testing.T) {
-			requireCR601Audit(t, "CR 800.4a: a departing controller's spell/activated ability stays on the stack")
 			e := crResolutionEngine(t, []string{name}, nil, nil, nil)
 			zone, kind, mana, amount := state.ZHand, "cast", "R", int32(1)
 			if name == "Azure Mage" {

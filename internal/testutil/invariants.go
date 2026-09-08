@@ -74,8 +74,9 @@ func zoneEntries(g *state.Game) []zoneEntry {
 //     object can be in both a hidden zone's list and the battlefield's --
 //     invariant 6's own message would never be seen if it ran after.
 //  2. Invariant 1 second: ObjID 0 never appears in any list, Object.Zone
-//     agrees with whichever list holds an id, and every object is in
-//     exactly one list. Both of invariant 1's post-walk checks (built while
+//     agrees with whichever list holds an id, and every live object is in
+//     exactly one list. A ZCeased arena tombstone is in none. Both of
+//     invariant 1's post-walk checks (built while
 //     walking, but read back by iterating g.Objs by ID -- not the maps
 //     themselves -- so a failure is reported in a deterministic order
 //     regardless of Go's map iteration order).
@@ -131,8 +132,12 @@ func checkZones(t testing.TB, g *state.Game, where string) {
 	}
 	for i := range g.Objs {
 		id := state.ObjID(i + 1)
-		if n := seen[id]; n != 1 {
-			t.Fatalf("invariants (%s): object %d appears in %d zone lists, want exactly 1", where, id, n)
+		want := 1
+		if g.Objs[i].Zone == state.ZCeased {
+			want = 0
+		}
+		if n := seen[id]; n != want {
+			t.Fatalf("invariants (%s): object %d appears in %d zone lists, want %d", where, id, n, want)
 			return
 		}
 	}

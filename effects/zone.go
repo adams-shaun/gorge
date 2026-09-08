@@ -34,6 +34,8 @@ func ParseZone(s string) state.Zone {
 		return state.ZStack
 	case "Command":
 		return state.ZCommand
+	case "Ceased":
+		return state.ZCeased
 	}
 	return state.ZGraveyard
 }

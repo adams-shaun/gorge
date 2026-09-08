@@ -73,6 +73,14 @@ func TestZonesArePerPlayerAndOrdered(t *testing.T) {
 	}
 }
 
+func TestCeasedZoneHasNoMembershipList(t *testing.T) {
+	g := fourPlayer(t)
+	g.SetZone(ZCeased, 0, []ObjID{1})
+	if got := g.Zone(ZCeased, 0); got != nil {
+		t.Fatalf("ceased zone membership = %v, want nil", got)
+	}
+}
+
 func TestCloneIsDeepAndIndependent(t *testing.T) {
 	g := fourPlayer(t)
 	g.Players[1].Life = 12

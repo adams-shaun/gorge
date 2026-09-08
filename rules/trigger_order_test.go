@@ -1060,12 +1060,11 @@ Oracle:x
 	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
 		t.Fatal("the target decision was not released")
 	}
-	if len(e.G.Stack) != 1 || e.G.Stack[0] != id {
-		t.Fatalf("stack = %v, want the untargeted spell still on it", e.G.Stack)
+	if len(e.G.Stack) != 0 {
+		t.Fatalf("stack = %v, want departed caster's spell to have ceased", e.G.Stack)
 	}
 
 	life := e.G.Players[0].Life
-	e.resolveTop()
 
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.Resolve && ev.Obj == id {
@@ -1075,8 +1074,8 @@ Oracle:x
 	if got := e.G.Players[0].Life; got != life {
 		t.Fatalf("life = %d, want %d — the spell's untargeted rider ran anyway", got, life)
 	}
-	if o := e.G.Obj(id); o.Zone != state.ZGraveyard {
-		t.Fatalf("the countered spell is in %s, want the graveyard", o.Zone)
+	if o := e.G.Obj(id); o.Zone != state.ZCeased {
+		t.Fatalf("the departed caster's spell is in %s, want ceased", o.Zone)
 	}
 }
 
