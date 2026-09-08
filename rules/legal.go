@@ -2,6 +2,7 @@ package rules
 
 import (
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -32,6 +33,29 @@ func abilityZoneOK(ab *cards.SA, z state.Zone) bool {
 		return z == state.ZGraveyard
 	}
 	return false
+}
+
+// activationLimitReached reports whether this object has already activated the
+// indexed ability as many times as its literal ActivationLimit permits this
+// turn. AbilityPush records both pieces of identity (Obj and Amount); scanning
+// backward to the latest TurnChange keeps the count derived entirely from the
+// replayable event log. Unknown limit expressions remain unenforced.
+func (e *Engine) activationLimitReached(id state.ObjID, ability int, raw string) bool {
+	limit, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || limit < 0 {
+		return false
+	}
+	used := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.AbilityPush && ev.Obj == id && ev.Amount == int32(ability) {
+			used++
+		}
+	}
+	return used >= limit
 }
 
 // legalActions enumerates everything p may legally do with priority. The
@@ -219,6 +243,9 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 					continue
 				}
 				if e.abilityRestricted(p, id, ab) {
+					continue
+				}
+				if raw, ok := ab.Params["ActivationLimit"]; ok && e.activationLimitReached(id, i, raw) {
 					continue
 				}
 				cost := ParseCost(ab.Params["Cost"])

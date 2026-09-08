@@ -253,7 +253,6 @@ func TestCR602NewNoncreatureCanActivateTapAbility(t *testing.T) {
 }
 
 func TestCR602OncePerTurnActivationRestriction(t *testing.T) {
-	requireCR601Audit(t, "CR 602.1b/602.5: once-per-turn activation restriction ignored")
 	reg := testutil.CorpusRegistry(t)
 	e := crAbortEngine(t, reg, "ur-delver", "Basking Rootwalla")
 	id := crAbortMove(t, e, 0, "Basking Rootwalla", state.ZBattlefield)
