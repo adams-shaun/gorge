@@ -619,8 +619,10 @@ func (e *Engine) checkGameOver() {
 // This cannot loop. dropDepartedTriggers has already discarded the departed
 // player's own triggers (CR 800.4a); an optional trigger whose DECIDER
 // departed but whose controller lives is declined rather than re-asked; and
-// e.pending is cleared before the resume, so the nested checkStateBased that
-// resume performs finds nothing left to release.
+// e.pending is cleared before either continuation runs. If resuming a stack
+// resolution reaches another ask, that ask sets e.pending before
+// resumeTriggerDrain, whose pending guard makes the drain inert rather than
+// overwriting the new decision or recursing through checkStateBased.
 func (e *Engine) releasePendingDecisionOfDepartedPlayer() {
 	d := e.pending
 	if d == nil || e.G.Over {
@@ -630,5 +632,19 @@ func (e *Engine) releasePendingDecisionOfDepartedPlayer() {
 		return
 	}
 	e.pending = nil
+	if e.resume != nil {
+		// CR 800.4f: the departed player does not make the outstanding
+		// choice. Resume with an empty answer so the asking instruction gets
+		// no selection (or no payment) and the rest of the effect chain still
+		// runs. Clearing only resume would leave the half-resolved object on
+		// the stack, where a later resolution could replay its completed
+		// prefix; moving the object off the stack here would instead discard
+		// any suffix after the unanswered instruction. resumeResolution runs
+		// the remaining instructions and then performs CR 608.2n's ordinary
+		// completion tail.
+		rp := *e.resume
+		e.resume = nil
+		e.resumeResolution(rp, nil)
+	}
 	e.resumeTriggerDrain()
 }

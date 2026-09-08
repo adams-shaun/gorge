@@ -69,7 +69,6 @@ func crResolutionPlayerTarget(t *testing.T, e *Engine, p state.PlayerID) {
 }
 
 func TestCR608CompletedSpellLeavesStackAfterDepartedPayer(t *testing.T) {
-	requireCR601Audit(t, "CR 608.2n: an earlier departed payer's continuation strands a completed spell (I-1)")
 	// MEASURED at 88ea57a+fx9: the concession below leaves e.resume non-nil
 	// forever. Suspended() tests ANY non-nil resume, so every LATER stack
 	// object skips completion -- seat 0's Bolt below deals its 3 damage and
