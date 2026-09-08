@@ -13,7 +13,7 @@
   import SeatPanel from '../components/SeatPanel.svelte';
   import PhaseTrack from '../components/PhaseTrack.svelte';
   import { SeatPanelState } from '../lib/seatpanel.svelte';
-  import { quadrantFor } from '../lib/board';
+  import { everyVisibleCard, quadrantFor } from '../lib/board';
   import { seatColour } from '../lib/colours';
   import { seatRows } from '../lib/seattable';
   import { buildCardColour } from '../lib/logrender';
@@ -82,9 +82,7 @@
   // it leaves them all.
   const logCardColour = $derived(
     m.view
-      ? buildCardColour(m.view.players.flatMap((p) => [
-          ...p.hand, ...p.battlefield, ...p.graveyard, ...p.exile, ...p.command, ...p.commanders,
-        ]))
+      ? buildCardColour(everyVisibleCard(m.view.players))
       : null,
   );
 

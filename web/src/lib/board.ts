@@ -14,6 +14,31 @@ export function visibleHand(p: PlayerView): CardView[] | null {
   return p.hand ?? null;
 }
 
+/**
+ * everyVisibleCard flattens every card a view exposes, across every seat and
+ * every zone, for callers that need the whole set rather than one zone (the
+ * transcript's card-name/colour resolver is the only one today).
+ *
+ * It exists as a named, tested function rather than an inline flatMap because
+ * the inline version shipped a crash: it spread `p.hand` directly, and on a
+ * public spectator client that is a literal JSON null, so the whole table view
+ * died with "hand is not iterable" and never left "Loading match N...".
+ * protocol.ts types all six zones as non-nullable CardView[] and TypeScript
+ * therefore cannot catch it -- see visibleHand above for the same trap. Every
+ * zone is defended here, not only the two the server nils today, so a zone that
+ * becomes hideable later cannot reopen the same hole.
+ */
+export function everyVisibleCard(players: readonly PlayerView[] | null | undefined): CardView[] {
+  const out: CardView[] = [];
+  for (const p of players ?? []) {
+    if (!p) continue;
+    for (const zone of [p.hand, p.battlefield, p.graveyard, p.exile, p.command, p.commanders]) {
+      for (const c of zone ?? []) if (c) out.push(c);
+    }
+  }
+  return out;
+}
+
 /** groupBattlefield sorts a seat's permanents into the three rows a quadrant shows. Type words come from the view; nothing here decides what a card does. Attachments are excluded — attachedTo places them under their host instead. */
 export function groupBattlefield(cards: CardView[]): Record<Group, CardView[]> {
   const out: Record<Group, CardView[]> = { lands: [], creatures: [], others: [] };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { attachedTo, groupBattlefield, quadrantFor, RECENT_RESOLVE_WINDOW, recentlyMattered, stackFaces, stackIdentical, visibleHand } from './board';
+import { attachedTo, everyVisibleCard, groupBattlefield, quadrantFor, RECENT_RESOLVE_WINDOW, recentlyMattered, stackFaces, stackIdentical, visibleHand } from './board';
 import type { CardView, EventBody, PlayerView } from '../protocol';
 
 const card = (id: number, types: string): CardView => ({ id, name: `c${id}`, types, tapped: false, power: 0, toughness: 0, damage: 0, attacking: false, controller: 0, owner: 0, summon_sick: false, printing: { name: `c${id}` }, token: `#${id}` });
@@ -217,5 +217,44 @@ describe('stackIdentical', () => {
     const g = stackIdentical([zombie(2), zombie(5), zombie(9)])[0];
     expect(stackFaces(g, false).map((c) => c.id)).toEqual([2]);
     expect(stackFaces(g, true).map((c) => c.id)).toEqual([2, 5, 9]);
+  });
+});
+
+describe('everyVisibleCard — the public-spectator null zones', () => {
+  const seat = (over: Partial<PlayerView>): PlayerView =>
+    ({
+      seat: 0, name: 'Player 1', life: 40, lost: false,
+      library_size: 90, hand_size: 7, graveyard_size: 0,
+      hand: [], battlefield: [], graveyard: [], exile: [],
+      pool: {}, command: [], commanders: [], commander_casts: [],
+      ...over,
+    }) as PlayerView;
+  const named = (id: number, name: string) => ({ id, name }) as CardView;
+
+  it('survives the null hand and null pool a public spectator really receives', () => {
+    // Exactly the wire shape captured from a live `-spectator public` server:
+    // hand and pool are literal JSON nulls, every other zone is an array.
+    // Spreading that hand crashed the whole table view.
+    const players = [
+      seat({ hand: null as unknown as CardView[], pool: null as unknown as Record<string, number>, battlefield: [named(66, 'Mountain')] }),
+      seat({ seat: 1, hand: null as unknown as CardView[], graveyard: [named(31, 'Hordeling Outburst')] }),
+    ];
+    const names = everyVisibleCard(players).map((c) => c.name);
+    expect(names).toEqual(['Mountain', 'Hordeling Outburst']);
+  });
+
+  it('collects every zone for an omniscient view', () => {
+    const p = seat({
+      hand: [named(1, 'Ponder')], battlefield: [named(2, 'Island')], graveyard: [named(3, 'Brainstorm')],
+      exile: [named(4, 'Delve')], command: [named(5, 'Lathliss, Dragon Queen')], commanders: [named(5, 'Lathliss, Dragon Queen')],
+    });
+    expect(everyVisibleCard([p]).map((c) => c.name)).toEqual([
+      'Ponder', 'Island', 'Brainstorm', 'Delve', 'Lathliss, Dragon Queen', 'Lathliss, Dragon Queen',
+    ]);
+  });
+
+  it('treats a missing players list as empty rather than throwing', () => {
+    expect(everyVisibleCard(null)).toEqual([]);
+    expect(everyVisibleCard(undefined)).toEqual([]);
   });
 });
