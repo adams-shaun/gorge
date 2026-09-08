@@ -12,6 +12,11 @@
    * — so it stays reachable), mana symbols render as pips, and a faceless
    * ability reference is italicised. There is no match view at the lobby rail
    * to look a card's colour up from, so card names render uncoloured here.
+   *
+   * Step lines ("Step: main-1") are clock noise and are suppressed by the
+   * feed itself (feed.ts's isStepLine, keyed on view/describe.go's literal
+   * "Step: " prefix): they never reach the rail's 'now' row or the notable
+   * log. The 'all' toggle reveals them alongside the routine priority lines.
    */
 
   /**
