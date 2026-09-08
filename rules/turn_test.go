@@ -127,6 +127,25 @@ func TestPriorityRoundAdvancesTheStep(t *testing.T) {
 	}
 }
 
+func TestLeavingEndCombatRemovesAttackerBeforePostcombatMain(t *testing.T) {
+	e := combatEngine(t)
+	attacker := onBoardReady(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{attacker}})
+	e.pending = nil
+	e.setStep(state.StepEndCombat)
+
+	if !e.G.Obj(attacker).IsAttacking {
+		t.Fatal("attacker was removed before the end of combat step ended")
+	}
+	e.advanceStep()
+	if e.G.Step != state.StepMain2 {
+		t.Fatalf("step = %s, want %s", e.G.Step, state.StepMain2)
+	}
+	if e.G.Obj(attacker).IsAttacking {
+		t.Fatal("attacker remained in combat after reaching postcombat main")
+	}
+}
+
 func TestTurnsRotateThroughEverySeat(t *testing.T) {
 	e := newSeats(t, 4)
 	seen := map[state.PlayerID]bool{}

@@ -22,6 +22,7 @@ func (e *Engine) beginTurn(active state.PlayerID) {
 }
 
 func (e *Engine) setStep(s state.Step) {
+	leaving := e.G.Step
 	e.emit(events.Event{Kind: events.StepChange, Step: s})
 	// Mana pools empty as each step ends (CR 500.4).
 	for i := range e.G.Players {
@@ -29,11 +30,13 @@ func (e *Engine) setStep(s state.Step) {
 			e.emit(events.Event{Kind: events.ManaClear, Player: state.PlayerID(i)})
 		}
 	}
-	if s == state.StepEndCombat || s == state.StepCleanup {
-		// Ruling T21-e: routed through an event (events.EndCombatReset), not
-		// a direct field write -- a log-only replay must learn that combat
-		// ended and IsAttacking/BlockedBy were cleared, not just observe it
-		// as a fait accompli baked into a live Engine's memory.
+	if leaving == state.StepEndCombat && s != leaving {
+		// CR 511.3 removes creatures and planeswalkers from combat as the end
+		// of combat step ends, not when it begins. Keeping the leaving-step
+		// boundary here covers every transition made through setStep exactly
+		// once; the former cleanup safety net would emit a duplicate reset.
+		// Ruling T21-e keeps the reset event-sourced so a log-only replay also
+		// learns that IsAttacking and BlockedBy were cleared.
 		e.emit(events.Event{Kind: events.EndCombatReset})
 	}
 }
