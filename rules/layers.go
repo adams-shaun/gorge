@@ -189,6 +189,19 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 		e.emit(events.Event{Kind: events.ClockTick})
 		ce.Timestamp = e.G.Clock
 	}
+	// A Duration$ that spans the controller's NEXT turn (UntilYourNextTurn /
+	// UntilTheEndOfYourNextTurn) gets a real turn-boundary lifetime: compute
+	// the turn at whose end the effect expires from the live rotation, so it
+	// outlives its source (a one-shot spell is already off the battlefield by
+	// the time it registered) and is dropped by EndOfTurnCleanup when e.G.Turn
+	// reaches UntilTurn -- not at the end of the current turn (UntilEOT) nor
+	// never (source-leaves). Recomputing it here each re-execution is what
+	// makes the boundary byte-identical on replay. If the controller cannot
+	// be found in the alive rotation (eliminated) the effect gets no turn
+	// boundary and falls back to the source-leaves rule.
+	if effects.IsNextTurnDuration(ce.Duration) && ce.UntilTurn == 0 {
+		ce.UntilTurn = e.nextTurnFor(ce.Controller)
+	}
 	e.continuous = append(e.continuous, ce)
 	// Bump the cache version: active() (below) caches its sorted effect list
 	// on (log head, continuousVersion), and this is the write that changes
@@ -198,21 +211,48 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 	e.continuousVersion++
 }
 
-// EndOfTurnCleanup drops every "until end of turn" effect (CR 514.2).
-// Called from rules/combat.go's cleanupStep, which runs it on entry to the
-// cleanup step.
+// nextTurnFor returns the turn number of the next turn (strictly after the
+// current one) whose active player is p -- i.e. p's NEXT turn, the
+// controller's-next-turn boundary of an UntilYourNextTurn effect.
+// It walks the alive rotation from the current active player and returns 0
+// (no turn boundary) if p is not alive, bounding the walk so an eliminated
+// controller cannot spin the loop forever: at most AliveCount successors are
+// distinct alive seats, so a full cycle without hitting p proves p is gone.
+func (e *Engine) nextTurnFor(p state.PlayerID) int32 {
+	alive := e.G.AliveCount()
+	t := e.G.Turn
+	q := e.G.Active
+	for i := 0; i < alive; i++ {
+		q = e.G.NextAlive(q)
+		t++
+		if q == p {
+			return t
+		}
+	}
+	return 0
+}
+
+// EndOfTurnCleanup drops every "until end of turn" effect (CR 514.2), and
+// every turn-boundary effect whose expiry turn is the one now ending. Called
+// from rules/combat.go's cleanupStep, which runs it on entry to the cleanup
+// step.
 func (e *Engine) EndOfTurnCleanup() {
 	kept := e.continuous[:0]
 	for _, ce := range e.continuous {
-		if !ce.UntilEOT {
-			kept = append(kept, ce)
+		if ce.UntilEOT {
+			continue
 		}
+		if ce.UntilTurn != 0 && ce.UntilTurn == e.G.Turn {
+			continue
+		}
+		kept = append(kept, ce)
 	}
 	e.continuous = kept
 	// Bump the version for the same reason AddContinuous does: the cache is
 	// keyed on continuousVersion, and this in-place rewrite (which emits no
-	// event and moves no log head) drops every UntilEOT pump. Without the
-	// bump, a stale active() cache would keep reporting a dead pump's P/T.
+	// event and moves no log head) drops every UntilEOT pump and every
+	// expired UntilTurn effect. Without the bump, a stale active() cache
+	// would keep reporting a dead pump's P/T.
 	e.continuousVersion++
 }
 
@@ -253,6 +293,18 @@ func (e *Engine) active() []ContinuousEffect {
 	for _, ce := range e.continuous {
 		if ce.UntilEOT {
 			buf = append(buf, ce)
+			continue
+		}
+		if ce.UntilTurn != 0 {
+			// A turn-boundary effect outlives its source (a one-shot spell is
+			// already gone) and is active through its own expiry turn, dropped
+			// only by EndOfTurnCleanup when e.G.Turn reaches UntilTurn. Keep it
+			// while the current turn is at or before that boundary; the
+			// `<=` is the guard that keeps an effect from lingering if a
+			// cleanup were ever skipped.
+			if e.G.Turn <= ce.UntilTurn {
+				buf = append(buf, ce)
+			}
 			continue
 		}
 		if o := e.G.Obj(ce.Source); o == nil || o.Zone != state.ZBattlefield {
@@ -420,6 +472,96 @@ func (e *Engine) HasKeyword(id state.ObjID, kw string) bool {
 		}
 	}
 	return false
+}
+
+// RegenerationDisallowed implements effects.Host for the CantRegenerate
+// restriction (Task ce1): reports whether an Effect-registered restriction
+// forbids id from regenerating. Consulted by effects.ReplaceDestruction, so
+// Incinerate's "creature can't be regenerated this turn" actually blocks the
+// shield-consumption path instead of being a Note. Scanning e.active() keeps
+// the expiry discipline identical to every other continuous effect: a
+// this-turn restriction is UntilEOT and is dropped at cleanup, a permanent-
+// sourced one disappears when its source leaves the battlefield.
+func (e *Engine) RegenerationDisallowed(id state.ObjID) bool {
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantRegenerate" {
+			continue
+		}
+		if e.restrictionApplies(ce, id) {
+			return true
+		}
+	}
+	return false
+}
+
+// restrictionBlocksTarget reports whether an Effect-registered CantTarget
+// restriction (Vines of Vastwood) prevents the player actor from targeting id
+// with a spell or ability. Called from rules/stack.go's askTarget alongside
+// the protectedFrom check, so a creature granted "can't be the target of
+// spells or abilities your opponents control this turn" is actually withheld
+// from the opponent's targeting options.
+func (e *Engine) restrictionBlocksTarget(id state.ObjID, actor state.PlayerID) bool {
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantTarget" {
+			continue
+		}
+		if !e.restrictionApplies(ce, id) {
+			continue
+		}
+		if !e.restrictionActorMatches(ce, actor) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// restrictionApplies reports whether a registered restriction's ValidCard$/
+// ValidTarget$ spec selects the object id. The Forge filter grammar has no
+// IsRemembered predicate, so the remembered-object set the Effect captured is
+// matched directly (the dominant shape for Vines/Incinerate); any other spec
+// falls back to the ordinary spec matcher so a restriction that names a
+// quality (CantTarget with ValidCard$ Creature, say) still works.
+func (e *Engine) restrictionApplies(ce ContinuousEffect, id state.ObjID) bool {
+	spec := ce.RestrictParams["ValidCard"]
+	if spec == "" {
+		spec = ce.RestrictParams["ValidTarget"]
+	}
+	if spec != "" && strings.Contains(spec, "IsRemembered") {
+		// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature, a + AND or
+		// a , OR list) cannot be resolved by the remembered-set match alone:
+		// the extra predicate would be silently dropped and the restriction
+		// would over-apply to a remembered object that fails it. No corpus
+		// restriction static carries one (measured; see AGENTS.md / report), so
+		// reject it here -- the restriction does not apply, the same
+		// "unsupported" fallback the Note path uses -- rather than mis-apply.
+		if strings.ContainsAny(spec, "+,") {
+			return false
+		}
+		for _, r := range ce.Remembered {
+			if r == id {
+				return true
+			}
+		}
+		return false
+	}
+	if spec == "" {
+		return len(ce.Remembered) > 0
+	}
+	return effects.MatchesSpecFrom(e.G, spec, id, ce.Controller, ce.Source)
+}
+
+// restrictionActorMatches scopes a CantTarget restriction by Activator$:
+// Vines of Vastwood's Activator$ Player.Opponent means the restriction only
+// bites when the player targeting the creature is an opponent of the effect's
+// controller (the caster of Vines). A restriction with no Activator$ applies
+// to any actor.
+func (e *Engine) restrictionActorMatches(ce ContinuousEffect, actor state.PlayerID) bool {
+	spec, ok := ce.RestrictParams["Activator"]
+	if !ok {
+		return true
+	}
+	return effects.MatchesPlayerSpec(e.G, spec, actor, ce.Controller)
 }
 
 // Keywords exists for Ruling F2: Task 23's view.Chars interface needs a

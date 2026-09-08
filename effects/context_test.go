@@ -35,6 +35,13 @@ func (h *fakeHost) AddContinuous(ce state.ContinuousEffect) {
 	h.continuous = append(h.continuous, ce)
 }
 
+// RegenerationDisallowed has no registry to consult here (the engine-side
+// restriction lives in rules.Engine); the effects-package tests that exercise
+// ReplaceDestruction set up their own boards and never rely on an
+// Effect-registered CantRegenerate. Reporting false keeps the double honest
+// rather than inventing a registry it cannot answer for.
+func (h *fakeHost) RegenerationDisallowed(id state.ObjID) bool { return false }
+
 // CastThisTurn has no real turn log to count here (Task 17); the effects
 // package tests set up their own boards, so the double reports zero.
 func (h *fakeHost) CastThisTurn() int { return 0 }
