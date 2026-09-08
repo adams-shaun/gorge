@@ -2,6 +2,39 @@
 
 budget_s: 15
 
+<!--
+A row far below the others is very likely VACUOUS, not fast. MEASURED
+2026-09-08 in .worktrees/fx14, same commit, same tool, back to back:
+
+    with    .cards:  rules 13.5s 446 tests
+    without .cards:  rules  3.0s 446 tests
+
+The corpus-backed tests SKIP when the .cards symlink is absent, which is
+the normal state of a freshly created worktree until someone links it.
+The wall time collapses to under a quarter and the test count does not
+move at all, because cmd/testtime counts a package's top-level `run`
+events and a test that skips is a test that ran. So this table's own
+tripwire cannot see the difference, and neither can the budget check:
+a vacuous run is the one that always passes.
+
+Every 2.1-4.8s row here predates the corpus tests and is honest -- the
+count column is the tell: those runs are at 208-300 tests, before the
+corpus lane existed.
+
+The 2026-09-08 rows at 445-446 tests are a different animal. Three were
+vacuous. The one for 2ea102f+ was re-measured with the corpus present
+and corrected in place (3.2 -> 13.5). The other two, written from the
+fx13 and fx11 worktrees at 25374ab+ and 9dc1d2e+, were REMOVED rather
+than corrected: re-measuring a superseded commit would have meant
+inventing a number, and a run that skipped the tests it was timing is
+not a slow measurement or a fast one, it is not a measurement.
+
+Read any sub-5s row at 445+ tests as "the corpus was missing", not as a
+speedup. Link the worktree before trusting a row it wrote:
+
+    ln -sfn /home/sadams/projects/gorge/.cards .worktrees/<id>/.cards
+-->
+
 | date (UTC) | commit | wall_s | tests | runner |
 |---|---|---|---|---|
 | 2026-09-05T19:58Z | 0d6d403+ | 20.3 | 208 | sadams |
@@ -164,6 +197,4 @@ budget_s: 15
 | 2026-09-08T19:09Z | 25374ab+ | 11.9 | 445 | sadams |
 | 2026-09-08T20:47Z | 9dc1d2e+ | 12.6 | 445 | sadams |
 | 2026-09-08T22:02Z | 11311e9+ | 12.0 | 445 | sadams |
-| 2026-09-08T19:09Z | 25374ab+ | 2.8 | 445 | sadams |
-| 2026-09-08T21:06Z | 9dc1d2e+ | 3.1 | 446 | sadams |
-| 2026-09-08T22:22Z | 2ea102f+ | 3.2 | 446 | sadams |
+| 2026-09-08T22:22Z | 2ea102f+ | 13.5 | 446 | sadams |
