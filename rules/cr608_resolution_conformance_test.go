@@ -70,6 +70,12 @@ func crResolutionPlayerTarget(t *testing.T, e *Engine, p state.PlayerID) {
 
 func TestCR608CompletedSpellLeavesStackAfterDepartedPayer(t *testing.T) {
 	requireCR601Audit(t, "CR 608.2n: an earlier departed payer's continuation strands a completed spell (I-1)")
+	// MEASURED at 88ea57a+fx9: the concession below leaves e.resume non-nil
+	// forever. Suspended() tests ANY non-nil resume, so every LATER stack
+	// object skips completion -- seat 0's Bolt below deals its 3 damage and
+	// then stays on the stack instead of going to the graveyard. That is the
+	// historical I-1 signature (Force of Will repeated 1073 times): an effect
+	// that resolves but never completes, so it can resolve again.
 	e := crResolutionEngine(t, nil, nil, nil)
 	chain := crAbortMove(t, e, 0, "Chain Lightning", state.ZHand)
 	bolt := crAbortMove(t, e, 0, "Lightning Bolt", state.ZHand)
@@ -83,12 +89,34 @@ func TestCR608CompletedSpellLeavesStackAfterDepartedPayer(t *testing.T) {
 	crAbortAnswer(t, e, "Chain Lightning", crAbortOption(t, e, "Chain Lightning", "cast", chain))
 	crResolutionPlayerTarget(t, e, 1)
 	crResolutionRound(t, e)
-	if !e.G.Players[1].Lost {
-		t.Fatalf("CR 608.2n Chain Lightning seq %d: lethal damage did not eliminate payer", len(e.L.Events))
+	// Band A ruling, 2026-09-08 (2026-09-08-band-a-ruling.md). This fixture
+	// used to require seat 1 to be Lost here, on the strength of the lethal
+	// damage alone. That precondition WAS F20's bug: Submit checked
+	// state-based actions while this resolution was suspended, eliminating the
+	// payer mid-resolution. F20 is fixed (rules/engine.go, merge fx9), so
+	// seat 1 is now correctly alive at zero life holding the copy cost ask,
+	// and asserting elimination here would fail the FIXTURE rather than
+	// measure CR 608.2n.
+	//
+	// The ruled replacement is a lawful departure: CR 104.3a lets a player
+	// concede at ANY time, needing no priority, which is the only way to
+	// leave while a resolution is suspended on your own decision -- exactly
+	// the I-1 state. Declining the cost instead would finish the resolution
+	// first and never reach it.
+	d := e.Pending()
+	if d == nil || d.Player != 1 || d.ResumeKind != "unless_pay" || !e.Suspended() || e.G.Players[1].Life != 0 || e.G.Players[1].Lost {
+		t.Fatalf("CR 608.2n Chain Lightning seq %d: want a suspended copy-cost ask at a living zero-life seat 1; pending=%+v suspended=%v life=%d lost=%v",
+			len(e.L.Events), d, e.Suspended(), e.G.Players[1].Life, e.G.Players[1].Lost)
 	}
-	// Allow the existing fizzle exit to clear the first spell. A corrected
-	// engine may already have completed its resolution in the same burst.
-	if len(e.G.Stack) > 0 {
+	// e.pending stays SET: the engine's own release of a departed chooser's
+	// decision is part of what this leaf measures, so the fixture must not
+	// pre-empt it by clearing the decision by hand.
+	e.emit(events.Event{Kind: events.PlayerLost, Player: 1, Text: "conceded"})
+	e.checkStateBased()
+	if !e.G.Players[1].Lost || e.G.Over {
+		t.Fatalf("CR 608.2n Chain Lightning seq %d: concession did not leave three survivors in an ongoing game", len(e.L.Events))
+	}
+	for i := 0; i < 3 && len(e.G.Stack) > 0; i++ {
 		crResolutionRound(t, e)
 	}
 	if len(e.G.Stack) != 0 {

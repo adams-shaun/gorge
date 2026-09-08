@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/rules
 
-budget_s: 10
+budget_s: 15
 
 | date (UTC) | commit | wall_s | tests | runner |
 |---|---|---|---|---|
@@ -158,3 +158,6 @@ budget_s: 10
 | 2026-09-08T17:14Z | 085ce32+ | 2.7 | 445 | sadams |
 | 2026-09-08T17:16Z | 085ce32+ | 2.8 | 445 | sadams |
 | 2026-09-08T18:08Z | 88ea57a+ | 2.9 | 445 | sadams |
+| 2026-09-08T18:13Z | 7fb142c+ | 11.1 | 445 | sadams |
+| 2026-09-08T18:13Z | 7fb142c+ | 10.9 | 445 | sadams |
+| 2026-09-08T19:02Z | 7fb142c+ | 10.8 | 445 | sadams |
