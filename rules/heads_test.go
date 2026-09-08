@@ -333,11 +333,39 @@ import (
 // values, so chooseLand owns the whole movement. The gate build-bisected that
 // rather than assuming it, and it corrects the branch report's own claim that
 // both commits contributed.
+// REGENERATED again at the cn1 merge (a CARDNAME sacrifice cost resolves against
+// the source object, CR 201.5). THREE seat counts moved -- 2, 4 and 8 -- and 6
+// did NOT. One card owns every move: Polluted Delta (obj 70, seat 1,
+// dimir-tempo), whose activation costs `T PayLife<1> Sac<1/CARDNAME>`. Before
+// this merge the CARDNAME leg matched no object, so the cost was unpayable and
+// the fetch was never offered; now it is. Causes were measured per seat count by
+// dumping both full event logs and locating the FIRST divergent event:
+//
+//	2 seats  a95fd3b1da972438 -> 2af07c65b7cafec2. At seq 658 main has seat 1
+//	         simply pass priority; the branch instead activates Polluted Delta --
+//	         a "choose" decision at 659 for the library search, the payment at
+//	         661, tap of obj 70 at 662, its move_zone "sacrificed" at 663 and
+//	         ability_push at 664. The log grows 1353 -> 1371 events, and the +18
+//	         is that activation and the land it fetches.
+//	4 seats  9bd7c9ea7917f512 -> 2cf5359b632bdbd3. First divergence at seq 1817,
+//	         where the same seat's priority answer moves from option [2] to [3]:
+//	         the fetch activation is now in the offered list, so every later
+//	         index shifts. 4387 -> 4413 events.
+//	6 seats  UNMOVED, 56cad0755f3f8c78. Seat 1's Polluted Delta is not drawn
+//	         into a position where the bot activates it in this game.
+//	8 seats  0964cc00aed0c02c -> adb26a03b5daa734. First divergence at seq 8288,
+//	         priority answer [0] -> [1], the same option-list shift. The event
+//	         COUNT is unchanged at 15132: the game takes a different decision of
+//	         the same length rather than a longer one.
+//
+// The 6-seat non-move is the check that the rest of this attribution is honest:
+// the same code is live at every seat count, so a cause that claimed to be
+// unconditional would have moved it too.
 var acceptanceHeads = map[int]string{
-	2: "a95fd3b1da972438",
-	4: "9bd7c9ea7917f512",
+	2: "2af07c65b7cafec2",
+	4: "2cf5359b632bdbd3",
 	6: "56cad0755f3f8c78",
-	8: "0964cc00aed0c02c",
+	8: "adb26a03b5daa734",
 }
 
 func TestHeads(t *testing.T) {
