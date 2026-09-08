@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isRoutineLine, lastNotableByTable, latestPerTable, notableLines, pushFeed, type FeedLine } from './feed';
+import { isRoutineLine, isStepLine, lastNotableByTable, latestPerTable, notableLines, pushFeed, type FeedLine } from './feed';
 
 const l = (table: string, seq: number, line = 'x'): FeedLine => ({ table, match: 1, seq, line });
 
@@ -30,6 +30,16 @@ describe('isRoutineLine', () => {
     expect(isRoutineLine('Ann casts Lightning Bolt')).toBe(false);
     expect(isRoutineLine('Ann answers priority: pass')).toBe(false);
     expect(isRoutineLine('')).toBe(false);
+  });
+});
+
+describe('isStepLine', () => {
+  it('recognises a phase/step boundary by the server literal "Step: ", and nothing else', () => {
+    expect(isStepLine('Step: main-1')).toBe(true);
+    expect(isStepLine('Step: combat')).toBe(true);
+    expect(isStepLine('Ann casts Lightning Bolt')).toBe(false);
+    expect(isStepLine('Step down the hall')).toBe(false); // not the literal
+    expect(isStepLine('')).toBe(false);
   });
 });
 
@@ -72,6 +82,17 @@ describe('latestPerTable', () => {
     expect(now[0].count).toBe(1);
     expect(now[0].line).toBe('a casts Shock');
   });
+
+  it('skips a trailing step line when picking a table\'s current line (ui9 B4)', () => {
+    const now = latestPerTable([l('t1', 1, 'a casts Shock'), l('t1', 2, 'Step: main-1')], ['t1']);
+    expect(now[0].line).toBe('a casts Shock');
+    expect(now[0].count).toBe(1);
+  });
+
+  it('reports an empty line when a table has only step lines', () => {
+    const now = latestPerTable([l('t1', 1, 'Step: main-1'), l('t1', 2, 'Step: combat')], ['t1']);
+    expect(now[0].line).toBe('');
+  });
 });
 
 describe('lastNotableByTable', () => {
@@ -85,6 +106,10 @@ describe('lastNotableByTable', () => {
     expect(m.get('t1')).toBe('a is asked: attackers');
     expect(m.has('t2')).toBe(false);
     expect(lastNotableByTable([]).size).toBe(0);
+  });
+  it('does not report a step line as the last notable thing a table did (ui9 B4)', () => {
+    const m = lastNotableByTable([l('t1', 1, 'Step: main-1'), l('t1', 2, 'a casts Shock')]);
+    expect(m.get('t1')).toBe('a casts Shock');
   });
 });
 
@@ -101,6 +126,11 @@ describe('notableLines', () => {
   });
   it('shows everything when asked', () => {
     expect(notableLines(feed, true).length).toBe(4);
+  });
+  it('drops step lines by default, and shows them when all is set (ui9 B4)', () => {
+    const withSteps = [...feed, l('t1', 4, 'Step: combat')];
+    expect(notableLines(withSteps).some((x) => isStepLine(x.line))).toBe(false);
+    expect(notableLines(withSteps, true).some((x) => isStepLine(x.line))).toBe(true);
   });
   it('caps to the newest lines', () => {
     const many = Array.from({ length: 50 }, (_, i) => l('t1', i, `a casts ${i}`));
