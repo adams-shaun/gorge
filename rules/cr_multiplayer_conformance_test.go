@@ -112,7 +112,6 @@ func TestCR800DepartedControllersStackObjectsCease(t *testing.T) {
 }
 
 func TestCR800NoCombatDamageToDepartedDefender(t *testing.T) {
-	requireCR601Audit(t, "CR 800.4e: combat assigns damage and lifelink against an already departed defender")
 	e := crResolutionEngine(t, []string{"Vampire Nighthawk"}, nil, nil, nil)
 	id := crAbortMove(t, e, 0, "Vampire Nighthawk", state.ZBattlefield)
 	if e.G.Obj(id).Face().PT != "2/3" || !e.HasKeyword(id, "Lifelink") {
