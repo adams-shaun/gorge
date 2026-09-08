@@ -16,10 +16,9 @@ package host
 // (b) is the half that catches a divergence between the persisted and live
 // read paths, so it must not compare a projection to itself: the served
 // match is the sink-built one (proven by lookup identity), the live side is
-// taken before it is installed, and positive content — the human seat's own
-// hand still holding cards at head, every other seat's hand redacted, and
-// the seat's own secret draws surfacing in the persisted stream — is
-// asserted outright so an all-empty run cannot pass.
+// taken before it is installed, and positive content — opponents' hands
+// redacted and the seat's own secret draws surfacing in the persisted stream
+// — is asserted outright so an all-empty run cannot pass.
 
 import (
 	"reflect"
@@ -171,15 +170,11 @@ func TestObserverPersistedLogServesIdenticallyToTheLiveMatch(t *testing.T) {
 		}
 		liveViews[p] = v
 	}
-	// Positive content, before anything is compared: seat 0 (the only seat
-	// the deterministic-answer human leaves cards with) still holds cards
-	// at head, and its own view of seat 1 redacts the hand — an empty or
-	// self-comparing run cannot pass.
-	if len(liveViews[0].Players[0].Hand) == 0 {
-		t.Fatal("seat 0's hand is empty at head; the redaction assertions would be vacuous")
-	}
-	if liveViews[0].Players[1].Hand != nil {
-		t.Fatal("seat 0's live view reads seat 1's hand")
+	// Both opponent views redact the hand. CR 800.4a legitimately empties a
+	// departed seat's zones, so positive secret content is asserted against a
+	// historical draw below rather than assuming either final hand is nonempty.
+	if liveViews[0].Players[1].Hand != nil || liveViews[1].Players[0].Hand != nil {
+		t.Fatal("a live view reads the opponent's hand")
 	}
 
 	// Half (b): serve the same match from the sink. matchForLog is the
@@ -226,14 +221,9 @@ func TestObserverPersistedLogServesIdenticallyToTheLiveMatch(t *testing.T) {
 		if !reflect.DeepEqual(v, wantView) {
 			t.Fatalf("seat %d: sink-served head view differs from the live projection", p)
 		}
-		// The persisted side carries the same positive content: every seat's
-		// own hand is projected (seat 0's still holds cards), nobody else's
-		// is.
+		// The persisted side projects every seat's own hand, and nobody else's.
 		if v.Players[p].Hand == nil {
 			t.Fatalf("seat %d: sink view redacts the seat's own hand", p)
-		}
-		if p == 0 && len(v.Players[0].Hand) == 0 {
-			t.Fatal("seat 0: sink view shows an empty hand where the live one held cards")
 		}
 		for i := range v.Players {
 			if pv := v.Players[i]; pv.ID != p && pv.Hand != nil {
@@ -242,14 +232,20 @@ func TestObserverPersistedLogServesIdenticallyToTheLiveMatch(t *testing.T) {
 		}
 	}
 
-	// The seat redaction, positively, on the persisted side: seat 0's own
-	// secret draws — the cards still in its hand at head — surface in the
-	// sink stream with their card. This is the property that dies the
-	// moment the persisted read path stops projecting for the viewer.
+	// The seat redaction, positively, on the persisted side: seat 0's latest
+	// secret draw surfaces in its own sink stream with the card. It need not
+	// remain in hand: CR 800.4a removes a departed owner's cards at game end.
 	g := sm.e.G
-	last, ok := lastDrawInHand(sm.e.L, 0, inHandAt(g, 0))
-	if !ok {
-		t.Fatal("seat 0 has no logged draw still in hand at head; the redaction assertion would be vacuous")
+	var last events.Event
+	for i := len(sm.e.L.Events) - 1; i >= 0; i-- {
+		ev := sm.e.L.Events[i]
+		if ev.Kind == events.Draw && ev.Player == 0 {
+			last = ev
+			break
+		}
+	}
+	if last.Obj == 0 {
+		t.Fatal("seat 0 has no logged draw; the redaction assertion would be vacuous")
 	}
 	bySeq := make(map[uint64]protocol.EventBody, len(sinkEvs0))
 	for _, b := range sinkEvs0 {

@@ -292,20 +292,17 @@ func (e *Engine) annihilateOppositeCounters() bool {
 // order run to run). It then separately sweeps every Lost player -- from
 // life loss just above, from an empty-library draw (effects.DrawFor, which
 // emits PlayerLost directly, independent of this loop, at the moment the
-// draw fails), or from any future cause -- and removes whatever they still
-// control from the battlefield, which is CR 800.4a's own cleanup for a
-// player who has left the game. Doing this generically, keyed only on
-// p.Lost rather than on which branch just set it, is what makes a decked-out
-// player's board get cleaned up exactly the same way a player who hit 0
-// life does, through the one path, rather than needing its own copy of the
-// same logic.
+// draw fails), or from any future cause -- and applies CR 800.4a: their
+// owned cards and controlled battlefield/stack objects cease to exist.
+// Doing this generically, keyed only on p.Lost rather than on which branch
+// just set it, gives every kind of departure the same cleanup path.
 //
 // Reports whether anything changed, which is what checkStateBased's own
 // pass loop uses to decide whether to run again.
 //
 // Ruling T22-h (fix round 1), superseded by T22-n (fix round 3, see
 // checkStateBased): the first fix measured the removal sweep's own outcome
-// (the zone's length before versus after removePermanents) rather than
+// (the zone's length before versus after the departure sweep) rather than
 // reporting "changed" just because the zone was non-empty going in -- right
 // for bounding a replacement's amplification, but, like destroyLethal-
 // Damage's own T22-h before T22-j, it threw away the fact that an attempt
@@ -314,7 +311,7 @@ func (e *Engine) annihilateOppositeCounters() bool {
 // call is skipped entirely on later passes (one sweep attempt per player
 // per checkStateBased call, never re-run for no reason), while "changed"
 // now means "swept a player NOT already swept this pass" -- true the moment
-// a new sweep is attempted, regardless of whether removePermanents' own
+// a new sweep is attempted, regardless of whether the departure sweep's own
 // MoveZone events actually moved anything, so a later pass still gets to
 // see whatever a blocking replacement's own substitute effect changed
 // elsewhere.
@@ -371,25 +368,32 @@ func (e *Engine) checkLoseConditions(tried *sbaAttempts) bool {
 		if !p.Lost || tried.players[p.ID] {
 			continue
 		}
-		if len(e.G.Zone(state.ZBattlefield, p.ID)) == 0 {
-			continue
-		}
 		tried.players[p.ID] = true
-		e.removePermanents(p.ID)
+		e.ceaseDepartedObjects(p.ID)
 		changed = true
 	}
 	return changed
 }
 
-// removePermanents moves an eliminated player's permanents out of the game.
-// Exile is the closest zone this build has to CR 800.4a's "leaves the
-// game" -- the same approximation resolveTop already makes for a resolved
-// ability with no printed card (CR 608.2m).
-func (e *Engine) removePermanents(p state.PlayerID) {
-	ids := append([]state.ObjID(nil), e.G.Zone(state.ZBattlefield, p)...)
-	for _, id := range ids {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id,
-			From: state.ZBattlefield, To: state.ZExile, Text: "controller left the game"})
+// ceaseDepartedObjects applies CR 800.4a in stable arena order. A departed
+// player's card-backed owned objects leave regardless of their current zone;
+// stack objects that player controls cease whether card-backed or cardless.
+// Ownership is deliberate on the battlefield: an opponent-owned card does not
+// leave merely because the departed player controlled it. ZCeased retains the
+// replay-stable arena tombstone without adding it to a zone.
+func (e *Engine) ceaseDepartedObjects(p state.PlayerID) {
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Zone == state.ZCeased {
+			continue
+		}
+		ownedCard := o.Owner == p && o.Card != nil
+		controlledStackObject := o.Controller == p && o.Zone == state.ZStack
+		if !ownedCard && !controlledStackObject {
+			continue
+		}
+		e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
+			From: o.Zone, To: state.ZCeased, Text: "player left the game"})
 	}
 }
 

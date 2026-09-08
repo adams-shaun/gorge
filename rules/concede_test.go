@@ -209,8 +209,8 @@ func TestLastButOneConcedeEndsWithTheRightWinner(t *testing.T) {
 	if !e.G.Players[1].Lost || !e.G.Players[2].Lost {
 		t.Fatalf("both conceding seats must be Lost: %v %v", e.G.Players[1].Lost, e.G.Players[2].Lost)
 	}
-	if z := e.G.Obj(bear).Zone; z != state.ZExile {
-		t.Fatalf("the conceding seat's Bear zone = %s, want exile (CR 800.4a sweep)", z)
+	if z := e.G.Obj(bear).Zone; z != state.ZCeased {
+		t.Fatalf("the conceding seat's Bear zone = %s, want ceased (CR 800.4a sweep)", z)
 	}
 }
 

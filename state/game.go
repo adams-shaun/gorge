@@ -115,6 +115,9 @@ func NewGameLife(names []string, life int32) *Game {
 func (g *Game) zoneIndex(z Zone, p PlayerID) int { return int(p)*numZones + int(z) }
 
 func (g *Game) Zone(z Zone, p PlayerID) []ObjID {
+	if z == ZCeased {
+		return nil
+	}
 	if z == ZStack {
 		return g.Stack
 	}
@@ -122,6 +125,9 @@ func (g *Game) Zone(z Zone, p PlayerID) []ObjID {
 }
 
 func (g *Game) SetZone(z Zone, p PlayerID, ids []ObjID) {
+	if z == ZCeased {
+		return
+	}
 	if z == ZStack {
 		g.Stack = ids
 		return
