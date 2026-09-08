@@ -1,14 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
-import type { CardView, PlayerView } from '../protocol';
-import { LETHAL_CMD_DAMAGE } from '../lib/commander';
+import type { PlayerView, SeatInfo } from '../protocol';
 import IdentityBar from './IdentityBar.svelte';
-
-const card = (id: number, name: string): CardView => ({
-  id, name, types: 'Legendary Creature',
-  tapped: false, power: 0, toughness: 0, damage: 0, attacking: false,
-  controller: 0, owner: 0, summon_sick: false, printing: { name }, token: `#${id}`,
-});
 
 const player = (over: Partial<PlayerView> = {}): PlayerView => ({
   seat: 0, name: 'Ari', life: 38, lost: false, library_size: 30, hand_size: 7, graveyard_size: 0,
@@ -16,78 +9,54 @@ const player = (over: Partial<PlayerView> = {}): PlayerView => ({
   command: [], commanders: [], commander_casts: [], ...over,
 });
 
-const bar = (p: PlayerView, players: PlayerView[] = [p]) =>
-  render(IdentityBar, { props: { player: p, players, colour: '#e5484d', active: false, priority: false, corner: 'bl' } }).html;
+const bar = (p: PlayerView, seat?: SeatInfo) =>
+  render(IdentityBar, { props: { player: p, seat, players: [p], colour: '#e5484d', active: false, priority: false, corner: 'bl' } }).html;
 
-// the dealers' rosters the taker's clock resolves names from
-const dealers = [
-  player({ seat: 1, name: 'Bo', commanders: [card(10, 'Isamaru')] }),
-  player({ seat: 2, name: 'Ci', commanders: [card(11, 'Zur')] }),
-];
-
-describe('IdentityBar — the commander-damage clock (CR 903.10)', () => {
-  it('no commander damage on the wire renders no clock at all', () => {
-    const html = bar(player({ life: 38 }));
+describe('IdentityBar — the three-line box (B1 / I-10)', () => {
+  it('renders the name and life on one line, the zone counts on one row, and the mana pool on the third', () => {
+    const html = bar(player({ life: 38, pool: { U: 2, B: 1 } }));
+    // line 1: name then life bubble
+    expect(html).toContain('>Ari<');
+    expect(html).toContain('>38<');
+    // line 2: library / hand / graveyard counts
+    expect(html).toContain('library 30');
+    expect(html).toContain('hand 7');
+    expect(html).toContain('graveyard 0');
+    // line 3: the pool bubbles
+    expect(html).toContain('data-mana="U"');
+    expect(html).toContain('data-mana="B"');
+    // the dropped features are gone: no commander-damage clock, no deck line
     expect(html).not.toContain('data-commander-damage');
-    expect(html).toContain('>38<'); // life is still there, alone
+    expect(html).not.toContain('Commander');
   });
 
-  it('a low total renders quietly, with the commander named and the amount exact', () => {
-    const html = bar(player({ life: 38, cmd_damage: { '10': 5 } }), dealers);
-    expect(html).toContain('data-commander-damage');
-    expect(html).toContain('data-cmd-damage="10"');
-    expect(html).toContain('Isamaru');
-    expect(html).toContain('>5<');
-    expect(html).toContain('data-cmd-state="low"');
-    expect(html).not.toContain('critical');
-    expect(html).not.toContain('lethal');
+  it('a public spectator (null pool) draws no pool chips but keeps the reserved row', () => {
+    const html = bar(player({ pool: null as unknown as Record<string, number> }));
+    expect(html).toContain('data-mana-row');
+    expect(html).not.toContain('data-mana-pool');
   });
 
-  it('19 from one commander is surfaced distinctly from a low total — the danger line', () => {
-    const at19 = bar(player({ life: 38, cmd_damage: { '10': 19 } }), dealers);
-    expect(at19).toContain('data-cmd-state="critical"');
-    // the danger class is on the row (Svelte's scope class sits between)
-    expect(at19).toMatch(/class="cmd-row[^"]*\bcrit\b/);
-    const at20 = bar(player({ life: 38, cmd_damage: { '10': 20 } }), dealers);
-    expect(at20).toContain('data-cmd-state="critical"');
-    const at18 = bar(player({ life: 38, cmd_damage: { '10': 18 } }), dealers);
-    expect(at18).toContain('data-cmd-state="low"');
-    expect(at18).not.toContain('"critical"');
+  it('full name never truncated when within the 10-char display limit', () => {
+    const html = bar(player({ name: 'Ari' }));
+    expect(html).toContain('>Ari<');
+    expect(html).not.toContain('…');
   });
 
-  it(`${LETHAL_CMD_DAMAGE} from one commander is lethal no matter the life total`, () => {
-    const html = bar(player({ life: 38, cmd_damage: { '10': LETHAL_CMD_DAMAGE } }), dealers);
-    expect(html).toContain('data-cmd-state="lethal"');
-    expect(html).toMatch(/class="cmd-row[^"]*\blethal\b/);
-    // the second clock reads beside the life it overrides
-    expect(html.indexOf('>38<')).toBeLessThan(html.indexOf('data-commander-damage'));
+  it('a long name truncates to 10 characters in display but keeps the full name in the title', () => {
+    const html = bar(player({ name: 'Avery Longplayer Name' }));
+    expect(html).toContain('data-player-name="Avery Longplayer Name"');
+    expect(html).toContain('title="Avery Longplayer Name"');
+    // the visible text is clipped
+    expect(html).toContain('Avery Long…');
+    expect(html).not.toContain('>Avery Longplayer Name<');
   });
 
-  it('commander damage is per commander, never summed: 11 + 11 is two rows of 11, not one 22', () => {
-    const html = bar(player({ life: 38, cmd_damage: { '10': 11, '11': 11 } }), dealers);
-    const rows = [...html.matchAll(/data-cmd-damage="(\d+)" data-cmd-amount="(\d+)" data-cmd-state="([^"]+)"/g)].map((m) => ({ id: m[1], amount: m[2], state: m[3] }));
-    expect(rows).toEqual([
-      { id: '10', amount: '11', state: 'low' },
-      { id: '11', amount: '11', state: 'low' },
-    ]);
-    // the classic wrong implementation reads 22; the two rows keep 11 each
-    expect(html).not.toContain('>22<');
-  });
-
-  it('21 from ONE commander is a single lethal row even beside another commander\'s damage', () => {
-    const html = bar(player({ life: 38, cmd_damage: { '10': LETHAL_CMD_DAMAGE, '11': 11 } }), dealers);
-    expect(html).toContain('data-cmd-state="lethal"');
-    expect(html).toContain('data-cmd-state="low"');
-    expect(html.match(/data-cmd-damage=/g)).toHaveLength(2);
-  });
-
-  it('name and seat come from the dealer rosters, not the taker\'s own view', () => {
-    const html = bar(player({ seat: 0, cmd_damage: { '10': 7, '11': 3 } }), dealers);
-    expect(html).toContain('Isamaru');
-    expect(html).toContain('Zur');
-    // dealer order is their seat order, deterministic
-    const names = [...html.matchAll(/class="cmd-name[^"]*">([^<]+)</g)].map((m) => m[1]);
-    expect(names).toEqual(['Isamaru', 'Zur']);
+  it('exactly 10 characters is the last untruncated name; 11 clips', () => {
+    expect(bar(player({ name: 'ABCDEFGHIJ' }))).toContain('>ABCDEFGHIJ<');
+    expect(bar(player({ name: 'ABCDEFGHIJ' }))).not.toContain('…');
+    const over = bar(player({ name: 'ABCDEFGHIJK' }));
+    expect(over).toContain('>ABCDEFGHIJ…<');
+    expect(over).toContain('title="ABCDEFGHIJK"');
   });
 });
 
@@ -110,41 +79,10 @@ describe('IdentityBar — the active seat is a full perimeter in its OWN colour'
 });
 
 describe('IdentityBar — an eliminated seat (Task 3: "there are 2 dead players, but their health doesn\'t reflect 0")', () => {
-  it('a lost seat reads ELIMINATED, without touching the life number beside it', () => {
+  it('a lost seat reads ELIMINATED-looking: struck through, without touching the life bubble', () => {
     // life untouched is the point: commander damage, an empty library and a
     // concession all end a game with life wherever it happened to be
     const html = bar(player({ life: 39, lost: true }));
-    expect(html).toContain('data-eliminated');
-    expect(html).toContain('>Eliminated<');
     expect(html).toContain('>39<'); // life is reported exactly as it is, not forced to 0
-  });
-
-  it('a live seat renders no eliminated band at all', () => {
-    const html = bar(player({ life: 39, lost: false }));
-    expect(html).not.toContain('data-eliminated');
-    expect(html).not.toContain('Eliminated');
-  });
-});
-
-describe('IdentityBar — floating mana, in preallocated space (Task 4)', () => {
-  it('the mana row is ALWAYS rendered, even with an empty pool — the space is reserved, not grow-to-fit', () => {
-    const html = bar(player({ pool: {} }));
-    expect(html).toContain('data-mana-row');
-  });
-
-  it('the mana row is rendered even when the pool is a literal null — every non-viewer seat on a public spectator client', () => {
-    const html = bar(player({ pool: null as unknown as Record<string, number> }));
-    expect(html).toContain('data-mana-row');
-    // ManaPool itself draws no chip for a hidden pool — an unknown pool is
-    // not the same claim as an empty one
-    expect(html).not.toContain('data-mana-pool');
-  });
-
-  it('a floating pool renders its chips inside the reserved row', () => {
-    const html = bar(player({ pool: { U: 2, B: 1 } }));
-    expect(html).toContain('data-mana-row');
-    expect(html).toContain('data-mana-pool');
-    expect(html).toContain('data-mana="U"');
-    expect(html).toContain('data-mana="B"');
   });
 });

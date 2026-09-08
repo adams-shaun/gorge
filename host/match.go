@@ -102,6 +102,20 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 	names := make([]string, c.Seats)
 	decks := make([][]*cards.Card, c.Seats)
 	deckNames := make([]string, c.Seats)
+	// Display player names, independent of the deck: configured per seat (the
+	// same slice index a match's seat uses, stable under the +k deck
+	// rotation), else the deterministic "Player 1".."Player N". These reach
+	// the wire as view.PlayerView.Name and protocol.SeatInfo.Name; the deck
+	// identity stays on the engine's Names (event text, replay-hashed) and on
+	// SeatInfo.Deck, so a player box can show a name that is a name, not a
+	// deck stem.
+	playerNames := make([]string, c.Seats)
+	for i := 0; i < c.Seats; i++ {
+		playerNames[i] = fmt.Sprintf("Player %d", i+1)
+		if i < len(c.PlayerNames) && c.PlayerNames[i] != "" {
+			playerNames[i] = c.PlayerNames[i]
+		}
+	}
 	// cmds holds each seat's commander indices, parallel to decks: the
 	// Deck the loader produced for that seat carries its own commanders,
 	// so a commander table's seats get a command zone from their own deck
@@ -118,9 +132,9 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 			d.Name = dn
 		}
 		names[i], decks[i], deckNames[i], cmds[i] = d.Name, d.Cards, dn, d.Commanders
-		infos[i] = protocol.SeatInfo{Name: d.Name, Deck: dn, Colour: protocol.SeatColours[i%len(protocol.SeatColours)]}
+		infos[i] = protocol.SeatInfo{Name: playerNames[i], Deck: d.Name, Colour: protocol.SeatColours[i%len(protocol.SeatColours)]}
 	}
-	cfg := rules.Config{Seed: seed, Names: names, Decks: decks, Tokens: r.opts.Tokens, Mulligans: c.Mulligans}
+	cfg := rules.Config{Seed: seed, Names: names, PlayerNames: playerNames, Decks: decks, Tokens: r.opts.Tokens, Mulligans: c.Mulligans}
 	// The format the table was configured with is threaded into the engine
 	// once, here, so the match's rules.Config is the single value both the
 	// live game and its replay are built from (R-8.4). A commander table
@@ -224,7 +238,7 @@ func (m *match) sidecar() sidecar {
 		events = m.persisted
 	}
 	return sidecar{Table: string(m.table.cfg.ID), Match: m.k, Seed: m.seed, Seats: m.seats, Names: m.cfg.Names,
-		Decks: m.decks, Spectator: m.table.cfg.Spectator.String(), State: m.state, Result: m.result, Winner: m.winner,
+		PlayerNames: m.cfg.PlayerNames, Decks: m.decks, Spectator: m.table.cfg.Spectator.String(), State: m.state, Result: m.result, Winner: m.winner,
 		Head: m.head, Events: events, Turns: m.e.G.Turn, Reason: m.reason, Mulligans: m.cfg.Mulligans,
 		Format: Format(m.cfg.Format), StartingLife: m.cfg.StartingLife, Commanders: m.cfg.Commanders}
 }

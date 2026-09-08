@@ -291,10 +291,18 @@ func objController(g *state.Game, id state.ObjID) state.PlayerID {
 	return 0
 }
 
-// player is the seat's name, or "seat N" when g cannot resolve it.
+// player is the seat's display name (an independent PlayerName when one was
+// configured, else the deck identity the engine hashes), or "seat N" when g
+// cannot resolve it. Transcript lines read the same name the player box
+// shows, so the log and the box never disagree about who is who.
 func player(g *state.Game, p state.PlayerID) string {
-	if g != nil && int(p) < len(g.Players) && g.Players[p].Name != "" {
-		return g.Players[p].Name
+	if g != nil && int(p) < len(g.Players) {
+		if g.Players[p].PlayerName != "" {
+			return g.Players[p].PlayerName
+		}
+		if g.Players[p].Name != "" {
+			return g.Players[p].Name
+		}
 	}
 	return "seat " + strconv.Itoa(int(p))
 }
