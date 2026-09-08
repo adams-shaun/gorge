@@ -71,6 +71,20 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		mode, params := parseStaticLine(c.SVars, name)
 		switch mode {
 		case "CantTarget", "CantRegenerate":
+			// A compound IsRemembered spec (Card.IsRemembered+Creature) cannot
+			// be resolved by the remembered-set match alone -- the extra
+			// predicate would be silently dropped, over-applying the
+			// restriction. No corpus restriction static carries one (see the
+			// report / AGENTS.md), so treat it as unsupported here and keep
+			// the Note instead of registering something that over-applies.
+			if compoundRememberedSpec(params) {
+				if mode != "" {
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+						Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				}
+				registered = true
+				continue
+			}
 			ce := state.ContinuousEffect{
 				Source:         c.Source,
 				Controller:     c.Controller,
@@ -173,15 +187,50 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 	return out
 }
 
+// IsNextTurnDuration reports whether a Duration$ value names the
+// controller's NEXT-turn lifetime (UntilYourNextTurn, UntilTheEndOfYourNextTurn)
+// -- the two largest non-Permanent durations the wave survey measured. Such
+// an effect is neither UntilEOT (which would expire it a full turn early, at
+// the end of the current turn) nor source-leaves (which never expires it);
+// it gets a real turn-boundary lifetime via ContinuousEffect.UntilTurn,
+// computed in rules.Engine.AddContinuous. Exported so rules/layers.go can
+// recognise the same spelling effEffect saw; the two largest values by far
+// (105 + 70 raw lines), so this closes most of the turn-spanning gap.
+func IsNextTurnDuration(dur string) bool {
+	switch strings.ToLower(strings.TrimSpace(dur)) {
+	case "untilyournextturn", "untiltheendofyournextturn":
+		return true
+	}
+	return false
+}
+
+// compoundRememberedSpec reports whether a restriction static's valid-spec is
+// a COMPOUND expression containing IsRemembered (a + AND or a , OR list) --
+// a shape the remembered-set match cannot resolve faithfully. The corpus's
+// CantTarget/CantRegenerate statics all use a bare Card.IsRemembered, so this
+// is a defensive guard against silently over-applying a restriction whose
+// extra predicate would be dropped (see rules/layers.go restrictionApplies).
+func compoundRememberedSpec(params map[string]string) bool {
+	spec := params["ValidCard"]
+	if spec == "" {
+		spec = params["ValidTarget"]
+	}
+	return strings.Contains(spec, "IsRemembered") && strings.ContainsAny(spec, "+,")
+}
+
 // effectUntilEOT decides expiry for an Effect registration: a one-shot spell
 // (instant/sorcery) source, or an explicit this-turn Duration$, is UntilEOT
 // and is dropped at end-of-turn cleanup (rules' EndOfTurnCleanup); anything
 // else -- Duration$ Permanent on a permanent, an until-untap form, ... ---
 // persists while its source stays on the battlefield, the same rule the
-// layer effects use. Forms that outlive the current turn (UntilYourNextTurn
-// and friends) are NOT modelled and fall into the source-leaves branch, which
-// is a documented approximation rather than a silent wrong answer.
+// layer effects use. A Duration$ that spans the controller's NEXT turn is
+// NOT UntilEOT (it would expire a turn early); it is instead given a real
+// turn-boundary lifetime (state.ContinuousEffect.UntilTurn) computed in
+// rules.Engine.AddContinuous, so effectUntilEOT returns false for it.
 func effectUntilEOT(h Host, source state.ObjID, dur string) bool {
+	if IsNextTurnDuration(dur) {
+		return false
+	}
 	if o := h.Game().Obj(source); o != nil {
 		if f := o.Face(); f != nil && (f.IsInstant() || f.IsSorcery()) {
 			return true

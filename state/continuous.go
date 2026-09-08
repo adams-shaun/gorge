@@ -80,4 +80,17 @@ type ContinuousEffect struct {
 	// effEffect default) preserved for reporting and for the expiry decision
 	// in rules/layers.go. Cosmetic for a layer effect.
 	Duration string
+	// UntilTurn is the turn number at whose END (its cleanup step) this
+	// effect expires, for a Duration$ that spans the controller's NEXT turn
+	// (UntilYourNextTurn, UntilTheEndOfYourNextTurn). Computed at
+	// registration from the live turn/active-player rotation
+	// (rules.Engine.AddContinuous), so an effect on a one-shot spell outlives
+	// its source and is dropped only by EndOfTurnCleanup when e.G.Turn
+	// reaches UntilTurn -- a real turn-boundary lifetime, not the
+	// source-leaves branch nor a premature end-of-this-turn expiry. Zero
+	// means "no turn boundary": the effect is UntilEOT or expires with its
+	// source, per the fields above. Reproduced byte-identically by a replay,
+	// because AddContinuous recomputes it from the same deterministic
+	// rotation when the intents re-execute.
+	UntilTurn int32
 }
