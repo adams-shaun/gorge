@@ -271,7 +271,7 @@ func matchesBase(g *state.Game, base string, o *state.Object) bool {
 
 // SpecContext carries the extra state a filter spec beyond MatchesSpec's
 // three plain arguments needs: the perspective seat, the effect's source
-// (Self/Other/StrictlyOther/NamedCard/ChosenType are all relative to it), and
+// (CARDNAME/Self/Other/StrictlyOther/NamedCard/ChosenType are relative to it), and
 // an optional resolver for a numeric predicate whose right-hand side is not a
 // literal (an SVar name such as "Y" or "Chosen"). A nil Resolve leaves that
 // family of RHS forever unresolvable -- MatchesSpec/MatchesSpecFrom's
@@ -308,7 +308,13 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 			continue
 		}
 		base, rest, _ := strings.Cut(alt, ".")
-		if !matchesBase(g, base, o) {
+		if base == "CARDNAME" {
+			// CR 201.5: a self-reference means this object, not another
+			// object with the same name. Without a source, fail closed.
+			if sc.Source == 0 || o.ID != sc.Source {
+				continue
+			}
+		} else if !matchesBase(g, base, o) {
 			continue
 		}
 		all := true
@@ -351,7 +357,7 @@ func MatchesSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecContext) 
 }
 
 // MatchesSpecFrom is MatchesSpecCtx with an explicit source object, which the
-// Self and Other family of predicates are relative to, and no numeric-RHS
+// CARDNAME base and Self/Other predicates are relative to, and no numeric-RHS
 // resolver.
 func MatchesSpecFrom(g *state.Game, spec string, id state.ObjID, you state.PlayerID, source state.ObjID) bool {
 	return MatchesSpecCtx(g, spec, id, SpecContext{You: you, Source: source})

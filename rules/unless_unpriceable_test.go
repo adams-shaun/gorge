@@ -221,11 +221,10 @@ func inDeck(deck []*cards.Card, name string) bool {
 // carries UnlessCost$ X (X is the Wanderer's power, from an SVar -- the
 // engine never reads it), and the card ships in two of the 12 replay-golden
 // repo decks (mono-blue-tempo, uw-tempo). Its compiled UnlessCost parses to
-// an unpriceable {X}, which the payment API must decline. (The ability's own
-// Sac<1/CARDNAME> activation cost is a separate CARDNAME-substitution gap in
-// the cost grammar and is not exercised here exactly for that reason; the
-// card is pinned by its compiled Counter SA and its presence in the repo
-// decks, not by playing its activation.)
+// an unpriceable {X}, which the payment API must decline. The ability's own
+// Sac<1/CARDNAME> now matches the source object (cardname_cost_test.go covers
+// that offer/payment path); this test pins the compiled Counter SA and its
+// presence in the repo decks, not its activation.
 func TestMausoleumWandererUnlessCostX(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	wanderer := mustCorpusCard(t, reg, "Mausoleum Wanderer")

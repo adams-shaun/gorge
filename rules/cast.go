@@ -163,7 +163,7 @@ func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost) bool {
 			if reserved[oid] { // an earlier Sac part already claimed this one
 				continue
 			}
-			if effects.MatchesSpec(e.G, part.Spec, oid, p) {
+			if effects.MatchesSpecFrom(e.G, part.Spec, oid, p, id) {
 				avail = append(avail, oid)
 			}
 		}
@@ -415,7 +415,7 @@ func (e *Engine) sacAsk() bool {
 		part := pc.cost.Sac[pc.sacPart]
 		var candidates []state.ObjID
 		for _, oid := range e.G.Zone(state.ZBattlefield, pc.player) {
-			if effects.MatchesSpec(e.G, part.Spec, oid, pc.player) {
+			if effects.MatchesSpecFrom(e.G, part.Spec, oid, pc.player, pc.card) {
 				already := false
 				for _, s := range pc.sacs {
 					if s == oid {
