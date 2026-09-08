@@ -109,6 +109,11 @@ func TestViewMarshalsClosed(t *testing.T) {
 		"hand": true, "battlefield": true, "graveyard": true, "exile": true,
 		"pool": true, "command": true, "commanders": true,
 		"commander_casts": true, "cmd_damage": true,
+		// available (task mp1) is a public battlefield-derived quantity —
+		// what the seat could tap for right now — never a hidden-zone
+		// carrier, so it joins the public facts class here. See the
+		// Pool/available doc on view.PlayerView for how the two differ.
+		"available": true,
 	})
 	// StackView is public (R3) so it is a lesser leak surface, but the
 	// reflection is the same shape and cheap, so it is pinned too.

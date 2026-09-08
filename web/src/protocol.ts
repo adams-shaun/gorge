@@ -115,6 +115,7 @@ export interface PlayerView {
   graveyard: CardView[];
   exile: CardView[];
   pool: Record<string, number>;
+  available?: Record<string, number>;
   command: CardView[];
   commanders: CardView[];
   commander_casts: number[];
