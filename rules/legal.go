@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -221,7 +222,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 					continue
 				}
 				cost := ParseCost(ab.Params["Cost"])
-				if cost.Tap && (o.Tapped || (z == state.ZBattlefield && o.SummonSick && !e.HasKeyword(id, "Haste"))) {
+				if cost.Tap && (o.Tapped || (z == state.ZBattlefield && o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
 					continue
 				}
 				if !e.castable(p, id, cost) {

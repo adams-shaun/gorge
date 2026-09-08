@@ -234,7 +234,6 @@ func TestCR602ActivationCostIncludesReduction(t *testing.T) {
 }
 
 func TestCR602NewNoncreatureCanActivateTapAbility(t *testing.T) {
-	requireCR601Audit(t, "CR 602.5a: summoning-sickness gate wrongly includes noncreatures")
 	reg := testutil.CorpusRegistry(t)
 	e := crAbortEngine(t, reg, "death-n-taxes")
 	id := crAbortMove(t, e, 0, "Aether Vial", state.ZBattlefield)
