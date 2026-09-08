@@ -248,9 +248,11 @@ func Describe(g *state.Game, ev events.Event) string {
 	return "unknown event"
 }
 
-// obj names an object as "Name #id", "an ability #id" for a faceless
-// stack object, "a card" for the redacted id 0, and "#id" for an id the
-// game cannot resolve (nil g, stale or tampered data).
+// obj names an object as "Name #id", "<Name>'s ability #id" for a faceless
+// stack object whose source card is resolvable, "an ability #id" for a
+// faceless object whose source is not (0, unresolvable, or itself faceless),
+// "a card" for the redacted id 0, and "#id" for an id the game cannot
+// resolve (nil g, stale or tampered data).
 func obj(g *state.Game, id state.ObjID) string {
 	if id == 0 {
 		return "a card"
@@ -266,7 +268,33 @@ func obj(g *state.Game, id state.ObjID) string {
 	if f := o.Face(); f != nil && f.Name != "" {
 		return f.Name + " " + tag
 	}
+	if src := abilitySource(g, o); src != "" {
+		return src + "'s ability " + tag
+	}
 	return "an ability " + tag
+}
+
+// abilitySource resolves a faceless ability object's source (state.Object.
+// Source, set by events.Apply's TriggerPush/AbilityPush/DelayedPush minting
+// paths) to the name of the card it came from, or "" when that path cannot
+// produce one: a zero source id, an id the game no longer holds, or a source
+// that is itself faceless (a copied or minted ability) — a source whose own
+// name is unknowable must not yield an empty possessive, so it degrades to
+// the bare "an ability #id" instead. It mirrors obj's own care about nil g,
+// id == 0 and stale ids, because this is called on log lines for tampered
+// and historical data.
+func abilitySource(g *state.Game, o *state.Object) string {
+	if o.Source == 0 {
+		return ""
+	}
+	src := g.Obj(o.Source)
+	if src == nil {
+		return ""
+	}
+	if f := src.Face(); f != nil && f.Name != "" {
+		return f.Name
+	}
+	return ""
 }
 
 func objs(g *state.Game, ids []state.ObjID) string {

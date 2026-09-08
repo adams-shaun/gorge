@@ -16,7 +16,7 @@
   import { everyVisibleCard, quadrantFor } from '../lib/board';
   import { seatColour } from '../lib/colours';
   import { seatRows } from '../lib/seattable';
-  import { buildCardColour } from '../lib/logrender';
+  import { buildCardOwnerColour } from '../lib/logrender';
   import { href, navigate } from '../lib/router';
   import { getSeat } from '../lib/seat';
 
@@ -73,16 +73,20 @@
     m.view ? seatRows(m.view, m.seats).map((r) => ({ name: r.name, colour: r.colour || seatColour(r.seat, m.seats) })) : [],
   );
 
-  // Task ui9 (B2): colour each card name in the log by its mana-colour
-  // identity. The described line carries a card's name and id but not its
-  // colour, so it is looked up from the current view's cards (every visible
-  // zone) via buildCardColour; a name not in the view (a card that has left)
-  // resolves null and renders uncoloured. Rebuilt each render, so a card
-  // stays coloured while it is in any visible zone and degrades to plain if
-  // it leaves them all.
+  // Task lc1: colour each card name in the log by the colour of the seat
+  // that OWNS it — the same colour that seat's name renders in — resolved by
+  // the card's object id. The described line carries the id (and the name)
+  // but not the owner's colour, so it is looked up from the current view's
+  // cards (every visible zone, via everyVisibleCard — which defends the
+  // public-spectator null hand) by id -> owner -> that seat's colour. An id
+  // absent from the view (a card that has left every visible zone) resolves
+  // null and renders uncoloured. Rebuilt each render.
   const logCardColour = $derived(
     m.view
-      ? buildCardColour(everyVisibleCard(m.view.players))
+      ? buildCardOwnerColour(
+          everyVisibleCard(m.view.players),
+          (owner) => m.seats[owner]?.colour || seatColour(owner, m.seats),
+        )
       : null,
   );
 

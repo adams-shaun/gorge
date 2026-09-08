@@ -8,10 +8,16 @@
  * transcript just filters through it. Revisiting the default later is an
  * edit to `hiddenKinds`, not a hunt through markup.
  *
- * Only these three kinds are hidden — everything else (land plays, casts,
+ * Only these four kinds are hidden — everything else (land plays, casts,
  * `draw`, `move_zone`, triggers, …) is kept, because narrowing further is a
  * judgment nobody has made: `draw` and `move_zone` are noisy in the sample
- * but they are real game events.
+ * but they are real game events. The fourth, `end_combat_reset`, is the
+ * engine's whole-combat reset bookkeeping ("Combat ends", view/describe.go)
+ * — not a play, not the `step` line for the end-combat step (that is its own
+ * kind, filtered behind the independent step toggle below), and measured on a
+ * live match at 23 firings in 2176 events, which on a quiet board is most of
+ * what the transcript shows. It is hidden by default and still reachable
+ * behind the existing "Show engine noise" toggle.
  *
  * NOTE (out of scope, finding only): the lobby Feed rail shows the same
  * drowning, but its cause is Go-side — it is fed by `widget.last`,
@@ -22,6 +28,7 @@ export const hiddenKinds: ReadonlySet<string> = new Set([
   'priority',
   'decision_ask',
   'decision_made',
+  'end_combat_reset',
 ]);
 
 /** isHiddenKind reports whether a single event kind is log-noise by default. */
@@ -51,7 +58,7 @@ export interface LogLine {
 
 /**
  * visibleLog filters a list of described event lines for the transcript:
- * blank lines are always dropped; the three engine-noise kinds are dropped
+ * blank lines are always dropped; the four engine-noise kinds are dropped
  * unless `revealAll` is true; and step lines are dropped unless `revealSteps`
  * is true. The two toggles are independent (show step lines without showing
  * the noise, or the reverse). `revealAll`, when set, shows everything

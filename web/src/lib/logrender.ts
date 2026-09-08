@@ -1,7 +1,8 @@
 /**
  * logrender.ts turns one already-described transcript line (Transcript.svelte's
  * `e.line`, from view/describe.go) into structured, renderable pieces — the
- * client-side half of the "readable log" task (ui9).
+ * client-side half of the "readable log" task (ui9), extended by lc1 for
+ * owner-coloured cards and source-named abilities.
  *
  * WHERE THE WORDS COME FROM. The line text is composed SERVER-SIDE in
  * view/describe.go, not by the client; the client receives one string per
@@ -11,10 +12,11 @@
  * change was needed. Instead this module parses the server's *documented
  * contract* for an object reference and re-renders it:
  *
- *   obj()  renders a card/permanent/spell as  "<Name> #<id>"   (describe.go)
- *   obj()  renders a faceless ability      as  "an ability #<id>" (describe.go)
- *   obj()  renders an unresolvable id      as  "#<id>"          (describe.go)
- *   obj()  renders the redacted id 0       as  "a card"         (describe.go)
+ *   obj()  renders a card/permanent/spell as  "<Name> #<id>"       (describe.go)
+ *   obj()  renders a source-named ability   as  "<Name>'s ability #<id>"
+ *   obj()  renders an unresolvable ability  as  "an ability #<id>"  (describe.go)
+ *   obj()  renders an unresolvable id       as  "#<id>"           (describe.go)
+ *   obj()  renders the redacted id 0        as  "a card"          (describe.go)
  *   mana() renders mana                     as  "{R}{G}{2}{W/U}"  etc.
  *
  * So a line is not opaque prose to us — object references are exactly the
@@ -35,21 +37,32 @@
  * like one. This is why B2 now works for every commander (`Jace, the Mind
  * Sculptor`, `Ghalta, Primal Hunger`, …) and for `Sign in Blood`.
  *
- * WHERE THAT KEY SET COMES FROM. A card's colour lives in its mana_cost; the
- * event carries no colour and the line carries neither cost nor colour
- * identity. So when a match view is available, Table.svelte hands this module
- * the current view's cards through buildCardColour(); the resolver it returns
- * carries both a colour lookup and the exact card-name key set it was built
- * over. The card token and its colour are therefore looked up together, and a
- * name that is NOT in the current view (a card that has left every visible
- * zone) renders uncoloured rather than guessed — a name the view cannot name is
- * not coloured.
+ * HOW A CARD IS COLOURED (lc1, replaces the B2 mana-identity colouring). A
+ * card in the log takes the colour of the player who OWNs it — the same colour
+ * that player's name renders in — resolved by the card's **object id**, not by
+ * its name or mana identity. Name-keying could never distinguish two seats
+ * holding the same card (two Islands owned by different seats would render one
+ * colour), which is exactly what owner-colouring must express. The resolver
+ * (buildCardOwnerColour) is keyed by object id and maps it to the owner seat's
+ * colour, taken from the same seat palette that colours a seat's name in the
+ * line; it additionally carries the view's exact card-name keys so the name
+ * detection above keeps working. An id absent from the view resolves to null
+ * (rendered uncoloured), never to a made-up colour — the B2 promise, carried
+ * over to ids.
+ *
+ * ABILITY TOKENS (lc1). describe.go now renders a faceless ability object as
+ * `"<Source>'s ability #<id>"` (e.g. "Goblin Balloon Brigade's ability #217"),
+ * degrading to `"an ability #<id>"` when its source cannot be resolved. This
+ * module detects the ability token by the `'s ability` possessive before the id
+ * (and keeps the older `an ability` shape for the fallback), so a line the
+ * server phrases differently is not silently mis-classified as a card.
  *
  * WHAT THE LINE DOES NOT CARRY (residual gap, stated once): a card's colour is
- * not on the wire; it is looked up from the view's cards. There is no match
- * view at the lobby rail, so feed lines are rendered by the no-view fallback
- * (word-shape regex) with card names uncoloured. A richer source (the server
- * emitting colour identity on the wire) is a protocol change and out of scope.
+ * not on the wire; it is looked up from the view's cards' owner field. There is
+ * no match view at the lobby rail, so feed lines are rendered by the no-view
+ * fallback (word-shape regex) with card names uncoloured. A richer source (the
+ * server emitting colour identity on the wire) is a protocol change and out of
+ * scope.
  *
  * SEAT VS CARD (the false-positive guard). A card token is consumed WHOLE —
  * an exact name match plus its `#<id>` becomes one card piece — before the
@@ -63,129 +76,73 @@
  * fallback is the approximation, not this path.
  */
 
-import { manaSymbols } from './mana';
-import { colourSegments, type LogSeatIdentity } from './logcolour';
-
-/**
- * A card's colour identity, as a colour key the renderer maps to the design
- * system's mana-pip palette. This reuses the one established "card colour"
- * vocabulary in the client — ManaSymbols.svelte's own design note says "a
- * saturated colour means mana, card colour or seat identity" — rather than a
- * second scheme.
- *
- *   'W'|'U'|'B'|'R'|'G'  a mono-colour card
- *   'C'                  colourless / artifact / land (no coloured pips)
- *   'M'                  multicolour (more than one colour, "gold")
- */
-export type CardColourKey = 'W' | 'U' | 'B' | 'R' | 'G' | 'C' | 'M';
+import type { LogSeatIdentity } from './logcolour';
+import { colourSegments } from './logcolour';
 
 /**
  * One renderable piece of a described line. The component renders each
  * according to kind; nothing here decides what an event does.
+ *
+ * A card piece's `colour` is the CSS colour of the seat that OWNS the card
+ * (null when the view cannot resolve the card's id — rendered uncoloured,
+ * never guessed). An ability piece's `name` is the server's source-speaking
+ * possessive ("Goblin Balloon Brigade's ability") or the `an ability` fallback.
  */
 export type LogPiece =
   | { kind: 'text'; text: string }
   | { kind: 'mana'; token: string }
-  | { kind: 'card'; name: string; id: string; colour: CardColourKey | null }
+  | { kind: 'card'; name: string; id: string; colour: string | null }
   | { kind: 'ability'; name: string; id: string }
   | { kind: 'seat'; text: string; colour: string };
 
 /**
- * CARD_COLOUR_VAR maps a colour key to the CSS colour a card name is rendered
- * in. Mono colours reuse the mana-pip palette (the design system's own
- * "card colour" vocabulary) the way a card frame wears its own hue. Two values
- * are adapted for the transcript's DARK instrument ground, not replaced: black
- * (--mana-b is a dark plum that disappears as text on dark) is lifted in
- * lightness while keeping its hue; and gold ('M') is the one hue the palette
- * has no word for — MTG frames multicolour cards gold — so a gold text colour
- * is supplied here. Colourless reuses the stone the pipeline uses for a
- * colourless pip.
+ * CardOwnerColour is the colour lookup a caller hands parseLogLine, built over
+ * a set of view cards by object id. It is a function `id -> CSS colour`
+ * (null for an id not in the view, never a made-up colour), and it
+ * additionally carries the exact card-name keys it was built over so
+ * parseLogLine can do a longest exact match against them (B2, fix round 1)
+ * rather than guess at word shape.
  */
-export const CARD_COLOUR_VAR: Record<CardColourKey, string> = {
-  W: 'var(--mana-w)',
-  U: 'var(--mana-u)',
-  B: '#9c89bd',
-  R: 'var(--mana-r)',
-  G: 'var(--mana-g)',
-  C: 'var(--mana-c)',
-  M: '#b49a4b',
-};
-
-/** cardColourVar returns the CSS colour a card with the given key renders in, or null for uncoloured. */
-export function cardColourVar(key: CardColourKey | null): string | null {
-  return key === null ? null : CARD_COLOUR_VAR[key];
-}
-
-/**
- * cardColourKey classifies a Forge mana cost string into a card's colour
- * identity (B2). It walks the SAME structured pip list ManaSymbols and the
- * corpus ratchet use, so a shape the pip renderer understands is classified
- * identically here: one distinct colour letter -> that colour; several ->
- * multicolour; none (lands, artifacts, colourless costs, the "no cost"
- * marker) -> colourless. Unknown pips are ignored rather than guessed.
- */
-export function cardColourKey(cost: string | undefined): CardColourKey | null {
-  if (!cost) return 'C'; // a card with no mana cost reads as colourless
-  const colours = new Set<string>();
-  for (const s of manaSymbols(cost)) {
-    switch (s.kind) {
-      case 'colour': colours.add(s.colour); break;
-      case 'hybrid':
-      case 'phyrexianHybrid':
-        if (s.a !== 'C') colours.add(s.a);
-        if (s.b !== 'C') colours.add(s.b);
-        break;
-      case 'twobrid':
-      case 'phyrexian': colours.add(s.colour); break;
-      case 'colourless':
-      case 'generic':
-      case 'variable':
-      case 'snow':
-      case 'unknown': break;
-    }
-  }
-  if (colours.size === 1) return [...colours][0] as CardColourKey;
-  if (colours.size > 1) return 'M';
-  return 'C';
-}
-
-/**
- * CardColourResolver is the colour lookup a caller hands parseLogLine, built
- * over a set of view cards. It is a function `name -> key` (null for a name
- * not in the view, never a made-up colour), and it additionally carries the
- * exact card-name keys it was built over so parseLogLine can do a longest
- * exact match against them (B2, fix round 1) rather than guess at word shape.
- */
-export interface CardColourResolver {
-  (name: string): CardColourKey | null;
+export interface CardOwnerColour {
+  (id: number): string | null;
   /** the exact card-name keys this resolver was built over (the view's card names). */
   names: readonly string[];
 }
 
 /**
- * buildCardColour builds a CardColourResolver over the current match view's
- * cards. Keyed by the card's own name and carrying that name set, so a card
- * name in a log line is recognised because it is really in the view. The later
- * card with the same name wins (id order is irrelevant: the colour identity is
- * shared by every copy of a printing). A name absent from the view resolves to
- * null (rendered uncoloured), never to a made-up colour.
+ * buildCardOwnerColour builds a CardOwnerColour over the current match view's
+ * cards. Keyed by the card's OWNER seat — via the caller-supplied
+ * `colourForSeat` (the same seat palette that colours a seat's name in the
+ * line) — so two copies of the same card owned by different seats resolve to
+ * different colours, which is exactly what name-keying could never express
+ * (lc1). It also carries the view's exact card-name keys. An id absent from
+ * the view resolves to null (rendered uncoloured), never to a made-up colour.
+ * The caller is expected to have flattened the view's zones through
+ * everyVisibleCard (lib/board.ts), which defends the `hand: null` public-
+ * spectator shape; this builder additionally skips a null entry so it is
+ * equally safe on its own.
  */
-export function buildCardColour(cards: readonly { name: string; mana_cost?: string }[]): CardColourResolver {
-  const byName = new Map<string, CardColourKey | null>();
+export function buildCardOwnerColour(
+  cards: readonly ({ id?: number; name?: string; owner?: number } | null | undefined)[],
+  colourForSeat: (owner: number) => string,
+): CardOwnerColour {
+  const byId = new Map<number, string | null>();
+  const byName = new Set<string>();
   for (const c of cards) {
-    if (!c.name) continue;
-    byName.set(c.name, cardColourKey(c.mana_cost));
+    if (!c || c.id === undefined || c.owner === undefined) continue;
+    byId.set(c.id, colourForSeat(c.owner));
+    if (c.name) byName.add(c.name);
   }
-  const resolver = ((name: string) => byName.get(name) ?? null) as CardColourResolver;
-  resolver.names = [...byName.keys()];
+  const resolver = ((id: number) => byId.get(id) ?? null) as CardOwnerColour;
+  resolver.names = [...byName];
   return resolver;
 }
 
 export interface LogRenderOpts {
   /** seat identities, resolved by the caller the same way the seat rail does. */
   identities?: LogSeatIdentity[];
-  /** card name -> colour-key resolver; feed buildCardColour(view cards). */
-  cardColour?: CardColourResolver | null;
+  /** object-id -> owner seat colour resolver; feed buildCardOwnerColour(view cards). */
+  cardColour?: CardOwnerColour | null;
 }
 
 /** isWordChar is the manual half of a word boundary; see logcolour.ts for why it is manual. */
@@ -193,15 +150,29 @@ function isWordChar(c: string | undefined): boolean {
   return c !== undefined && /[A-Za-z0-9]/.test(c);
 }
 
+// The name-shape for a card's own name, shared by the ability-source
+// extraction below and the no-view fallback: a capitalized run of words joined
+// by a comma, a space, or a small connector list, so `Jace, the Mind Sculptor`
+// and `Sign in Blood` are matched whole. `\p{Lu}` requires the `u` flag.
+const NAME_WORD = `\\p{Lu}[\\p{L}\\p{N}'\\-]*`;
+const NAME_LOW = `of|the|a|an|to|and|for|in|on|with|from|into|at|by`;
+const CARD_NAME = `${NAME_WORD}(?:[,\\s]+(?:${NAME_WORD}|${NAME_LOW}))*`;
+// ABILITY_NAME_RE captures a faceless ability's source possessive
+// `"<Source>'s ability"` from the text immediately before the `#<id>` tag,
+// so a mid-line reference ("Ann copies <Source>'s ability #id") keeps just the
+// possessive rather than swallowing the words that precede it.
+const ABILITY_NAME_RE = new RegExp(`(${CARD_NAME})'s ability$`, 'u');
+
 /**
  * resolveObjectAt resolves the object reference whose `#<digits>` tag is at
  * `hashIndex` in `line`. The described object is one of:
- *   "<Name> #<id>"   a card / permanent / spell whose name is in the view
- *   "an ability #id" a faceless ability object (minted, no Face)
- *   "#<id>"          an id the game could not resolve — resolved to null here,
- *                    so the caller renders the honest bare id and invents no
- *                    words (F1).
- * With a name key set, the card name is the LONGEST known name that ends
+ *   "<Name> #<id>"         a card / permanent / spell whose name is in the view
+ *   "<Name>'s ability #id" a faceless ability object naming its source (lc1)
+ *   "an ability #id"       a faceless ability object with an unresolvable source
+ *   "#<id>"                an id the game could not resolve — resolved to null
+ *                          here, so the caller renders the honest bare id and
+ *                          invents no words (F1).
+ * With a name key set, a card name is the LONGEST known name that ends
  * immediately before the tag and is preceded by a word boundary, so a comma,
  * a connector like "in", or a non-ASCII letter inside the name cannot split
  * it. Returns the token kind and name (or null for an unresolvable id).
@@ -210,11 +181,17 @@ function resolveObjectAt(
   line: string,
   hashIndex: number,
   names: readonly string[],
-): { kind: 'ability' } | { kind: 'card'; name: string } | null {
+): { kind: 'ability'; name: string } | { kind: 'card'; name: string } | null {
   const before = line.slice(0, hashIndex);
-  // The name sits immediately before the "#", separated by whitespace. An
-  // ability object is the literal "an ability" phrase (describe.go).
-  if (/(^|\s)an ability\s*$/i.test(before)) return { kind: 'ability' };
+  const trimmed = before.replace(/\s+$/, '');
+  // An ability is the server's possessive "<Source>'s ability" (describe.go,
+  // lc1) or the older bare "an ability" fallback. Matched before the name key
+  // set so a card name never swallows an ability whose source is not a card
+  // in the view. The possessive is extracted by name shape (not taken as the
+  // whole prefix) so a mid-line reference keeps just "<Source>'s ability".
+  const am = ABILITY_NAME_RE.exec(trimmed);
+  if (am) return { kind: 'ability', name: am[1] + "'s ability" };
+  if (/^an ability$/i.test(trimmed)) return { kind: 'ability', name: trimmed };
   const nameText = before.replace(/\s+$/, '');
   let best: string | null = null;
   for (const n of names) {
@@ -248,7 +225,7 @@ export function parseLogLine(line: string, opts: LogRenderOpts = {}): LogPiece[]
 }
 
 /** parseByExactNames resolves objects against the view's own card-name key set. */
-function parseByExactNames(line: string, identities: LogSeatIdentity[], cardColour: CardColourResolver): LogPiece[] {
+function parseByExactNames(line: string, identities: LogSeatIdentity[], cardColour: CardOwnerColour): LogPiece[] {
   const pieces: LogPiece[] = [];
   const pushText = (t: string) => {
     for (const seg of colourSegments(t, identities)) {
@@ -274,7 +251,7 @@ function parseByExactNames(line: string, identities: LogSeatIdentity[], cardColo
       if (m.index > last) pushText(line.slice(last, m.index));
       pieces.push({ kind: 'text', text: '#' + id });
     } else {
-      const name = tok.kind === 'ability' ? 'an ability' : tok.name;
+      const name = tok.name;
       // nameStart = the position where the object's name begins: the tag's
       // index minus the whitespace that separates the name from "#" minus
       // the name's own length.
@@ -284,7 +261,7 @@ function parseByExactNames(line: string, identities: LogSeatIdentity[], cardColo
       if (tok.kind === 'ability') {
         pieces.push({ kind: 'ability', name, id });
       } else {
-        pieces.push({ kind: 'card', name, id, colour: cardColour(name) });
+        pieces.push({ kind: 'card', name, id, colour: cardColour(Number(id)) });
       }
     }
     last = re.lastIndex;
@@ -297,7 +274,7 @@ function parseByExactNames(line: string, identities: LogSeatIdentity[], cardColo
 function parseByObjectShape(
   line: string,
   identities: LogSeatIdentity[],
-  cardColour: CardColourResolver | null,
+  cardColour: CardOwnerColour | null,
 ): LogPiece[] {
   const pieces: LogPiece[] = [];
   const pushText = (t: string) => {
@@ -306,10 +283,7 @@ function parseByObjectShape(
     }
   };
 
-  const CAP = `\\p{Lu}[\\p{L}\\p{N}'\\-]*`;
-  const LOW = `of|the|a|an|to|and|for|in|on|with|from|into|at|by`;
-  const NAME = `${CAP}(?:[,\\s]+(?:${CAP}|${LOW}))*`;
-  const OBJ = `(?:an ability|${NAME})`;
+  const OBJ = `(?:${CARD_NAME}|an ability)(?:'s ability)?`;
   const re = new RegExp(`(\\{[^{}]+\\})|(${OBJ})\\s*#(\\d+)|#(\\d+)`, 'gu');
 
   let last = 0;
@@ -321,10 +295,10 @@ function parseByObjectShape(
     } else if (m[2] !== undefined) {
       const name = m[2].trimEnd();
       const id = m[3];
-      if (/^an ability$/i.test(name)) {
+      if (/'s ability$/i.test(name) || /^an ability$/i.test(name)) {
         pieces.push({ kind: 'ability', name, id });
       } else {
-        pieces.push({ kind: 'card', name, id, colour: cardColour ? cardColour(name) : null });
+        pieces.push({ kind: 'card', name, id, colour: cardColour ? cardColour(Number(id)) : null });
       }
     } else if (m[4] !== undefined) {
       // A bare object id describe.go could not resolve: render the honest
