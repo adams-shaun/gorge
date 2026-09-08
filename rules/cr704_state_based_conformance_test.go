@@ -190,7 +190,6 @@ func TestCR704DepartedTokenIsNotAnExiledObject(t *testing.T) {
 }
 
 func TestCR704NoncombatDeathtouchDestroysDamagedCreature(t *testing.T) {
-	requireCR601Audit(t, "CR 704.5h: only combat records deathtouch damage")
 	e := crResolutionEngine(t, []string{"Prodigal Pyromancer", "Lace with Moonglove"}, nil)
 	pyro := crAbortMove(t, e, 0, "Prodigal Pyromancer", state.ZBattlefield)
 	lace := crAbortMove(t, e, 0, "Lace with Moonglove", state.ZHand)
