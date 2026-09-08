@@ -2,7 +2,7 @@
   import type { DvrState } from '../lib/dvr';
   import { visibleLog } from '../lib/logfilter';
   import type { LogSeatIdentity } from '../lib/logcolour';
-  import { parseLogLine, cardColourVar, type CardColourKey } from '../lib/logrender';
+  import { parseLogLine, cardColourVar, type CardColourResolver } from '../lib/logrender';
   import ManaSymbols from './ManaSymbols.svelte';
 
   /**
@@ -35,14 +35,18 @@
    *   - a faceless ability reference ("an ability #id") gets an italic
    *     ability treatment (B2).
    * `cardColour` is the caller's card-name -> colour-key resolver, built
-   * from the current view's cards (buildCardColour); it is optional, so a
-   * caller with no cards (or a test) renders card names uncoloured.
+   * from the current view's cards (buildCardColour). It also carries the
+   * view's exact card-name keys, so logrender.ts resolves a card reference
+   * by longest exact match against them rather than by word shape (a comma
+   * in `Jace, the Mind Sculptor` cannot split the name). It is optional, so
+   * a caller with no cards (or a test) renders card names uncoloured by the
+   * word-shape fallback.
    */
   let { dvr, onSeek, identities = [], cardColour = null }: {
     dvr: DvrState;
     onSeek: (seq: number) => void;
     identities?: LogSeatIdentity[];
-    cardColour?: ((name: string) => CardColourKey | null) | null;
+    cardColour?: CardColourResolver | null;
   } = $props();
 
   let container: HTMLDivElement | undefined;
