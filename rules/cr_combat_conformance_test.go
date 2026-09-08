@@ -122,7 +122,6 @@ func TestCR508EmptyAttackSkipsBlockersAndDamage(t *testing.T) {
 }
 
 func TestCR509OneBlockerCannotBlockTwoAttackers(t *testing.T) {
-	requireCR601Audit(t, "CR 509.1a: the offered block cross-product accepts the same blocker twice")
 	e := crResolutionEngine(t, []string{"Memnite", "Memnite"}, []string{"Memnite"})
 	a := crAbortMove(t, e, 0, "Memnite", state.ZBattlefield)
 	b := crAbortMove(t, e, 0, "Memnite", state.ZBattlefield)
