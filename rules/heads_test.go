@@ -404,11 +404,30 @@ import (
 // change: CR 103.8a's skip is correct at two players, so the predicate is
 // keyed to the constructed seat count. A 2-seat head that moved here would
 // have meant the fix was wrong, not that the golden was stale.
+//
+// fx4 (F31, CR 704.5m/702.16c) moved NO head. The attachment SBA now also
+// kills an Aura whose bearer gained protection from it, but no acceptance
+// game at any seat count reaches that path -- measured, not assumed, by
+// running TestHeads on wt/fx4 and getting all four goldens back unchanged.
+//
+// fx3 (F21, CR 608.2b) regenerated 8 only. legalTargets now applies the same
+// continuous CantTarget predicate askTarget applies at offer time, so a
+// restriction that arrives between targeting and resolution fizzles the
+// spell instead of being ignored. Measured on wt/fx3 rebased onto fx4, so
+// this value is the combined state of both round-2 merges:
+//
+//   - 2, 4, 6 seats: unmoved. Only the 8-seat game races a restriction
+//     against a spell already on the stack.
+//   - 8 seats: event 14737. Rancor (obj 359) fizzles for want of a legal
+//     target instead of resolving and attaching to Monastery Swiftspear
+//     (obj 388, controller 6) at event 14738. The restriction became active
+//     after Rancor was cast, which is exactly the case askTarget cannot
+//     catch and the resolution recheck now does.
 var acceptanceHeads = map[int]string{
 	2: "4a6c29ab662c546a",
 	4: "e413e42321e9ed5a",
 	6: "05d4e64c33f758d1",
-	8: "b7219a3aec7d29c9",
+	8: "b31139c819b45d51",
 }
 
 func TestHeads(t *testing.T) {
