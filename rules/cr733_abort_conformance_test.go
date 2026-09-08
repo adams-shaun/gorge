@@ -251,11 +251,15 @@ func crAbortSites(t *testing.T, sites []string) {
 }
 
 func TestCR733UnderDelveReversalAllowsLegalRetry(t *testing.T) {
-	requireCR601Audit(t, "CR 733.2: under-delve suppression forbids a legal retry")
 	reg := testutil.CorpusRegistry(t)
 	checked := 0
 	for _, paid := range []int{0, 1, 7} {
 		t.Run(string(rune('0'+paid))+"_exiles", func(t *testing.T) {
+			// Full payment is an already-correct control, not a known-red
+			// defect. Keep only the underpayment siblings opt-in.
+			if paid != 7 {
+				requireCR601Audit(t, "CR 733.2: under-delve suppression forbids a legal retry")
+			}
 			e := crAbortEngine(t, reg, "ur-delver", "Treasure Cruise")
 			pyro := crAbortPyromancer(t, e)
 			id := crAbortMove(t, e, 0, "Treasure Cruise", state.ZHand)
