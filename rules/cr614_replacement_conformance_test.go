@@ -14,7 +14,6 @@ import (
 )
 
 func TestCR614RestInPeaceInHandCannotReplace(t *testing.T) {
-	requireCR601Audit(t, "CR 611.3b/614.4: replacement ActiveZones is ignored")
 	e := crResolutionEngine(t, []string{"Rest in Peace"}, nil)
 	rip := crAbortMove(t, e, 0, "Rest in Peace", state.ZHand)
 	target := crAbortMove(t, e, 0, "Delver of Secrets", state.ZBattlefield)

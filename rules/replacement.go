@@ -212,6 +212,26 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 	if r.Event != "Moved" || ev.Kind != events.MoveZone {
 		return false
 	}
+	// CR 611.3b/614.4: a static replacement only applies from one of its
+	// declared active zones. Accept the comma-separated list grammar used by
+	// other Forge zone parameters; the pinned corpus currently uses only
+	// singleton ActiveZones values. Preserve replacements with no ActiveZones
+	// parameter: the corpus does not thereby declare a zone, and
+	// historically this engine has allowed those replacements from anywhere.
+	//
+	// A permanent's own entry replacement is active for the event that puts it
+	// into the declared zone even though the source has not arrived there yet
+	// (CR 614.12). Without the prospective ev.To check, ordinary "enters with"
+	// replacements would disable themselves while their source is in hand or
+	// on the stack.
+	if active, ok := r.Params["ActiveZones"]; ok {
+		o := e.G.Obj(source)
+		currentlyActive := o != nil && zoneSpecContains(active, o.Zone)
+		enteringActive := source == ev.Obj && zoneSpecContains(active, ev.To)
+		if !currentlyActive && !enteringActive {
+			return false
+		}
+	}
 	if o, ok := r.Params["Origin"]; ok && o != "Any" && effects.ParseZone(o) != ev.From {
 		return false
 	}
