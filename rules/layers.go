@@ -93,6 +93,23 @@ func (e *Engine) staticEffects() []ContinuousEffect {
 					}
 					out = append(out, ty)
 				}
+				// CR 613.1f / 613.4b (Humility): a base-setting static runs in
+				// layer 7b (SubSet), before the 7c modify a later Pump adds; and
+				// a RemoveAllAbilities static is a layer-6 ability removal.
+				if hasStat(st, "SetPower") || hasStat(st, "SetToughness") {
+					set := base
+					set.Layer, set.Sub = LPT, SubSet
+					set.SetPower = statInt(st, "SetPower")
+					set.SetToughness = statInt(st, "SetToughness")
+					set.HasSet = true
+					out = append(out, set)
+				}
+				if hasStat(st, "RemoveAllAbilities") {
+					ra := base
+					ra.Layer = LAbilities
+					ra.RemoveAbilities = true
+					out = append(out, ra)
+				}
 			}
 		}
 	}
@@ -239,7 +256,18 @@ func (e *Engine) nextTurnFor(p state.PlayerID) int32 {
 func (e *Engine) EndOfTurnCleanup() {
 	kept := e.continuous[:0]
 	for _, ce := range e.continuous {
+		// A Permanent one-shot survives cleanup (CR 611.2a).
+		if ce.Permanent {
+			kept = append(kept, ce)
+			continue
+		}
 		if ce.UntilEOT {
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(ce.Duration), "untilendofcombat") {
+			// CR 511.2: until-end-of-combat is an expired lifetime by the time
+			// this turn's cleanup runs, so it is reclaimed here rather than
+			// lingering in e.continuous forever.
 			continue
 		}
 		if ce.UntilTurn != 0 && ce.UntilTurn == e.G.Turn {
@@ -254,6 +282,13 @@ func (e *Engine) EndOfTurnCleanup() {
 	// expired UntilTurn effect. Without the bump, a stale active() cache
 	// would keep reporting a dead pump's P/T.
 	e.continuousVersion++
+}
+
+// isCombatStep reports whether s is one of the combat phase's five steps
+// (begin-combat through end-combat). UntilEndOfCombat effects (CR 511.2) are
+// active for exactly this span and expire the moment play leaves end combat.
+func isCombatStep(s state.Step) bool {
+	return s >= state.StepBeginCombat && s <= state.StepEndCombat
 }
 
 // active returns the effects that still exist, sorted into CR 613 order:
@@ -290,7 +325,24 @@ func (e *Engine) active() []ContinuousEffect {
 		// range — but it keeps the buffer discipline airtight.
 		buf = nil
 	}
+	// Duration-honouring expiry. A Permanent one-shot lasts until the end of
+	// the game (CR 611.2a) regardless of where its source went; an
+	// UntilEndOfCombat one-shot lasts only through the combat phase (CR
+	// 511.2), so it is kept while the step is a combat step and dropped the
+	// moment play moves past end combat. These take precedence over the
+	// UntilEOT/source-leaves rules below, which model the other two
+	// lifetimes.
 	for _, ce := range e.continuous {
+		if ce.Permanent {
+			buf = append(buf, ce)
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(ce.Duration), "untilendofcombat") {
+			if isCombatStep(e.G.Step) {
+				buf = append(buf, ce)
+			}
+			continue
+		}
 		if ce.UntilEOT {
 			buf = append(buf, ce)
 			continue
@@ -437,6 +489,12 @@ func (e *Engine) Derived(id state.ObjID) Derived {
 		}
 		switch ce.Layer {
 		case LAbilities:
+			// CR 613.1f / 613.4b: an ability-removing effect (Humility)
+			// clears the object's printed and earlier-granted keywords before
+			// later layer-6 grants re-add anything.
+			if ce.RemoveAbilities {
+				kw = kw[:0]
+			}
 			kw = append(kw, ce.AddKeywords...)
 		case LType:
 			ty = append(ty, ce.AddTypes...)
