@@ -246,6 +246,15 @@ func TestRedactEventsForOmniscientReducesExactlyLibraryOrderEvents(t *testing.T)
 			shapeOnly: true,
 		},
 		{
+			// Ruling J1: a LibraryOrder event carries the exact order a
+			// library-arranging effect chose, which would spoil every future
+			// draw for an omniscient spectator, so it reduces to its shape
+			// just like a Shuffle.
+			name:      "secret library order is reduced to shape",
+			ev:        events.Event{Seq: 20, Kind: events.LibraryOrder, Player: 1, IDs: []state.ObjID{4, 5, 6}, Secret: true},
+			shapeOnly: true,
+		},
+		{
 			name:      "secret draw out of the library passes with Obj intact",
 			ev:        events.Event{Seq: 3, Kind: events.Draw, Player: 1, From: state.ZLibrary, To: state.ZHand, Obj: 42, Secret: true},
 			shapeOnly: false,

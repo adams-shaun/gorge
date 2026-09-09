@@ -129,6 +129,16 @@ type Ctx struct {
 	// discarder, which is why a plain ObjID is not enough state to rebuild:
 	// the two player roles are re-derived from Ctx on re-entry.
 	Discard []state.ObjID
+	// Arrange is the answered KArrange decision on a re-entered
+	// mid-resolution resolution (Ruling J0): true once rules' handleArrange
+	// has applied the answered arrangement and emitted the LibraryOrder
+	// event, so effRearrangeTopOfLibrary's re-entry lets the resolution
+	// continue (the chained SubAbility$ runs) instead of re-asking. False on
+	// the first pass, where the effect poses the ask. The arrangement itself
+	// lives on the LibraryOrder event, not on Ctx -- the answer shape is
+	// applied by the rules handler, unlike Modes/UnlessPay/Discard where the
+	// effect re-reads the answer -- so the field is only a done-marker.
+	Arrange bool
 }
 
 type Effect func(h Host, c *Ctx, sa *cards.SA)

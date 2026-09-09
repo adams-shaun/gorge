@@ -203,6 +203,21 @@ const (
 	// mints the object and drops the registration. Appended after
 	// DelayedRegister, following every prior Kind's append-only precedent.
 	DelayedPush
+	// LibraryOrder records a player having set a complete new order on
+	// their library -- the state change behind a library-arranging effect
+	// (RearrangeTopOfLibrary, Ponder; later Scry/Surveil/Dig) and the
+	// discard half of a bottoming ask. Player names whose library, IDs the
+	// COMPLETE new order (the top cards reordered, then the untouched
+	// remainder beneath them). Secret is always true: the exact order of a
+	// hidden zone must not leak to another seat, so view redaction drops the
+	// payload for anyone but Player.
+	//
+	// Appended here, after DelayedPush, following the named precedents of
+	// TargetsChosen (Ruling T14-b), FlipFace (T18-a) and ClockTick (T19-a)
+	// rather than inserted anywhere earlier, so every earlier Kind's numeric
+	// value, and therefore the hash chain and every golden replay already
+	// locked in, is unaffected.
+	LibraryOrder
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -213,7 +228,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(DelayedPush) + 1
+	NumKinds = int(LibraryOrder) + 1
 )
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
@@ -227,7 +242,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
-	"delayed_register", "delayed_push"}
+	"delayed_register", "delayed_push", "library_order"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

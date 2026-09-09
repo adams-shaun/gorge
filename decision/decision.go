@@ -91,6 +91,36 @@ const (
 	// relocates (the modified event is parked), so answering never sees the
 	// object already moved.
 	KReplacement Kind = "replacement"
+	// KArrange is the ordered-subset ask a library-arranging effect poses
+	// (Ruling J0): the engine offers N cards, and the answer is an ordered
+	// subset of them -- the one general decision shape Scry, Surveil and
+	// Dig later share.
+	//
+	// The contract, stated once because a client that gets it backwards gets
+	// it silently wrong: the engine offers N cards. The answer is an ordered
+	// subset of them. The chosen indices, IN THE ORDER THE ANSWER GIVES THEM,
+	// become pile A in that order. The options NOT chosen, in the order they
+	// were OFFERED, become pile B in that order. Min/Max bound pile A's size.
+	// Every option in one KArrange decision shares an Option.Kind naming
+	// pile B's destination -- "bottom", "graveyard", "exile", "hand" -- so
+	// a rules-ignorant client can say "the ones you pick stay on top in the
+	// order you pick them; the rest go to <destination>" without learning a
+	// rule.
+	//
+	// DIRECTION, which is silent if a client gets it backwards (and which
+	// KTriggerOrder's own comment phrases the same way): pile A index 0 is
+	// the card that ends up CLOSEST TO THE TOP -- the next card drawn.
+	//
+	// The wire shape is exactly the one Validate already enforces for
+	// KTriggerOrder: an ordered list of distinct in-range indices (a
+	// permutation when Min == Max == N). Min/Max bound pile A's size; a
+	// full order (RearrangeTopOfLibrary, Ponder) is Min == Max == N with
+	// pile B empty, while a Scry-2 gives Min == Max == 1 over two options
+	// with the unchosen one heading to pile B ("bottom"). No new wire
+	// format is needed -- only the kind is new. The one option per offered
+	// card carries that card in Obj, so pile A/B are rebuilt from the
+	// answer and the option list without re-reading any zone.
+	KArrange Kind = "arrange"
 )
 
 // Option is one legal choice. Obj and Player are echoed only so a client can
