@@ -32,6 +32,20 @@ func Apply(g *state.Game, e Event) {
 			g.SetZone(state.ZLibrary, e.Player, append([]state.ObjID(nil), e.IDs...))
 		}
 
+	case LibraryOrder:
+		// A library-arranging effect (Ponder, later Scry/Surveil) set a
+		// complete new order on a player's library. Mechanically identical to
+		// Shuffle's SetZone (see the same defensive copy below -- never alias
+		// the event's slice into game state), but a separate Kind on purpose
+		// (Ruling J1): Shuffle means "randomised, the old order is gone" to
+		// a decoder, while LibraryOrder means "the player chose a new order"
+		// -- a scry is not a shuffle, and a log reader must be able to tell
+		// them apart. Same totality stance as every case here: an invalid
+		// Player is a no-op, never a panic.
+		if validPlayer(g, e.Player) {
+			g.SetZone(state.ZLibrary, e.Player, append([]state.ObjID(nil), e.IDs...))
+		}
+
 	case MoveZone, Draw, PutOnStack:
 		Move(g, e.Obj, e.From, e.To)
 
