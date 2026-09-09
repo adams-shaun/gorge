@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CardView, PlayerView, SeatInfo, View } from '../protocol';
-import { focusSeat, lossCauses, seatRows, seatStateOf, stateLabel } from './seattable';
+import { focusSeat, lossCauses, seatCorner, seatRows, seatStateOf, stateLabel } from './seattable';
 
 const card = (id: number, name: string): CardView => ({
   id, name, types: 'Legendary Creature', tapped: false, power: 0, toughness: 0, damage: 0,
@@ -171,5 +171,34 @@ describe('focusSeat', () => {
 
   it('a view with no players has no seat to focus', () => {
     expect(focusSeat(null, view({ players: [] }))).toBeNull();
+  });
+});
+
+describe('seatCorner — the seat → position mapping (Task ui17)', () => {
+  it('a 1v1 viewed by seat 0 puts the viewer at the bottom and the opponent on top', () => {
+    expect(seatCorner(0, 2, 0)).toBe('bottom');
+    expect(seatCorner(1, 2, 0)).toBe('top');
+  });
+
+  it('a 1v1 viewed by seat 1 puts seat 1 at the bottom and seat 0 on top — relative, not absolute', () => {
+    expect(seatCorner(1, 2, 1)).toBe('bottom');
+    expect(seatCorner(0, 2, 1)).toBe('top');
+  });
+
+  it('a 1v1 spectator (NoSeat, or any viewer id not at the table) is deterministic: seat 0 at the bottom', () => {
+    // NoSeat is 255
+    expect(seatCorner(0, 2, 255)).toBe('bottom');
+    expect(seatCorner(1, 2, 255)).toBe('top');
+    // a viewer id that names no seat at this table behaves the same
+    expect(seatCorner(0, 2, 9)).toBe('bottom');
+    expect(seatCorner(1, 2, 9)).toBe('top');
+  });
+
+  it('3- and 4-player layouts are unchanged and do NOT depend on the viewer', () => {
+    // the pre-existing absolute, clockwise layout must not regress
+    expect([0, 1, 2, 3].map((s) => seatCorner(s, 4, 0))).toEqual(['bl', 'tl', 'tr', 'br']);
+    expect([0, 1, 2, 3].map((s) => seatCorner(s, 4, 255))).toEqual(['bl', 'tl', 'tr', 'br']);
+    expect([0, 1, 2].map((s) => seatCorner(s, 3, 0))).toEqual(['bl', 'tl', 'tr']);
+    expect([0, 1, 2].map((s) => seatCorner(s, 3, 2))).toEqual(['bl', 'tl', 'tr']);
   });
 });

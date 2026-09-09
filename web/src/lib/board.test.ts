@@ -20,9 +20,15 @@ describe('board', () => {
     expect(g.creatures.map((c) => c.id)).toEqual([2, 7, 9]);
     expect(g.others.map((c) => c.id)).toEqual([5]);
   });
-  it('places seats in quadrants', () => {
-    expect([0, 1, 2, 3].map((s) => quadrantFor(s, 4))).toEqual(['bl', 'tl', 'tr', 'br']);
-    expect([0, 1].map((s) => quadrantFor(s, 2))).toEqual(['l', 'r']);
+  it('places seats in 4-seat quadrants independent of the viewer (unchanged)', () => {
+    expect([0, 1, 2, 3].map((s) => quadrantFor(s, 4, 0))).toEqual(['bl', 'tl', 'tr', 'br']);
+    expect([0, 1, 2, 3].map((s) => quadrantFor(s, 4, 255))).toEqual(['bl', 'tl', 'tr', 'br']);
+  });
+  it('places 1v1 seats top-vs-bottom relative to the viewer', () => {
+    // seat 0 watching a 1v1 sees themselves at the bottom, the opponent on top
+    expect([0, 1].map((s) => quadrantFor(s, 2, 0))).toEqual(['bottom', 'top']);
+    // seat 1 watching the same table must ALSO see themselves at the bottom
+    expect([0, 1].map((s) => quadrantFor(s, 2, 1))).toEqual(['top', 'bottom']);
   });
   it('finds the last resolved object', () => {
     const ev = (seq: number, kind: string, obj?: number): EventBody => ({ event: { seq, kind, player: 0, obj }, line: '' });

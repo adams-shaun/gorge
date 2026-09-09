@@ -1,11 +1,12 @@
 <script lang="ts">
   import type { PlayerView, StackView } from '../protocol';
   import { attachedTo, groupBattlefield, stackIdentical } from '../lib/board';
+  import type { SeatCorner } from '../lib/seattable';
   import CardStack from './CardStack.svelte';
   import CommandArea from './CommandArea.svelte';
 
   /** Quadrant shows one player's battlefield, split into the three rows board.ts groups it into. It has no rules knowledge: grouping and ordering come entirely from groupBattlefield; stackIdentical then collapses interchangeable permanents within a row into one tile with a count (CardStack renders the group). Attachments still come from attachedTo for a group of one — a stacked group has none by the stacking rule. The seat's command zone (CommandArea) draws directly into the creatures row, at creature scale, alongside the CardStacks — not into a private area of its own (CZ2); it draws nothing at all for a seat with no commander roster. `stack` is passed through to it alone: a commander mid-cast is a spell on the stack, not in any zone list. */
-  let { player, colour, corner = 'bl', stack = [] }: { player: PlayerView; colour: string; corner?: 'tl' | 'tr' | 'bl' | 'br' | 'l' | 'r'; stack?: StackView[] } = $props();
+  let { player, colour, corner = 'bl', stack = [] }: { player: PlayerView; colour: string; corner?: SeatCorner; stack?: StackView[] } = $props();
 
   const battlefieldGroups = $derived(groupBattlefield(player.battlefield));
   const stacks = $derived({
@@ -17,16 +18,18 @@
   // The seat rule goes on the seat's OUTER edge — the table's rim — so four
   // rules frame the table instead of four lines cutting across the middle of
   // it. quadrantFor already decided which corner this seat sits in.
-  const OUTER: Record<string, string> = { tl: 'top', tr: 'top', bl: 'bottom', br: 'bottom', l: 'left', r: 'right' };
+  const OUTER: Record<string, string> = { tl: 'top', tr: 'top', bl: 'bottom', br: 'bottom', l: 'left', r: 'right', top: 'top', bottom: 'bottom' };
   // …and the same fact orients the board. Every seat's permanents are pushed
   // toward the middle of the table, lands at that seat's own rim and
   // creatures nearest the centre, the way four people actually sit round a
   // table. That is what puts the two creature rows of a combat next to each
   // other across the seam, and it leaves each seat's outer corner clear for
   // its identity bar instead of stranding a permanent underneath it.
-  // Two seats share the full height side by side and both identity bars sit
-  // along the TOP, so those two boards pack downward instead.
-  const FACING: Record<string, string> = { tl: 'facing-down', tr: 'facing-down', bl: 'facing-up', br: 'facing-up', l: 'facing-side', r: 'facing-side' };
+  // A 1v1 (top/bottom, the viewer at the bottom) faces the bottom seat up and
+  // the top seat down, exactly like the top/bottom corners of a 4-seat table.
+  // The legacy side-by-side `l`/`r` corners (no longer produced by the
+  // mapping) still map to facing-side, so the rendering maps stay total.
+  const FACING: Record<string, string> = { tl: 'facing-down', tr: 'facing-down', bl: 'facing-up', br: 'facing-up', l: 'facing-side', r: 'facing-side', top: 'facing-down', bottom: 'facing-up' };
 </script>
 
 <div class="quadrant rule-{OUTER[corner]} {FACING[corner]}" class:lost={player.lost} style:--seat={colour} data-seat={player.seat} data-lost={player.lost}>

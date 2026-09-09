@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { PlayerView, SeatInfo } from '../protocol';
+  import type { SeatCorner } from '../lib/seattable';
   import ManaPool from './ManaPool.svelte';
 
   /**
@@ -35,7 +36,7 @@
    */
   let { player, seat, colour, active, priority, corner }: {
     player: PlayerView; seat?: SeatInfo; colour: string; active: boolean; priority: boolean;
-    corner: 'tl' | 'tr' | 'bl' | 'br' | 'l' | 'r';
+    corner: SeatCorner;
     players?: PlayerView[];
   } = $props();
 
@@ -53,10 +54,21 @@
   const DISPLAY_MAX = 10;
   const truncated = $derived(who.length > DISPLAY_MAX ? `${who.slice(0, DISPLAY_MAX)}…` : who);
 
+  // A 1v1 seat's identity bar anchors to a corner of its own half, the
+  // convention competitive clients use (Arena/MTGO: the opponent's box at the
+  // top, yours at the bottom) rather than the stack-centred middle of the
+  // half. Centring the bottom box would put it exactly where the seated
+  // player's own hand fan sits (a wide, centred row along the bottom edge)
+  // and the hand would cover your own name and life total — the one fact you
+  // must always be able to read. A CORNER box keeps identity at the edge the
+  // hand does not reach, and it is stacked ABOVE the hand (z-index 7) anyway
+  // so it is never occluded even when a huge hand extends to the corner.
   const CORNER: Record<string, string> = {
     tl: 'top:var(--sp-2);left:var(--sp-2)', tr: 'top:var(--sp-2);right:var(--sp-2)',
     bl: 'bottom:var(--sp-2);left:var(--sp-2)', br: 'bottom:var(--sp-2);right:var(--sp-2)',
     l: 'top:var(--sp-2);left:var(--sp-2)', r: 'top:var(--sp-2);right:var(--sp-2)',
+    top: 'top:var(--sp-2);right:var(--sp-2)',
+    bottom: 'bottom:var(--sp-2);left:var(--sp-2)',
   };
 </script>
 
@@ -105,7 +117,10 @@
     padding: var(--sp-2) var(--sp-3);
     min-width: 9rem;
     text-align: center;
-    z-index: 5;
+    /* Above the seated player's own hand fan (z-index 6), so a hand that
+       reaches this corner can never cover the seat's name or life total;
+       still below the seat panel (8) and the hover CardDetail (9). */
+    z-index: 7;
     backdrop-filter: blur(6px);
   }
   /* The active player is stated as a full perimeter in the seat's OWN colour
