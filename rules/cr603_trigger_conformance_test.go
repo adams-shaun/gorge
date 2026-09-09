@@ -50,7 +50,6 @@ func crTriggerPassRound(t *testing.T, e *Engine, name string) {
 }
 
 func TestCR603LegalActivationTriggersRings(t *testing.T) {
-	requireCR601Audit(t, "CR 603.2/602.2b: legal activation never triggers AbilityCast")
 	reg := testutil.CorpusRegistry(t)
 	e := crAbortEngine(t, reg, "ur-delver", "Azure Mage", "Rings of Brighthearth")
 	mage := crAbortMove(t, e, 0, "Azure Mage", state.ZBattlefield)
@@ -115,7 +114,6 @@ func TestCR603TriggerModesChosenAtPlacement(t *testing.T) {
 }
 
 func TestCR603InterveningIfCheckedAtTriggerTime(t *testing.T) {
-	requireCR601Audit(t, "CR 603.4: Felidar Sovereign triggers below forty life")
 	reg := testutil.CorpusRegistry(t)
 	e := crAbortEngine(t, reg, "ur-delver", "Felidar Sovereign")
 	id := crAbortMove(t, e, 0, "Felidar Sovereign", state.ZBattlefield)
@@ -182,7 +180,6 @@ func TestCR603InterveningIfRecheckedAtResolution(t *testing.T) {
 }
 
 func TestCR603StateTriggerFiresWhenConditionBecomesTrue(t *testing.T) {
-	requireCR601Audit(t, "CR 603.8: state triggers never fire")
 	reg := testutil.CorpusRegistry(t)
 	e := crAbortEngine(t, reg, "ur-delver", "Emperor Crocodile")
 	if len(e.G.Zone(state.ZBattlefield, 0)) != 0 {
