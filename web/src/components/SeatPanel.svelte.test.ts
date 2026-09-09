@@ -73,6 +73,26 @@ describe('SeatPanel — the test contract', () => {
     }
   });
 
+  // ui15: the live table route hands the panel a view whose players carry
+  // names but a `seats` array that is EMPTY (the one-shot seed in
+  // Table.svelte races the async tables.lookup). The wait-the-priority line
+  // must fall back to the wire's player name, not the 0-based `Seat N`
+  // placeholder.
+  it('names the priority player from the view when seats is empty (ui15 discrimination)', () => {
+    // seat 2 is deliberately absent from the module-scope `seats` fixtures
+    // (only 0/1 exist), so it is built by hand rather than through the helper
+    // that reads seats[seat].name.
+    const third: PlayerView = { ...player(1, []), seat: 2, name: 'Player 3' };
+    const v = {
+      ...view(null),
+      priority: 2,
+      players: [player(0, []), player(1, []), third],
+    };
+    const { html } = render(SeatPanel, { props: { view: v, seats: [], ctx, table: 't1', match: 1 } });
+    expect(html).toContain('waiting for Player 3');
+    expect(html).not.toContain('Seat 2');
+  });
+
   it('with nothing to answer the panel waits, and names who on', () => {
     const { html } = render(SeatPanel, { props: props(view(null)) });
     expect(html).toContain('data-waiting');

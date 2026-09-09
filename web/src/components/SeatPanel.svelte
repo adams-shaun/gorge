@@ -107,7 +107,15 @@
   const decision = $derived(logic.pending && logic.pending.seq !== logic.postedSeq ? logic.pending : null);
   const primary = $derived(logic.primary());
   const tone = $derived(toneOf(decision));
-  const waitingName = $derived(seats[view.priority]?.name ?? `Seat ${view.priority}`);
+  // The panel names the seat it is waiting on. `seats` is the first word
+  // (the table's registered name), but on the live table route it can be
+  // EMPTY while the view still carries each player's own name (the one-shot
+  // seed in Table.svelte races the async tables.lookup — see the ui15
+  // report); the fallback must be that name, not the 0-based `Seat N`
+  // placeholder, exactly as IdentityBar does.
+  const waitingName = $derived(
+    seats[view.priority]?.name ?? view.players.find((p) => p.seat === view.priority)?.name ?? `Seat ${view.priority}`,
+  );
   const stepLabel = $derived(view.step.charAt(0).toUpperCase() + view.step.slice(1));
 
   // This seat's own player row, found by seat number. Seat index and array
@@ -139,7 +147,7 @@
 
 {#if view.over}
   <div class="seat-panel over" data-tone="idle" role="status">
-    <p class="prompt result">{view.draw ? 'Draw' : `${seats[view.winner ?? -1]?.name ?? `Seat ${view.winner}`} wins`}</p>
+    <p class="prompt result">{view.draw ? 'Draw' : `${seats[view.winner ?? -1]?.name ?? view.players.find((p) => p.seat === view.winner)?.name ?? `Seat ${view.winner}`} wins`}</p>
     <p class="sub">Match over</p>
   </div>
 {:else}
