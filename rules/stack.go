@@ -222,74 +222,42 @@ func describeTargetEffect(sa *cards.SA) *decision.TargetEffect {
 	return out
 }
 
-// askTarget offers every legal target for a spell or ability. TargetMin$
-// and TargetMax$ set how many the chooser must pick; TgtZone$ (battlefield by
-// default, Graveyard/Hand/Exile for a targeting-off-the-board effect like
-// Snapcaster's flashback grant, comma-separated for a mixed list) says where
-// the candidates live. Options are offered in AliveFrom(0) x zone-slice order
-// (never a map, so no map iteration order reaches a wire decision) -- players
-// first, when the spec can name one -- and the choice is total: a decision is
-// never handed out with fewer options than Min (TargetMin$ 0 resolves
-// untargeted; otherwise the existing CR 608.2b counter/fizzle runs).
-func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
+type targetCandidate struct {
+	kind   string
+	obj    state.ObjID
+	player state.PlayerID
+}
+
+// legalTargetCandidates is the pure target census shared by cast-option
+// enumeration and the post-announcement target ask. It reads state in the
+// same deterministic order as the old askTarget loops and emits no events.
+func (e *Engine) legalTargetCandidates(p state.PlayerID, source state.ObjID, sa *cards.SA) []targetCandidate {
 	spec := sa.Params["ValidTgts"]
-	min, max := targetBounds(sa)
-	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
-		Prompt: "Choose a target for " + e.targetName(source),
-		Source: source, TargetEffect: describeTargetEffect(sa)}
-	add := func(kind, label string, obj state.ObjID, pl state.PlayerID) {
-		d.Options = append(d.Options, decision.Option{
-			Index: len(d.Options), Kind: kind, Label: label, Obj: obj, Player: pl})
-	}
 	zones := targetZones(sa)
-	// Players are offered only alongside the default battlefield search and
-	// only when the spec can name one. A spec that routes elsewhere
-	// (TgtZone$ Graveyard/Hand/Exile) targets objects only -- never a player.
-	offerPlayers := len(zones) == 1 && zones[0] == state.ZBattlefield && targetsPlayers(spec)
-	if offerPlayers {
+	var out []targetCandidate
+	if len(zones) == 1 && zones[0] == state.ZBattlefield && targetsPlayers(spec) {
 		for _, q := range e.G.AliveFrom(0) {
-			add("player", e.G.Players[q].Name, 0, q)
+			out = append(out, targetCandidate{kind: "player", player: q})
 		}
 	}
-	// Task 15 fix round 1 (Critical C2 / Important 2): resolve the source ONCE
-	// for the whole ask -- for an ability this is the Source permanent, not the
-	// Face-less stack object (protectionSource). And guard the filter on the
-	// candidate's zone (CR 604.3: a permanent's static ability -- protection is
-	// one -- functions only on the battlefield), exactly as legalTargets does,
-	// so protection is not applied to a target sitting in a Graveyard/Hand/
-	// Exile the TgtZone$ spec is asking about. With both in place the two
-	// call sites share one predicate and one rule-set.
 	protSrc := e.protectionSource(source)
 	for _, z := range zones {
-		// The stack is a single, shared sequence, not a per-seat zone, so its
-		// objects are offered ONCE each -- labelled with the object's own
-		// controller -- rather than once per alive seat (which would offer the
-		// same spell N times for an N-seat game and drift the option list).
 		if z == state.ZStack {
+			// The stack is shared, so enumerate it once rather than once per
+			// player. Face-less ability objects remain outside this task's
+			// targetable population, matching askTarget's existing behaviour.
 			for _, oid := range e.G.Zone(state.ZStack, 0) {
 				o := e.G.Obj(oid)
-				if o == nil || o.Face() == nil {
-					continue
-				}
-				// CR 115.5: a spell or ability on the stack is an illegal
-				// target for itself. askTarget is called after PutOnStack
-				// (cast.go) or AbilityPush (cast.go), so source is already
-				// that object atop the stack -- its own id must never be
-				// offered, or the counterspell would counter itself. Only
-				// the source OBJECT is excluded, never a *different* copy of
-				// the same card, and never a permanent targeting itself.
-				if oid == source {
+				if o == nil || o.Face() == nil || oid == source {
 					continue
 				}
 				if effects.MatchesSpecFrom(e.G, spec, oid, p, source) &&
 					!(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc)) {
-					add("permanent", o.Face().Name+" ("+e.G.Players[o.Controller].Name+")", oid, o.Controller)
+					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: o.Controller})
 				}
 			}
 			continue
 		}
-		// Hand is the chooser's own hand only (CR 701.15a); the other
-		// non-battlefield zones are public, so every seat's slice is offered.
 		players := e.G.AliveFrom(0)
 		if z == state.ZHand {
 			players = []state.PlayerID{p}
@@ -297,33 +265,33 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		for _, q := range players {
 			for _, oid := range e.G.Zone(z, q) {
 				o := e.G.Obj(oid)
-				// CR 702.16c: a permanent protected from the targeting
-				// source's qualities cannot be the target of the spell or
-				// ability, so it is never offered even when the ValidTgts$
-				// spec would name it -- but only while that protection actually
-				// FUNCTIONS, which is on the battlefield (CR 604.3), so a
-				// Graveyard target is not withheld by a printed protection the
-				// dead card can no longer exercise.
-				if o != nil && o.Face() != nil &&
-					// CR 115.5: the source object (the spell/ability this
-					// ask serves) is an illegal target for itself. It is a
-					// single object with a single zone and is always on the
-					// stack here, so no other zone can hold it; excluding it
-					// wherever it appears also covers a source that somehow
-					// stopped being on the stack before resolution.
-					oid != source &&
+				if o != nil && o.Face() != nil && oid != source &&
 					effects.MatchesSpecFrom(e.G, spec, oid, p, source) &&
 					!(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc)) &&
-					// Task ce1: a CantTarget restriction (Vines of Vastwood) makes
-					// a creature an illegal target for the spoke player, exercised
-					// while it is on the battlefield (CR 604.3, same gate as
-					// protection just above).
 					!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p)) {
-
-					add("permanent", o.Face().Name+" ("+e.G.Players[q].Name+")", oid, q)
+					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: q})
 				}
 			}
 		}
+	}
+	return out
+}
+
+// askTarget offers every legal target for a spell or ability. It deliberately
+// retains the post-push insufficient-target backstop: modal and dynamic target
+// counts are not rejected by the earlier cast-offer census.
+func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
+	min, max := targetBounds(sa)
+	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
+		Prompt: "Choose a target for " + e.targetName(source),
+		Source: source, TargetEffect: describeTargetEffect(sa)}
+	for _, candidate := range e.legalTargetCandidates(p, source, sa) {
+		label := e.G.Players[candidate.player].Name
+		if candidate.obj != 0 {
+			label = e.G.Obj(candidate.obj).Face().Name + " (" + label + ")"
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
+			Label: label, Obj: candidate.obj, Player: candidate.player})
 	}
 	if min == 0 {
 		// Requirement N2 / totality: a target-hungry subject whose minimum

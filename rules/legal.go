@@ -58,6 +58,25 @@ func (e *Engine) activationLimitReached(id state.ObjID, ability int, raw string)
 	return used >= limit
 }
 
+// castTargetsAvailable reports whether the narrow target requirement that can
+// be proved before casting is satisfiable. A missing TargetMin$/TargetMax$
+// pair is Forge's unconditional one-target shape. Dynamic bounds and modal or
+// announced choices stay offerable until the post-push askTarget backstop can
+// evaluate them with those choices made.
+func (e *Engine) castTargetsAvailable(p state.PlayerID, id state.ObjID, sa *cards.SA) bool {
+	if sa == nil || strings.TrimSpace(sa.Params["ValidTgts"]) == "" || sa.API == "Charm" ||
+		sa.Params["Choices"] != "" || sa.Params["Announce"] != "" {
+		return true
+	}
+	if _, ok := sa.Params["TargetMin"]; ok {
+		return true
+	}
+	if _, ok := sa.Params["TargetMax"]; ok {
+		return true
+	}
+	return len(e.legalTargetCandidates(p, id, sa)) > 0
+}
+
 // legalActions enumerates everything p may legally do with priority. The
 // result is the complete rules surface a client ever sees.
 func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
@@ -87,6 +106,9 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		}
 		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
 		if !instantSpeed && !sorcery {
+			continue
+		}
+		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
 		base := e.adjustedCost(p, id)
@@ -151,6 +173,9 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !instantSpeed && !sorcery {
 			continue
 		}
+		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
 		cost := e.commanderTaxFor(p, id, e.adjustedCost(p, id))
 		if e.castable(p, id, cost) {
 			add("cast", "Cast "+f.Name, id)
@@ -174,6 +199,9 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		}
 		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
 		if !instantSpeed && !sorcery {
+			continue
+		}
+		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
 		if fc := e.flashbackCost(id); e.castable(p, id, fc) {
