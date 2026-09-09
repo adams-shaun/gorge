@@ -59,6 +59,22 @@ SVar:TrigGain:DB$ GainLife | LifeAmount$ 4 | Defined$ You
 Oracle:x
 `
 
+// chooserSrc is a MODAL upkeep trigger (CR 603.3c): its effect is a Charm
+// whose Choices$ sub-abilities the controller announces when the ability is
+// put on the stack, not at resolution. It stands in for the optional trigger
+// in TestTriggerArrivingDuringADecisionCannotCorruptTheQueue — under CR 603.5
+// an OptionalDecider$ trigger no longer interrupts the drain at placement, but
+// a modal one still does via the mode ask.
+const chooserSrc = `Name:Chooser
+ManaCost:W
+Types:Enchantment
+T:Mode$ Phase | Phase$ Upkeep | Execute$ TrigChoose | TriggerDescription$ choose one
+SVar:TrigChoose:DB$ Charm | Choices$ DoGain,DoLose
+SVar:DoGain:DB$ GainLife | LifeAmount$ 4 | Defined$ You
+SVar:DoLose:DB$ LoseLife | LifeAmount$ 4 | Defined$ You
+Oracle:x
+`
+
 // submit answers the pending decision and fails the test if the engine
 // rejects it.
 func submit(t *testing.T, e *Engine, choices ...int) {
@@ -184,15 +200,22 @@ func TestTriggerOrderChoiceDecidesResolutionOrder(t *testing.T) {
 }
 
 // TestOptionalTriggerNeedsAnExplicitYes is definition-of-done item 3 and
-// requirement R2.
+// requirement R2. CR 603.5 moved the choice to resolution: the ability goes
+// on the stack regardless, and the decider answers yes/no as it resolves.
 func TestOptionalTriggerNeedsAnExplicitYes(t *testing.T) {
 	e, ids := upkeepEngine(t, mayGainSrc)
-	if !e.putTriggersOnStack() {
-		t.Fatal("an optional trigger was resolved without asking anybody")
+	// No yes/no at placement any more: putTriggersOnStack pushes the optional
+	// trigger unconditionally (CR 603.5), so it returns with nothing pending.
+	if e.putTriggersOnStack() {
+		t.Fatalf("an optional trigger asked at placement: %+v", e.Pending())
 	}
+	if len(e.G.Stack) != 1 || e.G.Obj(e.G.Stack[0]).Source != ids[0] {
+		t.Fatalf("stack = %v, want the optional trigger from %d on the stack", e.G.Stack, ids[0])
+	}
+	e.resolveTop() // the ability resolves; CR 603.5 poses the yes/no here
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KTriggerOptional {
-		t.Fatalf("pending = %+v, want an optional-trigger decision", d)
+		t.Fatalf("pending = %+v, want an optional-trigger resolution decision", d)
 	}
 	if d.Player != 0 || d.Min != 1 || d.Max != 1 || len(d.Options) != 2 {
 		t.Fatalf("decision = player %d min %d max %d %d options, want 0/1/1/2",
@@ -202,14 +225,17 @@ func TestOptionalTriggerNeedsAnExplicitYes(t *testing.T) {
 		t.Fatalf("options = %q,%q, want yes,no in that order",
 			d.Options[0].Kind, d.Options[1].Kind)
 	}
-	if len(e.G.Stack) != 0 {
-		t.Fatalf("stack = %v, want nothing placed before the yes", e.G.Stack)
+	// The inverted pin: the trigger is ON the stack, sourced from ids[0],
+	// while the question is outstanding (old build left the stack empty until
+	// the yes).
+	if len(e.G.Stack) != 1 || e.G.Obj(e.G.Stack[0]).Source != ids[0] {
+		t.Fatalf("stack = %v, want the trigger on the stack sourced from %d while it is asked",
+			e.G.Stack, ids[0])
 	}
 	submit(t, e, 0) // yes
-	if len(e.G.Stack) != 1 || e.G.Obj(e.G.Stack[0]).Source != ids[0] {
-		t.Fatalf("stack = %v, want the accepted trigger", e.G.Stack)
+	if len(e.G.Stack) != 0 {
+		t.Fatalf("stack = %v, want the accepted trigger resolved off the stack", e.G.Stack)
 	}
-	e.resolveTop()
 	if got := e.G.Players[0].Life; got != 24 {
 		t.Fatalf("life = %d, want 24 — the accepted trigger did not actually resolve", got)
 	}
@@ -221,22 +247,53 @@ func TestOptionalTriggerNeedsAnExplicitYes(t *testing.T) {
 // real bugs: a "no" must emit nothing that changes state at all.
 func TestDecliningAnOptionalTriggerLeavesTheGameUntouched(t *testing.T) {
 	e, _ := upkeepEngine(t, mayGainSrc)
-	if !e.putTriggersOnStack() {
-		t.Fatal("expected an optional-trigger decision")
-	}
 	before := e.G.Clone()
+	// CR 603.5: the ability goes on the stack regardless, so putTriggersOnStack
+	// returns with the trigger placed and nothing pending.
+	if e.putTriggersOnStack() {
+		t.Fatalf("an optional trigger asked at placement: %+v", e.Pending())
+	}
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack = %v, want the optional trigger on the stack before the resolve", e.G.Stack)
+	}
+	e.resolveTop() // poses the CR 603.5 yes/no as the ability resolves
+	if d := e.Pending(); d == nil || d.Kind != decision.KTriggerOptional {
+		t.Fatalf("pending = %+v, want the resolution optional decision", e.Pending())
+	}
 	submit(t, e, 1) // no
-	if diff := diffGames(before, e.G); diff != "" {
+	// CR 603.5: the declined ability still RESOLVES, and leaves the stack
+	// having done nothing. The stack must be empty; if the decline left it on
+	// the stack the diff below would mask that (the strip removes it), so this
+	// explicit size pin is what keeps the came-and-gone premise honest.
+	if len(e.G.Stack) != 0 {
+		t.Fatalf("stack = %v, want the declined ability to have left the stack", e.G.Stack)
+	}
+	after := e.G.Clone()
+	// The declined ability was on the stack and departed to exile having done
+	// nothing. Everything else must be byte-identical to before the trigger
+	// fired (Ruling T20-d's whole-game diff, kept honest for CR 603.5): strip
+	// exactly the ability's own came-and-gone footprint — one transient Objs
+	// slot, one exile entry, one NextID increment — and diff the rest.
+	stripTransientAbilities(before, after)
+	if diff := diffGames(before, after); diff != "" {
 		t.Fatalf("declining an optional trigger changed the game:\n%s", diff)
 	}
 	if len(e.pendingTriggers) != 0 || e.orderedTriggers != 0 {
 		t.Fatalf("queue = %d entries / %d ordered, want the declined trigger discarded",
 			len(e.pendingTriggers), e.orderedTriggers)
 	}
+	// The inverted pin (Ruling T20-d, re-authorized for CR 603.5): a declined
+	// optional trigger DID go on the stack, so a TriggerPush is emitted even
+	// though the effect never runs. The old build asserted the opposite.
+	found := false
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.TriggerPush {
-			t.Fatal("a declined optional trigger still emitted a TriggerPush")
+			found = true
+			break
 		}
+	}
+	if !found {
+		t.Fatal("a declined optional trigger emitted no TriggerPush — CR 603.5 puts it on the stack regardless")
 	}
 }
 
@@ -256,12 +313,18 @@ func TestOptionalDeciderCanBeSomeoneOtherThanTheController(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: bear.ID,
 		From: state.ZHand, To: state.ZBattlefield})
 
-	if !e.putTriggersOnStack() {
-		t.Fatal("expected an optional-trigger decision")
+	// CR 603.5 the ability goes on the stack regardless; the decider (the
+	// TriggeredCardController, player 1) is asked as it resolves.
+	if e.putTriggersOnStack() {
+		t.Fatalf("an optional trigger asked at placement: %+v", e.Pending())
 	}
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack = %v, want the optional trigger on the stack", e.G.Stack)
+	}
+	e.resolveTop() // poses the resolution yes/no
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KTriggerOptional {
-		t.Fatalf("pending = %+v, want an optional-trigger decision", d)
+		t.Fatalf("pending = %+v, want an optional-trigger resolution decision", d)
 	}
 	if d.Player != 1 {
 		t.Fatalf("asked player %d, want player 1 (TriggeredCardController), not the trigger's controller", d.Player)
@@ -275,9 +338,10 @@ func TestOptionalDeciderCanBeSomeoneOtherThanTheController(t *testing.T) {
 // really does append to e.pendingTriggers between an ask and its answer.
 //
 // The board: three simultaneous upkeep triggers for player 0 (the middle one
-// in the chosen order optional, so the drain is interrupted with work still
-// settled behind it) and a creature already carrying lethal damage, whose
-// death fires a fourth trigger while that optional decision is pending.
+// in the chosen order MODAL, so the drain is interrupted at placement by its
+// CR 603.3c mode ask with work still settled behind it) and a creature already
+// carrying lethal damage, whose death fires a fourth trigger while that mode
+// decision is pending.
 //
 // What must hold afterwards: nothing lost, nothing pushed twice, the settled
 // order preserved across the interruption, the late arrival placed AFTER the
@@ -285,7 +349,7 @@ func TestOptionalDeciderCanBeSomeoneOtherThanTheController(t *testing.T) {
 func TestTriggerArrivingDuringADecisionCannotCorruptTheQueue(t *testing.T) {
 	e := layerEngine(t)
 	a := onBoard(t, e, 0, gainerSrc)
-	b := onBoard(t, e, 0, mayGainSrc)
+	b := onBoard(t, e, 0, chooserSrc)
 	c := onBoard(t, e, 0, drainerSrc)
 	mourner := onBoard(t, e, 0, mournerSrc)
 	doomed := onBoard(t, e, 0, "Name:Doomed\nManaCost:G\nTypes:Creature Bear\nPT:1/1\nOracle:x\n")
@@ -303,36 +367,41 @@ func TestTriggerArrivingDuringADecisionCannotCorruptTheQueue(t *testing.T) {
 	if d == nil || d.Kind != decision.KTriggerOrder || len(d.Options) != 3 {
 		t.Fatalf("pending = %+v, want a three-way ordering decision", d)
 	}
-	// Discovery order is Gainer, Almsgiver, Drainer. Choose Drainer,
-	// Almsgiver, Gainer: the optional one lands in the middle, so exactly one
-	// trigger is pushed before the drain stops and exactly one stays settled
-	// behind it.
+	// Discovery order is Gainer, Chooser, Drainer. Choose Drainer, Chooser,
+	// Gainer: the modal one lands in the middle, so after it is pushed (with
+	// its mode ask outstanding) exactly one trigger stays settled behind it.
 	submit(t, e, 2, 1, 0)
 
-	// Submit ran handle (which pushed Drainer and asked about Almsgiver) and
-	// then checkStateBased, which is what killed the creature.
-	if d := e.Pending(); d == nil || d.Kind != decision.KTriggerOptional {
-		t.Fatalf("pending = %+v, want the optional decision for the middle trigger", d)
+	// Submit ran handle (which pushed Drainer and Chooser and asked Chooser's
+	// mode) and then checkStateBased, which is what killed the creature.
+	if d := e.Pending(); d == nil || d.Kind != decision.KModes || d.ResumeKind != "modes" {
+		t.Fatalf("pending = %+v, want the mode decision for the middle trigger", d)
 	}
 	if o := e.G.Obj(doomed); o.Zone != state.ZGraveyard {
 		t.Fatalf("doomed creature is in %s, want the graveyard — no state-based action ran", o.Zone)
 	}
-	if len(e.G.Stack) != 1 || e.G.Obj(e.G.Stack[0]).Source != c {
-		t.Fatalf("stack = %v, want only Drainer (%d) placed so far", e.G.Stack, c)
+	// CR 603.3c: a modal trigger is pushed (TriggerPush) before its mode ask,
+	// so both Drainer and Chooser are on the stack; the drain is paused on the
+	// mode question with Gainer still settled behind it.
+	if len(e.G.Stack) != 2 || e.G.Obj(e.G.Stack[0]).Source != c || e.G.Obj(e.G.Stack[1]).Source != b {
+		t.Fatalf("stack = %v, want Drainer (%d) then Chooser (%d) placed so far", e.G.Stack, c, b)
 	}
-	// The hazard itself: the queue grew underneath a half-finished drain.
-	if got := len(e.pendingTriggers); got != 3 {
-		t.Fatalf("queue = %d, want 3 (Almsgiver being asked, Gainer settled, the death trigger newly arrived)", got)
+	// The hazard itself: the queue grew underneath a half-finished drain. The
+	// queue now holds the still-settled Gainer plus the newly arrived death
+	// trigger (Chooser was already pushed out of it).
+	if got := len(e.pendingTriggers); got != 2 {
+		t.Fatalf("queue = %d, want 2 (Gainer settled, the death trigger newly arrived)", got)
 	}
-	if e.orderedTriggers != 2 {
-		t.Fatalf("orderedTriggers = %d, want 2 — the settled prefix was not preserved", e.orderedTriggers)
+	if e.orderedTriggers != 1 {
+		t.Fatalf("orderedTriggers = %d, want 1 — the settled prefix was not preserved", e.orderedTriggers)
 	}
-	if e.pendingTriggers[2].Source != mourner {
+	if e.pendingTriggers[1].Source != mourner {
 		t.Fatalf("late arrival landed at index %d's source %d, want it appended after the settled group",
-			2, e.pendingTriggers[2].Source)
+			1, e.pendingTriggers[1].Source)
 	}
 
-	submit(t, e, 0) // yes to the optional trigger
+	// Answer the mode (index 0 = DoGain, +4 life) to resume the drain.
+	submit(t, e, 0)
 
 	if d := e.Pending(); d == nil || d.Kind != decision.KPriority {
 		t.Fatalf("pending = %+v, want the interrupted priority round to have finished", d)
@@ -352,11 +421,12 @@ func TestTriggerArrivingDuringADecisionCannotCorruptTheQueue(t *testing.T) {
 		}
 	}
 	// And the effects, not just the depth (Ruling T20-d): resolving the whole
-	// stack must run all four.
+	// stack must run all four. Resolution is top-down: Mourner, Gainer,
+	// Chooser (DoGain, +4), Drainer.
+	// 20 -> +8 (Mourner) -> +5 (Gainer) -> +4 (Chooser) -> -37 (Drainer) = 0.
 	for len(e.G.Stack) > 0 {
 		e.resolveTop()
 	}
-	// 20 -> +8 (Mourner) -> +5 (Gainer) -> +4 (Almsgiver) -> -37 (Drainer) = 0.
 	if got := e.G.Players[0].Life; got != 0 {
 		t.Fatalf("life = %d, want 0 — the four abilities did not all resolve in stack order", got)
 	}
@@ -827,37 +897,51 @@ func TestADecisionAgainstADepartedPlayerIsReleased(t *testing.T) {
 // a reachable path puts a different entry at the front between an ask and its
 // answer -- and asserts the answer is honoured rather than re-asked.
 func TestAnsweredOptionalTriggerIsNeverAskedTwice(t *testing.T) {
-	e, ids := upkeepEngine(t, mayGainSrc)
-	if !e.putTriggersOnStack() {
-		t.Fatal("expected an optional-trigger decision")
+	// CR 603.5 moved the ordinary OptionalDecider$ trigger's yes/no to
+	// resolution, so the placement KTriggerOptional no longer exists for it.
+	// The one place a placement KTriggerOptional survives is a Miracle offer
+	// (Task 18) -- a keyword CAST offer, not a 603.5 optional triggered
+	// ability -- so this test re-points there: a declined Miracle offer must be
+	// answered once, never re-asked, never left queued, and the card stays in
+	// hand.
+	terminus := "Name:Terminus\nManaCost:4 W W\nTypes:Sorcery\nK:Miracle:W\n" +
+		"A:SP$ ChangeZoneAll | ChangeType$ Creature | Origin$ Battlefield | Destination$ Library | LibraryPosition$ -1\n" +
+		"Oracle:x\n"
+	bearSrc := "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	e, _, term := newFixtureDeck(t, 101, terminus, bearSrc)
+	moveToLibraryTop(t, e, term)
+	putCreature(t, e, 0, bearSrc)
+	addMana(t, e, 0, "W")
+	e.pendingTriggers = nil
+	e.emit(events.Event{Kind: events.Draw, Player: 0, Obj: term,
+		From: state.ZLibrary, To: state.ZHand, Secret: true})
+	if len(e.pendingTriggers) != 1 || !e.pendingTriggers[0].Miracle {
+		t.Fatalf("no miracle offer: %+v", e.pendingTriggers)
 	}
+	e.pending = nil
+	e.Advance()
 	d := e.Pending()
-	if d == nil || d.Kind != decision.KTriggerOptional {
-		t.Fatalf("pending = %+v, want an optional-trigger decision", d)
+	if d == nil || d.Kind != decision.KTriggerOptional || d.Player != 0 {
+		t.Fatalf("offer decision %+v", d)
 	}
-	// Put a foreign, mandatory entry at the front of the queue, which is the
-	// exact shape the defensive guard exists for.
-	other := onBoard(t, e, 0, gainerSrc)
-	foreign := pendingTrigger{Source: other, Controller: 0, Idx: 0,
-		SA:  e.G.Obj(other).Face().Triggers[0].Effect,
-		Ctx: effects.Ctx{Source: other, Controller: 0}}
-	e.pendingTriggers = append([]pendingTrigger{foreign}, e.pendingTriggers...)
-	e.orderedTriggers = 2
 
-	submit(t, e, 1) // no
+	submitChoices(t, e, 1) // no
 
-	if p := e.Pending(); p != nil && p.Kind == decision.KTriggerOptional && p.Source == ids[0] {
-		t.Fatalf("the same optional trigger (%d) was asked about again after being declined", ids[0])
+	if p := e.Pending(); p != nil && p.Kind == decision.KTriggerOptional && p.Source == term {
+		t.Fatalf("the declined Miracle offer (%d) was asked about again", term)
 	}
 	for _, pt := range e.pendingTriggers {
-		if pt.Source == ids[0] {
-			t.Fatalf("the declined trigger %d is still queued", ids[0])
+		if pt.Source == term {
+			t.Fatalf("the declined Miracle offer %d is still queued", term)
 		}
 	}
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.TriggerPush && ev.Obj == ids[0] {
-			t.Fatalf("the declined trigger %d reached the stack", ids[0])
+		if ev.Kind == events.TriggerPush && ev.Obj == term {
+			t.Fatalf("the declined Miracle offer %d reached the stack", term)
 		}
+	}
+	if e.G.Obj(term).Zone != state.ZHand {
+		t.Fatalf("the declined Miracle card is in %s, want the hand", e.G.Obj(term).Zone)
 	}
 }
 
@@ -1081,13 +1165,11 @@ Oracle:x
 
 // TestATriggerWhoseControllerLeftIsNotPushedByItsDecider is re-review finding
 // N2, and Ruling U6: an ability controlled by a player who has left the game
-// ceases to exist (CR 800.4a). dropDepartedTriggers enforces that during the
-// drain, but it cannot run while a decision is pending -- so an optional
-// trigger whose DECIDER is a different, living seat was still placed on the
-// stack when that decider answered yes, resurrecting an ability whose
-// controller was already gone.
-//
-// Before: TriggerPush = 1 with p0.lost=true.
+// ceases to exist (CR 800.4a). Under CR 603.5 the optional trigger is now
+// pushed while its controller is alive, so the harder case is the ON-STACK
+// one: the controller leaves after the ability is already on the stack, and
+// the ability ceases to exist then (ceaseDepartedObjects, CR 800.4a) rather
+// than being resolved for a departed controller.
 func TestATriggerWhoseControllerLeftIsNotPushedByItsDecider(t *testing.T) {
 	e := newSeats(t, 3)
 	e.pending = nil
@@ -1098,35 +1180,30 @@ func TestATriggerWhoseControllerLeftIsNotPushedByItsDecider(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: bear.ID,
 		From: state.ZHand, To: state.ZBattlefield})
 
-	if !e.putTriggersOnStack() {
-		t.Fatal("expected an optional-trigger decision")
+	// CR 603.5: the ability goes on the stack regardless, so putTriggersOnStack
+	// pushes it while the controller (player 0) is alive, asking nothing at
+	// placement.
+	if e.putTriggersOnStack() {
+		t.Fatalf("an optional trigger asked at placement: %+v", e.Pending())
 	}
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KTriggerOptional || d.Player != 1 {
-		t.Fatalf("pending = %+v, want the optional decision for the decider (player 1)", d)
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack = %v, want the ability on the stack while its controller lives", e.G.Stack)
 	}
+	abID := e.G.Stack[0]
 
-	// The trigger's CONTROLLER leaves the game. The decider does not, so the
-	// decision is not released and is still answerable.
+	// The trigger's CONTROLLER (player 0) leaves the game while the ability is
+	// on the stack. The ability ceases to exist (CR 800.4a), regardless of
+	// what its decider (player 1) would have answered.
 	e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: -20})
 	e.checkStateBased()
 	if !e.G.Players[0].Lost {
 		t.Fatal("the trigger's controller was not eliminated")
 	}
-	if p := e.Pending(); p == nil || p.Kind != decision.KTriggerOptional || p.Player != 1 {
-		t.Fatalf("pending = %+v, want the decider's question still outstanding", p)
-	}
-
-	submit(t, e, 0) // the living decider says yes
-
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.TriggerPush {
-			t.Fatalf("a trigger controlled by departed player %d was placed on the stack — CR 800.4a",
-				ev.Player)
-		}
-	}
 	if len(e.G.Stack) != 0 {
-		t.Fatalf("stack = %v, want the departed controller's ability to have ceased to exist", e.G.Stack)
+		t.Fatalf("stack = %v, want the departed controller's on-stack ability to have ceased", e.G.Stack)
+	}
+	if o := e.G.Obj(abID); o == nil || o.Zone != state.ZCeased {
+		t.Fatalf("the departed controller's on-stack ability is in %v, want ceased (CR 800.4a)", e.G.Obj(abID))
 	}
 }
 

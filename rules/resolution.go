@@ -325,6 +325,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// event, not on Ctx, so this is a done-marker rather than an
 			// answer the effect re-reads.
 			ctx.Arrange = true
+		case "optional":
+			// CR 603.5: the decider answered yes to applying this optional
+			// triggered ability's effect. The answer is a yes/no, not a mode
+			// choice, so nothing is written to Ctx.Modes -- it was already
+			// seeded from the stack object's ChosenModes by the o.Ability
+			// branch above, exactly as resolveTop's own first pass would
+			// have. The re-entry below just runs the ability's effect.
 		default: // "modes", and "" (a pure outer continuation with no answer)
 			ctx.Modes = modeChoiceNames(rp.sa, chosen)
 		}
