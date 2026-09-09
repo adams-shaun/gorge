@@ -133,6 +133,37 @@ func attachedBy(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjI
 	return s != nil && s.AttachedTo == o.ID && s.Zone == state.ZBattlefield
 }
 
+// attachedToArg splits the space-bearing two-token predicate "AttachedTo <X>"
+// into its argument and reports whether the argument is a single literal type
+// or object class the base grammar (matchesBase) can answer from the object in
+// hand. It returns false for any token that is not exactly this shape: a
+// different predicate name, no space, an empty argument, an argument carrying
+// a nested predicate ('.'/'+'/',' -- e.g. "AttachedTo Permanent.YouCtrl", a
+// referent needing resolution-time context such as "AttachedTo Targeted", or
+// a word that is neither an object class nor a corpus type word. Consuming
+// tokens that are not this shape keeps the matcher and UnknownPredicates
+// agreeing, because a token either becomes a wordAttachedTo classifier here or
+// it does not -- there is no middle where one side sees it and the other does
+// not.
+func attachedToArg(p string) (string, bool) {
+	name, arg, has := strings.Cut(p, " ")
+	if !has || name != "AttachedTo" {
+		return "", false
+	}
+	arg = strings.TrimSpace(arg)
+	if arg == "" || strings.ContainsAny(arg, ".+,") {
+		return "", false
+	}
+	switch arg {
+	case "Card", "Permanent", "Spell":
+		return arg, true
+	}
+	if predicateTypeWords[arg] {
+		return arg, true
+	}
+	return "", false
+}
+
 // wordKind classifies a predicate word that is neither in the `predicates`
 // map nor a numeric predicate. It is the single classifier shared by the
 // positive path in MatchesObjectCtx and by the generic non<X> negation in
@@ -158,6 +189,9 @@ const (
 	wordIsCommander
 	wordBlockingSource
 	wordBlockedBySource
+	// The two-token space form "AttachedTo <X>": <X> is a literal type or
+	// object class answerable from the object in hand (the base grammar).
+	wordAttachedTo
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -187,6 +221,16 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordBlockingSource, ""
 	case "blockedBySource":
 		return wordBlockedBySource, ""
+	}
+	// The two-token space form "AttachedTo <X>": the whole "AttachedTo
+	// Creature" token survives the spec splitter (a space is not a ',' '.'
+	// or '+' delimiter), so it arrives here intact. The argument must be a
+	// single literal type or object class the base grammar can answer from
+	// the object in hand; a referent that needs resolution-time context
+	// (AttachedTo Targeted) or a nested predicate (AttachedTo
+	// Permanent.YouCtrl) stays wordUnknown and fails closed.
+	if arg, ok := attachedToArg(p); ok {
+		return wordAttachedTo, arg
 	}
 	if predicateTypeWords[p] {
 		return wordType, p
@@ -250,6 +294,22 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, you 
 		// Forge's blockedBySource: the object is being blocked by the source
 		// -- the source is one of THIS object's blockers.
 		return containsID(o.BlockedBy, source)
+	case wordAttachedTo:
+		// Forge's AttachedTo <X>: this object (an Aura or Equipment) is
+		// attached to something, and the permanent it is attached to (its
+		// own AttachedTo id) satisfies the base <X>. An unattached object
+		// (AttachedTo == 0), or one whose attachment is gone, matches
+		// nothing. This is the two-token counterpart of attachedBy, which
+		// reads the SOURCE's AttachedTo to find what the source attaches
+		// to; here we read the candidate object's own AttachedTo.
+		if o.AttachedTo == 0 {
+			return false
+		}
+		a := g.Obj(o.AttachedTo)
+		if a == nil {
+			return false
+		}
+		return matchesBase(g, key, a)
 	}
 	return false
 }
