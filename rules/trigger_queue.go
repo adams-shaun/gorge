@@ -106,7 +106,15 @@ func (e *Engine) putTriggersOnStack() bool {
 			e.orderedTriggers = n
 		}
 		pt := e.pendingTriggers[0]
-		if who, optional, askable := e.optionalDecider(pt); optional {
+		// CR 603.5: an optional triggered ability goes on the stack
+		// REGARDLESS of whether its controller wants to apply the effect; the
+		// choice is made as it resolves (resolveTop's ability branch poses
+		// askOptionalAtResolution). So an OptionalDecider$ trigger is pushed
+		// unconditionally here, exactly like a mandatory one. Only a Miracle
+		// offer (Task 18) keeps asking at placement -- it is a keyword CAST
+		// offer, not a 603.5 optional triggered ability, and answer is what
+		// decides whether the card is cast for its miracle cost at all.
+		if who, optional, askable := e.optionalDecider(pt); optional && pt.Miracle {
 			if !askable {
 				// The decider left the game between this trigger matching and
 				// its turn to be placed. R2 forbids assuming the answer, so
@@ -508,21 +516,36 @@ func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optiona
 	if spec == "" {
 		return 0, false, false
 	}
-	who = pt.Controller
+	who, askable = e.deciderFromSpec(spec, pt.Controller, pt.Ctx.Remembered)
+	return who, true, askable
+}
+
+// deciderFromSpec resolves an OptionalDecider$ spec string to the seat that
+// answers the yes/no, plus whether that seat can still answer it. It is the
+// one place the spec grammar lives, shared by the placement path (which has
+// a pendingTrigger) and the CR 603.5 resolution path (rules/stack.go's
+// resolveTop, which has the stack object's own controller and Remembered
+// rather than a pendingTrigger -- the two carry the same controller and the
+// same Remembered objects, so the decider is re-derived identically).
+// controller is the ability's controller and remembered the objects the
+// trigger captured; the returned askable is false when the decider has left
+// the game.
+func (e *Engine) deciderFromSpec(spec string, controller state.PlayerID, remembered []state.Target) (who state.PlayerID, askable bool) {
+	who = controller
 	switch spec {
 	case "You":
 		// The controller, which who already is.
 	case "TriggeredCardController", "TriggeredSourceController":
-		if len(pt.Ctx.Remembered) > 0 {
-			if o := e.G.Obj(pt.Ctx.Remembered[0].Obj); o != nil {
+		if len(remembered) > 0 {
+			if o := e.G.Obj(remembered[0].Obj); o != nil {
 				who = o.Controller
 			}
 		}
 	}
 	if int(who) >= len(e.G.Players) || e.G.Players[who].Lost {
-		return who, true, false
+		return who, false
 	}
-	return who, true, true
+	return who, true
 }
 
 // PendingTriggers reports the triggers matched but not yet on the stack, in
@@ -585,6 +608,24 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 		if d := t.Params["TriggerDescription"]; d != "" {
 			return name + ": " + d
 		}
+	}
+	return name
+}
+
+// abilityLabel is the resolution-side sibling of triggerLabel: the label a
+// client sees for a triggered-ability stack OBJECT (which carries no
+// pendingTrigger to read a queue entry off), built from the source's name
+// and the trigger's own TriggerDescription$ -- the same text triggerLabel
+// shows for the queued trigger it came from.
+func (e *Engine) abilityLabel(o *state.Object, t cards.Trigger) string {
+	name := "Triggered ability"
+	if src := e.G.Obj(o.Source); src != nil {
+		if f := src.Face(); f != nil && f.Name != "" {
+			name = f.Name
+		}
+	}
+	if desc := t.Params["TriggerDescription"]; desc != "" {
+		return name + ": " + desc
 	}
 	return name
 }
@@ -720,14 +761,73 @@ func (e *Engine) askTriggerOptional(who state.PlayerID, pt pendingTrigger) {
 	e.ask(d)
 }
 
-// handleTriggerOptional places the trigger on a yes and discards it on a no,
-// then resumes the drain. A no emits nothing at all beyond the DecisionAsk and
-// DecisionMade that every decision emits, which is what "declining leaves the
-// game otherwise untouched" means (definition of done, item 4).
+// askOptionalAtResolution is CR 603.5's question at resolution time: the
+// optional triggered ability is already ON the stack (putTriggersOnStack
+// pushes it unconditionally), and its decider chooses whether to apply the
+// effect as it resolves. It poses a KTriggerOptional decision with a resume
+// point whose kind is "optional", so handleTriggerOptional can route the
+// answer: a yes re-enters the suspended resolution (resumeResolution runs
+// the ability's effect), a no lets the ability leave the stack having done
+// nothing (finishResumption). The decider is derived from the stack object's
+// own controller + Remembered (deciderFromSpec), not from a pendingTrigger,
+// because the queued trigger has already been consumed by the drain.
+func (e *Engine) askOptionalAtResolution(who state.PlayerID, o *state.Object, sa *cards.SA, label string) {
+	d := &decision.Decision{Player: who, Kind: decision.KTriggerOptional, Min: 1, Max: 1,
+		ResumeKind: "optional", ResumeSA: sa, Source: o.Source,
+		Prompt: "Apply this triggered ability's effect? — " + label,
+		Options: []decision.Option{
+			{Index: 0, Kind: "yes", Label: "Yes — " + label, Obj: o.Source, Player: o.Controller},
+			{Index: 1, Kind: "no", Label: "No", Obj: o.Source, Player: o.Controller},
+		}}
+	e.ask(d)
+	// The resume point mirrors Engine.Ask's shape (rules/resolution.go): the
+	// suspended object is the top of stack, the sub-ability to resume is the
+	// ability's own effect, and the kind tags the switch in resumeResolution
+	// so the yes answer does not overwrite ctx.Modes (which was already
+	// seeded from ChosenModes for a modal trigger). A decision pending means
+	// nothing else can resolve between ask and answer, so the object cannot
+	// have moved. askOptionalAtResolution is only ever reached from a first-
+	// pass resolution (resolveTop's ability branch, not already suspended),
+	// so this is a fresh resume point, never stacked over an existing one.
+	e.resume = &resumePoint{kind: "optional", obj: o.ID, sa: sa}
+}
+
+// handleTriggerOptional applies an answered optional-trigger decision. There
+// are two shapes, told apart by whether a resolution is suspended:
+//
+//   - The CR 603.5 resolution ask (e.resume set with kind "optional"): the
+//     ability is already on the stack. A yes re-enters the suspended
+//     resolution through resumeResolution (which runs the ability's effect,
+//     exactly as resolveTop's own tail would have, and then moves it off the
+//     stack); a no lets the ability leave the stack having done nothing via
+//     finishResumption. Either way the resolution completes and, mirroring
+//     resumeResolution's own tail, priority returns to the active player.
+//   - The placement ask (a Miracle offer, the one place an optional decision
+//     is still handed out before the ability is on the stack): a yes places
+//     the trigger (for a Miracle, that begins the cast flow), a no discards
+//     it, then the drain resumes.
+//
+// A declined optional trigger on the resolution path still emits its
+// TriggerPush (the ability did go on the stack); only a placement no emits
+// nothing beyond every decision's own DecisionAsk/DecisionMade.
 func (e *Engine) handleTriggerOptional(d *decision.Decision, in decision.Intent) {
 	yes := false
 	if opts := d.Chosen(in); len(opts) == 1 {
 		yes = opts[0].Kind == "yes"
+	}
+	if e.resume != nil {
+		rp := e.resume
+		e.resume = nil
+		if yes {
+			e.resumeResolution(rp, d.Chosen(in))
+		} else {
+			e.finishResumption(rp.obj)
+			// Mirror resumeResolution's own tail (CR 117.3b): a suspended
+			// resolution that completes -- even by doing nothing -- resets
+			// the pass count and returns priority to the active player.
+			e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
+		}
+		return
 	}
 	if pt, ok := e.takeAnsweredTrigger(d); ok && yes {
 		e.pushTrigger(pt)
