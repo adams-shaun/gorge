@@ -178,7 +178,24 @@ func OpenCorpusRegistry(dir string) (*cards.Registry, error) {
 // stopping on, not skipping past.
 func CorpusRegistry(t testing.TB) *cards.Registry {
 	t.Helper()
-	out, err := exec.Command("git", "-C", ".", "rev-parse", "--show-toplevel").Output()
+	// The child git MUST run with cards.GitEnv() -- os.Environ() with every
+	// inherited GIT_* variable stripped -- for the same reason cards/fetch.go
+	// and cards/boundary_test.go do. Git EXPORTS GIT_DIR to every hook it
+	// runs, usually as the relative path ".git", and GIT_DIR outranks the
+	// "-C ." above. A test binary's working directory is its own package
+	// directory (rules/, effects/, ...), never the repo root, so under a hook
+	// that relative GIT_DIR resolves to rules/.git, which does not exist:
+	// rev-parse fails, the corpus is never found, and every corpus test in
+	// the package quietly stops testing the corpus.
+	//
+	// That is not hypothetical. It is why the pre-commit test-time hook has
+	// been recording ~3s rows for the rules package in git worktrees while an
+	// identical manual run of the same command measures ~18s. Those rows are
+	// fiction, and they became the baseline other measurements were judged
+	// against.
+	cmd := exec.Command("git", "-C", ".", "rev-parse", "--show-toplevel")
+	cmd.Env = cards.GitEnv()
+	out, err := cmd.Output()
 	if err != nil {
 		t.Fatalf("testutil: could not resolve git repo root: %v", err)
 	}
