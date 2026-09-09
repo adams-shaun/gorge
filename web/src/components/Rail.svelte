@@ -76,6 +76,18 @@
   // view.stack lists bottom of the stack first (push order); the rail shows
   // what resolves next at the top, so it is reversed for display only.
   const topFirst = $derived([...view.stack].reverse());
+
+  // The live decision line names the seat being asked. `seats` is the first
+  // word (the table's registered name), but on the live table route it can be
+  // EMPTY while the view still carries each player's own name (the one-shot
+  // seed in Table.svelte races the async tables.lookup — see the ui15
+  // report); the fallback must be that name, not the 0-based `Seat N`
+  // placeholder, exactly as IdentityBar does.
+  const decisionWho = $derived(
+    decision === null
+      ? ''
+      : seats[decision.player]?.name ?? view.players.find((p) => p.seat === decision.player)?.name ?? `Seat ${decision.player}`,
+  );
 </script>
 
 <div class="rail-inner">
@@ -95,7 +107,7 @@
 
   {#if decision}
     <p class="decision">
-      <span class="who">Seat {decision.player}</span>
+      <span class="who">{decisionWho}</span>
       {decision.prompt}
     </p>
   {/if}

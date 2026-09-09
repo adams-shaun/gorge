@@ -46,7 +46,17 @@
   const yours = $derived(seat !== null && view.active === seat);
   const side = $derived<TurnSide>(yours ? 'yours' : 'opponents');
   const other = $derived<TurnSide>(yours ? 'opponents' : 'yours');
-  const activeName = $derived(seats[view.active]?.name ?? `Seat ${view.active}`);
+  // The track names whose turn it is. The seat list is the first word (it
+  // carries the authoritative registered name when the table knows one), but
+  // on the live table route `seats` can be EMPTY while the view still carries
+  // each player's own name (the one-shot seed in Table.svelte races the
+  // async tables.lookup — see the ui15 report). Falling straight through to
+  // `Seat ${view.active}` then prints a 0-based index beside the 1-based
+  // `Player N` names everywhere else, so the wire's player name is the
+  // fallback, exactly as IdentityBar does.
+  const activeName = $derived(
+    seats[view.active]?.name ?? view.players.find((p) => p.seat === view.active)?.name ?? `Seat ${view.active}`,
+  );
   const activeColour = $derived(seatColour(view.active, seats));
   // STEPS is a const tuple, so its own indexOf only accepts the twelve
   // literals; view.step is whatever the wire said. Widened once here so an
