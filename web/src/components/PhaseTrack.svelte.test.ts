@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
-import type { PlayerView, SeatInfo, View } from '../protocol';
+import type { SeatInfo, View } from '../protocol';
 import type { Stops } from '../lib/autopilot';
 import { STEPS } from '../lib/autopilot';
 import { SeatPanelState } from '../lib/seatpanel.svelte';
@@ -64,32 +64,15 @@ describe('PhaseTrack — the clock', () => {
   });
 
 
-
-  // The track prints no names and no round: the user asked three times for a
-  // thin bar and the head row is gone. Whose turn it is survives as the one
-  // thing the shard still says about it — the active seat's identity colour
-  // on its own perimeter.
-  it('carries the active seat’s identity colour on the shard, for either seat', () => {
-    const mine = seated(view(1, 'upkeep'), stops([], []));
-    expect(mine).toContain('--seat:#30a46c'); // seat 1 is the viewer and is active
-    const theirs = seated(view(0, 'upkeep'), stops([], []));
-    expect(theirs).toContain('--seat:#e5484d');
-  });
-
-  // The bar is ONE ROW. This is the leaf that fails if a head row, a round
-  // counter, a hint sentence or a group caption is ever put back above the
-  // cells.
-  it('is thin: no head row, no round, no hint sentence', () => {
-    const html = seated(view(1, 'upkeep', 7, 3), stops([], []));
-    expect(html).not.toContain('class="head');
+  it('keeps only the round in the cell row and drops both halves of the old head row', () => {
+    const html = seated(view(1, 'upkeep'), stops([], []));
+    expect(html).toContain('data-clock');
+    expect(html).toContain('aria-label="Round 2"');
+    expect(html).not.toContain('class="head"');
     expect(html).not.toContain('data-hint');
-    expect(html).not.toContain('Round');
-    expect(html).not.toContain('Your turn');
-    // the phase captions stay -- they are 9px tick marks, not a head row
-    expect(html).toContain('glabel');
-    expect(html).toContain('data-group="combat"');
-    // and the modifier survives where it belongs: on each stoppable cell
-    expect(cell(html, 'upkeep')).toMatch(/Shift-click/);
+    expect(html).not.toMatch(/Click a step|Your turn|’s turn/);
+    // The modifier remains discoverable at the control that uses it.
+    expect(cell(html, 'upkeep')).toMatch(/title="[^"]*Shift-click/);
   });
 
 });
@@ -159,7 +142,7 @@ describe('PhaseTrack — stops', () => {
     expect(cell(theirs, 'main2')).toContain('aria-pressed="false"');
   });
 
-  it('a spectator gets the same clock with nothing focusable', () => {
+  it('a spectator gets the same clock with nothing focusable and no instruction row', () => {
     const html = track({ view: view(0, 'main1'), seats });
     expect(html).toContain('data-phase-track');
     expect(html).not.toContain('<button');
@@ -167,5 +150,6 @@ describe('PhaseTrack — stops', () => {
     expect(html).not.toContain('data-hint');
     // the step is still marked: the clock is the point, the stops are extra
     expect(cell(html, 'main1')).toContain('aria-current="step"');
+    expect(html).not.toMatch(/Your turn|’s turn/);
   });
 });

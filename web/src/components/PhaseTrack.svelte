@@ -5,9 +5,10 @@
   import { seatColour } from '../lib/colours';
 
   /**
-   * PhaseTrack is the board's clock: where in the twelve steps the game is
-   * standing right now, plus the seat's stops, set by clicking the step you
-   * want to be handed the game back at.
+   * PhaseTrack is the board's clock: which round of the table and where in
+   * the twelve steps the game is standing right now —
+   * plus the seat's stops, set by clicking the step you want to be handed
+   * the game back at.
    *
    * It is THIN and stays that way. It used to carry a head row -- whose turn
    * it is, the round number, and a sentence explaining shift-click -- above
@@ -71,22 +72,23 @@
   style={`--seat:${activeColour}`}
   aria-label="Phase"
 >
+  <!-- Round survives only as a small leading segment in the cell row. Whose
+       turn and the duplicated click instructions are gone: the active-seat
+       perimeter/IdentityBar and each stoppable cell already carry them. -->
+  <div class="clock" data-clock aria-label={`Round ${view.round}`}>
+    <span class="tk">R</span><span class="tn">{view.round}</span>
+  </div>
+
   <div class="groups">
     {#each PHASE_GROUPS as g (g.key)}
       <!-- Each group takes width in proportion to the steps it holds, so
            every cell is the same width and the track reads as one twelve-step
            timeline cut into five labelled sections — not five equal boxes,
            one of which happens to contain five steps. -->
-      <div class="group" data-group={g.key} style={`flex-grow:${g.steps.length}`}>
-        <!-- A one-step phase is named by its own cell; repeating the phase name
-             above it says the same word twice. The empty caption keeps the
-             cells on one baseline. The caption is deliberately tiny -- it is a
-             tick mark on a ruler, not a heading. -->
-        {#if g.steps.length > 1}
-          <span class="glabel">{g.label}</span>
-        {:else}
-          <span class="glabel" aria-hidden="true">&nbsp;</span>
-        {/if}
+      <!-- Group captions used to consume a second line. The hairline group
+           divisions and the cells' own step names carry the same structure
+           without spending board height on BEGINNING / COMBAT / ENDING. -->
+      <div class="group" data-group={g.key} aria-label={g.label} style={`flex-grow:${g.steps.length}`}>
         <div class="cells">
           {#each g.steps as c (c.step)}
             {@const pos = position(c.step)}
@@ -135,8 +137,9 @@
    */
   .phase-track {
     display: flex;
-    flex-direction: column;
     width: 100%;
+    height: var(--phase-track-row-h);
+    min-width: 0;
     background: color-mix(in srgb, var(--instrument) 94%, transparent);
     color: var(--ink-inst);
     border: 1px solid color-mix(in srgb, var(--seat) 34%, var(--edge-inst));
@@ -151,20 +154,40 @@
     border: 2px solid var(--seat);
   }
 
-            
+  .clock {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.3em;
+    flex: 0 0 2.5rem;
+    padding: var(--sp-1);
+    border-right: 1px solid var(--edge-inst);
+    min-width: 0;
+  }
+  .tk {
+    font-size: var(--t-10);
+    color: var(--ink-faint);
+  }
+  .tn {
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--t-12);
+    color: var(--ink);
+  }
+
   /* The track scrolls inside itself on a narrow board rather than pushing
      the page sideways. */
   .groups {
     display: flex;
     align-items: stretch;
+    flex: 1 1 auto;
+    min-width: 0;
     overflow-x: auto;
     scrollbar-width: thin;
   }
   .group {
     display: flex;
-    flex-direction: column;
-    gap: 0;
-    padding: 0;
+    padding: 2px var(--sp-1);
     border-right: 1px solid var(--edge-inst);
     flex: 1 1 0;
     min-width: 0;
@@ -172,22 +195,10 @@
   .group:last-child {
     border-right: 0;
   }
-  /* A tick mark on the ruler, not a heading: it must never cost more height
-     than its own 9px line. */
-  .glabel {
-    font-size: 0.5625rem;
-    line-height: 9px;
-    height: 9px;
-    padding-left: 2px;
-    color: var(--ink-faint);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    white-space: nowrap;
-    overflow: hidden;
-  }
-
   .cells {
     display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
     gap: 1px;
   }
 
@@ -198,7 +209,7 @@
     justify-content: center;
     flex: 1 1 auto;
     min-width: 0;
-    padding: 1px var(--sp-1) 4px;
+    padding: 1px var(--sp-1) var(--sp-1);
     background: var(--instrument-raised);
     border: 0;
     border-bottom: 2px solid transparent;
@@ -270,9 +281,9 @@
     text-overflow: ellipsis;
   }
 
-  /* Four seats on a laptop the cells tighten. The track itself never wraps
-     and never pushes the page sideways. */
+  /* Four seats on a laptop: the track never wraps or pushes the page sideways. */
   @media (max-width: 60rem) {
+    .clock { flex-basis: 2rem; }
     .cell {
       padding-left: var(--sp-1);
       padding-right: var(--sp-1);
