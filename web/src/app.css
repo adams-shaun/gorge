@@ -53,6 +53,13 @@
   --sp-6: 1.5rem;
   --sp-8: 2rem;
 
+  /* The board clock is one compact instrument row in a real centre lane.
+     The clearance is named because card rows must never be allowed to consume
+     it; Board and PhaseTrack share the row height so the reservation and the
+     painted band cannot drift apart. */
+  --phase-track-row-h: 2rem;
+  --phase-card-clearance: var(--sp-6);
+
   /* Plex was drawn for technical material; the slight mechanical squareness
      suits an instrument, and its tabular figures are real. Mono is for VALUES
      — the transcript, chain heads, sequence numbers, counts — never for

@@ -3,7 +3,7 @@
   import { session } from '../lib/session.svelte';
   import { tables } from '../lib/tables.svelte';
   import { MatchState } from '../lib/match.svelte';
-  import Board from '../components/Board.svelte';
+  import BoardStage from '../components/BoardStage.svelte';
   import Rail from '../components/Rail.svelte';
   import IdentityBar from '../components/IdentityBar.svelte';
   import RecentStrip from '../components/RecentStrip.svelte';
@@ -12,7 +12,6 @@
   import MatchList from '../components/MatchList.svelte';
   import SeatPanel from '../components/SeatPanel.svelte';
   import HandFan from '../components/HandFan.svelte';
-  import PhaseTrack from '../components/PhaseTrack.svelte';
   import {
     SeatPanelState,
     mulliganPhase,
@@ -188,20 +187,20 @@
     {#if m.halted}<div class="halted">Table halted: {m.halted}</div>{/if}
     {#if m.view}
       <section class="board">
-        <Board view={m.view} seats={m.seats} options={boardOptions} />
-        <!-- The table clock is the board's full-width centre band, ringed by
-             the ACTIVE seat's one established identity colour.
-             It remains display-only for spectators and owns the same stop
-             set/callback for a live seat. -->
-        <div class="phase-shard" class:mulligan={mulligan !== null}>
-          <PhaseTrack
-            view={m.view}
-            seats={m.seats}
-            seat={panel ? seatCtx?.seat ?? null : null}
-            stops={panel ? panel.stops : null}
-            onToggle={panel ? (step, side) => panel.toggleStop(step, side) : null}
-          />
-        </div>
+        <!-- The table clock is the board's full-width centre lane, ringed by
+             the ACTIVE seat's one established identity colour. BoardStage
+             reserves that lane in the seat geometry, so no card row continues
+             beneath the band. It remains display-only for spectators and owns
+             the same stop set/callback for a live seat. -->
+        <BoardStage
+          view={m.view}
+          seats={m.seats}
+          options={boardOptions}
+          seat={panel ? seatCtx?.seat ?? null : null}
+          stops={panel ? panel.stops : null}
+          onToggle={panel ? (step, side) => panel.toggleStop(step, side) : null}
+          mulligan={mulligan !== null}
+        />
         {#each m.view.players as p (p.seat)}
           <IdentityBar
             player={p}
@@ -354,22 +353,6 @@
        identity bay is consumed by HandFan rather than overlaid on it. */
     --own-seat-w: 12rem;
   }
-  .phase-shard {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    transform: translateY(-50%);
-    z-index: 7;
-    min-width: 0;
-  }
-  /* Mulligan keeps the centre for its hand; the shard yields upward for that
-     one decision instead of competing for the same pixels. */
-  .phase-shard.mulligan {
-    top: 0;
-    transform: none;
-  }
-
   .rail {
     position: relative;
     min-width: 0;
