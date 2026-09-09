@@ -250,7 +250,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		}
 		e.damaging = src
 		// A fresh re-entry: reset the enclosing-loop continuation reports the
-		// loops of THIS effects.Resolve call will accumulate.
+		// loops of THIS effects.Resolve call will accumulate. This reset is
+		// safe even though resumeResolution recurses through rp.outer below:
+		// an enclosing frame can only reach that recursion after its own
+		// effects.Resolve returned with NO nested ask (e.resume == nil, else
+		// the nested-ask branch above consumes contChain into e.resume.outer
+		// and returns without recursing), at which point its contChain was
+		// never needed again — so a deeper frame's reset discards only
+		// reports no live frame still needs (measured: the full rules suite
+		// runs no path where a recursive reset clobbers a needed report).
 		e.contChain = e.contChain[:0]
 		effects.Resolve(e, ctx, rp.sa)
 		e.damaging = 0
