@@ -563,16 +563,25 @@ import (
 // meant a card primitive moved and would not have been mergeable on this
 // reasoning.
 var acceptanceHeads = map[int]string{
-	// jj-cmb moved all four: combat gained a CR 510.4 priority round INSIDE the
-	// combat damage step between the first-strike and regular passes (the round
-	// that used to sit at the next step boundary is gone, which is why the
-	// intent counts are unchanged at 348/1335/2149/3808), and the log no longer
-	// emits a phantom `step` event after `game_over` -- measured by diffing the
-	// 2-seat event stream against main, event by event, before regenerating.
-	2: "490516cb66bcc061",
-	4: "00577379e705ad1e",
-	6: "1331f514efb06839",
-	8: "89a83d74c174495c",
+	// jj-f01 moved all four: the cast proposal became a transaction, so the
+	// event ORDER within every targeted cast changed -- CR 601.2a's push now
+	// precedes the 601.2c target ask, and the 601.2h payment and the 601.2i
+	// cast trigger follow it, where payment used to happen at the ask.
+	//
+	// The evidence that this is a reordering and not different games: at 2, 6
+	// and 8 seats the intent AND event counts are byte-identical across the
+	// change (348/1920, 2149/10336, 3808/17530) while the head moves -- the
+	// same events in a different order. Only 4 seats gains anything (1335 ->
+	// 1338 intents, 6657 -> 6668 events), which is a proposal that now aborts
+	// BEFORE payment rather than after and so asks differently. Winners and
+	// turn counts are unchanged at every seat count (death-n-taxes 13,
+	// mono-black-aggro 29, mono-green-stompy 40, mono-red-goblins 54) and the
+	// coverage ratchet is untouched, which is what says no card primitive
+	// moved. Measured by the controller at the gate, not taken from the report.
+	2: "19570467b7f8d6ac",
+	4: "4d7247953d8f8df9",
+	6: "2e87727d3544e89d",
+	8: "3b8fa59e5041aff9",
 }
 
 func TestHeads(t *testing.T) {
