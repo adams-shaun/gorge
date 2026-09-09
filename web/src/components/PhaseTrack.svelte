@@ -84,14 +84,12 @@
   style={`--seat:${activeColour}`}
   aria-label="Round and phase"
 >
-  <div class="head">
+  <!-- Turn and round are state, so they stay — but as one compact leading
+       segment in the cell row, never as a headline row. The duplicated click
+       instructions are gone; every stoppable cell keeps its specific title. -->
+  <div class="clock" data-clock>
     <span class="whose" data-whose>{yours ? 'Your turn' : `${activeName}’s turn`}</span>
     <span class="turn"><span class="tk">Round</span><span class="tn">{view.round}</span></span>
-    {#if settable}
-      <span class="hint" data-hint>
-        Click a step to stop there on {yours ? 'your' : 'this'} turn · Shift-click to set it on the other side
-      </span>
-    {/if}
   </div>
 
   <div class="groups">
@@ -100,15 +98,10 @@
            every cell is the same width and the track reads as one twelve-step
            timeline cut into five labelled sections — not five equal boxes,
            one of which happens to contain five steps. -->
-      <div class="group" data-group={g.key} style={`flex-grow:${g.steps.length}`}>
-        <!-- A one-step phase is named by its own cell; repeating the phase
-             name above it says the same word twice. The empty caption keeps
-             the cells on one baseline. -->
-        {#if g.steps.length > 1}
-          <span class="glabel">{g.label}</span>
-        {:else}
-          <span class="glabel" aria-hidden="true">&nbsp;</span>
-        {/if}
+      <!-- Group captions used to consume a second line. The hairline group
+           divisions and the cells' own step names carry the same structure
+           without spending board height on BEGINNING / COMBAT / ENDING. -->
+      <div class="group" data-group={g.key} aria-label={g.label} style={`flex-grow:${g.steps.length}`}>
         <div class="cells">
           {#each g.steps as c (c.step)}
             {@const pos = position(c.step)}
@@ -157,8 +150,9 @@
    */
   .phase-track {
     display: flex;
-    flex-direction: column;
     width: 100%;
+    height: var(--phase-track-row-h);
+    min-width: 0;
     background: color-mix(in srgb, var(--instrument) 94%, transparent);
     color: var(--ink-inst);
     border: 1px solid color-mix(in srgb, var(--seat) 34%, var(--edge-inst));
@@ -173,22 +167,26 @@
     border: 2px solid var(--seat);
   }
 
-  .head {
+  .clock {
     display: flex;
     align-items: baseline;
-    gap: var(--sp-3);
-    padding: var(--sp-1) var(--sp-3);
-    border-bottom: 1px solid var(--edge-inst);
+    gap: var(--sp-1);
+    flex: 0 1 auto;
+    max-width: 10rem;
+    padding: var(--sp-1) var(--sp-2);
+    border-right: 1px solid var(--edge-inst);
     min-width: 0;
   }
   /* Whose turn it is, in that seat's identity colour — the same colour the
      identity bar and the life grid already use for them, so nobody has to
      work out which one they are. */
   .whose {
-    font-size: var(--t-14);
+    overflow: hidden;
+    font-size: var(--t-12);
     font-weight: 600;
     color: var(--seat);
     white-space: nowrap;
+    text-overflow: ellipsis;
   }
   .turn {
     display: inline-flex;
@@ -197,25 +195,14 @@
     white-space: nowrap;
   }
   .tk {
-    font-size: 0.6875rem;
+    font-size: var(--t-10);
     color: var(--ink-faint);
   }
   .tn {
     font-family: var(--font-data);
     font-variant-numeric: tabular-nums;
-    font-size: var(--t-14);
+    font-size: var(--t-12);
     color: var(--ink);
-  }
-  /* The modifier is stated, not hidden: an undiscoverable shortcut is not a
-     feature. It is the first thing dropped when the board is narrow. */
-  .hint {
-    margin-left: auto;
-    font-size: 0.6875rem;
-    color: var(--ink-faint);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-width: 0;
   }
 
   /* The track scrolls inside itself on a narrow board rather than pushing
@@ -223,14 +210,14 @@
   .groups {
     display: flex;
     align-items: stretch;
+    flex: 1 1 auto;
+    min-width: 0;
     overflow-x: auto;
     scrollbar-width: thin;
   }
   .group {
     display: flex;
-    flex-direction: column;
-    gap: 1px;
-    padding: 2px var(--sp-1) var(--sp-1);
+    padding: 2px var(--sp-1);
     border-right: 1px solid var(--edge-inst);
     flex: 1 1 0;
     min-width: 0;
@@ -238,16 +225,10 @@
   .group:last-child {
     border-right: 0;
   }
-  .glabel {
-    font-size: 0.6875rem;
-    line-height: 1.2;
-    color: var(--ink-faint);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    white-space: nowrap;
-  }
   .cells {
     display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
     gap: 1px;
   }
 
@@ -258,7 +239,7 @@
     justify-content: center;
     flex: 1 1 auto;
     min-width: 0;
-    padding: 2px var(--sp-1) 6px;
+    padding: 1px var(--sp-1) var(--sp-1);
     background: var(--instrument-raised);
     border: 0;
     border-bottom: 2px solid transparent;
@@ -330,12 +311,13 @@
     text-overflow: ellipsis;
   }
 
-  /* Four seats on a laptop: the hint is the first thing to go, then the
-     group labels tighten. The track itself never wraps and never pushes the
-     page sideways. */
+  /* Four seats on a laptop: the compact state segment may yield width to the
+     cells, but the track itself never wraps or pushes the page sideways. */
   @media (max-width: 60rem) {
-    .hint {
-      display: none;
+    .clock {
+      max-width: 7rem;
+      padding-left: var(--sp-1);
+      padding-right: var(--sp-1);
     }
     .cell {
       padding-left: var(--sp-1);

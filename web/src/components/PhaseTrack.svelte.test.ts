@@ -100,10 +100,14 @@ describe('PhaseTrack — the clock', () => {
     expect(theirs).toContain('--seat:#e5484d');
   });
 
-  it('states the modifier rather than hiding it', () => {
+  it('keeps turn and round in the cell row and drops the duplicated instruction row', () => {
     const html = seated(view(1, 'upkeep'), stops([], []));
-    expect(html).toContain('data-hint');
-    expect(html).toMatch(/Shift-click/);
+    expect(html).toContain('data-clock');
+    expect(html).not.toContain('class="head"');
+    expect(html).not.toContain('data-hint');
+    expect(html).not.toMatch(/Click a step/);
+    // The modifier remains discoverable at the control that uses it.
+    expect(cell(html, 'upkeep')).toMatch(/title="[^"]*Shift-click/);
   });
 });
 
@@ -172,7 +176,7 @@ describe('PhaseTrack — stops', () => {
     expect(cell(theirs, 'main2')).toContain('aria-pressed="false"');
   });
 
-  it('a spectator gets the same clock with nothing focusable and no modifier hint', () => {
+  it('a spectator gets the same clock with nothing focusable and no instruction row', () => {
     const html = track({ view: view(0, 'main1'), seats });
     expect(html).toContain('data-phase-track');
     expect(html).not.toContain('<button');
