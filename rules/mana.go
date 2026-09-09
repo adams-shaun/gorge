@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -271,28 +272,123 @@ func (c Cost) Plus(d Cost) Cost {
 // through unchanged. A card that is not its owner's commander, or a commander
 // no longer in the command zone, is likewise untaxed.
 func (e *Engine) commanderTaxFor(p state.PlayerID, id state.ObjID, base Cost) Cost {
+	base.Generic += e.commanderTaxAmount(p, id)
+	return base
+}
+
+// commanderTaxAmount is the CR 903.8 commander-tax generic amount for a
+// command-zone commander cast by p: 2 per prior command-zone cast of id, 0
+// for every other card, zone or format. It is the single O(1) tax read; both
+// commanderTaxFor (the offer side) and beginCast's taxGeneric capture use it.
+func (e *Engine) commanderTaxAmount(p state.PlayerID, id state.ObjID) int32 {
 	if e.format != FormatCommander {
-		return base
+		return 0
 	}
 	o := e.G.Obj(id)
 	if o == nil || o.Zone != state.ZCommand {
-		return base
+		return 0
 	}
 	for k, cid := range e.G.Players[p].Commanders {
 		if cid != id {
 			continue
 		}
 		if n := e.G.Players[p].CmdCasts[k]; n > 0 {
-			base.Generic += 2 * int32(n)
+			return 2 * n
 		}
-		return base
+		return 0
 	}
-	return base
+	return 0
+}
+
+// rawBaseCost is id's printed mana cost, without any cost modifier applied:
+// the CR 601.2f "mana cost or alternative cost" basis onto which the chosen
+// {X} and the RaiseCost/ReduceCost composition (manaToPay) are built. A
+// missing object or a Face()-less one degrades to the zero Cost rather than
+// panicking, matching adjustedCost's own guard.
+func (e *Engine) rawBaseCost(p state.PlayerID, id state.ObjID) Cost {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return Cost{}
+	}
+	return ParseCost(o.Face().ManaCost)
+}
+
+// offerCostFor is the CR 601.2f-composed cost an offer is gated on: the
+// selected base cost (a spell's printed mana cost, or an alternative/
+// flashback/surge/kicker cost) with RaiseCost then ReduceCost applied to
+// Generic, and (for a spell) the CR 903.8 commander tax added last because an
+// additional cost is never reduced. {X} is not yet chosen at offer time, so it
+// contributes zero generic here and is not reduced; the offer stays
+// conservative (a spell offering itself is withheld only when even X=0 is
+// unpayable) while the actual charge (manaToPay) applies the modifiers after
+// X is folded -- the two never disagree on a card with no {X} in its cost.
+func (e *Engine) offerCostFor(p state.PlayerID, id state.ObjID, base Cost, ability bool) Cost {
+	kind := "Spell"
+	if ability {
+		kind = "Ability"
+	}
+	c := base
+	raise, reduce := e.costModifiers(p, id, kind)
+	c.Generic += raise
+	c.Generic -= reduce
+	if c.Generic < 0 {
+		c.Generic = 0
+	}
+	if !ability {
+		c = e.commanderTaxFor(p, id, c)
+	}
+	return c
 }
 
 // HasNonMana reports whether paying this cost takes more than mana.
 func (c Cost) HasNonMana() bool {
 	return c.Tap || len(c.Sac) > 0 || len(c.SubCounter) > 0
+}
+
+// costModifiers reports the RaiseCost and ReduceCost generic-mana amounts
+// that apply, per CR 601.2f, to a cost paid by p for the object id. kind is
+// "Spell" (a cast) or "Ability" (an activation): a static whose Type$ names
+// the other kind is skipped, and one naming neither applies to both. This
+// engine's RaiseCost/ReduceCost only ever touch the Generic component (never
+// Colored), which is why the returned amounts fold into Generic at the point
+// the total cost is composed (after any chosen {X} folds in). Increases and
+// reductions are returned separately so the caller can apply them in the CR
+// 601.2f order (increases before reductions) rather than assuming they
+// commute through the same sign.
+func (e *Engine) costModifiers(p state.PlayerID, id state.ObjID, kind string) (raise, reduce int32) {
+	for _, mode := range []string{"RaiseCost", "ReduceCost"} {
+		for _, sv := range e.activeStatics(mode) {
+			if !e.costActorMatches(sv, p) {
+				continue
+			}
+			if ty, ok := sv.Params["Type"]; ok && ty != "" && ty != kind {
+				continue
+			}
+			if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, p)) {
+				continue
+			}
+			amt := parseAmount(sv.Params["Amount"], 1)
+			if mode == "RaiseCost" {
+				raise += amt
+			} else {
+				reduce += amt
+			}
+		}
+	}
+	return
+}
+
+// costActorMatches is the cost-modifier actor gate: a RaiseCost/ReduceCost
+// static with an Activator$ or Caster$ parameter scopes to whose cost it
+// modifies. With neither it applies regardless of actor.
+func (e *Engine) costActorMatches(sv staticView, actor state.PlayerID) bool {
+	if _, ok := sv.Params["Activator"]; ok {
+		return e.actorMatches(sv, "Activator", actor)
+	}
+	if _, ok := sv.Params["Caster"]; ok {
+		return e.actorMatches(sv, "Caster", actor)
+	}
+	return true
 }
 
 // Priceable reports whether the mana-only payment path (Pay, and therefore

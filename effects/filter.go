@@ -155,7 +155,11 @@ func noResolve(string) (int32, bool) { return 0, false }
 // result=false when the shape is recognised but the RHS did not resolve, so
 // a filter spec is either a hard "no" or "not this predicate", never a
 // silent match.
-func numericPred(name string, g *state.Game, o *state.Object, resolve func(string) (int32, bool)) (result, ok bool) {
+func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (result, ok bool) {
+	resolve := sc.Resolve
+	if resolve == nil {
+		resolve = noResolve
+	}
 	// counters_<CMP><n>_<KIND>: a counter-kind comparison, e.g. counters_EQ0_P1P1
 	// ("no +1/+1 counters", the Undying condition). Reads the object's current
 	// counter count of KIND off the object it is applied to -- which for a
@@ -225,7 +229,17 @@ func numericPred(name string, g *state.Game, o *state.Object, resolve func(strin
 		case "toughness":
 			have = f.Toughness() + int(o.Counter("P1P1"))
 		case "cmc":
-			have = int(parseCMC(f.ManaCost))
+			// CR 202.3e: {X} counts as its chosen value in a spell's mana
+			// value. A caller that has the chosen X in hand (the CR 601.2e
+			// post-announcement cast-illegality recheck) passes it through
+			// SpecContext.ManaValue; otherwise the printed cost is used,
+			// which counts an un-chosen X as 0, exactly as the offer-time
+			// 601.3a check must.
+			if sc.HasManaValue {
+				have = int(sc.ManaValue)
+			} else {
+				have = int(parseCMC(f.ManaCost))
+			}
 		}
 		switch cmp {
 		case "LE":
@@ -290,6 +304,14 @@ type SpecContext struct {
 	You     state.PlayerID
 	Source  state.ObjID
 	Resolve func(name string) (int32, bool)
+	// ManaValue overrides the object's mana value for cmc predicates, with
+	// HasManaValue set. It carries the CR 202.3e chosen-X effect: a caller
+	// that has the chosen {X} passes the resulting mana value here so a
+	// cmc restriction re-checked late (CR 601.2e) sees the spell as it is,
+	// not as it was offered. Zero value with HasManaValue false is the
+	// ordinary path (the printed cost, X as 0).
+	ManaValue    int32
+	HasManaValue bool
 }
 
 // MatchesObjectCtx applies one Forge filter spec to an object VALUE rather
@@ -339,7 +361,7 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 				}
 				continue
 			}
-			if res, ok := numericPred(p, g, o, resolve); ok {
+			if res, ok := numericPred(p, g, o, sc); ok {
 				if !res {
 					all = false
 					break
@@ -424,7 +446,7 @@ func UnknownPredicates(spec string) []string {
 			if _, ok := predicates[p]; ok {
 				continue
 			}
-			if _, ok := numericPred(p, nil, &state.Object{}, noResolve); ok {
+			if _, ok := numericPred(p, nil, &state.Object{}, SpecContext{}); ok {
 				continue
 			}
 			out = append(out, p)
