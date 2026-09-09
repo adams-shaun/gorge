@@ -15,6 +15,7 @@
 package rules
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -255,6 +256,16 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 			objLKI = lki
 		}
 		for ti, t := range f.Triggers {
+			// CR 603.8 state trigger: its condition is checked against the
+			// current state, not against the event under test, and it fires
+			// at most once per outstanding instance. A trigger that already
+			// has an instance queued or on the stack does not re-fire, so a
+			// condition that stays true cannot enqueue an unbounded run
+			// (the concise standing caveat against naively re-firing Always
+			// on every bookkeeping event).
+			if t.Mode == "Always" && e.stateTriggerOutstanding(id, ti) {
+				continue
+			}
 			if !e.triggerMatches(t, id, ev, objLKI) {
 				continue
 			}
@@ -383,26 +394,42 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 	if !e.zoneGate(t, source, ev) {
 		return false
 	}
+	var matched bool
 	switch t.Mode {
 	case "ChangesZone":
-		return e.zoneChangeMatches(t, source, ev, lki)
+		matched = e.zoneChangeMatches(t, source, ev, lki)
 	case "SpellCast":
-		return e.spellCastMatches(t, source, ev)
+		matched = e.spellCastMatches(t, source, ev)
+	case "AbilityCast", "SpellAbilityCast":
+		matched = e.abilityCastMatches(t, source, ev)
 	case "Attacks":
-		return e.attacksMatches(t, source, ev)
+		matched = e.attacksMatches(t, source, ev)
 	case "DamageDone", "DamageDealtOnce":
-		return e.damageMatches(t, source, ev)
+		matched = e.damageMatches(t, source, ev)
 	case "BecomesTarget":
-		return e.becomesTargetMatches(t, source, ev)
+		matched = e.becomesTargetMatches(t, source, ev)
 	case "LandPlayed":
-		return e.landPlayedMatches(t, source, ev)
+		matched = e.landPlayedMatches(t, source, ev)
 	case "Phase":
-		return e.phaseMatches(t, source, ev)
+		matched = e.phaseMatches(t, source, ev)
+	case "Always":
+		// CR 603.8 state trigger: the event under test is irrelevant; the
+		// trigger fires when its condition holds (see triggerConditionHolds)
+		// and no instance is outstanding (the checkTriggers latch above).
+		matched = true
 	}
-	// An unimplemented Mode$ never fires -- a malformed or unsupported
-	// trigger doing nothing is the safe failure mode (Ruling: see
-	// filter.go's own "unknown predicate never matches" precedent).
-	return false
+	if !matched {
+		return false
+	}
+	// CR 603.4 intervening-if: a trigger whose condition is false at the
+	// moment the trigger event occurs does not trigger at all. This gate is
+	// applied uniformly to every mode so the same T: line grammar (a
+	// LifeAmount$ or IsPresent$+PresentCompare$ clause on the trigger) is
+	// honoured wherever it appears.
+	if !e.triggerConditionHolds(t, source) {
+		return false
+	}
+	return true
 }
 
 // zoneGate implements TriggerZones$: a trigger only fires while its source is
@@ -713,10 +740,253 @@ func (e *Engine) phaseMatches(t cards.Trigger, source state.ObjID, ev events.Eve
 	return true
 }
 
+// abilityCastMatches implements Mode$ AbilityCast and Mode$ SpellAbilityCast
+// against an AbilityPush event -- the moment an activated ability is put on
+// the stack (rules/cast.go's commitCast). This is the COMPLETED boundary: an
+// AbilityPush is emitted only once the activation's cost is fully paid and
+// the ability object is minted, so a trigger firing here is never observing a
+// provisional or abandoned activation. (F15: there was no such arm at all, so
+// Rings of Brighthearth's "Whenever you activate an ability, if it isn't a
+// mana ability..." trigger never fired.)
+//
+// ValidActivatingPlayer$ and ValidSA$ narrow the activation the trigger
+// observes, in the same two params the corpus spells them with. A source
+// permanent whose face has no Abilities at the recorded index (stale data) is
+// a no-op, never a panic.
+func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.AbilityPush {
+		return false
+	}
+	obj := e.G.Obj(ev.Obj)
+	if obj == nil || obj.Face() == nil {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v, ok := t.Params["ValidActivatingPlayer"]; ok {
+		// ev.Player is the player who activated the ability;
+		// MatchesPlayerSpec resolves "You" as the trigger's controller.
+		if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+			return false
+		}
+	}
+	if v, ok := t.Params["ValidSA"]; ok {
+		if ev.Amount < 0 || int(ev.Amount) >= len(obj.Face().Abilities) {
+			return false
+		}
+		if !abilityCastValidSA(obj.Face().Abilities[int(ev.Amount)], v) {
+			return false
+		}
+	}
+	return true
+}
+
+// abilityCastValidSA reports whether an activated ability matches a ValidSA$
+// narrowing on an AbilityCast/SpellAbilityCast trigger. The grammar is Forge's
+// comma-separated OR list of "<kind>.<constraint>" values; a value whose kind
+// names a spell (Spell/Instant/Sorcery) describes a cast, not an activation,
+// so it never matches an activated ability and is simply skipped. An absent
+// or unqualified value matches every activated ability.
+func abilityCastValidSA(ab *cards.SA, validSA string) bool {
+	v := strings.TrimSpace(validSA)
+	if v == "" {
+		return true
+	}
+	for _, alt := range strings.Split(v, ",") {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		kind, constraint := alt, ""
+		if i := strings.IndexByte(alt, '.'); i >= 0 {
+			kind, constraint = alt[:i], alt[i+1:]
+		}
+		switch kind {
+		case "SpellAbility", "Activated", "":
+			switch constraint {
+			case "":
+				return true
+			case "!ManaAbility":
+				if ab.API != "Mana" {
+					return true
+				}
+			case "ManaAbility":
+				if ab.API == "Mana" {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// triggerConditionHolds evaluates the CR 603.4 intervening-if clause (and the
+// CR 603.8 state-trigger condition) carried on a T: line. Two clause shapes
+// are recognised, the two the corpus uses on the trigger lines this engine
+// routes through the modes above:
+//
+//   - LifeAmount$ <op><n> against LifeTotal$ (<who>): the named player's life
+//     total compared to n.
+//   - IsPresent$ <spec> with PresentCompare$ <op><n>: the count of objects
+//     matching <spec> compared to n.
+//
+// An absent clause is vacuously true. A clause whose shape this build cannot
+// evaluate FAILS CLOSED -- a false condition means the trigger simply does not
+// fire, never that an unreadable life/creature count is presumed large
+// enough to let a win or counter trigger slip through.
+func (e *Engine) triggerConditionHolds(t cards.Trigger, source state.ObjID) bool {
+	if v, ok := t.Params["LifeAmount"]; ok {
+		if !e.lifeConditionHolds(t, source, v) {
+			return false
+		}
+	}
+	if spec, ok := t.Params["IsPresent"]; ok {
+		cmp, ok := t.Params["PresentCompare"]
+		if !ok {
+			return false
+		}
+		if !e.presentConditionHolds(t, source, spec, cmp) {
+			return false
+		}
+	}
+	return true
+}
+
+// lifeConditionHolds evaluates the LifeTotal$/LifeAmount$ intervening-if.
+// The "you" for a You-qualified LifeTotal$ is the trigger's controller
+// (source's controller), matching how every other trigger param resolves it.
+func (e *Engine) lifeConditionHolds(t cards.Trigger, source state.ObjID, amount string) bool {
+	who := e.controllerOf(source)
+	if v, ok := t.Params["LifeTotal"]; ok {
+		v = strings.TrimSpace(v)
+		switch v {
+		case "", "You":
+			// the controller, which who already is
+		case "ActivePlayer":
+			who = e.G.Active
+		default:
+			return false // unevaluable player selector: fail closed
+		}
+	}
+	if int(who) >= len(e.G.Players) || e.G.Players[who].Lost {
+		return false
+	}
+	return compareLife(e.G.Players[who].Life, amount)
+}
+
+// presentConditionHolds evaluates the IsPresent$/PresentCompare$ intervening-
+// if by counting the objects on the battlefield that match the spec (relative
+// to the trigger's source and its controller) and comparing that count.
+func (e *Engine) presentConditionHolds(t cards.Trigger, source state.ObjID, spec, cmp string) bool {
+	n := e.countPresent(spec, source, e.controllerOf(source))
+	return comparePresent(n, cmp)
+}
+
+// countPresent walks every object on the battlefield once and counts those
+// matching spec, excluding the source where the spec's own Other/StrictlyOther
+// predicate already handles it (Emperor Crocodile's Creature.Other+YouCtrl).
+func (e *Engine) countPresent(spec string, source state.ObjID, you state.PlayerID) int {
+	n := 0
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o == nil || o.Zone != state.ZBattlefield {
+			return
+		}
+		if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, you)) {
+			n++
+		}
+	})
+	return n
+}
+
+// compareLife compares a life total against a Forge comparison literal such as
+// GE40, EQ0, LE3. Any shape this build cannot fold (a non-numeric rhs, a
+// missing operator) is false, so an unreadable condition never fires a
+// trigger.
+func compareLife(have int32, cmp string) bool {
+	op, n, ok := splitCompare(strings.TrimSpace(cmp))
+	if !ok {
+		return false
+	}
+	return applyCompare(int(have), op, n)
+}
+
+// comparePresent compares a present-count against the same comparison literal
+// grammar. A non-numeric rhs (PresentCompare$ EQX) fails closed.
+func comparePresent(have int, cmp string) bool {
+	op, n, ok := splitCompare(strings.TrimSpace(cmp))
+	if !ok {
+		return false
+	}
+	return applyCompare(have, op, n)
+}
+
+// splitCompare separates a Forge comparison literal ("GE40", "EQ0") into its
+// two-character operator and its numeric rhs. ok is false for anything that is
+// not a recognised operator followed by an integer.
+func splitCompare(cmp string) (op string, n int, ok bool) {
+	if len(cmp) < 3 {
+		return "", 0, false
+	}
+	op = cmp[:2]
+	num, err := strconv.Atoi(cmp[2:])
+	if err != nil {
+		return "", 0, false
+	}
+	return op, num, true
+}
+
+func applyCompare(have int, op string, n int) bool {
+	switch op {
+	case "GE":
+		return have >= n
+	case "LE":
+		return have <= n
+	case "EQ":
+		return have == n
+	case "GT":
+		return have > n
+	case "LT":
+		return have < n
+	case "NE":
+		return have != n
+	}
+	return false
+}
+
+// stateTriggerOutstanding reports whether a state trigger (Mode$ Always)
+// already has an instance where one would be enqueued -- either still in the
+// pending queue or already placed on the stack. This is the CR 603.8 latch:
+// it is what stops a continuously-true condition from enqueuing an unbounded
+// run of the same trigger.
+func (e *Engine) stateTriggerOutstanding(source state.ObjID, idx int) bool {
+	for _, pt := range e.pendingTriggers {
+		if pt.Source == source && pt.Idx == idx {
+			return true
+		}
+	}
+	o := e.G.Obj(source)
+	if o == nil {
+		return false
+	}
+	f := o.Face()
+	if f == nil || idx < 0 || idx >= len(f.Triggers) {
+		return false
+	}
+	sa := f.Triggers[idx].Effect
+	for _, sid := range e.G.Stack {
+		so := e.G.Obj(sid)
+		if so != nil && so.Source == source && so.Ability == sa {
+			return true
+		}
+	}
+	return false
+}
+
 func init() {
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:SpellCast", "trig:Attacks", "trig:DamageDone",
 		"trig:DamageDealtOnce", "trig:BecomesTarget", "trig:LandPlayed", "trig:Phase",
+		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		"repl:Moved",
 		// Task 16 keyword triggers, expanded by cards/keywords.go into ordinary
 		// ChangesZone / Attacks / SpellCast triggers routed through the modes
