@@ -136,6 +136,69 @@ func TestFocusSubscriptionStreamsSnapshotThenEventsInChainOrder(t *testing.T) {
 	}
 }
 
+// TestFocusSnapshotCarriesSeats is the ui16 wire proof: a focus subscriber
+// that joins mid-game receives only a snapshot frame (host/session.go's
+// Subscribe pushes a snapshot but never a match_start), and that snapshot
+// must carry the match's seat list. Without the seats on the snapshot the
+// table route has no way to learn who is where for the current match — it
+// never saw the match_start frame and tables.list may or may not be loaded
+// yet (ui15 measured both gaps).
+func TestFocusSnapshotCarriesSeats(t *testing.T) {
+	t.Parallel()
+	var s *Session
+	var frames []protocol.Frame
+	o := testOptions(t)
+	o.Sleep = func(time.Duration, <-chan struct{}) { drainNonBlocking(s, &frames) }
+	r, _ := New(o)
+	defer r.Close()
+	if err := r.AddTable(fourSeatTable("t1", false)); err != nil {
+		t.Fatal(err)
+	}
+	s = r.OpenSession()
+	if err := r.Subscribe(s, "t1", protocol.ModeFocus); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start("t1"); err != nil {
+		t.Fatal(err)
+	}
+	r.Wait("t1")
+	drainNonBlocking(s, &frames)
+	// The first snapshot on the stream carries the FIRST match's seats (the
+	// frame before it is the match_start, which also carries them — this is
+	// about the snapshot, the frame a mid-game joiner actually receives).
+	var snapAt = -1
+	for i, f := range frames {
+		if f.T == protocol.TSnapshot {
+			snapAt = i
+			break
+		}
+	}
+	if snapAt < 0 {
+		t.Fatal("no snapshot frame on the stream")
+	}
+	snap := decode[protocol.Snapshot](t, frames[snapAt])
+	if len(snap.Seats) == 0 {
+		t.Fatalf("snapshot carries no seats: %+v", snap.Seats)
+	}
+	if len(snap.Seats) != 4 {
+		t.Fatalf("snapshot carries %d seats, want 4", len(snap.Seats))
+	}
+	for i, seat := range snap.Seats {
+		if seat.Name == "" || seat.Deck == "" || seat.Colour == "" {
+			t.Fatalf("seat %d has an empty field: %+v", i, seat)
+		}
+	}
+	// The seats must match what the overview / seats API reports for the
+	// same match, so the table route identity bars agree with the lobby.
+	ms, _ := r.Matches("t1")
+	if len(ms) == 0 {
+		t.Fatal("no match recorded")
+	}
+	if got := ms[0].Seats; len(got) != len(snap.Seats) {
+		t.Fatalf("snapshot seats %d vs match seats %d", len(snap.Seats), len(got))
+	}
+}
+
 func TestPublicTableRedactsHandsInEventsAndSnapshot(t *testing.T) {
 	t.Parallel()
 	var s *Session
