@@ -61,8 +61,19 @@ export function dvrReducer(s: DvrState, a: DvrAction): DvrState {
       return { ...s, head: a.seq, cursor: s.live ? a.seq : s.cursor };
     }
     case 'backfill': {
+      // The batch is deduped against what we already hold AND against itself.
+      // Only the first guard existed, so a batch that repeated a seq internally
+      // put both copies in the log -- and the transcript keys its rows by
+      // event.seq, so Svelte threw each_key_duplicate and stopped rendering
+      // that subtree. Adding each accepted seq to `known` as we go makes the
+      // filter idempotent over the batch.
       const known = new Set(s.events.map((e) => e.event.seq));
-      const older = a.events.filter((e) => !known.has(e.event.seq) && e.event.seq <= s.head);
+      const older = a.events.filter((e) => {
+        const seq = e.event.seq;
+        if (known.has(seq) || seq > s.head) return false;
+        known.add(seq);
+        return true;
+      });
       const events = [...older, ...s.events].sort((x, y) => x.event.seq - y.event.seq);
       return { ...s, events };
     }
