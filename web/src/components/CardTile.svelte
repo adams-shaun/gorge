@@ -47,13 +47,36 @@
   // no pointer events, no $effect) can drive the panel's lifecycle through
   // the same HoverCard the component owns; production renders never pass them
   // and the defaults are exactly what the component built for itself before.
-  let { card, size = 'tile', attachments = [], hover = new HoverCard(), anchor: anchorProp = null }: {
+  let { card, size = 'tile', attachments = [], hover = new HoverCard(), anchor: anchorProp = null, tileOptions = null, open0 = false }: {
     card: CardView;
     size?: 'tile' | 'large';
     attachments?: CardView[];
     hover?: HoverCard;
     anchor?: AnchorRect | null;
+    /** tileOptions is the pending decision's offers for THIS object (see
+     *  lib/cardoptions.ts): null when the decision offers this card nothing,
+     *  in which case the tile carries no options affordance and no mark. It
+     *  is the SAME fact behind 'highlight cards with valid options' and
+     *  'highlight valid targets', so a card that is a valid target and a card
+     *  you may cast both get it — no kind is special-cased (R-E4-2). */
+    tileOptions?: import('../lib/cardoptions').TileOptions | null;
+    /** open0 seeds the menu's open/closed state, injectable for the repo's
+     *  SSR test harness just as `hover`/`anchor` are: this environment has no
+     *  DOM and no pointer events, so a test cannot click the badge to open
+     *  the menu, and the options affordance's own state is what a test drives
+     *  by hand the way it drives the detail panel. Production never passes it
+     *  and the default is closed. */
+    open0?: boolean;
   } = $props();
+
+  // The options menu is this tile's own open/closed state: nothing on the
+  // wire drives it and nothing outside reads it. The badge that opens it is
+  // a real button in the tab order (keyboard reachable), the menu items are
+  // the server's own option labels, and clicking one posts that option's own
+  // index through tileOptions.post — which is the seat panel (R-E4-1: the
+  // index, never a position in a rebuilt list).
+  // svelte-ignore state_referenced_locally
+  let open = $state(open0);
 
   // Ability shorthand for the keywords players scan for during combat. A
   // keyword with no shorthand is deliberately NOT drawn as a mark: an
@@ -128,8 +151,12 @@
   }
 </script>
 
+<div class="tile-wrap">
 <div
   class="card-tile card-tile--{size}"
+  data-tone={tileOptions?.tone ?? ''}
+  data-options={tileOptions ? tileOptions.list.length : undefined}
+  data-selected={tileOptions && tileOptions.pickedOrder.length > 0 ? tileOptions.pickedOrder.join(',') : undefined}
   class:tapped={card.tapped}
   class:sick={card.summon_sick}
   class:attacking={card.attacking}
@@ -180,14 +207,91 @@
   {/if}
 </div>
 
+{#if tileOptions}
+  <!-- The options affordance sits OUTSIDE the role="button" tile so a
+       real button is never nested inside one. It is anchored to the tile's
+       top-right corner — the one corner with no meaning yet (top-left is
+       keyword marks, the bottom band is state), so the tile's signal
+       hierarchy stays intact. -->
+  <div class="tile-actions">
+    <button
+      class="badge badge--{tileOptions.tone}"
+      class:selected={tileOptions.pickedOrder.length > 0}
+      type="button"
+      aria-haspopup="menu"
+      aria-expanded={open}
+      aria-label="{tileOptions.list.length} {tileOptions.list.length === 1 ? 'action' : 'actions'} for {card.name}"
+      title="Options for {card.name}"
+      onclick={() => (open = !open)}
+    >
+      <span class="badge__n data">{tileOptions.list.length}</span>
+    </button>
+    {#if tileOptions.pickedOrder.length > 0}
+      <!-- The picked order number is the seat panel's own idiom ({pickedAt
+           + 1}), restated on the tile so a multi-pick decision shows what is
+           already chosen and in which order. -->
+      <span class="sel data" aria-label="picked {tileOptions.pickedOrder.join(', ')}">{tileOptions.pickedOrder.join(',')}</span>
+    {/if}
+    {#if open}
+      <ul class="menu" role="menu" aria-label="Options for {card.name}">
+        {#each tileOptions.list as opt (opt.index)}
+          <li role="none">
+            <button class="menu__item" type="button" role="menuitem" onclick={() => tileOptions.post(opt.index)}>
+              {opt.label}
+            </button>
+          </li>
+        {/each}
+      </ul>
+    {/if}
+  </div>
+{/if}
+</div>
+
 {#if hover.show && anchor}
   <CardDetail {card} anchor={anchor} />
 {/if}
 
 <style>
+  /* The wrapper is one flow item in the row (it was the card-tile before:
+     inline-block, so a row of cards is a row of tiles). The card-tile and
+     any attached riders pack inside it exactly as they did, and the options
+     affordance anchors to the wrapper so it can overlay the face without
+     becoming a child of the role="button" tile. */
+  .tile-wrap {
+    position: relative;
+    display: inline-block;
+  }
   .card-tile {
     position: relative;
     display: inline-block;
+  }
+  /* The board marking (ui21): a tile whose object the pending decision
+     offers something to wears the panel's own initiative/offered register,
+     so 'cards you may act on' and 'valid targets' read as the SAME fact in
+     the SAME two tones the seat panel already uses — a blocked decision
+     (targets, blocks, modes) warms to --initiative, an open window (cast /
+     activate) cools to --offered. This is a ring around the tile, separate
+     from the attacking rim (which is an inset shadow on the slot and means
+     something else), so the two never overwrite each other. */
+  .card-tile[data-tone='initiative'] {
+    box-shadow: 0 0 0 2px var(--initiative);
+  }
+  .card-tile[data-tone='offered'] {
+    box-shadow: 0 0 0 2px var(--offered);
+  }
+  .card-tile[data-tone=''] {
+    box-shadow: none;
+  }
+  /* A tile with something already picked gets the strong edge as well as the
+     ordinal chip, so a half-chosen board is readable in one pass. */
+  .card-tile[data-selected] {
+    box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px var(--felt-sunk);
+  }
+  .card-tile[data-tone='initiative'][data-selected] {
+    box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px var(--initiative);
+  }
+  .card-tile[data-tone='offered'][data-selected] {
+    box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px var(--offered);
   }
   .card-tile--tile {
     --w: var(--card-w, 90px);
@@ -347,5 +451,120 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  /* An option affordance: a small plate on the tile's free top-right corner
+     carrying the number of things the pending decision lets you do here,
+     and a menu of the server's own option labels. The plate is a real
+     button — keyboard reachable, and it names the card it belongs to — and
+     the menu items are the option labels verbatim. The tone rule on the
+     plate's inner edge is applied by the board-marking layer (see the
+     marking commit); its neutral state is the instrument ink. */
+  .tile-actions {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    line-height: 1;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    padding: 0 0.25rem;
+    border-radius: 3px;
+    border: 1px solid var(--edge-inst);
+    background: var(--instrument);
+    color: var(--ink);
+    font-family: var(--font-data);
+    font-size: var(--t-10);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  /* The badge wears the decision's tone — the same warm/cool register the
+     seat panel paints — so a card marked in a target/block/mode decision
+     reads as blocked-on, and a card markable in a cast/activate window reads
+     as offered. This is the one place the two senses are distinguished on
+     the board, and it is the same distinction as the panel's data-tone. */
+  .badge--initiative {
+    background: var(--initiative);
+    border-color: var(--initiative);
+    color: var(--felt-sunk);
+  }
+  .badge--offered {
+    background: var(--offered);
+    border-color: var(--offered);
+    color: var(--felt-sunk);
+  }
+  .badge.selected {
+    outline: 2px solid var(--ink);
+    outline-offset: 1px;
+  }
+  /* The picked ordinal chip, in the instrument's data voice, under the badge
+     (the tile's free corner) — the same number the panel paints on the
+     option, so the board and the panel agree about what is chosen. */
+  .sel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1rem;
+    height: 1rem;
+    padding: 0 0.2rem;
+    border-radius: 2px;
+    background: var(--ink);
+    color: var(--felt-sunk);
+    font-size: var(--t-10);
+    font-weight: 600;
+  }
+  .badge__n {
+    font-size: inherit;
+  }
+  .badge:hover,
+  .badge[aria-expanded='true'] {
+    border-color: var(--ink-dim);
+    color: var(--ink);
+  }
+  .menu {
+    position: absolute;
+    top: calc(100% + 3px);
+    right: 0;
+    z-index: 6;
+    margin: 0;
+    padding: 2px;
+    list-style: none;
+    min-width: 9rem;
+    max-width: 14rem;
+    max-height: 12rem;
+    overflow-y: auto;
+    background: var(--instrument);
+    border: 1px solid var(--edge-inst);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lift);
+  }
+  .menu__item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    border-left: 2px solid transparent;
+    border-radius: 0;
+    color: var(--ink-inst);
+    font-family: var(--font-ui);
+    font-size: var(--t-12);
+    line-height: 1.35;
+    padding: var(--sp-1) var(--sp-2);
+    cursor: pointer;
+  }
+  .menu__item:hover,
+  .menu__item:focus-visible {
+    background: color-mix(in srgb, var(--ink) 7%, var(--instrument));
+    border-left-color: var(--ink-dim);
+    color: var(--ink);
   }
 </style>

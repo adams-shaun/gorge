@@ -73,8 +73,7 @@ describe('Rail — public spectator (every seat\'s hand and pool are null)', () 
   });
 });
 
-describe('Rail — the live decision line (ui15)', () => {
-  it('names the decision player from the view when seats is empty, not the Seat N placeholder', () => {
+describe('Rail — the live decision line (ui15)', () => {  it('names the decision player from the view when seats is empty, not the Seat N placeholder', () => {
     const v = baseView({
       players: [spectatorPlayer(0, 'Ari'), spectatorPlayer(1, 'Bo'), spectatorPlayer(2, 'Player 3')],
     });
@@ -128,5 +127,23 @@ describe('Rail — dead seats say why (Task 4)', () => {
     const v = baseView({ players: [spectatorPlayer(0, 'Ari', { lost: true }), spectatorPlayer(1, 'Bo')] });
     const { html } = render(Rail, { props: { view: v, seats, decision: null } });
     expect(html).toContain('Eliminated');
+  });
+});
+
+describe('Rail — the log visibility control (ui21)', () => {
+  it('renders the control as a switch reflecting the current state, only when a toggle is supplied', () => {
+    // No onToggleLog: a caller that does not own the log (an existing test, or
+    // a rail used without the live table route) renders no control at all.
+    const noToggle = render(Rail, { props: { view: baseView(), seats, decision: null } });
+    expect(noToggle.html).not.toContain('data-log-toggle');
+
+    const on = render(Rail, { props: { view: baseView(), seats, decision: null, showLog: true, onToggleLog: () => {} } });
+    expect(on.html).toContain('data-log-toggle');
+    expect(on.html).toContain('aria-checked="true"');
+    expect(on.html).toContain('Visible');
+
+    const off = render(Rail, { props: { view: baseView(), seats, decision: null, showLog: false, onToggleLog: () => {} } });
+    expect(off.html).toContain('aria-checked="false"');
+    expect(off.html).toContain('Hidden');
   });
 });

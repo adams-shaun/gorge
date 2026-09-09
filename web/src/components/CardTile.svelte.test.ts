@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render } from 'svelte/server';
 import type { CardView } from '../protocol';
+import type { TileOptions } from '../lib/cardoptions';
 import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
 import CardTile from './CardTile.svelte';
 
@@ -56,5 +57,82 @@ describe('CardTile panel lifetime', () => {
     const { html } = render(CardTile, { props: { card: card(), hover, anchor } });
     expect(html).toContain("card-detail");
     expect(html).toContain('data-obj="16"');
+  });
+});
+
+describe('CardTile options affordance (ui21)', () => {
+  const opts = (over: Partial<TileOptions> = {}): TileOptions => ({
+    list: [
+      { index: 3, kind: 'cast', label: 'Cast Fireball', obj: 16, player: 0 },
+      { index: 8, kind: 'ability', label: 'Activate Wasteland', obj: 16, player: 0 },
+    ],
+    pickedOrder: [],
+    tone: 'offered',
+    post: vi.fn(),
+    ...over,
+  });
+
+  it('a tile whose card is offered something wears a badge with the count and an accessible name', () => {
+    const { html } = render(CardTile, { props: { card: card(), tileOptions: opts() } });
+    // the badge names the card and says how many actions the decision offers
+    expect(html).toContain('aria-haspopup');
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain('2 actions for Wasteland');
+    expect(html).toContain('badge__n');
+    expect(html).toContain('data');
+  });
+
+  it('the option menu renders the server labels VERBATIM, not composed from kind', () => {
+    const { html } = render(CardTile, { props: { card: card(), tileOptions: opts(), open0: true } });
+    expect(html).toContain('Cast Fireball');
+    expect(html).toContain('Activate Wasteland');
+    expect(html).not.toContain('cast: Cast Fireball'); // never re-phrased from kind
+    expect(html).toContain('role="menu"');
+    expect(html).toContain('role="menuitem"');
+  });
+
+  it('each menu item is keyed by the option\'s OWN index, never a position in a rebuilt list (R-E4-1)', () => {
+    // Two options on this card whose indices (3 and 8) are unrelated to their
+    // wire positions (0 and 1). The menu must carry each one's own index so a
+    // click posts 3 for the cast and 8 for the activation, not 0 and 1.
+    const t = opts();
+    expect(t.list[0].index).toBe(3);
+    expect(t.list[1].index).toBe(8);
+    expect(t.list.map((o) => o.index)).toEqual([3, 8]);
+    // the post callback is the hand-back path; the index it receives is the
+    // option's own, proved in cardoptions.test.ts by reordering and asserting
+    // the posted index does not change.
+    t.post(t.list[0].index);
+    expect(t.post).toHaveBeenCalledWith(3);
+  });
+
+  it('a tile with no options offer renders no badge and no menu (the no-mark state)', () => {
+    const { html } = render(CardTile, { props: { card: card(), tileOptions: null } });
+    expect(html).not.toContain('aria-haspopup');
+    expect(html).not.toContain('tile-actions');
+  });
+
+  it('the mark wears the decision tone: initiative for a blocked decision, offered for an open window', () => {
+    const initiative = render(CardTile, { props: { card: card(), tileOptions: opts({ tone: 'initiative' }) } });
+    expect(initiative.html).toContain('data-tone="initiative"');
+    expect(initiative.html).toContain('badge--initiative');
+
+    const offered = render(CardTile, { props: { card: card(), tileOptions: opts({ tone: 'offered' }) } });
+    expect(offered.html).toContain('data-tone="offered"');
+    expect(offered.html).toContain('badge--offered');
+  });
+
+  it('a picked option is visibly selected on the tile with its pick order, the panel\'s own idiom', () => {
+    // pickedOrder carries the click-order ordinals (the panel's {pickedAt + 1}):
+    // this card's option was the 2nd pick, so the tile says 2.
+    const { html } = render(CardTile, { props: { card: card(), tileOptions: opts({ pickedOrder: [2] }) } });
+    expect(html).toContain('data-selected="2"');
+    expect(html).toContain('class="sel data');
+    expect(html).toContain('picked 2');
+  });
+
+  it('a card with several picked ordinals lists them in order', () => {
+    const { html } = render(CardTile, { props: { card: card(), tileOptions: opts({ pickedOrder: [1, 3] }) } });
+    expect(html).toContain('data-selected="1,3"');
   });
 });

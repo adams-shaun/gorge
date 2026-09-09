@@ -459,5 +459,58 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
         await ctx.close();
       }
     });
+
+    // ui21 — the log starts hidden for a SEATED player, with a toggle in the
+    // rail. This is the deterministic half of the task's measured-evidence
+    // requirement: it drives a REAL seated client and asserts the transcript
+    // is hidden by default and becomes visible when the rail switch is
+    // clicked, on measured DOM state (visibility), not a description. (The
+    // other half — the per-card options affordance — is exercised by the unit
+    // suite and built client below; it is not reliably reachable in a
+    // vs-bot game, whose early turns offer no battlefield permanent the seat
+    // may act on — see the ui21 report.)
+    test('a seated player sees the log hidden by default and can toggle it in the rail', async ({ browser, request }) => {
+      const b = base as string;
+      const label = `[seated]`;
+      const { join, seat } = await createVsBotJoin(request, b);
+      const ctx = await browser.newContext();
+      try {
+        const page = await ctx.newPage();
+        await assertSeatedJoin(b, page, join, seat, label);
+
+        // Watch the post-mount interactions (the toggle itself) so a console
+        // error surfacing from flipping the log is caught here.
+        const c = watch(page, b);
+        // The rail carries the log switch, and the seated default is hidden.
+        const toggle = page.locator('[data-log-toggle]');
+        await toggle.waitFor({ state: 'visible', timeout: WAIT_MS });
+        expect(await toggle.getAttribute('aria-checked')).toBe('false');
+        // The transcript footer is hidden (its grid row collapsed, so it has
+        // no display box).
+        const transcript = page.locator('footer.transcript');
+        await page.waitForFunction(() => {
+          const el = document.querySelector('footer.transcript');
+          if (!el) return false;
+          const r = el.getBoundingClientRect();
+          return r.height === 0 || getComputedStyle(el).display === 'none';
+        }, undefined, { timeout: WAIT_MS });
+
+        // Clicking the rail switch shows it, measured by the footer gaining a
+        // nonzero box.
+        await toggle.click();
+        await page.waitForFunction(() => {
+          const el = document.querySelector('footer.transcript');
+          if (!el) return false;
+          const r = el.getBoundingClientRect();
+          return r.height > 0 && getComputedStyle(el).display !== 'none';
+        }, undefined, { timeout: WAIT_MS });
+        expect(await toggle.getAttribute('aria-checked')).toBe('true');
+
+        expectClean(c, `${label} log toggle`);
+        await page.close();
+      } finally {
+        await ctx.close();
+      }
+    });
   });
 }
