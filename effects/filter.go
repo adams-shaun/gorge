@@ -38,7 +38,6 @@ var predicates = map[string]predFn{
 	"attacking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsAttacking },
 	"blocking":  func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return isBlocking(g, o.ID) },
 	"token":     func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.Card == nil },
-	"!token":    func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.Card != nil },
 	"Legendary": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return hasType(o, "Legendary")
 	},
@@ -282,6 +281,86 @@ func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 	return wordUnknown, "", false
 }
 
+// positiveRecognised reports whether a predicate token p is a recognised
+// positive-evaluation shape: an entry in the `predicates` map, a numeric
+// <field><CMP><n> predicate, a generic non<X> negation whose <X> is a
+// recognised classifier, or a wordPredicate classifier word. It is the single
+// recognition source shared by the evaluator (matchPositive) and by
+// UnknownPredicates, so the matcher and the census cannot disagree about
+// whether a word is recognised. An unrecognised word is "the engine does not
+// know", never "true" -- that is the fail-closed contract.
+func positiveRecognised(p string) bool {
+	if _, ok := predicates[p]; ok {
+		return true
+	}
+	if _, ok := numericPred(p, nil, &state.Object{}, SpecContext{}); ok {
+		return true
+	}
+	if _, _, ok := nonPredicate(p); ok {
+		return true
+	}
+	if kind, _ := wordPredicate(p); kind != wordUnknown {
+		return true
+	}
+	return false
+}
+
+// recognisedPredicate reports whether a predicate token p is recognised by
+// this build at all, including a leading '!'. A !<X> is recognised exactly
+// when <X> is a recognised positive-evaluation predicate, by the same
+// resolution the positive path uses. A second '!' (!!X) is never a
+// recognised shape -- the double negation is not part of this grammar, so it
+// fails closed like any unknown.
+func recognisedPredicate(p string) bool {
+	if positiveRecognised(p) {
+		return true
+	}
+	if x, has := strings.CutPrefix(p, "!"); has && x != "" {
+		return positiveRecognised(x)
+	}
+	return false
+}
+
+// matchPositive evaluates a recognised positive-evaluation predicate token p
+// to its boolean. ok is false for a token positiveRecognised does not accept,
+// so the caller treats it as an unknown predicate and fails closed.
+func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (result, ok bool) {
+	if fn, ok := predicates[p]; ok {
+		return fn(g, o, sc.You, sc.Source), true
+	}
+	if res, ok := numericPred(p, g, o, sc); ok {
+		return res, true
+	}
+	if nkind, nkey, ok := nonPredicate(p); ok {
+		// non<X> is the negation of a recognised classifier: the object
+		// matches when the positive classifier does not.
+		return !wordMatches(nkind, nkey, g, o, sc.You, sc.Source), true
+	}
+	if kind, key := wordPredicate(p); kind != wordUnknown {
+		return wordMatches(kind, key, g, o, sc.You, sc.Source), true
+	}
+	return false, false
+}
+
+// matchPredicate evaluates a predicate token in a filter conjunction,
+// including the leading-'!' negation. ok is false for an unknown shape, so the
+// caller must fail closed. A !<X> negates the positive evaluation of <X>; when
+// <X> is itself not recognised, !<X> is unknown too -- the negation of "I do
+// not know" is not "yes".
+func matchPredicate(g *state.Game, p string, o *state.Object, sc SpecContext) (result, ok bool) {
+	if x, has := strings.CutPrefix(p, "!"); has {
+		if x == "" {
+			return false, false
+		}
+		r, rek := matchPositive(g, x, o, sc)
+		if !rek {
+			return false, false
+		}
+		return !r, true
+	}
+	return matchPositive(g, p, o, sc)
+}
+
 func hasType(o *state.Object, t string) bool {
 	f := o.Face()
 	if f == nil {
@@ -519,50 +598,18 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 			if p == "" {
 				continue
 			}
-			if fn, ok := predicates[p]; ok {
-				if !fn(g, o, sc.You, sc.Source) {
-					all = false
-					break
-				}
-				continue
-			}
-			if res, ok := numericPred(p, g, o, sc); ok {
-				if !res {
-					all = false
-					break
-				}
-				continue
-			}
-			// Generic non<X> negation. An unknown <X> (neither a colour nor a
-			// type word, e.g. nonFrobnicate) is unknown, so it fails closed --
-			// the alternative, !hasType, would always match and silently widen
-			// the filter.
-			if nkind, nkey, ok := nonPredicate(p); ok {
-				// Negation of a recognised classifier. wordMatches evaluates the
-				// positive form; if it is true, the negated predicate fails.
-				if wordMatches(nkind, nkey, g, o, sc.You, sc.Source) {
-					all = false
-					break
-				}
-				continue
-			}
-			// Positive counterpart of non<X>: a predicate word that is a colour
-			// name, a type/supertype/subtype word in the corpus vocabulary, or
-			// the colour-count tests Colorless/MultiColor evaluates as its
-			// positive form. The handwritten Legendary/Snow/colour entries in
-			// `predicates` are consulted first (the map lookup above) and keep
-			// winning. An unknown word still fails closed -- never an always
-			// true fallback, which silently widens instead of showing up as a
+			// matchPredicate evaluates every recognised shape -- the predicates
+			// map, a numeric predicate, a generic non<X> negation, a
+			// wordPredicate classifier word, and a leading-'!' negation of any
+			// of those -- to a boolean. An unrecognised token (ok == false) is
+			// unknown, so it fails closed: never an always-true fallback, which
+			// would silently widen the filter instead of showing up as a
 			// missing action.
-			if kind, key := wordPredicate(p); kind != wordUnknown {
-				if !wordMatches(kind, key, g, o, sc.You, sc.Source) {
-					all = false
-					break
-				}
-				continue
+			res, ok := matchPredicate(g, p, o, sc)
+			if !ok || !res {
+				all = false
+				break
 			}
-			all = false // unknown predicate: never match
-			break
 		}
 		if all {
 			return true
@@ -636,16 +683,12 @@ func UnknownPredicates(spec string) []string {
 			if p == "" {
 				continue
 			}
-			if _, ok := predicates[p]; ok {
-				continue
-			}
-			if _, ok := numericPred(p, nil, &state.Object{}, SpecContext{}); ok {
-				continue
-			}
-			if _, _, ok := nonPredicate(p); ok {
-				continue
-			}
-			if kind, _ := wordPredicate(p); kind != wordUnknown {
+			// recognisedPredicate is the single classifier the matcher
+			// (matchPredicate) and this census walk share, so a token is
+			// either recognised by both or unknown to both -- including a
+			// leading-'!' negation, which is recognised only when its inner
+			// word is.
+			if recognisedPredicate(p) {
 				continue
 			}
 			out = append(out, p)
