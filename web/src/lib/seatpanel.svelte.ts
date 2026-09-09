@@ -425,9 +425,25 @@ export class SeatPanelState {
     return this.pending !== null && this.pending.seq !== this.postedSeq ? primaryOf(this.pending) : null;
   }
 
+  /**
+   * showSubmit renders the commit button for every decision a single click
+   * cannot answer — which is exactly the complement of click()'s post-on-click
+   * shape (min == max == 1, where the click IS the answer and a submit button
+   * would be a redundant second control).
+   *
+   * The gate used to be `d.max > 1`, which deadlocked a Min 0 / Max 1
+   * decision: declare-attackers on a 1v1 board with exactly one creature able
+   * to attack. click() correctly declined to post it (min is 0, so a click is
+   * a selection and not an answer), the pick sat in `picked`, and no button
+   * was ever drawn to commit it or to decline — the seat could select its
+   * attacker and then had no way forward at all. Attacking with two creatures
+   * was fine, which is why it went unseen. KAttackers also carries no `pass`
+   * or `resolve` option, so the primary-by-kind button (R-E4-1) is not there
+   * to fall back on.
+   */
   get showSubmit(): boolean {
     const d = this.pending;
-    return d !== null && d.seq !== this.postedSeq && d.max > 1;
+    return d !== null && d.seq !== this.postedSeq && !(d.min === 1 && d.max === 1);
   }
 
   /** canSubmit gates the submit button on the decision's OWN min/max — the only selection constraints the client may enforce (R-E4-2). */
