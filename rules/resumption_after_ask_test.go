@@ -44,6 +44,7 @@ func TestResumptionRunsOuterContinuationAfterNestedAsk(t *testing.T) {
 		t.Fatalf("expected the Charm mode KModes ask, got %+v", d)
 	}
 	submitChoices(t, e, 0)
+	d = passUntilNonPriority(t, e, 20)
 
 	// Pass 2: the chosen mode (Discard) is itself a mid-resolution ask. Answer
 	// it, discarding the first offered card — deliberately a chosen card, so
@@ -122,6 +123,7 @@ func TestResumptionRunsEveryContinuationAtDepthThree(t *testing.T) {
 		t.Fatalf("expected the Charm mode KModes ask, got %+v", d)
 	}
 	submitChoices(t, e, 0)
+	d = passUntilNonPriority(t, e, 20)
 
 	// Pass 2: the chosen mode (Repeat) runs its Repeated Discard, which is
 	// itself a mid-resolution ask. Answer it, discarding the first offered

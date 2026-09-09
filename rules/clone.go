@@ -75,6 +75,7 @@ func (e *Engine) Clone() *Engine {
 	if e.pending != nil {
 		d := *e.pending
 		d.Options = append([]decision.Option(nil), e.pending.Options...)
+		d.ResumeModes = append([]string(nil), e.pending.ResumeModes...)
 		c.pending = &d
 	}
 	if e.resume != nil {
@@ -157,6 +158,7 @@ func (e *Engine) Clone() *Engine {
 		pc.cost.Phyrexian = append([]byte(nil), e.cast.cost.Phyrexian...)
 		pc.delve = append([]state.ObjID(nil), e.cast.delve...)
 		pc.sacs = append([]state.ObjID(nil), e.cast.sacs...)
+		pc.preModes = append([]string(nil), e.cast.preModes...)
 		pc.preSuppress = cloneSuppressed(e.cast.preSuppress)
 		pc.preAborts = cloneAbortCounts(e.cast.preAborts)
 		c.cast = &pc

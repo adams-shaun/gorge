@@ -63,6 +63,10 @@ func TestNestedCharmDoesNotInheritOuterModes(t *testing.T) {
 	// inner Charm inherits the outer's answered modes and silently re-runs
 	// DoGain instead.
 	submitChoices(t, e, 0)
+	// The outer choice is now a cast-time announcement. Pass priority so the
+	// spell starts resolving and reaches the genuinely mid-resolution inner
+	// Charm ask.
+	d = passUntilNonPriority(t, e, 20)
 
 	// The inner Charm must now be asking, mid-resolution, suspended with the
 	// spell still on the stack, its own options presented.

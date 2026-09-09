@@ -680,18 +680,11 @@ func (e *Engine) abilityLabel(o *state.Object, t cards.Trigger) string {
 // chosen here maps to the same SVar name modeChoiceNames produces at
 // resolution.
 func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA) {
-	choices := strings.Split(sa.Params["Choices"], ",")
-	for i := range choices {
-		choices[i] = strings.TrimSpace(choices[i])
-	}
 	charmNum := 1
 	if v, ok := sa.Params["CharmNum"]; ok {
 		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil && n >= 1 {
 			charmNum = n
 		}
-	}
-	if charmNum > len(choices) {
-		charmNum = len(choices)
 	}
 	var source state.ObjID
 	var svars map[string]string
@@ -703,20 +696,7 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 			svars = sf.SVars
 		}
 	}
-	d := &decision.Decision{Player: p, Kind: decision.KModes, Min: charmNum, Max: charmNum,
-		Source: source, ResumeKind: "modes", ResumeSA: sa,
-		Prompt: "Choose " + strconv.Itoa(charmNum) + " mode(s)"}
-	for i, name := range choices {
-		label := name
-		if sub := cards.ResolveSVar(svars, name); sub != nil {
-			if desc := strings.TrimSpace(sub.Params["SpellDescription"]); desc != "" {
-				label = desc
-			}
-		}
-		d.Options = append(d.Options, decision.Option{
-			Index: i, Kind: "mode", Label: label, Obj: source, Player: p})
-	}
-	e.ask(d)
+	e.ask(modeDecision(p, source, sa, svars, charmNum))
 }
 
 // askTriggerOrder is R1: the controller of two or more simultaneous triggers

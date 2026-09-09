@@ -145,16 +145,13 @@ const (
 	// permanent's Face().Abilities index, and IDs is whatever the
 	// activation remembered (mirrors TriggerPush's own IDs usage).
 	AbilityPush
-	// ModeChosen records the answer to a mid-resolution modal decision
-	// (effects.Host.Ask, decided by rules' handleModes -- the KModes
-	// decision effCharm poses over its Choices$, or the unless-pay yes/no
-	// effCopySpellAbility poses over its UnlessCost$). Obj is the stack
-	// object whose resolution was suspended, Player the chooser, and Text
-	// the chosen option labels (csv, in execution order). It is a marker
-	// like Note: the choice itself lives on the suspended resolution's Ctx
-	// when the engine re-enters it, so Apply records nothing on state --
-	// the event exists only to carry the choice into the log, which is
-	// what makes a replay able to re-derive the same branch. Appended
+	// ModeChosen records a KModes answer: spell announcement (CR 601.2b),
+	// triggered-ability placement (CR 603.3c), or a mid-resolution mode or
+	// unless-pay choice. Obj is the stack object, Player the chooser, and Text
+	// the chosen option labels (csv, in execution order). It is a marker like
+	// Note: the engine caches placement/announcement names or carries a
+	// resolution answer in its continuation, while Apply remains inert. The
+	// log lets replay re-derive the same branch. Appended
 	// here, after AbilityPush, following every prior Kind's own append-only
 	// precedent, so no earlier ordinal, hash chain or golden replay is
 	// affected (M2d-2).
