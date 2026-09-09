@@ -10,8 +10,8 @@
   /**
    * SeatPanel is a human seat's decision surface: the status readout,
    * auto/manual controls, floating mana, prompt and options, with the primary
-   * button resolved by kind (R-E4-1). Generic decisions mount once in the
-   * rail flyout; mulligan alone mounts over the board. Concede is deliberately
+   * button resolved by kind (R-E4-1). Generic decisions mount once under the
+   * clock's ACTIONS tab; mulligan alone mounts over the board. Concede is deliberately
    * absent from this normal-turn surface and rendered by Table at the page's
    * top right, though the same SeatPanelState owns its arm/confirm/post path.
    *
@@ -28,8 +28,8 @@
    */
   let { view, seats, ctx, table, match, state = null, placement = 'board' }: {
     view: View; seats: SeatInfo[]; ctx: SeatCtx; table: string; match: number;
-    /** Generic decisions live in the rail flyout; only mulligan keeps the centred board placement. */
-    placement?: 'board' | 'flyout';
+    /** Generic decisions live under the ACTIONS tab; only mulligan keeps the centred board placement. */
+    placement?: 'board' | 'flyout' | 'strip';
     /**
      * state lets the route hand in the seat's SeatPanelState so the phase
      * track above the board and this panel share ONE set of stops and ONE
@@ -164,11 +164,12 @@
     class="seat-panel"
     class:wide={mull !== null}
     class:flyout={placement === 'flyout'}
+    class:strip={placement === 'strip'}
     data-seat-panel
     data-concede={logic.concedeOption?.index}
     data-tone={tone}
   >
-    {#if mull === null}
+    {#if mull === null && placement !== 'strip'}
       <div class="readout" role="status">
         <div class="fact">
           <span class="k">Priority</span>
@@ -182,7 +183,7 @@
       </div>
     {/if}
 
-    {#if mull === null}
+    {#if mull === null && placement !== 'strip'}
       <div class="autobar" data-autobar>
         <div class="autoline">
           <button
@@ -242,7 +243,7 @@
       <p class="prompt" data-prompt>{decision.prompt}</p>
 
       {#if mull !== null && mull.phase === 'keep'}
-        <div class="hand" aria-label="Your opening hand">
+        <div class="hand" data-opening-hand data-card-count={(mine?.hand ?? []).length} aria-label="Your opening hand">
           {#each mine?.hand ?? [] as c (c.id)}<CardTile card={c} />{/each}
         </div>
         <div class="choices" data-options>
@@ -258,7 +259,7 @@
           {/each}
         </div>
       {:else if mull !== null && mull.phase === 'bottom'}
-        <div class="hand picking" data-options aria-label="Choose cards to put on the bottom">
+        <div class="hand picking" data-opening-hand data-card-count={mull.cards.length} data-options aria-label="Choose cards to put on the bottom">
           {#each mull.cards as opt (opt.index)}
             {@const card = cardFor(opt)}
             {@const at = logic.picked.indexOf(opt.index)}
@@ -290,7 +291,7 @@
         </div>
       {:else}
         <div class="options" data-options>
-          {#if primary && !(placement === 'flyout' && primary.kind === 'pass')}
+          {#if primary && !((placement === 'flyout' || placement === 'strip') && primary.kind === 'pass')}
             <button class="primary" type="button" data-primary onclick={() => logic.primaryClick()} disabled={logic.busy}>
               {primary.label}
             </button>
@@ -311,7 +312,7 @@
               </button>
             {/each}
           </div>
-          {#if logic.showSubmit}
+          {#if logic.showSubmit && placement !== 'strip'}
             <button class="submit" type="button" data-submit onclick={() => logic.submit()} disabled={!logic.canSubmit || logic.busy}>
               {decision.min === 0 ? 'Confirm' : decision.min === decision.max ? `Choose ${decision.min}` : `Choose ${decision.min}–${decision.max}`}
             </button>
@@ -379,20 +380,21 @@
   /* The mulligan round is not a heads-up display: nothing else is happening,
      the hand is the whole content, and the panel takes the middle of the
      board for the one moment it exists. */
-  /* A definite width, not max-content: max-content measures the hand as the
-     one row it would be if it never wrapped, so the panel grew past its own
-     max-width and the hand scrolled sideways instead of wrapping (and
-     `overflow-y: auto` computes overflow-x to auto, which is where the
-     horizontal scrollbar came from). Sized to the viewport so seven cards
-     wrap into two comfortable rows on a laptop and one row on a wide
-     board. */
-  .seat-panel.flyout {
+  /* Generic surfaces use a definite width rather than max-content, so a long
+     server option cannot push its instrument panel beyond the viewport. */
+  .seat-panel.flyout,
+  .seat-panel.strip {
     position: static;
     transform: none;
     width: min(21rem, calc(100vw - 24.5rem));
     min-width: 15rem;
     max-width: none;
     max-height: min(32vh, 24rem);
+  }
+  .seat-panel.strip {
+    width: 100%;
+    min-width: 0;
+    max-height: none;
   }
 
   .seat-panel.wide {
@@ -636,38 +638,36 @@
     cursor: default;
   }
 
-  /* The hand is the mulligan's content, so it gets the room. It scrolls
-     inside itself on a narrow board rather than pushing the page sideways. */
-  /* The hand IS the mulligan's content: seven cards you have to read before
-     you can answer. CardImage ships two fixed widths — 90px, too small to
-     read, and 220px, which wraps seven cards onto three rows of a laptop
-     board — so the mulligan sizes them itself, between those two and
-     following the viewport, and the row still wraps rather than scrolling
-     sideways on a very narrow board. A card you have to scroll to is a card
-     you skip. */
+  /* The opening hand is one row by contract, from seven cards down to zero.
+     At a narrow board the faces become thumbnails; CardTile's existing
+     hover/focus detail is the reading affordance. Every direct card wrapper
+     shares the available width, capped at the old comfortable 150px size.
+     Nothing wraps and nothing scrolls sideways. */
   .hand {
-    /* Cards are sized the way every other row in this UI sizes them: by
-       setting --card-w, which BOTH CardImage and CardTile's layout slot
-       read. Overriding .card-image's width directly instead sized the
-       drawn face without resizing the slot that reserves room for it, so
-       in the keep phase (CardTile) a 168px face sat in a 90px slot and
-       spilled over both neighbours — the cards touched, and the hover
-       target stayed 90px wide while the visible card was twice that, so
-       pointing at a card opened the detail for the one beside it. */
-    --card-w: clamp(96px, 9.5vw, 150px);
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
     align-items: flex-start;
-    /* Cards in a hand are separate objects you compare one against another,
-       so they get real space between them rather than a hairline. The row
-       gap matches, because a wrapped second row that touches the first
-       reads as one block of art. */
-    gap: var(--sp-3) var(--sp-2);
+    gap: var(--sp-2);
     padding: var(--sp-3);
     width: 100%;
-    overflow-y: auto;
+    overflow: hidden;
     min-height: 0;
+  }
+  .hand > :global(.tile-wrap),
+  .hand > .pick {
+    flex: 0 1 150px;
+    min-width: var(--opening-card-min-w);
+    max-width: 150px;
+    overflow: hidden;
+  }
+  /* CardTile normally owns a fixed --card-w. In the opening row its wrapper
+     owns the width instead, and every layer of the tile follows that slot. */
+  .hand :global(.card-tile),
+  .hand :global(.slot),
+  .hand :global(.card-image),
+  .hand .pick :global(.card-image) {
+    width: 100%;
   }
   .pick {
     position: relative;
