@@ -81,6 +81,25 @@ func (g *seatGate) token(seat state.PlayerID) string {
 	return g.seatTokens[seat]
 }
 
+// mint creates a fresh opaque token for seat and registers it in the gate,
+// so a request carrying it resolves to that seat. It is the on-demand-game
+// path (Task ui11): each game mints its own token rather than reusing a
+// startup slot's, and a token is never unregistered once minted, so an
+// already-created game stays playable even after a later one — a seat is the
+// only thing a claim carries (R-E3-1), and every on-demand game seats the
+// human at seat 0, so all such tokens grant the same human seat and can
+// coexist. The returned token is the one the caller puts in the join URL.
+func (g *seatGate) mint(seat state.PlayerID) (string, error) {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return "", fmt.Errorf("seats: minting token: %w", err)
+	}
+	tok := hex.EncodeToString(b[:])
+	g.tokenToSeat[tok] = seat
+	g.seatTokens[seat] = tok
+	return tok, nil
+}
+
 // joinHost renders a listener address as something a browser can open. A
 // listener bound to the default ":8080" reports its address as "[::]:8080" —
 // the unspecified address, which is a legal thing to listen on and not a

@@ -75,8 +75,10 @@ $(BIN_DIR)/gorged: $(GO_SRC)
 .PHONY: gorged
 # gorged runs the M2a table server: perpetual bot tables served to a browser
 # at the listen address. make web builds the Svelte client it embeds first.
+# -vsbot arms the landing page's play-a-human-vs-bot entry point; without it
+# the server is spectator-only, exactly as before the feature existed.
 gorged: $(BIN_DIR)/gorged
-	$(BIN_DIR)/gorged -decks internal/testutil/decks -tables 4 -seats 4 -pace 1.5s -format commander,constructed
+	$(BIN_DIR)/gorged -decks internal/testutil/decks -tables 4 -seats 4 -pace 1.5s -format commander,constructed -vsbot
 
 .PHONY: deploy-demo stop-demo
 # deploy-demo refreshes the local demo: two servers on 127.0.0.1, public
