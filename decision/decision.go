@@ -26,16 +26,12 @@ const (
 	// hand card -- exactly the distinct-index shape Validate already enforces
 	// for KTriggerOrder, so no new wire format is needed (Ruling U2).
 	KMulligan Kind = "mulligan"
-	// KModes is the modal pick a mid-resolution ask poses (M2d-2, closes
-	// R-8): Min == Max == CharmNum$ (default 1) over one "mode" option per
-	// Choices$ sub-ability, in Choices$ order, Player = the effect's
-	// controller (or, for an UnlessCost$ may-pay, the payer). A charm's
-	// mode choice executes the chosen modes in the chosen order through
-	// ordinary Resolve; the engine's handleModes records the choice with a
-	// ModeChosen event and re-enters the suspended resolution. The
-	// "engines" ask and the unless-pay ask both use this kind -- ResumeKind
-	// on the Decision tells the engine which continuation the answer
-	// resumes.
+	// KModes is a modal pick: Min == Max == CharmNum$ (default 1) over one
+	// "mode" option per Choices$ sub-ability, in Choices$ order. Spell modes
+	// are announced during casting (CR 601.2b), trigger modes at placement
+	// (CR 603.3c), while nested Charm and unless-pay asks may suspend
+	// resolution. handleModes records ModeChosen; ResumeKind and the trigger
+	// drain flag select the appropriate continuation.
 	KModes Kind = "modes"
 	// KTriggerOrder asks one controller for the order of the two or more
 	// triggered abilities they control that triggered simultaneously (CR
@@ -266,19 +262,16 @@ type Decision struct {
 	// TargetEffect is host-independent targeting context. It is absent on
 	// other decision kinds and on older servers; absent means unknown.
 	TargetEffect *TargetEffect `json:"target_effect,omitempty"`
-	// ResumeKind and ResumeSA are server-side only: how an effects.Host.Ask
-	// mid-resolution decision (M2d-2) suspends and re-enters the resolution
-	// it interrupted. The asking primitive sets them -- ResumeKind tags the
-	// continuation ("modes" | "unless_pay" | "discard" | "arrange" |
-	// "search") and ResumeSA names the exact
-	// sub-ability whose effect asked, so the engine's resumeResolution can
-	// re-enter the suspended chain at that point without re-running the
-	// sub-abilities before it. Both are selected by the engine only inside
-	// rules (handleModes); a client never sees them. Card data is shared
-	// immutable compiled corpus, so the pointer is safe to carry across a
-	// Clone and a replay like every other *cards.SA the engine holds.
-	ResumeKind string    `json:"-"`
-	ResumeSA   *cards.SA `json:"-"`
+	// ResumeKind, ResumeSA and ResumeModes are server-side only. ResumeKind
+	// selects a cast/placement/resolution continuation ("cast_modes", "modes",
+	// "unless_pay", "discard", "arrange", "search"); ResumeSA names the exact
+	// sub-ability involved. ResumeModes maps a filtered cast-time mode option
+	// back to its SVar name while keeping wire indices dense. rules alone
+	// selects these fields; clients never see them. Card data is shared
+	// immutable compiled corpus, so the SA pointer is safe across Clone/replay.
+	ResumeKind  string    `json:"-"`
+	ResumeSA    *cards.SA `json:"-"`
+	ResumeModes []string  `json:"-"`
 }
 
 // New is a convenience constructor that fills a Decision's Player, Kind,

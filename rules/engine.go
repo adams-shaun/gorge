@@ -225,7 +225,7 @@ type Engine struct {
 	choosing chooseFor
 
 	// resume is non-nil while a mid-resolution decision is pending: an effect
-	// (effCharm's modal pick, effCopySpellAbility's UnlessCost$ may-pay,
+	// (a nested effCharm pick, effCopySpellAbility's UnlessCost$ may-pay,
 	// effDiscard's mode choices — M2d-2) asked through effects.Host.Ask and
 	// the resolution of the top-of-stack object is suspended with the object
 	// still on the stack. It chains every suspended continuation, innermost

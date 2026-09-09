@@ -363,20 +363,21 @@ func TestDecisionSourceRoundTripsJSON(t *testing.T) {
 }
 
 // TestResumeFieldsStayOffTheWire is the guard that keeps the engine's
-// mid-resolution bookkeeping private: ResumeKind and ResumeSA are how an
-// effects.Host.Ask decision suspends and re-enters the resolution it
-// interrupted -- ResumeSA carries a *cards.SA, and the pair is selected by
-// the engine only inside rules. Neither may ever reach a client, even with
+// mode/resolution bookkeeping private: ResumeKind and ResumeSA select the
+// continuation, while ResumeModes carries a filtered cast decision's SVar
+// vocabulary. All are selected only inside rules and must never reach a
+// client, even with
 // non-zero values set, which is also exactly what a later "helpful" change
 // exposing one of them would trip.
 func TestResumeFieldsStayOffTheWire(t *testing.T) {
 	d := Decision{Seq: 9, Player: 0, Kind: KModes, ResumeKind: "modes",
-		ResumeSA: &cards.SA{Kind: "SP", API: "Charm", Params: map[string]string{"Choices$": "a,b"}}}
+		ResumeSA:    &cards.SA{Kind: "SP", API: "Charm", Params: map[string]string{"Choices$": "a,b"}},
+		ResumeModes: []string{"a", "b"}}
 	b, err := json.Marshal(d)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, forbidden := range []string{`"resume_kind":`, `"resume_sa":`} {
+	for _, forbidden := range []string{`"resume_kind":`, `"resume_sa":`, `"resume_modes":`} {
 		if strings.Contains(string(b), forbidden) {
 			t.Fatalf("marshalled decision leaked engine internal %s: %s", forbidden, b)
 		}

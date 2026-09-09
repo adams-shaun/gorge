@@ -132,11 +132,9 @@ func TestCR601SpecialManaRequiresAnnouncement(t *testing.T) {
 	}
 }
 
-// KNOWN-RED: both subtests (Azorius/Boros Charm) fail with the conformance
-// flag on, so the gate stays at the parent. Removed when the engine announces
-// modes at casting (CR 601.2b) rather than at resolution.
+// A modal spell announces its modes on the cast proposal before targets or
+// payment (CR 601.2b), not when the spell resolves.
 func TestCR601ModesAnnouncedBeforePayment(t *testing.T) {
-	requireCR601Audit(t, "CR 601.2b: modal spell chooses only during resolution")
 	reg := testutil.CorpusRegistry(t)
 	checked := 0
 	for _, name := range []string{"Azorius Charm", "Boros Charm"} {

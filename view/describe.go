@@ -204,9 +204,8 @@ func Describe(g *state.Game, ev events.Event) string {
 		// a line can name.
 		return player(g, ev.Player) + " activates " + obj(g, ev.Obj)
 	case events.ModeChosen:
-		// The answer to a mid-resolution modal decision (M2d-2): the
-		// "modes" Charm pick or the "unless_pay" yes/no. Player chose;
-		// Text carries the chosen option labels as csv. Mirrors
+		// A cast/placement mode announcement or mid-resolution modal answer.
+		// Player chose; Text carries the chosen option labels as csv. Mirrors
 		// DecisionMade's "answers" shape; an empty Text (a fuzz event)
 		// degrades to "a mode".
 		labels := strings.ReplaceAll(ev.Text, ",", ", ")

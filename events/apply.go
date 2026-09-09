@@ -21,11 +21,9 @@ func Apply(g *state.Game, e Event) {
 	case GameStart, DecisionAsk, DecisionMade, Note, Resolve, ModeChosen:
 		// Markers. Resolve is deliberately inert: the resolving object leaves
 		// the stack through its own MoveZone event, and popping here as well
-		// would drop a second object. ModeChosen (M2d-2) is a marker too: the
-		// choice it records lives on the suspended resolution's Ctx when the
-		// engine re-enters it, so nothing on state needs writing -- the event
-		// exists only so the log carries the answered modal pick and a replay
-		// can re-derive it.
+		// would drop a second object. ModeChosen is a marker too: rules carries
+		// its answer in a cast/trigger cache or suspended-resolution context, so
+		// Apply writes nothing; the log lets replay re-derive the same branch.
 
 	case Shuffle:
 		if validPlayer(g, e.Player) {
@@ -564,6 +562,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	// real-zone-over-claimed-zone rule this function already applies to the
 	// removal itself, a few lines below).
 	wasBattlefield := o.Zone == state.ZBattlefield
+	wasStack := o.Zone == state.ZStack
 	if wasBattlefield && to != state.ZBattlefield {
 		// Leaving combat removes this permanent as a blocker, but does not
 		// make creatures it blocked unblocked (CR 506.4, 509.1h). Preserve
@@ -618,6 +617,14 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		if wasBattlefield {
 			o.X, o.CastFlags = 0, 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber = "", "", 0
+		}
+		// ChosenModes is needed only while a modal spell/ability resolves (or
+		// when a permanent spell carries its announcement onto the battlefield).
+		// Clearing it as an object leaves the stack keeps this derived cache out
+		// of graveyards/exile; an aborted cast restores its captured prior value
+		// after the reverse stack move.
+		if wasStack {
+			o.ChosenModes = nil
 		}
 		o.AttachedTo = 0
 	}

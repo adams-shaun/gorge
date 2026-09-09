@@ -52,6 +52,7 @@ func TestCloneResumeChainIndependence(t *testing.T) {
 		t.Fatalf("expected the Charm mode KModes ask, got %+v", d)
 	}
 	submitChoices(t, e, 0)
+	d = passUntilNonPriority(t, e, 20)
 
 	// The nested ask is now pending: the Repeated Discard's mid-resolution
 	// KModes ask. This is the exact moment to clone. Assert the resume chain

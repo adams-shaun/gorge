@@ -439,11 +439,9 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 		// handleMulligan is only ever reached with the round live.
 		e.handleMulligan(d, in)
 	case decision.KModes:
-		// The mid-resolution modal pick (M2d-2): the engine's one KModes
-		// handler serves both the Charm modal choice and the UnlessCost$
-		// may-pay, tagged by the decision's ResumeKind. Only ever asked by
-		// an effect mid-resolution (rules/resolution.go's Ask), never handed
-		// out by the turn structure.
+		// One handler serves cast-time mode announcements, triggered-ability
+		// placement modes and mid-resolution asks; ResumeKind plus the trigger
+		// drain flag distinguishes their continuations (rules/resolution.go).
 		e.handleModes(d, in)
 	case decision.KArrange:
 		// The mid-resolution ordered-subset pick (Ruling J0): the engine's

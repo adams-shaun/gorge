@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
@@ -77,6 +78,14 @@ type pendingCast struct {
 	// windowDone is set when the 601.2g mana window was answered "done", so
 	// payCast proceeds straight to payment instead of re-offering it.
 	windowDone bool
+	// modesDone is set once a modal spell's CR 601.2b mode question has been
+	// posed. modeChosen says its answer was recorded during this proposal;
+	// preModes is the object's value immediately before that answer, so
+	// abortCast can restore it under CR 733.1.
+	modesDone  bool
+	modeChosen bool
+	preModes   []string
+
 	// passedTarget is set once the flow has moved past the 601.2c target
 	// choice into payCast, so a resume through continueCast (the mana-window
 	// re-entry) does not re-ask for targets.
@@ -433,6 +442,13 @@ func (e *Engine) continueCast() {
 	if e.pushCast() {
 		return
 	}
+	// CR 601.2b: a modal spell announces its modes after reaching the stack
+	// and before targets are chosen or costs are paid. The answer is cached on
+	// the proposed spell so targetAsk can inspect the selected mode and
+	// resolution can execute it without asking again.
+	if e.castModeAsk() {
+		return
+	}
 	// CR 601.2b: announce how each hybrid and Phyrexian pip is paid -- which
 	// half of a hybrid, whether a Phyrexian pip is paid with life -- before
 	// targets (601.2c) and payment (601.2h). Runs as one decision per pip.
@@ -446,6 +462,79 @@ func (e *Engine) continueCast() {
 		return
 	}
 	e.payCast()
+}
+
+// castModeAsk poses CR 601.2b's mode announcement for a modal spell. It uses
+// KModes like the placement and resolution paths, but ResumeKind distinguishes
+// this cast-transaction continuation from both: handleModes records the answer
+// on the proposed spell and re-enters continueCast rather than resuming an
+// effect or the trigger drain. Activated abilities retain their existing
+// resolution-time behaviour; CR 603.3c triggered abilities remain owned by
+// askTriggerModes.
+func (e *Engine) castModeAsk() bool {
+	pc := e.cast
+	if pc == nil || pc.ability >= 0 || pc.modesDone {
+		return false
+	}
+	pc.modesDone = true
+	o := e.G.Obj(pc.card)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	f := o.Face()
+	sa := f.SpellAbility()
+	if sa == nil || sa.API != "Charm" || strings.TrimSpace(sa.Params["Choices"]) == "" {
+		return false
+	}
+	ctx := &effects.Ctx{Source: pc.card, Controller: pc.player}
+	effects.SetSVars(ctx, f.SVars)
+	charmNum := effects.Num(e, ctx, sa, "CharmNum", 1)
+	if charmNum < 1 {
+		charmNum = 1
+	}
+	choices := strings.Split(sa.Params["Choices"], ",")
+	legal := make([]string, 0, len(choices))
+	for _, name := range choices {
+		name = strings.TrimSpace(name)
+		sub := cards.ResolveSVar(f.SVars, name)
+		if sub == nil || sub.Params["ValidTgts"] == "" {
+			legal = append(legal, name)
+			continue
+		}
+		min, _ := targetBounds(sub)
+		if len(e.legalTargetCandidates(pc.player, pc.card, pc.card, sub)) >= min {
+			legal = append(legal, name)
+		}
+	}
+	if int(charmNum) > len(legal) {
+		// No legal set of modes can complete its mandatory target choices. This
+		// is the modal counterpart of targetAsk's no-legal-target reversal; use
+		// the no-progress suppression so an automated seat cannot propose the
+		// same impossible cast forever.
+		e.abortCast(pc, "cast aborted: no legal modal choice", true)
+		return true
+	}
+	d := modeDecisionForChoices(pc.player, pc.card, sa, f.SVars, legal, int(charmNum))
+	d.ResumeKind = "cast_modes"
+	e.ask(d)
+	return true
+}
+
+// modalTargetSA returns the target declaration selected by a modal spell.
+// Forge puts a Charm's ValidTgts$ on each Choices$ SVar rather than on the
+// outer Charm SA. This engine has one target list per stack object, so when
+// several chosen modes target independently it can currently carry only the
+// first target-bearing mode; the ordinary one-mode Charm shape is exact.
+func modalTargetSA(f *cards.Face, sa *cards.SA, modes []string) *cards.SA {
+	if sa == nil || sa.Params["ValidTgts"] != "" || sa.API != "Charm" || f == nil {
+		return sa
+	}
+	for _, name := range modes {
+		if sub := cards.ResolveSVar(f.SVars, name); sub != nil && sub.Params["ValidTgts"] != "" {
+			return sub
+		}
+	}
+	return sa
 }
 
 // xAsk asks a value for {X} if pc.cost carries one, offering 0..max where
@@ -1092,6 +1181,7 @@ func (e *Engine) targetAsk() bool {
 	} else if f != nil {
 		sa = f.SpellAbility()
 	}
+	sa = modalTargetSA(f, sa, o.ChosenModes)
 	if sa == nil || sa.Params["ValidTgts"] == "" {
 		return false
 	}
@@ -1557,6 +1647,18 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 			if o.ChosenNumber != pc.etbNumber {
 				e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "number", Amount: pc.etbNumber})
 			}
+		}
+	}
+	// CR 733.1 applies identically to a mode announced during the proposal.
+	// ModeChosen is a marker event, so the cache is restored beside the reverse
+	// marker just as handleModes maintains it beside the forward marker.
+	if pc.modeChosen {
+		if o := e.G.Obj(pc.card); o != nil {
+			if sa := o.Face().SpellAbility(); sa != nil {
+				e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.card, Player: pc.player,
+					Text: strings.Join(modeLabels(sa, o.Face().SVars, pc.preModes), ",")})
+			}
+			o.ChosenModes = append([]string(nil), pc.preModes...)
 		}
 	}
 	e.deferredPush = nil
