@@ -570,30 +570,45 @@ import (
 // Before that, jj-cmb moved them by adding a CR 510.4 priority round inside
 // the combat damage step and dropping a phantom post-game_over `step` event.
 var acceptanceHeads = map[int]string{
-	// jj-cost moved 4, 6 and 8; the 2-seat head is UNCHANGED (344 intents,
-	// 1907 events, 13 turns, death-n-taxes -- identical to the previous
-	// golden), which is itself the useful signal: that game reaches no
-	// hybrid, Phyrexian or additional-sacrifice cost, so nothing about it
-	// could move.
+	// jj-cost2 moved ALL FOUR heads. The cause is one rule and it was found by
+	// diffing the two event streams rather than reasoned about: in the 2-seat
+	// game the streams are identical for 1257 events and first differ at seq
+	// 1258, where main casts Daze and this build does not.
 	//
-	// Elsewhere the games genuinely differ, and for the same class of reason
-	// as the legend rule below: the engine used to price a hybrid and a
-	// Phyrexian pip as one generic each and to skip additional sacrifice
-	// costs, so it let spells be cast that could not actually be paid for.
-	// Making the cost real makes those casts stop happening. Games get
-	// shorter (4 seats 32 -> 26 turns, 8 seats 67 -> 55) with fewer intents
-	// and events, which is the shape you expect when unaffordable spells stop
-	// being cast; the 4-seat winner moves back to mono-black-aggro and the 6-
-	// and 8-seat winners are unchanged.
+	// Daze pays an ALTERNATIVE cost (return an Island rather than pay its mana
+	// cost). Thalia, Guardian of Thraben -- "noncreature spells cost {1} more",
+	// a RaiseCost static with Type$ Spell -- resolved onto death-n-taxes'
+	// battlefield at seq 284 and was still there. CR 601.2f composes the total
+	// cost from whichever cost is being paid PLUS all increases, so Daze's
+	// alternative cost is still taxed {1}; the engine used to apply cost
+	// increases only to a printed mana cost and let the alternative cost
+	// escape them entirely, so it cast Daze for free. The old streams recorded
+	// a price the rules do not allow, exactly as the legend-rule note below
+	// records boards the rules do not allow.
 	//
-	// Ratchet untouched and `make sim` 20/20 byte-identical, so determinism
-	// and card support are intact. Measured by the controller at the gate on
-	// a branch rebased onto this main, NOT taken from the seat's report --
-	// its numbers predated the jj-cont merge and disagreed with these.
-	2: "9baa1b561890285a",
-	4: "f40ea2d06f104b2b",
-	6: "911fa6376d76ff9e",
-	8: "8d2e580cde555aeb",
+	// Winners move at 6 seats (mono-green-stompy -> mono-black-aggro) and 8
+	// (mono-red-goblins -> death-n-taxes). A winner change is normally grounds
+	// to refuse a head, so it was checked rather than accepted: the 2-seat
+	// game keeps its winner, its turn count and 1257 of its 1907 events, which
+	// is what a single pricing correction looks like -- one divergence, then
+	// the bot's answer stream shifts and the game is simply a different one
+	// from there. The direction is mixed (4 seats gets shorter, 6 and 8 get
+	// longer), which is also right: taxing an alternative cost denies some
+	// spells and frees the mana for others.
+	//
+	// The 601.2g mana window in the same commit is NOT a contributor: measured
+	// zero window asks across the 4- and 6-seat acceptance games (the window
+	// only opens when the pool alone cannot pay and an untapped source
+	// exists), so it moves no head here.
+	//
+	// `make sim` 20/20 replay OK and the CR lane 71 -> 77 PASS with no leaf
+	// regressing. Measured by the controller at the gate on a branch rebased
+	// onto this main, NOT taken from the seat's report -- the seat's own
+	// numbers predated the hotfix merge.
+	2: "1cfa860e0057afd9",
+	4: "928f72df4805c92f",
+	6: "63ad9525e06ae62f",
+	8: "ee8da2340f6fa774",
 }
 
 func TestHeads(t *testing.T) {
