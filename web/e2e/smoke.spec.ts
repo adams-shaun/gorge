@@ -25,6 +25,7 @@ import { test, expect, type Page, type APIRequestContext } from '@playwright/tes
 const PUBLIC = process.env.SMOKE_PUBLIC;
 const OMNI = process.env.SMOKE_OMNI;
 const SEATED = process.env.SMOKE_SEATED;
+const FIXTURE = process.env.SMOKE_FIXTURE;
 
 // ui19: the seated-view gate. The two spectator modes above drove no seated
 // client, which is precisely the gap the task closes. These helpers measure
@@ -118,6 +119,126 @@ function epsGe(a: number, b: number, t: number): boolean {
   return a + t >= b;
 }
 
+/**
+ * driveToCardOptionsWindow drives the seeded seated game to its FIRST
+ * card-options window (ui23 R-E4-1). It answers the only decision the
+ * engine's auto-pass does not handle — the opening mulligan (keep) — by
+ * clicking the seated panel's own keep button, then poll the pending decision
+ * until the seat's first main phase offers a card from hand at a NON-ZERO
+ * wire index. The empty maintenance/priority windows on the way are
+ * auto-passed by the seated client's own skip-empty floor, so this function
+ * never touches them; it returns the target Decision to click its menu.
+ *
+ * The policy is deliberately trivial and fixed (answer keep, wait), so it is
+ * reproducible against the seeded game: no timing-dependent cleverness, no
+ * retries — just a generous wall-clock bound.
+ */
+async function driveToCardOptionsWindow(
+  page: Page,
+  request: APIRequestContext,
+  b: string,
+  table: string,
+  seat: number,
+  token: string,
+): Promise<{ kind: string; options: Array<{ index: number; kind: string; obj?: number }> }> {
+  const mResp = await request.get(`${b}/api/tables/${table}/matches`);
+  expect(mResp.ok(), `GET /api/tables/${table}/matches on ${b} should succeed`).toBe(true);
+  const matches = (await mResp.json()) as Array<{ match: number; events: number }>;
+  const have = matches.filter((m) => m.events > 0);
+  expect(have.length, `table ${table} should have a live match`).toBeGreaterThan(0);
+  const match = have[have.length - 1].match;
+  const sq = `?seat=${seat}&token=${encodeURIComponent(token)}`;
+  const pendingURL = `${b}/api/tables/${table}/matches/${match}/pending${sq}`;
+
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline) {
+    const p = await request.get(pendingURL);
+    if (p.status() === 409) {
+      // Nothing pending for this seat right now — the engine is elsewhere.
+      await page.waitForTimeout(400);
+      continue;
+    }
+    expect(p.ok(), `GET ${pendingURL} should succeed`).toBe(true);
+    const d = (await p.json()) as { kind: string; options: Array<{ index: number; kind: string; obj?: number }> };
+
+    // Target: a card-options window — a priority ask that offers a card from
+    // hand (obj defined) at a NON-ZERO index. That is the discriminating
+    // shape: clicking its menu must post the option's own index, because a
+    // positional (indexOf) bug would post 0 and act on the wrong card.
+    if (d.kind === 'priority' && d.options.some((o) => o.obj !== undefined && o.index > 0)) {
+      return d;
+    }
+
+    if (d.kind === 'mulligan') {
+      const keep = d.options.find((o) => o.kind === 'keep');
+      if (keep) {
+        const btn = page.locator(`.seat-panel [data-option="${keep.index}"]`);
+        await btn.waitFor({ state: 'visible', timeout: WAIT_MS });
+        await btn.click();
+        await page.waitForTimeout(600);
+      }
+      continue;
+    }
+
+    // Any other shape before the target (an empty priority window the
+    // skip-empty floor is about to pass) — wait for the game to advance.
+    await page.waitForTimeout(400);
+  }
+  throw new Error('driveToCardOptionsWindow: did not reach a card-options window');
+}
+
+/** ui24's fixture has two human seats, so this tiny driver echoes only
+ * server-provided option indices. It casts every offered zero-cost creature,
+ * passes every other priority window, and declines early attacks. With the
+ * fixed seed/deck this constructs the board instead of depending on bot policy. */
+type WireDecision = {
+  seq: number;
+  player: number;
+  kind: string;
+  min: number;
+  max: number;
+  options: Array<{ index: number; kind: string; label: string; obj?: number }>;
+};
+
+const fixtureToken = (seat: number): string => seat === 0 ? 'ui24fixture' : 'ui24fixture-1';
+
+async function postFixtureIntent(request: APIRequestContext, base: string, d: WireDecision, choices: number[]): Promise<void> {
+  const resp = await request.post(`${base}/api/tables/t1/matches/1/intent`, {
+    headers: { Authorization: `Bearer ${fixtureToken(d.player)}` },
+    data: { seq: d.seq, player: d.player, choices },
+  });
+  expect(resp.status(), `fixture intent for ${d.kind} seat ${d.player}`).toBe(204);
+}
+
+async function driveFixtureUntil(
+  request: APIRequestContext,
+  base: string,
+  stop: (d: WireDecision) => boolean,
+): Promise<WireDecision> {
+  const deadline = Date.now() + 20_000;
+  while (Date.now() < deadline) {
+    for (const seat of [0, 1]) {
+      const token = fixtureToken(seat);
+      const p = await request.get(`${base}/api/tables/t1/matches/1/pending?seat=${seat}&token=${token}`);
+      if (p.status() === 409) continue;
+      expect(p.ok(), `fixture pending seat ${seat}`).toBe(true);
+      const d = await p.json() as WireDecision;
+      if (stop(d)) return d;
+
+      let choices: number[] = [];
+      if (d.kind === 'priority') {
+        const cast = d.options.find((o) => o.kind === 'cast');
+        const pass = d.options.find((o) => o.kind === 'pass');
+        if (cast) choices = [cast.index];
+        else if (pass) choices = [pass.index];
+      }
+      await postFixtureIntent(request, base, d, choices);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  throw new Error('ui24 fixture did not reach the requested decision');
+}
+
 // How long a page may sit in its loading state before we call it a hang.
 // The live server paces decisions at 1.5s and pushes a snapshot on first
 // subscribe, so a healthy page mounts in well under a second; 20s is a
@@ -135,6 +256,27 @@ function sameOrigin(base: string, url: string): boolean {
   }
 }
 
+/** externalResourceError reports whether a console.error is a THIRD-PARTY
+ *  resource failure — a cross-origin fetch (the card art / oracle fetch to
+ *  Scryfall) that the browser CORS-blocks, or a blocked subresource load.
+ *  Such an error carries the external URL in its message, and it is exactly
+ *  the class of failure the requestfailed collector below already tolerates
+ *  ("fonts and other third-party resources may legitimately fail off-network
+ *  and must not poison the run"); without this filter a CORS-blocked card
+ *  art fetch poisons the gate even though the app itself is healthy. Named
+ *  sites are fine — the collector still rejects an error that is on the
+ *  app's OWN origin, or that blames a resource the app controls. */
+function externalResourceError(text: string, base: string): boolean {
+  const urls = text.match(/https?:\/\/[^\s'"]+/g) ?? [];
+  return urls.some((u) => {
+    try {
+      return new URL(u).origin !== new URL(base).origin;
+    } catch {
+      return false;
+    }
+  });
+}
+
 interface Issues {
   pageErrors: string[];
   consoleErrors: string[];
@@ -148,7 +290,21 @@ function watch(page: Page, base: string): Issues {
   const c: Issues = { pageErrors: [], consoleErrors: [], failed: [] };
   page.on('pageerror', (e) => c.pageErrors.push(String(e)));
   page.on('console', (m) => {
-    if (m.type() === 'error') c.consoleErrors.push(m.text());
+    if (m.type() !== 'error') return;
+    // A third-party resource failure (a cross-origin card art / oracle fetch
+    // CORS-blocked or failed off-network by the browser) is environment
+    // noise, not a product bug — the same tolerance the requestfailed
+    // collector applies. The browser also logs a generic "Failed to load
+    // resource" console error for such a fetch AND for the 409 /pending
+    // answer (the server's normal "nothing pending" reply); those are
+    // covered by the URL-bearing handlers below (requestfailed / response),
+    // which still catch a genuine SAME-ORIGIN failure and would report it
+    // with its URL. Filtering this generic message therefore cannot hide a
+    // product failure the URL-bearing handlers would not already report.
+    const text = m.text();
+    if (externalResourceError(text, base)) return;
+    if (/Failed to load resource/.test(text)) return;
+    c.consoleErrors.push(text);
   });
   page.on('requestfailed', (r) => {
     // ERR_ABORTED is the browser cancelling an in-flight request because
@@ -161,7 +317,11 @@ function watch(page: Page, base: string): Issues {
     }
   });
   page.on('response', (r) => {
-    if (sameOrigin(base, r.url()) && r.status() >= 400) {
+    // 409 is the server's benign "conflict" — /pending answers 409 when
+    // nothing is pending for this seat, and /intent answers 409 on a stale
+    // seq; the client recovers from both by design (see seatpanel.ts
+    // refreshPending / postIntent). It is not a product failure.
+    if (sameOrigin(base, r.url()) && r.status() >= 400 && r.status() !== 409) {
       c.failed.push(`HTTP ${r.status()} ${r.request().method()} ${r.url()}`);
     }
   });
@@ -340,9 +500,9 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
 
     test.describe.configure({ mode: 'serial' });
 
-    // seatToSeatDrive creates a real play-vs-bot game and returns the seated
-    // join path (seat 0 of a fresh table) — POST /api/games, exactly what the
-    // landing page does.
+/** createVsBotJoin creates a real play-vs-bot game and returns the seated
+ *  join path (seat 0 of a fresh table) — POST /api/games, exactly what the
+ *  landing page does. */
     async function createVsBotJoin(request: APIRequestContext, b: string): Promise<{ join: string; seat: number }> {
       const resp = await request.post(`${b}/api/games`, { data: { format: 'constructed' } });
       expect(resp.ok(), `POST /api/games on ${b} should succeed`).toBe(true);
@@ -512,5 +672,164 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
         await ctx.close();
       }
     });
+
+    // ui23 — the R-E4-1 guard, in a real browser. The rule this whole options
+    // feature rests on is: never resolve an option by position. The unit
+    // suite cannot express the discriminating test — vitest runs
+    // `environment: 'node'` with no DOM, and the existing R-E4-1 test calls
+    // the mock itself and asserts it was called, never clicking the rendered
+    // menu. A positional bug (clicking menu item N posts index-of-position
+    // instead of the option's own index) is type-clean, passes svelte-check,
+    // and passes every unit test — only a REAL browser click on the
+    // RENDERED menu can catch it.
+    //
+    // This drives the seeded vs-bot game to its FIRST card-options window —
+    // the seat's first main phase offers several cards from hand, each a
+    // distinct object with its own option at a NON-ZERO wire index (e.g.
+    // `play_land,1,Ancient Tomb` while `cast,0,Chalice` is first) exactly the
+    // discriminating shape: a tile whose menu item must post its object's
+    // OWN index, because `list.indexOf(opt)` would post 0 (the wrong card).
+    // We open the card's menu in the rendered fan, click an item, and assert
+    // the option that was actually POSTED is that option's own index — most
+    // robustly by which card it is that gets cast/played, since a positional
+    // bug plays the wrong one.
+    test('a card menu posts its own index, not a position in a rebuilt list (R-E4-1)', async ({ browser, request }) => {
+      const b = base as string;
+      const label = `[seated]`;
+      // The deterministic seeded game (seed 1, smoke.sh's -seed 1): seat 1 of
+      // the startup t1 table with smoke.sh's fixed seat token. A fixed answer
+      // policy against a fixed seed is reproducible, which is why the guard
+      // uses the seeded game rather than a random POST /api/games table.
+      const join = '/t/t1?seat=1&token=ui19seat1';
+      const seat = 1;
+      const ctx = await browser.newContext();
+      try {
+        const page = await ctx.newPage();
+        // Mount the seated client and keep it live while we drive the game
+        // (see `driveToCardOptionsWindow`: answer the mulligan, let the
+        // engine's auto-pass handle the empty windows, stop at the FIRST
+        // card-options window).
+        await page.goto(`${b}${join}`, { waitUntil: 'domcontentloaded' });
+        await page.locator('.handtrack .handfan').waitFor({ state: 'visible', timeout: WAIT_MS });
+        const c = watch(page, b);
+
+        const target = await driveToCardOptionsWindow(page, request, b, 't1', seat, 'ui19seat1');
+
+        // The target is the seat's first card-options window. Pick a CARD
+        // option at a NON-ZERO index (zero would be the first wire entry,and
+        // a positional bug would coincidentally be right on it) — the
+        // discriminating shape. Take the LAST such card option.
+        const cards = target.options.filter((o) => o.obj !== undefined && o.index > 0);
+        expect(cards.length).toBeGreaterThan(0);
+        const pick = cards[cards.length - 1];
+
+        // The hand fan renders THAT card. Open its badge menu and click the
+        // option item — the real click path the unit suite cannot reach.
+        const cardLoc = page.locator(`.handfan [data-obj="${pick.obj}"]`);
+        await cardLoc.waitFor({ state: 'visible', timeout: WAIT_MS });
+        const badge = cardLoc.locator('button[aria-haspopup="menu"]');
+        await badge.click();
+        const item = cardLoc.locator('button[role="menuitem"]');
+        await item.waitFor({ state: 'visible', timeout: WAIT_MS });
+        await item.click();
+
+        // Discriminating assertion, on the OBSERVABLE: the option's OWN card
+        // crosses to the board (a land played). Under a positional bug the
+        // click posts index 0 (the first wire option — casting the first
+        // card), so this card stays in hand and the assertion times out.
+        await page.waitForFunction((obj) => {
+          return document.querySelector(`.quadrant [data-obj="${obj}"]`) !== null;
+        }, pick.obj as number, { timeout: WAIT_MS });
+
+        expectClean(c, `${label} R-E4-1 card menu`);
+        await page.close();
+      } finally {
+        await ctx.close();
+      }
+    });
   });
 }
+
+// ui24 — construct the board the seed-1 game cannot produce. This separate
+// two-human fixture is a pure fixed-seed transcript: both decks contain only
+// zero-cost Memnites, and the driver only echoes wire options.
+test.describe('gorged [ui24] constructed board fixture', () => {
+  test.skip(!FIXTURE, 'SMOKE_FIXTURE unset — run via scripts/smoke.sh');
+  test.describe.configure({ mode: 'serial' });
+
+  test('a board tile posts its non-zero wire index and a long menu escapes the quadrant (R-E4-1)', async ({ browser, request }) => {
+    const b = FIXTURE as string;
+
+    // Cast every zero-cost creature for both seats, then stop at seat 0's
+    // first real attack declaration. Turn 1/2 creatures are summoning-sick;
+    // this is deterministically turn 3 and has all seven seat-0 creatures.
+    const attack = await driveFixtureUntil(request, b,
+      (d) => d.kind === 'attackers' && d.player === 0);
+    expect(attack.options.length, 'fixture must offer at least three attackers').toBeGreaterThanOrEqual(3);
+
+    const ctx = await browser.newContext({ viewport: { width: 1000, height: 700 } });
+    const page = await ctx.newPage();
+    try {
+      await page.goto(`${b}/t/t1?seat=0&token=${fixtureToken(0)}`, { waitUntil: 'domcontentloaded' });
+      await page.locator('.quadrant[data-seat="0"] .card-tile[data-options]').first().waitFor({ state: 'visible', timeout: WAIT_MS });
+
+      // Choose the first object in a rendered stack whose FIRST tile-local
+      // option is not wire index 0. Once expanded its menu has one entry at
+      // local position 0, so indexOf/array-position would post 0 and select a
+      // different creature. The production line must post option.index.
+      const stack = page.locator('.quadrant[data-seat="0"] button.stacked[data-obj-group]').first();
+      await stack.click();
+      const pick = attack.options.find((o) => o.index > 0 && o.obj !== undefined);
+      expect(pick, 'the watched board option must have a non-zero wire index').toBeDefined();
+      if (!pick || pick.obj === undefined) return;
+      const tile = page.locator(`.quadrant[data-seat="0"] .card-tile[data-obj="${pick.obj}"]`);
+      await tile.waitFor({ state: 'visible', timeout: WAIT_MS });
+
+      await tile.locator('xpath=..').locator('button[aria-haspopup="menu"]').click();
+      const menuItem = page.locator('body > .menu-pop button[role="menuitem"]').first();
+      await menuItem.waitFor({ state: 'visible', timeout: WAIT_MS });
+      await menuItem.click();
+      await expect(tile).toHaveAttribute('data-selected', '1');
+
+      // Commit every attacker through the API. The browser click above only
+      // changes local selection because attackers is a Min=0 multi-pick ask.
+      await postFixtureIntent(request, b, attack, attack.options.map((o) => o.index));
+
+      // Seat 1 owns seven blockers. Every blocker gets one wire option per
+      // attacker, so after expanding the collapsed stack its card menu has a
+      // genuine seven-row list rather than the seed game's one-row menu.
+      const blocks = await driveFixtureUntil(request, b,
+        (d) => d.kind === 'blockers' && d.player === 1);
+      expect(blocks.options.length, 'fixture must produce a long blocking menu').toBeGreaterThanOrEqual(7);
+
+      await page.setViewportSize({ width: 650, height: 700 });
+      await page.goto(`${b}/t/t1?seat=1&token=${fixtureToken(1)}`, { waitUntil: 'domcontentloaded' });
+      const blockerStack = page.locator('.quadrant[data-seat="1"] button.stacked[data-obj-group]').first();
+      await blockerStack.evaluate((el) => (el as HTMLElement).click());
+      const badge = page.locator('.quadrant[data-seat="1"] button[aria-haspopup="menu"]').last();
+      await badge.waitFor({ state: 'visible', timeout: WAIT_MS });
+      await badge.click();
+      const menu = page.locator('body > .menu-pop');
+      await menu.waitFor({ state: 'visible', timeout: WAIT_MS });
+      const measurement = await page.evaluate(() => {
+        const menu = document.querySelector('body > .menu-pop') as HTMLElement;
+        const quadrant = document.querySelector('.quadrant[data-seat="1"]') as HTMLElement;
+        const m = menu.getBoundingClientRect();
+        const q = quadrant.getBoundingClientRect();
+        return {
+          menuBottom: m.bottom,
+          quadrantBottom: q.bottom,
+          delta: m.bottom - q.bottom,
+          rows: menu.querySelectorAll('[role="menuitem"]').length,
+          parent: menu.parentElement?.tagName ?? '',
+        };
+      });
+      console.log(`UI24_OVERFLOW ${JSON.stringify(measurement)}`);
+      expect(measurement.rows).toBeGreaterThanOrEqual(7);
+      expect(measurement.parent).toBe('BODY');
+      expect(measurement.menuBottom).toBeLessThanOrEqual(700);
+    } finally {
+      await ctx.close();
+    }
+  });
+});

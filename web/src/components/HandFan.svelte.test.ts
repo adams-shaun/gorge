@@ -1,12 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render } from 'svelte/server';
 import type { CardView, PlayerView } from '../protocol';
+import type { CardOptions } from '../lib/cardoptions';
+import { optionsByObj } from '../lib/cardoptions';
 import HandFan from './HandFan.svelte';
 
 // SSR via svelte/server, the repo's component-test pattern: no DOM, no
 // $effect, no pointer/hover lifecycle. The fan's per-card `left` is derived
 // from the pure handFanLayout over the `width` prop, so overlap (second card's
 // left < card width) is observable in the rendered HTML without a browser.
+// The options affordance (ui23) is reached by the same seed CardTile uses
+// (`open0`): the harness cannot click a badge to open a menu, so the test
+// drives the menu's own state by hand.
 
 const card = (id: number, name: string): CardView => ({
   id, name, types: 'Instant', mana_cost: 'U',
@@ -72,5 +77,70 @@ describe('HandFan — the seated player\'s own hand (Task ui17)', () => {
     expect(l[1]).toBeGreaterThan(l[0]);
     // the fan is monotonically stepped and bounded by the card width
     for (let i = 1; i < l.length; i++) expect(l[i]).toBeGreaterThan(l[i - 1]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ui23 — the hand gets the same options index a board tile does. One mechanism
+// (cardoptions.ts), one index, one post path (R-E4-1). The suite asserts the
+// affordance RENDERS, driven via the open0 seed (a badge click cannot happen
+// in an SSR harness); the real click->menu->index path is guarded end-to-end
+// in web/e2e/smoke.spec.ts.
+// ---------------------------------------------------------------------------
+function bundle(over: Partial<CardOptions> = {}): CardOptions {
+  const decisions = {
+    seq: 1, player: 0, kind: 'priority', prompt: 'main1', min: 1, max: 1,
+    options: [
+      { index: 3, kind: 'cast', label: 'Cast Walking Ballista', obj: 16, player: 0 },
+      { index: 8, kind: 'cast', label: 'Cast Eldrazi Mimic', obj: 17, player: 0 },
+    ],
+  };
+  return {
+    byObj: optionsByObj(decisions as never),
+    picked: [],
+    tone: 'offered',
+    post: vi.fn(),
+    ...over,
+  };
+}
+
+const ballistaHand = player([card(16, 'Walking Ballista')]);
+
+describe('HandFan options affordance (ui23)', () => {
+  it('a hand card the decision offers something to wears a badge with the count and an accessible name', () => {
+    const { html } = render(HandFan, { props: { player: ballistaHand, width: BOARD_W, options: bundle() } });
+    expect(html).toContain('aria-haspopup');
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain('1 action for Walking Ballista');
+    expect(html).toContain('badge__n');
+  });
+
+  it('the option menu renders the server labels VERBATIM', () => {
+    const { html } = render(HandFan, { props: { player: ballistaHand, width: BOARD_W, options: bundle(), open0: 16 } });
+    expect(html).toContain('Cast Walking Ballista');
+    expect(html).toContain('role="menu"');
+    expect(html).toContain('role="menuitem"');
+  });
+
+  it('a card with no options offer renders no badge and no menu (the no-mark state)', () => {
+    const { html } = render(HandFan, { props: { player: ballistaHand, width: BOARD_W, options: null } });
+    expect(html).not.toContain('aria-haspopup');
+    expect(html).not.toContain('tile-actions');
+  });
+
+  it('the mark wears the decision tone: initiative for a blocked decision, offered for an open window', () => {
+    const initiative = render(HandFan, { props: { player: ballistaHand, width: BOARD_W, options: bundle({ tone: 'initiative' }) } });
+    expect(initiative.html).toContain('data-tone="initiative"');
+    expect(initiative.html).toContain('badge--initiative');
+
+    const offered = render(HandFan, { props: { player: ballistaHand, width: BOARD_W, options: bundle({ tone: 'offered' }) } });
+    expect(offered.html).toContain('data-tone="offered"');
+    expect(offered.html).toContain('badge--offered');
+  });
+
+  it('a picked option is visibly selected on the hand card with its pick order', () => {
+    const { html } = render(HandFan, { props: { player: ballistaHand, width: BOARD_W, options: bundle({ picked: [3] }) } });
+    expect(html).toContain('data-selected="1"');
+    expect(html).toContain('class="sel data');
   });
 });
