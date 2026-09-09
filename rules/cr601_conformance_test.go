@@ -2,9 +2,10 @@ package rules
 
 // Reference: Magic: The Gathering Comprehensive Rules, 2026-08-07 revision.
 // These assertions expose UNFIXED divergences, not approved approximations.
-// Enable explicitly with GORGE_CR_CONFORMANCE=1. Remove each opt-in guard when
-// its defect is fixed; do not turn the incorrect behaviour into an expectation.
-// Default skips preserve the tests-only dispatch's unchanged-engine gates.
+// Enable explicitly with GORGE_CR_CONFORMANCE=1. The flag gates ONLY the
+// known-red leaves that still fail; every passing leaf runs in the ordinary
+// lane. Remove each remaining opt-in guard when its defect is fixed; do not
+// turn the incorrect behaviour into an expectation.
 
 import (
 	"os"

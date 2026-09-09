@@ -6,6 +6,8 @@ package rules
 // CR 704.5d/h/j/m/q: lines 10470, 10482-10484, 10488-10490,
 // 10497-10498, 10508-10510. CR 702.16c: lines 7931-7933.
 // These are engine-boundary probes with compiled cards, never fabricated SAs.
+// Every leaf here passes with the conformance flag on, so all run in the
+// ordinary lane.
 
 import (
 	"slices"
@@ -52,7 +54,7 @@ func TestCR704NoLifeSBAInsideSmallpoxDiscard(t *testing.T) {
 }
 
 func TestCR704SimultaneousDeathsPreserveBloodArtistWitness(t *testing.T) {
-	requireCR601Audit(t, "CR 704.3: sequential SBA moves lose the first casualty's witness of the second death")
+	// Graduated: passes with the conformance flag on; runs in the ordinary lane.
 	e := crResolutionEngine(t, []string{"Blood Artist"}, nil)
 	artist := crAbortMove(t, e, 0, "Blood Artist", state.ZBattlefield)
 	delver := crAbortMove(t, e, 0, "Delver of Secrets", state.ZBattlefield)
@@ -87,7 +89,7 @@ func TestCR704SimultaneousDeathsPreserveBloodArtistWitness(t *testing.T) {
 // The assertion allows a real choice to suspend the boundary: it forbids
 // priority with both legends, but does NOT certify a future chooser's options.
 func TestCR704CorpusLegendDuplicatesCannotReachPriority(t *testing.T) {
-	requireCR601Audit(t, "CR 704.3/704.5j: the legend rule is absent")
+	// Graduated: passes with the conformance flag on; runs in the ordinary lane.
 	reg := testutil.CorpusRegistry(t)
 	checked := 0
 	for _, c := range reg.Cards {
