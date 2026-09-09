@@ -1,4 +1,5 @@
 import type { CardView, EventBody, PlayerView } from '../protocol';
+import { seatCorner, type SeatCorner } from './seattable';
 
 export type Group = 'lands' | 'creatures' | 'others';
 
@@ -136,10 +137,17 @@ export function stackFaces(group: CardStackGroup, expanded: boolean): CardView[]
   return expanded ? group.cards : [group.cards[0]];
 }
 
-/** quadrantFor places seat 0 bottom-left and proceeds clockwise, so turn order reads around the table. Assumes at most 4 seats — 5-8 seat tables are out of M2a's focused-view scope. */
-export function quadrantFor(seat: number, seats: number): 'tl' | 'tr' | 'bl' | 'br' | 'l' | 'r' {
-  if (seats <= 2) return seat === 0 ? 'l' : 'r';
-  return (['bl', 'tl', 'tr', 'br'] as const)[seat % 4];
+/**
+ * quadrantFor places a seat on the felt relative to the viewer. It is the
+ * board's one call into the seat→corner mapping, which now lives in
+ * seattable.ts as {@link seatCorner} (relative-to-viewer: a 1v1 viewer sits
+ * at the bottom; a spectator falls back to seat 0 at the bottom). The name
+ * and the 0..4-seat contract are unchanged; `viewer` (View.viewer, NoSeat
+ * 255 for a spectator) is threaded through so the mapping can be viewer-
+ * relative.
+ */
+export function quadrantFor(seat: number, seats: number, viewer: number): SeatCorner {
+  return seatCorner(seat, seats, viewer);
 }
 
 /**
