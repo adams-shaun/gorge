@@ -153,7 +153,8 @@
   id="card-detail-{card.id}"
   role="tooltip"
   style:left="{placement.x}px"
-  style:top="{placement.y}px"
+  style:top={placement.y != null ? `${placement.y}px` : null}
+  style:bottom={placement.bottom != null ? `${placement.bottom}px` : null}
   style:width="{PANEL_WIDTH}px"
   style:max-height="{placement.maxHeight}px"
 >
