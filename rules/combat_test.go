@@ -36,10 +36,46 @@ func onBoardReady(t *testing.T, e *Engine, p state.PlayerID, src string) state.O
 	return id
 }
 
+// drainCombatPriority answers "pass" for every priority decision the engine
+// offers while it is still inside a combat declaration step. CR 508.2 and
+// 509.2 give players priority in the declare steps AFTER the declaration is
+// made, so a fixture that declares attackers or blockers and then wants the
+// NEXT combat event has to cross that window first. Before that window
+// existed the declaration handlers advanced the step themselves and these
+// helpers returned straight into the following step; the window is the
+// rules-correct behaviour, and draining it here is what keeps the fixtures
+// expressing "declare, then get on with combat" rather than encoding how
+// many decisions combat happens to contain.
+func drainCombatPriority(t *testing.T, e *Engine) {
+	t.Helper()
+	for i := 0; i < 64; i++ {
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KPriority {
+			return
+		}
+		if e.G.Step != state.StepDeclareAttackers && e.G.Step != state.StepDeclareBlockers {
+			return
+		}
+		idx := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				idx = o.Index
+			}
+		}
+		if idx < 0 {
+			t.Fatalf("combat priority decision with no pass option: %+v", d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+			t.Fatalf("pass combat priority: %v", err)
+		}
+	}
+	t.Fatal("combat priority window did not close within the pass budget")
+}
+
 // submitAttackers finds the KAttackers options naming each of ids and submits
 // exactly those. Order does not matter for attackers (every one of them ends
 // up sharing the same M1-fixed defender), unlike submitBlockers below.
-func submitAttackers(t *testing.T, e *Engine, ids ...state.ObjID) {
+func submitAttackersOnly(t *testing.T, e *Engine, ids ...state.ObjID) {
 	t.Helper()
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KAttackers {
@@ -63,12 +99,23 @@ func submitAttackers(t *testing.T, e *Engine, ids ...state.ObjID) {
 	}
 }
 
+// submitAttackers declares and then crosses the CR 508.2 priority window, so
+// a fixture that only wants "attackers are declared, now show me the next
+// combat event" reads the same as it did before that window existed. A test
+// about the window ITSELF must use submitAttackersOnly and drive priority by
+// hand -- draining here would answer the very decision it means to inspect.
+func submitAttackers(t *testing.T, e *Engine, ids ...state.ObjID) {
+	t.Helper()
+	submitAttackersOnly(t, e, ids...)
+	drainCombatPriority(t, e)
+}
+
 // submitBlockers finds, for each blockerID in the caller's own order, the
 // KBlockers option that names it, and submits those indices in that same
 // order. Order is significant here (unlike submitAttackers): it becomes the
 // Pairs order in the DeclareBlockers event, which BlockedBy preserves, which
 // is what dealCombatDamage's damage-assignment loop reads as blocker order.
-func submitBlockers(t *testing.T, e *Engine, blockerIDs ...state.ObjID) {
+func submitBlockersOnly(t *testing.T, e *Engine, blockerIDs ...state.ObjID) {
 	t.Helper()
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KBlockers {
@@ -91,6 +138,14 @@ func submitBlockers(t *testing.T, e *Engine, blockerIDs ...state.ObjID) {
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
 		t.Fatalf("submit blockers: %v", err)
 	}
+}
+
+// submitBlockers crosses the CR 509.2 priority window, for the same reason
+// submitAttackers crosses CR 508.2's. submitBlockersOnly stops before it.
+func submitBlockers(t *testing.T, e *Engine, blockerIDs ...state.ObjID) {
+	t.Helper()
+	submitBlockersOnly(t, e, blockerIDs...)
+	drainCombatPriority(t, e)
 }
 
 func TestBlockerDeclarationLegality(t *testing.T) {
@@ -190,7 +245,7 @@ func TestCombatPriorityDoesNotRepeatDeclarations(t *testing.T) {
 		e := combatEngine(t)
 		attacker := onBoardReady(t, e, 0, creature)
 		e.askAttackers()
-		submitAttackers(t, e, attacker)
+		submitAttackersOnly(t, e, attacker)
 		before := countEvents(e, events.DeclareAttackers)
 
 		passOnce(t, e)
@@ -209,7 +264,7 @@ func TestCombatPriorityDoesNotRepeatDeclarations(t *testing.T) {
 		e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{attacker}})
 		e.G.Step = state.StepDeclareBlockers
 		e.askBlockers()
-		submitBlockers(t, e)
+		submitBlockersOnly(t, e)
 		before := countEvents(e, events.DeclareBlockers)
 
 		passOnce(t, e)
@@ -791,6 +846,7 @@ func TestSplitAttackAcrossTwoDefenders(t *testing.T) {
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{i1, i2}}); err != nil {
 		t.Fatalf("submit split attack: %v", err)
 	}
+	drainCombatPriority(t, e)
 	// Neither defender has a creature to block with (mountain-only seats),
 	// so combat cascades straight to damage: seat 2 took the 2/2, seat 3
 	// took the 3/3, and seat 1 -- the next living seat, the ONLY pre-m34
@@ -850,6 +906,7 @@ func TestSameAttackerCannotAttackTwoDefenders(t *testing.T) {
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{i1}}); err != nil {
 		t.Fatalf("legal attack rejected after the guard: %v", err)
 	}
+	drainCombatPriority(t, e)
 	if got := e.G.Players[1].Life; got != 18 {
 		t.Fatalf("seat 1 life = %d, want 18 (the lone swing landed)", got)
 	}
