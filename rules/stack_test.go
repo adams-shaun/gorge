@@ -35,6 +35,9 @@ func TestCastPutsSpellOnStackAndAsksForTargets(t *testing.T) {
 
 	castFirst(t, e, "cast")
 
+	// CR 601.2a: the spell is on the stack at the target decision -- the
+	// stack move precedes the target choice (601.2c). Payment (601.2h) follows
+	// the target, so at this unanswered decision the R is still unspent.
 	if len(e.G.Stack) != 1 {
 		t.Fatalf("stack = %v, want the spell", e.G.Stack)
 	}
@@ -45,8 +48,26 @@ func TestCastPutsSpellOnStackAndAsksForTargets(t *testing.T) {
 	if len(d.Options) < 2 {
 		t.Fatalf("both players should be legal targets: %+v", d.Options)
 	}
+	// CR 601.2c-before-601.2h (not the old spend-at-target ordering): payment
+	// is deferred until the target is chosen.
+	if e.G.Players[0].Pool[state.MR] != 1 {
+		t.Errorf("casting spent mana before the target was chosen; pool=%v, want the R unspent", e.G.Players[0].Pool)
+	}
+	// Choosing the target completes the transaction: pay, then the cast fires.
+	idx := -1
+	for _, o := range d.Options {
+		if o.Kind == "player" && o.Player == 1 {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("opponent not offered as a target: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+		t.Fatal(err)
+	}
 	if e.G.Players[0].Pool[state.MR] != 0 {
-		t.Error("casting did not spend mana")
+		t.Errorf("casting did not spend the R after the target was chosen; pool=%v", e.G.Players[0].Pool)
 	}
 }
 
@@ -321,11 +342,14 @@ func TestCastReplayThroughSubmit(t *testing.T) {
 		t.Fatalf("submit cast: %v", err)
 	}
 
+	// CR 601.2a: the spell is on the stack before its target is chosen, so
+	// at the (still unanswered) target decision the R is not yet spent --
+	// payment (601.2h) follows the target (601.2c), not precedes it.
 	if len(e.G.Stack) != 1 || e.G.Stack[0] != o.ID {
 		t.Fatalf("stack = %v, want [%d]", e.G.Stack, o.ID)
 	}
-	if e.G.Players[0].Pool[state.MR] != 0 {
-		t.Fatalf("pool = %v, want the R spent", e.G.Players[0].Pool)
+	if e.G.Players[0].Pool[state.MR] != 1 {
+		t.Fatalf("pool = %v, want the R still unspent at the target decision", e.G.Players[0].Pool)
 	}
 
 	target := e.Pending()
@@ -347,6 +371,10 @@ func TestCastReplayThroughSubmit(t *testing.T) {
 	}
 	if got := e.G.Obj(o.ID).Targets; len(got) != 1 || !got[0].IsPlayer || got[0].Player != 1 {
 		t.Fatalf("targets = %+v, want a single player-1 target", got)
+	}
+	// Payment happens when the target is chosen: the R is now spent.
+	if e.G.Players[0].Pool[state.MR] != 0 {
+		t.Fatalf("pool = %v, want the R spent after the target was chosen", e.G.Players[0].Pool)
 	}
 
 	// Both players pass; the spell resolves.

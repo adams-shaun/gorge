@@ -413,7 +413,10 @@ func TestUnderDelveAbortsTheCast(t *testing.T) {
 	e.cast = &pendingCast{player: 0, card: angler, from: state.ZHand, mode: "", ability: -1,
 		cost: ParseCost("6 B"), x: 0, xDone: true, delveDone: true,
 		delve: []state.ObjID{junk, junk}}
-	e.commitCast()
+	// The transaction commits via the split stage flow (push, target, pay) -
+	// the cost is unpayable, so payCast's abort arm reverses the push and
+	// clears the flow, leaving the card in hand.
+	e.continueCast()
 	if !hasNote(e, "cast aborted: cost no longer payable") {
 		t.Fatal("no abort Note")
 	}
@@ -503,6 +506,14 @@ func TestAlternativeCostWithSacPartIsGatedOnCastable(t *testing.T) {
 		t.Fatalf("sacrifice choice %+v", d)
 	}
 	submitChoices(t, e2, 0)
+	// CR 601.2c-before-601.2h: the sacrifice is part of paying the cost
+	// (601.2h), so it is executed only once the target is chosen (601.2c).
+	// Answer the target, then assert the bear was sacrificed.
+	td := e2.Pending()
+	if td == nil || td.Kind != decision.KTarget {
+		t.Fatalf("expected a target decision after the sacrifice choice, got %+v", td)
+	}
+	submitChoices(t, e2, indexOfPlayerOption(td, 1))
 	if e2.G.Obj(bear).Zone != state.ZGraveyard {
 		t.Fatalf("bear %s, want graveyard", e2.G.Obj(bear).Zone)
 	}
