@@ -125,6 +125,7 @@ start_one() {
 		-pace "$PACE" \
 		-format "$FORMATS" \
 		-seed "$SEED" \
+		-vsbot \
 		>"$log" 2>&1 </dev/null 9>&- &
 	say "started $spectator on 127.0.0.1:$port (log $log)"
 }
