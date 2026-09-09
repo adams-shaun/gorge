@@ -557,6 +557,33 @@ func (e *Engine) resolveTop() {
 		// moving to a card zone. This build has no "ceases to exist" zone,
 		// so it is parked in exile as the closest existing approximation.
 		e.emit(events.Event{Kind: events.Resolve, Obj: id})
+		// CR 603.5: an optional triggered ability goes on the stack regardless
+		// (putTriggersOnStack pushes it unconditionally), and its controller
+		// -- or whatever seat its OptionalDecider$ names -- chooses whether to
+		// apply the effect as the ability resolves. With the Resolve event
+		// already logged, pose that yes/no now and SPEND the resolution: a
+		// yes re-enters it (resumeResolution runs the effect, exactly as the
+		// tail below would have), a no lets the ability leave the stack
+		// having done nothing. A decider who has left the game is nobody to
+		// apply an effect to, so the ability ceases to exist (CR 800.4a) and
+		// is parked in exile like the other ceased-to-exist rests. Activated
+		// abilities and mandatory triggers (findTriggerForAbility returns
+		// false for the former, or an OptionalDecider-less trigger for the
+		// latter) fall straight through to their effect below.
+		if t, ok := e.findTriggerForAbility(o.Source, o.Ability); ok {
+			if spec := t.Params["OptionalDecider"]; spec != "" {
+				who, askable := e.deciderFromSpec(spec, o.Controller, o.Remembered)
+				if !askable {
+					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+						From: state.ZStack, To: state.ZExile, Text: "ceased to exist: its optional decider left the game"})
+					e.ensureLeftTheStack(id, state.ZExile, "the optional decider of this ability left the game, so the "+
+						"ability ceased to exist (CR 800.4a) and was parked in exile")
+					return
+				}
+				e.askOptionalAtResolution(who, o, o.Ability, e.abilityLabel(o, t))
+				return
+			}
+		}
 		// The ability object itself has no Face, so its SVar table (needed
 		// for Num's SVar indirection, e.g. Goblin Piledriver's "NumAtt$ +X")
 		// comes from the permanent that granted it (o.Source) instead.

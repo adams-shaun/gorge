@@ -198,10 +198,20 @@ func crAbortSites(t *testing.T, sites []string) {
 				}
 			}
 			if site == "activation_mana" {
-				// Decline the genuine ETB trigger BEFORE the proposal; it is
-				// not an abort consequence and must not pollute the probe.
+				// CR 603.5: the genuine ETB trigger now goes on the stack and its
+				// yes/no is asked AS IT RESOLVES, not at placement. It is not an
+				// abort consequence, so let the seats pass so the ability reaches
+				// its resolution ask, then decline it there — the probe then
+				// starts from the same clean board the placement decline used to
+				// produce.
 				e.pending = nil
 				e.Advance()
+				for n := 0; e.Pending() != nil && e.Pending().Kind == decision.KPriority && n < 40; n++ {
+					crAbortAnswer(t, e, name, crAbortOption(t, e, name, "pass", 0))
+				}
+				if d := e.Pending(); d == nil || d.Kind != decision.KTriggerOptional {
+					t.Fatalf("CR 733.1 %s seq %d: expected the ETB optional resolution ask, got %+v", name, len(e.L.Events), d)
+				}
 				crAbortAnswer(t, e, name, crAbortOption(t, e, name, "no", 0))
 			}
 			e.askPriority(0)

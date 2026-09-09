@@ -746,6 +746,57 @@ func replayFromLog(t *testing.T, cfg Config, log []events.Event) *state.Game {
 // shape (Players, Objs, Stack, each zone, and the turn-structure scalars)
 // rather than a whole-struct reflect.DeepEqual, so a mismatch is reported
 // with enough detail to diagnose.
+// stripTransientAbilities removes from g the footprint a triggered ability's
+// own came-and-gone stack object leaves relative to base: the transient Objs
+// slot(s) appended after the base snapshot, their zone membership, and the
+// NextID increment(s) they consumed. It is the honest whole-game diff for CR
+// 603.5, where a declined optional trigger DID go on the stack and then
+// depart to exile having done nothing -- so the diff cannot be literally
+// empty, but everything OTHER than the ability's own footprint must be
+// byte-identical.
+func stripTransientAbilities(base, g *state.Game) {
+	if len(g.Objs) <= len(base.Objs) {
+		return
+	}
+	// The transient objects were appended after the base snapshot's last one
+	// (nothing else is created between the two snapshots on the paths that
+	// use this helper). Record each one's id and current zone/owner, drop the
+	// zone membership, then trim the slots and restore NextID so diffGames
+	// sees only the durable game.
+	type transient struct {
+		id    state.ObjID
+		zone  state.Zone
+		owner state.PlayerID
+	}
+	var ts []transient
+	for i := len(base.Objs); i < len(g.Objs); i++ {
+		o := &g.Objs[i]
+		ts = append(ts, transient{id: o.ID, zone: o.Zone, owner: o.Controller})
+	}
+	for _, t := range ts {
+		if t.zone == state.ZStack {
+			kept := g.Stack[:0]
+			for _, id := range g.Stack {
+				if id != t.id {
+					kept = append(kept, id)
+				}
+			}
+			g.Stack = kept
+			continue
+		}
+		z := g.Zone(t.zone, t.owner)
+		kept := z[:0]
+		for _, id := range z {
+			if id != t.id {
+				kept = append(kept, id)
+			}
+		}
+		g.SetZone(t.zone, t.owner, kept)
+	}
+	g.Objs = g.Objs[:len(base.Objs)]
+	g.NextID = base.NextID
+}
+
 func diffGames(a, b *state.Game) string {
 	var diffs []string
 	if !reflect.DeepEqual(a.Players, b.Players) {

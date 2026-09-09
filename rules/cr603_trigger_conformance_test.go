@@ -6,8 +6,8 @@ package rules
 // 603.4 (5010-5023): intervening-if checked BOTH at occurrence and resolution.
 // 603.5 (5025-5030): optional effects still go on stack; choose at resolution.
 // 603.8 (5127-5138): state triggers fire as soon as their condition holds.
-// The conformance flag (GORGE_CR_CONFORMANCE=1) gates only OptionalEffectWaitsForResolution,
-// the one leaf that still fails; every other leaf runs in the ordinary lane.
+// Every leaf in this file passes with the conformance flag on and runs in the
+// ordinary lane; the conformance flag gates nothing here.
 
 import (
 	"testing"
@@ -79,11 +79,8 @@ func TestCR603LegalActivationTriggersRings(t *testing.T) {
 	}
 }
 
-// KNOWN-RED: fails with the conformance flag on, so the gate stays.
-// Removed when an optional trigger waits for its resolution-time choice
-// before the effect is considered declined (CR 603.5).
+// Graduated: passes with the conformance flag on; runs in the ordinary lane.
 func TestCR603OptionalEffectWaitsForResolution(t *testing.T) {
-	requireCR601Audit(t, "CR 603.5: optional trigger is declined before it enters stack")
 	reg := testutil.CorpusRegistry(t)
 	e := crAbortEngine(t, reg, "ur-delver", "Stoneforge Mystic")
 	start := len(e.L.Events)
