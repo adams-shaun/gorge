@@ -45,7 +45,11 @@ const baseView = (over: Partial<View> = {}): View => ({
 describe('Rail — public spectator (every seat\'s hand and pool are null)', () => {
   it('renders with no crash and no fabricated data: a null hand reads as a plain count row, not an apology or an empty list', () => {
     const { html } = render(Rail, { props: { view: baseView(), seats, decision: null } });
-    expect(html).toContain('data-hand-count');
+    // the seats start COLLAPSED (ui10 bug 3: quiet until asked), so the hand
+    // count lives in each seat's one-line summary rather than as its own row;
+    // on expand the null hand renders a plain count row (data-hand-count),
+    // asserted in the ZoneViewer suite. Here the count is what must be true.
+    expect(html).toContain('7 hand');
     expect(html).not.toContain('not visible');
     // the count is true even when the cards are hidden — hand_size, not a lie
     expect(html).toContain('hand');
@@ -58,6 +62,14 @@ describe('Rail — public spectator (every seat\'s hand and pool are null)', () 
     // exists so a future regression that removes that guard fails HERE,
     // in the rail's own suite, rather than only in a live public server.
     expect(() => render(Rail, { props: { view: baseView(), seats, decision: null } })).not.toThrow();
+  });
+
+  it('the zone pane shows EVERY seat\'s zones, not only the focused one (ui10 bug 3)', () => {
+    const v = baseView({ players: [spectatorPlayer(0, 'Ari'), spectatorPlayer(1, 'Bo')] });
+    const { html } = render(Rail, { props: { view: v, seats, decision: null } });
+    // both seats get their own collapsible zone group in the same pane
+    expect(html).toContain("Ari's zones");
+    expect(html).toContain("Bo's zones");
   });
 });
 
