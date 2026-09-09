@@ -487,6 +487,33 @@ func (e *Engine) resolveTop() {
 		// run before anything below touches it. Task 20 is what actually
 		// puts objects like this on the stack.
 		//
+		// CR 603.4 (intervening-if): a triggered ability's condition is
+		// checked both when it would trigger AND again as it resolves; if
+		// it no longer holds, the ability is removed from the stack and does
+		// nothing. The trigger was queued because triggerConditionHolds was
+		// true at trigger time (triggerMatches), but Scute Mob's "whenever
+		// you control five or more lands" can be false by the time the
+		// ability resolves -- here a real instant response destroyed one of
+		// those lands. findTriggerForAbility identifies the T: line from the
+		// SA pointer: it is false for an activated ability (whose SA comes
+		// from Abilities, not a Triggers entry) so this recheck never
+		// applies to one, and false for a source whose face has changed or
+		// gone so a trigger-only rule never fires on unknown provenance.
+		// The fizzle move is the same exile rest the ability branch uses for
+		// CR 608.2b's no-legal-targets case: an ability "ceases to exist"
+		// (608.2m) rather than moving to a card zone, and this build parks
+		// such objects in exile. Ordered first because it decides whether
+		// the ability does anything at all.
+		if t, ok := e.findTriggerForAbility(o.Source, o.Ability); ok {
+			if !e.triggerConditionHolds(t, o.Source) {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+					From: state.ZStack, To: state.ZExile, Text: "fizzled: intervening-if no longer holds"})
+				e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this "+
+					"ability's 'intervening-if' move without relocating it anywhere; sent to exile "+
+					"instead of re-resolving forever")
+				return
+			}
+		}
 		// No triggered or activated ability this build produces ever
 		// actually populates Targets (only Remembered): Task 20's
 		// checkTriggers never calls askTarget, which is the only place
