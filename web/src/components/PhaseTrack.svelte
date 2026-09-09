@@ -9,13 +9,12 @@
    * standing right now, plus the seat's stops, set by clicking the step you
    * want to be handed the game back at.
    *
-   * It is ONE ROW HIGH and stays that way. It used to carry a head row --
-   * whose turn it is, the round number, and a sentence explaining
-   * shift-click -- above the cells, and a caption above each phase group.
-   * The user asked three times for a thin bar: all of that is gone. Whose
-   * turn it is comes from the shard's own active-seat perimeter and from
-   * IdentityBar; the shift-click modifier is on every stoppable cell's
-   * title. Do not reintroduce a second line box here.
+   * It is THIN and stays that way. It used to carry a head row -- whose turn
+   * it is, the round number, and a sentence explaining shift-click -- above
+   * the cells. That is gone: whose turn it is comes from the shard's own
+   * active-seat perimeter and from IdentityBar, and the shift-click modifier
+   * is on every stoppable cell's title. The phase captions stay, at 9px, as
+   * tick marks on the ruler. Do not reintroduce the head row.
    *
    * It decides nothing about the rules. The step order and the stoppable
    * set come from lib/autopilot via lib/phases (the client has exactly one
@@ -79,6 +78,15 @@
            timeline cut into five labelled sections — not five equal boxes,
            one of which happens to contain five steps. -->
       <div class="group" data-group={g.key} style={`flex-grow:${g.steps.length}`}>
+        <!-- A one-step phase is named by its own cell; repeating the phase name
+             above it says the same word twice. The empty caption keeps the
+             cells on one baseline. The caption is deliberately tiny -- it is a
+             tick mark on a ruler, not a heading. -->
+        {#if g.steps.length > 1}
+          <span class="glabel">{g.label}</span>
+        {:else}
+          <span class="glabel" aria-hidden="true">&nbsp;</span>
+        {/if}
         <div class="cells">
           {#each g.steps as c (c.step)}
             {@const pos = position(c.step)}
@@ -164,6 +172,20 @@
   .group:last-child {
     border-right: 0;
   }
+  /* A tick mark on the ruler, not a heading: it must never cost more height
+     than its own 9px line. */
+  .glabel {
+    font-size: 0.5625rem;
+    line-height: 9px;
+    height: 9px;
+    padding-left: 2px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
   .cells {
     display: flex;
     gap: 1px;
