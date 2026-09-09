@@ -89,7 +89,7 @@
      had" the moment they hover a dead seat's card. A `::after` with
      `backdrop-filter` dims and desaturates only what is painted BELOW it —
      the felt and the cards — while an inspector popup, painted above it at
-     CardDetail's own z-index 6, is completely unaffected: full colour, and
+     CardDetail's own z-index 9, is completely unaffected: full colour, and
      positioned by the viewport exactly as it always was. `pointer-events:
      none` keeps every card underneath fully hoverable and focusable through
      the scrim, so nothing here makes a dead seat's board uninspectable. */

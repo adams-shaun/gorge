@@ -1,7 +1,7 @@
 import type { Decision, Intent, Option, View } from '../protocol';
 import { fetchPending, postIntent, ApiError } from './api';
 import type { SeatCtx } from './seat';
-import { decide, type StopReason, type Stops, type TurnSide } from './autopilot';
+import { decide, emptyPriorityWindow, type StopReason, type Stops, type TurnSide } from './autopilot';
 import { defaultStops, loadStops, saveStops, toggleStop } from './stops';
 
 /**
@@ -100,6 +100,8 @@ export type AutoOffReason = 'loop' | 'cap' | 'human' | 'escape';
  */
 export type AutoNote =
   | { kind: 'off' }
+  | { kind: 'skip-off'; reason: AutoOffReason }
+  | { kind: 'skipped'; count: number }
   | { kind: 'armed' }
   | { kind: 'passing'; count: number }
   | { kind: 'waiting'; reason: StopReason }
@@ -124,7 +126,13 @@ const OFF_TEXT: Record<AutoOffReason, string> = {
 export function autoNoteText(note: AutoNote): string {
   switch (note.kind) {
     case 'off':
-      return 'Auto is off. You answer every window.';
+      return 'Auto is off. You answer every window that offers you something to do.';
+    case 'skip-off':
+      return `${OFF_TEXT[note.reason]} Empty windows are no longer skipped either.`;
+    case 'skipped':
+      return note.count === 1
+        ? 'Passed 1 window where you had nothing to do.'
+        : `Passed ${note.count} windows where you had nothing to do.`;
     case 'armed':
       return 'Auto is on. It passes windows where you have nothing to do, and stops at your stops.';
     case 'passing':
@@ -181,8 +189,24 @@ export class SeatPanelState {
   auto = $state(false);
   /** stops is this seat's per-step stop set, loaded from storage on mount and saved on every toggle. */
   stops = $state<Stops>(defaultStops());
+  /**
+   * skipEmpty is the empty-window floor, and it is ON by default -- the one
+   * thing the panel does for the player without being asked. A priority
+   * window whose only options are pass and concede asks nothing: there is no
+   * action to take, so collecting a click there is pure friction between the
+   * player and the next real decision. It is separate from `auto` because it
+   * is a different promise: auto decides FOR you (which is why it is opt-in
+   * and never persisted), whereas this only declines to interrupt you when
+   * there was nothing to decide. Turning it off restores the old
+   * stop-at-every-window behaviour.
+   */
+  skipEmpty = $state(true);
+
   /** autoPassed counts every window auto has answered this session, so the pass is visible after the fact. */
   autoPassed = $state(0);
+
+  /** emptySkipped counts the no-action windows the floor passed, kept apart from autoPassed so the panel never credits auto with a pass it did not make. */
+  emptySkipped = $state(0);
   /** autoRun is the current unbroken run of auto-passes; the cap is on this, not on the session total. */
   autoRun = $state(0);
   /** note is what the panel says about auto, as a value — autoNoteText turns it into words. */
@@ -220,6 +244,33 @@ export class SeatPanelState {
     this.note = on ? { kind: 'armed' } : { kind: 'off' };
   }
 
+  /** setSkipEmpty is the empty-window floor's control. Turning it back on clears the run so an old count never trips the cap. */
+  setSkipEmpty(on: boolean) {
+    this.skipEmpty = on;
+    this.autoRun = 0;
+    this.autoActedSeq = null;
+    if (!this.auto) this.note = { kind: 'off' };
+  }
+
+  /**
+   * stopActing is the shared guard exit for the loop guard and the pass cap.
+   * Whichever mechanism was acting is the one switched off: auto if auto was
+   * driving, otherwise the empty-window floor. Both are runaway protections
+   * and both have to be able to actually stop the thing that is running --
+   * before the floor existed, suspendAuto returned silently when auto was
+   * already off, which would have left a wedged floor posting forever.
+   */
+  private stopActing(reason: AutoOffReason) {
+    if (this.auto) {
+      this.suspendAuto(reason);
+      return;
+    }
+    this.skipEmpty = false;
+    this.autoRun = 0;
+    this.autoActedSeq = null;
+    this.note = { kind: 'skip-off', reason };
+  }
+
   /** suspendAuto switches auto off with a stated reason. A human always wins: any answer this seat gives by hand takes the wheel back. */
   suspendAuto(reason: AutoOffReason) {
     if (!this.auto) return;
@@ -241,37 +292,57 @@ export class SeatPanelState {
    * run cap, then and only then decide().
    */
   considerAuto(view: View) {
-    if (!this.auto) return;
     const d = this.pending;
     if (d === null || this.busy || d.seq === this.postedSeq) return;
 
-    // Loop guard: auto already answered this seq and here it is again. The
+    // The empty-window floor runs whether or not auto is on, so a Manual
+    // seat is still not stopped at a window that asks nothing. When auto IS
+    // on this is redundant -- decide()'s own !actionable branch reaches the
+    // same pass -- and that is the point: one shape test, two callers.
+    const emptyIndex = this.skipEmpty ? emptyPriorityWindow(d) : null;
+    if (!this.auto && emptyIndex === null) return;
+
+    // Loop guard: we already answered this seq and here it is again. The
     // answer did not take, so posting it a second time is the start of an
     // unbounded retry against the server.
     if (this.autoActedSeq !== null && d.seq === this.autoActedSeq) {
-      this.suspendAuto('loop');
+      this.stopActing('loop');
       return;
     }
 
-    const verdict = decide({ decision: d, view, seat: this.ctx.seat, stops: this.stops, enabled: true });
-    if (verdict.act === 'stop') {
-      // A stop is a hand-back, not a failure: auto stays armed and the run
-      // resets, because the player is about to look at this window.
-      this.autoRun = 0;
-      this.note = { kind: 'waiting', reason: verdict.reason };
-      return;
+    let index: number;
+    if (this.auto) {
+      const verdict = decide({ decision: d, view, seat: this.ctx.seat, stops: this.stops, enabled: true });
+      if (verdict.act === 'stop') {
+        // A stop is a hand-back, not a failure: auto stays armed and the run
+        // resets, because the player is about to look at this window.
+        this.autoRun = 0;
+        this.note = { kind: 'waiting', reason: verdict.reason };
+        return;
+      }
+      index = verdict.index;
+    } else {
+      index = emptyIndex as number;
     }
 
+    // The cap bounds an unbroken run of machine-made passes, and it bounds
+    // the floor for the same reason it bounds auto: a stuck window answered
+    // forever is a denial of service the player never asked for.
     if (this.autoRun >= AUTO_PASS_CAP) {
-      this.suspendAuto('cap');
+      this.stopActing('cap');
       return;
     }
 
     this.autoActedSeq = d.seq;
     this.autoRun += 1;
-    this.autoPassed += 1;
-    this.note = { kind: 'passing', count: this.autoPassed };
-    void this.post([verdict.index]);
+    if (this.auto) {
+      this.autoPassed += 1;
+      this.note = { kind: 'passing', count: this.autoPassed };
+    } else {
+      this.emptySkipped += 1;
+      this.note = { kind: 'skipped', count: this.emptySkipped };
+    }
+    void this.post([index]);
   }
 
   /** begin resets the seat across a match boundary. (The component keys the panel by match, so a new match is a fresh instance — this is belt and braces.) */
@@ -286,6 +357,11 @@ export class SeatPanelState {
     this.auto = false;
     this.autoRun = 0;
     this.autoPassed = 0;
+    // The floor is a preference, not an opt-in, so it comes back on across a
+    // match boundary the way it starts: on. Only its runaway guards or the
+    // player's own switch turn it off.
+    this.skipEmpty = true;
+    this.emptySkipped = 0;
     this.autoActedSeq = null;
     this.note = { kind: 'off' };
   }
