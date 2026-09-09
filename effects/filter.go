@@ -46,6 +46,16 @@ var predicates = map[string]predFn{
 	"nonCreature": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return !hasType(o, "Creature")
 	},
+	// nonBasic / nonBlack close the two most common non* predicates the
+	// transaction target census reads (Wasteland's Land.nonBasic, an
+	// Executioner's Capsule's Creature.nonBlack). A basic land carries the
+	// "Basic" type word; nonBlack is a colour test, not a type test.
+	"nonBasic": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return !hasType(o, "Basic")
+	},
+	"nonBlack": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return !strings.Contains(ColorsOf(o), "B")
+	},
 	"kicked": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagKicked != 0
 	},
