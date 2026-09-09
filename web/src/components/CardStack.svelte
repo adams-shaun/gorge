@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { CardView } from '../protocol';
   import { stackFaces, type CardStackGroup } from '../lib/board';
+  import type { CardOptions, TileOptions } from '../lib/cardoptions';
+  import { tileOptions, tileOptionsMany } from '../lib/cardoptions';
   import CardTile from './CardTile.svelte';
 
   /**
@@ -33,7 +35,7 @@
    * the group's every member id is on `data-obj-group` so a later task can
    * draw arrows to each member of a stacked tile.
    */
-  let { group, size = 'tile', attachments = [] }: { group: CardStackGroup; size?: 'tile' | 'large'; attachments?: CardView[] } = $props();
+  let { group, size = 'tile', attachments = [], options = null }: { group: CardStackGroup; size?: 'tile' | 'large'; attachments?: CardView[]; options?: CardOptions | null } = $props();
 
   let expanded = $state(false);
   const faces = $derived(stackFaces(group, expanded));
@@ -43,10 +45,24 @@
       : `${group.cards.length} copies of ${group.cards[0].name}`,
   );
   const memberIds = $derived(group.cards.map((c) => c.id).join(','));
+
+  // One tile's options depends on the pending decision offered THIS object
+  // (per member when expanded, or the whole pile when collapsed — stack
+  // members are interchangeable, so the pile's options are the union).
+  const ids = $derived(group.cards.map((c) => c.id));
+  // When the group is collapsed the single rendered tile speaks for every
+  // member, so it carries the aggregate of all members' options (the pile
+  // is marked and actionable if any member is offered anything). Expanded,
+  // each member tile carries its own options.
+  const collapsedOptions = $derived(options ? tileOptionsMany(options, ids) : null);
+  const singleOptions = $derived(options ? tileOptions(options, group.cards[0].id) : null);
+  function memberOptions(id: number): TileOptions | null {
+    return options ? tileOptions(options, id) : null;
+  }
 </script>
 
 {#if group.cards.length === 1}
-  <CardTile card={group.cards[0]} {size} {attachments} />
+  <CardTile card={group.cards[0]} {size} {attachments} tileOptions={singleOptions} />
 {:else}
   <button
     type="button"
@@ -64,7 +80,7 @@
       <span class="ghost ghost--1" aria-hidden="true"></span>
     {/if}
     {#each faces as c (c.id)}
-      <CardTile card={c} {size} />
+      <CardTile card={c} {size} tileOptions={expanded ? memberOptions(c.id) : collapsedOptions} />
     {/each}
     <span class="count" data-stack-count aria-hidden="true">x{group.cards.length}</span>
   </button>
