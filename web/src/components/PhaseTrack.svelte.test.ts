@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
-import type { SeatInfo, View } from '../protocol';
+import type { PlayerView, SeatInfo, View } from '../protocol';
 import type { Stops } from '../lib/autopilot';
 import { STEPS } from '../lib/autopilot';
 import { SeatPanelState } from '../lib/seatpanel.svelte';
@@ -70,6 +70,24 @@ describe('PhaseTrack — the clock', () => {
     expect(html).toContain('Round');
     expect(html).toContain('>3<');
     expect(html).not.toContain('>7<');
+  });
+
+  // ui15: the live table route hands the track a view whose players carry
+  // names but a `seats` array that is EMPTY (the one-shot seed in
+  // Table.svelte races the async tables.lookup; see the ui15 report). The
+  // fallback must be the wire's own player name, not the 0-based `Seat N`
+  // placeholder — which reads as an off-by-one beside the 1-based names the
+  // transcript and the seat boxes print.
+  it('names the active player from the view when seats is empty (ui15 discrimination)', () => {
+    const named: PlayerView = {
+      seat: 2, name: 'Player 3', life: 20, lost: false, library_size: 53,
+      hand_size: 7, graveyard_size: 0, hand: [], battlefield: [], graveyard: [],
+      exile: [], pool: {}, command: [], commanders: [], commander_casts: [],
+    };
+    // spectator (seat null), active seat 2, but the seats array is empty.
+    const html = track({ view: { ...view(2, 'upkeep'), players: [named] }, seats: [], seat: null });
+    expect(html).toContain('Player 3’s turn');
+    expect(html).not.toContain('Seat 2');
   });
 
   it('names whose turn it is in that seat’s identity colour, and says "Your turn" for the viewer', () => {
