@@ -63,48 +63,35 @@ describe('PhaseTrack — the clock', () => {
     }
   });
 
-  it('shows the round of the table, not the engine turn counter, in the clock', () => {
-    // view.round is the server's round-trip projection; view.turn is the
-    // raw per-player-turn count and must NOT be the headline number.
-    const html = seated(view(1, 'upkeep', 7, 3), stops([], []));
-    expect(html).toContain('Round');
-    expect(html).toContain('>3<');
-    expect(html).not.toContain('>7<');
-  });
 
-  // ui15: the live table route hands the track a view whose players carry
-  // names but a `seats` array that is EMPTY (the one-shot seed in
-  // Table.svelte races the async tables.lookup; see the ui15 report). The
-  // fallback must be the wire's own player name, not the 0-based `Seat N`
-  // placeholder — which reads as an off-by-one beside the 1-based names the
-  // transcript and the seat boxes print.
-  it('names the active player from the view when seats is empty (ui15 discrimination)', () => {
-    const named: PlayerView = {
-      seat: 2, name: 'Player 3', life: 20, lost: false, library_size: 53,
-      hand_size: 7, graveyard_size: 0, hand: [], battlefield: [], graveyard: [],
-      exile: [], pool: {}, command: [], commanders: [], commander_casts: [],
-    };
-    // spectator (seat null), active seat 2, but the seats array is empty.
-    const html = track({ view: { ...view(2, 'upkeep'), players: [named] }, seats: [], seat: null });
-    expect(html).toContain('Player 3’s turn');
-    expect(html).not.toContain('Seat 2');
-  });
 
-  it('names whose turn it is in that seat’s identity colour, and says "Your turn" for the viewer', () => {
+  // The track prints no names and no round: the user asked three times for a
+  // thin bar and the head row is gone. Whose turn it is survives as the one
+  // thing the shard still says about it — the active seat's identity colour
+  // on its own perimeter.
+  it('carries the active seat’s identity colour on the shard, for either seat', () => {
     const mine = seated(view(1, 'upkeep'), stops([], []));
-    expect(mine).toContain('Your turn');
     expect(mine).toContain('--seat:#30a46c'); // seat 1 is the viewer and is active
     const theirs = seated(view(0, 'upkeep'), stops([], []));
-    expect(theirs).toContain('alice’s turn');
-    expect(theirs).not.toContain('Your turn');
     expect(theirs).toContain('--seat:#e5484d');
   });
 
-  it('states the modifier rather than hiding it', () => {
-    const html = seated(view(1, 'upkeep'), stops([], []));
-    expect(html).toContain('data-hint');
-    expect(html).toMatch(/Shift-click/);
+  // The bar is ONE ROW. This is the leaf that fails if a head row, a round
+  // counter, a hint sentence or a group caption is ever put back above the
+  // cells.
+  it('is one row: no head, no round, no hint sentence, no group captions', () => {
+    const html = seated(view(1, 'upkeep', 7, 3), stops([], []));
+    expect(html).not.toContain('class="head');
+    expect(html).not.toContain('data-hint');
+    expect(html).not.toContain('Round');
+    expect(html).not.toContain('Your turn');
+    expect(html).not.toContain('glabel');
+    // the group dividers still carry the phase structure
+    expect(html).toContain('data-group="combat"');
+    // and the modifier survives where it belongs: on each stoppable cell
+    expect(cell(html, 'upkeep')).toMatch(/Shift-click/);
   });
+
 });
 
 describe('PhaseTrack — stops', () => {
@@ -172,7 +159,7 @@ describe('PhaseTrack — stops', () => {
     expect(cell(theirs, 'main2')).toContain('aria-pressed="false"');
   });
 
-  it('a spectator gets the same clock with nothing focusable and no modifier hint', () => {
+  it('a spectator gets the same clock with nothing focusable', () => {
     const html = track({ view: view(0, 'main1'), seats });
     expect(html).toContain('data-phase-track');
     expect(html).not.toContain('<button');
@@ -180,6 +167,5 @@ describe('PhaseTrack — stops', () => {
     expect(html).not.toContain('data-hint');
     // the step is still marked: the clock is the point, the stops are extra
     expect(cell(html, 'main1')).toContain('aria-current="step"');
-    expect(html).toContain('alice’s turn');
   });
 });
