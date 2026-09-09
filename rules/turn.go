@@ -414,6 +414,12 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 		// hands the queue to the next parked commander if any. See
 		// handleCmdZone (rules/replacement.go).
 		e.handleCmdZone(d, in)
+	case decision.KReplacement:
+		// The CR 616.1 order choice among competing replacement effects
+		// (rules/replacement.go): the answered decision applies the chosen
+		// replacement for real and hands the queue to the next parked
+		// competition, if any.
+		e.handleReplacement(d, in)
 	case decision.KChoose:
 		e.handleChoose(d, in)
 	case decision.KMulligan:

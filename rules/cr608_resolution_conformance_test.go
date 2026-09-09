@@ -140,7 +140,6 @@ func TestCR608CompletedSpellLeavesStackAfterDepartedPayer(t *testing.T) {
 // or an all-targets-illegal spell. Expectations use zones/order, never the
 // engine's target or resting-zone helpers. Counter counts EXAMINED SAs.
 func TestCR608CorpusOrdinaryBurnFinishesInGraveyard(t *testing.T) {
-	requireCR601Audit(t, "CR 608.2b/n: a conditional graveyard-cast replacement exiles an ordinary hand-origin spell")
 	reg := testutil.CorpusRegistry(t)
 	checked := 0
 	for _, c := range reg.Cards {

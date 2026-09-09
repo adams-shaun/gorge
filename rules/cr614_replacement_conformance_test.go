@@ -36,7 +36,6 @@ func TestCR614RestInPeaceInHandCannotReplace(t *testing.T) {
 }
 
 func TestCR614AllApplicableEntryReplacementsApplyOnce(t *testing.T) {
-	requireCR601Audit(t, "CR 614.5/616.1f: first replacement prevents another applicable entry replacement")
 	e := crResolutionEngine(t, []string{"Triskelion"}, []string{"Blind Obedience"})
 	orb := crAbortMove(t, e, 1, "Blind Obedience", state.ZBattlefield)
 	trisk := crAbortMove(t, e, 0, "Triskelion", state.ZHand)
@@ -74,7 +73,6 @@ func TestCR614AllApplicableEntryReplacementsApplyOnce(t *testing.T) {
 }
 
 func TestCR616AffectedControllerChoosesReplacement(t *testing.T) {
-	requireCR601Audit(t, "CR 616.1: engine chooses first replacement instead of affected controller")
 	e := crResolutionEngine(t, []string{"Rest in Peace", "Darksteel Colossus"}, nil)
 	rip := crAbortMove(t, e, 0, "Rest in Peace", state.ZBattlefield)
 	col := crAbortMove(t, e, 0, "Darksteel Colossus", state.ZBattlefield)
