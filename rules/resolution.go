@@ -380,6 +380,21 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		return
 	}
 	e.finishResumption(rp.obj)
+	// CR 117.3b / the counterpart of handlePriority's pass-branch grant: when
+	// a SUSPENDED resolution completes (this is the outermost frame -- a
+	// nested ask returns in the e.resume != nil branch above, and an outer
+	// continuation recurses before reaching this line, so a resolution that
+	// suspends more than once still reaches here exactly once), the pass
+	// count resets and priority returns to the active player. The now-
+	// suppressed unconditional emit in handlePriority's pass branch used to
+	// log this at suspension time while the engine was parked on a
+	// mid-resolution question, i.e. while nobody had priority; this emit puts
+	// the reset and the "back to active" marker at the resolution's true end.
+	// The answering Submit's own tail then grants the next priority round (its
+	// grantPriority reads the passes this emit has just reset to zero), which
+	// is the same two-event shape an unsuspended resolution already produces
+	// (pass-branch grant + grantPriority), so the suspended path now matches.
+	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 }
 
 // buildContinuationChain turns the enclosing-loop suspension points reported

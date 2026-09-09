@@ -605,10 +605,42 @@ var acceptanceHeads = map[int]string{
 	// regressing. Measured by the controller at the gate on a branch rebased
 	// onto this main, NOT taken from the seat's report -- the seat's own
 	// numbers predated the hotfix merge.
+	// hostb1 moved THREE of the four. The cause is one event that should
+	// never have been in the log: handlePriority's pass branch emitted the
+	// "priority returns to the active player" marker unconditionally after
+	// resolveTop, so a resolution that SUSPENDED on a mid-resolution question
+	// -- a modal spell's KModes, an as-enters choose, an unless-pay -- logged
+	// a priority grant while the engine was parked on that question and
+	// nobody had priority. CR 117.5: no player receives priority in the
+	// middle of a resolution. The grant now happens when the resolution
+	// actually completes.
+	//
+	// The 2-seat head does NOT move, and that is the check that this change
+	// reaches only what it should: measured at main, the 2-seat game contains
+	// zero DecisionAsk-immediately-followed-by-Priority adjacencies, while the
+	// 4-, 6- and 8-seat games contain 3, 4 and 4. Only the games with a
+	// suspended resolution move.
+	//
+	// Found by diffing the streams rather than reasoned about. The whole
+	// 4-seat diff is ten lines: two markers relocated a few events later, to
+	// the resolution's true end, and one deleted outright. The deleted one is
+	// the proof the old log was lying -- at main, seq 3953 asks "choose",
+	// 3954 records priority, and 3955 is the ANSWER, with the genuine grant
+	// arriving afterwards at 3959. The new stream keeps that genuine grant
+	// and drops only the marker logged between the question and its answer,
+	// which is why the event counts fall by one or two rather than staying
+	// level.
+	//
+	// Winners, turn counts and intent counts are UNCHANGED at every seat
+	// count. Nothing about play differs; the engine only stopped recording a
+	// priority round that never happened.
+	//
+	// `make sim` 20/20 replay OK and the CR lane unchanged at 79 PASS / 6
+	// FAIL, the same six leaves. Measured by the controller at the gate.
 	2: "1cfa860e0057afd9",
-	4: "928f72df4805c92f",
-	6: "63ad9525e06ae62f",
-	8: "ee8da2340f6fa774",
+	4: "dccf99e197b6525e",
+	6: "d9842038e40b2439",
+	8: "19d3da06e0bf214c",
 }
 
 func TestHeads(t *testing.T) {

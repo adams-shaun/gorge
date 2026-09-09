@@ -75,8 +75,18 @@ func TestDepartedChooserResumptionEventStreamIsDeterministic(t *testing.T) {
 	e.emit(events.Event{Kind: events.PlayerLost, Player: 1, Text: "conceded"})
 	e.checkStateBased()
 	path := e.L.Events[start:]
-	if len(path) != 64 {
-		t.Fatalf("departed-chooser path emitted %d events, want 64 (events change => a divergence is hiding here)",
+	// 64 -> 65 (hostb1): a suspended resolution used to log its priority
+	// grant at SUSPENSION time, from handlePriority's pass branch, while the
+	// engine was parked on this very unless_pay ask and nobody had priority.
+	// That grant now happens when the resolution actually completes, which is
+	// inside this measured path, so the tail gains one Priority. Two adjacent
+	// Priority events is the correct shape and not a duplicate: it is exactly
+	// what an UNSUSPENDED resolution has always produced here (the
+	// resolution's own "back to active" marker, then grantPriority opening
+	// the next round), so the suspended path now matches the unsuspended one
+	// instead of logging its marker a question early.
+	if len(path) != 65 {
+		t.Fatalf("departed-chooser path emitted %d events, want 65 (events change => a divergence is hiding here)",
 			len(path))
 	}
 
@@ -87,7 +97,7 @@ func TestDepartedChooserResumptionEventStreamIsDeterministic(t *testing.T) {
 	// kind stream as run lengths so both the count and the order are pinned.
 	runs := kindRuns(path)
 	want := [][2]int{{int(events.PlayerLost), 1}, {int(events.MoveZone), 61},
-		{int(events.Priority), 1}, {int(events.DecisionAsk), 1}}
+		{int(events.Priority), 2}, {int(events.DecisionAsk), 1}}
 	if len(runs) != len(want) {
 		t.Fatalf("tail kind runs = %v, want %v", runs, want)
 	}
@@ -100,10 +110,18 @@ func TestDepartedChooserResumptionEventStreamIsDeterministic(t *testing.T) {
 	// CR 608.2n's completion tail: the suspended Chain Lightning leaves the
 	// stack for the graveyard — the last MoveZone before the resumed
 	// priority — and no Resolve re-fires (it fired once, before the ask).
-	if got := path[len(path)-3]; got.Kind != events.MoveZone || got.Obj != chain ||
+	// hostb1 shifted these indices by one: the tail is now
+	// [... MoveZone x61][Priority x2][DecisionAsk], because the resolution's
+	// own "back to active" marker is emitted at COMPLETION (here) rather than
+	// at suspension, ahead of grantPriority's marker for the resumed round.
+	// Both are asserted, so a future change that drops either one fails.
+	if got := path[len(path)-4]; got.Kind != events.MoveZone || got.Obj != chain ||
 		got.From != state.ZStack || got.To != state.ZGraveyard {
 		t.Fatalf("completion tail = %+v (seq %d), want MoveZone of the chain from stack to graveyard",
 			got, got.Seq)
+	}
+	if got := path[len(path)-3]; got.Kind != events.Priority {
+		t.Fatalf("event at -3 = %s (seq %d), want the completed resolution's Priority", got.Kind, got.Seq)
 	}
 	if got := path[len(path)-2]; got.Kind != events.Priority {
 		t.Fatalf("event before last = %s (seq %d), want Priority resuming the round", got.Kind, got.Seq)
@@ -164,8 +182,16 @@ func TestDepartedChooserResumptionEventStreamIsDeterministic(t *testing.T) {
 	// event count, the concession leaving a three-seat game running, the chain
 	// in the graveyard with an empty stack -- still holds unchanged, which is
 	// what says the reordering is all that moved.
-	if got := e.L.Head(); got != "664fe5d9b44ed9a0" {
-		t.Fatalf("chain head = %s, want 664fe5d9b44ed9a0", got)
+	// Regenerated again for hostb1, which is an ADDITION rather than a
+	// reordering: this scenario is a suspended resolution, so it gains the
+	// completion Priority the fix relocates out of the suspension point. The
+	// count assertion above moved 64 -> 65 for that one event and every other
+	// assertion here -- the concession leaving a three-seat game running, the
+	// chain in the graveyard with an empty stack, the departure sweep's 61
+	// MoveZone events, no stray Resolve from the abandoned continuation --
+	// holds unchanged, which is what says the added grant is all that moved.
+	if got := e.L.Head(); got != "fce95fd882697445" {
+		t.Fatalf("chain head = %s, want fce95fd882697445", got)
 	}
 
 	// T21-e: a log-only replay must reconstruct the identical Game. If any
