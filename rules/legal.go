@@ -131,7 +131,16 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		base := e.adjustedCost(p, id)
-		if e.castable(p, id, base) {
+		// The gate must see the SAME cost beginCast will charge, additional
+		// non-mana parts included, or an unpayable cast gets offered and then
+		// aborts having consumed nothing -- which, since the abort leaves the
+		// board that produced the offer untouched, is an unbounded livelock
+		// rather than a wasted click. That is exactly what Village Rites did
+		// to a live 4-player game (see withSpellAbilityExtras in cast.go).
+		// Only the plain cast folds them, matching beginCast's own condition:
+		// the kicked/surged/flashback/miracle offers below set Mode, and
+		// beginCast skips the fold for those.
+		if e.castable(p, id, withSpellAbilityExtras(f, base)) {
 			add("cast", "Cast "+f.Name, id)
 		}
 		for i, alt := range e.alternativeCosts(p, id) {
