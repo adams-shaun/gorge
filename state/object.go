@@ -77,6 +77,20 @@ type Object struct {
 	ChosenType   string
 	ChosenNumber int32
 
+	// ChosenModes carries a modal triggered ability's CR 603.3c mode choice
+	// from placement to resolution: the SVar names of the chosen
+	// Choices$ sub-abilities, in execution order. A modal trigger asks
+	// KModes when its ability is put on the stack (rules.pushTrigger), and
+	// resolution (rules.resolveTop) builds Ctx.Modes from this so effCharm
+	// runs exactly the chosen modes instead of asking again. It is a cache
+	// of an already-logged fact -- the answer to the KModes decision that
+	// was asked at placement, which a replay re-poses and re-answers
+	// through the identical code path -- not a second source of truth, so
+	// it does not violate the state-through-events rule. Nil for a trigger
+	// with no Choices$ clause, for every non-triggered ability, and for any
+	// as-cast modal choice (which this engine still asks at resolution).
+	ChosenModes []string
+
 	// AttachedTo is the permanent this Aura or Equipment is attached to; 0
 	// means unattached. Reset whenever the object itself leaves the
 	// battlefield (events.Move) -- an Aura or Equipment cannot stay
@@ -137,11 +151,11 @@ func (o *Object) AddCounter(kind string, n int32) {
 }
 
 // CloneDeep returns a value copy of o whose slice fields (Counters, Targets,
-// Remembered, BlockedBy) are independently backed, so mutating the copy's
-// slices can never alias o's -- everything else (Card, a shared pointer into
-// the immutable compiled corpus, plus every scalar field) is correct as a
-// plain value copy. This is the one definition of "deep-copy an Object":
-// Game.Clone (the whole live arena), rules.Engine's own last-known-
+// Remembered, BlockedBy, ChosenModes) are independently backed, so mutating
+// the copy's slices can never alias o's -- everything else (Card, a shared
+// pointer into the immutable compiled corpus, plus every scalar field) is
+// correct as a plain value copy. This is the one definition of "deep-copy an
+// Object": Game.Clone (the whole live arena), rules.Engine's own last-known-
 // information capture (emit, before events.Emit mutates the live object)
 // and Engine.Clone's copy of a pending trigger's Ctx.LKI all call this
 // rather than each repeating the same four-line copy, so a future slice or
@@ -153,5 +167,6 @@ func (o *Object) CloneDeep() Object {
 	c.Targets = append([]Target(nil), o.Targets...)
 	c.Remembered = append([]Target(nil), o.Remembered...)
 	c.BlockedBy = append([]ObjID(nil), o.BlockedBy...)
+	c.ChosenModes = append([]string(nil), o.ChosenModes...)
 	return c
 }

@@ -27,6 +27,7 @@ func (e *Engine) Clone() *Engine {
 		applyingReplacement: e.applyingReplacement,
 		choosing:            e.choosing,
 		drainAwaitsTarget:   e.drainAwaitsTarget,
+		drainAwaitsModes:    e.drainAwaitsModes,
 		deferCastTrigger:    e.deferCastTrigger,
 		// blockerRound (combat.go, Task m34): the declare-blockers round's
 		// defender list and cursor, plain-value state like the mulligan round.
