@@ -620,8 +620,17 @@ func TestReplayReconstructsPostCombatStateExactly(t *testing.T) {
 	submitAttackers(t, e, atk)
 	submitBlockers(t, e, blk)
 
+	// CR 511.3 removes creatures from combat as the end of combat step ENDS,
+	// so submitBlockers -- which stops at end-of-combat priority -- leaves the
+	// attacker still in combat. Drive on into postcombat main, which is where
+	// the reset has actually happened. This assertion is the reason the test
+	// exists: if it were simply dropped, the captured window would no longer
+	// contain the EndCombatReset and the reconstruction below would agree
+	// with the live game whether or not the reset was event-sourced.
+	driveToStep(t, e, e.G.Turn, e.G.Active, state.StepMain2)
+
 	if e.G.Obj(atk).IsAttacking || e.G.Obj(atk).BlockedBy != nil {
-		t.Fatal("setup sanity: the live game should have cleared IsAttacking/BlockedBy by end of combat")
+		t.Fatal("setup sanity: the live game should have cleared IsAttacking/BlockedBy by postcombat main")
 	}
 	if e.G.Obj(atk).Zone != state.ZBattlefield || e.G.Obj(blk).Zone != state.ZBattlefield {
 		t.Fatal("setup sanity: both creatures should have survived combat")

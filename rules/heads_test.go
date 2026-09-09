@@ -522,11 +522,33 @@ import (
 // cancel, which is exactly the case where the count is the wrong thing to
 // read. The removed damage is the defect: it was assigned to a seat that
 // had already left the game.
+// fx18 (F32, CR 511.3) and fx19 (F44, CR 800.6) move these together, and
+// the values below are the COMBINED state measured on merged main -- not
+// either branch's own numbers, neither of which survives the other's merge.
+//
+// fx18 moves all four. Combat is now reset as the end of combat step ENDS
+// rather than as it begins, so every game loses one EndCombatReset per
+// combat from the position where the step was entered. First divergence is
+// the first turn's empty combat in every seat count (2: event 96, 4: 172,
+// 6: 232, 8: 292): an EndCombatReset becomes a Priority. Event totals fall
+// 1784->1771, 5514->5490, 9492->9466, 15403->15366. With EndCombatReset
+// events and sequence numbers removed, the before/after streams are
+// byte-for-byte identical, so nothing about card behaviour changed -- only
+// the schedule of the reset.
+//
+// fx19 moves 4, 6 and 8 and DELIBERATELY NOT 2. freeMulligans is 0 below
+// three seats, so the two-player path cannot be reached by this change; a
+// moved 2-seat head would have meant the multiplayer rule leaked. The
+// 2-seat head here is exactly the value fx18 measured alone, which is that
+// check passing. In each moved game the dimir-tempo seat takes its one
+// permitted mulligan and the now-free first mulligan removes the bottoming
+// ask, its answer and one card move (first divergence at event 58, 78 and
+// 98 respectively: a seat-1 bottoming DecisionOffered becomes TurnChange).
 var acceptanceHeads = map[int]string{
-	2: "996edb2512cdab75",
-	4: "0d6a910b28381098",
-	6: "6fc675093861ae6e",
-	8: "5f11649a6e8dcf26",
+	2: "85beffe0c4e49108",
+	4: "eff047264ed9a27b",
+	6: "c746dd7057d61cde",
+	8: "4ff0c67659655682",
 }
 
 func TestHeads(t *testing.T) {
