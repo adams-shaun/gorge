@@ -64,6 +64,13 @@ func (e *Engine) Clone() *Engine {
 		// re-enables it, in both engines alike). It is a plain map of object
 		// ids, so it must be re-allocated, not shared.
 		suppressedCast: cloneSuppressed(e.suppressedCast),
+		// F05-2 per-card no-progress count (engine.go), carried alongside the
+		// held-out set for the same reason: a clone taken at an intent
+		// boundary must count a card's no-progress aborts exactly as the
+		// live engine does, or a clone would offer (or hold out) a cast the
+		// original would not. Same map-of-scalars class, so re-allocated, not
+		// shared.
+		castAborts: cloneAbortCounts(e.castAborts),
 	}
 	if e.pending != nil {
 		d := *e.pending
@@ -151,6 +158,7 @@ func (e *Engine) Clone() *Engine {
 		pc.delve = append([]state.ObjID(nil), e.cast.delve...)
 		pc.sacs = append([]state.ObjID(nil), e.cast.sacs...)
 		pc.preSuppress = cloneSuppressed(e.cast.preSuppress)
+		pc.preAborts = cloneAbortCounts(e.cast.preAborts)
 		c.cast = &pc
 		// The held-back cast trigger (CR 601.2i, cast.go): a clone taken at an
 		// intent boundary while a cast is suspended (its target/choose decision
@@ -208,6 +216,20 @@ func cloneSuppressed(m map[state.ObjID]bool) map[state.ObjID]bool {
 		return nil
 	}
 	out := make(map[state.ObjID]bool, len(m))
+	for k, v := range m {
+		out[k] = v
+	}
+	return out
+}
+
+// cloneAbortCounts copies the F05-2 per-card no-progress count
+// (castAborts, engine.go), preserving nil; the lazily-allocated map is
+// created by abortCast and a nil map reads as an empty count.
+func cloneAbortCounts(m map[state.ObjID]int32) map[state.ObjID]int32 {
+	if m == nil {
+		return nil
+	}
+	out := make(map[state.ObjID]int32, len(m))
 	for k, v := range m {
 		out[k] = v
 	}

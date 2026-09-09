@@ -637,9 +637,31 @@ var acceptanceHeads = map[int]string{
 	//
 	// `make sim` 20/20 replay OK and the CR lane unchanged at 79 PASS / 6
 	// FAIL, the same six leaves. Measured by the controller at the gate.
+	// f05 moved TWO of the four, 4 and 6 seats; 2 and 8 are untouched. The
+	// cause is Ruling F05-2 (CR 733.2): a cast that aborts with no progress
+	// used to have its option held out of the rest of the priority window on
+	// the FIRST abort, so the seat could not try it again. CR 733.2 says a
+	// reversed illegal action may be redone legally, so the first abort now
+	// leaves the option offered and only the SECOND identical abort of the
+	// same card in the same window holds it out.
+	//
+	// The card that does it is Dismember, two copies in dimir-tempo, mana
+	// cost `1 BP BP`. Phyrexian mana makes the cast abort with no progress
+	// when the life payment is not taken, which is exactly the no-progress
+	// shape the ruling governs -- and it is a NON-delve abort, which is why
+	// the f05 brief's "heads will not move" premise was wrong: the brief
+	// reasoned about the Delve shortfall alone, while the mechanism is the
+	// whole no-progress abort path. The seat measured and reported this
+	// rather than regenerating the golden, which is the rule working.
+	//
+	// The bot now gets one retry it did not get before, so its play differs
+	// from that point on. Measured by the controller at the gate: the two new
+	// heads are stable across repeated runs, `make sim` is 20/20 replay OK,
+	// and the CR lane goes 4 FAIL / 81 PASS -> 3 FAIL / 82 PASS, the two
+	// under-delve leaves flipping red -> green with nothing regressing.
 	2: "1cfa860e0057afd9",
-	4: "dccf99e197b6525e",
-	6: "d9842038e40b2439",
+	4: "dcc1d1130f1f9d84",
+	6: "68170fbafc180911",
 	8: "19d3da06e0bf214c",
 }
 
