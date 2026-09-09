@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { afterEach } from 'vitest';
-import { eventsURL, matchesURL, pendingURL, seatQuery, tablesURL, viewURL, fetchView, fetchEvents, fetchPending, postIntent, subscribe } from './api';
+import { eventsURL, matchesURL, pendingURL, seatQuery, tablesURL, viewURL, fetchView, fetchEvents, fetchPending, postIntent, subscribe, createGame } from './api';
 import { setBasePathForTests, withBase } from './basepath';
 import type { Intent } from '../protocol';
 
@@ -109,5 +109,25 @@ describe('base path', () => {
     expect(slashed.tables).toBe('/gorge/api/tables');
     expect(slashed.view).toBe('/gorge/api/tables/t1/matches/3/view');
     expect(slashed.stream).toBe('/gorge/api/stream');
+  });
+});
+
+describe('createGame (Task ui11)', () => {
+  it('POSTs the chosen format to /api/games and returns the join identity', async () => {
+    fetchMock.mockReset();
+    const game = { table: 'g1', match: 1, seed: 42, seat: 0, token: 'tok', join: '/t/g1?seat=0&token=tok' };
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => game });
+    await expect(createGame('commander')).resolves.toEqual(game);
+    expect(fetchMock).toHaveBeenCalledWith('/api/games', expect.objectContaining({
+      method: 'POST',
+      headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ format: 'commander' }),
+    }));
+  });
+
+  it('surfaces a server rejection (a server that did not arm -vsbot answers 404) as ApiError', async () => {
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 404, json: async () => ({ code: 'not_found', message: 'play-vs-bot games are not enabled on this server' }) });
+    await expect(createGame('constructed')).rejects.toMatchObject({ status: 404, code: 'not_found' });
   });
 });

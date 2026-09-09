@@ -52,6 +52,15 @@ type config struct {
 	// list fails before any table is added (R-E3-1).
 	humansRaw string
 	humans    []int
+	// vsbot is the -vsbot flag: arm the on-demand play-vs-bot flow so the
+	// landing page can seat a human against a bot (POST /api/games). It is
+	// OPT-IN — default off — so a server that never turned it on keeps the
+	// spectator-only default exactly as it was before the feature existed
+	// (Options.Seat stays nil and a seat-scoped request is refused 403,
+	// pinned by TestNoHumansIsSpectatorOnly). When on, Options.Seat is armed
+	// so the per-game seat token resolves, and a no-token seat request
+	// declines to 401 rather than 403.
+	vsbot bool
 	// seatToken is the -seat-token flag: a fixed bearer token for the first
 	// human slot instead of a random per-slot one. Tests and local use only
 	// (R-E3-3) — production runs mint random tokens.
@@ -75,6 +84,7 @@ func main() {
 	flag.StringVar(&c.formatsRaw, "format", "constructed", "comma-separated table formats (constructed, commander); table i uses formats[i-1 mod n], e.g. -format commander,constructed runs one of each")
 	flag.StringVar(&c.humansRaw, "humans", "", "comma-separated slots of table t1 that are real people (e.g. 0,2); t2..tN stay bot tables")
 	flag.StringVar(&c.seatToken, "seat-token", "", "fixed bearer token for the first human slot (tests and local use only; default mints a random token per slot)")
+	flag.BoolVar(&c.vsbot, "vsbot", false, "arm the on-demand play-vs-bot flow (landing page seats a human against a bot via POST /api/games)")
 	flag.Parse()
 
 	ln, err := net.Listen("tcp", c.addr)
@@ -137,7 +147,8 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		return fmt.Errorf("-format includes constructed but no deck in %s is a constructed deck", c.decks)
 	}
 
-	r, err := host.New(c.hostOptions(reg, deckLoader(reg, c.decks)))
+	load := deckLoader(reg, c.decks)
+	r, err := host.New(c.hostOptions(reg, load))
 	if err != nil {
 		return err
 	}
@@ -162,6 +173,20 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		if err != nil {
 			return err
 		}
+		opts.Seat = gate.resolve
+	}
+	// Task ui11: with -vsbot on and a deck pool to deal, arm the play-vs-bot
+	// flow so the landing page can seat a human against a bot on demand. This
+	// is additive — the startup tables above are untouched — and needs a gate
+	// even when there were no -humans slots, so create one (an empty store)
+	// and route the seat-scoped endpoints through it. Off (the default), the
+	// server is spectator-only exactly as before, and a request naming a seat
+	// is refused 403 (TestNoHumansIsSpectatorOnly).
+	if c.vsbot && len(cmdPool)+len(conPool) > 0 {
+		if gate == nil {
+			gate = &seatGate{tokenToSeat: map[string]state.PlayerID{}, seatTokens: map[state.PlayerID]string{}}
+		}
+		opts.CreateGame = c.createGame(r, gate, cmdPool, conPool, vis)
 		opts.Seat = gate.resolve
 	}
 	srv := &http.Server{Handler: httpapi.NewHandler(r, opts)}

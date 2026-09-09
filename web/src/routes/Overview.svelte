@@ -6,6 +6,7 @@
   import { gridMetrics, sectionTables } from '../lib/lobby';
   import TableCell from '../components/TableCell.svelte';
   import Feed from '../components/Feed.svelte';
+  import PlayVsBot from '../components/PlayVsBot.svelte';
   import type { Widget } from '../protocol';
 
   let feed = $state<FeedLine[]>([]);
@@ -43,6 +44,11 @@
         {tables.list.length === 1 ? 'table' : 'tables'} playing
       </p>
     </header>
+    <!-- Task ui11: sit down 1v1 against a bot, alongside the spectator lobby
+         — not replacing it. The panel POSTs /api/games and follows the join
+         path. The server decides whether the flow is enabled; a server that
+         did not arm -vsbot answers 404 and the panel renders it. -->
+    <div class="playstrip"><PlayVsBot /></div>
     <div class="sections">
       {#each sections as s (s.format)}
         <section class="section" style:--grow={s.tables.length}>
@@ -122,6 +128,14 @@
        at the bottom of the page instead of halfway up it. */
     flex: 1;
     min-height: 0;
+  }
+  /* The play-vs-bot card sits between the masthead and the grid: a compact
+     action, not part of the grid or the rail, so the lobby below it is
+     untouched. It is flex:none — it never steals the grid's share of the
+     height the way a growing footnote would (Task L2's composition rule). */
+  .playstrip {
+    flex: none;
+    padding: 0 var(--sp-4) var(--sp-2);
   }
   /* Spare height is shared between sections in proportion to how many tables
      each holds, so a one-table Commander section beside a five-table

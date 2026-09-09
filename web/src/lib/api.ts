@@ -16,6 +16,7 @@ export const tablesURL = () => withBase('/api/tables');
 export const matchesURL = (t: string) => withBase(`/api/tables/${enc(t)}/matches`);
 export const pendingURL = (t: string, k: number) => withBase(`/api/tables/${enc(t)}/matches/${k}/pending`);
 export const intentURL = (t: string, k: number) => withBase(`/api/tables/${enc(t)}/matches/${k}/intent`);
+export const gamesURL = () => withBase('/api/games');
 
 // seatQuery is the seat/token query threading on the seat-scoped GETs
 // (M2e-3's FL-99: ?seat=N&token=…). The token is a bearer credential for
@@ -64,6 +65,30 @@ async function postJSON(path: string, body: unknown): Promise<void> {
 
 export const fetchTables = () => getJSON<TableInfo[]>(tablesURL());
 export const fetchMatches = (t: string) => getJSON<MatchInfo[]>(matchesURL(t));
+
+/** A game a successful POST /api/games returns: the new table's identity, the human seat and its bearer token, and the join path that carries them (Task ui11). */
+export interface CreateGame {
+  table: string;
+  match: number;
+  seed: number;
+  seat: number;
+  token: string;
+  join: string;
+}
+
+/** createGame asks the server to seat the player against a bot in the given format: a fresh single-shot table is created and started, and the join path it returns is the URL the player follows to sit in the seat. A server that did not enable the play-vs-bot flow answers 404, surfaced as ApiError. */
+export async function createGame(format: 'constructed' | 'commander'): Promise<CreateGame> {
+  const res = await fetch(gamesURL(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ format }),
+  });
+  if (!res.ok) {
+    const e = (await res.json().catch(() => ({}))) as Partial<ErrorBody>;
+    throw new ApiError(res.status, e.code ?? 'http', e.message ?? res.statusText);
+  }
+  return (await res.json()) as CreateGame;
+}
 export const fetchView = (t: string, k: number, seq?: number, ctx?: SeatCtx) => getJSON<View>(viewURL(t, k, seq, ctx));
 export const fetchEvents = (t: string, k: number, since: number, ctx?: SeatCtx) => getJSON<EventBody[]>(eventsURL(t, k, since, ctx));
 

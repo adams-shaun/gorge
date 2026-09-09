@@ -110,3 +110,32 @@ func TestJoinURLPointsAtTheLiveTable(t *testing.T) {
 		t.Fatalf("join URL %q lands on the lobby, not the live table", got)
 	}
 }
+
+// TestSeatGateMintMintsResolvableDistinctTokens covers the on-demand-game
+// token path (Task ui11): each mint returns a fresh opaque token that
+// resolves to the seat, and two mints for the same seat coexist (a later
+// game does not invalidate an earlier one, since the seat is all a claim
+// carries).
+func TestSeatGateMintMintsResolvableDistinctTokens(t *testing.T) {
+	g, err := newSeatGate("", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, err := g.mint(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := g.mint(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a == "" || len(a) != 32 || a == b {
+		t.Fatalf("minted tokens not opaque and distinct: %q %q", a, b)
+	}
+	for _, tok := range []string{a, b} {
+		got, ok := g.resolve(httptest.NewRequest(http.MethodGet, "/pending?seat=0&token="+tok, nil))
+		if !ok || got.Seat != state.PlayerID(0) {
+			t.Fatalf("token %q resolved %+v ok=%v, want seat 0", tok, got, ok)
+		}
+	}
+}
