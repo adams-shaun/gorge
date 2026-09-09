@@ -20,6 +20,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -58,9 +59,11 @@ type View struct {
 	Visibility string `json:"visibility"`
 	// Turn is the engine's per-player-turn counter (TurnChange events). It
 	// increments once per seat's turn, so a four-seat table reads "Turn 22"
-	// after five and a half rounds. Round is a projection of the same state
-	// that counts round-trips of the players still alive -- see roundOf.
-	// Both are sent because the raw engine counter is what the transcript
+	// after five and a half rounds. Round is the exact round-trip count of the
+	// players still alive, folded over the ordered event stream (RoundOf) by
+	// host, which has the log in hand when it builds this view; a caller with
+	// only a snapshot gets the roundOf approximation instead. Both Turn and
+	// Round are sent because the raw engine counter is what the transcript
 	// ("Turn N: <player>") refers to, and the round is what the board's
 	// clock shows.
 	Turn     int32          `json:"turn"`
@@ -442,12 +445,110 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 	return v
 }
 
+// RoundOf is the EXACT round-trip count, folded over the ordered event
+// stream rather than projected from a single state.Game snapshot. This is
+// the honest fix for the round number: the log knows the order things
+// happened in, which a snapshot cannot. It is a pure function of the game
+// and the event log -- it reads g.Players (the seat count) and the
+// events.PlayerLost / events.TurnChange stream, writes nothing, and cannot
+// change a chain head -- so it is identical across a live game and a
+// log-only reconstruction of the same game (replay reproduces the same
+// events, and this fold is deterministic on them).
+//
+// The rule, stated precisely: a round boundary is a TurnChange that hands
+// the turn to the FIRST STILL-LIVING SEAT in turn order (the lowest-index
+// survivor, seat order 0, 1, ..., N-1 being the cyclic turn order the
+// engine's NextAlive follows) -- i.e. play has returned to the seat that
+// opened the current pass. Round 1 is the initial pass, so the very first
+// TurnChange never counts as a boundary (the fold keeps a seen flag and
+// skips the increment on it); each later return to the then-first survivor
+// opens a new round. The fold tracks the alive set itself by folding
+// PlayerLost events, so it knows the first survivor at every moment rather
+// than only at the end -- the thing a snapshot cannot recover.
+//
+// The three edge cases fall out of the one rule. First round before any
+// turn: no TurnChange has been seen, so RoundOf is 1; the first TurnChange
+// never increments. A seat eliminated MID-ROUND (not the anchor): the first
+// survivor is unchanged, so the survivors after the death simply get a
+// shorter cycle and no boundary fires until play genuinely returns to that
+// (unchanged) first survivor. A seat eliminated who WAS the anchor (the
+// first survivor): the first survivor becomes the next-lowest living seat,
+// and the next turn to reach that new first survivor -- which the old
+// anchor's death immediately makes imminent -- opens a new round. This is
+// the case that breaks a naive "the active index fell" wrap rule: when the
+// anchor (seat 0) dies during its own turn, the turn passes 0 -> 1 (an
+// index RISE), yet play has returned to the first still-living seat, so it
+// IS a round boundary. The count is monotonic non-decreasing: it only ever
+// increments, never repeats a value for a later state and never jumps
+// backwards.
+//
+// Extra turns (a card granting a seat two turns inside one round-trip) are
+// out of scope for this build: beginTurn is reached only from genesis and
+// from rules/turn.go's NextAlive advance, and the effects registry
+// registers no AddTurn primitive, so the engine never produces a same-seat
+// repeat turn for the fold to misread; if AddTurn ever lands, this fold
+// must be revisited.
+//
+// Guards: a nil game, an empty log (or one with no TurnChange) and a
+// table whose seats have all been eliminated all fold to round 1.
+//
+// This is what the board clock should use wherever the ordered event stream
+// is in hand (host builds views from the log); roundOf below is the
+// snapshot-only approximation and the fallback for a consumer that has only
+// a state.Game.
+func RoundOf(g *state.Game, evs []events.Event) int32 {
+	n := len(g.Players)
+	if n <= 0 {
+		return 1
+	}
+	alive := make([]bool, n)
+	for i := range alive {
+		alive[i] = true
+	}
+	round := int32(1)
+	seen := false
+	for _, ev := range evs {
+		switch ev.Kind {
+		case events.PlayerLost:
+			if int(ev.Player) < n {
+				alive[ev.Player] = false
+			}
+		case events.TurnChange:
+			cur := int(ev.Player)
+			// The first still-living seat in turn order: the lowest index
+			// among the survivors. If no seat is alive (defensive -- a
+			// finished game whose winner has not been flagged) there is no
+			// first survivor to return to, so no boundary can fire.
+			first := 0
+			for first < n && !alive[first] {
+				first++
+			}
+			if seen && first < n && cur == first {
+				round++
+			}
+			seen = true
+		}
+	}
+	return round
+}
+
 // roundOf projects the engine's per-player-turn counter (g.Turn) onto the
 // number of round-trips the table has made. The rule, stated once: a round
 // is one full pass around the table among the players still alive, and the
 // projected number is 1 + (Turn-1)/AliveCount -- so round 1 spans the first
 // complete pass of every surviving seat, round 2 the second, and the round
 // length (AliveCount) shrinks as seats are eliminated.
+//
+// This is the SNAPSHOT-ONLY APPROXIMATION, kept as the fallback for a
+// consumer that has only a state.Game (the cmd/* tools and this package's
+// own tests are the ones that genuinely lack the log). It is exact before
+// the first elimination and, after one, runs AHEAD of the true round-trip
+// count -- the exact one is view.RoundOf, folded over the ordered event
+// stream, which is what host uses to build the board clock and what the
+// AGENTS.md row names as the honest fix. Do not route a log-bearing caller
+// through this function; it is here so a snapshot-only caller still gets a
+// never-wrong-direction round rather than a panic, and because the log is
+// genuinely unavailable in that shape.
 //
 // This is a projection of View's existing state and nothing else: it reads
 // g.Turn and each seat's Lost flag, writes no event, and cannot change a

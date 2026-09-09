@@ -237,6 +237,7 @@ func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, max
 		}
 		d := e.Pending()
 		v := view.Project(e.G, e, d.Player, d)
+		v.Round = view.RoundOf(e.G, e.L.Events)
 		in, err := seats[d.Player].Decide(context.Background(), v, *d)
 		if err != nil {
 			return gameOutcome{}, fmt.Errorf("seed %d, intent %d, seat %d: %w", cfg.Seed, n, d.Player, err)

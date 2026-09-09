@@ -144,6 +144,7 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	for !e.G.Over && e.Pending() != nil && n < maxIntents {
 		d := e.Pending()
 		v := view.Project(e.G, e, d.Player, d)
+		v.Round = view.RoundOf(e.G, e.L.Events)
 		in, err := b.Decide(ctx, v, *d)
 		if err != nil {
 			fmt.Fprintf(out, "seed %d: bot error at intent %d: %v\n", seed, n, err)

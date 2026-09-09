@@ -32,6 +32,12 @@ func head(m *match) uint64 {
 // the turn starts. Called with m.mu held for reading.
 func (r *Registry) snapshotFrame(t *table, m *match) protocol.Frame {
 	v := view.ProjectFor(m.e.G, m.e, view.NoSeat, t.cfg.Spectator, nil)
+	// The board clock reads v.Round, so it must be the EXACT round-trip count
+	// (view.RoundOf, folded over the ordered event stream), not the
+	// snapshot-only roundOf approximation that ProjectFor fills in (ui13): the
+	// log is right here at head and holds the death times the snapshot lacks,
+	// so a seat eliminated mid-round does not make the displayed round jump.
+	v.Round = view.RoundOf(m.e.G, m.e.L.Events)
 	// TurnStarts must never marshal as null on the wire (its protocol tag has
 	// no omitempty, and web/src/protocol.ts types it as a plain number[]): a
 	// nil slice would break every client before the first TurnChange — e.g.
