@@ -183,6 +183,59 @@ describe('autopilot — what it will and will not answer', () => {
   });
 });
 
+describe('fast forward — one shot to the next pause point', () => {
+  beforeEach(() => {
+    postIntentMock.mockReset();
+    fetchPendingMock.mockReset();
+    postIntentMock.mockResolvedValue(undefined);
+  });
+
+  it('passes repeatedly, then turns itself off on decide’s stop verdict and says why', async () => {
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    // Empty windows ignore stops because there is nothing to do; the next
+    // actionable window must honour this dot and end the one-shot run.
+    p.stops = { yours: new Set(['draw']), opponents: new Set() };
+    p.adoptView(quiet(40));
+    p.startFastForward();
+    p.considerAuto(view('draw', 0));
+    await settle(() => p.postedSeq === 40);
+    expect(postIntentMock.mock.calls[0][2].choices).toEqual([0]);
+    expect(p.fastForward).toBe(true);
+
+    p.adoptView(live(41));
+    p.considerAuto(view('draw', 0));
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(p.fastForward).toBe(false);
+    expect(autoNoteText(p.note)).toBe('Fast forward stopped here: you set a stop on this step.');
+  });
+
+  it('is bounded by the same hard pass cap as Auto', async () => {
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    p.stops = { yours: new Set(), opponents: new Set() };
+    p.startFastForward();
+    for (let i = 1; i <= AUTO_PASS_CAP; i++) {
+      p.adoptView(quiet(i));
+      p.considerAuto(view());
+      await settle(() => p.postedSeq === i);
+    }
+    p.adoptView(quiet(AUTO_PASS_CAP + 1));
+    p.considerAuto(view());
+    expect(postIntentMock).toHaveBeenCalledTimes(AUTO_PASS_CAP);
+    expect(p.fastForward).toBe(false);
+    expect(autoNoteText(p.note)).toBe(`Fast forward switched itself off after ${AUTO_PASS_CAP} passes in a row.`);
+  });
+
+  it('a human option click interrupts the run before posting that click', async () => {
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    p.startFastForward();
+    p.adoptView(live(50));
+    p.click(0);
+    await settle(() => p.postedSeq === 50);
+    expect(p.fastForward).toBe(false);
+    expect(autoNoteText(p.note)).toBe('Fast forward cancelled: you took the controls.');
+  });
+});
+
 describe('autopilot — the loop guard', () => {
   beforeEach(() => {
     postIntentMock.mockReset();

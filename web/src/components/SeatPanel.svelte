@@ -8,16 +8,12 @@
   import ManaPool from './ManaPool.svelte';
 
   /**
-   * SeatPanel is a human seat's whole surface, overlaid on the board: the
-   * status readout (survey item 4) — priority and stack depth; turn number
-   * and step belong to PhaseTrack above the board and are not restated
-   * here — the auto/manual control, the seat's floating mana, the
-   * prompt as TEXT over the board naming the source (item 18 — never a
-   * modal), and the options, with the primary button resolved by kind (item
-   * 5 / R-E4-1) and the concede option visually separated and doubly
-   * confirmed. All decision state is SeatPanelState; this component only
-   * renders it. The board itself (Board, IdentityBar, Rail) is the same
-   * seat-scoped view everything else renders.
+   * SeatPanel is a human seat's decision surface: the status readout,
+   * auto/manual controls, floating mana, prompt and options, with the primary
+   * button resolved by kind (R-E4-1). Generic decisions mount once in the
+   * rail flyout; mulligan alone mounts over the board. Concede is deliberately
+   * absent from this normal-turn surface and rendered by Table at the page's
+   * top right, though the same SeatPanelState owns its arm/confirm/post path.
    *
    * It floats on the felt but it IS an instrument — it is where the engine
    * asks a question — so it is drawn in the instrument register: one cool,
@@ -30,8 +26,10 @@
    * else. See toneOf — the distinction comes from option kinds, not from the
    * prompt text.
    */
-  let { view, seats, ctx, table, match, state = null }: {
+  let { view, seats, ctx, table, match, state = null, placement = 'board' }: {
     view: View; seats: SeatInfo[]; ctx: SeatCtx; table: string; match: number;
+    /** Generic decisions live in the rail flyout; only mulligan keeps the centred board placement. */
+    placement?: 'board' | 'flyout';
     /**
      * state lets the route hand in the seat's SeatPanelState so the phase
      * track above the board and this panel share ONE set of stops and ONE
@@ -69,7 +67,16 @@
     // hands are not necessarily on the panel when auto does something they
     // did not expect.
     const onKey = (e: KeyboardEvent) => logic.onKeydown(e.key);
+    // Fast-forward is one shot and a human always wins. Capture makes even a
+    // click outside this component (a card, stop, log control) cancel it;
+    // only the button that starts the run is exempt.
+    const onPointer = (e: PointerEvent) => {
+      const target = e.target;
+      if (target instanceof Element && target.closest('[data-fast-forward]')) return;
+      logic.cancelFastForward();
+    };
     window.addEventListener('keydown', onKey);
+    window.addEventListener('pointerdown', onPointer, true);
     // The panel used to learn about a new decision ONLY from view.decision,
     // which is refreshed by the SSE 'decision' frame. That makes the stream a
     // single point of failure for a seat: miss one frame -- a dropped
@@ -88,6 +95,7 @@
     return () => {
       clearInterval(t);
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener('pointerdown', onPointer, true);
     };
   });
 
@@ -97,6 +105,7 @@
   // server is exactly the runaway this task exists to prevent.
   $effect(() => {
     void logic.auto;
+    void logic.fastForward;
     void logic.pending?.seq;
     void logic.stops;
     void view.step;
@@ -151,7 +160,14 @@
     <p class="sub">Match over</p>
   </div>
 {:else}
-  <div class="seat-panel" class:wide={mull !== null} data-seat-panel data-tone={tone}>
+  <div
+    class="seat-panel"
+    class:wide={mull !== null}
+    class:flyout={placement === 'flyout'}
+    data-seat-panel
+    data-concede={logic.concedeOption?.index}
+    data-tone={tone}
+  >
     {#if mull === null}
       <div class="readout" role="status">
         <div class="fact">
@@ -274,40 +290,25 @@
         </div>
       {:else}
         <div class="options" data-options>
-          {#if primary}
+          {#if primary && !(placement === 'flyout' && primary.kind === 'pass')}
             <button class="primary" type="button" data-primary onclick={() => logic.primaryClick()} disabled={logic.busy}>
               {primary.label}
             </button>
           {/if}
           <div class="list">
-            {#each decision.options as opt (opt.index)}
-              {#if isConcede(opt)}
-                <div class="concede-sep" role="separator"></div>
-                <div class="concede-slot">
-                  {#if logic.confirming}
-                    <button class="concede confirm" type="button" data-confirm-concede onclick={() => logic.confirmConcede()} disabled={logic.busy}>
-                      Concede — click again to confirm
-                    </button>
-                  {:else}
-                    <button class="concede" type="button" data-concede onclick={() => logic.click(opt.index)} disabled={logic.busy}>
-                      {opt.label}
-                    </button>
-                  {/if}
-                </div>
-              {:else}
-                {@const pickedAt = logic.picked.indexOf(opt.index)}
-                <button
-                  class="option"
-                  class:picked={pickedAt >= 0}
-                  type="button"
-                  data-option={opt.index}
-                  onclick={() => logic.click(opt.index)}
-                  disabled={logic.busy}
-                >
-                  {#if decision.max > 1 && pickedAt >= 0}<span class="order inline">{pickedAt + 1}</span>{/if}
-                  <span class="label">{opt.label}</span>
-                </button>
-              {/if}
+            {#each decision.options.filter((opt) => !isConcede(opt) && opt.index !== primary?.index) as opt (opt.index)}
+              {@const pickedAt = logic.picked.indexOf(opt.index)}
+              <button
+                class="option"
+                class:picked={pickedAt >= 0}
+                type="button"
+                data-option={opt.index}
+                onclick={() => logic.click(opt.index)}
+                disabled={logic.busy}
+              >
+                {#if decision.max > 1 && pickedAt >= 0}<span class="order inline">{pickedAt + 1}</span>{/if}
+                <span class="label">{opt.label}</span>
+              </button>
             {/each}
           </div>
           {#if logic.showSubmit}
@@ -385,11 +386,23 @@
      horizontal scrollbar came from). Sized to the viewport so seven cards
      wrap into two comfortable rows on a laptop and one row on a wide
      board. */
+  .seat-panel.flyout {
+    position: static;
+    transform: none;
+    width: min(21rem, calc(100vw - 24.5rem));
+    min-width: 15rem;
+    max-width: none;
+    max-height: min(32vh, 24rem);
+  }
+
   .seat-panel.wide {
-    top: 50%;
+    /* Leave the shard's compact top lane clear even when seven opening cards
+       make this panel tall on a narrow board. It remains the central body,
+       shifted down by one small instrument lane rather than competing with it. */
+    top: calc(50% + 3rem);
     transform: translate(-50%, -50%);
     width: min(94%, 1120px);
-    max-height: 96%;
+    max-height: calc(100% - 7rem);
     align-items: center;
   }
 
@@ -606,29 +619,6 @@
   }
   .order.inline {
     flex: none;
-  }
-
-  .concede-sep {
-    height: 1px;
-    background: var(--edge-inst);
-    margin: var(--sp-1) 0;
-  }
-  .concede-slot button.concede {
-    width: 100%;
-    text-align: center;
-    background: transparent;
-    color: color-mix(in srgb, var(--danger) 70%, var(--ink));
-    border: 1px solid color-mix(in srgb, var(--danger) 50%, var(--edge-inst));
-    border-radius: var(--radius);
-    padding: var(--sp-1) var(--sp-2);
-    font-family: var(--font-ui);
-    font-size: var(--t-12);
-    cursor: pointer;
-  }
-  .concede-slot button.concede.confirm {
-    background: var(--danger);
-    color: var(--felt-sunk);
-    font-weight: 600;
   }
 
   .submit {
