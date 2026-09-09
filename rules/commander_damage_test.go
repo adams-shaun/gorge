@@ -31,7 +31,18 @@ import (
 // the argument; toughness is set high (99) so the attacker never dies to its
 // own lethal damage, which would otherwise muddy threshold/cululative tests.
 func cmdCreature(pw int32) string {
-	return "Name:Commander\nManaCost:2 G\nTypes:Legendary Creature Bear\nPT:" +
+	return cmdCreatureNamed("Commander", pw)
+}
+
+// cmdCreatureNamed is cmdCreature with the name spelled out. A test that
+// fields TWO commanders for one player must give them DIFFERENT names: they
+// are Legendary, so two identically-named ones under a single controller is a
+// board CR 704.5j forbids, and the legend rule now really does put one of them
+// into the graveyard. That would be a broken fixture rather than a test of
+// anything -- the per-commander damage keying it means to pin (CR 903.10) is
+// about two commanders BOTH being on the battlefield.
+func cmdCreatureNamed(name string, pw int32) string {
+	return "Name:" + name + "\nManaCost:2 G\nTypes:Legendary Creature Bear\nPT:" +
 		strconv.Itoa(int(pw)) + "/99\nK:Trample\nOracle:x\n"
 }
 
@@ -180,7 +191,11 @@ func TestTwentyOneCommanderDamageLoses(t *testing.T) {
 // collapsing every commander onto slot 0 turns 11+11 into a single 22 and
 // fails this test by making the defender lose.
 func TestTwoCommandersElevenEachDoesNotLose(t *testing.T) {
-	e, _ := commanderGame(t, commanderDamageSeed, FormatCommander, 40, [][]string{{cmdCreature(11), cmdCreature(11)}, {}})
+	// Two DIFFERENT legendary names: same-named legendaries under one
+	// controller are illegal (CR 704.5j) and the legend rule would bin one of
+	// them before either could deal its 11.
+	e, _ := commanderGame(t, commanderDamageSeed, FormatCommander, 40,
+		[][]string{{cmdCreatureNamed("Commander One", 11), cmdCreatureNamed("Commander Two", 11)}, {}})
 	cmds := e.G.Zone(state.ZCommand, 0)
 	a := fieldCommanderByID(t, e, cmds[0])
 	b := fieldCommanderByID(t, e, cmds[1])
