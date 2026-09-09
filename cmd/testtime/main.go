@@ -40,6 +40,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/adams-shaun/gorge/cards"
 )
 
 // Exit codes. exitBudget (1) means a package's wall time exceeded its budget;
@@ -288,12 +290,33 @@ func listPackages(cwd string) []pkgInfo {
 	return pkgs
 }
 
+// runGit runs a child git process. It runs the child with cards.GitEnv() —
+// os.Environ() with every inherited GIT_* variable stripped — so a git the
+// tool starts is never quietly redirected at whatever repository the caller
+// had checked out or staged.
+//
+// testtime is invoked by .githooks/pre-commit, and git exports GIT_INDEX_FILE
+// — and, in a linked worktree, GIT_DIR — to every hook it runs, as paths that
+// name the enclosing repository. In a linked worktree those come through
+// absolute, but at a plain checkout top-level GIT_INDEX_FILE is the relative
+// ".git/index" and GIT_DIR may be relative too; both resolve against the
+// process working directory, which testtime does not control when it measures
+// a package from a subdirectory. An inherited relative GIT_* would therefore
+// redirect diff --cached, rev-parse and status at a .git that does not exist,
+// so the tool's own bookkeeping (staged-file selection, the commit stamp) would
+// fail or silently read the wrong repository. Scrub on every child git.
+func runGit(args ...string) ([]byte, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Env = cards.GitEnv()
+	return cmd.Output()
+}
+
 // stagedFiles returns every staged file path. Unlike a .go-only scan it is the
 // full change set, so a package is "changed" when ANY real file in it is staged
 // -- the history-file scrub in nonArtifacts/packagesForFiles is what keeps the
 // tool's own bookkeeping from counting as a change.
 func stagedFiles() []string {
-	out, err := exec.Command("git", "diff", "--cached", "--name-only").Output()
+	out, err := runGit("diff", "--cached", "--name-only")
 	if err != nil {
 		fatal("git diff --cached: %v", err)
 	}
@@ -625,12 +648,12 @@ func median(values []float64) float64 {
 // headCommit returns `git rev-parse --short HEAD`, with a "+" suffix when the
 // working tree is dirty.
 func headCommit() string {
-	out, err := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
+	out, err := runGit("rev-parse", "--short", "HEAD")
 	if err != nil {
 		return "unknown"
 	}
 	sha := strings.TrimSpace(string(out))
-	status, _ := exec.Command("git", "status", "--porcelain").Output()
+	status, _ := runGit("status", "--porcelain")
 	if len(strings.TrimSpace(string(status))) > 0 {
 		sha += "+"
 	}

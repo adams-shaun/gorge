@@ -7,6 +7,37 @@ import (
 	"testing"
 )
 
+// TestRunGitScrubsInheritedGitEnv pins the gitiso hazard on testtime's child
+// git calls.
+//
+// Git exports GIT_INDEX_FILE -- and, in a linked worktree, GIT_DIR -- to every
+// hook it runs, as paths that name the enclosing repository. testtime is
+// invoked by .githooks/pre-commit, so those inherited variables reach every
+// child git it starts. A test binary's working directory is its own package
+// directory, not the repo root, and runGit names no repository (no -C, no
+// --git-dir): an inherited relative GIT_DIR or GIT_INDEX_FILE resolves against
+// that package directory and silently redirects the call at a .git that does
+// not exist, so rev-parse, diff --cached and status all fail. Before the scrub,
+// runGit ran the child git with the inherited environment, so under a hook all
+// three of testtime's bookkeeping calls broke.
+//
+// The test arms exactly that environment and asserts the child git still talks
+// to the real repository.
+func TestRunGitScrubsInheritedGitEnv(t *testing.T) {
+	// A hook exports GIT_DIR and GIT_INDEX_FILE, commonly as relative ".git"
+	// paths. Reproduce that, exactly as the testutil fix did.
+	t.Setenv("GIT_DIR", ".git")
+	t.Setenv("GIT_INDEX_FILE", ".git/index")
+
+	out, err := runGit("rev-parse", "--short", "HEAD")
+	if err != nil {
+		t.Fatalf("runGit failed under an exported GIT_DIR/GIT_INDEX_FILE (inherited GIT_* not scrubbed?): %v", err)
+	}
+	if sha := strings.TrimSpace(string(out)); sha == "" || sha == "unknown" {
+		t.Fatalf("runGit returned an unusable HEAD %q under an exported GIT_DIR/GIT_INDEX_FILE", sha)
+	}
+}
+
 func TestParseJSON(t *testing.T) {
 	f, err := os.Open(filepath.Join("testdata", "stream.json"))
 	if err != nil {

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/replay"
 )
@@ -21,7 +22,16 @@ import (
 // mirrors its resolve-and-skip shape instead of its return value.
 func corpusDirOrSkip(t *testing.T) string {
 	t.Helper()
-	out, err := exec.Command("git", "-C", ".", "rev-parse", "--show-toplevel").Output()
+	// Run the child git with cards.GitEnv(): a test binary's cwd is this
+	// package directory, not the repo root, and git exports GIT_INDEX_FILE --
+	// and in a linked worktree GIT_DIR -- to every hook it runs, as a path
+	// that names the enclosing repository. An inherited relative GIT_* would
+	// redirect "-C ." at a .git that does not resolve from here, so rev-parse
+	// fails and the corpus is never found (the gitiso hazard; see
+	// cards/gitenv.go and internal/testutil/decks.go).
+	cmd := exec.Command("git", "-C", ".", "rev-parse", "--show-toplevel")
+	cmd.Env = cards.GitEnv()
+	out, err := cmd.Output()
 	if err != nil {
 		t.Fatalf("could not resolve git repo root: %v", err)
 	}
