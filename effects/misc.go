@@ -323,7 +323,17 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 	skip := false
 	switched := strings.EqualFold(strings.TrimSpace(sa.Params["UnlessSwitched"]), "True")
 	if cost := strings.TrimSpace(sa.Params["UnlessCost"]); cost != "" && !switched {
-		switch c.UnlessPay {
+		// fx42: take the answer into a local and clear c.UnlessPay BEFORE
+		// handling it, so a NESTED unless-pay consumer reached below this one
+		// in the same walk (a Counter or CopySpellAbility in this effect's Sub
+		// chain) does not inherit this consumer's answered value — it must
+		// pose its own ask. The only readers of Ctx.UnlessPay are this
+		// primitive's top and effCopySpellAbility's top, and neither reads it
+		// again afterwards, so clearing here confines the answer to the
+		// primitive that asked for it.
+		ans := c.UnlessPay
+		c.UnlessPay = ""
+		switch ans {
 		case "pay":
 			// Re-entry, paid: the spell resolves normally, so do NOT counter.
 			skip = true

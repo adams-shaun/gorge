@@ -52,7 +52,15 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 		// effCounter's guard here: it would break the switched copy shapes
 		// that main already gets right.
 		switched := strings.EqualFold(strings.TrimSpace(sa.Params["UnlessSwitched"]), "True")
-		switch c.UnlessPay {
+		// fx42: same scoping as effCounter. This primitive hardcodes the
+		// OPPOSITE orientation (paying CAUSES the copy), but both read
+		// Ctx.UnlessPay at the top and nothing reads it after, so take it into
+		// a local and clear it so a nested unless-pay consumer reached below
+		// this one in the same walk must pose its own ask rather than inherit
+		// this consumer's answer.
+		ans := c.UnlessPay
+		c.UnlessPay = ""
+		switch ans {
 		case "pay":
 			// Re-entry: the payer paid the UnlessCost$ in rules'
 			// resumeResolution (payMana, so it replays). On the UNSWITCHED
