@@ -20,16 +20,35 @@ import (
 // It is NOT the CR 103.5b multiplayer free mulligan, which is derived from the
 // seat count and exempts a seat from the bottoming PENALTY, never from the
 // allowance; an earlier version of this comment called limit "the
-// free-mulligan count" and that wording was wrong. bottom is false during the
-// keep/mulligan phase and true during the bottoming phase; cursor names the
-// next seat to ask in whichever phase.
+// free-mulligan count" and that wording was wrong. freeMulligans is fixed from
+// the round's initial seat count. bottom is false during the keep/mulligan
+// phase and true during the bottoming phase; cursor names the next seat to ask
+// in whichever phase.
 type mulliganRound struct {
-	seats  []state.PlayerID
-	kept   []bool
-	taken  []int
-	limit  int
-	bottom bool
-	cursor int
+	seats         []state.PlayerID
+	kept          []bool
+	taken         []int
+	limit         int
+	freeMulligans int
+	bottom        bool
+	cursor        int
+}
+
+func newMulliganRound(seats []state.PlayerID, limit int) mulliganRound {
+	freeMulligans := 0
+	if len(seats) >= 3 {
+		freeMulligans = 1
+	}
+	return mulliganRound{
+		seats: seats, kept: make([]bool, len(seats)), taken: make([]int, len(seats)),
+		limit: limit, freeMulligans: freeMulligans,
+	}
+}
+
+// bottomCount is the London bottoming penalty after the multiplayer free
+// mulligan exemption. The exemption changes only this penalty, never limit.
+func (m *mulliganRound) bottomCount(i int) int {
+	return max(0, m.taken[i]-m.freeMulligans)
 }
 
 // stepPregame issues the single next pregame decision -- one keep/mulligan
@@ -43,12 +62,12 @@ func (e *Engine) stepPregame() {
 	}
 	m := &e.mulligan
 	if m.bottom {
-		// Bottoming phase: each seat that mulliganed bottoms `taken` cards
-		// from its kept hand (the London end-of-round bottoming). A seat that
-		// never mulliganed (taken == 0) has nothing to bottom and is skipped.
+		// Bottoming phase: each seat bottoms its penalty count from its kept
+		// hand (the London end-of-round bottoming). A seat whose penalty is
+		// zero, including its first mulligan in multiplayer, is skipped.
 		for m.cursor < len(m.seats) {
 			i := m.cursor
-			if m.taken[i] == 0 {
+			if m.bottomCount(i) == 0 {
 				m.cursor++
 				continue
 			}
@@ -62,7 +81,7 @@ func (e *Engine) stepPregame() {
 		return
 	}
 	// Keep/mulligan phase: ask each not-yet-kept seat, in round order,
-	// whether to keep or (while it still has a free mulligan) mulligan.
+	// whether to keep or (while it still has a permitted mulligan) mulligan.
 	for m.cursor < len(m.seats) {
 		i := m.cursor
 		if m.kept[i] {
@@ -80,7 +99,7 @@ func (e *Engine) stepPregame() {
 
 // askKeepMulligan offers seat i of the round a keep/mulligan decision. It is
 // Min == Max == 1 over the same distinct-index shape Validate enforces
-// everywhere (Ruling U2). While the seat still has a free mulligan
+// everywhere (Ruling U2). While the seat still has a permitted mulligan
 // (taken < limit) it offers both the "keep" and "mulligan" options; once it
 // has used its whole allowance, London offers only "keep" -- you keep what
 // you have.
@@ -98,17 +117,23 @@ func putCount(n int) string {
 // `taken` cards leave the kept hand for the bottom of the library. It is the
 // last real sentence a player reads in the mulligan round, so it is written
 // for a human -- finding bh: no "(s)", no "bottoms" as a verb.
-func bottomingPrompt(taken int) string {
-	return fmt.Sprintf("Put %s on the bottom of your library", putCount(taken))
+func bottomingPrompt(bottom int) string {
+	if bottom == 0 {
+		return "Keep all seven cards"
+	}
+	return fmt.Sprintf("Put %s on the bottom of your library", putCount(bottom))
 }
 
 // keepMulliganPrompt is the human-readable wording for a keep/mulligan ask.
 // It names the bottoming penalty a keep accepts, in the same real English as
 // bottomingPrompt (finding bh: the old "keeps 7 and bottoms 1, or mulligans"
-// was engine-speak). With a free mulligan remaining the seat has a choice;
+// was engine-speak). With a permitted mulligan remaining the seat has a choice;
 // once the allowance is spent London offers only a keep.
-func keepMulliganPrompt(taken, limit int) string {
-	penalty := fmt.Sprintf("put %s on the bottom of your library", putCount(taken))
+func keepMulliganPrompt(bottom, taken, limit, freeMulligans int) string {
+	penalty := fmt.Sprintf("put %s on the bottom of your library", putCount(bottom))
+	if bottom == 0 && freeMulligans > 0 {
+		penalty = "keep all seven cards"
+	}
 	if taken < limit {
 		return fmt.Sprintf("Keep your hand (%s) or take a mulligan?", penalty)
 	}
@@ -123,15 +148,16 @@ func (e *Engine) askKeepMulligan(i int) {
 		opts = append(opts, decision.Option{Index: 1, Kind: "mulligan", Label: "mulligan"})
 	}
 	// CR 103.4: the seat re-drew a full openingHand on every mulligan, so
-	// while it is deciding it always holds seven and will bottom `taken`
-	// of them if it keeps -- the bottoming is the entire penalty.
-	e.ask(decision.New(p, decision.KMulligan, keepMulliganPrompt(m.taken[i], m.limit), 1, 1, opts))
+	// while it is deciding it always holds seven and will bottom bottomCount
+	// cards if it keeps -- the bottoming is the entire penalty.
+	e.ask(decision.New(p, decision.KMulligan,
+		keepMulliganPrompt(m.bottomCount(i), m.taken[i], m.limit, m.freeMulligans), 1, 1, opts))
 }
 
 // askBottoming offers seat i a bottoming decision over its kept hand: one
-// "bottom" option per card, Min == Max == taken[i] -- exactly the distinct-
-// index shape Validate already enforces for KTriggerOrder (a bottoming choice
-// is a permutation of taken[i] hand indices; Ruling U2).
+// "bottom" option per card, Min == Max == bottomCount(i) -- exactly the
+// distinct-index shape Validate already enforces for KTriggerOrder (a
+// bottoming choice is a permutation of hand indices; Ruling U2).
 func (e *Engine) askBottoming(i int) {
 	m := &e.mulligan
 	p := m.seats[i]
@@ -141,13 +167,14 @@ func (e *Engine) askBottoming(i int) {
 		opts[j] = decision.Option{Index: j, Kind: "bottom",
 			Label: e.G.Obj(id).Face().Name, Obj: id, Player: p}
 	}
-	e.ask(decision.New(p, decision.KMulligan, bottomingPrompt(m.taken[i]), m.taken[i], m.taken[i], opts))
+	bottom := m.bottomCount(i)
+	e.ask(decision.New(p, decision.KMulligan, bottomingPrompt(bottom), bottom, bottom, opts))
 }
 
 // handleMulligan applies a KMulligan answer. In the keep/mulligan phase (the
 // round's first half, e.mulligan.bottom false) a keep marks the seat kept; a
 // mulligan shuffles the seat's hand back into its library (Shuffle, secret),
-// takes a free mulligan and draws a full new hand of seven -- CR 103.4: the
+// takes a permitted mulligan and draws a full new hand of seven -- CR 103.4: the
 // bottoming of `taken` cards at the round's end is the entire penalty, never
 // a smaller redraw. Every mutation is an e.emit or drawCard, so the whole
 // round is event-driven and replays byte-for-byte. In the bottoming phase it
