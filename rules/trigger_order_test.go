@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -1204,6 +1205,103 @@ func TestATriggerWhoseControllerLeftIsNotPushedByItsDecider(t *testing.T) {
 	}
 	if o := e.G.Obj(abID); o == nil || o.Zone != state.ZCeased {
 		t.Fatalf("the departed controller's on-stack ability is in %v, want ceased (CR 800.4a)", e.G.Obj(abID))
+	}
+}
+
+// TestOptionalTriggerWhoseDeciderLeftTheGameCeasesToExist is fix round 1's
+// unpinned-branch leaf -- the reason this fix round exists. The CR 603.5 block
+// in resolveTop has a branch for an OptionalDecider$ trigger whose decider has
+// left the game (CR 800.4a: the ability ceases to exist rather than being
+// offered to the departed seat for a yes/no nobody can answer), guarded by
+// `if !askable`. Nothing observed that branch: the controller's own fix round
+// swapped it for `if false && !askable`, `go test ./rules` stayed green, and
+// the departed decider's question was posed to a seat that cannot answer. This
+// leaf pins the branch against exactly that regression: an OptionalDecider$
+// trigger goes on the stack with a LIVING controller, the decider leaves the
+// game, and the ability resolves into exile rather than into the ask.
+func TestOptionalTriggerWhoseDeciderLeftTheGameCeasesToExist(t *testing.T) {
+	e := newSeats(t, 3)
+	e.pending = nil // drop the turn-1 priority decision; the drain owns the queue below
+	onBoard(t, e, 0, wardenSrc)
+	bear := e.G.AddObject(card(t, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), 1)
+	bear.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 1, []state.ObjID{bear.ID})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: bear.ID,
+		From: state.ZHand, To: state.ZBattlefield})
+
+	// CR 603.5: the ability goes on the stack regardless. Its controller is
+	// player 0 (the Warden); its OptionalDecider$ is the
+	// TriggeredCardController -- player 1, the bear's controller.
+	if e.putTriggersOnStack() {
+		t.Fatalf("an optional trigger asked at placement: %+v", e.Pending())
+	}
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack = %v, want the ability on the stack", e.G.Stack)
+	}
+	abID := e.G.Stack[0]
+
+	// The DECIDER (player 1) leaves the game while the ability is on the
+	// stack, but the trigger's controller (player 0) is still alive. CR 800.4a
+	// sweeps only the departed player's owned cards and on-stack abilities, so
+	// the controller's ability stays. The departure is a concession at a
+	// priority ask -- the lawful way to leave while a 3-seat game goes on --
+	// emitted as the same PlayerLost "conceded" shape the departed-chooser
+	// fixture uses.
+	e.emit(events.Event{Kind: events.PlayerLost, Player: 1, Text: "conceded"})
+	e.checkStateBased()
+	if !e.G.Players[1].Lost {
+		t.Fatal("the decider was not eliminated")
+	}
+	if e.G.Over {
+		t.Fatal("a three-seat game ended on one departure")
+	}
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack = %v, want the ability still on the stack (its controller lives)", e.G.Stack)
+	}
+
+	// Now let it resolve. The decider is gone: the CR 603.5 block must move the
+	// ability to exile as ceased-to-exist (CR 800.4a) instead of posing the
+	// yes/no to a departed seat.
+	e.resolveTop()
+
+	// (a) CR 800.4a: the ability is no longer on the stack and parks in exile
+	// carrying the "ceased to exist" text.
+	if len(e.G.Stack) != 0 {
+		t.Fatalf("stack = %v, want the departed-decider ability to have ceased off it", e.G.Stack)
+	}
+	if o := e.G.Obj(abID); o == nil || o.Zone != state.ZExile {
+		t.Fatalf("the departed-decider ability is in %v, want exile (CR 800.4a)", e.G.Obj(abID))
+	}
+	ceased := false
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.MoveZone && ev.Obj == abID &&
+			ev.From == state.ZStack && ev.To == state.ZExile &&
+			strings.Contains(ev.Text, "ceased to exist") {
+			ceased = true
+			break
+		}
+	}
+	if !ceased {
+		t.Fatal("no 'ceased to exist' MoveZone for the departed-decider ability (CR 800.4a)")
+	}
+
+	// (b) no KTriggerOptional decision was ever asked of the departed seat
+	// after the departure -- the branch pins the ask only to a decider who can
+	// still answer it.
+	departed := -1
+	for i, ev := range e.L.Events {
+		if ev.Kind == events.PlayerLost && ev.Player == 1 && ev.Text == "conceded" {
+			departed = i
+			break
+		}
+	}
+	if departed < 0 {
+		t.Fatal("no concession PlayerLost for the decider in the log")
+	}
+	for i := departed + 1; i < len(e.L.Events); i++ {
+		if ev := e.L.Events[i]; ev.Kind == events.DecisionAsk && ev.Player == 1 {
+			t.Fatalf("after the decider left, a %q decision was asked of departed seat 1", ev.Text)
+		}
 	}
 }
 
