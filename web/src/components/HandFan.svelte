@@ -3,7 +3,7 @@
   import { visibleHand } from '../lib/board';
   import { handFanLayout, type HandFanSpec } from '../lib/handfan';
   import type { CardOptions, TileOptions } from '../lib/cardoptions';
-  import { tileOptions } from '../lib/cardoptions';
+  import { postSingleAction, singleActionIcon, tileOptions } from '../lib/cardoptions';
   import CardImage from './CardImage.svelte';
   import CardDetail from './CardDetail.svelte';
   import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
@@ -42,9 +42,9 @@
    * picked ordinals, the tone, and the post callback. One mechanism, one
    * index, one post path (R-E4-1): the affordance here is a FAN-SPECIFIC
    * PRESENTATION of the same data, not a second index or a second post path.
-   * Each hand card wears the tone ring marking, a badge carrying the count,
-   * a menu of the server's own option labels that posts each option's own
-   * index, and a picked chip in click order — exactly what a board tile gets,
+   * Each hand card wears the tone ring marking; one offer is a direct icon,
+   * while several get a count badge and menu of the server's own labels. Both
+   * post each option's own index, with a picked chip in click order — exactly what a board tile gets,
    * adapted to the fan's geometry. See the task report for why the shape
    * differs (the fan overlaps; a menu must open UP, the hand sits at the
    * board's bottom edge; and the tile's all-four-corners signal hierarchy
@@ -186,24 +186,41 @@
           <!-- The options affordance sits OUTSIDE the role="button" face so a
                real button is never nested inside one; it anchors to the card's
                TOP EDGE (a bare face has no corner meaning to preserve, and the
-               badge clears the card in front of it on the overlap fan). -->
+               icon/badge clears the card in front of it on the overlap fan). -->
           <div class="tile-actions">
-            <button
-              class="badge badge--{opt.tone}"
-              class:selected={opt.pickedOrder.length > 0}
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={openForCard(c.id)}
-              aria-label="{opt.list.length} {opt.list.length === 1 ? 'action' : 'actions'} for {c.name}"
-              title="Options for {c.name}"
-              onclick={() => toggleCard(c.id)}
-            >
-              <span class="badge__n data">{opt.list.length}</span>
-            </button>
+            {#if opt.list.length === 1}
+              {@const action = opt.list[0]}
+              {@const icon = singleActionIcon(action)}
+              <button
+                class="action-icon badge--{opt.tone}"
+                class:selected={opt.pickedOrder.length > 0}
+                type="button"
+                data-single-action
+                data-action-icon={icon}
+                aria-label={action.label}
+                title={action.label}
+                onclick={() => postSingleAction(opt)}
+              >
+                <span aria-hidden="true">{icon === 'tap' ? '↻' : icon === 'cast' ? '✦' : '›'}</span>
+              </button>
+            {:else}
+              <button
+                class="badge badge--{opt.tone}"
+                class:selected={opt.pickedOrder.length > 0}
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={openForCard(c.id)}
+                aria-label="{opt.list.length} actions for {c.name}"
+                title="Options for {c.name}"
+                onclick={() => toggleCard(c.id)}
+              >
+                <span class="badge__n data">{opt.list.length}</span>
+              </button>
+            {/if}
             {#if opt.pickedOrder.length > 0}
               <span class="sel data" aria-label="picked {opt.pickedOrder.join(', ')}">{opt.pickedOrder.join(',')}</span>
             {/if}
-            {#if openForCard(c.id)}
+            {#if opt.list.length > 1 && openForCard(c.id)}
               <ul class="menu" role="menu" aria-label="Options for {c.name}">
                 {#each opt.list as o (o.index)}
                   <li role="none">
@@ -235,16 +252,15 @@
      board, the opposite edge). */
   .handtrack {
     position: absolute;
-    left: 0;
+    left: var(--own-seat-w, 0px);
     right: 0;
     bottom: 0;
     z-index: 6;
     pointer-events: none;
   }
-  /* The fan owns the whole bottom edge of the board, full width. Anything
-     else that wants to live down here (the seated player's identity bar) is
-     lifted clear of it by --own-hand-h, published from the board rather than
-     hard-coded twice. */
+  /* The fan owns the bottom edge after the fixed identity bay; together they
+     make one seat strip. The track, not the cards, consumes --own-seat-w, so
+     overlap tightening still follows the actual room available. */
   .handfan {
     position: relative;
     margin-inline: auto;
@@ -324,7 +340,8 @@
     gap: 2px;
     line-height: 1;
   }
-  .badge {
+  .badge,
+  .action-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -350,9 +367,16 @@
     border-color: var(--offered);
     color: var(--felt-sunk);
   }
-  .badge.selected {
+  .badge.selected,
+  .action-icon.selected {
     outline: 2px solid var(--ink);
     outline-offset: 1px;
+  }
+  .action-icon {
+    width: 1.35rem;
+    padding: 0;
+    font-size: var(--t-14);
+    line-height: 1;
   }
   .sel {
     display: inline-flex;
@@ -371,7 +395,8 @@
     font-size: inherit;
   }
   .badge:hover,
-  .badge[aria-expanded='true'] {
+  .badge[aria-expanded='true'],
+  .action-icon:hover {
     border-color: var(--ink-dim);
     color: var(--ink);
   }

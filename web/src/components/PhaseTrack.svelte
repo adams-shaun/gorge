@@ -151,7 +151,7 @@
 <style>
   /*
    * The instrument register: cool, flat, hairline-divided. The track is a
-   * compact shard floating over felt, not a page-wide band or row of buttons — the phase groups are separated by rules
+   * full-width centre band across the felt, not a page-wide band across the rail — the phase groups are separated by rules
    * rather than by gaps, so `beginning`, `combat` and `ending` read as units
    * at a glance and the twelve cells never read as twelve equal boxes.
    */

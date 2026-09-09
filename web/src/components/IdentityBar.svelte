@@ -58,27 +58,16 @@
   // convention competitive clients use (Arena/MTGO: the opponent's box at the
   // top, yours at the bottom).
   //
-  // The seated player's own box sits ABOVE their hand fan rather than beside
-  // it. Measured at 1440/1000/650px, its bottom is exactly 8px above the
-  // 178.78px fan, so the placement is right; the floating read came from no
-  // visual connection to the edge. The `own` rule below continues the seat's
-  // identity stroke across the measured 8px gutter to the felt edge without
-  // moving either hit target or drawing over the hand.
-  // The fan is a full-width row along the very bottom edge, so a corner
-  // down there is inside the fan's reach: whichever of the two was stacked on
-  // top, the other became unreadable, and your own first card and your own
-  // life total are both things you must be able to see. Stacking order cannot
-  // settle that -- only not overlapping can. --own-hand-h is the fan's height,
-  // published by the board, so the offset is one fact stated once instead of a
-  // magic number kept in step by hand; with no fan (a spectator, or a seat
-  // whose hand is empty) it falls back to 0 and the box sits in the corner as
-  // before.
+  // The seated player's own box and hand are one bottom seat strip. The box
+  // is flush to the board's bottom-left edge; HandFan reserves exactly its
+  // --own-seat-w bay and starts alongside it. That makes the identity visibly
+  // docked without putting it over the first card or floating it above both.
   const CORNER: Record<string, string> = {
     tl: 'top:var(--sp-2);left:var(--sp-2)', tr: 'top:var(--sp-2);right:var(--sp-2)',
     bl: 'bottom:var(--sp-2);left:var(--sp-2)', br: 'bottom:var(--sp-2);right:var(--sp-2)',
     l: 'top:var(--sp-2);left:var(--sp-2)', r: 'top:var(--sp-2);right:var(--sp-2)',
     top: 'top:var(--sp-2);right:var(--sp-2)',
-    bottom: 'bottom:calc(var(--own-hand-h, 0px) + var(--sp-2));left:var(--sp-2)',
+    bottom: 'bottom:0;left:0;width:var(--own-seat-w, 12rem)',
   };
 </script>
 
@@ -138,18 +127,10 @@
   /* The active player is stated as a full perimeter in the seat's OWN colour
      — not a generic "it's someone's turn" hue — so the ring says both "the
      turn is here" and "here is who" in one glance. */
-  /* The own seat was geometrically clear of the hand but visually adrift in
-     open felt. Continue its existing identity rule across the 8px gutter to
-     the player's outer edge: no second colour, box, radius or shadow, and no
-     stroke laid over the card fan. */
-  .identity.own::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    right: 100%;
-    width: var(--sp-2);
-    border-top: 3px solid color-mix(in srgb, var(--seat) 62%, var(--edge-felt));
-    pointer-events: none;
+  /* Own identity is an edge plate, not a card floating over felt. Its right
+     edge meets the hand's reserved bay at the same bottom baseline. */
+  .identity.own {
+    border-radius: 0 var(--radius) 0 0;
   }
 
   .identity.active {
@@ -158,10 +139,6 @@
       0 0 0 2px color-mix(in srgb, var(--seat) 45%, transparent),
       0 0 14px 2px color-mix(in srgb, var(--seat) 55%, transparent);
     background: color-mix(in srgb, var(--felt-raised) 92%, transparent);
-  }
-  .identity.active.own::after {
-    border-top-width: 2px;
-    border-top-color: var(--seat);
   }
   .identity.lost .who,
   .identity.lost .life {
