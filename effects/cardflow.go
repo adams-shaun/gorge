@@ -18,6 +18,8 @@ func init() {
 	Register("RevealHand", effReveal)
 	Register("PeekAndReveal", effReveal)
 	Register("RearrangeTopOfLibrary", effRearrangeTopOfLibrary)
+	Register("Scry", effScry)
+	Register("Surveil", effSurveil)
 	Register("NameCard", effNameCard)
 }
 
@@ -480,6 +482,112 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.LibraryOrder, Player: p,
 			IDs:    append([]state.ObjID(nil), lib...),
 			Secret: true})
+	}
+}
+
+// effScry implements the Scry prompt API (CR 701.18): look at the top
+// ScryNum$ cards of Defined$'s library, put any number of them -- the ones
+// the player does NOT pick -- on the BOTTOM of the library in the order they
+// were offered, and the rest back on top in the order the player picks.
+// It is the KArrange ask with Min 0, Max N and Option.Kind "bottom".
+//
+// The look is recorded as a Secret Note (the player alone may know what sat
+// on top), then the answer is applied by rules' handleArrange, which routes
+// the unchosen pile B to the destination named by the shared Kind
+// ("bottom"). Re-entry after handleArrange set Ctx.Arrange must only let
+// the chained SubAbility$ run, never re-ask -- the same done-marker
+// discipline effRearrangeTopOfLibrary uses. The no-host stand-in (R-9)
+// keeps every card on top in its existing order (pile B empty), which is
+// narrower than the card text but deterministic.
+func effScry(h Host, c *Ctx, sa *cards.SA) {
+	effLookAndArrange(h, c, sa, "ScryNum", "bottom", "Scry")
+}
+
+// effSurveil implements the Surveil prompt API (CR 701.42): look at the top
+// Amount$ cards of Defined$'s library, put any number of them -- the ones
+// the player does NOT pick -- into the GRAVEYARD (surveil has no bottom
+// pile; the fsv1 survey's bottom-pile reading is wrong and this code follows
+// CR 701.42), and the rest back on top in the order the player picks. It is
+// the KArrange ask with Min 0, Max N and Option.Kind "graveyard".
+//
+// Re-entry and the no-host stand-in are exactly effScry's (the same shared
+// helper): the stand-in puts nothing in the graveyard, which is narrower
+// than the card text but deterministic.
+func effSurveil(h Host, c *Ctx, sa *cards.SA) {
+	effLookAndArrange(h, c, sa, "Amount", "graveyard", "Surveil")
+}
+
+// effLookAndArrange is the shared KArrange body behind effScry and
+// effSurveil: read the count (ScryNum$ / Amount$, default 1) through Num,
+// resolve Defined$ (default = the ability's source, hence its controller),
+// and pose one KArrange decision per target library over the top min(N,
+// len(lib)) cards. The unchosen pile B's destination is the shared Option.Kind
+// passed in; only that differs between the two primitives.
+func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, numKey, kind, verb string) {
+	// Re-entry after rules' handleArrange applied the answered KArrange and
+	// emitted the LibraryOrder event: this pass must only let the resolution
+	// continue (the chained SubAbility$ runs), not re-ask or re-emit.
+	if c.Arrange {
+		c.Arrange = false
+		return
+	}
+	n := Num(h, c, sa, numKey, 1)
+	if n < 0 {
+		n = 0
+	}
+	g := h.Game()
+	for _, t := range Defined(h, c, sa) {
+		p := PlayerOf(h, c, t)
+		lib := zoneOf(g, state.ZLibrary, p)
+		k := n
+		if int32(len(lib)) < k {
+			k = int32(len(lib))
+		}
+		h.Emit(events.Event{Kind: events.Note, Player: p,
+			Text: "looks at the top of the library", Secret: true})
+		d := &decision.Decision{Player: p, Kind: decision.KArrange,
+			Min:        0,
+			Max:        int(k),
+			Source:     c.Source,
+			ResumeKind: "arrange",
+			ResumeSA:   sa,
+			Prompt:     verb + " " + strconv.Itoa(int(k)) + ": pick the cards to keep on top, in order; the rest go to " + destinationPhrase(kind)}
+		for i := int32(0); i < k; i++ {
+			name := "a card"
+			if o := g.Obj(lib[i]); o != nil && o.Face() != nil {
+				name = o.Face().Name
+			}
+			d.Options = append(d.Options, decision.Option{Index: int(i),
+				Kind: kind, Label: name, Obj: lib[i], Player: p})
+		}
+		if h.Ask(d) {
+			return // resolution suspended; the answer re-enters with Ctx.Arrange set.
+		}
+		// Fuzz/no-engine host: the deterministic stand-in keeps every card
+		// on top in its existing order (pile B empty for a Scry, nothing to
+		// the graveyard for a Surveil), with the LibraryOrder recording that
+		// the order was (re)set unchanged.
+		h.Emit(events.Event{Kind: events.LibraryOrder, Player: p,
+			IDs:    append([]state.ObjID(nil), lib...),
+			Secret: true})
+	}
+}
+
+// destinationPhrase names pile B's destination in the human-readable prompt;
+// it mirrors the Option.Kind vocabulary so the prompt and the wire never
+// disagree.
+func destinationPhrase(kind string) string {
+	switch kind {
+	case "bottom":
+		return "the bottom of your library"
+	case "graveyard":
+		return "your graveyard"
+	case "exile":
+		return "exile"
+	case "hand":
+		return "your hand"
+	default:
+		return "their destination"
 	}
 }
 

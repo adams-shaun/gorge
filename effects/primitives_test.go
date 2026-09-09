@@ -133,7 +133,7 @@ func TestPrimitivesAreRegistered(t *testing.T) {
 	for _, api := range []string{
 		"DealDamage", "DamageAll", "Mana",
 		"Draw", "Discard", "Mill", "Dig", "Reveal", "RevealHand", "PeekAndReveal",
-		"RearrangeTopOfLibrary", "NameCard", "ChooseType", "ChooseNumber",
+		"RearrangeTopOfLibrary", "Scry", "Surveil", "NameCard", "ChooseType", "ChooseNumber",
 		"ChangeZone", "ChangeZoneAll", "Destroy", "DestroyAll", "Sacrifice",
 		"GainLife", "LoseLife",
 		"PutCounter", "RemoveCounterAll", "Regenerate",
