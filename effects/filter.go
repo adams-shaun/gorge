@@ -147,12 +147,24 @@ const (
 	wordType
 	wordColorless
 	wordMultiColor
+	// The game/source-aware families. Each needs more than the object alone:
+	// the game (for the active player and the commander list), the source
+	// (for combat pairing), or the object's own zone/counters. They are
+	// classified here so the matcher and UnknownPredicates cannot disagree
+	// about whether a word is recognised, exactly as the type-word family is.
+	wordInZoneStack
+	wordActivePlayerCtrl
+	wordHasCounters
+	wordHistoric
+	wordIsCommander
+	wordBlockingSource
+	wordBlockedBySource
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
-// wordColor, the corpus type word for wordType, and empty for the two
-// colour-count tests. An unrecognised word is wordUnknown: both sides must
-// fail closed on it, never turn it into an always-true predicate.
+// wordColor, the corpus type word for wordType, and empty for the others. An
+// unrecognised word is wordUnknown: both sides must fail closed on it, never
+// turn it into an always-true predicate.
 func wordPredicate(p string) (wordKind, string) {
 	if l, is := colorLetter[p]; is {
 		return wordColor, l
@@ -162,6 +174,20 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordColorless, ""
 	case "MultiColor":
 		return wordMultiColor, ""
+	case "inZoneStack":
+		return wordInZoneStack, ""
+	case "ActivePlayerCtrl":
+		return wordActivePlayerCtrl, ""
+	case "HasCounters":
+		return wordHasCounters, ""
+	case "Historic":
+		return wordHistoric, ""
+	case "IsCommander":
+		return wordIsCommander, ""
+	case "blockingSource":
+		return wordBlockingSource, ""
+	case "blockedBySource":
+		return wordBlockedBySource, ""
 	}
 	if predicateTypeWords[p] {
 		return wordType, p
@@ -173,8 +199,11 @@ func wordPredicate(p string) (wordKind, string) {
 // classifier from wordPredicate. Colorless is "no colour at all" and
 // MultiColor "more than one colour", both read off ColorsOf rather than the
 // face directly -- so a Devoid card (CR 702.114, which ColorsOf already
-// implements) is Colorless, which is the whole point of Devoid.
-func wordMatches(kind wordKind, key string, o *state.Object) bool {
+// implements) is Colorless, which is the whole point of Devoid. The
+// game/source-aware families read the live game, the object's own zone or
+// counters, and the effect's source (for combat pairing and commander
+// membership).
+func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, you state.PlayerID, source state.ObjID) bool {
 	switch kind {
 	case wordColor:
 		return strings.Contains(ColorsOf(o), key)
@@ -184,35 +213,73 @@ func wordMatches(kind wordKind, key string, o *state.Object) bool {
 		return ColorsOf(o) == ""
 	case wordMultiColor:
 		return len(ColorsOf(o)) > 1
+	case wordInZoneStack:
+		// Forge's inZoneStack: the object is a spell or ability currently on
+		// the stack (a spell carries its card face; an ability object has
+		// Card == nil, but both have Zone == ZStack).
+		return o.Zone == state.ZStack
+	case wordActivePlayerCtrl:
+		// Forge's ActivePlayerCtrl: the object is controlled by the active
+		// player -- the seat whose turn it is, g.Active.
+		return o.Controller == g.Active
+	case wordHasCounters:
+		// Forge's HasCounters: the object has at least one counter of any
+		// kind on it.
+		return len(o.Counters) > 0
+	case wordHistoric:
+		// Forge's Historic: artifact, legendary, or Saga (the reminder text
+		// on the Historic keyword).
+		return hasType(o, "Artifact") || hasType(o, "Legendary") || hasType(o, "Saga")
+	case wordIsCommander:
+		// Forge's IsCommander: the object is one of a seat's commanders.
+		// The commander list lives on the Players at genesis.
+		for i := range g.Players {
+			for _, c := range g.Players[i].Commanders {
+				if c == o.ID {
+					return true
+				}
+			}
+		}
+		return false
+	case wordBlockingSource:
+		// Forge's blockingSource: the object is a creature blocking the
+		// source. BlockedBy is recorded on the attacked object, so the
+		// source's BlockedBy names its blockers; this object is one of them.
+		s := g.Obj(source)
+		return s != nil && containsID(s.BlockedBy, o.ID)
+	case wordBlockedBySource:
+		// Forge's blockedBySource: the object is being blocked by the source
+		// -- the source is one of THIS object's blockers.
+		return containsID(o.BlockedBy, source)
 	}
 	return false
 }
 
 // nonPredicate reports whether predicate p has the generic negation shape
-// non<X>, and how to evaluate it. For <X> a colour name it returns that
-// colour's WUBRG letter (isType=false); for <X> a type/supertype/subtype word
-// in the corpus vocabulary it returns isType=true. ok is false for a p that is
-// not a non<X> shape at all, or whose <X> is neither a colour nor a known type
-// word -- the caller must treat that as an unknown predicate and fail closed,
-// never as an always-true !hasType. Only wordColor and wordType negate; a
-// nonColorless / nonMultiColor / nonChosenCard remains unknown. The four
-// legacy non* entries in `predicates` (nonLand/nonCreature/nonBasic/nonBlack)
-// are matched there first and never reach this path, but this path reproduces
-// their result exactly, so the handwritten entries could be deleted without
-// changing behaviour.
-func nonPredicate(p string) (x string, letter string, isType bool, ok bool) {
+// non<X>, and how to evaluate it: the classifier to negate and its key. For
+// <X> a colour name it is wordColor (with the WUBRG letter); for <X> a
+// type/supertype/subtype word in the corpus vocabulary it is wordType; for
+// <X> Colorless it is wordColorless (so nonColorless is "has at least one
+// colour"). The caller negates by evaluating wordMatches and inverting. ok is
+// false for a p that is not a non<X> shape at all, or whose <X> is none of a
+// colour, a known type word, or Colorless -- the caller must treat that as an
+// unknown predicate and fail closed, never as an always-true !hasType. Only
+// wordColor / wordType / wordColorless negate; a nonMultiColor / nonChosenCard
+// remains unknown. The four legacy non* entries in `predicates`
+// (nonLand/nonCreature/nonBasic/nonBlack) are matched there first and never
+// reach this path, but this path reproduces their result exactly, so the
+// handwritten entries could be deleted without changing behaviour.
+func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 	x, has := strings.CutPrefix(p, "non")
 	if !has || x == "" {
-		return "", "", false, false
+		return wordUnknown, "", false
 	}
-	kind, key := wordPredicate(x)
+	kind, key = wordPredicate(x)
 	switch kind {
-	case wordColor:
-		return x, key, false, true
-	case wordType:
-		return x, "", true, true
+	case wordColor, wordType, wordColorless:
+		return kind, key, true
 	}
-	return x, "", false, false
+	return wordUnknown, "", false
 }
 
 func hasType(o *state.Object, t string) bool {
@@ -470,8 +537,10 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 			// type word, e.g. nonFrobnicate) is unknown, so it fails closed --
 			// the alternative, !hasType, would always match and silently widen
 			// the filter.
-			if x, letter, isType, ok := nonPredicate(p); ok {
-				if (isType && hasType(o, x)) || (!isType && strings.Contains(ColorsOf(o), letter)) {
+			if nkind, nkey, ok := nonPredicate(p); ok {
+				// Negation of a recognised classifier. wordMatches evaluates the
+				// positive form; if it is true, the negated predicate fails.
+				if wordMatches(nkind, nkey, g, o, sc.You, sc.Source) {
 					all = false
 					break
 				}
@@ -486,7 +555,7 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 			// true fallback, which silently widens instead of showing up as a
 			// missing action.
 			if kind, key := wordPredicate(p); kind != wordUnknown {
-				if !wordMatches(kind, key, o) {
+				if !wordMatches(kind, key, g, o, sc.You, sc.Source) {
 					all = false
 					break
 				}
@@ -573,7 +642,7 @@ func UnknownPredicates(spec string) []string {
 			if _, ok := numericPred(p, nil, &state.Object{}, SpecContext{}); ok {
 				continue
 			}
-			if _, _, _, ok := nonPredicate(p); ok {
+			if _, _, ok := nonPredicate(p); ok {
 				continue
 			}
 			if kind, _ := wordPredicate(p); kind != wordUnknown {
