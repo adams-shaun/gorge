@@ -563,7 +563,19 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	// the chosen SVars in execution order, so run exactly those and do not
 	// ask again.
 	if c.Modes != nil {
-		for _, name := range c.Modes {
+		// fx41: take the names into a local and clear c.Modes BEFORE running
+		// them. The same Ctx is handed to Resolve for every mode AND to the
+		// Charm's own SubAbility$, and nothing else in the walk reads Modes,
+		// so an uncleared field would leak the OUTER Charm's answered modes
+		// into a NESTED Charm reached anywhere below it -- that inner
+		// effCharm sees Modes != nil, takes this re-entry branch, and "runs"
+		// the outer's mode names against its own SVars instead of posing its
+		// own ask (or, when a name resolves back to a chain containing it,
+		// re-resolves itself endlessly). Clearing here confines the answer
+		// to the Charm that asked for it.
+		names := c.Modes
+		c.Modes = nil
+		for _, name := range names {
 			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
 				Resolve(h, c, sub)
 			}
