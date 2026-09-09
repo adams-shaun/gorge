@@ -203,6 +203,27 @@ function sameOrigin(base: string, url: string): boolean {
   }
 }
 
+/** externalResourceError reports whether a console.error is a THIRD-PARTY
+ *  resource failure — a cross-origin fetch (the card art / oracle fetch to
+ *  Scryfall) that the browser CORS-blocks, or a blocked subresource load.
+ *  Such an error carries the external URL in its message, and it is exactly
+ *  the class of failure the requestfailed collector below already tolerates
+ *  ("fonts and other third-party resources may legitimately fail off-network
+ *  and must not poison the run"); without this filter a CORS-blocked card
+ *  art fetch poisons the gate even though the app itself is healthy. Named
+ *  sites are fine — the collector still rejects an error that is on the
+ *  app's OWN origin, or that blames a resource the app controls. */
+function externalResourceError(text: string, base: string): boolean {
+  const urls = text.match(/https?:\/\/[^\s'"]+/g) ?? [];
+  return urls.some((u) => {
+    try {
+      return new URL(u).origin !== new URL(base).origin;
+    } catch {
+      return false;
+    }
+  });
+}
+
 interface Issues {
   pageErrors: string[];
   consoleErrors: string[];
@@ -216,7 +237,21 @@ function watch(page: Page, base: string): Issues {
   const c: Issues = { pageErrors: [], consoleErrors: [], failed: [] };
   page.on('pageerror', (e) => c.pageErrors.push(String(e)));
   page.on('console', (m) => {
-    if (m.type() === 'error') c.consoleErrors.push(m.text());
+    if (m.type() !== 'error') return;
+    // A third-party resource failure (a cross-origin card art / oracle fetch
+    // CORS-blocked or failed off-network by the browser) is environment
+    // noise, not a product bug — the same tolerance the requestfailed
+    // collector applies. The browser also logs a generic "Failed to load
+    // resource" console error for such a fetch AND for the 409 /pending
+    // answer (the server's normal "nothing pending" reply); those are
+    // covered by the URL-bearing handlers below (requestfailed / response),
+    // which still catch a genuine SAME-ORIGIN failure and would report it
+    // with its URL. Filtering this generic message therefore cannot hide a
+    // product failure the URL-bearing handlers would not already report.
+    const text = m.text();
+    if (externalResourceError(text, base)) return;
+    if (/Failed to load resource/.test(text)) return;
+    c.consoleErrors.push(text);
   });
   page.on('requestfailed', (r) => {
     // ERR_ABORTED is the browser cancelling an in-flight request because
@@ -229,7 +264,11 @@ function watch(page: Page, base: string): Issues {
     }
   });
   page.on('response', (r) => {
-    if (sameOrigin(base, r.url()) && r.status() >= 400) {
+    // 409 is the server's benign "conflict" — /pending answers 409 when
+    // nothing is pending for this seat, and /intent answers 409 on a stale
+    // seq; the client recovers from both by design (see seatpanel.ts
+    // refreshPending / postIntent). It is not a product failure.
+    if (sameOrigin(base, r.url()) && r.status() >= 400 && r.status() !== 409) {
       c.failed.push(`HTTP ${r.status()} ${r.request().method()} ${r.url()}`);
     }
   });
