@@ -14,8 +14,14 @@ import (
 // setup mutation is logged, so the paid activation can be replayed too.
 func selfSacrificeBoard(t *testing.T, c *cards.Card) (*Engine, Config, state.ObjID, state.ObjID) {
 	t.Helper()
+	// A nonblack creature so a destroy-nonblack-creature ability (the
+	// Executioner's Capsule case) has a legal target and is therefore offered
+	// at all -- the offer gate correctly withholds it when none exists. The
+	// bear is distinct from the two card copies, so it never satisfies a
+	// CARDNAME sacrifice and never spoils the "exactly the source" oracle.
+	bear := card(t, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	cfg := Config{Seed: 31, Names: []string{"a", "b"}, Decks: [][]*cards.Card{
-		append([]*cards.Card{c, c}, mountainDeck(t, 38)...), mountainDeck(t, 40),
+		append([]*cards.Card{c, c, bear}, mountainDeck(t, 37)...), mountainDeck(t, 40),
 	}}
 	e := New(cfg)
 	var ids []state.ObjID
@@ -30,6 +36,12 @@ func selfSacrificeBoard(t *testing.T, c *cards.Card) (*Engine, Config, state.Obj
 	}
 	for _, id := range ids {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: e.G.Obj(id).Zone, To: state.ZBattlefield})
+	}
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Owner == 0 && o.Card == bear && o.Zone != state.ZBattlefield {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: state.ZBattlefield})
+		}
 	}
 	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 2})
 	e.emit(events.Event{Kind: events.StepChange, Step: state.StepMain1})
@@ -73,6 +85,17 @@ func TestCardnameSacrificeAbilityOfferedAndPaid(t *testing.T) {
 				t.Fatalf("payment must offer only source %d, never same-name decoy %d: %+v", source, decoy, d)
 			}
 			submitChoices(t, e, d.Options[0].Index)
+			// CR 601.2c-before-601.2h: the sacrifice is part of paying the cost
+			// (601.2h), so it is executed only once the target is chosen. Answer
+			// any pending target (the engine offers only legal targets; prefer
+			// the opponent when the ability can hit one) before asserting it.
+			if td := e.Pending(); td != nil && td.Kind == decision.KTarget {
+				tidx := indexOfPlayerOption(td, 1)
+				if tidx < 0 {
+					tidx = 0
+				}
+				submitChoices(t, e, tidx)
+			}
 			if e.G.Obj(source).Zone != state.ZGraveyard || e.G.Obj(decoy).Zone != state.ZBattlefield {
 				t.Fatal("did not sacrifice exactly the source")
 			}
@@ -80,12 +103,7 @@ func TestCardnameSacrificeAbilityOfferedAndPaid(t *testing.T) {
 				t.Fatal("cost must be charged once before pushing the ability")
 			}
 			if name == "Mogg Fanatic" {
-				d = e.Pending()
-				if d == nil || d.Kind != decision.KTarget {
-					t.Fatalf("no damage target: %+v", d)
-				}
 				life := e.G.Players[1].Life
-				submitChoices(t, e, indexOfPlayerOption(d, 1))
 				passUntilStackEmpty(t, e, 20)
 				if e.G.Players[1].Life != life-1 {
 					t.Fatal("sacrificed Fanatic's ability did not deal one damage")

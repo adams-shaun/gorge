@@ -107,11 +107,19 @@ func TestReduceCostAffectsActualPayment(t *testing.T) {
 	e.askPriority(0)
 	castFirst(t, e, "cast")
 
-	if e.G.Players[0].Pool[state.MR] != 0 {
-		t.Fatalf("pool = %v, want the R spent for the reduced cost", e.G.Players[0].Pool)
-	}
+	// CR 601.2a: the spell is on the stack before its target is chosen, and
+	// payment (601.2h) follows the target (601.2c) -- so answer the target
+	// first, then assert the reduced cost was charged.
 	if len(e.G.Stack) != 1 {
 		t.Fatal("the spell should have reached the stack")
+	}
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected a target decision, got %+v", d)
+	}
+	submitChoices(t, e, indexOfPlayerOption(d, 1))
+	if e.G.Players[0].Pool[state.MR] != 0 {
+		t.Fatalf("pool = %v, want the R spent for the reduced cost", e.G.Players[0].Pool)
 	}
 }
 
@@ -131,6 +139,13 @@ func TestRaiseCostAffectsActualPayment(t *testing.T) {
 	e.askPriority(0)
 	castFirst(t, e, "cast")
 
+	// CR 601.2c-before-601.2h: answer the target, then assert the raised
+	// cost was actually paid.
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected a target decision, got %+v", d)
+	}
+	submitChoices(t, e, indexOfPlayerOption(d, 1))
 	if e.G.Players[0].Pool[state.MC] != 0 {
 		t.Fatalf("pool = %v, want all 3 raised-cost mana spent", e.G.Players[0].Pool)
 	}
@@ -328,6 +343,15 @@ func TestAlternativeCostChargesTheAlternativeAmount(t *testing.T) {
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{idx}}); err != nil {
 		t.Fatalf("submit alt-cost cast: %v", err)
 	}
+
+	// CR 601.2c-before-601.2h: the alternative cost is charged only once the
+	// target is chosen (the spell is already on the stack per 601.2a). Answer
+	// the target first, then assert the alternative amount was paid.
+	td := e.Pending()
+	if td == nil || td.Kind != decision.KTarget {
+		t.Fatalf("expected a target decision, got %+v", td)
+	}
+	submitChoices(t, e, indexOfPlayerOption(td, 1))
 	if e.G.Players[0].Pool[state.MU] != 0 {
 		t.Fatalf("pool = %v, want the U spent for the alternative cost", e.G.Players[0].Pool)
 	}

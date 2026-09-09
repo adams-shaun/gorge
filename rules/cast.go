@@ -54,6 +54,24 @@ type pendingCast struct {
 	sacs    []state.ObjID
 	sacPart int
 
+	// stackObj is the id of the object pushCast placed on the stack (the
+	// spell card itself, or an activated ability's AbilityPush-minted
+	// object). Zero until pushCast runs; handleTarget records the chosen
+	// targets onto it, because a zone change clears an object's Targets.
+	stackObj state.ObjID
+
+	// pushed is true once the object has reached the stack (post-pushCast).
+	// An aborted proposal reverses the push when it is set.
+	pushed bool
+
+	// preSuppress is the suppressedCast set as it was just before pushCast's
+	// PutOnStack, captured so an aborted (reversed) cast can restore it:
+	// the push is a state-changing event that emit treats as progress and so
+	// clears the held-out no-progress set, but an aborted cast is net no
+	// progress, so that set must come back. Nil when no cast push is in
+	// flight (an ability, or a spell aborted before the push).
+	preSuppress map[state.ObjID]bool
+
 	// Task 12: the card's "as this enters" choices (one per ETBReplacement
 	// Repl whose ReplaceWith$ is NameCard/ChooseType/ChooseNumber). Each is
 	// asked in order while choosing == chooseETB; etbIdx is the next
@@ -289,7 +307,19 @@ func (e *Engine) continueCast() {
 	if e.etbAsk() {
 		return
 	}
-	e.commitCast()
+	// CR 601.2a: the object reaches the stack before the target choice
+	// (601.2c) and payment (601.2h). For a spell the cast trigger (601.2i)
+	// is held back until payCast; an ability's AbilityPush fires no trigger.
+	if e.pushCast() {
+		return
+	}
+	// CR 601.2c: choose targets, now that the object is on the stack. An SA
+	// with no target (or a zero-minimum one with no legal candidate) asks
+	// nothing and payCast runs directly.
+	if e.targetAsk() {
+		return
+	}
+	e.payCast()
 }
 
 // xAsk asks a value for {X} if pc.cost carries one, offering 0..max where
@@ -694,18 +724,176 @@ func modeFlags(mode string) string {
 	return ""
 }
 
-// commitCast pays, moves the delved and sacrificed cards, records how the
-// spell was cast, and puts it on the stack. A payment that fails here (a
-// pool that changed under a hand-built intent -- castable already gated the
-// option the caster chose, so this is not reachable from an ordinary,
-// well-formed client) aborts with a Note and leaves the card where it was;
-// so does the card having moved out from under the flow entirely.
-func (e *Engine) commitCast() {
+// targetAsk is the last stage of continueCast before commitCast: it asks the
+// spell or activated ability's target selection (CR 601.2c / 602.2b) while the
+// proposal is still provisional -- BEFORE any cost is paid, any sacrificial
+// permanent moves, or the object is put on the stack. That ordering is what
+// makes the cast a transaction: the target answer (601.2c) precedes payment
+// (601.2h), and the cast trigger (601.2i, fired by PutOnStack) waits until the
+// proposal is complete. handleTarget (stack.go) completes the transaction by
+// calling commitCast and then records the chosen targets onto the object that
+// actually reached the stack.
+//
+// It returns true when it either asked a target decision or ABORTED the
+// proposal. A proposal that can never complete is reversed here, before
+// anything has been paid or moved (CR 733.1): the card left the zone, the
+// resolved mana cost is no longer payable, or a mandatory target (min >= 1)
+// has zero legal candidates. Clearing e.cast with nothing committed restores
+// the pre-proposal board. An SA with no ValidTgts (or a zero-minimum target
+// with no legal candidate, Requirement N2) returns false so commitCast runs
+// directly.
+func (e *Engine) targetAsk() bool {
 	pc := e.cast
-	e.cast, e.choosing = nil, chooseNone
+	if pc == nil {
+		return false
+	}
+	o := e.G.Obj(pc.card)
+	if o == nil {
+		return false
+	}
+	f := o.Face()
+	var sa *cards.SA
+	if pc.ability >= 0 {
+		if f == nil || pc.ability >= len(f.Abilities) {
+			return false
+		}
+		sa = f.Abilities[pc.ability]
+	} else if f != nil {
+		sa = f.SpellAbility()
+	}
+	if sa == nil || sa.Params["ValidTgts"] == "" {
+		return false
+	}
+	// A proposal whose resolved mana cost can no longer be paid can never
+	// complete. Reverse it (CR 733.1), which undoes the pushCast stack move
+	// (E2: no progress was made, so hold this card's option out of the window
+	// rather than re-offering the same unpayable cast). Resolved means X is
+	// fixed and Delve credit is applied, both settled by the stages above.
+	mana := pc.cost.WithX(pc.x)
+	if pc.ability < 0 {
+		mana.Generic -= int32(len(pc.delve))
+		if mana.Generic < 0 {
+			mana.Generic = 0
+		}
+	}
+	if !mana.CanPay(e.G.Players[pc.player].Pool) {
+		e.abortCast(pc, "cast aborted: cost no longer payable", true)
+		return true
+	}
+	min, max := targetBounds(sa)
+	// CR 115.5: a spell may not target itself (excludeSelf == the card); an
+	// activated ability CAN target its own Source permanent (Mother of Runes
+	// targeting itself). The Face-less ability stack object on the stack is
+	// never offered (legalTargetCandidates drops Face()-less stack objects),
+	// so the source permanent is still a legal target of its own ability.
+	var excludeSelf state.ObjID
+	if pc.ability < 0 {
+		excludeSelf = pc.card
+	}
+	candidates := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sa)
+	if min > 0 && len(candidates) < min {
+		// CR 601.2c: a proposal with fewer legal targets than its mandatory
+		// minimum cannot be announced. Reverse the whole proposal (CR 733.1):
+		// the pushed object returns to where it was, nothing is paid and no
+		// cast trigger fires. No library was shuffled during the proposal, so
+		// the 733.1 library exception does not apply.
+		e.abortCast(pc, "cast aborted: no legal target", false)
+		return true
+	}
+	if min == 0 && len(candidates) == 0 {
+		// Requirement N2: a subject that MAY target zero things resolves
+		// untargeted when no legal target exists; proceed straight to payCast
+		// with no target decision.
+		return false
+	}
+	// The decision's Source is the object that must not be offered as its own
+	// target (CR 115.5). For a spell that is the card (excluded via
+	// excludeSelf). For an activated ability the object that may not target
+	// itself is the ability stack object, which is not minted yet (the push
+	// is a no-op for an ability; payCast's AbilityPush creates it), so Source
+	// is 0 and the source permanent remains a legal target of its own ability
+	// (Mother of Runes) via excludeSelf == 0. The prompt keeps the source
+	// permanent's name for readability.
+	var src state.ObjID
+	if pc.ability < 0 {
+		src = pc.card
+	}
+	d := &decision.Decision{Player: pc.player, Kind: decision.KTarget, Min: min, Max: max,
+		Prompt: "Choose a target for " + e.targetName(pc.card),
+		Source: src, TargetEffect: describeTargetEffect(sa)}
+	for _, candidate := range candidates {
+		label := e.G.Players[candidate.player].Name
+		if candidate.obj != 0 {
+			label = e.G.Obj(candidate.obj).Face().Name + " (" + label + ")"
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
+			Label: label, Obj: candidate.obj, Player: candidate.player})
+	}
+	e.ask(d)
+	return true
+}
+
+// pushCast implements CR 601.2a: the card reaches the stack BEFORE the
+// target choice (601.2c) and payment (601.2h), which is what makes the
+// transaction match the CR's ordered list. The cast trigger (601.2i) is held
+// back by emit (deferCastTrigger) because it fires only once the spell is
+// actually cast -- after payment; payCast's fireDeferredCastTrigger re-walks
+// the held PutOnStack. CastInfo (the X / mode-flag recording) is deferred to
+// payCast too, so an aborted proposal leaves no cast-time trace on the card.
+// An activated ability is a no-op here: CR 602.2b imports 601.2 but its
+// stack object is minted by payCast's AbilityPush AFTER the target and cost
+// settle, and an aborted activation must reverse with no stack object left
+// behind (CR 733.1) -- pushing it first would strand a Face-less object in
+// exile. A land play never goes on the stack.
+//
+// It returns true when the cast cannot proceed at all (the card left its
+// zone before the push) and was aborted; in that case nothing was pushed, so
+// no reversal is owed.
+func (e *Engine) pushCast() bool {
+	pc := e.cast
+	if pc == nil || pc.mode == "land" || pc.ability >= 0 {
+		return false
+	}
 	o := e.G.Obj(pc.card)
 	if o == nil || o.Zone != pc.from {
+		e.cast, e.choosing = nil, chooseNone
 		e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "cast aborted: the card moved"})
+		return true
+	}
+	// Capture the held-out suppression set before the push, so an aborted
+	// (reversed) cast can restore it -- the push below is a state-changing
+	// event that emit treats as progress and clears the set, yet an aborted
+	// cast is net no progress.
+	pc.preSuppress = e.suppressedCast
+	// CR 601.2a: the spell reaches the stack. The cast trigger is held back
+	// (deferCastTrigger) so it cannot fire before the spell is paid for.
+	e.deferCastTrigger = true
+	e.emit(events.Event{Kind: events.PutOnStack, Obj: pc.card, Player: pc.player, From: pc.from, To: state.ZStack, Text: o.Face().Name})
+	e.deferCastTrigger = false
+	pc.stackObj = pc.card
+	pc.pushed = true
+	// CR 903.8: the cast counter increments the INSTANT the spell is put on
+	// the stack, never when it resolves -- so a commander spell that is later
+	// countered still raises the next cast's tax. Only a cast FROM the
+	// command zone counts, and recordCmdCast itself carries the Commander
+	// format gate.
+	if pc.from == state.ZCommand {
+		e.recordCmdCast(pc.player, pc.card)
+	}
+	return false
+}
+
+// payCast implements CR 601.2h (pay all costs) and, for a spell, CR 601.2i
+// (the "when you cast" trigger). It runs after the target choice (601.2c);
+// the object is already on the stack (pushCast). A payment that fails here
+// (a pool that changed under a hand-built intent -- castable already gated
+// the option the caster chose, so this is not reachable from an ordinary,
+// well-formed client) aborts and REVERSES the push (CR 733.1): the object
+// returns to the zone it came from, nothing remains paid and no cast trigger
+// fires. The land play is also handled here (it never goes on the stack).
+func (e *Engine) payCast() {
+	pc := e.cast
+	if pc == nil {
 		return
 	}
 	if pc.mode == "land" {
@@ -716,6 +904,7 @@ func (e *Engine) commitCast() {
 		// play_land path emits. Its own MoveZone routes through
 		// applyReplacements, so an ETBReplacement on the land itself (or its
 		// choice already recorded) resolves on entry.
+		e.cast, e.choosing = nil, chooseNone
 		e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: pc.from, To: state.ZBattlefield})
 		e.emit(events.Event{Kind: events.LandPlayed, Player: pc.player})
 		return
@@ -723,28 +912,14 @@ func (e *Engine) commitCast() {
 	if pc.ability >= 0 {
 		// Task 10: an activated ability. The shared stages above (X, Delve --
 		// never present on an ability --, Sac) have already run and been
-		// paid/recorded through the same pendingCast flow; what differs from
-		// a spell here is the cost's remaining non-mana parts and the way the
-		// subject is put on the stack. Pay mana, then each Tap (a Tap event),
-		// each SubCounter part (a CounterChange of -N), and every chosen
-		// sacrifice; then AbilityPush mints the ability object onto the stack
-		// and, when the ability declares ValidTgts$, asks its controller for
-		// targets against the freshly minted top-of-stack object -- the same
-		// shape pushTrigger (rules/trigger_queue.go) uses for a trigger's own
-		// target ask. An unpayable pool at this stage (a stale intent from a
-		// board that changed) aborts with a Note exactly like a spell does.
+		// recorded; what differs from a spell here is the cost's remaining
+		// non-mana parts. Pay mana, then each Tap (a Tap event), each
+		// SubCounter part (a CounterChange of -N), and every chosen sacrifice.
+		// The ability object was already minted by pushCast; targets are
+		// recorded onto it by handleTarget.
 		mana := pc.cost.WithX(pc.x)
 		if !e.payMana(pc.player, mana) {
-			// E2 (round 2): an unpayable activation aborts with no state
-			// change and priority re-offers it. An activation's cost is gated
-			// by castable at offer time and its pool and Sac parts cannot
-			// change while the pendingCast flow runs, so reaching this branch
-			// needs a stale hand-built intent, not ordinary play. Suppress the
-			// offending card the same way a declined spell is (suppressCast)
-			// so even that cannot loop, and never kill the match (round 1's
-			// fatal is gone).
-			e.suppressCast(pc.card)
-			e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "activation aborted: cost no longer payable"})
+			e.abortCast(pc, "activation aborted: cost no longer payable", true)
 			return
 		}
 		for _, id := range pc.delve {
@@ -759,18 +934,14 @@ func (e *Engine) commitCast() {
 		for _, id := range pc.sacs {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
 		}
+		// AbilityPush mints the ability object onto the stack AFTER the cost
+		// settles, so an aborted activation leaves no stack object behind
+		// (CR 733.1). handleTarget records the chosen targets onto it.
 		e.emit(events.Event{Kind: events.AbilityPush, Obj: pc.card, Player: pc.player, Amount: int32(pc.ability)})
-		// AbilityPush mints a NEW stack object (different id from the source
-		// permanent); targets must be recorded on that object so resolveTop
-		// (stack.go's ability branch, which reads o.Targets off the object it
-		// is resolving) sees them. askTarget with the top-of-stack id, exactly
-		// pushTrigger's own post-TriggerPush ask.
-		ab := o.Face().Abilities[pc.ability]
 		if len(e.G.Stack) > 0 {
-			if top := e.G.Obj(e.G.Stack[len(e.G.Stack)-1]); top != nil && ab.Params["ValidTgts"] != "" {
-				e.askTarget(pc.player, e.G.Stack[len(e.G.Stack)-1], ab)
-			}
+			pc.stackObj = e.G.Stack[len(e.G.Stack)-1]
 		}
+		e.cast, e.choosing = nil, chooseNone
 		return
 	}
 	mana := pc.cost.WithX(pc.x)
@@ -783,21 +954,12 @@ func (e *Engine) commitCast() {
 		// ask (Min:0, Max the shortfall) was answered with fewer cards than
 		// the shortfall needs, so the cast aborts with no state change and
 		// priority re-offers it. Declining is a legal, conforming answer --
-		// CR 601.2h rewinds the cast (the card stays in hand), so merely
-		// re-attempting it is correct -- but the engine must not re-offer the
-		// SAME unpayable cast forever. The mechanism is NOT to count the
-		// aborts and kill the match (round 1 shipped that and it was wrong: a
-		// legal decline, twice, on different cards, put a human seat into an
-		// unrecoverable dead match). Instead, hold THIS card's cast option
-		// out of the remaining priority window (suppressCast): the seat can
-		// still do anything else, and because the thing being repeated is no
-		// longer offered, the loop cannot repeat. No match dies, ever. The
-		// suppression clears on the first state-changing event (engine.go's
-		// emit), so the option returns as soon as the window ends or the
-		// mana/board changes -- which is when re-attempting can succeed
-		// again.
-		e.suppressCast(pc.card)
-		e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "cast aborted: cost no longer payable"})
+		// CR 601.2h rewinds the cast -- but the engine must not re-offer the
+		// SAME unpayable cast forever. Hold THIS card's cast option out of the
+		// remaining priority window (suppressCast); the suppression clears on
+		// the first state-changing event, so the option returns as soon as the
+		// window ends or the mana/board changes.
+		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return
 	}
 	for _, id := range pc.delve {
@@ -806,21 +968,80 @@ func (e *Engine) commitCast() {
 	for _, id := range pc.sacs {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
 	}
+	// CR 601.2b: record how the spell was cast (the X value and mode flags).
+	// Deferred to payment rather than the up-front push so an aborted
+	// proposal leaves no cast-time trace on the card. A cast trigger that
+	// reads the mode (e.g. "cast a kicked spell") sees it, because the flag
+	// is applied before the trigger fires next.
 	if flags := modeFlags(pc.mode); pc.x != 0 || flags != "" {
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.x, Counter: flags})
 	}
-	e.emit(events.Event{Kind: events.PutOnStack, Obj: pc.card, Player: pc.player, From: pc.from, To: state.ZStack, Text: o.Face().Name})
-	// CR 903.8: the cast counter increments the INSTANT the spell is put on
-	// the stack, never when it resolves -- so a commander spell that is later
-	// countered still raises the next cast's tax. Only a cast FROM the
-	// command zone counts (casting the commander from hand neither taxes nor
-	// counts), and recordCmdCast itself carries the Commander-format gate.
-	if pc.from == state.ZCommand {
-		e.recordCmdCast(pc.player, pc.card)
+	// CR 601.2i: the "when you cast" trigger, held back from the up-front
+	// push, fires now -- only after the spell is paid for.
+	e.fireDeferredCastTrigger()
+	e.cast, e.choosing = nil, chooseNone
+}
+
+// abortCast reverses a cast or activation proposal that cannot complete, per
+// CR 733.1. If the object was already pushed (CR 601.2a / 602.2a), the
+// reversal undoes the push: a spell returns to the zone it came from, and an
+// ability's stack object leaves the stack (it ceases to exist, moved to exile
+// as the existing ability-fizzle resting place does). Nothing is paid and
+// the held cast trigger is dropped. e.cast and e.choosing are cleared.
+func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
+	// The reversal below and the push that preceded it are state-changing
+	// events to emit's suppression-clearing rule, but their NET effect is no
+	// progress -- the object returns to the zone it came from -- so the
+	// held-out no-progress set must survive. For a pushed spell that set is
+	// pc.preSuppress (captured before the push, which cleared it); for an
+	// ability (never pushed) it is the current set. When suppress is true, the
+	// no-progress decline of THIS object is added back.
+	var saved map[state.ObjID]bool
+	if pc.pushed && pc.preSuppress != nil {
+		saved = make(map[state.ObjID]bool, len(pc.preSuppress))
+		for id := range pc.preSuppress {
+			saved[id] = true
+		}
+	} else if e.suppressedCast != nil {
+		saved = make(map[state.ObjID]bool, len(e.suppressedCast))
+		for id := range e.suppressedCast {
+			saved[id] = true
+		}
 	}
-	if sa := o.Face().SpellAbility(); sa != nil && sa.Params["ValidTgts"] != "" {
-		e.askTarget(pc.player, pc.card, sa)
+	if suppress {
+		if saved == nil {
+			saved = map[state.ObjID]bool{}
+		}
+		saved[pc.card] = true
 	}
+	if pc.pushed && pc.stackObj != 0 {
+		if pc.ability >= 0 {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: pc.stackObj, From: state.ZStack, To: state.ZExile, Text: "reversed"})
+		} else {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: pc.stackObj, From: state.ZStack, To: pc.from, Text: "reversed"})
+		}
+	}
+	e.deferredPush = nil
+	e.deferredPushLKI = nil
+	e.cast, e.choosing = nil, chooseNone
+	e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: text})
+	e.suppressedCast = saved
+}
+
+// fireDeferredCastTrigger re-walks the up-front PutOnStack event that
+// pushCast held back (deferredPush) so the CR 601.2i "when you cast" triggers
+// fire, which is only after the spell is paid for. It is called from payCast
+// for a spell; a no-op when nothing was deferred (an ability, a land, or an
+// aborted proposal).
+func (e *Engine) fireDeferredCastTrigger() {
+	if e.deferredPush == nil {
+		return
+	}
+	ev := e.deferredPush
+	e.deferredPush = nil
+	lki := e.deferredPushLKI
+	e.deferredPushLKI = nil
+	e.checkTriggers(*ev, lki)
 }
 
 // recordCmdCast increments the CmdCasts[k] bookkeeping parallel to

@@ -302,6 +302,34 @@ type Engine struct {
 	// every other field here. (Tasks 7, 18.)
 	drainAwaitsTarget bool
 
+	// deferCastTrigger is set only around the up-front cast push (CR 601.2a)
+	// emit in pushCast. While it is true, emit HOLDS the PutOnStack event's
+	// cast trigger back instead of running checkTriggers for it, because the
+	// spell is not yet actually cast: the "when you cast" trigger (601.2i)
+	// fires only after the target choice (601.2c) and payment (601.2h). The
+	// held event is stored in deferredPush and re-checked by payCast's
+	// fireDeferredCastTrigger. A bool (not a count) is safe because emit is
+	// single-threaded and the push's Apply/transformation path never re-enters
+	// emit for another PutOnStack; a replacement that fires here (as for any
+	// PutOnStack) recurses on the OTHER kind, which falls to checkTriggers
+	// normally. Zero whenever no cast push is in flight, so Clone copies it.
+	deferCastTrigger bool
+
+	// deferredPush holds the up-front PutOnStack event of an in-flight cast
+	// whose cast trigger (CR 601.2i) is held back until the cast is complete
+	// (see deferCastTrigger). Zero when nothing is deferred. payCast's
+	// fireDeferredCastTrigger re-walks it once the spell is paid for; an
+	// aborted proposal drops it. Each is a pointer so a Clone taken with a
+	// cast in flight copies the held event (a replay re-derives the same
+	// trigger from the recorded PutOnStack).
+	deferredPush *events.Event
+
+	// deferredPushLKI is the LKI snapshot captured for deferredPush's own
+	// Obj when pushCast emitted it, threaded into the trigger walk so a
+	// ChangesZone trigger fired by the cast (see spellCastMatches) can read
+	// the card as it was just before the stack move.
+	deferredPushLKI *state.Object
+
 	// damaging names the source object responsible for the damage emit
 	// currently in flight (CR 609.7a): the resolution source for a spell or
 	// ability being resolved, or the dealing creature for a combat
@@ -568,7 +596,19 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		}
 	}
 	stored := events.Emit(e.G, e.L, ev)
-	e.checkTriggers(stored, lki)
+	if ev.Kind == events.PutOnStack && e.deferCastTrigger {
+		// CR 601.2i: the cast trigger must not fire at the up-front push
+		// (601.2a), because the spell is not yet cast -- targets (601.2c) and
+		// payment (601.2h) still lie ahead. Hold the event and its LKI so
+		// payCast's fireDeferredCastTrigger re-walks it after payment.
+		// Deferring here (rather than queueing the trigger and removing it
+		// later) means the held event is never double-checked: the first
+		// pass skipped it entirely, and exactly one later pass fires it.
+		cp, lp := stored, lki
+		e.deferredPush, e.deferredPushLKI = &cp, lp
+	} else {
+		e.checkTriggers(stored, lki)
+	}
 	// E2: any genuinely state-changing event proves the game is making
 	// progress, so it clears the held-out cast suppression (suppressedCast,
 	// see engine.go): a declined card's option comes back the moment the

@@ -157,8 +157,15 @@ func TestDepartedChooserResumptionEventStreamIsDeterministic(t *testing.T) {
 
 	// The chain head as a constant: a reordering that preserves counts would
 	// still change it, so this is the assertion a count-only test cannot make.
-	if got := e.L.Head(); got != "08a5b034057d2b7b" {
-		t.Fatalf("chain head = %s, want 08a5b034057d2b7b", got)
+	// Regenerated for jj-f01, which is exactly such a reordering: the cast
+	// proposal became a transaction (CR 601.2a push, then the 601.2c target
+	// ask, then 601.2h payment), so a targeted cast emits the same events in a
+	// different order. Every assertion above this line -- the resumption tail's
+	// event count, the concession leaving a three-seat game running, the chain
+	// in the graveyard with an empty stack -- still holds unchanged, which is
+	// what says the reordering is all that moved.
+	if got := e.L.Head(); got != "664fe5d9b44ed9a0" {
+		t.Fatalf("chain head = %s, want 664fe5d9b44ed9a0", got)
 	}
 
 	// T21-e: a log-only replay must reconstruct the identical Game. If any

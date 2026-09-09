@@ -58,12 +58,15 @@ func (e *Engine) activationLimitReached(id state.ObjID, ability int, raw string)
 	return used >= limit
 }
 
-// castTargetsAvailable reports whether the narrow target requirement that can
-// be proved before casting is satisfiable. A missing TargetMin$/TargetMax$
-// pair is Forge's unconditional one-target shape. Dynamic bounds and modal or
-// announced choices stay offerable until the post-push askTarget backstop can
-// evaluate them with those choices made.
-func (e *Engine) castTargetsAvailable(p state.PlayerID, id state.ObjID, sa *cards.SA) bool {
+// targetsAvailable reports whether the narrow target requirement that can
+// be proved before offering a spell or ability is satisfiable. A missing
+// TargetMin$/TargetMax$ pair is Forge's unconditional one-target shape.
+// Dynamic bounds and modal or announced choices stay offerable until the
+// post-announcement askTarget backstop can evaluate them with those choices
+// made. excludeSelf is the CR 115.5 self-targeting object: the offered card
+// for a spell cast from a zone that could contain it, 0 for an activated
+// ability (whose Source permanent IS a legal target of its own ability).
+func (e *Engine) targetsAvailable(p state.PlayerID, id, excludeSelf state.ObjID, sa *cards.SA) bool {
 	if sa == nil || strings.TrimSpace(sa.Params["ValidTgts"]) == "" || sa.API == "Charm" ||
 		sa.Params["Choices"] != "" || sa.Params["Announce"] != "" {
 		return true
@@ -74,7 +77,23 @@ func (e *Engine) castTargetsAvailable(p state.PlayerID, id state.ObjID, sa *card
 	if _, ok := sa.Params["TargetMax"]; ok {
 		return true
 	}
-	return len(e.legalTargetCandidates(p, id, sa)) > 0
+	return len(e.legalTargetCandidates(p, id, excludeSelf, sa)) > 0
+}
+
+// castTargetsAvailable is the cast-offer guard: the spell card may not target
+// itself (CR 115.5), so excludeSelf is the card id.
+func (e *Engine) castTargetsAvailable(p state.PlayerID, id state.ObjID, sa *cards.SA) bool {
+	return e.targetsAvailable(p, id, id, sa)
+}
+
+// abilityTargetsAvailable is the activated-ability offer guard. It is what
+// stops an ability with no legal target from being re-offered in a loop after
+// the transaction aborts it (CR 602.2b / 601.2c: such an ability cannot be
+// activated at all). Unlike a cast, an activated ability CAN target its own
+// Source permanent (Mother of Runes targeting itself), so no self-exclusion
+// applies.
+func (e *Engine) abilityTargetsAvailable(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
+	return e.targetsAvailable(p, id, 0, ab)
 }
 
 // legalActions enumerates everything p may legally do with priority. The
@@ -281,6 +300,9 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 					continue
 				}
 				if !e.castable(p, id, cost) {
+					continue
+				}
+				if !e.abilityTargetsAvailable(p, id, ab) {
 					continue
 				}
 				out = append(out, decision.Option{Index: len(out), Kind: "ability",
