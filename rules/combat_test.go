@@ -72,6 +72,59 @@ func drainCombatPriority(t *testing.T, e *Engine) {
 	t.Fatal("combat priority window did not close within the pass budget")
 }
 
+// drainCombatDamagePriority answers "pass" for every priority decision the
+// engine offers while still inside the combat damage step. Task jj-cmb (F37)
+// introduced the between-passes priority round (CR 510.4): a first-strike
+// attacker deals its damage, then players gain priority in the combat damage
+// step before the regular pass runs. A fixture that declared a first striker
+// and wants "the rest of combat" has to cross that window first, exactly as
+// drainCombatPriority crosses the 508.2/509.2 windows.
+func drainCombatDamagePriority(t *testing.T, e *Engine) {
+	t.Helper()
+	for i := 0; i < 64; i++ {
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KPriority || e.G.Step != state.StepCombatDamage {
+			return
+		}
+		idx := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				idx = o.Index
+				break
+			}
+		}
+		if idx < 0 {
+			t.Fatalf("combat-damage priority decision with no pass option: %+v", d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+			t.Fatalf("pass combat-damage priority: %v", err)
+		}
+	}
+	t.Fatal("combat-damage priority window did not close within the pass budget")
+}
+
+// submitDivision answers the combat damage step's controller damage-division
+// decision (CR 510.1c, Task jj-cmb F40) with the option whose per-blocker
+// split equals want. The engine's pending ask already exposes the split
+// table (askOptions) in lockstep with the option list, so a fixture names the
+// division it wants rather than guessing an option index.
+func submitDivision(t *testing.T, e *Engine, want []int32) {
+	t.Helper()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("expected a damage-division decision, got %+v", d)
+	}
+	for i, sp := range e.combatRound.askOptions {
+		if reflect.DeepEqual(sp, want) {
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{i}}); err != nil {
+				t.Fatalf("submit damage division: %v", err)
+			}
+			return
+		}
+	}
+	t.Fatalf("no damage-division option for split %v (have %v)", want, e.combatRound.askOptions)
+}
+
 // submitAttackers finds the KAttackers options naming each of ids and submits
 // exactly those. Order does not matter for attackers (every one of them ends
 // up sharing the same M1-fixed defender), unlike submitBlockers below.
@@ -574,6 +627,11 @@ func TestFirstStrikeAttackerTakesSurvivingBlockersRegularDamage(t *testing.T) {
 	e.askAttackers()
 	submitAttackers(t, e, atk)
 	submitBlockers(t, e, blk)
+	// Task jj-cmb (F37): the first-strike pass dealt 2 to the blocker and
+	// then granted priority in the combat damage step (CR 510.4) before the
+	// regular pass runs. Cross that window so the surviving blocker swings
+	// back in the regular step.
+	drainCombatDamagePriority(t, e)
 
 	if got := e.G.Obj(blk).Damage; got != 2 {
 		t.Fatalf("blocker damage = %d, want 2 (the first striker's power, dealt in the first-strike step)", got)
@@ -607,6 +665,12 @@ func TestNonTrampleMultipleBlockersAssignLethalThenSpill(t *testing.T) {
 	e.askAttackers()
 	submitAttackers(t, e, atk)
 	submitBlockers(t, e, first, second)
+	// Task jj-cmb (F40): the no-order CR 510.1c lets the attacker's
+	// controller divide 3 damage between the two blockers however they
+	// choose; the engine now asks that division before dealing. This fixture
+	// wants the (2,1) split -- exact lethal to the 1/2 first blocker, the
+	// remainder to the second -- which yields this test's asserted result.
+	submitDivision(t, e, []int32{2, 1})
 
 	// The first-declared blocker was assigned its full lethal need (2)
 	// before the second saw any of the remainder, and died to state-based
