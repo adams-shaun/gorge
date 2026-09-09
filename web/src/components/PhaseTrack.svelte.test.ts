@@ -79,14 +79,14 @@ describe('PhaseTrack — the clock', () => {
   // The bar is ONE ROW. This is the leaf that fails if a head row, a round
   // counter, a hint sentence or a group caption is ever put back above the
   // cells.
-  it('is one row: no head, no round, no hint sentence, no group captions', () => {
+  it('is thin: no head row, no round, no hint sentence', () => {
     const html = seated(view(1, 'upkeep', 7, 3), stops([], []));
     expect(html).not.toContain('class="head');
     expect(html).not.toContain('data-hint');
     expect(html).not.toContain('Round');
     expect(html).not.toContain('Your turn');
-    expect(html).not.toContain('glabel');
-    // the group dividers still carry the phase structure
+    // the phase captions stay -- they are 9px tick marks, not a head row
+    expect(html).toContain('glabel');
     expect(html).toContain('data-group="combat"');
     // and the modifier survives where it belongs: on each stoppable cell
     expect(cell(html, 'upkeep')).toMatch(/Shift-click/);
