@@ -375,6 +375,41 @@ func (e *Engine) triggerOf(pt pendingTrigger) (cards.Trigger, bool) {
 	return f.Triggers[pt.Idx], true
 }
 
+// findTriggerForAbility returns the face trigger on source whose Effect is
+// exactly the given *cards.SA -- the T: line a triggered-ability stack object
+// came from. A triggered ability's stack object carries the same compiled SA
+// pointer its source's Triggers entry holds (events.Apply re-derives it from
+// the TriggerPush's Idx), so pointer equality identifies the line. This is
+// what lets resolution (resolveTop's ability branch) re-read the trigger's
+// CR 603.4 intervening-if condition and optionality (CR 603.5) from the
+// source's static text rather than caching them on the stack object.
+//
+// It returns false for an activated ability, whose o.Ability comes from the
+// source's Abilities slice rather than a Triggers entry, and for any source
+// whose face has since changed or gone -- so a caller must treat false as
+// "this is not a face trigger, apply no trigger-only rule" rather than as an
+// error. A source that has ceased to exist entirely (a token or copy gone
+// from the board) degrades the same way.
+func (e *Engine) findTriggerForAbility(source state.ObjID, sa *cards.SA) (cards.Trigger, bool) {
+	if sa == nil {
+		return cards.Trigger{}, false
+	}
+	o := e.G.Obj(source)
+	if o == nil {
+		return cards.Trigger{}, false
+	}
+	f := o.Face()
+	if f == nil {
+		return cards.Trigger{}, false
+	}
+	for _, t := range f.Triggers {
+		if t.Effect == sa {
+			return t, true
+		}
+	}
+	return cards.Trigger{}, false
+}
+
 // optionalDecider reports whether pt is an optional trigger, which seat gets
 // the yes/no question, and whether that seat can still answer it.
 //
