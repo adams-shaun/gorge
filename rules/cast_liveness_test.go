@@ -9,20 +9,27 @@ import (
 )
 
 // cast_liveness_test.go pins the E2 property that a no-progress Delve cast can
-// never spin (nor kill the match): the declined cast's option is held out of
-// the current priority window (suppressedCast, cast.go), so the re-offer loop
-// cannot even begin a second iteration, while every legal answer stays legal
-// and the match stays alive. Round 1 shipped a counting fatal instead (two
-// declines killed the match permanently -- a legal human action, b7dead);
-// round 2 replaces it with per-card suppression: no match ever ends.
+// never spin (nor kill the match), as tightened by Ruling F05-2 (CR 733.2):
+// the FIRST no-progress cast/activation abort leaves the declined card's
+// option offered, so a merely-reversed illegal action may be redone legally,
+// and only the SECOND identical no-progress abort of the SAME card in the SAME
+// priority window holds that card's option out of the current window
+// (suppressedCast, cast.go) -- so the re-offer loop can run at most twice
+// before the thing being repeated is no longer offered, while every legal
+// answer stays legal and the match stays alive. Round 1 shipped a counting
+// fatal instead (two declines killed the match permanently -- a legal human
+// action, b7dead); round 2 replaced it with per-card suppression; F05-2
+// delays only the suppression, not the no-match-ever-dies guarantee.
 //
 // The sequence the engine reaches for an ordinary declined Delve cast:
 //
 //	priority -> (choose "cast") -> delve KChoose (Min 0, Max = shortfall)
 //	  -> (answer fewer than Max) -> commitCast: payMana fails, no state
-//	     change, a Note, angler's cast held out, priority re-offered
-//	     without angler -> ... any state change clears the hold-out and the
-//	     option comes back, which is also when a re-attempt can work.
+//	     change, a Note. The FIRST abort re-offers angler (CR 733.2, the
+//	     legal retry); the SECOND identical abort holds angler's cast out
+//	     and priority is re-offered without angler -> ... any state change
+//	     clears the hold-out and the option comes back, which is also when
+//	     a re-attempt can work.
 //
 // A legal client may answer the delve ask with any count from Min (0) to Max,
 // so answering with fewer than Max is the conforming decline that used to
@@ -148,22 +155,36 @@ func driveDeclinedSpin(t *testing.T, e *Engine, angler state.ObjID) (asks int, a
 }
 
 // TestDeclineThenOtherLegalPlayDoesNotEndTheMatch is the finding-1 regression
-// (and would fail against round 1's counting fatal): a seat that declines a
-// Delve cast and then does anything else legal must not lose the match, and a
-// productive action brings the declined card's option back so a re-attempt is
-// even still possible.
+// (and would fail against round 1's counting fatal), tightened for Ruling
+// F05-2 (CR 733.2): a seat that declines a Delve cast and then does anything
+// else legal must not lose the match, and a productive action brings the
+// declined card's option back so a re-attempt is even still possible. Under
+// F05-2 the FIRST decline leaves the option offered (the legal retry), and
+// only the SECOND identical one holds it out.
 func TestDeclineThenOtherLegalPlayDoesNotEndTheMatch(t *testing.T) {
 	e, cfg, angler := newFixtureDeck(t, 50, livenessAngler, livenessJunk, livenessJunk, livenessJunk, livenessJunk)
 	fundDeclinedDelve(t, e)
 
-	// First decline: legal (Min:0), so it must not end anything.
+	// First decline: legal (Min:0), so it must not end anything -- and, per
+	// CR 733.2, it leaves angler's cast option OFFERED because a reversed
+	// illegal action may be redone legally.
 	beginDelveCast(t, e, angler)
 	declineDelve(t, e)
 	if e.G.Over {
 		t.Fatal("a legal (Min:0) Delve decline ended the match")
 	}
-	// The declined cast is held out of THIS no-progress window, so the same
-	// repeated action cannot loop.
+	if !castOffered(e, angler) {
+		t.Fatal("a first no-progress decline still held angler out; CR 733.2 allows a legal retry")
+	}
+
+	// The retry is again declined: the SECOND identical no-progress abort of
+	// the same card in the same window holds angler out, so the repeated
+	// action cannot loop.
+	beginDelveCast(t, e, angler)
+	declineDelve(t, e)
+	if e.G.Over {
+		t.Fatal("a second identical decline ended the match")
+	}
 	if castOffered(e, angler) {
 		t.Fatal("declined angler is still offered in the same no-progress window")
 	}
@@ -179,20 +200,24 @@ func TestDeclineThenOtherLegalPlayDoesNotEndTheMatch(t *testing.T) {
 		t.Fatal("angler's cast option did not return after a state-changing play")
 	}
 
-	// Re-declining after productive play is still legal and still ends in
-	// nothing (two declines total -- the exact pattern round 1 killed on).
+	// Re-declining after productive play is still legal (the state-changing
+	// land reset the per-card count, so this is a fresh FIRST strike in a new
+	// window) and still ends in nothing.
 	beginDelveCast(t, e, angler)
 	declineDelve(t, e)
 	if e.G.Over {
-		t.Fatal("a second decline, after productive play, ended the match")
+		t.Fatal("a decline after productive play ended the match")
 	}
 	replayCheck(t, e, cfg)
 }
 
-// TestDeclinesOnDifferentCardsDoNotEndTheMatch is the finding-2 regression:
-// two DIFFERENT unpayable casts in a row (decline on spell A, then spell B)
-// are ordinary exploration and must never be treated as one accumulating
-// spin. Each suppression is per-card.
+// TestDeclinesOnDifferentCardsDoNotEndTheMatch is the finding-2 regression,
+// strengthened for Ruling F05-2 (CR 733.2): two DIFFERENT unpayable casts in
+// a row (decline on spell A, then spell B) are ordinary exploration and must
+// never be treated as one accumulating spin. Each card's no-progress count is
+// per-card, so one decline on each of two different cards combines into
+// nothing -- neither is held out (a single strike is never enough), and the
+// two counts never add up.
 func TestDeclinesOnDifferentCardsDoNotEndTheMatch(t *testing.T) {
 	e, cfg, angler := newFixtureDeck(t, 51, livenessAngler, livenessGurmag, livenessJunk, livenessJunk, livenessJunk, livenessJunk)
 	var gurmag state.ObjID
@@ -215,7 +240,9 @@ func TestDeclinesOnDifferentCardsDoNotEndTheMatch(t *testing.T) {
 	}
 	fundDeclinedDelve(t, e)
 
-	// Decline on spell A, then on spell B: both legal, both per-card.
+	// Decline on spell A, then on spell B: both legal, both per-card. Each
+	// card now has exactly ONE no-progress abort, so neither is held out --
+	// the two counts never combine into a shared hold-out.
 	beginDelveCast(t, e, angler)
 	declineDelve(t, e)
 	beginDelveCast(t, e, gurmag)
@@ -224,21 +251,36 @@ func TestDeclinesOnDifferentCardsDoNotEndTheMatch(t *testing.T) {
 	if e.G.Over {
 		t.Fatal("two declines on different cards ended the match")
 	}
-	// Both are held out of this no-progress window, each for its own card.
-	if castOffered(e, angler) {
-		t.Fatal("angler still offered after its own decline")
+	if !castOffered(e, angler) {
+		t.Fatal("angler held out after a single (CR 733.2 retryable) decline")
 	}
-	if castOffered(e, gurmag) {
-		t.Fatal("gurmag still offered after its own decline")
+	if !castOffered(e, gurmag) {
+		t.Fatal("gurmag held out after a single (CR 733.2 retryable) decline")
+	}
+
+	// A SECOND identical abort on angler holds ONLY angler out; gurmag's
+	// separate count of one is untouched, so gurmag stays offered. The two
+	// per-card counts do not interact.
+	beginDelveCast(t, e, angler)
+	declineDelve(t, e)
+	if e.G.Over {
+		t.Fatal("a second decline on angler ended the match")
+	}
+	if castOffered(e, angler) {
+		t.Fatal("angler still offered after its own second decline")
+	}
+	if !castOffered(e, gurmag) {
+		t.Fatal("gurmag's offer was affected by angler's second decline")
 	}
 	replayCheck(t, e, cfg)
 }
 
 // TestDeclinedDelveSpinIsBounded is the "an unbounded spin is still bounded"
 // property, asserted with a tiny, specific number rather than round 1's baked
-// stall-threshold: after one decline the engine holds the card's option out,
-// so a seat literally cannot ask the loop a second time. No match dies and no
-// card moves.
+// stall-threshold. Under Ruling F05-2 (CR 733.2) the FIRST no-progress decline
+// leaves the card offered (the legal retry), and only the SECOND identical one
+// holds it out -- so a seat can ask the delve ask exactly twice before the
+// engine no longer re-offers the card. No match dies and no card moves.
 func TestDeclinedDelveSpinIsBounded(t *testing.T) {
 	e, cfg, angler := newFixtureDeck(t, 52, livenessAngler, livenessJunk, livenessJunk, livenessJunk, livenessJunk)
 	fundDeclinedDelve(t, e)
@@ -247,10 +289,11 @@ func TestDeclinedDelveSpinIsBounded(t *testing.T) {
 	if !alive {
 		t.Fatal("the driver found the match over during the (bounded) spin")
 	}
-	// Bounded to a single decline -- the suppression removes the re-offered
+	// Bounded to two declines -- the first is the CR 733.2 legal retry, the
+	// second identical one triggers the hold-out that removes the re-offered
 	// thing, so there is no loop to cap.
-	if asks != 1 {
-		t.Fatalf("declined asks before suppression = %d, want 1", asks)
+	if asks != 2 {
+		t.Fatalf("declined asks before suppression = %d, want 2", asks)
 	}
 	if e.G.Over {
 		t.Fatal("engine ended the match on the (bounded) spin")

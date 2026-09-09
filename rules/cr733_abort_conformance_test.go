@@ -266,11 +266,11 @@ func TestCR733UnderDelveReversalAllowsLegalRetry(t *testing.T) {
 	checked := 0
 	for _, paid := range []int{0, 1, 7} {
 		t.Run(string(rune('0'+paid))+"_exiles", func(t *testing.T) {
-			// Full payment is an already-correct control, not a known-red
-			// defect. Keep only the underpayment siblings opt-in.
-			if paid != 7 {
-				requireCR601Audit(t, "CR 733.2: under-delve suppression forbids a legal retry")
-			}
+			// F05-2 (CR 733.2) closed this: the first no-progress under-delve
+			// abort no longer suppresses the cast option, so the reversed
+			// action may be redone legally. The guard comes off and these
+			// leaves join the ordinary suite; the 7_exiles full-payment
+			// control stays opt-in-free as it always was.
 			e := crAbortEngine(t, reg, "ur-delver", "Treasure Cruise")
 			pyro := crAbortPyromancer(t, e)
 			id := crAbortMove(t, e, 0, "Treasure Cruise", state.ZHand)
