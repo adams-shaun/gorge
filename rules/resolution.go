@@ -317,6 +317,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.Discard = ids
+		case "arrange":
+			// Ruling J0: rules' handleArrange already applied the answered
+			// arrangement and emitted the LibraryOrder event before calling
+			// resumeResolution, so the re-entered effect needs only to know
+			// not to re-ask -- the arrangement lives on the LibraryOrder
+			// event, not on Ctx, so this is a done-marker rather than an
+			// answer the effect re-reads.
+			ctx.Arrange = true
 		default: // "modes", and "" (a pure outer continuation with no answer)
 			ctx.Modes = modeChoiceNames(rp.sa, chosen)
 		}

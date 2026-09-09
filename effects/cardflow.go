@@ -412,19 +412,36 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// effRearrangeTopOfLibrary looks at the top NumCards of Defined$'s library.
-// M1 keeps the existing order -- the choice of a new order is Task 20's
-// territory -- so the only observable effect is the Note recording what was
-// seen.
+// effRearrangeTopOfLibrary looks at the top NumCards of Defined$'s library
+// and poses a KArrange decision over them: the player picks the order, and
+// rules' handleArrange applies it as an events.LibraryOrder (Ruling J0/J1
+// - the one general decision shape Scry, Surveil and Dig later share).
 //
-// Unlike effReveal's Note (a deliberate reveal, public to every seat), this
-// one is a private LOOK: only p, the library's own owner, may know what sat
-// on top. Ruling T23-w makes a Note public by default (view.RedactEvents'
-// rule 3 exempts Note entirely, on the theory that a Note IS the engine's
-// "tell everyone" channel), so the one Note that must stay private has to
-// opt OUT by being Secret -- the same shape rules/engine.go's Shuffle and
-// this file's own effDraw already use for their own hidden-zone payloads.
+// Unlike effReveal's Note (a deliberate reveal, public to every seat), the
+// private-look record is a Secret Note: only p, the library's own owner, may
+// know what sat on top. Ruling T23-w makes a Note public by default
+// (view.RedactEvents' rule 3 exempts Note entirely, on the theory that a
+// Note IS the engine's "tell everyone" channel), so the one Note that must
+// stay private has to opt OUT by being Secret -- the same shape
+// rules/engine.go's Shuffle and this file's own effDraw already use for
+// their own hidden-zone payloads. The Note records the look, not the order;
+// the order that follows is the player's to choose.
+//
+// Min == Max == k (pile B is empty for a full reorder), one option per top
+// card in top-down order, each Option.Kind "bottom" (nothing goes there for
+// a reorder, but the vocabulary stays uniform so Scry/Surveil reuse it
+// unchanged). Decision.Player is p, the library's owner — the player who is
+// looking at and reordering their own top cards.
 func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
+	// Re-entry after rules' handleArrange applied the answered KArrange and
+	// emitted the LibraryOrder event: this pass must only let the resolution
+	// continue (the chained SubAbility$ runs), not re-ask or re-emit. Clear
+	// the marker so a nested arrange — the fx42 class of leak — cannot read
+	// an outer arrange's "done".
+	if c.Arrange {
+		c.Arrange = false
+		return
+	}
 	n := Num(h, c, sa, "NumCards", 1)
 	if n < 0 {
 		n = 0
@@ -438,8 +455,30 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 			k = int32(len(lib))
 		}
 		h.Emit(events.Event{Kind: events.Note, Player: p,
-			Text:   "looks at the top of the library, order unchanged",
-			IDs:    append([]state.ObjID(nil), lib[:k]...),
+			Text: "looks at the top of the library", Secret: true})
+		d := &decision.Decision{Player: p, Kind: decision.KArrange,
+			Min:        int(k),
+			Max:        int(k),
+			Source:     c.Source,
+			ResumeKind: "arrange",
+			ResumeSA:   sa,
+			Prompt:     "Rearrange the top " + strconv.Itoa(int(k)) + " card(s); the first card you pick goes on top"}
+		for i := int32(0); i < k; i++ {
+			name := "a card"
+			if o := g.Obj(lib[i]); o != nil && o.Face() != nil {
+				name = o.Face().Name
+			}
+			d.Options = append(d.Options, decision.Option{Index: int(i),
+				Kind: "bottom", Label: name, Obj: lib[i], Player: p})
+		}
+		if h.Ask(d) {
+			return // resolution suspended; the answer re-enters with Ctx.Arrange set.
+		}
+		// Fuzz/no-engine host: the deterministic stand-in keeps the existing
+		// order -- pile A = the offered options in offered order (J3) -- with
+		// the LibraryOrder recording that the order was (re)set unchanged.
+		h.Emit(events.Event{Kind: events.LibraryOrder, Player: p,
+			IDs:    append([]state.ObjID(nil), lib...),
 			Secret: true})
 	}
 }
