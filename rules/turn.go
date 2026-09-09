@@ -263,6 +263,26 @@ func (e *Engine) resumeTriggerDrain() {
 	// while a decision is outstanding would place triggers behind the
 	// answering player's back and overwrite the very question they were
 	// asked. TestResumeTriggerDrainIsInertWhileADecisionIsPending pins that.
+	//
+	// Task fx39 settled a competing suspicion: that the guard should be
+	// e.Suspended() (e.resume != nil) instead of e.pending != nil. It is
+	// NOT. The two are not the same state in principle -- a resolution can
+	// be suspended with no decision pending for a moment, and a decision
+	// can be pending with nothing suspended -- but on this engine they are
+	// tied wherever a drain is resumed: e.resume is set only inside effects'
+	// Ask (rules/resolution.go), which ALSO sets e.pending, and the drain's
+	// resumed calls (handleTarget, handleTriggerOrder/Optional, handleChoose,
+	// and releasePendingDecisionOfDepartedPlayer after the resumeResolution
+	// it runs) all carry e.pending == nil with e.resume == nil, or both set.
+	// So e.resume != nil implies e.pending != nil, and checking the latter
+	// is strictly STRONGER: it also stops the drain from re-entering over a
+	// pending NON-suspended decision (a trigger_order or target ask, a
+	// priority round) -- exactly the outstanding-decision scenario above. A
+	// guard on e.Suspended() alone would let that drain run and overwrite
+	// the question, which the measured mutant confirms: swapping this line
+	// to `if e.Suspended() { return }` fails
+	// TestResumeTriggerDrainIsInertWhileADecisionIsPending by replacing the
+	// pending trigger_order ask. Keep the guard on e.pending.
 	if e.pending != nil {
 		return
 	}
