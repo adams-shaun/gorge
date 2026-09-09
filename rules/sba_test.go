@@ -990,3 +990,220 @@ Oracle:x
 			"replacement-substituted event), not a 32x-amplified count", added)
 	}
 }
+
+// addTokenInZone mints a token owned by seat 0 and relocates it to z via the
+// real MoveZone path, so the token's zone membership and o.Zone agree. The
+// token is not first placed on the battlefield -- CR 111.7 says a token
+// ceases to exist the moment it is anywhere other than the battlefield, and
+// ceaseDeadTokens (CR 704.5d) reads only IsToken and Zone, so a token placed
+// straight into a target zone is exactly as much of a test of the zone check
+// as one that reached it by leaving the battlefield.
+func addTokenInZone(t *testing.T, e *Engine, z state.Zone) state.ObjID {
+	t.Helper()
+	goblin := card(t, "Name:Goblin Token\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n")
+	o := e.G.AddObject(goblin, 0)
+	o.IsToken = true
+	events.Move(e.G, o.ID, state.ZLibrary, z)
+	return o.ID
+}
+
+// ceaseEvent returns the MoveZone event that moved id to ZCeased, or nil if
+// none was emitted.
+func ceaseEvent(e *Engine, id state.ObjID) *events.Event {
+	for i := range e.L.Events {
+		ev := &e.L.Events[i]
+		if ev.Kind == events.MoveZone && ev.Obj == id && ev.To == state.ZCeased {
+			return ev
+		}
+	}
+	return nil
+}
+
+// containsID reports whether ids holds id.
+func containsID(ids []state.ObjID, id state.ObjID) bool {
+	for _, x := range ids {
+		if x == id {
+			return true
+		}
+	}
+	return false
+}
+
+// TestATokenLeavingTheBattlefieldByAnyRouteCeasesToExist is the coverage
+// family for CR 111.7/704.5d: a token in ANY zone other than the battlefield,
+// the stack, or the already-ceased tombstone is moved to ZCeased. The
+// graveyard and hand routes were already exercised by
+// TestATokenThatDiesCeasesToExist and TestATokenBouncedToHandCeasesToExist;
+// the EXILE route is the one that matters here -- an earlier version of
+// ceaseDeadTokens exempted ZExile, so an exiled token used to survive, and
+// that exemption's removal has no dedicated test. A future refactor could
+// restore the exemption and the suite would otherwise stay green.
+//
+// Each subtest also asserts on the emitted MoveZone event (From == the zone
+// the token actually left from, To == ZCeased, Text "ceased to exist"), not
+// only the final field value -- a log-only replay must learn that the token
+// left by that route.
+func TestATokenLeavingTheBattlefieldByAnyRouteCeasesToExist(t *testing.T) {
+	for _, z := range []struct {
+		name string
+		zone state.Zone
+	}{
+		{"graveyard", state.ZGraveyard},
+		{"exile", state.ZExile},
+		{"hand", state.ZHand},
+		{"library", state.ZLibrary},
+	} {
+		t.Run(z.name, func(t *testing.T) {
+			e := newSeats(t, 2)
+			id := addTokenInZone(t, e, z.zone)
+
+			e.checkStateBased()
+
+			if got := e.G.Obj(id).Zone; got != state.ZCeased {
+				t.Fatalf("token placed in %s ended in %s, want ceased", z.zone, got)
+			}
+			if ids := e.G.Zone(z.zone, 0); containsID(ids, id) {
+				t.Fatalf("token still present in its %s zone membership: %v", z.zone, ids)
+			}
+			ev := ceaseEvent(e, id)
+			if ev == nil {
+				t.Fatalf("no MoveZone event to ZCeased was emitted for the %s token", z.name)
+			}
+			if ev.From != z.zone {
+				t.Fatalf("cease event From = %s, want %s (the zone the token actually left from)", ev.From, z.zone)
+			}
+			if ev.Text != "ceased to exist" {
+				t.Fatalf("cease event Text = %q, want %q", ev.Text, "ceased to exist")
+			}
+		})
+	}
+}
+
+// TestCeaseDeadTokensLeavesBattlefieldAndStackTokensAlone is the negative
+// control for the zone check in ceaseDeadTokens: the function deliberately
+// excludes the battlefield (a token permanent is not ceasing) and the stack
+// (a token copy of a spell or ability legitimately sits there without being a
+// permanent yet -- see the comment above ceaseDeadTokens). A test that only
+// proved "tokens cease" would also pass a broken implementation that ceased
+// everything; this pins that it does not.
+func TestCeaseDeadTokensLeavesBattlefieldAndStackTokensAlone(t *testing.T) {
+	e := newSeats(t, 2)
+
+	// A token on the battlefield is an ordinary permanent and must be
+	// untouched.
+	bfTok := addTokenInZone(t, e, state.ZBattlefield)
+
+	// A token on the stack is excluded deliberately.
+	goblin := card(t, "Name:Goblin Token\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n")
+	stackObj := e.G.AddObject(goblin, 0)
+	stackObj.IsToken = true
+	events.Move(e.G, stackObj.ID, state.ZLibrary, state.ZStack)
+
+	e.checkStateBased()
+
+	if got := e.G.Obj(bfTok).Zone; got != state.ZBattlefield {
+		t.Fatalf("battlefield token zone = %s, want battlefield (untouched)", got)
+	}
+	if got := e.G.Obj(stackObj.ID).Zone; got != state.ZStack {
+		t.Fatalf("stack token zone = %s, want stack (untouched)", got)
+	}
+	if ev := ceaseEvent(e, bfTok); ev != nil {
+		t.Fatalf("battlefield token was ceased: %+v", ev)
+	}
+	if ev := ceaseEvent(e, stackObj.ID); ev != nil {
+		t.Fatalf("stack token was ceased: %+v", ev)
+	}
+}
+
+// TestCeaseDeadTokensLeavesNonTokensAlone is the most important negative
+// control: without it, nothing distinguishes CR 111.7/704.5d from "everything
+// that leaves the battlefield disappears". A NON-token object reaching exile
+// or the graveyard is an ordinary card that lives on in that zone; only a
+// token ceases.
+func TestCeaseDeadTokensLeavesNonTokensAlone(t *testing.T) {
+	for _, z := range []struct {
+		name string
+		zone state.Zone
+	}{
+		{"exile", state.ZExile},
+		{"graveyard", state.ZGraveyard},
+	} {
+		t.Run(z.name, func(t *testing.T) {
+			e := newSeats(t, 2)
+			relic := card(t, "Name:Relic\nManaCost:1\nTypes:Artifact\nOracle:x\n")
+			o := e.G.AddObject(relic, 0)
+			events.Move(e.G, o.ID, state.ZLibrary, z.zone)
+
+			e.checkStateBased()
+
+			if got := e.G.Obj(o.ID).Zone; got != z.zone {
+				t.Fatalf("non-token card zone = %s, want %s (a non-token does not cease)", got, z.zone)
+			}
+			if ids := e.G.Zone(z.zone, 0); !containsID(ids, o.ID) {
+				t.Fatalf("non-token card missing from its %s zone membership: %v", z.zone, ids)
+			}
+			if ev := ceaseEvent(e, o.ID); ev != nil {
+				t.Fatalf("non-token card was ceased: %+v", ev)
+			}
+		})
+	}
+}
+
+// TestCeasedZoneHasNoMembership confirms that ZCeased deliberately has no
+// membership list: Game.Zone(ZCeased, _) returns nil, so a ceased token
+// appears in no zone query. It is an inert arena tombstone, not a game zone.
+func TestCeasedZoneHasNoMembership(t *testing.T) {
+	e := newSeats(t, 2)
+	if z := e.G.Zone(state.ZCeased, 0); z != nil {
+		t.Fatalf("Zone(ZCeased, 0) = %v, want nil (ZCeased has no membership list)", z)
+	}
+	if z := e.G.Zone(state.ZCeased, 1); z != nil {
+		t.Fatalf("Zone(ZCeased, 1) = %v, want nil (ZCeased has no membership list)", z)
+	}
+}
+
+// TestATokenExiledFromTheBattlefieldCeasesToExist is the whole-route version
+// of the exile case above. The table test places a token directly into each
+// zone, which is a complete test of ceaseDeadTokens' own zone check but stops
+// short of the transition a real game makes: battlefield -> exile, through
+// events.Move's zone-change tail, and only then the state-based action.
+//
+// That route is worth its own leaf because the two halves have been wrong
+// independently. ceaseDeadTokens used to exempt ZExile outright, so an exiled
+// token survived; and events.Move's tail is where a departing permanent's own
+// combat state is cleared and, since the CR 506.4 fix, where other objects'
+// references to it are tombstoned. A token exiled from play crosses both.
+func TestATokenExiledFromTheBattlefieldCeasesToExist(t *testing.T) {
+	e := newSeats(t, 2)
+	goblin := card(t, "Name:Goblin Token\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n")
+	o := e.G.AddObject(goblin, 0)
+	o.IsToken = true
+	events.Move(e.G, o.ID, state.ZLibrary, state.ZBattlefield)
+
+	if got := e.G.Obj(o.ID).Zone; got != state.ZBattlefield {
+		t.Fatalf("setup: token zone = %s, want battlefield", got)
+	}
+	e.checkStateBased()
+	if got := e.G.Obj(o.ID).Zone; got != state.ZBattlefield {
+		t.Fatalf("token on the battlefield was ceased by the setup SBA pass: %s", got)
+	}
+
+	// Now exile it the way a real effect would, and let the SBA see it.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
+		From: state.ZBattlefield, To: state.ZExile, Text: "exiled"})
+	e.checkStateBased()
+
+	if got := e.G.Obj(o.ID).Zone; got != state.ZCeased {
+		t.Fatalf("token exiled from the battlefield ended in %s, want ceased", got)
+	}
+	if ids := e.G.Zone(state.ZExile, 0); containsID(ids, o.ID) {
+		t.Fatalf("ceased token still in exile membership: %v", ids)
+	}
+	ev := ceaseEvent(e, o.ID)
+	if ev == nil {
+		t.Fatal("no MoveZone event to ZCeased was emitted for the exiled token")
+	}
+	if ev.From != state.ZExile {
+		t.Fatalf("cease event From = %s, want exile (the zone it actually ceased from)", ev.From)
+	}
+}
