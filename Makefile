@@ -274,3 +274,12 @@ clean:
 .PHONY: clean-cards
 clean-cards:
 	rm -rf $(CARDS_DIR)
+
+.PHONY: ledger
+## ledger: rebuild the judge-lane issue ledger the agent dashboard renders
+# Derived, never hand-maintained: the conformance lane's own -v output plus
+# AGENTS.md's approximations table. Writes .ds4/ledger.json (git-excluded).
+ledger:
+	GORGE_CR_CONFORMANCE=1 GOMEMLIMIT=5GiB go test -p=2 -count=1 ./rules -run TestCR -v \
+	  > .ds4/lane-rules.txt || true
+	go run ./cmd/ledger -lane .ds4/lane-rules.txt -out .ds4/ledger.json
