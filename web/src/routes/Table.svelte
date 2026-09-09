@@ -14,6 +14,9 @@
   import HandFan from '../components/HandFan.svelte';
   import PhaseTrack from '../components/PhaseTrack.svelte';
   import { SeatPanelState } from '../lib/seatpanel.svelte';
+  import { toneOf } from '../lib/seatpanel.svelte';
+  import { optionsByObj, type CardOptions } from '../lib/cardoptions';
+  import { loadLogShown, saveLogShown, safeStorage, type LogScope } from '../lib/logshown';
   import { everyVisibleCard, quadrantFor } from '../lib/board';
   import { seatColour } from '../lib/colours';
   import { seatRows } from '../lib/seattable';
@@ -37,6 +40,20 @@
   // it always was (R-E4-4).
   const seatCtx = getSeat();
   const seated = seatCtx !== null;
+  // The log starts hidden for a SEATED player (they are playing, not reading)
+  // and stays shown for a spectator (they follow the game through it, and its
+  // scrubbing). The choice is persisted per table and per scope — the stops
+  // contract, not a component localStorage reach. `liveSeated` is a mount
+  // constant, so the scope and the default are fixed for the life of this
+  // mounted route. (A finished /m/:match route is a spectator replay and keeps
+  // the spectator default.)
+  const liveSeated = seated && !finished;
+  const logScope: LogScope = liveSeated ? 'seat' : 'spectator';
+  let showLog = $state(!liveSeated);
+  function toggleLog() {
+    showLog = !showLog;
+    saveLogShown(safeStorage(), table, logScope, showLog);
+  }
   // svelte-ignore state_referenced_locally
   const m = new MatchState(table, seatCtx ?? undefined);
 
@@ -71,6 +88,29 @@
   const ownPlayer = $derived(
     m.view && seatCtx ? (m.view.players.find((p) => p.seat === seatCtx.seat) ?? null) : null,
   );
+
+  // The board's card-options index (ui21): the pending decision grouped by
+  // the object each option concerns. For a seated view this is exactly the
+  // decision the seat must answer now — the same decision the seat panel
+  // surfaces (SeatPanelState.active), so the board and the panel can never
+  // disagree about what this seat is being asked, and both drop it once
+  // answered. A spectator has no seat panel and no pending decision, and a
+  // seat that has nothing pending gets null — in both cases no tile is
+  // marked and no tile carries a menu. Building it once here, from the
+  // active decision, is what makes one index serve both 'cards with valid
+  // options' and 'valid targets' (R-E4-2: the client only regroups options
+  // the server already sent, and posts each one by its own index, R-E4-1).
+  const boardOptions = $derived.by((): CardOptions | null => {
+    if (!seated || panel === null) return null;
+    const d = panel.active;
+    if (d === null) return null;
+    return {
+      byObj: optionsByObj(d),
+      picked: [...panel.picked],
+      tone: toneOf(d),
+      post: (index: number) => panel.click(index),
+    };
+  });
 
   // Task 3's colour-coded log: the same name/colour resolution SeatTable's
   // rows use (seats[seat].name falling back to the wire's own player name),
@@ -113,6 +153,13 @@
       void session.unfocus(table);
     };
   });
+  // The log visibility loads where storage exists (onMount, never SSR), the
+  // same discipline as stops. An absent/corrupt value (null) leaves the
+  // view-specific default in place.
+  onMount(() => {
+    const saved = loadLogShown(safeStorage(), table, logScope);
+    if (saved !== null) showLog = saved;
+  });
 </script>
 
 {#if idle}
@@ -120,7 +167,7 @@
     <MatchList {table} />
   </main>
 {:else}
-  <main class="table">
+  <main class="table" class:log-hidden={!showLog}>
     {#if m.halted}<div class="halted">Table halted: {m.halted}</div>{/if}
     {#if m.view}
       <!-- The clock goes across the top of the page, above both registers.
@@ -139,7 +186,7 @@
         />
       </div>
       <section class="board">
-        <Board view={m.view} seats={m.seats} />
+        <Board view={m.view} seats={m.seats} options={boardOptions} />
         {#each m.view.players as p (p.seat)}
           <IdentityBar
             player={p}
@@ -173,8 +220,8 @@
           <HandFan player={ownPlayer} />
         {/if}
       </section>
-      <aside class="rail"><Rail view={m.view} seats={m.seats} decision={seated ? null : m.decision} emphasizeTop={seated} events={m.dvr.events} /></aside>
-      <footer class="transcript">
+      <aside class="rail"><Rail view={m.view} seats={m.seats} decision={seated ? null : m.decision} emphasizeTop={seated} events={m.dvr.events} showLog={showLog} onToggleLog={toggleLog} /></aside>
+      <footer class="transcript" class:hidden={!showLog}>
         {#if !seated}
           <DvrBar dvr={m.dvr} onAction={(a) => m.dispatch(a)} {finished} />
         {/if}
@@ -216,6 +263,11 @@
     height: 100vh;
     background: var(--felt);
   }
+  /* With the log hidden the last row collapses to nothing and the board takes
+     the room, rather than leaving a 10rem empty band across the bottom. */
+  .table.log-hidden {
+    grid-template-rows: auto 1fr 0;
+  }
   /* The clock spans both registers, like the transcript beneath them: it
      describes the whole table rather than either half of it. */
   .track {
@@ -249,6 +301,9 @@
     font-family: var(--font-data);
     font-size: var(--t-12);
     overflow: hidden;
+  }
+  .transcript.hidden {
+    display: none;
   }
   .log {
     flex: 1;

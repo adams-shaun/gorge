@@ -57,6 +57,8 @@
     decision,
     emphasizeTop = false,
     events = [],
+    showLog = true,
+    onToggleLog = null,
   }: {
     view: View;
     seats: SeatInfo[];
@@ -64,6 +66,15 @@
     emphasizeTop?: boolean;
     /** the DVR's own event list, forwarded to SeatTable for the PlayerLost cause (Task: dead seats say why) and read by no one else here. Optional so every existing caller/test keeps rendering exactly as before with no cause shown. */
     events?: { event: { kind: string; player: number; text?: string } }[];
+    /** showLog is whether the transcript is shown right now; the toggle below
+     *  flips it. It is owned by Table.svelte (persisted per table and seat/
+     *  spectator scope, the stops contract) and merely surfaced here next to
+     *  the other seat controls. Optional so every existing caller/test renders
+     *  as before with the control in its default state. */
+    showLog?: boolean;
+    /** onToggleLog is the rail's control: a real button (keyboard reachable,
+     *  role switch) that asks Table to flip the transcript's visibility. */
+    onToggleLog?: (() => void) | null;
   } = $props();
 
   // The reader's explicit pick, or null to follow (focusSeat decides what
@@ -91,6 +102,24 @@
 </script>
 
 <div class="rail-inner">
+  <div class="logbar">
+    <span class="logbar__label">Log</span>
+    {#if onToggleLog}
+      <button
+        class="logbar__toggle"
+        class:on={showLog}
+        type="button"
+        role="switch"
+        aria-checked={showLog}
+        aria-label="Show the game log"
+        data-log-toggle
+        onclick={() => onToggleLog()}
+      >
+        <span class="dot" aria-hidden="true"></span>
+        <span class="word">{showLog ? 'Visible' : 'Hidden'}</span>
+      </button>
+    {/if}
+  </div>
   <SeatTable {view} {seats} {focus} {events} onFocus={(s) => (picked = picked === s ? null : s)} />
 
   <section class="focus" data-focus-pane data-focus-seat={focused?.seat}>
@@ -157,6 +186,55 @@
   }
   .rail-inner > :global(*:last-child) {
     border-bottom: 0;
+  }
+  /* The log visibility control sits at the rail's top, beside the seat
+     controls. It is a dotted switch like the auto/skip switches in the seat
+     panel, not a labelled button: its own state is the message, and the
+     instrument never spells out an enum it can just show. */
+  .logbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+    border-bottom: 1px solid var(--edge-inst);
+    flex: none;
+  }
+  .logbar__label {
+    font-size: 0.6875rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .logbar__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    background: var(--instrument-raised);
+    color: var(--ink-dim);
+    border: 1px solid var(--edge-inst);
+    border-radius: var(--radius);
+    padding: 0.15rem var(--sp-2);
+    font-family: var(--font-ui);
+    font-size: var(--t-12);
+    font-weight: 600;
+    cursor: pointer;
+    flex: none;
+  }
+  .logbar__toggle.on {
+    color: var(--felt-sunk);
+    background: var(--offered);
+    border-color: var(--offered);
+  }
+  .logbar__toggle .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.5;
+  }
+  .logbar__toggle.on .dot {
+    opacity: 1;
   }
   /* Written as element+class deliberately: the rule above is
      `.rail-inner > section`, which carries an element's worth of specificity,
