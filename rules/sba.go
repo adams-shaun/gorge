@@ -658,7 +658,7 @@ func (e *Engine) releasePendingDecisionOfDepartedPlayer() {
 		// any suffix after the unanswered instruction. resumeResolution runs
 		// the remaining instructions and then performs CR 608.2n's ordinary
 		// completion tail.
-		rp := *e.resume
+		rp := e.resume
 		e.resume = nil
 		e.resumeResolution(rp, nil)
 	}

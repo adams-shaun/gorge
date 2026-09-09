@@ -66,9 +66,11 @@ func (e *Engine) Clone() *Engine {
 		// immutable corpus — the same pointer class every other field here
 		// shares), so one struct copy is a faithful clone (M2d-2). A clone
 		// made while a mid-resolution decision is pending sees the same
-		// suspended resolution the original does.
-		rp := *e.resume
-		c.resume = &rp
+		// suspended resolution the original does. The outer continuation
+		// chain (fx34) is a linked list of these same value frames, so it is
+		// deep-copied per-link to keep the clone independent of the
+		// original's list.
+		c.resume = cloneResume(e.resume)
 	}
 	if e.continuous != nil {
 		c.continuous = make([]ContinuousEffect, len(e.continuous))
@@ -184,4 +186,18 @@ func cloneMulligan(m mulliganRound) mulliganRound {
 	m.kept = append([]bool(nil), m.kept...)
 	m.taken = append([]int(nil), m.taken...)
 	return m
+}
+
+// cloneResume deep-copies a suspended resolution's resume chain (fx34): each
+// link is plain value data (kind/obj plus a *cards.SA into the shared,
+// immutable corpus), but the outer continuation chain is a linked list this
+// cloned engine must own so it can resume outward independently of the
+// original's traversal.
+func cloneResume(rp *resumePoint) *resumePoint {
+	if rp == nil {
+		return nil
+	}
+	cp := *rp
+	cp.outer = cloneResume(rp.outer)
+	return &cp
 }
