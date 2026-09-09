@@ -407,8 +407,17 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 		if e.drainAwaitsTarget {
 			e.drainAwaitsTarget = false
 			e.resumeTriggerDrain()
-		} else {
+		} else if e.pending == nil {
 			// CR 117.3c: the caster keeps priority after a completed cast.
+			// payCast can pose a MID-CAST ask (CR 601.2g's mana window, a
+			// cost choice) which leaves the engine parked on that question;
+			// the casting player does not keep priority until the cast has
+			// actually paid every cost and fired its cast trigger, so the
+			// "caster keeps priority" marker is emitted only once no further
+			// announcement decision is outstanding. Emitting it while parked
+			// is the same class of log lie as the pass-branch emit this task
+			// removed: the log would assert the caster held priority at a
+			// moment the engine is waiting on an unanswered question.
 			e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
 		}
 		return
