@@ -70,8 +70,8 @@ func assertKeysClosed(t *testing.T, typeName string, typ reflect.Type, want map[
 // the closure D6 allows and nothing else. A brand-new field that could carry
 // a hidden-zone order (a raw "library" list, or any other hidden-zone
 // carrier) fails here before it can ship to a client, even when it is
-// currently nil (omitempty would hide it from any single marshal). View's 14
-// fields are exactly {viewer, visibility, turn, step, phase, active,
+// currently nil (omitempty would hide it from any single marshal). View's 15
+// fields are exactly {viewer, visibility, turn, round, step, phase, active,
 // priority, over, draw, winner, players, stack, pending, decision}. The same
 // allowlist treatment is applied to PlayerView (the type that actually
 // carries hand/pool/library_size — the leak surface D6 most protects against
@@ -90,11 +90,15 @@ func TestViewMarshalsClosed(t *testing.T) {
 	// allowlist. Reflect over the types themselves so the set tracks the
 	// source of truth (the fields/tags), not a hand-maintained duplicate.
 	assertKeysClosed(t, "view.View", reflect.TypeOf(view.View{}), map[string]bool{
-		"viewer": true, "visibility": true, "turn": true, "step": true,
+		"viewer": true, "visibility": true, "turn": true, "round": true, "step": true,
 		"phase": true, "active": true, "priority": true, "over": true,
 		"draw": true, "winner": true, "players": true, "stack": true,
 		"pending": true, "decision": true,
 	})
+	// round (added by task ui12) is a projection of the public turn counter
+	// and the public per-seat lost flags -- how many full passes the surviving
+	// seats have made -- not a hidden-zone carrier, so it joins the public
+	// facts here rather than the hidden-zone class this test guards against.
 	// PlayerView is where the hidden zones actually live, so it gets the
 	// same strict allowlist View does — a future LibraryTop/Sideboard/
 	// Revealed/untagged Deck here fails even when it is not one of the two

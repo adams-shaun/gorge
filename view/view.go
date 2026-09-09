@@ -55,14 +55,22 @@ type View struct {
 	Viewer state.PlayerID `json:"viewer"`
 	// Visibility names which rule set built this view: "seat", "public" or
 	// "omniscient" (see Visibility).
-	Visibility string         `json:"visibility"`
-	Turn       int32          `json:"turn"`
-	Step       string         `json:"step"`
-	Phase      string         `json:"phase"`
-	Active     state.PlayerID `json:"active"`
-	Priority   state.PlayerID `json:"priority"`
-	Over       bool           `json:"over"`
-	Draw       bool           `json:"draw"`
+	Visibility string `json:"visibility"`
+	// Turn is the engine's per-player-turn counter (TurnChange events). It
+	// increments once per seat's turn, so a four-seat table reads "Turn 22"
+	// after five and a half rounds. Round is a projection of the same state
+	// that counts round-trips of the players still alive -- see roundOf.
+	// Both are sent because the raw engine counter is what the transcript
+	// ("Turn N: <player>") refers to, and the round is what the board's
+	// clock shows.
+	Turn     int32          `json:"turn"`
+	Round    int32          `json:"round"`
+	Step     string         `json:"step"`
+	Phase    string         `json:"phase"`
+	Active   state.PlayerID `json:"active"`
+	Priority state.PlayerID `json:"priority"`
+	Over     bool           `json:"over"`
+	Draw     bool           `json:"draw"`
 	// Winner is nil unless Over && !Draw: PlayerID's zero value is seat 0, a
 	// real seat, so a bare PlayerID field could never distinguish "seat 0
 	// won" from "the game is still going" or "it was a draw" (Task 22
@@ -316,6 +324,7 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 		return v
 	}
 	v.Turn = g.Turn
+	v.Round = roundOf(g)
 	v.Step = g.Step.String()
 	v.Phase = PhaseOf(g.Step)
 	v.Active = g.Active
@@ -411,6 +420,51 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 		v.Decision = &cp
 	}
 	return v
+}
+
+// roundOf projects the engine's per-player-turn counter (g.Turn) onto the
+// number of round-trips the table has made. The rule, stated once: a round
+// is one full pass around the table among the players still alive, and the
+// projected number is 1 + (Turn-1)/AliveCount -- so round 1 spans the first
+// complete pass of every surviving seat, round 2 the second, and the round
+// length (AliveCount) shrinks as seats are eliminated.
+//
+// This is a projection of View's existing state and nothing else: it reads
+// g.Turn and each seat's Lost flag, writes no event, and cannot change a
+// chain head. It is computed from the single snapshot because neither view
+// nor the client keeps a per-turn history; the consequence is that it
+// cannot reconstruct WHEN a seat died, only the current alive set. Two
+// truths follow and are worth writing down. First, before the first
+// elimination it is exactly the round-trip count. Second, after an
+// elimination it stays monotonic -- 1+(Turn-1)/AliveCount only ever grows
+// as Turn grows and only grows faster when AliveCount shrinks -- so it
+// never repeats a value for a later game state and never jumps backwards,
+// which is the failure the board's clock must not exhibit; it may run ahead
+// of the literal "when play returned to the first surviving seat" count,
+// because that count needs the death times this snapshot does not carry.
+//
+// Extra turns (a card granting a seat two turns inside one round-trip) are
+// taken care of by the engine's shape, not by this function: beginTurn is
+// reached only from genesis and from rules/turn.go's NextAlive advance, and
+// the effects registry registers no AddTurn primitive, so this build never
+// produces a same-seat repeat turn for the projection to account for.
+//
+// Guards: a nil game, a Turn still at its pre-genesis 0, or a table with no
+// surviving seats all project to round 1 rather than dividing by zero.
+func roundOf(g *state.Game) int32 {
+	if g == nil || g.Turn <= 0 {
+		return 1
+	}
+	alive := int32(0)
+	for _, p := range g.Players {
+		if !p.Lost {
+			alive++
+		}
+	}
+	if alive <= 0 {
+		return 1
+	}
+	return (g.Turn-1)/alive + 1
 }
 
 // PhaseOf groups a Step into the five phases a client shows: beginning,

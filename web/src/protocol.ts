@@ -186,6 +186,7 @@ export interface View {
   viewer: number;
   visibility: string;
   turn: number;
+  round: number;
   step: string;
   phase: string;
   active: number;
