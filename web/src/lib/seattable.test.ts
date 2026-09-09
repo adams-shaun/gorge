@@ -194,12 +194,21 @@ describe('seatCorner — the seat → position mapping (Task ui17)', () => {
     expect(seatCorner(1, 2, 9)).toBe('top');
   });
 
-  it('3- and 4-player layouts are unchanged and do NOT depend on the viewer', () => {
-    // the pre-existing absolute, clockwise layout must not regress
+  // Task ui22 retitled this and dropped one line. The old title claimed the
+  // 3/4-seat layout does "NOT depend on the viewer", and its last assertion
+  // passed a REAL SEATED viewer (seats 3, viewer 2) and required the
+  // un-rotated corners -- so that assertion did not state a rule, it pinned
+  // the deferral recorded in seatCorner's old doc comment. What survives is
+  // the part that is still true and still worth guarding: the SPECTATOR
+  // layout, and the seat-0 viewer that coincides with it, are exactly the
+  // historic clockwise arrangement and must not drift. A seated viewer's
+  // layout is asserted below by property (bottom corner + bijection), which
+  // covers seats 3 viewer 2 more strongly than the deleted line did.
+  it('the spectator 3- and 4-player layout is the historic clockwise one', () => {
     expect([0, 1, 2, 3].map((s) => seatCorner(s, 4, 0))).toEqual(['bl', 'tl', 'tr', 'br']);
     expect([0, 1, 2, 3].map((s) => seatCorner(s, 4, 255))).toEqual(['bl', 'tl', 'tr', 'br']);
     expect([0, 1, 2].map((s) => seatCorner(s, 3, 0))).toEqual(['bl', 'tl', 'tr']);
-    expect([0, 1, 2].map((s) => seatCorner(s, 3, 2))).toEqual(['bl', 'tl', 'tr']);
+    expect([0, 1, 2].map((s) => seatCorner(s, 3, 255))).toEqual(['bl', 'tl', 'tr']);
   });
 });
 
