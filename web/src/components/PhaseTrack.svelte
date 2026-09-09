@@ -5,18 +5,17 @@
   import { seatColour } from '../lib/colours';
 
   /**
-   * PhaseTrack is the board's clock: whose turn it is, which round of the
-   * table, and where in the twelve steps the game is standing right now —
-   * plus the seat's stops, set by clicking the step you want to be handed
-   * the game back at.
+   * PhaseTrack is the board's clock: where in the twelve steps the game is
+   * standing right now, plus the seat's stops, set by clicking the step you
+   * want to be handed the game back at.
    *
-   * The headline number is view.round, the round-trip counter projected by
-   * the server (one full pass of the surviving seats), NOT view.turn, which
-   * is the engine's per-player-turn counter and increments once per seat's
-   * turn. The transcript still says "Turn N" because that is what the
-   * engine actually did; the board's clock agrees with a viewer that a
-   * four-seat table is on round 2 when the starting player takes their
-   * second turn.
+   * It is ONE ROW HIGH and stays that way. It used to carry a head row --
+   * whose turn it is, the round number, and a sentence explaining
+   * shift-click -- above the cells, and a caption above each phase group.
+   * The user asked three times for a thin bar: all of that is gone. Whose
+   * turn it is comes from the shard's own active-seat perimeter and from
+   * IdentityBar; the shift-click modifier is on every stoppable cell's
+   * title. Do not reintroduce a second line box here.
    *
    * It decides nothing about the rules. The step order and the stoppable
    * set come from lib/autopilot via lib/phases (the client has exactly one
@@ -46,17 +45,6 @@
   const yours = $derived(seat !== null && view.active === seat);
   const side = $derived<TurnSide>(yours ? 'yours' : 'opponents');
   const other = $derived<TurnSide>(yours ? 'opponents' : 'yours');
-  // The track names whose turn it is. The seat list is the first word (it
-  // carries the authoritative registered name when the table knows one), but
-  // on the live table route `seats` can be EMPTY while the view still carries
-  // each player's own name (the one-shot seed in Table.svelte races the
-  // async tables.lookup — see the ui15 report). Falling straight through to
-  // `Seat ${view.active}` then prints a 0-based index beside the 1-based
-  // `Player N` names everywhere else, so the wire's player name is the
-  // fallback, exactly as IdentityBar does.
-  const activeName = $derived(
-    seats[view.active]?.name ?? view.players.find((p) => p.seat === view.active)?.name ?? `Seat ${view.active}`,
-  );
   const activeColour = $derived(seatColour(view.active, seats));
   // STEPS is a const tuple, so its own indexOf only accepts the twelve
   // literals; view.step is whatever the wire said. Widened once here so an
@@ -82,18 +70,8 @@
   class:yours
   data-phase-track
   style={`--seat:${activeColour}`}
-  aria-label="Round and phase"
+  aria-label="Phase"
 >
-  <div class="head">
-    <span class="whose" data-whose>{yours ? 'Your turn' : `${activeName}’s turn`}</span>
-    <span class="turn"><span class="tk">Round</span><span class="tn">{view.round}</span></span>
-    {#if settable}
-      <span class="hint" data-hint>
-        Click a step to stop there on {yours ? 'your' : 'this'} turn · Shift-click to set it on the other side
-      </span>
-    {/if}
-  </div>
-
   <div class="groups">
     {#each PHASE_GROUPS as g (g.key)}
       <!-- Each group takes width in proportion to the steps it holds, so
@@ -101,14 +79,6 @@
            timeline cut into five labelled sections — not five equal boxes,
            one of which happens to contain five steps. -->
       <div class="group" data-group={g.key} style={`flex-grow:${g.steps.length}`}>
-        <!-- A one-step phase is named by its own cell; repeating the phase
-             name above it says the same word twice. The empty caption keeps
-             the cells on one baseline. -->
-        {#if g.steps.length > 1}
-          <span class="glabel">{g.label}</span>
-        {:else}
-          <span class="glabel" aria-hidden="true">&nbsp;</span>
-        {/if}
         <div class="cells">
           {#each g.steps as c (c.step)}
             {@const pos = position(c.step)}
@@ -173,51 +143,7 @@
     border: 2px solid var(--seat);
   }
 
-  .head {
-    display: flex;
-    align-items: baseline;
-    gap: var(--sp-3);
-    padding: var(--sp-1) var(--sp-3);
-    border-bottom: 1px solid var(--edge-inst);
-    min-width: 0;
-  }
-  /* Whose turn it is, in that seat's identity colour — the same colour the
-     identity bar and the life grid already use for them, so nobody has to
-     work out which one they are. */
-  .whose {
-    font-size: var(--t-14);
-    font-weight: 600;
-    color: var(--seat);
-    white-space: nowrap;
-  }
-  .turn {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.35em;
-    white-space: nowrap;
-  }
-  .tk {
-    font-size: 0.6875rem;
-    color: var(--ink-faint);
-  }
-  .tn {
-    font-family: var(--font-data);
-    font-variant-numeric: tabular-nums;
-    font-size: var(--t-14);
-    color: var(--ink);
-  }
-  /* The modifier is stated, not hidden: an undiscoverable shortcut is not a
-     feature. It is the first thing dropped when the board is narrow. */
-  .hint {
-    margin-left: auto;
-    font-size: 0.6875rem;
-    color: var(--ink-faint);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-width: 0;
-  }
-
+            
   /* The track scrolls inside itself on a narrow board rather than pushing
      the page sideways. */
   .groups {
@@ -229,22 +155,14 @@
   .group {
     display: flex;
     flex-direction: column;
-    gap: 1px;
-    padding: 2px var(--sp-1) var(--sp-1);
+    gap: 0;
+    padding: 0;
     border-right: 1px solid var(--edge-inst);
     flex: 1 1 0;
     min-width: 0;
   }
   .group:last-child {
     border-right: 0;
-  }
-  .glabel {
-    font-size: 0.6875rem;
-    line-height: 1.2;
-    color: var(--ink-faint);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    white-space: nowrap;
   }
   .cells {
     display: flex;
@@ -258,7 +176,7 @@
     justify-content: center;
     flex: 1 1 auto;
     min-width: 0;
-    padding: 2px var(--sp-1) 6px;
+    padding: 1px var(--sp-1) 4px;
     background: var(--instrument-raised);
     border: 0;
     border-bottom: 2px solid transparent;
@@ -330,13 +248,9 @@
     text-overflow: ellipsis;
   }
 
-  /* Four seats on a laptop: the hint is the first thing to go, then the
-     group labels tighten. The track itself never wraps and never pushes the
-     page sideways. */
+  /* Four seats on a laptop the cells tighten. The track itself never wraps
+     and never pushes the page sideways. */
   @media (max-width: 60rem) {
-    .hint {
-      display: none;
-    }
     .cell {
       padding-left: var(--sp-1);
       padding-right: var(--sp-1);
