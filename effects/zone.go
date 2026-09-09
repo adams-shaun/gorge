@@ -247,11 +247,32 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	if h.Ask(d) {
 		return
 	}
-	// R-9: a host without a decision channel finds nothing, but the search's
-	// unconditional shuffle still happens.
-	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
-		Text: "finds no card (no engine host to ask)"})
-	applyLibrarySearch(h, c, sa, owner, to, nil)
+	// R-9: a host without a decision channel cannot ask a player, so it
+	// supplies a deterministic answer in the player's place. For a
+	// quantity-only search (CR 701.23d) the decision would refuse to find
+	// fewer than Min cards, so the stand-in takes the first Min eligible
+	// cards -- in the same ordered eligible list the decision's options
+	// were built from -- or all of them when the library holds fewer
+	// (701.23d's "as many as possible"). For a stated-quality search
+	// (CR 701.23b) finding nothing is a legitimate fail-to-find, so the
+	// stand-in still finds nothing, exactly as before. Either way the
+	// search's unconditional shuffle still happens.
+	var picked []state.ObjID
+	if !SearchStatesQuality(spec) {
+		n := int(min)
+		if n > len(eligible) {
+			n = len(eligible)
+		}
+		if n > 0 {
+			picked = append(picked, eligible[:n]...)
+		}
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
+			Text: "finds " + strconv.Itoa(n) + " card(s) (no engine host to ask)"})
+	} else {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
+			Text: "finds no card (no engine host to ask)"})
+	}
+	applyLibrarySearch(h, c, sa, owner, to, picked)
 }
 
 // searchPlayers resolves whose library is searched. DefinedPlayer$ takes
