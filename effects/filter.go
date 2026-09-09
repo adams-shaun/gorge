@@ -42,6 +42,15 @@ var predicates = map[string]predFn{
 	"Legendary": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return hasType(o, "Legendary")
 	},
+	// Snow is a supertype used as a predicate in Count$Valid specs (Withering
+	// Wisps' "Swamp.Snow+YouCtrl"). hasType already sees the Snow type word
+	// (Types: Basic Snow Land Swamp), so the predicate is the same shape as
+	// Legendary above; without it such a spec failed closed to zero, which is
+	// why a computed ActivationLimit of "number of snow Swamps you control"
+	// silently became 0.
+	"Snow": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return hasType(o, "Snow")
+	},
 	"nonLand": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return !hasType(o, "Land") },
 	"nonCreature": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return !hasType(o, "Creature")
