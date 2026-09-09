@@ -40,8 +40,15 @@ func (r *Registry) snapshotFrame(t *table, m *match) protocol.Frame {
 	// empty literal (not a nil one) both copies m.turnStarts (no aliasing)
 	// and keeps a zero-length TurnStarts a non-nil [] that marshals as []
 	// rather than null.
+	// Seats carries the live match's seat list on the snapshot itself, so a
+	// subscriber that joins mid-game — which receives a snapshot but, from
+	// host/session.go's Subscribe, never the match's match_start frame — can
+	// still learn who is where in the CURRENT match. Without it the table
+	// route's seat list stayed empty for the whole match (ui16). A copy, like
+	// TurnStarts, so the frame never aliases m.seats.
 	return frame(protocol.TSnapshot, t, m.k, head(m), protocol.Snapshot{
-		View: v, TurnStarts: append([]uint64{}, m.turnStarts...), Head: head(m)})
+		View: v, TurnStarts: append([]uint64{}, m.turnStarts...), Head: head(m),
+		Seats: append([]protocol.SeatInfo{}, m.seats...)})
 }
 
 // widgetFrame is the overview cell. Called with m.mu held for reading.

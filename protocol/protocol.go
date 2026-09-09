@@ -154,6 +154,13 @@ type Snapshot struct {
 	View       view.View `json:"view"`
 	TurnStarts []uint64  `json:"turn_starts"`
 	Head       uint64    `json:"head"`
+	// Seats is the live match's seat list, the same []SeatInfo MatchStart
+	// carries. A focus subscriber (host/session.go's Subscribe) receives a
+	// snapshot but not the match's match_start frame — that went out before
+	// it connected — so without this the table route has no way to learn the
+	// seats for the current match (ui16). Always populated for a live match;
+	// never omitempty, so the client type stays a plain SeatInfo[].
+	Seats []SeatInfo `json:"seats"`
 }
 
 // EventBody is one redacted event with its transcript line.

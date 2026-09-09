@@ -44,6 +44,12 @@ export class MatchState {
       case 'snapshot': {
         const s = f.body as Snapshot;
         this.match = f.match ?? this.match;
+        // ui16: the snapshot carries the match's seat list, so a subscriber
+        // gets it however it joined — cold load, refresh, or a mid-game focus
+        // subscribe that never saw the match_start frame. Re-seeding here
+        // (not once at mount from tables.list, which is async) is what makes
+        // the table route's seats correct for the whole match.
+        this.seats = s.seats;
         this.dispatch({ type: 'snapshot', match: `${this.table}/${this.match}`, head: s.head, turnStarts: s.turn_starts });
         if (this.dvr.live) {
           if (this.seat) {

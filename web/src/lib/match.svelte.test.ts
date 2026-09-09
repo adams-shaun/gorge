@@ -57,6 +57,50 @@ async function drain(ticks = 20): Promise<void> {
 }
 
 describe('MatchState', () => {
+  // ui16 discrimination proof, entry path 1 — COLD LOAD. The table route is
+  // entered directly (or refreshed): onMount seeds m.seats once from
+  // tables.list, which is empty until the SSE hello (or tables.load) lands,
+  // so a cold load read an empty list and never looked again (ui15). The
+  // seat list must still end up populated — from the snapshot frame the
+  // route receives, not from any tables.list seed in this test (none is
+  // applied: the MatchState is constructed with nothing seeding seats).
+  it('cold load: a snapshot frame after the route mounted populates seats with no tables.list seed', () => {
+    const m = new MatchState('t1');
+    // Nothing has seeded m.seats yet: tables.list was empty at onMount and
+    // the hello that fills it has not landed (and here never will).
+    expect(m.seats).toEqual([]);
+
+    m.apply({ v: 1, t: 'snapshot', table: 't1', match: 1, seq: 0, body: { view: view(1), turn_starts: [0], head: 5, seats } });
+
+    expect(m.seats).toEqual(seats);
+  });
+
+  // ui16 discrimination proof, entry path 2 — MID-GAME FOCUS SUBSCRIBE. A
+  // subscriber who joins a table mid-match gets a snapshot frame but never a
+  // match_start (host/session.go's Subscribe pushes only the snapshot); with
+  // the seats only on match_start, this seat list stayed empty for the whole
+  // match. It must be populated from the snapshot alone.
+  it('mid-game subscribe: only a snapshot frame (no match_start) still populates seats', () => {
+    const m = new MatchState('t1');
+
+    // The one frame a mid-game focus subscribe delivers; deliberately no
+    // match_start before or after it.
+    m.apply({ v: 1, t: 'snapshot', table: 't1', match: 3, seq: 0, body: { view: view(1), turn_starts: [0], head: 5, seats } });
+
+    expect(m.seats).toEqual(seats);
+
+    // After the match rolls over on a perpetual table the subscriber gets a
+    // fresh match_start + snapshot; the snapshot alone must carry the new
+    // match's seats too, decoupled from any server-side cache of the old
+    // match.
+    const rotated = [
+      { name: 'Bo', deck: 'mono-green', colour: '#22c55e' },
+      { name: 'Ari', deck: 'mono-red', colour: '#e5484d' },
+    ];
+    m.apply({ v: 1, t: 'snapshot', table: 't1', match: 4, seq: 0, body: { view: view(1), turn_starts: [0], head: 0, seats: rotated } });
+    expect(m.seats).toEqual(rotated);
+  });
+
   it('routes match_start, snapshot, and a contiguous event; a decision then triggers exactly one fetch', async () => {
     fetchViewMock.mockReset();
     fetchViewMock.mockResolvedValue(view(2));
