@@ -153,6 +153,75 @@ func TestBlockerDeclarationLegality(t *testing.T) {
 	})
 }
 
+func TestCombatPriorityDoesNotRepeatDeclarations(t *testing.T) {
+	const creature = "Name:Memnite\nManaCost:0\nTypes:Artifact Creature Construct\nPT:1/1\nOracle:x\n"
+
+	passOnce := func(t *testing.T, e *Engine) {
+		t.Helper()
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KPriority {
+			t.Fatalf("expected priority, got %+v", d)
+		}
+		idx := -1
+		for _, opt := range d.Options {
+			if opt.Kind == "pass" {
+				idx = opt.Index
+				break
+			}
+		}
+		if idx < 0 {
+			t.Fatalf("priority decision has no pass option: %+v", d.Options)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+			t.Fatalf("pass priority: %v", err)
+		}
+	}
+	countEvents := func(e *Engine, kind events.Kind) int {
+		n := 0
+		for _, ev := range e.L.Events {
+			if ev.Kind == kind {
+				n++
+			}
+		}
+		return n
+	}
+
+	t.Run("attackers", func(t *testing.T) {
+		e := combatEngine(t)
+		attacker := onBoardReady(t, e, 0, creature)
+		e.askAttackers()
+		submitAttackers(t, e, attacker)
+		before := countEvents(e, events.DeclareAttackers)
+
+		passOnce(t, e)
+		if d := e.Pending(); d == nil || d.Kind != decision.KPriority || e.G.Step != state.StepDeclareAttackers {
+			t.Fatalf("post-pass decision = %+v at %s, want opponent priority in declare attackers", d, e.G.Step)
+		}
+		if got := countEvents(e, events.DeclareAttackers); got != before {
+			t.Fatalf("DeclareAttackers events = %d after priority advanced, want %d (no redeclaration)", got, before)
+		}
+	})
+
+	t.Run("blockers", func(t *testing.T) {
+		e := combatEngine(t)
+		attacker := onBoardReady(t, e, 0, creature)
+		onBoard(t, e, 1, creature)
+		e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{attacker}})
+		e.G.Step = state.StepDeclareBlockers
+		e.askBlockers()
+		submitBlockers(t, e)
+		before := countEvents(e, events.DeclareBlockers)
+
+		passOnce(t, e)
+		if d := e.Pending(); d == nil || d.Kind != decision.KPriority || e.G.Step != state.StepDeclareBlockers {
+			t.Fatalf("post-pass decision = %+v at %s, want opponent priority in declare blockers", d, e.G.Step)
+		}
+		if got := countEvents(e, events.DeclareBlockers); got != before {
+			t.Fatalf("DeclareBlockers events = %d after priority advanced, want %d (no redeclaration)", got, before)
+		}
+	})
+}
+
 func TestUnblockedAttackerDamagesTheDefendingPlayer(t *testing.T) {
 	e := combatEngine(t)
 	atk := onBoardReady(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")

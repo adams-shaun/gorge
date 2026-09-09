@@ -18,9 +18,8 @@
 //     (validateAttackers), and with a single opponent the pair list is one
 //     option per attacker at that one defender, so a two-player game
 //     observes exactly the M1 surface.
-//   - No priority is offered mid-combat: declare attackers, declare blockers
-//     and combat damage each resolve in one automatic step, same as every
-//     other engine-only step (untap, cleanup).
+//   - Players receive priority after attackers and blockers are declared.
+//     Combat damage remains an automatic step.
 //   - An ordinary blocking creature may block only one attacker (CR 509.1a).
 //     askBlockers still offers every individually legal (blocker, attacker)
 //     pair, while validateBlockers rejects a declaration that chooses two
@@ -111,17 +110,10 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 // validateAttackers guard, never resolved by the engine picking one defender
 // for a client that could not decide.
 //
-// With no possible attacker, there is nothing this decision could change (an
-// empty answer is the only legal one, since Max would be 0), and no legal
-// attacker also means the rest of combat -- declare blockers, combat damage
-// -- has nothing to do either (CR 508.1's "if no creatures are declared as
-// attackers... skip the declare blockers and combat damage steps"), so this
-// skips straight to end of combat rather than surfacing a decision no
-// possible answer to which matters. TestTurnsRotateThroughEverySeat (turn_
-// test.go, predating this task) depends on exactly this: a table of Mountains
-// with no creatures ever on it must sail through combat as a sequence of
-// ordinary priority rounds, not a non-priority decision passAll doesn't know
-// how to answer.
+// With no possible attacker, there is nothing this decision could change, so
+// record the forced empty declaration without asking. The declaration still
+// leaves the engine in this step for CR 508.2 priority; after that round CR
+// 508.8 skips blockers and combat damage.
 func (e *Engine) askAttackers() {
 	p := e.G.Active
 	var attackers []state.ObjID
@@ -131,7 +123,11 @@ func (e *Engine) askAttackers() {
 		}
 	}
 	if len(attackers) == 0 {
-		e.setStep(state.StepEndCombat)
+		// Player is the defending player on this event shape. There is no
+		// actual defender for an empty declaration, but using the next living
+		// seat keeps the marker valid without falsely recording that an
+		// eliminated active player attacked.
+		e.emit(events.Event{Kind: events.DeclareAttackers, Player: e.G.NextAlive(p)})
 		return
 	}
 	// Defenders are enumerated from seat 0 ascending, not from the active
@@ -201,7 +197,11 @@ func (e *Engine) askAttackers() {
 func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
 	if len(chosen) == 0 {
-		e.advanceStep()
+		// An empty declaration is still an event: it is the replay-derived
+		// marker that the declaration turn-based action has completed. The
+		// following Advance opens priority in this step; only that round's
+		// completion skips blockers and damage under CR 508.8.
+		e.emit(events.Event{Kind: events.DeclareAttackers, Player: e.G.NextAlive(e.G.Active)})
 		return
 	}
 	var defenders []state.PlayerID
@@ -221,7 +221,6 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 			e.emit(events.Event{Kind: events.Tap, Obj: opt.Obj})
 		}
 	}
-	e.advanceStep()
 }
 
 // validateAttackers is the KAttackers legality guard behind Option A's
@@ -277,13 +276,13 @@ func validateBlockers(d *decision.Decision, in decision.Intent) error {
 // creature, in APNAP turn order starting after the active player; cursor is
 // the next defender to ask. askBlockers builds the list on the step's first
 // entry, asks one
-// defender per call, and hands the step to combat damage once every
-// defender has declared. Plain data (a slice plus an index), never a
+// defender per call, and hands the step to its post-declaration priority
+// round once every defender has declared. Plain data (a slice plus an index), never a
 // closure, so Engine.Clone copies it like the mulligan round.
 //
 // zero value: order == nil means "not yet built", the step's first-entry
 // state; an empty-but-built round (order with len 0) means "nothing to
-// block", which askBlockers resolves by moving straight to combat damage.
+// block", which askBlockers records as an empty declaration before priority.
 type blockerRound struct {
 	order  []state.PlayerID
 	cursor int
@@ -292,7 +291,7 @@ type blockerRound struct {
 // askBlockers runs the declare-blockers step one defending player at a
 // time. The first entry to the step builds the defender list; each call
 // then asks the next defender with at least one legal block option, and the
-// last one exhausted moves the step to combat damage. A defender with
+// last one exhausted opens the step's priority round. A defender with
 // attackers but zero legal options for them is skipped without a decision:
 // its only legal answer would be "block with nothing", and asking would
 // change nothing (the same skip askAttackers applies to its own no-option
@@ -340,8 +339,12 @@ func (e *Engine) askBlockers() {
 			Prompt: fmt.Sprintf("turn %d — declare blockers", e.G.Turn), Options: opts})
 		return
 	}
-	e.blockerRound = blockerRound{}
-	e.setStep(state.StepCombatDamage)
+	// If every defender was skipped, no answer emitted a declaration. Record
+	// the forced empty declaration so the log still marks this turn-based
+	// action complete and the next Advance opens the priority window.
+	if !e.declarationMadeThisStep(events.DeclareBlockers) {
+		e.emit(events.Event{Kind: events.DeclareBlockers})
+	}
 }
 
 // blockAttackers lists the creatures currently declared attacking defender
@@ -383,13 +386,14 @@ func (e *Engine) blockAttackers(defender state.PlayerID) []state.ObjID {
 // next defender, which is what decides when the step moves to combat damage.
 func (e *Engine) handleBlockers(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
-	if len(chosen) > 0 {
-		pairs := make([][2]state.ObjID, 0, len(chosen))
-		for _, opt := range chosen {
-			pairs = append(pairs, [2]state.ObjID{opt.Attacker, opt.Obj})
-		}
-		e.emit(events.Event{Kind: events.DeclareBlockers, Pairs: pairs})
+	pairs := make([][2]state.ObjID, 0, len(chosen))
+	for _, opt := range chosen {
+		pairs = append(pairs, [2]state.ObjID{opt.Attacker, opt.Obj})
 	}
+	// Empty is a real declaration and is also the replay-derived marker that
+	// this defender answered; the cursor determines whether every defender
+	// in a multiplayer declaration round has answered.
+	e.emit(events.Event{Kind: events.DeclareBlockers, Player: d.Player, Pairs: pairs})
 	e.blockerRound.cursor++
 }
 
