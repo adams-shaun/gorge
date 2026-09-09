@@ -15,7 +15,6 @@
   import PhaseTrack from '../components/PhaseTrack.svelte';
   import {
     SeatPanelState,
-    fastForwardNoteText,
     mulliganPhase,
     toneOf,
   } from '../lib/seatpanel.svelte';
@@ -107,8 +106,6 @@
     const d = panel?.active;
     return !!(d && seatCtx && d.kind === 'priority' && m.view?.priority === seatCtx.seat && actionable(d));
   });
-  const fastNote = $derived(panel ? fastForwardNoteText(panel.note) : null);
-
   // The board's card-options index (ui21): the pending decision grouped by
   // the object each option concerns. For a seated view this is exactly the
   // decision the seat must answer now — the same decision the seat panel
@@ -192,8 +189,8 @@
     {#if m.view}
       <section class="board">
         <Board view={m.view} seats={m.seats} options={boardOptions} />
-        <!-- The table clock is now a felt HUD shard: central, compact, and
-             ringed by the ACTIVE seat's one established identity colour.
+        <!-- The table clock is the board's full-width centre band, ringed by
+             the ACTIVE seat's one established identity colour.
              It remains display-only for spectators and owns the same stop
              set/callback for a live seat. -->
         <div class="phase-shard" class:mulligan={mulligan !== null}>
@@ -249,33 +246,32 @@
           <!-- One owner for generic prompts/options: this rail flyout. The
                board carries only mulligan, so two lists can never disagree. -->
           <div class="action-dock" data-action-dock>
-            <div class="dock-controls">
-              <button
-                class="action-arrow"
-                class:ready={actionReady}
-                type="button"
-                aria-label="Show available actions"
-                data-action-arrow
-              ><span aria-hidden="true">&lt;&lt;</span><span>Actions</span></button>
-              <button
-                class="pass"
-                type="button"
-                data-pass
-                onclick={() => panel.passClick()}
-                disabled={!panel.passOption || panel.busy}
-              >Pass</button>
-              <button
-                class="fast"
-                class:on={panel.fastForward}
-                type="button"
-                data-fast-forward
-                aria-pressed={panel.fastForward}
-                onclick={() => { const view = m.view; if (view) { panel.startFastForward(); panel.considerAuto(view); } }}
-                disabled={!panel.active || panel.busy}
-              >Fast forward</button>
-              {#if fastNote}<span class="fast-note" role="status">{fastNote}</span>{/if}
-            </div>
-            <div class="flyout" data-action-flyout>
+            <button
+              class="action-arrow"
+              class:ready={actionReady}
+              type="button"
+              aria-label="Show available actions"
+              data-action-arrow
+            ><span aria-hidden="true">&lt;&lt;</span><span>Actions</span></button>
+            <div class="action-surface" data-action-flyout>
+              <div class="surface-controls">
+                <button
+                  class="pass"
+                  type="button"
+                  data-pass
+                  onclick={() => panel.passClick()}
+                  disabled={!panel.passOption || panel.busy}
+                >Pass</button>
+                <button
+                  class="fast"
+                  class:on={panel.fastForward}
+                  type="button"
+                  data-fast-forward
+                  aria-pressed={panel.fastForward}
+                  onclick={() => { const view = m.view; if (view) { panel.startFastForward(); panel.considerAuto(view); } }}
+                  disabled={!panel.active || panel.busy}
+                >Fast forward</button>
+              </div>
               {#key m.match}
                 <SeatPanel view={m.view} seats={m.seats} ctx={seatCtx} table={table} match={m.match} state={panel} placement="flyout" />
               {/key}
@@ -354,22 +350,23 @@
        seated player's identity bar reads it today (IdentityBar's `bottom`
        corner); a spectator mounts no fan and the fallback is 0. */
     --own-hand-h: calc(128px * 88 / 63);
+    /* The player's identity and hand are one bottom seat strip. The fixed
+       identity bay is consumed by HandFan rather than overlaid on it. */
+    --own-seat-w: 12rem;
   }
   .phase-shard {
     position: absolute;
-    top: 34%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
     z-index: 7;
-    width: min(46rem, calc(100% - 8rem));
     min-width: 0;
   }
   /* Mulligan keeps the centre for its hand; the shard yields upward for that
      one decision instead of competing for the same pixels. */
   .phase-shard.mulligan {
-    top: var(--sp-2);
-    left: var(--sp-2);
-    width: min(46rem, calc(100% - 13rem));
+    top: 0;
     transform: none;
   }
 
@@ -387,28 +384,81 @@
     padding-right: 5.5rem;
   }
   .action-dock {
+    /* One forgiving hover region: the hidden surface, transparent seam bridge
+       and << handle are descendants of this box. Losing hover delays closure,
+       so a diagonal handle-to-panel path does not retract under the pointer. */
+    --dock-close-delay: 180ms;
     position: absolute;
-    top: 55%;
+    top: 50%;
     left: 0;
-    width: 7rem;
+    width: min(26rem, calc(100vw - 17rem - var(--sp-2)));
     transform: translate(-100%, -50%);
     z-index: 8;
   }
-  .dock-controls {
-    position: relative;
+  .action-dock::after {
+    content: '';
+    position: absolute;
+    top: calc(-1 * var(--sp-1));
+    right: calc(-1 * var(--sp-1));
+    bottom: calc(-1 * var(--sp-1));
+    width: var(--sp-2);
+  }
+  .action-arrow {
+    position: absolute;
+    top: 0;
+    left: 100%;
     z-index: 2;
     display: flex;
-    flex-direction: column;
-    gap: 1px;
-    padding: 2px;
+    justify-content: space-between;
+    gap: var(--sp-1);
+    width: 6rem;
+    border: 1px solid var(--edge-inst);
+    border-left: 0;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: var(--sp-1) var(--sp-2);
+    background: var(--instrument);
+    color: var(--ink-inst);
+    font-family: var(--font-ui);
+    font-size: var(--t-12);
+    cursor: pointer;
+  }
+  .action-arrow.ready {
+    border-right-color: var(--initiative);
+    color: var(--initiative);
+    font-weight: 600;
+  }
+  .action-surface {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateX(var(--sp-2));
     background: var(--instrument);
     border: 1px solid var(--edge-inst);
-    border-right: 0;
-    border-radius: var(--radius) 0 0 var(--radius);
+    border-radius: var(--radius) 0 var(--radius) var(--radius);
+    overflow: hidden;
+    transition:
+      transform 0.14s ease-out var(--dock-close-delay),
+      opacity 0.14s ease-out var(--dock-close-delay),
+      visibility 0s linear calc(var(--dock-close-delay) + 0.14s);
   }
-  .dock-controls button {
+  .action-dock:hover .action-surface,
+  .action-dock:focus-within .action-surface {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(0);
+    transition-delay: 0s;
+  }
+  .surface-controls {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1px;
+    padding: 2px;
+    border-bottom: 1px solid var(--edge-inst);
+  }
+  .surface-controls button {
     border: 0;
-    border-left: 2px solid transparent;
+    border-bottom: 2px solid transparent;
     border-radius: 0;
     padding: var(--sp-1) var(--sp-2);
     background: var(--instrument-raised);
@@ -417,48 +467,21 @@
     font-size: var(--t-12);
     cursor: pointer;
   }
-  .dock-controls button:disabled {
+  .surface-controls button:disabled {
     color: var(--ink-faint);
     cursor: default;
   }
-  .action-arrow {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--sp-1);
+  .surface-controls .pass:not(:disabled),
+  .surface-controls .fast.on {
+    border-bottom-color: var(--offered);
   }
-  .action-arrow.ready {
-    border-left-color: var(--initiative);
-    color: var(--initiative);
-    font-weight: 600;
-  }
-  .dock-controls .pass:not(:disabled),
-  .dock-controls .fast.on {
-    border-left-color: var(--offered);
-  }
-  .fast-note {
-    padding: var(--sp-1) var(--sp-2);
-    border-top: 1px solid var(--edge-inst);
-    color: var(--ink-dim);
-    font-size: var(--t-10);
-    line-height: 1.25;
-  }
-  .flyout {
-    position: absolute;
-    top: calc(100% + 1px);
-    right: 0;
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transform: translateX(var(--sp-3));
-    transition: transform 0.14s ease-out, opacity 0.14s ease-out, visibility 0s linear 0.14s;
-  }
-  .action-dock:hover .flyout,
-  .action-dock:focus-within .flyout {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transform: translateX(0);
-    transition-delay: 0s;
+  .action-surface :global(.seat-panel.flyout) {
+    width: 100%;
+    min-width: 0;
+    max-height: min(32vh, 24rem);
+    border: 0;
+    border-radius: 0;
+    backdrop-filter: none;
   }
 
   .concede-control {
@@ -482,15 +505,6 @@
     font-weight: 600;
   }
 
-  @media (max-width: 60rem) {
-    .phase-shard {
-      width: calc(100% - var(--sp-4));
-      min-width: 0;
-    }
-    .phase-shard.mulligan {
-      width: calc(100% - 13rem);
-    }
-  }
   .transcript {
     grid-column: 1 / -1;
     background: var(--instrument);

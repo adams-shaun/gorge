@@ -198,11 +198,6 @@ export function autoNoteText(note: AutoNote): string {
   }
 }
 
-/** The dock only repeats one-shot fast-forward status; persistent Auto belongs in the flyout. */
-export function fastForwardNoteText(note: AutoNote): string | null {
-  return note.kind.startsWith('fast-') ? autoNoteText(note) : null;
-}
-
 /** safeStorage is localStorage where it exists and is reachable; null under SSR and in a browser that refuses site data. Same guard as images.ts. */
 function safeStorage(): Storage | null {
   try {
@@ -278,6 +273,10 @@ export class SeatPanelState {
    * would post it forever: that is the loop guard, and it disables auto.
    */
   private autoActedSeq: number | null = null;
+  /** The player's own set-stop window where the last fast-forward run handed control back. */
+  private fastStoppedSeq: number | null = null;
+  /** One restart may acknowledge exactly that stopped window; it is consumed before posting. */
+  private fastAcknowledgedSeq: number | null = null;
 
   /** mountStops loads this seat's saved stops. Called from the component on mount, where storage exists. */
   mountStops() {
@@ -350,6 +349,9 @@ export class SeatPanelState {
     this.fastPassed = 0;
     this.autoRun = 0;
     this.autoActedSeq = null;
+    // Restarting on the set stop that ended the previous run means "I have
+    // seen this one; continue". No other stop reason earns this token.
+    this.fastAcknowledgedSeq = this.pending?.seq === this.fastStoppedSeq ? this.fastStoppedSeq : null;
     this.note = { kind: 'fast-armed' };
   }
 
@@ -359,6 +361,7 @@ export class SeatPanelState {
     this.fastForward = false;
     this.autoRun = 0;
     this.autoActedSeq = null;
+    this.fastAcknowledgedSeq = null;
     if (say) this.note = { kind: 'fast-cancelled' };
   }
 
@@ -407,21 +410,42 @@ export class SeatPanelState {
     if (this.auto || this.fastForward) {
       const verdict = decide({ decision: d, view, seat: this.ctx.seat, stops: this.stops, enabled: true });
       if (verdict.act === 'stop') {
-        this.autoRun = 0;
-        if (this.fastForward) {
-          // Fast forward is a one-shot hand-back. Every stop verdict ends it;
-          // ignoring even one would let this loop keep acting at speed.
-          this.fastForward = false;
-          this.autoActedSeq = null;
-          this.note = { kind: 'fast-stopped', reason: verdict.reason };
+        // decide() remains the safety oracle. The caller may acknowledge only
+        // the player's own set-stop verdict, only at the exact seq where the
+        // previous run stopped, and consumes that acknowledgement now so it
+        // cannot leak to the next window. decide() already proved this is the
+        // understood one-pass-option priority shape, so passOption supplies
+        // the wire index without relying on list position.
+        const acknowledged = this.fastForward
+          && verdict.reason === 'stop-set'
+          && d.seq === this.fastAcknowledgedSeq;
+        if (acknowledged) {
+          this.fastAcknowledgedSeq = null;
+          this.fastStoppedSeq = null;
+          const pass = this.passOption;
+          if (pass === null) return;
+          index = pass.index;
         } else {
-          // A stop in persistent Auto leaves the mode armed: the player may
-          // answer this window and Auto resumes after it.
-          this.note = { kind: 'waiting', reason: verdict.reason };
+          this.autoRun = 0;
+          if (this.fastForward) {
+            // Every safety stop ends the run. Only stop-set records a seq that
+            // a deliberate restart may acknowledge; all other reasons must
+            // stop dead again on every restart.
+            this.fastForward = false;
+            this.fastStoppedSeq = verdict.reason === 'stop-set' ? d.seq : null;
+            this.fastAcknowledgedSeq = null;
+            this.autoActedSeq = null;
+            this.note = { kind: 'fast-stopped', reason: verdict.reason };
+          } else {
+            // A stop in persistent Auto leaves the mode armed: the player may
+            // answer this window and Auto resumes after it.
+            this.note = { kind: 'waiting', reason: verdict.reason };
+          }
+          return;
         }
-        return;
+      } else {
+        index = verdict.index;
       }
-      index = verdict.index;
     } else {
       index = emptyIndex as number;
     }
@@ -463,6 +487,8 @@ export class SeatPanelState {
     this.autoRun = 0;
     this.autoPassed = 0;
     this.fastPassed = 0;
+    this.fastStoppedSeq = null;
+    this.fastAcknowledgedSeq = null;
     // The floor is a preference, not an opt-in, so it comes back on across a
     // match boundary the way it starts: on. Only its runaway guards or the
     // player's own switch turn it off.

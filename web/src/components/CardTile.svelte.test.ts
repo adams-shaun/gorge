@@ -106,6 +106,21 @@ describe('CardTile options affordance (ui21)', () => {
     expect(t.post).toHaveBeenCalledWith(3);
   });
 
+  it.each([
+    ['cast', 'cast', 'Cast Wasteland'],
+    ['activate', 'tap', 'Tap Wasteland for mana'],
+    ['ability', 'action', 'Wasteland: sacrifice it'],
+  ])('one %s option renders a direct %s icon with the wire label as its accessible name', (kind, icon, label) => {
+    const one = opts({ list: [{ index: 17, kind, label, obj: 16, player: 0 }] });
+    const { html } = render(CardTile, { props: { card: card(), tileOptions: one, open0: true } });
+    expect(html).toContain('data-single-action');
+    expect(html).toContain(`data-action-icon="${icon}"`);
+    expect(html).toContain(`aria-label="${label}`);
+    expect(html).not.toContain('aria-haspopup');
+    expect(html).not.toContain('role="menu"');
+    expect(html).not.toContain('badge__n');
+  });
+
   it('a tile with no options offer renders no badge and no menu (the no-mark state)', () => {
     const { html } = render(CardTile, { props: { card: card(), tileOptions: null } });
     expect(html).not.toContain('aria-haspopup');

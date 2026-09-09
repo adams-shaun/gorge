@@ -209,6 +209,53 @@ describe('fast forward — one shot to the next pause point', () => {
     expect(autoNoteText(p.note)).toBe('Fast forward stopped here: you set a stop on this step.');
   });
 
+  it('restarting at the set stop it just reached acknowledges that one window, then stops at the next stop', async () => {
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    p.stops = { yours: new Set(['draw']), opponents: new Set() };
+    p.adoptView(live(60));
+
+    p.startFastForward();
+    p.considerAuto(view('draw', 0));
+    expect(p.fastForward).toBe(false);
+    expect(postIntentMock).not.toHaveBeenCalled();
+
+    // Starting again on the exact window fast forward handed back means
+    // "seen it; continue". It posts that window's own pass index.
+    p.startFastForward();
+    p.considerAuto(view('draw', 0));
+    await settle(() => p.postedSeq === 60);
+    expect(postIntentMock.mock.calls[0][2].choices).toEqual([1]);
+    expect(p.fastForward).toBe(true);
+
+    // The acknowledgement was consumed by seq 60. The next stopped window
+    // is not skipped even though it is the same named step.
+    p.adoptView(live(61));
+    p.considerAuto(view('draw', 0));
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(p.fastForward).toBe(false);
+    expect(autoNoteText(p.note)).toBe('Fast forward stopped here: you set a stop on this step.');
+  });
+
+  it.each([
+    ['not-priority', mulligan(70), view('draw', 0)],
+    ['unexpected-shape', { ...live(71), min: 0 }, view('draw', 0)],
+    ['has-action-and-stack', live(72), ({ ...view('main1', 0), stack: [{ id: 9, controller: 1 }] }) as View],
+  ] as const)('never acknowledges a %s safety stop on restart', (reason, decision, currentView) => {
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    p.stops = { yours: new Set(), opponents: new Set() };
+    p.adoptView(decision);
+
+    p.startFastForward();
+    p.considerAuto(currentView);
+    expect(p.fastForward).toBe(false);
+    expect(autoNoteText(p.note)).toContain(reason === 'not-priority' ? 'needs you' : reason === 'unexpected-shape' ? 'recognise' : 'stack');
+
+    p.startFastForward();
+    p.considerAuto(currentView);
+    expect(postIntentMock).not.toHaveBeenCalled();
+    expect(p.fastForward).toBe(false);
+  });
+
   it('is bounded by the same hard pass cap as Auto', async () => {
     const p = new SeatPanelState('t1', 1, ctx, null);
     p.stops = { yours: new Set(), opponents: new Set() };

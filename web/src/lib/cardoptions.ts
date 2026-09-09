@@ -66,6 +66,26 @@ export interface TileOptions {
 }
 
 /**
+ * A one-option card acts directly instead of opening a one-row menu. The wire
+ * can distinguish a cast and the dedicated mana activation (`activate`, whose
+ * server label is "Tap … for mana"). A general `ability` option does not carry
+ * its cost, so it stays neutral rather than guessing whether that ability taps.
+ */
+export type SingleActionIcon = 'cast' | 'tap' | 'action';
+
+export function singleActionIcon(option: Option): SingleActionIcon {
+  if (option.kind === 'cast') return 'cast';
+  if (option.kind === 'activate') return 'tap';
+  return 'action';
+}
+
+/** Post the sole option by its WIRE index (R-E4-1), never list position. */
+export function postSingleAction(tile: TileOptions): void {
+  if (tile.list.length !== 1) return;
+  tile.post(tile.list[0].index);
+}
+
+/**
  * optionsByObj indexes a decision's options by Option.obj, preserving wire
  * order within each object. Options with no `obj` — pass, concede, a mode
  * with no source — deliberately belong to no card and are NOT indexed: they
