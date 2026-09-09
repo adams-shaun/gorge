@@ -98,6 +98,17 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 // keeps a Mind Rot target's own choice from being made by the caster.
 func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
+	// fx42: capture the answered discard choice into a local and clear
+	// c.Discard before the target loop. The answer must stay scoped to the
+	// discard primitive that asked: a DISCARD reached below this one in the
+	// same walk (this effect's SubAbility$ chain) must pose its own ask
+	// instead of inheriting this one's answered cards. Capturing first keeps
+	// the load-bearing multi-target behaviour intact — every target of a
+	// multi-target discard sees the SAME answered list, which is exactly what
+	// the old per-target c.Discard read produced. Ctx.Discard's only reader is
+	// this primitive, so clearing here is safe.
+	answers := c.Discard
+	c.Discard = nil
 	mode := sa.Params["Mode"]
 	valid := sa.Params["DiscardValid"]
 	if valid == "" {
@@ -114,8 +125,8 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			// that sit in this target's hand — a single-target spell resolves
 			// to one card, and the per-hand filter keeps a stray answer from
 			// moving an object that left the hand meanwhile.
-			if c.Discard != nil {
-				for _, id := range c.Discard {
+			if answers != nil {
+				for _, id := range answers {
 					if !containsID(hand, id) {
 						continue
 					}
@@ -174,8 +185,8 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			// exactly those that sit in this target's hand (a per-hand filter
 			// keeps a stray answer from moving an object that left the hand
 			// meanwhile).
-			if c.Discard != nil {
-				for _, id := range c.Discard {
+			if answers != nil {
+				for _, id := range answers {
 					if !containsID(hand, id) {
 						continue
 					}
