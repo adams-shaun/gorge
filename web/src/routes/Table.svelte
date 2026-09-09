@@ -225,6 +225,14 @@
   .board {
     position: relative;
     overflow: hidden;
+    /* --own-hand-h is the height of the seated player's own hand fan along
+       the bottom edge: one card face at HandFan's CARD_W (128px) in the
+       63:88 card ratio. It is published here, on the box both the fan and the
+       identity bar live in, so "how tall is the hand" is stated once rather
+       than duplicated into whatever else needs to keep clear of it. Only the
+       seated player's identity bar reads it today (IdentityBar's `bottom`
+       corner); a spectator mounts no fan and the fallback is 0. */
+    --own-hand-h: calc(128px * 88 / 63);
   }
   .rail {
     background: var(--instrument);

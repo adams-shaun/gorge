@@ -56,19 +56,24 @@
 
   // A 1v1 seat's identity bar anchors to a corner of its own half, the
   // convention competitive clients use (Arena/MTGO: the opponent's box at the
-  // top, yours at the bottom) rather than the stack-centred middle of the
-  // half. Centring the bottom box would put it exactly where the seated
-  // player's own hand fan sits (a wide, centred row along the bottom edge)
-  // and the hand would cover your own name and life total — the one fact you
-  // must always be able to read. A CORNER box keeps identity at the edge the
-  // hand does not reach, and it is stacked ABOVE the hand (z-index 7) anyway
-  // so it is never occluded even when a huge hand extends to the corner.
+  // top, yours at the bottom).
+  //
+  // The seated player's own box sits ABOVE their hand fan rather than beside
+  // it. The fan is a full-width row along the very bottom edge, so a corner
+  // down there is inside the fan's reach: whichever of the two was stacked on
+  // top, the other became unreadable, and your own first card and your own
+  // life total are both things you must be able to see. Stacking order cannot
+  // settle that -- only not overlapping can. --own-hand-h is the fan's height,
+  // published by the board, so the offset is one fact stated once instead of a
+  // magic number kept in step by hand; with no fan (a spectator, or a seat
+  // whose hand is empty) it falls back to 0 and the box sits in the corner as
+  // before.
   const CORNER: Record<string, string> = {
     tl: 'top:var(--sp-2);left:var(--sp-2)', tr: 'top:var(--sp-2);right:var(--sp-2)',
     bl: 'bottom:var(--sp-2);left:var(--sp-2)', br: 'bottom:var(--sp-2);right:var(--sp-2)',
     l: 'top:var(--sp-2);left:var(--sp-2)', r: 'top:var(--sp-2);right:var(--sp-2)',
     top: 'top:var(--sp-2);right:var(--sp-2)',
-    bottom: 'bottom:var(--sp-2);left:var(--sp-2)',
+    bottom: 'bottom:calc(var(--own-hand-h, 0px) + var(--sp-2));left:var(--sp-2)',
   };
 </script>
 
@@ -117,9 +122,10 @@
     padding: var(--sp-2) var(--sp-3);
     min-width: 9rem;
     text-align: center;
-    /* Above the seated player's own hand fan (z-index 6), so a hand that
-       reaches this corner can never cover the seat's name or life total;
-       still below the seat panel (8) and the hover CardDetail (9). */
+    /* Above the hand fan (6) and below the seat panel (8) and the hover
+       CardDetail (9). The seated player's own box no longer overlaps the fan
+       at all (see --own-hand-h above), so this ordering is a backstop for a
+       narrow board rather than the thing keeping the two legible. */
     z-index: 7;
     backdrop-filter: blur(6px);
   }
