@@ -619,6 +619,19 @@ func (e *Engine) ensureLeftTheStack(id state.ObjID, to state.Zone, why string) {
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZStack {
 		return
 	}
+	// fx44: a SUSPENDED replacement is legitimately still on the stack,
+	// waiting for its answer — the ask it posed decides where the object goes
+	// (Mox Diamond's ETB replacement parks the card exactly here). The guard
+	// must distinguish "the replacement finished and moved nothing" (the
+	// ordinary re-resolve hazard below, where e.resume is nil) from "the
+	// replacement is waiting for an answer" (where the object must stay put
+	// so resumeResolution can act on it). Deferring the park while suspended
+	// leaves the object on the stack; the answered resume performs the real
+	// move, and finishResumption's own o.Zone != state.ZStack check skips
+	// this guard entirely once that move has happened.
+	if e.Suspended() {
+		return
+	}
 	saved := e.applyingReplacement
 	e.applyingReplacement = true
 	e.emit(events.Event{Kind: events.Note, Obj: id, Text: why})
