@@ -223,11 +223,19 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	if !SearchStatesQuality(spec) {
 		min = max
 	}
+	// The prompt must not offer a choice the decision will refuse. A
+	// quantity-only search has Min == Max, so "up to" would be a lie the
+	// player only discovers when their answer is rejected.
+	count := strconv.Itoa(int(max))
+	prompt := "Search a library: choose up to " + count + " card(s)"
+	if min == max {
+		prompt = "Search a library: choose " + count + " card(s)"
+	}
 	chooser := searchChooser(h, c, sa)
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
 		Min: int(min), Max: int(max), Source: c.Source,
 		ResumeKind: "search", ResumeSA: sa,
-		Prompt: "Search a library: choose up to " + strconv.Itoa(int(max)) + " card(s)"}
+		Prompt: prompt}
 	for _, id := range eligible {
 		name := "a card"
 		if o := g.Obj(id); o != nil && o.Face() != nil {

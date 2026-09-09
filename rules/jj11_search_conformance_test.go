@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
@@ -19,6 +20,11 @@ func TestCR701QuantityOnlyTutorMustFindAvailableCard(t *testing.T) {
 	}
 	if d.Min != 1 || d.Max != 1 {
 		t.Fatalf("CR 701.23d: quantity-only search with %d available cards offers %d..%d; must find one, not fail to find", len(d.Options), d.Min, d.Max)
+	}
+	// The prompt must not offer a choice the decision refuses: a mandatory
+	// search says "choose 1", never "choose up to 1".
+	if strings.Contains(d.Prompt, "up to") {
+		t.Errorf("CR 701.23d: mandatory search prompt offers a choice it will refuse: %q", d.Prompt)
 	}
 }
 
@@ -40,6 +46,10 @@ func TestCR701StatedQualitySearchMayFailToFind(t *testing.T) {
 	}
 	if d.Min != 0 || d.Max != 1 {
 		t.Fatalf("CR 701.23b: stated-quality search with %d available cards offers %d..%d; keep Min 0 so the player may fail to find", len(d.Options), d.Min, d.Max)
+	}
+	// The other direction: an optional search must still SAY it is optional.
+	if !strings.Contains(d.Prompt, "up to") {
+		t.Errorf("CR 701.23b: optional search prompt hides the fail-to-find allowance: %q", d.Prompt)
 	}
 	// Declining (choosing no cards) must be honoured: nothing moves, but the
 	// unconditional shuffle still happens.
