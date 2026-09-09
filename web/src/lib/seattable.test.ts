@@ -202,3 +202,38 @@ describe('seatCorner — the seat → position mapping (Task ui17)', () => {
     expect([0, 1, 2].map((s) => seatCorner(s, 3, 2))).toEqual(['bl', 'tl', 'tr']);
   });
 });
+
+// Task ui22: 3 and 4 seats are now re-anchored to the viewer the same way 1v1
+// always was — rotate the bottom-left-then-clockwise cycle so the seated
+// viewer lands at `bl`. Assert the two properties that matter, not a list of
+// hard-coded corners: (1) a seated viewer's own seat is always at the bottom
+// corner, and (2) the mapping is a bijection (no two seats share a corner,
+// which is exactly the property a rotation bug breaks).
+describe('seatCorner — 3/4 seats anchor to the viewer (Task ui22)', () => {
+  const cycle = ['bl', 'tl', 'tr', 'br'] as const;
+
+  it('a seated viewer always lands at the bottom corner, and the mapping is a bijection, for every (seats, viewer)', () => {
+    for (const seats of [2, 3, 4]) {
+      // the corner set this seat count must exactly tile: bottom/top for 1v1,
+      // the leading `seats` entries of the clockwise bl/tl/tr/br cycle otherwise.
+      const expected = new Set(seats === 2 ? ['bottom', 'top'] : cycle.slice(0, seats));
+      const bottom = seats === 2 ? 'bottom' : 'bl';
+
+      // every seated viewer
+      for (let viewer = 0; viewer < seats; viewer++) {
+        const corners = Array.from({ length: seats }, (_, seat) => seatCorner(seat, seats, viewer));
+        // property 1: the viewer's own seat is the bottom corner.
+        expect(corners[viewer], `seats=${seats} viewer=${viewer}: viewer should be ${bottom}`).toBe(bottom);
+        // property 2: a bijection — every corner used exactly once, no two seats sharing.
+        expect(new Set(corners).size, `seats=${seats} viewer=${viewer}: corners ${corners} not a bijection`).toBe(seats);
+        expect(new Set(corners), `seats=${seats} viewer=${viewer}: corners ${corners} != ${[...expected]}`).toEqual(expected);
+      }
+
+      // the spectator case must not move: seat 0 bottom, then clockwise.
+      for (const viewer of [255, 9]) {
+        expect(Array.from({ length: seats }, (_, seat) => seatCorner(seat, seats, viewer)), `seats=${seats} spectator ${viewer}`)
+          .toEqual([...expected]);
+      }
+    }
+  });
+});
