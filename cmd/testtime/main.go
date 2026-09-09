@@ -40,6 +40,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/adams-shaun/gorge/cards"
 )
 
 // Exit codes. exitBudget (1) means a package's wall time exceeded its budget;
@@ -288,12 +290,25 @@ func listPackages(cwd string) []pkgInfo {
 	return pkgs
 }
 
-// runGit runs a child git process. Every git call site goes through here so
-// the environment a child git inherits — currently the caller's, which the
-// companion fix commit scrubs of inherited GIT_* variables — is controlled in
-// one place.
+// runGit runs a child git process. It runs the child with cards.GitEnv() —
+// os.Environ() with every inherited GIT_* variable stripped — so a git the
+// tool starts is never quietly redirected at whatever repository the caller
+// had checked out or staged.
+//
+// testtime is invoked by .githooks/pre-commit, and git exports GIT_INDEX_FILE
+// — and, in a linked worktree, GIT_DIR — to every hook it runs, as paths that
+// name the enclosing repository. In a linked worktree those come through
+// absolute, but at a plain checkout top-level GIT_INDEX_FILE is the relative
+// ".git/index" and GIT_DIR may be relative too; both resolve against the
+// process working directory, which testtime does not control when it measures
+// a package from a subdirectory. An inherited relative GIT_* would therefore
+// redirect diff --cached, rev-parse and status at a .git that does not exist,
+// so the tool's own bookkeeping (staged-file selection, the commit stamp) would
+// fail or silently read the wrong repository. Scrub on every child git.
 func runGit(args ...string) ([]byte, error) {
-	return exec.Command("git", args...).Output()
+	cmd := exec.Command("git", args...)
+	cmd.Env = cards.GitEnv()
+	return cmd.Output()
 }
 
 // stagedFiles returns every staged file path. Unlike a .go-only scan it is the

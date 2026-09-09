@@ -65,6 +65,8 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/adams-shaun/gorge/cards"
 )
 
 // Exit codes mirror cmd/testtime. exitBudget (1) means at least one package
@@ -469,12 +471,26 @@ func listPackages(cwd string) []pkgInfo {
 	return pkgs
 }
 
+// runGit runs a child git process with a scrubbed environment (cards.GitEnv):
+// every inherited GIT_* variable is stripped, so a git this tool starts is
+// never quietly redirected at whatever repository the caller had checked out
+// or staged. allocgate is invoked by `make gate` at the repo root rather than
+// by a git hook, but its staged-file selection and commit stamp still rely on
+// cwd plus the inherited environment, and any GIT_DIR / GIT_INDEX_FILE /
+// GIT_WORK_TREE an invoking shell exports would silently change their answer.
+// See cards/gitenv.go.
+func runGit(args ...string) ([]byte, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Env = cards.GitEnv()
+	return cmd.Output()
+}
+
 // stagedFiles returns every staged file path. Unlike a .go-only scan it is the
 // full change set, so a package is "changed" when ANY real file in it is staged
 // -- the history-file scrub in nonArtifacts/packagesForFiles is what keeps the
 // gate's own bookkeeping from counting as a change.
 func stagedFiles() []string {
-	out, err := exec.Command("git", "diff", "--cached", "--name-only").Output()
+	out, err := runGit("diff", "--cached", "--name-only")
 	if err != nil {
 		fatal("git diff --cached: %v", err)
 	}
@@ -530,12 +546,12 @@ func expandArgs(args []string) []string {
 // headCommit returns `git rev-parse --short HEAD`, with a "+" suffix when the
 // working tree is dirty.
 func headCommit() string {
-	out, err := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
+	out, err := runGit("rev-parse", "--short", "HEAD")
 	if err != nil {
 		return "unknown"
 	}
 	sha := strings.TrimSpace(string(out))
-	status, _ := exec.Command("git", "status", "--porcelain").Output()
+	status, _ := runGit("status", "--porcelain")
 	if len(strings.TrimSpace(string(status))) > 0 {
 		sha += "+"
 	}
