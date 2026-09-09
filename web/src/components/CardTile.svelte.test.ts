@@ -111,4 +111,28 @@ describe('CardTile options affordance (ui21)', () => {
     expect(html).not.toContain('aria-haspopup');
     expect(html).not.toContain('tile-actions');
   });
+
+  it('the mark wears the decision tone: initiative for a blocked decision, offered for an open window', () => {
+    const initiative = render(CardTile, { props: { card: card(), tileOptions: opts({ tone: 'initiative' }) } });
+    expect(initiative.html).toContain('data-tone="initiative"');
+    expect(initiative.html).toContain('badge--initiative');
+
+    const offered = render(CardTile, { props: { card: card(), tileOptions: opts({ tone: 'offered' }) } });
+    expect(offered.html).toContain('data-tone="offered"');
+    expect(offered.html).toContain('badge--offered');
+  });
+
+  it('a picked option is visibly selected on the tile with its pick order, the panel\'s own idiom', () => {
+    // pickedOrder carries the click-order ordinals (the panel's {pickedAt + 1}):
+    // this card's option was the 2nd pick, so the tile says 2.
+    const { html } = render(CardTile, { props: { card: card(), tileOptions: opts({ pickedOrder: [2] }) } });
+    expect(html).toContain('data-selected="2"');
+    expect(html).toContain('class="sel data');
+    expect(html).toContain('picked 2');
+  });
+
+  it('a card with several picked ordinals lists them in order', () => {
+    const { html } = render(CardTile, { props: { card: card(), tileOptions: opts({ pickedOrder: [1, 3] }) } });
+    expect(html).toContain('data-selected="1,3"');
+  });
 });
