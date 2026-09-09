@@ -23,6 +23,8 @@ func Describe(g *state.Game, ev events.Event) string {
 		return "Game starts with " + itoa(int64(ev.Amount)) + " players"
 	case events.Shuffle:
 		return player(g, ev.Player) + " shuffles their library"
+	case events.LibraryOrder:
+		return player(g, ev.Player) + " rearranges the top of their library"
 	case events.MoveZone:
 		return obj(g, ev.Obj) + " moves from " + zone(ev.From) + " to " + zone(ev.To)
 	case events.Draw:

@@ -445,6 +445,12 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 		// an effect mid-resolution (rules/resolution.go's Ask), never handed
 		// out by the turn structure.
 		e.handleModes(d, in)
+	case decision.KArrange:
+		// The mid-resolution ordered-subset pick (Ruling J0): the engine's
+		// one KArrange handler applies an answered library-arranging effect
+		// (RearrangeTopOfLibrary, Ponder) -- the KArrange sibling of the
+		// KModes case above, only ever asked mid-resolution.
+		e.handleArrange(d, in)
 	}
 }
 
