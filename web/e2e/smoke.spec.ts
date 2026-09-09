@@ -118,6 +118,74 @@ function epsGe(a: number, b: number, t: number): boolean {
   return a + t >= b;
 }
 
+/**
+ * driveToCardOptionsWindow drives the seeded seated game to its FIRST
+ * card-options window (ui23 R-E4-1). It answers the only decision the
+ * engine's auto-pass does not handle — the opening mulligan (keep) — by
+ * clicking the seated panel's own keep button, then poll the pending decision
+ * until the seat's first main phase offers a card from hand at a NON-ZERO
+ * wire index. The empty maintenance/priority windows on the way are
+ * auto-passed by the seated client's own skip-empty floor, so this function
+ * never touches them; it returns the target Decision to click its menu.
+ *
+ * The policy is deliberately trivial and fixed (answer keep, wait), so it is
+ * reproducible against the seeded game: no timing-dependent cleverness, no
+ * retries — just a generous wall-clock bound.
+ */
+async function driveToCardOptionsWindow(
+  page: Page,
+  request: APIRequestContext,
+  b: string,
+  table: string,
+  seat: number,
+  token: string,
+): Promise<{ kind: string; options: Array<{ index: number; kind: string; obj?: number }> }> {
+  const mResp = await request.get(`${b}/api/tables/${table}/matches`);
+  expect(mResp.ok(), `GET /api/tables/${table}/matches on ${b} should succeed`).toBe(true);
+  const matches = (await mResp.json()) as Array<{ match: number; events: number }>;
+  const have = matches.filter((m) => m.events > 0);
+  expect(have.length, `table ${table} should have a live match`).toBeGreaterThan(0);
+  const match = have[have.length - 1].match;
+  const sq = `?seat=${seat}&token=${encodeURIComponent(token)}`;
+  const pendingURL = `${b}/api/tables/${table}/matches/${match}/pending${sq}`;
+
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline) {
+    const p = await request.get(pendingURL);
+    if (p.status() === 409) {
+      // Nothing pending for this seat right now — the engine is elsewhere.
+      await page.waitForTimeout(400);
+      continue;
+    }
+    expect(p.ok(), `GET ${pendingURL} should succeed`).toBe(true);
+    const d = (await p.json()) as { kind: string; options: Array<{ index: number; kind: string; obj?: number }> };
+
+    // Target: a card-options window — a priority ask that offers a card from
+    // hand (obj defined) at a NON-ZERO index. That is the discriminating
+    // shape: clicking its menu must post the option's own index, because a
+    // positional (indexOf) bug would post 0 and act on the wrong card.
+    if (d.kind === 'priority' && d.options.some((o) => o.obj !== undefined && o.index > 0)) {
+      return d;
+    }
+
+    if (d.kind === 'mulligan') {
+      const keep = d.options.find((o) => o.kind === 'keep');
+      if (keep) {
+        const btn = page.locator(`.seat-panel [data-option="${keep.index}"]`);
+        await btn.waitFor({ state: 'visible', timeout: WAIT_MS });
+        await btn.click();
+        await page.waitForTimeout(600);
+      }
+      continue;
+    }
+
+    // Any other shape before the target (an empty priority window the
+    // skip-empty floor is about to pass) — wait for the game to advance.
+    await page.waitForTimeout(400);
+  }
+  throw new Error('driveToCardOptionsWindow: did not reach a card-options window');
+}
+
 // How long a page may sit in its loading state before we call it a hang.
 // The live server paces decisions at 1.5s and pushes a snapshot on first
 // subscribe, so a healthy page mounts in well under a second; 20s is a
@@ -340,9 +408,9 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
 
     test.describe.configure({ mode: 'serial' });
 
-    // seatToSeatDrive creates a real play-vs-bot game and returns the seated
-    // join path (seat 0 of a fresh table) — POST /api/games, exactly what the
-    // landing page does.
+/** createVsBotJoin creates a real play-vs-bot game and returns the seated
+ *  join path (seat 0 of a fresh table) — POST /api/games, exactly what the
+ *  landing page does. */
     async function createVsBotJoin(request: APIRequestContext, b: string): Promise<{ join: string; seat: number }> {
       const resp = await request.post(`${b}/api/games`, { data: { format: 'constructed' } });
       expect(resp.ok(), `POST /api/games on ${b} should succeed`).toBe(true);
@@ -507,6 +575,81 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
         expect(await toggle.getAttribute('aria-checked')).toBe('true');
 
         expectClean(c, `${label} log toggle`);
+        await page.close();
+      } finally {
+        await ctx.close();
+      }
+    });
+
+    // ui23 — the R-E4-1 guard, in a real browser. The rule this whole options
+    // feature rests on is: never resolve an option by position. The unit
+    // suite cannot express the discriminating test — vitest runs
+    // `environment: 'node'` with no DOM, and the existing R-E4-1 test calls
+    // the mock itself and asserts it was called, never clicking the rendered
+    // menu. A positional bug (clicking menu item N posts index-of-position
+    // instead of the option's own index) is type-clean, passes svelte-check,
+    // and passes every unit test — only a REAL browser click on the
+    // RENDERED menu can catch it.
+    //
+    // This drives the seeded vs-bot game to its FIRST card-options window —
+    // the seat's first main phase offers several cards from hand, each a
+    // distinct object with its own option at a NON-ZERO wire index (e.g.
+    // `play_land,1,Ancient Tomb` while `cast,0,Chalice` is first) exactly the
+    // discriminating shape: a tile whose menu item must post its object's
+    // OWN index, because `list.indexOf(opt)` would post 0 (the wrong card).
+    // We open the card's menu in the rendered fan, click an item, and assert
+    // the option that was actually POSTED is that option's own index — most
+    // robustly by which card it is that gets cast/played, since a positional
+    // bug plays the wrong one.
+    test('a card menu posts its own index, not a position in a rebuilt list (R-E4-1)', async ({ browser, request }) => {
+      const b = base as string;
+      const label = `[seated]`;
+      // The deterministic seeded game (seed 1, smoke.sh's -seed 1): seat 1 of
+      // the startup t1 table with smoke.sh's fixed seat token. A fixed answer
+      // policy against a fixed seed is reproducible, which is why the guard
+      // uses the seeded game rather than a random POST /api/games table.
+      const join = '/t/t1?seat=1&token=ui19seat1';
+      const seat = 1;
+      const ctx = await browser.newContext();
+      try {
+        const page = await ctx.newPage();
+        // Mount the seated client and keep it live while we drive the game
+        // (see `driveToCardOptionsWindow`: answer the mulligan, let the
+        // engine's auto-pass handle the empty windows, stop at the FIRST
+        // card-options window).
+        await page.goto(`${b}${join}`, { waitUntil: 'domcontentloaded' });
+        await page.locator('.handtrack .handfan').waitFor({ state: 'visible', timeout: WAIT_MS });
+        const c = watch(page, b);
+
+        const target = await driveToCardOptionsWindow(page, request, b, 't1', seat, 'ui19seat1');
+
+        // The target is the seat's first card-options window. Pick a CARD
+        // option at a NON-ZERO index (zero would be the first wire entry,and
+        // a positional bug would coincidentally be right on it) — the
+        // discriminating shape. Take the LAST such card option.
+        const cards = target.options.filter((o) => o.obj !== undefined && o.index > 0);
+        expect(cards.length).toBeGreaterThan(0);
+        const pick = cards[cards.length - 1];
+
+        // The hand fan renders THAT card. Open its badge menu and click the
+        // option item — the real click path the unit suite cannot reach.
+        const cardLoc = page.locator(`.handfan [data-obj="${pick.obj}"]`);
+        await cardLoc.waitFor({ state: 'visible', timeout: WAIT_MS });
+        const badge = cardLoc.locator('button[aria-haspopup="menu"]');
+        await badge.click();
+        const item = cardLoc.locator('button[role="menuitem"]');
+        await item.waitFor({ state: 'visible', timeout: WAIT_MS });
+        await item.click();
+
+        // Discriminating assertion, on the OBSERVABLE: the option's OWN card
+        // crosses to the board (a land played). Under a positional bug the
+        // click posts index 0 (the first wire option — casting the first
+        // card), so this card stays in hand and the assertion times out.
+        await page.waitForFunction((obj) => {
+          return document.querySelector(`.quadrant [data-obj="${obj}"]`) !== null;
+        }, pick.obj as number, { timeout: WAIT_MS });
+
+        expectClean(c, `${label} R-E4-1 card menu`);
         await page.close();
       } finally {
         await ctx.close();
