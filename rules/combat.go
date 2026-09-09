@@ -444,9 +444,17 @@ func (e *Engine) askBlockers() {
 				if !e.canBlock(bid, aid) {
 					continue
 				}
+				// Group is the exclusivity marker on the wire: every option
+				// naming this same blocker shares one Group, so the two
+				// (blocker, attacker) pairs for that blocker are mutually
+				// exclusive and a rules-ignorant client can enforce CR 509.1a
+				// (one creature blocks one attacker) without knowing what a
+				// blocker is. The value is internal only -- a blocker:<id>
+				// prefix plus the object id -- never a display string.
 				opts = append(opts, decision.Option{Index: len(opts), Kind: "block",
 					Label: e.G.Obj(bid).Face().Name + " blocks " + e.G.Obj(aid).Face().Name,
-					Obj:   bid, Attacker: aid, Player: defender})
+					Obj:   bid, Attacker: aid, Player: defender,
+					Group: fmt.Sprintf("blocker:%d", bid)})
 			}
 		}
 		if len(opts) == 0 {
