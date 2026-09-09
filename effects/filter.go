@@ -369,17 +369,31 @@ func MatchesSpec(g *state.Game, spec string, id state.ObjID, you state.PlayerID)
 }
 
 // MatchesPlayerSpec is the player-side filter: You, Opponent, Player.
+// Unknown qualifiers fail closed so restrictions and triggers are not widened.
 func MatchesPlayerSpec(g *state.Game, spec string, p, you state.PlayerID) bool {
 	for _, alt := range strings.Split(spec, ",") {
-		switch base, _, _ := strings.Cut(strings.TrimSpace(alt), "."); base {
+		base, qualifier, qualified := strings.Cut(strings.TrimSpace(alt), ".")
+		switch base {
 		case "Player", "Any":
-			return true
-		case "You":
-			if p == you {
+			if !qualified {
 				return true
 			}
-		case "Opponent":
-			if p != you {
+			switch qualifier {
+			case "You":
+				if p == you {
+					return true
+				}
+			case "Opponent", "Other":
+				if p != you {
+					return true
+				}
+			}
+		case "You":
+			if !qualified && p == you {
+				return true
+			}
+		case "Opponent", "Other":
+			if !qualified && p != you {
 				return true
 			}
 		}

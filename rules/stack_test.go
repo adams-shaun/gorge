@@ -145,13 +145,30 @@ func TestLastInFirstOutResolution(t *testing.T) {
 }
 
 func TestFizzleWhenNoLegalTargets(t *testing.T) {
-	// A creature-only removal spell cast into an empty board has no legal
-	// target, so it never reaches the stack's resolution step.
+	// Announce with a legal target, then remove it before resolution. CR
+	// 608.2b counters the spell because all of its targets are now illegal.
 	kill := card(t, "Name:Kill\nManaCost:B\nTypes:Instant\nA:SP$ Destroy | ValidTgts$ Creature\nOracle:x\n")
 	e := handEngine(t, kill)
+	victim := onBoard(t, e, 1, "Name:Victim\nManaCost:G\nTypes:Creature\nPT:1/1\nOracle:x\n")
 	e.G.Players[0].Pool[state.MB] = 1
 	e.askPriority(0)
 	castFirst(t, e, "cast")
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected target decision, got %+v", d)
+	}
+	idx := -1
+	for _, o := range d.Options {
+		if o.Obj == victim {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("victim not offered as target: %+v", d.Options)
+	}
+	submitChoices(t, e, idx)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: victim, From: state.ZBattlefield, To: state.ZGraveyard})
+	passUntilStackEmpty(t, e, 8)
 	if len(e.G.Stack) != 0 {
 		t.Fatalf("stack = %v, want empty after a fizzle", e.G.Stack)
 	}

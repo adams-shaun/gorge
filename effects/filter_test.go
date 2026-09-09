@@ -157,17 +157,31 @@ func TestUnknownPredicatesAreReportedNotSilentlyTrue(t *testing.T) {
 
 func TestPlayerSpecs(t *testing.T) {
 	g, _ := board(t)
-	if !MatchesPlayerSpec(g, "Player", 1, 0) {
-		t.Error("Player should match anyone")
-	}
-	if !MatchesPlayerSpec(g, "Opponent", 1, 0) {
-		t.Error("Opponent should match the other seat")
-	}
-	if MatchesPlayerSpec(g, "Opponent", 0, 0) {
-		t.Error("Opponent must not match yourself")
-	}
-	if !MatchesPlayerSpec(g, "You", 0, 0) {
-		t.Error("You should match yourself")
+	for _, tc := range []struct {
+		name string
+		spec string
+		p    state.PlayerID
+		want bool
+	}{
+		{name: "Player", spec: "Player", p: 1, want: true},
+		{name: "Any", spec: "Any", p: 0, want: true},
+		{name: "Opponent matches other seat", spec: "Opponent", p: 1, want: true},
+		{name: "Opponent rejects you", spec: "Opponent", p: 0, want: false},
+		{name: "You", spec: "You", p: 0, want: true},
+		{name: "Player.Opponent", spec: "Player.Opponent", p: 1, want: true},
+		{name: "Player.Opponent rejects you", spec: "Player.Opponent", p: 0, want: false},
+		{name: "Player.You", spec: "Player.You", p: 0, want: true},
+		{name: "Player.You rejects opponent", spec: "Player.You", p: 1, want: false},
+		{name: "Player.Other", spec: "Player.Other", p: 1, want: true},
+		{name: "Player.Other rejects you", spec: "Player.Other", p: 0, want: false},
+		{name: "comma list", spec: "Player.IsRemembered,Player.Opponent", p: 1, want: true},
+		{name: "unimplemented qualifier", spec: "Player.IsRemembered", p: 0, want: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := MatchesPlayerSpec(g, tc.spec, tc.p, 0); got != tc.want {
+				t.Fatalf("MatchesPlayerSpec(%q, p=%d, you=0) = %v, want %v", tc.spec, tc.p, got, tc.want)
+			}
+		})
 	}
 }
 
