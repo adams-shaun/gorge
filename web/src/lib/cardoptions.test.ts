@@ -83,14 +83,17 @@ describe('cardOptions / hasCardOptions — cheap single-object lookups', () => {
 });
 
 describe('optionSetFor — one object\'s options plus its picked indices', () => {
-  it('returns the object\'s options and the picked indices among them, in click order', () => {
+  it('returns the object\'s options and the picked ordinals among them, in click order', () => {
     const d: Decision = {
       seq: 1, player: 0, kind: 'blockers', prompt: 'declare blockers', min: 0, max: 4,
       options: [opt(0, 5), opt(1, 5), opt(2, 6)],
     };
     const m = optionsByObj(d);
-    expect(optionSetFor(m, 5, [2, 1])).toEqual({ list: [d.options[0], d.options[1]], pickedOrder: [1] });
-    // click order preserved: picked [2,1] keeps only the obj-5 member, index 1
+    // picked = [index 2 (obj 6), then index 1 (obj 5)] — obj 5's option is the
+    // SECOND pick, so its ordinal is 2, in click order.
+    expect(optionSetFor(m, 5, [2, 1])).toEqual({ list: [d.options[0], d.options[1]], pickedOrder: [2] });
+    // obj 6's option is the FIRST pick, ordinal 1.
+    expect(optionSetFor(m, 6, [2, 1])).toEqual({ list: [d.options[2]], pickedOrder: [1] });
   });
 
   it('an object with no options returns null (no affordance, no mark)', () => {

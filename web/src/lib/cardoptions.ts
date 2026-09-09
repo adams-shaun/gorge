@@ -53,10 +53,10 @@ export interface CardOptions {
 
 /**
  * TileOptions is what ONE tile renders: the options its object carries, the
- * already-picked indices for that object (in click order), the tone, and the
- * post callback. It is null when the pending decision offers this object
- * nothing — which is exactly the "no badge, no mark" state, so the tile
- * never learns a rule to decide it.
+ * already-picked ordinals for that object (in click order — the panel's
+ * `{pickedAt + 1}` idiom), the tone, and the post callback. It is null when
+ * the pending decision offers this object nothing — which is exactly the
+ * "no badge, no mark" state, so the tile never learns a rule to decide it.
  */
 export interface TileOptions {
   list: Option[];
@@ -99,8 +99,25 @@ export function hasCardOptions(map: ReadonlyMap<number, Option[]>, obj: number):
 }
 
 /**
+ * pickedOrdinalsOf is this object's picked options as their CLICK-ORDER
+ * ordinals (1-based, the seat panel's `{pickedAt + 1}` idiom): for each pick
+ * in the seat's picked list that belongs to one of `ids`, the position it
+ * was picked at. A tile shows these so a player sees what they have already
+ * picked and in which order — the same number the panel paints. This is
+ * display data only; the option's own index is what gets posted, and that is
+ * carried by `list`, never recovered from an ordinal.
+ */
+function pickedOrdinalsOf(ids: ReadonlySet<number>, picked: readonly number[]): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < picked.length; i++) {
+    if (ids.has(picked[i])) out.push(i + 1);
+  }
+  return out;
+}
+
+/**
  * optionSetFor is the pure per-object reduction: this object's options and
- * the picked indices among them, in click order. When the decision offers
+ * the picked ordinals among them (in click order). When the decision offers
  * this object nothing it returns null, so a tile that is not involved in the
  * pending decision carries no affordance and no mark.
  */
@@ -112,7 +129,7 @@ export function optionSetFor(
   const list = byObj.get(obj);
   if (list === undefined || list.length === 0) return null;
   const ids = new Set(list.map((o) => o.index));
-  return { list, pickedOrder: picked.filter((i) => ids.has(i)) };
+  return { list, pickedOrder: pickedOrdinalsOf(ids, picked) };
 }
 
 /**
@@ -137,7 +154,7 @@ export function optionSetForMany(
   }
   if (list.length === 0) return null;
   const ids = new Set(list.map((o) => o.index));
-  return { list, pickedOrder: picked.filter((i) => ids.has(i)) };
+  return { list, pickedOrder: pickedOrdinalsOf(ids, picked) };
 }
 
 /** tileOptions hands a single tile its rendered option set plus the tone and

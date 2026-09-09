@@ -154,6 +154,9 @@
 <div class="tile-wrap">
 <div
   class="card-tile card-tile--{size}"
+  data-tone={tileOptions?.tone ?? ''}
+  data-options={tileOptions ? tileOptions.list.length : undefined}
+  data-selected={tileOptions && tileOptions.pickedOrder.length > 0 ? tileOptions.pickedOrder.join(',') : undefined}
   class:tapped={card.tapped}
   class:sick={card.summon_sick}
   class:attacking={card.attacking}
@@ -212,7 +215,8 @@
        hierarchy stays intact. -->
   <div class="tile-actions">
     <button
-      class="badge"
+      class="badge badge--{tileOptions.tone}"
+      class:selected={tileOptions.pickedOrder.length > 0}
       type="button"
       aria-haspopup="menu"
       aria-expanded={open}
@@ -222,6 +226,12 @@
     >
       <span class="badge__n data">{tileOptions.list.length}</span>
     </button>
+    {#if tileOptions.pickedOrder.length > 0}
+      <!-- The picked order number is the seat panel's own idiom ({pickedAt
+           + 1}), restated on the tile so a multi-pick decision shows what is
+           already chosen and in which order. -->
+      <span class="sel data" aria-label="picked {tileOptions.pickedOrder.join(', ')}">{tileOptions.pickedOrder.join(',')}</span>
+    {/if}
     {#if open}
       <ul class="menu" role="menu" aria-label="Options for {card.name}">
         {#each tileOptions.list as opt (opt.index)}
@@ -254,6 +264,34 @@
   .card-tile {
     position: relative;
     display: inline-block;
+  }
+  /* The board marking (ui21): a tile whose object the pending decision
+     offers something to wears the panel's own initiative/offered register,
+     so 'cards you may act on' and 'valid targets' read as the SAME fact in
+     the SAME two tones the seat panel already uses — a blocked decision
+     (targets, blocks, modes) warms to --initiative, an open window (cast /
+     activate) cools to --offered. This is a ring around the tile, separate
+     from the attacking rim (which is an inset shadow on the slot and means
+     something else), so the two never overwrite each other. */
+  .card-tile[data-tone='initiative'] {
+    box-shadow: 0 0 0 2px var(--initiative);
+  }
+  .card-tile[data-tone='offered'] {
+    box-shadow: 0 0 0 2px var(--offered);
+  }
+  .card-tile[data-tone=''] {
+    box-shadow: none;
+  }
+  /* A tile with something already picked gets the strong edge as well as the
+     ordinal chip, so a half-chosen board is readable in one pass. */
+  .card-tile[data-selected] {
+    box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px var(--felt-sunk);
+  }
+  .card-tile[data-tone='initiative'][data-selected] {
+    box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px var(--initiative);
+  }
+  .card-tile[data-tone='offered'][data-selected] {
+    box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px var(--offered);
   }
   .card-tile--tile {
     --w: var(--card-w, 90px);
@@ -426,6 +464,10 @@
     top: 1px;
     right: 1px;
     z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
     line-height: 1;
   }
   .badge {
@@ -443,6 +485,41 @@
     font-size: var(--t-10);
     font-weight: 600;
     cursor: pointer;
+  }
+  /* The badge wears the decision's tone — the same warm/cool register the
+     seat panel paints — so a card marked in a target/block/mode decision
+     reads as blocked-on, and a card markable in a cast/activate window reads
+     as offered. This is the one place the two senses are distinguished on
+     the board, and it is the same distinction as the panel's data-tone. */
+  .badge--initiative {
+    background: var(--initiative);
+    border-color: var(--initiative);
+    color: var(--felt-sunk);
+  }
+  .badge--offered {
+    background: var(--offered);
+    border-color: var(--offered);
+    color: var(--felt-sunk);
+  }
+  .badge.selected {
+    outline: 2px solid var(--ink);
+    outline-offset: 1px;
+  }
+  /* The picked ordinal chip, in the instrument's data voice, under the badge
+     (the tile's free corner) — the same number the panel paints on the
+     option, so the board and the panel agree about what is chosen. */
+  .sel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1rem;
+    height: 1rem;
+    padding: 0 0.2rem;
+    border-radius: 2px;
+    background: var(--ink);
+    color: var(--felt-sunk);
+    font-size: var(--t-10);
+    font-weight: 600;
   }
   .badge__n {
     font-size: inherit;
