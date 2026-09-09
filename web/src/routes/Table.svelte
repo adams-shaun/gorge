@@ -14,6 +14,8 @@
   import HandFan from '../components/HandFan.svelte';
   import PhaseTrack from '../components/PhaseTrack.svelte';
   import { SeatPanelState } from '../lib/seatpanel.svelte';
+  import { toneOf } from '../lib/seatpanel.svelte';
+  import { optionsByObj, type CardOptions } from '../lib/cardoptions';
   import { everyVisibleCard, quadrantFor } from '../lib/board';
   import { seatColour } from '../lib/colours';
   import { seatRows } from '../lib/seattable';
@@ -71,6 +73,29 @@
   const ownPlayer = $derived(
     m.view && seatCtx ? (m.view.players.find((p) => p.seat === seatCtx.seat) ?? null) : null,
   );
+
+  // The board's card-options index (ui21): the pending decision grouped by
+  // the object each option concerns. For a seated view this is exactly the
+  // decision the seat must answer now — the same decision the seat panel
+  // surfaces (SeatPanelState.active), so the board and the panel can never
+  // disagree about what this seat is being asked, and both drop it once
+  // answered. A spectator has no seat panel and no pending decision, and a
+  // seat that has nothing pending gets null — in both cases no tile is
+  // marked and no tile carries a menu. Building it once here, from the
+  // active decision, is what makes one index serve both 'cards with valid
+  // options' and 'valid targets' (R-E4-2: the client only regroups options
+  // the server already sent, and posts each one by its own index, R-E4-1).
+  const boardOptions = $derived.by((): CardOptions | null => {
+    if (!seated || panel === null) return null;
+    const d = panel.active;
+    if (d === null) return null;
+    return {
+      byObj: optionsByObj(d),
+      picked: [...panel.picked],
+      tone: toneOf(d),
+      post: (index: number) => panel.click(index),
+    };
+  });
 
   // Task 3's colour-coded log: the same name/colour resolution SeatTable's
   // rows use (seats[seat].name falling back to the wire's own player name),
@@ -139,7 +164,7 @@
         />
       </div>
       <section class="board">
-        <Board view={m.view} seats={m.seats} />
+        <Board view={m.view} seats={m.seats} options={boardOptions} />
         {#each m.view.players as p (p.seat)}
           <IdentityBar
             player={p}

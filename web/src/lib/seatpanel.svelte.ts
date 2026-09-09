@@ -426,6 +426,18 @@ export class SeatPanelState {
   }
 
   /**
+   * active is the decision this seat must answer right now — pending, and
+   * not already posted. The board indexes THIS to mark cards with options
+   * and to hang each card's options on its tile, and it is exactly the
+   * decision the seat panel surfaces, so the board and the panel cannot
+   * disagree about what this seat is being asked (and, once answered, both
+   * drop it together).
+   */
+  get active(): Decision | null {
+    return this.pending !== null && this.pending.seq !== this.postedSeq ? this.pending : null;
+  }
+
+  /**
    * showSubmit renders the commit button for every decision a single click
    * cannot answer — which is exactly the complement of click()'s post-on-click
    * shape (min == max == 1, where the click IS the answer and a submit button
