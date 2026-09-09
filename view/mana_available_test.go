@@ -66,14 +66,14 @@ func TestAvailableManaProjectedForEverySeat(t *testing.T) {
 	}
 }
 
-// TestAvailableManaNeverMarshalsNull pins the new field's shape on the wire:
-// Pool can be a literal JSON null (a hidden zone), and that exact mismatch
-// (protocol.ts types it non-nullable while the server sends null) crashed the
-// table view for every public spectator (71a03cc). Available is a public
-// quantity and never null: it is absent when nothing is available (omitempty)
-// and an object when something is, never the Java-script-null a client would
-// have to special-case. The floating pool on the same public PlayerView stays
-// null — so available and pool are unambiguously different fields.
+// TestAvailableManaNeverMarshalsNull pins both wire shapes against the
+// Java-script-null that crashed the table view for every public spectator
+// (71a03cc). Available is a public quantity and never null: it is absent when
+// nothing is available (omitempty) and an object when something is. The
+// floating pool is public too now (CR 106.4a/106.4b) and never null: it is
+// always a non-nil object, "{}" when empty, because it carries no omitempty.
+// The two are therefore still unambiguously different fields: available is
+// absent-when-zero, pool is present-but-empty-when-zero.
 func TestAvailableManaNeverMarshalsNull(t *testing.T) {
 	g := boardWithLands(t)
 	// Empty availability: the key must be omitted, never "null".
@@ -90,10 +90,10 @@ func TestAvailableManaNeverMarshalsNull(t *testing.T) {
 	if ra, ok := m["available"]; ok && string(ra) == "null" {
 		t.Errorf("empty availability marshalled as null: %s", blob)
 	}
-	// The floating pool is a DIFFERENT field and DOES go null on a public
-	// view (player 0 is not the viewer).
-	if rp, ok := m["pool"]; !ok || string(rp) != "null" {
-		t.Errorf("pool = %s, want null for a hidden zone on a public view", rp)
+	// The floating pool is a DIFFERENT field and is public: player 0 floats
+	// nothing in this fixture, so it marshals a present-but-empty object.
+	if rp, ok := m["pool"]; !ok || string(rp) != `{}` {
+		t.Errorf("pool = %s, want {} for a public, empty pool (not null)", rp)
 	}
 
 	// Non-empty availability: the key is present as an object, not null.
@@ -112,12 +112,12 @@ func TestAvailableManaNeverMarshalsNull(t *testing.T) {
 	}
 }
 
-// TestAvailableManaVisibleEvenWhenPoolHidden is the ordinary public-client
-// case the feature exists to serve: a spectator has a null pool for every
-// seat, so the seat box line 3 would be blank — but available mana is public
-// and so still renders. This is what makes the line population the feature,
-// not the empty floating pool.
-func TestAvailableManaVisibleEvenWhenPoolHidden(t *testing.T) {
+// TestAvailableManaVisibleAlongsidePublicPool is the ordinary public-client
+// case: a spectator reads every seat's available mana, and the pool on the
+// same PlayerView is public too (CR 106.4a/106.4b) so it is present rather
+// than hidden. Player 0 in this fixture floats nothing, so the pool is the
+// present-but-empty object; the available readout is what carries the color.
+func TestAvailableManaVisibleAlongsidePublicPool(t *testing.T) {
 	g := boardWithLands(t)
 	ch := manaChars{flatChars{g}, func(p state.PlayerID) state.Mana {
 		return state.Mana{state.MW: 1, state.MB: 2}
@@ -127,7 +127,9 @@ func TestAvailableManaVisibleEvenWhenPoolHidden(t *testing.T) {
 	if vp.Available["W"] != 1 || vp.Available["B"] != 2 {
 		t.Errorf("public available = %v, want W:1 B:2", vp.Available)
 	}
-	if vp.Pool != nil {
-		t.Errorf("public pool = %v, want nil (hidden)", vp.Pool)
+	if vp.Pool == nil {
+		t.Errorf("public pool is null; the pool is public (CR 106.4a/106.4b) and must be a present-but-empty object")
+	} else if len(vp.Pool) != 0 {
+		t.Errorf("public pool = %v, want the empty pool this fixture floats", vp.Pool)
 	}
 }
