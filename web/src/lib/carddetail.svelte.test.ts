@@ -216,11 +216,17 @@ describe('placePanel', () => {
   });
 
   it('clamps vertically so the panel never leaves the viewport', () => {
+    // A bottom card (top 700 in an 800 viewport) has only 92px below it but
+    // 692px above. The panel FLIPS to open upward, bottom-anchored just above
+    // the card, so it gets the tall room above instead of the cramped band
+    // below — this is the fix that stops a hand card's detail being cut off.
     const low = placePanel({ left: 100, top: 700, right: 190 }, 1200, 800);
-    // not enough room below 700 for even a short panel: pull up to 632 and
-    // cap the height at what remains (160)
-    expect(low.y).toBe(800 - 8 - 160);
-    expect(low.y + low.maxHeight).toBe(800 - 8);
+    expect(low.y).toBeUndefined();
+    expect(low.bottom!).toBe(800 - (700 - 8)); // panel's bottom edge = card top - margin
+    expect(800 - low.bottom!).toBe(700 - 8); // bottom edge sits just above the card
+    expect(low.maxHeight).toBe(700 - 16); // the full room above, less the two margins
+    expect(800 - low.bottom! - low.maxHeight).toBe(8); // never clips past the top margin
+
     const high = placePanel({ left: 100, top: -50, right: 190 }, 1200, 800);
     expect(high.y).toBe(8);
     expect(high.maxHeight).toBe(800 - 8 - 8);
@@ -228,7 +234,37 @@ describe('placePanel', () => {
     // fits below it, never overflowing the bottom
     const mid = placePanel({ left: 100, top: 400, right: 190 }, 1200, 800);
     expect(mid.y).toBe(400);
-    expect(mid.y + mid.maxHeight).toBe(800 - 8);
+    expect(mid.y! + mid.maxHeight).toBe(800 - 8);
+  });
+
+  it('opens upward for a bottom card so the detail has the room above it, not the cramped band below', () => {
+    // The hand-fan shape: the card sits low, so the room below is a fixed,
+    // small band while the room above is tall. The old code top-aligned the
+    // panel at the card and capped it to the room below (here 337px), so a
+    // card's content taller than that was cut and scrolled. The fix gives it
+    // the room above instead.
+    const fan = placePanel({ left: 106, top: 555, right: 234 }, 1440, 900);
+    expect(fan.y).toBeUndefined();
+    const bottomEdge = 900 - fan.bottom!;
+    expect(bottomEdge).toBe(555 - 8); // just above the card
+    const roomBelow = 900 - 8 - 555;
+    expect(fan.maxHeight).toBeGreaterThan(roomBelow); // strictly more room than the old downward cap
+    expect(bottomEdge - fan.maxHeight).toBe(8); // top stays at the margin, never clipped
+  });
+
+  it('keeps the panel within the viewport on both axes at every card position', () => {
+    const vw = 1200;
+    const vh = 800;
+    for (const top of [0, 50, 400, 750, 800]) {
+      const p = placePanel({ left: 100, top, right: 190 }, vw, vh);
+      // Downward: top = y, bottom = y + maxHeight. Upward: bottom-anchored, so
+      // bottom = vh - bottom and, at full maxHeight, top = (vh - bottom) - maxHeight.
+      const isUp = p.bottom !== undefined;
+      const bottomEdge = isUp ? vh - p.bottom! : p.y! + p.maxHeight;
+      const topEdge = isUp ? vh - p.bottom! - p.maxHeight : p.y!;
+      expect(topEdge, `top ${top}: panel top must be >= margin`).toBeGreaterThanOrEqual(8);
+      expect(bottomEdge, `top ${top}: panel bottom must stay within viewport`).toBeLessThanOrEqual(vh - 8);
+    }
   });
 });
 
