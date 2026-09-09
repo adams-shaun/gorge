@@ -158,6 +158,19 @@ func attachedToArg(p string) (string, bool) {
 	case "Card", "Permanent", "Spell":
 		return arg, true
 	}
+	// "You" is in predicateTypeWords only because one card literally prints
+	// `Types:Legendary Planeswalker You`, but every corpus `AttachedTo You`
+	// (Witchbane Orb, Lynde) means a Curse attached to YOU THE PLAYER. This
+	// engine cannot model that: state.Object.AttachedTo is an ObjID and a
+	// player is not an object. Reading it as "attached to a permanent of type
+	// You" would match nothing -- harmless on its own, but it would also lift
+	// the token out of UnknownPredicates, and that is what the card-validation
+	// pass uses to REFUSE a card it would otherwise misplay. Recognising it
+	// would let those cards through while their curse test silently never
+	// fires. It stays unknown, and stays refused.
+	if arg == "You" {
+		return "", false
+	}
 	if predicateTypeWords[arg] {
 		return arg, true
 	}
