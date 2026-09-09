@@ -194,11 +194,55 @@ describe('seatCorner — the seat → position mapping (Task ui17)', () => {
     expect(seatCorner(1, 2, 9)).toBe('top');
   });
 
-  it('3- and 4-player layouts are unchanged and do NOT depend on the viewer', () => {
-    // the pre-existing absolute, clockwise layout must not regress
+  // Task ui22 retitled this and dropped one line. The old title claimed the
+  // 3/4-seat layout does "NOT depend on the viewer", and its last assertion
+  // passed a REAL SEATED viewer (seats 3, viewer 2) and required the
+  // un-rotated corners -- so that assertion did not state a rule, it pinned
+  // the deferral recorded in seatCorner's old doc comment. What survives is
+  // the part that is still true and still worth guarding: the SPECTATOR
+  // layout, and the seat-0 viewer that coincides with it, are exactly the
+  // historic clockwise arrangement and must not drift. A seated viewer's
+  // layout is asserted below by property (bottom corner + bijection), which
+  // covers seats 3 viewer 2 more strongly than the deleted line did.
+  it('the spectator 3- and 4-player layout is the historic clockwise one', () => {
     expect([0, 1, 2, 3].map((s) => seatCorner(s, 4, 0))).toEqual(['bl', 'tl', 'tr', 'br']);
     expect([0, 1, 2, 3].map((s) => seatCorner(s, 4, 255))).toEqual(['bl', 'tl', 'tr', 'br']);
     expect([0, 1, 2].map((s) => seatCorner(s, 3, 0))).toEqual(['bl', 'tl', 'tr']);
-    expect([0, 1, 2].map((s) => seatCorner(s, 3, 2))).toEqual(['bl', 'tl', 'tr']);
+    expect([0, 1, 2].map((s) => seatCorner(s, 3, 255))).toEqual(['bl', 'tl', 'tr']);
+  });
+});
+
+// Task ui22: 3 and 4 seats are now re-anchored to the viewer the same way 1v1
+// always was — rotate the bottom-left-then-clockwise cycle so the seated
+// viewer lands at `bl`. Assert the two properties that matter, not a list of
+// hard-coded corners: (1) a seated viewer's own seat is always at the bottom
+// corner, and (2) the mapping is a bijection (no two seats share a corner,
+// which is exactly the property a rotation bug breaks).
+describe('seatCorner — 3/4 seats anchor to the viewer (Task ui22)', () => {
+  const cycle = ['bl', 'tl', 'tr', 'br'] as const;
+
+  it('a seated viewer always lands at the bottom corner, and the mapping is a bijection, for every (seats, viewer)', () => {
+    for (const seats of [2, 3, 4]) {
+      // the corner set this seat count must exactly tile: bottom/top for 1v1,
+      // the leading `seats` entries of the clockwise bl/tl/tr/br cycle otherwise.
+      const expected = new Set(seats === 2 ? ['bottom', 'top'] : cycle.slice(0, seats));
+      const bottom = seats === 2 ? 'bottom' : 'bl';
+
+      // every seated viewer
+      for (let viewer = 0; viewer < seats; viewer++) {
+        const corners = Array.from({ length: seats }, (_, seat) => seatCorner(seat, seats, viewer));
+        // property 1: the viewer's own seat is the bottom corner.
+        expect(corners[viewer], `seats=${seats} viewer=${viewer}: viewer should be ${bottom}`).toBe(bottom);
+        // property 2: a bijection — every corner used exactly once, no two seats sharing.
+        expect(new Set(corners).size, `seats=${seats} viewer=${viewer}: corners ${corners} not a bijection`).toBe(seats);
+        expect(new Set(corners), `seats=${seats} viewer=${viewer}: corners ${corners} != ${[...expected]}`).toEqual(expected);
+      }
+
+      // the spectator case must not move: seat 0 bottom, then clockwise.
+      for (const viewer of [255, 9]) {
+        expect(Array.from({ length: seats }, (_, seat) => seatCorner(seat, seats, viewer)), `seats=${seats} spectator ${viewer}`)
+          .toEqual([...expected]);
+      }
+    }
   });
 });
