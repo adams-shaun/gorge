@@ -257,6 +257,14 @@ type Engine struct {
 	// clone taken with a decision outstanding carries the same queue. It is
 	// always empty in a non-Commander game: nothing ever parks there.
 	cmdZone []cmdZoneMove
+	// replChoices is the queue of parked CR 616.1 order-selection choices (see
+	// replChoice / poseReplacementChoice / handleReplacement rules/replacement.go):
+	// a MoveZone event more than one replacement would modify, deferred until
+	// the affected controller chooses the order. Mirrors cmdZone -- a queue of
+	// plain value entries cloned by one slice copy -- so a clone taken while a
+	// KReplacement decision is outstanding carries the same parked
+	// competitions the original does.
+	replChoices []replChoice
 
 	// suppressedCast holds the card object ids whose cast option is held out
 	// of the current priority window because their last cast attempt aborted
