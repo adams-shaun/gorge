@@ -212,11 +212,30 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	if max > int32(len(eligible)) {
 		max = int32(len(eligible))
 	}
+	// CR 701.23b/701.23d decide the minimum: a search whose card filter states
+	// only a quantity must find that many (or as many as the zone holds), so
+	// Min is forced up to Max; a stated-quality search keeps the fail-to-find
+	// allowance of Min 0. `max` is already clamped to the number of eligible
+	// cards, so a quantity-only search never asks for more than the library
+	// holds (701.23d's "as many as possible"). This is a property of the
+	// filter, not of Forge's Mandatory$ parameter.
+	min := int32(0)
+	if !SearchStatesQuality(spec) {
+		min = max
+	}
+	// The prompt must not offer a choice the decision will refuse. A
+	// quantity-only search has Min == Max, so "up to" would be a lie the
+	// player only discovers when their answer is rejected.
+	count := strconv.Itoa(int(max))
+	prompt := "Search a library: choose up to " + count + " card(s)"
+	if min == max {
+		prompt = "Search a library: choose " + count + " card(s)"
+	}
 	chooser := searchChooser(h, c, sa)
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
-		Min: 0, Max: int(max), Source: c.Source,
+		Min: int(min), Max: int(max), Source: c.Source,
 		ResumeKind: "search", ResumeSA: sa,
-		Prompt: "Search a library: choose up to " + strconv.Itoa(int(max)) + " card(s)"}
+		Prompt: prompt}
 	for _, id := range eligible {
 		name := "a card"
 		if o := g.Obj(id); o != nil && o.Face() != nil {
