@@ -11,6 +11,7 @@
   import DvrBar from '../components/DvrBar.svelte';
   import MatchList from '../components/MatchList.svelte';
   import SeatPanel from '../components/SeatPanel.svelte';
+  import HandFan from '../components/HandFan.svelte';
   import PhaseTrack from '../components/PhaseTrack.svelte';
   import { SeatPanelState } from '../lib/seatpanel.svelte';
   import { everyVisibleCard, quadrantFor } from '../lib/board';
@@ -62,6 +63,14 @@
     }
     return panelCache.state;
   });
+
+  // The seated player's own player view — the one whose hand is never
+  // redacted (view.go fills Hand for the viewer's seat under every
+  // visibility). HandFan renders it as real card faces along the bottom edge;
+  // a spectator has no `ownPlayer` and mounts no hand at all.
+  const ownPlayer = $derived(
+    m.view && seatCtx ? (m.view.players.find((p) => p.seat === seatCtx.seat) ?? null) : null,
+  );
 
   // Task 3's colour-coded log: the same name/colour resolution SeatTable's
   // rows use (seats[seat].name falling back to the wire's own player name),
@@ -138,7 +147,7 @@
             colour={seatColour(p.seat, m.seats)}
             active={m.view.active === p.seat}
             priority={m.view.priority === p.seat}
-            corner={quadrantFor(p.seat, m.view.players.length)}
+            corner={quadrantFor(p.seat, m.view.players.length, m.view.viewer)}
             players={m.view.players}
           />
         {/each}
@@ -155,6 +164,13 @@
           {#key m.match}
             <SeatPanel view={m.view} seats={m.seats} ctx={seatCtx} table={table} match={m.match} state={panel} />
           {/key}
+        {/if}
+        <!-- The seated player's own hand, as real cards along the bottom edge
+             (Task ui17). Only the viewer's own seat ever mounts it; it never
+             covers the seat panel's decision UI (panel at the board's TOP,
+             hand at the BOTTOM) and only the card faces claim the pointer. -->
+        {#if seated && seatCtx && ownPlayer}
+          <HandFan player={ownPlayer} />
         {/if}
       </section>
       <aside class="rail"><Rail view={m.view} seats={m.seats} decision={seated ? null : m.decision} emphasizeTop={seated} events={m.dvr.events} /></aside>
@@ -209,6 +225,14 @@
   .board {
     position: relative;
     overflow: hidden;
+    /* --own-hand-h is the height of the seated player's own hand fan along
+       the bottom edge: one card face at HandFan's CARD_W (128px) in the
+       63:88 card ratio. It is published here, on the box both the fan and the
+       identity bar live in, so "how tall is the hand" is stated once rather
+       than duplicated into whatever else needs to keep clear of it. Only the
+       seated player's identity bar reads it today (IdentityBar's `bottom`
+       corner); a spectator mounts no fan and the fallback is 0. */
+    --own-hand-h: calc(128px * 88 / 63);
   }
   .rail {
     background: var(--instrument);
