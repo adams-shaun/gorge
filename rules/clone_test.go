@@ -127,6 +127,65 @@ func TestCloneResumeChainIndependence(t *testing.T) {
 	}
 }
 
+// TestCloneCarriesDrainAwaitsModes pins the drainAwaitsModes carrier in
+// Engine.Clone (jj-trg2 leaf 2). drainAwaitsModes is true only while the
+// trigger drain is paused on the CR 603.3c placement modes ask; handleModes
+// routes an answered KModes to the placement branch (record ChosenModes,
+// resume the drain) only when the flag is set. A Clone taken at that exact
+// moment must carry the flag, or the copy's answer to the very modes decision
+// the original is parked on falls through to the mid-resolution resume path
+// (no suspension), emits a "modes answered with no resolution suspended"
+// Note, records nothing, and leaves the drain parked -- an alias-class bug
+// invisible to every clone test that clones only between decisions. This
+// leaf exists because removing the line failed nothing until now. Removing
+// it faults here in two independent ways: c.drainAwaitsModes reads false,
+// and answering on the clone records no ChosenModes.
+func TestCloneCarriesDrainAwaitsModes(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := crAbortEngine(t, reg, "ur-delver", "Knight of Autumn")
+	crAbortMove(t, e, 0, "Knight of Autumn", state.ZBattlefield)
+	e.pending = nil
+	e.priorityRound()
+	if d := e.Pending(); d == nil || d.Kind != decision.KModes {
+		t.Fatalf("fixture did not park on the placement modes ask: %+v", d)
+	}
+	if !e.drainAwaitsModes {
+		t.Fatal("fixture precondition: drainAwaitsModes is not set while the modes ask is pending")
+	}
+	top := e.G.Stack[len(e.G.Stack)-1]
+
+	c := e.Clone()
+	if !c.drainAwaitsModes {
+		t.Fatal("clone lost drainAwaitsModes: the modes answer will not resume through the placement branch")
+	}
+
+	// Answer the very same pending decision on both engines and require each
+	// to record the chosen modes onto its own stack object and continue the
+	// drain. A clone that dropped the flag takes the resume path and records
+	// nothing.
+	d := c.Pending()
+	in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}
+	if err := c.Submit(in); err != nil {
+		t.Fatalf("clone rejected the pending modes answer: %v", err)
+	}
+	if err := e.Submit(in); err != nil {
+		t.Fatalf("original rejected the pending modes answer: %v", err)
+	}
+
+	if co := c.G.Obj(top); co == nil || len(co.ChosenModes) == 0 {
+		t.Fatalf("clone did not record the placement mode choice onto the stack object: ChosenModes=%v", c.G.Obj(top).ChosenModes)
+	}
+	if eo := e.G.Obj(top); eo == nil || len(eo.ChosenModes) == 0 {
+		t.Fatalf("original did not record the placement mode choice: ChosenModes=%v", e.G.Obj(top).ChosenModes)
+	}
+	if c.G.Obj(top).ChosenModes[0] != e.G.Obj(top).ChosenModes[0] {
+		t.Fatalf("clone and original disagree on the chosen mode: %v vs %v", c.G.Obj(top).ChosenModes, e.G.Obj(top).ChosenModes)
+	}
+	if c.L.Head() != e.L.Head() {
+		t.Fatalf("chain heads differ after the same modes answer: %s vs %s", c.L.Head(), e.L.Head())
+	}
+}
+
 // drive answers n decisions with the package's own testBot and returns the
 // intents it submitted, so the same choices can be replayed elsewhere.
 func drive(t *testing.T, e *Engine, b *testBot, n int) []decision.Intent {
