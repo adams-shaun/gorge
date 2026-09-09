@@ -76,13 +76,19 @@ Oracle:x
 // no ValidCard$ narrowing beyond "any card" and no ReplacementResult$ (so
 // today's ReplacementResult$-absent code path, unchanged by this task,
 // still discards the original Move). Its ReplaceWith$ uses Defined$
-// ReplacedCard, a Forge Defined$ form effects/context.go's Defined does not
-// model -- it falls through to Ctx.Targets, nil for a replacement context,
-// so the ChangeZone loop in effects/zone.go's effChangeZone has nothing to
-// iterate and relocates NOTHING. That is exactly what makes it a totality
-// hazard for anything else that tries to move a card to a graveyard while
-// this is in play, including -- before the I-1 fix -- resolveTop's own
-// guard.
+// ReplacedCard, which effects/context.go:51 DOES model, and since the
+// Origin$ All fix (fx28) effects/zone.go's ParseZones treats All as a real
+// wildcard, so this replacement genuinely relocates the intercepted card to
+// exile. It remains a totality hazard for the case this test covers,
+// because it also matches the GUARD'S OWN cleanup move -- the I-1 fix runs
+// that move with applyingReplacement held true so the guard cannot be
+// intercepted by the very replacement it is rescuing an object from.
+//
+// This comment previously claimed Defined$ ReplacedCard was unmodelled and
+// that the replacement "relocates NOTHING". That was false in both halves:
+// the shape was inert only because Origin$ All mis-parsed to Graveyard, and
+// the six stack_totality_test.go oracles written on that premise had to be
+// rebuilt when it was fixed.
 const graveyardBlockingReplacementSrc = `Name:Bone Vault
 ManaCost:1 W
 Types:Enchantment
@@ -512,8 +518,9 @@ func TestTotalityGuardSurvivesABroadGraveyardReplacement(t *testing.T) {
 			"blocking replacement in play (TestPermanentSpellWhoseEntryIsFullyReplacedDoesNotStickOnTheStack)", n)
 	}
 	if got := e.G.Obj(id).Zone; got != state.ZGraveyard {
-		t.Fatalf("zone = %s, want graveyard -- Bone Vault's ReplaceWith$ (Defined$ ReplacedCard, "+
-			"unmodeled) relocates nothing, so the guard's own graveyard move must be what lands it there", got)
+		t.Fatalf("zone = %s, want graveyard -- the entry is fully replaced, so the only move "+
+			"that reaches this object is the guard's own, which runs with applyingReplacement "+
+			"held true and is therefore not itself redirected to exile by Bone Vault", got)
 	}
 	if n := countKind(e.L.Events, events.Note, id); n != 1 {
 		t.Fatalf("logged %d Note events for the guard's escape hatch, want exactly 1 -- "+
