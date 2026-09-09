@@ -308,37 +308,21 @@ func TestAbilityFizzlingAtResolutionUnderAnExileReplacementDoesNotStickOnTheStac
 	}
 }
 
-// tappedCreatureTargetInstantSrc requires a TAPPED creature target. The
-// review's shape for stack.go:137 calls for casting into "no creature
-// anywhere", but the only reusable graveyard-blocking replacement fixture
-// in this file (graveyardBlockingSpellsReplacementSrc, Militant Ward) is
-// ITSELF a 2/1 creature: onBoarding it to keep its replacement active while
-// this spell's own ValidTgts$ was the bare "Creature" the review's prose
-// names would hand the spell a legal target of its own blocker's host and
-// defeat the "no legal targets" premise the test needs. Narrowing to
-// Creature.tapped keeps Militant Ward on the battlefield exactly the way
-// TestInstantResolvingUnderAGraveyardReplacementDoesNotStickOnTheStack does
-// (untapped, so it never qualifies) while still reaching askTarget's
-// zero-option branch: CR 608.2b cares about LEGAL targets, and an untapped
-// Militant Ward is not one under this spec.
-const tappedCreatureTargetInstantSrc = `Name:Sudden Spark
+const creatureTargetInstantSrc = `Name:Sudden Spark
 ManaCost:R
 Types:Instant
-A:SP$ DealDamage | ValidTgts$ Creature.tapped | NumDmg$ 1
+A:SP$ DealDamage | ValidTgts$ Creature | NumDmg$ 1
 Oracle:x
 `
 
 // TestSpellCounteredForNoTargetsAtCastUnderAGraveyardReplacementDoesNotStickOnTheStack
-// is final review R1(b): stack.go:137, askTarget's own CR 608.2b cast-time
-// counter for a spell that finds zero legal targets the instant it is put
-// on the stack (before any decision is ever asked). Before the fix,
-// deleting the :137 call alone leaves a reachable game hung: the
-// "countered: no legal targets" Move is discarded by
-// graveyardBlockingSpellsReplacementSrc (its ReplaceWith$ relocates
-// nothing, the same unmodeled Defined$ ReplacedCard as elsewhere in this
-// file), and nothing else ever takes the spell off the stack.
+// keeps its historical name while reaching CR 608.2b through a legal cast:
+// the spell chooses a creature, then that creature leaves before resolution.
+// The graveyard replacement discards the spell's fizzle move, so the totality
+// guard must still remove the spell from the stack.
 func TestSpellCounteredForNoTargetsAtCastUnderAGraveyardReplacementDoesNotStickOnTheStack(t *testing.T) {
-	e, _, id := newFixtureDeck(t, 113, tappedCreatureTargetInstantSrc)
+	e, _, id := newFixtureDeck(t, 113, creatureTargetInstantSrc)
+	target := onBoard(t, e, 1, fieldRatSrc)
 	onBoard(t, e, 1, graveyardBlockingSpellsReplacementSrc)
 	driveToStep(t, e, 1, 0, state.StepMain1)
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "R", Amount: 1})
@@ -361,10 +345,27 @@ func TestSpellCounteredForNoTargetsAtCastUnderAGraveyardReplacementDoesNotStickO
 		t.Fatalf("submit cast: %v", err)
 	}
 
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected target decision, got %+v", d)
+	}
+	idx = -1
+	for _, opt := range d.Options {
+		if opt.Obj == target {
+			idx = opt.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("creature not offered as target: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+		t.Fatalf("submit target: %v", err)
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: target, From: state.ZBattlefield, To: state.ZGraveyard})
+	passUntilStackEmpty(t, e, 8)
+
 	if len(e.G.Stack) != 0 {
-		t.Fatalf("stack = %v right after casting into zero legal targets, want empty -- "+
-			"askTarget's countered-at-cast exit is unguarded (final review R1(b), "+
-			"stack.go:137)", e.G.Stack)
+		t.Fatalf("stack = %v after resolution-time fizzle, want empty", e.G.Stack)
 	}
 	if got := e.G.Obj(id).Zone; got != state.ZGraveyard {
 		t.Fatalf("zone = %s, want graveyard -- Militant Ward's ReplaceWith$ (Defined$ "+
@@ -372,20 +373,20 @@ func TestSpellCounteredForNoTargetsAtCastUnderAGraveyardReplacementDoesNotStickO
 			"must be what lands it there", got)
 	}
 	noteCount := 0
-	noteMentionsCountered := false
+	noteMentionsFizzle := false
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.Note && ev.Obj == id {
 			noteCount++
-			if strings.Contains(ev.Text, "countered: no legal targets") {
-				noteMentionsCountered = true
+			if strings.Contains(ev.Text, "fizzled: no legal targets") {
+				noteMentionsFizzle = true
 			}
 		}
 	}
 	if noteCount != 1 {
 		t.Fatalf("logged %d Note events for the guard's escape hatch, want exactly 1 per cast", noteCount)
 	}
-	if !noteMentionsCountered {
-		t.Fatal(`no guard Note mentions "countered: no legal targets"`)
+	if !noteMentionsFizzle {
+		t.Fatal(`no guard Note mentions "fizzled: no legal targets"`)
 	}
 	if e.Pending() == nil {
 		t.Fatal("no further decision pending -- the engine did not reach the next decision")

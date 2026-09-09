@@ -144,34 +144,44 @@ func TestTargetTypeSpellOffersOnlyStackObjectsAndCounters(t *testing.T) {
 	}
 }
 
-// TestCounterspellWithOnlyItselfOnStackFizzles pins CR 115.5's consequential
-// arm: when a counterspell is cast with NOTHING else on the stack, the only
-// candidate for its "Select target spell" prompt is itself. It must not be
-// offered and the spell must fizzle -- no KTarget decision ever handed to the
-// seat, no Resolve event -- rather than resolve and counter itself
-// (effCounter would otherwise move its own spell to the graveyard as
-// "countered").
+// TestCounterspellWithOnlyItselfOnStackFizzles keeps the historical oracle
+// name while reaching CR 608.2b legally: Mana Leak targets a spell, then that
+// spell leaves the stack in response. Leak must fizzle without a Resolve event.
 func TestCounterspellWithOnlyItselfOnStackFizzles(t *testing.T) {
-	e, leakID, _, _ := targetSpellFixture(t)
+	e, leakID, bearID, _ := targetSpellFixture(t)
 	e.G.Players[0].Pool[state.MU] = 5
+	e.G.Players[0].Pool[state.MG] = 5
 	e.askPriority(0)
 
+	submitChoices(t, e, passToCast(t, e, bearID))
+	targetSpell := e.G.Stack[0]
 	submitChoices(t, e, passToCast(t, e, leakID))
-
-	// No target decision may have been offered: with itself excluded there is
-	// nothing legal, so askTarget's min>0/no-options exit fires the fizzle
-	// instead of asking (which the buggy code did, offering only itself).
-	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
-		t.Fatalf("counterspell with only itself on the stack offered a target decision (self-target): %+v", d.Options)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected target decision, got %+v", d)
 	}
-	// The fizzle path sends it to the graveyard and never resolves it. A
-	// self-counter would have emitted Resolve and then a "countered" move.
+	idx := -1
+	for _, o := range d.Options {
+		if o.Obj == targetSpell {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("spell on stack not offered as target: %+v", d.Options)
+	}
+	submitChoices(t, e, idx)
+
+	// A response removes the chosen spell before Mana Leak resolves, leaving
+	// Leak itself as the only stack object and all of its targets illegal.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: targetSpell, From: state.ZStack, To: state.ZGraveyard})
+	passUntilStackEmpty(t, e, 8)
+
 	if z := e.G.Obj(leakID).Zone; z != state.ZGraveyard {
 		t.Fatalf("fizzled counterspell ended in %s, want graveyard", z)
 	}
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.Resolve && ev.Obj == leakID {
-			t.Fatalf("counterspell resolved instead of fizzling (self-counter): %+v", ev)
+			t.Fatalf("counterspell resolved instead of fizzling: %+v", ev)
 		}
 	}
 }
