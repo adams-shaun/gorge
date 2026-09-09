@@ -56,11 +56,31 @@ import (
 // completion moves the object off the stack. Plain data, cloned by value
 // (the *cards.SA is shared immutable card data, the same class
 // Engine.Clone already shares everywhere).
+//
+// `replacement` records whether the suspended resolution is running inside
+// a replacement effect's ReplaceWith$ body (fx44). applyReplacements sets
+// e.applyingReplacement while it resolves that body and resets it to false
+// when the body returns — but a body that SUSPENDS at an ask returns before
+// the answer arrives, so the flag is lost across the suspension. The resumed
+// body then emits its own completion move with applyingReplacement false,
+// and that move is re-intercepted by the SAME replacement it is the product
+// of. Capturing the flag at ask time and restoring it for the whole resumed
+// resolution closes that loop (see resumeResolution); it is the answer to
+// the question "does applyingReplacement survive the suspension".
 type resumePoint struct {
-	kind  string
-	obj   state.ObjID
-	sa    *cards.SA
-	outer *resumePoint
+	kind        string
+	obj         state.ObjID
+	sa          *cards.SA
+	outer       *resumePoint
+	replacement bool
+	// replaced is the object the replaced event was about (Ctx.Replaced =
+	// ev.Obj), captured at ask time when the ask is posed from inside a
+	// replacement body. The resume rebuilds Ctx.Replaced (and Remembered =
+	// [that object]) from it, so a ReplaceWith$ body whose completion move
+	// is gated on Defined$ ReplacedCard / SVar:X Remembered$Amount finds its
+	// subject after the suspension (fx44, Mox Diamond). Zero for an ordinary
+	// (non-replacement) ask.
+	replaced state.ObjID
 }
 
 // Ask implements effects.Host.Ask (rules' side of the interface, and the
@@ -82,7 +102,13 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		kind = "modes"
 	}
 	e.ask(d)
-	e.resume = &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA}
+	// Capture whether the ask is being posed from inside a replacement
+	// effect's ReplaceWith$ body (fx44). e.applyingReplacement is true for
+	// the whole of that body's resolution, so an ask posed from within it
+	// must resume still under the flag — see the resumePoint field's
+	// comment and resumeResolution's restore of it.
+	e.resume = &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA,
+		replacement: e.applyingReplacement, replaced: e.replReplaced}
 	return true
 }
 
@@ -164,6 +190,21 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		return
 	}
 	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, Targets: o.Targets}
+	if rp.replacement {
+		// fx44: this suspended frame is a ReplaceWith$ body, so restore the
+		// replacement context applyReplacements seeded for it. Ctx.Replaced is
+		// the object the replaced event was about (ev.Obj, threaded via
+		// rp.replaced) and Ctx.Remembered is the single-element list seeded
+		// from that same object, so a Defined$ ReplacedCard resolution and an
+		// SVar:X Remembered$Amount gate find their subject after the
+		// suspension; Ctx.X is the cast-time value preserved on the stack
+		// object. Without these the completed move (Mox Diamond's
+		// MoveToBattlefield) targets nothing and the object never leaves the
+		// stack.
+		ctx.Replaced = rp.replaced
+		ctx.Remembered = []state.Target{{Obj: rp.replaced}}
+		ctx.X = o.X
+	}
 	var svars map[string]string
 	if o.Ability != nil {
 		// A triggered or activated ability: mirror resolveTop's ability
@@ -260,7 +301,20 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// reports no live frame still needs (measured: the full rules suite
 		// runs no path where a recursive reset clobbers a needed report).
 		e.contChain = e.contChain[:0]
+		// fx44: restore the replacement context the suspended body was
+		// resolving under. applyReplacements reset e.applyingReplacement to
+		// false when the body suspended, so without this the resumed body's
+		// own completion move is re-intercepted by the same replacement it is
+		// the product of — the re-asked discard loop. It is saved and restored
+		// (not just set) so a resume that reaches here already inside a
+		// replacement keeps the outer context intact, exactly the discipline
+		// ensureLeftTheStack and applyReplacements already practise.
+		savedReplacement := e.applyingReplacement
+		e.applyingReplacement = rp.replacement
+		e.replReplaced = rp.replaced
 		effects.Resolve(e, ctx, rp.sa)
+		e.replReplaced = 0
+		e.applyingReplacement = savedReplacement
 		e.damaging = 0
 		if e.resume != nil {
 			// The re-entry posed a nested mid-resolution ask. The new
@@ -302,7 +356,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 func (e *Engine) buildContinuationChain(sas []*cards.SA, obj state.ObjID, tail *resumePoint) *resumePoint {
 	var head, prev *resumePoint
 	for _, sa := range sas {
-		f := &resumePoint{obj: obj, sa: sa.Sub}
+		// fx44: a continuation frame is the rest of the same resolution that
+		// just suspended, so it carries the replacement context too — a body
+		// that asks again and then continues must keep emitting under the
+		// replacement guard, not re-interposed by the replacement it is the
+		// product of, and must keep addressing the object it replaced (the
+		// replaced/id carried by this frame comes from the engine's active
+		// replacement context).
+		f := &resumePoint{obj: obj, sa: sa.Sub, replacement: e.applyingReplacement,
+			replaced: e.replReplaced}
 		if head == nil {
 			head = f
 		} else {

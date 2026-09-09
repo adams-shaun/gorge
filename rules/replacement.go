@@ -165,8 +165,11 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 		// later reset. Running the Move first means DBTap (or whatever
 		// ReplaceWith$ does) lands on an object already in its new zone,
 		// so "enters tapped" actually sticks.
+		savedRepl := e.replReplaced
 		e.applyingReplacement = true
+		e.replReplaced = ev.Obj
 		e.resolveReplacementWith(ctx, matchRepl.With)
+		e.replReplaced = savedRepl
 		e.applyingReplacement = false
 		return stored, true
 	}
@@ -176,8 +179,11 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	// discarded and only ReplaceWith$'s own effect happens. Task 22's four
 	// pins are exactly this shape (no ReplacementResult$ at all) and must
 	// not move.
+	savedRepl := e.replReplaced
 	e.applyingReplacement = true
+	e.replReplaced = ev.Obj
 	e.resolveReplacementWith(ctx, matchRepl.With)
+	e.replReplaced = savedRepl
 	e.applyingReplacement = false
 	return ev, true
 }

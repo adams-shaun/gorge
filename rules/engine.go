@@ -191,6 +191,16 @@ type Engine struct {
 	// entirely, so a replacement that re-emits a matching event cannot
 	// replace itself again. Task 20.
 	applyingReplacement bool
+	// replReplaced is the ev.Obj of the replacement applyReplacements is
+	// currently resolving — the object the replaced event was about. It is
+	// seeded by applyReplacements (Ctx.Replaced = ev.Obj) and read by Ask to
+	// thread that object across a mid-resolution suspension: a ReplaceWith$
+	// body that poses an ask needs Replaced (and Remembered = [that object],
+	// and the X value) restored on the resume, or its Defined$ ReplacedCard
+	// resolution and SVar:X Remembered$Amount gating see nothing and the
+	// completed move never happens (fx44, Mox Diamond). Zero whenever no
+	// replacement is in flight.
+	replReplaced state.ObjID
 	// triggerFireCount and damageOnceFired are trigger.go's own bookkeeping
 	// (cascade bound and the DamageDealtOnce once-per-turn gate); see there.
 	triggerFireCount map[triggerKey]int32
