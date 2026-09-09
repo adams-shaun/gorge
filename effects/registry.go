@@ -68,6 +68,17 @@ type Host interface {
 	// double that cannot suspend reports false; the rules engine reports
 	// e.resume != nil, which Ask sets and the handled answer clears.
 	Suspended() bool
+	// SuspendContinuation reports that a Resolve loop has just suspended (its
+	// host reported Suspended() after running the sub-ability at sa) and is
+	// about to return, so the chain it was walking must resume at sa.Sub once
+	// the pending answer and any deeper continuations are done. effects.Resolve
+	// calls it at EVERY loop level that suspends, including the innermost
+	// (the level whose sa is the pending ask's ResumeSA): a host records the
+	// enclosing levels (sa != the pending ResumeSA) as outer continuations and
+	// drops the innermost one, because re-entering the pending ask's own SA
+	// already walks sa.Sub. A host that never suspends (an effects-package
+	// double, where Ask returns false) never sees this call.
+	SuspendContinuation(sa *cards.SA)
 }
 
 // Ctx carries the bindings a Forge script refers to during resolution.
@@ -255,6 +266,14 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			// resume re-enters at THIS asking SA (rules' resumeResolution),
 			// which re-runs the asking effect to apply the answer and then
 			// continues walking sa.Sub exactly once.
+			//
+			// Report this loop's suspension point to the host so a NESTED ask
+			// (an ask posed from inside this loop's own effect, e.g. the mode
+			// a Charm runs) does not lose the chain this loop was still
+			// carrying — fx32's defect. The host keeps the enclosing levels as
+			// outer continuations and drops this one when it is the asking
+			// loop's own level, which re-enters sa.Sub itself.
+			h.SuspendContinuation(sa)
 			return
 		}
 	}
