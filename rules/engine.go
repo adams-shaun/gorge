@@ -205,17 +205,29 @@ type Engine struct {
 	// miracle cases in their own files.
 	choosing chooseFor
 
-	// resume is non-nil while a mid-resolution decision is pending: an
-	// effect (effCharm's modal pick, effCopySpellAbility's UnlessCost$
-	// may-pay — M2d-2, closing R-8) asked through effects.Host.Ask and the
-	// resolution of the top-of-stack object is suspended with the object
-	// still on the stack. It is plain value/pointer data (resumePoint:
-	// kind, obj and the shared-immutable *cards.SA that asked), never a
+	// resume is non-nil while a mid-resolution decision is pending: an effect
+	// (effCharm's modal pick, effCopySpellAbility's UnlessCost$ may-pay,
+	// effDiscard's mode choices — M2d-2) asked through effects.Host.Ask and
+	// the resolution of the top-of-stack object is suspended with the object
+	// still on the stack. It chains every suspended continuation, innermost
+	// first, via resumePoint.outer (fx34): a nested ask no longer overwrites
+	// its enclosing continuation, so the outer chain runs once everything
+	// inside it resolves. It is plain value/pointer data (kind, obj, the
+	// shared-immutable *cards.SA and the linked outer chain), never a
 	// closure, so Clone copies it like cast/choosing and a replay re-derives
 	// the same branch. resolveTop checks it after each resolution pass;
 	// handleModes clears it and calls resumeResolution (rules/resolution.go)
 	// with the recorded answer. Nil whenever no resolution is suspended.
 	resume *resumePoint
+
+	// contChain accumulates the enclosing-loop suspension points reported by
+	// effects.Resolve during the current resumeResolution re-entry (through
+	// effects.Host.SuspendContinuation), so resumeResolution can link them as
+	// outer continuations. It is transient engine state: rebuilt on every
+	// re-entry, drained into the resume chain as soon as that re-entry
+	// suspends again, and nil whenever no re-entry is in flight — so a Clone
+	// need not carry it (the same resolution re-derives the same chain).
+	contChain []*cards.SA
 
 	// cast holds the in-progress cast-flow state while choosing ==
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.

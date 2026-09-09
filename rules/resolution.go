@@ -10,10 +10,26 @@
 // until the answer arrives. Resumption re-runs the suspended sub-ability —
 // the exact one that asked, never the chain prefix before it — with the
 // answer attached to the Ctx, and then moves the fully-resolved object off
-// the stack exactly as resolveTop's own tail would have. All resume state
-// is plain value/pointer data (kind/obj plus a *cards.SA into the shared,
-// immutable compiled corpus), never a closure, so Engine.Clone carries it
-// like cast/choosing and a replay re-derives the same branch from the same
+// the stack exactly as resolveTop's own tail would have.
+//
+// fx32's defect: an ask NESTED inside a mode (a Charm whose chosen mode is
+// itself an asking primitive, and where the Charm — or that mode — carries
+// its own SubAbility$ continuation) used to record ONE resume point and
+// overwrite it at each nested ask, so the OUTER continuation the enclosing
+// effect was still carrying was dropped. The resolution mechanism is now a
+// chain of resume points: the innermost point holds the answer the player
+// is being asked, and each point links an `outer` continuation that must
+// run once everything inside it resolves. effects.Resolve reports each
+// suspended loop through effects.Host.SuspendContinuation, and
+// resumeResolution links those reports into the chain, so a nested ask
+// finishes its own continuation AND then continues outward until the chain
+// is empty — every suspended continuation runs, each exactly once.
+//
+// All resume state is plain value/pointer data (kind/obj plus *cards.SA
+// into the shared, immutable compiled corpus, and the linked outer chain is
+// rebuilt deterministically from the same stack object and the same
+// recorded answers), never a closure, so Engine.Clone carries it like
+// cast/choosing and a replay re-derives the same branch from the same
 // recorded intent.
 package rules
 
@@ -29,15 +45,22 @@ import (
 
 // resumePoint is one suspended resolution: which continuation the pending
 // decision's answer resumes ("modes" for a Charm modal pick, "unless_pay"
-// for a CopySpellAbility may-pay), which stack object's resolution is
-// paused, and the exact sub-ability whose effect asked — the point where
-// the chain re-enters, so the sub-abilities before the ask are never
-// re-run. Plain data, cloned by value (the *cards.SA is shared immutable
-// card data, the same class Engine.Clone already shares everywhere).
+// for a CopySpellAbility may-pay, "discard" for a mid-resolution discard
+// choice, and "" for a pure outer continuation that carries no answer),
+// which stack object's resolution is paused, and the exact sub-ability
+// whose effect asked — or, for an outer continuation, the sub-ability to
+// resume walking. `outer` is the continuation that must run after this
+// point (and everything nested inside it) resolves: the rest of the chain
+// the ENCLOSING effect was walking when it launched the nested resolution.
+// A nil `outer` means this is the outermost point of the resolution, whose
+// completion moves the object off the stack. Plain data, cloned by value
+// (the *cards.SA is shared immutable card data, the same class
+// Engine.Clone already shares everywhere).
 type resumePoint struct {
-	kind string
-	obj  state.ObjID
-	sa   *cards.SA
+	kind  string
+	obj   state.ObjID
+	sa    *cards.SA
+	outer *resumePoint
 }
 
 // Ask implements effects.Host.Ask (rules' side of the interface, and the
@@ -45,8 +68,10 @@ type resumePoint struct {
 // point — the suspended object is always the top of stack, because a
 // decision is pending from this moment until it is answered and Advance's
 // loop never runs while one is, so nothing in between can resolve or move —
-// and hands the decision to the ordinary ask path. Always returns true:
-// this engine can always ask.
+// and hands the decision to the ordinary ask path. Its `outer` is nil here:
+// if a resume re-entry posed this nested ask, the enclosing resumeResolution
+// (which owns the continuation of the SA it was re-entering) links it once
+// effects.Resolve returns. Always returns true: this engine can always ask.
 func (e *Engine) Ask(d *decision.Decision) bool {
 	obj := state.ObjID(0)
 	if n := len(e.G.Stack); n > 0 {
@@ -71,6 +96,25 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 // rest of it exactly once.
 func (e *Engine) Suspended() bool { return e.resume != nil }
 
+// SuspendContinuation implements effects.Host.SuspendContinuation: an
+// effects.Resolve loop stopped because the resolution suspended at a
+// mid-resolution ask and is reporting its own suspension point `sa`, so its
+// chain must later resume at sa.Sub. The innermost loop (the one whose `sa`
+// IS the pending ask's ResumeSA) is dropped: the pending frame re-enters
+// that SA itself, which already walks sa.Sub, so recording it would run it
+// twice. Every enclosing loop is recorded, in unwind order — inner loops
+// report before outer ones, which is also the order their continuations run
+// once the innermost resolves.
+func (e *Engine) SuspendContinuation(sa *cards.SA) {
+	if e.resume == nil {
+		return
+	}
+	if sa == e.resume.sa {
+		return // this loop is the one that asked; its own re-entry walks sa.Sub.
+	}
+	e.contChain = append(e.contChain, sa)
+}
+
 // handleModes applies an answered KModes decision — the engine's one KModes
 // handler, serving both the Charm modal pick ("modes") and the UnlessCost$
 // may-pay ("unless_pay"), which the decision's ResumeKind tags. It records
@@ -86,7 +130,7 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 			Text: "modes answered with no resolution suspended"})
 		return
 	}
-	rp := *e.resume
+	rp := e.resume
 	e.resume = nil
 	chosen := d.Chosen(in)
 	labels := make([]string, 0, len(chosen))
@@ -105,10 +149,11 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 // answer, and re-runs the suspended sub-ability — effects.Resolve walks
 // from it through the rest of the chain, which is precisely the
 // continuation that had not run yet. If that continuation asks again the
-// object suspends once more (e.resume is set again and the object stays on
-// the stack); otherwise the fully-resolved object goes where resolveTop's
-// own tail would have sent it.
-func (e *Engine) resumeResolution(rp resumePoint, chosen []decision.Option) {
+// new pending point is linked after this one's own continuation and the
+// object stays on the stack; otherwise — once the re-entry and any outer
+// continuation it carries have all completed — the fully-resolved object
+// goes where resolveTop's own tail would have sent it.
+func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	o := e.G.Obj(rp.obj)
 	if o == nil || o.Zone != state.ZStack {
 		// The suspended object left the stack while the decision was
@@ -196,7 +241,7 @@ func (e *Engine) resumeResolution(rp resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.Discard = ids
-		default: // "modes"
+		default: // "modes", and "" (a pure outer continuation with no answer)
 			ctx.Modes = modeChoiceNames(rp.sa, chosen)
 		}
 		src := rp.obj
@@ -204,10 +249,23 @@ func (e *Engine) resumeResolution(rp resumePoint, chosen []decision.Option) {
 			src = o.Source
 		}
 		e.damaging = src
+		// A fresh re-entry: reset the enclosing-loop continuation reports the
+		// loops of THIS effects.Resolve call will accumulate.
+		e.contChain = e.contChain[:0]
 		effects.Resolve(e, ctx, rp.sa)
 		e.damaging = 0
 		if e.resume != nil {
-			return // the continuation asked again: still suspended, still on the stack.
+			// The re-entry posed a nested mid-resolution ask. The new
+			// pending point (e.resume) has no outer yet: it must, once its
+			// own answer is applied, continue at the rest of THIS re-entry's
+			// chain (the loops effects.Resolve reported via
+			// SuspendContinuation this pass) and then at rp.outer — the
+			// continuation the frame we were re-entering was itself carrying.
+			// Linking them now means the nested ask, when answered, resumes
+			// every suspended continuation rather than dropping the outer
+			// ones (fx32).
+			e.resume.outer = e.buildContinuationChain(e.contChain, rp.obj, rp.outer)
+			return
 		}
 	} else {
 		// A resume with no sub-ability recorded: only reachable from a
@@ -218,17 +276,59 @@ func (e *Engine) resumeResolution(rp resumePoint, chosen []decision.Option) {
 		e.emit(events.Event{Kind: events.Note, Obj: rp.obj,
 			Text: "mid-resolution answer resumed with no sub-ability recorded"})
 	}
-	if o := e.G.Obj(rp.obj); o == nil || o.Zone != state.ZStack {
+	if rp.outer != nil {
+		// No nested ask this pass and the frame itself completed: continue
+		// outward through the runner-up continuations this frame carried.
+		e.resumeResolution(rp.outer, nil)
+		return
+	}
+	e.finishResumption(rp.obj)
+}
+
+// buildContinuationChain turns the enclosing-loop suspension points reported
+// for one re-entry into a linked run of pure-continuation frames (kind ""),
+// in report order — inner continuations first, outer last — and chains the
+// given `tail` (the outer continuation of the frame being re-entered) onto
+// the end. The resulting head is the what the new pending point must run
+// after its own answer, or nil if there is nothing left to continue.
+func (e *Engine) buildContinuationChain(sas []*cards.SA, obj state.ObjID, tail *resumePoint) *resumePoint {
+	var head, prev *resumePoint
+	for _, sa := range sas {
+		f := &resumePoint{obj: obj, sa: sa.Sub}
+		if head == nil {
+			head = f
+		} else {
+			prev.outer = f
+		}
+		prev = f
+	}
+	if prev != nil {
+		prev.outer = tail
+	} else {
+		head = tail
+	}
+	return head
+}
+
+// finishResumption is the shared tail of resolveTop and resumeResolution: a
+// fully resolved spell leaves the stack for the battlefield when it is a
+// permanent (CR 608.3), otherwise to its resting zone (exile for a
+// Flashback cast or a copy, the graveyard for the rest).
+// ensureLeftTheStack then guards the same replacement-discarded-the-move
+// corner both callers already guard, so a resolution can never leave its
+// object resolving forever.
+func (e *Engine) finishResumption(id state.ObjID) {
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZStack {
 		return // the continuation already moved it (or it ceased to exist).
 	}
-	if e.G.Obj(rp.obj).Ability != nil {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: rp.obj, From: state.ZStack, To: state.ZExile})
-		e.ensureLeftTheStack(rp.obj, state.ZExile, "a replacement fully discarded this resolved "+
+	if e.G.Obj(id).Ability != nil {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZExile})
+		e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this resolved "+
 			"ability's own move off the stack without relocating it anywhere; sent to exile "+
 			"instead of re-resolving forever")
 		return
 	}
-	e.moveResolvedOffStack(e.G.Obj(rp.obj))
+	e.moveResolvedOffStack(e.G.Obj(id))
 }
 
 // modeChoiceNames maps the chosen modal options back to the SVar names of
