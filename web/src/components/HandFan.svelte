@@ -48,10 +48,17 @@
 
   const CARD_W = 128;
   const GAP = 10;
-  // A huge hand on a narrow board still fits: the spec's maxWidth is the
-  // container's actual client width, measured below, so the fan never grows
-  // past the viewport. With no measured width (SSR / a unit test with width 0)
-  // the constraint is unbounded and the fan lays out with full gaps.
+  // The constraint is the room the BOARD has, so the fan never grows past the
+  // viewport and the overlap tightens instead.
+  //
+  // This measures the full-width track element, NOT the fan row inside it.
+  // Observing the fan itself measured this component's own output -- the row's
+  // width is set from layout.rowWidth, so maxWidth settled at whatever width
+  // the fan had already chosen and the constraint never bound. The overlap
+  // path was reachable only from a unit test passing `width` explicitly; in a
+  // real client a large hand simply ran off the board. The track is laid out
+  // by the board and never by the fan, which is what makes it a real
+  // measurement.
   let container = $state<HTMLElement | null>(null);
   let measured = $state(0);
   $effect(() => {
@@ -62,7 +69,8 @@
     ro.observe(container);
     return () => ro.disconnect();
   });
-  const maxW = $derived(width > 0 ? width : measured > 0 ? measured : Number.MAX_SAFE_INTEGER);
+  const room = $derived(width > 0 ? width : measured);
+  const maxW = $derived(room > 0 ? Math.max(CARD_W, room) : Number.MAX_SAFE_INTEGER);
   const spec: HandFanSpec = $derived({ cardWidth: CARD_W, gap: GAP, maxWidth: maxW });
   const layout = $derived(handFanLayout(hand.length, spec));
 
@@ -99,7 +107,11 @@
 </script>
 
 {#if hand.length > 0}
-  <div class="handfan" style:--card-w="{CARD_W}px" style:width="{layout.rowWidth}px" bind:this={container}>
+  <!-- The track spans the board and is the measured element; the fan row is
+       centred inside it. Both are pointer-transparent; only a face claims the
+       pointer. -->
+  <div class="handtrack" bind:this={container}>
+  <div class="handfan" style:--card-w="{CARD_W}px" style:width="{layout.rowWidth}px">
     {#each hand as c, i (c.id)}
       <!-- A hand card is NOT a board permanent: no tapped/attacking/counters
            chrome, just the face plus the shared hover inspector. -->
@@ -123,6 +135,7 @@
       <CardDetail card={hovered} anchor={anchor} />
     {/if}
   </div>
+  </div>
 {/if}
 
 <style>
@@ -133,13 +146,22 @@
      the fan stay click-through, and the fan can never eat a click or hover
      meant for the seat panel's decision UI (which floats at the TOP of the
      board, the opposite edge). */
-  .handfan {
+  .handtrack {
     position: absolute;
-    left: 50%;
+    left: 0;
+    right: 0;
     bottom: 0;
-    transform: translateX(-50%);
-    height: calc(var(--card-w) * 88 / 63);
     z-index: 6;
+    pointer-events: none;
+  }
+  /* The fan owns the whole bottom edge of the board, full width. Anything
+     else that wants to live down here (the seated player's identity bar) is
+     lifted clear of it by --own-hand-h, published from the board rather than
+     hard-coded twice. */
+  .handfan {
+    position: relative;
+    margin-inline: auto;
+    height: calc(var(--card-w) * 88 / 63);
     pointer-events: none;
   }
   /* Each face is absolutely positioned by the layout's step, then that step
