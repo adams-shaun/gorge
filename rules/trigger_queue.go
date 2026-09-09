@@ -577,6 +577,40 @@ func (e *Engine) PendingTriggers() []state.PendingTrigger {
 	return out
 }
 
+// StackOptional reports whether a stack object is an optional triggered
+// ability whose resolution-time yes/no (CR 603.5) has not yet been answered,
+// and which seat answers it. Ruling VW-1: the optionality belongs on the
+// stack entry, because under CR 603.5 the ability is already on the stack
+// when the question is posed, so the queue is empty at that moment. It
+// reuses the same OptionalDecider$ read and deciderFromSpec derivation as
+// the placement and resolution paths rather than re-deriving the spec
+// grammar — the view asks for the answer through view.Chars.
+//
+// It reports not-optional for anything that is not a face trigger (an
+// activated ability, or a source whose face has since changed or gone), and
+// for a trigger whose decider has left the game — a decider who is nobody
+// has already ceased to exist (CR 800.4a), so such an object is never
+// observed awaiting its question on the stack.
+func (e *Engine) StackOptional(id state.ObjID) (optional bool, decider state.PlayerID) {
+	o := e.G.Obj(id)
+	if o == nil || o.Ability == nil {
+		return false, 0
+	}
+	t, ok := e.findTriggerForAbility(o.Source, o.Ability)
+	if !ok {
+		return false, 0
+	}
+	spec := t.Params["OptionalDecider"]
+	if spec == "" {
+		return false, 0
+	}
+	who, askable := e.deciderFromSpec(spec, o.Controller, o.Remembered)
+	if !askable {
+		return false, 0
+	}
+	return true, who
+}
+
 // triggerLabel is what a client shows for one pending trigger. The card's own
 // TriggerDescription$ is the text a real player would recognise; the source's
 // name disambiguates two copies of the same card.
