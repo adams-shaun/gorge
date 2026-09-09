@@ -288,12 +288,20 @@ func listPackages(cwd string) []pkgInfo {
 	return pkgs
 }
 
+// runGit runs a child git process. Every git call site goes through here so
+// the environment a child git inherits — currently the caller's, which the
+// companion fix commit scrubs of inherited GIT_* variables — is controlled in
+// one place.
+func runGit(args ...string) ([]byte, error) {
+	return exec.Command("git", args...).Output()
+}
+
 // stagedFiles returns every staged file path. Unlike a .go-only scan it is the
 // full change set, so a package is "changed" when ANY real file in it is staged
 // -- the history-file scrub in nonArtifacts/packagesForFiles is what keeps the
 // tool's own bookkeeping from counting as a change.
 func stagedFiles() []string {
-	out, err := exec.Command("git", "diff", "--cached", "--name-only").Output()
+	out, err := runGit("diff", "--cached", "--name-only")
 	if err != nil {
 		fatal("git diff --cached: %v", err)
 	}
@@ -625,12 +633,12 @@ func median(values []float64) float64 {
 // headCommit returns `git rev-parse --short HEAD`, with a "+" suffix when the
 // working tree is dirty.
 func headCommit() string {
-	out, err := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
+	out, err := runGit("rev-parse", "--short", "HEAD")
 	if err != nil {
 		return "unknown"
 	}
 	sha := strings.TrimSpace(string(out))
-	status, _ := exec.Command("git", "status", "--porcelain").Output()
+	status, _ := runGit("status", "--porcelain")
 	if len(strings.TrimSpace(string(status))) > 0 {
 		sha += "+"
 	}
