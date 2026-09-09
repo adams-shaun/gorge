@@ -701,10 +701,45 @@ var acceptanceHeads = map[int]string{
 	// main: the new head is stable across repeated runs, the ratchet is
 	// unchanged at 0 of 436, and the CR lane is unchanged at 2 FAIL / 83
 	// PASS. The seat's own reported head predates the b2 and f05 merges.
+	// f12 moved THREE of the four -- 4, 6 and 8 seats; the 2-seat game is
+	// byte-identical. The cause is CR 601.2b: a modal spell now announces its
+	// modes after it reaches the stack and BEFORE targets are chosen and costs
+	// are paid, instead of choosing them at resolution.
+	//
+	// Measured by the controller at the gate, not taken from the seat's
+	// report: both complete acceptance logs were dumped at every seat count
+	// and the first divergent event located. In all three moved games it is
+	// the same card and the same shape -- seat 2 (eldrazi-stompy) casting
+	// Warping Wail, at seq 2386 (4 seats), 3814 (6) and 6452 (8). The 4-seat
+	// pair reads:
+	//
+	//   before: 2385 stack_push Warping Wail
+	//           2386 mana_add -3
+	//           2387 priority                 <- resolved with NO mode
+	//   after:  2385 stack_push Warping Wail
+	//           2386 decision_ask   modes
+	//           2387 decision_made  modes:[0]
+	//           2388 mode_chosen    "Exile target creature with power or
+	//                                toughness 1 or less."
+	//           2389 decision_ask   target
+	//           2390 decision_made  target:[3]
+	//           2391 targets_chosen IDs:[84]
+	//           2392 mana_add -3               <- payment now comes last
+	//
+	// So this is a real board divergence, not log churn: the spell used to be
+	// paid for and resolve having chosen nothing and exiled nothing. It now
+	// exiles a creature. The 2-seat game never casts Warping Wail, which is
+	// the check that this reaches only the games that cast a modal spell.
+	//
+	// Also measured at the gate: `make sim` 20/20 replay OK, the ratchet
+	// unchanged, and the CR conformance lane 2 FAIL / 83 PASS -> 0 FAIL / 85
+	// PASS, the two Charm arms this task owned flipping green with nothing
+	// regressing. The seat's own reported 8-seat head predates the pc1 and
+	// pc2 merges; these are re-measured on a branch rebased onto this main.
 	2: "cf9a4dde728b3d2b",
-	4: "eb7d29ebeee83e66",
-	6: "68170fbafc180911",
-	8: "9afaf73a115d1b29",
+	4: "662c4e5bcdca0716",
+	6: "a9437f5b821bf2f8",
+	8: "50e4812486e552a7",
 }
 
 func TestHeads(t *testing.T) {
