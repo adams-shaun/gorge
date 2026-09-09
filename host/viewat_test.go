@@ -138,7 +138,14 @@ func (o *forwardOracle) viewAt(seq uint64) view.View {
 			events.Apply(e.G, o.l.Events[s])
 		}
 	}
-	return view.ProjectFor(e.G, e, view.NoSeat, view.Omniscient, nil)
+	v := view.ProjectFor(e.G, e, view.NoSeat, view.Omniscient, nil)
+	// ui13: the round is the exact round-trip count (view.RoundOf over the
+	// ordered event stream up to seq), not the snapshot-only roundOf
+	// approximation ProjectFor fills in. viewAt applies the same fold, so
+	// the oracle must too, or this test would compare the exact count
+	// against the old approximation and fail by design.
+	v.Round = view.RoundOf(e.G, o.l.Events[:seq+1])
+	return v
 }
 
 func TestViewAtFromSnapshotsEqualsViewAtFromGenesis(t *testing.T) {
@@ -212,6 +219,10 @@ func TestViewAtHeadEqualsTheLiveProjection(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := view.ProjectFor(m.e.G, m.e, view.NoSeat, view.Omniscient, nil)
+	// ui13: the live projection and ViewAt(head) both report the exact round
+	// (view.RoundOf over the whole log), not the snapshot-only roundOf
+	// approximation ProjectFor fills in.
+	want.Round = view.RoundOf(m.e.G, m.e.L.Events)
 	if viewJSON(t, got) != viewJSON(t, want) {
 		t.Fatal("ViewAt(head) differs from projecting the live engine")
 	}

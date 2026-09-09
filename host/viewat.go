@@ -342,5 +342,11 @@ func viewAt(cfg rules.Config, l *events.Log, snaps []snapshot, seq uint64, viewe
 	for s := bounds[j]; s <= seq; s++ {
 		events.Apply(e.G, l.Events[s])
 	}
-	return view.ProjectFor(e.G, e, viewer, vis, d), nil
+	v = view.ProjectFor(e.G, e, viewer, vis, d)
+	// The round at seq is the exact round-trip count as of that moment, not
+	// the snapshot-only roundOf approximation ProjectFor fills in (ui13): fold
+	// the logged events up to and including seq. This is what makes the DVR's
+	// round match the live board clock across a mid-round elimination.
+	v.Round = view.RoundOf(e.G, l.Events[:seq+1])
+	return v, nil
 }

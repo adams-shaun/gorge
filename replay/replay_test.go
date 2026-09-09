@@ -11,6 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/seat"
+	"github.com/adams-shaun/gorge/view"
 )
 
 // maxIntents bounds every drive loop below so a genuine engine bug (an
@@ -557,5 +558,47 @@ func TestReplayVerifiesANoHashLog(t *testing.T) {
 	}
 	if got, want := len(rep.L.Events), len(orig.L.Events); got != want {
 		t.Errorf("event count = %d, want %d", got, want)
+	}
+}
+
+// TestRoundFoldsIdenticallyAcrossReplay is ui13's replay-equality proof. The
+// exact round-trip count must be identical on a live game and on a log-only
+// reconstruction of the same game -- the property the AGENTS.md row says
+// matters most. view.RoundOf is a pure function of the ordered TurnChange
+// stream, and Replay reproduces that stream byte for byte (Ruling P3's
+// incremental compare), so the two counts must agree. The played game runs
+// to completion and therefore contains genuine mid-game eliminations (each
+// loser's PlayerLost and the shorter survivor cycles that follow), which is
+// exactly the path the fold exists to make exact.
+func TestRoundFoldsIdenticallyAcrossReplay(t *testing.T) {
+	cfg, orig := playGame(t, 23)
+
+	// The live game really did shed seats -- otherwise this test does not
+	// exercise the elimination path it exists to pin.
+	var lost int
+	for _, ev := range orig.L.Events {
+		if ev.Kind == events.PlayerLost {
+			lost++
+		}
+	}
+	if lost == 0 {
+		t.Fatalf("played game had no eliminations -- test setup does not cover the fold's elimination path")
+	}
+
+	live := view.RoundOf(orig.G, orig.L.Events)
+
+	rep, err := Replay(orig.L, cfg)
+	if err != nil {
+		t.Fatalf("replay of the live game: %v", err)
+	}
+	replayed := view.RoundOf(rep.G, rep.L.Events)
+	if live != replayed {
+		t.Fatalf("round drifted across replay: live %d, replayed %d", live, replayed)
+	}
+	// And the fold is a pure function of the log alone: folding the recorded
+	// log again (as a log-only reconstruction would) gives the same number
+	// the live engine's own log did.
+	if got := view.RoundOf(orig.G, orig.L.Events); got != live {
+		t.Fatalf("RoundOf is not a pure function of the log: %d != %d", got, live)
 	}
 }
