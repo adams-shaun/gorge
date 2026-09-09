@@ -21,27 +21,80 @@ func init() {
 // the graveyard, which is where the overwhelming majority of movement goes
 // and is a safe default for an unmodelled destination.
 func ParseZone(s string) state.Zone {
+	z, ok := parseZone(s)
+	if !ok {
+		return state.ZGraveyard
+	}
+	return z
+}
+
+func parseZone(s string) (state.Zone, bool) {
 	switch strings.TrimSpace(s) {
 	case "Hand":
-		return state.ZHand
+		return state.ZHand, true
 	case "Battlefield":
-		return state.ZBattlefield
+		return state.ZBattlefield, true
 	case "Library":
-		return state.ZLibrary
+		return state.ZLibrary, true
+	case "Graveyard":
+		return state.ZGraveyard, true
 	case "Exile":
-		return state.ZExile
+		return state.ZExile, true
 	case "Stack":
-		return state.ZStack
+		return state.ZStack, true
 	case "Command":
-		return state.ZCommand
+		return state.ZCommand, true
 	case "Ceased":
-		return state.ZCeased
+		return state.ZCeased, true
 	}
-	return state.ZGraveyard
+	return 0, false
+}
+
+// ParseZones parses an Origin$ zone set. Any and All are wildcards. A false
+// result means at least one token was unknown; callers must not treat it as a
+// graveyard origin.
+func ParseZones(s string) (zones []state.Zone, all, ok bool) {
+	ok = true
+	for _, part := range strings.Split(s, ",") {
+		part = strings.TrimSpace(part)
+		if part == "Any" || part == "All" {
+			all = true
+			continue
+		}
+		z, known := parseZone(part)
+		if !known {
+			ok = false
+			continue
+		}
+		if !zoneIn(zones, z) {
+			zones = append(zones, z)
+		}
+	}
+	return zones, all, ok
+}
+
+func zoneIn(zones []state.Zone, want state.Zone) bool {
+	for _, z := range zones {
+		if z == want {
+			return true
+		}
+	}
+	return false
 }
 
 func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	to := ParseZone(sa.Params["Destination"])
+	var originZones []state.Zone
+	var originAll bool
+	if from, present := sa.Params["Origin"]; present {
+		var valid bool
+		originZones, originAll, valid = ParseZones(from)
+		if !valid {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unrecognised ChangeZone Origin " + from})
+			return
+		}
+	}
 	// WithCountersType$/WithCountersAmount$ make the move put counters on the
 	// permanent it lands on the battlefield with -- the Undying expansion's
 	// "return to the battlefield with a +1/+1 counter" (cards/keywords.go). The
@@ -82,7 +135,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// moved away by an earlier effect in the same resolution, or by a
 		// response that has already resolved, is simply skipped rather than
 		// moved a second time or moved from the wrong zone.
-		if from, ok := sa.Params["Origin"]; ok && o.Zone != ParseZone(from) {
+		if _, present := sa.Params["Origin"]; present && !originAll && !zoneIn(originZones, o.Zone) {
 			continue
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: to})
@@ -105,18 +158,32 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 }
 
 func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
-	from, to := ParseZone(sa.Params["Origin"]), ParseZone(sa.Params["Destination"])
+	from, all, valid := ParseZones(sa.Params["Origin"])
+	if !valid {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unrecognised ChangeZoneAll Origin " + sa.Params["Origin"]})
+		return
+	}
+	if all {
+		from = []state.Zone{
+			state.ZLibrary, state.ZHand, state.ZBattlefield, state.ZGraveyard,
+			state.ZExile, state.ZStack, state.ZCommand, state.ZCeased,
+		}
+	}
+	to := ParseZone(sa.Params["Destination"])
 	spec := sa.Params["ChangeType"]
 	if spec == "" {
 		spec = "Card"
 	}
 	g := h.Game()
-	for _, p := range g.AliveFrom(0) {
-		// Snapshot the zone: emitting move events mutates it underneath us.
-		ids := append([]state.ObjID(nil), g.Zone(from, p)...)
-		for _, id := range ids {
-			if MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
-				h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: from, To: to})
+	for _, z := range from {
+		for _, p := range g.AliveFrom(0) {
+			// Snapshot the zone: emitting move events mutates it underneath us.
+			ids := append([]state.ObjID(nil), g.Zone(z, p)...)
+			for _, id := range ids {
+				if MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
+					h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: to})
+				}
 			}
 		}
 	}

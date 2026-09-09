@@ -1,30 +1,21 @@
 package effects
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
-// TestParseZone confirms the mechanism behind Task fx26 before the
-// behavioural leaf below. effects/zone.go's ParseZone maps Forge zone names to
-// a single state.Zone, and the names it does NOT handle ("Any", a
-// comma-separated list like "Battlefield,Graveyard") fall through the switch
-// to `return state.ZGraveyard`.
-//
-// This test ASSERTS THE CURRENT (DEFECTIVE) BEHAVIOUR on those unhandled
-// names so the mechanism is pinned and documented; it is not an oracle for
-// what ParseZone should return. The behavioural consequence is exercised by
-// TestChangeZoneOriginAnyMovesANonGraveyardObject, and any fix to ParseZone
-// (or to the way effChangeZone special-cases Origin$ Any / a list) will need
-// this test revisited alongside it.
+// TestParseZone characterises the new split contract: ParseZone retains its
+// single-zone destination behaviour, while ParseZones gives Origin$ its set
+// semantics and rejects unknown tokens instead of treating them as graveyard.
 func TestParseZone(t *testing.T) {
-	cases := []struct {
+	for _, c := range []struct {
 		in   string
 		want state.Zone
 	}{
-		// Names ParseZone handles correctly.
 		{"Hand", state.ZHand},
 		{"Battlefield", state.ZBattlefield},
 		{"Library", state.ZLibrary},
@@ -33,47 +24,75 @@ func TestParseZone(t *testing.T) {
 		{"Command", state.ZCommand},
 		{"Ceased", state.ZCeased},
 		{"Graveyard", state.ZGraveyard},
-		// Names ParseZone does NOT handle: both fall through to ZGraveyard.
-		{"Any", state.ZGraveyard},
-		{"Battlefield,Graveyard", state.ZGraveyard},
-	}
-	for _, c := range cases {
+	} {
 		if got := ParseZone(c.in); got != c.want {
 			t.Errorf("ParseZone(%q) = %v, want %v", c.in, got, c.want)
 		}
 	}
+
+	for _, c := range []struct {
+		in        string
+		want      []state.Zone
+		wantAll   bool
+		wantValid bool
+	}{
+		{"Battlefield", []state.Zone{state.ZBattlefield}, false, true},
+		{"Any", nil, true, true},
+		{"All", nil, true, true},
+		{"Battlefield, Graveyard", []state.Zone{state.ZBattlefield, state.ZGraveyard}, false, true},
+		{"Battlefield,Nowhere", []state.Zone{state.ZBattlefield}, false, false},
+	} {
+		got, all, valid := ParseZones(c.in)
+		if !slices.Equal(got, c.want) || all != c.wantAll || valid != c.wantValid {
+			t.Errorf("ParseZones(%q) = (%v, %v, %v), want (%v, %v, %v)",
+				c.in, got, all, valid, c.want, c.wantAll, c.wantValid)
+		}
+	}
 }
 
-// TestChangeZoneOriginAnyMovesANonGraveyardObject is the Task fx26
-// deliverable: a ChangeZone effect whose Origin$ says "Any" must move an
-// object that is NOT in a graveyard. A permanent on the battlefield is the
-// clearest case. Because ParseZone("Any") resolves to ZGraveyard,
-// effChangeZone's precondition `o.Zone != ParseZone("Any")` reads as "skip
-// unless the object is in the GRAVEYARD", so a battlefield permanent is
-// silently skipped -- no MoveZone event, no Note, no log entry.
-//
-// EXPECTED TO FAIL on main. That is the point.
+// TestChangeZoneOriginAnyMovesANonGraveyardObject characterises Origin$ set
+// semantics for the latent Any spelling and the live All and comma-list
+// spellings. Each must admit a battlefield object and emit exactly one move.
 func TestChangeZoneOriginAnyMovesANonGraveyardObject(t *testing.T) {
+	for _, origin := range []string{"Any", "All", "Battlefield,Graveyard"} {
+		t.Run(origin, func(t *testing.T) {
+			g, ids := board(t)
+			h := &fakeHost{g: g}
+			id := ids["myBear"]
+			if g.Obj(id).Zone != state.ZBattlefield {
+				t.Fatalf("fixture: myBear is %v, want battlefield", g.Obj(id).Zone)
+			}
+			Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: id}}},
+				sa(t, "SP$ ChangeZone | ValidTgts$ Permanent | Origin$ "+origin+" | Destination$ Hand"))
+
+			if g.Obj(id).Zone != state.ZHand {
+				t.Fatalf("zone = %v, want Hand: Origin$ %s must admit a battlefield permanent", g.Obj(id).Zone, origin)
+			}
+			var moves []events.Event
+			for _, e := range h.log {
+				if e.Kind == events.MoveZone {
+					moves = append(moves, e)
+				}
+			}
+			if len(moves) != 1 {
+				t.Fatalf("MoveZone events = %d, want exactly 1: %+v", len(moves), h.log)
+			}
+		})
+	}
+}
+
+func TestChangeZoneUnknownOriginFailsClosedAndNotes(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
 	id := ids["myBear"]
-	if g.Obj(id).Zone != state.ZBattlefield {
-		t.Fatalf("fixture: myBear is %v, want battlefield", g.Obj(id).Zone)
-	}
 	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: id}}},
-		sa(t, "SP$ ChangeZone | ValidTgts$ Permanent | Origin$ Any | Destination$ Hand"))
+		sa(t, "SP$ ChangeZone | ValidTgts$ Permanent | Origin$ Nowhere | Destination$ Hand"))
 
-	if g.Obj(id).Zone != state.ZHand {
-		t.Fatalf("zone = %v, want Hand: Origin$ Any must move a permanent that is not in the graveyard", g.Obj(id).Zone)
+	if g.Obj(id).Zone != state.ZBattlefield {
+		t.Fatalf("zone = %v, want unchanged Battlefield", g.Obj(id).Zone)
 	}
-	var moves []events.Event
-	for _, e := range h.log {
-		if e.Kind == events.MoveZone {
-			moves = append(moves, e)
-		}
-	}
-	if len(moves) != 1 {
-		t.Fatalf("MoveZone events = %d, want exactly 1: %+v", len(moves), h.log)
+	if len(h.log) != 1 || h.log[0].Kind != events.Note {
+		t.Fatalf("events = %+v, want one Note and no MoveZone", h.log)
 	}
 }
 
