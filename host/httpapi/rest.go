@@ -297,3 +297,61 @@ func (h *handler) unsubscribe(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// CreateGameRequest is the POST /api/games body: the format to play, as its
+// wire name ("commander" or "constructed", host.ParseFormat's vocabulary).
+// An absent or empty string means constructed — the zero Format, and the
+// same default the rest of the wire honours.
+type CreateGameRequest struct {
+	Format string `json:"format"`
+}
+
+// CreateGameResponse is what a successful POST /api/games returns: the new
+// table's identity plus the human seat's bearer token and the join path the
+// client follows. Token is the only place the seat credential leaves the
+// server (the caller owns it), so the response is the whole of the
+// hand-off; a viewer replaying the match needs only the table id and seed,
+// both here and on the match's own wire records.
+type CreateGameResponse struct {
+	Table string `json:"table"`
+	Match int    `json:"match"`
+	Seed  uint64 `json:"seed"`
+	Seat  int    `json:"seat"`
+	Token string `json:"token"`
+	// Join is the base-relative path the human opens to sit in the seat,
+	// carrying the seat and its token: /t/<table>?seat=N&token=….
+	Join string `json:"join"`
+}
+
+// games serves POST /api/games: it decodes the format, hands the request to
+// the configured CreateGame builder and returns the new game's identity. The
+// builder owns deck pools, seeding and the token mint; the handler only
+// resolves the format name to a host.Format (400 on an unknown one) and
+// turns a builder failure into a 400 so the client can show it. With no
+// CreateGame configured the endpoint is not part of this server and answers
+// 404 just like any other unserved path.
+func (h *handler) games(w http.ResponseWriter, r *http.Request) {
+	if h.opts.CreateGame == nil {
+		writeError(w, http.StatusNotFound, "not_found", "play-vs-bot games are not enabled on this server")
+		return
+	}
+	var req CreateGameRequest
+	if !decodeBody(w, r, &req) {
+		return
+	}
+	format := host.FormatConstructed
+	if req.Format != "" {
+		f, err := host.ParseFormat(req.Format)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "bad_request", err.Error())
+			return
+		}
+		format = f
+	}
+	resp, err := h.opts.CreateGame(format)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
