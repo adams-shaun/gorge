@@ -673,6 +673,59 @@ func MatchesPlayerSpec(g *state.Game, spec string, p, you state.PlayerID) bool {
 	return false
 }
 
+// SearchStatesQuality reports whether a search's card filter (a ChangeType
+// spec) states a QUALITY of the cards to be found -- a card type, subtype,
+// colour, name, or any other characteristic that narrows what counts -- rather
+// than only a quantity. CR 701.23b lets a player searching a hidden zone for
+// cards with a stated quality decline to find (even if a matching card is
+// present), while CR 701.23d requires a player searching only for a quantity
+// ("a card", "three cards") to find that many, or as many as the zone holds.
+//
+// A spec is quantity-only when every comma alternative is a bare card clause:
+// the universal `Card`/`Any` base with only possession/control predicates
+// (YouOwn, YouCtrl, ...) and no type/subtype/colour/name restriction. Any
+// alternative whose base names a type/identity other than `Card`/`Any`, or
+// that carries any predicate other than a possession/control word, states a
+// quality. This is a property of the FILTER, deliberately independent of
+// Forge's `Mandatory$` parameter, which is recorded in AGENTS.md as
+// deliberately unread and is a different thing.
+func SearchStatesQuality(spec string) bool {
+	for _, alt := range strings.Split(spec, ",") {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		base, rest, _ := strings.Cut(alt, ".")
+		if base != "Card" && base != "Any" {
+			return true
+		}
+		for _, p := range strings.Split(rest, "+") {
+			if p == "" {
+				continue
+			}
+			if !possessionPredicate(p) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// possessionPredicate reports whether a predicate word restricts only who owns
+// or controls the card, not what the card is -- so a `Card.YouOwn` search is
+// still a bare quantity search under CR 701.23d. Every other predicate word is
+// a quality clause, so it fails closed to "states quality" (the conservative
+// direction: it preserves 701.23b's fail-to-find allowance rather than making
+// a stated-quality search mandatory).
+func possessionPredicate(p string) bool {
+	switch p {
+	case "YouOwn", "YouCtrl", "YouControl", "YourControl", "YouControlled",
+		"OppOwn", "OppCtrl", "OpponentOwns", "OpponentControls":
+		return true
+	}
+	return false
+}
+
 // UnknownPredicates lists tokens in a spec this build does not implement. The
 // card-validation pass uses it to refuse cards it would otherwise misplay.
 func UnknownPredicates(spec string) []string {
