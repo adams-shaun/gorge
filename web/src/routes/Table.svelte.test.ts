@@ -62,7 +62,7 @@ describe('Table.svelte seat gating (R-E4-4 / R-E4-5)', () => {
     const { html } = render(Table, { props: { table: 't1' } });
 
     expect(html).not.toContain('data-seat-panel'); // no seat -> no panel
-    expect(html).not.toContain('data-action-arrow'); // spectators never get a highlighted action affordance
+    expect(html).not.toContain('data-hot-strip'); // spectators get the display-only clock, never action tabs
     expect(html).toContain('data-cursor'); // the DVR bar still renders for the spectator
     // the seat identity never reached the MatchState: constructed with no
     // seat context, so no seat-scoped fetch can be built from it
@@ -90,11 +90,13 @@ describe('Table.svelte seat gating (R-E4-4 / R-E4-5)', () => {
     expect(html).toContain('data-phase-track'); // the clock remains, now inside the board shard
     expect(html.indexOf('data-phase-track')).toBeGreaterThan(html.indexOf('<section class="board">'));
     expect(html.indexOf('data-phase-track')).toBeLessThan(html.indexOf('</section>'));
-    expect(html).toContain('data-action-dock');
-    expect(html).toMatch(/class="action-arrow[^"]*\bready\b"[^>]*data-action-arrow/);
-    expect(html).toContain('data-pass');
-    expect(html).toContain('data-fast-forward');
-    expect(html).toContain('data-action-flyout');
+    expect(html).toContain('data-hot-strip');
+    expect(html).toContain('data-hot-tab="actions"');
+    expect(html).toContain('data-hot-tab="pass"');
+    expect(html).toContain('data-hot-tab="ffwd"');
+    expect(html).toContain('data-hot-tab="done"');
+    expect(html).toContain('data-hot-tab="options"');
+    expect(html).not.toContain('data-action-dock'); // ui26's rail dock moved here; it was not duplicated
     expect(html).toContain('data-concede-control');
     // Concede has one page-level control and is not duplicated as a flyout
     // option label beside Pass.

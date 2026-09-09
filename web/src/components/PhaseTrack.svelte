@@ -5,8 +5,8 @@
   import { seatColour } from '../lib/colours';
 
   /**
-   * PhaseTrack is the board's clock: whose turn it is, which round of the
-   * table, and where in the twelve steps the game is standing right now —
+   * PhaseTrack is the board's clock: which round of the table and where in
+   * the twelve steps the game is standing right now —
    * plus the seat's stops, set by clicking the step you want to be handed
    * the game back at.
    *
@@ -46,17 +46,6 @@
   const yours = $derived(seat !== null && view.active === seat);
   const side = $derived<TurnSide>(yours ? 'yours' : 'opponents');
   const other = $derived<TurnSide>(yours ? 'opponents' : 'yours');
-  // The track names whose turn it is. The seat list is the first word (it
-  // carries the authoritative registered name when the table knows one), but
-  // on the live table route `seats` can be EMPTY while the view still carries
-  // each player's own name (the one-shot seed in Table.svelte races the
-  // async tables.lookup — see the ui15 report). Falling straight through to
-  // `Seat ${view.active}` then prints a 0-based index beside the 1-based
-  // `Player N` names everywhere else, so the wire's player name is the
-  // fallback, exactly as IdentityBar does.
-  const activeName = $derived(
-    seats[view.active]?.name ?? view.players.find((p) => p.seat === view.active)?.name ?? `Seat ${view.active}`,
-  );
   const activeColour = $derived(seatColour(view.active, seats));
   // STEPS is a const tuple, so its own indexOf only accepts the twelve
   // literals; view.step is whatever the wire said. Widened once here so an
@@ -84,12 +73,11 @@
   style={`--seat:${activeColour}`}
   aria-label="Round and phase"
 >
-  <!-- Turn and round are state, so they stay — but as one compact leading
-       segment in the cell row, never as a headline row. The duplicated click
-       instructions are gone; every stoppable cell keeps its specific title. -->
-  <div class="clock" data-clock>
-    <span class="whose" data-whose>{yours ? 'Your turn' : `${activeName}’s turn`}</span>
-    <span class="turn"><span class="tk">Round</span><span class="tn">{view.round}</span></span>
+  <!-- Round survives only as a small leading segment in the cell row. Whose
+       turn and the duplicated click instructions are gone: the active-seat
+       perimeter/IdentityBar and each stoppable cell already carry them. -->
+  <div class="clock" data-clock aria-label={`Round ${view.round}`}>
+    <span class="tk">R</span><span class="tn">{view.round}</span>
   </div>
 
   <div class="groups">
@@ -170,29 +158,12 @@
   .clock {
     display: flex;
     align-items: baseline;
-    gap: var(--sp-1);
-    flex: 0 1 auto;
-    max-width: 10rem;
-    padding: var(--sp-1) var(--sp-2);
+    justify-content: center;
+    gap: 0.3em;
+    flex: 0 0 2.5rem;
+    padding: var(--sp-1);
     border-right: 1px solid var(--edge-inst);
     min-width: 0;
-  }
-  /* Whose turn it is, in that seat's identity colour — the same colour the
-     identity bar and the life grid already use for them, so nobody has to
-     work out which one they are. */
-  .whose {
-    overflow: hidden;
-    font-size: var(--t-12);
-    font-weight: 600;
-    color: var(--seat);
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-  .turn {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.35em;
-    white-space: nowrap;
   }
   .tk {
     font-size: var(--t-10);
@@ -311,14 +282,9 @@
     text-overflow: ellipsis;
   }
 
-  /* Four seats on a laptop: the compact state segment may yield width to the
-     cells, but the track itself never wraps or pushes the page sideways. */
+  /* Four seats on a laptop: the track never wraps or pushes the page sideways. */
   @media (max-width: 60rem) {
-    .clock {
-      max-width: 7rem;
-      padding-left: var(--sp-1);
-      padding-right: var(--sp-1);
-    }
+    .clock { flex-basis: 2rem; }
     .cell {
       padding-left: var(--sp-1);
       padding-right: var(--sp-1);

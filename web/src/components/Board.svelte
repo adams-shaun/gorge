@@ -56,7 +56,7 @@
     /* Half the painted clock plus the named minimum clearance on this edge.
        This changes the actual seat boxes, rather than hoping an overlay happens
        not to cover their contents. */
-    --lane-half: calc(var(--phase-track-row-h) / 2 + var(--phase-card-clearance));
+    --lane-half: calc(var(--phase-lane-h) / 2 + var(--phase-card-clearance));
   }
   /* One pixel of the table's own ground between the seats. Without it four
      panels of the same colour read as one undivided field and the seat rules

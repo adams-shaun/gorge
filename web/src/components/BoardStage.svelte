@@ -2,7 +2,10 @@
   import type { SeatInfo, View } from '../protocol';
   import type { Stops, TurnSide } from '../lib/autopilot';
   import type { CardOptions } from '../lib/cardoptions';
+  import type { SeatCtx } from '../lib/seat';
+  import type { SeatPanelState } from '../lib/seatpanel.svelte';
   import Board from './Board.svelte';
+  import HotButtonStrip from './HotButtonStrip.svelte';
   import PhaseTrack from './PhaseTrack.svelte';
 
   /**
@@ -19,6 +22,7 @@
     stops = null,
     onToggle = null,
     mulligan = false,
+    controls = null,
   }: {
     view: View;
     seats: SeatInfo[];
@@ -27,13 +31,20 @@
     stops?: Stops | null;
     onToggle?: ((step: string, side: TurnSide) => void) | null;
     mulligan?: boolean;
+    /** A live seated route supplies the one seat state every tab delegates to. */
+    controls?: { state: SeatPanelState; ctx: SeatCtx; table: string; match: number } | null;
   } = $props();
 </script>
 
-<div class="board-stage" data-board-stage>
+<div class="board-stage" class:has-controls={controls !== null && !mulligan} data-board-stage>
   <Board {view} {seats} {options} reserveCentre={!mulligan} />
   <div class="phase-shard" class:mulligan data-phase-lane>
-    <PhaseTrack {view} {seats} {seat} {stops} {onToggle} />
+    <div class="phase-instrument" data-centre-instrument>
+      <PhaseTrack {view} {seats} {seat} {stops} {onToggle} />
+      {#if controls !== null && !mulligan}
+        <HotButtonStrip {view} {seats} state={controls.state} ctx={controls.ctx} table={controls.table} match={controls.match} />
+      {/if}
+    </div>
   </div>
 </div>
 
@@ -43,6 +54,13 @@
     width: 100%;
     height: 100%;
     min-width: 0;
+    /* Spectators reserve only the clock. A live seat reserves the attached
+       tabs as well; Board reads this same value, so paint and geometry cannot
+       drift apart. */
+    --phase-lane-h: var(--phase-track-row-h);
+  }
+  .board-stage.has-controls {
+    --phase-lane-h: var(--phase-instrument-h);
   }
   .phase-shard {
     position: absolute;
@@ -51,6 +69,11 @@
     right: 0;
     transform: translateY(-50%);
     z-index: 7;
+    min-width: 0;
+  }
+  .phase-instrument {
+    width: 100%;
+    height: var(--phase-lane-h);
     min-width: 0;
   }
   /* Mulligan keeps the centre for its hand; the clock retains ui26's compact
