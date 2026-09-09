@@ -231,7 +231,17 @@ type targetCandidate struct {
 // legalTargetCandidates is the pure target census shared by cast-option
 // enumeration and the post-announcement target ask. It reads state in the
 // same deterministic order as the old askTarget loops and emits no events.
-func (e *Engine) legalTargetCandidates(p state.PlayerID, source state.ObjID, sa *cards.SA) []targetCandidate {
+//
+// source is the object the spec's Self/Other predicates and the protection
+// test are resolved against (for an ability, the Source permanent).
+// excludeSelf is the object a prospective target may not equal -- the CR
+// 115.5 self-targeting rule. It is separate from source because during a
+// cast/activation proposal the two diverge: a spell on the stack may not
+// target itself (excludeSelf == the card), while an activated ability CAN
+// target its own Source permanent (excludeSelf == 0, since the Face-less
+// ability object is not on the stack yet). Callers set excludeSelf == 0 to
+// disable the rule.
+func (e *Engine) legalTargetCandidates(p state.PlayerID, source, excludeSelf state.ObjID, sa *cards.SA) []targetCandidate {
 	spec := sa.Params["ValidTgts"]
 	zones := targetZones(sa)
 	var out []targetCandidate
@@ -266,7 +276,7 @@ func (e *Engine) legalTargetCandidates(p state.PlayerID, source state.ObjID, sa 
 				// stack -- its own id must never be offered, or a
 				// counterspell would counter itself. Only the source OBJECT
 				// is excluded, never a different copy of the same card.
-				if o == nil || o.Face() == nil || oid == source {
+				if o == nil || o.Face() == nil || (excludeSelf != 0 && oid == excludeSelf) {
 					continue
 				}
 				if effects.MatchesSpecFrom(e.G, spec, oid, p, source) &&
@@ -290,7 +300,7 @@ func (e *Engine) legalTargetCandidates(p state.PlayerID, source state.ObjID, sa 
 				// (Vines of Vastwood) withholds one from the spoke player.
 				// Both function only on the battlefield (CR 604.3), the same
 				// gate as protection above. CR 115.5 excludes the source.
-				if o != nil && o.Face() != nil && oid != source &&
+				if o != nil && o.Face() != nil && (excludeSelf == 0 || oid != excludeSelf) &&
 					effects.MatchesSpecFrom(e.G, spec, oid, p, source) &&
 					!(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc)) &&
 					!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p)) {
@@ -310,7 +320,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
 		Source: source, TargetEffect: describeTargetEffect(sa)}
-	for _, candidate := range e.legalTargetCandidates(p, source, sa) {
+	for _, candidate := range e.legalTargetCandidates(p, source, source, sa) {
 		label := e.G.Players[candidate.player].Name
 		if candidate.obj != 0 {
 			label = e.G.Obj(candidate.obj).Face().Name + " (" + label + ")"
@@ -364,24 +374,41 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 // further option appends one (shape 2 object, 3 player) -- see apply.go's
 // TargetsChosen case and its test TestTargetsChosenAppendShapes.
 func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
-	for i, opt := range d.Chosen(in) {
-		ev := events.Event{Kind: events.TargetsChosen, Obj: d.Source}
-		if opt.Kind == "player" {
-			// shape 1 replace / shape 3 append a single player target.
-			ev.Amount = 1
-			if i > 0 {
-				ev.Amount = 3
+	chosen := d.Chosen(in)
+	// A cast-flow target decision (CR 601.2c, asked by targetAsk after the
+	// object was pushed by pushCast but BEFORE any cost is paid): completing
+	// it means recording the chosen targets onto the stack object and then
+	// committing the transaction -- paying the costs and firing the cast
+	// trigger -- via payCast. For a spell the stack object is the card
+	// itself, already on the stack (pushCast), so targets are recorded before
+	// payment (601.2c before 601.2h); for an activated ability the stack
+	// object is minted by payCast's AbilityPush, so targets are recorded
+	// AFTER it. Targets are never written directly (they go through
+	// TargetsChosen events) and always after the push, because a zone change
+	// clears them.
+	if e.cast != nil {
+		pc := e.cast
+		if pc.ability < 0 {
+			if pc.stackObj != 0 {
+				e.recordChosenTargets(pc.stackObj, chosen)
 			}
-			ev.Player = opt.Player
+			e.payCast()
 		} else {
-			// shape 0 replace / shape 2 append one object target.
-			if i > 0 {
-				ev.Amount = 2
+			e.payCast()
+			if pc.stackObj != 0 {
+				e.recordChosenTargets(pc.stackObj, chosen)
 			}
-			ev.IDs = []state.ObjID{opt.Obj}
 		}
-		e.emit(ev)
+		if e.drainAwaitsTarget {
+			e.drainAwaitsTarget = false
+			e.resumeTriggerDrain()
+		} else {
+			// CR 117.3c: the caster keeps priority after a completed cast.
+			e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
+		}
+		return
 	}
+	e.recordChosenTargets(d.Source, chosen)
 	// A target decision asked by a trigger drain (putTriggersOnStack's
 	// pushTrigger, immediately after the trigger's TriggerPush -- Task 20's
 	// checkTriggers never asked targets, so only a spell's cast-time ask
@@ -398,6 +425,33 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	// Ruling T14-e: the submitting player, not e.G.Active -- CR 117.3c, the
 	// player who chose the target (the caster) keeps priority.
 	e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
+}
+
+// recordChosenTargets emits the TargetsChosen events for a set of chosen
+// target options onto the given object. Amount discriminates the target shape
+// (Ruling T14-b, extended by Task 4): 0 replace-with-object, 1
+// replace-with-player, 2 append-object, 3 append-player. It is the shared
+// recording path for both a cast-flow target decision (onto the stack object,
+// after the push) and a triggered ability's own post-TriggerPush ask.
+func (e *Engine) recordChosenTargets(targetObj state.ObjID, chosen []decision.Option) {
+	for i, opt := range chosen {
+		ev := events.Event{Kind: events.TargetsChosen, Obj: targetObj}
+		if opt.Kind == "player" {
+			// shape 1 replace / shape 3 append a single player target.
+			ev.Amount = 1
+			if i > 0 {
+				ev.Amount = 3
+			}
+			ev.Player = opt.Player
+		} else {
+			// shape 0 replace / shape 2 append one object target.
+			if i > 0 {
+				ev.Amount = 2
+			}
+			ev.IDs = []state.ObjID{opt.Obj}
+		}
+		e.emit(ev)
+	}
 }
 
 // resolveTop resolves the object on top of the stack and moves it to

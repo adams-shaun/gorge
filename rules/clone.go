@@ -27,6 +27,7 @@ func (e *Engine) Clone() *Engine {
 		applyingReplacement: e.applyingReplacement,
 		choosing:            e.choosing,
 		drainAwaitsTarget:   e.drainAwaitsTarget,
+		deferCastTrigger:    e.deferCastTrigger,
 		// blockerRound (combat.go, Task m34): the declare-blockers round's
 		// defender list and cursor, plain-value state like the mulligan round.
 		// The order slice itself is never mutated (askBlockers only advances
@@ -146,7 +147,20 @@ func (e *Engine) Clone() *Engine {
 		pc.cost.SubCounter = append([]CostPart(nil), e.cast.cost.SubCounter...)
 		pc.delve = append([]state.ObjID(nil), e.cast.delve...)
 		pc.sacs = append([]state.ObjID(nil), e.cast.sacs...)
+		pc.preSuppress = cloneSuppressed(e.cast.preSuppress)
 		c.cast = &pc
+		// The held-back cast trigger (CR 601.2i, cast.go): a clone taken at an
+		// intent boundary while a cast is suspended (its target/choose decision
+		// pending) must carry the deferred PutOnStack event and its LKI so that
+		// re-Submitting the target answer still fires the cast trigger in the
+		// clone, exactly as it does in the original. The event is a value; the
+		// LKI is a read-only snapshot safely shared like every other immutable
+		// Object pointer in this function.
+		if e.deferredPush != nil {
+			ev := *e.deferredPush
+			c.deferredPush = &ev
+		}
+		c.deferredPushLKI = e.deferredPushLKI
 	}
 	if e.cmdZone != nil {
 		// The parked commander zone changes (CR 903.9, Task m32): a clone

@@ -96,7 +96,6 @@ func TestCR602PhyrexianActivationCannotPayColorlessWithoutLife(t *testing.T) {
 }
 
 func TestCR602ActivationTargetsPrecedePayment(t *testing.T) {
-	requireCR601Audit(t, "CR 602.2b: activation pays mana and sacrifice before targets")
 	reg := testutil.CorpusRegistry(t)
 	e := crAbortEngine(t, reg, "ur-delver", "Qasali Pridemage")
 	id := crAbortMove(t, e, 0, "Qasali Pridemage", state.ZBattlefield)
@@ -124,7 +123,6 @@ func TestCR602ActivationTargetsPrecedePayment(t *testing.T) {
 }
 
 func TestCR602IllegalActivationReversesSacrificeAndConsequences(t *testing.T) {
-	requireCR601Audit(t, "CR 602.2/733.1: impossible activation loses sacrifice/mana and triggers a death")
 	reg := testutil.CorpusRegistry(t)
 	e := crAbortEngine(t, reg, "ur-delver", "Qasali Pridemage", "Blood Artist")
 	id := crAbortMove(t, e, 0, "Qasali Pridemage", state.ZBattlefield)
