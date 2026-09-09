@@ -64,6 +64,24 @@ type pendingCast struct {
 	payColor state.Mana
 	payLife  int32
 
+	// raise / reduce / taxGeneric carry the CR 601.2f cost composition: the
+	// RaiseCost and ReduceCost generic amounts (computed in beginCast for a
+	// spell, beginActivation for an ability) and the CR 903.8 commander tax.
+	// They are applied to the mana cost only AFTER {X} is folded into Generic
+	// (manaToPay), so an {X} reduction is not lost and the tax (an additional
+	// cost) is never reduced -- increases before reductions, per 601.2f.
+	raise      int32
+	reduce     int32
+	taxGeneric int32
+
+	// windowDone is set when the 601.2g mana window was answered "done", so
+	// payCast proceeds straight to payment instead of re-offering it.
+	windowDone bool
+	// passedTarget is set once the flow has moved past the 601.2c target
+	// choice into payCast, so a resume through continueCast (the mana-window
+	// re-entry) does not re-ask for targets.
+	passedTarget bool
+
 	// stackObj is the id of the object pushCast placed on the stack (the
 	// spell card itself, or an activated ability's AbilityPush-minted
 	// object). Zero until pushCast runs; handleTarget records the chosen
@@ -293,7 +311,14 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// that same cost. An out-of-range AltCostIndex (a stale option from a
 	// board state that no longer holds the granting static) falls back to
 	// the base cost rather than indexing out of bounds.
-	cost := e.adjustedCost(p, id)
+	//
+	// The cost stored here is the RAW selected cost, with no cost modifiers
+	// (CR 601.2f): RaiseCost/ReduceCost are applied later, in manaToPay,
+	// once {X} is folded into Generic. adjustedCost's modifier-into-generic
+	// form must not be stored here, or a spell with an {X} in it would have
+	// its reduction applied before X is known (and lost), and a
+	// flashback/alternative recast would drop the modifiers entirely.
+	cost := e.rawBaseCost(p, id)
 	if opt.AltCostIndex > 0 {
 		if alts := e.alternativeCosts(p, id); opt.AltCostIndex-1 < len(alts) {
 			cost = alts[opt.AltCostIndex-1]
@@ -341,12 +366,17 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// that offer can never disagree. For a command-zone commander this is the
 	// plain base + the tax; for every other card/zone it passes cost through
 	// unchanged (commanderTaxFor is a no-op outside the Commander format and
-	// off the command zone). It lands AFTER cost reduction and any keyword
+	// off the command zone). It lands AFTER cost modifiers and any keyword
 	// recast, so an additional cost is never reduced by them, in line with how
 	// Kicker's own additional cost composes.
-	cost = e.commanderTaxFor(p, id, cost)
-
-	e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1, cost: cost}
+	//
+	// The tax is captured as a separate generic amount (taxGeneric) rather
+	// than folded into cost, so manaToPay adds it AFTER the 601.2f modifiers
+	// and never lets those spill onto it.
+	tax := e.commanderTaxAmount(p, id)
+	raise, reduce := e.costModifiers(p, id, "Spell")
+	e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
+		cost: cost, raise: raise, reduce: reduce, taxGeneric: tax}
 	e.collectETBChoices(p)
 	e.continueCast()
 }
@@ -414,7 +444,7 @@ func (e *Engine) xAsk() bool {
 	bound := pool.Total() + gy + 1
 	var max int32
 	for x := int32(0); x <= bound; x++ {
-		wx := pc.cost.WithX(x)
+		wx := e.manaToPayX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
 		if !wx.payable(pool, e.G.Players[pc.player].Life) {
 			break
@@ -448,7 +478,7 @@ func (e *Engine) delveAsk() bool {
 		return false
 	}
 	gy := e.G.Zone(state.ZGraveyard, pc.player)
-	cost := pc.cost.WithX(pc.x)
+	cost := e.manaToPay(pc)
 	generic := cost.Generic
 	if len(gy) == 0 || generic <= 0 {
 		return false
@@ -776,6 +806,54 @@ func (pc *pendingCast) resolvedMana() Cost {
 	return m
 }
 
+// resolvedMana is the X-folded, pip-resolved cost (see above). manaToPay is
+// the full CR 601.2f composition on top of it.
+func (pc *pendingCast) resolvedManaX(x int32) Cost {
+	m := pc.cost.WithX(x)
+	m.Hybrid = nil
+	m.Phyrexian = nil
+	for i := range pc.payColor {
+		m.Colored[i] += pc.payColor[i]
+	}
+	return m
+}
+
+// manaToPay is the CR 601.2f total-cost composition for pc: resolvedMana
+// ({X} folded, hybrid/Phyrexian announcement recorded), then cost increases
+// and reductions applied to Generic in the 601.2f order (increases before
+// reductions, Generic never below {0}), then the CR 903.8 commander tax
+// added last because an additional cost is never reduced. Delve credit is
+// the caller's concern (targetAsk/payCast subtract pc.delve from Generic
+// before the payable/payment check, exactly as before).
+func (e *Engine) manaToPay(pc *pendingCast) Cost {
+	m := pc.resolvedMana()
+	m.Generic += pc.raise
+	m.Generic -= pc.reduce
+	if m.Generic < 0 {
+		m.Generic = 0
+	}
+	m.Generic += pc.taxGeneric
+	return m
+}
+
+// manaToPayX is manaToPay with {X} folded to an explicit value.
+func (e *Engine) manaToPayX(pc *pendingCast, x int32) Cost {
+	m := pc.resolvedManaX(x)
+	m.Generic += pc.raise
+	m.Generic -= pc.reduce
+	if m.Generic < 0 {
+		m.Generic = 0
+	}
+	m.Generic += pc.taxGeneric
+	return m
+}
+
+// hasManaPayment reports whether a cost's mana component is non-empty, per CR
+// 601.2g's "if the total cost includes a mana payment".
+func (c Cost) hasManaPayment() bool {
+	return c.Colored.Total() > 0 || c.Generic > 0
+}
+
 // manaAsk offers the player's payment choice for the next unsettled hybrid or
 // Phyrexian pip of the cost (CR 601.2b), one decision per pip. Only payment
 // alternatives that are legal right now -- a hybrid half with pool mana of
@@ -856,13 +934,20 @@ func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
 }
 
 // castAnswer records a chooseCast answer into the flow, keyed off which
-// stage asked it (every option in one decision shares a Kind).
+// stage asked it (every option in one decision shares a Kind). A mana-window
+// decision (CR 601.2g) is the exception: it offers both "activate" and
+// "done" options, so the CHOSEN option's kind, not the stage's, identifies
+// the answer.
 func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 	pc := e.cast
 	if pc == nil || len(d.Options) == 0 {
 		return
 	}
-	switch d.Options[0].Kind {
+	kind := d.Options[0].Kind
+	if len(chosen) > 0 && (chosen[0].Kind == "activate" || chosen[0].Kind == "done") {
+		kind = chosen[0].Kind
+	}
+	switch kind {
 	case "x":
 		if len(chosen) > 0 {
 			// The value rides on Option.Amount, not Option.Index: xAsk is the
@@ -891,6 +976,26 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		// A Phyrexian pip paid with two life.
 		pc.payLife += 2
 		pc.payIdx++
+	case "activate":
+		// CR 601.2g: the mana window was answered by tapping a mana-ability
+		// source. Tap it and resolve its (unrestricted) mana abilities, the
+		// same body the priority "activate" handler runs, then let
+		// continueCast re-enter payCast to re-price the window.
+		if len(chosen) > 0 {
+			src := chosen[0].Obj
+			e.emit(events.Event{Kind: events.Tap, Obj: src})
+			if o := e.G.Obj(src); o != nil && o.Face() != nil {
+				for _, ma := range o.Face().ManaAbilities() {
+					if e.abilityRestricted(pc.player, src, ma) {
+						continue
+					}
+					e.resolveAbility(src, pc.player, nil, ma, o.Face().SVars)
+				}
+			}
+		}
+	case "done":
+		// CR 601.2g: the player declines further mana abilities; pay the cost.
+		pc.windowDone = true
 	}
 }
 
@@ -930,7 +1035,11 @@ func modeFlags(mode string) string {
 // directly.
 func (e *Engine) targetAsk() bool {
 	pc := e.cast
-	if pc == nil {
+	if pc == nil || pc.passedTarget {
+		// passedTarget: the flow has already moved through the 601.2c target
+		// choice into payCast (a spell or ability whose target was chosen, or
+		// one with no target); a mana-window resume re-enters continueCast and
+		// must not re-ask for a target already settled.
 		return false
 	}
 	o := e.G.Obj(pc.card)
@@ -950,19 +1059,24 @@ func (e *Engine) targetAsk() bool {
 	if sa == nil || sa.Params["ValidTgts"] == "" {
 		return false
 	}
-	// A proposal whose resolved mana cost can no longer be paid can never
-	// complete. Reverse it (CR 733.1), which undoes the pushCast stack move
-	// (E2: no progress was made, so hold this card's option out of the window
-	// rather than re-offering the same unpayable cast). Resolved means X is
-	// fixed and Delve credit is applied, both settled by the stages above.
-	mana := pc.resolvedMana()
+	// A proposal whose resolved mana cost can no longer be paid, and with no
+	// untapped mana-ability source the 601.2g window could activate to enable
+	// it, can never complete. Reverse it (CR 733.1), which undoes the pushCast
+	// stack move (E2: no progress was made, so hold this card's option out of
+	// the window rather than re-offering the same unpayable cast). When such a
+	// source exists, the window (asked later, in payCast) may still supply the
+	// mana, so the proposal is not yet dead -- it proceeds to the target ask
+	// and then the window. Resolved means X is fixed, the CR 601.2f modifiers
+	// are applied and Delve credit is subtracted, all settled by the stages
+	// above.
+	mana := e.manaToPay(pc)
 	if pc.ability < 0 {
 		mana.Generic -= int32(len(pc.delve))
 		if mana.Generic < 0 {
 			mana.Generic = 0
 		}
 	}
-	if !mana.payable(e.G.Players[pc.player].Pool, e.G.Players[pc.player].Life) {
+	if !mana.payable(e.G.Players[pc.player].Pool, e.G.Players[pc.player].Life) && !e.hasUntappedManaSource(pc.player) {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return true
 	}
@@ -1040,6 +1154,11 @@ func (e *Engine) pushCast() bool {
 	if pc == nil || pc.mode == "land" || pc.ability >= 0 {
 		return false
 	}
+	if pc.pushed {
+		// The object is already on the stack (a mana-window resume re-enters
+		// continueCast); do not push it a second time.
+		return false
+	}
 	o := e.G.Obj(pc.card)
 	if o == nil || o.Zone != pc.from {
 		e.cast, e.choosing = nil, chooseNone
@@ -1065,6 +1184,132 @@ func (e *Engine) pushCast() bool {
 	// format gate.
 	if pc.from == state.ZCommand {
 		e.recordCmdCast(pc.player, pc.card)
+	}
+	return false
+}
+
+// recheckIllegal implements CR 601.2e: once every announcement choice (the
+// {X} value) is made but before the cost is paid, the game rechecks that the
+// proposed spell can legally be cast, considering the characteristics the
+// choices changed -- most importantly the mana value with {X} counted at its
+// chosen value (CR 202.3e). A CantBeCast restriction that the chosen {X} now
+// makes applicable forbids the spell, so the proposal is reversed (CR 733.1)
+// and nothing is paid. Only a spell is rechecked: an activated ability's
+// legality was fully gated before it was offered, and 202.3e's X-count is a
+// spell-mana-value rule. Returns true (and has reversed the proposal) when
+// the spell has become illegal.
+func (e *Engine) recheckIllegal(pc *pendingCast) bool {
+	if pc.ability >= 0 {
+		return false
+	}
+	o := e.G.Obj(pc.card)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	// CR 202.3e: the spell's mana value counts {X} at the chosen value, and
+	// is a property of the card's printed mana cost -- never the alternative
+	// cost (flashback) it may be paid with.
+	printed := ParseCost(o.Face().ManaCost)
+	mv := printed.CMC()
+	if printed.X > 0 {
+		mv = printed.WithX(pc.x).CMC()
+	}
+	for _, sv := range e.activeStatics("CantBeCast") {
+		if !e.actorMatches(sv, "Caster", pc.player) {
+			continue
+		}
+		sc := e.specCtx(sv.Source, sv.Controller)
+		sc.HasManaValue = true
+		sc.ManaValue = mv
+		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], pc.card, sc) {
+			e.abortCast(pc, "cast aborted: proposed spell is illegal (CR 601.2e)", false)
+			return true
+		}
+	}
+	return false
+}
+
+// manaWindowAsk implements CR 601.2g: if the total cost includes a mana
+// payment, the player gets a chance to activate mana abilities before paying
+// (601.2h). The engine poses a mid-cast KChoose window -- one "activate"
+// option per untapped mana-ability source the player controls, then a "done"
+// option -- only when the pool alone cannot pay the resolved total cost and
+// at least one such source is untapped; a caster who already has the mana, or
+// has no untapped source, has nothing a window could enable, so payCast
+// proceeds straight to payment. Answering routes through castAnswer
+// (chooseCast): "activate" taps the source and resolves its mana abilities
+// (a tap consumes it, so it is not re-offered) and continueCast re-enters
+// payCast to re-price the window; "done" sets windowDone so payCast pays.
+func (e *Engine) manaWindowAsk() bool {
+	pc := e.cast
+	if pc == nil || pc.windowDone {
+		return false
+	}
+	mana := e.manaToPay(pc)
+	if pc.ability < 0 {
+		mana.Generic -= int32(len(pc.delve))
+		if mana.Generic < 0 {
+			mana.Generic = 0
+		}
+	}
+	if !mana.hasManaPayment() {
+		return false
+	}
+	// A pool that already pays the total cost needs no window (nothing to
+	// gain by activating more mana abilities here).
+	if mana.payable(e.G.Players[pc.player].Pool, e.G.Players[pc.player].Life) {
+		return false
+	}
+	var sources []state.ObjID
+	for _, id := range e.G.Zone(state.ZBattlefield, pc.player) {
+		if !e.untappedManaSource(pc.player, id) {
+			continue
+		}
+		sources = append(sources, id)
+	}
+	if len(sources) == 0 {
+		return false
+	}
+	name := e.G.Obj(pc.card).Face().Name
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Activate mana abilities to pay for " + name, Source: pc.card}
+	for _, id := range sources {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "activate",
+			Obj: id, Label: "Tap " + e.G.Obj(id).Face().Name + " for mana"})
+	}
+	d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "done", Label: "Done"})
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
+}
+
+// untappedManaSource reports whether id is an untapped permanent under the
+// player p's control with at least one unrestricted mana ability.
+func (e *Engine) untappedManaSource(p state.PlayerID, id state.ObjID) bool {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil || o.Tapped {
+		return false
+	}
+	mas := o.Face().ManaAbilities()
+	if len(mas) == 0 {
+		return false
+	}
+	for _, ma := range mas {
+		if !e.abilityRestricted(p, id, ma) {
+			return true
+		}
+	}
+	return false
+}
+
+// hasUntappedManaSource reports whether p controls ANY untapped permanent
+// with a usable mana ability -- the condition under which the 601.2g window
+// could supply the mana a pool alone cannot.
+func (e *Engine) hasUntappedManaSource(p state.PlayerID) bool {
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		if e.untappedManaSource(p, id) {
+			return true
+		}
 	}
 	return false
 }
@@ -1095,6 +1340,23 @@ func (e *Engine) payCast() {
 		e.emit(events.Event{Kind: events.LandPlayed, Player: pc.player})
 		return
 	}
+	// The flow is now past the 601.2c target choice (either it was asked and
+	// answered, or the SA has no target), so a mana-window resume through
+	// continueCast must not re-ask for one.
+	pc.passedTarget = true
+	// CR 601.2e: the game checks that the proposed spell can legally be cast,
+	// once every announcement choice (the {X} value) is known. An illegal
+	// proposal is reversed (CR 733.1) -- see recheckIllegal.
+	if e.recheckIllegal(pc) {
+		return
+	}
+	// CR 601.2g: if the total cost includes a mana payment, the player gets a
+	// chance to activate mana abilities before paying. manaWindowAsk poses
+	// that window (returning true to suspend) only when the pool alone cannot
+	// pay and an untapped mana source exists.
+	if e.manaWindowAsk() {
+		return
+	}
 	if pc.ability >= 0 {
 		// Task 10: an activated ability. The shared stages above (X, Delve --
 		// never present on an ability --, Sac) have already run and been
@@ -1103,7 +1365,7 @@ func (e *Engine) payCast() {
 		// SubCounter part (a CounterChange of -N), and every chosen sacrifice.
 		// The ability object was already minted by pushCast; targets are
 		// recorded onto it by handleTarget.
-		mana := pc.resolvedMana()
+		mana := e.manaToPay(pc)
 		if !e.payMana(pc.player, mana) {
 			e.abortCast(pc, "activation aborted: cost no longer payable", true)
 			return
@@ -1133,7 +1395,7 @@ func (e *Engine) payCast() {
 		e.cast, e.choosing = nil, chooseNone
 		return
 	}
-	mana := pc.resolvedMana()
+	mana := e.manaToPay(pc)
 	mana.Generic -= int32(len(pc.delve))
 	if mana.Generic < 0 {
 		mana.Generic = 0

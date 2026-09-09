@@ -32,8 +32,14 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 		return
 	}
 	ab := f.Abilities[opt.Ability]
+	// CR 602.2b -> 601.2f: an activated ability's total cost composes its
+	// activation cost plus applicable cost increases/reductions. Heartstone's
+	// ReduceCost Type=Ability is applied here (raise/reduce), folded into the
+	// total by manaToPay when the cost is paid -- the same composition a
+	// spell's cast gets.
+	raise, reduce := e.costModifiers(p, opt.Obj, "Ability")
 	e.cast = &pendingCast{player: p, card: opt.Obj, from: o.Zone, ability: opt.Ability,
-		cost: ParseCost(ab.Params["Cost"])}
+		cost: ParseCost(ab.Params["Cost"]), raise: raise, reduce: reduce}
 	e.continueCast()
 }
 
