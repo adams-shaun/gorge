@@ -375,17 +375,29 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 // TargetsChosen case and its test TestTargetsChosenAppendShapes.
 func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
-	// A cast-flow target decision (CR 601.2c, asked by targetAsk BEFORE any
-	// cost is paid): the proposal is provisional, so completing it means
-	// committing the transaction -- pay, move the sacrificed/delved cards,
-	// put the object on the stack -- and THEN recording the chosen targets
-	// onto the object that actually reached the stack (a spell is the card
-	// itself; an activated ability is the AbilityPush-minted object). Targets
-	// are never recorded before the push because a zone change clears them.
+	// A cast-flow target decision (CR 601.2c, asked by targetAsk after the
+	// object was pushed by pushCast but BEFORE any cost is paid): completing
+	// it means recording the chosen targets onto the stack object and then
+	// committing the transaction -- paying the costs and firing the cast
+	// trigger -- via payCast. For a spell the stack object is the card
+	// itself, already on the stack (pushCast), so targets are recorded before
+	// payment (601.2c before 601.2h); for an activated ability the stack
+	// object is minted by payCast's AbilityPush, so targets are recorded
+	// AFTER it. Targets are never written directly (they go through
+	// TargetsChosen events) and always after the push, because a zone change
+	// clears them.
 	if e.cast != nil {
-		targetObj := e.commitCast()
-		if targetObj != 0 {
-			e.recordChosenTargets(targetObj, chosen)
+		pc := e.cast
+		if pc.ability < 0 {
+			if pc.stackObj != 0 {
+				e.recordChosenTargets(pc.stackObj, chosen)
+			}
+			e.payCast()
+		} else {
+			e.payCast()
+			if pc.stackObj != 0 {
+				e.recordChosenTargets(pc.stackObj, chosen)
+			}
 		}
 		if e.drainAwaitsTarget {
 			e.drainAwaitsTarget = false
