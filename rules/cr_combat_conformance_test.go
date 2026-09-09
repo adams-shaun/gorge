@@ -35,7 +35,6 @@ func crCombatAt(e *Engine, s state.Step) {
 // creature must attack. Choosing only the companion satisfies the restriction
 // but not the maximum feasible requirements. Count EXAMINED fixtures, not bugs.
 func TestCR508CorpusRequirementsUnderAttackRestriction(t *testing.T) {
-	requireCR601Audit(t, "CR 508.1c/d: attack declarations do not maximise requirements subject to restrictions")
 	reg := testutil.CorpusRegistry(t)
 	checked := 0
 	for _, c := range reg.Cards {
@@ -158,7 +157,6 @@ func TestCR509PriorityAfterBlockDeclaration(t *testing.T) {
 }
 
 func TestCR510ControllerChoosesMultiBlockDamageDivision(t *testing.T) {
-	requireCR601Audit(t, "CR 510.1c: damage division is automatic in defender declaration order")
 	e := crResolutionEngine(t, []string{"Centaur Courser"}, []string{"Memnite", "Ornithopter"})
 	a := crAbortMove(t, e, 0, "Centaur Courser", state.ZBattlefield)
 	b := crAbortMove(t, e, 1, "Memnite", state.ZBattlefield)
@@ -184,7 +182,6 @@ func TestCR510ControllerChoosesMultiBlockDamageDivision(t *testing.T) {
 }
 
 func TestCR510PriorityBetweenDoubleStrikeDamageSteps(t *testing.T) {
-	requireCR601Audit(t, "CR 510.3/4: both strike passes run before priority")
 	e := crResolutionEngine(t, []string{"Boros Swiftblade"}, nil)
 	a := crAbortMove(t, e, 0, "Boros Swiftblade", state.ZBattlefield)
 	if e.G.Obj(a).Face().PT != "1/2" || !e.HasKeyword(a, "Double Strike") {

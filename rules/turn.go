@@ -88,8 +88,7 @@ func (e *Engine) step() {
 			e.askBlockers()
 		}
 	case state.StepCombatDamage:
-		e.dealCombatDamage()
-		e.setStep(state.StepEndCombat)
+		e.combatStep()
 	default:
 		e.priorityRound()
 	}
@@ -331,6 +330,18 @@ func (e *Engine) advanceStep() {
 		e.beginTurn(e.G.NextAlive(e.G.Active))
 		return
 	}
+	if e.G.Step == state.StepCombatDamage && e.combatRound.hasFirst && e.combatRound.firstDone && !e.combatRound.regularDone {
+		// CR 510.3/4 (Task jj-cmb F37): the between-passes priority round just
+		// completed, so the regular damage pass still owes before the step can
+		// advance. Running it here may suspend again on a controller
+		// damage-division decision (CR 510.1c); if it does, a decision is
+		// pending and this function returns, and the answer resumes through
+		// handleDamageDivision -> finishCombatPass, which moves the step to
+		// end combat. If the pass completes here, finishCombatPass has
+		// already set StepEndCombat, so return without double-advancing.
+		e.beginCombatPass(false)
+		return
+	}
 	e.setStep(e.G.Step + 1)
 	if e.G.Step == state.StepDraw && (len(e.G.Players) != 2 || e.G.Turn > 1) && !e.G.Players[e.G.Active].Lost {
 		// CR 504.1: the draw step's draw is a TURN-BASED ACTION -- it happens
@@ -487,6 +498,14 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// trigger drain (only the turn structure asks it, when no step is
 		// mid-resolution), so e.drainAwaitsTarget is necessarily false here.
 		e.discardCleanup(chosen)
+	case chooseDamageDivision:
+		// Task jj-cmb (F40): the combat damage step's controller
+		// damage-division decision (CR 510.1c) was answered.
+		// handleDamageDivision records the chosen split and either asks the
+		// next undone division or deals the pass -- the combat damage step's
+		// own resume. There is no trigger drain to resume (a division answer
+		// is never handed out from inside one).
+		e.handleDamageDivision(chosen)
 	// Tasks 12, 18 add their cases here; Task D1 adds chooseCleanup.
 	default:
 		e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "choose answered with no flow waiting"})

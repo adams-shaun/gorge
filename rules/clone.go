@@ -34,6 +34,13 @@ func (e *Engine) Clone() *Engine {
 		// the same reference-sharing Clone already practises for
 		// orderedTriggers.
 		blockerRound: e.blockerRound,
+		// combatRound (combat.go, Task jj-cmb): the combat damage step's
+		// pass/division continuation state. The queue, answered divisions
+		// and the pending ask's option-split table are all written in place
+		// as a pass progresses (handleDamageDivision, askNextDivision), so a
+		// clone must own its own copies -- the cast/pendingTriggers class,
+		// not the blockerRound share class.
+		combatRound: cloneCombatRound(e.combatRound),
 		// pregame / mulligan (rules/mulligan.go, engine.go): the London
 		// round's own state. Both are documented on the Engine as fields
 		// Clone copies, and neither was here — so a clone taken between the
@@ -198,6 +205,30 @@ func cloneMulligan(m mulliganRound) mulliganRound {
 	m.kept = append([]bool(nil), m.kept...)
 	m.taken = append([]int(nil), m.taken...)
 	return m
+}
+
+// cloneCombatRound deep-copies the combat damage step's continuation state
+// (combat.go, Task jj-cmb): the division queue, answered divisions and the
+// pending ask's option-split table are all written in place while a pass
+// progresses, so a clone must own its own arrays rather than alias the
+// original's.
+func cloneCombatRound(cr combatRound) combatRound {
+	cr.queue = append([]state.ObjID(nil), cr.queue...)
+	if cr.done != nil {
+		done := make([]divChoice, len(cr.done))
+		for i, dc := range cr.done {
+			done[i] = divChoice{attacker: dc.attacker, amounts: append([]int32(nil), dc.amounts...)}
+		}
+		cr.done = done
+	}
+	if cr.askOptions != nil {
+		table := make([][]int32, len(cr.askOptions))
+		for i, row := range cr.askOptions {
+			table[i] = append([]int32(nil), row...)
+		}
+		cr.askOptions = table
+	}
+	return cr
 }
 
 // cloneResume deep-copies a suspended resolution's resume chain (fx34): each
