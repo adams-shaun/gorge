@@ -585,12 +585,16 @@ func spellRestZone(o *state.Object) state.Zone {
 // for good. If a ValidCard$-matching, ReplacementResult$-absent (this
 // build's "Replaced") R:Event$ Moved replacement on some OTHER object
 // intercepts that specific MoveZone and its own ReplaceWith$ does not itself
-// relocate the card (e.g. it only gains life, or -- the shipped corpus's own
-// Rest in Peace / Dryad Militant shape -- it names Defined$ ReplacedCard,
-// which effects/context.go's Defined does not model and so resolves against
-// a nil Ctx.Targets and relocates nothing), nothing else ever removes id
+// relocate the card (e.g. it only gains life), nothing else ever removes id
 // from e.G.Stack: the next priority round finds the same object on top and
-// resolves it again, forever.
+// resolves it again, forever. Note this is NOT the shipped corpus's own
+// Rest in Peace / Dryad Militant / Leyline of the Void shape: that shape's
+// ReplaceWith$ names Defined$ ReplacedCard, which effects/context.go's
+// Defined DOES model, and with ChangeZone's Origin$ All parsed as a real
+// wildcard (effects/zone.go's ParseZones) it genuinely relocates the card
+// to exile -- so a working Rest-in-Peace-shaped replacement takes the object
+// off the stack itself and the guard never engages. The guard is for the
+// replacements whose ReplaceWith$ truly leaves the card where it was.
 //
 // Originally added by Task 29 (Ruling T26-a) for the permanent-ETB exit
 // alone; the final whole-branch review (Critical C1) measured the identical

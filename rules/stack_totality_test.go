@@ -45,42 +45,57 @@ A:SP$ GainLife | Defined$ You | LifeAmount$ 1
 Oracle:x
 `
 
-// graveyardBlockingSpellsReplacementSrc is Dryad Militant's printed shape
-// (final review, C1): the same broad "would go to a graveyard" replacement
-// as graveyardBlockingReplacementSrc (replacement_updated_test.go), narrowed
-// to ValidCard$ Instant,Sorcery instead of Card -- exactly the corpus's own
-// narrowing, and exactly what makes an ordinary instant resolving under it
-// the reviewer's reproduction.
-const graveyardBlockingSpellsReplacementSrc = `Name:Militant Ward
+// graveyardBlockingSpellsReplacementSrc is a NON-relocating "would go to a
+// graveyard" replacement narrowed to ValidCard$ Instant,Sorcery -- the shape
+// the stack-totality guard exists to protect. The controller ruling (fx28fix1)
+// established that the earlier fixture (Militant Ward / Dryad Militant's
+// printed shape, ReplaceWith$ ChangeZone Origin$ All ... Defined$ ReplacedCard)
+// was only ever a no-op because of the Origin$ All defect, and that with that
+// defect fixed it now genuinely relocates the object to exile. A relocating
+// replacement removes the object from the stack itself, so the guard never
+// fires and such a fixture cannot discriminate on the guard. This one is
+// therefore deliberately non-relocating -- ReplaceWith$ names an effect that
+// does not move the intercepted card -- so the object really is stranded on
+// the stack and only the guard's rescue can land it in the graveyard.
+const graveyardBlockingSpellsReplacementSrc = `Name:Grave Toll
 ManaCost:1 W
 Types:Creature Human Soldier
 PT:2/1
-R:Event$ Moved | Destination$ Graveyard | ValidCard$ Instant,Sorcery | ReplaceWith$ ExileInstead | Description$ if an instant or sorcery card would be put into a graveyard from anywhere, exile it instead
-SVar:ExileInstead:DB$ ChangeZone | Origin$ All | Destination$ Exile | Defined$ ReplacedCard
+R:Event$ Moved | Destination$ Graveyard | ValidCard$ Instant,Sorcery | ReplaceWith$ Levy | Description$ if an instant or sorcery card would be put into a graveyard from anywhere, its controller loses 1 life instead
+SVar:Levy:DB$ LoseLife | LifeAmount$ 1
 Oracle:x
 `
 
-// exileBlockingReplacementSrc mirrors graveyardBlockingReplacementSrc's
-// shape but for Destination$ Exile instead of Graveyard -- the review's I-2
-// shape (an ability object's own ceases-to-exist move, normally parked in
-// exile per CR 608.2m, discarded by an unrelated replacement). ReplaceWith$
-// again names the unmodeled Defined$ ReplacedCard, so it relocates nothing.
-const exileBlockingReplacementSrc = `Name:Void Ward
+// exileBlockingReplacementSrc mirrors graveyardBlockingSpellsReplacementSrc
+// (the review's I-2 shape: an ability object's own ceases-to-exist move,
+// normally parked in exile per CR 608.2m, discarded by an unrelated
+// replacement) but for Destination$ Exile instead of Graveyard, and for the
+// same reason as above it is deliberately NON-relocating: the earlier "Void
+// Ward" fixture used the ReplaceWith$ ChangeZone Origin$ All ...
+// Defined$ ReplacedCard shape, which with the Origin$ All defect fixed now
+// relocates the intercepted card and so could no longer serve as the
+// guard-discriminating scenery. This one intercepts a would-be exile move
+// and does not move the card anywhere, so the object stays on the stack and
+// only ensureLeftTheStack can take it off.
+const exileBlockingReplacementSrc = `Name:Void Toll
 ManaCost:1 U
 Types:Enchantment
-R:Event$ Moved | Destination$ Exile | ValidCard$ Card | ReplaceWith$ RegraveInstead | Description$ if a card or ability would be exiled from anywhere, put it into a graveyard instead
-SVar:RegraveInstead:DB$ ChangeZone | Origin$ All | Destination$ Graveyard | Defined$ ReplacedCard
+R:Event$ Moved | Destination$ Exile | ValidCard$ Card | ReplaceWith$ Bounty | Description$ if a card or ability would be exiled from anywhere, its controller gains 1 life instead
+SVar:Bounty:DB$ GainLife | LifeAmount$ 1
 Oracle:x
 `
 
 // TestInstantResolvingUnderAGraveyardReplacementDoesNotStickOnTheStack is
 // C1's regression test (a): an ordinary instant, cast and resolved while a
-// Dryad-Militant-shaped replacement is on the battlefield. Before the fix
+// graveyard-blocking replacement is on the battlefield. Before the guard
 // (resolveTop's else branch had no ensureLeftTheStack call), this hangs: the
-// instant's own Stack->Graveyard Move is discarded by the replacement (whose
-// ReplaceWith$ relocates nothing), nothing else removes it from the stack,
-// and the bounded drive below exhausts its budget with the spell still on
-// top, re-resolving (GainLife re-applying) every single pass.
+// instant's own Stack->Graveyard Move is discarded by the replacement, which
+// does NOT itself relocate the card (its ReplaceWith$ is deliberately
+// non-relocating, see the fixture's doc above), nothing else removes it from
+// the stack, and the bounded drive below exhausts its budget with the spell
+// still on top, re-resolving every single pass. The guard's rescue is what
+// lands it in the graveyard -- exactly the single Note and single Resolve
+// asserted below.
 func TestInstantResolvingUnderAGraveyardReplacementDoesNotStickOnTheStack(t *testing.T) {
 	e, _, id := newFixtureDeck(t, 110, harmlessInstantSrc)
 	onBoard(t, e, 1, graveyardBlockingSpellsReplacementSrc)
@@ -119,9 +134,9 @@ func TestInstantResolvingUnderAGraveyardReplacementDoesNotStickOnTheStack(t *tes
 		t.Fatalf("passes to drain the stack = %d, want exactly 2", n)
 	}
 	if got := e.G.Obj(id).Zone; got != state.ZGraveyard {
-		t.Fatalf("zone = %s, want graveyard -- Militant Ward's ReplaceWith$ (Defined$ "+
-			"ReplacedCard, unmodeled) relocates nothing, so the guard's own graveyard move "+
-			"must be what lands it there", got)
+		t.Fatalf("zone = %s, want graveyard -- the non-relocating replacement discarded "+
+			"the object's own Stack->Graveyard move without moving it anywhere, so the guard's "+
+			"own graveyard move must be what lands it there", got)
 	}
 	if n := countKind(e.L.Events, events.Note, id); n != 1 {
 		t.Fatalf("logged %d Note events for the guard's escape hatch, want exactly 1", n)
@@ -140,10 +155,12 @@ func TestInstantResolvingUnderAGraveyardReplacementDoesNotStickOnTheStack(t *tes
 // ("the ability-object branch has the identical hazard... not fixed here"):
 // a triggered ability (watcherSrc's plain ETB trigger, fired here by playing
 // a harmless land) resolving normally while an exile-blocking replacement is
-// on the battlefield. Before the fix, the ability object's own
-// Stack->Exile "ceases to exist" Move is discarded and it re-resolves
-// forever (final review measured intents=300000, never terminating, on an
-// equivalent board).
+// on the battlefield. Before the guard, the ability object's own
+// Stack->Exile "ceases to exist" Move is discarded by the replacement,
+// which (deliberately, see the fixture's doc) does not relocate it, so it
+// re-resolves forever (final review measured intents=300000, never
+// terminating, on an equivalent board). The guard's rescue is the single
+// exile move that finally lands it there.
 func TestAbilityObjectResolvingUnderAnExileReplacementDoesNotStickOnTheStack(t *testing.T) {
 	e, _, landID := newFixtureDeck(t, 111, plainLandSrc)
 	onBoard(t, e, 0, watcherSrc)
@@ -182,9 +199,9 @@ func TestAbilityObjectResolvingUnderAnExileReplacementDoesNotStickOnTheStack(t *
 		t.Fatalf("passes to drain the stack = %d, want exactly 2", n)
 	}
 	if got := e.G.Obj(abilityID).Zone; got != state.ZExile {
-		t.Fatalf("zone = %s, want exile -- Void Ward's ReplaceWith$ (Defined$ ReplacedCard, "+
-			"unmodeled) relocates nothing, so the guard's own exile move must be what lands "+
-			"it there", got)
+		t.Fatalf("zone = %s, want exile -- the non-relocating replacement discarded the "+
+			"object's own Stack->Exile move without moving it anywhere, so the guard's own "+
+			"exile move must be what lands it there", got)
 	}
 	if n := countKind(e.L.Events, events.Note, abilityID); n != 1 {
 		t.Fatalf("logged %d Note events for the guard's escape hatch, want exactly 1", n)
@@ -228,16 +245,20 @@ Oracle:x
 // the just-created ability straight to exile rather than letting it sit on
 // the stack. The totality property this file exists to pin -- a fizzling
 // ability whose own Stack->Exile Move is discarded by
-// exileBlockingReplacementSrc (ReplaceWith$ relocates nothing) must not hang
-// or re-resolve forever -- is the same, but it is now exercised at ask time:
-// the ability is created in the same Submit as the land entry and
-// immediately parked in exile, the match terminates, and no Resolve ever
-// runs. Before the guard, deleting askTarget's ensureLeftTheStack call
-// leaves the ability stuck on the stack forever; this asserts the terminal
-// state that guard delivers.
+// exileBlockingReplacementSrc (which deliberately does not relocate it, so
+// the object genuinely stays on the stack) must not hang or re-resolve
+// forever -- is the same, but it is now exercised at ask time: the ability
+// is created in the same Submit as the land entry and immediately
+// fizzled, the match terminates, and no Resolve ever runs. Before the
+// guard, deleting askTarget's ensureLeftTheStack call leaves the ability
+// stuck on the stack forever; this asserts the terminal state that guard
+// delivers. The ability id below is read by the ability object's OWN
+// identity -- its o.Source is the Sentinel permanent -- not by the
+// destination of a logged move, so the discovery holds whatever zone the
+// guard or the replacement lands the object in.
 func TestAbilityFizzlingAtResolutionUnderAnExileReplacementDoesNotStickOnTheStack(t *testing.T) {
 	e, _, landID := newFixtureDeck(t, 112, plainLandSrc)
-	onBoard(t, e, 0, damageWatcherSrc)
+	sentinel := onBoard(t, e, 0, damageWatcherSrc)
 	onBoard(t, e, 1, exileBlockingReplacementSrc)
 	driveToStep(t, e, 1, 0, state.StepMain1)
 
@@ -260,28 +281,29 @@ func TestAbilityFizzlingAtResolutionUnderAnExileReplacementDoesNotStickOnTheStac
 	// Task 7: the Sentinel's ValidTgts ETB trigger fizzles AT ASK TIME (no
 	// creature to target), so the ability object never finishes its turn on
 	// the stack -- it is created by its own TriggerPush and immediately
-	// parked in exile by askTarget's CR 608.2b fizzle. Void Ward discards
-	// that fizzle MoveZone (its ReplaceWith$ relocates nothing), so the
-	// logged to-exile move is the guard's own re-emit; find the ability id
-	// by that move (the only thing this board ever moves to exile).
-	abilityID := state.ObjID(0)
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.MoveZone && ev.To == state.ZExile {
-			abilityID = ev.Obj
+	// fizzled by askTarget's CR 608.2b exit. Find the ability object by its
+	// own identity, not by where a move landed: it is the one stack object
+	// whose o.Source is the Sentinel permanent (the trigger's ability object
+	// id), which is stable whatever zone the guard or the replacement ends
+	// up landing it in.
+	var abilityID state.ObjID
+	for i := range e.G.Objs {
+		if o := &e.G.Objs[i]; o.Ability != nil && o.Source == sentinel {
+			abilityID = o.ID
 			break
 		}
 	}
 	if abilityID == 0 {
-		t.Fatal("no guarded ask-time fizzle MoveZone to exile found in the log")
+		t.Fatal("no ability object with Source == the Sentinel found after the ask-time fizzle")
 	}
 	if len(e.G.Stack) != 0 {
 		t.Fatalf("stack = %v, want empty -- the trigger's ability never sat on the stack "+
 			"(ask-time fizzle)", e.G.Stack)
 	}
 	if got := e.G.Obj(abilityID).Zone; got != state.ZExile {
-		t.Fatalf("zone = %s, want exile -- Void Ward's ReplaceWith$ (Defined$ ReplacedCard, "+
-			"unmodeled) relocates nothing, so the guard's own exile move must be what lands "+
-			"it there", got)
+		t.Fatalf("zone = %s, want exile -- the non-relocating replacement discarded the "+
+			"object's own Stack->Exile move without moving it anywhere, so the guard's own "+
+			"exile move must be what lands it there", got)
 	}
 	noteCount := 0
 	noneLeft := false
@@ -368,9 +390,9 @@ func TestSpellCounteredForNoTargetsAtCastUnderAGraveyardReplacementDoesNotStickO
 		t.Fatalf("stack = %v after resolution-time fizzle, want empty", e.G.Stack)
 	}
 	if got := e.G.Obj(id).Zone; got != state.ZGraveyard {
-		t.Fatalf("zone = %s, want graveyard -- Militant Ward's ReplaceWith$ (Defined$ "+
-			"ReplacedCard, unmodeled) relocates nothing, so the guard's own graveyard move "+
-			"must be what lands it there", got)
+		t.Fatalf("zone = %s, want graveyard -- the non-relocating replacement discarded "+
+			"the object's own Stack->Graveyard move without moving it anywhere, so the guard's "+
+			"own graveyard move must be what lands it there", got)
 	}
 	noteCount := 0
 	noteMentionsFizzle := false
@@ -430,16 +452,16 @@ Oracle:x
 // resolution-time recheck -- a target legal when chosen (fieldRatSrc, alive
 // on the battlefield when both copies were cast and targeted) stops being
 // legal before the bottom copy's own turn to resolve, because the top copy
-// resolved first and killed it. Before the fix, deleting the :291 call
+// resolved first and killed it. Before the guard, deleting the :291 call
 // alone leaves a reachable game hung: the bottom copy's "fizzled: no legal
 // targets remain" Move is discarded by graveyardBlockingSpellsReplacementSrc
-// (ReplaceWith$ relocates nothing, as elsewhere in this file), and nothing
-// else ever takes it off the stack.
+// (which deliberately does not relocate it, see the fixture's doc above),
+// and nothing else ever takes it off the stack.
 //
-// Militant Ward's own ValidCard$ is "Instant,Sorcery", so it does not
-// intercept fieldRatSrc's own (creature) death move -- only the two spells'
-// exits are affected, keeping this test about the spell branch's guard, not
-// the creature's.
+// The graveyard-blocking replacement's own ValidCard$ is "Instant,Sorcery",
+// so it does not intercept fieldRatSrc's own (creature) death move -- only
+// the two spells' exits are affected, keeping this test about the spell
+// branch's guard, not the creature's.
 func TestSpellFizzlingAtResolutionUnderAGraveyardReplacementDoesNotStickOnTheStack(t *testing.T) {
 	spell := card(t, twinDamageInstantSrc)
 	e := handEngine(t, spell, spell)
@@ -496,9 +518,9 @@ func TestSpellFizzlingAtResolutionUnderAGraveyardReplacementDoesNotStickOnTheSta
 			"killed it", got)
 	}
 	if got := e.G.Obj(bottom).Zone; got != state.ZGraveyard {
-		t.Fatalf("zone = %s, want graveyard -- Militant Ward's ReplaceWith$ (Defined$ "+
-			"ReplacedCard, unmodeled) relocates nothing, so the guard's own graveyard move "+
-			"must be what lands it there", got)
+		t.Fatalf("zone = %s, want graveyard -- the non-relocating replacement discarded "+
+			"the object's own Stack->Graveyard move without moving it anywhere, so the guard's "+
+			"own graveyard move must be what lands it there", got)
 	}
 	noteCount := 0
 	noteMentionsFizzled := false
@@ -536,11 +558,12 @@ func TestSpellFizzlingAtResolutionUnderAGraveyardReplacementDoesNotStickOnTheSta
 // its only target is dead, resolveTop's recheck finds zero legal targets, and
 // it fizzles -- moved to exile, never resolving, never running its script.
 //
-// Void Ward (exileBlockingReplacementSrc) is left in play so this also
-// re-pins the totality guard at the resolution-time exit: it intercepts the
-// fizzle's own Stack->Exile MoveZone (ReplaceWith$ relocates nothing), so the
-// logged to-exile move is ensureLeftTheStack's re-emit -- the same guarantee
-// the ask-time test above asserts, reached here through the public
+// The exile-blocking replacement (exileBlockingReplacementSrc) is left in
+// play so this also re-pins the totality guard at the resolution-time exit:
+// it intercepts the fizzle's own Stack->Exile MoveZone (and, being
+// deliberately non-relocating, leaves the object sitting on the stack), so
+// the logged to-exile move is ensureLeftTheStack's re-emit -- the same
+// guarantee the ask-time test above asserts, reached here through the public
 // cast->resolve path rather than a direct ability-object fizzle.
 func TestAbilityFizzlesAtResolutionWhenItsTargetDiesBeforeResolving(t *testing.T) {
 	mountain := card(t, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n")
@@ -624,9 +647,10 @@ func TestAbilityFizzlesAtResolutionWhenItsTargetDiesBeforeResolving(t *testing.T
 		t.Fatalf("rat zone = %s, want graveyard -- the removal should have killed it", got)
 	}
 	// The sentinel ability fizzled at RESOLUTION time (no legal targets
-	// remain): its target ceased to exist before its turn to resolve. Void
-	// Ward discarded its fizzle MoveZone (ReplaceWith$ relocates nothing), so
-	// ensureLeftTheStack re-emitted it, landing it in exile.
+	// remain): its target ceased to exist before its turn to resolve. The
+	// exile-blocking replacement discarded its fizzle MoveZone (it does not
+	// relocate the object), so ensureLeftTheStack re-emitted it, landing it
+	// in exile.
 	if got := e.G.Obj(abilityID).Zone; got != state.ZExile {
 		t.Fatalf("ability zone = %s, want exile -- the resolution-time fizzle must land "+
 			"it there (via the guard, under the exile-blocking replacement)", got)
