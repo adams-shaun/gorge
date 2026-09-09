@@ -5,10 +5,18 @@
   import { seatColour } from '../lib/colours';
 
   /**
-   * PhaseTrack is the board's clock: whose turn it is, which turn number,
-   * and where in the twelve steps the game is standing right now — plus the
-   * seat's stops, set by clicking the step you want to be handed the game
-   * back at.
+   * PhaseTrack is the board's clock: whose turn it is, which round of the
+   * table, and where in the twelve steps the game is standing right now —
+   * plus the seat's stops, set by clicking the step you want to be handed
+   * the game back at.
+   *
+   * The headline number is view.round, the round-trip counter projected by
+   * the server (one full pass of the surviving seats), NOT view.turn, which
+   * is the engine's per-player-turn counter and increments once per seat's
+   * turn. The transcript still says "Turn N" because that is what the
+   * engine actually did; the board's clock agrees with a viewer that a
+   * four-seat table is on round 2 when the starting player takes their
+   * second turn.
    *
    * It decides nothing about the rules. The step order and the stoppable
    * set come from lib/autopilot via lib/phases (the client has exactly one
@@ -64,11 +72,11 @@
   class:yours
   data-phase-track
   style={`--seat:${activeColour}`}
-  aria-label="Turn and phase"
+  aria-label="Round and phase"
 >
   <div class="head">
     <span class="whose" data-whose>{yours ? 'Your turn' : `${activeName}’s turn`}</span>
-    <span class="turn"><span class="tk">Turn</span><span class="tn">{view.turn}</span></span>
+    <span class="turn"><span class="tk">Round</span><span class="tn">{view.round}</span></span>
     {#if settable}
       <span class="hint" data-hint>
         Click a step to stop there on {yours ? 'your' : 'this'} turn · Shift-click to set it on the other side
