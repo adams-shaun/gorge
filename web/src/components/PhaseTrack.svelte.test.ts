@@ -17,9 +17,9 @@ const seats: SeatInfo[] = [
   { name: 'bob', deck: 'stompy', colour: '#30a46c' },
 ];
 
-const view = (active: number, step: string, turn = 4): View =>
+const view = (active: number, step: string, turn = 4, round = 2): View =>
   ({
-    viewer: 1, visibility: 'seat', turn, step, phase: '', active, priority: active,
+    viewer: 1, visibility: 'seat', turn, round, step, phase: '', active, priority: active,
     over: false, draw: false, winner: null, players: [], stack: [], pending: [],
   }) as unknown as View;
 
@@ -61,6 +61,15 @@ describe('PhaseTrack — the clock', () => {
     for (const s of STEPS) {
       if (s !== 'declare-blockers') expect(cell(html, s)).not.toContain('aria-current');
     }
+  });
+
+  it('shows the round of the table, not the engine turn counter, in the clock', () => {
+    // view.round is the server's round-trip projection; view.turn is the
+    // raw per-player-turn count and must NOT be the headline number.
+    const html = seated(view(1, 'upkeep', 7, 3), stops([], []));
+    expect(html).toContain('Round');
+    expect(html).toContain('>3<');
+    expect(html).not.toContain('>7<');
   });
 
   it('names whose turn it is in that seat’s identity colour, and says "Your turn" for the viewer', () => {
