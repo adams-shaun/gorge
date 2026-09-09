@@ -16,6 +16,12 @@ export type TableState = "idle" | "live" | "cooldown" | "halted";
 
 export type Visibility = "seat" | "public" | "omniscient";
 
+  /**
+   * Frame is the envelope. ID is the session-wide frame counter and the SSE
+   * id; 0 means "not resumable" (widgets). Table/Match/Seq locate the body in
+   * a match's chain: Seq is the engine's own event sequence, the number the
+   * hash chain covers.
+   */
 export interface Frame {
   v: number;
   t: string;
@@ -26,6 +32,9 @@ export interface Frame {
   body: unknown;
 }
 
+  /**
+   * TableInfo is one row of the overview.
+   */
 export interface TableInfo {
   id: string;
   name: string;
@@ -34,15 +43,39 @@ export interface TableInfo {
   state: string;
   match: number;
   perpetual: boolean;
+  /**
+   * Format is the table's construction format, "constructed" or
+   * "commander" (host.Format.String()). Always emitted: the zero
+   * Format is "constructed", a real value, so an omitted field
+   * would be indistinguishable from it.
+   */
   format: string;
+  /**
+   * SeatNames names the table's seats in seat order: the deck name each
+   * seat is playing, as MatchStart carries them. Empty when no match
+   * has started on this table yet. It is public information -- the
+   * overview already shows every table's life totals and deck
+   * identities in its transcript -- so it is not redacted per viewer.
+   * omitempty is right here, unlike Format: an absent list and an empty
+   * list mean the same thing (no match yet), so there is no value that
+   * omitting would make ambiguous.
+   */
   seat_names?: string[];
 }
 
+  /**
+   * Hello opens every stream: the session id the client echoes in POSTs and
+   * the table list as of now.
+   */
 export interface Hello {
   session: string;
   tables: TableInfo[];
 }
 
+  /**
+   * Widget is the overview cell: enough to draw a 2x2 life grid, a turn
+   * marker and a stack-depth badge, plus the last transcript line.
+   */
 export interface Widget {
   turn: number;
   step: string;
@@ -56,36 +89,91 @@ export interface Widget {
   state: string;
 }
 
+  /**
+   * SeatInfo names a seat for the identity bars; Colour is the seat colour
+   * the client keeps consistent from overview to focused view.
+   */
 export interface SeatInfo {
   name: string;
   deck: string;
   colour: string;
 }
 
+  /**
+   * MatchStart announces match k on a subscribed table.
+   */
 export interface MatchStart {
   seats: SeatInfo[];
   seed: number;
   spectator: string;
 }
 
+  /**
+   * Printing is the identity a client resolves an image by: the exact face
+   * name today. Set and Number stay empty until a printing table exists
+   * (roadmap open question 1); the fields are here so the wire shape does
+   * not change when it does.
+   */
 export interface Printing {
   name: string;
   set?: string;
   number?: string;
 }
 
+  /**
+   * ManaProduction is what one face's mana abilities place in the mana pool
+   * when its tap-for-mana activation runs them all, expressed as plain data so
+   * any later package (view, botpolicy, the seat adapter) can carry it without
+   * importing a package to its right. It is derived from the face's own
+   * abilities -- never from land subtypes -- and it mirrors exactly what this
+   * engine's executor (effects/misc.go's effMana, "AB$ Mana") actually emits,
+   * which is the only honest thing a policy may rely on.
+   *
+   * Colour is indexed the same way state.Mana is (W, U, B, R, G, then
+   * colourless), so a caller that also imports state can translate an index
+   * with state.ManaIndex. An activation taps the source once and runs every
+   * mana ability, so a dual land whose intrinsic layer (intrinsic.go) granted
+   * it one ability per subtype sums both here: tapping it adds both colours.
+   *
+   * Any reports that at least one mana ability's Produced$ was not a plain
+   * colour string: "Any"/"Combo Any", a listed "Combo X Y" choice, or a
+   * "Chosen"/"Special" word. Such a source is conditional in the card script,
+   * so a policy must not treat it as a dependable colour fixer. Colour still
+   * mirrors every rune effMana emits: its unrecognised runes become colourless
+   * through state.ManaIndex, including the words in Combo and Chosen.
+   */
 export interface ManaProduction {
   colour: [number, number, number, number, number, number];
   any: boolean;
 }
 
+  /**
+   * CardView is one object's public face: printed identity plus its current,
+   * derived characteristics. Nothing here is read from a hidden zone unless
+   * the viewer owns it — cardViews is only ever called with a zone list the
+   * caller has already decided is visible.
+   */
 export interface CardView {
   id: number;
   name: string;
   types: string;
+  /**
+   * ManaCost is the printed cost in Forge's notation ("1 W", "R", "X G").
+   * Hand lists render it as symbols.
+   */
   mana_cost?: string;
+  /**
+   * Printing is what an image lookup keys on; Token ("#12") tells two
+   * copies of one card apart in the stack, the log and an arrow.
+   */
   printing: Printing;
   token: string;
+  /**
+   * AttackingPlayer is the seat this creature is attacking while
+   * Attacking is true, nil otherwise; BlockedBy lists the creatures
+   * blocking it. Both exist for the arrow overlay (PL-17) and come
+   * straight from the object's combat fields, which EndCombatReset clears.
+   */
   attacking_player?: number | null;
   blocked_by?: number[];
   tapped: boolean;
@@ -95,13 +183,54 @@ export interface CardView {
   attacking: boolean;
   counters?: Record<string, number>;
   keywords?: string[];
+  /**
+   * Controller and Owner can differ (a stolen permanent, a stack object
+   * created for someone else's turn); a client needs both. Battlefield
+   * zone lists are keyed by controller, every hidden/graveyard/exile list
+   * by owner (events/apply.go's zoneOwner), so a CardView carries both
+   * regardless of which zone list it came from.
+   */
   controller: number;
   owner: number;
   summon_sick: boolean;
+  /**
+   * AttachedTo is the permanent this Aura or Equipment is currently
+   * attached to, 0 meaning unattached -- the same zero-value convention
+   * Obj uses, so omitempty keeps an unattached permanent (or a non-
+   * permanent: a spell, a card in a hand) from emitting a field. It comes
+   * straight from state.Object.AttachedTo, which the engine's Attach event
+   * sets and clears; without it a client could not render an attachment
+   * beneath the permanent it modifies -- could not tell what is attached
+   * to what at all.
+   */
   attached_to?: number;
+  /**
+   * Produces is what this card's mana abilities add to the pool when a
+   * tap-for-mana activation runs them, derived from the compiled abilities
+   * (cards.Face.ManaProduction) rather than land subtypes: a basic land's
+   * intrinsic {W}, a dual's {W}{U}, an "add any colour" source's resolved
+   * colourless, a colourless rock's {C}{C}. nil when the card has no mana
+   * ability at all, so a creature or a spell never pays for the six-entry
+   * array on the wire. It is a projected characteristic like ManaCost and
+   * Keywords -- a mana ability's production is a card fact every seat sees,
+   * and it is projected for the same zones the card itself is visible in.
+   * This is what the bot policy's colour-aware tap and land heuristics read
+   * (carried into botpolicy.Card as plain data, never the view type).
+   */
   produces?: ManaProduction | null;
 }
 
+  /**
+   * PlayerView is one seat's own public state, plus (only when this is the
+   * viewer's own seat) the private parts.
+   *
+   * ID's tag is "seat", not "id": state.PlayerID and state.ObjID are both
+   * small integers, and this package's own leak test proves the collision is
+   * real -- a four-seat board's low ObjIDs (the very first cards dealt) land
+   * in the same 0-3 range as every PlayerID, so an "id" tag here would make a
+   * CardView's object id and a PlayerView's seat number indistinguishable by
+   * key name alone.
+   */
 export interface PlayerView {
   seat: number;
   name: string;
@@ -110,25 +239,114 @@ export interface PlayerView {
   library_size: number;
   hand_size: number;
   graveyard_size: number;
+  /**
+   * Hand is nil (marshalling to a literal JSON null, not an omitted key --
+   * it deliberately carries no "omitempty" tag) for every seat but the
+   * viewer's own, whose Hand is always non-nil even when empty ("[]").
+   * omitempty cannot express "present but possibly empty": with it, the
+   * viewer's own EMPTY hand would have marshalled identically to another
+   * seat's HIDDEN one (the key simply missing either way), which is exactly
+   * the ambiguity this type exists to avoid everywhere else (Winner's own
+   * *PlayerID is the same shaped fix). null-vs-[] is what a client checks
+   * instead. Hand is a hidden zone under CR 400.2 and stays gated on "is
+   * this the viewer's own seat", unlike Pool (next field), which is public.
+   */
   hand: CardView[];
   battlefield: CardView[];
   graveyard: CardView[];
   exile: CardView[];
+  /**
+   * Pool is the mana currently floating in this player's pool. It is
+   * PUBLIC information under the CR: a mana pool is not one of the seven
+   * zones in CR 400.1 and holds no cards, so CR 400.2's hidden-zone
+   * framework (library and hand) has no purchase on it; instead CR 106.4a,
+   * 106.4b, 117.3d and 118.3a all require a player to ANNOUNCE what is in
+   * their pool, an obligation that is incoherent for information meant to
+   * be hidden. So Pool is projected for every seat under every visibility
+   * (seat, public, omniscient), like Available. It is always non-nil, even
+   * when empty ("{}"), because there is no longer a hidden state to
+   * distinguish: an empty pool is simply "{}". The field carries no
+   * omitempty, so it is always present even when zero -- the one wire
+   * distinction it keeps against Available (which carries omitempty and is
+   * absent when nothing is available).
+   */
   pool: Record<string, number>;
+  /**
+   * Available is what this player could produce right now by tapping
+   * untapped permanents' free-to-tap mana abilities — the "free mana one
+   * gains by tapping lands or other effects" half of the seat box's line
+   * 3. It is derived from the battlefield (public), so it is filled for
+   * every seat under every visibility (seat, public, omniscient), never
+   * gated on "is this the viewer's own seat". It is always non-nil, even
+   * when empty ("{}"), like Pool. It is separate from Pool on purpose — a
+   * reader must never mistake mana that could be tapped for mana already
+   * floating.
+   * It carries omitempty (so an empty availability is absent, never a JSON
+   * null): Available is a public quantity that is only ever present-when-
+   * nonzero. Pool, in contrast, carries no omitempty and is always present
+   * as an object. This mirrors the sibling CmdDamage field, another public
+   * per-player map that is omitted when zero rather than sent as {}.
+   */
   available?: Record<string, number>;
+  /**
+   * Command is the command zone (CR 903.6): the player's commanders
+   * currently sitting there, in zone order. A commander leaves it when it
+   * is cast (the object itself moves; its id is stable), so Command is the
+   * ever-shrinking subset of Commanders that can still be cast from the
+   * command zone under the CR 903.8 tax. Public for every seat -- ZCommand
+   * is not a hidden zone, and commander identity is open information.
+   */
   command: CardView[];
+  /**
+   * Commanders is the player's full commander roster -- the same list
+   * m30's genesis built, in the same order, never shrunk as commanders
+   * are cast or die. A roster CardView projects the commander's CURRENT
+   * zone's state (a cast commander is a battlefield object, a dead one a
+   * graveyard object), so the roster is what lets a client -- and the bot
+   * policy's view-shaped half -- tell that a battlefield creature is a
+   * commander (the CR 903.10 clock's subject) even when it has left the
+   * command zone and not yet dealt damage. Public for every seat: the
+   * identity of a player's commanders is the premise of the format.
+   */
   commanders: CardView[];
+  /**
+   * CommanderCasts runs parallel to Commanders: entry k is how many times
+   * Commanders[k] has been cast from the command zone, the CR 903.8 tax
+   * base for its next command-zone cast (an additional {2} per prior
+   * cast). Public for every seat -- the count is derived from public
+   * events.
+   */
   commander_casts: number[];
+  /**
+   * CmdDamage is the commander damage this player has taken (CR 903.10),
+   * keyed by each commander's object id -- the 21-damage clock, public
+   * for every seat like a life total. nil/absent when the player has
+   * taken no commander damage (omitempty: absence is zero), so a
+   * Constructed game never pays for a per-player empty map.
+   */
   cmd_damage?: Record<string, number>;
 }
 
+  /**
+   * TargetView is one chosen target: exactly one of Obj and Player means
+   * anything, discriminated by IsPlayer — the same shape as state.Target.
+   */
 export interface TargetView {
   obj?: number;
   player: number;
   is_player: boolean;
+  /**
+   * Label is what the object was allowed to target, in the card's own
+   * words: its TgtPrompt$ when it has one ("Select any target"), else its
+   * ValidTgts$ ("Creature"). Empty when the object declares neither.
+   */
   label?: string;
 }
 
+  /**
+   * StackView is one object on the stack. Kind is "spell", "trigger" (an
+   * object minted by a TriggerPush) or "ability" (any other ability object).
+   */
 export interface StackView {
   id: number;
   kind: string;
@@ -136,10 +354,18 @@ export interface StackView {
   text: string;
   controller: number;
   source?: number;
+  /**
+   * Targets is a public list (Ruling T23-u): non-nil, "[]" not "null",
+   * even when nothing has been targeted yet.
+   */
   targets: TargetView[];
   card?: CardView | null;
 }
 
+  /**
+   * PendingView is a trigger that will hit the stack once its controller has
+   * ordered it / its decider has accepted it. R3.
+   */
 export interface PendingView {
   source: number;
   controller: number;
@@ -148,30 +374,119 @@ export interface PendingView {
   decider?: number | null;
 }
 
+  /**
+   * Option is one legal choice. Obj and Player are echoed only so a client can
+   * highlight the object; selection is by Index.
+   */
 export interface Option {
   index: number;
   kind: string;
   label: string;
   obj?: number;
+  /**
+   * Player is always emitted because 0 is a valid seat (0-indexed), unlike
+   * Obj where 0 means "no object".
+   */
   player: number;
+  /**
+   * Attacker tells a block option's client which attacker this blocker
+   * would block, so a human can see the pairing an in-process bot already
+   * can (the declare-blockers step is otherwise guessing). omitempty
+   * mirrors Obj: an ObjID of 0 means "no object", so an option that has
+   * no attacker (any non-block option) emits no field.
+   */
   attacker?: number;
-  alt_cost_index?: number;
-  mode?: string;
-  amount?: number;
-  ability?: number;
-  /** Group is an exclusivity marker: two options carrying the SAME non-empty group are mutually exclusive, and at most one of them may be selected in a single answer. The whole contract is that sentence — it says nothing about blockers, creatures or combat, which is exactly so a rules-ignorant client may enforce it without learning any rules. */
+  /**
+   * Group is an exclusivity marker: two options carrying the SAME non-empty
+   * Group are mutually exclusive, and at most one of them may be selected
+   * in a single answer. The whole contract is that sentence -- it says
+   * nothing about blockers, creatures or combat, which is exactly so a
+   * rules-ignorant client may enforce it without learning any rules. A
+   * client that sees the player pick an option whose Group is already
+   * represented in the picked set naturally REPLACES the previously picked
+   * option from that group (moving a blocker from one attacker to another
+   * should just work) rather than refusing the click. No two options of
+   * one Group may be selected together, which Decision.Validate enforces as
+   * a general rule.
+   */
   group?: string;
+  /**
+   * AltCostIndex says which cost a "cast" option pays: 0 is the card's own
+   * (RaiseCost/ReduceCost-adjusted) cost, i+1 is alternativeCosts(p, id)[i]
+   * -- an AlternativeCost static's cost instead -- so a client can show
+   * which of several costs the option pays. omitempty mirrors Obj: an
+   * option paying the card's own cost (the common case, and the default
+   * every other Option literal in the tree relies on) carries no field, so
+   * today's payloads are unchanged for it.
+   */
+  alt_cost_index?: number;
+  /**
+   * Mode distinguishes a "cast" option's payment kind: "" the card's own
+   * cost, "kicked", "surged", "flashback", "miracle" -- what the engine
+   * reads in beginCast's switch. A client renders a kicked/surged/
+   * flashback/miracle cast differently from an ordinary one instead of
+   * parsing the label for a keyword. omitempty: an ordinary cast (Mode "")
+   * carries no field.
+   */
+  mode?: string;
+  /**
+   * Amount is the X value an "x" choose option represents. The option's
+   * Index is its position in the list, not its value (see rules/cast.go's
+   * xAsk), so without this field a client could not tell "X = 4" from
+   * "X = 1" without rereading the label. omitempty: only x options carry
+   * it, and on an x option a missing field is exactly X = 0 (the one value
+   * that omits), which the option's own label "X = 0" already shows.
+   */
+  amount?: number;
+  /**
+   * Ability anchors an "ability" option to its exact activated ability:
+   * the index into the source Face().Abilities being offered (Task 10), so
+   * a client can pop that ability's own text up beside the right ability
+   * on the card. The engine reads it in beginActivation, where a stale
+   * index degrades to a no-op. omitempty: options that are not ability
+   * options carry no field, and on an ability option a missing field is
+   * index 0 (the first ability), the one value that omits.
+   */
+  ability?: number;
 }
 
+  /**
+   * DamageEffect describes nominal scripted damage, NEVER guaranteed damage.
+   * Prevention, replacement, conditions, division among targets and resolution
+   * legality are not evaluated. Spell damage is not commander combat damage.
+   */
 export interface DamageEffect {
+  /**
+   * Amount is a nonnegative literal, or nil (JSON null) if absent, dynamic,
+   * invalid or outside the supported literal range. In particular X and
+   * SVar expressions stay unknown even if the engine could evaluate them.
+   * A known zero is a non-nil pointer to 0. There is deliberately no numeric
+   * default: Go consumers must check nil before dereferencing; wire consumers
+   * must check null before arithmetic. This is not a lethal-damage claim.
+   */
   amount: number | null;
 }
 
+  /**
+   * TargetEffect describes only the active SA being targeted, not its parent,
+   * sub-abilities or the eventual outcome. API is the compiled primitive name
+   * (e.g. DealDamage, Destroy, Counter, Draw). Consumers must treat unfamiliar
+   * APIs conservatively; ChangeZone alone does not imply hostile removal.
+   * This contains no script text, hidden state or server continuation pointers.
+   */
 export interface TargetEffect {
   api: string;
+  /**
+   * Damage is present only for recognised direct damage primitives
+   * (DealDamage and DamageAll). Absence is not proof that a whole spell's
+   * other abilities cannot deal damage.
+   */
   damage?: DamageEffect | null;
 }
 
+  /**
+   * Decision is the engine asking one player for one answer.
+   */
 export interface Decision {
   seq: number;
   player: number;
@@ -180,13 +495,46 @@ export interface Decision {
   min: number;
   max: number;
   options: Option[];
+  /**
+   * Source names the object this decision resolves for -- the spell whose
+   * {X} is being chosen, the card whose "as it enters" choice is pending
+   * -- so a prompt can always name its source (survey #18) without the
+   * client guessing it from the option labels. omitempty mirrors Obj: an
+   * ObjID of 0 means "no object", so decisions that do not resolve for a
+   * specific object (priority, mulligan, trigger order) carry no field and
+   * today's payloads are unchanged for them.
+   */
   source?: number;
+  /**
+   * TargetEffect is host-independent targeting context. It is absent on
+   * other decision kinds and on older servers; absent means unknown.
+   */
   target_effect?: TargetEffect | null;
 }
 
+  /**
+   * View is one seat's complete picture of the game: everything public, plus
+   * whatever is theirs alone (their hand, their mana pool, a decision asked of
+   * them).
+   */
 export interface View {
   viewer: number;
+  /**
+   * Visibility names which rule set built this view: "seat", "public" or
+   * "omniscient" (see Visibility).
+   */
   visibility: string;
+  /**
+   * Turn is the engine's per-player-turn counter (TurnChange events). It
+   * increments once per seat's turn, so a four-seat table reads "Turn 22"
+   * after five and a half rounds. Round is the exact round-trip count of the
+   * players still alive, folded over the ordered event stream (RoundOf) by
+   * host, which has the log in hand when it builds this view; a caller with
+   * only a snapshot gets the roundOf approximation instead. Both Turn and
+   * Round are sent because the raw engine counter is what the transcript
+   * ("Turn N: <player>") refers to, and the round is what the board's
+   * clock shows.
+   */
   turn: number;
   round: number;
   step: string;
@@ -195,20 +543,59 @@ export interface View {
   priority: number;
   over: boolean;
   draw: boolean;
+  /**
+   * Winner is nil unless Over && !Draw: PlayerID's zero value is seat 0, a
+   * real seat, so a bare PlayerID field could never distinguish "seat 0
+   * won" from "the game is still going" or "it was a draw" (Task 22
+   * finding 5). A JSON null is unambiguous where a bare 0 would not be.
+   */
   winner: number | null;
+  /**
+   * Players, Stack and Pending (below) are every public list this type
+   * carries. All of them are built non-nil even when empty (Ruling
+   * T23-u): a client should never have to treat a bare JSON `null` and an
+   * empty `[]` as the same "nothing here" case for one of these, the way
+   * it legitimately must for Hand/Pool below.
+   */
   players: PlayerView[];
+  /**
+   * Stack keeps g.Stack's own order: index 0 is the bottom, the last
+   * entry is the top. Public for every seat — R3.
+   */
   stack: StackView[];
+  /**
+   * Pending is the trigger queue, in the order it will be placed on the
+   * stack. Public for every seat — R3.
+   */
   pending: PendingView[];
   decision?: Decision | null;
 }
 
+  /**
+   * Snapshot is the whole view at Head plus the turn-start seqs so far — the
+   * DVR's scrub ticks.
+   */
 export interface Snapshot {
   view: View;
   turn_starts: number[];
   head: number;
+  /**
+   * Seats is the live match's seat list, the same []SeatInfo MatchStart
+   * carries. A focus subscriber (host/session.go's Subscribe) receives a
+   * snapshot but not the match's match_start frame — that went out before
+   * it connected — so without this the table route has no way to learn the
+   * seats for the current match (ui16). Always populated for a live match;
+   * never omitempty, so the client type stays a plain SeatInfo[].
+   */
   seats: SeatInfo[];
 }
 
+  /**
+   * Event is events.Event for the wire: the same fields, with Kind, zones and
+   * step as their names. Zone and step names are set only for the kinds that
+   * carry them, so a Tap never reads as "from library". events.Event's own
+   * JSON is untouched — it is what the .events file holds.
+   */
 export interface Event {
   seq: number;
   kind: string;
@@ -225,37 +612,61 @@ export interface Event {
   secret?: boolean;
 }
 
+  /**
+   * EventBody is one redacted event with its transcript line.
+   */
 export interface EventBody {
   event: Event;
   line: string;
 }
 
+  /**
+   * DecisionBody says who is being asked what; options come with the player
+   * seat (M2b), not here.
+   */
 export interface DecisionBody {
   player: number;
   kind: string;
   prompt: string;
 }
 
+  /**
+   * MatchEnd closes a match: Result is "win" or "draw"; Winner is null for a
+   * draw; Head is the chain head the .events file replays to.
+   */
 export interface MatchEnd {
   result: string;
   winner: number | null;
   head: string;
 }
 
+  /**
+   * TableHaltedBody is spec D15: a crashed table stops and says why.
+   */
 export interface TableHaltedBody {
   reason: string;
 }
 
+  /**
+   * Overflow is the last frame on a stream whose session channel filled.
+   */
 export interface Overflow {
   dropped: number;
 }
 
+  /**
+   * ErrorBody is every error reply and the error frame. Head is set only on
+   * a 409 "seq beyond head" reply: the last valid seq, so a client can clamp.
+   */
 export interface ErrorBody {
   code: string;
   message: string;
   head?: number;
 }
 
+  /**
+   * MatchInfo is one row of a table's match list, from its sidecar.
+   */
 export interface MatchInfo {
   table: string;
   match: number;
@@ -269,6 +680,9 @@ export interface MatchInfo {
   turns: number;
 }
 
+  /**
+   * Subscribe and Unsubscribe are the POST bodies.
+   */
 export interface Subscribe {
   session: string;
   table: string;
@@ -280,6 +694,9 @@ export interface Unsubscribe {
   table: string;
 }
 
+  /**
+   * Intent is a client's answer.
+   */
 export interface Intent {
   seq: number;
   player: number;
