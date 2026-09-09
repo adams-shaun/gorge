@@ -1,10 +1,7 @@
 <script lang="ts">
   import type { View, SeatInfo, DecisionBody } from '../protocol';
-  import { seatColour } from '../lib/colours';
-  import { visibleHand } from '../lib/board';
   import { focusSeat } from '../lib/seattable';
   import SeatTable from './SeatTable.svelte';
-  import HandList from './HandList.svelte';
   import ZoneViewer from './ZoneViewer.svelte';
   import ManaPool from './ManaPool.svelte';
   import StackTile from './StackTile.svelte';
@@ -86,28 +83,13 @@
 
   <section class="focus" data-focus-pane data-focus-seat={focused?.seat}>
     {#if focused}
-      <!-- Keyed on the seat so switching rows remounts the pane: the hover
-           panel's HoverCard, and ZoneViewer's per-zone disclosure, belong to
-           the seat being read and must not carry over to the next one. -->
-      {#key focused.seat}
-        <!-- Hand is an ordinary zone row (B2 / I-10): its COUNT prints always,
-             like library and graveyard, and only its CONTENTS appear -- the
-             card list -- and only when this viewer may see them (the same
-             visibleHand mechanism the rest of the client uses: non-null for
-             the viewer's own seat and every seat on an omniscient table,
-             null on a public spectator's view of someone else's hand). No
-             apology prose: a hidden hand is a count, not a sentence. -->
-        {#if visibleHand(focused) !== null}
-          <HandList player={focused} deck={seats[focused.seat]?.deck} colour={seatColour(focused.seat, seats)} />
-        {:else}
-          <div class="hand-row" data-hand-count>
-            <span class="zone-name">hand</span>
-            <span class="count">{focused.hand_size}</span>
-          </div>
-        {/if}
-        <ManaPool pool={focused.pool} />
-        <ZoneViewer player={focused} colour={seatColour(focused.seat, seats)} />
-      {/key}
+      <ManaPool pool={focused.pool} />
+      <!-- Zones (ui10: every seat, quiet until asked) carry EVERY seat's
+           zone group, hand included, so the reader can look at any player's
+           graveyard/exile/library and their hand (a count when this viewer
+           may not see the cards) without it being their turn. Hand is
+           grouped inside each seat's zone list, not floated above it. -->
+      <ZoneViewer players={view.players} {seats} />
     {/if}
   </section>
 
@@ -205,28 +187,6 @@
   .count {
     font-family: var(--font-data);
     font-size: 0.6875rem;
-    color: var(--ink-faint);
-  }
-  /* A hand this viewer may not see is a COUNT, not a sentence (B2): it
-     reads exactly like the library/graveyard rows — zone name, mono count —
-     with no fabricated prose claiming the owner's name as the subject. The
-     count is always true; only the cards are withheld. */
-  .hand-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 0 0 0.75rem;
-    border-left: 3px solid transparent;
-    padding-left: var(--sp-2);
-    font-size: var(--t-12);
-    color: var(--ink-inst);
-  }
-  .zone-name {
-    text-transform: capitalize;
-  }
-  .hand-row .count {
-    font-family: var(--font-data);
-    font-variant-numeric: tabular-nums;
     color: var(--ink-faint);
   }
   .decision {

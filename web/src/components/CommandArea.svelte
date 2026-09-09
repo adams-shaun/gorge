@@ -20,6 +20,22 @@
    * the creature row like any other permanent, which is the direct
    * consequence of no longer having a private layout to pin.
    *
+   * ONE TILE PER COMMANDER, WHEREVER IT IS — EXCEPT THE BATTLEFIELD (ui10).
+   * A commander actually IN PLAY is a battlefield permanent, and the real
+   * one is already drawn in this same creatures row by the CardStack that
+   * `groupBattlefield` produced from the seat's battlefield list. Drawing the
+   * command-zone tile for it as well put the same card on the board twice —
+   * the duplication the live demo showed and the user told us to remove.
+   * So a commander whose presence resolves to 'battlefield' is SKIPPED here:
+   * the tile exists to show the command zone, and a commander in play is not
+   * in the command zone. A commander that is genuinely in the command zone
+   * (not yet cast, or returned there) still gets its tile — removing the
+   * tile in the zone is the opposite defect — and so does a commander only
+   * reachable through some other zone ('away'): graveyard, exile, hand, the
+   * stack, or a zone the viewer cannot browse. Those are nowhere else on the
+   * board, so the command-zone tile is the one place the reader can find and
+   * inspect them.
+   *
    * This component has NO wrapping element: it is a plain `{#each}`, so the
    * tiles it renders become flex items of whichever row includes it, with
    * nothing of its own to size, position or stack. A seat with no roster
@@ -28,7 +44,9 @@
    */
   let { player, stack = [] }: { player: PlayerView; stack?: StackView[] } = $props();
 
-  const commanders = $derived(commandZoneOf(player, stackIdsOf(stack)));
+  const commanders = $derived(
+    commandZoneOf(player, stackIdsOf(stack)).filter((c) => c.presence !== 'battlefield'),
+  );
 </script>
 
 {#each commanders as c (c.commander.id)}
