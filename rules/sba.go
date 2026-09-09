@@ -21,8 +21,6 @@
 package rules
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -244,9 +242,6 @@ func (e *Engine) checkStateBased() {
 		if e.destroyLethalDamage(tried) {
 			changed = true
 		}
-		if e.applyLegendRule() {
-			changed = true
-		}
 		if e.ceaseDeadTokens(tried) {
 			changed = true
 		}
@@ -266,7 +261,7 @@ func (e *Engine) checkStateBased() {
 	e.releasePendingDecisionOfDepartedPlayer()
 }
 
-// applyLegendRule applies CR 704.5j: if two or more legendary permanents with
+// legendCasualties collects CR 704.5j: if two or more legendary permanents with
 // the same name are controlled by the same player, all but one are put into
 // their owners' graveyards. This build has no player-facing "which one do you
 // keep" chooser (the engine can only ask decisions a seat answers, and this
@@ -277,8 +272,8 @@ func (e *Engine) checkStateBased() {
 // both reach priority -- holds either way. The scan is deterministic
 // (AliveFrom(0) seat order, each battlefield zone a slice, seen keyed on the
 // printed name), so the event stream is reproducible run to run.
-func (e *Engine) applyLegendRule() bool {
-	changed := false
+func (e *Engine) legendCasualties() []casualty {
+	var dead []casualty
 
 	for _, p := range e.G.AliveFrom(0) {
 		seen := make(map[string]bool)
@@ -289,15 +284,13 @@ func (e *Engine) applyLegendRule() bool {
 			}
 			name := o.Face().Name
 			if seen[name] {
-				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
-					From: state.ZBattlefield, To: state.ZGraveyard, Text: "legend rule"})
-				changed = true
+				dead = append(dead, casualty{id, "legend rule"})
 				continue
 			}
 			seen[name] = true
 		}
 	}
-	return changed
+	return dead
 }
 
 // annihilateOppositeCounters applies CR 704.5q to permanents in fixed seat
@@ -539,19 +532,33 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 			dead = append(dead, casualty{id, "lethal damage"})
 		}
 	}
-	// CR 704.3: the deaths in one fixed-point round are simultaneous.
-	// Emitting a casualty one at a time means the FIRST one moved is already
-	// in its graveyard when a later one's death is observed, so a creature
-	// that died in the same batch can no longer witness a sibling's death in
-	// the ordinary sequential order (its battlefield-scoped trigger source
-	// fails the zone gate). Reordering so that a death-WITNESS source -- a
-	// permanent carrying a "... or another creature dies" ChangesZone
-	// trigger -- is processed LAST keeps it on the battlefield while every
-	// non-witness death is emitted, so it observes the whole batch, and its
-	// own move then fires the Card.Self half via the event's origin zone.
-	// The two groups keep their original relative order, so a batch with no
-	// witness source is emitted in exactly the old battlefield order.
-	dead = reorderCasualties(e, dead)
+	// Legend-rule departures share the same pre-batch board, including
+	// legendary creatures that also satisfy a lethal-damage SBA. Emit each
+	// object only once; legend-rule placement is not destruction and cannot
+	// be regenerated. Membership maps are never iterated.
+	legends := e.legendCasualties()
+	legend := make(map[state.ObjID]bool, len(legends))
+	for _, c := range legends {
+		legend[c.id] = true
+	}
+	var batch []casualty
+	for _, c := range dead {
+		if !legend[c.id] {
+			batch = append(batch, c)
+		}
+	}
+	dead = append(batch, legends...)
+	if len(dead) == 0 {
+		return false
+	}
+	// CR 704.3/603.10a: every departure in this batch observes the SAME
+	// pre-batch board, including sources that have already been serialized
+	// into the graveyard. Replacement/prevention still decides which moves
+	// actually occur; only those actual events are matched. The snapshot
+	// never receives mutations, and the log retains ordinary MoveZone events.
+	before := e.triggerBefore
+	e.triggerBefore = e.snapshotTriggerBoard()
+	defer func() { e.triggerBefore = before }()
 	for _, c := range dead {
 		tried.objs[c.id] = true
 		if c.text == "lethal damage" && effects.ReplaceDestruction(e, c.id) {
@@ -561,62 +568,6 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: c.text})
 	}
 	return len(dead) > 0
-}
-
-// reorderCasualties returns dead with every death-witness source moved to the
-// end, preserving the relative order within each group (a stable partition).
-// A non-witness batch returns the input unchanged (same slice order and same
-// backing array), so the common case emits byte-identical to before.
-func reorderCasualties(e *Engine, dead []casualty) []casualty {
-	hasWitness := false
-	for _, c := range dead {
-		if o := e.G.Obj(c.id); o != nil && deathWitness(o) {
-			hasWitness = true
-			break
-		}
-	}
-	if !hasWitness {
-		return dead
-	}
-	out := make([]casualty, 0, len(dead))
-	var witnesses []casualty
-	for _, c := range dead {
-		if o := e.G.Obj(c.id); o != nil && deathWitness(o) {
-			witnesses = append(witnesses, c)
-		} else {
-			out = append(out, c)
-		}
-	}
-	return append(out, witnesses...)
-}
-
-// deathWitness reports whether a dying permanent carries a "dies" trigger
-// that observes OTHER creatures dying -- a ChangesZone Battlefield->Graveyard
-// trigger whose ValidCard$ names a Creature (the Blood Artist / Zulaport
-// Cutthroat shape). Such a source must remain on the battlefield while the
-// rest of the simultaneous batch is emitted, so it can witness each sibling
-// death, hence the reorder above. A Card.Self-only dies trigger is not a
-// witness of others and is left in place.
-func deathWitness(o *state.Object) bool {
-	f := o.Face()
-	if f == nil {
-		return false
-	}
-	for _, tr := range f.Triggers {
-		if tr.Mode != "ChangesZone" {
-			continue
-		}
-		if o, ok := tr.Params["Origin"]; ok && o != "Any" && effects.ParseZone(o) != state.ZBattlefield {
-			continue
-		}
-		if d, ok := tr.Params["Destination"]; ok && d != "Any" && effects.ParseZone(d) != state.ZGraveyard {
-			continue
-		}
-		if strings.Contains(tr.Params["ValidCard"], "Creature") {
-			return true
-		}
-	}
-	return false
 }
 
 // tokenCasualty is a token ceaseDeadTokens found to have left the

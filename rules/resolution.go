@@ -83,6 +83,7 @@ type resumePoint struct {
 	// subject after the suspension (fx44, Mox Diamond). Zero for an ordinary
 	// (non-replacement) ask.
 	replaced state.ObjID
+	before   *triggerSnapshot // immutable look-back if a batch replacement suspends
 }
 
 // Ask implements effects.Host.Ask (rules' side of the interface, and the
@@ -110,7 +111,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 	// must resume still under the flag — see the resumePoint field's
 	// comment and resumeResolution's restore of it.
 	e.resume = &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA,
-		replacement: e.applyingReplacement, replaced: e.replReplaced}
+		replacement: e.applyingReplacement, replaced: e.replReplaced, before: e.triggerBefore}
 	return true
 }
 
@@ -227,6 +228,9 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 // continuation it carries have all completed — the fully-resolved object
 // goes where resolveTop's own tail would have sent it.
 func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
+	before := e.triggerBefore
+	e.triggerBefore = rp.before
+	defer func() { e.triggerBefore = before }()
 	o := e.G.Obj(rp.obj)
 	if o == nil || o.Zone != state.ZStack {
 		// The suspended object left the stack while the decision was
@@ -459,7 +463,7 @@ func (e *Engine) buildContinuationChain(sas []*cards.SA, obj state.ObjID, tail *
 		// replaced/id carried by this frame comes from the engine's active
 		// replacement context).
 		f := &resumePoint{obj: obj, sa: sa.Sub, replacement: e.applyingReplacement,
-			replaced: e.replReplaced}
+			replaced: e.replReplaced, before: e.triggerBefore}
 		if head == nil {
 			head = f
 		} else {

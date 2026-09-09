@@ -232,9 +232,42 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 	}
 }
 
+// triggerSnapshot is immutable look-back state. Parked replacement choices
+// may retain it across intent/Clone boundaries; each matching walk constructs
+// its own Engine scratch caches, never mutating or sharing the snapshot's.
+type triggerSnapshot struct {
+	game       *state.Game
+	continuous []ContinuousEffect
+}
+
+func (e *Engine) snapshotTriggerBoard() *triggerSnapshot {
+	return &triggerSnapshot{game: e.G.Clone(), continuous: append([]ContinuousEffect(nil), e.continuous...)}
+}
+
 func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
-	e.forEachObject(func(id state.ObjID) {
-		o := e.G.Obj(id)
+	batch := e.triggerBefore != nil && ev.Kind == events.MoveZone &&
+		ev.From == state.ZBattlefield && ev.To != state.ZBattlefield
+	if batch {
+		// Only leaves-the-battlefield triggers look back. Always and other
+		// event modes continue to read the live board, not an obsolete state.
+		observer := &Engine{G: e.triggerBefore.game, continuous: e.triggerBefore.continuous}
+		e.checkFaceTriggers(observer, ev, observer.G.Obj(ev.Obj), true, true)
+	}
+	e.checkFaceTriggers(e, ev, lki, batch, false)
+	if ev.Kind == events.Draw {
+		e.offerMiracle(ev)
+	}
+	if ev.Kind == events.StepChange {
+		e.checkDelayedTriggers(ev)
+	}
+}
+
+// checkFaceTriggers separates the read-only matching board from the live
+// queue and firing limits. Both walks use deterministic seat/zone/slice order;
+// the ordinary APNAP drain still asks each controller to order their triggers.
+func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state.Object, split, leaving bool) {
+	observer.forEachObject(func(id state.ObjID) {
+		o := observer.G.Obj(id)
 		if o == nil {
 			return
 		}
@@ -256,6 +289,15 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 			objLKI = lki
 		}
 		for ti, t := range f.Triggers {
+			// A "from anywhere" graveyard trigger is NOT a leaves-the-
+			// battlefield trigger (CR 603.6c), even when this particular
+			// move happens to leave the battlefield. Only the explicit
+			// battlefield-origin shape looks back; destination triggers
+			// still use the post-event source/zone in the live walk.
+			looksBack := t.Mode == "ChangesZone" && t.Params["Origin"] == "Battlefield"
+			if split && looksBack != leaving {
+				continue
+			}
 			// CR 603.8 state trigger: its condition is checked against the
 			// current state, not against the event under test, and it fires
 			// at most once per outstanding instance. A trigger that already
@@ -266,7 +308,7 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 			if t.Mode == "Always" && e.stateTriggerOutstanding(id, ti) {
 				continue
 			}
-			if !e.triggerMatches(t, id, ev, objLKI) {
+			if !observer.triggerMatches(t, id, ev, objLKI) {
 				continue
 			}
 			key := triggerKey{Source: id, Idx: ti}
@@ -306,24 +348,6 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 			})
 		}
 	})
-	// Miracle (Task 18): a Draw that is the first of its player's turn and
-	// whose card carries Miracle gets its own offer. This runs AFTER the face
-	// loop because a Miracle pendingTrigger is per-Draw, not per-object -- it
-	// keys off the drawn card and the turn's draw count, neither of which the
-	// forEachObject walk (which iterates every object) is about.
-	if ev.Kind == events.Draw {
-		e.offerMiracle(ev)
-	}
-	// Delayed triggers (CR 603.7, Mode$ Phase): the registrations are game
-	// state (state.Game.Delayed), folded by events.Apply, so they are not T:
-	// lines on an object's face and the face loop above cannot see them. A
-	// StepChange into a registered phase queues each matching registration as
-	// a pending trigger alongside the ordinary ones, so it reaches the stack
-	// through the same drain (APNAP order, ordering/optional asks, the whole
-	// existing machinery) rather than a parallel path.
-	if ev.Kind == events.StepChange {
-		e.checkDelayedTriggers(ev)
-	}
 }
 
 // triggerRemembered is what a matched trigger's Ctx.Remembered holds: the
