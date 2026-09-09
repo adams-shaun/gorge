@@ -135,19 +135,21 @@ func xCounterFixture(t *testing.T, reg *cards.Registry, counter, creature string
 
 	submitChoices(t, e, passToCast(t, e, creatureID))
 	submitChoices(t, e, passToCast(t, e, casterID))
-	if d := e.Pending(); d != nil && d.Kind == decision.KChoose {
-		idx := -1
-		for _, o := range d.Options {
-			if o.Kind == "x" && strconv.Itoa(int(o.Amount)) == xValue {
-				idx = o.Index
-			}
-		}
-		if idx < 0 {
-			t.Fatalf("no X=%s option in %+v", xValue, d.Options)
-		}
-		submitChoices(t, e, idx)
-	}
 	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("expected a cast-time X choose for %s, got %+v", counter, d)
+	}
+	idx := -1
+	for _, o := range d.Options {
+		if o.Kind == "x" && strconv.Itoa(int(o.Amount)) == xValue {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no X=%s option in %+v", xValue, d.Options)
+	}
+	submitChoices(t, e, idx)
+	d = e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("expected a target decision after casting %s, got %+v", counter, d)
 	}
