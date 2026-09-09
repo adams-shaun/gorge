@@ -315,7 +315,9 @@ func play(cfg rules.Config, t tally) (string, error) {
 			return "stalled", nil
 		}
 		d := e.Pending()
-		in, err := b.Decide(context.Background(), view.Project(e.G, e, d.Player, d), *d)
+		v := view.Project(e.G, e, d.Player, d)
+		v.Round = view.RoundOf(e.G, e.L.Events)
+		in, err := b.Decide(context.Background(), v, *d)
 		if err != nil {
 			return "", err
 		}
