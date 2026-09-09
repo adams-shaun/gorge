@@ -50,9 +50,8 @@ func TestVinesOfVastwoodCantTargetBitesOpponent(t *testing.T) {
 	}
 
 	// Seat 1 is an opponent of the Vines caster (seat 0), so the restriction
-	// must withhold the creature from seat 1's targeting options. Seat 1 casts
-	// Shock at it; on a tree where the Effect was only a Note the creature is
-	// offered, and the target decision below contains it.
+	// must withhold the creature from seat 1's targeting options. Because it
+	// is Shock's only legal target, the cast itself must not be offered.
 	// Put Shock directly into seat 1's hand (handEngine seeds every non-
 	// fixture seat with Mountains, so moveSeeded/addToHand cannot find a
 	// Shock there -- the deck has none).
@@ -63,12 +62,13 @@ func TestVinesOfVastwoodCantTargetBitesOpponent(t *testing.T) {
 	e.G.SetZone(state.ZHand, 1, append(e.G.Zone(state.ZHand, 1), sh.ID))
 	e.G.Players[1].Pool[state.MR] = 1
 	e.askPriority(1)
-	castFirst(t, e, "cast")
-	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
-		for _, o := range d.Options {
-			if o.Obj == creature {
-				t.Fatalf("opponent's Shock offered the Vines-protected creature: %+v", d.Options)
-			}
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("expected opponent priority, got %+v", d)
+	}
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == sh.ID {
+			t.Fatalf("opponent's Shock was offered despite having no legal target: %+v", d.Options)
 		}
 	}
 }
@@ -92,6 +92,9 @@ func TestVinesOfVastwoodCantTargetStillAllowsTheCaster(t *testing.T) {
 	e.askPriority(0)
 	castFirst(t, e, "cast")
 	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected a target decision for Vines, got %+v", d)
+	}
 	idx := -1
 	for _, o := range d.Options {
 		if o.Obj == creature {
@@ -104,15 +107,17 @@ func TestVinesOfVastwoodCantTargetStillAllowsTheCaster(t *testing.T) {
 	// The caster (seat 0) can still Shock the creature it Vined.
 	e.askPriority(0)
 	castFirst(t, e, "cast")
-	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
-		sawElf := false
-		for _, o := range d.Options {
-			if o.Obj == creature {
-				sawElf = true
-			}
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected caster's Shock target decision, got %+v", d)
+	}
+	sawElf := false
+	for _, o := range d.Options {
+		if o.Obj == creature {
+			sawElf = true
 		}
-		if !sawElf {
-			t.Fatalf("caster's own Shock omitted the Vined creature: %+v", d.Options)
-		}
+	}
+	if !sawElf {
+		t.Fatalf("caster's own Shock omitted the Vined creature: %+v", d.Options)
 	}
 }

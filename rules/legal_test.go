@@ -79,6 +79,45 @@ func TestCastRequiresPayableManaAndRightTiming(t *testing.T) {
 	}
 }
 
+func hasCastOption(opts []decision.Option, id state.ObjID) bool {
+	for _, opt := range opts {
+		if opt.Kind == "cast" && opt.Obj == id {
+			return true
+		}
+	}
+	return false
+}
+
+func TestMandatoryStackTargetControlsCastOffer(t *testing.T) {
+	counter := card(t, "Name:Counter\nTypes:Instant\nA:SP$ Counter | TargetType$ Spell | ValidTgts$ Card\nOracle:x\n")
+	e := handEngine(t, counter)
+	counterID := e.G.Zone(state.ZHand, 0)[0]
+	if hasCastOption(e.legalActions(0), counterID) {
+		t.Fatal("a counterspell must not be offered on an empty stack")
+	}
+
+	spell := card(t, "Name:Spell\nTypes:Instant\nA:SP$ Draw | Defined$ You | NumCards$ 1\nOracle:x\n")
+	o := e.G.AddObject(spell, 1)
+	o.Zone = state.ZStack
+	e.G.SetZone(state.ZStack, 0, []state.ObjID{o.ID})
+	if !hasCastOption(e.legalActions(0), counterID) {
+		t.Fatal("a counterspell with a legal spell target must still be offered")
+	}
+}
+
+func TestUnsettledTargetRequirementsRemainCastable(t *testing.T) {
+	dynamic := card(t, "Name:Dynamic\nTypes:Instant\nA:SP$ Counter | TargetType$ Spell | ValidTgts$ Card | TargetMin$ X | TargetMax$ X\nOracle:x\n")
+	modal := card(t, "Name:Modal\nTypes:Instant\nA:SP$ Charm | Choices$ DBTarget,DBDraw\n"+
+		"SVar:DBTarget:DB$ Counter | TargetType$ Spell | ValidTgts$ Card\n"+
+		"SVar:DBDraw:DB$ Draw | Defined$ You | NumCards$ 1\nOracle:x\n")
+	e := handEngine(t, dynamic, modal)
+	for _, id := range e.G.Zone(state.ZHand, 0) {
+		if !hasCastOption(e.legalActions(0), id) {
+			t.Fatalf("choice-dependent spell %q must remain offered on an empty stack", e.G.Obj(id).Face().Name)
+		}
+	}
+}
+
 func TestFlashCreatureIsCastableOffTurn(t *testing.T) {
 	flash := card(t, "Name:Flashy\nManaCost:G\nTypes:Creature Bear\nPT:2/2\nK:Flash\nOracle:x\n")
 	e := handEngine(t, flash)
