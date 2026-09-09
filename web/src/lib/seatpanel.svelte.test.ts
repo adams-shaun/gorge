@@ -129,6 +129,14 @@ describe('SeatPanelState', () => {
     expect(postIntentMock).not.toHaveBeenCalled();
   });
 
+  it('the dedicated HUD pass posts the pass option’s wire index, not its array position', async () => {
+    const p = new SeatPanelState('t1', 1, ctx);
+    p.adoptView(priority(12, [cast(7), pass(42), concede(99)]));
+    p.passClick();
+    await settle(() => p.postedSeq === 12);
+    expect(postIntentMock).toHaveBeenLastCalledWith('t1', 1, { seq: 12, player: 0, choices: [42] }, ctx);
+  });
+
   it('test 3 — R-E4-1: concede needs a second, explicit confirmation before its intent is posted', async () => {
     const p = new SeatPanelState('t1', 1, ctx);
     p.adoptView(priority(5, [cast(0), pass(1), concede(2)]));
@@ -142,6 +150,16 @@ describe('SeatPanelState', () => {
     await settle(() => p.postedSeq === 5);
     expect(postIntentMock).toHaveBeenCalledTimes(1);
     expect(postIntentMock).toHaveBeenCalledWith('t1', 1, { seq: 5, player: 0, choices: [2] }, ctx);
+  });
+
+  it('concede confirmation posts its own non-positional wire index', async () => {
+    const p = new SeatPanelState('t1', 1, ctx);
+    p.adoptView(priority(13, [cast(7), pass(42), concede(99)]));
+    p.click(99);
+    expect(p.confirming).toBe(true);
+    p.confirmConcede();
+    await settle(() => p.postedSeq === 13);
+    expect(postIntentMock).toHaveBeenLastCalledWith('t1', 1, { seq: 13, player: 0, choices: [99] }, ctx);
   });
 
   it('test 3 — the confirm button path posts; arming then picking another option cancels it', async () => {

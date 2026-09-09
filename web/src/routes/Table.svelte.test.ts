@@ -62,6 +62,7 @@ describe('Table.svelte seat gating (R-E4-4 / R-E4-5)', () => {
     const { html } = render(Table, { props: { table: 't1' } });
 
     expect(html).not.toContain('data-seat-panel'); // no seat -> no panel
+    expect(html).not.toContain('data-action-arrow'); // spectators never get a highlighted action affordance
     expect(html).toContain('data-cursor'); // the DVR bar still renders for the spectator
     // the seat identity never reached the MatchState: constructed with no
     // seat context, so no seat-scoped fetch can be built from it
@@ -86,6 +87,18 @@ describe('Table.svelte seat gating (R-E4-4 / R-E4-5)', () => {
     const { html } = render(Table, { props: { table: 't1' } });
 
     expect(html).toContain('data-seat-panel'); // the seat surface is mounted
+    expect(html).toContain('data-phase-track'); // the clock remains, now inside the board shard
+    expect(html.indexOf('data-phase-track')).toBeGreaterThan(html.indexOf('<section class="board">'));
+    expect(html.indexOf('data-phase-track')).toBeLessThan(html.indexOf('</section>'));
+    expect(html).toContain('data-action-dock');
+    expect(html).toMatch(/class="action-arrow[^"]*\bready\b"[^>]*data-action-arrow/);
+    expect(html).toContain('data-pass');
+    expect(html).toContain('data-fast-forward');
+    expect(html).toContain('data-action-flyout');
+    expect(html).toContain('data-concede-control');
+    // Concede has one page-level control and is not duplicated as a flyout
+    // option label beside Pass.
+    expect(html.match(/>Concede</g)).toHaveLength(1);
     // The transcript renders the line, AND (Task 3) Ari's own name in Ari's
     // own seat colour — a strictly stronger check than the line's raw text
     // alone, which the colour-coding change now splits across markup.

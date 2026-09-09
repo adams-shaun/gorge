@@ -89,6 +89,7 @@ describe('Rail — the stack (Task 1/2)', () => {
       id: 100 + i, kind: i === 0 ? 'spell' : 'trigger', name: `Entry ${i}`,
       text: 'Some oracle-ish text that could run long if not clamped.',
       controller: 0, targets: [], card: i % 2 === 0 ? card({ id: 100 + i, name: `Entry ${i}` }) : null,
+      optional: false,
     }));
 
   it('a real multi-entry stack renders every entry, the count in the header, and mixed art/no-art gracefully', () => {
