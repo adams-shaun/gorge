@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -51,24 +50,22 @@ import (
 //     replacement and re-poses the discard (measured: on Mox the replacement
 //     body re-enters and the discard is posed repeatedly).
 //
-// The regression pin below is deliberately on the UNFIXED behaviour: it
+// The regression pin below is on the UNFIXED behaviour: it
 // asserts the correct outcome (Mox on the battlefield, one land discarded,
 // Mox still on the stack while its discard is pending). Any one of these
 // assertions failing is the task's answer -- the fix has to make
 // ensureLeftTheStack defer the park while suspended and thread the
 // replacement context across the resume (rules/resolution.go).
+//
+// fx44 (the fix it pins) now makes all of this pass: ensureLeftTheStack
+// defers the park while a replacement is suspended (the object stays on the
+// stack for its answer), and the resume threads the replacement context --
+// applyingReplacement (so the completed move is not re-intercepted by the
+// same replacement) plus Replaced/Remembered (so the body's Defined$
+// ReplacedCard and SVar:X Remembered$Amount gating find their subject) --
+// back across the suspension. The guard below is therefore removed and the
+// test joins the ordinary suite.
 func TestReplacementMidResolutionAskResumes(t *testing.T) {
-	// Known-red: this pins an UNFIXED divergence, so it joins the opt-in
-	// conformance lane rather than turning the ordinary suite red. It is
-	// deliberately NOT an AGENTS.md approximation row: that table records
-	// approved stand-ins, and this is a defect nobody has approved. The lane
-	// is where an unfixed divergence belongs, and a failing test is a stronger
-	// record than a table entry. Delete this guard when the defect is fixed;
-	// never adjust the oracle to match the broken behaviour.
-	if os.Getenv("GORGE_CR_CONFORMANCE") != "1" {
-		t.Skip("fx43: a mid-resolution ask inside a replacement does not resume " +
-			"(Mox Diamond); unfixed, run with GORGE_CR_CONFORMANCE=1")
-	}
 	reg := testutil.CorpusRegistry(t)
 	cfg := Config{Seed: 42, Tokens: reg.Tokens}
 	cfg.Names = []string{"caster", "opponent"}
