@@ -233,6 +233,50 @@ func (e *Engine) spellsCastThisTurn(p state.PlayerID) int {
 	return n
 }
 
+// withSpellAbilityExtras folds a spell's own SpellAbility Cost$ ADDITIONAL
+// (non-mana) parts into cost. It exists so the OFFER and the CHARGE cannot
+// disagree about what a plain cast costs.
+//
+// They did disagree, and it wedged a live game. legal.go offered a plain cast
+// after gating castable on adjustedCost alone -- the printed mana -- while
+// beginCast folded the SpellAbility's Cost$ Sac part in afterwards. Village
+// Rites ({B}, "As an additional cost, sacrifice a creature") was therefore
+// offered to a player with no creature: sacAsk found zero candidates and
+// aborted the cast, the abort consumed nothing, priority returned to a board
+// identical to the one that produced the offer, and the same option was
+// offered again -- an unbounded livelock (measured: a 5-event cycle repeating
+// until the match was killed). The abort in sacAsk is correct and stays; what
+// was wrong is that the option existed at all, which is the standing rule that
+// an option that cannot be paid must never be offered.
+//
+// The alternative-cost path was given this same gate in an earlier round (see
+// the ruling comment in legal.go's alternativeCosts loop). The base cast path
+// has the identical hole and was missed, so both now go through this one
+// definition rather than each repeating the fold.
+//
+// The mana part of a Cost$ is deliberately NOT folded: it RESTATES the printed
+// mana cost rather than adding to it, so re-adding it would double charge.
+// Only Sac/SubCounter/Tap are additional.
+func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
+	sa := f.SpellAbility()
+	if sa == nil {
+		return cost
+	}
+	sc := sa.Params["Cost"]
+	if sc == "" {
+		return cost
+	}
+	extra := ParseCost(sc)
+	if len(extra.Sac) > 0 {
+		cost.Sac = append(append([]CostPart(nil), cost.Sac...), extra.Sac...)
+	}
+	if len(extra.SubCounter) > 0 {
+		cost.SubCounter = append(append([]CostPart(nil), cost.SubCounter...), extra.SubCounter...)
+	}
+	cost.Tap = cost.Tap || extra.Tap
+	return cost
+}
+
 // beginCast starts the cast flow for opt (a "cast" priority option): resolve
 // which cost opt pays (the base/alternative cost as before, or the
 // kicked/surged/flashback cost opt.Mode names), build the pendingCast, and
@@ -288,18 +332,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// (pc.ability < 0 and no alternative/flashback recast), and a spell with
 	// no SP Cost$ contributes nothing.
 	if opt.AltCostIndex == 0 && opt.Mode == "" {
-		if sa := f.SpellAbility(); sa != nil {
-			if sc := sa.Params["Cost"]; sc != "" {
-				extra := ParseCost(sc)
-				if len(extra.Sac) > 0 {
-					cost.Sac = append(append([]CostPart(nil), cost.Sac...), extra.Sac...)
-				}
-				if len(extra.SubCounter) > 0 {
-					cost.SubCounter = append(append([]CostPart(nil), cost.SubCounter...), extra.SubCounter...)
-				}
-				cost.Tap = cost.Tap || extra.Tap
-			}
-		}
+		cost = withSpellAbilityExtras(f, cost)
 	}
 	// CR 903.8: the commander tax, applied to whatever cost this cast pays
 	// (the base/alternative/kicked/flashback/surged/miracle cost resolved
@@ -500,11 +533,25 @@ func (e *Engine) sacAsk() bool {
 		n := int(part.N)
 		if n <= 0 || n > len(candidates) {
 			// A cost that can no longer be fully paid must not commit half
-			// paid (fix round 1, reviewer Important 1; see the doc above for
-			// why this is unreachable from a well-formed offer after the
-			// castable gate). Abort the whole thing; nothing has moved yet.
-			e.cast, e.choosing = nil, chooseNone
-			e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "sacrifice cost no longer payable; cast/activation aborted"})
+			// paid (fix round 1, reviewer Important 1). Abort the whole
+			// thing; nothing has moved yet.
+			//
+			// This site used to hand-roll the teardown (clear e.cast, emit the
+			// Note) on the reasoning that it was "unreachable from a
+			// well-formed offer after the castable gate". It was reachable,
+			// and hand-rolling it is what made that reachability unbounded
+			// rather than merely wasteful: abortCast is where a no-progress
+			// abort holds the option out of the rest of the priority window
+			// (suppress=true), and skipping it meant the identical board
+			// re-offered the identical doomed cast forever. A live 4-player
+			// game sat on turn 3 doing that until it was killed.
+			//
+			// Route through abortCast like every other unpayable-cost abort,
+			// so this path gets the same liveness guarantee the Delve decline
+			// has (see cast_liveness_test.go): the suppression lifts on the
+			// first state-changing event, which is exactly when a retry could
+			// succeed.
+			e.abortCast(pc, "sacrifice cost no longer payable; cast/activation aborted", true)
 			return true
 		}
 		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
