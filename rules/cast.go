@@ -108,6 +108,22 @@ type pendingCast struct {
 	// etbAsk). Plain data, so a Clone copies it like the fields above.
 	etbs   []etbChoice
 	etbIdx int
+
+	// etbChosen records whether THIS proposal actually emitted an "as this
+	// enters" Choose event, and the object's choice fields as they were
+	// immediately before the first one (captured in etbAnswer, before it
+	// records the answered choice). An aborted proposal (CR 733.1) must
+	// return the object to the moment before it was proposed, so abortCast
+	// emits reverse Choose events restoring these captured values -- but ONLY
+	// when a choice was recorded during this proposal (a spell that never
+	// chose anything emits nothing, so no chain head moves for it). Capturing
+	// all three fields at the first answer means a card with several etb
+	// choices restores the true pre-proposal state, not the state after the
+	// first answer.
+	etbChosen bool
+	etbName   string
+	etbType   string
+	etbNumber int32
 }
 
 // etbChoice is one "as this enters" choice, pre-computed: its kind
@@ -922,6 +938,18 @@ func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
 		return
 	}
 	opt := chosen[0]
+	// CR 733.1: an aborted proposal must undo the as-enters choice. Capture
+	// the object's choice fields as they were IMMEDIATELY BEFORE this answer
+	// records one (the first answer of a multi-choice card sees the true
+	// pre-proposal state), so abortCast can emit reverse Choose events
+	// restoring them. Mark etbChosen once, so the capture is not overwritten
+	// by a later answer and so a spell that never chose asks for no restore.
+	if !pc.etbChosen {
+		if o := e.G.Obj(pc.card); o != nil {
+			pc.etbName, pc.etbType, pc.etbNumber = o.ChosenName, o.ChosenType, o.ChosenNumber
+		}
+		pc.etbChosen = true
+	}
 	switch opt.Kind {
 	case "name":
 		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "name", Text: opt.Label})
@@ -1473,6 +1501,27 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: pc.stackObj, From: state.ZStack, To: state.ZExile, Text: "reversed"})
 		} else {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: pc.stackObj, From: state.ZStack, To: pc.from, Text: "reversed"})
+		}
+	}
+	// CR 733.1: the game returns to the moment before the spell or ability was
+	// proposed, so an as-enters choice recorded during the proposal must be
+	// undone too (Sanctum Prelate's ChosenNumber otherwise survives a mana
+	// abort while every other resource is restored). Emit reverse Choose
+	// events restoring the captured pre-proposal values, but ONLY for the
+	// fields a choice actually changed and ONLY when a choice was recorded
+	// (etbChosen): a spell that never chose emits nothing here, so no chain
+	// head moves for the choiceless abort sites.
+	if pc.etbChosen {
+		if o := e.G.Obj(pc.card); o != nil {
+			if o.ChosenName != pc.etbName {
+				e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "name", Text: pc.etbName})
+			}
+			if o.ChosenType != pc.etbType {
+				e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "type", Text: pc.etbType})
+			}
+			if o.ChosenNumber != pc.etbNumber {
+				e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "number", Amount: pc.etbNumber})
+			}
 		}
 	}
 	e.deferredPush = nil
