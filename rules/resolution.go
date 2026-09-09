@@ -46,7 +46,8 @@ import (
 // resumePoint is one suspended resolution: which continuation the pending
 // decision's answer resumes ("modes" for a Charm modal pick, "unless_pay"
 // for a CopySpellAbility may-pay, "discard" for a mid-resolution discard
-// choice, and "" for a pure outer continuation that carries no answer),
+// choice, "search" for a hidden-library KChoose, and "" for a pure outer
+// continuation that carries no answer),
 // which stack object's resolution is paused, and the exact sub-ability
 // whose effect asked — or, for an outer continuation, the sub-ability to
 // resume walking. `outer` is the continuation that must run after this
@@ -317,6 +318,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.Discard = ids
+		case "search":
+			// A hidden-library KChoose answer is an ordered subset. Preserve
+			// that order for ChangeZone's MoveZone sequence, and set a separate
+			// marker so choosing no cards still means "answered; do not re-ask".
+			ctx.Search = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.Search = append(ctx.Search, o.Obj)
+				}
+			}
+			ctx.SearchDone = true
 		case "arrange":
 			// Ruling J0: rules' handleArrange already applied the answered
 			// arrangement and emitted the LibraryOrder event before calling
