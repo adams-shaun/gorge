@@ -16,6 +16,7 @@
   import { SeatPanelState } from '../lib/seatpanel.svelte';
   import { toneOf } from '../lib/seatpanel.svelte';
   import { optionsByObj, type CardOptions } from '../lib/cardoptions';
+  import { loadLogShown, saveLogShown, safeStorage, type LogScope } from '../lib/logshown';
   import { everyVisibleCard, quadrantFor } from '../lib/board';
   import { seatColour } from '../lib/colours';
   import { seatRows } from '../lib/seattable';
@@ -39,6 +40,20 @@
   // it always was (R-E4-4).
   const seatCtx = getSeat();
   const seated = seatCtx !== null;
+  // The log starts hidden for a SEATED player (they are playing, not reading)
+  // and stays shown for a spectator (they follow the game through it, and its
+  // scrubbing). The choice is persisted per table and per scope — the stops
+  // contract, not a component localStorage reach. `liveSeated` is a mount
+  // constant, so the scope and the default are fixed for the life of this
+  // mounted route. (A finished /m/:match route is a spectator replay and keeps
+  // the spectator default.)
+  const liveSeated = seated && !finished;
+  const logScope: LogScope = liveSeated ? 'seat' : 'spectator';
+  let showLog = $state(!liveSeated);
+  function toggleLog() {
+    showLog = !showLog;
+    saveLogShown(safeStorage(), table, logScope, showLog);
+  }
   // svelte-ignore state_referenced_locally
   const m = new MatchState(table, seatCtx ?? undefined);
 
@@ -138,6 +153,13 @@
       void session.unfocus(table);
     };
   });
+  // The log visibility loads where storage exists (onMount, never SSR), the
+  // same discipline as stops. An absent/corrupt value (null) leaves the
+  // view-specific default in place.
+  onMount(() => {
+    const saved = loadLogShown(safeStorage(), table, logScope);
+    if (saved !== null) showLog = saved;
+  });
 </script>
 
 {#if idle}
@@ -145,7 +167,7 @@
     <MatchList {table} />
   </main>
 {:else}
-  <main class="table">
+  <main class="table" class:log-hidden={!showLog}>
     {#if m.halted}<div class="halted">Table halted: {m.halted}</div>{/if}
     {#if m.view}
       <!-- The clock goes across the top of the page, above both registers.
@@ -198,8 +220,8 @@
           <HandFan player={ownPlayer} />
         {/if}
       </section>
-      <aside class="rail"><Rail view={m.view} seats={m.seats} decision={seated ? null : m.decision} emphasizeTop={seated} events={m.dvr.events} /></aside>
-      <footer class="transcript">
+      <aside class="rail"><Rail view={m.view} seats={m.seats} decision={seated ? null : m.decision} emphasizeTop={seated} events={m.dvr.events} showLog={showLog} onToggleLog={toggleLog} /></aside>
+      <footer class="transcript" class:hidden={!showLog}>
         {#if !seated}
           <DvrBar dvr={m.dvr} onAction={(a) => m.dispatch(a)} {finished} />
         {/if}
@@ -241,6 +263,11 @@
     height: 100vh;
     background: var(--felt);
   }
+  /* With the log hidden the last row collapses to nothing and the board takes
+     the room, rather than leaving a 10rem empty band across the bottom. */
+  .table.log-hidden {
+    grid-template-rows: auto 1fr 0;
+  }
   /* The clock spans both registers, like the transcript beneath them: it
      describes the whole table rather than either half of it. */
   .track {
@@ -274,6 +301,9 @@
     font-family: var(--font-data);
     font-size: var(--t-12);
     overflow: hidden;
+  }
+  .transcript.hidden {
+    display: none;
   }
   .log {
     flex: 1;
