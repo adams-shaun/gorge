@@ -4,6 +4,7 @@ package rules
 // CR 611.2a (5771-5773): without a stated duration, a resolution-created
 // continuous effect lasts until the end of the game.
 // CR 613.1f / 613.4b-c: ability removal is layer 6; set P/T precedes modifiers.
+// Both leaves pass with the conformance flag on, so both run in the ordinary lane.
 
 import (
 	"testing"
@@ -13,7 +14,7 @@ import (
 )
 
 func TestCR611IndefinitePumpSurvivesCleanup(t *testing.T) {
-	requireCR601Audit(t, "CR 611.2a: Riding the Dilu Horse is incorrectly until end of turn")
+	// Graduated: passes with the conformance flag on; runs in the ordinary lane.
 	e := crResolutionEngine(t, []string{"Riding the Dilu Horse"}, nil)
 	horse := crAbortMove(t, e, 0, "Riding the Dilu Horse", state.ZHand)
 	target := crAbortMove(t, e, 0, "Delver of Secrets", state.ZBattlefield)
@@ -37,7 +38,7 @@ func TestCR611IndefinitePumpSurvivesCleanup(t *testing.T) {
 }
 
 func TestCR613HumilitySetsBaseBeforePumpAndRemovesAbilities(t *testing.T) {
-	requireCR601Audit(t, "CR 613.1f/613.4b-c: static ability removal and base P/T setting ignored")
+	// Graduated: passes with the conformance flag on; runs in the ordinary lane.
 	e := crResolutionEngine(t, []string{"Humility", "Giant Growth"}, nil)
 	target := crAbortMove(t, e, 1, "Serra Avenger", state.ZBattlefield)
 	growth := crAbortMove(t, e, 0, "Giant Growth", state.ZHand)
