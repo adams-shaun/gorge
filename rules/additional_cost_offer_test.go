@@ -76,7 +76,9 @@ func TestAdditionalSacrificeCostGatesTheOffer(t *testing.T) {
 // (suppressedCast: hold the option out for the rest of the priority window,
 // lift it on the first state-changing event -- see cast_liveness_test.go for
 // the Delve decline), but this abort site hand-rolled its teardown and never
-// engaged it.
+// engaged it. Ruling F05-2 (CR 733.2) delays the hold-out to the SECOND
+// identical no-progress abort, so a single abort leaves the option offered as
+// a legal retry.
 //
 // Reaching the abort needs a hand-built pendingCast now that the offer gate
 // refuses to hand one out, exactly as TestUnderDelveAbortsTheCast does for the
@@ -99,9 +101,20 @@ func TestUnpayableSacrificeAbortHoldsTheOptionOut(t *testing.T) {
 	if e.G.Obj(rites).Zone != state.ZHand {
 		t.Fatalf("Village Rites in %s, want hand (an aborted cast moves nothing)", e.G.Obj(rites).Zone)
 	}
-	// The liveness guarantee: the doomed option is held out, so the identical
-	// board cannot re-offer it and spin.
+	// CR 733.2: the FIRST no-progress abort leaves the option offered, so a
+	// reversed illegal action may be redone legally -- the identical board
+	// re-offers the doomed cast once, which is exactly the retry the ruling
+	// wants, not yet a livelock.
+	if e.castSuppressed(0, rites) {
+		t.Fatal("a first no-progress sacrifice abort wrongly held the option out; CR 733.2 allows a legal retry")
+	}
+
+	// The SECOND identical no-progress abort is the hold-out: the identical
+	// board cannot re-offer the doomed cast and spin.
+	e.cast = &pendingCast{player: 0, card: rites, from: state.ZHand, ability: -1,
+		cost: ParseCost("B Sac<1/Creature>")}
+	e.continueCast()
 	if !e.castSuppressed(0, rites) {
-		t.Fatal("option not held out after a no-progress abort: the same board will re-offer the same doomed cast, which is an unbounded livelock")
+		t.Fatal("option not held out after a second no-progress abort: the same board will re-offer the same doomed cast, which is an unbounded livelock")
 	}
 }
