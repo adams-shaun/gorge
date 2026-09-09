@@ -179,6 +179,35 @@ func TestStepStringIsTotal(t *testing.T) {
 	}
 }
 
+// TestCloneDeepDoesNotAliasChosenModes pins the ChosenModes carrier added to
+// Object.CloneDeep (jj-trg2 leaf 2). ChosenModes is a slice on a stack
+// object (a modal triggered ability's CR 603.3c placement mode choice), and
+// CloneDeep must re-allocate it or a clone aliases the original's backing
+// array: an in-place write on one side silently rewrites the other, and the
+// resulting divergence surfaces as a nondeterministic replay rather than a
+// red test. That is exactly the bug the carriage ruling warned about, and
+// nothing else pins the line -- every pre-existing clone test clones whole
+// games whose stack objects never carry a populated ChosenModes, so this
+// leaf exists because removing the line fails nothing until now.
+func TestCloneDeepDoesNotAliasChosenModes(t *testing.T) {
+	orig := Object{ID: 7, ChosenModes: []string{"GainLife", "Draw", "CreateToken"}}
+	c := orig.CloneDeep()
+	if len(c.ChosenModes) != 3 || c.ChosenModes[0] != "GainLife" ||
+		c.ChosenModes[1] != "Draw" || c.ChosenModes[2] != "CreateToken" {
+		t.Fatalf("clone did not copy ChosenModes: %v", c.ChosenModes)
+	}
+	// An in-place write (never an append, which would reallocate regardless
+	// of whether CloneDeep aliased): only a shared backing array lets a
+	// write to the copy reach the original.
+	c.ChosenModes[1] = "mutated"
+	if orig.ChosenModes[1] == "mutated" {
+		t.Fatal("CloneDeep aliases ChosenModes: mutating the copy changed the original")
+	}
+	if orig.ChosenModes[1] != "Draw" {
+		t.Fatalf("original ChosenModes changed: %v", orig.ChosenModes)
+	}
+}
+
 // TestCloneCopiesTheNewFieldsAndSharesTokens is Task 4's regression test:
 // Clone is a plain struct copy for Object's new scalar fields (nothing to
 // deep-copy, unlike the slice fields Clone already walks by hand), and
