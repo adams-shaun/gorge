@@ -9,6 +9,8 @@ package rules
 
 import (
 	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
@@ -332,10 +334,25 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// hand-seeded queue entry (clone_test's seeded fake), which never has
 	// ValidTgts$ -- mirror the nil-tolerance the TriggerPush out-of-range
 	// guard already provides.
-	if pt.SA != nil && pt.SA.Params["ValidTgts"] != "" && len(e.G.Stack) > 0 &&
+	//
+	// CR 603.3c: a modal triggered ability announces its mode choice when it
+	// is put on the stack, not at resolution. That ask is posed here too,
+	// in preference to the target ask for a trigger whose effect carries
+	// both a Choices$ clause and a ValidTgts$ (the modal shape a Charm
+	// commonly pairs with target selection INSIDE its modes, not on the
+	// ability itself -- a top-level ValidTgts$ alongside Choices$ is not
+	// exercised by the corpus). The answered modes are recorded on the
+	// stack object (ChosenModes) and the drain resumes through handleModes,
+	// the same continuation shape.
+	if pt.SA != nil && len(e.G.Stack) > 0 &&
 		e.G.Obj(e.G.Stack[len(e.G.Stack)-1]) != nil {
 		id := e.G.Stack[len(e.G.Stack)-1]
-		e.askTarget(pt.Controller, id, pt.SA)
+		if pt.SA.Params["Choices"] != "" {
+			e.askTriggerModes(pt.Controller, id, pt.SA)
+			e.drainAwaitsModes = true
+		} else if pt.SA.Params["ValidTgts"] != "" {
+			e.askTarget(pt.Controller, id, pt.SA)
+		}
 	}
 	// Fix round 1 (reviewer minor, cheap): derive drainAwaitsTarget from
 	// e.Pending() rather than clearing it first. The old form set it false
@@ -347,7 +364,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// on otherwise; askTarget may decline to ask (its TargetMin$ 0 / fizzle
 	// paths), which is exactly why the flag must come from the resulting
 	// pending state rather than from "we wanted to ask".
-	e.drainAwaitsTarget = e.Pending() != nil
+	e.drainAwaitsTarget = e.Pending() != nil && !e.drainAwaitsModes
 }
 
 // triggerOf re-reads the T: line a pending trigger came from, so nothing has
@@ -570,6 +587,61 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 		}
 	}
 	return name
+}
+
+// askTriggerModes is CR 603.3c: a modal triggered ability's controller
+// announces the mode choice when putting the ability on the stack, not at
+// resolution. It poses the same KModes decision effCharm would, but at
+// placement, with ResumeKind/ResumeSA set so the answer's handler records
+// the chosen SVar names onto the stack object (handleModes' placement
+// branch) rather than re-entering a suspended resolution.
+//
+// CharmNum is read as a literal integer (default 1, the overwhelmingly
+// common "choose one"), because the full Num/Qty grammar needs a resolving
+// context this placement ask does not have; a trigger whose CharmNum is
+// computed is rare and degrades to 1, same as the no-engine-host fallback.
+// The option list mirrors effCharm's -- Choices$ order, SpellDescription$ as
+// the label, resolved from the trigger's source SVar table -- so an index
+// chosen here maps to the same SVar name modeChoiceNames produces at
+// resolution.
+func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA) {
+	choices := strings.Split(sa.Params["Choices"], ",")
+	for i := range choices {
+		choices[i] = strings.TrimSpace(choices[i])
+	}
+	charmNum := 1
+	if v, ok := sa.Params["CharmNum"]; ok {
+		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil && n >= 1 {
+			charmNum = n
+		}
+	}
+	if charmNum > len(choices) {
+		charmNum = len(choices)
+	}
+	var source state.ObjID
+	var svars map[string]string
+	if so := e.G.Obj(obj); so != nil {
+		source = so.Source
+	}
+	if so := e.G.Obj(source); so != nil {
+		if sf := so.Face(); sf != nil {
+			svars = sf.SVars
+		}
+	}
+	d := &decision.Decision{Player: p, Kind: decision.KModes, Min: charmNum, Max: charmNum,
+		Source: source, ResumeKind: "modes", ResumeSA: sa,
+		Prompt: "Choose " + strconv.Itoa(charmNum) + " mode(s)"}
+	for i, name := range choices {
+		label := name
+		if sub := cards.ResolveSVar(svars, name); sub != nil {
+			if desc := strings.TrimSpace(sub.Params["SpellDescription"]); desc != "" {
+				label = desc
+			}
+		}
+		d.Options = append(d.Options, decision.Option{
+			Index: i, Kind: "mode", Label: label, Obj: source, Player: p})
+	}
+	e.ask(d)
 }
 
 // askTriggerOrder is R1: the controller of two or more simultaneous triggers

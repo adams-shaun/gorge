@@ -576,6 +576,13 @@ func (e *Engine) resolveTop() {
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
 			Targets: targets, Remembered: o.Remembered}
 		effects.SetSVars(ctx, svars)
+		// CR 603.3c: the mode choice was announced at placement (pushTrigger
+		// asked KModes and handleModes recorded the answer into ChosenModes).
+		// Pre-seeding Ctx.Modes makes effCharm take its re-entry branch and
+		// run exactly the chosen modes rather than asking again at
+		// resolution. Nil for a non-modal trigger, for an activated ability,
+		// and for any trigger the placement ask never reached.
+		ctx.Modes = o.ChosenModes
 		e.damaging = o.Source
 		effects.Resolve(e, ctx, o.Ability)
 		e.damaging = 0
