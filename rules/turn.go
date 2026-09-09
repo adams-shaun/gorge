@@ -461,6 +461,16 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 // hand-built decision -- is dropped with a Note and priority resumes.
 func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
+	// A hidden-library ChangeZone uses KChoose's ordinary ordered subset wire
+	// shape, but it is a mid-resolution effect ask rather than one of the cast/
+	// cleanup flows tracked by e.choosing. Resume it before dispatching those
+	// flows; an empty chosen slice is the legitimate "fail to find" answer.
+	if e.resume != nil && e.resume.kind == "search" {
+		rp := e.resume
+		e.resume = nil
+		e.resumeResolution(rp, chosen)
+		return
+	}
 	switch e.choosing {
 	case chooseCast:
 		e.castAnswer(d, chosen)

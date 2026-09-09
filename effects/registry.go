@@ -129,6 +129,13 @@ type Ctx struct {
 	// discarder, which is why a plain ObjID is not enough state to rebuild:
 	// the two player roles are re-derived from Ctx on re-entry.
 	Discard []state.ObjID
+	// Search is the answered hidden-library KChoose selection on a re-entered
+	// ChangeZone resolution. SearchDone distinguishes "answered with no cards"
+	// from the first pass; Search preserves the player's answer order. The
+	// asking effect consumes and clears both before continuing, so a nested
+	// search cannot inherit the outer answer.
+	Search     []state.ObjID
+	SearchDone bool
 	// Arrange is the answered KArrange decision on a re-entered
 	// mid-resolution resolution (Ruling J0): true once rules' handleArrange
 	// has applied the answered arrangement and emitted the LibraryOrder

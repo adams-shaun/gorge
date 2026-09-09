@@ -42,6 +42,11 @@ var predicates = map[string]predFn{
 	"Legendary": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return hasType(o, "Legendary")
 	},
+	// Basic is a supertype used by the common hidden-library ChangeZone
+	// filter Land.Basic (Evolving Wilds and the ramp/tutor family).
+	"Basic": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return hasType(o, "Basic")
+	},
 	// Snow is a supertype used as a predicate in Count$Valid specs (Withering
 	// Wisps' "Swamp.Snow+YouCtrl"). hasType already sees the Snow type word
 	// (Types: Basic Snow Land Swamp), so the predicate is the same shape as
