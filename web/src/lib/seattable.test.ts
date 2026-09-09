@@ -14,7 +14,7 @@ const player = (over: Partial<PlayerView> = {}): PlayerView => ({
 });
 
 const view = (over: Partial<View> = {}): View => ({
-  viewer: 255, visibility: 'omniscient', turn: 4, step: 'main1', phase: 'main1', active: 1, priority: 1,
+  viewer: 255, visibility: 'omniscient', turn: 4, round: 4, step: 'main1', phase: 'main1', active: 1, priority: 1,
   over: false, draw: false, winner: null, stack: [], pending: [],
   players: [player({ seat: 0, name: 'P0' }), player({ seat: 1, name: 'P1' })], ...over,
 });

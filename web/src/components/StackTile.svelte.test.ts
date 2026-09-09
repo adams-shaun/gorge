@@ -29,7 +29,7 @@ const spell = (over: Partial<StackView> = {}): StackView => ({
 });
 
 const view = (stack: StackView[]): View => ({
-  viewer: 255, visibility: 'omniscient', turn: 1, step: 'main1', phase: 'main1', active: 0, priority: 0,
+  viewer: 255, visibility: 'omniscient', turn: 1, round: 1, step: 'main1', phase: 'main1', active: 0, priority: 0,
   over: false, draw: false, winner: null, stack, pending: [],
   players: [{
     seat: 0, name: 'P0', life: 40, lost: false, library_size: 90, hand_size: 7, graveyard_size: 0,

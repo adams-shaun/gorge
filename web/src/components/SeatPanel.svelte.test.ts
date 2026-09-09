@@ -41,7 +41,7 @@ const opt = (index: number, kind: string, label: string, obj?: number): Option =
 // a panel indexing by array position instead of by seat number reads alice's
 // row and the tests catch it.
 const view = (decision: Decision | null, hand: CardView[] = [], pool: Record<string, number> = {}): View => ({
-  viewer: 1, visibility: 'seat', turn: 3, step: 'upkeep', phase: 'beginning',
+  viewer: 1, visibility: 'seat', turn: 3, round: 3, step: 'upkeep', phase: 'beginning',
   active: 0, priority: 1, over: false, draw: false, winner: null,
   players: [player(0, []), player(1, hand, pool)],
   stack: [], pending: [], decision,

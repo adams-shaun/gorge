@@ -48,7 +48,7 @@ const player = (seat: number): PlayerView => ({
 });
 const seats: SeatInfo[] = [{ name: 'Ari', deck: 'mono-red', colour: '#e5484d' }, { name: 'Bo', deck: 'mono-green', colour: '#22c55e' }];
 const view = (overrides: Partial<View> = {}): View => ({
-  viewer: 0, visibility: 'seat', turn: 3, step: 'main', phase: 'main1', active: 0, priority: 0,
+  viewer: 0, visibility: 'seat', turn: 3, round: 3, step: 'main', phase: 'main1', active: 0, priority: 0,
   over: false, draw: false, winner: null, players: [player(0), player(1)], stack: [], pending: [], ...overrides,
 });
 

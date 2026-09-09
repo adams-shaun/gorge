@@ -15,7 +15,7 @@ const seats: SeatInfo[] = [
   { name: 'Bo', deck: 'green', colour: '#22c55e' },
 ];
 const view = (priority: number): View => ({
-  viewer: 255, visibility: 'public', turn: 1, step: 'main1', phase: 'main1', active: 1, priority,
+  viewer: 255, visibility: 'public', turn: 1, round: 1, step: 'main1', phase: 'main1', active: 1, priority,
   over: false, draw: false, winner: null, stack: [], pending: [], players,
 });
 
