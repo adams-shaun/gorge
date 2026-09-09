@@ -52,7 +52,11 @@ describe('HotButtonStrip — server options regrouped into one instrument', () =
     };
     const unavailable = strip(choose);
     expect(unavailable).toMatch(/data-hot-tab="pass"[^>]*aria-disabled="true"/);
-    expect(unavailable).not.toContain('data-pass-action');
+    // The button is always present now -- it is a transport control, not a
+    // menu that appears only when it has something in it. Unavailable means
+    // DISABLED, which is what keeps R-E4-2 true: the strip never offers an
+    // action the wire did not send.
+    expect(unavailable).toMatch(/data-pass-action[^>]*disabled/);
 
     // SeatPanel owns polling and Skip Empty. It must remain mounted when the
     // wire offers only pass, even though ACTIONS itself is unavailable.
@@ -91,6 +95,6 @@ describe('HotButtonStrip — server options regrouped into one instrument', () =
     };
     const html = strip(target);
     expect(html).toMatch(/data-hot-tab="done"[^>]*aria-disabled="true"/);
-    expect(html).not.toContain('data-done-action');
+    expect(html).toMatch(/data-done-action[^>]*disabled/);
   });
 });

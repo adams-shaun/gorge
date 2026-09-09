@@ -98,43 +98,59 @@
     </div>
   </div>
 
-  <div class="hot-tab" role="presentation" onpointerenter={() => show('pass')} onpointerleave={scheduleClose} onfocusin={() => show('pass')} onfocusout={scheduleClose}>
-    <button class="tab" type="button" data-hot-tab="pass" aria-label="Pass" aria-haspopup="true" aria-expanded={open === 'pass'} aria-controls="hot-panel-pass" aria-disabled={!passAvailable} onclick={() => show('pass')}>
+  <!-- A transport control, not a menu: one action behind it, so one click.
+       A dropdown here made the commonest move on the board cost two. The
+       title carries the wire option's own label so the glyph is never the
+       only thing telling you what it does. -->
+  <div class="hot-tab direct" role="presentation">
+    <button
+      class="tab"
+      type="button"
+      data-hot-tab="pass"
+      data-pass-action
+      aria-label="Pass"
+      aria-disabled={!passAvailable}
+      disabled={!passAvailable}
+      title={logic.passOption?.label ?? 'Pass is not offered by this decision'}
+      onclick={() => logic.passClick()}
+    >
       <span class="full">PASS</span><span class="compact" aria-hidden="true">&gt;</span>
     </button>
-    <div class="drop small" class:open={open === 'pass'} id="hot-panel-pass" data-hot-panel="pass" role="group" aria-label="Pass options">
-      {#if logic.passOption}
-        <button class="drop-action" type="button" data-pass-action onclick={() => logic.passClick()} disabled={logic.busy}>{logic.passOption.label}</button>
-      {:else}
-        <p class="unavailable">Pass is not offered by this decision.</p>
-      {/if}
-    </div>
   </div>
 
-  <div class="hot-tab" role="presentation" onpointerenter={() => show('ffwd')} onpointerleave={scheduleClose} onfocusin={() => show('ffwd')} onfocusout={scheduleClose}>
-    <button class="tab" class:on={logic.fastForward} type="button" data-hot-tab="ffwd" aria-label="Fast forward" aria-haspopup="true" aria-expanded={open === 'ffwd'} aria-controls="hot-panel-ffwd" aria-disabled={!ffwdAvailable} onclick={() => show('ffwd')}>
+  <div class="hot-tab direct" role="presentation">
+    <button
+      class="tab"
+      class:on={logic.fastForward}
+      type="button"
+      data-hot-tab="ffwd"
+      data-fast-forward
+      aria-label="Fast forward"
+      aria-pressed={logic.fastForward}
+      aria-disabled={!ffwdAvailable}
+      disabled={!ffwdAvailable}
+      title={ffwdAvailable ? 'Fast forward to the next stop' : 'Fast forward needs a pass option'}
+      onclick={fastForward}
+    >
       <span class="full">FFWD</span><span class="compact" aria-hidden="true">&gt;&gt;</span>
     </button>
-    <div class="drop small" class:open={open === 'ffwd'} id="hot-panel-ffwd" data-hot-panel="ffwd" role="group" aria-label="Fast forward options">
-      {#if ffwdAvailable || logic.fastForward}
-        <button class="drop-action" type="button" data-fast-forward aria-pressed={logic.fastForward} onclick={fastForward} disabled={!ffwdAvailable}>Fast forward to the next stop</button>
-      {:else}
-        <p class="unavailable">Fast forward needs a pass option.</p>
-      {/if}
-    </div>
   </div>
 
-  <div class="hot-tab contextual" role="presentation" onpointerenter={() => show('done')} onpointerleave={scheduleClose} onfocusin={() => show('done')} onfocusout={scheduleClose}>
-    <button class="tab" type="button" data-hot-tab="done" aria-label={doneFull} aria-haspopup="true" aria-expanded={open === 'done'} aria-controls="hot-panel-done" aria-disabled={!doneAvailable} onclick={() => show('done')}>
+  <!-- Done is one action too, so it follows Pass and Fast forward. -->
+  <div class="hot-tab contextual direct" role="presentation">
+    <button
+      class="tab"
+      type="button"
+      data-hot-tab="done"
+      data-done-action
+      aria-label={doneFull}
+      aria-disabled={!doneAvailable}
+      disabled={!doneAvailable}
+      title={doneShown ? doneFull : 'This decision does not need a separate selection submit'}
+      onclick={() => logic.submit()}
+    >
       <span class="full">{doneFull.toUpperCase()}</span><span class="compact" aria-hidden="true">{doneCompact}</span>
     </button>
-    <div class="drop small" class:open={open === 'done'} id="hot-panel-done" data-hot-panel="done" role="group" aria-label="Selection options">
-      {#if doneShown}
-        <button class="drop-action" type="button" data-done-action onclick={() => logic.submit()} disabled={!doneAvailable}>{doneFull}</button>
-      {:else}
-        <p class="unavailable">This decision does not need a separate selection submit.</p>
-      {/if}
-    </div>
   </div>
 
   <div class="hot-tab" role="presentation" onpointerenter={() => show('options')} onpointerleave={scheduleClose} onfocusin={() => show('options')} onfocusout={scheduleClose}>
@@ -236,11 +252,9 @@
     visibility: visible;
     pointer-events: auto;
   }
-  .drop.small { width: min(18rem, calc(100vw - var(--sp-4))); }
   .drop.game { width: min(34rem, calc(100vw - var(--sp-4))); }
   /* Keep the edge under the tab contiguous even though the panel has a
      border: no margin, translate, or transparent bridge sits in this path. */
-  .drop-action,
   .setting-row button,
   .stop-grid button {
     border: 0;
@@ -250,24 +264,8 @@
     font-family: var(--font-ui);
     cursor: pointer;
   }
-  .drop-action {
-    width: 100%;
-    padding: var(--sp-2) var(--sp-3);
-    text-align: left;
-    font-size: var(--t-12);
-  }
-  .drop-action:not(:disabled):hover,
   .setting-row button:hover,
   .stop-grid button:hover { color: var(--ink); }
-  .drop-action:disabled { color: var(--ink-faint); cursor: default; }
-  .unavailable,
-  .note {
-    margin: 0;
-    padding: var(--sp-2) var(--sp-3);
-    color: var(--ink-faint);
-    font-size: var(--t-11);
-    line-height: 1.35;
-  }
   .setting-row {
     display: flex;
     gap: 1px;
