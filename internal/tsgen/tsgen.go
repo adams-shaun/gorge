@@ -8,6 +8,11 @@ package tsgen
 import (
 	"encoding/json"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
@@ -28,6 +33,7 @@ type gen struct {
 	seen  map[reflect.Type]bool
 	names map[string]reflect.Type
 	err   error
+	cmts  *comments
 }
 
 // Generate renders the header, the unions, then one interface per struct in
@@ -35,7 +41,7 @@ type gen struct {
 // distinct struct types with the same Name() are an error, as is an
 // anonymous struct: the output needs a stable, unique name for each.
 func Generate(o Options) (string, error) {
-	g := &gen{seen: map[reflect.Type]bool{}, names: map[string]reflect.Type{}}
+	g := &gen{seen: map[reflect.Type]bool{}, names: map[string]reflect.Type{}, cmts: newComments()}
 	for _, r := range o.Roots {
 		g.visit(r)
 		if g.err != nil {
@@ -93,12 +99,18 @@ func (g *gen) visit(t reflect.Type) {
 }
 
 func (g *gen) writeStruct(b *strings.Builder, t reflect.Type) {
+	if doc := g.cmts.structDoc(t); doc != "" {
+		writeComment(b, doc)
+	}
 	fmt.Fprintf(b, "export interface %s {\n", t.Name())
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		name, omitempty := jsonName(f)
 		if name == "" {
 			continue
+		}
+		if doc := g.cmts.fieldDoc(t, f.Name); doc != "" {
+			writeComment(b, doc)
 		}
 		q := ""
 		if omitempty {
@@ -107,6 +119,32 @@ func (g *gen) writeStruct(b *strings.Builder, t reflect.Type) {
 		fmt.Fprintf(b, "  %s%s: %s;\n", name, q, tsType(f.Type))
 	}
 	b.WriteString("}\n")
+}
+
+// writeComment emits doc as a /* ... */ block. Long comments are NOT wrapped:
+// each source line becomes one ` * ` line, so the emitted text is the writer's
+// line structure unchanged and the output is byte-deterministic. Any `*/` in
+// the text is escaped to `* /` so the doc cannot terminate its own block (a
+// Go writer using a //-comment may legally contain that sequence).
+func writeComment(b *strings.Builder, doc string) {
+	lines := strings.Split(escapeComment(doc), "\n")
+	b.WriteString("  /**\n")
+	for _, ln := range lines {
+		if ln == "" {
+			b.WriteString("   *\n")
+		} else {
+			b.WriteString("   * " + ln + "\n")
+		}
+	}
+	b.WriteString("   */\n")
+}
+
+// escapeComment neutralises the one sequence that can terminate a block
+// comment (`*/`) by separating the two characters. Deterministic and context-
+// free; `/*` needs no handling because block comments do not nest, so only the
+// terminator can end the block early.
+func escapeComment(s string) string {
+	return strings.ReplaceAll(s, "*/", "* /")
 }
 
 // jsonName is the wire name and whether omitempty is set; "" means skip
@@ -177,4 +215,231 @@ func elemStruct(t reflect.Type) reflect.Type {
 			return t
 		}
 	}
+}
+
+// comments carries the Go doc comments (struct and field) that the generator
+// emits as /* ... */ blocks. reflect exposes no comment information at all, so
+// each package is parsed from source once, keyed by import path. Loading is
+// lazy and best-effort: a package whose source cannot be located simply
+// contributes no comments rather than failing the whole generation.
+type comments struct {
+	moduleRoot string
+	modulePath string
+	loaded     map[string]bool
+	pkgs       map[string]*pkgComments
+}
+
+// pkgComments holds one package's struct and field doc comments, keyed by
+// declaration name (struct) and, within a struct, by field name.
+type pkgComments struct {
+	structs map[string]string
+	fields  map[string]map[string]string
+}
+
+func newComments() *comments {
+	return &comments{loaded: map[string]bool{}, pkgs: map[string]*pkgComments{}}
+}
+
+// structDoc returns the doc comment above a struct type, or "".
+func (c *comments) structDoc(t reflect.Type) string {
+	return c.pkg(t).structs[t.Name()]
+}
+
+// fieldDoc returns the doc comment above a struct field, or "".
+func (c *comments) fieldDoc(t reflect.Type, field string) string {
+	pc := c.pkg(t)
+	return pc.fields[t.Name()][field]
+}
+
+// pkg resolves t's package comments, loading them from source if needed.
+func (c *comments) pkg(t reflect.Type) *pkgComments {
+	pkgPath := t.PkgPath()
+	if pc, ok := c.pkgs[pkgPath]; ok {
+		return pc
+	}
+	pc := &pkgComments{structs: map[string]string{}, fields: map[string]map[string]string{}}
+	c.pkgs[pkgPath] = pc // record first so a failure never re-loads
+	if dir, err := c.packageDir(pkgPath); err == nil {
+		if parsed, err := parsePackageDir(dir); err == nil {
+			pc.structs = parsed.structs
+			pc.fields = parsed.fields
+		}
+	}
+	return pc
+}
+
+// packageDir resolves an import path to a directory inside the current module.
+// It finds the enclosing go.mod by walking up from the working directory. A
+// package outside the module has no directory here and yields an error, which
+// pkg turns into "no comments".
+func (c *comments) packageDir(pkgPath string) (string, error) {
+	if c.modulePath == "" {
+		if err := c.findModule(); err != nil {
+			return "", err
+		}
+	}
+	if pkgPath == c.modulePath {
+		return c.moduleRoot, nil
+	}
+	if !strings.HasPrefix(pkgPath, c.modulePath+"/") {
+		return "", fmt.Errorf("package %s is outside module %s", pkgPath, c.modulePath)
+	}
+	rel := strings.TrimPrefix(pkgPath, c.modulePath+"/")
+	return filepath.Join(c.moduleRoot, filepath.FromSlash(rel)), nil
+}
+
+// findModule walks up from the working directory to the go.mod that declares
+// the current module and records its root and module path.
+func (c *comments) findModule() error {
+	dir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	for {
+		gomod := filepath.Join(dir, "go.mod")
+		if fi, statErr := os.Stat(gomod); statErr == nil && !fi.IsDir() {
+			data, readErr := os.ReadFile(gomod)
+			if readErr != nil {
+				return readErr
+			}
+			for _, line := range strings.Split(string(data), "\n") {
+				line = strings.TrimSpace(line)
+				if rest, ok := strings.CutPrefix(line, "module "); ok {
+					c.moduleRoot = dir
+					c.modulePath = strings.TrimSpace(rest)
+					return nil
+				}
+			}
+			return fmt.Errorf("no module directive in %s", gomod)
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return fmt.Errorf("no go.mod found above %s", dir)
+		}
+		dir = parent
+	}
+}
+
+// parsePackageDir parses every .go file in dir and collects the doc comments
+// of structs and their fields. Non-test files are parsed first so a real
+// declaration wins over a test-only shadow with the same name. Comment text is
+// returned with each `//`/`/* */` line trimmed to its content, joined by \n.
+func parsePackageDir(dir string) (*pkgComments, error) {
+	pc := &pkgComments{structs: map[string]string{}, fields: map[string]map[string]string{}}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	var regular, tests []string
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".go") {
+			continue
+		}
+		p := filepath.Join(dir, e.Name())
+		if strings.HasSuffix(e.Name(), "_test.go") {
+			tests = append(tests, p)
+		} else {
+			regular = append(regular, p)
+		}
+	}
+	sort.Strings(regular)
+	sort.Strings(tests)
+	for _, file := range regular {
+		f, parseErr := parser.ParseFile(token.NewFileSet(), file, nil, parser.ParseComments)
+		if parseErr != nil {
+			continue // a file that does not parse contributes nothing
+		}
+		collectStructComments(pc, f, true)
+	}
+	for _, file := range tests {
+		f, parseErr := parser.ParseFile(token.NewFileSet(), file, nil, parser.ParseComments)
+		if parseErr != nil {
+			continue
+		}
+		collectStructComments(pc, f, false)
+	}
+	return pc, nil
+}
+
+// collectStructComments records the struct and field doc comments in one parsed
+// file. When overwrite is false (a test file), an already-recorded declaration
+// is left untouched so the real code's comment wins.
+func collectStructComments(pc *pkgComments, f *ast.File, overwrite bool) {
+	for _, decl := range f.Decls {
+		gd, ok := decl.(*ast.GenDecl)
+		if !ok || gd.Tok != token.TYPE {
+			continue
+		}
+		for _, spec := range gd.Specs {
+			ts, ok := spec.(*ast.TypeSpec)
+			if !ok {
+				continue
+			}
+			st, ok := ts.Type.(*ast.StructType)
+			if !ok {
+				continue
+			}
+			// A single type declaration hangs its comment on the GenDecl's Doc,
+			// not the TypeSpec's; a grouped `type ( ... )`'s comments live on
+			// each TypeSpec. Prefer the TypeSpec, fall back to the GenDecl.
+			doc := commentText(ts.Doc)
+			if doc == "" {
+				doc = commentText(gd.Doc)
+			}
+			if doc != "" && (overwrite || pc.structs[ts.Name.Name] == "") {
+				pc.structs[ts.Name.Name] = doc
+			}
+			if len(st.Fields.List) == 0 {
+				continue
+			}
+			fm := pc.fields[ts.Name.Name]
+			if fm == nil {
+				fm = map[string]string{}
+				pc.fields[ts.Name.Name] = fm
+			}
+			for _, field := range st.Fields.List {
+				doc := commentText(field.Doc)
+				if doc == "" {
+					continue
+				}
+				for _, name := range field.Names {
+					if overwrite || fm[name.Name] == "" {
+						fm[name.Name] = doc
+					}
+				}
+			}
+		}
+	}
+}
+
+// commentText flattens a comment group to its content, one string per source
+// line. `//` and `/* */` forms are both handled; blank leading/trailing lines
+// are dropped so a `/* */` block does not open and close on empty lines.
+func commentText(cg *ast.CommentGroup) string {
+	if cg == nil {
+		return ""
+	}
+	var lines []string
+	for _, c := range cg.List {
+		text := c.Text
+		switch {
+		case strings.HasPrefix(text, "//"):
+			lines = append(lines, strings.TrimPrefix(strings.TrimPrefix(text, "//"), " "))
+		case strings.HasPrefix(text, "/*"):
+			text = strings.TrimSuffix(strings.TrimPrefix(text, "/*"), "*/")
+			for _, ln := range strings.Split(text, "\n") {
+				ln = strings.TrimPrefix(ln, " ")
+				ln = strings.TrimPrefix(ln, "*")
+				ln = strings.TrimPrefix(ln, " ")
+				lines = append(lines, ln)
+			}
+		}
+	}
+	for len(lines) > 0 && strings.TrimSpace(lines[0]) == "" {
+		lines = lines[1:]
+	}
+	for len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) == "" {
+		lines = lines[:len(lines)-1]
+	}
+	return strings.Join(lines, "\n")
 }
