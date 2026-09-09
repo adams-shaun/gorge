@@ -81,6 +81,12 @@ var predicates = map[string]predFn{
 	},
 }
 
+// colorLetter maps a colour's English name to its WUBRG letter -- note Blue
+// is "U", not "B" (col[:1] would collide with Black). Colour predicates
+// (and their non<X> negations) read ColorsOf, not the face directly, so a
+// Devoid card (effects.ColorsOf) matches no colour predicate, Green included.
+var colorLetter = map[string]string{"White": "W", "Blue": "U", "Black": "B", "Red": "R", "Green": "G"}
+
 func init() {
 	for _, kw := range [...]string{"Flying", "Trample", "Deathtouch", "Lifelink",
 		"Vigilance", "Reach", "Haste", "Indestructible", "First Strike", "Menace"} {
@@ -92,11 +98,8 @@ func init() {
 			return o.Face() == nil || !o.Face().HasKeyword(k)
 		}
 	}
-	// colorLetter maps the predicate's English name to its WUBRG letter --
-	// note Blue is "U", not "B" (col[:1] would collide with Black). These read
-	// ColorsOf, not the face directly, so Devoid (effects.ColorsOf) correctly
-	// stops a card from matching any colour predicate, Green included.
-	colorLetter := map[string]string{"White": "W", "Blue": "U", "Black": "B", "Red": "R", "Green": "G"}
+	// These read ColorsOf, not the face directly, so Devoid (effects.ColorsOf)
+	// correctly stops a card from matching any colour predicate, Green included.
 	for _, c := range [...]string{"White", "Blue", "Black", "Red", "Green"} {
 		letter := colorLetter[c]
 		predicates[c] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
@@ -124,6 +127,30 @@ func init() {
 func attachedBy(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 	s := g.Obj(src)
 	return s != nil && s.AttachedTo == o.ID && s.Zone == state.ZBattlefield
+}
+
+// nonPredicate reports whether predicate p has the generic negation shape
+// non<X>, and how to evaluate it. For <X> a colour name it returns that
+// colour's WUBRG letter (isType=false); for <X> a type/supertype/subtype word
+// in the corpus vocabulary it returns isType=true. ok is false for a p that is
+// not a non<X> shape at all, or whose <X> is neither a colour nor a known type
+// word -- the caller must treat that as an unknown predicate and fail closed,
+// never as an always-true !hasType. The four legacy non* entries in `predicates`
+// (nonLand/nonCreature/nonBasic/nonBlack) are matched there first and never
+// reach this path, but this path reproduces their result exactly, so the
+// handwritten entries could be deleted without changing behaviour.
+func nonPredicate(p string) (x string, letter string, isType bool, ok bool) {
+	x, has := strings.CutPrefix(p, "non")
+	if !has || x == "" {
+		return "", "", false, false
+	}
+	if l, is := colorLetter[x]; is {
+		return x, l, false, true
+	}
+	if predicateTypeWords[x] {
+		return x, "", true, true
+	}
+	return x, "", false, false
 }
 
 func hasType(o *state.Object, t string) bool {
@@ -377,6 +404,17 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 				}
 				continue
 			}
+			// Generic non<X> negation. An unknown <X> (neither a colour nor a
+			// type word, e.g. nonFrobnicate) is unknown, so it fails closed --
+			// the alternative, !hasType, would always match and silently widen
+			// the filter.
+			if x, letter, isType, ok := nonPredicate(p); ok {
+				if (isType && hasType(o, x)) || (!isType && strings.Contains(ColorsOf(o), letter)) {
+					all = false
+					break
+				}
+				continue
+			}
 			all = false // unknown predicate: never match
 			break
 		}
@@ -456,6 +494,9 @@ func UnknownPredicates(spec string) []string {
 				continue
 			}
 			if _, ok := numericPred(p, nil, &state.Object{}, SpecContext{}); ok {
+				continue
+			}
+			if _, _, _, ok := nonPredicate(p); ok {
 				continue
 			}
 			out = append(out, p)
