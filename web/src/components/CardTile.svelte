@@ -3,6 +3,7 @@
   import CardImage from './CardImage.svelte';
   import CardDetail from './CardDetail.svelte';
   import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
+  import { placeMenu, MENU_WIDTH, type MenuAnchor } from '../lib/menuplacement';
 
   /**
    * CardTile is the battlefield/stack/strip face of one object. It has no
@@ -75,8 +76,39 @@
   // the server's own option labels, and clicking one posts that option's own
   // index through tileOptions.post — which is the seat panel (R-E4-1: the
   // index, never a position in a rebuilt list).
+  //
+  // THE MENU IS PORTALLED AND FIXED (ui23), not an absolutely-positioned
+  // child of the tile: inside a scrollable `.quadrant` an inline menu is
+  // clipped by the quadrant's `overflow: auto` when it hangs below a tall
+  // row. Portalled to body and positioned by the badge's rect, no ancestor's
+  // overflow or containing block can cut it off, and placeMenu keeps it on
+  // screen (flipping above the badge when there is no room below).
   // svelte-ignore state_referenced_locally
   let open = $state(open0);
+  let menuAnchor = $state<MenuAnchor | null>(null);
+  let badgeEl = $state<HTMLButtonElement | null>(null);
+  function toggleMenu() {
+    open = !open;
+    if (open && badgeEl) {
+      const r = badgeEl.getBoundingClientRect();
+      menuAnchor = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+    }
+  }
+  const menuPlacement = $derived(
+    menuAnchor
+      ? placeMenu(menuAnchor, typeof window === 'undefined' ? 0 : window.innerWidth, typeof window === 'undefined' ? 0 : window.innerHeight)
+      : { x: 8, y: 8, maxHeight: 400, up: false },
+  );
+  /** portal moves the menu node to <body> so no scroll container or
+   *  containing block can clip it — exactly the CardDetail panel's model. */
+  function portal(node: HTMLElement) {
+    document.body.appendChild(node);
+    return {
+      destroy() {
+        node.remove();
+      },
+    };
+  }
 
   // Ability shorthand for the keywords players scan for during combat. A
   // keyword with no shorthand is deliberately NOT drawn as a mark: an
@@ -222,7 +254,13 @@
       aria-expanded={open}
       aria-label="{tileOptions.list.length} {tileOptions.list.length === 1 ? 'action' : 'actions'} for {card.name}"
       title="Options for {card.name}"
-      onclick={() => (open = !open)}
+      bind:this={badgeEl}
+      onclick={(event) => {
+        // A tile may sit inside CardStack's expand/collapse button. Opening
+        // its own action menu must not also collapse that parent stack.
+        event.stopPropagation();
+        toggleMenu();
+      }}
     >
       <span class="badge__n data">{tileOptions.list.length}</span>
     </button>
@@ -233,15 +271,22 @@
       <span class="sel data" aria-label="picked {tileOptions.pickedOrder.join(', ')}">{tileOptions.pickedOrder.join(',')}</span>
     {/if}
     {#if open}
-      <ul class="menu" role="menu" aria-label="Options for {card.name}">
-        {#each tileOptions.list as opt (opt.index)}
-          <li role="none">
-            <button class="menu__item" type="button" role="menuitem" onclick={() => tileOptions.post(opt.index)}>
-              {opt.label}
-            </button>
-          </li>
-        {/each}
-      </ul>
+      <!-- PORTALLED TO <body> AND FIXED. An inline absolute child of the
+           tile inside the quadrant is clipped by the quadrant's overflow;
+           hanging the menu off the viewport means no ancestor can cut it
+           off, and placeMenu keeps it on screen (flipping above the badge
+           when there is no room below). See lib/menuplacement. -->
+      <div class="menu-pop" use:portal style:left="{menuPlacement.x}px" style:top="{menuPlacement.y}px" style:width="{MENU_WIDTH}px" style:max-height="{menuPlacement.maxHeight}px">
+        <ul class="menu" role="menu" aria-label="Options for {card.name}">
+          {#each tileOptions.list as opt (opt.index)}
+            <li role="none">
+              <button class="menu__item" type="button" role="menuitem" onclick={() => tileOptions.post(opt.index)}>
+                {opt.label}
+              </button>
+            </li>
+          {/each}
+        </ul>
+      </div>
     {/if}
   </div>
 {/if}
@@ -529,22 +574,21 @@
     border-color: var(--ink-dim);
     color: var(--ink);
   }
-  .menu {
-    position: absolute;
-    top: calc(100% + 3px);
-    right: 0;
-    z-index: 6;
-    margin: 0;
-    padding: 2px;
-    list-style: none;
-    min-width: 9rem;
-    max-width: 14rem;
-    max-height: 12rem;
+  .menu-pop {
+    position: fixed;
+    z-index: 20;
+    box-sizing: border-box;
     overflow-y: auto;
     background: var(--instrument);
     border: 1px solid var(--edge-inst);
     border-radius: var(--radius);
     box-shadow: var(--shadow-lift);
+    padding: 2px;
+  }
+  .menu {
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
   .menu__item {
     display: block;

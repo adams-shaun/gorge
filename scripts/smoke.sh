@@ -53,26 +53,28 @@ echo "== smoke: building gorged =="
 mkdir -p bin
 CGO_ENABLED=0 go build -o bin/gorged ./cmd/gorged
 
-# ---- allocate three free smoke ports (8090-8099); NEVER 8080/8081 (demo) ----
+# ---- allocate four free smoke ports (8090-8099); NEVER 8080/8081 (demo) ----
 taken=$(ss -lptn 2>/dev/null | grep -oE ':[0-9]{4}\b' | tr -d ':' | sort -u)
 ports=()
 for p in $(seq 8090 8099); do
   if ! grep -qx "$p" <<<"$taken"; then
     ports+=("$p")
   fi
-  if [ "${#ports[@]}" -ge 3 ]; then break; fi
+  if [ "${#ports[@]}" -ge 4 ]; then break; fi
 done
-if [ "${#ports[@]}" -lt 3 ]; then
-  echo "smoke: need three free ports in 8090-8099 (none available)" >&2
+if [ "${#ports[@]}" -lt 4 ]; then
+  echo "smoke: need four free ports in 8090-8099" >&2
   exit 1
 fi
 PUBPORT="${ports[0]}"
 OMNPORT="${ports[1]}"
 SEATPORT="${ports[2]}"
+FIXTUREPORT="${ports[3]}"
 
 PUBDIR="$(mktemp -d /tmp/gorge-smoke-public-XXXXXX)"
 OMNDIR="$(mktemp -d /tmp/gorge-smoke-omni-XXXXXX)"
 SEATDIR="$(mktemp -d /tmp/gorge-smoke-seat-XXXXXX)"
+FIXTUREDIR="$(mktemp -d /tmp/gorge-smoke-ui24-XXXXXX)"
 SERVER_PIDS=()
 
 cleanup() {
@@ -93,7 +95,7 @@ cleanup() {
     [ "$alive" -eq 0 ] && break
     sleep 0.1
   done
-  rm -rf "$PUBDIR" "$OMNDIR" "$SEATDIR" "$VITE_CACHE_DIR"
+  rm -rf "$PUBDIR" "$OMNDIR" "$SEATDIR" "$FIXTUREDIR" "$VITE_CACHE_DIR"
 }
 trap cleanup EXIT
 
@@ -134,7 +136,14 @@ start_server "$PUBPORT" "$PUBDIR" public  "$PUBDIR/server.log"
 start_server "$OMNPORT" "$OMNDIR" omniscient "$OMNDIR/server.log"
 start_seated_server "$SEATPORT" "$SEATDIR" "$SEATDIR/server.log"
 
-echo "== smoke: starting gorged (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT) =="
+# ui24: two deterministic human hands containing only zero-cost Memnites.
+# The tracked fixture is a deck list (names/counts), never Forge card text.
+./bin/gorged -addr "127.0.0.1:$FIXTUREPORT" -dir "$FIXTUREDIR" -spectator omniscient \
+  -decks web/e2e/fixtures/decks -tables 1 -seats 2 -pace 0 -seed 24 \
+  -mulligans 0 -perpetual=false -humans 0,1 -seat-token ui24fixture >"$FIXTUREDIR/server.log" 2>&1 &
+SERVER_PIDS+=("$!")
+
+echo "== smoke: starting gorged (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT) =="
 if ! wait_ready "$PUBPORT"; then
   echo "smoke: public gorged on :$PUBPORT never became ready:" >&2
   sed -n '1,60p' "$PUBDIR/server.log" >&2 || true
@@ -150,16 +159,21 @@ if ! wait_ready "$SEATPORT"; then
   sed -n '1,60p' "$SEATDIR/server.log" >&2 || true
   exit 1
 fi
+if ! wait_ready "$FIXTUREPORT"; then
+  echo "smoke: ui24 fixture gorged on :$FIXTUREPORT never became ready:" >&2
+  sed -n '1,60p' "$FIXTUREDIR/server.log" >&2 || true
+  exit 1
+fi
 
 echo "== smoke: driving the browser gate =="
 set +e
-( cd web && SMOKE_PUBLIC="http://127.0.0.1:$PUBPORT" SMOKE_OMNI="http://127.0.0.1:$OMNPORT" SMOKE_SEATED="http://127.0.0.1:$SEATPORT" npx playwright test )
+( cd web && SMOKE_PUBLIC="http://127.0.0.1:$PUBPORT" SMOKE_OMNI="http://127.0.0.1:$OMNPORT" SMOKE_SEATED="http://127.0.0.1:$SEATPORT" SMOKE_FIXTURE="http://127.0.0.1:$FIXTUREPORT" npx playwright test )
 status=$?
 set -e
 
 if [ "$status" -eq 0 ]; then
-  echo "== smoke: PASS (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT) =="
+  echo "== smoke: PASS (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT) =="
 else
-  echo "== smoke: FAIL (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT) =="
+  echo "== smoke: FAIL (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT) =="
 fi
 exit "$status"
