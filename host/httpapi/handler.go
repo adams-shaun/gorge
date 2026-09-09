@@ -39,6 +39,17 @@ type Options struct {
 	// ?seat= a request asks for is refused (403); only an agreeing claim
 	// reaches the seat-scoped Registry methods. See SeatClaim.
 	Seat func(*http.Request) (SeatClaim, bool) // nil = spectator-only (M2e-2)
+	// CreateGame, when non-nil, arms the POST /api/games endpoint that seats
+	// a human against a bot on demand (Task ui11). It builds and starts a
+	// fresh single-shot table for the requested format and returns its
+	// identity (table, seed, the human seat and its bearer token), which the
+	// client follows to the join URL. nil — the default — leaves the
+	// play-vs-bot endpoint disabled, so a server that never wired the flow
+	// keeps today's surface byte-identical: the endpoint answers 404 like
+	// any path it does not serve. It is the boundary that knows the deck
+	// pools, the loader and the token store; the HTTP layer only decodes the
+	// body and calls it.
+	CreateGame func(host.Format) (CreateGameResponse, error)
 }
 
 func (o Options) withDefaults() Options {
@@ -77,12 +88,13 @@ func newHandler(r *host.Registry, o Options) (*handler, http.Handler) {
 	mux.HandleFunc("POST /api/tables/{t}/matches/{k}/intent", h.intent)
 	mux.HandleFunc("POST /api/subscribe", h.subscribe)
 	mux.HandleFunc("POST /api/unsubscribe", h.unsubscribe)
+	mux.HandleFunc("POST /api/games", h.games)
 	// Method-less twins of every API pattern: the mux prefers the
 	// method-specific pattern, so these only ever see the wrong method and
 	// answer 405 in JSON rather than the mux's default text body.
 	for _, p := range []string{"/api/tables", "/api/tables/{t}/matches", "/api/tables/{t}/matches/{k}/view",
 		"/api/tables/{t}/matches/{k}/events", "/api/tables/{t}/matches/{k}/pending", "/api/tables/{t}/matches/{k}/intent",
-		"/api/subscribe", "/api/unsubscribe", "/api/stream"} {
+		"/api/subscribe", "/api/unsubscribe", "/api/games", "/api/stream"} {
 		mux.HandleFunc(p, methodNotAllowed)
 	}
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {

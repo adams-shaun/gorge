@@ -2,8 +2,8 @@
 
 budget_s: 30
 
-| date (UTC) | commit | wall_s | tests | runner |
-|---|---|---|---|---|
+| date (UTC) | commit | wall_s | tests | skipped | runner |
+|---|---|---|---|---|---|
 | 2026-09-05T19:58Z | 0d6d403+ | 62.0 | 33 | sadams |
 | 2026-09-05T19:59Z | 0d6d403+ | 61.1 | 33 | sadams |
 | 2026-09-05T21:13Z | aee42a6 | 21.8 | 40 | sadams |
@@ -63,3 +63,6 @@ budget_s: 30
 | 2026-09-07T23:45Z | bb61a7b+ | 12.7 | 87 | sadams |
 | 2026-09-08T00:41Z | e8b0e7a+ | 16.0 | 87 | sadams |
 | 2026-09-08T21:06Z | 9dc1d2e+ | 12.6 | 87 | sadams |
+| 2026-09-09T02:49Z | 5b178a5+ | 16.7 | 89 | 0 | sadams |
+| 2026-09-09T02:52Z | 5b178a5+ | 16.9 | 89 | 0 | sadams |
+| 2026-09-09T02:54Z | 5b178a5+ | 17.2 | 89 | 0 | sadams |
