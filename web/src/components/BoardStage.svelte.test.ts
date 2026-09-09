@@ -168,10 +168,12 @@ describe('BoardStage — the phase band is a reserved lane', () => {
   it('PASS is unavailable without a pass option and posts a non-positional pass by its wire index', async () => {
     const unavailable = await browser.newPage({ viewport: { width: 1000, height: 900 } });
     await unavailable.goto(`${url}src/components/PhaseLane.geometry.html?decision=choose`);
+    // Pass is a transport control now, not a menu: the button is always
+    // there, and "the wire did not offer a pass" shows as DISABLED rather
+    // than as an absent panel. R-E4-2 is unchanged -- a disabled button
+    // posts nothing.
     await expect.poll(() => unavailable.locator('[data-hot-tab="pass"]').getAttribute('aria-disabled')).toBe('true');
-    await unavailable.locator('[data-hot-tab="pass"]').focus();
-    await expect.poll(() => unavailable.locator('[data-hot-panel="pass"]').textContent()).toContain('not offered');
-    expect(await unavailable.locator('[data-pass-action]').count()).toBe(0);
+    expect(await unavailable.locator('[data-pass-action]:not([disabled])').count()).toBe(0);
     await unavailable.close();
 
     const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
@@ -181,8 +183,8 @@ describe('BoardStage — the phase band is a reserved lane', () => {
       await route.fulfill({ status: 204, body: '' });
     });
     await page.goto(`${url}src/components/PhaseLane.geometry.html`);
-    await page.locator('[data-hot-tab="pass"]').focus();
-    await page.locator('[data-pass-action]').click();
+    // One click, not two: the glyph IS the action.
+    await page.locator('[data-hot-tab="pass"]').click();
     await expect.poll(() => intent?.choices).toEqual([42]);
     await page.close();
   });
