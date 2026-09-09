@@ -130,16 +130,23 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		base := e.adjustedCost(p, id)
+		// offerCostFor prices the MANA the offer will charge (601.2f
+		// modifiers, then the commander tax); withSpellAbilityExtras adds the
+		// spell's own ADDITIONAL non-mana parts on top. Both are needed and
+		// they compose in this order: an additional cost is never reduced by
+		// a cost modifier, the same reason the commander tax lands after the
+		// modifiers rather than before them.
+		//
 		// The gate must see the SAME cost beginCast will charge, additional
 		// non-mana parts included, or an unpayable cast gets offered and then
 		// aborts having consumed nothing -- which, since the abort leaves the
 		// board that produced the offer untouched, is an unbounded livelock
 		// rather than a wasted click. That is exactly what Village Rites did
 		// to a live 4-player game (see withSpellAbilityExtras in cast.go).
-		// Only the plain cast folds them, matching beginCast's own condition:
-		// the kicked/surged/flashback/miracle offers below set Mode, and
-		// beginCast skips the fold for those.
+		// Only the plain cast folds the extras, matching beginCast's own
+		// condition: the kicked/surged/flashback/miracle offers below set
+		// Mode, and beginCast skips the fold for those.
+		base := e.offerCostFor(p, id, e.rawBaseCost(p, id), false)
 		if e.castable(p, id, withSpellAbilityExtras(f, base)) {
 			add("cast", "Cast "+f.Name, id)
 		}
@@ -151,7 +158,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			// matching permanents exist, and beginCast then asked a sacrifice
 			// decision with zero options that no answer could escape. castable
 			// is the same gate every other "cast" option uses.
-			if e.castable(p, id, alt) {
+			if e.castable(p, id, e.offerCostFor(p, id, alt, false)) {
 				// AltCostIndex is i+1, not i: the zero value must mean "the
 				// card's own cost" so every other Option literal in the tree
 				// (play_land, activate, pass, and the base "cast" option
@@ -165,7 +172,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (kicked)", Obj: id, Mode: "kicked"})
 		}
-		if sc, ok := surgeCost(f); ok && e.spellsCastThisTurn(p) > 0 && e.castable(p, id, sc) {
+		if sc, ok := surgeCost(f); ok && e.spellsCastThisTurn(p) > 0 && e.castable(p, id, e.offerCostFor(p, id, sc, false)) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (surged)", Obj: id, Mode: "surged"})
 		}
@@ -204,7 +211,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		cost := e.commanderTaxFor(p, id, e.adjustedCost(p, id))
+		cost := e.offerCostFor(p, id, e.rawBaseCost(p, id), false)
 		if e.castable(p, id, cost) {
 			add("cast", "Cast "+f.Name, id)
 		}
@@ -232,7 +239,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		if fc := e.flashbackCost(id); e.castable(p, id, fc) {
+		if fc := e.flashbackCost(id); e.castable(p, id, e.offerCostFor(p, id, fc, false)) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (flashback)", Obj: id, Mode: "flashback"})
 		}
@@ -308,7 +315,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				if cost.Tap && (o.Tapped || (z == state.ZBattlefield && o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
 					continue
 				}
-				if !e.castable(p, id, cost) {
+				if !e.castable(p, id, e.offerCostFor(p, id, cost, true)) {
 					continue
 				}
 				if !e.abilityTargetsAvailable(p, id, ab) {
