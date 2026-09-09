@@ -37,7 +37,16 @@ var repoCommanderGames = []struct {
 	{"foundations-keen-engineering", "foundations-wretched-ranks", 1001, 5001, nil},
 	{"foundations-wretched-ranks", "foundations-reign-of-dragons", 1002, 5002, nil},
 	{"foundations-reign-of-dragons", "foundations-tramplesaurus-rex", 1003, 5003, nil},
-	{"foundations-tramplesaurus-rex", "foundations-wretched-ranks", 1005, 5005, []uint64{1005, 1015, 1009}},
+	// 1018 was added when hybrid/Phyrexian costs became real alternative
+	// payments and additional sacrifice costs started actually being paid:
+	// the three original seeds still play and replay, but none of them ramps
+	// into the commander any more, because Momentous Fall / Life's Legacy /
+	// Harrow now genuinely require their sacrifices. The capability is intact
+	// -- 10 of the 40 seeds in [1000,1040) still cast it -- so this is a
+	// fixture that went stale against a correctness fix, not lost coverage,
+	// and the "cast at least once" oracle is unchanged. 1018 casts twice,
+	// which makes it the least fragile of the ten.
+	{"foundations-tramplesaurus-rex", "foundations-wretched-ranks", 1005, 5005, []uint64{1005, 1015, 1009, 1018}},
 }
 
 // TestRepoCommanderDecksPlayAndCastTheirCommander is the m38 play evidence

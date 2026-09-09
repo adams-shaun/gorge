@@ -35,7 +35,7 @@ var manaLetters = [...]string{"W", "U", "B", "R", "G", "C"}
 // abort the cast instead.
 func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
 	before := e.G.Players[p].Pool
-	after, ok := cost.Pay(before)
+	after, lifeSpent, ok := cost.resolveMana(before, e.G.Players[p].Life)
 	if !ok {
 		return false
 	}
@@ -43,6 +43,11 @@ func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
 		if spent := before[i] - after[i]; spent != 0 {
 			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -spent})
 		}
+	}
+	// CR 107.4f: a Phyrexian pip paid with life costs two life, deducted
+	// through the ordinary LifeChange event so a replay learns it.
+	if lifeSpent != 0 {
+		e.emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -lifeSpent})
 	}
 	return true
 }
