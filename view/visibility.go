@@ -14,15 +14,22 @@ import (
 type Visibility uint8
 
 const (
-	// Seat is a player's own view: their hand, their mana pool, a decision
-	// asked of them; every other seat's hidden zones are counts. This is
-	// what Project has always produced.
+	// Seat is a player's own view: their hand, a decision asked of them, and
+	// every other seat's hidden zones as counts. A mana pool is public (CR
+	// 106.4a/106.4b), so every seat's pool is present here too -- only the
+	// hand is gated on "is this the viewer's own seat" (CR 400.2 names hand
+	// as a hidden zone). This is what Project has always produced, minus the
+	// now-retired pool redaction.
 	Seat Visibility = iota
-	// Public is a spectator with no seat: every hidden zone is a count, no
-	// decision is attached. Today's spectator redaction under a name.
+	// Public is a spectator with no seat: every hidden zone (the hand) is a
+	// count, no decision is attached, and every seat's mana pool is present
+	// (public under CR 106.4a/106.4b). Today's spectator redaction under a
+	// name.
 	Public
-	// Omniscient is a spectator who sees every hand and every mana pool —
-	// the bot-table default — but never library order: it spoils draws and
+	// Omniscient is a spectator who sees every hand, and every mana pool too
+	// (though the pool no longer needs this arm -- project() now fills the
+	// pool for every seat, so this visibility only adds the hands) — the
+	// bot-table default — but never library order: it spoils draws and
 	// teaches nothing (spec D12).
 	Omniscient
 )
@@ -68,10 +75,11 @@ const NoSeat state.PlayerID = 255
 
 // ProjectFor is Project with an explicit visibility. Seat is exactly
 // Project. Public forces the spectator path regardless of viewer. Omniscient
-// projects every seat's hand and pool, but never attaches a decision to any
-// viewer -- project is always called with a nil Decision in this branch, so
-// even the seat d was asked of sees none: an omniscient view is for
-// watching, not acting.
+// projects every seat's hand (the pool is public under CR 106.4a/106.4b and
+// project() already fills it for every seat), but never attaches a decision
+// to any viewer -- project is always called with a nil Decision in this
+// branch, so even the seat d was asked of sees none: an omniscient view is
+// for watching, not acting.
 func ProjectFor(g *state.Game, ch Chars, viewer state.PlayerID, vis Visibility, d *decision.Decision) View {
 	switch vis {
 	case Public:
@@ -85,7 +93,6 @@ func ProjectFor(g *state.Game, ch Chars, viewer state.PlayerID, vis Visibility, 
 			for i := range v.Players {
 				p := &g.Players[i]
 				v.Players[i].Hand = cardViews(g, ch, g.Zone(state.ZHand, p.ID))
-				v.Players[i].Pool = poolView(p.Pool)
 			}
 		}
 		v.Visibility = vis.String()

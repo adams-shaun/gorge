@@ -81,25 +81,32 @@ func fourSeatBoard(t *testing.T) *state.Game {
 	return g
 }
 
-func TestOnlyTheViewerSeesTheirHandAndPool(t *testing.T) {
+// TestOnlyTheViewerSeesTheirHandButEverySeatsPool pins the corrected split:
+// only the hand is gated on "is this the viewer's own seat" (CR 400.2 names
+// hand as a hidden zone), while the mana pool is public (CR 106.4a/106.4b) and
+// so every seat reads every seat's pool. Each seat in the fixture floats G:2,
+// so a reader cannot pass by accident on an empty pool.
+func TestOnlyTheViewerSeesTheirHandButEverySeatsPool(t *testing.T) {
 	g := fourSeatBoard(t)
 	for viewer := state.PlayerID(0); viewer < 4; viewer++ {
 		v := Project(g, flatChars{g}, viewer, nil)
 		for _, pv := range v.Players {
+			// Every seat's pool is public (CR 106.4a/106.4b): the viewer reads
+			// the same G:2 for every seat, including seats they do not own.
+			if pv.Pool == nil {
+				t.Fatalf("viewer %d reads no pool for seat %d: pool is public", viewer, pv.ID)
+			}
+			if pv.Pool["G"] != 2 {
+				t.Fatalf("viewer %d reads seat %d pool = %v, want G:2 (public)", viewer, pv.ID, pv.Pool)
+			}
 			if pv.ID == viewer {
 				if len(pv.Hand) != 3 {
 					t.Fatalf("viewer %d cannot see own hand", viewer)
-				}
-				if pv.Pool["G"] != 2 {
-					t.Fatalf("viewer %d cannot see own pool", viewer)
 				}
 				continue
 			}
 			if pv.Hand != nil {
 				t.Fatalf("viewer %d sees seat %d hand", viewer, pv.ID)
-			}
-			if pv.Pool != nil {
-				t.Fatalf("viewer %d sees seat %d pool", viewer, pv.ID)
 			}
 			if pv.HandSize != 3 {
 				t.Fatalf("hand size should still be public, got %d", pv.HandSize)
@@ -977,17 +984,22 @@ func TestProjectAndRedactEventsAreTotal(t *testing.T) {
 				t.Fatalf("Pending = %v, want none with nil Chars", v.Pending)
 			}
 		}},
-		{"an out-of-range viewer is a spectator: public information only", func(t *testing.T) {
+		{"an out-of-range viewer is a spectator: hand hidden, pool public", func(t *testing.T) {
 			g := fourSeatBoard(t)
 			d := &decision.Decision{Player: 0, Kind: decision.KPriority,
 				Options: []decision.Option{{Index: 0, Kind: "pass", Label: "Pass"}}}
 			v := Project(g, flatChars{g}, state.PlayerID(99), d)
 			for _, pv := range v.Players {
+				// Hand stays redacted (CR 400.2: hand is a hidden zone), but
+				// the pool is public (CR 106.4a/106.4b) and so is present.
 				if pv.Hand != nil {
 					t.Fatalf("spectator saw seat %d's hand", pv.ID)
 				}
-				if pv.Pool != nil {
-					t.Fatalf("spectator saw seat %d's pool", pv.ID)
+				if pv.Pool == nil {
+					t.Fatalf("spectator saw no pool for seat %d: pool is public", pv.ID)
+				}
+				if pv.Pool["G"] != 2 {
+					t.Fatalf("spectator reads seat %d pool = %v, want G:2", pv.ID, pv.Pool)
 				}
 			}
 			if v.Decision != nil {
@@ -1060,16 +1072,17 @@ func TestEmptyPublicListsMarshalAsEmptyArraysNeverNull(t *testing.T) {
 	}
 }
 
-// TestEmptyHandMarshalsEmptyArrayForViewerAndNullForOthers is Ruling
-// T23-u's other half: Hand/Pool cannot use plain non-nil-vs-nil the way the
-// public lists above do, because they carry a THIRD state a public list
-// never needs to -- "hidden from you entirely" -- so they drop omitempty
-// instead and rely on null (another seat) vs [] (the viewer's own, even
-// when it is genuinely empty) meaning two different things on the wire.
-// Neither player has a single card in this fixture, so alice's hand/pool
-// keys are both the interesting "present but empty" case, not merely
-// "present because non-empty".
-func TestEmptyHandMarshalsEmptyArrayForViewerAndNullForOthers(t *testing.T) {
+// TestEmptyHandMarshalsEmptyArrayForViewerAndNullForOthersButPoolAlwaysObject
+// is Ruling T23-u's other half, now narrowed to the hand. Hand cannot use
+// plain non-nil-vs-nil the way the public lists above do, because it carries
+// a THIRD state a public list never needs to -- "hidden from you entirely" --
+// so it drops omitempty instead and relies on null (another seat) vs [] (the
+// viewer's own, even when it is genuinely empty) meaning two different things
+// on the wire. The pool, in contrast, is public (CR 106.4a/106.4b) and has no
+// hidden state: it is always a non-nil object, "{}" when empty, for every
+// seat. Neither player has a single card in this fixture, so alice's hand and
+// every pool are the interesting "present but empty" cases.
+func TestEmptyHandMarshalsEmptyArrayForViewerAndNullForOthersButPoolAlwaysObject(t *testing.T) {
 	g := state.NewGame([]string{"alice", "bob"})
 	v := Project(g, flatChars{g}, 0, nil)
 	blob, err := json.Marshal(v)
@@ -1083,11 +1096,14 @@ func TestEmptyHandMarshalsEmptyArrayForViewerAndNullForOthers(t *testing.T) {
 	if !strings.Contains(s, `"hand":null`) {
 		t.Fatalf("another seat's hand did not marshal as null, got: %s", s)
 	}
+	// The pool is public: both seats marshal the SAME empty object, never a
+	// null. Checking the null case is gone is the discriminating assertion --
+	// "{}:{} present" would pass even for a leaked hidden pool.
 	if !strings.Contains(s, `"pool":{}`) {
-		t.Fatalf("the viewer's empty pool did not marshal as {}, got: %s", s)
+		t.Fatalf("an empty pool did not marshal as {}, got: %s", s)
 	}
-	if !strings.Contains(s, `"pool":null`) {
-		t.Fatalf("another seat's pool did not marshal as null, got: %s", s)
+	if strings.Contains(s, `"pool":null`) {
+		t.Fatalf("a pool marshalled as null; the pool is public (CR 106.4a/106.4b) and always an object: %s", s)
 	}
 }
 
