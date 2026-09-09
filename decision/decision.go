@@ -76,8 +76,10 @@ const (
 	// to exile for Delve), "sacrifice" (a permanent to sacrifice as a cost),
 	// "discard" (cards the active player's cleanup step discards down to the
 	// maximum hand size, CR 514.1; Min == Max == len(hand) - maxHandSize over
-	// exactly one option per hand card, in hand order), "name"/"type"/"number"
-	// (an "as this enters" choice), "yes"/"no" (a may-cast such as Miracle).
+	// exactly one option per hand card, in hand order), "search" (an ordered
+	// subset of matching cards from a hidden library, with Min 0),
+	// "name"/"type"/"number" (an "as this enters" choice), "yes"/"no" (a
+	// may-cast such as Miracle).
 	// The wire shape is the same as every other decision; only the vocabulary
 	// of Option.Kind is new.
 	KChoose Kind = "choose"
@@ -267,7 +269,8 @@ type Decision struct {
 	// ResumeKind and ResumeSA are server-side only: how an effects.Host.Ask
 	// mid-resolution decision (M2d-2) suspends and re-enters the resolution
 	// it interrupted. The asking primitive sets them -- ResumeKind tags the
-	// continuation ("modes" | "unless_pay") and ResumeSA names the exact
+	// continuation ("modes" | "unless_pay" | "discard" | "arrange" |
+	// "search") and ResumeSA names the exact
 	// sub-ability whose effect asked, so the engine's resumeResolution can
 	// re-enter the suspended chain at that point without re-running the
 	// sub-abilities before it. Both are selected by the engine only inside
