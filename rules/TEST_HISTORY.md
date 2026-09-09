@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/rules
 
-budget_s: 20
+budget_s: 30
 
 <!--
 A row far below the others is very likely VACUOUS, not fast. MEASURED

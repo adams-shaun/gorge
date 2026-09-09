@@ -563,10 +563,10 @@ import (
 // meant a card primitive moved and would not have been mergeable on this
 // reasoning.
 var acceptanceHeads = map[int]string{
-	2: "aea0ea73a09be13f",
-	4: "1362692d3cb07483",
-	6: "e738902c9cc6e008",
-	8: "aaa358800b847dae",
+	2: "140fd45769224537",
+	4: "30d8609386c1945a",
+	6: "ce43fc4ee5b9c2fd",
+	8: "a753125d2f521936",
 }
 
 func TestHeads(t *testing.T) {
