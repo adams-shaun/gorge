@@ -40,6 +40,14 @@ type Chars interface {
 	// controller has ordered it or its decider has accepted it, must be
 	// observable too — not only what already has.
 	PendingTriggers() []state.PendingTrigger
+	// StackOptional is Ruling VW-1: an optional triggered ability that is on
+	// the stack, awaiting its resolution-time yes/no (CR 603.5), reports that
+	// it is optional and who answers it — the optionality lives on the stack
+	// entry, not the queue, because under CR 603.5 the ability was pushed
+	// unconditionally and the question is posed as it resolves. It reports
+	// not-optional for a mandatory trigger, an activated ability, or a
+	// trigger whose decider has left the game.
+	StackOptional(id state.ObjID) (optional bool, decider state.PlayerID)
 	// AvailableMana is the engine's answer to the seat-box line 3: the mana
 	// this player could produce right now by activating the free-to-tap mana
 	// abilities of untapped permanents it controls. It is derived from the
@@ -292,6 +300,12 @@ type StackView struct {
 	// even when nothing has been targeted yet.
 	Targets []TargetView `json:"targets"`
 	Card    *CardView    `json:"card,omitempty"` // spell only
+	// Optional and Decider are Ruling VW-1: an optional triggered ability on
+	// the stack, awaiting its resolution-time yes/no (CR 603.5), reports that
+	// it is optional and names the seat that answers it. Decider is nil
+	// unless Optional.
+	Optional bool            `json:"optional"`
+	Decider  *state.PlayerID `json:"decider,omitempty"`
 }
 
 // TargetView is one chosen target: exactly one of Obj and Player means
@@ -710,6 +724,17 @@ func stackViews(g *state.Game, ch Chars, ids []state.ObjID) []StackView {
 			sv := StackView{
 				ID: id, Kind: kind, Name: abilityName(g, o), Text: abilityText(g, o),
 				Controller: o.Controller, Source: o.Source, Targets: targetViews(o.Targets, targetLabel(o)),
+			}
+			// Ruling VW-1: an optional triggered ability on the stack awaiting
+			// its resolution-time yes/no reports its optionality and decider
+			// here, where the ability actually is. The engine derives it (it
+			// is the one place the OptionalDecider$ spec grammar lives, via
+			// deciderFromSpec); the view only asks, never re-derives it.
+			if ch != nil {
+				if opt, who := ch.StackOptional(id); opt {
+					sv.Optional = true
+					sv.Decider = &who
+				}
 			}
 			// The ability object has no face of its own (Ruling F3), so the
 			// artwork a client shows for a trigger/ability band has to come
