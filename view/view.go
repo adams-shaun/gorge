@@ -133,35 +133,47 @@ type PlayerView struct {
 	LibrarySize   int            `json:"library_size"`
 	HandSize      int            `json:"hand_size"`
 	GraveyardSize int            `json:"graveyard_size"`
-	// Hand and Pool are nil (marshalling to a literal JSON null, not an
-	// omitted key -- both deliberately carry no "omitempty" tag) for every
-	// seat but the viewer's own, whose Hand/Pool are always non-nil even
-	// when empty ("[]"/"{}"). omitempty cannot express "present but
-	// possibly empty": with it, the viewer's own EMPTY hand would have
-	// marshalled identically to another seat's HIDDEN one (the key simply
-	// missing either way), which is exactly the ambiguity this type exists
-	// to avoid everywhere else (Winner's own *PlayerID is the same shaped
-	// fix). null-vs-[] is what a client checks instead.
-	Hand        []CardView       `json:"hand"`
-	Battlefield []CardView       `json:"battlefield"`
-	Graveyard   []CardView       `json:"graveyard"`
-	Exile       []CardView       `json:"exile"`
-	Pool        map[string]int32 `json:"pool"`
+	// Hand is nil (marshalling to a literal JSON null, not an omitted key --
+	// it deliberately carries no "omitempty" tag) for every seat but the
+	// viewer's own, whose Hand is always non-nil even when empty ("[]").
+	// omitempty cannot express "present but possibly empty": with it, the
+	// viewer's own EMPTY hand would have marshalled identically to another
+	// seat's HIDDEN one (the key simply missing either way), which is exactly
+	// the ambiguity this type exists to avoid everywhere else (Winner's own
+	// *PlayerID is the same shaped fix). null-vs-[] is what a client checks
+	// instead. Hand is a hidden zone under CR 400.2 and stays gated on "is
+	// this the viewer's own seat", unlike Pool (next field), which is public.
+	Hand        []CardView `json:"hand"`
+	Battlefield []CardView `json:"battlefield"`
+	Graveyard   []CardView `json:"graveyard"`
+	Exile       []CardView `json:"exile"`
+	// Pool is the mana currently floating in this player's pool. It is
+	// PUBLIC information under the CR: a mana pool is not one of the seven
+	// zones in CR 400.1 and holds no cards, so CR 400.2's hidden-zone
+	// framework (library and hand) has no purchase on it; instead CR 106.4a,
+	// 106.4b, 117.3d and 118.3a all require a player to ANNOUNCE what is in
+	// their pool, an obligation that is incoherent for information meant to
+	// be hidden. So Pool is projected for every seat under every visibility
+	// (seat, public, omniscient), like Available. It is always non-nil, even
+	// when empty ("{}"), because there is no longer a hidden state to
+	// distinguish: an empty pool is simply "{}". The field carries no
+	// omitempty, so it is always present even when zero -- the one wire
+	// distinction it keeps against Available (which carries omitempty and is
+	// absent when nothing is available).
+	Pool map[string]int32 `json:"pool"`
 	// Available is what this player could produce right now by tapping
 	// untapped permanents' free-to-tap mana abilities — the "free mana one
 	// gains by tapping lands or other effects" half of the seat box's line
 	// 3. It is derived from the battlefield (public), so it is filled for
 	// every seat under every visibility (seat, public, omniscient), never
 	// gated on "is this the viewer's own seat". It is always non-nil, even
-	// when empty ("{}"), the same Ruling T23-u shape Pool gets for the
-	// viewer's own seat but without Pool's null-for-hidden meaning: a hidden
-	// zone is the only reason Pool is ever null, and Available never comes
-	// from a hidden zone. It is separate from Pool on purpose — a reader
-	// must never mistake mana that could be tapped for mana already floating.
+	// when empty ("{}"), like Pool. It is separate from Pool on purpose — a
+	// reader must never mistake mana that could be tapped for mana already
+	// floating.
 	// It carries omitempty (so an empty availability is absent, never a JSON
 	// null): Available is a public quantity that is only ever present-when-
-	// nonzero, unlike Pool whose null-vs-empty distinction encodes hidden-vs-
-	// viewer-owned. This mirrors the sibling CmdDamage field, another public
+	// nonzero. Pool, in contrast, carries no omitempty and is always present
+	// as an object. This mirrors the sibling CmdDamage field, another public
 	// per-player map that is omitted when zero rather than sent as {}.
 	Available map[string]int32 `json:"available,omitempty"`
 	// Command is the command zone (CR 903.6): the player's commanders
@@ -380,10 +392,10 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 			CommanderCasts: casts,
 		}
 		// Available is public (battlefield-derived) and so projected for
-		// every seat under every visibility, unlike Hand/Pool which are
-		// filled only for the viewer's own seat. A nil ch (supplement §7)
-		// degrades to an empty (zero) availability, the same way it degrades
-		// every other derived characteristic.
+		// every seat under every visibility, like Pool; only Hand (a CR 400.2
+		// hidden zone) is filled for the viewer's own seat. A nil ch
+		// (supplement §7) degrades to an empty (zero) availability, the same
+		// way it degrades every other derived characteristic.
 		var avail state.Mana
 		if ch != nil {
 			avail = ch.AvailableMana(p.ID)
@@ -404,9 +416,17 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 				}
 			}
 		}
+		// Pool is public (CR 106.4a/106.4b): a mana pool is not one of the
+		// seven zones in CR 400.1 and holds no cards, so CR 400.2's hidden-
+		// zone framework has no purchase on it; instead 106.4a, 106.4b,
+		// 117.3d and 118.3a all require a player to ANNOUNCE what is in their
+		// pool, an obligation incoherent for hidden information. So Pool is
+		// projected for every seat under every visibility, like Available;
+		// only Hand stays gated on "is this the viewer's own seat" (CR 400.2
+		// names hand as a hidden zone).
+		pv.Pool = poolView(p.Pool)
 		if p.ID == viewer {
 			pv.Hand = cardViews(g, ch, g.Zone(state.ZHand, p.ID))
-			pv.Pool = poolView(p.Pool)
 		}
 		v.Players = append(v.Players, pv)
 	}

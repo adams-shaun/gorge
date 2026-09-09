@@ -79,15 +79,20 @@ func TestVisibilityJSONIsItsName(t *testing.T) {
 	}
 }
 
-func TestProjectForPublicShowsNoHandNoPoolNoDecision(t *testing.T) {
+func TestProjectForPublicShowsNoHandNoDecisionAndEveryPool(t *testing.T) {
 	e := playSome(t, 5, 60)
 	v := view.ProjectFor(e.G, e, view.NoSeat, view.Public, e.Pending())
 	if v.Visibility != "public" || v.Viewer != view.NoSeat {
 		t.Fatalf("header %+v", v)
 	}
 	for _, p := range v.Players {
-		if p.Hand != nil || p.Pool != nil {
-			t.Fatalf("public view exposes seat %d's hand or pool", p.ID)
+		// The hand is redacted (CR 400.2: hand is a hidden zone) even though
+		// the pool is public on the same PlayerView.
+		if p.Hand != nil {
+			t.Fatalf("public view exposes seat %d's hand", p.ID)
+		}
+		if p.Pool == nil {
+			t.Fatalf("public view hides seat %d's pool; the pool is public (CR 106.4a/106.4b)", p.ID)
 		}
 		if p.HandSize != len(e.G.Zone(state.ZHand, p.ID)) {
 			t.Fatalf("seat %d hand size %d, want %d", p.ID, p.HandSize, len(e.G.Zone(state.ZHand, p.ID)))
@@ -106,7 +111,7 @@ func TestProjectForPublicShowsNoHandNoPoolNoDecision(t *testing.T) {
 // asking -- if ProjectFor's Public case ever stopped overriding viewer with
 // NoSeat internally, seat 2 would see its own hand/pool/decision here and
 // this test would catch it while the NoSeat-only test stayed green.
-func TestProjectForPublicIgnoresARealSeatViewer(t *testing.T) {
+func TestProjectForPublicIgnoresARealSeatViewerButShowsEveryPool(t *testing.T) {
 	e := playSome(t, 5, 60)
 	d := e.Pending()
 	if d == nil {
@@ -117,8 +122,11 @@ func TestProjectForPublicIgnoresARealSeatViewer(t *testing.T) {
 		t.Fatalf("header %+v", v)
 	}
 	for _, p := range v.Players {
-		if p.Hand != nil || p.Pool != nil {
-			t.Fatalf("public view for real seat 2 exposes seat %d's hand or pool", p.ID)
+		if p.Hand != nil {
+			t.Fatalf("public view for real seat 2 exposes seat %d's hand", p.ID)
+		}
+		if p.Pool == nil {
+			t.Fatalf("public view for real seat 2 hides seat %d's pool; the pool is public (CR 106.4a/106.4b)", p.ID)
 		}
 	}
 	if v.Decision != nil {

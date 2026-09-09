@@ -21,7 +21,14 @@ package view
 //     spectator sees every card in every player's graveyard and exile.
 //   - Library is never listed, in ANY mode -- the omniscient spectator
 //     included (spec D12: library order spoils draws). Only LibrarySize.
-//   - Omniscient additionally reveals every hand and every mana pool.
+//   - A mana pool is PUBLIC in every mode (CR 106.4a/106.4b): it is not one
+//     of the seven zones in CR 400.1 and holds no cards, so CR 400.2's
+//     hidden-zone framework has no purchase on it; instead 106.4a, 106.4b,
+//     117.3d and 118.3a all require a player to ANNOUNCE what is in their
+//     pool. The old pin "another seat's pool is nil" encoded the opposite
+//     divergence and is retired here.
+//   - Omniscient additionally reveals every hand (and every pool, though the
+//     pool is now public in every mode and no longer needs the extra arm).
 
 import (
 	"testing"
@@ -95,11 +102,12 @@ func libIDsOf(g *state.Game, seat state.PlayerID) []state.ObjID {
 	return append([]state.ObjID(nil), g.Zone(state.ZLibrary, seat)...)
 }
 
-// TestSeatVisibilityProjectsOnlyTheViewersHandAndPool is group 1: Seat
+// TestSeatVisibilityProjectsViewersHandAndEverySeatsPool is group 1: Seat
 // projected for seat 0. Every other seat contributes a count and a fully
 // public graveyard/exile/library_size, its hand is a bare nil, and seat 0's
-// own hand and pool are fully populated.
-func TestSeatVisibilityProjectsOnlyTheViewersHandAndPool(t *testing.T) {
+// own hand is fully populated. The mana pool is public (CR 106.4a/106.4b), so
+// every seat -- own and opponent alike -- carries a populated pool.
+func TestSeatVisibilityProjectsViewersHandAndEverySeatsPool(t *testing.T) {
 	g := visibilityBoard(t)
 	ch := flatChars{g}
 	const viewer = state.PlayerID(0)
@@ -126,8 +134,14 @@ func TestSeatVisibilityProjectsOnlyTheViewersHandAndPool(t *testing.T) {
 		if pv.HandSize != len(g.Zone(state.ZHand, pv.ID)) {
 			t.Fatalf("seat %d hand_size = %d, want %d", pv.ID, pv.HandSize, len(g.Zone(state.ZHand, pv.ID)))
 		}
-		if pv.Pool != nil {
-			t.Fatalf("viewer %d reads seat %d's pool: %v", viewer, pv.ID, pv.Pool)
+		// The pool is public (CR 106.4a/106.4b): a non-owning viewer reads
+		// seat N's pool, which floats 1+N green in this fixture, exactly as
+		// the owner does.
+		if pv.Pool == nil {
+			t.Fatalf("viewer %d reads no pool for seat %d: pool is public", viewer, pv.ID)
+		}
+		if pv.Pool["G"] != int32(1+int(pv.ID)) {
+			t.Fatalf("viewer %d reads seat %d pool = %d green, want %d (public)", viewer, pv.ID, pv.Pool["G"], 1+int(pv.ID))
 		}
 		// Graveyard and exile are fully public: an opponent's cards must be
 		// present, not just their counts.
@@ -139,11 +153,12 @@ func TestSeatVisibilityProjectsOnlyTheViewersHandAndPool(t *testing.T) {
 	}
 }
 
-// TestPublicVisibilityRedactsEveryHandAndShowsEveryPublicZone is group 2:
-// Public for every viewer (it is viewer-independent, so all four are checked).
-// No hand cards anywhere; every graveyard and exile fully visible; library
-// only a size.
-func TestPublicVisibilityRedactsEveryHandAndShowsEveryPublicZone(t *testing.T) {
+// TestPublicVisibilityRedactsEveryHandAndShowsEveryPublicZoneAndPool is group
+// 2: Public for every viewer (it is viewer-independent, so all four are
+// checked). No hand cards anywhere; every graveyard and exile fully visible;
+// library only a size. Every seat's pool is present (public, CR
+// 106.4a/106.4b).
+func TestPublicVisibilityRedactsEveryHandAndShowsEveryPublicZoneAndPool(t *testing.T) {
 	g := visibilityBoard(t)
 	ch := flatChars{g}
 	for viewer := state.PlayerID(0); viewer < 4; viewer++ {
@@ -155,8 +170,13 @@ func TestPublicVisibilityRedactsEveryHandAndShowsEveryPublicZone(t *testing.T) {
 			if pv.Hand != nil {
 				t.Fatalf("public viewer %d reads seat %d's hand: %v", viewer, pv.ID, pv.Hand)
 			}
-			if pv.Pool != nil {
-				t.Fatalf("public viewer %d reads seat %d's pool: %v", viewer, pv.ID, pv.Pool)
+			// The pool is public (CR 106.4a/106.4b): a public spectator reads
+			// every seat's pool, which floats 1+seat green here.
+			if pv.Pool == nil {
+				t.Fatalf("public viewer %d reads no pool for seat %d: pool is public", viewer, pv.ID)
+			}
+			if pv.Pool["G"] != int32(1+int(pv.ID)) {
+				t.Fatalf("public viewer %d reads seat %d pool = %d green, want %d", viewer, pv.ID, pv.Pool["G"], 1+int(pv.ID))
 			}
 			if pv.HandSize != len(g.Zone(state.ZHand, pv.ID)) {
 				t.Fatalf("seat %d hand_size = %d, want %d", pv.ID, pv.HandSize, len(g.Zone(state.ZHand, pv.ID)))

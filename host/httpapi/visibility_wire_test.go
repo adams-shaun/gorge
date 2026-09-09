@@ -166,18 +166,40 @@ func sameIDs(a, b []state.ObjID) bool {
 	return true
 }
 
+// assertWirePool pins that a player's pool is served on the wire as a public
+// object carrying 1+seat green (the fixture's distinct value), never null.
+// The pool is public (CR 106.4a/106.4b): a mana pool is not one of the seven
+// zones in CR 400.1 and holds no cards, so CR 400.2's hidden-zone framework
+// has no purchase on it; instead 106.4a, 106.4b, 117.3d and 118.3a all
+// require a player to ANNOUNCE what is in their pool.
+func assertWirePool(t *testing.T, pv map[string]any, seat int) {
+	t.Helper()
+	raw, ok := pv["pool"]
+	if !ok || raw == nil {
+		t.Fatalf("seat %d pool is absent/null on the wire; the pool is public and must be an object", seat)
+	}
+	m, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("seat %d pool is not an object: %v", seat, raw)
+	}
+	if g, ok := m["G"].(float64); !ok || int(g) != 1+seat {
+		t.Fatalf("seat %d pool on wire = %v, want G:%d (public, distinct per seat)", seat, m, 1+seat)
+	}
+}
+
 // TestWireSeatVisibilityRedactsHandsKeepsOpponentsPublicZones is group 1 on
-// the wire, projected for seat 0. Seat 0's own hand is an array with its pool;
-// every other seat's hand is JSON null while its graveyard and exile are fully
-// populated arrays on the wire, its hand_size/library_size are the real
-// counts, and no seat is served a library list.
+// the wire, projected for seat 0. Seat 0's own hand is an array; every other
+// seat's hand is JSON null while its graveyard and exile are fully populated
+// arrays on the wire, its hand_size/library_size are the real counts, and no
+// seat is served a library list. Every seat's pool — own and opponent alike —
+// is served as a public object (CR 106.4a/106.4b), never null.
 func TestWireSeatVisibilityRedactsHandsKeepsOpponentsPublicZones(t *testing.T) {
 	g := visibilityWireBoard(t)
 	const viewer = state.PlayerID(0)
 	_, _, tree := projectWire(t, g, viewer, view.Seat)
 	players := wirePlayers(t, tree)
 
-	// The viewer's own hand is an array, its pool an object.
+	// The viewer's own hand is an array; every seat's pool is an object.
 	own := players[viewer]
 	if own["hand"] == nil {
 		t.Fatal("the viewer's own hand is null on the wire")
@@ -185,18 +207,16 @@ func TestWireSeatVisibilityRedactsHandsKeepsOpponentsPublicZones(t *testing.T) {
 	if hand := own["hand"].([]any); len(hand) != len(g.Zone(state.ZHand, viewer)) {
 		t.Fatalf("the viewer's own wire hand has %d cards, want %d", len(hand), len(g.Zone(state.ZHand, viewer)))
 	}
-	if own["pool"] == nil {
-		t.Fatal("the viewer's own pool is absent on the wire")
-	}
+	assertWirePool(t, own, 0)
 
 	for other := state.PlayerID(1); other < 4; other++ {
 		pv := players[other]
 		if pv["hand"] != nil {
 			t.Fatalf("viewer %d is served seat %d's hand on the wire", viewer, other)
 		}
-		if pv["pool"] != nil {
-			t.Fatalf("viewer %d is served seat %d's pool on the wire", viewer, other)
-		}
+		// The pool is public (CR 106.4a/106.4b): a non-owning viewer is
+		// served seat N's pool, which floats 1+N green on the wire.
+		assertWirePool(t, pv, int(other))
 		if hs, ok := pv["hand_size"].(float64); !ok || int(hs) != len(g.Zone(state.ZHand, other)) {
 			t.Fatalf("seat %d hand_size on wire = %v, want %d", other, pv["hand_size"], len(g.Zone(state.ZHand, other)))
 		}
@@ -214,21 +234,21 @@ func TestWireSeatVisibilityRedactsHandsKeepsOpponentsPublicZones(t *testing.T) {
 }
 
 // TestWirePublicVisibilityShowsEveryPublicZoneNoHands is group 2 on the wire:
-// a Public projection's every seat hand and pool is null, its hand_size is
-// the real count, its graveyard and exile are fully populated arrays, and no
-// seat carries a library list.
+// a Public projection's every seat hand is null, every seat's pool is a public
+// object (CR 106.4a/106.4b), its hand_size is the real count, its graveyard
+// and exile are fully populated arrays, and no seat carries a library list.
 func TestWirePublicVisibilityShowsEveryPublicZoneNoHands(t *testing.T) {
 	g := visibilityWireBoard(t)
 	for viewer := state.PlayerID(0); viewer < 4; viewer++ {
 		_, _, tree := projectWire(t, g, viewer, view.Public)
 		players := wirePlayers(t, tree)
-		for _, pv := range players {
+		for seat, pv := range players {
 			if pv["hand"] != nil {
 				t.Fatalf("public viewer %d is served a hand on the wire: %v", viewer, pv["hand"])
 			}
-			if pv["pool"] != nil {
-				t.Fatalf("public viewer %d is served a pool on the wire: %v", viewer, pv["pool"])
-			}
+			// The pool is public: a public spectator is served every seat's
+			// pool, floating 1+seat green here.
+			assertWirePool(t, pv, seat)
 		}
 		for seat := state.PlayerID(0); seat < 4; seat++ {
 			pv := players[seat]

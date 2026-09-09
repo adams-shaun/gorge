@@ -16,12 +16,13 @@ describe('ManaPool', () => {
     expect(drawn(render(ManaPool, { props: { pool: {} } }).html)).toBe('');
   });
 
-  it('a NULL pool renders nothing — a hidden pool is not an error', () => {
-    // view.PlayerView.Pool is nil for every seat but the viewer's own, and
-    // it deliberately carries no omitempty, so it reaches the client as a
-    // literal JSON null (view/view.go: "null-vs-[] is what a client checks
-    // instead"). A public spectator has no seat, so EVERY seat's pool is
-    // null -- which is the ordinary case for the demo on :8080, not an edge.
+  it('a NULL pool renders nothing — an absent pool is not an error', () => {
+    // The retired redaction sent a literal JSON null for a non-owning seat's
+    // pool; the pool is now public (CR 106.4a/106.4b) and always a non-nil
+    // object, so a null pool is no longer reachable from the wire. The
+    // component still defends an absent/undefined prop (the generated
+    // protocol.ts types it a plain Record, so the type checker cannot catch
+    // a hand-built null), and an absent group draws nothing.
     expect(drawn(render(ManaPool, { props: { pool: null } }).html)).toBe('');
   });
 
@@ -99,6 +100,22 @@ describe('ManaPool', () => {
     expect(html).toContain('data-mana-sep');
     expect(html).toContain('aria-label="Available by tapping: 2 blue"');
     expect(html).toContain('aria-label="Mana pool: 3 red"');
+  });
+
+  // The persistent legibility cue: the two groups are distinguishable by fill
+  // (hollow vs solid), but that is subtle and colour-blind-invisible, so each
+  // group also leads with a persistent text tag. This must be a real element
+  // in the static markup, not a hover-only tooltip.
+  it('each group leads with a persistent text tag naming what it is', () => {
+    const { html } = render(ManaPool, { props: { pool: { R: 3 }, available: { U: 2 } } });
+    expect(html).toContain('data-mana-tag="tap"');
+    expect(html).toContain('data-mana-tag="pool"');
+    // The tag is the first child inside each group, before its chips.
+    const availIdx = html.indexOf('data-mana-available');
+    const tapIdx = html.indexOf('data-mana-tag="tap"');
+    const availChip = html.indexOf('data-avail="U"');
+    expect(tapIdx).toBeGreaterThan(availIdx);
+    expect(availChip).toBeGreaterThan(tapIdx);
   });
 });
 
