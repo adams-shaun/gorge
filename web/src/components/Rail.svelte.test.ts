@@ -73,6 +73,17 @@ describe('Rail — public spectator (every seat\'s hand and pool are null)', () 
   });
 });
 
+describe('Rail — the live decision line (ui15)', () => {
+  it('names the decision player from the view when seats is empty, not the Seat N placeholder', () => {
+    const v = baseView({
+      players: [spectatorPlayer(0, 'Ari'), spectatorPlayer(1, 'Bo'), spectatorPlayer(2, 'Player 3')],
+    });
+    const { html } = render(Rail, { props: { view: v, seats: [], decision: { player: 2, kind: 'priority', prompt: 'pass?' } } });
+    expect(html).toContain('Player 3');
+    expect(html).not.toContain('Seat 2');
+  });
+});
+
 describe('Rail — the stack (Task 1/2)', () => {
   const stackOf = (n: number): StackView[] =>
     Array.from({ length: n }, (_, i) => ({

@@ -71,8 +71,15 @@
     return null;
   }
 
+  function playerName(seat: number): string {
+    // The wire's player name is preferred over the 0-based `Seat N`
+    // placeholder, exactly as IdentityBar does (the live table route can
+    // hand an empty `seats` while view.players still carries the names).
+    return view.players.find((p) => p.seat === seat)?.name ?? `Seat ${seat}`;
+  }
+
   function targetLabel(t: TargetView): string {
-    const who = t.is_player ? `Seat ${t.player}` : t.obj !== undefined ? (nameFor(t.obj) ?? `#${t.obj}`) : `Seat ${t.player}`;
+    const who = t.is_player ? playerName(t.player) : t.obj !== undefined ? (nameFor(t.obj) ?? `#${t.obj}`) : playerName(t.player);
     return `→ ${t.label ?? 'target'}: ${who}`;
   }
 
