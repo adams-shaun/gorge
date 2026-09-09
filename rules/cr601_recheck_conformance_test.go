@@ -32,11 +32,8 @@ func TestCR601RecheckAfterXAndLegalTarget(t *testing.T) {
 			name = "legal_X2_control"
 		}
 		t.Run(name, func(t *testing.T) {
-			// The legal control already passes; only the forbidden proposal
-			// belongs behind the known-red guard (Makefile conformance rule).
-			if x == 1 {
-				requireCR601Audit(t, "CR 601.2e: chosen X makes a targetable proposal forbidden")
-			}
+			// Graduated: the forbidden_proposal and legal control both pass with
+			// the conformance flag on, so both run in the ordinary lane.
 			e := crAbortEngine(t, reg, "ur-delver", "Power Sink")
 			prelate := crAbortMove(t, e, 1, "Sanctum Prelate", state.ZBattlefield)
 			e.emit(events.Event{Kind: events.Choose, Obj: prelate, Counter: "number", Amount: 2})

@@ -6,6 +6,8 @@ package rules
 // 603.4 (5010-5023): intervening-if checked BOTH at occurrence and resolution.
 // 603.5 (5025-5030): optional effects still go on stack; choose at resolution.
 // 603.8 (5127-5138): state triggers fire as soon as their condition holds.
+// The conformance flag (GORGE_CR_CONFORMANCE=1) gates only OptionalEffectWaitsForResolution,
+// the one leaf that still fails; every other leaf runs in the ordinary lane.
 
 import (
 	"testing"
@@ -77,6 +79,9 @@ func TestCR603LegalActivationTriggersRings(t *testing.T) {
 	}
 }
 
+// KNOWN-RED: fails with the conformance flag on, so the gate stays.
+// Removed when an optional trigger waits for its resolution-time choice
+// before the effect is considered declined (CR 603.5).
 func TestCR603OptionalEffectWaitsForResolution(t *testing.T) {
 	requireCR601Audit(t, "CR 603.5: optional trigger is declined before it enters stack")
 	reg := testutil.CorpusRegistry(t)
@@ -95,7 +100,7 @@ func TestCR603OptionalEffectWaitsForResolution(t *testing.T) {
 }
 
 func TestCR603TriggerModesChosenAtPlacement(t *testing.T) {
-	requireCR601Audit(t, "CR 603.3c: trigger modes deferred until resolution")
+	// Graduated: passes with the conformance flag on; runs in the ordinary lane.
 	reg := testutil.CorpusRegistry(t)
 	e := crAbortEngine(t, reg, "ur-delver", "Knight of Autumn")
 	start := len(e.L.Events)
@@ -135,7 +140,7 @@ func TestCR603InterveningIfCheckedAtTriggerTime(t *testing.T) {
 }
 
 func TestCR603InterveningIfRecheckedAtResolution(t *testing.T) {
-	requireCR601Audit(t, "CR 603.4: Scute Mob condition not rechecked on resolution")
+	// Graduated: passes with the conformance flag on; runs in the ordinary lane.
 	reg := testutil.CorpusRegistry(t)
 	e := crAbortEngine(t, reg, "ur-delver", "Scute Mob", "Beast Within", "Forest", "Forest", "Forest", "Forest", "Forest")
 	var lands []state.ObjID

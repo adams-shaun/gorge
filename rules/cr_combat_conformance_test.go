@@ -241,7 +241,7 @@ func TestCR511AttackerPersistsThroughEndCombatStep(t *testing.T) {
 }
 
 func TestCR511UntilEndCombatPumpExpiresBeforeMain(t *testing.T) {
-	requireCR601Audit(t, "CR 511.2: Pump UntilEndOfCombat persists into postcombat main")
+	// Graduated: passes with the conformance flag on; runs in the ordinary lane.
 	e := crResolutionEngine(t, []string{"Murk Dwellers"}, nil)
 	a := crAbortMove(t, e, 0, "Murk Dwellers", state.ZBattlefield)
 	f := e.G.Obj(a).Face()

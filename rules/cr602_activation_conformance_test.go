@@ -3,8 +3,9 @@ package rules
 // Reference: Magic: The Gathering Comprehensive Rules, 2026-08-07.
 // CR 602.2b (4883-4886) imports 601.2b-i: announce choices, choose targets,
 // lock total cost, activate mana abilities, THEN pay. CR 602.2 (4869-4875)
-// requires reversal of an incomplete activation. These are opt-in obligations,
-// not assertions that the approximation is correct. All SAs are corpus SAs.
+// requires reversal of an incomplete activation. Every leaf here passes with
+// the conformance flag on, so all of them run in the ordinary lane. All SAs
+// are corpus SAs.
 
 import (
 	"strconv"
@@ -33,7 +34,7 @@ func crActivationSA(t *testing.T, e *Engine, id state.ObjID, api, cost string) i
 // nonmana costs rather than pretending they are paid. It counts examined SAs,
 // not cards or successful gameplay; seq 0 means there is no event timeline.
 func TestCR602HybridActivationCostsRequireColor(t *testing.T) {
-	requireCR601Audit(t, "CR 602.2b/107.4e: hybrid activation costs become generic")
+	// Graduated: passes with the conformance flag on; runs in the ordinary lane.
 	reg := testutil.CorpusRegistry(t)
 	checked, wrong := 0, 0
 	for _, c := range reg.Cards {
@@ -79,7 +80,7 @@ func TestCR602HybridActivationCostsRequireColor(t *testing.T) {
 }
 
 func TestCR602PhyrexianActivationCannotPayColorlessWithoutLife(t *testing.T) {
-	requireCR601Audit(t, "CR 602.2b/107.4f: activation spends colorless instead of red or life")
+	// Graduated: passes with the conformance flag on; runs in the ordinary lane.
 	reg := testutil.CorpusRegistry(t)
 	e := crAbortEngine(t, reg, "ur-delver", "Immolating Souleater")
 	id := crAbortMove(t, e, 0, "Immolating Souleater", state.ZBattlefield)
@@ -173,7 +174,7 @@ func TestCR602IllegalActivationReversesSacrificeAndConsequences(t *testing.T) {
 }
 
 func TestCR602ManaWindowDuringActivation(t *testing.T) {
-	requireCR601Audit(t, "CR 602.2b -> 601.2g: no mid-activation mana window")
+	// Graduated: passes with the conformance flag on; runs in the ordinary lane.
 	reg := testutil.CorpusRegistry(t)
 	e := crAbortEngine(t, reg, "ur-delver", "Azure Mage", "Island", "Island", "Island", "Island")
 	id := crAbortMove(t, e, 0, "Azure Mage", state.ZBattlefield)
@@ -206,7 +207,7 @@ func TestCR602ManaWindowDuringActivation(t *testing.T) {
 }
 
 func TestCR602ActivationCostIncludesReduction(t *testing.T) {
-	requireCR601Audit(t, "CR 602.2b -> 601.2f: activation ignores Heartstone reduction")
+	// Graduated: passes with the conformance flag on; runs in the ordinary lane.
 	reg := testutil.CorpusRegistry(t)
 	e := crAbortEngine(t, reg, "ur-delver", "Azure Mage", "Heartstone")
 	id := crAbortMove(t, e, 0, "Azure Mage", state.ZBattlefield)

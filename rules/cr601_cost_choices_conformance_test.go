@@ -1,10 +1,11 @@
 package rules
 
 // Reference: Magic: The Gathering Comprehensive Rules, 2026-08-07 revision.
-// Known-red casting obligations, NOT assertions of the current approximation.
 // CR 601.2b (lines 4683-4696) announces modes, X and hybrid/Phyrexian
 // payments before targets; 601.2f (4730-4739) composes and locks total cost;
 // 601.2g (4741-4742) grants the mana-ability window before payment.
+// The conformance flag (GORGE_CR_CONFORMANCE=1) gates only the known-red
+// leaves that still FAIL; every passing leaf runs in the ordinary lane.
 
 import (
 	"strconv"
@@ -24,7 +25,7 @@ import (
 // CR 107.4e (761-766) independently requires one of its two colors. No engine
 // parser or target finder constructs the oracle. seq 0 denotes no game events.
 func TestCR601HybridCostsCannotSpendOnlyColorless(t *testing.T) {
-	requireCR601Audit(t, "CR 601.2b/107.4e: two-color hybrid symbols become generic")
+	// Graduated: passes with the conformance flag on; runs in the ordinary lane.
 	reg := testutil.CorpusRegistry(t)
 	checked, rejected := 0, 0
 	for _, c := range reg.Cards {
@@ -72,7 +73,7 @@ func TestCR601HybridCostsCannotSpendOnlyColorless(t *testing.T) {
 // or bypassed the 601.2b choice. These tests do not infer life payment from
 // ParseCost, nor manufacture a payment decision or SA.
 func TestCR601SpecialManaRequiresAnnouncement(t *testing.T) {
-	requireCR601Audit(t, "CR 601.2b: no hybrid/Phyrexian announcement and wrong-color payment")
+	// Graduated: passes with the conformance flag on; runs in the ordinary lane.
 	reg := testutil.CorpusRegistry(t)
 	checked := 0
 	for _, tc := range []struct {
@@ -131,6 +132,9 @@ func TestCR601SpecialManaRequiresAnnouncement(t *testing.T) {
 	}
 }
 
+// KNOWN-RED: both subtests (Azorius/Boros Charm) fail with the conformance
+// flag on, so the gate stays at the parent. Removed when the engine announces
+// modes at casting (CR 601.2b) rather than at resolution.
 func TestCR601ModesAnnouncedBeforePayment(t *testing.T) {
 	requireCR601Audit(t, "CR 601.2b: modal spell chooses only during resolution")
 	reg := testutil.CorpusRegistry(t)
@@ -165,7 +169,7 @@ func TestCR601ModesAnnouncedBeforePayment(t *testing.T) {
 // Faithless Looting's flashback {2}{R} costs {3}{R} under Thalia. Reducing
 // before folding X, or replacing an already-taxed cost, loses the modifier.
 func TestCR601TotalCostIncludesModifiers(t *testing.T) {
-	requireCR601Audit(t, "CR 601.2f: X/alternative cost composition loses modifiers")
+	// Graduated: passes with the conformance flag on; runs in the ordinary lane.
 	reg := testutil.CorpusRegistry(t)
 	checked := 0
 	for _, arm := range []string{"X_reduction", "flashback_tax"} {
@@ -236,7 +240,7 @@ func TestCR601TotalCostIncludesModifiers(t *testing.T) {
 // No creature exists to pay it; two black mana alone can never complete this
 // proposal. The CR 601.2h example (4748-4751) names this very card.
 func TestCR601AdditionalSacrificeIsPartOfTotalCost(t *testing.T) {
-	requireCR601Audit(t, "CR 601.2b/f/h: spell SA additional sacrifice cost ignored")
+	// Graduated: passes with the conformance flag on; runs in the ordinary lane.
 	reg := testutil.CorpusRegistry(t)
 	e := crAbortEngine(t, reg, "ur-delver", "Altar's Reap")
 	id := crAbortMove(t, e, 0, "Altar's Reap", state.ZHand)
@@ -261,7 +265,7 @@ func TestCR601AdditionalSacrificeIsPartOfTotalCost(t *testing.T) {
 }
 
 func TestCR601ManaWindowBeforePayment(t *testing.T) {
-	requireCR601Audit(t, "CR 601.2g: casting has no mana-ability window")
+	// Graduated: passes with the conformance flag on; runs in the ordinary lane.
 	reg := testutil.CorpusRegistry(t)
 	e := crAbortEngine(t, reg, "ur-delver", "Mountain")
 	id := crAbortMove(t, e, 0, "Lightning Bolt", state.ZHand)
