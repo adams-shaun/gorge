@@ -48,8 +48,8 @@ speedup. Link the worktree before trusting a row it wrote:
     ln -sfn /home/sadams/projects/gorge/.cards .worktrees/<id>/.cards
 -->
 
-| date (UTC) | commit | wall_s | tests | runner |
-|---|---|---|---|---|
+| date (UTC) | commit | wall_s | tests | skipped | runner |
+|---|---|---|---|---|---|
 | 2026-09-05T19:58Z | 0d6d403+ | 20.3 | 208 | sadams |
 | 2026-09-05T19:59Z | 0d6d403+ | 20.0 | 208 | sadams |
 | 2026-09-05T21:44Z | bef1cda+ | 2.4 | 212 | sadams |
@@ -220,3 +220,4 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-09T01:02Z | 4897b4e+ | 3.1 | 452 | sadams |
 | 2026-09-09T01:25Z | 84efcb5+ | 3.8 | 453 | sadams |
 | 2026-09-09T01:30Z | 7df2a32+ | 16.5 | 458 | sadams |
+| 2026-09-09T01:42Z | cec7278+ | 17.6 | 459 | 35 | sadams |
