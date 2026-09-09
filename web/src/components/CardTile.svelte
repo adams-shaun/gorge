@@ -4,6 +4,7 @@
   import CardDetail from './CardDetail.svelte';
   import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
   import { placeMenu, MENU_WIDTH, type MenuAnchor } from '../lib/menuplacement';
+  import { postSingleAction, singleActionIcon } from '../lib/cardoptions';
 
   /**
    * CardTile is the battlefield/stack/strip face of one object. It has no
@@ -70,8 +71,8 @@
     open0?: boolean;
   } = $props();
 
-  // The options menu is this tile's own open/closed state: nothing on the
-  // wire drives it and nothing outside reads it. The badge that opens it is
+  // For two or more options, the menu is this tile's own open/closed state:
+  // nothing on the wire drives it and nothing outside reads it. Its badge is
   // a real button in the tab order (keyboard reachable), the menu items are
   // the server's own option labels, and clicking one posts that option's own
   // index through tileOptions.post — which is the seat panel (R-E4-1: the
@@ -246,31 +247,53 @@
        keyword marks, the bottom band is state), so the tile's signal
        hierarchy stays intact. -->
   <div class="tile-actions">
-    <button
-      class="badge badge--{tileOptions.tone}"
-      class:selected={tileOptions.pickedOrder.length > 0}
-      type="button"
-      aria-haspopup="menu"
-      aria-expanded={open}
-      aria-label="{tileOptions.list.length} {tileOptions.list.length === 1 ? 'action' : 'actions'} for {card.name}"
-      title="Options for {card.name}"
-      bind:this={badgeEl}
-      onclick={(event) => {
-        // A tile may sit inside CardStack's expand/collapse button. Opening
-        // its own action menu must not also collapse that parent stack.
-        event.stopPropagation();
-        toggleMenu();
-      }}
-    >
-      <span class="badge__n data">{tileOptions.list.length}</span>
-    </button>
+    {#if tileOptions.list.length === 1}
+      {@const action = tileOptions.list[0]}
+      {@const icon = singleActionIcon(action)}
+      <button
+        class="action-icon badge--{tileOptions.tone}"
+        class:selected={tileOptions.pickedOrder.length > 0}
+        type="button"
+        data-single-action
+        data-action-icon={icon}
+        aria-label={action.label}
+        title={action.label}
+        onclick={(event) => {
+          // A tile may sit inside CardStack's expand/collapse button. Acting
+          // on its sole wire option must not also collapse that parent stack.
+          event.stopPropagation();
+          postSingleAction(tileOptions);
+        }}
+      >
+        <span aria-hidden="true">{icon === 'tap' ? '↻' : icon === 'cast' ? '✦' : '›'}</span>
+      </button>
+    {:else}
+      <button
+        class="badge badge--{tileOptions.tone}"
+        class:selected={tileOptions.pickedOrder.length > 0}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="{tileOptions.list.length} actions for {card.name}"
+        title="Options for {card.name}"
+        bind:this={badgeEl}
+        onclick={(event) => {
+          // A tile may sit inside CardStack's expand/collapse button. Opening
+          // its own action menu must not also collapse that parent stack.
+          event.stopPropagation();
+          toggleMenu();
+        }}
+      >
+        <span class="badge__n data">{tileOptions.list.length}</span>
+      </button>
+    {/if}
     {#if tileOptions.pickedOrder.length > 0}
       <!-- The picked order number is the seat panel's own idiom ({pickedAt
            + 1}), restated on the tile so a multi-pick decision shows what is
            already chosen and in which order. -->
       <span class="sel data" aria-label="picked {tileOptions.pickedOrder.join(', ')}">{tileOptions.pickedOrder.join(',')}</span>
     {/if}
-    {#if open}
+    {#if open && tileOptions.list.length > 1}
       <!-- PORTALLED TO <body> AND FIXED. An inline absolute child of the
            tile inside the quadrant is clipped by the quadrant's overflow;
            hanging the menu off the viewport means no ancestor can cut it
@@ -497,9 +520,9 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  /* An option affordance: a small plate on the tile's free top-right corner
-     carrying the number of things the pending decision lets you do here,
-     and a menu of the server's own option labels. The plate is a real
+  /* An option affordance: a small plate on the tile's free top-right corner.
+     One offer is its direct icon; several carry a count and open a menu of
+     the server's own option labels. The plate is a real
      button — keyboard reachable, and it names the card it belongs to — and
      the menu items are the option labels verbatim. The tone rule on the
      plate's inner edge is applied by the board-marking layer (see the
@@ -515,7 +538,8 @@
     gap: 2px;
     line-height: 1;
   }
-  .badge {
+  .badge,
+  .action-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -546,9 +570,16 @@
     border-color: var(--offered);
     color: var(--felt-sunk);
   }
-  .badge.selected {
+  .badge.selected,
+  .action-icon.selected {
     outline: 2px solid var(--ink);
     outline-offset: 1px;
+  }
+  .action-icon {
+    width: 1.35rem;
+    padding: 0;
+    font-size: var(--t-14);
+    line-height: 1;
   }
   /* The picked ordinal chip, in the instrument's data voice, under the badge
      (the tile's free corner) — the same number the panel paints on the
@@ -570,7 +601,8 @@
     font-size: inherit;
   }
   .badge:hover,
-  .badge[aria-expanded='true'] {
+  .badge[aria-expanded='true'],
+  .action-icon:hover {
     border-color: var(--ink-dim);
     color: var(--ink);
   }

@@ -8,6 +8,8 @@ import {
   optionSetForMany,
   tileOptions,
   tileOptionsMany,
+  postSingleAction,
+  singleActionIcon,
   type CardOptions,
 } from './cardoptions';
 
@@ -122,6 +124,34 @@ describe('optionSetForMany — a collapsed stack group of interchangeable perman
       options: [opt(0, 5)],
     };
     expect(optionSetForMany(optionsByObj(d), [6, 7], [])).toBeNull();
+  });
+});
+
+describe('single-action card affordance', () => {
+  it('uses wire kind for cast and dedicated mana-tap icons, and stays neutral for an opaque ability', () => {
+    expect(singleActionIcon(opt(4, 9, 'cast'))).toBe('cast');
+    expect(singleActionIcon(opt(5, 9, 'activate'))).toBe('tap');
+    expect(singleActionIcon(opt(6, 9, 'ability'))).toBe('action');
+    expect(singleActionIcon(opt(7, 9, 'permanent'))).toBe('action');
+  });
+
+  it('posts the sole option own wire index, never its list position (R-E4-1)', () => {
+    const post = vi.fn();
+    const tile: import('./cardoptions').TileOptions = {
+      list: [opt(17, 9, 'cast', 'Cast Wasteland')],
+      pickedOrder: [], tone: 'offered', post,
+    };
+    postSingleAction(tile);
+    expect(post).toHaveBeenCalledWith(17);
+    expect(post).not.toHaveBeenCalledWith(0);
+  });
+
+  it('does not turn a multi-option menu into an invented direct action (R-E4-2)', () => {
+    const post = vi.fn();
+    postSingleAction({
+      list: [opt(3, 9), opt(8, 9)], pickedOrder: [], tone: 'offered', post,
+    });
+    expect(post).not.toHaveBeenCalled();
   });
 });
 

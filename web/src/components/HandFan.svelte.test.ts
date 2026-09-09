@@ -107,17 +107,27 @@ function bundle(over: Partial<CardOptions> = {}): CardOptions {
 const ballistaHand = player([card(16, 'Walking Ballista')]);
 
 describe('HandFan options affordance (ui23)', () => {
-  it('a hand card the decision offers something to wears a badge with the count and an accessible name', () => {
-    const { html } = render(HandFan, { props: { player: ballistaHand, width: BOARD_W, options: bundle() } });
-    expect(html).toContain('aria-haspopup');
-    expect(html).toContain('aria-expanded="false"');
-    expect(html).toContain('1 action for Walking Ballista');
-    expect(html).toContain('badge__n');
+  it('one hand-card option is a direct cast icon with the wire label as its accessible name', () => {
+    const { html } = render(HandFan, { props: { player: ballistaHand, width: BOARD_W, options: bundle(), open0: 16 } });
+    expect(html).toContain('data-single-action');
+    expect(html).toContain('data-action-icon="cast"');
+    expect(html).toContain('aria-label="Cast Walking Ballista"');
+    expect(html).not.toContain('aria-haspopup');
+    expect(html).not.toContain('role="menu"');
+    expect(html).not.toContain('badge__n');
   });
 
-  it('the option menu renders the server labels VERBATIM', () => {
-    const { html } = render(HandFan, { props: { player: ballistaHand, width: BOARD_W, options: bundle(), open0: 16 } });
+  it('two options keep the count badge and popout with server labels VERBATIM', () => {
+    const two = bundle();
+    two.byObj.set(16, [
+      { index: 3, kind: 'cast', label: 'Cast Walking Ballista', obj: 16, player: 0 },
+      { index: 11, kind: 'ability', label: 'Walking Ballista: remove a counter', obj: 16, player: 0 },
+    ]);
+    const { html } = render(HandFan, { props: { player: ballistaHand, width: BOARD_W, options: two, open0: 16 } });
+    expect(html).toContain('aria-haspopup');
+    expect(html).toContain('2 actions for Walking Ballista');
     expect(html).toContain('Cast Walking Ballista');
+    expect(html).toContain('Walking Ballista: remove a counter');
     expect(html).toContain('role="menu"');
     expect(html).toContain('role="menuitem"');
   });
