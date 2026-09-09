@@ -360,6 +360,14 @@ export interface StackView {
    */
   targets: TargetView[];
   card?: CardView | null;
+  /**
+   * Optional and Decider are Ruling VW-1: an optional triggered ability on
+   * the stack, awaiting its resolution-time yes/no (CR 603.5), reports that
+   * it is optional and names the seat that answers it. Decider is nil
+   * unless Optional.
+   */
+  optional: boolean;
+  decider?: number | null;
 }
 
   /**

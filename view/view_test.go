@@ -46,6 +46,11 @@ func (c flatChars) Keywords(id state.ObjID) []string {
 // *rules.Engine instead, exactly so PendingTriggers is exercised for real.
 func (c flatChars) PendingTriggers() []state.PendingTrigger { return nil }
 
+// StackOptional is not exercised by flatChars-driven tests either: it is
+// Ruling VW-1's stack-entry answer, and flatChars reports no stack object
+// as an optional awaiting trigger.
+func (c flatChars) StackOptional(state.ObjID) (bool, state.PlayerID) { return false, 0 }
+
 // AvailableMana is not exercised by flatChars-driven tests that check the
 // projection: the real value is the rules.Engine's answer (pinned by
 // rules' TestAvailableMana*), and the view's job is only to project whatever
@@ -1404,10 +1409,14 @@ func TestR3PendingTriggersAndStackAreObservableThroughAFullEngine(t *testing.T) 
 	}
 }
 
-// TestR3PendingTriggerReportsOptionality is R3's other half: an optional
-// trigger (OptionalDecider$ You) must show Optional and a Decider on the
-// SAME Pending entry, before its yes/no is even answered.
-func TestR3PendingTriggerReportsOptionality(t *testing.T) {
+// TestR3StackTriggerReportsOptionalityAtResolution is Ruling VW-1's first
+// half: an optional triggered ability on the stack, awaiting its
+// resolution-time yes/no (CR 603.5), reports Optional and its Decider on the
+// STACK entry. The queue is empty at that moment — under CR 603.5 the
+// ability was pushed unconditionally and the question is posed as it
+// resolves — so a test that looked for the optionality on a Pending entry
+// would find nothing.
+func TestR3StackTriggerReportsOptionalityAtResolution(t *testing.T) {
 	deck0 := append([]*cards.Card{r3Card(t, r3OptionalSrc)}, r3Filler(t, 6)...)
 	deck1 := r3Filler(t, 7)
 	e := rules.New(rules.Config{Seed: 3, Names: []string{"alice", "bob"},
@@ -1420,19 +1429,73 @@ func TestR3PendingTriggerReportsOptionality(t *testing.T) {
 	if d == nil || d.Kind != decision.KTriggerOptional {
 		t.Fatalf("pending = %+v, want an optional-trigger decision", d)
 	}
+	// CR 603.5: the ability is already on the stack, so the queue is empty
+	// at the moment the yes/no is posed.
+	if pts := e.PendingTriggers(); len(pts) != 0 {
+		t.Fatalf("PendingTriggers = %d entries, want none (the optional ability is on the stack)", len(pts))
+	}
 	v := Project(e.G, e, 0, d)
-	if len(v.Pending) != 1 {
-		t.Fatalf("Pending = %d entries, want 1", len(v.Pending))
+	if len(v.Pending) != 0 {
+		t.Fatalf("Pending = %d entries, want none", len(v.Pending))
 	}
-	pv := v.Pending[0]
-	if !pv.Optional {
-		t.Fatal("Pending[0].Optional = false, want true")
+	if len(v.Stack) != 1 {
+		t.Fatalf("Stack = %d entries, want the optional trigger", len(v.Stack))
 	}
-	if pv.Decider == nil || *pv.Decider != 0 {
-		t.Fatalf("Pending[0].Decider = %v, want a pointer to the controller (0)", pv.Decider)
+	sv := v.Stack[0]
+	if sv.Kind != "trigger" {
+		t.Fatalf("Stack[0].Kind = %q, want \"trigger\"", sv.Kind)
+	}
+	if !sv.Optional {
+		t.Fatal("Stack[0].Optional = false, want true")
+	}
+	if sv.Decider == nil || *sv.Decider != 0 {
+		t.Fatalf("Stack[0].Decider = %v, want a pointer to the controller (0)", sv.Decider)
 	}
 	if v.Decision == nil || v.Decision.Player != 0 {
 		t.Fatalf("Decision = %+v, want the yes/no question for player 0", v.Decision)
+	}
+}
+
+// TestR3QueuedTriggerStillReportsOptionalityOnThePendingEntry is Ruling
+// VW-1's second half — the one that keeps the first honest. An optional
+// triggered ability that is still genuinely in the trigger queue (here,
+// awaiting its CR 603.3b ordering decision alongside its mandatory sibling)
+// still reports Optional and its Decider on the PENDING entry. The only
+// thing that changed under CR 603.5 is that an optional ability no longer
+// waits in the queue for its yes/no (it asks at resolution, on the stack);
+// something still queued for another reason keeps reporting its optionality
+// where it sits.
+func TestR3QueuedTriggerStillReportsOptionalityOnThePendingEntry(t *testing.T) {
+	deck0 := append([]*cards.Card{r3Card(t, r3OptionalSrc), r3Card(t, r3DrainerSrc)}, r3Filler(t, 5)...)
+	deck1 := r3Filler(t, 7)
+	e := rules.New(rules.Config{Seed: 11, Names: []string{"alice", "bob"},
+		Decks: [][]*cards.Card{deck0, deck1}})
+	e.Advance()
+
+	driveThroughPriority(t, e, []string{"R3Almsgiver", "R3Drainer"})
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTriggerOrder {
+		t.Fatalf("pending = %+v, want a trigger-order decision", d)
+	}
+	v := Project(e.G, e, 0, d)
+	if len(v.Pending) != 2 {
+		t.Fatalf("Pending = %d entries, want both queued triggers", len(v.Pending))
+	}
+	found := false
+	for _, pv := range v.Pending {
+		if strings.Contains(pv.Label, "you may gain 4 life") {
+			found = true
+			if !pv.Optional {
+				t.Fatal("queued optional trigger's Pending[].Optional = false, want true")
+			}
+			if pv.Decider == nil || *pv.Decider != 0 {
+				t.Fatalf("queued optional trigger's Pending[].Decider = %v, want the controller (0)", pv.Decider)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("the optional trigger was not in the pending queue")
 	}
 }
 
