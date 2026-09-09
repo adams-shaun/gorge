@@ -72,6 +72,15 @@ describe('dvr reducer', () => {
     s = dvrReducer(s, { type: 'backfill', events: [ev(98), ev(99), ev(100), ev(101)] });
     expect(s.events.map((e) => e.event.seq)).toEqual([98, 99, 100, 101, 102]);
   });
+  // The transcript keys its rows by event.seq, so a repeated seq in the log is
+  // not a cosmetic duplicate -- Svelte throws each_key_duplicate and stops
+  // rendering the log. The old filter deduped the batch against what was
+  // already held but not against itself.
+  it('a backfill batch that repeats a seq internally yields it once', () => {
+    let s = live([101, 102]);
+    s = dvrReducer(s, { type: 'backfill', events: [ev(98), ev(99), ev(99), ev(100), ev(98)] });
+    expect(s.events.map((e) => e.event.seq)).toEqual([98, 99, 100, 101, 102]);
+  });
   it('a snapshot for another match resets everything', () => {
     let s = live([101]);
     s = dvrReducer(s, { type: 'snapshot', match: 't1/2', head: 7, turnStarts: [0] });
