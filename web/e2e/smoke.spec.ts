@@ -25,6 +25,7 @@ import { test, expect, type Page, type APIRequestContext } from '@playwright/tes
 const PUBLIC = process.env.SMOKE_PUBLIC;
 const OMNI = process.env.SMOKE_OMNI;
 const SEATED = process.env.SMOKE_SEATED;
+const FIXTURE = process.env.SMOKE_FIXTURE;
 
 // ui19: the seated-view gate. The two spectator modes above drove no seated
 // client, which is precisely the gap the task closes. These helpers measure
@@ -184,6 +185,58 @@ async function driveToCardOptionsWindow(
     await page.waitForTimeout(400);
   }
   throw new Error('driveToCardOptionsWindow: did not reach a card-options window');
+}
+
+/** ui24's fixture has two human seats, so this tiny driver echoes only
+ * server-provided option indices. It casts every offered zero-cost creature,
+ * passes every other priority window, and declines early attacks. With the
+ * fixed seed/deck this constructs the board instead of depending on bot policy. */
+type WireDecision = {
+  seq: number;
+  player: number;
+  kind: string;
+  min: number;
+  max: number;
+  options: Array<{ index: number; kind: string; label: string; obj?: number }>;
+};
+
+const fixtureToken = (seat: number): string => seat === 0 ? 'ui24fixture' : 'ui24fixture-1';
+
+async function postFixtureIntent(request: APIRequestContext, base: string, d: WireDecision, choices: number[]): Promise<void> {
+  const resp = await request.post(`${base}/api/tables/t1/matches/1/intent`, {
+    headers: { Authorization: `Bearer ${fixtureToken(d.player)}` },
+    data: { seq: d.seq, player: d.player, choices },
+  });
+  expect(resp.status(), `fixture intent for ${d.kind} seat ${d.player}`).toBe(204);
+}
+
+async function driveFixtureUntil(
+  request: APIRequestContext,
+  base: string,
+  stop: (d: WireDecision) => boolean,
+): Promise<WireDecision> {
+  const deadline = Date.now() + 20_000;
+  while (Date.now() < deadline) {
+    for (const seat of [0, 1]) {
+      const token = fixtureToken(seat);
+      const p = await request.get(`${base}/api/tables/t1/matches/1/pending?seat=${seat}&token=${token}`);
+      if (p.status() === 409) continue;
+      expect(p.ok(), `fixture pending seat ${seat}`).toBe(true);
+      const d = await p.json() as WireDecision;
+      if (stop(d)) return d;
+
+      let choices: number[] = [];
+      if (d.kind === 'priority') {
+        const cast = d.options.find((o) => o.kind === 'cast');
+        const pass = d.options.find((o) => o.kind === 'pass');
+        if (cast) choices = [cast.index];
+        else if (pass) choices = [pass.index];
+      }
+      await postFixtureIntent(request, base, d, choices);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  throw new Error('ui24 fixture did not reach the requested decision');
 }
 
 // How long a page may sit in its loading state before we call it a hang.
@@ -696,3 +749,87 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
     });
   });
 }
+
+// ui24 — construct the board the seed-1 game cannot produce. This separate
+// two-human fixture is a pure fixed-seed transcript: both decks contain only
+// zero-cost Memnites, and the driver only echoes wire options.
+test.describe('gorged [ui24] constructed board fixture', () => {
+  test.skip(!FIXTURE, 'SMOKE_FIXTURE unset — run via scripts/smoke.sh');
+  test.describe.configure({ mode: 'serial' });
+
+  test('a board tile posts its non-zero wire index and a long menu escapes the quadrant (R-E4-1)', async ({ browser, request }) => {
+    const b = FIXTURE as string;
+
+    // Cast every zero-cost creature for both seats, then stop at seat 0's
+    // first real attack declaration. Turn 1/2 creatures are summoning-sick;
+    // this is deterministically turn 3 and has all seven seat-0 creatures.
+    const attack = await driveFixtureUntil(request, b,
+      (d) => d.kind === 'attackers' && d.player === 0);
+    expect(attack.options.length, 'fixture must offer at least three attackers').toBeGreaterThanOrEqual(3);
+
+    const ctx = await browser.newContext({ viewport: { width: 1000, height: 700 } });
+    const page = await ctx.newPage();
+    try {
+      await page.goto(`${b}/t/t1?seat=0&token=${fixtureToken(0)}`, { waitUntil: 'domcontentloaded' });
+      await page.locator('.quadrant[data-seat="0"] .card-tile[data-options]').first().waitFor({ state: 'visible', timeout: WAIT_MS });
+
+      // Choose the first object in a rendered stack whose FIRST tile-local
+      // option is not wire index 0. Once expanded its menu has one entry at
+      // local position 0, so indexOf/array-position would post 0 and select a
+      // different creature. The production line must post option.index.
+      const stack = page.locator('.quadrant[data-seat="0"] button.stacked[data-obj-group]').first();
+      await stack.click();
+      const pick = attack.options.find((o) => o.index > 0 && o.obj !== undefined);
+      expect(pick, 'the watched board option must have a non-zero wire index').toBeDefined();
+      if (!pick || pick.obj === undefined) return;
+      const tile = page.locator(`.quadrant[data-seat="0"] .card-tile[data-obj="${pick.obj}"]`);
+      await tile.waitFor({ state: 'visible', timeout: WAIT_MS });
+
+      await tile.locator('xpath=..').locator('button[aria-haspopup="menu"]').click();
+      const menuItem = page.locator('body > .menu-pop button[role="menuitem"]').first();
+      await menuItem.waitFor({ state: 'visible', timeout: WAIT_MS });
+      await menuItem.click();
+      await expect(tile).toHaveAttribute('data-selected', '1');
+
+      // Commit every attacker through the API. The browser click above only
+      // changes local selection because attackers is a Min=0 multi-pick ask.
+      await postFixtureIntent(request, b, attack, attack.options.map((o) => o.index));
+
+      // Seat 1 owns seven blockers. Every blocker gets one wire option per
+      // attacker, so after expanding the collapsed stack its card menu has a
+      // genuine seven-row list rather than the seed game's one-row menu.
+      const blocks = await driveFixtureUntil(request, b,
+        (d) => d.kind === 'blockers' && d.player === 1);
+      expect(blocks.options.length, 'fixture must produce a long blocking menu').toBeGreaterThanOrEqual(7);
+
+      await page.setViewportSize({ width: 650, height: 700 });
+      await page.goto(`${b}/t/t1?seat=1&token=${fixtureToken(1)}`, { waitUntil: 'domcontentloaded' });
+      const blockerStack = page.locator('.quadrant[data-seat="1"] button.stacked[data-obj-group]').first();
+      await blockerStack.evaluate((el) => (el as HTMLElement).click());
+      const badge = page.locator('.quadrant[data-seat="1"] button[aria-haspopup="menu"]').last();
+      await badge.waitFor({ state: 'visible', timeout: WAIT_MS });
+      await badge.click();
+      const menu = page.locator('body > .menu-pop');
+      await menu.waitFor({ state: 'visible', timeout: WAIT_MS });
+      const measurement = await page.evaluate(() => {
+        const menu = document.querySelector('body > .menu-pop') as HTMLElement;
+        const quadrant = document.querySelector('.quadrant[data-seat="1"]') as HTMLElement;
+        const m = menu.getBoundingClientRect();
+        const q = quadrant.getBoundingClientRect();
+        return {
+          menuBottom: m.bottom,
+          quadrantBottom: q.bottom,
+          delta: m.bottom - q.bottom,
+          rows: menu.querySelectorAll('[role="menuitem"]').length,
+          parent: menu.parentElement?.tagName ?? '',
+        };
+      });
+      console.log(`UI24_OVERFLOW ${JSON.stringify(measurement)}`);
+      expect(measurement.rows).toBeGreaterThanOrEqual(7);
+      expect(measurement.parent).toBe('BODY');
+      expect(measurement.menuBottom).toBeLessThanOrEqual(700);
+    } finally {
+      await ctx.close();
+    }
+  });
+});

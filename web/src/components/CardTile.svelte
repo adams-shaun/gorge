@@ -255,7 +255,12 @@
       aria-label="{tileOptions.list.length} {tileOptions.list.length === 1 ? 'action' : 'actions'} for {card.name}"
       title="Options for {card.name}"
       bind:this={badgeEl}
-      onclick={toggleMenu}
+      onclick={(event) => {
+        // A tile may sit inside CardStack's expand/collapse button. Opening
+        // its own action menu must not also collapse that parent stack.
+        event.stopPropagation();
+        toggleMenu();
+      }}
     >
       <span class="badge__n data">{tileOptions.list.length}</span>
     </button>
