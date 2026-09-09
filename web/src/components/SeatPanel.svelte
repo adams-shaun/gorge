@@ -243,7 +243,7 @@
       <p class="prompt" data-prompt>{decision.prompt}</p>
 
       {#if mull !== null && mull.phase === 'keep'}
-        <div class="hand" data-opening-hand data-card-count={(mine?.hand ?? []).length} aria-label="Your opening hand">
+        <div class="hand" data-opening-hand data-card-count={(mine?.hand ?? []).length} style={`--n:${Math.max(1, (mine?.hand ?? []).length)}`} aria-label="Your opening hand">
           {#each mine?.hand ?? [] as c (c.id)}<CardTile card={c} />{/each}
         </div>
         <div class="choices" data-options>
@@ -259,7 +259,7 @@
           {/each}
         </div>
       {:else if mull !== null && mull.phase === 'bottom'}
-        <div class="hand picking" data-opening-hand data-card-count={mull.cards.length} data-options aria-label="Choose cards to put on the bottom">
+        <div class="hand picking" data-opening-hand data-card-count={mull.cards.length} style={`--n:${Math.max(1, mull.cards.length)}`} data-options aria-label="Choose cards to put on the bottom">
           {#each mull.cards as opt (opt.index)}
             {@const card = cardFor(opt)}
             {@const at = logic.picked.indexOf(opt.index)}
@@ -653,22 +653,42 @@
     width: 100%;
     overflow: hidden;
     min-height: 0;
+    /* A container, so the divide below has something to divide. A percentage
+       here would be circular -- --card-w IS the card's width, so its own
+       containing block would depend on it and resolve to zero. 100cqw is the
+       row's inline size, which does not. */
+    container-type: inline-size;
+    --card-w: min(
+      var(--card-w-large, 220px),
+      calc((100cqw - (var(--n) - 1) * var(--sp-2)) / var(--n))
+    );
   }
+  /* The row divides its own width by the number of cards and hands the answer
+     to CardTile as --card-w. That is the ONLY thing that changes size here.
+     Overriding the widths of .card-tile / .slot / .card-image instead was
+     wrong and looked it: CardTile positions its art, its keyword chips and
+     its P/T badge from --card-w, so a slot that changed width while --card-w
+     stayed at its 90px default left a small card floating in a large slot at
+     1440 and a card overflowing its slot at 650, with the badges detached
+     from the card they belong to.
+     The cap is the normal large size: three cards should not become
+     billboards just because there is room. */
   .hand > :global(.tile-wrap),
   .hand > .pick {
-    flex: 0 1 150px;
-    min-width: var(--opening-card-min-w);
-    max-width: 150px;
-    overflow: hidden;
+    flex: none;
+    overflow: visible;
   }
-  /* CardTile normally owns a fixed --card-w. In the opening row its wrapper
-     owns the width instead, and every layer of the tile follows that slot. */
-  .hand :global(.card-tile),
-  .hand :global(.slot),
-  .hand :global(.card-image),
-  .hand .pick :global(.card-image) {
-    width: 100%;
+  /* Below this the card is a thumbnail: there is no room for the blank
+     card's mana pips or its foot rule, and forcing them in is what makes
+     them spill out of the card. The reading affordance at this size is the
+     detail panel on hover, not a legible face. */
+  @container (max-width: 26rem) {
+    .hand :global(.mana-symbols),
+    .hand :global(.blank__foot) {
+      display: none;
+    }
   }
+
   .pick {
     position: relative;
     display: block;
