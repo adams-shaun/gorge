@@ -20,11 +20,11 @@ const seat = { seat: 0, token: 'tok' } as const;
 
 const matchStart = (): MatchStart => ({ seats: [], seed: 1, spectator: '' });
 const spectatorView = (turn = 1): View => ({
-  viewer: 99, visibility: 'omniscient', turn, step: 'main', phase: 'main1', active: 0, priority: 0,
+  viewer: 99, visibility: 'omniscient', turn, round: turn, step: 'main', phase: 'main1', active: 0, priority: 0,
   over: false, draw: false, winner: null, players: [], stack: [], pending: [],
 });
 const seatView = (turn = 1): View => ({
-  viewer: 0, visibility: 'seat', turn, step: 'main', phase: 'main1', active: 0, priority: 0,
+  viewer: 0, visibility: 'seat', turn, round: turn, step: 'main', phase: 'main1', active: 0, priority: 0,
   over: false, draw: false, winner: null, players: [], stack: [], pending: [],
 });
 

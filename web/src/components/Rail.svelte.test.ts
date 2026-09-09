@@ -36,7 +36,7 @@ const seats: SeatInfo[] = [
 ];
 
 const baseView = (over: Partial<View> = {}): View => ({
-  viewer: 255, visibility: 'public', turn: 3, step: 'main1', phase: 'main1', active: 0, priority: 0,
+  viewer: 255, visibility: 'public', turn: 3, round: 3, step: 'main1', phase: 'main1', active: 0, priority: 0,
   over: false, draw: false, winner: null, stack: [], pending: [],
   players: [spectatorPlayer(0, 'Ari'), spectatorPlayer(1, 'Bo')],
   ...over,

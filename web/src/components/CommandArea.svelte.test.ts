@@ -312,7 +312,7 @@ describe('the inspector opens on a commander tile in every state', () => {
 describe('the board draws one commander tile per roster commander, inline in each seat"s creatures row', () => {
   const seats: SeatInfo[] = [0, 1, 2, 3].map((i) => ({ name: `S${i}`, deck: `deck-${i}`, colour: `#00000${i}` }));
   const view = (): View => ({
-    viewer: 4, visibility: 'public', turn: 5, step: 'main1', phase: 'main1', active: 0, priority: 0,
+    viewer: 4, visibility: 'public', turn: 5, round: 5, step: 'main1', phase: 'main1', active: 0, priority: 0,
     over: false, draw: false, winner: null, stack: [], pending: [],
     players: [
       // seat 0: commander still in the zone, one prior cast
@@ -376,7 +376,7 @@ describe('the board draws one commander tile per roster commander, inline in eac
 describe('the rail no longer carries the command zone', () => {
   const seats: SeatInfo[] = [0, 1].map((i) => ({ name: `S${i}`, deck: `deck-${i}`, colour: `#00000${i}` }));
   const view = (): View => ({
-    viewer: 4, visibility: 'public', turn: 5, step: 'main1', phase: 'main1', active: 0, priority: 0,
+    viewer: 4, visibility: 'public', turn: 5, round: 5, step: 'main1', phase: 'main1', active: 0, priority: 0,
     over: false, draw: false, winner: null, stack: [], pending: [],
     players: [
       player({ seat: 0, name: 'S0', commanders: [card(10, 'Isamaru', 'W')], commander_casts: [1], command: [card(10, 'Isamaru', 'W')] }),

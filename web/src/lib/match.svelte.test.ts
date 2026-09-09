@@ -21,7 +21,7 @@ const seats = [
 ];
 
 const view = (turn = 1): View => ({
-  viewer: 0, visibility: 'omniscient', turn, step: 'main', phase: 'main1', active: 0, priority: 0,
+  viewer: 0, visibility: 'omniscient', turn, round: turn, step: 'main', phase: 'main1', active: 0, priority: 0,
   over: false, draw: false, winner: null, players: [], stack: [], pending: [],
 });
 
