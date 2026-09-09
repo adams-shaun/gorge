@@ -68,3 +68,31 @@ func TestCR701StatedQualitySearchMayFailToFind(t *testing.T) {
 		t.Fatalf("CR 701.23b: fail-to-find emitted %d library moves and %d shuffles, want 0/1", moves, shuffles)
 	}
 }
+
+// The bare-base half of the CR 701.23b classification, which the Evolving
+// Wilds leaf cannot reach. Evolving Wilds is `Land.Basic`: its `Basic`
+// predicate alone is enough to state a quality, so deleting the base-type
+// check in SearchStatesQuality leaves that leaf green. Worldly Tutor is
+// `ChangeType$ Creature` -- a bare type with NO predicate -- so ONLY the base
+// check makes it a stated-quality search. Measured over `.cards/cardsfolder`
+// with /usr/bin/grep, ~150 `Origin$ Library` lines carry a bare non-Card base
+// (Land 35, Creature 31, Forest 19, Artifact 19, Plains 8, Equipment 7,
+// Enchantment 7, Dragon 6, ...); without this leaf every one of them would
+// silently become a mandatory search.
+func TestCR701BareTypeSearchStatesAQuality(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := searchEngine(t, reg, "Worldly Tutor")
+	_, d := castSearchSpell(t, e, "Worldly Tutor")
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "search" {
+		t.Fatalf("CR 701.23b: real Worldly Tutor must reach a search, got %+v", d)
+	}
+	if len(d.Options) == 0 {
+		t.Fatalf("CR 701.23b: fixture library holds creatures, options must be nonempty")
+	}
+	if d.Min != 0 {
+		t.Fatalf("CR 701.23b: bare-type search %q with %d available cards offers %d..%d; a named card TYPE is a stated quality, so the player may fail to find", "Creature", len(d.Options), d.Min, d.Max)
+	}
+	if !strings.Contains(d.Prompt, "up to") {
+		t.Errorf("CR 701.23b: optional search prompt hides the fail-to-find allowance: %q", d.Prompt)
+	}
+}
