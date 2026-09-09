@@ -161,6 +161,36 @@ still owing it.
 | `non<X>` predicate negation is now generic: for `<X>` a type/supertype/subtype word in the corpus type vocabulary (`effects/typewords.go` `predicateTypeWords`) or one of the five colours (`White`/`Blue`/`Black`/`Red`/`Green`, via `ColorsOf`), `non<X>` is the negation of the positive form. This is what Walk the Plank's `Creature.nonMerfolk` (a subtype, previously matched NOTHING because only `nonLand`/`nonCreature`/`nonBasic`/`nonBlack` were hand-written) and a colour `Creature.nonBlue` need; the four handwritten entries stay and the generic path reproduces each exactly, so they could be deleted without behaviour change. An `<X>` that is neither a type word nor a colour still **fails closed** (the spec never matches), which is the safe direction -- `!hasType` on an unknown word would silently always match and widen the filter. The three remaining narrower shapes are `nonColorless` (a colour-*identity* test `ColorsOf` empty vs non-empty, **28** raw `.cards/cardsfolder` lines), `nonChosenCard` (**29**) and `nonCopiedSpell` (**1**) -- each `<X>` is neither a type word nor one of the five colours, so a card carrying one still has that target spec match nothing. | `effects/filter.go` (`nonPredicate` + the predicate loop), `effects/typewords.go` (`predicateTypeWords`) | M4 (a colourless/identity test; the Chosen/Copied stack-object predicates) |
 | The positive counterpart of `non<X>` landed (pc1): a predicate word that is a type/supertype/subtype word in `predicateTypeWords` evaluates as `hasType`, and `Colorless`/`MultiColor` read off `ColorsOf`, so `Land.Basic` (a Forest), `Creature.Artifact` (an artifact creature), `Creature.Colorless` (a Devoid creature), `Card.MultiColor` (a gold card) now match. `UnknownPredicates` shares the same classifier (`wordPredicate`) as the matcher, so the two cannot disagree; the handwritten `Legendary`/`Snow`/colour entries in `predicates` are consulted first and still win, and were left in place (their result is byte-identical to the generic path, so deleting them is behaviour-neutral). **What still fails closed**: an unknown `<X>` that is neither a type word nor `Colorless`/`MultiColor` still matches nothing and is still reported, and the positive path (unlike the negation) does **not** read the game/object-context predicates. Measured by the census walk (raw `.cards/cardsfolder` `ValidTgts$`/`ValidCards$`/`ChangeType$` specs only) the outstanding unknown predicates dropped from **573 distinct / 2575 card-occurrences** to **470 distinct / 1699 card-occurrences**, and the largest remaining families (card-occurrences, with card counts in the live census) are `IsRemembered` (266 cards, 365 uses), `ExiledWithSource` (72, 82), `sameName` (47, 85), `!IsRemembered` (37, 40), `TargetedPlayerCtrl` (29, 31), `wasDealtDamageThisTurn` (28, 32), `IsImprinted` (28, 29), `blockingSource` (25, 28), `nonChosenCard` (25, 27), `inZoneStack` (20, 22), `ActivePlayerCtrl` (20, 20), `ThisTurnEntered` (19, 22), `ChosenCard` (18, 21), `DefenderCtrl` (18, 18), `blockedBySource` (17, 19), `HasCounters` (15, 15), `opponent`-relative and `ControlledBy`/`RememberedPlayerCtrl` forms -- every one of these needs object or game context (the remembered/targeted set, the zone a card left or came from, a same-name peer) that this predicate path does not carry, so they still match nothing and are still reported by `UnknownPredicates`. | `effects/filter.go` (`wordPredicate`/`wordMatches` + the positive branch in `MatchesObjectCtx`/`UnknownPredicates`) | M4 (object/game-context predicates: remembered, LKI, named, zone-history) |
 
+## Trigger-relative filter arguments (pg2)
+
+`ControlledBy <ref>` and `OwnedBy <ref>` recognise exactly `TriggeredTarget`,
+`TriggeredDefendingPlayer`, `TriggeredPlayer`, and `TriggeredCard`. The matcher
+and `UnknownPredicates` share one classifier. An absent binding fails closed,
+including under `!`; player references carry an explicit presence bit so seat
+zero is not mistaken for absence. `Targeted*` and `Spawner>...` chains remain
+unknown. This is not a general Defined$/player-selector implementation.
+
+`effects.TriggerContext`, embedded in `Ctx` and `SpecContext`, keeps event roles
+separate from the resolving ability's source, chosen targets and Remembered.
+Rules captures damage recipients/sources, BecomesTarget's targeted object and
+causing source, attack defenders, phase players, and zone-change/cast cards.
+Per-stack-instance bindings survive target placement, rechecks, suspension,
+cloning and stack copying, and are rebuilt by engine replay without new events
+or event fields. A multi-attacker event retains its defender but leaves the
+singular card/source absent if multiple attackers matched. Unsupported trigger
+modes and delayed registrations without these roles do not invent bindings.
+
+**Limits:** this does not enable `CombatDamage$ True` triggers (still rejected by
+`damageMatches`), implement `TargetingPlayer$` (Magus of the Abyss still asks the
+trigger controller, not necessarily the upkeep player), carry these bindings
+into a registered continuous effect, or add LKI ownership/control snapshots for
+a referent that changes before resolution. Object referents read their live
+owner/controller. Existing Self/Other target-source semantics are unchanged;
+normalising them is separate work (notably Flickerwisp's `Permanent.Other`).
+Master of Diversion's defender-scoped Tap is pinned end to end on its compiled
+corpus SA in `rules/trigger_referents_test.go`; the target/source discrimination
+and suspension probe in that file is deliberately synthetic.
+
 ## Regeneration behaviour (implemented, not an approximation)
 
 Stated here rather than in the approximations table above, because it is

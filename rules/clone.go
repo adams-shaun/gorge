@@ -2,6 +2,7 @@ package rules
 
 import (
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -122,6 +123,12 @@ func (e *Engine) Clone() *Engine {
 				pt.Ctx.LKI = &lki
 			}
 			c.pendingTriggers[i] = pt
+		}
+	}
+	if e.triggerContexts != nil {
+		c.triggerContexts = make(map[state.ObjID]effects.TriggerContext, len(e.triggerContexts))
+		for id, tc := range e.triggerContexts {
+			c.triggerContexts[id] = tc
 		}
 	}
 	c.triggerFireCount = cloneCounts(e.triggerFireCount)

@@ -340,10 +340,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				Idx:        ti,
 				SA:         t.Effect,
 				Ctx: effects.Ctx{
-					Source:     id,
-					Controller: o.Controller,
-					Remembered: triggerRemembered(ev, id),
-					LKI:        objLKI,
+					Source:         id,
+					Controller:     o.Controller,
+					Remembered:     triggerRemembered(ev, id),
+					LKI:            objLKI,
+					TriggerContext: observer.triggerReferents(t, id, ev),
 				},
 			})
 		}

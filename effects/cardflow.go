@@ -141,7 +141,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			// allows, then ask the CASTER which to discard.
 			eligible := make([]state.ObjID, 0, len(hand))
 			for _, id := range hand {
-				if MatchesSpecFrom(g, valid, id, c.Controller, c.Source) {
+				if MatchesSpecCtx(g, valid, id, c.SpecContext(c.Controller)) {
 					eligible = append(eligible, id)
 				}
 			}
@@ -202,7 +202,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			// is presented to p.
 			eligible := make([]state.ObjID, 0, len(hand))
 			for _, id := range hand {
-				if MatchesSpecFrom(g, valid, id, c.Controller, c.Source) {
+				if MatchesSpecCtx(g, valid, id, c.SpecContext(c.Controller)) {
 					eligible = append(eligible, id)
 				}
 			}
@@ -257,7 +257,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			// the target's hand that DiscardValid$ allows, no matter what
 			// NumCards$ says. No ask.
 			for _, id := range hand {
-				if MatchesSpecFrom(g, valid, id, c.Controller, c.Source) {
+				if MatchesSpecCtx(g, valid, id, c.SpecContext(c.Controller)) {
 					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 						From: state.ZHand, To: state.ZGraveyard, Player: p})
 				}
@@ -371,7 +371,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if moved >= changeNum {
 				break
 			}
-			if !MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
+			if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				continue
 			}
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
