@@ -18,6 +18,10 @@ type CostPart struct {
 	Spec string
 }
 
+// ManaPair is one two-colour hybrid symbol: both A and B are WUBRG letters,
+// and either one spells the pip (CR 107.4e).
+type ManaPair struct{ A, B byte }
+
 // Cost is a parsed cost. X counts how many "X" symbols appeared (almost
 // always 0 or 1; WithX folds a chosen value into Generic once per symbol).
 // Tap, Sac and SubCounter are non-mana components a cast or activation must
@@ -25,18 +29,21 @@ type CostPart struct {
 // cast-flow stages own that; Pay/CanPay below are mana-only, unchanged from
 // before this cost grammar grew non-mana parts).
 //
-// Hybrid and Phyrexian symbols are approximated as one generic mana each. This
-// approximation is deliberately over-permissive: a {W/U} cost is payable by any
-// single mana of any colour, and a {UP} cost is payable without paying life.
-// This is a known M1 limitation — correct modelling needs an alternative-payment
-// representation that a later milestone must add. The M1 acceptance decks do not
-// use hybrid or Phyrexian-restricted payment, so the approximation has no effect
-// in practice: Dismember and Gitaxian Probe (the only M1 cards with Phyrexian
-// mana) are thus mispriced (accepting payment in regular mana, not life).
+// Hybrid and Phyrexian symbols are no longer flattened to generic. A hybrid
+// pip (GW) is recorded in Hybrid as the pair of colours it accepts; a
+// Phyrexian pip (UP) is recorded in Phyrexian as its colour (CR 107.4f: pay
+// that colour OR two life). Both are “announcement” costs: which half of a
+// hybrid and whether a Phyrexian pip is paid with life is a player choice at
+// cast time (CR 601.2b), not something a parser decides. Because a Phyrexian
+// pip may be paid with life, the mana-only Pay/CanPay below cannot fully own
+// it; rule/cast.go's payment stage resolves the announced choice and spends
+// against both the pool and the payer's life (see Cost.payable).
 type Cost struct {
 	Colored    state.Mana
 	Generic    int32
 	X          int
+	Hybrid     []ManaPair
+	Phyrexian  []byte
 	Tap        bool
 	Sac        []CostPart
 	SubCounter []CostPart
@@ -69,6 +76,10 @@ func ParseCost(s string) Cost {
 			c.X++
 		case len(sym) == 1 && strings.ContainsAny(sym, "WUBRGC"):
 			c.Colored[state.ManaIndex(sym[0])]++
+		case isHybrid(sym):
+			c.Hybrid = append(c.Hybrid, hybridPair(sym))
+		case isPhyrexian(sym):
+			c.Phyrexian = append(c.Phyrexian, phyrexianColor(sym))
 		default:
 			if m := nonManaCost.FindStringSubmatch(sym); m != nil {
 				n, err := strconv.ParseInt(m[2], 10, 64)
@@ -96,8 +107,8 @@ func ParseCost(s string) Cost {
 				c.Generic = addClampedGeneric(c.Generic, n)
 				continue
 			}
-			// Hybrid ("W/U", "GW", "2B"), Phyrexian ("W/P", "UP", "BP"), and
-			// invalid numeric tokens land here.
+			// An unrecognised symbol (including a malformed hybrid/Phyrexian
+			// token) degrades to one generic mana, never a hard parse error.
 			c.Generic = addClampedGeneric(c.Generic, 1)
 		}
 	}
@@ -151,7 +162,55 @@ func addClampedGeneric(v int32, n int64) int32 {
 	return int32(total)
 }
 
-func (c Cost) CMC() int32 { return c.Colored.Total() + c.Generic }
+// isHybrid reports whether sym is a two-colour hybrid pip: either the
+// slash form ("W/U") or the concatenated form ("GW", "WB"). A second
+// character of 'P' is Phyrexian, not hybrid, and is handled by
+// isPhyrexian. Both letters must be distinct WUBRG colours (a doubled
+// letter, "WW", is not a hybrid — it is a script typo and degrades to
+// generic).
+func isHybrid(sym string) bool {
+	var a, b byte
+	if len(sym) == 3 && sym[1] == '/' {
+		a, b = sym[0], sym[2]
+	} else if len(sym) == 2 && sym[1] != 'P' {
+		a, b = sym[0], sym[1]
+	} else {
+		return false
+	}
+	return a != b && strings.ContainsRune("WUBRG", rune(a)) && strings.ContainsRune("WUBRG", rune(b))
+}
+
+// hybridPair normalises a hybrid symbol to its two colours as a ManaPair.
+// sym is guaranteed a hybrid by isHybrid.
+func hybridPair(sym string) ManaPair {
+	if len(sym) == 3 && sym[1] == '/' {
+		return ManaPair{A: sym[0], B: sym[2]}
+	}
+	return ManaPair{A: sym[0], B: sym[1]}
+}
+
+// isPhyrexian reports whether sym is a Phyrexian pip: a WUBRG colour
+// followed by 'P', either slash ("W/P") or concatenated ("UP", "BP").
+// CR 107.4f: pay that colour OR two life.
+func isPhyrexian(sym string) bool {
+	if len(sym) == 3 && sym[1] == '/' {
+		return strings.ContainsRune("WUBRG", rune(sym[0])) && sym[2] == 'P'
+	}
+	if len(sym) != 2 {
+		return false
+	}
+	return sym[1] == 'P' && strings.ContainsRune("WUBRG", rune(sym[0]))
+}
+
+// phyrexianColor returns the colour letter of a Phyrexian pip. sym is
+// guaranteed a Phyrexian pip by isPhyrexian.
+func phyrexianColor(sym string) byte {
+	return sym[0]
+}
+
+func (c Cost) CMC() int32 {
+	return c.Colored.Total() + c.Generic + int32(len(c.Hybrid)) + int32(len(c.Phyrexian))
+}
 
 // WithX folds a chosen X value into Generic, once per X symbol the cost
 // carried, then clears X: once a value is chosen, {X} is no longer a
@@ -172,6 +231,12 @@ func (c Cost) Plus(d Cost) Cost {
 	c.Generic += d.Generic
 	c.X += d.X
 	c.Tap = c.Tap || d.Tap
+	if len(d.Hybrid) > 0 {
+		c.Hybrid = append(append([]ManaPair(nil), c.Hybrid...), d.Hybrid...)
+	}
+	if len(d.Phyrexian) > 0 {
+		c.Phyrexian = append(append([]byte(nil), c.Phyrexian...), d.Phyrexian...)
+	}
 	if len(d.Sac) > 0 {
 		c.Sac = append(append([]CostPart(nil), c.Sac...), d.Sac...)
 	}
@@ -250,36 +315,135 @@ func (c Cost) HasNonMana() bool {
 // ordinary casting. Priceable is the "is this a chargeable mana-only cost"
 // question the mid-resolution unless-pay answer must ask before trusting the
 // pool.
-func (c Cost) Priceable() bool { return c.X == 0 && !c.HasNonMana() }
+func (c Cost) Priceable() bool {
+	return c.X == 0 && !c.HasNonMana() && len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
+}
+
+// pip is one coloured-or-flexible demand inside a cost's mana part: the set
+// of acceptable colours, and whether the pip may alternatively be paid with
+// two life (a Phyrexian pip). n is always 1 for the pips this engine builds
+// from a cost; the field exists so a caller that expands a multi-count
+// coloured requirement can reuse the same struct.
+type pip struct {
+	colors [2]byte
+	n      int
+	lifeOK bool
+}
+
+// costPips expands a cost's Colored, Hybrid and Phyrexian parts into a flat
+// pip list, in that order (exact colours first, then hybrids, then
+// Phyrexian). A coloured pip accepts exactly its own colour; a hybrid accepts
+// either of its pair; a Phyrexian pip accepts its colour or two life.
+func (c Cost) costPips() []pip {
+	var out []pip
+	// The coloured slots including the colourless one: a plain {C} pip is a
+	// strict colourless requirement generic must not satisfy by stealing the
+	// pool's only colourless, so it is reserved like any coloured pip.
+	for _, letter := range []byte{'W', 'U', 'B', 'R', 'G', 'C'} {
+		for n := c.Colored[state.ManaIndex(letter)]; n > 0; n-- {
+			out = append(out, pip{colors: [2]byte{letter, letter}, n: 1})
+		}
+	}
+	for _, pair := range c.Hybrid {
+		out = append(out, pip{colors: [2]byte{pair.A, pair.B}, n: 1})
+	}
+	for _, letter := range c.Phyrexian {
+		out = append(out, pip{colors: [2]byte{letter, letter}, n: 1, lifeOK: true})
+	}
+	return out
+}
+
+// resolveMana finds A concrete payment of the cost's mana part from pool and
+// the payer's life, preferring to spend coloured pool mana over life for a
+// Phyrexian pip and preferring the first colour of a hybrid pair, so the
+// assignment is deterministic. It returns the pool with the coloured pips
+// spent, the life spent (each Phyrexian pip paid by life costs 2), and
+// whether the whole cost is payable (generic left satisfied from the
+// remainder). The generic requirement is paid last from whatever the pips
+// left, so coloured mana is never spent on generic while a pip still needs
+// it.
+func (c Cost) resolveMana(pool state.Mana, life int32) (state.Mana, int32, bool) {
+	pips := c.costPips()
+	rem := pool
+	lifeSpent := int32(0)
+	var rec func(i int) bool
+	rec = func(i int) bool {
+		if i == len(pips) {
+			return rem.Total() >= c.Generic
+		}
+		p := pips[i]
+		// Try each acceptable colour, in the order given. For a hybrid this
+		// prefers A over B; for a single-colour pip A==B so it is just once.
+		for _, col := range p.colors {
+			di := state.ManaIndex(col)
+			if rem[di] > 0 {
+				rem[di]--
+				if rec(i + 1) {
+					return true
+				}
+				rem[di]++
+			}
+		}
+		if p.lifeOK && life >= 2 {
+			life -= 2
+			lifeSpent += 2
+			if rec(i + 1) {
+				return true
+			}
+			lifeSpent -= 2
+			life += 2
+		}
+		return false
+	}
+	if !rec(0) {
+		return pool, 0, false
+	}
+	// The search found a pip assignment that leaves enough total mana; deduct
+	// the generic requirement from that remainder, preferring colourless then
+	// colours in fixed WUBRG order so payment is deterministic. Generic can
+	// be paid by any leftover mana, so a total >= Generic always suffices.
+	need := c.Generic
+	for _, i := range [...]int{state.MC, state.MW, state.MU, state.MB, state.MR, state.MG} {
+		for need > 0 && rem[i] > 0 {
+			rem[i]--
+			need--
+		}
+	}
+	return rem, lifeSpent, true
+}
+
+// payable reports whether the cost's mana part can be paid by pool and the
+// payer's current life (a Phyrexian pip may be paid with two life). This is
+// the offering gate's feasibility question, and the real answer to "is there
+// ANY way this cost can be paid right now" -- the same resolveMana the
+// payment stage uses, so an offered cost and the cost it charges can never
+// disagree.
+func (c Cost) payable(pool state.Mana, life int32) bool {
+	_, _, ok := c.resolveMana(pool, life)
+	return ok
+}
 
 func (c Cost) CanPay(p state.Mana) bool {
-	_, ok := c.Pay(p)
+	// Pool-only feasibility, no life offered: a hybrid must be paid by one of
+	// its colours in the pool, a Phyrexian pip by its colour. This is the
+	// pure pricing question the corpus invariants ask, and it never treats a
+	// hybrid as generic nor lets colourless `pay` it.
+	_, _, ok := c.resolveMana(p, 0)
 	return ok
 }
 
 // Pay spends the cost from a pool and returns what is left. Coloured
 // requirements come out first so generic can never strand a colour the cost
-// still needs. Mana-only: non-mana parts (Tap/Sac/SubCounter) are the cast
-// flow's own job (rules/cast.go), never this function's.
+// still needs; hybrid pips take one of their pair and Phyrexian pips their
+// colour (pool-only -- the cast flow's payMana handles the life half and
+// passes a fully-resolved cost here). Mana-only: non-mana parts
+// (Tap/Sac/SubCounter) are the cast flow's own job (rules/cast.go), never
+// this function's.
 func (c Cost) Pay(p state.Mana) (state.Mana, bool) {
-	out := p
-	for i, n := range c.Colored {
-		if out[i] < n {
-			return p, false
-		}
-		out[i] -= n
-	}
-	need := c.Generic
-	// Spend colourless first, then colours in fixed WUBRG order, so payment is
-	// deterministic and does not depend on map iteration.
-	for _, i := range [...]int{state.MC, state.MW, state.MU, state.MB, state.MR, state.MG} {
-		for need > 0 && out[i] > 0 {
-			out[i]--
-			need--
-		}
-	}
-	if need > 0 {
-		return p, false
-	}
-	return out, true
+	// Pool-only: no life is offered, so a Phyrexian pip is paid by its colour
+	// (the cast flow's payMana handles the life half and passes a fully
+	// resolved cost here). resolveMana already reserves the coloured pips and
+	// deducts generic, so the returned pool is fully spent.
+	out, _, ok := c.resolveMana(p, 0)
+	return out, ok
 }

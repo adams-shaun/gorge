@@ -111,31 +111,38 @@ func TestPayFailsCleanly(t *testing.T) {
 	}
 }
 
-// This test pins the known M1 approximation: hybrid and Phyrexian symbols
-// are treated as generic mana, not as alternative payments. This is deliberately
-// over-permissive and affects Dismember and Gitaxian Probe in M1, which are
-// mispriced (accepting regular mana, not life). A future milestone must add
-// proper alternative-payment modelling.
-func TestHybridAndPhyrexianAreApproximatedAsGeneric(t *testing.T) {
-	// Forge spells color hybrid as "GW" (Kitchen Finks), "RW" (Figure of Destiny).
-	// "1 GW" parses as numeric "1" (Generic: 1) + unrecognized "GW" (Generic: 1) = Generic: 2.
+// TestHybridAndPhyrexianAlternativePayments pins the CR 107.4e / 107.4f
+// alternative-payment representation that replaced the old M1 approximation
+// (which flattened a hybrid and a Phyrexian symbol to one generic each and so
+// mispriced Dismember and Gitaxian Probe, accepting regular mana for a
+// Phyrexian pip). A two-colour hybrid is a choice of one of its two colours; a
+// Phyrexian pip is its colour or two life. The over-permissive acceptance this
+// test used to document is exactly the defect the CR 601.2b/107.4e-f leaves
+// measure, so the corrected assertions below replace it.
+func TestHybridAndPhyrexianAlternativePayments(t *testing.T) {
+	// Forge spells colour hybrid as "GW" (Kitchen Finks), "RW" (Figure of Destiny).
 	gwCost := ParseCost("1 GW")
-	if gwCost.Generic != 2 || gwCost.Colored.Total() != 0 {
-		t.Errorf("ParseCost(\"1 GW\") = %+v, want generic=2, colored=0", gwCost)
+	if gwCost.Generic != 1 || len(gwCost.Hybrid) != 1 || gwCost.Hybrid[0] != (ManaPair{A: 'G', B: 'W'}) || gwCost.Colored.Total() != 0 {
+		t.Errorf("ParseCost(\"1 GW\") = %+v, want Generic=1 + one G/W hybrid", gwCost)
 	}
-	// Cost should be payable by any mana (over-permissive: no color requirement).
+	// A hybrid is payable by either of its colours, never by a third colour
+	// nor by colourless alone (CR 107.4e).
+	if !gwCost.CanPay(pool(0, 0, 0, 0, 2, 0)) {
+		t.Error("GW cost should be payable by GG")
+	}
 	if !gwCost.CanPay(pool(2, 0, 0, 0, 0, 0)) {
 		t.Error("GW cost should be payable by WW")
 	}
-	if !gwCost.CanPay(pool(0, 0, 2, 0, 0, 0)) {
-		t.Error("GW cost should be payable by BB (over-permissive)")
+	if gwCost.CanPay(pool(0, 0, 2, 0, 0, 0)) {
+		t.Error("GW cost must not be payable by BB")
 	}
-	if !gwCost.CanPay(pool(0, 0, 0, 0, 0, 2)) {
-		t.Error("GW cost should be payable by CC (over-permissive)")
+	if gwCost.CanPay(pool(0, 0, 0, 0, 0, 2)) {
+		t.Error("GW cost must not be payable by CC alone")
 	}
 
-	// Forge spells monocolour hybrid as "2B" (Beseech the Queen).
-	// "2B" is unrecognized as a numeric token, so Generic: 1.
+	// Forge spells monocolour hybrid as "2B" (Beseech the Queen). The
+	// two-colour parser does not widen to a generic-or-colour hybrid, so "2B"
+	// still degrades to one generic (unchanged, and outside the 107.4e leaves).
 	monoCost := ParseCost("2B")
 	if monoCost.Generic != 1 || monoCost.Colored.Total() != 0 {
 		t.Errorf("ParseCost(\"2B\") = %+v, want generic=1, colored=0", monoCost)
@@ -143,28 +150,40 @@ func TestHybridAndPhyrexianAreApproximatedAsGeneric(t *testing.T) {
 
 	// Forge rarely spells hybrid as "W/U" (one card out of 33,669).
 	slashCost := ParseCost("W/U")
-	if slashCost.Generic != 1 || slashCost.Colored.Total() != 0 {
-		t.Errorf("ParseCost(\"W/U\") = %+v, want generic=1, colored=0", slashCost)
+	if slashCost.Generic != 0 || len(slashCost.Hybrid) != 1 || slashCost.Hybrid[0] != (ManaPair{A: 'W', B: 'U'}) {
+		t.Errorf("ParseCost(\"W/U\") = %+v, want one W/U hybrid", slashCost)
+	}
+	if !slashCost.CanPay(pool(0, 1, 0, 0, 0, 0)) {
+		t.Error("W/U hybrid should be payable by U")
 	}
 
-	// Phyrexian mana (UP, BP) is also approximated as generic.
-	// Dismember is "ManaCost:1 BP BP", which parses to "1" (Generic: 1) + "BP" (Generic: 1) + "BP" (Generic: 1) = Generic: 3.
+	// Phyrexian mana (UP, BP). Dismember is "ManaCost:1 BP BP".
 	dismemberCost := ParseCost("1 BP BP")
-	if dismemberCost.Generic != 3 || dismemberCost.Colored.Total() != 0 {
-		t.Errorf("ParseCost(\"1 BP BP\") = %+v, want generic=3, colored=0", dismemberCost)
+	if dismemberCost.Generic != 1 || len(dismemberCost.Phyrexian) != 2 || dismemberCost.Colored.Total() != 0 {
+		t.Errorf("ParseCost(\"1 BP BP\") = %+v, want Generic=1 + two black Phyrexian pips", dismemberCost)
 	}
-	// Should be payable by any mana (BP misprice: no life payment).
-	if !dismemberCost.CanPay(pool(0, 0, 0, 3, 0, 0)) {
-		t.Error("Dismember cost should be payable by RRR (misprice: no life)")
+	// Pool-only CanPay offers no life, so a Phyrexian pip needs its colour.
+	if !dismemberCost.CanPay(pool(0, 0, 3, 0, 0, 0)) {
+		t.Error("Dismember should be payable by BBB")
+	}
+	if dismemberCost.CanPay(pool(0, 0, 0, 3, 0, 0)) {
+		t.Error("Dismember must not be pool-payable by RRR without life")
+	}
+	// With life offered, RRR plus four life pays Dismember (CR 107.4f).
+	if !dismemberCost.payable(pool(0, 0, 0, 3, 0, 0), 20) {
+		t.Error("Dismember should be payable by RRR with life")
 	}
 
 	// Gitaxian Probe is "ManaCost:UP".
 	probeCost := ParseCost("UP")
-	if probeCost.Generic != 1 || probeCost.Colored.Total() != 0 {
-		t.Errorf("ParseCost(\"UP\") = %+v, want generic=1, colored=0", probeCost)
+	if probeCost.Generic != 0 || len(probeCost.Phyrexian) != 1 || probeCost.Phyrexian[0] != 'U' {
+		t.Errorf("ParseCost(\"UP\") = %+v, want one blue Phyrexian pip", probeCost)
 	}
-	if !probeCost.CanPay(pool(0, 0, 0, 0, 1, 0)) {
-		t.Error("Gitaxian Probe cost should be payable by G alone (misprice: no life)")
+	if probeCost.CanPay(pool(0, 0, 0, 0, 1, 0)) {
+		t.Error("Gitaxian Probe must not be pool-payable by G alone without life")
+	}
+	if !probeCost.payable(pool(0, 0, 0, 0, 1, 0), 20) {
+		t.Error("Gitaxian Probe should be payable by G with life")
 	}
 }
 

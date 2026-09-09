@@ -145,6 +145,8 @@ func (e *Engine) Clone() *Engine {
 		pc := *e.cast
 		pc.cost.Sac = append([]CostPart(nil), e.cast.cost.Sac...)
 		pc.cost.SubCounter = append([]CostPart(nil), e.cast.cost.SubCounter...)
+		pc.cost.Hybrid = append([]ManaPair(nil), e.cast.cost.Hybrid...)
+		pc.cost.Phyrexian = append([]byte(nil), e.cast.cost.Phyrexian...)
 		pc.delve = append([]state.ObjID(nil), e.cast.delve...)
 		pc.sacs = append([]state.ObjID(nil), e.cast.sacs...)
 		pc.preSuppress = cloneSuppressed(e.cast.preSuppress)
