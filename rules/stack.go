@@ -620,9 +620,14 @@ func (e *Engine) resolveTop() {
 		// and for any trigger the placement ask never reached.
 		ctx.Modes = o.ChosenModes
 		e.damaging = o.Source
+		e.contChain = e.contChain[:0]
 		effects.Resolve(e, ctx, o.Ability)
 		e.damaging = 0
 		if e.resume != nil {
+			// A placement-announced modal ability can reach a nested ask during
+			// this initial pass. Preserve every enclosing continuation exactly as
+			// resumeResolution does for a nested ask reached on re-entry.
+			e.resume.outer = e.buildContinuationChain(e.contChain, id, nil)
 			// A mid-resolution ask (M2d-2): the effect that asked has set a
 			// decision pending and recorded a resume point. The object stays
 			// on the stack waiting for the answer -- entering the exile exit
@@ -642,6 +647,11 @@ func (e *Engine) resolveTop() {
 	sa := f.SpellAbility()
 	targets := o.Targets
 	if sa != nil {
+		// A modal spell's target declaration lives on its announced mode SVar,
+		// not the outer Charm SA. Use the same selected declaration targetAsk
+		// used during CR 601.2c, so its targets receive the ordinary CR 608.2b
+		// legality recheck at resolution.
+		targetSA := modalTargetSA(f, sa, o.ChosenModes)
 		// Fix round 2 (re-review N1), the same correction as the ability
 		// branch above, and the one that was actually reachable. Widening the
 		// departed-player release hook in fix round 1 turned a stall into a
@@ -656,8 +666,8 @@ func (e *Engine) resolveTop() {
 		// permits it to resolve.
 		// Requirement N2, the same exemption as the ability branch: an
 		// untargeted-with-Min-0 spell resolves rather than fizzling.
-		if spec := sa.Params["ValidTgts"]; spec != "" && !(targetMin(sa) == 0 && len(targets) == 0) {
-			legal := e.legalTargets(targets, spec, targetZones(sa), o.Controller, id, id)
+		if spec := targetSA.Params["ValidTgts"]; spec != "" && !(targetMin(targetSA) == 0 && len(targets) == 0) {
+			legal := e.legalTargets(targets, spec, targetZones(targetSA), o.Controller, id, id)
 			if len(legal) == 0 {
 				// CR 608.2b: every target became illegal. This spell does
 				// not resolve -- no Resolve event, no script runs -- it goes
@@ -682,9 +692,20 @@ func (e *Engine) resolveTop() {
 	e.emit(events.Event{Kind: events.Resolve, Obj: id, Text: f.Name})
 	if sa != nil {
 		e.damaging = id
-		e.resolveAbility(id, o.Controller, targets, sa, f.SVars)
+		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets}
+		effects.SetSVars(ctx, f.SVars)
+		// CR 601.2b: a modal spell's choice was recorded on its proposal before
+		// targets and payment. Pre-seeding Modes makes effCharm execute exactly
+		// that announcement instead of posing its old resolution-time ask.
+		ctx.Modes = o.ChosenModes
+		e.contChain = e.contChain[:0]
+		effects.Resolve(e, ctx, sa)
 		e.damaging = 0
 		if e.resume != nil {
+			// The cast-announced outer mode may itself contain an asking effect.
+			// This is an initial resolution pass rather than a resume re-entry,
+			// but its enclosing SubAbility continuations have the same lifetime.
+			e.resume.outer = e.buildContinuationChain(e.contChain, id, nil)
 			// A mid-resolution ask (M2d-2): same as the ability branch above
 			// — the resolution is suspended with the object still on the
 			// stack, and the answered decision re-enters it through

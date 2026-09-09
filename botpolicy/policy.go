@@ -197,7 +197,7 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 //     "mulligan" option is offered (the determinism mirror of
 //     KTriggerOptional), otherwise keeps (the "keep" option at index 0). The
 //     rng is consumed only where a real mulligan choice exists.
-//   - KModes: the mid-resolution modal pick -- choose the first Min options
+//   - KModes: a modal announcement or mid-resolution pick -- choose the first Min options
 //     in order (Choices [0, 1, …, Min-1]), the recorded mirror of the
 //     engine-side first-mode stand-in, no rng. This also answers an
 //     UnlessCost$ may-pay, shaped as the same KModes kind: option 0 is
@@ -388,7 +388,7 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 		}
 
 	case decision.KModes:
-		// The mid-resolution modal pick (M2d-2): choose the first Min options
+		// A modal announcement or mid-resolution pick: choose the first Min options
 		// in order — the recorded mirror of the engine-side first-mode
 		// stand-in, so bot-vs-bot behaviour is largely unchanged, and the
 		// answer stays seed-deterministic. This also answers an UnlessCost$

@@ -194,14 +194,19 @@ func drainToEnd(t *testing.T, e *Engine, limit int) {
 // original engine would fail exactly here (the clone would resume into
 // nothing), which is the whole reason the field is structured this way.
 func TestSuspendedResolutionSurvivesAClone(t *testing.T) {
-	charm := "Name:PiC\nManaCost:R\nTypes:Instant\nA:SP$ Charm | Choices$ DoGain,DoLose\n" +
-		"SVar:DoGain:DB$ GainLife | Defined$ You | LifeAmount$ 5 | SpellDescription$ Gain 5 life\n" +
-		"SVar:DoLose:DB$ LoseLife | Defined$ You | LifeAmount$ 5 | SpellDescription$ Lose 5 life\nOracle:x\n"
+	charm := "Name:PiC\nManaCost:R\nTypes:Instant\nA:SP$ Charm | Choices$ DoDiscard,DoGain\n" +
+		"SVar:DoDiscard:DB$ Discard | Defined$ You | Mode$ TgtChoose | NumCards$ 1 | SpellDescription$ Discard a card\n" +
+		"SVar:DoGain:DB$ GainLife | Defined$ You | LifeAmount$ 5 | SpellDescription$ Gain 5 life\nOracle:x\n"
 	e, cfg, id := newFixtureDeck(t, 95, charm)
 	addMana(t, e, 0, "R")
 	d := castFixture(t, e, id, -1)
 	if d == nil || d.Kind != decision.KModes {
-		t.Fatalf("expected a suspended KModes decision, got %+v", d)
+		t.Fatalf("expected the cast-time KModes announcement, got %+v", d)
+	}
+	submitChoices(t, e, 0)
+	d = passUntilNonPriority(t, e, 20)
+	if d == nil || d.Kind != decision.KModes || e.resume == nil {
+		t.Fatalf("expected a suspended Discard KModes decision, got %+v resume=%+v", d, e.resume)
 	}
 	c := e.Clone()
 	if p := c.Pending(); p == nil || p.Kind != decision.KModes {
@@ -216,9 +221,9 @@ func TestSuspendedResolutionSurvivesAClone(t *testing.T) {
 			t.Fatalf("submit %v: %v", choices, err)
 		}
 	}
-	submitEach(e, 1)
+	submitEach(e, d.Options[0].Index)
 	drainToEnd(t, e, 30)
-	submitEach(c, 1)
+	submitEach(c, d.Options[0].Index)
 	drainToEnd(t, c, 30)
 	if e.L.Head() != c.L.Head() {
 		t.Fatalf("clone diverged: chain %s vs %s", e.L.Head(), c.L.Head())
