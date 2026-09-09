@@ -289,6 +289,9 @@ func (e *Engine) continueCast() {
 	if e.etbAsk() {
 		return
 	}
+	if e.targetAsk() {
+		return
+	}
 	e.commitCast()
 }
 
@@ -694,19 +697,141 @@ func modeFlags(mode string) string {
 	return ""
 }
 
+// targetAsk is the last stage of continueCast before commitCast: it asks the
+// spell or activated ability's target selection (CR 601.2c / 602.2b) while the
+// proposal is still provisional -- BEFORE any cost is paid, any sacrificial
+// permanent moves, or the object is put on the stack. That ordering is what
+// makes the cast a transaction: the target answer (601.2c) precedes payment
+// (601.2h), and the cast trigger (601.2i, fired by PutOnStack) waits until the
+// proposal is complete. handleTarget (stack.go) completes the transaction by
+// calling commitCast and then records the chosen targets onto the object that
+// actually reached the stack.
+//
+// It returns true when it either asked a target decision or ABORTED the
+// proposal. A proposal that can never complete is reversed here, before
+// anything has been paid or moved (CR 733.1): the card left the zone, the
+// resolved mana cost is no longer payable, or a mandatory target (min >= 1)
+// has zero legal candidates. Clearing e.cast with nothing committed restores
+// the pre-proposal board. An SA with no ValidTgts (or a zero-minimum target
+// with no legal candidate, Requirement N2) returns false so commitCast runs
+// directly.
+func (e *Engine) targetAsk() bool {
+	pc := e.cast
+	if pc == nil {
+		return false
+	}
+	o := e.G.Obj(pc.card)
+	if o == nil || o.Zone != pc.from {
+		e.cast, e.choosing = nil, chooseNone
+		e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "cast aborted: the card moved"})
+		return true
+	}
+	f := o.Face()
+	var sa *cards.SA
+	if pc.ability >= 0 {
+		if f == nil || pc.ability >= len(f.Abilities) {
+			return false
+		}
+		sa = f.Abilities[pc.ability]
+	} else if f != nil {
+		sa = f.SpellAbility()
+	}
+	if sa == nil || sa.Params["ValidTgts"] == "" {
+		return false
+	}
+	// A proposal whose resolved mana cost can no longer be paid can never
+	// complete. Reverse it exactly as commitCast's own unpayable arm would
+	// (E2: no progress was made, so hold this card's option out of the window
+	// rather than re-offering the same unpayable cast). Resolved means X is
+	// fixed and Delve credit is applied, both settled by the stages above.
+	mana := pc.cost.WithX(pc.x)
+	if pc.ability < 0 {
+		mana.Generic -= int32(len(pc.delve))
+		if mana.Generic < 0 {
+			mana.Generic = 0
+		}
+	}
+	if !mana.CanPay(e.G.Players[pc.player].Pool) {
+		e.suppressCast(pc.card)
+		e.cast, e.choosing = nil, chooseNone
+		e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "cast aborted: cost no longer payable"})
+		return true
+	}
+	min, max := targetBounds(sa)
+	// CR 115.5: a spell may not target itself (excludeSelf == the card); an
+	// activated ability CAN target its own Source permanent (Mother of Runes
+	// targeting itself), and its Face-less stack object is not on the stack
+	// yet, so no self-exclusion applies. (See the report: the d.Source-based
+	// CR 115.5 invariant in TestNoTargetDecisionOffersAnIllegalTarget cannot
+	// distinguish this legal self-target from the ability object self.
+	var excludeSelf state.ObjID
+	if pc.ability < 0 {
+		excludeSelf = pc.card
+	}
+	candidates := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sa)
+	if min > 0 && len(candidates) < min {
+		// CR 601.2c: a proposal with fewer legal targets than its mandatory
+		// minimum cannot be announced. Reverse the whole proposal -- nothing
+		// has been paid, moved or pushed -- so the spell/ability is returned to
+		// where it was and any floating mana stays (CR 733.1). No library was
+		// shuffled during the proposal, so the 733.1 library exception does not
+		// apply.
+		e.cast, e.choosing = nil, chooseNone
+		e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "cast aborted: no legal target"})
+		return true
+	}
+	if min == 0 && len(candidates) == 0 {
+		// Requirement N2: a subject that MAY target zero things resolves
+		// untargeted when no legal target exists; proceed straight to
+		// commitCast with no target decision.
+		return false
+	}
+	// The decision's Source is the object that must not be offered as its own
+	// target (CR 115.5). For a spell that is the card (excluded via
+	// excludeSelf). For an activated ability the object that may not target
+	// itself is the proposed ability stack object, which is NOT the source
+	// permanent -- the source permanent is a legal target of its own ability
+	// (Mother of Runes). Since that ability object does not yet exist, Source
+	// is 0 and the source permanent is still offered (excludeSelf == 0). The
+	// prompt keeps the source permanent's name for readability.
+	var src state.ObjID
+	if pc.ability < 0 {
+		src = pc.card
+	}
+	d := &decision.Decision{Player: pc.player, Kind: decision.KTarget, Min: min, Max: max,
+		Prompt: "Choose a target for " + e.targetName(pc.card),
+		Source: src, TargetEffect: describeTargetEffect(sa)}
+	for _, candidate := range candidates {
+		label := e.G.Players[candidate.player].Name
+		if candidate.obj != 0 {
+			label = e.G.Obj(candidate.obj).Face().Name + " (" + label + ")"
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
+			Label: label, Obj: candidate.obj, Player: candidate.player})
+	}
+	e.ask(d)
+	return true
+}
+
 // commitCast pays, moves the delved and sacrificed cards, records how the
 // spell was cast, and puts it on the stack. A payment that fails here (a
 // pool that changed under a hand-built intent -- castable already gated the
 // option the caster chose, so this is not reachable from an ordinary,
 // well-formed client) aborts with a Note and leaves the card where it was;
 // so does the card having moved out from under the flow entirely.
-func (e *Engine) commitCast() {
+//
+// It returns the object id that actually reached the stack (the spell card
+// itself, or the activated ability's AbilityPush-minted object) so handleTarget
+// can record the chosen targets onto that object -- a zone change clears an
+// object's Targets, so they must be recorded AFTER the push, never before it.
+// Zero means nothing was put on the stack (an abort, or a land play).
+func (e *Engine) commitCast() state.ObjID {
 	pc := e.cast
 	e.cast, e.choosing = nil, chooseNone
 	o := e.G.Obj(pc.card)
 	if o == nil || o.Zone != pc.from {
 		e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "cast aborted: the card moved"})
-		return
+		return 0
 	}
 	if pc.mode == "land" {
 		// Task 12: a land played through the one-stage flow (an "as this
@@ -718,7 +843,7 @@ func (e *Engine) commitCast() {
 		// choice already recorded) resolves on entry.
 		e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: pc.from, To: state.ZBattlefield})
 		e.emit(events.Event{Kind: events.LandPlayed, Player: pc.player})
-		return
+		return 0
 	}
 	if pc.ability >= 0 {
 		// Task 10: an activated ability. The shared stages above (X, Delve --
@@ -745,7 +870,7 @@ func (e *Engine) commitCast() {
 			// fatal is gone).
 			e.suppressCast(pc.card)
 			e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "activation aborted: cost no longer payable"})
-			return
+			return 0
 		}
 		for _, id := range pc.delve {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
@@ -763,15 +888,14 @@ func (e *Engine) commitCast() {
 		// AbilityPush mints a NEW stack object (different id from the source
 		// permanent); targets must be recorded on that object so resolveTop
 		// (stack.go's ability branch, which reads o.Targets off the object it
-		// is resolving) sees them. askTarget with the top-of-stack id, exactly
-		// pushTrigger's own post-TriggerPush ask.
-		ab := o.Face().Abilities[pc.ability]
+		// is resolving) sees them. The target SELECTION already happened ahead
+		// of this in targetAsk; handleTarget records the chosen targets onto
+		// the freshly minted top-of-stack object, exactly pushTrigger's own
+		// post-TriggerPush ask records onto a triggered ability's object.
 		if len(e.G.Stack) > 0 {
-			if top := e.G.Obj(e.G.Stack[len(e.G.Stack)-1]); top != nil && ab.Params["ValidTgts"] != "" {
-				e.askTarget(pc.player, e.G.Stack[len(e.G.Stack)-1], ab)
-			}
+			return e.G.Stack[len(e.G.Stack)-1]
 		}
-		return
+		return 0
 	}
 	mana := pc.cost.WithX(pc.x)
 	mana.Generic -= int32(len(pc.delve))
@@ -798,7 +922,7 @@ func (e *Engine) commitCast() {
 		// again.
 		e.suppressCast(pc.card)
 		e.emit(events.Event{Kind: events.Note, Player: pc.player, Text: "cast aborted: cost no longer payable"})
-		return
+		return 0
 	}
 	for _, id := range pc.delve {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
@@ -818,9 +942,10 @@ func (e *Engine) commitCast() {
 	if pc.from == state.ZCommand {
 		e.recordCmdCast(pc.player, pc.card)
 	}
-	if sa := o.Face().SpellAbility(); sa != nil && sa.Params["ValidTgts"] != "" {
-		e.askTarget(pc.player, pc.card, sa)
-	}
+	// The spell's target selection already happened ahead of this in targetAsk;
+	// handleTarget records the chosen targets onto the object on the stack
+	// (the spell card itself).
+	return pc.card
 }
 
 // recordCmdCast increments the CmdCasts[k] bookkeeping parallel to

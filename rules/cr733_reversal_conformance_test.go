@@ -99,7 +99,6 @@ func cr733Propose(t *testing.T, e *Engine, source state.ObjID, direct bool) {
 // 733.1 require rejection/reversal, NOT a CR 608.2b resolution-time fizzle.
 // Preexisting floating mana must remain and the card must stay/return in hand.
 func TestCR733IllegalCounterProposalReverses(t *testing.T) {
-	requireCR601Audit(t, "CR 733.1: illegal cast loses card and payment instead of reversing")
 	reg := testutil.CorpusRegistry(t)
 	checked := 0
 	for _, tc := range []struct{ name, deck string }{
@@ -150,7 +149,6 @@ func TestCR733IllegalCounterProposalReverses(t *testing.T) {
 // neither survive in the pending queue nor be pushed onto the stack. No
 // triggerMatches/spellsCastThisTurn result is used to derive this expectation.
 func TestCR733IllegalCastCannotTriggerPyromancer(t *testing.T) {
-	requireCR601Audit(t, "CR 733.1: illegal cast leaves a Young Pyromancer trigger")
 	reg := testutil.CorpusRegistry(t)
 	checked := 0
 	for _, entry := range []string{"priority_intent", "direct_proposal"} {
