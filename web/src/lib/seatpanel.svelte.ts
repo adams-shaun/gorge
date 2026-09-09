@@ -18,6 +18,37 @@ import { defaultStops, loadStops, saveStops, toggleStop } from './stops';
  * or auto-submits an option it was not explicitly handed by a user click.
  */
 
+/**
+ * pickOption is the pure heart of the seat's selection logic: it applies one
+ * click on d.options[index] to the current picked index set and returns the
+ * resulting set. It is expressed ONLY in terms of the decision's own min/max
+ * (applied elsewhere) and the option Group field, never in terms of what a
+ * Group's members are (R-E4-2) — the panel never learns what a blocker is.
+ *
+ *  - If the clicked option is already picked, it is removed (toggle off).
+ *  - Otherwise, if it carries a non-empty Group already represented in
+ *    `picked`, that previously-picked group member is REPLACED by the new
+ *    option: moving one blocker from attacker A to attacker B just works,
+ *    and at most one option of a Group is ever held.
+ *  - Otherwise it is appended.
+ */
+export function pickOption(d: Decision, index: number, picked: number[]): number[] {
+  const opt = d.options[index];
+  if (opt === undefined) return [...picked];
+  const at = picked.indexOf(index);
+  if (at >= 0) return picked.filter((i) => i !== index);
+  const g = opt.group;
+  if (g) {
+    const existing = picked.find((i) => d.options[i]?.group === g);
+    if (existing !== undefined) {
+      // Replace: drop the old group member, keep the rest's click order,
+      // and put the freshly picked option at the end.
+      return picked.filter((i) => i !== existing).concat(index);
+    }
+  }
+  return [...picked, index];
+}
+
 /** primaryOf resolves the "primary" option by kind — pass/resolve — never by position (R-E4-1). */
 export function primaryOf(d: Decision): Option | null {
   for (const o of d.options) {
@@ -424,9 +455,7 @@ export class SeatPanelState {
       void this.post([index]);
       return;
     }
-    const at = this.picked.indexOf(index);
-    if (at >= 0) this.picked = this.picked.filter((i) => i !== index);
-    else this.picked = [...this.picked, index];
+    this.picked = pickOption(d, index, this.picked);
   }
 
   /**
@@ -442,9 +471,7 @@ export class SeatPanelState {
     if (d.options[index] === undefined) return;
     this.suspendAuto('human');
     this.confirming = false;
-    const at = this.picked.indexOf(index);
-    if (at >= 0) this.picked = this.picked.filter((i) => i !== index);
-    else this.picked = [...this.picked, index];
+    this.picked = pickOption(d, index, this.picked);
   }
 
   /** primaryClick posts the primary-by-kind option directly. */

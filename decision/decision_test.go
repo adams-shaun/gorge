@@ -403,6 +403,55 @@ func TestZeroValueOptionsOmitNewFields(t *testing.T) {
 	}
 }
 
+// TestValidateRejectsMutuallyExclusiveGroup is the Group contract enforced as
+// a general wire rule, in terms of Group alone: an intent that selects two
+// options carrying the same non-empty Group is rejected. The decision here is
+// built by hand (a block-like shape) rather than through combat, so the test
+// proves the rule lives in decision.Validate and not in any combat code.
+func TestValidateRejectsMutuallyExclusiveGroup(t *testing.T) {
+	d := &Decision{Seq: 3, Player: 1, Kind: KBlockers, Min: 0, Max: 4,
+		Options: []Option{
+			{Index: 0, Kind: "block", Label: "Bear blocks Alpha", Obj: 5, Attacker: 1, Player: 1, Group: "blocker:5"},
+			{Index: 1, Kind: "block", Label: "Bear blocks Beta", Obj: 5, Attacker: 2, Player: 1, Group: "blocker:5"},
+			{Index: 2, Kind: "block", Label: "Wolf blocks Alpha", Obj: 6, Attacker: 1, Player: 1, Group: "blocker:6"},
+		}}
+
+	// Two same-group options together are mutually exclusive: rejected, in
+	// terms of Group alone (no combat knowledge involved).
+	if err := d.Validate(Intent{Seq: 3, Player: 1, Choices: []int{0, 1}}); err == nil {
+		t.Fatal("accepted two options with the same non-empty Group")
+	} else if !strings.Contains(err.Error(), "group") {
+		t.Fatalf("rejection does not name the group: %v", err)
+	}
+
+	// The same rejection holds whichever of the pair is picked first, and
+	// holds even when the two same-group picks are not adjacent.
+	if err := d.Validate(Intent{Seq: 3, Player: 1, Choices: []int{1, 0}}); err == nil {
+		t.Fatal("accepted two same-group options in the reverse order")
+	}
+
+	// One option per group is fine, whatever the groups are.
+	if err := d.Validate(Intent{Seq: 3, Player: 1, Choices: []int{0, 2}}); err != nil {
+		t.Fatalf("rejected one option per group: %v", err)
+	}
+
+	// A single option from a group is fine.
+	if err := d.Validate(Intent{Seq: 3, Player: 1, Choices: []int{1}}); err != nil {
+		t.Fatalf("rejected a lone member of a group: %v", err)
+	}
+
+	// An empty Group is not an exclusivity marker: two ungrouped options are
+	// never exclusive.
+	plain := &Decision{Seq: 4, Player: 1, Kind: KBlockers, Min: 0, Max: 2,
+		Options: []Option{
+			{Index: 0, Kind: "block", Label: "A", Obj: 5, Attacker: 1, Player: 1},
+			{Index: 1, Kind: "block", Label: "B", Obj: 6, Attacker: 2, Player: 1},
+		}}
+	if err := plain.Validate(Intent{Seq: 4, Player: 1, Choices: []int{0, 1}}); err != nil {
+		t.Fatalf("two ungrouped options were treated as exclusive: %v", err)
+	}
+}
+
 func TestChooseValidatesLikeAnyDecision(t *testing.T) {
 	d := &Decision{Seq: 1, Player: 0, Kind: KChoose, Min: 0, Max: 2, Options: []Option{{Index: 0, Kind: "exile"}, {Index: 1, Kind: "exile"}, {Index: 2, Kind: "exile"}}}
 	if err := d.Validate(Intent{Seq: 1, Player: 0, Choices: []int{}}); err != nil {

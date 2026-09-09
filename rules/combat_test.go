@@ -1030,3 +1030,70 @@ func TestAttackersOfferEveryLivingOpponentOnce(t *testing.T) {
 		t.Fatalf("two-player attackers decision = %+v, want one option (bear at seat 1)", d2)
 	}
 }
+
+// TestAskBlockersGroupsOptionsByBlocker is the wire contract for the Group
+// field: askBlockers tags every (blocker, attacker) pair naming one blocker
+// with the SAME Group and pairs for different blockers with DIFFERENT Groups,
+// and the value is never a display string. That is exactly what lets a
+// rules-ignorant client enforce CR 509.1a (one creature blocks one attacker)
+// from the wire alone, without learning what a blocker is.
+func TestAskBlockersGroupsOptionsByBlocker(t *testing.T) {
+	const creature = "Name:Memnite\nManaCost:0\nTypes:Artifact Creature Construct\nPT:1/1\nOracle:x\n"
+
+	e := combatEngine(t)
+	first := onBoardReady(t, e, 0, creature)
+	second := onBoardReady(t, e, 0, creature)
+	blockerA := onBoard(t, e, 1, creature)
+	blockerB := onBoard(t, e, 1, creature)
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{first, second}})
+	e.G.Step = state.StepDeclareBlockers
+	e.askBlockers()
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KBlockers {
+		t.Fatalf("expected a blockers decision, got %+v", d)
+	}
+
+	group := map[state.ObjID]string{}
+	counts := map[state.ObjID]int{}
+	for _, o := range d.Options {
+		if o.Kind != "block" {
+			t.Fatalf("unexpected non-block option in a blockers decision: %+v", o)
+		}
+		if o.Group == "" {
+			t.Fatalf("block option for blocker %d has an empty Group", o.Obj)
+		}
+		if o.Group == o.Label {
+			t.Fatalf("block option Group %q is a display string (its label)", o.Group)
+		}
+		group[o.Obj] = o.Group
+		counts[o.Obj]++
+	}
+
+	// Every blocker gets one option per attacker, all sharing one Group.
+	for _, b := range []state.ObjID{blockerA, blockerB} {
+		if counts[b] != 2 {
+			t.Fatalf("blocker %d has %d block options, want one per attacker (2)", b, counts[b])
+		}
+	}
+
+	// Different blockers never share a Group, and a Group never leaks onto a
+	// block option for a different blocker.
+	if group[blockerA] == group[blockerB] {
+		t.Fatalf("different blockers share a Group %q", group[blockerA])
+	}
+	for _, o := range d.Options {
+		if o.Obj == blockerA && o.Group != group[blockerA] {
+			t.Fatalf("blocker %d option carries group %q, want %q", o.Obj, o.Group, group[blockerA])
+		}
+		if o.Obj == blockerB && o.Group != group[blockerB] {
+			t.Fatalf("blocker %d option carries group %q, want %q", o.Obj, o.Group, group[blockerB])
+		}
+		if o.Group == group[blockerA] && o.Obj != blockerA {
+			t.Fatalf("group %q carried by a block option for a different blocker %d", group[blockerA], o.Obj)
+		}
+		if o.Group == group[blockerB] && o.Obj != blockerB {
+			t.Fatalf("group %q carried by a block option for a different blocker %d", group[blockerB], o.Obj)
+		}
+	}
+}
