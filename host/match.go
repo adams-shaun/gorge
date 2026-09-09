@@ -347,7 +347,13 @@ func projectNext(m *match, seats []seat.Seat, brd *botpolicy.Board) *parkedData 
 			isBoard: true,
 		}
 	}
-	return &parkedData{p: d.Player, v: view.Project(m.e.G, m.e, d.Player, d), dc: dc}
+	v := view.Project(m.e.G, m.e, d.Player, d)
+	// The seat's view is built at head, so its round is the exact round-trip
+	// count (view.RoundOf over the live log), not the snapshot-only roundOf
+	// approximation Project fills in (ui13). A human seat renders this view,
+	// so it must agree with the board clock the same match fans out.
+	v.Round = view.RoundOf(m.e.G, m.e.L.Events)
+	return &parkedData{p: d.Player, v: v, dc: dc}
 }
 
 // parkSeat installs the answerable slot for a projected decision: for a
