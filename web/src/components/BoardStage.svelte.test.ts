@@ -165,6 +165,35 @@ describe('BoardStage — the phase band is a reserved lane', () => {
     }
   });
 
+  // The one-row rule alone did not catch the defect that shipped with it: the
+  // cards fitted in one row and still looked wrong, because the SLOT resized
+  // and the CARD did not. At 1440 a 89px card floated in a 143px slot; at 650
+  // the same 89px card overflowed a 39px one, and CardTile's keyword chips and
+  // P/T badge -- which are positioned from --card-w -- detached from the card
+  // they belong to. This leaf measures the card against its own slot.
+  it('each opening-hand card fills its own slot, at every viewport', async () => {
+    for (const [width, height] of [[1440, 900], [1000, 900], [650, 700]] as const) {
+      const page = await browser.newPage({ viewport: { width, height } });
+      await page.goto(`${url}src/components/OpeningHand.geometry.html?cards=7`);
+      const measured = await page.evaluate(() => {
+        const row = document.querySelector<HTMLElement>('[data-opening-hand]')!;
+        const slot = row.children[0] as HTMLElement;
+        const card = slot.querySelector<HTMLElement>('.card-image') ?? slot;
+        const s = slot.getBoundingClientRect();
+        const c = card.getBoundingClientRect();
+        // anything drawn outside the slot has come adrift from its card
+        const escaping = [...slot.querySelectorAll<HTMLElement>('*')].filter((el) => {
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && (r.x < s.x - 1 || r.right > s.right + 1 || r.bottom > s.bottom + 1);
+        }).length;
+        return { slotW: Math.round(s.width), cardW: Math.round(c.width), escaping };
+      });
+      expect.soft(measured.cardW, `${width}x${height}: card fills its slot`).toBe(measured.slotW);
+      expect.soft(measured.escaping, `${width}x${height}: nothing drawn outside the slot`).toBe(0);
+      await page.close();
+    }
+  });
+
   it('PASS is unavailable without a pass option and posts a non-positional pass by its wire index', async () => {
     const unavailable = await browser.newPage({ viewport: { width: 1000, height: 900 } });
     await unavailable.goto(`${url}src/components/PhaseLane.geometry.html?decision=choose`);
