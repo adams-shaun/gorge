@@ -20,6 +20,11 @@ func TestMain(m *testing.M) {
 		sharedFixture.r.Close()
 	}
 	sharedFixture.mu.Unlock()
+	modalFixture.mu.Lock()
+	if modalFixture.r != nil {
+		modalFixture.r.Close()
+	}
+	modalFixture.mu.Unlock()
 	os.Exit(code)
 }
 

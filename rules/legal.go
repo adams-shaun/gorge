@@ -350,6 +350,23 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		if passes >= int32(e.G.AliveCount()) {
 			if len(e.G.Stack) > 0 {
 				e.resolveTop()
+				// CR 117.5: nobody receives priority in the middle of a
+				// resolution. A resolution that suspends on a mid-resolution
+				// ask (a modal spell's KModes, an as-enters choose, an
+				// unless-pay, a discard) is parked on that question: no player
+				// has priority while the question is outstanding, so the log
+				// must not record that priority returned to the active player
+				// here. The one and only grant for that resolution happens when
+				// it actually completes: the answering Submit re-enters
+				// grantPriority (through resumeTriggerDrain / the step loop)
+				// once e.resume is cleared, so an unsuspended resolution emits
+				// the priority-returns-to-active marker below while a suspended
+				// one defers it to its completion. Exactly one grant either
+				// way; a resolution that suspends more than once (a nested ask)
+				// still completes once and grants once.
+				if e.Suspended() {
+					return
+				}
 				// The pass count resets: priority returns to the active
 				// player after a resolution, same as at the start of any
 				// other step.
