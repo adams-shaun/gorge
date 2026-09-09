@@ -93,7 +93,6 @@ func TestCR508CorpusRequirementsUnderAttackRestriction(t *testing.T) {
 }
 
 func TestCR508PriorityAfterAttackDeclaration(t *testing.T) {
-	requireCR601Audit(t, "CR 508.2: declaring attackers jumps directly to blockers")
 	e := crResolutionEngine(t, []string{"Memnite"}, []string{"Memnite"})
 	a := crAbortMove(t, e, 0, "Memnite", state.ZBattlefield)
 	crAbortMove(t, e, 1, "Memnite", state.ZBattlefield)
@@ -107,7 +106,6 @@ func TestCR508PriorityAfterAttackDeclaration(t *testing.T) {
 }
 
 func TestCR508EmptyAttackSkipsBlockersAndDamage(t *testing.T) {
-	requireCR601Audit(t, "CR 508.8: an empty chosen attack still enters blockers and damage")
 	e := crResolutionEngine(t, []string{"Memnite"}, nil)
 	crAbortMove(t, e, 0, "Memnite", state.ZBattlefield)
 	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: e.G.Turn + 1})
@@ -147,7 +145,6 @@ func TestCR509OneBlockerCannotBlockTwoAttackers(t *testing.T) {
 }
 
 func TestCR509PriorityAfterBlockDeclaration(t *testing.T) {
-	requireCR601Audit(t, "CR 509.2: blocks jump to damage without priority")
 	e := crResolutionEngine(t, []string{"Memnite"}, []string{"Memnite"})
 	a := crAbortMove(t, e, 0, "Memnite", state.ZBattlefield)
 	b := crAbortMove(t, e, 1, "Memnite", state.ZBattlefield)
