@@ -204,6 +204,7 @@ export interface Snapshot {
   view: View;
   turn_starts: number[];
   head: number;
+  seats: SeatInfo[];
 }
 
 export interface Event {
