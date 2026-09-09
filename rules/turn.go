@@ -71,15 +71,44 @@ func (e *Engine) step() {
 	}
 	switch e.G.Step {
 	case state.StepDeclareAttackers:
-		e.askAttackers()
+		if e.declarationMadeThisStep(events.DeclareAttackers) {
+			e.priorityRound()
+		} else {
+			e.askAttackers()
+		}
 	case state.StepDeclareBlockers:
-		e.askBlockers()
+		// A split attack is declared against one defender at a time. An
+		// earlier DeclareBlockers event therefore does not finish the step
+		// until the blocker-round cursor has exhausted every defender.
+		if e.declarationMadeThisStep(events.DeclareBlockers) &&
+			(e.blockerRound.order == nil || e.blockerRound.cursor >= len(e.blockerRound.order)) {
+			e.blockerRound = blockerRound{}
+			e.priorityRound()
+		} else {
+			e.askBlockers()
+		}
 	case state.StepCombatDamage:
 		e.dealCombatDamage()
 		e.setStep(state.StepEndCombat)
 	default:
 		e.priorityRound()
 	}
+}
+
+// declarationMadeThisStep derives a declaration step's completed substate
+// from the replayable event log. A StepChange is the boundary: declarations
+// from an earlier combat cannot satisfy the current step.
+func (e *Engine) declarationMadeThisStep(kind events.Kind) bool {
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.StepChange {
+			return false
+		}
+		if ev.Kind == kind {
+			return true
+		}
+	}
+	return false
 }
 
 func (e *Engine) priorityRound() {
@@ -258,6 +287,25 @@ func (e *Engine) askPriority(p state.PlayerID) {
 }
 
 func (e *Engine) advanceStep() {
+	if e.G.Step == state.StepDeclareAttackers && e.declarationMadeThisStep(events.DeclareAttackers) {
+		attacked := false
+		for i := len(e.L.Events) - 1; i >= 0; i-- {
+			ev := e.L.Events[i]
+			if ev.Kind == events.StepChange {
+				break
+			}
+			if ev.Kind == events.DeclareAttackers && len(ev.IDs) > 0 {
+				attacked = true
+				break
+			}
+		}
+		if !attacked {
+			// CR 508.8 skips blockers and combat damage, but only after the
+			// CR 508.2 priority round in the declare-attackers step finishes.
+			e.setStep(state.StepEndCombat)
+			return
+		}
+	}
 	if e.G.Step == state.StepCleanup {
 		// beginTurn resets the pass count along with the new holder.
 		e.beginTurn(e.G.NextAlive(e.G.Active))
