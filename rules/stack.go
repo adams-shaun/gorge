@@ -248,6 +248,7 @@ type targetCandidate struct {
 // disable the rule.
 func (e *Engine) legalTargetCandidates(p state.PlayerID, source, excludeSelf state.ObjID, sa *cards.SA) []targetCandidate {
 	spec := sa.Params["ValidTgts"]
+	sc := e.targetSpecContext(source, excludeSelf, p)
 	zones := targetZones(sa)
 	var out []targetCandidate
 	// Players are offered only alongside the default battlefield search and
@@ -284,7 +285,7 @@ func (e *Engine) legalTargetCandidates(p state.PlayerID, source, excludeSelf sta
 				if o == nil || o.Face() == nil || (excludeSelf != 0 && oid == excludeSelf) {
 					continue
 				}
-				if effects.MatchesSpecFrom(e.G, spec, oid, p, source) &&
+				if effects.MatchesSpecCtx(e.G, spec, oid, sc) &&
 					!(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc)) {
 					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: o.Controller})
 				}
@@ -306,7 +307,7 @@ func (e *Engine) legalTargetCandidates(p state.PlayerID, source, excludeSelf sta
 				// Both function only on the battlefield (CR 604.3), the same
 				// gate as protection above. CR 115.5 excludes the source.
 				if o != nil && o.Face() != nil && (excludeSelf == 0 || oid != excludeSelf) &&
-					effects.MatchesSpecFrom(e.G, spec, oid, p, source) &&
+					effects.MatchesSpecCtx(e.G, spec, oid, sc) &&
 					!(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc)) &&
 					!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p)) {
 					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: q})
@@ -610,7 +611,7 @@ func (e *Engine) resolveTop() {
 		// lookup two lines above already gets this right by reading from
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
-			Targets: targets, Remembered: o.Remembered}
+			Targets: targets, Remembered: o.Remembered, TriggerContext: e.triggerContexts[id]}
 		effects.SetSVars(ctx, svars)
 		// CR 603.3c: the mode choice was announced at placement (pushTrigger
 		// asked KModes and handleModes recorded the answer into ChosenModes).
@@ -839,7 +840,7 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state
 		// source" as its Source permanent, the same object askTarget's own
 		// filter has now been made to see (Critical C2 -- one definition).
 		if o := e.G.Obj(t.Obj); o != nil && zoneIn(o.Zone, zones) &&
-			effects.MatchesSpec(e.G, spec, t.Obj, you) &&
+			effects.MatchesSpecCtx(e.G, spec, t.Obj, e.targetSpecContext(0, self, you)) &&
 			!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(t.Obj, you)) &&
 			!e.protectedFrom(t.Obj, e.protectionSource(source)) {
 			legal = append(legal, t)

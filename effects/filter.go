@@ -363,6 +363,9 @@ func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 // whether a word is recognised. An unrecognised word is "the engine does not
 // know", never "true" -- that is the fail-closed contract.
 func positiveRecognised(p string) bool {
+	if _, _, ok := controlReferent(p); ok {
+		return true
+	}
 	if _, ok := predicates[p]; ok {
 		return true
 	}
@@ -395,9 +398,13 @@ func recognisedPredicate(p string) bool {
 }
 
 // matchPositive evaluates a recognised positive-evaluation predicate token p
-// to its boolean. ok is false for a token positiveRecognised does not accept,
-// so the caller treats it as an unknown predicate and fails closed.
+// to its boolean. ok is false for an unknown token OR an unbound trigger
+// referent. The latter remains a recognised grammar shape for the census, but
+// cannot be negated into a match when its resolution context is absent.
 func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (result, ok bool) {
+	if op, ref, recognised := controlReferent(p); recognised {
+		return matchControlReferent(g, o, sc, op, ref)
+	}
 	if fn, ok := predicates[p]; ok {
 		return fn(g, o, sc.You, sc.Source), true
 	}
@@ -416,8 +423,8 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 }
 
 // matchPredicate evaluates a predicate token in a filter conjunction,
-// including the leading-'!' negation. ok is false for an unknown shape, so the
-// caller must fail closed. A !<X> negates the positive evaluation of <X>; when
+// including the leading-'!' negation. ok is false for an unknown shape or an
+// unbound trigger referent, so the caller must fail closed. A !<X> negates the positive evaluation of <X>; when
 // <X> is itself not recognised, !<X> is unknown too -- the negation of "I do
 // not know" is not "yes".
 func matchPredicate(g *state.Game, p string, o *state.Object, sc SpecContext) (result, ok bool) {
@@ -618,6 +625,7 @@ func matchesBase(g *state.Game, base string, o *state.Object) bool {
 // family of RHS forever unresolvable -- MatchesSpec/MatchesSpecFrom's
 // contract -- rather than guessing at what the name might mean.
 type SpecContext struct {
+	TriggerContext
 	You     state.PlayerID
 	Source  state.ObjID
 	Resolve func(name string) (int32, bool)
