@@ -147,7 +147,7 @@ describe('CommandArea — one seat"s commanders, on the board', () => {
     const cast = card(1, 'Isamaru', 'W');
     const p = player({ commanders: [cast], commander_casts: [1] });
     const { html } = render(CommandArea, {
-      props: { player: p, stack: [{ id: 1, kind: 'spell', name: 'Isamaru', text: '', controller: 0, targets: [], card: cast }] },
+      props: { player: p, stack: [{ id: 1, kind: 'spell', name: 'Isamaru', text: '', controller: 0, targets: [], card: cast, optional: false }] },
     });
     expect(tiles(html).map((t) => `${t.state}:${t.zone}`)).toEqual(['away:stack']);
     // the tax belongs to the NEXT cast from the command zone; there is no

@@ -13,8 +13,13 @@
   import SeatPanel from '../components/SeatPanel.svelte';
   import HandFan from '../components/HandFan.svelte';
   import PhaseTrack from '../components/PhaseTrack.svelte';
-  import { SeatPanelState } from '../lib/seatpanel.svelte';
-  import { toneOf } from '../lib/seatpanel.svelte';
+  import {
+    SeatPanelState,
+    fastForwardNoteText,
+    mulliganPhase,
+    toneOf,
+  } from '../lib/seatpanel.svelte';
+  import { actionable } from '../lib/autopilot';
   import { optionsByObj, type CardOptions } from '../lib/cardoptions';
   import { loadLogShown, saveLogShown, safeStorage, type LogScope } from '../lib/logshown';
   import { everyVisibleCard, quadrantFor } from '../lib/board';
@@ -76,7 +81,12 @@
     const mm = m.match;
     if (!seated || seatCtx === null || mm === null || finished) return null;
     if (panelCache === null || panelCache.match !== mm) {
-      panelCache = { match: mm, state: new SeatPanelState(table, mm, seatCtx) };
+      const state = new SeatPanelState(table, mm, seatCtx);
+      // Seed the first SSR/client paint. SeatPanel's effect keeps later views
+      // adopted; doing the first one here lets the route place mulligan and
+      // the page-level concede control correctly before that child mounts.
+      state.adoptView(m.view?.decision ?? null);
+      panelCache = { match: mm, state };
     }
     return panelCache.state;
   });
@@ -88,6 +98,16 @@
   const ownPlayer = $derived(
     m.view && seatCtx ? (m.view.players.find((p) => p.seat === seatCtx.seat) ?? null) : null,
   );
+
+  // Generic decisions belong to the rail flyout. Mulligan alone keeps the
+  // board centre, where the opening hand is the whole task rather than a HUD.
+  const mulligan = $derived(panel ? mulliganPhase(panel.active) : null);
+  const concede = $derived(panel?.concedeOption ?? null);
+  const actionReady = $derived.by(() => {
+    const d = panel?.active;
+    return !!(d && seatCtx && d.kind === 'priority' && m.view?.priority === seatCtx.seat && actionable(d));
+  });
+  const fastNote = $derived(panel ? fastForwardNoteText(panel.note) : null);
 
   // The board's card-options index (ui21): the pending decision grouped by
   // the object each option concerns. For a seated view this is exactly the
@@ -170,23 +190,21 @@
   <main class="table" class:log-hidden={!showLog}>
     {#if m.halted}<div class="halted">Table halted: {m.halted}</div>{/if}
     {#if m.view}
-      <!-- The clock goes across the top of the page, above both registers.
-           Inside the felt it would sit on top of the corner identity bars
-           and under the seat panel; here it is never occluded, never
-           occludes anything, and is the first thing on screen — which is
-           what "prominent display of user turn and phase" asks for. It is
-           the same band for a spectator, with nothing focusable on it. -->
-      <div class="track">
-        <PhaseTrack
-          view={m.view}
-          seats={m.seats}
-          seat={panel ? seatCtx?.seat ?? null : null}
-          stops={panel ? panel.stops : null}
-          onToggle={panel ? (step, side) => panel.toggleStop(step, side) : null}
-        />
-      </div>
       <section class="board">
         <Board view={m.view} seats={m.seats} options={boardOptions} />
+        <!-- The table clock is now a felt HUD shard: central, compact, and
+             ringed by the ACTIVE seat's one established identity colour.
+             It remains display-only for spectators and owns the same stop
+             set/callback for a live seat. -->
+        <div class="phase-shard" class:mulligan={mulligan !== null}>
+          <PhaseTrack
+            view={m.view}
+            seats={m.seats}
+            seat={panel ? seatCtx?.seat ?? null : null}
+            stops={panel ? panel.stops : null}
+            onToggle={panel ? (step, side) => panel.toggleStop(step, side) : null}
+          />
+        </div>
         {#each m.view.players as p (p.seat)}
           <IdentityBar
             player={p}
@@ -207,7 +225,7 @@
              and the page looks hung while the live game waits elsewhere --
              which is exactly what happened the first time this was played.
              A seat acts only on the live table route. -->
-        {#if seated && seatCtx && m.match !== null && !finished}
+        {#if seated && seatCtx && m.match !== null && !finished && (mulligan !== null || m.view.over)}
           {#key m.match}
             <SeatPanel view={m.view} seats={m.seats} ctx={seatCtx} table={table} match={m.match} state={panel} />
           {/key}
@@ -225,7 +243,59 @@
           <HandFan player={ownPlayer} options={boardOptions} />
         {/if}
       </section>
-      <aside class="rail"><Rail view={m.view} seats={m.seats} decision={seated ? null : m.decision} emphasizeTop={seated} events={m.dvr.events} showLog={showLog} onToggleLog={toggleLog} /></aside>
+      <aside class="rail">
+        <Rail view={m.view} seats={m.seats} decision={seated ? null : m.decision} emphasizeTop={seated} events={m.dvr.events} showLog={showLog} onToggleLog={toggleLog} />
+        {#if seated && seatCtx && panel && m.match !== null && !finished && mulligan === null && !m.view.over}
+          <!-- One owner for generic prompts/options: this rail flyout. The
+               board carries only mulligan, so two lists can never disagree. -->
+          <div class="action-dock" data-action-dock>
+            <div class="dock-controls">
+              <button
+                class="action-arrow"
+                class:ready={actionReady}
+                type="button"
+                aria-label="Show available actions"
+                data-action-arrow
+              ><span aria-hidden="true">&lt;&lt;</span><span>Actions</span></button>
+              <button
+                class="pass"
+                type="button"
+                data-pass
+                onclick={() => panel.passClick()}
+                disabled={!panel.passOption || panel.busy}
+              >Pass</button>
+              <button
+                class="fast"
+                class:on={panel.fastForward}
+                type="button"
+                data-fast-forward
+                aria-pressed={panel.fastForward}
+                onclick={() => { const view = m.view; if (view) { panel.startFastForward(); panel.considerAuto(view); } }}
+                disabled={!panel.active || panel.busy}
+              >Fast forward</button>
+              {#if fastNote}<span class="fast-note" role="status">{fastNote}</span>{/if}
+            </div>
+            <div class="flyout" data-action-flyout>
+              {#key m.match}
+                <SeatPanel view={m.view} seats={m.seats} ctx={seatCtx} table={table} match={m.match} state={panel} placement="flyout" />
+              {/key}
+            </div>
+          </div>
+        {/if}
+      </aside>
+      {#if panel && concede}
+        <div class="concede-control">
+          {#if panel.confirming}
+            <button class="confirm" type="button" data-confirm-concede onclick={() => panel.confirmConcede()} disabled={panel.busy}>
+              Concede — confirm
+            </button>
+          {:else}
+            <button type="button" data-concede-control onclick={() => panel.click(concede.index)} disabled={panel.busy}>
+              Concede
+            </button>
+          {/if}
+        </div>
+      {/if}
       <footer class="transcript" class:hidden={!showLog}>
         {#if !seated}
           <DvrBar dvr={m.dvr} onAction={(a) => m.dispatch(a)} {finished} />
@@ -264,20 +334,14 @@
   .table {
     display: grid;
     grid-template-columns: 1fr minmax(17rem, 18%);
-    grid-template-rows: auto 1fr 10rem;
+    grid-template-rows: 1fr 10rem;
     height: 100vh;
     background: var(--felt);
   }
   /* With the log hidden the last row collapses to nothing and the board takes
      the room, rather than leaving a 10rem empty band across the bottom. */
   .table.log-hidden {
-    grid-template-rows: auto 1fr 0;
-  }
-  /* The clock spans both registers, like the transcript beneath them: it
-     describes the whole table rather than either half of it. */
-  .track {
-    grid-column: 1 / -1;
-    min-width: 0;
+    grid-template-rows: 1fr 0;
   }
   .board {
     position: relative;
@@ -291,11 +355,141 @@
        corner); a spectator mounts no fan and the fallback is 0. */
     --own-hand-h: calc(128px * 88 / 63);
   }
+  .phase-shard {
+    position: absolute;
+    top: 34%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 7;
+    width: min(46rem, calc(100% - 8rem));
+    min-width: 0;
+  }
+  /* Mulligan keeps the centre for its hand; the shard yields upward for that
+     one decision instead of competing for the same pixels. */
+  .phase-shard.mulligan {
+    top: var(--sp-2);
+    left: var(--sp-2);
+    width: min(46rem, calc(100% - 13rem));
+    transform: none;
+  }
+
   .rail {
+    position: relative;
+    min-width: 0;
     background: var(--instrument);
     border-left: 1px solid var(--edge-inst);
-    overflow-y: auto;
+    overflow: visible;
     color: var(--ink-inst);
+  }
+  /* Reserve the quiet top-right corner for concede; the rail's ordinary log
+     switch stays on the same line without sitting under it. */
+  .rail :global(.logbar) {
+    padding-right: 5.5rem;
+  }
+  .action-dock {
+    position: absolute;
+    top: 55%;
+    left: 0;
+    width: 7rem;
+    transform: translate(-100%, -50%);
+    z-index: 8;
+  }
+  .dock-controls {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 2px;
+    background: var(--instrument);
+    border: 1px solid var(--edge-inst);
+    border-right: 0;
+    border-radius: var(--radius) 0 0 var(--radius);
+  }
+  .dock-controls button {
+    border: 0;
+    border-left: 2px solid transparent;
+    border-radius: 0;
+    padding: var(--sp-1) var(--sp-2);
+    background: var(--instrument-raised);
+    color: var(--ink-inst);
+    font-family: var(--font-ui);
+    font-size: var(--t-12);
+    cursor: pointer;
+  }
+  .dock-controls button:disabled {
+    color: var(--ink-faint);
+    cursor: default;
+  }
+  .action-arrow {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--sp-1);
+  }
+  .action-arrow.ready {
+    border-left-color: var(--initiative);
+    color: var(--initiative);
+    font-weight: 600;
+  }
+  .dock-controls .pass:not(:disabled),
+  .dock-controls .fast.on {
+    border-left-color: var(--offered);
+  }
+  .fast-note {
+    padding: var(--sp-1) var(--sp-2);
+    border-top: 1px solid var(--edge-inst);
+    color: var(--ink-dim);
+    font-size: var(--t-10);
+    line-height: 1.25;
+  }
+  .flyout {
+    position: absolute;
+    top: calc(100% + 1px);
+    right: 0;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateX(var(--sp-3));
+    transition: transform 0.14s ease-out, opacity 0.14s ease-out, visibility 0s linear 0.14s;
+  }
+  .action-dock:hover .flyout,
+  .action-dock:focus-within .flyout {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(0);
+    transition-delay: 0s;
+  }
+
+  .concede-control {
+    position: fixed;
+    top: var(--sp-2);
+    right: var(--sp-2);
+    z-index: 9;
+  }
+  .concede-control button {
+    padding: var(--sp-1) var(--sp-2);
+    border: 1px solid color-mix(in srgb, var(--danger) 42%, var(--edge-inst));
+    border-radius: var(--radius);
+    background: var(--instrument);
+    color: color-mix(in srgb, var(--danger) 68%, var(--ink));
+    font-size: var(--t-12);
+    cursor: pointer;
+  }
+  .concede-control button.confirm {
+    background: var(--danger);
+    color: var(--felt-sunk);
+    font-weight: 600;
+  }
+
+  @media (max-width: 60rem) {
+    .phase-shard {
+      width: calc(100% - var(--sp-4));
+      min-width: 0;
+    }
+    .phase-shard.mulligan {
+      width: calc(100% - 13rem);
+    }
   }
   .transcript {
     grid-column: 1 / -1;

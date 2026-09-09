@@ -100,6 +100,13 @@ describe('SeatPanel — the test contract', () => {
     expect(html).not.toContain('data-prompt');
   });
 
+  it('concede is metadata only here: it is filtered from the flyout option list for the page-level control', () => {
+    const { html } = render(SeatPanel, { props: props(view(priority)) });
+    expect(html).toContain('data-concede="2"');
+    expect(html).not.toContain('>Concede<');
+    expect(html).not.toContain('data-confirm-concede');
+  });
+
   it('the primary is the pass option resolved by kind, never the last option', () => {
     const { html } = render(SeatPanel, { props: props(view(priority)) });
     const primaryLabel = /data-primary[^>]*>\s*([^<]+?)\s*</.exec(html)?.[1];

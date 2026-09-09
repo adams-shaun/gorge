@@ -26,6 +26,7 @@ const card = (over: Partial<CardView> = {}): CardView => ({
 const spell = (over: Partial<StackView> = {}): StackView => ({
   id: 40, kind: 'spell', name: 'Lightning Bolt', text: 'Lightning Bolt deals 3 damage to any target.',
   controller: 0, targets: [], card: card(), ...over,
+  optional: over.optional ?? false,
 });
 
 const view = (stack: StackView[]): View => ({
