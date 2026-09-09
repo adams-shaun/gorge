@@ -570,29 +570,30 @@ import (
 // Before that, jj-cmb moved them by adding a CR 510.4 priority round inside
 // the combat damage step and dropping a phantom post-game_over `step` event.
 var acceptanceHeads = map[int]string{
-	// jj-cont moved all four AND changed the 4-seat winner. Unlike every head
-	// move above, this one is NOT a reordering: the CR 704.5j legend rule now
-	// really removes duplicate legendary permanents that the engine used to
-	// leave in play, so the games genuinely differ -- turn counts move (4
-	// seats 29 -> 32, 6 seats 40 -> 36, 8 seats 54 -> 67) and at 4 seats the
-	// winner changes from mono-black-aggro to death-n-taxes.
+	// jj-cost moved 4, 6 and 8; the 2-seat head is UNCHANGED (344 intents,
+	// 1907 events, 13 turns, death-n-taxes -- identical to the previous
+	// golden), which is itself the useful signal: that game reaches no
+	// hybrid, Phyrexian or additional-sacrifice cost, so nothing about it
+	// could move.
 	//
-	// A changed winner is normally the signal to REFUSE the regeneration, and
-	// it is refused on the "same games, more decisions" reasoning this comment
-	// used to carry. It is accepted here on a different and explicit one: the
-	// repo decks really do field duplicate legendaries, so the old event
-	// streams recorded boards the rules forbid. Measured, not assumed --
-	// death-n-taxes runs 2x Karakas, 4x Mother of Runes and 4x Thalia,
-	// Guardian of Thraben, and eldrazi-stompy 2x Umezawa's Jitte. Removing an
-	// illegal permanent mid-game changes what happens next, and death-n-taxes
-	// is the deck most affected, so a different result at 4 seats is the fix
-	// working rather than a primitive moving. The coverage ratchet is
-	// untouched and `make sim` still replays 20/20 byte-identically, which is
-	// what says determinism and card support are intact.
+	// Elsewhere the games genuinely differ, and for the same class of reason
+	// as the legend rule below: the engine used to price a hybrid and a
+	// Phyrexian pip as one generic each and to skip additional sacrifice
+	// costs, so it let spells be cast that could not actually be paid for.
+	// Making the cost real makes those casts stop happening. Games get
+	// shorter (4 seats 32 -> 26 turns, 8 seats 67 -> 55) with fewer intents
+	// and events, which is the shape you expect when unaffordable spells stop
+	// being cast; the 4-seat winner moves back to mono-black-aggro and the 6-
+	// and 8-seat winners are unchanged.
+	//
+	// Ratchet untouched and `make sim` 20/20 byte-identical, so determinism
+	// and card support are intact. Measured by the controller at the gate on
+	// a branch rebased onto this main, NOT taken from the seat's report --
+	// its numbers predated the jj-cont merge and disagreed with these.
 	2: "9baa1b561890285a",
-	4: "ed4d104ad744ef10",
-	6: "a1d2e7b4a25794c9",
-	8: "1d2ed9a659200cb3",
+	4: "f40ea2d06f104b2b",
+	6: "911fa6376d76ff9e",
+	8: "8d2e580cde555aeb",
 }
 
 func TestHeads(t *testing.T) {
