@@ -149,6 +149,18 @@ func (e *Engine) Clone() *Engine {
 		// Plain value entries, so one slice copy is a faithful clone.
 		c.cmdZone = append([]cmdZoneMove(nil), e.cmdZone...)
 	}
+	if e.replChoices != nil {
+		// The parked CR 616.1 replacement-order choices: same class as
+		// cmdZone. Plain value entries (an events.Event plus a []replMatch
+		// whose *cards.Repl pointers are shared corpus data), so one slice
+		// copy is a faithful clone; the candidate slice is re-allocated so
+		// the clone owns its own.
+		c.replChoices = make([]replChoice, len(e.replChoices))
+		for i, rc := range e.replChoices {
+			rc.cands = append([]replMatch(nil), rc.cands...)
+			c.replChoices[i] = rc
+		}
+	}
 	return c
 }
 

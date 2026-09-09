@@ -81,6 +81,16 @@ const (
 	// The wire shape is the same as every other decision; only the vocabulary
 	// of Option.Kind is new.
 	KChoose Kind = "choose"
+	// KReplacement is CR 616.1's order choice: two or more replacement effects
+	// are trying to modify the way one event affects an object, and the
+	// affected player (the controller of the affected object) chooses the
+	// order in which they apply. Min == Max == 1 over one option per
+	// competing replacement, in the deterministic scan order the engine
+	// found them in; each option's Kind is "replacement" and its Obj is the
+	// source permanent that owns that replacement. Posed BEFORE anything
+	// relocates (the modified event is parked), so answering never sees the
+	// object already moved.
+	KReplacement Kind = "replacement"
 )
 
 // Option is one legal choice. Obj and Player are echoed only so a client can
