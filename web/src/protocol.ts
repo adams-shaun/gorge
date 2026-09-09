@@ -159,6 +159,8 @@ export interface Option {
   mode?: string;
   amount?: number;
   ability?: number;
+  /** Group is an exclusivity marker: two options carrying the SAME non-empty group are mutually exclusive, and at most one of them may be selected in a single answer. The whole contract is that sentence — it says nothing about blockers, creatures or combat, which is exactly so a rules-ignorant client may enforce it without learning any rules. */
+  group?: string;
 }
 
 export interface DamageEffect {

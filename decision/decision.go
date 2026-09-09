@@ -109,6 +109,18 @@ type Option struct {
 	// mirrors Obj: an ObjID of 0 means "no object", so an option that has
 	// no attacker (any non-block option) emits no field.
 	Attacker state.ObjID `json:"attacker,omitempty"`
+	// Group is an exclusivity marker: two options carrying the SAME non-empty
+	// Group are mutually exclusive, and at most one of them may be selected
+	// in a single answer. The whole contract is that sentence -- it says
+	// nothing about blockers, creatures or combat, which is exactly so a
+	// rules-ignorant client may enforce it without learning any rules. A
+	// client that sees the player pick an option whose Group is already
+	// represented in the picked set naturally REPLACES the previously picked
+	// option from that group (moving a blocker from one attacker to another
+	// should just work) rather than refusing the click. No two options of
+	// one Group may be selected together, which Decision.Validate enforces as
+	// a general rule.
+	Group string `json:"group,omitempty"`
 	// AltCostIndex says which cost a "cast" option pays: 0 is the card's own
 	// (RaiseCost/ReduceCost-adjusted) cost, i+1 is alternativeCosts(p, id)[i]
 	// -- an AlternativeCost static's cost instead -- so a client can show
@@ -287,6 +299,7 @@ func (d *Decision) Validate(in Intent) error {
 		return fmt.Errorf("expected %d..%d choices, got %d", d.Min, d.Max, len(in.Choices))
 	}
 	seen := make(map[int]bool, len(in.Choices))
+	seenGroups := make(map[string]int, len(in.Choices))
 	for _, c := range in.Choices {
 		if c < 0 || c >= len(d.Options) {
 			return fmt.Errorf("choice %d out of range (%d options)", c, len(d.Options))
@@ -295,6 +308,16 @@ func (d *Decision) Validate(in Intent) error {
 			return fmt.Errorf("duplicate choice %d", c)
 		}
 		seen[c] = true
+		// The exclusivity rule: two options sharing one non-empty Group are
+		// mutually exclusive, so an intent must not select both. This is a
+		// general wire contract, not a combat rule -- the group field says
+		// nothing about what its members are, only that they are exclusive.
+		if g := d.Options[c].Group; g != "" {
+			if first, ok := seenGroups[g]; ok {
+				return fmt.Errorf("choices %d and %d are mutually exclusive (group %q)", first, c, g)
+			}
+			seenGroups[g] = c
+		}
 	}
 	return nil
 }
