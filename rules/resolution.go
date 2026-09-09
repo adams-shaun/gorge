@@ -151,6 +151,34 @@ func (e *Engine) SuspendContinuation(sa *cards.SA) {
 // with a Note rather than panicking, the same totality stance every
 // handler takes.
 func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
+	// CR 603.3c placement branch: this KModes decision was asked by the
+	// trigger drain (pushTrigger's askTriggerModes) rather than posed
+	// mid-resolution by an effect. There is no suspension to resume -- the
+	// answer is recorded onto the trigger's stack object (ChosenModes, a
+	// cache of the logged answer) so resolveTop builds Ctx.Modes from it and
+	// effCharm runs exactly the chosen modes instead of asking again -- and
+	// the drain resumes through the same continuation every other trigger
+	// drain answer uses. drainAwaitsModes identifies the branch; it is false
+	// for a mid-resolution ask, which falls through to the resume path below.
+	if e.drainAwaitsModes {
+		e.drainAwaitsModes = false
+		chosen := d.Chosen(in)
+		labels := make([]string, 0, len(chosen))
+		for _, o := range chosen {
+			labels = append(labels, o.Label)
+		}
+		names := modeChoiceNames(d.ResumeSA, chosen)
+		if len(e.G.Stack) > 0 {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if o := e.G.Obj(id); o != nil {
+				o.ChosenModes = names
+			}
+			e.emit(events.Event{Kind: events.ModeChosen, Obj: id, Player: in.Player,
+				Text: strings.Join(labels, ",")})
+		}
+		e.resumeTriggerDrain()
+		return
+	}
 	if e.resume == nil {
 		e.emit(events.Event{Kind: events.Note, Player: in.Player,
 			Text: "modes answered with no resolution suspended"})
@@ -213,6 +241,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// permanent's face.
 		ctx.Source = o.Source
 		ctx.Remembered = o.Remembered
+		// CR 603.3c: keep the placement-announced mode choice across the
+		// suspension, so the resumed resolution of a modal trigger runs
+		// exactly the modes chosen when the ability was put on the stack
+		// rather than re-asking. The switch below overrides it (with the
+		// NESTED answer) only for a nested "modes" resume, which is the
+		// correct scoping -- a nested Charm below this one poses its own ask.
+		ctx.Modes = o.ChosenModes
 		if src := e.G.Obj(o.Source); src != nil {
 			if sf := src.Face(); sf != nil {
 				svars = sf.SVars
