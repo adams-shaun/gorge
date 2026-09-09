@@ -54,6 +54,16 @@ type pendingCast struct {
 	sacs    []state.ObjID
 	sacPart int
 
+	// payIdx / payColor / payLife carry the hybrid and Phyrexian payment
+	// announcement (CR 601.2b/107.4e-f). manaAsk walks the cost's combined
+	// hybrid-then-Phyrexian pip list one decision at a time; payIdx is the
+	// next unsettled pip, payColor accumulates the coloured spend the
+	// announced pips chose, and payLife the life a Phyrexian pip paid with
+	// two life costs. Plain data, so Clone copies it like x/delve/sacs.
+	payIdx   int
+	payColor state.Mana
+	payLife  int32
+
 	// stackObj is the id of the object pushCast placed on the stack (the
 	// spell card itself, or an activated ability's AbilityPush-minted
 	// object). Zero until pushCast runs; handleTarget records the chosen
@@ -171,7 +181,7 @@ func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32) in
 func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic)
-	if !mana.CanPay(e.G.Players[p].Pool) {
+	if !mana.payable(e.G.Players[p].Pool, e.G.Players[p].Life) {
 		return false
 	}
 	reserved := map[state.ObjID]bool{}
@@ -268,6 +278,29 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 			cost = Cost{}
 		}
 	}
+	// CR 601.2b/f/h: a spell's own SpellAbility may carry an explicit Cost$
+	// (Forge's SP Cost) naming an additional cost -- most commonly a
+	// sacrifice (Altar's Reap's "1 B Sac<1/Creature>", the CR 601.2h example).
+	// The mana part of that Cost$ REPLACES the printed mana (it is the same
+	// cost the card already charges), so only its non-mana parts
+	// (Sac/SubCounter/Tap) are additional and fold into the total cost here; a
+	// re-added mana part would double charge. Only a plain cast reaches this
+	// (pc.ability < 0 and no alternative/flashback recast), and a spell with
+	// no SP Cost$ contributes nothing.
+	if opt.AltCostIndex == 0 && opt.Mode == "" {
+		if sa := f.SpellAbility(); sa != nil {
+			if sc := sa.Params["Cost"]; sc != "" {
+				extra := ParseCost(sc)
+				if len(extra.Sac) > 0 {
+					cost.Sac = append(append([]CostPart(nil), cost.Sac...), extra.Sac...)
+				}
+				if len(extra.SubCounter) > 0 {
+					cost.SubCounter = append(append([]CostPart(nil), cost.SubCounter...), extra.SubCounter...)
+				}
+				cost.Tap = cost.Tap || extra.Tap
+			}
+		}
+	}
 	// CR 903.8: the commander tax, applied to whatever cost this cast pays
 	// (the base/alternative/kicked/flashback/surged/miracle cost resolved
 	// above) -- the exact same commanderTaxFor the command-zone offer in
@@ -313,6 +346,12 @@ func (e *Engine) continueCast() {
 	if e.pushCast() {
 		return
 	}
+	// CR 601.2b: announce how each hybrid and Phyrexian pip is paid -- which
+	// half of a hybrid, whether a Phyrexian pip is paid with life -- before
+	// targets (601.2c) and payment (601.2h). Runs as one decision per pip.
+	if e.manaAsk() {
+		return
+	}
 	// CR 601.2c: choose targets, now that the object is on the stack. An SA
 	// with no target (or a zero-minimum one with no legal candidate) asks
 	// nothing and payCast runs directly.
@@ -344,7 +383,7 @@ func (e *Engine) xAsk() bool {
 	for x := int32(0); x <= bound; x++ {
 		wx := pc.cost.WithX(x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
-		if !wx.CanPay(pool) {
+		if !wx.payable(pool, e.G.Players[pc.player].Life) {
 			break
 		}
 		max = x
@@ -657,6 +696,96 @@ func etbChoicePrompt(kind string) string {
 	return " a number"
 }
 
+// announcePip resolves the i-th announcement pip of a cost's hybrid-then-
+// Phyrexian list into its acceptable colours and whether it may be paid with
+// two life (a Phyrexian pip). It is the single source both manaAsk (the ask's
+// valid-option set) and castAnswer (recording the choice) consult, so the
+// option offered and the recorded choice always agree.
+func (c Cost) announcePip(i int) (colors [2]byte, lifeOK bool) {
+	if i < len(c.Hybrid) {
+		p := c.Hybrid[i]
+		return [2]byte{p.A, p.B}, false
+	}
+	letter := c.Phyrexian[i-len(c.Hybrid)]
+	return [2]byte{letter, letter}, true
+}
+
+// annPipCount is how many hybrid + Phyrexian pips a cost carries.
+func (c Cost) annPipCount() int { return len(c.Hybrid) + len(c.Phyrexian) }
+
+// resolvedMana returns the cost the announced payment actually commits: X
+// folded, every hybrid and Phyrexian pip removed (each was announced by
+// manaAsk into payColor/payLife), and the announced coloured spend folded
+// into Colored so payMana charges it from the pool. payLife is applied
+// separately by payCast. For a cost with no hybrid or Phyrexian pip this is
+// just the X-folded cost, so ordinary casting is unchanged.
+func (pc *pendingCast) resolvedMana() Cost {
+	m := pc.cost.WithX(pc.x)
+	m.Hybrid = nil
+	m.Phyrexian = nil
+	for i := range pc.payColor {
+		m.Colored[i] += pc.payColor[i]
+	}
+	return m
+}
+
+// manaAsk offers the player's payment choice for the next unsettled hybrid or
+// Phyrexian pip of the cost (CR 601.2b), one decision per pip. Only payment
+// alternatives that are legal right now -- a hybrid half with pool mana of
+// that colour left, or a Phyrexian pip's colour or two life if the payer has
+// both -- are offered, with the valid one first, so the deterministic bot
+// fallback (index 0) always picks a legal payment and a no-answer host never
+// wedges. The offer gate (castable) already proved at least one alternative
+// is available, so the decision is never empty. It returns true once it has
+// asked (and therefore suspended); payCast applies the accumulated payColor /
+// payLife when every pip is settled.
+func (e *Engine) manaAsk() bool {
+	pc := e.cast
+	if pc == nil || pc.payIdx >= pc.cost.annPipCount() {
+		return false
+	}
+	colors, lifeOK := pc.cost.announcePip(pc.payIdx)
+	// remaining pool = the payer's pool minus what earlier announced pips
+	// (payColor) have already reserved, and the life already committed.
+	rem := e.G.Players[pc.player].Pool
+	for i := range rem {
+		rem[i] -= pc.payColor[i]
+	}
+	life := e.G.Players[pc.player].Life - pc.payLife
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Choose how to pay a mana symbol of " + e.G.Obj(pc.card).Face().Name,
+		Source: pc.card}
+	// Hybrid (and a Phyrexian pip's colour half): one option per DISTINCT
+	// colour that has pool mana left, A then B. A single-colour Phyrexian pip
+	// carries the same colour twice, so the seen set keeps one option for it.
+	seen := map[byte]bool{}
+	for _, col := range colors {
+		if col == 0 || seen[col] {
+			continue
+		}
+		seen[col] = true
+		if rem[state.ManaIndex(col)] > 0 {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "pay_" + string(col), Label: "Pay " + string(col), Amount: 1})
+		}
+	}
+	// Phyrexian: its colour (already offered above if in pool) or two life.
+	if lifeOK && life >= 2 {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+			Kind: "pay_life", Label: "Pay 2 life", Amount: 2})
+	}
+	if len(d.Options) == 0 {
+		// Defensive: castable already proved at least one alternative, but a
+		// colourless Phyrexian pip with a colourless-only pool is offered its
+		// life payment so the decision can never be empty.
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+			Kind: "pay_life", Label: "Pay 2 life", Amount: 2})
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
+}
+
 // etbAnswer records one answered "as this enters" choice onto the card as a
 // Choose event, before the object is put on the stack (or, for a land, before
 // it moves to the battlefield), so the recorded value survives replay exactly
@@ -705,6 +834,16 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			pc.sacs = append(pc.sacs, o.Obj)
 		}
 		pc.sacPart++
+	case "pay_W", "pay_U", "pay_B", "pay_R", "pay_G":
+		// A hybrid or Phyrexian pip paid with pool mana: record which colour.
+		if len(chosen) > 0 {
+			pc.payColor[state.ManaIndex(chosen[0].Kind[4])]++
+		}
+		pc.payIdx++
+	case "pay_life":
+		// A Phyrexian pip paid with two life.
+		pc.payLife += 2
+		pc.payIdx++
 	}
 }
 
@@ -769,14 +908,14 @@ func (e *Engine) targetAsk() bool {
 	// (E2: no progress was made, so hold this card's option out of the window
 	// rather than re-offering the same unpayable cast). Resolved means X is
 	// fixed and Delve credit is applied, both settled by the stages above.
-	mana := pc.cost.WithX(pc.x)
+	mana := pc.resolvedMana()
 	if pc.ability < 0 {
 		mana.Generic -= int32(len(pc.delve))
 		if mana.Generic < 0 {
 			mana.Generic = 0
 		}
 	}
-	if !mana.CanPay(e.G.Players[pc.player].Pool) {
+	if !mana.payable(e.G.Players[pc.player].Pool, e.G.Players[pc.player].Life) {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return true
 	}
@@ -917,10 +1056,13 @@ func (e *Engine) payCast() {
 		// SubCounter part (a CounterChange of -N), and every chosen sacrifice.
 		// The ability object was already minted by pushCast; targets are
 		// recorded onto it by handleTarget.
-		mana := pc.cost.WithX(pc.x)
+		mana := pc.resolvedMana()
 		if !e.payMana(pc.player, mana) {
 			e.abortCast(pc, "activation aborted: cost no longer payable", true)
 			return
+		}
+		if pc.payLife != 0 {
+			e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.payLife})
 		}
 		for _, id := range pc.delve {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
@@ -944,7 +1086,7 @@ func (e *Engine) payCast() {
 		e.cast, e.choosing = nil, chooseNone
 		return
 	}
-	mana := pc.cost.WithX(pc.x)
+	mana := pc.resolvedMana()
 	mana.Generic -= int32(len(pc.delve))
 	if mana.Generic < 0 {
 		mana.Generic = 0
@@ -961,6 +1103,9 @@ func (e *Engine) payCast() {
 		// window ends or the mana/board changes.
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return
+	}
+	if pc.payLife != 0 {
+		e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.payLife})
 	}
 	for _, id := range pc.delve {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
