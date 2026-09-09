@@ -51,11 +51,14 @@
    *                in-zone state (it is where the next cast is priced from),
    *                but it no longer justifies full ink: the art is greyed.
    *   battlefield  it is in play, so the box shows FULL art, and it is
-   *                marked "on the battlefield". The real permanent is also
-   *                drawn in the creatures row of this same quadrant; two
-   *                full-colour copies of one card in one quadrant is not a
-   *                lie about how many there are — both are true of the same
-   *                object.
+   *                marked "on the battlefield". The PERMANENT is what the
+   *                board draws for a commander in play — CommandArea filters
+   *                battlefield commanders out (ui10, bug 1), so this state
+   *                is no longer reached from the board's command area: a
+   *                commander in play belongs in the creature row as the real
+   *                permanent, not twice. The component still renders it, so
+   *                a caller that deliberately hands it a battlefield status
+   *                (the test harness) gets full art rather than a guess.
    *   away         anywhere else — graveyard, exile, hand, the stack, or a
    *                zone this viewer cannot browse. An EMPTY box: no art at
    *                all, because the card is not somewhere you can look. The
