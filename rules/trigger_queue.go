@@ -9,6 +9,8 @@ package rules
 
 import (
 	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
@@ -332,10 +334,25 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// hand-seeded queue entry (clone_test's seeded fake), which never has
 	// ValidTgts$ -- mirror the nil-tolerance the TriggerPush out-of-range
 	// guard already provides.
-	if pt.SA != nil && pt.SA.Params["ValidTgts"] != "" && len(e.G.Stack) > 0 &&
+	//
+	// CR 603.3c: a modal triggered ability announces its mode choice when it
+	// is put on the stack, not at resolution. That ask is posed here too,
+	// in preference to the target ask for a trigger whose effect carries
+	// both a Choices$ clause and a ValidTgts$ (the modal shape a Charm
+	// commonly pairs with target selection INSIDE its modes, not on the
+	// ability itself -- a top-level ValidTgts$ alongside Choices$ is not
+	// exercised by the corpus). The answered modes are recorded on the
+	// stack object (ChosenModes) and the drain resumes through handleModes,
+	// the same continuation shape.
+	if pt.SA != nil && len(e.G.Stack) > 0 &&
 		e.G.Obj(e.G.Stack[len(e.G.Stack)-1]) != nil {
 		id := e.G.Stack[len(e.G.Stack)-1]
-		e.askTarget(pt.Controller, id, pt.SA)
+		if pt.SA.Params["Choices"] != "" {
+			e.askTriggerModes(pt.Controller, id, pt.SA)
+			e.drainAwaitsModes = true
+		} else if pt.SA.Params["ValidTgts"] != "" {
+			e.askTarget(pt.Controller, id, pt.SA)
+		}
 	}
 	// Fix round 1 (reviewer minor, cheap): derive drainAwaitsTarget from
 	// e.Pending() rather than clearing it first. The old form set it false
@@ -347,7 +364,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// on otherwise; askTarget may decline to ask (its TargetMin$ 0 / fizzle
 	// paths), which is exactly why the flag must come from the resulting
 	// pending state rather than from "we wanted to ask".
-	e.drainAwaitsTarget = e.Pending() != nil
+	e.drainAwaitsTarget = e.Pending() != nil && !e.drainAwaitsModes
 }
 
 // triggerOf re-reads the T: line a pending trigger came from, so nothing has
@@ -373,6 +390,41 @@ func (e *Engine) triggerOf(pt pendingTrigger) (cards.Trigger, bool) {
 		return cards.Trigger{}, false
 	}
 	return f.Triggers[pt.Idx], true
+}
+
+// findTriggerForAbility returns the face trigger on source whose Effect is
+// exactly the given *cards.SA -- the T: line a triggered-ability stack object
+// came from. A triggered ability's stack object carries the same compiled SA
+// pointer its source's Triggers entry holds (events.Apply re-derives it from
+// the TriggerPush's Idx), so pointer equality identifies the line. This is
+// what lets resolution (resolveTop's ability branch) re-read the trigger's
+// CR 603.4 intervening-if condition and optionality (CR 603.5) from the
+// source's static text rather than caching them on the stack object.
+//
+// It returns false for an activated ability, whose o.Ability comes from the
+// source's Abilities slice rather than a Triggers entry, and for any source
+// whose face has since changed or gone -- so a caller must treat false as
+// "this is not a face trigger, apply no trigger-only rule" rather than as an
+// error. A source that has ceased to exist entirely (a token or copy gone
+// from the board) degrades the same way.
+func (e *Engine) findTriggerForAbility(source state.ObjID, sa *cards.SA) (cards.Trigger, bool) {
+	if sa == nil {
+		return cards.Trigger{}, false
+	}
+	o := e.G.Obj(source)
+	if o == nil {
+		return cards.Trigger{}, false
+	}
+	f := o.Face()
+	if f == nil {
+		return cards.Trigger{}, false
+	}
+	for _, t := range f.Triggers {
+		if t.Effect == sa {
+			return t, true
+		}
+	}
+	return cards.Trigger{}, false
 }
 
 // optionalDecider reports whether pt is an optional trigger, which seat gets
@@ -535,6 +587,61 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 		}
 	}
 	return name
+}
+
+// askTriggerModes is CR 603.3c: a modal triggered ability's controller
+// announces the mode choice when putting the ability on the stack, not at
+// resolution. It poses the same KModes decision effCharm would, but at
+// placement, with ResumeKind/ResumeSA set so the answer's handler records
+// the chosen SVar names onto the stack object (handleModes' placement
+// branch) rather than re-entering a suspended resolution.
+//
+// CharmNum is read as a literal integer (default 1, the overwhelmingly
+// common "choose one"), because the full Num/Qty grammar needs a resolving
+// context this placement ask does not have; a trigger whose CharmNum is
+// computed is rare and degrades to 1, same as the no-engine-host fallback.
+// The option list mirrors effCharm's -- Choices$ order, SpellDescription$ as
+// the label, resolved from the trigger's source SVar table -- so an index
+// chosen here maps to the same SVar name modeChoiceNames produces at
+// resolution.
+func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA) {
+	choices := strings.Split(sa.Params["Choices"], ",")
+	for i := range choices {
+		choices[i] = strings.TrimSpace(choices[i])
+	}
+	charmNum := 1
+	if v, ok := sa.Params["CharmNum"]; ok {
+		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil && n >= 1 {
+			charmNum = n
+		}
+	}
+	if charmNum > len(choices) {
+		charmNum = len(choices)
+	}
+	var source state.ObjID
+	var svars map[string]string
+	if so := e.G.Obj(obj); so != nil {
+		source = so.Source
+	}
+	if so := e.G.Obj(source); so != nil {
+		if sf := so.Face(); sf != nil {
+			svars = sf.SVars
+		}
+	}
+	d := &decision.Decision{Player: p, Kind: decision.KModes, Min: charmNum, Max: charmNum,
+		Source: source, ResumeKind: "modes", ResumeSA: sa,
+		Prompt: "Choose " + strconv.Itoa(charmNum) + " mode(s)"}
+	for i, name := range choices {
+		label := name
+		if sub := cards.ResolveSVar(svars, name); sub != nil {
+			if desc := strings.TrimSpace(sub.Params["SpellDescription"]); desc != "" {
+				label = desc
+			}
+		}
+		d.Options = append(d.Options, decision.Option{
+			Index: i, Kind: "mode", Label: label, Obj: source, Player: p})
+	}
+	e.ask(d)
 }
 
 // askTriggerOrder is R1: the controller of two or more simultaneous triggers

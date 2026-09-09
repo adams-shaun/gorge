@@ -302,6 +302,14 @@ type Engine struct {
 	// every other field here. (Tasks 7, 18.)
 	drainAwaitsTarget bool
 
+	// drainAwaitsModes is the CR 603.3c twin of drainAwaitsTarget: true while
+	// a modal triggered ability's KModes decision asked at placement
+	// (pushTrigger) is pending, so its answer records the chosen modes onto
+	// the stack object and resumes the drain (handleModes) rather than
+	// granting priority. Plain scalar, Clone copies it, and a replay re-derives
+	// the same branch from the same recorded answer.
+	drainAwaitsModes bool
+
 	// deferCastTrigger is set only around the up-front cast push (CR 601.2a)
 	// emit in pushCast. While it is true, emit HOLDS the PutOnStack event's
 	// cast trigger back instead of running checkTriggers for it, because the
