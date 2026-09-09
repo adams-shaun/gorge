@@ -276,18 +276,34 @@ type Engine struct {
 	replChoices []replChoice
 
 	// suppressedCast holds the card object ids whose cast option is held out
-	// of the current priority window because their last cast attempt aborted
-	// unpayable with no state change (E2 round 2: see commitCast). This is
-	// the no-progress answer for a hash-chained, replayable engine: instead
-	// of counting no-progress aborts and killing the match, suppress the
-	// exact card that produced one, so the re-offer loop cannot even begin a
-	// second iteration -- nobody's match dies, and the seat may still do
-	// anything else. Cleared on any genuinely state-changing event (see
-	// emit), so a declined card's option comes back the moment the window
-	// ends or the mana/board changes. The id already names the one seat that
-	// holds it, so two different cards' declines never interact and two
-	// seats' never do either.
+	// of the current priority window because their cast attempt aborted
+	// unpayable with no state change (E2 round 2, tightened by F05-2/CR
+	// 733.2). This is the no-progress answer for a hash-chained, replayable
+	// engine: instead of counting no-progress aborts and killing the match,
+	// suppress the exact card that produced one, so the re-offer loop cannot
+	// begin an unbounded second iteration -- nobody's match dies, and the
+	// seat may still do anything else. F05-2 (CR 733.2) lets a reversed
+	// illegal action be redone legally, so suppression engages only on the
+	// SECOND identical no-progress abort of the same card in the same window
+	// (the per-card castAborts count), never the first. Cleared on any
+	// genuinely state-changing event (see emit), so a declined card's option
+	// comes back the moment the window ends or the mana/board changes. The
+	// id already names the one seat that holds it, so two different cards'
+	// declines never interact and two seats' never do either.
 	suppressedCast map[state.ObjID]bool
+
+	// castAborts counts the no-progress cast/activation aborts per card so far
+	// in the current priority window (F05-2, CR 733.2): the held-out
+	// suppression above engages only on the SECOND identical no-progress abort
+	// of the same card, so a merely-reversed illegal action (CR 733.2) may be
+	// redone legally once -- the first abort leaves the option offered -- while
+	// a deliberate repeat still cannot spin the engine. It is cleared by the
+	// same state-changing-event rule that clears suppressedCast, so the count
+	// and the held-out set have identical lifetimes. Like suppressedCast it is
+	// transient window bookkeeping on the Engine, never an event or a
+	// state.Game field, so a replay re-derives it by re-running the same
+	// aborts rather than reading it from the log.
+	castAborts map[state.ObjID]int32
 
 	// drainAwaitsTarget is true while a decision asked from inside the trigger
 	// drain is pending, so its answer resumes the drain rather than granting
@@ -630,6 +646,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if ev.Kind != events.Priority && ev.Kind != events.DecisionAsk &&
 		ev.Kind != events.DecisionMade && ev.Kind != events.Note {
 		e.suppressedCast = nil
+		e.castAborts = nil
 	}
 	return stored
 }
