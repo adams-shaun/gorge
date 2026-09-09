@@ -161,10 +161,14 @@ func TestNoLegacyMathRand(t *testing.T) {
 }
 
 // resumeFieldWriters walks the non-test rules/ sources and returns every
-// function that assigns to the Engine.resume field, keyed by the receiver-
+// function that assigns to the Engine.resume state, keyed by the receiver-
 // qualified function name (e.g. "(*Engine).Ask") with the sites it writes.
-// It is the census that TestResumeStateOwnedOnlyByTheResolutionMachinery
-// both enforces against and keeps exact.
+// A write reachable through the resume field is a write to the resume state:
+// e.resume, e.resume.outer and e.resume.outer.sa all count (fx40), because
+// resolution.go carries a real nested write of the shape e.resume.outer = ...
+// that the pre-fx40 outermost-selector-only match never saw. It is the census
+// that TestResumeStateOwnedOnlyByTheResolutionMachinery both enforces against
+// and keeps exact.
 func resumeFieldWriters(t *testing.T) map[string][]string {
 	t.Helper()
 	dir := filepath.Join("..", "..", "rules")
@@ -214,12 +218,12 @@ func resumeFieldWriters(t *testing.T) map[string][]string {
 		rel := filepath.Join("rules", filepath.Base(file))
 		ast.Inspect(f, func(n ast.Node) bool {
 			check := func(target ast.Expr) {
-				sel, ok := target.(*ast.SelectorExpr)
-				if !ok || sel.Sel.Name != "resume" {
+				resumeSel, ok := resumeSelectorInChain(target)
+				if !ok {
 					return
 				}
-				fn := enclosing(sel.Pos())
-				out[fn] = append(out[fn], fmt.Sprintf("%s:%d", rel, fset.Position(sel.Pos()).Line))
+				fn := enclosing(resumeSel.Pos())
+				out[fn] = append(out[fn], fmt.Sprintf("%s:%d", rel, fset.Position(resumeSel.Pos()).Line))
 			}
 			switch node := n.(type) {
 			case *ast.AssignStmt:
@@ -233,6 +237,28 @@ func resumeFieldWriters(t *testing.T) map[string][]string {
 		})
 	}
 	return out
+}
+
+// resumeSelectorInChain reports whether any selector in an assignment target's
+// selector chain is named "resume", and if so returns that selector. It is
+// what makes e.resume, e.resume.outer and e.resume.outer.sa all writes to the
+// engine's resume state: the pre-fx40 census compared only the outermost
+// selector's name, so a nested write through the field (the e.resume.outer =
+// ... line resolution.go has carried since fx34) never registered. It is
+// still a syntactic approximation — an alias bound from e.resume and then
+// assigned through would defeat it (see the alias-hole limit recorded in
+// TestResumeStateOwnedOnlyByTheResolutionMachinery).
+func resumeSelectorInChain(expr ast.Expr) (ast.Expr, bool) {
+	for {
+		sel, ok := expr.(*ast.SelectorExpr)
+		if !ok {
+			return nil, false
+		}
+		if sel.Sel.Name == "resume" {
+			return sel, true
+		}
+		expr = sel.X
+	}
 }
 
 // funcQualName renders a function declaration the way a review comment would
@@ -271,15 +297,31 @@ func mustCwd() string {
 // used to be caught only by a human reading a diff.
 //
 // The allow-list is the exact census measured at the time the rule was
-// written (fx38). Both directions are pinned: a writer not on the list fails,
-// and a listed function that no longer writes also fails, so adding a new
-// writer is a deliberate, reviewed edit to the allow-list rather than a
+// rewritten (fx40). Both directions are pinned: a writer not on the list
+// fails, and a listed function that no longer writes also fails, so adding a
+// new writer is a deliberate, reviewed edit to the allow-list rather than a
 // silent pass, and pruning a dead entry is equally deliberate.
+//
+// A named limit, for a reader who would otherwise take the rule to be
+// airtight: the census is a selector-chain rule, not an escaping-alias
+// analysis. It counts a write whenever any selector in the assignment
+// target's chain is named `resume`, so `e.resume.outer = ...` is caught, but
+// an alias that hides the field — `rp := e.resume; rp.outer = ...` — leaves
+// no `.resume` name in the LHS and defeats it. Measured alias-free at this
+// commit: the only non-test `rules/` locals bound from `e.resume` are the
+// `rp` snapshots in `handleModes` (rules/resolution.go:133) and
+// `releasePendingDecisionOfDepartedPlayer` (rules/sba.go:661), and neither is
+// ever assigned through (each holds the pointer only until `e.resume = nil`
+// and then passes it to `resumeResolution`, which writes `e.resume.outer`
+// directly rather than through the alias). The rule is therefore a syntactic
+// approximation: it is exact for the writers that exist today, but it would
+// not notice a future alias write.
 func TestResumeStateOwnedOnlyByTheResolutionMachinery(t *testing.T) {
 	allowed := map[string]string{
-		"(*Engine).Ask":         "the asking primitive: records the resume point for the answer machine to re-enter (rules/resolution.go)",
-		"(*Engine).handleModes": "the KModes answer handler: clears the resume point then re-enters via resumeResolution (rules/resolution.go)",
-		"(*Engine).Clone":       "a snapshot clone copies the resume point onto the freshly-cloned engine, not the live one (rules/clone.go)",
+		"(*Engine).Ask":                                    "the asking primitive: records the resume point for the answer machine to re-enter (rules/resolution.go)",
+		"(*Engine).handleModes":                            "the KModes answer handler: clears the resume point then re-enters via resumeResolution (rules/resolution.go)",
+		"(*Engine).Clone":                                  "a snapshot clone copies the resume point onto the freshly-cloned engine, not the live one (rules/clone.go)",
+		"(*Engine).resumeResolution":                       "the re-entry point: links the new pending point's outer continuation up to the frame it is re-entering (rules/resolution.go)",
 		"(*Engine).releasePendingDecisionOfDepartedPlayer": "CR 800.4f: a departed player's outstanding ask is released with an empty answer (rules/sba.go)",
 	}
 	writers := resumeFieldWriters(t)
