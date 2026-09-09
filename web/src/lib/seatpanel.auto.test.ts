@@ -74,13 +74,57 @@ describe('autopilot — the opt-in', () => {
     postIntentMock.mockResolvedValue(undefined);
   });
 
-  it('auto is OFF on a fresh seat and posts nothing until the player opts in', () => {
+  it('auto is OFF on a fresh seat and answers no window that offers an action', () => {
     const p = new SeatPanelState('t1', 1, ctx, null);
     expect(p.auto).toBe(false);
+    p.adoptView(live(1));
+    p.considerAuto(view());
+    expect(postIntentMock).not.toHaveBeenCalled();
+    expect(autoNoteText(p.note)).toBe('Auto is off. You answer every window that offers you something to do.');
+  });
+
+  it('the empty-window floor is ON for a fresh seat and passes a no-action window with auto off', async () => {
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    expect(p.skipEmpty).toBe(true);
+    p.adoptView(quiet(1));
+    p.considerAuto(view());
+    await settle(() => p.postedSeq === 1);
+    // The index posted is the PASS option's, never the concede's.
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(postIntentMock.mock.calls[0][2].choices).toEqual([0]);
+    expect(p.auto).toBe(false); // the floor is not auto and does not turn it on
+    expect(p.autoPassed).toBe(0); // and it is never credited to auto
+    expect(p.emptySkipped).toBe(1);
+    expect(autoNoteText(p.note)).toBe('Passed 1 window where you had nothing to do.');
+  });
+
+  it('the floor turned off restores stopping at a no-action window', () => {
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    p.setSkipEmpty(false);
     p.adoptView(quiet(1));
     p.considerAuto(view());
     expect(postIntentMock).not.toHaveBeenCalled();
-    expect(autoNoteText(p.note)).toBe('Auto is off. You answer every window.');
+  });
+
+  it('the floor never answers a non-priority window, even a pass/concede-shaped one', () => {
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    p.adoptView(mulligan(1));
+    p.considerAuto(view());
+    expect(postIntentMock).not.toHaveBeenCalled();
+  });
+
+  it('the floor switches itself off rather than looping when its answer does not take', async () => {
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    p.adoptView(quiet(7));
+    p.considerAuto(view());
+    await settle(() => p.postedSeq === 7);
+    p.postedSeq = null; // the answer did not take; the same seq comes back
+    p.adoptView(quiet(7));
+    p.considerAuto(view());
+    expect(p.skipEmpty).toBe(false);
+    expect(autoNoteText(p.note)).toBe(
+      'Auto switched itself off: the same decision came back after it answered. Empty windows are no longer skipped either.',
+    );
   });
 
   it('a new match drops auto back to off', () => {
@@ -259,12 +303,27 @@ describe('autopilot — a human always wins', () => {
     expect(autoNoteText(p.note)).toBe('Auto switched off: you pressed Escape.');
   });
 
-  it('a suspended auto answers nothing further until the player turns it back on', () => {
+  it('a suspended auto answers nothing further where the player had an action', () => {
     const p = armed();
     p.onKeydown('Escape');
-    p.adoptView(quiet(30));
+    p.adoptView(live(30));
     p.considerAuto(view());
     expect(postIntentMock).not.toHaveBeenCalled();
+  });
+
+  // Escape takes back the DECISIONS, not the courtesy: a suspended auto still
+  // leaves the empty-window floor running, because the floor never decided
+  // anything for the player in the first place. Turning it off is its own
+  // switch.
+  it('a suspended auto still skips a window with nothing in it', async () => {
+    const p = armed();
+    p.onKeydown('Escape');
+    expect(p.auto).toBe(false);
+    p.adoptView(quiet(30));
+    p.considerAuto(view());
+    await settle(() => p.postedSeq === 30);
+    expect(p.emptySkipped).toBe(1);
+    expect(p.autoPassed).toBe(0);
   });
 });
 

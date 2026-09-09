@@ -67,6 +67,29 @@ export function actionable(decision: Decision): boolean {
   return decision.options.some((o) => o.kind !== 'pass' && o.kind !== 'concede');
 }
 
+/**
+ * emptyPriorityWindow reports the one window shape the panel skips even when
+ * auto is OFF: a plain single-pick priority window whose only options are
+ * pass and concede. There is nothing to decide there -- the player's only
+ * non-suicidal answer is the pass, so stopping to collect it is a click that
+ * carries no information. This is deliberately the SAME shape test decide()
+ * applies before its own !actionable branch (single-pick, exactly one pass
+ * option), factored out rather than restated, so the manual-mode skip can
+ * never come to a different conclusion than auto would.
+ *
+ * It returns the pass option's index, or null when the window is not that
+ * shape. Like decide(), it is structurally incapable of pointing at a
+ * concede: the index always comes from the pass option that was found.
+ */
+export function emptyPriorityWindow(decision: Decision): number | null {
+  if (decision.kind !== 'priority') return null;
+  if (decision.min !== 1 || decision.max !== 1) return null;
+  const passOptions = decision.options.filter((o) => o.kind === 'pass');
+  if (passOptions.length !== 1) return null;
+  if (actionable(decision)) return null;
+  return passOptions[0].index;
+}
+
 export function decide(args: {
   decision: Decision;
   view: View;

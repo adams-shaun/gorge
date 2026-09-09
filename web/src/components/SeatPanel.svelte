@@ -181,10 +181,36 @@
             <span class="dot" aria-hidden="true"></span>
             <span class="word">{logic.auto ? 'Auto' : 'Manual'}</span>
           </button>
+          <!-- The empty-window floor's own switch, beside auto's rather than
+               buried in a menu: it changes whether the game stops for you, so
+               it has to be visible where you would look to ask why it did
+               not. It is on by default and it is NOT the auto toggle -- a
+               Manual seat still answers every window that offers it an
+               action. -->
+          <button
+            class="skiptoggle"
+            class:on={logic.skipEmpty}
+            type="button"
+            role="switch"
+            aria-checked={logic.skipEmpty}
+            aria-label="Skip priority windows where you have no action"
+            title="Skip priority windows where you have no action"
+            data-skip-toggle
+            onclick={() => logic.setSkipEmpty(!logic.skipEmpty)}
+          >
+            <span class="dot" aria-hidden="true"></span>
+            <span class="word">Skip empty</span>
+          </button>
           {#if logic.autoPassed > 0}
             <span class="passed" data-auto-count>
               auto-passed <span class="num">{logic.autoPassed}</span>
               {logic.autoPassed === 1 ? 'priority window' : 'priority windows'}
+            </span>
+          {/if}
+          {#if logic.emptySkipped > 0}
+            <span class="passed" data-skip-count>
+              skipped <span class="num">{logic.emptySkipped}</span>
+              {logic.emptySkipped === 1 ? 'empty window' : 'empty windows'}
             </span>
           {/if}
         </div>
@@ -312,6 +338,13 @@
    * ONCE — the panel's edge and the primary button share the tone colour
    * because they are one signal read at two distances, not two decorations.
    */
+  /* NOTE: this panel is a containing block for `position: fixed`
+     descendants -- backdrop-filter promotes exactly like transform does, and
+     both are here. The mulligan hand puts real CardTiles inside the panel and
+     their hover detail is such a descendant, so CardDetail portals itself to
+     <body> rather than trusting `position: fixed` to mean the viewport. Do
+     not "fix" that by removing the blur: any of transform, filter,
+     backdrop-filter, will-change or contain would re-break it. */
   .seat-panel {
     position: absolute;
     top: var(--sp-2);
@@ -345,11 +378,17 @@
   /* The mulligan round is not a heads-up display: nothing else is happening,
      the hand is the whole content, and the panel takes the middle of the
      board for the one moment it exists. */
+  /* A definite width, not max-content: max-content measures the hand as the
+     one row it would be if it never wrapped, so the panel grew past its own
+     max-width and the hand scrolled sideways instead of wrapping (and
+     `overflow-y: auto` computes overflow-x to auto, which is where the
+     horizontal scrollbar came from). Sized to the viewport so seven cards
+     wrap into two comfortable rows on a laptop and one row on a wide
+     board. */
   .seat-panel.wide {
     top: 50%;
     transform: translate(-50%, -50%);
-    width: max-content;
-    max-width: 94%;
+    width: min(94%, 1120px);
     max-height: 96%;
     align-items: center;
   }
@@ -412,7 +451,8 @@
     gap: var(--sp-2);
     min-width: 0;
   }
-  .autotoggle {
+  .autotoggle,
+  .skiptoggle {
     display: inline-flex;
     align-items: center;
     gap: 0.45em;
@@ -427,7 +467,8 @@
     cursor: pointer;
     flex: none;
   }
-  .autotoggle.on {
+  .autotoggle.on,
+  .skiptoggle.on {
     color: var(--felt-sunk);
     background: var(--offered);
     border-color: var(--offered);
@@ -439,7 +480,8 @@
     background: currentColor;
     opacity: 0.5;
   }
-  .autotoggle.on .dot {
+  .autotoggle.on .dot,
+  .skiptoggle.on .dot {
     opacity: 1;
   }
   .passed {
@@ -614,18 +656,28 @@
      sideways on a very narrow board. A card you have to scroll to is a card
      you skip. */
   .hand {
+    /* Cards are sized the way every other row in this UI sizes them: by
+       setting --card-w, which BOTH CardImage and CardTile's layout slot
+       read. Overriding .card-image's width directly instead sized the
+       drawn face without resizing the slot that reserves room for it, so
+       in the keep phase (CardTile) a 168px face sat in a 90px slot and
+       spilled over both neighbours — the cards touched, and the hover
+       target stayed 90px wide while the visible card was twice that, so
+       pointing at a card opened the detail for the one beside it. */
+    --card-w: clamp(96px, 9.5vw, 150px);
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     align-items: flex-start;
-    gap: var(--sp-2);
+    /* Cards in a hand are separate objects you compare one against another,
+       so they get real space between them rather than a hairline. The row
+       gap matches, because a wrapped second row that touches the first
+       reads as one block of art. */
+    gap: var(--sp-3) var(--sp-2);
     padding: var(--sp-3);
     width: 100%;
     overflow-y: auto;
     min-height: 0;
-  }
-  .hand :global(.card-image) {
-    width: clamp(88px, 10vw, 168px);
   }
   .pick {
     position: relative;

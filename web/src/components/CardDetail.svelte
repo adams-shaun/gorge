@@ -119,10 +119,36 @@
     ].filter((s): s is string => s !== null),
   );
 
+  /**
+   * portal moves the node to <body> on mount and takes it away again on
+   * destroy, so no ancestor's containing block can capture a fixed panel.
+   * It is deliberately tiny and DOM-only: nothing about placement or
+   * lifetime moves here, only where the node hangs.
+   */
+  function portal(node: HTMLElement) {
+    document.body.appendChild(node);
+    return {
+      destroy() {
+        node.remove();
+      },
+    };
+  }
+
   const placement = $derived(placePanel(anchor, typeof window === 'undefined' ? 0 : window.innerWidth, typeof window === 'undefined' ? 0 : window.innerHeight));
 </script>
 
+<!-- PORTALLED TO <body>. `position: fixed` resolves against the nearest
+     ancestor carrying a transform, filter, backdrop-filter, will-change or
+     contain -- not against the viewport -- and this panel is opened from
+     card tiles that live inside exactly such boxes (SeatPanel has both a
+     transform and a backdrop-filter). placePanel computes viewport
+     coordinates, so the panel has to actually be in the viewport's
+     containing block for them to mean anything; anchored to <body> it is.
+     Without this the mulligan hand's hover detail was drawn hundreds of
+     pixels from its card, off the bottom of the screen and clipped by the
+     seat panel's own overflow. -->
 <div
+  use:portal
   class="card-detail"
   id="card-detail-{card.id}"
   role="tooltip"
@@ -198,13 +224,17 @@
   /* A floating read-only panel: instrument register (cool, dense — where the
      engine explains what it did), pointer-events none so no underlying
      interaction is ever blocked by it. z-index 6 sits above the board's
-     other overlays (RecentStrip uses 4) but BELOW the seat panel's option
-     sheet (SeatPanel uses 8): the sheet is real clickable UI and must always
-     stack above this read-only panel, and because the panel never takes
-     pointer events the number is about visual order, not click capture. */
+     other overlays (RecentStrip uses 4) AND above the seat panel (8). It
+     used to sit below the seat panel on the grounds that the sheet is real
+     clickable UI -- but this panel sets pointer-events: none, so stacking
+     over the sheet cannot take a click from it, and the mulligan proved the
+     cost: the hand whose cards you hover IS inside the seat panel, so the
+     detail opened underneath the thing that raised it and was unreadable.
+     The number is about visual order only, and a transient read-only panel
+     the reader explicitly asked for should win that order. */
   .card-detail {
     position: fixed;
-    z-index: 6;
+    z-index: 9;
     pointer-events: none;
     display: flex;
     flex-direction: column;
