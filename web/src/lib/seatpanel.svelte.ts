@@ -20,7 +20,7 @@ import { defaultStops, loadStops, saveStops, toggleStop } from './stops';
 
 /**
  * pickOption is the pure heart of the seat's selection logic: it applies one
- * click on d.options[index] to the current picked index set and returns the
+ * click identified by the option's wire index to the current picked index set and returns the
  * resulting set. It is expressed ONLY in terms of the decision's own min/max
  * (applied elsewhere) and the option Group field, never in terms of what a
  * Group's members are (R-E4-2) — the panel never learns what a blocker is.
@@ -33,13 +33,13 @@ import { defaultStops, loadStops, saveStops, toggleStop } from './stops';
  *  - Otherwise it is appended.
  */
 export function pickOption(d: Decision, index: number, picked: number[]): number[] {
-  const opt = d.options[index];
+  const opt = optionAt(d, index);
   if (opt === undefined) return [...picked];
   const at = picked.indexOf(index);
   if (at >= 0) return picked.filter((i) => i !== index);
   const g = opt.group;
   if (g) {
-    const existing = picked.find((i) => d.options[i]?.group === g);
+    const existing = picked.find((i) => optionAt(d, i)?.group === g);
     if (existing !== undefined) {
       // Replace: drop the old group member, keep the rest's click order,
       // and put the freshly picked option at the end.
@@ -59,6 +59,11 @@ export function primaryOf(d: Decision): Option | null {
 
 export function isConcede(o: Option): boolean {
   return o.kind === 'concede';
+}
+
+/** optionAt resolves a wire option by its own index, never by array position (R-E4-1). */
+function optionAt(d: Decision, index: number): Option | undefined {
+  return d.options.find((o) => o.index === index);
 }
 
 /**
@@ -136,7 +141,11 @@ export type AutoNote =
   | { kind: 'armed' }
   | { kind: 'passing'; count: number }
   | { kind: 'waiting'; reason: StopReason }
-  | { kind: 'stopped'; reason: AutoOffReason };
+  | { kind: 'stopped'; reason: AutoOffReason }
+  | { kind: 'fast-armed' }
+  | { kind: 'fast-passing'; count: number }
+  | { kind: 'fast-stopped'; reason: StopReason | AutoOffReason }
+  | { kind: 'fast-cancelled' };
 
 const WAITING_TEXT: Record<StopReason, string> = {
   'disabled': 'Auto is off.',
@@ -174,7 +183,24 @@ export function autoNoteText(note: AutoNote): string {
       return WAITING_TEXT[note.reason];
     case 'stopped':
       return OFF_TEXT[note.reason];
+    case 'fast-armed':
+      return 'Fast forward is running until the next pause point.';
+    case 'fast-passing':
+      return note.count === 1
+        ? 'Fast forward passed 1 priority window.'
+        : `Fast forward passed ${note.count} priority windows.`;
+    case 'fast-stopped':
+      return note.reason in WAITING_TEXT
+        ? WAITING_TEXT[note.reason as StopReason].replace('Auto', 'Fast forward')
+        : OFF_TEXT[note.reason as AutoOffReason].replace('Auto', 'Fast forward');
+    case 'fast-cancelled':
+      return 'Fast forward cancelled: you took the controls.';
   }
+}
+
+/** The dock only repeats one-shot fast-forward status; persistent Auto belongs in the flyout. */
+export function fastForwardNoteText(note: AutoNote): string | null {
+  return note.kind.startsWith('fast-') ? autoNoteText(note) : null;
 }
 
 /** safeStorage is localStorage where it exists and is reachable; null under SSR and in a browser that refuses site data. Same guard as images.ts. */
@@ -238,9 +264,13 @@ export class SeatPanelState {
 
   /** emptySkipped counts the no-action windows the floor passed, kept apart from autoPassed so the panel never credits auto with a pass it did not make. */
   emptySkipped = $state(0);
-  /** autoRun is the current unbroken run of auto-passes; the cap is on this, not on the session total. */
+  /** autoRun is the current unbroken run of machine passes; both Auto and one-shot fast-forward share its hard cap. */
   autoRun = $state(0);
-  /** note is what the panel says about auto, as a value — autoNoteText turns it into words. */
+  /** fastForward is the one-shot run: unlike Auto it switches off on every decide() stop verdict. */
+  fastForward = $state(false);
+  /** fastPassed is the current one-shot's visible pass count. */
+  fastPassed = $state(0);
+  /** note is what the panel says about automatic action, as a value — autoNoteText turns it into words. */
   note = $state<AutoNote>({ kind: 'off' });
   /**
    * autoActedSeq is the seq auto last posted for. If a decision with that
@@ -261,6 +291,7 @@ export class SeatPanelState {
    * one side must never mark the other.
    */
   toggleStop(step: string, side: TurnSide) {
+    this.cancelFastForward();
     const next = toggleStop(this.stops, side, step);
     if (next === this.stops) return; // a step that cannot take a stop
     this.stops = next;
@@ -269,6 +300,7 @@ export class SeatPanelState {
 
   /** setAuto is the Auto/Manual control. Turning it on clears the previous run so an old count never trips the cap. */
   setAuto(on: boolean) {
+    this.cancelFastForward(false);
     this.auto = on;
     this.autoRun = 0;
     this.autoActedSeq = null;
@@ -277,6 +309,7 @@ export class SeatPanelState {
 
   /** setSkipEmpty is the empty-window floor's control. Turning it back on clears the run so an old count never trips the cap. */
   setSkipEmpty(on: boolean) {
+    this.cancelFastForward();
     this.skipEmpty = on;
     this.autoRun = 0;
     this.autoActedSeq = null;
@@ -292,6 +325,13 @@ export class SeatPanelState {
    * already off, which would have left a wedged floor posting forever.
    */
   private stopActing(reason: AutoOffReason) {
+    if (this.fastForward) {
+      this.fastForward = false;
+      this.autoRun = 0;
+      this.autoActedSeq = null;
+      this.note = { kind: 'fast-stopped', reason };
+      return;
+    }
     if (this.auto) {
       this.suspendAuto(reason);
       return;
@@ -300,6 +340,26 @@ export class SeatPanelState {
     this.autoRun = 0;
     this.autoActedSeq = null;
     this.note = { kind: 'skip-off', reason };
+  }
+
+  /** Start a bounded one-shot run. It uses decide(), but never changes the persistent Auto mode. */
+  startFastForward() {
+    if (this.busy) return;
+    this.auto = false;
+    this.fastForward = true;
+    this.fastPassed = 0;
+    this.autoRun = 0;
+    this.autoActedSeq = null;
+    this.note = { kind: 'fast-armed' };
+  }
+
+  /** Any other pointer/key/answer hands control back immediately. */
+  cancelFastForward(say = true) {
+    if (!this.fastForward) return;
+    this.fastForward = false;
+    this.autoRun = 0;
+    this.autoActedSeq = null;
+    if (say) this.note = { kind: 'fast-cancelled' };
   }
 
   /** suspendAuto switches auto off with a stated reason. A human always wins: any answer this seat gives by hand takes the wheel back. */
@@ -313,7 +373,9 @@ export class SeatPanelState {
 
   /** onKeydown is the panel's key handler: Escape, and only Escape, suspends auto. */
   onKeydown(key: string) {
-    if (key === 'Escape') this.suspendAuto('escape');
+    if (key !== 'Escape') return;
+    this.cancelFastForward();
+    this.suspendAuto('escape');
   }
 
   /**
@@ -331,7 +393,7 @@ export class SeatPanelState {
     // on this is redundant -- decide()'s own !actionable branch reaches the
     // same pass -- and that is the point: one shape test, two callers.
     const emptyIndex = this.skipEmpty ? emptyPriorityWindow(d) : null;
-    if (!this.auto && emptyIndex === null) return;
+    if (!this.auto && !this.fastForward && emptyIndex === null) return;
 
     // Loop guard: we already answered this seq and here it is again. The
     // answer did not take, so posting it a second time is the start of an
@@ -342,13 +404,21 @@ export class SeatPanelState {
     }
 
     let index: number;
-    if (this.auto) {
+    if (this.auto || this.fastForward) {
       const verdict = decide({ decision: d, view, seat: this.ctx.seat, stops: this.stops, enabled: true });
       if (verdict.act === 'stop') {
-        // A stop is a hand-back, not a failure: auto stays armed and the run
-        // resets, because the player is about to look at this window.
         this.autoRun = 0;
-        this.note = { kind: 'waiting', reason: verdict.reason };
+        if (this.fastForward) {
+          // Fast forward is a one-shot hand-back. Every stop verdict ends it;
+          // ignoring even one would let this loop keep acting at speed.
+          this.fastForward = false;
+          this.autoActedSeq = null;
+          this.note = { kind: 'fast-stopped', reason: verdict.reason };
+        } else {
+          // A stop in persistent Auto leaves the mode armed: the player may
+          // answer this window and Auto resumes after it.
+          this.note = { kind: 'waiting', reason: verdict.reason };
+        }
         return;
       }
       index = verdict.index;
@@ -366,7 +436,10 @@ export class SeatPanelState {
 
     this.autoActedSeq = d.seq;
     this.autoRun += 1;
-    if (this.auto) {
+    if (this.fastForward) {
+      this.fastPassed += 1;
+      this.note = { kind: 'fast-passing', count: this.fastPassed };
+    } else if (this.auto) {
       this.autoPassed += 1;
       this.note = { kind: 'passing', count: this.autoPassed };
     } else {
@@ -386,8 +459,10 @@ export class SeatPanelState {
     // A new match is a new opt-in: auto never carries across a match
     // boundary on its own.
     this.auto = false;
+    this.fastForward = false;
     this.autoRun = 0;
     this.autoPassed = 0;
+    this.fastPassed = 0;
     // The floor is a preference, not an opt-in, so it comes back on across a
     // match boundary the way it starts: on. Only its runaway guards or the
     // player's own switch turn it off.
@@ -423,6 +498,19 @@ export class SeatPanelState {
 
   primary(): Option | null {
     return this.pending !== null && this.pending.seq !== this.postedSeq ? primaryOf(this.pending) : null;
+  }
+
+  /** passOption is the dedicated HUD action, resolved by kind and carrying its own wire index. */
+  get passOption(): Option | null {
+    const d = this.active;
+    if (d?.kind !== 'priority') return null;
+    return d.options.find((o) => o.kind === 'pass') ?? null;
+  }
+
+  /** concedeOption is rendered by the page-level quiet control, never in the action list. */
+  get concedeOption(): Option | null {
+    const d = this.active;
+    return d?.options.find(isConcede) ?? null;
   }
 
   /**
@@ -468,10 +556,11 @@ export class SeatPanelState {
   click(index: number) {
     const d = this.pending;
     if (d === null || d.seq === this.postedSeq || this.busy) return;
-    const opt = d.options[index];
+    const opt = optionAt(d, index);
     if (opt === undefined) return;
     // A human always wins: touching an option takes the wheel back before
     // anything is posted, so auto cannot answer the next window either.
+    this.cancelFastForward();
     this.suspendAuto('human');
     if (isConcede(opt)) {
       if (this.confirming) void this.post([index]);
@@ -496,10 +585,21 @@ export class SeatPanelState {
   toggle(index: number) {
     const d = this.pending;
     if (d === null || d.seq === this.postedSeq || this.busy) return;
-    if (d.options[index] === undefined) return;
+    if (optionAt(d, index) === undefined) return;
+    this.cancelFastForward();
     this.suspendAuto('human');
     this.confirming = false;
     this.picked = pickOption(d, index, this.picked);
+  }
+
+  /** passClick posts only the pass-by-kind option, using its own wire index. */
+  passClick() {
+    const d = this.pending;
+    const pass = this.passOption;
+    if (d === null || pass === null || this.busy) return;
+    this.cancelFastForward();
+    this.suspendAuto('human');
+    void this.post([pass.index]);
   }
 
   /** primaryClick posts the primary-by-kind option directly. */
@@ -507,6 +607,7 @@ export class SeatPanelState {
     const d = this.pending;
     const p = d ? primaryOf(d) : null;
     if (d === null || p === null || d.seq === this.postedSeq || this.busy) return;
+    this.cancelFastForward();
     this.suspendAuto('human');
     void this.post([p.index]);
   }
@@ -515,10 +616,11 @@ export class SeatPanelState {
   confirmConcede() {
     const d = this.pending;
     if (d === null || !this.confirming || this.busy) return;
-    const idx = d.options.findIndex(isConcede);
-    if (idx < 0) return;
+    const concede = d.options.find(isConcede);
+    if (!concede) return;
+    this.cancelFastForward();
     this.suspendAuto('human');
-    void this.post([idx]);
+    void this.post([concede.index]);
   }
 
   /** submit posts the picked set — gated on min/max; a rejected answer is recovered from, never treated as impossible. */
@@ -526,6 +628,7 @@ export class SeatPanelState {
     const d = this.pending;
     if (d === null || d.seq === this.postedSeq || this.busy) return;
     if (this.picked.length < d.min || this.picked.length > d.max) return;
+    this.cancelFastForward();
     this.suspendAuto('human');
     void this.post([...this.picked]);
   }

@@ -24,9 +24,9 @@
    * a callback to the seat's own state — this component never reads or
    * writes storage and never posts.
    *
-   * Colour says one thing only: warm --initiative when the turn is yours,
-   * cool --offered when it is someone else's. That is the same grammar the
-   * seat panel and the identity bars already speak.
+   * The shard's perimeter says one thing only: the active seat's identity
+   * colour. It is full-strength when that seat is yours and recedes when it
+   * is not; the current-step fill keeps the existing initiative grammar.
    */
   let { view, seats, seat = null, stops = null, onToggle = null }: {
     view: View;
@@ -151,7 +151,7 @@
 <style>
   /*
    * The instrument register: cool, flat, hairline-divided. The track is a
-   * band, not a row of buttons — the phase groups are separated by rules
+   * compact shard floating over felt, not a page-wide band or row of buttons — the phase groups are separated by rules
    * rather than by gaps, so `beginning`, `combat` and `ending` read as units
    * at a glance and the twelve cells never read as twelve equal boxes.
    */
@@ -159,20 +159,25 @@
     display: flex;
     flex-direction: column;
     width: 100%;
-    background: var(--instrument);
+    background: color-mix(in srgb, var(--instrument) 94%, transparent);
     color: var(--ink-inst);
+    border: 1px solid color-mix(in srgb, var(--seat) 34%, var(--edge-inst));
+    border-radius: var(--radius);
+    backdrop-filter: blur(8px);
+    overflow: hidden;
     /* The one state colour on the track: warm when the initiative is yours. */
     --now: var(--offered);
   }
   .phase-track.yours {
     --now: var(--initiative);
+    border: 2px solid var(--seat);
   }
 
   .head {
     display: flex;
     align-items: baseline;
     gap: var(--sp-3);
-    padding: var(--sp-2) var(--sp-3);
+    padding: var(--sp-1) var(--sp-3);
     border-bottom: 1px solid var(--edge-inst);
     min-width: 0;
   }
@@ -225,7 +230,7 @@
     display: flex;
     flex-direction: column;
     gap: 1px;
-    padding: var(--sp-1) var(--sp-2) var(--sp-2);
+    padding: 2px var(--sp-1) var(--sp-1);
     border-right: 1px solid var(--edge-inst);
     flex: 1 1 0;
     min-width: 0;
@@ -253,7 +258,7 @@
     justify-content: center;
     flex: 1 1 auto;
     min-width: 0;
-    padding: var(--sp-1) var(--sp-2) calc(var(--sp-1) + 4px);
+    padding: 2px var(--sp-1) 6px;
     background: var(--instrument-raised);
     border: 0;
     border-bottom: 2px solid transparent;
