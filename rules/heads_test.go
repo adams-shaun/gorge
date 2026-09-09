@@ -562,26 +562,37 @@ import (
 // different games. A head move this large with a changed winner would have
 // meant a card primitive moved and would not have been mergeable on this
 // reasoning.
+// Head history, kept as prose rather than as dead maps: jj-f01 moved all
+// four before this by making the cast proposal a transaction (601.2a push,
+// then the 601.2c target ask, then 601.2h payment), a pure reordering --
+// intent and event counts were byte-identical at 2, 6 and 8 seats and only
+// 4 seats gained anything, with every winner and turn count unchanged.
+// Before that, jj-cmb moved them by adding a CR 510.4 priority round inside
+// the combat damage step and dropping a phantom post-game_over `step` event.
 var acceptanceHeads = map[int]string{
-	// jj-f01 moved all four: the cast proposal became a transaction, so the
-	// event ORDER within every targeted cast changed -- CR 601.2a's push now
-	// precedes the 601.2c target ask, and the 601.2h payment and the 601.2i
-	// cast trigger follow it, where payment used to happen at the ask.
+	// jj-cont moved all four AND changed the 4-seat winner. Unlike every head
+	// move above, this one is NOT a reordering: the CR 704.5j legend rule now
+	// really removes duplicate legendary permanents that the engine used to
+	// leave in play, so the games genuinely differ -- turn counts move (4
+	// seats 29 -> 32, 6 seats 40 -> 36, 8 seats 54 -> 67) and at 4 seats the
+	// winner changes from mono-black-aggro to death-n-taxes.
 	//
-	// The evidence that this is a reordering and not different games: at 2, 6
-	// and 8 seats the intent AND event counts are byte-identical across the
-	// change (348/1920, 2149/10336, 3808/17530) while the head moves -- the
-	// same events in a different order. Only 4 seats gains anything (1335 ->
-	// 1338 intents, 6657 -> 6668 events), which is a proposal that now aborts
-	// BEFORE payment rather than after and so asks differently. Winners and
-	// turn counts are unchanged at every seat count (death-n-taxes 13,
-	// mono-black-aggro 29, mono-green-stompy 40, mono-red-goblins 54) and the
-	// coverage ratchet is untouched, which is what says no card primitive
-	// moved. Measured by the controller at the gate, not taken from the report.
-	2: "19570467b7f8d6ac",
-	4: "4d7247953d8f8df9",
-	6: "2e87727d3544e89d",
-	8: "3b8fa59e5041aff9",
+	// A changed winner is normally the signal to REFUSE the regeneration, and
+	// it is refused on the "same games, more decisions" reasoning this comment
+	// used to carry. It is accepted here on a different and explicit one: the
+	// repo decks really do field duplicate legendaries, so the old event
+	// streams recorded boards the rules forbid. Measured, not assumed --
+	// death-n-taxes runs 2x Karakas, 4x Mother of Runes and 4x Thalia,
+	// Guardian of Thraben, and eldrazi-stompy 2x Umezawa's Jitte. Removing an
+	// illegal permanent mid-game changes what happens next, and death-n-taxes
+	// is the deck most affected, so a different result at 4 seats is the fix
+	// working rather than a primitive moving. The coverage ratchet is
+	// untouched and `make sim` still replays 20/20 byte-identically, which is
+	// what says determinism and card support are intact.
+	2: "9baa1b561890285a",
+	4: "ed4d104ad744ef10",
+	6: "a1d2e7b4a25794c9",
+	8: "1d2ed9a659200cb3",
 }
 
 func TestHeads(t *testing.T) {
