@@ -235,7 +235,6 @@ func TestCR506ReturnedBlockerIsRemovedFromCombat(t *testing.T) {
 }
 
 func TestCR511AttackerPersistsThroughEndCombatStep(t *testing.T) {
-	requireCR601Audit(t, "CR 511.3: entering end of combat removes attackers too early")
 	e := crResolutionEngine(t, []string{"Memnite"}, nil)
 	a := crAbortMove(t, e, 0, "Memnite", state.ZBattlefield)
 	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{a}})
