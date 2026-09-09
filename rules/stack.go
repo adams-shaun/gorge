@@ -235,19 +235,37 @@ func (e *Engine) legalTargetCandidates(p state.PlayerID, source state.ObjID, sa 
 	spec := sa.Params["ValidTgts"]
 	zones := targetZones(sa)
 	var out []targetCandidate
+	// Players are offered only alongside the default battlefield search and
+	// only when the spec can name one. A spec that routes elsewhere
+	// (TgtZone$ Graveyard/Hand/Exile) targets objects only -- never a player.
 	if len(zones) == 1 && zones[0] == state.ZBattlefield && targetsPlayers(spec) {
 		for _, q := range e.G.AliveFrom(0) {
 			out = append(out, targetCandidate{kind: "player", player: q})
 		}
 	}
+	// Resolve the source ONCE for the whole census -- for an ability this is
+	// the Source permanent, not the Face-less stack object. Every protection
+	// test below is guarded on the candidate's zone, because a permanent's
+	// static ability functions only on the battlefield (CR 604.3), so a
+	// printed protection does not withhold a target sitting in the
+	// Graveyard/Hand/Exile that a TgtZone$ spec is asking about.
 	protSrc := e.protectionSource(source)
 	for _, z := range zones {
 		if z == state.ZStack {
-			// The stack is shared, so enumerate it once rather than once per
-			// player. Face-less ability objects remain outside this task's
-			// targetable population, matching askTarget's existing behaviour.
+			// The stack is a single, shared sequence, not a per-seat zone, so
+			// its objects are enumerated ONCE each -- labelled with the
+			// object's own controller -- rather than once per alive seat,
+			// which would offer the same spell N times in an N-seat game and
+			// drift the option list. Face-less ability objects remain outside
+			// the targetable population (see the TargetType$ row in AGENTS.md).
 			for _, oid := range e.G.Zone(state.ZStack, 0) {
 				o := e.G.Obj(oid)
+				// CR 115.5: a spell or ability on the stack is an illegal
+				// target for itself. This census runs after PutOnStack or
+				// AbilityPush, so source is already that object atop the
+				// stack -- its own id must never be offered, or a
+				// counterspell would counter itself. Only the source OBJECT
+				// is excluded, never a different copy of the same card.
 				if o == nil || o.Face() == nil || oid == source {
 					continue
 				}
@@ -258,6 +276,8 @@ func (e *Engine) legalTargetCandidates(p state.PlayerID, source state.ObjID, sa 
 			}
 			continue
 		}
+		// Hand is the chooser's own hand only (CR 701.15a); the other
+		// non-battlefield zones are public, so every seat's slice is offered.
 		players := e.G.AliveFrom(0)
 		if z == state.ZHand {
 			players = []state.PlayerID{p}
@@ -265,6 +285,11 @@ func (e *Engine) legalTargetCandidates(p state.PlayerID, source state.ObjID, sa 
 		for _, q := range players {
 			for _, oid := range e.G.Zone(z, q) {
 				o := e.G.Obj(oid)
+				// CR 702.16c withholds a permanent protected from the
+				// targeting source's qualities; a CantTarget restriction
+				// (Vines of Vastwood) withholds one from the spoke player.
+				// Both function only on the battlefield (CR 604.3), the same
+				// gate as protection above. CR 115.5 excludes the source.
 				if o != nil && o.Face() != nil && oid != source &&
 					effects.MatchesSpecFrom(e.G, spec, oid, p, source) &&
 					!(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc)) &&
