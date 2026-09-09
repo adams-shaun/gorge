@@ -17,7 +17,6 @@
     mulliganPhase,
     toneOf,
   } from '../lib/seatpanel.svelte';
-  import { actionable } from '../lib/autopilot';
   import { optionsByObj, type CardOptions } from '../lib/cardoptions';
   import { loadLogShown, saveLogShown, safeStorage, type LogScope } from '../lib/logshown';
   import { everyVisibleCard, quadrantFor } from '../lib/board';
@@ -97,14 +96,11 @@
     m.view && seatCtx ? (m.view.players.find((p) => p.seat === seatCtx.seat) ?? null) : null,
   );
 
-  // Generic decisions belong to the rail flyout. Mulligan alone keeps the
-  // board centre, where the opening hand is the whole task rather than a HUD.
+  // Generic decisions belong to the clock's ACTIONS tab. Mulligan alone
+  // keeps the board centre, where the opening hand is the whole task rather
+  // than a HUD.
   const mulligan = $derived(panel ? mulliganPhase(panel.active) : null);
   const concede = $derived(panel?.concedeOption ?? null);
-  const actionReady = $derived.by(() => {
-    const d = panel?.active;
-    return !!(d && seatCtx && d.kind === 'priority' && m.view?.priority === seatCtx.seat && actionable(d));
-  });
   // The board's card-options index (ui21): the pending decision grouped by
   // the object each option concerns. For a seated view this is exactly the
   // decision the seat must answer now — the same decision the seat panel
@@ -200,6 +196,9 @@
           stops={panel ? panel.stops : null}
           onToggle={panel ? (step, side) => panel.toggleStop(step, side) : null}
           mulligan={mulligan !== null}
+          controls={panel && seatCtx && m.match !== null && !finished && mulligan === null && !m.view.over
+            ? { state: panel, ctx: seatCtx, table, match: m.match }
+            : null}
         />
         {#each m.view.players as p (p.seat)}
           <IdentityBar
@@ -241,42 +240,6 @@
       </section>
       <aside class="rail">
         <Rail view={m.view} seats={m.seats} decision={seated ? null : m.decision} emphasizeTop={seated} events={m.dvr.events} showLog={showLog} onToggleLog={toggleLog} />
-        {#if seated && seatCtx && panel && m.match !== null && !finished && mulligan === null && !m.view.over}
-          <!-- One owner for generic prompts/options: this rail flyout. The
-               board carries only mulligan, so two lists can never disagree. -->
-          <div class="action-dock" data-action-dock>
-            <button
-              class="action-arrow"
-              class:ready={actionReady}
-              type="button"
-              aria-label="Show available actions"
-              data-action-arrow
-            ><span aria-hidden="true">&lt;&lt;</span><span>Actions</span></button>
-            <div class="action-surface" data-action-flyout>
-              <div class="surface-controls">
-                <button
-                  class="pass"
-                  type="button"
-                  data-pass
-                  onclick={() => panel.passClick()}
-                  disabled={!panel.passOption || panel.busy}
-                >Pass</button>
-                <button
-                  class="fast"
-                  class:on={panel.fastForward}
-                  type="button"
-                  data-fast-forward
-                  aria-pressed={panel.fastForward}
-                  onclick={() => { const view = m.view; if (view) { panel.startFastForward(); panel.considerAuto(view); } }}
-                  disabled={!panel.active || panel.busy}
-                >Fast forward</button>
-              </div>
-              {#key m.match}
-                <SeatPanel view={m.view} seats={m.seats} ctx={seatCtx} table={table} match={m.match} state={panel} placement="flyout" />
-              {/key}
-            </div>
-          </div>
-        {/if}
       </aside>
       {#if panel && concede}
         <div class="concede-control">
@@ -366,107 +329,6 @@
   .rail :global(.logbar) {
     padding-right: 5.5rem;
   }
-  .action-dock {
-    /* One forgiving hover region: the hidden surface, transparent seam bridge
-       and << handle are descendants of this box. Losing hover delays closure,
-       so a diagonal handle-to-panel path does not retract under the pointer. */
-    --dock-close-delay: 180ms;
-    position: absolute;
-    top: 50%;
-    left: 0;
-    width: min(26rem, calc(100vw - 17rem - var(--sp-2)));
-    transform: translate(-100%, -50%);
-    z-index: 8;
-  }
-  .action-dock::after {
-    content: '';
-    position: absolute;
-    top: calc(-1 * var(--sp-1));
-    right: calc(-1 * var(--sp-1));
-    bottom: calc(-1 * var(--sp-1));
-    width: var(--sp-2);
-  }
-  .action-arrow {
-    position: absolute;
-    top: 0;
-    left: 100%;
-    z-index: 2;
-    display: flex;
-    justify-content: space-between;
-    gap: var(--sp-1);
-    width: 6rem;
-    border: 1px solid var(--edge-inst);
-    border-left: 0;
-    border-radius: 0 var(--radius) var(--radius) 0;
-    padding: var(--sp-1) var(--sp-2);
-    background: var(--instrument);
-    color: var(--ink-inst);
-    font-family: var(--font-ui);
-    font-size: var(--t-12);
-    cursor: pointer;
-  }
-  .action-arrow.ready {
-    border-right-color: var(--initiative);
-    color: var(--initiative);
-    font-weight: 600;
-  }
-  .action-surface {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transform: translateX(var(--sp-2));
-    background: var(--instrument);
-    border: 1px solid var(--edge-inst);
-    border-radius: var(--radius) 0 var(--radius) var(--radius);
-    overflow: hidden;
-    transition:
-      transform 0.14s ease-out var(--dock-close-delay),
-      opacity 0.14s ease-out var(--dock-close-delay),
-      visibility 0s linear calc(var(--dock-close-delay) + 0.14s);
-  }
-  .action-dock:hover .action-surface,
-  .action-dock:focus-within .action-surface {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transform: translateX(0);
-    transition-delay: 0s;
-  }
-  .surface-controls {
-    display: flex;
-    justify-content: flex-end;
-    gap: 1px;
-    padding: 2px;
-    border-bottom: 1px solid var(--edge-inst);
-  }
-  .surface-controls button {
-    border: 0;
-    border-bottom: 2px solid transparent;
-    border-radius: 0;
-    padding: var(--sp-1) var(--sp-2);
-    background: var(--instrument-raised);
-    color: var(--ink-inst);
-    font-family: var(--font-ui);
-    font-size: var(--t-12);
-    cursor: pointer;
-  }
-  .surface-controls button:disabled {
-    color: var(--ink-faint);
-    cursor: default;
-  }
-  .surface-controls .pass:not(:disabled),
-  .surface-controls .fast.on {
-    border-bottom-color: var(--offered);
-  }
-  .action-surface :global(.seat-panel.flyout) {
-    width: 100%;
-    min-width: 0;
-    max-height: min(32vh, 24rem);
-    border: 0;
-    border-radius: 0;
-    backdrop-filter: none;
-  }
-
   .concede-control {
     position: fixed;
     top: var(--sp-2);

@@ -1,5 +1,6 @@
 import { mount } from 'svelte';
-import type { CardView, PlayerView, SeatInfo, View } from '../protocol';
+import type { CardView, Decision, PlayerView, SeatInfo, View } from '../protocol';
+import { SeatPanelState } from '../lib/seatpanel.svelte';
 import '../app.css';
 import BoardStage from './BoardStage.svelte';
 
@@ -18,10 +19,30 @@ const players: PlayerView[] = Array.from({ length: count }, (_, seat) => {
   };
 });
 const seats: SeatInfo[] = players.map((p, seat) => ({ name: p.name, deck: 'fixture', colour: colours[seat] }));
+const noPass = new URLSearchParams(location.search).get('decision') === 'choose';
+const decision: Decision = noPass
+  ? {
+      seq: 8, player: 0, kind: 'choose', prompt: 'Choose two', min: 0, max: 2,
+      options: [
+        { index: 7, kind: 'choose', label: 'Choose one', player: 0 },
+        { index: 19, kind: 'choose', label: 'Choose two', player: 0 },
+      ],
+    }
+  : {
+      seq: 7, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1,
+      options: [
+        { index: 1, kind: 'cast', label: 'Cast a spell', player: 0 },
+        { index: 42, kind: 'pass', label: 'Pass priority', player: 0 },
+        { index: 99, kind: 'concede', label: 'Concede', player: 0 },
+      ],
+    };
 const view: View = {
   viewer: 0, visibility: 'seat', turn: 1, round: 1, step: 'main1', phase: 'main1', active: 0, priority: 0,
-  over: false, draw: false, winner: null, stack: [], pending: [], players,
+  over: false, draw: false, winner: null, stack: [], pending: [], players, decision,
 };
+const panel = new SeatPanelState('fixture', 1, { seat: 0, token: 'geometry' }, null);
+panel.skipEmpty = false;
+panel.adoptView(decision);
 
 const target = document.querySelector('#app')!;
 target.innerHTML = '<main class="table"><section class="stage"></section><aside></aside></main>';
@@ -31,6 +52,7 @@ mount(BoardStage, {
     view, seats, seat: 0,
     stops: { yours: new Set<string>(), opponents: new Set<string>() },
     onToggle: () => {},
+    controls: { state: panel, ctx: { seat: 0, token: 'geometry' }, table: 'fixture', match: 1 },
   },
 });
 

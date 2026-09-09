@@ -58,7 +58,12 @@
      it; Board and PhaseTrack share the row height so the reservation and the
      painted band cannot drift apart. */
   --phase-track-row-h: 2rem;
+  --hot-strip-h: 1.75rem;
+  --phase-instrument-h: calc(var(--phase-track-row-h) + var(--hot-strip-h));
   --phase-card-clearance: var(--sp-6);
+  /* Opening-hand thumbnails shrink to this floor before the fixed one-row
+     layout clips; the full CardDetail remains the reading surface. */
+  --opening-card-min-w: 2rem;
 
   /* Plex was drawn for technical material; the slight mechanical squareness
      suits an instrument, and its tabular figures are real. Mono is for VALUES

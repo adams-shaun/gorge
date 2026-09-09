@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
-import type { PlayerView, SeatInfo, View } from '../protocol';
+import type { SeatInfo, View } from '../protocol';
 import type { Stops } from '../lib/autopilot';
 import { STEPS } from '../lib/autopilot';
 import { SeatPanelState } from '../lib/seatpanel.svelte';
@@ -72,40 +72,13 @@ describe('PhaseTrack — the clock', () => {
     expect(html).not.toContain('>7<');
   });
 
-  // ui15: the live table route hands the track a view whose players carry
-  // names but a `seats` array that is EMPTY (the one-shot seed in
-  // Table.svelte races the async tables.lookup; see the ui15 report). The
-  // fallback must be the wire's own player name, not the 0-based `Seat N`
-  // placeholder — which reads as an off-by-one beside the 1-based names the
-  // transcript and the seat boxes print.
-  it('names the active player from the view when seats is empty (ui15 discrimination)', () => {
-    const named: PlayerView = {
-      seat: 2, name: 'Player 3', life: 20, lost: false, library_size: 53,
-      hand_size: 7, graveyard_size: 0, hand: [], battlefield: [], graveyard: [],
-      exile: [], pool: {}, command: [], commanders: [], commander_casts: [],
-    };
-    // spectator (seat null), active seat 2, but the seats array is empty.
-    const html = track({ view: { ...view(2, 'upkeep'), players: [named] }, seats: [], seat: null });
-    expect(html).toContain('Player 3’s turn');
-    expect(html).not.toContain('Seat 2');
-  });
-
-  it('names whose turn it is in that seat’s identity colour, and says "Your turn" for the viewer', () => {
-    const mine = seated(view(1, 'upkeep'), stops([], []));
-    expect(mine).toContain('Your turn');
-    expect(mine).toContain('--seat:#30a46c'); // seat 1 is the viewer and is active
-    const theirs = seated(view(0, 'upkeep'), stops([], []));
-    expect(theirs).toContain('alice’s turn');
-    expect(theirs).not.toContain('Your turn');
-    expect(theirs).toContain('--seat:#e5484d');
-  });
-
-  it('keeps turn and round in the cell row and drops the duplicated instruction row', () => {
+  it('keeps only the round in the cell row and drops both halves of the old head row', () => {
     const html = seated(view(1, 'upkeep'), stops([], []));
     expect(html).toContain('data-clock');
+    expect(html).toContain('aria-label="Round 2"');
     expect(html).not.toContain('class="head"');
     expect(html).not.toContain('data-hint');
-    expect(html).not.toMatch(/Click a step/);
+    expect(html).not.toMatch(/Click a step|Your turn|’s turn/);
     // The modifier remains discoverable at the control that uses it.
     expect(cell(html, 'upkeep')).toMatch(/title="[^"]*Shift-click/);
   });
@@ -184,6 +157,6 @@ describe('PhaseTrack — stops', () => {
     expect(html).not.toContain('data-hint');
     // the step is still marked: the clock is the point, the stops are extra
     expect(cell(html, 'main1')).toContain('aria-current="step"');
-    expect(html).toContain('alice’s turn');
+    expect(html).not.toMatch(/Your turn|’s turn/);
   });
 });
