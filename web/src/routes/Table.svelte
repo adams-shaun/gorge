@@ -217,7 +217,12 @@
              covers the seat panel's decision UI (panel at the board's TOP,
              hand at the BOTTOM) and only the card faces claim the pointer. -->
         {#if seated && seatCtx && ownPlayer}
-          <HandFan player={ownPlayer} />
+          <!-- ui23: the hand gets the same card-options index the board does,
+               so a hand card the pending decision offers something to is
+               marked and carries the same options menu (one mechanism, one
+               index, one post path). boardOptions is null for a spectator /
+               when nothing is pending, so no hand card is marked. -->
+          <HandFan player={ownPlayer} options={boardOptions} />
         {/if}
       </section>
       <aside class="rail"><Rail view={m.view} seats={m.seats} decision={seated ? null : m.decision} emphasizeTop={seated} events={m.dvr.events} showLog={showLog} onToggleLog={toggleLog} /></aside>
