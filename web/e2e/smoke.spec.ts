@@ -396,14 +396,13 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
         expect(ownI.y, `${label}: own seat ${seat} identity (y=${ownI.y}) must be BELOW opponent seat ${opp} (y=${oppI.y})`).toBeGreaterThan(oppI.y);
       }
 
-      // 4. The page must have left its loading state (no blank .waiting) and
-      //    produced no browser failure.
-      const waiting = await page.locator('p.waiting').count();
-      // A mounted board coexists with a `Waiting for X...` placeholder while the
-      // opponent is up, so only a page whose board never mounted fails above;
-      // here we merely assert no failure collectors fired on the settled page.
+      // 4. No browser failure on the settled page. The loading-state check is
+      //    the `.handtrack .handfan` + `.quadrant` waitFor above: a seated page
+      //    that hangs never mounts either. A `p.waiting` placeholder is NOT a
+      //    loading state here -- a fully mounted board still shows "Waiting for
+      //    X..." whenever it is the opponent's turn -- so counting it would
+      //    assert nothing.
       expectClean(c, `${label} GET ${join}`);
-      void waiting;
     }
 
     test('seats a human vs a bot at seat 0 and asserts the seated 1v1 layout', async ({ browser, request }) => {
