@@ -134,25 +134,82 @@ func attachedBy(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjI
 	return s != nil && s.AttachedTo == o.ID && s.Zone == state.ZBattlefield
 }
 
+// wordKind classifies a predicate word that is neither in the `predicates`
+// map nor a numeric predicate. It is the single classifier shared by the
+// positive path in MatchesObjectCtx and by the generic non<X> negation in
+// nonPredicate, so a word is either a recognised shape or it is not -- the
+// matcher and UnknownPredicates cannot disagree about it.
+type wordKind int
+
+const (
+	wordUnknown wordKind = iota
+	wordColor
+	wordType
+	wordColorless
+	wordMultiColor
+)
+
+// wordPredicate classifies a bare predicate word. key is the WUBRG letter for
+// wordColor, the corpus type word for wordType, and empty for the two
+// colour-count tests. An unrecognised word is wordUnknown: both sides must
+// fail closed on it, never turn it into an always-true predicate.
+func wordPredicate(p string) (wordKind, string) {
+	if l, is := colorLetter[p]; is {
+		return wordColor, l
+	}
+	switch p {
+	case "Colorless":
+		return wordColorless, ""
+	case "MultiColor":
+		return wordMultiColor, ""
+	}
+	if predicateTypeWords[p] {
+		return wordType, p
+	}
+	return wordUnknown, ""
+}
+
+// wordMatches reports whether an object satisfies a positively-evaluated
+// classifier from wordPredicate. Colorless is "no colour at all" and
+// MultiColor "more than one colour", both read off ColorsOf rather than the
+// face directly -- so a Devoid card (CR 702.114, which ColorsOf already
+// implements) is Colorless, which is the whole point of Devoid.
+func wordMatches(kind wordKind, key string, o *state.Object) bool {
+	switch kind {
+	case wordColor:
+		return strings.Contains(ColorsOf(o), key)
+	case wordType:
+		return hasType(o, key)
+	case wordColorless:
+		return ColorsOf(o) == ""
+	case wordMultiColor:
+		return len(ColorsOf(o)) > 1
+	}
+	return false
+}
+
 // nonPredicate reports whether predicate p has the generic negation shape
 // non<X>, and how to evaluate it. For <X> a colour name it returns that
 // colour's WUBRG letter (isType=false); for <X> a type/supertype/subtype word
 // in the corpus vocabulary it returns isType=true. ok is false for a p that is
 // not a non<X> shape at all, or whose <X> is neither a colour nor a known type
 // word -- the caller must treat that as an unknown predicate and fail closed,
-// never as an always-true !hasType. The four legacy non* entries in `predicates`
-// (nonLand/nonCreature/nonBasic/nonBlack) are matched there first and never
-// reach this path, but this path reproduces their result exactly, so the
-// handwritten entries could be deleted without changing behaviour.
+// never as an always-true !hasType. Only wordColor and wordType negate; a
+// nonColorless / nonMultiColor / nonChosenCard remains unknown. The four
+// legacy non* entries in `predicates` (nonLand/nonCreature/nonBasic/nonBlack)
+// are matched there first and never reach this path, but this path reproduces
+// their result exactly, so the handwritten entries could be deleted without
+// changing behaviour.
 func nonPredicate(p string) (x string, letter string, isType bool, ok bool) {
 	x, has := strings.CutPrefix(p, "non")
 	if !has || x == "" {
 		return "", "", false, false
 	}
-	if l, is := colorLetter[x]; is {
-		return x, l, false, true
-	}
-	if predicateTypeWords[x] {
+	kind, key := wordPredicate(x)
+	switch kind {
+	case wordColor:
+		return x, key, false, true
+	case wordType:
 		return x, "", true, true
 	}
 	return x, "", false, false
@@ -420,6 +477,21 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 				}
 				continue
 			}
+			// Positive counterpart of non<X>: a predicate word that is a colour
+			// name, a type/supertype/subtype word in the corpus vocabulary, or
+			// the colour-count tests Colorless/MultiColor evaluates as its
+			// positive form. The handwritten Legendary/Snow/colour entries in
+			// `predicates` are consulted first (the map lookup above) and keep
+			// winning. An unknown word still fails closed -- never an always
+			// true fallback, which silently widens instead of showing up as a
+			// missing action.
+			if kind, key := wordPredicate(p); kind != wordUnknown {
+				if !wordMatches(kind, key, o) {
+					all = false
+					break
+				}
+				continue
+			}
 			all = false // unknown predicate: never match
 			break
 		}
@@ -502,6 +574,9 @@ func UnknownPredicates(spec string) []string {
 				continue
 			}
 			if _, _, _, ok := nonPredicate(p); ok {
+				continue
+			}
+			if kind, _ := wordPredicate(p); kind != wordUnknown {
 				continue
 			}
 			out = append(out, p)
