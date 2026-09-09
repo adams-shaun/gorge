@@ -80,6 +80,20 @@ type ContinuousEffect struct {
 	// effEffect default) preserved for reporting and for the expiry decision
 	// in rules/layers.go. Cosmetic for a layer effect.
 	Duration string
+	// Permanent marks a resolution-created effect with no stated duration
+	// (CR 611.2a): it lasts until the end of the game, outliving its source
+	// (a one-shot spell is already in the graveyard by the time it registers)
+	// and surviving every EndOfTurnCleanup. Distinct from Duration "Permanent"
+	// on a permanent's OWN static, which CR 611.3b scopes to the source's
+	// battlefield presence -- that case leaves Permanent false and keeps the
+	// source-leaves rule. Set only by the continuous-effect primitives that
+	// build a lasting one-shot (effects/combatfx.go).
+	Permanent bool
+	// RemoveAbilities is a layer-6 ability-removing effect (CR 613.1f/613.4b,
+	// e.g. Humility's RemoveAllAbilities$ True): when an applicable effect
+	// carries it, Derived clears the object's printed (and any earlier-granted)
+	// keywords/abilities before later layer-6 grants re-add any.
+	RemoveAbilities bool
 	// UntilTurn is the turn number at whose END (its cleanup step) this
 	// effect expires, for a Duration$ that spans the controller's NEXT turn
 	// (UntilYourNextTurn, UntilTheEndOfYourNextTurn). Computed at

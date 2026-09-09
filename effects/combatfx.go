@@ -57,7 +57,7 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZBattlefield {
 			continue
 		}
-		registerPumpEffects(h, c, o.ID, att, def, kws)
+		registerPumpEffects(h, c, o.ID, att, def, kws, sa.Params["Duration"])
 	}
 }
 
@@ -81,9 +81,28 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
 			if MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
-				registerPumpEffects(h, c, id, att, def, kws)
+				registerPumpEffects(h, c, id, att, def, kws, sa.Params["Duration"])
 			}
 		}
+	}
+}
+
+// durationTiming maps a Pump/PumpAll Duration$ value to its expiry: an
+// explicitly indefinite shape ("Permanent", CR 611.2a) becomes a Permanent
+// effect that outlives its source and every cleanup; "UntilEndOfCombat"
+// (CR 511.2) becomes a combat-phase-scoped effect, dropped when the
+// end-of-combat step ends; every other value ("", "UntilEndOfTurn", ...)
+// keeps the historic UntilEOT default, dropped by end-of-turn cleanup.
+// The one-sentence rule: a resolution-created one-shot pump honours the
+// duration its script declared instead of being forced to end of turn.
+func durationTiming(dur string) (permanent bool, untilEOT bool) {
+	switch strings.ToLower(strings.TrimSpace(dur)) {
+	case "permanent":
+		return true, false
+	case "untilendofcombat":
+		return false, false
+	default:
+		return false, true
 	}
 }
 
@@ -93,18 +112,21 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 // Skipping a zero/empty half avoids polluting Engine.continuous with an
 // effect that would never do anything (a keyword-only Pump has no stat
 // change to register, and vice versa).
-func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, kws []string) {
+func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, kws []string, dur string) {
+	permanent, untilEOT := durationTiming(dur)
 	if att != 0 || def != 0 {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LPT, Sub: state.SubModify,
-			AddPower: att, AddToughness: def, UntilEOT: true,
+			AddPower: att, AddToughness: def,
+			Duration: dur, Permanent: permanent, UntilEOT: untilEOT,
 		})
 	}
 	if len(kws) > 0 {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
-			Layer: state.LAbilities, AddKeywords: kws, UntilEOT: true,
+			Layer: state.LAbilities, AddKeywords: kws,
+			Duration: dur, Permanent: permanent, UntilEOT: untilEOT,
 		})
 	}
 }
