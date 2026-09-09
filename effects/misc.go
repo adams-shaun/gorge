@@ -546,18 +546,12 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// effCharm chooses CharmNum$ of the Choices$ sub-abilities and runs it, in
-// the chosen order (M2d-2). When the host can ask (a live rules.Engine), it
-// poses the modal choice as a KModes decision -- one "mode" option per
-// Choices$ entry, labelled with the entry's SpellDescription$, Min == Max ==
-// CharmNum$ (default 1) -- and the resolution suspends until the answer
-// re-enters it (rules' resumeResolution sets Ctx.Modes to the chosen SVar
-// names before re-running this effect, so the re-entry below runs exactly
-// the chosen modes; the first pass never reaches that branch). When the
-// host cannot ask (an effects-package test double, or any context with no
-// engine), it falls back to today's deterministic first-mode stand-in with
-// a Note, which is what keeps R-9's no-engine default alive for those
-// contexts.
+// effCharm runs CharmNum$ of the Choices$ sub-abilities in chosen order.
+// Cast spells (CR 601.2b) and triggered abilities (CR 603.3c) arrive with
+// Ctx.Modes pre-seeded from their earlier announcement. A Charm reached only
+// during resolution still poses KModes and suspends until resumeResolution
+// re-enters it with Ctx.Modes. A host that cannot ask retains the deterministic
+// first-mode stand-in and records why with a Note.
 func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	if c.SVars == nil {
 		return

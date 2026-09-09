@@ -1,5 +1,5 @@
 // The mid-resolution ask: an effect that needs a player's decision in the
-// middle of resolving the top of the stack (effCharm's modal pick, or
+// middle of resolving the top of the stack (a nested Charm pick, or
 // effCopySpellAbility's UnlessCost$ may-pay) poses it through
 // effects.Host.Ask, and this file owns what suspends and what resumes.
 //
@@ -34,6 +34,7 @@
 package rules
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -142,16 +143,39 @@ func (e *Engine) SuspendContinuation(sa *cards.SA) {
 	e.contChain = append(e.contChain, sa)
 }
 
-// handleModes applies an answered KModes decision — the engine's one KModes
-// handler, serving both the Charm modal pick ("modes") and the UnlessCost$
-// may-pay ("unless_pay"), which the decision's ResumeKind tags. It records
-// the choice as a ModeChosen event (the log-carried answer a replay
-// re-derives) and hands the chosen options to the suspended resolution's
-// continuation. A KModes answer with no suspended resolution is only
-// reachable from a hand-built decision, never from a real ask; it degrades
-// with a Note rather than panicking, the same totality stance every
-// handler takes.
+// handleModes applies an answered KModes decision. ResumeKind and the trigger
+// drain flag distinguish three lifetimes: a modal spell's CR 601.2b cast
+// proposal, a modal trigger's CR 603.3c placement, and an effect suspended in
+// mid-resolution (including unless-pay). Every branch records ModeChosen; the
+// first two also cache the chosen SVar names on the stack object so resolution
+// executes the announcement without asking again.
 func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
+	// CR 601.2b cast branch: the spell is already provisionally on the stack,
+	// but no targets have been selected and no cost has been paid. Record the
+	// answer on that spell, then resume the cast transaction at target choice.
+	if d.ResumeKind == "cast_modes" {
+		pc := e.cast
+		if pc == nil || pc.ability >= 0 || pc.stackObj == 0 {
+			e.emit(events.Event{Kind: events.Note, Player: in.Player,
+				Text: "cast modes answered with no spell proposal pending"})
+			return
+		}
+		chosen := d.Chosen(in)
+		names := modeChoiceNames(d.ResumeSA, chosen, d.ResumeModes)
+		labels := chosenModeLabels(chosen)
+		if o := e.G.Obj(pc.stackObj); o != nil {
+			if !pc.modeChosen {
+				pc.preModes = append([]string(nil), o.ChosenModes...)
+				pc.modeChosen = true
+			}
+			o.ChosenModes = append([]string(nil), names...)
+		}
+		e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.stackObj, Player: in.Player,
+			Text: strings.Join(labels, ",")})
+		e.continueCast()
+		return
+	}
+
 	// CR 603.3c placement branch: this KModes decision was asked by the
 	// trigger drain (pushTrigger's askTriggerModes) rather than posed
 	// mid-resolution by an effect. There is no suspension to resume -- the
@@ -164,11 +188,8 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 	if e.drainAwaitsModes {
 		e.drainAwaitsModes = false
 		chosen := d.Chosen(in)
-		labels := make([]string, 0, len(chosen))
-		for _, o := range chosen {
-			labels = append(labels, o.Label)
-		}
-		names := modeChoiceNames(d.ResumeSA, chosen)
+		labels := chosenModeLabels(chosen)
+		names := modeChoiceNames(d.ResumeSA, chosen, d.ResumeModes)
 		if len(e.G.Stack) > 0 {
 			id := e.G.Stack[len(e.G.Stack)-1]
 			if o := e.G.Obj(id); o != nil {
@@ -188,10 +209,7 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 	rp := e.resume
 	e.resume = nil
 	chosen := d.Chosen(in)
-	labels := make([]string, 0, len(chosen))
-	for _, o := range chosen {
-		labels = append(labels, o.Label)
-	}
+	labels := chosenModeLabels(chosen)
 	e.emit(events.Event{Kind: events.ModeChosen, Obj: rp.obj, Player: in.Player,
 		Text: strings.Join(labels, ",")})
 	e.resumeResolution(rp, chosen)
@@ -345,7 +363,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// branch above, exactly as resolveTop's own first pass would
 			// have. The re-entry below just runs the ability's effect.
 		default: // "modes", and "" (a pure outer continuation with no answer)
-			ctx.Modes = modeChoiceNames(rp.sa, chosen)
+			ctx.Modes = modeChoiceNames(rp.sa, chosen, nil)
 		}
 		src := rp.obj
 		if o.Ability != nil {
@@ -478,19 +496,87 @@ func (e *Engine) finishResumption(id state.ObjID) {
 	e.moveResolvedOffStack(e.G.Obj(id))
 }
 
-// modeChoiceNames maps the chosen modal options back to the SVar names of
-// the Choices$ sub-abilities they pick, in the order chosen — the answer
-// effCharm's re-entry reads (Ctx.Modes). The option list is built by
-// effCharm in Choices$ order, so index i names choices[i]; a selected index
-// out of range is dropped, the same degrade-to-nothing stance every
-// resolution path takes.
-func modeChoiceNames(sa *cards.SA, chosen []decision.Option) []string {
-	if sa == nil {
-		return nil
+// chosenModeLabels returns the human-facing labels in answer order.
+func chosenModeLabels(chosen []decision.Option) []string {
+	labels := make([]string, 0, len(chosen))
+	for _, o := range chosen {
+		labels = append(labels, o.Label)
 	}
+	return labels
+}
+
+// modeDecision builds the shared KModes option vocabulary used by spell
+// announcement and triggered-ability placement. charmNum is already resolved
+// by the caller: casting has an effects context available, while placement
+// deliberately accepts only the trigger path's literal/default count.
+func modeDecision(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, charmNum int) *decision.Decision {
 	choices := strings.Split(sa.Params["Choices"], ",")
 	for i := range choices {
 		choices[i] = strings.TrimSpace(choices[i])
+	}
+	return modeDecisionForChoices(p, source, sa, svars, choices, charmNum)
+}
+
+// modeDecisionForChoices is modeDecision over an explicit eligible subset.
+// Casting uses it to omit modes whose mandatory targets cannot be chosen;
+// ResumeModes preserves the SVar vocabulary server-side while Index stays
+// dense for the wire.
+func modeDecisionForChoices(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, choices []string, charmNum int) *decision.Decision {
+	if charmNum < 1 {
+		charmNum = 1
+	}
+	if charmNum > len(choices) {
+		charmNum = len(choices)
+	}
+	d := &decision.Decision{Player: p, Kind: decision.KModes, Min: charmNum, Max: charmNum,
+		Source: source, ResumeKind: "modes", ResumeSA: sa,
+		ResumeModes: append([]string(nil), choices...),
+		Prompt:      "Choose " + strconv.Itoa(charmNum) + " mode(s)"}
+	for i, name := range choices {
+		label := name
+		if sub := cards.ResolveSVar(svars, name); sub != nil {
+			if desc := strings.TrimSpace(sub.Params["SpellDescription"]); desc != "" {
+				label = desc
+			}
+		}
+		d.Options = append(d.Options, decision.Option{
+			Index: i, Kind: "mode", Label: label, Obj: source, Player: p})
+	}
+	return d
+}
+
+// modeLabels maps SVar names to their human-facing option labels. abortCast
+// uses it for the reverse ModeChosen marker that accompanies restoring the
+// pre-proposal ChosenModes cache.
+func modeLabels(sa *cards.SA, svars map[string]string, names []string) []string {
+	labels := make([]string, 0, len(names))
+	for _, name := range names {
+		label := name
+		if sub := cards.ResolveSVar(svars, name); sub != nil {
+			if desc := strings.TrimSpace(sub.Params["SpellDescription"]); desc != "" {
+				label = desc
+			}
+		}
+		labels = append(labels, label)
+	}
+	return labels
+}
+
+// modeChoiceNames maps the chosen modal options back to the SVar names of
+// the Choices$ sub-abilities they pick, in the order chosen — the answer
+// effCharm's re-entry reads (Ctx.Modes). eligible carries a filtered cast
+// decision's server-only vocabulary; nil falls back to the SA's full Choices$
+// list for placement and mid-resolution decisions. Out-of-range indices drop.
+func modeChoiceNames(sa *cards.SA, chosen []decision.Option, eligible []string) []string {
+	if sa == nil {
+		return nil
+	}
+	choices := eligible
+	if choices == nil {
+		choices = strings.Split(sa.Params["Choices"], ",")
+		for i := range choices {
+			choices[i] = strings.TrimSpace(choices[i])
+		}
 	}
 	names := make([]string, 0, len(chosen))
 	for _, o := range chosen {

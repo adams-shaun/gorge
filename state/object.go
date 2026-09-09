@@ -77,18 +77,14 @@ type Object struct {
 	ChosenType   string
 	ChosenNumber int32
 
-	// ChosenModes carries a modal triggered ability's CR 603.3c mode choice
-	// from placement to resolution: the SVar names of the chosen
-	// Choices$ sub-abilities, in execution order. A modal trigger asks
-	// KModes when its ability is put on the stack (rules.pushTrigger), and
-	// resolution (rules.resolveTop) builds Ctx.Modes from this so effCharm
-	// runs exactly the chosen modes instead of asking again. It is a cache
-	// of an already-logged fact -- the answer to the KModes decision that
-	// was asked at placement, which a replay re-poses and re-answers
-	// through the identical code path -- not a second source of truth, so
-	// it does not violate the state-through-events rule. Nil for a trigger
-	// with no Choices$ clause, for every non-triggered ability, and for any
-	// as-cast modal choice (which this engine still asks at resolution).
+	// ChosenModes carries a modal spell's CR 601.2b announcement or a modal
+	// triggered ability's CR 603.3c placement choice to resolution: the SVar
+	// names of the chosen Choices$ sub-abilities, in execution order.
+	// Resolution builds Ctx.Modes from this so effCharm runs exactly the
+	// chosen modes instead of asking again. It is a cache maintained beside
+	// the already-logged ModeChosen marker; replay re-poses and re-answers the
+	// same decision through the identical code path, so it is not a second
+	// source of truth. Nil when no modal announcement has been made.
 	ChosenModes []string
 
 	// AttachedTo is the permanent this Aura or Equipment is attached to; 0
