@@ -679,10 +679,32 @@ var acceptanceHeads = map[int]string{
 	// across repeated runs, `make sim` is 20/20 replay OK, and the CR
 	// conformance lane is unchanged at 2 FAIL / 83 PASS, the same two F12
 	// Charm arms.
+	// pc1 moved ONE head, 8 seats. A type word used as a predicate -- the
+	// `Goblin` in `Creature.Goblin+Other+YouCtrl` -- was not in the
+	// `predicates` map, so it failed closed and matched nothing. Goblin
+	// Chieftain's "other Goblin creatures you control get +1/+1 and have
+	// haste" therefore applied to no creature at all, and the same was true
+	// of every lord whose Affected$ names a creature type.
+	//
+	// The seat instrumented the divergence rather than guessing it: the
+	// 8-seat log is byte-identical up to the attackers event, which goes
+	// `[12 13]` -> `[12 14]`, and a board snapshot at that attack shows
+	// Goblin Piledriver at 1/2 before and 2/3 with haste after. Different
+	// winner, 56 turns against 65.
+	//
+	// Only 8 seats moves because mono-red-goblins is deck index 6 of the 12,
+	// and the 2-, 4- and 6-seat games seat only indices 0..1, 0..3 and 0..5.
+	// The one game that draws the deck is the one whose head moves, which is
+	// the check that this reaches only what it should.
+	//
+	// Measured by the controller at the gate on a branch rebased onto this
+	// main: the new head is stable across repeated runs, the ratchet is
+	// unchanged at 0 of 436, and the CR lane is unchanged at 2 FAIL / 83
+	// PASS. The seat's own reported head predates the b2 and f05 merges.
 	2: "cf9a4dde728b3d2b",
 	4: "eb7d29ebeee83e66",
 	6: "68170fbafc180911",
-	8: "bc60ac8c788cb1e4",
+	8: "9afaf73a115d1b29",
 }
 
 func TestHeads(t *testing.T) {
