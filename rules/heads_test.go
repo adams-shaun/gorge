@@ -563,10 +563,16 @@ import (
 // meant a card primitive moved and would not have been mergeable on this
 // reasoning.
 var acceptanceHeads = map[int]string{
-	2: "140fd45769224537",
-	4: "30d8609386c1945a",
-	6: "ce43fc4ee5b9c2fd",
-	8: "a753125d2f521936",
+	// jj-cmb moved all four: combat gained a CR 510.4 priority round INSIDE the
+	// combat damage step between the first-strike and regular passes (the round
+	// that used to sit at the next step boundary is gone, which is why the
+	// intent counts are unchanged at 348/1335/2149/3808), and the log no longer
+	// emits a phantom `step` event after `game_over` -- measured by diffing the
+	// 2-seat event stream against main, event by event, before regenerating.
+	2: "490516cb66bcc061",
+	4: "00577379e705ad1e",
+	6: "1331f514efb06839",
+	8: "89a83d74c174495c",
 }
 
 func TestHeads(t *testing.T) {

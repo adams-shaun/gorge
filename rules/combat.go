@@ -30,6 +30,7 @@ package rules
 
 import (
 	"fmt"
+	"math"
 	"sort"
 
 	"github.com/adams-shaun/gorge/decision"
@@ -237,13 +238,130 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 // rules-ignorant client only knows it may pick any subset of the pairs it
 // was offered). With a single opponent the pair list has exactly one option
 // per creature, so this guard is inert in two-player games.
-func validateAttackers(d *decision.Decision, in decision.Intent) error {
+//
+// Task jj-cmb (F38) adds the CR 508.1c/d requirement and restriction checks
+// on top of the duplicate-defender guard: validateAttackDeclaration rejects
+// a declaration that does not maximise must-attack requirements subject to
+// attack restrictions (e.g. Silent Arbiter's MaxAttackers).
+func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) error {
 	seen := make(map[state.ObjID]bool, len(in.Choices))
 	for _, o := range d.Chosen(in) {
 		if seen[o.Obj] {
 			return fmt.Errorf("attacker %d declared against more than one defender", o.Obj)
 		}
 		seen[o.Obj] = true
+	}
+	return e.validateAttackDeclaration(d, in)
+}
+
+// mustAttackRequired reports whether id is a creature that must attack this
+// combat (CR 508.1d), under the active player's control and able to attack.
+// Only the unconditional self-attack and broad-creature MustAttack statics
+// are read: a MustAttack static carrying a condition, an alternative cost or
+// any other parameter the requirement solver cannot evaluate DENIES (it is
+// not counted as required), which is the safe direction for a requirement —
+// erring toward requiring a creature that already attacks changes nothing,
+// while falsely requiring one that cannot legitimately attack would make a
+// legal declaration unanswerable.
+func (e *Engine) mustAttackRequired(id state.ObjID) bool {
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZBattlefield || o.Controller != e.G.Active {
+		return false
+	}
+	f := o.Face()
+	if f == nil || !e.canAttack(id) {
+		return false
+	}
+	for _, st := range f.Statics {
+		if st.Mode != "MustAttack" {
+			continue
+		}
+		// A conditional or non-self requirement is out of scope for this
+		// solver: do not count it as required.
+		for k := range st.Params {
+			switch k {
+			case "Mode", "ValidCreature", "Description":
+			default:
+				return false
+			}
+		}
+		v := st.Params["ValidCreature"]
+		if v == "" {
+			v = "Card.Self"
+		}
+		if effects.MatchesSpecCtx(e.G, v, id, e.specCtx(id, o.Controller)) {
+			return true
+		}
+	}
+	return false
+}
+
+// maxAttackers reports the tightest total-attacker ceiling in force from
+// every applicable AttackRestrict static, or a very large number when none
+// applies. Only the MaxAttackers$ parameter is read (Silent Arbiter's shape);
+// a per-defender ValidDefender$ scoping is treated as global for the sake of
+// this bounded solver, which is only ever consulted when a MustAttack
+// requirement or an AttackRestrict static is actually present.
+func (e *Engine) maxAttackers() int {
+	const huge = int(^uint(0) >> 1)
+	maxAllowed := huge
+	for _, sv := range e.activeStatics("AttackRestrict") {
+		// parseAmount defaults an absent/invalid MaxAttackers$ to the maximum
+		// int32, so an unparseable restriction contributes no ceiling.
+		n := parseAmount(sv.Params["MaxAttackers"], math.MaxInt32)
+		if int(n) < maxAllowed {
+			maxAllowed = int(n)
+		}
+	}
+	return maxAllowed
+}
+
+// validateAttackDeclaration enforces CR 508.1c/d on the chosen attacker set.
+// The active player must attack with as many creatures that fulfil a
+// requirement (MustAttack) as possible, subject to restrictions
+// (AttackRestrict's MaxAttackers), so a declaration that omits a required
+// creature it was legal to include is rejected, as is one that exceeds a
+// ceiling. When no requirement and no restriction is in force (the ordinary
+// game), the checks are inert.
+func (e *Engine) validateAttackDeclaration(d *decision.Decision, in decision.Intent) error {
+	chosen := d.Chosen(in)
+	chosenSet := make(map[state.ObjID]bool, len(chosen))
+	for _, o := range chosen {
+		chosenSet[o.Obj] = true
+	}
+
+	var required []state.ObjID
+	for _, id := range e.G.Zone(state.ZBattlefield, e.G.Active) {
+		if e.mustAttackRequired(id) {
+			required = append(required, id)
+		}
+	}
+	if len(required) == 0 {
+		// No requirement is in force, so only a ceiling (if any) can be
+		// violated.
+		if maxAllowed := e.maxAttackers(); len(chosen) > maxAllowed {
+			return fmt.Errorf("declared %d attackers, more than the allowed %d", len(chosen), maxAllowed)
+		}
+		return nil
+	}
+
+	maxAllowed := e.maxAttackers()
+	maxReq := len(required)
+	if maxAllowed < maxReq {
+		maxReq = maxAllowed
+	}
+	chosenReq := 0
+	for _, id := range required {
+		if chosenSet[id] {
+			chosenReq++
+		}
+	}
+	if chosenReq < maxReq {
+		return fmt.Errorf("must attack with as many required creatures as possible (required %d, declared %d; max attackers %d)",
+			maxReq, chosenReq, maxAllowed)
+	}
+	if len(chosen) > maxAllowed {
+		return fmt.Errorf("declared %d attackers, more than the allowed %d", len(chosen), maxAllowed)
 	}
 	return nil
 }
@@ -397,6 +515,276 @@ func (e *Engine) handleBlockers(d *decision.Decision, in decision.Intent) {
 	e.blockerRound.cursor++
 }
 
+// combatRound is the combat damage step's continuation state (Task jj-cmb):
+// which damage passes remain, and any controller damage-division choices
+// being collected or awaiting an answer. It is the same plain-value state
+// class as blockerRound -- scalars plus slices, never a closure -- so Clone
+// copies it and a log-driven replay re-derives the identical branch from the
+// recorded division and priority intents.
+//
+// Zero value means the combat damage step is not in progress. The step is
+// reset to zero (combatRound{}) once both damage passes have dealt and the
+// step has moved to end combat.
+type combatRound struct {
+	hasFirst    bool // this combat damage step runs a first-strike pass (CR 510.3)
+	firstDone   bool // first-strike pass's damage dealt and priority granted
+	regularDone bool // regular pass's damage dealt
+
+	// pass is true while a combat damage pass is being processed (true = the
+	// first-strike pass, false = the regular pass).
+	pass bool
+	// active is true while a pass has begun (divisions collected or asked) and
+	// has not yet finished dealing.
+	active bool
+
+	// queue lists the attackers in this pass that still need a damage-division
+	// answer, in battlefield order. When empty, an ask is pending for
+	// askAttacker, or there were no divisions to ask at all.
+	queue []state.ObjID
+	// done holds the divisions answered so far this pass, in answer order.
+	done []divChoice
+	// askAttacker names the attacker whose damage-division decision is
+	// currently pending (0 when none).
+	askAttacker state.ObjID
+	// askOptions is parallel to the pending division Decision's Options:
+	// askOptions[i] is the per-blocker damage split the i-th option selects.
+	askOptions [][]int32
+}
+
+// divChoice records one answered damage division: which attacker divided its
+// combat damage, and the amount per live blocker in declaration order.
+type divChoice struct {
+	attacker state.ObjID
+	amounts  []int32
+}
+
+// combatStep is the StepCombatDamage turn-based action (rules/turn.go's step()
+// switch): run whichever damage pass is due, suspending on a controller
+// damage-division decision or a between-passes priority round as required.
+// It is re-entered through the Advance loop after a division answer resumes a
+// pass, and through advanceStep after the between-passes priority round
+// completes the first-strike pass and the regular pass must run.
+func (e *Engine) combatStep() {
+	if !e.combatRound.firstDone {
+		e.combatRound.hasFirst = e.anyFirstStrike()
+		if e.combatRound.hasFirst {
+			// The first-strike damage step runs, then a priority round before
+			// the regular step (CR 510.3/4).
+			e.beginCombatPass(true)
+			return
+		}
+		// No first striker: the regular pass is the whole of the step's
+		// damage (CR 510.1).
+		e.combatRound.firstDone = true
+	}
+	if !e.combatRound.regularDone {
+		e.beginCombatPass(false)
+		return
+	}
+}
+
+// beginCombatPass starts a combat damage pass: it collects the attackers that
+// need a controller damage-division decision (asking them one at a time, so
+// each ask suspends through the Advance loop) and, once every division is
+// answered or none is owed, deals the pass via finishCombatPass.
+func (e *Engine) beginCombatPass(pass bool) {
+	e.combatRound.pass = pass
+	e.combatRound.active = true
+	e.combatRound.queue = e.divisionNeeding(pass)
+	e.combatRound.done = nil
+	e.combatRound.askAttacker = 0
+	e.combatRound.askOptions = nil
+	if e.askNextDivision() {
+		return // a division decision is pending; Advance pauses on it
+	}
+	e.finishCombatPass()
+}
+
+// divisionNeeding returns the attackers of this pass whose combat damage must
+// be divided by their controller (CR 510.1c): a non-trample attacker with
+// power above zero and more than one live blocker, whose legal divisions are
+// too numerous to enumerate is excluded and falls back to the deterministic
+// assignment. Battlefield order, deterministic.
+func (e *Engine) divisionNeeding(pass bool) []state.ObjID {
+	var out []state.ObjID
+	for _, id := range e.G.Zone(state.ZBattlefield, e.G.Active) {
+		a := e.G.Obj(id)
+		if a == nil || !a.IsAttacking || a.Zone != state.ZBattlefield {
+			continue
+		}
+		if !e.actsThisDamageStep(id, pass) {
+			continue
+		}
+		if e.HasKeyword(id, "Trample") || e.Power(id) <= 0 || len(e.liveBlockers(a)) < 2 {
+			continue
+		}
+		if e.divisionCount(e.liveBlockers(a), e.Power(id)) > maxDivisionOptions {
+			continue
+		}
+		out = append(out, id)
+	}
+	return out
+}
+
+// maxDivisionOptions bounds the number of damage-division options offered for
+// one attacker, so a large power across many blockers does not flood the wire
+// with thousands of choice. An attacker whose legal divisions exceed it is
+// not asked; its damage is assigned deterministically (a Note is recorded).
+const maxDivisionOptions = 128
+
+// divisionCount returns the number of nonnegative compositions of power into
+// n bins, i.e. C(power+n-1, n-1), saturating at maxDivisionOptions+1.
+func (e *Engine) divisionCount(blockers []state.ObjID, power int32) int {
+	n := len(blockers)
+	if n <= 1 || power < 0 {
+		return 1
+	}
+	// C(power+n-1, n-1), computed iteratively to stay within int.
+	k := n - 1
+	total := int(power) + k
+	if k > total-k {
+		k = total - k
+	}
+	res := int64(1)
+	for i := 0; i < k; i++ {
+		res = res * int64(total-i) / int64(i+1)
+		if res > int64(maxDivisionOptions) {
+			return maxDivisionOptions + 1
+		}
+	}
+	return int(res)
+}
+
+// askNextDivision asks the controller for the next unanswered damage division
+// in this pass, or returns false when none remains (so the pass can be dealt).
+// Building the option list and asking in one go keeps the option-to-split
+// table (askOptions) in lockstep with the pending Decision.
+func (e *Engine) askNextDivision() bool {
+	if len(e.combatRound.queue) == 0 {
+		return false
+	}
+	a := e.combatRound.queue[0]
+	opts, table := e.divisionOptions(a)
+	e.combatRound.askAttacker = a
+	e.combatRound.askOptions = table
+	e.choosing = chooseDamageDivision
+	e.ask(&decision.Decision{Player: e.G.Active, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: fmt.Sprintf("turn %d — divide %s's combat damage among its blockers", e.G.Turn,
+			e.G.Obj(a).Face().Name), Options: opts, Source: a})
+	return true
+}
+
+// divisionOptions builds the KChoose option list for dividing attacker a's
+// combat damage among its live blockers, plus the parallel per-option split
+// table. Every nonnegative composition of the attacker's power into the
+// blocker count is legal under the no-order CR 510.1c (this revision removed
+// the declaration-order assignment rule), so the options enumerate them all;
+// the split table lets the answer handler recover the chosen amounts.
+func (e *Engine) divisionOptions(a state.ObjID) ([]decision.Option, [][]int32) {
+	blockers := e.liveBlockers(e.G.Obj(a))
+	pw := e.Power(a)
+	n := len(blockers)
+	var splits [][]int32
+	var cur []int32
+	var rec func(remaining int32, idx int)
+	rec = func(remaining int32, idx int) {
+		if idx == n-1 {
+			cur = append(cur, remaining)
+			splits = append(splits, append([]int32(nil), cur...))
+			cur = cur[:len(cur)-1]
+			return
+		}
+		for v := int32(0); v <= remaining; v++ {
+			cur = append(cur, v)
+			rec(remaining-v, idx+1)
+			cur = cur[:len(cur)-1]
+		}
+	}
+	rec(pw, 0)
+	opts := make([]decision.Option, 0, len(splits))
+	for i, sp := range splits {
+		label := make([]byte, 0, 64)
+		for j, bid := range blockers {
+			if j > 0 {
+				label = append(label, ',')
+			}
+			label = append(label, fmt.Sprintf("%d to %s", sp[j], e.G.Obj(bid).Face().Name)...)
+		}
+		opts = append(opts, decision.Option{Index: i, Kind: "division",
+			Label: string(label), Obj: a, Player: e.G.Active, Amount: int(sp[0])})
+	}
+	return opts, splits
+}
+
+// finishCombatPass deals the current pass's damage and advances the combat
+// damage step: for the first-strike pass it grants the between-passes priority
+// round (CR 510.3/4); for the regular pass it moves to the end-combat step.
+func (e *Engine) finishCombatPass() {
+	pass := e.combatRound.pass
+	e.dealDamagePass(pass)
+	e.combatRound.queue = nil
+	e.combatRound.done = nil
+	e.combatRound.askAttacker = 0
+	e.combatRound.askOptions = nil
+	if pass {
+		e.combatRound.firstDone = true
+		e.combatRound.active = false
+		e.checkStateBased()
+		if e.G.Over {
+			return
+		}
+		// CR 510.4: players gain priority after the first-strike damage step,
+		// before the regular damage step runs.
+		e.priorityRound()
+		return
+	}
+	e.combatRound.regularDone = true
+	e.combatRound.active = false
+	e.checkStateBased()
+	if e.G.Over {
+		return
+	}
+	e.combatRound = combatRound{}
+	e.setStep(state.StepEndCombat)
+}
+
+// handleDamageDivision applies an answered damage-division decision (CR
+// 510.1c): it records the chosen split, then asks the next undone division or
+// deals the pass. It is the chooseDamageDivision branch of handleChoose.
+func (e *Engine) handleDamageDivision(chosen []decision.Option) {
+	// This flow consumed the pending choose: clear the marker so a later,
+	// unrelated KChoose answer is not routed back into the damage-division
+	// path (the same reset discardCleanup performs).
+	e.choosing = chooseNone
+	if len(chosen) == 0 {
+		// A no-option answer should not occur (Min == Max == 1); fall back to
+		// the deterministic assignment rather than stranding the pass.
+		e.finishCombatPass()
+		return
+	}
+	idx := chosen[0].Index
+	amounts := e.combatRound.askOptions[idx]
+	e.combatRound.done = append(e.combatRound.done, divChoice{attacker: e.combatRound.askAttacker, amounts: amounts})
+	e.combatRound.queue = e.combatRound.queue[1:]
+	e.combatRound.askAttacker = 0
+	e.combatRound.askOptions = nil
+	if e.askNextDivision() {
+		return
+	}
+	e.finishCombatPass()
+}
+
+// chosenDivision returns the answered division for attacker a in the current
+// pass, or nil when none was answered (so a deterministic assignment applies).
+func (e *Engine) chosenDivision(a state.ObjID) []int32 {
+	for _, dc := range e.combatRound.done {
+		if dc.attacker == a {
+			return dc.amounts
+		}
+	}
+	return nil
+}
+
 // dealCombatDamage runs first-strike damage and then regular damage. Damage
 // within a step is simultaneous: every amount is computed against pre-step
 // state before any event is emitted, so two creatures that would kill each
@@ -407,6 +795,14 @@ func (e *Engine) dealCombatDamage() {
 		e.checkStateBased()
 	}
 	e.damageStep(false)
+}
+
+// dealDamagePass is the internal wrapper a combat damage pass uses: it deals
+// one pass's damage, optionally consulting the controller-collected divisions
+// in combatRound.done (CR 510.1c). dealCombatDamage (the whole two-pass
+// helper used by direct-call fixtures and older tests) keeps damageStep.
+func (e *Engine) dealDamagePass(pass bool) {
+	e.damageStep(pass)
 }
 
 // liveBlockers filters a's BlockedBy to blockers still actually on the
@@ -567,6 +963,27 @@ func (e *Engine) damageStep(firstStrike bool) {
 					// last absorbs whatever remains (Trample instead caps
 					// every blocker, spilling any true excess to the
 					// defending player below).
+					//
+					// Task jj-cmb (F40): a NON-trample attacker with more than
+					// one blocker and few enough legal divisions has already
+					// had its division chosen by its controller (a CR 510.1c
+					// KChoose, collected in combatRound.done by the combat
+					// damage step machinery before this pass is dealt) -- so
+					// that controller-chosen split is used here instead of the
+					// greedy approximation. Trample's excess-to-player
+					// division is still the deterministic assignment (see
+					// divisionNeeding), and a direct-call fixture that never
+					// asked has no division recorded and keeps the greedy
+					// behaviour.
+					if div := e.chosenDivision(aid); div != nil {
+						for i, bid := range blockers {
+							if i < len(div) && div[i] > 0 {
+								as = append(as, assignment{toObj: bid, amount: div[i],
+									lifelink: a.Controller, hasLink: link, deathtouch: dt, from: aid})
+							}
+						}
+						break
+					}
 					remaining := pw
 					for i, bid := range blockers {
 						need := e.Toughness(bid)
@@ -757,6 +1174,15 @@ func (e *Engine) cleanupBody() {
 // the shared package set chooseCast=1 / chooseETB=2 / chooseMiracle=3 (cast.
 // go); the exact numbers only need to differ, never to be adjacent.
 const chooseCleanup chooseFor = iota + 4
+
+// chooseDamageDivision is the chooseFor for the combat damage step's
+// controller damage-division decision (CR 510.1c, Task jj-cmb F40): it lets
+// handleChoose route the KChoose answer to handleDamageDivision (combat.go)
+// rather than to a cast/etb flow or the no-flow Note fallback. Like
+// chooseCleanup, it extends the chooseFor enum in combat.go; iota+5 is
+// pairwise distinct from the shared package set (cast=1 / etb=2 / miracle=3 /
+// cleanup=4), and the exact numbers only need to differ.
+const chooseDamageDivision chooseFor = iota + 5
 
 // discardCleanup applies an answered CR 514.1 discard decision: each chosen
 // card moves from the active player's hand to their graveyard (a plain

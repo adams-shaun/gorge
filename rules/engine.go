@@ -111,6 +111,15 @@ type Engine struct {
 	// never a closure, so Clone copies it like the mulligan round.
 	blockerRound blockerRound
 
+	// combatRound is the combat damage step's continuation state
+	// (rules/combat.go, Task jj-cmb): which damage passes are done, and any
+	// controller damage-division choices still being collected or awaiting an
+	// answer (CR 510.1c multi-block division, CR 510.3/4 double-strike).
+	// Plain-value data (slices plus scalars), never a closure, so Clone
+	// copies it like blockerRound and a log-driven replay re-derives the same
+	// branch. Zero whenever the combat damage step is not in progress.
+	combatRound combatRound
+
 	// staticContinuous memoizes the S:Mode$ Continuous statics on battlefield
 	// permanents (layers.go's staticEffects), keyed on staticEpoch. staticEpoch
 	// is the log length at the last build; the memo refreshes once per emitted
@@ -633,7 +642,7 @@ func (e *Engine) Submit(in decision.Intent) error {
 		// checks while declaring it attacking two players (CR 506.2).
 		// Reject before the intent is recorded and the decision consumed,
 		// so the pending attackers decision survives for a legal answer.
-		if err := validateAttackers(d, in); err != nil {
+		if err := e.validateAttackers(d, in); err != nil {
 			return err
 		}
 	}
