@@ -544,11 +544,29 @@ import (
 // permitted mulligan and the now-free first mulligan removes the bottoming
 // ask, its answer and one card move (first divergence at event 58, 78 and
 // 98 respectively: a seat-1 bottoming DecisionOffered becomes TurnChange).
+// fx21 (F35 + F36, CR 508.2 / 509.2 / 508.8) moves all four. Combat now
+// contains a priority window in each declare step, after the declaration, so
+// every combat in every acceptance game gains decisions and the passes that
+// answer them. Measured at the gate on merged main; fx21's own branch values
+// were identical, since nothing else merged between.
+//
+// First divergence is the first turn's empty combat at event 94/167/227/287
+// for 2/4/6/8 seats: the base jumped StepDeclareAttackers -> StepEndCombat,
+// the fix emits the forced empty DeclareAttackers marker and then the CR
+// 508.2 priority decisions before end combat.
+//
+// Intents 309->349, 1227->1359, 1929->2144, 3398->3790. Events 1771->1928,
+// 6283->6795, 9466->10318, 15912->17462. WINNERS AND TURN COUNTS ARE
+// UNCHANGED at every seat count, and the coverage ratchet stays at 0 of 436 --
+// which is the evidence that this is more decisions in the same games, not
+// different games. A head move this large with a changed winner would have
+// meant a card primitive moved and would not have been mergeable on this
+// reasoning.
 var acceptanceHeads = map[int]string{
-	2: "85beffe0c4e49108",
-	4: "eff047264ed9a27b",
-	6: "c746dd7057d61cde",
-	8: "4ff0c67659655682",
+	2: "aea0ea73a09be13f",
+	4: "1362692d3cb07483",
+	6: "e738902c9cc6e008",
+	8: "aaa358800b847dae",
 }
 
 func TestHeads(t *testing.T) {
