@@ -659,10 +659,30 @@ var acceptanceHeads = map[int]string{
 	// heads are stable across repeated runs, `make sim` is 20/20 replay OK,
 	// and the CR lane goes 4 FAIL / 81 PASS -> 3 FAIL / 82 PASS, the two
 	// under-delve leaves flipping red -> green with nothing regressing.
-	2: "1cfa860e0057afd9",
-	4: "dcc1d1130f1f9d84",
+	// b2 moved THREE of the four -- 2, 4 and 8 seats; the 6-seat game is
+	// unchanged. The cause is that searching a library is now a real
+	// question. A ChangeZone whose Origin is exactly Library used to resolve
+	// itself; it now poses a hidden KChoose to the searching player, who may
+	// find nothing, and the library is shuffled either way.
+	//
+	// The 2-seat game is the clearest evidence, because its two decks hold
+	// exactly four cards that search: death-n-taxes plays Stoneforge Mystic
+	// and Recruiter of the Guard, and dimir-tempo plays Misty Rainforest and
+	// Polluted Delta. A fetchland that used to fetch by fiat now asks, and
+	// the bot's answer is a real choice, so play diverges from that point.
+	//
+	// The 6-seat game not moving is the check that this reaches only what it
+	// should: it is not a global reshuffle of every game, it is the games
+	// whose seats actually search.
+	//
+	// Measured by the controller at the gate: the three new heads are stable
+	// across repeated runs, `make sim` is 20/20 replay OK, and the CR
+	// conformance lane is unchanged at 2 FAIL / 83 PASS, the same two F12
+	// Charm arms.
+	2: "cf9a4dde728b3d2b",
+	4: "eb7d29ebeee83e66",
 	6: "68170fbafc180911",
-	8: "19d3da06e0bf214c",
+	8: "bc60ac8c788cb1e4",
 }
 
 func TestHeads(t *testing.T) {

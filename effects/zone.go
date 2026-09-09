@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -94,6 +95,15 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 				Text: "unrecognised ChangeZone Origin " + from})
 			return
 		}
+		// A ChangeZone from exactly Library is a hidden-zone search, not a
+		// movement of objects already named by Defined$. The searching player
+		// may fail to find a card with the stated quality (Min is always zero),
+		// and the answer resumes this same effect before its SubAbility runs.
+		// Other origins keep the existing public-zone/object path below.
+		if len(originZones) == 1 && originZones[0] == state.ZLibrary && !originAll {
+			effSearchLibrary(h, c, sa, to)
+			return
+		}
 	}
 	// WithCountersType$/WithCountersAmount$ make the move put counters on the
 	// permanent it lands on the battlefield with -- the Undying expansion's
@@ -155,6 +165,217 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: withKind, Amount: withAmt})
 		}
 	}
+}
+
+// effSearchLibrary implements the hidden-origin ChangeZone shape. The option
+// list is rebuilt deterministically from library order and ChangeType$, while
+// the answer is carried only as option indices and object ids through the
+// ordinary KChoose/resume mechanism.
+//
+// This round deliberately handles only the first resolved library when
+// DefinedPlayer$/Defined$ names several players. A single effect cannot yet
+// persist its place in a multi-player loop across more than one suspended ask;
+// restarting the primitive would otherwise re-ask the first library. The
+// narrowing and its measured corpus population are recorded in AGENTS.md.
+func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
+	players := searchPlayers(h, c, sa)
+	if len(players) == 0 {
+		return
+	}
+	owner := players[0]
+	g := h.Game()
+	lib := zoneOf(g, state.ZLibrary, owner)
+
+	if c.SearchDone {
+		chosen := append([]state.ObjID(nil), c.Search...)
+		// Scope the answer to this primitive. Any asking primitive reached by
+		// the SubAbility chain must pose its own decision.
+		c.Search, c.SearchDone = nil, false
+		applyLibrarySearch(h, c, sa, owner, to, chosen)
+		return
+	}
+
+	spec := sa.Params["ChangeType"]
+	if spec == "" {
+		spec = "Card"
+	}
+	eligible := make([]state.ObjID, 0, len(lib))
+	for _, id := range lib {
+		if MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
+			eligible = append(eligible, id)
+		}
+	}
+	max := Num(h, c, sa, "ChangeNum", 1)
+	if max < 0 {
+		max = 0
+	}
+	if max > int32(len(eligible)) {
+		max = int32(len(eligible))
+	}
+	chooser := searchChooser(h, c, sa)
+	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
+		Min: 0, Max: int(max), Source: c.Source,
+		ResumeKind: "search", ResumeSA: sa,
+		Prompt: "Search a library: choose up to " + strconv.Itoa(int(max)) + " card(s)"}
+	for _, id := range eligible {
+		name := "a card"
+		if o := g.Obj(id); o != nil && o.Face() != nil {
+			name = o.Face().Name
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+			Kind: "search", Label: name, Obj: id, Player: owner})
+	}
+	if h.Ask(d) {
+		return
+	}
+	// R-9: a host without a decision channel finds nothing, but the search's
+	// unconditional shuffle still happens.
+	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
+		Text: "finds no card (no engine host to ask)"})
+	applyLibrarySearch(h, c, sa, owner, to, nil)
+}
+
+// searchPlayers resolves whose library is searched. DefinedPlayer$ takes
+// precedence over Defined$; with neither, the source controller searches.
+func searchPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
+	spec, explicit := sa.Params["DefinedPlayer"]
+	if !explicit {
+		spec, explicit = sa.Params["Defined"]
+	}
+	if !explicit || strings.TrimSpace(spec) == "" {
+		return []state.PlayerID{c.Controller}
+	}
+
+	var targets []state.Target
+	switch spec {
+	case "RememberedController":
+		for _, t := range c.Remembered {
+			if t.IsPlayer {
+				targets = append(targets, t)
+			} else if o := h.Game().Obj(t.Obj); o != nil {
+				targets = append(targets, state.Target{Player: o.Controller, IsPlayer: true})
+			}
+		}
+	default:
+		// Defined only reads the Defined key, so a tiny temporary SA lets this
+		// helper share its deterministic selector grammar without mutating the
+		// immutable compiled SA.
+		targets = Defined(h, c, &cards.SA{Params: map[string]string{"Defined": spec}})
+	}
+	seen := make(map[state.PlayerID]bool)
+	out := make([]state.PlayerID, 0, len(targets))
+	for _, t := range targets {
+		p := PlayerOf(h, c, t)
+		if int(p) >= len(h.Game().Players) || seen[p] {
+			continue
+		}
+		seen[p] = true
+		out = append(out, p)
+	}
+	return out
+}
+
+// searchChooser resolves who answers the search prompt. You is the default;
+// Targeted uses the first chosen target, and Opponent uses the first living
+// opponent in deterministic turn order.
+func searchChooser(h Host, c *Ctx, sa *cards.SA) state.PlayerID {
+	switch sa.Params["Chooser"] {
+	case "Targeted":
+		if len(c.Targets) > 0 {
+			return PlayerOf(h, c, c.Targets[0])
+		}
+	case "Opponent":
+		for _, p := range h.Game().AliveFrom(c.Controller) {
+			if p != c.Controller {
+				return p
+			}
+		}
+	}
+	return c.Controller
+}
+
+func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to state.Zone, chosen []state.ObjID) {
+	g := h.Game()
+	spec := sa.Params["ChangeType"]
+	if spec == "" {
+		spec = "Card"
+	}
+	moved := make([]state.ObjID, 0, len(chosen))
+	for _, id := range chosen {
+		o := g.Obj(id)
+		if o == nil || o.Zone != state.ZLibrary || o.Owner != owner ||
+			!MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
+			continue
+		}
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
+			From: state.ZLibrary, To: to, Player: owner})
+		moved = append(moved, id)
+		if to == state.ZBattlefield && sa.Params["WithCountersType"] != "" {
+			amount := int32(1)
+			if raw := strings.TrimSpace(sa.Params["WithCountersAmount"]); raw != "" {
+				n, err := strconv.Atoi(raw)
+				if err != nil {
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+						Text: "malformed WithCountersAmount " + raw})
+				} else {
+					amount = int32(n)
+				}
+			}
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: id,
+				Counter: sa.Params["WithCountersType"], Amount: amount})
+		}
+		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
+			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+		}
+		if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
+			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: owner})
+		}
+	}
+
+	shuffle := !strings.EqualFold(sa.Params["NoShuffle"], "True") &&
+		!strings.EqualFold(sa.Params["Shuffle"], "False")
+	if shuffle {
+		order := append([]state.ObjID(nil), g.Zone(state.ZLibrary, owner)...)
+		for i := len(order) - 1; i > 0; i-- {
+			j := h.Rand(i + 1)
+			order[i], order[j] = order[j], order[i]
+		}
+		h.Emit(events.Event{Kind: events.Shuffle, Player: owner, IDs: order, Secret: true})
+	}
+
+	// "Shuffle, then put that card on top" tutors need the placement after
+	// the randomisation. MoveZone library->library first records the selected
+	// cards in answer order; this one LibraryOrder makes position 0/-1 exact.
+	position := strings.TrimSpace(sa.Params["LibraryPosition"])
+	if to != state.ZLibrary || len(moved) == 0 || (position != "0" && position != "-1") {
+		return
+	}
+	selected := make(map[state.ObjID]bool, len(moved))
+	for _, id := range moved {
+		selected[id] = true
+	}
+	lib := g.Zone(state.ZLibrary, owner)
+	rest := make([]state.ObjID, 0, len(lib)-len(moved))
+	placed := make([]state.ObjID, 0, len(moved))
+	for _, id := range moved {
+		if containsID(lib, id) {
+			placed = append(placed, id)
+		}
+	}
+	for _, id := range lib {
+		if !selected[id] {
+			rest = append(rest, id)
+		}
+	}
+	order := make([]state.ObjID, 0, len(lib))
+	if position == "0" {
+		order = append(order, placed...)
+		order = append(order, rest...)
+	} else {
+		order = append(order, rest...)
+		order = append(order, placed...)
+	}
+	h.Emit(events.Event{Kind: events.LibraryOrder, Player: owner, IDs: order, Secret: true})
 }
 
 func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
