@@ -153,26 +153,56 @@ const MIN_PANEL_HEIGHT = 160;
 
 export interface PanelPlacement {
   x: number;
-  y: number;
+  /** top is set when the panel opens DOWNWARD (grows down from the card's top). */
+  y?: number;
+  /** bottom is set when the panel opens UPWARD (grows up from just above the card). Exactly one of y/bottom is set. */
+  bottom?: number;
   maxHeight: number;
 }
 
 /**
  * placePanel positions the fixed detail panel beside `anchor` so it never
  * leaves the viewport. Horizontally it prefers the anchor's right and flips
- * to its left when that would overflow. Vertically it stays top-aligned
- * with the card; when the space below the card is too tight for even a
- * short panel it pulls up, and maxHeight is capped at the space available
- * below the chosen top, so a tall panel scrolls instead of leaving the
- * screen. Pure (vw/vh are passed in), which is what lets the tests pin the
- * viewport guarantees.
+ * to its left when that would overflow.
+ *
+ * Vertically it opens on the ROOMIER side: the panel is top-aligned with the
+ * card and grows DOWNWARD when there is at least as much room below the card
+ * as above it, and flips to be bottom-anchored just above the card and grows
+ * UPWARD when there is more room above. The flip is what keeps a hand card's
+ * detail from being cut off: a hand card sits near the bottom of the board,
+ * where the room below it is a fixed, cramped band (just the fan's own
+ * height and a little margin), so a panel that always opened downward was
+ * capped at that band and scrolled — the card's lower reading unreachable.
+ * Opening upward hands the panel the tall space above the card instead. In
+ * both directions maxHeight is the room available on the chosen side, so a
+ * panel is never shorter than it needs to be and never leaves the screen.
+ * Pure (vw/vh are passed in), which is what lets the tests pin the viewport
+ * guarantees.
  */
 export function placePanel(anchor: AnchorRect, vw: number, vh: number): PanelPlacement {
-  const topAligned = Math.max(PANEL_MARGIN, anchor.top);
-  const y = vh - PANEL_MARGIN - topAligned >= MIN_PANEL_HEIGHT ? topAligned : Math.max(PANEL_MARGIN, vh - PANEL_MARGIN - MIN_PANEL_HEIGHT);
-  const maxHeight = Math.max(MIN_PANEL_HEIGHT, vh - PANEL_MARGIN - y);
+  const roomBelow = vh - PANEL_MARGIN - anchor.top;
+  const roomAbove = anchor.top - PANEL_MARGIN;
+
   let x = anchor.right + PANEL_MARGIN;
   if (x + PANEL_WIDTH > vw - PANEL_MARGIN) x = anchor.left - PANEL_MARGIN - PANEL_WIDTH;
   x = Math.max(PANEL_MARGIN, x);
-  return { x, y, maxHeight };
+
+  if (roomBelow >= roomAbove) {
+    // Open downward (top-aligned with the card), pulling up when the space
+    // below is too short for even a minimal panel. maxHeight is exactly the
+    // room that remains below the chosen top, so the panel can fill it
+    // without ever leaving the viewport.
+    const topAligned = Math.max(PANEL_MARGIN, anchor.top);
+    const y = vh - PANEL_MARGIN - topAligned >= MIN_PANEL_HEIGHT ? topAligned : Math.max(PANEL_MARGIN, vh - PANEL_MARGIN - MIN_PANEL_HEIGHT);
+    const maxHeight = Math.max(MIN_PANEL_HEIGHT, vh - PANEL_MARGIN - y);
+    return { x, y, maxHeight };
+  }
+
+  // Open upward: the roomier side is above the card. Anchor the panel's
+  // bottom edge PANEL_MARGIN above the card's top and let it grow up into the
+  // room above; maxHeight is the space from the viewport's top margin to that
+  // edge, so the panel fills the room above without ever clipping at the top.
+  const bottom = vh - (anchor.top - PANEL_MARGIN);
+  const maxHeight = Math.max(MIN_PANEL_HEIGHT, anchor.top - 2 * PANEL_MARGIN);
+  return { x, bottom, maxHeight };
 }
