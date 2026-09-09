@@ -260,6 +260,16 @@
      panel below closes over the space. */
   .plate:has(:global(.card-image)) {
     display: block;
+    /* The plate is the printed card and it must be WHOLE. The panel is a
+       flex column with max-height and overflow-y:auto, and every flex item
+       shrinks by default; a shrinking .plate (which has overflow:hidden, so
+       its content-based minimum is 0) is exactly how the printed oracle text
+       box was cropped — the panel had less room than the card, and the flex
+       column took it out of the plate instead of scrolling. flex:none pins
+       the plate to its own natural 63:88 height, so the card's oracle block
+       is never cut; when the ledger beneath it does not fit, the panel
+       scrolls below the plate rather than crop the card. */
+    flex: none;
     --card-w-large: 100%;
     --card-radius: 0;
     margin: calc(var(--sp-3) * -1) calc(var(--sp-3) * -1) 0;
