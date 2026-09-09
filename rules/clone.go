@@ -126,6 +126,12 @@ func (e *Engine) Clone() *Engine {
 	}
 	c.triggerFireCount = cloneCounts(e.triggerFireCount)
 	c.damageOnceFired = cloneCounts(e.damageOnceFired)
+	// triggerBefore is scoped to a batch emission/resumption, so it is nil
+	// at intent boundaries and is deliberately not copied. Parked replacement
+	// and commander choices and resume frames retain their own immutable
+	// triggerSnapshot pointers; sharing those is safe because matching builds
+	// fresh Engine scratch caches and never applies events to the snapshot.
+	//
 	// foreachBuf / foreachDepth (Task A2) are deliberately NOT copied: they
 	// are forEachObject's scratch snapshot buffer and re-entry depth counter
 	// (engine.go), live only for the duration of a single walk. A clone is

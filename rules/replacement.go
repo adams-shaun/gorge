@@ -343,8 +343,9 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 // data), so Clone copies the queue with one slice copy, the same class as
 // cmdZone.
 type replChoice struct {
-	ev    events.Event
-	cands []replMatch
+	ev     events.Event
+	cands  []replMatch
+	before *triggerSnapshot // immutable SBA look-back, safe to share in Clone
 }
 
 // poseReplacementChoice starts a CR 616.1 order-selection suspension: the
@@ -362,7 +363,7 @@ func (e *Engine) poseReplacementChoice(ev events.Event, matches []replMatch) {
 	if int(p) >= len(e.G.Players) {
 		return
 	}
-	e.replChoices = append(e.replChoices, replChoice{ev: ev, cands: matches})
+	e.replChoices = append(e.replChoices, replChoice{ev: ev, cands: matches, before: e.triggerBefore})
 	if e.pending == nil {
 		e.askReplacementChoice(p)
 	}
@@ -424,7 +425,10 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 			Text: "replacement-order answer out of range"})
 		return
 	}
+	before := e.triggerBefore
+	e.triggerBefore = rc.before
 	e.applyReplacement(rc.ev, rc.cands[chosen[0].Index])
+	e.triggerBefore = before
 	if len(e.replChoices) > 0 && e.pending == nil {
 		if o := e.G.Obj(e.replChoices[0].ev.Obj); o != nil && int(o.Controller) < len(e.G.Players) {
 			e.askReplacementChoice(o.Controller)
@@ -450,8 +454,9 @@ func init() {
 // reproduces it. Plain value data (an events.Event plus the moving object's
 // id), so Clone copies the queue with one slice copy.
 type cmdZoneMove struct {
-	ev  events.Event
-	obj state.ObjID
+	ev     events.Event
+	obj    state.ObjID
+	before *triggerSnapshot // immutable SBA look-back, safe to share in Clone
 }
 
 // commanderZoneReplacementApplies is CR 903.9's match predicate: a
@@ -532,7 +537,7 @@ func (e *Engine) parkCommanderZoneMove(ev events.Event) {
 			return
 		}
 	}
-	e.cmdZone = append(e.cmdZone, cmdZoneMove{ev: ev, obj: ev.Obj})
+	e.cmdZone = append(e.cmdZone, cmdZoneMove{ev: ev, obj: ev.Obj, before: e.triggerBefore})
 	if e.pending == nil {
 		e.askCommandZone(owner)
 	}
@@ -592,11 +597,11 @@ func (e *Engine) handleCmdZone(d *decision.Decision, in decision.Intent) {
 	if opts := d.Chosen(in); len(opts) == 1 && opts[0].Kind == "command_zone" {
 		to = state.ZCommand
 	}
-	saved := e.applyingReplacement
-	e.applyingReplacement = true
+	saved, before := e.applyingReplacement, e.triggerBefore
+	e.applyingReplacement, e.triggerBefore = true, pm.before
 	e.emit(events.Event{Kind: events.MoveZone, Obj: pm.ev.Obj, From: pm.ev.From,
 		To: to, Player: pm.ev.Player, Text: pm.ev.Text})
-	e.applyingReplacement = saved
+	e.applyingReplacement, e.triggerBefore = saved, before
 	if len(e.cmdZone) > 0 && e.pending == nil {
 		// More commanders were parked in the same burst (a board wipe, a
 		// multiple-SBA pass): hand the front of the queue to its owner the
