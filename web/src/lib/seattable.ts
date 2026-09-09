@@ -27,18 +27,22 @@ export type SeatCorner = 'tl' | 'tr' | 'bl' | 'br' | 'l' | 'r' | 'top' | 'bottom
  *    number: seat 0 at the bottom, seat 1 at the top — the same default a
  *    client that had no idea who you were would pick.
  *
- *  - 3 and 4 seats are deliberately NOT re-anchored to the viewer: seat 0
- *    bottom-left then clockwise ({@link quadrantFor}'s historic layout).
- *    Doing so is less wrong a priori (a 4-seat player wants their own seat at
- *    the bottom too) but it is out of scope for this task, which is scoped to
- *    the 1v1 report; the 3/4 layout is pinned by tests and must not move.
+ *  - 3 and 4 seats are re-anchored to the viewer the same way, by ROTATING the
+ *    bottom-left-then-clockwise cycle so the viewer lands at `bl`. The index
+ *    is `(seat - viewer + seats) % seats` into the same `bl, tl, tr, br`
+ *    cycle, so turn order around the table is preserved — a player still
+ *    reads "who is to my left" off the felt. A spectator (view.NoSeat 255, or
+ *    any viewer not present at the table) has no horse in the race, so the
+ *    layout stays deterministic by seat number: seat 0 at `bl`, then
+ *    clockwise, exactly as {@link quadrantFor}'s historic layout drew it.
  */
 export function seatCorner(seat: number, seats: number, viewer: number): SeatCorner {
   if (seats <= 2) {
     const mine = viewer >= 0 && viewer < seats ? viewer : 0;
     return seat === mine ? 'bottom' : 'top';
   }
-  return (['bl', 'tl', 'tr', 'br'] as const)[seat % 4];
+  const mine = viewer >= 0 && viewer < seats ? viewer : 0;
+  return (['bl', 'tl', 'tr', 'br'] as const)[(seat - mine + seats) % seats];
 }
 
 /**
