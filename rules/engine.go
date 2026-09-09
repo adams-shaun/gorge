@@ -182,6 +182,9 @@ type Engine struct {
 	// pendingTriggers holds matched triggers not yet placed on the stack.
 	// checkTriggers appends; putTriggersOnStack drains. Task 20 (trigger.go).
 	pendingTriggers []pendingTrigger
+	// triggerBefore is the immutable pre-departure board for an SBA death
+	// batch. Scoped to its emission/resumption, never carried as live state.
+	triggerBefore *triggerSnapshot
 	// orderedTriggers is how many LEADING entries of pendingTriggers have
 	// already had their order settled by an answered KTriggerOrder decision
 	// (or, for a lone trigger, by there being nothing to decide). It is the
