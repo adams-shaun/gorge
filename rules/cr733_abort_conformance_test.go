@@ -147,21 +147,22 @@ func crAbortUnchanged(t *testing.T, e *Engine, before *state.Game, start int, na
 // that killed an earlier cheap fix for the illegal-cast path. They belong in the
 // ordinary suite, where a commitCast refactor would trip them.
 //
-// spell_mana_after_choice is deliberately NOT in this list: it is a real defect
-// (Sanctum Prelate's ChosenNumber survives a mana abort) and stays in the
-// known-red lane below.
+// spell_mana_after_choice was a fifth site and is deliberately NOT here: it
+// was a real defect (Sanctum Prelate's ChosenNumber survived a mana abort)
+// now fixed in abortCast and graduated separately below, so this test keeps
+// its original four correct sites.
 func TestCR733EarlyAbortSitesPreserveResources(t *testing.T) {
 	crAbortSites(t, []string{"sacrifice", "spell_mana", "activation_mana", "source_moved"})
 }
 
-// TestCR733AbortAfterAsEntersChoiceKeepsChosenNumber stays in the KNOWN-RED lane
-// because it pins a real defect rather than correct behaviour: Sanctum Prelate's
-// as-enters number choice is recorded, then a mana abort undoes everything else
-// and leaves ChosenNumber at 2 instead of restoring 0. It shares its whole probe
-// with the four correct sites above so the two cannot drift apart; when the
-// defect is fixed, this guard comes off and the site joins that list.
 func TestCR733AbortAfterAsEntersChoiceKeepsChosenNumber(t *testing.T) {
-	requireCR601Audit(t, "CR 733.1: a mana abort must undo an as-enters number choice")
+	// Graduated: passes with the conformance flag on; runs in the ordinary lane.
+	// It pins CR 733.1's undo of an as-enters choice: Sanctum Prelate's number
+	// choice is recorded, then a mana abort must return the object to its
+	// pre-proposal choice state (abortCast emits reverse Choose events, only
+	// when a choice was recorded during the proposal), while the whole-object
+	// snapshot oracle confirms every other resource is restored too. It shares
+	// its probe with the four correct sites above so the two cannot drift apart.
 	crAbortSites(t, []string{"spell_mana_after_choice"})
 }
 
