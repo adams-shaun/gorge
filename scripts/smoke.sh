@@ -2,10 +2,10 @@
 #
 # scripts/smoke.sh — the browser smoke gate (Task SG1, extended by ui19).
 #
-# Builds the REAL client and the REAL binary, starts THREE `gorged` servers on
-# smoke ports (8090-8099) — one `-spectator public`, one `-spectator
-# omniscient`, and one SEATED (1v1 play-vs-bot: `-vsbot -humans 1`) — drives
-# the headless-browser smoke test in web/e2e against all three, and tears
+# Builds the REAL client and the REAL binary, starts FOUR `gorged` servers on
+# smoke ports (8090-8099) — public and omniscient spectators, a SEATED 1v1,
+# and the shared ui24/wheel1 board fixture — then drives
+# the headless-browser smoke test in web/e2e against all four, and tears
 # every server down (and removes its temp dir) whether the gate passes or
 # fails.
 #
@@ -136,8 +136,9 @@ start_server "$PUBPORT" "$PUBDIR" public  "$PUBDIR/server.log"
 start_server "$OMNPORT" "$OMNDIR" omniscient "$OMNDIR/server.log"
 start_seated_server "$SEATPORT" "$SEATDIR" "$SEATDIR/server.log"
 
-# ui24: two deterministic human hands containing only zero-cost Memnites.
-# The tracked fixture is a deck list (names/counts), never Forge card text.
+# ui24/wheel1: deterministic human hands with zero-cost Memnites plus the
+# Underground Sea that exercises the two-stage mana wheel. The tracked fixture
+# is a deck list (names/counts), never Forge card text.
 ./bin/gorged -addr "127.0.0.1:$FIXTUREPORT" -dir "$FIXTUREDIR" -spectator omniscient \
   -decks web/e2e/fixtures/decks -tables 1 -seats 2 -pace 0 -seed 24 \
   -mulligans 0 -perpetual=false -humans 0,1 -seat-token ui24fixture >"$FIXTUREDIR/server.log" 2>&1 &
@@ -164,10 +165,9 @@ if ! wait_ready "$FIXTUREPORT"; then
   sed -n '1,60p' "$FIXTUREDIR/server.log" >&2 || true
   exit 1
 fi
-
 echo "== smoke: driving the browser gate =="
 set +e
-( cd web && SMOKE_PUBLIC="http://127.0.0.1:$PUBPORT" SMOKE_OMNI="http://127.0.0.1:$OMNPORT" SMOKE_SEATED="http://127.0.0.1:$SEATPORT" SMOKE_FIXTURE="http://127.0.0.1:$FIXTUREPORT" npx playwright test )
+( cd web && SMOKE_PUBLIC="http://127.0.0.1:$PUBPORT" SMOKE_OMNI="http://127.0.0.1:$OMNPORT" SMOKE_SEATED="http://127.0.0.1:$SEATPORT" SMOKE_FIXTURE="http://127.0.0.1:$FIXTUREPORT" SMOKE_WHEEL="http://127.0.0.1:$FIXTUREPORT" npx playwright test )
 status=$?
 set -e
 
