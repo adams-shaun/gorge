@@ -26,6 +26,7 @@ const PUBLIC = process.env.SMOKE_PUBLIC;
 const OMNI = process.env.SMOKE_OMNI;
 const SEATED = process.env.SMOKE_SEATED;
 const FIXTURE = process.env.SMOKE_FIXTURE;
+const WHEEL = process.env.SMOKE_WHEEL;
 
 // ui19: the seated-view gate. The two spectator modes above drove no seated
 // client, which is precisely the gap the task closes. These helpers measure
@@ -750,9 +751,88 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
   });
 }
 
-// ui24 — construct the board the seed-1 game cannot produce. This separate
-// two-human fixture is a pure fixed-seed transcript: both decks contain only
-// zero-cost Memnites, and the driver only echoes wire options.
+// wheel1 — reproduce the reported two-click path against a real game. The
+// fixture's Underground Sea has two distinct intrinsic mana abilities. The
+// priority decision first offers one source-level activate action; answering
+// it makes the server pose Add U / Add B on that same object. One click on the
+// card's direct action must carry the user through that continuation and open
+// its radial choice without requiring a second click.
+test.describe('gorged [wheel1] Underground Sea fixture', () => {
+  test.skip(!WHEEL, 'SMOKE_WHEEL unset — run via scripts/smoke.sh');
+
+  test('one click opens a live two-ability mana wheel', async ({ browser, request }) => {
+    const b = WHEEL as string;
+    const tokens = [fixtureToken(0), fixtureToken(1)];
+    const endpoint = `${b}/api/tables/t1/matches/1`;
+    let source: number | undefined;
+    let played = false;
+    const deadline = Date.now() + 20_000;
+
+    // Drive the real engine to seat 0's first post-land priority window before
+    // mounting the client, so its skip-empty policy cannot race this setup.
+    while (Date.now() < deadline && source === undefined) {
+      for (const seat of [0, 1]) {
+        const pending = await request.get(`${endpoint}/pending?seat=${seat}&token=${tokens[seat]}`);
+        if (pending.status() === 409) continue;
+        expect(pending.ok(), `wheel pending seat ${seat}`).toBe(true);
+        const d = await pending.json() as WireDecision;
+        const activation = seat === 0 && played ? d.options.find((o) => o.kind === 'activate') : undefined;
+        if (activation?.obj !== undefined) {
+          source = activation.obj;
+          break;
+        }
+        const land = seat === 0 && !played ? d.options.find((o) => o.kind === 'play_land') : undefined;
+        const pass = d.options.find((o) => o.kind === 'pass');
+        // Cleanup discard and any other forced decision encountered before
+        // the seeded deck draws its first Sea take deterministic option zero.
+        const choice = land ?? pass ?? d.options[0];
+        expect(choice, `wheel setup ${d.kind} seat ${seat} needs an option`).toBeDefined();
+        if (!choice) break;
+        const intent = await request.post(`${endpoint}/intent`, {
+          headers: { Authorization: `Bearer ${tokens[seat]}` },
+          data: { seq: d.seq, player: seat, choices: [choice.index] },
+        });
+        expect(intent.status(), `wheel setup intent seat ${seat}`).toBe(204);
+        if (land) played = true;
+        break;
+      }
+      if (source === undefined) await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    expect(source, 'wheel fixture should reach an Underground Sea activation').toBeDefined();
+    if (source === undefined) return;
+
+    const ctx = await browser.newContext();
+    try {
+      const page = await ctx.newPage();
+      await page.goto(`${b}/t/t1?seat=0&token=${tokens[0]}`, { waitUntil: 'domcontentloaded' });
+      const tile = page.locator(`.quadrant[data-seat="0"] [data-obj="${source}"]`);
+      await tile.waitFor({ state: 'visible', timeout: WAIT_MS });
+      const action = tile.locator('xpath=..').locator('[data-single-action]');
+      await action.waitFor({ state: 'visible', timeout: WAIT_MS });
+
+      // This is the single user click under test. It posts the source-level
+      // activation; the real server responds with the two object-bound mana
+      // choices, which must appear already open rather than as a new badge
+      // requiring click number two.
+      await action.click();
+      const wheel = page.locator('body > [data-radial-picker]');
+      await expect(wheel).toBeVisible({ timeout: WAIT_MS });
+      const blue = wheel.locator('[data-mana-option="U"]');
+      await expect(blue).toBeVisible();
+      await expect(wheel.locator('[data-mana-option="B"]')).toBeVisible();
+      // Complete the choice so the serial ui24 test can continue driving this
+      // shared real game from the next priority window.
+      await blue.click();
+    } finally {
+      await ctx.close();
+    }
+  });
+});
+
+// ui24 — construct the board the seed-1 game cannot produce. This shared
+// two-human fixture is a pure fixed-seed transcript: after wheel1 plays and
+// activates its Underground Sea, the driver casts the zero-cost Memnites and
+// otherwise only echoes wire options.
 test.describe('gorged [ui24] constructed board fixture', () => {
   test.skip(!FIXTURE, 'SMOKE_FIXTURE unset — run via scripts/smoke.sh');
   test.describe.configure({ mode: 'serial' });
@@ -765,7 +845,7 @@ test.describe('gorged [ui24] constructed board fixture', () => {
     // this is deterministically turn 3 and has all seven seat-0 creatures.
     const attack = await driveFixtureUntil(request, b,
       (d) => d.kind === 'attackers' && d.player === 0);
-    expect(attack.options.length, 'fixture must offer at least three attackers').toBeGreaterThanOrEqual(3);
+    expect(attack.options.length, 'fixture must offer at least seven attackers').toBeGreaterThanOrEqual(7);
 
     const ctx = await browser.newContext({ viewport: { width: 1000, height: 700 } });
     const page = await ctx.newPage();
@@ -773,20 +853,19 @@ test.describe('gorged [ui24] constructed board fixture', () => {
       await page.goto(`${b}/t/t1?seat=0&token=${fixtureToken(0)}`, { waitUntil: 'domcontentloaded' });
       await page.locator('.quadrant[data-seat="0"] .card-tile[data-options]').first().waitFor({ state: 'visible', timeout: WAIT_MS });
 
-      // Choose the first object in a rendered stack whose FIRST tile-local
-      // option is not wire index 0. Once expanded its menu has one entry at
-      // local position 0, so indexOf/array-position would post 0 and select a
-      // different creature. The production line must post option.index.
+      // The collapsed pile aggregates one attacker option per member. Pick a
+      // NON-ZERO wire option from its seven-row menu; using the menu position
+      // as the answer would select a different creature.
       const stack = page.locator('.quadrant[data-seat="0"] button.stacked[data-obj-group]').first();
-      await stack.click();
-      const pick = attack.options.find((o) => o.index > 0 && o.obj !== undefined);
+      const pickAt = attack.options.findIndex((o) => o.index > 0 && o.obj !== undefined);
+      const pick = attack.options[pickAt];
       expect(pick, 'the watched board option must have a non-zero wire index').toBeDefined();
       if (!pick || pick.obj === undefined) return;
-      const tile = page.locator(`.quadrant[data-seat="0"] .card-tile[data-obj="${pick.obj}"]`);
+      const tile = stack.locator('.card-tile[data-options]');
       await tile.waitFor({ state: 'visible', timeout: WAIT_MS });
 
-      await tile.locator('xpath=..').locator('button[aria-haspopup="menu"]').click();
-      const menuItem = page.locator('body > .menu-pop button[role="menuitem"]').first();
+      await stack.locator('button[aria-haspopup="menu"]').click();
+      const menuItem = page.locator('body > .menu-pop button[role="menuitem"]').nth(pickAt);
       await menuItem.waitFor({ state: 'visible', timeout: WAIT_MS });
       await menuItem.click();
       await expect(tile).toHaveAttribute('data-selected', '1');
