@@ -353,15 +353,15 @@ type blocker struct {
 	c  Creature
 }
 
-// killBlockCost returns the defender's cheapest block — smallest total pt
-// of the creatures it loses — that kills a, and whether any block can at
+// killBlockCost returns the defender's cheapest legal block — smallest total
+// pt of the creatures it loses — that kills a, and whether any block can at
 // all. It evaluates every lone legal blocker against the full damage
-// simulation, then every prefix of the blockers sorted by ascending pt
-// (the defender leads with its cheapest creatures so the valuable ones
-// absorb only the remainder), whose combined power is at least a's
-// remaining toughness. A team is never cheaper than its cheapest killing
-// member for pure cost counting, but a larger prefix can be: {2/2, 4/4}
-// kills a 5/5 for one 2/2, cheaper than the {4/4, 4/4} team — so every
+// simulation (unless a has Menace), then every legal prefix of the blockers
+// sorted by ascending pt (the defender leads with its cheapest creatures so
+// the valuable ones absorb only the remainder), whose combined power is at
+// least a's remaining toughness. A team is never cheaper than its cheapest
+// killing member for pure cost counting, but a larger prefix can be: {2/2,
+// 4/4} kills a 5/5 for one 2/2, cheaper than the {4/4, 4/4} team — so every
 // killing prefix is simulated, not just the first.
 func killBlockCost(def []blocker, a Creature) (int32, bool) {
 	var can []int
@@ -381,14 +381,17 @@ func killBlockCost(def []blocker, a Creature) (int32, bool) {
 	}
 	// Lone blockers that kill a outright (a 3/3 stops a 2/2 for free; a
 	// 1/1 Deathtouch stops a 5/5 for one 1/1; a First-Strike 2/2 kills a
-	// 2/2 before it deals).
-	for _, i := range can {
-		aDead, dead := blockCombat(a, []Creature{def[i].c})
-		if aDead && dead[0] {
-			consider(def[i].c.pt())
+	// 2/2 before it deals). Menace makes every lone block declaration illegal.
+	if !a.hasKeyword("Menace") {
+		for _, i := range can {
+			aDead, dead := blockCombat(a, []Creature{def[i].c})
+			if aDead && dead[0] {
+				consider(def[i].c.pt())
+			}
 		}
 	}
-	// Teams: cheapest-first prefixes whose power sums high enough.
+	// Teams: cheapest-first prefixes whose power sums high enough. Menace
+	// requires the prefix to contain at least two creatures.
 	sort.SliceStable(can, func(i, j int) bool {
 		pi, pj := def[can[i]].c.pt(), def[can[j]].c.pt()
 		if pi != pj {
@@ -399,6 +402,9 @@ func killBlockCost(def []blocker, a Creature) (int32, bool) {
 	var power int32
 	for k := 1; k <= len(can); k++ {
 		power += def[can[k-1]].c.Power
+		if a.hasKeyword("Menace") && k < 2 {
+			continue
+		}
 		if power < a.remTough() {
 			continue // this team cannot kill a yet
 		}
@@ -536,12 +542,15 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 		if b.closesClock(defender, at.id, a) {
 			return 3, true // AR5: the swing closes THIS defender's clock
 		}
-		blockable := false
+		blockers := 0
 		for _, db := range defBlockers[defender] {
 			if canBlockLike(a, db.c) {
-				blockable = true
-				break
+				blockers++
 			}
+		}
+		blockable := blockers > 0
+		if a.hasKeyword("Menace") {
+			blockable = blockers >= 2
 		}
 		if !blockable {
 			return 2, true // AR2: nothing of theirs can block it
@@ -624,13 +633,14 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 			// order-independent any-match over the defenders).
 			blockable := false
 			for _, dbs := range defBlockers {
+				blockers := 0
 				for _, db := range dbs {
 					if canBlockLike(a, db.c) {
-						blockable = true
-						break
+						blockers++
 					}
 				}
-				if blockable {
+				if blockers > 0 && (!a.hasKeyword("Menace") || blockers >= 2) {
+					blockable = true
 					break
 				}
 			}
@@ -679,6 +689,9 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 //     must-answer threat outranks every plain attacker, whatever its power,
 //     because an unanswered one ends the game on the second track. Among
 //     non-closing attackers the ordering stays power-descending.
+//   - BR5 (Menace): any chosen block against a Menace attacker includes a
+//     second unused blocker. If fewer than two are available, the bot leaves
+//     it unblocked rather than submitting an illegal declaration forever.
 //   - Nothing else blocks: a creature that dies holding the line while the
 //     attacker survives is thrown away for nothing.
 //
@@ -737,6 +750,23 @@ func (b Board) chooseBlockers(d *decision.Decision) []int {
 	}
 
 	used := map[state.ObjID]bool{}
+	// support returns the cheapest second blocker for a Menace block. It is
+	// called before first is marked used, so it excludes that object itself.
+	support := func(at *atk, first int) int {
+		best := -1
+		for _, oi := range at.opts {
+			obj := d.Options[oi].Obj
+			if obj == d.Options[first].Obj || used[obj] {
+				continue
+			}
+			if best == -1 || b.Creatures[obj].pt() < b.Creatures[d.Options[best].Obj].pt() ||
+				(b.Creatures[obj].pt() == b.Creatures[d.Options[best].Obj].pt() && oi < best) {
+				best = oi
+			}
+		}
+		return best
+	}
+
 	var ch []int
 	for _, at := range attackers {
 		// An attacker with nothing to block (no power to stop, no lethal
@@ -769,10 +799,23 @@ func (b Board) chooseBlockers(d *decision.Decision) []int {
 			}
 		}
 		if best >= 0 {
-			ch = append(ch, best)
-			used[d.Options[best].Obj] = true
-			unblocked -= at.a.Power // a dead attacker deals nothing, trample or not
-			continue
+			second := -1
+			if at.a.hasKeyword("Menace") {
+				second = support(at, best)
+				if second < 0 {
+					best = -1 // a lone block would be an illegal declaration
+				}
+			}
+			if best >= 0 {
+				ch = append(ch, best)
+				used[d.Options[best].Obj] = true
+				if second >= 0 {
+					ch = append(ch, second)
+					used[d.Options[second].Obj] = true
+				}
+				unblocked -= at.a.Power // a dead attacker deals nothing, trample or not
+				continue
+			}
 		}
 		// BR2: chump only when the unblocked damage would otherwise kill —
 		// where "kill" includes the commander clock (BR3): an unblocked
@@ -789,15 +832,32 @@ func (b Board) chooseBlockers(d *decision.Decision) []int {
 				}
 			}
 			if chump >= 0 {
-				ch = append(ch, chump)
-				used[d.Options[chump].Obj] = true
-				saved := at.a.Power
-				if at.a.hasKeyword("Trample") {
-					if b := b.Creatures[d.Options[chump].Obj]; saved > b.remTough() {
-						saved = b.remTough()
+				second := -1
+				if at.a.hasKeyword("Menace") {
+					second = support(at, chump)
+					if second < 0 {
+						chump = -1 // leave it unblocked rather than submit one blocker
 					}
 				}
-				unblocked -= saved
+				if chump >= 0 {
+					ch = append(ch, chump)
+					used[d.Options[chump].Obj] = true
+					if second >= 0 {
+						ch = append(ch, second)
+						used[d.Options[second].Obj] = true
+					}
+					saved := at.a.Power
+					if at.a.hasKeyword("Trample") {
+						saved = b.Creatures[d.Options[chump].Obj].remTough()
+						if second >= 0 {
+							saved += b.Creatures[d.Options[second].Obj].remTough()
+						}
+						if saved > at.a.Power {
+							saved = at.a.Power
+						}
+					}
+					unblocked -= saved
+				}
 			}
 		}
 	}
