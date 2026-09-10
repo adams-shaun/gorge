@@ -813,6 +813,12 @@ func (e *Engine) ensureLeftTheStack(id state.ObjID, to state.Zone, why string) {
 // considered fine.
 func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state.Zone, you state.PlayerID, source state.ObjID, self state.ObjID) []state.Target {
 	var legal []state.Target
+	// The resolution recheck, unlike a target offer, has this stack object's
+	// Targets available. Targeted* predicates may read precisely this binding;
+	// setting it here keeps their self-reference unavailable at announcement.
+	sc := e.targetSpecContext(0, self, you)
+	sc.ResolutionTargets = targets
+	sc.Resolving = true
 	for _, t := range targets {
 		if t.IsPlayer {
 			if int(t.Player) < len(e.G.Players) && !e.G.Players[t.Player].Lost {
@@ -840,7 +846,7 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state
 		// source" as its Source permanent, the same object askTarget's own
 		// filter has now been made to see (Critical C2 -- one definition).
 		if o := e.G.Obj(t.Obj); o != nil && zoneIn(o.Zone, zones) &&
-			effects.MatchesSpecCtx(e.G, spec, t.Obj, e.targetSpecContext(0, self, you)) &&
+			effects.MatchesSpecCtx(e.G, spec, t.Obj, sc) &&
 			!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(t.Obj, you)) &&
 			!e.protectedFrom(t.Obj, e.protectionSource(source)) {
 			legal = append(legal, t)
