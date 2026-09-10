@@ -7,9 +7,9 @@ import (
 )
 
 // TestAvailableManaBasic is the heart of the feature: an untapped Plains
-// (its intrinsic tap-for-mana) is one white available; an untapped dual adds
-// both colours; a tapped source contributes nothing; and a player with no
-// battlefield permanents has nothing available.
+// (its intrinsic tap-for-mana) is one white available; a tapped source
+// contributes nothing; and a player with no battlefield permanents has
+// nothing available.
 func TestAvailableManaBasic(t *testing.T) {
 	e := layerEngine(t)
 	onBoard(t, e, 0, "Name:Plains\nTypes:Basic Land Plains\nOracle:x\n")
@@ -32,6 +32,18 @@ func TestAvailableManaBasic(t *testing.T) {
 
 // TestAvailableManaSumsAcrossSources verifies the aggregate is the sum over
 // every qualifying untapped source, across colours, in the WUBRGC slots.
+// TestAvailableManaOmitsMultiAbilitySource pins AvailableMana's conservative
+// aggregate rule. A Volcanic Island can produce U or R, but state.Mana cannot
+// express that alternative as one fixed vector; counting both would claim the
+// land can pay both pips with one tap.
+func TestAvailableManaOmitsMultiAbilitySource(t *testing.T) {
+	e := layerEngine(t)
+	onBoard(t, e, 0, "Name:Volcanic Island\nTypes:Land Island Mountain\nOracle:x\n")
+	if got := e.AvailableMana(0); got.Total() != 0 {
+		t.Fatalf("Volcanic Island available = %v, want no fixed mana from U-or-R choice", got)
+	}
+}
+
 func TestAvailableManaSumsAcrossSources(t *testing.T) {
 	e := layerEngine(t)
 	onBoard(t, e, 0, "Name:Plains\nTypes:Basic Land Plains\nOracle:x\n")

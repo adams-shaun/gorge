@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/state"
@@ -163,6 +164,11 @@ func (e *Engine) Clone() *Engine {
 	// re-entry guard. A clone starts with nil buffers and grows its own on its
 	// first full Derived, never aliasing the original's mutable scratch — the
 	// A2 buffer / C3 digest precedent, spelled out in clone.go's contract.
+	if e.manaActivation != nil {
+		ma := *e.manaActivation
+		ma.abilities = append([]*cards.SA(nil), e.manaActivation.abilities...)
+		c.manaActivation = &ma
+	}
 	if e.cast != nil {
 		pc := *e.cast
 		pc.cost.Sac = append([]CostPart(nil), e.cast.cost.Sac...)
