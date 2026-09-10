@@ -58,6 +58,13 @@ func Apply(g *state.Game, e Event) {
 			if o.Damage < 0 {
 				o.Damage = 0
 			}
+			// A positive Damage event records that the object was dealt damage
+			// this turn even if a later prevention/healing event clears its
+			// marked damage. The history clears at the same TurnChange boundary
+			// as the engine's other per-turn state below.
+			if e.Amount > 0 {
+				o.WasDealtDamageThisTurn = true
+			}
 		} else if validPlayer(g, e.Player) {
 			g.Players[e.Player].Life -= e.Amount
 		}
@@ -91,6 +98,13 @@ func Apply(g *state.Game, e Event) {
 				if o := g.Obj(id); o != nil {
 					o.SummonSick = false
 				}
+			}
+			// TurnChange is the existing per-turn reset boundary. Zone-entry
+			// provenance and damage history are object facts rather than facts
+			// of the incoming active player, so reset every arena object here.
+			for i := range g.Objs {
+				g.Objs[i].EnteredThisTurn = false
+				g.Objs[i].WasDealtDamageThisTurn = false
 			}
 		}
 
@@ -561,8 +575,9 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	// where the caller-supplied from claims it came from (the same
 	// real-zone-over-claimed-zone rule this function already applies to the
 	// removal itself, a few lines below).
-	wasBattlefield := o.Zone == state.ZBattlefield
-	wasStack := o.Zone == state.ZStack
+	enteredFrom := o.Zone
+	wasBattlefield := enteredFrom == state.ZBattlefield
+	wasStack := enteredFrom == state.ZStack
 	if wasBattlefield && to != state.ZBattlefield {
 		// Leaving combat removes this permanent as a blocker, but does not
 		// make creatures it blocked unblocked (CR 506.4, 509.1h). Preserve
@@ -589,6 +604,12 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	}
 
 	o.Zone = to
+	// A zone change is the single source of zone-entry provenance. Capture
+	// the actual old zone (not Event.From, which Move deliberately treats as
+	// advisory) so replay and a live game derive identical ThisTurnEntered*
+	// state even from a malformed caller-supplied From.
+	o.EnteredThisTurn = true
+	o.EnteredFrom = enteredFrom
 	switch to {
 	case state.ZBattlefield:
 		o.SummonSick = true
