@@ -286,6 +286,36 @@ func TestTurnChangeResetsPerTurnState(t *testing.T) {
 	}
 }
 
+func TestTurnChangeResetsZoneEntryAndDamageHistory(t *testing.T) {
+	g, l := twoPlayer(t)
+	id := g.Zone(state.ZLibrary, 0)[0]
+
+	// Move records the object's real departure zone, not the event's advisory
+	// From, and positive damage records a fact independent of marked damage.
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	Emit(g, l, Event{Kind: Damage, Obj: id, Amount: 2})
+	o := g.Obj(id)
+	if !o.EnteredThisTurn || o.EnteredFrom != state.ZLibrary {
+		t.Fatalf("entry history = entered:%v from:%v, want true/library", o.EnteredThisTurn, o.EnteredFrom)
+	}
+	if !o.WasDealtDamageThisTurn {
+		t.Fatal("positive Damage must record per-turn damage history")
+	}
+	// Healing does not un-deal the earlier damage.
+	Emit(g, l, Event{Kind: Damage, Obj: id, Amount: -2})
+	if !g.Obj(id).WasDealtDamageThisTurn {
+		t.Fatal("healing must not clear per-turn damage history")
+	}
+
+	// Use the existing TurnChange reset boundary; these are game-wide facts,
+	// so a new active player clears history for objects owned by either seat.
+	Emit(g, l, Event{Kind: TurnChange, Player: 1, Amount: 2})
+	o = g.Obj(id)
+	if o.EnteredThisTurn || o.WasDealtDamageThisTurn {
+		t.Fatalf("per-turn history survived TurnChange: entered:%v damaged:%v", o.EnteredThisTurn, o.WasDealtDamageThisTurn)
+	}
+}
+
 func TestShuffleReplacesLibraryOrder(t *testing.T) {
 	g, l := twoPlayer(t)
 	want := []state.ObjID{5, 4, 3, 2, 1}
