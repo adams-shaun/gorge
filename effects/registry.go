@@ -88,6 +88,15 @@ type Ctx struct {
 	Controller state.PlayerID
 	Targets    []state.Target
 	Remembered []state.Target
+	// Sacrificed carries the last-known-information snapshot of every object
+	// this resolving spell/ability sacrificed, as it was at the instant of the
+	// sacrifice (state.SacrificedInfo). Built two ways, feeding one field: a
+	// cost-paid sacrifice carries it onto the stack object (rules/cast.go
+	// commitCast) and resolution loads it here, while an effect-driven
+	// sacrifice (effSacrifice with RememberSacrificed$ True) appends here
+	// directly so a SubAbility$ chained after it can read it. The
+	// Sacrificed$<Property> heads in count.go read it.
+	Sacrificed []state.SacrificedInfo
 	// SVars is the resolving card's SVar table, and X the value paid for {X}.
 	// Both are bound by the rules package when it builds the context.
 	SVars map[string]string
