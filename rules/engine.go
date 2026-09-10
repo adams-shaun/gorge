@@ -258,6 +258,10 @@ type Engine struct {
 	// cast holds the in-progress cast-flow state while choosing ==
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
 	cast *pendingCast
+	// manaActivation is non-nil while a source with several available mana
+	// abilities waits for its controller to select one. It is plain data so
+	// Clone preserves the same offered activation at an intent boundary.
+	manaActivation *manaActivation
 
 	// cmdZone is the queue of parked commander zone changes (CR 903.9, Task
 	// m32, rules/replacement.go): MoveZone events a commander is about to

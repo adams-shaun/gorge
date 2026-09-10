@@ -34,6 +34,11 @@ import (
 //   - Ability-restricted mana abilities (CantBeActivated) are skipped, the
 //     same restriction legalActions' offer gate consults, so a source a
 //     static currently forbids is not advertised as available.
+//   - A permanent with several remaining free mana abilities contributes
+//     nothing. It can tap for one of those abilities, not their sum, and
+//     state.Mana cannot represent that colour choice without falsely calling
+//     it colourless or promising both colours. This keeps AvailableMana a
+//     conservative fixed-colour lower bound rather than overstating payment.
 //   - An Indeterminate Amount$ ("X", "Y", a Count$ expression) yields no
 //     amount the seat is guaranteed to receive, so it contributes nothing.
 //     (mirrors cards.ManaiProduction, which resolves it to zero rather than
@@ -46,9 +51,9 @@ import (
 // Like `Cards`' production, a Produced$ of "Any"/"Combo Any" resolves to the
 // colourless the executor emits (effects/misc.go effMana) and carried into
 // state.Mana's colourless slot -- the colour the engine does not model -- and
-// the aggregate is exactly the sum of the same per-ability folding used by
-// cards.Face.ManaProduction, so a pure-tap face's AvailableMana equals its
-// projected CardView.Produces (pinned by TestAvailableManaMatchesCardProjection).
+// CardView.Produces remains a per-face capability summary (it can list the
+// alternatives a card has), while AvailableMana is deliberately stricter: it
+// reports only the fixed mana that can be added together right now.
 func (e *Engine) AvailableMana(p state.PlayerID) state.Mana {
 	var out state.Mana
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
@@ -60,14 +65,17 @@ func (e *Engine) AvailableMana(p state.PlayerID) state.Mana {
 		if f == nil {
 			continue
 		}
-		for _, ma := range f.ManaAbilities() {
-			if e.abilityRestricted(p, id, ma) {
-				continue
+		var free []*cards.SA
+		for _, ma := range e.availableManaAbilities(p, id) {
+			if manaFreeCost(ParseCost(ma.Params["Cost"])) {
+				free = append(free, ma)
 			}
-			if !manaFreeCost(ParseCost(ma.Params["Cost"])) {
-				continue
-			}
-			addAvailable(&out, ma)
+		}
+		// Tapping this permanent selects one ability. No state.Mana vector can
+		// say "one U or one R" without asserting a colour that is not fixed,
+		// so omit a multi-choice source from this conservative aggregate.
+		if len(free) == 1 {
+			addAvailable(&out, free[0])
 		}
 	}
 	return out
