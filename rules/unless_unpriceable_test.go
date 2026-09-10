@@ -265,7 +265,7 @@ func TestParseCostPriceable(t *testing.T) {
 		{"Z", true},                // Z likewise, priceable
 		{"Sac<1/Creature>", false}, // non-mana part Pay cannot charge
 		{"Sac<1/Land>", false},
-		{"PayLife<5>", true}, // flattened to {1} generic -- priceable substitution
+		{"PayLife<5>", true}, // fixed life cost; payMana charges the payer's life
 		{"T", false},         // Tap is a non-mana part Pay cannot charge
 	}
 	for _, tc := range cases {

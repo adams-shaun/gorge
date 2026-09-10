@@ -307,7 +307,7 @@ func (e *Engine) spellsCastThisTurn(p state.PlayerID) int {
 //
 // The mana part of a Cost$ is deliberately NOT folded: it RESTATES the printed
 // mana cost rather than adding to it, so re-adding it would double charge.
-// Only Sac/SubCounter/Tap are additional.
+// Only Life/Sac/SubCounter/Tap are additional.
 func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	sa := f.SpellAbility()
 	if sa == nil {
@@ -318,6 +318,7 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 		return cost
 	}
 	extra := ParseCost(sc)
+	cost.Life = addClampedGeneric(cost.Life, int64(extra.Life))
 	if len(extra.Sac) > 0 {
 		cost.Sac = append(append([]CostPart(nil), cost.Sac...), extra.Sac...)
 	}
@@ -989,7 +990,7 @@ func (e *Engine) manaAsk() bool {
 	for i := range rem {
 		rem[i] -= pc.payColor[i]
 	}
-	life := e.G.Players[pc.player].Life - pc.payLife
+	life := e.G.Players[pc.player].Life - pc.cost.Life - pc.payLife
 	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose how to pay a mana symbol of " + e.G.Obj(pc.card).Face().Name,
 		Source: pc.card}
