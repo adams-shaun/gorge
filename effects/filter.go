@@ -617,7 +617,9 @@ func matchesBase(g *state.Game, base string, o *state.Object) bool {
 		return !matchesBase(g, neg, o)
 	}
 	switch base {
-	case "Any", "Card":
+	case "Any":
+		return hasType(o, "Creature") || hasType(o, "Planeswalker") || hasType(o, "Battle")
+	case "Card":
 		return true
 	case "Permanent":
 		return o.Zone == state.ZBattlefield

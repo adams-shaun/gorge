@@ -10,7 +10,7 @@ import (
 func board(t *testing.T) (*state.Game, map[string]state.ObjID) {
 	t.Helper()
 	g := state.NewGame([]string{"you", "them"})
-	mk := func(owner state.PlayerID, src string) state.ObjID {
+	mkIn := func(owner state.PlayerID, zone state.Zone, src string) state.ObjID {
 		c, d := cards.ParseBytes("t.txt", []byte(src))
 		if len(d) != 0 {
 			t.Fatalf("diags: %v", d)
@@ -20,15 +20,24 @@ func board(t *testing.T) (*state.Game, map[string]state.ObjID) {
 			f.ApplyIntrinsics()
 		}
 		o := g.AddObject(c, owner)
-		o.Zone = state.ZBattlefield
-		g.SetZone(state.ZBattlefield, owner, append(g.Zone(state.ZBattlefield, owner), o.ID))
+		o.Zone = zone
+		g.SetZone(zone, owner, append(g.Zone(zone, owner), o.ID))
 		return o.ID
 	}
+	mk := func(owner state.PlayerID, src string) state.ObjID {
+		return mkIn(owner, state.ZBattlefield, src)
+	}
 	ids := map[string]state.ObjID{
-		"myBear":   mk(0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"),
-		"myFlier":  mk(0, "Name:Flier\nManaCost:1 U\nTypes:Creature Bird\nPT:1/1\nK:Flying\nOracle:x\n"),
-		"myLand":   mk(0, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n"),
-		"theirBig": mk(1, "Name:Giant\nManaCost:4 R\nTypes:Creature Giant\nPT:5/5\nOracle:x\n"),
+		"myBear":        mk(0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"),
+		"myFlier":       mk(0, "Name:Flier\nManaCost:1 U\nTypes:Creature Bird\nPT:1/1\nK:Flying\nOracle:x\n"),
+		"myLand":        mk(0, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n"),
+		"myArtifact":    mk(0, "Name:Relic\nManaCost:1\nTypes:Artifact\nOracle:x\n"),
+		"myEnchantment": mk(0, "Name:Aura\nManaCost:W\nTypes:Enchantment\nOracle:x\n"),
+		"myWalker":      mk(0, "Name:Walker\nManaCost:2 U\nTypes:Legendary Planeswalker Test\nOracle:x\n"),
+		"myBattle":      mk(0, "Name:Siege\nManaCost:2 R\nTypes:Battle Siege\nOracle:x\n"),
+		"myInstant":     mkIn(0, state.ZGraveyard, "Name:Trick\nManaCost:U\nTypes:Instant\nOracle:x\n"),
+		"mySorcery":     mkIn(0, state.ZGraveyard, "Name:Ritual\nManaCost:R\nTypes:Sorcery\nOracle:x\n"),
+		"theirBig":      mk(1, "Name:Giant\nManaCost:4 R\nTypes:Creature Giant\nPT:5/5\nOracle:x\n"),
 	}
 	return g, ids
 }
@@ -45,7 +54,16 @@ func TestBaseTypeMatching(t *testing.T) {
 		{"Land", "myLand", true},
 		{"Permanent", "myLand", true},
 		{"Card", "myBear", true},
+		{"Card", "myLand", true},
+		{"Card", "myInstant", true},
 		{"Any", "myBear", true},
+		{"Any", "myWalker", true},
+		{"Any", "myBattle", true},
+		{"Any", "myLand", false},
+		{"Any", "myArtifact", false},
+		{"Any", "myEnchantment", false},
+		{"Any", "myInstant", false},
+		{"Any", "mySorcery", false},
 		{"Artifact", "myBear", false},
 		{"nonCreature", "myLand", true},
 		{"nonCreature", "myBear", false},
