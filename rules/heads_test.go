@@ -777,7 +777,14 @@ var acceptanceHeads = map[int]string{
 	2: "add9e21490b786c1",
 	4: "324ef3499065470d",
 	6: "a16a266f6915ea94",
-	8: "a475ef501512265f",
+	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
+	// ability costs and choose colors): mana abilities that spend a Sac cost
+	// are now gated on a payable, deterministic sacrifice candidate existing,
+	// instead of being offered unconditionally. In the 8-seat acceptance game,
+	// Skirk Prospector's `Sac<1/Goblin>` ability has no eligible Goblin from
+	// turns 30-46; the old (buggy) engine offered it anyway, the fixed engine
+	// correctly withholds it, changing the bot's trajectory from that point.
+	8: "cc022f9ba9f2bf39",
 }
 
 func TestHeads(t *testing.T) {
