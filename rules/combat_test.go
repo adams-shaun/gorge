@@ -261,6 +261,54 @@ func TestBlockerDeclarationLegality(t *testing.T) {
 	})
 }
 
+func TestMenaceBlockDeclarationNeedsZeroOrAtLeastTwoBlockers(t *testing.T) {
+	const menace = "Name:Goblin Glory Chaser\nManaCost:R\nTypes:Creature Goblin Warrior\nPT:1/1\nK:Menace\nOracle:x\n"
+	const blocker = "Name:Memnite\nManaCost:0\nTypes:Artifact Creature Construct\nPT:1/1\nOracle:x\n"
+
+	for _, tc := range []struct {
+		name    string
+		blocks  int
+		wantErr bool
+	}{
+		{name: "unblocked", blocks: 0},
+		{name: "one blocker", blocks: 1, wantErr: true},
+		{name: "two blockers", blocks: 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := combatEngine(t)
+			attacker := onBoardReady(t, e, 0, menace)
+			onBoard(t, e, 1, blocker)
+			onBoard(t, e, 1, blocker)
+			e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{attacker}})
+			e.G.Step = state.StepDeclareBlockers
+			e.askBlockers()
+
+			d := e.Pending()
+			if d == nil || d.Kind != decision.KBlockers || len(d.Options) != 2 {
+				t.Fatalf("expected two block options, got %+v", d)
+			}
+			choices := make([]int, tc.blocks)
+			for i := range choices {
+				choices[i] = d.Options[i].Index
+			}
+			beforeIntents, beforeEvents := len(e.L.Intents), len(e.L.Events)
+			err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices})
+			if tc.wantErr {
+				if err == nil {
+					t.Fatal("a menace attacker was blocked by exactly one creature")
+				}
+				if e.Pending() != d || len(e.L.Intents) != beforeIntents || len(e.L.Events) != beforeEvents {
+					t.Fatal("rejected menace declaration consumed the decision or changed the log")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("legal declaration with %d blockers was rejected: %v", tc.blocks, err)
+			}
+		})
+	}
+}
+
 func TestCombatPriorityDoesNotRepeatDeclarations(t *testing.T) {
 	const creature = "Name:Memnite\nManaCost:0\nTypes:Artifact Creature Construct\nPT:1/1\nOracle:x\n"
 
@@ -340,6 +388,89 @@ func TestUnblockedAttackerDamagesTheDefendingPlayer(t *testing.T) {
 	if got := e.G.Players[1].Life; got != 18 {
 		t.Fatalf("defender life = %d, want 18", got)
 	}
+}
+
+func TestWallOfOmensWithDefenderCannotAttack(t *testing.T) {
+	const wallOfOmens = "Name:Wall of Omens\nManaCost:1 W\nTypes:Creature Wall\nPT:0/4\nK:Defender\nOracle:x\n"
+	const bear = "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+
+	e := combatEngine(t)
+	wall := onBoardReady(t, e, 0, wallOfOmens)
+	legal := onBoardReady(t, e, 0, bear)
+	e.askAttackers()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers {
+		t.Fatalf("expected an attackers decision for the other creature, got %+v", d)
+	}
+	if len(d.Options) != 1 || d.Options[0].Obj != legal {
+		t.Fatalf("attacker options = %+v, want only the non-Defender creature %d", d.Options, legal)
+	}
+	if e.canAttack(wall) {
+		t.Fatal("Wall of Omens with Defender may attack")
+	}
+
+	// A fabricated/stale decision cannot bypass the declaration-time guard.
+	e2 := combatEngine(t)
+	wall = onBoardReady(t, e2, 0, wallOfOmens)
+	e2.ask(&decision.Decision{Player: 0, Kind: decision.KAttackers, Min: 0, Max: 1,
+		Options: []decision.Option{{Index: 0, Kind: "attacker", Obj: wall, Player: 1}}})
+	d = e2.Pending()
+	beforeIntents, beforeEvents := len(e2.L.Intents), len(e2.L.Events)
+	if err := e2.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err == nil {
+		t.Fatal("a hand-built intent declaring Wall of Omens as an attacker was accepted")
+	}
+	if e2.Pending() != d || len(e2.L.Intents) != beforeIntents || len(e2.L.Events) != beforeEvents {
+		t.Fatal("rejected Defender declaration consumed the decision or changed the log")
+	}
+}
+
+func TestBotCombatDeclarationsRemainLegalWithDefenderAndMenace(t *testing.T) {
+	const wall = "Name:Wall of Omens\nManaCost:1 W\nTypes:Creature Wall\nPT:0/4\nK:Defender\nOracle:x\n"
+	const bear = "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	const menace = "Name:Goblin Glory Chaser\nManaCost:R\nTypes:Creature Goblin Warrior\nPT:3/3\nK:Menace\nOracle:x\n"
+	const blocker = "Name:Memnite\nManaCost:0\nTypes:Artifact Creature Construct\nPT:1/1\nOracle:x\n"
+
+	t.Run("Defender is never submitted as an attacker", func(t *testing.T) {
+		e := combatEngine(t)
+		wallID := onBoardReady(t, e, 0, wall)
+		bearID := onBoardReady(t, e, 0, bear)
+		e.askAttackers()
+		d := e.Pending()
+		bot := newTestBot(1)
+		in := bot.answer(e, d)
+		for _, o := range d.Chosen(in) {
+			if o.Obj == wallID {
+				t.Fatal("bot submitted a Defender creature as an attacker")
+			}
+		}
+		if err := e.Submit(in); err != nil {
+			t.Fatalf("bot attacker declaration was rejected: %v", err)
+		}
+		if e.G.Obj(bearID) == nil {
+			t.Fatal("test setup lost the legal attacker")
+		}
+	})
+
+	t.Run("Menace gets a legal two-creature block", func(t *testing.T) {
+		e := combatEngine(t)
+		e.G.Active = 1
+		attacker := onBoardReady(t, e, 1, menace)
+		onBoard(t, e, 0, blocker)
+		onBoard(t, e, 0, blocker)
+		e.G.Players[0].Life = 2 // make the otherwise-unblocked attack lethal
+		e.emit(events.Event{Kind: events.DeclareAttackers, Player: 0, IDs: []state.ObjID{attacker}})
+		e.G.Step = state.StepDeclareBlockers
+		e.askBlockers()
+		d := e.Pending()
+		bot := newTestBot(2)
+		in := bot.answer(e, d)
+		if len(in.Choices) != 2 {
+			t.Fatalf("bot chose %d blockers for lethal Menace attacker, want 2: %+v", len(in.Choices), in)
+		}
+		if err := e.Submit(in); err != nil {
+			t.Fatalf("bot menace declaration was rejected (would deadlock the step): %v", err)
+		}
+	})
 }
 
 func TestSummoningSickCreatureCannotAttackWithoutHaste(t *testing.T) {
@@ -762,6 +893,38 @@ func TestAttackerWhoseBlockerIsRemovedDealsNoDamageWithoutTrample(t *testing.T) 
 
 	if got := e.G.Players[1].Life; got != 20 {
 		t.Fatalf("defender life = %d, want 20 (a blocked attacker with no live blockers left deals nothing without Trample)", got)
+	}
+}
+
+// TestMenaceStaysBlockedWhenOneOfTwoBlockersLeavesCombat pins CR 509.1h and
+// 506.4 for Menace specifically: legality is checked once, on the declaration
+// as a whole, and is not rechecked when one blocker later leaves combat.
+func TestMenaceStaysBlockedWhenOneOfTwoBlockersLeavesCombat(t *testing.T) {
+	e := combatEngine(t)
+	atk := onBoardReady(t, e, 0, "Name:Goblin Glory Chaser\nManaCost:R\nTypes:Creature Goblin Warrior\nPT:3/3\nK:Menace\nOracle:x\n")
+	first := onBoard(t, e, 1, "Name:Guard One\nManaCost:1 W\nTypes:Creature Soldier\nPT:1/4\nOracle:x\n")
+	second := onBoard(t, e, 1, "Name:Guard Two\nManaCost:1 W\nTypes:Creature Soldier\nPT:1/4\nOracle:x\n")
+
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{atk}})
+	e.G.Step = state.StepDeclareBlockers
+	e.askBlockers()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KBlockers || len(d.Options) != 2 {
+		t.Fatalf("expected two block options, got %+v", d)
+	}
+	e.pending = nil
+	e.handleBlockers(d, decision.Intent{Seq: d.Seq, Player: d.Player,
+		Choices: []int{d.Options[0].Index, d.Options[1].Index}})
+
+	// Falling from two live blockers to one later does not undo the fact that
+	// this attacker was blocked, so it cannot hit the player without Trample.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: first, From: state.ZBattlefield, To: state.ZExile})
+	e.dealCombatDamage()
+	if got := e.G.Players[1].Life; got != 20 {
+		t.Fatalf("defender life = %d, want 20 after one Menace blocker left combat", got)
+	}
+	if got := e.G.Obj(second).Damage; got != 3 {
+		t.Fatalf("remaining blocker damage = %d, want 3", got)
 	}
 }
 
