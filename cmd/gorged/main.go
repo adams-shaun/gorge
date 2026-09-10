@@ -65,6 +65,14 @@ type config struct {
 	// human slot instead of a random per-slot one. Tests and local use only
 	// (R-E3-3) — production runs mint random tokens.
 	seatToken string
+	// feedback is the -feedback flag: where a player's own bug reports are
+	// written (feedback.go). It is deliberately NOT under -dir. The
+	// persistence directory is disposable by design — scripts/deploy-demo.sh
+	// `rm -rf`s it on every deploy so a config written by an older binary
+	// cannot come back with zero-valued fields — which would mean a report
+	// filed against a bug was destroyed by the deploy that shipped its fix.
+	// A report is the one artifact here that cannot be regenerated.
+	feedback string
 }
 
 func main() {
@@ -77,6 +85,7 @@ func main() {
 	flag.DurationVar(&c.pace, "pace", 250*time.Millisecond, "sleep after every decision; 0 = as fast as possible")
 	flag.DurationVar(&c.cooldown, "cooldown", 5*time.Second, "pause between matches on a perpetual table")
 	flag.StringVar(&c.dir, "dir", "gorged-data", "persistence directory")
+	flag.StringVar(&c.feedback, "feedback", "feedback", "directory player bug reports are written to (kept OUT of -dir, which deploys wipe)")
 	flag.StringVar(&c.spectator, "spectator", "omniscient", "spectator visibility: public or omniscient")
 	flag.Uint64Var(&c.seed, "seed", 1, "seed of table 1; table i uses seed+i-1")
 	flag.BoolVar(&c.perpetual, "perpetual", true, "start a new match when one ends")
@@ -199,9 +208,26 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if err != nil {
 		return err
 	}
+	// A player's own bug report (feedback.go), written to its own durable
+	// directory rather than the disposable persistence dir — see config's
+	// `feedback` field. Routed here, ahead of httpapi's mux, for the same
+	// reason /art/ is: it is additive, and a server whose feedback directory
+	// is unavailable fails at startup rather than at the first submission.
 	topMux := http.NewServeMux()
 	topMux.HandleFunc("GET /art/named", ac.named)
 	topMux.HandleFunc("GET /art/blob/{key}", ac.blob)
+	// An empty -feedback disarms the endpoint entirely, the same opt-in shape
+	// Options.Seat and CreateGame use. That is what a config built in a test
+	// gets (the flag default only applies to the real binary), so a test
+	// server never creates a directory it did not ask for -- and a submission
+	// to a server with feedback off is a 404 rather than a silent success.
+	if c.feedback != "" {
+		fb, err := newFeedbackStore(c.feedback)
+		if err != nil {
+			return err
+		}
+		topMux.HandleFunc("POST /api/feedback", fb.submit)
+	}
 	topMux.Handle("/", httpapi.NewHandler(r, opts))
 	srv := &http.Server{Handler: topMux}
 	errc := make(chan error, 1)
