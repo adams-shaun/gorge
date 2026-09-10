@@ -784,7 +784,18 @@ var acceptanceHeads = map[int]string{
 	// Skirk Prospector's `Sac<1/Goblin>` ability has no eligible Goblin from
 	// turns 30-46; the old (buggy) engine offered it anyway, the fixed engine
 	// correctly withholds it, changing the bot's trajectory from that point.
-	8: "cc022f9ba9f2bf39",
+	//
+	// 8 seats moved again to 8552ec43c71b76e5 with task anytgt1 (fix(effects):
+	// restrict any targets to damageable card types): CR 115.4's "any target"
+	// no longer matches every card type. At seq 14190 seat 6 casts Lightning
+	// Bolt (obj 407); the pre-fix target offer had 32 options including 17
+	// illegal basic lands, now correctly down to 15. The bot picks the same
+	// object (Garruk's Companion, obj 341) in both streams -- verified by
+	// diffing the two 15,260-event streams directly: exactly one payload
+	// differs (the target-offer's option list), TargetsChosen and every later
+	// event are identical. No trajectory change, only the corrected option
+	// count that precedes the bot's unchanged pick.
+	8: "8552ec43c71b76e5",
 }
 
 func TestHeads(t *testing.T) {
