@@ -84,10 +84,31 @@ export function singleActionIcon(option: Option): SingleActionIcon {
   return 'action';
 }
 
-/** Post the sole option by its WIRE index (R-E4-1), never list position. */
+/**
+ * A collapsed pile of interchangeable mana sources can act like one physical
+ * button when every offered action has identical object-independent wire
+ * semantics. The option with the lowest wire index wins; member/list order is
+ * not option identity (R-E4-1).
+ */
+export function singleTapOptionOf(tile: TileOptions): Option | null {
+  if (tile.list.length === 0 || tile.list.some((o) => o.kind !== 'activate')) return null;
+
+  const semantics = (option: Option) => JSON.stringify(
+    Object.entries(option)
+      .filter(([key]) => key !== 'index' && key !== 'obj')
+      .sort(([a], [b]) => a.localeCompare(b)),
+  );
+  const firstShape = semantics(tile.list[0]);
+  if (tile.list.some((o) => semantics(o) !== firstShape)) return null;
+
+  return tile.list.reduce((first, option) => option.index < first.index ? option : first);
+}
+
+/** Post a direct action by its WIRE index (R-E4-1), never list position. */
 export function postSingleAction(tile: TileOptions): void {
-  if (tile.list.length !== 1) return;
-  tile.post(tile.list[0].index);
+  const option = tile.list.length === 1 ? tile.list[0] : singleTapOptionOf(tile);
+  if (option === undefined || option === null) return;
+  tile.post(option.index);
 }
 
 /**

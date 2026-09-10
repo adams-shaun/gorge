@@ -115,7 +115,7 @@
     background: var(--felt-sunk);
     /* The lit edges are the ones the pile exposes, so the step reads even
        when the top card is a blank in nearly the same colour. */
-    border: 1px solid var(--edge-felt);
+    border: var(--edge-w) solid var(--edge-felt);
     border-top-color: var(--ink-faint);
     border-left-color: var(--ink-faint);
     border-radius: var(--radius-card);
@@ -159,7 +159,7 @@
     transform: translateX(-100%);
     background: var(--felt-sunk);
     color: var(--ink);
-    border: 1px solid var(--edge-felt);
+    border: var(--edge-w) solid var(--edge-felt);
     border-radius: 2px;
     font-family: var(--font-data);
     font-variant-numeric: tabular-nums;

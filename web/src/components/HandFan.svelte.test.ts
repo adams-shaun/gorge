@@ -3,6 +3,7 @@ import { render } from 'svelte/server';
 import type { CardView, PlayerView } from '../protocol';
 import type { CardOptions } from '../lib/cardoptions';
 import { optionsByObj, optionsByPlayer } from '../lib/cardoptions';
+import { PLAY_CARD_WIDTH } from '../lib/handfan';
 import HandFan from './HandFan.svelte';
 
 // SSR via svelte/server, the repo's component-test pattern: no DOM, no
@@ -30,7 +31,7 @@ const hand = (n: number): CardView[] => Array.from({ length: n }, (_, i) => card
 // The room a fan must fit: a typical 1440px board minus the rail. Same number
 // the pure layout tests use, so the component's overlap observation agrees.
 const BOARD_W = 1180;
-const CARD_W = 128;
+const CARD_W = PLAY_CARD_WIDTH;
 
 function lefts(html: string): number[] {
   // the rendered inline style ends with a `;`, so the match stops at `px`

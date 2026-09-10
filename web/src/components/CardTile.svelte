@@ -4,7 +4,7 @@
   import CardDetail from './CardDetail.svelte';
   import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
   import { placeMenu, MENU_WIDTH, type MenuAnchor } from '../lib/menuplacement';
-  import { postSingleAction, singleActionIcon } from '../lib/cardoptions';
+  import { postSingleAction, singleActionIcon, singleTapOptionOf } from '../lib/cardoptions';
 
   /**
    * CardTile is the battlefield/stack/strip face of one object. It has no
@@ -241,14 +241,15 @@
 </div>
 
 {#if tileOptions}
+  {@const tapAction = singleTapOptionOf(tileOptions)}
   <!-- The options affordance sits OUTSIDE the role="button" tile so a
        real button is never nested inside one. It is anchored to the tile's
        top-right corner — the one corner with no meaning yet (top-left is
        keyword marks, the bottom band is state), so the tile's signal
        hierarchy stays intact. -->
   <div class="tile-actions">
-    {#if tileOptions.list.length === 1}
-      {@const action = tileOptions.list[0]}
+    {#if tileOptions.list.length === 1 || tapAction !== null}
+      {@const action = tapAction ?? tileOptions.list[0]}
       {@const icon = singleActionIcon(action)}
       <button
         class="action-icon badge--{tileOptions.tone}"
@@ -293,7 +294,7 @@
            already chosen and in which order. -->
       <span class="sel data" aria-label="picked {tileOptions.pickedOrder.join(', ')}">{tileOptions.pickedOrder.join(',')}</span>
     {/if}
-    {#if open && tileOptions.list.length > 1}
+    {#if open && tileOptions.list.length > 1 && tapAction === null}
       <!-- PORTALLED TO <body> AND FIXED. An inline absolute child of the
            tile inside the quadrant is clipped by the quadrant's overflow;
            hanging the menu off the viewport means no ancestor can cut it
@@ -547,7 +548,7 @@
     height: 1.1rem;
     padding: 0 0.25rem;
     border-radius: 3px;
-    border: 1px solid var(--edge-inst);
+    border: var(--edge-w) solid var(--edge-inst);
     background: var(--instrument);
     color: var(--ink);
     font-family: var(--font-data);
@@ -612,7 +613,7 @@
     box-sizing: border-box;
     overflow-y: auto;
     background: var(--instrument);
-    border: 1px solid var(--edge-inst);
+    border: var(--edge-w) solid var(--edge-inst);
     border-radius: var(--radius);
     box-shadow: var(--shadow-lift);
     padding: 2px;

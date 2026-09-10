@@ -18,13 +18,14 @@
   --felt: #17150f;
   --felt-raised: #1f1c15;
   --felt-sunk: #100e0a;
-  --edge-felt: #2a2721;
+  --edge-felt: #3a362e;
 
   /* Instrument — the rails. Cooler and bluer than the felt; the temperature
      difference is the register marker and should be felt without being read. */
   --instrument: #14161a;
   --instrument-raised: #1a1d22;
-  --edge-inst: #23262c;
+  --edge-inst: #353a43;
+  --edge-w: 2px;
 
   --ink: #e8e4da;
   --ink-inst: #c9cfd6;
@@ -58,12 +59,14 @@
      it; Board and PhaseTrack share the row height so the reservation and the
      painted band cannot drift apart. */
   --phase-track-row-h: 2rem;
-  --hot-strip-h: 1.75rem;
+  --hot-strip-h: 2.25rem;
   --phase-instrument-h: calc(var(--phase-track-row-h) + var(--hot-strip-h));
   --phase-card-clearance: var(--sp-6);
   /* Opening-hand thumbnails shrink to this floor before the fixed one-row
      layout clips; the full CardDetail remains the reading surface. */
   --opening-card-min-w: 2rem;
+  /* One gameplay-card scale: hand, creatures, artifacts and lands. */
+  --play-card-w: 104px;
 
   /* Plex was drawn for technical material; the slight mechanical squareness
      suits an instrument, and its tabular figures are real. Mono is for VALUES

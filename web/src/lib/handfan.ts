@@ -19,6 +19,9 @@
  * engage" guarantee is unit-testable directly.
  */
 
+/** Shared gameplay-card width used by the hand's layout math. */
+export const PLAY_CARD_WIDTH = 104;
+
 export interface HandFanSpec {
   /** width of one card face, px. */
   cardWidth: number;
