@@ -4,6 +4,8 @@
   import CardImage from './CardImage.svelte';
   import CardDetail from './CardDetail.svelte';
   import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
+  import { placeMenu, MENU_WIDTH, type MenuAnchor } from '../lib/menuplacement';
+  import { postSingleAction, singleActionIcon } from '../lib/cardoptions';
 
   /**
    * One commander, drawn as a card in its seat's CREATURES row (CZ2) — a
@@ -85,13 +87,53 @@
   // `seat` is carried only as a data attribute for the board test that counts
   // "one command area per commander seat" now that the tiles have no
   // wrapping element of their own (CZ2) — nothing here reads it.
-  let { status, player, seat, hover = new HoverCard(), anchor: anchorProp = null }: {
+  let { status, player, seat, hover = new HoverCard(), anchor: anchorProp = null, tileOptions = null, open0 = false }: {
     status: CommanderStatus;
     player: string;
     seat: number;
     hover?: HoverCard;
     anchor?: AnchorRect | null;
+    /** tileOptions is this commander's own offers from the pending decision
+     *  (see lib/cardoptions.ts), looked up by CommandArea the same way a
+     *  battlefield CardTile's are: null when the decision offers this
+     *  commander nothing. Casting from the command zone is keyed by the
+     *  commander's object id like any other option, so it renders here with
+     *  the exact same direct-button/menu affordance CardTile uses — this tile
+     *  used to carry no options at all, which is why casting a commander was
+     *  reachable only through the seat panel's generic ACTIONS list. */
+    tileOptions?: import('../lib/cardoptions').TileOptions | null;
+    /** open0 seeds the menu's open/closed state — same SSR-harness purpose as
+     *  CardTile's own open0, since this environment has no DOM/pointer events
+     *  for a test to click the badge with. */
+    open0?: boolean;
   } = $props();
+
+  // svelte-ignore state_referenced_locally
+  let open = $state(open0);
+  let menuAnchor = $state<MenuAnchor | null>(null);
+  let badgeEl = $state<HTMLButtonElement | null>(null);
+  function toggleMenu() {
+    open = !open;
+    if (open && badgeEl) {
+      const r = badgeEl.getBoundingClientRect();
+      menuAnchor = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+    }
+  }
+  const menuPlacement = $derived(
+    menuAnchor
+      ? placeMenu(menuAnchor, typeof window === 'undefined' ? 0 : window.innerWidth, typeof window === 'undefined' ? 0 : window.innerHeight)
+      : { x: 8, y: 8, maxHeight: 400, up: false },
+  );
+  /** portal moves the menu node to <body>, same as CardTile's own — nothing
+   *  clips it inside the row's overflow. */
+  function portal(node: HTMLElement) {
+    document.body.appendChild(node);
+    return {
+      destroy() {
+        node.remove();
+      },
+    };
+  }
 
   const card = $derived(status.commander);
 
@@ -139,6 +181,7 @@
   }
 </script>
 
+<div class="tile-wrap">
 <div
   class="cmd-tile cmd-tile--{status.presence}"
   data-commander={status.index}
@@ -146,6 +189,8 @@
   data-cmd-state={status.presence}
   data-cmd-zone={status.zone}
   data-seat={seat}
+  data-tone={tileOptions?.tone ?? ''}
+  data-options={tileOptions ? tileOptions.list.length : undefined}
   data-next-cost={nextCastCost(card.mana_cost, status.casts)}
   bind:this={root}
   tabindex="0"
@@ -176,6 +221,68 @@
   <div class="band">
     <span class="state">{label}</span>
   </div>
+</div>
+
+{#if tileOptions}
+  <!-- Same affordance CardTile draws for a battlefield object: a single
+       offer (casting from the command zone, ordinarily) acts directly on
+       click, more than one opens the portalled menu. Outside the
+       role="button" tile so a real button is never nested inside one. -->
+  <div class="tile-actions">
+    {#if tileOptions.list.length === 1}
+      {@const action = tileOptions.list[0]}
+      {@const icon = singleActionIcon(action)}
+      <button
+        class="action-icon badge--{tileOptions.tone}"
+        class:selected={tileOptions.pickedOrder.length > 0}
+        type="button"
+        data-single-action
+        data-action-icon={icon}
+        aria-label={action.label}
+        title={action.label}
+        onclick={(event) => {
+          event.stopPropagation();
+          postSingleAction(tileOptions);
+        }}
+      >
+        <span aria-hidden="true">{icon === 'tap' ? '↻' : icon === 'cast' ? '✦' : '›'}</span>
+      </button>
+    {:else}
+      <button
+        class="badge badge--{tileOptions.tone}"
+        class:selected={tileOptions.pickedOrder.length > 0}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="{tileOptions.list.length} actions for {card.name}"
+        title="Options for {card.name}"
+        bind:this={badgeEl}
+        onclick={(event) => {
+          event.stopPropagation();
+          toggleMenu();
+        }}
+      >
+        <span class="badge__n data">{tileOptions.list.length}</span>
+      </button>
+    {/if}
+    {#if tileOptions.pickedOrder.length > 0}
+      <span class="sel data" aria-label="picked {tileOptions.pickedOrder.join(', ')}">{tileOptions.pickedOrder.join(',')}</span>
+    {/if}
+    {#if open && tileOptions.list.length > 1}
+      <div class="menu-pop" use:portal style:left="{menuPlacement.x}px" style:top="{menuPlacement.y}px" style:width="{MENU_WIDTH}px" style:max-height="{menuPlacement.maxHeight}px">
+        <ul class="menu" role="menu" aria-label="Options for {card.name}">
+          {#each tileOptions.list as opt (opt.index)}
+            <li role="none">
+              <button class="menu__item" type="button" role="menuitem" onclick={() => tileOptions.post(opt.index)}>
+                {opt.label}
+              </button>
+            </li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
+  </div>
+{/if}
 </div>
 
 {#if hover.show && anchor}
@@ -310,5 +417,128 @@
     background: color-mix(in srgb, var(--felt-sunk) 85%, transparent);
     border-radius: 2px;
     padding: 0 3px;
+  }
+
+  /* The options affordance, ported from CardTile verbatim (same fact, same
+     corner, same rules): the wrapper anchors it outside the role="button"
+     tile so it can overlay the face's top-right corner — here that corner is
+     shared with the CR 903.8 tax chip (top-left, .tax is top:2px/right:2px on
+     `.face` which is narrower than the wrap only via its own inset — the two
+     do not collide in practice since the tax chip is drawn inside `.face`,
+     inset from its own corner, while this sits at the outer wrap's edge). */
+  .tile-wrap {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    width: var(--card-w, 104px);
+    flex: none;
+  }
+  .tile-actions {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    line-height: 1;
+  }
+  .badge,
+  .action-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    padding: 0 0.25rem;
+    border-radius: 3px;
+    border: 1px solid var(--edge-inst);
+    background: var(--instrument);
+    color: var(--ink);
+    font-family: var(--font-data);
+    font-size: var(--t-10);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .badge--initiative {
+    background: var(--initiative);
+    border-color: var(--initiative);
+    color: var(--felt-sunk);
+  }
+  .badge--offered {
+    background: var(--offered);
+    border-color: var(--offered);
+    color: var(--felt-sunk);
+  }
+  .badge.selected,
+  .action-icon.selected {
+    outline: 2px solid var(--ink);
+    outline-offset: 1px;
+  }
+  .action-icon {
+    width: 1.35rem;
+    padding: 0;
+    font-size: var(--t-14);
+    line-height: 1;
+  }
+  .sel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1rem;
+    height: 1rem;
+    padding: 0 0.2rem;
+    border-radius: 2px;
+    background: var(--ink);
+    color: var(--felt-sunk);
+    font-size: var(--t-10);
+    font-weight: 600;
+  }
+  .badge__n {
+    font-size: inherit;
+  }
+  .badge:hover,
+  .badge[aria-expanded='true'],
+  .action-icon:hover {
+    border-color: var(--ink-dim);
+    color: var(--ink);
+  }
+  .menu-pop {
+    position: fixed;
+    z-index: 20;
+    box-sizing: border-box;
+    overflow-y: auto;
+    background: var(--instrument);
+    border: 1px solid var(--edge-inst);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lift);
+    padding: 2px;
+  }
+  .menu {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .menu__item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    border-left: 2px solid transparent;
+    border-radius: 0;
+    color: var(--ink-inst);
+    font-family: var(--font-ui);
+    font-size: var(--t-12);
+    line-height: 1.35;
+    padding: var(--sp-1) var(--sp-2);
+    cursor: pointer;
+  }
+  .menu__item:hover,
+  .menu__item:focus-visible {
+    background: color-mix(in srgb, var(--ink) 7%, var(--instrument));
+    border-left-color: var(--ink-dim);
+    color: var(--ink);
   }
 </style>

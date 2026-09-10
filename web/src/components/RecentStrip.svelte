@@ -1,10 +1,40 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import type { View, EventBody, CardView } from '../protocol';
   import { recentlyMattered, visibleHand } from '../lib/board';
   import CardImage from './CardImage.svelte';
 
-  /** RecentStrip shows the last resolved object large in the board's bottom centre, or nothing — recentlyMattered picks the id, this only resolves it to a CardView already present in the view. */
+  /** RecentStrip shows the last resolved object large in the board's bottom
+   *  centre, or nothing. recentlyMattered's event-count window is a safety
+   *  bound, not the actual lifetime: a resolve that happens right before a
+   *  long run of decisions with no further events (the human's own turn,
+   *  most commonly) stayed inside that window and sat over the board
+   *  indefinitely in real time — reported as a stale card parked behind the
+   *  hand. So the strip's real clock is RECENT_MS of wall time from when a
+   *  given resolve first appears: shownId only resets its timer when the id
+   *  itself changes, not on every poll that still reports the same id, so
+   *  the card cannot be kept alive by repeated polling. */
   let { view, events }: { view: View; events: EventBody[] } = $props();
+
+  const RECENT_MS = 1000;
+  let shownId = $state<number | null>(null);
+  let lastSeenId: number | null = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  function clearTimer(): void {
+    if (timer !== null) clearTimeout(timer);
+    timer = null;
+  }
+
+  $effect(() => {
+    const id = recentlyMattered(events);
+    if (id === lastSeenId) return;
+    lastSeenId = id;
+    clearTimer();
+    shownId = id;
+    if (id !== null) timer = setTimeout(() => { shownId = null; }, RECENT_MS);
+  });
+  onDestroy(clearTimer);
 
   function findCard(v: View, obj: number): CardView | null {
     for (const p of v.players) {
@@ -17,10 +47,7 @@
     return null;
   }
 
-  const card = $derived.by(() => {
-    const id = recentlyMattered(events);
-    return id === null ? null : findCard(view, id);
-  });
+  const card = $derived.by(() => (shownId === null ? null : findCard(view, shownId)));
 </script>
 
 {#if card}
