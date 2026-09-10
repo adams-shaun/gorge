@@ -736,10 +736,34 @@ var acceptanceHeads = map[int]string{
 	// PASS, the two Charm arms this task owned flipping green with nothing
 	// regressing. The seat's own reported 8-seat head predates the pc1 and
 	// pc2 merges; these are re-measured on a branch rebased onto this main.
-	2: "cf9a4dde728b3d2b",
-	4: "662c4e5bcdca0716",
-	6: "a9437f5b821bf2f8",
-	8: "50e4812486e552a7",
+	// ml1 moved ALL FOUR heads. The cause is one rule: tapping a permanent
+	// with two or more unrestricted mana abilities (any dual/multi-basic-type
+	// land -- Underground Sea, Cavern of Souls, and 330 other faces in the
+	// corpus) used to resolve every one of them unconditionally on a single
+	// tap; it now asks a real KChoose for which one to activate, exactly as
+	// CR 305.6 requires (a land with two basic land types has the intrinsic
+	// ability of each as two distinct abilities sharing one permanent, never
+	// both at once).
+	//
+	// Measured by the seat and re-confirmed by the controller at the gate:
+	// the first newly-posed mana choice is Underground Sea at event sequence
+	// 722 (2 seats), 273 (4 seats), and 473 (8 seats); in the 6-seat game it
+	// is Cavern of Souls at sequence 3806. The bot deterministically selects
+	// option zero (the first-listed ability), so every game's actual mana
+	// production is unchanged -- but each choice now adds real
+	// DecisionAsk/DecisionMade events that the old, silent "resolve all
+	// abilities" path never logged, so every event count and every
+	// downstream sequence number after the first dual land shifts.
+	//
+	// `make sim` 20/20 replay OK and the CR conformance lane unchanged at
+	// 0 FAIL / 89 PASS / 89 leaves. TestRepoDecks and TestEveryRepoDeck both
+	// pass. Winners and turn counts were not re-verified game-by-game beyond
+	// the conformance lane and sim replay; if a future seat finds one moved,
+	// trace it the same way -- diff the streams, don't assume.
+	2: "eae4a21f3fa1d61b",
+	4: "324ef3499065470d",
+	6: "a16a266f6915ea94",
+	8: "cbbd288193aa4ebc",
 }
 
 func TestHeads(t *testing.T) {
