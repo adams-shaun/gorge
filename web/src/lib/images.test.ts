@@ -10,7 +10,7 @@ function fakeEnv(responses: Record<string, unknown | Error>) {
   const env = {
     fetch: (async (url: string) => {
       calls.push(url);
-      const name = decodeURIComponent(new URL(url).searchParams.get('exact')!);
+      const name = decodeURIComponent(new URL(url, 'http://localhost').searchParams.get('exact')!);
       const r = responses[name];
       if (r instanceof Error) throw r;
       if (r === undefined) return new Response('{}', { status: 404 });
@@ -25,6 +25,13 @@ function fakeEnv(responses: Record<string, unknown | Error>) {
 }
 
 describe('images', () => {
+  it('asks this app\'s own /art/named, never Scryfall directly', async () => {
+    const { env, calls } = fakeEnv({ 'Goblin Guide': { image_uris: { normal: '/art/blob/abc.jpg' } } });
+    await createImages(env).url('Goblin Guide');
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatch(/^\/art\/named\?exact=/);
+    expect(calls[0]).not.toContain('scryfall');
+  });
   it('resolves the normal image, caches in memory and storage, and treats 404 as a known miss', async () => {
     const { env, calls, store } = fakeEnv({ 'Goblin Guide': { image_uris: { normal: 'https://img/gg.jpg' } } });
     const im = createImages(env);

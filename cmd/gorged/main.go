@@ -189,7 +189,21 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		opts.CreateGame = c.createGame(r, gate, cmdPool, conPool, vis)
 		opts.Seat = gate.resolve
 	}
-	srv := &http.Server{Handler: httpapi.NewHandler(r, opts)}
+	// Card art is cached and served from this server's own origin (art.go)
+	// rather than sending every viewer's browser to Scryfall directly — see
+	// art.go's doc comment. /art/ is routed ahead of httpapi's own mux (which
+	// owns "/" for the SPA and every /api/ path), so this is additive: a
+	// server with the art directory unavailable would only ever affect these
+	// two new patterns, never anything httpapi already serves.
+	ac, err := newArtCache(filepath.Join(c.dir, "art"))
+	if err != nil {
+		return err
+	}
+	topMux := http.NewServeMux()
+	topMux.HandleFunc("GET /art/named", ac.named)
+	topMux.HandleFunc("GET /art/blob/{key}", ac.blob)
+	topMux.Handle("/", httpapi.NewHandler(r, opts))
+	srv := &http.Server{Handler: topMux}
 	errc := make(chan error, 1)
 	go func() { errc <- srv.Serve(ln) }()
 	fmt.Fprintf(os.Stderr, "gorged: %d tables of %d on %s (dir %s)\n", len(r.Tables()), c.seats, ln.Addr(), c.dir)
