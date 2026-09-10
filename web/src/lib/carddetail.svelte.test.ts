@@ -1,7 +1,18 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
 import type { CardView } from '../protocol';
-import { DWELL, HoverCard, placePanel, type AnchorRect } from './carddetail.svelte';
+import {
+  DWELL,
+  HoverCard,
+  MIN_SIDE_BY_SIDE_VIEWPORT,
+  PANEL_MARGIN,
+  PANEL_WIDTH,
+  PANEL_WIDTH_WITH_PLATE,
+  detailLayout,
+  placePanel,
+  type AnchorRect,
+} from './carddetail.svelte';
 import CardDetail from '../components/CardDetail.svelte';
 import CardTile from '../components/CardTile.svelte';
 
@@ -265,6 +276,74 @@ describe('placePanel', () => {
       expect(topEdge, `top ${top}: panel top must be >= margin`).toBeGreaterThanOrEqual(8);
       expect(bottomEdge, `top ${top}: panel bottom must stay within viewport`).toBeLessThanOrEqual(vh - 8);
     }
+  });
+});
+
+describe('CardDetail column geometry', () => {
+  const viewports = [
+    { width: 1440, height: 900 },
+    { width: 1000, height: 900 },
+    { width: 650, height: 700 },
+  ];
+
+  it('puts a resolved plate wholly left of the ledger wherever the two-column surface is enabled', () => {
+    for (const { width, height } of viewports) {
+      const layout = detailLayout(true, width);
+      const anchor = { left: width - 160, top: height - 180, right: width - 70 };
+      const panel = placePanel(anchor, width, height, layout.width);
+
+      expect(panel.x, `${width}px panel left`).toBeGreaterThanOrEqual(PANEL_MARGIN);
+      expect(panel.x + layout.width, `${width}px panel right`).toBeLessThanOrEqual(width - PANEL_MARGIN);
+      if (width >= MIN_SIDE_BY_SIDE_VIEWPORT) {
+        expect(layout.sideBySide).toBe(true);
+        const plate = { left: panel.x + layout.plate!.left, right: panel.x + layout.plate!.right };
+        const ledger = { left: panel.x + layout.ledger.left, right: panel.x + layout.ledger.right };
+        // Rect geometry, not a styling-token assertion: the two columns do
+        // not intersect and the printed plate is entirely to the left.
+        expect(plate.right, `${width}px plate right / ledger left`).toBeLessThanOrEqual(ledger.left);
+        expect(plate.left).toBeLessThan(ledger.left);
+        expect(ledger.right).toBeGreaterThan(ledger.left);
+      } else {
+        expect(layout.sideBySide).toBe(false);
+        expect(layout.plate).toBeUndefined();
+      }
+    }
+  });
+
+  it('keeps the normal no-image panel one column and within every viewport', () => {
+    for (const { width, height } of viewports) {
+      const layout = detailLayout(false, width);
+      const panel = placePanel({ left: width - 160, top: height - 180, right: width - 70 }, width, height, layout.width);
+      expect(layout.sideBySide).toBe(false);
+      expect(layout.plate).toBeUndefined();
+      expect(layout.width).toBe(PANEL_WIDTH);
+      expect(panel.x).toBeGreaterThanOrEqual(PANEL_MARGIN);
+      expect(panel.x + layout.width).toBeLessThanOrEqual(width - PANEL_MARGIN);
+    }
+  });
+
+  it('opens a hand anchor upward and fits the selected layout at every required viewport', () => {
+    for (const { width, height } of viewports) {
+      const layout = detailLayout(true, width);
+      const panel = placePanel({ left: width - 160, top: height - 120, right: width - 70 }, width, height, layout.width);
+      expect(panel.y, `${width}x${height}`).toBeUndefined();
+      expect(panel.bottom).toBeDefined();
+      expect(panel.x).toBeGreaterThanOrEqual(PANEL_MARGIN);
+      expect(panel.x + layout.width).toBeLessThanOrEqual(width - PANEL_MARGIN);
+      expect(height - panel.bottom! - panel.maxHeight).toBeGreaterThanOrEqual(PANEL_MARGIN);
+    }
+  });
+
+  it('uses the named wide width only above the fallback threshold', () => {
+    expect(detailLayout(true, MIN_SIDE_BY_SIDE_VIEWPORT - 1).width).toBe(PANEL_WIDTH);
+    expect(detailLayout(true, MIN_SIDE_BY_SIDE_VIEWPORT).width).toBe(PANEL_WIDTH_WITH_PLATE);
+  });
+
+  it('renders the measured two-column geometry instead of letting the ledger wrap below the plate', () => {
+    // The rectangle assertions above describe the intended geometry; this
+    // guards the CSS bridge that paints those same two columns.
+    const component = readFileSync(new URL('../components/CardDetail.svelte', import.meta.url), 'utf8');
+    expect(component).toContain('grid-template-columns: var(--plate-width) minmax(0, 1fr);');
   });
 });
 
