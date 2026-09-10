@@ -15,6 +15,7 @@ import (
 const (
 	chooseMana chooseFor = iota + 6
 	chooseManaColor
+	chooseManaDiscard
 )
 
 // manaActivation is the one outstanding choice among a permanent's distinct
@@ -35,6 +36,20 @@ type manaColorActivation struct {
 	source  state.ObjID
 	ability *cards.SA
 	cast    bool
+}
+
+// manaDiscardActivation holds a synchronous mana ability while its discard
+// cost is chosen. It is separate from pendingCast so activating mana during a
+// spell's CR 601.2g payment window never overwrites the outer cast flow.
+type manaDiscardActivation struct {
+	player   state.PlayerID
+	source   state.ObjID
+	ability  *cards.SA
+	cost     Cost
+	sacs     []state.ObjID
+	discards []state.ObjID
+	part     int
+	cast     bool
 }
 
 // availableManaAbilities returns exactly the individual mana abilities that
@@ -65,7 +80,7 @@ func (e *Engine) activateMana(p state.PlayerID, source state.ObjID, cast bool) {
 		return
 	}
 	if len(abilities) == 1 {
-		e.resolveManaAbility(p, source, abilities[0])
+		e.resolveManaAbility(p, source, abilities[0], cast)
 		return
 	}
 	o := e.G.Obj(source)
@@ -82,9 +97,8 @@ func (e *Engine) activateMana(p state.PlayerID, source state.ObjID, cast bool) {
 
 // manaAbilityPayable is the mana-ability equivalent of the cast cost gate.
 // A source with a sacrifice cost is not offered unless this synchronous path
-// can pay it without a chooser. The corpus's self-sacrifice abilities have
-// exactly one matching candidate; a hypothetical choice among several is
-// conservatively withheld until mana-ability sacrifice choices are modelled.
+// can pay it without a chooser. Discard costs have their own continuation:
+// ordinary discard asks, while random and discard-your-hand do not.
 func (e *Engine) manaAbilityPayable(p state.PlayerID, source state.ObjID, ma *cards.SA) bool {
 	o := e.G.Obj(source)
 	if o == nil || o.Face() == nil {
@@ -99,7 +113,10 @@ func (e *Engine) manaAbilityPayable(p state.PlayerID, source state.ObjID, ma *ca
 			return false
 		}
 	}
-	_, ok := e.manaSacrifices(p, source, cost)
+	if _, ok := e.manaSacrifices(p, source, cost); !ok {
+		return false
+	}
+	_, ok := e.manaDiscards(p, source, cost)
 	return ok
 }
 
@@ -129,15 +146,138 @@ func (e *Engine) manaSacrifices(p state.PlayerID, source state.ObjID, cost Cost)
 	return sacs, true
 }
 
+// manaDiscards performs the pure offer-side feasibility walk for a mana
+// ability's discard cost. It reserves deterministic candidates but consumes
+// no RNG; the payment continuation makes the actual choice.
+func (e *Engine) manaDiscards(p state.PlayerID, source state.ObjID, cost Cost) ([]state.ObjID, bool) {
+	var discards []state.ObjID
+	reserved := map[state.ObjID]bool{}
+	for _, part := range cost.Discard {
+		candidates := e.discardCandidates(p, source, part, false, reserved)
+		if strings.EqualFold(part.Spec, "Hand") {
+			for _, id := range candidates {
+				reserved[id] = true
+				discards = append(discards, id)
+			}
+			continue
+		}
+		n := int(part.N)
+		if n <= 0 || n > len(candidates) {
+			return nil, false
+		}
+		for i := 0; i < n; i++ {
+			id := candidates[0]
+			reserved[id] = true
+			discards = append(discards, id)
+			candidates = candidates[1:]
+		}
+	}
+	return discards, true
+}
+
+// continueManaDiscard walks a mana ability's discard parts without putting
+// the ability on the stack. Ordinary parts ask their controller; Random and
+// Hand select internally using the same rules as discardAsk.
+func (e *Engine) continueManaDiscard() {
+	md := e.manaDiscardActivation
+	if md == nil {
+		return
+	}
+	for md.part < len(md.cost.Discard) {
+		part := md.cost.Discard[md.part]
+		reserved := make(map[state.ObjID]bool, len(md.discards))
+		for _, id := range md.discards {
+			reserved[id] = true
+		}
+		candidates := e.discardCandidates(md.player, md.source, part, false, reserved)
+		if strings.EqualFold(part.Spec, "Hand") {
+			md.discards = append(md.discards, candidates...)
+			md.part++
+			continue
+		}
+		n := int(part.N)
+		if n <= 0 || n > len(candidates) {
+			e.manaDiscardActivation = nil
+			e.choosing = chooseNone
+			return
+		}
+		if strings.EqualFold(part.Spec, "Random") {
+			for i := 0; i < n; i++ {
+				pick := e.Rand(len(candidates))
+				md.discards = append(md.discards, candidates[pick])
+				candidates = append(candidates[:pick], candidates[pick+1:]...)
+			}
+			md.part++
+			continue
+		}
+		d := &decision.Decision{Player: md.player, Kind: decision.KChoose, Min: n, Max: n,
+			Prompt: "Discard a card to pay the mana ability cost", Source: md.source}
+		for _, id := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana_discard",
+				Obj: id, Label: e.G.Obj(id).Face().Name})
+		}
+		e.choosing = chooseManaDiscard
+		e.ask(d)
+		return
+	}
+	e.commitManaDiscard()
+}
+
+func (e *Engine) commitManaDiscard() {
+	md := e.manaDiscardActivation
+	if md == nil || !e.payMana(md.player, md.cost) {
+		e.manaDiscardActivation = nil
+		e.choosing = chooseNone
+		return
+	}
+	for _, id := range md.discards {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZGraveyard, Text: "discarded as a cost"})
+	}
+	if md.cost.Tap {
+		e.emit(events.Event{Kind: events.Tap, Obj: md.source})
+	}
+	for _, part := range md.cost.SubCounter {
+		e.emit(events.Event{Kind: events.CounterChange, Obj: md.source, Counter: part.Spec, Amount: -part.N})
+	}
+	for _, id := range md.sacs {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+	}
+	e.manaDiscardActivation = nil
+	e.choosing = chooseNone
+	e.resolveManaEffect(md.player, md.source, md.ability, md.cast)
+}
+
+// answerManaDiscard records one ordinary discard part and continues payment.
+// It reports whether this mana activation belongs to an outer cast window.
+func (e *Engine) answerManaDiscard(chosen []decision.Option) bool {
+	md := e.manaDiscardActivation
+	if md == nil {
+		return false
+	}
+	for _, opt := range chosen {
+		md.discards = append(md.discards, opt.Obj)
+	}
+	md.part++
+	cast := md.cast
+	e.continueManaDiscard()
+	return cast
+}
+
 // resolveManaAbility pays this ability's actual activation cost, then resolves
-// it outside the stack. In particular, a Sac-only ability neither taps nor
-// leaves its sacrifice unpaid.
-func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *cards.SA) {
+// it outside the stack. In particular, Sac and Discard costs are emitted
+// before the mana effect, and no phantom generic mana is charged.
+func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *cards.SA, cast bool) {
 	if !e.manaAbilityPayable(p, source, ma) {
 		return
 	}
 	cost := ParseCost(ma.Params["Cost"])
 	sacs, _ := e.manaSacrifices(p, source, cost)
+	if len(cost.Discard) > 0 {
+		e.manaDiscardActivation = &manaDiscardActivation{player: p, source: source,
+			ability: ma, cost: cost, sacs: sacs, cast: cast}
+		e.continueManaDiscard()
+		return
+	}
 	if !e.payMana(p, cost) {
 		return
 	}
@@ -150,7 +290,7 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 	for _, id := range sacs {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
 	}
-	e.resolveManaEffect(p, source, ma, false)
+	e.resolveManaEffect(p, source, ma, cast)
 }
 
 func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *cards.SA, cast bool) {
@@ -212,7 +352,7 @@ func (e *Engine) answerManaActivation(chosen []decision.Option) bool {
 	}
 	idx := chosen[0].Ability
 	if idx >= 0 && idx < len(ma.abilities) {
-		e.resolveManaAbility(ma.player, ma.source, ma.abilities[idx])
+		e.resolveManaAbility(ma.player, ma.source, ma.abilities[idx], ma.cast)
 	}
 	return ma.cast
 }

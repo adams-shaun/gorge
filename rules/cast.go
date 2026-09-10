@@ -1,6 +1,6 @@
 // cast.go is the cast-flow state machine: beginCast starts it from a chosen
 // "cast" priority option, continueCast runs its stages (X, Delve, each Sac
-// part) in order, asking a KChoose (chooseCast) decision for any stage that
+// and Discard part) in order, asking a KChoose (chooseCast) decision for any stage that
 // needs one, and commitCast pays and puts the spell on the stack once every
 // stage is settled. Kicker, Surge, Flashback and Delve are registered here
 // as the primitives they are (rules/legal.go builds the options that choose
@@ -55,12 +55,15 @@ type pendingCast struct {
 	sacs    []state.ObjID
 	sacPart int
 
+	discards    []state.ObjID
+	discardPart int
+
 	// payIdx / payColor / payLife carry the hybrid and Phyrexian payment
 	// announcement (CR 601.2b/107.4e-f). manaAsk walks the cost's combined
 	// hybrid-then-Phyrexian pip list one decision at a time; payIdx is the
 	// next unsettled pip, payColor accumulates the coloured spend the
 	// announced pips chose, and payLife the life a Phyrexian pip paid with
-	// two life costs. Plain data, so Clone copies it like x/delve/sacs.
+	// two life costs. Plain data, so Clone copies it like x/delve/sacs/discards.
 	payIdx   int
 	payColor state.Mana
 	payLife  int32
@@ -206,7 +209,8 @@ func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32) in
 // castable reports whether cost is payable for id if cast by p right now:
 // mana payable (Colored+Generic), crediting the generic requirement with
 // delved graveyard cards when id has Delve; every Sac part has at least N
-// matching permanents on p's battlefield; every SubCounter part's N does
+// matching permanents on p's battlefield; every Discard part is payable from
+// p's hand; every SubCounter part's N does
 // not exceed id's own current counters of that kind; and Tap requires id
 // (an already-battlefield source -- Task 10 activates from there) to be
 // untapped.
@@ -229,7 +233,7 @@ func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32) in
 // with a scarcer later part is conservatively withheld (the engine's standing
 // rule is that wrongly withholding a legal option is safe, while wrongly
 // offering an unpayable one is an illegal game action).
-func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost) bool {
+func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability bool) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic)
 	if !mana.payable(e.G.Players[p].Pool, e.G.Players[p].Life) {
@@ -253,6 +257,9 @@ func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost) bool {
 			reserved[avail[i]] = true
 		}
 	}
+	if !e.discardCostPayable(p, id, cost.Discard, !ability) {
+		return false
+	}
 	if o := e.G.Obj(id); o != nil {
 		for _, part := range cost.SubCounter {
 			if o.Counter(part.Spec) < part.N {
@@ -264,6 +271,55 @@ func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost) bool {
 		}
 	} else if len(cost.SubCounter) > 0 || cost.Tap {
 		return false
+	}
+	return true
+}
+
+// discardCandidates returns the still-available cards that can pay one
+// Discard cost part. Random names a selection method rather than a card
+// characteristic, and a Hand spec is Forge's "discard your hand" shape
+// (the corpus spells its ignored count as both 0 and 1).
+// A spell being announced is excluded because it will be on the stack when
+// costs are paid; an activated ability's source may remain in hand and can
+// therefore pay CARDNAME/NICKNAME costs such as channel and bloodrush.
+func (e *Engine) discardCandidates(p state.PlayerID, source state.ObjID, part CostPart, casting bool, reserved map[state.ObjID]bool) []state.ObjID {
+	all := strings.EqualFold(part.Spec, "Random") || strings.EqualFold(part.Spec, "Hand")
+	matchSpec := part.Spec
+	if strings.EqualFold(matchSpec, "NICKNAME") {
+		// Forge uses NICKNAME as the same self-reference as CARDNAME in the
+		// four discard-cost lines that carry it.
+		matchSpec = "CARDNAME"
+	}
+	var out []state.ObjID
+	for _, id := range e.G.Zone(state.ZHand, p) {
+		if reserved[id] || (casting && id == source) {
+			continue
+		}
+		if all || effects.MatchesSpecFrom(e.G, matchSpec, id, p, source) {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+// discardCostPayable is the offer-side totality gate for Discard costs. It
+// mirrors discardAsk's deterministic reservation walk without consuming RNG.
+func (e *Engine) discardCostPayable(p state.PlayerID, source state.ObjID, parts []CostPart, casting bool) bool {
+	reserved := map[state.ObjID]bool{}
+	for _, part := range parts {
+		candidates := e.discardCandidates(p, source, part, casting, reserved)
+		if strings.EqualFold(part.Spec, "Hand") {
+			for _, id := range candidates {
+				reserved[id] = true
+			}
+			continue
+		}
+		if part.N <= 0 || int32(len(candidates)) < part.N {
+			return false
+		}
+		for i := int32(0); i < part.N; i++ {
+			reserved[candidates[i]] = true
+		}
 	}
 	return true
 }
@@ -307,7 +363,7 @@ func (e *Engine) spellsCastThisTurn(p state.PlayerID) int {
 //
 // The mana part of a Cost$ is deliberately NOT folded: it RESTATES the printed
 // mana cost rather than adding to it, so re-adding it would double charge.
-// Only Life/Sac/SubCounter/Tap are additional.
+// Only Life/Sac/Discard/SubCounter/Tap are additional.
 func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	sa := f.SpellAbility()
 	if sa == nil {
@@ -321,6 +377,9 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	cost.Life = addClampedGeneric(cost.Life, int64(extra.Life))
 	if len(extra.Sac) > 0 {
 		cost.Sac = append(append([]CostPart(nil), cost.Sac...), extra.Sac...)
+	}
+	if len(extra.Discard) > 0 {
+		cost.Discard = append(append([]CostPart(nil), cost.Discard...), extra.Discard...)
 	}
 	if len(extra.SubCounter) > 0 {
 		cost.SubCounter = append(append([]CostPart(nil), cost.SubCounter...), extra.SubCounter...)
@@ -386,7 +445,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// sacrifice (Altar's Reap's "1 B Sac<1/Creature>", the CR 601.2h example).
 	// The mana part of that Cost$ REPLACES the printed mana (it is the same
 	// cost the card already charges), so only its non-mana parts
-	// (Sac/SubCounter/Tap) are additional and fold into the total cost here; a
+	// (Sac/Discard/SubCounter/Tap) are additional and fold into the total cost here; a
 	// re-added mana part would double charge. Only a plain cast reaches this
 	// (pc.ability < 0 and no alternative/flashback recast), and a spell with
 	// no SP Cost$ contributes nothing.
@@ -416,7 +475,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 }
 
 // continueCast runs the cast flow's stages in order -- X, Delve, each Sac
-// part -- stopping (and returning) the instant a stage asks a KChoose;
+// and Discard part -- stopping (and returning) the instant a stage asks a KChoose;
 // commitCast runs once every stage has settled. A nil e.cast (a chooseCast
 // answer arriving with no flow in progress, only reachable from a
 // hand-built decision) is dropped rather than panicked on, mirroring
@@ -432,6 +491,9 @@ func (e *Engine) continueCast() {
 		return
 	}
 	if e.sacAsk() {
+		return
+	}
+	if e.discardAsk() {
 		return
 	}
 	if e.etbAsk() {
@@ -703,6 +765,55 @@ func (e *Engine) sacAsk() bool {
 			Source: pc.card}
 		for _, id := range candidates {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "sacrifice",
+				Obj: id, Label: e.G.Obj(id).Face().Name})
+		}
+		e.choosing = chooseCast
+		e.ask(d)
+		return true
+	}
+	return false
+}
+
+// discardAsk settles Discard cost parts from the payer's hand. Ordinary
+// specs pose the same exact-N KChoose used by sacrifice costs. Random parts
+// consume the engine's seeded RNG and never ask the player; a Hand spec records
+// every remaining hand card without asking. Nothing moves until commitCast,
+// so an abort cannot leave a partially paid cost on the board.
+func (e *Engine) discardAsk() bool {
+	pc := e.cast
+	for pc.discardPart < len(pc.cost.Discard) {
+		part := pc.cost.Discard[pc.discardPart]
+		reserved := make(map[state.ObjID]bool, len(pc.discards))
+		for _, id := range pc.discards {
+			reserved[id] = true
+		}
+		candidates := e.discardCandidates(pc.player, pc.card, part, pc.ability < 0, reserved)
+
+		if strings.EqualFold(part.Spec, "Hand") {
+			pc.discards = append(pc.discards, candidates...)
+			pc.discardPart++
+			continue
+		}
+		n := int(part.N)
+		if n <= 0 || n > len(candidates) {
+			e.abortCast(pc, "discard cost no longer payable; cast/activation aborted", true)
+			return true
+		}
+		if strings.EqualFold(part.Spec, "Random") {
+			for i := 0; i < n; i++ {
+				pick := e.Rand(len(candidates))
+				pc.discards = append(pc.discards, candidates[pick])
+				candidates = append(candidates[:pick], candidates[pick+1:]...)
+			}
+			pc.discardPart++
+			continue
+		}
+
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
+			Prompt: "Discard a card to pay the cost of " + e.G.Obj(pc.card).Face().Name,
+			Source: pc.card}
+		for _, id := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "discard",
 				Obj: id, Label: e.G.Obj(id).Face().Name})
 		}
 		e.choosing = chooseCast
@@ -1092,6 +1203,11 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			pc.sacs = append(pc.sacs, o.Obj)
 		}
 		pc.sacPart++
+	case "discard":
+		for _, o := range chosen {
+			pc.discards = append(pc.discards, o.Obj)
+		}
+		pc.discardPart++
 	case "pay_W", "pay_U", "pay_B", "pay_R", "pay_G":
 		// A hybrid or Phyrexian pip paid with pool mana: record which colour.
 		if len(chosen) > 0 {
@@ -1481,6 +1597,9 @@ func (e *Engine) payCast() {
 		for _, id := range pc.delve {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
 		}
+		for _, id := range pc.discards {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZGraveyard, Text: "discarded as a cost"})
+		}
 		if pc.cost.Tap {
 			e.emit(events.Event{Kind: events.Tap, Obj: pc.card})
 		}
@@ -1540,6 +1659,9 @@ func (e *Engine) payCast() {
 	}
 	for _, id := range pc.delve {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
+	}
+	for _, id := range pc.discards {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZGraveyard, Text: "discarded as a cost"})
 	}
 	// Capture the sacrifice LKI before the MoveZones (see the ability branch's
 	// comment): the sacrificed permanents are still on the battlefield here.

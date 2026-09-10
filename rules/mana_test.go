@@ -267,6 +267,10 @@ func TestParseCostNonManaParts(t *testing.T) {
 	if c.CMC() != 0 || len(c.SubCounter) != 1 || c.SubCounter[0] != (CostPart{2, "P1P1"}) || !c.HasNonMana() {
 		t.Fatalf("%+v", c)
 	}
+	c = ParseCost("Sac<1/CARDNAME> Discard<0/Hand> Discard<2/Card.nonLand/nonland cards>")
+	if c.Generic != 0 || len(c.Discard) != 2 || c.Discard[0] != (CostPart{0, "Hand"}) || c.Discard[1] != (CostPart{2, "Card.nonLand"}) || !c.HasNonMana() {
+		t.Fatalf("discard cost parsed as %+v", c)
+	}
 	c = ParseCost("T")
 	if !c.Tap || c.CMC() != 0 {
 		t.Fatalf("%+v", c)

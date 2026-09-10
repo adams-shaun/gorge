@@ -179,14 +179,25 @@ func (e *Engine) Clone() *Engine {
 		ma := *e.manaColorActivation
 		c.manaColorActivation = &ma
 	}
+	if e.manaDiscardActivation != nil {
+		ma := *e.manaDiscardActivation
+		ma.cost.Sac = append([]CostPart(nil), e.manaDiscardActivation.cost.Sac...)
+		ma.cost.Discard = append([]CostPart(nil), e.manaDiscardActivation.cost.Discard...)
+		ma.cost.SubCounter = append([]CostPart(nil), e.manaDiscardActivation.cost.SubCounter...)
+		ma.sacs = append([]state.ObjID(nil), e.manaDiscardActivation.sacs...)
+		ma.discards = append([]state.ObjID(nil), e.manaDiscardActivation.discards...)
+		c.manaDiscardActivation = &ma
+	}
 	if e.cast != nil {
 		pc := *e.cast
 		pc.cost.Sac = append([]CostPart(nil), e.cast.cost.Sac...)
+		pc.cost.Discard = append([]CostPart(nil), e.cast.cost.Discard...)
 		pc.cost.SubCounter = append([]CostPart(nil), e.cast.cost.SubCounter...)
 		pc.cost.Hybrid = append([]ManaPair(nil), e.cast.cost.Hybrid...)
 		pc.cost.Phyrexian = append([]byte(nil), e.cast.cost.Phyrexian...)
 		pc.delve = append([]state.ObjID(nil), e.cast.delve...)
 		pc.sacs = append([]state.ObjID(nil), e.cast.sacs...)
+		pc.discards = append([]state.ObjID(nil), e.cast.discards...)
 		pc.preModes = append([]string(nil), e.cast.preModes...)
 		pc.preSuppress = cloneSuppressed(e.cast.preSuppress)
 		pc.preAborts = cloneAbortCounts(e.cast.preAborts)
