@@ -95,6 +95,59 @@ func TestManaCostAbilityGoesOnTheStackAndResolves(t *testing.T) {
 // TestRemoveCounterCostAndTargetedAbility: a SubCounter cost is required
 // before the ability is offered, removes the counter at activation, and the
 // ability targets and deals damage.
+func TestScaldingTarnPayLifeActivation(t *testing.T) {
+	const tarn = "Name:Scalding Tarn\nManaCost:no cost\nTypes:Land\n" +
+		"A:AB$ ChangeZone | Cost$ T PayLife<1> Sac<1/CARDNAME> | Origin$ Library | Destination$ Battlefield | ChangeType$ Island,Mountain | SpellDescription$ Search your library for a Island or Mountain card, put it onto the battlefield, then shuffle.\n" +
+		"Oracle:{T}, Pay 1 life, Sacrifice Scalding Tarn: Search your library for an Island or Mountain card, put it onto the battlefield, then shuffle.\n"
+
+	for _, tc := range []struct {
+		name string
+		mana string
+	}{
+		{name: "empty_pool", mana: ""},
+		{name: "pool_is_not_payment", mana: "G"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e, cfg, id := newFixtureDeck(t, 41, tarn)
+			moveSeeded(t, e, 0, tarn, state.ZBattlefield)
+			if tc.mana != "" {
+				addMana(t, e, 0, tc.mana)
+			} else {
+				e.Advance()
+			}
+			beforeLife := e.G.Players[0].Life
+			beforePool := e.G.Players[0].Pool
+			opt := abilityOption(t, e, id, 0)
+			submitChoices(t, e, opt.Index)
+			d := e.Pending()
+			if d == nil || d.Kind != decision.KChoose || len(d.Options) != 1 || d.Options[0].Kind != "sacrifice" || d.Options[0].Obj != id {
+				t.Fatalf("sacrifice decision = %+v, want Scalding Tarn", d)
+			}
+			submitChoices(t, e, d.Options[0].Index)
+			if got := e.G.Players[0].Life; got != beforeLife-1 {
+				t.Fatalf("life after activation = %d, want %d", got, beforeLife-1)
+			}
+			if got := e.G.Players[0].Pool; got != beforePool {
+				t.Fatalf("pool after activation = %v, want %v", got, beforePool)
+			}
+			if got := e.G.Obj(id).Zone; got != state.ZGraveyard {
+				t.Fatalf("Scalding Tarn zone = %s, want Graveyard", got)
+			}
+			// Let both seats pass so the newly pushed fetch ability resolves and
+			// poses its library-search decision.
+			submitChoices(t, e, 0)
+			submitChoices(t, e, 0)
+			d = e.Pending()
+			if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "search" {
+				t.Fatalf("search decision = %+v", d)
+			}
+			submitChoices(t, e, d.Options[0].Index)
+			passUntilStackEmpty(t, e, 20)
+			replayCheck(t, e, cfg)
+		})
+	}
+}
+
 func TestRemoveCounterCostAndTargetedAbility(t *testing.T) {
 	src := "Name:Ballista\nManaCost:X X\nTypes:Artifact Creature Construct\nPT:0/0\n" +
 		"A:AB$ PutCounter | Cost$ 4 | CounterType$ P1P1 | CounterNum$ 1 | SpellDescription$ Put a +1/+1 counter on CARDNAME.\n" +

@@ -44,8 +44,8 @@ func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
 			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -spent})
 		}
 	}
-	// CR 107.4f: a Phyrexian pip paid with life costs two life, deducted
-	// through the ordinary LifeChange event so a replay learns it.
+	// Fixed life costs and any Phyrexian pips paid with life are deducted
+	// through the ordinary LifeChange event so a replay learns them.
 	if lifeSpent != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -lifeSpent})
 	}

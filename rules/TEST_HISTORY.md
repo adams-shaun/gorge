@@ -289,3 +289,6 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-10T01:30Z | d5f6673+ | 32.1 | 539 | 1 | sadams |
 | 2026-09-10T01:47Z | cd7ee4f+ | 32.1 | 539 | 1 | sadams |
 | 2026-09-10T01:54Z | 0aa6c65+ | 32.2 | 534 | 1 | sadams |
+| 2026-09-10T01:31Z | d5f6673+ | 32.0 | 536 | 1 | sadams |
+| 2026-09-10T01:52Z | 250dc18+ | 32.5 | 536 | 1 | sadams |
+| 2026-09-10T02:26Z | e61e3c6+ | 32.1 | 543 | 1 | sadams |

@@ -52,6 +52,31 @@ func TestParseCostCleansRealSacSpec(t *testing.T) {
 // numeric tokens into Cost.Generic as raw int32, so two legitimate-per-token
 // but collectively overflowing values wrapped to a negative total. The sum
 // must be clamped at math.MaxInt32 across all tokens.
+func TestParseCostLifeCosts(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		src  string
+		life int32
+	}{
+		{name: "one", src: "T PayLife<1> Sac<1/CARDNAME>", life: 1},
+		{name: "two", src: "PayLife<2>", life: 2},
+		{name: "fifty", src: "PayLife<50>", life: 50},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c := ParseCost(tc.src)
+			if c.Life != tc.life || c.Generic != 0 {
+				t.Fatalf("ParseCost(%q) = %+v, want Life=%d Generic=0", tc.src, c, tc.life)
+			}
+		})
+	}
+
+	// Only a fixed decimal amount is understood. This malformed token must
+	// retain ParseCost's long-standing unrecognised-symbol fallback.
+	if c := ParseCost("PayLife<garbage>"); c.Life != 0 || c.Generic != 1 {
+		t.Fatalf("malformed PayLife token = %+v, want Life=0 Generic=1", c)
+	}
+}
+
 func TestParseCostClampsAbsurdGeneric(t *testing.T) {
 	if c := ParseCost("2147483647 2147483647"); c.Generic != math.MaxInt32 {
 		t.Fatalf("generic %d", c.Generic)
@@ -64,6 +89,22 @@ func TestCMCCountsColoredAndGeneric(t *testing.T) {
 	}
 	if got := ParseCost("no cost").CMC(); got != 0 {
 		t.Errorf("CMC = %d, want 0", got)
+	}
+}
+
+func TestLifeCostPayability(t *testing.T) {
+	c := ParseCost("PayLife<1>")
+	if !c.payable(state.Mana{}, 1) {
+		t.Fatal("one life should pay PayLife<1> without mana")
+	}
+	if c.payable(state.Mana{}, 0) {
+		t.Fatal("zero life must not pay PayLife<1>")
+	}
+	if c.CanPay(state.Mana{}) {
+		t.Fatal("pool-only CanPay must not claim a life cost is mana-payable")
+	}
+	if !c.Priceable() {
+		t.Fatal("payMana must price a fixed life cost against the payer's life")
 	}
 }
 
