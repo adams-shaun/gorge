@@ -750,7 +750,7 @@ func (e *Engine) Submit(in decision.Intent) error {
 		// CR 509.1a: the blockers option list similarly offers every legal
 		// (blocker, attacker) pair. Reject choosing the same ordinary blocker
 		// against multiple attackers while preserving the pending decision.
-		if err := validateBlockers(d, in); err != nil {
+		if err := e.validateBlockers(d, in); err != nil {
 			return err
 		}
 	}
