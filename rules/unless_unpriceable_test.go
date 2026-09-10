@@ -77,9 +77,10 @@ func unpriceableCounterCards(reg *cards.Registry) []string {
 // special case), and the set itself is a golden -- a corpus or grammar change
 // that adds or removes an unpriceable unless-cost here is a real scope change
 // that must be understood, not silently absorbed. Measured on the compiled
-// .cards/ir.gob.gz corpus at FORGE_REF: 24 distinct cards, of which 21 carry
-// UnlessCost$ X (the I-5 population the issue names) and 3 a Sac<...> part
-// (Blood Funnel, Brain Gorgers, Mana Vortex). Raw .cards/cardsfolder lines
+// .cards/ir.gob.gz corpus at FORGE_REF: 27 distinct cards, of which 21 carry
+// UnlessCost$ X (the I-5 population the issue names), 3 a Sac<...> part
+// (Blood Funnel, Brain Gorgers, Mana Vortex), and 3 a Discard<...> part
+// (Perplex, Phantasmagorian, Reality Smasher). Raw .cards/cardsfolder lines
 // with UnlessCost$ X number the same 21.
 func TestUnlessCostUnpriceablePopulation(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
@@ -89,7 +90,7 @@ func TestUnlessCostUnpriceablePopulation(t *testing.T) {
 		"Clash of Wills", "Condescend", "Dispelling Exhale", "In the Eye of Chaos",
 		"Invoke Prejudice", "Lilting Refrain", "Logic Knot", "Mana Vortex",
 		"Martyr of Frost", "Mausoleum Wanderer", "Mindswipe", "Overrule",
-		"Power Sink", "Rethink", "Spectral Denial", "Spell Rupture",
+		"Perplex", "Phantasmagorian", "Power Sink", "Reality Smasher", "Rethink", "Spectral Denial", "Spell Rupture",
 		"Swallowed by Leviathan", "Syncopate", "Thassa's Rebuff", "We Say Thee Nay!",
 	}
 	sort.Strings(want)
@@ -265,6 +266,7 @@ func TestParseCostPriceable(t *testing.T) {
 		{"Z", true},                // Z likewise, priceable
 		{"Sac<1/Creature>", false}, // non-mana part Pay cannot charge
 		{"Sac<1/Land>", false},
+		{"Discard<1/Card>", false},
 		{"PayLife<5>", true}, // fixed life cost; payMana charges the payer's life
 		{"T", false},         // Tap is a non-mana part Pay cannot charge
 	}

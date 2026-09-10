@@ -12,8 +12,8 @@ import (
 )
 
 // CostPart is one non-mana cost component: Sac<N/Spec> (sacrifice N
-// permanents matching Spec) or SubCounter<N/Kind> (remove N counters of
-// Kind from the source).
+// permanents matching Spec), Discard<N/Spec> (discard N matching cards), or
+// SubCounter<N/Kind> (remove N counters of Kind from the source).
 type CostPart struct {
 	N    int32
 	Spec string
@@ -25,10 +25,10 @@ type ManaPair struct{ A, B byte }
 
 // Cost is a parsed cost. X counts how many "X" symbols appeared (almost
 // always 0 or 1; WithX folds a chosen value into Generic once per symbol).
-// Life, Tap, Sac and SubCounter are non-mana components a cast or activation
-// must satisfy separately from mana payment. Life is paid through payMana's
-// LifeChange event; Tap, Sac and SubCounter are settled by the cast-flow
-// stages in rules/cast.go. Pay and CanPay remain pool-only helpers.
+// Life, Tap, Sac, Discard and SubCounter are non-mana components a cast or
+// activation must satisfy separately from mana payment. Life is paid through
+// payMana's LifeChange event; Tap, Sac, Discard and SubCounter are settled by
+// the cast-flow stages in rules/cast.go. Pay and CanPay remain pool-only helpers.
 //
 // Hybrid and Phyrexian symbols are no longer flattened to generic. A hybrid
 // pip (GW) is recorded in Hybrid as the pair of colours it accepts; a
@@ -48,10 +48,11 @@ type Cost struct {
 	Phyrexian  []byte
 	Tap        bool
 	Sac        []CostPart
+	Discard    []CostPart
 	SubCounter []CostPart
 }
 
-// nonManaCost matches Sac<N/Spec> and SubCounter<N/Kind> tokens. Forge
+// nonManaCost matches Sac<N/Spec>, Discard<N/Spec>, and SubCounter<N/Kind> tokens. Forge
 // appends a human-readable "/description" after the spec and separates OR
 // alternatives with ";"; the description may itself contain spaces (e.g.
 // "Sac<1/Artifact;Creature/artifact or creature>"), which is why
@@ -59,7 +60,7 @@ type Cost struct {
 // sees it. The captured group only runs up to the first "/", so the trailing
 // description is dropped right here; the ";" alternation is folded to ","
 // (MatchesSpec's own separator) at the parse site. Ruling FL-54.
-var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter|Discard)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
 // lifeCost matches Forge's fixed life-payment token. Dynamic values such as
 // PayLife<X> retain the ordinary malformed-token fallback below: this engine
@@ -102,7 +103,7 @@ func ParseCost(s string) Cost {
 			if m := nonManaCost.FindStringSubmatch(sym); m != nil {
 				n, err := strconv.ParseInt(m[2], 10, 64)
 				if err != nil || n < 0 || n > int64(math.MaxInt32) {
-					// A malformed Sac/SubCounter token degrades the same way
+					// A malformed Sac/Discard/SubCounter token degrades the same way
 					// an unrecognised mana token does: one generic mana,
 					// never a hard parse error.
 					c.Generic = addClampedGeneric(c.Generic, 1)
@@ -112,9 +113,12 @@ func ParseCost(s string) Cost {
 				// already uses, so "Artifact;Creature" matches either.
 				spec := strings.ReplaceAll(m[3], ";", ",")
 				part := CostPart{N: int32(n), Spec: spec}
-				if m[1] == "Sac" {
+				switch m[1] {
+				case "Sac":
 					c.Sac = append(c.Sac, part)
-				} else {
+				case "Discard":
+					c.Discard = append(c.Discard, part)
+				default:
 					c.SubCounter = append(c.SubCounter, part)
 				}
 				continue
@@ -259,6 +263,9 @@ func (c Cost) Plus(d Cost) Cost {
 	if len(d.Sac) > 0 {
 		c.Sac = append(append([]CostPart(nil), c.Sac...), d.Sac...)
 	}
+	if len(d.Discard) > 0 {
+		c.Discard = append(append([]CostPart(nil), c.Discard...), d.Discard...)
+	}
 	if len(d.SubCounter) > 0 {
 		c.SubCounter = append(append([]CostPart(nil), c.SubCounter...), d.SubCounter...)
 	}
@@ -360,7 +367,7 @@ func (e *Engine) offerCostFor(p state.PlayerID, id state.ObjID, base Cost, abili
 
 // HasNonMana reports whether paying this cost takes more than mana.
 func (c Cost) HasNonMana() bool {
-	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.SubCounter) > 0
+	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0
 }
 
 // costModifiers reports the RaiseCost and ReduceCost generic-mana amounts
@@ -412,11 +419,11 @@ func (e *Engine) costActorMatches(sv staticView, actor state.PlayerID) bool {
 // Priceable reports whether payMana can actually charge every part of this
 // cost. payMana charges Colored and Generic from the pool and fixed Life from
 // the payer, but an {X} component that has not been folded into Generic, or a
-// Tap/Sac/SubCounter component, still needs cast-flow handling. Such a cost
+// Tap/Sac/Discard/SubCounter component, still needs cast-flow handling. Such a cost
 // is unpriceable by the mid-resolution payment API and must be DECLINED,
 // never silently priced at zero. This is the predicate I-5 routes through:
 // every component ParseCost collapses into a shape payMana cannot charge --
-// an SVar-sourced X, a cast-time-chosen X, or a Tap/Sac/SubCounter part --
+// an SVar-sourced X, a cast-time-chosen X, or a Tap/Sac/Discard/SubCounter part --
 // travels through the same predicate rather than a `if cost == "X"` special
 // case.
 //
@@ -424,7 +431,7 @@ func (e *Engine) costActorMatches(sv staticView, actor state.PlayerID) bool {
 // payMana with a payer" question the mid-resolution unless-pay answer asks
 // before trusting the pool and life total.
 func (c Cost) Priceable() bool {
-	return c.X == 0 && !c.Tap && len(c.Sac) == 0 && len(c.SubCounter) == 0 &&
+	return c.X == 0 && !c.Tap && len(c.Sac) == 0 && len(c.Discard) == 0 && len(c.SubCounter) == 0 &&
 		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
 }
 
@@ -549,7 +556,7 @@ func (c Cost) CanPay(p state.Mana) bool {
 // still needs; hybrid pips take one of their pair and Phyrexian pips their
 // colour (pool-only -- the cast flow's payMana handles the life half and
 // passes a fully-resolved cost here). Mana-only: non-mana parts
-// (Tap/Sac/SubCounter) are the cast flow's own job (rules/cast.go), never
+// (Tap/Sac/Discard/SubCounter) are the cast flow's own job (rules/cast.go), never
 // this function's.
 func (c Cost) Pay(p state.Mana) (state.Mana, bool) {
 	// Pool-only: no life is offered, so a Phyrexian pip is paid by its colour

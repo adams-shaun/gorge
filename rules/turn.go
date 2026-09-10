@@ -474,7 +474,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.castAnswer(d, chosen)
 		// A mana ability selection or Produced$ Any colour choice installed
 		// its own decision; only a fully resolved singleton may continue.
-		if e.choosing == chooseMana || e.choosing == chooseManaColor {
+		if e.choosing == chooseMana || e.choosing == chooseManaColor || e.choosing == chooseManaDiscard {
 			return
 		}
 		e.continueCast()
@@ -529,7 +529,11 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// Several individual mana abilities share one tap cost. A payment
 		// window resumes its cast after the selected ability resolves; an
 		// ordinary activation falls through to Advance's priority round.
-		if e.answerManaActivation(chosen) && e.choosing != chooseManaColor {
+		if e.answerManaActivation(chosen) && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard {
+			e.continueCast()
+		}
+	case chooseManaDiscard:
+		if e.answerManaDiscard(chosen) && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard {
 			e.continueCast()
 		}
 	case chooseManaColor:
