@@ -678,20 +678,46 @@ func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
 // negative-Amount clamp is Ruling T14-f, kept verbatim for the same reason as
 // DealDamage's -- events.Apply's ManaAdd case is a plain "+=", so an
 // unclamped negative would drop the pool below zero instead of doing
-// nothing. Folded in on top of that: "Any"/"Combo Any" resolves to colourless
-// rather than asking (a real choice awaits the milestone that makes every R-9 stand-in real), and a dual-producing
-// ability such as "Add {R}{R}" is walked one symbol at a time rather than
-// split on whitespace, since Produced$ carries no spaces of its own.
+// nothing.
+//
+// Two things are folded in on top of that. "Any"/"Combo Any" resolves to
+// colourless rather than asking (a real choice awaits the milestone that
+// makes every R-9 stand-in real; the real ask lives on the activation path
+// in rules, which rewrites Produced to a single chosen colour before this
+// primitive ever runs). A dual-producing ability such as "Add {R}{R}" is
+// walked one symbol at a time rather than split on whitespace, since
+// Produced$ carries no spaces of its own.
+//
+// The one thing this primitive must NEVER do is walk a value it does not
+// understand. A "Combo R G" reaches effMana from a path with no colour
+// chooser (the activation path substitutes the chosen colour in first), and
+// walking it one rune at a time turned "Combo R G" into five stray
+// colourless plus a red and a green -- o, m, b are not mana symbols. An
+// unrecognised Produced$ value therefore emits nothing and records a Note
+// naming it, following this repo's fail-closed convention (an unknown token
+// never invents a value).
 func effMana(h Host, c *Ctx, sa *cards.SA) {
 	produced := strings.TrimSpace(sa.Params["Produced"])
 	if produced == "" || produced == "Any" || produced == "Combo Any" {
 		produced = "C"
 	}
+	// Strip braces and spaces, then validate every remaining rune before any
+	// of them reaches the pool: ComboChosen/ChosenColor/Special ... values
+	// that do not name plain mana symbols fail closed instead of splitting
+	// into garbage.
+	runes := strings.NewReplacer("{", "", "}", "", " ", "").Replace(produced)
+	for _, r := range runes {
+		if !strings.ContainsRune(ManaSymbols, r) {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unhandled Produced$ " + produced})
+			return
+		}
+	}
 	amt := Num(h, c, sa, "Amount", 1)
 	if amt < 0 {
 		amt = 0
 	}
-	for _, r := range strings.NewReplacer("{", "", "}", "", " ", "").Replace(produced) {
+	for _, r := range runes {
 		h.Emit(events.Event{Kind: events.ManaAdd, Player: c.Controller,
 			Counter: string(r), Amount: amt})
 	}

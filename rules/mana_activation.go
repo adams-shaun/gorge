@@ -296,17 +296,34 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *cards.SA, cast bool) {
 	produced := strings.TrimSpace(ma.Params["Produced"])
 	if produced == "Any" || produced == "Combo Any" {
-		d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
-			Prompt: "Choose a colour of mana", Source: source}
-		for i, color := range []string{"W", "U", "B", "R", "G"} {
-			d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: source, Label: "Add " + color})
-		}
-		e.manaColorActivation = &manaColorActivation{player: p, source: source, ability: ma, cast: cast}
-		e.choosing = chooseManaColor
-		e.ask(d)
+		e.askManaColor(p, source, ma, cast, []string{"W", "U", "B", "R", "G"})
+		return
+	}
+	// A "Combo <colours>" shape is "add one of these", not "add each of
+	// these": it asks, but restricted to exactly the colours it names --
+	// "Combo R G" offers R and G, never the other three. The classifier
+	// (effects.ComboColours) rejects "Combo Any" (kept on the five-colour
+	// branch above) and every combo it cannot resolve to a plain colour list,
+	// which then falls to resolveManaEffectColor and fails closed in effMana.
+	if colours, ok := effects.ComboColours(produced); ok {
+		e.askManaColor(p, source, ma, cast, colours)
 		return
 	}
 	e.resolveManaEffectColor(p, source, ma, produced)
+}
+
+// askManaColor poses the colour choice for a Produced value that names a
+// fixed set (the five colours for Any/Combo Any, or the named colours of a
+// "Combo <colours>" shape) and pauses until it is answered.
+func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA, cast bool, colours []string) {
+	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Choose a colour of mana", Source: source}
+	for i, color := range colours {
+		d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: source, Label: "Add " + color})
+	}
+	e.manaColorActivation = &manaColorActivation{player: p, source: source, ability: ma, cast: cast}
+	e.choosing = chooseManaColor
+	e.ask(d)
 }
 
 func (e *Engine) resolveManaEffectColor(p state.PlayerID, source state.ObjID, ma *cards.SA, produced string) {
