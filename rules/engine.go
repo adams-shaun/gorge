@@ -189,6 +189,16 @@ type Engine struct {
 	// triggers, cloned at intent boundaries and removed when the stack object
 	// leaves. Never encoded in events or inferred from a resolving source.
 	triggerContexts map[state.ObjID]effects.TriggerContext
+	// sacrificedLKI maps a stack object id to the last-known-information
+	// snapshot of every permanent that object sacrificed (as a cost), captured
+	// at the instant of the sacrifice (Task sac1). It is engine-only, never
+	// written to a state.Object, because a log-only state.Game reconstruction
+	// (replayFromLog) rebuilds the stack object from the AbilityPush event
+	// alone and would not reproduce an object field we set in cast.go -- the
+	// same reason triggerContexts is engine-only. Resolution reads it and
+	// builds effects.Ctx.Sacrificed; the entry is removed when the stack
+	// object leaves, mirroring triggerContexts.
+	sacrificedLKI map[state.ObjID][]state.SacrificedInfo
 	// orderedTriggers is how many LEADING entries of pendingTriggers have
 	// already had their order settled by an answered KTriggerOrder decision
 	// (or, for a lone trigger, by there being nothing to decide). It is the
@@ -641,6 +651,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	if ev.Kind == events.MoveZone && ev.From == state.ZStack && ev.To != state.ZStack {
 		delete(e.triggerContexts, ev.Obj)
+		delete(e.sacrificedLKI, ev.Obj)
 	}
 	if ev.Kind == events.PutOnStack && e.deferCastTrigger {
 		// CR 601.2i: the cast trigger must not fire at the up-front push

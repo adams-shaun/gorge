@@ -132,6 +132,12 @@ func (e *Engine) Clone() *Engine {
 			c.triggerContexts[id] = tc
 		}
 	}
+	if e.sacrificedLKI != nil {
+		c.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo, len(e.sacrificedLKI))
+		for id, info := range e.sacrificedLKI {
+			c.sacrificedLKI[id] = append([]state.SacrificedInfo(nil), info...)
+		}
+	}
 	c.triggerFireCount = cloneCounts(e.triggerFireCount)
 	c.damageOnceFired = cloneCounts(e.damageOnceFired)
 	// triggerBefore is scoped to a batch emission/resumption, so it is nil

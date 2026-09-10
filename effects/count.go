@@ -40,6 +40,9 @@ func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
 	if strings.HasPrefix(raw, "Count$") {
 		return EvalCount(h, c, raw)
 	}
+	if strings.HasPrefix(raw, "Sacrificed$") {
+		return EvalCount(h, c, raw)
+	}
 	if raw == "X" {
 		return c.X
 	}
@@ -53,6 +56,16 @@ func EvalCount(h Host, c *Ctx, expr string) int32 {
 		return 0
 	}
 	expr = strings.TrimSpace(expr)
+	// A Sacrificed$... expression answers "the sacrificed object's" head (CR
+	// 608.2g last-known-information): power, toughness, mana value, or the
+	// number of objects sacrificed. It reads the LKI snapshot captured at the
+	// instant of the sacrifice (Ctx.Sacrificed), never the live object -- a
+	// graveyard object has no layer-derived P/T and Move has reset its
+	// counters. The /Op suffix (e.g. Sacrificed$Amount/Plus.1) is applied the
+	// same way Count$ applies it.
+	if body, ok := strings.CutPrefix(expr, "Sacrificed$"); ok {
+		return evalSacrificed(c, strings.TrimSpace(body))
+	}
 	body, ok := strings.CutPrefix(expr, "Count$")
 	if !ok {
 		if n, err := strconv.Atoi(expr); err == nil {
@@ -64,6 +77,54 @@ func EvalCount(h Host, c *Ctx, expr string) int32 {
 	n := evalCountBody(h, c, strings.TrimSpace(body))
 	if hasOp {
 		n = applyCountOp(n, op)
+	}
+	return n
+}
+
+// evalSacrificed resolves a "Sacrificed$<Property>[/Op]" body against the
+// LKI snapshots this resolving spell/ability captured when it sacrificed
+// each object (Ctx.Sacrificed). Property is the corpus head after the
+// Sacrificed$ prefix: CardPower, CardToughness, CardManaCost, or Amount (the
+// count of objects sacrificed). For a numeric property over more than one
+// sacrificed object the values are summed -- corpus Sac costs are almost
+// always exactly one candidate, so summing agrees with the single-value
+// answer and is the least surprising reading of "the sacrificed creature's
+// power" when a shape somehow names several. An empty Sacrificed list
+// (nothing captured) degrades to zero rather than panicking, preserving the
+// "the card did nothing" totality convention of every other head here. The
+// /Op suffix (Plus/Minus/Times./Twice/HalfDown/HalfUp/Negative) is applied
+// after the base value, exactly as applyCountOp does for Count$.
+func evalSacrificed(c *Ctx, body string) int32 {
+	body, op, hasOp := strings.Cut(body, "/")
+	var n int32
+	switch strings.TrimSpace(body) {
+	case "CardPower":
+		n = sacrificedNumeric(c, func(s state.SacrificedInfo) int32 { return s.Power })
+	case "CardToughness":
+		n = sacrificedNumeric(c, func(s state.SacrificedInfo) int32 { return s.Toughness })
+	case "CardManaCost":
+		n = sacrificedNumeric(c, func(s state.SacrificedInfo) int32 { return s.ManaValue })
+	case "Amount":
+		n = int32(len(c.Sacrificed))
+	default:
+		// An out-of-scope head (Valid, CardTypes, ChromaSource, CardNumColors,
+		// CardCounters) degrades to zero, exactly as before the fix -- the
+		// conservative same-as-before no-op the brief scopes out.
+		return 0
+	}
+	if hasOp {
+		n = applyCountOp(n, op)
+	}
+	return n
+}
+
+// sacrificedNumeric folds a numeric property across every object this
+// spell/ability sacrificed, summing (see evalSacrificed's doc for why sum and
+// not first).
+func sacrificedNumeric(c *Ctx, f func(state.SacrificedInfo) int32) int32 {
+	var n int32
+	for _, s := range c.Sacrificed {
+		n += f(s)
 	}
 	return n
 }
@@ -248,11 +309,11 @@ func applyCountOp(n int32, op string) int32 {
 	v := int64(n)
 	switch {
 	case strings.HasPrefix(op, "Plus"):
-		if x, err := strconv.Atoi(op[len("Plus"):]); err == nil {
+		if x, err := strconv.Atoi(strings.TrimPrefix(op[len("Plus"):], ".")); err == nil {
 			v += int64(x)
 		}
 	case strings.HasPrefix(op, "Minus"):
-		if x, err := strconv.Atoi(op[len("Minus"):]); err == nil {
+		if x, err := strconv.Atoi(strings.TrimPrefix(op[len("Minus"):], ".")); err == nil {
 			v -= int64(x)
 		}
 	case strings.HasPrefix(op, "Times."):
