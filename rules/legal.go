@@ -287,13 +287,12 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		o := e.G.Obj(id)
 		f := o.Face()
-		if f == nil || o.Tapped {
+		if f == nil {
 			continue
 		}
-		// A tap-for-mana option exists while at least one individual mana
-		// ability is unrestricted. activateMana uses this same per-member set:
-		// a singleton resolves directly; distinct abilities sharing this tap
-		// cost prompt the controller to select exactly one.
+		// A mana ability with no tap cost (Lotus Petal) remains activatable
+		// while its source is tapped. availableManaAbilities applies each
+		// ability's actual cost, including its individual tap gate.
 		if len(e.availableManaAbilities(p, id)) > 0 {
 			add("activate", "Tap "+f.Name+" for mana", id)
 		}
