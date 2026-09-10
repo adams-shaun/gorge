@@ -1,3 +1,5 @@
+import { withBase } from './basepath';
+
 export interface ImageSource {
   fetch: typeof fetch;
   now: () => number;
@@ -11,7 +13,7 @@ const KEY = 'gorge.img.';
 
 type Scryfall = { image_uris?: { normal?: string }; card_faces?: { image_uris?: { normal?: string } }[] };
 
-/** createImages resolves exact card names to Scryfall image URLs with memory + localStorage caches, request spacing and an offline backoff. */
+/** createImages resolves exact card names to card art served from this app's own origin (art.go proxies and caches Scryfall server-side) with memory + localStorage caches, request spacing and an offline backoff. */
 export function createImages(src: Partial<ImageSource> = {}) {
   const env: ImageSource = {
     fetch: src.fetch ?? ((...a) => fetch(...a)),
@@ -44,11 +46,19 @@ export function createImages(src: Partial<ImageSource> = {}) {
   }
 
   async function lookup(name: string): Promise<string | null> {
-    const res = await env.fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`, { headers: { Accept: 'application/json' } });
+    // Same-origin, not Scryfall directly: cmd/gorged's /art/named proxies and
+    // caches Scryfall on the server (art.go), so every viewer's browser only
+    // ever talks to this app's own origin, and a card fetched once by any
+    // viewer is served from disk for every viewer after. The response shape
+    // mirrors Scryfall's own /cards/named (name + image_uris.normal) on
+    // purpose, so this parsing needs no change from when it read Scryfall
+    // directly — only the request's base URL moved.
+    const res = await env.fetch(withBase(`/art/named?exact=${encodeURIComponent(name)}`), { headers: { Accept: 'application/json' } });
     if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`scryfall ${res.status}`);
+    if (!res.ok) throw new Error(`art ${res.status}`);
     const j = (await res.json()) as Scryfall;
-    return j.image_uris?.normal ?? j.card_faces?.[0]?.image_uris?.normal ?? null;
+    const path = j.image_uris?.normal ?? j.card_faces?.[0]?.image_uris?.normal ?? null;
+    return path ? withBase(path) : null;
   }
 
   function url(name: string): Promise<string | null> {
