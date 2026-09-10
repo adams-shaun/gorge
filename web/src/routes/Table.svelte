@@ -108,8 +108,21 @@
   // carry open state across the round trip.
   let expectedCardFollowUp = $state<{ seq: number; obj: number } | null>(null);
   let autoOpenCardDecision = $state<{ seq: number; obj: number } | null>(null);
+  //
+  // This reads the raw wire decision (m.view?.decision), not panel.active,
+  // deliberately: panel is a $derived.by whose body has the side effect of
+  // constructing a SeatPanelState instance into an external cache
+  // (panelCache) the first time it's read for a given match. That was safe
+  // while every reader of `panel` was itself a $derived (mulligan, concede,
+  // boardOptions) -- but adding an $effect that also read panel?.active
+  // here caused a second, independently-scheduled evaluation of that
+  // impure derived, which corrupted panelCache mid-game (SeatPanel would
+  // mount against a stale/incomplete SeatPanelState, breaking every
+  // decision -- the seat was seated but could never act). m.view?.decision
+  // is the same underlying data (it's what SeatPanelState.adoptView is
+  // itself seeded from, a few lines above) without touching panel at all.
   $effect(() => {
-    const d = panel?.active ?? null;
+    const d = m.view?.decision ?? null;
     const expected = expectedCardFollowUp;
     if (d === null || expected === null || d.seq === expected.seq) return;
     const count = d.options.filter((option) => option.obj === expected.obj).length;
