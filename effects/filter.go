@@ -202,6 +202,9 @@ const (
 	wordIsCommander
 	wordBlockingSource
 	wordBlockedBySource
+	// The resolution-only one-token TargetedPlayerCtrl grammar. Its target
+	// binding comes from SpecContext rather than a new state tracker.
+	wordTargetedPlayerCtrl
 	// The two-token space form "AttachedTo <X>": <X> is a literal type or
 	// object class answerable from the object in hand (the base grammar).
 	wordAttachedTo
@@ -235,6 +238,9 @@ func wordPredicate(p string) (wordKind, string) {
 	case "blockedBySource":
 		return wordBlockedBySource, ""
 	}
+	if targetReferent(p) {
+		return wordTargetedPlayerCtrl, ""
+	}
 	// The two-token space form "AttachedTo <X>": the whole "AttachedTo
 	// Creature" token survives the spec splitter (a space is not a ',' '.'
 	// or '+' delimiter), so it arrives here intact. The argument must be a
@@ -259,7 +265,8 @@ func wordPredicate(p string) (wordKind, string) {
 // game/source-aware families read the live game, the object's own zone or
 // counters, and the effect's source (for combat pairing and commander
 // membership).
-func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, you state.PlayerID, source state.ObjID) bool {
+func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc SpecContext) bool {
+	source := sc.Source
 	switch kind {
 	case wordColor:
 		return strings.Contains(ColorsOf(o), key)
@@ -307,6 +314,9 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, you 
 		// Forge's blockedBySource: the object is being blocked by the source
 		// -- the source is one of THIS object's blockers.
 		return containsID(o.BlockedBy, source)
+	case wordTargetedPlayerCtrl:
+		matched, ok := matchTargetedPlayerCtrl(g, o, sc)
+		return ok && matched
 	case wordAttachedTo:
 		// Forge's AttachedTo <X>: this object (an Aura or Equipment) is
 		// attached to something, and the permanent it is attached to (its
@@ -414,10 +424,10 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 	if nkind, nkey, ok := nonPredicate(p); ok {
 		// non<X> is the negation of a recognised classifier: the object
 		// matches when the positive classifier does not.
-		return !wordMatches(nkind, nkey, g, o, sc.You, sc.Source), true
+		return !wordMatches(nkind, nkey, g, o, sc), true
 	}
 	if kind, key := wordPredicate(p); kind != wordUnknown {
-		return wordMatches(kind, key, g, o, sc.You, sc.Source), true
+		return wordMatches(kind, key, g, o, sc), true
 	}
 	return false, false
 }
@@ -629,6 +639,13 @@ type SpecContext struct {
 	You     state.PlayerID
 	Source  state.ObjID
 	Resolve func(name string) (int32, bool)
+	// ResolutionTargets are the state.Object.Targets of the spell or ability
+	// currently resolving. They are deliberately absent while a target offer is
+	// built: Targeted* is self-referential and cannot determine legality before
+	// its own targets have been chosen. Resolving distinguishes a real empty
+	// target list from no resolving object at all.
+	ResolutionTargets []state.Target
+	Resolving         bool
 	// ManaValue overrides the object's mana value for cmc predicates, with
 	// HasManaValue set. It carries the CR 202.3e chosen-X effect: a caller
 	// that has the chosen {X} passes the resulting mana value here so a

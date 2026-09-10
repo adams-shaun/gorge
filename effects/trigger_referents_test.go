@@ -64,9 +64,15 @@ func TestTriggerReferentWithoutContextFailsClosed(t *testing.T) {
 func TestTriggerReferentGrammarScope(t *testing.T) {
 	g, ids := board(t)
 	sc := SpecContext{TriggerContext: TriggerContext{TriggerTarget: state.Target{IsPlayer: true, Player: 0}}}
-	for _, ref := range []string{"Spawner>TriggeredTarget", "Targeted", "TargetedController", "TriggeredTargetController"} {
+	// A raw Targeted word is not itself a predicate. Its recognised use is as
+	// the argument to ControlledBy/OwnedBy and is covered separately by the
+	// resolution-only Targeted* leaf below.
+	for _, ref := range []string{"Spawner>TriggeredTarget", "Targeted", "TriggeredTargetController"} {
 		for _, prefix := range []string{"", "ControlledBy ", "OwnedBy "} {
 			token := prefix + ref
+			if ref == "Targeted" && prefix != "" {
+				continue
+			}
 			spec := "Creature." + token
 			if MatchesSpecCtx(g, spec, ids["myBear"], sc) {
 				t.Errorf("out-of-scope %s matched", spec)
