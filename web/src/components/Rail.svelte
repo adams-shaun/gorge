@@ -2,38 +2,21 @@
   import type { View, SeatInfo, DecisionBody } from '../protocol';
   import { focusSeat } from '../lib/seattable';
   import SeatTable from './SeatTable.svelte';
-  import ZoneViewer from './ZoneViewer.svelte';
   import ManaPool from './ManaPool.svelte';
   import StackTile from './StackTile.svelte';
   import PendingTray from './PendingTray.svelte';
 
   /**
-   * The rail is ONE table across seats, then the stack, the pending tray and
-   * the live decision line (U4, and the survey's rail order).
+   * The rail starts with ONE compact summary across seats, then the stack,
+   * pending tray and live decision line. The summary supersedes the old split
+   * between SeatTable counts and a second ZoneViewer count panel: life, hand,
+   * library, graveyard and exile now appear exactly once. Disclosable pile
+   * lists open in a body-portalled modal, so they cannot consume rail height.
+   * The command zone remains on the board as art tiles (CZ1).
    *
-   * It used to be a panel per seat — a hand list, a command zone and a zone
-   * strip each — which measured 1732px of content in a 496px slot on a
-   * four-seat omniscient Commander table: everything from the third seat
-   * down, the command zone included, was below the fold on the only format
-   * the command zone exists for (U2). The fix is one layout pass, not two:
-   *
-   *   - Facts every seat has (life, hand, library, graveyard) become COLUMNS
-   *     of one table, so they are compared down a column instead of hunted
-   *     across four panels — and four seats cost four rows, not four panels.
-   *   - The command zone LEFT this rail entirely (CZ1). A line of text is
-   *     not how anyone recognises a commander, so each seat's commanders are
-   *     drawn as art tiles in a command area at that seat's own rim on the
-   *     board, with the CR 903.8 tax on the tile. Nothing takes the section's
-   *     place here: the rail is one section shorter.
-   *   - The genuinely per-seat LISTS — the hand, the graveyard and exile
-   *     cards, the floating mana — are shown for ONE seat at a time in the
-   *     detail pane, which follows the active player until the reader picks
-   *     a row. Four hands stacked is precisely what did not fit.
-   *
-   * The rail then never scrolls as a whole: every section is intrinsically
-   * sized or explicitly capped except the STACK, which takes the leftover
-   * height and scrolls inside itself. Nothing can push a section off the
-   * bottom, because nothing but the stack grows.
+   * The rail never scrolls as a whole: every section is intrinsically sized
+   * or explicitly capped except the STACK, which takes the leftover height
+   * and scrolls inside itself.
    *
    * Revisited (U-rail-2, "the stack is very important in a lot of games, we
    * can hardly see 1 card"): the stack used to be capped small like every
@@ -125,12 +108,6 @@
   <section class="focus" data-focus-pane data-focus-seat={focused?.seat}>
     {#if focused}
       <ManaPool pool={focused.pool} />
-      <!-- Zones (ui10: every seat, quiet until asked) carry EVERY seat's
-           zone group, hand included, so the reader can look at any player's
-           graveyard/exile/library and their hand (a count when this viewer
-           may not see the cards) without it being their turn. Hand is
-           grouped inside each seat's zone list, not floated above it. -->
-      <ZoneViewer players={view.players} {seats} />
     {/if}
   </section>
 
