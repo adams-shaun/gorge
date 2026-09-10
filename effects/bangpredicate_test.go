@@ -104,14 +104,9 @@ func TestBangPredicateNegation(t *testing.T) {
 		t.Errorf("UnknownPredicates(Creature.!!attacking) = %v, want [!!attacking]", un)
 	}
 
-	// !token: previously the ONE hand-written map entry. With the map entry
-	// removed, the generic '!' path must reproduce it: a token (Card == nil)
-	// does not match !token, a real card does.
-	token := g.Obj(corpusObject(t, reg, g, "Grizzly Bears").ID)
-	token.Card = nil // a token: Card is nil
-	if MatchesObjectCtx(g, "Creature.!token", token, SpecContext{You: 0}) {
-		t.Errorf("Creature.!token must not match a token")
-	}
+	// !token uses the generic '!' path. A real card matches; the token
+	// exclusion is tested with actual TokenCreate events (and a retained
+	// creature face) in TestTokenPredicatesOnCreatedTokens.
 	if !MatchesObjectCtx(g, "Creature.!token", plain, SpecContext{You: 0}) {
 		t.Errorf("Creature.!token must match a non-token (a real card)")
 	}
