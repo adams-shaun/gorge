@@ -338,7 +338,7 @@ func TestCommanderNoOfferWithoutPayableTax(t *testing.T) {
 	// And the exact cost commanderTaxFor derives is castable.
 	base := e.adjustedCost(0, cmd0)
 	taxed := e.commanderTaxFor(0, cmd0, base)
-	if !e.castable(0, cmd0, taxed) {
+	if !e.castable(0, cmd0, taxed, false) {
 		t.Fatalf("offered cast not castable: adjusted %+v taxed %+v", base, taxed)
 	}
 }

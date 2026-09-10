@@ -270,10 +270,12 @@ type Engine struct {
 	cast *pendingCast
 	// manaActivation is non-nil while a source with several available mana
 	// abilities waits for its controller to select one. manaColorActivation
-	// similarly holds an already-paid Produced$ Any ability. Both are plain
-	// data so Clone preserves an offered activation at an intent boundary.
-	manaActivation      *manaActivation
-	manaColorActivation *manaColorActivation
+	// similarly holds an already-paid Produced$ Any ability, and
+	// manaDiscardActivation holds an ability whose discard cost is being
+	// chosen. All are plain data so Clone preserves an offered activation.
+	manaActivation        *manaActivation
+	manaColorActivation   *manaColorActivation
+	manaDiscardActivation *manaDiscardActivation
 
 	// cmdZone is the queue of parked commander zone changes (CR 903.9, Task
 	// m32, rules/replacement.go): MoveZone events a commander is about to
