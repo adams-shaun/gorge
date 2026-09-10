@@ -472,9 +472,9 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	switch e.choosing {
 	case chooseCast:
 		e.castAnswer(d, chosen)
-		// A multi-ability mana source changed the flow to chooseMana and
-		// installed its own decision; only a singleton may continue directly.
-		if e.choosing == chooseMana {
+		// A mana ability selection or Produced$ Any colour choice installed
+		// its own decision; only a fully resolved singleton may continue.
+		if e.choosing == chooseMana || e.choosing == chooseManaColor {
 			return
 		}
 		e.continueCast()
@@ -529,7 +529,11 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// Several individual mana abilities share one tap cost. A payment
 		// window resumes its cast after the selected ability resolves; an
 		// ordinary activation falls through to Advance's priority round.
-		if e.answerManaActivation(chosen) {
+		if e.answerManaActivation(chosen) && e.choosing != chooseManaColor {
+			e.continueCast()
+		}
+	case chooseManaColor:
+		if e.answerManaColor(chosen) {
 			e.continueCast()
 		}
 	// Tasks 12, 18 add their cases here; Task D1 adds chooseCleanup.
