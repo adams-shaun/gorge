@@ -148,7 +148,7 @@
             style:--pip={isManaChoice && mana ? `var(--mana-${mana.toLowerCase()})` : undefined}
             onclick={() => choose(opt)}
           >
-            {#if !isManaChoice}<span>{compactLabel(opt.label)}</span>{/if}
+            {#if isManaChoice}<span aria-hidden="true">{mana}</span>{:else}<span>{compactLabel(opt.label)}</span>{/if}
           </button>
         {/each}
       </div>
@@ -227,9 +227,9 @@
   .wheel-button {
     position: fixed;
     box-sizing: border-box;
-    width: 42px;
-    height: 42px;
-    padding: 4px;
+    width: 30px;
+    height: 30px;
+    padding: 2px;
     border: 2px solid var(--edge-inst);
     border-radius: 999px;
     background: var(--instrument);
@@ -255,10 +255,19 @@
     box-shadow: var(--shadow-lift), 0 0 0 2px var(--ink);
     outline: none;
   }
-  .wheel-button--mana {
+  /* Two classes, matching .wheel-button.badge--*'s specificity and coming
+     after it in source order: a colour choice's tint must win over the tone
+     tint, or the pip silently falls back to the plain instrument grey (the
+     reported "where are my mana symbols" bug — the CSS was there, the more
+     specific tone rule was simply painting over it every time). */
+  .wheel-button.wheel-button--mana {
     background: var(--pip);
     border-color: color-mix(in srgb, var(--pip) 72%, #000);
     box-shadow: var(--shadow-lift), inset 0 0 0 2px rgb(255 255 255 / 0.16);
+    color: #fff;
+    font-size: var(--t-12);
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgb(0 0 0 / 55%);
   }
 
   .menu-pop {

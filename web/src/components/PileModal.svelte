@@ -1,12 +1,15 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import type { CardView } from '../protocol';
+  import CardImage from './CardImage.svelte';
 
   /**
    * PileModal is the single card-list surface for hand, graveyard and exile.
    * It is portalled to body so the rail's capped, scrolling regions cannot
    * clip it. The wire never exposes library cards, so library never reaches
-   * this component.
+   * this component. Cards render as real card faces (CardImage), the same
+   * face a board tile shows, in a wrapping grid — not a text index; a pile
+   * is cards, not a table of contents.
    */
   let { open, title, cards, returnFocus = null, onClose }: {
     open: boolean;
@@ -71,6 +74,7 @@
       <ul class="cards" data-pile-scroll>
         {#each cards as card (card.id)}
           <li data-obj={card.id}>
+            <CardImage {card} size="tile" pt={false} />
             <span class="card-name">{card.name}</span>
             <span class="types">{card.types}</span>
           </li>
@@ -91,7 +95,7 @@
     background: rgb(5 8 12 / 72%);
   }
   .dialog {
-    width: min(34rem, calc(100vw - 2rem));
+    width: min(48rem, calc(100vw - 2rem));
     max-height: 84vh;
     display: flex;
     flex-direction: column;
@@ -136,31 +140,38 @@
   }
   .cards {
     margin: 0;
-    padding: var(--sp-2) var(--sp-4) var(--sp-4);
+    padding: var(--sp-3) var(--sp-4) var(--sp-4);
     max-height: 70vh;
     overflow-y: auto;
     list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+    --card-w: var(--card-w-large, 132px);
   }
   li {
     display: flex;
-    justify-content: space-between;
-    gap: var(--sp-3);
-    padding: 0.2rem 0;
-    font-size: var(--t-12);
-    line-height: 1.35;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    width: var(--card-w);
   }
   .card-name {
-    min-width: 0;
+    max-width: 100%;
     overflow: hidden;
     color: var(--ink-inst);
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: var(--t-11);
+    text-align: center;
   }
   .types {
-    flex: none;
-    margin-left: auto;
+    max-width: 100%;
+    overflow: hidden;
     color: var(--ink-faint);
-    font-size: var(--t-11);
+    text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: var(--t-10);
+    text-align: center;
   }
 </style>
