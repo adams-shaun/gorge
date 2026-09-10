@@ -40,8 +40,8 @@ import (
 )
 
 // canAttack reports whether id may be declared as an attacker (CR 508.1a):
-// a creature under the active player's control, untapped, and either not
-// summoning sick or hasty.
+// a creature under the active player's control, untapped, without Defender
+// (CR 702.3b), and either not summoning sick or hasty.
 func (e *Engine) canAttack(id state.ObjID) bool {
 	o := e.G.Obj(id)
 	if o == nil || o.Zone != state.ZBattlefield || o.Controller != e.G.Active {
@@ -51,7 +51,7 @@ func (e *Engine) canAttack(id state.ObjID) bool {
 	if f == nil || !f.IsCreature() {
 		return false
 	}
-	if o.Tapped {
+	if o.Tapped || e.HasKeyword(id, "Defender") {
 		return false
 	}
 	if o.SummonSick && !e.HasKeyword(id, "Haste") {
@@ -246,6 +246,9 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) error {
 	seen := make(map[state.ObjID]bool, len(in.Choices))
 	for _, o := range d.Chosen(in) {
+		if !e.canAttack(o.Obj) {
+			return fmt.Errorf("object %d cannot attack", o.Obj)
+		}
 		if seen[o.Obj] {
 			return fmt.Errorf("attacker %d declared against more than one defender", o.Obj)
 		}
@@ -372,16 +375,30 @@ func (e *Engine) validateAttackDeclaration(d *decision.Decision, in decision.Int
 // for one ordinary blocker violates CR 509.1a. Decision.Validate only checks
 // the shape of each selected option, so reject the combination here before the
 // intent is recorded or the pending decision is consumed. Multiple blockers
-// may still choose the same attacker. The build has no model for effects that
-// let one creature block additional attackers; this limit must become
-// capability-aware when such effects are implemented.
-func validateBlockers(d *decision.Decision, in decision.Intent) error {
+// may still choose the same attacker, but CR 702.111b requires either zero or
+// at least two of them when that attacker has Menace. The build has no model
+// for effects that let one creature block additional attackers; this limit
+// must become capability-aware when such effects are implemented.
+func (e *Engine) validateBlockers(d *decision.Decision, in decision.Intent) error {
 	seen := make(map[state.ObjID]bool, len(in.Choices))
-	for _, o := range d.Chosen(in) {
+	chosen := d.Chosen(in)
+	byAttacker := make(map[state.ObjID]int, len(chosen))
+	for _, o := range chosen {
 		if seen[o.Obj] {
 			return fmt.Errorf("blocker %d declared against more than one attacker", o.Obj)
 		}
 		seen[o.Obj] = true
+		byAttacker[o.Attacker]++
+	}
+	checked := make(map[state.ObjID]bool, len(byAttacker))
+	for _, o := range chosen {
+		if checked[o.Attacker] {
+			continue
+		}
+		checked[o.Attacker] = true
+		if byAttacker[o.Attacker] == 1 && e.HasKeyword(o.Attacker, "Menace") {
+			return fmt.Errorf("attacker %d with menace must be blocked by at least two creatures", o.Attacker)
+		}
 	}
 	return nil
 }
@@ -1242,5 +1259,5 @@ func (e *Engine) discardCleanup(chosen []decision.Option) {
 func init() {
 	effects.RegisterNonAPI("kw:Flying", "kw:Reach", "kw:Haste", "kw:Vigilance",
 		"kw:Deathtouch", "kw:Trample", "kw:Lifelink", "kw:First Strike",
-		"kw:Flash", "kw:Indestructible", "kw:Devoid")
+		"kw:Flash", "kw:Indestructible", "kw:Devoid", "kw:Defender", "kw:Menace")
 }

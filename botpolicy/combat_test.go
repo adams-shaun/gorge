@@ -291,6 +291,21 @@ func TestBlockChumpOnlyForLethal(t *testing.T) {
 	}
 }
 
+// TestBlockMenaceUsesZeroOrAtLeastTwoCreatures is BR5: one available blocker
+// means no block, while a lethal Menace attack with two available blockers
+// gets a legal two-creature declaration.
+func TestBlockMenaceUsesZeroOrAtLeastTwoCreatures(t *testing.T) {
+	b := boardOf(atk(1, 1, 1), atk(2, 1, 1), def(1, 3, 3, "Menace"))
+	b.Life[0] = 2 // the menace attacker is lethal if left unblocked
+
+	if got := blockDecision(b, [2]int{1, 1}); len(got) != 0 {
+		t.Fatalf("one available blocker produced declaration %v, want no block", got)
+	}
+	if got := blockDecision(b, [2]int{1, 1}, [2]int{2, 1}); len(got) != 2 {
+		t.Fatalf("two available blockers produced declaration %v, want both", got)
+	}
+}
+
 // TestBlockNeverThrowsAway is BR1+BR2's floor: a blocker that cannot kill
 // its attacker and whose sacrifice saves no life is never spent, and the
 // same blocker is never given to two attackers. A 2/2 against a {5/5,
