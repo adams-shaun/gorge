@@ -121,19 +121,18 @@ export interface Printing {
 }
 
   /**
-   * ManaProduction is what one face's mana abilities place in the mana pool
-   * when its tap-for-mana activation runs them all, expressed as plain data so
-   * any later package (view, botpolicy, the seat adapter) can carry it without
-   * importing a package to its right. It is derived from the face's own
-   * abilities -- never from land subtypes -- and it mirrors exactly what this
-   * engine's executor (effects/misc.go's effMana, "AB$ Mana") actually emits,
-   * which is the only honest thing a policy may rely on.
+   * ManaProduction is a face's mana-production capability summary, expressed
+   * as plain data so any later package (view, botpolicy, the seat adapter) can
+   * carry it without importing a package to its right. It is derived from the
+   * face's own abilities -- never from land subtypes. A face with several mana
+   * abilities lists their possible production here; rules selects exactly one
+   * when a shared tap cost is paid (rules/mana_activation.go).
    *
    * Colour is indexed the same way state.Mana is (W, U, B, R, G, then
    * colourless), so a caller that also imports state can translate an index
-   * with state.ManaIndex. An activation taps the source once and runs every
-   * mana ability, so a dual land whose intrinsic layer (intrinsic.go) granted
-   * it one ability per subtype sums both here: tapping it adds both colours.
+   * with state.ManaIndex. A dual land may list both possible colours here, but
+   * selecting one of its distinct mana abilities on activation adds only that
+   * selected ability's mana.
    *
    * Any reports that at least one mana ability's Produced$ was not a plain
    * colour string: "Any"/"Combo Any", a listed "Combo X Y" choice, or a
