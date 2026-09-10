@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { PlayerView, StackView } from '../protocol';
   import { commandZoneOf, stackIdsOf } from '../lib/commander';
+  import type { CardOptions } from '../lib/cardoptions';
+  import { tileOptions } from '../lib/cardoptions';
   import CommanderTile from './CommanderTile.svelte';
 
   /**
@@ -41,8 +43,17 @@
    * nothing of its own to size, position or stack. A seat with no roster
    * (a Constructed game) renders literally nothing — not an empty node, not a
    * frame, not a heading.
+   *
+   * `options` (the pending decision's card-indexed offers, forwarded from
+   * Quadrant the same way every CardStack in this row already gets it) is
+   * looked up per commander by its object id and handed to CommanderTile as
+   * `tileOptions` — the same fact CardTile renders as a direct cast button
+   * or menu badge. Before this, a commander's cast option was still posted
+   * on the wire (keyed by its id like any other object) but never reached
+   * this tile, so casting a commander was reachable only through the seat
+   * panel's generic ACTIONS list, never by clicking the card itself.
    */
-  let { player, stack = [] }: { player: PlayerView; stack?: StackView[] } = $props();
+  let { player, stack = [], options = null }: { player: PlayerView; stack?: StackView[]; options?: CardOptions | null } = $props();
 
   const commanders = $derived(
     commandZoneOf(player, stackIdsOf(stack)).filter((c) => c.presence !== 'battlefield'),
@@ -50,5 +61,5 @@
 </script>
 
 {#each commanders as c (c.commander.id)}
-  <CommanderTile status={c} player={player.name} seat={player.seat} />
+  <CommanderTile status={c} player={player.name} seat={player.seat} tileOptions={options ? tileOptions(options, c.commander.id) : null} />
 {/each}
