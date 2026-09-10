@@ -46,16 +46,10 @@ export function seatCorner(seat: number, seats: number, viewer: number): SeatCor
 }
 
 /**
- * seattable.ts is the projection behind the rail's one table (U4).
- *
- * The rail used to be one panel per seat — a hand list, a command zone and a
- * zone strip each, stacked — which on a four-seat omniscient Commander table
- * measured 1732px of content in a 496px slot. Four panels repeating the same
- * six labels is the wrong shape for facts every seat has: the reader wants to
- * compare life across seats, not read "P2's hand" four times. So the seats
- * become ROWS of one table and the facts become COLUMNS, and only the things
- * that are genuinely per-seat lists — the hand, the graveyard and exile card
- * lists — stay lists, shown for one seat at a time beneath the table.
+ * seattable.ts is the projection behind the rail's one compact seat summary.
+ * Rows are seats and the five icon/count cells are life, hand, library,
+ * graveyard and exile. The three card-list zones are disclosed from that same
+ * row in a modal; there is no second count panel or inline list.
  *
  * Everything here reads fields already on view.View. No wire change.
  */
@@ -173,17 +167,15 @@ export function seatRows(view: View, seats: SeatInfo[] = [], causes: Record<numb
 }
 
 /**
- * focusSeat picks the seat whose hand and zone lists the detail pane shows.
- * Exactly one seat at a time is what makes the rail fit: four hands stacked
- * is what U4 reported and what pushed the command zone off screen.
+ * focusSeat picks the seat whose focused rail details (currently floating
+ * mana) are shown. Pile browsing is available directly from every summary row
+ * and no longer depends on this focus.
  *
  * `selected` is the reader's explicit pick and always wins while it names a
  * seat that is still at the table. With no pick, the pane follows whoever is
  * most likely to be read: the viewer's own seat if this viewer has one,
  * otherwise the active player — which for an omniscient spectator (viewer 255,
- * view.NoSeat) is always the second branch. A seat whose hand is hidden is
- * still a legitimate focus: its zones are public and the pane says the hand
- * is not visible rather than pretending it is empty.
+ * view.NoSeat) is always the second branch.
  */
 export function focusSeat(selected: number | null, view: View): number | null {
   const players = view.players ?? [];
