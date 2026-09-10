@@ -43,16 +43,12 @@ const baseView = (over: Partial<View> = {}): View => ({
 });
 
 describe('Rail — public spectator (every seat\'s hand and pool are null)', () => {
-  it('renders with no crash and no fabricated data: a null hand reads as a plain count row, not an apology or an empty list', () => {
+  it('renders with no crash and no fabricated data: a null hand is a true count with no pile control', () => {
     const { html } = render(Rail, { props: { view: baseView(), seats, decision: null } });
-    // the seats start COLLAPSED (ui10 bug 3: quiet until asked), so the hand
-    // count lives in each seat's one-line summary rather than as its own row;
-    // on expand the null hand renders a plain count row (data-hand-count),
-    // asserted in the ZoneViewer suite. Here the count is what must be true.
-    expect(html).toContain('7 hand');
+    expect(html).toContain('data-hand-hidden');
+    expect(html).toContain('data-icon="hand"');
+    expect(html).not.toContain('data-pile="hand"');
     expect(html).not.toContain('not visible');
-    // the count is true even when the cards are hidden — hand_size, not a lie
-    expect(html).toContain('hand');
   });
 
   it('ManaPool renders nothing for a null pool rather than throwing', () => {
@@ -64,12 +60,12 @@ describe('Rail — public spectator (every seat\'s hand and pool are null)', () 
     expect(() => render(Rail, { props: { view: baseView(), seats, decision: null } })).not.toThrow();
   });
 
-  it('the zone pane shows EVERY seat\'s zones, not only the focused one (ui10 bug 3)', () => {
+  it('the one summary panel carries all five counts for EVERY seat, with no duplicate zone pane', () => {
     const v = baseView({ players: [spectatorPlayer(0, 'Ari'), spectatorPlayer(1, 'Bo')] });
     const { html } = render(Rail, { props: { view: v, seats, decision: null } });
-    // both seats get their own collapsible zone group in the same pane
-    expect(html).toContain("Ari's zones");
-    expect(html).toContain("Bo's zones");
+    expect(html.match(/data-seat-row=/g)).toHaveLength(2);
+    expect(html.match(/data-stat="exile"/g)).toHaveLength(2);
+    expect(html).not.toContain("'s zones");
   });
 });
 

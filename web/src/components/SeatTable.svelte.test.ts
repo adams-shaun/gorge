@@ -1,6 +1,28 @@
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { render } from 'svelte/server';
+import type { CardView, PlayerView, SeatInfo, View } from '../protocol';
+import SeatTable from './SeatTable.svelte';
+
+const card = (id: number, name = `Card ${id}`): CardView => ({
+  id, name, types: 'Instant', printing: { name }, token: `#${id}`, tapped: false,
+  power: 0, toughness: 0, damage: 0, attacking: false, controller: 0, owner: 0,
+  summon_sick: false,
+});
+
+const player = (over: Partial<PlayerView> = {}): PlayerView => ({
+  seat: 0, name: 'Ari', life: 40, lost: false, library_size: 52, hand_size: 2, graveyard_size: 1,
+  hand: [card(1), card(2)], battlefield: [], graveyard: [card(3)], exile: [card(4)],
+  pool: {}, command: [], commanders: [], commander_casts: [], ...over,
+});
+
+const summaryView = (p: PlayerView): View => ({
+  viewer: 0, visibility: 'seat', turn: 1, round: 1, step: 'main1', phase: 'main1',
+  active: 0, priority: 0, over: false, draw: false, winner: null, stack: [], pending: [], players: [p],
+});
+
+const summarySeats: SeatInfo[] = [{ name: 'Ari', deck: 'red', colour: '#e5484d' }];
 
 let server: Awaited<ReturnType<typeof createServer>>;
 let browser: Awaited<ReturnType<typeof chromium.launch>>;
@@ -16,6 +38,34 @@ beforeAll(async () => {
 afterAll(async () => {
   await browser?.close();
   await server?.close();
+});
+
+describe('SeatTable — compact seat summary', () => {
+  it('renders the five icon/count cells in order and gives only disclosable piles a caret control', () => {
+    const { html } = render(SeatTable, { props: { view: summaryView(player()), seats: summarySeats, onFocus: () => {} } });
+    const kinds = ['life', 'hand', 'library', 'graveyard', 'exile'];
+    let at = -1;
+    for (const kind of kinds) {
+      const next = html.indexOf(`data-stat=\"${kind}\"`);
+      expect(next).toBeGreaterThan(at);
+      at = next;
+    }
+    expect(html).toContain('data-icon="heart"');
+    expect(html).toContain('data-icon="book"');
+    expect(html).toContain('data-pile="hand"');
+    expect(html).toContain('data-pile="graveyard"');
+    expect(html).toContain('data-pile="exile"');
+    expect(html).not.toContain('data-pile="library"');
+  });
+
+  it('shows true counts but no caret for empty or redacted lists', () => {
+    const hidden = player({ hand: null as unknown as CardView[], graveyard: null as unknown as CardView[], graveyard_size: 4, exile: [] });
+    const { html } = render(SeatTable, { props: { view: summaryView(hidden), seats: summarySeats, onFocus: () => {} } });
+    expect(html).toContain('data-hand-hidden');
+    expect(html).not.toContain('data-pile="hand"');
+    expect(html).not.toContain('data-pile="graveyard"');
+    expect(html).not.toContain('data-pile="exile"');
+  });
 });
 
 describe('SeatTable — priority geometry', () => {
