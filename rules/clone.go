@@ -169,6 +169,10 @@ func (e *Engine) Clone() *Engine {
 		ma.abilities = append([]*cards.SA(nil), e.manaActivation.abilities...)
 		c.manaActivation = &ma
 	}
+	if e.manaColorActivation != nil {
+		ma := *e.manaColorActivation
+		c.manaColorActivation = &ma
+	}
 	if e.cast != nil {
 		pc := *e.cast
 		pc.cost.Sac = append([]CostPart(nil), e.cast.cost.Sac...)

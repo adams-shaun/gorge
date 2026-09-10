@@ -43,7 +43,6 @@ func TestManaActivationChoosesOneAbility(t *testing.T) {
 	volcanic := onBoard(t, e, 0, volcanicIsland)
 	e.askPriority(0)
 	submitChoices(t, e, activateOption(t, e, volcanic))
-
 	d := e.Pending()
 	red := manaOption(t, d, "R")
 	if d.Source != volcanic || len(d.Options) != 2 || e.G.Obj(volcanic).Tapped {
@@ -145,5 +144,114 @@ func TestManaActivationChoiceExcludesRestrictedMember(t *testing.T) {
 	pool := e.G.Players[0].Pool
 	if pool.Total() != 1 || pool[state.MU] != 1 || pool[state.MB] != 0 || pool[state.MR] != 0 {
 		t.Fatalf("Mint pool=%+v, want selected U only", pool)
+	}
+}
+
+func manaEventsFor(e *Engine, kind events.Kind, id state.ObjID) int {
+	count := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == kind && ev.Obj == id {
+			count++
+		}
+	}
+	return count
+}
+
+func manaSourceEngine(t *testing.T, src string) (*Engine, Config, state.ObjID) {
+	t.Helper()
+	e, cfg, id := newFixtureDeck(t, 93, src)
+	moveSeeded(t, e, 0, src, state.ZBattlefield)
+	e.Advance()
+	return e, cfg, id
+}
+
+func TestLotusPetalPaysSacrificeAndChoosesColor(t *testing.T) {
+	const petal = "Name:Lotus Petal\nTypes:Artifact\n" +
+		"A:AB$ Mana | Cost$ Sac<1/CARDNAME> | Produced$ Any\nOracle:x\n"
+	e, cfg, id := manaSourceEngine(t, petal)
+	activateMana(t, e, id)
+	if got := manaEventsFor(e, events.Tap, id); got != 0 {
+		t.Fatalf("Lotus Petal Tap events = %d, want 0", got)
+	}
+	if got := e.G.Obj(id).Zone; got != state.ZGraveyard {
+		t.Fatalf("Lotus Petal zone = %s, want Graveyard", got)
+	}
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Min != 1 || d.Max != 1 || len(d.Options) != 5 {
+		t.Fatalf("colour decision = %+v", d)
+	}
+	for i, opt := range d.Options {
+		if opt.Obj != id {
+			t.Fatalf("colour option %d Obj = %d, want Lotus Petal %d", i, opt.Obj, id)
+		}
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+		t.Fatalf("choose white: %v", err)
+	}
+	if got := e.G.Players[0].Pool[state.MW]; got != 1 {
+		t.Fatalf("white pool = %d, want 1", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+func TestCloneKeepsManaColorChoice(t *testing.T) {
+	const petal = "Name:Lotus Petal\nTypes:Artifact\n" +
+		"A:AB$ Mana | Cost$ Sac<1/CARDNAME> | Produced$ Any\nOracle:x\n"
+	e, _, id := manaSourceEngine(t, petal)
+	activateMana(t, e, id)
+	c := e.Clone()
+	red := manaOption(t, c.Pending(), "R")
+	submitChoices(t, c, red)
+	submitChoices(t, e, manaOption(t, e.Pending(), "R"))
+	if c.G.Players[0].Pool != e.G.Players[0].Pool || c.L.Head() != e.L.Head() {
+		t.Fatalf("clone pool/head = %v/%s, original = %v/%s", c.G.Players[0].Pool, c.L.Head(), e.G.Players[0].Pool, e.L.Head())
+	}
+}
+
+func TestLionsEyeDiamondPaysTapAndSacrifice(t *testing.T) {
+	const led = "Name:Lion's Eye Diamond\nTypes:Artifact\n" +
+		"A:AB$ Mana | Cost$ T Sac<1/CARDNAME> | Produced$ C | Amount$ 3\nOracle:x\n"
+	e, cfg, id := manaSourceEngine(t, led)
+	activateMana(t, e, id)
+	if got := manaEventsFor(e, events.Tap, id); got != 1 {
+		t.Fatalf("Lion's Eye Diamond Tap events = %d, want 1", got)
+	}
+	if got := e.G.Obj(id).Zone; got != state.ZGraveyard {
+		t.Fatalf("Lion's Eye Diamond zone = %s, want Graveyard", got)
+	}
+	if got := e.G.Players[0].Pool[state.MC]; got != 3 {
+		t.Fatalf("colourless pool = %d, want 3", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+func TestManaActivationTapOnlyStillTapsAndAddsMana(t *testing.T) {
+	const land = "Name:Plain Mana Land\nTypes:Land\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ U\nOracle:x\n"
+	e, cfg, id := manaSourceEngine(t, land)
+	activateMana(t, e, id)
+	if got := manaEventsFor(e, events.Tap, id); got != 1 || !e.G.Obj(id).Tapped {
+		t.Fatalf("tap-only mana ability Tap events/tapped = %d/%v, want 1/true", got, e.G.Obj(id).Tapped)
+	}
+	if got := e.G.Players[0].Pool[state.MU]; got != 1 {
+		t.Fatalf("blue pool = %d, want 1", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+func TestManaAbilityChoiceOptionsMarkSource(t *testing.T) {
+	const source = "Name:Split Mana Rock\nTypes:Artifact\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ W\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ U\nOracle:x\n"
+	e, _, id := manaSourceEngine(t, source)
+	activateMana(t, e, id)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 {
+		t.Fatalf("mana ability decision = %+v", d)
+	}
+	for i, opt := range d.Options {
+		if opt.Obj != id {
+			t.Fatalf("mana option %d Obj = %d, want source %d", i, opt.Obj, id)
+		}
 	}
 }
