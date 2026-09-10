@@ -25,10 +25,10 @@ type ManaPair struct{ A, B byte }
 
 // Cost is a parsed cost. X counts how many "X" symbols appeared (almost
 // always 0 or 1; WithX folds a chosen value into Generic once per symbol).
-// Tap, Sac and SubCounter are non-mana components a cast or activation must
-// satisfy separately from mana payment (rules/cast.go's castable and the
-// cast-flow stages own that; Pay/CanPay below are mana-only, unchanged from
-// before this cost grammar grew non-mana parts).
+// Life, Tap, Sac and SubCounter are non-mana components a cast or activation
+// must satisfy separately from mana payment. Life is paid through payMana's
+// LifeChange event; Tap, Sac and SubCounter are settled by the cast-flow
+// stages in rules/cast.go. Pay and CanPay remain pool-only helpers.
 //
 // Hybrid and Phyrexian symbols are no longer flattened to generic. A hybrid
 // pip (GW) is recorded in Hybrid as the pair of colours it accepts; a
@@ -42,6 +42,7 @@ type ManaPair struct{ A, B byte }
 type Cost struct {
 	Colored    state.Mana
 	Generic    int32
+	Life       int32
 	X          int
 	Hybrid     []ManaPair
 	Phyrexian  []byte
@@ -59,6 +60,11 @@ type Cost struct {
 // description is dropped right here; the ";" alternation is folded to ","
 // (MatchesSpec's own separator) at the parse site. Ruling FL-54.
 var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+
+// lifeCost matches Forge's fixed life-payment token. Dynamic values such as
+// PayLife<X> retain the ordinary malformed-token fallback below: this engine
+// has no source from which to resolve their value.
+var lifeCost = regexp.MustCompile(`^PayLife<(\d+)>$`)
 
 // ParseCost accepts both Forge's space-separated form ("2 U U") and the
 // bracketed oracle form ("{2}{U}{U}"). "no cost" and "" are free.
@@ -82,6 +88,17 @@ func ParseCost(s string) Cost {
 		case isPhyrexian(sym):
 			c.Phyrexian = append(c.Phyrexian, phyrexianColor(sym))
 		default:
+			if m := lifeCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					// Keep an out-of-range PayLife token on the same safe fallback
+					// as every other malformed cost token.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					continue
+				}
+				c.Life = addClampedGeneric(c.Life, n)
+				continue
+			}
 			if m := nonManaCost.FindStringSubmatch(sym); m != nil {
 				n, err := strconv.ParseInt(m[2], 10, 64)
 				if err != nil || n < 0 || n > int64(math.MaxInt32) {
@@ -223,13 +240,14 @@ func (c Cost) WithX(x int32) Cost {
 }
 
 // Plus sums two costs (Kicker's own cost added to the card's printed cost):
-// colours and generic add, X counts add, Tap ORs, and each side's
+// colours, generic and life add, X counts add, Tap ORs, and each side's
 // non-mana parts concatenate.
 func (c Cost) Plus(d Cost) Cost {
 	for i := range c.Colored {
 		c.Colored[i] += d.Colored[i]
 	}
 	c.Generic += d.Generic
+	c.Life = addClampedGeneric(c.Life, int64(d.Life))
 	c.X += d.X
 	c.Tap = c.Tap || d.Tap
 	if len(d.Hybrid) > 0 {
@@ -342,7 +360,7 @@ func (e *Engine) offerCostFor(p state.PlayerID, id state.ObjID, base Cost, abili
 
 // HasNonMana reports whether paying this cost takes more than mana.
 func (c Cost) HasNonMana() bool {
-	return c.Tap || len(c.Sac) > 0 || len(c.SubCounter) > 0
+	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.SubCounter) > 0
 }
 
 // costModifiers reports the RaiseCost and ReduceCost generic-mana amounts
@@ -391,28 +409,23 @@ func (e *Engine) costActorMatches(sv staticView, actor state.PlayerID) bool {
 	return true
 }
 
-// Priceable reports whether the mana-only payment path (Pay, and therefore
-// payMana) can actually charge every part of this cost. Pay charges only
-// Colored and Generic: an {X} component that has not been folded into
-// Generic by WithX is not a drain the pool can be asked to satisfy -- a cost
-// "X" parses as {Generic:0, X:1}, which Pay would satisfy from an EMPTY
-// pool -- and a non-mana part (Tap/Sac/SubCounter) is likewise invisible to
-// Pay, which handles mana only. Such a cost is unpriceable by the payment
-// API and must be DECLINED, never silently priced at zero. This is the
-// predicate I-5 routes through: every component ParseCost collapses into a
-// shape Pay cannot charge -- an SVar-sourced X, a cast-time-chosen X, a
-// Sac/SubCounter/Tap part -- travels through the same predicate rather than
-// a `if cost == "X"` special case.
+// Priceable reports whether payMana can actually charge every part of this
+// cost. payMana charges Colored and Generic from the pool and fixed Life from
+// the payer, but an {X} component that has not been folded into Generic, or a
+// Tap/Sac/SubCounter component, still needs cast-flow handling. Such a cost
+// is unpriceable by the mid-resolution payment API and must be DECLINED,
+// never silently priced at zero. This is the predicate I-5 routes through:
+// every component ParseCost collapses into a shape payMana cannot charge --
+// an SVar-sourced X, a cast-time-chosen X, or a Tap/Sac/SubCounter part --
+// travels through the same predicate rather than a `if cost == "X"` special
+// case.
 //
-// This is deliberately NOT consulted by Cost.Pay itself. The cast flow folds
-// a chosen X via WithX and settles its non-mana parts itself
-// (rules/cast.go), so Pay INEVITABLY sees an unfolded X or a non-mana part
-// as a normal intermediate there; rejecting those inside Pay would break
-// ordinary casting. Priceable is the "is this a chargeable mana-only cost"
-// question the mid-resolution unless-pay answer must ask before trusting the
-// pool.
+// Cost.Pay remains pool-only, while Priceable is the "is this chargeable by
+// payMana with a payer" question the mid-resolution unless-pay answer asks
+// before trusting the pool and life total.
 func (c Cost) Priceable() bool {
-	return c.X == 0 && !c.HasNonMana() && len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
+	return c.X == 0 && !c.Tap && len(c.Sac) == 0 && len(c.SubCounter) == 0 &&
+		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
 }
 
 // pip is one coloured-or-flexible demand inside a cost's mana part: the set
@@ -449,19 +462,22 @@ func (c Cost) costPips() []pip {
 	return out
 }
 
-// resolveMana finds A concrete payment of the cost's mana part from pool and
-// the payer's life, preferring to spend coloured pool mana over life for a
-// Phyrexian pip and preferring the first colour of a hybrid pair, so the
-// assignment is deterministic. It returns the pool with the coloured pips
-// spent, the life spent (each Phyrexian pip paid by life costs 2), and
-// whether the whole cost is payable (generic left satisfied from the
-// remainder). The generic requirement is paid last from whatever the pips
-// left, so coloured mana is never spent on generic while a pip still needs
-// it.
+// resolveMana finds a concrete payment of the cost's mana and fixed-life
+// parts from pool and the payer's life, preferring to spend coloured pool mana
+// over life for a Phyrexian pip and preferring the first colour of a hybrid
+// pair, so the assignment is deterministic. It returns the pool with the
+// coloured pips spent, total life spent (the fixed Life component plus two
+// for each Phyrexian pip paid by life), and whether the whole cost is payable.
+// The generic requirement is paid last from whatever the pips left, so
+// coloured mana is never spent on generic while a pip still needs it.
 func (c Cost) resolveMana(pool state.Mana, life int32) (state.Mana, int32, bool) {
+	if life < c.Life {
+		return pool, 0, false
+	}
 	pips := c.costPips()
 	rem := pool
-	lifeSpent := int32(0)
+	life -= c.Life
+	lifeSpent := c.Life
 	var rec func(i int) bool
 	rec = func(i int) bool {
 		if i == len(pips) {
@@ -508,12 +524,12 @@ func (c Cost) resolveMana(pool state.Mana, life int32) (state.Mana, int32, bool)
 	return rem, lifeSpent, true
 }
 
-// payable reports whether the cost's mana part can be paid by pool and the
-// payer's current life (a Phyrexian pip may be paid with two life). This is
-// the offering gate's feasibility question, and the real answer to "is there
-// ANY way this cost can be paid right now" -- the same resolveMana the
-// payment stage uses, so an offered cost and the cost it charges can never
-// disagree.
+// payable reports whether the cost's mana and fixed-life parts can be paid
+// by pool and the payer's current life (a Phyrexian pip may additionally be
+// paid with two life). This is the offering gate's feasibility question, and
+// the real answer to "is there ANY way this cost can be paid right now" -- the
+// same resolveMana the payment stage uses, so an offered cost and the cost it
+// charges can never disagree.
 func (c Cost) payable(pool state.Mana, life int32) bool {
 	_, _, ok := c.resolveMana(pool, life)
 	return ok

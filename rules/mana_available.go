@@ -76,12 +76,11 @@ func (e *Engine) AvailableMana(p state.PlayerID) state.Mana {
 // manaFreeCost reports whether a mana ability's activation cost is a bare
 // tap (or empty -- an ability that produces mana for nothing): Tap may be
 // true, but no Sac, no SubCounter, no generic/coloured mana, no variable X.
-// A cost like "T, Sac <1/CARDNAME>", "T, PayLife<1>" (which ParseCost folds
-// to a generic), "2 T" or "G T" is not free and must not be counted as
-// available-by-tapping.
+// A cost like "T, Sac <1/CARDNAME>", "T, PayLife<1>", "2 T" or "G T" is
+// not free and must not be counted as available-by-tapping.
 func manaFreeCost(c Cost) bool {
 	return len(c.Sac) == 0 && len(c.SubCounter) == 0 &&
-		c.Generic == 0 && c.Colored == (state.Mana{}) && c.X == 0
+		c.Generic == 0 && c.Life == 0 && c.Colored == (state.Mana{}) && c.X == 0
 }
 
 // addAvailable folds one free-to-tap mana ability into an available-mana
