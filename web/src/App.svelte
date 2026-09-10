@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { parseRoute, type Route } from './lib/router';
+  import FeedbackButton from './components/FeedbackButton.svelte';
   import Overview from './routes/Overview.svelte';
   import Table from './routes/Table.svelte';
 
@@ -11,6 +12,10 @@
     return () => removeEventListener('popstate', onPop);
   });
 </script>
+
+<!-- Mounted outside the route switch: the feedback affordance is available on
+     every page, and a route change must not tear down a half-written report. -->
+<FeedbackButton />
 
 {#if route.kind === 'overview'}
   <Overview />
