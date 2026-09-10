@@ -306,6 +306,13 @@ func TestTurnChangeResetsZoneEntryAndDamageHistory(t *testing.T) {
 	if !g.Obj(id).WasDealtDamageThisTurn {
 		t.Fatal("healing must not clear per-turn damage history")
 	}
+	// A second entry this turn replaces the provenance with the actual zone it
+	// just left, which is what ThisTurnEnteredFrom_Battlefield needs.
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZLibrary, To: state.ZGraveyard})
+	o = g.Obj(id)
+	if !o.EnteredThisTurn || o.EnteredFrom != state.ZBattlefield {
+		t.Fatalf("second entry history = entered:%v from:%v, want true/battlefield", o.EnteredThisTurn, o.EnteredFrom)
+	}
 
 	// Use the existing TurnChange reset boundary; these are game-wide facts,
 	// so a new active player clears history for objects owned by either seat.
