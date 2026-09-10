@@ -121,6 +121,18 @@ describe('CardTile options affordance (ui21)', () => {
     expect(html).not.toContain('badge__n');
   });
 
+  it('a homogeneous stack of mana activations renders one direct tap control, not a menu', () => {
+    const pile = opts({ list: [
+      { index: 17, kind: 'activate', label: 'Tap Island for mana', obj: 16, player: 0 },
+      { index: 4, kind: 'activate', label: 'Tap Island for mana', obj: 19, player: 0 },
+    ] });
+    const { html } = render(CardTile, { props: { card: card(), tileOptions: pile, open0: true } });
+    expect(html).toContain('data-single-action');
+    expect(html).toContain('data-action-icon="tap"');
+    expect(html).not.toContain('aria-haspopup');
+    expect(html).not.toContain('role="menu"');
+  });
+
   it('a tile with no options offer renders no badge and no menu (the no-mark state)', () => {
     const { html } = render(CardTile, { props: { card: card(), tileOptions: null } });
     expect(html).not.toContain('aria-haspopup');

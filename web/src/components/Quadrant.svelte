@@ -137,22 +137,18 @@
     align-content: flex-end;
     min-height: var(--sp-2);
   }
-  /* Creatures are drawn larger, because they are what combat reads. Lands and
-     the rest are smaller: a board of eight Islands should not cost the same
-     room as eight creatures. The two sizes are set here rather than by
-     passing size="large" to the tile, because how big a permanent is drawn is
-     a property of the row it sits in and not of the card.
+  /* Every battlefield row uses the gameplay-card scale shared with the hand.
+     Size remains a row property rather than a CardTile `large` mode, so all
+     of the tile chrome continues to follow the same --card-w geometry.
 
      No row stretches. A creature row with flex:1 pushed the lands to the far
      edge and opened a hole in the middle of every seat that had two
      permanents; the rows simply sit together against the seam instead. */
+  .row {
+    --card-w: var(--play-card-w);
+  }
   .row.creatures {
     align-items: flex-start;
     align-content: flex-start;
-    --card-w: 104px;
-  }
-  .row.others,
-  .row.lands {
-    --card-w: 76px;
   }
 </style>

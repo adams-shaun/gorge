@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { CardView, PlayerView } from '../protocol';
   import { visibleHand } from '../lib/board';
-  import { handFanLayout, type HandFanSpec } from '../lib/handfan';
+  import { handFanLayout, PLAY_CARD_WIDTH, type HandFanSpec } from '../lib/handfan';
   import type { CardOptions, TileOptions } from '../lib/cardoptions';
   import { postSingleAction, singleActionIcon, tileOptions } from '../lib/cardoptions';
   import CardImage from './CardImage.svelte';
@@ -77,7 +77,6 @@
 
   const hand = $derived(visibleHand(player) ?? []);
 
-  const CARD_W = 128;
   const GAP = 10;
   // The constraint is the room the BOARD has, so the fan never grows past the
   // viewport and the overlap tightens instead.
@@ -101,8 +100,8 @@
     return () => ro.disconnect();
   });
   const room = $derived(width > 0 ? width : measured);
-  const maxW = $derived(room > 0 ? Math.max(CARD_W, room) : Number.MAX_SAFE_INTEGER);
-  const spec: HandFanSpec = $derived({ cardWidth: CARD_W, gap: GAP, maxWidth: maxW });
+  const maxW = $derived(room > 0 ? Math.max(PLAY_CARD_WIDTH, room) : Number.MAX_SAFE_INTEGER);
+  const spec: HandFanSpec = $derived({ cardWidth: PLAY_CARD_WIDTH, gap: GAP, maxWidth: maxW });
   const layout = $derived(handFanLayout(hand.length, spec));
 
   // One hover state for the whole fan, same contract as CardTile/HandList.
@@ -156,7 +155,7 @@
        centred inside it. Both are pointer-transparent; only a face claims the
        pointer. -->
   <div class="handtrack" bind:this={container}>
-  <div class="handfan" style:--card-w="{CARD_W}px" style:width="{layout.rowWidth}px">
+  <div class="handfan" style:width="{layout.rowWidth}px">
     {#each hand as c, i (c.id)}
       <!-- A hand card is NOT a board permanent: no tapped/attacking/counters
            chrome, just the face plus the shared hover inspector. When the
@@ -264,6 +263,7 @@
   .handfan {
     position: relative;
     margin-inline: auto;
+    --card-w: var(--play-card-w);
     height: calc(var(--card-w) * 88 / 63);
     pointer-events: none;
   }
@@ -349,7 +349,7 @@
     height: 1.1rem;
     padding: 0 0.25rem;
     border-radius: 3px;
-    border: 1px solid var(--edge-inst);
+    border: var(--edge-w) solid var(--edge-inst);
     background: var(--instrument);
     color: var(--ink);
     font-family: var(--font-data);
@@ -415,7 +415,7 @@
     max-height: 12rem;
     overflow-y: auto;
     background: var(--instrument);
-    border: 1px solid var(--edge-inst);
+    border: var(--edge-w) solid var(--edge-inst);
     border-radius: var(--radius);
     box-shadow: var(--shadow-lift);
   }
