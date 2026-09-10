@@ -472,6 +472,11 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	switch e.choosing {
 	case chooseCast:
 		e.castAnswer(d, chosen)
+		// A multi-ability mana source changed the flow to chooseMana and
+		// installed its own decision; only a singleton may continue directly.
+		if e.choosing == chooseMana {
+			return
+		}
 		e.continueCast()
 		// Task 18: a Miracle cast originated inside the trigger drain (castMiracle
 		// set drainAwaitsTarget when it paused on this X/Delve/Sac ask). Once the
@@ -520,6 +525,13 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// own resume. There is no trigger drain to resume (a division answer
 		// is never handed out from inside one).
 		e.handleDamageDivision(chosen)
+	case chooseMana:
+		// Several individual mana abilities share one tap cost. A payment
+		// window resumes its cast after the selected ability resolves; an
+		// ordinary activation falls through to Advance's priority round.
+		if e.answerManaActivation(chosen) {
+			e.continueCast()
+		}
 	// Tasks 12, 18 add their cases here; Task D1 adds chooseCleanup.
 	default:
 		e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "choose answered with no flow waiting"})
