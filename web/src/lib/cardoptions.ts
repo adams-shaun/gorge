@@ -56,7 +56,10 @@ export interface CardOptions {
   byPlayer: Map<number, Option[]>;
   picked: number[];
   tone: OptionTone;
-  post: (index: number) => void;
+  /** Object whose next local choice should open immediately after a direct
+   *  card action posted the preceding decision. */
+  autoOpenObj?: number;
+  post: (index: number, expectFollowUp?: boolean) => void;
 }
 
 /**
@@ -70,7 +73,8 @@ export interface TileOptions {
   list: Option[];
   pickedOrder: number[];
   tone: OptionTone;
-  post: (index: number) => void;
+  autoOpen?: boolean;
+  post: (index: number, expectFollowUp?: boolean) => void;
 }
 
 /**
@@ -113,10 +117,11 @@ export function postTileOption(tile: TileOptions, option: Option): void {
 }
 
 /** Post a direct action by its WIRE index (R-E4-1), never list position. */
-export function postSingleAction(tile: TileOptions): void {
+export function postSingleAction(tile: TileOptions, expectFollowUp = false): void {
   const option = tile.list.length === 1 ? tile.list[0] : singleTapOptionOf(tile);
   if (option === undefined || option === null) return;
-  postTileOption(tile, option);
+  if (expectFollowUp) tile.post(option.index, true);
+  else tile.post(option.index);
 }
 
 /**
@@ -242,7 +247,13 @@ export function optionSetForMany(
 export function tileOptions(bundle: CardOptions, obj: number): TileOptions | null {
   const set = optionSetFor(bundle.byObj, obj, bundle.picked);
   if (set === null) return null;
-  return { list: set.list, pickedOrder: set.pickedOrder, tone: bundle.tone, post: bundle.post };
+  return {
+    list: set.list,
+    pickedOrder: set.pickedOrder,
+    tone: bundle.tone,
+    autoOpen: bundle.autoOpenObj === obj,
+    post: bundle.post,
+  };
 }
 
 /** tileOptionsMany hands a collapsed-stack tile the pile's combined option
@@ -250,7 +261,13 @@ export function tileOptions(bundle: CardOptions, obj: number): TileOptions | nul
 export function tileOptionsMany(bundle: CardOptions, objs: readonly number[]): TileOptions | null {
   const set = optionSetForMany(bundle.byObj, objs, bundle.picked);
   if (set === null) return null;
-  return { list: set.list, pickedOrder: set.pickedOrder, tone: bundle.tone, post: bundle.post };
+  return {
+    list: set.list,
+    pickedOrder: set.pickedOrder,
+    tone: bundle.tone,
+    autoOpen: bundle.autoOpenObj !== undefined && objs.includes(bundle.autoOpenObj),
+    post: bundle.post,
+  };
 }
 
 /** playerOptions hands a seat's identity box its rendered option set — the
@@ -260,5 +277,5 @@ export function tileOptionsMany(bundle: CardOptions, objs: readonly number[]): T
 export function playerOptions(bundle: CardOptions, seat: number): TileOptions | null {
   const set = optionSetFor(bundle.byPlayer, seat, bundle.picked);
   if (set === null) return null;
-  return { list: set.list, pickedOrder: set.pickedOrder, tone: bundle.tone, post: bundle.post };
+  return { list: set.list, pickedOrder: set.pickedOrder, tone: bundle.tone, autoOpen: false, post: bundle.post };
 }

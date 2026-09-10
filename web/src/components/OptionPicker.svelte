@@ -33,13 +33,26 @@
   const tapAction = $derived(collapseTapActions ? singleTapOptionOf(tileOptions) : null);
   const radial = $derived(tileOptions.list.length <= 6);
 
+  function captureAnchor(): void {
+    if (!badgeEl) return;
+    const r = badgeEl.getBoundingClientRect();
+    anchor = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+  }
+
   function toggle(): void {
     open = !open;
-    if (open && badgeEl) {
-      const r = badgeEl.getBoundingClientRect();
-      anchor = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
-    }
+    if (open) captureAnchor();
   }
+
+  // A direct card action can produce a second, object-bound decision (for
+  // example Underground Sea's source-level activation followed by Add U / Add
+  // B). The first picker is destroyed while that intent is in flight, so the
+  // parent marks the one immediate continuation that should arrive open.
+  $effect(() => {
+    if (!tileOptions.autoOpen) return;
+    open = true;
+    captureAnchor();
+  });
 
   function close(): void {
     open = false;
@@ -100,7 +113,7 @@
       title={action.label}
       onclick={(event) => {
         event.stopPropagation();
-        postSingleAction(tileOptions);
+        postSingleAction(tileOptions, true);
       }}
     >
       <span aria-hidden="true">{icon === 'tap' ? '↻' : icon === 'cast' ? '✦' : '›'}</span>
