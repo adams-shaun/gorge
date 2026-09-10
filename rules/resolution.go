@@ -263,6 +263,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// the trigger captured, and the SVar table comes from that
 		// permanent's face.
 		ctx.Source = o.Source
+		if !rp.replacement {
+			ctx.TriggerContext = e.triggerContexts[rp.obj]
+		}
 		ctx.Remembered = o.Remembered
 		// CR 603.3c: keep the placement-announced mode choice across the
 		// suspension, so the resumed resolution of a modal trigger runs
