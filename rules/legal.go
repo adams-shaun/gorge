@@ -186,7 +186,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		// condition: the kicked/surged/flashback/miracle offers below set
 		// Mode, and beginCast skips the fold for those.
 		base := e.offerCostFor(p, id, e.rawBaseCost(p, id), false)
-		if e.castable(p, id, withSpellAbilityExtras(f, base)) {
+		if e.castable(p, id, withSpellAbilityExtras(f, base), false) {
 			add("cast", "Cast "+f.Name, id)
 		}
 		for i, alt := range e.alternativeCosts(p, id) {
@@ -197,7 +197,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			// matching permanents exist, and beginCast then asked a sacrifice
 			// decision with zero options that no answer could escape. castable
 			// is the same gate every other "cast" option uses.
-			if e.castable(p, id, e.offerCostFor(p, id, alt, false)) {
+			if e.castable(p, id, e.offerCostFor(p, id, alt, false), false) {
 				// AltCostIndex is i+1, not i: the zero value must mean "the
 				// card's own cost" so every other Option literal in the tree
 				// (play_land, activate, pass, and the base "cast" option
@@ -207,11 +207,11 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 					Label: altCostLabel(f.Name, i), Obj: id, AltCostIndex: i + 1})
 			}
 		}
-		if kc, ok := kickerCost(f); ok && e.castable(p, id, base.Plus(kc)) {
+		if kc, ok := kickerCost(f); ok && e.castable(p, id, base.Plus(kc), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (kicked)", Obj: id, Mode: "kicked"})
 		}
-		if sc, ok := surgeCost(f); ok && e.spellsCastThisTurn(p) > 0 && e.castable(p, id, e.offerCostFor(p, id, sc, false)) {
+		if sc, ok := surgeCost(f); ok && e.spellsCastThisTurn(p) > 0 && e.castable(p, id, e.offerCostFor(p, id, sc, false), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (surged)", Obj: id, Mode: "surged"})
 		}
@@ -251,7 +251,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		cost := e.offerCostFor(p, id, e.rawBaseCost(p, id), false)
-		if e.castable(p, id, cost) {
+		if e.castable(p, id, cost, false) {
 			add("cast", "Cast "+f.Name, id)
 		}
 	}
@@ -278,7 +278,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		if fc := e.flashbackCost(id); e.castable(p, id, e.offerCostFor(p, id, fc, false)) {
+		if fc := e.flashbackCost(id); e.castable(p, id, e.offerCostFor(p, id, fc, false), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (flashback)", Obj: id, Mode: "flashback"})
 		}
@@ -307,7 +307,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 	// restriction scopes down to it, a {T} cost needs an untapped source that
 	// is neither tapped nor (for a creature, CR 302.6) summoning-sick without
 	// Haste, and -- the totality gate -- the whole cost must be castable
-	// (mana payable, every Sac/SubCounter part satisfiable) before the option
+	// (mana payable, every Sac/Discard/SubCounter part satisfiable) before the option
 	// is ever offered. Equip (Task 14's attachments) is carried by this same
 	// loop -- its K:Equip expansion (cards/keywords.go) is an AB$ Attach with
 	// SorcerySpeed$ True, so the gates above cover it with no carve-out, and
@@ -342,7 +342,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				if cost.Tap && (o.Tapped || (z == state.ZBattlefield && o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
 					continue
 				}
-				if !e.castable(p, id, e.offerCostFor(p, id, cost, true)) {
+				if !e.castable(p, id, e.offerCostFor(p, id, cost, true), true) {
 					continue
 				}
 				if !e.abilityTargetsAvailable(p, id, ab) {
