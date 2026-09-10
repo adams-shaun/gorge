@@ -12,6 +12,7 @@ import {
   playerOptions,
   postSingleAction,
   singleActionIcon,
+  singleTapOptionOf,
   type CardOptions,
 } from './cardoptions';
 
@@ -176,6 +177,33 @@ describe('single-action card affordance', () => {
     postSingleAction(tile);
     expect(post).toHaveBeenCalledWith(17);
     expect(post).not.toHaveBeenCalledWith(0);
+  });
+
+  it('peels one homogeneous mana activation from a collapsed pile by wire index', () => {
+    const post = vi.fn();
+    const tile: import('./cardoptions').TileOptions = {
+      // Stack member order is deliberately not wire-index order.
+      list: [opt(17, 9, 'activate', 'Tap Island for mana'), opt(4, 10, 'activate', 'Tap Island for mana')],
+      pickedOrder: [], tone: 'offered', post,
+    };
+    expect(singleTapOptionOf(tile)?.index).toBe(4);
+    postSingleAction(tile);
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(post).toHaveBeenCalledWith(4);
+  });
+
+  it.each([
+    { list: [] as Option[], case: 'an empty pile' },
+    { list: [opt(3, 9, 'activate'), opt(8, 10, 'cast')], case: 'mixed action kinds' },
+    { list: [opt(3, 9, 'activate', 'Tap Island for mana'), opt(8, 10, 'activate', 'Tap Forest for mana')], case: 'different wire semantics' },
+  ])('keeps the dropdown for $case', ({ list }) => {
+    const post = vi.fn();
+    const tile: import('./cardoptions').TileOptions = {
+      list, pickedOrder: [], tone: 'offered', post,
+    };
+    expect(singleTapOptionOf(tile)).toBeNull();
+    postSingleAction(tile);
+    expect(post).not.toHaveBeenCalled();
   });
 
   it('does not turn a multi-option menu into an invented direct action (R-E4-2)', () => {

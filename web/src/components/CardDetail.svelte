@@ -269,7 +269,7 @@
     padding: var(--sp-3);
     box-sizing: border-box;
     background: var(--instrument-raised);
-    border: 1px solid var(--edge-inst);
+    border: var(--edge-w) solid var(--edge-inst);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-lift);
     overflow-y: auto;

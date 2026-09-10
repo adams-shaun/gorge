@@ -207,24 +207,26 @@
     height: 100%;
     min-width: 4rem;
     padding: 0 var(--sp-2);
-    border: 1px solid var(--edge-inst);
+    border: var(--edge-w) solid var(--edge-inst);
     border-top: 0;
     border-right: 0;
     border-radius: 0 0 var(--radius) var(--radius);
     background: var(--instrument);
     color: var(--ink-inst);
     font-size: var(--t-11);
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     white-space: nowrap;
   }
   .hot-tab:first-child .tab { border-left-color: color-mix(in srgb, var(--seat) 34%, var(--edge-inst)); }
-  .hot-tab:last-child .tab { border-right: 1px solid var(--edge-inst); }
+  .hot-tab:last-child .tab { border-right: var(--edge-w) solid var(--edge-inst); }
   .tab.on,
+  .tab:active,
   .tab[aria-expanded='true'] {
     color: var(--ink);
-    background: var(--instrument-raised);
+    background: color-mix(in srgb, var(--offered) 22%, var(--instrument-raised));
     border-bottom-color: var(--offered);
+    box-shadow: 0 0 0 1px var(--offered), 0 0 12px var(--offered);
   }
   .tab[aria-disabled='true'] {
     color: var(--ink-faint);
@@ -244,7 +246,7 @@
     visibility: hidden;
     pointer-events: none;
     background: var(--instrument);
-    border: 1px solid var(--edge-inst);
+    border: var(--edge-w) solid var(--edge-inst);
     border-radius: var(--radius);
     color: var(--ink-inst);
   }

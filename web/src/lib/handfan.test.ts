@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { handFanLayout } from './handfan';
+import { handFanLayout, PLAY_CARD_WIDTH } from './handfan';
 
 // The room a fan may occupy on a typical 1440px board minus the rail.
 const BOARD_W = 1180;
-const SPEC = { cardWidth: 128, gap: 10, maxWidth: BOARD_W };
+const SPEC = { cardWidth: PLAY_CARD_WIDTH, gap: 10, maxWidth: BOARD_W };
 
 describe('handFanLayout', () => {
   it('an empty hand has no fan', () => {
@@ -34,7 +34,7 @@ describe('handFanLayout', () => {
   });
 
   it('overlap engages once the hand is too wide for the room, and tightens as it grows', () => {
-    // a 12-card hand: natural = 12*128 + 11*10 = 1646 > 1180, so it must overlap
+    // a 12-card hand still exceeds the board at the shared gameplay-card scale.
     const w12 = handFanLayout(12, SPEC);
     expect(w12.overlap).toBeGreaterThan(0);
     expect(w12.rowWidth).toBeLessThanOrEqual(BOARD_W);
