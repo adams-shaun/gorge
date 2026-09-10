@@ -25,6 +25,7 @@ import (
 type File struct {
 	Name      string  `json:"name"`
 	Format    string  `json:"format"`
+	Archetype string  `json:"archetype"`
 	Commander string  `json:"commander"`
 	Cards     []Entry `json:"cards"`
 }
