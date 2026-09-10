@@ -120,6 +120,19 @@ func evalCountBody(h Host, c *Ctx, body string) int32 {
 		}
 		return no
 	}
+	// UrzaLands.<assembled>.<not assembled> is <assembled> when the controller
+	// controls at least one of each Urza land subtype on the battlefield
+	// (Urza's Mine, Urza's Tower, Urza's Power-Plant), else <not assembled>.
+	// The subtypes are matched on the Types line, where Power-Plant is
+	// hyphenated -- the card Name's "Urza's Power Plant" is a different
+	// string and matching it would be exactly the defect this head fixes.
+	if rest, ok := strings.CutPrefix(head, "UrzaLands."); ok {
+		assembled, notAssembled := splitDot(rest)
+		if controlsAllUrzaLands(g, c.Controller) {
+			return assembled
+		}
+		return notAssembled
+	}
 
 	// Valid / ValidZone forms count objects in a zone matching a filter.
 	if zone, ok := countZone(head); ok {
@@ -163,6 +176,67 @@ func countZone(head string) (state.Zone, bool) {
 		return state.ZStack, true
 	}
 	return 0, false
+}
+
+// controlsAllUrzaLands reports whether the player controls at least one
+// permanent of each Urza land subtype on the battlefield -- the "is the Urza
+// lands assembly complete?" predicate Count$UrzaLands encodes. Subtypes are
+// matched on the Types line, where Power-Plant is hyphenated: the card Name
+// "Urza's Power Plant" is a different string and matching it would be the
+// exact defect the UrzaLands head exists to avoid. Iterating the dense
+// object arena in order (never a map) keeps the count deterministic; it scans
+// every battlefield permanent regardless of who owns it, so the controller
+// test is purely o.Controller.
+func controlsAllUrzaLands(g *state.Game, controller state.PlayerID) bool {
+	var mine, tower, plant bool
+	for i := range g.Objs {
+		o := &g.Objs[i]
+		if o.Zone != state.ZBattlefield || o.Controller != controller || o.Face() == nil {
+			continue
+		}
+		switch {
+		case hasSubtype(o, "Urza's Mine"):
+			mine = true
+		case hasSubtype(o, "Urza's Tower"):
+			tower = true
+		case hasSubtype(o, "Urza's Power-Plant"):
+			plant = true
+		}
+		if mine && tower && plant {
+			return true
+		}
+	}
+	return false
+}
+
+// hasSubtype reports whether an object's type line contains the given
+// (possibly multi-word) subtype as consecutive tokens. Forge writes a
+// subtype such as "Urza's Mine" inside the space-separated Types line, so
+// the engine's fields-split representation breaks it into ["Land","Urza's",
+// "Mine"]; a single-token EqualFold is therefore wrong for these and must be
+// a consecutive-token match. An empty target never matches.
+func hasSubtype(o *state.Object, sub string) bool {
+	f := o.Face()
+	if f == nil {
+		return false
+	}
+	words := strings.Fields(sub)
+	if len(words) == 0 {
+		return false
+	}
+	for i := 0; i+len(words) <= len(f.Types); i++ {
+		match := true
+		for j, w := range words {
+			if !strings.EqualFold(f.Types[i+j], w) {
+				match = false
+				break
+			}
+		}
+		if match {
+			return true
+		}
+	}
+	return false
 }
 
 // applyCountOp applies the /Op suffix of a Count$ expression. The arithmetic
