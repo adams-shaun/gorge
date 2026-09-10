@@ -240,20 +240,20 @@
       </section>
       <aside class="rail">
         <Rail view={m.view} seats={m.seats} decision={seated ? null : m.decision} emphasizeTop={seated} events={m.dvr.events} showLog={showLog} onToggleLog={toggleLog} />
+        {#if panel && concede}
+          <div class="concede-control">
+            {#if panel.confirming}
+              <button class="confirm" type="button" data-confirm-concede onclick={() => panel.confirmConcede()} disabled={panel.busy}>
+                Concede — confirm
+              </button>
+            {:else}
+              <button type="button" data-concede-control onclick={() => panel.click(concede.index)} disabled={panel.busy}>
+                Concede
+              </button>
+            {/if}
+          </div>
+        {/if}
       </aside>
-      {#if panel && concede}
-        <div class="concede-control">
-          {#if panel.confirming}
-            <button class="confirm" type="button" data-confirm-concede onclick={() => panel.confirmConcede()} disabled={panel.busy}>
-              Concede — confirm
-            </button>
-          {:else}
-            <button type="button" data-concede-control onclick={() => panel.click(concede.index)} disabled={panel.busy}>
-              Concede
-            </button>
-          {/if}
-        </div>
-      {/if}
       <footer class="transcript" class:hidden={!showLog}>
         {#if !seated}
           <DvrBar dvr={m.dvr} onAction={(a) => m.dispatch(a)} {finished} />
@@ -324,14 +324,16 @@
     overflow: visible;
     color: var(--ink-inst);
   }
-  /* Reserve the quiet top-right corner for concede; the rail's ordinary log
-     switch stays on the same line without sitting under it. */
-  .rail :global(.logbar) {
-    padding-right: 5.5rem;
-  }
+  /* Concede sits below the logbar row, anchored to the rail itself rather
+     than the viewport corner — a fixed-to-viewport control only avoided the
+     log toggle by coincidence (it worked only because the rail happens to
+     touch the viewport's own top-right corner), and the wider "Concede —
+     confirm" label already overran that guess and sat on top of the toggle,
+     eating its clicks. Anchoring inside .rail (position: relative) makes the
+     two controls' geometry a fact instead of a hope. */
   .concede-control {
-    position: fixed;
-    top: var(--sp-2);
+    position: absolute;
+    top: 3rem;
     right: var(--sp-2);
     z-index: 9;
   }
