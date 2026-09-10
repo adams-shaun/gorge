@@ -46,6 +46,11 @@ export type OptionTone = 'initiative' | 'offered' | 'idle';
  */
 export interface CardOptions {
   byObj: Map<number, Option[]>;
+  /** byPlayer indexes the same decision's player-target options (see
+   *  optionsByPlayer) by the targeted seat, so a seat with nothing else on
+   *  the board to target (an opponent, a spell that can only hit a player)
+   *  still gets marked. Built alongside byObj from the same decision. */
+  byPlayer: Map<number, Option[]>;
   picked: number[];
   tone: OptionTone;
   post: (index: number) => void;
@@ -100,6 +105,32 @@ export function optionsByObj(decision: Decision | null): Map<number, Option[]> {
     if (o.obj === undefined) continue;
     const list = m.get(o.obj);
     if (list === undefined) m.set(o.obj, [o]);
+    else list.push(o);
+  }
+  return m;
+}
+
+/**
+ * optionsByPlayer indexes a decision's options by Option.player, but ONLY
+ * for options that target a PLAYER rather than an object — kind `"player"`,
+ * the server's own label for a target candidate with no `obj` (rules/stack.go
+ * legalTargetCandidates: a player candidate carries `obj: 0`, an object
+ * candidate carries `kind: "permanent"`). This is deliberately narrower than
+ * "every option missing obj": pass/concede/a sourceless mode also carry no
+ * obj but their `player` field names the ACTING seat, not something offered
+ * to be targeted — indexing those by player would wrongly mark whoever's
+ * turn it is as a legal target. A spell whose only legal target is an
+ * opponent (no creatures on board to target) previously marked NOTHING on
+ * the board at all, because optionsByObj alone has no way to represent a
+ * targetable player — this is the index that closes that gap.
+ */
+export function optionsByPlayer(decision: Decision | null): Map<number, Option[]> {
+  const m = new Map<number, Option[]>();
+  if (decision === null) return m;
+  for (const o of decision.options) {
+    if (o.kind !== 'player') continue;
+    const list = m.get(o.player);
+    if (list === undefined) m.set(o.player, [o]);
     else list.push(o);
   }
   return m;
@@ -189,6 +220,16 @@ export function tileOptions(bundle: CardOptions, obj: number): TileOptions | nul
  *  set — or null when no member is offered anything. */
 export function tileOptionsMany(bundle: CardOptions, objs: readonly number[]): TileOptions | null {
   const set = optionSetForMany(bundle.byObj, objs, bundle.picked);
+  if (set === null) return null;
+  return { list: set.list, pickedOrder: set.pickedOrder, tone: bundle.tone, post: bundle.post };
+}
+
+/** playerOptions hands a seat's identity box its rendered option set — the
+ *  same shape a card tile gets, so IdentityBar can reuse CardTile's own
+ *  single-action/menu affordance — or null when the decision offers this
+ *  seat nothing to be targeted by. */
+export function playerOptions(bundle: CardOptions, seat: number): TileOptions | null {
+  const set = optionSetFor(bundle.byPlayer, seat, bundle.picked);
   if (set === null) return null;
   return { list: set.list, pickedOrder: set.pickedOrder, tone: bundle.tone, post: bundle.post };
 }

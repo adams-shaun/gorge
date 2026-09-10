@@ -17,7 +17,7 @@
     mulliganPhase,
     toneOf,
   } from '../lib/seatpanel.svelte';
-  import { optionsByObj, type CardOptions } from '../lib/cardoptions';
+  import { optionsByObj, optionsByPlayer, type CardOptions } from '../lib/cardoptions';
   import { loadLogShown, saveLogShown, safeStorage, type LogScope } from '../lib/logshown';
   import { everyVisibleCard, quadrantFor } from '../lib/board';
   import { seatColour } from '../lib/colours';
@@ -118,6 +118,7 @@
     if (d === null) return null;
     return {
       byObj: optionsByObj(d),
+      byPlayer: optionsByPlayer(d),
       picked: [...panel.picked],
       tone: toneOf(d),
       post: (index: number) => panel.click(index),
@@ -209,6 +210,7 @@
             priority={m.view.priority === p.seat}
             corner={quadrantFor(p.seat, m.view.players.length, m.view.viewer)}
             players={m.view.players}
+            options={boardOptions}
           />
         {/each}
         <RecentStrip view={m.view} events={m.dvr.events} />

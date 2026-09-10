@@ -2,12 +2,14 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Decision, Option } from '../protocol';
 import {
   optionsByObj,
+  optionsByPlayer,
   cardOptions,
   hasCardOptions,
   optionSetFor,
   optionSetForMany,
   tileOptions,
   tileOptionsMany,
+  playerOptions,
   postSingleAction,
   singleActionIcon,
   type CardOptions,
@@ -63,6 +65,36 @@ describe('optionsByObj — index a decision by the object each option concerns',
     };
     const list = cardOptions(optionsByObj(d), 5) ?? [];
     expect(list.map((o) => o.index)).toEqual([3, 8]);
+  });
+});
+
+describe('optionsByPlayer — index a decision by the seat a player-target option names', () => {
+  const playerOpt = (index: number, player: number): Option => ({ index, kind: 'player', label: `target player ${player}`, player });
+
+  it('groups player-kind options by their player field', () => {
+    const d: Decision = {
+      seq: 1, player: 0, kind: 'target', prompt: 'Choose a target', min: 1, max: 1,
+      options: [playerOpt(0, 1), opt(1, 9, 'permanent', 'target Bear')],
+    };
+    const m = optionsByPlayer(d);
+    expect(m.get(1)?.map((o) => o.index)).toEqual([0]);
+    expect(m.size).toBe(1); // the permanent-target option is not indexed here at all
+  });
+
+  it('does NOT index pass/concede/cast options by their acting player — only kind "player" targets', () => {
+    const d: Decision = {
+      seq: 1, player: 2, kind: 'priority', prompt: 'You have priority',
+      min: 1, max: 1,
+      options: [opt(0, undefined, 'pass', 'Pass'), opt(1, 5, 'cast', 'Cast Fireball')],
+    };
+    // Neither option is kind "player", so optionsByPlayer must find nothing —
+    // otherwise seat 2 (the acting seat on both) would be wrongly marked as
+    // a legal target of its own priority window.
+    expect(optionsByPlayer(d).size).toBe(0);
+  });
+
+  it('a null decision indexes nothing', () => {
+    expect(optionsByPlayer(null).size).toBe(0);
   });
 });
 
@@ -158,7 +190,7 @@ describe('single-action card affordance', () => {
 describe('tileOptions / tileOptionsMany — the bundle reductions the components render', () => {
   const post = vi.fn();
   const bundle = (d: Decision, tone: CardOptions['tone'] = 'offered'): CardOptions => ({
-    byObj: optionsByObj(d), picked: [], tone, post,
+    byObj: optionsByObj(d), byPlayer: optionsByPlayer(d), picked: [], tone, post,
   });
 
   it('tileOptions returns null for an object the decision offers nothing — the no-badge state', () => {
@@ -202,5 +234,16 @@ describe('tileOptions / tileOptionsMany — the bundle reductions the components
     expect(d.options[0].kind).toBe('ability');
     expect(d.options[0].label).toBe('Activate #9');
     expect(d.options[1].label).toBe('Cast #9');
+  });
+
+  it('playerOptions marks a seat that is the ONLY legal target (no permanent to target) — the gap that had it marked nowhere at all', () => {
+    const d: Decision = {
+      seq: 1, player: 0, kind: 'target', prompt: 'Choose a target', min: 1, max: 1,
+      options: [{ index: 4, kind: 'player', label: 'Player Bob', player: 2 }],
+    };
+    const b = bundle(d, 'initiative');
+    expect(playerOptions(b, 2)?.list.map((o) => o.index)).toEqual([4]);
+    expect(playerOptions(b, 2)?.tone).toBe('initiative');
+    expect(playerOptions(b, 0)).toBeNull(); // the acting player is not itself marked
   });
 });

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render } from 'svelte/server';
 import type { CardView, PlayerView } from '../protocol';
 import type { CardOptions } from '../lib/cardoptions';
-import { optionsByObj } from '../lib/cardoptions';
+import { optionsByObj, optionsByPlayer } from '../lib/cardoptions';
 import HandFan from './HandFan.svelte';
 
 // SSR via svelte/server, the repo's component-test pattern: no DOM, no
@@ -97,6 +97,7 @@ function bundle(over: Partial<CardOptions> = {}): CardOptions {
   };
   return {
     byObj: optionsByObj(decisions as never),
+    byPlayer: optionsByPlayer(decisions as never),
     picked: [],
     tone: 'offered',
     post: vi.fn(),
