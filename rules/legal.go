@@ -290,23 +290,12 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if f == nil || o.Tapped {
 			continue
 		}
-		// The "activate" (tap for mana) option is offered only while at least
-		// one mana ability on this permanent is itself unrestrictable: a
-		// CantBeActivated whose ValidSA$ expressly spares mana abilities
-		// (Activated.!ManaAbility) must not shut the land's tap-for-mana off
-		// (Task 10). The option is still the permanent's whole mana ability
-		// set, tapped together, exactly as before.
-		if len(f.ManaAbilities()) > 0 {
-			restricted := true
-			for _, ma := range f.ManaAbilities() {
-				if !e.abilityRestricted(p, id, ma) {
-					restricted = false
-					break
-				}
-			}
-			if !restricted {
-				add("activate", "Tap "+f.Name+" for mana", id)
-			}
+		// A tap-for-mana option exists while at least one individual mana
+		// ability is unrestricted. activateMana uses this same per-member set:
+		// a singleton resolves directly; distinct abilities sharing this tap
+		// cost prompt the controller to select exactly one.
+		if len(e.availableManaAbilities(p, id)) > 0 {
+			add("activate", "Tap "+f.Name+" for mana", id)
 		}
 	}
 
@@ -444,22 +433,7 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 
 	case "activate":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
-		o := e.G.Obj(opt.Obj)
-		e.emit(events.Event{Kind: events.Tap, Obj: opt.Obj})
-		// Fix r1 (reviewer Important 2): gate and activation must agree on
-		// WHICH mana ability is activated. legalActions offers the tap-for-
-		// mana option iff at least one of the permanent's mana abilities is
-		// unrestricted; resolving every one here would also resolve a
-		// restricted member (e.g. CantBeActivated scoping down to a single
-		// mana ability), activating an ability whose restriction was never
-		// checked. Skip each mana ability abilityRestricted flags so the
-		// exact set resolved is the exact set the offer gate found legal.
-		for _, ma := range o.Face().ManaAbilities() {
-			if e.abilityRestricted(in.Player, opt.Obj, ma) {
-				continue
-			}
-			e.resolveAbility(opt.Obj, in.Player, nil, ma, o.Face().SVars)
-		}
+		e.activateMana(in.Player, opt.Obj, false)
 
 	case "ability":
 		// Task 10: an activated ability (non-mana AB$) was chosen. Reset the

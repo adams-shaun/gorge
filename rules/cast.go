@@ -1102,21 +1102,11 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		pc.payLife += 2
 		pc.payIdx++
 	case "activate":
-		// CR 601.2g: the mana window was answered by tapping a mana-ability
-		// source. Tap it and resolve its (unrestricted) mana abilities, the
-		// same body the priority "activate" handler runs, then let
-		// continueCast re-enter payCast to re-price the window.
+		// CR 601.2g: a source's mana abilities are distinct activations that
+		// share its tap cost. activateMana resolves a singleton immediately or
+		// asks the caster to choose one before re-entering this payment window.
 		if len(chosen) > 0 {
-			src := chosen[0].Obj
-			e.emit(events.Event{Kind: events.Tap, Obj: src})
-			if o := e.G.Obj(src); o != nil && o.Face() != nil {
-				for _, ma := range o.Face().ManaAbilities() {
-					if e.abilityRestricted(pc.player, src, ma) {
-						continue
-					}
-					e.resolveAbility(src, pc.player, nil, ma, o.Face().SVars)
-				}
-			}
+			e.activateMana(pc.player, chosen[0].Obj, true)
 		}
 	case "done":
 		// CR 601.2g: the player declines further mana abilities; pay the cost.
@@ -1413,20 +1403,7 @@ func (e *Engine) manaWindowAsk() bool {
 // untappedManaSource reports whether id is an untapped permanent under the
 // player p's control with at least one unrestricted mana ability.
 func (e *Engine) untappedManaSource(p state.PlayerID, id state.ObjID) bool {
-	o := e.G.Obj(id)
-	if o == nil || o.Face() == nil || o.Tapped {
-		return false
-	}
-	mas := o.Face().ManaAbilities()
-	if len(mas) == 0 {
-		return false
-	}
-	for _, ma := range mas {
-		if !e.abilityRestricted(p, id, ma) {
-			return true
-		}
-	}
-	return false
+	return len(e.availableManaAbilities(p, id)) > 0
 }
 
 // hasUntappedManaSource reports whether p controls ANY untapped permanent
