@@ -1,0 +1,6 @@
+# A sample sideboarded list
+4 Lightning Bolt
+// the goblin package
+4 Goblin Guide
+
+   4 Mountain
