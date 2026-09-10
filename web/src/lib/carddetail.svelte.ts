@@ -147,9 +147,49 @@ export class HoverCard {
   }
 }
 
+// The single-column ledger keeps its established outer width. A resolved
+// plate adds its natural card width beside the ledger, rather than shrinking
+// either register to make a narrower imitation of both.
 export const PANEL_WIDTH = 264;
-const PANEL_MARGIN = 8;
-const MIN_PANEL_HEIGHT = 160;
+export const PLATE_WIDTH = 220;
+export const PANEL_COLUMN_GAP = 8;
+export const PANEL_WIDTH_WITH_PLATE = PANEL_WIDTH + PLATE_WIDTH + PANEL_COLUMN_GAP;
+export const MIN_SIDE_BY_SIDE_VIEWPORT = 800;
+export const PANEL_MARGIN = 8;
+export const MIN_PANEL_HEIGHT = 160;
+
+export interface DetailColumnRect {
+  left: number;
+  right: number;
+}
+
+export interface DetailLayout {
+  width: number;
+  sideBySide: boolean;
+  /** Relative panel rectangles; absent plate means the ledger owns the panel. */
+  plate?: DetailColumnRect;
+  ledger: DetailColumnRect;
+}
+
+/**
+ * The card and ledger share a row only where a full-width panel is useful:
+ * 800px and up. Below that the panel returns to its established stacked
+ * surface, avoiding both an off-screen panel and a cropped plate.
+ */
+export function detailLayout(hasPlate: boolean, viewportWidth: number): DetailLayout {
+  const sideBySide = hasPlate && viewportWidth >= MIN_SIDE_BY_SIDE_VIEWPORT;
+  const padding = 12; // --sp-3, kept here so the geometry contract is testable.
+  if (!sideBySide) {
+    return { width: PANEL_WIDTH, sideBySide, ledger: { left: padding, right: PANEL_WIDTH - padding } };
+  }
+  const plate = { left: padding, right: padding + PLATE_WIDTH };
+  return {
+    width: PANEL_WIDTH_WITH_PLATE,
+    sideBySide,
+    plate,
+    ledger: { left: plate.right + PANEL_COLUMN_GAP, right: PANEL_WIDTH_WITH_PLATE - padding },
+  };
+}
 
 export interface PanelPlacement {
   x: number;
@@ -179,13 +219,16 @@ export interface PanelPlacement {
  * Pure (vw/vh are passed in), which is what lets the tests pin the viewport
  * guarantees.
  */
-export function placePanel(anchor: AnchorRect, vw: number, vh: number): PanelPlacement {
+export function placePanel(anchor: AnchorRect, vw: number, vh: number, panelWidth = PANEL_WIDTH): PanelPlacement {
   const roomBelow = vh - PANEL_MARGIN - anchor.top;
   const roomAbove = anchor.top - PANEL_MARGIN;
 
   let x = anchor.right + PANEL_MARGIN;
-  if (x + PANEL_WIDTH > vw - PANEL_MARGIN) x = anchor.left - PANEL_MARGIN - PANEL_WIDTH;
-  x = Math.max(PANEL_MARGIN, x);
+  if (x + panelWidth > vw - PANEL_MARGIN) x = anchor.left - PANEL_MARGIN - panelWidth;
+  // A wide, two-column surface may fit in the viewport but not wholly on
+  // either side of a centrally placed anchor. Clamp both edges in that case;
+  // it may overlap the anchor, but never leaves the viewport.
+  x = Math.max(PANEL_MARGIN, Math.min(x, vw - PANEL_MARGIN - panelWidth));
 
   if (roomBelow >= roomAbove) {
     // Open downward (top-aligned with the card), pulling up when the space
