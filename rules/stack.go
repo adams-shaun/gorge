@@ -612,6 +612,11 @@ func (e *Engine) resolveTop() {
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
 			Targets: targets, Remembered: o.Remembered, TriggerContext: e.triggerContexts[id]}
+		// A cost-paid sacrifice carried its objects' LKI snapshot on the
+		// engine (rules/cast.go commitCast), keyed by this stack object id;
+		// load it so the ability's Sacrificed$<Property> heads resolve against
+		// what it sacrificed. Mirror of triggerContexts: engine-only.
+		ctx.Sacrificed = e.sacrificedLKI[id]
 		effects.SetSVars(ctx, svars)
 		// CR 603.3c: the mode choice was announced at placement (pushTrigger
 		// asked KModes and handleModes recorded the answer into ChosenModes).
@@ -694,6 +699,10 @@ func (e *Engine) resolveTop() {
 	if sa != nil {
 		e.damaging = id
 		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets}
+		// Same as the ability branch: carry the sacrifice LKI (engine-keyed)
+		// onto resolution so Sacrificed$<Property> heads resolve against what
+		// this spell sacrificed.
+		ctx.Sacrificed = e.sacrificedLKI[id]
 		effects.SetSVars(ctx, f.SVars)
 		// CR 601.2b: a modal spell's choice was recorded on its proposal before
 		// targets and payment. Pre-seeding Modes makes effCharm execute exactly

@@ -16,6 +16,23 @@ type Target struct {
 	IsPlayer bool
 }
 
+// SacrificedInfo is the last-known-information snapshot of an object at the
+// instant it was sacrificed, captured before the sacrifice's zone change
+// (CR 608.2g "last known information"): the object is in the graveyard by
+// the time a resolving ability reads "the sacrificed creature's power"
+// (Ghoulcaller Gisa), and Move resets its counters while a graveyard object
+// has no characteristics from the layer system at all, so the values must be
+// captured while the permanent is still on the battlefield. It carries only
+// the characteristics the Sacrificed$<Property> SVar heads ask for -- power,
+// toughness and mana value -- rather than a full Object clone, since that is
+// all the corpus uses this mechanism for.
+type SacrificedInfo struct {
+	Obj       ObjID
+	Power     int32
+	Toughness int32
+	ManaValue int32
+}
+
 // CastFlags bits record how an object was cast. Several can be set at once
 // (a spell can be both kicked and cast via flashback), so they are
 // OR-combined into one byte rather than modeled as separate bools.
@@ -182,4 +199,28 @@ func (o *Object) CloneDeep() Object {
 	c.BlockedBy = append([]ObjID(nil), o.BlockedBy...)
 	c.ChosenModes = append([]string(nil), o.ChosenModes...)
 	return c
+}
+
+// SacrificedInfoOf captures the last-known-information snapshot of the object
+// id names at the instant it is about to be sacrificed -- power, toughness and
+// mana value -- so a later Sacrificed$<Property> SVar can answer "the
+// sacrificed creature's power" without reading a now-graveyard object. It
+// must be called BEFORE the sacrifice's zone change: the object is still a
+// battlefield permanent then, so its face and any +1/+1 counters (the
+// layer-7d portion of its P/T, preserved because they have not yet been reset
+// by Move) are live. A missing object or faceless object (an ability or stack
+// wrapper) degrades to the zero snapshot rather than panicking.
+//
+// The power/toughness convention deliberately matches the engine's existing
+// effects-side reads (effects/count.go's Count$CardPower/Count$CardToughness:
+// face value plus P1P1, not the full layer-system Derived) so the new
+// Sacrificed$ heads agree with their nearest existing analogue.
+func SacrificedInfoOf(g *Game, id ObjID) SacrificedInfo {
+	o := g.Obj(id)
+	if o == nil || o.Face() == nil {
+		return SacrificedInfo{Obj: id}
+	}
+	p := int32(o.Face().Power()) + o.Counter("P1P1")
+	t := int32(o.Face().Toughness()) + o.Counter("P1P1")
+	return SacrificedInfo{Obj: id, Power: p, Toughness: t, ManaValue: o.Face().Cmc()}
 }

@@ -532,6 +532,23 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	if spec == "" {
 		spec = "Permanent"
 	}
+	// RememberSacrificed$ True drives the task's effect-driven sacrifice
+	// capture: it makes effSacrifice record the LKI snapshot (power,
+	// toughness, mana value) of each object it sacrifices, so a SubAbility$
+	// chained after it can resolve Sacrificed$CardPower/CardManaCost/Amount
+	// against what THIS ability just sacrificed. Without the flag nothing is
+	// remembered -- and nothing is, because the flag is read nowhere else in
+	// this package (the sacrifice_audit test only counts its occurrence), so
+	// the absence is the conservative same-as-before no-op, not a regression.
+	remember := sa.Params["RememberSacrificed"] != ""
+	// rememberLKICapture captures the sacrificed object's LKI (before the
+	// MoveZone resets its counters) into c.Sacrificed, when the flag asks it
+	// to. Idempotent per call site; called exactly once per sacrificed object.
+	rememberLKICapture := func(id state.ObjID) {
+		if remember {
+			c.Sacrificed = append(c.Sacrificed, state.SacrificedInfoOf(g, id))
+		}
+	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			// Bounds guard: g.Zone indexes g.zones[zoneIndex(z, p)] and
@@ -553,6 +570,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, t.Player)...)
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(t.Player)) {
+					rememberLKICapture(id)
 					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 						From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
 					break
@@ -569,6 +587,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		// "which one may be sacrificed" step does not re-filter a concrete
 		// object (and would misfire on the corpus's SacValid$ Self lines,
 		// where "Self" is not a type the filter grammar knows).
+		rememberLKICapture(o.ID)
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
 	}

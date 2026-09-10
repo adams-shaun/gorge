@@ -1487,6 +1487,17 @@ func (e *Engine) payCast() {
 		for _, part := range pc.cost.SubCounter {
 			e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: part.Spec, Amount: -part.N})
 		}
+		// Capture the sacrifice LKI (Task sac1) BEFORE the MoveZone events
+		// drain the permanents: each chosen object is still on the battlefield
+		// here, so SacrificedInfoOf reads its live face and +1/+1 counters (the
+		// layer-7d portion of its P/T, which Move will reset). The resulting
+		// stack object carries these to resolution, where the ability's
+		// Sacrificed$<Property> SVar heads answer "the sacrificed creature's
+		// power/toughness/mana value" (CR 608.2g) against them.
+		var sacrificedLKI []state.SacrificedInfo
+		for _, id := range pc.sacs {
+			sacrificedLKI = append(sacrificedLKI, state.SacrificedInfoOf(e.G, id))
+		}
 		for _, id := range pc.sacs {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
 		}
@@ -1497,6 +1508,10 @@ func (e *Engine) payCast() {
 		if len(e.G.Stack) > 0 {
 			pc.stackObj = e.G.Stack[len(e.G.Stack)-1]
 		}
+		if e.sacrificedLKI == nil {
+			e.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo)
+		}
+		e.sacrificedLKI[pc.stackObj] = sacrificedLKI
 		e.cast, e.choosing = nil, chooseNone
 		return
 	}
@@ -1526,9 +1541,19 @@ func (e *Engine) payCast() {
 	for _, id := range pc.delve {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
 	}
+	// Capture the sacrifice LKI before the MoveZones (see the ability branch's
+	// comment): the sacrificed permanents are still on the battlefield here.
+	var sacrificedLKI []state.SacrificedInfo
+	for _, id := range pc.sacs {
+		sacrificedLKI = append(sacrificedLKI, state.SacrificedInfoOf(e.G, id))
+	}
 	for _, id := range pc.sacs {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
 	}
+	if e.sacrificedLKI == nil {
+		e.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo)
+	}
+	e.sacrificedLKI[pc.stackObj] = sacrificedLKI
 	// CR 601.2b: record how the spell was cast (the X value and mode flags).
 	// Deferred to payment rather than the up-front push so an aborted
 	// proposal leaves no cast-time trace on the card. A cast trigger that
