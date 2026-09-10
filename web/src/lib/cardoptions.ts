@@ -45,6 +45,9 @@ export type OptionTone = 'initiative' | 'offered' | 'idle';
  * panel (the single answer path, R-E4-1).
  */
 export interface CardOptions {
+  /** Object the pending decision resolves for. When absent, ordinary
+   * priority/options windows produce no preview relationships. */
+  source?: number;
   byObj: Map<number, Option[]>;
   /** byPlayer indexes the same decision's player-target options (see
    *  optionsByPlayer) by the targeted seat, so a seat with nothing else on
@@ -104,11 +107,16 @@ export function singleTapOptionOf(tile: TileOptions): Option | null {
   return tile.list.reduce((first, option) => option.index < first.index ? option : first);
 }
 
+/** Post one displayed option by its WIRE index (R-E4-1), never list position. */
+export function postTileOption(tile: TileOptions, option: Option): void {
+  tile.post(option.index);
+}
+
 /** Post a direct action by its WIRE index (R-E4-1), never list position. */
 export function postSingleAction(tile: TileOptions): void {
   const option = tile.list.length === 1 ? tile.list[0] : singleTapOptionOf(tile);
   if (option === undefined || option === null) return;
-  tile.post(option.index);
+  postTileOption(tile, option);
 }
 
 /**

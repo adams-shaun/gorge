@@ -43,6 +43,46 @@ export interface MenuPlacement {
   up: boolean;
 }
 
+/** One radial option's fixed-position top-left corner. */
+export interface RadialPoint { x: number; y: number }
+
+export const RADIAL_BUTTON = 42;
+export const RADIAL_MARGIN = 6;
+
+/**
+ * Arrange two through six controls on an inward-opening arc around a badge.
+ * The arc points toward the viewport centre (and therefore away from the
+ * nearest edge), while each circle is independently clamped as a final guard
+ * for very small viewports. Six controls use a slightly larger radius so the
+ * 42px touch targets never crowd one another.
+ */
+export function placeRadial(anchor: MenuAnchor, count: number, vw: number, vh: number): RadialPoint[] {
+  if (count <= 0) return [];
+  const cx = (anchor.left + anchor.right) / 2;
+  const cy = (anchor.top + anchor.bottom) / 2;
+  const dx = vw / 2 - cx;
+  const dy = vh / 2 - cy;
+  // A cardinal centre-line makes the arc deliberate rather than skewed, and
+  // choosing its dominant component gives it the greatest available runway.
+  const centre = Math.abs(dx) >= Math.abs(dy)
+    ? (dx >= 0 ? 0 : Math.PI)
+    : (dy >= 0 ? Math.PI / 2 : -Math.PI / 2);
+  const spreads = [0, 0, 54, 90, 120, 144, 160];
+  const spread = (spreads[Math.min(count, 6)] * Math.PI) / 180;
+  const radius = count === 6 ? 82 : 72;
+  const start = centre - spread / 2;
+
+  return Array.from({ length: count }, (_, i) => {
+    const angle = count === 1 ? centre : start + spread * i / (count - 1);
+    const rawX = cx + Math.cos(angle) * radius - RADIAL_BUTTON / 2;
+    const rawY = cy + Math.sin(angle) * radius - RADIAL_BUTTON / 2;
+    return {
+      x: Math.max(RADIAL_MARGIN, Math.min(rawX, vw - RADIAL_MARGIN - RADIAL_BUTTON)),
+      y: Math.max(RADIAL_MARGIN, Math.min(rawY, vh - RADIAL_MARGIN - RADIAL_BUTTON)),
+    };
+  });
+}
+
 export function placeMenu(anchor: MenuAnchor, vw: number, vh: number): MenuPlacement {
   // Right-align the menu to the badge's right edge, clamped to the viewport
   // so a menu on a card near the board's right edge never runs off it.

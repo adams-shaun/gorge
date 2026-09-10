@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { placeMenu, MENU_WIDTH, MENU_MARGIN } from './menuplacement';
+import { placeMenu, placeRadial, MENU_WIDTH, MENU_MARGIN, RADIAL_BUTTON, RADIAL_MARGIN } from './menuplacement';
 
 // placeMenu pins the viewport guarantees of the card options menu (task
 // ui23): it opens down and right-aligned to the badge, flips up when there is
@@ -46,5 +46,20 @@ describe('placeMenu', () => {
     // maxHeight is bounded by the viewport bottom
     expect(p.up).toBe(false);
     expect(p.y + p.maxHeight).toBeLessThanOrEqual(VH - MENU_MARGIN);
+  });
+});
+
+describe('placeRadial', () => {
+  it('opens inward from a viewport-edge badge and keeps all 42px circles on screen', () => {
+    const points = placeRadial({ left: 2, top: 430, right: 20, bottom: 448 }, 6, VW, VH);
+    expect(points).toHaveLength(6);
+    for (const point of points) {
+      expect(point.x).toBeGreaterThanOrEqual(RADIAL_MARGIN);
+      expect(point.y).toBeGreaterThanOrEqual(RADIAL_MARGIN);
+      expect(point.x + RADIAL_BUTTON).toBeLessThanOrEqual(VW - RADIAL_MARGIN);
+      expect(point.y + RADIAL_BUTTON).toBeLessThanOrEqual(VH - RADIAL_MARGIN);
+    }
+    // The cluster as a whole opens toward the board/viewport centre.
+    expect(points.reduce((sum, point) => sum + point.x, 0) / points.length).toBeGreaterThan(20);
   });
 });

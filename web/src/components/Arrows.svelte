@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { View } from '../protocol';
-  import { arrowsFor } from '../lib/arrows';
+  import type { CardOptions } from '../lib/cardoptions';
+  import { arrowsFor, previewArrowsFor } from '../lib/arrows';
   import type { Arrow, End } from '../lib/arrows';
 
   /**
@@ -13,7 +14,7 @@
    * missing anchor (not rendered yet, or already gone) simply draws
    * nothing for that arrow rather than throwing.
    */
-  let { view }: { view: View } = $props();
+  let { view, options = null }: { view: View; options?: CardOptions | null } = $props();
 
   interface Line { x1: number; y1: number; x2: number; y2: number; kind: Arrow['kind'] }
 
@@ -38,7 +39,7 @@
     if (!root) return;
     const base = root.getBoundingClientRect();
     const next: Line[] = [];
-    for (const arrow of arrowsFor(view)) {
+    for (const arrow of [...arrowsFor(view), ...previewArrowsFor(options)]) {
       const from = anchorEl(arrow.from);
       const to = anchorEl(arrow.to);
       if (!from || !to) continue;
@@ -54,6 +55,7 @@
   // laid out before we read their positions.
   $effect(() => {
     void view;
+    void options;
     const id = requestAnimationFrame(recompute);
     return () => cancelAnimationFrame(id);
   });
@@ -83,7 +85,7 @@
       </marker>
     </defs>
     {#each lines as l, i (i)}
-      <line class="line line--{l.kind}" x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke-width="2" stroke-linecap="round" marker-end={`url(#arrow-${l.kind})`} />
+      <line class="line line--{l.kind}" x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke-width="2" stroke-linecap="round" marker-end={`url(#arrow-${l.kind === 'target-preview' ? 'target' : l.kind})`} />
     {/each}
   </svg>
 </div>
@@ -92,6 +94,11 @@
   .arrows { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
   svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
   .line--target { stroke: var(--initiative); }
+  .line--target-preview {
+    stroke: var(--initiative);
+    stroke-dasharray: 7 6;
+    opacity: 0.58;
+  }
   .line--attack { stroke: var(--danger); }
   .line--block { stroke: var(--mana-u); }
   .head--target { fill: var(--initiative); }

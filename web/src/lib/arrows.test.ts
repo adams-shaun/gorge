@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { arrowsFor } from './arrows';
+import { arrowsFor, previewArrowsFor } from './arrows';
 import type { CardView, View } from '../protocol';
+import type { CardOptions } from './cardoptions';
 
 const card = (id: number, extra: Partial<CardView> = {}): CardView => ({ id, name: `c${id}`, types: 'Creature', tapped: false, power: 1, toughness: 1, damage: 0, attacking: false, controller: 0, owner: 0, summon_sick: false, printing: { name: `c${id}` }, token: `#${id}`, ...extra });
 
@@ -86,5 +87,37 @@ describe('arrowsFor', () => {
     expect(arrowsFor(view)).toEqual([
       { from: { obj: 9 }, to: { obj: 2 }, kind: 'target' },
     ]);
+  });
+});
+
+describe('previewArrowsFor', () => {
+  const options = (source?: number): CardOptions => ({
+    source,
+    byObj: new Map([
+      [9, [{ index: 4, kind: 'permanent', label: 'Self', obj: 9, player: 0 }]],
+      [12, [{ index: 8, kind: 'permanent', label: 'Bear', obj: 12, player: 1 }]],
+    ]),
+    byPlayer: new Map([
+      [1, [{ index: 15, kind: 'player', label: 'Ari', player: 1 }]],
+    ]),
+    picked: [], tone: 'initiative', post: () => {},
+  });
+
+  it('emits object and player candidate arrows from a named decision source', () => {
+    expect(previewArrowsFor(options(9))).toEqual([
+      { from: { obj: 9 }, to: { obj: 12 }, kind: 'target-preview' },
+      { from: { obj: 9 }, to: { seat: 1 }, kind: 'target-preview' },
+    ]);
+  });
+
+  it('emits none without a source', () => {
+    expect(previewArrowsFor(options())).toEqual([]);
+  });
+
+  it('skips the source object itself instead of making a zero-length arrow', () => {
+    const onlySelf = options(9);
+    onlySelf.byObj = new Map([[9, onlySelf.byObj.get(9)!]]);
+    onlySelf.byPlayer = new Map();
+    expect(previewArrowsFor(onlySelf)).toEqual([]);
   });
 });
