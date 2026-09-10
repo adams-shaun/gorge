@@ -98,6 +98,12 @@ describe('Table.svelte seat gating (R-E4-4 / R-E4-5)', () => {
     expect(html).toContain('data-hot-tab="options"');
     expect(html).not.toContain('data-action-dock'); // ui26's rail dock moved here; it was not duplicated
     expect(html).toContain('data-concede-control');
+    // Concede lives inside the rail's own box (position: relative), not
+    // pinned to the viewport corner — a fixed-to-viewport control only
+    // avoided the log toggle by luck, and the wider "confirm" label already
+    // overran that luck and ate the toggle's clicks.
+    expect(html.indexOf('data-concede-control')).toBeGreaterThan(html.indexOf('<aside class="rail">'));
+    expect(html.indexOf('data-concede-control')).toBeLessThan(html.indexOf('</aside>'));
     // Concede has one page-level control and is not duplicated as a flyout
     // option label beside Pass.
     expect(html.match(/>Concede</g)).toHaveLength(1);
