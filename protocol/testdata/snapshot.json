@@ -10,6 +10,7 @@
       "viewer": 255,
       "visibility": "omniscient",
       "turn": 3,
+      "round": 0,
       "step": "main1",
       "phase": "main1",
       "active": 0,
@@ -74,7 +75,8 @@
               "is_player": true,
               "label": "Select any target"
             }
-          ]
+          ],
+          "optional": false
         }
       ],
       "pending": [
@@ -92,6 +94,7 @@
       402,
       1180
     ],
-    "head": 9130
+    "head": 9130,
+    "seats": null
   }
 }
