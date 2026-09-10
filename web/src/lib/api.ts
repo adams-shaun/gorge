@@ -17,6 +17,7 @@ export const matchesURL = (t: string) => withBase(`/api/tables/${enc(t)}/matches
 export const pendingURL = (t: string, k: number) => withBase(`/api/tables/${enc(t)}/matches/${k}/pending`);
 export const intentURL = (t: string, k: number) => withBase(`/api/tables/${enc(t)}/matches/${k}/intent`);
 export const gamesURL = () => withBase('/api/games');
+export const decksURL = () => withBase('/api/decks');
 
 // seatQuery is the seat/token query threading on the seat-scoped GETs
 // (M2e-3's FL-99: ?seat=N&token=…). The token is a bearer credential for
@@ -66,6 +67,16 @@ async function postJSON(path: string, body: unknown): Promise<void> {
 export const fetchTables = () => getJSON<TableInfo[]>(tablesURL());
 export const fetchMatches = (t: string) => getJSON<MatchInfo[]>(matchesURL(t));
 
+export interface DeckInfo {
+  id: string;
+  name: string;
+  format: 'constructed' | 'commander';
+  archetype: string;
+  commander?: string;
+}
+
+export const fetchDecks = () => getJSON<DeckInfo[]>(decksURL());
+
 /** A game a successful POST /api/games returns: the new table's identity, the human seat and its bearer token, and the join path that carries them (Task ui11). */
 export interface CreateGame {
   table: string;
@@ -76,12 +87,18 @@ export interface CreateGame {
   join: string;
 }
 
-/** createGame asks the server to seat the player against a bot in the given format: a fresh single-shot table is created and started, and the join path it returns is the URL the player follows to sit in the seat. A server that did not enable the play-vs-bot flow answers 404, surfaced as ApiError. */
-export async function createGame(format: 'constructed' | 'commander'): Promise<CreateGame> {
+export interface CreateGameRequest {
+  format: 'constructed' | 'commander';
+  human_deck?: string;
+  bot_deck?: string;
+}
+
+/** createGame asks the server to seat the player against a bot in the given format: a fresh single-shot table is created and started, and the join path it returns is the URL the player follows to sit in the seat. Omitted deck ids retain random assignment. A server that did not enable the play-vs-bot flow answers 404, surfaced as ApiError. */
+export async function createGame(request: CreateGameRequest): Promise<CreateGame> {
   const res = await fetch(gamesURL(), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ format }),
+    body: JSON.stringify(request),
   });
   if (!res.ok) {
     const e = (await res.json().catch(() => ({}))) as Partial<ErrorBody>;

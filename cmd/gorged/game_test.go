@@ -9,6 +9,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/host"
+	"github.com/adams-shaun/gorge/host/httpapi"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/protocol"
 	"github.com/adams-shaun/gorge/state"
@@ -54,7 +55,7 @@ func TestCreateGameBuildsARealSingleShotHumanVsBotTable(t *testing.T) {
 	r, gate := freshGameLock(t)
 	c := config{mulligans: 0}
 	create := c.createGame(r, gate, []string{"a", "b"}, []string{"c", "d"}, view.Omniscient)
-	resp, err := create(host.FormatConstructed)
+	resp, err := create(httpapi.CreateGameOptions{Format: host.FormatConstructed})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +97,7 @@ func TestCreateGameDealsADistinctConstructedPairAndIncrementsIDs(t *testing.T) {
 	r, gate := freshGameLock(t)
 	c := config{mulligans: 0}
 	create := c.createGame(r, gate, []string{"a", "b"}, []string{"c", "d"}, view.Omniscient)
-	resp, err := create(host.FormatConstructed)
+	resp, err := create(httpapi.CreateGameOptions{Format: host.FormatConstructed})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +131,7 @@ func TestCreateGameDealsADistinctConstructedPairAndIncrementsIDs(t *testing.T) {
 			t.Fatalf("constructed game dealt %q, not from the constructed pool", d)
 		}
 	}
-	resp2, err := create(host.FormatConstructed)
+	resp2, err := create(httpapi.CreateGameOptions{Format: host.FormatConstructed})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +146,45 @@ func TestCreateGameRefusesAFormatWithNoAvailableDeck(t *testing.T) {
 	r, gate := freshGameLock(t)
 	c := config{mulligans: 0}
 	create := c.createGame(r, gate, nil, []string{"c", "d"}, view.Omniscient)
-	if _, err := create(host.FormatCommander); err == nil || !strings.Contains(err.Error(), "commander") {
+	if _, err := create(httpapi.CreateGameOptions{Format: host.FormatCommander}); err == nil || !strings.Contains(err.Error(), "commander") {
 		t.Fatalf("expected a commander-no-deck error, got %v", err)
+	}
+}
+
+func TestCreateGameHonoursBothSelectedDecks(t *testing.T) {
+	r, gate := freshGameLock(t)
+	c := config{mulligans: 0}
+	create := c.createGame(r, gate, []string{"a", "b"}, []string{"c", "d"}, view.Omniscient)
+	resp, err := create(httpapi.CreateGameOptions{Format: host.FormatConstructed, HumanDeck: "d", BotDeck: "c"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(20 * time.Second)
+	for {
+		ms, err := r.Matches(host.TableID(resp.Table))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(ms) == 1 && len(ms[0].Seats) == 2 {
+			if ms[0].Seats[0].Deck != "d" || ms[0].Seats[1].Deck != "c" {
+				t.Fatalf("selected decks not seated: %+v", ms[0].Seats)
+			}
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("selected-deck match never appeared")
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+func TestCreateGameRejectsUnknownAndWrongFormatDecks(t *testing.T) {
+	r, gate := freshGameLock(t)
+	create := (config{mulligans: 0}).createGame(r, gate, []string{"a", "b"}, []string{"c", "d"}, view.Omniscient)
+	if _, err := create(httpapi.CreateGameOptions{Format: host.FormatConstructed, HumanDeck: "missing"}); err == nil || !strings.Contains(err.Error(), `unknown human deck "missing"`) {
+		t.Fatalf("unknown deck error = %v", err)
+	}
+	if _, err := create(httpapi.CreateGameOptions{Format: host.FormatConstructed, BotDeck: "a"}); err == nil || !strings.Contains(err.Error(), `bot deck "a" belongs to commander`) {
+		t.Fatalf("wrong-format deck error = %v", err)
 	}
 }

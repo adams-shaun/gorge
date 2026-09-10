@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { afterEach } from 'vitest';
-import { eventsURL, matchesURL, pendingURL, seatQuery, tablesURL, viewURL, fetchView, fetchEvents, fetchPending, postIntent, subscribe, createGame } from './api';
+import { decksURL, eventsURL, matchesURL, pendingURL, seatQuery, tablesURL, viewURL, fetchView, fetchEvents, fetchPending, fetchDecks, postIntent, subscribe, createGame } from './api';
 import { setBasePathForTests, withBase } from './basepath';
 import type { Intent } from '../protocol';
 
@@ -14,6 +14,7 @@ vi.stubGlobal('fetch', fetchMock);
 describe('api urls', () => {
   it('builds the documented paths', () => {
     expect(tablesURL()).toBe('/api/tables');
+    expect(decksURL()).toBe('/api/decks');
     expect(matchesURL('t1')).toBe('/api/tables/t1/matches');
     expect(viewURL('t1', 3)).toBe('/api/tables/t1/matches/3/view');
     expect(viewURL('t1', 3, 0)).toBe('/api/tables/t1/matches/3/view?seq=0');
@@ -113,21 +114,27 @@ describe('base path', () => {
 });
 
 describe('createGame (Task ui11)', () => {
-  it('POSTs the chosen format to /api/games and returns the join identity', async () => {
+  it('fetches the deck catalogue and POSTs selected decks to /api/games', async () => {
     fetchMock.mockReset();
+    const decks = [{ id: 'angels', name: 'Angels', format: 'commander', archetype: 'tribal', commander: 'Giada' }];
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => decks });
+    await expect(fetchDecks()).resolves.toEqual(decks);
+    expect(fetchMock).toHaveBeenLastCalledWith('/api/decks', expect.objectContaining({ headers: expect.objectContaining({ Accept: 'application/json' }) }));
+
     const game = { table: 'g1', match: 1, seed: 42, seat: 0, token: 'tok', join: '/t/g1?seat=0&token=tok' };
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => game });
-    await expect(createGame('commander')).resolves.toEqual(game);
-    expect(fetchMock).toHaveBeenCalledWith('/api/games', expect.objectContaining({
+    const request = { format: 'commander' as const, human_deck: 'angels', bot_deck: 'dragons' };
+    await expect(createGame(request)).resolves.toEqual(game);
+    expect(fetchMock).toHaveBeenLastCalledWith('/api/games', expect.objectContaining({
       method: 'POST',
       headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ format: 'commander' }),
+      body: JSON.stringify(request),
     }));
   });
 
   it('surfaces a server rejection (a server that did not arm -vsbot answers 404) as ApiError', async () => {
     fetchMock.mockReset();
     fetchMock.mockResolvedValueOnce({ ok: false, status: 404, json: async () => ({ code: 'not_found', message: 'play-vs-bot games are not enabled on this server' }) });
-    await expect(createGame('constructed')).rejects.toMatchObject({ status: 404, code: 'not_found' });
+    await expect(createGame({ format: 'constructed' })).rejects.toMatchObject({ status: 404, code: 'not_found' });
   });
 });

@@ -143,6 +143,10 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if err != nil {
 		return err
 	}
+	deckCatalogue, err := loadDeckCatalogue(c.decks, cmdPool, conPool)
+	if err != nil {
+		return err
+	}
 	if len(cmdPool)+len(conPool) == 0 {
 		return fmt.Errorf("no deck files in %s", c.decks)
 	}
@@ -171,7 +175,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if err := r.StartAll(); err != nil {
 		return err
 	}
-	opts := httpapi.Options{Web: webFS()}
+	opts := httpapi.Options{Web: webFS(), Decks: deckCatalogue}
 	var gate *seatGate
 	if len(c.humans) > 0 {
 		// R-E3-3: arm Options.Seat with a real token check — one opaque
@@ -351,6 +355,45 @@ func splitDecks(reg *cards.Registry, dir string) (commander, constructed []strin
 		commander = append(commander, n)
 	}
 	return commander, constructed, nil
+}
+
+// loadDeckCatalogue reads display metadata for the exact pools splitDecks
+// validated. The format exposed to the client is the server's pool format,
+// not the deck file's free-form authoring field (constructed files currently
+// call that field "custom"). Pool and catalogue therefore cannot disagree.
+func loadDeckCatalogue(dir string, commander, constructed []string) ([]httpapi.DeckInfo, error) {
+	formats := make(map[string]host.Format, len(commander)+len(constructed))
+	for _, id := range commander {
+		formats[id] = host.FormatCommander
+	}
+	for _, id := range constructed {
+		formats[id] = host.FormatConstructed
+	}
+	ids, err := deckFiles(dir)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]httpapi.DeckInfo, 0, len(ids))
+	for _, id := range ids {
+		format, ok := formats[id]
+		if !ok {
+			continue
+		}
+		raw, err := os.ReadFile(filepath.Join(dir, id+".json"))
+		if err != nil {
+			return nil, err
+		}
+		f, err := deck.Parse(raw)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", filepath.Join(dir, id+".json"), err)
+		}
+		name := f.Name
+		if name == "" {
+			name = id
+		}
+		out = append(out, httpapi.DeckInfo{ID: id, Name: name, Format: format.String(), Archetype: f.Archetype, Commander: f.Commander})
+	}
+	return out, nil
 }
 
 // tableConfigs builds one TableConfig per table, in ID order, dealing each

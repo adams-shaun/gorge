@@ -14,8 +14,8 @@ import (
 // createGame returns the Options.CreateGame closure gorged arms so the
 // browser can seat a human against a bot on demand (Task ui11). It builds a
 // fresh single-shot 2-seat table in the requested format — seat 0 human,
-// seat 1 bot — dealing the two seats decks picked at random from the
-// format's pool.
+// seat 1 bot. Each seat may request a deck from that format's pool; an
+// omitted choice is assigned from the same seeded random order as before.
 //
 // Seeding and replayability are the whole point of the "random" here: the
 // game's seed is minted once, at create time, and it drives BOTH the deck
@@ -29,35 +29,62 @@ import (
 // The closure is serialized: it allocates a table id (host.nextGameID,
 // which observes the registry) and mints a token, and two concurrent
 // requests must not hand each other the same id.
-func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []string, vis view.Visibility) func(host.Format) (httpapi.CreateGameResponse, error) {
+func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []string, vis view.Visibility) func(httpapi.CreateGameOptions) (httpapi.CreateGameResponse, error) {
 	var mu sync.Mutex
-	return func(f host.Format) (httpapi.CreateGameResponse, error) {
+	return func(req httpapi.CreateGameOptions) (httpapi.CreateGameResponse, error) {
 		mu.Lock()
 		defer mu.Unlock()
-		pool := conPool
-		if f == host.FormatCommander {
-			pool = cmdPool
+		pool, otherPool := conPool, cmdPool
+		otherFormat := host.FormatCommander
+		if req.Format == host.FormatCommander {
+			pool, otherPool = cmdPool, conPool
+			otherFormat = host.FormatConstructed
 		}
 		if len(pool) == 0 {
-			return httpapi.CreateGameResponse{}, fmt.Errorf("no %s deck is available to deal (decks dir supplies none)", f)
+			return httpapi.CreateGameResponse{}, fmt.Errorf("no %s deck is available to deal (decks dir supplies none)", req.Format)
+		}
+		for _, pick := range []struct {
+			role string
+			id   string
+		}{{"human", req.HumanDeck}, {"bot", req.BotDeck}} {
+			if pick.id == "" {
+				continue
+			}
+			if containsDeck(pool, pick.id) {
+				continue
+			}
+			if containsDeck(otherPool, pick.id) {
+				return httpapi.CreateGameResponse{}, fmt.Errorf("%s deck %q belongs to %s, not requested format %s", pick.role, pick.id, otherFormat, req.Format)
+			}
+			return httpapi.CreateGameResponse{}, fmt.Errorf("unknown %s deck %q", pick.role, pick.id)
 		}
 		seed, err := randomSeed()
 		if err != nil {
 			return httpapi.CreateGameResponse{}, err
 		}
-		// The shuffled pool is the table's deck order, so seat 0 (human) and
-		// seat 1 (bot) of match 1 are dealt two distinct decks and the whole
-		// assignment is a pure function of the seed.
-		decks := host.SeededShuffle(seed, pool)
+		shuffled := host.SeededShuffle(seed, pool)
+		decks := shuffled
+		if req.HumanDeck != "" || req.BotDeck != "" {
+			human, bot := req.HumanDeck, req.BotDeck
+			if human == "" {
+				human = randomOpponent(shuffled, bot)
+			}
+			if bot == "" {
+				bot = randomOpponent(shuffled, human)
+			}
+			// Match 1 rotates TableConfig.Decks by one: with this two-item
+			// order seat 0 receives human and seat 1 receives bot.
+			decks = []string{bot, human}
+		}
 		id := host.NextGameID(r)
 		tok, err := gate.mint(0)
 		if err != nil {
 			return httpapi.CreateGameResponse{}, err
 		}
 		cfg := host.TableConfig{
-			ID: id, Name: fmt.Sprintf("Play vs bot (%s)", f), Seats: 2, Decks: decks,
+			ID: id, Name: fmt.Sprintf("Play vs bot (%s)", req.Format), Seats: 2, Decks: decks,
 			Seed: seed, PlayerNames: []string{"You", "Bot"}, Mulligans: c.mulligans,
-			Spectator: vis, Perpetual: false, Humans: []int{0}, Format: f,
+			Spectator: vis, Perpetual: false, Humans: []int{0}, Format: req.Format,
 		}
 		if err := r.AddTable(cfg); err != nil {
 			return httpapi.CreateGameResponse{}, err
@@ -68,6 +95,27 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 		return httpapi.CreateGameResponse{Table: string(id), Match: 1, Seed: seed, Seat: 0,
 			Token: tok, Join: fmt.Sprintf("/t/%s?seat=0&token=%s", id, tok)}, nil
 	}
+}
+
+func containsDeck(pool []string, id string) bool {
+	for _, candidate := range pool {
+		if candidate == id {
+			return true
+		}
+	}
+	return false
+}
+
+// randomOpponent returns the first shuffled deck different from avoid when
+// one exists. A one-deck pool necessarily produces a mirror match, matching
+// the host's existing modulo assignment rather than making random unusable.
+func randomOpponent(shuffled []string, avoid string) string {
+	for _, id := range shuffled {
+		if id != avoid {
+			return id
+		}
+	}
+	return shuffled[0]
 }
 
 // randomSeed mints a fresh 64-bit game seed with crypto/rand, the one

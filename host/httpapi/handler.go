@@ -49,7 +49,11 @@ type Options struct {
 	// any path it does not serve. It is the boundary that knows the deck
 	// pools, the loader and the token store; the HTTP layer only decodes the
 	// body and calls it.
-	CreateGame func(host.Format) (CreateGameResponse, error)
+	CreateGame func(CreateGameOptions) (CreateGameResponse, error)
+	// Decks is the immutable deck catalogue exposed by GET /api/decks. The
+	// server builds it from the same files it loaded into CreateGame's pools,
+	// so clients can enumerate choices without guessing deck ids.
+	Decks []DeckInfo
 }
 
 func (o Options) withDefaults() Options {
@@ -81,6 +85,7 @@ func newHandler(r *host.Registry, o Options) (*handler, http.Handler) {
 	h := &handler{reg: r, opts: o.withDefaults(), grace: map[string]*graceTimer{}}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/tables", h.tables)
+	mux.HandleFunc("GET /api/decks", h.decks)
 	mux.HandleFunc("GET /api/tables/{t}/matches", h.matches)
 	mux.HandleFunc("GET /api/tables/{t}/matches/{k}/view", h.view)
 	mux.HandleFunc("GET /api/tables/{t}/matches/{k}/events", h.events)
@@ -92,7 +97,7 @@ func newHandler(r *host.Registry, o Options) (*handler, http.Handler) {
 	// Method-less twins of every API pattern: the mux prefers the
 	// method-specific pattern, so these only ever see the wrong method and
 	// answer 405 in JSON rather than the mux's default text body.
-	for _, p := range []string{"/api/tables", "/api/tables/{t}/matches", "/api/tables/{t}/matches/{k}/view",
+	for _, p := range []string{"/api/tables", "/api/decks", "/api/tables/{t}/matches", "/api/tables/{t}/matches/{k}/view",
 		"/api/tables/{t}/matches/{k}/events", "/api/tables/{t}/matches/{k}/pending", "/api/tables/{t}/matches/{k}/intent",
 		"/api/subscribe", "/api/unsubscribe", "/api/games", "/api/stream"} {
 		mux.HandleFunc(p, methodNotAllowed)

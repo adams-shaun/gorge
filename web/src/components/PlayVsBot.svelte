@@ -1,21 +1,50 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  import { fetchDecks, type DeckInfo } from '../lib/api';
   import { VS_BOT_FORMATS, startPlayVsBot, type VsBotFormat } from '../lib/playvsbot';
 
-  // Task ui11: the landing-page entry point that sits the player down 1v1
-  // against a bot. It picks a format, POSTs /api/games, and follows the join
-  // path the server returns — a full navigation, so main.ts's
-  // initSeatContext re-reads ?seat=&token= and arms the seat (client-side
-  // navigation reuses the already-initialised null seat and would stay a
-  // spectator).
+  // The landing-page entry point that sits the player down 1v1 against a bot.
+  // Deck ids come only from the server catalogue; empty values deliberately
+  // stay the original random-assignment path.
   let format: VsBotFormat = $state('constructed');
+  let humanDeck = $state('');
+  let botDeck = $state('');
+  let decks = $state<DeckInfo[]>([]);
+  let loadingDecks = $state(true);
   let busy = $state(false);
   let error = $state<string | null>(null);
+  const formatDecks = $derived(decks.filter((d) => d.format === format));
+
+  onMount(() => {
+    void loadDecks();
+  });
+
+  async function loadDecks() {
+    try {
+      decks = await fetchDecks();
+    } catch (e) {
+      error = e instanceof Error ? `Could not load decks: ${e.message}` : String(e);
+    } finally {
+      loadingDecks = false;
+    }
+  }
+
+  function chooseFormat(next: VsBotFormat) {
+    format = next;
+    humanDeck = '';
+    botDeck = '';
+  }
+
+  function deckLabel(d: DeckInfo): string {
+    const details = [d.archetype, d.commander ? `Commander: ${d.commander}` : ''].filter(Boolean);
+    return details.length === 0 ? d.name : `${d.name} — ${details.join(' · ')}`;
+  }
 
   async function start() {
     busy = true;
     error = null;
     try {
-      const join = await startPlayVsBot(format);
+      const join = await startPlayVsBot(format, humanDeck, botDeck);
       window.location.href = join;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
@@ -26,14 +55,34 @@
 
 <div class="playvsbot" data-testid="playvsbot">
   <h2>Play 1v1 vs a bot</h2>
-  <p class="hint">You take a seat; a bot takes the other. Decks are assigned at random; the match replays from its seed.</p>
+  <p class="hint">Choose the matchup, or leave either seat random. The match replays from its seed.</p>
   <div class="formats" role="radiogroup" aria-label="format">
     {#each VS_BOT_FORMATS as f (f.value)}
       <label class="format">
-        <input type="radio" name="vsbot-format" value={f.value} checked={format === f.value} onchange={() => (format = f.value)} />
+        <input type="radio" name="vsbot-format" value={f.value} checked={format === f.value} onchange={() => chooseFormat(f.value)} />
         <span>{f.label}</span>
       </label>
     {/each}
+  </div>
+  <div class="pickers" aria-busy={loadingDecks}>
+    <label class="picker">
+      <span>Your deck</span>
+      <select aria-label="Your deck" bind:value={humanDeck} data-testid="human-deck">
+        <option value="">Random</option>
+        {#each formatDecks as d (d.id)}
+          <option value={d.id}>{deckLabel(d)}</option>
+        {/each}
+      </select>
+    </label>
+    <label class="picker">
+      <span>Bot deck</span>
+      <select aria-label="Bot deck" bind:value={botDeck} data-testid="bot-deck">
+        <option value="">Random</option>
+        {#each formatDecks as d (d.id)}
+          <option value={d.id}>{deckLabel(d)}</option>
+        {/each}
+      </select>
+    </label>
   </div>
   <button type="button" onclick={start} disabled={busy}>
     {busy ? 'Starting…' : 'Start game'}
@@ -48,10 +97,10 @@
     gap: var(--sp-2);
     padding: var(--sp-4);
     border: 1px solid var(--edge-inst);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     background: var(--instrument);
     color: var(--ink-inst);
-    max-width: 22rem;
+    max-width: 32rem;
     flex: none;
   }
   h2 {
@@ -72,16 +121,35 @@
     display: flex;
     align-items: center;
     gap: var(--sp-1);
-    font-size: var(--t-13);
+    font-size: var(--t-14);
+  }
+  .pickers {
+    display: grid;
+    gap: var(--sp-2);
+  }
+  .picker {
+    display: grid;
+    gap: var(--sp-1);
+    font-size: var(--t-12);
+    color: var(--ink-dim);
+  }
+  select {
+    width: 100%;
+    padding: var(--sp-2);
+    border: 1px solid var(--edge-inst);
+    border-radius: var(--radius);
+    background: var(--instrument-raised);
+    color: var(--ink-inst);
+    font: var(--t-14) var(--font-ui);
   }
   button {
     align-self: flex-start;
     padding: var(--sp-2) var(--sp-3);
     border: 1px solid var(--edge-inst);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     background: var(--felt);
     color: var(--ink);
-    font-size: var(--t-13);
+    font-size: var(--t-14);
     cursor: pointer;
   }
   button:disabled {
