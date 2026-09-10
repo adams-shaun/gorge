@@ -755,15 +755,29 @@ var acceptanceHeads = map[int]string{
 	// abilities" path never logged, so every event count and every
 	// downstream sequence number after the first dual land shifts.
 	//
+	// pl1 then moved 2 and 8 seats a second time on top of ml1's move (4 and
+	// 6 land back on ml1's own values -- PayLife's fix does not shift either
+	// of those two games once ml1's mana-choice fix is also present, even
+	// though pl1's own branch, tested WITHOUT ml1, measured 4 seats moving).
+	// Fixed PayLife<N> costs change what a fetchland like Polluted Delta
+	// actually spends (real life, not phantom generic mana); which games
+	// that reaches depends on the exact combined event stream, which is why
+	// pl1's own reported 2/4/8 values (measured against its own, ml1-less
+	// base) do not equal any of the values below. pl1's branch predated
+	// ml1's merge, so the values here are re-measured by the controller
+	// directly on this merge (both fixes together), not copied from either
+	// seat's report.
+	//
 	// `make sim` 20/20 replay OK and the CR conformance lane unchanged at
-	// 0 FAIL / 89 PASS / 89 leaves. TestRepoDecks and TestEveryRepoDeck both
-	// pass. Winners and turn counts were not re-verified game-by-game beyond
-	// the conformance lane and sim replay; if a future seat finds one moved,
-	// trace it the same way -- diff the streams, don't assume.
-	2: "eae4a21f3fa1d61b",
+	// 0 FAIL / 89 PASS / 89 leaves both times. TestRepoDecks and
+	// TestEveryRepoDeck pass. Winners and turn counts were not re-verified
+	// game-by-game beyond the conformance lane and sim replay; if a future
+	// seat finds one moved, trace it the same way -- diff the streams, don't
+	// assume.
+	2: "add9e21490b786c1",
 	4: "324ef3499065470d",
 	6: "a16a266f6915ea94",
-	8: "cbbd288193aa4ebc",
+	8: "a475ef501512265f",
 }
 
 func TestHeads(t *testing.T) {

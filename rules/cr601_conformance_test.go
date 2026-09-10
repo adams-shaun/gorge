@@ -44,7 +44,16 @@ func TestCR601NoMandatoryCounterCastOnEmptyStack(t *testing.T) {
 				names[i] = all[i%len(all)]
 				decks[i] = testutil.RepoDeck(t, reg, names[i])
 			}
-			e := New(Config{Seed: 42, Names: names, Decks: decks, Tokens: reg.Tokens, Mulligans: 1})
+			// Seed 42's two-seat game now activates Polluted Delta by paying life,
+			// which changes the subsequent game enough that this audit sees no
+			// counterspell hand at an empty-stack priority boundary. Seed 0 keeps
+			// the same two representative decks and bot while exercising 66 such
+			// boundaries; the other seat counts remain on the acceptance seed.
+			seed := uint64(42)
+			if seats == 2 {
+				seed = 0
+			}
+			e := New(Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens, Mulligans: 1})
 			b := newTestBot(7)
 			e.Advance()
 			checked := 0

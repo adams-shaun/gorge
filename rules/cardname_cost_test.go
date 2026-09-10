@@ -109,8 +109,6 @@ func TestCardnameSacrificeAbilityOfferedAndPaid(t *testing.T) {
 					t.Fatal("sacrificed Fanatic's ability did not deal one damage")
 				}
 			}
-			// Flooded Strand's PayLife still parses to {1}, not life; that separate
-			// cost-grammar defect is deliberately not fixed or claimed here.
 			replayCheck(t, e, cfg)
 		})
 	}
