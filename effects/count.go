@@ -43,6 +43,9 @@ func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
 	if strings.HasPrefix(raw, "Sacrificed$") {
 		return EvalCount(h, c, raw)
 	}
+	if strings.HasPrefix(raw, "TriggerCount$") {
+		return EvalCount(h, c, raw)
+	}
 	if raw == "X" {
 		return c.X
 	}
@@ -66,6 +69,20 @@ func EvalCount(h Host, c *Ctx, expr string) int32 {
 	if body, ok := strings.CutPrefix(expr, "Sacrificed$"); ok {
 		return evalSacrificed(c, strings.TrimSpace(body))
 	}
+	// A TriggerCount$... expression answers a question about the event that
+	// fired the trigger currently resolving -- "how much damage did that event
+	// deal" (TriggerCount$DamageAmount), "how much life did it gain/lose"
+	// (TriggerCount$LifeAmount), or the generic event magnitude
+	// (TriggerCount$Amount). The answer comes from the triggering event's own
+	// amount, captured by rules into Ctx.TriggerAmount when the trigger fired
+	// and carried to resolution through the per-stack-instance
+	// triggerContexts map -- never from the live board, and never re-inferred
+	// at resolution. A head this build does not model (Result, ScryNum,
+	// ScryBottom) degrades to zero, exactly as it did before TriggerCount$ was
+	// recognised at all.
+	if body, ok := strings.CutPrefix(expr, "TriggerCount$"); ok {
+		return evalTriggerCount(c, strings.TrimSpace(body))
+	}
 	body, ok := strings.CutPrefix(expr, "Count$")
 	if !ok {
 		if n, err := strconv.Atoi(expr); err == nil {
@@ -75,6 +92,35 @@ func EvalCount(h Host, c *Ctx, expr string) int32 {
 	}
 	body, op, hasOp := strings.Cut(body, "/")
 	n := evalCountBody(h, c, strings.TrimSpace(body))
+	if hasOp {
+		n = applyCountOp(n, op)
+	}
+	return n
+}
+
+// evalTriggerCount resolves a "TriggerCount$<Head>[/Op]" body against the
+// triggering event's magnitude (Ctx.TriggerAmount). The heads this build
+// models -- DamageAmount (damage the event dealt), LifeAmount (life it
+// gained/lost) and Amount (the generic event magnitude) -- all answer the
+// same number, because each is the single amount the causing event carried;
+// the distinction between them is only in which trigger mode populates it
+// (and, for the corpus, that the LifeGained trigger mode is not yet
+// registered, so a LifeAmount head is unreachable today). The /Op suffix is
+// applied exactly as applyCountOp does for Count$ and Sacrificed$. An
+// unmodelled head (Result, ScryNum, ScryBottom) degrades to zero.
+func evalTriggerCount(c *Ctx, body string) int32 {
+	body, op, hasOp := strings.Cut(body, "/")
+	var n int32
+	switch strings.TrimSpace(body) {
+	case "DamageAmount", "LifeAmount", "Amount":
+		n = c.TriggerAmount
+	default:
+		// Result (die-roll/dice), ScryNum and ScryBottom (scry events) are
+		// heads whose triggering events this build does not raise, so they
+		// stay zero -- the same conservative no-op as before the prefix was
+		// recognised.
+		return 0
+	}
 	if hasOp {
 		n = applyCountOp(n, op)
 	}
