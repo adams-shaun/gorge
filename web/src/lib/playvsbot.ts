@@ -16,7 +16,11 @@ export type VsBotFormat = (typeof VS_BOT_FORMATS)[number]['value'];
  * success returns the join path, a server rejection throws the ApiError the
  * calling component renders.
  */
-export async function startPlayVsBot(format: VsBotFormat): Promise<string> {
-  const g: CreateGame = await createGame(format);
+export async function startPlayVsBot(format: VsBotFormat, humanDeck = '', botDeck = ''): Promise<string> {
+  const g: CreateGame = await createGame({
+    format,
+    ...(humanDeck ? { human_deck: humanDeck } : {}),
+    ...(botDeck ? { bot_deck: botDeck } : {}),
+  });
   return withBase(g.join);
 }

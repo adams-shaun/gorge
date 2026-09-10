@@ -15,6 +15,7 @@ import (
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/host"
+	"github.com/adams-shaun/gorge/host/httpapi"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/protocol"
 	"github.com/adams-shaun/gorge/view"
@@ -27,7 +28,7 @@ func TestServesTablesOverHTTP(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg := config{cards: "../../.cards", decks: "../../internal/testutil/decks", tables: 1, seats: 2, pace: 0,
-		cooldown: 0, dir: t.TempDir(), spectator: "omniscient", seed: 1, perpetual: false}
+		cooldown: 0, dir: t.TempDir(), spectator: "omniscient", seed: 1, perpetual: false, vsbot: true}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	done := make(chan error, 1)
@@ -51,6 +52,54 @@ func TestServesTablesOverHTTP(t *testing.T) {
 	}
 	if tables[0].ID != "t1" || tables[0].Seats != 2 || tables[0].Spectator != "omniscient" {
 		t.Fatalf("%+v", tables[0])
+	}
+	decksResp, err := http.Get(url + "/api/decks")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var catalogue []httpapi.DeckInfo
+	if err := json.NewDecoder(decksResp.Body).Decode(&catalogue); err != nil {
+		decksResp.Body.Close()
+		t.Fatal(err)
+	}
+	decksResp.Body.Close()
+	loadedIDs, err := deckFiles(cfg.decks)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decksResp.StatusCode != http.StatusOK || len(catalogue) != len(loadedIDs) {
+		t.Fatalf("deck catalogue status %d entries %d, loaded %d", decksResp.StatusCode, len(catalogue), len(loadedIDs))
+	}
+	byID := make(map[string]httpapi.DeckInfo, len(catalogue))
+	for _, d := range catalogue {
+		byID[d.ID] = d
+	}
+	if got := byID["death-n-taxes"]; got.Name != "Death & Taxes" || got.Format != "constructed" || got.Archetype != "hatebears" {
+		t.Fatalf("constructed deck metadata %+v", got)
+	}
+	if got := byID["foundations-calling-all-angels"]; got.Format != "commander" || got.Commander != "Giada, Font of Hope" {
+		t.Fatalf("commander deck metadata %+v", got)
+	}
+	for _, tc := range []struct {
+		body string
+		want string
+	}{
+		{`{"format":"constructed","human_deck":"missing"}`, `unknown human deck "missing"`},
+		{`{"format":"constructed","bot_deck":"foundations-calling-all-angels"}`, `belongs to commander, not requested format constructed`},
+	} {
+		gameResp, err := http.Post(url+"/api/games", "application/json", strings.NewReader(tc.body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var body protocol.ErrorBody
+		if err := json.NewDecoder(gameResp.Body).Decode(&body); err != nil {
+			gameResp.Body.Close()
+			t.Fatal(err)
+		}
+		gameResp.Body.Close()
+		if gameResp.StatusCode != http.StatusBadRequest || !strings.Contains(body.Message, tc.want) {
+			t.Fatalf("invalid deck status %d body %+v, want %q", gameResp.StatusCode, body, tc.want)
+		}
 	}
 	resp, err := http.Get(url + "/")
 	if err != nil {
