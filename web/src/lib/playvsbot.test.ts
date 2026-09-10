@@ -14,6 +14,9 @@ describe('startPlayVsBot (Task ui11)', () => {
       json: async () => ({ table: 'g1', match: 1, seed: 7, seat: 0, token: 'tok', join: '/t/g1?seat=0&token=tok' }),
     });
     await expect(startPlayVsBot('constructed')).resolves.toBe(withBase('/t/g1?seat=0&token=tok'));
+    expect(fetchMock).toHaveBeenCalledWith('/x/api/games', expect.objectContaining({
+      body: JSON.stringify({ format: 'constructed' }),
+    }));
   });
 
   it('propagates a server rejection so the panel can render it', async () => {

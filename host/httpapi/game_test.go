@@ -18,11 +18,11 @@ import (
 // seat 0 human (driven from outside) and seat 1 a bot, dealt from the
 // caller-supplied pool, added to the registry and started. The returned
 // token is the human seat's bearer credential; the join path carries it.
-func gameCreator(r *host.Registry, pool []string) func(host.Format) (CreateGameResponse, error) {
-	return func(gf host.Format) (CreateGameResponse, error) {
+func gameCreator(r *host.Registry, pool []string) func(CreateGameOptions) (CreateGameResponse, error) {
+	return func(req CreateGameOptions) (CreateGameResponse, error) {
 		id := host.TableID("g1")
 		cfg := host.TableConfig{ID: id, Name: "Play vs bot", Seats: 2, Decks: pool,
-			Seed: 7, Spectator: view.Omniscient, Perpetual: false, Humans: []int{0}, Format: gf}
+			Seed: 7, Spectator: view.Omniscient, Perpetual: false, Humans: []int{0}, Format: req.Format}
 		if err := r.AddTable(cfg); err != nil {
 			return CreateGameResponse{}, err
 		}
@@ -113,6 +113,50 @@ func TestCreateGameRejectsUnknownFormat(t *testing.T) {
 	status, _, raw := postGames(t, srv.URL, `{}`)
 	if status != http.StatusOK {
 		t.Fatalf("empty format status %d body %s", status, raw)
+	}
+}
+
+func TestCreateGamePassesOptionalDeckSelectionsToBuilder(t *testing.T) {
+	r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration, <-chan struct{}) {}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { r.Close() })
+	var got CreateGameOptions
+	srv := httptest.NewServer(NewHandler(r, Options{CreateGame: func(req CreateGameOptions) (CreateGameResponse, error) {
+		got = req
+		return CreateGameResponse{Table: "g1"}, nil
+	}}))
+	t.Cleanup(srv.Close)
+	status, _, raw := postGames(t, srv.URL, `{"format":"commander","human_deck":"angels","bot_deck":"dragons"}`)
+	if status != http.StatusOK {
+		t.Fatalf("status %d body %s", status, raw)
+	}
+	if got.Format != host.FormatCommander || got.HumanDeck != "angels" || got.BotDeck != "dragons" {
+		t.Fatalf("builder request %+v", got)
+	}
+}
+
+func TestDecksReturnsConfiguredCatalogue(t *testing.T) {
+	r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration, <-chan struct{}) {}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { r.Close() })
+	want := []DeckInfo{{ID: "angels", Name: "Calling All Angels", Format: "commander", Archetype: "angels", Commander: "Giada, Font of Hope"}}
+	srv := httptest.NewServer(NewHandler(r, Options{Decks: want}))
+	t.Cleanup(srv.Close)
+	resp, err := http.Get(srv.URL + "/api/decks")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var got []DeckInfo
+	if err := json.NewDecoder(resp.Body).Decode(&got); err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK || len(got) != 1 || got[0] != want[0] {
+		t.Fatalf("status %d decks %+v, want %+v", resp.StatusCode, got, want)
 	}
 }
 

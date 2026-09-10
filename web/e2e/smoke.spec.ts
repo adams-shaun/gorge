@@ -580,6 +580,42 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
       }
     });
 
+    test('chooses both decks on the lobby and seats that exact matchup', async ({ browser, request }) => {
+      const b = base as string;
+      const ctx = await browser.newContext();
+      try {
+        const page = await ctx.newPage();
+        const c = watch(page, b);
+        await page.goto(`${b}/`, { waitUntil: 'domcontentloaded' });
+        const human = page.getByLabel('Your deck');
+        const bot = page.getByLabel('Bot deck');
+        await human.locator('option[value="the-epic-storm"]').waitFor({ state: 'attached', timeout: WAIT_MS });
+        await page.locator('input[value="commander"]').check();
+        await expect(human.locator('option[value="foundations-calling-all-angels"]')).toContainText('Giada, Font of Hope');
+        await expect(human.locator('option[value="the-epic-storm"]')).toHaveCount(0);
+        await page.locator('input[value="constructed"]').check();
+        await expect(human).toHaveValue('');
+        await human.selectOption('the-epic-storm');
+        await bot.selectOption('uw-control');
+        await page.getByRole('button', { name: 'Start game' }).click();
+        await page.waitForURL(/\/t\/g\d+\?seat=0&token=/, { timeout: WAIT_MS });
+        await page.locator('.handtrack .handfan').waitFor({ state: 'visible', timeout: WAIT_MS });
+
+        // The resulting real game exposes the selected deck identities both
+        // in its match record and in the rendered rail's accessible labels.
+        const table = new URL(page.url()).pathname.split('/')[2];
+        const mResp = await request.get(`${b}/api/tables/${table}/matches`);
+        expect(mResp.ok()).toBe(true);
+        const matches = await mResp.json() as Array<{ seats: Array<{ deck: string }> }>;
+        expect(matches[0].seats.map((s) => s.deck)).toEqual(['the-epic-storm', 'uw-control']);
+        await expect(page.locator('[data-seat-row="0"] .pick')).toHaveAttribute('aria-label', /the-epic-storm/);
+        await expect(page.locator('[data-seat-row="1"] .pick')).toHaveAttribute('aria-label', /uw-control/);
+        expectClean(c, '[seated] selected-deck matchup');
+      } finally {
+        await ctx.close();
+      }
+    });
+
     test('seats a human at seat 1 (startup table) and asserts the mirrored 1v1 layout', async ({ browser }) => {
       const b = base as string;
       const label = `[seated]`;

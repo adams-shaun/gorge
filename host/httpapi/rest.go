@@ -17,6 +17,25 @@ func (h *handler) tables(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, h.reg.Tables())
 }
 
+// DeckInfo is one selectable deck loaded by the server. Format is the game
+// format used by CreateGame (not free-form authoring metadata), so the client
+// can filter the catalogue without reproducing the server's pool rules.
+type DeckInfo struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Format    string `json:"format"`
+	Archetype string `json:"archetype"`
+	Commander string `json:"commander,omitempty"`
+}
+
+func (h *handler) decks(w http.ResponseWriter, r *http.Request) {
+	decks := h.opts.Decks
+	if decks == nil {
+		decks = []DeckInfo{}
+	}
+	writeJSON(w, http.StatusOK, decks)
+}
+
 func (h *handler) matches(w http.ResponseWriter, r *http.Request) {
 	ms, err := h.reg.Matches(host.TableID(r.PathValue("t")))
 	if err != nil {
@@ -298,12 +317,22 @@ func (h *handler) unsubscribe(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// CreateGameRequest is the POST /api/games body: the format to play, as its
-// wire name ("commander" or "constructed", host.ParseFormat's vocabulary).
-// An absent or empty string means constructed — the zero Format, and the
-// same default the rest of the wire honours.
+// CreateGameRequest is the POST /api/games body. Deck ids are optional: an
+// omitted id leaves that seat's assignment to the server, preserving the
+// original random flow. They are filename stems from GET /api/decks.
 type CreateGameRequest struct {
-	Format string `json:"format"`
+	Format    string `json:"format"`
+	HumanDeck string `json:"human_deck,omitempty"`
+	BotDeck   string `json:"bot_deck,omitempty"`
+}
+
+// CreateGameOptions is the validated request handed across Options.CreateGame.
+// A struct keeps this public-ish seam extensible without another positional
+// parameter each time the create flow gains an option.
+type CreateGameOptions struct {
+	Format    host.Format
+	HumanDeck string
+	BotDeck   string
 }
 
 // CreateGameResponse is what a successful POST /api/games returns: the new
@@ -348,7 +377,9 @@ func (h *handler) games(w http.ResponseWriter, r *http.Request) {
 		}
 		format = f
 	}
-	resp, err := h.opts.CreateGame(format)
+	resp, err := h.opts.CreateGame(CreateGameOptions{
+		Format: format, HumanDeck: req.HumanDeck, BotDeck: req.BotDeck,
+	})
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
