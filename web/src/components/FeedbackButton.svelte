@@ -114,9 +114,15 @@
 {/if}
 
 <style>
+  /* Bottom-right, NOT top-right. The seated table's rail puts its own
+     controls in the top-right corner, and a fixed badge there sat directly on
+     top of [data-log-toggle] -- same y, overlapping x -- so elementFromPoint
+     at the toggle's centre returned this button and the log switch could not
+     be clicked at all. The smoke gate caught it as a 2-minute timeout rather
+     than a visible error, which is exactly how an overlay bug presents. */
   .feedback-badge {
     position: fixed;
-    top: var(--sp-2);
+    bottom: var(--sp-2);
     right: var(--sp-2);
     z-index: 30;
     padding: var(--sp-1) var(--sp-3);
@@ -136,7 +142,7 @@
   }
   .feedback-panel {
     position: fixed;
-    top: calc(var(--sp-2) + 2rem);
+    bottom: calc(var(--sp-2) + 2rem);
     right: var(--sp-2);
     z-index: 30;
     display: flex;

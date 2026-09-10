@@ -728,11 +728,34 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
         // option item — the real click path the unit suite cannot reach.
         const cardLoc = page.locator(`.handfan [data-obj="${pick.obj}"]`);
         await cardLoc.waitFor({ state: 'visible', timeout: WAIT_MS });
+        // A tile renders one of two affordances, and this guard has to drive
+        // whichever it gets. A card carrying exactly ONE option collapses to a
+        // direct-action button (`[data-single-action]`) with no menu at all —
+        // the seeded game's target is a land whose only option is "play" — so
+        // waiting for a menu badge on it hangs until the test's own timeout.
+        // With two or more options the badge opens a picker that is PORTALLED
+        // to <body>, so it is not a descendant of the card either: a
+        // card-scoped locator matches nothing. Two-to-six options render the
+        // radial wheel, whose buttons carry their own wire index; a longer
+        // list renders the same `body > .menu-pop` the ui24 guard locates.
+        //
+        // R-E4-1 holds on both paths — the direct action posts the option's
+        // own wire index exactly as a menu item does — and the assertion
+        // below (this card, and only this card, crosses to the board) is what
+        // actually discriminates a positional bug either way.
+        const single = cardLoc.locator('[data-single-action]');
         const badge = cardLoc.locator('button[aria-haspopup="menu"]');
-        await badge.click();
-        const item = cardLoc.locator('button[role="menuitem"]');
-        await item.waitFor({ state: 'visible', timeout: WAIT_MS });
-        await item.click();
+        if (await single.count() > 0) {
+          await single.waitFor({ state: 'visible', timeout: WAIT_MS });
+          await single.click();
+        } else {
+          await badge.click();
+          const wheelItem = page.locator(`body > [data-radial-picker] button[data-wire-index="${pick.index}"]`);
+          const listItem = page.locator('body > .menu-pop button[role="menuitem"]', { hasText: pick.label as string });
+          const item = (await wheelItem.count()) > 0 ? wheelItem : listItem;
+          await item.waitFor({ state: 'visible', timeout: WAIT_MS });
+          await item.click();
+        }
 
         // Discriminating assertion, on the OBSERVABLE: the option's OWN card
         // crosses to the board (a land played). Under a positional bug the
