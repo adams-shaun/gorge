@@ -20,6 +20,14 @@ type TriggerContext struct {
 	DefendingPlayer state.Target
 	TriggerPlayer   state.Target
 	TriggerCard     state.ObjID
+	// TriggerAmount is the magnitude the causing event carried -- the Damage
+	// event's dealt-damage amount for a DamageDone/DamageDealtOnce trigger,
+	// etc. It is what the TriggerCount$ heads (DamageAmount, LifeAmount,
+	// Amount) answer: the value has to come from the event that fired the
+	// trigger, so it is captured here exactly like the other provenance roles
+	// and survives to resolution through the per-stack-instance
+	// triggerContexts map. Zero when the causing event carried no amount.
+	TriggerAmount int32
 }
 
 // controlReferent is the single classifier for the two-token ownership and
