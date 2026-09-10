@@ -1,7 +1,25 @@
 import type { View } from '../protocol';
+import type { CardOptions } from './cardoptions';
 
 export type End = { obj: number } | { seat: number };
-export interface Arrow { from: End; to: End; kind: 'target' | 'attack' | 'block' }
+export interface Arrow { from: End; to: End; kind: 'target' | 'target-preview' | 'attack' | 'block' }
+
+/** Pending decisions name legal candidates but have not resolved a target
+ * relationship yet. Expose those board anchors as proposed arrows; the DOM
+ * layer remains responsible for silently dropping anchors not on screen. */
+export function previewArrowsFor(options: CardOptions | null): Arrow[] {
+  if (options === null || options.source === undefined) return [];
+  const source = options.source;
+  const out: Arrow[] = [];
+  for (const obj of options.byObj.keys()) {
+    if (obj === source) continue;
+    out.push({ from: { obj: source }, to: { obj }, kind: 'target-preview' });
+  }
+  for (const seat of options.byPlayer.keys()) {
+    out.push({ from: { obj: source }, to: { seat }, kind: 'target-preview' });
+  }
+  return out;
+}
 
 /** arrowsFor reads relationships the server already resolved; it decides nothing about legality. */
 export function arrowsFor(view: View): Arrow[] {

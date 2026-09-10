@@ -3,8 +3,7 @@
   import CardImage from './CardImage.svelte';
   import CardDetail from './CardDetail.svelte';
   import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
-  import { placeMenu, MENU_WIDTH, type MenuAnchor } from '../lib/menuplacement';
-  import { postSingleAction, singleActionIcon, singleTapOptionOf } from '../lib/cardoptions';
+  import OptionPicker from './OptionPicker.svelte';
 
   /**
    * CardTile is the battlefield/stack/strip face of one object. It has no
@@ -70,46 +69,6 @@
      *  and the default is closed. */
     open0?: boolean;
   } = $props();
-
-  // For two or more options, the menu is this tile's own open/closed state:
-  // nothing on the wire drives it and nothing outside reads it. Its badge is
-  // a real button in the tab order (keyboard reachable), the menu items are
-  // the server's own option labels, and clicking one posts that option's own
-  // index through tileOptions.post — which is the seat panel (R-E4-1: the
-  // index, never a position in a rebuilt list).
-  //
-  // THE MENU IS PORTALLED AND FIXED (ui23), not an absolutely-positioned
-  // child of the tile: inside a scrollable `.quadrant` an inline menu is
-  // clipped by the quadrant's `overflow: auto` when it hangs below a tall
-  // row. Portalled to body and positioned by the badge's rect, no ancestor's
-  // overflow or containing block can cut it off, and placeMenu keeps it on
-  // screen (flipping above the badge when there is no room below).
-  // svelte-ignore state_referenced_locally
-  let open = $state(open0);
-  let menuAnchor = $state<MenuAnchor | null>(null);
-  let badgeEl = $state<HTMLButtonElement | null>(null);
-  function toggleMenu() {
-    open = !open;
-    if (open && badgeEl) {
-      const r = badgeEl.getBoundingClientRect();
-      menuAnchor = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
-    }
-  }
-  const menuPlacement = $derived(
-    menuAnchor
-      ? placeMenu(menuAnchor, typeof window === 'undefined' ? 0 : window.innerWidth, typeof window === 'undefined' ? 0 : window.innerHeight)
-      : { x: 8, y: 8, maxHeight: 400, up: false },
-  );
-  /** portal moves the menu node to <body> so no scroll container or
-   *  containing block can clip it — exactly the CardDetail panel's model. */
-  function portal(node: HTMLElement) {
-    document.body.appendChild(node);
-    return {
-      destroy() {
-        node.remove();
-      },
-    };
-  }
 
   // Ability shorthand for the keywords players scan for during combat. A
   // keyword with no shorthand is deliberately NOT drawn as a mark: an
@@ -241,78 +200,9 @@
 </div>
 
 {#if tileOptions}
-  {@const tapAction = singleTapOptionOf(tileOptions)}
-  <!-- The options affordance sits OUTSIDE the role="button" tile so a
-       real button is never nested inside one. It is anchored to the tile's
-       top-right corner — the one corner with no meaning yet (top-left is
-       keyword marks, the bottom band is state), so the tile's signal
-       hierarchy stays intact. -->
-  <div class="tile-actions">
-    {#if tileOptions.list.length === 1 || tapAction !== null}
-      {@const action = tapAction ?? tileOptions.list[0]}
-      {@const icon = singleActionIcon(action)}
-      <button
-        class="action-icon badge--{tileOptions.tone}"
-        class:selected={tileOptions.pickedOrder.length > 0}
-        type="button"
-        data-single-action
-        data-action-icon={icon}
-        aria-label={action.label}
-        title={action.label}
-        onclick={(event) => {
-          // A tile may sit inside CardStack's expand/collapse button. Acting
-          // on its sole wire option must not also collapse that parent stack.
-          event.stopPropagation();
-          postSingleAction(tileOptions);
-        }}
-      >
-        <span aria-hidden="true">{icon === 'tap' ? '↻' : icon === 'cast' ? '✦' : '›'}</span>
-      </button>
-    {:else}
-      <button
-        class="badge badge--{tileOptions.tone}"
-        class:selected={tileOptions.pickedOrder.length > 0}
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label="{tileOptions.list.length} actions for {card.name}"
-        title="Options for {card.name}"
-        bind:this={badgeEl}
-        onclick={(event) => {
-          // A tile may sit inside CardStack's expand/collapse button. Opening
-          // its own action menu must not also collapse that parent stack.
-          event.stopPropagation();
-          toggleMenu();
-        }}
-      >
-        <span class="badge__n data">{tileOptions.list.length}</span>
-      </button>
-    {/if}
-    {#if tileOptions.pickedOrder.length > 0}
-      <!-- The picked order number is the seat panel's own idiom ({pickedAt
-           + 1}), restated on the tile so a multi-pick decision shows what is
-           already chosen and in which order. -->
-      <span class="sel data" aria-label="picked {tileOptions.pickedOrder.join(', ')}">{tileOptions.pickedOrder.join(',')}</span>
-    {/if}
-    {#if open && tileOptions.list.length > 1 && tapAction === null}
-      <!-- PORTALLED TO <body> AND FIXED. An inline absolute child of the
-           tile inside the quadrant is clipped by the quadrant's overflow;
-           hanging the menu off the viewport means no ancestor can cut it
-           off, and placeMenu keeps it on screen (flipping above the badge
-           when there is no room below). See lib/menuplacement. -->
-      <div class="menu-pop" use:portal style:left="{menuPlacement.x}px" style:top="{menuPlacement.y}px" style:width="{MENU_WIDTH}px" style:max-height="{menuPlacement.maxHeight}px">
-        <ul class="menu" role="menu" aria-label="Options for {card.name}">
-          {#each tileOptions.list as opt (opt.index)}
-            <li role="none">
-              <button class="menu__item" type="button" role="menuitem" onclick={() => tileOptions.post(opt.index)}>
-                {opt.label}
-              </button>
-            </li>
-          {/each}
-        </ul>
-      </div>
-    {/if}
-  </div>
+  <!-- Outside the role=button tile: OptionPicker owns the one shared direct /
+       radial / long-list affordance used by every board anchor. -->
+  <OptionPicker {tileOptions} subject="for {card.name}" {open0} collapseTapActions />
 {/if}
 </div>
 
@@ -520,128 +410,5 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  /* An option affordance: a small plate on the tile's free top-right corner.
-     One offer is its direct icon; several carry a count and open a menu of
-     the server's own option labels. The plate is a real
-     button — keyboard reachable, and it names the card it belongs to — and
-     the menu items are the option labels verbatim. The tone rule on the
-     plate's inner edge is applied by the board-marking layer (see the
-     marking commit); its neutral state is the instrument ink. */
-  .tile-actions {
-    position: absolute;
-    top: 1px;
-    right: 1px;
-    z-index: 3;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
-    line-height: 1;
-  }
-  .badge,
-  .action-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 1.1rem;
-    height: 1.1rem;
-    padding: 0 0.25rem;
-    border-radius: 3px;
-    border: var(--edge-w) solid var(--edge-inst);
-    background: var(--instrument);
-    color: var(--ink);
-    font-family: var(--font-data);
-    font-size: var(--t-10);
-    font-weight: 600;
-    cursor: pointer;
-  }
-  /* The badge wears the decision's tone — the same warm/cool register the
-     seat panel paints — so a card marked in a target/block/mode decision
-     reads as blocked-on, and a card markable in a cast/activate window reads
-     as offered. This is the one place the two senses are distinguished on
-     the board, and it is the same distinction as the panel's data-tone. */
-  .badge--initiative {
-    background: var(--initiative);
-    border-color: var(--initiative);
-    color: var(--felt-sunk);
-  }
-  .badge--offered {
-    background: var(--offered);
-    border-color: var(--offered);
-    color: var(--felt-sunk);
-  }
-  .badge.selected,
-  .action-icon.selected {
-    outline: 2px solid var(--ink);
-    outline-offset: 1px;
-  }
-  .action-icon {
-    width: 1.35rem;
-    padding: 0;
-    font-size: var(--t-14);
-    line-height: 1;
-  }
-  /* The picked ordinal chip, in the instrument's data voice, under the badge
-     (the tile's free corner) — the same number the panel paints on the
-     option, so the board and the panel agree about what is chosen. */
-  .sel {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 1rem;
-    height: 1rem;
-    padding: 0 0.2rem;
-    border-radius: 2px;
-    background: var(--ink);
-    color: var(--felt-sunk);
-    font-size: var(--t-10);
-    font-weight: 600;
-  }
-  .badge__n {
-    font-size: inherit;
-  }
-  .badge:hover,
-  .badge[aria-expanded='true'],
-  .action-icon:hover {
-    border-color: var(--ink-dim);
-    color: var(--ink);
-  }
-  .menu-pop {
-    position: fixed;
-    z-index: 20;
-    box-sizing: border-box;
-    overflow-y: auto;
-    background: var(--instrument);
-    border: var(--edge-w) solid var(--edge-inst);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-lift);
-    padding: 2px;
-  }
-  .menu {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .menu__item {
-    display: block;
-    width: 100%;
-    text-align: left;
-    background: none;
-    border: 0;
-    border-left: 2px solid transparent;
-    border-radius: 0;
-    color: var(--ink-inst);
-    font-family: var(--font-ui);
-    font-size: var(--t-12);
-    line-height: 1.35;
-    padding: var(--sp-1) var(--sp-2);
-    cursor: pointer;
-  }
-  .menu__item:hover,
-  .menu__item:focus-visible {
-    background: color-mix(in srgb, var(--ink) 7%, var(--instrument));
-    border-left-color: var(--ink-dim);
-    color: var(--ink);
   }
 </style>

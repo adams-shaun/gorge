@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render } from 'svelte/server';
 import type { CardView } from '../protocol';
 import type { TileOptions } from '../lib/cardoptions';
+import { postTileOption } from '../lib/cardoptions';
 import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
 import CardTile from './CardTile.svelte';
 
@@ -82,13 +83,47 @@ describe('CardTile options affordance (ui21)', () => {
     expect(html).toContain('data');
   });
 
-  it('the option menu renders the server labels VERBATIM, not composed from kind', () => {
+  it('two through six options open the radial picker with full accessible labels', () => {
     const { html } = render(CardTile, { props: { card: card(), tileOptions: opts(), open0: true } });
+    expect(html).toContain('data-radial-picker');
     expect(html).toContain('Cast Fireball');
     expect(html).toContain('Activate Wasteland');
     expect(html).not.toContain('cast: Cast Fireball'); // never re-phrased from kind
     expect(html).toContain('role="menu"');
     expect(html).toContain('role="menuitem"');
+  });
+
+  it('posts and exposes each radial option by its own wire index, not its position', () => {
+    const t = opts();
+    const { html } = render(CardTile, { props: { card: card(), tileOptions: t, open0: true } });
+    expect(html).toContain('data-wire-index="3"');
+    expect(html).toContain('data-wire-index="8"');
+    postTileOption(t, t.list[1]);
+    expect(t.post).toHaveBeenCalledWith(8);
+  });
+
+  it('more than six options retain the rectangular list menu', () => {
+    const list = Array.from({ length: 7 }, (_, i) => ({
+      index: 20 + i * 3, kind: 'ability', label: `Long option ${i + 1}`, obj: 16, player: 0,
+    }));
+    const { html } = render(CardTile, { props: { card: card(), tileOptions: opts({ list }), open0: true } });
+    expect(html).toContain('menu-pop');
+    expect(html).toContain('menu__item');
+    expect(html).not.toContain('data-radial-picker');
+    expect(html).toContain('Long option 7');
+  });
+
+  it('an all-colour option set renders WUBRGC pip buttons rather than neutral labels', () => {
+    const list = ['W', 'U', 'B', 'R', 'G', 'C'].map((symbol, i) => ({
+      index: 41 + i * 2, kind: 'ability', label: `Add ${symbol}`, obj: 16, player: 0,
+    }));
+    const { html } = render(CardTile, { props: { card: card(), tileOptions: opts({ list }), open0: true } });
+    for (const symbol of ['W', 'U', 'B', 'R', 'G', 'C']) {
+      expect(html).toContain(`data-mana-option="${symbol}"`);
+      expect(html).toContain(`var(--mana-${symbol.toLowerCase()})`);
+    }
+    expect(html).toContain('wheel-button--mana');
+    expect(html).not.toMatch(/>Add [WUBRGC]</); // colour itself is the visible label
   });
 
   it('each menu item is keyed by the option\'s OWN index, never a position in a rebuilt list (R-E4-1)', () => {
