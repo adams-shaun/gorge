@@ -22,6 +22,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerSource = e.protectionSource(ev.Obj)
 	case "DamageDone", "DamageDealtOnce":
 		c.TriggerSource = e.damaging
+		c.TriggerAmount = ev.Amount
 		c.TriggerTarget = state.Target{Obj: ev.Obj}
 		if ev.Obj == 0 {
 			c.TriggerTarget = player(ev.Player)
