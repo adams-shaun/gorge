@@ -323,6 +323,24 @@ func TestTurnChangeResetsZoneEntryAndDamageHistory(t *testing.T) {
 	}
 }
 
+func TestReversedMoveRestoresZoneEntryHistory(t *testing.T) {
+	g, l := twoPlayer(t)
+	id := g.Zone(state.ZLibrary, 0)[0]
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZLibrary, To: state.ZHand})
+	Emit(g, l, Event{Kind: TurnChange, Player: 1, Amount: 2})
+	before := *g.Obj(id)
+	if before.EnteredThisTurn || before.EnteredFrom != state.ZLibrary {
+		t.Fatalf("fixture history = %t/%s, want false/library", before.EnteredThisTurn, before.EnteredFrom)
+	}
+
+	Emit(g, l, Event{Kind: PutOnStack, Obj: id, From: state.ZHand, To: state.ZStack})
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZStack, To: state.ZHand, Text: "reversed"})
+	got := g.Obj(id)
+	if got.EnteredThisTurn != before.EnteredThisTurn || got.EnteredFrom != before.EnteredFrom {
+		t.Fatalf("reversed move history = %t/%s, want %t/%s", got.EnteredThisTurn, got.EnteredFrom, before.EnteredThisTurn, before.EnteredFrom)
+	}
+}
+
 func TestShuffleReplacesLibraryOrder(t *testing.T) {
 	g, l := twoPlayer(t)
 	want := []state.ObjID{5, 4, 3, 2, 1}

@@ -45,7 +45,33 @@ func Apply(g *state.Game, e Event) {
 		}
 
 	case MoveZone, Draw, PutOnStack:
+		// CR 733.1 reverses a proposed cast with a real logged stack->origin
+		// move. Preserve the entry history that preceded its stack proposal in
+		// transient object state: a log-only replay sees the same PutOnStack,
+		// captures the same fields and consumes them on the reverse move.
+		wasStack := false
+		if o := g.Obj(e.Obj); o != nil {
+			wasStack = o.Zone == state.ZStack
+			if e.To == state.ZStack {
+				o.PreStackEntryThisTurn = o.EnteredThisTurn
+				o.PreStackEntryFrom = o.EnteredFrom
+				o.HasPreStackEntry = true
+			}
+		}
 		Move(g, e.Obj, e.From, e.To)
+		if o := g.Obj(e.Obj); o != nil {
+			if e.Text == "reversed" && o.HasPreStackEntry {
+				o.EnteredThisTurn = o.PreStackEntryThisTurn
+				o.EnteredFrom = o.PreStackEntryFrom
+				o.PreStackEntryThisTurn = false
+				o.PreStackEntryFrom = state.ZLibrary
+				o.HasPreStackEntry = false
+			} else if wasStack && e.To != state.ZStack {
+				o.PreStackEntryThisTurn = false
+				o.PreStackEntryFrom = state.ZLibrary
+				o.HasPreStackEntry = false
+			}
+		}
 
 	case LifeChange:
 		if validPlayer(g, e.Player) {
