@@ -736,10 +736,13 @@ var acceptanceHeads = map[int]string{
 	// PASS, the two Charm arms this task owned flipping green with nothing
 	// regressing. The seat's own reported 8-seat head predates the pc1 and
 	// pc2 merges; these are re-measured on a branch rebased onto this main.
-	2: "cf9a4dde728b3d2b",
-	4: "662c4e5bcdca0716",
+	// pl1: fixed PayLife<N> costs change 2/4/8-seat play: the two-seat game
+	// activates Polluted Delta, while 4/8-seat games offer Force of Will's
+	// paid-life alternative. The six-seat game remains byte-identical.
+	2: "afedfc138bad4907",
+	4: "5b40e0214fac9d15",
 	6: "a9437f5b821bf2f8",
-	8: "50e4812486e552a7",
+	8: "a695cdac542e2642",
 }
 
 func TestHeads(t *testing.T) {
