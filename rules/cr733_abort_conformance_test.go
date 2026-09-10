@@ -166,6 +166,33 @@ func TestCR733AbortAfterAsEntersChoiceKeepsChosenNumber(t *testing.T) {
 	crAbortSites(t, []string{"spell_mana_after_choice"})
 }
 
+// TestCR733AbortRestoresZoneEntryHistory pins the derived state that the
+// reverse stack move itself overwrites. The TurnChange makes the before value
+// deliberately false (with its prior provenance retained), so both fields must
+// be restored exactly after Lightning Bolt's real insufficient-mana abort.
+// TestTurnChangeResetsZoneEntryAndDamageHistory remains the committed-move
+// control: ordinary moves must still record true and their actual departure.
+func TestCR733AbortRestoresZoneEntryHistory(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := crAbortEngine(t, reg, "uw-control")
+	id := crAbortMove(t, e, 0, "Lightning Bolt", state.ZHand)
+
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: e.G.Turn + 1})
+	before := *e.G.Obj(id)
+	if before.EnteredThisTurn || before.EnteredFrom != state.ZLibrary {
+		t.Fatalf("CR 733.1 Lightning Bolt seq %d: fixture history = %t/%s, want false/library", len(e.L.Events), before.EnteredThisTurn, before.EnteredFrom)
+	}
+	e.askPriority(0)
+	e.pending = nil // Direct proposal exercises the real insufficient-mana abort site.
+	e.beginCast(0, decision.Option{Kind: "cast", Obj: id})
+	e.Advance()
+
+	got := e.G.Obj(id)
+	if got.EnteredThisTurn != before.EnteredThisTurn || got.EnteredFrom != before.EnteredFrom {
+		t.Fatalf("CR 733.1 Lightning Bolt seq %d: abort history = %t/%s, want %t/%s", len(e.L.Events), got.EnteredThisTurn, got.EnteredFrom, before.EnteredThisTurn, before.EnteredFrom)
+	}
+}
+
 func crAbortSites(t *testing.T, sites []string) {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)

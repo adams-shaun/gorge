@@ -50,6 +50,14 @@ type Object struct {
 	EnteredFrom            Zone
 	WasDealtDamageThisTurn bool
 
+	// preStackEntry* carries a card's entry history only while it is on the
+	// stack. events.Apply captures it before PutOnStack overwrites the public
+	// fields, then restores and clears it for CR 733.1's logged reverse move.
+	// It is never a second source of truth for a completed zone change.
+	PreStackEntryThisTurn bool
+	PreStackEntryFrom     Zone
+	HasPreStackEntry      bool
+
 	// Stack-only.
 	Ability *cards.SA
 	Source  ObjID
