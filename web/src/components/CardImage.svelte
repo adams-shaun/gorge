@@ -28,7 +28,14 @@
    * Width comes from --card-w / --card-w-large so a caller can scale a row of
    * tiles without this component needing to know about board layout.
    */
-  let { card, size = 'tile', fallback = 'text', pt = true }: { card: CardView; size?: 'tile' | 'large'; fallback?: 'text' | 'none'; pt?: boolean } = $props();
+  let { card, size = 'tile', fallback = 'text', pt = true, onresolved }: {
+    card: CardView;
+    size?: 'tile' | 'large';
+    fallback?: 'text' | 'none';
+    pt?: boolean;
+    /** Lets a detail surface choose its layout only after real art resolves. */
+    onresolved?: (resolved: boolean) => void;
+  } = $props();
 
   let url = $state<string | null>(null);
   let offline = $state(false);
@@ -37,8 +44,12 @@
     const name = card.printing.name;
     let cancelled = false;
     url = null;
+    onresolved?.(false);
     images.url(name).then((u) => {
-      if (!cancelled) url = u;
+      if (!cancelled) {
+        url = u;
+        onresolved?.(u !== null);
+      }
     });
     offline = images.offline();
     const poll = setInterval(() => (offline = images.offline()), 1000);

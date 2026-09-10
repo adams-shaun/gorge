@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { CardView } from '../protocol';
   import { oracle, type OracleCard } from '../lib/oracle';
-  import { placePanel, PANEL_WIDTH, type AnchorRect } from '../lib/carddetail.svelte';
+  import { detailLayout, placePanel, PLATE_WIDTH, type AnchorRect } from '../lib/carddetail.svelte';
   import CardImage from './CardImage.svelte';
   import ManaSymbols from './ManaSymbols.svelte';
 
@@ -134,7 +134,26 @@
     };
   }
 
-  const placement = $derived(placePanel(anchor, typeof window === 'undefined' ? 0 : window.innerWidth, typeof window === 'undefined' ? 0 : window.innerHeight));
+  let plateResolved = $state(false);
+  let viewportWidth = $state(typeof window === 'undefined' ? 0 : window.innerWidth);
+  let viewportHeight = $state(typeof window === 'undefined' ? 0 : window.innerHeight);
+
+  // The plate only earns a column after its image resolves. Until then the
+  // common wire-only panel remains a complete, compact one-column ledger.
+  const layout = $derived(detailLayout(plateResolved, viewportWidth));
+  const placement = $derived(placePanel(anchor, viewportWidth, viewportHeight, layout.width));
+  const setPlateResolved = (resolved: boolean) => (plateResolved = resolved);
+
+  $effect(() => {
+    if (typeof window === 'undefined') return;
+    const resize = () => {
+      viewportWidth = window.innerWidth;
+      viewportHeight = window.innerHeight;
+    };
+    resize();
+    window.addEventListener('resize', resize);
+    return () => window.removeEventListener('resize', resize);
+  });
 </script>
 
 <!-- PORTALLED TO <body>. `position: fixed` resolves against the nearest
@@ -155,20 +174,26 @@
   style:left="{placement.x}px"
   style:top={placement.y != null ? `${placement.y}px` : null}
   style:bottom={placement.bottom != null ? `${placement.bottom}px` : null}
-  style:width="{PANEL_WIDTH}px"
+  style:width="{layout.width}px"
   style:max-height="{placement.maxHeight}px"
+  style:--plate-width="{PLATE_WIDTH}px"
+  class:card-detail--has-plate={plateResolved}
+  class:card-detail--two-column={layout.sideBySide}
 >
-  <!-- The printed card, full bleed, or nothing at all. -->
-  <div class="plate"><CardImage {card} size="large" fallback="none" /></div>
+  <!-- The printed card is a whole plate when art resolves, or absent. -->
+  <div class="plate"><CardImage {card} size="large" fallback="none" onresolved={setPlateResolved} /></div>
 
-  <header class="head">
-    <h2 class="name">{card.name}</h2>
-    {#if card.mana_cost}<ManaSymbols cost={card.mana_cost} />{/if}
-  </header>
-  <p class="types">{card.types}</p>
+  <!-- The engine's object remains the loud instrument ledger, beside a plate
+       on a wide viewport and its complete one-column self otherwise. -->
+  <div class="ledger-column" data-ledger-column>
+    <header class="head">
+      <h2 class="name">{card.name}</h2>
+      {#if card.mana_cost}<ManaSymbols cost={card.mana_cost} />{/if}
+    </header>
+    <p class="types">{card.types}</p>
 
-  <!-- The engine's object. Rows appear only when they carry something. -->
-  <dl class="ledger">
+    <!-- Rows appear only when they carry something. -->
+    <dl class="ledger">
     {#if isCreature}
       <div class="row">
         <dt>Power / toughness</dt>
@@ -210,15 +235,16 @@
         </dd>
       </div>
     {/if}
-  </dl>
+    </dl>
 
-  {#if orc?.oracle_text}<p class="card-detail__oracle">{orc.oracle_text}</p>{/if}
+    {#if orc?.oracle_text}<p class="card-detail__oracle">{orc.oracle_text}</p>{/if}
 
-  <footer class="stamp">
-    <span class="data">#{card.id}</span>
-    <span class="data">seat {card.controller}</span>
-    {#each states as s (s)}<span class="state">{s}</span>{/each}
-  </footer>
+    <footer class="stamp">
+      <span class="data">#{card.id}</span>
+      <span class="data">seat {card.controller}</span>
+      {#each states as s (s)}<span class="state">{s}</span>{/each}
+    </footer>
+  </div>
 </div>
 
 <style>
@@ -250,15 +276,13 @@
     color: var(--ink-inst);
   }
 
-  /* The art runs to the panel's edges. A card is an image with a border
-     printed on it; adding a second border around it makes it a thumbnail. */
+  /* The plate is absent until real art resolves. In the narrow fallback it
+     remains the familiar full-width top plate; on a wide viewport it keeps
+     its 63:88 card proportion in a left column, never a cropped thumbnail. */
   .plate {
     display: none;
   }
-  /* Only when an image actually resolved. With nothing to show the plate is
-     not an empty frame or a spinner shell — it is simply absent, and the
-     panel below closes over the space. */
-  .plate:has(:global(.card-image)) {
+  .card-detail--has-plate .plate {
     display: block;
     --card-w-large: 100%;
     --card-radius: 0;
@@ -267,6 +291,26 @@
     border-bottom: 1px solid var(--edge-inst);
     overflow: hidden;
     border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .card-detail--two-column {
+    display: grid;
+    grid-template-columns: var(--plate-width) minmax(0, 1fr);
+    align-items: start;
+    gap: var(--sp-2);
+  }
+  .card-detail--two-column .plate {
+    --card-w-large: var(--plate-width);
+    --card-radius: var(--radius-card);
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    overflow: visible;
+  }
+  .ledger-column {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--sp-2);
   }
 
   .head {
