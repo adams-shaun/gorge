@@ -2,9 +2,9 @@
   import type { PlayerView, SeatInfo } from '../protocol';
   import type { SeatCorner } from '../lib/seattable';
   import type { CardOptions, TileOptions } from '../lib/cardoptions';
-  import { playerOptions, postSingleAction } from '../lib/cardoptions';
-  import { placeMenu, MENU_WIDTH, type MenuAnchor } from '../lib/menuplacement';
+  import { playerOptions } from '../lib/cardoptions';
   import ManaPool from './ManaPool.svelte';
+  import OptionPicker from './OptionPicker.svelte';
 
   /**
    * IdentityBar sits at one seat's outer corner and is the whole player
@@ -52,33 +52,6 @@
   } = $props();
 
   const tileOptions = $derived<TileOptions | null>(options ? playerOptions(options, player.seat) : null);
-
-  // Same open/menu state and portal-to-body pattern CardTile/CommanderTile
-  // use for a multi-option tile (more than one legal player target, e.g. a
-  // free-for-all table where several opponents are all targetable).
-  let open = $state(false);
-  let menuAnchor = $state<MenuAnchor | null>(null);
-  let badgeEl = $state<HTMLButtonElement | null>(null);
-  function toggleMenu() {
-    open = !open;
-    if (open && badgeEl) {
-      const r = badgeEl.getBoundingClientRect();
-      menuAnchor = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
-    }
-  }
-  const menuPlacement = $derived(
-    menuAnchor
-      ? placeMenu(menuAnchor, typeof window === 'undefined' ? 0 : window.innerWidth, typeof window === 'undefined' ? 0 : window.innerHeight)
-      : { x: 8, y: 8, maxHeight: 400, up: false },
-  );
-  function portal(node: HTMLElement) {
-    document.body.appendChild(node);
-    return {
-      destroy() {
-        node.remove();
-      },
-    };
-  }
 
   // The table knows a seat's name; a bare host that never registered one does
   // not, and PlayerView always carries a name of its own. Falling straight
@@ -144,60 +117,9 @@
   </div>
 
   {#if tileOptions}
-    <!-- The one board marking a targetable PLAYER can carry: the same
-         yellow/initiative badge a targetable creature gets from CardTile,
-         reusing the exact same option shape and post path (R-E4-1) — this
-         box just has no card face to anchor it to, so it sits in the
-         corner of the identity plate itself. -->
-    <div class="tile-actions">
-      {#if tileOptions.list.length === 1}
-        <button
-          class="action-icon badge--{tileOptions.tone}"
-          class:selected={tileOptions.pickedOrder.length > 0}
-          type="button"
-          data-single-action
-          data-action-icon="action"
-          aria-label={tileOptions.list[0].label}
-          title={tileOptions.list[0].label}
-          onclick={(event) => {
-            event.stopPropagation();
-            postSingleAction(tileOptions);
-          }}
-        >
-          <span aria-hidden="true">›</span>
-        </button>
-      {:else}
-        <button
-          class="badge badge--{tileOptions.tone}"
-          class:selected={tileOptions.pickedOrder.length > 0}
-          type="button"
-          aria-haspopup="menu"
-          aria-expanded={open}
-          aria-label="{tileOptions.list.length} actions targeting {who}"
-          title="Options targeting {who}"
-          bind:this={badgeEl}
-          onclick={(event) => {
-            event.stopPropagation();
-            toggleMenu();
-          }}
-        >
-          <span class="badge__n data">{tileOptions.list.length}</span>
-        </button>
-      {/if}
-      {#if open && tileOptions.list.length > 1}
-        <div class="menu-pop" use:portal style:left="{menuPlacement.x}px" style:top="{menuPlacement.y}px" style:width="{MENU_WIDTH}px" style:max-height="{menuPlacement.maxHeight}px">
-          <ul class="menu" role="menu" aria-label="Options targeting {who}">
-            {#each tileOptions.list as opt (opt.index)}
-              <li role="none">
-                <button class="menu__item" type="button" role="menuitem" onclick={() => tileOptions.post(opt.index)}>
-                  {opt.label}
-                </button>
-              </li>
-            {/each}
-          </ul>
-        </div>
-      {/if}
-    </div>
+    <!-- The identity plate uses the same shared direct/radial/list control as
+         card tiles; only its accessible subject differs. -->
+    <OptionPicker {tileOptions} subject="targeting {who}" />
   {/if}
 </div>
 
@@ -320,103 +242,4 @@
     overflow: hidden;
   }
 
-  /* The options affordance, same tokens CardTile/CommanderTile use for the
-     identical fact elsewhere on the board — `.identity` is already the
-     positioning context (it carries its own `position: absolute` via the
-     CORNER inline style), so this needs no extra wrapper. */
-  .tile-actions {
-    position: absolute;
-    top: 1px;
-    right: 1px;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
-    line-height: 1;
-  }
-  .badge,
-  .action-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 1.1rem;
-    height: 1.1rem;
-    padding: 0 0.25rem;
-    border-radius: 3px;
-    border: 1px solid var(--edge-inst);
-    background: var(--instrument);
-    color: var(--ink);
-    font-family: var(--font-data);
-    font-size: var(--t-10);
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .badge--initiative {
-    background: var(--initiative);
-    border-color: var(--initiative);
-    color: var(--felt-sunk);
-  }
-  .badge--offered {
-    background: var(--offered);
-    border-color: var(--offered);
-    color: var(--felt-sunk);
-  }
-  .badge.selected,
-  .action-icon.selected {
-    outline: 2px solid var(--ink);
-    outline-offset: 1px;
-  }
-  .action-icon {
-    width: 1.35rem;
-    padding: 0;
-    font-size: var(--t-14);
-    line-height: 1;
-  }
-  .badge__n {
-    font-size: inherit;
-  }
-  .badge:hover,
-  .badge[aria-expanded='true'],
-  .action-icon:hover {
-    border-color: var(--ink-dim);
-    color: var(--ink);
-  }
-  .menu-pop {
-    position: fixed;
-    z-index: 20;
-    box-sizing: border-box;
-    overflow-y: auto;
-    background: var(--instrument);
-    border: 1px solid var(--edge-inst);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-lift);
-    padding: 2px;
-  }
-  .menu {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .menu__item {
-    display: block;
-    width: 100%;
-    text-align: left;
-    background: none;
-    border: 0;
-    border-left: 2px solid transparent;
-    border-radius: 0;
-    color: var(--ink-inst);
-    font-family: var(--font-ui);
-    font-size: var(--t-12);
-    line-height: 1.35;
-    padding: var(--sp-1) var(--sp-2);
-    cursor: pointer;
-  }
-  .menu__item:hover,
-  .menu__item:focus-visible {
-    background: color-mix(in srgb, var(--ink) 7%, var(--instrument));
-    border-left-color: var(--ink-dim);
-    color: var(--ink);
-  }
 </style>

@@ -117,6 +117,7 @@
     const d = panel.active;
     if (d === null) return null;
     return {
+      source: d.source,
       byObj: optionsByObj(d),
       byPlayer: optionsByPlayer(d),
       picked: [...panel.picked],

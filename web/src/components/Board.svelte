@@ -42,7 +42,7 @@
       <Quadrant player={p} colour={seatColour(p.seat, seats)} {corner} stack={view.stack} {options} />
     </div>
   {/each}
-  <Arrows {view} />
+  <Arrows {view} {options} />
 </div>
 
 <style>
