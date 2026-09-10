@@ -57,7 +57,7 @@ func effRemoveCounterAll(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
-			if !MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
+			if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				continue
 			}
 			amt := n

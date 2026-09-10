@@ -83,6 +83,7 @@ type Host interface {
 
 // Ctx carries the bindings a Forge script refers to during resolution.
 type Ctx struct {
+	TriggerContext
 	Source     state.ObjID
 	Controller state.PlayerID
 	Targets    []state.Target

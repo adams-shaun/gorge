@@ -185,6 +185,10 @@ type Engine struct {
 	// triggerBefore is the immutable pre-departure board for an SBA death
 	// batch. Scoped to its emission/resumption, never carried as live state.
 	triggerBefore *triggerSnapshot
+	// Per-stack-instance trigger provenance, derived while queuing/placing
+	// triggers, cloned at intent boundaries and removed when the stack object
+	// leaves. Never encoded in events or inferred from a resolving source.
+	triggerContexts map[state.ObjID]effects.TriggerContext
 	// orderedTriggers is how many LEADING entries of pendingTriggers have
 	// already had their order settled by an answered KTriggerOrder decision
 	// (or, for a lone trigger, by there being nothing to decide). It is the
@@ -622,7 +626,16 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			lki = &cp
 		}
 	}
+	stackLen := len(e.G.Stack)
 	stored := events.Emit(e.G, e.L, ev)
+	if ev.Kind == events.StackCopy && len(e.G.Stack) > stackLen {
+		if tc, ok := e.triggerContexts[ev.Obj]; ok {
+			e.triggerContexts[e.G.Stack[len(e.G.Stack)-1]] = tc
+		}
+	}
+	if ev.Kind == events.MoveZone && ev.From == state.ZStack && ev.To != state.ZStack {
+		delete(e.triggerContexts, ev.Obj)
+	}
 	if ev.Kind == events.PutOnStack && e.deferCastTrigger {
 		// CR 601.2i: the cast trigger must not fire at the up-front push
 		// (601.2a), because the spell is not yet cast -- targets (601.2c) and

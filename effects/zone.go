@@ -201,7 +201,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	}
 	eligible := make([]state.ObjID, 0, len(lib))
 	for _, id := range lib {
-		if MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
+		if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 			eligible = append(eligible, id)
 		}
 	}
@@ -344,7 +344,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	for _, id := range chosen {
 		o := g.Obj(id)
 		if o == nil || o.Zone != state.ZLibrary || o.Owner != owner ||
-			!MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
+			!MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 			continue
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
@@ -442,7 +442,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 			// Snapshot the zone: emitting move events mutates it underneath us.
 			ids := append([]state.ObjID(nil), g.Zone(z, p)...)
 			for _, id := range ids {
-				if MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
+				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 					h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: to})
 				}
 			}
@@ -492,7 +492,7 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 			if h.HasKeyword(id, "Indestructible") {
 				continue
 			}
-			if MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
+			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				// NoRegen$ != "True", not == "": see effDestroy above.
 				if sa.Params["NoRegen"] != "True" && ReplaceDestruction(h, id) {
 					continue
@@ -552,7 +552,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			// player, since they choose from their own permanents.
 			ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, t.Player)...)
 			for _, id := range ids {
-				if MatchesSpecFrom(g, spec, id, t.Player, c.Source) {
+				if MatchesSpecCtx(g, spec, id, c.SpecContext(t.Player)) {
 					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 						From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
 					break

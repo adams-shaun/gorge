@@ -14,6 +14,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -326,8 +327,15 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		}
 		ids = append(ids, tgt.Obj)
 	}
+	stackLen := len(e.G.Stack)
 	e.emit(events.Event{Kind: events.TriggerPush, Player: pt.Controller,
 		Obj: pt.Source, Amount: int32(pt.Idx), IDs: ids, Text: "triggered ability"})
+	if len(e.G.Stack) > stackLen {
+		if e.triggerContexts == nil {
+			e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+		}
+		e.triggerContexts[e.G.Stack[len(e.G.Stack)-1]] = pt.Ctx.TriggerContext
+	}
 	// Task 7: a trigger that declares ValidTgts$ asks its controller for
 	// targets RIGHT AFTER its TriggerPush -- the ability object is now top of
 	// stack, and the choice is asked before any player receives priority. The
