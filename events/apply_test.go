@@ -286,6 +286,61 @@ func TestTurnChangeResetsPerTurnState(t *testing.T) {
 	}
 }
 
+func TestTurnChangeResetsZoneEntryAndDamageHistory(t *testing.T) {
+	g, l := twoPlayer(t)
+	id := g.Zone(state.ZLibrary, 0)[0]
+
+	// Move records the object's real departure zone, not the event's advisory
+	// From, and positive damage records a fact independent of marked damage.
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	Emit(g, l, Event{Kind: Damage, Obj: id, Amount: 2})
+	o := g.Obj(id)
+	if !o.EnteredThisTurn || o.EnteredFrom != state.ZLibrary {
+		t.Fatalf("entry history = entered:%v from:%v, want true/library", o.EnteredThisTurn, o.EnteredFrom)
+	}
+	if !o.WasDealtDamageThisTurn {
+		t.Fatal("positive Damage must record per-turn damage history")
+	}
+	// Healing does not un-deal the earlier damage.
+	Emit(g, l, Event{Kind: Damage, Obj: id, Amount: -2})
+	if !g.Obj(id).WasDealtDamageThisTurn {
+		t.Fatal("healing must not clear per-turn damage history")
+	}
+	// A second entry this turn replaces the provenance with the actual zone it
+	// just left, which is what ThisTurnEnteredFrom_Battlefield needs.
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZLibrary, To: state.ZGraveyard})
+	o = g.Obj(id)
+	if !o.EnteredThisTurn || o.EnteredFrom != state.ZBattlefield {
+		t.Fatalf("second entry history = entered:%v from:%v, want true/battlefield", o.EnteredThisTurn, o.EnteredFrom)
+	}
+
+	// Use the existing TurnChange reset boundary; these are game-wide facts,
+	// so a new active player clears history for objects owned by either seat.
+	Emit(g, l, Event{Kind: TurnChange, Player: 1, Amount: 2})
+	o = g.Obj(id)
+	if o.EnteredThisTurn || o.WasDealtDamageThisTurn {
+		t.Fatalf("per-turn history survived TurnChange: entered:%v damaged:%v", o.EnteredThisTurn, o.WasDealtDamageThisTurn)
+	}
+}
+
+func TestReversedMoveRestoresZoneEntryHistory(t *testing.T) {
+	g, l := twoPlayer(t)
+	id := g.Zone(state.ZLibrary, 0)[0]
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZLibrary, To: state.ZHand})
+	Emit(g, l, Event{Kind: TurnChange, Player: 1, Amount: 2})
+	before := *g.Obj(id)
+	if before.EnteredThisTurn || before.EnteredFrom != state.ZLibrary {
+		t.Fatalf("fixture history = %t/%s, want false/library", before.EnteredThisTurn, before.EnteredFrom)
+	}
+
+	Emit(g, l, Event{Kind: PutOnStack, Obj: id, From: state.ZHand, To: state.ZStack})
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZStack, To: state.ZHand, Text: "reversed"})
+	got := g.Obj(id)
+	if got.EnteredThisTurn != before.EnteredThisTurn || got.EnteredFrom != before.EnteredFrom {
+		t.Fatalf("reversed move history = %t/%s, want %t/%s", got.EnteredThisTurn, got.EnteredFrom, before.EnteredThisTurn, before.EnteredFrom)
+	}
+}
+
 func TestShuffleReplacesLibraryOrder(t *testing.T) {
 	g, l := twoPlayer(t)
 	want := []state.ObjID{5, 4, 3, 2, 1}

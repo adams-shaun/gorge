@@ -41,6 +41,23 @@ type Object struct {
 	Damage     int32
 	Counters   []Counter
 
+	// Zone-entry and damage history are derived exclusively in events.Apply
+	// from MoveZone/Draw/PutOnStack and Damage. They persist until the next
+	// TurnChange, so filters can answer Forge's ThisTurnEntered* and
+	// wasDealtDamageThisTurn vocabulary without scanning a partial event log.
+	// EnteredFrom is meaningful only while EnteredThisTurn is true.
+	EnteredThisTurn        bool
+	EnteredFrom            Zone
+	WasDealtDamageThisTurn bool
+
+	// preStackEntry* carries a card's entry history only while it is on the
+	// stack. events.Apply captures it before PutOnStack overwrites the public
+	// fields, then restores and clears it for CR 733.1's logged reverse move.
+	// It is never a second source of truth for a completed zone change.
+	PreStackEntryThisTurn bool
+	PreStackEntryFrom     Zone
+	HasPreStackEntry      bool
+
 	// Stack-only.
 	Ability *cards.SA
 	Source  ObjID

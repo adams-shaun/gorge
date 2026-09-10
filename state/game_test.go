@@ -218,6 +218,7 @@ func TestCloneCopiesTheNewFieldsAndSharesTokens(t *testing.T) {
 	g.Tokens = map[string]*cards.Card{"x": {}}
 	o := g.AddObject(nil, 0)
 	o.X, o.CastFlags, o.ChosenName, o.ChosenType, o.ChosenNumber, o.AttachedTo, o.IsToken, o.IsCopy = 2, FlagKicked, "n", "t", 4, 7, true, true
+	o.EnteredThisTurn, o.EnteredFrom, o.WasDealtDamageThisTurn = true, ZGraveyard, true
 	c := g.Clone()
 	co := c.Obj(o.ID)
 	// Object has slice fields (Counters, Targets, ...), so the whole struct
@@ -225,7 +226,9 @@ func TestCloneCopiesTheNewFieldsAndSharesTokens(t *testing.T) {
 	// hand instead.
 	if co.X != o.X || co.CastFlags != o.CastFlags || co.ChosenName != o.ChosenName ||
 		co.ChosenType != o.ChosenType || co.ChosenNumber != o.ChosenNumber ||
-		co.AttachedTo != o.AttachedTo || co.IsToken != o.IsToken || co.IsCopy != o.IsCopy {
+		co.AttachedTo != o.AttachedTo || co.IsToken != o.IsToken || co.IsCopy != o.IsCopy ||
+		co.EnteredThisTurn != o.EnteredThisTurn || co.EnteredFrom != o.EnteredFrom ||
+		co.WasDealtDamageThisTurn != o.WasDealtDamageThisTurn {
 		t.Fatalf("clone %+v vs %+v", *co, *o)
 	}
 	if c.Tokens["x"] != g.Tokens["x"] {
