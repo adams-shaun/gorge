@@ -101,6 +101,22 @@
   // than a HUD.
   const mulligan = $derived(panel ? mulliganPhase(panel.active) : null);
   const concede = $derived(panel?.concedeOption ?? null);
+  // A direct card action can hand the server a first-stage choice and receive
+  // a second decision for the same object (Underground Sea's activate -> Add
+  // U / Add B flow). Remember only that one network continuation: the picker
+  // itself is unmounted while the posted decision is hidden, so it cannot
+  // carry open state across the round trip.
+  let expectedCardFollowUp = $state<{ seq: number; obj: number } | null>(null);
+  let autoOpenCardDecision = $state<{ seq: number; obj: number } | null>(null);
+  $effect(() => {
+    const d = panel?.active ?? null;
+    const expected = expectedCardFollowUp;
+    if (d === null || expected === null || d.seq === expected.seq) return;
+    const count = d.options.filter((option) => option.obj === expected.obj).length;
+    autoOpenCardDecision = count >= 2 && count <= 6 ? { seq: d.seq, obj: expected.obj } : null;
+    expectedCardFollowUp = null;
+  });
+
   // The board's card-options index (ui21): the pending decision grouped by
   // the object each option concerns. For a seated view this is exactly the
   // decision the seat must answer now — the same decision the seat panel
@@ -122,7 +138,13 @@
       byPlayer: optionsByPlayer(d),
       picked: [...panel.picked],
       tone: toneOf(d),
-      post: (index: number) => panel.click(index),
+      autoOpenObj: autoOpenCardDecision?.seq === d.seq ? autoOpenCardDecision.obj : undefined,
+      post: (index: number, expectFollowUp = false) => {
+        const obj = d.options.find((option) => option.index === index)?.obj;
+        expectedCardFollowUp = expectFollowUp && obj !== undefined ? { seq: d.seq, obj } : null;
+        autoOpenCardDecision = null;
+        panel.click(index);
+      },
     };
   });
 
