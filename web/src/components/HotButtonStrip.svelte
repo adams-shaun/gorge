@@ -81,7 +81,7 @@
   }
   function fastForward(): void {
     if (!ffwdAvailable) return;
-    logic.startFastForward();
+    logic.startFastForward(view);
     logic.considerAuto(view);
   }
   function toggleStop(side: TurnSide, step: string): void {

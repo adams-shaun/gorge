@@ -1,7 +1,7 @@
 import type { Decision, Intent, Option, View } from '../protocol';
 import { fetchPending, postIntent, ApiError } from './api';
 import type { SeatCtx } from './seat';
-import { decide, emptyPriorityWindow, type StopReason, type Stops, type TurnSide } from './autopilot';
+import { decide, emptyPriorityWindow, turnSide, type StopReason, type Stops, type TurnSide } from './autopilot';
 import { actedOption, loadActPass, saveActPass } from './actpass';
 import { defaultStops, loadStops, saveStops, toggleStop } from './stops';
 
@@ -409,8 +409,12 @@ export class SeatPanelState {
     this.note = { kind: 'skip-off', reason };
   }
 
-  /** Start a bounded one-shot run. It uses decide(), but never changes the persistent Auto mode. */
-  startFastForward() {
+  /**
+   * Start a bounded one-shot run. It uses decide(), but never changes the
+   * persistent Auto mode. The current view is required because the press is
+   * itself consent at a set-stop window (see below).
+   */
+  startFastForward(view: View) {
     if (this.busy) return;
     this.auto = false;
     this.fastForward = true;
@@ -420,9 +424,25 @@ export class SeatPanelState {
     // Fast forward runs on its own acknowledgement machinery; Auto's stop
     // exception has no owner while the mode is off.
     this.autoStoppedSeq = null;
-    // Restarting on the set stop that ended the previous run means "I have
-    // seen this one; continue". No other stop reason earns this token.
-    this.fastAcknowledgedSeq = this.pending?.seq === this.fastStoppedSeq ? this.fastStoppedSeq : null;
+    // The press IS the consent at a stop-set window. Restarting on the set
+    // stop that ended the previous run has always meant "I have seen this
+    // one; continue"; a FIRST press at any pending priority window sitting
+    // on a stopped step/side means exactly the same thing — without this the
+    // press is spent arming the acknowledgement that only the second press
+    // could mint, and the player presses FFWD twice to move. The mint is
+    // deliberately over-broad at press time: considerAuto consumes the token
+    // only on decide()'s stop-set verdict at this exact seq and clears both
+    // tokens before it posts, so a window that turns out to be a plain pass
+    // verdict (nothing to do) or a non-stop-set safety stop never consumes
+    // it and the next stop-set stop mints fresh. Stops remain meaningful: a
+    // run still HALTS at the next stop it reaches mid-run — only the press
+    // at the halt moves on the first press now.
+    this.fastAcknowledgedSeq =
+      this.pending?.seq === this.fastStoppedSeq
+        ? this.fastStoppedSeq
+        : this.pending?.kind === 'priority' && this.stops[turnSide(view, this.ctx.seat)].has(view.step)
+          ? this.pending.seq
+          : null;
     this.note = { kind: 'fast-armed' };
   }
 
@@ -519,11 +539,12 @@ export class SeatPanelState {
       const verdict = decide({ decision: d, view, seat: this.ctx.seat, stops: this.stops, enabled: true, ffwd: this.fastForward });
       if (verdict.act === 'stop') {
         // decide() remains the safety oracle. The caller may acknowledge only
-        // the player's own set-stop verdict, only at the exact seq where the
-        // previous run stopped, and consumes that acknowledgement now so it
-        // cannot leak to the next window. decide() already proved this is the
-        // understood one-pass-option priority shape, so passOption supplies
-        // the wire index without relying on list position.
+        // the player's own set-stop verdict, only at the exact seq a press
+        // consented to (the previous run's stop, or a first press at a
+        // pending stop-set window), and consumes that acknowledgement now so
+        // it cannot leak to the next window. decide() already proved this is
+        // the understood one-pass-option priority shape, so passOption
+        // supplies the wire index without relying on list position.
         const acknowledged = this.fastForward
           && verdict.reason === 'stop-set'
           && d.seq === this.fastAcknowledgedSeq;
@@ -558,6 +579,10 @@ export class SeatPanelState {
           return;
         }
       } else {
+        // The run is moving, so any acknowledgement minted for THIS window
+        // at press time is moot — a token never outlives the window it was
+        // minted for.
+        this.fastAcknowledgedSeq = null;
         index = verdict.index;
       }
     } else {
