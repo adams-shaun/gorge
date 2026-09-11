@@ -212,6 +212,11 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if err != nil {
 		return err
 	}
+	// The card catalog (the six printed facts, /cards/named) is served from
+	// the same art-cache records art.go keeps — one Scryfall named response
+	// feeds both the image and the text — and is routed here, ahead of
+	// httpapi's mux, for the same reason /art/ is: additive, never shadowing
+	// anything httpapi already serves.
 	// A player's own bug report (feedback.go), written to its own durable
 	// directory rather than the disposable persistence dir — see config's
 	// `feedback` field. Routed here, ahead of httpapi's mux, for the same
@@ -220,6 +225,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	topMux := http.NewServeMux()
 	topMux.HandleFunc("GET /art/named", ac.named)
 	topMux.HandleFunc("GET /art/blob/{key}", ac.blob)
+	topMux.HandleFunc("GET /cards/named", ac.text)
 	// An empty -feedback disarms the endpoint entirely, the same opt-in shape
 	// Options.Seat and CreateGame use. That is what a config built in a test
 	// gets (the flag default only applies to the real binary), so a test
