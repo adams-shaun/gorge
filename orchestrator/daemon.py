@@ -76,13 +76,14 @@ def discover_new_issues() -> None:
 # --- per-status advancement --------------------------------------------------
 
 def advance_new(issue: issues.Issue) -> None:
+    name = seats.triage_name(issue.id)
     status_path = config.ORCH_STATE_DIR / "triage" / issue.id / "status.json"
-    st = pi.read_status(status_path)
-    if st is None:
+    if not pi.already_launched(name):
         seats.launch_triage(issue.id, config.ISSUES_DIR / f"{issue.id}.md")
         issue.log("triage dispatched (local)")
         issue.save()
         return
+    st = pi.read_status(status_path)
     if not pi.is_terminal(st):
         return
     if st.get("status") == "DONE":
@@ -104,16 +105,19 @@ def advance_briefed(issue: issues.Issue) -> None:
     wt = git_ops.create_worktree(issue.id)
     issue.worktree = str(wt.relative_to(config.REPO))
     issue.branch = f"wt/{issue.id}"
-    seats.launch_implementer(issue.id, wt, issue.brief, escalated=False, findings_text=None)
     issue.seat_kind = "local"
     issue.local_rounds = 1
+    tag = seats.round_tag(issue)
+    name = seats.implementer_name(issue.id, tag)
+    if pi.already_launched(name):
+        return  # a prior tick crashed after launch but before save; don't double-launch
+    seats.launch_implementer(issue.id, wt, tag, issue.brief, escalated=False, findings_text=None)
     issue.status = "dispatched"
-    issue.log("implementer dispatched (local, round 1)")
+    issue.log(f"implementer dispatched (local, {tag})")
     issue.save()
 
 
 def _redispatch_implementer(issue: issues.Issue, findings: str) -> None:
-    wt = config.REPO / issue.worktree
     escalated = issue.seat_kind == "escalated"
     if escalated:
         issue.escalated_rounds += 1
@@ -123,16 +127,23 @@ def _redispatch_implementer(issue: issues.Issue, findings: str) -> None:
             issue.seat_kind = "escalated"
             issue.escalated_rounds = 1
             escalated = True
-    seats.launch_implementer(issue.id, wt, issue.brief, escalated=escalated, findings_text=findings)
-    round_no = issue.escalated_rounds if escalated else issue.local_rounds
+    tag = seats.round_tag(issue)
+    name = seats.implementer_name(issue.id, tag)
+    if pi.already_launched(name):
+        issue.status = "dispatched"
+        issue.save()
+        return
+    wt = config.REPO / issue.worktree
+    seats.launch_implementer(issue.id, wt, tag, issue.brief, escalated=escalated, findings_text=findings)
     issue.status = "dispatched"
-    issue.log(f"implementer redispatched ({'escalated/sol' if escalated else 'local'}, round {round_no})")
+    issue.log(f"implementer redispatched ({'escalated/sol' if escalated else 'local'}, {tag})")
     issue.save()
 
 
 def advance_dispatched(issue: issues.Issue) -> None:
     wt = config.REPO / issue.worktree
-    status_path = wt / ".ds4" / "status.json"
+    tag = seats.round_tag(issue)
+    status_path = seats.implementer_status_path(wt, tag)
     st = pi.read_status(status_path)
     if not pi.is_terminal(st):
         return
@@ -141,9 +152,14 @@ def advance_dispatched(issue: issues.Issue) -> None:
         commits = " ".join(st.get("commits", []))
         if commits:
             issue.commits = commits
-        seats.launch_review(issue.id, wt)
+        review_name = seats.review_name(issue.id, tag)
+        if pi.already_launched(review_name):
+            issue.status = "review"
+            issue.save()
+            return
+        seats.launch_review(issue.id, wt, tag)
         issue.status = "review"
-        issue.log(f"implementer {outcome}, review dispatched (terra)")
+        issue.log(f"implementer {outcome} ({tag}), review dispatched (terra)")
         issue.save()
     elif outcome == "NEEDS_CONTEXT":
         issue.status = "human_needed"
@@ -152,10 +168,10 @@ def advance_dispatched(issue: issues.Issue) -> None:
     else:  # BLOCKED, CAPPED, UNKNOWN -- a failed round, not a question
         if _escalation_exhausted(issue):
             issue.status = "human_needed"
-            issue.log(f"implementer {outcome}, escalation ladder exhausted")
+            issue.log(f"implementer {outcome} ({tag}), escalation ladder exhausted")
             issue.save()
         else:
-            _redispatch_implementer(issue, f"Previous round ended {outcome} with no usable result. Try a different approach.")
+            _redispatch_implementer(issue, f"Previous round ({tag}) ended {outcome} with no usable result. Try a different approach.")
 
 
 def _escalation_exhausted(issue: issues.Issue) -> bool:
@@ -166,7 +182,8 @@ def _escalation_exhausted(issue: issues.Issue) -> bool:
 
 def advance_review(issue: issues.Issue) -> None:
     wt = config.REPO / issue.worktree
-    status_path = wt / ".ds4" / "review-status.json"
+    tag = seats.round_tag(issue)
+    status_path = seats.review_status_path(wt, tag)
     st = pi.read_status(status_path)
     if not pi.is_terminal(st):
         return
@@ -175,11 +192,11 @@ def advance_review(issue: issues.Issue) -> None:
         # as a silent approval -- an unreviewed diff must never merge.
         _handle_gate_or_review_failure(issue, f"reviewer ended {st.get('status')} without a verdict")
         return
-    approved, verdict_text = seats.read_verdict(wt)
+    approved, verdict_text = seats.read_verdict(wt, tag)
     if not approved:
         _handle_gate_or_review_failure(issue, verdict_text)
         return
-    issue.log("review APPROVE, running gates")
+    issue.log(f"review APPROVE ({tag}), running gates")
     _run_gates_and_merge(issue, wt)
 
 

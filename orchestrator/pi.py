@@ -53,7 +53,7 @@ def launch(
     ]
     if message_rel:
         cmd += ["--message", message_rel]
-    log_path = config.ORCH_STATE_DIR / "launches" / f"{name}.log"
+    log_path = launch_log_path(name)
     log_path.parent.mkdir(parents=True, exist_ok=True)
     log_f = open(log_path, "ab")
     return subprocess.Popen(
@@ -63,6 +63,35 @@ def launch(
         env=config.env_with_bm_key(),
         start_new_session=True,  # detach fully, survives the daemon's own restarts
     )
+
+
+def launch_log_path(name: str) -> Path:
+    return config.ORCH_STATE_DIR / "launches" / f"{name}.log"
+
+
+def already_launched(name: str) -> bool:
+    """True once `launch(name, ...)` has been called, independent of whether
+    the seat's own status.json exists yet.
+
+    This distinction is load-bearing: pi-agent can take longer than one poll
+    tick to write its first status.json (model cold-start, jail setup), and
+    a caller that used "status.json missing" as its only signal to launch
+    would relaunch under the SAME --name on every tick until one appeared --
+    and a same-name relaunch kills the still-running prior instance's
+    credential store (see references/pi-seat.md's --name warning), which is
+    exactly what happened here the first time this loop ran live: six
+    issues cascaded through repeated same-name relaunches into a final
+    `UNKNOWN` status from whichever instance was last killed mid-run.
+
+    The launch log file is written synchronously, before Popen, in
+    `launch()` below -- so its mere existence is a reliable "a launch was
+    attempted under this name" marker, with none of status.json's timing
+    uncertainty. Callers must mint a ROUND-SPECIFIC name for anything that
+    can legitimately redispatch (see daemon.py's `_seat_name` helper) --
+    this function only prevents a duplicate launch of the SAME round, never
+    blocks a genuinely new one.
+    """
+    return launch_log_path(name).exists()
 
 
 def read_status(out_path: Path) -> Optional[dict]:
