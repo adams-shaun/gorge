@@ -496,6 +496,7 @@ describe('autopilot — stops persistence and words', () => {
       autoNoteText({ kind: 'off' }),
       autoNoteText({ kind: 'armed' }),
       autoNoteText({ kind: 'passing', count: 6 }),
+      autoNoteText({ kind: 'act-passed', count: 1 }),
     ];
     for (const t of texts) {
       expect(t.length).toBeGreaterThan(0);

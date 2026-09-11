@@ -2,6 +2,7 @@ import type { Decision, Intent, Option, View } from '../protocol';
 import { fetchPending, postIntent, ApiError } from './api';
 import type { SeatCtx } from './seat';
 import { decide, emptyPriorityWindow, type StopReason, type Stops, type TurnSide } from './autopilot';
+import { actedOption, loadActPass, saveActPass } from './actpass';
 import { defaultStops, loadStops, saveStops, toggleStop } from './stops';
 
 /**
@@ -145,7 +146,8 @@ export type AutoNote =
   | { kind: 'fast-armed' }
   | { kind: 'fast-passing'; count: number }
   | { kind: 'fast-stopped'; reason: StopReason | AutoOffReason }
-  | { kind: 'fast-cancelled' };
+  | { kind: 'fast-cancelled' }
+  | { kind: 'act-passed'; count: number };
 
 const WAITING_TEXT: Record<StopReason, string> = {
   'disabled': 'Auto is off.',
@@ -195,6 +197,10 @@ export function autoNoteText(note: AutoNote): string {
         : OFF_TEXT[note.reason as AutoOffReason].replace('Auto', 'Fast forward');
     case 'fast-cancelled':
       return 'Fast forward cancelled: you took the controls.';
+    case 'act-passed':
+      return note.count === 1
+        ? 'Passed 1 priority window after your action.'
+        : `Passed ${note.count} priority windows after your action.`;
   }
 }
 
@@ -254,11 +260,24 @@ export class SeatPanelState {
    */
   skipEmpty = $state(true);
 
+  /**
+   * actPass is the "pass after acting" preference: OFF by default, persisted
+   * per table and seat (actpass.ts — the stops' keying), so it survives a
+   * reload and a match boundary exactly like the stop sets do. It is not
+   * auto and must not read like it: it never answers a window the player did
+   * not earn by taking a visible action on the window before, and it never
+   * answers more than that one window. Turning it off also disarms any
+   * still-armed pass.
+   */
+  actPass = $state(false);
+
   /** autoPassed counts every window auto has answered this session, so the pass is visible after the fact. */
   autoPassed = $state(0);
 
   /** emptySkipped counts the no-action windows the floor passed, kept apart from autoPassed so the panel never credits auto with a pass it did not make. */
   emptySkipped = $state(0);
+  /** actPassed counts the windows the pass-after-acting preference answered, kept apart from autoPassed and emptySkipped for the same reason: each mechanism's passes are its own. */
+  actPassed = $state(0);
   /** autoRun is the current unbroken run of machine passes; both Auto and one-shot fast-forward share its hard cap. */
   autoRun = $state(0);
   /** fastForward is the one-shot run: unlike Auto it switches off on every decide() stop verdict. */
@@ -288,9 +307,38 @@ export class SeatPanelState {
    */
   private autoStoppedSeq: number | null = null;
 
+  /**
+   * actPassArmed is the one-shot token: set when this seat POSTS a hand
+   * answer to a priority decision containing a real action, consumed by the
+   * FIRST priority window considerAuto sees while neither auto nor fast
+   * forward is running. It is deliberately not reactive state — it is only
+   * ever read inside considerAuto, which the component runs once per
+   * decision/view change, so a token minted by a hand answer is always seen
+   * by the next decision's pass through the loop. It survives intermediate
+   * NON-priority hand answers on purpose: the common cast flow is cast → the
+   * spell's target decision (hand-answered) → the next priority window, and
+   * disarming on the target answer would break exactly the flow the
+   * preference exists to smooth.
+   */
+  private actPassArmed = false;
+  /**
+   * actPassActedSeq is the seq the armed token last answered — the same loop
+   * guard autoActedSeq is for the other machine paths. In practice the token
+   * is consumed before the post is even attempted, so a failed post leaves
+   * nothing armed and no retry can start; the guard is the belt to that
+   * braces: if the very same seq ever comes back armed again, it is not
+   * answered a second time.
+   */
+  private actPassActedSeq: number | null = null;
+
   /** mountStops loads this seat's saved stops. Called from the component on mount, where storage exists. */
   mountStops() {
     this.stops = loadStops(this.storage, this.table, this.ctx.seat);
+  }
+
+  /** mountActPass loads this seat's saved pass-after-acting preference. Called from the component on mount, where storage exists. */
+  mountActPass() {
+    this.actPass = loadActPass(this.storage, this.table, this.ctx.seat);
   }
 
   /**
@@ -326,6 +374,13 @@ export class SeatPanelState {
     this.autoRun = 0;
     this.autoActedSeq = null;
     if (!this.auto) this.note = { kind: 'off' };
+  }
+
+  /** setActPass is the pass-after-acting preference's control, persisted per table and seat. Turning it OFF disarms a still-armed pass: a stale one-shot firing several windows after the player switched the preference off would be exactly the surprise the switch exists to prevent. Turning it ON arms nothing — only a future hand action does. */
+  setActPass(on: boolean) {
+    this.actPass = on;
+    if (!on) this.actPassArmed = false;
+    saveActPass(this.storage, this.table, this.ctx.seat, on);
   }
 
   /**
@@ -371,9 +426,10 @@ export class SeatPanelState {
     this.note = { kind: 'fast-armed' };
   }
 
-  /** Any other pointer/key/answer hands control back immediately. */
+  /** Any other pointer/key/answer hands control back immediately. When it actually fires (a run was live) it also clears an armed pass-after-acting token: the player took the controls back mid-run. */
   cancelFastForward(say = true) {
     if (!this.fastForward) return;
+    this.actPassArmed = false;
     this.fastForward = false;
     this.autoRun = 0;
     this.autoActedSeq = null;
@@ -400,9 +456,10 @@ export class SeatPanelState {
     this.suspendAuto('human');
   }
 
-  /** suspendAuto switches auto off with a stated reason. A human always wins: any answer this seat gives by hand takes the wheel back. */
+  /** suspendAuto switches auto off with a stated reason. A human always wins: any answer this seat gives by hand takes the wheel back. When it actually fires (auto was on) it also clears an armed pass-after-acting token: a machine run the player just took back must not be followed by a pass they did not click. */
   suspendAuto(reason: AutoOffReason) {
     if (!this.auto) return;
+    this.actPassArmed = false;
     this.auto = false;
     this.autoRun = 0;
     this.autoActedSeq = null;
@@ -410,9 +467,10 @@ export class SeatPanelState {
     this.note = { kind: 'stopped', reason };
   }
 
-  /** onKeydown is the panel's key handler: Escape, and only Escape, suspends auto. */
+  /** onKeydown is the panel's key handler: Escape, and only Escape, suspends auto. Escape is a takeover command even in manual mode, where suspendAuto's guard would skip it, so it also clears an armed pass-after-acting token directly. */
   onKeydown(key: string) {
     if (key !== 'Escape') return;
+    this.actPassArmed = false;
     this.cancelFastForward();
     this.suspendAuto('escape');
   }
@@ -426,6 +484,17 @@ export class SeatPanelState {
   considerAuto(view: View) {
     const d = this.pending;
     if (d === null || this.busy || d.seq === this.postedSeq) return;
+
+    // Pass after acting: the one-shot token, spent at the FIRST priority
+    // window that arrives while neither auto nor fast forward is running
+    // (with either of those live, their own rules govern and the token stays
+    // dormant). It runs BEFORE the early return below, because a window with
+    // actions on it is exactly the one this preference exists to pass, and
+    // that window is precisely the one the empty-window floor never touches.
+    if (!this.auto && !this.fastForward && this.actPassArmed && d.kind === 'priority') {
+      this.consumeActPass(view);
+      return;
+    }
 
     // The empty-window floor runs whether or not auto is on, so a Manual
     // seat is still not stopped at a window that asks nothing. When auto IS
@@ -518,6 +587,41 @@ export class SeatPanelState {
     void this.post([index]);
   }
 
+  /**
+   * consumeActPass spends the armed pass-after-acting token on ONE priority
+   * window and is the only place the token ever posts. The invariants, in
+   * order:
+   *
+   *  - the token is consumed FIRST, whatever happens after: it is one-shot,
+   *    and a stale armed pass firing several windows later is forbidden;
+   *  - the loop guard refuses a seq the token already answered, so a failed
+   *    post can never retry (in practice the consumption above already
+   *    guarantees this; the guard is the belt to that braces);
+   *  - decide() stays the safety oracle, consulted with enabled: true and
+   *    the player's own stops. Its pass verdict's index ALWAYS points at the
+   *    pass option the shape check found — this method is structurally
+   *    incapable of posting anything but that pass, and never a concede;
+   *  - on a stop verdict (a stop the player set on this step/side, or an
+   *    opponent-controlled stack object) the window is surfaced exactly as
+   *    it would have been without the preference: no post, no note change.
+   *    The token is still spent — that window was the one shot.
+   *
+   * The pass is counted and worded under the preference's own name
+   * (actPassed / act-passed), never auto's.
+   */
+  private consumeActPass(view: View) {
+    const d = this.pending;
+    if (d === null) return;
+    this.actPassArmed = false;
+    if (this.actPassActedSeq !== null && d.seq === this.actPassActedSeq) return;
+    this.actPassActedSeq = d.seq;
+    const verdict = decide({ decision: d, view, seat: this.ctx.seat, stops: this.stops, enabled: true });
+    if (verdict.act !== 'pass') return;
+    this.actPassed += 1;
+    this.note = { kind: 'act-passed', count: this.actPassed };
+    void this.post([verdict.index]);
+  }
+
   /** begin resets the seat across a match boundary. (The component keys the panel by match, so a new match is a fresh instance — this is belt and braces.) */
   begin() {
     this.pending = null;
@@ -535,6 +639,12 @@ export class SeatPanelState {
     this.fastStoppedSeq = null;
     this.fastAcknowledgedSeq = null;
     this.autoStoppedSeq = null;
+    // An armed pass-after-acting token is a one-shot about a window that no
+    // longer exists once the match does; the PREFERENCE persists across the
+    // boundary like the stops do, only the pending token clears.
+    this.actPassArmed = false;
+    this.actPassActedSeq = null;
+    this.actPassed = 0;
     // The floor is a preference, not an opt-in, so it comes back on across a
     // match boundary the way it starts: on. Only its runaway guards or the
     // player's own switch turn it off.
@@ -633,6 +743,13 @@ export class SeatPanelState {
     if (isConcede(opt)) {
       // Concede never earns the stop's keep-armed exception — it is not an
       // answer the stop existed to invite, and Auto must not survive it.
+      // It also clears an armed pass-after-acting token DIRECTLY, not only
+      // through cancelFastForward/suspendAuto: in manual mode both of those
+      // return without touching the token, and conceding in manual mode is
+      // exactly the flow that would otherwise leave it armed — the seat's
+      // next priority window would then be passed for a player who is no
+      // longer even in the game.
+      this.actPassArmed = false;
       this.cancelFastForward();
       this.suspendAuto('human');
       if (this.confirming) void this.post([index]);
@@ -688,6 +805,9 @@ export class SeatPanelState {
     if (d === null || !this.confirming || this.busy) return;
     const concede = d.options.find(isConcede);
     if (!concede) return;
+    // Same direct clear as click()'s concede arm: the suspend helpers are
+    // no-ops for the token in manual mode.
+    this.actPassArmed = false;
     this.cancelFastForward();
     this.suspendAuto('human');
     void this.post([concede.index]);
@@ -710,6 +830,18 @@ export class SeatPanelState {
     try {
       await postIntent(this.table, this.match, { seq: d.seq, player: d.player, choices } satisfies Intent, this.ctx);
       this.postedSeq = d.seq;
+      // The hand answers that can carry a real action are click()'s post-on-click
+      // (min == max == 1) and submit()'s multi-pick commit; both funnel through
+      // here, so the pass-after-arming test lives on the ACCEPTED post — a
+      // rejected intent never arms, and the gate is the preference itself:
+      // with actPass off nothing is ever armed. passClick/primaryClick post
+      // only pass/resolve options, the machine paths (auto, fast forward, the
+      // empty-window floor, the act-pass pass itself) post only the pass
+      // verdict's index, and a non-priority decision fails the kind test, so
+      // none of them arm. Concede never reaches here as an action: click()
+      // returns before posting it once and confirmConcede posts a concede
+      // kind, which the test rejects.
+      if (this.actPass && actedOption(d, choices)) this.actPassArmed = true;
       // If a new decision was adopted while the intent was in flight (a
       // rapid successive ask), keep it; only drop the decision we answered.
       if (this.pending?.seq === d.seq) this.pending = null;

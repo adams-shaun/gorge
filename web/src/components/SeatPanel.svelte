@@ -62,6 +62,9 @@
     // only be read where storage exists, so they load here rather than in
     // the constructor (SSR has none).
     logic.mountStops();
+    // The pass-after-acting preference is persisted the same way (per table
+    // and seat) and loads at the same moment.
+    logic.mountActPass();
     // Escape is the panic key: it takes the game back from auto wherever
     // the focus happens to be. It is on the window because the player's
     // hands are not necessarily on the panel when auto does something they
