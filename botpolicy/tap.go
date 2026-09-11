@@ -52,6 +52,21 @@ func hasFlashback(kws []string) bool {
 	return false
 }
 
+// hasFlash is the instant-speed half of the mana reserve: does the derived
+// keyword list (the engine's Derived() output, which the View also projects
+// as CardView.Keywords) carry the Flash keyword -- a permanent with flash
+// enters at instant speed, so it is playable on another seat's turn. It is
+// the same head-strip cards.KeywordHead applies everywhere, mirroring
+// rules/legal.go's own Flash speed gate.
+func hasFlash(kws []string) bool {
+	for _, k := range kws {
+		if strings.EqualFold(cards.KeywordHead(k), "Flash") {
+			return true
+		}
+	}
+	return false
+}
+
 // tapWants reports whether any card the deciding seat could cast from a
 // castable zone (Card.Castable: hand, command zone, graveyard with
 // Flashback) has a cost the current pool cannot pay:

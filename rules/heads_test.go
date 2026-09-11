@@ -795,7 +795,19 @@ var acceptanceHeads = map[int]string{
 	// differs (the target-offer's option list), TargetsChosen and every later
 	// event are identical. No trajectory change, only the corrected option
 	// count that precedes the bot's unchanged pick.
-	8: "8552ec43c71b76e5",
+	// 8 seats moved again to 693dccb26b2b09ff with task ba1 (feat(botpolicy):
+	// keep a mana reserve for instant-speed plays, I-13 B2): chooseCast now
+	// prefers a cast that leaves the pool at or above the cost of the
+	// cheapest instant-speed card in hand/command zone over a comparable
+	// cast that empties it. This is a real bot-policy trajectory change, not
+	// a bug fix to a wrong value, so it was not traced event-by-event the
+	// way anytgt1's was above -- verified instead by the CR conformance lane
+	// (0 FAIL) and `make sim` (20/20 replay OK), neither of which is
+	// sensitive to bot choice quality, only to engine correctness. 2/4/6
+	// seats are unmoved: the reserve preference is a tie-break among
+	// otherwise-comparable casts, and evidently only the 8-seat acceptance
+	// game's board states hit that tie often enough to change course.
+	8: "693dccb26b2b09ff",
 }
 
 func TestHeads(t *testing.T) {
