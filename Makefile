@@ -282,8 +282,10 @@ clean-cards:
 
 .PHONY: ledger
 ## ledger: rebuild the judge-lane issue ledger the agent dashboard renders
-# Derived, never hand-maintained: the conformance lane's own -v output plus
-# AGENTS.md's approximations table. Writes .ds4/ledger.json (git-excluded).
+# Derived, never hand-maintained: the conformance lane's own -v output, AGENTS.md's
+# approximations table, and the orchestrator's tracked issue files (.ds4/issues/*,
+# top level only — inbox/ is the un-triaged drop zone). Writes .ds4/ledger.json
+# (git-excluded).
 ledger:
 	GORGE_CR_CONFORMANCE=1 GOMEMLIMIT=5GiB go test -p=2 -count=1 ./rules -run TestCR -v \
 	  > .ds4/lane-rules.txt || true
