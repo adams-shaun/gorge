@@ -14,7 +14,10 @@
    * established seat-colour, active, priority and loss language while putting
    * all five public counts in one compact icon strip. Hand, graveyard and
    * exile become buttons only when this view actually carries cards for them;
-   * their lists open in PileModal rather than expanding the rail.
+   * their lists open in PileModal rather than expanding the rail. The four
+   * zone counts (hand, library, graveyard, exile) stack two-high inside one
+   * cell — hand+library over graveyard+exile — so the rail's width floor is
+   * two count columns rather than four, and the board keeps the difference.
    */
   let { view, seats = [], focus = null, onFocus, events = [] }: {
     view: View;
@@ -99,38 +102,48 @@
               <span>{r.life}</span>
             </span>
           </td>
-          <td data-stat="hand" data-hand-hidden={r.handVisible ? undefined : ''} aria-label={`Hand: ${r.hand}`}>
-            {#if r.hand > 0 && handCards.length > 0}
-              <button type="button" class="pile" data-pile="hand" aria-label={pileLabel(r.name, 'hand', r.hand)} onclick={(e) => showPile(r.seat, 'hand', e)}>
-                <svg data-icon="hand" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8V4.5a1 1 0 0 1 2 0V7 3.5a1 1 0 0 1 2 0V7 3a1 1 0 0 1 2 0v4-3a1 1 0 0 1 2 0v4.2l.7-.7a1.2 1.2 0 0 1 1.7 1.7L11 12.6A4 4 0 0 1 8 14H7a4 4 0 0 1-4-4V8Z"/></svg>
-                <span>{r.hand}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
-              </button>
-            {:else}
-              <span class="count"><svg data-icon="hand" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8V4.5a1 1 0 0 1 2 0V7 3.5a1 1 0 0 1 2 0V7 3a1 1 0 0 1 2 0v4-3a1 1 0 0 1 2 0v4.2l.7-.7a1.2 1.2 0 0 1 1.7 1.7L11 12.6A4 4 0 0 1 8 14H7a4 4 0 0 1-4-4V8Z"/></svg><span>{r.hand}</span></span>
-            {/if}
-          </td>
-          <td data-stat="library" aria-label={`Library: ${r.library}`}>
-            <span class="count"><svg data-icon="book" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.2C4 2.6 6 3 8 4v9c-2-1-4-1.4-6-.8v-9Zm12 0c-2-.6-4-.2-6 .8v9c2-1 4-1.4 6-.8v-9Z"/></svg><span>{r.library}</span></span>
-          </td>
-          <td data-stat="graveyard" aria-label={`Graveyard: ${r.graveyard}`}>
-            {#if r.graveyard > 0 && graveyardCards.length > 0}
-              <button type="button" class="pile" data-pile="graveyard" aria-label={pileLabel(r.name, 'graveyard', r.graveyard)} onclick={(e) => showPile(r.seat, 'graveyard', e)}>
-                <svg data-icon="skull" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7a5 5 0 1 1 10 0c0 2-1 3-2 3.8V14H5v-3.2C4 10 3 9 3 7Zm3-1.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM7 9l1-1 1 1-1 1-1-1Z"/></svg>
-                <span>{r.graveyard}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
-              </button>
-            {:else}
-              <span class="count"><svg data-icon="skull" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7a5 5 0 1 1 10 0c0 2-1 3-2 3.8V14H5v-3.2C4 10 3 9 3 7Zm3-1.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM7 9l1-1 1 1-1 1-1-1Z"/></svg><span>{r.graveyard}</span></span>
-            {/if}
-          </td>
-          <td data-stat="exile" aria-label={`Exile: ${r.exile}`}>
-            {#if r.exile > 0 && exileCards.length > 0}
-              <button type="button" class="pile" data-pile="exile" aria-label={pileLabel(r.name, 'exile', r.exile)} onclick={(e) => showPile(r.seat, 'exile', e)}>
-                <svg data-icon="exile" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg>
-                <span>{r.exile}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
-              </button>
-            {:else}
-              <span class="count"><svg data-icon="exile" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg><span>{r.exile}</span></span>
-            {/if}
+          <!-- The four zone counts stack two-high (hand+library over
+               graveyard+exile) so the rail's floor is set by two count
+               columns instead of four. One <tr> per seat: the focus/pile
+               affordances and the geometry contract live on the row. -->
+          <td class="zones">
+            <div class="zone-line">
+              <span data-stat="hand" data-hand-hidden={r.handVisible ? undefined : ''} aria-label={`Hand: ${r.hand}`}>
+                {#if r.hand > 0 && handCards.length > 0}
+                  <button type="button" class="pile" data-pile="hand" aria-label={pileLabel(r.name, 'hand', r.hand)} onclick={(e) => showPile(r.seat, 'hand', e)}>
+                    <svg data-icon="hand" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8V4.5a1 1 0 0 1 2 0V7 3.5a1 1 0 0 1 2 0V7 3a1 1 0 0 1 2 0v4-3a1 1 0 0 1 2 0v4.2l.7-.7a1.2 1.2 0 0 1 1.7 1.7L11 12.6A4 4 0 0 1 8 14H7a4 4 0 0 1-4-4V8Z"/></svg>
+                    <span>{r.hand}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
+                  </button>
+                {:else}
+                  <span class="count"><svg data-icon="hand" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8V4.5a1 1 0 0 1 2 0V7 3.5a1 1 0 0 1 2 0V7 3a1 1 0 0 1 2 0v4-3a1 1 0 0 1 2 0v4.2l.7-.7a1.2 1.2 0 0 1 1.7 1.7L11 12.6A4 4 0 0 1 8 14H7a4 4 0 0 1-4-4V8Z"/></svg><span>{r.hand}</span></span>
+                {/if}
+              </span>
+              <span data-stat="library" aria-label={`Library: ${r.library}`}>
+                <span class="count"><svg data-icon="book" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.2C4 2.6 6 3 8 4v9c-2-1-4-1.4-6-.8v-9Zm12 0c-2-.6-4-.2-6 .8v9c2-1 4-1.4 6-.8v-9Z"/></svg><span>{r.library}</span></span>
+              </span>
+            </div>
+            <div class="zone-line">
+              <span data-stat="graveyard" aria-label={`Graveyard: ${r.graveyard}`}>
+                {#if r.graveyard > 0 && graveyardCards.length > 0}
+                  <button type="button" class="pile" data-pile="graveyard" aria-label={pileLabel(r.name, 'graveyard', r.graveyard)} onclick={(e) => showPile(r.seat, 'graveyard', e)}>
+                    <svg data-icon="skull" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7a5 5 0 1 1 10 0c0 2-1 3-2 3.8V14H5v-3.2C4 10 3 9 3 7Zm3-1.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM7 9l1-1 1 1-1 1-1-1Z"/></svg>
+                    <span>{r.graveyard}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
+                  </button>
+                {:else}
+                  <span class="count"><svg data-icon="skull" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7a5 5 0 1 1 10 0c0 2-1 3-2 3.8V14H5v-3.2C4 10 3 9 3 7Zm3-1.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM7 9l1-1 1 1-1 1-1-1Z"/></svg><span>{r.graveyard}</span></span>
+                {/if}
+              </span>
+              <span data-stat="exile" aria-label={`Exile: ${r.exile}`}>
+                {#if r.exile > 0 && exileCards.length > 0}
+                  <button type="button" class="pile" data-pile="exile" aria-label={pileLabel(r.name, 'exile', r.exile)} onclick={(e) => showPile(r.seat, 'exile', e)}>
+                    <svg data-icon="exile" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg>
+                    <span>{r.exile}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
+                  </button>
+                {:else}
+                  <span class="count"><svg data-icon="exile" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg><span>{r.exile}</span></span>
+                {/if}
+              </span>
+            </div>
           </td>
         </tr>
       {/each}
@@ -152,7 +165,9 @@
   th.who { width: auto; font-weight: 400; padding: 0; }
   td { padding: 1px 0; color: var(--ink-inst); white-space: nowrap; }
   td:nth-child(2) { width: 2.45rem; }
-  td:nth-child(3), td:nth-child(4), td:nth-child(5), td:nth-child(6) { width: 2.25rem; }
+  td.zones { width: 5.1rem; }
+  .zone-line { display: flex; justify-content: flex-end; }
+  .zone-line > [data-stat] { width: 2.25rem; }
   .pick { display: flex; align-items: center; width: 100%; background: none; border: 0; border-left: 3px solid var(--seat); padding: 1px var(--sp-2); font-size: var(--t-12); line-height: 1.6; color: var(--ink-inst); text-align: left; cursor: pointer; }
   tr.active .pick { border-left-width: 6px; padding-left: calc(var(--sp-2) - 3px); }
   tr.selected .pick, .pick:hover { background: var(--instrument-raised); }

@@ -58,6 +58,22 @@ describe('SeatTable — compact seat summary', () => {
     expect(html).not.toContain('data-pile="library"');
   });
 
+  it('stacks the four zone counts two-high: hand+library on the first line, graveyard+exile on the second', () => {
+    const { html } = render(SeatTable, { props: { view: summaryView(player()), seats: summarySeats, onFocus: () => {} } });
+    expect(html.match(/zone-line/g)?.length).toBe(2);
+    const first = html.slice(html.indexOf('zone-line'), html.lastIndexOf('zone-line'));
+    const second = html.slice(html.lastIndexOf('zone-line'));
+    // life stays on the name line, outside both zone lines
+    expect(first.includes('data-stat=\"life\"')).toBe(false);
+    expect(second.includes('data-stat=\"life\"')).toBe(false);
+    expect(first.indexOf('data-stat=\"hand\"')).toBeGreaterThan(-1);
+    expect(first.indexOf('data-stat=\"library\"')).toBeGreaterThan(first.indexOf('data-stat=\"hand\"'));
+    expect(first.includes('data-stat=\"graveyard\"')).toBe(false);
+    expect(first.includes('data-stat=\"exile\"')).toBe(false);
+    expect(second.indexOf('data-stat=\"graveyard\"')).toBeGreaterThan(-1);
+    expect(second.indexOf('data-stat=\"exile\"')).toBeGreaterThan(second.indexOf('data-stat=\"graveyard\"'));
+  });
+
   it('shows true counts but no caret for empty or redacted lists', () => {
     const hidden = player({ hand: null as unknown as CardView[], graveyard: null as unknown as CardView[], graveyard_size: 4, exile: [] });
     const { html } = render(SeatTable, { props: { view: summaryView(hidden), seats: summarySeats, onFocus: () => {} } });
@@ -99,5 +115,72 @@ describe('SeatTable — priority geometry', () => {
     await page.close();
 
     expect(geometry.priority).toEqual(geometry.idle);
+  });
+});
+describe('SeatTable — the rail floor (stacked counts let the rail shrink)', () => {
+  // The new grid floor in Table.svelte is 11rem = 176px. The fixture mounts
+  // the whole rail (seat table, mana pool, decision line, stack tile, pending
+  // tray) at exactly that width, with a 27-character seat name that was
+  // ALREADY ellipsized at the old 17rem floor (needs 173px, had 64px there),
+  // so the assertions below are measured facts about the reduced rail, not
+  // about the name change.
+  const FLOOR_PX = 176;
+
+  async function atFloor() {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/SeatTable.geometry.html`);
+    await page.waitForSelector('#rail .rail-inner');
+    await page.evaluate((px) => document.documentElement.style.setProperty('--rail-w', `${px}px`), FLOOR_PX);
+    return page;
+  }
+
+  it('fits every rail section horizontally at the 11rem floor', async () => {
+    const page = await atFloor();
+    const overflows = await page.evaluate(() => {
+      const bad: { label: string; sw: number; cw: number }[] = [];
+      const check = (el: HTMLElement, label: string) => {
+        if (el.scrollWidth > el.clientWidth + 1) bad.push({ label, sw: el.scrollWidth, cw: el.clientWidth });
+      };
+      const rail = document.querySelector<HTMLElement>('#rail .rail-inner')!;
+      check(rail, 'rail-inner');
+      for (const child of Array.from(rail.children)) check(child as HTMLElement, child.className || child.tagName);
+      return bad;
+    });
+    await page.close();
+    expect(overflows).toEqual([]);
+  });
+
+  it('keeps the long seat name inside its row with the ellipsis doing the work', async () => {
+    const page = await atFloor();
+    const name = await page.evaluate(() => {
+      const el = document.querySelector<HTMLElement>('#rail [data-seat-row="0"] .name')!;
+      const row = document.querySelector<HTMLElement>('#rail [data-seat-row="0"]')!;
+      const nr = el.getBoundingClientRect();
+      const rr = row.getBoundingClientRect();
+      return { right: nr.right, rowRight: rr.right, scroll: el.scrollWidth, client: el.clientWidth };
+    });
+    await page.close();
+    expect(name.right).toBeLessThanOrEqual(name.rowRight + 1);
+    // the ellipsis is active, so the name is truncated by dots, not clipped mid-glyph
+    expect(name.scroll).toBeGreaterThan(name.client);
+  });
+
+  it('leaves room for the "Concede — confirm" control Table anchors inside the rail', async () => {
+    const page = await atFloor();
+    const fits = await page.evaluate((floor) => {
+      // Replicates Table.svelte's .concede-control button metrics: font
+      // --t-12, padding sp-1/sp-2, 1px border, white-space: nowrap; the
+      // control is absolutely positioned at right: sp-2 inside the rail.
+      const probe = document.createElement('button');
+      probe.textContent = 'Concede — confirm';
+      probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;padding:0.25rem 0.5rem;border:1px solid #000;font-size:0.75rem;font-family:var(--font-ui);';
+      document.body.appendChild(probe);
+      const w = probe.getBoundingClientRect().width;
+      probe.remove();
+      const rail = document.querySelector<HTMLElement>('#rail .rail-inner')!;
+      return { button: w, needed: w + 8, rail: rail.clientWidth, floor };
+    }, FLOOR_PX);
+    await page.close();
+    expect(fits.needed).toBeLessThanOrEqual(fits.rail);
   });
 });
