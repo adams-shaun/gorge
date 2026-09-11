@@ -86,7 +86,6 @@
 
 <div class="rail-inner">
   <div class="logbar">
-    <span class="logbar__label">Log</span>
     {#if onToggleLog}
       <button
         class="logbar__toggle"
@@ -99,7 +98,7 @@
         onclick={() => onToggleLog()}
       >
         <span class="dot" aria-hidden="true"></span>
-        <span class="word">{showLog ? 'Visible' : 'Hidden'}</span>
+        <span class="word">Logs</span>
       </button>
     {/if}
   </div>
@@ -165,23 +164,18 @@
     border-bottom: 0;
   }
   /* The log visibility control sits at the rail's top, beside the seat
-     controls. It is a dotted switch like the auto/skip switches in the seat
-     panel, not a labelled button: its own state is the message, and the
-     instrument never spells out an enum it can just show. */
+     controls. It names itself — LOGS, rendered uppercase like the row's
+     old label — while the state stays in the affordances a switch already
+     carries: the dot fills/colours with class:on and aria-checked carries
+     it for assistive tech. The state WORD was dropped after a seated
+     player rejected "Hidden" as unintelligible (ui21, player feedback:
+     "the hidden button doesn't make sense. Make it LOGS text instead"). */
   .logbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--sp-2);
     padding: var(--sp-2) var(--sp-3);
     border-bottom: 1px solid var(--edge-inst);
     flex: none;
-  }
-  .logbar__label {
-    font-size: 0.6875rem;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    color: var(--ink-faint);
   }
   .logbar__toggle {
     display: inline-flex;
@@ -202,6 +196,9 @@
     color: var(--felt-sunk);
     background: var(--offered);
     border-color: var(--offered);
+  }
+  .logbar__toggle .word {
+    text-transform: uppercase;
   }
   .logbar__toggle .dot {
     width: 6px;
