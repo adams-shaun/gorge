@@ -2,16 +2,21 @@
  * oracle resolves an exact card name to its printed facts — oracle text,
  * mana cost, type line, printed power/toughness — from an EXTERNAL catalog.
  *
- * gorge deliberately ships no card text: card behaviour is compiled from
- * Forge scripts, and putting oracle text on the gorge wire would raise a
- * licensing question (the scripts are GPL-3.0). So the text comes from a
- * catalog named by the embedding page's <meta name="gorge-cards" content="…">
- * tag, exactly the way basepath.ts reads <meta name="gorge-base"> — read
- * ONCE at startup, needs no script tag (strict CSP), no build-time config.
+ * gorge itself compiles no card text onto the wire from Forge's GPL-3.0
+ * scripts; the text comes from a catalog chosen by the EMBEDDING page and
+ * named by its <meta name="gorge-cards" content="…"> tag, exactly the way
+ * basepath.ts reads <meta name="gorge-base"> — read ONCE at startup, needs
+ * no script tag (strict CSP), no build-time config.
  *
- * The honest default is NO catalog: `cmd/gorged` injects no meta tag, so
- * `text()` resolves null immediately and never issues a request. That is
- * the normal state for the local fixture, not an error.
+ * The tag's PRESENCE opts in, its content names the catalog: a URL names
+ * that catalog; EMPTY content names the SAME-ORIGIN catalog (gorged itself
+ * serves one at /cards/named — see cmd/gorged/art.go — and injects the tag
+ * into the served index.html). Presence is the bit because normalize("/")
+ * is "" and "" is indistinguishable from "no tag" in the string alone — the
+ * empty base must still issue a request. No tag at all stays the
+ * no-request default: an embedding that ships no catalog (the local
+ * fixture, a bare mtgserve) resolves null immediately, which is the honest
+ * answer, not an error.
  */
 
 export interface OracleCard {
@@ -35,24 +40,32 @@ const OFFLINE_FOR = 60_000;
 const KEY = 'gorge.oracle.';
 
 // Read once at module load, like basepath. A meta tag is the source of
-// choice because it is inert — nothing else on the page reads it.
-let base = detect();
+// choice because it is inert — nothing else on the page reads it. null is
+// "the page ships no catalog" (no tag); a string — INCLUDING the empty
+// string, from a tag with empty content — is the request prefix, so ""
+// means same-origin.
+let base: string | null = detect();
 
 function normalize(raw: string): string {
   return raw.replace(/\/+$/, '');
 }
 
-function detect(): string {
+function detect(): string | null {
   // vitest runs without a served page (so without a DOM); there is no meta
   // tag to read and no catalog — which is also the correct default.
-  if (typeof document === 'undefined') return '';
+  if (typeof document === 'undefined') return null;
   const el = document.querySelector('meta[name="gorge-cards"]');
+  // PRESENCE is the opt-in bit, even for content="": an empty content
+  // normalises to "" and must still be a catalog (the same-origin one),
+  // never silently collapse into the no-catalog guard below.
+  if (!el) return null;
   return normalize(el?.getAttribute('content') ?? '');
 }
 
-/** setOracleBaseForTests is the test hook (the vitest page has no served meta tag); production code never calls it. */
-export function setOracleBaseForTests(b: string): void {
-  base = normalize(b);
+/** setOracleBaseForTests is the test hook (the vitest page has no served meta tag); production code never calls it.
+ *  null is "no catalog at all" (identical to no meta tag); "" is a SAME-ORIGIN catalog — the exact values detect() can produce. */
+export function setOracleBaseForTests(b: string | null): void {
+  base = b === null ? null : normalize(b);
 }
 
 /**
@@ -120,9 +133,11 @@ export function createOracle(src: Partial<OracleSource> = {}) {
   }
 
   function text(name: string): Promise<OracleCard | null> {
-    // No catalog (no meta tag): the honest answer is "we have no text", and
-    // the invariant is that not a single request is issued for it.
-    if (!base) return Promise.resolve(null);
+    // No catalog (no meta tag at all): the honest answer is "we have no
+    // text", and the invariant is that not a single request is issued for
+    // it. A tag WITH empty content is a catalog (same-origin) and falls
+    // through to a real request.
+    if (base === null) return Promise.resolve(null);
     if (memo.has(name)) return Promise.resolve(memo.get(name)!);
     const stored = fromStorage(name);
     if (stored !== undefined) {
