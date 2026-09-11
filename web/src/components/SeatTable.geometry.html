@@ -4,12 +4,16 @@
   <body>
     <style>
       #seat-idle, #seat-priority { position: fixed; top: 0; left: 0; width: 320px; }
+      /* --rail-w is the width the rail fixture is measured at; the test sets it
+         (e.g. binary-searching the floor) via documentElement.style. */
+      #rail { position: fixed; top: 0; right: 0; width: var(--rail-w, 176px); height: 100vh; }
       .identity-fixture { position: fixed; top: 200px; left: 0; width: 320px; height: 200px; }
     </style>
     <div id="seat-idle"></div>
     <div id="seat-priority"></div>
     <div id="identity-idle" class="identity-fixture"></div>
     <div id="identity-priority" class="identity-fixture"></div>
+    <div id="rail"></div>
     <script type="module" src="/src/components/SeatTable.geometry.ts"></script>
   </body>
 </html>

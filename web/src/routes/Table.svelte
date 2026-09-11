@@ -329,7 +329,17 @@
   }
   .table {
     display: grid;
-    grid-template-columns: 1fr minmax(17rem, 18%);
+    /* The rail's floor is what its content measures: the stacked two-high zone
+       counts in SeatTable let the seat summary fit in two count columns, the
+       widest rail section (a stack tile's 56px art column) bottoms out at
+       143px, and the "Concede — confirm" control needs 138px — measured with
+       the geometry harness (SeatTable.svelte.test.ts). 11rem (176px) sits
+       comfortably above that floor. The 15% cap matters more than the floor
+       on common viewports: with min 17rem the track was pinned to 17rem on
+       every window narrower than ~1510px (18% of the viewport fell below the
+       floor), so typical laptops saw the full 17rem whatever the content
+       needed. */
+    grid-template-columns: 1fr minmax(11rem, 15%);
     grid-template-rows: 1fr 10rem;
     height: 100vh;
     background: var(--felt);
