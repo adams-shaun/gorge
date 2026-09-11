@@ -9,6 +9,11 @@ import (
 // .keep, so a clean clone builds with no Node; webFS sends nil until a
 // real build is present and httpapi then serves a 503 for the client.
 //
+// The served index.html carries an injected <meta name="gorge-cards">
+// (cardsmeta.go): gorged acts as its own embedder-chosen card catalog, and
+// the client's oracle.ts reads the tag to find it. The build on disk is
+// never modified — the rewrite happens at open time.
+//
 //go:embed all:webdist
 var webdist embed.FS
 
@@ -22,5 +27,5 @@ func webFS() fs.FS {
 	} else {
 		f.Close()
 	}
-	return sub
+	return withCardMeta(sub)
 }

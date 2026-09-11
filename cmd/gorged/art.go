@@ -27,10 +27,17 @@ import (
 // once, written to disk, and served from disk on every request after —
 // including from a different viewer's browser and across a server restart.
 //
-// This is unlike oracle text (see oracle.ts): oracle text is withheld
-// because putting Forge's GPL-3.0 script text on the wire raises a licensing
-// question. Card art has no such issue, so gorge is free to cache and serve
-// it itself rather than sending every browser to a third party.
+// Alongside the art, the cache keeps the card's six printed facts — name,
+// mana_cost, type_line, oracle_text, power, toughness — as a JSON sidecar
+// (<key>.json) written from the very same Scryfall named response the image
+// comes from, so a card already fetched for art costs ZERO extra Scryfall
+// requests when its text is asked for. GET /cards/named?exact=<name> serves
+// that sidecar: this is gorge acting as its own embedder-chosen catalog (see
+// oracle.ts — the client reads the <meta name="gorge-cards" tag gorged
+// injects into the served index.html). The same posture the art cache
+// already took — third-party printed material proxied and cached from this
+// origin — with the standing line unchanged: Forge's GPL-3.0 script text is
+// NEVER put on the wire; only the six printed facts are.
 type artCache struct {
 	dir    string
 	client *http.Client
@@ -74,8 +81,74 @@ func artKey(name string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func (a *artCache) jpgPath(key string) string  { return filepath.Join(a.dir, key+".jpg") }
-func (a *artCache) missPath(key string) string { return filepath.Join(a.dir, key+".miss") }
+func (a *artCache) jpgPath(key string) string   { return filepath.Join(a.dir, key+".jpg") }
+func (a *artCache) missPath(key string) string  { return filepath.Join(a.dir, key+".miss") }
+func (a *artCache) factsPath(key string) string { return filepath.Join(a.dir, key+".json") }
+
+// cardFacts is the exact record GET /cards/named serves — the six fields
+// web/src/lib/oracle.ts normalises a catalog entry to, and nothing else.
+type cardFacts struct {
+	Name       string `json:"name"`
+	ManaCost   string `json:"mana_cost,omitempty"`
+	TypeLine   string `json:"type_line,omitempty"`
+	OracleText string `json:"oracle_text,omitempty"`
+	Power      string `json:"power,omitempty"`
+	Toughness  string `json:"toughness,omitempty"`
+}
+
+// scryNamed is the slice of Scryfall's named-lookup response the cache
+// reads: the image fields fetch() always wanted, plus the printed facts the
+// /cards/named sidecar keeps. A multi-faced card carries its printed facts
+// on the faces, not the top level — see facts().
+type scryNamed struct {
+	Name       string `json:"name"`
+	ManaCost   string `json:"mana_cost"`
+	TypeLine   string `json:"type_line"`
+	OracleText string `json:"oracle_text"`
+	Power      string `json:"power"`
+	Toughness  string `json:"toughness"`
+	ImageURIs  struct {
+		Normal string `json:"normal"`
+	} `json:"image_uris"`
+	CardFaces []struct {
+		ManaCost   string `json:"mana_cost"`
+		TypeLine   string `json:"type_line"`
+		OracleText string `json:"oracle_text"`
+		Power      string `json:"power"`
+		Toughness  string `json:"toughness"`
+		ImageURIs  struct {
+			Normal string `json:"normal"`
+		} `json:"image_uris"`
+	} `json:"card_faces"`
+}
+
+// facts collapses a Scryfall named response to the six-field record, taking
+// the FRONT face's printed facts for a multi-faced card (Scryfall leaves the
+// top-level fields empty there). One face is the contract — see the report:
+// no face picker.
+func (c *scryNamed) facts() cardFacts {
+	f := cardFacts{Name: c.Name, ManaCost: c.ManaCost, TypeLine: c.TypeLine,
+		OracleText: c.OracleText, Power: c.Power, Toughness: c.Toughness}
+	if len(c.CardFaces) > 0 {
+		face := c.CardFaces[0]
+		if f.ManaCost == "" {
+			f.ManaCost = face.ManaCost
+		}
+		if f.TypeLine == "" {
+			f.TypeLine = face.TypeLine
+		}
+		if f.OracleText == "" {
+			f.OracleText = face.OracleText
+		}
+		if f.Power == "" {
+			f.Power = face.Power
+		}
+		if f.Toughness == "" {
+			f.Toughness = face.Toughness
+		}
+	}
+	return f
+}
 
 // named answers GET /art/named?exact=<name> with the same two fields the
 // client's image-resolution logic already reads out of a Scryfall response —
@@ -111,6 +184,85 @@ func (a *artCache) named(w http.ResponseWriter, r *http.Request) {
 			Normal string `json:"normal"`
 		}{Normal: "/art/blob/" + key + ".jpg"},
 	})
+}
+
+// text answers GET /cards/named?exact=<name> with the card's six printed
+// facts (cardFacts) from the sidecar written when the card was fetched for
+// art — or, for a card cached before facts were kept, from one paced
+// metadata-only Scryfall request that backfills the sidecar. A name Scryfall
+// has never heard of answers 404 (a .miss, the same record the art path
+// writes), exactly like the real API, so oracle.ts treats it as a known
+// cached null rather than an error.
+func (a *artCache) text(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimSpace(r.URL.Query().Get("exact"))
+	if name == "" {
+		http.Error(w, "exact is required", http.StatusBadRequest)
+		return
+	}
+	key := artKey(name)
+	hit, err := a.ensureText(r.Context(), key, name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	if !hit {
+		http.NotFound(w, r)
+		return
+	}
+	f, err := os.Open(a.factsPath(key))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	defer f.Close()
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = io.Copy(w, f)
+}
+
+// ensureText reports whether key has a facts sidecar, fetching it if not.
+// It joins the SAME single-flight map as ensure: a text lookup arriving
+// while the art fetch for the same name is still running waits for it and
+// then reads the sidecar the fetch wrote, so one never-fired Scryfall named
+// request serves both.
+func (a *artCache) ensureText(ctx context.Context, key, name string) (bool, error) {
+	if _, err := os.Stat(a.factsPath(key)); err == nil {
+		return true, nil
+	}
+	if _, err := os.Stat(a.missPath(key)); err == nil {
+		return false, nil
+	}
+
+	a.mu.Lock()
+	ch, inflight := a.inflight[key]
+	if !inflight {
+		ch = make(chan struct{})
+		a.inflight[key] = ch
+	}
+	a.mu.Unlock()
+
+	if inflight {
+		select {
+		case <-ch:
+			return a.ensureText(ctx, key, name) // re-check disk now that the fetch that was running has finished
+		case <-ctx.Done():
+			return false, ctx.Err()
+		}
+	}
+
+	defer func() {
+		a.mu.Lock()
+		delete(a.inflight, key)
+		a.mu.Unlock()
+		close(ch)
+	}()
+	// A card already fetched for art before facts were kept (a legacy cache
+	// dir from before the sidecar existed, or an image download that never
+	// completed) has a .jpg but no .json: backfill it with ONE paced
+	// metadata-only request rather than re-fetching the image.
+	if _, err := os.Stat(a.jpgPath(key)); err == nil {
+		return a.fetchFacts(ctx, key, name)
+	}
+	return a.fetch(ctx, key, name)
 }
 
 // blob serves a cached image's bytes. key is validated as an exact 64-hex
@@ -177,6 +329,8 @@ func (a *artCache) ensure(ctx context.Context, key, name string) (bool, error) {
 // through a. sem so only one such pair is ever in flight across the whole
 // server.
 func (a *artCache) fetch(ctx context.Context, key, name string) (bool, error) {
+	// The whole pair — named lookup, then image download — is paced as one
+	// unit under the semaphore, exactly as it was before facts were kept.
 	select {
 	case a.sem <- struct{}{}:
 	case <-ctx.Done():
@@ -187,36 +341,17 @@ func (a *artCache) fetch(ctx context.Context, key, name string) (bool, error) {
 		<-a.sem
 	}()
 
-	u := a.namedBaseURL + url.QueryEscape(name)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	card, known, err := a.lookupNamed(ctx, name)
 	if err != nil {
 		return false, err
 	}
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", artUserAgent)
-	resp, err := a.client.Do(req)
-	if err != nil {
-		return false, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusNotFound {
+	if !known {
 		return false, a.writeMiss(key)
 	}
-	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("scryfall named lookup: status %d", resp.StatusCode)
-	}
-
-	var card struct {
-		ImageURIs struct {
-			Normal string `json:"normal"`
-		} `json:"image_uris"`
-		CardFaces []struct {
-			ImageURIs struct {
-				Normal string `json:"normal"`
-			} `json:"image_uris"`
-		} `json:"card_faces"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&card); err != nil {
+	// The sidecar is written BEFORE the image download: a card whose image
+	// fetch fails still has its text on disk, and a text lookup that raced
+	// this fetch finds the facts rather than firing a second named request.
+	if err := a.writeFacts(key, card.facts()); err != nil {
 		return false, err
 	}
 	imgURL := card.ImageURIs.Normal
@@ -230,6 +365,63 @@ func (a *artCache) fetch(ctx context.Context, key, name string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+// fetchFacts backfills ONLY the facts sidecar for a name that already has
+// cached art but no sidecar (see ensureText). Same pacing discipline as
+// fetch: one request through the semaphore, then the 100ms pause.
+func (a *artCache) fetchFacts(ctx context.Context, key, name string) (bool, error) {
+	select {
+	case a.sem <- struct{}{}:
+	case <-ctx.Done():
+		return false, ctx.Err()
+	}
+	defer func() {
+		time.Sleep(100 * time.Millisecond)
+		<-a.sem
+	}()
+	card, known, err := a.lookupNamed(ctx, name)
+	if err != nil {
+		return false, err
+	}
+	if !known {
+		return false, a.writeMiss(key)
+	}
+	if err := a.writeFacts(key, card.facts()); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// lookupNamed does the one Scryfall named round trip both fetch and
+// fetchFacts need: card is nil with known=false exactly when Scryfall
+// answered 404 (the caller records the miss), and a non-200 anything else
+// is an error. It acquires NO semaphore of its own — the caller holds the
+// pacing semaphore across the whole fetch, including the image download.
+func (a *artCache) lookupNamed(ctx context.Context, name string) (*scryNamed, bool, error) {
+	u := a.namedBaseURL + url.QueryEscape(name)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return nil, false, err
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", artUserAgent)
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, false, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, false, nil
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, false, fmt.Errorf("scryfall named lookup: status %d", resp.StatusCode)
+	}
+	var card scryNamed
+	if err := json.NewDecoder(resp.Body).Decode(&card); err != nil {
+		return nil, false, err
+	}
+	return &card, true, nil
 }
 
 func (a *artCache) download(ctx context.Context, key, imgURL string) error {
@@ -267,4 +459,19 @@ func (a *artCache) download(ctx context.Context, key, imgURL string) error {
 
 func (a *artCache) writeMiss(key string) error {
 	return os.WriteFile(a.missPath(key), nil, 0o644)
+}
+
+// writeFacts writes the sidecar atomically within one filesystem, the same
+// discipline download() uses: a concurrent text() request never observes a
+// partially-written .json.
+func (a *artCache) writeFacts(key string, facts cardFacts) error {
+	b, err := json.Marshal(facts)
+	if err != nil {
+		return err
+	}
+	tmp := a.factsPath(key) + ".tmp"
+	if err := os.WriteFile(tmp, b, 0o644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, a.factsPath(key))
 }
