@@ -196,7 +196,7 @@ describe('fast forward — one shot to the next pause point', () => {
     // actionable window must honour this dot and end the one-shot run.
     p.stops = { yours: new Set(['draw']), opponents: new Set() };
     p.adoptView(quiet(40));
-    p.startFastForward();
+    p.startFastForward(view('draw', 0));
     p.considerAuto(view('draw', 0));
     await settle(() => p.postedSeq === 40);
     expect(postIntentMock.mock.calls[0][2].choices).toEqual([0]);
@@ -209,31 +209,71 @@ describe('fast forward — one shot to the next pause point', () => {
     expect(autoNoteText(p.note)).toBe('Fast forward stopped here: you set a stop on this step.');
   });
 
-  it('restarting at the set stop it just reached acknowledges that one window, then stops at the next stop', async () => {
+  it('a single press at a stop-set window posts the pass and keeps the run armed, and the next stop stops again', async () => {
     const p = new SeatPanelState('t1', 1, ctx, null);
     p.stops = { yours: new Set(['draw']), opponents: new Set() };
     p.adoptView(live(60));
 
-    p.startFastForward();
-    p.considerAuto(view('draw', 0));
-    expect(p.fastForward).toBe(false);
-    expect(postIntentMock).not.toHaveBeenCalled();
-
-    // Starting again on the exact window fast forward handed back means
-    // "seen it; continue". It posts that window's own pass index.
-    p.startFastForward();
+    // The press IS the consent: a first-ever press at a fresh stop-set
+    // window (no prior run) posts that window's own pass index and keeps
+    // the run armed — it is not spent arming an acknowledgement the second
+    // press would have minted.
+    p.startFastForward(view('draw', 0));
     p.considerAuto(view('draw', 0));
     await settle(() => p.postedSeq === 60);
     expect(postIntentMock.mock.calls[0][2].choices).toEqual([1]);
     expect(p.fastForward).toBe(true);
+    expect(p.fastPassed).toBe(1);
 
-    // The acknowledgement was consumed by seq 60. The next stopped window
-    // is not skipped even though it is the same named step.
+    // One window per stop: the acknowledgement was consumed by seq 60, so
+    // the next stopped window is not played through even though it is the
+    // same named step.
     p.adoptView(live(61));
     p.considerAuto(view('draw', 0));
     expect(postIntentMock).toHaveBeenCalledTimes(1);
     expect(p.fastForward).toBe(false);
     expect(autoNoteText(p.note)).toBe('Fast forward stopped here: you set a stop on this step.');
+
+    // And a single press at THAT halt moves again — the press consent is
+    // re-earned at every stop, so no stop is ever played through silently.
+    p.startFastForward(view('draw', 0));
+    p.considerAuto(view('draw', 0));
+    await settle(() => p.postedSeq === 61);
+    expect(postIntentMock.mock.calls[1][2].choices).toEqual([1]);
+    expect(p.fastForward).toBe(true);
+  });
+
+  it('after a run ended at a non-priority decision and the player hand-answered it, one press at a stop window moves', async () => {
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    p.stops = { yours: new Set(['main1']), opponents: new Set() };
+
+    // The run is armed away from any stop and passes through.
+    p.adoptView(live(10));
+    p.startFastForward(view('draw', 0));
+    p.considerAuto(view('draw', 0));
+    await settle(() => p.postedSeq === 10);
+    expect(p.fastForward).toBe(true);
+
+    // The run reaches a non-priority ask: it stops dead and records no
+    // stop-set seq (every safety stop must stop dead again on restart).
+    p.adoptView(mulligan(11));
+    p.considerAuto(view('draw', 0));
+    expect(p.fastForward).toBe(false);
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+
+    // The player hand-answers the ask — the reported flow: cast, target
+    // ask, hand answer, and only then the next stop window.
+    p.click(0);
+    await settle(() => p.postedSeq === 11);
+
+    // ONE press at the stop window now moves: the press is the consent,
+    // regardless of how the player got here.
+    p.adoptView(live(12));
+    p.startFastForward(view('main1', 0));
+    p.considerAuto(view('main1', 0));
+    await settle(() => p.postedSeq === 12);
+    expect(postIntentMock.mock.calls[2][2].choices).toEqual([1]);
+    expect(p.fastForward).toBe(true);
   });
 
   // has-action-and-stack is no longer a FFWD safety stop: the one-shot run
@@ -245,15 +285,19 @@ describe('fast forward — one shot to the next pause point', () => {
     ['unexpected-shape', { ...live(71), min: 0 }, view('draw', 0)],
   ] as const)('never acknowledges a %s safety stop on restart', (reason, decision, currentView) => {
     const p = new SeatPanelState('t1', 1, ctx, null);
-    p.stops = { yours: new Set(), opponents: new Set() };
+    // A stop IS set on the view's current step, so a priority-kind pending
+    // would mint a press acknowledgement under the press-is-consent rule;
+    // the run must still refuse to act — only a stop-set verdict can be
+    // consumed, and neither of these windows produces one.
+    p.stops = { yours: new Set(['draw']), opponents: new Set() };
     p.adoptView(decision);
 
-    p.startFastForward();
+    p.startFastForward(currentView);
     p.considerAuto(currentView);
     expect(p.fastForward).toBe(false);
     expect(autoNoteText(p.note)).toContain(reason === 'not-priority' ? 'needs you' : 'recognise');
 
-    p.startFastForward();
+    p.startFastForward(currentView);
     p.considerAuto(currentView);
     expect(postIntentMock).not.toHaveBeenCalled();
     expect(p.fastForward).toBe(false);
@@ -264,7 +308,7 @@ describe('fast forward — one shot to the next pause point', () => {
     p.stops = { yours: new Set(), opponents: new Set() };
     const stackView = ({ ...view('main1', 0), stack: [{ id: 9, controller: 1 }] }) as View;
     p.adoptView(live(80));
-    p.startFastForward();
+    p.startFastForward(stackView);
     p.considerAuto(stackView);
     await settle(() => p.postedSeq === 80);
     // The pass posts (the pass option's own index, never the cast's), the
@@ -286,7 +330,7 @@ describe('fast forward — one shot to the next pause point', () => {
   it('is bounded by the same hard pass cap as Auto', async () => {
     const p = new SeatPanelState('t1', 1, ctx, null);
     p.stops = { yours: new Set(), opponents: new Set() };
-    p.startFastForward();
+    p.startFastForward(view());
     for (let i = 1; i <= AUTO_PASS_CAP; i++) {
       p.adoptView(quiet(i));
       p.considerAuto(view());
@@ -301,7 +345,7 @@ describe('fast forward — one shot to the next pause point', () => {
 
   it('a human option click interrupts the run before posting that click', async () => {
     const p = new SeatPanelState('t1', 1, ctx, null);
-    p.startFastForward();
+    p.startFastForward(view());
     p.adoptView(live(50));
     p.click(0);
     await settle(() => p.postedSeq === 50);

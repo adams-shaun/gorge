@@ -396,7 +396,7 @@ describe('pass after acting — dormant while a machine run is live', () => {
     p.stops = { yours: new Set(['draw']), opponents: new Set() };
     await arm(p); // armed, manual mode
     p.adoptView(quiet(2));
-    p.startFastForward(); // FFWD takes the wheel before the token is spent
+    p.startFastForward(view('draw', 0)); // FFWD takes the wheel before the token is spent
     p.considerAuto(view('draw', 0));
     await settle(() => p.postedSeq === 2);
     expect(p.fastPassed).toBe(1);
@@ -481,7 +481,7 @@ describe('pass after acting — what clears an armed token', () => {
     const p = manual();
     await arm(p);
     p.adoptView(live(2));
-    p.startFastForward(); // FFWD takes the wheel before considerAuto spends the token
+    p.startFastForward(view()); // FFWD takes the wheel before considerAuto spends the token
     p.passClick(); // a human click during the run cancels it…
     await settle(() => p.postedSeq === 2);
     expect(p.fastForward).toBe(false);
