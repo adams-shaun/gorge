@@ -20,6 +20,10 @@ const priority = (options: Option[], min = 1, max = 1, kind = 'priority'): Decis
 const run = (decision: Decision, v: View, st = DEFAULT) =>
   decide({ decision, view: v, seat: 0, stops: st, enabled: true });
 
+/** runFfwd is decide() in the one-shot fast-forward mode: the has-action-and-stack guard is skipped. */
+const runFfwd = (decision: Decision, v: View, st = DEFAULT) =>
+  decide({ decision, view: v, seat: 0, stops: st, enabled: true, ffwd: true });
+
 describe('turnSide', () => {
   it('is yours on the seat\u2019s own turn and opponents otherwise', () => {
     expect(turnSide(view(0, 'main1'), 0)).toBe('yours');
@@ -100,6 +104,26 @@ describe('decide', () => {
     expect(run(d, view(0, 'draw', [{ id: 9, controller: 1 }]))).toEqual({ act: 'stop', reason: 'has-action-and-stack' });
   });
 
+  it('ffwd: passes the same has-action-and-stack window instead of stopping (pressing FFWD is the pass consent)', () => {
+    const d = priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]);
+    const v = view(0, 'draw', [{ id: 9, controller: 1 }]);
+    // The Auto-mode verdict above pins the default; the ffwd twin passes.
+    const out = runFfwd(d, v);
+    expect(out).toEqual({ act: 'pass', index: 0 });
+    if (out.act === 'pass') expect(d.options[out.index].kind).toBe('pass');
+  });
+
+  it('ffwd: a set stop still stops the run', () => {
+    const d = priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]);
+    // main1 is in the default yours stops
+    expect(runFfwd(d, view(0, 'main1'))).toEqual({ act: 'stop', reason: 'stop-set' });
+  });
+
+  it('ffwd: a non-priority decision still stops the run', () => {
+    const d = priority([opt('pass', 0), opt('concede', 1)], 1, 1, 'target');
+    expect(runFfwd(d, view(0, 'draw'))).toEqual({ act: 'stop', reason: 'not-priority' });
+  });
+
   it('passes when a cast is available and only the seat\u2019s own object is on the stack', () => {
     const d = priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]);
     const out = run(d, view(0, 'draw', [{ id: 9, controller: 0 }]));
@@ -162,12 +186,17 @@ describe('decide', () => {
           const v = view(active, step, stackCtl === -1 ? [] : [{ id: 9, controller: stackCtl }]);
           for (const st of [stops(['main1'], ['declare-blockers']), stops([], [])]) {
             for (const list of lists) {
-              const d = priority(list);
-              const out = decide({ decision: d, view: v, seat: 0, stops: st, enabled: true });
-              if (out.act !== 'pass') continue;
-              const o = d.options[out.index];
-              expect(o, `pass index ${out.index} on ${JSON.stringify(list.map((x) => x.kind))} must be a pass option`).toBeDefined();
-              expect(o.kind, `kind of option at pass index ${out.index} on ${JSON.stringify(list.map((x) => x.kind))}`).toBe('pass');
+              // Both modes must hold the structural invariant: a pass verdict
+              // always points at a pass option. On the ffwd path the stack
+              // guard is skipped, so the stack branch is reachable as a pass.
+              for (const ffwd of [false, true]) {
+                const d = priority(list);
+                const out = decide({ decision: d, view: v, seat: 0, stops: st, enabled: true, ffwd });
+                if (out.act !== 'pass') continue;
+                const o = d.options[out.index];
+                expect(o, `pass index ${out.index} on ${JSON.stringify(list.map((x) => x.kind))} must be a pass option`).toBeDefined();
+                expect(o.kind, `kind of option at pass index ${out.index} on ${JSON.stringify(list.map((x) => x.kind))}`).toBe('pass');
+              }
             }
           }
         }

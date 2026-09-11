@@ -236,10 +236,13 @@ describe('fast forward — one shot to the next pause point', () => {
     expect(autoNoteText(p.note)).toBe('Fast forward stopped here: you set a stop on this step.');
   });
 
+  // has-action-and-stack is no longer a FFWD safety stop: the one-shot run
+  // passes through opponent stack objects (pressing FFWD is the player's own
+  // "no more actions"), so the restart-acknowledgement question does not
+  // arise for it — that window is covered by the pass-through test below.
   it.each([
     ['not-priority', mulligan(70), view('draw', 0)],
     ['unexpected-shape', { ...live(71), min: 0 }, view('draw', 0)],
-    ['has-action-and-stack', live(72), ({ ...view('main1', 0), stack: [{ id: 9, controller: 1 }] }) as View],
   ] as const)('never acknowledges a %s safety stop on restart', (reason, decision, currentView) => {
     const p = new SeatPanelState('t1', 1, ctx, null);
     p.stops = { yours: new Set(), opponents: new Set() };
@@ -248,12 +251,36 @@ describe('fast forward — one shot to the next pause point', () => {
     p.startFastForward();
     p.considerAuto(currentView);
     expect(p.fastForward).toBe(false);
-    expect(autoNoteText(p.note)).toContain(reason === 'not-priority' ? 'needs you' : reason === 'unexpected-shape' ? 'recognise' : 'stack');
+    expect(autoNoteText(p.note)).toContain(reason === 'not-priority' ? 'needs you' : 'recognise');
 
     p.startFastForward();
     p.considerAuto(currentView);
     expect(postIntentMock).not.toHaveBeenCalled();
     expect(p.fastForward).toBe(false);
+  });
+
+  it('passes through an opponent stack object with an action available and keeps running', async () => {
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    p.stops = { yours: new Set(), opponents: new Set() };
+    const stackView = ({ ...view('main1', 0), stack: [{ id: 9, controller: 1 }] }) as View;
+    p.adoptView(live(80));
+    p.startFastForward();
+    p.considerAuto(stackView);
+    await settle(() => p.postedSeq === 80);
+    // The pass posts (the pass option's own index, never the cast's), the
+    // run stays armed, and the window counts as a fast-forward pass.
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(postIntentMock.mock.calls[0][2].choices).toEqual([1]);
+    expect(p.fastForward).toBe(true);
+    expect(p.fastPassed).toBe(1);
+
+    // The run continues into the next window and answers it too.
+    p.adoptView(quiet(81));
+    p.considerAuto(stackView);
+    await settle(() => p.postedSeq === 81);
+    expect(postIntentMock).toHaveBeenCalledTimes(2);
+    expect(p.fastForward).toBe(true);
+    expect(p.fastPassed).toBe(2);
   });
 
   it('is bounded by the same hard pass cap as Auto', async () => {
