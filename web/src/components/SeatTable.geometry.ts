@@ -3,7 +3,7 @@ import type { CardView, PlayerView, SeatInfo, View } from '../protocol';
 import '../app.css';
 import IdentityBar from './IdentityBar.svelte';
 import SeatTable from './SeatTable.svelte';
-import Rail from './Rail.svelte';
+import RailFixture from './RailFixture.svelte';
 
 const card = (id: number, name = `Card ${id}`): CardView => ({
   id, name, types: 'Instant', printing: { name }, token: `#${id}`, tapped: false,
@@ -60,7 +60,15 @@ const railView: View = {
   pending: [{ source: 901, controller: 2, label: 'Longwinded Ambush Elemental trigger', optional: true, decider: 2 }],
   players: railPlayers,
 };
-mount(Rail, {
+// Rail is mounted through RailFixture so the fixture can render the REAL
+// concede control (ConcedeControl) as Rail's logbar snippet — the same seam
+// Table.svelte uses on the live route — when the page URL asks for it
+// (?concede=idle|confirm; default none, byte-identical to a bare Rail).
+const concedeState = (new URLSearchParams(window.location.search).get('concede') ?? 'none') as
+  | 'none'
+  | 'idle'
+  | 'confirm';
+mount(RailFixture, {
   target: document.querySelector('#rail')!,
   props: {
     view: railView,
@@ -68,5 +76,6 @@ mount(Rail, {
     decision: { player: 1, kind: 'priority', prompt: 'Pass priority, cast a spell, or hold up mana for something clever later this turn?' },
     emphasizeTop: true,
     onToggleLog: () => {},
+    concede: concedeState,
   },
 });
