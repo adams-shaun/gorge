@@ -4,6 +4,8 @@ import { createOracle, setOracleBaseForTests } from './oracle';
 // fakeEnv is a deterministic catalog server: named cards resolve from
 // `responses` (an Error rejects, the number 500 makes the server fail, any
 // unknown name is a 404), everything else is an injected clock and storage.
+// URLs are resolved against a fallback origin so a SAME-ORIGIN base ("") —
+// which issues relative /cards/named requests — parses too.
 function fakeEnv(responses: Record<string, unknown | Error | 500>) {
   const calls: string[] = [];
   let clock = 0;
@@ -13,7 +15,7 @@ function fakeEnv(responses: Record<string, unknown | Error | 500>) {
   const env = {
     fetch: (async (url: string) => {
       calls.push(String(url));
-      const name = decodeURIComponent(new URL(url).searchParams.get('exact')!);
+      const name = decodeURIComponent(new URL(url, 'https://catalog.test').searchParams.get('exact')!);
       const r = responses[name];
       if (r instanceof Error) throw r;
       if (r === 500) return new Response('{"error":"boom"}', { status: 500 });
@@ -39,9 +41,10 @@ const GOBLIN = {
 
 describe('createOracle', () => {
   // The module-level base is read once at startup; each test names its own
-  // catalog (or none) so ordering can never leak between tests.
+  // catalog (or none) so ordering can never leak between tests. null is
+  // "no meta tag at all"; '' would be the same-origin catalog.
   it('with no catalog meta tag, text() resolves null and never issues a request', async () => {
-    setOracleBaseForTests('');
+    setOracleBaseForTests(null);
     const { env, calls } = fakeEnv({ 'Goblin Guide': GOBLIN });
     const o = createOracle(env);
     expect(await o.text('Goblin Guide')).toBeNull();
@@ -154,6 +157,20 @@ describe('createOracle', () => {
     expect(card?.name).toBe('Goblin Guide');
     expect(await o.text('Goblin Guide')).toEqual(card);
   });
+
+  // A meta tag with EMPTY content is the same-origin catalog (gorged's own
+  // /cards/named), not "no catalog": the request must be issued, as a
+  // relative URL, and resolve. The old `if (!base)` guard silently disabled
+  // the feature for exactly this tag — this test is what keeps it honest.
+  it('a meta tag with empty content means the same-origin catalog: relative request issued', async () => {
+    setOracleBaseForTests('');
+    const { env, calls, store } = fakeEnv({ 'Llanowar Elves': { name: 'Llanowar Elves', oracle_text: '{T}: Add {G}.' } });
+    const o = createOracle(env);
+    const card = await o.text('Llanowar Elves');
+    expect(card?.oracle_text).toBe('{T}: Add {G}.');
+    expect(calls).toEqual(['/cards/named?exact=Llanowar%20Elves']);
+    expect(store.get('gorge.oracle.Llanowar Elves')).toContain('"oracle_text"');
+  });
 });
 
 // The base URL is read ONCE at module load, from the served page's meta tag.
@@ -180,6 +197,33 @@ describe('catalog meta tag', () => {
     });
     expect(await o.text('Llanowar Elves')).toBeNull();
     expect(calls).toEqual(['https://cat/cards/named?exact=Llanowar%20Elves']);
+    vi.unstubAllGlobals();
+  });
+
+  // gorged injects <meta name="gorge-cards" content="/"> — empty after
+  // normalisation. The tag's PRESENCE, not its content, is the opt-in: the
+  // same-origin base must issue a relative request, never collapse into the
+  // no-catalog guard.
+  it('a present tag with empty content opts in to the same-origin catalog', async () => {
+    vi.stubGlobal('document', {
+      querySelector: (sel: string) =>
+        sel === 'meta[name="gorge-cards"]' ? { getAttribute: () => '/' } : null,
+    });
+    vi.resetModules();
+    const mod = await import('./oracle');
+    const calls: string[] = [];
+    const o = mod.createOracle({
+      fetch: (async (url: string) => {
+        calls.push(String(url));
+        return new Response(JSON.stringify({ name: 'Llanowar Elves', oracle_text: '{T}: Add {G}.' }), { status: 200 });
+      }) as unknown as typeof fetch,
+      now: () => 0,
+      setTimeout: () => {},
+      storage: null,
+    });
+    const card = await o.text('Llanowar Elves');
+    expect(card?.oracle_text).toBe('{T}: Add {G}.');
+    expect(calls).toEqual(['/cards/named?exact=Llanowar%20Elves']);
     vi.unstubAllGlobals();
   });
 });
