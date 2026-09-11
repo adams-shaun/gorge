@@ -126,11 +126,11 @@ describe('SeatTable — the rail floor (stacked counts let the rail shrink)', ()
   // about the name change.
   const FLOOR_PX = 176;
 
-  async function atFloor() {
+  async function atFloor(px = FLOOR_PX) {
     const page = await browser.newPage();
     await page.goto(`${url}src/components/SeatTable.geometry.html`);
     await page.waitForSelector('#rail .rail-inner');
-    await page.evaluate((px) => document.documentElement.style.setProperty('--rail-w', `${px}px`), FLOOR_PX);
+    await page.evaluate((w) => document.documentElement.style.setProperty('--rail-w', `${w}px`), px);
     return page;
   }
 
@@ -182,5 +182,70 @@ describe('SeatTable — the rail floor (stacked counts let the rail shrink)', ()
     }, FLOOR_PX);
     await page.close();
     expect(fits.needed).toBeLessThanOrEqual(fits.rail);
+  });
+
+  // fb-53bd45b9: the concede control used to be absolutely positioned at
+  // top: 3rem inside the rail — an offset calibrated to clear the logbar
+  // that instead landed ON seat row 0 (49.2px) once the zone counts stacked
+  // two-high, painting over its life and pile counts with z-index: 9 and
+  // eating the pile buttons' clicks. The control now renders inside the
+  // REAL logbar row (Table passes it to Rail as a snippet, in flex flow at
+  // the row's right edge). The fixture mounts the real Rail, so the probe
+  // below replicates the control byte-for-byte — the ARMED label, the wider
+  // state — inside the real logbar and pins the geometry the defect class
+  // needs: fully inside the logbar's own band (anchored, not floating),
+  // intersecting the LOGS toggle, no seat row and no [data-stat] cell at
+  // the 11rem floor AND at a wide rail (15% of 1920 = 288px).
+  it('the concede control shares the logbar row and intersects no seat row, stat cell or the toggle', async () => {
+    for (const width of [FLOOR_PX, 288]) {
+      const page = await atFloor(width);
+      const measured = await page.evaluate((railWidth: number) => {
+        const band = (el: Element) => {
+          const { top, bottom, left, right } = el.getBoundingClientRect();
+          return { top, bottom, left, right };
+        };
+        const intersects = (
+          a: { top: number; bottom: number; left: number; right: number },
+          b: { top: number; bottom: number; left: number; right: number },
+        ) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+        const logbar = document.querySelector<HTMLElement>('#rail .logbar')!;
+        // Replicates Table.svelte's .concede-control button metrics exactly
+        // (the same probe the width test uses) plus the row placement:
+        // a flex item at the row's right edge, in flow.
+        const probe = document.createElement('button');
+        probe.textContent = 'Concede — confirm';
+        probe.style.cssText =
+          'visibility:hidden;white-space:nowrap;padding:0.25rem 0.5rem;border:1px solid #000;font-size:0.75rem;font-family:var(--font-ui);margin-left:auto;flex:none;';
+        logbar.appendChild(probe);
+        const p = band(probe);
+        const row = band(logbar);
+        const toggle = band(document.querySelector<HTMLElement>('#rail [data-log-toggle]')!);
+        const seatRows = Array.from(document.querySelectorAll<HTMLElement>('#rail [data-seat-row]')).map(band);
+        const stats = Array.from(document.querySelectorAll<HTMLElement>('#rail [data-stat]')).map(band);
+        probe.remove();
+        return {
+          width: railWidth,
+          probe: p,
+          logbar: row,
+          inLogbarBand: p.top >= row.top - 1 && p.bottom <= row.bottom + 1,
+          // no rect overlap with the toggle; at a narrow rail the armed label
+          // wraps to the row's own second line, so horizontal separation is
+          // NOT required — only non-intersection is. Right-alignment against
+          // the row (the anchor) is pinned separately.
+          clearOfToggle: !intersects(p, toggle),
+          clearOfSeatRows: seatRows.every((r) => !intersects(p, r)),
+          clearOfStats: stats.every((s) => !intersects(p, s)),
+          seatRowCount: seatRows.length,
+          rightAligned: p.right >= row.right - 13,
+        };
+      }, width);
+      await page.close();
+      expect(measured.seatRowCount).toBeGreaterThan(0);
+      expect(measured.inLogbarBand, `rail ${measured.width}px: probe left the logbar band`).toBe(true);
+      expect(measured.clearOfToggle, `rail ${measured.width}px: probe hits the LOGS toggle`).toBe(true);
+      expect(measured.clearOfSeatRows, `rail ${measured.width}px: probe hits a seat row`).toBe(true);
+      expect(measured.clearOfStats, `rail ${measured.width}px: probe hits a stat cell`).toBe(true);
+      expect(measured.rightAligned, `rail ${measured.width}px: probe not anchored to the row's right edge`).toBe(true);
+    }
   });
 });
