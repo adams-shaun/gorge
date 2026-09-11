@@ -743,6 +743,13 @@ export class SeatPanelState {
     if (isConcede(opt)) {
       // Concede never earns the stop's keep-armed exception — it is not an
       // answer the stop existed to invite, and Auto must not survive it.
+      // It also clears an armed pass-after-acting token DIRECTLY, not only
+      // through cancelFastForward/suspendAuto: in manual mode both of those
+      // return without touching the token, and conceding in manual mode is
+      // exactly the flow that would otherwise leave it armed — the seat's
+      // next priority window would then be passed for a player who is no
+      // longer even in the game.
+      this.actPassArmed = false;
       this.cancelFastForward();
       this.suspendAuto('human');
       if (this.confirming) void this.post([index]);
@@ -798,6 +805,9 @@ export class SeatPanelState {
     if (d === null || !this.confirming || this.busy) return;
     const concede = d.options.find(isConcede);
     if (!concede) return;
+    // Same direct clear as click()'s concede arm: the suspend helpers are
+    // no-ops for the token in manual mode.
+    this.actPassArmed = false;
     this.cancelFastForward();
     this.suspendAuto('human');
     void this.post([concede.index]);

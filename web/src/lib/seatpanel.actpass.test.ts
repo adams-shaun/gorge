@@ -451,6 +451,32 @@ describe('pass after acting — what clears an armed token', () => {
     expect(postIntentMock).not.toHaveBeenCalled();
   });
 
+  it('conceding clears it in manual mode, where the suspend helpers are no-ops (click() path, both clicks)', async () => {
+    const p = manual();
+    await arm(p);
+    p.adoptView(live(2));
+    p.click(2); // the concede option: first click arms the confirmation…
+    expect(p.confirming).toBe(true);
+    p.click(2); // …the second posts it — and must clear the armed token
+    await settle(() => p.postedSeq === 2);
+    p.adoptView(live(3));
+    p.considerAuto(view());
+    expect(postIntentMock).toHaveBeenCalledTimes(1); // the concede post only; no machine pass
+  });
+
+  it('confirmConcede() clears it in manual mode too', async () => {
+    const p = manual();
+    await arm(p);
+    p.adoptView(live(2));
+    p.click(2); // arms the confirmation
+    expect(p.confirming).toBe(true);
+    p.confirmConcede(); // the explicit second confirmation
+    await settle(() => p.postedSeq === 2);
+    p.adoptView(live(3));
+    p.considerAuto(view());
+    expect(postIntentMock).toHaveBeenCalledTimes(1); // the concede post only; no machine pass
+  });
+
   it('answering by hand while a fast-forward run is live clears it (the cancel fired, the pass did not re-arm)', async () => {
     const p = manual();
     await arm(p);
