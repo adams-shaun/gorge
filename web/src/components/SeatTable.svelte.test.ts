@@ -126,11 +126,11 @@ describe('SeatTable — the rail floor (stacked counts let the rail shrink)', ()
   // about the name change.
   const FLOOR_PX = 176;
 
-  async function atFloor() {
+  async function atFloor(px = FLOOR_PX, concede: 'none' | 'idle' | 'confirm' = 'none') {
     const page = await browser.newPage();
-    await page.goto(`${url}src/components/SeatTable.geometry.html`);
+    await page.goto(`${url}src/components/SeatTable.geometry.html${concede === 'none' ? '' : `?concede=${concede}`}`);
     await page.waitForSelector('#rail .rail-inner');
-    await page.evaluate((px) => document.documentElement.style.setProperty('--rail-w', `${px}px`), FLOOR_PX);
+    await page.evaluate((w) => document.documentElement.style.setProperty('--rail-w', `${w}px`), px);
     return page;
   }
 
@@ -165,22 +165,103 @@ describe('SeatTable — the rail floor (stacked counts let the rail shrink)', ()
     expect(name.scroll).toBeGreaterThan(name.client);
   });
 
-  it('leaves room for the "Concede — confirm" control Table anchors inside the rail', async () => {
-    const page = await atFloor();
+  it('leaves room for the REAL "Concede — confirm" control Table renders in the rail\'s logbar', async () => {
+    // The fixture renders the real ConcedeControl (the armed/widest state)
+    // through Rail's real logbar snippet — the same seam Table.svelte uses —
+    // so this measures the actual control, not a probe replica of it.
+    const page = await atFloor(FLOOR_PX, 'confirm');
     const fits = await page.evaluate((floor) => {
-      // Replicates Table.svelte's .concede-control button metrics: font
-      // --t-12, padding sp-1/sp-2, 1px border, white-space: nowrap; the
-      // control is absolutely positioned at right: sp-2 inside the rail.
-      const probe = document.createElement('button');
-      probe.textContent = 'Concede — confirm';
-      probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;padding:0.25rem 0.5rem;border:1px solid #000;font-size:0.75rem;font-family:var(--font-ui);';
-      document.body.appendChild(probe);
-      const w = probe.getBoundingClientRect().width;
-      probe.remove();
-      const rail = document.querySelector<HTMLElement>('#rail .rail-inner')!;
-      return { button: w, needed: w + 8, rail: rail.clientWidth, floor };
+      const control = document.querySelector<HTMLElement>('#rail [data-confirm-concede]')!;
+      const logbar = document.querySelector<HTMLElement>('#rail .logbar')!;
+      const cs = getComputedStyle(logbar);
+      const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+      return {
+        button: control.getBoundingClientRect().width,
+        rail: logbar.clientWidth,
+        floor,
+        // the row must never overflow horizontally with the control in it
+        overflow: logbar.scrollWidth - logbar.clientWidth,
+      };
     }, FLOOR_PX);
     await page.close();
-    expect(fits.needed).toBeLessThanOrEqual(fits.rail);
+    expect(fits.button).toBeGreaterThan(0);
+    expect(fits.overflow, 'the logbar row overflows horizontally with the armed control').toBeLessThanOrEqual(1);
+    expect(fits.button).toBeLessThanOrEqual(fits.rail);
+  });
+
+  // fb-53bd45b9: the concede control used to be absolutely positioned at
+  // top: 3rem inside the rail — an offset calibrated to clear the logbar
+  // that instead landed ON seat row 0 (49.2px) once the zone counts stacked
+  // two-high, painting over its life and pile counts with z-index: 9 and
+  // eating the pile buttons' clicks. The control now renders inside the
+  // REAL logbar row via Table's real seam (Rail's `logbar` snippet), in
+  // flex flow at the row's right edge. This test renders the REAL
+  // ConcedeControl through that seam in the fixture (RailFixture) and pins
+  // the geometry the defect class needs for BOTH of its states — the
+  // unarmed first-paint button and the armed "Concede — confirm" (the
+  // wider label): inside the logbar's own band (anchored, not floating),
+  // clear of the LOGS toggle, of every seat row and every [data-stat]
+  // cell, at the 11rem floor AND at a wide rail (15% of 1920 = 288px).
+  it('the REAL concede control (both states) shares the logbar row and intersects no seat row, stat cell or the toggle', async () => {
+    for (const width of [FLOOR_PX, 288]) {
+      for (const state of ['idle', 'confirm'] as const) {
+        const page = await atFloor(width, state);
+        const selector = state === 'confirm' ? '[data-confirm-concede]' : '[data-concede-control]';
+        const measured = await page.evaluate((sel: string) => {
+          const band = (el: Element) => {
+            const { top, bottom, left, right } = el.getBoundingClientRect();
+            return { top, bottom, left, right };
+          };
+          const intersects = (
+            a: { top: number; bottom: number; left: number; right: number },
+            b: { top: number; bottom: number; left: number; right: number },
+          ) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+          // The REAL control, rendered by ConcedeControl through Rail's
+          // logbar snippet — no injected probe. If it is absent the harness
+          // must fail loudly, not measure a null.
+          const control = document.querySelector<HTMLElement>(`#rail .concede-control ${sel}`);
+          const logbar = document.querySelector<HTMLElement>('#rail .logbar')!;
+          if (control === null || logbar === null) {
+            return { state: sel, found: false } as Record<string, unknown>;
+          }
+          const p = band(control);
+          const row = band(logbar);
+          const toggle = band(document.querySelector<HTMLElement>('#rail [data-log-toggle]')!);
+          const seatRows = Array.from(document.querySelectorAll<HTMLElement>('#rail [data-seat-row]')).map(band);
+          const stats = Array.from(document.querySelectorAll<HTMLElement>('#rail [data-stat]')).map(band);
+          return {
+            state: sel,
+            found: true,
+            insideRail: control.closest('#rail') !== null,
+            insideLogbar: control.closest('.logbar') === logbar,
+            inLogbarBand: p.top >= row.top - 1 && p.bottom <= row.bottom + 1,
+            // no rect overlap with the toggle; at a narrow rail the armed
+            // label wraps to the row's own second line, so horizontal
+            // separation is NOT required — only non-intersection is.
+            // Right-alignment against the row (the anchor) is pinned
+            // separately.
+            clearOfToggle: !intersects(p, toggle),
+            clearOfSeatRows: seatRows.every((r) => !intersects(p, r)),
+            clearOfStats: stats.every((s) => !intersects(p, s)),
+            seatRowCount: seatRows.length,
+            statCount: stats.length,
+            rightAligned: p.right >= row.right - 13,
+            box: p,
+          };
+        }, selector);
+        await page.close();
+        const where = `rail ${width}px, state ${state}`;
+        expect(measured.found, `${where}: the real concede control did not render`).toBe(true);
+        expect(measured.insideRail, `${where}: control not inside #rail`).toBe(true);
+        expect(measured.insideLogbar, `${where}: control not inside the logbar row`).toBe(true);
+        expect(measured.seatRowCount).toBeGreaterThan(0);
+        expect(measured.statCount).toBeGreaterThan(0);
+        expect(measured.inLogbarBand, `${where}: control left the logbar band`).toBe(true);
+        expect(measured.clearOfToggle, `${where}: control hits the LOGS toggle`).toBe(true);
+        expect(measured.clearOfSeatRows, `${where}: control hits a seat row`).toBe(true);
+        expect(measured.clearOfStats, `${where}: control hits a stat cell`).toBe(true);
+        expect(measured.rightAligned, `${where}: control not anchored to the row's right edge`).toBe(true);
+      }
+    }
   });
 });
