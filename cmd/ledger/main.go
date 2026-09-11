@@ -94,7 +94,7 @@ func main() {
 		die(err)
 	}
 	entries = append(entries, approximations(string(agents))...)
-	reps, err := issueEntries(*issues)
+	reps, err := issueEntries(*issues, *root)
 	if err != nil {
 		die(err)
 	}
@@ -136,7 +136,14 @@ func main() {
 // becomes a top-level file at triage, so reading both would double-count one
 // defect. A missing or empty dir is an empty source, not an error — a fresh
 // worktree has no .ds4/issues at all.
-func issueEntries(dir string) ([]Entry, error) {
+//
+// root is the repository root the ledger is built from: every Where must name
+// its file RELATIVE to it (`.ds4/issues/<id>.md`), because the default issues
+// dir is built from -root and an absolute -root or -issues must not leak an
+// absolute path into the dashboard. A path outside the root, or one whose
+// relativity cannot be computed (mixed absolute/relative inputs), falls back
+// to the path as given.
+func issueEntries(dir, root string) ([]Entry, error) {
 	fis, err := os.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -165,7 +172,7 @@ func issueEntries(dir string) ([]Entry, error) {
 			ID:     "issue-" + id,
 			Kind:   "report",
 			Title:  strings.Join(strings.Fields(fm["title"]), " "),
-			Where:  filepath.ToSlash(p),
+			Where:  issueWhere(p, root),
 			Status: "open",
 		}
 		// merged -> closed; every other value -> open. A human_needed defect is
@@ -193,6 +200,15 @@ func issueEntries(dir string) ([]Entry, error) {
 		out = append(out, e)
 	}
 	return out, nil
+}
+
+// issueWhere names an issue file relative to the repo root.
+func issueWhere(p, root string) string {
+	rel, err := filepath.Rel(root, p)
+	if err != nil {
+		return filepath.ToSlash(p)
+	}
+	return filepath.ToSlash(rel)
 }
 
 // frontmatter parses the key: value lines between a leading --- and its

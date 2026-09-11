@@ -119,7 +119,7 @@ func TestIssueEntriesMapsTheObservedStatuses(t *testing.T) {
 	writeIssue(t, dir, "b.md", "---\nid: fb-two\ntitle: a human-needed defect\nstatus: human_needed\n---\n")
 	writeIssue(t, dir, "c.md", "---\nid: fb-three\ntitle: a fresh report\nstatus: new\n---\n")
 	writeIssue(t, dir, "d.md", "---\nid: fb-four\ntitle: a dispatched report\nstatus: dispatched\n---\n")
-	got, err := issueEntries(dir)
+	got, err := issueEntries(dir, dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +148,7 @@ func TestIssueEntriesMapsTheObservedStatuses(t *testing.T) {
 func TestIssueEntriesMergedWithoutCommitsFallsBack(t *testing.T) {
 	dir := t.TempDir()
 	writeIssue(t, dir, "a.md", "---\nid: fb-one\ntitle: t\nstatus: merged\n---\n")
-	got, err := issueEntries(dir)
+	got, err := issueEntries(dir, dir)
 	if err != nil || len(got) != 1 {
 		t.Fatalf("got %+v, err %v", got, err)
 	}
@@ -163,7 +163,7 @@ func TestIssueEntriesMergedWithoutCommitsFallsBack(t *testing.T) {
 func TestIssueEntriesOpensAnUnlistedStatusHonestly(t *testing.T) {
 	dir := t.TempDir()
 	writeIssue(t, dir, "a.md", "---\nid: fb-x\ntitle: t\nstatus: quarantined\n---\n")
-	got, err := issueEntries(dir)
+	got, err := issueEntries(dir, dir)
 	if err != nil || len(got) != 1 {
 		t.Fatalf("got %+v, err %v", got, err)
 	}
@@ -188,7 +188,7 @@ func TestIssueEntriesSkipsTheInboxSubdirAndMalformedFiles(t *testing.T) {
 	writeIssue(t, dir, "broken.md", "no fences at all, just prose.\n")
 	writeIssue(t, dir, "fenced-empty.md", "---\ntitle: no id key\nstatus: new\n---\n")
 	writeIssue(t, dir, "unterminated.md", "---\nid: fb-unterm\ntitle: t\nstatus: new\nbody keeps going without a closing fence\n")
-	got, err := issueEntries(dir)
+	got, err := issueEntries(dir, dir)
 	if err != nil {
 		t.Fatalf("a malformed file must not be fatal: %v", err)
 	}
@@ -197,7 +197,7 @@ func TestIssueEntriesSkipsTheInboxSubdirAndMalformedFiles(t *testing.T) {
 	}
 	// Title arrives whitespace-normalised from pre-truncated player text.
 	writeIssue(t, dir, "b.md", "---\nid: fb-ws\ntitle: spaced   out\tttitle\nstatus: new\n---\n")
-	got, err = issueEntries(dir)
+	got, err = issueEntries(dir, dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,11 +211,32 @@ func TestIssueEntriesSkipsTheInboxSubdirAndMalformedFiles(t *testing.T) {
 // A missing dir is an empty source, not an error — a fresh worktree has no
 // .ds4/issues at all, and `make ledger` must not die on it.
 func TestIssueEntriesTreatsAMissingDirAsAnEmptySource(t *testing.T) {
-	got, err := issueEntries(filepath.Join(t.TempDir(), "nope"))
+	got, err := issueEntries(filepath.Join(t.TempDir(), "nope"), t.TempDir())
 	if err != nil {
 		t.Fatalf("missing dir = %v, want nil error", err)
 	}
 	if got != nil {
 		t.Fatalf("got %+v, want no entries", got)
+	}
+}
+
+// Every report row must name its file RELATIVE to the repo root — the default
+// issues dir is built from -root, so an absolute -root (how an operator or a
+// script invokes the tool from anywhere) must not leak an absolute path into
+// the ledger. This regression exists because the first cut took the Where
+// straight from the joined dir, which was absolute exactly then.
+func TestIssueEntriesWhereIsRelativeToAnAbsoluteRoot(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, ".ds4", "issues")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeIssue(t, dir, "fb-abs.md", "---\nid: fb-abs\ntitle: t\nstatus: merged\ncommits: abc1234\n---\n")
+	got, err := issueEntries(dir, root)
+	if err != nil || len(got) != 1 {
+		t.Fatalf("got %+v, err %v", got, err)
+	}
+	if want := ".ds4/issues/fb-abs.md"; got[0].Where != want {
+		t.Fatalf("Where = %q, want %q (relative to the root, never absolute)", got[0].Where, want)
 	}
 }
