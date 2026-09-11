@@ -2,21 +2,27 @@
 //
 // The ledger is DERIVED, never hand-maintained, because a hand-copied list of
 // open defects goes stale exactly the way AGENTS.md's own table header warns
-// about: an entry is only as good as the thing it names still existing. Two
-// sources, both measured:
+// about: an entry is only as good as the thing it names still existing. Three
+// sources, two of them measured:
 //
 //   - AGENTS.md's "Known approximations" table -> approved stand-ins. These are
 //     dispositioned: someone looked at them and accepted them until a milestone.
 //   - the opt-in conformance lane's -v output -> divergences. A FAIL leaf is an
 //     UNFIXED defect with no approved row; that is the judge seat's deliverable.
+//   - the orchestrator's tracked issue files (.ds4/issues/*.md) -> reports. A
+//     human reported the defect and the pipeline is tracking it; the row's
+//     disposition says where it stands. A report is NOT an engine measurement
+//     and must never be merged with a divergence or an approximation.
 //
 // Usage:
 //
 //	GORGE_CR_CONFORMANCE=1 go test -count=1 ./rules -run TestCR -v > lane.txt
 //	go run ./cmd/ledger -lane lane.txt -out .ds4/ledger.json
 //
-// -lane may be repeated for lanes in more than one package. With no -lane the
-// ledger still carries the approximation rows, so the table is never blank.
+// -lane may be repeated for lanes in more than one package. -issues defaults to
+// <root>/.ds4/issues; a missing or empty dir is an empty source, not an error.
+// With no -lane the ledger still carries the approximation rows, so the table
+// is never blank.
 package main
 
 import (
@@ -38,7 +44,7 @@ import (
 // Entry is one row of the ledger.
 type Entry struct {
 	ID          string `json:"id"`
-	Kind        string `json:"kind"`   // "divergence" | "approximation"
+	Kind        string `json:"kind"`   // "divergence" | "approximation" | "report"
 	Status      string `json:"status"` // "open" | "closed" | "approved"
 	Title       string `json:"title"`
 	Where       string `json:"where"`
@@ -58,11 +64,15 @@ func main() {
 	flag.Var(&lanes, "lane", "conformance lane `go test -v` output (repeatable)")
 	out := flag.String("out", ".ds4/ledger.json", "where to write the ledger")
 	root := flag.String("root", ".", "repo root")
+	issues := flag.String("issues", "", "orchestrator tracked-issue `dir` (default <root>/.ds4/issues)")
 	flag.Parse()
 
 	docs, err := testDocs(*root)
 	if err != nil {
 		die(err)
+	}
+	if *issues == "" {
+		*issues = filepath.Join(*root, ".ds4", "issues")
 	}
 	var entries []Entry
 	seen := map[string]bool{}
@@ -84,6 +94,17 @@ func main() {
 		die(err)
 	}
 	entries = append(entries, approximations(string(agents))...)
+	reps, err := issueEntries(*issues, *root)
+	if err != nil {
+		die(err)
+	}
+	for _, e := range reps {
+		if seen[e.ID] {
+			continue
+		}
+		seen[e.ID] = true
+		entries = append(entries, e)
+	}
 
 	counts := map[string]int{}
 	for _, e := range entries {
@@ -107,6 +128,117 @@ func main() {
 	}
 	fmt.Printf("%s: %d entries (%d open, %d closed, %d approved)\n",
 		*out, len(entries), counts["open"], counts["closed"], counts["approved"])
+}
+
+// issueEntries reads the orchestrator's tracked issue files: one Entry per
+// top-level *.md of dir. It NEVER descends into the inbox/ subdir, which is
+// the un-triaged drop zone (orchestrator/config.py INBOX_DIR); a ticket there
+// becomes a top-level file at triage, so reading both would double-count one
+// defect. A missing or empty dir is an empty source, not an error — a fresh
+// worktree has no .ds4/issues at all.
+//
+// root is the repository root the ledger is built from: every Where must name
+// its file RELATIVE to it (`.ds4/issues/<id>.md`), because the default issues
+// dir is built from -root and an absolute -root or -issues must not leak an
+// absolute path into the dashboard. A path outside the root, or one whose
+// relativity cannot be computed (mixed absolute/relative inputs), falls back
+// to the path as given.
+func issueEntries(dir, root string) ([]Entry, error) {
+	fis, err := os.ReadDir(dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var out []Entry
+	for _, fi := range fis {
+		if fi.IsDir() || !strings.HasSuffix(fi.Name(), ".md") {
+			continue
+		}
+		p := filepath.Join(dir, fi.Name())
+		b, err := os.ReadFile(p)
+		if err != nil {
+			return nil, err
+		}
+		fm := frontmatter(string(b))
+		id := fm["id"]
+		if id == "" {
+			continue // a malformed file in a human drop zone is skipped, not fatal
+		}
+		e := Entry{
+			// The issue- prefix keeps a report out of the way of lane-test names
+			// and approx-NN ids, so the caller's dedup map needs no change.
+			ID:     "issue-" + id,
+			Kind:   "report",
+			Title:  strings.Join(strings.Fields(fm["title"]), " "),
+			Where:  issueWhere(p, root),
+			Status: "open",
+		}
+		// merged -> closed; every other value -> open. A human_needed defect is
+		// still an UNFIXED defect — it needs a human, which is what the
+		// disposition says — and the pipeline's vocabulary (new, briefed,
+		// dispatched, review) is an active issue by orchestrator/issues.py's own
+		// open_issues() rule. An unlisted status opens too, named honestly.
+		switch fm["status"] {
+		case "merged":
+			e.Status = "closed"
+			if c := fm["commits"]; c != "" {
+				e.Disposition = "merged — " + c
+			} else {
+				e.Disposition = "merged"
+			}
+		case "human_needed":
+			e.Disposition = "needs human"
+		case "new":
+			e.Disposition = "reported — awaiting triage"
+		case "briefed", "dispatched", "review":
+			e.Disposition = fm["status"] + " — seat active"
+		default:
+			e.Disposition = "open — status " + fm["status"]
+		}
+		out = append(out, e)
+	}
+	return out, nil
+}
+
+// issueWhere names an issue file relative to the repo root.
+func issueWhere(p, root string) string {
+	rel, err := filepath.Rel(root, p)
+	if err != nil {
+		return filepath.ToSlash(p)
+	}
+	return filepath.ToSlash(rel)
+}
+
+// frontmatter parses the key: value lines between a leading --- and its
+// closing ---. Hand-rolled, stdlib only. An absent opening fence or an
+// unterminated block is no frontmatter at all (an empty map), so such a file
+// carries no id and the caller skips it.
+func frontmatter(s string) map[string]string {
+	out := map[string]string{}
+	lines := strings.Split(s, "\n")
+	if len(lines) == 0 || strings.TrimSpace(lines[0]) != "---" {
+		return out
+	}
+	end := -1
+	for i, l := range lines[1:] {
+		if strings.TrimSpace(l) == "---" {
+			end = i + 1
+			break
+		}
+	}
+	if end < 0 {
+		return out
+	}
+	for _, l := range lines[1:end] {
+		i := strings.Index(l, ":")
+		if i < 0 {
+			continue
+		}
+		out[strings.TrimSpace(l[:i])] = strings.TrimSpace(l[i+1:])
+	}
+	return out
 }
 
 var resultLine = regexp.MustCompile(`^\s*--- (PASS|FAIL|SKIP): (\S+)`)
