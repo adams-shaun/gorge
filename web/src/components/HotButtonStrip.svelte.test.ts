@@ -33,6 +33,13 @@ function strip(decision: Decision): string {
   }).html;
 }
 
+/** stripState renders with a caller-prepared state, for cases strip() cannot express (no decision at all, or an answer already posted). */
+function stripState(state: SeatPanelState, decision: Decision | null): string {
+  return render(HotButtonStrip, {
+    props: { view: { ...baseView, decision }, seats, state, ctx, table: 't1', match: 1 },
+  }).html;
+}
+
 const option = (index: number, kind: string, label: string) => ({ index, kind, label, player: 0 });
 
 describe('HotButtonStrip — server options regrouped into one instrument', () => {
@@ -96,5 +103,47 @@ describe('HotButtonStrip — server options regrouped into one instrument', () =
     const html = strip(target);
     expect(html).toMatch(/data-hot-tab="done"[^>]*aria-disabled="true"/);
     expect(html).toMatch(/data-done-action[^>]*disabled/);
+  });
+});
+
+describe('HotButtonStrip — the ACTIONS tab projects the seat tone', () => {
+  // toneOf resolves from option KINDS only (R-E4-1): initiative is a decision
+  // with no pass option — the game is blocked on this seat; offered is a
+  // window this seat may decline. The tab must carry that state machine-
+  // readably in data-awaiting, with the dropdown closed.
+  const target: Decision = {
+    seq: 5, player: 0, kind: 'target', prompt: 'Choose a target', min: 1, max: 1,
+    options: [option(17, 'target', 'Target Ari')],
+  };
+  const priority: Decision = {
+    seq: 6, player: 0, kind: 'priority', prompt: 'Priority', min: 1, max: 1,
+    options: [option(7, 'cast', 'Cast spell'), option(42, 'pass', 'Pass priority')],
+  };
+
+  it('awaits initiative when the game is blocked on this seat (no pass option)', () => {
+    expect(strip(target)).toMatch(/data-awaiting="initiative"/);
+  });
+
+  it('awaits offered on a window this seat may act in or pass', () => {
+    expect(strip(priority)).toMatch(/data-awaiting="offered"/);
+  });
+
+  it('is idle with no pending decision', () => {
+    const state = new SeatPanelState('t1', 1, ctx, null);
+    state.skipEmpty = false;
+    const html = stripState(state, null);
+    expect(html).toMatch(/data-awaiting="idle"/);
+    expect(html).not.toMatch(/data-awaiting="initiative"/);
+    expect(html).not.toMatch(/data-awaiting="offered"/);
+  });
+
+  it('drops the affordance once the answer is posted (answered or in flight)', () => {
+    const state = new SeatPanelState('t1', 1, ctx, null);
+    state.skipEmpty = false;
+    state.adoptView(target);
+    state.postedSeq = target.seq; // logic.active is null while the posted seq matches
+    const html = stripState(state, target);
+    expect(html).toMatch(/data-awaiting="idle"/);
+    expect(html).not.toMatch(/data-awaiting="initiative"/);
   });
 });

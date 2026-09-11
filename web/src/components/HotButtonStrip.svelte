@@ -4,7 +4,7 @@
   import type { SeatCtx } from '../lib/seat';
   import { STOPPABLE_STEPS, type TurnSide } from '../lib/autopilot';
   import { stepLabel } from '../lib/phases';
-  import { autoNoteText, isConcede, type SeatPanelState } from '../lib/seatpanel.svelte';
+  import { autoNoteText, isConcede, toneOf, type SeatPanelState } from '../lib/seatpanel.svelte';
   import SeatPanel from './SeatPanel.svelte';
 
   /** A short grace period keeps a diagonal tab-to-panel pointer path open. */
@@ -24,6 +24,14 @@
   let closeTimer: ReturnType<typeof setTimeout> | null = null;
 
   const decision = $derived(logic.active);
+  // The ACTIONS tab projects the seat panel's own tone (R-E4-1: resolved from
+  // option KINDS, never labels or prompt text). The tab is the only part of
+  // this instrument visible with the dropdown closed, so this is where "the
+  // game is blocked on you" has to be visible: initiative pulses warm,
+  // a declinable window sits steadily lit cool, idle is unlit. logic.active
+  // is null while the answer is posted/in flight, so the affordance drops
+  // the moment the decision is answered.
+  const awaiting = $derived(toneOf(decision));
   const actions = $derived(
     decision?.options.filter((o) => o.kind !== 'pass' && !isConcede(o)) ?? [],
   );
@@ -84,7 +92,7 @@
 
 <div class="hot-strip" data-hot-strip role="toolbar" aria-label="Game controls" tabindex="-1" onkeydown={escape}>
   <div class="hot-tab" role="presentation" onpointerenter={() => show('actions')} onpointerleave={scheduleClose} onfocusin={() => show('actions')} onfocusout={scheduleClose}>
-    <button class="tab" type="button" data-hot-tab="actions" aria-label="Actions" aria-haspopup="true" aria-expanded={open === 'actions'} aria-controls="hot-panel-actions" aria-disabled={actions.length === 0} onclick={() => show('actions')}>
+    <button class="tab" type="button" data-hot-tab="actions" data-awaiting={awaiting} aria-label="Actions" aria-haspopup="true" aria-expanded={open === 'actions'} aria-controls="hot-panel-actions" aria-disabled={actions.length === 0} onclick={() => show('actions')}>
       <span class="full">ACTIONS</span><span class="compact" aria-hidden="true">A</span>
     </button>
     <div class="drop actions" class:open={open === 'actions'} id="hot-panel-actions" data-hot-panel="actions" role="group" aria-label="Available actions">
@@ -231,6 +239,39 @@
   .tab[aria-disabled='true'] {
     color: var(--ink-faint);
     cursor: default;
+  }
+  /* The awaiting projection: with the dropdown closed, the tab itself says
+     whether the game needs this seat. initiative (the decision carries no
+     pass -- nothing happens anywhere at the table until you answer) pulses
+     in the warm state colour; offered (a window you may decline) sits
+     steadily lit in the cool one -- pulsing every priority window would make
+     the pulse meaningless, since those recur constantly. Both reuse the
+     state colour variables, never a literal. The steady lit look is the
+     BASE and the keyframes only modulate the glow on top of it, so under
+     prefers-reduced-motion (0.01ms, one iteration) the animation ends
+     immediately and the tab rests statically lit, never unlit.
+     data-awaiting carries the same state machine-readably for tests. These
+     rules sit after the aria-disabled grey so an initiative decision whose
+     only remaining option is concede still reads as "blocked on you" -- the
+     grey stays for the genuinely idle case, where data-awaiting is idle and
+     no lit rule applies at all. The compact "A" glyph lives on this same
+     button, so the max-width treatment inherits it for free. */
+  .tab[data-awaiting='initiative'],
+  .tab[data-awaiting='offered'] {
+    color: var(--ink);
+  }
+  .tab[data-awaiting='offered'] {
+    border-bottom-color: var(--offered);
+    box-shadow: 0 0 0 1px var(--offered), 0 0 12px var(--offered);
+  }
+  .tab[data-awaiting='initiative'] {
+    border-bottom-color: var(--initiative);
+    box-shadow: 0 0 0 1px var(--initiative), 0 0 12px var(--initiative);
+    animation: hot-await-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes hot-await-pulse {
+    0%, 100% { box-shadow: 0 0 0 1px var(--initiative), 0 0 12px var(--initiative); }
+    50% { box-shadow: 0 0 0 2px var(--initiative), 0 0 20px var(--initiative); }
   }
   .compact { display: none; }
 
