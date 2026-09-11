@@ -169,6 +169,11 @@
       <div class="setting-row">
         <button class:on={logic.auto} type="button" role="switch" aria-checked={logic.auto} onclick={() => logic.setAuto(!logic.auto)}>Auto pass</button>
         <button class:on={logic.skipEmpty} type="button" role="switch" aria-checked={logic.skipEmpty} onclick={() => logic.setSkipEmpty(!logic.skipEmpty)}>Skip empty windows</button>
+        <!-- The pass-after-acting preference: not auto -- it answers ONE
+             priority window, and only after this seat posted a hand answer
+             carrying a real action. Persisted per table and seat like the
+             stop sets; OFF by default. -->
+        <button class:on={logic.actPass} type="button" role="switch" aria-checked={logic.actPass} data-actpass-toggle aria-label="Pass priority automatically after you take an action" onclick={() => logic.setActPass(!logic.actPass)}>Pass after acting</button>
       </div>
       <p class="note">{autoNoteText(logic.note)}</p>
       {#each ['yours', 'opponents'] as side (side)}
