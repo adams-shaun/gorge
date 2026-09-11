@@ -96,8 +96,18 @@ export function decide(args: {
   seat: number;
   stops: Stops;
   enabled: boolean;
+  /**
+   * ffwd marks the one-shot fast-forward run (absent/false = persistent
+   * Auto). Pressing FFWD is itself the player's explicit "I have no more
+   * actions to take", so the has-action-and-stack guard below is skipped on
+   * this path: the pass IS the consent that guard otherwise has to assume
+   * for an unattended autopasser. Every other stop — set stops, non-priority
+   * decisions, unexpected shapes — still applies; the caller's pass cap
+   * still bounds the run.
+   */
+  ffwd?: boolean;
 }): AutoVerdict {
-  const { decision, view, seat, stops, enabled } = args;
+  const { decision, view, seat, stops, enabled, ffwd = false } = args;
 
   // Evaluation order, first match wins. Every earlier branch is a stop
   // because acting on a decision it does not fully understand is exactly
@@ -126,8 +136,13 @@ export function decide(args: {
   if (stops[side].has(view.step)) return { act: 'stop', reason: 'stop-set' };
 
   // The player has an action and someone else controls an object on the
-  // stack: auto-passing could let that object resolve unanswered.
-  if (view.stack.some((s) => s.controller !== seat)) return { act: 'stop', reason: 'has-action-and-stack' };
+  // stack: auto-passing could let that object resolve unanswered. Persistent
+  // Auto acts for the player unattended, so it must never let that happen
+  // silently. The one-shot fast-forward is explicit and player-initiated —
+  // pressing it is the statement "I have no more actions to take" — so it
+  // passes through and lets the stack resolve (the run stays bounded by the
+  // caller's pass cap).
+  if (!ffwd && view.stack.some((s) => s.controller !== seat)) return { act: 'stop', reason: 'has-action-and-stack' };
 
   return { act: 'pass', index: pass.index };
 }

@@ -444,7 +444,10 @@ export class SeatPanelState {
 
     let index: number;
     if (this.auto || this.fastForward) {
-      const verdict = decide({ decision: d, view, seat: this.ctx.seat, stops: this.stops, enabled: true });
+      // ffwd marks the one-shot run: it passes through has-action-and-stack
+      // windows (pressing FFWD is the player's own "no more actions"), while
+      // persistent Auto keeps that guard.
+      const verdict = decide({ decision: d, view, seat: this.ctx.seat, stops: this.stops, enabled: true, ffwd: this.fastForward });
       if (verdict.act === 'stop') {
         // decide() remains the safety oracle. The caller may acknowledge only
         // the player's own set-stop verdict, only at the exact seq where the

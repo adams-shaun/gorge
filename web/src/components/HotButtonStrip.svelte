@@ -137,7 +137,7 @@
       aria-pressed={logic.fastForward}
       aria-disabled={!ffwdAvailable}
       disabled={!ffwdAvailable}
-      title={ffwdAvailable ? 'Fast forward to the next stop' : 'Fast forward needs a pass option'}
+      title={ffwdAvailable ? 'Fast forward: pass and resolve until the next stop' : 'Fast forward needs a pass option'}
       onclick={fastForward}
     >
       <span class="full">FFWD</span><span class="compact" aria-hidden="true">&gt;&gt;</span>
