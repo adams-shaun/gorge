@@ -104,6 +104,26 @@ describe('HotButtonStrip — server options regrouped into one instrument', () =
     expect(html).toMatch(/data-hot-tab="done"[^>]*aria-disabled="true"/);
     expect(html).toMatch(/data-done-action[^>]*disabled/);
   });
+
+  it('the GAME OPTIONS drop carries the pass-after-acting switch beside the other two, reflecting the state', () => {
+    const priority: Decision = {
+      seq: 1, player: 0, kind: 'priority', prompt: 'Priority', min: 1, max: 1,
+      options: [option(7, 'cast', 'Cast spell'), option(42, 'pass', 'Pass priority')],
+    };
+    const off = strip(priority);
+    expect(off).toContain('data-actpass-toggle');
+    expect(off).toContain('Pass after acting');
+    expect(off).toMatch(/aria-checked="false"[^>]*data-actpass-toggle/);
+
+    const state = new SeatPanelState('t1', 1, ctx, null);
+    state.skipEmpty = false;
+    state.setActPass(true);
+    state.adoptView(priority);
+    const on = render(HotButtonStrip, {
+      props: { view: { ...baseView, decision: priority }, seats, state, ctx, table: 't1', match: 1 },
+    }).html;
+    expect(on).toMatch(/aria-checked="true"[^>]*data-actpass-toggle/);
+  });
 });
 
 describe('HotButtonStrip — the ACTIONS tab projects the seat tone', () => {
