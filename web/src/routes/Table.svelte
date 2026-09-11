@@ -10,6 +10,7 @@
   import Transcript from '../components/Transcript.svelte';
   import DvrBar from '../components/DvrBar.svelte';
   import MatchList from '../components/MatchList.svelte';
+  import ConcedeControl from '../components/ConcedeControl.svelte';
   import SeatPanel from '../components/SeatPanel.svelte';
   import HandFan from '../components/HandFan.svelte';
   import {
@@ -292,17 +293,12 @@
         <Rail view={m.view} seats={m.seats} decision={seated ? null : m.decision} emphasizeTop={seated} events={m.dvr.events} showLog={showLog} onToggleLog={toggleLog}>
           {#snippet logbar()}
             {#if panel && concede}
-              <div class="concede-control">
-                {#if panel.confirming}
-                  <button class="confirm" type="button" data-confirm-concede onclick={() => panel.confirmConcede()} disabled={panel.busy}>
-                    Concede — confirm
-                  </button>
-                {:else}
-                  <button type="button" data-concede-control onclick={() => panel.click(concede.index)} disabled={panel.busy}>
-                    Concede
-                  </button>
-                {/if}
-              </div>
+              <ConcedeControl
+                confirming={panel.confirming}
+                busy={panel.busy}
+                onArm={() => panel.click(concede.index)}
+                onConfirm={() => panel.confirmConcede()}
+              />
             {/if}
           {/snippet}
         </Rail>
@@ -394,24 +390,9 @@
      top: 3rem absolute anchor landed on seat row 0 and its z-index ate the
      row's pile-button clicks), and it cannot read as unanchored. The
      .logbar__extra wrapper in Rail pushes this to the right; nothing here
-     is absolutely positioned. */
-  .concede-control {
-    flex: none;
-  }
-  .concede-control button {
-    padding: var(--sp-1) var(--sp-2);
-    border: 1px solid color-mix(in srgb, var(--danger) 42%, var(--edge-inst));
-    border-radius: var(--radius);
-    background: var(--instrument);
-    color: color-mix(in srgb, var(--danger) 68%, var(--ink));
-    font-size: var(--t-12);
-    cursor: pointer;
-  }
-  .concede-control button.confirm {
-    background: var(--danger);
-    color: var(--felt-sunk);
-    font-weight: 600;
-  }
+     is absolutely positioned. The control's markup and styles live in
+     ConcedeControl.svelte so the geometry fixture renders the real thing
+     (SeatTable.svelte.test.ts measures it there). */
 
   .transcript {
     grid-column: 1 / -1;
