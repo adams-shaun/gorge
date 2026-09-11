@@ -277,20 +277,35 @@
         {/if}
       </section>
       <aside class="rail">
-        <Rail view={m.view} seats={m.seats} decision={seated ? null : m.decision} emphasizeTop={seated} events={m.dvr.events} showLog={showLog} onToggleLog={toggleLog} />
-        {#if panel && concede}
-          <div class="concede-control">
-            {#if panel.confirming}
-              <button class="confirm" type="button" data-confirm-concede onclick={() => panel.confirmConcede()} disabled={panel.busy}>
-                Concede — confirm
-              </button>
-            {:else}
-              <button type="button" data-concede-control onclick={() => panel.click(concede.index)} disabled={panel.busy}>
-                Concede
-              </button>
+        <!-- The concede control (when a concede option is pending) is passed
+             to Rail as a logbar snippet: it renders inside the rail's own
+             LOGS row, in normal flex flow at the row's right edge. fb-53bd45b9:
+             it used to be absolutely positioned at top: 3rem inside the rail,
+             a hand-calibrated offset that cleared the logbar but landed on
+             seat row 0 (the stacked zone counts made each row taller), and
+             its z-index: 9 painted over the row's life and pile counts —
+             eating the pile buttons' clicks in the covered band. In flow
+             inside the logbar row, "floating" is structurally impossible:
+             the row is the anchor and grows if the control needs height.
+             The state stays here (SeatPanelState wiring); only the markup's
+             host row moved. -->
+        <Rail view={m.view} seats={m.seats} decision={seated ? null : m.decision} emphasizeTop={seated} events={m.dvr.events} showLog={showLog} onToggleLog={toggleLog}>
+          {#snippet logbar()}
+            {#if panel && concede}
+              <div class="concede-control">
+                {#if panel.confirming}
+                  <button class="confirm" type="button" data-confirm-concede onclick={() => panel.confirmConcede()} disabled={panel.busy}>
+                    Concede — confirm
+                  </button>
+                {:else}
+                  <button type="button" data-concede-control onclick={() => panel.click(concede.index)} disabled={panel.busy}>
+                    Concede
+                  </button>
+                {/if}
+              </div>
             {/if}
-          </div>
-        {/if}
+          {/snippet}
+        </Rail>
       </aside>
       <footer class="transcript" class:hidden={!showLog}>
         {#if !seated}
@@ -332,9 +347,10 @@
     /* The rail's floor is what its content measures: the stacked two-high zone
        counts in SeatTable let the seat summary fit in two count columns, the
        widest rail section (a stack tile's 56px art column) bottoms out at
-       143px, and the "Concede — confirm" control needs 138px — measured with
-       the geometry harness (SeatTable.svelte.test.ts). 11rem (176px) sits
-       comfortably above that floor. The 15% cap matters more than the floor
+       143px, and the "Concede — confirm" control needs 138px in the logbar
+       row it shares with the LOGS toggle — measured with the geometry harness
+       (SeatTable.svelte.test.ts). 11rem (176px) sits comfortably above that
+       floor. The 15% cap matters more than the floor
        on common viewports: with min 17rem the track was pinned to 17rem on
        every window narrower than ~1510px (18% of the viewport fell below the
        floor), so typical laptops saw the full 17rem whatever the content
@@ -372,18 +388,15 @@
     overflow: visible;
     color: var(--ink-inst);
   }
-  /* Concede sits below the logbar row, anchored to the rail itself rather
-     than the viewport corner — a fixed-to-viewport control only avoided the
-     log toggle by coincidence (it worked only because the rail happens to
-     touch the viewport's own top-right corner), and the wider "Concede —
-     confirm" label already overran that guess and sat on top of the toggle,
-     eating its clicks. Anchoring inside .rail (position: relative) makes the
-     two controls' geometry a fact instead of a hope. */
+  /* Concede lives INSIDE the logbar row (passed to Rail as a snippet), at
+     the row's right edge in normal flex flow — the row is its anchor, so it
+     cannot paint over the seat table below the row (fb-53bd45b9: the old
+     top: 3rem absolute anchor landed on seat row 0 and its z-index ate the
+     row's pile-button clicks), and it cannot read as unanchored. The
+     .logbar__extra wrapper in Rail pushes this to the right; nothing here
+     is absolutely positioned. */
   .concede-control {
-    position: absolute;
-    top: 3rem;
-    right: var(--sp-2);
-    z-index: 9;
+    flex: none;
   }
   .concede-control button {
     padding: var(--sp-1) var(--sp-2);

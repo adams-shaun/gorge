@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import type { View, SeatInfo, DecisionBody } from '../protocol';
   import { focusSeat } from '../lib/seattable';
   import SeatTable from './SeatTable.svelte';
@@ -42,6 +43,7 @@
     events = [],
     showLog = true,
     onToggleLog = null,
+    logbar = null,
   }: {
     view: View;
     seats: SeatInfo[];
@@ -58,6 +60,16 @@
     /** onToggleLog is the rail's control: a real button (keyboard reachable,
      *  role switch) that asks Table to flip the transcript's visibility. */
     onToggleLog?: (() => void) | null;
+    /** logbar is optional extra content for the logbar row, rendered after
+     *  the LOGS toggle in normal flex flow (Table passes the concede control
+     *  as a snippet — task fb-53bd45b9). The row owns the alignment and the
+     *  height: the snippet content is pushed to the right edge by
+     *  .logbar__extra, so a control sharing the row can never float over the
+     *  seat table below it — the row simply grows if the content needs more
+     *  height. Table keeps ownership of the concede STATE (the whole
+     *  SeatPanelState wiring); Rail only hosts the markup in the one row
+     *  that had spare room. */
+    logbar?: Snippet | null;
   } = $props();
 
   // The reader's explicit pick, or null to follow (focusSeat decides what
@@ -101,6 +113,7 @@
         <span class="word">Logs</span>
       </button>
     {/if}
+    {#if logbar}<span class="logbar__extra">{@render logbar()}</span>{/if}
   </div>
   <SeatTable {view} {seats} {focus} {events} onFocus={(s) => (picked = picked === s ? null : s)} />
 
@@ -172,9 +185,23 @@
      "the hidden button doesn't make sense. Make it LOGS text instead"). */
   .logbar {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     padding: var(--sp-2) var(--sp-3);
     border-bottom: 1px solid var(--edge-inst);
+    flex: none;
+  }
+  /* Extra logbar content (today: the concede control snippet Table passes
+     in) is pushed to the right edge of the row and stays IN FLOW — the row
+     is the control's anchor, so it cannot paint over the seat table or the
+     toggle, and the row grows if the content ever needs more height. The
+     wrap lets a wide state (the armed "Concede — confirm" label, 129px
+     measured) drop to the row's own second line at the 11rem floor instead
+     of overflowing the rail horizontally. */
+  .logbar__extra {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
     flex: none;
   }
   .logbar__toggle {
