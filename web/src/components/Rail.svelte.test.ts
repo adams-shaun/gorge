@@ -137,10 +137,27 @@ describe('Rail — the log visibility control (ui21)', () => {
     const on = render(Rail, { props: { view: baseView(), seats, decision: null, showLog: true, onToggleLog: () => {} } });
     expect(on.html).toContain('data-log-toggle');
     expect(on.html).toContain('aria-checked="true"');
-    expect(on.html).toContain('Visible');
 
     const off = render(Rail, { props: { view: baseView(), seats, decision: null, showLog: false, onToggleLog: () => {} } });
     expect(off.html).toContain('aria-checked="false"');
-    expect(off.html).toContain('Hidden');
+  });
+
+  it('names itself LOGS in both states — the word is the noun, not the state (player feedback, ui21)', () => {
+    // The old toggle spelt its STATE ("Visible"/"Hidden"); a seated player
+    // whose log starts hidden read "Hidden" with no idea what it referred
+    // to. The button now names the thing it controls, statically, in both
+    // states; the state stays in the dot/class:on styling and aria-checked
+    // (asserted above). Uppercase comes from CSS (`text-transform:
+    // uppercase` on .logbar__toggle .word), so the markup carries "Logs".
+    const on = render(Rail, { props: { view: baseView(), seats, decision: null, showLog: true, onToggleLog: () => {} } });
+    expect(on.html).toContain('>Logs<');
+    const off = render(Rail, { props: { view: baseView(), seats, decision: null, showLog: false, onToggleLog: () => {} } });
+    expect(off.html).toContain('>Logs<');
+
+    // The old "Log" label span is gone — matched by class and by exact
+    // element text (">Log<" is substring-safe against "Logs" because the
+    // static word is what remains).
+    expect(off.html).not.toContain('logbar__label');
+    expect(off.html).not.toContain('>Log</span>');
   });
 });
