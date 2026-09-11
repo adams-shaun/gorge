@@ -479,3 +479,159 @@ describe('autopilot — stops persistence and words', () => {
     expect(new Set(texts).size).toBe(texts.length); // every state says something different
   });
 });
+
+describe('autopilot — answering at your own stop', () => {
+  beforeEach(() => {
+    postIntentMock.mockReset();
+    fetchPendingMock.mockReset();
+    postIntentMock.mockResolvedValue(undefined);
+  });
+
+  // Leaf 1. The stop exists to invite this answer; taking the wheel on it
+  // is what the player reported ("auto pass seems to revert to OFF when we
+  // hit a breakpoint").
+  it('answering the window at a stop the player set keeps Auto armed, and Auto answers the next ordinary window', async () => {
+    const p = armed();
+    p.toggleStop('main1', 'yours');
+    p.adoptView(live(4));
+    p.considerAuto(view('main1', 0));
+    expect(postIntentMock).not.toHaveBeenCalled();
+    expect(p.auto).toBe(true);
+    expect(autoNoteText(p.note)).toBe('Auto stopped here: you set a stop on this step.');
+
+    p.click(0); // the cast — the answer the stop invited
+    await settle(() => p.postedSeq === 4);
+    expect(p.auto).toBe(true);
+
+    // Auto resumes from the next window and answers it itself.
+    p.adoptView(quiet(5));
+    p.considerAuto(view('main1', 0));
+    await settle(() => p.postedSeq === 5);
+    expect(postIntentMock).toHaveBeenCalledTimes(2);
+    expect(postIntentMock.mock.calls[1][2].choices).toEqual([0]);
+    expect(p.autoPassed).toBe(1);
+  });
+
+  // Leaf 2. A stop Auto made for a reason the player did not set means the
+  // client saw something it does not understand — answering that by hand is
+  // still a takeover.
+  it.each([
+    ['not-priority', mulligan(3), view('main1', 0)],
+    ['unexpected-shape', { ...live(4), min: 0 }, view('main1', 0)],
+    ['has-action-and-stack', live(4), ({ ...view('main1', 0), stack: [{ id: 9, controller: 1 }] }) as View],
+  ] as const)('a hand answer at a %s stop still disarms Auto', (reason, decision, currentView) => {
+    const p = armed();
+    p.adoptView(decision);
+    p.considerAuto(currentView);
+    expect(p.auto).toBe(true);
+    expect(p.note).toEqual({ kind: 'waiting', reason });
+    p.click(0);
+    expect(p.auto).toBe(false);
+    expect(autoNoteText(p.note)).toBe('Auto switched off: you took the decision yourself.');
+  });
+
+  // Leaf 3. No stop pending: a hand answer is a plain takeover, even right
+  // after Auto has been passing windows on its own.
+  it('a hand answer with no stop pending still disarms Auto, even while it is passing', async () => {
+    const p = armed();
+    p.adoptView(quiet(1));
+    p.considerAuto(view('main1', 0));
+    await settle(() => p.postedSeq === 1); // Auto passed it
+    p.adoptView(live(2));
+    p.click(0);
+    expect(p.auto).toBe(false);
+    expect(autoNoteText(p.note)).toBe('Auto switched off: you took the decision yourself.');
+  });
+
+  // Leaf 4. Escape is a takeover command, never swallowed by the exception.
+  it("Escape at the player's own stop still disarms Auto", () => {
+    const p = armed();
+    p.toggleStop('main1', 'yours');
+    p.adoptView(live(4));
+    p.considerAuto(view('main1', 0));
+    expect(p.auto).toBe(true);
+    p.onKeydown('Escape');
+    expect(p.auto).toBe(false);
+    expect(autoNoteText(p.note)).toBe('Auto switched off: you pressed Escape.');
+  });
+
+  // Leaf 5. One window per stop: after the resumption, the NEXT player's-own
+  // stop stops again rather than silently playing through — and the exception
+  // is minted fresh for THAT window, so answering it keeps Auto armed too. A
+  // token that persisted past its own window (or a one-shot exception that
+  // never re-mints) fails the last assertion; a fix that plays through the
+  // second stop fails the "stops again" one.
+  it('one window per stop: the next own stop stops again and earns a fresh exception', async () => {
+    const p = armed();
+    p.toggleStop('main1', 'yours');
+    p.adoptView(live(4));
+    p.considerAuto(view('main1', 0));
+    p.click(0);
+    await settle(() => p.postedSeq === 4);
+    expect(p.auto).toBe(true);
+
+    p.adoptView(live(6));
+    p.considerAuto(view('main1', 0));
+    expect(postIntentMock).toHaveBeenCalledTimes(1); // not played through
+    expect(p.note).toEqual({ kind: 'waiting', reason: 'stop-set' });
+    expect(p.auto).toBe(true);
+
+    p.click(0);
+    await settle(() => p.postedSeq === 6);
+    expect(p.auto).toBe(true);
+    expect(postIntentMock).toHaveBeenCalledTimes(2);
+  });
+
+  // Leaf 6. Concede is not an answer the stop invited; Auto must not survive
+  // it, through either half of the confirm path.
+  it("conceding at the player's own stop does not leave Auto armed across the concede", async () => {
+    const p = armed();
+    p.toggleStop('main1', 'yours');
+    p.adoptView(live(4));
+    p.considerAuto(view('main1', 0));
+    expect(p.auto).toBe(true);
+    p.click(2); // arms the confirmation — and takes the wheel even here
+    expect(p.auto).toBe(false);
+    expect(p.confirming).toBe(true);
+    p.confirmConcede();
+    await settle(() => p.postedSeq === 4);
+    expect(p.auto).toBe(false);
+  });
+
+  // The exception belongs to the window, not to one button: the dedicated
+  // pass HUD action and the primary-by-kind button earn it too.
+  it('the dedicated pass button keeps Auto armed at the stop window', async () => {
+    const p = armed();
+    p.toggleStop('main1', 'yours');
+    p.adoptView(live(4));
+    p.considerAuto(view('main1', 0));
+    p.passClick();
+    await settle(() => p.postedSeq === 4);
+    expect(postIntentMock.mock.calls[0][2].choices).toEqual([1]);
+    expect(p.auto).toBe(true);
+  });
+
+  it('the primary button keeps Auto armed at the stop window', async () => {
+    const p = armed();
+    p.toggleStop('main1', 'yours');
+    p.adoptView(live(4));
+    p.considerAuto(view('main1', 0));
+    p.primaryClick();
+    await settle(() => p.postedSeq === 4);
+    expect(postIntentMock.mock.calls[0][2].choices).toEqual([1]);
+    expect(p.auto).toBe(true);
+  });
+
+  // Scoping: the exception cannot outlive the window it was minted for. If
+  // the player never answers the stopped window and the seat's pending is
+  // replaced by an ordinary one, a hand answer there is a plain takeover.
+  it("a stop's exception does not leak to a later window the stop did not stop at", () => {
+    const p = armed();
+    p.toggleStop('main1', 'yours');
+    p.adoptView(live(4));
+    p.considerAuto(view('main1', 0));
+    p.adoptView(live(7)); // the player never answered; a new ask replaced it
+    p.click(0);
+    expect(p.auto).toBe(false);
+  });
+});

@@ -277,6 +277,16 @@ export class SeatPanelState {
   private fastStoppedSeq: number | null = null;
   /** One restart may acknowledge exactly that stopped window; it is consumed before posting. */
   private fastAcknowledgedSeq: number | null = null;
+  /**
+   * autoStoppedSeq is the seq of the window where persistent Auto stopped for
+   * the player's OWN set stop (decide()'s stop-set verdict). Answering exactly
+   * that window by hand is what the stop exists to invite, so it does not take
+   * the wheel: the token is consumed by that one answer and a fresh one is
+   * minted at the next stop-set stop. Any other stop reason mints nothing, and
+   * every path that switches Auto off clears the token, so it can never leak
+   * to a differently-stopped window or outlive its own.
+   */
+  private autoStoppedSeq: number | null = null;
 
   /** mountStops loads this seat's saved stops. Called from the component on mount, where storage exists. */
   mountStops() {
@@ -303,6 +313,9 @@ export class SeatPanelState {
     this.auto = on;
     this.autoRun = 0;
     this.autoActedSeq = null;
+    // A fresh arm is a fresh run: no stop's keep-armed exception carries
+    // across it.
+    this.autoStoppedSeq = null;
     this.note = on ? { kind: 'armed' } : { kind: 'off' };
   }
 
@@ -349,6 +362,9 @@ export class SeatPanelState {
     this.fastPassed = 0;
     this.autoRun = 0;
     this.autoActedSeq = null;
+    // Fast forward runs on its own acknowledgement machinery; Auto's stop
+    // exception has no owner while the mode is off.
+    this.autoStoppedSeq = null;
     // Restarting on the set stop that ended the previous run means "I have
     // seen this one; continue". No other stop reason earns this token.
     this.fastAcknowledgedSeq = this.pending?.seq === this.fastStoppedSeq ? this.fastStoppedSeq : null;
@@ -365,12 +381,32 @@ export class SeatPanelState {
     if (say) this.note = { kind: 'fast-cancelled' };
   }
 
+  /**
+   * handAnswer is the takeover step every human answering path runs before it
+   * posts. A human always wins — with the one exception the stops feature
+   * exists to create: answering the window Auto stopped at for the player's
+   * own set stop keeps Auto armed, because that answer is what the stop
+   * invited, and Auto resumes from the next window. The exception is scoped
+   * to that one seq (consumed by the answer, re-minted at the next stop-set
+   * stop); a window Auto stopped at for any other reason, and any window
+   * with no stop pending, still disarms.
+   */
+  private handAnswer() {
+    this.cancelFastForward();
+    if (this.autoStoppedSeq !== null && this.pending?.seq === this.autoStoppedSeq) {
+      this.autoStoppedSeq = null;
+      return;
+    }
+    this.suspendAuto('human');
+  }
+
   /** suspendAuto switches auto off with a stated reason. A human always wins: any answer this seat gives by hand takes the wheel back. */
   suspendAuto(reason: AutoOffReason) {
     if (!this.auto) return;
     this.auto = false;
     this.autoRun = 0;
     this.autoActedSeq = null;
+    this.autoStoppedSeq = null;
     this.note = { kind: 'stopped', reason };
   }
 
@@ -438,7 +474,13 @@ export class SeatPanelState {
             this.note = { kind: 'fast-stopped', reason: verdict.reason };
           } else {
             // A stop in persistent Auto leaves the mode armed: the player may
-            // answer this window and Auto resumes after it.
+            // answer this window and Auto resumes after it. Only the player's
+            // own set-stop verdict earns the keep-armed exception, and only for
+            // exactly this window: the token is consumed by the hand answer and
+            // re-minted fresh at the next stop-set stop. Any other reason means
+            // the client saw something it does not understand, so a hand answer
+            // there must still take the wheel.
+            this.autoStoppedSeq = verdict.reason === 'stop-set' ? d.seq : null;
             this.note = { kind: 'waiting', reason: verdict.reason };
           }
           return;
@@ -489,6 +531,7 @@ export class SeatPanelState {
     this.fastPassed = 0;
     this.fastStoppedSeq = null;
     this.fastAcknowledgedSeq = null;
+    this.autoStoppedSeq = null;
     // The floor is a preference, not an opt-in, so it comes back on across a
     // match boundary the way it starts: on. Only its runaway guards or the
     // player's own switch turn it off.
@@ -584,15 +627,16 @@ export class SeatPanelState {
     if (d === null || d.seq === this.postedSeq || this.busy) return;
     const opt = optionAt(d, index);
     if (opt === undefined) return;
-    // A human always wins: touching an option takes the wheel back before
-    // anything is posted, so auto cannot answer the next window either.
-    this.cancelFastForward();
-    this.suspendAuto('human');
     if (isConcede(opt)) {
+      // Concede never earns the stop's keep-armed exception — it is not an
+      // answer the stop existed to invite, and Auto must not survive it.
+      this.cancelFastForward();
+      this.suspendAuto('human');
       if (this.confirming) void this.post([index]);
       else this.confirming = true;
       return;
     }
+    this.handAnswer();
     this.confirming = false;
     if (d.min === 1 && d.max === 1) {
       void this.post([index]);
@@ -612,8 +656,7 @@ export class SeatPanelState {
     const d = this.pending;
     if (d === null || d.seq === this.postedSeq || this.busy) return;
     if (optionAt(d, index) === undefined) return;
-    this.cancelFastForward();
-    this.suspendAuto('human');
+    this.handAnswer();
     this.confirming = false;
     this.picked = pickOption(d, index, this.picked);
   }
@@ -623,8 +666,7 @@ export class SeatPanelState {
     const d = this.pending;
     const pass = this.passOption;
     if (d === null || pass === null || this.busy) return;
-    this.cancelFastForward();
-    this.suspendAuto('human');
+    this.handAnswer();
     void this.post([pass.index]);
   }
 
@@ -633,8 +675,7 @@ export class SeatPanelState {
     const d = this.pending;
     const p = d ? primaryOf(d) : null;
     if (d === null || p === null || d.seq === this.postedSeq || this.busy) return;
-    this.cancelFastForward();
-    this.suspendAuto('human');
+    this.handAnswer();
     void this.post([p.index]);
   }
 
@@ -654,8 +695,7 @@ export class SeatPanelState {
     const d = this.pending;
     if (d === null || d.seq === this.postedSeq || this.busy) return;
     if (this.picked.length < d.min || this.picked.length > d.max) return;
-    this.cancelFastForward();
-    this.suspendAuto('human');
+    this.handAnswer();
     void this.post([...this.picked]);
   }
 
