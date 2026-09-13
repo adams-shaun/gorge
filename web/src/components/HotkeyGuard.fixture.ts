@@ -1,10 +1,14 @@
 import { mount, unmount } from 'svelte';
 import type { CardView, Decision, Option, PlayerView, SeatInfo, View } from '../protocol';
 import { SeatPanelState } from '../lib/seatpanel.svelte';
+import { modalPickerOpen } from '../lib/modals';
+import { optionsByObj, optionsByPlayer, type CardOptions } from '../lib/cardoptions';
 import '../app.css';
 import HotButtonStrip from './HotButtonStrip.svelte';
 import PileModal from './PileModal.svelte';
 import CardTile from './CardTile.svelte';
+import HandFan from './HandFan.svelte';
+import FeedbackButton from './FeedbackButton.svelte';
 
 /**
  * HotkeyGuard fixture mounts the REAL hotkey wiring — HotButtonStrip (whose
@@ -19,7 +23,10 @@ import CardTile from './CardTile.svelte';
  *  - window.__openPile: mounts a real PileModal (open), whose onClose
  *    unmounts it — the marker [data-pile-modal] appears/disappears with it;
  *  - real three- and seven-option CardTiles exercise both portaled
- *    OptionPicker shapes and their shared [data-option-picker] guard.
+ *    OptionPicker shapes;
+ *  - a real HandFan exercises its separate, non-portaled role=menu picker;
+ *  - a real FeedbackButton exercises the other transient role=dialog found
+ *    by the structural audit.
  */
 
 interface FixtureWindow {
@@ -28,11 +35,13 @@ interface FixtureWindow {
   __view: View;
   __armRun: () => void;
   __openPile: () => void;
+  __modalPickerOpen: () => boolean;
   /** adopts a FRESH decision (next seq), so a test gets a second answerable window — the stub always serves seq 7 otherwise. */
   __newDecision: () => void;
 }
 
 const win = window as unknown as FixtureWindow;
+win.__modalPickerOpen = modalPickerOpen;
 
 const decision: Decision = {
   seq: 7, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1,
@@ -165,3 +174,31 @@ mount(CardTile, {
     },
   },
 });
+
+// HandFan owns a distinct menu implementation rather than OptionPicker. Its
+// role=menu is deliberately the ONLY hotkey-guard signal here: this fixture
+// proves the structural selector protects correctly marked-up future pickers
+// without adding one marker per component.
+const handDecision: Decision = {
+  ...decision,
+  options: [
+    { index: 30, kind: 'cast', label: 'Cast Hand Bolt', obj: 18, player: 0 } as Option,
+    { index: 31, kind: 'ability', label: 'Cycle Hand Bolt', obj: 18, player: 0 } as Option,
+  ],
+};
+const handOptions: CardOptions = {
+  byObj: optionsByObj(handDecision),
+  byPlayer: optionsByPlayer(handDecision),
+  picked: [],
+  tone: 'offered',
+  post: () => {},
+};
+mount(HandFan, {
+  target: document.querySelector('#hand')!,
+  props: { player: { ...player, hand: [card(18, 'Hand Bolt')], hand_size: 1 }, width: 500, options: handOptions },
+});
+
+// Feedback is the only other transient dialog returned by the role audit.
+// It is not a game picker, but the structural guard must preserve a run while
+// its own Escape handler closes it, exactly as for decision surfaces.
+mount(FeedbackButton, { target: document.querySelector('#feedback')! });

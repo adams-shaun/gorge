@@ -8,9 +8,9 @@
  *
  * The guards, in order:
  *  - a held Meta (Cmd) key: never a gorge hotkey — the OS/browser owns those;
- *  - an open modal picker (either shape of OptionPicker's portaled card-
- *    action picker, and PileModal's hand/graveyard/exile dialog — see
- *    MODAL_PICKER_SELECTOR): its own keys govern, and a hotkey firing
+ *  - an open modal picker (detected structurally by menu/dialog/listbox
+ *    semantics, with the existing picker markers as compatibility hooks —
+ *    see MODAL_PICKER_SELECTOR): its own keys govern, and a hotkey firing
  *    underneath it would act on a decision the player cannot currently
  *    see;
  *  - Escape is deliberately NOT guarded by the focus check: it is the panic
@@ -30,16 +30,26 @@
 export type HotkeyAction = 'pass' | 'end-turn' | 'hard-skip' | 'cancel-run' | 'toggle-full-control';
 
 /**
- * MODAL_PICKER_SELECTOR matches every modal decision-blocking surface the
- * wiring must hide the hotkeys behind: BOTH OptionPicker shapes share
- * `[data-option-picker]` (the 2–6-option radial wheel and the >6-option list)
- * and pile modals use `[data-pile-modal]` (hand, graveyard, exile). The
- * live-DOM probe over it lives in lib/modals.ts (modalPickerOpen); the
- * selector lives here so the grammar's doc and the probe's contract cannot
- * drift apart. A new modal that blocks a pending decision must join this
- * selector or it will read hotkeys aimed underneath it.
+ * MODAL_PICKER_SELECTOR is structural first: every open ARIA menu, dialog or
+ * listbox suppresses table hotkeys, including a newly added picker that has
+ * not learned a gorge-specific data marker yet. Native open dialogs and the
+ * aria-modal contract are covered too. The existing OptionPicker/PileModal
+ * markers remain as stable test and compatibility hooks.
+ *
+ * All matching roles currently belong to transient surfaces; there is no
+ * always-mounted menu bar to exclude. If one is introduced, mark that
+ * persistent element explicitly and exclude only it rather than weakening
+ * this safety net.
  */
-export const MODAL_PICKER_SELECTOR = '[data-option-picker], [data-pile-modal]';
+export const MODAL_PICKER_SELECTOR = [
+  '[role="menu"]',
+  '[role="dialog"]',
+  '[role="listbox"]',
+  '[aria-modal="true"]',
+  'dialog[open]',
+  '[data-option-picker]',
+  '[data-pile-modal]',
+].join(', ');
 
 /** HotkeyEvent is the slice of KeyboardEvent the grammar reads, so tests can build it by hand. */
 export interface HotkeyEvent {

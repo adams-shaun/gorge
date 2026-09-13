@@ -47,13 +47,21 @@ describe('hotkeys — the grammar', () => {
     }
   });
 
-  // The pure grammar test above probes with a synthetic predicate; this pins
-  // the real selector's two markers so a surface that loses its marker is
-  // caught here too. BOTH OptionPicker shapes carry the shared first marker;
-  // HotkeyGuard.test.ts mounts and proves the radial and >6 list shapes.
-  it('MODAL_PICKER_SELECTOR names every OptionPicker shape and the pile modal', () => {
-    expect(MODAL_PICKER_SELECTOR).toContain('[data-option-picker]');
-    expect(MODAL_PICKER_SELECTOR).toContain('[data-pile-modal]');
+  // Pin the structural safety net and its compatibility markers. The mounted
+  // guard suite injects a marker-free role=menu and exercises every live
+  // picker/dialog kind found by the component audit.
+  it('MODAL_PICKER_SELECTOR covers structural modal semantics and the existing data hooks', () => {
+    for (const selector of [
+      '[role="menu"]',
+      '[role="dialog"]',
+      '[role="listbox"]',
+      '[aria-modal="true"]',
+      'dialog[open]',
+      '[data-option-picker]',
+      '[data-pile-modal]',
+    ]) {
+      expect(MODAL_PICKER_SELECTOR).toContain(selector);
+    }
   });
 
   it('ordinary typing is never a hotkey', () => {

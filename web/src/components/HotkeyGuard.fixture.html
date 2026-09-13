@@ -13,6 +13,11 @@
     <!-- The same real OptionPicker with seven options exercises its portaled
          rectangular list shape, which must block the same hotkeys. -->
     <div id="menu" style="width: 220px; height: 320px; margin: 20px 0 0 260px"></div>
+    <!-- HandFan has a separate inline role=menu picker. A positioned mount
+         gives its absolute fan track a stable click target. -->
+    <div id="hand" style="position: relative; width: 500px; height: 260px; margin-left: 260px"></div>
+    <!-- Feedback is the audit's other transient role=dialog surface. -->
+    <div id="feedback"></div>
     <script type="module" src="/src/components/HotkeyGuard.fixture.ts"></script>
   </body>
 </html>

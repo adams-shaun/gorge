@@ -2,7 +2,7 @@
   import type { CardView, PlayerView } from '../protocol';
   import { visibleHand } from '../lib/board';
   import { handFanLayout, PLAY_CARD_WIDTH, type HandFanSpec } from '../lib/handfan';
-  import type { CardOptions, TileOptions } from '../lib/cardoptions';
+  import type { CardOptions } from '../lib/cardoptions';
   import { postSingleAction, singleActionIcon, tileOptions } from '../lib/cardoptions';
   import CardImage from './CardImage.svelte';
   import CardDetail from './CardDetail.svelte';
@@ -122,6 +122,11 @@
   function openForCard(id: number) {
     return openCard === id;
   }
+  function closeMenuOnEscape(event: KeyboardEvent): void {
+    if (event.key !== 'Escape' || openCard === null) return;
+    event.preventDefault();
+    openCard = null;
+  }
 
   // TIE THE PANEL TO THE OBJECT, NOT TO A POINTER EVENT: if the hovered card
   // leaves the hand (played, discarded, exiled) while the pointer is still
@@ -149,6 +154,12 @@
     });
   }
 </script>
+
+<!-- The menu may be open while focus is on a card face or the document body,
+     so Escape belongs at window scope. The capture-phase table hotkey guard
+     sees the still-open role=menu first; this bubble handler then closes only
+     the hand picker, leaving an End Turn/hard-skip run intact. -->
+<svelte:window onkeydown={closeMenuOnEscape} />
 
 {#if hand.length > 0}
   <!-- The track spans the board and is the measured element; the fan row is

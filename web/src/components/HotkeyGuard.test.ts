@@ -4,14 +4,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * HotkeyGuard.test.ts is the mounted half of the modal-picker guard (prio3
- * review r2, findings 2 and 3): the pure grammar test passes a synthetic
- * picker predicate, so it cannot catch a modal surface that forgot its
- * marker. Here the REAL surfaces are open — a PileModal (hand/graveyard/
- * exile dialog, portaled to body) and a CardTile's radial picker — over the
- * real HotButtonStrip/SeatPanel wiring, and keyboard presses are driven at
- * the live document. Both OptionPicker branches are covered: the 2–6 radial
- * wheel and the >6 rectangular list share one marker, so neither can let a
- * table hotkey fire behind it.
+ * review r2 through sol2): the pure grammar test passes a synthetic picker
+ * predicate, so it cannot catch a modal surface that markup failed to expose.
+ * Here every transient picker kind found by the structural audit is mounted
+ * over the real HotButtonStrip/SeatPanel wiring: OptionPicker's radial and
+ * long-list branches, HandFan's separate menu, and PileModal's dialog. The
+ * feedback dialog is covered too. Keyboard presses target the live document,
+ * with focus deliberately moved off native controls where that matters.
  */
 
 let server: Awaited<ReturnType<typeof createServer>>;
@@ -39,7 +38,7 @@ const playMode = (page: import('playwright').Page): Promise<string> =>
   page.evaluate(() => document.querySelector('[data-play-mode]')?.getAttribute('data-play-mode') ?? '');
 
 describe('the hotkey guard against an open modal — mounted', () => {
-  it('Space and Enter with a PileModal open (focus in the dialog) do nothing; closed, Space passes and Enter arms End Turn', async () => {
+  it('Space and Enter stay behind PileModal; Escape closes it and preserves End Turn', async () => {
     const page = await browser.newPage();
     await page.goto(`${url}src/components/HotkeyGuard.fixture.html`);
 
@@ -53,20 +52,16 @@ describe('the hotkey guard against an open modal — mounted', () => {
     expect(await posts(page)).toEqual([]);
     expect(await playMode(page)).toBe('custom'); // no run armed under the modal
 
-    // Escape closes the PileModal itself (its own grammar, still live).
+    // Arm without a pointer so the open surface stays present. Escape closes
+    // PileModal's own layer while both capture listeners still see the dialog
+    // and therefore leave the underlying run untouched.
+    await page.evaluate(() => (window as unknown as { __armRun: () => void }).__armRun());
+    await page.waitForFunction(() => (window as unknown as { __posts: Posts }).__posts.length === 1);
+    expect(await playMode(page)).toBe('end-turn');
     await page.keyboard.press('Escape');
     await page.waitForSelector('[data-pile-modal]', { state: 'detached' });
-    expect(await posts(page)).toEqual([]);
-    expect(await playMode(page)).toBe('custom');
-
-    // Positive controls, same keys, modal closed: Space passes once...
-    await page.keyboard.press('Space');
-    await page.waitForFunction(() => (window as unknown as { __posts: Posts }).__posts.length > 0);
     expect(await posts(page)).toEqual([{ seq: 7, player: 0, choices: [9] }]);
-    // ...and with a fresh answerable window, Enter arms the End Turn run.
-    await page.evaluate(() => (window as unknown as { __newDecision: () => void }).__newDecision());
-    await page.keyboard.press('Enter');
-    await page.waitForFunction(() => document.querySelector('[data-play-mode]')?.getAttribute('data-play-mode') === 'end-turn');
+    expect(await playMode(page)).toBe('end-turn');
     await page.close();
   });
 
@@ -79,6 +74,13 @@ describe('the hotkey guard against an open modal — mounted', () => {
     // programmatically: no pointer is involved in arming.
     await page.locator('#radial .badge').click();
     await page.waitForSelector('[data-option-picker][data-radial-picker]');
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.keyboard.press('Space');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(50);
+    expect(await posts(page)).toEqual([]);
+    expect(await playMode(page)).toBe('custom');
+
     await page.evaluate(() => (window as unknown as { __armRun: () => void }).__armRun());
     await page.waitForFunction(() => document.querySelector('[data-play-mode]')?.getAttribute('data-play-mode') === 'end-turn');
     const before = await posts(page);
@@ -125,6 +127,66 @@ describe('the hotkey guard against an open modal — mounted', () => {
     await page.waitForSelector('.menu-pop[data-option-picker]', { state: 'detached' });
     expect(await posts(page)).toEqual([{ seq: 7, player: 0, choices: [9] }]);
     expect(await playMode(page)).toBe('end-turn');
+    await page.close();
+  });
+
+  it('Space and Enter stay behind HandFan role=menu; Escape closes it and preserves End Turn', async () => {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/HotkeyGuard.fixture.html`);
+
+    await page.locator('#hand .badge').click();
+    await page.waitForSelector('#hand [role="menu"]');
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.keyboard.press('Space');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(50);
+    expect(await posts(page)).toEqual([]);
+    expect(await playMode(page)).toBe('custom');
+
+    await page.evaluate(() => (window as unknown as { __armRun: () => void }).__armRun());
+    await page.waitForFunction(() => (window as unknown as { __posts: Posts }).__posts.length === 1);
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('#hand [role="menu"]', { state: 'detached' });
+    expect(await posts(page)).toEqual([{ seq: 7, player: 0, choices: [9] }]);
+    expect(await playMode(page)).toBe('end-turn');
+    await page.close();
+  });
+
+  it('the feedback dialog owns Escape and preserves an underlying End Turn run', async () => {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/HotkeyGuard.fixture.html`);
+
+    await page.locator('#feedback .feedback-badge').click();
+    await page.waitForSelector('#feedback [role="dialog"]');
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.keyboard.press('Space');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(50);
+    expect(await posts(page)).toEqual([]);
+
+    await page.evaluate(() => (window as unknown as { __armRun: () => void }).__armRun());
+    await page.waitForFunction(() => (window as unknown as { __posts: Posts }).__posts.length === 1);
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('#feedback [role="dialog"]', { state: 'detached' });
+    expect(await posts(page)).toEqual([{ seq: 7, player: 0, choices: [9] }]);
+    expect(await playMode(page)).toBe('end-turn');
+    await page.close();
+  });
+
+  it('modalPickerOpen structurally detects a bare role=menu with no data marker', async () => {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/HotkeyGuard.fixture.html`);
+
+    const result = await page.evaluate(() => {
+      const menu = document.createElement('div');
+      menu.setAttribute('role', 'menu');
+      document.body.append(menu);
+      const open = (window as unknown as { __modalPickerOpen: () => boolean }).__modalPickerOpen();
+      menu.remove();
+      const closed = (window as unknown as { __modalPickerOpen: () => boolean }).__modalPickerOpen();
+      return { open, closed };
+    });
+    expect(result).toEqual({ open: true, closed: false });
     await page.close();
   });
 });
