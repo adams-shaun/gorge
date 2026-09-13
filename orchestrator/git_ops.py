@@ -31,6 +31,7 @@ def create_worktree(issue_id: str) -> Path:
     cards_link = wt / ".cards"
     if not cards_link.exists():
         cards_link.symlink_to(config.REPO / ".cards")
+    link_node_modules(wt)  # implementer seats run vitest/svelte-check; never npm install
     return wt
 
 

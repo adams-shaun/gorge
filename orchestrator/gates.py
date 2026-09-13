@@ -80,6 +80,14 @@ def web_build(worktree: Path) -> GateResult:
     return _run("npm run build", ["npm", "run", "build"], worktree / "web", timeout=300)
 
 
+def web_smoke(worktree: Path) -> GateResult:
+    """The Playwright browser gate. It binds the fixed smoke ports 8090-8099,
+    so concurrent runs from two worktrees would kill each other's servers;
+    flock serializes them across every caller on this box."""
+    lock = config.ORCH_STATE_DIR / "smoke.lock"
+    return _run("smoke", ["flock", str(lock), "bash", "scripts/smoke.sh"], worktree, timeout=1200)
+
+
 def touches_web(worktree: Path, base: str = "main") -> bool:
     r = subprocess.run(
         ["git", "diff", "--name-only", f"{base}...HEAD"],
@@ -119,5 +127,7 @@ def run_all(worktree: Path) -> tuple[bool, list[GateResult]]:
         if not step(web_test):
             return False, results
         if not step(web_build):
+            return False, results
+        if not step(web_smoke):
             return False, results
     return True, results

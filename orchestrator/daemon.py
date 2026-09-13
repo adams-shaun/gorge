@@ -73,9 +73,41 @@ def discover_new_issues() -> None:
         log.info("new issue %s from inbox: %s", issue.id, issue.title)
 
 
+_DEPENDS_RE = None
+
+
+def _unmet_dependency(text: str) -> str | None:
+    """Inbox tickets may carry `Depends-On: <issue-id>[, <issue-id>]` lines.
+    The issue is created (so it shows in the ledger) at once, but is not
+    triaged -- triage reads main -- until every named issue is `merged`. This is how tickets that share hot files
+    are serialized: parallel seats editing the same module make every
+    rebase and review after the first one worthless."""
+    import re
+    global _DEPENDS_RE
+    if _DEPENDS_RE is None:
+        _DEPENDS_RE = re.compile(r"^Depends-On:\s*(.+)$", re.MULTILINE)
+    for m in _DEPENDS_RE.finditer(text):
+        for dep in (x.strip() for x in m.group(1).split(",")):
+            if not dep:
+                continue
+            found = issues.find(dep)
+            if found is None or found.status != "merged":
+                return dep
+    return None
+
+
 # --- per-status advancement --------------------------------------------------
 
 def advance_new(issue: issues.Issue) -> None:
+    if issue.source == "inbox" and "## Done means" in issue.report:
+        # A hand-authored ticket that is already a full brief (it carries a
+        # "Done means" checklist) goes straight to implementation: a triage
+        # rewrite by the local seat can only lose fidelity.
+        issue.brief = issue.report
+        issue.status = "briefed"
+        issue.log("inbox ticket is already a brief; triage skipped")
+        issue.save()
+        return
     name = seats.triage_name(issue.id)
     status_path = config.ORCH_STATE_DIR / "triage" / issue.id / "status.json"
     if not pi.already_launched(name):
@@ -298,6 +330,10 @@ def tick() -> None:
         advancer = ADVANCERS.get(issue.status)
         if advancer is None:
             continue
+        if issue.status == "new" and issue.source == "inbox":
+            blocker = _unmet_dependency(issue.report)
+            if blocker:
+                continue
         try:
             advancer(issue)
         except Exception:

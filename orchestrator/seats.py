@@ -87,7 +87,7 @@ def launch_implementer(
     ds4 = wt / ".ds4"
     ds4.mkdir(parents=True, exist_ok=True)
     (ds4 / "brief.md").write_text(brief_text)
-    tail = IMPL_TAIL_TEMPLATE.read_text().replace("{ID}", issue_id)
+    tail = IMPL_TAIL_TEMPLATE.read_text().replace("{ID}", issue_id).replace("{TAG}", tag)
     (ds4 / f"system-{tag}.md").write_text(_combined_system(tail))
     message_rel = None
     if findings_text:
@@ -127,6 +127,7 @@ def launch_review(issue_id: str, wt: Path, tag: str) -> tuple[subprocess.Popen, 
     system_path = ds4 / f"review-system-{tag}.md"
     system_path.write_text(_combined_system(tail))
     status_path = review_status_path(wt, tag)
+    _salvage_report(wt, tag)
     task_path = ds4 / f"review-task-{tag}.md"
     verdict_path = ds4 / f"verdict-{tag}.md"
     task_path.write_text(
@@ -143,6 +144,21 @@ def launch_review(issue_id: str, wt: Path, tag: str) -> tuple[subprocess.Popen, 
         thinking=config.REVIEWER_THINKING,
     )
     return proc, status_path
+
+
+def _salvage_report(wt: Path, tag: str) -> None:
+    """An implementer that wrote the legacy `.ds4/report.md` instead of the
+    round-tagged path must not be auto-rejected for a filename: two sol
+    rounds with real, green fixes were parked on 2026-09-11 purely because
+    the reviewer could not find `report-<tag>.md`. Copy it across when it is
+    newer than the round's system prompt (i.e. written during this round)."""
+    ds4 = wt / ".ds4"
+    tagged, legacy, system = ds4 / f"report-{tag}.md", ds4 / "report.md", ds4 / f"system-{tag}.md"
+    if tagged.exists() or not legacy.exists():
+        return
+    if system.exists() and legacy.stat().st_mtime < system.stat().st_mtime:
+        return
+    tagged.write_text(legacy.read_text())
 
 
 def read_verdict(wt: Path, tag: str) -> tuple[bool, str]:
