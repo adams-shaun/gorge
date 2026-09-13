@@ -20,6 +20,16 @@ const ctx = { seat: 0, token: 'tok' };
 const cast = (i: number): Option => ({ index: i, kind: 'cast', label: `Cast ${i}`, player: 0 });
 const pass = (i: number): Option => ({ index: i, kind: 'pass', label: 'Pass priority', player: 0 });
 const concede = (i: number): Option => ({ index: i, kind: 'concede', label: 'Concede', player: 0 });
+const activate = (i: number): Option => ({ index: i, kind: 'activate', label: `Tap ${i}`, player: 0 });
+const land = (i: number): Option => ({ index: i, kind: 'play_land', label: `Play land ${i}`, player: 0 });
+
+/** manaLand is a main-phase window whose only real action is a land drop (plus the mana taps every window carries). */
+const manaLand = (seq: number): Decision =>
+  ({ seq, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1, options: [activate(0), land(1), pass(2), concede(3)] });
+
+/** manaOnly is a window with nothing to do: a mana tap, pass and concede — actionable() is false on it. */
+const manaOnly = (seq: number): Decision =>
+  ({ seq, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1, options: [activate(0), pass(1), concede(2)] });
 
 /** quiet is a priority window with nothing to do: pass and concede only. */
 const quiet = (seq: number): Decision =>
@@ -705,5 +715,103 @@ describe('autopilot — answering at your own stop', () => {
     p.adoptView(live(7)); // the player never answered; a new ask replaced it
     p.click(0);
     expect(p.auto).toBe(false);
+  });
+});
+
+// The fb-20260911T164042Z-c2f4db8f regression: "I have a breakpoint on my
+// main phase, but several times now the client did not pause", losing land
+// drops. These are SeatPanelState LOOP tests — they assert on posted intents,
+// not on decide()'s verdict — because decide() already honours the stop; the
+// bug class is a caller answering the stopped window for the player.
+describe('the c2f4db8f regression — a stop-set window with a land drop is the player\u2019s to answer', () => {
+  beforeEach(() => {
+    postIntentMock.mockReset();
+    fetchPendingMock.mockReset();
+    postIntentMock.mockResolvedValue(undefined);
+  });
+
+  // Required test 1: persistent Auto at a stopped yours.main1 whose only real
+  // action is a land drop. The mana taps must not make the window skippable,
+  // and the stop must win: no pass posted, panel stopped.
+  it('persistent Auto stops (no pass posted) at a stopped yours.main1 whose only action is a land drop', () => {
+    const p = armed();
+    p.toggleStop('main1', 'yours');
+    p.adoptView(manaLand(9));
+    p.considerAuto(view('main1', 0));
+    expect(postIntentMock).not.toHaveBeenCalled();
+    expect(p.auto).toBe(true);
+    expect(p.active?.seq).toBe(9);
+    expect(p.note).toEqual({ kind: 'waiting', reason: 'stop-set' });
+  });
+
+  // Required test 2: a fast-forward run that started at an EARLIER decision
+  // must halt at the later stop-set window and never post its pass — the
+  // press-is-consent acknowledgement belongs to the window sitting pending at
+  // press time only.
+  it('a fast-forward started at an earlier decision halts at the later stopped yours.main1 and never posts its pass', async () => {
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    p.stops = { yours: new Set(['main1']), opponents: new Set() };
+    // The run is armed at the opponent's end step (no stop there) and passes it.
+    p.adoptView(quiet(30));
+    p.startFastForward(view('end', 1));
+    p.considerAuto(view('end', 1));
+    await settle(() => p.postedSeq === 30);
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(p.fastForward).toBe(true);
+
+    // The run reaches YOUR main1 with a land drop and a stop set: it stops.
+    p.adoptView(manaLand(31));
+    p.considerAuto(view('main1', 0));
+    expect(postIntentMock).toHaveBeenCalledTimes(1); // only seq 30 was posted
+    expect(p.fastForward).toBe(false);
+    expect(p.active?.seq).toBe(31);
+    expect(p.note).toEqual({ kind: 'fast-stopped', reason: 'stop-set' });
+  });
+
+  // Required test 3: after the player plays a land in main1 with
+  // pass-after-acting ON, the next priority window in that same main1 has a
+  // stop set and still an actionable option (a cast) — the stop must win.
+  it('pass-after-acting does not pass the next window in main1 when a stop is set and a cast is available', async () => {
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    p.stops = { yours: new Set(['main1']), opponents: new Set() };
+    p.setActPass(true);
+
+    // The player plays the land by hand: the intent posts and arms the
+    // pass-after-acting token (actedOption counts play_land).
+    p.adoptView(manaLand(50));
+    p.click(1); // the play_land option
+    await settle(() => p.postedSeq === 50);
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(postIntentMock.mock.calls[0][2].choices).toEqual([1]);
+
+    // The next priority window in the same main1: a cast is available and the
+    // stop is still set. actPass spends its one shot here but must NOT pass —
+    // decide()'s stop-set verdict governs and consumeActPass posts nothing.
+    p.adoptView(live(51));
+    p.considerAuto(view('main1', 0));
+    expect(postIntentMock).toHaveBeenCalledTimes(1); // no pass for seq 51
+    expect(p.postedSeq).toBeNull(); // adopt() cleared it for the new ask
+    expect(p.active?.seq).toBe(51);
+  });
+
+  // Boundary of required test 3, recorded as behaviour: a mana-only window
+  // (activate + pass + concede) has NO actionable option, so decide() — and
+  // with it consumeActPass and the empty-window floor — passes it even at a
+  // stop, exactly as the autopilot-level pin requires ("nothing to do there").
+  // A window with no cast and no land drop cannot lose the player anything.
+  it('pass-after-acting passes a mana-only window at a stop (nothing to do there — the sanctioned shape)', async () => {
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    p.stops = { yours: new Set(['main1']), opponents: new Set() };
+    p.setActPass(true);
+    p.adoptView(manaLand(60));
+    p.click(1); // play the land
+    await settle(() => p.postedSeq === 60);
+
+    p.adoptView(manaOnly(61));
+    p.considerAuto(view('main1', 0));
+    await settle(() => p.postedSeq === 61);
+    expect(postIntentMock).toHaveBeenCalledTimes(2);
+    expect(postIntentMock.mock.calls[1][2].choices).toEqual([1]); // the pass option's index
+    expect(autoNoteText(p.note)).toBe('Passed 1 priority window after your action.');
   });
 });
