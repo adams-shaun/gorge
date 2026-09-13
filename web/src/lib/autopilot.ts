@@ -11,7 +11,9 @@ import type { Decision, View } from '../protocol';
  * now? Note the wire fact this module builds on: a priority decision's
  * options carry Kind ("pass", "cast", "ability", "concede", ...), so "no
  * action available" is answerable client-side -- an option list whose kinds
- * are only "pass" and "concede" means the player can do nothing.
+ * are only "pass", "concede" and "activate" means the player can do
+ * nothing that matters (the engine offers a mana tap for every available
+ * source at every priority window; see actionable()).
  *
  * decide() can only ever return an index pointing at an option whose kind
  * is "pass". It is structurally incapable of returning a "concede": the
@@ -59,20 +61,43 @@ export function turnSide(view: View, seat: number): TurnSide {
 
 /**
  * actionable reports whether a priority decision offers the player a real
- * action: an option that is neither pass nor concede (cast, ability,
- * play_land, activate, ...). An option list whose kinds are only pass and
- * concede means the player can do nothing.
+ * action: an option that is not pass, concede or activate (cast, ability,
+ * play_land, ...). An option list whose kinds are only pass, concede and
+ * activate means the player can do nothing that matters: the engine offers
+ * an "activate" (tap for mana) option for every available mana source at
+ * every priority window (rules/legal.go's availableManaAbilities loop), so
+ * counting those taps as actions would make almost every window
+ * "actionable" and defeat both the empty-window skip and the
+ * has-action-and-stack guard. Tapping mana with nothing to spend it on is
+ * not a play.
  */
 export function actionable(decision: Decision): boolean {
-  return decision.options.some((o) => o.kind !== 'pass' && o.kind !== 'concede');
+  return decision.options.some((o) => o.kind !== 'pass' && o.kind !== 'concede' && o.kind !== 'activate');
+}
+
+/**
+ * respondable reports whether the player could respond to something on the
+ * stack: a cast or ability option (a spell or non-mana ability at speed).
+ * It deliberately excludes play_land (a land drop is never a response —
+ * lands are sorcery-speed and cannot interact with a resolving spell) and
+ * activate (see actionable above — every mana source offers a tap at every
+ * window). Used by decide()'s stack guard so an opponent object on the
+ * stack only stops a player who can actually answer it, not one who can
+ * merely tap a land.
+ */
+export function respondable(decision: Decision): boolean {
+  return decision.options.some((o) => o.kind === 'cast' || o.kind === 'ability');
 }
 
 /**
  * emptyPriorityWindow reports the one window shape the panel skips even when
- * auto is OFF: a plain single-pick priority window whose only options are
- * pass and concede. There is nothing to decide there -- the player's only
- * non-suicidal answer is the pass, so stopping to collect it is a click that
- * carries no information. This is deliberately the SAME shape test decide()
+ * auto is OFF: a plain single-pick priority window with nothing actionable
+ * on it. "Actionable" is actionable()'s test — pass, concede and activate
+ * do not count (a mana tap is offered at every window and is not a play),
+ * so this covers both the only-pass-and-concede shape and the mana-only
+ * shape (activate + pass + concede). There is nothing to decide there --
+ * the player's only non-suicidal answer is the pass, so stopping to collect
+ * it is a click that carries no information. This is deliberately the SAME shape test decide()
  * applies before its own !actionable branch (single-pick, exactly one pass
  * option), factored out rather than restated, so the manual-mode skip can
  * never come to a different conclusion than auto would.
@@ -135,14 +160,18 @@ export function decide(args: {
   const side = turnSide(view, seat);
   if (stops[side].has(view.step)) return { act: 'stop', reason: 'stop-set' };
 
-  // The player has an action and someone else controls an object on the
+  // The player could RESPOND and someone else controls an object on the
   // stack: auto-passing could let that object resolve unanswered. Persistent
   // Auto acts for the player unattended, so it must never let that happen
-  // silently. The one-shot fast-forward is explicit and player-initiated —
-  // pressing it is the statement "I have no more actions to take" — so it
-  // passes through and lets the stack resolve (the run stays bounded by the
-  // caller's pass cap).
-  if (!ffwd && view.stack.some((s) => s.controller !== seat)) return { act: 'stop', reason: 'has-action-and-stack' };
+  // silently. respondable (cast or ability), not actionable, is the gate: a
+  // window whose only real action is a land drop or a mana tap cannot
+  // interact with the resolving object, so it is not a reason to stop. The
+  // one-shot fast-forward is explicit and player-initiated — pressing it is
+  // the statement "I have no more actions to take" — so it passes through
+  // and lets the stack resolve (the run stays bounded by the caller's pass
+  // cap).
+  if (!ffwd && respondable(decision) && view.stack.some((s) => s.controller !== seat))
+    return { act: 'stop', reason: 'has-action-and-stack' };
 
   return { act: 'pass', index: pass.index };
 }
