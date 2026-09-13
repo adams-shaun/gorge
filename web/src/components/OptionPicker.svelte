@@ -58,9 +58,10 @@
     open = false;
   }
 
-  function choose(option: Option): void {
+  /** choose posts one option; Ctrl held (holdPriority) skips pass-after-acting for this one cast/ability (prio3). */
+  function choose(option: Option, holdPriority = false): void {
     close();
-    postTileOption(tileOptions, option);
+    postTileOption(tileOptions, option, holdPriority);
   }
 
   function onWindowKeydown(event: KeyboardEvent): void {
@@ -113,7 +114,7 @@
       title={action.label}
       onclick={(event) => {
         event.stopPropagation();
-        postSingleAction(tileOptions, true);
+        postSingleAction(tileOptions, true, event.ctrlKey);
       }}
     >
       <span aria-hidden="true">{icon === 'tap' ? '↻' : icon === 'cast' ? '✦' : '›'}</span>
@@ -159,7 +160,7 @@
             style:left="{point.x}px"
             style:top="{point.y}px"
             style:--pip={isManaChoice && mana ? `var(--mana-${mana.toLowerCase()})` : undefined}
-            onclick={() => choose(opt)}
+            onclick={(event) => choose(opt, event.ctrlKey)}
           >
             {#if isManaChoice}<span aria-hidden="true">{mana}</span>{:else}<span>{compactLabel(opt.label)}</span>{/if}
           </button>
@@ -171,7 +172,7 @@
         <ul class="menu" role="menu" aria-label="Options {subject}">
           {#each tileOptions.list as opt (opt.index)}
             <li role="none">
-              <button class="menu__item" type="button" role="menuitem" onclick={() => choose(opt)}>
+              <button class="menu__item" type="button" role="menuitem" onclick={(event) => choose(opt, event.ctrlKey)}>
                 {opt.label}
               </button>
             </li>

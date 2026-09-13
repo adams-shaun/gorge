@@ -99,7 +99,7 @@ describe('CardTile options affordance (ui21)', () => {
     expect(html).toContain('data-wire-index="3"');
     expect(html).toContain('data-wire-index="8"');
     postTileOption(t, t.list[1]);
-    expect(t.post).toHaveBeenCalledWith(8);
+    expect(t.post).toHaveBeenCalledWith(8, false, false);
   });
 
   it('more than six options retain the rectangular list menu', () => {

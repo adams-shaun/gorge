@@ -11,6 +11,7 @@ import {
   tileOptionsMany,
   playerOptions,
   postSingleAction,
+  postTileOption,
   singleActionIcon,
   singleTapOptionOf,
   type CardOptions,
@@ -175,7 +176,7 @@ describe('single-action card affordance', () => {
       pickedOrder: [], tone: 'offered', post,
     };
     postSingleAction(tile);
-    expect(post).toHaveBeenCalledWith(17);
+    expect(post).toHaveBeenCalledWith(17, false, false);
     expect(post).not.toHaveBeenCalledWith(0);
   });
 
@@ -189,7 +190,7 @@ describe('single-action card affordance', () => {
     expect(singleTapOptionOf(tile)?.index).toBe(4);
     postSingleAction(tile);
     expect(post).toHaveBeenCalledTimes(1);
-    expect(post).toHaveBeenCalledWith(4);
+    expect(post).toHaveBeenCalledWith(4, false, false);
   });
 
   it.each([
@@ -212,6 +213,38 @@ describe('single-action card affordance', () => {
       list: [opt(3, 9), opt(8, 9)], pickedOrder: [], tone: 'offered', post,
     });
     expect(post).not.toHaveBeenCalled();
+  });
+
+  // prio3 review r2: the tile affordances (direct icon, radial wheel, list
+  // menu) are the one path a Ctrl-held cast/ability takes, and Ctrl must
+  // arrive at SeatPanelState.click as `{ holdPriority: true }` — otherwise
+  // the action arms pass-after-acting. These are the pure half; the mounted
+  // Ctrl-click through CardTile/OptionPicker is CardMenu.test.ts.
+  describe('holdPriority — the Ctrl modifier threads through the tile post', () => {
+    const post = vi.fn();
+    const tile = (): import('./cardoptions').TileOptions => ({
+      list: [opt(3, 9, 'cast', 'Cast Fireball'), opt(8, 9, 'cast', 'Cast Shock')],
+      pickedOrder: [], tone: 'offered', post,
+    });
+
+    it('postTileOption carries the modifier as post\'s third argument, expectFollowUp false', () => {
+      postTileOption(tile(), tile().list[0]);
+      expect(post).toHaveBeenLastCalledWith(3, false, false);
+      postTileOption(tile(), tile().list[1], true);
+      expect(post).toHaveBeenLastCalledWith(8, false, true);
+    });
+
+    it('postSingleAction carries it too, keeping its expectFollowUp argument', () => {
+      const single = (): import('./cardoptions').TileOptions => ({
+        list: [opt(17, 9, 'cast', 'Cast Fireball')], pickedOrder: [], tone: 'offered', post,
+      });
+      postSingleAction(single(), true, true);
+      expect(post).toHaveBeenLastCalledWith(17, true, true);
+      postSingleAction(single(), false, true);
+      expect(post).toHaveBeenLastCalledWith(17, false, true);
+      postSingleAction(single());
+      expect(post).toHaveBeenLastCalledWith(17, false, false);
+    });
   });
 });
 

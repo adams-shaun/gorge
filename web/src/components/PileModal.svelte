@@ -56,9 +56,12 @@
 
 {#if open}
   <!-- The backdrop is pointer-dismissable while Escape is handled globally;
-       it is not itself a keyboard stop because focus belongs in the dialog. -->
+       it is not itself a keyboard stop because focus belongs in the dialog.
+       data-pile-modal is the modal guard's marker (lib/modals.ts): while this
+       modal is open, the document-level hotkeys are suppressed so Space
+       cannot post PASS and Enter cannot arm a run underneath it. -->
   <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <div class="backdrop" data-pile-backdrop role="presentation" use:portal onclick={backdropClick}>
+  <div class="backdrop" data-pile-backdrop data-pile-modal role="presentation" use:portal onclick={backdropClick}>
     <div
       class="dialog"
       role="dialog"

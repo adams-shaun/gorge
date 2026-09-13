@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8" /><title>Hotkey guard fixture</title></head>
+  <body>
+    <div id="fixture" style="width: 900px"></div>
+    <!-- Mount point for the pile modal, opened imperatively via __openPile()
+         so each test starts from a known closed state. -->
+    <div id="pile"></div>
+    <!-- A real CardTile whose options badge opens the radial picker on click;
+         the margin keeps the badge clear of the viewport edge so the opened
+         wheel's clamped placements do not stack its buttons on one another. -->
+    <div id="radial" style="width: 220px; height: 320px; margin: 220px 0 0 260px"></div>
+    <script type="module" src="/src/components/HotkeyGuard.fixture.ts"></script>
+  </body>
+</html>

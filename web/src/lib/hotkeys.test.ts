@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hotkeyAction, type HotkeyEvent } from './hotkeys';
+import { hotkeyAction, MODAL_PICKER_SELECTOR, type HotkeyEvent } from './hotkeys';
 
 /** A non-interactive target: the felt, the panel text, the body. */
 const felt = { closest: () => null } as unknown as EventTarget;
@@ -45,6 +45,15 @@ describe('hotkeys — the grammar', () => {
     for (const key of [' ', 'Enter', 'Escape', 'f']) {
       expect(hotkeyAction(ev({ key }), () => true)).toBeNull();
     }
+  });
+
+  // The pure grammar test above probes with a synthetic predicate; this pins
+  // the real selector's two markers so a surface that loses its marker is
+  // caught here too. The mounted proof that both markers exist on the live
+  // surfaces is HotkeyGuard.test.ts.
+  it('MODAL_PICKER_SELECTOR names the radial picker AND the pile modal (r2 review: PileModal was missing)', () => {
+    expect(MODAL_PICKER_SELECTOR).toContain('[data-radial-picker]');
+    expect(MODAL_PICKER_SELECTOR).toContain('[data-pile-modal]');
   });
 
   it('ordinary typing is never a hotkey', () => {

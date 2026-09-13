@@ -153,11 +153,11 @@
       picked: [...panel.picked],
       tone: toneOf(d),
       autoOpenObj: autoOpenCardDecision?.seq === d.seq ? autoOpenCardDecision.obj : undefined,
-      post: (index: number, expectFollowUp = false) => {
+      post: (index: number, expectFollowUp = false, holdPriority = false) => {
         const obj = d.options.find((option) => option.index === index)?.obj;
         expectedCardFollowUp = expectFollowUp && obj !== undefined ? { seq: d.seq, obj } : null;
         autoOpenCardDecision = null;
-        panel.click(index);
+        panel.click(index, { holdPriority });
       },
     };
   });

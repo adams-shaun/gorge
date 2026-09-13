@@ -3,6 +3,7 @@
   import type { CardView, Option, SeatInfo, View } from '../protocol';
   import type { SeatCtx } from '../lib/seat';
   import { SeatPanelState, autoNoteText, isConcede, mulliganPhase, toneOf } from '../lib/seatpanel.svelte';
+  import { modalPickerOpen } from '../lib/modals';
   import CardImage from './CardImage.svelte';
   import CardTile from './CardTile.svelte';
   import ManaPool from './ManaPool.svelte';
@@ -64,7 +65,17 @@
     // Escape is the panic key: it ends a one-shot run wherever the focus
     // happens to be. It is on the window because the player's hands are not
     // necessarily on the panel when a run does something they did not expect.
-    const onKey = (e: KeyboardEvent) => logic.onKeydown(e.key);
+    // CAPTURE phase (r2 review): this listener must evaluate the modal guard
+    // BEFORE the bubble-phase handlers — OptionPicker's and PileModal's own
+    // Escape-close — can close the modal out from under the probe. While a
+    // modal picker is open, Escape closes THE MODAL and the run underneath
+    // it survives: cancelling an End Turn the player cannot see the board
+    // of would be the hotkey acting on a decision the modal is blocking.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (modalPickerOpen()) return;
+      logic.onKeydown(e.key);
+    };
     // A one-shot run is one shot and a human always wins. Capture makes even a
     // click outside this component (a card, stop, log control) cancel it;
     // only the button that starts the run is exempt.
@@ -73,7 +84,7 @@
       if (target instanceof Element && target.closest('[data-end-turn]')) return;
       logic.cancelRun();
     };
-    window.addEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
     window.addEventListener('pointerdown', onPointer, true);
     // The panel used to learn about a new decision ONLY from view.decision,
     // which is refreshed by the SSE 'decision' frame. That makes the stream a
@@ -92,7 +103,7 @@
     }, 1000);
     return () => {
       clearInterval(t);
-      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keydown', onKey, true);
       window.removeEventListener('pointerdown', onPointer, true);
     };
   });

@@ -8,9 +8,11 @@
  *
  * The guards, in order:
  *  - a held Meta (Cmd) key: never a gorge hotkey — the OS/browser owns those;
- *  - an open modal picker (the radial card-action picker, portaled to body):
- *    its own keys govern, and a hotkey firing underneath it would act on a
- *    decision the player cannot currently see;
+ *  - an open modal picker (the radial card-action picker, OptionPicker's
+ *    portaled wheel, and PileModal's hand/graveyard/exile dialog — see
+ *    MODAL_PICKER_SELECTOR): its own keys govern, and a hotkey firing
+ *    underneath it would act on a decision the player cannot currently
+ *    see;
  *  - Escape is deliberately NOT guarded by the focus check: it is the panic
  *    key, and it must cancel a run wherever focus happens to be;
  *  - focus in an interactive element (button, link, input, textarea, select,
@@ -26,6 +28,19 @@
  */
 
 export type HotkeyAction = 'pass' | 'end-turn' | 'hard-skip' | 'cancel-run' | 'toggle-full-control';
+
+/**
+ * MODAL_PICKER_SELECTOR matches every modal decision-blocking surface the
+ * wiring must hide the hotkeys behind: the radial card-action picker
+ * (OptionPicker's portaled wheel, `[data-radial-picker]`) and the pile
+ * modals (PileModal's portaled backdrop, `[data-pile-modal]` — hand,
+ * graveyard, exile). The live-DOM probe over it lives in lib/modals.ts
+ * (modalPickerOpen); the selector lives here so the grammar's doc and the
+ * probe's contract cannot drift apart. A new modal that blocks a pending
+ * decision must join this selector or it will read hotkeys aimed
+ * underneath it.
+ */
+export const MODAL_PICKER_SELECTOR = '[data-radial-picker], [data-pile-modal]';
 
 /** HotkeyEvent is the slice of KeyboardEvent the grammar reads, so tests can build it by hand. */
 export interface HotkeyEvent {

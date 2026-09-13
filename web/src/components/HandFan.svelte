@@ -198,7 +198,7 @@
                 data-action-icon={icon}
                 aria-label={action.label}
                 title={action.label}
-                onclick={() => postSingleAction(opt)}
+                onclick={(event) => postSingleAction(opt, false, event.ctrlKey)}
               >
                 <span aria-hidden="true">{icon === 'tap' ? '↻' : icon === 'cast' ? '✦' : '›'}</span>
               </button>
@@ -223,7 +223,7 @@
               <ul class="menu" role="menu" aria-label="Options for {c.name}">
                 {#each opt.list as o (o.index)}
                   <li role="none">
-                    <button class="menu__item" type="button" role="menuitem" onclick={() => opt.post(o.index)}>
+                    <button class="menu__item" type="button" role="menuitem" onclick={(event) => opt.post(o.index, false, event.ctrlKey)}>
                       {o.label}
                     </button>
                   </li>
