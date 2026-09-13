@@ -1,0 +1,324 @@
+import { STOPPABLE_STEPS } from './autopilot';
+
+/**
+ * playsettings is the pure settings model behind the auto-pass experience:
+ * named presets (casual / no-tells / full-control), per-step stop rules, and
+ * the opponent-object rules decide() (lib/autopilot) consumes. It is pure
+ * TypeScript — no Svelte runes, no I/O except the two storage functions —
+ * so the wiring task (prio3) can build UI on it and the tests can pin every
+ * preset field exactly.
+ *
+ * Persistence is ONE global localStorage key, `gorge.playsettings.v1`, not
+ * per table: the old per-table stop keys are exactly why settings appeared
+ * to "reset" (every new table started from defaults again). A preference is
+ * a property of the player, not of the table.
+ */
+
+export type Preset = 'casual' | 'no-tells' | 'full-control' | 'custom';
+
+/**
+ * StepStop is one step's stop rule:
+ *  - 'off'    — never stop at that step;
+ *  - 'smart'  — stop only if the window is actionable() (there is something
+ *               to do); a mana-only window still passes;
+ *  - 'forced' — stop whenever priority is posed at that step, even with
+ *               nothing to do.
+ */
+export type StepStop = 'off' | 'smart' | 'forced';
+
+/** How an opponent-controlled object on top of the stack is treated. */
+export type OpponentObjectRule = 'if-respondable' | 'always' | 'never';
+
+/**
+ * How an opponent-controlled TRIGGER on top of the stack is treated. The
+ * extra 'targets-me-if-respondable' is casual's value: an opponent trigger
+ * is everyday noise (mana abilities, upkeep draws), so stop only when it
+ * actually points at us AND we could respond.
+ */
+export type OpponentTriggerRule = 'targets-me-if-respondable' | 'if-respondable' | 'always' | 'never';
+
+/** How one of the seat's OWN objects on top of the stack is treated. */
+export type OwnObjectRule = 'never' | 'if-respondable';
+
+/**
+ * StoppableStep is STOPPABLE_STEPS's ten names as a type: the steps that
+ * grant priority, so a stop there is meaningful. Kept in sync with
+ * autopilot.STOPPABLE_STEPS (the single source of truth); the preset test
+ * asserts the two agree.
+ */
+export type StoppableStep =
+  | 'upkeep' | 'draw' | 'main1' | 'begin-combat' | 'declare-attackers'
+  | 'declare-blockers' | 'combat-damage' | 'end-combat' | 'main2' | 'end';
+
+export interface PlaySettings {
+  version: 1;
+  /** which named preset these settings match, or 'custom' after any edit */
+  preset: Preset;
+  /** master switch: false means decide() stops at every window (manual play) */
+  autoPass: boolean;
+  /** an opponent's spell on top of the stack */
+  opponentSpell: OpponentObjectRule;
+  /** an opponent's activated ability on top of the stack */
+  opponentAbility: OpponentObjectRule;
+  /** an opponent's triggered ability on top of the stack */
+  opponentTrigger: OpponentTriggerRule;
+  /** the seat's own spell/ability/trigger on top of the stack */
+  ownObjects: OwnObjectRule;
+  /** per-step stop rules, split by whose turn it is */
+  steps: { yours: Record<StoppableStep, StepStop>; opponents: Record<StoppableStep, StepStop> };
+  /** pass the seat's next priority window once after it takes a real action */
+  passAfterAct: boolean;
+  /** auto-order identical simultaneous triggers; consumed by prio6, not decide() */
+  autoOrderIdenticalTriggers: boolean;
+  /** artificial pacing for auto-passing; consumed by prio5, not decide() */
+  pacing: { stepMs: number; resolveMs: number };
+  /** record auto-passes in the game log; consumed by prio5, not decide() */
+  logAutoPasses: boolean;
+}
+
+/** The ten stoppable step names, in engine order (autopilot.STOPPABLE_STEPS). */
+const STEPPABLE = STOPPABLE_STEPS as readonly StoppableStep[];
+
+/** steps builds a full Record<StoppableStep, StepStop>, defaulting 'off'. */
+function steps(yours: Partial<Record<StoppableStep, StepStop>>, opponents: Partial<Record<StoppableStep, StepStop>>):
+  PlaySettings['steps'] {
+  const full = (partial: Partial<Record<StoppableStep, StepStop>>): Record<StoppableStep, StepStop> => {
+    const out = {} as Record<StoppableStep, StepStop>;
+    for (const s of STEPPABLE) out[s] = partial[s] ?? 'off';
+    return out;
+  };
+  return { yours: full(yours), opponents: full(opponents) };
+}
+
+function mkSettings(p: Exclude<Preset, 'custom'>, fields: Omit<PlaySettings, 'version' | 'preset'>): PlaySettings {
+  return { version: 1, preset: p, ...fields };
+}
+
+/** allSteps builds a full Record<StoppableStep, StepStop> with one rule everywhere. */
+function allSteps(rule: StepStop): Record<StoppableStep, StepStop> {
+  const out = {} as Record<StoppableStep, StepStop>;
+  for (const s of STEPPABLE) out[s] = rule;
+  return out;
+}
+
+/**
+ * PRESETS is the canonical value of each named preset, exactly as the
+ * settings table specifies. 'custom' is deliberately absent: it is a label
+ * settings earn by being edited, not a preset to apply.
+ */
+export const PRESETS: Record<Exclude<Preset, 'custom'>, PlaySettings> = {
+  'casual': mkSettings('casual', {
+    autoPass: true,
+    opponentSpell: 'if-respondable',
+    opponentAbility: 'if-respondable',
+    opponentTrigger: 'targets-me-if-respondable',
+    ownObjects: 'never',
+    steps: steps(
+      { main1: 'smart', main2: 'smart' },
+      { 'declare-attackers': 'smart', end: 'smart' },
+    ),
+    passAfterAct: true,
+    autoOrderIdenticalTriggers: true,
+    pacing: { stepMs: 200, resolveMs: 400 },
+    logAutoPasses: true,
+  }),
+  'no-tells': mkSettings('no-tells', {
+    autoPass: true,
+    opponentSpell: 'always',
+    opponentAbility: 'always',
+    opponentTrigger: 'always',
+    ownObjects: 'never',
+    steps: steps(
+      { main1: 'smart', main2: 'smart' },
+      { 'declare-attackers': 'smart', end: 'smart' },
+    ),
+    passAfterAct: true,
+    autoOrderIdenticalTriggers: true,
+    pacing: { stepMs: 200, resolveMs: 400 },
+    logAutoPasses: true,
+  }),
+  'full-control': mkSettings('full-control', {
+    autoPass: false,
+    opponentSpell: 'always',
+    opponentAbility: 'always',
+    opponentTrigger: 'always',
+    ownObjects: 'if-respondable',
+    steps: { yours: allSteps('forced'), opponents: allSteps('forced') },
+    passAfterAct: false,
+    autoOrderIdenticalTriggers: false,
+    pacing: { stepMs: 0, resolveMs: 0 },
+    logAutoPasses: true,
+  }),
+};
+
+/** defaultSettings is the out-of-the-box experience: casual. */
+export function defaultSettings(): PlaySettings {
+  return cloneSettings(PRESETS.casual);
+}
+
+/** applyPreset returns a fresh, independent copy of the named preset. */
+export function applyPreset(p: Exclude<Preset, 'custom'>): PlaySettings {
+  return cloneSettings(PRESETS[p]);
+}
+
+function cloneSettings(s: PlaySettings): PlaySettings {
+  return {
+    ...s,
+    steps: { yours: { ...s.steps.yours }, opponents: { ...s.steps.opponents } },
+    pacing: { ...s.pacing },
+  };
+}
+
+function deepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== typeof b || a === null || b === null) return false;
+  if (Array.isArray(a) || Array.isArray(b)) return JSON.stringify(a) === JSON.stringify(b);
+  if (typeof a !== 'object') return false;
+  const ka = Object.keys(a as object).sort();
+  const kb = Object.keys(b as object).sort();
+  if (ka.length !== kb.length || ka.some((k, i) => k !== kb[i])) return false;
+  return ka.every((k) => deepEqual((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]));
+}
+
+/**
+ * deepMerge copies base with patch applied, recursively cloning every plain-
+ * object value, so a nested patch (one step's rule, one pacing field) merges
+ * field-wise, untouched siblings are deep copies (no shared references with
+ * the caller's settings), and the result is safe to mutate.
+ */
+function deepMerge(base: Record<string, unknown>, patch: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...base };
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === undefined) continue;
+    const cur = out[k];
+    out[k] = isPlainObject(v) && isPlainObject(cur) ? deepMerge(cur as Record<string, unknown>, v) : v;
+  }
+  // Clone every branch the patch did not touch so nothing is shared with the
+  // caller's settings.
+  for (const k of Object.keys(out)) {
+    if (isPlainObject(out[k]) && out[k] === base[k]) out[k] = deepMerge(out[k] as Record<string, unknown>, {});
+  }
+  return out;
+}
+
+/**
+ * withChange returns a copy of settings with the patch applied (nested
+ * objects — steps, pacing — are merged field-wise, so a caller can patch one
+ * step's rule without restating the others). The copy's preset is 'custom'
+ * unless the result deep-equals a named preset, in which case it carries
+ * that preset's name again: undoing an edit back to a known configuration
+ * restores the preset label instead of leaving it stuck at 'custom'.
+ */
+export function withChange(settings: PlaySettings, patch: Partial<PlaySettings>): PlaySettings {
+  const merged = deepMerge(settings as unknown as Record<string, unknown>, patch as Record<string, unknown>);
+  const next = merged as unknown as PlaySettings;
+  for (const name of Object.keys(PRESETS) as Exclude<Preset, 'custom'>[]) {
+    // Compare with the label normalised to the candidate's name: the RULES
+    // decide which preset a configuration is, not the label it came in with.
+    if (deepEqual({ ...next, preset: name }, PRESETS[name])) {
+      next.preset = name;
+      return next;
+    }
+  }
+  next.preset = 'custom';
+  return next;
+}
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+/**
+ * Storage key: ONE global key, deliberately not per table (see module doc).
+ * Migration: the legacy per-table keys (`gorge.stop.<table>.<seat>` from
+ * stops.ts and the actpass key from actpass.ts) are NOT imported. They
+ * encode the old mana-tap-era defaults — stop sets written when a mana tap
+ * counted as an action — and importing them would resurrect those defaults
+ * under the new model. A player migrating simply starts at casual.
+ */
+const KEY = 'gorge.playsettings.v1';
+
+const STEP_STOPS: readonly StepStop[] = ['off', 'smart', 'forced'];
+const OBJECT_RULES: readonly OpponentObjectRule[] = ['if-respondable', 'always', 'never'];
+const TRIGGER_RULES: readonly OpponentTriggerRule[] = ['targets-me-if-respondable', 'if-respondable', 'always', 'never'];
+const OWN_RULES: readonly OwnObjectRule[] = ['never', 'if-respondable'];
+
+/**
+ * validate returns a PlaySettings from a parsed value, or null when the
+ * value is corrupt: wrong version, a missing or wrong-typed field, an
+ * unknown rule word. Corrupt means defaults, not a partial merge — a
+ * half-understood settings blob should not half-apply.
+ */
+function validate(v: unknown): PlaySettings | null {
+  if (!isPlainObject(v)) return null;
+  if (v.version !== 1) return null;
+  if (!isRule(v.opponentSpell, OBJECT_RULES) || !isRule(v.opponentAbility, OBJECT_RULES)) return null;
+  if (!isRule(v.opponentTrigger, TRIGGER_RULES) || !isRule(v.ownObjects, OWN_RULES)) return null;
+  if (typeof v.autoPass !== 'boolean' || typeof v.passAfterAct !== 'boolean') return null;
+  if (typeof v.autoOrderIdenticalTriggers !== 'boolean' || typeof v.logAutoPasses !== 'boolean') return null;
+  if (typeof v.pacing !== 'object' || v.pacing === null) return null;
+  const pacing = v.pacing as Record<string, unknown>;
+  if (typeof pacing.stepMs !== 'number' || typeof pacing.resolveMs !== 'number') return null;
+  if (typeof v.steps !== 'object' || v.steps === null) return null;
+  const st = v.steps as Record<string, unknown>;
+  const readSide = (side: unknown): Record<StoppableStep, StepStop> | null => {
+    if (typeof side !== 'object' || side === null) return null;
+    const o = side as Record<string, unknown>;
+    const out = {} as Record<StoppableStep, StepStop>;
+    for (const s of STEPPABLE) {
+      if (!isRule(o[s], STEP_STOPS)) return null;
+      out[s] = o[s] as StepStop;
+    }
+    return out;
+  };
+  const yours = readSide(st.yours);
+  const opponents = readSide(st.opponents);
+  if (yours === null || opponents === null) return null;
+  // preset is a label, not a rule the engine obeys: accept any of the four
+  // words but never trust the blob beyond that.
+  if (typeof v.preset !== 'string' || !['casual', 'no-tells', 'full-control', 'custom'].includes(v.preset)) return null;
+  return {
+    version: 1,
+    preset: v.preset as Preset,
+    autoPass: v.autoPass,
+    opponentSpell: v.opponentSpell as OpponentObjectRule,
+    opponentAbility: v.opponentAbility as OpponentObjectRule,
+    opponentTrigger: v.opponentTrigger as OpponentTriggerRule,
+    ownObjects: v.ownObjects as OwnObjectRule,
+    steps: { yours, opponents },
+    passAfterAct: v.passAfterAct,
+    autoOrderIdenticalTriggers: v.autoOrderIdenticalTriggers,
+    pacing: { stepMs: pacing.stepMs, resolveMs: pacing.resolveMs },
+    logAutoPasses: v.logAutoPasses,
+  };
+}
+
+function isRule<T extends string>(v: unknown, allowed: readonly T[]): v is T {
+  return typeof v === 'string' && (allowed as readonly string[]).includes(v);
+}
+
+/**
+ * loadSettings reads the global key. Absent, corrupt, wrong-version or a
+ * throwing storage all yield the defaults (casual); a throw must never
+ * escape — private-mode browsers throw on getItem too. Same pattern as
+ * stops.ts / images.ts.
+ */
+export function loadSettings(storage: Storage | null): PlaySettings {
+  try {
+    const raw = storage?.getItem(KEY) ?? null;
+    if (raw === null) return defaultSettings();
+    const validated = validate(JSON.parse(raw));
+    return validated ?? defaultSettings();
+  } catch {
+    return defaultSettings();
+  }
+}
+
+/** saveSettings writes the global key. A throw (private mode, quota) is swallowed: the caller's in-memory copy is the source of truth until a later save lands. */
+export function saveSettings(storage: Storage | null, s: PlaySettings): void {
+  try {
+    storage?.setItem(KEY, JSON.stringify(s));
+  } catch {
+    /* private mode or quota: keep the in-memory copy */
+  }
+}

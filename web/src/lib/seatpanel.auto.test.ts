@@ -286,7 +286,7 @@ describe('fast forward — one shot to the next pause point', () => {
     expect(p.fastForward).toBe(true);
   });
 
-  // has-action-and-stack is no longer a FFWD safety stop: the one-shot run
+  // An opponent object on the stack is no longer a FFWD safety stop: the one-shot run
   // passes through opponent stack objects (pressing FFWD is the player's own
   // "no more actions"), so the restart-acknowledgement question does not
   // arise for it — that window is covered by the pass-through test below.
@@ -542,7 +542,7 @@ describe('autopilot — stops persistence and words', () => {
   });
 
   it('every reason is spoken as plain words — no enum identifier ever reaches the screen', () => {
-    const reasons: StopReason[] = ['disabled', 'not-priority', 'unexpected-shape', 'stop-set', 'has-action-and-stack'];
+    const reasons: StopReason[] = ['disabled', 'not-priority', 'unexpected-shape', 'stop-set', 'opponent-object', 'own-object'];
     const offs: AutoOffReason[] = ['loop', 'cap', 'human', 'escape'];
     const texts = [
       ...reasons.map((reason) => autoNoteText({ kind: 'waiting', reason })),
@@ -600,7 +600,7 @@ describe('autopilot — answering at your own stop', () => {
   it.each([
     ['not-priority', mulligan(3), view('main1', 0)],
     ['unexpected-shape', { ...live(4), min: 0 }, view('main1', 0)],
-    ['has-action-and-stack', live(4), ({ ...view('main1', 0), stack: [{ id: 9, controller: 1 }] }) as View],
+    ['opponent-object', live(4), ({ ...view('main1', 0), stack: [{ id: 9, controller: 1 }] }) as View],
   ] as const)('a hand answer at a %s stop still disarms Auto', (reason, decision, currentView) => {
     const p = armed();
     p.adoptView(decision);

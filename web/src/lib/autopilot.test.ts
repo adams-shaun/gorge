@@ -1,28 +1,51 @@
 import { describe, expect, it } from 'vitest';
-import { actionable, decide, emptyPriorityWindow, respondable, STEPS, STOPPABLE_STEPS, turnSide, type Stops } from './autopilot';
+import { actionable, decide, emptyPriorityWindow, respondable, STEPS, STOPPABLE_STEPS, turnSide } from './autopilot';
+import { applyPreset, defaultSettings, type PlaySettings, type StoppableStep, type StepStop } from './playsettings';
 import type { Decision, Option, View } from '../protocol';
 
-const DEFAULT: Stops = {
-  yours: new Set(['main1', 'declare-attackers', 'main2']),
-  opponents: new Set(['declare-attackers', 'declare-blockers']),
-};
-const stops = (yours: string[], opponents: string[]): Stops => ({ yours: new Set(yours), opponents: new Set(opponents) });
-
-/** view builds a View with only the fields decide reads: active (whose turn), step, stack (controller lists). */
-const view = (active: number, step: string, stack: { id: number; controller: number }[] = []): View =>
-  ({ active, step, stack } as unknown as View);
+/** view builds a View with only the fields decide reads: active (whose turn), step, stack, and the battlefield data the targets-me lookup reads. */
+const view = (
+  active: number,
+  step: string,
+  stack: { id: number; controller: number; kind?: string; targets?: { obj?: number; player: number; is_player: boolean }[] }[] = [],
+  battlefield: { seat: number; cards: number[] }[] = [],
+): View =>
+  ({
+    active,
+    step,
+    stack,
+    players: battlefield.map((b) => ({ seat: b.seat, battlefield: b.cards.map((id) => ({ id, controller: b.seat })) })),
+  }) as unknown as View;
 
 const opt = (kind: string, at: number): Option => ({ index: at, kind, label: kind, player: 0 });
 
 const priority = (options: Option[], min = 1, max = 1, kind = 'priority'): Decision =>
   ({ seq: 1, player: 0, kind, prompt: 'p', min, max, options } as Decision);
 
-const run = (decision: Decision, v: View, st = DEFAULT) =>
-  decide({ decision, view: v, seat: 0, stops: st, enabled: true });
+/** stackEntry builds one StackView-shaped entry; kind defaults to the view's "spell" (view/view.go:755). */
+const stackEntry = (
+  id: number,
+  controller: number,
+  kind = 'spell',
+  targets: { obj?: number; player: number; is_player: boolean }[] = [],
+) => ({ id, controller, kind, targets });
 
-/** runFfwd is decide() in the one-shot fast-forward mode: the has-action-and-stack guard is skipped. */
-const runFfwd = (decision: Decision, v: View, st = DEFAULT) =>
-  decide({ decision, view: v, seat: 0, stops: st, enabled: true, ffwd: true });
+const RESPONDABLE = [opt('pass', 0), opt('cast', 1), opt('concede', 2)];
+const ONLY_MANA = [opt('activate', 0), opt('pass', 1), opt('concede', 2)];
+
+const run = (decision: Decision, v: View, settings: PlaySettings = defaultSettings()) =>
+  decide({ decision, view: v, seat: 0, settings });
+
+/** runFfwd is decide() in the one-shot fast-forward mode: the stack rules are skipped, the step rules are not. */
+const runFfwd = (decision: Decision, v: View, settings: PlaySettings = defaultSettings()) =>
+  decide({ decision, view: v, seat: 0, settings, ffwd: true });
+
+/** withSteps returns a copy of casual with one side's step rules replaced wholesale. */
+const withSteps = (side: 'yours' | 'opponents', rules: Partial<Record<StoppableStep, StepStop>>): PlaySettings => {
+  const s = applyPreset('casual');
+  for (const [k, v] of Object.entries(rules)) s.steps[side][k as StoppableStep] = v as StepStop;
+  return s;
+};
 
 describe('turnSide', () => {
   it('is yours on the seat\u2019s own turn and opponents otherwise', () => {
@@ -51,14 +74,22 @@ describe('STEPS / STOPPABLE_STEPS', () => {
 });
 
 describe('decide', () => {
-  it('stops with disabled when autopilot is off, before anything else', () => {
-    const d = priority([opt('pass', 0), opt('concede', 1)]);
-    const out = decide({ decision: d, view: view(0, 'main1'), seat: 0, stops: DEFAULT, enabled: false });
-    expect(out).toEqual({ act: 'stop', reason: 'disabled' });
+  it('stops with disabled when autoPass is off, before any rule is consulted', () => {
+    const s = withSteps('yours', {}); // casual, but every step rule off
+    s.autoPass = false;
+    expect(run(priority(RESPONDABLE), view(0, 'main1'), s)).toEqual({ act: 'stop', reason: 'disabled' });
+    // ffwd outranks the master switch: the run proceeds to the step rules
+    expect(runFfwd(priority(RESPONDABLE), view(0, 'draw'), s)).toEqual({ act: 'pass', index: 0 });
   });
 
-  it.each(['target', 'attackers', 'blockers', 'mulligan', 'trigger_order', 'trigger_optional', 'choose', 'modes'])(
-    'stops a %s decision (never auto-answers a non-priority ask)',
+  it('stops a non-priority decision (never auto-answers a non-priority ask), even with autoPass on', () => {
+    const d = priority([opt('pass', 0), opt('concede', 1)], 1, 1, 'target');
+    expect(run(d, view(0, 'main1'))).toEqual({ act: 'stop', reason: 'not-priority' });
+    expect(runFfwd(d, view(0, 'draw'))).toEqual({ act: 'stop', reason: 'not-priority' });
+  });
+
+  it.each(['attackers', 'blockers', 'mulligan', 'trigger_order', 'trigger_optional', 'choose', 'modes'])(
+    'stops every non-priority %s ask',
     (kind) => {
       // The decision carries a pass option, so a mutated decide that
       // answered non-priority decisions would pass here instead of stopping.
@@ -68,98 +99,176 @@ describe('decide', () => {
   );
 
   it('stops when min or max is not 1 (unexpected-shape)', () => {
-    const s = stops([], []);
-    expect(run(priority([opt('pass', 0), opt('concede', 1)], 0, 1), view(0, 'draw'), s))
+    expect(run(priority([opt('pass', 0), opt('concede', 1)], 0, 1), view(0, 'draw')))
       .toEqual({ act: 'stop', reason: 'unexpected-shape' });
-    expect(run(priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)], 1, 2), view(0, 'draw'), s))
+    expect(run(priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)], 1, 2), view(0, 'draw')))
       .toEqual({ act: 'stop', reason: 'unexpected-shape' });
   });
 
   it('stops when there are two pass options (unexpected-shape)', () => {
     const d = priority([opt('pass', 0), opt('pass', 1), opt('concede', 2)]);
-    expect(run(d, view(0, 'draw'), stops([], []))).toEqual({ act: 'stop', reason: 'unexpected-shape' });
+    expect(run(d, view(0, 'draw'))).toEqual({ act: 'stop', reason: 'unexpected-shape' });
   });
 
   it('stops when there is no pass option (unexpected-shape)', () => {
     const d = priority([opt('cast', 0), opt('concede', 1)]);
-    expect(run(d, view(0, 'draw'), stops([], []))).toEqual({ act: 'stop', reason: 'unexpected-shape' });
+    expect(run(d, view(0, 'draw'))).toEqual({ act: 'stop', reason: 'unexpected-shape' });
   });
 
-  it('passes an option list of only pass+concede even with a stop set (nothing to do is always safe)', () => {
+  // --- stack rules: opponent objects (casual: if-respondable / targets-me-if-respondable) ---
+
+  it('casual: an opponent spell on top with a cast available stops (if-respondable)', () => {
+    const d = priority(RESPONDABLE);
+    expect(run(d, view(0, 'draw', [stackEntry(9, 1, 'spell')]))).toEqual({ act: 'stop', reason: 'opponent-object' });
+  });
+
+  it('casual: an opponent spell on top with nothing to respond with passes (if-respondable)', () => {
+    const d = priority(ONLY_MANA);
+    expect(run(d, view(0, 'draw', [stackEntry(9, 1, 'spell')]))).toEqual({ act: 'pass', index: 1 });
+  });
+
+  it('casual: an opponent ability on top with a cast available stops (if-respondable)', () => {
+    const d = priority(RESPONDABLE);
+    expect(run(d, view(0, 'draw', [stackEntry(9, 1, 'ability')]))).toEqual({ act: 'stop', reason: 'opponent-object' });
+  });
+
+  it('casual: an opponent trigger targeting MY creature + respondable stops (targets-me-if-respondable)', () => {
+    const d = priority(RESPONDABLE);
+    // my creature (id 5) on my battlefield, targeted by the opponent's trigger
+    const v = view(0, 'draw', [stackEntry(9, 1, 'trigger', [{ obj: 5, player: 0, is_player: false }])], [{ seat: 0, cards: [5] }]);
+    expect(run(d, v)).toEqual({ act: 'stop', reason: 'opponent-object' });
+  });
+
+  it('casual: an opponent trigger targeting an opponent creature + respondable passes', () => {
+    const d = priority(RESPONDABLE);
+    // the trigger targets the opponent's own creature (id 5, controller 1)
+    const v = view(0, 'draw', [stackEntry(9, 1, 'trigger', [{ obj: 5, player: 1, is_player: false }])], [{ seat: 1, cards: [5] }]);
+    expect(run(d, v)).toEqual({ act: 'pass', index: 0 });
+  });
+
+  it('casual: an opponent trigger targeting ME (a player target) + respondable stops', () => {
+    const d = priority(RESPONDABLE);
+    const v = view(0, 'draw', [stackEntry(9, 1, 'trigger', [{ player: 0, is_player: true }])]);
+    expect(run(d, v)).toEqual({ act: 'stop', reason: 'opponent-object' });
+  });
+
+  it('casual: an opponent trigger targeting the opponent passes even when respondable', () => {
+    const d = priority(RESPONDABLE);
+    const v = view(0, 'draw', [stackEntry(9, 1, 'trigger', [{ player: 1, is_player: true }])]);
+    expect(run(d, v)).toEqual({ act: 'pass', index: 0 });
+  });
+
+  it('no-tells: the same opponent trigger targeting the opponent\u2019s own creature stops (always)', () => {
+    const d = priority(RESPONDABLE);
+    const s = applyPreset('no-tells');
+    const v = view(0, 'draw', [stackEntry(9, 1, 'trigger', [{ obj: 5, player: 1, is_player: false }])], [{ seat: 1, cards: [5] }]);
+    expect(run(d, v, s)).toEqual({ act: 'stop', reason: 'opponent-object' });
+  });
+
+  it('no-tells: an opponent spell + NOT respondable still stops (always)', () => {
+    const d = priority(ONLY_MANA);
+    expect(run(d, view(0, 'draw', [stackEntry(9, 1, 'spell')]), applyPreset('no-tells')))
+      .toEqual({ act: 'stop', reason: 'opponent-object' });
+  });
+
+  it('no-tells: an opponent spell with an empty option side still stops even when only mana is offered', () => {
     const d = priority([opt('pass', 0), opt('concede', 1)]);
-    const out = run(d, view(0, 'main1')); // main1 is in the default yours stops
-    expect(out).toEqual({ act: 'pass', index: 0 });
-    if (out.act === 'pass') expect(d.options[out.index].kind).toBe('pass');
+    expect(run(d, view(0, 'draw', [stackEntry(9, 1, 'spell')]), applyPreset('no-tells')))
+      .toEqual({ act: 'stop', reason: 'opponent-object' });
   });
 
-  it('passes when a cast is available, the stack is empty and no stop is set', () => {
-    const d = priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]);
-    const out = run(d, view(0, 'draw')); // draw is not in the default yours stops
-    expect(out).toEqual({ act: 'pass', index: 0 });
-    if (out.act === 'pass') expect(d.options[out.index].kind).toBe('pass');
+  it('ffwd passes through the stack rules: an opponent spell under no-tells still passes the one-shot run', () => {
+    const d = priority(RESPONDABLE);
+    const s = applyPreset('no-tells');
+    expect(runFfwd(d, view(0, 'draw', [stackEntry(9, 1, 'spell')]), s)).toEqual({ act: 'pass', index: 0 });
   });
 
-  it('stops when a cast is available and another player controls an object on the stack', () => {
-    const d = priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]);
-    expect(run(d, view(0, 'draw', [{ id: 9, controller: 1 }]))).toEqual({ act: 'stop', reason: 'has-action-and-stack' });
+  it('only the TOP of the stack is classified: my own spell over the opponent\u2019s does not trigger the opponent rule (casual)', () => {
+    const d = priority(RESPONDABLE);
+    const v = view(0, 'draw', [stackEntry(8, 1, 'spell'), stackEntry(9, 0, 'spell')]);
+    expect(run(d, v)).toEqual({ act: 'pass', index: 0 });
   });
 
-  it('ffwd: passes the same has-action-and-stack window instead of stopping (pressing FFWD is the pass consent)', () => {
-    const d = priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]);
-    const v = view(0, 'draw', [{ id: 9, controller: 1 }]);
-    // The Auto-mode verdict above pins the default; the ffwd twin passes.
-    const out = runFfwd(d, v);
-    expect(out).toEqual({ act: 'pass', index: 0 });
-    if (out.act === 'pass') expect(d.options[out.index].kind).toBe('pass');
+  // --- stack rules: own objects ---
+
+  it('casual: my own spell on top + respondable passes (ownObjects never)', () => {
+    const d = priority(RESPONDABLE);
+    expect(run(d, view(0, 'draw', [stackEntry(9, 0, 'spell')]))).toEqual({ act: 'pass', index: 0 });
   });
 
-  it('ffwd: a set stop still stops the run', () => {
-    const d = priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]);
-    // main1 is in the default yours stops
-    expect(runFfwd(d, view(0, 'main1'))).toEqual({ act: 'stop', reason: 'stop-set' });
+  it('full-control: my own spell on top + respondable stops (ownObjects if-respondable)', () => {
+    const d = priority(RESPONDABLE);
+    // full-control's autoPass is false (the preset is manual play); the rule
+    // set is what is under test here, so the master switch is turned on over
+    // it — the state a player is in when they run auto with full-control's
+    // rules.
+    const s = { ...applyPreset('full-control'), autoPass: true };
+    expect(run(d, view(0, 'draw', [stackEntry(9, 0, 'spell')]), s)).toEqual({ act: 'stop', reason: 'own-object' });
   });
 
-  it('ffwd: a non-priority decision still stops the run', () => {
-    const d = priority([opt('pass', 0), opt('concede', 1)], 1, 1, 'target');
-    expect(runFfwd(d, view(0, 'draw'))).toEqual({ act: 'stop', reason: 'not-priority' });
+  it('own object on top with nothing to respond with passes (ownObjects if-respondable, not respondable)', () => {
+    const d = priority(ONLY_MANA);
+    // casual's rules with ownObjects turned on: the own-object rule needs a
+    // respondable window, and a mana-only one is not (draw is 'off' in
+    // casual, so no step rule interferes).
+    const s = applyPreset('casual');
+    s.ownObjects = 'if-respondable';
+    expect(run(d, view(0, 'draw', [stackEntry(9, 0, 'ability')]), s)).toEqual({ act: 'pass', index: 1 });
   });
 
-  it('passes when a cast is available and only the seat\u2019s own object is on the stack', () => {
-    const d = priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]);
-    const out = run(d, view(0, 'draw', [{ id: 9, controller: 0 }]));
-    expect(out).toEqual({ act: 'pass', index: 0 });
-    if (out.act === 'pass') expect(d.options[out.index].kind).toBe('pass');
+  // --- step rules ---
+
+  it('casual: a smart step with only a mana activate passes (not actionable)', () => {
+    const d = priority(ONLY_MANA);
+    const s = withSteps('yours', { main1: 'smart' });
+    expect(run(d, view(0, 'main1'), s)).toEqual({ act: 'pass', index: 1 });
   });
 
-  it('stops on a stop set for the current step of the current turn side', () => {
-    const d = () => priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]);
-    // my turn, my main1 is stopped
-    expect(run(d(), view(0, 'main1'))).toEqual({ act: 'stop', reason: 'stop-set' });
-    // their turn, their declare-blockers is stopped
-    const st = stops([], ['declare-blockers']);
-    const out = decide({ decision: d(), view: view(1, 'declare-blockers'), seat: 0, stops: st, enabled: true });
-    expect(out).toEqual({ act: 'stop', reason: 'stop-set' });
+  it('casual: a smart step with a real action stops', () => {
+    const d = priority(RESPONDABLE);
+    const s = withSteps('yours', { main1: 'smart' });
+    expect(run(d, view(0, 'main1'), s)).toEqual({ act: 'stop', reason: 'stop-set' });
   });
 
-  it('ignores a stop whose turn side does not match the current turn', () => {
-    const d = priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]);
-    // their turn, but the stop is in YOURS only: keep passing
-    const out1 = decide({ decision: d, view: view(1, 'main1'), seat: 0, stops: stops(['main1'], []), enabled: true });
-    expect(out1).toEqual({ act: 'pass', index: 0 });
-    // my turn, but the stop is in OPPONENTS only: keep passing
-    const out2 = run(d, view(0, 'declare-blockers'), stops([], ['declare-blockers']));
-    expect(out2).toEqual({ act: 'pass', index: 0 });
+  it('a forced step stops even with nothing to do', () => {
+    const d = priority(ONLY_MANA);
+    const s = withSteps('opponents', { end: 'forced' });
+    expect(run(d, view(1, 'end'), s)).toEqual({ act: 'stop', reason: 'stop-set' });
   });
 
-  it('passes a storable decision whose option kinds are not one of the four known ones, as long as none is pass or concede', () => {
-    // "activate"/"play_land" are real priority-window kinds (legal.go);
-    // play_land is a real action to actionable(), activate is not, and the
-    // shape-invariant (pass index points at a pass option) still holds.
-    const d = priority([opt('pass', 0), opt('play_land', 1), opt('activate', 2), opt('concede', 3)]);
-    const out = run(d, view(0, 'draw'));
-    expect(out).toEqual({ act: 'pass', index: 0 });
-    if (out.act === 'pass') expect(d.options[out.index].kind).toBe('pass');
+  it('an off step falls through to a pass', () => {
+    const d = priority(RESPONDABLE);
+    const s = withSteps('yours', { main1: 'off' });
+    expect(run(d, view(0, 'main1'), s)).toEqual({ act: 'pass', index: 0 });
   });
+
+  it('a step rule on the wrong turn side does not apply', () => {
+    const d = priority(RESPONDABLE);
+    const s = withSteps('yours', { main1: 'forced' });
+    // their turn: the YOURS rule is inert
+    expect(run(d, view(1, 'main1'), s)).toEqual({ act: 'pass', index: 0 });
+  });
+
+  it('a step outside the ten stoppable ones (untap, cleanup) never stops', () => {
+    const d = priority(RESPONDABLE);
+    expect(run(d, view(0, 'untap'))).toEqual({ act: 'pass', index: 0 });
+    expect(run(d, view(0, 'cleanup'))).toEqual({ act: 'pass', index: 0 });
+  });
+
+  it('the step rule applies to ffwd too (the c2f4db8f contract)', () => {
+    const d = priority(RESPONDABLE);
+    const s = withSteps('yours', { main1: 'smart' });
+    expect(runFfwd(d, view(0, 'main1'), s)).toEqual({ act: 'stop', reason: 'stop-set' });
+    const forced = withSteps('yours', { main1: 'forced' });
+    expect(runFfwd(priority(ONLY_MANA), view(0, 'main1'), forced)).toEqual({ act: 'stop', reason: 'stop-set' });
+  });
+
+  it('full-control with ffwd still runs (ffwd outranks autoPass off) but a forced step stops it', () => {
+    const s = applyPreset('full-control'); // all steps forced, autoPass false
+    expect(runFfwd(priority(RESPONDABLE), view(0, 'main1'), s)).toEqual({ act: 'stop', reason: 'stop-set' });
+  });
+
+  // --- structural invariant ---
 
   it('property: every pass verdict points at a pass option, over generated option-list permutations', () => {
     const KINDS = ['pass', 'concede', 'cast', 'ability'];
@@ -182,16 +291,22 @@ describe('decide', () => {
     }
     for (const active of [0, 1]) {
       for (const step of ['main1', 'draw', 'declare-blockers', 'cleanup']) {
-        for (const stackCtl of [-1, 0, 1]) {
-          const v = view(active, step, stackCtl === -1 ? [] : [{ id: 9, controller: stackCtl }]);
-          for (const st of [stops(['main1'], ['declare-blockers']), stops([], [])]) {
+        for (const stackEntryVariant of ['none', 'mine', 'theirs', 'their-trigger-targeting-me'] as const) {
+          const stack = stackEntryVariant === 'none' ? []
+            : stackEntryVariant === 'mine' ? [stackEntry(9, 0, 'spell')]
+            : stackEntryVariant === 'theirs' ? [stackEntry(9, 1, 'spell')]
+            : [stackEntry(9, 1, 'trigger', [{ obj: 5, player: 0, is_player: false }])];
+          const v = view(active, step, stack, [{ seat: 0, cards: [5] }]);
+          for (const settings of [applyPreset('casual'), applyPreset('no-tells'), applyPreset('full-control')]) {
             for (const list of lists) {
               // Both modes must hold the structural invariant: a pass verdict
               // always points at a pass option. On the ffwd path the stack
-              // guard is skipped, so the stack branch is reachable as a pass.
+              // rules are skipped, so the stack branch is reachable as a pass.
               for (const ffwd of [false, true]) {
                 const d = priority(list);
-                const out = decide({ decision: d, view: v, seat: 0, stops: st, enabled: true, ffwd });
+                const out = ffwd
+                  ? decide({ decision: d, view: v, seat: 0, settings, ffwd })
+                  : decide({ decision: d, view: v, seat: 0, settings });
                 if (out.act !== 'pass') continue;
                 const o = d.options[out.index];
                 expect(o, `pass index ${out.index} on ${JSON.stringify(list.map((x) => x.kind))} must be a pass option`).toBeDefined();
@@ -222,28 +337,14 @@ describe('decide', () => {
   });
 
   it('a mana-only window (activate + pass + concede) is not actionable and emptyPriorityWindow returns the pass index', () => {
-    const d = priority([opt('activate', 0), opt('pass', 1), opt('concede', 2)]);
+    const d = priority(ONLY_MANA);
     expect(actionable(d)).toBe(false);
     expect(emptyPriorityWindow(d)).toBe(1);
-    // decide() passes it even with a stop set on this step: nothing to do there.
-    expect(run(d, view(0, 'main1'))).toEqual({ act: 'pass', index: 1 });
   });
 
-  it('an opponent object on the stack does not stop a window that only offers a land drop (not respondable)', () => {
+  it('an opponent spell on top does not stop a window that only offers a land drop (not respondable)', () => {
     const d = priority([opt('activate', 0), opt('play_land', 1), opt('pass', 2), opt('concede', 3)]);
     expect(respondable(d)).toBe(false);
-    expect(run(d, view(0, 'draw', [{ id: 9, controller: 1 }]))).toEqual({ act: 'pass', index: 2 });
-  });
-
-  it('an opponent object on the stack stops a window with a cast (respondable)', () => {
-    const d = priority([opt('cast', 0), opt('pass', 1), opt('concede', 2)]);
-    expect(respondable(d)).toBe(true);
-    expect(run(d, view(0, 'draw', [{ id: 9, controller: 1 }]))).toEqual({ act: 'stop', reason: 'has-action-and-stack' });
-  });
-
-  it.each([false, true] as const)('a stop on yours.main1 with a land drop available stops (ffwd: %s) — the c2f4db8f shape', (ffwd) => {
-    const d = priority([opt('activate', 0), opt('play_land', 1), opt('pass', 2), opt('concede', 3)]);
-    const out = ffwd ? runFfwd(d, view(0, 'main1')) : run(d, view(0, 'main1'));
-    expect(out).toEqual({ act: 'stop', reason: 'stop-set' });
+    expect(run(d, view(0, 'draw', [stackEntry(9, 1, 'spell')]))).toEqual({ act: 'pass', index: 2 });
   });
 });
