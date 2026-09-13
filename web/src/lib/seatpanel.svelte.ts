@@ -463,6 +463,20 @@ export class SeatPanelState {
     this.applySettings(withChange(this.settings, patch));
   }
 
+  /**
+   * editSettings is the GAME OPTIONS editor's write path (prio4): a partial
+   * change applied through withChange — so the preset relabels itself
+   * Custom while the configuration matches none, and back to a named preset
+   * when an edit is undone — and persisted. A settings edit ends a live
+   * one-shot run (editing the rules is the player taking the controls) but
+   * touches nothing else: the runaway brake still clears only on the Auto
+   * switch, which is what its note tells the player to press.
+   */
+  editSettings(patch: Partial<PlaySettings>) {
+    this.cancelRun(false);
+    this.patchSettings(patch);
+  }
+
   /** setAuto is the Auto/Manual control: a settings change (autoPass), persisted. Turning it on — or re-arming it while it is on — clears the runaway brake and the previous run so an old count never trips the cap. */
   setAuto(on: boolean) {
     this.cancelRun(false);

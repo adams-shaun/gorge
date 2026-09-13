@@ -2,12 +2,11 @@
   import { onDestroy, onMount } from 'svelte';
   import type { SeatInfo, View } from '../protocol';
   import type { SeatCtx } from '../lib/seat';
-  import { STOPPABLE_STEPS, type TurnSide } from '../lib/autopilot';
   import { hotkeyAction } from '../lib/hotkeys';
   import { modalPickerOpen } from '../lib/modals';
-  import { stepLabel } from '../lib/phases';
   import { autoNoteText, isConcede, toneOf, type SeatPanelState } from '../lib/seatpanel.svelte';
   import SeatPanel from './SeatPanel.svelte';
+  import PlaySettingsPanel from './PlaySettingsPanel.svelte';
 
   /** A short grace period keeps a diagonal tab-to-panel pointer path open. */
   const HOT_STRIP_CLOSE_DELAY_MS = 180;
@@ -90,9 +89,6 @@
     if (e.shiftKey) logic.startHardSkip(view);
     else logic.startEndTurn(view);
     logic.considerAuto(view);
-  }
-  function toggleStop(side: TurnSide, step: string): void {
-    logic.toggleStop(step, side);
   }
 
   /**
@@ -240,31 +236,13 @@
       <span class="full">GAME OPTIONS</span><span class="compact" aria-hidden="true">OPTS</span>
     </button>
     <div class="drop game" class:open={open === 'options'} id="hot-panel-options" data-hot-panel="options" role="group" aria-label="Game options">
-      <div class="setting-row">
-        <button class:on={logic.auto} type="button" role="switch" aria-checked={logic.auto} onclick={() => logic.setAuto(!logic.auto)}>Auto pass</button>
-        <button class:on={logic.skipEmpty} type="button" role="switch" aria-checked={logic.skipEmpty} onclick={() => logic.setSkipEmpty(!logic.skipEmpty)}>Skip empty windows</button>
-        <!-- The pass-after-acting preference: not auto -- it answers ONE
-             priority window, and only after this seat posted a hand answer
-             carrying a real action. Persisted per table and seat like the
-             stop sets; OFF by default. -->
-        <button class:on={logic.actPass} type="button" role="switch" aria-checked={logic.actPass} data-actpass-toggle aria-label="Pass priority automatically after you take an action" onclick={() => logic.setActPass(!logic.actPass)}>Pass after acting</button>
-      </div>
+      <!-- The whole play-settings model, edited in place (prio4): preset
+           picker, auto pass, opponent-object rules, step-stop grid, pacing
+           and logs. Bound to the seat panel's settings object, so every
+           change lands in it (persisted, preset relabelled) through the
+           same write path decide() reads. -->
+      <PlaySettingsPanel state={logic} />
       <p class="note">{autoNoteText(logic.note)}</p>
-      {#each ['yours', 'opponents'] as side (side)}
-        <fieldset>
-          <legend>{side === 'yours' ? 'Stops on your turn' : 'Stops on opponents’ turns'}</legend>
-          <div class="stop-grid">
-            {#each STOPPABLE_STEPS as step (step)}
-              <button
-                class:on={logic.stops[side as TurnSide].has(step)}
-                type="button"
-                aria-pressed={logic.stops[side as TurnSide].has(step)}
-                onclick={() => toggleStop(side as TurnSide, step)}
-              >{stepLabel(step)}</button>
-            {/each}
-          </div>
-        </fieldset>
-      {/each}
     </div>
   </div>
 </div>
@@ -404,59 +382,6 @@
     pointer-events: auto;
   }
   .drop.game { width: min(34rem, calc(100vw - var(--sp-4))); }
-  /* Keep the edge under the tab contiguous even though the panel has a
-     border: no margin, translate, or transparent bridge sits in this path. */
-  .setting-row button,
-  .stop-grid button {
-    border: 0;
-    border-radius: 0;
-    background: var(--instrument-raised);
-    color: var(--ink-inst);
-    font-family: var(--font-ui);
-    cursor: pointer;
-  }
-  .setting-row button:hover,
-  .stop-grid button:hover { color: var(--ink); }
-  .setting-row {
-    display: flex;
-    gap: 1px;
-    padding: 1px;
-    border-bottom: 1px solid var(--edge-inst);
-  }
-  .setting-row button {
-    flex: 1 1 0;
-    padding: var(--sp-2);
-    font-size: var(--t-12);
-  }
-  .setting-row button.on,
-  .stop-grid button.on {
-    background: var(--offered);
-    color: var(--felt-sunk);
-  }
-  fieldset {
-    margin: 0;
-    padding: var(--sp-2);
-    border: 0;
-    border-top: 1px solid var(--edge-inst);
-  }
-  legend {
-    padding: 0 var(--sp-1);
-    color: var(--ink-faint);
-    font-size: var(--t-10);
-  }
-  .stop-grid {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 1px;
-  }
-  .stop-grid button {
-    min-width: 0;
-    padding: var(--sp-1);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: var(--t-10);
-    white-space: nowrap;
-  }
   .actions :global(.seat-panel.strip) {
     width: 100%;
     min-width: 0;

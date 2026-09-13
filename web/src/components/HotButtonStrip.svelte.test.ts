@@ -105,16 +105,19 @@ describe('HotButtonStrip — server options regrouped into one instrument', () =
     expect(html).toMatch(/data-done-action[^>]*disabled/);
   });
 
-  it('the GAME OPTIONS drop carries the pass-after-acting switch beside the other two, reflecting the state', () => {
+  it('the GAME OPTIONS drop mounts the play-settings editor, which reflects pass-after-acting', () => {
     const priority: Decision = {
       seq: 1, player: 0, kind: 'priority', prompt: 'Priority', min: 1, max: 1,
       options: [option(7, 'cast', 'Cast spell'), option(42, 'pass', 'Pass priority')],
     };
-    // casual defaults: passAfterAct is ON
+    // casual defaults: passAfterAct is ON, the editor is bound to the panel's
+    // settings object, and the old Auto/Skip-empty/stop-grid controls are gone.
     const on = strip(priority);
+    expect(on).toContain('data-settings-panel');
     expect(on).toContain('data-actpass-toggle');
-    expect(on).toContain('Pass after acting');
     expect(on).toMatch(/aria-checked="true"[^>]*data-actpass-toggle/);
+    expect(on).not.toContain('Skip empty windows');
+    expect(on).not.toContain('data-stop-grid');
 
     const state = new SeatPanelState('t1', 1, ctx, null);
     state.skipEmpty = false;
