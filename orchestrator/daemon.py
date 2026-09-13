@@ -302,6 +302,7 @@ def _merge_push_deploy(issue: issues.Issue, wt: Path) -> None:
     push_ok, push_out = git_ops.push_main()
     deploy_ok, deploy_out = git_ops.deploy_demo()
     git_ops.refresh_ledger()
+    _archive_round_files(issue, wt)
     git_ops.remove_worktree(issue.id)
     issue.status = "merged"
     issue.closed_by = git_ops.main_sha()
@@ -311,6 +312,18 @@ def _merge_push_deploy(issue: issues.Issue, wt: Path) -> None:
     )
     issue.save()
     log.info("issue %s MERGED as %s", issue.id, issue.closed_by)
+
+
+def _archive_round_files(issue: issues.Issue, wt: Path) -> None:
+    """Keep every brief/report/findings/verdict/status file after the
+    worktree is removed: the review verdicts are the audit trail for an
+    unattended merge, and removing the worktree used to delete them."""
+    import shutil
+    dest = config.ORCH_STATE_DIR / "archive" / issue.id
+    dest.mkdir(parents=True, exist_ok=True)
+    for pattern in ("brief.md", "report*.md", "findings-*.md", "verdict-*.md", "*status*.json", "diff-*.txt"):
+        for f in (wt / ".ds4").glob(pattern):
+            shutil.copy2(f, dest / f.name)
 
 
 ADVANCERS = {
