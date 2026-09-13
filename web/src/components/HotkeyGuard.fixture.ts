@@ -17,7 +17,9 @@ import CardTile from './CardTile.svelte';
  *    because opening the radial picker by pointer would itself cancel a run
  *    (the panel's pointerdown capture is correct, pre-existing behaviour);
  *  - window.__openPile: mounts a real PileModal (open), whose onClose
- *    unmounts it — the marker [data-pile-modal] appears/disappears with it.
+ *    unmounts it — the marker [data-pile-modal] appears/disappears with it;
+ *  - real three- and seven-option CardTiles exercise both portaled
+ *    OptionPicker shapes and their shared [data-option-picker] guard.
  */
 
 interface FixtureWindow {
@@ -135,6 +137,28 @@ mount(CardTile, {
         { index: 8, kind: 'ability', label: 'Activate Wasteland', obj: 16, player: 0 } as Option,
         { index: 12, kind: 'ability', label: 'Wasteland: sacrifice it', obj: 16, player: 0 } as Option,
       ],
+      pickedOrder: [],
+      tone: 'offered',
+      post: () => {},
+    },
+  },
+});
+
+// Seven options select OptionPicker's rectangular list branch. It is a modal
+// in exactly the same sense as the radial wheel: the portaled list covers the
+// active card decision until the player picks or closes it.
+mount(CardTile, {
+  target: document.querySelector('#menu')!,
+  props: {
+    card: card(17, 'Many Modes'),
+    tileOptions: {
+      list: Array.from({ length: 7 }, (_, i) => ({
+        index: 20 + i,
+        kind: 'ability',
+        label: `Activate mode ${i + 1}`,
+        obj: 17,
+        player: 0,
+      } as Option)),
       pickedOrder: [],
       tone: 'offered',
       post: () => {},

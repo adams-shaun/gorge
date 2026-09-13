@@ -9,8 +9,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
  * marker. Here the REAL surfaces are open — a PileModal (hand/graveyard/
  * exile dialog, portaled to body) and a CardTile's radial picker — over the
  * real HotButtonStrip/SeatPanel wiring, and keyboard presses are driven at
- * the live document with focus exactly where the review's scenario puts it
- * (the non-interactive dialog).
+ * the live document. Both OptionPicker branches are covered: the 2–6 radial
+ * wheel and the >6 rectangular list share one marker, so neither can let a
+ * table hotkey fire behind it.
  */
 
 let server: Awaited<ReturnType<typeof createServer>>;
@@ -77,7 +78,7 @@ describe('the hotkey guard against an open modal — mounted', () => {
     // panel's own, correct pointerdown behaviour), then arm the run
     // programmatically: no pointer is involved in arming.
     await page.locator('#radial .badge').click();
-    await page.waitForSelector('[data-radial-picker]');
+    await page.waitForSelector('[data-option-picker][data-radial-picker]');
     await page.evaluate(() => (window as unknown as { __armRun: () => void }).__armRun());
     await page.waitForFunction(() => document.querySelector('[data-play-mode]')?.getAttribute('data-play-mode') === 'end-turn');
     const before = await posts(page);
@@ -95,6 +96,35 @@ describe('the hotkey guard against an open modal — mounted', () => {
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => document.querySelector('[data-play-mode]')?.getAttribute('data-play-mode') === 'custom');
     expect(await posts(page)).toEqual(before);
+    await page.close();
+  });
+
+  it('Space, Enter and Escape stay behind the open seven-option list picker', async () => {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/HotkeyGuard.fixture.html`);
+
+    await page.locator('#menu .badge').click();
+    await page.waitForSelector('.menu-pop[data-option-picker]');
+    // Deliberately remove button focus. Otherwise the generic interactive-
+    // target guard would hide a missing modal marker — exactly the Safari /
+    // programmatic-open failure this regression is meant to expose.
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+
+    await page.keyboard.press('Space');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(50);
+    expect(await posts(page)).toEqual([]);
+    expect(await playMode(page)).toBe('custom');
+
+    // Escape must close only the picker, not the End Turn run beneath it.
+    // Arming is programmatic so no pointerdown cancels the run first.
+    await page.evaluate(() => (window as unknown as { __armRun: () => void }).__armRun());
+    await page.waitForFunction(() => (window as unknown as { __posts: Posts }).__posts.length === 1);
+    expect(await playMode(page)).toBe('end-turn');
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('.menu-pop[data-option-picker]', { state: 'detached' });
+    expect(await posts(page)).toEqual([{ seq: 7, player: 0, choices: [9] }]);
+    expect(await playMode(page)).toBe('end-turn');
     await page.close();
   });
 });

@@ -49,10 +49,10 @@ describe('hotkeys — the grammar', () => {
 
   // The pure grammar test above probes with a synthetic predicate; this pins
   // the real selector's two markers so a surface that loses its marker is
-  // caught here too. The mounted proof that both markers exist on the live
-  // surfaces is HotkeyGuard.test.ts.
-  it('MODAL_PICKER_SELECTOR names the radial picker AND the pile modal (r2 review: PileModal was missing)', () => {
-    expect(MODAL_PICKER_SELECTOR).toContain('[data-radial-picker]');
+  // caught here too. BOTH OptionPicker shapes carry the shared first marker;
+  // HotkeyGuard.test.ts mounts and proves the radial and >6 list shapes.
+  it('MODAL_PICKER_SELECTOR names every OptionPicker shape and the pile modal', () => {
+    expect(MODAL_PICKER_SELECTOR).toContain('[data-option-picker]');
     expect(MODAL_PICKER_SELECTOR).toContain('[data-pile-modal]');
   });
 

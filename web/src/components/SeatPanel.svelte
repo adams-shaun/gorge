@@ -69,8 +69,9 @@
     // BEFORE the bubble-phase handlers — OptionPicker's and PileModal's own
     // Escape-close — can close the modal out from under the probe. While a
     // modal picker is open, Escape closes THE MODAL and the run underneath
-    // it survives: cancelling an End Turn the player cannot see the board
-    // of would be the hotkey acting on a decision the modal is blocking.
+    // it survives. This covers both OptionPicker shapes and PileModal:
+    // cancelling an End Turn the player cannot see the board of would be the
+    // hotkey acting on a decision the modal is blocking.
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       if (modalPickerOpen()) return;

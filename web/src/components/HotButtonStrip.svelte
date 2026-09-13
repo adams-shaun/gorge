@@ -4,7 +4,7 @@
   import type { SeatCtx } from '../lib/seat';
   import { STOPPABLE_STEPS, type TurnSide } from '../lib/autopilot';
   import { hotkeyAction } from '../lib/hotkeys';
-import { modalPickerOpen } from '../lib/modals';
+  import { modalPickerOpen } from '../lib/modals';
   import { stepLabel } from '../lib/phases';
   import { autoNoteText, isConcede, toneOf, type SeatPanelState } from '../lib/seatpanel.svelte';
   import SeatPanel from './SeatPanel.svelte';
@@ -115,9 +115,9 @@ import { modalPickerOpen } from '../lib/modals';
   onMount(() => {
     // The document-level hotkeys (prio3). The grammar lives in lib/hotkeys
     // (pure, tested); this is only its wiring. The modal-picker probe reads
-    // the live DOM via lib/modals (the radial card-action picker AND the
-    // pile modals — r2 review: a hand/graveyard/exile dialog open used to
-    // read hotkeys aimed underneath it). The listener runs in the CAPTURE
+    // the live DOM via lib/modals (both card-action picker shapes AND the
+    // pile modals — reviews found each unmarked surface could read hotkeys
+    // aimed underneath it). The listener runs in the CAPTURE
     // phase so the probe is evaluated before any bubble-phase handler —
     // OptionPicker's and PileModal's own Escape-close — can close the modal
     // and make the guard see a closed modal a few ticks later.

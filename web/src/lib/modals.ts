@@ -8,8 +8,9 @@ import { MODAL_PICKER_SELECTOR } from './hotkeys';
  * MODAL_PICKER_SELECTOR (defined beside the grammar so the two cannot
  * drift) matches every modal decision-blocking surface:
  *
- *  - `[data-radial-picker]` — OptionPicker's radial card-action wheel,
- *    portaled to <body>, present only while it is open;
+ *  - `[data-option-picker]` — either OptionPicker card-action shape (the
+ *    radial wheel or the >6-option list), portaled to <body>, present only
+ *    while it is open;
  *  - `[data-pile-modal]` — PileModal's portaled backdrop (hand, graveyard
  *    and exile), present only while it is open.
  *

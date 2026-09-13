@@ -144,7 +144,7 @@
 
   {#if open && tileOptions.list.length > 1 && tapAction === null}
     {#if radial}
-      <div class="radial-pop" data-radial-picker role="menu" tabindex="-1" aria-label="Options {subject}" use:portal>
+      <div class="radial-pop" data-option-picker data-radial-picker role="menu" tabindex="-1" aria-label="Options {subject}" use:portal>
         {#each tileOptions.list as opt, i (opt.index)}
           {@const point = radialPlacement[i] ?? { x: 8, y: 8 }}
           {@const mana = manaSymbols[i]}
@@ -167,8 +167,10 @@
         {/each}
       </div>
     {:else}
-      <!-- Keep the >6 list path structurally and visually unchanged. -->
-      <div class="menu-pop" use:portal style:left="{menuPlacement.x}px" style:top="{menuPlacement.y}px" style:width="{MENU_WIDTH}px" style:max-height="{menuPlacement.maxHeight}px">
+      <!-- The list and wheel share data-option-picker: both are portaled,
+           decision-blocking surfaces, so document hotkeys stay behind either
+           shape. data-radial-picker remains the wheel-specific e2e hook. -->
+      <div class="menu-pop" data-option-picker use:portal style:left="{menuPlacement.x}px" style:top="{menuPlacement.y}px" style:width="{MENU_WIDTH}px" style:max-height="{menuPlacement.maxHeight}px">
         <ul class="menu" role="menu" aria-label="Options {subject}">
           {#each tileOptions.list as opt (opt.index)}
             <li role="none">
