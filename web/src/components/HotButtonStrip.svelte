@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import type { SeatInfo, View } from '../protocol';
   import type { SeatCtx } from '../lib/seat';
   import { STOPPABLE_STEPS, type TurnSide } from '../lib/autopilot';
+  import { hotkeyAction } from '../lib/hotkeys';
   import { stepLabel } from '../lib/phases';
   import { autoNoteText, isConcede, toneOf, type SeatPanelState } from '../lib/seatpanel.svelte';
   import SeatPanel from './SeatPanel.svelte';
@@ -36,10 +37,12 @@
     decision?.options.filter((o) => o.kind !== 'pass' && !isConcede(o)) ?? [],
   );
   const passAvailable = $derived(logic.passOption !== null && !logic.busy);
-  // Fast forward can only advance through a real pass option. considerAuto is
-  // still the safety oracle; this gate merely avoids inventing a control for
-  // a decision the server did not say can be passed.
-  const ffwdAvailable = $derived(passAvailable);
+  // Fast forward became End Turn (prio3): a one-shot to the end of the
+  // CURRENT turn. It can only advance through a real pass option.
+  // considerAuto is still the safety oracle; this gate merely avoids
+  // inventing a control for a decision the server did not say can be passed.
+  const endTurnAvailable = $derived(passAvailable);
+  const runLive = $derived(logic.oneShot !== 'none');
   const doneAvailable = $derived(
     decision !== null && logic.showSubmit && logic.canSubmit && !logic.busy,
   );
@@ -79,18 +82,81 @@
     clearClose();
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   }
-  function fastForward(): void {
-    if (!ffwdAvailable) return;
-    logic.startFastForward(view);
+  function endTurn(e: MouseEvent): void {
+    if (!endTurnAvailable) return;
+    // Shift-click is the hard skip: pass everything, opponent objects
+    // included, for the rest of the turn (MTGO F6).
+    if (e.shiftKey) logic.startHardSkip(view);
+    else logic.startEndTurn(view);
     logic.considerAuto(view);
   }
   function toggleStop(side: TurnSide, step: string): void {
     logic.toggleStop(step, side);
   }
+
+  /**
+   * PLAY_MODE_LABEL is the status chip's text for each data-play-mode value:
+   * the preset labels speak the settings model's names, the runs speak
+   * theirs. The hard skip's label carries its own warning — the chip IS the
+   * "Skipping turn — Esc to stop" banner while the run is live.
+   */
+  const PLAY_MODE_LABEL: Record<string, string> = {
+    'casual': 'Casual',
+    'no-tells': 'No tells',
+    'full-control': 'Full control',
+    'custom': 'Custom',
+    'end-turn': 'END TURN',
+    'skip-turn': 'Skipping turn — Esc to stop',
+  };
+  const playMode = $derived(logic.playMode);
+  const playModeLabel = $derived(PLAY_MODE_LABEL[playMode] ?? 'Custom');
+
+  onMount(() => {
+    // The document-level hotkeys (prio3). The grammar lives in lib/hotkeys
+    // (pure, tested); this is only its wiring. The modal-picker probe reads
+    // the live DOM: the radial card-action picker portals itself to <body>.
+    const onKey = (e: KeyboardEvent): void => {
+      const action = hotkeyAction(e, () => document.querySelector('[data-radial-picker]') !== null);
+      if (action === null) return;
+      e.preventDefault();
+      switch (action) {
+        case 'pass':
+          logic.passClick();
+          break;
+        case 'end-turn':
+          if (!endTurnAvailable) return;
+          logic.startEndTurn(view);
+          logic.considerAuto(view);
+          break;
+        case 'hard-skip':
+          if (!endTurnAvailable) return;
+          logic.startHardSkip(view);
+          logic.considerAuto(view);
+          break;
+        case 'cancel-run':
+          logic.cancelRun();
+          break;
+        case 'toggle-full-control':
+          logic.toggleFullControl();
+          break;
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
   onDestroy(clearClose);
 </script>
 
 <div class="hot-strip" data-hot-strip role="toolbar" aria-label="Game controls" tabindex="-1" onkeydown={escape}>
+  <!-- The status chip: which mode the seat is in. A live run outranks the
+       preset label, and the hard skip's chip IS the warning banner. -->
+  <span
+    class="mode-chip"
+    class:run={runLive}
+    class:warning={logic.hardSkip}
+    data-play-mode={playMode}
+    aria-live="polite"
+  >{playModeLabel}</span>
   <div class="hot-tab" role="presentation" onpointerenter={() => show('actions')} onpointerleave={scheduleClose} onfocusin={() => show('actions')} onfocusout={scheduleClose}>
     <button class="tab" type="button" data-hot-tab="actions" data-awaiting={awaiting} aria-label="Actions" aria-haspopup="true" aria-expanded={open === 'actions'} aria-controls="hot-panel-actions" aria-disabled={actions.length === 0} onclick={() => show('actions')}>
       <span class="full">ACTIONS</span><span class="compact" aria-hidden="true">A</span>
@@ -129,22 +195,24 @@
   <div class="hot-tab direct" role="presentation">
     <button
       class="tab"
-      class:on={logic.fastForward}
+      class:on={runLive}
       type="button"
-      data-hot-tab="ffwd"
-      data-fast-forward
-      aria-label="Fast forward"
-      aria-pressed={logic.fastForward}
-      aria-disabled={!ffwdAvailable}
-      disabled={!ffwdAvailable}
-      title={ffwdAvailable ? 'Fast forward: pass and resolve until the next stop' : 'Fast forward needs a pass option'}
-      onclick={fastForward}
+      data-hot-tab="end-turn"
+      data-end-turn
+      aria-label="End turn"
+      aria-pressed={runLive}
+      aria-disabled={!endTurnAvailable}
+      disabled={!endTurnAvailable}
+      title={endTurnAvailable ? 'End Turn: pass the rest of this turn (Shift: skip everything, Esc stops)' : 'End Turn needs a pass option'}
+      onclick={endTurn}
     >
-      <span class="full">FFWD</span><span class="compact" aria-hidden="true">&gt;&gt;</span>
+      <span class="full">END TURN</span><span class="compact" aria-hidden="true">&gt;&gt;</span>
     </button>
   </div>
 
-  <!-- Done is one action too, so it follows Pass and Fast forward. -->
+  <!-- Done is one action too, so it follows Pass and End Turn. Ctrl held
+       while submitting a cast/ability holds priority: passAfterAct is
+       skipped for that one action. -->
   <div class="hot-tab contextual direct" role="presentation">
     <button
       class="tab"
@@ -155,7 +223,7 @@
       aria-disabled={!doneAvailable}
       disabled={!doneAvailable}
       title={doneShown ? doneFull : 'This decision does not need a separate selection submit'}
-      onclick={() => logic.submit()}
+      onclick={(e) => logic.submit(e.ctrlKey)}
     >
       <span class="full">{doneFull.toUpperCase()}</span><span class="compact" aria-hidden="true">{doneCompact}</span>
     </button>
@@ -231,7 +299,7 @@
     cursor: pointer;
     white-space: nowrap;
   }
-  .hot-tab:first-child .tab { border-left-color: color-mix(in srgb, var(--seat) 34%, var(--edge-inst)); }
+  .mode-chip + .hot-tab .tab { border-left-color: color-mix(in srgb, var(--seat) 34%, var(--edge-inst)); }
   .hot-tab:last-child .tab { border-right: var(--edge-w) solid var(--edge-inst); }
   .tab.on,
   .tab:active,
@@ -279,6 +347,35 @@
     50% { box-shadow: 0 0 0 2px var(--initiative), 0 0 20px var(--initiative); }
   }
   .compact { display: none; }
+
+  /* The status chip: the seat's mode, stated once, at the left edge of the
+     strip. Presets read as labels; a live run takes the run register — the
+     hard skip's warning colour is the danger variable, because passing
+     everything unseen is the one state that can lose the game in silence. */
+  .mode-chip {
+    display: flex;
+    align-items: center;
+    padding: 0 var(--sp-2);
+    border: var(--edge-w) solid var(--edge-inst);
+    border-top: 0;
+    border-left: var(--edge-w) solid var(--edge-inst);
+    border-radius: 0 0 var(--radius) var(--radius);
+    background: var(--instrument);
+    color: var(--ink-dim);
+    font-size: var(--t-11);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .mode-chip.run {
+    color: var(--felt-sunk);
+    background: var(--offered);
+    border-color: var(--offered);
+  }
+  .mode-chip.warning {
+    background: var(--danger);
+    border-color: var(--danger);
+  }
 
   .drop {
     position: absolute;

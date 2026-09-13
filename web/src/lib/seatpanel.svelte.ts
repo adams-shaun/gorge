@@ -1,39 +1,34 @@
 import type { Decision, Intent, Option, View } from '../protocol';
 import { fetchPending, postIntent, ApiError } from './api';
 import type { SeatCtx } from './seat';
-import { STOPPABLE_STEPS, decide, emptyPriorityWindow, turnSide, type StopReason, type Stops, type TurnSide } from './autopilot';
-import { actedOption, loadActPass, saveActPass } from './actpass';
-import { defaultStops, loadStops, saveStops, toggleStop } from './stops';
-import { defaultSettings, type PlaySettings, type StoppableStep } from './playsettings';
+import { STOPPABLE_STEPS, decide, emptyPriorityWindow, type StopReason, type Stops, type TurnSide } from './autopilot';
+import {
+  applyPreset,
+  defaultSettings,
+  loadSettings,
+  saveSettings,
+  withChange,
+  type PlaySettings,
+  type StepStop,
+  type StoppableStep,
+} from './playsettings';
 
 /**
- * legacyPlaySettings maps the legacy per-seat stop sets into a PlaySettings
- * for decide()'s new signature, preserving the OLD decide() behaviour:
- * every set stop becomes a 'smart' step rule (the old stop only stopped a
- * window with an action on it), every opponent-controlled stack object —
- * including triggers — becomes 'if-respondable' (the old
- * has-action-and-stack guard), ownObjects stays 'never' (the old guard
- * ignored the seat's own objects), and autoPass is true (both call sites
- * passed enabled: true; the callers gate auto themselves).
- *
- * prio3 replaces this: the panel will hold a real PlaySettings and
- * playsettings.ts's presets will drive it directly.
+ * actedOption reports whether the posted `choices` (wire indices) contain at
+ * least one real action on a priority decision — an option whose kind is
+ * neither pass nor concede (cast, ability, play_land, ...). The kind comes
+ * off the wire option itself, resolved by index; a choice that names no
+ * option on the decision is not an action. This is the arming test for
+ * pass-after-acting, and it deliberately mirrors `actionable`'s kind test
+ * in autopilot.ts (per-choice rather than per-decision).
+ * (Moved here from actpass.ts, which prio3 deleted with the per-table keys.)
  */
-function legacyPlaySettings(stops: Stops): PlaySettings {
-  const s = defaultSettings();
-  // The old rule was stops[side].has(step): a step with no set stop NEVER
-  // stopped, so every rule starts 'off' and only the set ones become 'smart'.
-  for (const side of ['yours', 'opponents'] as const) {
-    for (const step of STOPPABLE_STEPS) s.steps[side][step as StoppableStep] = 'off';
-  }
-  for (const step of stops.yours) s.steps.yours[step as StoppableStep] = 'smart';
-  for (const step of stops.opponents) s.steps.opponents[step as StoppableStep] = 'smart';
-  s.opponentSpell = 'if-respondable';
-  s.opponentAbility = 'if-respondable';
-  s.opponentTrigger = 'if-respondable';
-  s.ownObjects = 'never';
-  s.autoPass = true;
-  return s;
+export function actedOption(d: Decision, choices: number[]): boolean {
+  if (d.kind !== 'priority') return false;
+  return choices.some((i) => {
+    const o = d.options.find((opt) => opt.index === i);
+    return o !== undefined && o.kind !== 'pass' && o.kind !== 'concede';
+  });
 }
 
 /**
@@ -159,7 +154,7 @@ export const AUTO_PASS_CAP = 40;
  * separate vocabularies because they need separate words on screen: one is
  * "waiting for you here", the other is "auto is off now".
  */
-export type AutoOffReason = 'loop' | 'cap' | 'human' | 'escape';
+export type AutoOffReason = 'loop' | 'cap';
 
 /**
  * AutoNote is the one line the panel shows about what auto is doing. It is
@@ -174,10 +169,12 @@ export type AutoNote =
   | { kind: 'passing'; count: number }
   | { kind: 'waiting'; reason: StopReason }
   | { kind: 'stopped'; reason: AutoOffReason }
-  | { kind: 'fast-armed' }
-  | { kind: 'fast-passing'; count: number }
-  | { kind: 'fast-stopped'; reason: StopReason | AutoOffReason }
-  | { kind: 'fast-cancelled' }
+  | { kind: 'end-turn-armed' }
+  | { kind: 'end-turn-passing'; count: number }
+  | { kind: 'end-turn-stopped'; reason: StopReason | AutoOffReason }
+  | { kind: 'skip-turn-armed' }
+  | { kind: 'skip-turn-passing'; count: number }
+  | { kind: 'skip-turn-stopped'; reason: StopReason | AutoOffReason }
   | { kind: 'act-passed'; count: number };
 
 const WAITING_TEXT: Record<StopReason, string> = {
@@ -190,10 +187,26 @@ const WAITING_TEXT: Record<StopReason, string> = {
 };
 
 const OFF_TEXT: Record<AutoOffReason, string> = {
-  'loop': 'Auto switched itself off: the same decision came back after it answered.',
-  'cap': `Auto switched itself off after ${AUTO_PASS_CAP} passes in a row.`,
-  'human': 'Auto switched off: you took the decision yourself.',
-  'escape': 'Auto switched off: you pressed Escape.',
+  'loop': 'Auto switched itself off: the same decision came back after it answered. Press the Auto switch to rearm it.',
+  'cap': `Auto switched itself off after ${AUTO_PASS_CAP} passes in a row. Press the Auto switch to rearm it.`,
+};
+
+/**
+ * RUN_*_TEXT re-words a stop reason for the one-shot runs, which are not
+ * "waiting" — a stop ENDS an End Turn / hard-skip run. The wording is
+ * reason-loyal (the same fact the Auto wording states), only re-anchored.
+ */
+const RUN_WAITING_TEXT: Record<StopReason, string> = {
+  'disabled': 'the Auto switch is off.',
+  'not-priority': 'this decision needs you, not a pass.',
+  'unexpected-shape': 'it does not recognise this window.',
+  'stop-set': 'you set a stop on this step.',
+  'opponent-object': "an opponent's object is on the stack and you can respond.",
+  'own-object': 'your own object is on the stack and you can respond.',
+};
+const RUN_OFF_TEXT: Record<AutoOffReason, string> = {
+  'loop': 'the same decision came back after it answered.',
+  'cap': `it passed ${AUTO_PASS_CAP} windows in a row.`,
 };
 
 /** autoNoteText renders an AutoNote as plain words. No enum identifier ever reaches the screen. */
@@ -217,18 +230,30 @@ export function autoNoteText(note: AutoNote): string {
       return WAITING_TEXT[note.reason];
     case 'stopped':
       return OFF_TEXT[note.reason];
-    case 'fast-armed':
-      return 'Fast forward is running until the next pause point.';
-    case 'fast-passing':
+    case 'end-turn-armed':
+      return 'End Turn: passing the rest of this turn — it still stops for opponent plays. Esc cancels.';
+    case 'end-turn-passing':
       return note.count === 1
-        ? 'Fast forward passed 1 priority window.'
-        : `Fast forward passed ${note.count} priority windows.`;
-    case 'fast-stopped':
-      return note.reason in WAITING_TEXT
-        ? WAITING_TEXT[note.reason as StopReason].replace('Auto', 'Fast forward')
-        : OFF_TEXT[note.reason as AutoOffReason].replace('Auto', 'Fast forward');
-    case 'fast-cancelled':
-      return 'Fast forward cancelled: you took the controls.';
+        ? 'End Turn passed 1 priority window.'
+        : `End Turn passed ${note.count} priority windows.`;
+    case 'end-turn-stopped':
+      return `End Turn stopped: ${
+        note.reason in RUN_WAITING_TEXT
+          ? RUN_WAITING_TEXT[note.reason as StopReason]
+          : RUN_OFF_TEXT[note.reason as AutoOffReason]
+      }`;
+    case 'skip-turn-armed':
+      return 'Skipping turn — Esc to stop.';
+    case 'skip-turn-passing':
+      return note.count === 1
+        ? 'Skipping turn: passed 1 priority window.'
+        : `Skipping turn: passed ${note.count} priority windows.`;
+    case 'skip-turn-stopped':
+      return `Skipping turn stopped: ${
+        note.reason in RUN_WAITING_TEXT
+          ? RUN_WAITING_TEXT[note.reason as StopReason]
+          : RUN_OFF_TEXT[note.reason as AutoOffReason]
+      }`;
     case 'act-passed':
       return note.count === 1
         ? 'Passed 1 priority window after your action.'
@@ -254,6 +279,10 @@ export class SeatPanelState {
     this.table = table;
     this.ctx = ctx;
     this.storage = storage;
+    // The settings load here rather than at mount so the very first render
+    // — and every test — sees the player's saved preferences. SSR and a
+    // browser that refuses site data both pass null and get casual.
+    this.settings = loadSettings(storage);
   }
 
   /** pending is the decision this seat must answer right now, or null when the game is waiting on someone else. */
@@ -275,33 +304,38 @@ export class SeatPanelState {
   // autopasser loses a game in silence, so every field below exists to make
   // it stop rather than to make it go.
 
-  /** auto is the player's opt-in. It starts OFF on every load and is never persisted: a seat that comes back to a page must choose to hand the game over again. */
-  auto = $state(false);
-  /** stops is this seat's per-step stop set, loaded from storage on mount and saved on every toggle. */
-  stops = $state<Stops>(defaultStops());
+  /**
+   * settings is the player's play settings (playsettings.ts): the presets,
+   * the per-step stop rules, the opponent-object rules and pass-after-acting
+   * in ONE object — the source of truth for every machine decision this
+   * state makes. `auto` is settings.autoPass, the stops are settings.steps,
+   * actPass is settings.passAfterAct. It is loaded from the ONE global
+   * localStorage key at construction (SSR has no storage and gets the
+   * defaults, casual) and saved on every change, so a preference survives a
+   * reload and a match boundary: begin() must not — and does not — reset it.
+   */
+  settings = $state<PlaySettings>(defaultSettings());
+
+  /**
+   * machinePaused is the runaway brake, and it is deliberately NOT a
+   * settings change: the loop guard and the pass cap set it, and only the
+   * player's own Auto switch clears it. Flipping the persisted autoPass from
+   * a guard would have written a preference the player never chose — a
+   * reload would then come back with auto off for good.
+   */
+  machinePaused = $state(false);
+
   /**
    * skipEmpty is the empty-window floor, and it is ON by default -- the one
    * thing the panel does for the player without being asked. A priority
    * window whose only options are pass and concede asks nothing: there is no
    * action to take, so collecting a click there is pure friction between the
    * player and the next real decision. It is separate from `auto` because it
-   * is a different promise: auto decides FOR you (which is why it is opt-in
-   * and never persisted), whereas this only declines to interrupt you when
-   * there was nothing to decide. Turning it off restores the old
-   * stop-at-every-window behaviour.
+   * is a different promise: auto decides FOR you (a persisted preference),
+   * whereas this only declines to interrupt you when there was nothing to
+   * decide. Turning it off restores the old stop-at-every-window behaviour.
    */
   skipEmpty = $state(true);
-
-  /**
-   * actPass is the "pass after acting" preference: OFF by default, persisted
-   * per table and seat (actpass.ts — the stops' keying), so it survives a
-   * reload and a match boundary exactly like the stop sets do. It is not
-   * auto and must not read like it: it never answers a window the player did
-   * not earn by taking a visible action on the window before, and it never
-   * answers more than that one window. Turning it off also disarms any
-   * still-armed pass.
-   */
-  actPass = $state(false);
 
   /** autoPassed counts every window auto has answered this session, so the pass is visible after the fact. */
   autoPassed = $state(0);
@@ -310,40 +344,35 @@ export class SeatPanelState {
   emptySkipped = $state(0);
   /** actPassed counts the windows the pass-after-acting preference answered, kept apart from autoPassed and emptySkipped for the same reason: each mechanism's passes are its own. */
   actPassed = $state(0);
-  /** autoRun is the current unbroken run of machine passes; both Auto and one-shot fast-forward share its hard cap. */
+  /** autoRun is the current unbroken run of machine passes; Auto and the one-shot runs share its hard cap. */
   autoRun = $state(0);
-  /** fastForward is the one-shot run: unlike Auto it switches off on every decide() stop verdict. */
-  fastForward = $state(false);
-  /** fastPassed is the current one-shot's visible pass count. */
-  fastPassed = $state(0);
+  /**
+   * oneShot is the current one-shot run: 'end-turn' (End Turn — passes the
+   * rest of THIS turn with the player's own rules minus the step stops),
+   * 'hard-skip' (passes everything including opponent objects, MTGO F6), or
+   * 'none'. Both end when the turn number changes or the step reaches
+   * cleanup, on Escape, on any non-priority decision, on any other stop
+   * verdict, and at the shared pass cap.
+   */
+  oneShot = $state<'none' | 'end-turn' | 'hard-skip'>('none');
+  /** runPassed is the current one-shot's visible pass count. */
+  runPassed = $state(0);
+  /** the view turn the one-shot was armed at; a turn change ends the run. */
+  private oneShotTurn: number | null = null;
   /** note is what the panel says about automatic action, as a value — autoNoteText turns it into words. */
   note = $state<AutoNote>({ kind: 'off' });
   /**
    * autoActedSeq is the seq auto last posted for. If a decision with that
    * seq is put in front of auto again, the answer did not take and auto
-   * would post it forever: that is the loop guard, and it disables auto.
+   * would post it forever: that is the loop guard, and it pauses the
+   * machine (machinePaused), never the persisted preference.
    */
   private autoActedSeq: number | null = null;
-  /** The player's own set-stop window where the last fast-forward run handed control back. */
-  private fastStoppedSeq: number | null = null;
-  /** One restart may acknowledge exactly that stopped window; it is consumed before posting. */
-  private fastAcknowledgedSeq: number | null = null;
-  /**
-   * autoStoppedSeq is the seq of the window where persistent Auto stopped for
-   * the player's OWN set stop (decide()'s stop-set verdict). Answering exactly
-   * that window by hand is what the stop exists to invite, so it does not take
-   * the wheel: the token is consumed by that one answer and a fresh one is
-   * minted at the next stop-set stop. Any other stop reason mints nothing, and
-   * every path that switches Auto off clears the token, so it can never leak
-   * to a differently-stopped window or outlive its own.
-   */
-  private autoStoppedSeq: number | null = null;
-
   /**
    * actPassArmed is the one-shot token: set when this seat POSTS a hand
    * answer to a priority decision containing a real action, consumed by the
-   * FIRST priority window considerAuto sees while neither auto nor fast
-   * forward is running. It is deliberately not reactive state — it is only
+   * FIRST priority window considerAuto sees while neither auto nor a
+   * one-shot run is live. It is deliberately not reactive state — it is only
    * ever read inside considerAuto, which the component runs once per
    * decision/view change, so a token minted by a hand answer is always seen
    * by the next decision's pass through the loop. It survives intermediate
@@ -362,76 +391,162 @@ export class SeatPanelState {
    * answered a second time.
    */
   private actPassActedSeq: number | null = null;
+  /** presetBackup holds the settings Ctrl+Shift+F replaced, so toggling back restores them exactly. Session-scoped: the backup is a convenience, not a preference. */
+  private presetBackup: PlaySettings | null = null;
 
-  /** mountStops loads this seat's saved stops. Called from the component on mount, where storage exists. */
-  mountStops() {
-    this.stops = loadStops(this.storage, this.table, this.ctx.seat);
+  /** auto is settings.autoPass: the persisted preference, ON by default (casual). Reading it is a read of settings. */
+  get auto(): boolean {
+    return this.settings.autoPass;
   }
 
-  /** mountActPass loads this seat's saved pass-after-acting preference. Called from the component on mount, where storage exists. */
-  mountActPass() {
-    this.actPass = loadActPass(this.storage, this.table, this.ctx.seat);
+  /** actPass is settings.passAfterAct, likewise persisted. */
+  get actPass(): boolean {
+    return this.settings.passAfterAct;
+  }
+
+  /** endTurn mirrors oneShot for the template and tests. */
+  get endTurn(): boolean {
+    return this.oneShot === 'end-turn';
+  }
+
+  /** hardSkip mirrors oneShot for the template, the chip and tests. */
+  get hardSkip(): boolean {
+    return this.oneShot === 'hard-skip';
   }
 
   /**
-   * toggleStop flips one step's stop on one turn side and persists it. The
-   * two sides are separate sets on purpose: stopping in your own combat and
-   * stopping in an opponent's are different intentions, and a stop set on
-   * one side must never mark the other.
+   * stops is the Set-shaped view of settings.steps that the phase track and
+   * the stop grid read: a step is "stopped" when its rule is not 'off'. The
+   * setter writes back — present becomes 'smart', absent 'off' — so the old
+   * Set-based callers keep working; a 'forced' rule reads as set and is
+   * rewritten to 'smart' by the same assignment (the Set shape cannot
+   * express 'forced').
    */
-  toggleStop(step: string, side: TurnSide) {
-    this.cancelFastForward();
-    const next = toggleStop(this.stops, side, step);
-    if (next === this.stops) return; // a step that cannot take a stop
-    this.stops = next;
-    saveStops(this.storage, this.table, this.ctx.seat, next);
+  get stops(): Stops {
+    const rules = this.settings.steps;
+    const side = (r: Record<StoppableStep, StepStop>): Set<string> =>
+      // eslint-disable-next-line svelte/prefer-svelte-reactivity -- a fresh ephemeral read view per access, never stored; the reactive source is settings.steps
+      new Set(STOPPABLE_STEPS.filter((s) => r[s as StoppableStep] !== 'off'));
+    return { yours: side(rules.yours), opponents: side(rules.opponents) };
   }
 
-  /** setAuto is the Auto/Manual control. Turning it on clears the previous run so an old count never trips the cap. */
+  set stops(next: Stops) {
+    const side = (set: Set<string>): Record<StoppableStep, StepStop> => {
+      const out = {} as Record<StoppableStep, StepStop>;
+      for (const s of STOPPABLE_STEPS) out[s as StoppableStep] = set.has(s) ? 'smart' : 'off';
+      return out;
+    };
+    this.applySettings(withChange(this.settings, {
+      steps: { yours: side(next.yours), opponents: side(next.opponents) },
+    }));
+  }
+
+  /** playMode is the status chip's value: the live one-shot beats the preset label. */
+  get playMode(): 'end-turn' | 'skip-turn' | PlaySettings['preset'] {
+    if (this.oneShot === 'end-turn') return 'end-turn';
+    if (this.oneShot === 'hard-skip') return 'skip-turn';
+    return this.settings.preset;
+  }
+
+  /**
+   * applySettings swaps the whole settings object and persists it. Every
+   * settings change funnels through here (or patchSettings below) so the
+   * global key never goes stale.
+   */
+  private applySettings(next: PlaySettings) {
+    this.settings = next;
+    saveSettings(this.storage, next);
+  }
+
+  /** patchSettings applies a partial change through withChange (which relabels the preset when the result matches one) and persists. */
+  private patchSettings(patch: Partial<PlaySettings>) {
+    this.applySettings(withChange(this.settings, patch));
+  }
+
+  /** setAuto is the Auto/Manual control: a settings change (autoPass), persisted. Turning it on — or re-arming it while it is on — clears the runaway brake and the previous run so an old count never trips the cap. */
   setAuto(on: boolean) {
-    this.cancelFastForward(false);
-    this.auto = on;
+    this.cancelRun(false);
+    this.machinePaused = false;
     this.autoRun = 0;
     this.autoActedSeq = null;
-    // A fresh arm is a fresh run: no stop's keep-armed exception carries
-    // across it.
-    this.autoStoppedSeq = null;
+    this.patchSettings({ autoPass: on });
     this.note = on ? { kind: 'armed' } : { kind: 'off' };
   }
 
   /** setSkipEmpty is the empty-window floor's control. Turning it back on clears the run so an old count never trips the cap. */
   setSkipEmpty(on: boolean) {
-    this.cancelFastForward();
+    this.cancelRun();
     this.skipEmpty = on;
     this.autoRun = 0;
     this.autoActedSeq = null;
     if (!this.auto) this.note = { kind: 'off' };
   }
 
-  /** setActPass is the pass-after-acting preference's control, persisted per table and seat. Turning it OFF disarms a still-armed pass: a stale one-shot firing several windows after the player switched the preference off would be exactly the surprise the switch exists to prevent. Turning it ON arms nothing — only a future hand action does. */
+  /** setActPass is the pass-after-acting preference's control — a settings change (passAfterAct), persisted globally. Turning it OFF disarms a still-armed pass: a stale one-shot firing several windows after the player switched the preference off would be exactly the surprise the switch exists to prevent. Turning it ON arms nothing — only a future hand action does. */
   setActPass(on: boolean) {
-    this.actPass = on;
     if (!on) this.actPassArmed = false;
-    saveActPass(this.storage, this.table, this.ctx.seat, on);
+    this.patchSettings({ passAfterAct: on });
+  }
+
+  /**
+   * toggleStop flips one step's stop rule on one turn side and persists it.
+   * The rule cycles 'off' → 'smart' → 'off' (a 'forced' rule goes straight
+   * back to 'off' — the click always means "stop here" or "stop ignoring
+   * here"); a step that grants no priority (untap, cleanup) is refused. The
+   * two sides are separate records on purpose: stopping in your own combat
+   * and stopping in an opponent's are different intentions, and a stop set
+   * on one side must never mark the other.
+   */
+  toggleStop(step: string, side: TurnSide) {
+    this.cancelRun();
+    if (!(STOPPABLE_STEPS as readonly string[]).includes(step)) return;
+    const rule = this.settings.steps[side][step as StoppableStep] ?? 'off';
+    // The steps patch is a deep partial at runtime (withChange merges field-wise); the cast states that.
+    const patch = { steps: { [side]: { [step as StoppableStep]: rule === 'off' ? 'smart' : 'off' } } } as unknown as Partial<PlaySettings>;
+    this.patchSettings(patch);
+  }
+
+  /**
+   * toggleFullControl is the Ctrl+Shift+F hotkey's action: swap the current
+   * settings for the full-control preset, or — when full-control is already
+   * the live preset — restore exactly what it replaced. The backup is
+   * session-scoped and consumed by the restore; a second full-control press
+   * without a backup restores the defaults rather than guessing.
+   */
+  toggleFullControl() {
+    this.cancelRun(false);
+    this.autoRun = 0;
+    this.autoActedSeq = null;
+    if (this.settings.preset === 'full-control') {
+      const back = this.presetBackup;
+      this.presetBackup = null;
+      this.applySettings(back ?? defaultSettings());
+    } else {
+      this.presetBackup = this.settings;
+      this.applySettings(applyPreset('full-control'));
+    }
+    this.note = this.auto ? { kind: 'armed' } : { kind: 'off' };
   }
 
   /**
    * stopActing is the shared guard exit for the loop guard and the pass cap.
-   * Whichever mechanism was acting is the one switched off: auto if auto was
-   * driving, otherwise the empty-window floor. Both are runaway protections
-   * and both have to be able to actually stop the thing that is running --
-   * before the floor existed, suspendAuto returned silently when auto was
-   * already off, which would have left a wedged floor posting forever.
+   * Whichever mechanism was acting is the one stopped: the one-shot run if
+   * one is live, otherwise the machine (paused, NOT un-preferenced),
+   * otherwise the empty-window floor. All are runaway protections and all
+   * have to be able to actually stop the thing that is running -- before
+   * the floor existed, suspendAuto returned silently when auto was already
+   * off, which would have left a wedged floor posting forever.
    */
   private stopActing(reason: AutoOffReason) {
-    if (this.fastForward) {
-      this.fastForward = false;
+    if (this.oneShot !== 'none') {
+      const mode = this.oneShot;
+      this.oneShot = 'none';
       this.autoRun = 0;
       this.autoActedSeq = null;
-      this.note = { kind: 'fast-stopped', reason };
+      this.note = { kind: mode === 'end-turn' ? 'end-turn-stopped' : 'skip-turn-stopped', reason };
       return;
     }
-    if (this.auto) {
+    if (this.auto && !this.machinePaused) {
       this.suspendAuto(reason);
       return;
     }
@@ -442,89 +557,92 @@ export class SeatPanelState {
   }
 
   /**
-   * Start a bounded one-shot run. It uses decide(), but never changes the
-   * persistent Auto mode. The current view is required because the press is
-   * itself consent at a set-stop window (see below).
+   * startEndTurn arms the END TURN one-shot: every priority window for the
+   * rest of THIS turn is passed, under decide()'s ordinary rules EXCEPT the
+   * step stops, which the run ignores — pressing END TURN at your own main2
+   * with a playable card is exactly the point of the button. The opponent-
+   * object rules still apply: the run stops for an opponent's spell or
+   * ability as the player's settings say. The run ends when the turn number
+   * changes or the step reaches cleanup, on Escape, on any non-priority
+   * decision, on any other stop verdict, and at the shared pass cap. The
+   * current view is required because the press is itself consent.
    */
-  startFastForward(view: View) {
-    if (this.busy) return;
-    this.auto = false;
-    this.fastForward = true;
-    this.fastPassed = 0;
-    this.autoRun = 0;
-    this.autoActedSeq = null;
-    // Fast forward runs on its own acknowledgement machinery; Auto's stop
-    // exception has no owner while the mode is off.
-    this.autoStoppedSeq = null;
-    // The press IS the consent at a stop-set window. Restarting on the set
-    // stop that ended the previous run has always meant "I have seen this
-    // one; continue"; a FIRST press at any pending priority window sitting
-    // on a stopped step/side means exactly the same thing — without this the
-    // press is spent arming the acknowledgement that only the second press
-    // could mint, and the player presses FFWD twice to move. The mint is
-    // deliberately over-broad at press time: considerAuto consumes the token
-    // only on decide()'s stop-set verdict at this exact seq and clears both
-    // tokens before it posts, so a window that turns out to be a plain pass
-    // verdict (nothing to do) or a non-stop-set safety stop never consumes
-    // it and the next stop-set stop mints fresh. Stops remain meaningful: a
-    // run still HALTS at the next stop it reaches mid-run — only the press
-    // at the halt moves on the first press now.
-    this.fastAcknowledgedSeq =
-      this.pending?.seq === this.fastStoppedSeq
-        ? this.fastStoppedSeq
-        : this.pending?.kind === 'priority' && this.stops[turnSide(view, this.ctx.seat)].has(view.step)
-          ? this.pending.seq
-          : null;
-    this.note = { kind: 'fast-armed' };
-  }
-
-  /** Any other pointer/key/answer hands control back immediately. When it actually fires (a run was live) it also clears an armed pass-after-acting token: the player took the controls back mid-run. */
-  cancelFastForward(say = true) {
-    if (!this.fastForward) return;
-    this.actPassArmed = false;
-    this.fastForward = false;
-    this.autoRun = 0;
-    this.autoActedSeq = null;
-    this.fastAcknowledgedSeq = null;
-    if (say) this.note = { kind: 'fast-cancelled' };
+  startEndTurn(view: View) {
+    this.startRun('end-turn', view);
   }
 
   /**
-   * handAnswer is the takeover step every human answering path runs before it
-   * posts. A human always wins — with the one exception the stops feature
-   * exists to create: answering the window Auto stopped at for the player's
-   * own set stop keeps Auto armed, because that answer is what the stop
-   * invited, and Auto resumes from the next window. The exception is scoped
-   * to that one seq (consumed by the answer, re-minted at the next stop-set
-   * stop); a window Auto stopped at for any other reason, and any window
-   * with no stop pending, still disarms.
+   * startHardSkip arms the hard skip (MTGO F6, Shift+Enter or shift-click
+   * END TURN): EVERYTHING is passed for the rest of the turn, including
+   * opponent objects — the strip shows a warning chip while it runs. The
+   * same expiry and cap as End Turn apply.
    */
-  private handAnswer() {
-    this.cancelFastForward();
-    if (this.autoStoppedSeq !== null && this.pending?.seq === this.autoStoppedSeq) {
-      this.autoStoppedSeq = null;
-      return;
-    }
-    this.suspendAuto('human');
+  startHardSkip(view: View) {
+    this.startRun('hard-skip', view);
   }
 
-  /** suspendAuto switches auto off with a stated reason. A human always wins: any answer this seat gives by hand takes the wheel back. When it actually fires (auto was on) it also clears an armed pass-after-acting token: a machine run the player just took back must not be followed by a pass they did not click. */
-  suspendAuto(reason: AutoOffReason) {
-    if (!this.auto) return;
-    this.actPassArmed = false;
-    this.auto = false;
+  private startRun(kind: 'end-turn' | 'hard-skip', view: View) {
+    if (this.busy) return;
+    this.oneShot = kind;
+    this.runPassed = 0;
     this.autoRun = 0;
     this.autoActedSeq = null;
-    this.autoStoppedSeq = null;
+    this.oneShotTurn = view.turn;
+    this.note = kind === 'end-turn' ? { kind: 'end-turn-armed' } : { kind: 'skip-turn-armed' };
+  }
+
+  /** Any other pointer/key/answer hands control back immediately. When it actually fires (a run was live) it also clears an armed pass-after-acting token: the player took the controls back mid-run. */
+  cancelRun(say = true) {
+    if (this.oneShot === 'none') return;
+    this.actPassArmed = false;
+    this.oneShot = 'none';
+    this.autoRun = 0;
+    this.autoActedSeq = null;
+    if (say) this.note = this.auto ? { kind: 'armed' } : { kind: 'off' };
+  }
+
+  /**
+   * handAnswer is the takeover step every human answering path runs before
+   * it posts. A hand answer is NOT a request to stop auto-passing (prio3):
+   * the persisted autoPass survives it, and Escape is the only key that
+   * ends a run without a decision of its own. The one thing it does is end
+   * a live one-shot run — taking the controls mid-run cancels it.
+   */
+  private handAnswer() {
+    this.cancelRun();
+  }
+
+  /**
+   * suspendAuto pauses the machine with a stated reason. Only the runaway
+   * guards (loop, cap) reach it now — a hand answer and Escape no longer
+   * flip the persisted preference. The pause clears on the player's next
+   * Auto switch.
+   */
+  suspendAuto(reason: AutoOffReason) {
+    if (!this.auto || this.machinePaused) return;
+    this.machinePaused = true;
+    this.autoRun = 0;
+    this.autoActedSeq = null;
     this.note = { kind: 'stopped', reason };
   }
 
-  /** onKeydown is the panel's key handler: Escape, and only Escape, suspends auto. Escape is a takeover command even in manual mode, where suspendAuto's guard would skip it, so it also clears an armed pass-after-acting token directly. */
+  /** onKeydown is the panel's key handler: Escape cancels the one-shot run — it does NOT flip the persisted autoPass (a panic key is not a settings change). */
   onKeydown(key: string) {
     if (key !== 'Escape') return;
     this.actPassArmed = false;
-    this.cancelFastForward();
-    this.suspendAuto('escape');
+    this.cancelRun();
+  }
+
+  /**
+   * expireRun ends the one-shot when its turn is over — the turn number
+   * changed since the press, or the step reached cleanup. It is called from
+   * considerAuto (so a decision arriving in a new turn never sees the run
+   * armed) and from the component's per-view effect (so the chip drops even
+   * while no decision is pending for this seat).
+   */
+  expireRun(view: View) {
+    if (this.oneShot === 'none') return;
+    if (view.turn !== this.oneShotTurn || view.step === 'cleanup') this.cancelRun(false);
   }
 
   /**
@@ -536,14 +654,19 @@ export class SeatPanelState {
   considerAuto(view: View) {
     const d = this.pending;
     if (d === null || this.busy || d.seq === this.postedSeq) return;
+    // A one-shot run ends the moment its turn is over, whether or not a
+    // decision is pending (see expireRun).
+    this.expireRun(view);
+
+    const autoOn = this.auto && !this.machinePaused;
 
     // Pass after acting: the one-shot token, spent at the FIRST priority
-    // window that arrives while neither auto nor fast forward is running
+    // window that arrives while neither auto nor a one-shot run is live
     // (with either of those live, their own rules govern and the token stays
     // dormant). It runs BEFORE the early return below, because a window with
     // actions on it is exactly the one this preference exists to pass, and
     // that window is precisely the one the empty-window floor never touches.
-    if (!this.auto && !this.fastForward && this.actPassArmed && d.kind === 'priority') {
+    if (!autoOn && this.oneShot === 'none' && this.actPassArmed && d.kind === 'priority') {
       this.consumeActPass(view);
       return;
     }
@@ -553,7 +676,7 @@ export class SeatPanelState {
     // on this is redundant -- decide()'s own !actionable branch reaches the
     // same pass -- and that is the point: one shape test, two callers.
     const emptyIndex = this.skipEmpty ? emptyPriorityWindow(d) : null;
-    if (!this.auto && !this.fastForward && emptyIndex === null) return;
+    if (!autoOn && this.oneShot === 'none' && emptyIndex === null) return;
 
     // Loop guard: we already answered this seq and here it is again. The
     // answer did not take, so posting it a second time is the start of an
@@ -564,66 +687,45 @@ export class SeatPanelState {
     }
 
     let index: number;
-    if (this.auto || this.fastForward) {
-      // ffwd marks the one-shot run: it passes through has-action-and-stack
-      // windows (pressing FFWD is the player's own "no more actions"), while
-      // persistent Auto keeps that guard.
-      const verdict = decide({ decision: d, view, seat: this.ctx.seat, settings: legacyPlaySettings(this.stops), ffwd: this.fastForward });
+    if (this.oneShot !== 'none' || autoOn) {
+      // A one-shot run feeds decide() its OWN settings: autoPass forced on
+      // (the press is the consent), the step rules off (End Turn ignores
+      // step stops), and — hard skip only — every opponent-object rule
+      // 'never'. The player's real settings govern persistent Auto.
+      const verdict = decide({
+        decision: d,
+        view,
+        seat: this.ctx.seat,
+        settings: this.oneShot !== 'none' ? this.runSettings(this.oneShot) : this.settings,
+      });
       if (verdict.act === 'stop') {
-        // decide() remains the safety oracle. The caller may acknowledge only
-        // the player's own set-stop verdict, only at the exact seq a press
-        // consented to (the previous run's stop, or a first press at a
-        // pending stop-set window), and consumes that acknowledgement now so
-        // it cannot leak to the next window. decide() already proved this is
-        // the understood one-pass-option priority shape, so passOption
-        // supplies the wire index without relying on list position.
-        const acknowledged = this.fastForward
-          && verdict.reason === 'stop-set'
-          && d.seq === this.fastAcknowledgedSeq;
-        if (acknowledged) {
-          this.fastAcknowledgedSeq = null;
-          this.fastStoppedSeq = null;
-          const pass = this.passOption;
-          if (pass === null) return;
-          index = pass.index;
+        // decide() remains the safety oracle. A one-shot run ENDS on every
+        // stop verdict — there is no acknowledgement machinery any more,
+        // because a run honours no step stops and the press itself moved
+        // the window it was pressed on. Persistent Auto stays armed: the
+        // player answers this window and Auto resumes after it — and with
+        // hand answers no longer disarming Auto (prio3), no exception
+        // token is needed or minted.
+        this.autoRun = 0;
+        if (this.oneShot !== 'none') {
+          const mode = this.oneShot;
+          this.oneShot = 'none';
+          this.autoActedSeq = null;
+          this.note = { kind: mode === 'end-turn' ? 'end-turn-stopped' : 'skip-turn-stopped', reason: verdict.reason };
         } else {
-          this.autoRun = 0;
-          if (this.fastForward) {
-            // Every safety stop ends the run. Only stop-set records a seq that
-            // a deliberate restart may acknowledge; all other reasons must
-            // stop dead again on every restart.
-            this.fastForward = false;
-            this.fastStoppedSeq = verdict.reason === 'stop-set' ? d.seq : null;
-            this.fastAcknowledgedSeq = null;
-            this.autoActedSeq = null;
-            this.note = { kind: 'fast-stopped', reason: verdict.reason };
-          } else {
-            // A stop in persistent Auto leaves the mode armed: the player may
-            // answer this window and Auto resumes after it. Only the player's
-            // own set-stop verdict earns the keep-armed exception, and only for
-            // exactly this window: the token is consumed by the hand answer and
-            // re-minted fresh at the next stop-set stop. Any other reason means
-            // the client saw something it does not understand, so a hand answer
-            // there must still take the wheel.
-            this.autoStoppedSeq = verdict.reason === 'stop-set' ? d.seq : null;
-            this.note = { kind: 'waiting', reason: verdict.reason };
-          }
-          return;
+          this.note = { kind: 'waiting', reason: verdict.reason };
         }
-      } else {
-        // The run is moving, so any acknowledgement minted for THIS window
-        // at press time is moot — a token never outlives the window it was
-        // minted for.
-        this.fastAcknowledgedSeq = null;
-        index = verdict.index;
+        return;
       }
+      index = verdict.index;
     } else {
       index = emptyIndex as number;
     }
 
     // The cap bounds an unbroken run of machine-made passes, and it bounds
-    // the floor for the same reason it bounds auto: a stuck window answered
-    // forever is a denial of service the player never asked for.
+    // the floor for the same reason it bounds auto and the one-shot runs: a
+    // stuck window answered forever is a denial of service the player never
+    // asked for.
     if (this.autoRun >= AUTO_PASS_CAP) {
       this.stopActing('cap');
       return;
@@ -631,10 +733,12 @@ export class SeatPanelState {
 
     this.autoActedSeq = d.seq;
     this.autoRun += 1;
-    if (this.fastForward) {
-      this.fastPassed += 1;
-      this.note = { kind: 'fast-passing', count: this.fastPassed };
-    } else if (this.auto) {
+    if (this.oneShot !== 'none') {
+      this.runPassed += 1;
+      this.note = this.oneShot === 'end-turn'
+        ? { kind: 'end-turn-passing', count: this.runPassed }
+        : { kind: 'skip-turn-passing', count: this.runPassed };
+    } else if (autoOn) {
       this.autoPassed += 1;
       this.note = { kind: 'passing', count: this.autoPassed };
     } else {
@@ -642,6 +746,32 @@ export class SeatPanelState {
       this.note = { kind: 'skipped', count: this.emptySkipped };
     }
     void this.post([index]);
+  }
+
+  /**
+   * runSettings is the settings a one-shot run feeds decide(): the player's
+   * own settings with autoPass forced on (the press is the consent), every
+   * step rule off (End Turn ignores step stops), and — hard skip only —
+   * every opponent-object rule 'never' and ownObjects 'never' (it passes
+   * everything, MTGO F6). Everything else — the opponent-object rules for a
+   * plain End Turn — stands as the player set it.
+   */
+  private runSettings(kind: 'end-turn' | 'hard-skip'): PlaySettings {
+    const off = {} as Record<StoppableStep, StepStop>;
+    for (const s of STOPPABLE_STEPS) off[s as StoppableStep] = 'off';
+    const s: PlaySettings = {
+      ...this.settings,
+      preset: 'custom',
+      autoPass: true,
+      steps: { yours: { ...off }, opponents: { ...off } },
+    };
+    if (kind === 'hard-skip') {
+      s.opponentSpell = 'never';
+      s.opponentAbility = 'never';
+      s.opponentTrigger = 'never';
+      s.ownObjects = 'never';
+    }
+    return s;
   }
 
   /**
@@ -672,33 +802,32 @@ export class SeatPanelState {
     this.actPassArmed = false;
     if (this.actPassActedSeq !== null && d.seq === this.actPassActedSeq) return;
     this.actPassActedSeq = d.seq;
-    const verdict = decide({ decision: d, view, seat: this.ctx.seat, settings: legacyPlaySettings(this.stops) });
+    // The armed token is itself the consent: the preference fires whether or
+    // not the master switch is on (a manual seat with the preference on —
+    // the mode this preference exists for).
+    const verdict = decide({ decision: d, view, seat: this.ctx.seat, settings: { ...this.settings, autoPass: true } });
     if (verdict.act !== 'pass') return;
     this.actPassed += 1;
     this.note = { kind: 'act-passed', count: this.actPassed };
     void this.post([verdict.index]);
   }
 
-  /** begin resets the seat across a match boundary. (The component keys the panel by match, so a new match is a fresh instance — this is belt and braces.) */
+  /** begin resets the seat across a match boundary. (The component keys the panel by match, so a new match is a fresh instance — this is belt and braces.) The settings are a property of the PLAYER, not of the match: auto (autoPass), the stops and pass-after-acting all survive begin() untouched. */
   begin() {
     this.pending = null;
     this.picked = [];
     this.postedSeq = null;
     this.confirming = false;
     this.error = null;
-    // A new match is a new opt-in: auto never carries across a match
-    // boundary on its own.
-    this.auto = false;
-    this.fastForward = false;
+    this.oneShot = 'none';
+    this.oneShotTurn = null;
+    this.machinePaused = false;
     this.autoRun = 0;
+    this.runPassed = 0;
     this.autoPassed = 0;
-    this.fastPassed = 0;
-    this.fastStoppedSeq = null;
-    this.fastAcknowledgedSeq = null;
-    this.autoStoppedSeq = null;
     // An armed pass-after-acting token is a one-shot about a window that no
     // longer exists once the match does; the PREFERENCE persists across the
-    // boundary like the stops do, only the pending token clears.
+    // boundary in the settings, only the pending token clears.
     this.actPassArmed = false;
     this.actPassActedSeq = null;
     this.actPassed = 0;
@@ -791,24 +920,20 @@ export class SeatPanelState {
     return d !== null && this.picked.length >= d.min && this.picked.length <= d.max;
   }
 
-  /** click handles one option click. A single-required-option decision posts immediately (the click IS the answer); a multi-pick toggles into `picked` for submit. The concede option never posts on the first click (R-E4-1). */
-  click(index: number) {
+  /** click handles one option click. A single-required-option decision posts immediately (the click IS the answer); a multi-pick toggles into `picked` for submit. The concede option never posts on the first click (R-E4-1). Passing `holdPriority` (Ctrl held) skips the pass-after-acting arming for this one action. */
+  click(index: number, opts?: { holdPriority?: boolean }) {
     const d = this.pending;
     if (d === null || d.seq === this.postedSeq || this.busy) return;
     const opt = optionAt(d, index);
     if (opt === undefined) return;
     if (isConcede(opt)) {
-      // Concede never earns the stop's keep-armed exception — it is not an
-      // answer the stop existed to invite, and Auto must not survive it.
-      // It also clears an armed pass-after-acting token DIRECTLY, not only
-      // through cancelFastForward/suspendAuto: in manual mode both of those
-      // return without touching the token, and conceding in manual mode is
-      // exactly the flow that would otherwise leave it armed — the seat's
-      // next priority window would then be passed for a player who is no
-      // longer even in the game.
+      // Concede is not an action: it never arms pass-after-acting, and an
+      // ALREADY armed token must die here — the seat's next priority window
+      // would otherwise be passed for a player who is no longer in the game.
+      // It also ends a live one-shot run. It does NOT flip the persisted
+      // autoPass: conceding is a move, not a settings change.
       this.actPassArmed = false;
-      this.cancelFastForward();
-      this.suspendAuto('human');
+      this.cancelRun();
       if (this.confirming) void this.post([index]);
       else this.confirming = true;
       return;
@@ -816,7 +941,7 @@ export class SeatPanelState {
     this.handAnswer();
     this.confirming = false;
     if (d.min === 1 && d.max === 1) {
-      void this.post([index]);
+      void this.post([index], opts?.holdPriority ?? false);
       return;
     }
     this.picked = pickOption(d, index, this.picked);
@@ -847,39 +972,36 @@ export class SeatPanelState {
     void this.post([pass.index]);
   }
 
-  /** primaryClick posts the primary-by-kind option directly. */
-  primaryClick() {
+  /** primaryClick posts the primary-by-kind option directly. `holdPriority` (Ctrl held) skips the pass-after-acting arming for this one action. */
+  primaryClick(holdPriority = false) {
     const d = this.pending;
     const p = d ? primaryOf(d) : null;
     if (d === null || p === null || d.seq === this.postedSeq || this.busy) return;
     this.handAnswer();
-    void this.post([p.index]);
+    void this.post([p.index], holdPriority);
   }
 
-  /** confirmConcede posts the armed concede option — the second, explicit confirmation. */
+  /** confirmConcede posts the armed concede option — the second, explicit confirmation. It does not flip the persisted autoPass; it does kill an armed pass-after-acting token and a live run. */
   confirmConcede() {
     const d = this.pending;
     if (d === null || !this.confirming || this.busy) return;
     const concede = d.options.find(isConcede);
     if (!concede) return;
-    // Same direct clear as click()'s concede arm: the suspend helpers are
-    // no-ops for the token in manual mode.
     this.actPassArmed = false;
-    this.cancelFastForward();
-    this.suspendAuto('human');
+    this.cancelRun();
     void this.post([concede.index]);
   }
 
-  /** submit posts the picked set — gated on min/max; a rejected answer is recovered from, never treated as impossible. */
-  submit() {
+  /** submit posts the picked set — gated on min/max; a rejected answer is recovered from, never treated as impossible. `holdPriority` (Ctrl held) skips the pass-after-acting arming for this one action. */
+  submit(holdPriority = false) {
     const d = this.pending;
     if (d === null || d.seq === this.postedSeq || this.busy) return;
     if (this.picked.length < d.min || this.picked.length > d.max) return;
     this.handAnswer();
-    void this.post([...this.picked]);
+    void this.post([...this.picked], holdPriority);
   }
 
-  private async post(choices: number[]) {
+  private async post(choices: number[], holdPriority = false) {
     const d = this.pending;
     if (d === null || this.busy) return;
     this.busy = true;
@@ -890,15 +1012,17 @@ export class SeatPanelState {
       // The hand answers that can carry a real action are click()'s post-on-click
       // (min == max == 1) and submit()'s multi-pick commit; both funnel through
       // here, so the pass-after-arming test lives on the ACCEPTED post — a
-      // rejected intent never arms, and the gate is the preference itself:
-      // with actPass off nothing is ever armed. passClick/primaryClick post
-      // only pass/resolve options, the machine paths (auto, fast forward, the
-      // empty-window floor, the act-pass pass itself) post only the pass
-      // verdict's index, and a non-priority decision fails the kind test, so
-      // none of them arm. Concede never reaches here as an action: click()
-      // returns before posting it once and confirmConcede posts a concede
-      // kind, which the test rejects.
-      if (this.actPass && actedOption(d, choices)) this.actPassArmed = true;
+      // rejected intent never arms, and the gates are the preference itself
+      // and the hold-priority modifier: with actPass off nothing is ever
+      // armed, and a Ctrl-held action (hold priority) skips the arming for
+      // that one post. passClick/primaryClick post only pass/resolve options,
+      // the machine paths (auto, the one-shot runs, the empty-window floor,
+      // the act-pass pass itself) post only the pass verdict's index, and a
+      // non-priority decision fails the kind test, so none of them arm.
+      // Concede never reaches here as an action: click() returns before
+      // posting it once and confirmConcede posts a concede kind, which the
+      // test rejects.
+      if (this.actPass && !holdPriority && actedOption(d, choices)) this.actPassArmed = true;
       // If a new decision was adopted while the intent was in flight (a
       // rapid successive ask), keep it; only drop the decision we answered.
       if (this.pending?.seq === d.seq) this.pending = null;

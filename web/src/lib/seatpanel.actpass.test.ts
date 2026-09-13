@@ -1,14 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Decision, Option, View } from '../protocol';
-import { actPassKey, loadActPass } from './actpass';
 import { SeatPanelState, autoNoteText } from './seatpanel.svelte';
 
-// The "pass after acting" preference: after this seat POSTS a hand answer to
-// a priority decision carrying a real action, its NEXT priority window is
-// passed once. decide() is the safety oracle and is tested in
-// autopilot.test.ts; what these tests hold down is the token's lifecycle —
-// what arms it, what consumes it, what clears it, and that the machine can
-// only ever post a pass.
+// The "pass after acting" preference (settings.passAfterAct): after this
+// seat POSTS a hand answer to a priority decision carrying a real action,
+// its NEXT priority window is passed once. decide() is the safety oracle and
+// is tested in autopilot.test.ts; what these tests hold down is the token's
+// lifecycle — what arms it, what consumes it, what clears it, and that the
+// machine can only ever post a pass.
 const { postIntentMock, fetchPendingMock } = vi.hoisted(() => ({ postIntentMock: vi.fn(), fetchPendingMock: vi.fn() }));
 vi.mock('./api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./api')>()),
@@ -68,11 +67,12 @@ async function settle(predicate: () => boolean, maxTicks = 200): Promise<void> {
   throw new Error(`settle: condition still false after ${maxTicks} microtask ticks`);
 }
 
-/** manual is a seat with the preference ON, auto/FFWD off and no stops set. */
+/** manual is a seat with the preference ON, auto off and no stops set. */
 function manual(storage: Storage | null = null): SeatPanelState {
   const p = new SeatPanelState('t1', 1, ctx, storage);
   p.stops = { yours: new Set(), opponents: new Set() };
-  p.actPass = true;
+  p.setAuto(false);
+  p.setActPass(true);
   return p;
 }
 
@@ -91,37 +91,30 @@ describe('pass after acting — the preference and its persistence', () => {
     postIntentMock.mockResolvedValue(undefined);
   });
 
-  it('is OFF on a fresh seat, and a fresh browser (no saved value) loads OFF', () => {
+  it('is ON on a fresh seat (casual), and a fresh browser (no saved value) loads casual', () => {
     const p = new SeatPanelState('t1', 1, ctx, null);
-    expect(p.actPass).toBe(false);
-    p.mountActPass();
-    expect(p.actPass).toBe(false);
+    expect(p.actPass).toBe(true);
     expect(p.actPassed).toBe(0);
   });
 
-  it('setActPass persists per table AND per seat, and a second seat reads its own default', () => {
+  it('setActPass writes the ONE global settings key, shared by every seat in the browser', () => {
     const storage = fakeStorage();
     const p = new SeatPanelState('t1', 1, ctx, storage);
-    p.setActPass(true);
-    expect(p.actPass).toBe(true);
-    expect(storage.getItem(actPassKey('t1', 0))).toBe('1');
-
-    const other = new SeatPanelState('t1', 1, { seat: 1, token: 'tok' }, storage);
-    other.mountActPass();
-    expect(other.actPass).toBe(false); // seat 1 did not opt in
-
-    // OFF is stored explicitly, so a deliberate "off" survives a reload.
     p.setActPass(false);
-    expect(storage.getItem(actPassKey('t1', 0))).toBe('0');
-    const reloaded = new SeatPanelState('t1', 1, ctx, storage);
-    reloaded.mountActPass();
-    expect(reloaded.actPass).toBe(false);
+    expect(p.actPass).toBe(false);
+    expect(JSON.parse(storage.getItem('gorge.playsettings.v1') as string).passAfterAct).toBe(false);
 
-    // and a genuinely absent key loads false, never throws
-    expect(loadActPass(null, 't1', 0)).toBe(false);
+    // a second seat in the same browser shares the player's settings — a
+    // preference is a property of the player, not of the table or the seat.
+    const other = new SeatPanelState('t1', 1, { seat: 1, token: 'tok' }, storage);
+    expect(other.actPass).toBe(false);
+
+    p.setActPass(true);
+    const reloaded = new SeatPanelState('t1', 1, ctx, storage);
+    expect(reloaded.actPass).toBe(true);
   });
 
-  it('the preference survives a match boundary like the stops; the armed token and counter do not', () => {
+  it('the preference survives a match boundary like the rest of the settings; the armed token and counter do not', () => {
     const p = manual();
     p.actPassed = 3;
     p.begin();
@@ -202,6 +195,40 @@ describe('pass after acting — what arms the token', () => {
     expect(postIntentMock).toHaveBeenCalledTimes(1); // the submit only; no machine pass
   });
 
+  it('Ctrl held while submitting a cast skips the pass-after-acting arming for that one action', async () => {
+    const p = manual();
+    p.adoptView(live(1));
+    p.click(0, { holdPriority: true }); // the cast, Ctrl held: hold priority
+    await settle(() => p.postedSeq === 1);
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+
+    // the NEXT window is the player's — nothing was armed
+    p.adoptView(live(2));
+    p.considerAuto(view());
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(p.actPassed).toBe(0);
+  });
+
+  it('Ctrl held while submitting a multi-pick commit also skips the arming; the NEXT cast without Ctrl arms normally', async () => {
+    const p = manual();
+    p.adoptView(multi(1));
+    p.click(0);
+    p.submit(true); // Ctrl held
+    await settle(() => p.postedSeq === 1);
+    p.adoptView(live(2));
+    p.considerAuto(view());
+    expect(postIntentMock).toHaveBeenCalledTimes(1); // the submit only; nothing armed
+    expect(p.actPassed).toBe(0);
+
+    // without Ctrl the same action arms as always
+    p.click(0);
+    await settle(() => p.postedSeq === 2);
+    p.adoptView(live(3));
+    p.considerAuto(view());
+    await settle(() => p.postedSeq === 3);
+    expect(p.actPassed).toBe(1);
+  });
+
   it.each([
     ['the dedicated pass button', (p: SeatPanelState) => p.passClick()],
     ['the primary (pass/resolve) button', (p: SeatPanelState) => p.primaryClick()],
@@ -251,8 +278,8 @@ describe('pass after acting — what arms the token', () => {
   });
 
   it('a hand action does NOT arm while the preference is off', async () => {
-    const p = new SeatPanelState('t1', 1, ctx, null);
-    p.stops = { yours: new Set(), opponents: new Set() };
+    const p = manual();
+    p.setActPass(false);
     p.adoptView(live(1));
     p.click(0);
     await settle(() => p.postedSeq === 1);
@@ -359,20 +386,16 @@ describe('pass after acting — dormant while a machine run is live', () => {
 
   it('while Auto runs, its own rules govern and the token stays dormant: the pass is Auto’s, not the preference’s', async () => {
     const p = manual();
-    p.auto = true;
-    p.actPass = true;
-    // Arm the token through the one hand answer that leaves Auto armed: the
-    // window Auto stopped at for the player's OWN set stop.
-    p.stops = { yours: new Set(['main1']), opponents: new Set() };
+    p.setAuto(true);
+    // Arm the token through a hand answer — which no longer disarms auto.
     p.adoptView(live(1));
-    p.considerAuto(view('main1', 0));
-    expect(p.auto).toBe(true); // Auto kept the wheel
-    p.click(0); // the answer the stop invited
+    p.click(0);
     await settle(() => p.postedSeq === 1);
     expect(p.auto).toBe(true);
     postIntentMock.mockClear();
 
-    // Auto's next window is answered by AUTO — counted and worded as Auto's.
+    // Auto's next window is answered by AUTO — counted and worded as Auto's;
+    // the armed token stays dormant while the machine runs.
     p.adoptView(quiet(2));
     p.considerAuto(view('main1', 0));
     await settle(() => p.postedSeq === 2);
@@ -381,8 +404,8 @@ describe('pass after acting — dormant while a machine run is live', () => {
     expect(p.actPassed).toBe(0);
     expect(autoNoteText(p.note)).toBe('Auto passed 1 priority window.');
 
-    // Auto switched off by hand; the still-armed token now spends itself —
-    // away from the stop that is still set.
+    // Auto paused by hand via the switch; the still-armed token now spends
+    // itself on the next live window.
     p.setAuto(false);
     p.adoptView(live(3));
     p.considerAuto(view('draw', 0));
@@ -391,22 +414,23 @@ describe('pass after acting — dormant while a machine run is live', () => {
     expect(autoNoteText(p.note)).toBe('Passed 1 priority window after your action.');
   });
 
-  it('while fast forward runs the token stays dormant, and spends itself after the run ends', async () => {
+  it('while End Turn runs the token stays dormant, and spends itself after the run ends', async () => {
     const p = manual();
     p.stops = { yours: new Set(['draw']), opponents: new Set() };
     await arm(p); // armed, manual mode
     p.adoptView(quiet(2));
-    p.startFastForward(view('draw', 0)); // FFWD takes the wheel before the token is spent
+    p.startEndTurn(view('draw', 0)); // the run takes the wheel before the token is spent
     p.considerAuto(view('draw', 0));
     await settle(() => p.postedSeq === 2);
-    expect(p.fastPassed).toBe(1);
+    expect(p.runPassed).toBe(1);
     expect(p.actPassed).toBe(0); // dormant, not consumed
 
-    // The run ends at the player's stop; the token then spends itself.
-    p.adoptView(live(3));
+    // The run ends at the player's stop… wait — a run ignores step stops;
+    // the stop that ends it here is the non-priority ask below.
+    p.adoptView(mulligan(3));
     p.considerAuto(view('draw', 0));
-    expect(p.fastForward).toBe(false);
-    expect(postIntentMock).toHaveBeenCalledTimes(1); // FFWD's pass only
+    expect(p.endTurn).toBe(false);
+    expect(postIntentMock).toHaveBeenCalledTimes(1); // the run's pass only
     expect(p.actPassed).toBe(0); // not consumed by the stop either
 
     p.adoptView(quiet(4));
@@ -451,7 +475,7 @@ describe('pass after acting — what clears an armed token', () => {
     expect(postIntentMock).not.toHaveBeenCalled();
   });
 
-  it('conceding clears it in manual mode, where the suspend helpers are no-ops (click() path, both clicks)', async () => {
+  it('conceding clears it (click() path, both clicks)', async () => {
     const p = manual();
     await arm(p);
     p.adoptView(live(2));
@@ -464,7 +488,7 @@ describe('pass after acting — what clears an armed token', () => {
     expect(postIntentMock).toHaveBeenCalledTimes(1); // the concede post only; no machine pass
   });
 
-  it('confirmConcede() clears it in manual mode too', async () => {
+  it('confirmConcede() clears it too', async () => {
     const p = manual();
     await arm(p);
     p.adoptView(live(2));
@@ -477,37 +501,16 @@ describe('pass after acting — what clears an armed token', () => {
     expect(postIntentMock).toHaveBeenCalledTimes(1); // the concede post only; no machine pass
   });
 
-  it('answering by hand while a fast-forward run is live clears it (the cancel fired, the pass did not re-arm)', async () => {
+  it('answering by hand while a one-shot run is live clears it (the cancel fired, the pass did not re-arm)', async () => {
     const p = manual();
     await arm(p);
     p.adoptView(live(2));
-    p.startFastForward(view()); // FFWD takes the wheel before considerAuto spends the token
+    p.startEndTurn(view()); // the run takes the wheel before considerAuto spends the token
     p.passClick(); // a human click during the run cancels it…
     await settle(() => p.postedSeq === 2);
-    expect(p.fastForward).toBe(false);
+    expect(p.endTurn).toBe(false);
     p.adoptView(live(3));
     p.considerAuto(view());
     expect(postIntentMock).toHaveBeenCalledTimes(1); // the passClick only; the token went with the cancel
-  });
-
-  it('a hand answer that disarms auto clears it — and the cast that caused both re-arms nothing extra', async () => {
-    const storage = fakeStorage();
-    const p = new SeatPanelState('t1', 1, ctx, storage);
-    p.stops = { yours: new Set(), opponents: new Set() };
-    p.actPass = true;
-    p.auto = true;
-    // the token arms only via a hand action while auto is ON — the player's
-    // own stop exception is that shape; here any cast click suspends auto.
-    p.adoptView(live(1));
-    p.click(0);
-    await settle(() => p.postedSeq === 1);
-    expect(p.auto).toBe(false); // the click was a takeover
-    p.adoptView(live(2));
-    p.considerAuto(view());
-    // auto was disarmed by the same click that armed the token; the token
-    // survived the suspend (it re-arms after handAnswer) and fires here —
-    // exactly one window after the player's action.
-    await settle(() => p.postedSeq === 2);
-    expect(p.actPassed).toBe(1);
   });
 });
