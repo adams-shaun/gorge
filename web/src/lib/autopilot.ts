@@ -1,4 +1,5 @@
 import type { Decision, View } from '../protocol';
+import type { OpponentObjectRule, OpponentTriggerRule, PlaySettings, StoppableStep } from './playsettings';
 
 /**
  * autopilot is the "auto" decision logic for a seat: pass priority for the
@@ -36,8 +37,9 @@ export type StopReason =
   | 'disabled'
   | 'not-priority'
   | 'unexpected-shape'
-  | 'stop-set'
-  | 'has-action-and-stack';
+  | 'opponent-object'
+  | 'own-object'
+  | 'stop-set';
 
 /** STEPS is the wire's twelve step names in engine order (state/ids.go). */
 export const STEPS = [
@@ -68,7 +70,7 @@ export function turnSide(view: View, seat: number): TurnSide {
  * every priority window (rules/legal.go's availableManaAbilities loop), so
  * counting those taps as actions would make almost every window
  * "actionable" and defeat both the empty-window skip and the
- * has-action-and-stack guard. Tapping mana with nothing to spend it on is
+ * smart step rule. Tapping mana with nothing to spend it on is
  * not a play.
  */
 export function actionable(decision: Decision): boolean {
@@ -81,7 +83,7 @@ export function actionable(decision: Decision): boolean {
  * It deliberately excludes play_land (a land drop is never a response —
  * lands are sorcery-speed and cannot interact with a resolving spell) and
  * activate (see actionable above — every mana source offers a tap at every
- * window). Used by decide()'s stack guard so an opponent object on the
+ * window). Used by decide()'s stack rules so an opponent object on the
  * stack only stops a player who can actually answer it, not one who can
  * merely tap a land.
  */
@@ -115,63 +117,105 @@ export function emptyPriorityWindow(decision: Decision): number | null {
   return passOptions[0].index;
 }
 
+/**
+ * targetsMe reports whether any target of the given stack entry is this seat
+ * (a player target) or an object this seat controls. The controller lookup
+ * reads the view's public battlefield data — view.players[*].battlefield,
+ * each CardView carrying its own id and controller (view/view.go's zone
+ * lists are keyed by controller) — so an object this seat used to control
+ * but that has left the battlefield (a graveyard card, a spell on the stack)
+ * is never "mine" by this test; those targets conservatively do not stop.
+ */
+function targetsMe(view: View, seat: number, top: { targets: { obj?: number; player: number; is_player: boolean }[] }): boolean {
+  const controllers = new Map<number, number>();
+  for (const p of view.players ?? []) {
+    for (const c of p.battlefield ?? []) controllers.set(c.id, c.controller);
+  }
+  return (top.targets ?? []).some((t) =>
+    t.is_player ? t.player === seat : t.obj !== undefined && controllers.get(t.obj) === seat
+  );
+}
+
+/**
+ * opponentRuleFor maps a StackView.Kind (view/view.go sets exactly three:
+ * "spell" for a spell object, "trigger" for one minted by TriggerPush,
+ * "ability" for any other ability object) to the settings' matching rule.
+ * A kind the view does not define today is treated as if-respondable — the
+ * old guard's answer for any opponent object — so a future kind fails
+ * toward stopping, never toward silently passing.
+ */
+function opponentRuleFor(settings: PlaySettings, kind: string): OpponentObjectRule | OpponentTriggerRule {
+  switch (kind) {
+    case 'spell': return settings.opponentSpell;
+    case 'ability': return settings.opponentAbility;
+    case 'trigger': return settings.opponentTrigger;
+    default: return 'if-respondable';
+  }
+}
+
 export function decide(args: {
   decision: Decision;
   view: View;
   seat: number;
-  stops: Stops;
-  enabled: boolean;
+  /** settings carries every rule; playsettings.ts holds the values (presets), this module only consumes them. */
+  settings: PlaySettings;
   /**
    * ffwd marks the one-shot fast-forward run (absent/false = persistent
    * Auto). Pressing FFWD is itself the player's explicit "I have no more
-   * actions to take", so the has-action-and-stack guard below is skipped on
-   * this path: the pass IS the consent that guard otherwise has to assume
-   * for an unattended autopasser. Every other stop — set stops, non-priority
-   * decisions, unexpected shapes — still applies; the caller's pass cap
-   * still bounds the run.
+   * actions to take", so the stack rules below are skipped on this path:
+   * the pass IS the consent that guard otherwise has to assume for an
+   * unattended autopasser. The step rules still apply — the c2f4db8f
+   * contract: a set stop stops a fast-forward too — and the caller's pass
+   * cap still bounds the run.
    */
   ffwd?: boolean;
 }): AutoVerdict {
-  const { decision, view, seat, stops, enabled, ffwd = false } = args;
+  const { decision, view, seat, settings, ffwd = false } = args;
 
-  // Evaluation order, first match wins. Every earlier branch is a stop
-  // because acting on a decision it does not fully understand is exactly
-  // how an autopasser loses a game silently.
-  if (!enabled) return { act: 'stop', reason: 'disabled' };
-
-  // Auto NEVER answers anything but a priority decision. Target, blockers,
+  // Safety first: auto NEVER answers anything but a plain single-pick
+  // priority decision with exactly one pass option. Target, blockers,
   // attackers, mulligan, modes, trigger_order, trigger_optional and choose
-  // always stop, whatever the settings say.
+  // always stop, whatever the settings say — acting on a decision it does
+  // not fully understand is exactly how an autopasser loses a game silently.
   if (decision.kind !== 'priority') return { act: 'stop', reason: 'not-priority' };
-
-  // Plain single-pick shape only: min === max === 1 and exactly one pass
-  // option. Anything else is not a window auto understands.
   if (decision.min !== 1 || decision.max !== 1) return { act: 'stop', reason: 'unexpected-shape' };
   const passOptions = decision.options.filter((o) => o.kind === 'pass');
   if (passOptions.length !== 1) return { act: 'stop', reason: 'unexpected-shape' };
   const pass = passOptions[0];
 
-  // Nothing to do: pass regardless of stops. Safe precisely because the
-  // player had no action, so auto is never choosing anything for them.
-  if (!actionable(decision)) return { act: 'pass', index: pass.index };
+  // 1. Master switch. FFWD outranks it: a one-shot run is explicit consent
+  // even when persistent auto is off.
+  if (!settings.autoPass && !ffwd) return { act: 'stop', reason: 'disabled' };
 
-  // A stop on the current step of the current turn side: the player wants
-  // to look here.
+  // 2. Stack rules, on the TOP of the stack only (the object that resolves
+  // next). ffwd passes through all of them (pressing FFWD is consent).
+  const top = view.stack.length > 0 ? view.stack[view.stack.length - 1] : null;
+  if (top !== null && !ffwd) {
+    if (top.controller !== seat) {
+      const rule = opponentRuleFor(settings, top.kind);
+      if (rule === 'always') return { act: 'stop', reason: 'opponent-object' };
+      if (rule === 'if-respondable' && respondable(decision)) return { act: 'stop', reason: 'opponent-object' };
+      if (rule === 'targets-me-if-respondable' && respondable(decision) && targetsMe(view, seat, top)) {
+        return { act: 'stop', reason: 'opponent-object' };
+      }
+      // 'never' (and a rule the arms above did not meet) falls through.
+    } else if (settings.ownObjects === 'if-respondable' && respondable(decision)) {
+      return { act: 'stop', reason: 'own-object' };
+    }
+  }
+
+  // 3. Step rule for the current turn side and step — this applies to ffwd
+  // too (the c2f4db8f contract: a set stop stops a fast-forward). 'forced'
+  // stops whenever priority is posed, even with nothing to do; 'smart' stops
+  // only when the window offers a real action (actionable(), so a mana-only
+  // window still passes); 'off' — or a step outside the ten stoppable ones —
+  // falls through.
   const side = turnSide(view, seat);
-  if (stops[side].has(view.step)) return { act: 'stop', reason: 'stop-set' };
+  const stepRule = settings.steps[side][view.step as StoppableStep] ?? 'off';
+  if (stepRule === 'forced' || (stepRule === 'smart' && actionable(decision))) {
+    return { act: 'stop', reason: 'stop-set' };
+  }
 
-  // The player could RESPOND and someone else controls an object on the
-  // stack: auto-passing could let that object resolve unanswered. Persistent
-  // Auto acts for the player unattended, so it must never let that happen
-  // silently. respondable (cast or ability), not actionable, is the gate: a
-  // window whose only real action is a land drop or a mana tap cannot
-  // interact with the resolving object, so it is not a reason to stop. The
-  // one-shot fast-forward is explicit and player-initiated — pressing it is
-  // the statement "I have no more actions to take" — so it passes through
-  // and lets the stack resolve (the run stays bounded by the caller's pass
-  // cap).
-  if (!ffwd && respondable(decision) && view.stack.some((s) => s.controller !== seat))
-    return { act: 'stop', reason: 'has-action-and-stack' };
-
+  // 4. Pass.
   return { act: 'pass', index: pass.index };
 }

@@ -1,9 +1,40 @@
 import type { Decision, Intent, Option, View } from '../protocol';
 import { fetchPending, postIntent, ApiError } from './api';
 import type { SeatCtx } from './seat';
-import { decide, emptyPriorityWindow, turnSide, type StopReason, type Stops, type TurnSide } from './autopilot';
+import { STOPPABLE_STEPS, decide, emptyPriorityWindow, turnSide, type StopReason, type Stops, type TurnSide } from './autopilot';
 import { actedOption, loadActPass, saveActPass } from './actpass';
 import { defaultStops, loadStops, saveStops, toggleStop } from './stops';
+import { defaultSettings, type PlaySettings, type StoppableStep } from './playsettings';
+
+/**
+ * legacyPlaySettings maps the legacy per-seat stop sets into a PlaySettings
+ * for decide()'s new signature, preserving the OLD decide() behaviour:
+ * every set stop becomes a 'smart' step rule (the old stop only stopped a
+ * window with an action on it), every opponent-controlled stack object —
+ * including triggers — becomes 'if-respondable' (the old
+ * has-action-and-stack guard), ownObjects stays 'never' (the old guard
+ * ignored the seat's own objects), and autoPass is true (both call sites
+ * passed enabled: true; the callers gate auto themselves).
+ *
+ * prio3 replaces this: the panel will hold a real PlaySettings and
+ * playsettings.ts's presets will drive it directly.
+ */
+function legacyPlaySettings(stops: Stops): PlaySettings {
+  const s = defaultSettings();
+  // The old rule was stops[side].has(step): a step with no set stop NEVER
+  // stopped, so every rule starts 'off' and only the set ones become 'smart'.
+  for (const side of ['yours', 'opponents'] as const) {
+    for (const step of STOPPABLE_STEPS) s.steps[side][step as StoppableStep] = 'off';
+  }
+  for (const step of stops.yours) s.steps.yours[step as StoppableStep] = 'smart';
+  for (const step of stops.opponents) s.steps.opponents[step as StoppableStep] = 'smart';
+  s.opponentSpell = 'if-respondable';
+  s.opponentAbility = 'if-respondable';
+  s.opponentTrigger = 'if-respondable';
+  s.ownObjects = 'never';
+  s.autoPass = true;
+  return s;
+}
 
 /**
  * SeatPanelState is everything a human seat answers with. It holds the
@@ -154,7 +185,8 @@ const WAITING_TEXT: Record<StopReason, string> = {
   'not-priority': 'Auto is waiting: this decision needs you, not a pass.',
   'unexpected-shape': 'Auto is waiting: it does not recognise this window.',
   'stop-set': 'Auto stopped here: you set a stop on this step.',
-  'has-action-and-stack': 'Auto stopped here: something is on the stack and you can respond.',
+  'opponent-object': "Auto stopped here: an opponent's object is on the stack and you can respond.",
+  'own-object': 'Auto stopped here: your own object is on the stack and you can respond.',
 };
 
 const OFF_TEXT: Record<AutoOffReason, string> = {
@@ -536,7 +568,7 @@ export class SeatPanelState {
       // ffwd marks the one-shot run: it passes through has-action-and-stack
       // windows (pressing FFWD is the player's own "no more actions"), while
       // persistent Auto keeps that guard.
-      const verdict = decide({ decision: d, view, seat: this.ctx.seat, stops: this.stops, enabled: true, ffwd: this.fastForward });
+      const verdict = decide({ decision: d, view, seat: this.ctx.seat, settings: legacyPlaySettings(this.stops), ffwd: this.fastForward });
       if (verdict.act === 'stop') {
         // decide() remains the safety oracle. The caller may acknowledge only
         // the player's own set-stop verdict, only at the exact seq a press
@@ -640,7 +672,7 @@ export class SeatPanelState {
     this.actPassArmed = false;
     if (this.actPassActedSeq !== null && d.seq === this.actPassActedSeq) return;
     this.actPassActedSeq = d.seq;
-    const verdict = decide({ decision: d, view, seat: this.ctx.seat, stops: this.stops, enabled: true });
+    const verdict = decide({ decision: d, view, seat: this.ctx.seat, settings: legacyPlaySettings(this.stops) });
     if (verdict.act !== 'pass') return;
     this.actPassed += 1;
     this.note = { kind: 'act-passed', count: this.actPassed };
