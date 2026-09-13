@@ -3,6 +3,7 @@
   import type { CardView, Option, SeatInfo, View } from '../protocol';
   import type { SeatCtx } from '../lib/seat';
   import { SeatPanelState, autoNoteText, isConcede, mulliganPhase, toneOf } from '../lib/seatpanel.svelte';
+  import { modalPickerOpen } from '../lib/modals';
   import CardImage from './CardImage.svelte';
   import CardTile from './CardTile.svelte';
   import ManaPool from './ManaPool.svelte';
@@ -58,27 +59,33 @@
   });
   onMount(() => {
     void logic.refreshPending();
-    // Stops are per table and per seat and live in localStorage; they can
-    // only be read where storage exists, so they load here rather than in
-    // the constructor (SSR has none).
-    logic.mountStops();
-    // The pass-after-acting preference is persisted the same way (per table
-    // and seat) and loads at the same moment.
-    logic.mountActPass();
-    // Escape is the panic key: it takes the game back from auto wherever
-    // the focus happens to be. It is on the window because the player's
-    // hands are not necessarily on the panel when auto does something they
-    // did not expect.
-    const onKey = (e: KeyboardEvent) => logic.onKeydown(e.key);
-    // Fast-forward is one shot and a human always wins. Capture makes even a
+    // The settings load in the SeatPanelState constructor (storage is passed
+    // there; SSR gets none and defaults to casual), so nothing to mount — a
+    // preference is a property of the player, not of the table or the seat.
+    // Escape is the panic key: it ends a one-shot run wherever the focus
+    // happens to be. It is on the window because the player's hands are not
+    // necessarily on the panel when a run does something they did not expect.
+    // CAPTURE phase (r2 review): this listener must evaluate the modal guard
+    // BEFORE the bubble-phase handlers — OptionPicker's and PileModal's own
+    // Escape-close — can close the modal out from under the probe. While a
+    // modal picker is open, Escape closes THE MODAL and the run underneath
+    // it survives. This covers both OptionPicker shapes and PileModal:
+    // cancelling an End Turn the player cannot see the board of would be the
+    // hotkey acting on a decision the modal is blocking.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (modalPickerOpen()) return;
+      logic.onKeydown(e.key);
+    };
+    // A one-shot run is one shot and a human always wins. Capture makes even a
     // click outside this component (a card, stop, log control) cancel it;
     // only the button that starts the run is exempt.
     const onPointer = (e: PointerEvent) => {
       const target = e.target;
-      if (target instanceof Element && target.closest('[data-fast-forward]')) return;
-      logic.cancelFastForward();
+      if (target instanceof Element && target.closest('[data-end-turn]')) return;
+      logic.cancelRun();
     };
-    window.addEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
     window.addEventListener('pointerdown', onPointer, true);
     // The panel used to learn about a new decision ONLY from view.decision,
     // which is refreshed by the SSE 'decision' frame. That makes the stream a
@@ -97,7 +104,7 @@
     }, 1000);
     return () => {
       clearInterval(t);
-      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keydown', onKey, true);
       window.removeEventListener('pointerdown', onPointer, true);
     };
   });
@@ -107,13 +114,15 @@
   // state, and a self-triggering effect around a thing that posts to the
   // server is exactly the runaway this task exists to prevent.
   $effect(() => {
-    void logic.auto;
-    void logic.fastForward;
+    void logic.settings;
+    void logic.oneShot;
     void logic.pending?.seq;
-    void logic.stops;
     void view.step;
     void view.turn;
-    untrack(() => logic.considerAuto(view));
+    untrack(() => {
+      logic.expireRun(view);
+      logic.considerAuto(view);
+    });
   });
 
   const decision = $derived(logic.pending && logic.pending.seq !== logic.postedSeq ? logic.pending : null);
@@ -295,7 +304,7 @@
       {:else}
         <div class="options" data-options>
           {#if primary && !((placement === 'flyout' || placement === 'strip') && primary.kind === 'pass')}
-            <button class="primary" type="button" data-primary onclick={() => logic.primaryClick()} disabled={logic.busy}>
+            <button class="primary" type="button" data-primary onclick={(e) => logic.primaryClick(e.ctrlKey)} disabled={logic.busy}>
               {primary.label}
             </button>
           {/if}
@@ -307,7 +316,7 @@
                 class:picked={pickedAt >= 0}
                 type="button"
                 data-option={opt.index}
-                onclick={() => logic.click(opt.index)}
+                onclick={(e) => logic.click(opt.index, { holdPriority: e.ctrlKey })}
                 disabled={logic.busy}
               >
                 {#if decision.max > 1 && pickedAt >= 0}<span class="order inline">{pickedAt + 1}</span>{/if}
@@ -316,7 +325,7 @@
             {/each}
           </div>
           {#if logic.showSubmit && placement !== 'strip'}
-            <button class="submit" type="button" data-submit onclick={() => logic.submit()} disabled={!logic.canSubmit || logic.busy}>
+            <button class="submit" type="button" data-submit onclick={(e) => logic.submit(e.ctrlKey)} disabled={!logic.canSubmit || logic.busy}>
               {decision.min === 0 ? 'Confirm' : decision.min === decision.max ? `Choose ${decision.min}` : `Choose ${decision.min}–${decision.max}`}
             </button>
           {/if}

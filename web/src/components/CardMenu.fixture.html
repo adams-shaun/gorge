@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8" /><title>Card menu fixture</title></head>
+  <body>
+    <!-- The radial card-action picker (3 options, seeded open) — the path a
+         Ctrl-clicked hand/board cast takes through CardTile/OptionPicker.
+         The margins keep the tile's badge away from the viewport edge so
+         placeRadial's clamped placements cannot stack one wheel button on
+         another (a corner-clamped wheel overlaps itself and the buttons
+         intercept each other's clicks). -->
+    <div id="radial" style="width: 220px; height: 320px; margin: 220px 0 0 260px"></div>
+    <!-- The one-option direct-action affordance (a single cast icon). -->
+    <div id="single" style="width: 220px; height: 320px; margin: 60px 0 0 260px"></div>
+    <script type="module" src="/src/components/CardMenu.fixture.ts"></script>
+  </body>
+</html>

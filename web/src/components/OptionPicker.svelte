@@ -58,9 +58,10 @@
     open = false;
   }
 
-  function choose(option: Option): void {
+  /** choose posts one option; Ctrl held (holdPriority) skips pass-after-acting for this one cast/ability (prio3). */
+  function choose(option: Option, holdPriority = false): void {
     close();
-    postTileOption(tileOptions, option);
+    postTileOption(tileOptions, option, holdPriority);
   }
 
   function onWindowKeydown(event: KeyboardEvent): void {
@@ -113,7 +114,7 @@
       title={action.label}
       onclick={(event) => {
         event.stopPropagation();
-        postSingleAction(tileOptions, true);
+        postSingleAction(tileOptions, true, event.ctrlKey);
       }}
     >
       <span aria-hidden="true">{icon === 'tap' ? '↻' : icon === 'cast' ? '✦' : '›'}</span>
@@ -143,7 +144,7 @@
 
   {#if open && tileOptions.list.length > 1 && tapAction === null}
     {#if radial}
-      <div class="radial-pop" data-radial-picker role="menu" tabindex="-1" aria-label="Options {subject}" use:portal>
+      <div class="radial-pop" data-option-picker data-radial-picker role="menu" tabindex="-1" aria-label="Options {subject}" use:portal>
         {#each tileOptions.list as opt, i (opt.index)}
           {@const point = radialPlacement[i] ?? { x: 8, y: 8 }}
           {@const mana = manaSymbols[i]}
@@ -159,19 +160,21 @@
             style:left="{point.x}px"
             style:top="{point.y}px"
             style:--pip={isManaChoice && mana ? `var(--mana-${mana.toLowerCase()})` : undefined}
-            onclick={() => choose(opt)}
+            onclick={(event) => choose(opt, event.ctrlKey)}
           >
             {#if isManaChoice}<span aria-hidden="true">{mana}</span>{:else}<span>{compactLabel(opt.label)}</span>{/if}
           </button>
         {/each}
       </div>
     {:else}
-      <!-- Keep the >6 list path structurally and visually unchanged. -->
-      <div class="menu-pop" use:portal style:left="{menuPlacement.x}px" style:top="{menuPlacement.y}px" style:width="{MENU_WIDTH}px" style:max-height="{menuPlacement.maxHeight}px">
+      <!-- The list and wheel share data-option-picker: both are portaled,
+           decision-blocking surfaces, so document hotkeys stay behind either
+           shape. data-radial-picker remains the wheel-specific e2e hook. -->
+      <div class="menu-pop" data-option-picker use:portal style:left="{menuPlacement.x}px" style:top="{menuPlacement.y}px" style:width="{MENU_WIDTH}px" style:max-height="{menuPlacement.maxHeight}px">
         <ul class="menu" role="menu" aria-label="Options {subject}">
           {#each tileOptions.list as opt (opt.index)}
             <li role="none">
-              <button class="menu__item" type="button" role="menuitem" onclick={() => choose(opt)}>
+              <button class="menu__item" type="button" role="menuitem" onclick={(event) => choose(opt, event.ctrlKey)}>
                 {opt.label}
               </button>
             </li>

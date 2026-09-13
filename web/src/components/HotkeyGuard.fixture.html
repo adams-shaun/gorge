@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8" /><title>Hotkey guard fixture</title></head>
+  <body>
+    <div id="fixture" style="width: 900px"></div>
+    <!-- Mount point for the pile modal, opened imperatively via __openPile()
+         so each test starts from a known closed state. -->
+    <div id="pile"></div>
+    <!-- A real CardTile whose options badge opens the radial picker on click;
+         the margin keeps the badge clear of the viewport edge so the opened
+         wheel's clamped placements do not stack its buttons on one another. -->
+    <div id="radial" style="width: 220px; height: 320px; margin: 220px 0 0 260px"></div>
+    <!-- The same real OptionPicker with seven options exercises its portaled
+         rectangular list shape, which must block the same hotkeys. -->
+    <div id="menu" style="width: 220px; height: 320px; margin: 20px 0 0 260px"></div>
+    <!-- HandFan has a separate inline role=menu picker. A positioned mount
+         gives its absolute fan track a stable click target. -->
+    <div id="hand" style="position: relative; width: 500px; height: 260px; margin-left: 260px"></div>
+    <!-- Feedback is the audit's other transient role=dialog surface. -->
+    <div id="feedback"></div>
+    <script type="module" src="/src/components/HotkeyGuard.fixture.ts"></script>
+  </body>
+</html>

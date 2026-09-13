@@ -85,6 +85,7 @@ describe('CardTile options affordance (ui21)', () => {
 
   it('two through six options open the radial picker with full accessible labels', () => {
     const { html } = render(CardTile, { props: { card: card(), tileOptions: opts(), open0: true } });
+    expect(html).toContain('data-option-picker');
     expect(html).toContain('data-radial-picker');
     expect(html).toContain('Cast Fireball');
     expect(html).toContain('Activate Wasteland');
@@ -99,7 +100,7 @@ describe('CardTile options affordance (ui21)', () => {
     expect(html).toContain('data-wire-index="3"');
     expect(html).toContain('data-wire-index="8"');
     postTileOption(t, t.list[1]);
-    expect(t.post).toHaveBeenCalledWith(8);
+    expect(t.post).toHaveBeenCalledWith(8, false, false);
   });
 
   it('more than six options retain the rectangular list menu', () => {
@@ -109,6 +110,7 @@ describe('CardTile options affordance (ui21)', () => {
     const { html } = render(CardTile, { props: { card: card(), tileOptions: opts({ list }), open0: true } });
     expect(html).toContain('menu-pop');
     expect(html).toContain('menu__item');
+    expect(html).toContain('data-option-picker');
     expect(html).not.toContain('data-radial-picker');
     expect(html).toContain('Long option 7');
   });

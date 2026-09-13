@@ -93,7 +93,7 @@ describe('Table.svelte seat gating (R-E4-4 / R-E4-5)', () => {
     expect(html).toContain('data-hot-strip');
     expect(html).toContain('data-hot-tab="actions"');
     expect(html).toContain('data-hot-tab="pass"');
-    expect(html).toContain('data-hot-tab="ffwd"');
+    expect(html).toContain('data-hot-tab="end-turn"');
     expect(html).toContain('data-hot-tab="done"');
     expect(html).toContain('data-hot-tab="options"');
     expect(html).not.toContain('data-action-dock'); // ui26's rail dock moved here; it was not duplicated

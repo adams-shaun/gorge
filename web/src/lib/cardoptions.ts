@@ -43,6 +43,14 @@ export type OptionTone = 'initiative' | 'offered' | 'idle';
  * permutation answer the ORDER is the answer), the tone the marking should
  * wear, and the post callback that hands one option index back to the seat
  * panel (the single answer path, R-E4-1).
+ *
+ * post's `holdPriority` (prio3) threads the Ctrl modifier from the tile
+ * click into SeatPanelState.click's `{ holdPriority }`: Ctrl held while
+ * submitting a cast/ability must not arm pass-after-acting for that one
+ * action. The route's own boardOptions.post is what finally reaches
+ * panel.click, so this signature is the contract every tile affordance
+ * (direct icon, radial wheel, long list menu — CardTile, CommanderTile,
+ * IdentityBar, HandFan) speaks.
  */
 export interface CardOptions {
   /** Object the pending decision resolves for. When absent, ordinary
@@ -59,7 +67,7 @@ export interface CardOptions {
   /** Object whose next local choice should open immediately after a direct
    *  card action posted the preceding decision. */
   autoOpenObj?: number;
-  post: (index: number, expectFollowUp?: boolean) => void;
+  post: (index: number, expectFollowUp?: boolean, holdPriority?: boolean) => void;
 }
 
 /**
@@ -74,7 +82,7 @@ export interface TileOptions {
   pickedOrder: number[];
   tone: OptionTone;
   autoOpen?: boolean;
-  post: (index: number, expectFollowUp?: boolean) => void;
+  post: (index: number, expectFollowUp?: boolean, holdPriority?: boolean) => void;
 }
 
 /**
@@ -111,17 +119,17 @@ export function singleTapOptionOf(tile: TileOptions): Option | null {
   return tile.list.reduce((first, option) => option.index < first.index ? option : first);
 }
 
-/** Post one displayed option by its WIRE index (R-E4-1), never list position. */
-export function postTileOption(tile: TileOptions, option: Option): void {
-  tile.post(option.index);
+/** Post one displayed option by its WIRE index (R-E4-1), never list position. `holdPriority` (Ctrl held) skips pass-after-acting for this one action. */
+export function postTileOption(tile: TileOptions, option: Option, holdPriority = false): void {
+  tile.post(option.index, false, holdPriority);
 }
 
-/** Post a direct action by its WIRE index (R-E4-1), never list position. */
-export function postSingleAction(tile: TileOptions, expectFollowUp = false): void {
+/** Post a direct action by its WIRE index (R-E4-1), never list position. `holdPriority` (Ctrl held) skips pass-after-acting for this one action. */
+export function postSingleAction(tile: TileOptions, expectFollowUp = false, holdPriority = false): void {
   const option = tile.list.length === 1 ? tile.list[0] : singleTapOptionOf(tile);
   if (option === undefined || option === null) return;
-  if (expectFollowUp) tile.post(option.index, true);
-  else tile.post(option.index);
+  if (expectFollowUp) tile.post(option.index, true, holdPriority);
+  else tile.post(option.index, false, holdPriority);
 }
 
 /**

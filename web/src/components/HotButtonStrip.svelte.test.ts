@@ -110,19 +110,20 @@ describe('HotButtonStrip — server options regrouped into one instrument', () =
       seq: 1, player: 0, kind: 'priority', prompt: 'Priority', min: 1, max: 1,
       options: [option(7, 'cast', 'Cast spell'), option(42, 'pass', 'Pass priority')],
     };
-    const off = strip(priority);
-    expect(off).toContain('data-actpass-toggle');
-    expect(off).toContain('Pass after acting');
-    expect(off).toMatch(/aria-checked="false"[^>]*data-actpass-toggle/);
+    // casual defaults: passAfterAct is ON
+    const on = strip(priority);
+    expect(on).toContain('data-actpass-toggle');
+    expect(on).toContain('Pass after acting');
+    expect(on).toMatch(/aria-checked="true"[^>]*data-actpass-toggle/);
 
     const state = new SeatPanelState('t1', 1, ctx, null);
     state.skipEmpty = false;
-    state.setActPass(true);
+    state.setActPass(false);
     state.adoptView(priority);
-    const on = render(HotButtonStrip, {
+    const off = render(HotButtonStrip, {
       props: { view: { ...baseView, decision: priority }, seats, state, ctx, table: 't1', match: 1 },
     }).html;
-    expect(on).toMatch(/aria-checked="true"[^>]*data-actpass-toggle/);
+    expect(off).toMatch(/aria-checked="false"[^>]*data-actpass-toggle/);
   });
 });
 
@@ -165,5 +166,43 @@ describe('HotButtonStrip — the ACTIONS tab projects the seat tone', () => {
     const html = stripState(state, target);
     expect(html).toMatch(/data-awaiting="idle"/);
     expect(html).not.toMatch(/data-awaiting="initiative"/);
+  });
+});
+
+describe('HotButtonStrip — the status chip', () => {
+  const priority: Decision = {
+    seq: 1, player: 0, kind: 'priority', prompt: 'Priority', min: 1, max: 1,
+    options: [option(7, 'cast', 'Cast spell'), option(42, 'pass', 'Pass priority')],
+  };
+
+  it('shows the settings preset by default, machine-readably in data-play-mode', () => {
+    const state = new SeatPanelState('t1', 1, ctx, null);
+    const html = stripState(state, priority);
+    expect(html).toMatch(/data-play-mode="casual"/);
+    expect(html).toContain('Casual');
+  });
+
+  it('END TURN names the live run, and the hard skip names its warning', () => {
+    const state = new SeatPanelState('t1', 1, ctx, null);
+    state.setActPass(false);
+    state.adoptView(priority);
+    state.startEndTurn({ ...baseView, decision: priority } as unknown as View);
+    const run = stripState(state, priority);
+    expect(run).toMatch(/data-play-mode="end-turn"/);
+    expect(run).toContain('END TURN');
+
+    state.startHardSkip({ ...baseView, decision: priority } as unknown as View);
+    const skip = stripState(state, priority);
+    expect(skip).toMatch(/data-play-mode="skip-turn"/);
+    expect(skip).toContain('Skipping turn — Esc to stop');
+  });
+
+  it('shows Custom once the settings no longer match a named preset', () => {
+    const state = new SeatPanelState('t1', 1, ctx, null);
+    state.setActPass(false);
+    state.setAuto(false); // casual with autoPass off is no preset
+    const html = stripState(state, priority);
+    expect(html).toMatch(/data-play-mode="custom"/);
+    expect(html).toContain('Custom');
   });
 });

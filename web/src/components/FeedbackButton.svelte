@@ -27,6 +27,13 @@
     if (!open) reset();
   }
 
+  function closeOnEscape(event: KeyboardEvent): void {
+    if (!open || event.key !== 'Escape') return;
+    event.preventDefault();
+    open = false;
+    reset();
+  }
+
   async function captureScreen(): Promise<void> {
     capturing = true;
     try {
@@ -79,6 +86,11 @@
     }
   }
 </script>
+
+<!-- role=dialog makes this transient surface part of the structural table-
+     hotkey guard. Its own bubble-phase Escape handler closes the panel after
+     that guard has preserved any live End Turn/hard-skip run underneath. -->
+<svelte:window onkeydown={closeOnEscape} />
 
 <button type="button" class="feedback-badge" onclick={toggle} aria-haspopup="dialog" aria-expanded={open}>
   Feedback
