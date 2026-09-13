@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { actionable, decide, STEPS, STOPPABLE_STEPS, turnSide, type Stops } from './autopilot';
+import { actionable, decide, emptyPriorityWindow, respondable, STEPS, STOPPABLE_STEPS, turnSide, type Stops } from './autopilot';
 import type { Decision, Option, View } from '../protocol';
 
 const DEFAULT: Stops = {
@@ -153,8 +153,8 @@ describe('decide', () => {
 
   it('passes a storable decision whose option kinds are not one of the four known ones, as long as none is pass or concede', () => {
     // "activate"/"play_land" are real priority-window kinds (legal.go);
-    // actionable() treats any non-pass/non-concede option as an action, so
-    // the shape-invariant (pass index points at a pass option) still holds.
+    // play_land is a real action to actionable(), activate is not, and the
+    // shape-invariant (pass index points at a pass option) still holds.
     const d = priority([opt('pass', 0), opt('play_land', 1), opt('activate', 2), opt('concede', 3)]);
     const out = run(d, view(0, 'draw'));
     expect(out).toEqual({ act: 'pass', index: 0 });
@@ -204,10 +204,46 @@ describe('decide', () => {
     }
   });
 
-  it('actionable is false exactly when every option kind is pass or concede', () => {
+  it('actionable is false exactly when every option kind is pass, concede or activate', () => {
     expect(actionable(priority([opt('pass', 0), opt('concede', 1)]))).toBe(false);
     expect(actionable(priority([opt('pass', 0)]))).toBe(false);
+    expect(actionable(priority([opt('activate', 0), opt('pass', 1), opt('concede', 2)]))).toBe(false);
     expect(actionable(priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]))).toBe(true);
     expect(actionable(priority([opt('ability', 0)]))).toBe(true);
+    expect(actionable(priority([opt('play_land', 0), opt('activate', 1), opt('pass', 2), opt('concede', 3)]))).toBe(true);
+  });
+
+  it('respondable is true exactly when a cast or ability option is offered (not play_land, not activate)', () => {
+    expect(respondable(priority([opt('pass', 0), opt('concede', 1)]))).toBe(false);
+    expect(respondable(priority([opt('activate', 0), opt('pass', 1), opt('concede', 2)]))).toBe(false);
+    expect(respondable(priority([opt('play_land', 0), opt('activate', 1), opt('pass', 2), opt('concede', 3)]))).toBe(false);
+    expect(respondable(priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]))).toBe(true);
+    expect(respondable(priority([opt('ability', 0)]))).toBe(true);
+  });
+
+  it('a mana-only window (activate + pass + concede) is not actionable and emptyPriorityWindow returns the pass index', () => {
+    const d = priority([opt('activate', 0), opt('pass', 1), opt('concede', 2)]);
+    expect(actionable(d)).toBe(false);
+    expect(emptyPriorityWindow(d)).toBe(1);
+    // decide() passes it even with a stop set on this step: nothing to do there.
+    expect(run(d, view(0, 'main1'))).toEqual({ act: 'pass', index: 1 });
+  });
+
+  it('an opponent object on the stack does not stop a window that only offers a land drop (not respondable)', () => {
+    const d = priority([opt('activate', 0), opt('play_land', 1), opt('pass', 2), opt('concede', 3)]);
+    expect(respondable(d)).toBe(false);
+    expect(run(d, view(0, 'draw', [{ id: 9, controller: 1 }]))).toEqual({ act: 'pass', index: 2 });
+  });
+
+  it('an opponent object on the stack stops a window with a cast (respondable)', () => {
+    const d = priority([opt('cast', 0), opt('pass', 1), opt('concede', 2)]);
+    expect(respondable(d)).toBe(true);
+    expect(run(d, view(0, 'draw', [{ id: 9, controller: 1 }]))).toEqual({ act: 'stop', reason: 'has-action-and-stack' });
+  });
+
+  it.each([false, true] as const)('a stop on yours.main1 with a land drop available stops (ffwd: %s) — the c2f4db8f shape', (ffwd) => {
+    const d = priority([opt('activate', 0), opt('play_land', 1), opt('pass', 2), opt('concede', 3)]);
+    const out = ffwd ? runFfwd(d, view(0, 'main1')) : run(d, view(0, 'main1'));
+    expect(out).toEqual({ act: 'stop', reason: 'stop-set' });
   });
 });
