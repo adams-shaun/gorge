@@ -4,6 +4,7 @@
   import { tables } from '../lib/tables.svelte';
   import { MatchState } from '../lib/match.svelte';
   import BoardStage from '../components/BoardStage.svelte';
+  import Arrows from '../components/Arrows.svelte';
   import Rail from '../components/Rail.svelte';
   import IdentityBar from '../components/IdentityBar.svelte';
   import RecentStrip from '../components/RecentStrip.svelte';
@@ -333,6 +334,16 @@
         {/if}
         <div class="log"><Transcript dvr={m.dvr} identities={logIdentities} cardColour={logCardColour} notes={panel?.autoLog ?? []} onSeek={seated ? () => {} : (seq) => m.dispatch({ type: 'scrub', seq })} /></div>
       </footer>
+      <!-- fb-20260914T121642Z: the one arrows overlay lives HERE, at the
+           table root, not inside the felt subtree. section.board clips its
+           own content (overflow: hidden bounds the felt/cards), so an overlay
+           mounted under it cannot draw a line that reaches the stack rail —
+           which is why every stack-to-stack target arrow (a counterspell's
+           arrow to the spell beneath it) was computed but invisible. Hosted
+           by the table root the overlay's box contains both endpoints, and
+           .table below is its positioned containing block. Still
+           pointer-events: none; arrowsFor/previewArrowsFor are unchanged. -->
+      <Arrows view={m.view} options={boardOptions} />
     {:else if finished && m.loadError}
       <div class="load-error">
         <p>Match {match} isn't available on {table} ({m.loadError}).</p>
@@ -364,6 +375,10 @@
   }
   .table {
     display: grid;
+    /* The overlay's containing block: Arrows mounts here (fb-20260914T121642Z)
+       and positions itself absolute/inset 0 against this box, so its
+       coordinates are measured over the whole table — felt and rail both. */
+    position: relative;
     /* The rail's floor is what its content measures: the stacked two-high zone
        counts in SeatTable let the seat summary fit in two count columns, the
        widest rail section (a stack tile's 56px art column) bottoms out at

@@ -4,9 +4,15 @@
   import { quadrantFor } from '../lib/board';
   import { seatColour } from '../lib/colours';
   import Quadrant from './Quadrant.svelte';
-  import Arrows from './Arrows.svelte';
 
-  /** Board lays out one Quadrant per player at quadrantFor(seat, seats, viewer) — a pure function of seat index and the VIEWER (so a 1v1 viewer lands at the bottom and their opponent at the top). The corner each seat landed in is passed on, because the quadrant draws its seat rule and its command area on the seat's outer edge and only the layout knows which edge that is. The stack goes with it for the command area alone: a commander mid-cast is a spell there rather than in any zone list. `options` is the pending decision's card-indexed offers (null for a spectator or when nothing is pending) — threaded straight to every tile so each card can carry its own options and be marked. */
+  /** Board lays out one Quadrant per player at quadrantFor(seat, seats, viewer) — a pure function of seat index and the VIEWER (so a 1v1 viewer lands at the bottom and their opponent at the top). The corner each seat landed in is passed on, because the quadrant draws its seat rule and its command area on the seat's outer edge and only the layout knows which edge that is. The stack goes with it for the command area alone: a commander mid-cast is a spell there rather than in any zone list. `options` is the pending decision's card-indexed offers (null for a spectator or when nothing is pending) — threaded straight to every tile so each card can carry its own options and be marked.
+ *
+ * fb-20260914T121642Z: the Arrows overlay used to mount here, inside the
+ * felt subtree. The route clips section.board (`overflow: hidden`), and a
+ * descendant cannot escape an ancestor's clip — so a resolved target arrow
+ * whose two endpoints are stack tiles in the rail extended into the rail and
+ * was cut at the felt edge. The overlay now mounts once, at the table root
+ * in routes/Table.svelte, whose box contains both the felt and the rail. */
   let { view, seats, options = null, reserveCentre = false }: {
     view: View;
     seats: SeatInfo[];
@@ -42,7 +48,6 @@
       <Quadrant player={p} colour={seatColour(p.seat, seats)} {corner} stack={view.stack} {options} />
     </div>
   {/each}
-  <Arrows {view} {options} />
 </div>
 
 <style>
