@@ -84,7 +84,11 @@ type resumePoint struct {
 	// subject after the suspension (fx44, Mox Diamond). Zero for an ordinary
 	// (non-replacement) ask.
 	replaced state.ObjID
-	before   *triggerSnapshot // immutable look-back if a batch replacement suspends
+	// action is the replaced event's action marker (Engine.replAction),
+	// captured with replaced so a body that suspends before its move still
+	// labels that move a sacrifice or discard on the resume.
+	action string
+	before *triggerSnapshot // immutable look-back if a batch replacement suspends
 	// target is Dig's index into its deterministic Defined$ target list. It
 	// keeps a resumed answer attached to the library that actually asked.
 	target int
@@ -115,8 +119,8 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 	// must resume still under the flag — see the resumePoint field's
 	// comment and resumeResolution's restore of it.
 	e.resume = &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA,
-		replacement: e.applyingReplacement, replaced: e.replReplaced, before: e.triggerBefore,
-		target: d.ResumeTarget}
+		replacement: e.applyingReplacement, replaced: e.replReplaced, action: e.replAction,
+		before: e.triggerBefore, target: d.ResumeTarget}
 	return true
 }
 
@@ -446,9 +450,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// ensureLeftTheStack and applyReplacements already practise.
 		savedReplacement := e.applyingReplacement
 		e.applyingReplacement = rp.replacement
-		e.replReplaced = rp.replaced
+		e.replReplaced, e.replAction = rp.replaced, rp.action
 		effects.Resolve(e, ctx, rp.sa)
-		e.replReplaced = 0
+		e.replReplaced, e.replAction = 0, ""
 		e.applyingReplacement = savedReplacement
 		e.damaging = 0
 		if e.resume != nil {
@@ -514,7 +518,7 @@ func (e *Engine) buildContinuationChain(sas []*cards.SA, obj state.ObjID, tail *
 		// replaced/id carried by this frame comes from the engine's active
 		// replacement context).
 		f := &resumePoint{obj: obj, sa: sa.Sub, replacement: e.applyingReplacement,
-			replaced: e.replReplaced, before: e.triggerBefore}
+			replaced: e.replReplaced, action: e.replAction, before: e.triggerBefore}
 		if head == nil {
 			head = f
 		} else {

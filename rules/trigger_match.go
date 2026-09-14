@@ -704,7 +704,7 @@ func (e *Engine) attackersDeclaredOneTargetMatches(t cards.Trigger, source state
 // or events.DiscardCost, so the action marker and its cost provenance survive
 // a replacement changing the destination.
 func (e *Engine) sacrificedMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
-	if ev.Kind != events.MoveZone || !strings.HasPrefix(ev.Text, "sacrificed") {
+	if !events.IsSacrifice(ev) {
 		return false
 	}
 	ctrl := e.controllerOf(source)
@@ -727,24 +727,29 @@ func (e *Engine) discardedMatches(t cards.Trigger, source state.ObjID, ev events
 		!e.eventCardAndPlayerMatch(t, source, ev.Obj, e.controllerOf(ev.Obj)) {
 		return false
 	}
-	if spec := t.Params["ValidCause"]; spec != "" {
-		// A discard paid as a cost has no causing spell or ability. In
-		// particular, do not misattribute it to an unrelated object that was
-		// already on the stack when a player activated in response.
-		if events.IsDiscardCost(ev) {
-			return false
-		}
-		cause := e.actionCause()
-		if cause == 0 {
-			return false
-		}
-		o := e.G.Obj(cause)
-		if o == nil || !state.StackKindAdmits(state.StackKindTokens(spec), state.StackKindOf(e.G, o), o,
-			o.Controller, e.controllerOf(source)) {
-			return false
-		}
+	if spec := t.Params["ValidCause"]; spec != "" && !e.discardCauseAdmits(spec, source, ev) {
+		return false
 	}
 	return true
+}
+
+// discardCauseAdmits evaluates a ValidCause$ stack spec against the spell or
+// ability that caused discard ev, from source's controller's perspective. It
+// serves both the Discarded trigger and a Discard$ True replacement.
+func (e *Engine) discardCauseAdmits(spec string, source state.ObjID, ev events.Event) bool {
+	// A discard paid as a cost has no causing spell or ability. In
+	// particular, do not misattribute it to an unrelated object that was
+	// already on the stack when a player activated in response.
+	if events.IsDiscardCost(ev) {
+		return false
+	}
+	cause := e.actionCause()
+	if cause == 0 {
+		return false
+	}
+	o := e.G.Obj(cause)
+	return o != nil && state.StackKindAdmits(state.StackKindTokens(spec), state.StackKindOf(e.G, o), o,
+		o.Controller, e.controllerOf(source))
 }
 
 // actionCause is the stack object whose resolving effect caused a synchronous

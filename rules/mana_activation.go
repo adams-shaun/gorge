@@ -244,7 +244,7 @@ func (e *Engine) commitManaDiscard() {
 		e.emit(events.Event{Kind: events.CounterChange, Obj: md.source, Counter: part.Spec, Amount: -part.N})
 	}
 	for _, id := range md.sacs {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+		e.emit(events.Sacrifice(id))
 	}
 	e.manaDiscardActivation = nil
 	e.choosing = chooseNone
@@ -366,7 +366,7 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 		e.emit(events.Event{Kind: events.CounterChange, Obj: source, Counter: part.Spec, Amount: -part.N})
 	}
 	for _, id := range sacs {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+		e.emit(events.Sacrifice(id))
 	}
 	e.resolveManaEffect(p, source, ma, cast, manaTriggers)
 }

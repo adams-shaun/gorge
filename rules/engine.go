@@ -246,6 +246,14 @@ type Engine struct {
 	// completed move never happens (fx44, Mox Diamond). Zero whenever no
 	// replacement is in flight.
 	replReplaced state.ObjID
+	// replAction is the action marker (events.ActionMarker) of the event the
+	// in-flight destination-changing replacement discarded: "sacrificed",
+	// "discarded" or "discarded as a cost". emit re-labels the replacement
+	// body's move of replReplaced with it (events.CarryAction), so a
+	// sacrifice or discard redirected by a replacement is still seen as that
+	// action by Sacrificed/Discarded triggers. Empty whenever no such
+	// replacement is in flight; threaded across a suspension by resumePoint.
+	replAction string
 	// triggerFireCount and damageOnceFired are trigger_match.go's own
 	// bookkeeping (the cascade bound and the DamageDealtOnce/DamageDoneOnce
 	// once-per-turn gate); see there.
@@ -778,7 +786,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// a game state reaches it.
 		return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "cannot attach: protected"})
 	}
-	if !e.applyingReplacement {
+	if e.applyingReplacement {
+		ev = events.CarryAction(e.replAction, e.replReplaced, ev)
+	} else {
 		if replaced, handled := e.applyReplacements(ev); handled {
 			return replaced
 		}

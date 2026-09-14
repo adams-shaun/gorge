@@ -1662,7 +1662,7 @@ func (e *Engine) payCast() {
 			sacrificedLKI = append(sacrificedLKI, state.SacrificedInfoOf(e.G, id))
 		}
 		for _, id := range pc.sacs {
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+			e.emit(events.Sacrifice(id))
 		}
 		// AbilityPush mints the ability object onto the stack AFTER the cost
 		// settles, so an aborted activation leaves no stack object behind
@@ -1738,7 +1738,7 @@ func (e *Engine) payCast() {
 		sacrificedLKI = append(sacrificedLKI, state.SacrificedInfoOf(e.G, id))
 	}
 	for _, id := range pc.sacs {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+		e.emit(events.Sacrifice(id))
 	}
 	if e.sacrificedLKI == nil {
 		e.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo)

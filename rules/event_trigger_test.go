@@ -297,3 +297,162 @@ func TestAttackersDeclaredOneTargetKarazikarCarriesBothPlayers(t *testing.T) {
 		t.Fatalf("Karazikar target options = %+v, want only attacked player's %d (not %d)", d, right, wrong)
 	}
 }
+
+// castOnStack puts a real corpus spell on the stack for seat p aimed at
+// target player tp, the fixture resolveTop needs to drive a resolving effect.
+func castOnStack(t *testing.T, e *Engine, reg *cards.Registry, name string, p, tp state.PlayerID) state.ObjID {
+	t.Helper()
+	o := e.G.AddObject(mustCorpusCard(t, reg, name), p)
+	o.Zone = state.ZStack
+	o.Targets = []state.Target{{Player: tp, IsPlayer: true}}
+	e.G.SetZone(state.ZStack, 0, append(e.G.Zone(state.ZStack, 0), o.ID))
+	return o.ID
+}
+
+// TestSacrificedTriggerSurvivesRestInPeaceRedirect: Diabolic Edict's real
+// Sacrifice effect under Rest in Peace. The creature is exiled instead of put
+// into the graveyard, but it was still sacrificed (CR 701.21a, CR 614.6), so
+// Mayhem Devil triggers. An ordinary death Rest in Peace redirects the same
+// way is not a sacrifice and must not.
+func TestSacrificedTriggerSurvivesRestInPeaceRedirect(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := layerEngine(t)
+	devil := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Mayhem Devil"))
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Rest in Peace"))
+	dies := onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Grizzly Bears"))
+
+	e.emit(events.Event{Kind: events.MoveZone, Obj: dies, From: state.ZBattlefield, To: state.ZGraveyard})
+	if o := e.G.Obj(dies); o == nil || o.Zone != state.ZExile {
+		t.Fatalf("Rest in Peace did not exile the dying creature: %+v", o)
+	}
+	if got := observedTriggerCount(e, devil); got != 0 {
+		t.Fatalf("Mayhem Devil triggers after an ordinary redirected death = %d, want 0", got)
+	}
+
+	victim := onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Grizzly Bears"))
+	castOnStack(t, e, reg, "Diabolic Edict", 0, 1)
+	e.resolveTop()
+	if o := e.G.Obj(victim); o == nil || o.Zone != state.ZExile {
+		t.Fatalf("Diabolic Edict under Rest in Peace left the victim in %v, want exile", o.Zone)
+	}
+	if got := observedTriggerCount(e, devil); got != 1 {
+		t.Fatalf("Mayhem Devil triggers after a sacrifice redirected to exile = %d, want 1", got)
+	}
+	found := false
+	for _, ev := range e.L.Events {
+		if ev.Obj == victim && events.IsSacrifice(ev) && ev.To == state.ZExile {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("the replacement's exile move lost the sacrifice marker")
+	}
+}
+
+// TestDiscardedTriggerSurvivesDestinationReplacements drives Mind Peel's real
+// discard under two real destination replacements: Rest in Peace (exile
+// instead) and Library of Leng (top of library instead, gated on Discard$
+// True and EffectOnly$ True). Either way the card was discarded (CR 701.9a),
+// so Necropotence triggers. Leng must not apply to the CR 514.1 cleanup
+// discard, which no effect causes.
+func TestDiscardedTriggerSurvivesDestinationReplacements(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	for _, tc := range []struct {
+		replacement string
+		to          state.Zone
+	}{{"Rest in Peace", state.ZExile}, {"Library of Leng", state.ZLibrary}} {
+		t.Run(tc.replacement, func(t *testing.T) {
+			e := layerEngine(t)
+			necro := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Necropotence"))
+			onBoardCard(t, e, 0, mustCorpusCard(t, reg, tc.replacement))
+			castOnStack(t, e, reg, "Mind Peel", 1, 0)
+			e.resolveTop()
+			d := e.Pending()
+			if d == nil || d.ResumeKind != "discard" || len(d.Options) == 0 {
+				t.Fatalf("Mind Peel discard decision = %+v, want a real discard ask", d)
+			}
+			discarded := d.Options[0].Obj
+			submitChoices(t, e, d.Options[0].Index)
+			if o := e.G.Obj(discarded); o == nil || o.Zone != tc.to {
+				t.Fatalf("discarded card zone = %v, want %v", o.Zone, tc.to)
+			}
+			if got := observedTriggerCount(e, necro); got != 1 {
+				t.Fatalf("Necropotence triggers after a redirected discard = %d, want 1", got)
+			}
+		})
+	}
+
+	t.Run("Library of Leng ignores cleanup discard", func(t *testing.T) {
+		e := layerEngine(t)
+		onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Library of Leng"))
+		necro := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Necropotence"))
+		e.G.Active = 0
+		e.G.Step = state.StepCleanup
+		// Leng grants no maximum hand size, so cleanup would ask nothing;
+		// Leng's own discard gate is what this pins, driven by the emit.
+		extra := onHand(t, e, 0, "Name:Cleanup Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+		e.emit(events.Discard(extra, 0))
+		if o := e.G.Obj(extra); o == nil || o.Zone != state.ZGraveyard {
+			t.Fatalf("cleanup discard under Library of Leng went to %v, want graveyard", o.Zone)
+		}
+		if got := observedTriggerCount(e, necro); got != 1 {
+			t.Fatalf("Necropotence triggers after cleanup discard = %d, want 1", got)
+		}
+	})
+}
+
+// TestDiscardReplacementObstinateBalothGates drives Obstinate Baloth's real
+// Discard$ True | EffectOnly$ True | ValidCause$ SpellAbility.OppCtrl
+// replacement. Only an opponent's discard effect puts it onto the battlefield;
+// the player's own discard effect and the CR 514.1 cleanup discard leave it in
+// the graveyard. When it does redirect, the card was still discarded (CR
+// 701.9a), so Necropotence triggers either way.
+func TestDiscardReplacementObstinateBalothGates(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	setup := func(t *testing.T) (*Engine, state.ObjID, state.ObjID) {
+		e := layerEngine(t)
+		necro := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Necropotence"))
+		o := e.G.AddObject(mustCorpusCard(t, reg, "Obstinate Baloth"), 0)
+		o.Zone = state.ZHand
+		e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), o.ID))
+		return e, necro, o.ID
+	}
+	peel := func(t *testing.T, e *Engine, caster state.PlayerID, baloth state.ObjID) {
+		castOnStack(t, e, reg, "Mind Peel", caster, 0)
+		e.resolveTop()
+		d := e.Pending()
+		if d == nil || d.ResumeKind != "discard" {
+			t.Fatalf("Mind Peel discard decision = %+v, want a real discard ask", d)
+		}
+		for _, opt := range d.Options {
+			if opt.Obj == baloth {
+				submitChoices(t, e, opt.Index)
+				return
+			}
+		}
+		t.Fatalf("Obstinate Baloth is not a discard option: %+v", d.Options)
+	}
+	for _, tc := range []struct {
+		name   string
+		caster state.PlayerID
+		want   state.Zone
+	}{{"opponent's effect", 1, state.ZBattlefield}, {"own effect", 0, state.ZGraveyard}} {
+		t.Run(tc.name, func(t *testing.T) {
+			e, necro, baloth := setup(t)
+			peel(t, e, tc.caster, baloth)
+			if o := e.G.Obj(baloth); o == nil || o.Zone != tc.want {
+				t.Fatalf("Obstinate Baloth zone = %v, want %v", o.Zone, tc.want)
+			}
+			if got := observedTriggerCount(e, necro); got != 1 {
+				t.Fatalf("Necropotence triggers = %d, want 1", got)
+			}
+		})
+	}
+	t.Run("cleanup discard", func(t *testing.T) {
+		e, _, baloth := setup(t)
+		e.emit(events.Discard(baloth, 0))
+		if o := e.G.Obj(baloth); o == nil || o.Zone != state.ZGraveyard {
+			t.Fatalf("cleanup-discarded Obstinate Baloth zone = %v, want graveyard", o.Zone)
+		}
+	})
+}
