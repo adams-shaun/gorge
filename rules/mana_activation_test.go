@@ -3,6 +3,7 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -180,6 +181,11 @@ func TestLotusPetalPaysSacrificeAndChoosesColor(t *testing.T) {
 	if d == nil || d.Kind != decision.KChoose || d.Min != 1 || d.Max != 1 || len(d.Options) != 5 {
 		t.Fatalf("colour decision = %+v", d)
 	}
+	// Lotus Petal carries no Amount$ param: effMana's Num default of 1 is
+	// what the pool will receive, so the prompt names it.
+	if d.Prompt != "Add 1 mana of any one color — choose the colour" {
+		t.Fatalf("Lotus Petal prompt = %q", d.Prompt)
+	}
 	for i, opt := range d.Options {
 		if opt.Obj != id {
 			t.Fatalf("colour option %d Obj = %d, want Lotus Petal %d", i, opt.Obj, id)
@@ -254,4 +260,69 @@ func TestManaAbilityChoiceOptionsMarkSource(t *testing.T) {
 			t.Fatalf("mana option %d Obj = %d, want source %d", i, opt.Obj, id)
 		}
 	}
+}
+
+// TestManaColourPromptNamesDeterminateAmount pins the wording table of
+// manaColourPrompt directly: a determinate amount (explicit literal Amount$
+// or the absent default of 1) is named, with "any one color" verbatim on the
+// Any shapes so the one-colour choice is visibly the whole deal; a
+// non-literal amount (X/Y, an inline Count$ body) and a non-positive literal
+// stay generic.
+func TestManaColourPromptNamesDeterminateAmount(t *testing.T) {
+	generic := "Choose a colour of mana"
+	cases := []struct {
+		produced, amount, want string
+	}{
+		{"Any", "3", "Add 3 mana of any one color — choose the colour"},
+		{"Any", "1", "Add 1 mana of any one color — choose the colour"},
+		{"Any", "", "Add 1 mana of any one color — choose the colour"},
+		{"Combo Any", "2", "Add 2 mana of any one color — choose the colour"},
+		{"Combo R G", "2", "Add 2 mana — choose the colour"},
+		{"Any", "X", generic},
+		{"Any", "Y", generic},
+		{"Any", "Count$Something", generic},
+		{"Any", "0", generic},
+		{"Any", "-1", generic},
+	}
+	for _, tc := range cases {
+		sa := &cards.SA{Kind: "AB", API: "Mana", Params: map[string]string{"Produced": tc.produced}}
+		if tc.amount != "" {
+			sa.Params["Amount"] = tc.amount
+		}
+		if got := manaColourPrompt(sa); got != tc.want {
+			t.Errorf("manaColourPrompt(Produced=%q, Amount=%q) = %q, want %q", tc.produced, tc.amount, got, tc.want)
+		}
+	}
+}
+
+// TestLionsEyeDiamondAnyAddsThreeOfOneChosenColor is the real card shape
+// (Produced$ Any | Amount$ 3, oracle "Add three mana of any one color."): one
+// colour ask whose prompt names the three, five colour options, and exactly
+// three of the single chosen colour in the pool.
+func TestLionsEyeDiamondAnyAddsThreeOfOneChosenColor(t *testing.T) {
+	const led = "Name:Lion's Eye Diamond\nTypes:Artifact\n" +
+		"A:AB$ Mana | Cost$ Sac<1/CARDNAME> Discard<0/Hand> | Produced$ Any | Amount$ 3 | InstantSpeed$ True\nOracle:x\n"
+	e, cfg, id := manaSourceEngine(t, led)
+	activateMana(t, e, id)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Min != 1 || d.Max != 1 || len(d.Options) != 5 {
+		t.Fatalf("colour decision = %+v", d)
+	}
+	if d.Prompt != "Add 3 mana of any one color — choose the colour" {
+		t.Fatalf("LED prompt = %q", d.Prompt)
+	}
+	for i, opt := range d.Options {
+		if opt.Obj != id || opt.Label != "Add "+"WUBRG"[i:i+1] {
+			t.Fatalf("colour option %d = %+v, want Add %c on source", i, opt, "WUBRG"[i])
+		}
+	}
+	submitChoices(t, e, manaOption(t, d, "B"))
+	pool := e.G.Players[0].Pool
+	if pool.Total() != 3 || pool[state.MB] != 3 {
+		t.Fatalf("pool after choosing B = %+v, want 3 black and nothing else", pool)
+	}
+	if got := e.G.Obj(id).Zone; got != state.ZGraveyard {
+		t.Fatalf("LED zone = %s, want Graveyard", got)
+	}
+	replayCheck(t, e, cfg)
 }

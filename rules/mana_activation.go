@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -317,13 +319,49 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 // "Combo <colours>" shape) and pauses until it is answered.
 func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA, cast bool, colours []string) {
 	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
-		Prompt: "Choose a colour of mana", Source: source}
+		Prompt: manaColourPrompt(ma), Source: source}
 	for i, color := range colours {
 		d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: source, Label: "Add " + color})
 	}
 	e.manaColorActivation = &manaColorActivation{player: p, source: source, ability: ma, cast: cast}
 	e.choosing = chooseManaColor
 	e.ask(d)
+}
+
+// manaColourPrompt names the amount of mana the ability adds whenever that
+// amount is determinate, so a player choosing the colour of "Add three mana
+// of any one color" (Lion's Eye Diamond) sees the whole deal instead of a
+// bare "Choose a colour of mana" that reads like the card only offered one
+// colour of mana. The amount is the explicit literal Amount$ when the script
+// carries one, else Num's default of 1 when the param is absent -- the same
+// read effMana resolves through, so the prompt cannot disagree with what the
+// pool will actually receive. Any non-literal amount (X, Y, an SVar or
+// inline Count$ expression) and a non-positive literal keep the generic
+// prompt: the ask site cannot price those, and a wrong number in the prompt
+// is worse than no number. The "any one color" wording is kept verbatim from
+// the oracle shape (Produced$ Any / Combo Any, CR 107.4) so the player sees
+// that the ONE choice covers all of the mana; a restricted "Combo <colours>"
+// shape is not "any" colour, so its prompt only names the amount.
+func manaColourPrompt(ma *cards.SA) string {
+	generic := "Choose a colour of mana"
+	raw, ok := ma.Params["Amount"]
+	if !ok {
+		// Absent Amount$ resolves to 1 in effMana (Num's default).
+		raw = "1"
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || n <= 0 {
+		// A non-literal amount (X, Y, an SVar or inline Count$ expression)
+		// or a non-positive literal: the ask site cannot price it, and a
+		// wrong number in the prompt is worse than no number.
+		return generic
+	}
+	switch strings.TrimSpace(ma.Params["Produced"]) {
+	case "Any", "Combo Any":
+		return fmt.Sprintf("Add %d mana of any one color — choose the colour", n)
+	default:
+		return fmt.Sprintf("Add %d mana — choose the colour", n)
+	}
 }
 
 func (e *Engine) resolveManaEffectColor(p state.PlayerID, source state.ObjID, ma *cards.SA, produced string) {
