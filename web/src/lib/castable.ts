@@ -80,8 +80,14 @@ function spendable(p: PlayerView): Partial<Record<ManaUnit, number>> {
  * assigned first, a Phyrexian pip falls back to two life, a twobrid pip falls
  * back to two generic, and the generic requirement is paid last from
  * whatever the pips left -- so coloured mana is never stranded on generic
- * while a pip still needs it. Deterministic (fixed pip order, fixed face
- * order, no map iteration reaching the answer) and pure over its inputs.
+ * while a pip still needs it. "Whatever the pips left" is the live remainder:
+ * the generic test reads the spend map AFTER the pip reservations consumed
+ * their units (mirroring rules/mana.go resolveMana, whose base case checks
+ * `rem.Total() >= c.Generic` on the mutated pool), not a total saved before
+ * them -- a stale total would report {1}{R} affordable from one R because
+ * the R consumed for the pip would still pay the generic. Deterministic
+ * (fixed pip order, fixed face order, no map iteration reaching the answer)
+ * and pure over its inputs.
  *
  * A variable pip (X/Y/Z) is unaffordable BY DEFINITION here: the client
  * cannot know the value the caster would announce, so a card carrying one
@@ -120,9 +126,14 @@ function affordable(cost: ManaSymbol[], spend: Partial<Record<ManaUnit, number>>
         return false; // variable (X/Y/Z), snow, unknown: refused
     }
   }
-  const total = Object.values(spend).reduce((n, v) => n + (v ?? 0), 0);
   const rec = (i: number, lifeLeft: number, genericLeft: number): boolean => {
-    if (i === pips.length) return total >= genericLeft;
+    if (i === pips.length) {
+      // The pips already consumed their units from `spend` (the recursion
+      // decrements in place and restores on backtrack), so summing it NOW is
+      // exactly what the pip assignment left for the generic requirement.
+      const remain = Object.values(spend).reduce((n, v) => n + (v ?? 0), 0);
+      return remain >= genericLeft;
+    }
     const p = pips[i];
     for (const f of p.faces) {
       if ((spend[f] ?? 0) > 0) {

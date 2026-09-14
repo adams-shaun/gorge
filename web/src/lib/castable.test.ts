@@ -95,20 +95,24 @@ describe('castableAfterTap — the post-land window', () => {
 });
 
 describe('castableAfterTap — pip shapes', () => {
-  it('a generic pip is paid by the remainder: 1 R is affordable from one Available R, 2 R is not', () => {
+  it('a generic pip is paid from what the pips LEFT: {1}{R} from one R is NOT affordable, {1}{R} from two R is', () => {
+    // {1}{R} is two mana; one R pays the pip and nothing is left for {1}.
     const one = player({ hand: [card({ mana_cost: '1 R' })], available: { R: 1 } });
-    expect(castableAfterTap(view(one), 0)).toBe(true);
-    const two = player({ hand: [card({ mana_cost: '2 R' })], available: { R: 1 } });
-    expect(castableAfterTap(view(two), 0)).toBe(false);
+    expect(castableAfterTap(view(one), 0)).toBe(false);
+    const two = player({ hand: [card({ mana_cost: '1 R' })], available: { R: 2 } });
+    expect(castableAfterTap(view(two), 0)).toBe(true);
   });
 
-  it('coloured pips are reserved before generic (resolveMana\u2019s coloured-first): {R}{R} with one R fails, {2}{R} with two R succeeds', () => {
+  it('coloured pips are reserved before generic (resolveMana\u2019s coloured-first): {R}{R} with one R fails, {2}{R} with two R fails — the pip\u2019s unit is gone', () => {
     // {R}{R} needs two R units; one R is one pip and nothing left for the second.
     const p = player({ hand: [card({ mana_cost: 'R R' })], available: { R: 1 } });
     expect(castableAfterTap(view(p), 0)).toBe(false);
-    // {2}{R} with two R: pip takes one, generic is paid from the second.
-    const ok = player({ hand: [card({ mana_cost: '2 R' })], available: { R: 2 } });
-    expect(castableAfterTap(view(ok), 0)).toBe(true);
+    // {2}{R} is THREE mana: one R for the pip leaves one unit, and {2} needs two.
+    const twoR = player({ hand: [card({ mana_cost: '2 R' })], available: { R: 2 } });
+    expect(castableAfterTap(view(twoR), 0)).toBe(false);
+    // Three units: the pip takes one, two remain for {2}.
+    const threeR = player({ hand: [card({ mana_cost: '2 R' })], available: { R: 3 } });
+    expect(castableAfterTap(view(threeR), 0)).toBe(true);
   });
 
   it('a strict {C} pip needs the colourless slot and generic may not steal it', () => {
@@ -139,13 +143,26 @@ describe('castableAfterTap — pip shapes', () => {
     expect(castableAfterTap(view(notEither), 0)).toBe(false);
   });
 
-  it('a twobrid pip ({2/W}) is paid by the colour OR falls back to two generic', () => {
+  it('a twobrid pip ({2/W}) is paid by the colour OR falls back to two generic — and the fallback still owes the real remainder', () => {
     const byW = player({ hand: [card({ mana_cost: '2/W' })], available: { W: 1 } });
     expect(castableAfterTap(view(byW), 0)).toBe(true);
     const byGeneric = player({ hand: [card({ mana_cost: '2/W' })], available: { R: 2 } });
     expect(castableAfterTap(view(byGeneric), 0)).toBe(true);
     const neither = player({ hand: [card({ mana_cost: '2/W' })], available: { R: 1 } });
     expect(castableAfterTap(view(neither), 0)).toBe(false);
+    // The twobrid fallback adds {2} to the generic requirement, paid from what
+    // the OTHER mana left: {1}{2/W} from {W:2} is the pip by colour plus one
+    // unit left for {1} -- affordable -- but from {W:1} the pip's unit is gone
+    // and {1} is unpaid, and from {R:2} the pip falls back to two generic plus
+    // the printed {1} = three owed with two held -- not affordable.
+    const mixedOk = player({ hand: [card({ mana_cost: '1 2/W' })], available: { W: 2 } });
+    expect(castableAfterTap(view(mixedOk), 0)).toBe(true);
+    const mixedNoW = player({ hand: [card({ mana_cost: '1 2/W' })], available: { W: 1 } });
+    expect(castableAfterTap(view(mixedNoW), 0)).toBe(false);
+    const mixedNo = player({ hand: [card({ mana_cost: '1 2/W' })], available: { R: 2 } });
+    expect(castableAfterTap(view(mixedNo), 0)).toBe(false);
+    const mixedThree = player({ hand: [card({ mana_cost: '1 2/W' })], available: { R: 3 } });
+    expect(castableAfterTap(view(mixedThree), 0)).toBe(true);
   });
 
   it('a Phyrexian pip is paid by its colour or two life — the engine offers the cast on the life path too', () => {
