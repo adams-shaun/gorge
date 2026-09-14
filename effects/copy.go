@@ -94,6 +94,10 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 				if len(c.Targets) > 0 {
 					payer = PlayerOf(h, c, c.Targets[0])
 				}
+			case "TriggeredCardController":
+				if p, ok := TriggeredCardController(h.Game(), c.TriggerContext, c.Remembered); ok {
+					payer = p
+				}
 			}
 			cost := strings.TrimSpace(sa.Params["UnlessCost"])
 			var prompt, payLabel, declineLabel string

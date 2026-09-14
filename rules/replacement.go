@@ -174,6 +174,7 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		// comment), so o.X is the cast-time value here.
 		X:          o.X,
 		Remembered: []state.Target{{Obj: ev.Obj}},
+		Captured:   []state.Target{{Obj: ev.Obj}},
 		// Replaced names the object the replaced event (ev) was about, so a
 		// ReplaceWith$ that says Defined$ ReplacedCard (the Rest in Peace /
 		// Dryad Militant / Leyline of the Void shape: "exile it instead") can

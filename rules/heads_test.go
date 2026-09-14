@@ -879,7 +879,11 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	8: "0fc2433539e2f454",
+	// 8 seats moved to fde5ae50e5f7e31b (autonomous orchestrator): resolving inbox-rv2d-look-at-hand-stays-private (Hidden-information leak: "look at target's hand" is broadcast to every seat and )
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	8: "fde5ae50e5f7e31b",
 }
 
 func TestHeads(t *testing.T) {

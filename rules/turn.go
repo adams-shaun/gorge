@@ -38,6 +38,8 @@ func (e *Engine) setStep(s state.Step) {
 		// Ruling T21-e keeps the reset event-sourced so a log-only replay also
 		// learns that IsAttacking and BlockedBy were cleared.
 		e.emit(events.Event{Kind: events.EndCombatReset})
+		// CR 511.3: "until end of combat" control effects end with the step.
+		e.expireControl(controlAtEndOfCombat)
 	}
 }
 
@@ -464,7 +466,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	// asks rather than one of the cast/cleanup flows tracked by e.choosing.
 	// Resume them before dispatching those flows; an empty chosen slice is
 	// the legitimate "fail to find" / Optional-decline answer.
-	if e.resume != nil && (e.resume.kind == "search" || e.resume.kind == "dig") {
+	if e.resume != nil && (e.resume.kind == "search" || e.resume.kind == "dig" || e.resume.kind == "choice") {
 		rp := e.resume
 		e.resume = nil
 		e.resumeResolution(rp, chosen)

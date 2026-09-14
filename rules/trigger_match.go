@@ -301,6 +301,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 				Source:     dt.Source,
 				Controller: dt.Controller,
 				Remembered: append([]state.Target(nil), dt.Remembered...),
+				Captured:   append([]state.Target(nil), dt.Remembered...),
 			},
 		})
 	}
@@ -340,6 +341,16 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 // queue and firing limits. Both walks use deterministic seat/zone/slice order;
 // the ordinary APNAP drain still asks each controller to order their triggers.
 func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state.Object, split, leaving bool) {
+	// phaseNotes collects the unresolvable Phase$ specs this walk encountered
+	// (live walks only -- the leaves-the-battlefield look-back observer is a
+	// scratch Engine that must never emit), each with the source that carries
+	// them; they are emitted once, after the walk, so a Note emission's own
+	// recursive checkTriggers can never interleave with the walk's matching.
+	type phaseNote struct {
+		id   state.ObjID
+		spec string
+	}
+	var phaseNotes []phaseNote
 	observer.forEachObject(func(id state.ObjID) {
 		o := observer.G.Obj(id)
 		if o == nil {
@@ -363,6 +374,26 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			objLKI = lki
 		}
 		for ti, t := range f.Triggers {
+			if !leaving {
+				// Phase$ is a common Forge trigger gate, not a Mode$ Phase
+				// parameter: ChangesZone, SpellCast, and every other supported
+				// trigger mode may carry it. Report an unresolvable value once
+				// per engine per spec, while triggerMatches rejects it on every
+				// event. Keeping reporting outside the scratch look-back walk
+				// means a Note is a real event, never an observer side effect.
+				spec := t.Params["Phase"]
+				if strings.TrimSpace(spec) != "" {
+					if _, unknown := state.ParsePhases(spec); len(unknown) > 0 {
+						if e.phaseUnknownNoted == nil {
+							e.phaseUnknownNoted = map[string]bool{}
+						}
+						if !e.phaseUnknownNoted[spec] {
+							e.phaseUnknownNoted[spec] = true
+							phaseNotes = append(phaseNotes, phaseNote{id: id, spec: spec})
+						}
+					}
+				}
+			}
 			// A "from anywhere" graveyard trigger is NOT a leaves-the-
 			// battlefield trigger (CR 603.6c), even when this particular
 			// move happens to leave the battlefield. Only the explicit
@@ -419,7 +450,14 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				if ev.Amount > 0 {
 					bk := damageBatchKey{triggerKey: key, dealt: t.Mode == "DamageDealtOnce"}
 					if bk.dealt {
-						bk.obj = e.damaging // the dealing creature (combat batches are the only open ones)
+						// Combat identifies the actual attacker/blocker in damaging;
+						// an effect batch's shared source is its resolving stack
+						// object. A watcher can match several sources in one batch,
+						// so never collapse non-combat sources onto ObjID zero.
+						bk.obj = e.damaging
+						if bk.obj == 0 {
+							bk.obj = e.damageSource()
+						}
 					} else if ev.Obj != 0 {
 						bk.obj = ev.Obj
 					} else {
@@ -451,21 +489,34 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				// nothing to run.
 				continue
 			}
+			// CR 603.3a/603.10a: a leaves-the-battlefield ability's source
+			// is controlled by whoever controlled it as it left, not by the
+			// owner the move has since reset it to (a stolen creature's own
+			// dies trigger belongs to the player who stole it).
+			controller := o.Controller
+			if objLKI != nil && id == ev.Obj && leftBattlefield(ev) {
+				controller = objLKI.Controller
+			}
 			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 				Source:     id,
-				Controller: o.Controller,
+				Controller: controller,
 				Idx:        ti,
 				SA:         t.Effect,
 				Ctx: effects.Ctx{
 					Source:         id,
-					Controller:     o.Controller,
+					Controller:     controller,
 					Remembered:     triggerRemembered(ev, id),
+					Captured:       triggerRemembered(ev, id),
 					LKI:            objLKI,
-					TriggerContext: observer.triggerReferents(t, id, ev),
+					TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
 				},
 			})
 		}
 	})
+	for _, n := range phaseNotes {
+		e.emit(events.Event{Kind: events.Note, Obj: n.id,
+			Text: "Phase$ " + n.spec + " names no engine step; the trigger never fires"})
+	}
 }
 
 // openDamageBatch opens a damage batch: the Damage events emitted until the
@@ -583,7 +634,7 @@ func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 // Undying's counters_EQ0_P1P1 -- can see the object as it was before Move
 // reset it, not the live object already in the destination zone.
 func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
-	if !e.zoneGate(t, source, ev) {
+	if !e.zoneGate(t, source, ev) || !e.phaseGate(t) {
 		return false
 	}
 	var matched bool
@@ -667,6 +718,17 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 		return false
 	}
 	spec := t.Params["TriggerZones"]
+	if spec == "" && ev.Kind == events.PutOnStack && source == ev.Obj && t.Mode == "SpellCast" {
+		// CR 601.2i: the spell's OWN cast trigger fires while the source is
+		// the spell sitting on the stack -- exactly the event being walked.
+		// The battlefield default would gate it out (the source is in ZStack,
+		// and the PutOnStack look-back zone below is the zone it came FROM,
+		// the hand), so every bare "When you cast this spell" script --
+		// Hydroid Krasis, Genesis Hydra, Ulamog, World Breaker -- would
+		// never fire at all. An EXPLICIT TriggerZones$ stays authoritative:
+		// a script naming one knows where its trigger lives.
+		return true
+	}
 	if spec == "" {
 		// "When you discard this card" (Orvar, Bartered Cow, Titanbones: 14
 		// of the corpus's Mode$ Discarded lines) declares no TriggerZones$,
@@ -755,8 +817,18 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 		// itself, e.g. Undying's counters_EQ0_P1P1: read it against the LKI
 		// (what it was the moment before the move reset it), not the live
 		// object already in the destination zone.
-		if source == ev.Obj && ev.Obj != 0 && lki != nil {
-			if !effects.MatchesObjectCtx(e.G, v, lki, e.specCtx(source, e.controllerOf(source))) {
+		// A permanent that LEFT the battlefield is likewise matched as it
+		// last existed there (CR 603.10a) -- in particular its controller:
+		// "a creature you control dies" must see a stolen creature as the
+		// taker's, though the move has already handed it back to its owner.
+		// ctrl is the trigger source's controller at that moment too, which
+		// for the departed source itself is its LKI controller.
+		ctrl := e.controllerOf(source)
+		if source == ev.Obj && lki != nil && leftBattlefield(ev) {
+			ctrl = lki.Controller
+		}
+		if ev.Obj != 0 && lki != nil && (source == ev.Obj || leftBattlefield(ev)) {
+			if !effects.MatchesObjectCtx(e.G, v, lki, e.specCtx(source, ctrl)) {
 				return false
 			}
 		} else if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, e.controllerOf(source))) {
@@ -898,10 +970,23 @@ func (e *Engine) sacrificedMatches(t cards.Trigger, source state.ObjID, ev event
 			return false
 		}
 	}
-	if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, e.controllerOf(ev.Obj), ctrl) {
+	// The sacrificing player is the permanent's controller as it was
+	// sacrificed (Forge GameAction.sacrifice reads the LKI): a stolen
+	// permanent its taker sacrifices is the taker's sacrifice, although the
+	// move has already returned it to its owner.
+	sacrificer := e.controllerOf(ev.Obj)
+	if lki != nil {
+		sacrificer = lki.Controller
+	}
+	if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, sacrificer, ctrl) {
 		return false
 	}
 	return true
+}
+
+// leftBattlefield reports a zone change whose object left the battlefield.
+func leftBattlefield(ev events.Event) bool {
+	return ev.Kind == events.MoveZone && ev.From == state.ZBattlefield && ev.To != state.ZBattlefield
 }
 
 func (e *Engine) discardedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
@@ -1178,7 +1263,7 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
 				return false
 			}
-		} else if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		} else if !effects.MatchesPlayerSpecFrom(e.G, v, ev.Player, ctrl, source) {
 			return false
 		}
 	}
@@ -1226,13 +1311,27 @@ func (e *Engine) landPlayedMatches(t cards.Trigger, source state.ObjID, ev event
 	return true
 }
 
-// phaseMatches implements Mode$ Phase.
+// phaseGate applies Forge's Phase$ (validPhases) uniformly to every trigger
+// mode. It is deliberately before the mode switch in triggerMatches: a
+// ChangesZone or SpellCast trigger with Phase$ Main1 must not fire during an
+// upkeep, and an unresolvable name fails closed. checkFaceTriggers reports
+// that invalid name once as a Note; this bool-only matcher does not emit
+// while it may be walking a scratch look-back observer. An absent Phase$
+// remains ungated, matching Forge's null validPhases.
+func (e *Engine) phaseGate(t cards.Trigger) bool {
+	spec := t.Params["Phase"]
+	if strings.TrimSpace(spec) == "" {
+		return true
+	}
+	set, unknown := state.ParsePhases(spec)
+	return len(unknown) == 0 && set.Has(e.G.Step)
+}
+
+// phaseMatches implements Mode$ Phase after phaseGate has already checked
+// its Phase$ parameter. The mode itself is only a StepChange event plus its
+// optional ValidPlayer$ restriction.
 func (e *Engine) phaseMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.StepChange {
-		return false
-	}
-	want := strings.ToLower(t.Params["Phase"])
-	if want != "" && !strings.Contains(ev.Step.String(), want) {
 		return false
 	}
 	if v, ok := t.Params["ValidPlayer"]; ok {

@@ -27,6 +27,8 @@ func Describe(g *state.Game, ev events.Event) string {
 		return player(g, ev.Player) + " rearranges the top of their library"
 	case events.MonarchChange:
 		return player(g, ev.Player) + " becomes the monarch"
+	case events.ControlChange:
+		return player(g, ev.Player) + " gains control of " + obj(g, ev.Obj)
 	case events.MoveZone:
 		return obj(g, ev.Obj) + " moves from " + zone(ev.From) + " to " + zone(ev.To)
 	case events.Draw:
@@ -111,6 +113,21 @@ func Describe(g *state.Game, ev events.Event) string {
 			// (Ruling T23-w) passes a non-Secret Note through unchanged, so
 			// these ids are public by contract on every viewer's line.
 			return player(g, ev.Player) + " reveals " + objs(g, ev.IDs)
+		}
+		if ev.Secret && ev.Text == "" && len(ev.IDs) > 0 {
+			// A private look recorded by effects' emitLook: only the looker's
+			// own copy of the Secret Note still carries the ids (rule 1 of
+			// view.RedactEvents strips them from every other viewer, whose
+			// line falls to the generic "looks at hidden cards" below), so
+			// this branch is the looker's line alone. The looked-at player is
+			// derived from the cards' owner — ownership never changes, so the
+			// derivation is stable — and the looked-at zone from From, which
+			// rule 1 keeps on every copy and which the looker's cards may
+			// since have left. The names are on the line because the
+			// transcript is the client's only data path for hidden-zone ids
+			// in a Note, exactly as for the reveal line above: a look whose
+			// line named nothing would show the looker nothing.
+			return player(g, ev.Player) + " " + lookClause(g, ev)
 		}
 		if ev.Text != "" {
 			return ev.Text
@@ -417,6 +434,29 @@ func zone(z state.Zone) string {
 		return "nowhere"
 	}
 	return z.String()
+}
+
+// lookClause is the body of a looker's own copy of a private-look Note
+// (effects.emitLook): "looks at <target>'s hand: <cards>", or the own-zone
+// form when the looker looked at their own hidden zone (a Dig or Scry window).
+func lookClause(g *state.Game, ev events.Event) string {
+	noun := "cards"
+	if ev.From.Valid() {
+		noun = zone(ev.From)
+	}
+	target := ev.Player
+	if g != nil {
+		if o := g.Obj(ev.IDs[0]); o != nil {
+			target = o.Owner
+			if !ev.From.Valid() {
+				noun = zone(o.Zone)
+			}
+		}
+	}
+	if target == ev.Player {
+		return "looks at the cards in their own " + noun + ": " + objs(g, ev.IDs)
+	}
+	return "looks at " + player(g, target) + "'s " + noun + ": " + objs(g, ev.IDs)
 }
 
 // mana renders n symbols of one colour: "{G}{G}". An empty symbol is

@@ -53,20 +53,25 @@ func corpusSAByAPI(t *testing.T, cardName, kind, api string) *cards.SA {
 	return nil
 }
 
-// TestGitaxianProbeRevealHandRevealsTheWholeHand is the reporter's card,
-// resolved through the effects harness with its real compiled corpus SA
-// (SP$ RevealHand | ValidTgts$ Player | Look$ True | SubAbility$ DBDraw).
+// TestGitaxianProbeLookIsAPrivateLookScopedToTheActivator is the reporter's
+// card, resolved through the effects harness with its real compiled corpus
+// SA (SP$ RevealHand | ValidTgts$ Player | Look$ True | SubAbility$ DBDraw).
 // The card carries NO NumCards$ — 0 of the corpus's 81 RevealHand lines do —
-// so pre-fix the Note carried exactly ONE id of a multi-card hand. Post-fix
-// it carries the WHOLE hand. view.Describe renders the ids ("player 1
-// reveals A #2, B #3"); its multi-id case is pinned in
-// view/describe_test.go ("reveal note two"), and the Note is non-Secret so
-// RedactEvents passes it through unchanged (Ruling T23-w).
-func TestGitaxianProbeRevealHandRevealsTheWholeHand(t *testing.T) {
+// so the look carries the WHOLE hand. Round-2 review of the revealhand1
+// merge found the leak the Look$ flag closes: pre-fix the look went out as
+// a PUBLIC Note (Player = the target) every seat and spectator read, post-fix
+// it is a Secret Note scoped to the activator (CR 701.20e: a looked-at card
+// is shown only to the player the effect specifies). The looker's own
+// transcript line is pinned in view (look_redaction_test.go); the public
+// no-Look$ shape is the Thought-Knot Seer test below.
+func TestGitaxianProbeLookIsAPrivateLookScopedToTheActivator(t *testing.T) {
 	h, hand := revealHandBoard(t, "Bolt", "Bear", "Wrenn", "Snares")
 	probe := corpusSAByAPI(t, "Gitaxian Probe", "SP", "RevealHand")
 	if _, has := probe.Params["NumCards"]; has {
 		t.Fatal("corpus pin moved: Gitaxian Probe now carries NumCards$")
+	}
+	if probe.Params["Look"] != "True" {
+		t.Fatal("corpus pin moved: Gitaxian Probe lost Look$ True")
 	}
 	src := h.g.AddObject(mkCard(t, "Name:Gitaxian Probe\nManaCost:UP\nTypes:Sorcery\nOracle:x\n"), 0)
 	ctx := &Ctx{Source: src.ID, Controller: 0,
@@ -79,22 +84,19 @@ func TestGitaxianProbeRevealHandRevealsTheWholeHand(t *testing.T) {
 	for i := range h.log {
 		if h.log[i].Kind == events.Note {
 			if note != nil {
-				t.Fatalf("more than one reveal Note: %+v", h.log)
+				t.Fatalf("more than one look Note: %+v", h.log)
 			}
 			note = &h.log[i]
 		}
 	}
 	if note == nil {
-		t.Fatalf("no reveal Note emitted: %+v", h.log)
+		t.Fatalf("no look Note emitted: %+v", h.log)
 	}
-	if note.Player != 1 {
-		t.Fatalf("Note player = %d, want the target player 1", note.Player)
-	}
-	if note.Secret || note.Text != "" {
-		t.Fatalf("Note Secret=%v Text=%q, want public with rendered-by-Describe ids", note.Secret, note.Text)
+	if !note.Secret || note.Player != 0 || note.From != state.ZHand || note.Text != "" {
+		t.Fatalf("look Note = %+v, want a Secret Note scoped to the activator (seat 0) carrying From=hand", note)
 	}
 	if !slices.Equal(note.IDs, hand) {
-		t.Fatalf("Note ids = %v, want the WHOLE hand %v", note.IDs, hand)
+		t.Fatalf("look ids = %v, want the WHOLE hand %v", note.IDs, hand)
 	}
 }
 

@@ -11,9 +11,16 @@ import (
 // later target answer or from Remembered (which scripts may overwrite). Nothing
 // is added to the event schema: replay discovers the same bindings from the same
 // events. A role not provided by a supported trigger mode remains absent.
-func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events.Event) effects.TriggerContext {
+func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) effects.TriggerContext {
 	var c effects.TriggerContext
 	player := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
+	// CR 603.10a: a card that left the battlefield keeps, for this trigger,
+	// the controller it had there. Recorded here so it travels with the
+	// ability onto the stack (triggerContexts) and every "that card's
+	// controller" read -- effects.TriggeredCardController -- sees it.
+	if lki != nil && lki.ID == ev.Obj && leftBattlefield(ev) {
+		c.TriggerCardController = player(lki.Controller)
+	}
 	switch t.Mode {
 	case "BecomesTarget":
 		// This matcher fires only for its own source being targeted, even when
@@ -58,8 +65,19 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 	case "SpellCast", "AbilityCast", "SpellAbilityCast":
 		c.TriggerCard = ev.Obj
 		c.TriggerSource = e.protectionSource(ev.Obj)
+		// TriggeredActivator is the player who cast or activated it, the
+		// same ev.Player ValidActivatingPlayer$ is matched against
+		// (Tangleroot: "that player adds {G}").
+		c.TriggerActivator = player(ev.Player)
 	case "Phase":
 		c.TriggerPlayer = player(e.G.Active)
+	}
+	// CR 107.3m binds X when the trigger fires, not when it resolves. In
+	// particular, an ETB trigger may remain on the stack after its permanent
+	// dies, at which point Move has correctly cleared the object's live X.
+	// Keep the event's card value with the rest of the trigger provenance.
+	if card := e.G.Obj(c.TriggerCard); card != nil {
+		c.TriggerPaidX = card.X
 	}
 	return c
 }
