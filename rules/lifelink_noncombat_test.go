@@ -449,6 +449,76 @@ func TestSacrificedGrantedLifelinkSourceUsesLKI(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestDepartedGrantedLifelinkTriggerUsesLKI covers the other way a damage
+// source can become independent before dealing damage: an Equipment-granted
+// lifelink source dies, then its triggered DamageAll resolves. The departure
+// capture must follow the trigger from the pending queue onto its stack object;
+// reading only the now-live graveyard card loses the grant.
+func TestDepartedGrantedLifelinkTriggerUsesLKI(t *testing.T) {
+	collar := "Name:Life Collar\nManaCost:1\nTypes:Artifact Equipment\nK:Equip:2\n" +
+		"S:Mode$ Continuous | Affected$ Creature.EquippedBy | AddKeyword$ Lifelink | Description$ Equipped creature has lifelink.\nOracle:x\n"
+	sweeper := "Name:Link Reaper\nManaCost:2 R\nTypes:Creature Wizard\nPT:1/1\n" +
+		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | Execute$ Sweep | TriggerDescription$ When CARDNAME dies, it deals 1.\n" +
+		"SVar:Sweep:DB$ DamageAll | ValidCards$ Creature | NumDmg$ 1\nOracle:x\n"
+	e, cfg, collarID := newFixtureDeck(t, 109, collar, sweeper)
+	var sweeperID state.ObjID
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Face() != nil && o.Face().Name == "Link Reaper" {
+			sweeperID = o.ID
+		}
+	}
+	if sweeperID == 0 {
+		t.Fatal("board missing the Link Reaper fixture")
+	}
+	for _, id := range []state.ObjID{collarID, sweeperID} {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: e.G.Obj(id).Zone, To: state.ZBattlefield})
+	}
+	ox := putToken(t, e, 1, "Name:Ox\nManaCost:1 G\nTypes:Creature Ox\nPT:3/3\nOracle:x\n", state.ZBattlefield)
+	addMana(t, e, 0, "CC")
+	e.Advance()
+	equipOpt := abilityOption(t, e, collarID, 0)
+	submitChoices(t, e, equipOpt.Index)
+	targetObject(t, e, sweeperID)
+	passUntilStackEmpty(t, e, 20)
+	if !e.HasKeyword(sweeperID, "Lifelink") {
+		t.Fatal("sweeper lacks the Equipment-granted lifelink before dying")
+	}
+
+	e.emit(events.Event{Kind: events.Damage, Obj: sweeperID, Amount: 1})
+	e.checkStateBased()
+	// The pre-death priority decision predates the newly queued trigger. Answer
+	// it once so Submit's Advance drains that trigger onto the stack.
+	d := e.Pending()
+	pass := -1
+	if d != nil {
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				pass = o.Index
+			}
+		}
+	}
+	if pass < 0 {
+		t.Fatalf("no stale priority pass to release the death trigger: %+v", d)
+	}
+	submitChoices(t, e, pass)
+	passUntilStackEmpty(t, e, 30)
+
+	if o := e.G.Obj(sweeperID); o.Zone != state.ZGraveyard {
+		t.Fatalf("trigger source zone = %s, want graveyard", o.Zone)
+	}
+	if got := e.G.Obj(ox).Damage; got != 1 {
+		t.Fatalf("Ox damage = %d, want 1", got)
+	}
+	if got := e.G.Players[0].Life; got != 21 {
+		t.Fatalf("source controller life = %d, want 21 from trigger-source LKI", got)
+	}
+	if n := countLifeChanges(t, e, 0, 1); n != 1 {
+		t.Fatalf("logged %d lifelink LifeChange(0, +1) events, want 1", n)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestPreventedLifelinkDamageGainsNothing pins the zero: a lifelink source's
 // DamageAll sweeps a creature with protection from the source's colour. The
 // protection prevention path (emit replaces the Damage with a Note) must pay

@@ -653,32 +653,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			lki = &cp
 		}
 	}
-	// CR 608.2h source LKI: if a permanent leaves after one of its
-	// independent abilities was created, preserve its derived lifelink state
-	// at the departure boundary. Walk the ordered stack and pending-trigger
-	// slices rather than a map, so this bookkeeping can never introduce event
-	// nondeterminism. An ability whose source is sacrificed as its own cost is
-	// minted only after this move; commitCast captures that sibling explicitly.
-	departingSource := ev.Kind == events.MoveZone && ev.From == state.ZBattlefield &&
-		ev.To != state.ZBattlefield
-	var departingSourceLifelink bool
-	if departingSource {
-		departingSourceLifelink = e.HasKeyword(ev.Obj, "Lifelink")
-		for _, id := range e.G.Stack {
-			if o := e.G.Obj(id); o != nil && o.Ability != nil && o.Source == ev.Obj {
-				if e.sourceLifelinkLKI == nil {
-					e.sourceLifelinkLKI = make(map[state.ObjID]bool)
-				}
-				e.sourceLifelinkLKI[id] = departingSourceLifelink
-			}
-		}
-		for i := range e.pendingTriggers {
-			if e.pendingTriggers[i].Source == ev.Obj {
-				e.pendingTriggers[i].Ctx.SourceLifelinkLKI = departingSourceLifelink
-				e.pendingTriggers[i].Ctx.SourceLifelinkLKIValid = true
-			}
-		}
-	}
+	departingSource, departingSourceLifelink := e.captureSourceLifelinkLKI(ev)
 	stackLen := len(e.G.Stack)
 	stored := events.Emit(e.G, e.L, ev)
 	if ev.Kind == events.StackCopy && len(e.G.Stack) > stackLen {
@@ -711,17 +686,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	} else {
 		e.checkTriggers(stored, lki)
 	}
-	if departingSource {
-		// The departure event itself may just have queued a dies/leaves trigger.
-		// It was not present in the pre-event loop above, so attach the same
-		// pre-departure derived snapshot now, before the queue can be drained.
-		for i := range e.pendingTriggers {
-			if e.pendingTriggers[i].Source == ev.Obj {
-				e.pendingTriggers[i].Ctx.SourceLifelinkLKI = departingSourceLifelink
-				e.pendingTriggers[i].Ctx.SourceLifelinkLKIValid = true
-			}
-		}
-	}
+	e.finishSourceLifelinkLKI(ev, departingSource, departingSourceLifelink)
 	// E2: any genuinely state-changing event proves the game is making
 	// progress, so it clears the held-out cast suppression (suppressedCast,
 	// see engine.go): a declined card's option comes back the moment the
@@ -738,6 +703,53 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.castAborts = nil
 	}
 	return stored
+}
+
+// captureSourceLifelinkLKI preserves CR 608.2h's pre-departure derived
+// lifelink state for every independent ability of the leaving permanent that
+// already exists on the stack or in the pending-trigger queue. It is called
+// immediately before every rules-layer events.Emit path that can fold a real
+// MoveZone, including Updated replacement paths that deliberately bypass
+// Engine.emit to avoid matching the same replacement twice. Walking ordered
+// slices rather than a map keeps this bookkeeping incapable of changing event
+// order. A self-sacrifice activation is not minted until after its departure;
+// payCast captures that one sibling before paying the cost.
+func (e *Engine) captureSourceLifelinkLKI(ev events.Event) (bool, bool) {
+	if ev.Kind != events.MoveZone || ev.From != state.ZBattlefield ||
+		ev.To == state.ZBattlefield {
+		return false, false
+	}
+	link := e.HasKeyword(ev.Obj, "Lifelink")
+	for _, id := range e.G.Stack {
+		if o := e.G.Obj(id); o != nil && o.Ability != nil && o.Source == ev.Obj {
+			if e.sourceLifelinkLKI == nil {
+				e.sourceLifelinkLKI = make(map[state.ObjID]bool)
+			}
+			e.sourceLifelinkLKI[id] = link
+		}
+	}
+	for i := range e.pendingTriggers {
+		if e.pendingTriggers[i].Source == ev.Obj {
+			e.pendingTriggers[i].Ctx.SourceLifelinkLKI = link
+			e.pendingTriggers[i].Ctx.SourceLifelinkLKIValid = true
+		}
+	}
+	return true, link
+}
+
+// finishSourceLifelinkLKI attaches the same pre-departure snapshot to a
+// dies/leaves trigger that the event itself just queued. Such a trigger did not
+// exist during captureSourceLifelinkLKI's pre-event walk.
+func (e *Engine) finishSourceLifelinkLKI(ev events.Event, departing, link bool) {
+	if !departing {
+		return
+	}
+	for i := range e.pendingTriggers {
+		if e.pendingTriggers[i].Source == ev.Obj {
+			e.pendingTriggers[i].Ctx.SourceLifelinkLKI = link
+			e.pendingTriggers[i].Ctx.SourceLifelinkLKIValid = true
+		}
+	}
 }
 
 func (e *Engine) Pending() *decision.Decision { return e.pending }

@@ -222,8 +222,10 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		// exactly as it would for an unreplaced entry), THEN resolve the With
 		// so a Tap lands on an object already in its new zone (an object
 		// still on the stack is a no-op to effTap).
+		departing, link := e.captureSourceLifelinkLKI(ev)
 		stored := events.Emit(e.G, e.L, ev)
 		e.checkTriggers(stored, nil)
+		e.finishSourceLifelinkLKI(ev, departing, link)
 		e.runReplaceWith(ctx, ev.Obj, m.repl.With)
 		return stored, true
 	}
@@ -240,8 +242,10 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 // counters" (Triskelion) finishes BOTH attrs set, not whichever the scan
 // reached first.
 func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	departing, link := e.captureSourceLifelinkLKI(ev)
 	stored := events.Emit(e.G, e.L, ev)
 	e.checkTriggers(stored, nil)
+	e.finishSourceLifelinkLKI(ev, departing, link)
 	for _, m := range matches {
 		if m.repl.With == nil {
 			continue
