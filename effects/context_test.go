@@ -75,6 +75,10 @@ func (h *fakeHost) Suspended() bool { return false }
 // suspended branch that would call it. Kept to satisfy the Host interface.
 func (h *fakeHost) SuspendContinuation(*cards.SA) {}
 
+func (h *fakeHost) ReplaceEvent(string, string, int32) {}
+
+func (h *fakeHost) CounterAllowed(state.ObjID) bool { return true }
+
 func newHost(t *testing.T, seats int) *fakeHost {
 	t.Helper()
 	return &fakeHost{g: state.NewGame(names(seats))}

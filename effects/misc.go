@@ -387,6 +387,10 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZStack {
 			continue
 		}
+		if !h.CounterAllowed(o.ID) {
+			h.Emit(events.Event{Kind: events.Note, Obj: o.ID, Text: "counter prevented"})
+			continue
+		}
 		if o.Ability != nil {
 			// CR 701.5a: to counter a spell or ability is to cancel it,
 			// removing it from the stack so it never resolves. An ability is

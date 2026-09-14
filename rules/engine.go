@@ -246,6 +246,10 @@ type Engine struct {
 	// completed move never happens (fx44, Mox Diamond). Zero whenever no
 	// replacement is in flight.
 	replReplaced state.ObjID
+	// replacingEvent is the in-flight event a DB$ ReplaceEffect may rewrite.
+	// It exists only during emit, before the event is logged, so it is never
+	// part of cloned/replayed engine state.
+	replacingEvent *events.Event
 	// triggerFireCount and damageOnceFired are trigger_match.go's own
 	// bookkeeping (the cascade bound and the DamageDealtOnce/DamageDoneOnce
 	// once-per-turn gate); see there.
@@ -747,7 +751,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// clause). e.damaging is the source of in-flight damage; a zero damaging
 	// (no source recorded) never suppresses a Damage event.
 	if ev.Kind == events.Damage && ev.Obj != 0 && e.damaging != 0 &&
-		e.protectedFrom(ev.Obj, e.damaging) {
+		e.protectedFrom(ev.Obj, e.damaging) && !e.cantPreventDamage(e.damaging) {
 		return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "prevented: protection"})
 	}
 	if ev.Kind == events.Attach && ev.Obj != 0 && len(ev.IDs) > 0 &&
@@ -770,9 +774,14 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "cannot attach: protected"})
 	}
 	if !e.applyingReplacement {
-		if replaced, handled := e.applyReplacements(ev); handled {
+		replaced, handled := e.applyReplacements(ev)
+		if handled {
 			return replaced
 		}
+		// Not replaced, but possibly REWRITTEN in place (a DamageDone
+		// ReplaceEffect body changed the amount): the returned event is what
+		// gets logged, not the emit caller's copy.
+		ev = replaced
 	}
 	// LKI (CR 603.10 "look back in time") is captured HERE, before
 	// events.Emit runs Apply and mutates the object -- a zone-change trigger

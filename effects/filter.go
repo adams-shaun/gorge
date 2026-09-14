@@ -208,6 +208,13 @@ const (
 	// The two-token space form "AttachedTo <X>": <X> is a literal type or
 	// object class answerable from the object in hand (the base grammar).
 	wordAttachedTo
+	// The "<Colour>Source" family (Ojer Axonil's Card.RedSource+YouCtrl):
+	// the object is a source carrying that colour -- CR 700.7's "a red
+	// source" is a source with red in its colour characteristics, which for
+	// the object in hand is exactly ColorsOf containing the colour. The
+	// Colorless member is a source with no colours at all.
+	wordColourSource
+	wordColourSourceless
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -217,6 +224,14 @@ const (
 func wordPredicate(p string) (wordKind, string) {
 	if l, is := colorLetter[p]; is {
 		return wordColor, l
+	}
+	if c, ok := strings.CutSuffix(p, "Source"); ok {
+		if l, is := colorLetter[c]; is {
+			return wordColourSource, l
+		}
+		if c == "Colorless" {
+			return wordColourSourceless, ""
+		}
 	}
 	switch p {
 	case "Colorless":
@@ -273,6 +288,10 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 	case wordType:
 		return hasType(o, key)
 	case wordColorless:
+		return ColorsOf(o) == ""
+	case wordColourSource:
+		return strings.Contains(ColorsOf(o), key)
+	case wordColourSourceless:
 		return ColorsOf(o) == ""
 	case wordMultiColor:
 		return len(ColorsOf(o)) > 1

@@ -79,6 +79,14 @@ type Host interface {
 	// already walks sa.Sub. A host that never suspends (an effects-package
 	// double, where Ask returns false) never sees this call.
 	SuspendContinuation(sa *cards.SA)
+	// ReplaceEvent applies a ReplaceEffect body's requested change to the
+	// event currently being replaced. It is inert outside replacement
+	// resolution; rules owns the event and records the resulting delta.
+	ReplaceEvent(name, value string, resolved int32)
+	// CounterAllowed reports whether a spell or ability may be countered.
+	// Counter replacement effects are rules, not a MoveZone replacement: they
+	// stop Counter before it emits the move off the stack.
+	CounterAllowed(state.ObjID) bool
 }
 
 // Ctx carries the bindings a Forge script refers to during resolution.

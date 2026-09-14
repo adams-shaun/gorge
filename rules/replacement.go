@@ -7,6 +7,10 @@
 package rules
 
 import (
+	"math"
+	"strconv"
+	"strings"
+
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
@@ -44,9 +48,6 @@ import (
 // the same object forever (see Task 26's report and the resolveTop guard
 // below for the other half of this fix).
 func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
-	if ev.Kind != events.MoveZone {
-		return ev, false
-	}
 	// CR 903.9 (Task m32): a commander about to be put into its owner's
 	// graveyard, hand or library from anywhere, or exiled from anywhere, may
 	// instead be put into the command zone by its OWNER. This is a
@@ -64,11 +65,11 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	// events every ask produces. Returning handled discards the original
 	// event, which is exactly right: nothing has happened yet, and whatever
 	// happens is the owner's answer, not this park.
-	if e.commanderZoneReplacementApplies(ev) {
+	if ev.Kind == events.MoveZone && e.commanderZoneReplacementApplies(ev) {
 		e.parkCommanderZoneMove(ev)
 		return ev, true
 	}
-	// Collect EVERY replacement effect this MoveZone event matches, in
+	// Collect EVERY replacement effect this event matches, in
 	// forEachObject's deterministic scan order, rather than the single first
 	// match the M1 build took.
 	var matches []replMatch
@@ -89,6 +90,9 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	})
 	if len(matches) == 0 {
 		return ev, false
+	}
+	if ev.Kind != events.MoveZone {
+		return e.applyNonMoveReplacements(ev, matches)
 	}
 
 	// CR 616.1: if two or more replacement effects would modify the way this
@@ -144,9 +148,41 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	return ev, false
 }
 
-// replMatch is one replacement effect the engine found applicable to a
-// MoveZone event: its owning source permanent and the R: line on that
-// permanent's face. A plain value, cloned by copy.
+// applyNonMoveReplacements applies the event-rewriting and prevention forms.
+// Damage modifiers keep the event, changing its amount before the one logged
+// Damage event; a non-modifying ReplaceWith$ or Prevent$ replaces it entirely.
+// Several amount modifiers are applied in the deterministic source scan order,
+// the same currently documented all-Updated composition used for entry effects.
+func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	for _, m := range matches {
+		if ev.Kind == events.Damage && m.repl.Params["Prevent"] == "True" {
+			if !e.cantPreventDamage(e.damaging) {
+				return ev, true
+			}
+			continue
+		}
+		if m.repl.With == nil {
+			// Counter's Layer$ CantHappen shape has no ReplaceWith$: stopping
+			// the event is its complete replacement.
+			return ev, true
+		}
+		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, &ev)
+		if m.repl.With.API == "ReplaceEffect" {
+			// The body rewrote the held amount (changed) or could not resolve
+			// its value and left it alone; either way the event stands and the
+			// next modifier applies to the result.
+			continue
+		}
+		// A body of another API (DB$ DealDamage, DB$ RemoveCounters, ...)
+		// supplied its own outcome; its emissions replace the original event.
+		return ev, true
+	}
+	return ev, false
+}
+
+// replMatch is one replacement effect the engine found applicable to an
+// event: its owning source permanent and the R: line on that permanent's
+// face. A plain value, cloned by copy.
 type replMatch struct {
 	id   state.ObjID
 	repl *cards.Repl
@@ -191,12 +227,12 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 // replaced object for the body's Defined$/Remembered$ reads and restoring
 // both the guard and that record afterward so an outer replacement keeps its
 // own state.
-func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *cards.SA) {
-	savedRepl := e.replReplaced
+func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *cards.SA, ev *events.Event) {
+	savedRepl, savedEvent := e.replReplaced, e.replacingEvent
 	e.applyingReplacement = true
-	e.replReplaced = replaced
+	e.replReplaced, e.replacingEvent = replaced, ev
 	e.resolveReplacementWith(ctx, with)
-	e.replReplaced = savedRepl
+	e.replReplaced, e.replacingEvent = savedRepl, savedEvent
 	e.applyingReplacement = false
 }
 
@@ -226,10 +262,10 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		stored := events.Emit(e.G, e.L, ev)
 		e.checkTriggers(stored, nil)
 		e.finishSourceLifelinkLKI(ev, departing, link)
-		e.runReplaceWith(ctx, ev.Obj, m.repl.With)
+		e.runReplaceWith(ctx, ev.Obj, m.repl.With, nil)
 		return stored, true
 	}
-	e.runReplaceWith(ctx, ev.Obj, m.repl.With)
+	e.runReplaceWith(ctx, ev.Obj, m.repl.With, nil)
 	return ev, true
 }
 
@@ -250,7 +286,7 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 		if m.repl.With == nil {
 			continue
 		}
-		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With)
+		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
 	}
 	return stored, true
 }
@@ -282,7 +318,16 @@ func (e *Engine) resolveReplacementWith(ctx *effects.Ctx, with *cards.SA) {
 // ValidCard$/ValidLKI$ parameters -- the same shape as zoneChangeMatches, for
 // a replacement instead of a trigger.
 func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.Event) bool {
-	if r.Event != "Moved" || ev.Kind != events.MoveZone {
+	switch r.Event {
+	case "Moved":
+		if ev.Kind != events.MoveZone {
+			return false
+		}
+	case "DamageDone":
+		if ev.Kind != events.Damage || !e.damageReplacementMatches(r, source, ev) {
+			return false
+		}
+	default:
 		return false
 	}
 	// CR 611.3b/614.4: a static replacement only applies from one of its
@@ -305,11 +350,13 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 			return false
 		}
 	}
-	if o, ok := r.Params["Origin"]; ok && o != "Any" && effects.ParseZone(o) != ev.From {
-		return false
-	}
-	if d, ok := r.Params["Destination"]; ok && d != "Any" && effects.ParseZone(d) != ev.To {
-		return false
+	if ev.Kind == events.MoveZone {
+		if o, ok := r.Params["Origin"]; ok && o != "Any" && effects.ParseZone(o) != ev.From {
+			return false
+		}
+		if d, ok := r.Params["Destination"]; ok && d != "Any" && effects.ParseZone(d) != ev.To {
+			return false
+		}
 	}
 	if v, ok := r.Params["ValidCard"]; ok {
 		if !effects.MatchesSpecFrom(e.G, v, ev.Obj, e.controllerOf(source), source) {
@@ -328,14 +375,209 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 	// cast-from-graveyard path at all -- NEVER admits the replacement: the
 	// conservative direction, since an ordinary hand-origin cast of such a
 	// card must still finish in the graveyard.
-	if v, ok := r.Params["ValidLKI"]; ok {
-		mo := e.G.Obj(ev.Obj)
-		if mo == nil || !effects.MatchesObjectCtx(e.G, v, mo, effects.SpecContext{
-			You: e.controllerOf(source), Source: source}) {
-			return false
+	if ev.Kind == events.MoveZone {
+		if v, ok := r.Params["ValidLKI"]; ok {
+			mo := e.G.Obj(ev.Obj)
+			if mo == nil || !effects.MatchesObjectCtx(e.G, v, mo, effects.SpecContext{
+				You: e.controllerOf(source), Source: source}) {
+				return false
+			}
 		}
 	}
 	return true
+}
+
+// damageReplacementMatches applies the damage-specific R: filters before the
+// common active-zone gate: source and target are the actual damage source and
+// recipient, and IsCombat$/DamageAmount$ describe this in-flight event.
+func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev events.Event) bool {
+	ctrl := e.controllerOf(source)
+	if v := r.Params["ValidSource"]; v != "" &&
+		(e.damaging == 0 || !effects.MatchesSpecFrom(e.G, v, e.damaging, ctrl, source)) {
+		return false
+	}
+	if v := r.Params["ValidTarget"]; v != "" {
+		if ev.Obj != 0 {
+			if !effects.MatchesSpecFrom(e.G, v, ev.Obj, ctrl, source) {
+				return false
+			}
+		} else if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+			return false
+		}
+	}
+	if combat := strings.TrimSpace(r.Params["IsCombat"]); combat != "" &&
+		((strings.EqualFold(combat, "True") && !e.combatDamaging) ||
+			(strings.EqualFold(combat, "False") && e.combatDamaging)) {
+		return false
+	}
+	return e.replacementAmountMatches(r.Params["DamageAmount"], ev.Amount, e.replCtx(replMatch{id: source, repl: &r}, ev))
+}
+
+// replacementAmountMatches understands Forge's comparison shorthand such as
+// LTX (Ojer Axonil). Its RHS is resolved in the replacement source's context.
+func (e *Engine) replacementAmountMatches(spec string, amount int32, c *effects.Ctx) bool {
+	if spec == "" {
+		return true
+	}
+	for _, op := range []string{"GE", "GT", "LE", "LT", "EQ"} {
+		if rhs, ok := strings.CutPrefix(spec, op); ok {
+			v := effects.Num(e, c, &cards.SA{Params: map[string]string{"N": rhs}}, "N", 0)
+			switch op {
+			case "GE":
+				return amount >= v
+			case "GT":
+				return amount > v
+			case "LE":
+				return amount <= v
+			case "LT":
+				return amount < v
+			case "EQ":
+				return amount == v
+			}
+		}
+	}
+	return false
+}
+
+// ReplaceEvent implements effects.Host. It rewrites the amount of the Damage
+// event currently being replaced -- the one held in e.replacingEvent -- from
+// either a resolved numeric value (a literal, or a Count$/SVar expression
+// effects.Num already evaluated in the replacement source's context) or a
+// ReplaceCount$ body, whose base is the HELD event's own amount and which
+// only the host reading the in-flight event can resolve. Anything else -- an
+// unresolvable value, an unknown field, a non-Damage event -- leaves the held
+// event untouched: an amount replacement that cannot be computed is closer to
+// the card than one that erases the damage or discards the event.
+func (e *Engine) ReplaceEvent(name, raw string, resolved int32) {
+	ev := e.replacingEvent
+	if ev == nil || ev.Kind != events.Damage {
+		return
+	}
+	if body, ok := strings.CutPrefix(raw, "ReplaceCount$"); ok {
+		field, op, hasOp := strings.Cut(body, "/")
+		if (field != "DamageAmount" && field != "Amount") || !hasOp {
+			return
+		}
+		ev.Amount = replCountOp(ev.Amount, op)
+		return
+	}
+	if (name == "DamageAmount" || name == "Amount") && resolved > 0 {
+		ev.Amount = resolved
+	}
+}
+
+// replCountOp applies Forge's ReplaceCount$ arithmetic to a base amount: the
+// corpus carries Twice (Bloodletter of Aclazotz), Thrice (Fiery Emancipation)
+// and Plus.N (Torture Pit), with the rest of applyCountOp's op vocabulary
+// implemented for the class rather than only the seen three. An op this
+// builder does not parse returns the base unchanged.
+func replCountOp(base int32, op string) int32 {
+	v := int64(base)
+	switch {
+	case strings.HasPrefix(op, "Plus."):
+		if x, err := strconv.Atoi(strings.TrimPrefix(op, "Plus.")); err == nil {
+			v += int64(x)
+		}
+	case strings.HasPrefix(op, "Minus."):
+		if x, err := strconv.Atoi(strings.TrimPrefix(op, "Minus.")); err == nil {
+			v -= int64(x)
+		}
+	case strings.HasPrefix(op, "Times."):
+		if x, err := strconv.Atoi(strings.TrimPrefix(op, "Times.")); err == nil {
+			v *= int64(x)
+		}
+	case op == "Twice":
+		v *= 2
+	case op == "Thrice":
+		v *= 3
+	case op == "HalfDown":
+		v /= 2
+	case op == "HalfUp":
+		v = (v + 1) / 2
+	}
+	if v > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	if v < 0 {
+		return 0
+	}
+	return int32(v)
+}
+
+// CounterAllowed implements effects.Host. A Counter event is the attempted
+// removal of a stack object, not a CounterChange event, so it is checked at
+// Counter's sole stack-removal path before the MoveZone is emitted.
+func (e *Engine) CounterAllowed(target state.ObjID) bool {
+	blocked := false
+	e.forEachObject(func(source state.ObjID) {
+		if blocked {
+			return
+		}
+		o := e.G.Obj(source)
+		if o == nil || o.Face() == nil {
+			return
+		}
+		for i := range o.Face().Repls {
+			r := o.Face().Repls[i]
+			if r.Event == "Counter" && e.counterReplacementMatches(r, source, target) {
+				blocked = true
+				return
+			}
+		}
+	})
+	return !blocked
+}
+
+func (e *Engine) counterReplacementMatches(r cards.Repl, source, target state.ObjID) bool {
+	o := e.G.Obj(source)
+	t := e.G.Obj(target)
+	if o == nil || t == nil || t.Zone != state.ZStack {
+		return false
+	}
+	if active := r.Params["ActiveZones"]; active != "" && !zoneSpecContains(active, o.Zone) {
+		return false
+	}
+	if v := r.Params["ValidCard"]; v != "" &&
+		!effects.MatchesSpecFrom(e.G, v, target, o.Controller, source) {
+		return false
+	}
+	return counterValidSA(e.G, t, r.Params["ValidSA"], o.Controller)
+}
+
+// counterValidSA is the Spell/Activated/Triggered subset used by R:Event$
+// Counter. A qualifier scopes the stack object's controller relative to the
+// replacement source; an unrecognised qualifier fails closed.
+func counterValidSA(g *state.Game, target *state.Object, spec string, you state.PlayerID) bool {
+	if spec == "" {
+		return true
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		kind, qual, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		isKind := (kind == "Spell" && target.Ability == nil) ||
+			(kind == "Activated" && target.Ability != nil && !isTriggered(g, target)) ||
+			(kind == "Triggered" && target.Ability != nil && isTriggered(g, target))
+		if !isKind {
+			continue
+		}
+		switch qual {
+		case "":
+			return true
+		case "YouCtrl":
+			if target.Controller == you {
+				return true
+			}
+		case "OppCtrl", "YouDontCtrl":
+			if target.Controller != you {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func isTriggered(g *state.Game, o *state.Object) bool {
+	_, ok := state.TriggerOf(g, o)
+	return ok
 }
 
 // replChoice is one CR 616.1 order-selection suspension: the MoveZone event
@@ -446,7 +688,7 @@ func init() {
 	// K: line by cards/keywords.go) matched and applied here. Reading a card's
 	// own tags is what a replacement registration means -- nothing elsewhere
 	// in the tree registers them.
-	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement")
+	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "repl:DamageDone", "repl:Counter")
 }
 
 // cmdZoneMove is one parked commander zone change (CR 903.9, Task m32): the

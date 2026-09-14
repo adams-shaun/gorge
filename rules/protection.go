@@ -147,7 +147,73 @@ func protecColourLetter(q string) rune {
 // fact handle the corpus's other forms correctly: parsing and registering
 // them is real future work, and until a card test retires a ratchet entry
 // for one they will not be reported as supported.
+// cantPreventDamage implements stat:CantPreventDamage. It intentionally
+// scans both ordinary battlefield statics and an EffectZone$ Stack source,
+// since Banefire's self-static exists while its spell is resolving; the
+// source/Combat gates are evaluated against the damage currently in flight.
+func (e *Engine) cantPreventDamage(damageSource state.ObjID) bool {
+	forbidden := false
+	e.forEachObject(func(id state.ObjID) {
+		if forbidden {
+			return
+		}
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			return
+		}
+		for _, st := range o.Face().Statics {
+			if st.Mode != "CantPreventDamage" ||
+				(o.Zone != state.ZBattlefield && !(st.Params["EffectZone"] == "Stack" && o.Zone == state.ZStack)) {
+				continue
+			}
+			if v := st.Params["ValidSource"]; v != "" &&
+				(damageSource == 0 || !effects.MatchesSpecFrom(e.G, v, damageSource, o.Controller, id)) {
+				continue
+			}
+			if combat := st.Params["IsCombat"]; (strings.EqualFold(combat, "True") && !e.combatDamaging) ||
+				(strings.EqualFold(combat, "False") && e.combatDamaging) {
+				continue
+			}
+			if check := st.Params["CheckSVar"]; check != "" && check == "X" &&
+				!staticCompare(o.X, st.Params["SVarCompare"]) {
+				continue
+			}
+			forbidden = true
+			return
+		}
+	})
+	return forbidden
+}
+
+func staticCompare(n int32, spec string) bool {
+	for _, op := range []string{"GE", "GT", "LE", "LT", "EQ"} {
+		if rhs, ok := strings.CutPrefix(spec, op); ok {
+			var v int32
+			for _, r := range rhs {
+				if r < '0' || r > '9' {
+					return false
+				}
+				v = v*10 + int32(r-'0')
+			}
+			switch op {
+			case "GE":
+				return n >= v
+			case "GT":
+				return n > v
+			case "LE":
+				return n <= v
+			case "LT":
+				return n < v
+			case "EQ":
+				return n == v
+			}
+		}
+	}
+	return false
+}
+
 func init() {
 	effects.RegisterNonAPI("kw:Protection from white", "kw:Protection from blue",
-		"kw:Protection from black", "kw:Protection from red", "kw:Protection from green")
+		"kw:Protection from black", "kw:Protection from red", "kw:Protection from green",
+		"stat:CantPreventDamage")
 }
