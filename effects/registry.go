@@ -186,6 +186,11 @@ type Ctx struct {
 	// directly and replay records the final mana production normally.
 	ManaAmount int32
 	ManaType   string
+	// ManaChoice is the W/U/B/R/G answer to a choice-valued ReplaceMana
+	// body (ReplaceType$ Any, ReplaceColor$ Chosen, ReplaceMana$ Any).
+	// Rules parks the in-flight ManaAdd while asking and seeds this field on
+	// resume; the effect remains a pure rewrite and emits no state mutation.
+	ManaChoice string
 	// RevealOpt is the answered RevealOptional$ yes/no on a re-entered
 	// mid-resolution reveal (task fb-3f1cc033, the Delver of Secrets
 	// PeekAndReveal shape): "yes" means the peeking player chose to reveal

@@ -733,9 +733,10 @@ func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
 // ReplaceType/ReplaceColor preserve its amount and replace only its colour;
 // ReplaceMana is Forge's "one mana instead of any other type and amount"
 // form (Damping Sphere, Contamination), so it sets the amount to exactly one
-// as well as replacing the colour. A choice-valued replacement (Any/Chosen)
-// has no replacement-time chooser yet, so it uses the engine's existing
-// deterministic colourless fallback.
+// as well as replacing the colour. For a choice-valued replacement
+// (Any/Chosen), rules parks the ManaAdd and supplies the player's W/U/B/R/G
+// answer in Ctx.ManaChoice; without a valid answer this pure effect fails
+// closed rather than inventing colourless mana.
 func effReplaceMana(_ Host, c *Ctx, sa *cards.SA) {
 	if c == nil {
 		return
@@ -771,7 +772,7 @@ func effReplaceMana(_ Host, c *Ctx, sa *cards.SA) {
 	case "green":
 		kind = "G"
 	case "any", "chosen":
-		kind = "C"
+		kind = c.ManaChoice
 	}
 	if len(kind) == 1 && strings.ContainsRune(ManaSymbols, rune(kind[0])) {
 		c.ManaType = kind

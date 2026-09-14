@@ -86,9 +86,12 @@ const (
 	// replacements, in deterministic scan order; the affected player chooses
 	// which applies next, each option has Kind "replacement", and Obj names
 	// its source permanent. The event is parked, and applicability is checked
-	// again after each rewrite. The same kind carries a single Optional$
-	// BeginPhase effect's yes/no choice: options "apply" and "decline" ask
-	// whether to skip the step before its StepChange is logged.
+	// again after each rewrite. A choice-valued mana replacement then uses five
+	// Kind "mana" options labelled Add W/U/B/R/G while that ManaAdd remains
+	// parked. BeginPhase competition uses the same replacement options; after
+	// an Optional$ effect is selected, options "apply" and "decline" ask
+	// whether it gets its opportunity. A decline continues through every
+	// remaining applicable phase replacement before the StepChange is logged.
 	KReplacement Kind = "replacement"
 	// KArrange is the ordered-subset ask a library-arranging effect poses
 	// (Ruling J0): the engine offers N cards, and the answer is an ordered

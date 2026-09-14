@@ -230,8 +230,9 @@ func (e *Engine) Clone() *Engine {
 		c.cmdZone = append([]cmdZoneMove(nil), e.cmdZone...)
 	}
 	if e.replChoices != nil {
-		// Parked replacement choices (MoveZone/ProduceMana order and optional
-		// BeginPhase): same class as cmdZone. Event/scalar data copies by value;
+		// Parked replacement choices (MoveZone/ProduceMana/BeginPhase order,
+		// replacement mana colour and optional phase apply/decline): same class
+		// as cmdZone. Event/scalar data copies by value;
 		// candidate pointers share immutable corpus data, while every mutable
 		// bookkeeping slice is re-allocated for the clone.
 		c.replChoices = make([]replChoice, len(e.replChoices))

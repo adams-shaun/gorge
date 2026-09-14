@@ -414,3 +414,162 @@ func TestFastingAsksWhetherToSkipTheDrawStep(t *testing.T) {
 		})
 	}
 }
+
+// TestDecliningOptionalPhaseReplacementContinuesToMandatoryReplacement is the
+// CR 616 interaction between real Fasting and Necropotence. The affected
+// player chooses Fasting first, declines it, and still has Necropotence's
+// mandatory draw-step skip applied; declining one effect cannot bypass the
+// other applicable replacement.
+func TestDecliningOptionalPhaseReplacementContinuesToMandatoryReplacement(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, cfg, _ := realCardEngine(t, reg, 89, "Fasting", "Necropotence")
+	e.pending = nil
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: e.G.Turn + 1})
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepUpkeep})
+	library := len(e.G.Zone(state.ZLibrary, 0))
+	e.setStep(state.StepDraw)
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement || len(d.Options) != 2 {
+		t.Fatalf("phase replacement order = %+v, want Fasting/Necropotence choice", d)
+	}
+	fasting := -1
+	for _, opt := range d.Options {
+		if o := e.G.Obj(opt.Obj); o != nil && o.Face() != nil && o.Face().Name == "Fasting" {
+			fasting = opt.Index
+		}
+	}
+	if fasting < 0 {
+		t.Fatalf("phase replacement options = %+v, no Fasting", d.Options)
+	}
+	submitChoices(t, e, fasting)
+	d = e.Pending()
+	if d == nil || len(d.Options) != 2 || d.Options[0].Kind != "apply" || d.Options[1].Kind != "decline" {
+		t.Fatalf("Fasting apply/decline = %+v", d)
+	}
+	submitChoices(t, e, 1)
+	if got := len(e.G.Zone(state.ZLibrary, 0)); got != library {
+		t.Fatalf("library after declining Fasting with Necropotence active = %d, want %d", got, library)
+	}
+	if e.G.Step != state.StepMain1 {
+		t.Fatalf("step after remaining mandatory skip = %s, want main1", e.G.Step)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestPulseOfLlanowarAsksForReplacementManaColor drives the real choice-
+// valued ReplaceType$ Any body. The original red ManaAdd is parked until the
+// affected player chooses, and the answered blue production is what enters
+// both the pool and replayable log.
+func TestPulseOfLlanowarAsksForReplacementManaColor(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, cfg, _ := realCardEngine(t, reg, 97, "Pulse of Llanowar")
+	mountain := moveByName(t, e, 0, "Mountain", state.ZBattlefield)
+	e.pending = nil
+	e.priorityRound()
+	submitChoices(t, e, activateOption(t, e, mountain))
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement || len(d.Options) != 5 || d.Options[1].Label != "Add U" {
+		t.Fatalf("Pulse replacement colour decision = %+v, want five WUBRG options", d)
+	}
+	if got := e.G.Players[0].Pool.Total(); got != 0 {
+		t.Fatalf("pool before replacement colour answer = %d, want 0 (ManaAdd must remain parked)", got)
+	}
+	clone := e.Clone()
+	submitChoices(t, clone, 1)
+	if got := clone.G.Players[0].Pool; got.Total() != 1 || got[state.MU] != 1 {
+		t.Fatalf("clone lost parked Pulse replacement: pool = %+v, want one blue", got)
+	}
+	submitChoices(t, e, 1)
+	if got := e.G.Players[0].Pool; got.Total() != 1 || got[state.MU] != 1 {
+		t.Fatalf("Pulse replacement mana = %+v, want one blue", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestReplacementManaColorResumesCastPayment proves the replacement-time
+// colour ask can interrupt CR 601.2g. A Mountain pays for real Sol Ring only
+// after Pulse's parked answer; the cast then commits and spends that mana.
+func TestReplacementManaColorResumesCastPayment(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, _, ids := realCardEngine(t, reg, 99, "Pulse of Llanowar", "Sol Ring")
+	ring := ids[1]
+	e.emit(events.Event{Kind: events.MoveZone, Obj: ring, From: state.ZBattlefield, To: state.ZHand})
+	mountain := moveByName(t, e, 0, "Mountain", state.ZBattlefield)
+	e.pending = nil
+	e.beginCast(0, decision.Option{Kind: "cast", Obj: ring})
+	e.Advance()
+	d := e.Pending()
+	activate := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "activate" && opt.Obj == mountain {
+			activate = opt.Index
+		}
+	}
+	if activate < 0 {
+		t.Fatalf("cast mana window = %+v, no Mountain activation", d)
+	}
+	submitChoices(t, e, activate)
+	if d = e.Pending(); d == nil || d.Kind != decision.KReplacement || len(d.Options) != 5 {
+		t.Fatalf("cast-time Pulse colour choice = %+v", d)
+	}
+	submitChoices(t, e, 2)
+	if e.G.Obj(ring).Zone != state.ZStack || len(e.G.Stack) != 1 || e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("after cast-time replacement answer: ring=%s stack=%v pool=%+v; want paid spell on stack",
+			e.G.Obj(ring).Zone, e.G.Stack, e.G.Players[0].Pool)
+	}
+}
+
+// TestCommandZoneReplacementSourcesAreDiscovered pins the replacement-only
+// command-zone scan on one real source for each ticket event that exists
+// there. Trigger discovery remains on the ordinary object walk.
+func TestCommandZoneReplacementSourcesAreDiscovered(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	t.Run("Untap", func(t *testing.T) {
+		e, cfg, ids := realCardEngine(t, reg, 101, "Edge of Malacol", "Memnite")
+		edge, creature := ids[0], ids[1]
+		e.emit(events.Event{Kind: events.MoveZone, Obj: edge, From: state.ZBattlefield, To: state.ZCommand})
+		e.emit(events.Event{Kind: events.Tap, Obj: creature})
+		e.pending = nil
+		e.priorityRound()
+		driveToStep(t, e, 3, 0, state.StepMain1)
+		if !e.G.Obj(creature).Tapped || e.G.Obj(creature).Counter("P1P1") != 2 {
+			t.Fatalf("Edge command-zone untap replacement: tapped=%v counters=%v, want tapped with two +1/+1 counters",
+				e.G.Obj(creature).Tapped, e.G.Obj(creature).Counters)
+		}
+		replayCheck(t, e, cfg)
+	})
+
+	t.Run("BeginPhase", func(t *testing.T) {
+		e, cfg, ids := realCardEngine(t, reg, 103, "Necropotence Avatar")
+		avatar := ids[0]
+		e.emit(events.Event{Kind: events.MoveZone, Obj: avatar, From: state.ZBattlefield, To: state.ZCommand})
+		e.pending = nil
+		e.priorityRound()
+		library := len(e.G.Zone(state.ZLibrary, 0))
+		driveToStep(t, e, 3, 0, state.StepMain1)
+		if got := len(e.G.Zone(state.ZLibrary, 0)); got != library {
+			t.Fatalf("Necropotence Avatar command-zone draw skip: library %d -> %d", library, got)
+		}
+		replayCheck(t, e, cfg)
+	})
+
+	t.Run("ProduceMana", func(t *testing.T) {
+		e, cfg, ids := realCardEngine(t, reg, 107, "Mirri")
+		mirri := ids[0]
+		e.emit(events.Event{Kind: events.MoveZone, Obj: mirri, From: state.ZBattlefield, To: state.ZCommand})
+		mountain := moveByName(t, e, 0, "Mountain", state.ZBattlefield)
+		e.pending = nil
+		e.priorityRound()
+		submitChoices(t, e, activateOption(t, e, mountain))
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KReplacement || len(d.Options) != 5 {
+			t.Fatalf("Mirri command-zone mana choice = %+v, want WUBRG replacement choice", d)
+		}
+		submitChoices(t, e, 4)
+		if got := e.G.Players[0].Pool; got.Total() != 1 || got[state.MG] != 1 {
+			t.Fatalf("Mirri command-zone replacement mana = %+v, want one green", got)
+		}
+		replayCheck(t, e, cfg)
+	})
+}

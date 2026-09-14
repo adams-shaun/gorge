@@ -312,9 +312,10 @@ type Engine struct {
 	// always empty in a non-Commander game: nothing ever parks there.
 	cmdZone []cmdZoneMove
 	// replChoices is the queue of parked replacement choices (see replChoice /
-	// handleReplacement in replacement.go): CR 616.1 ordering for MoveZone or
-	// ProduceMana, plus an Optional$ BeginPhase yes/no. Plain value entries are
-	// deep-copied by Clone, so every in-flight event survives an intent boundary.
+	// handleReplacement in replacement.go): CR 616.1 ordering for MoveZone,
+	// ProduceMana and BeginPhase, replacement-time mana-colour choices, and an
+	// Optional$ BeginPhase yes/no. Plain value entries are deep-copied by Clone,
+	// so every in-flight event survives an intent boundary.
 	replChoices []replChoice
 
 	// suppressedCast holds the card object ids whose cast option is held out
