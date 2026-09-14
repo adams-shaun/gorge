@@ -106,6 +106,11 @@ def apply_head_move(wt: Path, seat_count: int, new_hash: str, reason: str) -> bo
 
 def merge_to_main(wt_or_branch: str, message: str) -> tuple[bool, str]:
     r = _run(["git", "merge", "--no-ff", wt_or_branch, "-m", message], check=False)
+    if r.returncode != 0 and (config.REPO / ".git" / "MERGE_HEAD").exists():
+        # A rejected merge (conflict, or a commit hook refusing the merge
+        # commit) must never leave the shared main checkout mid-merge: every
+        # later gate, merge and deploy would run on a half-merged tree.
+        _run(["git", "merge", "--abort"], check=False)
     return r.returncode == 0, r.stdout + r.stderr
 
 
