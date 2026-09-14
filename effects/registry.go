@@ -146,6 +146,17 @@ type Ctx struct {
 	// search cannot inherit the outer answer.
 	Search     []state.ObjID
 	SearchDone bool
+	// Dig is the answered Dig look-and-take pick on a re-entered mid-resolution
+	// resolution: the object(s) the library's owner picked out of the top
+	// DigNum$ window to move to DestinationZone$, in the player's answer
+	// order. rules' resumeResolution sets it from the recorded answer before
+	// re-running the suspended sub-ability, so effDig's re-entry moves exactly
+	// the chosen cards instead of asking again; DigDone distinguishes
+	// "answered (possibly with no cards)" from the first pass. The asking
+	// effect consumes and clears both at the top of its own walk (the fx42
+	// scoping discipline), so a nested Dig cannot inherit the outer answer.
+	Dig     []state.ObjID
+	DigDone bool
 	// Arrange is the answered KArrange decision on a re-entered
 	// mid-resolution resolution (Ruling J0): true once rules' handleArrange
 	// has applied the answered arrangement and emitted the LibraryOrder

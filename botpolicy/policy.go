@@ -404,6 +404,16 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 			in.Choices = b.chooseDiscard(d)
 		case "exile", "sacrifice":
 			in.Choices = b.chooseWorst(d)
+		case "dig":
+			// A Dig look-and-take: take the first Max options in offered
+			// (library) order -- the exact mirror of effDig's no-ask stand-in
+			// (R-9), so a bot-answered Dig emits the same MoveZone events the
+			// silent build did and no golden game moves for the ask alone.
+			// An Optional$ Min-0 ask still takes the full Max: the stand-in
+			// it mirrors plays "you may" as "do", deterministically.
+			for j := 0; j < len(d.Options) && j < d.Max; j++ {
+				in.Choices = append(in.Choices, d.Options[j].Index)
+			}
 		default: // yes/no (yes is first), name, type, number: the first offer
 			in.Choices = []int{d.Options[0].Index}
 		}

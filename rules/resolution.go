@@ -47,7 +47,8 @@ import (
 // resumePoint is one suspended resolution: which continuation the pending
 // decision's answer resumes ("modes" for a Charm modal pick, "unless_pay"
 // for a CopySpellAbility may-pay, "discard" for a mid-resolution discard
-// choice, "search" for a hidden-library KChoose, and "" for a pure outer
+// choice, "search" for a hidden-library KChoose, "dig" for a Dig
+// look-and-take pick, and "" for a pure outer
 // continuation that carries no answer),
 // which stack object's resolution is paused, and the exact sub-ability
 // whose effect asked — or, for an outer continuation, the sub-ability to
@@ -354,6 +355,23 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.SearchDone = true
+		case "dig":
+			// A Dig look-and-take pick was answered: the library owner chose
+			// which of the window's ChangeValid$-eligible cards to move to
+			// DestinationZone$. The chosen options carry the object in Obj
+			// (the same shape the "search" and "discard" arms read), so the
+			// id list is read straight off them, in the player's answer order.
+			// DigDone distinguishes "answered, possibly with no cards" (an
+			// Optional$ decline) from the first pass. effDig consumes and
+			// clears both at the top of its own walk, so a nested Dig cannot
+			// inherit the outer answer.
+			ctx.Dig = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.Dig = append(ctx.Dig, o.Obj)
+				}
+			}
+			ctx.DigDone = true
 		case "arrange":
 			// Ruling J0: rules' handleArrange already applied the answered
 			// arrangement and emitted the LibraryOrder event before calling
