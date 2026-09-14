@@ -64,6 +64,25 @@ describe('the hotkey guard against an open modal — mounted', () => {
     await page.close();
   });
 
+  it('the mounted live strip exposes the undo pause and its chip resumes the machine', async () => {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/HotkeyGuard.fixture.html`);
+
+    await page.evaluate(() => (window as unknown as { __state: { rewind: () => void } }).__state.rewind());
+    const chip = page.locator('#fixture [data-auto-note]');
+    await expect.poll(() => chip.getAttribute('data-play-mode')).toBe('paused');
+    expect(await chip.textContent()).toContain('Auto paused — press to resume');
+    expect(await chip.getAttribute('aria-label')).toContain('Press the Auto switch (or apply a preset)');
+
+    // This is a real click through HotButtonStrip's handler and the shared
+    // pressAuto path, not a direct state call. The chip disappears only when
+    // the session-scoped brake has actually lifted.
+    await chip.click();
+    await expect.poll(() => page.locator('#fixture [data-play-mode]').getAttribute('data-play-mode')).not.toBe('paused');
+    expect(await page.evaluate(() => (window as unknown as { __state: { machinePaused: boolean } }).__state.machinePaused)).toBe(false);
+    await page.close();
+  });
+
   it('Space and Enter stay behind PileModal; Escape closes it and preserves End Turn', async () => {
     const page = await browser.newPage();
     await page.goto(`${url}src/components/HotkeyGuard.fixture.html`);

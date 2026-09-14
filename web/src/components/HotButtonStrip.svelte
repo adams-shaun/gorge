@@ -177,14 +177,30 @@
 
 <div class="hot-strip" data-hot-strip role="toolbar" aria-label="Game controls" tabindex="-1" onkeydown={escape}>
   <!-- The status chip: which mode the seat is in. A live run outranks the
-       preset label, and the hard skip's chip IS the warning banner. -->
-  <span
-    class="mode-chip"
-    class:run={runLive}
-    class:warning={logic.hardSkip}
-    data-play-mode={playMode}
-    aria-live="polite"
-  >{playModeLabel}</span>
+       preset label, and the hard skip's chip IS the warning banner. Undo's
+       machine pause outranks both: this is the only always-visible status in
+       the live strip (its nested SeatPanel deliberately hides the autobar),
+       so the chip also becomes the Auto switch that its text says resumes. -->
+  {#if logic.machinePaused}
+    <button
+      class="mode-chip paused"
+      type="button"
+      data-play-mode="paused"
+      data-auto-note
+      aria-live="polite"
+      aria-label={autoNoteText(logic.note)}
+      title={autoNoteText(logic.note)}
+      onclick={() => logic.pressAuto()}
+    >Auto paused — press to resume</button>
+  {:else}
+    <span
+      class="mode-chip"
+      class:run={runLive}
+      class:warning={logic.hardSkip}
+      data-play-mode={playMode}
+      aria-live="polite"
+    >{playModeLabel}</span>
+  {/if}
   <div class="hot-tab" role="presentation" onpointerenter={() => show('actions')} onpointerleave={scheduleClose} onfocusin={() => show('actions')} onfocusout={scheduleClose}>
     <button class="tab" type="button" data-hot-tab="actions" data-awaiting={awaiting} aria-label="Actions" aria-haspopup="true" aria-expanded={open === 'actions'} aria-controls="hot-panel-actions" aria-disabled={actions.length === 0} onclick={() => show('actions')}>
       <span class="full">ACTIONS</span><span class="compact" aria-hidden="true">A</span>
@@ -403,7 +419,9 @@
   /* The status chip: the seat's mode, stated once, at the left edge of the
      strip. Presets read as labels; a live run takes the run register — the
      hard skip's warning colour is the danger variable, because passing
-     everything unseen is the one state that can lose the game in silence. */
+     everything unseen is the one state that can lose the game in silence.
+     The undo pause uses the offered colour and a pointer because this chip is
+     also the always-visible resume control. */
   .mode-chip {
     display: flex;
     align-items: center;
@@ -427,6 +445,16 @@
   .mode-chip.warning {
     background: var(--danger);
     border-color: var(--danger);
+  }
+  .mode-chip.paused {
+    color: var(--felt-sunk);
+    background: var(--offered);
+    border-color: var(--offered);
+    cursor: pointer;
+  }
+  .mode-chip.paused:hover,
+  .mode-chip.paused:focus-visible {
+    box-shadow: 0 0 0 1px var(--offered), 0 0 12px var(--offered);
   }
 
   .drop {

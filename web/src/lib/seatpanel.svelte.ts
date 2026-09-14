@@ -782,8 +782,9 @@ export class SeatPanelState {
 
   /**
    * pressAuto is the Auto switch's click path — every rendered Auto switch
-   * (the seat panel's Auto/Manual toggle and GAME OPTIONS' Auto pass switch)
-   * goes through this one method, so they cannot drift. Its dual is the
+   * (the seat panel's Auto/Manual toggle, GAME OPTIONS' Auto pass switch and
+   * the live strip's paused status/resume chip) goes through this one method,
+   * so they cannot drift. Its dual is the
    * undo pause: while machinePaused holds, the switch reads "Paused" and
    * pressing it STARTS the machine — setAuto(true) — instead of toggling the
    * persisted preference off. That is the resume the paused note promises:
