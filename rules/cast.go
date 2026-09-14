@@ -1578,6 +1578,13 @@ func (e *Engine) payCast() {
 		return
 	}
 	if pc.ability >= 0 {
+		// CR 608.2h: snapshot the source's derived lifelink before any cost can
+		// remove it from the battlefield. AbilityPush is deliberately emitted
+		// only after costs settle, so emit's generic departure capture cannot
+		// see a self-sacrificing ability on the stack yet. Resolution consults
+		// this only if the source is gone; a source that remains in play uses
+		// its live derived state instead.
+		sourceLifelinkLKI := e.HasKeyword(pc.card, "Lifelink")
 		// Task 10: an activated ability. The shared stages above (X, Delve --
 		// never present on an ability --, Sac) have already run and been
 		// recorded; what differs from a spell here is the cost's remaining
@@ -1656,6 +1663,16 @@ func (e *Engine) payCast() {
 			e.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo)
 		}
 		e.sacrificedLKI[pc.stackObj] = sacrificedLKI
+		for _, id := range pc.sacs {
+			if id != pc.card {
+				continue
+			}
+			if e.sourceLifelinkLKI == nil {
+				e.sourceLifelinkLKI = make(map[state.ObjID]bool)
+			}
+			e.sourceLifelinkLKI[pc.stackObj] = sourceLifelinkLKI
+			break
+		}
 		e.cast, e.choosing = nil, chooseNone
 		return
 	}

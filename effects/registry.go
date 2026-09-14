@@ -88,6 +88,14 @@ type Ctx struct {
 	Controller state.PlayerID
 	Targets    []state.Target
 	Remembered []state.Target
+	// SourceLifelinkLKI is the source permanent's derived lifelink state at
+	// the last moment it existed on the battlefield. The validity bit is
+	// separate because "it did not have lifelink" is authoritative LKI too.
+	// Rules seeds this on independently resolving abilities; damage uses it
+	// only after the source has departed, and continues to read the live
+	// derived source while it remains a permanent.
+	SourceLifelinkLKI      bool
+	SourceLifelinkLKIValid bool
 	// Sacrificed carries the last-known-information snapshot of every object
 	// this resolving spell/ability sacrificed, as it was at the instant of the
 	// sacrifice (state.SacrificedInfo). Built two ways, feeding one field: a

@@ -252,6 +252,7 @@ func seedInternalQueues(t *testing.T, e *Engine) state.ObjID {
 	})
 	e.triggerFireCount = map[triggerKey]int32{{Source: src, Idx: 0}: 1}
 	e.damageOnceFired = map[triggerKey]int32{{Source: 1, Idx: 0}: e.G.Turn}
+	e.sourceLifelinkLKI = map[state.ObjID]bool{src: true}
 
 	// A pending cast (Task 9), with its own non-empty slices -- delve/sacs
 	// and the cost's own Sac/SubCounter parts -- so a Clone that omits,
@@ -270,7 +271,8 @@ func seedInternalQueues(t *testing.T, e *Engine) state.ObjID {
 	}
 
 	if len(e.continuous) == 0 || len(e.pendingTriggers) == 0 ||
-		len(e.triggerFireCount) == 0 || len(e.damageOnceFired) == 0 || e.cast == nil {
+		len(e.triggerFireCount) == 0 || len(e.damageOnceFired) == 0 ||
+		len(e.sourceLifelinkLKI) == 0 || e.cast == nil {
 		t.Fatal("fixture seeding left an internal collection empty")
 	}
 	return src
@@ -292,10 +294,11 @@ func TestCloneStaysIndependentAndReplaysInLockstep(t *testing.T) {
 	// drained the same seeded queue back down to empty.
 	if len(c.continuous) != len(e.continuous) || len(c.pendingTriggers) != len(e.pendingTriggers) ||
 		len(c.triggerFireCount) != len(e.triggerFireCount) || len(c.damageOnceFired) != len(e.damageOnceFired) ||
-		c.cast == nil {
-		t.Fatalf("clone did not copy the seeded internal state: continuous %d/%d, triggers %d/%d, fireCount %d/%d, onceFired %d/%d, cast nil=%v",
+		len(c.sourceLifelinkLKI) != len(e.sourceLifelinkLKI) || c.cast == nil {
+		t.Fatalf("clone did not copy the seeded internal state: continuous %d/%d, triggers %d/%d, fireCount %d/%d, onceFired %d/%d, sourceLKI %d/%d, cast nil=%v",
 			len(c.continuous), len(e.continuous), len(c.pendingTriggers), len(e.pendingTriggers),
-			len(c.triggerFireCount), len(e.triggerFireCount), len(c.damageOnceFired), len(e.damageOnceFired), c.cast == nil)
+			len(c.triggerFireCount), len(e.triggerFireCount), len(c.damageOnceFired), len(e.damageOnceFired),
+			len(c.sourceLifelinkLKI), len(e.sourceLifelinkLKI), c.cast == nil)
 	}
 	headBefore, drawsBefore, eventsBefore := e.L.Head(), e.RNGDraws(), len(e.L.Events)
 	if got := diffGames(e.G, c.G); got != "" {
@@ -389,6 +392,7 @@ func TestCloneSharesNoMutableStateWithTheOriginal(t *testing.T) {
 	c.pendingTriggers[0].Ctx.LKI.AddCounter("P1P1", 5)
 	c.triggerFireCount[triggerKey{Source: src, Idx: 0}] = 99
 	c.damageOnceFired[triggerKey{Source: 1, Idx: 0}] = 99
+	c.sourceLifelinkLKI[src] = false
 	c.cast.delve[0] = 9999
 	c.cast.sacs[0] = 9999
 	c.cast.cost.Sac[0].N = 99
@@ -425,6 +429,9 @@ func TestCloneSharesNoMutableStateWithTheOriginal(t *testing.T) {
 	}
 	if e.damageOnceFired[triggerKey{Source: 1, Idx: 0}] == 99 {
 		t.Fatal("clone shares damageOnceFired")
+	}
+	if !e.sourceLifelinkLKI[src] {
+		t.Fatal("clone shares sourceLifelinkLKI")
 	}
 	if e.cast.delve[0] == 9999 {
 		t.Fatal("clone shares a pending cast's delve slice")
