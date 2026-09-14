@@ -109,20 +109,26 @@ func main() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if err := serve(ctx, c, ln); err != nil {
+	if err := serve(ctx, *c, ln); err != nil {
 		fmt.Fprintln(os.Stderr, "gorged:", err)
 		os.Exit(1)
 	}
 }
 
 // serveFlags registers every gorged flag on a fresh FlagSet and returns it
-// with the config the flags fill. Split from main so the DEFAULTS — above all
+// with a POINTER to the config the flags fill. The pointer is load-bearing:
+// flag.Value implementations retain the addresses passed to StringVar and
+// friends, so returning config by value would leave Parse mutating its escaped
+// original while main received an unchanged copy in which every flag still had
+// its default value.
+//
+// Split from main so the DEFAULTS — above all
 // prewarm's true, the thing a deploy depends on — are pinned by a test
 // (TestServeFlagPrewarmDefaultsOn) instead of living in a line after Parse
 // that a refactor could silently drop.
-func serveFlags() (*flag.FlagSet, config) {
+func serveFlags() (*flag.FlagSet, *config) {
 	fs := flag.NewFlagSet("gorged", flag.ExitOnError)
-	var c config
+	c := new(config)
 	fs.StringVar(&c.addr, "addr", ":8080", "listen address")
 	fs.StringVar(&c.cards, "cards", ".cards", "corpus directory (ir.gob.gz / cardsfolder)")
 	fs.StringVar(&c.decks, "decks", "internal/testutil/decks", "directory of deck JSON files")

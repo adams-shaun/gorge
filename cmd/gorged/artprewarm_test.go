@@ -306,6 +306,27 @@ func TestServeFlagPrewarmDefaultsOn(t *testing.T) {
 	}
 }
 
+// TestServeFlagsMutateReturnedConfig is the non-default counterpart to the
+// default pin above. serveFlags must return the same config whose fields were
+// handed to flag.StringVar/BoolVar: returning it by value leaves Parse mutating
+// an escaped original and main sees every default instead (including :8080,
+// which made every smoke server collide with the live demo).
+func TestServeFlagsMutateReturnedConfig(t *testing.T) {
+	fs, c := serveFlags()
+	if err := fs.Parse([]string{"-addr", "127.0.0.1:8097", "-art-dir", "/durable/art", "-prewarm=false"}); err != nil {
+		t.Fatal(err)
+	}
+	if c.addr != "127.0.0.1:8097" {
+		t.Errorf("-addr = %q, want parsed value", c.addr)
+	}
+	if c.artDir != "/durable/art" {
+		t.Errorf("-art-dir = %q, want parsed value", c.artDir)
+	}
+	if c.prewarm {
+		t.Error("-prewarm=false was ignored")
+	}
+}
+
 func prewarmNamedDir(t *testing.T, names ...string) string {
 	t.Helper()
 	dir := t.TempDir()
