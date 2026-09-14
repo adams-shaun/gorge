@@ -108,17 +108,38 @@ func TestTapsTriggerCityOfBrassDoesNotFireForEntryTapped(t *testing.T) {
 	}
 }
 
-func TestTapsForManaTriggerCryptGhast(t *testing.T) {
+func TestTapsForManaTriggerCryptGhastPaysForCastImmediately(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	e := layerEngine(t)
+	spell := mustCorpusCard(t, reg, "Black Knight") // real {B}{B} corpus cost
+	e := handEngine(t, spell)
 	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Crypt Ghast"))
 	swamp := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Swamp"))
-	abilities := e.availableManaAbilities(0, swamp)
-	if len(abilities) != 1 {
-		t.Fatalf("Swamp mana abilities = %d, want 1", len(abilities))
+	spellID := e.G.Zone(state.ZHand, 0)[0]
+
+	// Exercise the real CR 601.2g payment window: one Swamp's printed ability
+	// supplies only {B}, so this cast succeeds only if Crypt Ghast's triggered
+	// mana ability resolves immediately under CR 605.3b and supplies the second.
+	e.pending = nil
+	e.beginCast(0, decision.Option{Kind: "cast", Obj: spellID})
+	e.Advance()
+	submitChoices(t, e, activateOption(t, e, swamp))
+	if len(e.G.Stack) != 1 || e.G.Stack[0] != spellID || e.G.Obj(spellID).Zone != state.ZStack {
+		t.Fatalf("Black Knight stack/zone = %v/%s, want paid cast on stack", e.G.Stack, e.G.Obj(spellID).Zone)
 	}
-	e.resolveManaAbility(0, swamp, abilities[0], false)
-	requireOneEventTrigger(t, e, "Crypt Ghast")
+	if got := e.G.Players[0].Pool.Total(); got != 0 {
+		t.Fatalf("pool after paying {B}{B} = %+v (total %d), want empty", e.G.Players[0].Pool, got)
+	}
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("Crypt Ghast left %d pending triggers, want its mana trigger resolved without the stack", len(e.pendingTriggers))
+	}
+
+	// TapsForMana is an event mode, not itself a license to bypass the stack:
+	// Manabarbs produces no mana and lacks Forge's triggered-mana marker.
+	e = layerEngine(t)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Manabarbs"))
+	swamp = onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Swamp"))
+	e.resolveManaAbility(0, swamp, e.availableManaAbilities(0, swamp)[0], false)
+	requireOneEventTrigger(t, e, "Manabarbs")
 }
 
 func TestTapsForManaTriggerForsakenMonumentRejectsWrongColourAndActor(t *testing.T) {
@@ -151,8 +172,14 @@ func TestTapsForManaTriggerRegalBehemothChecksMonarch(t *testing.T) {
 	}
 	e.emit(events.Event{Kind: events.MonarchChange, Player: 0})
 	e.emit(events.Event{Kind: events.Untap, Obj: swamp})
+	before := e.G.Players[0].Pool.Total()
 	e.resolveManaAbility(0, swamp, e.availableManaAbilities(0, swamp)[0], false)
-	requireOneEventTrigger(t, e, "Regal Behemoth")
+	if got := e.G.Players[0].Pool.Total() - before; got != 2 {
+		t.Fatalf("monarch mana gained = %d, want Swamp mana plus immediate Regal Behemoth mana", got)
+	}
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("Regal Behemoth left %d pending triggers, want immediate mana resolution", len(e.pendingTriggers))
+	}
 }
 
 func TestAttackersDeclaredOneTargetTriggerHorizonExplorer(t *testing.T) {
