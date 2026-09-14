@@ -74,16 +74,30 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	// Collect EVERY replacement effect this event matches, in
 	// forEachObject's deterministic scan order, rather than the single first
 	// match the M1 build took.
-	var matches []replMatch
+	var matches, manaCandidates []replMatch
 	e.forEachObject(func(id state.ObjID) {
 		for _, f := range e.replacementFaces(id, ev) {
 			for i := range f.Repls {
-				if f.Repls[i].Event == event && e.replacementMatches(f.Repls[i], id, ev) {
-					matches = append(matches, replMatch{id: id, face: f, repl: &f.Repls[i]})
+				if f.Repls[i].Event != event {
+					continue
+				}
+				m := replMatch{id: id, face: f, repl: &f.Repls[i]}
+				// Mana replacement applicability must be re-evaluated after
+				// every rewrite (CR 616.1). Keep even the candidates that do
+				// not match the initial amount: multiplying mana can make a
+				// later ManaAmount$ gate newly applicable.
+				if ev.Kind == events.ManaAdd {
+					manaCandidates = append(manaCandidates, m)
+				}
+				if e.replacementMatches(f.Repls[i], id, ev) {
+					matches = append(matches, m)
 				}
 			}
 		}
 	})
+	if ev.Kind == events.ManaAdd {
+		return e.continueManaReplacements(ev, manaCandidates, nil, false, e.manaFromTap)
+	}
 	if len(matches) == 0 {
 		return ev, false
 	}
@@ -91,11 +105,13 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	case events.Untap:
 		return e.applySimpleReplacement(ev, matches[0])
 	case events.StepChange:
+		if matches[0].repl.Params["Optional"] == "True" {
+			e.posePhaseReplacementChoice(ev, matches[0])
+			return ev, true
+		}
 		return e.applyBeginPhaseReplacement(ev, matches[0])
 	case events.FlipFace:
 		return e.applyTransformReplacement(ev, matches)
-	case events.ManaAdd:
-		return e.applyManaReplacements(ev, matches)
 	}
 
 	// CR 616.1: if two or more replacement effects would modify the way this
@@ -151,9 +167,9 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	return ev, false
 }
 
-// replMatch is one replacement effect the engine found applicable to a
-// MoveZone event: its owning source permanent and the R: line on that
-// permanent's face. A plain value, cloned by copy.
+// replMatch is one replacement effect the engine found applicable to an
+// event: its owning source permanent and the R: line on that permanent's
+// face. A plain value, cloned by copy.
 type replMatch struct {
 	id   state.ObjID
 	face *cards.Face // prospective face for an "as this transforms" replacement
@@ -161,9 +177,9 @@ type replMatch struct {
 }
 
 // replacementEvent maps the event log's concrete events to Forge R:Event$
-// names. ManaAdd carries its producing source in Obj (set by effMana), so
-// ProduceMana replacements can filter the tapped permanent just as a zone
-// replacement filters the moving object.
+// names. ManaAdd carries its producing source in Obj (set by effMana), while
+// Engine.manaFromTap separately proves that this activation actually paid a
+// tap cost; ProduceMana replacements need both pieces.
 func replacementEvent(ev events.Event) (string, bool) {
 	switch ev.Kind {
 	case events.MoveZone:
@@ -245,30 +261,61 @@ func (e *Engine) applyTransformReplacement(ev events.Event, matches []replMatch)
 	return ev, false
 }
 
-// applyManaReplacements resolves each matching ReplaceMana body against one
-// pending ManaAdd and logs the REWRITTEN event itself (the exact shape
-// composeUpdatedReplacements uses for an all-Updated MoveZone competition:
-// events.Emit + checkTriggers inside the replacement, handled=true, so emit
-// returns without logging anything else -- the pre-rewrite original never
-// enters the log). Replacement competition is deterministic scan order here;
-// all current corpus bodies are direct amount/type rewrites.
-func (e *Engine) applyManaReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
-	ctx := &effects.Ctx{Source: ev.Obj, Controller: ev.Player, ManaAmount: ev.Amount, ManaType: ev.Counter}
-	for _, m := range matches {
-		if m.repl.With == nil {
-			continue
-		}
-		ctx.Source = m.id
-		ctx.Controller = e.controllerOf(m.id)
-		if m.face != nil {
-			effects.SetSVars(ctx, m.face.SVars)
-		}
-		e.runReplaceWith(ctx, ev.Obj, m.repl.With)
+// continueManaReplacements implements CR 616.1 for one in-flight ManaAdd.
+// Each replacement may apply once. After every rewrite the full candidate set
+// is re-checked against the NEW amount/type; if several apply, the player
+// receiving the mana chooses which is applied next. A lone applicable effect
+// is automatic. Only the final rewritten ManaAdd enters the event log, so a
+// log-only replay needs no transient provenance or replacement state.
+func (e *Engine) continueManaReplacements(ev events.Event, candidates []replMatch,
+	applied []bool, changed, tapped bool) (events.Event, bool) {
+	if applied == nil {
+		applied = make([]bool, len(candidates))
 	}
+	for {
+		var applicable []int
+		savedTap := e.manaFromTap
+		e.manaFromTap = tapped
+		for i, m := range candidates {
+			if !applied[i] && e.replacementMatches(*m.repl, m.id, ev) {
+				applicable = append(applicable, i)
+			}
+		}
+		e.manaFromTap = savedTap
+		if len(applicable) == 0 {
+			if !changed {
+				return ev, false
+			}
+			stored := events.Emit(e.G, e.L, ev)
+			e.checkTriggers(stored, nil)
+			return stored, true
+		}
+		if len(applicable) > 1 && int(ev.Player) < len(e.G.Players) && !e.G.Players[ev.Player].Lost {
+			e.poseManaReplacementChoice(ev, candidates, applied, applicable, changed, tapped)
+			return ev, true
+		}
+		// A sole applicable replacement is mandatory. A departed player makes
+		// no choices (CR 800.4a), so a competition also takes the first
+		// deterministic candidate and keeps progressing.
+		i := applicable[0]
+		ev = e.applyOneManaReplacement(ev, candidates[i])
+		applied[i] = true
+		changed = true
+	}
+}
+
+func (e *Engine) applyOneManaReplacement(ev events.Event, m replMatch) events.Event {
+	if m.repl.With == nil {
+		return ev
+	}
+	ctx := &effects.Ctx{Source: m.id, Controller: e.controllerOf(m.id),
+		ManaAmount: ev.Amount, ManaType: ev.Counter}
+	if m.face != nil {
+		effects.SetSVars(ctx, m.face.SVars)
+	}
+	e.runReplaceWith(ctx, ev.Obj, m.repl.With)
 	ev.Amount, ev.Counter = ctx.ManaAmount, ctx.ManaType
-	stored := events.Emit(e.G, e.L, ev)
-	e.checkTriggers(stored, nil)
-	return stored, true
+	return ev
 }
 
 // replCtx builds the effects.Ctx a replacement's ReplaceWith$ resolves
@@ -511,12 +558,9 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 			!effects.MatchesPlayerSpec(e.G, vp, e.G.Active, you) {
 			return false
 		}
-		// Optional$ True (Fasting's "you may skip that step instead") wants a
-		// may-skip decision this build does not pose; fail closed to the phase
-		// proceeding rather than skip unasked.
-		if r.Params["Optional"] == "True" {
-			return false
-		}
+		// Optional$ True is handled after matching by
+		// posePhaseReplacementChoice: applicability is independent of whether
+		// the affected player eventually chooses to apply it.
 		// Hellbent$ True gates the skip on an empty hand (one corpus line).
 		if r.Params["Hellbent"] == "True" && len(e.G.Zone(state.ZHand, you)) > 0 {
 			return false
@@ -538,7 +582,7 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 		// Only genuine production replaces: a ManaAdd without a producing
 		// source (a test seed, a spend) and a negative Amount (spending, not
 		// producing) are outside the class.
-		if ev.Kind != events.ManaAdd || ev.Obj == 0 || ev.Amount <= 0 {
+		if ev.Kind != events.ManaAdd || ev.Obj == 0 || ev.Amount <= 0 || !e.manaFromTap {
 			return false
 		}
 		if v, ok := r.Params["ValidCard"]; ok &&
@@ -552,8 +596,18 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 			!effects.MatchesPlayerSpec(e.G, va, ev.Player, you) {
 			return false
 		}
+		// ReplaceOnly$ lives on the ReplaceWith$ body (Quarum Trench
+		// Gnomes), but it is an applicability gate: converting a different
+		// colour is not applying that replacement. Reading it here lets a
+		// prior rewrite make the effect newly applicable during CR 616.1's
+		// mandatory post-rewrite recheck.
+		if r.With != nil {
+			if only := strings.TrimSpace(r.With.Params["ReplaceOnly"]); only != "" && only != ev.Counter {
+				return false
+			}
+		}
 		// ManaAmount$ <op><n> gates on the size of the production being
-		// replaced (Reality Twist's "two or more mana").
+		// replaced (Damping Sphere's "two or more mana").
 		if ma, ok := r.Params["ManaAmount"]; ok {
 			op, n, parsed := splitCompare(ma)
 			if !parsed || !applyCompare(int(ev.Amount), op, n) {
@@ -625,10 +679,25 @@ func (e *Engine) replacementConditionHolds(r cards.Repl, source state.ObjID, you
 // plus a []replMatch whose *cards.Repl pointers are shared immutable corpus
 // data), so Clone copies the queue with one slice copy, the same class as
 // cmdZone.
+type replChoiceKind uint8
+
+const (
+	replChoiceMove replChoiceKind = iota
+	replChoiceMana
+	replChoicePhase
+)
+
 type replChoice struct {
-	ev     events.Event
-	cands  []replMatch
-	before *triggerSnapshot // immutable SBA look-back, safe to share in Clone
+	kind       replChoiceKind
+	ev         events.Event
+	cands      []replMatch
+	applied    []bool // mana: candidates that already had their one opportunity
+	applicable []int  // mana: decision option -> candidate index
+	changed    bool   // mana: at least one rewrite already happened
+	manaTapped bool   // mana: provenance survives the decision boundary
+	boundary   bool   // phase: this choice owns setStep's boundary cleanup
+	leaving    state.Step
+	before     *triggerSnapshot // immutable SBA look-back, safe to share in Clone
 }
 
 // poseReplacementChoice starts a CR 616.1 order-selection suspension: the
@@ -646,9 +715,43 @@ func (e *Engine) poseReplacementChoice(ev events.Event, matches []replMatch) {
 	if int(p) >= len(e.G.Players) {
 		return
 	}
-	e.replChoices = append(e.replChoices, replChoice{ev: ev, cands: matches, before: e.triggerBefore})
+	e.replChoices = append(e.replChoices, replChoice{kind: replChoiceMove,
+		ev: ev, cands: matches, before: e.triggerBefore})
 	if e.pending == nil {
 		e.askReplacementChoice(p)
+	}
+}
+
+// poseManaReplacementChoice parks a partially rewritten mana event until the
+// player receiving it chooses the next applicable effect (CR 616.1). The full
+// candidate set and applied bitmap survive the choice so applicability can be
+// re-evaluated after the selected rewrite, including effects newly enabled by
+// a changed ManaAmount$.
+func (e *Engine) poseManaReplacementChoice(ev events.Event, candidates []replMatch,
+	applied []bool, applicable []int, changed, tapped bool) {
+	e.replChoices = append(e.replChoices, replChoice{kind: replChoiceMana, ev: ev,
+		cands: candidates, applied: append([]bool(nil), applied...),
+		applicable: append([]int(nil), applicable...), changed: changed,
+		manaTapped: tapped, before: e.triggerBefore})
+	if e.pending == nil {
+		e.askReplacementChoice(ev.Player)
+	}
+}
+
+// posePhaseReplacementChoice parks an Optional$ BeginPhase replacement (the
+// real Fasting shape). The active player chooses whether to apply it; setStep's
+// old-step pointer is copied so end-of-step cleanup occurs once, after the
+// answer rather than after DecisionAsk.
+func (e *Engine) posePhaseReplacementChoice(ev events.Event, m replMatch) {
+	rc := replChoice{kind: replChoicePhase, ev: ev, cands: []replMatch{m},
+		before: e.triggerBefore}
+	if e.stepLeaving != nil {
+		rc.boundary = true
+		rc.leaving = *e.stepLeaving
+	}
+	e.replChoices = append(e.replChoices, rc)
+	if e.pending == nil {
+		e.askReplacementChoice(e.G.Active)
 	}
 }
 
@@ -661,21 +764,44 @@ func (e *Engine) poseReplacementChoice(ev events.Event, matches []replMatch) {
 // the next.
 func (e *Engine) askReplacementChoice(p state.PlayerID) {
 	rc := e.replChoices[0]
-	name := "this object"
-	if o := e.G.Obj(rc.ev.Obj); o != nil && o.Face() != nil && o.Face().Name != "" {
-		name = o.Face().Name
-	}
 	d := &decision.Decision{Player: p, Kind: decision.KReplacement, Min: 1, Max: 1,
-		Prompt: "Several replacement effects would change how " + name + " moves: choose the order they apply.",
 		Source: rc.ev.Obj}
-	for i, c := range rc.cands {
-		label := "a replacement"
+	indices := make([]int, len(rc.cands))
+	for i := range indices {
+		indices[i] = i
+	}
+	switch rc.kind {
+	case replChoiceMana:
+		d.Prompt = "Several replacement effects would change mana production: choose which applies next."
+		indices = rc.applicable
+	case replChoicePhase:
+		name := "this replacement effect"
+		if so := e.G.Obj(rc.cands[0].id); so != nil && so.Face() != nil && so.Face().Name != "" {
+			name = so.Face().Name
+		}
+		d.Prompt = "Apply " + name + "'s optional replacement and skip this step?"
+		d.Options = []decision.Option{
+			{Index: 0, Kind: "apply", Obj: rc.cands[0].id, Label: "Yes — skip this step"},
+			{Index: 1, Kind: "decline", Obj: rc.cands[0].id, Label: "No — begin this step"},
+		}
+		e.ask(d)
+		return
+	default:
+		name := "this object"
+		if o := e.G.Obj(rc.ev.Obj); o != nil && o.Face() != nil && o.Face().Name != "" {
+			name = o.Face().Name
+		}
+		d.Prompt = "Several replacement effects would change how " + name + " moves: choose which applies first."
+	}
+	for _, candidate := range indices {
+		c := rc.cands[candidate]
+		label := "Apply a replacement"
 		if so := e.G.Obj(c.id); so != nil && so.Face() != nil && so.Face().Name != "" {
 			label = "Apply " + so.Face().Name + "'s replacement"
 		} else if dsc := c.repl.Params["Description"]; dsc != "" {
 			label = "Apply: " + dsc
 		}
-		d.Options = append(d.Options, decision.Option{Index: i, Kind: "replacement", Obj: c.id, Label: label})
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "replacement", Obj: c.id, Label: label})
 	}
 	e.ask(d)
 }
@@ -697,25 +823,88 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	if len(e.replChoices) == 0 {
 		e.emit(events.Event{Kind: events.Note, Player: in.Player,
-			Text: "replacement-order decision answered with no competition parked"})
+			Text: "replacement decision answered with no event parked"})
 		return
 	}
 	rc := e.replChoices[0]
 	e.replChoices = e.replChoices[1:]
 	chosen := d.Chosen(in)
-	if len(chosen) == 0 || chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) {
+	if len(chosen) == 0 {
 		e.emit(events.Event{Kind: events.Note, Player: in.Player,
-			Text: "replacement-order answer out of range"})
+			Text: "replacement answer had no choice"})
 		return
 	}
 	before := e.triggerBefore
 	e.triggerBefore = rc.before
-	e.applyReplacement(rc.ev, rc.cands[chosen[0].Index])
-	e.triggerBefore = before
-	if len(e.replChoices) > 0 && e.pending == nil {
-		if o := e.G.Obj(e.replChoices[0].ev.Obj); o != nil && int(o.Controller) < len(e.G.Players) {
-			e.askReplacementChoice(o.Controller)
+	switch rc.kind {
+	case replChoiceMana:
+		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.applicable) {
+			e.triggerBefore = before
+			e.emit(events.Event{Kind: events.Note, Player: in.Player,
+				Text: "mana replacement answer out of range"})
+			return
 		}
+		i := rc.applicable[chosen[0].Index]
+		rc.ev = e.applyOneManaReplacement(rc.ev, rc.cands[i])
+		rc.applied[i] = true
+		e.continueManaReplacements(rc.ev, rc.cands, rc.applied, true, rc.manaTapped)
+		e.triggerBefore = before
+	case replChoicePhase:
+		apply := chosen[0].Kind == "apply"
+		if rc.boundary {
+			// The old step ends whichever option is chosen. Settle its mana
+			// and end-of-combat cleanup before entering (or skipping) the
+			// proposed step, and crucially before a chained optional skip can
+			// pose the next DecisionAsk.
+			e.finishStepBoundary(rc.leaving, rc.ev.Step)
+		}
+		if apply {
+			e.applyBeginPhaseReplacement(rc.ev, rc.cands[0])
+		} else {
+			saved := e.applyingReplacement
+			e.applyingReplacement = true // this choice has already been offered
+			e.emit(rc.ev)
+			e.applyingReplacement = saved
+		}
+		e.triggerBefore = before
+		if e.pending == nil {
+			e.finishEnteredStep()
+		}
+	default:
+		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) {
+			e.triggerBefore = before
+			e.emit(events.Event{Kind: events.Note, Player: in.Player,
+				Text: "replacement-order answer out of range"})
+			return
+		}
+		e.applyReplacement(rc.ev, rc.cands[chosen[0].Index])
+		e.triggerBefore = before
+	}
+	// A mana replacement decision can have interrupted CR 601.2g's mana
+	// window. Once the final rewritten ManaAdd is logged and no further
+	// replacement choice is pending, resume the parked cast transaction.
+	if rc.kind == replChoiceMana && e.pending == nil && e.cast != nil {
+		e.continueCast()
+	}
+	if len(e.replChoices) > 0 && e.pending == nil {
+		if p, ok := e.replacementChoicePlayer(e.replChoices[0]); ok {
+			e.askReplacementChoice(p)
+		}
+	}
+}
+
+func (e *Engine) replacementChoicePlayer(rc replChoice) (state.PlayerID, bool) {
+	switch rc.kind {
+	case replChoiceMana:
+		return rc.ev.Player, int(rc.ev.Player) < len(e.G.Players)
+	case replChoicePhase:
+		return e.G.Active, int(e.G.Active) < len(e.G.Players)
+	default:
+		o := e.G.Obj(rc.ev.Obj)
+		if o == nil || int(o.Controller) >= len(e.G.Players) {
+			return 0, false
+		}
+		return o.Controller, true
 	}
 }
 

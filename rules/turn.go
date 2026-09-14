@@ -11,21 +11,33 @@ import (
 func (e *Engine) beginTurn(active state.PlayerID) {
 	e.emit(events.Event{Kind: events.TurnChange, Player: active, Amount: e.G.Turn + 1})
 	e.setStep(state.StepUntap)
-	// A R:Event$ BeginPhase | Phase$ Untap | Skip$ True replacement (Stasis,
-	// Sands of Time) replaced this StepChange with the next step's own
-	// StepChange -- a chain of skips can even land past upkeep -- so the
-	// untap loop and the ordinary upkeep entry below run only when the
-	// engine is still actually in the untap step. Emitting a second
-	// StepChange(Upkeep) here would double-fire every Phase$ Upkeep trigger
-	// (CR 502/503: the step's turn-based action is skipped with the step,
-	// and the skip handler's own entry already happened).
+	if e.pending != nil {
+		// An Optional$ BeginPhase replacement parked the entry. Its answer
+		// calls finishEnteredStep after entering or skipping the step.
+		return
+	}
+	e.finishEnteredStep()
+}
+
+// finishEnteredStep performs the turn-based action owed by the step that a
+// StepChange just entered (or by the landing step of one or more skipped
+// steps), then grants priority. Both ordinary transitions and an answered
+// Optional$ BeginPhase replacement use this one continuation, so declining
+// Fasting enters and draws exactly once while accepting it lands in main1
+// without drawing. Untap is special: after its action the turn enters upkeep
+// before priority; a replacement may park either entry, in which case the
+// eventual answer resumes this helper again.
+func (e *Engine) finishEnteredStep() {
 	if e.G.Step == state.StepUntap {
-		for _, id := range e.G.Zone(state.ZBattlefield, active) {
+		for _, id := range e.G.Zone(state.ZBattlefield, e.G.Active) {
 			if e.G.Obj(id).Tapped {
 				e.emit(events.Event{Kind: events.Untap, Obj: id})
 			}
 		}
 		e.setStep(state.StepUpkeep)
+		if e.pending != nil {
+			return
+		}
 	}
 	// An upkeep skip can land the turn directly on the draw step, whose
 	// turn-based action must still run (CR 504.1 -- the skip took the upkeep
@@ -34,8 +46,8 @@ func (e *Engine) beginTurn(active state.PlayerID) {
 	if e.G.Step == state.StepDraw && e.drawStepTurnAction() {
 		return
 	}
-	// Start of turn resets the pass count along with the holder.
-	e.emit(events.Event{Kind: events.Priority, Player: active})
+	// Entry resets the pass count along with the active holder.
+	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 }
 
 // drawStepTurnAction runs the draw step's turn-based action (CR 504.1) when
@@ -100,14 +112,27 @@ func (e *Engine) drawStepTurnAction() bool {
 
 func (e *Engine) setStep(s state.Step) {
 	leaving := e.G.Step
+	previous := e.stepLeaving
+	e.stepLeaving = &leaving
 	e.emit(events.Event{Kind: events.StepChange, Step: s})
-	//  Mana pools empty as each step ends (CR 500.4).
+	e.stepLeaving = previous
+	if e.pending != nil {
+		// Optional BeginPhase parked the transition. Boundary cleanup belongs
+		// after that choice and is resumed by handleReplacement; emitting it
+		// after DecisionAsk would mutate the game while a decision is pending.
+		return
+	}
+	e.finishStepBoundary(leaving, s)
+}
+
+func (e *Engine) finishStepBoundary(leaving, entering state.Step) {
+	// Mana pools empty as each step ends (CR 500.4).
 	for i := range e.G.Players {
 		if e.G.Players[i].Pool.Total() > 0 {
 			e.emit(events.Event{Kind: events.ManaClear, Player: state.PlayerID(i)})
 		}
 	}
-	if leaving == state.StepEndCombat && s != leaving {
+	if leaving == state.StepEndCombat && entering != leaving {
 		// CR 511.3 removes creatures and planeswalkers from combat as the end
 		// of combat step ends, not when it begins. Keeping the leaving-step
 		// boundary here covers every transition made through setStep exactly
@@ -420,15 +445,10 @@ func (e *Engine) advanceStep() {
 		return
 	}
 	e.setStep(e.G.Step + 1)
-	if e.drawStepTurnAction() {
-		// The draw above runs checkStateBased (drawCard's own tail): an
-		// empty-library draw is itself a loss (CR 704.5c), and that can end
-		// the game outright. A finished game must not emit a further
-		// Priority event or hand out a decision (mirrors priorityRound's own
-		// pre-Task-27 "if e.G.Over { return }" after a state-changing call).
+	if e.pending != nil {
 		return
 	}
-	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
+	e.finishEnteredStep()
 }
 
 // handle dispatches a validated intent to the code that owns that decision
@@ -516,7 +536,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.castAnswer(d, chosen)
 		// A mana ability selection or Produced$ Any colour choice installed
 		// its own decision; only a fully resolved singleton may continue.
-		if e.choosing == chooseMana || e.choosing == chooseManaColor || e.choosing == chooseManaDiscard {
+		if e.pending != nil || e.choosing == chooseMana || e.choosing == chooseManaColor || e.choosing == chooseManaDiscard {
 			return
 		}
 		e.continueCast()
@@ -571,15 +591,15 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// Several individual mana abilities share one tap cost. A payment
 		// window resumes its cast after the selected ability resolves; an
 		// ordinary activation falls through to Advance's priority round.
-		if e.answerManaActivation(chosen) && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard {
+		if e.answerManaActivation(chosen) && e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard {
 			e.continueCast()
 		}
 	case chooseManaDiscard:
-		if e.answerManaDiscard(chosen) && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard {
+		if e.answerManaDiscard(chosen) && e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard {
 			e.continueCast()
 		}
 	case chooseManaColor:
-		if e.answerManaColor(chosen) {
+		if e.answerManaColor(chosen) && e.pending == nil {
 			e.continueCast()
 		}
 	// Tasks 12, 18 add their cases here; Task D1 adds chooseCleanup.

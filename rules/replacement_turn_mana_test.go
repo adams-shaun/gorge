@@ -261,3 +261,156 @@ func TestVirtueOfStrengthTriplesBasicLandMana(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestDampingSphereReplacesTypeAndAmount drives the real Damping Sphere and
+// Ancient Tomb scripts. ReplaceMana$ (as distinct from ReplaceType$) means
+// one mana of the named type instead of every type AND amount, so Tomb's
+// two-colorless event becomes exactly one colorless event.
+func TestDampingSphereReplacesTypeAndAmount(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, cfg, ids := realCardEngine(t, reg, 71, "Damping Sphere", "Ancient Tomb")
+	tomb := ids[1]
+	submitChoices(t, e, activateOption(t, e, tomb))
+	if got := e.G.Players[0].Pool; got.Total() != 1 || got[state.MC] != 1 {
+		t.Fatalf("Ancient Tomb through Damping Sphere produced %+v, want exactly one colorless", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestNyxbloomDoesNotMultiplySacrificeOnlyMana proves ProduceMana's
+// tap-for-mana provenance with two real scripts. Krark-Clan Ironworks pays a
+// sacrifice-only cost, so Nyxbloom Ancient's "tap a permanent for mana"
+// replacement does not apply even though the ManaAdd still names KCI as its
+// producing source.
+func TestNyxbloomDoesNotMultiplySacrificeOnlyMana(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, cfg, ids := realCardEngine(t, reg, 73, "Nyxbloom Ancient", "Krark-Clan Ironworks")
+	kci := ids[1]
+	submitChoices(t, e, activateOption(t, e, kci))
+	if got := e.G.Players[0].Pool; got.Total() != 2 || got[state.MC] != 2 {
+		t.Fatalf("KCI sacrifice-only production through Nyxbloom = %+v, want two colorless", got)
+	}
+	if e.G.Obj(kci).Zone != state.ZGraveyard {
+		t.Fatalf("KCI zone = %s, want graveyard after paying its real sacrifice cost", e.G.Obj(kci).Zone)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestManaReplacementApplicabilityIsRechecked uses two real cards to prove
+// each rewrite is followed by a fresh applicability pass. Damping Sphere does
+// not match a Mountain's initial one-mana event; Nyxbloom first triples it,
+// which makes Damping's ManaAmount$ GE2 gate newly true, and Damping then
+// replaces the result with exactly one colorless mana.
+func TestManaReplacementApplicabilityIsRechecked(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, cfg, _ := realCardEngine(t, reg, 77, "Nyxbloom Ancient", "Damping Sphere")
+	mountain := moveByName(t, e, 0, "Mountain", state.ZBattlefield)
+	e.pending = nil
+	e.priorityRound()
+	submitChoices(t, e, activateOption(t, e, mountain))
+	if got := e.G.Players[0].Pool; got.Total() != 1 || got[state.MC] != 1 {
+		t.Fatalf("Nyxbloom then newly-applicable Damping Sphere produced %+v, want one colorless", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestCompetingManaReplacementsUsePlayerOrder drives the real Naked
+// Singularity and Reality Twist scripts. Both replace a Mountain's red mana,
+// and both remain applicable after the first rewrite, so CR 616.1 asks the
+// affected player which applies first; the unchosen replacement then applies
+// automatically and determines the final colour.
+func TestCompetingManaReplacementsUsePlayerOrder(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	for _, tc := range []struct {
+		first string
+		want  int
+	}{
+		{first: "Naked Singularity", want: state.MW},
+		{first: "Reality Twist", want: state.MU},
+	} {
+		t.Run(tc.first+" first", func(t *testing.T) {
+			e, cfg, _ := realCardEngine(t, reg, 79, "Naked Singularity", "Reality Twist")
+			mountain := moveByName(t, e, 0, "Mountain", state.ZBattlefield)
+			e.pending = nil
+			e.priorityRound()
+			submitChoices(t, e, activateOption(t, e, mountain))
+			d := e.Pending()
+			if d == nil || d.Kind != decision.KReplacement || len(d.Options) != 2 {
+				t.Fatalf("competing mana replacement decision = %+v, want two KReplacement options", d)
+			}
+			pick := -1
+			for _, opt := range d.Options {
+				if o := e.G.Obj(opt.Obj); o != nil && o.Face() != nil && o.Face().Name == tc.first {
+					pick = opt.Index
+				}
+			}
+			if pick < 0 {
+				t.Fatalf("no option for %s in %+v", tc.first, d.Options)
+			}
+			submitChoices(t, e, pick)
+			pool := e.G.Players[0].Pool
+			if pool.Total() != 1 || pool[tc.want] != 1 {
+				t.Fatalf("after choosing %s first, pool = %+v, want one mana in slot %d", tc.first, pool, tc.want)
+			}
+			replayCheck(t, e, cfg)
+		})
+	}
+}
+
+// TestFastingAsksWhetherToSkipTheDrawStep drives Fasting's real Optional$
+// BeginPhase replacement through both answers. Accepting skips the draw and
+// resolves its gain-life body; declining logs the original draw-step entry
+// and performs the turn-based draw exactly once.
+func TestFastingAsksWhetherToSkipTheDrawStep(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	for _, apply := range []bool{true, false} {
+		name := "decline"
+		if apply {
+			name = "apply"
+		}
+		t.Run(name, func(t *testing.T) {
+			e, cfg, _ := realCardEngine(t, reg, 83, "Fasting")
+			// Put a replayable turn/step boundary immediately before the event
+			// under test. This isolates Fasting's replacement from its separate
+			// upkeep-counter and drawn-card triggers without mutating Game.
+			e.pending = nil
+			e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: e.G.Turn + 1})
+			e.emit(events.Event{Kind: events.StepChange, Step: state.StepUpkeep})
+			life := e.G.Players[0].Life
+			library := len(e.G.Zone(state.ZLibrary, 0))
+			e.setStep(state.StepDraw)
+			d := e.Pending()
+			if d == nil || d.Kind != decision.KReplacement || len(d.Options) != 2 ||
+				d.Options[0].Kind != "apply" || d.Options[1].Kind != "decline" {
+				t.Fatalf("Fasting choice = %+v, want apply/decline KReplacement", d)
+			}
+			pick := 1
+			if apply {
+				pick = 0
+			}
+			submitChoices(t, e, pick)
+			if apply {
+				if got := e.G.Players[0].Life; got != life+2 {
+					t.Fatalf("life after applying Fasting = %d, want %d", got, life+2)
+				}
+				if got := len(e.G.Zone(state.ZLibrary, 0)); got != library {
+					t.Fatalf("library after applying Fasting = %d, want unchanged %d", got, library)
+				}
+				if e.G.Step != state.StepMain1 {
+					t.Fatalf("step after applying Fasting = %s, want main1", e.G.Step)
+				}
+			} else {
+				if got := e.G.Players[0].Life; got != life {
+					t.Fatalf("life after declining Fasting = %d, want %d", got, life)
+				}
+				if got := len(e.G.Zone(state.ZLibrary, 0)); got != library-1 {
+					t.Fatalf("library after declining Fasting = %d, want one draw (%d)", got, library-1)
+				}
+				if e.G.Step != state.StepDraw {
+					t.Fatalf("step after declining Fasting = %s, want draw", e.G.Step)
+				}
+			}
+			replayCheck(t, e, cfg)
+		})
+	}
+}

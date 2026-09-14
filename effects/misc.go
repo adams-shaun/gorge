@@ -729,21 +729,27 @@ func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
 // effReplaceMana rewrites one in-flight ManaAdd event for a ProduceMana
 // replacement. The surrounding rules code supplies the amount and colour in
 // Ctx, then logs the rewritten ManaAdd; this effect itself has no game-state
-// mutation to emit. ReplaceAmount multiplies the whole production, while
-// ReplaceMana/ReplaceType/ReplaceColor replace its colour. A choice-valued
-// replacement (Any/Chosen) has no replacement-time chooser yet, so it uses
-// the engine's existing deterministic colourless fallback.
+// mutation to emit. ReplaceAmount multiplies the whole production.
+// ReplaceType/ReplaceColor preserve its amount and replace only its colour;
+// ReplaceMana is Forge's "one mana instead of any other type and amount"
+// form (Damping Sphere, Contamination), so it sets the amount to exactly one
+// as well as replacing the colour. A choice-valued replacement (Any/Chosen)
+// has no replacement-time chooser yet, so it uses the engine's existing
+// deterministic colourless fallback.
 func effReplaceMana(_ Host, c *Ctx, sa *cards.SA) {
 	if c == nil {
+		return
+	}
+	if only := strings.TrimSpace(sa.Params["ReplaceOnly"]); only != "" && only != c.ManaType {
 		return
 	}
 	if n := Num(nil, c, sa, "ReplaceAmount", 1); n > 0 {
 		c.ManaAmount *= n
 	}
-	if only := strings.TrimSpace(sa.Params["ReplaceOnly"]); only != "" && only != c.ManaType {
-		return
-	}
 	kind := strings.TrimSpace(sa.Params["ReplaceMana"])
+	if kind != "" {
+		c.ManaAmount = 1
+	}
 	if kind == "" {
 		kind = strings.TrimSpace(sa.Params["ReplaceType"])
 	}

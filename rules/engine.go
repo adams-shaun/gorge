@@ -311,13 +311,10 @@ type Engine struct {
 	// clone taken with a decision outstanding carries the same queue. It is
 	// always empty in a non-Commander game: nothing ever parks there.
 	cmdZone []cmdZoneMove
-	// replChoices is the queue of parked CR 616.1 order-selection choices (see
-	// replChoice / poseReplacementChoice / handleReplacement rules/replacement.go):
-	// a MoveZone event more than one replacement would modify, deferred until
-	// the affected controller chooses the order. Mirrors cmdZone -- a queue of
-	// plain value entries cloned by one slice copy -- so a clone taken while a
-	// KReplacement decision is outstanding carries the same parked
-	// competitions the original does.
+	// replChoices is the queue of parked replacement choices (see replChoice /
+	// handleReplacement in replacement.go): CR 616.1 ordering for MoveZone or
+	// ProduceMana, plus an Optional$ BeginPhase yes/no. Plain value entries are
+	// deep-copied by Clone, so every in-flight event survives an intent boundary.
 	replChoices []replChoice
 
 	// suppressedCast holds the card object ids whose cast option is held out
@@ -433,6 +430,23 @@ type Engine struct {
 	// damage. Not copied by Clone, for the same reason as damaging above:
 	// always zero at a clone boundary.
 	combatDamaging bool
+
+	// manaFromTap is true only while a paid mana ability whose Cost$ contains
+	// T resolves its ManaAdd event. ProduceMana replacements are all written
+	// as "if [a permanent] is tapped for mana" and consult this provenance;
+	// merely naming a source object on ManaAdd is not enough (a sacrifice-only
+	// ability such as Krark-Clan Ironworks must not be multiplied). Like
+	// damaging/combatDamaging it is synchronous scratch, zero at every intent
+	// boundary and deliberately not cloned.
+	manaFromTap bool
+
+	// stepLeaving points at the step whose setStep transition is currently
+	// being offered to BeginPhase replacements. An Optional$ replacement can
+	// park that transition before it is logged; the parked choice copies the
+	// old step so its answer performs the boundary cleanup exactly once.
+	// Nested skip emissions do not inherit this pointer. It is synchronous
+	// scratch and is nil at every intent boundary.
+	stepLeaving *state.Step
 
 	// foreachBuf is forEachObject's (trigger_match.go) scratch snapshot
 	// buffer. forEachObject copies each zone into it before walking it -- fn
