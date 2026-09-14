@@ -93,7 +93,35 @@ type Board struct {
 	// CR 903.10 charges a commander's tally whether the object currently
 	// attacks for its owner or anyone else. A fact the policy never reads
 	// (the commander's owner) is deliberately not carried.
+	//
+	//	Stack is the public stack census, bottom to top in the stack's own
+	//	order (state.Game.Stack and view.View.Stack are both order-preserving,
+	//	so the census is an ordered slice and no map iteration reaches any
+	//	choice that reads it). The stack is a public zone (Ruling T23-u;
+	//	view.View.Stack already carries Controller and Kind for exactly this),
+	//	so carrying it is no information leak (Ruling C0). The casting rule
+	//	(cast.go's C8) reads it to tell whose spells are on the stack: a
+	//	counter cast is worth its mana only when a FOREIGN spell is there to
+	//	counter, never at an own-spells-only (or empty) stack. Both adapter
+	//	halves fill it identically (seat/bot.go's boardFromView off the
+	//	projected StackView list; BoardFromGame off state.Game.Stack), pinned
+	//	on every intent of a whole game by seat/integration_test.go's parity
+	//	tests.
 	Commanders map[state.ObjID]Commander
+	// Stack is the public stack census, bottom to top in the stack's own
+	// order (state.Game.Stack and view.View.Stack are both
+	// order-preserving, so the census is an ordered slice and no map
+	// iteration reaches any choice that reads it). The stack is a public
+	// zone (Ruling T23-u; view.View.Stack already carries Controller and
+	// Kind for exactly this), so carrying it is no information leak
+	// (Ruling C0). The casting rule (cast.go's C8) reads it to tell whose
+	// spells are on the stack: a counter cast is worth its mana only when
+	// a FOREIGN spell is there to counter, never at an own-spells-only (or
+	// empty) stack. Both adapter halves fill it identically (seat/bot.go's
+	// boardFromView off the projected StackView list; BoardFromGame off
+	// state.Game.Stack), pinned on every intent of a whole game by
+	// seat/integration_test.go's parity tests.
+	Stack []StackEntry
 }
 
 // Commander is the Board's per-commander commander-format bookkeeping,
@@ -112,6 +140,20 @@ type Commander struct {
 	Casts         int32
 	InCommandZone bool
 	Damage        map[state.PlayerID]int32
+}
+
+// StackEntry is one object on the stack, the plain-data shape of a
+// StackView the policy can read without importing view (Ruling F7).
+// IsSpell is true for a spell object (a card cast onto the stack, which a
+// counter can target) and false for an ability object (minted by a
+// TriggerPush/AbilityPush — Face-less, and not a spell any counter in the
+// corpus targets). Controller is the object's controller, which for a
+// stack spell is the seat that cast it. Both adapter halves fill it the
+// same way, so C8 judges the same stack whichever host asked.
+type StackEntry struct {
+	ID         state.ObjID
+	Controller state.PlayerID
+	IsSpell    bool
 }
 
 // closesClock reports whether an unblocked swing from the creature id —
