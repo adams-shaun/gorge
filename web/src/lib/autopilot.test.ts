@@ -593,6 +593,9 @@ describe('decide', () => {
     expect(run(d, sacrifice, s)).toEqual({ act: 'pass', index: 1 });
     const sick = withHand(view(0, 'main1'), 0, { pool: {}, battlefield: [source, handCard({ id: 8, types: 'Creature', summon_sick: true, ability_costs: ['1 T'] } as unknown as Partial<CardView>)] });
     expect(run(d, sick, s)).toEqual({ act: 'pass', index: 1 });
+
+    const hasty = withHand(view(0, 'main1'), 0, { pool: {}, battlefield: [source, handCard({ id: 8, types: 'Creature', summon_sick: true, keywords: ['Haste'], ability_costs: ['1 T'] } as unknown as Partial<CardView>)] });
+    expect(run(d, hasty, s)).toEqual({ act: 'stop', reason: 'stop-set' });
   });
 
   it('casual decide(): the same mana-only window with only uncastable cards in hand passes', () => {

@@ -267,6 +267,9 @@ describe('castableAfterTap — decision tap offers (fb-20260914T125925Z)', () =>
     const sick = player({ ...base, battlefield: [base.battlefield[0], card({ id: 8, types: 'Creature', summon_sick: true, ability_costs: ['1 T'] } as unknown as Partial<CardView>)] });
     expect(castableAfterTap(view(sick), 0, d)).toBe(false);
 
+    const hasty = player({ ...base, battlefield: [base.battlefield[0], card({ id: 8, types: 'Creature', summon_sick: true, keywords: ['Haste'], ability_costs: ['1 T'] } as unknown as Partial<CardView>)] });
+    expect(castableAfterTap(view(hasty), 0, d)).toBe(true);
+
     const tapped = player({ ...base, battlefield: [base.battlefield[0], card({ id: 8, tapped: true, ability_costs: ['1 T'] } as unknown as Partial<CardView>)] });
     expect(castableAfterTap(view(tapped), 0, d)).toBe(false);
   });

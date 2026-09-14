@@ -262,7 +262,11 @@ export function castableAfterTap(view: View, seat: number, decision?: Decision):
 function abilityPayableAfterTap(p: PlayerView, decision?: Decision): boolean {
   for (const card of p.battlefield ?? []) {
     if (!Array.isArray(card.ability_costs) || card.tapped) continue;
-    if (card.summon_sick && (card.types ?? '').split(/\s+/).includes('Creature')) continue;
+    // Match rules/legal.go's tap gate: summoning sickness blocks a creature's
+    // tap ability unless it has Haste. The offered mana-tap options already
+    // encode that gate for sources; this separate activation projection must
+    // honour the same exception for the ability's source.
+    if (card.summon_sick && (card.types ?? '').split(/\s+/).includes('Creature') && !card.keywords?.includes('Haste')) continue;
     for (const raw of card.ability_costs) {
       const tokens = raw.replace(/[{}]/g, ' ').trim().split(/\s+/).filter(Boolean);
       if (!tokens.includes('T')) continue;
