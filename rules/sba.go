@@ -598,10 +598,14 @@ type tokenCasualty struct {
 // Discipline follows destroyLethalDamage's: a tried-set (shared objs -- a
 // walker is never a creature, so destroyLethalDamage can never mark the same
 // object for "lethal damage" and the two actions cannot disagree over a
-// membership map), one move per object per call, and the deterministic
+// membership map), one move per object per call, the deterministic
 // AliveFrom(0) seat / battlefield-slice order so the event stream is
-// reproducible. The move is not destruction (no ReplaceDestruction, no
-// regeneration -- the same treatment "toughness <= 0" gets).
+// reproducible, and -- fixed in review round 2 -- the same pre-departure
+// triggerBefore board snapshot around the whole move loop, so simultaneous
+// zero-loyalty departures observe each other (CR 603.10a);
+// TestPlaneswalkerSBABatchUsesPreDepartureBoard pins it. The move is not
+// destruction (no ReplaceDestruction, no regeneration -- the same treatment
+// "toughness <= 0" gets).
 //
 // A face whose printed starting loyalty this engine cannot READ (absent, or
 // Loyalty:X -- Nissa, Steward of Elements, 2 corpus files) never reaches the
@@ -637,6 +641,19 @@ func (e *Engine) planeswalkerZeroLoyalty(tried *sbaAttempts) bool {
 	if len(dead) == 0 {
 		return false
 	}
+	// CR 704.3/603.10a: every departure in this batch observes the SAME
+	// pre-departure board, including sources that have already been serialized
+	// into the graveyard -- exactly the snapshot discipline destroyLethalDamage's
+	// batch below follows (review finding r2 on this task: without it, when two
+	// walkers reach zero loyalty in the same pass the walker moved earlier in
+	// the loop is already gone from the battlefield when the later move is
+	// matched, so its leaves-the-battlefield trigger misses the sibling's
+	// departure -- 3 queued triggers where CR 603.10a requires 4;
+	// TestPlaneswalkerSBABatchUsesPreDepartureBoard pins it). The snapshot
+	// never receives mutations, and the log retains ordinary MoveZone events.
+	before := e.triggerBefore
+	e.triggerBefore = e.snapshotTriggerBoard()
+	defer func() { e.triggerBefore = before }()
 	for _, c := range dead {
 		tried.objs[c.id] = true
 		e.emit(events.Event{Kind: events.MoveZone, Obj: c.id,
