@@ -25,9 +25,16 @@
    *    different cards) while the panel stays mounted — the two-tab / rapid
    *    external answer path, where the old ask's popup edits must never be
    *    presented as (or submitted for) the new ask.
+   *  - 'discard1' — the Thoughtseize-shaped ask (fb-20260914T120705Z): a KModes
+   *    decision whose options are discard card picks over the opponent's
+   *    (redacted) hand, Min == Max == 1, so a click IS the answer.
+   *  - 'discard2' — the Mind Rot-shaped multi-pick: Min == Max == 2 over five
+   *    discard picks, so the faces toggle and the submit button commits.
+   *  - 'charm' — a KModes MODAL list (option kind "mode", no Obj): the
+   *    non-discard control, which must keep rendering the generic text list.
    */
 
-  let { case: which = 'initiative' }: { case?: 'initiative' | 'arrange' | 'scry' | 'seqswap' } = $props();
+  let { case: which = 'initiative' }: { case?: 'initiative' | 'arrange' | 'scry' | 'seqswap' | 'discard1' | 'discard2' | 'charm' } = $props();
 
   const seats: SeatInfo[] = [
     { name: 'Ari', deck: 'burn', colour: '#e5484d' },
@@ -78,8 +85,41 @@
     options: [{ index: 0, kind: 'target', label: 'Target Bo', obj: 3, player: 0 }],
   };
   function initialDecision(): Decision {
-    return which === 'arrange' ? arrange : which === 'scry' ? scry : which === 'seqswap' ? arrange : target;
+    return which === 'arrange' ? arrange : which === 'scry' ? scry : which === 'seqswap' ? arrange
+      : which === 'discard1' ? discard1 : which === 'discard2' ? discard2 : which === 'charm' ? charm : target;
   }
+  // The Thoughtseize shape (effects/cardflow.go's RevealYouChoose branch):
+  // KModes, every option a "discard" pick with the card id and the
+  // "Discard <name>" label, Min == Max == 1 — one click answers it.
+  const discard1: Decision = {
+    seq: 11, player: 0, kind: 'modes', min: 1, max: 1,
+    prompt: 'Choose 1 card(s) to discard', source: 30,
+    options: [
+      { index: 0, kind: 'discard', label: 'Discard Brazen Borrower', obj: 11, player: 0 },
+      { index: 1, kind: 'discard', label: 'Discard Fabled Pass', obj: 12, player: 0 },
+      { index: 2, kind: 'discard', label: 'Discard Gitaxian Probe', obj: 13, player: 0 },
+      { index: 3, kind: 'discard', label: 'Discard Spell Pierce', obj: 14, player: 0 },
+    ],
+  };
+  // The Mind Rot shape (the TgtChoose branch): same option vocabulary, a
+  // multi-pick (Min == Max == 2) that toggles and commits through the submit
+  // button.
+  const discard2: Decision = {
+    ...discard1, seq: 12, min: 2, max: 2,
+    prompt: 'Choose 2 card(s) to discard',
+    options: [...discard1.options, { index: 4, kind: 'discard', label: 'Discard Unholy Heat', obj: 15, player: 0 }],
+  };
+  // The non-discard control: a modal mode list — KModes like Thoughtseize,
+  // but its options are "mode" picks with no Obj, so the card-face row must
+  // NOT trigger and the generic text list stays.
+  const charm: Decision = {
+    seq: 13, player: 0, kind: 'modes', min: 1, max: 1,
+    prompt: 'Choose a mode', source: 31,
+    options: [
+      { index: 0, kind: 'mode', label: 'Deal 2 damage', player: 0 },
+      { index: 1, kind: 'mode', label: 'Draw a card', player: 0 },
+    ],
+  };
   const decision = initialDecision();
   // The seqswap case's view is state: the swap button replaces its decision
   // under the mounted panel, exactly as the next SSE view would.

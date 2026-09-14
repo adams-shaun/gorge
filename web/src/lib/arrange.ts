@@ -127,21 +127,25 @@ export function moveWithin<T>(list: readonly T[], from: number, to: number): T[]
 }
 
 /**
- * arrangeCard synthesizes the CardView an arrange option renders as a face.
- * The wire does NOT carry CardViews for library cards (the view projects a
- * hidden library as a count; the DECISION is the payload that carries these
- * cards, and its options carry `Obj` and the card's name as `Label`), so the
- * face is built from the label: real art resolves by exact name through the
- * art proxy (lib/images), and the no-art blank shows the name. Only
- * CardImage's read fields are filled; nothing else reads this card.
+ * cardFromPick synthesizes the CardView a decision option renders as a face,
+ * from the option's `{obj, label}` pair under an explicit display name. The
+ * wire does NOT carry CardViews for cards a decision names but the view does
+ * not project (a hidden library, an opponent's redacted hand; the DECISION is
+ * the payload that carries these cards, and its options carry `Obj` and the
+ * card's name as `Label`), so the face is built from the label: real art
+ * resolves by exact name through the art proxy (lib/images), and the no-art
+ * blank shows the name. Only CardImage's read fields are filled; nothing
+ * else reads this card. arrangeCard and the discard-pick row (lib/discard.ts)
+ * are the two callers — one shared builder so the next card-pick surface
+ * cannot fork the shape.
  */
-export function arrangeCard(d: Decision, o: Option): CardView {
+export function cardFromPick(d: Decision, o: Option, name: string): CardView {
   const id = o.obj ?? -1;
   return {
     id,
-    name: o.label,
+    name,
     types: '',
-    printing: { name: o.label },
+    printing: { name },
     token: `#${id}`,
     tapped: false,
     power: 0,
@@ -152,4 +156,13 @@ export function arrangeCard(d: Decision, o: Option): CardView {
     owner: o.player ?? d.player,
     summon_sick: false,
   };
+}
+
+/**
+ * arrangeCard synthesizes the CardView an arrange option renders as a face —
+ * cardFromPick under the option's own label, which for a KArrange decision IS
+ * the card's bare name.
+ */
+export function arrangeCard(d: Decision, o: Option): CardView {
+  return cardFromPick(d, o, o.label);
 }

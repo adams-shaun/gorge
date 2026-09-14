@@ -398,3 +398,107 @@ describe('the arrange modal preview (fb-20260914T063020Z Job 2)', () => {
     await page.close();
   });
 });
+
+/**
+ * The discard-pick card-face row (fb-20260914T120705Z): the Thoughtseize /
+ * Mind Rot discard ask — a `modes` decision whose options are "discard" card
+ * picks — renders real card faces (synthesized from {obj, label}, exactly as
+ * the arrange strip does) with the shared CardHover → CardDetail inspector,
+ * instead of the plain text list it used to be. Browser tests, because these
+ * are asks about what a player SEES (faces, hover inspector) and does (the
+ * posting path must be the ordinary one, byte-identical to the text list).
+ */
+describe('the discard-pick card-face row (fb-20260914T120705Z)', () => {
+  it('a Thoughtseize-shaped ask renders card faces with the hover inspector, and a click answers it', async () => {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=discard1`);
+
+    const row = page.locator('[data-answer-surface] [data-discard]');
+    await row.waitFor({ state: 'visible' });
+    // Four card faces, and NO generic text option buttons.
+    expect(await row.locator('[data-option]').count()).toBe(4);
+    expect(await page.locator('[data-answer-surface] .option').count()).toBe(0);
+    // The face is the card, named without the "Discard " prefix — the exact
+    // string the art proxy and the oracle resolver look the card up by.
+    expect(await row.locator('[data-option="0"] .blank__name').textContent()).toBe('Brazen Borrower');
+    expect(await row.locator('[data-option="3"] .blank__name').textContent()).toBe('Spell Pierce');
+    // Buttons stay buttons with the card name as their accessible label.
+    expect(await row.locator('[data-option="0"]').getAttribute('aria-label')).toBe('Brazen Borrower');
+
+    // Pointer dwell opens the portalled CardDetail inspector describing that card.
+    await row.locator('[data-option="0"]').hover();
+    const detail = page.locator('body > .card-detail');
+    await detail.waitFor({ state: 'visible', timeout: 5_000 }); // the ~250ms dwell
+    expect(await detail.textContent()).toContain('Brazen Borrower');
+    expect(await row.locator('[data-option="0"]').getAttribute('aria-describedby')).toBe('card-detail-11');
+
+    // Leave closes it; keyboard focus opens it again, on another card.
+    await page.mouse.move(5, 5);
+    await page.waitForFunction(() => document.querySelectorAll('body > .card-detail').length === 0, null, { timeout: 5_000 });
+    await row.locator('[data-option="1"]').focus();
+    await detail.waitFor({ state: 'visible', timeout: 5_000 });
+    expect(await detail.textContent()).toContain('Fabled Pass');
+
+    // The strip (the ACTIONS drop's copy) still bounces this initiative-tone
+    // ask to the board: the pointer text shows there and no second option
+    // surface duplicates the row.
+    expect(await page.locator('#hot-panel-actions [data-strip-pointer]').count()).toBe(1);
+    expect(await page.locator('#hot-panel-actions [data-option]').count()).toBe(0);
+
+    // The posting path is unchanged: Min == Max == 1, so the click IS the
+    // answer — the same [index] intent the text list posted.
+    await row.locator('[data-option="2"]').click();
+    await page.waitForFunction(() => document.querySelectorAll('[data-answer-surface] [data-option]').length === 0);
+    const posted = JSON.parse(await page.evaluate(() => (window as unknown as { __posted?: string }).__posted ?? 'null')) as { seq: number; player: number; choices: number[] };
+    expect(posted.seq).toBe(11);
+    expect(posted.player).toBe(0);
+    expect(posted.choices).toEqual([2]);
+
+    await page.close();
+  });
+
+  it('a Mind Rot multi-pick toggles faces and commits through the ordinary submit', async () => {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=discard2`);
+
+    const row = page.locator('[data-answer-surface] [data-discard]');
+    await row.waitFor({ state: 'visible' });
+    expect(await row.locator('[data-option]').count()).toBe(5);
+
+    // Too few picks: the commit is gated on the decision's own min.
+    const submit = page.locator('[data-answer-surface] [data-submit]');
+    expect(await submit.isDisabled()).toBe(true);
+
+    // Toggle two faces in: picked state on the wire-vocabulary affordances
+    // (aria-pressed) and the pick ordinal, as the mulligan-bottom row shows.
+    await row.locator('[data-option="2"]').click();
+    await row.locator('[data-option="0"]').click();
+    expect(await row.locator('[data-option="2"]').getAttribute('aria-pressed')).toBe('true');
+    expect(await row.locator('[data-option="0"]').getAttribute('aria-pressed')).toBe('true');
+    expect(await row.locator('[data-option="2"] .order').textContent()).toBe('1');
+    expect(await row.locator('[data-option="0"] .order').textContent()).toBe('2');
+
+    // Submit posts the picked order — the same intent the text list posted.
+    await submit.click();
+    await page.waitForFunction(() => document.querySelectorAll('[data-answer-surface] [data-option]').length === 0);
+    const posted = JSON.parse(await page.evaluate(() => (window as unknown as { __posted?: string }).__posted ?? 'null')) as { seq: number; choices: number[] };
+    expect(posted.seq).toBe(12);
+    expect(posted.choices).toEqual([2, 0]);
+
+    await page.close();
+  });
+
+  it('a modal mode list (no Obj) still renders the generic text list', async () => {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=charm`);
+
+    const options = page.locator('[data-answer-surface] .option');
+    await options.first().waitFor({ state: 'visible' });
+    expect(await options.count()).toBe(2);
+    expect(await options.first().textContent()).toContain('Deal 2 damage');
+    // No card-face row: the mode list is not a discard-pick ask.
+    expect(await page.locator('[data-answer-surface] [data-discard]').count()).toBe(0);
+
+    await page.close();
+  });
+});

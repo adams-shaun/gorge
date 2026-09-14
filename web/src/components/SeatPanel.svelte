@@ -5,6 +5,7 @@
   import { SeatPanelState, autoNoteText, isConcede, mulliganPhase, toneOf } from '../lib/seatpanel.svelte';
   import { promptContext, promptContextText } from '../lib/prompt';
   import { arrangeCard } from '../lib/arrange';
+  import { discardCard, isDiscardPick } from '../lib/discard';
   import { modalPickerOpen } from '../lib/modals';
   import ArrangeModal from './ArrangeModal.svelte';
   import CardDetail from './CardDetail.svelte';
@@ -211,6 +212,32 @@
   // StackTile tests do.)
   $effect(() => {
     arrangeHover.supervise(arrangeCards);
+  });
+
+  // The discard-pick family (fb-20260914T120705Z): a decision whose options
+  // are card picks (kind "discard", Obj set) — the Thoughtseize/Mind Rot
+  // discard ask, the cleanup-step discard, the cast-cost discard. It renders
+  // its card faces like the arrange strip instead of the generic text list:
+  // the decision is the payload that carries the cards (the target's hand is
+  // redacted in the view), so each face is synthesized from {obj, label} and
+  // gets the shared hover inspector. isDiscardPick is kind-agnostic on the
+  // DECISION (the four shapes span KModes and KChoose) and strict on the
+  // OPTIONS, so a mixed decision falls through to the generic list.
+  const discard = $derived(isDiscardPick(decision) ? decision : null);
+
+  // The discard row's hover inspector: the same CardHover dwell/focus
+  // mechanism the arrange strip got (fb-20260914T063020Z Job 1) — one shared
+  // panel for the whole row, portalled CardDetail, real oracle text by exact
+  // card name. The arrange strip and this row are disjoint branches (an
+  // arrange decision's options are never "discard" picks), so two instances
+  // never fight for one pointer.
+  const discardHover = new CardHover();
+
+  // The cards the row currently shows — the present list the lifecycle
+  // contract supervises against (same contract as arrangeCards above).
+  const discardCards = $derived(discard !== null ? discard.options.map((o) => discardCard(discard, o)) : []);
+  $effect(() => {
+    discardHover.supervise(discardCards);
   });
 
   // The prompt context line (brief Job 3): who the prompt is from and what
@@ -435,6 +462,57 @@
             {/if}
           </div>
           {#if arrangeHover.hover.show && arrangeHover.card && arrangeHover.anchor}<CardDetail card={arrangeHover.card} anchor={arrangeHover.anchor} />{/if}
+        </div>
+      {:else if discard !== null}
+        <!-- The discard-pick ask (fb-20260914T120705Z): card faces instead of
+             the generic text list, for every engine shape whose options are
+             card picks — the Thoughtseize/Mind Rot discard ask (KModes), the
+             cleanup-step discard and the cast-cost discard (KChoose). Same
+             face-then-submit pattern as the mulligan-bottom row; the posting
+             path is the ordinary one (click posts straight through on a
+             min==max==1 ask and toggles into `picked` otherwise, submit gated
+             by canSubmit), so the wire intent is byte-identical to the text
+             list this replaces. The strip does not reach this branch: an
+             initiative-tone ask is bounced to the board above it, exactly as
+             before. -->
+        <div class="discard" data-discard>
+          <div class="hand picking" data-discard-row data-options data-card-count={discard.options.length} style={`--n:${Math.max(1, discard.options.length)}`} aria-label="Cards to discard">
+            {#each discard.options as opt (opt.index)}
+              {@const card = discardCard(discard, opt)}
+              {@const at = logic.picked.indexOf(opt.index)}
+              <button
+                class="pick"
+                class:picked={at >= 0}
+                type="button"
+                data-option={opt.index}
+                aria-pressed={at >= 0}
+                aria-label={card.name}
+                onpointerenter={(e) => discardHover.arm(card, e.currentTarget)}
+                onpointerleave={() => discardHover.leave(card)}
+                onfocus={(e) => discardHover.open(card, e.currentTarget)}
+                onblur={() => discardHover.blur(card)}
+                onkeydown={(e) => discardHover.keydown(e)}
+                aria-describedby={discardHover.hover.show && discardHover.card?.id === card.id ? `card-detail-${card.id}` : undefined}
+                onclick={() => logic.click(opt.index)}
+                disabled={logic.busy}
+              >
+                <CardImage {card} />
+                {#if at >= 0}<span class="order">{at + 1}</span>{/if}
+              </button>
+            {/each}
+          </div>
+          {#if logic.showSubmit && placement !== 'strip'}
+            <div class="choices">
+              <button
+                class="choice keep"
+                type="button"
+                data-submit
+                onclick={() => logic.submit()}
+                disabled={!logic.canSubmit || logic.busy}
+              >{discard.min === 0 ? 'Confirm' : discard.min === discard.max ? `Choose ${discard.min}` : `Choose ${discard.min}–${discard.max}`}</button>
+            </div>
+          {/if}
+          {#if discardHover.hover.show && discardHover.card && discardHover.anchor}<CardDetail card={discardHover.card} anchor={discardHover.anchor} />{/if}
         </div>
       {:else}
         <div class="options" data-options>
@@ -721,7 +799,8 @@
     width: 100%;
   }
 
-  .arrange {
+  .arrange,
+  .discard {
     display: flex;
     flex-direction: column;
     width: 100%;
