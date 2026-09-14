@@ -4,6 +4,7 @@
   import type { SeatCtx } from '../lib/seat';
   import { hotkeyAction } from '../lib/hotkeys';
   import { modalPickerOpen } from '../lib/modals';
+  import { postUndo } from '../lib/api';
   import { autoNoteText, isConcede, toneOf, type SeatPanelState } from '../lib/seatpanel.svelte';
   import SeatPanel from './SeatPanel.svelte';
   import PlaySettingsPanel from './PlaySettingsPanel.svelte';
@@ -23,6 +24,7 @@
   type Tab = 'actions' | 'pass' | 'ffwd' | 'done' | 'options';
   let open = $state<Tab | null>(null);
   let closeTimer: ReturnType<typeof setTimeout> | null = null;
+  let undoPosting = $state(false);
 
   const decision = $derived(logic.active);
   // The ACTIONS tab projects the seat panel's own tone (R-E4-1: resolved from
@@ -37,6 +39,11 @@
     decision?.options.filter((o) => o.kind !== 'pass' && !isConcede(o)) ?? [],
   );
   const passAvailable = $derived(logic.passOption !== null && !logic.busy);
+  // Undo is a whole-table rollback and has no consent flow. The server is
+  // authoritative, but the snapshot's human markers let the client disable
+  // the control whenever this is not the sole human seat.
+  const humanSeats = $derived(seats.flatMap((s, i) => s.human ? [i] : []));
+  const undoAllowed = $derived(humanSeats.length === 1 && humanSeats[0] === ctx.seat && !undoPosting);
   // Fast forward became End Turn (prio3): a one-shot to the end of the
   // CURRENT turn. It can only advance through a real pass option.
   // considerAuto is still the safety oracle; this gate merely avoids
@@ -87,6 +94,19 @@
     clearClose();
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   }
+  async function undo(): Promise<void> {
+    if (!undoAllowed) return;
+    undoPosting = true;
+    logic.error = null;
+    try {
+      await postUndo(table, match, ctx);
+    } catch (e) {
+      logic.error = e instanceof Error ? e.message : String(e);
+    } finally {
+      undoPosting = false;
+    }
+  }
+
   function endTurn(e: MouseEvent): void {
     if (!endTurnAvailable) return;
     // Shift-click is the hard skip: pass everything, opponent objects
@@ -244,7 +264,23 @@
     </div>
   {/if}
 
-  <!-- Done is one action too, so it follows Pass and End Turn. Ctrl held
+  <div class="hot-tab direct" role="presentation">
+    <button
+      class="tab"
+      type="button"
+      data-hot-tab="undo"
+      data-undo
+      aria-label="Undo my last action"
+      aria-disabled={!undoAllowed}
+      disabled={!undoAllowed}
+      title={undoAllowed ? 'Undo my last action' : 'Undo is available only when you are the table’s sole human player'}
+      onclick={() => void undo()}
+    >
+      <span class="full">UNDO</span><span class="compact" aria-hidden="true">↶</span>
+    </button>
+  </div>
+
+  <!-- Done is one action too, so it follows Pass, End Turn and Undo. Ctrl held
        while submitting a cast/ability holds priority: passAfterAct is
        skipped for that one action. -->
   <div class="hot-tab contextual direct" role="presentation">

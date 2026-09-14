@@ -28,9 +28,12 @@ func head(m *match) uint64 {
 	return 0
 }
 
-// snapshotFrame is the whole board at head in the table's visibility plus
-// the turn starts. Called with m.mu held for reading.
-func (r *Registry) snapshotFrame(t *table, m *match) protocol.Frame {
+// snapshotBody is the whole board at head in the table's visibility plus
+// the turn starts — the body a snapshot frame carries. Split out of
+// snapshotFrame so the rewind frame (host/undo.go) can carry the exact
+// same body under its own envelope type: a client applies a rewind's
+// snapshot exactly like a fresh subscription's.
+func (r *Registry) snapshotBody(t *table, m *match) protocol.Snapshot {
 	v := view.ProjectFor(m.e.G, m.e, view.NoSeat, t.cfg.Spectator, nil)
 	// The board clock reads v.Round, so it must be the EXACT round-trip count
 	// (view.RoundOf, folded over the ordered event stream), not the
@@ -52,9 +55,14 @@ func (r *Registry) snapshotFrame(t *table, m *match) protocol.Frame {
 	// still learn who is where in the CURRENT match. Without it the table
 	// route's seat list stayed empty for the whole match (ui16). A copy, like
 	// TurnStarts, so the frame never aliases m.seats.
-	return frame(protocol.TSnapshot, t, m.k, head(m), protocol.Snapshot{
+	return protocol.Snapshot{
 		View: v, TurnStarts: append([]uint64{}, m.turnStarts...), Head: head(m),
-		Seats: append([]protocol.SeatInfo{}, m.seats...)})
+		Seats: append([]protocol.SeatInfo{}, m.seats...)}
+}
+
+// snapshotFrame is snapshotBody under the TSnapshot envelope.
+func (r *Registry) snapshotFrame(t *table, m *match) protocol.Frame {
+	return frame(protocol.TSnapshot, t, m.k, head(m), r.snapshotBody(t, m))
 }
 
 // widgetFrame is the overview cell. Called with m.mu held for reading.

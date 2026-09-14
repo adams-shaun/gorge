@@ -91,6 +91,7 @@ func newHandler(r *host.Registry, o Options) (*handler, http.Handler) {
 	mux.HandleFunc("GET /api/tables/{t}/matches/{k}/events", h.events)
 	mux.HandleFunc("GET /api/tables/{t}/matches/{k}/pending", h.pending)
 	mux.HandleFunc("POST /api/tables/{t}/matches/{k}/intent", h.intent)
+	mux.HandleFunc("POST /api/tables/{t}/matches/{k}/undo", h.undo)
 	mux.HandleFunc("POST /api/subscribe", h.subscribe)
 	mux.HandleFunc("POST /api/unsubscribe", h.unsubscribe)
 	mux.HandleFunc("POST /api/games", h.games)
@@ -99,6 +100,7 @@ func newHandler(r *host.Registry, o Options) (*handler, http.Handler) {
 	// answer 405 in JSON rather than the mux's default text body.
 	for _, p := range []string{"/api/tables", "/api/decks", "/api/tables/{t}/matches", "/api/tables/{t}/matches/{k}/view",
 		"/api/tables/{t}/matches/{k}/events", "/api/tables/{t}/matches/{k}/pending", "/api/tables/{t}/matches/{k}/intent",
+		"/api/tables/{t}/matches/{k}/undo",
 		"/api/subscribe", "/api/unsubscribe", "/api/games", "/api/stream"} {
 		mux.HandleFunc(p, methodNotAllowed)
 	}

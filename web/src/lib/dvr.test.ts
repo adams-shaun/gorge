@@ -87,6 +87,13 @@ describe('dvr reducer', () => {
     expect(s).toMatchObject({ match: 't1/2', head: 7, cursor: 7, live: true, events: [], gap: false });
     expect(dvrReducer(s, { type: 'reset' })).toEqual(initialDvr);
   });
+  it('a rewind of the same match discards its tail and returns to live at the shorter head', () => {
+    let s = live([101, 102]);
+    s = dvrReducer(s, { type: 'pause' });
+    s = dvrReducer(s, { type: 'rewind', match: 't1/1', head: 40, turnStarts: [0, 20] });
+    expect(s).toMatchObject({ match: 't1/1', head: 40, cursor: 40, live: true, events: [], turnStarts: [0, 20], gap: false });
+  });
+
   it('a snapshot for the same match while paused keeps the cursor', () => {
     let s = live([101, 102]);
     s = dvrReducer(s, { type: 'pause' });

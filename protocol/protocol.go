@@ -30,6 +30,7 @@ const (
 	TTableHalted FrameType = "table_halted"
 	TOverflow    FrameType = "overflow"
 	TError       FrameType = "error"
+	TRewind      FrameType = "rewind"
 )
 
 // Subscription modes and the wildcard table.
@@ -134,11 +135,18 @@ type Widget struct {
 }
 
 // SeatInfo names a seat for the identity bars; Colour is the seat colour
-// the client keeps consistent from overview to focused view.
+// the client keeps consistent from overview to focused view. Human marks a
+// seat played by a real person (TableConfig.Humans): additive and omitempty
+// (old sidecars and every bot seat omit it), it is what tells a client
+// whether an undo control may be offered — the registry refuses an undo on
+// any table whose human seats are not all the requester, so a seat that can
+// see two humans on the wire can know its UNDO button would be refused
+// (dispatch fb-20260911T201015Z).
 type SeatInfo struct {
 	Name   string `json:"name"`
 	Deck   string `json:"deck"`
 	Colour string `json:"colour"`
+	Human  bool   `json:"human,omitempty"`
 }
 
 // MatchStart announces match k on a subscribed table.
@@ -189,6 +197,18 @@ type MatchEnd struct {
 type TableHaltedBody struct {
 	Reason string `json:"reason"`
 }
+
+// Rewind announces an in-place rollback of the live match it is addressed
+// to (dispatch fb-20260911T201015Z, the undo slice): the match id and its
+// hash chain are unchanged, but every event past Head was undone — later
+// seqs are re-used by the replayed game and mean different events than
+// they did before the rewind. The body is a full Snapshot at the new head
+// (the same shape a fresh focus subscription receives), so a client
+// applies it exactly like any snapshot frame and, unlike a snapshot,
+// DISCARDS everything it holds past Head first: pending decisions,
+// buffered intents and transcript lines past Head are all stale. The
+// frame's own envelope Seq is the new head.
+type Rewind = Snapshot
 
 // Overflow is the last frame on a stream whose session channel filled.
 type Overflow struct {

@@ -31,6 +31,7 @@ import FeedbackButton from './FeedbackButton.svelte';
 
 interface FixtureWindow {
   __posts: unknown[];
+  __undos: { url: string; authorization: string }[];
   __state: SeatPanelState;
   __view: View;
   __armRun: () => void;
@@ -56,13 +57,20 @@ const decision: Decision = {
 // (absent) backend. The pending GET re-serves the same decision — the same
 // seq, so adopt is a no-op — and everything else 404s.
 const posts: unknown[] = [];
+const undos: { url: string; authorization: string }[] = [];
 win.__posts = posts;
+win.__undos = undos;
 window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const u = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
   const method = init?.method ?? 'GET';
   if (method === 'POST' && u.includes('/intent')) {
     posts.push(init?.body === undefined ? null : JSON.parse(String(init.body)));
     return new Response(null, { status: 200 });
+  }
+  if (method === 'POST' && u.includes('/undo')) {
+    const headers = new Headers(init?.headers);
+    undos.push({ url: u, authorization: headers.get('Authorization') ?? '' });
+    return new Response(null, { status: 204 });
   }
   if (u.includes('/pending')) {
     return new Response(JSON.stringify(decision), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -81,7 +89,7 @@ const player: PlayerView = {
   graveyard_size: 0, hand: [], battlefield: [], graveyard: [], exile: [], pool: {},
   command: [], commanders: [], commander_casts: [],
 };
-const seats: SeatInfo[] = [{ name: 'Ari', deck: 'deck', colour: '#e5484d' }];
+const seats: SeatInfo[] = [{ name: 'Ari', deck: 'deck', colour: '#e5484d', human: true }];
 const view: View = {
   viewer: 0, visibility: 'seat', turn: 1, round: 1, step: 'main1', phase: 'main1',
   active: 0, priority: 0, over: false, draw: false, winner: null,
@@ -110,6 +118,21 @@ win.__armRun = () => {
 mount(HotButtonStrip, {
   target: document.querySelector('#fixture')!,
   props: { view, seats, state, ctx: { seat: 0, token: 'tok' }, table: 'fx', match: 1 },
+});
+
+// A second real strip carries another human seat. Its disabled Undo control
+// proves both the native disabled affordance and the handler's own guard: a
+// synthetic dispatched click must not reach postUndo/fetch either.
+mount(HotButtonStrip, {
+  target: document.querySelector('#undo-disabled')!,
+  props: {
+    view,
+    seats: [...seats, { name: 'Bo', deck: 'deck2', colour: '#22c55e', human: true }],
+    state,
+    ctx: { seat: 0, token: 'tok' },
+    table: 'fx',
+    match: 1,
+  },
 });
 
 // The pile modal is mounted imperatively so the fixture starts closed and a

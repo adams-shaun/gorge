@@ -68,10 +68,20 @@ func (sc sidecar) info() protocol.MatchInfo {
 		Result: sc.Result, Winner: sc.Winner, Head: sc.Head, Events: sc.Events, Turns: sc.Turns}
 }
 
-// matchFiles are a live match's append-only logs.
+// matchFiles are a live match's append-only logs. The two offset slices
+// below record the byte size of each file after every appended burst,
+// parallel to the match's own bounds (evOff[j] is the events file's size
+// once burst j — genesis for j=0, intent j-1 otherwise — is durable), and
+// are what an in-place rewind truncates against (truncateTo). They are
+// touched only by append and truncateTo, always on the match goroutine
+// under the match lock.
 type matchFiles struct {
 	events, intents *os.File
 	sync            bool
+	evBytes         int64   // current events file size
+	inBytes         int64   // current intents file size
+	evOff           []int64 // events file size after each appended burst
+	inOff           []int64 // intents file size after each appended burst
 }
 
 func tableDir(dir string, t TableID) string { return filepath.Join(dir, string(t)) }
@@ -99,7 +109,9 @@ func openMatchFiles(dir string, t TableID, k int, sync bool) (*matchFiles, error
 
 // append writes one burst: the new events and the intent that produced
 // them (nil for genesis), one JSON object per line, then fsyncs when
-// configured (PL-13, opts.Sync).
+// configured (PL-13, opts.Sync). The per-burst byte offsets are recorded
+// here on success, so a later rewind (truncateTo) can cut both files back
+// to any recorded burst boundary in place.
 //
 // Burst atomicity (fix round 1): the intent that owns a burst is written
 // BEFORE the burst's events. The two live in separate files and can never
@@ -109,6 +121,7 @@ func openMatchFiles(dir string, t TableID, k int, sync bool) (*matchFiles, error
 // tail whose events never made it, which read-time reconcile (reconcileLog)
 // trims back so a restart always serves a consistent prefix.
 func (f *matchFiles) append(evs []events.Event, in *decision.Intent) error {
+	var inAdd int64
 	if in != nil {
 		b, err := json.Marshal(in)
 		if err != nil {
@@ -117,12 +130,14 @@ func (f *matchFiles) append(evs []events.Event, in *decision.Intent) error {
 		if _, err := f.intents.Write(append(b, '\n')); err != nil {
 			return err
 		}
+		inAdd += int64(len(b) + 1)
 		if f.sync {
 			if err := f.intents.Sync(); err != nil {
 				return err
 			}
 		}
 	}
+	var evAdd int64
 	w := bufio.NewWriter(f.events)
 	for _, e := range evs {
 		b, err := json.Marshal(e)
@@ -131,6 +146,7 @@ func (f *matchFiles) append(evs []events.Event, in *decision.Intent) error {
 		}
 		w.Write(b)
 		w.WriteByte('\n')
+		evAdd += int64(len(b) + 1)
 	}
 	if err := w.Flush(); err != nil {
 		return err
@@ -140,6 +156,59 @@ func (f *matchFiles) append(evs []events.Event, in *decision.Intent) error {
 			return err
 		}
 	}
+	// The burst is fully appended: record its byte offsets. evOff is indexed
+	// by burst (genesis = 0), inOff likewise; genesis's intents offset stays
+	// 0 because genesis carries no intent line.
+	f.evBytes += evAdd
+	f.evOff = append(f.evOff, f.evBytes)
+	f.inBytes += inAdd
+	f.inOff = append(f.inOff, f.inBytes)
+	return nil
+}
+
+// truncateTo cuts both files back to the state they had after burst j
+// (genesis for j == 0, intent j-1 otherwise) and repositions the write
+// offsets there, so the next append continues the truncated log exactly
+// where it left off — the in-place half of a rewind (host/undo.go). Each
+// Truncate is one syscall; the Sync makes the shorter length durable
+// before the second file is touched, and readLog's reconcileLog re-derives
+// this same prefix from ANY interrupted intermediate state (one file cut,
+// the other not, or a cut lost to a crash before its metadata reached
+// disk), so the pair needs no cross-file atomicity. Bursts past j drop out
+// of the offset slices with the bytes.
+func (f *matchFiles) truncateTo(j int) error {
+	if j < 0 || j >= len(f.evOff) || j >= len(f.inOff) {
+		return fmt.Errorf("host: truncation point %d outside the persisted bursts (%d events-file bursts)", j, len(f.evOff))
+	}
+	if err := f.events.Truncate(f.evOff[j]); err != nil {
+		return err
+	}
+	if f.sync {
+		if err := f.events.Sync(); err != nil {
+			return err
+		}
+	}
+	if err := f.intents.Truncate(f.inOff[j]); err != nil {
+		return err
+	}
+	if f.sync {
+		if err := f.intents.Sync(); err != nil {
+			return err
+		}
+	}
+	// Rewind the write offsets: append resumes from the truncated end, not
+	// from the old EOF, or the next burst would reopen the hole Truncate
+	// closed.
+	if _, err := f.events.Seek(f.evOff[j], 0); err != nil {
+		return err
+	}
+	if _, err := f.intents.Seek(f.inOff[j], 0); err != nil {
+		return err
+	}
+	f.evOff = f.evOff[:j+1]
+	f.inOff = f.inOff[:j+1]
+	f.evBytes = f.evOff[j]
+	f.inBytes = f.inOff[j]
 	return nil
 }
 

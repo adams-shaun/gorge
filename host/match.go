@@ -83,6 +83,12 @@ type match struct {
 	winner     *uint8
 	head       string
 	reason     string // crash reason (Task 13)
+	// undo queues accepted undo requests (Registry.Undo, host/undo.go) for the
+	// play loop. Its size-one signal channel is only a wakeup: undoQueue's
+	// pending count preserves every accepted click, rearming the wakeup after
+	// each rewind until the queue is empty. Created at match build, never
+	// reassigned, and dies with the match.
+	undo *undoQueue
 }
 
 // snapshot is a cloned engine at an intent boundary that began a turn.
@@ -133,6 +139,15 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 		}
 		names[i], decks[i], deckNames[i], cmds[i] = d.Name, d.Cards, dn, d.Commanders
 		infos[i] = protocol.SeatInfo{Name: playerNames[i], Deck: d.Name, Colour: protocol.SeatColours[i%len(protocol.SeatColours)]}
+		// Human marks the slots TableConfig.Humans seats with a real person:
+		// the wire signal a client's undo control reads (protocol.SeatInfo's
+		// doc).
+		for _, h := range c.Humans {
+			if h == i {
+				infos[i].Human = true
+				break
+			}
+		}
 	}
 	cfg := rules.Config{Seed: seed, Names: names, PlayerNames: playerNames, Decks: decks, Tokens: r.opts.Tokens, Mulligans: c.Mulligans}
 	// The format the table was configured with is threaded into the engine
@@ -170,7 +185,8 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 	// clone (Clone truncates to len), so the clone-sharing invariant is intact.
 	e.L.Reserve(defaultExpectedEvents)
 	e.Advance()
-	m := &match{table: t, k: k, seed: seed, cfg: cfg, seats: infos, decks: deckNames, e: e, state: protocol.MatchLive}
+	m := &match{table: t, k: k, seed: seed, cfg: cfg, seats: infos, decks: deckNames, e: e, state: protocol.MatchLive,
+		undo: newUndoQueue()}
 	m.bounds = []uint64{uint64(len(e.L.Events))}
 	m.turnStarts = turnStartsIn(e.L.Events, 0)
 	m.snapshotGenesis()
@@ -366,9 +382,9 @@ func projectNext(m *match, seats []seat.Seat, brd *botpolicy.Board) *parkedData 
 // stays closed. The decision's owner seat is stable, so the BoardSeat/HumanSeat
 // assertions here match projectNext's, and exactly the field that was built is
 // consumed.
-func parkSeat(ctx context.Context, seats []seat.Seat, pd *parkedData) *parkedDecision {
+func parkSeat(ctx context.Context, seats []seat.Seat, pd *parkedData, undo <-chan state.PlayerID) *parkedDecision {
 	if hs, ok := seats[pd.p].(*HumanSeat); ok {
-		return &parkedDecision{p: pd.p, hs: hs.park(ctx, pd.v, pd.dc)}
+		return &parkedDecision{p: pd.p, hs: hs.park(ctx, pd.v, pd.dc, undo)}
 	}
 	if bs, ok := seats[pd.p].(seat.BoardSeat); ok && pd.isBoard {
 		in, err := bs.DecideBoard(ctx, pd.brd, pd.dc)
@@ -474,11 +490,33 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 			return r.abort(m)
 		default:
 		}
-		// The loop is the only writer, so reading without the lock here
-		// is safe; readers on other goroutines take RLock and see either
-		// the state before or after the Lock section below.
-		if m.e.G.Over {
-			return r.finish(t, m)
+		// Atomically choose an already-accepted undo before committing a
+		// natural end. Undo reserves its request under this same match lock,
+		// so exactly one side wins: a request queued first is serviced even
+		// when the preceding burst ended the game; a finish committed first
+		// makes Undo return a conflict instead of 204-then-nothing. This check
+		// is the first operation at every post-burst loop boundary, including
+		// the boundary after the pace sleep.
+		req, undo, final := r.settleNaturalEndOrUndo(t, m)
+		if final != "" {
+			return final
+		}
+		if undo {
+			// The rewind itself is host/undo.go's in-place truncate. A parked
+			// decision this path abandons must stop being answerable BEFORE the
+			// game is rebuilt, or a submit racing the rewind could be validated
+			// against a decision the match no longer asks and silently dropped.
+			parked.abandon()
+			var err error
+			parked, err = r.serviceUndo(ctx, t, m, seats, &brd, req)
+			if err != nil {
+				return r.crash(t, m, err)
+			}
+			// continue executes the for-loop post statement (n++), so seed n
+			// one behind the rewound intent count. At the next body entry n once
+			// again equals the number of intents already submitted.
+			n, lastTurn, decisionsThisTurn = m.intents-1, m.e.G.Turn, 0
+			continue
 		}
 		if n >= maxIntents {
 			return r.crash(t, m, fmt.Errorf("did not terminate after %d intents (turn %d)", n, m.e.G.Turn))
@@ -502,7 +540,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 			if data == nil {
 				return r.crash(t, m, fmt.Errorf("engine stalled: game not over and no decision pending"))
 			}
-			parked = parkSeat(ctx, seats, data)
+			parked = parkSeat(ctx, seats, data, m.undo.signal)
 		}
 		// Await the answer to the parked decision (parked at the first live
 		// iteration or at the end of the previous one). A bot seat resolved
@@ -511,6 +549,18 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 		// fires the caretaker.
 		in, err := parked.answer()
 		if err != nil {
+			// The parked human's await saw the undo signal before any intent:
+			// rewind exactly as the top-of-loop check would. The await's own
+			// defer has already cleared the seat's slot.
+			if req, isUndo := asUndo(err); isUndo {
+				var uerr error
+				parked, uerr = r.serviceUndo(ctx, t, m, seats, &brd, req)
+				if uerr != nil {
+					return r.crash(t, m, uerr)
+				}
+				n, lastTurn, decisionsThisTurn = m.intents-1, m.e.G.Turn, 0
+				continue
+			}
 			return r.crash(t, m, fmt.Errorf("seat %d: %w", parked.p, err))
 		}
 		var next *parkedDecision
@@ -564,7 +614,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 		// match mutex must never be held across one. Publishing happens only
 		// after this, so the park-before-publish ordering still holds.
 		if nextData != nil {
-			next = parkSeat(ctx, seats, nextData)
+			next = parkSeat(ctx, seats, nextData, m.undo.signal)
 		}
 		// Park the engine's NEXT decision BEFORE publishing it: the seat that
 		// owns it is now accept-ready, so the fan-out below cannot expose a
@@ -578,9 +628,33 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	}
 }
 
-// finish records a natural end.
-func (r *Registry) finish(t *table, m *match) string {
+// settleNaturalEndOrUndo is the linearization point between an accepted undo
+// and a natural match finish. Registry.Undo reserves its request while holding
+// m.mu too. Therefore a request that wins the lock is consumed here before the
+// G.Over transition, while a finish that wins records MatchFinished before
+// Undo can return and causes that request to be rejected. An HTTP 204 can never
+// be followed by match_end without the corresponding rewind being serviced.
+//
+// The test-only barrier runs before this lock only when the game is over; it
+// lets the race regression deterministically pause finish while Undo queues.
+// The match goroutine is the sole engine writer, so the preliminary G.Over read
+// is stable until this function either services an undo or records the finish.
+func (r *Registry) settleNaturalEndOrUndo(t *table, m *match) (state.PlayerID, bool, string) {
+	if m.e.G.Over && r.opts.beforeFinish != nil {
+		r.opts.beforeFinish()
+	}
+
 	m.mu.Lock()
+	select {
+	case req := <-m.undo.signal:
+		m.mu.Unlock()
+		return req, true, ""
+	default:
+	}
+	if !m.e.G.Over {
+		m.mu.Unlock()
+		return 0, false, ""
+	}
 	m.state = protocol.MatchFinished
 	m.head = m.e.L.Head()
 	if m.e.G.Draw {
@@ -591,9 +665,10 @@ func (r *Registry) finish(t *table, m *match) string {
 		m.winner = &w
 	}
 	m.mu.Unlock()
+
 	r.onMatchEnd(t, m)      // Tasks 10, 12
 	r.observeMatchEnd(t, m) // Task M2c-1
-	return protocol.MatchFinished
+	return 0, false, protocol.MatchFinished
 }
 
 // abort records a match cut short by Close.

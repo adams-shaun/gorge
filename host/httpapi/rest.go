@@ -255,6 +255,32 @@ func (h *handler) intent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// undo is the POST /api/tables/{t}/matches/{k}/undo action (dispatch
+// fb-20260911T201015Z, the undo slice): it asks the registry to roll the live
+// match back in place to the decision the requesting seat last answered
+// (host/undo.go). It takes no ?seat= and no body: the claim alone names the
+// requesting seat, which the registry fences to the table's sole human seat —
+// a table with two or more distinct human seats is refused (no consent flow
+// exists) — exactly as Pending/SubmitIntent fence to a human seat. 204 means
+// the signal was posted to the live loop; the rewind itself is observed on the
+// stream (the rewind frame, then the re-derived decision at the new head) or
+// through Pending/ViewAt.
+func (h *handler) undo(w http.ResponseWriter, r *http.Request) {
+	t, k, ok := matchKey(w, r)
+	if !ok {
+		return
+	}
+	claim, granted := h.claimSeat(w, r)
+	if !granted {
+		return
+	}
+	if err := h.reg.Undo(t, k, claim.Seat); err != nil {
+		writeSeatError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // decodeBody reads a small JSON body; anything malformed is a 400.
 func decodeBody(w http.ResponseWriter, r *http.Request, into any) bool {
 	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10))

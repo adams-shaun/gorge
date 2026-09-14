@@ -37,7 +37,7 @@ func Render() (string, error) {
 		reflect.TypeOf(decision.Intent{}),
 	}
 	unions := map[string][]string{
-		"FrameType":  {"hello", "widget", "match_start", "snapshot", "event", "decision", "match_end", "table_halted", "overflow", "error"},
+		"FrameType":  {"hello", "widget", "match_start", "snapshot", "event", "decision", "match_end", "table_halted", "overflow", "error", "rewind"},
 		"Mode":       {protocol.ModeOverview, protocol.ModeFocus},
 		"TableState": {protocol.TableIdle, protocol.TableLive, protocol.TableCooldown, protocol.TableHalted},
 		"MatchState": {protocol.MatchLive, protocol.MatchFinished, protocol.MatchAborted, protocol.MatchCrashed},

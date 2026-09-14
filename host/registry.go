@@ -134,6 +134,20 @@ type Options struct {
 	// terminal state (finished, aborted or crashed), with that match's final
 	// MatchInfo (Task M2c-1). See OnMatchEndFunc.
 	OnMatchEnd OnMatchEndFunc
+	// OnRewind, when non-nil, is invoked exactly once per undo an undo-capable
+	// match performs, with the truncation point the match rewound to. See
+	// OnRewindFunc (host/undo.go) — a sink that persists bursts through OnBurst
+	// MUST implement it, or its stored chain keeps events the live match has
+	// undone while later bursts re-use the same seq numbers for different
+	// events.
+	OnRewind OnRewindFunc
+
+	// beforeFinish is a test-only barrier immediately before play takes the
+	// match lock that linearizes a natural finish against Undo admission. It
+	// is deliberately unexported: production has no reason to delay this
+	// boundary, while the race regression must force both lock orderings
+	// without relying on scheduler timing.
+	beforeFinish func()
 }
 
 // defaultSleep is installed when Options.Sleep is nil. It is the package's

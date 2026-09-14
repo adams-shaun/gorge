@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { afterEach } from 'vitest';
-import { decksURL, eventsURL, matchesURL, pendingURL, seatQuery, tablesURL, viewURL, fetchView, fetchEvents, fetchPending, fetchDecks, postIntent, subscribe, createGame } from './api';
+import { decksURL, eventsURL, matchesURL, pendingURL, seatQuery, tablesURL, undoURL, viewURL, fetchView, fetchEvents, fetchPending, fetchDecks, postIntent, postUndo, subscribe, createGame } from './api';
 import { setBasePathForTests, withBase } from './basepath';
 import type { Intent } from '../protocol';
 
@@ -20,6 +20,7 @@ describe('api urls', () => {
     expect(viewURL('t1', 3, 0)).toBe('/api/tables/t1/matches/3/view?seq=0');
     expect(eventsURL('t 1', 3, 42)).toBe('/api/tables/t%201/matches/3/events?since=42');
     expect(pendingURL('t1', 3)).toBe('/api/tables/t1/matches/3/pending');
+    expect(undoURL('t 1', 3)).toBe('/api/tables/t%201/matches/3/undo');
     expect(seatQuery(ctx)).toBe('?seat=2&token=tok-abc');
   });
 
@@ -46,6 +47,18 @@ describe('api urls', () => {
       headers: expect.objectContaining({ 'Content-Type': 'application/json', Authorization: 'Bearer tok-abc' }),
       body: JSON.stringify(intent),
     }));
+  });
+
+  it('postUndo POSTs the human seat claim without a body and surfaces rejection', async () => {
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 204 });
+    await postUndo('t1', 3, ctx);
+    expect(fetchMock).toHaveBeenLastCalledWith('/api/tables/t1/matches/3/undo', {
+      method: 'POST', headers: { Authorization: 'Bearer tok-abc' },
+    });
+
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 409, json: async () => ({ code: 'conflict', message: 'nothing to undo' }) });
+    await expect(postUndo('t1', 3, ctx)).rejects.toMatchObject({ status: 409, code: 'conflict', message: 'nothing to undo' });
   });
 
   it('postIntent surfaces a server rejection as ApiError, and fetchView/fetchEvents route seat-scoped GETs', async () => {
