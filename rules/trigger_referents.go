@@ -28,13 +28,19 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerTarget = state.Target{Obj: source}
 		c.TriggerSource = e.protectionSource(ev.Obj)
 	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":
-		c.TriggerSource = e.damaging
+		// The damage source the causing event names: the published override
+		// when a DamageSource$ emitter set one (Kediss' DamageAll with
+		// DamageSource$ TriggeredSource resolves its own execute through
+		// exactly this role), else the resolution/combat source. The
+		// defending-player read below is combat-shaped by construction: an
+		// override is never published during combat's assignment loop.
+		c.TriggerSource = e.inFlightDamageSource()
 		c.TriggerAmount = ev.Amount
 		c.TriggerTarget = state.Target{Obj: ev.Obj}
 		if ev.Obj == 0 {
 			c.TriggerTarget = player(ev.Player)
 		}
-		if o := e.G.Obj(e.damaging); o != nil && o.IsAttacking {
+		if o := e.G.Obj(e.inFlightDamageSource()); o != nil && o.IsAttacking {
 			c.DefendingPlayer = player(o.Attacking)
 		}
 	case "Attacks", "AttackersDeclaredOneTarget":

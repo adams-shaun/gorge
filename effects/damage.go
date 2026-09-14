@@ -27,6 +27,12 @@ func init() {
 // damage on a card sitting in a graveyard. See the Task 18 report for how
 // this (and Destroy/ChangeZone/Sacrifice/Counter, which can make exactly that
 // happen) interacts with CR 608.2b target rechecking.
+//
+// CR 609.7a provenance: the damage's source is DamageSource$ when the script
+// names one, the resolving source otherwise, and SetDamageSource makes that
+// object the one rules' protection check and DamageDone triggers read for
+// every Damage event this loop emits (the rider and the engine override
+// cannot disagree -- both come from the one resolved rider source).
 func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "NumDmg", 0)
 	if n < 0 {
@@ -37,7 +43,9 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// the rider through one damageRider; combat has its own rider in
 	// rules/combat.go's damage step (the reference shape this class was
 	// modelled on).
-	rider := newDamageRider(h, c, n)
+	rider := newDamageRider(h, c, sa, n)
+	prev := h.SetDamageSource(rider.source)
+	defer h.SetDamageSource(prev)
 	// RememberDamaged$ True makes the resolution remember the objects it
 	// damaged, so a SubAbility$ (Incinerate's DB$ Effect reading
 	// RememberObjects$ Remembered.Creature) can act on exactly what took the
@@ -73,20 +81,44 @@ type damageRider struct {
 	hasLifelink bool
 }
 
+// resolveSourceObject unwraps one object id to the permanent a damage rider
+// gates on: an ability stack object (minted by AbilityPush/TriggerPush, Card
+// == nil, no Face) reads nothing off itself, so the keywords lifelink and
+// deathtouch belong to the SOURCE permanent that pushed it (CR 607.2). A
+// spell's own stack object IS the card and is read as-is. Same rule
+// rules.Engine.protectionSource applies (Task 15 fix round 1, Critical C2).
+func resolveSourceObject(h Host, id state.ObjID) state.ObjID {
+	if o := h.Game().Obj(id); o != nil && o.Ability != nil && o.Source != 0 {
+		return o.Source
+	}
+	return id
+}
+
 // newDamageRider builds the rider for one resolving DealDamage/DamageAll.
-// The source is resolved through the same rule rules.Engine.protectionSource
-// applies (Task 15 fix round 1, Critical C2): an ability stack object is
-// minted by AbilityPush/TriggerPush with Card == nil and no Face, so Derived
-// -- and with it every derived keyword, printed or granted -- reads nothing
-// off the wrapper itself; the keywords a damage rider gates on (lifelink,
-// deathtouch) belong to the SOURCE permanent that pushed it (CR 607.2). A
-// spell's own stack object IS the card and is read as-is. Resolving here,
-// once per resolution, keeps the next rider honest: every keyword read below
-// reads r.source, already resolved.
-func newDamageRider(h Host, c *Ctx, amount int32) damageRider {
-	source := c.Source
-	if o := h.Game().Obj(source); o != nil && o.Ability != nil && o.Source != 0 {
-		source = o.Source
+// The source is DamageSource$ when the script names one -- resolved through
+// the same Defined resolver every other object reference uses (Scourge of
+// Valkas' TriggeredCard, Kiku's Shadow's Targeted), never guessed at the
+// chosen targets when Defined does not recognise the spec -- and the
+// resolving source otherwise. A DamageSource$ the resolver cannot model
+// (EffectSource's LKI provenance, Imprinted, a Valid-card spec) keeps the
+// resolving source: today's behaviour, and the conservative direction --
+// damage from the resolving spell/ability's source, never damage silently
+// attributed to a target. Resolving here, once per resolution, keeps the
+// next rider honest: every keyword read below reads r.source, already
+// resolved, and SetDamageSource publishes the same object.
+func newDamageRider(h Host, c *Ctx, sa *cards.SA, amount int32) damageRider {
+	own := resolveSourceObject(h, c.Source)
+	source := own
+	if spec := strings.TrimSpace(sa.Params["DamageSource"]); spec != "" {
+		if ts, ok := definedSpec(h, c, spec); ok {
+			for _, t := range ts {
+				if t.IsPlayer || t.Obj == 0 {
+					continue
+				}
+				source = resolveSourceObject(h, t.Obj)
+				break
+			}
+		}
 	}
 	hasLifelink := h.HasKeyword(source, "Lifelink")
 	// CR 608.2h: an independently resolving ability whose source is no
@@ -95,8 +127,10 @@ func newDamageRider(h Host, c *Ctx, amount int32) damageRider {
 	// bearer is sacrificed, but the source had lifelink at its last moment on
 	// the battlefield. While the source remains there, always prefer its live
 	// derived state so detaching the Equipment before resolution removes the
-	// rider as it should.
-	if c.SourceLifelinkLKIValid {
+	// rider as it should. The snapshot is about the ability's OWN source --
+	// a DamageSource$ naming a different object must not inherit it, because
+	// the departure capture never looked at that object.
+	if c.SourceLifelinkLKIValid && source == own {
 		hasLifelink = c.SourceLifelinkLKI
 	}
 	return damageRider{h: h, source: source, controller: c.Controller,
@@ -123,49 +157,46 @@ func payLifelinkRider(r damageRider, landed bool) {
 		Amount: r.amount})
 }
 
-// emitObjectDamage marks the shared SBA witness only when positive damage from
-// a derived-deathtouch source actually increased the recipient's marked
-// damage. Host.Emit cannot expose a replacement event, so the state delta is
-// the effects-layer observation that protection or prevention did not replace
+// emitObjectDamage emits one non-combat Damage event against a battlefield
+// permanent and pays the lifelink rider for it. The event is the whole
+// walker exchange too (CR 306.8/120.3c): events.Apply's Damage case converts
+// a planeswalker's damage into loyalty loss -- and still marks a
+// creature-planeswalker's damage -- in the same fold every Damage event
+// takes, so protection, prevention and DamageDone triggers see walker damage
+// exactly like every other damage, and no emitter can forget the conversion.
+//
+// Host.Emit cannot expose a replacement event, so the state delta is the
+// effects-layer observation that protection or prevention did not replace
 // the Damage event -- the same observation gates the lifelink rider
 // (payLifelinkRider), so a prevented hit pays no deathtouch marker and no
-// life.
-//
-// CR 306.8: damage dealt to a planeswalker permanent removes that many
-// loyalty counters instead of being marked as damage, so a walker target
-// takes a LOYALTY CounterChange and never a Damage event here. Both spell/
-// ability damage paths route through this one helper (effDealDamage's object
-// arm and effDamageAll); combat damage cannot reach it -- this build's
-// attackers declare player defenders only, and a walker can neither attack
-// nor block -- so spell/ability damage is the whole walker-damage surface.
-// The exchange is one-directional by design and recorded in AGENTS.md:
-// prevention and destruction-replacement effects key on Damage events, so
-// they do not see walker damage (prevention vs a walker is unimplemented,
-// conservative and correct for now). RememberDamaged$ on the caller still
-// captures the walker, so an Incinerate-style "can't be regenerated" Effect
-// sub-ability still finds what took the damage.
+// life. A planeswalker's damage lands as loyalty counters (never marked
+// damage, CR 120.3c), so its delta is the walker's own loyalty counter; a
+// creature's is the marked-damage total; a creature-planeswalker moves both
+// and either delta reports the hit.
 func emitObjectDamage(r damageRider, target state.ObjID) {
 	h := r.h
 	o := h.Game().Obj(target)
 	if o == nil {
 		return
 	}
-	if f := o.Face(); f != nil && f.IsPlaneswalker() {
-		// A walker's damage removes loyalty counters (CR 306.8) but is still
-		// damage dealt -- the lifelink rider pays for it too.
-		landed := false
-		if r.amount != 0 {
-			h.Emit(events.Event{Kind: events.CounterChange, Obj: target,
-				Counter: "LOYALTY", Amount: -r.amount})
-			landed = r.amount > 0
-		}
-		payLifelinkRider(r, landed)
-		return
+	walker := o.Face() != nil && o.Face().IsPlaneswalker()
+	var beforeDamage int32
+	var beforeLoyalty int32
+	if walker {
+		beforeLoyalty = o.Counter("LOYALTY")
+	} else {
+		beforeDamage = o.Damage
 	}
-	before := o.Damage
 	h.Emit(events.Event{Kind: events.Damage, Obj: target, Amount: r.amount})
 	o = h.Game().Obj(target)
-	landed := r.amount > 0 && o != nil && o.Damage > before
+	landed := false
+	if o != nil && r.amount > 0 {
+		if walker {
+			landed = o.Counter("LOYALTY") < beforeLoyalty
+		} else {
+			landed = o.Damage > beforeDamage
+		}
+	}
 	if landed && h.HasKeyword(r.source, "Deathtouch") {
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: target,
 			Counter: "Deathtouched", Amount: 1})
@@ -182,8 +213,11 @@ func emitPlayerDamage(r damageRider, target state.PlayerID) {
 }
 
 // effDamageAll is the sweep pattern: iterate the battlefield in seat order,
-// filter by ValidCards$ (default "Creature"), emit. Seat order keeps the
-// event sequence deterministic.
+// filter by ValidCards$ (default "Creature"), emit; then the ValidPlayers$
+// arm (Pestilence, Valakut Exploration, Earthquake). Seat order keeps the
+// event sequence deterministic. DamageSource$ applies to the player arm too
+// (the lifelink rider pays for player damage from a named source), through
+// the same rider.
 func effDamageAll(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "NumDmg", 1)
 	if n < 0 {
@@ -194,7 +228,9 @@ func effDamageAll(h Host, c *Ctx, sa *cards.SA) {
 		spec = "Creature"
 	}
 	g := h.Game()
-	rider := newDamageRider(h, c, n)
+	rider := newDamageRider(h, c, sa, n)
+	prev := h.SetDamageSource(rider.source)
+	defer h.SetDamageSource(prev)
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
 			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
@@ -202,4 +238,75 @@ func effDamageAll(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	for _, p := range validPlayers(h, c, sa.Params["ValidPlayers"]) {
+		emitPlayerDamage(rider, p)
+	}
+}
+
+// validPlayers resolves a DamageAll ValidPlayers$ spec to the players the
+// sweep damages, in a deterministic order (selector order first, then seat
+// order). A spec Defined recognises as an object reference resolves through
+// the same resolver every other reference uses -- ValidPlayers$ Targeted
+// (players among the chosen targets), Remembered -- while anything else is
+// a PREDICATE over every living player through MatchesPlayerSpec (Player,
+// Player.Opponent, Opponent, You). A spec neither resolves (the
+// OppNonTriggeredTarget / FlippedTails singletons) stays unsupported and
+// damages no player: fail closed, never a guess about who takes the sweep.
+func validPlayers(h Host, c *Ctx, spec string) []state.PlayerID {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return nil
+	}
+	g := h.Game()
+	appendPlayer := func(out []state.PlayerID, seen map[state.PlayerID]bool,
+		p state.PlayerID) []state.PlayerID {
+		if p < 0 || int(p) >= len(g.Players) || g.Players[p].Lost || seen[p] {
+			return out
+		}
+		seen[p] = true
+		return append(out, p)
+	}
+	if spec == "TargetedController" {
+		// The controller of the chosen object target (1 corpus line); the
+		// object-target analogue of ValidPlayers$ Targeted.
+		if len(c.Targets) == 0 {
+			return nil
+		}
+		return []state.PlayerID{PlayerOf(h, c, c.Targets[0])}
+	}
+	if ts, ok := definedSpec(h, c, spec); ok {
+		var out []state.PlayerID
+		seen := make(map[state.PlayerID]bool)
+		for _, t := range ts {
+			if t.IsPlayer {
+				out = appendPlayer(out, seen, t.Player)
+			}
+		}
+		return out
+	}
+	// OppNonTriggeredTarget (Kediss, Emberclaw Familiar, 9 corpus lines):
+	// every opponent except the player the triggering event targeted --
+	// "deals that much damage to each OTHER opponent". Absent a player
+	// TriggerTarget the whole opponent set matches, the same reading the
+	// spec's name gives a trigger with no player referent.
+	if spec == "OppNonTriggeredTarget" {
+		exclude, has := state.PlayerID(0), false
+		if c.TriggerTarget.IsPlayer {
+			exclude, has = c.TriggerTarget.Player, true
+		}
+		var out []state.PlayerID
+		for _, p := range g.AliveFrom(0) {
+			if p != c.Controller && (!has || p != exclude) {
+				out = append(out, p)
+			}
+		}
+		return out
+	}
+	var out []state.PlayerID
+	for _, p := range g.AliveFrom(0) {
+		if MatchesPlayerSpec(g, spec, p, c.Controller) {
+			out = append(out, p)
+		}
+	}
+	return out
 }

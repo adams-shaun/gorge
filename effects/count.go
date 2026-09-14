@@ -91,6 +91,18 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 		return 0
 	}
 	expr = strings.TrimSpace(expr)
+	// A <Ref>$<Property> body answers a numeric question about the objects a
+	// target reference names: Targeted$CardPower (Vein Drinker's "deals
+	// damage equal to its power", Kiku's Shadow), ParentTargeted$CardPower,
+	// TriggeredCard$CardPower, and their Toughness/ManaCost/CardCounters/
+	// Valid siblings -- heads that used to evaluate to zero and made exactly
+	// the damage amounts they sized collapse. A ref or property outside the
+	// modelled family returns false and falls through to the heads below
+	// (evalRemembered still owns Remembered$Amount), so every shape that was
+	// zero before stays zero.
+	if n, ok := evalRefProperty(h, c, expr); ok {
+		return n
+	}
 	// A Sacrificed$... expression answers "the sacrificed object's" head (CR
 	// 608.2g last-known-information): power, toughness, mana value, or the
 	// number of objects sacrificed. It reads the LKI snapshot captured at the
@@ -109,7 +121,7 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 	// True appended every countered spell). The /Op suffix is applied the
 	// same way Count$ applies it. An unmodelled head degrades to zero.
 	if body, ok := strings.CutPrefix(expr, "Remembered$"); ok {
-		return evalRemembered(c, strings.TrimSpace(body))
+		return evalRemembered(h, c, strings.TrimSpace(body))
 	}
 	// A TriggerCount$... expression answers a question about the event that
 	// fired the trigger currently resolving -- "how much damage did that event
@@ -217,21 +229,108 @@ func sacrificedNumeric(c *Ctx, f func(state.SacrificedInfo) int32) int32 {
 	return n
 }
 
-func evalRemembered(c *Ctx, body string) int32 {
+func evalRemembered(h Host, c *Ctx, body string) int32 {
 	body, op, hasOp := strings.Cut(body, "/")
-	var n int32
 	switch strings.TrimSpace(body) {
 	case "Amount":
-		n = int32(len(c.Remembered))
+		n := int32(len(c.Remembered))
+		if hasOp {
+			n = applyCountOp(n, op)
+		}
+		return n
+	}
+	// A Remembered$CardPower / CardToughness / CardManaCost / CardCounters.
+	// / Valid body is the shared <Ref>$<Property> family (evalRefProperty);
+	// evalCountExpr routes it here first only because the Remembered$
+	// prefix cut wins. An unmodelled property still degrades to zero, the
+	// same conservative no-op evalSacrificed's default takes.
+	if n, ok := evalRefProperty(h, c, "Remembered$"+body); ok {
+		if hasOp {
+			n = applyCountOp(n, op)
+		}
+		return n
+	}
+	return 0
+}
+
+// evalRefProperty resolves one "<Ref>$<Property>[...][/Op]" count body over
+// the objects a target reference names. Refs: Targeted/ParentTarget/
+// ThisTargetedCard name the resolving ability's chosen targets;
+// TriggeredCard (and its LKI spellings) and TriggeredAttacker name the
+// objects the firing trigger remembered; Remembered is the plain form. A
+// property this build does not model (or a body with no $ at all -- every
+// other head in this evaluator) returns false, and the caller degrades to
+// zero exactly as before this evaluator existed.
+//
+// The per-object answers mirror evalCountBody's own source-anchored heads:
+// CardPower/CardToughness read the face plus marked P1P1 counters
+// ( battlefield layer output for a battlefield object; a graveyard object's
+// face), CardManaCost the face's converted cost, CardCounters.<KIND> one
+// counter kind, Valid the count of referenced objects matching a card spec
+// (unknown predicates fail closed inside the matcher, so an unreadable
+// filter counts zero, never everything). Several references sum -- Forge's
+// Count$ reads the same way -- and the /Op suffix applies through
+// applyCountOp like every other head.
+func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
+	ref, prop, found := strings.Cut(expr, "$")
+	if !found || h == nil {
+		return 0, false
+	}
+	prop, op, hasOp := strings.Cut(prop, "/")
+	prop = strings.TrimSpace(prop)
+	var ts []state.Target
+	switch ref {
+	case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard":
+		ts = c.Targets
+	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
+		"TriggeredSpellAbility", "TriggeredAttacker", "TriggeredAttackerLKICopy",
+		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
+		"DelayTriggerRememberedLKI", "RememberedLKI":
+		ts = c.Remembered
+	case "Remembered":
+		ts = c.Remembered
 	default:
-		// An out-of-scope head degrades to zero, the same conservative
-		// no-op evalSacrificed's default takes.
-		return 0
+		return 0, false
+	}
+	g := h.Game()
+	var n int32
+	for _, t := range ts {
+		if t.IsPlayer {
+			continue
+		}
+		o := g.Obj(t.Obj)
+		if o == nil {
+			continue
+		}
+		f := o.Face()
+		switch {
+		case prop == "CardPower":
+			if f != nil {
+				n += int32(f.Power()) + o.Counter("P1P1")
+			}
+		case prop == "CardToughness":
+			if f != nil {
+				n += int32(f.Toughness()) + o.Counter("P1P1")
+			}
+		case prop == "CardManaCost":
+			if f != nil {
+				n += f.Cmc()
+			}
+		case strings.HasPrefix(prop, "CardCounters."):
+			n += o.Counter(strings.TrimPrefix(prop, "CardCounters."))
+		case prop == "Valid" || strings.HasPrefix(prop, "Valid "):
+			spec := strings.TrimSpace(strings.TrimPrefix(prop, "Valid"))
+			if MatchesSpecCtx(g, spec, t.Obj, c.SpecContext(c.Controller)) {
+				n++
+			}
+		default:
+			return 0, false
+		}
 	}
 	if hasOp {
 		n = applyCountOp(n, op)
 	}
-	return n
+	return n, true
 }
 
 func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {

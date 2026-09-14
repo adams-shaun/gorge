@@ -95,9 +95,30 @@ func Apply(g *state.Game, e Event) {
 
 	case Damage:
 		if o := g.Obj(e.Obj); o != nil {
-			o.Damage += e.Amount
-			if o.Damage < 0 {
-				o.Damage = 0
+			// CR 306.8 / 120.3c: damage dealt to a planeswalker permanent
+			// removes that many loyalty counters instead of being marked as
+			// damage. The conversion lives here, on the one fold every
+			// Damage event goes through, so spell/ability damage (effects/
+			// damage.go), future combat damage and any emitter this build
+			// gains later all convert the same way and a replay derives the
+			// same loyalty from the same log. A planeswalker that is ALSO a
+			// creature still takes marked damage (CR 120.3e -- the exchange
+			// is not exclusive), and either way a positive amount records
+			// that the object was dealt damage this turn. Prevention (CR
+			// 702.16d) and protection replace or note the Damage event
+			// before it reaches this fold, so a prevented hit converts
+			// nothing -- which is why the walker exchange no longer needs
+			// the bypass it used to travel by.
+			walker := false
+			if f := o.Face(); f != nil && f.IsPlaneswalker() {
+				walker = true
+				o.AddCounter("LOYALTY", -e.Amount)
+			}
+			if !walker || o.Face().IsCreature() {
+				o.Damage += e.Amount
+				if o.Damage < 0 {
+					o.Damage = 0
+				}
 			}
 			// A positive Damage event records that the object was dealt damage
 			// this turn even if a later prevention/healing event clears its

@@ -492,6 +492,35 @@ type Engine struct {
 	// each turn"; Forge Trigger.checkActivationLimit).
 	triggerTurnFires map[triggerKey]turnFires
 
+	// dmgSrcOverride is the in-flight DAMAGE SOURCE a DamageAll/DealDamage
+	// emitter publishes for the events it is about to emit, when DamageSource$
+	// (or the unwrapped ability source) names an object other than what the
+	// engine's own bookkeeping would read: rules.Engine.SetDamageSource sets
+	// it (effects.Host, the only channel effects -> rules has) and
+	// inFlightDamageSource reports it to the three Damage-provenance readers
+	// -- emit's protection check, damageMatches' ValidSource$, and
+	// triggerReferents' DamageDone TriggerSource role. Zero outside a damage
+	// emit; the emitter restores the previous value before returning (and
+	// DealDamage/DamageAll never ask mid-loop, so nothing suspends inside
+	// the window). Not copied by Clone: always zero at a clone boundary,
+	// and replay re-executes the same setter exactly as it does for
+	// damaging/combatDamaging.
+	dmgSrcOverride state.ObjID
+
+	// batchLifelink is the CR 603.10a pre-batch lifelink snapshot a
+	// multi-object destroy/sacrifice effect takes through rules.Engine
+	// .BatchDepartures (effects.Host) before emitting its MoveZone batch:
+	// each object's derived lifelink state from immediately before the
+	// FIRST departure, so a bearer whose lifelink-granting Equipment leaves
+	// earlier in the same batch still captures the right LKI regardless of
+	// battlefield order. An entry is consumed (deleted) by the departure
+	// capture that reads it; BatchDepartures rebuilds the map wholesale, so
+	// an unconsumed straggler (an Indestructible batch member) cannot
+	// outlive one effect call. Nil outside a batch. Not copied by Clone:
+	// always consumed or rebuilt within one effect call, never live at a
+	// clone boundary.
+	batchLifelink map[state.ObjID]bool
+
 	// foreachBuf is forEachObject's (trigger_match.go) scratch snapshot
 	// buffer. forEachObject copies each zone into it before walking it -- fn
 	// may move objects between zones (a trigger match putting something on
@@ -507,6 +536,40 @@ type Engine struct {
 	// re-entrant nested walk.
 	foreachBuf   []state.ObjID
 	foreachDepth int
+}
+
+// inFlightDamageSource is the one reader for Damage-event provenance: the
+// published override when a damage emitter set one, else the resolution/combat
+// source e.damaging carries. Zero when neither is set (a Damage event with no
+// recorded source -- emit's protection check treats zero as "never prevent",
+// and damageMatches fails the ValidSource$ match).
+func (e *Engine) inFlightDamageSource() state.ObjID {
+	if e.dmgSrcOverride != 0 {
+		return e.dmgSrcOverride
+	}
+	return e.damaging
+}
+
+// SetDamageSource implements effects.Host: publish the damage source for the
+// Damage events the calling emitter is about to emit, returning the previous
+// value so the emitter restores it. See dmgSrcOverride's field doc for the
+// replay/clone discipline.
+func (e *Engine) SetDamageSource(id state.ObjID) state.ObjID {
+	prev := e.dmgSrcOverride
+	e.dmgSrcOverride = id
+	return prev
+}
+
+// BatchDepartures implements effects.Host: snapshot the derived lifelink
+// state of every object the caller is about to move in one destruction
+// batch, so each member's departure capture reads the pre-batch state no
+// matter where it sits in battlefield order. See batchLifelink's field doc
+// for the consumption discipline.
+func (e *Engine) BatchDepartures(ids []state.ObjID) {
+	e.batchLifelink = make(map[state.ObjID]bool, len(ids))
+	for _, id := range ids {
+		e.batchLifelink[id] = e.HasKeyword(id, "Lifelink")
+	}
 }
 
 // chooseFor names the flow a pending KChoose decision belongs to. Task 9
@@ -802,11 +865,16 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// replacement substitution: prevention is unconditional and must not be
 	// handed to card text as if it had actually happened (and the recursive
 	// emit for the Note re-enters cleanly because a Note matches neither
-	// clause). e.damaging is the source of in-flight damage; a zero damaging
-	// (no source recorded) never suppresses a Damage event.
-	if ev.Kind == events.Damage && ev.Obj != 0 && e.damaging != 0 &&
-		e.protectedFrom(ev.Obj, e.damaging) {
-		return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "prevented: protection"})
+	// clause). The damage source is the published override when a
+	// DamageSource$ emitter set one, else e.damaging; a zero source (no
+	// source recorded) never suppresses a Damage event. A planeswalker's
+	// Damage event is protected exactly like any other now -- its CR 306.8
+	// loyalty conversion happens one fold later, in events.Apply, so a
+	// prevented hit converts nothing.
+	if ev.Kind == events.Damage && ev.Obj != 0 {
+		if src := e.inFlightDamageSource(); src != 0 && e.protectedFrom(ev.Obj, src) {
+			return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "prevented: protection"})
+		}
 	}
 	if ev.Kind == events.Attach && ev.Obj != 0 && len(ev.IDs) > 0 &&
 		e.protectedFrom(ev.IDs[0], ev.Obj) {
@@ -929,7 +997,20 @@ func (e *Engine) captureSourceLifelinkLKI(ev events.Event) (bool, bool) {
 		ev.To == state.ZBattlefield {
 		return false, false
 	}
-	link := e.HasKeyword(ev.Obj, "Lifelink")
+	// A destruction batch's own pre-state wins (rules.Engine.BatchDepartures,
+	// effects.Host): a later batch member must read the lifelink state from
+	// immediately before the FIRST departure (CR 603.10a/702.15c -- the
+	// destroy-all over a lifelink-granting Equipment and its bearer), not
+	// the live layers an earlier member's departure already stripped. The
+	// entry is consumed here; BatchDepartures rebuilds the map on its next
+	// call, so a straggler for an object that never left cannot outlive one
+	// effect call.
+	link, batched := e.batchLifelink[ev.Obj]
+	if batched {
+		delete(e.batchLifelink, ev.Obj)
+	} else {
+		link = e.HasKeyword(ev.Obj, "Lifelink")
+	}
 	for _, id := range e.G.Stack {
 		if o := e.G.Obj(id); o != nil && o.Ability != nil && o.Source == ev.Obj {
 			if e.sourceLifelinkLKI == nil {

@@ -109,6 +109,30 @@ type Host interface {
 	// SuspendContinuation next; the host drops that report, because the loop
 	// frame re-enters the RepeatEach itself and so walks its Sub.
 	SuspendRepeat(RepeatSuspension)
+	// SetDamageSource overrides the in-flight damage source for the Damage
+	// events the caller is about to emit: the provenance rules' emit-side
+	// protection check (CR 702.16d) and DamageDone trigger matching read
+	// for every Damage event. It returns the previous override so the
+	// caller restores it before returning; zero restores "no override".
+	// The override is engine-transient state exactly like the resolution
+	// source it wraps: replay re-executes the same setter, and Clone never
+	// copies it because an emitter always restores before returning
+	// (DealDamage/DamageAll never ask mid-loop, so nothing suspends inside
+	// the override window).
+	SetDamageSource(id state.ObjID) state.ObjID
+	// BatchDepartures declares that the caller is about to emit MoveZone
+	// events for every object in ids as one simultaneous destruction batch
+	// (CR 704.3): the engine snapshots each object's derived lifelink
+	// state NOW, before any of the moves fold, so a later batch member's
+	// CR 603.10a departure capture reads the batch's own pre-state rather
+	// than whatever an earlier member's departure already stripped (a
+	// destroy-all over a lifelink-granting Equipment and its bearer: the
+	// bearer's lifelink LKI must not depend on battlefield order). Entries
+	// are consumed by the matching departure capture; the next call
+	// rebuilds the snapshot, so an unconsumed straggler (an
+	// Indestructible batch member that never leaves) cannot outlive one
+	// effect call.
+	BatchDepartures(ids []state.ObjID)
 }
 
 // RepeatCursor is a RepeatEach loop re-entered after an iteration suspended:

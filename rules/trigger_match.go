@@ -1076,10 +1076,18 @@ func (e *Engine) eventCardAndPlayerMatch(t cards.Trigger, source, card state.Obj
 // called only from resolveTop while the resolving spell or ability is still
 // the top of the stack (resolveTop pops it only after Resolve returns), so
 // the current stack top is that source for every code path this build has
-// today. A future combat-damage implementation, or any Damage emission
-// outside ability resolution, would need Event to carry an explicit source
+// today. Two overrides win over the stack top, both rebuilt by replay
+// because replay re-executes the same setter: the published damage-source
+// override (rules.Engine.SetDamageSource -- DamageSource$ and the unwrapped
+// ability source, so a ValidSource$ trigger matches the PERMANENT that dealt
+// it, never the ability wrapper the stack top names) and the dealing
+// creature during combat's assignment loop (e.damaging). Any Damage emission
+// outside ability resolution would need Event to carry an explicit source
 // instead of relying on this.
 func (e *Engine) damageSource() state.ObjID {
+	if e.dmgSrcOverride != 0 {
+		return e.dmgSrcOverride
+	}
 	if len(e.G.Stack) == 0 {
 		return 0
 	}

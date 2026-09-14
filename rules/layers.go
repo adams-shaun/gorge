@@ -197,9 +197,11 @@ func statKeywords(st cards.Static) []string {
 func statList(st cards.Static, key string) []string {
 	var out []string
 	for _, v := range strings.Split(st.Params[key], ",") {
-		v = strings.TrimSpace(v)
-		if v != "" {
-			out = append(out, v)
+		for _, part := range strings.Split(strings.TrimSpace(v), " & ") {
+			part = strings.TrimSpace(part)
+			if part != "" {
+				out = append(out, part)
+			}
 		}
 	}
 	return out

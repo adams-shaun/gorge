@@ -25,6 +25,8 @@ type fakeHost struct {
 	continuous []state.ContinuousEffect
 	controls   []ControlGrant
 	n          int
+	dmgSrc     state.ObjID
+	batch      []state.ObjID
 }
 
 func (h *fakeHost) Game() *state.Game { return h.g }
@@ -106,6 +108,21 @@ func (h *fakeHost) SuspendContinuation(*cards.SA) {}
 
 // SuspendRepeat is a no-op for the same reason as SuspendContinuation.
 func (h *fakeHost) SuspendRepeat(RepeatSuspension) {}
+
+// SetDamageSource records the published damage source on the double (the
+// last value wins) and returns the previous one, mirroring the engine's
+// set-and-restore contract so an emitter's restore is observable.
+func (h *fakeHost) SetDamageSource(id state.ObjID) state.ObjID {
+	prev := h.dmgSrc
+	h.dmgSrc = id
+	return prev
+}
+
+// BatchDepartures is a no-op snapshot: an effects-package double has no
+// engine-side departure capture to feed, so it keeps only the fact a batch
+// was declared (never asserted on today; the rules package owns the
+// behaviour this method exists for).
+func (h *fakeHost) BatchDepartures(ids []state.ObjID) { h.batch = ids }
 
 func newHost(t *testing.T, seats int) *fakeHost {
 	t.Helper()
