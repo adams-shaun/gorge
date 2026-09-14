@@ -320,16 +320,17 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// effDig is M1's simplification of Forge's Dig: look at the top DigNum cards
-// of Defined$'s library, move up to ChangeNum of the ones matching
-// ChangeValid$ (default "Card") to DestinationZone$ (default "Hand"), and
-// leave everything else exactly where it already is -- on top of the
-// library, in its existing relative order. The brief's own spec names the
-// remainder's destination "LibraryPosition2$", but that parameter does not
-// exist anywhere in the fetched corpus (the real field there is
-// "LibraryPosition$", also left unhandled here); M1 keeps the existing order
-// for the untaken cards either way, the same simplification
-// RearrangeTopOfLibrary makes for its own remainder.
+// effDig implements Forge's Dig: look at the top DigNum cards of Defined$'s
+// library, move up to ChangeNum of the ones matching ChangeValid$ (default
+// "Card") to DestinationZone$ (default "Hand"), and leave everything else
+// exactly where it already is -- on top of the library, in its existing
+// relative order (the remainder-ordering decision is a separate, still-open
+// ask; see the row's end). The brief's own spec names the remainder's
+// destination "LibraryPosition2$", but that parameter does not exist anywhere
+// in the fetched corpus (the real field there is "LibraryPosition$", also
+// left unhandled here); M1 keeps the existing order for the untaken cards
+// either way, the same simplification RearrangeTopOfLibrary makes for its own
+// remainder.
 //
 // A real card can also write "ChangeNum$ All" (e.g. Goblin Guide's own Dig)
 // to mean every matching card within the DigNum look, with no cap short of
@@ -337,6 +338,45 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 // defaulting it to digNum and only overriding that default for a literal or
 // SVar ChangeNum$ handles "All" for free: it is simply the case where
 // nothing narrows the cap below the number of cards looked at.
+//
+// The look-and-take ask (dig1): where the top DigNum window holds STRICTLY
+// more ChangeValid$-eligible cards than ChangeNum, the pick is a real
+// decision and effDig poses it -- the same strict-supersets rule effDiscard's
+// TgtChoose arm already uses, so a decision nobody could answer differently
+// is never emitted. ChangeNum$ 0 (the corpus's three reveal-machinery digs:
+// birthing_ritual, sanity_grinding, stomping_slabs) takes nothing, so the
+// ask gate also requires changeNum > 0 -- otherwise a zero cap with any
+// eligible card would pose a Min==Max==0 KChoose whose only legal answer is
+// the empty one, a decision nobody could answer differently by definition. The look is recorded first as a Secret Note carrying the
+// window's ids (only the library's owner may know what sat on top; the same
+// channel effRearrangeTopOfLibrary uses, with the ids added so the owner's
+// client can render what was seen -- view/redact.go rule (1) passes a Secret
+// event's payload to its own Player and strips it from everyone else). The
+// decision is a KChoose over the ELIGIBLE cards only, in library order: an
+// ineligible card must not be pickable, so it is not offered (the window
+// itself is on the look Note; the prompt names the card text). Min honours
+// Optional$ -- 0 when the take is optional, ChangeNum when it is not -- and
+// Max is ChangeNum. The answer re-enters through ResumeKind "dig" with
+// Ctx.Dig/DigDone and the asking target's index set (rules/resolution.go),
+// scoped to this primitive like every other Ctx answer field.
+//
+// A host that cannot answer (the fuzz/no-engine stand-in, R-9) and the
+// no-choice path (eligible <= ChangeNum) keep M1's silent behaviour
+// deterministically: the first ChangeNum eligible cards in zone order move,
+// the rest stay exactly where they are. A resumed multi-target Dig applies
+// the answer only to the target that asked, skips earlier targets that already
+// completed before suspension, and preserves that same deterministic behaviour
+// for every later target; chained per-library asks remain separate work. On the
+// no-choice path nothing new is emitted at all, so a game that never reaches a
+// strict-superset Dig replays byte-identically to the pre-dig1 engine.
+//
+// Still unread here (each a real divergence, named in AGENTS.md's Dig row):
+// Optional$ on the NO-CHOICE path (eligible <= ChangeNum still takes all
+// eligible; ChangeNum$ 0 takes nothing silently, correctly), the remainder-ordering decision ("the rest on the bottom in any
+// order"; RestRandomOrder$), DestinationZone2$, LibraryPosition$, Reveal$,
+// ForceRevealToController$ (only the ask path records the look at all),
+// Choser$ (the opponent-chooses planeswalker shape) and ChangeNum$ Any
+// (the "Any" value falls into the take-all default, so it never asks).
 func effDig(h Host, c *Ctx, sa *cards.SA) {
 	digNum := Num(h, c, sa, "DigNum", 1)
 	if digNum < 0 {
@@ -358,8 +398,19 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		destName = "Hand"
 	}
 	dest := ParseZone(destName)
+	optional := sa.Params["Optional"] == "True"
+	// fx42 scoping: capture and clear the answered pick BEFORE the target
+	// loop. DigTarget identifies the exact target that asked: earlier targets
+	// completed before suspension and must be skipped, that target consumes
+	// the answer, and later targets retain M1's deterministic processing until
+	// chained per-library asks exist. A nested Dig below this walk therefore
+	// poses its own ask instead of inheriting any of these fields.
+	digAns := c.Dig
+	digDone := c.DigDone
+	digTarget := c.DigTarget
+	c.Dig, c.DigDone, c.DigTarget = nil, false, 0
 	g := h.Game()
-	for _, t := range Defined(h, c, sa) {
+	for targetIndex, t := range Defined(h, c, sa) {
 		p := PlayerOf(h, c, t)
 		lib := zoneOf(g, state.ZLibrary, p)
 		n := digNum
@@ -367,6 +418,78 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			n = int32(len(lib))
 		}
 		top := append([]state.ObjID(nil), lib[:n]...)
+		if digDone && targetIndex < digTarget {
+			// This target completed on the first pass before a later library
+			// suspended the effect. Re-running it could move a second batch (or
+			// newly create a choice after its first batch left), so skip it.
+			continue
+		}
+		if digDone && targetIndex == digTarget {
+			// Re-entry: move exactly the answered cards that still sit in the
+			// ASKING target's window (a per-window filter keeps a stray answer
+			// from moving an object that left the window meanwhile), in the
+			// player's answer order.
+			for _, id := range digAns {
+				if !containsID(top, id) {
+					continue
+				}
+				h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
+					From: state.ZLibrary, To: dest, Player: p, Secret: true})
+			}
+			continue
+		}
+		eligible := make([]state.ObjID, 0, len(top))
+		for _, id := range top {
+			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				eligible = append(eligible, id)
+			}
+		}
+		if !digDone && changeNum > 0 && int32(len(eligible)) > changeNum {
+			// A real choice: record the look, then ask the library's owner.
+			h.Emit(events.Event{Kind: events.Note, Player: p,
+				Text: "looks at the top of the library", IDs: top, Secret: true})
+			minv := int32(0)
+			if !optional {
+				minv = changeNum
+			}
+			verb := "you may put up to "
+			if !optional {
+				verb = "put "
+			}
+			d := &decision.Decision{Player: p, Kind: decision.KChoose,
+				Min:          int(minv),
+				Max:          int(changeNum),
+				Source:       c.Source,
+				ResumeKind:   "dig",
+				ResumeSA:     sa,
+				ResumeTarget: targetIndex,
+				Prompt:       "Look at the top " + strconv.Itoa(int(n)) + " card(s) of your library: " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)}
+			for _, id := range eligible {
+				name := "a card"
+				if o := g.Obj(id); o != nil && o.Face() != nil {
+					name = o.Face().Name
+				}
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+					Kind: "dig", Label: name, Obj: id, Player: p})
+			}
+			if h.Ask(d) {
+				return // resolution suspended; the answer re-enters with Ctx.Dig set.
+			}
+			// Fuzz/no-engine host: the deterministic stand-in (R-9) keeps
+			// today's behaviour -- the first ChangeNum eligible cards in zone
+			// order -- with the Note that records why the richer path did
+			// not run.
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
+				Text: "takes the first matching card(s) (no engine host to ask)", Secret: true})
+			for i := int32(0); i < changeNum && i < int32(len(eligible)); i++ {
+				h.Emit(events.Event{Kind: events.MoveZone, Obj: eligible[i],
+					From: state.ZLibrary, To: dest, Player: p, Secret: true})
+			}
+			continue
+		}
+		// No choice to ask about: M1's silent behaviour, unchanged, and no
+		// new event of any kind, so games that never reach a strict-superset
+		// Dig replay byte-identically to the pre-dig1 engine.
 		moved := int32(0)
 		for _, id := range top {
 			if moved >= changeNum {
@@ -379,6 +502,27 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				From: state.ZLibrary, To: dest, Player: p, Secret: true})
 			moved++
 		}
+	}
+}
+
+// digDestPhrase names the take's destination in the human-readable prompt;
+// it is Dig's own phrasing (the picked card GOES to the destination, unlike
+// KArrange's Kind which names pile B's), kept separate from
+// destinationPhrase so the two vocabularies cannot drift into each other.
+func digDestPhrase(dest state.Zone) string {
+	switch dest {
+	case state.ZHand:
+		return "your hand"
+	case state.ZGraveyard:
+		return "your graveyard"
+	case state.ZExile:
+		return "exile"
+	case state.ZBattlefield:
+		return "the battlefield"
+	case state.ZLibrary:
+		return "the top of your library"
+	default:
+		return "its destination"
 	}
 }
 

@@ -73,9 +73,11 @@ const (
 	// "discard" (cards the active player's cleanup step discards down to the
 	// maximum hand size, CR 514.1; Min == Max == len(hand) - maxHandSize over
 	// exactly one option per hand card, in hand order), "search" (an ordered
-	// subset of matching cards from a hidden library, with Min 0),
-	// "name"/"type"/"number" (an "as this enters" choice), "yes"/"no" (a
-	// may-cast such as Miracle).
+	// subset of matching cards from a hidden library, with Min 0), "dig" (the
+	// cards a Dig look-and-take moves from the top DigNum$ window to
+	// DestinationZone$, Min 0 when Optional$ True else ChangeNum, one option
+	// per ELIGIBLE card in library order), "name"/"type"/"number" (an "as this
+	// enters" choice), "yes"/"no" (a may-cast such as Miracle).
 	// The wire shape is the same as every other decision; only the vocabulary
 	// of Option.Kind is new.
 	KChoose Kind = "choose"
@@ -262,16 +264,21 @@ type Decision struct {
 	// TargetEffect is host-independent targeting context. It is absent on
 	// other decision kinds and on older servers; absent means unknown.
 	TargetEffect *TargetEffect `json:"target_effect,omitempty"`
-	// ResumeKind, ResumeSA and ResumeModes are server-side only. ResumeKind
-	// selects a cast/placement/resolution continuation ("cast_modes", "modes",
-	// "unless_pay", "discard", "arrange", "search"); ResumeSA names the exact
-	// sub-ability involved. ResumeModes maps a filtered cast-time mode option
-	// back to its SVar name while keeping wire indices dense. rules alone
-	// selects these fields; clients never see them. Card data is shared
-	// immutable compiled corpus, so the SA pointer is safe across Clone/replay.
-	ResumeKind  string    `json:"-"`
-	ResumeSA    *cards.SA `json:"-"`
-	ResumeModes []string  `json:"-"`
+	// ResumeKind, ResumeSA, ResumeModes and ResumeTarget are server-side only.
+	// ResumeKind selects a cast/placement/resolution continuation ("cast_modes",
+	// "modes", "unless_pay", "discard", "arrange", "search", "dig"); ResumeSA
+	// names the exact sub-ability involved. ResumeModes maps a filtered cast-time
+	// mode option back to its SVar name while keeping wire indices dense.
+	// ResumeTarget is Dig's index into the deterministic Defined$ target list:
+	// re-entry applies the answer to exactly the library that asked, skips
+	// targets already completed before suspension, and preserves deterministic
+	// processing for later targets. rules alone selects these fields; clients
+	// never see them. Card data is shared immutable compiled corpus, so the SA
+	// pointer is safe across Clone/replay.
+	ResumeKind   string    `json:"-"`
+	ResumeSA     *cards.SA `json:"-"`
+	ResumeModes  []string  `json:"-"`
+	ResumeTarget int       `json:"-"`
 }
 
 // New is a convenience constructor that fills a Decision's Player, Kind,
