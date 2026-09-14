@@ -30,6 +30,7 @@ afterAll(async () => {
 });
 
 type Posts = { seq: number; player: number; choices: number[] }[];
+type UndoPosts = { url: string; authorization: string }[];
 
 const posts = (page: import('playwright').Page): Promise<Posts> =>
   page.evaluate(() => (window as unknown as { __posts: Posts }).__posts);
@@ -37,7 +38,32 @@ const posts = (page: import('playwright').Page): Promise<Posts> =>
 const playMode = (page: import('playwright').Page): Promise<string> =>
   page.evaluate(() => document.querySelector('[data-play-mode]')?.getAttribute('data-play-mode') ?? '');
 
+const undoPosts = (page: import('playwright').Page): Promise<UndoPosts> =>
+  page.evaluate(() => (window as unknown as { __undos: UndoPosts }).__undos);
+
 describe('the hotkey guard against an open modal — mounted', () => {
+  it('the real UNDO button invokes postUndo, while the multi-human button cannot', async () => {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/HotkeyGuard.fixture.html`);
+
+    const enabled = page.locator('#fixture [data-undo]');
+    expect(await enabled.isEnabled()).toBe(true);
+    await enabled.click();
+    await page.waitForFunction(() => (window as unknown as { __undos: UndoPosts }).__undos.length === 1);
+    expect(await undoPosts(page)).toEqual([{
+      url: '/api/tables/fx/matches/1/undo',
+      authorization: 'Bearer tok',
+    }]);
+
+    const disabled = page.locator('#undo-disabled [data-undo]');
+    expect(await disabled.isDisabled()).toBe(true);
+    // dispatchEvent deliberately bypasses the browser's disabled-button
+    // suppression, proving the component handler's undoAllowed guard too.
+    await disabled.dispatchEvent('click');
+    expect(await undoPosts(page)).toHaveLength(1);
+    await page.close();
+  });
+
   it('Space and Enter stay behind PileModal; Escape closes it and preserves End Turn', async () => {
     const page = await browser.newPage();
     await page.goto(`${url}src/components/HotkeyGuard.fixture.html`);
