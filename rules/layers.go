@@ -110,6 +110,23 @@ func (e *Engine) staticEffects() []ContinuousEffect {
 					ra.RemoveAbilities = true
 					out = append(out, ra)
 				}
+				// A may-play-from-zone grant (M2d?): the "You may play lands from
+				// your graveyard" static (Conduit of Worlds, Crucible of Worlds,
+				// Ramunap Excavator, ...). It changes no characteristic, so it is
+				// NOT a layer effect and is carried as a rules-mod on the effect
+				// itself (MayPlay + AffectedZone) rather than as a layer mark;
+				// rules/legal.go's mayPlayLandIds consults it. Only the
+				// unconditional MayPlay$ True shape is implemented -- a
+				// MayPlayLimit$/Condition$/per-type grant is out of scope and
+				// fails closed (MayPlay stays false), so nothing is silently
+				// over-applied. Expiry is the ordinary source-leaves rule
+				// (CR 611.3b) via active()'s battlefield scan.
+				if v, ok := st.Params["MayPlay"]; ok && strings.EqualFold(strings.TrimSpace(v), "True") {
+					mp := base
+					mp.MayPlay = true
+					mp.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+					out = append(out, mp)
+				}
 			}
 		}
 	}
