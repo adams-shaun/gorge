@@ -292,6 +292,14 @@ def _apply_head_moves(issue: issues.Issue, wt: Path, heads_output: str) -> None:
 
 def _merge_push_deploy(issue: issues.Issue, wt: Path) -> None:
     sha = git_ops.head_sha(wt)
+    # The commit-msg hook requires a Test-Budget-Approved trailer on any
+    # commit whose diff raises a budget_s -- including this merge commit, which
+    # carries the branch's raise. Re-state every such trailer the branch's own
+    # commits already carry (never invent one).
+    import subprocess as _sp
+    trailers = sorted(set(l.strip() for l in _sp.run(
+        ["git", "log", "--format=%B", f"main..wt/{issue.id}"], cwd=str(config.REPO),
+        capture_output=True, text=True).stdout.splitlines() if l.startswith("Test-Budget-Approved:")))
     message = (
         f"merge({issue.id}): {issue.title[:72]}\n\n"
         f"Autonomous orchestrator: triaged from {issue.source}, implemented by "
@@ -299,6 +307,8 @@ def _merge_push_deploy(issue: issues.Issue, wt: Path) -> None:
         f"{issue.escalated_rounds} escalated round(s)), reviewed by terra, "
         f"gates clean.\n"
     )
+    if trailers:
+        message += "\n" + "\n".join(trailers) + "\n"
     ok, out = git_ops.merge_to_main(f"wt/{issue.id}", message)
     if not ok:
         issue.status = "human_needed"
