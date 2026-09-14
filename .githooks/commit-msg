@@ -5,6 +5,14 @@ if grep -Eiq '^(Co-Authored-By:|Signed-off-by:.*(claude|anthropic)|.*Generated w
 	exit 1
 fi
 
+# gorge uses no issue-tracker trailers. Agent seats share a global memory
+# written for other repos, whose mandatory issue-tracker "Ref:" rule leaked into commits
+# here (fb-20260914T120016Z-86135e20).
+if grep -Eiq '^Ref:|[j]ira' "$1"; then
+	echo "commit-msg: issue-tracker 'Ref:' trailer found; gorge commits carry none — remove it" >&2
+	exit 1
+fi
+
 # Test-time budget approval (Task TT): if the staged diff raises a package's
 # budget_s line (new value greater than the old), the message must carry a
 # Test-Budget-Approved trailer. New files and decreases never need approval.
