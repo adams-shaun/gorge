@@ -315,6 +315,16 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 // queue and firing limits. Both walks use deterministic seat/zone/slice order;
 // the ordinary APNAP drain still asks each controller to order their triggers.
 func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state.Object, split, leaving bool) {
+	// phaseNotes collects the unresolvable Phase$ specs this walk encountered
+	// (live walks only -- the leaves-the-battlefield look-back observer is a
+	// scratch Engine that must never emit), each with the source that carries
+	// them; they are emitted once, after the walk, so a Note emission's own
+	// recursive checkTriggers can never interleave with the walk's matching.
+	type phaseNote struct {
+		id   state.ObjID
+		spec string
+	}
+	var phaseNotes []phaseNote
 	observer.forEachObject(func(id state.ObjID) {
 		o := observer.G.Obj(id)
 		if o == nil {
@@ -338,6 +348,26 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			objLKI = lki
 		}
 		for ti, t := range f.Triggers {
+			if !leaving {
+				// Phase$ is a common Forge trigger gate, not a Mode$ Phase
+				// parameter: ChangesZone, SpellCast, and every other supported
+				// trigger mode may carry it. Report an unresolvable value once
+				// per engine per spec, while triggerMatches rejects it on every
+				// event. Keeping reporting outside the scratch look-back walk
+				// means a Note is a real event, never an observer side effect.
+				spec := t.Params["Phase"]
+				if strings.TrimSpace(spec) != "" {
+					if _, unknown := state.ParsePhases(spec); len(unknown) > 0 {
+						if e.phaseUnknownNoted == nil {
+							e.phaseUnknownNoted = map[string]bool{}
+						}
+						if !e.phaseUnknownNoted[spec] {
+							e.phaseUnknownNoted[spec] = true
+							phaseNotes = append(phaseNotes, phaseNote{id: id, spec: spec})
+						}
+					}
+				}
+			}
 			// A "from anywhere" graveyard trigger is NOT a leaves-the-
 			// battlefield trigger (CR 603.6c), even when this particular
 			// move happens to leave the battlefield. Only the explicit
@@ -410,6 +440,10 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			})
 		}
 	})
+	for _, n := range phaseNotes {
+		e.emit(events.Event{Kind: events.Note, Obj: n.id,
+			Text: "Phase$ " + n.spec + " names no engine step; the trigger never fires"})
+	}
 }
 
 // triggerRemembered is what a matched trigger's Ctx.Remembered holds: the
@@ -477,7 +511,7 @@ func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 // Undying's counters_EQ0_P1P1 -- can see the object as it was before Move
 // reset it, not the live object already in the destination zone.
 func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
-	if !e.zoneGate(t, source, ev) {
+	if !e.zoneGate(t, source, ev) || !e.phaseGate(t) {
 		return false
 	}
 	var matched bool
@@ -1138,13 +1172,27 @@ func (e *Engine) landPlayedMatches(t cards.Trigger, source state.ObjID, ev event
 	return true
 }
 
-// phaseMatches implements Mode$ Phase.
+// phaseGate applies Forge's Phase$ (validPhases) uniformly to every trigger
+// mode. It is deliberately before the mode switch in triggerMatches: a
+// ChangesZone or SpellCast trigger with Phase$ Main1 must not fire during an
+// upkeep, and an unresolvable name fails closed. checkFaceTriggers reports
+// that invalid name once as a Note; this bool-only matcher does not emit
+// while it may be walking a scratch look-back observer. An absent Phase$
+// remains ungated, matching Forge's null validPhases.
+func (e *Engine) phaseGate(t cards.Trigger) bool {
+	spec := t.Params["Phase"]
+	if strings.TrimSpace(spec) == "" {
+		return true
+	}
+	set, unknown := state.ParsePhases(spec)
+	return len(unknown) == 0 && set.Has(e.G.Step)
+}
+
+// phaseMatches implements Mode$ Phase after phaseGate has already checked
+// its Phase$ parameter. The mode itself is only a StepChange event plus its
+// optional ValidPlayer$ restriction.
 func (e *Engine) phaseMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.StepChange {
-		return false
-	}
-	want := strings.ToLower(t.Params["Phase"])
-	if want != "" && !strings.Contains(ev.Step.String(), want) {
 		return false
 	}
 	if v, ok := t.Params["ValidPlayer"]; ok {
