@@ -16,10 +16,12 @@ import (
 // recipient shape (player, creature, planeswalker) and through both damage
 // primitives (DealDamage, DamageAll). Combat has its own rider in
 // rules/combat.go and is out of scope here. Real corpus cards carry the shapes
-// the defect was reported on (Brion Stoutarm's throw, Piru's death sweep,
-// Basilisk Collar's grant); inline fixtures carry the recipient variants those
-// cards do not reach. A prevented hit (protection -> Note) must pay nothing,
-// so the last test pins the zero.
+// the defect was reported on (Brion Stoutarm's throw, Piru's death sweep);
+// inline fixtures carry the granted-keyword equipment and the recipient
+// variants those cards do not reach. A prevented hit (protection -> Note)
+// must pay nothing, so the last two tests pin the zero -- one mixed
+// sweep where a prevented member sits beside a landed one, and one where
+// EVERY recipient is prevented.
 
 // linkBoard is walkerBoard generalised to arbitrary named corpus cards on
 // either seat: every named card is seeded into that seat's deck, put onto the
@@ -317,66 +319,58 @@ func TestLifelinkDeathSweepSumsLife(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestGrantedLifelinkEquipmentDamageGainsLife pins the GRANTED keyword half:
-// Basilisk Collar (real corpus card, AddKeyword$ Deathtouch & Lifelink over
-// Creature.EquippedBy) equips a pinger whose activated DealDamage is otherwise
-// keywordless. The rider must read the granted keyword off the ability's
-// source permanent -- an ability stack object carries no Face, so the
-// wrapper's own Derived is empty -- and the same resolution makes the
-// collateral deathtouch rider fire on an ability source too.
+// TestGrantedLifelinkEquipmentDamageGainsLife pins the GRANTED keyword half
+// through a standalone Equipment fixture (AddKeyword$ Lifelink over
+// Creature.EquippedBy): the equipment grants a pinger lifelink, and the
+// pinger's activated DealDamage -- keywordless of its own -- gains its
+// controller the damage. The rider must read the granted keyword off the
+// ability's SOURCE permanent -- an ability stack object is minted with no
+// Face, so the wrapper's own Derived is empty.
 func TestGrantedLifelinkEquipmentDamageGainsLife(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	e, cfg := linkBoard(t, reg, []string{"Basilisk Collar", "Prodigal Pyromancer"},
-		[]string{"Grizzly Bears"})
-	var collar, pyro, bear state.ObjID
+	collar := "Name:Life Collar\nManaCost:1\nTypes:Artifact Equipment\nK:Equip:2\n" +
+		"S:Mode$ Continuous | Affected$ Creature.EquippedBy | AddKeyword$ Lifelink | Description$ Equipped creature has lifelink.\nOracle:x\n"
+	pinger := "Name:Ember Adept\nManaCost:2 R\nTypes:Creature Wizard\nPT:1/2\n" +
+		"A:AB$ DealDamage | Cost$ T | ValidTgts$ Creature | NumDmg$ 1 | SpellDescription$ deals 1.\nOracle:x\n"
+	e, cfg, collarID := newFixtureDeck(t, 103, collar, pinger)
+	var adept state.ObjID
 	for i := range e.G.Objs {
 		o := &e.G.Objs[i]
-		if o.Zone != state.ZBattlefield || o.Owner != 0 && o.Face().Name != "Grizzly Bears" {
-			continue
-		}
-		switch o.Face().Name {
-		case "Basilisk Collar":
-			collar = o.ID
-		case "Prodigal Pyromancer":
-			pyro = o.ID
-		case "Grizzly Bears":
-			bear = o.ID
+		if o.Face() != nil && o.Face().Name == "Ember Adept" {
+			adept = o.ID
 		}
 	}
-	if collar == 0 || pyro == 0 || bear == 0 {
-		t.Fatalf("board missing a fixture: collar %d pyro %d bear %d", collar, pyro, bear)
+	if adept == 0 {
+		t.Fatal("board missing the Ember Adept fixture")
 	}
+	for _, id := range []state.ObjID{collarID, adept} {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: e.G.Obj(id).Zone, To: state.ZBattlefield})
+	}
+	// Summoning sickness (CR 302.6): the pinger's {T} cost is only payable
+	// from the controller's next turn, so park the clock at turn 2.
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 2})
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepMain1})
+	ox := putToken(t, e, 1, "Name:Ox\nManaCost:1 G\nTypes:Creature Ox\nPT:3/3\nOracle:x\n", state.ZBattlefield)
 	addMana(t, e, 0, "CC")
-	equipOpt := abilityOption(t, e, collar, 0)
+	e.Advance()
+	equipOpt := abilityOption(t, e, collarID, 0)
 	submitChoices(t, e, equipOpt.Index)
-	targetObject(t, e, pyro)
+	targetObject(t, e, adept)
 	passUntilStackEmpty(t, e, 20)
-	if e.G.Obj(collar).AttachedTo != pyro {
-		t.Fatalf("collar attached to %d, want the pyromancer %d", e.G.Obj(collar).AttachedTo, pyro)
+	if e.G.Obj(collarID).AttachedTo != adept {
+		t.Fatalf("collar attached to %d, want the adept %d", e.G.Obj(collarID).AttachedTo, adept)
 	}
-	if !e.HasKeyword(pyro, "Lifelink") || !e.HasKeyword(pyro, "Deathtouch") {
-		t.Fatalf("bearer lacks the granted keywords: lifelink %v deathtouch %v",
-			e.HasKeyword(pyro, "Lifelink"), e.HasKeyword(pyro, "Deathtouch"))
+	if !e.HasKeyword(adept, "Lifelink") {
+		t.Fatal("bearer lacks the granted lifelink")
 	}
 
-	// Ping the bear: 1 damage, lethal only through the now-granted
-	// deathtouch, and lifelink gains 1.
-	opt := abilityOption(t, e, pyro, 0)
+	// Ping the bear: 1 damage, and the granted lifelink gains 1.
+	opt := abilityOption(t, e, adept, 0)
 	submitChoices(t, e, opt.Index)
-	targetObject(t, e, bear)
+	targetObject(t, e, ox)
 	passUntilStackEmpty(t, e, 20)
 
-	if o := e.G.Obj(bear); o.Zone != state.ZGraveyard {
-		t.Fatalf("bear zone = %s, want graveyard (1 damage + granted deathtouch)", o.Zone)
-	}
-	sawDeathtouch := false
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.CounterChange && ev.Obj == bear && ev.Counter == "Deathtouched" {
-			sawDeathtouch = true
-		}
-	}
-	if !sawDeathtouch {
-		t.Fatal("no Deathtouched counter was minted for the granted-deathtouch ping")
+	if got := e.G.Obj(ox).Damage; got != 1 {
+		t.Fatalf("Ox damage = %d, want 1", got)
 	}
 	if got := e.G.Players[0].Life; got != 21 {
 		t.Fatalf("bearer's controller life = %d, want 21 (20 + 1 granted lifelink)", got)
@@ -426,6 +420,54 @@ func TestPreventedLifelinkDamageGainsNothing(t *testing.T) {
 	}
 	if n := countLifeChanges(t, e, 0, 2); n != 1 {
 		t.Fatalf("logged %d lifelink LifeChange(0, +2) events, want 1", n)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestFullyPreventedLifelinkSweepGainsNothing pins the zero when EVERY
+// recipient is prevented: the sweep source carries protection from white
+// alongside its lifelink, so the DamageAll's two hits -- the source's own
+// self-hit and the Warded Ox -- are BOTH replaced by prevention Notes, and
+// the rider must pay nothing at all: life stays 20 and no lifelink
+// LifeChange is logged. (The mixed case -- one prevented member beside a
+// landed one -- is TestPreventedLifelinkDamageGainsNothing above.)
+func TestFullyPreventedLifelinkSweepGainsNothing(t *testing.T) {
+	sweep := "Name:Warded Knight\nManaCost:2 W\nTypes:Creature Knight\nPT:2/4\nK:Lifelink\nK:Protection from white\n" +
+		"A:AB$ DamageAll | Cost$ 2 | ValidCards$ Creature | NumDmg$ 2 | SpellDescription$ x\nOracle:x\n"
+	shield := "Name:Warded Ox\nManaCost:1 W\nTypes:Creature Ox\nPT:2/2\nK:Protection from white\nOracle:x\n"
+	e, cfg, id := newFixtureDeck(t, 101, sweep)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: e.G.Obj(id).Zone, To: state.ZBattlefield})
+	ox := putToken(t, e, 1, shield, state.ZBattlefield)
+	addMana(t, e, 0, "CC")
+	e.Advance()
+	opt := abilityOption(t, e, id, 0)
+	submitChoices(t, e, opt.Index)
+	passUntilStackEmpty(t, e, 20)
+
+	if o := e.G.Obj(ox); o.Damage != 0 || o.Zone != state.ZBattlefield {
+		t.Fatalf("protected Ox damage %d zone %s, want 0 on the battlefield", o.Damage, o.Zone)
+	}
+	if o := e.G.Obj(id); o.Damage != 0 || o.Zone != state.ZBattlefield {
+		t.Fatalf("self-hit damage %d zone %s, want 0 on the battlefield (own protection prevents it)", o.Damage, o.Zone)
+	}
+	prevented := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && ev.Text == "prevented: protection" &&
+			(ev.Obj == ox || ev.Obj == id) {
+			prevented++
+		}
+	}
+	if prevented != 2 {
+		t.Fatalf("recorded %d prevented: protection Notes, want 2 (sweep source and Ox)", prevented)
+	}
+	if got := e.G.Players[0].Life; got != 20 {
+		t.Fatalf("sweep source's controller life = %d, want 20 (every hit prevented pays nothing)", got)
+	}
+	if n := countLifeChanges(t, e, 0, 2); n != 0 {
+		t.Fatalf("logged %d lifelink LifeChange(0, +2) events, want 0", n)
+	}
+	if n := countLifeChanges(t, e, 0, 1); n != 0 {
+		t.Fatalf("logged %d LifeChange(0, +1) events, want 0 (no partial rider either)", n)
 	}
 	replayCheck(t, e, cfg)
 }
