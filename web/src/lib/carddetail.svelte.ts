@@ -315,13 +315,15 @@ export class CardHover {
   }
 
   /**
-   * pointerdown marks the browser focus which follows it as pointer-origin.
-   * The following pointerup/leave clears an unused mark, so a later Tab
-   * focus retains the keyboard-owned inspector contract.
+   * pointerdown transfers ownership to the pointer and opens immediately.
+   * Doing the transfer here, rather than waiting for focus, also covers a
+   * click on an already-focused button: browsers emit no second focus event
+   * in that case. The mark tells a focus event that does follow not to take
+   * keyboard ownership back.
    */
   pointerdown(card: CardView, el: HTMLElement): void {
-    this.pointer = { card, el, ready: true };
     this.pointerFocusId = card.id;
+    this.openPointer(card, el);
   }
 
   /** A pointer focus happens before pointerup; an unused mark must not leak. */
@@ -335,13 +337,12 @@ export class CardHover {
     // for another card. It must never leak into a later keyboard focus.
     this.pointerFocusId = null;
     if (pointerOrigin) {
-      // A click opens immediately, but its owner is the pointer rather than
-      // focus. The matching leave() therefore closes it like every hover.
-      this.focusedId = null;
-      this.pointer = { card, el, ready: true };
-    } else {
-      this.focusedId = card.id;
+      // pointerdown already opened the inspector and transferred ownership;
+      // repeat the idempotent open so the focus event cannot take it back.
+      this.openPointer(card, el);
+      return;
     }
+    this.focusedId = card.id;
     this.card = card;
     this.hover.open(card.id, () => {
       this.anchor = rectOf(el);
@@ -394,6 +395,15 @@ export class CardHover {
     this.card = null;
     this.anchor = null;
     return true;
+  }
+
+  private openPointer(card: CardView, el: HTMLElement): void {
+    this.focusedId = null;
+    this.pointer = { card, el, ready: true };
+    this.card = card;
+    this.hover.open(card.id, () => {
+      this.anchor = rectOf(el);
+    });
   }
 
   private armPointer(id: number): void {

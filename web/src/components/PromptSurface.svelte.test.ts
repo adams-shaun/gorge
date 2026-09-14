@@ -281,6 +281,47 @@ describe('the arrange strip hover inspector (fb-20260914T063020Z Job 1)', () => 
     await page.close();
   });
 
+  it('clicking a keyboard-focused strip card transfers ownership to the pointer, so leave closes it', async () => {
+    const page = await browser.newPage();
+    await injectCatalog(page);
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
+
+    const pick = page.locator('[data-arrange-row] [data-option="0"]');
+    const detail = page.locator('body > .card-detail');
+    await pick.focus();
+    await detail.waitFor({ state: 'visible', timeout: 5_000 });
+
+    // An already-focused button gets pointer events on click but no second
+    // focus event. pointerdown itself must therefore transfer ownership.
+    await pick.click();
+    await page.mouse.move(5, 5);
+    await page.waitForFunction(() => document.querySelectorAll('body > .card-detail').length === 0, null, { timeout: 5_000 });
+    await page.close();
+  });
+
+  it('a second click on the still-focused strip card reopens the inspector immediately', async () => {
+    const page = await browser.newPage();
+    await injectCatalog(page);
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
+
+    const pick = page.locator('[data-arrange-row] [data-option="0"]');
+    const detail = page.locator('body > .card-detail');
+    await pick.click();
+    await detail.waitFor({ state: 'visible', timeout: 5_000 });
+    await page.mouse.move(5, 5);
+    await page.waitForFunction(() => document.querySelectorAll('body > .card-detail').length === 0, null, { timeout: 5_000 });
+    expect(await pick.evaluate((el) => document.activeElement === el)).toBe(true);
+
+    // No focus event follows this click. The panel must be mounted by the
+    // pointerdown path, before the 250 ms hover dwell could fire.
+    await pick.click();
+    expect(await detail.count()).toBe(1);
+    expect(await detail.isVisible()).toBe(true);
+    await page.mouse.move(5, 5);
+    await page.waitForFunction(() => document.querySelectorAll('body > .card-detail').length === 0, null, { timeout: 5_000 });
+    await page.close();
+  });
+
   it('leaving a clicked strip card removes the portalled panel before it can cover Confirm', async () => {
     const page = await browser.newPage();
     await injectCatalog(page);
