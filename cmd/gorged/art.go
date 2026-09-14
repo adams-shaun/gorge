@@ -505,6 +505,27 @@ func (a *artCache) lookupNamed(ctx context.Context, name string) (*scryNamed, bo
 	return &card, true, nil
 }
 
+// createTemp opens a uniquely named staging file in the cache directory.
+// Uniqueness matters across processes: deploy-demo runs two gorged instances
+// against one art directory, while artCache.inflight only coordinates callers
+// within one process. Each writer therefore needs its own inode until the
+// completed artifact is atomically published with Rename.
+func (a *artCache) createTemp(pattern string) (*os.File, error) {
+	f, err := os.CreateTemp(a.dir, pattern)
+	if err != nil {
+		return nil, err
+	}
+	// CreateTemp deliberately defaults to 0600. Cached artifacts have always
+	// been 0644 (subject to the process umask), so preserve that contract.
+	if err := f.Chmod(0o644); err != nil {
+		name := f.Name()
+		_ = f.Close()
+		_ = os.Remove(name)
+		return nil, err
+	}
+	return f, nil
+}
+
 func (a *artCache) download(ctx context.Context, key, imgURL string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, imgURL, nil)
 	if err != nil {
@@ -519,22 +540,22 @@ func (a *artCache) download(ctx context.Context, key, imgURL string) error {
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("scryfall image: status %d", resp.StatusCode)
 	}
-	tmp := a.jpgPath(key) + ".tmp"
-	f, err := os.Create(tmp)
+	f, err := a.createTemp("." + key + "-*.jpg.tmp")
 	if err != nil {
 		return err
 	}
+	tmp := f.Name()
+	defer os.Remove(tmp)
 	if _, err := io.Copy(f, resp.Body); err != nil {
-		f.Close()
-		os.Remove(tmp)
+		_ = f.Close()
 		return err
 	}
 	if err := f.Close(); err != nil {
-		os.Remove(tmp)
 		return err
 	}
-	// Atomic within one filesystem: a concurrent named() request never
-	// observes a partially-written .jpg.
+	// Atomic within one filesystem: neither a concurrent named() request nor
+	// the other demo process can observe a partially-written .jpg. Unique
+	// staging names let concurrent processes both publish the same key safely.
 	return os.Rename(tmp, a.jpgPath(key))
 }
 
@@ -544,14 +565,23 @@ func (a *artCache) writeMiss(key string) error {
 
 // writeFacts writes the sidecar atomically within one filesystem, the same
 // discipline download() uses: a concurrent text() request never observes a
-// partially-written .json.
+// partially-written .json, including when two gorged processes share a cache.
 func (a *artCache) writeFacts(key string, facts cardFacts) error {
 	b, err := json.Marshal(facts)
 	if err != nil {
 		return err
 	}
-	tmp := a.factsPath(key) + ".tmp"
-	if err := os.WriteFile(tmp, b, 0o644); err != nil {
+	f, err := a.createTemp("." + key + "-*.json.tmp")
+	if err != nil {
+		return err
+	}
+	tmp := f.Name()
+	defer os.Remove(tmp)
+	if _, err := f.Write(b); err != nil {
+		_ = f.Close()
+		return err
+	}
+	if err := f.Close(); err != nil {
 		return err
 	}
 	return os.Rename(tmp, a.factsPath(key))

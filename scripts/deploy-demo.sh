@@ -47,8 +47,9 @@ OMNI_DIR=${OMNI_DIR:-/tmp/gorge-demo-omni}
 # rw) even though an agent worktree jail binds it ro. Both servers share the
 # one dir, so each name is fetched from Scryfall once per deploy, not once
 # per server (single-flight is per-process, so a first-fetch race between the
-# two servers can still fetch a name twice — harmless, download() renames
-# atomically).
+# two servers can still fetch a cold name twice — harmless: image and facts
+# writers use process-unique staging files and publish only complete artifacts
+# with atomic renames).
 ART_DIR=${ART_DIR:-/mnt/sata/gorge-data/art}
 
 say() { printf 'deploy-demo: %s\n' "$*"; }
