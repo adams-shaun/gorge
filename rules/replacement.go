@@ -43,6 +43,13 @@ import (
 // the same object forever (see Task 26's report and the resolveTop guard
 // below for the other half of this fix).
 func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
+	// Positive LifeChange is a gain; negative LifeChange and player Damage
+	// are life loss. Both route to the life replacement machinery below,
+	// ahead of the Moved/Untap/BeginPhase/Transform/ProduceMana mapping,
+	// which does not cover life events.
+	if ev.Kind == events.LifeChange || (ev.Kind == events.Damage && ev.Obj == 0) {
+		return e.applyLifeReplacements(ev)
+	}
 	event, ok := replacementEvent(ev)
 	if !ok {
 		return ev, false
@@ -1239,6 +1246,121 @@ func (e *Engine) replacementChoicePlayer(rc replChoice) (state.PlayerID, bool) {
 	}
 }
 
+// applyLifeReplacements handles the life-event replacement class without
+// changing events.Event: positive LifeChange is a gain, while a negative
+// LifeChange and player Damage are life loss. CantGainLife statics and a
+// Prevent$ GainLife replacement suppress a gain before it is logged. The
+// ReplaceCount$Amount/Twice LifeReduced shape modifies the proposed loss
+// before it is logged, which covers Bloodletter and any sibling that uses the
+// same Forge replacement expression.
+func (e *Engine) applyLifeReplacements(ev events.Event) (events.Event, bool) {
+	if ev.Kind == events.LifeChange && ev.Amount > 0 && e.lifeGainPrevented(ev.Player) {
+		return e.emit(events.Event{Kind: events.Note, Player: ev.Player, Text: "prevented: cannot gain life"}), true
+	}
+
+	p, _, losing := lifeLoss(ev)
+	if !losing {
+		return ev, false
+	}
+	forEachReplacement := func(fn func(state.ObjID, *cards.Repl) bool) {
+		done := false
+		e.forEachObject(func(id state.ObjID) {
+			if done {
+				return
+			}
+			o := e.G.Obj(id)
+			if o == nil || o.Face() == nil {
+				return
+			}
+			for i := range o.Face().Repls {
+				if fn(id, &o.Face().Repls[i]) {
+					done = true
+					return
+				}
+			}
+		})
+	}
+	var twice bool
+	forEachReplacement(func(source state.ObjID, r *cards.Repl) bool {
+		if r.Event != "LifeReduced" || !replacementActive(e, source, r) ||
+			!replacementPlayerMatches(e, source, r, p) ||
+			!strings.EqualFold(r.Params["PlayerTurn"], "True") || e.G.Active != e.controllerOf(source) {
+			return false
+		}
+		// ReplaceEffect is intentionally not a general API yet. Its one
+		// directly evaluable life-reduction expression is structural, not a
+		// card-name special case: every future R: line with this exact amount
+		// transform is covered by the same branch.
+		if r.With == nil || r.With.API != "ReplaceEffect" ||
+			!strings.EqualFold(r.With.Params["VarName"], "Amount") ||
+			!strings.EqualFold(r.With.Params["VarValue"], "ReplaceCount$Amount/Twice") {
+			return false
+		}
+		twice = true
+		return true
+	})
+	if !twice {
+		return ev, false
+	}
+	if ev.Amount >= -(1<<30) && ev.Amount <= 1<<30 {
+		ev.Amount *= 2
+	}
+	// A replacement applies only once to a proposed event. Re-enter emit so
+	// the modified event takes the normal Apply/trigger path, while the guard
+	// prevents this same R: line from doubling it again.
+	saved := e.applyingReplacement
+	e.applyingReplacement = true
+	stored := e.emit(ev)
+	e.applyingReplacement = saved
+	return stored, true
+}
+
+// lifeGainPrevented checks active CantGainLife statics and R:Event$ GainLife
+// Prevent$ True replacements against the player who would gain life.
+func (e *Engine) lifeGainPrevented(p state.PlayerID) bool {
+	for _, sv := range e.activeStatics("CantGainLife") {
+		if replacementPlayerMatches(e, sv.Source, &cards.Repl{Params: sv.Params}, p) {
+			return true
+		}
+	}
+	prevented := false
+	e.forEachObject(func(id state.ObjID) {
+		if prevented {
+			return
+		}
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			return
+		}
+		for i := range o.Face().Repls {
+			r := &o.Face().Repls[i]
+			if r.Event == "GainLife" && strings.EqualFold(r.Params["Prevent"], "True") &&
+				replacementActive(e, id, r) && replacementPlayerMatches(e, id, r, p) {
+				prevented = true
+				return
+			}
+		}
+	})
+	return prevented
+}
+
+func replacementActive(e *Engine, source state.ObjID, r *cards.Repl) bool {
+	active, ok := r.Params["ActiveZones"]
+	if !ok {
+		return true
+	}
+	o := e.G.Obj(source)
+	return o != nil && zoneSpecContains(active, o.Zone)
+}
+
+func replacementPlayerMatches(e *Engine, source state.ObjID, r *cards.Repl, p state.PlayerID) bool {
+	if int(p) >= len(e.G.Players) {
+		return false
+	}
+	v := r.Params["ValidPlayer"]
+	return v == "" || effects.MatchesPlayerSpec(e.G, v, p, e.controllerOf(source))
+}
+
 func init() {
 	// kw:etbCounter and kw:ETBReplacement are implemented wholly by the
 	// machinery above: both are R:Event$ Moved replacements (expanded from a
@@ -1252,8 +1374,14 @@ func init() {
 	// of Strength class, whose ReplaceWith$ body DB$ ReplaceMana is a
 	// registered API). Each is matched by replacementMatches's per-event
 	// branch above and applied by applyReplacements's dispatch.
+	//
+	// The life classes register too: repl:GainLife (the Prevent$ GainLife
+	// shape plus the CantGainLife static's replacement arm) and
+	// repl:LifeReduced (the ReplaceCount$Amount/Twice shape), both applied by
+	// applyLifeReplacements.
 	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement",
-		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana")
+		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
+		"repl:GainLife", "repl:LifeReduced")
 }
 
 // cmdZoneMove is one parked commander zone change (CR 903.9, Task m32): the
