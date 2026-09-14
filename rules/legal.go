@@ -136,6 +136,82 @@ func isLoyaltyAbility(ab *cards.SA) bool {
 	return false
 }
 
+// loyaltyActivationsThisTurn counts how many loyalty abilities of the
+// permanent id have been activated this turn, scanning the replayable event
+// log backward to the nearest turn boundary. Two things stop the scan early:
+//
+//   - TurnChange: CR 606.3's window is the turn, not a player's own turn.
+//   - a MoveZone crossing the battlefield boundary for id: a permanent that
+//     leaves the battlefield and returns is a NEW object (CR 400.7), so its
+//     previous stint's activations -- all of them earlier in the log -- must
+//     not count against the new one. The re-entry move is the stint boundary
+//     in both directions (an entry move means everything earlier was a
+//     different object; a leaving move means the count so far belongs to the
+//     stint that just ended), so one boundary check serves both.
+//
+// An AbilityPush records the activated ability's face index in Amount; that
+// index is mapped through the object's CURRENT face -- the face is what the
+// offer loop reads too, so the two can never disagree. The battlefield-to-
+// battlefield re-append Move (events.Move's same-zone case) is neither a
+// leaving nor an entering move and correctly does not reset the count.
+func (e *Engine) loyaltyActivationsThisTurn(id state.ObjID) int {
+	o := e.G.Obj(id)
+	if o == nil {
+		return 0
+	}
+	f := o.Face()
+	used := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.MoveZone && ev.Obj == id {
+			left := ev.From == state.ZBattlefield && ev.To != state.ZBattlefield
+			entered := ev.To == state.ZBattlefield && ev.From != state.ZBattlefield
+			if left || entered {
+				break
+			}
+		}
+		if ev.Kind == events.AbilityPush && ev.Obj == id {
+			if f != nil && int(ev.Amount) < len(f.Abilities) && isLoyaltyAbility(f.Abilities[int(ev.Amount)]) {
+				used++
+			}
+		}
+	}
+	return used
+}
+
+// loyaltyAbilityLimit resolves how many loyalty abilities the permanent id
+// may have activated this turn: 1 (CR 606.3) raised by every live
+// S:Mode$ NumLoyaltyAct static whose ValidCard$ matches the permanent --
+// Oath of Teferi's "twice each turn rather than only once" (Twice$ True,
+// ValidCard$ Planeswalker.YouCtrl) and Urza, Lord Protector's self-scoped
+// same (ValidCard$ Card.Self). A matching Twice$ True raises the limit to 2
+// (max, so two stacked Twice statics do not compound); a matching
+// Additional$ N adds N -- Forge's two parameters, combined this way because
+// an additional-activation grant (The Chain Veil's "as though none of its
+// loyalty abilities had been activated") must stack on top of a twice grant
+// rather than being absorbed by it. Statics that match neither parameter
+// leave the limit alone. The ValidCard$ match resolves against the static's
+// own source and controller (e.specCtx), exactly as castRestricted and
+// abilityRestricted resolve theirs.
+func (e *Engine) loyaltyAbilityLimit(id state.ObjID) int {
+	limit := 1
+	for _, sv := range e.activeStatics("NumLoyaltyAct") {
+		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+			continue
+		}
+		if sv.Params["Twice"] == "True" && limit < 2 {
+			limit = 2
+		}
+		if raw, ok := sv.Params["Additional"]; ok {
+			limit += int(parseAmount(raw, 0))
+		}
+	}
+	return limit
+}
+
 // activationLimitReached reports whether this object has already activated the
 // indexed ability as many times as its ActivationLimit permits this turn.
 // AbilityPush records both pieces of identity (Obj and Amount); scanning
@@ -450,19 +526,25 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				}
 				// CR 606.3: a planeswalker's loyalty ability may be activated
 				// only at the time a sorcery could be played -- during the
-				// controller's own main phase with an empty stack -- and each
-				// loyalty ability at most ONCE per turn. sorcerySpeed already
-				// folds the own-turn and main-phase halves; the once-per-turn
-				// half reuses the same event-log scan the ActivationLimit$ gate
-				// uses, at a fixed limit of 1, because no corpus loyalty ability
-				// carries that parameter and the gate must exist anyway (before
-				// this gate the [+2]/[0] abilities were offered, payable and
-				// repeatable without bound -- the live Jace draw-three exploit).
+				// controller's own main phase with an empty stack -- and a
+				// player may not activate a loyalty ability of a PERMANENT if
+				// any loyalty ability OF THAT PERMANENT has already been
+				// activated this turn. The gate is per permanent, not per
+				// ability index: after [+2] the [0] draw-three is just as
+				// withheld as a second [+2]. sorcerySpeed already folds the
+				// own-turn and main-phase halves; the once-per-turn half is
+				// the loyaltyActivationsThisTurn scan below (the event-log
+				// scan the ActivationLimit$ gate uses, keyed to the object
+				// and bounded by its current battlefield stint, CR 400.7),
+				// because no corpus loyalty ability carries ActivationLimit$
+				// and the gate must exist anyway (before this gate the
+				// [+2]/[0] abilities were offered, payable and repeatable
+				// without bound -- the live Jace draw-three exploit).
 				if isLoyaltyAbility(ab) {
 					if !sorcery {
 						continue
 					}
-					if e.activationLimitReached(id, p, i, "1") {
+					if e.loyaltyActivationsThisTurn(id) >= e.loyaltyAbilityLimit(id) {
 						continue
 					}
 				}

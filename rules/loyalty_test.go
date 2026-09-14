@@ -271,16 +271,16 @@ func TestJacePlusTwoCostsNoMana(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestJaceLoyaltyAbilityOncePerTurnAndOwnTurnOnly: after one activation the
-// SAME ability index is not re-offered this turn (CR 606.3), a DIFFERENT
-// index still is, and off the controller's own turn no loyalty ability is
-// offered at all; the next own turn re-offers the first index.
+// TestJaceLoyaltyAbilityOncePerTurnAndOwnTurnOnly: after one activation NO
+// loyalty ability of that walker is re-offered this turn -- the gate is per
+// PERMANENT (CR 606.3), not per ability index -- and off the controller's own
+// turn no loyalty ability is offered at all; the next own turn re-offers.
 func TestJaceLoyaltyAbilityOncePerTurnAndOwnTurnOnly(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	jaceCard := mustCorpusCard(t, reg, "Jace, the Mind Sculptor")
 	plusTwo := jaceAbility(t, jaceCard, "AddCounter", 2)
 	bear := mustCorpusCard(t, reg, "Grizzly Bears")
-	e, _, jace := walkerBoard(t, reg, "Jace, the Mind Sculptor", bear)
+	e, cfg, jace := walkerBoard(t, reg, "Jace, the Mind Sculptor", bear)
 	e.Advance()
 	if !loyaltyAbilityOffered(e, 0, jace, plusTwo) {
 		t.Fatal("[+2] not offered on the controller's own turn")
@@ -290,10 +290,10 @@ func TestJaceLoyaltyAbilityOncePerTurnAndOwnTurnOnly(t *testing.T) {
 	targetPlayer(t, e, 1)
 	passUntilStackEmpty(t, e, 20)
 	if loyaltyAbilityOffered(e, 0, jace, plusTwo) {
-		t.Fatal("[+2] re-offered in the same turn (CR 606.3 once-per-ability-per-turn)")
+		t.Fatal("[+2] re-offered in the same turn (CR 606.3 once-per-turn)")
 	}
-	if !loyaltyAbilityOffered(e, 0, jace, 1) {
-		t.Fatal("the [0] draw-three index wrongly withheld alongside the spent [+2]")
+	if loyaltyAbilityOffered(e, 0, jace, 1) {
+		t.Fatal("the [0] draw-three index still offered after [+2] (CR 606.3 is per PERMANENT, not per ability index)")
 	}
 	// Off-turn: hand the turn to seat 1 and re-ask seat 0's options.
 	e.emit(events.Event{Kind: events.TurnChange, Player: 1, Amount: 3})
@@ -309,6 +309,99 @@ func TestJaceLoyaltyAbilityOncePerTurnAndOwnTurnOnly(t *testing.T) {
 	if !loyaltyAbilityOffered(e, 0, jace, plusTwo) {
 		t.Fatal("[+2] not re-offered on the next turn")
 	}
+	replayCheck(t, e, cfg)
+}
+
+// TestWalkerLeaveAndReturnMayActivateAgain (CR 400.7): a permanent that
+// leaves the battlefield and returns is a NEW object, so the old stint's
+// activation does not block the returned permanent's loyalty abilities this
+// turn. The re-entry also re-grants starting loyalty (CR 306.5b), so the
+// cost is payable again.
+func TestWalkerLeaveAndReturnMayActivateAgain(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	jaceCard := mustCorpusCard(t, reg, "Jace, the Mind Sculptor")
+	plusTwo := jaceAbility(t, jaceCard, "AddCounter", 2)
+	bear := mustCorpusCard(t, reg, "Grizzly Bears")
+	e, cfg, jace := walkerBoard(t, reg, "Jace, the Mind Sculptor", bear)
+	e.Advance()
+	opt := abilityOption(t, e, jace, plusTwo)
+	submitChoices(t, e, opt.Index)
+	targetPlayer(t, e, 1)
+	passUntilStackEmpty(t, e, 20)
+	if loyaltyAbilityOffered(e, 0, jace, plusTwo) {
+		t.Fatal("[+2] re-offered in the same turn (the once gate should hold)")
+	}
+	// Exile and return the same turn, through logged MoveZone events.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: jace, From: state.ZBattlefield, To: state.ZExile})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: jace, From: state.ZExile, To: state.ZBattlefield})
+	// The priority decision captured before the moves is stale; re-drive the
+	// offer loop the way the live Submit loop would (attach_test.go's
+	// e.pending = nil pattern).
+	e.pending = nil
+	e.Advance()
+	if got := e.G.Obj(jace).Counter("LOYALTY"); got != 3 {
+		t.Fatalf("returned walker loyalty = %d, want the 3 the re-entry re-grants (CR 306.5b)", got)
+	}
+	if !loyaltyAbilityOffered(e, 0, jace, plusTwo) {
+		t.Fatal("returned walker's [+2] withheld (CR 400.7: the returned permanent is a new object)")
+	}
+	// And the new stint's own once-per-turn gate holds from zero.
+	opt = abilityOption(t, e, jace, plusTwo)
+	submitChoices(t, e, opt.Index)
+	targetPlayer(t, e, 1)
+	passUntilStackEmpty(t, e, 20)
+	if loyaltyAbilityOffered(e, 0, jace, plusTwo) {
+		t.Fatal("[+2] re-offered after the new stint's first activation")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestOathOfTeferiGrantsASecondLoyaltyActivation: the S:Mode$ NumLoyaltyAct
+// static (Twice$ True, ValidCard$ Planeswalker.YouCtrl) raises the
+// per-permanent limit from 1 to 2 for planeswalkers the enchantment's
+// controller controls, so the walker may activate twice this turn -- including
+// the same ability twice (Urza, Lord Protector's reminder text is explicit
+// that this is allowed) -- and a third activation is withheld.
+func TestOathOfTeferiGrantsASecondLoyaltyActivation(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	jaceCard := mustCorpusCard(t, reg, "Jace, the Mind Sculptor")
+	oathCard := mustCorpusCard(t, reg, "Oath of Teferi")
+	plusTwo := jaceAbility(t, jaceCard, "AddCounter", 2)
+	bear := mustCorpusCard(t, reg, "Grizzly Bears")
+	mtn := mountainDeck(t, 1) // a harmless "another permanent" target for Oath's ETB
+	e, cfg, jace := walkerBoard(t, reg, "Jace, the Mind Sculptor", oathCard, bear, mtn[0])
+	var mtnID state.ObjID
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Owner == 0 && o.Card == mtn[0] && o.Zone == state.ZBattlefield {
+			mtnID = o.ID
+		}
+	}
+	e.Advance()
+	// Oath's ETB exile trigger is pending before priority; answer it with the
+	// mountain and let the trigger resolve off the stack -- a loyalty ability
+	// needs the empty-stack sorcery window, so it cannot be offered while the
+	// trigger waits.
+	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
+		targetObject(t, e, mtnID)
+		passUntilStackEmpty(t, e, 20)
+		e.Advance()
+	}
+	opt := abilityOption(t, e, jace, plusTwo)
+	submitChoices(t, e, opt.Index)
+	targetPlayer(t, e, 1)
+	passUntilStackEmpty(t, e, 20)
+	if !loyaltyAbilityOffered(e, 0, jace, plusTwo) {
+		t.Fatal("[+2] not offered a second time under Oath of Teferi (limit should be 2)")
+	}
+	opt = abilityOption(t, e, jace, plusTwo)
+	submitChoices(t, e, opt.Index)
+	targetPlayer(t, e, 1)
+	passUntilStackEmpty(t, e, 20)
+	if loyaltyAbilityOffered(e, 0, jace, plusTwo) {
+		t.Fatal("[+2] offered a third time (Oath grants exactly two activations)")
+	}
+	replayCheck(t, e, cfg)
 }
 
 // TestJaceMinusOneAtOneLoyaltyIsOfferedAndKills: the [-1] ability is gated by
