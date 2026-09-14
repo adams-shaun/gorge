@@ -23,6 +23,7 @@ const pass = (i: number): Option => ({ index: i, kind: 'pass', label: 'Pass prio
 const concede = (i: number): Option => ({ index: i, kind: 'concede', label: 'Concede', player: 0 });
 const activate = (i: number): Option => ({ index: i, kind: 'activate', label: `Tap ${i}`, player: 0 });
 const land = (i: number): Option => ({ index: i, kind: 'play_land', label: `Play land ${i}`, player: 0 });
+const cast = (i: number): Option => ({ index: i, kind: 'cast', label: `Cast spell ${i}`, player: 0 });
 
 /** quiet is a priority window with nothing to do: pass and concede only. */
 const quiet = (seq: number): Decision =>
@@ -32,12 +33,16 @@ const quiet = (seq: number): Decision =>
 const manaLand = (seq: number): Decision =>
   ({ seq, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1, options: [activate(0), land(1), pass(2), concede(3)] });
 
-/** stackView is one object on the stack, shaped like the wire's StackView. */
-const stackView = (name: string, controller = 1): { id: number; controller: number; kind: string; name: string; targets: never[] } =>
-  ({ id: 9, controller, kind: 'spell', name, targets: [] });
+/** live is a respondable priority window: the safety rules can stop for its cast option. */
+const live = (seq: number): Decision =>
+  ({ seq, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1, options: [cast(0), pass(1), concede(2)] });
 
-const view = (step = 'draw', active = 0, turn = 2, stack: ReturnType<typeof stackView>[] = []): View =>
-  ({ active, step, turn, stack }) as unknown as View;
+/** stackView is one object on the stack, shaped like the wire's StackView. */
+const stackView = (name: string, controller = 1): View['stack'][number] =>
+  ({ id: 9, controller, kind: 'spell', name, targets: [] }) as unknown as View['stack'][number];
+
+const view = (step = 'draw', active = 0, turn = 2, stack: View['stack'] = []): View =>
+  ({ active, step, turn, stack, players: [] }) as unknown as View;
 
 /** pacedSeat is casual with the stops off and the given pacing; auto on. */
 function pacedSeat(pacing: { stepMs: number; resolveMs: number }, logAutoPasses = true): SeatPanelState {
@@ -141,6 +146,88 @@ describe('the wait is cancellable', () => {
     await settle(() => p.postedSeq === 1);
     expect(postIntentMock).toHaveBeenCalledTimes(1);
     expect(p.autoLog.map((n) => n.text)).toEqual(['Auto-passed: Lightning Bolt resolving']);
+  });
+
+  it('re-derives at fire: a same-stack trigger newly targeting this seat stops instead of posting (r3)', async () => {
+    vi.useFakeTimers();
+    const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
+    const initial = view('main1', 0, 2, [{ ...stackView('Opponent trigger'), kind: 'trigger' }]);
+    p.adoptView(live(1));
+    p.considerAuto(initial); // no target: Casual may pass this trigger
+    await vi.advanceTimersByTimeAsync(200);
+
+    // Same seq and same viewStamp: only the target changed. The timer stays
+    // at its original deadline, but its scheduled verdict is not trusted.
+    const targeted = view('main1', 0, 2, [{
+      ...stackView('Opponent trigger'),
+      kind: 'trigger',
+      targets: [{ player: 0, is_player: true }],
+    }]);
+    p.considerAuto(targeted);
+    await vi.advanceTimersByTimeAsync(200);
+
+    expect(postIntentMock).not.toHaveBeenCalled();
+    expect(p.postedSeq).toBeNull();
+    expect(autoNoteText(p.note)).toContain("opponent's object is on the stack");
+    expect(p.autoLog).toEqual([]);
+  });
+
+  it('re-derives at fire when a targeted permanent changes controller to this seat (r3)', async () => {
+    vi.useFakeTimers();
+    const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
+    const trigger = { ...stackView('Opponent trigger'), kind: 'trigger', targets: [{ obj: 42, player: 0, is_player: false }] };
+    const initial = view('main1', 0, 2, [trigger]);
+    initial.players = [{ seat: 1, battlefield: [{ id: 42, controller: 1 }] }] as unknown as View['players'];
+    p.adoptView(live(1));
+    p.considerAuto(initial); // target is not controlled by this seat yet
+    await vi.advanceTimersByTimeAsync(200);
+
+    const controlledByMe = view('main1', 0, 2, [trigger]);
+    controlledByMe.players = [{ seat: 0, battlefield: [{ id: 42, controller: 0 }] }] as unknown as View['players'];
+    p.considerAuto(controlledByMe); // viewStamp still does not change
+    await vi.advanceTimersByTimeAsync(200);
+
+    expect(postIntentMock).not.toHaveBeenCalled();
+    expect(p.postedSeq).toBeNull();
+    expect(autoNoteText(p.note)).toContain("opponent's object is on the stack");
+  });
+
+  it('an unrelated view change keeps the original deadline when the fresh verdict is still pass (r3)', async () => {
+    vi.useFakeTimers();
+    const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
+    const trigger = { ...stackView('Harmless trigger'), kind: 'trigger' };
+    const initial = view('main1', 0, 2, [trigger]);
+    initial.players = [{ seat: 1, life: 20 }] as unknown as View['players'];
+    p.adoptView(live(1));
+    p.considerAuto(initial);
+    await vi.advanceTimersByTimeAsync(200);
+
+    const lifeChanged = view('main1', 0, 2, [trigger]);
+    lifeChanged.players = [{ seat: 1, life: 19 }] as unknown as View['players'];
+    p.considerAuto(lifeChanged); // same stamp: retain the original 400 ms beat
+    await vi.advanceTimersByTimeAsync(200);
+    await settle(() => p.postedSeq === 1);
+
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(postIntentMock.mock.calls[0][2].choices).toEqual([1]);
+    expect(p.autoLog.map((n) => n.text)).toEqual(['Auto-passed: Harmless trigger resolving']);
+  });
+
+  it("a settings change during the wait cancels it and the new 'always stop' trigger rule never posts (r3)", async () => {
+    vi.useFakeTimers();
+    const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
+    const v = view('main1', 0, 2, [{ ...stackView('Opponent trigger'), kind: 'trigger' }]);
+    p.adoptView(live(1));
+    p.considerAuto(v);
+    await vi.advanceTimersByTimeAsync(200);
+
+    p.editSettings({ opponentTrigger: 'always' });
+    p.considerAuto(v); // the component effect reclassifies under the edit
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(postIntentMock).not.toHaveBeenCalled();
+    expect(p.postedSeq).toBeNull();
+    expect(autoNoteText(p.note)).toContain("opponent's object is on the stack");
   });
 
   it('the top stack object REPLACED at the same depth cancels and re-paces: no post at the old deadline, the new spell logged (r2)', async () => {
@@ -297,6 +384,22 @@ describe('the log notes', () => {
     const seat = 0;
     expect(autoPassLogText('end-turn', view('main2', 0), seat)).toBe('End turn: passed main 2');
     expect(autoPassLogText('hard-skip', view('main2', 0, 2, [stackView('Giant Growth', 1)]), seat)).toBe('Skip turn: passed main 2');
+  });
+
+  it('paced wording is computed at fire time from the current view, not the scheduled view', async () => {
+    vi.useFakeTimers();
+    const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
+    p.adoptView(quiet(1));
+    p.considerAuto(view('end', 1, 2));
+    await vi.advanceTimersByTimeAsync(100);
+
+    const named = view('end', 1, 2);
+    named.players = [{ seat: 1, name: 'Ana' }] as unknown as View['players'];
+    p.considerAuto(named); // names are outside viewStamp, so the deadline is unchanged
+    await vi.advanceTimersByTimeAsync(100);
+    await settle(() => p.postedSeq === 1);
+
+    expect(p.autoLog.map((n) => n.text)).toEqual(["Auto-passed: Ana's end step"]);
   });
 
   it('notes land only at POST time: an abandoned paced pass writes nothing', async () => {

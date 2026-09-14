@@ -119,11 +119,10 @@
     void logic.pending?.seq;
     void view.step;
     void view.turn;
-    // The FULL view identity a paced pass is derived from (prio5 r2): turn,
-    // step, every stack entry's id and the top object's identity/content.
-    // Reading the stamp tracks exactly what viewStamp compares, so a same-
-    // depth top-object replacement re-runs this effect and re-derives the
-    // wait instead of letting the old timer fire for a view that is gone.
+    // A cheap pacing hint: these visible stack/step changes restart the full
+    // delay. Correctness does not depend on this hand-maintained stamp —
+    // considerAuto always records the latest view and firePass re-runs the
+    // complete decision against it before posting.
     void viewStamp(view);
     untrack(() => {
       logic.expireRun(view);

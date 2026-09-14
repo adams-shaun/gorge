@@ -152,16 +152,13 @@ export function mulliganPhase(d: Decision | null): MulliganPhase {
 export const AUTO_PASS_CAP = 40;
 
 /**
- * viewStamp is the identity of the view a paced pass was derived from (prio5
- * r2): the turn, the step, every stack entry's object id, and the identity
- * and content of the TOP object — the thing the pacing decision and the log
- * wording actually read. Two views with the same turn, step and stack DEPTH
- * can still differ in what is resolving (the top spell resolves and another
- * is revealed beneath it at the same depth), so depth alone is not enough:
- * a wait held for one view must not fire for another. It is a pure function
- * of the wire view so the seat panel component can read it as ONE reactive
- * dependency (every id and the top's name are tracked through it) and the
- * state's hold/cancel test compares exactly what the component observes.
+ * viewStamp is a cheap pacing hint: a turn/step or stack-object change
+ * restarts the full delay so the player gets a complete beat for the newly
+ * visible state. It is deliberately NOT the pass's correctness guard.
+ * decide() can read more of View than this stamp (and may read more in the
+ * future), so firePass always re-runs the decision against currentView before
+ * posting. An omitted field can therefore preserve a timer, never authorize
+ * a stale pass.
  */
 export function viewStamp(view: View): string {
   const top = view.stack.length > 0 ? view.stack[view.stack.length - 1] : null;
@@ -405,14 +402,15 @@ export class SeatPanelState {
    * is structurally impossible. A wait of 0 ms never schedules: the pass
    * posts immediately, which is the pre-pacing path the tests rely on.
    *
-   * The wait's view identity is `stamp` (viewStamp): turn, step, every stack
-   * id and the top object's identity/content. Replacing the resolving top
-   * object at the SAME depth is therefore also a different view — the r2
-   * finding this closes — so the wait is cancelled and re-derived, never
-   * posted at the old deadline with the old spell's name.
+   * `stamp` is only the restart-the-delay hint described by viewStamp. The
+   * firing edge re-derives with currentView and current settings/run mode;
+   * neither the scheduled verdict nor any hand-maintained view identity is
+   * trusted to authorize the post.
    */
-  private passWait: { seq: number; index: number; kind: AutoPassKind; text: string; turn: number; stamp: string } | null = null;
+  private passWait: { seq: number; index: number; kind: AutoPassKind; stamp: string } | null = null;
   private passTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Latest view supplied to considerAuto; firePass re-derives against this exact view. */
+  private currentView: View | null = null;
   /**
    * autoActedSeq is the seq auto last posted for. If a decision with that
    * seq is put in front of auto again, the answer did not take and auto
@@ -764,6 +762,10 @@ export class SeatPanelState {
    * run cap, then and only then decide().
    */
   considerAuto(view: View) {
+    // Update this before every early return, including the "same stamp, keep
+    // waiting" return below. A view may change a field decide() reads without
+    // changing viewStamp; firePass must still see that current value.
+    this.currentView = view;
     const d = this.pending;
     if (d === null || this.busy || d.seq === this.postedSeq) return;
     // A one-shot run ends the moment its turn is over, whether or not a
@@ -795,13 +797,6 @@ export class SeatPanelState {
       return;
     }
 
-    // The empty-window floor runs whether or not auto is on, so a Manual
-    // seat is still not stopped at a window that asks nothing. When auto IS
-    // on this is redundant -- decide()'s own !actionable branch reaches the
-    // same pass -- and that is the point: one shape test, two callers.
-    const emptyIndex = this.skipEmpty ? emptyPriorityWindow(d) : null;
-    if (!autoOn && this.oneShot === 'none' && emptyIndex === null) return;
-
     // Loop guard: we already answered this seq and here it is again. The
     // answer did not take, so posting it a second time is the start of an
     // unbounded retry against the server.
@@ -810,40 +805,26 @@ export class SeatPanelState {
       return;
     }
 
-    let index: number;
-    if (this.oneShot !== 'none' || autoOn) {
-      // A one-shot run feeds decide() its OWN settings: autoPass forced on
-      // (the press is the consent), the step rules off (End Turn ignores
-      // step stops), and — hard skip only — every opponent-object rule
-      // 'never'. The player's real settings govern persistent Auto.
-      const verdict = decide({
-        decision: d,
-        view,
-        seat: this.ctx.seat,
-        settings: this.oneShot !== 'none' ? this.runSettings(this.oneShot) : this.settings,
-      });
-      if (verdict.act === 'stop') {
-        // decide() remains the safety oracle. A one-shot run ENDS on every
-        // stop verdict — there is no acknowledgement machinery any more,
-        // because a run honours no step stops and the press itself moved
-        // the window it was pressed on. Persistent Auto stays armed: the
-        // player answers this window and Auto resumes after it — and with
-        // hand answers no longer disarming Auto (prio3), no exception
-        // token is needed or minted.
-        this.autoRun = 0;
-        if (this.oneShot !== 'none') {
-          const mode = this.oneShot;
-          this.oneShot = 'none';
-          this.autoActedSeq = null;
-          this.note = { kind: mode === 'end-turn' ? 'end-turn-stopped' : 'skip-turn-stopped', reason: verdict.reason };
-        } else {
-          this.note = { kind: 'waiting', reason: verdict.reason };
-        }
-        return;
+    const verdict = this.derivePass(view);
+    if (verdict === null) return;
+    if (verdict.act === 'stop') {
+      // decide() remains the safety oracle. A one-shot run ENDS on every
+      // stop verdict — there is no acknowledgement machinery any more,
+      // because a run honours no step stops and the press itself moved
+      // the window it was pressed on. Persistent Auto stays armed: the
+      // player answers this window and Auto resumes after it — and with
+      // hand answers no longer disarming Auto (prio3), no exception
+      // token is needed or minted.
+      this.autoRun = 0;
+      if (this.oneShot !== 'none') {
+        const mode = this.oneShot;
+        this.oneShot = 'none';
+        this.autoActedSeq = null;
+        this.note = { kind: mode === 'end-turn' ? 'end-turn-stopped' : 'skip-turn-stopped', reason: verdict.reason };
+      } else {
+        this.note = { kind: 'waiting', reason: verdict.reason };
       }
-      index = verdict.index;
-    } else {
-      index = emptyIndex as number;
+      return;
     }
 
     // The cap bounds an unbroken run of machine-made passes, and it bounds
@@ -855,12 +836,48 @@ export class SeatPanelState {
       return;
     }
 
-    const kind: AutoPassKind = this.oneShot === 'end-turn'
+    this.dispatchPass(view, verdict.index, verdict.kind);
+  }
+
+  /**
+   * derivePass is the shared classification used both when a window first
+   * arrives and when a pacing timer fires. It returns null only when neither
+   * persistent Auto, a one-shot run nor the empty-window floor owns the
+   * current window. Keeping this decision in one function is the core safety
+   * property: firePass cannot drift from considerAuto as decide() learns to
+   * inspect more of View.
+   */
+  private derivePass(view: View):
+    | { act: 'pass'; index: number; kind: Exclude<AutoPassKind, 'act'> }
+    | { act: 'stop'; reason: StopReason }
+    | null {
+    const d = this.pending;
+    if (d === null) return null;
+    const autoOn = this.auto && !this.machinePaused;
+
+    // The empty-window floor runs whether or not auto is on, so a Manual
+    // seat is still not stopped at a window that asks nothing. With Auto on,
+    // decide() owns the same shape and classifies it under Auto's counter.
+    if (!autoOn && this.oneShot === 'none') {
+      const index = this.skipEmpty ? emptyPriorityWindow(d) : null;
+      return index === null ? null : { act: 'pass', index, kind: 'empty' };
+    }
+
+    // A one-shot run feeds decide() its OWN settings: autoPass forced on,
+    // step rules off, and — hard skip only — opponent/own object rules off.
+    const verdict = decide({
+      decision: d,
+      view,
+      seat: this.ctx.seat,
+      settings: this.oneShot !== 'none' ? this.runSettings(this.oneShot) : this.settings,
+    });
+    if (verdict.act === 'stop') return verdict;
+    const kind: Exclude<AutoPassKind, 'act'> = this.oneShot === 'end-turn'
       ? 'end-turn'
       : this.oneShot === 'hard-skip'
       ? 'hard-skip'
-      : autoOn ? 'auto' : 'empty';
-    this.dispatchPass(view, index, kind);
+      : 'auto';
+    return { ...verdict, kind };
   }
 
   /**
@@ -878,9 +895,8 @@ export class SeatPanelState {
    * dispatchPass is the ONE exit every automatic pass goes through — auto,
    * the empty-window floor, pass-after-acting and both one-shot runs. At 0 ms
    * it counts, logs and posts synchronously (today's path); at a paced
-   * setting it schedules the post for paceMs(view) later, holding the pass's
-   * full derivation (seq, index, kind, note text and the view context it was
-   * derived from) so firePass can re-validate before acting. The loop-guard
+   * setting it schedules the candidate seq/index/kind for firePass to
+   * re-derive before acting. The loop-guard
    * seq is recorded HERE, at dispatch: a cancelled wait (cancelPassWait)
    * un-records it again, so an abandoned pass never looks answered and the
    * loop guard can never trip on a pass that was never posted.
@@ -889,29 +905,24 @@ export class SeatPanelState {
     const d = this.pending;
     if (d === null) return;
     const ms = this.paceMs(view);
-    const text = this.settings.logAutoPasses ? autoPassLogText(kind, view, this.ctx.seat) : '';
     if (kind !== 'act') this.autoActedSeq = d.seq;
     if (ms <= 0) {
-      this.countPass(kind);
-      if (text) this.autoLog = pushAutoPassLog(this.autoLog, text, view.turn);
-      void this.post([index]);
+      this.postPass(kind, index, view);
       return;
     }
     if (this.passTimer !== null) clearTimeout(this.passTimer);
-    this.passWait = { seq: d.seq, index, kind, text, turn: view.turn, stamp: viewStamp(view) };
+    this.passWait = { seq: d.seq, index, kind, stamp: viewStamp(view) };
     this.passTimer = setTimeout(() => this.firePass(), ms);
   }
 
   /**
-   * firePass is the paced pass's firing edge. Everything re-validates: the
-   * decision must still be pending and un-answered at the SAME seq, the
-   * machine path that scheduled the pass must still be live (a run ended by
-   * Escape, an auto switched off or a floor disabled abandons it), and only
-   * then are the pass counted, the note set and the log note written —
-   * counting happens at POST time, never at schedule time, so an abandoned
-   * pass costs no counter and no cap headroom. The seq guard is the last
-   * line of defence against a stale post; adopt/cancelPassWait already
-   * un-recorded anything abandoned.
+   * firePass is the paced pass's firing edge. The scheduled verdict is only
+   * a candidate: after the seq guard, the exact classification used by
+   * considerAuto is re-run with the latest view, settings and run mode. It
+   * posts only when that fresh verdict is still a pass from the same machine
+   * path and names the same wire index. Otherwise it drops the candidate and
+   * sends the fresh state through considerAuto, which may stop or start a new
+   * full wait. Log text is also made here, from the state actually passed.
    */
   private firePass() {
     const w = this.passWait;
@@ -919,15 +930,32 @@ export class SeatPanelState {
     this.passWait = null;
     if (w === null) return;
     const d = this.pending;
-    if (d === null || d.seq !== w.seq || this.busy || d.seq === this.postedSeq) return;
-    // The machine path that scheduled the pass must still be live.
-    if ((w.kind === 'end-turn' || w.kind === 'hard-skip') && this.oneShot === 'none') return;
-    if (w.kind === 'auto' && (!this.auto || this.machinePaused)) return;
-    if (w.kind === 'empty' && !this.skipEmpty) return;
-    if (w.kind === 'act' && !this.actPass) return;
-    this.countPass(w.kind);
-    if (w.text) this.autoLog = pushAutoPassLog(this.autoLog, w.text, w.turn);
-    void this.post([w.index]);
+    const view = this.currentView;
+    // A scheduled candidate is not an answered decision. Release its loop
+    // marker even when the seq guard rejects it; postPass restores it only
+    // for a freshly authorized post.
+    if (this.autoActedSeq === w.seq) this.autoActedSeq = null;
+    if (d === null || view === null || d.seq !== w.seq || this.busy || d.seq === this.postedSeq) return;
+
+    const fresh = w.kind === 'act' ? this.deriveActPass(view) : this.derivePass(view);
+    if (fresh?.act === 'pass' && fresh.index === w.index && fresh.kind === w.kind) {
+      if (w.kind !== 'act') this.autoActedSeq = w.seq;
+      this.postPass(w.kind, w.index, view);
+      return;
+    }
+
+    // The view/settings/run changed the answer. Let the ordinary path apply
+    // its stop note or schedule a fresh, fully paced candidate.
+    this.considerAuto(view);
+  }
+
+  /** One actual automatic post: count it and, if enabled NOW, log the current view. */
+  private postPass(kind: AutoPassKind, index: number, view: View) {
+    this.countPass(kind);
+    if (this.settings.logAutoPasses) {
+      this.autoLog = pushAutoPassLog(this.autoLog, autoPassLogText(kind, view, this.ctx.seat), view.turn);
+    }
+    void this.post([index]);
   }
 
   /**
@@ -1034,9 +1062,18 @@ export class SeatPanelState {
     // The armed token is itself the consent: the preference fires whether or
     // not the master switch is on (a manual seat with the preference on —
     // the mode this preference exists for).
+    const verdict = this.deriveActPass(view);
+    if (verdict === null) return;
+    this.dispatchPass(view, verdict.index, verdict.kind);
+  }
+
+  /** Re-derive a paced pass-after-acting candidate after its one-shot token was consumed. */
+  private deriveActPass(view: View): { act: 'pass'; index: number; kind: 'act' } | null {
+    const d = this.pending;
+    const autoOn = this.auto && !this.machinePaused;
+    if (d === null || !this.actPass || autoOn || this.oneShot !== 'none') return null;
     const verdict = decide({ decision: d, view, seat: this.ctx.seat, settings: { ...this.settings, autoPass: true } });
-    if (verdict.act !== 'pass') return;
-    this.dispatchPass(view, verdict.index, 'act');
+    return verdict.act === 'pass' ? { ...verdict, kind: 'act' } : null;
   }
 
   /** begin resets the seat across a match boundary. (The component keys the panel by match, so a new match is a fresh instance — this is belt and braces.) The settings are a property of the PLAYER, not of the match: auto (autoPass), the stops and pass-after-acting all survive begin() untouched. */
@@ -1066,6 +1103,7 @@ export class SeatPanelState {
     this.emptySkipped = 0;
     this.autoActedSeq = null;
     this.autoLog = [];
+    this.currentView = null;
     this.note = { kind: 'off' };
   }
 
