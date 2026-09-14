@@ -76,14 +76,6 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 
-	if *emit != "" {
-		if err := emitTest(*emit, dir, meta, stdout); err != nil {
-			fmt.Fprintln(stderr, err)
-			return 2
-		}
-		return 0
-	}
-
 	intentCount := len(l.Intents)
 	n := intentCount
 	if *at < -1 || *at > intentCount {
@@ -94,13 +86,23 @@ func run(args []string, stdout, stderr io.Writer) int {
 		n = *at
 	}
 
-	// Every rendered point is evidence about the complete recording. Verify
-	// every generated event and the final recorded head before presenting a
-	// timeline or an -at prefix; ReplayTo alone can prove only that prefix.
+	// Every mode is evidence about the complete recording. Verify every
+	// generated event and the final recorded head before presenting a
+	// timeline or an -at prefix, and before -emit-test writes anything:
+	// exit 0 promises a verified replay, and a test bootstrapped from an
+	// unverified capture would reproduce nothing. ReplayTo alone can prove
+	// only a prefix.
 	full, err := replayCapture(l, cfg, meta)
 	if err != nil {
 		printDivergence(stdout, err)
 		return 1
+	}
+	if *emit != "" {
+		if err := emitTest(*emit, dir, meta, stdout); err != nil {
+			fmt.Fprintln(stderr, err)
+			return 2
+		}
+		return 0
 	}
 	if *list {
 		return listIntents(l, cfg, stdout, stderr)
@@ -187,49 +189,7 @@ func printSummary(e *rules.Engine, l *events.Log, n int, meta feedback.Meta, omn
 	}
 	fmt.Fprintln(stdout, "poison is not modelled in this build (no seat can have poison counters).")
 
-	for i := range v.Players {
-		p := &v.Players[i]
-		name := p.Name
-		fmt.Fprintf(stdout, "seat %d %s: life %d, library %d, hand %d, graveyard %d, exile %d\n",
-			p.ID, name, p.Life, p.LibrarySize, p.HandSize, p.GraveyardSize, len(p.Exile))
-		if len(p.Command) != 0 {
-			fmt.Fprintf(stdout, "  command zone: %s\n", cardNames(p.Command))
-		}
-		if omniscient && p.Hand != nil {
-			fmt.Fprintf(stdout, "  hand: %s\n", cardNames(p.Hand))
-		}
-		// Attachments under the permanent they modify: the reader sees the
-		// Aura/Equipment with its host, not as two unrelated permanents.
-		attached := map[state.ObjID][]string{}
-		order := []state.ObjID{}
-		for _, c := range p.Battlefield {
-			if c.AttachedTo != 0 {
-				if _, seen := attached[c.AttachedTo]; !seen {
-					order = append(order, c.AttachedTo)
-				}
-				attached[c.AttachedTo] = append(attached[c.AttachedTo], c.Name)
-			}
-		}
-		for _, c := range p.Battlefield {
-			if c.AttachedTo != 0 {
-				continue // printed with its host below
-			}
-			line := fmt.Sprintf("  - %s (#%d) %d/%d", c.Name, c.ID, c.Power, c.Toughness)
-			if c.Damage != 0 {
-				line += fmt.Sprintf(", damage %d", c.Damage)
-			}
-			if c.Tapped {
-				line += ", tapped"
-			}
-			if ks := counterKinds(c.Counters); ks != "" {
-				line += ", counters " + ks
-			}
-			if ids := attached[c.ID]; len(ids) != 0 {
-				line += ", attachments: " + strings.Join(ids, ", ")
-			}
-			fmt.Fprintln(stdout, line)
-		}
-	}
+	printSeats(stdout, v.Players, omniscient)
 	if len(v.Stack) != 0 {
 		fmt.Fprintln(stdout, "stack (top last):")
 		for _, s := range v.Stack {
@@ -248,6 +208,73 @@ func printSummary(e *rules.Engine, l *events.Log, n int, meta feedback.Meta, omn
 	for _, ev := range tail {
 		if line := view.Describe(g, ev); line != "" {
 			fmt.Fprintf(stdout, "  %s\n", line)
+		}
+	}
+}
+
+// printSeats writes every seat's totals and battlefield. Attachments print
+// under the permanent they modify, so the reader sees the Aura/Equipment
+// with its host rather than as two unrelated permanents.
+//
+// The attachment index is built across EVERY seat's battlefield before any
+// seat prints: view.ProjectFor groups battlefields by controller, and an
+// Aura is routinely controlled by one seat and attached to another seat's
+// creature (a Pacifism on the opponent). Indexing per seat would suppress
+// that Aura from its controller's section and never show it on the host.
+// An attachment whose host is not on any battlefield in the view still
+// prints as a standalone line naming the missing host.
+func printSeats(stdout io.Writer, players []view.PlayerView, omniscient bool) {
+	controller := map[state.ObjID]state.PlayerID{}
+	onBattlefield := map[state.ObjID]bool{}
+	for i := range players {
+		for _, c := range players[i].Battlefield {
+			onBattlefield[c.ID] = true
+			controller[c.ID] = players[i].ID
+		}
+	}
+	attached := map[state.ObjID][]string{}
+	for i := range players {
+		for _, c := range players[i].Battlefield {
+			if c.AttachedTo != 0 && onBattlefield[c.AttachedTo] {
+				label := c.Name
+				if players[i].ID != controller[c.AttachedTo] {
+					label = fmt.Sprintf("%s (seat %d's)", c.Name, players[i].ID)
+				}
+				attached[c.AttachedTo] = append(attached[c.AttachedTo], label)
+			}
+		}
+	}
+	for i := range players {
+		p := &players[i]
+		fmt.Fprintf(stdout, "seat %d %s: life %d, library %d, hand %d, graveyard %d, exile %d\n",
+			p.ID, p.Name, p.Life, p.LibrarySize, p.HandSize, p.GraveyardSize, len(p.Exile))
+		if len(p.Command) != 0 {
+			fmt.Fprintf(stdout, "  command zone: %s\n", cardNames(p.Command))
+		}
+		if omniscient && p.Hand != nil {
+			fmt.Fprintf(stdout, "  hand: %s\n", cardNames(p.Hand))
+		}
+		for _, c := range p.Battlefield {
+			if c.AttachedTo != 0 && onBattlefield[c.AttachedTo] {
+				continue // printed with its host
+			}
+			line := fmt.Sprintf("  - %s (#%d) %d/%d", c.Name, c.ID, c.Power, c.Toughness)
+			if c.Damage != 0 {
+				line += fmt.Sprintf(", damage %d", c.Damage)
+			}
+			if c.Tapped {
+				line += ", tapped"
+			}
+			if ks := counterKinds(c.Counters); ks != "" {
+				line += ", counters " + ks
+			}
+			if c.AttachedTo != 0 {
+				line += fmt.Sprintf(", attached to #%d (not on the battlefield)", c.AttachedTo)
+			}
+			if names := attached[c.ID]; len(names) != 0 {
+				line += ", attachments: " + strings.Join(names, ", ")
+			}
+			fmt.Fprintln(stdout, line)
 		}
 	}
 }
@@ -374,6 +401,16 @@ func emitTest(pkg, dir string, meta feedback.Meta, stdout io.Writer) error {
 	id := meta.ID
 	san := sanitize(id)
 	dst := filepath.Join(pkgDir, "testdata", "feedback", id)
+	testPath := filepath.Join(pkgDir, "repro_feedback_"+san+"_test.go")
+	// Refuse before writing anything: a skeleton someone filled in, or a
+	// snapshot a test already pins, must survive a repeated emit byte for
+	// byte.
+	if _, err := os.Stat(testPath); err == nil {
+		return fmt.Errorf("repro: %s already exists; not overwriting", testPath)
+	}
+	if ents, err := os.ReadDir(dst); err == nil && len(ents) > 0 {
+		return fmt.Errorf("repro: %s already holds a snapshot; not overwriting", dst)
+	}
 	if err := os.MkdirAll(dst, 0o755); err != nil {
 		return fmt.Errorf("repro: %w", err)
 	}
@@ -391,10 +428,6 @@ func emitTest(pkg, dir string, meta feedback.Meta, stdout io.Writer) error {
 		}
 	}
 
-	testPath := filepath.Join(pkgDir, "repro_feedback_"+san+"_test.go")
-	if _, err := os.Stat(testPath); err == nil {
-		return fmt.Errorf("repro: %s already exists; not overwriting", testPath)
-	}
 	body := fmt.Sprintf(`// Code generated by cmd/repro -emit-test from feedback report %s; DO NOT EDIT.
 // It reproduces the state the report was filed at: the snapshot under
 // testdata/feedback/%s/ is replayed to every recorded intent. Assert the

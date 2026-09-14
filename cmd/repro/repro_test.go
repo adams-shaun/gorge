@@ -12,6 +12,7 @@ import (
 
 	"github.com/adams-shaun/gorge/internal/testutil/feedback"
 	"github.com/adams-shaun/gorge/replay"
+	"github.com/adams-shaun/gorge/view"
 )
 
 // fixtureRel is the committed fixture's path from this package's directory
@@ -446,9 +447,106 @@ func TestReproEmitTestRefusesOverwrite(t *testing.T) {
 	if code := run([]string{"-emit-test", "zzrepro-emittest2", fixtureRel}, &out, io.Discard); code != 0 {
 		t.Fatalf("first emit exit %d:\n%s", code, out.String())
 	}
+	// Simulate a filled-in test and a hand-refreshed snapshot: the refused
+	// second emit must leave both byte-identical, not just exit non-zero.
+	san := sanitize(fixtureID)
+	testPath := filepath.Join(scratch, "repro_feedback_"+san+"_test.go")
+	logPath := filepath.Join(scratch, "testdata", "feedback", fixtureID, "log.json")
+	filledTest := []byte("package emittmp_test\n\n// filled in by hand\n")
+	editedLog := []byte(`{"edited":"by hand"}`)
+	if err := os.WriteFile(testPath, filledTest, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(logPath, editedLog, 0o644); err != nil {
+		t.Fatal(err)
+	}
 	out.Reset()
 	if code := run([]string{"-emit-test", "zzrepro-emittest2", fixtureRel}, &out, io.Discard); code == 0 {
 		t.Fatalf("second emit overwrote the first:\n%s", out.String())
+	}
+	if got, _ := os.ReadFile(testPath); !bytes.Equal(got, filledTest) {
+		t.Errorf("refused emit rewrote the test file:\n%s", got)
+	}
+	if got, _ := os.ReadFile(logPath); !bytes.Equal(got, editedLog) {
+		t.Errorf("refused emit rewrote the snapshot's log.json:\n%s", got)
+	}
+}
+
+// TestReproEmitTestRejectsTamperedCapture: -emit-test verifies the complete
+// capture before writing. A log.json whose head alone was corrupted exits
+// non-zero with DIVERGED and creates neither the snapshot copy nor the
+// skeleton.
+func TestReproEmitTestRejectsTamperedCapture(t *testing.T) {
+	requireCorpus(t)
+	root, err := feedback.Root()
+	if err != nil {
+		t.Skipf("no repo root: %v", err)
+	}
+	scratch := filepath.Join(root, "zzrepro-emittest3")
+	t.Cleanup(func() { os.RemoveAll(scratch) })
+	if err := os.MkdirAll(scratch, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(scratch, "doc.go"), []byte("package emittmp\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	dir := tamperFixture(t, func(lg map[string]any) {
+		lg["head"] = "deadbeefdeadbeef"
+	})
+	var out bytes.Buffer
+	if code := run([]string{"-emit-test", "zzrepro-emittest3", dir}, &out, io.Discard); code == 0 {
+		t.Fatalf("tampered capture emitted with exit 0:\n%s", out.String())
+	}
+	if !strings.Contains(out.String(), "DIVERGED") {
+		t.Errorf("output missing DIVERGED:\n%s", out.String())
+	}
+	if _, err := os.Stat(filepath.Join(scratch, "testdata")); !os.IsNotExist(err) {
+		t.Errorf("tampered emit created testdata (stat err %v)", err)
+	}
+	if _, err := os.Stat(filepath.Join(scratch, "repro_feedback_"+sanitize(fixtureID)+"_test.go")); !os.IsNotExist(err) {
+		t.Errorf("tampered emit wrote the skeleton (stat err %v)", err)
+	}
+}
+
+// TestPrintSeatsShowsOpponentAuraOnItsHost: the view groups battlefields by
+// controller, so an Aura seat 0 controls on seat 1's creature sits in seat
+// 0's list while its host sits in seat 1's. The summary must print it on the
+// host (naming its controller), and not drop it from both sections.
+func TestPrintSeatsShowsOpponentAuraOnItsHost(t *testing.T) {
+	players := []view.PlayerView{
+		{ID: 0, Name: "Caster", Battlefield: []view.CardView{
+			{ID: 10, Name: "Pacifism", AttachedTo: 20},
+			{ID: 11, Name: "Plains"},
+		}},
+		{ID: 1, Name: "Target", Battlefield: []view.CardView{
+			{ID: 20, Name: "Grizzly Bears", Power: 2, Toughness: 2},
+			{ID: 21, Name: "Rancor", AttachedTo: 20},
+		}},
+	}
+	var out bytes.Buffer
+	printSeats(&out, players, false)
+	got := out.String()
+	if !strings.Contains(got, "Grizzly Bears (#20) 2/2, attachments: Pacifism (seat 0's), Rancor") {
+		t.Errorf("host line does not list both attachments:\n%s", got)
+	}
+	if strings.Contains(got, "- Pacifism") || strings.Contains(got, "- Rancor") {
+		t.Errorf("an attachment also printed as a standalone permanent:\n%s", got)
+	}
+	if !strings.Contains(got, "- Plains (#11)") {
+		t.Errorf("unattached permanent missing:\n%s", got)
+	}
+}
+
+// TestPrintSeatsKeepsAttachmentWithMissingHost: an attachment whose host is
+// not in the view still prints, naming the host id, instead of vanishing.
+func TestPrintSeatsKeepsAttachmentWithMissingHost(t *testing.T) {
+	players := []view.PlayerView{{ID: 0, Name: "Solo", Battlefield: []view.CardView{
+		{ID: 10, Name: "Bonesplitter", AttachedTo: 99},
+	}}}
+	var out bytes.Buffer
+	printSeats(&out, players, false)
+	if !strings.Contains(out.String(), "- Bonesplitter (#10) 0/0, attached to #99 (not on the battlefield)") {
+		t.Errorf("orphaned attachment not printed:\n%s", out.String())
 	}
 }
 
