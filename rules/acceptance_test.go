@@ -75,38 +75,65 @@ import (
 // Task 15 (protection) registered the five kw:Protection from <colour>
 // keywords, retiring Goblin Piledriver (Protection from blue) and Knight of
 // Infamy (Protection from white) -- the last two entries on this table -- so
-// the ratchet became EMPTY: every one of the 136 distinct cards across the
-// 12 Legacy decks was fully supported by this build. Task m38 (Ruling M38-P)
-// extended the ratchet's scope to the five interim foundations-* Commander
-// decks, also with no gaps. The 2026-09-14 Hearthhull import is the first
-// external list admitted with its measured missing primitives retained below;
-// its game-completion evidence is intentionally not mistaken for full rules
-// coverage.
+// the ratchet became EMPTY for the original Legacy and interim Commander
+// decks. The Hearthhull and Valgavoth imports add 54 measured gaps across 579
+// distinct cards in the pinned corpus; entries retire only when their
+// primitives are implemented.
 var knownUnsupported = map[string][]string{
-	// Hearthhull, the Worldseed landfall import (2026-09-14): measured against
-	// .cards/ir.gob.gz at FORGE_REF. These are real missing primitives, kept in
-	// the worklist rather than registered inertly just to admit the new deck.
-	"Baloth Prime":              {"api:Untap", "trig:Sacrificed"},
-	"Braids, Arisen Nightmare":  {"api:RepeatEach"},
-	"Conduit of Worlds":         {"api:Play"},
-	"Constant Mists":            {"api:Fog", "kw:Buyback"},
-	"Deflecting Swat":           {"api:ChangeTargets"},
-	"Evendo Brushrazer":         {"trig:Sacrificed"},
-	"Exploration Broodship":     {"kw:Station"},
-	"Fog":                       {"api:Fog"},
-	"Hearthhull, the Worldseed": {"kw:Station"},
-	"Horizon Explorer":          {"api:Untap", "trig:AttackersDeclaredOneTarget"},
-	"Lord Windgrace":            {"kw:CARDNAME can be your commander."},
-	"Mayhem Devil":              {"trig:Sacrificed"},
-	"Necrodominance":            {"repl:BeginPhase"},
-	"Necropotence":              {"repl:BeginPhase", "trig:Discarded"},
-	"Planetary Annihilation":    {"api:ChooseCard", "api:SacrificeAll"},
-	"Ragavan, Nimble Pilferer":  {"kw:Dash"},
-	"Szarel, Genesis Shepherd":  {"trig:Sacrificed"},
-	"Through the Forest Gate":   {"api:Shuffle"},
-	"Virtue of Strength":        {"api:ReplaceMana", "repl:ProduceMana"},
-	"Walk-In Closet":            {"trig:UnlockDoor"},
-	"Ziatora's Proving Ground":  {"kw:Cycling"},
+	"Archfiend of Despair":         {"api:RepeatEach", "stat:CantGainLife"},
+	"Baloth Prime":                 {"api:Untap", "trig:Sacrificed"},
+	"Bloodletter of Aclazotz":      {"api:ReplaceEffect", "repl:LifeReduced"},
+	"Braids, Arisen Nightmare":     {"api:RepeatEach"},
+	"Chandra, Awakened Inferno":    {"repl:Counter"},
+	"Chromatic Orrery":             {"stat:ManaConvert"},
+	"Conduit of Worlds":            {"api:Play"},
+	"Constant Mists":               {"api:Fog", "kw:Buyback"},
+	"Crypt Ghast":                  {"kw:Extort", "trig:TapsForMana"},
+	"Dauthi Voidwalker":            {"api:ChooseCard", "kw:Shadow"},
+	"Deflecting Swat":              {"api:ChangeTargets"},
+	"Evendo Brushrazer":            {"trig:Sacrificed"},
+	"Exotic Orchard":               {"api:ManaReflected"},
+	"Exploration Broodship":        {"kw:Station"},
+	"Fabled Passage":               {"api:Untap"},
+	"Fate Unraveler":               {"trig:Drawn"},
+	"Fiery Emancipation":           {"api:ReplaceEffect", "repl:DamageDone"},
+	"Fog":                          {"api:Fog"},
+	"Gamble":                       {"api:Shuffle"},
+	"Hearthhull, the Worldseed":    {"kw:Station"},
+	"Horizon Explorer":             {"api:Untap", "trig:AttackersDeclaredOneTarget"},
+	"Karazikar, the Eye Tyrant":    {"api:Goad", "trig:AttackersDeclaredOneTarget"},
+	"Kederekt Parasite":            {"trig:Drawn"},
+	"Last One Standing":            {"api:ChooseCard"},
+	"Lord Windgrace":               {"kw:CARDNAME can be your commander."},
+	"Manabarbs":                    {"trig:TapsForMana"},
+	"Mayhem Devil":                 {"trig:Sacrificed"},
+	"Necrodominance":               {"repl:BeginPhase"},
+	"Necropotence":                 {"repl:BeginPhase", "trig:Discarded"},
+	"Ob Nixilis, Captive Kingpin":  {"trig:LifeLostAll"},
+	"Ojer Axonil, Deepest Might":   {"api:ReplaceEffect", "repl:DamageDone"},
+	"Planetary Annihilation":       {"api:ChooseCard", "api:SacrificeAll"},
+	"Price of Progress":            {"api:RepeatEach"},
+	"Profane Tutor":                {"kw:Suspend"},
+	"Ragavan, Nimble Pilferer":     {"kw:Dash"},
+	"Razorkin Needlehead":          {"trig:Drawn"},
+	"Sheoldred, the Apocalypse":    {"trig:Drawn"},
+	"Solphim, Mayhem Dominus":      {"api:ReplaceEffect", "repl:DamageDone"},
+	"Sower of Discord":             {"api:ChoosePlayer"},
+	"Spiked Corridor":              {"api:ReplaceEffect", "repl:DamageDone", "trig:UnlockDoor"},
+	"Spinerock Knoll":              {"api:Play", "kw:Hideaway"},
+	"Sulfuric Vortex":              {"repl:GainLife"},
+	"Szarel, Genesis Shepherd":     {"trig:Sacrificed"},
+	"The Lord of Pain":             {"stat:CantGainLife"},
+	"Through the Forest Gate":      {"api:Shuffle"},
+	"Uncivil Unrest":               {"api:ReplaceEffect", "repl:DamageDone"},
+	"Underworld Dreams":            {"trig:Drawn"},
+	"Unholy Annex":                 {"api:Branch", "trig:UnlockDoor"},
+	"Valgavoth, Harrower of Souls": {"kw:Ward", "trig:LifeLost"},
+	"Vein Ripper":                  {"kw:Ward"},
+	"Vial Smasher the Fierce":      {"api:ChoosePlayer", "kw:Partner"},
+	"Virtue of Strength":           {"api:ReplaceMana", "repl:ProduceMana"},
+	"Walk-In Closet":               {"trig:UnlockDoor"},
+	"Ziatora's Proving Ground":     {"kw:Cycling"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card

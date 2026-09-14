@@ -21,13 +21,14 @@ var repoCommanderDecks = []struct {
 	{"foundations-reign-of-dragons", "Lathliss, Dragon Queen"},
 	{"foundations-tramplesaurus-rex", "Ghalta, Primal Hunger"},
 	{"hearthhull-worldseed-landfall", "Hearthhull, the Worldseed"},
+	{"valgavoth-endless-punishment", "Valgavoth, Harrower of Souls"},
 }
 
 // TestRepoCommanderDecksValidate is the m38 acceptance gate: every interim
 // Commander deck file is a legal Commander deck by deck.ValidateCommander
 // (CR 903.4: exactly 100 cards including the commander, singleton except
 // basic lands; CR 903.5: every card's colour identity a subset of the
-// commander's). Table-driven over the six files so a further deck added
+// commander's). Table-driven over the seven files so a further deck added
 // later must be added to the table — the driver is the construction — and
 // the cross-check at the end fails any deck file that declares a commander
 // the table does not name.

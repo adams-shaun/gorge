@@ -84,6 +84,9 @@ func TestServesTablesOverHTTP(t *testing.T) {
 	if got := byID["hearthhull-worldseed-landfall"]; got.Name != "Hearthhull, the Worldseed Landfall" || got.Format != "commander" || got.Archetype != "landfall lands" || got.Commander != "Hearthhull, the Worldseed" {
 		t.Fatalf("Hearthhull commander deck metadata %+v", got)
 	}
+	if got := byID["valgavoth-endless-punishment"]; got.Name != "Valgavoth, Harrower of Souls — Endless Punishment" || got.Format != "commander" || got.Commander != "Valgavoth, Harrower of Souls" || got.Archetype != "rakdos-punisher" {
+		t.Fatalf("Valgavoth deck metadata %+v", got)
+	}
 	for _, tc := range []struct {
 		body string
 		want string

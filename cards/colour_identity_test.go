@@ -134,6 +134,11 @@ func TestManaColoursSpecialSymbols(t *testing.T) {
 	if got := manaColours("W/U"); got != ColourWhite|ColourBlue {
 		t.Errorf(`manaColours("W/U") = %08b, want {W,U}`, got)
 	}
+	// Forge comparison operators are packed (GT0), not mana costs. Treating
+	// T as a mana-token character lets the leading G masquerade as green.
+	if got := manaColours("GT0"); got != 0 {
+		t.Errorf("manaColours(GT0) = %08b, want empty", got)
+	}
 }
 
 // TestCardIdentityUnionsFaces pins that a double-faced card's identity is the
