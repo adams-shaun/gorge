@@ -103,6 +103,13 @@ type Engine struct {
 	// continuous holds every registered continuous effect, live or expired.
 	// The layer system (layers.go) is the only reader and writer.
 	continuous []ContinuousEffect
+	// controlGrants holds the GainControl effects that can still end (see
+	// rules/control.go). It is engine continuation state only; every take and
+	// return is a ControlChange event, so the log alone rebuilds Game state.
+	controlGrants []controlGrant
+	// expiringControl guards expireControl against re-entry through the
+	// ControlChange events it emits.
+	expiringControl bool
 
 	// pregame is true while the London mulligan round runs, between the
 	// opening deal and turn 1. Config.Mulligans > 0 sets it in New; step()
@@ -246,11 +253,25 @@ type Engine struct {
 	// completed move never happens (fx44, Mox Diamond). Zero whenever no
 	// replacement is in flight.
 	replReplaced state.ObjID
+	// replAction is the action marker (events.ActionMarker) of the event the
+	// in-flight destination-changing replacement discarded: "sacrificed",
+	// "discarded" or "discarded as a cost". emit re-labels the replacement
+	// body's move of replReplaced with it (events.CarryAction), so a
+	// sacrifice or discard redirected by a replacement is still seen as that
+	// action by Sacrificed/Discarded triggers. Empty whenever no such
+	// replacement is in flight; threaded across a suspension by resumePoint.
+	replAction string
 	// triggerFireCount and damageOnceFired are trigger_match.go's own
 	// bookkeeping (the cascade bound and the DamageDealtOnce/DamageDoneOnce
 	// once-per-turn gate); see there.
 	triggerFireCount map[triggerKey]int32
 	damageOnceFired  map[triggerKey]int32
+	// phaseUnknownNoted memoizes the Phase$ specs whose names this engine has
+	// already reported as unresolvable (rules.trigger_match.go's phaseMatches
+	// reporting), so one spec emits exactly one Note per game no matter how
+	// often its trigger is walked. Cloned like the other bookkeeping maps so
+	// a branch that becomes live cannot re-emit the same Note.
+	phaseUnknownNoted map[string]bool
 
 	// choosing says which flow is waiting on the current KChoose decision
 	// (Task 8). It is plain data, not a closure, so Engine.Clone (a sibling
@@ -283,7 +304,16 @@ type Engine struct {
 	// re-entry, drained into the resume chain as soon as that re-entry
 	// suspends again, and nil whenever no re-entry is in flight — so a Clone
 	// need not carry it (the same resolution re-derives the same chain).
-	contChain []*cards.SA
+	contChain []contFrame
+	// resolvingObj is the stack object whose resolution is running (resolveTop
+	// or a resumed resolution), kept through its final move off the stack so
+	// an entry replacement that asks can tell whether it interrupted that
+	// resolution's own move. Zero outside a resolution.
+	resolvingObj state.ObjID
+	// repeatReported is the RepeatEach SA whose loop frame SuspendRepeat
+	// just recorded, so the enclosing Resolve loop's report of the same SA
+	// is not recorded a second time as a plain continuation.
+	repeatReported *cards.SA
 
 	// cast holds the in-progress cast-flow state while choosing ==
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
@@ -433,6 +463,34 @@ type Engine struct {
 	// damage. Not copied by Clone, for the same reason as damaging above:
 	// always zero at a clone boundary.
 	combatDamaging bool
+
+	// tappingForMana identifies the Tap event that pays an activated mana
+	// ability's tap cost. Like combatDamaging it is synchronous event context,
+	// not an Event field: changing Tap's encoded payload would move every chain
+	// head even in games with no TapsForMana trigger. emitManaTap sets and clears
+	// it around emit; Clone only runs at an intent boundary, where it is zero.
+	tappingForMana      state.ObjID
+	tappingManaProduced string
+
+	// tapObj, tapPlayer and tapEntering are the same kind of synchronous
+	// context for every Tap producer (emitTap): tapObj is the permanent whose
+	// Tap event is being emitted, tapPlayer the player who tapped it (Forge
+	// Card.tap's tapper, which a Taps trigger's ValidPlayer$ and
+	// TriggeredActivator read), and tapEntering marks a permanent given its
+	// tapped entry state by an ETB$ True replacement body, which never
+	// becomes tapped (CR 603.2e). Zero at every intent boundary.
+	tapObj      state.ObjID
+	tapPlayer   state.PlayerID
+	tapEntering bool
+	// tappedTurn records, per object, the turn in which it last became
+	// tapped, for Taps FirstTime$ (Forge Card.tappedThisTurn). An entry state
+	// is not recorded, and a zone change forgets the object (CR 400.7). Engine
+	// bookkeeping rebuilt by replay, which re-executes the same taps.
+	tappedTurn map[state.ObjID]int32
+	// triggerTurnFires counts, per T: line, how many times it triggered in
+	// the turn it last triggered, for ActivationLimit$ ("triggers only once
+	// each turn"; Forge Trigger.checkActivationLimit).
+	triggerTurnFires map[triggerKey]turnFires
 
 	// foreachBuf is forEachObject's (trigger_match.go) scratch snapshot
 	// buffer. forEachObject copies each zone into it before walking it -- fn
@@ -782,7 +840,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// a game state reaches it.
 		return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "cannot attach: protected"})
 	}
-	if !e.applyingReplacement {
+	if e.applyingReplacement {
+		ev = events.CarryAction(e.replAction, e.replReplaced, ev)
+	} else {
 		if replaced, handled := e.applyReplacements(ev); handled {
 			return replaced
 		}
@@ -815,6 +875,11 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			e.sourceLifelinkLKI[copyID] = link
 		}
 	}
+	if ev.Kind == events.MoveZone {
+		// CR 400.7: an object that changes zones is a new object with no
+		// memory of having become tapped this turn.
+		delete(e.tappedTurn, ev.Obj)
+	}
 	if ev.Kind == events.MoveZone && ev.From == state.ZStack && ev.To != state.ZStack {
 		delete(e.triggerContexts, ev.Obj)
 		delete(e.sacrificedLKI, ev.Obj)
@@ -833,6 +898,14 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	} else {
 		e.checkTriggers(stored, lki)
 	}
+	if ev.Kind == events.Tap && !e.tapIsEntryState(ev) {
+		// Recorded after the triggers above were matched, so a FirstTime$
+		// trigger sees whether an EARLIER tap happened this turn.
+		if e.tappedTurn == nil {
+			e.tappedTurn = make(map[state.ObjID]int32)
+		}
+		e.tappedTurn[ev.Obj] = e.G.Turn
+	}
 	e.finishSourceLifelinkLKI(ev, departingSource, departingSourceLifelink)
 	// E2: any genuinely state-changing event proves the game is making
 	// progress, so it clears the held-out cast suppression (suppressedCast,
@@ -848,6 +921,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		ev.Kind != events.DecisionMade && ev.Kind != events.Note {
 		e.suppressedCast = nil
 		e.castAborts = nil
+		// CR 611.2b: a "for as long as" control effect ends the moment its
+		// condition stops holding, not at the next state-based check.
+		e.expireControl(controlOnEvent)
 	}
 	return stored
 }

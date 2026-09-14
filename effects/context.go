@@ -41,6 +41,31 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		return []state.Target{{Obj: c.Source}}
 	case "Remembered":
 		return copyTargets(c.Remembered)
+	case "ChosenCard", "ChosenPlayer":
+		// ChooseCard/ChoosePlayer bind the current resolution's most recent
+		// choice here. This is deliberately distinct from Remembered: Forge
+		// only copies the answer there when RememberChosen$ is set. A later,
+		// independently resolving ability reads the same event-backed choice
+		// from its source permanent.
+		if c.ChosenValid || len(c.Chosen) > 0 {
+			return copyTargets(c.Chosen)
+		}
+		if o := g.Obj(c.Source); o != nil {
+			return copyTargets(o.Chosen)
+		}
+		return nil
+	case "Player.IsRemembered":
+		return playersOf(c.Remembered)
+	case "Player.Chosen":
+		return playersOf(c.Chosen)
+	case "RememberedController":
+		return controllersOf(g, c.Remembered)
+	case "RememberedOwner":
+		return ownersOf(g, c.Remembered)
+	case "TargetedController", "TargetedPlayer":
+		return controllersOf(g, c.Targets)
+	case "ChosenController":
+		return controllersOf(g, c.Chosen)
 	case "Targeted", "ParentTarget":
 		return copyTargets(c.Targets)
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
@@ -67,15 +92,25 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 			return []state.Target{{Obj: c.Replaced}}
 		}
 		return nil
-	case "TriggeredDefendingPlayer", "TriggeredPlayer":
+	case "TriggeredDefendingPlayer":
+		if out := oneTriggerPlayer(c.DefendingPlayer); out != nil {
+			return out
+		}
 		return playersOf(c.Remembered)
+	case "TriggeredPlayer":
+		if out := oneTriggerPlayer(c.TriggerPlayer); out != nil {
+			return out
+		}
+		return playersOf(c.Remembered)
+	case "TriggeredAttackingPlayer":
+		return oneTriggerPlayer(c.AttackingPlayer)
+	case "TriggeredAttackedTarget":
+		return oneTriggerPlayer(c.AttackedTarget)
+	case "TriggeredActivator":
+		return oneTriggerPlayer(c.TriggerActivator)
 	case "TriggeredCardController":
-		for _, t := range c.Remembered {
-			if !t.IsPlayer {
-				if o := g.Obj(t.Obj); o != nil {
-					return []state.Target{{Player: o.Controller, IsPlayer: true}}
-				}
-			}
+		if p, ok := TriggeredCardController(g, c.TriggerContext, c.Remembered); ok {
+			return []state.Target{{Player: p, IsPlayer: true}}
 		}
 		return nil
 	case "Equipped", "Enchanted", "AttachedTo":
@@ -86,7 +121,7 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 			return []state.Target{{Obj: o.AttachedTo}}
 		}
 		return nil
-	case "Opponent":
+	case "Opponent", "Player.Opponent", "Player.Other":
 		var out []state.Target
 		for _, p := range g.AliveFrom(c.Controller) {
 			if p != c.Controller {
@@ -98,6 +133,23 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		var out []state.Target
 		for _, p := range g.AliveFrom(c.Controller) {
 			out = append(out, state.Target{Player: p, IsPlayer: true})
+		}
+		return out
+	}
+	// Forge joins independent Defined selectors with " & " to name all of
+	// them (Karazikar's "TriggeredAttackingPlayer & You" is the corpus
+	// example), not their set intersection. Resolve each known selector in
+	// script order so player effects act on both players deterministically.
+	if strings.Contains(sa.Params["Defined"], " & ") {
+		var out []state.Target
+		for _, part := range strings.Split(sa.Params["Defined"], " & ") {
+			copy := *sa
+			copy.Params = make(map[string]string, len(sa.Params))
+			for k, v := range sa.Params {
+				copy.Params[k] = v
+			}
+			copy.Params["Defined"] = strings.TrimSpace(part)
+			out = append(out, Defined(h, c, &copy)...)
 		}
 		return out
 	}
@@ -121,11 +173,49 @@ func objectsOf(ts []state.Target) []state.Target {
 
 // playersOf returns Remembered's player entries (IsPlayer true) as a fresh
 // slice.
+func oneTriggerPlayer(t state.Target) []state.Target {
+	if !t.IsPlayer {
+		return nil
+	}
+	return []state.Target{t}
+}
+
 func playersOf(ts []state.Target) []state.Target {
 	var out []state.Target
 	for _, t := range ts {
 		if t.IsPlayer {
 			out = append(out, t)
+		}
+	}
+	return out
+}
+
+func controllersOf(g *state.Game, ts []state.Target) []state.Target {
+	return relatedPlayers(g, ts, false)
+}
+
+func ownersOf(g *state.Game, ts []state.Target) []state.Target {
+	return relatedPlayers(g, ts, true)
+}
+
+func relatedPlayers(g *state.Game, ts []state.Target, owner bool) []state.Target {
+	seen := map[state.PlayerID]bool{}
+	var out []state.Target
+	for _, t := range ts {
+		p := t.Player
+		if !t.IsPlayer {
+			o := g.Obj(t.Obj)
+			if o == nil {
+				continue
+			}
+			p = o.Controller
+			if owner {
+				p = o.Owner
+			}
+		}
+		if !seen[p] {
+			seen[p] = true
+			out = append(out, state.Target{Player: p, IsPlayer: true})
 		}
 	}
 	return out

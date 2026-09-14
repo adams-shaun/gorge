@@ -174,6 +174,7 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		// comment), so o.X is the cast-time value here.
 		X:          o.X,
 		Remembered: []state.Target{{Obj: ev.Obj}},
+		Captured:   []state.Target{{Obj: ev.Obj}},
 		// Replaced names the object the replaced event (ev) was about, so a
 		// ReplaceWith$ that says Defined$ ReplacedCard (the Rest in Peace /
 		// Dryad Militant / Leyline of the Void shape: "exile it instead") can
@@ -191,12 +192,16 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 // replaced object for the body's Defined$/Remembered$ reads and restoring
 // both the guard and that record afterward so an outer replacement keeps its
 // own state.
-func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *cards.SA) {
-	savedRepl := e.replReplaced
+//
+// action is the action marker of the event this body replaces, or "" when the
+// original event still happens (ReplacementResult$ Updated): the body's own
+// move of the replaced object then carries it (events.CarryAction).
+func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, action string, with *cards.SA) {
+	savedRepl, savedAction := e.replReplaced, e.replAction
 	e.applyingReplacement = true
-	e.replReplaced = replaced
+	e.replReplaced, e.replAction = replaced, action
 	e.resolveReplacementWith(ctx, with)
-	e.replReplaced = savedRepl
+	e.replReplaced, e.replAction = savedRepl, savedAction
 	e.applyingReplacement = false
 }
 
@@ -226,10 +231,13 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		stored := events.Emit(e.G, e.L, ev)
 		e.checkTriggers(stored, nil)
 		e.finishSourceLifelinkLKI(ev, departing, link)
-		e.runReplaceWith(ctx, ev.Obj, m.repl.With)
+		e.runReplaceWith(ctx, ev.Obj, "", m.repl.With)
 		return stored, true
 	}
-	e.runReplaceWith(ctx, ev.Obj, m.repl.With)
+	// The original event is discarded, but not the action it performed: a
+	// sacrifice or discard whose destination this replacement changes is
+	// still a sacrifice or discard, so its marker rides on the body's move.
+	e.runReplaceWith(ctx, ev.Obj, events.ActionMarker(ev), m.repl.With)
 	return ev, true
 }
 
@@ -250,7 +258,7 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 		if m.repl.With == nil {
 			continue
 		}
-		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With)
+		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, "", m.repl.With)
 	}
 	return stored, true
 }
@@ -302,6 +310,23 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 		currentlyActive := o != nil && zoneSpecContains(active, o.Zone)
 		enteringActive := source == ev.Obj && zoneSpecContains(active, ev.To)
 		if !currentlyActive && !enteringActive {
+			return false
+		}
+	}
+	// Discard$ True narrows a Moved replacement to a discard (CR 701.9a):
+	// Library of Leng's "if an effect causes you to discard a card" and the
+	// Obstinate Baloth family's "if an opponent causes you to discard this".
+	// Without it those lines would replace every move of the card. EffectOnly$
+	// True excludes a discard paid as a cost and the CR 514.1 cleanup discard,
+	// which no effect causes; ValidCause$ names the causing spell or ability.
+	if r.Params["Discard"] == "True" {
+		if !events.IsDiscard(ev) {
+			return false
+		}
+		if r.Params["EffectOnly"] == "True" && (events.IsDiscardCost(ev) || e.actionCause() == 0) {
+			return false
+		}
+		if spec := r.Params["ValidCause"]; spec != "" && !e.discardCauseAdmits(spec, source, ev) {
 			return false
 		}
 	}

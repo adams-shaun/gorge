@@ -104,7 +104,7 @@ def _slot_free(issue: issues.Issue, paid: bool, what: str) -> bool:
     if not paid and not _local_endpoint_up():
         return False
     if paid:
-        running = pi.running_names(config.IMPLEMENTER_ESCALATED_MODEL, config.REVIEWER_MODEL)
+        running = pi.running_names(config.IMPLEMENTER_ESCALATED_MODEL, config.REVIEWER_MODEL, config.OVERFLOW_MODEL)
         cap = config.MAX_PAID_SEATS
     else:
         running = pi.running_names(config.LOCAL_MODEL)

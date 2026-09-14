@@ -368,7 +368,11 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
 		}
 		if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
-			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: owner})
+			// This establishes the object's entry state; it is not the CR
+			// 701.21a event of becoming tapped. Text is part of the replayed
+			// event payload, so rules can distinguish it from an ordinary Tap
+			// while replay folds the same tapped state.
+			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: owner, Text: "entered tapped"})
 		}
 	}
 
@@ -547,9 +551,25 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	rememberLKICapture := func(id state.ObjID) {
 		if remember {
 			c.Sacrificed = append(c.Sacrificed, state.SacrificedInfoOf(g, id))
+			// Forge's RememberSacrificed$ also remembers the card, which is
+			// what a following ConditionDefined$ Remembered, Remembered$Amount
+			// or RememberedCard reads (Braids, Scapeshift, Victimize).
+			c.Remembered = append(copyTargets(c.Remembered), state.Target{Obj: id})
 		}
 	}
-	for _, t := range Defined(h, c, sa) {
+	who := Defined(h, c, sa)
+	// A Sacrifice that names neither Defined$ nor ValidTgts$ but a SacValid$
+	// other than itself is Forge's default Defined$ You: its controller
+	// sacrifices a matching permanent (Braids's "you may sacrifice an
+	// artifact, creature, ..."). Only a SacValid$ Self/Card.Self line (or no
+	// SacValid$ at all) sacrifices the source object itself. Corpus: 66 such
+	// lines, which previously sacrificed the source whatever its type.
+	if _, targeted := sa.Params["ValidTgts"]; !targeted && strings.TrimSpace(sa.Params["Defined"]) == "" {
+		if v := strings.TrimSpace(sa.Params["SacValid"]); v != "" && v != "Self" && v != "Card.Self" {
+			who = []state.Target{{Player: c.Controller, IsPlayer: true}}
+		}
+	}
+	for _, t := range who {
 		if t.IsPlayer {
 			// Bounds guard: g.Zone indexes g.zones[zoneIndex(z, p)] and
 			// zoneIndex has no bounds check, so an out-of-range target-supplied
@@ -571,8 +591,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(t.Player)) {
 					rememberLKICapture(id)
-					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-						From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+					h.Emit(events.Sacrifice(id))
 					break
 				}
 			}
@@ -588,7 +607,6 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		// object (and would misfire on the corpus's SacValid$ Self lines,
 		// where "Self" is not a type the filter grammar knows).
 		rememberLKICapture(o.ID)
-		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
-			From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+		h.Emit(events.Sacrifice(o.ID))
 	}
 }

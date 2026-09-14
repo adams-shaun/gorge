@@ -202,9 +202,12 @@ func TestDepartedChooserResumptionEventStreamIsDeterministic(t *testing.T) {
 	// card behaviour moved with it: the stream differs from the pre-rv2a one
 	// only in the Note's position, its shortened text, explicit NoteToss
 	// discriminator, and the one new Toss event; every other assertion here
-	// holds unchanged.
-	if got := e.L.Head(); got != "1f9ef806fd35a4e1" {
-		t.Fatalf("chain head = %s, want 1f9ef806fd35a4e1", got)
+	// holds unchanged. Regenerated once more when rv2a merged after
+	// MonarchChange and ControlChange: append-only ordering keeps those mainline
+	// ordinals fixed and makes Toss the new final Kind, changing only Toss's
+	// encoded ordinal in this stream.
+	if got := e.L.Head(); got != "680aeb568d3073fd" {
+		t.Fatalf("chain head = %s, want 680aeb568d3073fd", got)
 	}
 
 	// T21-e: a log-only replay must reconstruct the identical Game. If any

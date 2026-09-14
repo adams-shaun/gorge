@@ -33,6 +33,18 @@ func Apply(g *state.Game, e Event) {
 			g.SetZone(state.ZLibrary, e.Player, append([]state.ObjID(nil), e.IDs...))
 		}
 
+	case MonarchChange:
+		if validPlayer(g, e.Player) {
+			g.Monarch, g.HasMonarch = e.Player, true
+		}
+
+	case ControlChange:
+		if validPlayer(g, e.Player) {
+			if o := g.Obj(e.Obj); o != nil {
+				changeControl(g, o, e.Player)
+			}
+		}
+
 	case LibraryOrder:
 		// A library-arranging effect (Ponder, later Scry/Surveil) set a
 		// complete new order on a player's library. Mechanically identical to
@@ -384,6 +396,10 @@ func Apply(g *state.Game, e Event) {
 				o.ChosenType = e.Text
 			case "number":
 				o.ChosenNumber = e.Amount
+			case "chosen":
+				o.Chosen = rememberedFrom(e.IDs)
+			case "remembered":
+				o.Remembered = append(o.Remembered, rememberedFrom(e.IDs)...)
 			}
 		}
 
@@ -644,6 +660,12 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	}
 
 	o.Zone = to
+	// A new object in a new zone has its owner's default control. The old
+	// controller is needed above to remove it from the battlefield/stack, so
+	// reset only after removal and placement have used that zone ownership.
+	if to != state.ZBattlefield && to != state.ZStack {
+		o.Controller = o.Owner
+	}
 	// A zone change is the single source of zone-entry provenance. Capture
 	// the actual old zone (not Event.From, which Move deliberately treats as
 	// advisory) so replay and a live game derive identical ThisTurnEntered*
@@ -702,6 +724,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		if wasBattlefield {
 			o.X, o.CastFlags = 0, 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber = "", "", 0
+			o.Chosen = nil
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
 		// when a permanent spell carries its announcement onto the battlefield).
@@ -713,6 +736,45 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		}
 		o.AttachedTo = 0
 	}
+}
+
+// changeControl gives o to controller p. The battlefield is keyed by
+// controller (zoneOwner), so a permanent moves from its old controller's list
+// to the new one's, the way Forge's controllerChangeZoneCorrection does;
+// every per-controller reader (untap step, attackers, blockers, mana and
+// activation offers, statics, projections) then sees it under its controller.
+// The stack is one shared list, so a spell only changes its Controller.
+//
+// On the battlefield a control change also:
+//   - removes the permanent from combat (CR 506.4): it stops attacking, loses
+//     its blockers, and attackers it blocked keep a zero tombstone so they stay
+//     blocked (CR 509.1h), exactly as a departing blocker does in Move;
+//   - makes it summoning sick (CR 302.6): its new controller has not controlled
+//     it continuously since their most recent turn began. TurnChange clears it
+//     from the active player's list, i.e. at its new controller's next turn.
+func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
+	if o.Controller == p {
+		return
+	}
+	if o.Zone == state.ZBattlefield {
+		remove(g, o.ID, state.ZBattlefield, o.Controller)
+		g.SetZone(state.ZBattlefield, p, append(g.Zone(state.ZBattlefield, p), o.ID))
+		for i := range g.Objs {
+			other := &g.Objs[i]
+			if other.ID == o.ID {
+				continue
+			}
+			for j, blocker := range other.BlockedBy {
+				if blocker == o.ID {
+					other.BlockedBy[j] = 0
+				}
+			}
+		}
+		o.IsAttacking = false
+		o.BlockedBy = nil
+		o.SummonSick = true
+	}
+	o.Controller = p
 }
 
 // validPlayer reports whether p indexes an existing seat.

@@ -228,6 +228,16 @@ const (
 	// value, and therefore the hash chain and every golden replay already
 	// locked in, is unaffected.
 	LibraryOrder
+	// MonarchChange gives the designation to Player. It is a state transition,
+	// not a Note, so conditional "if you're the monarch" triggers replay from
+	// the same state as the live match. Appended after LibraryOrder to preserve
+	// every prior event ordinal.
+	MonarchChange
+	// ControlChange transfers control of a permanent or a stack object. Obj is
+	// the controlled object and Player its new controller. It is deliberately a
+	// distinct event: control is neither ownership nor a zone change, and a
+	// replay must retain it when the object later moves.
+	ControlChange
 	// Toss records the resolution of the CR 103.1 starting-player
 	// determination: Player is the seat that takes the first turn -- the toss
 	// winner, unless the opening deal eliminated them and rules.New's
@@ -245,7 +255,7 @@ const (
 	// Note emitted before the first shuffle (CR 103.1 precedes 103.2-103.4;
 	// Forge's GameAction and manabrew's game loop announce the toss before
 	// their deal too). Carries only Player (same shape as Tap/Untap).
-	// Appended here, after LibraryOrder, following every prior Kind's own
+	// Appended here, after ControlChange, following every prior Kind's own
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	Toss
@@ -276,7 +286,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
-	"delayed_register", "delayed_push", "library_order", "toss"}
+	"delayed_register", "delayed_push", "library_order", "monarch_change", "control_change", "toss"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

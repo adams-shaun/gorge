@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"strings"
 	"sync"
 	"testing"
 
@@ -30,9 +31,34 @@ func (h *fakeHost) Emit(e events.Event) {
 	h.log = append(h.log, e)
 	events.Apply(h.g, e)
 }
+
+// EmitTap has no trigger matcher to hand the tapper and entry provenance to,
+// so the double records the same plain Tap event the engine logs.
+func (h *fakeHost) EmitTap(obj state.ObjID, _ state.PlayerID, _ bool) {
+	h.Emit(events.Event{Kind: events.Tap, Obj: obj})
+}
 func (h *fakeHost) Rand(n int) int { h.n++; return 0 }
 func (h *fakeHost) AddContinuous(ce state.ContinuousEffect) {
 	h.continuous = append(h.continuous, ce)
+}
+func (h *fakeHost) RegisterControl(ControlGrant) {}
+func (h *fakeHost) LegalTargets(chooser state.PlayerID, source state.ObjID, sa *cards.SA) []state.Target {
+	var out []state.Target
+	spec := sa.Params["ValidTgts"]
+	if strings.Contains(spec, "Player") || strings.Contains(spec, "Opponent") || strings.Contains(spec, "Any") {
+		for _, p := range h.g.AliveFrom(chooser) {
+			if MatchesPlayerSpec(h.g, spec, p, chooser) || spec == "Any" {
+				out = append(out, state.Target{Player: p, IsPlayer: true})
+			}
+		}
+	}
+	for i := range h.g.Objs {
+		o := &h.g.Objs[i]
+		if o.ID != source && o.Zone == state.ZBattlefield && MatchesObjectCtx(h.g, spec, o, SpecContext{You: chooser, Source: source}) {
+			out = append(out, state.Target{Obj: o.ID})
+		}
+	}
+	return out
 }
 
 // RegenerationDisallowed has no registry to consult here (the engine-side
@@ -74,6 +100,9 @@ func (h *fakeHost) Suspended() bool { return false }
 // suspends (its Ask returns false), so effects.Resolve never reaches the
 // suspended branch that would call it. Kept to satisfy the Host interface.
 func (h *fakeHost) SuspendContinuation(*cards.SA) {}
+
+// SuspendRepeat is a no-op for the same reason as SuspendContinuation.
+func (h *fakeHost) SuspendRepeat(RepeatSuspension) {}
 
 func newHost(t *testing.T, seats int) *fakeHost {
 	t.Helper()
