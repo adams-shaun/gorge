@@ -30,8 +30,12 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		if o := e.G.Obj(e.damaging); o != nil && o.IsAttacking {
 			c.DefendingPlayer = player(o.Attacking)
 		}
-	case "Attacks":
+	case "Attacks", "AttackersDeclaredOneTarget":
 		c.DefendingPlayer = player(ev.Player)
+		c.AttackedTarget = player(ev.Player)
+		if len(ev.IDs) > 0 {
+			c.AttackingPlayer = player(e.controllerOf(ev.IDs[0]))
+		}
 		// The current engine batches attackers per defender. Preserve the
 		// defending player, but do not invent a singular TriggeredCard when
 		// several matching attackers caused this one queued trigger.
@@ -47,6 +51,8 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerCard = 0
 		}
 		c.TriggerSource = c.TriggerCard
+	case "Taps", "TapsForMana":
+		c.TriggerActivator = player(e.tapActor(ev))
 	case "ChangesZone", "LandPlayed":
 		c.TriggerCard = ev.Obj
 	case "SpellCast", "AbilityCast", "SpellAbilityCast":

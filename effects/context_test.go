@@ -30,6 +30,12 @@ func (h *fakeHost) Emit(e events.Event) {
 	h.log = append(h.log, e)
 	events.Apply(h.g, e)
 }
+
+// EmitTap has no trigger matcher to hand the tapper and entry provenance to,
+// so the double records the same plain Tap event the engine logs.
+func (h *fakeHost) EmitTap(obj state.ObjID, _ state.PlayerID, _ bool) {
+	h.Emit(events.Event{Kind: events.Tap, Obj: obj})
+}
 func (h *fakeHost) Rand(n int) int { h.n++; return 0 }
 func (h *fakeHost) AddContinuous(ce state.ContinuousEffect) {
 	h.continuous = append(h.continuous, ce)

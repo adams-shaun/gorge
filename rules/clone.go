@@ -108,23 +108,7 @@ func (e *Engine) Clone() *Engine {
 		}
 	}
 	if e.pendingTriggers != nil {
-		c.pendingTriggers = make([]pendingTrigger, len(e.pendingTriggers))
-		for i, pt := range e.pendingTriggers {
-			pt.Ctx.Targets = append([]state.Target(nil), pt.Ctx.Targets...)
-			pt.Ctx.Remembered = append([]state.Target(nil), pt.Ctx.Remembered...)
-			if pt.Ctx.SVars != nil {
-				m := make(map[string]string, len(pt.Ctx.SVars))
-				for k, v := range pt.Ctx.SVars {
-					m[k] = v
-				}
-				pt.Ctx.SVars = m
-			}
-			if pt.Ctx.LKI != nil {
-				lki := pt.Ctx.LKI.CloneDeep()
-				pt.Ctx.LKI = &lki
-			}
-			c.pendingTriggers[i] = pt
-		}
+		c.pendingTriggers = clonePendingTriggers(e.pendingTriggers)
 	}
 	if e.triggerContexts != nil {
 		c.triggerContexts = make(map[state.ObjID]effects.TriggerContext, len(e.triggerContexts))
@@ -146,6 +130,20 @@ func (e *Engine) Clone() *Engine {
 	}
 	c.triggerFireCount = cloneCounts(e.triggerFireCount)
 	c.damageOnceFired = cloneCounts(e.damageOnceFired)
+	if e.triggerTurnFires != nil {
+		c.triggerTurnFires = make(map[triggerKey]turnFires, len(e.triggerTurnFires))
+		for k, v := range e.triggerTurnFires {
+			c.triggerTurnFires[k] = v
+		}
+	}
+	if e.tappedTurn != nil {
+		c.tappedTurn = make(map[state.ObjID]int32, len(e.tappedTurn))
+		for id, turn := range e.tappedTurn {
+			c.tappedTurn[id] = turn
+		}
+	}
+	// tapObj/tapPlayer/tapEntering and tappingForMana/tappingManaProduced are
+	// emitTap's synchronous context, zero at every intent boundary.
 	// triggerBefore is scoped to a batch emission/resumption, so it is nil
 	// at intent boundaries and is deliberately not copied. Parked replacement
 	// and commander choices and resume frames retain their own immutable
@@ -183,6 +181,10 @@ func (e *Engine) Clone() *Engine {
 	}
 	if e.manaColorActivation != nil {
 		ma := *e.manaColorActivation
+		ma.triggers = clonePendingTriggers(e.manaColorActivation.triggers)
+		if pt := e.manaColorActivation.trigger; pt != nil {
+			ma.trigger = &clonePendingTriggers([]pendingTrigger{*pt})[0]
+		}
 		c.manaColorActivation = &ma
 	}
 	if e.manaDiscardActivation != nil {
@@ -292,6 +294,33 @@ func cloneMulligan(m mulliganRound) mulliganRound {
 	m.kept = append([]bool(nil), m.kept...)
 	m.taken = append([]int(nil), m.taken...)
 	return m
+}
+
+// clonePendingTriggers gives a clone ownership of the mutable context carried
+// by both the ordinary trigger queue and a CR 605.3b batch parked on a mana
+// colour choice. Card and SA pointers remain shared immutable corpus data.
+func clonePendingTriggers(src []pendingTrigger) []pendingTrigger {
+	if src == nil {
+		return nil
+	}
+	out := make([]pendingTrigger, len(src))
+	for i, pt := range src {
+		pt.Ctx.Targets = append([]state.Target(nil), pt.Ctx.Targets...)
+		pt.Ctx.Remembered = append([]state.Target(nil), pt.Ctx.Remembered...)
+		if pt.Ctx.SVars != nil {
+			m := make(map[string]string, len(pt.Ctx.SVars))
+			for k, v := range pt.Ctx.SVars {
+				m[k] = v
+			}
+			pt.Ctx.SVars = m
+		}
+		if pt.Ctx.LKI != nil {
+			lki := pt.Ctx.LKI.CloneDeep()
+			pt.Ctx.LKI = &lki
+		}
+		out[i] = pt
+	}
+	return out
 }
 
 // cloneCombatRound deep-copies the combat damage step's continuation state

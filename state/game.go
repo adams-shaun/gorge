@@ -43,6 +43,10 @@ type Game struct {
 	// Winner's zero value is PlayerID(0), a real seat, so Over alone cannot
 	// distinguish "seat 0 won" from "nobody did" -- Draw is what does.
 	Draw bool
+	// Monarch is the current monarch when HasMonarch is true. The presence bit
+	// keeps seat zero distinct from no monarch.
+	Monarch    PlayerID
+	HasMonarch bool
 	// NextID hands out object ids one at a time, starting at 1 (see NewGame)
 	// and incrementing by exactly one per AddObject call below -- it can
 	// never reach playerRefBit (1<<31, ids.go): a single match would need
@@ -212,6 +216,9 @@ func (g *Game) AliveFrom(start PlayerID) []PlayerID {
 }
 
 func (g *Game) AliveCount() int { return len(g.AliveFrom(0)) }
+
+// IsMonarch reports whether p currently holds the monarch designation.
+func (g *Game) IsMonarch(p PlayerID) bool { return g.HasMonarch && g.Monarch == p }
 
 // NextAlive returns the next surviving seat after p, or p itself if none is.
 func (g *Game) NextAlive(p PlayerID) PlayerID {

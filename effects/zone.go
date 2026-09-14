@@ -368,7 +368,11 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
 		}
 		if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
-			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: owner})
+			// This establishes the object's entry state; it is not the CR
+			// 701.21a event of becoming tapped. Text is part of the replayed
+			// event payload, so rules can distinguish it from an ordinary Tap
+			// while replay folds the same tapped state.
+			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: owner, Text: "entered tapped"})
 		}
 	}
 
@@ -571,8 +575,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(t.Player)) {
 					rememberLKICapture(id)
-					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-						From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+					h.Emit(events.Sacrifice(id))
 					break
 				}
 			}
@@ -588,7 +591,6 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		// object (and would misfire on the corpus's SacValid$ Self lines,
 		// where "Self" is not a type the filter grammar knows).
 		rememberLKICapture(o.ID)
-		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
-			From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+		h.Emit(events.Sacrifice(o.ID))
 	}
 }

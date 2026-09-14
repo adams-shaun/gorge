@@ -1029,8 +1029,8 @@ func TestVoteRecordsANotePerVotingPlayer(t *testing.T) {
 func TestBecomeMonarchRecordsTheTargetPlayer(t *testing.T) {
 	h := newHost(t, 2)
 	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}}, sa(t, "AB$ BecomeMonarch | ValidTgts$ Player"))
-	if len(h.log) != 1 || h.log[0].Kind != events.Note || h.log[0].Player != 1 {
-		t.Fatalf("log = %+v", h.log)
+	if len(h.log) != 1 || h.log[0].Kind != events.MonarchChange || h.log[0].Player != 1 || !h.g.IsMonarch(1) {
+		t.Fatalf("log = %+v, monarch = %v/%d", h.log, h.g.HasMonarch, h.g.Monarch)
 	}
 }
 

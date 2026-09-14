@@ -23,6 +23,17 @@ type Host interface {
 	// log a complete description of the match.
 	Game() *state.Game
 	Emit(events.Event)
+	// EmitTap taps the permanent obj with the synchronous provenance a Taps
+	// trigger reads but the replayed Tap event does not carry: tapper is the
+	// player who tapped it (Forge Card.tap's tapper -- the resolving
+	// ability's activator, a cost's payer), and entering marks a permanent
+	// being given its tapped entry state by a DB$ Tap | ETB$ True replacement
+	// body, which CR 603.2e says never "becomes tapped" (Forge TapEffect's
+	// ETB branch sets the state without running Taps triggers). The emitted
+	// event is exactly Emit(events.Event{Kind: events.Tap, Obj: obj}), so the
+	// hash chain is unaffected; rules.Engine keeps the provenance as event
+	// context while the event's triggers are matched.
+	EmitTap(obj state.ObjID, tapper state.PlayerID, entering bool)
 	// Rand is the engine's seeded generator. Effects that need randomness must
 	// use it and nothing else, or replay breaks.
 	Rand(n int) int

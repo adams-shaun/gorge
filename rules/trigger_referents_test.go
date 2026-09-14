@@ -29,7 +29,8 @@ func TestTriggerReferentsUseEventRoles(t *testing.T) {
 		{"ChangesZone", events.Event{Kind: events.MoveZone, Obj: other}, effects.TriggerContext{TriggerCard: other}},
 		{"SpellCast", events.Event{Kind: events.PutOnStack, Obj: other}, effects.TriggerContext{TriggerCard: other, TriggerSource: other}},
 		{"Phase", events.Event{Kind: events.StepChange, Step: state.StepUpkeep}, effects.TriggerContext{TriggerPlayer: state.Target{IsPlayer: true, Player: 0}}},
-		{"Attacks", events.Event{Kind: events.DeclareAttackers, IDs: []state.ObjID{source}, Player: 1}, effects.TriggerContext{TriggerCard: source, TriggerSource: source, DefendingPlayer: state.Target{IsPlayer: true, Player: 1}}},
+		{"Attacks", events.Event{Kind: events.DeclareAttackers, IDs: []state.ObjID{source}, Player: 1}, effects.TriggerContext{TriggerCard: source, TriggerSource: source, DefendingPlayer: state.Target{IsPlayer: true, Player: 1}, AttackingPlayer: state.Target{IsPlayer: true, Player: 0}, AttackedTarget: state.Target{IsPlayer: true, Player: 1}}},
+		{"AttackersDeclaredOneTarget", events.Event{Kind: events.DeclareAttackers, IDs: []state.ObjID{other}, Player: 1}, effects.TriggerContext{DefendingPlayer: state.Target{IsPlayer: true, Player: 1}, AttackingPlayer: state.Target{IsPlayer: true, Player: 1}, AttackedTarget: state.Target{IsPlayer: true, Player: 1}}},
 		{"Always", events.Event{Kind: events.Damage, Obj: other}, effects.TriggerContext{}},
 	} {
 		if got := e.triggerReferents(cards.Trigger{Mode: tt.mode}, source, tt.ev); got != tt.want {

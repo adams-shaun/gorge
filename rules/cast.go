@@ -1630,10 +1630,11 @@ func (e *Engine) payCast() {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
 		}
 		for _, id := range pc.discards {
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZGraveyard, Text: "discarded as a cost"})
+			e.emit(events.DiscardCost(id))
 		}
 		if pc.cost.Tap {
-			e.emit(events.Event{Kind: events.Tap, Obj: pc.card})
+			// The {T} cost's payer taps the permanent (Forge CostTap).
+			e.emitTap(pc.card, pc.player, false)
 		}
 		for _, part := range pc.cost.SubCounter {
 			e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: part.Spec, Amount: -part.N})
@@ -1662,7 +1663,7 @@ func (e *Engine) payCast() {
 			sacrificedLKI = append(sacrificedLKI, state.SacrificedInfoOf(e.G, id))
 		}
 		for _, id := range pc.sacs {
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+			e.emit(events.Sacrifice(id))
 		}
 		// AbilityPush mints the ability object onto the stack AFTER the cost
 		// settles, so an aborted activation leaves no stack object behind
@@ -1729,7 +1730,7 @@ func (e *Engine) payCast() {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
 	}
 	for _, id := range pc.discards {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZGraveyard, Text: "discarded as a cost"})
+		e.emit(events.DiscardCost(id))
 	}
 	// Capture the sacrifice LKI before the MoveZones (see the ability branch's
 	// comment): the sacrificed permanents are still on the battlefield here.
@@ -1738,7 +1739,7 @@ func (e *Engine) payCast() {
 		sacrificedLKI = append(sacrificedLKI, state.SacrificedInfoOf(e.G, id))
 	}
 	for _, id := range pc.sacs {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+		e.emit(events.Sacrifice(id))
 	}
 	if e.sacrificedLKI == nil {
 		e.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo)

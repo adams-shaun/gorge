@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -671,14 +672,14 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// effBecomeMonarch records who becomes the monarch. Monarchy itself is
-// game-level state Task 22 adds; M1 only has the Note.
+// effBecomeMonarch records the game-level designation as an event so a
+// conditional trigger observes it identically in the live game and on replay.
 func effBecomeMonarch(h Host, c *Ctx, sa *cards.SA) {
 	targets := Defined(h, c, sa)
 	if len(targets) == 0 {
 		return
 	}
-	h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, targets[0]), Text: "becomes the monarch"})
+	h.Emit(events.Event{Kind: events.MonarchChange, Player: PlayerOf(h, c, targets[0])})
 }
 
 // effRestartGame ends the game as a draw. Actually restarting (leaving
@@ -703,7 +704,8 @@ func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
 }
 
 // effMana implements "AB$ Mana": add Amount mana of Produced's colour(s) to
-// the activating player's pool. Absorbed from Task 14's stopgap: the
+// the pool of each ManaRecipients player (the activating player unless
+// Defined$ names another). Absorbed from Task 14's stopgap: the
 // negative-Amount clamp is Ruling T14-f, kept verbatim for the same reason as
 // DealDamage's -- events.Apply's ManaAdd case is a plain "+=", so an
 // unclamped negative would drop the pool below zero instead of doing
@@ -711,9 +713,9 @@ func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
 //
 // Two things are folded in on top of that. "Any"/"Combo Any" resolves to
 // colourless rather than asking (a real choice awaits the milestone that
-// makes every R-9 stand-in real; the real ask lives on the activation path
-// in rules, which rewrites Produced to a single chosen colour before this
-// primitive ever runs). A dual-producing ability such as "Add {R}{R}" is
+// makes every R-9 stand-in real; the real ask lives in rules, on both the
+// activation path and the CR 605.3b triggered-mana path, which rewrite
+// Produced to a single chosen colour before this primitive ever runs). A dual-producing ability such as "Add {R}{R}" is
 // walked one symbol at a time rather than split on whitespace, since
 // Produced$ carries no spaces of its own.
 //
@@ -746,8 +748,37 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	if amt < 0 {
 		amt = 0
 	}
-	for _, r := range runes {
-		h.Emit(events.Event{Kind: events.ManaAdd, Player: c.Controller,
-			Counter: string(r), Amount: amt})
+	for _, p := range ManaRecipients(h, c, sa) {
+		for _, r := range runes {
+			h.Emit(events.Event{Kind: events.ManaAdd, Player: p,
+				Counter: string(r), Amount: amt})
+		}
 	}
+}
+
+// ManaRecipients is the player or players a Mana SA adds its mana for. Forge's
+// ManaEffect adds to getDefinedPlayersOrTargeted: with no Defined$ that is the
+// activating player; with Defined$ it is each player the selector names, so
+// Vernal Bloom's Defined$ TriggeredCardController gives the extra {G} to the
+// tapped Forest's controller rather than to the enchantment's. An object
+// selector names that object's controller (PlayerOf). A selector this build
+// cannot bind keeps the activating player -- effMana's behaviour before it read
+// Defined$ -- rather than silently dropping the mana.
+func ManaRecipients(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
+	if strings.TrimSpace(sa.Params["Defined"]) == "" {
+		return []state.PlayerID{c.Controller}
+	}
+	g := h.Game()
+	var out []state.PlayerID
+	for _, t := range Defined(h, c, sa) {
+		p := PlayerOf(h, c, t)
+		if int(p) >= len(g.Players) || slices.Contains(out, p) {
+			continue
+		}
+		out = append(out, p)
+	}
+	if len(out) == 0 {
+		return []state.PlayerID{c.Controller}
+	}
+	return out
 }
