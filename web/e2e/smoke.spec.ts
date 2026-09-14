@@ -690,7 +690,6 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
         expect(await toggle.getAttribute('aria-checked')).toBe('false');
         // The transcript footer is hidden (its grid row collapsed, so it has
         // no display box).
-        const transcript = page.locator('footer.transcript');
         await page.waitForFunction(() => {
           const el = document.querySelector('footer.transcript');
           if (!el) return false;

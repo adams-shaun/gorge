@@ -531,13 +531,29 @@ func digDestPhrase(dest state.Zone) string {
 // and one behaviour: reveal cards without disturbing them, recorded via a
 // non-Secret Note carrying their identities so view projection stops
 // redacting them. PeekAndReveal looks at the library; Reveal and RevealHand
-// look at hand. (RevealHand's real corpus params reveal the whole hand
-// rather than a count; M1 follows the brief's shared NumCards spec for all
-// three instead of special-casing that.)
+// look at hand.
+//
+// RevealHand's Forge semantics act on the WHOLE hand ("look at target
+// player's hand", "target opponent reveals their hand" — both shapes are
+// whole-hand), so when its SA carries NO NumCards$ parameter the amount is
+// the pool's entire size, not the shared default 1 (task revealhand1:
+// Gitaxian Probe revealed exactly one card of a seven-card hand). The key's
+// PRESENCE, not its value, is the switch — a future script writing NumCards$
+// wins — and the switch keys on API so Reveal (a card-selector family:
+// RevealValid$/Defined$ picking specific cards; 6 of its 85 raw corpus
+// lines carry NumCards$) and PeekAndReveal keep their count behaviour. The
+// corpus carries ZERO NumCards$ on RevealHand (81 raw lines), so every
+// compiled RevealHand SA today takes the whole hand. The pool is only known
+// inside the walk, so the whole-hand amount is applied per target.
 func effReveal(h Host, c *Ctx, sa *cards.SA) {
-	amt := Num(h, c, sa, "NumCards", 1)
-	if amt < 0 {
-		amt = 0
+	_, hasNum := sa.Params["NumCards"]
+	wholeHand := sa.API == "RevealHand" && !hasNum
+	amt := int32(1)
+	if hasNum {
+		amt = Num(h, c, sa, "NumCards", 1)
+		if amt < 0 {
+			amt = 0
+		}
 	}
 	zone := state.ZHand
 	if sa.API == "PeekAndReveal" {
@@ -565,7 +581,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 		p := PlayerOf(h, c, t)
 		pool := zoneOf(g, zone, p)
 		n := amt
-		if int32(len(pool)) < n {
+		if wholeHand || int32(len(pool)) < n {
 			n = int32(len(pool))
 		}
 		if n == 0 {

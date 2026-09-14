@@ -16,6 +16,18 @@ import {
 } from './playsettings';
 import { autoPassLogText, pushAutoPassLog, type AutoPassKind, type AutoPassLog } from './autolog';
 import { loadYields, saveYields } from './yields';
+import {
+  emptyRemembered,
+  loadRemembered,
+  rememberable,
+  rememberChoiceFor,
+  rememberKey,
+  saveRemembered,
+  triggerPromptLabel,
+  withRemember,
+  withoutRemember,
+  type RememberedStore,
+} from './remembered';
 
 /**
  * actedOption reports whether the posted `choices` (wire indices) contain at
@@ -378,6 +390,10 @@ export class SeatPanelState {
     // — and every test — sees the player's saved preferences. SSR and a
     // browser that refuses site data both pass null and get casual.
     this.settings = loadSettings(storage);
+    // The remembered answers load here for the same reason (part B): the
+    // first adopted decision can already be one the player asked the client
+    // to remember. SSR gets the empty store — no answer ever fires there.
+    this.remembered = loadRemembered(storage);
     // The yields seed from the per-GAME store (lib/yields.ts): memory first
     // (this tab already yielded something in THIS match), then sessionStorage
     // (a reload of the same match), else empty. The scope is table + match,
@@ -525,6 +541,35 @@ export class SeatPanelState {
    * rejected auto-order is never retried forever against a refusing server.
    */
   private autoOrderedSeq: number | null = null;
+
+  /**
+   * remembered is the player's remembered trigger answers (lib/remembered.ts,
+   * fb-20260914T062319Z-88b4069a part B): one answered option index per full
+   * prompt, so an optional trigger that recurs every turn is answered once
+   * and auto-answered ever after. Loaded from the ONE global localStorage key
+   * at construction (SSR and a browser that refuses site data pass null and
+   * get the empty store) and written through on every change. The management
+   * list (PlaySettingsPanel) reads and prunes it through
+   * removeRemembered/clearRemembered.
+   */
+  remembered = $state<RememberedStore>(emptyRemembered());
+
+  /**
+   * rememberChoice is the remember checkbox on a trigger_optional prompt
+   * (B4): when checked, the answer about to be posted is stored under the
+   * prompt's key. Default OFF — remembering is an explicit act, never a
+   * side effect of answering. Reset on every newly adopted decision, so a
+   * checkbox left ticked on one ask never silently remembers the next,
+   * different ask.
+   */
+  rememberChoice = $state(false);
+
+  /**
+   * rememberedSeq is the seq the remembered-answer auto-reply last posted
+   * for — the same loop guard autoOrderedSeq is, so a rejected auto-answer
+   * is never retried forever against a refusing server.
+   */
+  private rememberedSeq: number | null = null;
 
   /**
    * passWait is the pending PACED pass (prio5): the machine decided to pass
@@ -1018,6 +1063,12 @@ export class SeatPanelState {
     // above and before expireRun, so a run that would otherwise stop on this
     // non-priority decision is cancelled by the submit path itself.
     if (this.maybeAutoOrderTriggers()) return;
+    // The remembered-answer auto-reply gets the same second chance (B5): a
+    // decision adopted while a post was still in flight returned false at
+    // adopt() (busy), and this retry covers the rapid-successive-ask hole the
+    // auto-order closes the same way. A decision that already auto-answered
+    // (rememberedSeq) or has no remembered entry falls through to manual.
+    if (this.maybeRememberedTrigger()) return;
 
     // A one-shot run ends the moment its turn is over, whether or not a
     // decision is pending (see expireRun).
@@ -1404,9 +1455,11 @@ export class SeatPanelState {
     this.autoActedSeq = null;
     this.autoLog = [];
     this.autoOrderedSeq = null;
+    this.rememberedSeq = null;
     this.resolveAllIds = null;
     this.currentView = null;
     this.arrangeOpen = false;
+    this.rememberChoice = false;
     this.note = { kind: 'off' };
   }
 
@@ -1427,7 +1480,9 @@ export class SeatPanelState {
    * floor, not pass-after-acting (its token was disarmed anyway), not the
    * identical-trigger auto-order. The restored decision sits pending until
    * the player answers it or clicks UNDO again — which is exactly what makes
-   * multi-step undoing possible. The pause clears on the player's own
+   * multi-step undoing possible. Remembered optional-trigger answers, added
+   * alongside this work, are machine answers too and obey the same brake.
+   * The pause clears on the player's own
    * resume paths: the pause-aware Auto switch (pressAuto — while paused it
    * starts the machine rather than toggling the preference off) and a named
    * preset. A one-shot run is not a resume path: startRun refuses to arm
@@ -1473,7 +1528,80 @@ export class SeatPanelState {
     // The identical-trigger auto-order runs at ADOPT, not only in
     // considerAuto: the decision frame can arrive while no view change
     // follows it, and the submit must not depend on the next effect tick.
-    this.maybeAutoOrderTriggers();
+    // The remembered-answer auto-reply runs at the same hook, after the same
+    // guards (busy/postedSeq), with its own rememberedSeq loop guard; the
+    // checkbox is reset FIRST so a tick left on the previous ask can never
+    // remember this, different ask.
+    this.rememberChoice = false;
+    if (!this.maybeAutoOrderTriggers()) this.maybeRememberedTrigger();
+  }
+
+  /**
+   * maybeRememberedTrigger is the remembered-answer auto-reply (B5). When
+   * the pending decision is a trigger_optional whose full-prompt key has a
+   * remembered entry, the remembered option is posted through the ordinary
+   * post() path — a normal visible submit, never a silent state write — with
+   * an autoLog note naming what was answered. Any other kind, no entry, a
+   * busy/posted state, or a seq the guard already answered: false, and the
+   * decision stays manual as today. A live one-shot run is cancelled first,
+   * exactly as maybeAutoOrderTriggers does (a non-priority decision ends a
+   * run; the submit is the run's stop, not its continuation).
+   */
+  private maybeRememberedTrigger(): boolean {
+    const d = this.pending;
+    if (d === null || this.busy || d.seq === this.postedSeq) return false;
+    if (this.rememberedSeq !== null && d.seq === this.rememberedSeq) return false;
+    // A remembered answer is still a machine answer. In particular, a
+    // rewind can restore the same optional-trigger prompt whose remembered
+    // choice was just posted; the undo brake must leave that ask to the
+    // player exactly as it leaves auto-pass and trigger auto-order.
+    if (this.machinePaused) return false;
+    if (!rememberable(d.kind)) return false;
+    const choice = rememberChoiceFor(this.remembered, d.kind, d.prompt);
+    if (choice === null) return false;
+    // The stored index must still be an option of THIS decision: a remembered
+    // answer for a prompt the engine now offers differently is not applied.
+    if (!d.options.some((o) => o.index === choice)) return false;
+    if (this.oneShot !== 'none') this.cancelRun(); // the run's stop, noted in its own register
+    this.rememberedSeq = d.seq;
+    this.autoLog = pushAutoPassLog(
+      this.autoLog,
+      `Answered optional trigger from a remembered choice — ${triggerPromptLabel(d.prompt)}`,
+      this.currentView?.turn ?? 0,
+    );
+    void this.post([choice]);
+    return true;
+  }
+
+  /**
+   * rememberAnswer stores the answer the seat is about to post for a
+   * trigger_optional decision under the prompt's key (B4). Only ever called
+   * from click()'s post-on-click path with rememberChoice checked, so the
+   * choice is a real user answer, never a machine one. The write goes
+   * through setRemembered so the store and the localStorage key move
+   * together.
+   */
+  private rememberAnswer(d: Decision, choice: number) {
+    if (!d.options.some((o) => o.index === choice)) return;
+    this.setRemembered(
+      withRemember(this.remembered, rememberKey(d.kind, d.prompt), choice, triggerPromptLabel(d.prompt), Date.now()),
+    );
+  }
+
+  /** setRemembered swaps the remembered store and persists it — the single write path, so the key never goes stale. */
+  private setRemembered(next: RememberedStore) {
+    this.remembered = next;
+    saveRemembered(this.storage, next);
+  }
+
+  /** removeRemembered is the management list's per-entry delete (B4): one key forgotten and persisted. */
+  removeRemembered(key: string) {
+    this.setRemembered(withoutRemember(this.remembered, key));
+  }
+
+  /** clearRemembered is the management list's clear-all (B4): the whole store emptied and persisted. */
+  clearRemembered() {
+    this.setRemembered(emptyRemembered());
   }
 
   primary(): Option | null {
@@ -1553,6 +1681,13 @@ export class SeatPanelState {
     this.handAnswer();
     this.confirming = false;
     if (d.min === 1 && d.max === 1) {
+      // The remember checkbox (B4): a trigger_optional answered with the box
+      // ticked stores the chosen index under the prompt's key BEFORE the
+      // post, so the store records what the player answered, not whether the
+      // server accepted it — an answer that stores then rejects is still the
+      // player's answer to this prompt, and the next identical ask offers the
+      // checkbox again to overwrite it.
+      if (d.kind === 'trigger_optional' && this.rememberChoice) this.rememberAnswer(d, index);
       void this.post([index], opts?.holdPriority ?? false);
       return;
     }

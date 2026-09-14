@@ -4,6 +4,7 @@
   import { detailLayout, placePanel, PLATE_WIDTH, type AnchorRect } from '../lib/carddetail.svelte';
   import CardImage from './CardImage.svelte';
   import ManaSymbols from './ManaSymbols.svelte';
+  import OracleText from './OracleText.svelte';
 
   /**
    * CardDetail is the object inspector: the large panel shown while a card is
@@ -237,7 +238,7 @@
     {/if}
     </dl>
 
-    {#if orc?.oracle_text}<p class="card-detail__oracle">{orc.oracle_text}</p>{/if}
+    {#if orc?.oracle_text}<p class="card-detail__oracle"><OracleText text={orc.oracle_text} /></p>{/if}
 
     <footer class="stamp">
       <span class="data">#{card.id}</span>

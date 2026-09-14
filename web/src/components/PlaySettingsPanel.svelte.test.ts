@@ -68,6 +68,38 @@ describe('PlaySettingsPanel — Clear yields (prio6)', () => {
   });
 });
 
+describe('PlaySettingsPanel — Remembered trigger answers (fb-20260914T062319Z-88b4069a B4)', () => {
+  it('with nothing remembered it says so and offers no list, no Forget, no clear', () => {
+    const html = panel(new SeatPanelState('rt-empty', 1, ctx, null));
+    expect(html).toContain('data-remembered-empty');
+    expect(html).toContain('Remembered trigger answers');
+    expect(html).not.toContain('data-remembered-list');
+    expect(html).not.toContain('data-remembered-clear');
+  });
+
+  it('lists one row per remembered answer: label, the answer itself, a per-entry Forget, and a counted Forget all', () => {
+    const state = new SeatPanelState('rt-two', 1, ctx, null);
+    state.remembered = {
+      version: 1,
+      entries: [
+        { key: 'trigger_optional\u0000p1', choice: 0, label: 'Bloodghast: Whenever a land enters, Bloodghast may return from the graveyard', savedAt: 1 },
+        { key: 'trigger_optional\u0000p2', choice: 1, label: 'Miracle — reveal Thunderous Wrath and cast it for {R}', savedAt: 2 },
+      ],
+    };
+    const html = panel(state);
+    expect(html).toContain('data-remembered-list');
+    expect(html).not.toContain('data-remembered-empty');
+    expect([...html.matchAll(/data-remembered-entry/g)]).toHaveLength(2);
+    expect(html).toContain('Bloodghast: Whenever a land enters, Bloodghast may return from the graveyard');
+    expect(html).toContain('Miracle — reveal Thunderous Wrath and cast it for {R}');
+    // the answer itself, as the word the player chose, keyed by its wire index
+    expect(html).toContain('data-remembered-choice="0"');
+    expect(html).toContain('data-remembered-choice="1"');
+    expect([...html.matchAll(/data-remembered-delete="\d+"/g)]).toHaveLength(2);
+    expect(elem(html, 'data-remembered-clear')).toContain('Forget all remembered answers (2)');
+  });
+});
+
 describe('PlaySettingsPanel — the GAME OPTIONS editor (rendered)', () => {
   it('renders casual by default: preset pressed, its blurb shown, the opponent rules reflecting it', () => {
     const html = panel(new SeatPanelState('t1', 1, ctx, null));
@@ -403,6 +435,37 @@ describe('PlaySettingsPanel — real clicks in a real browser (PlaySettingsPanel
     expect(await page.locator('[data-step-cell="combat-damage:opponents"]').getAttribute('data-stop-value')).toBe('off');
     expect(await page.locator('[data-pacing="normal"]').getAttribute('aria-pressed')).toBe('true');
     expect(await page.locator('button[data-preset="casual"]').getAttribute('aria-pressed')).toBe('true');
+    await page.close();
+  });
+
+  // fb-20260914T062319Z-88b4069a B4: the remembered-answers management list
+  // against the REAL state — a real click on Forget deletes just that entry,
+  // Forget all empties it, and the panel follows the store (the empty-state
+  // line returns). The store is seeded through the published state, exactly
+  // how the brake is tripped above.
+  it('Forget deletes one remembered answer and Forget all empties the store, through the component handlers', async () => {
+    const page = await open();
+    await page.evaluate(() => {
+      const s = (window as unknown as { playSettingsState: { remembered: unknown } }).playSettingsState;
+      s.remembered = {
+        version: 1,
+        entries: [
+          { key: 'trigger_optional\u0000p1', choice: 0, label: 'First trigger', savedAt: 1 },
+          { key: 'trigger_optional\u0000p2', choice: 1, label: 'Second trigger', savedAt: 2 },
+        ],
+      };
+    });
+    await page.waitForSelector('[data-remembered-list]');
+    await page.locator('[data-remembered-delete="0"]').click();
+    let labels = await page.evaluate(() =>
+      (window as unknown as { playSettingsState: { remembered: { entries: { label: string }[] } } }).playSettingsState.remembered.entries.map((e) => e.label));
+    expect(labels).toEqual(['Second trigger']);
+    expect(await page.locator('[data-remembered-entry]').count()).toBe(1);
+    await page.locator('[data-remembered-clear]').click();
+    labels = await page.evaluate(() =>
+      (window as unknown as { playSettingsState: { remembered: { entries: { label: string }[] } } }).playSettingsState.remembered.entries.map((e) => e.label));
+    expect(labels).toEqual([]);
+    await page.waitForSelector('[data-remembered-empty]');
     await page.close();
   });
 });

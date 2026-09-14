@@ -40,6 +40,13 @@ describe('shapeOf — the response shape in the UI’s own words', () => {
     expect(shapeOf(decision({ kind: 'priority' }))).toBeNull();
     expect(shapeOf(decision({ kind: 'mulligan' }))).toBeNull();
   });
+
+  // fb-20260914T062319Z-88b4069a part A: an optional trigger is a yes/no on an
+  // OPTIONAL ability, and the generic "Pick 1 option" fallback read as a
+  // mandatory selection. The shape line names both facts.
+  it('an optional-trigger ask says the ability is optional — a yes/no, never "Pick 1 option"', () => {
+    expect(shapeOf(decision({ kind: 'trigger_optional', min: 1, max: 1 }))).toBe('Optional ability — choose Yes or No');
+  });
 });
 
 describe('sourceNameOf — the prompt’s source, resolved from the view', () => {

@@ -46,7 +46,7 @@ describe('SeatTable — compact seat summary', () => {
     const kinds = ['life', 'hand', 'library', 'graveyard', 'exile'];
     let at = -1;
     for (const kind of kinds) {
-      const next = html.indexOf(`data-stat=\"${kind}\"`);
+      const next = html.indexOf(`data-stat="${kind}"`);
       expect(next).toBeGreaterThan(at);
       at = next;
     }
@@ -64,14 +64,14 @@ describe('SeatTable — compact seat summary', () => {
     const first = html.slice(html.indexOf('zone-line'), html.lastIndexOf('zone-line'));
     const second = html.slice(html.lastIndexOf('zone-line'));
     // life stays on the name line, outside both zone lines
-    expect(first.includes('data-stat=\"life\"')).toBe(false);
-    expect(second.includes('data-stat=\"life\"')).toBe(false);
-    expect(first.indexOf('data-stat=\"hand\"')).toBeGreaterThan(-1);
-    expect(first.indexOf('data-stat=\"library\"')).toBeGreaterThan(first.indexOf('data-stat=\"hand\"'));
-    expect(first.includes('data-stat=\"graveyard\"')).toBe(false);
-    expect(first.includes('data-stat=\"exile\"')).toBe(false);
-    expect(second.indexOf('data-stat=\"graveyard\"')).toBeGreaterThan(-1);
-    expect(second.indexOf('data-stat=\"exile\"')).toBeGreaterThan(second.indexOf('data-stat=\"graveyard\"'));
+    expect(first.includes('data-stat="life"')).toBe(false);
+    expect(second.includes('data-stat="life"')).toBe(false);
+    expect(first.indexOf('data-stat="hand"')).toBeGreaterThan(-1);
+    expect(first.indexOf('data-stat="library"')).toBeGreaterThan(first.indexOf('data-stat="hand"'));
+    expect(first.includes('data-stat="graveyard"')).toBe(false);
+    expect(first.includes('data-stat="exile"')).toBe(false);
+    expect(second.indexOf('data-stat="graveyard"')).toBeGreaterThan(-1);
+    expect(second.indexOf('data-stat="exile"')).toBeGreaterThan(second.indexOf('data-stat="graveyard"'));
   });
 
   it('shows true counts but no caret for empty or redacted lists', () => {
@@ -176,8 +176,6 @@ describe('SeatTable — the rail floor (stacked counts let the rail shrink)', ()
     const fits = await page.evaluate((floor) => {
       const control = document.querySelector<HTMLElement>('#rail [data-confirm-concede]')!;
       const logbar = document.querySelector<HTMLElement>('#rail .logbar')!;
-      const cs = getComputedStyle(logbar);
-      const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
       return {
         button: control.getBoundingClientRect().width,
         rail: logbar.clientWidth,

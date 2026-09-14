@@ -87,7 +87,8 @@ async function geometry(width: number, height: number, seats: number): Promise<G
   await page.close();
 
   expect(measured.commanders).toBe(seats);
-  const { commanders: _, ...result } = measured;
+  const result: Omit<typeof measured, 'commanders'> = { ...measured };
+  delete (result as { commanders?: number }).commanders;
   return result;
 }
 

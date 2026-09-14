@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Decision, Option, View } from '../protocol';
+import { rememberKey } from './remembered';
 import { SeatPanelState, autoNoteText } from './seatpanel.svelte';
 
 // The UNDO pause (fb-20260914T063523Z): pressing UNDO rewinds the board to
 // the decision point of the player's last action, and the autopilot machine
 // — auto-pass, the empty-window floor, pass-after-acting, the
-// identical-trigger auto-order — must NOT instantly re-answer that restored
-// window. rewind() sets machinePaused (the runaway brake, never the
+// identical-trigger auto-order, remembered optional-trigger answers — must
+// NOT instantly re-answer that restored window. rewind() sets machinePaused
+// (the runaway brake, never the
 // persisted preference); only the player's own resume paths clear it.
 // The server half (host/undo.go, one intent per click) is already correct
 // and untouched; these tests hold the client half.
@@ -44,6 +46,19 @@ const triggerOrder = (seq: number, labels: [string, string]): Decision => ({
   options: labels.map((label, i) => trigger(i, label, 81 + i)),
 });
 const IDENTICAL: [string, string] = ['Blood Artist: loses 1 life', 'Blood Artist: loses 1 life'];
+const OPTIONAL_PROMPT = 'Put this optional triggered ability on the stack? — Bloodghast: Whenever a land enters, Bloodghast may return from the graveyard';
+const triggerOptional = (seq: number): Decision => ({
+  seq,
+  player: 0,
+  kind: 'trigger_optional',
+  prompt: OPTIONAL_PROMPT,
+  min: 1,
+  max: 1,
+  options: [
+    { index: 0, kind: 'yes', label: 'Yes — return Bloodghast', player: 0 },
+    { index: 1, kind: 'no', label: 'No', player: 0 },
+  ],
+});
 
 const view = (step = 'draw', active = 0, turn = 2, stack: { id: number; controller: number; kind?: string }[] = []): View =>
   ({ active, step, turn, stack }) as unknown as View;
@@ -164,6 +179,34 @@ describe('the undo pause', () => {
     p.considerAuto(view());
     await settle(() => p.postedSeq === 7);
     expect(seqs()).toEqual([7, 7]);
+  });
+
+  it('a remembered optional-trigger choice does not answer the restored ask while paused', async () => {
+    const p = armedSeat();
+    p.remembered = {
+      version: 1,
+      entries: [{ key: rememberKey('trigger_optional', OPTIONAL_PROMPT), choice: 0, label: 'Bloodghast', savedAt: 1 }],
+    };
+
+    // Before the undo, the saved answer owns the ask.
+    p.adoptView(triggerOptional(8));
+    await settle(() => p.postedSeq === 8);
+    expect(seqs()).toEqual([8]);
+
+    // Rewind clears the old seq guards, but the brake must still stop this
+    // machine-answer sibling at both adopt and considerAuto.
+    p.rewind();
+    p.adoptView(triggerOptional(8));
+    p.considerAuto(view());
+    await settle(() => postIntentMock.mock.calls.length === 1);
+    expect(p.pending?.seq).toBe(8);
+    expect(p.machinePaused).toBe(true);
+
+    // The ordinary resume path restores remembered-answer automation too.
+    p.pressAuto();
+    p.considerAuto(view());
+    await settle(() => postIntentMock.mock.calls.length === 2);
+    expect(seqs()).toEqual([8, 8]);
   });
 
   it('an in-flight hand answer whose response lands after a rewind cannot mark the restored same-seq decision as answered', async () => {

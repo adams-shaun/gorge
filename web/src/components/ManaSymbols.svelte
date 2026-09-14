@@ -14,8 +14,14 @@
    *
    * The class is picked from the SYMBOL's own letters — a lexical mapping of
    * wire notation to the palette. Nothing here decides what a cost does.
+   *
+   * `size` is a sizing variant, not a semantic one: 'cost' is the 15px pip a
+   * mana cost wears, 'inline' is the 12px pip that sits inside running 12px
+   * oracle text (the hover panel's printed card). The colour and hybrid
+   * classes are the same in both — a {B} in oracle text and a B in a cost
+   * wear the same mana identity at different sizes.
    */
-  let { cost }: { cost: string } = $props();
+  let { cost, size = 'cost' }: { cost: string; size?: 'cost' | 'inline' } = $props();
 
   const symbols = $derived(manaSymbols(cost));
 
@@ -43,7 +49,7 @@
 </script>
 
 {#if symbols.length}
-  <span class="mana-symbols">
+  <span class="mana-symbols" class:mana-symbols--inline={size === 'inline'}>
     {#each symbols as s, i (i)}<span class="pip {kind(s)}" class:wide={s.text.length > 1}>{s.text}</span>{/each}
   </span>
 {/if}
@@ -76,6 +82,19 @@
   }
   .pip.wide {
     letter-spacing: -0.04em;
+  }
+
+  /* Inline variant: the pip shrinks to sit in running 12px text without
+     bloating the line, same classes underneath. 12px is the smallest disc
+     whose letter still reads at --t-10, and 1px of gap keeps a run of pips
+     from reading as one bar. */
+  .mana-symbols--inline {
+    gap: 1px;
+  }
+  .mana-symbols--inline .pip {
+    min-width: 12px;
+    height: 12px;
+    padding: 0 2px;
   }
 
   /* Dark glyph on a light disc is how every printed mana symbol is drawn, and
