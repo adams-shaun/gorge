@@ -33,6 +33,16 @@ function strip(decision: Decision): string {
   }).html;
 }
 
+/** stripOnSeat renders with view.active set to `active` (default the base's own turn). */
+function stripOnSeat(active: number, decision: Decision): string {
+  const state = new SeatPanelState('t1', 1, ctx, null);
+  state.skipEmpty = false;
+  state.adoptView(decision);
+  return render(HotButtonStrip, {
+    props: { view: { ...baseView, active, decision }, seats, state, ctx, table: 't1', match: 1 },
+  }).html;
+}
+
 /** stripState renders with a caller-prepared state, for cases strip() cannot express (no decision at all, or an answer already posted). */
 function stripState(state: SeatPanelState, decision: Decision | null): string {
   return render(HotButtonStrip, {
@@ -242,6 +252,44 @@ describe('HotButtonStrip — the status chip', () => {
     const html = stripState(state, priority);
     expect(html).toMatch(/data-play-mode="custom"/);
     expect(html).toContain('Custom');
+  });
+});
+
+// END TURN is a one-shot to the end of the CURRENT turn, so it only makes
+// sense on a turn the seat owns: on the opponent's turn the button must be
+// disabled with a truthful title, while PASS (and the keyboard hard-skip)
+// keep working — passing priority on the opponent's turn is real Magic.
+describe('HotButtonStrip — END TURN is gated to the seat\'s own turn', () => {
+  const priority: Decision = {
+    seq: 1, player: 0, kind: 'priority', prompt: 'Priority', min: 1, max: 1,
+    options: [option(7, 'cast', 'Cast spell'), option(42, 'pass', 'Pass priority')],
+  };
+
+  it('disables END TURN on the opponent\'s turn with a title that names the gate, not a missing pass option', () => {
+    const html = stripOnSeat(1, priority);
+    expect(html).toMatch(/data-end-turn[^>]*aria-disabled="true"/);
+    expect(html).toMatch(/data-end-turn[^>]*disabled/);
+    expect(html).toContain('End Turn is for your own turn');
+    expect(html).not.toContain('End Turn needs a pass option');
+  });
+
+  it('arms END TURN exactly as before on the seat\'s own turn', () => {
+    const html = stripOnSeat(0, priority);
+    expect(html).toMatch(/data-end-turn[^>]*aria-disabled="false"/);
+  });
+
+  it('keeps PASS enabled on the opponent turn (passing priority there is real Magic)', () => {
+    const html = stripOnSeat(1, priority);
+    expect(html).toMatch(/data-pass-action[^>]*aria-disabled="false"/);
+  });
+
+  it('the hard-skip machinery still arms on an opponent turn (Shift+Enter path is not turn-gated)', () => {
+    const state = new SeatPanelState('t1', 1, ctx, null);
+    state.skipEmpty = false;
+    state.adoptView(priority);
+    state.startHardSkip({ ...baseView, active: 1 } as unknown as View);
+    expect(state.oneShot).toBe('hard-skip');
+    expect(state.playMode).toBe('skip-turn');
   });
 });
 
