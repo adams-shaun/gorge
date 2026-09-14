@@ -59,6 +59,10 @@ describe('sourceNameOf — the prompt’s source, resolved from the view', () =>
     expect(sourceCause(decision({ source: 9 }), stack(9, 'spell'))).toBe('a resolving spell');
     expect(sourceCause(decision({ source: 9 }), stack(9, 'trigger'))).toBe('a triggered ability');
     expect(sourceCause(decision({ source: 9 }), stack(9, 'ability'))).toBe('an activated ability');
+    // Ability objects have minted stack IDs: Decision.source and
+    // StackView.source both identify the originating permanent.
+    expect(sourceCause(decision({ source: 9 }), view([{ id: 99, source: 9, name: 'Bolt', kind: 'trigger' }]))).toBe('a triggered ability');
+    expect(sourceNameOf(decision({ source: 9 }), view([{ id: 99, source: 9, name: 'Bolt', kind: 'trigger' }]))).toBe('Bolt');
     // not on the stack: no cause fact on the wire — omitted, never guessed
     expect(sourceCause(decision({ source: 42 }), view([], [card(42, 'Bear')]))).toBeNull();
     expect(sourceCause(decision({}), view())).toBeNull();

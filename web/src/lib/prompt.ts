@@ -55,6 +55,22 @@ export function shapeOf(d: Decision): string | null {
 }
 
 /**
+ * sourceStackOf finds the stack object responsible for a decision source.
+ * A spell uses its own object ID, while a trigger/activated ability has a
+ * minted stack ID and carries the originating permanent in StackView.source.
+ * Search top-down: when one permanent has several abilities on the stack,
+ * the resolving (topmost) one is the only defensible best-effort cause.
+ */
+function sourceStackOf(d: Decision, view: View) {
+  if (d.source === undefined || d.source === 0) return null;
+  for (let i = view.stack.length - 1; i >= 0; i -= 1) {
+    const stack = view.stack[i];
+    if (stack.id === d.source || stack.source === d.source) return stack;
+  }
+  return null;
+}
+
+/**
  * sourceNameOf resolves the decision's source object to the card name a
  * player would recognise it by. The stack is checked first (a resolving
  * spell or ability is the commonest source and carries its display name
@@ -64,7 +80,7 @@ export function shapeOf(d: Decision): string | null {
  */
 export function sourceNameOf(d: Decision, view: View): string | null {
   if (d.source === undefined || d.source === 0) return null;
-  const stack = view.stack.find((s) => s.id === d.source);
+  const stack = sourceStackOf(d, view);
   if (stack) return stack.name;
   const card = everyVisibleCard(view.players).find((c) => c.id === d.source);
   return card ? card.name : null;
@@ -80,8 +96,7 @@ export function sourceNameOf(d: Decision, view: View): string | null {
  * it rather than guessing.
  */
 export function sourceCause(d: Decision, view: View): string | null {
-  if (d.source === undefined || d.source === 0) return null;
-  const stack = view.stack.find((s) => s.id === d.source);
+  const stack = sourceStackOf(d, view);
   if (!stack) return null;
   switch (stack.kind) {
     case 'spell': return 'a resolving spell';
