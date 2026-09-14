@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,8 +14,10 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -41,22 +45,45 @@ import (
 type artCache struct {
 	dir    string
 	client *http.Client
-	// sem serializes outbound Scryfall requests to one at a time, with a
-	// pause after each — the same discipline images.ts used to keep
-	// client-side (Scryfall asks for <=10 req/s); centralising it here
-	// means the whole server, not one browser, is what's paced.
+	// sem serializes this process's outbound Scryfall work to one fetch at a
+	// time. Every request in that work — named metadata, requested-face
+	// image, sibling-face images, and every retry — goes through doScryfall,
+	// whose limiter spaces their starts (Scryfall asks for <=10 req/s).
 	sem chan struct{}
 	// namedBaseURL is "https://api.scryfall.com/cards/named?exact=" in
 	// production; tests point it at an httptest server instead so this
 	// package's tests never touch the real network.
 	namedBaseURL string
-	// pace is the pause held under sem after each outbound fetch pair — the
-	// 100ms Scryfall courtesy in production. It is a field, not a constant,
-	// for the same reason namedBaseURL is: a test seam, so a package whose
-	// budget is measured in whole seconds can exercise the prewarm without
-	// paying the real-world pacing (never the other way round — production
-	// keeps the 100ms).
+	// pace is the minimum spacing between two outbound Scryfall request
+	// starts — the <=10 req/s courtesy Scryfall asks for (50-100ms between
+	// requests). It is enforced by paceWait as a LIMITER over the request
+	// stream (measured against a clock, not a fixed sleep) and shared by
+	// EVERY process using this cache directory through a locked stamp file
+	// (paceFile): the deploy's one-shot fill, the old servers it overlaps
+	// and both demo servers after it together stay within one pace, and
+	// prewarm and browser-driven fetches can never race each other into
+	// 429s. It is a field, not a constant, for the same reason namedBaseURL
+	// is: a test seam, so a package whose budget is measured in whole
+	// seconds can exercise the prewarm without paying the real-world pacing
+	// (never the other way round — production keeps the 100ms). With pace 0
+	// the stamp file is never touched.
 	pace time.Duration
+	// now is the clock the limiter and the 429 backoff read (production:
+	// time.Now; tests inject a fake clock so pacing and backoff are
+	// exercised with no real sleeps).
+	now func() time.Time
+	// sleep pauses for d, or until ctx is cancelled, whichever first.
+	// Production uses a timer; tests replace it to advance a fake clock, so
+	// no test ever waits real time for a rate limit.
+	sleep func(context.Context, time.Duration) error
+	// afterFunc runs f once d has passed on this cache's clock and returns a
+	// stop function (production: time.AfterFunc). The fill's time budget is
+	// armed through it, so a test trips the budget on the fake clock.
+	afterFunc func(d time.Duration, f func()) (stop func() bool)
+	// logf, when non-nil, gets one line per 429 retry so an operator can see
+	// the limiter working in the demo log (nil → silent; the fill and serve
+	// set it).
+	logf func(string, ...any)
 
 	mu       sync.Mutex
 	inflight map[string]chan struct{} // key -> closed when that key's fetch finishes
@@ -85,8 +112,177 @@ func newArtCache(dir string) (*artCache, error) {
 		sem:          make(chan struct{}, 1),
 		namedBaseURL: scryfallNamedURL,
 		pace:         100 * time.Millisecond,
+		now:          time.Now,
+		sleep:        sleepCtx,
+		afterFunc:    func(d time.Duration, f func()) func() bool { return time.AfterFunc(d, f).Stop },
 		inflight:     map[string]chan struct{}{},
 	}, nil
+}
+
+// sleepCtx is the production sleep: a timer raced against ctx, so a shutdown
+// cancels a pending rate-limit pause cleanly.
+func sleepCtx(ctx context.Context, d time.Duration) error {
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-t.C:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// paceFile is the cross-process limiter's stamp, inside the cache dir: an
+// exclusive flock on it serializes paceWait across every process sharing the
+// directory, and its first 8 bytes hold the most recent request start
+// (big-endian Unix nanoseconds). The blob route serves only 64-hex keys, so
+// it is never reachable over HTTP.
+const paceFile = ".scryfall-pace"
+
+// paceWait spaces Scryfall request starts at least a.pace apart — the <=10
+// req/s limiter — across EVERY process using a.dir, not just this one: it
+// takes the stamp file's flock, waits out whatever is left of the gap since
+// the start any process last stamped, stamps its own start, and releases.
+// Within a process the pacing semaphore already serializes callers; the
+// flock extends that to the deploy's fill and both demo servers, which would
+// otherwise each allow 10 req/s. The lock is held for at most one pace.
+// With pace == 0 (tests) it does nothing and touches no file.
+func (a *artCache) paceWait(ctx context.Context) error {
+	if a.pace <= 0 {
+		return nil
+	}
+	f, err := a.lockPace(ctx)
+	if err != nil {
+		return fmt.Errorf("art pace lock: %w", err)
+	}
+	defer f.Close() // closing the descriptor releases the flock
+	var stamp [8]byte
+	var last time.Time
+	if n, _ := f.ReadAt(stamp[:], 0); n == len(stamp) {
+		last = time.Unix(0, int64(binary.BigEndian.Uint64(stamp[:])))
+	}
+	wait := a.pace - a.now().Sub(last)
+	if wait > a.pace {
+		wait = a.pace // a stamp from the future (the clock stepped back) costs one gap, never more
+	}
+	if wait > 0 {
+		if err := a.sleep(ctx, wait); err != nil {
+			return err
+		}
+	}
+	binary.BigEndian.PutUint64(stamp[:], uint64(a.now().UnixNano()))
+	if _, err := f.WriteAt(stamp[:], 0); err != nil {
+		return fmt.Errorf("art pace stamp: %w", err)
+	}
+	return nil
+}
+
+// lockPace opens the stamp file and takes its exclusive flock, giving up when
+// ctx is done. flock(2) cannot be interrupted by a context, so a contended
+// wait runs in a goroutine; if ctx wins, that goroutine closes the file once
+// its flock call returns, which releases a lock taken too late instead of
+// leaking it. flock locks belong to the open file description, so two caches
+// in one process exclude each other exactly as two processes do.
+func (a *artCache) lockPace(ctx context.Context) (*os.File, error) {
+	f, err := os.OpenFile(filepath.Join(a.dir, paceFile), os.O_RDWR|os.O_CREATE, 0o644)
+	if err != nil {
+		return nil, err
+	}
+	fd := int(f.Fd())
+	err = syscall.Flock(fd, syscall.LOCK_EX|syscall.LOCK_NB)
+	if err == nil {
+		return f, nil
+	}
+	if !errors.Is(err, syscall.EWOULDBLOCK) {
+		_ = f.Close()
+		return nil, err
+	}
+	locked := make(chan error, 1)
+	go func() { locked <- syscall.Flock(fd, syscall.LOCK_EX) }()
+	select {
+	case err := <-locked:
+		if err != nil {
+			_ = f.Close()
+			return nil, err
+		}
+		return f, nil
+	case <-ctx.Done():
+		go func() {
+			<-locked
+			_ = f.Close()
+		}()
+		return nil, ctx.Err()
+	}
+}
+
+// doScryfall is the single outbound Scryfall-client path. Keeping the limiter
+// beside client.Do makes it impossible for a new metadata, image, or retry
+// caller to use this client without pacing unless it explicitly bypasses this
+// helper. The caller holds a.sem, serializing this process's request starts
+// across background prewarm and browser-driven fetches; paceWait's stamp-file
+// lock extends the spacing to every other process on the same cache dir.
+func (a *artCache) doScryfall(req *http.Request) (*http.Response, error) {
+	if err := a.paceWait(req.Context()); err != nil {
+		return nil, err
+	}
+	return a.client.Do(req)
+}
+
+// scryMaxRetries caps the 429 RETRIES of the loop in lookupNamed/download:
+// an exhausted budget is nine total attempts (the initial request plus eight
+// retries) — exhaustion is only checked when the ninth attempt has already
+// received a 429. Nine attempts with the exponential backoff below is about a
+// minute (60.5s of sleeps); a server-sent Retry-After is capped at
+// scryMaxRetryAfter per retry, so no request can stay in backoff past eight
+// minutes, and the deploy's bounded fill (-prewarm-art-budget) cuts even
+// that short. A genuinely wedged Scryfall is better left to the next prewarm
+// pass than held under the pacing semaphore.
+const scryMaxRetries = 8
+
+// scryMaxRetryAfter caps one 429 backoff. Every backoff sleeps with the
+// pacing semaphore held, so an uncapped `Retry-After: 86400` would stall
+// every browser's cold art fetch in the process for a day.
+const scryMaxRetryAfter = 60 * time.Second
+
+// scryRetryAfter turns a 429 into a backoff delay: the Retry-After header
+// (seconds; Scryfall sends whole seconds, but a fraction parses too) when
+// present and positive, capped at scryMaxRetryAfter (the cap is applied
+// before the conversion, so a huge or infinite value cannot overflow a
+// Duration); otherwise exponential from 500ms doubling per attempt, capped
+// at 15s.
+func scryRetryAfter(header string, attempt int) time.Duration {
+	if h := strings.TrimSpace(header); h != "" {
+		if f, err := strconv.ParseFloat(h, 64); err == nil && f > 0 {
+			if f > scryMaxRetryAfter.Seconds() {
+				return scryMaxRetryAfter
+			}
+			return time.Duration(f * float64(time.Second))
+		}
+	}
+	d := 500 * time.Millisecond << attempt
+	if d > 15*time.Second {
+		d = 15 * time.Second
+	}
+	return d
+}
+
+// retry429 sleeps out one 429 backoff and reports whether the caller should
+// retry (true) or the retry budget is exhausted (false). rerr is non-nil
+// when the wait itself was cancelled. resp is drained and closed here.
+func (a *artCache) retry429(ctx context.Context, resp *http.Response, what string, attempt int) (bool, error) {
+	_, _ = io.Copy(io.Discard, resp.Body)
+	_ = resp.Body.Close()
+	if attempt >= scryMaxRetries {
+		return false, nil
+	}
+	after := scryRetryAfter(resp.Header.Get("Retry-After"), attempt)
+	if a.logf != nil {
+		a.logf("art: %s: 429, retrying in %s (attempt %d/%d)", what, after, attempt+1, scryMaxRetries)
+	}
+	if err := a.sleep(ctx, after); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // artKeyVersion busts the whole cache whenever the meaning of the bytes a
@@ -116,6 +312,7 @@ func artKey(name string) string {
 func (a *artCache) jpgPath(key string) string   { return filepath.Join(a.dir, key+".jpg") }
 func (a *artCache) missPath(key string) string  { return filepath.Join(a.dir, key+".miss") }
 func (a *artCache) factsPath(key string) string { return filepath.Join(a.dir, key+".json") }
+func (a *artCache) facesPath(key string) string { return filepath.Join(a.dir, key+".faces") }
 
 // cardFacts is the exact record GET /cards/named serves — the six fields
 // web/src/lib/oracle.ts normalises a catalog entry to, and nothing else.
@@ -145,7 +342,7 @@ type scryFace struct {
 }
 
 // scryNamed is the slice of Scryfall's named-lookup response the cache
-// reads: the image fields fetch() always wanted, plus the printed facts the
+// reads: the image fields fetchCard always wanted, plus the printed facts the
 // /cards/named sidecar keeps. A multi-faced card carries its printed facts
 // on the faces, not the top level — see facts().
 type scryNamed struct {
@@ -307,46 +504,85 @@ func (a *artCache) text(w http.ResponseWriter, r *http.Request) {
 // It joins the SAME single-flight map as ensure: a text lookup arriving
 // while the art fetch for the same name is still running waits for it and
 // then reads the sidecar the fetch wrote, so one never-fired Scryfall named
-// request serves both.
+// request serves both. A card already fetched for art before facts were kept
+// (a .jpg but no .json) is backfilled by the same fetchCard, which skips the
+// image download because the .jpg is already on disk.
 func (a *artCache) ensureText(ctx context.Context, key, name string) (bool, error) {
-	if _, err := os.Stat(a.factsPath(key)); err == nil {
-		return true, nil
-	}
-	if _, err := os.Stat(a.missPath(key)); err == nil {
-		return false, nil
-	}
+	return a.singleFlight(ctx, key, func() (bool, bool) {
+		if fileExists(a.factsPath(key)) {
+			return true, true
+		}
+		if fileExists(a.missPath(key)) {
+			return false, true
+		}
+		return false, false
+	}, func() (bool, error) {
+		return a.servedDespiteSiblings(a.factsPath(key))(a.fetchCard(ctx, key, name))
+	})
+}
 
-	a.mu.Lock()
-	ch, inflight := a.inflight[key]
-	if !inflight {
-		ch = make(chan struct{})
-		a.inflight[key] = ch
-	}
-	a.mu.Unlock()
-
-	if inflight {
+// singleFlight is the one join-or-run discipline ensure, ensureText and
+// ensureComplete share. check reports (hit, decided) from disk; when it is
+// undecided, the first caller for key runs work while every concurrent caller
+// for the same key waits and then re-checks disk (and becomes the runner if
+// the earlier work failed to settle it).
+func (a *artCache) singleFlight(ctx context.Context, key string, check func() (hit, decided bool), work func() (bool, error)) (bool, error) {
+	for {
+		if hit, decided := check(); decided {
+			return hit, nil
+		}
+		a.mu.Lock()
+		ch, inflight := a.inflight[key]
+		if !inflight {
+			ch = make(chan struct{})
+			a.inflight[key] = ch
+			a.mu.Unlock()
+			return a.runFlight(key, ch, check, work)
+		}
+		a.mu.Unlock()
 		select {
 		case <-ch:
-			return a.ensureText(ctx, key, name) // re-check disk now that the fetch that was running has finished
+			// re-check disk now that the fetch that was running has finished
 		case <-ctx.Done():
 			return false, ctx.Err()
 		}
 	}
+}
 
+// runFlight runs work as key's single in-flight fetch and releases the slot
+// when it returns. It re-checks disk first: a runner that finished between
+// this caller's check and its claiming the slot may already have settled it.
+func (a *artCache) runFlight(key string, ch chan struct{}, check func() (bool, bool), work func() (bool, error)) (bool, error) {
 	defer func() {
 		a.mu.Lock()
 		delete(a.inflight, key)
 		a.mu.Unlock()
 		close(ch)
 	}()
-	// A card already fetched for art before facts were kept (a legacy cache
-	// dir from before the sidecar existed, or an image download that never
-	// completed) has a .jpg but no .json: backfill it with ONE paced
-	// metadata-only request rather than re-fetching the image.
-	if _, err := os.Stat(a.jpgPath(key)); err == nil {
-		return a.fetchFacts(ctx, key, name)
+	if hit, decided := check(); decided {
+		return hit, nil
 	}
-	return a.fetch(ctx, key, name)
+	return work()
+}
+
+// servedDespiteSiblings adapts fetchCard's result for a CLIENT route, which
+// asked for exactly one face: when only a sibling face failed
+// (incompleteFacesError)
+// and the requested artifact at path is on disk, the request is a hit — the
+// sibling is fetched when a client asks for it by name, and the one-shot fill
+// (ensureComplete) still sees the entry as incomplete because no face
+// manifest was written.
+func (a *artCache) servedDespiteSiblings(path string) func(bool, error) (bool, error) {
+	return func(hit bool, err error) (bool, error) {
+		var inc *incompleteFacesError
+		if errors.As(err, &inc) && fileExists(path) {
+			if a.logf != nil {
+				a.logf("art: %v", err)
+			}
+			return true, nil
+		}
+		return hit, err
+	}
 }
 
 // blob serves a cached image's bytes. key is validated as an exact 64-hex
@@ -375,55 +611,108 @@ func (a *artCache) blob(w http.ResponseWriter, r *http.Request) {
 // on a first request. Concurrent requests for the same never-seen name join
 // the one in-flight fetch rather than each starting their own.
 func (a *artCache) ensure(ctx context.Context, key, name string) (bool, error) {
-	if _, err := os.Stat(a.jpgPath(key)); err == nil {
-		return true, nil
-	}
-	if _, err := os.Stat(a.missPath(key)); err == nil {
-		return false, nil
-	}
-
-	a.mu.Lock()
-	ch, inflight := a.inflight[key]
-	if !inflight {
-		ch = make(chan struct{})
-		a.inflight[key] = ch
-	}
-	a.mu.Unlock()
-
-	if inflight {
-		select {
-		case <-ch:
-			return a.ensure(ctx, key, name) // re-check disk now that the fetch that was running has finished
-		case <-ctx.Done():
-			return false, ctx.Err()
+	return a.singleFlight(ctx, key, func() (bool, bool) {
+		if fileExists(a.jpgPath(key)) {
+			return true, true
 		}
-	}
-
-	defer func() {
-		a.mu.Lock()
-		delete(a.inflight, key)
-		a.mu.Unlock()
-		close(ch)
-	}()
-	return a.fetch(ctx, key, name)
+		if fileExists(a.missPath(key)) {
+			return false, true
+		}
+		return false, false
+	}, func() (bool, error) {
+		return a.servedDespiteSiblings(a.jpgPath(key))(a.fetchCard(ctx, key, name))
+	})
 }
 
-// fetch does the actual Scryfall round trip: one paced request for the
-// card's metadata, then (on a hit) one more for the image bytes. Both go
-// through a. sem so only one such pair is ever in flight across the whole
-// server.
-func (a *artCache) fetch(ctx context.Context, key, name string) (bool, error) {
-	// The whole pair — named lookup, then image download — is paced as one
-	// unit under the semaphore, exactly as it was before facts were kept.
+// ensureComplete is the FILL's question, stricter than ensure's: is every
+// artifact a client can request for this card on disk — the requested name's
+// art and facts AND every sibling face's art and facts? A client can only be
+// told which siblings exist by a Scryfall named response, so a .jpg+.json pair
+// alone cannot answer it: an entry cached before sibling faces were kept, or
+// by a fetch killed between the requested image and a sibling, looks exactly
+// like a complete single-faced card. complete() therefore trusts only the face
+// manifest fetchCard writes LAST, after every sibling is on disk; anything
+// else re-runs fetchCard, which makes one named lookup and downloads only the
+// artifacts still missing. (hit=false only for a genuine Scryfall 404.)
+//
+// A .miss settles the question even beside a .jpg. That pair is a legacy
+// entry whose name Scryfall no longer knows: the lookup that wrote the .miss
+// is the answer, so the entry is a genuine 404 for the fill, not a lookup
+// repeated on every pass (and by both servers' prewarms each deploy). The
+// client routes still serve the old image — ensure checks the .jpg first.
+func (a *artCache) ensureComplete(ctx context.Context, key, name string) (bool, error) {
+	return a.singleFlight(ctx, key, func() (bool, bool) {
+		if a.complete(key) {
+			return true, true
+		}
+		if fileExists(a.missPath(key)) {
+			return false, true
+		}
+		return false, false
+	}, func() (bool, error) {
+		return a.fetchCard(ctx, key, name)
+	})
+}
+
+// faceManifest is the <key>.faces record: the printed names of every OTHER
+// named face of the card this key's named response described (empty
+// for a single-faced card). Its presence means fetchCard finished that
+// response completely; complete() re-verifies each listed sibling on disk.
+type faceManifest struct {
+	Siblings []string `json:"siblings"`
+}
+
+// complete reports whether key's requested artifacts and every sibling its
+// face manifest names are on disk. No manifest (a legacy or interrupted
+// entry) or an unreadable one is incomplete.
+func (a *artCache) complete(key string) bool {
+	if !fileExists(a.jpgPath(key)) || !fileExists(a.factsPath(key)) {
+		return false
+	}
+	b, err := os.ReadFile(a.facesPath(key))
+	if err != nil {
+		return false
+	}
+	var m faceManifest
+	if err := json.Unmarshal(b, &m); err != nil || m.Siblings == nil {
+		return false
+	}
+	for _, sib := range m.Siblings {
+		sk := artKey(sib)
+		if !fileExists(a.jpgPath(sk)) || !fileExists(a.factsPath(sk)) {
+			return false
+		}
+	}
+	return true
+}
+
+// incompleteFacesError is fetchCard's failure when the requested name's own
+// artifacts are on disk but a sibling face's are not. The fill counts it as a
+// failure; a client route that asked only for the requested face does not
+// (see servedDespiteSiblings).
+type incompleteFacesError struct{ err error }
+
+func (e *incompleteFacesError) Error() string { return e.err.Error() }
+func (e *incompleteFacesError) Unwrap() error { return e.err }
+
+// fetchCard does the actual Scryfall round trip for every caller — client art,
+// client text, legacy facts backfill, and the fill: one paced, 429-retried
+// named request, then whichever of the requested image, the facts sidecar and
+// the sibling faces' art/facts are still missing, then the face manifest.
+// Everything runs under a.sem so only one card's requests are ever in flight
+// across the whole server, and every request is spaced by doScryfall's
+// limiter (<=10 Scryfall req/s no matter who — prewarm or a browser — asked).
+//
+// The manifest is written only after every other artifact is on disk, so a
+// failure or a kill at any earlier point leaves the entry incomplete for the
+// next fill, which retries it rather than reporting it present.
+func (a *artCache) fetchCard(ctx context.Context, key, name string) (bool, error) {
 	select {
 	case a.sem <- struct{}{}:
 	case <-ctx.Done():
 		return false, ctx.Err()
 	}
-	defer func() {
-		time.Sleep(a.pace)
-		<-a.sem
-	}()
+	defer func() { <-a.sem }()
 
 	card, known, err := a.lookupNamed(ctx, name)
 	if err != nil {
@@ -438,71 +727,119 @@ func (a *artCache) fetch(ctx context.Context, key, name string) (bool, error) {
 	if err := a.writeFacts(key, card.facts(name)); err != nil {
 		return false, err
 	}
-	imgURL := card.faceImage(name)
-	if imgURL == "" {
-		return false, a.writeMiss(key)
+	// A legacy entry already holding the requested image (an art-only cache
+	// being backfilled with facts, or a front face being completed with its
+	// siblings) never re-downloads it.
+	if !fileExists(a.jpgPath(key)) {
+		imgURL := card.faceImage(name)
+		if imgURL == "" {
+			return false, a.writeMiss(key)
+		}
+		if err := a.download(ctx, key, imgURL); err != nil {
+			return false, err
+		}
 	}
-	if err := a.download(ctx, key, imgURL); err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
-// fetchFacts backfills ONLY the facts sidecar for a name that already has
-// cached art but no sidecar (see ensureText). Same pacing discipline as
-// fetch: one request through the semaphore, then the 100ms pause.
-func (a *artCache) fetchFacts(ctx context.Context, key, name string) (bool, error) {
-	select {
-	case a.sem <- struct{}{}:
-	case <-ctx.Done():
-		return false, ctx.Err()
-	}
-	defer func() {
-		time.Sleep(a.pace)
-		<-a.sem
-	}()
-	card, known, err := a.lookupNamed(ctx, name)
+	// One named response carries every face of the card: cache the OTHER
+	// faces too, so a transformed split/DFC the deck only names on one side
+	// is already on disk when a client asks for the face it transformed
+	// into — zero extra api.scryfall.com requests.
+	siblings, err := a.cacheSiblingFaces(ctx, card, name)
 	if err != nil {
-		return false, err
+		return false, &incompleteFacesError{err: err}
 	}
-	if !known {
-		return false, a.writeMiss(key)
-	}
-	if err := a.writeFacts(key, card.facts(name)); err != nil {
+	if err := a.writeFaceManifest(key, faceManifest{Siblings: siblings}); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-// lookupNamed does the one Scryfall named round trip both fetch and
-// fetchFacts need: card is nil with known=false exactly when Scryfall
+// cacheSiblingFaces writes the art and facts of every named face of a
+// multi-faced card other than the name that was asked for, from the SAME named
+// response (no extra Scryfall API request; each face's image is one CDN
+// download), and returns those faces' names for the manifest. A face's image
+// is chosen by faceImage — exactly what a cold client request for that face's
+// name would cache — so a split, Room or adventure half, whose art is the
+// card's top-level image rather than its own, is covered too. Every failure is
+// returned: sibling faces are part of a complete fill, so silently skipping one
+// would make the summary and one-shot exit status claim success for an
+// incomplete cache.
+func (a *artCache) cacheSiblingFaces(ctx context.Context, card *scryNamed, requested string) ([]string, error) {
+	siblings := []string{}
+	for i := range card.CardFaces {
+		face := &card.CardFaces[i]
+		fname := strings.TrimSpace(face.Name)
+		if fname == "" || strings.EqualFold(fname, requested) {
+			continue
+		}
+		img := card.faceImage(fname)
+		if img == "" {
+			continue // no art anywhere in the response; a request would record a miss
+		}
+		fkey := artKey(fname)
+		if !fileExists(a.jpgPath(fkey)) {
+			if err := a.download(ctx, fkey, img); err != nil {
+				return nil, fmt.Errorf("cache sibling image %q: %w", fname, err)
+			}
+		}
+		if !fileExists(a.factsPath(fkey)) {
+			if err := a.writeFacts(fkey, card.facts(fname)); err != nil {
+				return nil, fmt.Errorf("cache sibling facts %q: %w", fname, err)
+			}
+		}
+		siblings = append(siblings, fname)
+	}
+	return siblings, nil
+}
+
+// lookupNamed does the one Scryfall named round trip fetchCard needs: card is nil with known=false exactly when Scryfall
 // answered 404 (the caller records the miss), and a non-200 anything else
-// is an error. It acquires NO semaphore of its own — the caller holds the
-// pacing semaphore across the whole fetch, including the image download.
+// is an error — except 429, the rate limit, which is backed off (honouring
+// Retry-After when the header carries it, exponential otherwise) and
+// retried up to scryMaxRetries times, so a prewarm pass over the whole deck
+// pool ends with every fetchable name on disk instead of skipping whatever
+// it hit the limit on. It acquires NO semaphore of its own — the caller
+// holds the pacing semaphore across the whole fetch, including the image
+// download — but every attempt DOES go through doScryfall, which spaces the
+// shared request stream whoever asked.
 func (a *artCache) lookupNamed(ctx context.Context, name string) (*scryNamed, bool, error) {
-	u := a.namedBaseURL + url.QueryEscape(name)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
-	if err != nil {
-		return nil, false, err
+	for attempt := 0; ; attempt++ {
+		u := a.namedBaseURL + url.QueryEscape(name)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+		if err != nil {
+			return nil, false, err
+		}
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("User-Agent", artUserAgent)
+		resp, err := a.doScryfall(req)
+		if err != nil {
+			return nil, false, err
+		}
+		if resp.StatusCode == http.StatusTooManyRequests {
+			more, rerr := a.retry429(ctx, resp, "named lookup "+name, attempt)
+			if rerr != nil {
+				return nil, false, rerr
+			}
+			if !more {
+				return nil, false, fmt.Errorf("scryfall named lookup: status 429 after %d retries", attempt)
+			}
+			continue
+		}
+		if resp.StatusCode == http.StatusNotFound {
+			_ = resp.Body.Close()
+			return nil, false, nil
+		}
+		if resp.StatusCode != http.StatusOK {
+			_ = resp.Body.Close()
+			return nil, false, fmt.Errorf("scryfall named lookup: status %d", resp.StatusCode)
+		}
+		var card scryNamed
+		derr := json.NewDecoder(resp.Body).Decode(&card)
+		_ = resp.Body.Close()
+		if derr != nil {
+			return nil, false, derr
+		}
+		return &card, true, nil
 	}
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", artUserAgent)
-	resp, err := a.client.Do(req)
-	if err != nil {
-		return nil, false, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, false, nil
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, false, fmt.Errorf("scryfall named lookup: status %d", resp.StatusCode)
-	}
-	var card scryNamed
-	if err := json.NewDecoder(resp.Body).Decode(&card); err != nil {
-		return nil, false, err
-	}
-	return &card, true, nil
 }
 
 // createTemp opens a uniquely named staging file in the cache directory.
@@ -526,37 +863,59 @@ func (a *artCache) createTemp(pattern string) (*os.File, error) {
 	return f, nil
 }
 
+// download fetches one Scryfall image URL and publishes it atomically at the
+// key. Every attempt goes through the same limiter as named metadata, so a
+// cold name's API request, requested-face image, sibling-face images, and any
+// retries cannot burst independently. A 429 here is backed off and retried the
+// same way lookupNamed does — the CDN honours the same header — so one name's
+// fetch never ends half-done because of a rate limit.
 func (a *artCache) download(ctx context.Context, key, imgURL string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, imgURL, nil)
-	if err != nil {
-		return err
+	for attempt := 0; ; attempt++ {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, imgURL, nil)
+		if err != nil {
+			return err
+		}
+		req.Header.Set("User-Agent", artUserAgent)
+		resp, err := a.doScryfall(req)
+		if err != nil {
+			return err
+		}
+		if resp.StatusCode == http.StatusTooManyRequests {
+			more, rerr := a.retry429(ctx, resp, "image "+key[:8], attempt)
+			if rerr != nil {
+				return rerr
+			}
+			if !more {
+				return fmt.Errorf("scryfall image: status 429 after %d retries", attempt)
+			}
+			continue
+		}
+		if resp.StatusCode != http.StatusOK {
+			_ = resp.Body.Close()
+			return fmt.Errorf("scryfall image: status %d", resp.StatusCode)
+		}
+		f, err := a.createTemp("." + key + "-*.jpg.tmp")
+		if err != nil {
+			_ = resp.Body.Close()
+			return err
+		}
+		tmp := f.Name()
+		defer os.Remove(tmp)
+		if _, err := io.Copy(f, resp.Body); err != nil {
+			_ = resp.Body.Close()
+			_ = f.Close()
+			return err
+		}
+		_ = resp.Body.Close()
+		if err := f.Close(); err != nil {
+			return err
+		}
+		// Atomic within one filesystem: neither a concurrent named() request
+		// nor the other demo process can observe a partially-written .jpg.
+		// Unique staging names let concurrent processes both publish the
+		// same key safely.
+		return os.Rename(tmp, a.jpgPath(key))
 	}
-	req.Header.Set("User-Agent", artUserAgent)
-	resp, err := a.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("scryfall image: status %d", resp.StatusCode)
-	}
-	f, err := a.createTemp("." + key + "-*.jpg.tmp")
-	if err != nil {
-		return err
-	}
-	tmp := f.Name()
-	defer os.Remove(tmp)
-	if _, err := io.Copy(f, resp.Body); err != nil {
-		_ = f.Close()
-		return err
-	}
-	if err := f.Close(); err != nil {
-		return err
-	}
-	// Atomic within one filesystem: neither a concurrent named() request nor
-	// the other demo process can observe a partially-written .jpg. Unique
-	// staging names let concurrent processes both publish the same key safely.
-	return os.Rename(tmp, a.jpgPath(key))
 }
 
 func (a *artCache) writeMiss(key string) error {
@@ -567,11 +926,20 @@ func (a *artCache) writeMiss(key string) error {
 // discipline download() uses: a concurrent text() request never observes a
 // partially-written .json, including when two gorged processes share a cache.
 func (a *artCache) writeFacts(key string, facts cardFacts) error {
-	b, err := json.Marshal(facts)
+	return a.writeJSONAtomic(a.factsPath(key), "."+key+"-*.json.tmp", facts)
+}
+
+// writeFaceManifest publishes key's face manifest atomically (see complete).
+func (a *artCache) writeFaceManifest(key string, m faceManifest) error {
+	return a.writeJSONAtomic(a.facesPath(key), "."+key+"-*.faces.tmp", m)
+}
+
+func (a *artCache) writeJSONAtomic(dst, pattern string, v any) error {
+	b, err := json.Marshal(v)
 	if err != nil {
 		return err
 	}
-	f, err := a.createTemp("." + key + "-*.json.tmp")
+	f, err := a.createTemp(pattern)
 	if err != nil {
 		return err
 	}
@@ -584,51 +952,205 @@ func (a *artCache) writeFacts(key string, facts cardFacts) error {
 	if err := f.Close(); err != nil {
 		return err
 	}
-	return os.Rename(tmp, a.factsPath(key))
+	return os.Rename(tmp, dst)
 }
 
-// prewarmArt fills the cache for every distinct card name (plus each
-// commander) referenced by the deck files in dir, in sorted order, walking
-// the names a dealt table's browser can ask for rather than the whole
-// corpus (deckCardNames). It runs in a background goroutine started by
-// serve — a deploy that wipes the persistence dir used to destroy the art
-// cache with it and leave every viewer staring at missing art for minutes
-// while browsers refilled it one paced request at a time; a warm cache at
-// startup closes that window. Never blocks or fails serving: every error is
-// logged through logf and left to self-heal — a network failure writes no
-// .miss (only a genuine Scryfall 404 does), so the next browser request for
-// that name retries the fetch.
+// artFillStats is what one fill pass over a deck directory did. String()
+// is the exact summary shape the one-shot fill prints and the deploy log
+// carries.
+type artFillStats struct {
+	// Names is how many distinct deck names the pass walked.
+	Names int
+	// Cached counts names this pass fetched or completed: art, facts, a
+	// sibling face, or the face manifest was missing (a legacy entry cached
+	// before sibling faces were kept costs one named lookup here, once).
+	Cached int
+	// Present counts names already complete on disk before this pass — every
+	// face, per the face manifest (see artCache.complete).
+	Present int
+	// NotFound counts names Scryfall genuinely does not know (a .miss —
+	// a fact, not a failure; a miss recorded by an EARLIER pass counts
+	// here too, honestly re-measured each run).
+	NotFound int
+	// Failed counts names whose fetch errored (network, exhausted 429,
+	// or an incomplete sibling face) and so is not COMPLETE on disk — the
+	// one-shot fill exits non-zero when this is non-zero, and the next pass
+	// retries them.
+	Failed int
+}
+
+// attempted is how many names the pass reached, whatever their outcome.
+func (s artFillStats) attempted() int { return s.Cached + s.Present + s.NotFound + s.Failed }
+
+func (s artFillStats) String() string {
+	return fmt.Sprintf("cached %d, already present %d, genuine 404 %d, failed %d",
+		s.Cached, s.Present, s.NotFound, s.Failed)
+}
+
+// fillLimits bounds one fill pass. The zero value is unbounded — serve's
+// background prewarm, which exists to finish whatever a bounded pass left.
+type fillLimits struct {
+	// Budget stops the pass once this much time has passed on the cache's
+	// clock (0 = no limit). It cancels the pass's context, which aborts an
+	// in-flight request, a 429 backoff and a pace wait alike.
+	Budget time.Duration
+	// MaxConsecutiveFailures stops the pass once this many names in a row
+	// have failed (0 = never): a dead or erroring Scryfall costs N requests,
+	// not one per deck name. Any completed or genuine-404 name resets it.
+	MaxConsecutiveFailures int
+}
+
+// errFillBudget and errFillTripped are the two ways fillLimits stop a pass.
+var (
+	errFillBudget  = errors.New("fill time budget spent")
+	errFillTripped = errors.New("too many consecutive failures")
+)
+
+// fillArt walks every distinct card name (plus each commander) referenced by
+// the deck files in dir, in sorted order, and leaves each one complete in the
+// cache — art, facts sidecar, and (via fetchCard's sibling-face caching and
+// face manifest) every other face of a multi-faced card, whatever the
+// requested name's own files already were. It is the ONE fill loop: prewarmArt
+// (serve's background pass) and the -prewarm-art-only one-shot both go
+// through it, so their guarantees cannot drift apart. label is the log-line
+// prefix distinguishing the caller ("art prewarm" / "art fill").
 //
-// ensure/ensureText are load-bearing here: both are single-flight (joined by
-// any concurrent browser request for the same name, so prewarm and a browser
-// share one Scryfall round trip) and disk-checked (a name already on disk
-// costs nothing). ensure covers the image; the follow-up ensureText
-// backfills the facts sidecar for a name whose image was cached before
-// sidecars were kept. ctx is serve()'s own, so shutdown cancels an in-flight
-// prewarm cleanly.
-func prewarmArt(ctx context.Context, ac *artCache, dir string, logf func(string, ...any)) {
+// A name already complete on disk costs nothing (ensureComplete is
+// disk-checked and single-flight), which is what makes the fill idempotent:
+// a second pass makes zero fetches. Every per-name error is logged through
+// logf and left to self-heal — a network failure writes no .miss (only a
+// genuine Scryfall 404 does), so the next pass or browser request retries
+// the fetch.
+//
+// Before any name is walked the cache dir must accept a new file: a
+// read-only dir would otherwise spend one Scryfall lookup per name before
+// each first write failed. The pass ends early — with the partial stats and
+// an error naming why — when ctx is cancelled or a fillLimits bound trips;
+// names never attempted are not counted as failures. Every outcome, early or
+// not, is logged as one summary line.
+func fillArt(ctx context.Context, ac *artCache, dir, label string, logf func(string, ...any), lim fillLimits) (artFillStats, error) {
+	if lim.Budget > 0 {
+		bctx, cancel := context.WithCancelCause(ctx)
+		defer cancel(nil)
+		stop := ac.afterFunc(lim.Budget, func() { cancel(fmt.Errorf("%w (%s)", errFillBudget, lim.Budget)) })
+		defer stop()
+		ctx = bctx
+	}
 	names, err := deckCardNames(dir)
 	if err != nil {
-		logf("art prewarm: reading decks in %s: %v", dir, err)
-		return
+		err = fmt.Errorf("reading decks in %s: %w", dir, err)
+		logf("%s: %v", label, err)
+		return artFillStats{}, err
 	}
-	if len(names) == 0 {
-		return
+	st := artFillStats{Names: len(names)}
+	if err := ac.checkWritable(); err != nil {
+		logf("%s: %v", label, err)
+		return st, err
 	}
-	logf("art prewarm: %d distinct card names from %s", len(names), dir)
+	logf("%s: %d distinct card names from %s", label, len(names), dir)
+	stopped := func(err error) (artFillStats, error) {
+		logf("%s: STOPPED (%v) after %d of %d names: %s; %d names unattempted",
+			label, err, st.attempted(), st.Names, st, st.Names-st.attempted())
+		return st, err
+	}
+	streak := 0
 	for _, name := range names {
+		if ctx.Err() != nil {
+			return stopped(context.Cause(ctx))
+		}
 		key := artKey(name)
-		ok, err := ac.ensure(ctx, key, name)
+		complete := ac.complete(key)
+		ok, err := ac.ensureComplete(ctx, key, name)
 		if err != nil {
-			logf("art prewarm %q: %v", name, err)
+			st.Failed++
+			if ctx.Err() != nil {
+				return stopped(context.Cause(ctx)) // the name was cut off, not failed on its own
+			}
+			logf("%s %q: %v", label, name, err)
+			if streak++; lim.MaxConsecutiveFailures > 0 && streak >= lim.MaxConsecutiveFailures {
+				return stopped(fmt.Errorf("%w (%d in a row)", errFillTripped, streak))
+			}
 			continue
 		}
+		streak = 0
 		if !ok {
-			continue // a genuine Scryfall 404 recorded a .miss; nothing to backfill
+			st.NotFound++ // a genuine Scryfall 404 recorded a .miss; nothing to backfill
+			continue
 		}
-		if _, err := ac.ensureText(ctx, key, name); err != nil {
-			logf("art prewarm facts %q: %v", name, err)
+		if complete {
+			st.Present++
+		} else {
+			st.Cached++
 		}
 	}
-	logf("art prewarm: done (%d names)", len(names))
+	logf("%s: done (%d names): %s", label, st.Names, st)
+	return st, nil
+}
+
+// checkWritable proves the cache dir accepts a new file — the same staging
+// create every artifact write starts with — and removes the probe.
+func (a *artCache) checkWritable() error {
+	f, err := a.createTemp(".write-probe-*.tmp")
+	if err != nil {
+		return fmt.Errorf("art cache dir %s is not writable: %w", a.dir, err)
+	}
+	name := f.Name()
+	cerr := f.Close()
+	_ = os.Remove(name)
+	if cerr != nil {
+		return fmt.Errorf("art cache dir %s is not writable: %w", a.dir, cerr)
+	}
+	return nil
+}
+
+// fileExists is os.Stat's presence check, named so the call sites read.
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+// prewarmArt fills the cache for every deck name in the background at serve
+// startup (see fillArt for the loop itself). Never blocks or fails serving:
+// fillArt logs every error and the summary, and leaves each failure to
+// self-heal. It is deliberately unbounded (zero fillLimits) — it is what
+// completes a cache the deploy's bounded one-shot left partial. ctx is
+// serve()'s own, so shutdown cancels an in-flight prewarm cleanly.
+func prewarmArt(ctx context.Context, ac *artCache, dir string, logf func(string, ...any)) {
+	_, _ = fillArt(ctx, ac, dir, "art prewarm", logf, fillLimits{})
+}
+
+// runPrewarmArtOnly is the -prewarm-art-only body: fill the card-art cache
+// from every deck in -decks (c.artCacheDir() is the destination) within the
+// -prewarm-art-budget and -prewarm-art-max-consecutive-failures bounds, log
+// to stderr, and return the process exit code. No listener, no corpus, no
+// tables: the deploy runs this before any server starts, and it is a no-op
+// (zero fetches) when the cache is already complete.
+//
+// Exit 0 means every name is complete or a genuine 404. Anything else — a
+// failed name, a tripped bound, a cancel, an unreadable deck dir or an
+// unwritable cache dir — exits 1 after one loud ART FILL INCOMPLETE line
+// carrying the summary, so an operator running `make prewarm-art` by hand
+// sees a strict result, and the deploy (which starts its servers regardless)
+// leaves the reason in its log.
+func runPrewarmArtOnly(ctx context.Context, c config, stderr io.Writer) int {
+	logf := func(f string, a ...any) { fmt.Fprintf(stderr, "gorged: "+f+"\n", a...) }
+	ac, err := newServeArtCache(c.artCacheDir())
+	if err != nil {
+		logf("%v", err)
+		return 1
+	}
+	ac.logf = logf
+	st, err := fillArt(ctx, ac, c.decks, "art fill", logf, fillLimits{
+		Budget:                 c.prewarmArtBudget,
+		MaxConsecutiveFailures: c.prewarmArtMaxConsecutiveFailures,
+	})
+	if err == nil && st.Failed == 0 {
+		return 0
+	}
+	reason := fmt.Sprintf("%d names failed", st.Failed)
+	if err != nil {
+		reason = err.Error()
+	}
+	logf("ART FILL INCOMPLETE (%s): %s, %d names unattempted", reason, st, st.Names-st.attempted())
+	return 1
 }

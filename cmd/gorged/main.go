@@ -94,6 +94,24 @@ type config struct {
 	// sets it true and points the cache's namedBaseURL at its own fixture
 	// first (newServeArtCache).
 	prewarm bool
+	// prewarmArtOnly is the -prewarm-art-only flag: fill the card-art cache
+	// from -decks into artCacheDir() and exit, before any listener opens —
+	// what scripts/deploy-demo.sh runs ahead of both servers so a deploy
+	// never serves a cold cache, and what `make prewarm-art` runs by hand.
+	// Exit code 1 when any name FAILED (a genuine 404 is not a failure) or
+	// the pass was stopped by one of the two bounds below.
+	prewarmArtOnly bool
+	// prewarmArtBudget is the -prewarm-art-budget flag: the wall-clock limit
+	// on one -prewarm-art-only pass (0 = none). Art is cosmetic, so the
+	// deploy bounds its pre-start fill with it — well under the post-merge
+	// hook's 600s lock wait — and starts the servers either way; their
+	// background prewarm finishes whatever the bounded pass left.
+	prewarmArtBudget time.Duration
+	// prewarmArtMaxConsecutiveFailures is the
+	// -prewarm-art-max-consecutive-failures flag: stop a -prewarm-art-only
+	// pass once this many names in a row have failed (0 = never). A dead or
+	// erroring Scryfall then costs N requests, not one per deck name.
+	prewarmArtMaxConsecutiveFailures int
 }
 
 func main() {
@@ -101,6 +119,15 @@ func main() {
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, "gorged:", err)
 		os.Exit(2)
+	}
+	// The one-shot art fill needs no listener, no corpus and no tables — it
+	// reads deck JSON and writes the cache — so it dispatches before the
+	// bind. A non-zero exit means the cache is not complete; the deploy
+	// reports it loudly and starts the servers anyway (art is cosmetic).
+	if c.prewarmArtOnly {
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		os.Exit(runPrewarmArtOnly(ctx, *c, os.Stderr))
 	}
 	ln, err := net.Listen("tcp", c.addr)
 	if err != nil {
@@ -153,6 +180,9 @@ func serveFlags() (*flag.FlagSet, *config) {
 	// so a fresh deploy never serves a missing-art window; an operator who
 	// genuinely wants it off passes -prewarm=false.
 	fs.BoolVar(&c.prewarm, "prewarm", true, "prewarm the card-art cache for every card in every dealt deck at startup (disable with -prewarm=false)")
+	fs.BoolVar(&c.prewarmArtOnly, "prewarm-art-only", false, "fill the card-art cache from -decks (into -art-dir) and exit; no server is started. Exits non-zero if any name failed")
+	fs.DurationVar(&c.prewarmArtBudget, "prewarm-art-budget", 0, "with -prewarm-art-only: stop the fill after this much wall-clock time and exit non-zero (0 = no limit)")
+	fs.IntVar(&c.prewarmArtMaxConsecutiveFailures, "prewarm-art-max-consecutive-failures", 0, "with -prewarm-art-only: stop the fill once this many names in a row have failed and exit non-zero (0 = no limit)")
 	return fs, c
 }
 
@@ -316,6 +346,12 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	// (the zero value) in any config that did not come through serveFlags —
 	// whose -prewarm flag defaults on — so a test config built directly never
 	// fires an outbound request.
+	// The rate limiter's 429 retries are worth one log line each so an
+	// operator can SEE the pacing working in the demo log — for the prewarm
+	// and for browser-driven fetches alike (both go through this one cache).
+	ac.logf = func(f string, a ...any) {
+		fmt.Fprintf(os.Stderr, "gorged: "+f+"\n", a...)
+	}
 	if c.prewarm {
 		go prewarmArt(ctx, ac, c.decks, func(f string, a ...any) {
 			fmt.Fprintf(os.Stderr, "gorged: "+f+"\n", a...)
