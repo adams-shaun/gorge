@@ -9,8 +9,8 @@ import CardDetail from './CardDetail.svelte';
  * are what a real hover produces.
  *
  * The plate shows only when CardImage resolves an image. The resolver
- * (../lib/images) reads an exact-name localStorage key, so the fixture seeds
- * those keys before mounting: a data-URL GIF for the oracle-present card (the
+ * (../lib/images) reads a versioned exact-name localStorage key, so the fixture
+ * seeds those keys before mounting: a data-URL GIF for the oracle-present card (the
  * `.card-image` box sizes itself from aspect-ratio 63/88, so the img's
  * intrinsic size never affects layout — the box is what geometry is measured
  * on), and an empty string for the plain card, which the resolver stores as a
@@ -25,11 +25,11 @@ import CardDetail from './CardDetail.svelte';
 
 const BLANK_GIF = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
 
-localStorage.setItem('gorge.img.Giada, Font of Hope', BLANK_GIF);
+localStorage.setItem('gorge.img.v2.Giada, Font of Hope', BLANK_GIF);
 // A known-no-image entry: the resolver stores null as '' and reads it back as
 // null, so this card resolves no image and the plate stays absent — the normal
 // case, not an error.
-localStorage.setItem('gorge.img.Squire', '');
+localStorage.setItem('gorge.img.v2.Squire', '');
 
 const giada: CardView = {
   id: 1,

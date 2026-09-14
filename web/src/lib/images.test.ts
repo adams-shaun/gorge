@@ -38,10 +38,31 @@ describe('images', () => {
     expect(await im.url('Goblin Guide')).toBe('https://img/gg.jpg');
     expect(await im.url('Goblin Guide')).toBe('https://img/gg.jpg');
     expect(calls.length).toBe(1);
-    expect(store.get('gorge.img.Goblin Guide')).toBe('https://img/gg.jpg');
+    expect(store.get('gorge.img.v2.Goblin Guide')).toBe('https://img/gg.jpg');
     expect(await im.url('Nonexistent')).toBeNull();
     expect(await im.url('Nonexistent')).toBeNull();
     expect(calls.length).toBe(2);
+  });
+  it('ignores a legacy cached blob URL and resolves into the versioned browser cache', async () => {
+    const { env, calls, store } = fakeEnv({
+      'Insectile Aberration': {
+        card_faces: [
+          { name: 'Delver of Secrets', image_uris: { normal: '/art/blob/new-front.jpg' } },
+          { name: 'Insectile Aberration', image_uris: { normal: '/art/blob/new-back.jpg' } },
+        ],
+      },
+    });
+    // A browser that visited before the face picker was fixed has the old
+    // server blob URL under the unversioned namespace. That blob remains
+    // valid and immutable, so only a browser-side namespace rotation can
+    // prevent url() from returning it before /art/named is consulted.
+    store.set('gorge.img.Insectile Aberration', '/art/blob/old-front.jpg');
+
+    expect(await createImages(env).url('Insectile Aberration')).toBe('/art/blob/new-back.jpg');
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatch(/^\/art\/named\?exact=Insectile%20Aberration$/);
+    expect(store.get('gorge.img.v2.Insectile Aberration')).toBe('/art/blob/new-back.jpg');
+    expect(store.get('gorge.img.Insectile Aberration')).toBe('/art/blob/old-front.jpg');
   });
   it('uses the front face of a double-faced card when no face name matches', async () => {
     const { env } = fakeEnv({ 'Delver of Secrets': { card_faces: [{ image_uris: { normal: 'https://img/front.jpg' } }, { image_uris: { normal: 'https://img/back.jpg' } }] } });

@@ -9,7 +9,11 @@ export interface ImageSource {
 
 const SPACING = 100;
 const OFFLINE_FOR = 60_000;
-const KEY = 'gorge.img.';
+// Version the browser cache independently of the server's art blobs. Existing
+// browsers may hold a valid immutable URL whose bytes were selected by older
+// face-matching logic; changing this namespace makes them resolve the name
+// again instead of returning that stale URL before lookup() can run.
+const KEY = 'gorge.img.v2.';
 
 type Scryfall = {
   image_uris?: { normal?: string };
@@ -32,6 +36,8 @@ export function createImages(src: Partial<ImageSource> = {}) {
   const offline = () => env.now() < offlineUntil;
 
   function fromStorage(name: string): string | null | undefined {
+    // Deliberately do not fall back to an older namespace: those entries can
+    // point at still-served immutable blobs containing incorrectly chosen art.
     try { const v = env.storage?.getItem(KEY + name); return v === null || v === undefined ? undefined : v || null; } catch { return undefined; }
   }
   function toStorage(name: string, url: string | null) {
