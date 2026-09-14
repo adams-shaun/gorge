@@ -3,12 +3,17 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
+	"time"
+
+	"github.com/adams-shaun/gorge/internal/testutil"
 )
 
 // prewarmFixture writes two minimal deck files (deck.Parse needs no corpus —
@@ -133,21 +138,30 @@ func TestArtCacheDirDefaultsUnderDir(t *testing.T) {
 	}
 }
 
-// TestPrewarmSurvivesACancelledFetch checks the self-heal claim: a fetch
-// whose context dies mid-flight (a server shutdown during prewarm) leaves no
-// .miss behind, so the next request for that name retries instead of
-// believing a permanent miss.
+// TestPrewarmSurvivesACancelledFetch checks the self-heal claim THROUGH the
+// prewarm loop itself (a round-2 review finding): prewarmArt run against a
+// dead context — a server shutting down mid-prewarm — logs every fetch's
+// error, wedges on nothing, and writes no .miss behind (only a genuine
+// Scryfall 404 does); the SAME name is then fetched for real by a retried
+// prewarmArt on a live context, art and facts both. The test fails if the
+// prewarm loop is removed entirely (the retry fills nothing) as well as if
+// a cancelled fetch recorded a miss.
 func TestPrewarmSurvivesACancelledFetch(t *testing.T) {
 	ac, _ := artFixture(t, map[string]string{"Alpha Card": "/img/a.jpg"})
 	ac.pace = 0
+	dir := prewarmNamedDir(t, "Alpha Card")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	ok, err := ac.ensure(ctx, artKey("Alpha Card"), "Alpha Card")
-	if ok || err == nil {
-		t.Fatalf("ensure on a dead ctx: ok=%v err=%v, want false + ctx error", ok, err)
+	prewarmArt(ctx, ac, dir, t.Logf)
+	if _, err := os.Stat(ac.missPath(artKey("Alpha Card"))); err == nil {
+		t.Fatal("a cancelled prewarm wrote a .miss; the name would never self-heal")
 	}
-	if _, statErr := os.Stat(ac.missPath(artKey("Alpha Card"))); statErr == nil {
-		t.Fatal("a cancelled fetch wrote a .miss; the name would never self-heal")
+	prewarmArt(context.Background(), ac, dir, t.Logf)
+	if _, err := os.Stat(ac.jpgPath(artKey("Alpha Card"))); err != nil {
+		t.Fatalf("the retried prewarm did not fill the cache: %v", err)
+	}
+	if _, err := os.Stat(ac.factsPath(artKey("Alpha Card"))); err != nil {
+		t.Fatalf("the retried prewarm left no facts sidecar: %v", err)
 	}
 }
 
@@ -170,6 +184,125 @@ func TestPrewarmBackfillsFactsForALegacyArtOnlyCache(t *testing.T) {
 	}
 	if got := hits.Load(); got != 1 { // exactly the one named lookup fetchFacts needs; no image download path
 		t.Errorf("legacy backfill made %d named lookups, want 1 (metadata only)", got)
+	}
+}
+
+// TestServePrewarmsTheDealtDecks is the serve-level wiring gate (the round-2
+// review's MAJOR finding): every other prewarm test drives prewarmArt
+// directly, so deleting the `go prewarmArt(...)` block in serve — or the
+// -prewarm flag default — would leave them all green while the live deploy
+// regressed. This one drives serve() itself, through the newServeArtCache
+// seam, with a fixture deck of three distinct names.
+//
+// The fixture HOLDS its first named lookup until the test releases it. That
+// makes both halves of the contract observed, not inferred:
+//
+//  1. a prewarm fetch is in flight (and blocked) before anything else —
+//     deleting the `go prewarmArt(...)` block, or defaulting -prewarm off,
+//     leaves the lookup counter at zero and this poll times out; and
+//  2. the server answers /api/tables while that fetch is still held —
+//     serving never waits on a prewarm fetch. (serve starts its listener
+//     before the prewarm block, so this is the strongest readiness claim
+//     the real code makes; a synchronous prewarm after listener start is
+//     not distinguished, and does not need to be — it delays nothing a
+//     client can observe.)
+//  3. after release, every deck name lands in the cache dir — a partial
+//     prewarm (one name fetched, the rest skipped) leaves the missing
+//     markers behind and fails.
+func TestServePrewarmsTheDealtDecks(t *testing.T) {
+	testutil.CorpusRegistry(t) // Skips when .cards/ is absent
+	release := make(chan struct{})
+	var lookups atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if lookups.Add(1) == 1 {
+			<-release
+		}
+		http.NotFound(w, r)
+	}))
+	t.Cleanup(srv.Close)
+
+	decks := t.TempDir()
+	// A constructed deck has no size floor (deck.Parse) and the tables here
+	// are never dealt (tables: 0 — the deck is validated by splitDecks and
+	// its names collected by deckCardNames, which is all prewarm reads), so
+	// three named basic lands are the smallest honest fixture.
+	body := `{"name":"One","cards":[{"name":"Island","count":1},{"name":"Mountain","count":1},{"name":"Plains","count":1}]}`
+	if err := os.WriteFile(filepath.Join(decks, "one.json"), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	artDir := t.TempDir()
+	orig := newServeArtCache
+	newServeArtCache = func(dir string) (*artCache, error) {
+		ac, err := newArtCache(dir)
+		if err != nil {
+			return nil, err
+		}
+		ac.client = srv.Client()
+		ac.namedBaseURL = srv.URL + "/cards/named?exact="
+		ac.pace = 0
+		return ac, nil
+	}
+	t.Cleanup(func() { newServeArtCache = orig })
+
+	cfg := config{cards: "../../.cards", decks: decks, tables: 0, pace: 0, cooldown: 0,
+		dir: t.TempDir(), spectator: "omniscient", seed: 1, perpetual: false,
+		prewarm: true, artDir: artDir}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { done <- serve(ctx, cfg, ln) }()
+
+	// 1. A prewarm fetch is in flight (and blocked on release).
+	deadline := time.Now().Add(10 * time.Second)
+	for lookups.Load() == 0 {
+		if time.Now().After(deadline) {
+			select {
+			case serr := <-done:
+				t.Fatalf("no prewarm lookup arrived and serve returned %v: the serve-level prewarm wiring is not running", serr)
+			default:
+				t.Fatalf("no prewarm lookup arrived (serve still up): the serve-level prewarm wiring is not running")
+			}
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	// 2. Prompt readiness while that first fetch is still held.
+	waitTables(t, "http://"+ln.Addr().String(), 0)
+	// 3. Release: the blocked fetch finishes and every deck name lands.
+	close(release)
+	for _, name := range []string{"Island", "Mountain", "Plains"} {
+		marker := filepath.Join(artDir, artKey(name)+".miss")
+		deadline = time.Now().Add(10 * time.Second)
+		for {
+			if _, err := os.Stat(marker); err == nil {
+				break
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("prewarm left no .miss marker for %q (lookups=%d)", name, lookups.Load())
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatalf("serve: %v", err)
+	}
+}
+
+// TestServeFlagPrewarmDefaultsOn pins the flag default the deploy depends
+// on: a gorged started with no flags prewarms the art cache. The default
+// lives in serveFlags' registration (not in a statement main runs after
+// Parse), so this is the pin on the whole wiring's on-switch.
+func TestServeFlagPrewarmDefaultsOn(t *testing.T) {
+	fs, c := serveFlags()
+	if err := fs.Parse(nil); err != nil {
+		t.Fatal(err)
+	}
+	if !c.prewarm {
+		t.Fatal("-prewarm defaults off: a fresh deploy would refill the art cache lazily again")
 	}
 }
 

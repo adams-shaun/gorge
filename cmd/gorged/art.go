@@ -67,6 +67,14 @@ const scryfallNamedURL = "https://api.scryfall.com/cards/named?exact="
 
 var hexKey = regexp.MustCompile(`^[0-9a-f]{64}$`)
 
+// newServeArtCache is the seam serve() builds its art cache through. It is a
+// package variable so the serve-level prewarm wiring (the `go prewarmArt`
+// block in serve) can be exercised end to end: a test overrides it to hand
+// back a cache whose outbound client points at an httptest fixture, then
+// asserts on what serve's own goroutine fetched. Production never touches
+// it — the default is newArtCache and nothing reassigns it outside tests.
+var newServeArtCache = newArtCache
+
 func newArtCache(dir string) (*artCache, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, fmt.Errorf("art cache dir: %w", err)

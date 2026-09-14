@@ -85,41 +85,23 @@ type config struct {
 	artDir string
 	// prewarm arms serve's background art-cache prewarm (art.go prewarmArt).
 	// The zero value is OFF — the same convention vsbot and feedback follow, so
-	// a config built in a test (or any caller that does not go through main)
-	// never fires a single outbound request — and main() sets it true after
-	// flag.Parse so the real binary always prewarms. A test that wants the
-	// wiring exercised sets it true itself and points the cache's
-	// namedBaseURL at its own fixture first.
+	// a config built in a test (or any caller that does not go through
+	// serveFlags) never fires a single outbound request — but the FLAG default
+	// is true (serveFlags), so the real binary always prewarms: the default
+	// lives in the flag registration itself, pinned by
+	// TestServeFlagPrewarmDefaultsOn, not in a line main must remember to run
+	// after Parse. A test (or an operator) that wants the wiring exercised
+	// sets it true and points the cache's namedBaseURL at its own fixture
+	// first (newServeArtCache).
 	prewarm bool
 }
 
 func main() {
-	var c config
-	flag.StringVar(&c.addr, "addr", ":8080", "listen address")
-	flag.StringVar(&c.cards, "cards", ".cards", "corpus directory (ir.gob.gz / cardsfolder)")
-	flag.StringVar(&c.decks, "decks", "internal/testutil/decks", "directory of deck JSON files")
-	flag.IntVar(&c.tables, "tables", 4, "number of tables")
-	flag.IntVar(&c.seats, "seats", 4, "seats per table")
-	flag.DurationVar(&c.pace, "pace", 250*time.Millisecond, "sleep after every decision; 0 = as fast as possible")
-	flag.DurationVar(&c.cooldown, "cooldown", 5*time.Second, "pause between matches on a perpetual table")
-	flag.StringVar(&c.dir, "dir", "gorged-data", "persistence directory")
-	flag.StringVar(&c.feedback, "feedback", "feedback", "directory player bug reports are written to (kept OUT of -dir, which deploys wipe)")
-	flag.StringVar(&c.artDir, "art-dir", "", "durable card-art cache directory (default <dir>/art, which deploy scripts wipe with the persistence dir)")
-	flag.StringVar(&c.spectator, "spectator", "omniscient", "spectator visibility: public or omniscient")
-	flag.Uint64Var(&c.seed, "seed", 1, "seed of table 1; table i uses seed+i-1")
-	flag.BoolVar(&c.perpetual, "perpetual", true, "start a new match when one ends")
-	flag.IntVar(&c.mulligans, "mulligans", 1, "London mulligans per player before turn 1; 0 disables the pre-game round")
-	flag.StringVar(&c.formatsRaw, "format", "constructed", "comma-separated table formats (constructed, commander); table i uses formats[i-1 mod n], e.g. -format commander,constructed runs one of each")
-	flag.StringVar(&c.humansRaw, "humans", "", "comma-separated slots of table t1 that are real people (e.g. 0,2); t2..tN stay bot tables")
-	flag.StringVar(&c.seatToken, "seat-token", "", "fixed bearer token for the first human slot (tests and local use only; default mints a random token per slot)")
-	flag.BoolVar(&c.vsbot, "vsbot", false, "arm the on-demand play-vs-bot flow (landing page seats a human against a bot via POST /api/games)")
-	flag.Parse()
-	// The real binary always prewarms (config.prewarm's doc comment): the
-	// background goroutine fills the art cache for every deck card at startup
-	// so a fresh deploy never serves a missing-art window. A config built in a
-	// test keeps the zero value — off — and never touches the network.
-	c.prewarm = true
-
+	fs, c := serveFlags()
+	if err := fs.Parse(os.Args[1:]); err != nil {
+		fmt.Fprintln(os.Stderr, "gorged:", err)
+		os.Exit(2)
+	}
 	ln, err := net.Listen("tcp", c.addr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "gorged:", err)
@@ -131,6 +113,41 @@ func main() {
 		fmt.Fprintln(os.Stderr, "gorged:", err)
 		os.Exit(1)
 	}
+}
+
+// serveFlags registers every gorged flag on a fresh FlagSet and returns it
+// with the config the flags fill. Split from main so the DEFAULTS — above all
+// prewarm's true, the thing a deploy depends on — are pinned by a test
+// (TestServeFlagPrewarmDefaultsOn) instead of living in a line after Parse
+// that a refactor could silently drop.
+func serveFlags() (*flag.FlagSet, config) {
+	fs := flag.NewFlagSet("gorged", flag.ExitOnError)
+	var c config
+	fs.StringVar(&c.addr, "addr", ":8080", "listen address")
+	fs.StringVar(&c.cards, "cards", ".cards", "corpus directory (ir.gob.gz / cardsfolder)")
+	fs.StringVar(&c.decks, "decks", "internal/testutil/decks", "directory of deck JSON files")
+	fs.IntVar(&c.tables, "tables", 4, "number of tables")
+	fs.IntVar(&c.seats, "seats", 4, "seats per table")
+	fs.DurationVar(&c.pace, "pace", 250*time.Millisecond, "sleep after every decision; 0 = as fast as possible")
+	fs.DurationVar(&c.cooldown, "cooldown", 5*time.Second, "pause between matches on a perpetual table")
+	fs.StringVar(&c.dir, "dir", "gorged-data", "persistence directory")
+	fs.StringVar(&c.feedback, "feedback", "feedback", "directory player bug reports are written to (kept OUT of -dir, which deploys wipe)")
+	fs.StringVar(&c.artDir, "art-dir", "", "durable card-art cache directory (default <dir>/art, which deploy scripts wipe with the persistence dir)")
+	fs.StringVar(&c.spectator, "spectator", "omniscient", "spectator visibility: public or omniscient")
+	fs.Uint64Var(&c.seed, "seed", 1, "seed of table 1; table i uses seed+i-1")
+	fs.BoolVar(&c.perpetual, "perpetual", true, "start a new match when one ends")
+	fs.IntVar(&c.mulligans, "mulligans", 1, "London mulligans per player before turn 1; 0 disables the pre-game round")
+	fs.StringVar(&c.formatsRaw, "format", "constructed", "comma-separated table formats (constructed, commander); table i uses formats[i-1 mod n], e.g. -format commander,constructed runs one of each")
+	fs.StringVar(&c.humansRaw, "humans", "", "comma-separated slots of table t1 that are real people (e.g. 0,2); t2..tN stay bot tables")
+	fs.StringVar(&c.seatToken, "seat-token", "", "fixed bearer token for the first human slot (tests and local use only; default mints a random token per slot)")
+	fs.BoolVar(&c.vsbot, "vsbot", false, "arm the on-demand play-vs-bot flow (landing page seats a human against a bot via POST /api/games)")
+	// The prewarm default is TRUE, deliberately, and lives here — the flag
+	// registration — not in a statement main must run after Parse. The
+	// background goroutine fills the art cache for every deck card at startup
+	// so a fresh deploy never serves a missing-art window; an operator who
+	// genuinely wants it off passes -prewarm=false.
+	fs.BoolVar(&c.prewarm, "prewarm", true, "prewarm the card-art cache for every card in every dealt deck at startup (disable with -prewarm=false)")
+	return fs, c
 }
 
 // serve runs until ctx is cancelled, then aborts live matches and shuts
@@ -232,7 +249,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	// owns "/" for the SPA and every /api/ path), so this is additive: a
 	// server with the art directory unavailable would only ever affect these
 	// two new patterns, never anything httpapi already serves.
-	ac, err := newArtCache(c.artCacheDir())
+	ac, err := newServeArtCache(c.artCacheDir())
 	if err != nil {
 		return err
 	}
@@ -290,8 +307,9 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	// cancels the prewarm on shutdown; ensure/ensureText are single-flight and
 	// disk-checked, so a prewarm racing a browser's first request for the same
 	// name shares one Scryfall round trip and a warm name costs nothing. Off
-	// (the zero value) in any config that did not come through main — a test
-	// config must never fire an outbound request.
+	// (the zero value) in any config that did not come through serveFlags —
+	// whose -prewarm flag defaults on — so a test config built directly never
+	// fires an outbound request.
 	if c.prewarm {
 		go prewarmArt(ctx, ac, c.decks, func(f string, a ...any) {
 			fmt.Fprintf(os.Stderr, "gorged: "+f+"\n", a...)
