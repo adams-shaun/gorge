@@ -92,7 +92,7 @@ func TestCounterCastAtForeignSpell(t *testing.T) {
 			{ID: 90, Controller: 0, IsSpell: true},
 			{ID: 91, Controller: 1, IsSpell: true},
 		}},
-		{"foreign ability only", []StackEntry{
+		{"foreign ability above a foreign spell", []StackEntry{
 			{ID: 92, Controller: 1, IsSpell: false},
 			{ID: 91, Controller: 1, IsSpell: true},
 		}},

@@ -146,8 +146,11 @@ type Commander struct {
 // StackView the policy can read without importing view (Ruling F7).
 // IsSpell is true for a spell object (a card cast onto the stack, which a
 // counter can target) and false for an ability object (minted by a
-// TriggerPush/AbilityPush — Face-less, and not a spell any counter in the
-// corpus targets). Controller is the object's controller, which for a
+// TriggerPush/AbilityPush — Face-less; the engine's target census skips
+// Face-less stack objects (rules/stack.go), so no counter can be cast at one
+// today. Ability-targeting counters (Stifle) and Defined$ ValidStack
+// counter-all spells (Glen Elendra's Answer) are open engine gaps; revisit
+// C8 when they land). Controller is the object's controller, which for a
 // stack spell is the seat that cast it. Both adapter halves fill it the
 // same way, so C8 judges the same stack whichever host asked.
 type StackEntry struct {
