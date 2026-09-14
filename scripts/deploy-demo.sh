@@ -171,6 +171,22 @@ fi
 
 [ -x "$BIN" ] || { say "no binary at $BIN (run make deploy-demo, not this script)"; exit 1; }
 
+# Fill the card-art cache BEFORE any server is touched. A complete cache at
+# start means the deploy never serves a cold-cache missing-art window and the
+# two servers' startup prewarms become no-ops. The cache lives in the durable
+# ART_DIR (outside the wiped persistence dirs), and the fill is idempotent:
+# a second run makes zero fetches. A genuine Scryfall 404 is a fact (a .miss
+# marker), not a failure; a non-zero exit means some names FAILED (network,
+# or 429s the retry budget could not clear) — abort with the old servers
+# still running rather than start a deploy whose cache this run could not
+# complete. Rate limiting and 429 backoff live inside gorged itself
+# (artCache.paceWait / lookupNamed), so this can never burst the API.
+say "filling card-art cache from $DECKS into $ART_DIR"
+if ! "$BIN" -prewarm-art-only -decks "$DECKS" -art-dir "$ART_DIR"; then
+	say "art fill FAILED — deploy aborted; old servers (if any) keep running"
+	exit 1
+fi
+
 stop_all
 start_one "$PUB_PORT" public "$PUB_DIR" /tmp/gorge-demo-pub.log
 start_one "$OMNI_PORT" omniscient "$OMNI_DIR" /tmp/gorge-demo-omni.log
