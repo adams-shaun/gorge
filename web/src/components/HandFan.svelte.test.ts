@@ -132,6 +132,24 @@ describe('HandFan options affordance (ui23)', () => {
     expect(html).toContain('Walking Ballista: remove a counter');
     expect(html).toContain('role="menu"');
     expect(html).toContain('role="menuitem"');
+    // cast + ability is a genuinely MIXED list: no scenario icon is claimed
+    expect(html).not.toContain('data-action-icon');
+  });
+
+  it('a same-scenario option list wears the scenario icon on the count badge (fb-9946410e)', () => {
+    // two cast options (alternate costs): every option agrees on the scenario,
+    // so the count badge carries the cast icon and names it "plays".
+    const two = bundle();
+    two.byObj.set(16, [
+      { index: 3, kind: 'cast', label: 'Cast Walking Ballista', obj: 16, player: 0 },
+      { index: 11, kind: 'cast', label: 'Cast Walking Ballista', obj: 16, player: 0 },
+    ]);
+    const { html } = render(HandFan, { props: { player: ballistaHand, width: BOARD_W, options: two, open0: 16 } });
+    expect(html).toContain('aria-haspopup');
+    expect(html).toContain('data-action-icon="cast"');
+    expect(html).toContain('badge__icon');
+    expect(html).toContain('\u2726'); // the cast glyph itself is what the player sees
+    expect(html).toContain('2 plays for Walking Ballista');
   });
 
   it('a card with no options offer renders no badge and no menu (the no-mark state)', () => {

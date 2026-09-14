@@ -81,6 +81,23 @@ describe('CardTile options affordance (ui21)', () => {
     expect(html).toContain('2 actions for Wasteland');
     expect(html).toContain('badge__n');
     expect(html).toContain('data');
+    // cast + ability is a genuinely MIXED list: no scenario icon is claimed
+    expect(html).not.toContain('data-action-icon');
+    expect(html).not.toContain('badge__icon');
+  });
+
+  it('a same-scenario option list wears the scenario icon on the count badge (fb-9946410e)', () => {
+    const targets = opts({ list: [
+      { index: 3, kind: 'permanent', label: 'Wasteland', obj: 16, player: 0 },
+      { index: 8, kind: 'permanent', label: 'Wasteland', obj: 16, player: 0 },
+      { index: 11, kind: 'player', label: 'Ari', obj: 0, player: 1 },
+    ] });
+    const { html } = render(CardTile, { props: { card: card(), tileOptions: targets } });
+    expect(html).toContain('data-action-icon="target"'); // bullseye scenario
+    expect(html).toContain('badge__icon');
+    expect(html).toContain('\u25CE'); // the bullseye glyph itself is what the player sees
+    expect(html).toContain('3 targets for Wasteland'); // wording names the scenario
+    expect(html).toContain('badge__n');
   });
 
   it('two through six options open the radial picker with full accessible labels', () => {
@@ -147,6 +164,10 @@ describe('CardTile options affordance (ui21)', () => {
     ['cast', 'cast', 'Cast Wasteland'],
     ['activate', 'tap', 'Tap Wasteland for mana'],
     ['ability', 'action', 'Wasteland: sacrifice it'],
+    ['permanent', 'target', 'Wasteland'],
+    ['player', 'target', 'Ari'],
+    ['attacker', 'attack', 'Attack with Wasteland'],
+    ['block', 'block', 'Wasteland blocks Grizzly Bears'],
   ])('one %s option renders a direct %s icon with the wire label as its accessible name', (kind, icon, label) => {
     const one = opts({ list: [{ index: 17, kind, label, obj: 16, player: 0 }] });
     const { html } = render(CardTile, { props: { card: card(), tileOptions: one, open0: true } });
