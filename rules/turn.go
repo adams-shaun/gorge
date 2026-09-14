@@ -543,7 +543,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	// asks rather than one of the cast/cleanup flows tracked by e.choosing.
 	// Resume them before dispatching those flows; an empty chosen slice is
 	// the legitimate "fail to find" / Optional-decline answer.
-	if e.resume != nil && (e.resume.kind == "search" || e.resume.kind == "dig" || e.resume.kind == "choice" || e.resume.kind == "hand_move") {
+	if e.resume != nil && (e.resume.kind == "search" || e.resume.kind == "dig" || e.resume.kind == "choice" || e.resume.kind == "hand_move" || e.resume.kind == "sacrifice") {
 		rp := e.resume
 		e.resume = nil
 		e.resumeResolution(rp, chosen)

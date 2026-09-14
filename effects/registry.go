@@ -279,6 +279,8 @@ type Ctx struct {
 	// Repeat is set only on the re-entry of a suspended RepeatEach loop; the
 	// RepeatEach whose SA it names consumes and clears it.
 	Repeat *RepeatCursor
+	// Sacrifice is an Annihilator sacrifice answer on re-entry.
+	Sacrifice []state.ObjID
 	// Search is the answered hidden-library KChoose selection on a re-entered
 	// ChangeZone resolution. SearchDone distinguishes "answered with no cards"
 	// from the first pass; Search preserves the player's answer order. The

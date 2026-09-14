@@ -32,6 +32,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
@@ -95,6 +96,15 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	// CR 509.1a / 702.16j: a creature that the attacker is protected from
 	// cannot block it.
 	if e.protectedFrom(attacker, blocker) {
+		return false
+	}
+	// CR 702.27/702.28: Shadow creatures can block only Shadow creatures,
+	// and a Shadow creature is blockable only by one. Fear permits only an
+	// artifact or black creature to block it.
+	if e.HasKeyword(attacker, "Shadow") != e.HasKeyword(blocker, "Shadow") {
+		return false
+	}
+	if e.HasKeyword(attacker, "Fear") && !bf.IsArtifact() && !strings.ContainsRune(effects.ColorsOf(b), 'B') {
 		return false
 	}
 	if e.HasKeyword(attacker, "Flying") && !e.HasKeyword(blocker, "Flying") && !e.HasKeyword(blocker, "Reach") {
@@ -190,6 +200,9 @@ func (e *Engine) askAttackers() {
 	for _, d := range defenders {
 		for _, id := range attackers {
 			if required, ok := e.encoreAttackDefender(id); ok && d != required {
+				continue
+			}
+			if !e.goadMayAttack(id, d) {
 				continue
 			}
 			opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
@@ -302,6 +315,9 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 	if _, ok := e.encoreAttackDefender(id); ok {
 		return true
 	}
+	if o.Goaded {
+		return true
+	}
 	for _, st := range f.Statics {
 		if st.Mode != "MustAttack" {
 			continue
@@ -332,6 +348,21 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 // a per-defender ValidDefender$ scoping is treated as global for the sake of
 // this bounded solver, which is only ever consulted when a MustAttack
 // requirement or an AttackRestrict static is actually present.
+// goadMayAttack implements the defender half of CR 701.38b. A goaded
+// creature attacks a player other than its goader if one is available.
+func (e *Engine) goadMayAttack(id state.ObjID, defender state.PlayerID) bool {
+	o := e.G.Obj(id)
+	if o == nil || !o.Goaded || defender != o.Goader {
+		return true
+	}
+	for _, p := range e.G.AliveFrom(0) {
+		if p != o.Controller && p != o.Goader {
+			return false
+		}
+	}
+	return true
+}
+
 func (e *Engine) maxAttackers() int {
 	const huge = int(^uint(0) >> 1)
 	maxAllowed := huge
@@ -1294,6 +1325,7 @@ func (e *Engine) discardCleanup(chosen []decision.Option) {
 // as unsupported.
 func init() {
 	effects.RegisterNonAPI("kw:Flying", "kw:Reach", "kw:Haste", "kw:Vigilance",
-		"kw:Deathtouch", "kw:Trample", "kw:Lifelink", "kw:First Strike",
-		"kw:Flash", "kw:Indestructible", "kw:Devoid", "kw:Defender", "kw:Menace")
+		"kw:Deathtouch", "kw:Trample", "kw:Lifelink", "kw:First Strike", "kw:Double Strike",
+		"kw:Flash", "kw:Indestructible", "kw:Devoid", "kw:Defender", "kw:Menace",
+		"kw:Fear", "kw:Shadow")
 }

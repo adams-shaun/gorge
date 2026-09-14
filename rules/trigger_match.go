@@ -1198,6 +1198,12 @@ func (e *Engine) becomesTargetMatches(t cards.Trigger, source state.ObjID, ev ev
 	if !targeted {
 		return false
 	}
+	if t.Params["Ward"] == "True" {
+		cause := e.protectionSource(ev.Obj)
+		if cause == 0 || e.controllerOf(cause) == e.controllerOf(source) {
+			return false
+		}
+	}
 	if v, ok := t.Params["ValidTarget"]; ok {
 		return effects.MatchesSpecCtx(e.G, v, source, e.specCtx(source, e.controllerOf(source)))
 	}
@@ -1552,6 +1558,6 @@ func init() {
 		// trigger whose effect is CopySpellAbility -- the expansion existed
 		// since Task 11; registering the keyword here completes its
 		// semantics now that api:CopySpellAbility is implemented.
-		"kw:Storm",
+		"kw:Storm", "kw:Ward", "kw:Annihilator",
 	)
 }

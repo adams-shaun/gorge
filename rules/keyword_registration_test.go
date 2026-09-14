@@ -21,6 +21,12 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Evolve":         "TestEvolveGrowsOnlyForBiggerCreatures",
 		"kw:Exalted":        "TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells",
 		"kw:Prowess":        "TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells",
+		"kw:Ward":           "TestWardVeinRipperCountersAnUnpaidTargetingSpell",
+		"kw:Annihilator":    "TestAnnihilatorArtisanSacrificesThePrintedAmount",
+		"kw:Double Strike":  "TestDoubleStrikeFearAndShadowUseCorpusCombatKeywords",
+		"kw:Fear":           "TestDoubleStrikeFearAndShadowUseCorpusCombatKeywords",
+		"kw:Shadow":         "TestDoubleStrikeFearAndShadowUseCorpusCombatKeywords",
+		"kw:Protection":     "TestProtectionAndGoadUseCorpusScripts",
 	} {
 		if !sup[kw] {
 			t.Errorf("%s is not registered (proof test: %s)", kw, proof)

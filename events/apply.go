@@ -185,7 +185,17 @@ func Apply(g *state.Game, e Event) {
 			for i := range g.Objs {
 				g.Objs[i].EnteredThisTurn = false
 				g.Objs[i].WasDealtDamageThisTurn = false
+				// A goad lasts until its goader's next turn (CR 701.38a).
+				if g.Objs[i].Goaded && g.Objs[i].Goader == e.Player {
+					g.Objs[i].Goaded = false
+				}
 			}
+		}
+
+	case Goad:
+		if o := g.Obj(e.Obj); o != nil && validPlayer(g, e.Player) {
+			o.Goaded = true
+			o.Goader = e.Player
 		}
 
 	case Priority:

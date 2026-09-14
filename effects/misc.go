@@ -24,6 +24,50 @@ func init() {
 	Register("Vote", effVote)
 	Register("BecomeMonarch", effBecomeMonarch)
 	Register("RestartGame", effRestartGame)
+	Register("Goad", effGoad)
+	Register("Ward", effWard)
+}
+
+// effGoad records the goading player on each targeted creature. The rules
+// engine enforces the resulting attack requirement when declarations are made.
+func effGoad(h Host, c *Ctx, sa *cards.SA) {
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			continue
+		}
+		if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+			h.Emit(events.Event{Kind: events.Goad, Obj: o.ID, Player: c.Controller})
+		}
+	}
+}
+
+// effWard is the resolution half of the Ward keyword trigger. The triggering
+// spell/ability is held in TriggerSource; after a declined payment it is
+// countered and an ability is parked in exile (CR 608.2m).
+func effWard(h Host, c *Ctx, sa *cards.SA) {
+	cause := c.TriggerStack
+	o := h.Game().Obj(cause)
+	if o == nil || o.Zone != state.ZStack {
+		return
+	}
+	if c.UnlessPay == "" {
+		cost := sa.Params["UnlessCost"]
+		d := &decision.Decision{Player: o.Controller, Kind: decision.KModes, Min: 1, Max: 1,
+			Prompt: "Pay " + cost + " for ward?", ResumeKind: "unless_pay", ResumeSA: sa,
+			Options: []decision.Option{{Index: 0, Kind: "mode", Label: "Pay " + cost}, {Index: 1, Kind: "mode", Label: "Don't pay"}}}
+		h.Ask(d)
+		return
+	}
+	paid := c.UnlessPay == "pay"
+	c.UnlessPay = ""
+	if paid {
+		return
+	}
+	to := state.ZGraveyard
+	if o.Face() == nil {
+		to = state.ZExile
+	}
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: cause, From: state.ZStack, To: to, Text: "countered by ward"})
 }
 
 // CopySpellAbility is NOT registered. It needs to create a brand new game

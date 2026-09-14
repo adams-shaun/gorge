@@ -111,6 +111,12 @@ type Object struct {
 	EncoreAttackTurn     int32
 	EncoreAttackDefender PlayerID
 
+	// Goaded is the CR 701.38 attack requirement. Goader identifies the
+	// player the creature must avoid if able; it clears at that player's next
+	// turn boundary through events.Goad/TurnChange.
+	Goaded bool
+	Goader PlayerID
+
 	// Timestamp orders continuous effects. Assigned from Game.Clock whenever
 	// the object enters the battlefield.
 	Timestamp uint32

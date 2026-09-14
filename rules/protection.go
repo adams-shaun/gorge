@@ -67,14 +67,17 @@ func (e *Engine) protectedFrom(target, source state.ObjID) bool {
 // stray trailing token) yields nothing.
 func protectionQuality(kw string) (string, bool) {
 	const prefix = "Protection from "
-	if len(kw) < len(prefix) || !strings.EqualFold(kw[:len(prefix)], prefix) {
-		return "", false
+	if len(kw) >= len(prefix) && strings.EqualFold(kw[:len(prefix)], prefix) {
+		q := strings.TrimSpace(kw[len(prefix):])
+		return q, q != ""
 	}
-	q := strings.TrimSpace(kw[len(prefix):])
-	if q == "" {
-		return "", false
+	// Forge's general spelling is K:Protection:<Spec>:<display text>.
+	// Keep only the spec; the following field is reminder text, not syntax.
+	if len(kw) >= len("Protection:") && strings.EqualFold(kw[:len("Protection:")], "Protection:") {
+		q, _, _ := strings.Cut(strings.TrimSpace(kw[len("Protection:"):]), ":")
+		return q, q != ""
 	}
-	return q, true
+	return "", false
 }
 
 // sourceHasQuality reports whether the object source carries the given
@@ -86,12 +89,29 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	if strings.EqualFold(q, "everything") {
 		return true
 	}
+	o := e.G.Obj(source)
+	if o == nil {
+		return false
+	}
+	// A card object on the stack is a spell. An ability source is represented
+	// by its source permanent for protection checks, so it is not a spell.
+	if strings.EqualFold(q, "Spell") {
+		return o.Zone == state.ZStack && o.Face() != nil
+	}
+	if strings.EqualFold(q, "Permanent.ThisTurnCast") {
+		return o.Zone == state.ZBattlefield && o.EnteredThisTurn
+	}
+	// Parameterised protection qualities are Forge object specs (Artifact,
+	// Creature.God, Card.MultiColor, and so on). Reuse the filter grammar so
+	// every supported type/colour predicate has identical meaning here.
+	if effects.MatchesSpec(e.G, q, source, e.controllerOf(source)) {
+		return true
+	}
 	if c := protecColourLetter(q); c != 0 {
 		col := effects.ColorsOf(e.G.Obj(source))
 		return col != "" && strings.ContainsRune(col, c)
 	}
-	o := e.G.Obj(source)
-	if o == nil || o.Face() == nil {
+	if o.Face() == nil {
 		return false
 	}
 	f := o.Face()
@@ -128,26 +148,13 @@ func protecColourLetter(q string) rune {
 	return 0
 }
 
-// Registered here: the five single-colour "Protection from" keywords, the
-// exact shape Goblin Piledriver and Knight of Infamy (the last two ratchet
-// entries) carry and the only protection keywords the M2r ratchet schedule
-// files a registration for — and, honestly, the ONLY protection syntax
-// protectionQuality parses. The corpus's dominant form is actually the
-// K:Protection:<Spec> syntax (K:Protection:Creature, K:Protection:Instant:
-// instants, K:Protection:Card.MultiColor, ... — 40+ distinct shapes across
-// .cards/cardsfolder), none of which protectionQuality parses: it matches
-// only "Protection from <colour>" plus the general words in sourceHasQuality's
-// switch, which five do not cover what the corpus actually spells. The plural
-// type words (artifacts/creatures/enchantments/instants/sorceries) the switch
-// handles never appear in Forge keyword syntax at all — the corpus writes
-// K:Protection:Creature, not "Protection from creatures" — and a
-// K:Protection from each color parses to a quality matching nothing.
-// Registering the type/everything protections would grow the "supported" set
-// without a card test to prove it (Ruling W2), and protectedFrom does NOT in
-// fact handle the corpus's other forms correctly: parsing and registering
-// them is real future work, and until a card test retires a ratchet entry
-// for one they will not be reported as supported.
+// kw:Protection covers Forge's parameterised K:Protection:<Spec> spelling,
+// including Emrakul's Spell and Permanent.ThisTurnCast qualities. The older
+// colour-specific registrations remain for Forge's separate natural-language
+// "Protection from <colour>" keyword spelling. Other parameterised qualities
+// use the existing colour/type matching below or safely do not match until
+// their source-quality grammar is implemented.
 func init() {
-	effects.RegisterNonAPI("kw:Protection from white", "kw:Protection from blue",
+	effects.RegisterNonAPI("kw:Protection", "kw:Protection from white", "kw:Protection from blue",
 		"kw:Protection from black", "kw:Protection from red", "kw:Protection from green")
 }

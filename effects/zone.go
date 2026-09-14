@@ -1013,19 +1013,50 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			if int(t.Player) >= len(g.Players) {
 				continue
 			}
-			// A sacrifice aimed at a player: that player sacrifices one
-			// matching permanent. Real Magic has the player choose; this
-			// engine does not ask (the mid-resolution ask machinery is being
-			// reworked elsewhere), so the stand-in is deterministic and
-			// replay-stable: the first permanent in battlefield order that
-			// satisfies SacValid$. "You" in the spec is the sacrificing
-			// player, since they choose from their own permanents.
+			// A player-targeted sacrifice takes Amount$ permanents (default one).
+			// The engine's no-host deterministic fallback remains battlefield
+			// order; it is also what makes an Annihilator trigger complete
+			// without leaving a headless match suspended.
+			n := 1
+			if v, err := strconv.Atoi(sa.Params["Amount"]); err == nil && v >= 0 {
+				n = v
+			}
 			ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, t.Player)...)
+			eligible := make([]state.ObjID, 0, len(ids))
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(t.Player)) {
-					victims = append(victims, id)
-					break
+					eligible = append(eligible, id)
 				}
+			}
+			if n > len(eligible) {
+				n = len(eligible)
+			}
+			chosen := c.Sacrifice
+			c.Sacrifice = nil
+			// Annihilator's one defending player makes this ask resumable without
+			// changing the established multi-player Sacrifice fallback.
+			if chosen == nil && sa.Params["Annihilator"] == "True" && len(eligible) > n {
+				opts := make([]decision.Option, 0, len(eligible))
+				for _, id := range eligible {
+					opts = append(opts, decision.Option{Index: len(opts), Kind: "sacrifice", Obj: id, Label: g.Obj(id).Face().Name})
+				}
+				if h.Ask(&decision.Decision{Player: t.Player, Kind: decision.KChoose, Min: n, Max: n,
+					Prompt: "Choose permanents to sacrifice", Options: opts, ResumeKind: "sacrifice", ResumeSA: sa}) {
+					return
+				}
+			}
+			if chosen == nil {
+				chosen = eligible[:n]
+			}
+			// The chosen permanents join the batched victims below, so the
+			// departure snapshot and LKI capture stay one batch (effDestroyAll's
+			// discipline) whatever the sacrifice count.
+			for _, id := range chosen {
+				o := g.Obj(id)
+				if o == nil || o.Zone != state.ZBattlefield || o.Controller != t.Player || !MatchesSpecCtx(g, spec, id, c.SpecContext(t.Player)) {
+					continue
+				}
+				victims = append(victims, id)
 			}
 			continue
 		}

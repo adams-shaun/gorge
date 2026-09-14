@@ -102,6 +102,17 @@ func (f *Face) expandKeywords() {
 		case "Prowess":
 			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.nonCreature | ValidActivatingPlayer$ You | TriggerDescription$ Prowess",
 				"DB$ Pump | Defined$ Self | NumAtt$ +1 | NumDef$ +1", has)
+		case "Annihilator":
+			// CR 702.86: each time this creature attacks, its defending
+			// player sacrifices the stated number of permanents.
+			f.addKeywordTrigger(head, k, "Mode$ Attacks | ValidCard$ Card.Self | TriggerDescription$ Annihilator",
+				"DB$ Sacrifice | Defined$ TriggeredDefendingPlayer | Amount$ "+param+" | SacValid$ Permanent | Annihilator$ True", has)
+		case "Ward":
+			// Ward is a becomes-target trigger. Ward$ lets the matcher exclude
+			// the permanent's controller; the effect counters the targeting
+			// spell or ability unless that player pays the printed cost.
+			f.addKeywordTrigger(head, k, "Mode$ BecomesTarget | ValidTarget$ Card.Self | Ward$ True | TriggerDescription$ Ward",
+				"DB$ Ward | UnlessCost$ "+param, has)
 		case "Storm":
 			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Storm",
 				"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$ThisTurnCast/Minus1 | MayChooseTarget$ True", has)

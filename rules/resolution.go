@@ -524,6 +524,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.ChoiceDone = true
+		case "sacrifice":
+			ctx.Sacrifice = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.Sacrifice = append(ctx.Sacrifice, o.Obj)
+				}
+			}
 		case "search":
 			// A hidden-library KChoose answer is an ordered subset. Preserve
 			// that order for ChangeZone's MoveZone sequence, and set a separate
