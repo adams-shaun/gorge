@@ -1,4 +1,4 @@
-import type { CardView, PlayerView, View } from '../protocol';
+import type { CardView, Decision, PlayerView, View } from '../protocol';
 import { manaSymbols, type ManaSymbol } from './mana';
 
 /**
@@ -11,20 +11,21 @@ import { manaSymbols, type ManaSymbol } from './mana';
  * that counts only option kinds (autopilot.actionable) reads the window as
  * empty and auto-passes it -- and the Lava Spike the player is holding is
  * never reachable. The wire already carries everything needed to see through
- * that: PlayerView.Pool (floating), PlayerView.Available (what tapping
- * produces right now, a conservative fixed-colour lower bound from
- * rules/mana_available.go) and CardView.ManaCost (Forge notation, parsed by
- * mana.ts).
+ * that: PlayerView.Pool (floating), the priority decision's legal `activate`
+ * offers, the matching battlefield CardView.Produces projection, and
+ * CardView.ManaCost (Forge notation, parsed by mana.ts). Available remains a
+ * lower-bound fallback only when a partial/stale view cannot join any offer
+ * to a card.
  *
  * The test here is deliberately a CASTABILITY question, not a full legality
  * question: a card that is affordable but uncastable for a reason the client
  * cannot see (no legal target, a cast restriction) still stops the window.
  * That is the safe direction -- wrongly withholding a pass costs one idle
  * stop; wrongly eating the window the player wanted is the bug this module
- * fixes. The conservative lower bound cuts the other way: a source that can
- * tap for "one U or one R" contributes NOTHING to Available (the engine
- * cannot promise a fixed colour), so a card only that source can pay for does
- * not stop the window -- a miss, never a false stop.
+ * fixes. The decision-derived bound deliberately cuts the safe way: a dual
+ * or `Any` source can make a card look payable even where its exact mana
+ * choice is not modelled, so the client may stop for one idle window but
+ * cannot silently eat the window that exposes the player's action.
  *
  * Pure functions only: no Svelte, no I/O, no wall clock. The seat's hand is a
  * hidden zone (CR 400.2) the View carries only for the viewer's own seat, so
@@ -33,6 +34,7 @@ import { manaSymbols, type ManaSymbol } from './mana';
 
 /** A mana unit the seat could spend: a colour face or colourless ("C"). */
 type ManaUnit = 'W' | 'U' | 'B' | 'R' | 'G' | 'C';
+const manaUnits: readonly ManaUnit[] = ['W', 'U', 'B', 'R', 'G', 'C'];
 
 /**
  * One coloured requirement the resolver backtracks over: the mana faces that
@@ -74,13 +76,15 @@ function isInstantSpeed(card: CardView): boolean {
 }
 
 /**
- * spendable folds Pool and Available into one map: mana floating NOW plus
- * mana tapping would add. Every Available unit is spendable at most once --
- * the maps are per-colour counts of distinct sources, so plain addition is
- * the whole fold. An absent map (Available is omitted when empty on the
- * wire) contributes nothing.
+ * spendable folds floating Pool and each legal mana-tap offer from a pending
+ * decision into one upper bound. The engine made those offers only after its
+ * own tap, restriction and summoning-sickness gates, so this reads one source
+ * of truth instead of re-deriving legality. Any produces every face (and C):
+ * an over-bound costs one harmless stop, while an under-bound loses an action.
+ * Without a decision, the per-card helper API retains Available as its legacy
+ * conservative lower-bound fallback.
  */
-function spendable(p: PlayerView): Partial<Record<ManaUnit, number>> {
+function spendable(p: PlayerView, decision?: Decision): Partial<Record<ManaUnit, number>> {
   const out: Partial<Record<ManaUnit, number>> = {};
   const add = (m: Record<string, number> | undefined) => {
     if (!m) return;
@@ -91,7 +95,30 @@ function spendable(p: PlayerView): Partial<Record<ManaUnit, number>> {
     }
   };
   add(p.pool);
-  add(p.available);
+  if (!decision) {
+    add(p.available);
+    return out;
+  }
+  const battlefield = new Map((p.battlefield ?? []).map((c) => [c.id, c]));
+  let projectedTap = false;
+  for (const offer of decision.options) {
+    if (offer.kind !== 'activate' || offer.obj === undefined) continue;
+    const produces = battlefield.get(offer.obj)?.produces;
+    if (!produces) continue;
+    projectedTap = true;
+    if (produces.any) {
+      const amount = Math.max(1, ...produces.colour);
+      for (const unit of manaUnits) out[unit] = (out[unit] ?? 0) + amount;
+      continue;
+    }
+    for (const [i, unit] of manaUnits.entries()) {
+      out[unit] = (out[unit] ?? 0) + produces.colour[i];
+    }
+  }
+  // A partially decoded/stale view cannot join a decision offer to a card
+  // projection. Preserve the old lower-bound rather than inventing mana;
+  // ordinary current decisions always take the projection path above.
+  if (!projectedTap) add(p.available);
   return out;
 }
 
@@ -173,27 +200,27 @@ function affordable(cost: ManaSymbol[], spend: Partial<Record<ManaUnit, number>>
 
 /**
  * cardAffordableAfterTap is the shared money test: would this ONE card be
- * affordable once the seat's Available mana joined its Pool. A card with no
+ * affordable once offered mana taps joined the seat's Pool. A card with no
  * printed cost does not count (a zero-cost card is already offered by the
  * engine whenever it is castable, so it never needs this window-stop path);
  * everything else goes through affordable(). The land exclusion lives in the
  * two callers below, which each add their own timing question on top.
  */
-function cardAffordableAfterTap(p: PlayerView, card: CardView): boolean {
+function cardAffordableAfterTap(p: PlayerView, card: CardView, decision?: Decision): boolean {
   if (!card.mana_cost) return false;
   const cost = manaSymbols(card.mana_cost);
   if (cost.length === 0) return false;
-  return affordable(cost, spendable(p), p.life);
+  return affordable(cost, spendable(p, decision), p.life);
 }
 
 /**
  * cardCastableAfterTap reports whether ONE hand card would be affordable once
- * the seat's Available mana joined its Pool. A land never counts (a land drop
+ * offered mana taps joined the seat's Pool. A land never counts (a land drop
  * is the action that CREATES the mana, never a spell that spends it).
  */
-export function cardCastableAfterTap(p: PlayerView, card: CardView): boolean {
+export function cardCastableAfterTap(p: PlayerView, card: CardView, decision?: Decision): boolean {
   if (isLand(card)) return false;
-  return cardAffordableAfterTap(p, card);
+  return cardAffordableAfterTap(p, card, decision);
 }
 
 /**
@@ -208,24 +235,47 @@ export function cardCastableAfterTap(p: PlayerView, card: CardView): boolean {
  * variant: a card the cost or timing question cannot answer YES to never
  * stops anything.
  */
-export function cardRespondableAfterTap(p: PlayerView, card: CardView): boolean {
+export function cardRespondableAfterTap(p: PlayerView, card: CardView, decision?: Decision): boolean {
   if (isLand(card)) return false;
   if (!isInstantSpeed(card)) return false;
-  return cardAffordableAfterTap(p, card);
+  return cardAffordableAfterTap(p, card, decision);
 }
 
 /**
  * castableAfterTap reports whether ANY nonland card in the seat's own hand
- * becomes castable after tapping. Fails closed (false) whenever the hand is
+ * becomes castable after tapping, or a projected battlefield activation gains
+ * a payable mana-and-Tap cost. Fails closed (false) whenever the hand is
  * not readable: a seat the view does not carry, or another seat's hand (a
  * JSON null on the wire -- the hand is present only for the viewer's own
  * seat), or a malformed view. It does NOT consult whose turn it is -- the
  * stop fires wherever the caller's own stop rules already consult the step.
  */
-export function castableAfterTap(view: View, seat: number): boolean {
+export function castableAfterTap(view: View, seat: number, decision?: Decision): boolean {
   const p = view.players?.find((pl) => pl.seat === seat);
   if (!p || !Array.isArray(p.hand)) return false;
-  return p.hand.some((c) => cardCastableAfterTap(p, c));
+  return p.hand.some((c) => cardCastableAfterTap(p, c, decision)) || abilityPayableAfterTap(p, decision);
+}
+
+// abilityPayableAfterTap recognises only the deferred-activation shape this
+// projection can price: a battlefield Cost$ containing T and otherwise mana
+// symbols. Sacrifice, discard, life and every unknown component fail closed.
+function abilityPayableAfterTap(p: PlayerView, decision?: Decision): boolean {
+  for (const card of p.battlefield ?? []) {
+    if (!Array.isArray(card.ability_costs) || card.tapped) continue;
+    // Match rules/legal.go's tap gate: summoning sickness blocks a creature's
+    // tap ability unless it has Haste. The offered mana-tap options already
+    // encode that gate for sources; this separate activation projection must
+    // honour the same exception for the ability's source.
+    if (card.summon_sick && (card.types ?? '').split(/\s+/).includes('Creature') && !card.keywords?.includes('Haste')) continue;
+    for (const raw of card.ability_costs) {
+      const tokens = raw.replace(/[{}]/g, ' ').trim().split(/\s+/).filter(Boolean);
+      if (!tokens.includes('T')) continue;
+      const mana = tokens.filter((token) => token !== 'T').map((token) => manaSymbols(token)[0]);
+      if (mana.some((symbol) => !symbol || symbol.kind === 'unknown')) continue;
+      if (affordable(mana, spendable(p, decision), p.life)) return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -241,8 +291,8 @@ export function castableAfterTap(view: View, seat: number): boolean {
  * The hand scan, fail-closed shape and seat scoping are identical to
  * castableAfterTap's (a hand the view does not carry reads as false).
  */
-export function respondableAfterTap(view: View, seat: number): boolean {
+export function respondableAfterTap(view: View, seat: number, decision?: Decision): boolean {
   const p = view.players?.find((pl) => pl.seat === seat);
   if (!p || !Array.isArray(p.hand)) return false;
-  return p.hand.some((c) => cardRespondableAfterTap(p, c));
+  return p.hand.some((c) => cardRespondableAfterTap(p, c, decision));
 }

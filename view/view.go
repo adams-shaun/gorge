@@ -55,6 +55,12 @@ type Chars interface {
 	// shown for every seat and every visibility, and it is what populates
 	// that line in the ordinary case where the floating pool is empty.
 	AvailableMana(state.PlayerID) state.Mana
+	// AbilityCosts returns the current offer-time costs of id's non-mana
+	// activated abilities for player p, in face ability order. A rules.Engine
+	// applies the same RaiseCost/ReduceCost composition as legalActions, so a
+	// client deciding whether tapping mana would unlock an activation cannot
+	// disagree with the engine by pricing only the printed cost.
+	AbilityCosts(state.PlayerID, state.ObjID) []string
 }
 
 // View is one seat's complete picture of the game: everything public, plus
@@ -285,6 +291,15 @@ type CardView struct {
 	// beneath the permanent it modifies -- could not tell what is attached
 	// to what at all.
 	AttachedTo state.ObjID `json:"attached_to,omitempty"`
+	// AbilityCosts is the current offer-time Forge-notation cost of each
+	// non-mana activated ability, in face ability order. Applicable
+	// RaiseCost/ReduceCost statics have already been composed exactly as the
+	// engine's legal-action gate composes them; this is deliberately not just
+	// the printed Cost$. It is projected only for battlefield cards and the
+	// viewer's own hand: those are the cards an interactive seat can use to
+	// decide whether floating mana would unlock an ability. Other zones leave
+	// it nil, rather than turning this into a general rules-text projection.
+	AbilityCosts []string `json:"ability_costs,omitempty"`
 	// Produces is what this card's mana abilities add to the pool when a
 	// tap-for-mana activation runs them, derived from the compiled abilities
 	// (cards.Face.ManaProduction) rather than land subtypes: a basic land's
@@ -413,10 +428,10 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 			LibrarySize:    len(g.Zone(state.ZLibrary, p.ID)),
 			HandSize:       len(g.Zone(state.ZHand, p.ID)),
 			GraveyardSize:  len(g.Zone(state.ZGraveyard, p.ID)),
-			Battlefield:    cardViews(g, ch, g.Zone(state.ZBattlefield, p.ID)),
-			Graveyard:      cardViews(g, ch, g.Zone(state.ZGraveyard, p.ID)),
-			Exile:          cardViews(g, ch, g.Zone(state.ZExile, p.ID)),
-			Command:        cardViews(g, ch, g.Zone(state.ZCommand, p.ID)),
+			Battlefield:    cardViews(g, ch, g.Zone(state.ZBattlefield, p.ID), true, p.ID),
+			Graveyard:      cardViews(g, ch, g.Zone(state.ZGraveyard, p.ID), false, p.ID),
+			Exile:          cardViews(g, ch, g.Zone(state.ZExile, p.ID), false, p.ID),
+			Command:        cardViews(g, ch, g.Zone(state.ZCommand, p.ID), false, p.ID),
 			Commanders:     roster,
 			CommanderCasts: casts,
 		}
@@ -455,7 +470,7 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 		// names hand as a hidden zone).
 		pv.Pool = poolView(p.Pool)
 		if p.ID == viewer {
-			pv.Hand = cardViews(g, ch, g.Zone(state.ZHand, p.ID))
+			pv.Hand = cardViews(g, ch, g.Zone(state.ZHand, p.ID), true, p.ID)
 		}
 		v.Players = append(v.Players, pv)
 	}
@@ -647,7 +662,7 @@ func PhaseOf(s state.Step) string {
 // site -- and an ability object (Card == nil, so Face() == nil too) never
 // legitimately sits in a card zone at all. Both are parked in exile by the
 // engine and are skipped here (Task 4).
-func cardViews(g *state.Game, ch Chars, ids []state.ObjID) []CardView {
+func cardViews(g *state.Game, ch Chars, ids []state.ObjID, includeAbilityCosts bool, abilityPlayer state.PlayerID) []CardView {
 	out := make([]CardView, 0, len(ids))
 	for _, id := range ids {
 		o := g.Obj(id)
@@ -656,7 +671,29 @@ func cardViews(g *state.Game, ch Chars, ids []state.ObjID) []CardView {
 		if o == nil || o.Face() == nil || o.Ephemeral() {
 			continue
 		}
-		out = append(out, cardView(g, ch, id))
+		cv := cardView(g, ch, id)
+		if includeAbilityCosts {
+			if ch != nil {
+				cv.AbilityCosts = ch.AbilityCosts(abilityPlayer, id)
+			} else {
+				cv.AbilityCosts = printedNonManaAbilityCosts(o.Face())
+			}
+		}
+		out = append(out, cv)
+	}
+	return out
+}
+
+// printedNonManaAbilityCosts is the no-rules fallback: it preserves the
+// face's ability order while exposing only activated abilities that are not
+// mana abilities. An absent Cost$ remains an empty string. A real Engine Chars
+// supplies effective costs instead, including live cost modifiers.
+func printedNonManaAbilityCosts(f *cards.Face) []string {
+	var out []string
+	for _, a := range f.Abilities {
+		if a.Kind == "AB" && a.API != "Mana" {
+			out = append(out, a.Params["Cost"])
+		}
 	}
 	return out
 }

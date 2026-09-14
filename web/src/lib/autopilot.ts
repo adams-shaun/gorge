@@ -143,7 +143,7 @@ export function actionable(decision: Decision, view: View, seat: number): boolea
   // have offered the taps -- but the predicate is a pure read of the view and
   // costs one hand scan, so one shared test covers both callers without
   // restating the shape.
-  return castableAfterTap(view, seat);
+  return castableAfterTap(view, seat, decision);
 }
 
 /**
@@ -178,7 +178,7 @@ export function respondable(decision: Decision): boolean {
  * cannot drift apart and the next if-respondable consumer inherits the fix.
  */
 export function respondableFor(view: View, seat: number, decision: Decision): boolean {
-  return respondable(decision) || respondableAfterTap(view, seat);
+  return respondable(decision) || respondableAfterTap(view, seat, decision);
 }
 
 /**
