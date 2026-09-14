@@ -385,6 +385,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			if !observer.triggerMatches(t, id, ev, objLKI) {
 				continue
 			}
+			if (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce") && ev.Amount <= 0 {
+				continue
+			}
 			key := triggerKey{Source: id, Idx: ti}
 			if e.triggerFireCount == nil {
 				e.triggerFireCount = map[triggerKey]int32{}

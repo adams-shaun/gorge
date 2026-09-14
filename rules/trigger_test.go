@@ -378,6 +378,37 @@ Oracle:x
 	}
 }
 
+// Negative Damage repairs clear marked damage during cleanup/regeneration;
+// they are not damage dealt. Both Once modes must ignore the repair, rather
+// than adding another trigger after the positive damage that it clears.
+func TestDamageOnceDoesNotTriggerOnNegativeDamageRepair(t *testing.T) {
+	src := `Name:Vampire
+ManaCost:1 B
+Types:Creature Vampire
+PT:2/2
+T:Mode$ DamageDealtOnce | ValidTarget$ Card.Self | Execute$ TrigGain | TriggerDescription$ x
+T:Mode$ DamageDoneOnce | ValidTarget$ Card.Self | Execute$ TrigGain | TriggerDescription$ x
+SVar:TrigGain:DB$ GainLife | LifeAmount$ 1 | Defined$ You
+Oracle:x
+`
+	e := layerEngine(t)
+	id := onBoard(t, e, 0, src)
+	e.emit(events.Event{Kind: events.Damage, Obj: id, Amount: 2})
+	if len(e.pendingTriggers) != 2 {
+		t.Fatalf("positive damage queued %d Once triggers, want 2", len(e.pendingTriggers))
+	}
+
+	// This is the same negative Damage shape cleanupBody emits to remove the
+	// two marked points. It must leave the positive-damage queue untouched.
+	e.emit(events.Event{Kind: events.Damage, Obj: id, Amount: -2})
+	if len(e.pendingTriggers) != 2 {
+		t.Fatalf("negative damage repair queued %d Once triggers, want 0 additional", len(e.pendingTriggers)-2)
+	}
+	if got := e.G.Obj(id).Damage; got != 0 {
+		t.Fatalf("damage after repair = %d, want 0", got)
+	}
+}
+
 func TestBecomesTargetTriggerFiresWhenTargeted(t *testing.T) {
 	src := `Name:Ward
 ManaCost:1 W

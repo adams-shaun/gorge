@@ -15,7 +15,7 @@ import (
 // assignment loop (combat.go) satisfies CombatDamage$ True, every non-combat
 // DealDamage site does not, and a prevented (protection) combat hit -- which
 // emit substitutes with a Note -- never fires one. Mode$ DamageDoneOnce gets
-// the same once-per-turn gate DamageDealtOnce has. The Jitte and Keeper tests
+// the same once-per-damage-batch gate DamageDealtOnce has. The Jitte and Keeper tests
 // run the REAL compiled corpus scripts; the bearer and the blocker fixtures
 // are inline because no corpus shape needs their exact body.
 
@@ -271,7 +271,7 @@ func TestDamageDoneOnceFiresOncePerDamageStepOnRealCorpusScript(t *testing.T) {
 		t.Fatalf("defender life = %d, want 14 (two 3-power attackers)", got)
 	}
 	if n := countDraws(e, 0) - before; n != 1 {
-		t.Fatalf("logged %d Draw events for seat 0 from combat, want 1 (DamageDoneOnce fires once per turn)", n)
+		t.Fatalf("logged %d Draw events for seat 0 from combat, want 1 (DamageDoneOnce fires once per damage batch)", n)
 	}
 	if e.G.Obj(keeper) == nil {
 		t.Fatal("keeper vanished")
