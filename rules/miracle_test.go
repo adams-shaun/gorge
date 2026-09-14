@@ -79,12 +79,16 @@ func TestMiracleOffersOnTheFirstDrawOnly(t *testing.T) {
 }
 
 func TestMiracleWithXAsksX(t *testing.T) {
-	entreat := "Name:Entreat\nManaCost:X X W W W\nTypes:Sorcery\nK:Miracle:X W W\n" +
-		"A:SP$ Token | TokenAmount$ X | TokenScript$ w_4_4_angel_flying | TokenOwner$ You\n" +
-		"SVar:X:Count$xPaid\nOracle:x\n"
-	// newFixtureDeckWithTokens tokens the Angel script that Entreat's
-	// Token$ names, so a later X-binding merge can create the two Angels.
-	e, cfg, en := newFixtureDeckWithTokens(t, 103, entreat)
+	// The REAL repo-deck card, from the corpus (see
+	// entreat_the_angels_test.go for why a name-sharing fixture would defend
+	// nothing): entreatCorpusCard asserts the compiled script carries
+	// K:Miracle:X W W and the TokenAmount$ X body, and the engine's token
+	// registry is the corpus's own, so the minted angels are the real
+	// w_4_4_angel_flying token.
+	e, cfg, en, entreatCard := entreatCorpusEngine(t, 103)
+	if e.G.Obj(en).Card != entreatCard {
+		t.Fatal("the miracle-test object is not the corpus Entreat the Angels card")
+	}
 	moveToLibraryTop(t, e, en)
 	addMana(t, e, 0, "WWWW")
 	e.pendingTriggers = nil
@@ -103,8 +107,8 @@ func TestMiracleWithXAsksX(t *testing.T) {
 	// white tapped in, flags the spell, puts it on the stack with X recorded.
 	submitChoices(t, e, 2)
 	o := e.G.Obj(en)
-	if o.Zone != state.ZStack || o.X != 2 || o.CastFlags&state.FlagMiracle == 0 {
-		t.Fatalf("after X=2: zone=%s X=%d flags=%d", o.Zone, o.X, o.CastFlags)
+	if o.Zone != state.ZStack || o.X != 2 || o.CastFlags&state.FlagMiracle == 0 || o.Card != entreatCard {
+		t.Fatalf("after X=2: zone=%s X=%d flags=%d corpusCard=%v", o.Zone, o.X, o.CastFlags, o.Card == entreatCard)
 	}
 	// The resolved effect creates TokenAmount$ X Angels (xPaid == 2):
 	// resolveTop's spell branch binds the CastInfo-recorded X into
