@@ -21,6 +21,9 @@
 package rules
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -240,6 +243,9 @@ func (e *Engine) checkStateBased() {
 			changed = true
 		}
 		if e.destroyLethalDamage(tried) {
+			changed = true
+		}
+		if e.planeswalkerZeroLoyalty(tried) {
 			changed = true
 		}
 		if e.ceaseDeadTokens(tried) {
@@ -577,6 +583,66 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 type tokenCasualty struct {
 	id   state.ObjID
 	from state.Zone
+}
+
+// planeswalkerZeroLoyalty performs CR 704.5i: a planeswalker with loyalty 0
+// or less is put into its owner's graveyard (not destroyed -- the modern CR
+// has no planeswalker-uniqueness SBA; the legend rule already handles
+// legendary walkers through legendCasualties). The walker's face carries its
+// starting loyalty, the Move-zone-change grant (events/apply.go, CR 306.5b)
+// put it on, and spell/ability damage removes counters from it (CR 306.8,
+// effects/damage.go); between the three, loyalty can only reach zero through
+// damage or a face whose printed starting loyalty is literally 0 (6 corpus
+// files), and either way this sweep is what removes the walker.
+//
+// Discipline follows destroyLethalDamage's: a tried-set (shared objs -- a
+// walker is never a creature, so destroyLethalDamage can never mark the same
+// object for "lethal damage" and the two actions cannot disagree over a
+// membership map), one move per object per call, and the deterministic
+// AliveFrom(0) seat / battlefield-slice order so the event stream is
+// reproducible. The move is not destruction (no ReplaceDestruction, no
+// regeneration -- the same treatment "toughness <= 0" gets).
+//
+// A face whose printed starting loyalty this engine cannot READ (absent, or
+// Loyalty:X -- Nissa, Steward of Elements, 2 corpus files) never reaches the
+// sweep: CR 704.5i needs a known loyalty of 0 or less, and an unreadable one
+// is not known-zero. Such a walker keeps its place on the battlefield with no
+// loyalty counters -- the stand-in is recorded in AGENTS.md.
+func (e *Engine) planeswalkerZeroLoyalty(tried *sbaAttempts) bool {
+	tried.rearm(e.G.AliveCount())
+	var dead []casualty
+	for _, p := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			if tried.objs[id] {
+				continue
+			}
+			o := e.G.Obj(id)
+			if o == nil {
+				continue
+			}
+			f := o.Face()
+			if f == nil || !f.IsPlaneswalker() {
+				continue
+			}
+			n, err := strconv.Atoi(strings.TrimSpace(f.Loyalty))
+			if err != nil || n < 0 {
+				continue
+			}
+			if o.Counter("LOYALTY") > 0 {
+				continue
+			}
+			dead = append(dead, casualty{id, "zero loyalty"})
+		}
+	}
+	if len(dead) == 0 {
+		return false
+	}
+	for _, c := range dead {
+		tried.objs[c.id] = true
+		e.emit(events.Event{Kind: events.MoveZone, Obj: c.id,
+			From: state.ZBattlefield, To: state.ZGraveyard, Text: c.text})
+	}
+	return true
 }
 
 // ceaseDeadTokens is CR 704.5d: a token ceases to exist the instant it

@@ -59,9 +59,30 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 // damage. Host.Emit cannot expose a replacement event, so the state delta is
 // the effects-layer observation that protection or prevention did not replace
 // the Damage event.
+//
+// CR 306.8: damage dealt to a planeswalker permanent removes that many
+// loyalty counters instead of being marked as damage, so a walker target
+// takes a LOYALTY CounterChange and never a Damage event here. Both spell/
+// ability damage paths route through this one helper (effDealDamage's object
+// arm and effDamageAll); combat damage cannot reach it -- this build's
+// attackers declare player defenders only, and a walker can neither attack
+// nor block -- so spell/ability damage is the whole walker-damage surface.
+// The exchange is one-directional by design and recorded in AGENTS.md:
+// prevention and destruction-replacement effects key on Damage events, so
+// they do not see walker damage (prevention vs a walker is unimplemented,
+// conservative and correct for now). RememberDamaged$ on the caller still
+// captures the walker, so an Incinerate-style "can't be regenerated" Effect
+// sub-ability still finds what took the damage.
 func emitObjectDamage(h Host, source, target state.ObjID, amount int32) {
 	o := h.Game().Obj(target)
 	if o == nil {
+		return
+	}
+	if f := o.Face(); f != nil && f.IsPlaneswalker() {
+		if amount != 0 {
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: target,
+				Counter: "LOYALTY", Amount: -amount})
+		}
 		return
 	}
 	before := o.Damage

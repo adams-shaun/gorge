@@ -100,12 +100,23 @@
   // Counters, sorted so a map's iteration order can never reach the rendered
   // output (determinism contract). Two letters, not one: P1P1 and a poison
   // counter must not both read as "P".
+  // A planeswalker's LOYALTY counter is deliberately pulled OUT of the generic
+  // counter list and printed once, in the stats position a creature prints P/T
+  // in — the number a walker player scans for gets its own reading, not a
+  // two-letter chip in the happened-to-it pile (CR 306.5b/306.8: it is the
+  // walker's life). Spell damage removes loyalty rather than marking damage,
+  // so a walker tile never shows a damage chip either.
+  const isPlaneswalker = $derived(card.types.includes('Planeswalker'));
+  const loyalty = $derived(card.counters?.['LOYALTY']);
+  const walkerLoyalty = $derived(isPlaneswalker && loyalty !== undefined);
   const counters = $derived(
-    Object.entries(card.counters ?? {}).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+    Object.entries(card.counters ?? {})
+      .filter(([kind]) => !(isPlaneswalker && kind === 'LOYALTY'))
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
   );
 
   const isCreature = $derived(card.types.includes('Creature'));
-  const showStats = $derived(isCreature || card.damage > 0);
+  const showStats = $derived((isCreature || card.damage > 0) && !isPlaneswalker);
 
   // One hover state per tile: pointer dwell or keyboard focus opens the
   // detail; leave/blur/Escape close it. onOpen captures this tile's rect so
@@ -173,17 +184,18 @@
       </div>
     {/if}
 
-    {#if counters.length || showStats}
+    {#if counters.length || showStats || walkerLoyalty}
       <div class="band">
         <div class="counters">
           {#each counters as [kind, n] (kind)}
             <span class="chip" title="{n} {kind}"><span class="chip__n data">{n}</span>{kind.slice(0, 2).toUpperCase()}</span>
           {/each}
         </div>
-        {#if showStats}
+        {#if showStats || walkerLoyalty}
           <div class="stats">
-            {#if card.damage > 0}<span class="stats__dmg data" title="damage marked">{card.damage}</span>{/if}
+            {#if showStats && card.damage > 0}<span class="stats__dmg data" title="damage marked">{card.damage}</span>{/if}
             {#if isCreature}<span class="stats__pt data" title="current power/toughness">{card.power}/{card.toughness}</span>{/if}
+            {#if walkerLoyalty}<span class="stats__loyalty data" title="loyalty">{loyalty}</span>{/if}
           </div>
         {/if}
       </div>
@@ -387,6 +399,16 @@
     font-size: inherit;
     color: var(--ink);
     font-weight: 500;
+    padding: 0 0.35em;
+  }
+  /* The walker's loyalty takes the same stats slot a creature's P/T takes:
+     one number, bold, with a light edge so it reads as the walker's "life"
+     rather than as a counter that happened to it (CR 306.5b). */
+  .stats__loyalty {
+    font-size: inherit;
+    background: var(--ink);
+    color: var(--mana-w);
+    font-weight: 600;
     padding: 0 0.35em;
   }
 

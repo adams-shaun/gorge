@@ -1605,6 +1605,18 @@ func (e *Engine) payCast() {
 		for _, part := range pc.cost.SubCounter {
 			e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: part.Spec, Amount: -part.N})
 		}
+		// CR 606.3: a [+N] loyalty cost adds N loyalty counters to the walker
+		// as part of the activation's payment, settled beside the SubCounter
+		// removals and before the AbilityPush (the ability object the effect
+		// resolves through). AddCounter is a free cost component -- no mana,
+		// no gate -- so this is the only thing the activation does with it.
+		// A 0-count part (the [0] abilities) emits nothing: a CounterChange of
+		// 0 would be a no-op folded into state but a spurious log entry.
+		for _, part := range pc.cost.AddCounter {
+			if part.N != 0 {
+				e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: part.Spec, Amount: part.N})
+			}
+		}
 		// Capture the sacrifice LKI (Task sac1) BEFORE the MoveZone events
 		// drain the permanents: each chosen object is still on the battlefield
 		// here, so SacrificedInfoOf reads its live face and +1/+1 counters (the
