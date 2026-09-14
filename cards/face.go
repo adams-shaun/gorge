@@ -219,14 +219,17 @@ func colourIndicator(s string) uint8 {
 }
 
 // isManaCh reports whether c can form part of a mana symbol as Forge writes
-// them: the colour letters, C/S colourless and snow, P Phyrexian, T tap, a
-// slash (hybrid "2/B", "W/U") and the digits of a generic cost. Because
+// them: the colour letters, C/S colourless and snow, P Phyrexian, a slash
+// (hybrid "2/B", "W/U") and the digits of a generic cost. Tap is deliberately
+// excluded: it is not part of a mana symbol, and Forge's packed comparison
+// operators (for example GT0) would otherwise be misread as green mana.
+// Because
 // lowercase letters are never part of a written pip, matching only these lets
 // a prose word keep its uppercase
 // initial without it being read as a colour.
 func isManaCh(c byte) bool {
 	switch c {
-	case 'W', 'U', 'B', 'R', 'G', 'C', 'P', 'S', 'T', '/',
+	case 'W', 'U', 'B', 'R', 'G', 'C', 'P', 'S', '/',
 		'0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 		return true
 	}

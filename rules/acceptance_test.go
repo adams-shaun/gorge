@@ -80,7 +80,46 @@ import (
 // below iterates RepoDeckNames() whole (the 12 Legacy decks PLUS the five
 // interim foundations-* commander decks), so the five new 100-card,
 // singleton lists are held to the same no-gap standard from day one.
-var knownUnsupported = map[string][]string{}
+// Valgavoth, Harrower of Souls — Endless Punishment adds 34 measured gaps
+// across 510 distinct cards. These entries are the imported deck's baseline,
+// recorded by TestEveryRepoDeckIsFullySupported against the pinned corpus;
+// they retire only when the corresponding primitive is implemented.
+var knownUnsupported = map[string][]string{
+	"Archfiend of Despair":         {"api:RepeatEach", "stat:CantGainLife"},
+	"Bloodletter of Aclazotz":      {"api:ReplaceEffect", "repl:LifeReduced"},
+	"Chandra, Awakened Inferno":    {"repl:Counter"},
+	"Chromatic Orrery":             {"stat:ManaConvert"},
+	"Crypt Ghast":                  {"kw:Extort", "trig:TapsForMana"},
+	"Dauthi Voidwalker":            {"api:ChooseCard", "kw:Shadow"},
+	"Deflecting Swat":              {"api:ChangeTargets"},
+	"Exotic Orchard":               {"api:ManaReflected"},
+	"Fabled Passage":               {"api:Untap"},
+	"Fate Unraveler":               {"trig:Drawn"},
+	"Fiery Emancipation":           {"api:ReplaceEffect", "repl:DamageDone"},
+	"Gamble":                       {"api:Shuffle"},
+	"Karazikar, the Eye Tyrant":    {"api:Goad", "trig:AttackersDeclaredOneTarget"},
+	"Kederekt Parasite":            {"trig:Drawn"},
+	"Last One Standing":            {"api:ChooseCard"},
+	"Manabarbs":                    {"trig:TapsForMana"},
+	"Ob Nixilis, Captive Kingpin":  {"trig:LifeLostAll"},
+	"Ojer Axonil, Deepest Might":   {"api:ReplaceEffect", "repl:DamageDone"},
+	"Price of Progress":            {"api:RepeatEach"},
+	"Profane Tutor":                {"kw:Suspend"},
+	"Razorkin Needlehead":          {"trig:Drawn"},
+	"Sheoldred, the Apocalypse":    {"trig:Drawn"},
+	"Solphim, Mayhem Dominus":      {"api:ReplaceEffect", "repl:DamageDone"},
+	"Sower of Discord":             {"api:ChoosePlayer"},
+	"Spiked Corridor":              {"api:ReplaceEffect", "repl:DamageDone", "trig:UnlockDoor"},
+	"Spinerock Knoll":              {"api:Play", "kw:Hideaway"},
+	"Sulfuric Vortex":              {"repl:GainLife"},
+	"The Lord of Pain":             {"stat:CantGainLife"},
+	"Uncivil Unrest":               {"api:ReplaceEffect", "repl:DamageDone"},
+	"Underworld Dreams":            {"trig:Drawn"},
+	"Unholy Annex":                 {"api:Branch", "trig:UnlockDoor"},
+	"Valgavoth, Harrower of Souls": {"kw:Ward", "trig:LifeLost"},
+	"Vein Ripper":                  {"kw:Ward"},
+	"Vial Smasher the Fierce":      {"api:ChoosePlayer", "kw:Partner"},
+}
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card
 // across every deck file (the 12 Legacy decks and the m38 commander decks)
