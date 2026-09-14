@@ -1,20 +1,28 @@
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { PlayerView, SeatInfo, StackView, View } from '../protocol';
 
 /**
- * Arrows — the overlay's geometry pin, driven against the production table
- * hierarchy at real layout (see Arrows.geometry.ts for why a fixture mounts
- * the production components rather than SSR-ing the live route: Table.svelte
- * needs a streaming backend to render a board at all).
+ * Arrows — the overlay's geometry pin, driven against the REAL production
+ * route (routes/Table.svelte), not a fixture replica. Findings r2 rejected
+ * the first cut, whose fixture mounted Arrows itself: removing Table.svelte's
+ * production mount then left the live table with no arrows while the pin
+ * still passed, because the fixture was quietly supplying its own overlay.
+ * This pin mounts the route (Arrows.geometry.ts does nothing else) and
+ * delivers its state the way the live page gets it — a snapshot frame on the
+ * SSE stream — which the test intercepts and fulfils below. The only
+ * `.arrows` element the page can ever contain is the one Table.svelte
+ * mounts, so the assertions observe the production mount directly: removing
+ * it leaves no overlay (waitForSelector times out), moving it back inside
+ * the clipped felt section trips the containment assertion.
  *
  * fb-20260914T121642Z: a stack-to-stack target arrow — a counterspell
  * targeting the spell beneath it — was computed but invisible, because the
  * overlay lived inside Board.svelte, which the route mounts inside the felt
  * section whose `overflow: hidden` clips anything reaching into the rail.
- * The pin must fail before the overlay is moved to the table root (the
- * overlay is then a descendant of the clipped felt section and/or not the
- * only one) and pass after it, and it must also pin the rail-scroll
+ * The pin requires exactly one overlay, hosted by `main.table` (whose box
+ * contains both the felt and the rail), and also pins the rail-scroll
  * alignment: section.stack is a real scroller, and scroll does not bubble,
  * so a line whose endpoints are rail tiles goes stale the moment the stack
  * scrolls unless the overlay listens for it.
@@ -48,6 +56,48 @@ type Line = { x1: number; y1: number; x2: number; y2: number };
 type Measured = { ovs: Overlay[]; counterspell: Rect; bolt: Rect; line: Line; scrollable: boolean };
 type Endpoint = { bolt: Rect; endpointX: number; endpointY: number };
 
+// --- the fixture state the route renders ---
+// view.stack lists bottom of the stack first; the rail renders it reversed,
+// so the counterspell (900) is the UPPER rail tile and the bolt (890) the
+// lower one — the pair the arrow runs between. Enough filler entries that
+// section.stack actually scrolls at the test viewport.
+const filler = (id: number): StackView => ({
+  id, kind: 'spell', name: `Ritual ${id}`, text: '', controller: 0, targets: [], card: null, optional: false,
+});
+const stack: StackView[] = [
+  ...Array.from({ length: 40 }, (_, i) => filler(100 + i)),
+  { id: 890, kind: 'spell', name: 'Lightning Bolt', text: 'Lightning Bolt deals 3 damage to any target.', controller: 1, targets: [], card: null, optional: false },
+  { id: 900, kind: 'spell', name: 'Counterspell', text: 'Counter target spell.', controller: 0, targets: [{ obj: 890, player: 1, is_player: false, label: 'spell' }], card: null, optional: false },
+];
+const players: PlayerView[] = [0, 1].map((seat) => ({
+  seat, name: `Player ${seat + 1}`, life: 20, lost: false, library_size: 60, hand_size: 7,
+  graveyard_size: 0, hand: [], battlefield: [], graveyard: [], exile: [], pool: {},
+  command: [], commanders: [], commander_casts: [],
+}));
+const seats: SeatInfo[] = players.map((p) => ({ name: p.name, deck: 'fixture', colour: p.seat === 0 ? '#e5484d' : '#22c55e' }));
+const view: View = {
+  viewer: 255, visibility: 'omniscient', turn: 2, round: 2, step: 'main1', phase: 'main1',
+  active: 0, priority: 0, over: false, draw: false, winner: null, stack, pending: [], players,
+};
+
+// The route's state arrives over the one SSE stream session.svelte opens at
+// module load. The stream is fulfilled in two phases: the first connection
+// carries no frames, only a short retry hint, so the browser reconnects a
+// moment later — by then the route is mounted and its frame handler is
+// registered (MatchState reads the snapshot only through the handler it
+// registers in onMount), and the snapshot frame finds a listener.
+const sse = (frames: [string, unknown, Record<string, unknown>?][], retryMs: number): string =>
+  frames.map(([t, body, extra]) =>
+    `event: ${t}\ndata: ${JSON.stringify({ v: 1, t, seq: 0, ...extra, body })}\n\n`).join('')
+  + `retry: ${retryMs}\n\n`;
+const STREAM_BODY = (attempt: number): string =>
+  attempt === 1
+    ? sse([], 200)
+    : sse([
+        ['hello', { session: 'geometry-fixture', tables: [] }],
+        ['snapshot', { view, turn_starts: [], head: 0, seats }, { table: 'arrows-fixture', match: 1 }],
+      ], 60_000);
+
 // Everything below runs inside page.evaluate, so it is self-contained: the
 // browser context sees only the serialized callback, never this module's
 // scope.
@@ -55,14 +105,14 @@ const IN_PAGE = `
   const compact = (r) => ({ left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height });
   const overlays = () => {
     const table = document.querySelector('main.table');
-    const felt = document.querySelector('main.table > .board');
+    const felt = document.querySelector('main.table > section.board');
     return [...document.querySelectorAll('.arrows')].map((el) => {
       const r = el.getBoundingClientRect();
       return {
         inTableRoot: el.parentElement === table,
         // "inside the clipped felt section": a descendant of the element the
         // route clips, so any line reaching into the rail is cut at the seam.
-        inClippedFelt: felt.contains(el),
+        inClippedFelt: felt !== null && felt.contains(el),
         rect: compact(r),
       };
     });
@@ -76,11 +126,27 @@ const IN_PAGE = `
 
 const near = (a: number, b: number): boolean => Math.abs(a - b) <= 1;
 
-describe('Arrows — the overlay escapes the felt clip and tracks the rail', () => {
-  it('hosts one arrows overlay at the table root (never inside the clipped felt section), its bounds include the rail target tile, the line lands on both tiles, and the endpoint follows the rail scroll', async () => {
+describe('Arrows — the overlay escapes the felt clip and tracks the rail (real route)', () => {
+  it('Table.svelte hosts one arrows overlay at the table root (never inside the clipped felt section), its bounds include the rail target tile, the line lands on both tiles, and the endpoint follows the rail scroll', async () => {
     const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });
+    // The route's whole network surface, mocked at the page edge: the SSE
+    // stream (the state carrier) and the subscribe/unsubscribe POSTs the
+    // hello triggers (fulfilled so they reject nowhere).
+    let streamAttempts = 0;
+    await page.route('**/api/stream', (route) => {
+      streamAttempts++;
+      return route.fulfill({ status: 200, contentType: 'text/event-stream', body: STREAM_BODY(streamAttempts) });
+    });
+    for (const ep of ['**/api/subscribe', '**/api/unsubscribe']) {
+      await page.route(ep, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+    }
     await page.goto(`${url}src/components/Arrows.geometry.html`);
-    for (const sel of ['[data-obj="900"]', '[data-obj="890"]', '.arrows']) {
+    // THE production-mount assertion: the fixture never renders Arrows
+    // itself, so this selector can only match the overlay Table.svelte
+    // mounts. If that mount is removed the page renders no overlay at all
+    // and this wait is what fails.
+    await page.waitForSelector('main.table .arrows', { state: 'attached', timeout: 60_000 });
+    for (const sel of ['main.table section.stack [data-obj="900"]', 'main.table section.stack [data-obj="890"]']) {
       await page.waitForSelector(sel, { state: 'attached', timeout: 60_000 });
     }
     // The first measurement is rAF-deferred behind the mount's DOM update.
@@ -101,8 +167,7 @@ describe('Arrows — the overlay escapes the felt clip and tracks the rail', () 
         };
       })()`)) as unknown as Measured;
 
-    // --- the fixture renders the brief's case for real ---
-    expect(m.ovs.length).toBeGreaterThanOrEqual(1);
+    // --- the real route renders the brief's case for real ---
     expect(m.line, 'exactly one resolved target arrow: the counterspell\u2019s').not.toBeNull();
     // The counterspell and bolt tiles sit at DIFFERENT heights in the rail
     // (the counterspell is the upper entry), and the stack genuinely
@@ -111,12 +176,13 @@ describe('Arrows — the overlay escapes the felt clip and tracks the rail', () 
     expect(m.scrollable, 'section.stack really overflows at the test viewport').toBe(true);
 
     // --- fb-20260914T121642Z: the overlay escapes the felt clip ---
-    // Before the fix there are two overlays: the old mount inside Board
-    // (clipped by the felt section) and the table-root host this pin
-    // requires. Exactly one, at the table root, is the production contract.
-    expect(m.ovs, 'the arrows overlay is mounted once, as Table.svelte hosts it').toHaveLength(1);
+    // Exactly ONE overlay, and it is the route's: mounted by Table.svelte as
+    // a direct child of main.table, never a descendant of the clipped felt
+    // section (whose overflow: hidden is what cut every stack-to-stack line
+    // at the seam before the fix).
+    expect(m.ovs, 'the route mounts exactly one arrows overlay').toHaveLength(1);
     for (const o of m.ovs) {
-      expect(o.inTableRoot, 'the overlay is a direct child of main.table').toBe(true);
+      expect(o.inTableRoot, 'the overlay is a direct child of main.table — Table.svelte\u2019s mount').toBe(true);
       expect(o.inClippedFelt, 'the overlay is not a descendant of the clipped felt section').toBe(false);
       // The bolt tile renders in the rail, right of the felt; the overlay
       // must span at least that far.
@@ -142,7 +208,7 @@ describe('Arrows — the overlay escapes the felt clip and tracks the rail', () 
         return { bolt: tile(890), endpointX: o.left + l.x2, endpointY: o.top + l.y2 };
       })()`)) as unknown as Endpoint;
     // The stack is the rail's one scroller and scroll does not bubble, so
-    // the fixture scrolls it and dispatches the scroll event a real scroll
+    // the test scrolls it and dispatches the scroll event a real scroll
     // would fire; the overlay must recompute from that signal alone (no
     // polling, no timer).
     await page.evaluate(() => {

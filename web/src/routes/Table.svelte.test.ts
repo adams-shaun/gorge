@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'svelte/server';
-import type { Decision, EventBody, PlayerView, SeatInfo, View } from '../protocol';
+import type { Decision, EventBody, PlayerView, SeatInfo, StackView, View } from '../protocol';
 import { initSeatContext } from '../lib/seat';
 
 // Table.svelte's MatchState opens nothing at import, but session.svelte's
@@ -116,6 +116,38 @@ describe('Table.svelte seat gating (R-E4-4 / R-E4-5)', () => {
     expect(fakeMatch.shared.lastSeat).toEqual({ seat: 0, token: 'TOPSECRETVALUEnEVERseen' });
 
     // restore the no-seat baseline for any later test in this file
+    initSeatContext('');
+  });
+});
+
+describe('Table.svelte — the one arrows overlay mounts at the table root (fb-20260914T121642Z)', () => {
+  // The counterspell-over-bolt stack: the stack-to-stack pair whose arrow was
+  // computed but invisible while the overlay lived inside the felt section.
+  const counterStack: StackView[] = [
+    { id: 890, kind: 'spell', name: 'Lightning Bolt', text: '', controller: 1, targets: [], card: null, optional: false },
+    { id: 900, kind: 'spell', name: 'Counterspell', text: '', controller: 0, targets: [{ obj: 890, player: 1, is_player: false, label: 'spell' }], card: null, optional: false },
+  ];
+
+  it('the route mounts exactly one overlay, after the rail and before the transcript — never inside the clipped felt section', () => {
+    initSeatContext('');
+    fakeMatch.shared.view = view({ stack: counterStack });
+    fakeMatch.shared.seats = seats;
+
+    const { html } = render(Table, { props: { table: 't1' } });
+
+    // Exactly one overlay in the whole route render — Board mounts none.
+    expect(html.match(/class="arrows[ "]/g)).toHaveLength(1);
+    // DOM order in the route is section.board, aside.rail, footer.transcript,
+    // then the overlay as main.table's own LAST child. `</aside>` closes the
+    // rail, which is a later sibling of the board, so anything after it is
+    // outside the clipped felt section; `</main>` closes the table root, so
+    // anything before it is still inside the overlay's host. If the mount is
+    // removed this index is -1; if it moves back into Board it lands before
+    // <aside. (Arrows.geometry.test.ts pins the same mount at real layout.)
+    const arrowsAt = html.indexOf('class="arrows');
+    expect(arrowsAt, 'the overlay renders at all').toBeGreaterThan(-1);
+    expect(arrowsAt, 'after the rail — outside the felt section Board.svelte never hosts it').toBeGreaterThan(html.indexOf('</aside>'));
+    expect(arrowsAt, 'inside main.table — the table root is the overlay host').toBeLessThan(html.lastIndexOf('</main>'));
     initSeatContext('');
   });
 });
