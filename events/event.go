@@ -111,7 +111,12 @@ const (
 	// CastInfo records how a spell was cast: Amount is the value chosen for
 	// {X} (state.Object.X), and Counter is a comma-separated list of flag
 	// names (FlagsFrom/FlagsString) folded into state.Object.CastFlags. Task
-	// 4. Appended here, after EndCombatReset, following every prior Kind's
+	// 4. Since the paid-{X} Ctx binding (CR 107.3i), commitCast's ability arm
+	// also emits it on the AbilityPush-minted stack object to record the {X}
+	// an activated ability's Cost$ was paid with -- Obj is that ability
+	// object, never the source permanent -- so Amount's meaning is "the {X}
+	// value paid for this cast or activation". Appended here, after
+	// EndCombatReset, following every prior Kind's
 	// own append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	CastInfo

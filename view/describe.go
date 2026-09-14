@@ -145,8 +145,23 @@ func Describe(g *state.Game, ev events.Event) string {
 		// they paid for), and the line is self-contained, so a DVR scrub
 		// landing on it needs no neighbouring line. It carries no Player
 		// field, so the caster is the card's controller. The two lines read
-		// as one cast: the how, then the fact.
-		cast := player(g, objController(g, ev.Obj)) + " casts " + obj(g, ev.Obj)
+		// as one cast: the how, then the fact. The same event also records an
+		// activated ability's paid {X} on the ability's stack object
+		// (rules/cast.go commitCast's ability arm), and that object must not
+		// read as a cast: the verb follows the object -- "activates" for an
+		// ability stack object minted by AbilityPush, "casts" for a real
+		// spell. The triggered/activated split is state.TriggerOf, the one
+		// classifier StackView.Kind (view.go) also uses, so the transcript
+		// and the stack view cannot disagree.
+		verb := "casts"
+		if g != nil {
+			if o := g.Obj(ev.Obj); o != nil && o.Ability != nil {
+				if _, triggered := state.TriggerOf(g, o); !triggered {
+					verb = "activates"
+				}
+			}
+		}
+		cast := player(g, objController(g, ev.Obj)) + " " + verb + " " + obj(g, ev.Obj)
 		how := make([]string, 0, 2)
 		if ev.Amount != 0 {
 			how = append(how, "X = "+itoa(int64(ev.Amount)))

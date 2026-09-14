@@ -838,9 +838,12 @@ func newFixtureDeckWithTokens(t *testing.T, seed uint64, fixtureSrc string) (*En
 			// needs (Book of a Skull's K:Living Weapon mints it, then a
 			// __kwLWAttach Attach fastens the Equipment onto it).
 			"b_0_0_phyrexian_germ": card(t, "Name:Phyrexian Germ Token\nTypes:Creature Phyrexian Germ\nPT:0/0\nOracle:x\n"),
-			// Task 18's Miracle test (miracle_test.go) casts Entreat ft. the Angels,
-			// whose TokenScript$ is w_4_4_angel_flying; tokenized here so that test
-			// and every TokenCreate firing it shares a source.
+			// TestPaidXSurvivesAMidResolutionSuspension (x_paid_test.go) casts a
+			// fixture whose SubAbility creates Entreat the Angels-shaped tokens
+			// whose TokenScript$ is w_4_4_angel_flying; tokenized here so that
+			// test and every TokenCreate firing it shares a source. (The
+			// corpus-based Entreat tests need no entry: their engine uses the
+			// corpus token registry directly.)
 			"w_4_4_angel_flying": card(t, "Name:Angel Token\nTypes:Creature Angel\nPT:4/4\nK:Flying\nOracle:x\n"),
 		},
 	}

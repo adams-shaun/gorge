@@ -79,12 +79,16 @@ func TestMiracleOffersOnTheFirstDrawOnly(t *testing.T) {
 }
 
 func TestMiracleWithXAsksX(t *testing.T) {
-	entreat := "Name:Entreat\nManaCost:X X W W W\nTypes:Sorcery\nK:Miracle:X W W\n" +
-		"A:SP$ Token | TokenAmount$ X | TokenScript$ w_4_4_angel_flying | TokenOwner$ You\n" +
-		"SVar:X:Count$xPaid\nOracle:x\n"
-	// newFixtureDeckWithTokens tokens the Angel script that Entreat's
-	// Token$ names, so a later X-binding merge can create the two Angels.
-	e, cfg, en := newFixtureDeckWithTokens(t, 103, entreat)
+	// The REAL repo-deck card, from the corpus (see
+	// entreat_the_angels_test.go for why a name-sharing fixture would defend
+	// nothing): entreatCorpusCard asserts the compiled script carries
+	// K:Miracle:X W W and the TokenAmount$ X body, and the engine's token
+	// registry is the corpus's own, so the minted angels are the real
+	// w_4_4_angel_flying token.
+	e, cfg, en, entreatCard := entreatCorpusEngine(t, 103)
+	if e.G.Obj(en).Card != entreatCard {
+		t.Fatal("the miracle-test object is not the corpus Entreat the Angels card")
+	}
 	moveToLibraryTop(t, e, en)
 	addMana(t, e, 0, "WWWW")
 	e.pendingTriggers = nil
@@ -103,18 +107,24 @@ func TestMiracleWithXAsksX(t *testing.T) {
 	// white tapped in, flags the spell, puts it on the stack with X recorded.
 	submitChoices(t, e, 2)
 	o := e.G.Obj(en)
-	if o.Zone != state.ZStack || o.X != 2 || o.CastFlags&state.FlagMiracle == 0 {
-		t.Fatalf("after X=2: zone=%s X=%d flags=%d", o.Zone, o.X, o.CastFlags)
+	if o.Zone != state.ZStack || o.X != 2 || o.CastFlags&state.FlagMiracle == 0 || o.Card != entreatCard {
+		t.Fatalf("after X=2: zone=%s X=%d flags=%d corpusCard=%v", o.Zone, o.X, o.CastFlags, o.Card == entreatCard)
 	}
-	// NOTE: the resolved effect would create TokenAmount$ X Angels (xPaid ==
-	// 2), but binding the chosen X into the resolving effect's Ctx.X happens in
-	// rules/stack.go's resolveAbility -- held on a parallel agent's branch and
-	// not editable here -- so on this snapshot the spell still resolves but
-	// xPaid reads 0. Assert resolution itself (stack -> graveyard) rather than
-	// the angel count; the parallel X-binding completes this.
+	// The resolved effect creates TokenAmount$ X Angels (xPaid == 2):
+	// resolveTop's spell branch binds the CastInfo-recorded X into
+	// effects.Ctx.X, so SVar:X:Count$xPaid answers the chosen value.
 	passUntilStackEmpty(t, e, 30)
 	if e.G.Obj(en).Zone != state.ZGraveyard {
 		t.Fatalf("Entreat zone %s after resolving", e.G.Obj(en).Zone)
+	}
+	angels := 0
+	for _, tok := range e.G.Zone(state.ZBattlefield, 0) {
+		if f := e.G.Obj(tok).Face(); f != nil && f.Name == "Angel Token" {
+			angels++
+		}
+	}
+	if angels != 2 {
+		t.Fatalf("Angels on the battlefield = %d, want 2", angels)
 	}
 	replayCheck(t, e, cfg)
 }

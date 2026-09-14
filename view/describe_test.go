@@ -188,6 +188,56 @@ func TestDescribeAbilityObjectNamesSource(t *testing.T) {
 	}
 }
 
+// TestDescribeCastInfoOnAnActivatedAbilitySaysActivates is the view-side
+// regression pin for the paid-{X} binding's ability arm: commitCast
+// (rules/cast.go) records an activated ability's chosen {X} with the same
+// CastInfo event the spell arm uses, on the AbilityPush-minted stack object,
+// and that object is faceless -- so the old unconditional "casts" verb
+// rendered the activation as "Ann casts Bear's ability #N (X = 2)". The verb
+// follows the object: "activates" for an ability stack object that is not a
+// trigger mint (state.TriggerOf, the classifier StackView.Kind shares),
+// "casts" for a spell object and for a trigger mint (which no CastInfo
+// emitter ever targets; the branch is Describe's totality stance).
+func TestDescribeCastInfoOnAnActivatedAbilitySaysActivates(t *testing.T) {
+	bear, _ := cards.ParseBytes("b.txt", []byte("Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"))
+	crier, _ := cards.ParseBytes("c.txt", []byte("Name:Crier\nManaCost:1 W\nTypes:Creature Human\n"+
+		"T:Mode$ Phase | Phase$ End of Turn | Execute$ TrigLife | TriggerDescription$ x\n"+
+		"SVar:TrigLife:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"))
+	crier.Link()
+	g := state.NewGame([]string{"Ann", "Bob"})
+	b := g.AddObject(bear, 0)
+	c := g.AddObject(crier, 0)
+
+	mint := func(source state.ObjID, sa *cards.SA) *state.Object {
+		o := g.AddObject(nil, 0)
+		o.Ability = sa
+		o.Source = source
+		return o
+	}
+
+	// An activated-ability stack object (no T: line on Bear's face matches it,
+	// so state.TriggerOf misses) reads as an activation.
+	activated := mint(b.ID, &cards.SA{API: "PutCounter"})
+	if got, want := Describe(g, events.Event{Kind: events.CastInfo, Obj: activated.ID, Amount: 2}),
+		"Ann activates Bear's ability #"+itoa(int64(activated.ID))+" (X = 2)"; got != want {
+		t.Fatalf("CastInfo on an activated ability = %q, want %q", got, want)
+	}
+
+	// A spell object still reads as a cast (the templates table's own
+	// "cast info x" row covers this; asserted here against a real face too).
+	if got := Describe(g, events.Event{Kind: events.CastInfo, Obj: b.ID, Amount: 3}); !strings.Contains(got, " casts ") {
+		t.Fatalf("CastInfo on a spell object = %q, want the casts verb", got)
+	}
+
+	// A trigger mint (state.TriggerOf matches the source face's T: Effect by
+	// pointer identity) keeps the casts verb: no emitter targets one, so this
+	// only pins the branch's totality stance.
+	triggered := mint(c.ID, crier.Faces[0].Triggers[0].Effect)
+	if got := Describe(g, events.Event{Kind: events.CastInfo, Obj: triggered.ID, Amount: 1}); !strings.Contains(got, " casts ") {
+		t.Fatalf("CastInfo on a trigger mint = %q, want the casts verb", got)
+	}
+}
+
 func TestDescribeCoversEveryKind(t *testing.T) {
 	g, bear, _ := describeFixture(t)
 	// The bound derives from the enum (events.NumKinds), never a kind name:

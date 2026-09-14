@@ -1638,6 +1638,20 @@ func (e *Engine) payCast() {
 		if len(e.G.Stack) > 0 {
 			pc.stackObj = e.G.Stack[len(e.G.Stack)-1]
 		}
+		// CR 107.3i: record the chosen {X} on the ability stack object, the
+		// same way the spell arm records it on the spell below. The shared
+		// xAsk stage asked and paid it (pc.cost.WithX(pc.x)), but AbilityPush's
+		// Amount is the ability index, not the X value, so without this the
+		// paid X never reaches resolution and every Cost$-X parameter
+		// (CounterNum$ X, NumDmg$ X, NumCards$ X, SVar:X:Count$xPaid) reads 0.
+		// Obj is pc.stackObj (the minted ability object), never pc.card (the
+		// source permanent), so the permanent's own X (e.g. a Walking
+		// Ballista's ETB value) is not clobbered. Emitted AFTER the push so
+		// the object exists for events.Apply to write it on. Zero means no
+		// X was paid: no event, matching the spell arm's guard.
+		if pc.x != 0 {
+			e.emit(events.Event{Kind: events.CastInfo, Obj: pc.stackObj, Amount: pc.x})
+		}
 		if e.sacrificedLKI == nil {
 			e.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo)
 		}
