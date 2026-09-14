@@ -320,6 +320,8 @@ func parsePT(pt string) (pow, tgh int32, cd bool) {
 // converted mana cost, an exact mirror of botpolicy.CmcOf. It deliberately
 // re-derives rules/mana.go's ParseCost.CMC() by hand here because cards can
 // import neither botpolicy nor rules.
+func (f *Face) ManaValue() int32 { return cmcFromManaCost(f.ManaCost) }
+
 func cmcFromManaCost(mc string) int32 {
 	mc = manaBraceForm.Replace(mc)
 	mc = strings.TrimSpace(mc)

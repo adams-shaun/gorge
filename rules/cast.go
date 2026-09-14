@@ -58,24 +58,26 @@ type pendingCast struct {
 	discards    []state.ObjID
 	discardPart int
 
-	// payIdx / payColor / payLife carry the hybrid and Phyrexian payment
+	// payIdx / payColor / payLife / payGeneric carry the flexible-pip payment
 	// announcement (CR 601.2b/107.4e-f). manaAsk walks the cost's combined
-	// hybrid-then-Phyrexian pip list one decision at a time; payIdx is the
-	// next unsettled pip, payColor accumulates the coloured spend the
-	// announced pips chose, and payLife the life a Phyrexian pip paid with
-	// two life costs. Plain data, so Clone copies it like x/delve/sacs/discards.
-	payIdx   int
-	payColor state.Mana
-	payLife  int32
+	// announcement-pip list one decision at a time; payIdx is the next
+	// unsettled pip, payColor accumulates the coloured spend the announced
+	// pips chose, payLife the life a Phyrexian face paid with two life costs,
+	// and payGeneric the generic a monocolour hybrid pip paid with its
+	// generic face. Plain data, so Clone copies it like x/delve/sacs/discards.
+	payIdx     int
+	payColor   state.Mana
+	payLife    int32
+	payGeneric int32
 
-	// raise / reduce / taxGeneric carry the CR 601.2f cost composition: the
-	// RaiseCost and ReduceCost generic amounts (computed in beginCast for a
-	// spell, beginActivation for an ability) and the CR 903.8 commander tax.
-	// They are applied to the mana cost only AFTER {X} is folded into Generic
+	// mods / taxGeneric carry the CR 601.2f cost composition: the evaluated
+	// RaiseCost/ReduceCost modifiers (computed in beginCast for a spell,
+	// beginActivation for an ability — Color$ reductions, MinMana$ floors and
+	// the SetCost floor included) and the CR 903.8 commander tax. They are
+	// applied to the mana cost only AFTER {X} is folded into Generic
 	// (manaToPay), so an {X} reduction is not lost and the tax (an additional
 	// cost) is never reduced -- increases before reductions, per 601.2f.
-	raise      int32
-	reduce     int32
+	mods       costMods
 	taxGeneric int32
 
 	// windowDone is set when the 601.2g mana window was answered "done", so
@@ -236,7 +238,7 @@ func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32) in
 func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability bool) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic)
-	if !mana.payable(e.G.Players[p].Pool, e.G.Players[p].Life) {
+	if !mana.payable(e.G.Players[p].Pool, e.G.Players[p].Snow, e.G.Players[p].Life) {
 		return false
 	}
 	reserved := map[state.ObjID]bool{}
@@ -479,9 +481,9 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// than folded into cost, so manaToPay adds it AFTER the 601.2f modifiers
 	// and never lets those spill onto it.
 	tax := e.commanderTaxAmount(p, id)
-	raise, reduce := e.costModifiers(p, id, "Spell")
+	mods := e.costModifiers(p, id, spellScope(opt.Mode))
 	e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
-		cost: cost, raise: raise, reduce: reduce, taxGeneric: tax}
+		cost: cost, mods: mods, taxGeneric: tax}
 	e.collectETBChoices(p)
 	e.continueCast()
 }
@@ -634,7 +636,7 @@ func (e *Engine) xAsk() bool {
 	for x := int32(0); x <= bound; x++ {
 		wx := e.manaToPayX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
-		if !wx.payable(pool, e.G.Players[pc.player].Life) {
+		if !wx.payable(pool, e.G.Players[pc.player].Snow, e.G.Players[pc.player].Life) {
 			break
 		}
 		max = x
@@ -1024,22 +1026,43 @@ func etbChoicePrompt(kind string) string {
 	return " a number"
 }
 
-// announcePip resolves the i-th announcement pip of a cost's hybrid-then-
-// Phyrexian list into its acceptable colours and whether it may be paid with
-// two life (a Phyrexian pip). It is the single source both manaAsk (the ask's
+// announcePip resolves the i-th announcement pip of a cost's hybrid →
+// monocolour-hybrid → Phyrexian → hybrid-Phyrexian list into its alternative
+// payments, in the order manaAsk offers them (each colour, then a generic
+// face, then life). It is the single source both manaAsk (the ask's
 // valid-option set) and castAnswer (recording the choice) consult, so the
-// option offered and the recorded choice always agree.
-func (c Cost) announcePip(i int) (colors [2]byte, lifeOK bool) {
+// option offered and the recorded choice always agree. Snow pips are not
+// announcement pips: a {S} pip has no alternative payment to announce.
+func (c Cost) announcePip(i int) []pipAlt {
 	if i < len(c.Hybrid) {
 		p := c.Hybrid[i]
-		return [2]byte{p.A, p.B}, false
+		return []pipAlt{{color: p.A}, {color: p.B}}
 	}
-	letter := c.Phyrexian[i-len(c.Hybrid)]
-	return [2]byte{letter, letter}, true
+	i -= len(c.Hybrid)
+	if i < len(c.Twobrid) {
+		t := c.Twobrid[i]
+		alts := []pipAlt{{color: t.Col}}
+		if t.Generic > 0 {
+			alts = append(alts, pipAlt{generic: t.Generic})
+		}
+		return alts
+	}
+	i -= len(c.Twobrid)
+	if i < len(c.Phyrexian) {
+		letter := c.Phyrexian[i]
+		return []pipAlt{{color: letter}, {life: 2}}
+	}
+	i -= len(c.Phyrexian)
+	hp := c.HybridPhyrexian[i]
+	return []pipAlt{{color: hp.A}, {color: hp.B}, {life: 2}}
 }
 
-// annPipCount is how many hybrid + Phyrexian pips a cost carries.
-func (c Cost) annPipCount() int { return len(c.Hybrid) + len(c.Phyrexian) }
+// annPipCount is how many announcement pips a cost carries: the two-colour
+// hybrids, the monocolour hybrids, the Phyrexian pips and the
+// hybrid-Phyrexian pips (snow pips have nothing to announce).
+func (c Cost) annPipCount() int {
+	return len(c.Hybrid) + len(c.Twobrid) + len(c.Phyrexian) + len(c.HybridPhyrexian)
+}
 
 // resolvedMana returns the cost the announced payment actually commits: X
 // folded, every hybrid and Phyrexian pip removed (each was announced by
@@ -1051,9 +1074,12 @@ func (pc *pendingCast) resolvedMana() Cost {
 	m := pc.cost.WithX(pc.x)
 	m.Hybrid = nil
 	m.Phyrexian = nil
+	m.Twobrid = nil
+	m.HybridPhyrexian = nil
 	for i := range pc.payColor {
 		m.Colored[i] += pc.payColor[i]
 	}
+	m.Generic += pc.payGeneric
 	return m
 }
 
@@ -1063,9 +1089,12 @@ func (pc *pendingCast) resolvedManaX(x int32) Cost {
 	m := pc.cost.WithX(x)
 	m.Hybrid = nil
 	m.Phyrexian = nil
+	m.Twobrid = nil
+	m.HybridPhyrexian = nil
 	for i := range pc.payColor {
 		m.Colored[i] += pc.payColor[i]
 	}
+	m.Generic += pc.payGeneric
 	return m
 }
 
@@ -1077,24 +1106,14 @@ func (pc *pendingCast) resolvedManaX(x int32) Cost {
 // the caller's concern (targetAsk/payCast subtract pc.delve from Generic
 // before the payable/payment check, exactly as before).
 func (e *Engine) manaToPay(pc *pendingCast) Cost {
-	m := pc.resolvedMana()
-	m.Generic += pc.raise
-	m.Generic -= pc.reduce
-	if m.Generic < 0 {
-		m.Generic = 0
-	}
+	m := pc.mods.apply(pc.resolvedMana())
 	m.Generic += pc.taxGeneric
 	return m
 }
 
 // manaToPayX is manaToPay with {X} folded to an explicit value.
 func (e *Engine) manaToPayX(pc *pendingCast, x int32) Cost {
-	m := pc.resolvedManaX(x)
-	m.Generic += pc.raise
-	m.Generic -= pc.reduce
-	if m.Generic < 0 {
-		m.Generic = 0
-	}
+	m := pc.mods.apply(pc.resolvedManaX(x))
 	m.Generic += pc.taxGeneric
 	return m
 }
@@ -1120,7 +1139,7 @@ func (e *Engine) manaAsk() bool {
 	if pc == nil || pc.payIdx >= pc.cost.annPipCount() {
 		return false
 	}
-	colors, lifeOK := pc.cost.announcePip(pc.payIdx)
+	alts := pc.cost.announcePip(pc.payIdx)
 	// remaining pool = the payer's pool minus what earlier announced pips
 	// (payColor) have already reserved, and the life already committed.
 	rem := e.G.Players[pc.player].Pool
@@ -1131,24 +1150,36 @@ func (e *Engine) manaAsk() bool {
 	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose how to pay a mana symbol of " + e.G.Obj(pc.card).Face().Name,
 		Source: pc.card}
-	// Hybrid (and a Phyrexian pip's colour half): one option per DISTINCT
-	// colour that has pool mana left, A then B. A single-colour Phyrexian pip
-	// carries the same colour twice, so the seen set keeps one option for it.
+	// One option per DISTINCT colour alternative with pool mana left (A then
+	// B; a single-colour Phyrexian pip carries the same colour twice, so the
+	// seen set keeps one option for it), then a monocolour hybrid's generic
+	// face, then life.
 	seen := map[byte]bool{}
-	for _, col := range colors {
-		if col == 0 || seen[col] {
-			continue
-		}
-		seen[col] = true
-		if rem[state.ManaIndex(col)] > 0 {
+	seenGeneric := false
+	for _, alt := range alts {
+		switch {
+		case alt.color != 0:
+			if seen[alt.color] {
+				continue
+			}
+			seen[alt.color] = true
+			if rem[state.ManaIndex(alt.color)] > 0 {
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+					Kind: "pay_" + string(alt.color), Label: "Pay " + string(alt.color), Amount: 1})
+			}
+		case alt.generic > 0:
+			if seenGeneric {
+				continue
+			}
+			seenGeneric = true
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-				Kind: "pay_" + string(col), Label: "Pay " + string(col), Amount: 1})
+				Kind: "pay_generic", Label: fmt.Sprintf("Pay %d generic", alt.generic), Amount: int(alt.generic)})
+		case alt.life > 0:
+			if life >= 2 {
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+					Kind: "pay_life", Label: "Pay 2 life", Amount: 2})
+			}
 		}
-	}
-	// Phyrexian: its colour (already offered above if in pool) or two life.
-	if lifeOK && life >= 2 {
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-			Kind: "pay_life", Label: "Pay 2 life", Amount: 2})
 	}
 	if len(d.Options) == 0 {
 		// Defensive: castable already proved at least one alternative, but a
@@ -1241,8 +1272,14 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		}
 		pc.payIdx++
 	case "pay_life":
-		// A Phyrexian pip paid with two life.
+		// A Phyrexian face (plain or hybrid) paid with two life.
 		pc.payLife += 2
+		pc.payIdx++
+	case "pay_generic":
+		// A monocolour hybrid pip paid with its generic face.
+		if len(chosen) > 0 {
+			pc.payGeneric += int32(chosen[0].Amount)
+		}
 		pc.payIdx++
 	case "activate":
 		// CR 601.2g: a source's mana abilities are distinct activations that
@@ -1335,7 +1372,7 @@ func (e *Engine) targetAsk() bool {
 			mana.Generic = 0
 		}
 	}
-	if !mana.payable(e.G.Players[pc.player].Pool, e.G.Players[pc.player].Life) && !e.hasUntappedManaSource(pc.player) {
+	if !mana.payable(e.G.Players[pc.player].Pool, e.G.Players[pc.player].Snow, e.G.Players[pc.player].Life) && !e.hasUntappedManaSource(pc.player) {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return true
 	}
@@ -1516,7 +1553,7 @@ func (e *Engine) manaWindowAsk() bool {
 	}
 	// A pool that already pays the total cost needs no window (nothing to
 	// gain by activating more mana abilities here).
-	if mana.payable(e.G.Players[pc.player].Pool, e.G.Players[pc.player].Life) {
+	if mana.payable(e.G.Players[pc.player].Pool, e.G.Players[pc.player].Snow, e.G.Players[pc.player].Life) {
 		return false
 	}
 	var sources []state.ObjID

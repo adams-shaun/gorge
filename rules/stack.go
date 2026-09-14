@@ -35,14 +35,31 @@ var manaLetters = [...]string{"W", "U", "B", "R", "G", "C"}
 // abort the cast instead.
 func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
 	before := e.G.Players[p].Pool
-	after, lifeSpent, ok := cost.resolveMana(before, e.G.Players[p].Life)
+	beforeSnow := e.G.Players[p].Snow
+	pay, ok := cost.resolveMana(before, beforeSnow, e.G.Players[p].Life)
 	if !ok {
 		return false
 	}
+	after, afterSnow, lifeSpent := pay.pool, pay.snow, pay.lifeSpent
 	for i, letter := range manaLetters {
-		if spent := before[i] - after[i]; spent != 0 {
-			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -spent})
+		spent := before[i] - after[i]
+		if spent == 0 {
+			continue
 		}
+		// A slot whose snow units were spent (all or part) emits the
+		// "S<colour>" Counter form so the parallel snow tally moves with the
+		// pool through the same events the adds used. resolveMana consumes a
+		// non-snow unit before a snow one wherever a choice existed, so the
+		// snow split here is exactly what the payment search did.
+		snowSpent := beforeSnow[i] - afterSnow[i]
+		if snowSpent > 0 {
+			if plain := spent - snowSpent; plain > 0 {
+				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -plain})
+			}
+			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: "S" + letter, Amount: -snowSpent})
+			continue
+		}
+		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -spent})
 	}
 	// Fixed life costs and any Phyrexian pips paid with life are deducted
 	// through the ordinary LifeChange event so a replay learns them.
@@ -1092,6 +1109,55 @@ func (e *Engine) CastThisTurn() int {
 		}
 		if ev.Kind == events.PutOnStack {
 			n++
+		}
+	}
+	return n
+}
+
+// SpellsCastThisTurnMatching satisfies effects.Host's
+// SpellsCastThisTurnMatching for Count$ThisTurnCast_<spec> (the
+// "first/second spell you cast" cost modifiers and triggers): spells put on
+// the stack this turn whose object matches the Forge spec. When the spec
+// carries a You* qualifier the count scopes to YOU's casts; otherwise it
+// counts everyone's. Derived from the event log like CastThisTurn.
+func (e *Engine) SpellsCastThisTurnMatching(you state.PlayerID, spec string) int {
+	youScoped := strings.Contains(spec, "You")
+	n := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind != events.PutOnStack {
+			continue
+		}
+		if youScoped && ev.Player != you {
+			continue
+		}
+		if effects.MatchesSpecFrom(e.G, spec, ev.Obj, you, ev.Obj) {
+			n++
+		}
+	}
+	return n
+}
+
+// LifeLostThisTurn satisfies effects.Host's LifeLostThisTurn for
+// Count$LifeOppsLostThisTurn (Rakdos, Lord of Riots' cost reduction): the
+// total life p lost this turn, summed from every LifeChange below zero since
+// the last TurnChange. Derived from the event log like CastThisTurn, so a
+// replay that rebuilds the game arrives at the same number. Life GAINED is
+// not folded in — "lost life" is a loss even if the player ended the turn
+// higher than they started (CR 118.3's distinction, and the reading Forge's
+// own head takes).
+func (e *Engine) LifeLostThisTurn(p state.PlayerID) int32 {
+	var n int32
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.LifeChange && ev.Player == p && ev.Amount < 0 {
+			n += -ev.Amount
 		}
 	}
 	return n

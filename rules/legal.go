@@ -211,7 +211,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		// Only the plain cast folds the extras, matching beginCast's own
 		// condition: the kicked/surged/flashback/miracle offers below set
 		// Mode, and beginCast skips the fold for those.
-		base := e.offerCostFor(p, id, e.rawBaseCost(p, id), false)
+		base := e.offerCostFor(p, id, e.rawBaseCost(p, id), spellScope(""))
 		if e.castable(p, id, withSpellAbilityExtras(f, base), false) {
 			add("cast", "Cast "+f.Name, id)
 		}
@@ -223,7 +223,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			// matching permanents exist, and beginCast then asked a sacrifice
 			// decision with zero options that no answer could escape. castable
 			// is the same gate every other "cast" option uses.
-			if e.castable(p, id, e.offerCostFor(p, id, alt, false), false) {
+			if e.castable(p, id, e.offerCostFor(p, id, alt, spellScope("")), false) {
 				// AltCostIndex is i+1, not i: the zero value must mean "the
 				// card's own cost" so every other Option literal in the tree
 				// (play_land, activate, pass, and the base "cast" option
@@ -237,7 +237,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (kicked)", Obj: id, Mode: "kicked"})
 		}
-		if sc, ok := surgeCost(f); ok && e.spellsCastThisTurn(p) > 0 && e.castable(p, id, e.offerCostFor(p, id, sc, false), false) {
+		if sc, ok := surgeCost(f); ok && e.spellsCastThisTurn(p) > 0 && e.castable(p, id, e.offerCostFor(p, id, sc, spellScope("surged")), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (surged)", Obj: id, Mode: "surged"})
 		}
@@ -276,7 +276,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		cost := e.offerCostFor(p, id, e.rawBaseCost(p, id), false)
+		cost := e.offerCostFor(p, id, e.rawBaseCost(p, id), spellScope(""))
 		if e.castable(p, id, cost, false) {
 			add("cast", "Cast "+f.Name, id)
 		}
@@ -304,7 +304,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		if fc := e.flashbackCost(id); e.castable(p, id, e.offerCostFor(p, id, fc, false), false) {
+		if fc := e.flashbackCost(id); e.castable(p, id, e.offerCostFor(p, id, fc, spellScope("flashback")), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (flashback)", Obj: id, Mode: "flashback"})
 		}
@@ -386,7 +386,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				if cost.Tap && (o.Tapped || (z == state.ZBattlefield && o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
 					continue
 				}
-				if !e.castable(p, id, e.offerCostFor(p, id, cost, true), true) {
+				if !e.castable(p, id, e.offerCostFor(p, id, cost, abilityScope(ab)), true) {
 					continue
 				}
 				if !e.abilityTargetsAvailable(p, id, ab) {

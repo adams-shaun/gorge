@@ -37,9 +37,9 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 	// ReduceCost Type=Ability is applied here (raise/reduce), folded into the
 	// total by manaToPay when the cost is paid -- the same composition a
 	// spell's cast gets.
-	raise, reduce := e.costModifiers(p, opt.Obj, "Ability")
+	mods := e.costModifiers(p, opt.Obj, abilityScope(ab))
 	e.cast = &pendingCast{player: p, card: opt.Obj, from: o.Zone, ability: opt.Ability,
-		cost: ParseCost(ab.Params["Cost"]), raise: raise, reduce: reduce}
+		cost: ParseCost(ab.Params["Cost"]), mods: mods}
 	e.continueCast()
 }
 
