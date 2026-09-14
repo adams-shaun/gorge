@@ -183,7 +183,7 @@ def new_from_inbox(md_path: Path) -> Issue:
     """A hand-authored ticket: the whole file body becomes the report, and
     the id is the filename stem so re-dropping the same file is a no-op."""
     text = md_path.read_text().strip()
-    title_line = next((l for l in text.splitlines() if l.strip()), md_path.stem)
+    title_line = next((l for l in text.splitlines() if l.strip() and not l.startswith("Depends-On:")), md_path.stem)
     issue = Issue(
         id=f"inbox-{md_path.stem}",
         title=title_line.lstrip("#").strip()[:80],
