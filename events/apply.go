@@ -715,6 +715,19 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ChosenName, o.ChosenType, o.ChosenNumber = "", "", 0
 			o.Chosen = nil
 		}
+		// CR 107.3m: the paid X belongs to the spell on the stack and to the
+		// permanent the spell becomes, and to nothing else. An object leaving
+		// the stack for a zone OTHER than the battlefield -- a countered or
+		// fizzled spell into the graveyard, a resolving instant/sorcery -- is
+		// a card in a non-battlefield zone, where X in its text is 0. Without
+		// this the stale paid X rides along: a countered Genesis Hydra
+		// reanimated later would resolve its ETB trigger with the dead cast's
+		// X instead of 0. (A stack->battlefield move keeps X/CastFlags -- the
+		// battlefield case above deliberately does not reset them, which is
+		// what lets an ETB trigger read them off the permanent.)
+		if wasStack {
+			o.X, o.CastFlags = 0, 0
+		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
 		// when a permanent spell carries its announcement onto the battlefield).
 		// Clearing it as an object leaves the stack keeps this derived cache out

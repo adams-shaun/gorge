@@ -351,7 +351,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// mid-resolution ask (modes, discard, dig, unless-pay) keeps the paid
 	// X for the rest of the walk instead of resuming with 0. Set here for
 	// every resume; the replacement arm below has no other X to restore.
+	// For a trigger that suspends, CR 107.3m's binding applies exactly as
+	// resolveTop's ability branch does it: the trigger object was never
+	// paid an X, so the causing event's card supplies the value.
 	ctx.X = o.X
+	if ctx.X == 0 {
+		ctx.X = e.triggerPaidX(rp.obj, o)
+	}
 	var svars map[string]string
 	if o.Ability != nil {
 		// A triggered or activated ability: mirror resolveTop's ability
