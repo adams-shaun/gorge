@@ -289,6 +289,21 @@ describe('CardHover', () => {
     h.blur(cardA);
     expect(h.hover.show).toBe(false);
   });
+
+  it('makes pointer-origin focus pointer-owned while retaining keyboard focus ownership', () => {
+    const h = new CardHover();
+    h.pointerdown(cardA, el);
+    h.open(cardA, el); // browser focus following a click
+    h.pointerup(cardA);
+    h.leave(cardA);
+    expect(h.hover.show).toBe(false);
+
+    h.pointerdown(cardB, el);
+    h.pointerup(cardB); // an unused pointer mark cannot taint a later Tab
+    h.open(cardB, el);
+    h.leave(cardB);
+    expect(h.hover.show).toBe(true);
+  });
 });
 
 describe('placePanel', () => {

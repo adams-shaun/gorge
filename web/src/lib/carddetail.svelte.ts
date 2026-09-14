@@ -285,6 +285,10 @@ export class CardHover {
   // merely leaves that same card).
   private pointer: { card: CardView; el: HTMLElement; ready: boolean } | null = null;
   private focusedId: number | null = null;
+  // Browsers focus a button as the default action of pointerdown. Remember
+  // that short hand-off so open() can distinguish it from Tab/Enter focus:
+  // pointer focus belongs to the pointer and must release on pointerleave.
+  private pointerFocusId: number | null = null;
 
   /** env passes through to the HoverCard, so a test can inject a fake clock (the same TimerEnv HoverCard takes). */
   constructor(env: Partial<TimerEnv> = {}) {
@@ -303,14 +307,41 @@ export class CardHover {
 
   /** A pointerleave releases only the pointer that entered this card. */
   leave(card: CardView): void {
+    if (this.pointerFocusId === card.id) this.pointerFocusId = null;
     if (this.pointer?.card.id !== card.id) return;
     this.pointer = null;
     if (this.focusedId !== null || this.card?.id !== card.id) return;
     this.hover.close();
   }
 
+  /**
+   * pointerdown marks the browser focus which follows it as pointer-origin.
+   * The following pointerup/leave clears an unused mark, so a later Tab
+   * focus retains the keyboard-owned inspector contract.
+   */
+  pointerdown(card: CardView, el: HTMLElement): void {
+    this.pointer = { card, el, ready: true };
+    this.pointerFocusId = card.id;
+  }
+
+  /** A pointer focus happens before pointerup; an unused mark must not leak. */
+  pointerup(card: CardView): void {
+    if (this.pointerFocusId === card.id) this.pointerFocusId = null;
+  }
+
   open(card: CardView, el: HTMLElement): void {
-    this.focusedId = card.id;
+    const pointerOrigin = this.pointerFocusId === card.id;
+    // A focus event consumes any preceding pointerdown mark, including one
+    // for another card. It must never leak into a later keyboard focus.
+    this.pointerFocusId = null;
+    if (pointerOrigin) {
+      // A click opens immediately, but its owner is the pointer rather than
+      // focus. The matching leave() therefore closes it like every hover.
+      this.focusedId = null;
+      this.pointer = { card, el, ready: true };
+    } else {
+      this.focusedId = card.id;
+    }
     this.card = card;
     this.hover.open(card.id, () => {
       this.anchor = rectOf(el);
@@ -341,6 +372,7 @@ export class CardHover {
   close(): void {
     this.pointer = null;
     this.focusedId = null;
+    this.pointerFocusId = null;
     this.hover.close();
   }
 
