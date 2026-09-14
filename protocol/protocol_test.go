@@ -54,6 +54,7 @@ func fixtures(t *testing.T) []Frame {
 		mk(TTableHalted, 9500, TableHaltedBody{Reason: "intent rejected: choice 3 out of range (2 options)"}),
 		mk(TOverflow, 0, Overflow{Dropped: 17}),
 		mk(TError, 0, ErrorBody{Code: "unknown_table", Message: "no table t9"}),
+		mk(TRewind, 900, Snapshot{View: v, TurnStarts: []uint64{0, 402}, Head: 900, Seats: []SeatInfo{{Name: "mono-red-goblins", Deck: "mono-red-goblins", Colour: SeatColours[0]}}}),
 	}
 }
 

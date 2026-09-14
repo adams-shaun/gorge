@@ -8,6 +8,7 @@ import (
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/seat"
+	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
 )
 
@@ -108,27 +109,50 @@ type parking struct {
 	d         decision.Decision
 	timeout   time.Duration
 	caretaker seat.Seat
+	// undo is the match's undo-request channel (nil for the plain seat
+	// API); await reports an undoRequest carrying the requesting seat when
+	// it fires, so an undo can interrupt a parked human exactly as a
+	// submitted intent would.
+	undo <-chan state.PlayerID
 }
 
 // park installs d as the seat's pending decision without blocking, returning
 // a handle whose await() blocks for the answer. It snapshots the think budget
 // and caretaker under the same mutex Decide took, so await behaves exactly as
-// the old one-shot Decide did.
-func (s *HumanSeat) park(ctx context.Context, v view.View, d decision.Decision) *parking {
+// the old one-shot Decide did. undo, when non-nil, is the match's undo-request
+// channel: await reports the undoRequest on it instead of an intent, so an
+// undo can interrupt a parked human. The plain seat API (Decide) passes nil —
+// a nil channel never fires.
+func (s *HumanSeat) park(ctx context.Context, v view.View, d decision.Decision, undo <-chan state.PlayerID) *parking {
 	slot := &pendingSlot{dec: d, recv: make(chan decision.Intent, 1)}
 	s.mu.Lock()
 	s.slot = slot
 	timeout := s.timeout
 	caretaker := s.caretaker
 	s.mu.Unlock()
-	return &parking{s: s, slot: slot, ctx: ctx, v: v, d: d, timeout: timeout, caretaker: caretaker}
+	return &parking{s: s, slot: slot, ctx: ctx, v: v, d: d, timeout: timeout, caretaker: caretaker, undo: undo}
 }
 
 // Decide records d as the pending decision and blocks until a matching intent
 // is submitted, ctx is done, or ThinkTimeout elapses — park immediately
-// followed by await. It satisfies seat.Seat.
+// followed by await. It satisfies seat.Seat. The plain seat API never sees an
+// undo channel, so Decide's parking carries a nil one (a nil channel never
+// fires).
 func (s *HumanSeat) Decide(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
-	return s.park(ctx, v, d).await()
+	return s.park(ctx, v, d, nil).await()
+}
+
+// abandon clears the seat's slot if it is still this parking's — the same
+// identity guard await's own defer uses. play's undo path calls it on a
+// decision an undo discards, so the abandoned decision stops being
+// answerable before the match is rewound out from under it.
+func (p *parking) abandon() {
+	s := p.s
+	s.mu.Lock()
+	if s.slot == p.slot {
+		s.slot = nil
+	}
+	s.mu.Unlock()
 }
 
 // await is the blocking second half of Decide: it waits until the parked
@@ -160,6 +184,11 @@ func (p *parking) await() (decision.Intent, error) {
 				return s.viaCaretaker(p.ctx, p.v, p.d, p.caretaker)
 			}
 			return decision.Intent{}, p.ctx.Err()
+		case req := <-p.undo:
+			// The undo signal won the race against any intent: the decision
+			// this parking was installed for is about to be rewound away.
+			// The payload is the requesting seat; play consumes it.
+			return decision.Intent{}, undoRequest{player: req}
 		case <-timer.C:
 			if p.caretaker != nil {
 				return s.viaCaretaker(p.ctx, p.v, p.d, p.caretaker)
@@ -167,7 +196,7 @@ func (p *parking) await() (decision.Intent, error) {
 			// A timeout configured but no caretaker to fall back to is an
 			// unarmed seat (unreachable when play configured it); rather than
 			// error a decision nobody asked us to abandon, drop through to the
-			// blocking select and keep waiting on submit/ctx.
+			// blocking select and keep waiting on submit/ctx/undo.
 		}
 	}
 	select {
@@ -178,6 +207,8 @@ func (p *parking) await() (decision.Intent, error) {
 			return s.viaCaretaker(p.ctx, p.v, p.d, p.caretaker)
 		}
 		return decision.Intent{}, p.ctx.Err()
+	case req := <-p.undo:
+		return decision.Intent{}, undoRequest{player: req}
 	}
 }
 

@@ -83,6 +83,13 @@ type match struct {
 	winner     *uint8
 	head       string
 	reason     string // crash reason (Task 13)
+	// undo carries an undo request (Registry.Undo, host/undo.go) into the
+	// play loop: buffered, size 1, the requesting seat as payload, signalled
+	// non-blocking, consumed either at the top of the loop's next iteration
+	// or in a parked human seat's await select — whichever the loop reaches
+	// first. Created at match build, never reassigned, and dies with the
+	// match: a signal left buffered on a finished match is simply never read.
+	undo chan state.PlayerID
 }
 
 // snapshot is a cloned engine at an intent boundary that began a turn.
@@ -133,6 +140,15 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 		}
 		names[i], decks[i], deckNames[i], cmds[i] = d.Name, d.Cards, dn, d.Commanders
 		infos[i] = protocol.SeatInfo{Name: playerNames[i], Deck: d.Name, Colour: protocol.SeatColours[i%len(protocol.SeatColours)]}
+		// Human marks the slots TableConfig.Humans seats with a real person:
+		// the wire signal a client's undo control reads (protocol.SeatInfo's
+		// doc).
+		for _, h := range c.Humans {
+			if h == i {
+				infos[i].Human = true
+				break
+			}
+		}
 	}
 	cfg := rules.Config{Seed: seed, Names: names, PlayerNames: playerNames, Decks: decks, Tokens: r.opts.Tokens, Mulligans: c.Mulligans}
 	// The format the table was configured with is threaded into the engine
@@ -170,7 +186,8 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 	// clone (Clone truncates to len), so the clone-sharing invariant is intact.
 	e.L.Reserve(defaultExpectedEvents)
 	e.Advance()
-	m := &match{table: t, k: k, seed: seed, cfg: cfg, seats: infos, decks: deckNames, e: e, state: protocol.MatchLive}
+	m := &match{table: t, k: k, seed: seed, cfg: cfg, seats: infos, decks: deckNames, e: e, state: protocol.MatchLive,
+		undo: make(chan state.PlayerID, 1)}
 	m.bounds = []uint64{uint64(len(e.L.Events))}
 	m.turnStarts = turnStartsIn(e.L.Events, 0)
 	m.snapshotGenesis()
@@ -366,9 +383,9 @@ func projectNext(m *match, seats []seat.Seat, brd *botpolicy.Board) *parkedData 
 // stays closed. The decision's owner seat is stable, so the BoardSeat/HumanSeat
 // assertions here match projectNext's, and exactly the field that was built is
 // consumed.
-func parkSeat(ctx context.Context, seats []seat.Seat, pd *parkedData) *parkedDecision {
+func parkSeat(ctx context.Context, seats []seat.Seat, pd *parkedData, undo <-chan state.PlayerID) *parkedDecision {
 	if hs, ok := seats[pd.p].(*HumanSeat); ok {
-		return &parkedDecision{p: pd.p, hs: hs.park(ctx, pd.v, pd.dc)}
+		return &parkedDecision{p: pd.p, hs: hs.park(ctx, pd.v, pd.dc, undo)}
 	}
 	if bs, ok := seats[pd.p].(seat.BoardSeat); ok && pd.isBoard {
 		in, err := bs.DecideBoard(ctx, pd.brd, pd.dc)
@@ -480,6 +497,33 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 		if m.e.G.Over {
 			return r.finish(t, m)
 		}
+		// An undo request that arrived while the loop was busy (a burst, a
+		// bot's synchronous Decide, the pace sleep): service it at the first
+		// loop boundary — but only while the game is still live, which the
+		// Over check above has already settled. A match that reached its
+		// natural end before the signal is consumed finishes normally and the
+		// buffered signal dies with the match: a finished game is not
+		// undoable, and the client sees the end on the stream either way. The
+		// rewind itself is host/undo.go's in-place truncate; the parked
+		// decision this path abandons (when one is installed but not yet
+		// awaited) must stop being answerable BEFORE the game is rebuilt, or
+		// a submit racing the rewind would be validated against a decision
+		// the match no longer asks and silently dropped.
+		select {
+		case req := <-m.undo:
+			parked.abandon()
+			var err error
+			parked, err = r.serviceUndo(ctx, t, m, seats, &brd, req)
+			if err != nil {
+				return r.crash(t, m, err)
+			}
+			// continue executes the for-loop post statement (n++), so seed n
+			// one behind the rewound intent count. At the next body entry n once
+			// again equals the number of intents already submitted.
+			n, lastTurn, decisionsThisTurn = m.intents-1, m.e.G.Turn, 0
+			continue
+		default:
+		}
 		if n >= maxIntents {
 			return r.crash(t, m, fmt.Errorf("did not terminate after %d intents (turn %d)", n, m.e.G.Turn))
 		}
@@ -502,7 +546,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 			if data == nil {
 				return r.crash(t, m, fmt.Errorf("engine stalled: game not over and no decision pending"))
 			}
-			parked = parkSeat(ctx, seats, data)
+			parked = parkSeat(ctx, seats, data, m.undo)
 		}
 		// Await the answer to the parked decision (parked at the first live
 		// iteration or at the end of the previous one). A bot seat resolved
@@ -511,6 +555,18 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 		// fires the caretaker.
 		in, err := parked.answer()
 		if err != nil {
+			// The parked human's await saw the undo signal before any intent:
+			// rewind exactly as the top-of-loop check would. The await's own
+			// defer has already cleared the seat's slot.
+			if req, isUndo := asUndo(err); isUndo {
+				var uerr error
+				parked, uerr = r.serviceUndo(ctx, t, m, seats, &brd, req)
+				if uerr != nil {
+					return r.crash(t, m, uerr)
+				}
+				n, lastTurn, decisionsThisTurn = m.intents-1, m.e.G.Turn, 0
+				continue
+			}
 			return r.crash(t, m, fmt.Errorf("seat %d: %w", parked.p, err))
 		}
 		var next *parkedDecision
@@ -564,7 +620,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 		// match mutex must never be held across one. Publishing happens only
 		// after this, so the park-before-publish ordering still holds.
 		if nextData != nil {
-			next = parkSeat(ctx, seats, nextData)
+			next = parkSeat(ctx, seats, nextData, m.undo)
 		}
 		// Park the engine's NEXT decision BEFORE publishing it: the seat that
 		// owns it is now accept-ready, so the fan-out below cannot expose a
