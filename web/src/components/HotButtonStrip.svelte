@@ -5,6 +5,7 @@
   import { hotkeyAction } from '../lib/hotkeys';
   import { modalPickerOpen } from '../lib/modals';
   import { postUndo } from '../lib/api';
+  import { turnSide } from '../lib/autopilot';
   import { autoNoteText, isConcede, toneOf, type SeatPanelState } from '../lib/seatpanel.svelte';
   import SeatPanel from './SeatPanel.svelte';
   import PlaySettingsPanel from './PlaySettingsPanel.svelte';
@@ -45,10 +46,21 @@
   const humanSeats = $derived(seats.flatMap((s, i) => s.human ? [i] : []));
   const undoAllowed = $derived(humanSeats.length === 1 && humanSeats[0] === ctx.seat && !undoPosting);
   // Fast forward became End Turn (prio3): a one-shot to the end of the
-  // CURRENT turn. It can only advance through a real pass option.
+  // CURRENT turn. It can only advance through a real pass option, and it
+  // only makes sense on a turn the seat OWNS — arming it on the opponent's
+  // turn would just auto-pass their turn, machinery the player never asked
+  // for (the "END TURN shouldn't be available during opponents turn" report).
+  // turnSide is the one-vocabulary helper for the active-seat comparison.
   // considerAuto is still the safety oracle; this gate merely avoids
-  // inventing a control for a decision the server did not say can be passed.
-  const endTurnAvailable = $derived(passAvailable);
+  // inventing a control whose scope would be somebody else's turn.
+  const endTurnAvailable = $derived(passAvailable && turnSide(view, ctx.seat) === 'yours');
+  // The keyboard hard-skip (Shift+Enter) is NOT turn-gated: skipping an
+  // opponent's turn is a deliberate, warned one-click move (MTGO F6) and its
+  // own chip says so. It shares only the pass-option requirement with END
+  // TURN. Note the accepted consequence: with the END TURN button disabled on
+  // an opponent turn, shift-CLICK on it is dead there (a disabled button
+  // swallows clicks) — Shift+Enter still arms the skip.
+  const hardSkipAvailable = $derived(passAvailable);
   // Resolve All (prio6) is visible only while the stack is non-empty and a
   // priority decision is pending — there is nothing to resolve through
   // otherwise. It still needs a real pass option to post.
@@ -157,7 +169,7 @@
           logic.considerAuto(view);
           break;
         case 'hard-skip':
-          if (!endTurnAvailable) return;
+          if (!hardSkipAvailable) return;
           logic.startHardSkip(view);
           logic.considerAuto(view);
           break;
@@ -247,7 +259,9 @@
       aria-pressed={runLive}
       aria-disabled={!endTurnAvailable}
       disabled={!endTurnAvailable}
-      title={endTurnAvailable ? 'End Turn: pass the rest of this turn (Shift: skip everything, Esc stops)' : 'End Turn needs a pass option'}
+      title={endTurnAvailable
+        ? 'End Turn: pass the rest of this turn (Shift: skip everything, Esc stops)'
+        : passAvailable ? 'End Turn is for your own turn' : 'End Turn needs a pass option'}
       onclick={endTurn}
     >
       <span class="full">END TURN</span><span class="compact" aria-hidden="true">&gt;&gt;</span>
