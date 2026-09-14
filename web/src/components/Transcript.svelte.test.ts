@@ -150,3 +150,31 @@ describe('Transcript — step-line default (ui9)', () => {
     // filter; it must not appear as a rendered log row)
   });
 });
+
+describe('Transcript — the client-local auto-pass notes (prio5)', () => {
+  const note = (id: number, turn: number, text: string) => ({ id, turn, text });
+
+  it('renders auto-pass notes after the engine lines, without a data-seq scrub hook', () => {
+    const html = render(Transcript, {
+      props: {
+        dvr: dvr([ev(1, 'move_zone', 'Ann plays Island #2')]),
+        onSeek: () => {},
+        identities,
+        cardColour,
+        notes: [note(1, 2, "Auto-passed: opponent's end step"), note(2, 2, 'Auto-passed: Lightning Bolt resolving')],
+      },
+    }).html;
+    expect(html).toContain('data-auto-log');
+    expect(html).toContain("Auto-passed: opponent's end step");
+    expect(html).toContain('Auto-passed: Lightning Bolt resolving');
+    // notes are not events: they carry no seq hook and never scrub
+    expect(html).not.toMatch(/data-seq="\d+"[^>]*data-auto-log/);
+    // the engine line is still there, above them
+    expect(html).toContain('Island');
+  });
+
+  it('an empty note list adds nothing (spectator default)', () => {
+    const html = renderLog(dvr([ev(1, 'move_zone', 'Ann plays Island #2')]));
+    expect(html).not.toContain('data-auto-log');
+  });
+});

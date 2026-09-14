@@ -43,12 +43,13 @@ const mulligan = (seq: number): Decision =>
 const view = (step = 'draw', active = 0, turn = 2, stack: { id: number; controller: number; kind?: string }[] = []): View =>
   ({ active, step, turn, stack }) as unknown as View;
 
-/** manualSeat is casual with auto off, every stop off and pass-after-acting off — the player, answering everything. */
+/** manualSeat is casual with auto off, every stop off and pass-after-acting off — the player, answering everything. Pacing is zeroed so the machine passes post synchronously (the pre-prio5 path); pacing itself is tested in seatpanel.pacing.test.ts. */
 function manualSeat(storage: Storage | null = null): SeatPanelState {
   const p = new SeatPanelState('t1', 1, ctx, storage);
   p.stops = { yours: new Set(), opponents: new Set() };
   p.setAuto(false);
   p.setActPass(false);
+  p.settings = { ...p.settings, pacing: { stepMs: 0, resolveMs: 0 } };
   return p;
 }
 
@@ -94,6 +95,7 @@ describe('the settings source of truth', () => {
     expect(p.auto).toBe(true);
     expect(p.settings).toEqual(defaultSettings());
     p.stops = { yours: new Set(), opponents: new Set() };
+    p.settings = { ...p.settings, pacing: { stepMs: 0, resolveMs: 0 } }; // the pacing suite drives the wait; this one pins the defaults
     p.adoptView(quiet(1));
     p.considerAuto(view());
     await settle(() => p.postedSeq === 1);

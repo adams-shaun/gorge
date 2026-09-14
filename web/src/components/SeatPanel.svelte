@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, untrack } from 'svelte';
+  import { onMount, onDestroy, untrack } from 'svelte';
   import type { CardView, Option, SeatInfo, View } from '../protocol';
   import type { SeatCtx } from '../lib/seat';
   import { SeatPanelState, autoNoteText, isConcede, mulliganPhase, toneOf } from '../lib/seatpanel.svelte';
@@ -119,11 +119,16 @@
     void logic.pending?.seq;
     void view.step;
     void view.turn;
+    void view.stack.length; // a stack change re-derives a paced pass (prio5): the view it was derived from is gone
     untrack(() => {
       logic.expireRun(view);
       logic.considerAuto(view);
     });
   });
+  // The paced pass is abandoned when the panel goes away: a timer owned by a
+  // destroyed surface must not post (prio5). The state object itself is
+  // per-match and survives, so this is the timer's cancellation edge only.
+  onDestroy(() => logic.cancelPass());
 
   const decision = $derived(logic.pending && logic.pending.seq !== logic.postedSeq ? logic.pending : null);
   const primary = $derived(logic.primary());

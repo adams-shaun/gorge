@@ -67,12 +67,13 @@ async function settle(predicate: () => boolean, maxTicks = 200): Promise<void> {
   throw new Error(`settle: condition still false after ${maxTicks} microtask ticks`);
 }
 
-/** manual is a seat with the preference ON, auto off and no stops set. */
+/** manual is a seat with the preference ON, auto off and no stops set. Pacing is zeroed so machine passes post synchronously (the pre-prio5 path); pacing itself is tested in seatpanel.pacing.test.ts. */
 function manual(storage: Storage | null = null): SeatPanelState {
   const p = new SeatPanelState('t1', 1, ctx, storage);
   p.stops = { yours: new Set(), opponents: new Set() };
   p.setAuto(false);
   p.setActPass(true);
+  p.settings = { ...p.settings, pacing: { stepMs: 0, resolveMs: 0 } };
   return p;
 }
 
