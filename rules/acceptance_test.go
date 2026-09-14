@@ -15,9 +15,12 @@ import (
 // on its first run against the 12 repo decks, checked in by hand. The test
 // below asserts the MEASURED set equals this table EXACTLY, in both
 // directions -- a newly-missing card is a regression, a table entry that is
-// now fully supported is stale and must be deleted -- so this table only
-// ever shrinks, and only by implementing a real primitive (Ruling W2: this
-// project does not grow the "supported" set just to make the ratchet green).
+// now fully supported is stale and must be deleted -- so, for a fixed deck
+// catalogue, this table only ever shrinks, and only by implementing a real
+// primitive (Ruling W2: this project does not grow the "supported" set just
+// to make the ratchet green). Adding a newly imported deck can extend the
+// measured worklist; its entries must be measured from the compiled corpus,
+// never marked supported without an implementation.
 //
 // Measured 2026-09-04 against the compiled IR cache at .cards/ir.gob.gz
 // (corpus master @ 95f04e8a04c8925fa97cb226fc3341cabcc90a53): originally 35
@@ -72,39 +75,46 @@ import (
 // Task 15 (protection) registered the five kw:Protection from <colour>
 // keywords, retiring Goblin Piledriver (Protection from blue) and Knight of
 // Infamy (Protection from white) -- the last two entries on this table -- so
-// the ratchet is now EMPTY: every one of the 136 distinct cards across the
-// 12 Legacy decks is fully supported by this build. The table that follows
-// is intentionally left as an empty literal rather than deleted, so the
-// ancient comment history above it survives verbatim as the table's own
-// provenance. Task m38 (Ruling M38-P) extended the ratchet's scope: the test
-// below iterates RepoDeckNames() whole (the 12 Legacy decks PLUS the five
-// interim foundations-* commander decks), so the five new 100-card,
-// singleton lists are held to the same no-gap standard from day one.
-// Valgavoth, Harrower of Souls — Endless Punishment adds 34 measured gaps
-// across 510 distinct cards. These entries are the imported deck's baseline,
-// recorded by TestEveryRepoDeckIsFullySupported against the pinned corpus;
-// they retire only when the corresponding primitive is implemented.
+// the ratchet became EMPTY for the original Legacy and interim Commander
+// decks. The Hearthhull and Valgavoth imports add 54 measured gaps across 579
+// distinct cards in the pinned corpus; entries retire only when their
+// primitives are implemented.
 var knownUnsupported = map[string][]string{
 	"Archfiend of Despair":         {"api:RepeatEach", "stat:CantGainLife"},
+	"Baloth Prime":                 {"api:Untap", "trig:Sacrificed"},
 	"Bloodletter of Aclazotz":      {"api:ReplaceEffect", "repl:LifeReduced"},
+	"Braids, Arisen Nightmare":     {"api:RepeatEach"},
 	"Chandra, Awakened Inferno":    {"repl:Counter"},
 	"Chromatic Orrery":             {"stat:ManaConvert"},
+	"Conduit of Worlds":            {"api:Play"},
+	"Constant Mists":               {"api:Fog", "kw:Buyback"},
 	"Crypt Ghast":                  {"kw:Extort", "trig:TapsForMana"},
 	"Dauthi Voidwalker":            {"api:ChooseCard", "kw:Shadow"},
 	"Deflecting Swat":              {"api:ChangeTargets"},
+	"Evendo Brushrazer":            {"trig:Sacrificed"},
 	"Exotic Orchard":               {"api:ManaReflected"},
+	"Exploration Broodship":        {"kw:Station"},
 	"Fabled Passage":               {"api:Untap"},
 	"Fate Unraveler":               {"trig:Drawn"},
 	"Fiery Emancipation":           {"api:ReplaceEffect", "repl:DamageDone"},
+	"Fog":                          {"api:Fog"},
 	"Gamble":                       {"api:Shuffle"},
+	"Hearthhull, the Worldseed":    {"kw:Station"},
+	"Horizon Explorer":             {"api:Untap", "trig:AttackersDeclaredOneTarget"},
 	"Karazikar, the Eye Tyrant":    {"api:Goad", "trig:AttackersDeclaredOneTarget"},
 	"Kederekt Parasite":            {"trig:Drawn"},
 	"Last One Standing":            {"api:ChooseCard"},
+	"Lord Windgrace":               {"kw:CARDNAME can be your commander."},
 	"Manabarbs":                    {"trig:TapsForMana"},
+	"Mayhem Devil":                 {"trig:Sacrificed"},
+	"Necrodominance":               {"repl:BeginPhase"},
+	"Necropotence":                 {"repl:BeginPhase", "trig:Discarded"},
 	"Ob Nixilis, Captive Kingpin":  {"trig:LifeLostAll"},
 	"Ojer Axonil, Deepest Might":   {"api:ReplaceEffect", "repl:DamageDone"},
+	"Planetary Annihilation":       {"api:ChooseCard", "api:SacrificeAll"},
 	"Price of Progress":            {"api:RepeatEach"},
 	"Profane Tutor":                {"kw:Suspend"},
+	"Ragavan, Nimble Pilferer":     {"kw:Dash"},
 	"Razorkin Needlehead":          {"trig:Drawn"},
 	"Sheoldred, the Apocalypse":    {"trig:Drawn"},
 	"Solphim, Mayhem Dominus":      {"api:ReplaceEffect", "repl:DamageDone"},
@@ -112,13 +122,18 @@ var knownUnsupported = map[string][]string{
 	"Spiked Corridor":              {"api:ReplaceEffect", "repl:DamageDone", "trig:UnlockDoor"},
 	"Spinerock Knoll":              {"api:Play", "kw:Hideaway"},
 	"Sulfuric Vortex":              {"repl:GainLife"},
+	"Szarel, Genesis Shepherd":     {"trig:Sacrificed"},
 	"The Lord of Pain":             {"stat:CantGainLife"},
+	"Through the Forest Gate":      {"api:Shuffle"},
 	"Uncivil Unrest":               {"api:ReplaceEffect", "repl:DamageDone"},
 	"Underworld Dreams":            {"trig:Drawn"},
 	"Unholy Annex":                 {"api:Branch", "trig:UnlockDoor"},
 	"Valgavoth, Harrower of Souls": {"kw:Ward", "trig:LifeLost"},
 	"Vein Ripper":                  {"kw:Ward"},
 	"Vial Smasher the Fierce":      {"api:ChoosePlayer", "kw:Partner"},
+	"Virtue of Strength":           {"api:ReplaceMana", "repl:ProduceMana"},
+	"Walk-In Closet":               {"trig:UnlockDoor"},
+	"Ziatora's Proving Ground":     {"kw:Cycling"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card
