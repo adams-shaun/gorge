@@ -38,14 +38,64 @@ describe('images', () => {
     expect(await im.url('Goblin Guide')).toBe('https://img/gg.jpg');
     expect(await im.url('Goblin Guide')).toBe('https://img/gg.jpg');
     expect(calls.length).toBe(1);
-    expect(store.get('gorge.img.Goblin Guide')).toBe('https://img/gg.jpg');
+    expect(store.get('gorge.img.v2.Goblin Guide')).toBe('https://img/gg.jpg');
     expect(await im.url('Nonexistent')).toBeNull();
     expect(await im.url('Nonexistent')).toBeNull();
     expect(calls.length).toBe(2);
   });
-  it('uses the front face of a double-faced card', async () => {
+  it('ignores a legacy cached blob URL and resolves into the versioned browser cache', async () => {
+    const { env, calls, store } = fakeEnv({
+      'Insectile Aberration': {
+        card_faces: [
+          { name: 'Delver of Secrets', image_uris: { normal: '/art/blob/new-front.jpg' } },
+          { name: 'Insectile Aberration', image_uris: { normal: '/art/blob/new-back.jpg' } },
+        ],
+      },
+    });
+    // A browser that visited before the face picker was fixed has the old
+    // server blob URL under the unversioned namespace. That blob remains
+    // valid and immutable, so only a browser-side namespace rotation can
+    // prevent url() from returning it before /art/named is consulted.
+    store.set('gorge.img.Insectile Aberration', '/art/blob/old-front.jpg');
+
+    expect(await createImages(env).url('Insectile Aberration')).toBe('/art/blob/new-back.jpg');
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatch(/^\/art\/named\?exact=Insectile%20Aberration$/);
+    expect(store.get('gorge.img.v2.Insectile Aberration')).toBe('/art/blob/new-back.jpg');
+    expect(store.get('gorge.img.Insectile Aberration')).toBe('/art/blob/old-front.jpg');
+  });
+  it('uses the front face of a double-faced card when no face name matches', async () => {
     const { env } = fakeEnv({ 'Delver of Secrets': { card_faces: [{ image_uris: { normal: 'https://img/front.jpg' } }, { image_uris: { normal: 'https://img/back.jpg' } }] } });
     expect(await createImages(env).url('Delver of Secrets')).toBe('https://img/front.jpg');
+  });
+  it('resolves a back-face name to the back face of a double-faced card', async () => {
+    // task fb-20260914T033246Z-3f1cc033 defect 3: Scryfall lists BOTH faces
+    // for either name of a transform card and leaves the top-level
+    // image_uris empty, so the old front-face-only fallback resolved
+    // "Insectile Aberration" to Delver of Secrets' art forever and a
+    // transformed Delver never displayed its back side. The face whose
+    // printed name is the requested one must win.
+    const { env } = fakeEnv({
+      'Insectile Aberration': {
+        card_faces: [
+          { name: 'Delver of Secrets', image_uris: { normal: 'https://img/front.jpg' } },
+          { name: 'Insectile Aberration', image_uris: { normal: 'https://img/back.jpg' } },
+        ],
+      },
+    });
+    expect(await createImages(env).url('Insectile Aberration')).toBe('https://img/back.jpg');
+  });
+  it('prefers a top-level image over the face list when one is present', async () => {
+    const { env } = fakeEnv({
+      'Insectile Aberration': {
+        image_uris: { normal: 'https://img/top.jpg' },
+        card_faces: [
+          { name: 'Delver of Secrets', image_uris: { normal: 'https://img/front.jpg' } },
+          { name: 'Insectile Aberration', image_uris: { normal: 'https://img/back.jpg' } },
+        ],
+      },
+    });
+    expect(await createImages(env).url('Insectile Aberration')).toBe('https://img/top.jpg');
   });
   it('spaces requests at least 100ms apart', async () => {
     const { env, calls, tick } = fakeEnv({ A: { image_uris: { normal: 'a' } }, B: { image_uris: { normal: 'b' } }, C: { image_uris: { normal: 'c' } } });

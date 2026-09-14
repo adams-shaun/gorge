@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -172,7 +174,72 @@ func TestArtCacheConcurrentRequestsJoinOneFetch(t *testing.T) {
 	}
 }
 
+// TestArtCacheDoesNotServeALegacyPreBumpEntry is round-2 finding 2's
+// regression pin: the live server had already cached "Insectile Aberration"
+// under the OLD unversioned key (sha256 of the bare name) with the FRONT
+// face's bytes, and ensure() treats an existing JPG as a permanent hit while
+// blob() marks the URL immutable — so after the face-matched fix deployed,
+// that name would have kept resolving to the stale art from both the
+// server's disk and every browser's cache. The versioned key (artKeyVersion)
+// moves every name to a NEW key, so a legacy entry must be ignored: the
+// lookup re-fetches from Scryfall and the blob route serves the fresh bytes
+// under the new key, which no browser has cached.
+func TestArtCacheDoesNotServeALegacyPreBumpEntry(t *testing.T) {
+	ac, hits := artFixture(t, map[string]string{"Insectile Aberration": "/img/back.jpg"})
+
+	// The legacy entry, exactly as the pre-fix server left it: a JPG at
+	// sha256(name) — the unversioned key — holding the wrong bytes.
+	sum := sha256.Sum256([]byte("Insectile Aberration"))
+	legacyKey := hex.EncodeToString(sum[:])
+	if legacyKey == artKey("Insectile Aberration") {
+		t.Fatal("the version bump did not move the key — the legacy entry would be served")
+	}
+	legacyPath := filepath.Join(ac.dir, legacyKey+".jpg")
+	if err := os.WriteFile(legacyPath, []byte("stale-front-face-bytes"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	ac.named(w, httptest.NewRequest(http.MethodGet, "/art/named?exact=Insectile+Aberration", nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("lookup over a legacy entry: want 200, got %d: %s", w.Code, w.Body.String())
+	}
+	var body struct {
+		Name      string `json:"name"`
+		ImageURIs struct {
+			Normal string `json:"normal"`
+		} `json:"image_uris"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	newKey := artKey("Insectile Aberration")
+	if want := "/art/blob/" + newKey + ".jpg"; body.ImageURIs.Normal != want {
+		t.Fatalf("blob url = %q, want the versioned key %q", body.ImageURIs.Normal, want)
+	}
+
+	// The blob route serves the FRESH bytes at the new key, never the
+	// legacy entry's.
+	wb := httptest.NewRecorder()
+	rb := httptest.NewRequest(http.MethodGet, body.ImageURIs.Normal, nil)
+	rb.SetPathValue("key", newKey+".jpg")
+	ac.blob(wb, rb)
+	if wb.Code != http.StatusOK || wb.Body.String() != "fake-jpeg-bytes:/img/back.jpg" {
+		t.Fatalf("blob: got %d %q, want the freshly fetched back-face bytes", wb.Code, wb.Body.String())
+	}
+	if got := hits.Load(); got != 1 {
+		t.Fatalf("want exactly 1 named hit (the legacy entry must not suppress the fetch), got %d", got)
+	}
+	// The legacy file itself is untouched dead weight: never read, never
+	// served, cleared only by wiping the cache dir.
+	if got, err := os.ReadFile(legacyPath); err != nil || string(got) != "stale-front-face-bytes" {
+		t.Fatalf("the legacy file should be left alone: %q %v", got, err)
+	}
+}
+
 func TestArtCacheUsesTheFrontFaceOfADoubleFacedCard(t *testing.T) {
+	// The requested name matches no face (the fixture faces carry no
+	// printed name), so the front-face fallback still governs.
 	ac, _ := artFixture(t, nil)
 	// artFixture's JSON handler only emits image_uris, so build the
 	// card_faces shape by hand against the same test server.
@@ -208,5 +275,50 @@ func TestArtCacheUsesTheFrontFaceOfADoubleFacedCard(t *testing.T) {
 	}
 	if string(got) != "front" {
 		t.Fatalf("cached bytes = %q, want the front face's image", got)
+	}
+}
+
+// TestArtCacheUsesTheMatchedFaceForABackFaceName is task
+// fb-20260914T033246Z-3f1cc033 defect 3: a transform card's back-face name
+// must cache and serve the BACK face's art. Scryfall's named lookup lists
+// both faces for either name and leaves the top-level image_uris empty, so
+// the old code — which took card_faces[0] unconditionally — resolved
+// "Insectile Aberration" to Delver of Secrets' art forever, and a
+// transformed Delver never displayed its back side. The cache is keyed by
+// the exact requested name, so the back name gets its own jpg.
+func TestArtCacheUsesTheMatchedFaceForABackFaceName(t *testing.T) {
+	ac, _ := artFixture(t, nil)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/cards/named", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"name": "Delver of Secrets // Insectile Aberration",
+			"card_faces": []map[string]any{
+				{"name": "Delver of Secrets", "image_uris": map[string]string{"normal": "http://" + r.Host + "/img/front.jpg"}},
+				{"name": "Insectile Aberration", "image_uris": map[string]string{"normal": "http://" + r.Host + "/img/back.jpg"}},
+			},
+		})
+	})
+	mux.HandleFunc("/img/back.jpg", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/jpeg")
+		_, _ = w.Write([]byte("back"))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	ac.client = srv.Client()
+	ac.namedBaseURL = srv.URL + "/cards/named?exact="
+
+	w := httptest.NewRecorder()
+	ac.named(w, httptest.NewRequest(http.MethodGet, "/art/named?exact=Insectile+Aberration", nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", w.Code, w.Body.String())
+	}
+	key := artKey("Insectile Aberration")
+	got, err := os.ReadFile(ac.jpgPath(key))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "back" {
+		t.Fatalf("cached bytes = %q, want the back face's image", got)
 	}
 }

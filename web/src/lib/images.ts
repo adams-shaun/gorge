@@ -9,9 +9,16 @@ export interface ImageSource {
 
 const SPACING = 100;
 const OFFLINE_FOR = 60_000;
-const KEY = 'gorge.img.';
+// Version the browser cache independently of the server's art blobs. Existing
+// browsers may hold a valid immutable URL whose bytes were selected by older
+// face-matching logic; changing this namespace makes them resolve the name
+// again instead of returning that stale URL before lookup() can run.
+const KEY = 'gorge.img.v2.';
 
-type Scryfall = { image_uris?: { normal?: string }; card_faces?: { image_uris?: { normal?: string } }[] };
+type Scryfall = {
+  image_uris?: { normal?: string };
+  card_faces?: { name?: string; image_uris?: { normal?: string } }[];
+};
 
 /** createImages resolves exact card names to card art served from this app's own origin (art.go proxies and caches Scryfall server-side) with memory + localStorage caches, request spacing and an offline backoff. */
 export function createImages(src: Partial<ImageSource> = {}) {
@@ -29,6 +36,8 @@ export function createImages(src: Partial<ImageSource> = {}) {
   const offline = () => env.now() < offlineUntil;
 
   function fromStorage(name: string): string | null | undefined {
+    // Deliberately do not fall back to an older namespace: those entries can
+    // point at still-served immutable blobs containing incorrectly chosen art.
     try { const v = env.storage?.getItem(KEY + name); return v === null || v === undefined ? undefined : v || null; } catch { return undefined; }
   }
   function toStorage(name: string, url: string | null) {
@@ -57,7 +66,19 @@ export function createImages(src: Partial<ImageSource> = {}) {
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`art ${res.status}`);
     const j = (await res.json()) as Scryfall;
-    const path = j.image_uris?.normal ?? j.card_faces?.[0]?.image_uris?.normal ?? null;
+    // A multi-faced card (Delver of Secrets / Insectile Aberration) puts no
+    // top-level image_uris in the response and lists card_faces[0] = the
+    // FRONT face for either name — so the front-face-only fallback resolved
+    // a back-face name to the front art forever (task
+    // fb-20260914T033246Z-3f1cc033, defect 3). Pick the face whose printed
+    // name is the requested one; fall back to the front face, then to the
+    // top-level image (single-faced cards).
+    const face = j.card_faces?.find((f) => f.name === name);
+    const path =
+      j.image_uris?.normal ??
+      face?.image_uris?.normal ??
+      j.card_faces?.[0]?.image_uris?.normal ??
+      null;
     return path ? withBase(path) : null;
   }
 

@@ -362,6 +362,20 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// event, not on Ctx, so this is a done-marker rather than an
 			// answer the effect re-reads.
 			ctx.Arrange = true
+		case "reveal_optional":
+			// Task fb-3f1cc033 (Delver of Secrets): the peeking player's
+			// RevealOptional$ yes/no was answered. Option 0 is "yes"; anything
+			// else (option 1, an empty or malformed answer) is a decline — the
+			// conservative read of an ambiguous answer is "no reveal". The
+			// re-entered effReveal applies the answer: "yes" emits the Note
+			// (which names the cards) and fires RememberRevealed$; "no" does
+			// neither, so the chained ConditionDefined$ Remembered gate does
+			// not fire either.
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.RevealOpt = "yes"
+			} else {
+				ctx.RevealOpt = "no"
+			}
 		case "optional":
 			// CR 603.5: the decider answered yes to applying this optional
 			// triggered ability's effect. The answer is a yes/no, not a mode
