@@ -69,8 +69,13 @@ const view = (step = 'draw', active = 0, turn = 2, stack: View['stack'] = []): V
  * run's own edges exactly. (The run itself forces autoPass on through
  * runSettings; the press is the consent.)
  */
-function immediateSeat(table = 't1', storage: Storage | null = null): SeatPanelState {
-  const p = new SeatPanelState(table, 1, ctx, storage);
+function immediateSeat(
+  table = 't1',
+  storage: Storage | null = null,
+  yieldStorage: Storage | null = null,
+  match = 1,
+): SeatPanelState {
+  const p = new SeatPanelState(table, match, ctx, storage, yieldStorage);
   p.stops = { yours: new Set(), opponents: new Set() };
   p.settings = { ...p.settings, pacing: { stepMs: 0, resolveMs: 0 }, autoPass: false };
   return p;
@@ -91,6 +96,19 @@ const ARTIST_LABEL = 'Blood Artist: Whenever a creature dies, each opponent lose
 const WARDEN_LABEL = 'Soul Warden: Whenever a creature enters, its controller gains 1 life';
 const IDENTICAL: [string, string] = [ARTIST_LABEL, ARTIST_LABEL];
 const MIXED: [string, string] = [ARTIST_LABEL, WARDEN_LABEL];
+
+/** fakeNamedStorage is a record-and-inspect Storage for the store-proof test. */
+function fakeNamedStorage(): Storage {
+  const map = new Map<string, string>();
+  return {
+    get length() { return map.size; },
+    clear: () => map.clear(),
+    getItem: (k: string) => map.get(k) ?? null,
+    key: (i: number) => [...map.keys()][i] ?? null,
+    removeItem: (k: string) => { map.delete(k); },
+    setItem: (k: string, v: string) => { map.set(k, v); },
+  };
+}
 
 async function settle(predicate: () => boolean, maxTicks = 200): Promise<void> {
   for (let i = 0; i < maxTicks; i++) {
@@ -329,25 +347,55 @@ describe('always-yield write paths', () => {
     expect(postIntentMock.mock.calls[0][2].choices).toEqual([1]); // live's pass index
   });
 
-  it('the yield set is game-scoped per table: it survives a new SeatPanelState and persists to storage', () => {
-    const storage = { getItem: () => null, setItem: vi.fn() } as unknown as Storage;
-    const p = immediateSeat('yt2', storage);
+  it('the yield set is game-scoped: it survives a new SeatPanelState of the SAME match and persists to the sessionStorage handle, but a NEW match reads clean (review r2)', () => {
+    const settingsStorage = { getItem: () => null, setItem: vi.fn() } as unknown as Storage;
+    const yieldStorage = { getItem: () => null, setItem: vi.fn() } as unknown as Storage;
+    const p = immediateSeat('yt2', settingsStorage, yieldStorage);
     p.addYield(artistKey);
     expect([...p.yields]).toEqual([artistKey]);
-    expect(storage.setItem).toHaveBeenCalledWith('gorge.yields.yt2', JSON.stringify([artistKey]));
-    // A new panel for the same table (a new match) inherits the yield.
-    const next = immediateSeat('yt2', storage);
-    expect([...next.yields]).toEqual([artistKey]);
+    // The write goes to the YIELD handle with the match-scoped key — and
+    // never to the settings' (localStorage) handle.
+    expect(yieldStorage.setItem).toHaveBeenCalledWith('gorge.yields.yt2:1', JSON.stringify([artistKey]));
+    // No YIELD key ever lands in the settings' (localStorage) handle — the
+    // handles are separate, so a yield cannot outlive the session by riding
+    // the persisted-settings store. (The settings handle does get the
+    // helper's own settings write, which is legitimate.)
+    const wroteYieldToSettings = (settingsStorage.setItem as ReturnType<typeof vi.fn>)
+      .mock.calls.some((call: unknown[]) => typeof call[0] === 'string' && call[0].startsWith('gorge.yields.'));
+    expect(wroteYieldToSettings).toBe(false);
+    // A new panel for the SAME match (a route remount) inherits the yield.
+    const reloaded = immediateSeat('yt2', settingsStorage, yieldStorage);
+    expect([...reloaded.yields]).toEqual([artistKey]);
+    // A new panel for a NEW match on the same table starts clean: a yield
+    // granted in game 1 never auto-passes the same ability in game 2.
+    const next = immediateSeat('yt2', settingsStorage, yieldStorage, 2);
+    expect([...next.yields]).toEqual([]);
+  });
+
+  it('the default yield handle is sessionStorage, NOT the settings\u2019 localStorage (review r2: a yield dies with the browser session)', () => {
+    const local = fakeNamedStorage();
+    const session = fakeNamedStorage();
+    vi.stubGlobal('localStorage', local);
+    vi.stubGlobal('sessionStorage', session);
+    try {
+      // ALL handles defaulted: whatever the panel picks is its own choice.
+      const p = new SeatPanelState('yt-store', 4, ctx);
+      p.addYield(artistKey);
+      expect(session.getItem('gorge.yields.yt-store:4')).toBe(JSON.stringify([artistKey]));
+      expect(local.getItem('gorge.yields.yt-store:4')).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('clearYields empties the set and persists the empty set', () => {
-    const storage = { getItem: () => null, setItem: vi.fn() } as unknown as Storage;
-    const p = immediateSeat('yt3', storage);
+    const yieldStorage = { getItem: () => null, setItem: vi.fn() } as unknown as Storage;
+    const p = immediateSeat('yt3', null, yieldStorage);
     p.addYield(artistKey);
     p.clearYields();
     expect(p.yields.size).toBe(0);
-    expect(storage.setItem).toHaveBeenLastCalledWith('gorge.yields.yt3', '[]');
+    expect(yieldStorage.setItem).toHaveBeenLastCalledWith('gorge.yields.yt3:1', '[]');
     // A new panel starts clean.
-    expect(immediateSeat('yt3', storage).yields.size).toBe(0);
+    expect(immediateSeat('yt3', null, yieldStorage).yields.size).toBe(0);
   });
 });

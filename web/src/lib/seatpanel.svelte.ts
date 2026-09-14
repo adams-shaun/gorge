@@ -324,24 +324,49 @@ function safeStorage(): Storage | null {
   }
 }
 
+/**
+ * safeSessionStorage is sessionStorage under the same guard — the handle for
+ * the YIELD store only (prio6), deliberately separate from the persisted
+ * play settings' localStorage: a yield is session-scoped (review r2 — it
+ * must die with the browser session, not outlive it the way a localStorage
+ * record would).
+ */
+function safeSessionStorage(): Storage | null {
+  try {
+    return typeof sessionStorage === 'undefined' ? null : sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
 export class SeatPanelState {
   readonly table: string;
   readonly ctx: SeatCtx;
   private readonly storage: Storage | null;
+  /** The YIELD store's own handle: sessionStorage, never the settings' localStorage (review r2). */
+  private readonly yieldStorage: Storage | null;
 
-  constructor(table: string, readonly match: number, ctx: SeatCtx, storage: Storage | null = safeStorage()) {
+  constructor(
+    table: string,
+    readonly match: number,
+    ctx: SeatCtx,
+    storage: Storage | null = safeStorage(),
+    yieldStorage: Storage | null = safeSessionStorage(),
+  ) {
     this.table = table;
     this.ctx = ctx;
     this.storage = storage;
+    this.yieldStorage = yieldStorage;
     // The settings load here rather than at mount so the very first render
     // — and every test — sees the player's saved preferences. SSR and a
     // browser that refuses site data both pass null and get casual.
     this.settings = loadSettings(storage);
-    // The yields seed from the per-table store: memory first (this tab
-    // already yielded something), then sessionStorage (a reload of the same
-    // table), else empty. They are game-scoped, so a new match on the same
-    // table inherits them.
-    this.yieldList = [...loadYields(table, storage)];
+    // The yields seed from the per-GAME store (lib/yields.ts): memory first
+    // (this tab already yielded something in THIS match), then sessionStorage
+    // (a reload of the same match), else empty. The scope is table + match,
+    // so a new match on the same table reads empty — a yield granted in game
+    // N never auto-passes in game N+1 (review r2).
+    this.yieldList = [...loadYields(table, match, yieldStorage)];
   }
 
   /** pending is the decision this seat must answer right now, or null when the game is waiting on someone else. */
@@ -447,10 +472,10 @@ export class SeatPanelState {
 
   /**
    * yieldList is the game-scoped "always pass for this ability" set (prio6,
-   * lib/yields.ts), as a reactive array of keys — seeded from the per-table
-   * store at construction (memory + sessionStorage; survives a reload and a
-   * match boundary, because a yield is for THIS GAME, not this match
-   * instance) and written through on every change. Reading it as a set is
+   * lib/yields.ts), as a reactive array of keys — seeded from the per-game
+   * (table + match) store at construction (memory + sessionStorage; survives
+   * a reload of the same match, but a new match on the same table starts
+   * clean) and written through on every change. Reading it as a set is
    * the `yields` getter below.
    */
   yieldList = $state<string[]>([]);
@@ -549,12 +574,12 @@ export class SeatPanelState {
   set yields(next: Iterable<string>) {
     this.yieldList = [...next];
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- a write-through copy into the non-reactive store layer (lib/yields.ts), never stored on the state
-    saveYields(this.table, new Set(this.yieldList), this.storage);
+    saveYields(this.table, this.match, new Set(this.yieldList), this.yieldStorage);
   }
 
   /**
    * addYield is the stack tile menu's "Always pass for …" write path: one
-   * key added for THIS GAME (persisted per table), and the current window
+   * key added for THIS GAME (persisted per table + match), and the current window
    * re-derived immediately — a yield the player just granted applies to the
    * decision that is pending right now, not only to the next one. A paced
    * pass already in flight needs no kick: firePass re-derives its verdict
@@ -567,7 +592,7 @@ export class SeatPanelState {
     if (view !== null) this.considerAuto(view);
   }
 
-  /** clearYields is GAME OPTIONS' "Clear yields" action: the whole set for this game, emptied and persisted. */
+  /** clearYields is GAME OPTIONS' "Clear yields" action: the whole set for this game (this match), emptied and persisted. */
   clearYields() {
     this.yields = [];
   }
