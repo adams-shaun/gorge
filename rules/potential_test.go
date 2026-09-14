@@ -395,3 +395,117 @@ func TestPotentialActionsIsAPureRead(t *testing.T) {
 		}
 	}
 }
+
+// TestPotentialManaPaidManaAbilitySequenced pins the paid-mana-ability
+// ordering half of the second-round finding: the potential pool must admit a
+// source whose mana ability carries a PAID activation cost even though the
+// real floating pool does not already cover it. A Plains plus an untapped
+// "{1}, {T}: add {C}{C}" source must produce the {2} the {C}{C} pays for,
+// because the seat taps the Plains for {W}, pays the {1} to activate the
+// source, and casts from what it produced. The old gate priced the paid
+// source against the REAL pool (empty) and dropped it, so only the {W}
+// projected and the {2} spell was silently uncastable.
+func TestPotentialManaPaidManaAbilitySequenced(t *testing.T) {
+	e := layerEngine(t)
+	e.G.SetZone(state.ZHand, 0, nil)
+	onBoard(t, e, 0, jitteSnapshotPlains) // untapped free {W}
+	onBoard(t, e, 0, "Name:PaidCave\nTypes:Land\n"+
+		"A:AB$ Mana | Cost$ 1 T | Produced$ C | Amount$ 2 | SpellDescription$ {1}, {T}: Add {C}{C}.\n"+
+		"Oracle:{1}, {T}: Add {C}{C}.\n")
+	m := e.PotentialMana(0)
+	if m.Total() < 3 || m[state.MC] < 2 {
+		t.Fatalf("Plains + paid {1},T->{C}{C} source potential = %v, want >= {C:2} plus the Plains' {W}", m)
+	}
+	// Contrast: the paid source ALONE cannot pay its own activation, so it
+	// contributes nothing -- the fix is order-accounted, not a blank
+	// over-bound with no source to pay the cost.
+	e2 := layerEngine(t)
+	e2.G.SetZone(state.ZHand, 0, nil)
+	onBoard(t, e2, 0, "Name:PaidCave\nTypes:Land\n"+
+		"A:AB$ Mana | Cost$ 1 T | Produced$ C | Amount$ 2 | SpellDescription$ {1}, {T}: Add {C}{C}.\n"+
+		"Oracle:{1}, {T}: Add {C}{C}.\n")
+	if m2 := e2.PotentialMana(0); m2.Total() != 0 {
+		t.Fatalf("a paid source with nothing to pay {1} must contribute nothing, got %v", m2)
+	}
+}
+
+// TestPotentialActionsPaidManaAbilitySequenced is the action-level pin of the
+// same defect: with the Plains and the paid source behind it, the {2} creature
+// in hand IS a potential cast (the projection prices against the sequenced
+// pool), though the floating pool is empty. This is the exact shape the second
+// round's break attempt reproduced (pool=[C:1], {2} omitted).
+func TestPotentialActionsPaidManaAbilitySequenced(t *testing.T) {
+	e := layerEngine(t)
+	e.G.Step = state.StepMain1
+	e.G.SetZone(state.ZHand, 0, nil)
+	e.G.Players[0].LandsPlayed = 1
+	onBoard(t, e, 0, jitteSnapshotPlains) // untapped free {W}
+	onBoard(t, e, 0, "Name:PaidCave\nTypes:Land\n"+
+		"A:AB$ Mana | Cost$ 1 T | Produced$ C | Amount$ 2 | SpellDescription$ {1}, {T}: Add {C}{C}.\n"+
+		"Oracle:{1}, {T}: Add {C}{C}.\n")
+	creature := onHand(t, e, 0, "Name:Colourless Bear\nManaCost:2\nTypes:Creature Bear\nPT:1/1\nOracle:x\n")
+
+	// The REAL offer (empty floating pool) rightly has no cast; the projection
+	// exists precisely to catch the float-then-cast sequence.
+	for _, o := range e.legalActions(0) {
+		if o.Kind == "cast" && o.Obj == creature {
+			t.Fatal("empty floating pool must not offer the cast directly")
+		}
+	}
+	found := false
+	for _, a := range e.PotentialActions(0) {
+		if a.Kind == "cast" && a.Obj == creature {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("Plains + paid {1},T->{C}{C} source must make the {2} creature a potential cast")
+	}
+}
+
+// TestPotentialManaBlankProducedIsColourless pins the blank-Produced$ half of
+// the second-round finding: a mana ability with NO Produced$ is the executor's
+// own colourless default (one {C}), NOT an alternative production. The old
+// addPotentialMana tested producedOpen("") BEFORE the blank->"C" fallback, so
+// producedOpen("") returned true and the source granted potentialUnbounded in
+// every colour slot -- turning an unpayable {W} spell into a potential cast.
+func TestPotentialManaBlankProducedIsColourless(t *testing.T) {
+	e := layerEngine(t)
+	e.G.SetZone(state.ZHand, 0, nil)
+	onBoard(t, e, 0, "Name:BlankManaLand\nTypes:Land\n"+
+		"A:AB$ Mana | Cost$ T | SpellDescription$ Add {C}.\nOracle:x\n")
+	m := e.PotentialMana(0)
+	if m[state.MC] != 1 {
+		t.Fatalf("blank Produced$ must be one colourless, got C=%d (pool %v)", m[state.MC], m)
+	}
+	for _, i := range []int{state.MW, state.MU, state.MB, state.MR, state.MG} {
+		if m[i] != 0 {
+			t.Fatalf("a colourless source must not contribute colour slot %d, got %d (pool %v)", i, m[i], m)
+		}
+	}
+}
+
+// TestPotentialActionsBlankProducedNotColoured pins the action-level
+// consequence: a colourless-only source must NOT make a {W} spell a potential
+// cast. This is the precise failure the finding's blank-production break
+// attempt hit (PotentialMana was [99 99 99 99 99 99] and projected the white
+// cast).
+func TestPotentialActionsBlankProducedNotColoured(t *testing.T) {
+	e := layerEngine(t)
+	e.G.Step = state.StepMain1
+	e.G.SetZone(state.ZHand, 0, nil)
+	e.G.Players[0].LandsPlayed = 1
+	onBoard(t, e, 0, "Name:BlankManaLand\nTypes:Land\n"+
+		"A:AB$ Mana | Cost$ T | SpellDescription$ Add {C}.\nOracle:x\n")
+	white := onHand(t, e, 0, "Name:White Bear\nManaCost:W\nTypes:Creature Bear\nPT:1/1\nOracle:x\n")
+	for _, a := range e.PotentialActions(0) {
+		if a.Kind == "cast" && a.Obj == white {
+			t.Fatal("a colourless source must not make a {W} spell a potential cast")
+		}
+	}
+	// The same source plus a colourless {1} spell IS castable -- one {C} pays
+	// {1} generic, the shape the old unbounded blank wrongly generalised.
+	if m := e.PotentialMana(0); m[state.MC] != 1 {
+		t.Fatalf("blank source potential must be {C:1}, got %v", m)
+	}
+}

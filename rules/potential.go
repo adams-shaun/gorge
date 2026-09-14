@@ -36,30 +36,63 @@ const potentialUnbounded int32 = 99
 //     potentialUnbounded to EVERY unit -- the one shape a fixed vector cannot
 //     represent honestly, and the shape the old client-side bound priced at
 //     zero (the Tron + Karn defect);
-//   - a mana ability with a paid activation cost (Wasteland's
-//     "T, Sac<1/CARDNAME>") still counts: the engine offers it as an activate
-//     option once its cost is satisfiable, so the mana is genuinely reachable.
+//   - a mana ability WITH a paid activation cost (Wasteland's
+//     "T, Sac<1/CARDNAME>", a "{1}, {T}: add {C}{C}" source) still counts, and
+//     it counts even though the real floating pool does not already cover its
+//     cost: the seat can tap a free source first, spend that mana on the paid
+//     activation, and then tap the paid source. PotentialMana therefore runs a
+//     FIXPOINT -- a source's paid mana ability is admitted the moment the
+//     accumulated pool can cover its activation cost, and its own production
+//     then feeds the next source -- so the pool grows the way a player would
+//     actually sequence the activations (the Jitte-round finding: a Plains
+//     plus an untapped "{1}, {T}: add {C}{C}" source must cover a {2} spell,
+//     because the seat taps the Plains for {W}, pays the {1} to activate the
+//     source, and casts from the {C}{C} it produced).
 //
-// Restriction-gated abilities (CantBeActivated) contribute nothing, the same
-// gate the engine's tap-for-manability offer uses -- a source a static
-// currently forbids is not advertised as producible. The aggregate is a pure
-// read: no event is emitted and no state field is written; the pool lives
-// only in this return value.
+// Restriction-gated abilities (CantBeActivated) contribute nothing, and a
+// source's own production never pays for that source's own paid activation
+// (a source is admitted only when the pool built from OTHER sources already
+// covers its cost, and each source contributes at most once -- the same
+// single-tap-per-source semantics the engine's own tap-for-mana offer uses).
+// The aggregate is a pure read: no event is emitted and no state field is
+// written; the pool lives only in this return value.
 //
-// Determinism: the walk is over zone order, never a map, so the aggregate is
-// byte-stable run to run.
+// Determinism: the walk is over zone order, never a map range (the added set
+// is only indexed, never ranged), so the aggregate is byte-stable run to run.
 func (e *Engine) PotentialMana(p state.PlayerID) state.Mana {
 	out := e.G.Players[p].Pool
-	for _, id := range e.G.Zone(state.ZBattlefield, p) {
-		o := e.G.Obj(id)
-		if o == nil || o.Tapped {
-			continue
+	added := map[state.ObjID]bool{}
+	for {
+		progressed := false
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			if added[id] {
+				continue
+			}
+			o := e.G.Obj(id)
+			if o == nil || o.Tapped || o.Face() == nil {
+				continue
+			}
+			// Admit the source the first pass the accumulated pool covers at
+			// least one of its mana abilities' activation costs. Adding every
+			// currently-feasible face is the same single-source over-bound the
+			// real offer walk's multi-ability source produces.
+			var ses []*cards.SA
+			for _, ma := range o.Face().ManaAbilities() {
+				if !e.abilityRestricted(p, id, ma) && e.manaAbilityPayablePool(p, id, ma, &out) {
+					ses = append(ses, ma)
+				}
+			}
+			if len(ses) == 0 {
+				continue
+			}
+			added[id] = true
+			progressed = true
+			for _, ma := range ses {
+				addPotentialMana(&out, ma)
+			}
 		}
-		if o.Face() == nil {
-			continue
-		}
-		for _, ma := range e.availableManaAbilities(p, id) {
-			addPotentialMana(&out, ma)
+		if !progressed {
+			break
 		}
 	}
 	return out
@@ -74,14 +107,19 @@ func (e *Engine) PotentialMana(p state.PlayerID) state.Mana {
 func addPotentialMana(m *state.Mana, ma *cards.SA) {
 	amt, indeterminate := potentialAmount(ma)
 	raw := strings.TrimSpace(ma.Params["Produced"])
+	// Blank Produced$ is the executor's own colourless default (effMana), NOT
+	// an alternative production: normalize it to "C" BEFORE the open test so a
+	// colourless source contributes one colourless rather than pricing the
+	// whole pool unbounded (the blank-`producedOpen("")` bug: 99 of every
+	// colour turned an unpayable {W} spell into a potential cast).
+	if raw == "" {
+		raw = "C"
+	}
 	if indeterminate || producedOpen(raw) {
 		for i := range m {
 			m[i] += potentialUnbounded
 		}
 		return
-	}
-	if raw == "" {
-		raw = "C"
 	}
 	s := strings.NewReplacer("{", "", "}", "", " ", "").Replace(raw)
 	for _, r := range s {
@@ -93,7 +131,11 @@ func addPotentialMana(m *state.Mana, ma *cards.SA) {
 // unknown production the executor resolves at activation time rather than a
 // fixed mana set: "Any"/"Combo Any" (any colour), "Chosen", or any token
 // outside the WUBRGC faces. A fixed multi-face value ("GW") is not open --
-// each face is folded additively as an over-bound.
+// each face is folded additively as an over-bound. The blank case is kept
+// only defensively: addPotentialMana normalizes a blank Produced$ to "C"
+// before calling this, so a colourless source is never mistaken for an open
+// production (the round-2 finding that granted 99 of every colour to a
+// blank-Produced$ source).
 func producedOpen(raw string) bool {
 	switch raw {
 	case "", "Any", "Combo Any", "Chosen":
