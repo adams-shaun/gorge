@@ -99,7 +99,14 @@
 
   // Generic decisions belong to the clock's ACTIONS tab. Mulligan alone
   // keeps the board centre, where the opening hand is the whole task rather
-  // than a HUD.
+  // than a HUD. A REQUIRED prompt (brief Jobs 1–2) joins it: a decision with
+  // no pass option (toneOf 'initiative') is answered on the board, not in the
+  // ACTIONS drop — the mulligan round is the precedent, and the offered
+  // priority windows stay in the drop, which is the split the reporter asked
+  // for: prompts are not "available actions" and are never hidden behind one.
+  const promptPending = $derived(
+    panel !== null && panel.active !== null && toneOf(panel.active) === 'initiative',
+  );
   const mulligan = $derived(panel ? mulliganPhase(panel.active) : null);
   const concede = $derived(panel?.concedeOption ?? null);
   // A direct card action can hand the server a first-stage choice and receive
@@ -265,7 +272,7 @@
              and the page looks hung while the live game waits elsewhere --
              which is exactly what happened the first time this was played.
              A seat acts only on the live table route. -->
-        {#if seated && seatCtx && m.match !== null && !finished && (mulligan !== null || m.view.over)}
+        {#if seated && seatCtx && m.match !== null && !finished && (mulligan !== null || m.view.over || promptPending)}
           {#key m.match}
             <SeatPanel view={m.view} seats={m.seats} ctx={seatCtx} table={table} match={m.match} state={panel} />
           {/key}

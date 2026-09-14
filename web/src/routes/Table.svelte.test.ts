@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'svelte/server';
-import type { EventBody, PlayerView, SeatInfo, View } from '../protocol';
+import type { Decision, EventBody, PlayerView, SeatInfo, View } from '../protocol';
 import { initSeatContext } from '../lib/seat';
 
 // Table.svelte's MatchState opens nothing at import, but session.svelte's
@@ -116,6 +116,51 @@ describe('Table.svelte seat gating (R-E4-4 / R-E4-5)', () => {
     expect(fakeMatch.shared.lastSeat).toEqual({ seat: 0, token: 'TOPSECRETVALUEnEVERseen' });
 
     // restore the no-seat baseline for any later test in this file
+    initSeatContext('');
+  });
+});
+
+describe('Table.svelte — the prompt/action split (fb prompts)', () => {
+  const initiative: Decision = {
+    seq: 21, player: 0, kind: 'target', prompt: 'Choose a target', min: 1, max: 1, source: 9,
+    options: [{ index: 0, kind: 'target', label: 'Target Bo', obj: 3, player: 0 }],
+  };
+
+  it('a REQUIRED prompt mounts the board surface alongside the strip: answerable without the dropdown', () => {
+    initSeatContext('?seat=0&token=t');
+    fakeMatch.shared.view = view({ decision: initiative });
+    fakeMatch.shared.seats = seats;
+    fakeMatch.shared.ctorArgs = [];
+
+    const { html } = render(Table, { props: { table: 't1' } });
+
+    // Two seat panels: the strip's copy inside the ACTIONS drop, and the
+    // board prompt surface — the one visible with the dropdown never opened.
+    expect(html.match(/data-seat-panel/g)).toHaveLength(2);
+    expect(html).toContain('data-answer-surface');
+    expect(html).toContain('data-prompt');
+    initSeatContext('');
+  });
+
+  it('an OFFERED window keeps ONE surface: the ACTIONS drop only', () => {
+    initSeatContext('?seat=0&token=t');
+    fakeMatch.shared.view = view({
+      decision: {
+        seq: 22, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1,
+        options: [
+          { index: 0, kind: 'cast', label: 'Cast Bolt', player: 0 },
+          { index: 1, kind: 'pass', label: 'Pass priority', player: 0 },
+          { index: 2, kind: 'concede', label: 'Concede', player: 0 },
+        ],
+      },
+    });
+    fakeMatch.shared.seats = seats;
+    fakeMatch.shared.ctorArgs = [];
+
+    const { html } = render(Table, { props: { table: 't1' } });
+
+    expect(html.match(/data-seat-panel/g)).toHaveLength(1);
+    expect(html).not.toContain('data-answer-surface');
     initSeatContext('');
   });
 });
