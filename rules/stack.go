@@ -34,8 +34,16 @@ var manaLetters = [...]string{"W", "U", "B", "R", "G", "C"}
 // having paid nothing. Reporting failure explicitly is what lets castSpell
 // abort the cast instead.
 func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
+	return e.payManaConv(p, cost, nil)
+}
+
+// payManaConv is payMana under a stat:ManaConvert conversion set (or nil,
+// the plain exact-colour payment payMana always was). The conversion widens
+// (and the <-C restriction narrows) what the pool's mana may pay, never what
+// the cost demands.
+func (e *Engine) payManaConv(p state.PlayerID, cost Cost, conv *manaConv) bool {
 	before := e.G.Players[p].Pool
-	after, lifeSpent, ok := cost.resolveMana(before, e.G.Players[p].Life)
+	after, lifeSpent, ok := cost.resolveMana(before, e.G.Players[p].Life, conv)
 	if !ok {
 		return false
 	}
@@ -50,6 +58,28 @@ func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
 		e.emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -lifeSpent})
 	}
 	return true
+}
+
+// paymentConv is the conversion set for p paying id (ability selects the
+// ValidSA$ Spell/Activated scoping), or nil when no ManaConvert static would
+// change any pip match. Returning nil -- not a zero conv -- keeps the pure
+// resolveMana path (and every game without a converter on the board)
+// byte-identical.
+func (e *Engine) paymentConv(p state.PlayerID, id state.ObjID, ability bool) *manaConv {
+	conv := e.manaConversion(p, id, ability)
+	if conv.empty() {
+		return nil
+	}
+	return &conv
+}
+
+// costPayable is the conversion-aware equivalent of Cost.payable at the
+// offering and window gates: the SAME resolveMana payMana will run, so an
+// offered cost and the cost actually charged can never disagree about what
+// the payer's converted mana may satisfy.
+func (e *Engine) costPayable(p state.PlayerID, id state.ObjID, ability bool, cost Cost) bool {
+	_, _, ok := cost.resolveMana(e.G.Players[p].Pool, e.G.Players[p].Life, e.paymentConv(p, id, ability))
+	return ok
 }
 
 // targetBounds resolves a targeting subject's TargetMin$/TargetMax$ to the

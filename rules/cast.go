@@ -236,7 +236,7 @@ func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32) in
 func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability bool) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic)
-	if !mana.payable(e.G.Players[p].Pool, e.G.Players[p].Life) {
+	if !e.costPayable(p, id, ability, mana) {
 		return false
 	}
 	reserved := map[state.ObjID]bool{}
@@ -634,7 +634,7 @@ func (e *Engine) xAsk() bool {
 	for x := int32(0); x <= bound; x++ {
 		wx := e.manaToPayX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
-		if !wx.payable(pool, e.G.Players[pc.player].Life) {
+		if !e.costPayable(pc.player, pc.card, pc.ability >= 0, wx) {
 			break
 		}
 		max = x
@@ -1335,7 +1335,7 @@ func (e *Engine) targetAsk() bool {
 			mana.Generic = 0
 		}
 	}
-	if !mana.payable(e.G.Players[pc.player].Pool, e.G.Players[pc.player].Life) && !e.hasUntappedManaSource(pc.player) {
+	if !e.costPayable(pc.player, pc.card, pc.ability >= 0, mana) && !e.hasUntappedManaSource(pc.player) {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return true
 	}
@@ -1516,7 +1516,7 @@ func (e *Engine) manaWindowAsk() bool {
 	}
 	// A pool that already pays the total cost needs no window (nothing to
 	// gain by activating more mana abilities here).
-	if mana.payable(e.G.Players[pc.player].Pool, e.G.Players[pc.player].Life) {
+	if e.costPayable(pc.player, pc.card, pc.ability >= 0, mana) {
 		return false
 	}
 	var sources []state.ObjID
@@ -1619,7 +1619,7 @@ func (e *Engine) payCast() {
 		// The ability object was already minted by pushCast; targets are
 		// recorded onto it by handleTarget.
 		mana := e.manaToPay(pc)
-		if !e.payMana(pc.player, mana) {
+		if !e.payManaConv(pc.player, mana, e.paymentConv(pc.player, pc.card, true)) {
 			e.abortCast(pc, "activation aborted: cost no longer payable", true)
 			return
 		}
@@ -1707,7 +1707,7 @@ func (e *Engine) payCast() {
 	if mana.Generic < 0 {
 		mana.Generic = 0
 	}
-	if !e.payMana(pc.player, mana) {
+	if !e.payManaConv(pc.player, mana, e.paymentConv(pc.player, pc.card, false)) {
 		// E2 (round 2) / F05-2. This is the reachable no-progress arm: a Delve
 		// exile ask (Min:0, Max the shortfall) was answered with fewer cards
 		// than the shortfall needs, so the cast aborts with no state change

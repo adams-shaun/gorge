@@ -407,7 +407,7 @@ func (e *Engine) AbilityCosts(p state.PlayerID, id state.ObjID) []string {
 	}
 	var out []string
 	for _, ab := range o.Face().Abilities {
-		if ab.Kind != "AB" || ab.API == "Mana" {
+		if ab.Kind != "AB" || isManaAbilityAPI(ab.API) {
 			continue
 		}
 		out = append(out, formatCost(e.offerCostFor(p, id, ParseCost(ab.Params["Cost"]), true)))
@@ -573,7 +573,15 @@ func (c Cost) costPips() []pip {
 // for each Phyrexian pip paid by life), and whether the whole cost is payable.
 // The generic requirement is paid last from whatever the pips left, so
 // coloured mana is never spent on generic while a pip still needs it.
-func (c Cost) resolveMana(pool state.Mana, life int32) (state.Mana, int32, bool) {
+//
+// conv, when non-nil, is the stat:ManaConvert conversion set this payment is
+// resolved under (rules/mana_convert.go): it WIDENS what a pip accepts -- the
+// payer's converted mana may be spent as though it were another colour -- and
+// onlyC may also NARROW it ("spend other mana only as though it were
+// colorless"). A nil conv is the plain exact-colour match every pre-existing
+// caller keeps, so games with no ManaConvert static on the battlefield
+// resolve byte-identically.
+func (c Cost) resolveMana(pool state.Mana, life int32, conv *manaConv) (state.Mana, int32, bool) {
 	if life < c.Life {
 		return pool, 0, false
 	}
@@ -581,6 +589,42 @@ func (c Cost) resolveMana(pool state.Mana, life int32) (state.Mana, int32, bool)
 	rem := pool
 	life -= c.Life
 	lifeSpent := c.Life
+	// pipAccepts reports whether a pip accepts one unit of pool colour col
+	// (manaLetters index), under conv. Exact colours always match; conv
+	// widens (wild/to) and narrows (onlyC) around that base.
+	pipAccepts := func(p pip, col byte, di int) bool {
+		exact := col == p.colors[0] || col == p.colors[1]
+		isC := p.colors[0] == 'C' && p.colors[1] == 'C'
+		if conv == nil {
+			return exact
+		}
+		if conv.onlyC[di] {
+			// The <-C restriction: this pool colour may be spent ONLY as
+			// colorless mana -- a {C} pip or generic (generic is handled
+			// outside the pip loop and takes any mana), never a coloured
+			// or hybrid pip, not even its own colour's.
+			return isC
+		}
+		if exact {
+			return true
+		}
+		if conv.wild[di] {
+			// "spend as mana of any color" widens to every coloured or
+			// hybrid pip; the colourless-specific {C} pip is a TYPE, not a
+			// colour (CR 107.4c), so it is covered only by the
+			// AnyType->AnyType wording (conv.wildC).
+			if isC {
+				return conv.wildC
+			}
+			return true
+		}
+		for _, pc := range p.colors {
+			if conv.to[di][state.ManaIndex(pc)] {
+				return true
+			}
+		}
+		return false
+	}
 	var rec func(i int) bool
 	rec = func(i int) bool {
 		if i == len(pips) {
@@ -591,12 +635,31 @@ func (c Cost) resolveMana(pool state.Mana, life int32) (state.Mana, int32, bool)
 		// prefers A over B; for a single-colour pip A==B so it is just once.
 		for _, col := range p.colors {
 			di := state.ManaIndex(col)
-			if rem[di] > 0 {
+			if rem[di] > 0 && pipAccepts(p, col, di) {
 				rem[di]--
 				if rec(i + 1) {
 					return true
 				}
 				rem[di]++
+			}
+		}
+		// A conversion may let OTHER pool colours pay this pip too -- e.g.
+		// "spend white mana as though it were red" offers the pool's white
+		// mana for a red pip, which the exact-colour list above cannot see.
+		// The walk order is manaLetters (WUBRGC), so the assignment stays
+		// deterministic; converted mana is tried only after every exact
+		// colour, so a conversion never displaces an exact payment.
+		if conv != nil {
+			for di := range manaLetters {
+				col := manaLetters[di][0]
+				exact := col == p.colors[0] || col == p.colors[1]
+				if !exact && rem[di] > 0 && pipAccepts(p, col, di) {
+					rem[di]--
+					if rec(i + 1) {
+						return true
+					}
+					rem[di]++
+				}
 			}
 		}
 		if p.lifeOK && life >= 2 {
@@ -634,7 +697,7 @@ func (c Cost) resolveMana(pool state.Mana, life int32) (state.Mana, int32, bool)
 // same resolveMana the payment stage uses, so an offered cost and the cost it
 // charges can never disagree.
 func (c Cost) payable(pool state.Mana, life int32) bool {
-	_, _, ok := c.resolveMana(pool, life)
+	_, _, ok := c.resolveMana(pool, life, nil)
 	return ok
 }
 
@@ -643,7 +706,7 @@ func (c Cost) CanPay(p state.Mana) bool {
 	// its colours in the pool, a Phyrexian pip by its colour. This is the
 	// pure pricing question the corpus invariants ask, and it never treats a
 	// hybrid as generic nor lets colourless `pay` it.
-	_, _, ok := c.resolveMana(p, 0)
+	_, _, ok := c.resolveMana(p, 0, nil)
 	return ok
 }
 
@@ -659,6 +722,6 @@ func (c Cost) Pay(p state.Mana) (state.Mana, bool) {
 	// (the cast flow's payMana handles the life half and passes a fully
 	// resolved cost here). resolveMana already reserves the coloured pips and
 	// deducts generic, so the returned pool is fully spent.
-	out, _, ok := c.resolveMana(p, 0)
+	out, _, ok := c.resolveMana(p, 0, nil)
 	return out, ok
 }

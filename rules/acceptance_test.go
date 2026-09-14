@@ -78,29 +78,30 @@ import (
 // the ratchet became EMPTY for the original Legacy and interim Commander
 // decks. The Hearthhull and Valgavoth imports add 54 measured gaps across 579
 // distinct cards in the pinned corpus; entries retire only when their
-// primitives are implemented.
+// primitives are implemented. The untap/mana wave (api:Untap, api:ManaReflected,
+// stat:ManaConvert, stat:UntapOtherPlayer, kw:Cumulative upkeep and the
+// unscheduled repl:Untap the monolith family turned out to also carry)
+// retired Fabled Passage, Exotic Orchard and Chromatic Orrery outright and
+// shrank Baloth Prime and Horizon Explorer to their remaining trig: gaps.
 var knownUnsupported = map[string][]string{
 	"Archfiend of Despair":         {"api:RepeatEach", "stat:CantGainLife"},
-	"Baloth Prime":                 {"api:Untap", "trig:Sacrificed"},
+	"Baloth Prime":                 {"trig:Sacrificed"},
 	"Bloodletter of Aclazotz":      {"api:ReplaceEffect", "repl:LifeReduced"},
 	"Braids, Arisen Nightmare":     {"api:RepeatEach"},
 	"Chandra, Awakened Inferno":    {"repl:Counter"},
-	"Chromatic Orrery":             {"stat:ManaConvert"},
 	"Conduit of Worlds":            {"api:Play"},
 	"Constant Mists":               {"api:Fog", "kw:Buyback"},
 	"Crypt Ghast":                  {"kw:Extort", "trig:TapsForMana"},
 	"Dauthi Voidwalker":            {"api:ChooseCard", "kw:Shadow"},
 	"Deflecting Swat":              {"api:ChangeTargets"},
 	"Evendo Brushrazer":            {"trig:Sacrificed"},
-	"Exotic Orchard":               {"api:ManaReflected"},
 	"Exploration Broodship":        {"kw:Station"},
-	"Fabled Passage":               {"api:Untap"},
 	"Fate Unraveler":               {"trig:Drawn"},
 	"Fiery Emancipation":           {"api:ReplaceEffect", "repl:DamageDone"},
 	"Fog":                          {"api:Fog"},
 	"Gamble":                       {"api:Shuffle"},
 	"Hearthhull, the Worldseed":    {"kw:Station"},
-	"Horizon Explorer":             {"api:Untap", "trig:AttackersDeclaredOneTarget"},
+	"Horizon Explorer":             {"trig:AttackersDeclaredOneTarget"},
 	"Karazikar, the Eye Tyrant":    {"api:Goad", "trig:AttackersDeclaredOneTarget"},
 	"Kederekt Parasite":            {"trig:Drawn"},
 	"Last One Standing":            {"api:ChooseCard"},

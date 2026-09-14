@@ -54,20 +54,55 @@ type manaDiscardActivation struct {
 	cast     bool
 }
 
+// isManaAbilityAPI reports whether an ability's Forge API names a mana
+// ability (CR 605.1a): AB$ Mana and, since this ticket, AB$ ManaReflected --
+// a reflected-mana ability adds mana exactly as AB$ Mana does and shares the
+// class everywhere the engine distinguishes mana abilities (the ordinary
+// ability offer, AbilityCosts, the CantBeActivated ManaAbility constraints).
+func isManaAbilityAPI(api string) bool {
+	return api == "Mana" || api == "ManaReflected"
+}
+
 // availableManaAbilities returns exactly the individual mana abilities that
 // p may activate from id now. Keeping the CantBeActivated gate here makes the
 // priority action, payment window, and the eventual chosen activation share
 // one member-by-member eligibility set.
+//
+// AB$ ManaReflected (Exotic Orchard, Fellwar Stone, Mox Amber, Chrome Mox)
+// is a mana ability in every CR sense (CR 605.1a: it adds mana) but not a
+// Face.ManaAbilities() member -- that collector keys on API == "Mana", and
+// widening IT would leak reflected production into cards' colour identity
+// and the bot ManaProduction collector, which are corpus-wide projections
+// this ticket does not touch. The mana-activation membership is the one the
+// engine's own rules need, so the reflected abilities join HERE: they are
+// gated on the same cost/zone/restriction checks (manaAbilityPayable), plus
+// one extra totality gate of their own -- the reflected set must be
+// non-empty, because an Exotic Orchard with no opponent land in play has no
+// mana to add and an option that can only resolve into a Note must not be
+// offered.
 func (e *Engine) availableManaAbilities(p state.PlayerID, id state.ObjID) []*cards.SA {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return nil
 	}
+	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars}
 	var out []*cards.SA
 	for _, ma := range o.Face().ManaAbilities() {
 		if !e.abilityRestricted(p, id, ma) && e.manaAbilityPayable(p, id, ma) {
 			out = append(out, ma)
 		}
+	}
+	for _, ma := range o.Face().Abilities {
+		if ma.Kind != "AB" || ma.API != "ManaReflected" {
+			continue
+		}
+		if e.abilityRestricted(p, id, ma) || !e.manaAbilityPayable(p, id, ma) {
+			continue
+		}
+		if len(effects.ManaReflectedCandidates(e, ctx, ma)) == 0 {
+			continue
+		}
+		out = append(out, ma)
 	}
 	return out
 }
@@ -89,8 +124,14 @@ func (e *Engine) activateMana(p state.PlayerID, source state.ObjID, cast bool) {
 	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose a mana ability of " + o.Face().Name, Source: source}
 	for i, ma := range abilities {
+		label := strings.TrimSpace(ma.Params["Produced"])
+		if label == "" {
+			// A ManaReflected ability names no Produced$: show the script's own
+			// description so the option is not a bare "Add ".
+			label = strings.TrimSpace(ma.Params["SpellDescription"])
+		}
 		d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: source,
-			Ability: i, Label: "Add " + strings.TrimSpace(ma.Params["Produced"])})
+			Ability: i, Label: "Add " + label})
 	}
 	e.manaActivation = &manaActivation{player: p, source: source, abilities: abilities, cast: cast}
 	e.choosing = chooseMana
@@ -107,7 +148,7 @@ func (e *Engine) manaAbilityPayable(p state.PlayerID, source state.ObjID, ma *ca
 		return false
 	}
 	cost := ParseCost(ma.Params["Cost"])
-	if cost.X != 0 || (cost.Tap && o.Tapped) || !cost.payable(e.G.Players[p].Pool, e.G.Players[p].Life) {
+	if cost.X != 0 || (cost.Tap && o.Tapped) || !e.costPayable(p, source, true, cost) {
 		return false
 	}
 	for _, part := range cost.SubCounter {
@@ -227,7 +268,7 @@ func (e *Engine) continueManaDiscard() {
 
 func (e *Engine) commitManaDiscard() {
 	md := e.manaDiscardActivation
-	if md == nil || !e.payMana(md.player, md.cost) {
+	if md == nil || !e.payManaConv(md.player, md.cost, e.paymentConv(md.player, md.source, true)) {
 		e.manaDiscardActivation = nil
 		e.choosing = chooseNone
 		return
@@ -280,7 +321,7 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 		e.continueManaDiscard()
 		return
 	}
-	if !e.payMana(p, cost) {
+	if !e.payManaConv(p, cost, e.paymentConv(p, source, true)) {
 		return
 	}
 	if cost.Tap {
@@ -297,6 +338,30 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 
 func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *cards.SA, cast bool) {
 	produced := strings.TrimSpace(ma.Params["Produced"])
+	// AB$ ManaReflected: compute the reflected set and either add its single
+	// colour or ask. The ask is the ordinary mana-colour choice
+	// (chooseManaColor): option order is the candidates' fixed WUBRG(C) order,
+	// so the bot's first-option answer is deterministic.
+	if ma.API == "ManaReflected" {
+		ctx := &effects.Ctx{Source: source, Controller: p,
+			SVars: func() map[string]string {
+				if o := e.G.Obj(source); o != nil && o.Face() != nil {
+					return o.Face().SVars
+				}
+				return nil
+			}()}
+		cols := effects.ManaReflectedCandidates(e, ctx, ma)
+		switch len(cols) {
+		case 0:
+			e.emit(events.Event{Kind: events.Note, Obj: source,
+				Text: "ManaReflected found no mana to reflect"})
+		case 1:
+			e.resolveManaEffectColor(p, source, ma, cols[0])
+		default:
+			e.askManaColor(p, source, ma, cast, cols)
+		}
+		return
+	}
 	if produced == "Any" || produced == "Combo Any" {
 		e.askManaColor(p, source, ma, cast, []string{"W", "U", "B", "R", "G"})
 		return

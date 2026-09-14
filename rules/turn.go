@@ -12,13 +12,42 @@ func (e *Engine) beginTurn(active state.PlayerID) {
 	e.emit(events.Event{Kind: events.TurnChange, Player: active, Amount: e.G.Turn + 1})
 	e.setStep(state.StepUntap)
 	for _, id := range e.G.Zone(state.ZBattlefield, active) {
-		if e.G.Obj(id).Tapped {
-			e.emit(events.Event{Kind: events.Untap, Obj: id})
+		// The R:Event$ Untap replacements ("this permanent doesn't untap
+		// during its controller's untap step", the CantHappen layer) and the
+		// stat:UntapOtherPlayer static ("untap this during each other
+		// player's untap step") both shape exactly this turn-based action;
+		// rules/untap.go owns their grammar. Both are no-ops on a game with
+		// none of the two in play, so every game without the affected cards
+		// emits the identical Untap event per tapped permanent as before.
+		e.untapTurnPermanent(id)
+	}
+	// stat:UntapOtherPlayer: during active's untap step, EVERY other living
+	// player's battlefield permanent the statics match untaps too (CR's
+	// "untap during each other player's untap step", and the command-zone
+	// plane shape "all permanents untap during each player's untap step").
+	// AliveFrom(0) order keeps the event stream deterministic. A permanent
+	// with the static AND an untap replacement is shaped by the same
+	// replacement gate -- the ValidStepTurnToController$ You gate on every
+	// corpus replacement ("during its CONTROLLER'S untap step") fails for a
+	// foreign seat's step, which is exactly right: the static's whole point
+	// is untapping outside that step.
+	for _, p := range e.G.AliveFrom(0) {
+		if p == active {
+			continue
+		}
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o != nil && o.Tapped && e.untapOtherStaticsMatch(id) {
+				e.untapTurnPermanent(id)
+			}
 		}
 	}
 	e.setStep(state.StepUpkeep)
-	// Start of turn resets the pass count along with the holder.
-	e.emit(events.Event{Kind: events.Priority, Player: active})
+	// The upkeep's turn-based cumulative-upkeep action (kw:Cumulative upkeep)
+	// runs here and may suspend on its pay-or-sacrifice choices; when it has
+	// nothing to do it emits this turn's Priority event itself, byte-identical
+	// to the old unconditional tail.
+	e.startCumulativeUpkeep()
 }
 
 func (e *Engine) setStep(s state.Step) {
@@ -530,6 +559,13 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// trigger drain (only the turn structure asks it, when no step is
 		// mid-resolution), so e.drainAwaitsTarget is necessarily false here.
 		e.discardCleanup(chosen)
+	case chooseCumulative:
+		// kw:Cumulative upkeep (rules/cumulative.go): the pay-or-sacrifice
+		// choice for the permanent being aged was answered. cumulativeAnswer
+		// applies the payment or the sacrifice and either asks the next
+		// queued permanent or emits the turn's Priority event -- the upkeep
+		// action's own resume, the mirror of chooseCleanup above.
+		e.cumulativeAnswer(chosen)
 	case chooseDamageDivision:
 		// Task jj-cmb (F40): the combat damage step's controller
 		// damage-division decision (CR 510.1c) was answered.

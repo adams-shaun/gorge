@@ -194,6 +194,16 @@ func (e *Engine) Clone() *Engine {
 		ma.discards = append([]state.ObjID(nil), e.manaDiscardActivation.discards...)
 		c.manaDiscardActivation = &ma
 	}
+	if e.cumulative != nil {
+		cu := *e.cumulative
+		cu.queue = append([]state.ObjID(nil), e.cumulative.queue...)
+		cu.amount.Sac = append([]CostPart(nil), e.cumulative.amount.Sac...)
+		cu.amount.Discard = append([]CostPart(nil), e.cumulative.amount.Discard...)
+		cu.amount.SubCounter = append([]CostPart(nil), e.cumulative.amount.SubCounter...)
+		cu.amount.Hybrid = append([]ManaPair(nil), e.cumulative.amount.Hybrid...)
+		cu.amount.Phyrexian = append([]byte(nil), e.cumulative.amount.Phyrexian...)
+		c.cumulative = &cu
+	}
 	if e.cast != nil {
 		pc := *e.cast
 		pc.cost.Sac = append([]CostPart(nil), e.cast.cost.Sac...)
