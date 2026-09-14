@@ -185,17 +185,21 @@ func Apply(g *state.Game, e Event) {
 			for i := range g.Objs {
 				g.Objs[i].EnteredThisTurn = false
 				g.Objs[i].WasDealtDamageThisTurn = false
-				// A goad lasts until its goader's next turn (CR 701.38a).
-				if g.Objs[i].Goaded && g.Objs[i].Goader == e.Player {
-					g.Objs[i].Goaded = false
-				}
+				// Each goad lasts until that goader's next turn (CR 701.38a).
+				// Multiple opponents can goad one creature, so expire only this
+				// turn's player's relationship and retain every other one.
+				g.Objs[i].Goaders = removeGoader(g.Objs[i].Goaders, e.Player)
 			}
 		}
 
 	case Goad:
 		if o := g.Obj(e.Obj); o != nil && validPlayer(g, e.Player) {
-			o.Goaded = true
-			o.Goader = e.Player
+			for _, goader := range o.Goaders {
+				if goader == e.Player {
+					return
+				}
+			}
+			o.Goaders = append(o.Goaders, e.Player)
 		}
 
 	case Priority:
@@ -913,6 +917,21 @@ func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 // validPlayer reports whether p indexes an existing seat.
 func validPlayer(g *state.Game, p state.PlayerID) bool {
 	return int(p) < len(g.Players)
+}
+
+// removeGoader removes one independently expiring goad relationship while
+// preserving the deterministic order in which the remaining players goaded
+// the creature. It returns nil once none remain, keeping the zero state small.
+func removeGoader(in []state.PlayerID, goader state.PlayerID) []state.PlayerID {
+	for i, p := range in {
+		if p == goader {
+			out := make([]state.PlayerID, 0, len(in)-1)
+			out = append(out, in[:i]...)
+			out = append(out, in[i+1:]...)
+			return out
+		}
+	}
+	return in
 }
 
 // zoneOwner picks whose zone list an object belongs to: the battlefield and the

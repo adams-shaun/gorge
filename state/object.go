@@ -111,11 +111,10 @@ type Object struct {
 	EncoreAttackTurn     int32
 	EncoreAttackDefender PlayerID
 
-	// Goaded is the CR 701.38 attack requirement. Goader identifies the
-	// player the creature must avoid if able; it clears at that player's next
-	// turn boundary through events.Goad/TurnChange.
-	Goaded bool
-	Goader PlayerID
+	// Goaders is the CR 701.38 attack requirement, one entry for each player
+	// that has goaded this creature. Each relationship clears independently at
+	// that goader's next turn boundary through events.Goad/TurnChange.
+	Goaders []PlayerID
 
 	// Timestamp orders continuous effects. Assigned from Game.Clock whenever
 	// the object enters the battlefield.
@@ -215,7 +214,7 @@ func (o *Object) AddCounter(kind string, n int32) {
 }
 
 // CloneDeep returns a value copy of o whose slice fields (Counters, Targets,
-// Remembered, BlockedBy, Chosen, ChosenModes) are independently backed, so mutating
+// Remembered, BlockedBy, Chosen, Goaders, ChosenModes) are independently backed, so mutating
 // the copy's slices can never alias o's -- everything else (Card, a shared
 // pointer into the immutable compiled corpus, plus every scalar field) is
 // correct as a plain value copy. This is the one definition of "deep-copy an
@@ -232,6 +231,7 @@ func (o *Object) CloneDeep() Object {
 	c.Remembered = append([]Target(nil), o.Remembered...)
 	c.BlockedBy = append([]ObjID(nil), o.BlockedBy...)
 	c.Chosen = append([]Target(nil), o.Chosen...)
+	c.Goaders = append([]PlayerID(nil), o.Goaders...)
 	c.ChosenModes = append([]string(nil), o.ChosenModes...)
 	return c
 }

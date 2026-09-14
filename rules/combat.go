@@ -315,7 +315,7 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 	if _, ok := e.encoreAttackDefender(id); ok {
 		return true
 	}
-	if o.Goaded {
+	if len(o.Goaders) > 0 {
 		return true
 	}
 	for _, st := range f.Statics {
@@ -348,19 +348,31 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 // a per-defender ValidDefender$ scoping is treated as global for the sake of
 // this bounded solver, which is only ever consulted when a MustAttack
 // requirement or an AttackRestrict static is actually present.
-// goadMayAttack implements the defender half of CR 701.38b. A goaded
-// creature attacks a player other than its goader if one is available.
+// goadMayAttack implements the defender half of CR 701.38b. Every goad is
+// a separate requirement: a goaded creature attacks a player other than EACH
+// player who goaded it if one is available. If all possible defenders are
+// goaders, no declaration can satisfy every requirement, so each remains
+// legal and the creature still has to attack if able.
 func (e *Engine) goadMayAttack(id state.ObjID, defender state.PlayerID) bool {
 	o := e.G.Obj(id)
-	if o == nil || !o.Goaded || defender != o.Goader {
+	if o == nil || !containsPlayer(o.Goaders, defender) {
 		return true
 	}
 	for _, p := range e.G.AliveFrom(0) {
-		if p != o.Controller && p != o.Goader {
+		if p != o.Controller && !containsPlayer(o.Goaders, p) {
 			return false
 		}
 	}
 	return true
+}
+
+func containsPlayer(ps []state.PlayerID, want state.PlayerID) bool {
+	for _, p := range ps {
+		if p == want {
+			return true
+		}
+	}
+	return false
 }
 
 func (e *Engine) maxAttackers() int {

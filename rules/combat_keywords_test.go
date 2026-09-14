@@ -20,7 +20,7 @@ func corpusKeywordCard(t *testing.T, name string) *cards.Card {
 	paths := map[string]string{
 		"Vein Ripper": "v/vein_ripper.txt", "Artisan of Kozilek": "a/artisan_of_kozilek.txt",
 		"Fury": "f/fury.txt", "Shriekmaw": "s/shriekmaw.txt", "Dauthi Voidwalker": "d/dauthi_voidwalker.txt",
-		"Emrakul, the World Anew": "e/emrakul_the_world_anew.txt", "Yavimaya Scion": "y/yavimaya_scion.txt", "Karazikar, the Eye Tyrant": "k/karazikar_the_eye_tyrant.txt",
+		"Emrakul, the World Anew": "e/emrakul_the_world_anew.txt", "Yavimaya Scion": "y/yavimaya_scion.txt", "Guardian of the Guildpact": "g/guardian_of_the_guildpact.txt", "Frenemy of the Guildpact": "f/frenemy_of_the_guildpact.txt", "Kitesail Larcenist": "k/kitesail_larcenist.txt", "Karazikar, the Eye Tyrant": "k/karazikar_the_eye_tyrant.txt",
 	}
 	path, ok := paths[name]
 	if !ok {
@@ -53,6 +53,30 @@ func TestWardVeinRipperCountersAnUnpaidTargetingSpell(t *testing.T) {
 	}
 	if got := e.G.Obj(cause).Zone; got != state.ZGraveyard {
 		t.Fatalf("unpaid ward spell zone = %s, want graveyard", got)
+	}
+}
+
+func TestWardKitesailLarcenistChargesTheNonzeroPayer(t *testing.T) {
+	e := combatEngine(t)
+	warded := onBoardCard(t, e, 0, corpusKeywordCard(t, "Kitesail Larcenist"))
+	cause := e.G.Zone(state.ZLibrary, 1)[0]
+	e.emit(events.Event{Kind: events.PutOnStack, Obj: cause, Player: 1, From: state.ZLibrary, To: state.ZStack})
+	e.emit(events.Event{Kind: events.TargetsChosen, Obj: cause, IDs: []state.ObjID{warded}})
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 1, Amount: 1})
+	e.putTriggersOnStack()
+	e.resolveTop()
+	d := e.Pending()
+	if d == nil || d.ResumeKind != "unless_pay" {
+		t.Fatalf("Kitesail ward did not ask to pay: %+v", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 1, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := e.G.Players[1].Pool.Total(); got != 0 {
+		t.Fatalf("ward payer pool = %d, want 0 after paying", got)
+	}
+	if got := e.G.Obj(cause).Zone; got != state.ZStack {
+		t.Fatalf("paid ward moved targeting spell to %s, want stack", got)
 	}
 }
 
@@ -98,7 +122,7 @@ func TestDoubleStrikeFearAndShadowUseCorpusCombatKeywords(t *testing.T) {
 	}
 }
 
-func TestProtectionAndGoadUseCorpusScripts(t *testing.T) {
+func TestProtectionUsesAllLiveColourQualities(t *testing.T) {
 	e := combatEngine(t)
 	emrakul := onBoardCard(t, e, 0, corpusKeywordCard(t, "Emrakul, the World Anew"))
 	spell := e.G.Zone(state.ZLibrary, 1)[0]
@@ -111,14 +135,57 @@ func TestProtectionAndGoadUseCorpusScripts(t *testing.T) {
 	if !e.protectedFrom(scion, artifact) {
 		t.Fatal("parameterized Protection:Artifact did not use the shared object-spec grammar")
 	}
+	guardian := onBoardCard(t, e, 0, corpusKeywordCard(t, "Guardian of the Guildpact"))
+	mono := onBoard(t, e, 1, "Name:Mono\nManaCost:G\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	if !e.protectedFrom(guardian, mono) {
+		t.Fatal("Guardian's Protection:Card.MonoColor did not match a monocolored source")
+	}
+	frenemy := onBoardCard(t, e, 0, corpusKeywordCard(t, "Frenemy of the Guildpact"))
+	enemy := onBoard(t, e, 1, "Name:Enemy pair\nManaCost:U G\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	ally := onBoard(t, e, 1, "Name:Ally pair\nManaCost:W U\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	if !e.protectedFrom(frenemy, enemy) || e.protectedFrom(frenemy, ally) {
+		t.Fatal("Frenemy's Protection:Card.EnemyColor did not distinguish enemy and allied pairs")
+	}
+}
+
+func TestGoadKarazikarEnforcesEveryGoaderAtDeclaration(t *testing.T) {
+	e := New(seatZeroStart(Config{Seed: 1, Names: []string{"a", "b", "c", "d"}, Decks: [][]*cards.Card{
+		mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40),
+	}}))
+	e.G.Active = 2
+	e.G.Step = state.StepDeclareAttackers
 	kar := corpusKeywordCard(t, "Karazikar, the Eye Tyrant")
 	goad := cards.ResolveSVar(kar.Faces[0].SVars, "DBGoad")
 	if goad == nil || goad.API != "Goad" {
 		t.Fatal("Karazikar's real Goad subability did not compile")
 	}
-	victim := onBoard(t, e, 1, "Name:Victim\nTypes:Creature\nPT:1/1\nOracle:x\n")
-	effects.Resolve(e, &effects.Ctx{Controller: 0, Targets: []state.Target{{Obj: victim}}}, goad)
-	if !e.G.Obj(victim).Goaded || e.G.Obj(victim).Goader != 0 {
-		t.Fatal("Karazikar's Goad did not record its attack requirement")
+	victim := onBoardReady(t, e, 2, "Name:Victim\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	for _, goader := range []state.PlayerID{0, 1} {
+		effects.Resolve(e, &effects.Ctx{Controller: goader, Targets: []state.Target{{Obj: victim}}}, goad)
+	}
+	if got := e.G.Obj(victim).Goaders; len(got) != 2 || got[0] != 0 || got[1] != 1 {
+		t.Fatalf("goad relationships = %v, want [0 1]", got)
+	}
+	e.askAttackers()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers || len(d.Options) != 1 || d.Options[0].Obj != victim || d.Options[0].Player != 3 {
+		t.Fatalf("two-goader attack options = %+v, want only victim attacking player 3", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 2}); err == nil {
+		t.Fatal("goaded creature was allowed to skip its required attack")
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 2, Choices: []int{d.Options[0].Index}}); err != nil {
+		t.Fatalf("legal non-goader attack rejected: %v", err)
+	}
+	if !e.G.Obj(victim).IsAttacking || e.G.Obj(victim).Attacking != 3 {
+		t.Fatal("goaded creature did not attack the only non-goader")
+	}
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 1})
+	if got := e.G.Obj(victim).Goaders; len(got) != 1 || got[0] != 1 {
+		t.Fatalf("first goader expiry = %v, want [1]", got)
+	}
+	e.emit(events.Event{Kind: events.TurnChange, Player: 1, Amount: 2})
+	if got := e.G.Obj(victim).Goaders; len(got) != 0 {
+		t.Fatalf("second goader expiry = %v, want none", got)
 	}
 }

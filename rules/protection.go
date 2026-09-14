@@ -101,6 +101,16 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	if strings.EqualFold(q, "Permanent.ThisTurnCast") {
 		return o.Zone == state.ZBattlefield && o.EnteredThisTurn
 	}
+	// MonoColor and EnemyColor are Forge's colour-class predicates, rather
+	// than type predicates. They occur on Guardian/Frenemy of the Guildpact;
+	// keep them here with the other source-quality tests so generic
+	// kw:Protection registration covers every live K:Protection form.
+	switch strings.ToLower(q) {
+	case "card.monocolor":
+		return isMonoColor(effects.ColorsOf(o))
+	case "card.enemycolor":
+		return hasEnemyColorPair(effects.ColorsOf(o))
+	}
 	// Parameterised protection qualities are Forge object specs (Artifact,
 	// Creature.God, Card.MultiColor, and so on). Reuse the filter grammar so
 	// every supported type/colour predicate has identical meaning here.
@@ -126,6 +136,23 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 		return f.IsInstant()
 	case "sorceries":
 		return f.IsSorcery()
+	}
+	return false
+}
+
+// isMonoColor reports the CR colour-class meaning: exactly one colour, not
+// colourless. ColorsOf has already applied Devoid before this point.
+func isMonoColor(colors string) bool { return len(colors) == 1 }
+
+// hasEnemyColorPair reports whether a multicoloured object includes an enemy
+// pair. The five enemy pairs are the non-adjacent pairs on the WUBRG colour
+// wheel; a three- or five-colour object matches when it contains any one of
+// them, as "enemy-colored multicolored" requires.
+func hasEnemyColorPair(colors string) bool {
+	for _, pair := range [...]string{"WB", "WR", "UR", "UG", "BG"} {
+		if strings.ContainsRune(colors, rune(pair[0])) && strings.ContainsRune(colors, rune(pair[1])) {
+			return true
+		}
 	}
 	return false
 }

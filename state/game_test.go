@@ -189,22 +189,26 @@ func TestStepStringIsTotal(t *testing.T) {
 // nothing else pins the line -- every pre-existing clone test clones whole
 // games whose stack objects never carry a populated ChosenModes, so this
 // leaf exists because removing the line fails nothing until now.
-func TestCloneDeepDoesNotAliasChosenModes(t *testing.T) {
-	orig := Object{ID: 7, ChosenModes: []string{"GainLife", "Draw", "CreateToken"}}
+func TestCloneDeepDoesNotAliasChosenModesOrGoaders(t *testing.T) {
+	orig := Object{ID: 7, ChosenModes: []string{"GainLife", "Draw", "CreateToken"}, Goaders: []PlayerID{1, 2}}
 	c := orig.CloneDeep()
 	if len(c.ChosenModes) != 3 || c.ChosenModes[0] != "GainLife" ||
 		c.ChosenModes[1] != "Draw" || c.ChosenModes[2] != "CreateToken" {
 		t.Fatalf("clone did not copy ChosenModes: %v", c.ChosenModes)
 	}
+	if len(c.Goaders) != 2 || c.Goaders[0] != 1 || c.Goaders[1] != 2 {
+		t.Fatalf("clone did not copy Goaders: %v", c.Goaders)
+	}
 	// An in-place write (never an append, which would reallocate regardless
 	// of whether CloneDeep aliased): only a shared backing array lets a
 	// write to the copy reach the original.
 	c.ChosenModes[1] = "mutated"
-	if orig.ChosenModes[1] == "mutated" {
-		t.Fatal("CloneDeep aliases ChosenModes: mutating the copy changed the original")
+	c.Goaders[0] = 3
+	if orig.ChosenModes[1] == "mutated" || orig.Goaders[0] == 3 {
+		t.Fatal("CloneDeep aliases a slice: mutating the copy changed the original")
 	}
-	if orig.ChosenModes[1] != "Draw" {
-		t.Fatalf("original ChosenModes changed: %v", orig.ChosenModes)
+	if orig.ChosenModes[1] != "Draw" || orig.Goaders[0] != 1 {
+		t.Fatalf("original clone fields changed: modes %v goaders %v", orig.ChosenModes, orig.Goaders)
 	}
 }
 
