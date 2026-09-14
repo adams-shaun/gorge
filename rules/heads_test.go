@@ -774,7 +774,11 @@ var acceptanceHeads = map[int]string{
 	// game-by-game beyond the conformance lane and sim replay; if a future
 	// seat finds one moved, trace it the same way -- diff the streams, don't
 	// assume.
-	2: "add9e21490b786c1",
+	// 2 seats moved to 582742ecf91aef9d (autonomous orchestrator): resolving fb-20260911T030431Z-e0ebf46f (File as bot engine bug:  bots should deprioritize playing counter spells when...)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	2: "582742ecf91aef9d",
 	4: "324ef3499065470d",
 	6: "a16a266f6915ea94",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
