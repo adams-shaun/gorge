@@ -88,6 +88,9 @@ describe('SeatTable — priority geometry', () => {
   it('keeps the seat row and name box at identical pixels while priority changes', async () => {
     const page = await browser.newPage();
     await page.goto(`${url}src/components/SeatTable.geometry.html`);
+    // goto resolves before the Svelte fixture mounts; under load a cold Vite
+    // transform leaves the row null (same race BoardStage's geometry hit).
+    await page.waitForSelector('#seat-idle [data-seat-row="0"] .name', { state: 'attached', timeout: 60_000 });
     const geometry = await page.evaluate(() => {
       const rect = (selector: string) => {
         const { x, y, width, height } = document.querySelector<HTMLElement>(selector)!.getBoundingClientRect();

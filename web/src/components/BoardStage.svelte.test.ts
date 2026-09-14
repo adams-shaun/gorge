@@ -36,6 +36,13 @@ type Geometry = {
 async function geometry(width: number, height: number, seats: number): Promise<Geometry> {
   const page = await browser.newPage({ viewport: { width, height } });
   await page.goto(`${url}src/components/PhaseLane.geometry.html?seats=${seats}`);
+  // goto resolves on the document load event, not on the Svelte mount: under
+  // box load Vite's cold transform can take tens of seconds, and measuring
+  // before the fixture mounts reads a null [data-board-stage]. Wait for every
+  // element the measurement dereferences.
+  for (const sel of ['[data-board-stage]', '[data-centre-instrument]', '[data-phase-track]', '[data-hot-strip]']) {
+    await page.waitForSelector(sel, { state: 'attached', timeout: 60_000 });
+  }
   const measured = await page.evaluate(({ width, height, seats }) => {
     const compact = (r: DOMRect) => ({
       top: r.top, bottom: r.bottom, height: r.height,
