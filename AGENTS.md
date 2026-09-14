@@ -48,6 +48,41 @@ does not green the lane -- check which leaf turned before closing any issue. The
 rule is written out at `Makefile:145-149`; it is pointed at from here because it
 governs what a reviewer must do at a merge and used to live only in the Makefile.
 
+## Reproduce a feedback report
+
+A player-submitted bug report that named a table carries a replayable
+snapshot (`match.json`, `log.json`, the seat's `view.json`, captured by the
+server's feedback capture). Turning it into a failing test is one command:
+
+```sh
+go run ./cmd/repro <feedback-dir>              # replay, verify the head, print the board
+                                             # at the report point (turn, step, life,
+                                             # battlefield, stack, last ~20 log lines)
+go run ./cmd/repro -at N <feedback-dir>        # replay to intent N instead
+                                             # (-list prints the intent timeline to find N)
+go run ./cmd/repro -omniscient <feedback-dir>  # show every hand in the summary
+go run ./cmd/repro -emit-test <pkg> <feedback-dir>
+                                             # copy the snapshot into
+                                             # <pkg>/testdata/feedback/<id>/ and write a
+                                             # failing test skeleton (feedback.EngineAt);
+                                             # replace the TODO with the assertion
+```
+
+Exit 0 is a verified replay: the rebuilt event stream matches the recording
+event for event and the final head equals log.json's `head`. A non-zero exit
+prints `DIVERGED` naming the first mismatching event — **a corpus change since
+the report was filed is a real, expected cause** (the snapshot replays against
+the corpus as it was at the report's pin), and so is an engine change; read the
+first diverging event before assuming either. In a test, load the same
+snapshot with `feedback.EngineAt(t, dir, n)` (`internal/testutil/feedback`;
+`n < 0` = every recorded intent) and assert at the engine it returns.
+
+The committed fixture `cmd/repro/testdata/feedback/20260914T120000Z-fb01/` is
+a real capture produced by `host.SnapshotForFeedback`; regenerate it with
+`REPRO_REGEN_FIXTURE=1 go test ./cmd/repro -run TestGenerateCommittedFixture`
+after a corpus pin bump (`FORGE_REF`), or the fixture's own gate reports
+DIVERGED exactly as a stale report would.
+
 ## Status
 
 **M2r closed the coverage ratchet.** `rules/acceptance_test.go`'s
