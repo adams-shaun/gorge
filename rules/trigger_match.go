@@ -69,6 +69,53 @@ type triggerKey struct {
 	Idx    int
 }
 
+// turnFires is one T: line's trigger count within the turn it last
+// triggered (Engine.triggerTurnFires).
+type turnFires struct {
+	Turn int32
+	N    int32
+}
+
+// actionTriggerModes are the event-trigger modes the sacrifice/discard/tap/
+// crime/attack-declaration ticket registered. The trigger-level parameters
+// only they honour -- ActivationLimit$, PlayerTurn$, and a CheckDefinedPlayer$
+// predicate this build cannot evaluate failing closed -- are scoped to these
+// modes, so no trigger of another mode that fired before stops firing or
+// fires less often.
+var actionTriggerModes = map[string]bool{
+	"AttackersDeclaredOneTarget": true, "Sacrificed": true, "Discarded": true,
+	"CommitCrime": true, "Taps": true, "TapsForMana": true,
+}
+
+// triggerActivationLimitAllows enforces ActivationLimit$ N ("this ability
+// triggers only once each turn"): the T: line triggers at most N times per
+// turn, counted when it triggers (Forge Trigger.checkActivationLimit and
+// TriggerHandler.runSingleTrigger). A malformed limit fails closed. The count
+// is recorded here, on the path that is about to queue the trigger.
+func (e *Engine) triggerActivationLimitAllows(t cards.Trigger, key triggerKey) bool {
+	raw, ok := t.Params["ActivationLimit"]
+	if !ok {
+		return true
+	}
+	limit, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || limit < 0 {
+		return false
+	}
+	if e.triggerTurnFires == nil {
+		e.triggerTurnFires = map[triggerKey]turnFires{}
+	}
+	f := e.triggerTurnFires[key]
+	if f.Turn != e.G.Turn {
+		f = turnFires{Turn: e.G.Turn}
+	}
+	if int(f.N) >= limit {
+		return false
+	}
+	f.N++
+	e.triggerTurnFires[key] = f
+	return true
+}
+
 // maxTriggerFires bounds how many times a single (source, trigger index)
 // pair may queue a pending trigger over the life of a match. Ordinary play
 // stays far below this -- even a trigger that fires every turn for a hundred
@@ -319,6 +366,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			if e.triggerFireCount[key] >= maxTriggerFires {
 				continue // cascade bound: see maxTriggerFires.
 			}
+			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
+				continue // ActivationLimit$: already triggered enough this turn.
+			}
 			if t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" {
 				if e.damageOnceFired == nil {
 					e.damageOnceFired = map[triggerKey]int32{}
@@ -459,6 +509,12 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 	if !matched {
 		return false
 	}
+	// PlayerTurn$ True: only during the turn of the source's controller
+	// (Forge Trigger.requirementsCheck), scoped to actionTriggerModes.
+	if actionTriggerModes[t.Mode] && strings.EqualFold(t.Params["PlayerTurn"], "True") &&
+		e.G.Active != e.controllerOf(source) {
+		return false
+	}
 	// CR 603.4 intervening-if: a trigger whose condition is false at the
 	// moment the trigger event occurs does not trigger at all. This gate is
 	// applied uniformly to every mode so the same T: line grammar (a
@@ -496,6 +552,16 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 	}
 	spec := t.Params["TriggerZones"]
 	if spec == "" {
+		// "When you discard this card" (Orvar, Bartered Cow, Titanbones: 14
+		// of the corpus's Mode$ Discarded lines) declares no TriggerZones$,
+		// and the only zone a card is discarded from is its owner's hand (CR
+		// 701.9a). Forge applies no zone restriction to a trigger without
+		// TriggerZones$; the battlefield default below would leave such a
+		// trigger unable to fire at all, so the card's own discard admits it
+		// wherever the discard (or a replacement redirecting it) put it.
+		if t.Mode == "Discarded" && source == ev.Obj && events.IsDiscard(ev) {
+			return true
+		}
 		spec = "Battlefield"
 	}
 	zones := [2]state.Zone{o.Zone, o.Zone}
@@ -768,17 +834,21 @@ func (e *Engine) actionCause() state.ObjID {
 // mana activation marks its cost Tap in the engine's synchronous context;
 // ordinary Tap events deliberately do not, so attacking and a spell that taps
 // a permanent never masquerade as producing mana.
+//
+// ValidPlayer$ (Taps) and Activator$ (TapsForMana) name the player who tapped
+// the permanent -- Forge Card.tap's tapper -- not its controller: "whenever
+// you tap an untapped creature an opponent controls" (Icewrought Sentry,
+// Solitary Sanctuary, Hylda, Sharae) is about an opponent's creature that YOU
+// tapped. emitTap supplies the tapper for every producer.
 func (e *Engine) tapsMatches(t cards.Trigger, source state.ObjID, ev events.Event, forMana bool) bool {
-	// A permanent entering tapped did not become tapped. ChangeZone marks that
-	// replayed state transition explicitly, so it cannot fire a Taps trigger.
-	if ev.Kind != events.Tap || ev.Obj == 0 || ev.Text == "entered tapped" ||
+	// A permanent entering tapped did not become tapped (CR 603.2e): neither
+	// a library search's Tapped$ True entry nor an ETB$ True replacement body
+	// can fire a Taps trigger.
+	if ev.Kind != events.Tap || ev.Obj == 0 || e.tapIsEntryState(ev) ||
 		(forMana && e.tappingForMana != ev.Obj) {
 		return false
 	}
-	actor := e.controllerOf(ev.Obj)
-	if e.tappingForMana == ev.Obj {
-		actor = e.manaTapPlayer
-	}
+	actor := e.tapActor(ev)
 	if v := t.Params["Activator"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, actor, e.controllerOf(source)) {
 		return false
 	}
@@ -788,23 +858,69 @@ func (e *Engine) tapsMatches(t cards.Trigger, source state.ObjID, ev events.Even
 			return false
 		}
 	}
+	// FirstTime$ True: the permanent had not already become tapped this turn
+	// (Forge's tappedThisTurn == 0). emit records the tap only after this
+	// event's triggers are matched.
+	if strings.EqualFold(t.Params["FirstTime"], "True") && e.becameTappedThisTurn(ev.Obj) {
+		return false
+	}
 	if forMana && !tapsForManaProduced(t.Params["Produced"], e.tappingManaProduced) {
 		return false
 	}
 	return e.eventCardAndPlayerMatch(t, source, ev.Obj, actor)
 }
 
-// tapsForManaProduced matches the declared output grammar on the T: line.
-// A literal output is known only when the activating mana ability declares
-// that same literal; Any/ChosenColor is a player choice this engine does not
-// retain at the Tap boundary and therefore fails closed rather than firing a
-// colour-restricted trigger for the wrong mana.
+// tapIsEntryState reports whether a Tap event only gives a permanent the
+// tapped state it enters with: a library search's Tapped$ True entry (marked
+// in the replayed payload) or an ETB$ True replacement body (marked in
+// emitTap's context, the payload being the ordinary Tap).
+func (e *Engine) tapIsEntryState(ev events.Event) bool {
+	return ev.Text == "entered tapped" || (e.tapObj == ev.Obj && e.tapEntering)
+}
+
+// tapActor is the player who tapped ev's permanent. A Tap emitted without
+// emitTap provenance falls back to the permanent's controller.
+func (e *Engine) tapActor(ev events.Event) state.PlayerID {
+	if e.tapObj == ev.Obj && ev.Obj != 0 {
+		return e.tapPlayer
+	}
+	return e.controllerOf(ev.Obj)
+}
+
+// becameTappedThisTurn reports whether obj already became tapped this turn.
+func (e *Engine) becameTappedThisTurn(obj state.ObjID) bool {
+	turn, ok := e.tappedTurn[obj]
+	return ok && turn == e.G.Turn
+}
+
+// tapsForManaProduced matches a TapsForMana Produced$ restriction against
+// the activating ability's Produced$ declaration the way Forge does against
+// the produced mana: the trigger fires when that mana CONTAINS the named
+// type, so Forsaken Monument's Produced$ C fires for "C C" and "C U" as well
+// as "C". A declaration whose output is a player's choice (Any, Combo ...,
+// Chosen) never produces colourless mana, and the chosen colour is not known
+// at the Tap boundary, so a colour-choice declaration matches nothing; a
+// ChosenColor restriction (the trigger's own chosen colour) is likewise
+// unsupported and fails closed.
 func tapsForManaProduced(want, produced string) bool {
 	want = strings.TrimSpace(want)
 	if want == "" {
 		return true
 	}
-	return want == strings.TrimSpace(produced)
+	if len(want) != 1 || !strings.Contains(effects.ManaSymbols, want) {
+		return false
+	}
+	for _, field := range strings.Fields(strings.NewReplacer("{", " ", "}", " ").Replace(produced)) {
+		for _, r := range field {
+			if !strings.ContainsRune(effects.ManaSymbols, r) {
+				return false // a choice word: Any, Combo, Chosen, ...
+			}
+		}
+		if strings.Contains(field, want) {
+			return true
+		}
+	}
+	return false
 }
 
 // commitCrimeMatches implements CR 700.13: targeting an opponent, a
@@ -840,6 +956,11 @@ func (e *Engine) targetEventCommitsCrime(ev events.Event, actor state.PlayerID) 
 	return len(ev.IDs) == 1 && e.targetCommitsCrime(state.Target{Obj: ev.IDs[0]}, actor)
 }
 
+// targetCommitsCrime is CR 700.13's list, and only that list: an opponent; a
+// permanent or a spell or ability on the stack an opponent controls; or a card
+// in an opponent's graveyard, which is judged by its owner (CR 108.4a: a card
+// that is not a permanent or spell has no controller). A card in exile, a
+// hand or a library is none of these, whoever owns it.
 func (e *Engine) targetCommitsCrime(target state.Target, actor state.PlayerID) bool {
 	if target.IsPlayer {
 		return target.Player != actor && int(target.Player) < len(e.G.Players)
@@ -848,7 +969,13 @@ func (e *Engine) targetCommitsCrime(target state.Target, actor state.PlayerID) b
 	if o == nil {
 		return false
 	}
-	return o.Controller != actor || (o.Zone == state.ZGraveyard && o.Owner != actor)
+	switch o.Zone {
+	case state.ZBattlefield, state.ZStack:
+		return o.Controller != actor
+	case state.ZGraveyard:
+		return o.Owner != actor
+	}
+	return false
 }
 
 // eventCardAndPlayerMatch applies the shared ValidCard$/ValidPlayer$ clauses
@@ -1105,38 +1232,46 @@ func (e *Engine) triggerConditionHolds(t cards.Trigger, source state.ObjID) bool
 			return false
 		}
 	}
-	if spec, ok := t.Params["CheckDefinedPlayer"]; ok && !e.checkDefinedPlayerHolds(spec, e.controllerOf(source)) {
-		return false
+	if spec, ok := t.Params["CheckDefinedPlayer"]; ok {
+		holds, supported := e.checkDefinedPlayerHolds(spec, e.controllerOf(source))
+		// A supported predicate is evaluated for every mode. An unsupported
+		// one fails closed only for actionTriggerModes; other modes keep
+		// firing as they did before the predicate was read at all.
+		if (supported && !holds) || (!supported && actionTriggerModes[t.Mode]) {
+			return false
+		}
 	}
 	return true
 }
 
 // checkDefinedPlayerHolds evaluates the player-state predicate class used by
-// event-trigger conditions. The supported isMonarch form covers both the
-// controller and opponent selectors; any other property fails closed instead
-// of letting an unread intervening condition fire.
-func (e *Engine) checkDefinedPlayerHolds(spec string, you state.PlayerID) bool {
+// event-trigger conditions. isMonarch, with the controller, opponent and any-
+// player selectors, is the supported form; supported is false for any other
+// predicate (hasInitiative, withMost*, committedCrimeThisTurn, ...).
+func (e *Engine) checkDefinedPlayerHolds(spec string, you state.PlayerID) (holds, supported bool) {
 	base, property, ok := strings.Cut(strings.TrimSpace(spec), ".")
 	if !ok || property != "isMonarch" {
-		return false
+		return false, false
 	}
 	switch base {
 	case "You":
-		return e.G.IsMonarch(you)
+		return e.G.IsMonarch(you), true
 	case "Opponent", "Other":
 		for _, p := range e.G.AliveFrom(you) {
 			if p != you && e.G.IsMonarch(p) {
-				return true
+				return true, true
 			}
 		}
+		return false, true
 	case "Player", "Any":
 		for _, p := range e.G.AliveFrom(0) {
 			if e.G.IsMonarch(p) {
-				return true
+				return true, true
 			}
 		}
+		return false, true
 	}
-	return false
+	return false, false
 }
 
 // lifeConditionHolds evaluates the LifeTotal$/LifeAmount$ intervening-if.

@@ -223,7 +223,8 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 	}
 	for _, opt := range chosen {
 		if !e.HasKeyword(opt.Obj, "Vigilance") {
-			e.emit(events.Event{Kind: events.Tap, Obj: opt.Obj})
+			// CR 508.1f: the player declaring attackers taps them.
+			e.emitTap(opt.Obj, d.Player, false)
 		}
 	}
 }

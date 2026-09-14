@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
-	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -16,7 +15,21 @@ func init() {
 	Register("Protection", effProtection)
 }
 
+// effTap taps each Defined$ permanent. The tapper is the resolving ability's
+// controller unless Tapper$ names a player (Forge TapEffect). ETB$ True is the
+// "enters tapped" replacement body (804 corpus files, every ETBTapped land):
+// the permanent is given its entry state and does not become tapped (CR
+// 603.2e), so EmitTap marks it and no Taps trigger runs.
 func effTap(h Host, c *Ctx, sa *cards.SA) {
+	tapper := c.Controller
+	if spec := strings.TrimSpace(sa.Params["Tapper"]); spec != "" {
+		sub := *sa
+		sub.Params = map[string]string{"Defined": spec}
+		if ps := Defined(h, c, &sub); len(ps) > 0 {
+			tapper = PlayerOf(h, c, ps[0])
+		}
+	}
+	entering := strings.EqualFold(sa.Params["ETB"], "True")
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -25,7 +38,7 @@ func effTap(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZBattlefield || o.Tapped {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.Tap, Obj: o.ID})
+		h.EmitTap(o.ID, tapper, entering)
 	}
 }
 

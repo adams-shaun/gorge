@@ -32,13 +32,18 @@ type manaActivation struct {
 }
 
 // manaColorActivation holds an already-paid mana ability while its controller
-// chooses the colour that Produced$ Any (or Combo Any) will add.
+// chooses the colour that Produced$ Any (or Combo Any) will add. triggers is
+// the CR 605.3b triggered-mana batch still to resolve after the answer. When
+// trigger is non-nil the choice belongs to that triggered mana ability instead
+// (ability is then the Mana sub-ability in its chain, and player the player
+// receiving the mana).
 type manaColorActivation struct {
 	player   state.PlayerID
 	source   state.ObjID
 	ability  *cards.SA
 	cast     bool
 	triggers []pendingTrigger
+	trigger  *pendingTrigger
 }
 
 // manaDiscardActivation holds a synchronous mana ability while its discard
@@ -280,8 +285,8 @@ func (e *Engine) emitManaTap(p state.PlayerID, source state.ObjID, sa *cards.SA)
 		produced = strings.TrimSpace(sa.Params["Produced"])
 	}
 	before := len(e.pendingTriggers)
-	e.tappingForMana, e.manaTapPlayer, e.tappingManaProduced = source, p, produced
-	e.emit(events.Event{Kind: events.Tap, Obj: source})
+	e.tappingForMana, e.tappingManaProduced = source, produced
+	e.emitTap(source, p, false)
 	e.tappingForMana, e.tappingManaProduced = 0, ""
 
 	// CR 605.3b: a triggered mana ability resolves immediately after the mana
@@ -328,16 +333,94 @@ func (e *Engine) isTriggeredManaAbility(pt pendingTrigger) bool {
 // resolveTriggeredManaAbilities executes the CR 605.3b batch directly after
 // the activated mana ability has resolved. These abilities never mint stack
 // objects; their ordinary effect events are enough for deterministic replay.
-func (e *Engine) resolveTriggeredManaAbilities(triggers []pendingTrigger) {
-	for _, pt := range triggers {
+//
+// A triggered mana ability whose mana is a colour choice -- Produced$ Any or
+// Combo Any (Fertile Ground, Regal Behemoth, Market Festival) or a Combo
+// colour list -- is not resolved as colourless: the rest of the batch is
+// parked and the player receiving the mana chooses, exactly as the activated
+// path's askManaColor asks. The answer resolves that ability with the chosen
+// colour and continues the batch (answerManaColor). cast is the payment
+// window flag the parked activation carries back to the caller.
+func (e *Engine) resolveTriggeredManaAbilities(triggers []pendingTrigger, cast bool) {
+	for i := range triggers {
+		pt := triggers[i]
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			continue
 		}
 		if src := e.G.Obj(pt.Source); src != nil && src.Face() != nil {
 			effects.SetSVars(&pt.Ctx, src.Face().SVars)
 		}
+		if e.askTriggeredManaColor(pt, triggers[i+1:], cast) {
+			return
+		}
 		effects.Resolve(e, &pt.Ctx, pt.SA)
 	}
+}
+
+// askTriggeredManaColor poses the colour choice for the first colour-choice
+// Mana sub-ability in pt's chain, parking pt and the rest of its batch, and
+// reports whether it asked. The chooser is the first player the Mana
+// sub-ability adds mana for (effects.ManaRecipients, which reads Defined$):
+// Fertile Ground on an opponent's land asks that land's controller.
+func (e *Engine) askTriggeredManaColor(pt pendingTrigger, rest []pendingTrigger, cast bool) bool {
+	mana, colours := triggeredManaColourChoice(pt.SA)
+	if mana == nil {
+		return false
+	}
+	chooser := pt.Controller
+	if ps := effects.ManaRecipients(e, &pt.Ctx, mana); len(ps) > 0 {
+		chooser = ps[0]
+	}
+	d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: manaColourPrompt(mana), Source: pt.Source}
+	for i, color := range colours {
+		d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: pt.Source, Label: "Add " + color})
+	}
+	parked := pt
+	e.manaColorActivation = &manaColorActivation{player: chooser, source: pt.Source, ability: mana,
+		cast: cast, triggers: rest, trigger: &parked}
+	e.choosing = chooseManaColor
+	e.ask(d)
+	return true
+}
+
+// triggeredManaColourChoice finds the first Mana sub-ability in a triggered
+// ability's chain whose Produced$ is a colour choice, with the colours it
+// offers. nil when the chain adds only fixed mana (or none).
+func triggeredManaColourChoice(sa *cards.SA) (*cards.SA, []string) {
+	for d := 0; sa != nil && d < 32; d, sa = d+1, sa.Sub {
+		if sa.API != "Mana" {
+			continue
+		}
+		produced := strings.TrimSpace(sa.Params["Produced"])
+		if produced == "Any" || produced == "Combo Any" {
+			return sa, []string{"W", "U", "B", "R", "G"}
+		}
+		if colours, ok := effects.ComboColours(produced); ok {
+			return sa, colours
+		}
+	}
+	return nil, nil
+}
+
+// withProduced copies the chain from head down to target, with target's
+// Produced$ rewritten to the chosen colour. Corpus SAs are shared immutable
+// data, so the rewrite never touches them.
+func withProduced(head, target *cards.SA, produced string) *cards.SA {
+	if head == nil {
+		return nil
+	}
+	cp := *head
+	if head == target {
+		cp.Params = make(map[string]string, len(head.Params))
+		for k, v := range head.Params {
+			cp.Params[k] = v
+		}
+		cp.Params["Produced"] = produced
+		return &cp
+	}
+	cp.Sub = withProduced(head.Sub, target, produced)
+	return &cp
 }
 
 // resolveManaAbility pays this ability's actual activation cost, then resolves
@@ -388,7 +471,7 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 		return
 	}
 	e.resolveManaEffectColor(p, source, ma, produced)
-	e.resolveTriggeredManaAbilities(triggers)
+	e.resolveTriggeredManaAbilities(triggers, cast)
 }
 
 // askManaColor poses the colour choice for a Produced value that names a
@@ -470,8 +553,20 @@ func (e *Engine) answerManaColor(chosen []decision.Option) bool {
 	if len(color) != 1 || !strings.Contains("WUBRG", color) {
 		return ma.cast
 	}
+	if ma.trigger != nil {
+		pt := *ma.trigger
+		pt.SA = withProduced(pt.SA, ma.ability, color)
+		// A later colour-choice Mana sub-ability in the same chain asks in
+		// turn; otherwise the ability resolves and the batch continues.
+		if e.askTriggeredManaColor(pt, ma.triggers, ma.cast) {
+			return ma.cast
+		}
+		effects.Resolve(e, &pt.Ctx, pt.SA)
+		e.resolveTriggeredManaAbilities(ma.triggers, ma.cast)
+		return ma.cast
+	}
 	e.resolveManaEffectColor(ma.player, ma.source, ma.ability, color)
-	e.resolveTriggeredManaAbilities(ma.triggers)
+	e.resolveTriggeredManaAbilities(ma.triggers, ma.cast)
 	return ma.cast
 }
 

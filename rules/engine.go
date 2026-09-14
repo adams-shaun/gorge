@@ -448,8 +448,27 @@ type Engine struct {
 	// head even in games with no TapsForMana trigger. emitManaTap sets and clears
 	// it around emit; Clone only runs at an intent boundary, where it is zero.
 	tappingForMana      state.ObjID
-	manaTapPlayer       state.PlayerID
 	tappingManaProduced string
+
+	// tapObj, tapPlayer and tapEntering are the same kind of synchronous
+	// context for every Tap producer (emitTap): tapObj is the permanent whose
+	// Tap event is being emitted, tapPlayer the player who tapped it (Forge
+	// Card.tap's tapper, which a Taps trigger's ValidPlayer$ and
+	// TriggeredActivator read), and tapEntering marks a permanent given its
+	// tapped entry state by an ETB$ True replacement body, which never
+	// becomes tapped (CR 603.2e). Zero at every intent boundary.
+	tapObj      state.ObjID
+	tapPlayer   state.PlayerID
+	tapEntering bool
+	// tappedTurn records, per object, the turn in which it last became
+	// tapped, for Taps FirstTime$ (Forge Card.tappedThisTurn). An entry state
+	// is not recorded, and a zone change forgets the object (CR 400.7). Engine
+	// bookkeeping rebuilt by replay, which re-executes the same taps.
+	tappedTurn map[state.ObjID]int32
+	// triggerTurnFires counts, per T: line, how many times it triggered in
+	// the turn it last triggered, for ActivationLimit$ ("triggers only once
+	// each turn"; Forge Trigger.checkActivationLimit).
+	triggerTurnFires map[triggerKey]turnFires
 
 	// foreachBuf is forEachObject's (trigger_match.go) scratch snapshot
 	// buffer. forEachObject copies each zone into it before walking it -- fn
@@ -821,6 +840,11 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			e.sourceLifelinkLKI[copyID] = link
 		}
 	}
+	if ev.Kind == events.MoveZone {
+		// CR 400.7: an object that changes zones is a new object with no
+		// memory of having become tapped this turn.
+		delete(e.tappedTurn, ev.Obj)
+	}
 	if ev.Kind == events.MoveZone && ev.From == state.ZStack && ev.To != state.ZStack {
 		delete(e.triggerContexts, ev.Obj)
 		delete(e.sacrificedLKI, ev.Obj)
@@ -838,6 +862,14 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.deferredPush, e.deferredPushLKI = &cp, lp
 	} else {
 		e.checkTriggers(stored, lki)
+	}
+	if ev.Kind == events.Tap && !e.tapIsEntryState(ev) {
+		// Recorded after the triggers above were matched, so a FirstTime$
+		// trigger sees whether an EARLIER tap happened this turn.
+		if e.tappedTurn == nil {
+			e.tappedTurn = make(map[state.ObjID]int32)
+		}
+		e.tappedTurn[ev.Obj] = e.G.Turn
 	}
 	e.finishSourceLifelinkLKI(ev, departingSource, departingSourceLifelink)
 	// E2: any genuinely state-changing event proves the game is making

@@ -243,10 +243,18 @@ func TestTapsForManaTriggerRegalBehemothChecksMonarch(t *testing.T) {
 	}
 	e.emit(events.Event{Kind: events.MonarchChange, Player: 0})
 	e.emit(events.Event{Kind: events.Untap, Obj: swamp})
-	before := e.G.Players[0].Pool.Total()
+	before := e.G.Players[0].Pool
 	e.resolveManaAbility(0, swamp, e.availableManaAbilities(0, swamp)[0], false)
-	if got := e.G.Players[0].Pool.Total() - before; got != 2 {
-		t.Fatalf("monarch mana gained = %d, want Swamp mana plus immediate Regal Behemoth mana", got)
+	// Produced$ Combo Any is a colour the monarch chooses (CR 605.3b resolves
+	// it at once, but not as colourless).
+	d := e.Pending()
+	if d == nil || d.Player != 0 || len(d.Options) != 5 {
+		t.Fatalf("Regal Behemoth colour decision = %+v, want seat 0 choosing one of WUBRG", d)
+	}
+	submitChoices(t, e, manaOption(t, d, "G"))
+	pool := e.G.Players[0].Pool
+	if pool[state.MB]-before[state.MB] != 1 || pool[state.MG]-before[state.MG] != 1 || pool.Total()-before.Total() != 2 {
+		t.Fatalf("monarch pool %+v (before %+v), want the Swamp's {B} plus Regal Behemoth's chosen {G}", pool, before)
 	}
 	if len(e.pendingTriggers) != 0 {
 		t.Fatalf("Regal Behemoth left %d pending triggers, want immediate mana resolution", len(e.pendingTriggers))
@@ -455,4 +463,361 @@ func TestDiscardReplacementObstinateBalothGates(t *testing.T) {
 			t.Fatalf("cleanup-discarded Obstinate Baloth zone = %v, want graveyard", o.Zone)
 		}
 	})
+}
+
+// castOnStackAt puts a real corpus spell on the stack for seat p with one
+// chosen target, the fixture resolveTop needs to drive a targeted effect.
+func castOnStackAt(t *testing.T, e *Engine, reg *cards.Registry, name string, p state.PlayerID, target state.Target) state.ObjID {
+	t.Helper()
+	o := e.G.AddObject(mustCorpusCard(t, reg, name), p)
+	o.Zone = state.ZStack
+	o.Targets = []state.Target{target}
+	e.G.SetZone(state.ZStack, 0, append(e.G.Zone(state.ZStack, 0), o.ID))
+	return o.ID
+}
+
+// enterFromHand puts a real corpus card into seat p's hand and moves it onto
+// the battlefield through emit, so replacement effects apply to the entry.
+func enterFromHand(t *testing.T, e *Engine, reg *cards.Registry, p state.PlayerID, name string) state.ObjID {
+	t.Helper()
+	o := e.G.AddObject(mustCorpusCard(t, reg, name), p)
+	o.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, p, append(e.G.Zone(state.ZHand, p), o.ID))
+	e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZHand, To: state.ZBattlefield})
+	return o.ID
+}
+
+// TestTapsTriggerIgnoresEnterTappedReplacement drives the real "enters
+// tapped" replacement bodies (DB$ Tap | ETB$ True). A permanent that enters
+// tapped never becomes tapped (CR 603.2e; Forge TapEffect's ETB branch runs
+// no Taps trigger), so City of Brass entering under Frozen Aether deals no
+// damage and Rhoda/Verity Circle do not trigger for a creature entering under
+// Authority of the Consuls. The same creature becoming tapped afterwards
+// does trigger both, so the matcher itself is live.
+func TestTapsTriggerIgnoresEnterTappedReplacement(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	t.Run("City of Brass under Frozen Aether", func(t *testing.T) {
+		e := layerEngine(t)
+		onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Frozen Aether"))
+		city := enterFromHand(t, e, reg, 1, "City of Brass")
+		if o := e.G.Obj(city); o.Zone != state.ZBattlefield || !o.Tapped {
+			t.Fatalf("City of Brass zone/tapped = %v/%v, want battlefield tapped", o.Zone, o.Tapped)
+		}
+		if got := observedTriggerCount(e, city); got != 0 {
+			t.Fatalf("City of Brass triggers for entering tapped = %d, want 0", got)
+		}
+	})
+	t.Run("Baloth Prime's own enters-tapped replacement", func(t *testing.T) {
+		e := layerEngine(t)
+		rhoda := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Rhoda, Geist Avenger"))
+		baloth := enterFromHand(t, e, reg, 1, "Baloth Prime")
+		if o := e.G.Obj(baloth); !o.Tapped || o.Counter("STUN") != 6 {
+			t.Fatalf("Baloth Prime tapped/stun = %v/%d, want tapped with six stun counters", o.Tapped, o.Counter("STUN"))
+		}
+		if got := observedTriggerCount(e, rhoda); got != 0 {
+			t.Fatalf("Rhoda triggers for Baloth Prime entering tapped = %d, want 0", got)
+		}
+	})
+	t.Run("Rhoda and Verity Circle under Authority of the Consuls", func(t *testing.T) {
+		e := layerEngine(t)
+		rhoda := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Rhoda, Geist Avenger"))
+		circle := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Verity Circle"))
+		onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Authority of the Consuls"))
+		bears := enterFromHand(t, e, reg, 1, "Grizzly Bears")
+		if !e.G.Obj(bears).Tapped {
+			t.Fatal("Authority of the Consuls did not tap the entering creature")
+		}
+		if r, c := observedTriggerCount(e, rhoda), observedTriggerCount(e, circle); r != 0 || c != 0 {
+			t.Fatalf("Rhoda/Verity Circle triggers for entering tapped = %d/%d, want 0/0", r, c)
+		}
+		e.emit(events.Event{Kind: events.Untap, Obj: bears})
+		castOnStackAt(t, e, reg, "Pressure Point", 0, state.Target{Obj: bears})
+		e.resolveTop()
+		if r, c := observedTriggerCount(e, rhoda), observedTriggerCount(e, circle); r != 1 || c != 1 {
+			t.Fatalf("Rhoda/Verity Circle triggers when the creature becomes tapped = %d/%d, want 1/1", r, c)
+		}
+	})
+}
+
+// TestTapsTriggerValidPlayerIsTheTapper: a Taps trigger's ValidPlayer$ is the
+// player who tapped the permanent (Forge Card.tap's tapper), not its
+// controller. Pressure Point's real Tap effect, cast by seat 0 at seat 1's
+// creature, is "you tap an untapped creature an opponent controls" for
+// Icewrought Sentry, Solitary Sanctuary and Sharae of Numbing Depths; seat 1
+// tapping its own creature is not. Sharae's ActivationLimit$ 1 holds it to
+// one trigger a turn.
+func TestTapsTriggerValidPlayerIsTheTapper(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := layerEngine(t)
+	e.G.Turn = 1
+	sentry := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Icewrought Sentry"))
+	sanctuary := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Solitary Sanctuary"))
+	sharae := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Sharae of Numbing Depths"))
+	theirs := onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Grizzly Bears"))
+	other := onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Grizzly Bears"))
+	tap := func(caster state.PlayerID, target state.ObjID) {
+		t.Helper()
+		e.emit(events.Event{Kind: events.Untap, Obj: target})
+		castOnStackAt(t, e, reg, "Pressure Point", caster, state.Target{Obj: target})
+		e.resolveTop()
+		if !e.G.Obj(target).Tapped {
+			t.Fatalf("Pressure Point did not tap %d", target)
+		}
+	}
+	counts := func() [3]int {
+		return [3]int{observedTriggerCount(e, sentry), observedTriggerCount(e, sanctuary), observedTriggerCount(e, sharae)}
+	}
+
+	tap(1, theirs)
+	if got := counts(); got != [3]int{0, 0, 0} {
+		t.Fatalf("an opponent tapping its own creature: Sentry/Sanctuary/Sharae = %v, want [0 0 0]", got)
+	}
+	tap(0, theirs)
+	if got := counts(); got != [3]int{1, 1, 1} {
+		t.Fatalf("seat 0 tapping an opponent's creature: Sentry/Sanctuary/Sharae = %v, want [1 1 1]", got)
+	}
+	tap(0, other)
+	if got := counts(); got != [3]int{2, 2, 1} {
+		t.Fatalf("a second tap the same turn: Sentry/Sanctuary/Sharae = %v, want [2 2 1] (Sharae triggers only once each turn)", got)
+	}
+	e.G.Turn++
+	tap(0, theirs)
+	if got := counts(); got != [3]int{3, 3, 2} {
+		t.Fatalf("a tap on the next turn: Sentry/Sanctuary/Sharae = %v, want [3 3 2]", got)
+	}
+}
+
+// TestTapsTriggerFirstTimeDuringYourTurnCaptainAmerica drives Captain
+// America's real FirstTime$ True | PlayerTurn$ True line: only the first time
+// each of your creatures becomes tapped in a turn, and only during your turn.
+func TestTapsTriggerFirstTimeDuringYourTurnCaptainAmerica(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := layerEngine(t)
+	e.G.Turn, e.G.Active = 1, 0
+	captain := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Captain America, Living Legend"))
+	bears := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Grizzly Bears"))
+	tap := func() {
+		t.Helper()
+		e.emit(events.Event{Kind: events.Untap, Obj: bears})
+		castOnStackAt(t, e, reg, "Pressure Point", 0, state.Target{Obj: bears})
+		e.resolveTop()
+	}
+	tap()
+	if got := observedTriggerCount(e, captain); got != 1 {
+		t.Fatalf("first tap this turn: Captain America triggers = %d, want 1", got)
+	}
+	tap()
+	if got := observedTriggerCount(e, captain); got != 1 {
+		t.Fatalf("second tap this turn: Captain America triggers = %d, want still 1", got)
+	}
+	e.G.Turn = 2
+	tap()
+	if got := observedTriggerCount(e, captain); got != 2 {
+		t.Fatalf("first tap of the next turn: Captain America triggers = %d, want 2", got)
+	}
+	e.G.Turn, e.G.Active = 3, 1
+	tap()
+	if got := observedTriggerCount(e, captain); got != 2 {
+		t.Fatalf("a tap during the opponent's turn: Captain America triggers = %d, want still 2", got)
+	}
+}
+
+// TestTapsForManaProducedMatchesContainedColourless: Forsaken Monument's
+// Produced$ C fires when the tapped-for mana CONTAINS colourless (Forge's
+// contains test), so Coral Atoll's real "Produced$ C U" gets the extra {C}.
+func TestTapsForManaProducedMatchesContainedColourless(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := layerEngine(t)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Forsaken Monument"))
+	atoll := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Coral Atoll"))
+	e.resolveManaAbility(0, atoll, e.availableManaAbilities(0, atoll)[0], false)
+	if pool := e.G.Players[0].Pool; pool[state.MC] != 2 || pool[state.MU] != 1 || pool.Total() != 3 {
+		t.Fatalf("pool after Coral Atoll under Forsaken Monument = %+v, want {C}{C}{U}", pool)
+	}
+}
+
+// TestTriggeredManaHonoursRecipientAndColourChoice drives the CR 605.3b
+// triggered-mana path with real scripts. Defined$ TriggeredCardController
+// gives the mana to the tapped land's controller (Vernal Bloom, Gauntlet of
+// Might are symmetric), and Produced$ Any asks the player receiving it for a
+// colour (Fertile Ground on an opponent's land) -- including inside a spell's
+// payment window, which resumes once the colour is chosen.
+func TestTriggeredManaHonoursRecipientAndColourChoice(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	for _, tc := range []struct {
+		trigger, land string
+		slot          int
+	}{{"Vernal Bloom", "Forest", state.MG}, {"Gauntlet of Might", "Mountain", state.MR}} {
+		t.Run(tc.trigger, func(t *testing.T) {
+			e := handEngine(t)
+			onBoardCard(t, e, 0, mustCorpusCard(t, reg, tc.trigger))
+			land := onBoardCard(t, e, 1, mustCorpusCard(t, reg, tc.land))
+			e.resolveManaAbility(1, land, e.availableManaAbilities(1, land)[0], false)
+			if got := e.G.Players[1].Pool[tc.slot]; got != 2 {
+				t.Fatalf("%s's controller pool = %+v, want the land's mana plus %s's", tc.land, e.G.Players[1].Pool, tc.trigger)
+			}
+			if got := e.G.Players[0].Pool.Total(); got != 0 {
+				t.Fatalf("%s's controller received %d mana for an opponent's %s", tc.trigger, got, tc.land)
+			}
+		})
+	}
+	t.Run("Fertile Ground on an opponent's land", func(t *testing.T) {
+		e := handEngine(t)
+		fertile := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Fertile Ground"))
+		forest := onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Forest"))
+		e.G.Obj(fertile).AttachedTo = forest
+		e.resolveManaAbility(1, forest, e.availableManaAbilities(1, forest)[0], false)
+		d := e.Pending()
+		if d == nil || d.Player != 1 || len(d.Options) != 5 {
+			t.Fatalf("Fertile Ground colour decision = %+v, want the land's controller (seat 1) choosing WUBRG", d)
+		}
+		submitChoices(t, e, manaOption(t, d, "U"))
+		if pool := e.G.Players[1].Pool; pool[state.MG] != 1 || pool[state.MU] != 1 || pool.Total() != 2 {
+			t.Fatalf("seat 1 pool = %+v, want the Forest's {G} plus the chosen {U}", pool)
+		}
+		if got := e.G.Players[0].Pool.Total(); got != 0 {
+			t.Fatalf("Fertile Ground's controller received %d mana", got)
+		}
+	})
+	t.Run("colour choice inside a payment window", func(t *testing.T) {
+		spell := mustCorpusCard(t, reg, "Growth Spiral") // real {G}{U} cost
+		e := handEngine(t, spell)
+		spellID := e.G.Zone(state.ZHand, 0)[0]
+		fertile := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Fertile Ground"))
+		forest := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Forest"))
+		e.G.Obj(fertile).AttachedTo = forest
+		e.pending = nil
+		e.beginCast(0, decision.Option{Kind: "cast", Obj: spellID})
+		e.Advance()
+		submitChoices(t, e, activateOption(t, e, forest))
+		d := e.Pending()
+		if d == nil || d.Player != 0 || len(d.Options) != 5 || d.Options[0].Kind != "mana" {
+			t.Fatalf("decision after tapping the Forest = %+v, want Fertile Ground's colour choice", d)
+		}
+		submitChoices(t, e, manaOption(t, d, "U"))
+		if len(e.G.Stack) != 1 || e.G.Stack[0] != spellID {
+			t.Fatalf("stack = %v, want Growth Spiral paid with {G} and Fertile Ground's {U}", e.G.Stack)
+		}
+		if got := e.G.Players[0].Pool.Total(); got != 0 {
+			t.Fatalf("pool after paying {G}{U} = %+v, want empty", e.G.Players[0].Pool)
+		}
+	})
+}
+
+// TestDiscardedSelfTriggersFireFromHand: "when you discard this card"
+// declares no TriggerZones$, and the card is in its owner's hand when it is
+// discarded. Orvar's ValidCause$ SpellAbility.OppCtrl admits only an
+// opponent's effect; Bartered Cow and Titanbones trigger for any discard,
+// including Lion's Eye Diamond's discard-your-hand cost.
+func TestDiscardedSelfTriggersFireFromHand(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	names := []string{"Orvar, the All-Form", "Bartered Cow", "Titanbones, Towering Heart"}
+	inHand := func(t *testing.T, e *Engine, name string) state.ObjID {
+		o := e.G.AddObject(mustCorpusCard(t, reg, name), 0)
+		o.Zone = state.ZHand
+		e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), o.ID))
+		return o.ID
+	}
+	for _, tc := range []struct {
+		name   string
+		caster state.PlayerID
+		want   []int
+	}{{"opponent's Mind Peel", 1, []int{1, 1, 1}}, {"own Mind Peel", 0, []int{0, 1, 1}}} {
+		for i, card := range names {
+			t.Run(tc.name+"/"+card, func(t *testing.T) {
+				e := layerEngine(t)
+				id := inHand(t, e, card)
+				castOnStack(t, e, reg, "Mind Peel", tc.caster, 0)
+				e.resolveTop()
+				d := e.Pending()
+				if d == nil || d.ResumeKind != "discard" {
+					t.Fatalf("Mind Peel discard decision = %+v, want a real discard ask", d)
+				}
+				chosen := -1
+				for _, opt := range d.Options {
+					if opt.Obj == id {
+						chosen = opt.Index
+					}
+				}
+				if chosen < 0 {
+					t.Fatalf("%s is not a discard option: %+v", card, d.Options)
+				}
+				submitChoices(t, e, chosen)
+				if e.G.Obj(id).Zone != state.ZGraveyard {
+					t.Fatalf("%s zone = %v, want discarded to the graveyard", card, e.G.Obj(id).Zone)
+				}
+				if got := observedTriggerCount(e, id); got != tc.want[i] {
+					t.Fatalf("%s triggers = %d, want %d", card, got, tc.want[i])
+				}
+			})
+		}
+	}
+	t.Run("Lion's Eye Diamond cost", func(t *testing.T) {
+		e := layerEngine(t)
+		ids := make([]state.ObjID, len(names))
+		for i, card := range names {
+			ids[i] = inHand(t, e, card)
+		}
+		led := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Lion's Eye Diamond"))
+		e.resolveManaAbility(0, led, e.availableManaAbilities(0, led)[0], false)
+		for i, id := range ids {
+			if e.G.Obj(id).Zone != state.ZGraveyard {
+				t.Fatalf("%s zone = %v, want discarded to the graveyard", names[i], e.G.Obj(id).Zone)
+			}
+			if got, want := observedTriggerCount(e, id), []int{0, 1, 1}[i]; got != want {
+				t.Fatalf("%s triggers for a discard cost = %d, want %d", names[i], got, want)
+			}
+		}
+	})
+}
+
+// TestCommitCrimeTargetingExileIsNotACrime pins CR 700.13's list: a card in an
+// opponent's graveyard is a crime target (judged by owner, CR 108.4a); an
+// opponent-owned card in exile is not.
+func TestCommitCrimeTargetingExileIsNotACrime(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := layerEngine(t)
+	miner := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Forsaken Miner"))
+	e.G.SetZone(state.ZBattlefield, 0, nil)
+	e.G.Obj(miner).Zone = state.ZGraveyard
+	e.G.SetZone(state.ZGraveyard, 0, []state.ObjID{miner})
+	spell := e.G.AddObject(mustCorpusCard(t, reg, "Lightning Bolt"), 0)
+	card := func(z state.Zone) state.ObjID {
+		o := e.G.AddObject(mustCorpusCard(t, reg, "Grizzly Bears"), 1)
+		o.Zone = z
+		e.G.SetZone(z, 1, append(e.G.Zone(z, 1), o.ID))
+		return o.ID
+	}
+	e.emit(events.Event{Kind: events.TargetsChosen, Obj: spell.ID, IDs: []state.ObjID{card(state.ZExile)}})
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("targeting an opponent's exiled card queued %d crime triggers, want 0", len(e.pendingTriggers))
+	}
+	e.emit(events.Event{Kind: events.TargetsChosen, Obj: spell.ID, IDs: []state.ObjID{card(state.ZGraveyard)}})
+	requireOneEventTrigger(t, e, "Forsaken Miner")
+}
+
+// TestUnsupportedSelectorsKeepOtherModesFiring pins the scope of this
+// ticket's fail-closed reads. Rasaad yn Bashir's Attacks trigger carries a
+// CheckDefinedPlayer$ predicate this build cannot evaluate (hasInitiative);
+// it keeps firing as it did before the parameter was read. Mutiny's
+// TargetsWithDefinedController$ ParentTargetedController is unsupported and
+// leaves the target offer as it was rather than emptying it.
+func TestUnsupportedSelectorsKeepOtherModesFiring(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := layerEngine(t)
+	rasaad := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Rasaad yn Bashir"))
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{rasaad}})
+	requireOneEventTrigger(t, e, "Rasaad yn Bashir")
+
+	e = layerEngine(t)
+	onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Grizzly Bears"))
+	onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Grizzly Bears"))
+	mutiny := castOnStackAt(t, e, reg, "Mutiny", 0, state.Target{})
+	sub := e.G.Obj(mutiny).Face().Abilities[0].Sub
+	if sub == nil || sub.Params["TargetsWithDefinedController"] != "ParentTargetedController" {
+		t.Fatalf("unexpected Mutiny sub-ability: %+v", sub)
+	}
+	if got := len(e.legalTargetCandidates(0, mutiny, mutiny, sub)); got != 2 {
+		t.Fatalf("Mutiny's second-target offer = %d candidates, want both creatures", got)
+	}
 }

@@ -1633,7 +1633,8 @@ func (e *Engine) payCast() {
 			e.emit(events.DiscardCost(id))
 		}
 		if pc.cost.Tap {
-			e.emit(events.Event{Kind: events.Tap, Obj: pc.card})
+			// The {T} cost's payer taps the permanent (Forge CostTap).
+			e.emitTap(pc.card, pc.player, false)
 		}
 		for _, part := range pc.cost.SubCounter {
 			e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: part.Spec, Amount: -part.N})

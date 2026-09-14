@@ -130,6 +130,20 @@ func (e *Engine) Clone() *Engine {
 	}
 	c.triggerFireCount = cloneCounts(e.triggerFireCount)
 	c.damageOnceFired = cloneCounts(e.damageOnceFired)
+	if e.triggerTurnFires != nil {
+		c.triggerTurnFires = make(map[triggerKey]turnFires, len(e.triggerTurnFires))
+		for k, v := range e.triggerTurnFires {
+			c.triggerTurnFires[k] = v
+		}
+	}
+	if e.tappedTurn != nil {
+		c.tappedTurn = make(map[state.ObjID]int32, len(e.tappedTurn))
+		for id, turn := range e.tappedTurn {
+			c.tappedTurn[id] = turn
+		}
+	}
+	// tapObj/tapPlayer/tapEntering and tappingForMana/tappingManaProduced are
+	// emitTap's synchronous context, zero at every intent boundary.
 	// triggerBefore is scoped to a batch emission/resumption, so it is nil
 	// at intent boundaries and is deliberately not copied. Parked replacement
 	// and commander choices and resume frames retain their own immutable
@@ -168,6 +182,9 @@ func (e *Engine) Clone() *Engine {
 	if e.manaColorActivation != nil {
 		ma := *e.manaColorActivation
 		ma.triggers = clonePendingTriggers(e.manaColorActivation.triggers)
+		if pt := e.manaColorActivation.trigger; pt != nil {
+			ma.trigger = &clonePendingTriggers([]pendingTrigger{*pt})[0]
+		}
 		c.manaColorActivation = &ma
 	}
 	if e.manaDiscardActivation != nil {

@@ -52,11 +52,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		}
 		c.TriggerSource = c.TriggerCard
 	case "Taps", "TapsForMana":
-		actor := e.controllerOf(ev.Obj)
-		if e.tappingForMana == ev.Obj {
-			actor = e.manaTapPlayer
-		}
-		c.TriggerActivator = player(actor)
+		c.TriggerActivator = player(e.tapActor(ev))
 	case "ChangesZone", "LandPlayed":
 		c.TriggerCard = ev.Obj
 	case "SpellCast", "AbilityCast", "SpellAbilityCast":

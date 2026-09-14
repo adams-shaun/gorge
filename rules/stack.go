@@ -397,6 +397,16 @@ func (e *Engine) legalTargetCandidates(p state.PlayerID, source, excludeSelf sta
 // that says the chosen object must be controlled by an event-role player. It
 // is deliberately applied once after every zone's candidates are collected,
 // so battlefield, graveyard and stack target offers cannot drift apart.
+//
+// Only a selector this build binds narrows the offer. An unsupported selector
+// (ParentTarget, ParentTargetedController, TriggeredCauser, ...) and a
+// supported role the current trigger did not bind leave the candidates
+// unchanged -- the offer every such ability had before this restriction was
+// read -- so no existing ability silently loses its targets. The two roles
+// only an attack-declaration trigger binds (TriggeredAttackingPlayer,
+// TriggeredAttackedTarget: Karazikar, Firkraag, Seifer, Gornog, Whirlwind
+// Killer) fail closed when unbound instead, since offering every creature
+// would widen "target creature that player controls" to any player's.
 func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *cards.SA, sc effects.SpecContext) []targetCandidate {
 	ref := strings.TrimSpace(sa.Params["TargetsWithDefinedController"])
 	if ref == "" {
@@ -404,6 +414,7 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 	}
 	var player state.PlayerID
 	var ok bool
+	failClosed := false
 	switch ref {
 	case "TriggeredTarget":
 		if sc.TriggerTarget.IsPlayer {
@@ -420,10 +431,12 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 			player, ok = sc.TriggerPlayer.Player, true
 		}
 	case "TriggeredAttackingPlayer":
+		failClosed = true
 		if sc.AttackingPlayer.IsPlayer {
 			player, ok = sc.AttackingPlayer.Player, true
 		}
 	case "TriggeredAttackedTarget":
+		failClosed = true
 		if sc.AttackedTarget.IsPlayer {
 			player, ok = sc.AttackedTarget.Player, true
 		}
@@ -433,7 +446,10 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 		}
 	}
 	if !ok {
-		return nil // an unbound or unsupported event role must not widen targets.
+		if failClosed {
+			return nil
+		}
+		return in
 	}
 	out := in[:0]
 	for _, candidate := range in {
@@ -1040,6 +1056,25 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 func (e *Engine) Game() *state.Game    { return e.G }
 func (e *Engine) Emit(ev events.Event) { e.emit(ev) }
 func (e *Engine) Rand(n int) int       { return e.rng.IntN(n) }
+
+// EmitTap satisfies effects.Host's EmitTap: see emitTap.
+func (e *Engine) EmitTap(obj state.ObjID, tapper state.PlayerID, entering bool) {
+	e.emitTap(obj, tapper, entering)
+}
+
+// emitTap emits the plain Tap event for obj while its provenance -- who tapped
+// it, and whether it is only being given its entry state -- is visible to the
+// Taps/TapsForMana matcher and to trigger referents. The event payload is the
+// same one every Tap producer emitted before, so no chain head moves for a
+// game without such a trigger. The previous context is restored rather than
+// zeroed, so a Tap emitted from inside another Tap's trigger matching cannot
+// clobber the outer one.
+func (e *Engine) emitTap(obj state.ObjID, tapper state.PlayerID, entering bool) {
+	savedObj, savedPlayer, savedEntering := e.tapObj, e.tapPlayer, e.tapEntering
+	e.tapObj, e.tapPlayer, e.tapEntering = obj, tapper, entering
+	e.emit(events.Event{Kind: events.Tap, Obj: obj})
+	e.tapObj, e.tapPlayer, e.tapEntering = savedObj, savedPlayer, savedEntering
+}
 
 // CastThisTurn satisfies effects.Host's CastThisTurn for Count$ThisTurnCast
 // (Task 17/Storm): the spells cast this turn by ANY player, counted from
