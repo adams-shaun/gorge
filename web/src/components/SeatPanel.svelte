@@ -3,7 +3,10 @@
   import type { CardView, Option, SeatInfo, View } from '../protocol';
   import type { SeatCtx } from '../lib/seat';
   import { SeatPanelState, autoNoteText, isConcede, mulliganPhase, toneOf } from '../lib/seatpanel.svelte';
+  import { promptContext, promptContextText } from '../lib/prompt';
+  import { arrangeCard } from '../lib/arrange';
   import { modalPickerOpen } from '../lib/modals';
+  import ArrangeModal from './ArrangeModal.svelte';
   import CardImage from './CardImage.svelte';
   import CardTile from './CardTile.svelte';
   import ManaPool from './ManaPool.svelte';
@@ -160,6 +163,33 @@
   const handById = $derived(new Map((mine?.hand ?? []).map((c) => [c.id, c])));
   const bottomCount = $derived(decision?.min ?? 0);
 
+  // The arrange family (brief Job 4): kind 'arrange' is the ordered-subset
+  // ask — a top-of-library reorder (Min == Max == N) or Scry/Surveil (Min 0).
+  // It renders its own card-face row instead of the generic option list and
+  // opens ArrangeModal for drag/drop ordering; the posted intent is the same
+  // picked-order array either way.
+  const arrange = $derived(decision !== null && decision.kind === 'arrange' ? decision : null);
+  // The popup's open flag lives on the shared SeatPanelState, NOT on this
+  // component: a local `$state` cannot be declared here (the component's own
+  // `state` prop makes the rune ambiguous — Svelte would read it as a store
+  // subscription and throw store_invalid_shape), and two surfaces (strip and
+  // board) mount against the one state object anyway.
+  function openArrange(): void {
+    logic.arrangeOpen = true;
+  }
+  /** submitArrange writes the popup's final keep order and posts it through the ordinary submit (the one posting path). */
+  function submitArrange(order: number[]): void {
+    logic.arrangeOpen = false;
+    logic.setPicked(order);
+    logic.submit();
+  }
+
+  // The prompt context line (brief Job 3): who the prompt is from and what
+  // shape the answer takes, from fields already on the wire (source,
+  // kind/min/max). Null facts are omitted; the line itself is omitted when
+  // neither is known (priority, mulligan).
+  const ctxText = $derived(decision !== null ? promptContextText(promptContext(decision, view)) : null);
+
   // The engine labels these "keep" and "mulligan"; a button says what
   // pressing it does. Resolved by kind, with the server's own label as the
   // fallback for anything unrecognised.
@@ -185,6 +215,7 @@
     class:flyout={placement === 'flyout'}
     class:strip={placement === 'strip'}
     data-seat-panel
+    data-answer-surface={placement === 'board' ? 'true' : null}
     data-concede={logic.concedeOption?.index}
     data-tone={tone}
   >
@@ -260,6 +291,9 @@
 
     {#if decision}
       <p class="prompt" data-prompt>{decision.prompt}</p>
+      {#if ctxText !== null}
+        <p class="ctx" data-prompt-ctx>{ctxText}</p>
+      {/if}
 
       {#if mull !== null && mull.phase === 'keep'}
         <div class="hand" data-opening-hand data-card-count={(mine?.hand ?? []).length} style={`--n:${Math.max(1, (mine?.hand ?? []).length)}`} aria-label="Your opening hand">
@@ -308,6 +342,55 @@
             Bottom {bottomCount} {bottomCount === 1 ? 'card' : 'cards'}
           </button>
         </div>
+      {:else if placement === 'strip' && tone === 'initiative'}
+        <!-- The split (brief Job 2): the ACTIONS surface serves OFFERED windows
+             — what this seat could do while it holds priority. A decision the
+             game is BLOCKED on (tone initiative: no pass option) is a prompt,
+             not an action, and it renders directly on the board (Table mounts
+             this panel there for exactly that tone); duplicating its option
+             list here would be a second posting surface for the same answer.
+             The panel itself stays mounted: it owns the polling/autopilot
+             lifecycle shared with the board surface. -->
+        <p class="pointer" data-strip-pointer>This is a required prompt, not an action — it is answered on the board. The game cannot move until it is.</p>
+      {:else if arrange !== null}
+        <!-- The arrange ask (brief Job 4): card faces in OFFERED order, each
+             click toggling it into/out of the keep pile (the picked array, in
+             its order, IS the keep pile — the ordinal says where it lands);
+             the popup gives drag/drop reordering of that pile. Submit posts
+             the picked order through the ordinary submit path. -->
+        <div class="arrange" data-arrange>
+          <div class="hand picking" data-arrange-row data-options data-card-count={arrange.options.length} style={`--n:${Math.max(1, arrange.options.length)}`} aria-label="Top of the library, in keep order">
+            {#each arrange.options as opt (opt.index)}
+              {@const card = arrangeCard(arrange, opt)}
+              {@const at = logic.picked.indexOf(opt.index)}
+              <button
+                class="pick"
+                class:picked={at >= 0}
+                type="button"
+                data-option={opt.index}
+                aria-pressed={at >= 0}
+                aria-label={opt.label}
+                onclick={() => logic.toggle(opt.index)}
+                disabled={logic.busy}
+              >
+                {#if card}<CardImage {card} />{:else}<span class="fallback">{opt.label}</span>{/if}
+                {#if at >= 0}<span class="order">{at + 1}</span>{/if}
+              </button>
+            {/each}
+          </div>
+          <div class="choices">
+            <button class="choice" type="button" data-arrange-open onclick={openArrange} disabled={logic.busy}>Open the card view</button>
+            {#if logic.showSubmit && placement !== 'strip'}
+              <button
+                class="choice keep"
+                type="button"
+                data-submit
+                onclick={() => logic.submit()}
+                disabled={!logic.canSubmit || logic.busy}
+              >{arrange.min === arrange.max ? 'Confirm order' : 'Confirm'}</button>
+            {/if}
+          </div>
+        </div>
       {:else}
         <div class="options" data-options>
           {#if primary && !((placement === 'flyout' || placement === 'strip') && primary.kind === 'pass')}
@@ -344,6 +427,10 @@
       <p class="prompt waiting" data-waiting>{stepLabel} — waiting for {waitingName}</p>
     {/if}
   </div>
+
+  {#if logic.arrangeOpen && arrange !== null && placement !== 'strip'}
+    <ArrangeModal open={logic.arrangeOpen} decision={arrange} seed={logic.picked} onSubmit={submitArrange} onClose={() => (logic.arrangeOpen = false)} />
+  {/if}
 {/if}
 
 <style>
@@ -550,6 +637,37 @@
     font-weight: 400;
     font-size: var(--t-12);
     color: var(--ink-dim);
+  }
+
+  /* The context line (Job 3): who the prompt is from and the shape of the
+     answer — smaller and quieter than the prompt itself, because it is
+     metadata about the ask, not the ask. */
+  .ctx {
+    margin: 0;
+    padding: 0 var(--sp-3) var(--sp-2);
+    font-size: var(--t-11);
+    line-height: 1.35;
+    color: var(--ink-dim);
+    text-align: center;
+    width: 100%;
+  }
+
+  /* The strip's pointer (Job 2): what the drop says instead of a duplicated
+     option list when the decision is a required prompt living on the board. */
+  .pointer {
+    margin: 0;
+    padding: var(--sp-3);
+    font-size: var(--t-12);
+    line-height: 1.4;
+    color: var(--ink-dim);
+    text-align: center;
+    width: 100%;
+  }
+
+  .arrange {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
   }
 
   /* An error is the one thing allowed to outrank the tone: the seat's last

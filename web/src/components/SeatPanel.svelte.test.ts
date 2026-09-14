@@ -221,3 +221,53 @@ describe('SeatPanel — match over', () => {
     expect(render(SeatPanel, { props: props(v) }).html).toContain('Draw');
   });
 });
+
+describe('SeatPanel — the prompt surface (fb prompts: never passed over, never an action)', () => {
+  const bolt = (d: Decision): View => {
+    const v = view(d);
+    v.stack = [{ id: 9, kind: 'spell', name: 'Lightning Bolt', text: '', controller: 0, targets: [], optional: false }];
+    return v;
+  };
+  const target: Decision = {
+    seq: 11, player: 1, kind: 'target', prompt: 'Choose a target', min: 1, max: 1, source: 9,
+    options: [opt(0, 'target', 'Target alice', 3)],
+  };
+  const arrangeAsk: Decision = {
+    seq: 12, player: 1, kind: 'arrange', min: 3, max: 3, source: 9,
+    prompt: 'Rearrange the top 3 card(s); the first card you pick goes on top',
+    options: [opt(0, 'bottom', 'Brazen Borrower', 11), opt(1, 'bottom', 'Fabled Pass', 12), opt(2, 'bottom', 'Spell Pierce', 14)],
+  };
+
+  it('the context line names the source and the shape of the answer (Job 3)', () => {
+    const { html } = render(SeatPanel, { props: props(bolt(target)) });
+    expect(html).toMatch(/data-prompt-ctx[^>]*>From Lightning Bolt \(a resolving spell\) · Pick 1 target</);
+  });
+
+  it('a priority window carries no context line: its shape is stated by the transport controls', () => {
+    expect(render(SeatPanel, { props: props(view(priority)) }).html).not.toContain('data-prompt-ctx');
+  });
+
+  it('an arrange decision renders card faces in offered order and opens the popup, not a text index (Job 4)', () => {
+    const { html } = render(SeatPanel, { props: props(bolt(arrangeAsk)) });
+    expect(html).toContain('data-arrange');
+    expect(html).toContain('data-arrange-row');
+    expect(html).toContain('data-arrange-open');
+    expect(html).toContain('Open the card view');
+    expect(html).toContain('Confirm order');
+    expect([...html.matchAll(/data-option="\d+"/g)]).toHaveLength(3);
+    for (const name of ['Brazen Borrower', 'Fabled Pass', 'Spell Pierce']) expect(html).toContain(`aria-label="${name}"`);
+    // no pass on the wire, so no primary button
+    expect(html).not.toContain('data-primary');
+  });
+
+  it('the split (Job 2): in the strip, an initiative decision is a pointer to the board, never a second option list', () => {
+    const strip = (v: View) => render(SeatPanel, { props: { ...props(v), placement: 'strip' as const } }).html;
+    const initiative = strip(bolt(target));
+    expect(initiative).toContain('data-strip-pointer');
+    expect(initiative).not.toContain('data-option="');
+    // the offered window keeps its action list in the strip
+    const offered = strip(view(priority));
+    expect(offered).not.toContain('data-strip-pointer');
+    expect(offered).toContain('data-option="0"');
+  });
+});

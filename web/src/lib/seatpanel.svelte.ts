@@ -495,6 +495,16 @@ export class SeatPanelState {
   yieldList = $state<string[]>([]);
 
   /**
+   * arrangeOpen is the arrange popup's open flag (brief Job 4). It lives on
+   * the shared state rather than on the SeatPanel component because a
+   * component-local `$state` is undeclarable there (the component's own
+   * `state` prop makes the rune ambiguous) and because both surfaces that
+   * mount SeatPanel against one state object share it — only the board
+   * surface renders the modal; the strip's copy shows the pointer note.
+   */
+  arrangeOpen = $state(false);
+
+  /**
    * autoOrderedSeq is the seq the identical-trigger auto-order last posted
    * for — the same loop guard autoActedSeq is for the pass paths, so a
    * rejected auto-order is never retried forever against a refusing server.
@@ -1328,6 +1338,7 @@ export class SeatPanelState {
     this.autoOrderedSeq = null;
     this.resolveAllIds = null;
     this.currentView = null;
+    this.arrangeOpen = false;
     this.note = { kind: 'off' };
   }
 
@@ -1360,6 +1371,13 @@ export class SeatPanelState {
     this.postedSeq = null;
     this.picked = [];
     this.confirming = false;
+    // The arrange popup, when open, belongs to the PREVIOUS ask: a new
+    // decision closes it, so its edit state can never be presented as (or
+    // submitted for) an ask the player has not answered — the two-tab path
+    // where seat's next arrange ask arrives while this one sits open. The
+    // popup's own modal also resets on a seq change (ArrangeModal), so a
+    // future mount site that forgets to close still cannot reuse edits.
+    this.arrangeOpen = false;
     // The identical-trigger auto-order runs at ADOPT, not only in
     // considerAuto: the decision frame can arrive while no view change
     // follows it, and the submit must not depend on the next effect tick.
@@ -1463,6 +1481,30 @@ export class SeatPanelState {
     this.handAnswer();
     this.confirming = false;
     this.picked = pickOption(d, index, this.picked);
+  }
+
+  /**
+   * setPicked replaces the picked set wholesale, in the given order — the
+   * arrange surface's write path (brief Job 4): the popup's final keep order
+   * IS the answer, so it must be writable as an order, not rebuilt click by
+   * click. Every index must be an option of the pending decision and no
+   * index may repeat — anything else is a programming error in the surface
+   * that called it, not a player answer, and is refused rather than posted.
+   * Like toggle, it never posts; the caller submits through the ordinary
+   * submit(), whose min/max gate stays the only posting constraint.
+   */
+  setPicked(indices: readonly number[]) {
+    const d = this.pending;
+    if (d === null || d.seq === this.postedSeq || this.busy) return;
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- a local dedup scratch for one call, never stored on the state
+    const seen = new Set<number>();
+    for (const i of indices) {
+      if (!Number.isInteger(i) || seen.has(i) || optionAt(d, i) === undefined) return;
+      seen.add(i);
+    }
+    this.handAnswer();
+    this.confirming = false;
+    this.picked = [...indices];
   }
 
   /** passClick posts only the pass-by-kind option, using its own wire index. */
