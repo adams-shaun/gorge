@@ -1,16 +1,22 @@
-import { describe, expect, it } from 'vitest';
+import { chromium, type Browser, type Page } from 'playwright';
+import { createServer, type ViteDevServer } from 'vite';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
 import { SeatPanelState } from '../lib/seatpanel.svelte';
-import type { StoppableStep } from '../lib/playsettings';
-import PlaySettingsPanel, { nextStop, presetPatch, stopPatch, stopWord } from './PlaySettingsPanel.svelte';
+import { presetPatch, type StoppableStep } from '../lib/playsettings';
+import PlaySettingsPanel, { nextStop, stopPatch, stopWord } from './PlaySettingsPanel.svelte';
 
-// SSR via svelte/server, the repo's component-test pattern. There is no DOM
-// here, so an interaction is exercised the way the app actually performs it:
-// the panel's click handlers call SeatPanelState's write paths (editSettings
-// / setAuto / setActPass) through the module-script helpers the handlers
-// themselves use (presetPatch, stopPatch, nextStop), and the next render is
-// the component's answer to the new settings. The edit under test is the
-// real one, not a stand-in.
+// Two layers, because the editor has two halves to defend:
+//
+//  1. SSR (svelte/server, the repo's render-only component-test pattern)
+//     pins what the editor SHOWS for a given settings state — labels, blurbs,
+//     aria affordances, the Custom segment, the grid's words/glyphs.
+//
+//  2. The playwright fixture below (PileModal's pattern) mounts the panel
+//     against a REAL SeatPanelState in a REAL browser and CLICKS the actual
+//     controls, so a disconnected or broken onclick fails: the cell cycle,
+//     the preset picker, the Reset button and the paused-to-Casual brake
+//     regression are exercised through the component's own handlers.
 
 const ctx = { seat: 0, token: 'tok' };
 
@@ -42,7 +48,7 @@ function selectHtml(html: string, which: string): string {
   return m[0];
 }
 
-describe('PlaySettingsPanel — the GAME OPTIONS editor', () => {
+describe('PlaySettingsPanel — the GAME OPTIONS editor (rendered)', () => {
   it('renders casual by default: preset pressed, its blurb shown, the opponent rules reflecting it', () => {
     const html = panel(new SeatPanelState('t1', 1, ctx, null));
     expect(tag(html, 'data-preset="casual"')).toContain('aria-pressed="true"');
@@ -54,49 +60,11 @@ describe('PlaySettingsPanel — the GAME OPTIONS editor', () => {
     expect(selectHtml(html, 'opponent-spell')).toContain('value="if-respondable" selected');
   });
 
-  it('clicking a preset applies it through withChange and shows its blurb', () => {
-    const state = new SeatPanelState('t1', 1, ctx, null);
-    // The exact call the Full control segment's onclick makes.
-    state.editSettings(presetPatch('full-control'));
-    const html = panel(state);
-    expect(tag(html, 'data-preset="full-control"')).toContain('aria-pressed="true"');
-    expect(elem(html, 'data-preset-blurb')).toContain('Stops at every priority window');
-    // Full control turns auto off and forces every cell.
-    expect(tag(html, 'data-toggle="auto-pass"')).toContain('aria-checked="false"');
-    expect([...html.matchAll(/data-stop-value="forced"/g)]).toHaveLength(20);
-    // No tells likewise: every opponent rule becomes Always, blurb follows.
-    state.editSettings(presetPatch('no-tells'));
-    const tells = panel(state);
-    expect(tag(tells, 'data-preset="no-tells"')).toContain('aria-pressed="true"');
-    expect(elem(tells, 'data-preset-blurb')).toContain('Also stops for every opponent spell and ability');
-    expect(selectHtml(tells, 'opponent-spell')).toContain('value="always" selected');
-  });
-
-  it('editing one cell flips the preset to Custom, and undoing the edit flips it back', () => {
-    const state = new SeatPanelState('t1', 1, ctx, null);
-    // The exact call the cell's onclick makes (cycleCell's first step).
-    state.editSettings(stopPatch('main1', 'yours', nextStop(state.settings.steps.yours['main1' as StoppableStep])));
-    const custom = panel(state);
-    expect(custom).toContain('data-preset="custom"');
-    // Custom is a non-clickable segment: a span, not a button.
-    expect(custom).toMatch(/<span[^>]*data-preset="custom"[^>]*>Custom<\/span>/);
-    expect([...custom.matchAll(/data-preset="custom"/g)]).toHaveLength(1);
-    // No preset button stays pressed.
-    for (const id of ['casual', 'no-tells', 'full-control']) {
-      expect(tag(custom, `data-preset="${id}"`)).not.toContain('aria-pressed="true"');
-    }
-    // Undoing the edit (back to casual's value) restores the label.
-    state.editSettings(stopPatch('main1', 'yours', 'smart'));
-    const restored = panel(state);
-    expect(tag(restored, 'data-preset="casual"')).toContain('aria-pressed="true"');
-    expect(restored).not.toContain('data-preset="custom"');
-  });
-
   it('a cell cycles off → smart → forced → off, with word, glyph and aria-label at each state', () => {
     const state = new SeatPanelState('t1', 1, ctx, null);
     const step: StoppableStep = 'upkeep'; // off on both sides in casual, so the cycle starts clean
     const cycle = (side: 'yours' | 'opponents'): string => {
-      // The exact call the cell's onclick makes.
+      // cycleCell's body: the next rule on the current one, through editSettings.
       const cur = state.settings.steps[side][step] ?? 'off';
       state.editSettings(stopPatch(step, side, nextStop(cur)));
       return panel(state);
@@ -119,13 +87,32 @@ describe('PlaySettingsPanel — the GAME OPTIONS editor', () => {
     expect(cell(forced, 'upkeep', 'opponents')).toContain('data-stop-value="off"');
   });
 
+  it('editing one cell flips the preset to Custom, and undoing the edit flips it back', () => {
+    const state = new SeatPanelState('t1', 1, ctx, null);
+    state.editSettings(stopPatch('main1', 'yours', nextStop(state.settings.steps.yours['main1' as StoppableStep])));
+    const custom = panel(state);
+    expect(custom).toContain('data-preset="custom"');
+    // Custom is a non-clickable segment: a span, not a button.
+    expect(custom).toMatch(/<span[^>]*data-preset="custom"[^>]*>Custom<\/span>/);
+    expect([...custom.matchAll(/data-preset="custom"/g)]).toHaveLength(1);
+    // No preset button stays pressed.
+    for (const id of ['casual', 'no-tells', 'full-control']) {
+      expect(tag(custom, `data-preset="${id}"`)).not.toContain('aria-pressed="true"');
+    }
+    // Undoing the edit (back to casual's value) restores the label.
+    state.editSettings(stopPatch('main1', 'yours', 'smart'));
+    const restored = panel(state);
+    expect(tag(restored, 'data-preset="casual"')).toContain('aria-pressed="true"');
+    expect(restored).not.toContain('data-preset="custom"');
+  });
+
   it('Reset to Casual returns a heavily edited configuration to the casual preset', () => {
     const state = new SeatPanelState('t1', 1, ctx, null);
     state.editSettings({ opponentSpell: 'always', logAutoPasses: false, pacing: { stepMs: 100, resolveMs: 200 } });
     state.editSettings(stopPatch('upkeep', 'opponents', 'forced'));
     expect(state.settings.preset).toBe('custom');
-    // The exact call the Reset button's onclick makes.
-    state.editSettings(presetPatch('casual'));
+    // The Reset button's onclick: applyPreset('casual') → state.applyNamedPreset.
+    state.applyNamedPreset('casual');
     expect(state.settings.preset).toBe('casual');
     const html = panel(state);
     expect(tag(html, 'data-preset="casual"')).toContain('aria-pressed="true"');
@@ -170,6 +157,31 @@ describe('PlaySettingsPanel — the GAME OPTIONS editor', () => {
     expect(state.settings.preset).toBe('custom');
     const html = panel(state);
     expect(tag(html, 'data-toggle="auto-pass"')).toContain('aria-checked="false"');
+  });
+
+  it('applyNamedPreset re-arms a tripped runaway brake when the preset runs auto (paused-to-Casual)', () => {
+    const state = new SeatPanelState('t1', 1, ctx, null);
+    // The brake tripped; the panel still reads auto-pass on (autoPass was
+    // never flipped) but considerAuto keeps refusing to act.
+    state.suspendAuto('cap');
+    expect(state.machinePaused).toBe(true);
+    expect(state.settings.autoPass).toBe(true);
+    // The exact call the Casual segment's / Reset button's onclick makes.
+    state.applyNamedPreset('casual');
+    expect(state.machinePaused).toBe(false);
+    expect(state.settings.autoPass).toBe(true);
+    expect(state.settings.preset).toBe('casual');
+    // The machine note is the armed one, as after setAuto(true).
+    expect(state.note.kind).toBe('armed');
+  });
+
+  it('applyNamedPreset on full-control leaves the machine off, as setAuto(false) would', () => {
+    const state = new SeatPanelState('t1', 1, ctx, null);
+    state.applyNamedPreset('full-control');
+    expect(state.settings.autoPass).toBe(false);
+    expect(state.settings.preset).toBe('full-control');
+    expect(state.machinePaused).toBe(false);
+    expect(state.note.kind).toBe('off');
   });
 
   it('the own-objects segments carry both rules and write through editSettings', () => {
@@ -223,5 +235,121 @@ describe('PlaySettingsPanel helpers', () => {
         expect(live[key]).toEqual(patch[key]);
       }
     }
+  });
+});
+
+describe('PlaySettingsPanel — real clicks in a real browser (PlaySettingsPanel.fixture.html)', () => {
+  let server: ViteDevServer;
+  let browser: Browser;
+  let url = '';
+
+  beforeAll(async () => {
+    server = await createServer({ root: process.cwd(), configLoader: 'runner', server: { port: 0 } });
+    await server.listen();
+    url = server.resolvedUrls!.local[0];
+    browser = await chromium.launch();
+  });
+
+  afterAll(async () => {
+    await browser?.close();
+    await server?.close();
+  });
+
+  /** open mounts the fixture page (a fresh SeatPanelState at casual, null storage). */
+  async function open(): Promise<Page> {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/PlaySettingsPanel.fixture.html`);
+    return page;
+  }
+
+  /** stateOf reads the fixture's live SeatPanelState through the page. */
+  async function stateOf(page: Page): Promise<{ paused: boolean; autoPass: boolean; preset: string }> {
+    return page.evaluate(() => {
+      const s = (window as unknown as { playSettingsState: { machinePaused: boolean; settings: { autoPass: boolean; preset: string } } }).playSettingsState;
+      return { paused: s.machinePaused, autoPass: s.settings.autoPass, preset: s.settings.preset };
+    });
+  }
+
+  it('clicking a cell cycles it off → smart → forced → off through the component handler', async () => {
+    const page = await open();
+    const cell = page.locator('[data-step-cell="upkeep:yours"]');
+    expect(await cell.getAttribute('data-stop-value')).toBe('off');
+    expect(await cell.getAttribute('aria-label')).toBe('Upkeep, my turn: off');
+
+    await cell.click();
+    expect(await cell.getAttribute('data-stop-value')).toBe('smart');
+    expect(await cell.getAttribute('aria-label')).toBe('Upkeep, my turn: smart');
+    expect(await cell.textContent()).toContain('Smart');
+
+    await cell.click();
+    expect(await cell.getAttribute('data-stop-value')).toBe('forced');
+    expect(await cell.getAttribute('aria-label')).toBe('Upkeep, my turn: always');
+    expect(await cell.textContent()).toContain('Always');
+
+    await cell.click();
+    expect(await cell.getAttribute('data-stop-value')).toBe('off');
+    expect(await cell.getAttribute('aria-label')).toBe('Upkeep, my turn: off');
+    // The opponents cell never moved.
+    expect(await page.locator('[data-step-cell="upkeep:opponents"]').getAttribute('data-stop-value')).toBe('off');
+    await page.close();
+  });
+
+  it('editing a cell with a real click flips the preset picker to Custom (and Enter works from the keyboard)', async () => {
+    const page = await open();
+    // Keyboard path first: a native button, focused, activated with Enter.
+    const cell = page.locator('[data-step-cell="upkeep:yours"]');
+    await cell.focus();
+    await page.keyboard.press('Enter');
+    expect(await cell.getAttribute('data-stop-value')).toBe('smart');
+    // The picker now shows the non-clickable Custom segment and no pressed preset.
+    expect(await page.locator('span[data-preset="custom"]').textContent()).toBe('Custom');
+    expect(await page.locator('button[data-preset="casual"]').getAttribute('aria-pressed')).toBe('false');
+    await page.close();
+  });
+
+  it('clicking the Full control segment applies the preset through the state write path', async () => {
+    const page = await open();
+    await page.locator('[data-preset="full-control"]').click();
+    expect(await page.locator('[data-preset="full-control"]').getAttribute('aria-pressed')).toBe('true');
+    expect(await page.locator('[data-preset-blurb]').textContent()).toContain('Stops at every priority window');
+    expect(await page.locator('[data-toggle="auto-pass"]').getAttribute('aria-checked')).toBe('false');
+    expect(await page.locator('[data-stop-value="forced"]').count()).toBe(20);
+    const st = await stateOf(page);
+    expect(st).toEqual({ paused: false, autoPass: false, preset: 'full-control' });
+    await page.close();
+  });
+
+  it('choosing Casual after the runaway brake tripped re-arms auto (the machine actually resumes)', async () => {
+    const page = await open();
+    // Trip the brake the way the loop guard does. Before the fix the preset
+    // click left machinePaused set: the panel read Casual/auto-pass while
+    // considerAuto kept refusing to act.
+    await page.evaluate(() => {
+      (window as unknown as { playSettingsState: { suspendAuto: (r: string) => void } }).playSettingsState.suspendAuto('cap');
+    });
+    expect((await stateOf(page)).paused).toBe(true);
+    await page.locator('[data-preset="casual"]').click();
+    expect(await stateOf(page)).toEqual({ paused: false, autoPass: true, preset: 'casual' });
+    expect(await page.locator('[data-toggle="auto-pass"]').getAttribute('aria-checked')).toBe('true');
+    await page.close();
+  });
+
+  it('Reset to Casual returns a heavily edited panel to the casual preset', async () => {
+    const page = await open();
+    // Heavily edit by real clicks: two cells and the Short pacing segment.
+    await page.locator('[data-step-cell="upkeep:yours"]').click();
+    await page.locator('[data-step-cell="combat-damage:opponents"]').click();
+    await page.locator('[data-step-cell="combat-damage:opponents"]').click(); // → forced
+    await page.locator('[data-pacing="short"]').click();
+    expect((await stateOf(page)).preset).toBe('custom');
+    expect(await page.locator('[data-step-cell="combat-damage:opponents"]').getAttribute('data-stop-value')).toBe('forced');
+
+    await page.locator('[data-reset-settings]').click();
+    expect((await stateOf(page)).preset).toBe('casual');
+    expect(await page.locator('[data-step-cell="upkeep:yours"]').getAttribute('data-stop-value')).toBe('off');
+    expect(await page.locator('[data-step-cell="combat-damage:opponents"]').getAttribute('data-stop-value')).toBe('off');
+    expect(await page.locator('[data-pacing="normal"]').getAttribute('aria-pressed')).toBe('true');
+    expect(await page.locator('button[data-preset="casual"]').getAttribute('aria-pressed')).toBe('true');
+    await page.close();
   });
 });

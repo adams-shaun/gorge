@@ -16,6 +16,9 @@ import { STOPPABLE_STEPS } from './autopilot';
 
 export type Preset = 'casual' | 'no-tells' | 'full-control' | 'custom';
 
+/** PresetName is the clickable presets: 'custom' is earned by editing, never picked. */
+export type PresetName = Exclude<Preset, 'custom'>;
+
 /**
  * StepStop is one step's stop rule:
  *  - 'off'    — never stop at that step;
@@ -150,6 +153,33 @@ export const PRESETS: Record<Exclude<Preset, 'custom'>, PlaySettings> = {
     logAutoPasses: true,
   }),
 };
+
+/**
+ * presetPatch is a whole-preset change expressed as a withChange patch:
+ * every field of the named preset except its version and label. Because the
+ * patch covers ALL of them, the merged result deep-equals the preset and
+ * withChange relabels the preset itself — applying a preset IS an ordinary
+ * settings change, not a separate write path. Reset to Casual is
+ * presetPatch('casual') for the same reason. The machine-side write path
+ * (seatpanel.applyNamedPreset) layers the auto re-arm effects on top of
+ * this patch; it deliberately lives here in the pure model, not in the
+ * component, so the state can use it without importing a .svelte module.
+ */
+export function presetPatch(id: PresetName): Partial<PlaySettings> {
+  const p = PRESETS[id];
+  return {
+    autoPass: p.autoPass,
+    opponentSpell: p.opponentSpell,
+    opponentAbility: p.opponentAbility,
+    opponentTrigger: p.opponentTrigger,
+    ownObjects: p.ownObjects,
+    steps: { yours: { ...p.steps.yours }, opponents: { ...p.steps.opponents } },
+    passAfterAct: p.passAfterAct,
+    autoOrderIdenticalTriggers: p.autoOrderIdenticalTriggers,
+    pacing: { stepMs: p.pacing.stepMs, resolveMs: p.pacing.resolveMs },
+    logAutoPasses: p.logAutoPasses,
+  };
+}
 
 /** defaultSettings is the out-of-the-box experience: casual. */
 export function defaultSettings(): PlaySettings {

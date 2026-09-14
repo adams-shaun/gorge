@@ -1,9 +1,6 @@
 <script module lang="ts">
-  import { PRESETS, type PlaySettings, type Preset, type StepStop, type StoppableStep } from '../lib/playsettings';
+  import { type PlaySettings, type PresetName, type StepStop, type StoppableStep } from '../lib/playsettings';
   import type { TurnSide } from '../lib/autopilot';
-
-  /** PresetName is the clickable presets: 'custom' is earned by editing, never picked. */
-  export type PresetName = Exclude<Preset, 'custom'>;
 
   /**
    * PRESET_LIST is the three clickable presets in picker order, each with
@@ -28,30 +25,6 @@
       blurb: 'Stops at every priority window.',
     },
   ];
-
-  /**
-   * presetPatch is a whole-preset change expressed as a withChange patch:
-   * every field of the named preset except its version and label. Because
-   * the patch covers ALL of them, the merged result deep-equals the preset
-   * and withChange relabels the preset itself — applying a preset IS an
-   * ordinary settings change, not a separate write path. Reset to Casual is
-   * presetPatch('casual') for the same reason.
-   */
-  export function presetPatch(id: PresetName): Partial<PlaySettings> {
-    const p = PRESETS[id];
-    return {
-      autoPass: p.autoPass,
-      opponentSpell: p.opponentSpell,
-      opponentAbility: p.opponentAbility,
-      opponentTrigger: p.opponentTrigger,
-      ownObjects: p.ownObjects,
-      steps: { yours: { ...p.steps.yours }, opponents: { ...p.steps.opponents } },
-      passAfterAct: p.passAfterAct,
-      autoOrderIdenticalTriggers: p.autoOrderIdenticalTriggers,
-      pacing: { stepMs: p.pacing.stepMs, resolveMs: p.pacing.resolveMs },
-      logAutoPasses: p.logAutoPasses,
-    };
-  }
 
   /** nextStop is one step-stop cell's three-state cycle: Off → Smart → Always → Off. */
   export function nextStop(rule: StepStop): StepStop {
@@ -87,13 +60,13 @@
   /**
    * The GAME OPTIONS editor for the whole play-settings model
    * (lib/playsettings.ts). It is bound to the seat panel's settings object:
-   * every change goes through SeatPanelState.editSettings, so withChange
-   * relabels the preset (Custom while the configuration matches none, back
-   * to a named preset when an edit is undone) and the change persists in
-   * the one global key. The Auto pass and Pass after I cast switches go
-   * through setAuto / setActPass instead, because those two carry the
+   * every change goes through a SeatPanelState write path — editSettings
+   * for the ordinary edits (withChange relabels the preset Custom while the
+   * configuration matches none, and back to a named preset when an edit is
+   * undone), setAuto / setActPass for the two switches that carry
    * machine-side consequences (re-arming a tripped runaway brake, disarming
-   * an armed pass) that a raw settings patch must not skip.
+   * an armed pass), and applyNamedPreset for the preset picker and the
+   * Reset button, which need the same re-arm effects setAuto carries.
    */
   let { state }: { state: SeatPanelState } = $props();
 
@@ -137,7 +110,10 @@
   );
 
   function applyPreset(id: PresetName): void {
-    state.editSettings(presetPatch(id));
+    // applyNamedPreset, not editSettings: a named preset that runs auto must
+    // also clear the machine's runaway brake, or the panel would read
+    // auto-pass on while the loop keeps refusing to act.
+    state.applyNamedPreset(id);
   }
   function cycleCell(step: StoppableStep, side: TurnSide): void {
     const cur = s.steps[side][step] ?? 'off';
