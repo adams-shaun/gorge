@@ -200,3 +200,37 @@ describe('CardTile options affordance (ui21)', () => {
     expect(html).toContain('data-selected="1,3"');
   });
 });
+
+describe('CardTile loyalty (CR 306.5b/306.8)', () => {
+  const walker = (over: Partial<CardView> = {}): CardView => card({
+    id: 21, name: 'Jace, the Mind Sculptor', types: 'Legendary Planeswalker Jace', ...over,
+  });
+
+  it('a walker with a LOYALTY counter prints it once, in the stats slot, and never as a generic counter chip', () => {
+    const { html } = render(CardTile, { props: { card: walker({ counters: { LOYALTY: 3 } }) } });
+    expect(html).toContain('stats__loyalty');
+    expect(html).toContain('title="loyalty">3</span>');
+    // exactly one loyalty reading: no generic counter chip for it
+    expect(html.match(/LOYALTY/g) ?? []).toHaveLength(0);
+    expect(html.match(/stats__loyalty/g) ?? []).toHaveLength(1);
+  });
+
+  it('a walker never prints a damage chip even while damage is somehow marked', () => {
+    const { html } = render(CardTile, { props: { card: walker({ counters: { LOYALTY: 1 }, damage: 5 }) } });
+    expect(html).not.toContain('stats__dmg');
+    expect(html).toContain('stats__loyalty');
+  });
+
+  it('a walker with no loyalty counter yet renders no stats band at all', () => {
+    const { html } = render(CardTile, { props: { card: walker() } });
+    expect(html).not.toContain('stats__loyalty');
+    expect(html).not.toContain('class="band"');
+  });
+
+  it('a non-walker keeps the plain counter chips and damage chip', () => {
+    const { html } = render(CardTile, { props: { card: card({ types: 'Creature Bear', counters: { P1P1: 2 }, damage: 2, power: 2, toughness: 2 }) } });
+    expect(html).not.toContain('stats__loyalty');
+    expect(html).toContain('stats__dmg');
+    expect(html).toContain('P1P1');
+  });
+});

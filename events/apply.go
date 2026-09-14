@@ -1,6 +1,9 @@
 package events
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -642,6 +645,30 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.Damage = 0
 		g.Clock++
 		o.Timestamp = g.Clock
+		// CR 306.5b: a planeswalker enters the battlefield with loyalty
+		// counters equal to its starting loyalty, however it entered (a
+		// resolving spell, a blink or re-entry, a search put it directly onto
+		// the battlefield). Implementing the grant here, inside Move itself,
+		// is what makes every battlefield-entry site covered by construction:
+		// no rules/ or effects/ caller can mint an entry that skips it, and
+		// replay (which re-runs Apply) derives the identical counters. Two
+		// boundaries keep the grant exact:
+		//
+		//   - A battlefield->battlefield move (counters are NOT reset on a
+		//     stay on the battlefield) must not re-stack loyalty, so the grant
+		//     is skipped when the object was already on the battlefield.
+		//   - A face whose starting loyalty this engine cannot read (absent,
+		//     or Loyalty:X -- Nissa, Steward of Elements) grants nothing.
+		//
+		// Known gap (recorded in AGENTS.md): TokenCreate does NOT route
+		// through Move, so a planeswalker TOKEN enters with zero loyalty.
+		if !wasBattlefield {
+			if f := o.Face(); f != nil && f.IsPlaneswalker() {
+				if n, err := strconv.Atoi(strings.TrimSpace(f.Loyalty)); err == nil && n > 0 {
+					o.AddCounter("LOYALTY", int32(n))
+				}
+			}
+		}
 	default:
 		// Leaving the battlefield or the stack resets everything that only
 		// exists while a permanent or spell is in play.

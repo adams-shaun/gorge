@@ -26,7 +26,9 @@ type ManaPair struct{ A, B byte }
 // Cost is a parsed cost. X counts how many "X" symbols appeared (almost
 // always 0 or 1; WithX folds a chosen value into Generic once per symbol).
 // Life, Tap, Sac, Discard and SubCounter are non-mana components a cast or
-// activation must satisfy separately from mana payment. Life is paid through
+// activation must satisfy separately from mana payment; AddCounter<N/LOYALTY>
+// is a free non-mana component (a planeswalker's [+N] loyalty gain) settled
+// beside SubCounter by the ability branch in rules/cast.go. Life is paid through
 // payMana's LifeChange event; Tap, Sac, Discard and SubCounter are settled by
 // the cast-flow stages in rules/cast.go. Pay and CanPay remain pool-only helpers.
 //
@@ -50,6 +52,7 @@ type Cost struct {
 	Sac        []CostPart
 	Discard    []CostPart
 	SubCounter []CostPart
+	AddCounter []CostPart
 }
 
 // nonManaCost matches Sac<N/Spec>, Discard<N/Spec>, and SubCounter<N/Kind> tokens. Forge
@@ -61,6 +64,19 @@ type Cost struct {
 // description is dropped right here; the ";" alternation is folded to ","
 // (MatchesSpec's own separator) at the parse site. Ruling FL-54.
 var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter|Discard)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+
+// addCounterCost matches Forge's AddCounter<N/LOYALTY> token -- the
+// planeswalker loyalty cost, and deliberately ONLY it (CR 107.4: the [+N]
+// symbol): adding loyalty counters is not a payment at all, so an AddCounter
+// part is a FREE cost component -- [+2] costs no mana, and AddCounter<0/LOYALTY>
+// (the [0] abilities, 53 raw lines) costs nothing either. The settle is
+// rules/cast.go's ability branch beside the SubCounter settle. The corpus's
+// other 8 AddCounter tokens (Devoted Druid's M1M1 untap, Wall of Roots' M0M1
+// mana ability, two UnlessCost$ SVars) are NOT matched by this regex and keep
+// today's one-generic fallback, per the brief's scope boundary -- their
+// counter semantics (M1M1/M0M1 kinds, mid-resolution UnlessCost payers) are
+// their own work.
+var addCounterCost = regexp.MustCompile(`^AddCounter<(\d+)/(LOYALTY)(?:/[^>]*)?>$`)
 
 // lifeCost matches Forge's fixed life-payment token. Dynamic values such as
 // PayLife<X> retain the ordinary malformed-token fallback below: this engine
@@ -121,6 +137,18 @@ func ParseCost(s string) Cost {
 				default:
 					c.SubCounter = append(c.SubCounter, part)
 				}
+				continue
+			}
+			if m := addCounterCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					// Same degrade-to-one-generic fallback as the other
+					// malformed tokens.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					continue
+				}
+				spec := strings.ReplaceAll(m[2], ";", ",")
+				c.AddCounter = append(c.AddCounter, CostPart{N: int32(n), Spec: spec})
 				continue
 			}
 			// Try to parse as a numeric token. Negative and out-of-range values
@@ -269,6 +297,9 @@ func (c Cost) Plus(d Cost) Cost {
 	if len(d.SubCounter) > 0 {
 		c.SubCounter = append(append([]CostPart(nil), c.SubCounter...), d.SubCounter...)
 	}
+	if len(d.AddCounter) > 0 {
+		c.AddCounter = append(append([]CostPart(nil), c.AddCounter...), d.AddCounter...)
+	}
 	return c
 }
 
@@ -366,8 +397,11 @@ func (e *Engine) offerCostFor(p state.PlayerID, id state.ObjID, base Cost, abili
 }
 
 // HasNonMana reports whether paying this cost takes more than mana.
+// AddCounter counts (the part is settled by the cast flow beside SubCounter,
+// even though it takes no payment), so a caller using this to skip the
+// cast-flow stages is told the truth.
 func (c Cost) HasNonMana() bool {
-	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0
+	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0
 }
 
 // costModifiers reports the RaiseCost and ReduceCost generic-mana amounts

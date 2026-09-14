@@ -85,6 +85,44 @@ func TestSBABatchUsesPreDepartureBoard(t *testing.T) {
 	}
 }
 
+// walkerBatchWitness is the planeswalker twin of batchWitness above: two
+// zero-loyalty walkers whose leaves-the-battlefield trigger watches EVERY
+// planeswalker departure, so the zero-loyalty SBA batch (rules/sba.go,
+// planeswalkerZeroLoyalty, CR 704.5i) must give both departing sources the
+// same pre-departure board -- 4 queued triggers (each source observing both
+// deaths), not the 3 a missing snapshot produces.
+const walkerBatchWitness = "Name:Batch walker\nLoyalty:0\nTypes:Planeswalker Jace\n" +
+	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Planeswalker | Execute$ Gain\n" +
+	"SVar:Gain:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+
+func TestPlaneswalkerSBABatchUsesPreDepartureBoard(t *testing.T) {
+	e := layerEngine(t)
+	a := onBoard(t, e, 0, walkerBatchWitness)
+	b := onBoard(t, e, 1, walkerBatchWitness)
+	e.checkStateBased()
+	if e.G.Obj(a).Zone != state.ZGraveyard || e.G.Obj(b).Zone != state.ZGraveyard {
+		t.Fatal("fixed point did not remove both zero-loyalty walkers")
+	}
+	if len(e.pendingTriggers) != 4 {
+		t.Fatalf("queued %d triggers, want 4 (both sources observe both departures)", len(e.pendingTriggers))
+	}
+	seen := map[[2]state.ObjID]bool{}
+	for _, pt := range e.pendingTriggers {
+		lki := pt.Ctx.LKI
+		if lki == nil || lki.Zone != state.ZBattlefield {
+			t.Fatalf("missing pre-batch LKI: %+v", lki)
+		}
+		key := [2]state.ObjID{pt.Source, lki.ID}
+		if seen[key] {
+			t.Fatalf("duplicate observation: %v", key)
+		}
+		seen[key] = true
+	}
+	if e.triggerBefore != nil {
+		t.Fatal("look-back leaked beyond batch")
+	}
+}
+
 func TestSBABatchDoesNotLookBackForFromAnywhereTriggers(t *testing.T) {
 	e := layerEngine(t)
 	id := onBoard(t, e, 0, "Name:Graveyard arrival\nTypes:Creature Bear\nPT:1/1\n"+

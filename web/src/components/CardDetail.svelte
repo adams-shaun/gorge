@@ -43,9 +43,19 @@
 
   const isCreature = $derived(card.types.includes('Creature'));
 
+  // Loyalty is the walker's "life" (CR 306.5b/306.8), so it prints as its own
+  // ledger row rather than one counter among the set, and it is pulled out of
+  // the counter chips so it never prints twice.
+  const isPlaneswalker = $derived(card.types.includes('Planeswalker'));
+  const loyalty = $derived(card.counters?.['LOYALTY']);
+
   // Every counter, sorted so a map's iteration order can never reach the
   // rendered output (determinism contract).
-  const counterChips = $derived(Object.entries(card.counters ?? {}).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+  const counterChips = $derived(
+    Object.entries(card.counters ?? {})
+      .filter(([kind]) => !(isPlaneswalker && kind === 'LOYALTY'))
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+  );
 
   // Keywords arrive from the engine in two shapes and typesetting them the
   // same way is what made this panel read as a debug dump: "Flying" is a word
@@ -203,6 +213,12 @@
           <span class="data value">{card.power}/{card.toughness}</span>
           {#if ptNote}<span class="printed">{ptNote}</span>{/if}
         </dd>
+      </div>
+    {/if}
+    {#if isPlaneswalker && loyalty !== undefined}
+      <div class="row">
+        <dt>Loyalty</dt>
+        <dd><span class="data value" title="{loyalty} loyalty">{loyalty}</span></dd>
       </div>
     {/if}
     {#if card.damage > 0}

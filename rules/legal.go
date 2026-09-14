@@ -36,6 +36,32 @@ func abilityZoneOK(ab *cards.SA, z state.Zone) bool {
 	return false
 }
 
+// isLoyaltyAbility reports whether ab is a planeswalker loyalty ability
+// (CR 606): it carries the Planeswalker$ parameter (case-insensitive -- three
+// corpus lines spell it "true"), or its parsed Cost$ contains an
+// AddCounter/SubCounter part of the LOYALTY kind. The OR is load-bearing: the
+// dynamic [-X] costs (SubCounter<X/LOYALTY>, 20 raw lines) do not parse into a
+// SubCounter part (ParseCost keeps the unrecognised-token fallback for them),
+// so only the parameter identifies those; conversely the param covers every
+// fixed [+N]/[-N] shape, 966 of the 970 raw ability lines carrying it.
+func isLoyaltyAbility(ab *cards.SA) bool {
+	if v, ok := ab.Params["Planeswalker"]; ok && strings.EqualFold(strings.TrimSpace(v), "True") {
+		return true
+	}
+	c := ParseCost(ab.Params["Cost"])
+	for _, part := range c.AddCounter {
+		if strings.EqualFold(part.Spec, "LOYALTY") {
+			return true
+		}
+	}
+	for _, part := range c.SubCounter {
+		if strings.EqualFold(part.Spec, "LOYALTY") {
+			return true
+		}
+	}
+	return false
+}
+
 // activationLimitReached reports whether this object has already activated the
 // indexed ability as many times as its ActivationLimit permits this turn.
 // AbilityPush records both pieces of identity (Obj and Amount); scanning
@@ -331,6 +357,24 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				}
 				if ab.Params["SorcerySpeed"] == "True" && !sorcery {
 					continue
+				}
+				// CR 606.3: a planeswalker's loyalty ability may be activated
+				// only at the time a sorcery could be played -- during the
+				// controller's own main phase with an empty stack -- and each
+				// loyalty ability at most ONCE per turn. sorcerySpeed already
+				// folds the own-turn and main-phase halves; the once-per-turn
+				// half reuses the same event-log scan the ActivationLimit$ gate
+				// uses, at a fixed limit of 1, because no corpus loyalty ability
+				// carries that parameter and the gate must exist anyway (before
+				// this gate the [+2]/[0] abilities were offered, payable and
+				// repeatable without bound -- the live Jace draw-three exploit).
+				if isLoyaltyAbility(ab) {
+					if !sorcery {
+						continue
+					}
+					if e.activationLimitReached(id, p, i, "1") {
+						continue
+					}
 				}
 				if e.abilityRestricted(p, id, ab) {
 					continue
