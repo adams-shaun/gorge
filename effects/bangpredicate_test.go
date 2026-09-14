@@ -57,18 +57,20 @@ func TestBangPredicateNegation(t *testing.T) {
 	}
 
 	// Leaf 2: !<X> on an UNRECOGNISED <X> matches nothing and is still
-	// reported by UnknownPredicates. IsRemembered is a family pc2 deliberately
-	// left unknown; its negation must fail closed too -- "not known" is not
-	// "yes".
-	if MatchesObjectCtx(g, "Creature.!IsRemembered", plain, SpecContext{You: 0}) {
-		t.Errorf("Creature.!IsRemembered must match nothing (IsRemembered is unrecognised)")
+	// reported by UnknownPredicates. ExiledWithSource is a family pc2
+	// deliberately left unknown; its negation must fail closed too -- "not
+	// known" is not "yes". (IsRemembered used to be this leaf's example;
+	// it is resolution-bound now, so the leaf moved to the next-largest
+	// still-unknown predicate.)
+	if MatchesObjectCtx(g, "Creature.!ExiledWithSource", plain, SpecContext{You: 0}) {
+		t.Errorf("Creature.!ExiledWithSource must match nothing (ExiledWithSource is unrecognised)")
 	}
-	if un := UnknownPredicates("Creature.!IsRemembered"); len(un) != 1 || un[0] != "!IsRemembered" {
-		t.Errorf("UnknownPredicates(Creature.!IsRemembered) = %v, want [!IsRemembered]", un)
+	if un := UnknownPredicates("Creature.!ExiledWithSource"); len(un) != 1 || un[0] != "!ExiledWithSource" {
+		t.Errorf("UnknownPredicates(Creature.!ExiledWithSource) = %v, want [!ExiledWithSource]", un)
 	}
 	// The bare unknown form is still reported exactly the same way.
-	if un := UnknownPredicates("Creature.IsRemembered"); len(un) != 1 || un[0] != "IsRemembered" {
-		t.Errorf("UnknownPredicates(Creature.IsRemembered) = %v, want [IsRemembered]", un)
+	if un := UnknownPredicates("Creature.ExiledWithSource"); len(un) != 1 || un[0] != "ExiledWithSource" {
+		t.Errorf("UnknownPredicates(Creature.ExiledWithSource) = %v, want [ExiledWithSource]", un)
 	}
 
 	// Leaf 4: ! and non<X> compose without one path shadowing the other.

@@ -15,11 +15,13 @@ import (
 // Remembered/Imprinted tracking this build does not carry), so a future seat
 // inherits an honest, measured boundary rather than a guessed one.
 //
-// "IsRemembered" and "ExiledWithSource" are the two largest. A card that uses
-// e.g. `Card.IsRemembered` (Return of the Wildspeaker-style "you may play this
+// "ExiledWithSource" is now the largest: a card that uses e.g.
+// `Card.ExiledWithSource` (Return of the Wildspeaker-style "you may play this
 // card from exile" clauses, the exile-until-leaves shapes) must fail closed:
 // the predicate matches nothing, so those clauses stay inert rather than
-// firing against every card.
+// firing against every card. (Card.IsRemembered was the other member of that
+// pair; it is resolution-bound now -- SpecContext.ResolutionRemembered -- so
+// it left this list.)
 func TestUnimplementedPredicateFailsClosed(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	g := state.NewGame([]string{"you", "them"})
@@ -28,7 +30,6 @@ func TestUnimplementedPredicateFailsClosed(t *testing.T) {
 	// The predicates a later seat still owes, largest first. Each must match
 	// nothing -- never become an always-true predicate.
 	for _, spec := range []string{
-		"Card.IsRemembered",
 		"Card.ExiledWithSource",
 		"Creature.wasDealtDamageThisTurn",
 		"Permanent.IsImprinted",
@@ -46,7 +47,7 @@ func TestUnimplementedPredicateFailsClosed(t *testing.T) {
 	}
 
 	// And UnknownPredicates keeps reporting each unimplemented one.
-	for _, want := range []string{"IsRemembered", "ExiledWithSource", "wasDealtDamageThisTurn", "IsImprinted", "ChosenCard", "nonChosenCard"} {
+	for _, want := range []string{"ExiledWithSource", "wasDealtDamageThisTurn", "IsImprinted", "ChosenCard", "nonChosenCard"} {
 		found := false
 		for _, u := range UnknownPredicates("Card." + want) {
 			if u == want {

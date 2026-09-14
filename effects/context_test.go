@@ -73,7 +73,7 @@ func (h *fakeHost) Suspended() bool { return false }
 // SuspendContinuation is a no-op: an effects-package test double never
 // suspends (its Ask returns false), so effects.Resolve never reaches the
 // suspended branch that would call it. Kept to satisfy the Host interface.
-func (h *fakeHost) SuspendContinuation(*cards.SA) {}
+func (h *fakeHost) SuspendContinuation(*cards.SA, *Ctx) {}
 
 func newHost(t *testing.T, seats int) *fakeHost {
 	t.Helper()
