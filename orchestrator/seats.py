@@ -130,8 +130,15 @@ def launch_review(issue_id: str, wt: Path, tag: str) -> tuple[subprocess.Popen, 
     _salvage_report(wt, tag)
     task_path = ds4 / f"review-task-{tag}.md"
     verdict_path = ds4 / f"verdict-{tag}.md"
+    findings = ds4 / f"findings-{tag}.md"
+    ruling = (
+        f" Also read .ds4/{findings.name}: it holds the previous review and any "
+        f"CONTROLLER RULING, which overrides the brief where they conflict -- "
+        f"judge the diff against the ruling, not the superseded brief text."
+        if findings.exists() else ""
+    )
     task_path.write_text(
-        f"Read .ds4/brief.md, .ds4/report-{tag}.md and .ds4/diff-{tag}.txt. "
+        f"Read .ds4/brief.md, .ds4/report-{tag}.md and .ds4/diff-{tag}.txt.{ruling} "
         f"Write your verdict to {verdict_path.relative_to(wt)}.\n"
     )
     proc = pi.launch(
