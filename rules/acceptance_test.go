@@ -107,8 +107,7 @@ var knownUnsupported = map[string][]string{
 	"Lord Windgrace":               {"kw:CARDNAME can be your commander."},
 	"Manabarbs":                    {"trig:TapsForMana"},
 	"Mayhem Devil":                 {"trig:Sacrificed"},
-	"Necrodominance":               {"repl:BeginPhase"},
-	"Necropotence":                 {"repl:BeginPhase", "trig:Discarded"},
+	"Necropotence":                 {"trig:Discarded"},
 	"Ob Nixilis, Captive Kingpin":  {"trig:LifeLostAll"},
 	"Ojer Axonil, Deepest Might":   {"api:ReplaceEffect", "repl:DamageDone"},
 	"Planetary Annihilation":       {"api:ChooseCard", "api:SacrificeAll"},
@@ -131,7 +130,6 @@ var knownUnsupported = map[string][]string{
 	"Valgavoth, Harrower of Souls": {"kw:Ward", "trig:LifeLost"},
 	"Vein Ripper":                  {"kw:Ward"},
 	"Vial Smasher the Fierce":      {"api:ChoosePlayer", "kw:Partner"},
-	"Virtue of Strength":           {"api:ReplaceMana", "repl:ProduceMana"},
 	"Walk-In Closet":               {"trig:UnlockDoor"},
 	"Ziatora's Proving Ground":     {"kw:Cycling"},
 }

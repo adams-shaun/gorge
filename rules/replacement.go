@@ -7,6 +7,8 @@
 package rules
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
@@ -44,7 +46,8 @@ import (
 // the same object forever (see Task 26's report and the resolveTop guard
 // below for the other half of this fix).
 func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
-	if ev.Kind != events.MoveZone {
+	event, ok := replacementEvent(ev)
+	if !ok {
 		return ev, false
 	}
 	// CR 903.9 (Task m32): a commander about to be put into its owner's
@@ -64,31 +67,35 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	// events every ask produces. Returning handled discards the original
 	// event, which is exactly right: nothing has happened yet, and whatever
 	// happens is the owner's answer, not this park.
-	if e.commanderZoneReplacementApplies(ev) {
+	if ev.Kind == events.MoveZone && e.commanderZoneReplacementApplies(ev) {
 		e.parkCommanderZoneMove(ev)
 		return ev, true
 	}
-	// Collect EVERY replacement effect this MoveZone event matches, in
+	// Collect EVERY replacement effect this event matches, in
 	// forEachObject's deterministic scan order, rather than the single first
 	// match the M1 build took.
 	var matches []replMatch
 	e.forEachObject(func(id state.ObjID) {
-		o := e.G.Obj(id)
-		if o == nil {
-			return
-		}
-		f := o.Face()
-		if f == nil {
-			return
-		}
-		for i := range f.Repls {
-			if e.replacementMatches(f.Repls[i], id, ev) {
-				matches = append(matches, replMatch{id: id, repl: &f.Repls[i]})
+		for _, f := range e.replacementFaces(id, ev) {
+			for i := range f.Repls {
+				if f.Repls[i].Event == event && e.replacementMatches(f.Repls[i], id, ev) {
+					matches = append(matches, replMatch{id: id, face: f, repl: &f.Repls[i]})
+				}
 			}
 		}
 	})
 	if len(matches) == 0 {
 		return ev, false
+	}
+	switch ev.Kind {
+	case events.Untap:
+		return e.applySimpleReplacement(ev, matches[0])
+	case events.StepChange:
+		return e.applyBeginPhaseReplacement(ev, matches[0])
+	case events.FlipFace:
+		return e.applyTransformReplacement(ev, matches)
+	case events.ManaAdd:
+		return e.applyManaReplacements(ev, matches)
 	}
 
 	// CR 616.1: if two or more replacement effects would modify the way this
@@ -149,7 +156,119 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 // permanent's face. A plain value, cloned by copy.
 type replMatch struct {
 	id   state.ObjID
+	face *cards.Face // prospective face for an "as this transforms" replacement
 	repl *cards.Repl
+}
+
+// replacementEvent maps the event log's concrete events to Forge R:Event$
+// names. ManaAdd carries its producing source in Obj (set by effMana), so
+// ProduceMana replacements can filter the tapped permanent just as a zone
+// replacement filters the moving object.
+func replacementEvent(ev events.Event) (string, bool) {
+	switch ev.Kind {
+	case events.MoveZone:
+		return "Moved", true
+	case events.Untap:
+		return "Untap", true
+	case events.StepChange:
+		return "BeginPhase", true
+	case events.FlipFace:
+		return "Transform", true
+	case events.ManaAdd:
+		return "ProduceMana", ev.Obj != 0
+	default:
+		return "", false
+	}
+}
+
+// replacementFaces returns the source faces whose R: lines apply now. A
+// transform's "as this transforms into ..." replacement belongs to the
+// destination face, while every other replacement reads the source's current
+// face. This avoids making the alternate face live for unrelated events.
+func (e *Engine) replacementFaces(id state.ObjID, ev events.Event) []*cards.Face {
+	o := e.G.Obj(id)
+	if o == nil || o.Card == nil {
+		return nil
+	}
+	if ev.Kind == events.FlipFace && id == ev.Obj && ev.Amount >= 0 && int(ev.Amount) < len(o.Card.Faces) {
+		return []*cards.Face{o.Card.Faces[ev.Amount]}
+	}
+	if f := o.Face(); f != nil {
+		return []*cards.Face{f}
+	}
+	return nil
+}
+
+// applySimpleReplacement handles events whose replacement prevents the event
+// (no ReplaceWith$, the CantHappen form) or replaces it with a body. Untap is
+// the important example: an ordinary activated DB$ Untap is outside the
+// untap step and consequently does not match ValidStepTurnToController$.
+func (e *Engine) applySimpleReplacement(ev events.Event, m replMatch) (events.Event, bool) {
+	if m.repl.With != nil {
+		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With)
+	}
+	return ev, true
+}
+
+// applyBeginPhaseReplacement skips the phase by emitting the following phase
+// entry. The skipped StepChange never enters the log, so replay performs
+// exactly the same transition without needing an ephemeral "skipped" bit in
+// game state. The skip itself is emitted through the UNGUARDED emit --
+// applyingReplacement is false here, outside runReplaceWith -- so a chain of
+// skips (one effect skipping untap, another upkeep) keeps skipping: the step
+// number strictly increases, so the recursion terminates. The landing step's
+// own StepChange is the log entry that exists, and every Phase trigger sees
+// exactly the steps that actually happened.
+func (e *Engine) applyBeginPhaseReplacement(ev events.Event, m replMatch) (events.Event, bool) {
+	if m.repl.With != nil {
+		e.runReplaceWith(e.replCtx(m, ev), 0, m.repl.With)
+	}
+	// Cleanup is never skipped: the turn's 514.1/514.2 work is what makes the
+	// next turn begin correctly, and no corpus line names it. Bounding the
+	// emission here also bounds the chain recursion.
+	if ev.Step < state.StepCleanup {
+		e.emit(events.Event{Kind: events.StepChange, Step: ev.Step + 1})
+	}
+	return ev, true
+}
+
+// applyTransformReplacement lets every matching "as this transforms" body
+// resolve, then leaves the FlipFace event intact. Forge writes these as an
+// augmentation (Sephiroth gains its emblem as it becomes the Angel), not as
+// a substitute that cancels the transformation.
+func (e *Engine) applyTransformReplacement(ev events.Event, matches []replMatch) (events.Event, bool) {
+	for _, m := range matches {
+		if m.repl.With != nil {
+			e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With)
+		}
+	}
+	return ev, false
+}
+
+// applyManaReplacements resolves each matching ReplaceMana body against one
+// pending ManaAdd and logs the REWRITTEN event itself (the exact shape
+// composeUpdatedReplacements uses for an all-Updated MoveZone competition:
+// events.Emit + checkTriggers inside the replacement, handled=true, so emit
+// returns without logging anything else -- the pre-rewrite original never
+// enters the log). Replacement competition is deterministic scan order here;
+// all current corpus bodies are direct amount/type rewrites.
+func (e *Engine) applyManaReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	ctx := &effects.Ctx{Source: ev.Obj, Controller: ev.Player, ManaAmount: ev.Amount, ManaType: ev.Counter}
+	for _, m := range matches {
+		if m.repl.With == nil {
+			continue
+		}
+		ctx.Source = m.id
+		ctx.Controller = e.controllerOf(m.id)
+		if m.face != nil {
+			effects.SetSVars(ctx, m.face.SVars)
+		}
+		e.runReplaceWith(ctx, ev.Obj, m.repl.With)
+	}
+	ev.Amount, ev.Counter = ctx.ManaAmount, ctx.ManaType
+	stored := events.Emit(e.G, e.L, ev)
+	e.checkTriggers(stored, nil)
+	return stored, true
 }
 
 // replCtx builds the effects.Ctx a replacement's ReplaceWith$ resolves
@@ -180,7 +299,11 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		// act on exactly the card being kept out of the graveyard -- not the
 		// source that owns the replacement.
 		Replaced: ev.Obj}
-	if f := o.Face(); f != nil {
+	f := m.face
+	if f == nil {
+		f = o.Face()
+	}
+	if f != nil {
 		effects.SetSVars(ctx, f.SVars)
 	}
 	return ctx
@@ -278,13 +401,16 @@ func (e *Engine) resolveReplacementWith(ctx *effects.Ctx, with *cards.SA) {
 	e.damaging = saved
 }
 
-// replacementMatches implements R:Event$ Moved's own Origin$/Destination$/
-// ValidCard$/ValidLKI$ parameters -- the same shape as zoneChangeMatches, for
-// a replacement instead of a trigger.
+// replacementMatches implements the per-event match predicates for the five
+// replacement events the engine routes through applyReplacements: R:Event$
+// Moved (Origin$/Destination$/ValidCard$/ValidLKI$), Untap (the "doesn't
+// untap during its controller's untap step" class), BeginPhase (the
+// "skip your draw step" class), Transform (the "as this transforms" class)
+// and ProduceMana (the "produces three times as much" class). All five share
+// the ActiveZones$ gate; the per-event parameters each fail closed on a
+// value this build cannot evaluate, the same contract filter.go's matcher
+// gives card filters.
 func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.Event) bool {
-	if r.Event != "Moved" || ev.Kind != events.MoveZone {
-		return false
-	}
 	// CR 611.3b/614.4: a static replacement only applies from one of its
 	// declared active zones. Accept the comma-separated list grammar used by
 	// other Forge zone parameters; the pinned corpus currently uses only
@@ -296,42 +422,195 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 	// into the declared zone even though the source has not arrived there yet
 	// (CR 614.12). Without the prospective ev.To check, ordinary "enters with"
 	// replacements would disable themselves while their source is in hand or
-	// on the stack.
+	// on the stack. ev.To is only meaningful for a MoveZone; the other four
+	// events leave it at its zero value, so the prospective clause is
+	// MoveZone-only rather than reading a meaningless zero zone.
 	if active, ok := r.Params["ActiveZones"]; ok {
 		o := e.G.Obj(source)
 		currentlyActive := o != nil && zoneSpecContains(active, o.Zone)
-		enteringActive := source == ev.Obj && zoneSpecContains(active, ev.To)
+		enteringActive := ev.Kind == events.MoveZone && source == ev.Obj &&
+			zoneSpecContains(active, ev.To)
 		if !currentlyActive && !enteringActive {
 			return false
 		}
 	}
-	if o, ok := r.Params["Origin"]; ok && o != "Any" && effects.ParseZone(o) != ev.From {
-		return false
+	you := e.controllerOf(source)
+	switch r.Event {
+	case "Moved":
+		if ev.Kind != events.MoveZone {
+			return false
+		}
+		if o, ok := r.Params["Origin"]; ok && o != "Any" && effects.ParseZone(o) != ev.From {
+			return false
+		}
+		if d, ok := r.Params["Destination"]; ok && d != "Any" && effects.ParseZone(d) != ev.To {
+			return false
+		}
+		if v, ok := r.Params["ValidCard"]; ok {
+			if !effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
+				return false
+			}
+		}
+		// CR 603.10/Forge ValidLKI: a look-back-in-time gate on the moving
+		// object, evaluated against it as it is right before the move applies --
+		// which for a replacement is its live state, since a replacement runs
+		// ahead of the Move it intercepts. The same filter grammar as ValidCard,
+		// evaluated with MatchesObjectCtx (the LKI-form matcher) so the object is
+		// matched by value. Unknown predicates fail closed (filter.go's contract),
+		// so a gate this build cannot evaluate -- e.g. Forge's may-play-from-
+		// graveyard provenance spec "Card.CastSa Spell.MayPlaySource" on the
+		// Eelectrocute/Glimpse the Cosmos family, where the engine has no
+		// cast-from-graveyard path at all -- NEVER admits the replacement: the
+		// conservative direction, since an ordinary hand-origin cast of such a
+		// card must still finish in the graveyard.
+		if v, ok := r.Params["ValidLKI"]; ok {
+			mo := e.G.Obj(ev.Obj)
+			if mo == nil || !effects.MatchesObjectCtx(e.G, v, mo, effects.SpecContext{
+				You: you, Source: source}) {
+				return false
+			}
+		}
+		return true
+	case "Untap":
+		if ev.Kind != events.Untap {
+			return false
+		}
+		// ValidStepTurnToController$ You scopes the replacement to the untap
+		// step's own turn-based action -- an activated or triggered untap
+		// outside that step is not replaced (Basalt Monolith can still pay {3}
+		// to untap itself). "Its controller's untap step" reads against the
+		// card being untapped, which is what every corpus description says
+		// (Sleep Paralysis's enchanted artifact vs. Basalt's itself); for a
+		// ValidCard$ Card.Self line the two are the same player. A value other
+		// than You fails closed.
+		if s, ok := r.Params["ValidStepTurnToController"]; ok {
+			if s != "You" || e.G.Step != state.StepUntap ||
+				e.G.Active != e.controllerOf(ev.Obj) {
+				return false
+			}
+		}
+		if v, ok := r.Params["ValidCard"]; ok &&
+			!effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
+			return false
+		}
+		return e.replacementConditionHolds(r, source, you)
+	case "BeginPhase":
+		if ev.Kind != events.StepChange {
+			return false
+		}
+		if ph, ok := r.Params["Phase"]; ok {
+			step, known := phaseStep(ph)
+			if !known || step != ev.Step {
+				return false
+			}
+		}
+		// ValidPlayer$ You scopes "skip YOUR draw step" to the replacement
+		// controller's own turn; a line with no ValidPlayer$ (Sands of Time's
+		// "players skip their untap step") applies every turn.
+		if vp, ok := r.Params["ValidPlayer"]; ok &&
+			!effects.MatchesPlayerSpec(e.G, vp, e.G.Active, you) {
+			return false
+		}
+		// Optional$ True (Fasting's "you may skip that step instead") wants a
+		// may-skip decision this build does not pose; fail closed to the phase
+		// proceeding rather than skip unasked.
+		if r.Params["Optional"] == "True" {
+			return false
+		}
+		// Hellbent$ True gates the skip on an empty hand (one corpus line).
+		if r.Params["Hellbent"] == "True" && len(e.G.Zone(state.ZHand, you)) > 0 {
+			return false
+		}
+		return e.replacementConditionHolds(r, source, you)
+	case "Transform":
+		if ev.Kind != events.FlipFace {
+			return false
+		}
+		// The "as this transforms" replacement is written on the destination
+		// face and applies to its own card's flip; replacementFaces already
+		// scanned the destination face for this event.
+		if v, ok := r.Params["ValidCard"]; ok &&
+			!effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
+			return false
+		}
+		return e.replacementConditionHolds(r, source, you)
+	case "ProduceMana":
+		// Only genuine production replaces: a ManaAdd without a producing
+		// source (a test seed, a spend) and a negative Amount (spending, not
+		// producing) are outside the class.
+		if ev.Kind != events.ManaAdd || ev.Obj == 0 || ev.Amount <= 0 {
+			return false
+		}
+		if v, ok := r.Params["ValidCard"]; ok &&
+			!effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
+			return false
+		}
+		// ValidActivator$ You: the player adding the mana (whoever activated
+		// the mana ability) must be the replacement controller's side of the
+		// spec. MatchesPlayerSpec fails closed on unknown qualifiers.
+		if va, ok := r.Params["ValidActivator"]; ok &&
+			!effects.MatchesPlayerSpec(e.G, va, ev.Player, you) {
+			return false
+		}
+		// ManaAmount$ <op><n> gates on the size of the production being
+		// replaced (Reality Twist's "two or more mana").
+		if ma, ok := r.Params["ManaAmount"]; ok {
+			op, n, parsed := splitCompare(ma)
+			if !parsed || !applyCompare(int(ev.Amount), op, n) {
+				return false
+			}
+		}
+		return e.replacementConditionHolds(r, source, you)
 	}
-	if d, ok := r.Params["Destination"]; ok && d != "Any" && effects.ParseZone(d) != ev.To {
-		return false
+	return false
+}
+
+// phaseStep maps a Forge Phase$ value on a BeginPhase replacement onto the
+// engine's step constants. Only the three steps the corpus names are known;
+// any other value (or a comma list this build does not split) fails closed,
+// leaving the phase to run normally.
+func phaseStep(ph string) (state.Step, bool) {
+	switch strings.TrimSpace(ph) {
+	case "Untap":
+		return state.StepUntap, true
+	case "Upkeep":
+		return state.StepUpkeep, true
+	case "Draw":
+		return state.StepDraw, true
 	}
-	if v, ok := r.Params["ValidCard"]; ok {
-		if !effects.MatchesSpecFrom(e.G, v, ev.Obj, e.controllerOf(source), source) {
+	return 0, false
+}
+
+// replacementConditionHolds evaluates the condition parameters a replacement
+// R: line can carry besides its event gates: IsPresent$ with an optional
+// PresentCompare$ (default "at least one", the intervening-if reading the
+// corpus's aura lines use: "if you control a Reflection"), and
+// CheckSVar$/SVarCompare$ (an SVar value compared against a threshold). The
+// SVar is evaluated in the replacement source's own context, exactly as a
+// trigger's condition would be. A clause this build cannot evaluate -- an
+// unknown compare literal, a missing SVar, a non-Count$ body -- fails
+// closed: the replacement does not apply, never that an unreadable count is
+// presumed large enough to let it.
+func (e *Engine) replacementConditionHolds(r cards.Repl, source state.ObjID, you state.PlayerID) bool {
+	if spec, ok := r.Params["IsPresent"]; ok {
+		cmp := r.Params["PresentCompare"]
+		if cmp == "" {
+			cmp = "GE1"
+		}
+		if !comparePresent(e.countPresent(spec, source, you), cmp) {
 			return false
 		}
 	}
-	// CR 603.10/Forge ValidLKI: a look-back-in-time gate on the moving
-	// object, evaluated against it as it is right before the move applies --
-	// which for a replacement is its live state, since a replacement runs
-	// ahead of the Move it intercepts. The same filter grammar as ValidCard,
-	// evaluated with MatchesObjectCtx (the LKI-form matcher) so the object is
-	// matched by value. Unknown predicates fail closed (filter.go's contract),
-	// so a gate this build cannot evaluate -- e.g. Forge's may-play-from-
-	// graveyard provenance spec "Card.CastSa Spell.MayPlaySource" on the
-	// Eelectrocute/Glimpse the Cosmos family, where the engine has no
-	// cast-from-graveyard path at all -- NEVER admits the replacement: the
-	// conservative direction, since an ordinary hand-origin cast of such a
-	// card must still finish in the graveyard.
-	if v, ok := r.Params["ValidLKI"]; ok {
-		mo := e.G.Obj(ev.Obj)
-		if mo == nil || !effects.MatchesObjectCtx(e.G, v, mo, effects.SpecContext{
-			You: e.controllerOf(source), Source: source}) {
+	if name, ok := r.Params["CheckSVar"]; ok {
+		op, n, parsed := splitCompare(r.Params["SVarCompare"])
+		if !parsed {
+			return false
+		}
+		ctx := &effects.Ctx{Source: source, Controller: you}
+		if o := e.G.Obj(source); o != nil && o.Face() != nil {
+			effects.SetSVars(ctx, o.Face().SVars)
+		}
+		if !applyCompare(int(effects.EvalCount(e, ctx, ctx.SVars[name])), op, n) {
 			return false
 		}
 	}
@@ -446,7 +725,15 @@ func init() {
 	// K: line by cards/keywords.go) matched and applied here. Reading a card's
 	// own tags is what a replacement registration means -- nothing elsewhere
 	// in the tree registers them.
-	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement")
+	//
+	// The four turn/mana replacement events register the same way: repl:Untap
+	// (the Basalt Monolith class), repl:BeginPhase (the Necropotence class),
+	// repl:Transform (the Sephiroth class) and repl:ProduceMana (the Virtue
+	// of Strength class, whose ReplaceWith$ body DB$ ReplaceMana is a
+	// registered API). Each is matched by replacementMatches's per-event
+	// branch above and applied by applyReplacements's dispatch.
+	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement",
+		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana")
 }
 
 // cmdZoneMove is one parked commander zone change (CR 903.9, Task m32): the

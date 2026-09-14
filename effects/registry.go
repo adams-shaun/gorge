@@ -180,6 +180,12 @@ type Ctx struct {
 	// applied by the rules handler, unlike Modes/UnlessPay/Discard where the
 	// effect re-reads the answer -- so the field is only a done-marker.
 	Arrange bool
+	// ManaAmount and ManaType are the in-flight unit of mana a ProduceMana
+	// replacement modifies. rules seeds them from a ManaAdd event and then
+	// emits the transformed event, so ReplaceMana never writes game state
+	// directly and replay records the final mana production normally.
+	ManaAmount int32
+	ManaType   string
 	// RevealOpt is the answered RevealOptional$ yes/no on a re-entered
 	// mid-resolution reveal (task fb-3f1cc033, the Delver of Secrets
 	// PeekAndReveal shape): "yes" means the peeking player chose to reveal
