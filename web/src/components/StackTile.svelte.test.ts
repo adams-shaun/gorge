@@ -87,3 +87,49 @@ describe('StackTile', () => {
     expect(html).toContain('card-detail');
   });
 });
+
+// Prio6: the always-yield affordances. SSR pins what the tile SHOWS: the
+// yielding marker for an entry whose key is in the game-scoped set, its
+// absence otherwise, and the menu affordance on an opponent-owned entry
+// only (the menu's OPEN state is a pointer interaction SSR cannot produce;
+// its one action's label is what the popover renders and is asserted via
+// the aria-label the kebab carries).
+
+const ARTIST = 'Blood Artist';
+const ARTIST_TEXT = 'Whenever a creature dies, each opponent loses 1 life';
+const artistEntry = (over: Partial<StackView> = {}): StackView =>
+  spell({ id: 60, kind: 'trigger', name: ARTIST, text: ARTIST_TEXT, controller: 1, card: null, ...over });
+
+describe('StackTile — always-yield (prio6)', () => {
+  it('shows the yielding marker when the entry\u2019s key is in the set, and none otherwise', () => {
+    const s = artistEntry();
+    const key = '1:Blood Artist:Whenever a creature dies, each opponent loses 1 life';
+    const yielded = render(StackTile, { props: { stack: s, view: view([s]), yields: new Set([key]) } }).html;
+    expect(yielded).toContain('data-yielding');
+    const plain = render(StackTile, { props: { stack: s, view: view([s]), yields: new Set(['1:Other:other']) } }).html;
+    expect(plain).not.toContain('data-yielding');
+    const noSet = render(StackTile, { props: { stack: s, view: view([s]) } }).html;
+    expect(noSet).not.toContain('data-yielding');
+  });
+
+  it('offers the always-pass menu on an opponent-owned entry, labelled with the source name', () => {
+    const s = artistEntry();
+    const html = render(StackTile, {
+      props: { stack: s, view: view([s]), yields: new Set<string>(), onYield: () => {}, viewerSeat: 0 },
+    }).html;
+    expect(html).toContain('data-yield-menu');
+    expect(html).toContain('aria-label="Always pass options for Blood Artist"');
+  });
+
+  it('offers no menu on the viewer\u2019s own entry, and none for a spectator (no viewer seat / no write path)', () => {
+    const s = artistEntry({ controller: 0 });
+    const own = render(StackTile, {
+      props: { stack: s, view: view([s]), yields: new Set<string>(), onYield: () => {}, viewerSeat: 0 },
+    }).html;
+    expect(own).not.toContain('data-yield-menu');
+    const spectator = render(StackTile, {
+      props: { stack: artistEntry(), view: view([artistEntry()]), yields: new Set<string>() },
+    }).html;
+    expect(spectator).not.toContain('data-yield-menu');
+  });
+});

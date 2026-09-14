@@ -46,10 +46,10 @@ export function pushAutoPassLog(notes: readonly AutoPassLog[], text: string, tur
 }
 
 /**
- * AutoPassKind is which machine path made the pass — the same five the seat
+ * AutoPassKind is which machine path made the pass — the same six the seat
  * panel counts separately (autoPassed, emptySkipped, actPassed, runPassed).
  */
-export type AutoPassKind = 'auto' | 'empty' | 'act' | 'end-turn' | 'hard-skip';
+export type AutoPassKind = 'auto' | 'empty' | 'act' | 'end-turn' | 'hard-skip' | 'resolve-all';
 
 /**
  * stepLabel turns the wire's step name (state/ids.go: "main1", "end",
@@ -80,6 +80,10 @@ export function autoPassLogText(kind: AutoPassKind, view: View, seat: number): s
   const step = stepLabel(view.step);
   if (kind === 'end-turn') return `End turn: passed ${step}`;
   if (kind === 'hard-skip') return `Skip turn: passed ${step}`;
+  if (kind === 'resolve-all') {
+    const top = view.stack.length > 0 ? view.stack[view.stack.length - 1] : null;
+    return top !== null ? `Resolve all: passed ${top.name || 'an ability'} resolving` : `Resolve all: passed ${step}`;
+  }
   const top = view.stack.length > 0 ? view.stack[view.stack.length - 1] : null;
   if (top !== null) return `Auto-passed: ${top.name || 'an ability'} resolving`;
   const who = view.active === seat

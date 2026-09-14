@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { StackView, View, TargetView } from '../protocol';
   import { visibleHand } from '../lib/board';
+  import { stackYieldKey } from '../lib/yields';
   import CardImage from './CardImage.svelte';
   import CardDetail from './CardDetail.svelte';
   import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
@@ -55,9 +56,18 @@
     dimmed = false,
     hover = new HoverCard(),
     anchor: anchorProp = null,
+    yields = null,
+    onYield = null,
+    viewerSeat = null,
   }: {
     stack: StackView; view: View; emphasized?: boolean; dimmed?: boolean;
     hover?: HoverCard; anchor?: AnchorRect | null;
+    /** yields is the game-scoped always-pass set (prio6, lib/yields.ts); null (spectator) renders no marker. */
+    yields?: ReadonlySet<string> | null;
+    /** onYield is the menu action's write path — the caller (Table → Rail) adds the key to the seat panel's game-scoped set. Null renders no menu. */
+    onYield?: ((key: string) => void) | null;
+    /** viewerSeat is the seat this stack is rendered for; an entry owned by ANOTHER seat offers the always-yield menu, this seat's own does not. */
+    viewerSeat?: number | null;
   } = $props();
 
   function nameFor(obj: number): string | null {
@@ -107,9 +117,28 @@
     const r = root?.getBoundingClientRect();
     anchor = r ? { left: r.left, top: r.top, right: r.right } : null;
   }
+
+  // ---- always-yield (prio6) -------------------------------------------
+  // yielded reports whether this entry's key is in the game-scoped set: the
+  // tile shows a small "yielding" marker, so a pass the player will never
+  // be asked about is visible as such. The key is the SAME three facts the
+  // tile renders (controller, source name, text) — what was yielded is
+  // exactly what was read.
+  const yielded = $derived(yields !== null && yields.has(stackYieldKey(stack)));
+  // canYield gates the menu to an opponent-owned entry: yielding is a stand
+  // against an opponent's recurring ability; the own-object rules are a
+  // settings concern, not a per-ability yield.
+  const canYield = $derived(viewerSeat !== null && stack.controller !== viewerSeat);
+  let menuOpen = $state(false);
+
+  function yieldThis(): void {
+    menuOpen = false;
+    onYield?.(stackYieldKey(stack));
+  }
 </script>
 
 <div class="stack-tile kind-{stack.kind}" class:emphasized class:dimmed data-obj={stack.id}>
+  {#if yielded}<span class="yielding" data-yielding>yielding</span>{/if}
   {#if stack.card}
     {@const card = stack.card}
     <div
@@ -132,6 +161,26 @@
     <header>
       <span class="kind">{stack.kind}</span>
       <span class="name">{stack.name}</span>
+      {#if canYield && onYield}
+        <span class="yield-host">
+          <button
+            class="yield-menu-btn"
+            type="button"
+            aria-label="Always pass options for {stack.name}"
+            aria-haspopup="true"
+            aria-expanded={menuOpen}
+            data-yield-menu
+            onclick={() => (menuOpen = !menuOpen)}
+          >⋯</button>
+          {#if menuOpen}
+            <span class="yield-menu" role="menu" data-yield-popover>
+              <button role="menuitem" type="button" data-yield-action onclick={yieldThis}>
+                Always pass for {stack.name}: {stack.text || stack.kind}
+              </button>
+            </span>
+          {/if}
+        </span>
+      {/if}
     </header>
     {#if stack.text}<p class="text">{stack.text}</p>{/if}
     {#if stack.targets.length}
@@ -143,7 +192,7 @@
 </div>
 
 <style>
-  .stack-tile { display: flex; gap: .5rem; padding: .3rem .4rem; border-radius: 6px; background: #1b1b1f; border-left: 4px solid #666; margin-bottom: .3rem; --card-w: 56px; }
+  .stack-tile { position: relative; display: flex; gap: .5rem; padding: .3rem .4rem; border-radius: 6px; background: #1b1b1f; border-left: 4px solid #666; margin-bottom: .3rem; --card-w: 56px; }
   .stack-tile.emphasized { background: #262a36; box-shadow: 0 0 0 1px #3b82f6 inset; }
   .stack-tile.dimmed { opacity: .55; }
   .stack-tile.kind-spell { border-left-color: #3b82f6; }
@@ -169,4 +218,60 @@
     overflow: hidden;
   }
   .targets { margin: .15rem 0 0; padding: 0; list-style: none; font-size: .68rem; opacity: .8; }
+  /* The always-yield affordances (prio6): the marker sits in the tile's top
+     right so an already-yielded entry is readable at a glance; the kebab
+     opens a one-action menu anchored to the header. The menu is absolutely
+     positioned within the tile (position: relative above) — it hangs BELOW
+     the header, inside the stack's scroll region, which the marker and a
+     short one-line menu never overflow. */
+  .yielding {
+    position: absolute;
+    top: .25rem;
+    right: .35rem;
+    font-size: .58rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #eab308;
+    opacity: .85;
+    pointer-events: none;
+  }
+  .yield-host { position: relative; margin-left: auto; flex: none; }
+  .yield-menu-btn {
+    border: 0;
+    background: transparent;
+    color: var(--ink-faint, #888);
+    font-size: .8rem;
+    line-height: 1;
+    padding: 0 .15rem;
+    cursor: pointer;
+  }
+  .yield-menu-btn:hover, .yield-menu-btn[aria-expanded='true'] { color: var(--ink, #fff); }
+  .yield-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 6;
+    display: block;
+    min-width: 12rem;
+    max-width: 16rem;
+    background: #23232a;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: .15rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .5);
+  }
+  .yield-menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: 0;
+    background: transparent;
+    color: #ddd;
+    font-size: .68rem;
+    line-height: 1.35;
+    padding: .3rem .35rem;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .yield-menu button:hover { background: #32323c; color: #fff; }
 </style>

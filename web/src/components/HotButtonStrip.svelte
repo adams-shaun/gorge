@@ -42,6 +42,11 @@
   // considerAuto is still the safety oracle; this gate merely avoids
   // inventing a control for a decision the server did not say can be passed.
   const endTurnAvailable = $derived(passAvailable);
+  // Resolve All (prio6) is visible only while the stack is non-empty and a
+  // priority decision is pending — there is nothing to resolve through
+  // otherwise. It still needs a real pass option to post.
+  const resolveAllShown = $derived(decision !== null && decision.kind === 'priority' && view.stack.length > 0);
+  const resolveAllAvailable = $derived(resolveAllShown && passAvailable);
   const runLive = $derived(logic.oneShot !== 'none');
   const doneAvailable = $derived(
     decision !== null && logic.showSubmit && logic.canSubmit && !logic.busy,
@@ -104,6 +109,7 @@
     'custom': 'Custom',
     'end-turn': 'END TURN',
     'skip-turn': 'Skipping turn — Esc to stop',
+    'resolve-all': 'RESOLVE ALL',
   };
   const playMode = $derived(logic.playMode);
   const playModeLabel = $derived(PLAY_MODE_LABEL[playMode] ?? 'Custom');
@@ -211,6 +217,32 @@
       <span class="full">END TURN</span><span class="compact" aria-hidden="true">&gt;&gt;</span>
     </button>
   </div>
+
+  {#if resolveAllShown}
+    <div class="hot-tab direct" role="presentation">
+      <button
+        class="tab"
+        class:on={logic.resolveAll}
+        type="button"
+        data-hot-tab="resolve-all"
+        data-resolve-all
+        aria-label="Resolve all"
+        aria-pressed={logic.resolveAll}
+        aria-disabled={!resolveAllAvailable}
+        disabled={!resolveAllAvailable}
+        title={resolveAllAvailable
+          ? 'Resolve All: pass until the stack is empty — a new opponent play or a decision that needs you stops it'
+          : 'Resolve All needs a pass option'}
+        onclick={() => {
+          if (!resolveAllAvailable) return;
+          logic.startResolveAll(view);
+          logic.considerAuto(view);
+        }}
+      >
+        <span class="full">RESOLVE ALL</span><span class="compact" aria-hidden="true">RA</span>
+      </button>
+    </div>
+  {/if}
 
   <!-- Done is one action too, so it follows Pass and End Turn. Ctrl held
        while submitting a cast/ability holds priority: passAfterAct is

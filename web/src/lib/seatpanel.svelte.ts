@@ -15,6 +15,7 @@ import {
   type StoppableStep,
 } from './playsettings';
 import { autoPassLogText, pushAutoPassLog, type AutoPassKind, type AutoPassLog } from './autolog';
+import { loadYields, saveYields } from './yields';
 
 /**
  * actedOption reports whether the posted `choices` (wire indices) contain at
@@ -116,6 +117,31 @@ export function toneOf(d: Decision | null): Tone {
 }
 
 /**
+ * identicalTriggerOrder reports whether a trigger_order decision's EVERY
+ * option describes the same trigger — the same source name and the same
+ * text (prio6). The check is grounded in the real wire shape, measured on a
+ * live decision (rules/trigger_queue.go's askTriggerOrder): each option is
+ * `kind: "trigger"` with `label: "<source name>: <TriggerDescription>"`, so
+ * equal labels is exactly "same source name and same text". min == max ==
+ * len(options) (the engine's permutation contract, Ruling U2) and at least
+ * two options are required — a one-trigger ask is never posed.
+ *
+ * Caveat, measured rather than assumed away: the label carries no target
+ * information, so two identical-name/text triggers aimed at DIFFERENT
+ * targets also read as identical. That is the brief's definition
+ * deliberately — between two copies of the same trigger the order is
+ * immaterial — and it is stated here so nobody mistakes the test for a
+ * target-aware one.
+ */
+export function identicalTriggerOrder(d: Decision): boolean {
+  if (d.kind !== 'trigger_order') return false;
+  if (d.min !== d.max || d.max !== d.options.length) return false;
+  if (d.options.length < 2) return false;
+  const first = d.options[0].label;
+  return d.options.every((o) => o.label === first);
+}
+
+/**
  * MulliganPhase names which half of the London round a `mulligan` decision is
  * in, so the seat panel can lay it out. The two halves are told apart by their
  * option KINDS — `keep`/`mulligan` in the first, `bottom` in the second — and
@@ -178,6 +204,9 @@ export type AutoNote =
   | { kind: 'skip-turn-armed' }
   | { kind: 'skip-turn-passing'; count: number }
   | { kind: 'skip-turn-stopped'; reason: StopReason | AutoOffReason }
+  | { kind: 'resolve-all-armed' }
+  | { kind: 'resolve-all-passing'; count: number }
+  | { kind: 'resolve-all-stopped'; reason: StopReason | AutoOffReason }
   | { kind: 'act-passed'; count: number };
 
 const WAITING_TEXT: Record<StopReason, string> = {
@@ -257,11 +286,33 @@ export function autoNoteText(note: AutoNote): string {
           ? RUN_WAITING_TEXT[note.reason as StopReason]
           : RUN_OFF_TEXT[note.reason as AutoOffReason]
       }`;
+    case 'resolve-all-armed':
+      return 'Resolve All: passing the stack as it stands — a NEW opponent play or a decision that needs you stops it. Esc cancels.';
+    case 'resolve-all-passing':
+      return note.count === 1
+        ? 'Resolve All passed 1 priority window.'
+        : `Resolve All passed ${note.count} priority windows.`;
+    case 'resolve-all-stopped':
+      return `Resolve All stopped: ${
+        note.reason in RUN_WAITING_TEXT
+          ? RUN_WAITING_TEXT[note.reason as StopReason]
+          : RUN_OFF_TEXT[note.reason as AutoOffReason]
+      }`;
     case 'act-passed':
       return note.count === 1
         ? 'Passed 1 priority window after your action.'
         : `Passed ${note.count} priority windows after your action.`;
   }
+}
+
+/** runStopNote is a one-shot run's stopped note, worded in that run's own register. */
+function runStopNote(mode: 'end-turn' | 'hard-skip' | 'resolve-all', reason: StopReason | AutoOffReason): AutoNote {
+  const kind = mode === 'end-turn'
+    ? 'end-turn-stopped'
+    : mode === 'resolve-all'
+    ? 'resolve-all-stopped'
+    : 'skip-turn-stopped';
+  return { kind, reason } as AutoNote;
 }
 
 /** safeStorage is localStorage where it exists and is reachable; null under SSR and in a browser that refuses site data. Same guard as images.ts. */
@@ -273,19 +324,49 @@ function safeStorage(): Storage | null {
   }
 }
 
+/**
+ * safeSessionStorage is sessionStorage under the same guard — the handle for
+ * the YIELD store only (prio6), deliberately separate from the persisted
+ * play settings' localStorage: a yield is session-scoped (review r2 — it
+ * must die with the browser session, not outlive it the way a localStorage
+ * record would).
+ */
+function safeSessionStorage(): Storage | null {
+  try {
+    return typeof sessionStorage === 'undefined' ? null : sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
 export class SeatPanelState {
   readonly table: string;
   readonly ctx: SeatCtx;
   private readonly storage: Storage | null;
+  /** The YIELD store's own handle: sessionStorage, never the settings' localStorage (review r2). */
+  private readonly yieldStorage: Storage | null;
 
-  constructor(table: string, readonly match: number, ctx: SeatCtx, storage: Storage | null = safeStorage()) {
+  constructor(
+    table: string,
+    readonly match: number,
+    ctx: SeatCtx,
+    storage: Storage | null = safeStorage(),
+    yieldStorage: Storage | null = safeSessionStorage(),
+  ) {
     this.table = table;
     this.ctx = ctx;
     this.storage = storage;
+    this.yieldStorage = yieldStorage;
     // The settings load here rather than at mount so the very first render
     // — and every test — sees the player's saved preferences. SSR and a
     // browser that refuses site data both pass null and get casual.
     this.settings = loadSettings(storage);
+    // The yields seed from the per-GAME store (lib/yields.ts): memory first
+    // (this tab already yielded something in THIS match), then sessionStorage
+    // (a reload of the same match), else empty. The scope is table + match,
+    // so a new match on the same table reads empty — a yield granted in game
+    // N never auto-passes in game N+1 (review r2).
+    this.yieldList = [...loadYields(table, match, yieldStorage)];
   }
 
   /** pending is the decision this seat must answer right now, or null when the game is waiting on someone else. */
@@ -352,16 +433,28 @@ export class SeatPanelState {
   /**
    * oneShot is the current one-shot run: 'end-turn' (End Turn — passes the
    * rest of THIS turn with the player's own rules minus the step stops),
-   * 'hard-skip' (passes everything including opponent objects, MTGO F6), or
-   * 'none'. Both end when the turn number changes or the step reaches
-   * cleanup, on Escape, on any non-priority decision, on any other stop
-   * verdict, and at the shared pass cap.
+   * 'hard-skip' (passes everything including opponent objects, MTGO F6),
+   * 'resolve-all' (prio6: passes while the stack is non-empty — the objects
+   * PRESENT at arm time never stop it, a NEW opponent object stops it per
+   * the settings, and it ends when the stack is empty), or 'none'. All
+   * three end on Escape, on any non-priority decision, on any other stop
+   * verdict, and at the shared pass cap; end-turn and hard-skip also end
+   * when the turn number changes or the step reaches cleanup.
    */
-  oneShot = $state<'none' | 'end-turn' | 'hard-skip'>('none');
+  oneShot = $state<'none' | 'end-turn' | 'hard-skip' | 'resolve-all'>('none');
   /** runPassed is the current one-shot's visible pass count. */
   runPassed = $state(0);
-  /** the view turn the one-shot was armed at; a turn change ends the run. */
+  /** the view turn the one-shot was armed at; a turn change ends an end-turn/hard-skip run. */
   private oneShotTurn: number | null = null;
+  /**
+   * resolveAllIds is the Resolve All run's arm-time stack — the ids of the
+   * objects that were already on the stack when the run started (null for
+   * every other run). decide() skips its stack rules for these ids, so the
+   * run plays through the stack as it stands; a NEW opponent object (an id
+   * not in the set) stops the run per the settings, exactly as the brief
+   * specifies. Reset on every other run start and on begin().
+   */
+  private resolveAllIds: ReadonlySet<number> | null = null;
   /** note is what the panel says about automatic action, as a value — autoNoteText turns it into words. */
   note = $state<AutoNote>({ kind: 'off' });
 
@@ -371,8 +464,28 @@ export class SeatPanelState {
    * after the engine's own lines. It is NOT the event log — nothing here is
    * sent to the server or folded into DvrState.events; it lives and dies
    * with this browser tab. See lib/autolog.ts for the shape and the cap.
+   * The prio6 auto-order note is logged here too (unconditionally — it is a
+   * decision the machine made for the player, not a pass under the
+   * logAutoPasses switch).
    */
   autoLog = $state<AutoPassLog[]>([]);
+
+  /**
+   * yieldList is the game-scoped "always pass for this ability" set (prio6,
+   * lib/yields.ts), as a reactive array of keys — seeded from the per-game
+   * (table + match) store at construction (memory + sessionStorage; survives
+   * a reload of the same match, but a new match on the same table starts
+   * clean) and written through on every change. Reading it as a set is
+   * the `yields` getter below.
+   */
+  yieldList = $state<string[]>([]);
+
+  /**
+   * autoOrderedSeq is the seq the identical-trigger auto-order last posted
+   * for — the same loop guard autoActedSeq is for the pass paths, so a
+   * rejected auto-order is never retried forever against a refusing server.
+   */
+  private autoOrderedSeq: number | null = null;
 
   /**
    * passWait is the pending PACED pass (prio5): the machine decided to pass
@@ -443,6 +556,47 @@ export class SeatPanelState {
     return this.oneShot === 'hard-skip';
   }
 
+  /** resolveAll mirrors oneShot for the template, the chip and tests. */
+  get resolveAll(): boolean {
+    return this.oneShot === 'resolve-all';
+  }
+
+  /**
+   * yields is the ReadonlySet view of yieldList that decide() and the stack
+   * tile marker consume; the setter writes back and persists through the
+   * per-table store.
+   */
+  get yields(): ReadonlySet<string> {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- a fresh ephemeral read view per access, never stored; the reactive source is yieldList
+    return new Set(this.yieldList);
+  }
+
+  set yields(next: Iterable<string>) {
+    this.yieldList = [...next];
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- a write-through copy into the non-reactive store layer (lib/yields.ts), never stored on the state
+    saveYields(this.table, this.match, new Set(this.yieldList), this.yieldStorage);
+  }
+
+  /**
+   * addYield is the stack tile menu's "Always pass for …" write path: one
+   * key added for THIS GAME (persisted per table + match), and the current window
+   * re-derived immediately — a yield the player just granted applies to the
+   * decision that is pending right now, not only to the next one. A paced
+   * pass already in flight needs no kick: firePass re-derives its verdict
+   * with the fresh settings before it posts.
+   */
+  addYield(key: string) {
+    if (this.yieldList.includes(key)) return;
+    this.yields = [...this.yieldList, key];
+    const view = this.currentView;
+    if (view !== null) this.considerAuto(view);
+  }
+
+  /** clearYields is GAME OPTIONS' "Clear yields" action: the whole set for this game (this match), emptied and persisted. */
+  clearYields() {
+    this.yields = [];
+  }
+
   /**
    * stops is the Set-shaped view of settings.steps that the phase track and
    * the stop grid read: a step is "stopped" when its rule is not 'off'. The
@@ -471,9 +625,10 @@ export class SeatPanelState {
   }
 
   /** playMode is the status chip's value: the live one-shot beats the preset label. */
-  get playMode(): 'end-turn' | 'skip-turn' | PlaySettings['preset'] {
+  get playMode(): 'end-turn' | 'skip-turn' | 'resolve-all' | PlaySettings['preset'] {
     if (this.oneShot === 'end-turn') return 'end-turn';
     if (this.oneShot === 'hard-skip') return 'skip-turn';
+    if (this.oneShot === 'resolve-all') return 'resolve-all';
     return this.settings.preset;
   }
 
@@ -615,7 +770,7 @@ export class SeatPanelState {
       this.oneShot = 'none';
       this.autoRun = 0;
       this.autoActedSeq = null;
-      this.note = { kind: mode === 'end-turn' ? 'end-turn-stopped' : 'skip-turn-stopped', reason };
+      this.note = runStopNote(mode, reason);
       return;
     }
     if (this.auto && !this.machinePaused) {
@@ -653,21 +808,44 @@ export class SeatPanelState {
     this.startRun('hard-skip', view);
   }
 
-  private startRun(kind: 'end-turn' | 'hard-skip', view: View) {
+  /**
+   * startResolveAll arms the Resolve All one-shot (prio6): pass while the
+   * stack is non-empty, playing through the objects ALREADY on it — the
+   * arm-time stack ids are captured here and decide() skips its stack
+   * rules for them. It stops on a NEW opponent object (an id not in the
+   * baseline, judged by the settings — the brief's "an object id not
+   * present when Resolve All was pressed"), on any non-priority decision,
+   * on Escape, at the shared pass cap — and it ENDS when the stack is
+   * empty, which is the run's own expiry (expireRun). A priority decision
+   * is required and the stack must be non-empty: the button only shows in
+   * that state, and the guard makes the state a fact, not an assumption.
+   */
+  startResolveAll(view: View) {
+    if (view.stack.length === 0) return;
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- an arm-time id snapshot for the run's private baseline, never a reactive source
+    this.startRun('resolve-all', view, new Set(view.stack.map((s) => s.id)));
+  }
+
+  private startRun(kind: 'end-turn' | 'hard-skip' | 'resolve-all', view: View, baseline: ReadonlySet<number> | null = null) {
     if (this.busy) return;
     // Starting a run is the player taking the controls: any paced pass the
     // AUTO paths had pending dies here (r2 finding — the old auto wait used
     // to survive, post at its old deadline and count as autoPassed). The
     // effect re-runs considerAuto because oneShot changed, so the same
     // window is re-derived and re-paced under the run's own rules and
-    // register — End turn / Skip turn, counted in runPassed.
+    // register — End turn / Skip turn / Resolve All, counted in runPassed.
     this.cancelPassWait();
     this.oneShot = kind;
+    this.resolveAllIds = baseline;
     this.runPassed = 0;
     this.autoRun = 0;
     this.autoActedSeq = null;
     this.oneShotTurn = view.turn;
-    this.note = kind === 'end-turn' ? { kind: 'end-turn-armed' } : { kind: 'skip-turn-armed' };
+    this.note = kind === 'end-turn'
+      ? { kind: 'end-turn-armed' }
+      : kind === 'resolve-all'
+      ? { kind: 'resolve-all-armed' }
+      : { kind: 'skip-turn-armed' };
   }
 
   /** Any other pointer/key/answer hands control back immediately. When it actually fires (a run was live) it also clears an armed pass-after-acting token: the player took the controls back mid-run. */
@@ -723,14 +901,20 @@ export class SeatPanelState {
   }
 
   /**
-   * expireRun ends the one-shot when its turn is over — the turn number
-   * changed since the press, or the step reached cleanup. It is called from
-   * considerAuto (so a decision arriving in a new turn never sees the run
-   * armed) and from the component's per-view effect (so the chip drops even
-   * while no decision is pending for this seat).
+   * expireRun ends the one-shot when its time is over — the turn changed or
+   * the step reached cleanup for an end-turn/hard-skip run; the stack
+   * emptied for a Resolve All run (its own expiry: there is nothing left to
+   * resolve, so the run ends even while the seat still holds priority). It
+   * is called from considerAuto (so a decision arriving after the expiry
+   * never sees the run armed) and from the component's per-view effect (so
+   * the chip drops even while no decision is pending for this seat).
    */
   expireRun(view: View) {
     if (this.oneShot === 'none') return;
+    if (this.oneShot === 'resolve-all') {
+      if (view.stack.length === 0) this.cancelRun(false);
+      return;
+    }
     if (view.turn !== this.oneShotTurn || view.step === 'cleanup') this.cancelRun(false);
   }
 
@@ -751,6 +935,15 @@ export class SeatPanelState {
     if (viewChanged) this.cancelPassWait();
     const d = this.pending;
     if (d === null || this.busy || d.seq === this.postedSeq) return;
+
+    // The identical-trigger auto-order (prio6): an answered-before-we-classify
+    // path — if the pending decision IS an identical trigger_order and the
+    // setting is on, it is submitted here and the run of this function ends
+    // (post() set busy synchronously). It runs after the busy/posted guards
+    // above and before expireRun, so a run that would otherwise stop on this
+    // non-priority decision is cancelled by the submit path itself.
+    if (this.maybeAutoOrderTriggers()) return;
+
     // A one-shot run ends the moment its turn is over, whether or not a
     // decision is pending (see expireRun).
     this.expireRun(view);
@@ -796,7 +989,7 @@ export class SeatPanelState {
         const mode = this.oneShot;
         this.oneShot = 'none';
         this.autoActedSeq = null;
-        this.note = { kind: mode === 'end-turn' ? 'end-turn-stopped' : 'skip-turn-stopped', reason: verdict.reason };
+        this.note = runStopNote(mode, verdict.reason);
       } else {
         this.note = { kind: 'waiting', reason: verdict.reason };
       }
@@ -813,6 +1006,36 @@ export class SeatPanelState {
     }
 
     this.dispatchPass(view, verdict.index, verdict.kind);
+  }
+
+  /**
+   * maybeAutoOrderTriggers is the prio6 identical-trigger auto-order. When
+   * the pending decision is a trigger_order whose EVERY option describes
+   * the same trigger (identicalTriggerOrder — equal labels, measured wire
+   * shape) and settings.autoOrderIdenticalTriggers is on, the DEFAULT order
+   * — the options in offered order, exactly what the manual UI's untouched
+   * answer would submit — is posted automatically, a log note is added
+   * ("Ordered N identical triggers automatically"), and the return is true.
+   * Any difference between options, the setting off, a busy/posted state:
+   * false, and the decision stays manual as today. A live one-shot run is
+   * cancelled first: a non-priority decision ends a run, and the submit is
+   * the run's stop, not the run's continuation. The autoOrderedSeq guard
+   * means a server-rejected auto-order is never retried forever.
+   */
+  private maybeAutoOrderTriggers(): boolean {
+    const d = this.pending;
+    if (d === null || this.busy || d.seq === this.postedSeq) return false;
+    if (this.autoOrderedSeq !== null && d.seq === this.autoOrderedSeq) return false;
+    if (!this.settings.autoOrderIdenticalTriggers || !identicalTriggerOrder(d)) return false;
+    if (this.oneShot !== 'none') this.cancelRun(); // the run's stop, noted in its own register
+    this.autoOrderedSeq = d.seq;
+    this.autoLog = pushAutoPassLog(
+      this.autoLog,
+      `Ordered ${d.options.length} identical triggers automatically`,
+      this.currentView?.turn ?? 0,
+    );
+    void this.post(d.options.map((o) => o.index));
+    return true;
   }
 
   /**
@@ -841,17 +1064,24 @@ export class SeatPanelState {
 
     // A one-shot run feeds decide() its OWN settings: autoPass forced on,
     // step rules off, and — hard skip only — opponent/own object rules off.
+    // Resolve All additionally passes the arm-time baseline, so decide()
+    // skips its stack rules for the objects the run set out to resolve
+    // through, and both runs still honour the game's yields.
     const verdict = decide({
       decision: d,
       view,
       seat: this.ctx.seat,
       settings: this.oneShot !== 'none' ? this.runSettings(this.oneShot) : this.settings,
+      yields: this.yields,
+      baselineStack: this.oneShot === 'resolve-all' ? (this.resolveAllIds ?? undefined) : undefined,
     });
     if (verdict.act === 'stop') return verdict;
     const kind: Exclude<AutoPassKind, 'act'> = this.oneShot === 'end-turn'
       ? 'end-turn'
       : this.oneShot === 'hard-skip'
       ? 'hard-skip'
+      : this.oneShot === 'resolve-all'
+      ? 'resolve-all'
       : 'auto';
     return { ...verdict, kind };
   }
@@ -941,10 +1171,12 @@ export class SeatPanelState {
    */
   private countPass(kind: AutoPassKind) {
     this.autoRun += 1;
-    if (kind === 'end-turn' || kind === 'hard-skip') {
+    if (kind === 'end-turn' || kind === 'hard-skip' || kind === 'resolve-all') {
       this.runPassed += 1;
       this.note = kind === 'end-turn'
         ? { kind: 'end-turn-passing', count: this.runPassed }
+        : kind === 'resolve-all'
+        ? { kind: 'resolve-all-passing', count: this.runPassed }
         : { kind: 'skip-turn-passing', count: this.runPassed };
     } else if (kind === 'auto') {
       this.autoPassed += 1;
@@ -989,7 +1221,7 @@ export class SeatPanelState {
    * everything, MTGO F6). Everything else — the opponent-object rules for a
    * plain End Turn — stands as the player set it.
    */
-  private runSettings(kind: 'end-turn' | 'hard-skip'): PlaySettings {
+  private runSettings(kind: 'end-turn' | 'hard-skip' | 'resolve-all'): PlaySettings {
     const off = {} as Record<StoppableStep, StepStop>;
     for (const s of STOPPABLE_STEPS) off[s as StoppableStep] = 'off';
     const s: PlaySettings = {
@@ -1048,7 +1280,7 @@ export class SeatPanelState {
     const d = this.pending;
     const autoOn = this.auto && !this.machinePaused;
     if (d === null || !this.actPass || autoOn || this.oneShot !== 'none') return null;
-    const verdict = decide({ decision: d, view, seat: this.ctx.seat, settings: { ...this.settings, autoPass: true } });
+    const verdict = decide({ decision: d, view, seat: this.ctx.seat, settings: { ...this.settings, autoPass: true }, yields: this.yields });
     return verdict.act === 'pass' ? { ...verdict, kind: 'act' } : null;
   }
 
@@ -1079,6 +1311,8 @@ export class SeatPanelState {
     this.emptySkipped = 0;
     this.autoActedSeq = null;
     this.autoLog = [];
+    this.autoOrderedSeq = null;
+    this.resolveAllIds = null;
     this.currentView = null;
     this.note = { kind: 'off' };
   }
@@ -1107,6 +1341,10 @@ export class SeatPanelState {
     this.postedSeq = null;
     this.picked = [];
     this.confirming = false;
+    // The identical-trigger auto-order runs at ADOPT, not only in
+    // considerAuto: the decision frame can arrive while no view change
+    // follows it, and the submit must not depend on the next effect tick.
+    this.maybeAutoOrderTriggers();
   }
 
   primary(): Option | null {

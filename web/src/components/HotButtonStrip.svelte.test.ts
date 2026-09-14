@@ -209,3 +209,48 @@ describe('HotButtonStrip — the status chip', () => {
     expect(html).toContain('Custom');
   });
 });
+
+// Prio6: the Resolve All transport control — visible only while the stack is
+// non-empty AND a priority decision is pending (the two facts that make
+// resolving through the stack possible), disabled without a pass option.
+describe('HotButtonStrip — Resolve All (prio6)', () => {
+  const option = (index: number, kind: string, label: string) => ({ index, kind, label, player: 0 });
+  const priorityOnStack: Decision = {
+    seq: 1, player: 0, kind: 'priority', prompt: 'Priority', min: 1, max: 1,
+    options: [option(42, 'pass', 'Pass priority'), option(43, 'concede', 'Concede')],
+  };
+
+  it('is visible with a non-empty stack and a pending priority decision, enabled by a pass option', () => {
+    const state = new SeatPanelState('t1', 1, ctx, null);
+    state.skipEmpty = false;
+    state.adoptView(priorityOnStack);
+    const html = render(HotButtonStrip, {
+      props: {
+        view: { ...baseView, decision: priorityOnStack, stack: [{ id: 9, controller: 1, kind: 'spell', name: 'Bolt', text: '', targets: [], optional: false }] },
+        seats, state, ctx, table: 't1', match: 1,
+      },
+    }).html;
+    expect(html).toContain('data-resolve-all');
+    expect(html).toMatch(/data-resolve-all[^>]*aria-disabled="false"/);
+  });
+
+  it('is invisible on an empty stack, and on a non-priority decision even with a stack', () => {
+    const state = new SeatPanelState('t1', 1, ctx, null);
+    state.skipEmpty = false;
+    state.adoptView(priorityOnStack);
+    const emptyStack = render(HotButtonStrip, {
+      props: { view: { ...baseView, decision: priorityOnStack, stack: [] }, seats, state, ctx, table: 't1', match: 1 },
+    }).html;
+    expect(emptyStack).not.toContain('data-resolve-all');
+
+    const target: Decision = { seq: 2, player: 0, kind: 'target', prompt: 'T', min: 1, max: 1, options: [option(7, 'target', 'T Ari')] };
+    state.adoptView(target);
+    const nonPriority = render(HotButtonStrip, {
+      props: {
+        view: { ...baseView, decision: target, stack: [{ id: 9, controller: 1, kind: 'spell', name: 'Bolt', text: '', targets: [], optional: false }] },
+        seats, state, ctx, table: 't1', match: 1,
+      },
+    }).html;
+    expect(nonPriority).not.toContain('data-resolve-all');
+  });
+});
