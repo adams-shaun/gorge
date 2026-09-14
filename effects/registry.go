@@ -191,6 +191,17 @@ type Ctx struct {
 	// RevealOptional$ peek in the same walk poses its own ask (fx42
 	// scoping).
 	RevealOpt string
+	// LastRoll/LastRollName carry the result of a DB$ RollDice this same
+	// resolution just made (effects/dice.go), under the SVar name its
+	// ResultSVar$ parameter named (usually "Result" or "X"). evalCountExpr's
+	// SVar$ head resolves a body of the form "SVar$<name>" against them, so
+	// a chained sub's own SVar body (Velukan Dragon's
+	// "SVar:X:SVar$Result/Minus.1") and a ConditionCheckSVar$ can read the
+	// roll. Zero/"" on any resolution that did not roll, and the values are
+	// never persisted -- a roll that suspends and resumes loses them, the
+	// same per-resolution lifetime every other Ctx field has.
+	LastRoll     int32
+	LastRollName string
 }
 
 type Effect func(h Host, c *Ctx, sa *cards.SA)

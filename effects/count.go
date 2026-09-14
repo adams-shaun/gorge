@@ -125,6 +125,24 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 	if body, ok := strings.CutPrefix(expr, "TriggerCount$"); ok {
 		return evalTriggerCount(c, strings.TrimSpace(body))
 	}
+	// A "SVar$<name>[/Op]" body references the value another SVar of this
+	// resolution holds -- today only effects/dice.go's RollDice register (the
+	// roll's ResultSVar$ name -> the die result), because that is the only
+	// runtime value a chained SVar body can name that has no static
+	// expression. An unknown name, or no roll this resolution, degrades to
+	// zero (the conservative same-as-before no-op every unmodelled head
+	// applies). The /Op suffix is applied exactly as applyCountOp does.
+	if body, ok := strings.CutPrefix(expr, "SVar$"); ok {
+		body, op, hasOp := strings.Cut(body, "/")
+		n := int32(0)
+		if c.LastRollName != "" && strings.TrimSpace(body) == c.LastRollName {
+			n = c.LastRoll
+		}
+		if hasOp {
+			n = applyCountOp(n, op)
+		}
+		return n
+	}
 	body, ok := strings.CutPrefix(expr, "Count$")
 	if !ok {
 		if n, err := strconv.Atoi(expr); err == nil {

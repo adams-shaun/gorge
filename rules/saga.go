@@ -1,0 +1,164 @@
+package rules
+
+import (
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// saga.go implements the Saga mechanic (CR 702.151, Forge's kw:Chapter; 236
+// corpus files carry the keyword). A Saga is an enchantment whose chapter
+// list (K:Chapter:<N>:<svar1>,...,...) names one sub-ability per chapter:
+//
+//   - It enters with ONE lore counter (granted inside events.Move, the same
+//     every-entry-site convention the planeswalker starting loyalty uses, so
+//     a search putting a Saga onto the battlefield is covered too).
+//   - After its controller's draw step (rules/turn.go's draw-step entry) it
+//     adds another.
+//   - Each lore counter triggers the chapter ability of that number: the
+//     counter-th SVar in the chapter list, queued as a delayed-shape trigger
+//     (the mint path a Mode$ Phase delayed trigger uses -- the ability is an
+//     SVar body, not a face Triggers index, so TriggerPush cannot carry it)
+//     and resolved as an ordinary triggered ability.
+//   - Once it carries its final chapter counter and that chapter ability has
+//     left the stack, it is sacrificed (rules/sba.go's checkSagas -- the
+//     CR 704.5v state-based action).
+//
+// Determinism: the chapter SVar list is the keyword parameter's own left-to-
+// right order (cards.SagaChapters, the one parser both sides read); the
+// trigger queue is the ordinary APNAP drain, so a chapter ability placed by a
+// draw-step counter lands before any player priority exactly like every other
+// turn-based trigger.
+
+// chapterSpec is cards.SagaChapters, renamed locally so call sites read the
+// same way the other keyword helpers here do.
+func chapterSpec(f *cards.Face) (int, []string) { return cards.SagaChapters(f) }
+
+// chapterCount is the face's chapter number, or 0 when this face is not a
+// Saga (or the parameter does not parse).
+func chapterCount(o *state.Object) int {
+	n, _ := chapterSpec(o.Face())
+	return n
+}
+
+// advanceSagas adds one lore counter to every Saga p controls (CR 702.151a's
+// "after your draw step" half). One CounterChange event per Saga, in
+// battlefield order, so the chapter triggers queue in the same deterministic
+// order.
+func (e *Engine) advanceSagas(p state.PlayerID) {
+	ids := append([]state.ObjID(nil), e.G.Zone(state.ZBattlefield, p)...)
+	for _, id := range ids {
+		o := e.G.Obj(id)
+		if o == nil || chapterCount(o) == 0 {
+			continue
+		}
+		e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "LORE", Amount: 1})
+	}
+}
+
+// checkChapterTriggers queues one chapter trigger per lore counter the event
+// just placed. Called for exactly two events: a MoveZone onto the battlefield
+// (the ETB lore counter events.Move grants -- the live counter read below
+// already includes it) and a CounterChange on the LORE counter kind (the
+// draw-step counter). The chapter number is the CURRENT lore count; a count
+// outside 1..N queues nothing (a counter beyond the final chapter is the SBA's
+// business, not a chapter ability's). The queue entry is the delayed-shape
+// pendingTrigger: DelayedID -1 encodes "no registration to remove" (every
+// real registration's ID is a monotonic uint32 from DelayedNext, so no
+// DelayedPush this build can mint ever removes a real registration by
+// accident), Execute names the chapter SVar, and the ability resolves out of
+// the source face's SVar table at push time (events.Apply's DelayedPush case).
+func (e *Engine) checkChapterTriggers(ev events.Event) {
+	if ev.Kind != events.MoveZone && ev.Kind != events.CounterChange {
+		return
+	}
+	if ev.Kind == events.MoveZone {
+		if ev.To != state.ZBattlefield {
+			return
+		}
+	} else if ev.Counter != "LORE" || ev.Amount <= 0 {
+		return
+	}
+	o := e.G.Obj(ev.Obj)
+	if o == nil || o.Zone != state.ZBattlefield {
+		return
+	}
+	n, names := chapterSpec(o.Face())
+	if n == 0 || len(names) == 0 {
+		return
+	}
+	count := int(o.Counter("LORE"))
+	if count < 1 || count > n || count > len(names) {
+		return
+	}
+	name := names[count-1]
+	sa := cards.ResolveSVar(o.Face().SVars, name)
+	if sa == nil {
+		return
+	}
+	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		Source:     ev.Obj,
+		Controller: o.Controller,
+		Delayed:    true,
+		DelayedID:  ^uint32(0),
+		Execute:    name,
+		SA:         sa,
+		Ctx: effects.Ctx{
+			Source:     ev.Obj,
+			Controller: o.Controller,
+		},
+	})
+}
+
+// checkSagas is the CR 704.5v state-based action: a Saga with a lore counter
+// greater than or equal to its final chapter number, whose final chapter
+// ability has left the stack, is put into its owner's graveyard. "Left the
+// stack" is checked as "no ability object of this Saga is pending or on the
+// stack" -- the chapter ability is minted as a stack object with
+// Source = the Saga, so the scan below covers both the pending queue and the
+// stack. A Saga with no chapter list never triggers this (a script defect,
+// not a Saga). Reports whether anything was sacrificed, for the SBA loop's
+// fixed-point test. One attempt per Saga per checkStateBased call (tried),
+// re-armed on an alive-set shrink like every other pass here, so a
+// replacement that permanently blocks the move burns one attempt, not the
+// whole pass budget.
+func (e *Engine) checkSagas(tried *sbaAttempts) bool {
+	changed := false
+	for _, p := range e.G.AliveFrom(0) {
+		ids := append([]state.ObjID(nil), e.G.Zone(state.ZBattlefield, p)...)
+		for _, id := range ids {
+			o := e.G.Obj(id)
+			if o == nil {
+				continue
+			}
+			n, _ := chapterSpec(o.Face())
+			if n == 0 || o.Counter("LORE") < int32(n) {
+				continue
+			}
+			busy := false
+			for i := range e.pendingTriggers {
+				if e.pendingTriggers[i].Source == id {
+					busy = true
+					break
+				}
+			}
+			if !busy {
+				for _, sid := range e.G.Stack {
+					if so := e.G.Obj(sid); so != nil && so.Source == id {
+						busy = true
+						break
+					}
+				}
+			}
+			if busy || tried.sagas[id] {
+				continue
+			}
+			tried.sagas[id] = true
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+				From: state.ZBattlefield, To: state.ZGraveyard, Text: "saga concluded"})
+			changed = true
+		}
+	}
+	return changed
+}

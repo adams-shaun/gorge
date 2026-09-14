@@ -487,6 +487,16 @@ export interface Option {
    * index 0 (the first ability), the one value that omits.
    */
   ability?: number;
+  /**
+   * SVar anchors a "granted" option (rules/speed.go, the kw:Start your
+   * engines max-speed static's AddAbility$): the SVar name on the source
+   * face whose AB the activation resolves through. A granted ability is
+   * not a Face().Abilities index (the ordinary "ability" anchor), so it
+   * carries the name instead; beginGrantedActivation re-resolves it, so a
+   * stale name degrades to a no-op. omitempty: only granted options carry
+   * it.
+   */
+  svar?: string;
 }
 
   /**

@@ -23,6 +23,13 @@ type Player struct {
 	Commanders []ObjID
 	CmdCasts   []int32
 	CmdDamage  []int32
+
+	// Speed is this seat's speed (CR 702.163, "Start your engines!"): it
+	// starts at 0 (or 1 the first time an engine grants speed), rises by one
+	// once on each of this seat's own turns when an opponent loses life,
+	// caps at 4 (max speed), and never resets. Written only by events.Apply's
+	// SpeedChange case, so a log-only reconstruction rebuilds it exactly.
+	Speed int32
 }
 
 // Game is the complete authoritative state. Everything a client sees is a
@@ -43,6 +50,13 @@ type Game struct {
 	// Winner's zero value is PlayerID(0), a real seat, so Over alone cannot
 	// distinguish "seat 0 won" from "nobody did" -- Draw is what does.
 	Draw bool
+	// ExtraTurns counts, per seat, how many EXTRA turns (CR 500.7) that seat
+	// still takes after the seat's current one, before turn order resumes
+	// normally. Added by an api:AddTurn effect's ExtraTurn event (+Amount),
+	// consumed by the turn structure (rules advanceStep emits Amount -1 and
+	// repeats the same seat) -- so a log-only reconstruction folds the same
+	// grants and consumptions to the same totals.
+	ExtraTurns map[PlayerID]int
 	// NextID hands out object ids one at a time, starting at 1 (see NewGame)
 	// and incrementing by exactly one per AddObject call below -- it can
 	// never reach playerRefBit (1<<31, ids.go): a single match would need
@@ -92,6 +106,13 @@ type DelayedTrigger struct {
 	Controller PlayerID
 	Execute    string // the SVar name of the ability to run when it fires
 	Remembered []Target
+	// MinTurn is the earliest game turn the trigger may fire in (zero = no
+	// bound). rules' delayed-trigger scan skips an entry whose MinTurn is
+	// still ahead of the current turn, which is how an extra-turn grant's
+	// end-step trigger (Final Fortune) skips the granting turn's own end
+	// step and fires in the granted turn instead. Folded from the
+	// registering event's Amount, so a replay rebuilds it.
+	MinTurn int32
 }
 
 const startingLife = 20
@@ -193,6 +214,12 @@ func (g *Game) Clone() *Game {
 	for i, z := range g.zones {
 		if z != nil {
 			c.zones[i] = append([]ObjID(nil), z...)
+		}
+	}
+	if g.ExtraTurns != nil {
+		c.ExtraTurns = make(map[PlayerID]int, len(g.ExtraTurns))
+		for p, n := range g.ExtraTurns {
+			c.ExtraTurns[p] = n
 		}
 	}
 	return &c

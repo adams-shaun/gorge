@@ -19,6 +19,35 @@ func Emit(g *state.Game, l *Log, e Event) Event {
 
 // Apply folds one event into state. It must stay a pure function of (g, e):
 // no randomness, no clock, no reads outside g.
+// resolveSVarAcrossFaces resolves an Execute$ SVar name against the source
+// object's card, trying the ACTIVE face's table first and then every face in
+// index order. A one-face card behaves exactly as before (the active face
+// IS the first hit). The multi-face case is why this helper exists: an
+// Enchantment Room's alternate-face trigger (an unlocked room's "When you
+// unlock this door", CR 309.5) names an SVar that lives on Face[1]'s table,
+// which src.Face() -- the active face -- does not carry. First face whose
+// table defines the name wins: deterministic, and a name defined on several
+// faces resolves to the lowest index consistently on live play and replay.
+func resolveSVarAcrossFaces(src *state.Object, name string) *cards.SA {
+	if name == "" {
+		return nil
+	}
+	if f := src.Face(); f != nil {
+		if sa := cards.ResolveSVar(f.SVars, name); sa != nil {
+			return sa
+		}
+	}
+	if src.Card == nil {
+		return nil
+	}
+	for _, cf := range src.Card.Faces {
+		if sa := cards.ResolveSVar(cf.SVars, name); sa != nil {
+			return sa
+		}
+	}
+	return nil
+}
+
 func Apply(g *state.Game, e Event) {
 	switch e.Kind {
 	case GameStart, DecisionAsk, DecisionMade, Note, Resolve, ModeChosen:
@@ -45,6 +74,70 @@ func Apply(g *state.Game, e Event) {
 		// Player is a no-op, never a panic.
 		if validPlayer(g, e.Player) {
 			g.SetZone(state.ZLibrary, e.Player, append([]state.ObjID(nil), e.IDs...))
+		}
+
+	case ExtraTurn:
+		// One grant or consumption of an extra turn (CR 500.7). The count is
+		// game state folded here so a log-only reconstruction holds the same
+		// pending extras the live game did; the turn structure's own
+		// consumption is the -1 form, emitted by rules' advanceStep at the
+		// exact boundary it repeats the seat instead of moving on.
+		if validPlayer(g, e.Player) && e.Amount != 0 {
+			if g.ExtraTurns == nil {
+				g.ExtraTurns = map[state.PlayerID]int{}
+			}
+			g.ExtraTurns[e.Player] += int(e.Amount)
+			if g.ExtraTurns[e.Player] < 0 {
+				g.ExtraTurns[e.Player] = 0
+			}
+		}
+		// Forge's ExtraTurnDelayedTrigger$ (Final Fortune: "At the beginning
+		// of that turn's end step, you lose the game") registers the delayed
+		// trigger HERE, at grant time, with the extra turn's number as its
+		// MinTurn -- so the ordinary Mode$ Phase delayed firing skips the
+		// granting turn's own end step and fires exactly once, in the granted
+		// turn. Only the +grant form registers; the -1 consumption carries no
+		// Counter. A grant with no source object, no Execute$ name, or a
+		// source whose face lacks the SVar degrades to no registration rather
+		// than panicking (the same totality stance DelayedRegister applies).
+		if e.Amount > 0 && e.Counter != "" && e.Obj != 0 && g.Obj(e.Obj) != nil {
+			f := g.Obj(e.Obj).Face()
+			if f != nil && cards.ResolveSVar(f.SVars, e.Counter) != nil {
+				g.Delayed = append(g.Delayed, state.DelayedTrigger{
+					ID:         g.DelayedNext,
+					Phase:      state.StepEnd,
+					Source:     e.Obj,
+					Controller: e.Player,
+					Execute:    e.Counter,
+					MinTurn:    g.Turn + 1,
+				})
+				g.DelayedNext++
+			}
+		}
+
+	case DoorUnlock:
+		// CR 309.5: the unlock activation paid the locked half's mana cost as
+		// a sorcery. The flag is what makes the alternate face's rules text
+		// live (rules' trigger/static/ability scans) and what a Mode$
+		// UnlockDoor trigger matches against. Totality: an unknown object, or
+		// one already unlocked, is a no-op.
+		if o := g.Obj(e.Obj); o != nil && !o.Unlocked {
+			o.Unlocked = true
+		}
+
+	case SpeedChange:
+		// One speed increment (CR 702.163). The cap and the once-per-turn
+		// gate are the EMITTER's (rules' emit-side speed check) responsibility,
+		// so Apply folds the delta plainly; a negative or oversized delta is
+		// still clamped to [0, 4] defensively.
+		if validPlayer(g, e.Player) {
+			g.Players[e.Player].Speed += e.Amount
+			if g.Players[e.Player].Speed < 0 {
+				g.Players[e.Player].Speed = 0
+			}
+			if g.Players[e.Player].Speed > 4 {
+				g.Players[e.Player].Speed = 4
+			}
 		}
 
 	case MoveZone, Draw, PutOnStack:
@@ -473,6 +566,7 @@ func Apply(g *state.Game, e Event) {
 			Controller: e.Player,
 			Execute:    e.Counter,
 			Remembered: rememberedFrom(e.IDs),
+			MinTurn:    e.Amount,
 		})
 		g.DelayedNext++
 
@@ -493,11 +587,10 @@ func Apply(g *state.Game, e Event) {
 		if src == nil {
 			break
 		}
-		f := src.Face()
-		if f == nil {
+		if src.Face() == nil {
 			break
 		}
-		sa := cards.ResolveSVar(f.SVars, e.Counter)
+		sa := resolveSVarAcrossFaces(src, e.Counter)
 		if sa == nil {
 			break
 		}
@@ -667,6 +760,14 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 				if n, err := strconv.Atoi(strings.TrimSpace(f.Loyalty)); err == nil && n > 0 {
 					o.AddCounter("LOYALTY", int32(n))
 				}
+			}
+			// CR 702.151a (Sagas, kw:Chapter): "As this Saga enters ... add a
+			// lore counter" -- the same every-entry-site grant the loyalty
+			// half above is. The chapter-I trigger queues rules-side off this
+			// Move event (rules' chapter check reads the live counter, which
+			// by then includes this grant).
+			if _, names := cards.SagaChapters(o.Face()); len(names) > 0 {
+				o.AddCounter("LORE", 1)
 			}
 		}
 	default:

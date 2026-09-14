@@ -63,6 +63,7 @@ type sbaAttempts struct {
 	objs    map[state.ObjID]bool
 	tokens  map[state.ObjID]bool
 	players map[state.PlayerID]bool
+	sagas   map[state.ObjID]bool
 	alive   int
 }
 
@@ -138,6 +139,7 @@ func (a *sbaAttempts) rearm(alive int) {
 	clear(a.objs)
 	clear(a.tokens)
 	clear(a.players)
+	clear(a.sagas)
 }
 
 // checkStateBased applies state-based actions until none apply, which is
@@ -235,6 +237,7 @@ func (e *Engine) checkStateBased() {
 		objs:    map[state.ObjID]bool{},
 		tokens:  map[state.ObjID]bool{},
 		players: map[state.PlayerID]bool{},
+		sagas:   map[state.ObjID]bool{},
 		alive:   e.G.AliveCount(),
 	}
 	for pass := 0; pass < maxSBAPasses; pass++ {
@@ -252,6 +255,9 @@ func (e *Engine) checkStateBased() {
 			changed = true
 		}
 		if e.attachmentSBAs() {
+			changed = true
+		}
+		if e.checkSagas(tried) {
 			changed = true
 		}
 		if !changed {

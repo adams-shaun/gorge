@@ -55,6 +55,15 @@ type ContinuousEffect struct {
 	HasSet                 bool
 	AddKeywords            []string
 	AddTypes               []string
+	// AddAbilities is a layer-6 ability GRANT (CR 613.1f): the SVar names --
+	// on the SOURCE object's own face -- of the AB$ activated abilities the
+	// affected object gains for the effect's lifetime. Written only by the
+	// continuous-effect primitives (effects' Animate Abilities$), read only
+	// by rules' offer/activation paths (legal.go's grantedAbilities), never
+	// by the CR 613 layer sorter itself: the grant contributes no
+	// characteristic, it contributes an activation surface. Empty on every
+	// effect that grants none.
+	AddAbilities []string
 
 	// Restriction carries an Effect-created S: mode (CantTarget,
 	// CantRegenerate) rather than a layer change. When non-empty the effect is

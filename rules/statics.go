@@ -352,3 +352,47 @@ func altCostLabel(name string, i int) string {
 	}
 	return fmt.Sprintf("Cast %s (alternative cost %d)", name, i+1)
 }
+
+// panharmoniconEchoes reports how many ADDITIONAL trigger placements the
+// battlefield's stat:Panharmonicon statics demand for a trigger whose SOURCE
+// object is src (CR 702.109: "that ability triggers an additional time").
+// One echo per matching static, in activeStatics' deterministic scan order
+// (which never matters here -- the echoes are summed -- but keeps the call
+// off any map range). ValidZone$ (Echoes of Eternity's "Battlefield,Stack")
+// is honoured as a filter on the triggering object's own zone: a static
+// naming zones the object is not in contributes nothing. A static with no
+// ValidCard$ contributes nothing rather than matching everything -- a
+// Panharmonicon static that does not say WHAT it doubles is a script defect
+// this build will not paper over by doubling every trigger on the board.
+func (e *Engine) panharmoniconEchoes(g *state.Game, src state.ObjID) int {
+	o := g.Obj(src)
+	if o == nil {
+		return 0
+	}
+	n := 0
+	for _, sv := range e.activeStatics("Panharmonicon") {
+		if vz := sv.Params["ValidZone"]; vz != "" {
+			zones, all, valid := effects.ParseZones(vz)
+			ok := false
+			if valid || all {
+				for _, z := range zones {
+					if z == o.Zone {
+						ok = true
+						break
+					}
+				}
+			}
+			if !ok {
+				continue
+			}
+		}
+		spec := sv.Params["ValidCard"]
+		if spec == "" {
+			continue
+		}
+		if effects.MatchesSpecFrom(g, spec, src, sv.Controller, sv.Source) {
+			n++
+		}
+	}
+	return n
+}

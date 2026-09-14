@@ -121,6 +121,13 @@ type Engine struct {
 	// never a closure, so Clone copies it like the mulligan round.
 	blockerRound blockerRound
 
+	// stationing is the spacecraft a pending Station tap pick (rules/
+	// station.go) belongs to: the "station" priority option's object, held
+	// across the KChoose so the answer's charge counters land on the right
+	// permanent. Plain value, so Clone copies it like blockerRound; zero
+	// whenever no station ask is outstanding.
+	stationing state.ObjID
+
 	// combatRound is the combat damage step's continuation state
 	// (rules/combat.go, Task jj-cmb): which damage passes are done, and any
 	// controller damage-division choices still being collected or awaiting an
@@ -821,6 +828,18 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.checkTriggers(stored, lki)
 	}
 	e.finishSourceLifelinkLKI(ev, departingSource, departingSourceLifelink)
+	// CR 702.163 ("Start your engines!", rules/speed.go): a loss may raise
+	// the active player's speed (if they have any), and a Start your
+	// engines! permanent's battlefield entry starts a speed-less
+	// controller's speed at 1. Checked on the FOLDED event, after
+	// checkTriggers, so the gain event follows everything the loss itself
+	// caused -- and both checks are inert for every other event.
+	if ev.Kind == events.LifeChange && ev.Amount < 0 {
+		e.checkSpeedGain(ev)
+	}
+	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
+		e.checkSpeedStart(ev.Obj)
+	}
 	// E2: any genuinely state-changing event proves the game is making
 	// progress, so it clears the held-out cast suppression (suppressedCast,
 	// see engine.go): a declined card's option comes back the moment the

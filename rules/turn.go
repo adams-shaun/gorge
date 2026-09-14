@@ -326,6 +326,18 @@ func (e *Engine) advanceStep() {
 		}
 	}
 	if e.G.Step == state.StepCleanup {
+		// CR 500.7: an extra turn is taken "after this one" by the SAME seat
+		// -- the turn rotation repeats the seat while its ExtraTurns count is
+		// positive, consuming one (the -1 ExtraTurn event is the state
+		// change; beginTurn then repeats the holder exactly as the ordinary
+		// rotation would), and only moves to the next living seat once the
+		// seat's extra turns are spent.
+		if e.G.ExtraTurns[e.G.Active] > 0 {
+			e.emit(events.Event{Kind: events.ExtraTurn, Player: e.G.Active, Amount: -1})
+			// beginTurn resets the pass count along with the repeated holder.
+			e.beginTurn(e.G.Active)
+			return
+		}
 		// beginTurn resets the pass count along with the new holder.
 		e.beginTurn(e.G.NextAlive(e.G.Active))
 		return
@@ -398,6 +410,14 @@ func (e *Engine) advanceStep() {
 		if e.G.Over {
 			return
 		}
+		// CR 702.151a (Sagas, kw:Chapter): "As this Saga enters and after
+		// your draw step, add a lore counter." The ETB half is granted in
+		// events.Move (the same every-entry-site convention the planeswalker
+		// starting loyalty uses); this is the after-your-draw-step half --
+		// one lore counter per Saga the ACTIVE player controls, once per
+		// turn, after the draw. The chapter triggers queue off the
+		// CounterChange events this emits (rules' chapter check).
+		e.advanceSagas(e.G.Active)
 	}
 	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 }
@@ -459,6 +479,14 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 // hand-built decision -- is dropped with a Note and priority resumes.
 func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
+	// A Station tap pick (rules/station.go) is a plain priority-action ask,
+	// never a cast/cleanup flow and never a mid-resolution resume: route it
+	// first, by the flow marker the ask set.
+	if e.choosing == chooseStation {
+		e.choosing = chooseNone
+		e.handleStation(e.stationing, chosen)
+		return
+	}
 	// A hidden-library ChangeZone and a Dig look-and-take use KChoose's
 	// ordinary ordered subset wire shape, but they are mid-resolution effect
 	// asks rather than one of the cast/cleanup flows tracked by e.choosing.

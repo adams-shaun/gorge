@@ -948,6 +948,20 @@ func (e *Engine) tallyCmdDamage(p state.PlayerID, from state.ObjID, amount int32
 // actsThisDamageStep, which is the only thing CR 510.4 actually conditions
 // it on.
 func (e *Engine) damageStep(firstStrike bool) {
+	// api:Fog (CR 701.14a, effects/fog.go): a Fog-registered continuous
+	// effect prevents ALL combat damage this turn. The check sits here, at
+	// the top of each damage pass, rather than per-assignment: "combat
+	// damage that would be dealt this turn" is a whole-turn fact, and the
+	// continuous registry is event-derived state a replay rebuilds
+	// identically (the registrations happen during effect resolution, which
+	// the replay re-executes). The Note marks the pass in the transcript;
+	// the step's own structure (priority rounds either side) is untouched,
+	// exactly as the CR's prevent-damage reading requires.
+	if e.fogActive() {
+		e.emit(events.Event{Kind: events.Note, Obj: 0,
+			Text: "all combat damage this turn is prevented"})
+		return
+	}
 	var as []assignment
 	for _, aid := range e.G.Zone(state.ZBattlefield, e.G.Active) {
 		a := e.G.Obj(aid)

@@ -69,6 +69,19 @@ func (e *Engine) availableManaAbilities(p state.PlayerID, id state.ObjID) []*car
 			out = append(out, ma)
 		}
 	}
+	// Granted mana abilities (CR 613.1f, rules/legal.go's grantedAbilities):
+	// an AddAbilities grant's AB$ Mana members -- a Saga chapter's "gains
+	// '{T}: Add {C}'." -- are real mana abilities with the same eligibility
+	// gates, so the priority offer, the CR 601.2g payment window and the
+	// activation all see exactly one member set.
+	for _, ga := range e.grantedAbilities(p, id) {
+		if ga.sa.API != "Mana" {
+			continue
+		}
+		if !e.abilityRestricted(p, id, ga.sa) && e.manaAbilityPayable(p, id, ga.sa) {
+			out = append(out, ga.sa)
+		}
+	}
 	return out
 }
 
