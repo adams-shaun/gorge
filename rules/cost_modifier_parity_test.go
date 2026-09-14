@@ -658,17 +658,30 @@ func TestConditionPlayerTurnGatesTheReduction(t *testing.T) {
 	discontinuitySrc := "Name:Discontinuity\nManaCost:2 U U\nTypes:Instant\n" +
 		"S:Mode$ ReduceCost | Condition$ PlayerTurn | ValidCard$ Card.Self | Amount$ 1 | Color$ 2 U U | Type$ Spell | EffectZone$ All | Description$ During your turn, CARDNAME costs {2}{U}{U} less to cast.\n" +
 		"Oracle:During your turn, CARDNAME costs {2}{U}{U} less to cast.\n"
-	e, _, disc := newFixtureDeck(t, 79, discontinuitySrc)
-	addMana(t, e, 0, "UU")
+	e, cfg, disc := newFixtureDeck(t, 79, discontinuitySrc)
+	// Discontinuity's `Color$ 2 U U` has four reduction slots, not three:
+	// the numeric token is two generic pips and the two U tokens are blue
+	// pips. On its controller's turn it is therefore free, not a {1} spell.
 	e.G.Active = 0
-	if got := reduceOf(t, e, 0, disc); got != 3 {
-		t.Fatalf("reduction on your turn = %d, want 3 ({2}{U}{U})", got)
+	if got := reduceOf(t, e, 0, disc); got != 4 {
+		t.Fatalf("reduction on your turn = %d, want 4 ({2}{U}{U})", got)
 	}
-	e.G.Active = 1
-	if got := reduceOf(t, e, 0, disc); got != 0 {
+	if opt := castByName(t, e, 0, "Discontinuity"); opt == nil {
+		t.Fatal("Discontinuity must be castable for no mana on its controller's turn")
+	} else {
+		submitChoices(t, e, opt.Index)
+		if e.G.Obj(disc).Zone != state.ZStack {
+			t.Fatalf("free Discontinuity on %s, want stack", e.G.Obj(disc).Zone)
+		}
+	}
+	replayCheck(t, e, cfg)
+
+	// A fresh game on the opponent's turn receives no reduction.
+	e2, _, disc2 := newFixtureDeck(t, 79, discontinuitySrc)
+	e2.G.Active = 1
+	if got := reduceOf(t, e2, 0, disc2); got != 0 {
 		t.Fatalf("reduction on the opponent's turn = %d, want 0", got)
 	}
-	e.G.Active = 0
 }
 
 // TestRaiseCostManaShapeAddsPips pins the RaiseCost Cost\$ raise (Andradite

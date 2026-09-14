@@ -617,18 +617,28 @@ func (e *Engine) costModifiers(p state.PlayerID, id state.ObjID, scope costScope
 			}
 			if col, ok := sv.Params["Color"]; ok && strings.TrimSpace(col) != "" {
 				// Each listed token is reduced by the Amount$: colour letters
-				// take their pip from the cost's coloured part, and Forge's
-				// "1" token is the generic slot (even_the_score's
-				// "Color$ U U U" takes three blue pips; brush_off's
-				// "Color$ 1 U" takes one generic and one blue).
+				// take their pip from the cost's coloured part, and a numeric
+				// token names that many generic pips.  Numeric is deliberately
+				// not limited to "1": Discontinuity's real `Color$ 2 U U`
+				// removes two generic and two blue pips.  Treating `2` as a
+				// colour letter would route it through ManaIndex and remove one
+				// colourless pip instead.  Amount$ applies to every token, so
+				// `Color$ 2 U | Amount$ X` means 2*X generic plus X blue.
 				red.hasColor = true
+				amount := e.modAmount(sv)
 				for _, tok := range strings.Fields(col) {
-					if tok == "1" {
-						red.generic = addClampedGeneric(red.generic, int64(e.modAmount(sv)))
+					if isDigitRun(tok) {
+						n, err := strconv.ParseInt(tok, 10, 64)
+						if err != nil || n < 0 || n > int64(math.MaxInt32) {
+							continue // malformed Color$ token fails closed
+						}
+						red.generic = addClampedGeneric(red.generic, n*int64(amount))
 						continue
 					}
-					red.colored[state.ManaIndex(tok[0])] = addClampedGeneric(
-						red.colored[state.ManaIndex(tok[0])], int64(e.modAmount(sv)))
+					if len(tok) == 1 && strings.ContainsRune("WUBRGC", rune(tok[0])) {
+						red.colored[state.ManaIndex(tok[0])] = addClampedGeneric(
+							red.colored[state.ManaIndex(tok[0])], int64(amount))
+					}
 				}
 			} else {
 				red.generic = e.modAmount(sv)
