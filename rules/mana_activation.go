@@ -89,6 +89,21 @@ type manaUnlessActivation struct {
 	next       int
 }
 
+// manaAbilityIndex maps a face's mana-ability pointer back to its index in
+// the face's Abilities slice -- the ordinal the AbilityPush event carries as
+// Amount for a non-mana activation, and the ordinal the ManaActivate marker
+// carries for a mana one. The gate and the emission must agree on it, so both
+// go through this one identity scan (-1 when ma is not in f.Abilities, which
+// every caller treats as "not this face's ability").
+func manaAbilityIndex(f *cards.Face, ma *cards.SA) int {
+	for i := range f.Abilities {
+		if f.Abilities[i] == ma {
+			return i
+		}
+	}
+	return -1
+}
+
 // isManaAbilityAPI reports the two supported activated mana ability APIs.
 func isManaAbilityAPI(api string) bool { return api == "Mana" || api == "ManaReflected" }
 
@@ -143,15 +158,16 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 	if o == nil || o.Face() == nil {
 		return nil
 	}
+	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars}
 	abilityRestricted := func(ma *cards.SA) bool {
 		if statics == nil {
 			return e.abilityRestricted(p, id, ma)
 		}
 		return e.abilityRestrictedUsing(statics.get().cantActivate, p, id, ma)
 	}
-	ctx := &effects.Ctx{Source: id, Controller: p, SVars: o.Face().SVars}
+	f := o.Face()
 	var out []*cards.SA
-	for _, ma := range o.Face().ManaAbilities() {
+	for _, ma := range f.ManaAbilities() {
 		// CR 605.1b: an activated ability is a mana ability only when it is
 		// NOT a loyalty ability. A planeswalker's mana-producing loyalty
 		// ability (Koth's [+1], Ugin, Eye of the Storms' [0]: Add {C}{C}{C},
@@ -170,6 +186,20 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		// payment window and the chosen activation share one member set.
 		if abilityZoneOK(ma, o.Zone) && e.activationConditionOK(p, ma) && e.manaActivationGateHolds(p, id, ma) &&
 			!abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) {
+			// ActivationLimit$ (Vivi Ornitier's "only once each turn"): the
+			// non-mana ability offer loop in legal.go gates on this parameter,
+			// but this walk is a mana ability's ONLY eligibility gate -- offer,
+			// payment window and chosen activation all go through it -- so a
+			// mana ability carrying ActivationLimit$ stayed repeatable without
+			// bound, and a controller whose bot policy prefers activating mana
+			// over passing looped on it forever (a zero-production source whose
+			// use never advances any cast). The limit is scanned exactly like
+			// the non-mana gate's.
+			if raw, ok := ma.Params["ActivationLimit"]; ok {
+				if idx := manaAbilityIndex(f, ma); idx >= 0 && e.activationLimitReached(id, p, idx, raw) {
+					continue
+				}
+			}
 			out = append(out, ma)
 		}
 	}
@@ -811,6 +841,15 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 	payment := len(cumulative) > 0 && cumulative[0]
 	if !e.manaAbilityPayable(p, source, ma) {
 		return
+	}
+	// The ActivationLimit$ scan marker: ManaAdd events carry no source
+	// attribution, so an ability that carries the parameter records its
+	// activation here (events.ManaActivate's own comment). Emitted only for
+	// ActivationLimit$ abilities so no existing game's log shape changes.
+	if _, limited := ma.Params["ActivationLimit"]; limited {
+		if idx := manaAbilityIndex(e.G.Obj(source).Face(), ma); idx >= 0 {
+			e.emit(events.Event{Kind: events.ManaActivate, Player: p, Obj: source, Amount: int32(idx)})
+		}
 	}
 	cost := ParseCost(ma.Params["Cost"])
 	sacs, _ := e.manaSacrifices(p, source, cost)

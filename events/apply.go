@@ -50,12 +50,14 @@ func resolveSVarAcrossFaces(src *state.Object, name string) *cards.SA {
 
 func Apply(g *state.Game, e Event) {
 	switch e.Kind {
-	case GameStart, DecisionAsk, DecisionMade, Note, Resolve, ModeChosen:
+	case GameStart, DecisionAsk, DecisionMade, Note, Resolve, ModeChosen, ManaActivate:
 		// Markers. Resolve is deliberately inert: the resolving object leaves
 		// the stack through its own MoveZone event, and popping here as well
 		// would drop a second object. ModeChosen is a marker too: rules carries
 		// its answer in a cast/trigger cache or suspended-resolution context, so
 		// Apply writes nothing; the log lets replay re-derive the same branch.
+		// ManaActivate is the ActivationLimit$ scan marker (see the Kind's own
+		// comment): the mana itself lands through the nearby ManaAdd events.
 
 	case Pair:
 		// CR 702.103: a Soulbond pairing. Obj is the pairing permanent and

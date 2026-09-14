@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
@@ -193,6 +194,87 @@ func TestActivationLimitInlineCountWithheldAtComputedCount(t *testing.T) {
 	if _, ok := findAbilityOption(e, id, 0); ok {
 		t.Fatalf("inline Count$Valid ActivationLimit withheld: ability offered a third time with 2 snow Swamps: %+v", e.Pending().Options)
 	}
+}
+
+// TestManaAbilityActivationLimitOfferedOnceThenWithheld pins the mana
+// activation half of the ActivationLimit$ gate (the vivi-ornitier-cedh deck
+// import, 2026-09-14): availableManaAbilities is a mana ability's ONLY
+// eligibility walk -- offer, payment window and chosen activation all go
+// through it -- and it used to skip the parameter entirely, so Vivi
+// Ornitier's "only once each turn" mana ability stayed offerable without
+// bound, and a bot whose policy prefers tapping for mana over passing looped
+// on the zero-production shape forever (the deck's seed-7 intent stall).
+// Vivi is the right fixture because her ability costs {0} -- a dry pool can
+// never do the withholding -- and produces X=power=0 mana, so nothing else
+// advances between two activations. The leaves: first activation offered and
+// resolved through the singleton no-ask path, exactly one ManaActivate
+// marker in the log, second offer withheld the same turn, and the marker is
+// replay-safe (the log re-folds to the same chain head).
+func TestManaAbilityActivationLimitOfferedOnceThenWithheld(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	vivi, ok := reg.Lookup("Vivi Ornitier")
+	if !ok {
+		t.Fatal("corpus fixture: Vivi Ornitier missing")
+	}
+	cfg := Config{Seed: 42, Names: []string{"a", "b"},
+		Decks:  [][]*cards.Card{append([]*cards.Card{vivi}, mountainDeck(t, 39)...), mountainDeck(t, 40)},
+		Tokens: map[string]*cards.Card{}}
+	e := New(cfg)
+	e.Advance()
+	toMain1(t, e)
+	id := moveByName(t, e, 0, "Vivi Ornitier", state.ZBattlefield)
+	addMana(t, e, 0, "") // re-ask priority so the offer reflects the moved permanent
+
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.ManaActivate {
+			t.Fatalf("ManaActivate marker in the log before any ActivationLimit$ ability resolved: %+v", ev)
+		}
+	}
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("expected a priority decision, got %+v", d)
+	}
+	var act decision.Option
+	found := false
+	for _, o := range d.Options {
+		if o.Kind == "activate" && o.Obj == id {
+			act, found = o, true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("Vivi Ornitier mana ability not offered on the first activation: %+v", d.Options)
+	}
+	submitChoices(t, e, act.Index)
+
+	// The singleton no-ask path resolved the ability (Cost$ 0: no tap, no
+	// mana charged; Amount$ X is power 0, so the pool gains nothing), so
+	// priority is back without an intermediate ask -- and the once-per-turn
+	// limit must now withhold the offer.
+	if hasActivateOption(e, id) {
+		t.Fatalf("Vivi Ornitier mana ability offered twice in one turn: %+v", e.Pending().Options)
+	}
+
+	// Exactly one scan marker, attributed to the source with the ability's
+	// index in its face's Abilities slice (Vivi's mana ability is index 0 --
+	// the only AB$ on the face).
+	count := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.ManaActivate && ev.Obj == id {
+			count++
+			if ev.Player != 0 || ev.Amount != 0 {
+				t.Fatalf("ManaActivate marker fields: %+v", ev)
+			}
+		}
+	}
+	if count != 1 {
+		t.Fatalf("want exactly 1 ManaActivate marker, got %d", count)
+	}
+
+	// And the marker is replay-safe: a log-only reconstruction -- which folds
+	// the raw fixture moves too -- equals the live game field for field.
+	replayCheck(t, e, cfg)
 }
 
 // TestActivationLimitUnresolvableItDegradesToUnenforced is av3-4: an

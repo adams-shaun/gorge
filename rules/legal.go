@@ -621,7 +621,8 @@ func (e *Engine) activationLimitReached(id state.ObjID, p state.PlayerID, abilit
 		if ev.Kind == events.TurnChange {
 			break
 		}
-		if ev.Kind == events.AbilityPush && ev.Obj == id && ev.Amount == int32(ability) {
+		if (ev.Kind == events.AbilityPush || ev.Kind == events.ManaActivate) &&
+			ev.Obj == id && ev.Amount == int32(ability) {
 			used++
 		}
 	}
