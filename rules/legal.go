@@ -212,7 +212,20 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		// condition: the kicked/surged/flashback/miracle offers below set
 		// Mode, and beginCast skips the fold for those.
 		base := e.offerCostFor(p, id, e.rawBaseCost(p, id), false)
-		if e.castable(p, id, withSpellAbilityExtras(f, base), false) {
+		// An either-or additional cost (AlternateAdditionalCost) makes the
+		// plain cast's gate existential: the cast is offerable when AT LEAST
+		// ONE alternative part is payable (the choice itself is asked by the
+		// cast flow, altAddAsk), never when all of them are unpayable. Cards
+		// without the keyword keep the ordinary single-cost gate.
+		altParts := altAddCostParts(f)
+		if len(altParts) > 0 {
+			for _, part := range altParts {
+				if e.castable(p, id, withSpellAbilityExtras(f, base).Plus(ParseCost(part)), false) {
+					add("cast", "Cast "+f.Name, id)
+					break
+				}
+			}
+		} else if e.castable(p, id, withSpellAbilityExtras(f, base), false) {
 			add("cast", "Cast "+f.Name, id)
 		}
 		for i, alt := range e.alternativeCosts(p, id) {
@@ -240,6 +253,24 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if sc, ok := surgeCost(f); ok && e.spellsCastThisTurn(p) > 0 && e.castable(p, id, e.offerCostFor(p, id, sc, false), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (surged)", Obj: id, Mode: "surged"})
+		}
+		// The alternative-cost keyword family (altcosts), from the hand: evoke
+		// (CR 702), dash, overload and warp each become their own "cast" mode
+		// option paying the printed keyword cost in place of the mana cost.
+		// Madness does NOT offer from the hand here (CR 702.35a: the madness
+		// cast window opens only on the discard, through the pending-trigger
+		// machinery, exactly like Miracle); warp additionally offers from the
+		// graveyard and -- after an end-step exile -- from exile, in the walks
+		// below.
+		for _, ka := range [...]struct{ mode, head string }{
+			{"evoked", "Evoke"}, {"dashed", "Dash"}, {"overloaded", "Overload"}, {"warped", "Warp"},
+		} {
+			alt, ok := keywordAltCost(f, ka.head)
+			if !ok || !e.castable(p, id, e.offerCostFor(p, id, alt, false), false) {
+				continue
+			}
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode})
 		}
 	}
 
@@ -307,6 +338,61 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if fc := e.flashbackCost(id); e.castable(p, id, e.offerCostFor(p, id, fc, false), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (flashback)", Obj: id, Mode: "flashback"})
+		}
+	}
+
+	// Warp from the graveyard: "You may cast this card from your hand or
+	// graveyard for its warp cost." Same walk shape as Flashback above (the
+	// printed keyword, never a continuous-effect grant, is what warp uses).
+	for _, id := range e.G.Zone(state.ZGraveyard, p) {
+		o := e.G.Obj(id)
+		f := o.Face()
+		if f == nil {
+			continue
+		}
+		wc, ok := keywordAltCost(f, "Warp")
+		if !ok || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
+		if !instantSpeed && !sorcery {
+			continue
+		}
+		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
+		if e.castable(p, id, e.offerCostFor(p, id, wc, false), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (warped)", Obj: id, Mode: "warped"})
+		}
+	}
+
+	// Warp recast from exile (CR 702: "exile this creature at the beginning
+	// of the next end step, then you may cast it from exile on a later
+	// turn"). The exile-zone walk offers the cast only to a warp card that
+	// the log shows was warp-cast and end-step-exiled, on a turn strictly
+	// after that exile -- the flag alone cannot say it (CastFlags reset when
+	// the permanent left the battlefield), but the log can.
+	for _, id := range e.G.Zone(state.ZExile, p) {
+		o := e.G.Obj(id)
+		f := o.Face()
+		if f == nil || o.IsToken {
+			continue
+		}
+		wc, ok := keywordAltCost(f, "Warp")
+		if !ok || !e.warpRecastAvailable(id) || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
+		if !instantSpeed && !sorcery {
+			continue
+		}
+		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
+		if e.castable(p, id, e.offerCostFor(p, id, wc, false), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (warped)", Obj: id, Mode: "warped"})
 		}
 	}
 

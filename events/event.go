@@ -220,6 +220,21 @@ const (
 	// value, and therefore the hash chain and every golden replay already
 	// locked in, is unaffected.
 	LibraryOrder
+	// CardToken mints a battlefield token that is a COPY of the card object
+	// Obj names (whatever zone it is in), owned and controlled by Player.
+	// TokenCreate cannot express this shape: it mints from the game's static
+	// token-script table (Game.Tokens), while a copy of a specific card object
+	// (encore's "create a token copy" per opponent) needs the minted object to
+	// carry the source card's own Card pointer and FaceIdx. Apply's case reads
+	// the source object live, so the source may be in any zone (a graveyard
+	// card whose copy ability exiled it as a cost resolves with the source in
+	// exile).
+	//
+	// Appended here, after LibraryOrder, following the named precedents of
+	// TargetsChosen (Ruling T14-b), ClockTick (T19-a) and LibraryOrder itself:
+	// every earlier Kind's numeric value -- and therefore the hash chain and
+	// every golden replay already locked in -- is unaffected.
+	CardToken
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -230,7 +245,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(LibraryOrder) + 1
+	NumKinds = int(CardToken) + 1
 )
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
@@ -244,7 +259,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
-	"delayed_register", "delayed_push", "library_order"}
+	"delayed_register", "delayed_push", "library_order", "card_token"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -328,6 +343,14 @@ var flagNames = [...]struct {
 	{"surged", state.FlagSurged},
 	{"flashback", state.FlagFlashback},
 	{"miracle", state.FlagMiracle},
+	// Appended at the end, keeping the historic four first: a flag list is
+	// canonicalised in THIS table order, so appending new flags after the
+	// old ones keeps FlagsString(FlagsFrom(s)) stable for every name the
+	// original table already knew.
+	{"evoked", state.FlagEvoked},
+	{"dashed", state.FlagDashed},
+	{"overloaded", state.FlagOverloaded},
+	{"warped", state.FlagWarped},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

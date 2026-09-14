@@ -388,6 +388,27 @@ func Apply(g *state.Game, e Event) {
 		o.IsToken = true
 		Move(g, o.ID, state.ZLibrary, state.ZBattlefield)
 
+	case CardToken:
+		// A battlefield token that is a copy of the CARD object Obj names
+		// (encore's "create a token copy" per opponent). Mirrors StackCopy's
+		// snapshot discipline: every read from src is taken into a local
+		// BEFORE AddObject, because AddObject may reallocate g.Objs and a
+		// src pointer read after it would read the old backing array.
+		// Totality like every case: a missing source (already ceased to
+		// exist) or an invalid player mints nothing.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		src := g.Obj(e.Obj)
+		if src == nil || src.Card == nil {
+			break
+		}
+		card, faceIdx := src.Card, src.FaceIdx
+		o := g.AddObject(card, e.Player)
+		o.IsToken = true
+		o.FaceIdx = faceIdx
+		Move(g, o.ID, state.ZLibrary, state.ZBattlefield)
+
 	case StackCopy:
 		if !validPlayer(g, e.Player) {
 			break

@@ -41,6 +41,13 @@ const (
 	FlagSurged
 	FlagFlashback
 	FlagMiracle
+	// Appended below the four original bits, following the enum's own
+	// append-only precedent: these mark alternative-cost casts (CR 601.2b
+	// records how a spell was cast) read by the ETB/keyword machinery.
+	FlagEvoked     // evoke: paid the evoke cost (CR 702)
+	FlagDashed     // dash: paid the dash cost (CR 702)
+	FlagOverloaded // overload cast (CR 702)
+	FlagWarped     // warp cast: exile at next end step, may recast from exile (CR 702)
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the

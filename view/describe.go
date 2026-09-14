@@ -202,6 +202,11 @@ func Describe(g *state.Game, ev events.Event) string {
 			return player(g, ev.Player) + " creates a " + name + " token"
 		}
 		return player(g, ev.Player) + " creates a token"
+	case events.CardToken:
+		// A battlefield token that is a copy of the CARD object Obj names
+		// (encore). The minted copy's own id is assigned inside Apply, so
+		// the line names the original it duplicates -- the StackCopy shape.
+		return player(g, ev.Player) + " creates a token copy of " + obj(g, ev.Obj)
 	case events.StackCopy:
 		// A copy of the stack object Obj, controlled by Player (CR
 		// 707.10a), placed on top of the stack. The copy itself gets a new

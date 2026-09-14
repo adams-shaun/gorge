@@ -17,6 +17,10 @@ import (
 type CostPart struct {
 	N    int32
 	Spec string
+	// Zone is the zone an Exile cost part pays from: ZHand for an
+	// ExileFromHand token (the default zero value) or ZGraveyard for an
+	// ExileFromGrave token. Sac/Discard/SubCounter parts never read it.
+	Zone state.Zone
 }
 
 // ManaPair is one two-colour hybrid symbol: both A and B are WUBRG letters,
@@ -26,11 +30,13 @@ type ManaPair struct{ A, B byte }
 // Cost is a parsed cost. X counts how many "X" symbols appeared (almost
 // always 0 or 1; WithX folds a chosen value into Generic once per symbol).
 // Life, Tap, Sac, Discard and SubCounter are non-mana components a cast or
-// activation must satisfy separately from mana payment; AddCounter<N/LOYALTY>
-// is a free non-mana component (a planeswalker's [+N] loyalty gain) settled
-// beside SubCounter by the ability branch in rules/cast.go. Life is paid through
-// payMana's LifeChange event; Tap, Sac, Discard and SubCounter are settled by
-// the cast-flow stages in rules/cast.go. Pay and CanPay remain pool-only helpers.
+// activation must satisfy separately from mana payment; Exile<N/Spec> (from
+// ExileFromHand/ExileFromGrave tokens) exiles matching cards as the payment;
+// AddCounter<N/LOYALTY> is a free non-mana component (a planeswalker's [+N]
+// loyalty gain) settled beside SubCounter by the ability branch in
+// rules/cast.go. Life is paid through payMana's LifeChange event; Tap, Sac,
+// Discard, SubCounter and Exile are settled by the cast-flow stages in
+// rules/cast.go. Pay and CanPay remain pool-only helpers.
 //
 // Hybrid and Phyrexian symbols are no longer flattened to generic. A hybrid
 // pip (GW) is recorded in Hybrid as the pair of colours it accepts; a
@@ -53,6 +59,7 @@ type Cost struct {
 	Discard    []CostPart
 	SubCounter []CostPart
 	AddCounter []CostPart
+	Exile      []CostPart
 }
 
 // nonManaCost matches Sac<N/Spec>, Discard<N/Spec>, and SubCounter<N/Kind> tokens. Forge
@@ -64,6 +71,16 @@ type Cost struct {
 // description is dropped right here; the ";" alternation is folded to ","
 // (MatchesSpec's own separator) at the parse site. Ruling FL-54.
 var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter|Discard)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+
+// exileCost matches Forge's ExileFromHand<N/Spec> and ExileFromGrave<N/Spec>
+// tokens -- exiling a matching card from the named zone as a cost payment
+// (CR 118.8 lists exiling a card from one's hand among the payment actions;
+// the graveyard form is the encore family's "exile this card from your
+// graveyard"). As with the other non-mana tokens the trailing
+// "/description" is dropped here and ";" alternations fold to ",".
+// ExileFromHand evoke costs (the MH3 evoke family: Fury, Grief, ...) and the
+// AlternateAdditionalCost ExileFromGrave line are the corpus users.
+var exileCost = regexp.MustCompile(`^ExileFrom(Hand|Grave)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
 // addCounterCost matches Forge's AddCounter<N/LOYALTY> token -- the
 // planeswalker loyalty cost, and deliberately ONLY it (CR 107.4: the [+N]
@@ -137,6 +154,20 @@ func ParseCost(s string) Cost {
 				default:
 					c.SubCounter = append(c.SubCounter, part)
 				}
+				continue
+			}
+			if m := exileCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[2], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					continue
+				}
+				spec := strings.ReplaceAll(m[3], ";", ",")
+				part := CostPart{N: int32(n), Spec: spec}
+				if m[1] == "Grave" {
+					part.Zone = state.ZGraveyard
+				}
+				c.Exile = append(c.Exile, part)
 				continue
 			}
 			if m := addCounterCost.FindStringSubmatch(sym); m != nil {
@@ -300,6 +331,9 @@ func (c Cost) Plus(d Cost) Cost {
 	if len(d.AddCounter) > 0 {
 		c.AddCounter = append(append([]CostPart(nil), c.AddCounter...), d.AddCounter...)
 	}
+	if len(d.Exile) > 0 {
+		c.Exile = append(append([]CostPart(nil), c.Exile...), d.Exile...)
+	}
 	return c
 }
 
@@ -455,6 +489,13 @@ func formatCost(c Cost) string {
 	appendCostParts("Discard", c.Discard)
 	appendCostParts("SubCounter", c.SubCounter)
 	appendCostParts("AddCounter", c.AddCounter)
+	for _, part := range c.Exile {
+		from := "Hand"
+		if part.Zone == state.ZGraveyard {
+			from = "Grave"
+		}
+		parts = append(parts, "ExileFrom"+from+"<"+strconv.FormatInt(int64(part.N), 10)+"/"+part.Spec+">")
+	}
 	return strings.Join(parts, " ")
 }
 
@@ -463,7 +504,7 @@ func formatCost(c Cost) string {
 // even though it takes no payment), so a caller using this to skip the
 // cast-flow stages is told the truth.
 func (c Cost) HasNonMana() bool {
-	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0
+	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0
 }
 
 // costModifiers reports the RaiseCost and ReduceCost generic-mana amounts
@@ -528,7 +569,7 @@ func (e *Engine) costActorMatches(sv staticView, actor state.PlayerID) bool {
 // before trusting the pool and life total.
 func (c Cost) Priceable() bool {
 	return c.X == 0 && !c.Tap && len(c.Sac) == 0 && len(c.Discard) == 0 && len(c.SubCounter) == 0 &&
-		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
+		len(c.Exile) == 0 && len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
 }
 
 // pip is one coloured-or-flexible demand inside a cost's mana part: the set

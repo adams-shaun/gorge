@@ -1246,7 +1246,8 @@ func (e *Engine) discardCleanup(chosen []decision.Option) {
 	e.choosing = chooseNone
 	for _, opt := range chosen {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: opt.Obj,
-			From: state.ZHand, To: state.ZGraveyard, Player: e.G.Active})
+			From: state.ZHand, To: discardDestZone(e.G, opt.Obj),
+			Text: discardEventText(e.G, opt.Obj, ""), Player: e.G.Active})
 	}
 	e.cleanupBody()
 	e.advanceStep()

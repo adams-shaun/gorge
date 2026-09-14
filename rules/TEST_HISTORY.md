@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/rules
 
-budget_s: 45
+budget_s: 53
 
 <!--
 A row far below the others is very likely VACUOUS, not fast. MEASURED
@@ -346,3 +346,5 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-14T16:02Z | 9d9bb63+ | 42.0 | 635 | 1 | sadams |
 | 2026-09-14T16:01Z | 9d9bb63+ | 40.8 | 635 | 1 | sadams |
 | 2026-09-14T16:19Z | a89576f+ | 41.4 | 635 | 1 | sadams |
+| 2026-09-14T18:03Z | c9c2c65+ | 45.7 | 644 | 1 | sadams |
+| 2026-09-14T18:34Z | c9c2c65+ | 45.1 | 644 | 1 | sadams |

@@ -79,6 +79,15 @@ import (
 // decks. The Hearthhull and Valgavoth imports add 54 measured gaps across 579
 // distinct cards in the pinned corpus; entries retire only when their
 // primitives are implemented.
+//
+// Task altcosts (the alternative-cost keyword family) retired the one entry
+// the merged decks carried: kw:Dash (Ragavan, Nimble Pilferer), implemented
+// to CR 702's dash shape in rules/altcast.go with a named proof test in
+// rules/altcast_test.go. kw:Evoke, kw:Encore, kw:Overload, kw:Warp,
+// kw:Madness and kw:AlternateAdditionalCost registered in the same task are
+// needed only by the three held commander decks (Rakdos Scam.exe, Vivi
+// cEDH, Ulalek Eldrazi), whose entries land in this table when they are
+// imported.
 var knownUnsupported = map[string][]string{
 	"Archfiend of Despair":         {"api:RepeatEach", "stat:CantGainLife"},
 	"Baloth Prime":                 {"api:Untap", "trig:Sacrificed"},
@@ -114,7 +123,6 @@ var knownUnsupported = map[string][]string{
 	"Planetary Annihilation":       {"api:ChooseCard", "api:SacrificeAll"},
 	"Price of Progress":            {"api:RepeatEach"},
 	"Profane Tutor":                {"kw:Suspend"},
-	"Ragavan, Nimble Pilferer":     {"kw:Dash"},
 	"Razorkin Needlehead":          {"trig:Drawn"},
 	"Sheoldred, the Apocalypse":    {"trig:Drawn"},
 	"Solphim, Mayhem Dominus":      {"api:ReplaceEffect", "repl:DamageDone"},

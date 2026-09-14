@@ -233,7 +233,8 @@ func (e *Engine) commitManaDiscard() {
 		return
 	}
 	for _, id := range md.discards {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZGraveyard, Text: "discarded as a cost"})
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand,
+			To: discardDestZone(e.G, id), Text: discardEventText(e.G, id, "discarded as a cost")})
 	}
 	if md.cost.Tap {
 		e.emit(events.Event{Kind: events.Tap, Obj: md.source})

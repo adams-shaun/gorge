@@ -44,7 +44,15 @@ type pendingTrigger struct {
 	// optional trigger whose decider is the owner and routes a yes through
 	// castMiracle (miracle.go) instead of minting a triggered-ability stack
 	// object. optionalDecider, triggerLabel and pushTrigger all special-case it.
+	// Madness is the same shape (altcast.go): the CR 702.35a cast offer queued
+	// by offerMadness after a discard exiled the card.
 	Miracle bool
+	Madness bool
+	// Evoke marks the CR 702.79a sacrifice follow-up queued by altCostEnter
+	// when a FlagEvoked creature enters: a MANDATORY queue entry (no yes/no,
+	// no question at all -- the sacrifice is unconditional) whose pushTrigger
+	// arm emits the sacrifice MoveZone at placement.
+	Evoke bool
 	// Delayed marks a Mode$ Phase delayed trigger registration (CR 603.7)
 	// rather than a matched T: line. It is queued by checkDelayedTriggers when
 	// the registered phase is entered, and pushTrigger routes it to a
@@ -257,6 +265,16 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 	e.checkFaceTriggers(e, ev, lki, batch, false)
 	if ev.Kind == events.Draw {
 		e.offerMiracle(ev)
+	}
+	// The alternative-cost keyword family's event hooks (altcast.go): a
+	// battlefield entry is where an evoked creature queues its pay-or-sacrifice
+	// follow-up and a dashed/warped creature registers its end-step delayed
+	// trigger; a discard that exiled a madness card queues its cast offer.
+	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
+		e.altCostEnter(ev)
+	}
+	if ev.Kind == events.MoveZone && ev.From == state.ZHand && ev.To == state.ZExile {
+		e.offerMadness(ev)
 	}
 	if ev.Kind == events.StepChange {
 		e.checkDelayedTriggers(ev)
