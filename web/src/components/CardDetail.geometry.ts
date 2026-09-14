@@ -84,7 +84,7 @@ mount(CardDetail, {
       mana_cost: '1 W',
       type_line: 'Legendary Creature — Angel',
       oracle_text:
-        'Flying, vigilance\nEach other Angel you control enters the battlefield with an additional +1/+1 counter on it.',
+        'Flying, vigilance\nEach other Angel you control enters the battlefield with an additional +1/+1 counter on it for each {W} spent to cast it.',
       power: '2',
       toughness: '2',
     }),
