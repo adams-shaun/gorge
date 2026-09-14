@@ -58,7 +58,7 @@ func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
 	if strings.HasPrefix(raw, "Sacrificed$") {
 		return sign * EvalCount(h, c, raw)
 	}
-	if strings.HasPrefix(raw, "TriggerCount$") {
+	if strings.HasPrefix(raw, "TriggerCount$") || strings.HasPrefix(raw, "ReplaceCount$") {
 		return sign * EvalCount(h, c, raw)
 	}
 	if raw == "X" {
@@ -124,6 +124,22 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 	// recognised at all.
 	if body, ok := strings.CutPrefix(expr, "TriggerCount$"); ok {
 		return evalTriggerCount(c, strings.TrimSpace(body))
+	}
+	// ReplaceCount$ reads the event currently being replaced. Damage
+	// replacement bodies use both the bare DamageAmount form (Vigor, Purity,
+	// Hostility) and arithmetic suffixes (Fiery Emancipation, Angel of
+	// Suffering). Rules carries the amount in Ctx so every supported body API,
+	// not only ReplaceEffect itself, sees the same in-flight value.
+	if body, ok := strings.CutPrefix(expr, "ReplaceCount$"); ok {
+		field, op, hasOp := strings.Cut(strings.TrimSpace(body), "/")
+		if field != "DamageAmount" && field != "Amount" {
+			return 0
+		}
+		n := c.ReplacementAmount
+		if hasOp {
+			n = applyCountOp(n, op)
+		}
+		return n
 	}
 	body, ok := strings.CutPrefix(expr, "Count$")
 	if !ok {

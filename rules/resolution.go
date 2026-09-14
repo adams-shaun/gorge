@@ -83,8 +83,11 @@ type resumePoint struct {
 	// is gated on Defined$ ReplacedCard / SVar:X Remembered$Amount finds its
 	// subject after the suspension (fx44, Mox Diamond). Zero for an ordinary
 	// (non-replacement) ask.
-	replaced state.ObjID
-	before   *triggerSnapshot // immutable look-back if a batch replacement suspends
+	replaced          state.ObjID
+	replacementTarget state.Target
+	replacementSource state.ObjID
+	replacementAmount int32
+	before            *triggerSnapshot // immutable look-back if a batch replacement suspends
 	// target is Dig's index into its deterministic Defined$ target list. It
 	// keeps a resumed answer attached to the library that actually asked.
 	target int
@@ -109,14 +112,24 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		kind = "modes"
 	}
 	e.ask(d)
+	var replacementTarget state.Target
+	var replacementAmount int32
+	if e.replacingEvent != nil && e.replacingEvent.Kind == events.Damage {
+		replacementTarget = state.Target{Obj: e.replacingEvent.Obj}
+		if e.replacingEvent.Obj == 0 {
+			replacementTarget = state.Target{Player: e.replacingEvent.Player, IsPlayer: true}
+		}
+		replacementAmount = e.replacingEvent.Amount
+	}
 	// Capture whether the ask is being posed from inside a replacement
 	// effect's ReplaceWith$ body (fx44). e.applyingReplacement is true for
 	// the whole of that body's resolution, so an ask posed from within it
 	// must resume still under the flag — see the resumePoint field's
 	// comment and resumeResolution's restore of it.
 	e.resume = &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA,
-		replacement: e.applyingReplacement, replaced: e.replReplaced, before: e.triggerBefore,
-		target: d.ResumeTarget}
+		replacement: e.applyingReplacement, replaced: e.replReplaced,
+		replacementTarget: replacementTarget, replacementSource: e.protectionSource(e.damaging),
+		replacementAmount: replacementAmount, before: e.triggerBefore, target: d.ResumeTarget}
 	return true
 }
 
@@ -264,7 +277,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// MoveToBattlefield) targets nothing and the object never leaves the
 		// stack.
 		ctx.Replaced = rp.replaced
-		ctx.Remembered = []state.Target{{Obj: rp.replaced}}
+		ctx.ReplacementTarget = rp.replacementTarget
+		ctx.ReplacementSource = rp.replacementSource
+		ctx.ReplacementAmount = rp.replacementAmount
+		ctx.Remembered = []state.Target{rp.replacementTarget}
+		if rp.replacementTarget.Obj == 0 && !rp.replacementTarget.IsPlayer {
+			ctx.Remembered = []state.Target{{Obj: rp.replaced}}
+		}
 	}
 	var svars map[string]string
 	if o.Ability != nil {
@@ -464,12 +483,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			e.resume.outer = e.buildContinuationChain(e.contChain, rp.obj, rp.outer)
 			return
 		}
-	} else {
-		// A resume with no sub-ability recorded: only reachable from a
-		// hand-built Ask (every real asking primitive sets ResumeSA). The
-		// resolution still finishes — the object leaves the stack with no
-		// effect, the same degrade-to-nothing stance as an unrecognised
-		// choice, rather than stalling the match forever.
+	} else if rp.kind != "replacement" {
+		// A resume with no sub-ability recorded is normally reachable only from
+		// a hand-built Ask. Replacement-order decisions are the deliberate
+		// exception: the intercepted event has already completed, and the
+		// continuation begins at rp.outer rather than re-running the effect that
+		// proposed it.
 		e.emit(events.Event{Kind: events.Note, Obj: rp.obj,
 			Text: "mid-resolution answer resumed with no sub-ability recorded"})
 	}
@@ -515,6 +534,14 @@ func (e *Engine) buildContinuationChain(sas []*cards.SA, obj state.ObjID, tail *
 		// replacement context).
 		f := &resumePoint{obj: obj, sa: sa.Sub, replacement: e.applyingReplacement,
 			replaced: e.replReplaced, before: e.triggerBefore}
+		if e.replacingEvent != nil && e.replacingEvent.Kind == events.Damage {
+			f.replacementTarget = state.Target{Obj: e.replacingEvent.Obj}
+			if e.replacingEvent.Obj == 0 {
+				f.replacementTarget = state.Target{Player: e.replacingEvent.Player, IsPlayer: true}
+			}
+			f.replacementAmount = e.replacingEvent.Amount
+			f.replacementSource = e.protectionSource(e.damaging)
+		}
 		if head == nil {
 			head = f
 		} else {

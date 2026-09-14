@@ -784,6 +784,21 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// gets logged, not the emit caller's copy.
 		ev = replaced
 	}
+	// CR 306.8 is an exchange performed only after prevention and replacement
+	// effects have finished modifying the damage event. Keeping this at the
+	// common emit boundary means player, creature and planeswalker damage all
+	// traverse the same replacement pipeline; only the final state mutation
+	// differs. The existing loyalty CounterChange remains the replay witness,
+	// and no marked Damage is ever applied to the walker.
+	if ev.Kind == events.Damage && ev.Obj != 0 {
+		if o := e.G.Obj(ev.Obj); o != nil && o.Face() != nil && o.Face().IsPlaneswalker() {
+			if ev.Amount > 0 {
+				e.emit(events.Event{Kind: events.CounterChange, Obj: ev.Obj,
+					Counter: "LOYALTY", Amount: -ev.Amount})
+			}
+			return ev
+		}
+	}
 	// LKI (CR 603.10 "look back in time") is captured HERE, before
 	// events.Emit runs Apply and mutates the object -- a zone-change trigger
 	// needs the object exactly as it was a moment ago (its counters, tapped

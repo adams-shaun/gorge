@@ -327,6 +327,220 @@ func TestCompetingDamageReplacementsAskAndRecompute(t *testing.T) {
 	}
 }
 
+func TestVigorUsesReplacedDamageAmountAndTarget(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := newSeats(t, 2)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Vigor"))
+	target := onBoard(t, e, 0, "Name:Other Creature\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	source := onBoard(t, e, 1, "Name:Damage Source\nTypes:Creature\nPT:3/3\nOracle:x\n")
+	e.damaging = source
+	e.emit(events.Event{Kind: events.Damage, Obj: target, Amount: 3})
+	e.damaging = 0
+	if got := e.G.Obj(target).Damage; got != 0 {
+		t.Fatalf("marked damage = %d, want 0 after Vigor replaces it", got)
+	}
+	if got := e.G.Obj(target).Counter("P1P1"); got != 3 {
+		t.Fatalf("+1/+1 counters = %d, want 3 from replaced damage amount", got)
+	}
+}
+
+func TestDamageReplacementSupportedBodyFamilies(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+
+	t.Run("ChangeZone Weeping Angel", func(t *testing.T) {
+		e := newSeats(t, 2)
+		angel := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Weeping Angel"))
+		target := onBoard(t, e, 1, "Name:Target\nTypes:Creature\nPT:2/2\nOracle:x\n")
+		e.damaging, e.combatDamaging = angel, true
+		e.emit(events.Event{Kind: events.Damage, Obj: target, Amount: 2})
+		e.damaging, e.combatDamaging = 0, false
+		if got := e.G.Obj(target).Zone; got != state.ZLibrary {
+			t.Fatalf("target zone = %s, want library", got)
+		}
+	})
+
+	t.Run("Dig Crumbling Sanctuary", func(t *testing.T) {
+		e := newSeats(t, 2)
+		onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Crumbling Sanctuary"))
+		source := onBoard(t, e, 1, "Name:Source\nTypes:Creature\nPT:2/2\nOracle:x\n")
+		before := len(e.G.Zone(state.ZLibrary, 0))
+		e.damaging = source
+		e.emit(events.Event{Kind: events.Damage, Player: 0, Amount: 2})
+		e.damaging = 0
+		if got := len(e.G.Zone(state.ZLibrary, 0)); got != before-2 {
+			t.Fatalf("library size = %d, want %d", got, before-2)
+		}
+		if got := len(e.G.Zone(state.ZExile, 0)); got != 2 {
+			t.Fatalf("exile size = %d, want 2", got)
+		}
+	})
+
+	t.Run("Draw Swans of Bryn Argoll", func(t *testing.T) {
+		e := newSeats(t, 2)
+		swans := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Swans of Bryn Argoll"))
+		source := onBoard(t, e, 1, "Name:Source\nTypes:Creature\nPT:3/3\nOracle:x\n")
+		before := len(e.G.Zone(state.ZHand, 1))
+		e.damaging = source
+		e.emit(events.Event{Kind: events.Damage, Obj: swans, Amount: 3})
+		e.damaging = 0
+		if got := len(e.G.Zone(state.ZHand, 1)); got != before+3 {
+			t.Fatalf("source controller hand = %d, want %d", got, before+3)
+		}
+	})
+
+	t.Run("GainLife Purity", func(t *testing.T) {
+		e := newSeats(t, 2)
+		onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Purity"))
+		source := onBoard(t, e, 1, "Name:Source\nTypes:Creature\nPT:3/3\nOracle:x\n")
+		e.damaging = source
+		e.emit(events.Event{Kind: events.Damage, Player: 0, Amount: 3})
+		e.damaging = 0
+		if got := e.G.Players[0].Life; got != 23 {
+			t.Fatalf("life = %d, want 23", got)
+		}
+	})
+
+	t.Run("Mill Angel of Suffering", func(t *testing.T) {
+		e := newSeats(t, 2)
+		onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Angel of Suffering"))
+		source := onBoard(t, e, 1, "Name:Source\nTypes:Creature\nPT:3/3\nOracle:x\n")
+		before := len(e.G.Zone(state.ZLibrary, 0))
+		e.damaging = source
+		e.emit(events.Event{Kind: events.Damage, Player: 0, Amount: 3})
+		e.damaging = 0
+		if got := len(e.G.Zone(state.ZLibrary, 0)); got != before-6 {
+			t.Fatalf("library size = %d, want %d", got, before-6)
+		}
+	})
+
+	t.Run("Sacrifice Dralnu", func(t *testing.T) {
+		e := newSeats(t, 2)
+		dralnu := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Dralnu, Lich Lord"))
+		onBoard(t, e, 0, "Name:One\nTypes:Creature\nPT:1/1\nOracle:x\n")
+		onBoard(t, e, 0, "Name:Two\nTypes:Creature\nPT:1/1\nOracle:x\n")
+		source := onBoard(t, e, 1, "Name:Source\nTypes:Creature\nPT:2/2\nOracle:x\n")
+		before := len(e.G.Zone(state.ZGraveyard, 0))
+		e.damaging = source
+		e.emit(events.Event{Kind: events.Damage, Obj: dralnu, Amount: 2})
+		e.damaging = 0
+		if got := len(e.G.Zone(state.ZGraveyard, 0)); got != before+2 {
+			t.Fatalf("graveyard size = %d, want %d after sacrificing two permanents", got, before+2)
+		}
+	})
+
+	t.Run("Token Hostility", func(t *testing.T) {
+		e := newSeats(t, 2)
+		e.G.Tokens = reg.Tokens
+		onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Hostility"))
+		source := e.G.AddObject(mustCorpusCard(t, reg, "Lightning Bolt"), 0)
+		source.Zone = state.ZStack
+		before := len(e.G.Zone(state.ZBattlefield, 0))
+		e.damaging = source.ID
+		e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 2})
+		e.damaging = 0
+		if got := len(e.G.Zone(state.ZBattlefield, 0)); got != before+2 {
+			t.Fatalf("battlefield size = %d, want %d after two Hostility tokens", got, before+2)
+		}
+	})
+}
+
+func TestFieryEmancipationModifiesPlaneswalkerDamageBeforeLoyaltyExchange(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := newSeats(t, 2)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Fiery Emancipation"))
+	walker := onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Jace, the Mind Sculptor"))
+	e.emit(events.Event{Kind: events.CounterChange, Obj: walker, Counter: "LOYALTY", Amount: 10})
+	source := onBoard(t, e, 0, "Name:Red Source\nManaCost:R\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	e.damaging = source
+	e.emit(events.Event{Kind: events.Damage, Obj: walker, Amount: 2})
+	e.damaging = 0
+	if got := e.G.Obj(walker).Counter("LOYALTY"); got != 4 {
+		t.Fatalf("loyalty = %d, want 4 after Fiery triples 2 damage before the 10-6 exchange", got)
+	}
+	if got := e.G.Obj(walker).Damage; got != 0 {
+		t.Fatalf("walker has %d marked damage, want 0", got)
+	}
+}
+
+func TestDamageReplacementChoiceSuspendsRemainingAbilityChain(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := newSeats(t, 2)
+	e.pending = nil
+	fiery := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Fiery Emancipation"))
+	onBoard(t, e, 0, "Name:Plus Two\nTypes:Enchantment\n"+
+		"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidSource$ Card.YouCtrl | ValidTarget$ Player | ReplaceWith$ D\n"+
+		"SVar:D:DB$ ReplaceEffect | VarName$ DamageAmount | VarValue$ X\n"+
+		"SVar:X:ReplaceCount$DamageAmount/Plus.2\nOracle:x\n")
+	spell := e.G.AddObject(card(t, "Name:Damage with rider\nManaCost:R\nTypes:Instant\n"+
+		"A:SP$ DealDamage | Defined$ Opponent | NumDmg$ 2 | SubAbility$ Gain\n"+
+		"SVar:Gain:DB$ GainLife | Defined$ You | LifeAmount$ 5\nOracle:x\n"), 0)
+	spell.Zone = state.ZStack
+	e.G.SetZone(state.ZStack, 0, []state.ObjID{spell.ID})
+	e.G.Stack = []state.ObjID{spell.ID}
+	e.resolveTop()
+	if d := e.Pending(); d == nil || d.Kind != decision.KReplacement {
+		t.Fatalf("pending = %+v, want replacement order", d)
+	}
+	if got := e.G.Players[0].Life; got != 20 {
+		t.Fatalf("rider ran before replacement answer: life = %d, want 20", got)
+	}
+	d := e.Pending()
+	idx := -1
+	for _, opt := range d.Options {
+		if opt.Obj == fiery {
+			idx = opt.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("Fiery Emancipation missing from options: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := e.G.Players[0].Life; got != 25 {
+		t.Fatalf("life after answer = %d, want 25 from exactly one rider", got)
+	}
+	if got := e.G.Players[1].Life; got != 12 {
+		t.Fatalf("opponent life = %d, want 12 after triple-then-plus replacement order", got)
+	}
+}
+
+func TestCounterReplacementCompetitionLetsAffectedPlayerChoose(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := newSeats(t, 2)
+	e.pending = nil
+	guile := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Guile"))
+	banefire := e.G.AddObject(mustCorpusCard(t, reg, "Banefire"), 1)
+	banefire.Zone = state.ZStack
+	banefire.X = 5
+	counterspell := e.G.AddObject(mustCorpusCard(t, reg, "Counterspell"), 0)
+	counterspell.Zone = state.ZStack
+	counterspell.Targets = []state.Target{{Obj: banefire.ID}}
+	e.G.SetZone(state.ZStack, 1, []state.ObjID{banefire.ID})
+	e.G.SetZone(state.ZStack, 0, []state.ObjID{counterspell.ID})
+	e.G.Stack = []state.ObjID{banefire.ID, counterspell.ID}
+	e.resolveTop()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement || d.Player != 1 {
+		t.Fatalf("pending = %+v, want Banefire controller's replacement-order choice", d)
+	}
+	idx := -1
+	for _, opt := range d.Options {
+		if opt.Obj == banefire.ID {
+			idx = opt.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("Banefire replacement missing; Guile=%d options=%+v", guile, d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := e.G.Obj(banefire.ID).Zone; got != state.ZStack {
+		t.Fatalf("Banefire zone = %s, want stack after its cannot-be-countered replacement applies first", got)
+	}
+}
+
 func TestHexingSquelcherProtectsYourSpells(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e := newSeats(t, 2)

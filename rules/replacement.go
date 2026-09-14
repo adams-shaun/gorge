@@ -241,10 +241,17 @@ type replMatch struct {
 // paths reuse it.
 func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	o := e.G.Obj(m.id)
+	target := state.Target{Obj: ev.Obj}
+	if ev.Kind == events.Damage && ev.Obj == 0 {
+		target = state.Target{Player: ev.Player, IsPlayer: true}
+	}
 	if o == nil {
-		return &effects.Ctx{Source: m.id}
+		return &effects.Ctx{Source: m.id, ReplacementTarget: target,
+			ReplacementSource: e.protectionSource(e.damaging), ReplacementAmount: ev.Amount}
 	}
 	ctx := &effects.Ctx{Source: m.id, Controller: o.Controller,
+		ReplacementTarget: target, ReplacementSource: e.protectionSource(e.damaging),
+		ReplacementAmount: ev.Amount,
 		// X is the {X} paid for the moving object, so an ETB replacement that
 		// reads it (etbCounter's CounterNum$ X, e.g. Endless One / Walking
 		// Ballista / Chalice of the Void) sees the value the player actually
@@ -252,7 +259,7 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		// apply.go, the "hand/stack -> battlefield must NOT reset them"
 		// comment), so o.X is the cast-time value here.
 		X:          o.X,
-		Remembered: []state.Target{{Obj: ev.Obj}},
+		Remembered: []state.Target{target},
 		// Replaced names the object the replaced event (ev) was about, so a
 		// ReplaceWith$ that says Defined$ ReplacedCard (the Rest in Peace /
 		// Dryad Militant / Leyline of the Void shape: "exile it instead") can
@@ -800,11 +807,33 @@ func (e *Engine) replacementCauseMatches(spec string, replacementSource, cause s
 // removal of a stack object, not a CounterChange event, so it is checked at
 // Counter's sole stack-removal path before the MoveZone is emitted.
 func (e *Engine) CounterAllowed(target, cause state.ObjID) bool {
-	blocked := false
-	e.forEachObject(func(source state.ObjID) {
-		if blocked {
-			return
+	matches := e.counterReplacementMatchesAll(target, cause)
+	switch len(matches) {
+	case 0:
+		return true
+	case 1:
+		e.applyCounterReplacement(target, matches[0])
+		return false
+	default:
+		t := e.G.Obj(target)
+		if t == nil || int(t.Controller) >= len(e.G.Players) || e.G.Players[t.Controller].Lost {
+			e.applyCounterReplacement(target, matches[0])
+			return false
 		}
+		e.replChoices = append(e.replChoices, replChoice{
+			ev: events.Event{Obj: target}, cands: matches, before: e.triggerBefore,
+			player: t.Controller, counter: true, cause: cause,
+		})
+		if e.pending == nil {
+			e.askReplacementChoice(t.Controller)
+		}
+		return false
+	}
+}
+
+func (e *Engine) counterReplacementMatchesAll(target, cause state.ObjID) []replMatch {
+	var matches []replMatch
+	e.forEachObject(func(source state.ObjID) {
 		o := e.G.Obj(source)
 		if o == nil || o.Face() == nil {
 			return
@@ -812,16 +841,33 @@ func (e *Engine) CounterAllowed(target, cause state.ObjID) bool {
 		for i := range o.Face().Repls {
 			r := &o.Face().Repls[i]
 			if r.Event == "Counter" && e.counterReplacementMatches(*r, source, target, cause) {
-				if r.With != nil {
-					e.runReplaceWith(e.replCtx(replMatch{id: source, repl: r},
-						events.Event{Obj: target}), target, r.With, nil)
-				}
-				blocked = true
-				return
+				matches = append(matches, replMatch{id: source, repl: r})
 			}
 		}
 	})
-	return !blocked
+	return matches
+}
+
+func (e *Engine) applyCounterReplacement(target state.ObjID, m replMatch) {
+	if m.repl.With != nil {
+		e.runReplaceWith(e.replCtx(m, events.Event{Obj: target}), target, m.repl.With, nil)
+	}
+}
+
+func (e *Engine) applyChosenCounterReplacement(rc replChoice, selected int) {
+	m := rc.cands[selected]
+	// CR 616.1e: applicability is checked against the event as it exists when
+	// the answer is applied. No state can normally change while the choice is
+	// pending, but recomputing keeps this path correct for released/departed
+	// decisions and mirrors damage replacement ordering.
+	if !e.counterReplacementMatches(*m.repl, m.id, rc.ev.Obj, rc.cause) {
+		matches := e.counterReplacementMatchesAll(rc.ev.Obj, rc.cause)
+		if len(matches) == 0 {
+			return
+		}
+		m = matches[0]
+	}
+	e.applyCounterReplacement(rc.ev.Obj, m)
 }
 
 func (e *Engine) counterReplacementMatches(r cards.Repl, source, target, cause state.ObjID) bool {
@@ -935,6 +981,8 @@ type replChoice struct {
 	combat   bool
 	lifelink bool
 	deadly   bool
+	counter  bool
+	cause    state.ObjID
 }
 
 // poseReplacementChoice starts a CR 616.1 order-selection suspension: the
@@ -988,8 +1036,11 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 		}
 		prompt = "Several replacement effects would change how " + name + " moves: choose the order they apply."
 	}
+	if rc.counter {
+		prompt = "Several replacement effects would modify this counter event: choose which applies."
+	}
 	d := &decision.Decision{Player: p, Kind: decision.KReplacement, Min: 1, Max: 1,
-		Prompt: prompt, Source: rc.ev.Obj}
+		Prompt: prompt, Source: rc.ev.Obj, ResumeKind: "replacement"}
 	for i, c := range rc.cands {
 		label := "a replacement"
 		if so := e.G.Obj(c.id); so != nil && so.Face() != nil && so.Face().Name != "" {
@@ -999,7 +1050,15 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 		}
 		d.Options = append(d.Options, decision.Option{Index: i, Kind: "replacement", Obj: c.id, Label: label})
 	}
-	e.ask(d)
+	// A replacement-order choice can arise in the middle of an effect's Emit.
+	// Enter through Host.Ask so effects.Resolve sees Suspended and records the
+	// remaining SA chain. A recomputation ask already owns that resume point;
+	// pose it directly without overwriting the original continuation.
+	if e.resume == nil {
+		e.Ask(d)
+	} else {
+		e.ask(d)
+	}
 }
 
 // handleReplacement applies an answered CR 616.1 order choice: the front
@@ -1024,6 +1083,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	}
 	rc := e.replChoices[0]
 	e.replChoices = e.replChoices[1:]
+	rp := e.resume
 	chosen := d.Chosen(in)
 	if len(chosen) == 0 || chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) {
 		e.emit(events.Event{Kind: events.Note, Player: in.Player,
@@ -1032,37 +1092,51 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	}
 	before := e.triggerBefore
 	e.triggerBefore = rc.before
-	if rc.ev.Kind == events.Damage {
-		e.handleDamageReplacementChoice(rc, chosen[0].Index)
-	} else {
+	completed := true
+	switch {
+	case rc.counter:
+		e.applyChosenCounterReplacement(rc, chosen[0].Index)
+	case rc.ev.Kind == events.Damage:
+		completed = e.handleDamageReplacementChoice(rc, chosen[0].Index)
+	default:
 		e.applyReplacement(rc.ev, rc.cands[chosen[0].Index])
 	}
 	e.triggerBefore = before
+	if completed && rp != nil && e.resume == rp {
+		// The parked event and its riders are complete. Resume only the chain
+		// after the effect that proposed it; the effect itself must not emit the
+		// same damage/counter event a second time.
+		e.resume = nil
+		e.resumeResolution(rp, nil)
+	}
 	if len(e.replChoices) > 0 && e.pending == nil {
 		e.askReplacementChoice(e.replChoices[0].player)
 	}
 }
 
-func (e *Engine) handleDamageReplacementChoice(rc replChoice, selected int) {
+// handleDamageReplacementChoice returns false only when recomputation leaves
+// another genuine order choice pending; true means the parked damage event is
+// fully prevented/replaced or has landed with all riders.
+func (e *Engine) handleDamageReplacementChoice(rc replChoice, selected int) bool {
 	savedDamaging, savedCombat := e.damaging, e.combatDamaging
 	e.damaging, e.combatDamaging = rc.damaging, rc.combat
 	defer func() { e.damaging, e.combatDamaging = savedDamaging, savedCombat }()
 	m := rc.cands[selected]
 	rc.used = append(rc.used, m)
 	if e.applyChosenDamageReplacement(&rc.ev, m) {
-		return
+		return true
 	}
 	for {
 		rc.cands = e.remainingDamageReplacements(rc.ev, rc.used)
 		switch len(rc.cands) {
 		case 0:
 			e.finishChosenDamage(rc)
-			return
+			return true
 		case 1:
 			m = rc.cands[0]
 			rc.used = append(rc.used, m)
 			if e.applyChosenDamageReplacement(&rc.ev, m) {
-				return
+				return true
 			}
 		default:
 			// The first modification can leave several effects applicable. Ask
@@ -1072,7 +1146,7 @@ func (e *Engine) handleDamageReplacementChoice(rc replChoice, selected int) {
 			if e.pending == nil {
 				e.askReplacementChoice(rc.player)
 			}
-			return
+			return false
 		}
 	}
 }

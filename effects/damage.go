@@ -125,35 +125,13 @@ func payLifelinkRider(r damageRider, dealt int32) {
 // so prevention pays neither rider and amount replacement prices both from the
 // event that actually landed.
 //
-// CR 306.8: damage dealt to a planeswalker permanent removes that many
-// loyalty counters instead of being marked as damage, so a walker target
-// takes a LOYALTY CounterChange and never a Damage event here. Both spell/
-// ability damage paths route through this one helper (effDealDamage's object
-// arm and effDamageAll); combat damage cannot reach it -- this build's
-// attackers declare player defenders only, and a walker can neither attack
-// nor block -- so spell/ability damage is the whole walker-damage surface.
-// The exchange is one-directional by design and recorded in AGENTS.md:
-// prevention and destruction-replacement effects key on Damage events, so
-// they do not see walker damage (prevention vs a walker is unimplemented,
-// conservative and correct for now). RememberDamaged$ on the caller still
-// captures the walker, so an Incinerate-style "can't be regenerated" Effect
-// sub-ability still finds what took the damage.
+// CR 306.8's planeswalker loyalty exchange happens in rules.Engine.emit,
+// after this proposed Damage has traversed the same prevention/replacement
+// pipeline as every other recipient. EmitDamage still returns the final
+// Damage shape so lifelink and deathtouch consume the replaced amount.
 func emitObjectDamage(r damageRider, target state.ObjID) {
 	h := r.h
-	o := h.Game().Obj(target)
-	if o == nil {
-		return
-	}
-	if f := o.Face(); f != nil && f.IsPlaneswalker() {
-		// A walker's damage removes loyalty counters (CR 306.8) but is still
-		// damage dealt -- the lifelink rider pays for it too.
-		dealt := int32(0)
-		if r.amount != 0 {
-			h.Emit(events.Event{Kind: events.CounterChange, Obj: target,
-				Counter: "LOYALTY", Amount: -r.amount})
-			dealt = r.amount
-		}
-		payLifelinkRider(r, dealt)
+	if h.Game().Obj(target) == nil {
 		return
 	}
 	applied := h.EmitDamage(events.Event{Kind: events.Damage, Obj: target, Amount: r.amount})
@@ -162,8 +140,11 @@ func emitObjectDamage(r damageRider, target state.ObjID) {
 		dealt = applied.Amount
 	}
 	if dealt > 0 && applied.Obj != 0 && h.HasKeyword(r.source, "Deathtouch") {
-		h.Emit(events.Event{Kind: events.CounterChange, Obj: applied.Obj,
-			Counter: "Deathtouched", Amount: 1})
+		o := h.Game().Obj(applied.Obj)
+		if o != nil && (o.Face() == nil || !o.Face().IsPlaneswalker()) {
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: applied.Obj,
+				Counter: "Deathtouched", Amount: 1})
+		}
 	}
 	payLifelinkRider(r, dealt)
 }

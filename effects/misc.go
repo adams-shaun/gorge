@@ -391,6 +391,9 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if !h.CounterAllowed(o.ID, c.Source) {
 			h.Emit(events.Event{Kind: events.Note, Obj: o.ID, Text: "counter prevented"})
+			if h.Suspended() {
+				return // replacement order must settle before any later target/SA
+			}
 			continue
 		}
 		if o.Ability != nil {

@@ -541,6 +541,18 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	// this package (the sacrifice_audit test only counts its occurrence), so
 	// the absence is the conservative same-as-before no-op, not a regression.
 	remember := sa.Params["RememberSacrificed"] != ""
+	// Damage-replacement bodies carry the amount of the event they replace.
+	// The sole corpus Sacrifice body in that class is Dralnu's "sacrifice that
+	// many permanents"; consume Amount$ there without changing the broader
+	// primitive's documented one-per-player stand-in outside replacement
+	// resolution.
+	amount := int32(1)
+	if c.ReplacementAmount > 0 && sa.Params["Amount"] != "" {
+		amount = Num(h, c, sa, "Amount", 1)
+		if amount < 0 {
+			amount = 0
+		}
+	}
 	// rememberLKICapture captures the sacrificed object's LKI (before the
 	// MoveZone resets its counters) into c.Sacrificed, when the flag asks it
 	// to. Idempotent per call site; called exactly once per sacrificed object.
@@ -568,12 +580,16 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			// satisfies SacValid$. "You" in the spec is the sacrificing
 			// player, since they choose from their own permanents.
 			ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, t.Player)...)
+			var sacrificed int32
 			for _, id := range ids {
+				if sacrificed >= amount {
+					break
+				}
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(t.Player)) {
 					rememberLKICapture(id)
 					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 						From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
-					break
+					sacrificed++
 				}
 			}
 			continue

@@ -125,12 +125,15 @@ type Ctx struct {
 	X     int32
 	// Replaced is the object the replaced event was about (Defined$ ReplacedCard):
 	// the card a "would go to the graveyard from anywhere, exile it instead"
-	// replacement is acting ON. Set by rules/replacement.go on the context it
-	// builds for a matching ReplaceWith$; zero outside a replacement, and nil for
-	// a zero (or gone) object when Defined resolves it. It is context, not state
-	// -- it drives the replacement's own resolution but is never itself persisted
-	// to the event log.
-	Replaced state.ObjID
+	// replacement is acting ON. ReplacementTarget, ReplacementSource and
+	// ReplacementAmount carry the corresponding roles of an in-flight damage
+	// event. They are resolution context, never persisted state; rules seeds
+	// them before resolving ReplaceWith$ so ReplacedTarget/ReplacedSource and
+	// ReplaceCount$DamageAmount are available to every replacement body API.
+	Replaced          state.ObjID
+	ReplacementTarget state.Target
+	ReplacementSource state.ObjID
+	ReplacementAmount int32
 	// LKI is the object a zone-change trigger fired for, as it was just
 	// before the move (CR 603.10 "look back in time"): Move resets counters,
 	// tapped state and damage on the way out, so a "dies" condition such as
