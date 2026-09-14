@@ -18,9 +18,14 @@ func commanderFixture(t *testing.T) *cards.Registry {
 	scripts := map[string]string{
 		// Basic lands carry no printed mana ability (the corpus grants the
 		// {T}: add {colour} intrinsic after derive), so a script that names no
-		// ability stays colourless-identity and exempt from the singleton rule.
+		// ability stays colourless-identity — but CR 903.5d still binds what
+		// their basic land TYPE could produce to the commander's identity:
+		// Mountains are not free in a mono-white deck. Wastes has no basic
+		// land subtype and produces only colourless, so it fits any deck.
+		"Plains":   "Name:Plains\nTypes:Basic Land Plains\n",
 		"Mountain": "Name:Mountain\nTypes:Basic Land Mountain\n",
-		"Island":   "Name:Island\nTypes:Basic Land Island\n",
+		"Badlands": "Name:Badlands\nTypes:Land Swamp Mountain\nOracle:({T}: Add {B} or {R}.)\n",
+		"Wastes":   "Name:Wastes\nTypes:Basic Land\nOracle:{T}: Add {C}.\n",
 		// Amalia is the white legendary-commander: identity {W}.
 		"Amalia":       "Name:Amalia\nManaCost:W\nTypes:Legendary Creature Scout\nOracle:Amalia is a commander.\n",
 		"Knight":       "Name:Knight\nManaCost:W\nTypes:Creature Knight\nOracle:Knight.\n",
@@ -31,9 +36,14 @@ func commanderFixture(t *testing.T) *cards.Registry {
 		// A planeswalker that says it can be your commander: eligible by the
 		// Oracle phrase even though it is not a legendary creature.
 		"Isahara": "Name:Isahara\nManaCost:3\nTypes:Planeswalker\nOracle:Isahara can be your commander.\n",
-		// Legendary Spacecraft are commander-eligible despite not being
-		// creatures.
-		"Hearthhull": "Name:Hearthhull\nManaCost:1 B R G\nTypes:Legendary Artifact Spacecraft\n",
+		// A legendary Vehicle: commander-eligible per CR 903.3(b) — Vehicles
+		// are always printed with a power/toughness box.
+		"Genesis Engine": "Name:Genesis Engine\nManaCost:2 W U\nTypes:Legendary Artifact Vehicle\nPT:8/8\n",
+		// Legendary Spacecraft are commander-eligible only with a printed
+		// power/toughness box (CR 903.3(c)); Spacecraft normally carry a
+		// defense box instead. This fixture carries PT like the real
+		// Hearthhull, the Worldseed (6/7) does.
+		"Hearthhull": "Name:Hearthhull\nManaCost:1 B R G\nTypes:Legendary Artifact Spacecraft\nPT:6/7\n",
 	}
 	for name, src := range scripts {
 		c, diags := cards.ParseBytes("fixture.txt", []byte(src))
@@ -45,9 +55,10 @@ func commanderFixture(t *testing.T) *cards.Registry {
 	return r
 }
 
-// legalMonoWhiteCommander builds a CR-903.4/903.5 legal 100-card mono-white
-// deck: a legendary-commander plus two other white cards and ninety-seven
-// Mountains (whose repeated copies sit under the basic-land exemption).
+// legalMonoWhiteCommander builds a CR-903.4/903.5/903.5d legal 100-card
+// mono-white deck: a legendary-commander plus two other white cards and
+// ninety-seven Plains (whose repeated copies sit under the basic-land
+// exemption, and whose Plains type could produce only white — CR 903.5d).
 func legalMonoWhiteCommander() File {
 	return File{
 		Name:      "WHITE",
@@ -56,7 +67,7 @@ func legalMonoWhiteCommander() File {
 			{"Amalia", 1},
 			{"Knight", 1},
 			{"Guard", 1},
-			{"Mountain", 97},
+			{"Plains", 97},
 		},
 	}
 }
@@ -81,8 +92,8 @@ func TestValidateCommanderAcceptsLegalDeck(t *testing.T) {
 func TestValidateCommanderRejectsWrongCount(t *testing.T) {
 	r := commanderFixture(t)
 	f := legalMonoWhiteCommander()
-	// Kick one Mountain out: 99 cards is not a Commander deck.
-	f.Cards = []Entry{{"Amalia", 1}, {"Knight", 1}, {"Guard", 1}, {"Mountain", 96}}
+	// Kick one Plains out: 99 cards is not a Commander deck.
+	f.Cards = []Entry{{"Amalia", 1}, {"Knight", 1}, {"Guard", 1}, {"Plains", 96}}
 	if err := f.ValidateCommander(r); err == nil || !strings.Contains(err.Error(), "99 cards") {
 		t.Fatalf("want a 99-card error, got %v", err)
 	}
@@ -91,8 +102,8 @@ func TestValidateCommanderRejectsWrongCount(t *testing.T) {
 func TestValidateCommanderRejectsNonSingleton(t *testing.T) {
 	r := commanderFixture(t)
 	f := legalMonoWhiteCommander()
-	// Two Knights, but keep 100 total by dropping a Mountain.
-	f.Cards = []Entry{{"Amalia", 1}, {"Knight", 2}, {"Mountain", 97}}
+	// Two Knights, but keep 100 total by dropping a Plains.
+	f.Cards = []Entry{{"Amalia", 1}, {"Knight", 2}, {"Plains", 97}}
 	err := f.ValidateCommander(r)
 	if err == nil || !strings.Contains(err.Error(), "Knight") || !strings.Contains(err.Error(), "singleton") {
 		t.Fatalf("want a Knight singleton error, got %v", err)
@@ -102,10 +113,45 @@ func TestValidateCommanderRejectsNonSingleton(t *testing.T) {
 func TestValidateCommanderAllowsBasicLandDuplicates(t *testing.T) {
 	r := commanderFixture(t)
 	f := legalMonoWhiteCommander()
-	// Mountain is a basic land: its 97 copies must not trip the singleton rule.
-	f.Cards = []Entry{{"Amalia", 1}, {"Knight", 1}, {"Guard", 1}, {"Mountain", 4}, {"Island", 93}}
+	// Plains is a basic land: its 97 copies must not trip the singleton rule,
+	// whether they sit on one row or several.
+	f.Cards = []Entry{{"Amalia", 1}, {"Knight", 1}, {"Guard", 1}, {"Plains", 4}, {"Plains", 93}}
 	if err := f.ValidateCommander(r); err != nil {
 		t.Fatalf("basic-land duplicates wrongly rejected: %v", err)
+	}
+}
+
+// TestValidateCommanderRejectsBasicLandTypeProduction pins CR 903.5d: a card
+// with a basic land type may be in the deck only if every colour it could
+// produce is in the commander's identity. A basic land's colour IDENTITY is
+// empty (its mana ability is subtype-granted, not printed rules text), so
+// without this check Mountains validated under any commander — the fixture
+// held 97 of them under a white commander before the rule existed.
+func TestValidateCommanderRejectsBasicLandTypeProduction(t *testing.T) {
+	r := commanderFixture(t)
+	// Mountain produces red: outside a white commander's identity.
+	f := legalMonoWhiteCommander()
+	f.Cards = []Entry{{"Amalia", 1}, {"Knight", 1}, {"Guard", 1}, {"Plains", 96}, {"Mountain", 1}}
+	err := f.ValidateCommander(r)
+	if err == nil || !strings.Contains(err.Error(), "Mountain") || !strings.Contains(err.Error(), "red") || !strings.Contains(err.Error(), "903.5d") {
+		t.Fatalf("want a Mountain could-produce error, got %v", err)
+	}
+	// Badlands has no Basic supertype, so it is a singleton row, but its basic
+	// land types (Swamp, Mountain) could produce black and red: the 903.5d
+	// rule is what keeps the typed nonbasics (the corpus's snow duals, Dryad
+	// Arbor) in matching decks, since their parenthesised mana ability is not
+	// in the identity.
+	f2 := legalMonoWhiteCommander()
+	f2.Cards = []Entry{{"Amalia", 1}, {"Knight", 1}, {"Guard", 1}, {"Plains", 96}, {"Badlands", 1}}
+	err = f2.ValidateCommander(r)
+	if err == nil || !strings.Contains(err.Error(), "Badlands") || !strings.Contains(err.Error(), "903.5d") {
+		t.Fatalf("want a Badlands could-produce error, got %v", err)
+	}
+	// Wastes produce only colourless, which is not a colour: they fit any deck.
+	f3 := legalMonoWhiteCommander()
+	f3.Cards = []Entry{{"Amalia", 1}, {"Knight", 1}, {"Guard", 1}, {"Plains", 96}, {"Wastes", 1}}
+	if err := f3.ValidateCommander(r); err != nil {
+		t.Fatalf("Wastes wrongly rejected: %v", err)
 	}
 }
 
@@ -113,7 +159,7 @@ func TestValidateCommanderRejectsOutsideColourIdentity(t *testing.T) {
 	r := commanderFixture(t)
 	f := legalMonoWhiteCommander()
 	// Swap a Mountain for a blue Drake: identity {U} is outside {W}.
-	f.Cards = []Entry{{"Amalia", 1}, {"Knight", 1}, {"Guard", 1}, {"Mountain", 96}, {"Drake", 1}}
+	f.Cards = []Entry{{"Amalia", 1}, {"Knight", 1}, {"Guard", 1}, {"Plains", 96}, {"Drake", 1}}
 	err := f.ValidateCommander(r)
 	if err == nil || !strings.Contains(err.Error(), "Drake") || !strings.Contains(err.Error(), "blue") {
 		t.Fatalf("want a Drake colour-identity error, got %v", err)
@@ -126,7 +172,7 @@ func TestValidateCommanderNamesEveryOffender(t *testing.T) {
 	f := File{
 		Name:      "BAD",
 		Commander: "Amalia",
-		Cards:     []Entry{{"Amalia", 1}, {"Orc", 2}, {"Mountain", 40}},
+		Cards:     []Entry{{"Amalia", 1}, {"Orc", 2}, {"Plains", 40}},
 	}
 	err := f.ValidateCommander(r)
 	if err == nil {
@@ -194,9 +240,53 @@ func TestValidateCommanderRejectsNonEligibleCommander(t *testing.T) {
 
 func TestValidateCommanderAcceptsLegendarySpacecraft(t *testing.T) {
 	r := commanderFixture(t)
-	f := File{Name: "SPACECRAFT", Commander: "Hearthhull", Cards: []Entry{{"Hearthhull", 1}, {"Mountain", 99}}}
+	f := File{Name: "SPACECRAFT", Commander: "Hearthhull", Cards: []Entry{{"Hearthhull", 1}, {"Wastes", 99}}}
 	if err := f.ValidateCommander(r); err != nil {
 		t.Fatalf("legendary Spacecraft commander rejected: %v", err)
+	}
+}
+
+// TestValidateCommanderRejectsPTLessSpacecraftCommander pins the other half
+// of CR 903.3's Spacecraft carve-out: a legendary Spacecraft WITHOUT a
+// printed power/toughness box — it carries a defense box instead — is not a
+// legal commander. The Eternity Elevator is the corpus's real example.
+func TestValidateCommanderRejectsPTLessSpacecraftCommander(t *testing.T) {
+	blob := corpusCardScript(t, "t/the_eternity_elevator.txt")
+	c, diags := cards.ParseBytes("elevator.txt", blob)
+	if len(diags) > 0 {
+		t.Fatalf("The Eternity Elevator parse: %v", diags)
+	}
+	// Pin the face first: a legendary Spacecraft with NO PT field.
+	f := c.Faces[0]
+	if !f.IsLegendary() || !f.IsSpacecraft() || f.PT != "" {
+		t.Fatalf("fixture drift: The Eternity Elevator parsed as Types %v PT %q; want a Legendary Spacecraft with no power/toughness box", f.Types, f.PT)
+	}
+	if IsCommanderEligible(c) {
+		t.Fatal("IsCommanderEligible(The Eternity Elevator) = true: a Spacecraft with no power/toughness box is not a legal commander (CR 903.3)")
+	}
+}
+
+// TestIsCommanderEligibleAcceptsLegendaryVehicle pins CR 903.3(b): a Vehicle
+// card is commander-eligible — Vehicles are always printed with a
+// power/toughness box. Shorikai, Genesis Engine is the corpus's real example.
+func TestIsCommanderEligibleAcceptsLegendaryVehicle(t *testing.T) {
+	blob := corpusCardScript(t, "s/shorikai_genesis_engine.txt")
+	c, diags := cards.ParseBytes("shorikai.txt", blob)
+	if len(diags) > 0 {
+		t.Fatalf("Shorikai parse: %v", diags)
+	}
+	f := c.Faces[0]
+	if !f.IsLegendary() || !f.IsVehicle() || f.PT == "" {
+		t.Fatalf("fixture drift: Shorikai parsed as Types %v PT %q; want a Legendary Vehicle with a power/toughness box", f.Types, f.PT)
+	}
+	if !IsCommanderEligible(c) {
+		t.Fatal("IsCommanderEligible(Shorikai, Genesis Engine) = false: a legendary Vehicle is a legal commander (CR 903.3)")
+	}
+	// And a fixture Vehicle validates as a commander end to end.
+	r := commanderFixture(t)
+	deck := File{Name: "VEH", Commander: "Genesis Engine", Cards: []Entry{{"Genesis Engine", 1}, {"Wastes", 99}}}
+	if err := deck.ValidateCommander(r); err != nil {
+		t.Fatalf("legendary Vehicle commander rejected: %v", err)
 	}
 }
 
@@ -205,8 +295,9 @@ func TestValidateCommanderAcceptsOracleMarkedCommander(t *testing.T) {
 	// Isahara is a planeswalker, not a legendary creature, but says it can be
 	// your commander in its Oracle: it must be accepted as commander. Its
 	// colour identity is empty ({3} cost), so the rest of the deck must be
-	// colourless too — hence only basic Mountains beside it.
-	f := File{Name: "IS", Commander: "Isahara", Cards: []Entry{{"Isahara", 1}, {"Mountain", 99}}}
+	// colourless too — hence only basic Wastes beside it (a Plains could
+	// produce white, which CR 903.5d binds to the commander's identity).
+	f := File{Name: "IS", Commander: "Isahara", Cards: []Entry{{"Isahara", 1}, {"Wastes", 99}}}
 	if err := f.ValidateCommander(r); err != nil {
 		t.Fatalf("oracle-marked commander rejected: %v", err)
 	}
@@ -214,6 +305,19 @@ func TestValidateCommanderAcceptsOracleMarkedCommander(t *testing.T) {
 	f.Commander = "Drake"
 	if err := f.ValidateCommander(r); err == nil || !strings.Contains(err.Error(), "legendary creature") {
 		t.Fatalf("want a not-eligible error for non-marked planeswalker, got %v", err)
+	}
+}
+
+// TestValidateCommanderPTLessSpacecraftErrorText pins the eligibility error
+// text a validator caller surfaces: a legendary Vehicle and a Spacecraft with
+// a power/toughness box are inside CR 903.3's list, so the message must name
+// the full legal set, not only the creature half.
+func TestValidateCommanderPTLessSpacecraftErrorText(t *testing.T) {
+	r := commanderFixture(t)
+	f := File{Name: "E", Commander: "Drake", Cards: []Entry{{"Drake", 1}, {"Wastes", 99}}}
+	err := f.ValidateCommander(r)
+	if err == nil || !strings.Contains(err.Error(), "legendary creature") || !strings.Contains(err.Error(), "Vehicle") || !strings.Contains(err.Error(), "power/toughness") {
+		t.Fatalf("want the full CR 903.3 eligibility error, got %v", err)
 	}
 }
 

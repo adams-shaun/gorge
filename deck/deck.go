@@ -66,14 +66,23 @@ func (f File) CommanderIndex() int {
 	return idx
 }
 
-// IsCommanderEligible reports whether a card may be a commander: it is a
-// legendary creature or legendary Spacecraft, or one of the cards the corpus
-// marks as saying it can be a commander (planeswalker-legends,
+// IsCommanderEligible reports whether a card may be a commander: CR 903.3 —
+// a legendary card that is a creature card, a Vehicle card, or a Spacecraft
+// card with one or more power/toughness boxes — or one of the cards the
+// corpus marks as saying it can be a commander (planeswalker-legends,
 // Partner/choose-a-background cases, which the corpus carries only as Oracle
-// prose — see the report).
+// prose — see the report). The P/T-box carve-out is what keeps the two
+// classes apart: every Vehicle is printed with a power/toughness box, while
+// Spacecraft normally carry a defense box instead (The Eternity Elevator has
+// neither power nor toughness and is not commander-legal), but the starship
+// cycle's legendary Spacecraft with printed P/T (Dawnsire, The Seriema,
+// Hearthhull) are.
 func IsCommanderEligible(c *cards.Card) bool {
 	for _, f := range c.Faces {
-		if f.IsLegendary() && (f.IsCreature() || f.IsSpacecraft()) {
+		if !f.IsLegendary() {
+			continue
+		}
+		if f.IsCreature() || f.IsVehicle() || (f.IsSpacecraft() && hasPTBox(f)) {
 			return true
 		}
 	}
@@ -84,6 +93,10 @@ func IsCommanderEligible(c *cards.Card) bool {
 	}
 	return false
 }
+
+// hasPTBox reports whether a face is printed with a power/toughness box: any
+// non-empty PT field (a characteristic-defining "*/*" is still a box).
+func hasPTBox(f *cards.Face) bool { return f.PT != "" }
 
 // Parse decodes a deck file and rejects the shapes that would otherwise
 // fail later in a less obvious place: no cards, an unnamed entry, a
@@ -170,7 +183,7 @@ func (f File) ValidateCommander(r *cards.Registry) error {
 		return fmt.Errorf("commander %q is not in the registry", f.Commander)
 	}
 	if !IsCommanderEligible(cmdr) {
-		return fmt.Errorf("commander %q is not a legendary creature or Spacecraft, or a card that says it can be your commander", f.Commander)
+		return fmt.Errorf("commander %q is not a legendary creature, a Vehicle, or a Spacecraft with a power/toughness box, or a card that says it can be your commander", f.Commander)
 	}
 	cmdrID := cmdr.ColourIdentity()
 
@@ -202,7 +215,16 @@ func (f File) ValidateCommander(r *cards.Registry) error {
 		errs = append(errs, fmt.Sprintf("commander %q is not in the deck's card list", f.Commander))
 	}
 
-	// CR 903.4 singleton (basic lands excepted) and CR 903.5 colour identity.
+	// CR 903.4 singleton (basic lands excepted), CR 903.5 colour identity,
+	// and CR 903.5d could-produce. The last is what stops a basic land from
+	// being free: a basic land's colour IDENTITY is empty (its "{T}: Add {R}"
+	// is granted by the land type, not printed in non-reminder text), but a
+	// card WITH a basic land type may be in the deck only if every colour of
+	// mana it could produce — the colour that land type's mana ability adds
+	// — is in the commander's identity. The same check is what makes the
+	// typed nonbasics (Badlands, the snow duals, Dryad Arbor) belong to
+	// matching decks: they produce through their basic land types, and their
+	// parenthesised mana ability is not scanned into the identity.
 	for _, e := range f.Cards {
 		c := byName[cards.NormalizeName(e.Name)]
 		basic := isBasicLand(c)
@@ -213,12 +235,43 @@ func (f File) ValidateCommander(r *cards.Registry) error {
 			errs = append(errs, fmt.Sprintf("card %q has colour identity {%s}, outside commander %q's {%s}",
 				e.Name, colourNames(id), f.Commander, colourNames(cmdrID)))
 		}
+		if prod := basicLandTypeProduction(c); prod&^cmdrID != 0 {
+			errs = append(errs, fmt.Sprintf("card %q has the basic land types of a {%s} mana producer, outside commander %q's {%s} (CR 903.5d)",
+				e.Name, colourNames(prod), f.Commander, colourNames(cmdrID)))
+		}
 	}
 
 	if len(errs) > 0 {
 		return fmt.Errorf("commander deck invalid:\n  %s", strings.Join(errs, "\n  "))
 	}
 	return nil
+}
+
+// basicLandTypeProduction is the CR 903.5d could-produce set for a card with
+// a basic land type: the colour each of its basic land types' granted mana
+// ability adds (the same map cards/intrinsic.go's basicLandMana layer uses,
+// restated here because deck cannot reach it and Wastes produce only
+// colourless, which is not a colour). A card without any basic land type
+// produces nothing this rule constrains.
+func basicLandTypeProduction(c *cards.Card) uint8 {
+	var m uint8
+	for _, f := range c.Faces {
+		for _, t := range f.Types {
+			switch t {
+			case "Plains":
+				m |= cards.ColourWhite
+			case "Island":
+				m |= cards.ColourBlue
+			case "Swamp":
+				m |= cards.ColourBlack
+			case "Mountain":
+				m |= cards.ColourRed
+			case "Forest":
+				m |= cards.ColourGreen
+			}
+		}
+	}
+	return m
 }
 
 // isBasicLand reports whether a card is a basic land — the singleton rule's
