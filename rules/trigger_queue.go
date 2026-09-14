@@ -438,12 +438,10 @@ func (e *Engine) triggerOf(pt pendingTrigger) (cards.Trigger, bool) {
 // permanent -- Zaxara's "put X +1/+1 counters" reads the triggering spell).
 // The trigger object itself was never paid an X (events.Apply's TriggerPush
 // records the trigger index in Amount, and commitCast emits no CastInfo for
-// it), so its own o.X is 0 and the value must come from the causing event's
-// card -- the trigger context's TriggerCard -- while that card is still the
-// spell on the stack or the battlefield permanent it became. A card in any
-// other zone (a die trigger's corpse, a cycling card) reads 0, both because
-// events.Move resets X there and because CR 107.3m scopes the binding to the
-// spell on the stack / the permanent it became.
+// it), so its own o.X is 0. The causing event's card contributes the value
+// captured in TriggerContext.TriggerPaidX when the trigger matched. It must
+// not be read from the card at resolution: an ETB permanent can have died or
+// been bounced in the meantime, and events.Move correctly clears its live X.
 //
 // An activated ability never falls back: CR 107.3i gives its X only from the
 // {X} paid for the activation itself, recorded on the ability object by
@@ -462,17 +460,10 @@ func (e *Engine) triggerPaidX(stack state.ObjID, o *state.Object) int32 {
 		return 0
 	}
 	tc, ok := e.triggerContexts[stack]
-	if !ok || tc.TriggerCard == 0 {
+	if !ok {
 		return 0
 	}
-	c := e.G.Obj(tc.TriggerCard)
-	if c == nil || c.Face() == nil {
-		return 0
-	}
-	if c.Zone != state.ZStack && c.Zone != state.ZBattlefield {
-		return 0
-	}
-	return c.X
+	return tc.TriggerPaidX
 }
 
 func (e *Engine) findTriggerForAbility(source state.ObjID, sa *cards.SA) (cards.Trigger, bool) {

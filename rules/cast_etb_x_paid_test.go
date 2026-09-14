@@ -18,8 +18,10 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -105,6 +107,17 @@ func TestGenesisHydraCastTriggerFiresAndEtbReadsThePaidX(t *testing.T) {
 	}
 	if pushes != 1 {
 		t.Fatalf("Genesis Hydra cast-trigger TriggerPush count %d, want 1", pushes)
+	}
+	var trigger state.ObjID
+	for _, stack := range e.G.Stack {
+		o := e.G.Obj(stack)
+		if o != nil && o.Source == hydra && o.Ability != nil {
+			trigger = stack
+		}
+	}
+	if trigger == 0 || e.triggerContexts[trigger].TriggerPaidX != 3 {
+		t.Fatalf("Genesis Hydra trigger paid X = %d (stack=%d), want 3",
+			e.triggerContexts[trigger].TriggerPaidX, trigger)
 	}
 	passUntilStackEmpty(t, e, 30)
 	if o := e.G.Obj(hydra); o.Zone != state.ZBattlefield || o.Counter("P1P1") != 3 || e.Power(hydra) != 3 {
@@ -257,6 +270,68 @@ func TestReanimatedEtbXPaidCardResolvesWithXZero(t *testing.T) {
 	if o := e.G.Obj(wan2); o.Zone != state.ZBattlefield || o.Counter("P1P1") != 0 {
 		t.Fatalf("reanimated countered copy zone=%s counters=%d, want battlefield/0 (stale cast X cleared)",
 			o.Zone, o.Counter("P1P1"))
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestGadwickEtbKeepsPaidXAfterThePermanentLeaves proves that 107.3m binds
+// an ETB trigger's X when it fires. Gadwick is destroyed by a real Bolt after
+// the spell resolved and its trigger was placed on the stack; Move then clears
+// the card's live X, but the queued trigger must still draw X cards.
+func TestGadwickEtbKeepsPaidXAfterThePermanentLeaves(t *testing.T) {
+	// Gadwick's actual compiled corpus script is this exact ChangesZone,
+	// Card.Self, Count$xPaid shape, with a direct DB$ Draw observable.
+	reg := testutil.CorpusRegistry(t)
+	gadwick := mustCorpusCard(t, reg, "Gadwick, the Wizened")
+	bolt := card(t, "Name:Bolt\nManaCost:R\nTypes:Instant\nA:SP$ Destroy | ValidTgts$ Creature\nOracle:x\n")
+	cfg := Config{Seed: 127, Names: []string{"a", "b"}, Tokens: map[string]*cards.Card{},
+		Decks: [][]*cards.Card{
+			append([]*cards.Card{gadwick}, mountainDeck(t, 39)...),
+			append([]*cards.Card{bolt}, mountainDeck(t, 39)...),
+		}}
+	e := New(cfg)
+	e.Advance()
+	driveToStep(t, e, 1, 0, state.StepMain1)
+	wan := findByName(e, "Gadwick, the Wizened", 0)
+	boltID := findByName(e, "Bolt", 1)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: wan, From: e.G.Obj(wan).Zone, To: state.ZHand})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: boltID, From: e.G.Obj(boltID).Zone, To: state.ZHand})
+	e.pending = nil
+	e.priorityRound()
+	handBefore := len(e.G.Zone(state.ZHand, 0))
+	addMana(t, e, 0, "UUUUU") // {2}{U}{U}{U}
+	addMana(t, e, 1, "R")
+	submitChoices(t, e, castOptionFor(t, e, wan).Index)
+	submitChoices(t, e, 2)
+
+	// Resolve only the creature spell. The resulting ETB trigger remains on
+	// the stack, so player 1 can answer it with Bolt.
+	for steps := 0; steps < 8; steps++ {
+		if len(e.G.Stack) == 1 && e.G.Obj(e.G.Stack[0]).Ability != nil {
+			break
+		}
+		castFirst(t, e, "pass")
+	}
+	if len(e.G.Stack) != 1 || e.G.Obj(e.G.Stack[0]).Ability == nil {
+		t.Fatalf("stack after Gadwick resolved = %v, want its ETB trigger", e.G.Stack)
+	}
+	if got := e.triggerContexts[e.G.Stack[0]].TriggerPaidX; got != 2 {
+		t.Fatalf("queued ETB paid X = %d, want 2", got)
+	}
+	// The active player gets priority first after resolution; pass to player 1,
+	// who casts the real-script destroy spell before the ETB resolves.
+	castFirst(t, e, "pass")
+	if d := e.Pending(); d == nil || d.Kind != decision.KPriority || d.Player != 1 {
+		t.Fatalf("priority after player 0 passed = %+v, want player 1", d)
+	}
+	castObjTargeting(t, e, boltID, wan)
+	if o := e.G.Obj(wan); o.Zone != state.ZGraveyard || o.X != 0 {
+		t.Fatalf("destroyed Gadwick zone=%s X=%d, want graveyard/0", o.Zone, o.X)
+	}
+	// Cast -1 and the now-source-less ETB draws X=2: final hand grows by one.
+	// A live-card lookup at resolution would draw zero.
+	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+1 {
+		t.Fatalf("hand %d, want %d (draw X after source left)", got, handBefore+1)
 	}
 	replayCheck(t, e, cfg)
 }
