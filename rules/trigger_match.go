@@ -700,9 +700,9 @@ func (e *Engine) attackersDeclaredOneTargetMatches(t cards.Trigger, source state
 }
 
 // sacrificedMatches and discardedMatches identify the two actions from the
-// existing, replayed zone-change event. Every payment/effect path labels its
-// own MoveZone event, which also preserves the action when a replacement
-// changes its destination.
+// existing, replayed zone-change event. Discard producers use events.Discard
+// or events.DiscardCost, so the action marker and its cost provenance survive
+// a replacement changing the destination.
 func (e *Engine) sacrificedMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
 	if ev.Kind != events.MoveZone || !strings.HasPrefix(ev.Text, "sacrificed") {
 		return false
@@ -723,11 +723,17 @@ func (e *Engine) sacrificedMatches(t cards.Trigger, source state.ObjID, ev event
 }
 
 func (e *Engine) discardedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
-	if ev.Kind != events.MoveZone || !strings.HasPrefix(ev.Text, "discarded") ||
+	if !events.IsDiscard(ev) ||
 		!e.eventCardAndPlayerMatch(t, source, ev.Obj, e.controllerOf(ev.Obj)) {
 		return false
 	}
 	if spec := t.Params["ValidCause"]; spec != "" {
+		// A discard paid as a cost has no causing spell or ability. In
+		// particular, do not misattribute it to an unrelated object that was
+		// already on the stack when a player activated in response.
+		if events.IsDiscardCost(ev) {
+			return false
+		}
 		cause := e.actionCause()
 		if cause == 0 {
 			return false

@@ -234,7 +234,7 @@ func (e *Engine) commitManaDiscard() {
 		return
 	}
 	for _, id := range md.discards {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZGraveyard, Text: "discarded as a cost"})
+		e.emit(events.DiscardCost(id))
 	}
 	var manaTriggers []pendingTrigger
 	if md.cost.Tap {

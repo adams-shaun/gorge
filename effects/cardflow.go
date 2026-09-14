@@ -133,8 +133,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 					if !containsID(hand, id) {
 						continue
 					}
-					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-						From: state.ZHand, To: state.ZGraveyard, Player: p})
+					h.Emit(events.Discard(id, p))
 				}
 				continue
 			}
@@ -178,8 +177,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "discards its first card (no engine host to ask)"})
 			if len(hand) > 0 {
-				h.Emit(events.Event{Kind: events.MoveZone, Obj: hand[0],
-					From: state.ZHand, To: state.ZGraveyard, Player: p})
+				h.Emit(events.Discard(hand[0], p))
 			}
 
 		case "TgtChoose":
@@ -193,8 +191,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 					if !containsID(hand, id) {
 						continue
 					}
-					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-						From: state.ZHand, To: state.ZGraveyard, Player: p})
+					h.Emit(events.Discard(id, p))
 				}
 				continue
 			}
@@ -221,8 +218,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			// meaningfully resolve would just be noise (R-9 contract).
 			if int32(len(eligible)) <= n {
 				for _, id := range eligible {
-					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-						From: state.ZHand, To: state.ZGraveyard, Player: p})
+					h.Emit(events.Discard(id, p))
 				}
 				continue
 			}
@@ -249,8 +245,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "discards its first card (no engine host to ask)"})
 			for i := int32(0); i < n; i++ {
-				h.Emit(events.Event{Kind: events.MoveZone, Obj: eligible[i],
-					From: state.ZHand, To: state.ZGraveyard, Player: p})
+				h.Emit(events.Discard(eligible[i], p))
 			}
 
 		case "RevealDiscardAll":
@@ -259,8 +254,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			// NumCards$ says. No ask.
 			for _, id := range hand {
 				if MatchesSpecCtx(g, valid, id, c.SpecContext(c.Controller)) {
-					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-						From: state.ZHand, To: state.ZGraveyard, Player: p})
+					h.Emit(events.Discard(id, p))
 				}
 			}
 
@@ -282,8 +276,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 				if len(cur) == 0 {
 					break
 				}
-				h.Emit(events.Event{Kind: events.MoveZone, Obj: cur[0],
-					From: state.ZHand, To: state.ZGraveyard, Player: p})
+				h.Emit(events.Discard(cur[0], p))
 			}
 		}
 	}

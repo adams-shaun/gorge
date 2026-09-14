@@ -31,16 +31,84 @@ func TestSacrificedTriggerMayhemDevil(t *testing.T) {
 	requireOneEventTrigger(t, e, "Mayhem Devil")
 }
 
-func TestDiscardedTriggerNecropotence(t *testing.T) {
+// observedTriggerCount counts a source's trigger exactly once whether it is
+// still waiting in the trigger queue or has already been represented by the
+// replayed TriggerPush event. Submit calls Advance, so effect/cleanup tests can
+// legitimately observe either side of that placement boundary.
+func observedTriggerCount(e *Engine, source state.ObjID) int {
+	n := 0
+	for _, pt := range e.pendingTriggers {
+		if pt.Source == source {
+			n++
+		}
+	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.TriggerPush && ev.Obj == source {
+			n++
+		}
+	}
+	return n
+}
+
+// TestDiscardedTriggerNecropotenceFromResolvingEffect drives Mind Peel's real
+// corpus Discard SA through resolveTop and its mid-resolution answer. This
+// guards the producer boundary: effDiscard itself must mark the MoveZone, not
+// rely on a test manufacturing a discard label.
+func TestDiscardedTriggerNecropotenceFromResolvingEffect(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e := layerEngine(t)
-	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Necropotence"))
-	discarded := e.G.AddObject(mustCorpusCard(t, reg, "Grizzly Bears"), 0)
-	discarded.Zone = state.ZHand
-	e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), discarded.ID))
-	e.emit(events.Event{Kind: events.MoveZone, Obj: discarded.ID, From: state.ZHand,
-		To: state.ZGraveyard, Text: "discarded as a cost"})
-	requireOneEventTrigger(t, e, "Necropotence")
+	necro := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Necropotence"))
+	mindPeel := e.G.AddObject(mustCorpusCard(t, reg, "Mind Peel"), 1)
+	mindPeel.Zone = state.ZStack
+	mindPeel.Targets = []state.Target{{Player: 0, IsPlayer: true}}
+	e.G.SetZone(state.ZStack, 0, []state.ObjID{mindPeel.ID})
+
+	e.resolveTop()
+	d := e.Pending()
+	if d == nil || d.ResumeKind != "discard" || len(d.Options) == 0 {
+		t.Fatalf("Mind Peel discard decision = %+v, want a real discard ask", d)
+	}
+	discarded := d.Options[0].Obj
+	submitChoices(t, e, d.Options[0].Index)
+	if got := observedTriggerCount(e, necro); got != 1 {
+		t.Fatalf("Necropotence observed triggers = %d, want 1 from Mind Peel", got)
+	}
+	found := false
+	for _, ev := range e.L.Events {
+		if ev.Obj == discarded && events.IsDiscard(ev) && !events.IsDiscardCost(ev) {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("Mind Peel moved the chosen card without a canonical discard event")
+	}
+}
+
+// TestDiscardedTriggerNecropotenceFromCleanup drives the CR 514.1 decision
+// path. Cleanup is not an effect primitive, so it has its own discard producer
+// and must carry the same action marker without masquerading as a cost.
+func TestDiscardedTriggerNecropotenceFromCleanup(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := layerEngine(t)
+	necro := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Necropotence"))
+	e.G.Active = 0
+	e.G.Step = state.StepCleanup
+	extra := onHand(t, e, 0, "Name:Cleanup Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+
+	e.priorityRound()
+	submitDiscard(t, e, extra)
+	if got := observedTriggerCount(e, necro); got != 1 {
+		t.Fatalf("Necropotence observed triggers = %d, want 1 from cleanup discard", got)
+	}
+	found := false
+	for _, ev := range e.L.Events {
+		if ev.Obj == extra && events.IsDiscard(ev) && !events.IsDiscardCost(ev) {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("cleanup moved the chosen card without a canonical discard event")
+	}
 }
 
 func TestDiscardedTriggerValidCauseRejectsCosts(t *testing.T) {
@@ -57,14 +125,17 @@ func TestDiscardedTriggerValidCauseRejectsCosts(t *testing.T) {
 	if tr.Effect == nil || tr.Params["ValidCause"] != "SpellAbility.OppCtrl" {
 		t.Fatalf("unexpected Orvar discard trigger: %+v", tr)
 	}
-	ev := events.Event{Kind: events.MoveZone, Obj: orvar, From: state.ZHand, To: state.ZGraveyard, Text: "discarded as a cost"}
-	if e.discardedMatches(tr, orvar, ev) {
+	cost := events.DiscardCost(orvar)
+	if e.discardedMatches(tr, orvar, cost) {
 		t.Fatal("Orvar matched a discard cost with no opposing spell or ability")
 	}
 	cause := e.G.AddObject(mustCorpusCard(t, reg, "Lightning Bolt"), 1)
 	cause.Zone = state.ZStack
 	e.G.SetZone(state.ZStack, 0, []state.ObjID{cause.ID})
-	if !e.discardedMatches(tr, orvar, ev) {
+	if e.discardedMatches(tr, orvar, cost) {
+		t.Fatal("Orvar attributed a discard cost to an unrelated spell already on the stack")
+	}
+	if !e.discardedMatches(tr, orvar, events.Discard(orvar, 0)) {
 		t.Fatal("Orvar did not match a discard caused by an opponent spell")
 	}
 }
