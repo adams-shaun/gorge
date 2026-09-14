@@ -589,21 +589,14 @@ func pureGrantKeywords(ab *cards.SA) []string {
 	return grantKeywords(ab.Params["KW"])
 }
 
-// grantKeywords splits a KW$ parameter's "&"-joined keyword list into
-// head-stripped words (the same separator effects' splitKeywords uses,
-// re-expressed here because this package cannot import effects).
+// grantKeywords splits a KW$ parameter's keyword list into head-stripped
+// words through cards.SplitList -- the shared Forge list parser -- because
+// this package cannot re-express the grammar without drifting from it. Both
+// of Forge's separators (",", "&") are honoured, and each member keeps its
+// parameters until KeywordHead strips them here.
 func grantKeywords(kw string) []string {
-	kw = strings.TrimSpace(kw)
-	if kw == "" {
-		return nil
-	}
-	parts := strings.Split(kw, "&")
 	var out []string
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p == "" {
-			continue
-		}
+	for _, p := range cards.SplitList(kw) {
 		out = append(out, cards.KeywordHead(p))
 	}
 	return out

@@ -61,7 +61,7 @@ func effTap(h Host, c *Ctx, sa *cards.SA) {
 func effPump(h Host, c *Ctx, sa *cards.SA) {
 	att := Num(h, c, sa, "NumAtt", 0)
 	def := Num(h, c, sa, "NumDef", 0)
-	kws := splitKeywords(sa.Params["KW"])
+	kws := cards.SplitList(sa.Params["KW"])
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -85,7 +85,7 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 	att := Num(h, c, sa, "NumAtt", 0)
 	def := Num(h, c, sa, "NumDef", 0)
-	kws := splitKeywords(sa.Params["KW"])
+	kws := cards.SplitList(sa.Params["KW"])
 	spec := sa.Params["ValidCards"]
 	if spec == "" {
 		spec = "Creature"
@@ -124,7 +124,10 @@ func durationTiming(dur string) (permanent bool, untilEOT bool) {
 // grant for any keywords, since Derived applies each layer independently.
 // Skipping a zero/empty half avoids polluting Engine.continuous with an
 // effect that would never do anything (a keyword-only Pump has no stat
-// change to register, and vice versa).
+// change to register, and vice versa). Both KW$ readers above parse the
+// parameter through cards.SplitList -- the shared Forge list parser -- so
+// both of Forge's separators (",", "&") are honoured and a single keyword
+// with no separator comes back as a one-element slice.
 func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, kws []string, dur string) {
 	permanent, untilEOT := durationTiming(dur)
 	if att != 0 || def != 0 {
@@ -142,26 +145,6 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, kws []s
 			Duration: dur, Permanent: permanent, UntilEOT: untilEOT,
 		})
 	}
-}
-
-// splitKeywords parses a KW$ parameter's "&"-joined keyword list -- the same
-// separator Forge's own AddKeyword$ (an S:Mode$ Continuous static's
-// parameter, e.g. Sword of Fire and Ice's "Protection from red & Protection
-// from blue") uses for the same purpose. A single keyword has no "&" and
-// comes back as a one-element slice.
-func splitKeywords(kw string) []string {
-	kw = strings.TrimSpace(kw)
-	if kw == "" {
-		return nil
-	}
-	parts := strings.Split(kw, "&")
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		if p = strings.TrimSpace(p); p != "" {
-			out = append(out, p)
-		}
-	}
-	return out
 }
 
 // effAnimate does not require the target to already be on the battlefield --

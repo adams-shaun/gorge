@@ -135,17 +135,15 @@ func statInt(st cards.Static, key string) int32 {
 	return int32(n)
 }
 
-// statList splits a comma-separated additive parameter (AddKeyword,
-// AddTypes) into its members.
+// statList splits an additive static parameter (AddKeyword, AddTypes) into
+// its members through cards.SplitList -- the shared Forge list parser -- so
+// both of Forge's separators (",", "Vigilance, Trample"; "&", "Vigilance &
+// Lifelink") are honoured and a keyword carrying its own parameters
+// ("Protection from red", "Ward:1") survives intact. AddTypes$ lists are
+// written the same two ways ("Creature & Spirit"), so one parser serves
+// both.
 func statList(st cards.Static, key string) []string {
-	var out []string
-	for _, v := range strings.Split(st.Params[key], ",") {
-		v = strings.TrimSpace(v)
-		if v != "" {
-			out = append(out, v)
-		}
-	}
-	return out
+	return cards.SplitList(st.Params[key])
 }
 
 // Layer, Sublayer and ContinuousEffect moved to state/continuous.go in Task
