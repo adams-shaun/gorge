@@ -9,8 +9,10 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// Num resolves a numeric parameter. A literal is used directly; anything else
-// is treated as an SVar name whose body is a Count$ expression. An expression
+// Num resolves a numeric parameter. A literal is used directly (a leading
+// sign included); anything else is treated as an SVar name whose body is a
+// Count$ expression, after stripping a leading sign that carries Forge's
+// stat-direction convention rather than naming the reference. An expression
 // this build does not model evaluates to zero rather than to the default, so
 // the failure mode is "the card did nothing" rather than "the card did
 // something arbitrary".
@@ -24,11 +26,24 @@ func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
 	}
 	raw = strings.TrimSpace(raw)
 	if n, err := strconv.Atoi(raw); err == nil {
-		return int32(n)
+		return int32(n) // a signed literal ("+2"/"-2") lands here: Atoi eats the sign
+	}
+	// Forge writes a stat direction as a sign on the value ("NumAtt$ +X" --
+	// Goblin Piledriver), so a signed non-literal is not a reference NAMED
+	// with the sign but an ordinary reference carrying a direction. Strip a
+	// leading sign here and resolve the bare body through the fallbacks
+	// below, applying the sign to whatever they return. A lone sign with
+	// nothing after it is not a value and keeps the degrade-to-zero path.
+	sign := int32(1)
+	if len(raw) > 1 && (raw[0] == '+' || raw[0] == '-') {
+		if raw[0] == '-' {
+			sign = -1
+		}
+		raw = raw[1:]
 	}
 	if c.SVars != nil {
 		if body, ok := c.SVars[raw]; ok {
-			return EvalCount(h, c, body)
+			return sign * EvalCount(h, c, body)
 		}
 	}
 	// An inline Count$ expression (Storm's own Amount$ Count$ThisTurnCast/
@@ -38,16 +53,16 @@ func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
 	// zero, silencing the whole SpellCopy/amount the expression was meant to
 	// size). The SVar-indirection form above stays authoritative for names.
 	if strings.HasPrefix(raw, "Count$") {
-		return EvalCount(h, c, raw)
+		return sign * EvalCount(h, c, raw)
 	}
 	if strings.HasPrefix(raw, "Sacrificed$") {
-		return EvalCount(h, c, raw)
+		return sign * EvalCount(h, c, raw)
 	}
 	if strings.HasPrefix(raw, "TriggerCount$") {
-		return EvalCount(h, c, raw)
+		return sign * EvalCount(h, c, raw)
 	}
 	if raw == "X" {
-		return c.X
+		return sign * c.X
 	}
 	return 0
 }
