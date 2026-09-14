@@ -141,6 +141,13 @@ type Options struct {
 	// undone while later bursts re-use the same seq numbers for different
 	// events.
 	OnRewind OnRewindFunc
+
+	// beforeFinish is a test-only barrier immediately before play takes the
+	// match lock that linearizes a natural finish against Undo admission. It
+	// is deliberately unexported: production has no reason to delay this
+	// boundary, while the race regression must force both lock orderings
+	// without relying on scheduler timing.
+	beforeFinish func()
 }
 
 // defaultSleep is installed when Options.Sleep is nil. It is the package's

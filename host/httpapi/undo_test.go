@@ -8,6 +8,7 @@ import (
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/host"
+	"github.com/adams-shaun/gorge/protocol"
 	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
 )
@@ -63,6 +64,57 @@ func TestUndoEndpointRejectsMultiHumanTable(t *testing.T) {
 	code, body, _ := seatReq(t, http.MethodPost, srv.URL+"/api/tables/t1/matches/1/undo", session, nil)
 	if code != http.StatusConflict || !stringContainsHTTP(body.Message, "human seats") {
 		t.Fatalf("multi-human undo: status %d body %+v", code, body)
+	}
+}
+
+// TestUndoEndpointRejectsAfterMatchEnd observes the terminal stream frame
+// first, then proves a later POST cannot receive the 204 reserved for a queued
+// rewind. The human seat's short think budget lets its deterministic caretaker
+// finish the compact seed-55 fixture without an HTTP driver.
+func TestUndoEndpointRejectsAfterMatchEnd(t *testing.T) {
+	r, err := host.New(host.Options{
+		LoadDeck:     loader(t),
+		Sleep:        func(time.Duration, <-chan struct{}) {},
+		ThinkTimeout: time.Nanosecond,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { r.Close() })
+	cfg := host.TableConfig{ID: "t1", Name: "finished undo", Seats: 2, Decks: []string{"a", "b"},
+		Seed: 55, Spectator: view.Omniscient, Humans: []int{0}}
+	if err := r.AddTable(cfg); err != nil {
+		t.Fatal(err)
+	}
+
+	s := r.OpenSession()
+	t.Cleanup(func() { r.CloseSession(s.ID) })
+	if err := r.Subscribe(s, "t1", protocol.ModeOverview); err != nil {
+		t.Fatal(err)
+	}
+	matchEnd := make(chan struct{})
+	go func() {
+		for f := range s.Out() {
+			if f.T == protocol.TMatchEnd {
+				close(matchEnd)
+				return
+			}
+		}
+	}()
+	if err := r.Start("t1"); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-matchEnd:
+	case <-time.After(20 * time.Second):
+		t.Fatal("stream did not emit match_end")
+	}
+
+	srv := httptest.NewServer(NewHandler(r, Options{Seat: claimResolver(map[string]state.PlayerID{"s0": 0})}))
+	t.Cleanup(srv.Close)
+	code, body, _ := seatReq(t, http.MethodPost, srv.URL+"/api/tables/t1/matches/1/undo", "s0", nil)
+	if code != http.StatusConflict || body.Code != "conflict" {
+		t.Fatalf("undo after match_end: status %d body %+v, want 409 conflict", code, body)
 	}
 }
 

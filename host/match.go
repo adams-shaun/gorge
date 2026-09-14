@@ -490,26 +490,22 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 			return r.abort(m)
 		default:
 		}
-		// The loop is the only writer, so reading without the lock here
-		// is safe; readers on other goroutines take RLock and see either
-		// the state before or after the Lock section below.
-		if m.e.G.Over {
-			return r.finish(t, m)
+		// Atomically choose an already-accepted undo before committing a
+		// natural end. Undo reserves its request under this same match lock,
+		// so exactly one side wins: a request queued first is serviced even
+		// when the preceding burst ended the game; a finish committed first
+		// makes Undo return a conflict instead of 204-then-nothing. This check
+		// is the first operation at every post-burst loop boundary, including
+		// the boundary after the pace sleep.
+		req, undo, final := r.settleNaturalEndOrUndo(t, m)
+		if final != "" {
+			return final
 		}
-		// An undo request that arrived while the loop was busy (a burst, a
-		// bot's synchronous Decide, the pace sleep): service it at the first
-		// loop boundary — but only while the game is still live, which the
-		// Over check above has already settled. A match that reached its
-		// natural end before the signal is consumed finishes normally and the
-		// buffered signal dies with the match: a finished game is not
-		// undoable, and the client sees the end on the stream either way. The
-		// rewind itself is host/undo.go's in-place truncate; the parked
-		// decision this path abandons (when one is installed but not yet
-		// awaited) must stop being answerable BEFORE the game is rebuilt, or
-		// a submit racing the rewind would be validated against a decision
-		// the match no longer asks and silently dropped.
-		select {
-		case req := <-m.undo.signal:
+		if undo {
+			// The rewind itself is host/undo.go's in-place truncate. A parked
+			// decision this path abandons must stop being answerable BEFORE the
+			// game is rebuilt, or a submit racing the rewind could be validated
+			// against a decision the match no longer asks and silently dropped.
 			parked.abandon()
 			var err error
 			parked, err = r.serviceUndo(ctx, t, m, seats, &brd, req)
@@ -521,7 +517,6 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 			// again equals the number of intents already submitted.
 			n, lastTurn, decisionsThisTurn = m.intents-1, m.e.G.Turn, 0
 			continue
-		default:
 		}
 		if n >= maxIntents {
 			return r.crash(t, m, fmt.Errorf("did not terminate after %d intents (turn %d)", n, m.e.G.Turn))
@@ -633,9 +628,33 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	}
 }
 
-// finish records a natural end.
-func (r *Registry) finish(t *table, m *match) string {
+// settleNaturalEndOrUndo is the linearization point between an accepted undo
+// and a natural match finish. Registry.Undo reserves its request while holding
+// m.mu too. Therefore a request that wins the lock is consumed here before the
+// G.Over transition, while a finish that wins records MatchFinished before
+// Undo can return and causes that request to be rejected. An HTTP 204 can never
+// be followed by match_end without the corresponding rewind being serviced.
+//
+// The test-only barrier runs before this lock only when the game is over; it
+// lets the race regression deterministically pause finish while Undo queues.
+// The match goroutine is the sole engine writer, so the preliminary G.Over read
+// is stable until this function either services an undo or records the finish.
+func (r *Registry) settleNaturalEndOrUndo(t *table, m *match) (state.PlayerID, bool, string) {
+	if m.e.G.Over && r.opts.beforeFinish != nil {
+		r.opts.beforeFinish()
+	}
+
 	m.mu.Lock()
+	select {
+	case req := <-m.undo.signal:
+		m.mu.Unlock()
+		return req, true, ""
+	default:
+	}
+	if !m.e.G.Over {
+		m.mu.Unlock()
+		return 0, false, ""
+	}
 	m.state = protocol.MatchFinished
 	m.head = m.e.L.Head()
 	if m.e.G.Draw {
@@ -646,9 +665,10 @@ func (r *Registry) finish(t *table, m *match) string {
 		m.winner = &w
 	}
 	m.mu.Unlock()
+
 	r.onMatchEnd(t, m)      // Tasks 10, 12
 	r.observeMatchEnd(t, m) // Task M2c-1
-	return protocol.MatchFinished
+	return 0, false, protocol.MatchFinished
 }
 
 // abort records a match cut short by Close.

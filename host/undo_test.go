@@ -135,6 +135,196 @@ func waitPendingSeq(t *testing.T, r *Registry, id TableID, want uint64) *decisio
 	}
 }
 
+// driveHumanUntil answers each newly parked seat-0 decision until done fires.
+// Seed 55's sample-deck match is a compact deterministic fixture whose final
+// intent belongs to seat 0, which exposes the terminal undo boundary.
+func driveHumanUntil(t *testing.T, r *Registry, done <-chan struct{}) {
+	t.Helper()
+	deadline := time.Now().Add(20 * time.Second)
+	var last uint64
+	var answered bool
+	for {
+		select {
+		case <-done:
+			return
+		default:
+		}
+		if d, err := r.Pending("t1", 1, 0); err == nil && (!answered || d.Seq != last) {
+			if err := r.SubmitIntent("t1", 1, 0, legalIntent(d)); err != nil {
+				t.Fatalf("SubmitIntent(seq %d): %v", d.Seq, err)
+			}
+			last, answered = d.Seq, true
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("human-driven match did not reach the terminal boundary")
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+func addTerminalUndoTable(t *testing.T, r *Registry, pace time.Duration) {
+	t.Helper()
+	cfg := TableConfig{ID: "t1", Name: "terminal undo", Seats: 2, Decks: []string{"a", "b"},
+		Seed: 55, Pace: pace, Spectator: view.Omniscient, Humans: []int{0}}
+	if err := r.AddTable(cfg); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start("t1"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestUndoAfterGameEndingIntentWinsBeforeFinish covers the exact terminal
+// window from the review: seat 0's final intent makes G.Over true, fanout runs,
+// and the Undo is posted from inside the ensuing pace sleep. The accepted
+// request must rewind the live match before any match_end is emitted.
+func TestUndoAfterGameEndingIntentWinsBeforeFinish(t *testing.T) {
+	const pace = 137 * time.Nanosecond
+	o := testOptions(t)
+	undoResult := make(chan error, 1)
+	attempted := make(chan struct{})
+	rewound := make(chan struct{})
+	ended := make(chan struct{}, 1)
+	var once sync.Once
+	var r *Registry
+	o.OnRewind = func(_ TableID, _ int, _ int, _ uint64) error {
+		close(rewound)
+		return nil
+	}
+	o.OnMatchEnd = func(_ TableID, _ int, _ protocol.MatchInfo) error {
+		ended <- struct{}{}
+		return nil
+	}
+	o.Sleep = func(d time.Duration, _ <-chan struct{}) {
+		if d != pace || r == nil {
+			return
+		}
+		r.mu.RLock()
+		tb := r.tables["t1"]
+		r.mu.RUnlock()
+		if tb == nil {
+			return
+		}
+		tb.mu.RLock()
+		m := tb.cur
+		tb.mu.RUnlock()
+		if m == nil {
+			return
+		}
+		m.mu.RLock()
+		over := m.e.G.Over
+		lastHuman := len(m.e.L.Intents) > 0 && m.e.L.Intents[len(m.e.L.Intents)-1].Player == 0
+		m.mu.RUnlock()
+		if over && lastHuman {
+			once.Do(func() {
+				undoResult <- r.Undo("t1", 1, 0)
+				close(attempted)
+			})
+		}
+	}
+	var err error
+	r, err = New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { r.Close() })
+	addTerminalUndoTable(t, r, pace)
+
+	s := r.OpenSession()
+	t.Cleanup(func() { r.CloseSession(s.ID) })
+	if err := r.Subscribe(s, "t1", protocol.ModeFocus); err != nil {
+		t.Fatal(err)
+	}
+	// Drain throughout the match so the session's bounded ring cannot
+	// overflow before the terminal frame whose ordering this test checks.
+	streamTerminal := make(chan protocol.FrameType, 1)
+	go func() {
+		for f := range s.Out() {
+			if f.T == protocol.TMatchEnd || f.T == protocol.TRewind {
+				streamTerminal <- f.T
+				return
+			}
+		}
+	}()
+	driveHumanUntil(t, r, attempted)
+	if err := <-undoResult; err != nil {
+		t.Fatalf("Undo in terminal pace sleep: %v", err)
+	}
+
+	select {
+	case <-rewound:
+	case <-time.After(20 * time.Second):
+		t.Fatal("accepted terminal Undo did not call OnRewind")
+	}
+	select {
+	case got := <-streamTerminal:
+		if got == protocol.TMatchEnd {
+			t.Fatal("match_end was emitted before the accepted terminal Undo rewound")
+		}
+	case <-time.After(20 * time.Second):
+		t.Fatal("focus stream did not receive rewind")
+	}
+	select {
+	case <-ended:
+		t.Fatal("OnMatchEnd fired for a match rewound out of game over")
+	default:
+	}
+	m := liveMatch(t, r, "t1")
+	m.mu.RLock()
+	state, over := m.state, m.e.G.Over
+	m.mu.RUnlock()
+	if state != protocol.MatchLive || over {
+		t.Fatalf("terminal rewind left state=%s over=%v, want live/non-over", state, over)
+	}
+}
+
+// TestUndoRacingFinishIsLinearizable pauses play immediately before finish's
+// match-lock acquisition. Undo queues while finish is stopped at that barrier,
+// so the boundary must consume it; if finish won the lock instead, Undo would
+// have to return an error. It may never return success and disappear.
+func TestUndoRacingFinishIsLinearizable(t *testing.T) {
+	o := testOptions(t)
+	atFinish := make(chan struct{})
+	releaseFinish := make(chan struct{})
+	rewound := make(chan struct{})
+	ended := make(chan struct{}, 1)
+	var enterOnce, releaseOnce sync.Once
+	t.Cleanup(func() { releaseOnce.Do(func() { close(releaseFinish) }) })
+	o.beforeFinish = func() {
+		enterOnce.Do(func() { close(atFinish) })
+		<-releaseFinish
+	}
+	o.OnRewind = func(_ TableID, _ int, _ int, _ uint64) error {
+		close(rewound)
+		return nil
+	}
+	o.OnMatchEnd = func(_ TableID, _ int, _ protocol.MatchInfo) error {
+		ended <- struct{}{}
+		return nil
+	}
+	r, err := New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { r.Close() })
+	addTerminalUndoTable(t, r, 0)
+	driveHumanUntil(t, r, atFinish)
+
+	// finish has observed G.Over but has not acquired m.mu. Undo can reserve
+	// under that lock first, which fixes the previously lost-204 interleaving.
+	if err := r.Undo("t1", 1, 0); err != nil {
+		t.Fatalf("Undo while finish was paused: %v", err)
+	}
+	releaseOnce.Do(func() { close(releaseFinish) })
+	select {
+	case <-rewound:
+	case <-ended:
+		t.Fatal("Undo returned success but finish emitted match_end")
+	case <-time.After(20 * time.Second):
+		t.Fatal("Undo returned success but neither rewind nor match_end was observed")
+	}
+}
+
 // TestUndoRewindsToTheRequesterLastDecisionAndReplaysIdentically is the
 // headline property: after an undo the requester is pending on the very
 // decision their last intent answered, the log holds exactly the first n
