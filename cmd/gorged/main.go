@@ -279,7 +279,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	// server never creates a directory it did not ask for -- and a submission
 	// to a server with feedback off is a 404 rather than a silent success.
 	if c.feedback != "" {
-		fb, err := newFeedbackStore(c.feedback)
+		fb, err := newFeedbackStore(c.feedback, r)
 		if err != nil {
 			return err
 		}

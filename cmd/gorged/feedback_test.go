@@ -82,7 +82,7 @@ func readReport(t *testing.T, dir string) report {
 
 func newTestStore(t *testing.T) *feedbackStore {
 	t.Helper()
-	fs, err := newFeedbackStore(filepath.Join(t.TempDir(), "feedback"))
+	fs, err := newFeedbackStore(filepath.Join(t.TempDir(), "feedback"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
