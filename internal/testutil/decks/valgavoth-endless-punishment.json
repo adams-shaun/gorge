@@ -3,7 +3,7 @@
   "format": "commander",
   "commander": "Valgavoth, Harrower of Souls",
   "archetype": "rakdos-punisher",
-  "notes": "MTGGoldfish Endless Punishment upgrade list: https://www.mtggoldfish.com/deck/7944729 (downloaded 2026-09-14); estimated bracket 4+ with 6 Game Changers. ENGINE-RISK: Ward's pay-life cost; opponent-loses-life triggers that draw or add counters; punisher/replacement damage; Duskmourn Rooms and their UnlockDoor/manifest-dread-era mechanics.",
+  "notes": "MTGGoldfish Endless Punishment upgrade list: https://www.mtggoldfish.com/deck/7944729 (downloaded 2026-09-14); estimated bracket 4+ with 6 Game Changers. ENGINE-RISK: Valgavoth, Harrower of Souls and Vein Ripper ward costs (including pay life); Valgavoth, Ob Nixilis, Captive Kingpin, Underworld Dreams, Sheoldred, the Apocalypse, Archfiend of Despair, and Sulfuric Vortex opponent-life-loss/draw/punisher effects; Fiery Emancipation, Ojer Axonil, Solphim, and Uncivil Unrest damage replacement; Spiked Corridor and Unholy Annex Duskmourn Room UnlockDoor mechanics (manifest dread is absent).",
   "cards": [
     {"name": "Ankh of Mishra", "count": 1},
     {"name": "Arcane Signet", "count": 1},
