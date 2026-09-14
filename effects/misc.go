@@ -671,14 +671,14 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// effBecomeMonarch records who becomes the monarch. Monarchy itself is
-// game-level state Task 22 adds; M1 only has the Note.
+// effBecomeMonarch records the game-level designation as an event so a
+// conditional trigger observes it identically in the live game and on replay.
 func effBecomeMonarch(h Host, c *Ctx, sa *cards.SA) {
 	targets := Defined(h, c, sa)
 	if len(targets) == 0 {
 		return
 	}
-	h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, targets[0]), Text: "becomes the monarch"})
+	h.Emit(events.Event{Kind: events.MonarchChange, Player: PlayerOf(h, c, targets[0])})
 }
 
 // effRestartGame ends the game as a draw. Actually restarting (leaving

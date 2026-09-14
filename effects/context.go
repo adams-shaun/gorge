@@ -67,8 +67,22 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 			return []state.Target{{Obj: c.Replaced}}
 		}
 		return nil
-	case "TriggeredDefendingPlayer", "TriggeredPlayer":
+	case "TriggeredDefendingPlayer":
+		if out := oneTriggerPlayer(c.DefendingPlayer); out != nil {
+			return out
+		}
 		return playersOf(c.Remembered)
+	case "TriggeredPlayer":
+		if out := oneTriggerPlayer(c.TriggerPlayer); out != nil {
+			return out
+		}
+		return playersOf(c.Remembered)
+	case "TriggeredAttackingPlayer":
+		return oneTriggerPlayer(c.AttackingPlayer)
+	case "TriggeredAttackedTarget":
+		return oneTriggerPlayer(c.AttackedTarget)
+	case "TriggeredActivator":
+		return oneTriggerPlayer(c.TriggerActivator)
 	case "TriggeredCardController":
 		for _, t := range c.Remembered {
 			if !t.IsPlayer {
@@ -101,6 +115,23 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		}
 		return out
 	}
+	// Forge joins independent Defined selectors with " & " to name all of
+	// them (Karazikar's "TriggeredAttackingPlayer & You" is the corpus
+	// example), not their set intersection. Resolve each known selector in
+	// script order so player effects act on both players deterministically.
+	if strings.Contains(sa.Params["Defined"], " & ") {
+		var out []state.Target
+		for _, part := range strings.Split(sa.Params["Defined"], " & ") {
+			copy := *sa
+			copy.Params = make(map[string]string, len(sa.Params))
+			for k, v := range sa.Params {
+				copy.Params[k] = v
+			}
+			copy.Params["Defined"] = strings.TrimSpace(part)
+			out = append(out, Defined(h, c, &copy)...)
+		}
+		return out
+	}
 	// Any Defined$ form M1 does not model falls back to the chosen targets
 	// rather than silently acting on nothing.
 	return copyTargets(c.Targets)
@@ -121,6 +152,13 @@ func objectsOf(ts []state.Target) []state.Target {
 
 // playersOf returns Remembered's player entries (IsPlayer true) as a fresh
 // slice.
+func oneTriggerPlayer(t state.Target) []state.Target {
+	if !t.IsPlayer {
+		return nil
+	}
+	return []state.Target{t}
+}
+
 func playersOf(ts []state.Target) []state.Target {
 	var out []state.Target
 	for _, t := range ts {

@@ -439,8 +439,9 @@ type Engine struct {
 	// not an Event field: changing Tap's encoded payload would move every chain
 	// head even in games with no TapsForMana trigger. emitManaTap sets and clears
 	// it around emit; Clone only runs at an intent boundary, where it is zero.
-	tappingForMana state.ObjID
-	manaTapPlayer  state.PlayerID
+	tappingForMana      state.ObjID
+	manaTapPlayer       state.PlayerID
+	tappingManaProduced string
 
 	// foreachBuf is forEachObject's (trigger_match.go) scratch snapshot
 	// buffer. forEachObject copies each zone into it before walking it -- fn

@@ -368,7 +368,11 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
 		}
 		if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
-			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: owner})
+			// This establishes the object's entry state; it is not the CR
+			// 701.21a event of becoming tapped. Text is part of the replayed
+			// event payload, so rules can distinguish it from an ordinary Tap
+			// while replay folds the same tapped state.
+			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: owner, Text: "entered tapped"})
 		}
 	}
 

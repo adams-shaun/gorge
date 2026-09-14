@@ -723,8 +723,34 @@ func (e *Engine) sacrificedMatches(t cards.Trigger, source state.ObjID, ev event
 }
 
 func (e *Engine) discardedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
-	return ev.Kind == events.MoveZone && strings.HasPrefix(ev.Text, "discarded") &&
-		e.eventCardAndPlayerMatch(t, source, ev.Obj, e.controllerOf(ev.Obj))
+	if ev.Kind != events.MoveZone || !strings.HasPrefix(ev.Text, "discarded") ||
+		!e.eventCardAndPlayerMatch(t, source, ev.Obj, e.controllerOf(ev.Obj)) {
+		return false
+	}
+	if spec := t.Params["ValidCause"]; spec != "" {
+		cause := e.actionCause()
+		if cause == 0 {
+			return false
+		}
+		o := e.G.Obj(cause)
+		if o == nil || !state.StackKindAdmits(state.StackKindTokens(spec), state.StackKindOf(e.G, o), o,
+			o.Controller, e.controllerOf(source)) {
+			return false
+		}
+	}
+	return true
+}
+
+// actionCause is the stack object whose resolving effect caused a synchronous
+// action event. Costs are paid before an activated ability exists on the stack,
+// so they deliberately have no cause and cannot satisfy ValidCause$. This is
+// replay-safe: action triggers are checked synchronously inside emit, while
+// the resolving object is still at the top of the replayed stack.
+func (e *Engine) actionCause() state.ObjID {
+	if len(e.G.Stack) == 0 {
+		return 0
+	}
+	return e.G.Stack[len(e.G.Stack)-1]
 }
 
 // tapsMatches handles both becomes-tapped and tapped-for-mana triggers. A
@@ -732,7 +758,10 @@ func (e *Engine) discardedMatches(t cards.Trigger, source state.ObjID, ev events
 // ordinary Tap events deliberately do not, so attacking and a spell that taps
 // a permanent never masquerade as producing mana.
 func (e *Engine) tapsMatches(t cards.Trigger, source state.ObjID, ev events.Event, forMana bool) bool {
-	if ev.Kind != events.Tap || ev.Obj == 0 || (forMana && e.tappingForMana != ev.Obj) {
+	// A permanent entering tapped did not become tapped. ChangeZone marks that
+	// replayed state transition explicitly, so it cannot fire a Taps trigger.
+	if ev.Kind != events.Tap || ev.Obj == 0 || ev.Text == "entered tapped" ||
+		(forMana && e.tappingForMana != ev.Obj) {
 		return false
 	}
 	actor := e.controllerOf(ev.Obj)
@@ -748,7 +777,23 @@ func (e *Engine) tapsMatches(t cards.Trigger, source state.ObjID, ev events.Even
 			return false
 		}
 	}
+	if forMana && !tapsForManaProduced(t.Params["Produced"], e.tappingManaProduced) {
+		return false
+	}
 	return e.eventCardAndPlayerMatch(t, source, ev.Obj, actor)
+}
+
+// tapsForManaProduced matches the declared output grammar on the T: line.
+// A literal output is known only when the activating mana ability declares
+// that same literal; Any/ChosenColor is a player choice this engine does not
+// retain at the Tap boundary and therefore fails closed rather than firing a
+// colour-restricted trigger for the wrong mana.
+func tapsForManaProduced(want, produced string) bool {
+	want = strings.TrimSpace(want)
+	if want == "" {
+		return true
+	}
+	return want == strings.TrimSpace(produced)
 }
 
 // commitCrimeMatches implements CR 700.13: targeting an opponent, a
@@ -1049,7 +1094,38 @@ func (e *Engine) triggerConditionHolds(t cards.Trigger, source state.ObjID) bool
 			return false
 		}
 	}
+	if spec, ok := t.Params["CheckDefinedPlayer"]; ok && !e.checkDefinedPlayerHolds(spec, e.controllerOf(source)) {
+		return false
+	}
 	return true
+}
+
+// checkDefinedPlayerHolds evaluates the player-state predicate class used by
+// event-trigger conditions. The supported isMonarch form covers both the
+// controller and opponent selectors; any other property fails closed instead
+// of letting an unread intervening condition fire.
+func (e *Engine) checkDefinedPlayerHolds(spec string, you state.PlayerID) bool {
+	base, property, ok := strings.Cut(strings.TrimSpace(spec), ".")
+	if !ok || property != "isMonarch" {
+		return false
+	}
+	switch base {
+	case "You":
+		return e.G.IsMonarch(you)
+	case "Opponent", "Other":
+		for _, p := range e.G.AliveFrom(you) {
+			if p != you && e.G.IsMonarch(p) {
+				return true
+			}
+		}
+	case "Player", "Any":
+		for _, p := range e.G.AliveFrom(0) {
+			if e.G.IsMonarch(p) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // lifeConditionHolds evaluates the LifeTotal$/LifeAmount$ intervening-if.

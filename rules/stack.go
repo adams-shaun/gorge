@@ -390,6 +390,60 @@ func (e *Engine) legalTargetCandidates(p state.PlayerID, source, excludeSelf sta
 			}
 		}
 	}
+	return e.filterTargetsWithDefinedController(out, sa, sc)
+}
+
+// filterTargetsWithDefinedController implements the common target restriction
+// that says the chosen object must be controlled by an event-role player. It
+// is deliberately applied once after every zone's candidates are collected,
+// so battlefield, graveyard and stack target offers cannot drift apart.
+func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *cards.SA, sc effects.SpecContext) []targetCandidate {
+	ref := strings.TrimSpace(sa.Params["TargetsWithDefinedController"])
+	if ref == "" {
+		return in
+	}
+	var player state.PlayerID
+	var ok bool
+	switch ref {
+	case "TriggeredTarget":
+		if sc.TriggerTarget.IsPlayer {
+			player, ok = sc.TriggerTarget.Player, true
+		} else if o := e.G.Obj(sc.TriggerTarget.Obj); o != nil {
+			player, ok = o.Controller, true
+		}
+	case "TriggeredDefendingPlayer":
+		if sc.DefendingPlayer.IsPlayer {
+			player, ok = sc.DefendingPlayer.Player, true
+		}
+	case "TriggeredPlayer":
+		if sc.TriggerPlayer.IsPlayer {
+			player, ok = sc.TriggerPlayer.Player, true
+		}
+	case "TriggeredAttackingPlayer":
+		if sc.AttackingPlayer.IsPlayer {
+			player, ok = sc.AttackingPlayer.Player, true
+		}
+	case "TriggeredAttackedTarget":
+		if sc.AttackedTarget.IsPlayer {
+			player, ok = sc.AttackedTarget.Player, true
+		}
+	case "TriggeredCardController":
+		if o := e.G.Obj(sc.TriggerCard); o != nil {
+			player, ok = o.Controller, true
+		}
+	}
+	if !ok {
+		return nil // an unbound or unsupported event role must not widen targets.
+	}
+	out := in[:0]
+	for _, candidate := range in {
+		if candidate.kind != "permanent" {
+			continue
+		}
+		if o := e.G.Obj(candidate.obj); o != nil && o.Controller == player {
+			out = append(out, candidate)
+		}
+	}
 	return out
 }
 

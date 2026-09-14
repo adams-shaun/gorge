@@ -33,6 +33,11 @@ func Apply(g *state.Game, e Event) {
 			g.SetZone(state.ZLibrary, e.Player, append([]state.ObjID(nil), e.IDs...))
 		}
 
+	case MonarchChange:
+		if validPlayer(g, e.Player) {
+			g.Monarch, g.HasMonarch = e.Player, true
+		}
+
 	case LibraryOrder:
 		// A library-arranging effect (Ponder, later Scry/Surveil) set a
 		// complete new order on a player's library. Mechanically identical to

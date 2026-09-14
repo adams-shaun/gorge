@@ -15,11 +15,14 @@ import (
 // active player, a damage recipient and a damage source are not interchangeable.
 // Unsupported/ambiguous event roles stay absent rather than guessing.
 type TriggerContext struct {
-	TriggerTarget   state.Target
-	TriggerSource   state.ObjID
-	DefendingPlayer state.Target
-	TriggerPlayer   state.Target
-	TriggerCard     state.ObjID
+	TriggerTarget    state.Target
+	TriggerSource    state.ObjID
+	DefendingPlayer  state.Target
+	TriggerPlayer    state.Target
+	TriggerCard      state.ObjID
+	AttackingPlayer  state.Target
+	AttackedTarget   state.Target
+	TriggerActivator state.Target
 	// TriggerAmount is the magnitude the causing event carried -- the Damage
 	// event's dealt-damage amount for a DamageDone/DamageDealtOnce trigger,
 	// etc. It is what the TriggerCount$ heads (DamageAmount, LifeAmount,
