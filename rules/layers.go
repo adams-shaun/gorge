@@ -81,7 +81,7 @@ func (e *Engine) staticEffects() []ContinuousEffect {
 				if hasStat(st, "AddKeyword") {
 					kw := base
 					kw.Layer = LAbilities
-					kw.AddKeywords = statList(st, "AddKeyword")
+					kw.AddKeywords = statKeywords(st)
 					out = append(out, kw)
 				}
 				if hasStat(st, "AddType") || hasStat(st, "AddTypes") {
@@ -135,8 +135,16 @@ func statInt(st cards.Static, key string) int32 {
 	return int32(n)
 }
 
-// statList splits a comma-separated additive parameter (AddKeyword,
-// AddTypes) into its members.
+// statKeywords parses AddKeyword$ through the shared Forge keyword-list
+// parser. In particular its ampersands divide keywords while commas remain
+// inside a keyword's parameters.
+func statKeywords(st cards.Static) []string {
+	return cards.SplitKeywordList(st.Params["AddKeyword"])
+}
+
+// statList parses additive TYPE parameters. Type lists retain their existing
+// comma-separated grammar; they must not use SplitKeywordList, whose
+// ampersand grammar is specific to keyword parameters.
 func statList(st cards.Static, key string) []string {
 	var out []string
 	for _, v := range strings.Split(st.Params[key], ",") {

@@ -42,6 +42,27 @@ func KeywordHead(k string) string {
 	return strings.TrimSpace(k)
 }
 
+// SplitKeywordList parses Forge's ampersand-joined keyword-list grammar.
+// StaticAbilityContinuous.java splits AddKeyword$ on " & ", and Pump's KW$
+// uses the same form: "Vigilance & Lifelink" is two keywords. A comma is NOT
+// a list separator. Keyword parameters use commas themselves, for example
+// "Protection:Spell.Instant,Spell.Sorcery:..." and
+// "OnlyUntapChosen:Artifact,Creature,Land", and must stay one member.
+//
+// Whitespace around each member is trimmed, empty members are dropped, and an
+// absent or empty list yields nil. Every implemented keyword-list reader uses
+// this function; type-list parsing is deliberately separate because it has a
+// different Forge grammar.
+func SplitKeywordList(list string) []string {
+	var out []string
+	for _, part := range strings.Split(list, "&") {
+		if part = strings.TrimSpace(part); part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
+}
+
 func (f *Face) HasKeyword(k string) bool {
 	for _, x := range f.Keywords {
 		if strings.EqualFold(KeywordHead(x), k) {
