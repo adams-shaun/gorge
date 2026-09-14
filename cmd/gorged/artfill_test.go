@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -415,6 +416,118 @@ func TestRunPrewarmArtOnlyExitCodeWiring(t *testing.T) {
 }
 
 func srvImg(r *http.Request) string { return "http://" + r.Host + "/img/alpha.jpg" }
+
+// TestSiblingImageFailureFailsTheFillAndRemainsRetryable is the sol2 review
+// regression: a successful requested-face download followed by a failed
+// sibling CDN download must make the one-shot exit non-zero, not claim the
+// deck name was cached. The requested artifact that initiated fetch/fetchFacts
+// is rolled back on that failure so a later pass retries the SAME deck name;
+// otherwise its warm primary face would hide the missing sibling forever.
+// Both callers of cacheSiblingFaces are exercised so their contracts cannot
+// drift: a fully cold fetch and a legacy JPG whose facts need backfilling.
+func TestSiblingImageFailureFailsTheFillAndRemainsRetryable(t *testing.T) {
+	var failBack atomic.Bool
+	failBack.Store(true)
+	var frontHits, backHits atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("/cards/named", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"name":"Alpha Card // Alpha Back","card_faces":[
+			{"name":"Alpha Card","image_uris":{"normal":"http://%s/img/front.jpg"}},
+			{"name":"Alpha Back","image_uris":{"normal":"http://%s/img/back.jpg"}}]}`,
+			r.Host, r.Host)
+	})
+	mux.HandleFunc("/img/front.jpg", func(w http.ResponseWriter, _ *http.Request) {
+		frontHits.Add(1)
+		_, _ = io.WriteString(w, "front")
+	})
+	mux.HandleFunc("/img/back.jpg", func(w http.ResponseWriter, _ *http.Request) {
+		backHits.Add(1)
+		if failBack.Load() {
+			http.Error(w, "expired sibling image", http.StatusInternalServerError)
+			return
+		}
+		_, _ = io.WriteString(w, "back")
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	newFixtureCache := func(dir string) (*artCache, error) {
+		ac, err := newArtCache(dir)
+		if err != nil {
+			return nil, err
+		}
+		ac.client = srv.Client()
+		ac.namedBaseURL = srv.URL + "/cards/named?exact="
+		ac.pace = 0
+		return ac, nil
+	}
+	decks := prewarmNamedDir(t, "Alpha Card")
+
+	t.Run("cold fetch controls one-shot exit", func(t *testing.T) {
+		orig := newServeArtCache
+		newServeArtCache = newFixtureCache
+		t.Cleanup(func() { newServeArtCache = orig })
+		artDir := t.TempDir()
+
+		if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: artDir}); code != 1 {
+			t.Fatalf("one-shot with failed sibling image = exit %d, want 1", code)
+		}
+		if frontHits.Load() == 0 || backHits.Load() == 0 {
+			t.Fatalf("downloads after first fill: front=%d back=%d, want both attempted", frontHits.Load(), backHits.Load())
+		}
+		if fileExists(filepath.Join(artDir, artKey("Alpha Back")+".jpg")) {
+			t.Fatal("failed sibling image unexpectedly exists")
+		}
+
+		failBack.Store(false)
+		if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: artDir}); code != 0 {
+			t.Fatalf("one-shot retry after sibling recovers = exit %d, want 0", code)
+		}
+		for _, name := range []string{"Alpha Card", "Alpha Back"} {
+			key := artKey(name)
+			if !fileExists(filepath.Join(artDir, key+".jpg")) || !fileExists(filepath.Join(artDir, key+".json")) {
+				t.Errorf("retry left %q incomplete", name)
+			}
+		}
+	})
+
+	t.Run("facts backfill propagates sibling failure", func(t *testing.T) {
+		failBack.Store(true)
+		artDir := t.TempDir()
+		ac, err := newFixtureCache(artDir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		frontKey := artKey("Alpha Card")
+		if err := os.WriteFile(ac.jpgPath(frontKey), []byte("legacy front"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+
+		st, err := fillArt(context.Background(), ac, decks, "art fill", t.Logf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if st.Failed != 1 || st.Cached != 0 {
+			t.Fatalf("facts-backfill stats = %+v, want Failed=1 Cached=0", st)
+		}
+		if fileExists(ac.factsPath(frontKey)) {
+			t.Fatal("requested facts remained warm and would hide the failed sibling on the next pass")
+		}
+
+		failBack.Store(false)
+		st, err = fillArt(context.Background(), ac, decks, "art fill", t.Logf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if st.Failed != 0 || st.Cached != 1 {
+			t.Fatalf("facts-backfill retry stats = %+v, want Cached=1 Failed=0", st)
+		}
+		if !fileExists(ac.jpgPath(artKey("Alpha Back"))) || !fileExists(ac.factsPath(artKey("Alpha Back"))) {
+			t.Fatal("facts-backfill retry did not complete the sibling cache")
+		}
+	})
+}
 
 // TestFetchCachesBothFacesOfAMultiFacedCard is brief item 2's DFC gate: one
 // named lookup for a transform card's front face also lands the BACK face's

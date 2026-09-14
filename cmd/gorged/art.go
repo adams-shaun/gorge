@@ -558,17 +558,29 @@ func (a *artCache) fetch(ctx context.Context, key, name string) (bool, error) {
 	// One named response carries every face of the card: cache the OTHER
 	// faces too, so a transformed split/DFC the deck only names on one side
 	// is already on disk when a client asks for the face it transformed
-	// into — zero extra api.scryfall.com requests.
-	a.cacheSiblingFaces(ctx, card, name)
+	// into — zero extra api.scryfall.com requests. A sibling failure makes
+	// this name's fetch fail: otherwise the one-shot fill would report a
+	// complete cache while a requested sibling was still absent.
+	if err := a.cacheSiblingFaces(ctx, card, name); err != nil {
+		// fetch is entered only when this JPG was absent. Remove the artifact
+		// just published so the next prewarm pass cannot mistake the requested
+		// face for a complete warm hit and will retry the named response and
+		// its siblings. The facts sidecar can remain useful meanwhile.
+		if rerr := os.Remove(a.jpgPath(key)); rerr != nil && !os.IsNotExist(rerr) {
+			return false, fmt.Errorf("%w (also could not remove requested image for retry: %v)", err, rerr)
+		}
+		return false, err
+	}
 	return true, nil
 }
 
 // cacheSiblingFaces writes the art and facts of every face of a multi-faced
 // card other than the name that was asked for, from the SAME named response
 // (no extra Scryfall API request; each face's image is one CDN download).
-// Failures are skipped, not fatal: the name stays unfetched on disk and the
-// ordinary ensure path self-heals it on the next request or prewarm pass.
-func (a *artCache) cacheSiblingFaces(ctx context.Context, card *scryNamed, requested string) {
+// Every failure is returned to fetch/fetchFacts: sibling faces are part of a
+// complete fill, so silently skipping one would make the summary and one-shot
+// exit status claim success for an incomplete cache.
+func (a *artCache) cacheSiblingFaces(ctx context.Context, card *scryNamed, requested string) error {
 	for i := range card.CardFaces {
 		face := &card.CardFaces[i]
 		fname := strings.TrimSpace(face.Name)
@@ -578,13 +590,16 @@ func (a *artCache) cacheSiblingFaces(ctx context.Context, card *scryNamed, reque
 		fkey := artKey(fname)
 		if _, err := os.Stat(a.jpgPath(fkey)); err != nil {
 			if err := a.download(ctx, fkey, face.ImageURIs.Normal); err != nil {
-				continue
+				return fmt.Errorf("cache sibling image %q: %w", fname, err)
 			}
 		}
 		if _, err := os.Stat(a.factsPath(fkey)); err != nil {
-			_ = a.writeFacts(fkey, card.facts(fname))
+			if err := a.writeFacts(fkey, card.facts(fname)); err != nil {
+				return fmt.Errorf("cache sibling facts %q: %w", fname, err)
+			}
 		}
 	}
+	return nil
 }
 
 // fetchFacts backfills ONLY the facts sidecar for a name that already has
@@ -609,7 +624,15 @@ func (a *artCache) fetchFacts(ctx context.Context, key, name string) (bool, erro
 	if err := a.writeFacts(key, card.facts(name)); err != nil {
 		return false, err
 	}
-	a.cacheSiblingFaces(ctx, card, name)
+	if err := a.cacheSiblingFaces(ctx, card, name); err != nil {
+		// fetchFacts is entered only when this sidecar was absent. Remove the
+		// newly published sidecar so the next text/fill request retries instead
+		// of treating this name as complete while a sibling is still missing.
+		if rerr := os.Remove(a.factsPath(key)); rerr != nil && !os.IsNotExist(rerr) {
+			return false, fmt.Errorf("%w (also could not remove requested facts for retry: %v)", err, rerr)
+		}
+		return false, err
+	}
 	return true, nil
 }
 
@@ -783,9 +806,10 @@ type artFillStats struct {
 	// a fact, not a failure; a miss recorded by an EARLIER pass counts
 	// here too, honestly re-measured each run).
 	NotFound int
-	// Failed counts names whose fetch errored (network, exhausted 429
-	// retries) and so is NOT on disk in any form — the one-shot fill
-	// exits non-zero when this is non-zero, and the next pass retries them.
+	// Failed counts names whose fetch errored (network, exhausted 429,
+	// or an incomplete sibling face) and so is not COMPLETE on disk — the
+	// one-shot fill exits non-zero when this is non-zero, and the next pass
+	// retries them.
 	Failed int
 }
 
