@@ -144,10 +144,12 @@ func (a *artCache) paceWait(ctx context.Context) error {
 	return nil
 }
 
-// scryMaxRetries caps the 429 retry loop: eight attempts with the worst-case
-// backoff below is on the order of a minute, past which a genuinely wedged
-// Scryfall is better left to the next prewarm pass than held under the
-// pacing semaphore.
+// scryMaxRetries caps the 429 RETRIES of the loop in lookupNamed/download:
+// an exhausted budget is nine total attempts (the initial request plus eight
+// retries) — exhaustion is only checked when the ninth attempt has already
+// received a 429. Nine attempts with the worst-case backoff below is on the
+// order of a minute, past which a genuinely wedged Scryfall is better left
+// to the next prewarm pass than held under the pacing semaphore.
 const scryMaxRetries = 8
 
 // scryRetryAfter turns a 429 into a backoff delay: the Retry-After header
