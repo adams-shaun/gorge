@@ -92,6 +92,8 @@ export interface CreateGameRequest {
   format: 'constructed' | 'commander';
   human_deck?: string;
   bot_deck?: string;
+  /** London mulligan allowance for the created game; omitted keeps the server default (0 is a legal value, disabling the pre-game round). */
+  mulligans?: number;
 }
 
 /** createGame asks the server to seat the player against a bot in the given format: a fresh single-shot table is created and started, and the join path it returns is the URL the player follows to sit in the seat. Omitted deck ids retain random assignment. A server that did not enable the play-vs-bot flow answers 404, surfaced as ApiError. */

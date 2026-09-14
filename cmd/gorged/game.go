@@ -81,9 +81,17 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 		if err != nil {
 			return httpapi.CreateGameResponse{}, err
 		}
+		// The request may set its own London allowance (finding
+		// fb-20260914T114629Z-6c81e4d6); an omitted field keeps the server
+		// default. host.TableConfig.Validate still rejects a negative, so a
+		// caller that skips the handler's 0..6 cap fails at AddTable.
+		mulligans := c.mulligans
+		if req.Mulligans != nil {
+			mulligans = *req.Mulligans
+		}
 		cfg := host.TableConfig{
 			ID: id, Name: fmt.Sprintf("Play vs bot (%s)", req.Format), Seats: 2, Decks: decks,
-			Seed: seed, PlayerNames: []string{"You", "Bot"}, Mulligans: c.mulligans,
+			Seed: seed, PlayerNames: []string{"You", "Bot"}, Mulligans: mulligans,
 			Spectator: vis, Perpetual: false, Humans: []int{0}, Format: req.Format,
 		}
 		if err := r.AddTable(cfg); err != nil {
