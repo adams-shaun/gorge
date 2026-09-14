@@ -396,6 +396,68 @@ func (e *Engine) offerCostFor(p state.PlayerID, id state.ObjID, base Cost, abili
 	return c
 }
 
+// AbilityCosts returns id's non-mana activated-ability costs after the same
+// offer-time RaiseCost/ReduceCost composition legalActions applies. The order
+// is the face's authored ability order. This is a projection helper: it emits
+// no event and mutates no game state.
+func (e *Engine) AbilityCosts(p state.PlayerID, id state.ObjID) []string {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return nil
+	}
+	var out []string
+	for _, ab := range o.Face().Abilities {
+		if ab.Kind != "AB" || ab.API == "Mana" {
+			continue
+		}
+		out = append(out, formatCost(e.offerCostFor(p, id, ParseCost(ab.Params["Cost"]), true)))
+	}
+	return out
+}
+
+// formatCost writes the parsed cost back in the whitespace-delimited Forge
+// notation understood by the client. Parsing first is intentional: malformed
+// tokens retain the engine's real conservative one-generic interpretation,
+// and every recognised non-mana component remains visible so a client that
+// cannot price it can still fail closed.
+func formatCost(c Cost) string {
+	var parts []string
+	if c.Generic > 0 {
+		parts = append(parts, strconv.FormatInt(int64(c.Generic), 10))
+	}
+	const faces = "WUBRGC"
+	for i, face := range []byte(faces) {
+		for n := int32(0); n < c.Colored[i]; n++ {
+			parts = append(parts, string(face))
+		}
+	}
+	for range c.X {
+		parts = append(parts, "X")
+	}
+	for _, h := range c.Hybrid {
+		parts = append(parts, string([]byte{h.A, '/', h.B}))
+	}
+	for _, p := range c.Phyrexian {
+		parts = append(parts, string([]byte{p, 'P'}))
+	}
+	if c.Life > 0 {
+		parts = append(parts, "PayLife<"+strconv.FormatInt(int64(c.Life), 10)+">")
+	}
+	if c.Tap {
+		parts = append(parts, "T")
+	}
+	appendCostParts := func(kind string, costs []CostPart) {
+		for _, part := range costs {
+			parts = append(parts, kind+"<"+strconv.FormatInt(int64(part.N), 10)+"/"+part.Spec+">")
+		}
+	}
+	appendCostParts("Sac", c.Sac)
+	appendCostParts("Discard", c.Discard)
+	appendCostParts("SubCounter", c.SubCounter)
+	appendCostParts("AddCounter", c.AddCounter)
+	return strings.Join(parts, " ")
+}
+
 // HasNonMana reports whether paying this cost takes more than mana.
 // AddCounter counts (the part is settled by the cast flow beside SubCounter,
 // even though it takes no payment), so a caller using this to skip the

@@ -261,6 +261,12 @@ describe('castableAfterTap — decision tap offers (fb-20260914T125925Z)', () =>
     const d = tapDecision(7);
     expect(castableAfterTap(view(base), 0, d)).toBe(true);
 
+    // ability_costs is the engine's effective offer-time projection: this
+    // source's printed Cost$ is 2 T, reduced by Forensic Gadgeteer's live
+    // ReduceCost$ 1 | Type$ Ability static to the projected 1 T below.
+    const reduced = player({ ...base, battlefield: [base.battlefield[0], card({ id: 8, name: 'Printed 2 T ability', ability_costs: ['1 T'] } as unknown as Partial<CardView>)] });
+    expect(castableAfterTap(view(reduced), 0, d)).toBe(true);
+
     const sacrifice = player({ ...base, battlefield: [base.battlefield[0], card({ id: 8, ability_costs: ['1 T Sac<1/Artifact>'] } as unknown as Partial<CardView>)] });
     expect(castableAfterTap(view(sacrifice), 0, d)).toBe(false);
 

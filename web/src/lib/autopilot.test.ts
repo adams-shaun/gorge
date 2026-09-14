@@ -589,6 +589,11 @@ describe('decide', () => {
     const payable = withHand(view(0, 'main1'), 0, { pool: {}, battlefield: [source, ability] });
     expect(run(d, payable, s)).toEqual({ act: 'stop', reason: 'stop-set' });
 
+    // The projected cost is effective: a printed 2 T reduced by a live
+    // ReduceCost$ 1 | Type$ Ability static arrives as 1 T and must stop too.
+    const reduced = withHand(view(0, 'main1'), 0, { pool: {}, battlefield: [source, handCard({ id: 8, name: 'Printed 2 T ability', ability_costs: ['1 T'] } as unknown as Partial<CardView>)] });
+    expect(run(d, reduced, s)).toEqual({ act: 'stop', reason: 'stop-set' });
+
     const sacrifice = withHand(view(0, 'main1'), 0, { pool: {}, battlefield: [source, handCard({ id: 8, ability_costs: ['1 T Sac<1/Artifact>'] } as unknown as Partial<CardView>)] });
     expect(run(d, sacrifice, s)).toEqual({ act: 'pass', index: 1 });
     const sick = withHand(view(0, 'main1'), 0, { pool: {}, battlefield: [source, handCard({ id: 8, types: 'Creature', summon_sick: true, ability_costs: ['1 T'] } as unknown as Partial<CardView>)] });

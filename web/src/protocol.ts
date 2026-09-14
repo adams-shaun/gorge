@@ -225,8 +225,11 @@ export interface CardView {
    */
   attached_to?: number;
   /**
-   * AbilityCosts is the Forge Cost$ of each non-mana activated ability, in
-   * face ability order. It is projected only for battlefield cards and the
+   * AbilityCosts is the current offer-time Forge-notation cost of each
+   * non-mana activated ability, in face ability order. Applicable
+   * RaiseCost/ReduceCost statics have already been composed exactly as the
+   * engine's legal-action gate composes them; this is deliberately not just
+   * the printed Cost$. It is projected only for battlefield cards and the
    * viewer's own hand: those are the cards an interactive seat can use to
    * decide whether floating mana would unlock an ability. Other zones leave
    * it nil, rather than turning this into a general rules-text projection.

@@ -59,6 +59,12 @@ func (c flatChars) StackOptional(state.ObjID) (bool, state.PlayerID) { return fa
 // that wants a nonzero Available drives the projection through a custom
 // Chars instead (see availableProjection below).
 func (c flatChars) AvailableMana(state.PlayerID) state.Mana { return state.Mana{} }
+func (c flatChars) AbilityCosts(_ state.PlayerID, id state.ObjID) []string {
+	if o := c.g.Obj(id); o != nil && o.Face() != nil {
+		return printedNonManaAbilityCosts(o.Face())
+	}
+	return nil
+}
 
 func fourSeatBoard(t *testing.T) *state.Game {
 	t.Helper()
