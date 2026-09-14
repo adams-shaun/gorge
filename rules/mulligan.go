@@ -77,7 +77,9 @@ func (e *Engine) stepPregame() {
 			return
 		}
 		// Every seat that had something to bottom has bottomed: the round is
-		// over and the first alive seat begins turn 1, exactly as before.
+		// over and the round's first seat -- m.seats[0], the toss winner the
+		// round was built from, not always seat 0 since the CR 103.1 toss --
+		// begins turn 1, exactly as before.
 		e.pregame = false
 		e.beginTurn(m.seats[0])
 		return
@@ -127,19 +129,32 @@ func bottomingPrompt(bottom int) string {
 }
 
 // keepMulliganPrompt is the human-readable wording for a keep/mulligan ask.
-// It names the bottoming penalty a keep accepts, in the same real English as
-// bottomingPrompt (finding bh: the old "keeps 7 and bottoms 1, or mulligans"
-// was engine-speak). With a permitted mulligan remaining the seat has a choice;
-// once the allowance is spent London offers only a keep.
-func keepMulliganPrompt(bottom, taken, limit, freeMulligans int) string {
+// It names the starting player first (fix round rv2a: the ask is the one
+// always-visible surface a seat reads before deciding keep/mulligan -- the
+// transcript that carries the toss Note starts hidden for a seated player,
+// and CR 103.5 runs the round from the starter, so the seat being asked is
+// not always the one who plays first) and then the bottoming penalty a keep
+// accepts, in the same real English as bottomingPrompt (finding bh: the old
+// "keeps 7 and bottoms 1, or mulligans" was engine-speak). With a permitted
+// mulligan remaining the seat has a choice; once the allowance is spent
+// London offers only a keep. starterName is the deck identity the chain text
+// carries (tossName), never the display PlayerName: a prompt travels as
+// Decision.Prompt on the wire (the log's DecisionAsk event carries only the
+// decision's kind), so it is chain-free -- but seat-facing text convention
+// still uses the deck identity, and the client renders the seat names it
+// already has beside it.
+func keepMulliganPrompt(starterName string, bottom, taken, limit, freeMulligans int) string {
 	penalty := fmt.Sprintf("put %s on the bottom of your library", putCount(bottom))
 	if bottom == 0 && freeMulligans > 0 {
 		penalty = "keep all seven cards"
 	}
+	var choice string
 	if taken < limit {
-		return fmt.Sprintf("Keep your hand (%s) or take a mulligan?", penalty)
+		choice = fmt.Sprintf("Keep your hand (%s) or take a mulligan?", penalty)
+	} else {
+		choice = fmt.Sprintf("Keep your hand (%s)", penalty)
 	}
-	return fmt.Sprintf("Keep your hand (%s)", penalty)
+	return starterName + " plays first. " + choice
 }
 
 func (e *Engine) askKeepMulligan(i int) {
@@ -151,9 +166,12 @@ func (e *Engine) askKeepMulligan(i int) {
 	}
 	// CR 103.4: the seat re-drew a full openingHand on every mulligan, so
 	// while it is deciding it always holds seven and will bottom bottomCount
-	// cards if it keeps -- the bottoming is the entire penalty.
+	// cards if it keeps -- the bottoming is the entire penalty. The prompt
+	// names who plays first (m.seats[0], the round's own starting seat --
+	// the toss winner AliveFrom(start) begins with), so the decision is
+	// made knowing play/draw without opening the transcript.
 	e.ask(decision.New(p, decision.KMulligan,
-		keepMulliganPrompt(m.bottomCount(i), m.taken[i], m.limit, m.freeMulligans), 1, 1, opts))
+		keepMulliganPrompt(tossName(e.G, m.seats[0]), m.bottomCount(i), m.taken[i], m.limit, m.freeMulligans), 1, 1, opts))
 }
 
 // askBottoming offers seat i a bottoming decision over its kept hand: one

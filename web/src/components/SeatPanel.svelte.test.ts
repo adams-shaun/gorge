@@ -318,3 +318,57 @@ describe('SeatPanel — the prompt surface (fb prompts: never passed over, never
     expect(generic).not.toContain('Remember this answer for identical future prompts');
   });
 });
+
+describe('SeatPanel — the mulligan prompt names the starting player (rv2a)', () => {
+  // The engine's keep/mulligan prompt (rules.keepMulliganPrompt) opens with
+  // "<starter> plays first." because the transcript that carries the toss
+  // Note starts hidden for a seated player: the prompt is the one
+  // always-visible surface the seat reads before choosing keep/mulligan, so
+  // the play/draw fact must reach it verbatim. This pins the surface shows
+  // the sentence, not a truncated prompt.
+  const keepAskNamesStarter: Decision = {
+    seq: 8, player: 1, kind: 'mulligan', min: 1, max: 1,
+    prompt: 'a plays first. Keep your hand (keep all seven cards) or take a mulligan?',
+    options: [opt(0, 'keep', 'keep'), opt(1, 'mulligan', 'mulligan')],
+  };
+
+  it('a keep/mulligan ask whose prompt names the starting player shows that sentence', () => {
+    const { html } = render(SeatPanel, { props: props(view(keepAskNamesStarter, hand)) });
+    const prompt = /data-prompt[^>]*>([^<]+)</.exec(html)?.[1];
+    expect(prompt).toContain('a plays first.');
+    expect(prompt).toContain('Keep your hand');
+    expect(html).toContain('data-tone="initiative"');
+  });
+
+  it('the spent-allowance keep ask still names the starting player', () => {
+    const spent: Decision = { ...keepAskNamesStarter, options: [opt(0, 'keep', 'keep')] };
+    const { html } = render(SeatPanel, { props: props(view(spent, hand)) });
+    expect(/data-prompt[^>]*>([^<]+)</.exec(html)?.[1]).toContain('a plays first.');
+  });
+});
+
+describe('SeatPanel — the pregame readout when nobody holds priority (rv2a)', () => {
+  // The engine projects priority = 255 (no seat) before any turn begins --
+  // the London mulligan round runs on its own asks, not on priority, and the
+  // zero value would have read as seat 0 holding it. The panel's copy must
+  // follow the sentinel instead of rendering "Seat 255".
+  const pregame = view(null);
+  pregame.turn = 0;
+  pregame.round = 1;
+  pregame.step = '';
+  pregame.phase = '';
+  (pregame as { priority: number }).priority = 255;
+  (pregame as { active: number }).active = 1;
+
+  it('the priority fact reads as a fact about nobody, not "Seat 255"', () => {
+    const { html } = render(SeatPanel, { props: props(pregame) });
+    expect(html).toContain('nobody');
+    expect(html).not.toContain('Seat 255');
+  });
+
+  it('the waiting line says what it is waiting for without naming a seat', () => {
+    const { html } = render(SeatPanel, { props: props(pregame) });
+    expect(html).toContain('waiting for the next ask');
+    expect(html).not.toContain('waiting for Seat 255');
+  });
+});

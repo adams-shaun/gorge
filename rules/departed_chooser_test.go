@@ -195,14 +195,15 @@ func TestDepartedChooserResumptionEventStreamIsDeterministic(t *testing.T) {
 	// chain in the graveyard with an empty stack, the departure sweep's 61
 	// MoveZone events, no stray Resolve from the abandoned continuation --
 	// holds unchanged, which is what says the added grant is all that moved.
-	// Regenerated for the CR 103.1 toss (rules.New draws the starting seat):
-	// the toss draw shifts every per-seat shuffle and this fixture's seed
-	// advanced 42 -> 47 with it (seatZeroStart, the seat-0-protagonist
-	// guarantee), so the stream -- and with it this scenario's chain head --
-	// moved. No card behaviour moved with it; every other assertion here
-	// holds unchanged.
-	if got := e.L.Head(); got != "aca71279b0a00f2a" {
-		t.Fatalf("chain head = %s, want aca71279b0a00f2a", got)
+	// Regenerated for the rv2a toss-display work: the toss announcement Note
+	// moved before the first shuffle (CR 103.1 precedes 103.2-103.4) and the
+	// Toss resolution event was added after the deal, so this fixture's
+	// genesis prefix -- and with it this scenario's chain head -- moved. No
+	// card behaviour moved with it: the stream differs from the pre-rv2a one
+	// only in the Note's position, its shortened text and the one new Toss
+	// event, and every other assertion here holds unchanged.
+	if got := e.L.Head(); got != "23cac7ccf70ed451" {
+		t.Fatalf("chain head = %s, want 23cac7ccf70ed451", got)
 	}
 
 	// T21-e: a log-only replay must reconstruct the identical Game. If any

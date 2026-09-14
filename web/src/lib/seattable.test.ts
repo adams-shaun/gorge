@@ -246,3 +246,24 @@ describe('seatCorner — 3/4 seats anchor to the viewer (Task ui22)', () => {
     }
   });
 });
+
+describe('seatStateOf — the rv2a pregame active seat', () => {
+  // The pregame (London mulligan round) view reports the toss winner as
+  // active (engine's Toss event folded into g.Active). seatStateOf must mark
+  // THAT seat's row, not seat 0's -- the pre-toss view reported seat 0
+  // whatever the toss had decided.
+  it('the pregame active seat is whoever the view names, not seat 0', () => {
+    const v = view({ turn: 0, round: 1, step: '', phase: '', active: 1, priority: 1 });
+    expect(seatStateOf(v, v.players[1])).toBe('acting');
+    expect(seatStateOf(v, v.players[0])).toBe('idle');
+  });
+
+  // Terminal genesis (the opening deal ended the game) projects no active
+  // seat and no priority holder at all: both are the 255 sentinel, which no
+  // seat matches, so no row reads as having the turn or holding priority.
+  it('no active seat and no priority (255/255) mark nobody', () => {
+    const v = view({ turn: 0, round: 1, step: '', phase: '', active: 255, priority: 255, over: true });
+    expect(seatStateOf(v, v.players[0])).toBe('idle');
+    expect(seatStateOf(v, v.players[1])).toBe('idle');
+  });
+});

@@ -220,6 +220,27 @@ const (
 	// value, and therefore the hash chain and every golden replay already
 	// locked in, is unaffected.
 	LibraryOrder
+	// Toss records the resolution of the CR 103.1 starting-player
+	// determination: Player is the seat that takes the first turn -- the toss
+	// winner, unless the opening deal eliminated them and rules.New's
+	// rejection-sampling stand-in resolved the first turn onto a survivor
+	// uniformly. Apply folds it into g.Active, so the pregame (the London
+	// mulligan round between the opening deal and turn 1) projects the real
+	// starting seat to every client; before this Kind existed the pregame view
+	// reported the seat-0 zero value whatever the toss had decided, and the
+	// board marked the wrong player active while the toss Note named another.
+	// Emitted exactly once per game, after the opening deal has fixed the
+	// survivors and before the pregame round or turn 1 begins; a game whose
+	// opening deal ended it (terminal genesis) never emits one -- no turn
+	// began, so there is no active seat to record. It is the STATE carrier,
+	// not the announcement: the public toss Note itself is a separate, earlier
+	// Note emitted before the first shuffle (CR 103.1 precedes 103.2-103.4;
+	// Forge's GameAction and manabrew's game loop announce the toss before
+	// their deal too). Carries only Player (same shape as Tap/Untap).
+	// Appended here, after LibraryOrder, following every prior Kind's own
+	// append-only precedent, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	Toss
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -230,13 +251,16 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(LibraryOrder) + 1
+	NumKinds = int(Toss) + 1
 )
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
 // kindNames and the enum cannot drift apart: a Kind added without a name (or
 // a name added without a Kind) is a compile error, the same lockstep
 // zoneNames has with numZones.
+// kindNames ends with "toss" for as long as Toss is the last Kind; the
+// lockstep with the enum is compile-checked by NumKinds/kindNames's shared
+// length, so appending a Kind without appending its name fails the build.
 var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"life", "damage", "tap", "untap", "step", "turn", "priority", "stack_push",
 	"stack_resolve", "mana_add", "mana_clear", "counter", "declare_attackers",
@@ -244,7 +268,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
-	"delayed_register", "delayed_push", "library_order"}
+	"delayed_register", "delayed_push", "library_order", "toss"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

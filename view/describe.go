@@ -49,6 +49,13 @@ func Describe(g *state.Game, ev events.Event) string {
 		return obj(g, ev.Obj) + " untaps"
 	case events.StepChange:
 		return "Step: " + ev.Step.String()
+	case events.Toss:
+		// CR 103.1's resolution (the state carrier, not the announcement): the
+		// pre-deal toss Note said who won the toss; this event -- emitted after
+		// the deal fixed the survivors -- says who actually takes the first
+		// turn, which the rejection-sampling stand-in may have moved off the
+		// toss winner when the deal eliminated them.
+		return player(g, ev.Player) + " takes the first turn"
 	case events.TurnChange:
 		return "Turn " + itoa(int64(ev.Amount)) + ": " + player(g, ev.Player)
 	case events.Priority:
@@ -111,6 +118,16 @@ func Describe(g *state.Game, ev events.Event) string {
 			return player(g, ev.Player) + " reveals " + objs(g, ev.IDs)
 		}
 		if ev.Text != "" {
+			// The toss announcement (rules.New's pre-deal Note) is the one Note
+			// whose text names a seat as its subject in deck-identity form:
+			// the transcript renders it through player() like every other
+			// seat-naming line, so a seated human reads their own display name
+			// ("You won the toss") instead of the deck identity the chain text
+			// carries. The suffix is the engine's exact sentence tail; no other
+			// Note emitter (effects' own Note texts) ends in it.
+			if strings.HasSuffix(ev.Text, "won the toss") {
+				return player(g, ev.Player) + " won the toss"
+			}
 			return ev.Text
 		}
 		if ev.Secret {

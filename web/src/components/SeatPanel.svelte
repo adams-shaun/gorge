@@ -150,6 +150,12 @@
   const waitingName = $derived(
     seats[view.priority]?.name ?? view.players.find((p) => p.seat === view.priority)?.name ?? `Seat ${view.priority}`,
   );
+  // rv2a: before any turn begins (the London mulligan round, a terminal
+  // genesis) the view's priority is the "no active seat" sentinel (255), not
+  // a seat -- the engine projects it because the zero value would read as
+  // seat 0 holding priority through every mulligan ask. Copy that names no
+  // seat falls back to facts that are true instead of "Seat 255".
+  const priorityIsReal = $derived(view.priority < view.players.length);
   const stepLabel = $derived(view.step.charAt(0).toUpperCase() + view.step.slice(1));
 
   // This seat's own player row, found by seat number. Seat index and array
@@ -279,7 +285,7 @@
       <div class="readout" role="status">
         <div class="fact">
           <span class="k">Priority</span>
-          <span class="v">{view.priority === ctx.seat ? 'you' : waitingName}</span>
+          <span class="v">{view.priority === ctx.seat ? 'you' : (priorityIsReal ? waitingName : 'nobody')}</span>
         </div>
         <div class="fact">
           <span class="k">Stack</span>
@@ -561,7 +567,7 @@
     {:else if logic.postedSeq !== null}
       <p class="prompt waiting">Answer sent — waiting for the game to advance</p>
     {:else}
-      <p class="prompt waiting" data-waiting>{stepLabel} — waiting for {waitingName}</p>
+      <p class="prompt waiting" data-waiting>{stepLabel} — {priorityIsReal ? `waiting for ${waitingName}` : 'waiting for the next ask'}</p>
     {/if}
   </div>
 

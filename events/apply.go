@@ -107,6 +107,17 @@ func Apply(g *state.Game, e Event) {
 			o.Tapped = false
 		}
 
+	case Toss:
+		// CR 103.1's resolution: the event's Player is the seat that takes the
+		// first turn. Folding it into Active here -- rather than by a direct
+		// write in rules.New -- is what lets a log-only reconstruction report
+		// the same pregame active seat the live game does (the London mulligan
+		// round runs while Turn is still 0, so this event is the only thing
+		// that distinguishes its view from a seat-0 default).
+		if validPlayer(g, e.Player) {
+			g.Active = e.Player
+		}
+
 	case StepChange:
 		g.Step = e.Step
 
