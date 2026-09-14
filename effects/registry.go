@@ -78,17 +78,7 @@ type Host interface {
 	// drops the innermost one, because re-entering the pending ask's own SA
 	// already walks sa.Sub. A host that never suspends (an effects-package
 	// double, where Ask returns false) never sees this call.
-	//
-	// c is the resolution context the suspending walk was carrying: a host
-	// that rebuilds its Ctx on resume (rules does, from the stack object)
-	// cannot otherwise recover mid-resolution state accumulated BEFORE the
-	// suspension -- RememberChanged$ entries a chained search sub-ability
-	// still needs (Nissa's Pilgrimage: the main search remembers its picks,
-	// suspends on DBBattlefield's own search, and the answer must still see
-	// them). Only Remembered is carried; the per-primitive answer fields are
-	// deliberately NOT -- each resume builds a fresh Ctx so an answer never
-	// carries between separate resumes (fx42).
-	SuspendContinuation(sa *cards.SA, c *Ctx)
+	SuspendContinuation(sa *cards.SA)
 }
 
 // Ctx carries the bindings a Forge script refers to during resolution.
@@ -345,7 +335,7 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			// carrying — fx32's defect. The host keeps the enclosing levels as
 			// outer continuations and drops this one when it is the asking
 			// loop's own level, which re-enters sa.Sub itself.
-			h.SuspendContinuation(sa, c)
+			h.SuspendContinuation(sa)
 			return
 		}
 	}

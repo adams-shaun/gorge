@@ -88,18 +88,6 @@ type resumePoint struct {
 	// target is Dig's index into its deterministic Defined$ target list. It
 	// keeps a resumed answer attached to the library that actually asked.
 	target int
-	// remembered is the mid-resolution Remembered set the suspending walk
-	// was carrying (SuspendContinuation captures effects.Ctx.Remembered at
-	// the moment of suspension). A cast spell's Remembered lives only in
-	// the resolving Ctx -- the stack object's Remembered field is the
-	// trigger-captured set, populated at placement -- so without this a
-	// suspended sub-chain that remembered cards before its ask (Nissa's
-	// Pilgrimage's main search RememberChanged$ True, then DBBattlefield's
-	// own search asks) resumes with an empty set and its IsRemembered
-	// filter and Defined$ Remembered both find nothing. Nil when the walk
-	// carried nothing, so the trigger/replacement restore branches below
-	// keep their existing behaviour.
-	remembered []state.Target
 }
 
 // Ask implements effects.Host.Ask (rules' side of the interface, and the
@@ -151,16 +139,9 @@ func (e *Engine) Suspended() bool { return e.resume != nil }
 // twice. Every enclosing loop is recorded, in unwind order — inner loops
 // report before outer ones, which is also the order their continuations run
 // once the innermost resolves.
-func (e *Engine) SuspendContinuation(sa *cards.SA, c *effects.Ctx) {
+func (e *Engine) SuspendContinuation(sa *cards.SA) {
 	if e.resume == nil {
 		return
-	}
-	// Capture the mid-resolution Remembered the suspending walk carried,
-	// once per suspension: every loop level that unwinds reports with the
-	// same context, and nil ("nothing accumulated") leaves resumeResolution's
-	// existing trigger/replacement restore branches in charge.
-	if e.resume.remembered == nil && c != nil && len(c.Remembered) > 0 {
-		e.resume.remembered = append([]state.Target(nil), c.Remembered...)
 	}
 	if sa == e.resume.sa {
 		return // this loop is the one that asked; its own re-entry walks sa.Sub.
@@ -305,16 +286,6 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		}
 	} else if f := o.Face(); f != nil {
 		svars = f.SVars
-	}
-	// Restore the mid-resolution Remembered the suspending walk carried
-	// (SuspendContinuation captured it): for a cast spell this is the ONLY
-	// copy of what RememberChanged$ accumulated before the ask, and for a
-	// triggered ability it is the trigger's captured set plus anything the
-	// walk added since -- strictly the fuller set, so it overrides the
-	// branches above whenever it is non-nil. Nil keeps every existing
-	// behaviour (including fx44's replacement seed) untouched.
-	if rp.remembered != nil {
-		ctx.Remembered = append([]state.Target(nil), rp.remembered...)
 	}
 	effects.SetSVars(ctx, svars)
 	if rp.sa != nil {

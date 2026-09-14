@@ -162,6 +162,5 @@ func matchTargetedPlayerCtrl(g *state.Game, o *state.Object, sc SpecContext) (bo
 // independent of trigger provenance.
 func (c *Ctx) SpecContext(you state.PlayerID) SpecContext {
 	return SpecContext{You: you, Source: c.Source, TriggerContext: c.TriggerContext,
-		ResolutionTargets: c.Targets, Resolving: true,
-		ResolutionRemembered: copyTargets(c.Remembered)}
+		ResolutionTargets: c.Targets, Resolving: true}
 }

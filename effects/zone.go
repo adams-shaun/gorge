@@ -100,14 +100,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// may fail to find a card with the stated quality (Min is always zero),
 		// and the answer resumes this same effect before its SubAbility runs.
 		// Other origins keep the existing public-zone/object path below.
-		// EXCEPTION: a Defined$ that resolves to OBJECT targets names the very
-		// cards to move (the 133 raw `Origin$ Library ... Defined$ Remembered`
-		// follow-ups that put "one onto the battlefield and the rest into your
-		// hand", Nissa's Pilgrimage's DBHand) -- the search path would misread
-		// it as the library-OWNER selector and pose a bogus full-library ask.
-		// A player-resolving Defined$ (You, Opponent, RememberedController:
-		// whose library is searched) keeps the search path.
-		if len(originZones) == 1 && originZones[0] == state.ZLibrary && !originAll && !definedResolvesObjects(h, c, sa) {
+		if len(originZones) == 1 && originZones[0] == state.ZLibrary && !originAll {
 			effSearchLibrary(h, c, sa, to)
 			return
 		}
@@ -172,31 +165,6 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: withKind, Amount: withAmt})
 		}
 	}
-}
-
-// definedResolvesObjects reports whether a ChangeZone's Defined$ selector
-// resolves to at least one OBJECT target rather than only player targets --
-// i.e. whether the script names the very cards to move ("Defined$ Remembered"
-// after a RememberChanged$ search: the 133 raw `Origin$ Library` lines that
-// put "one onto the battlefield and the rest into your hand") instead of the
-// library to search ("Defined$ You", "Defined$ Opponent"). A pure read: it
-// re-resolves the selector without emitting events or mutating the Ctx, so
-// the movement loop below resolves it again unchanged. No Defined$ at all is
-// the plain search shape and returns false; DefinedPlayer$ is always a player
-// selector and returns false.
-func definedResolvesObjects(h Host, c *Ctx, sa *cards.SA) bool {
-	if _, present := sa.Params["DefinedPlayer"]; present {
-		return false
-	}
-	if _, present := sa.Params["Defined"]; !present {
-		return false
-	}
-	for _, t := range Defined(h, c, sa) {
-		if !t.IsPlayer {
-			return true
-		}
-	}
-	return false
 }
 
 // effSearchLibrary implements the hidden-origin ChangeZone shape. The option

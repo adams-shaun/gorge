@@ -200,7 +200,6 @@ const (
 	wordHasCounters
 	wordHistoric
 	wordIsCommander
-	wordIsRemembered
 	wordBlockingSource
 	wordBlockedBySource
 	// The resolution-only one-token TargetedPlayerCtrl grammar. Its target
@@ -234,8 +233,6 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordHistoric, ""
 	case "IsCommander":
 		return wordIsCommander, ""
-	case "IsRemembered":
-		return wordIsRemembered, ""
 	case "blockingSource":
 		return wordBlockingSource, ""
 	case "blockedBySource":
@@ -271,21 +268,6 @@ func wordPredicate(p string) (wordKind, string) {
 func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc SpecContext) bool {
 	source := sc.Source
 	switch kind {
-	case wordIsRemembered:
-		// Forge's IsRemembered: the object is in the resolving spell or
-		// ability's Remembered set (Nissa's Pilgrimage's DBBattlefield
-		// sub-search, `ChangeType$ Card.IsRemembered`). Resolution-only,
-		// like the Targeted* referents: absent while an offer is built, so
-		// it matches nothing there.
-		if !sc.Resolving {
-			return false
-		}
-		for _, t := range sc.ResolutionRemembered {
-			if !t.IsPlayer && t.Obj == o.ID {
-				return true
-			}
-		}
-		return false
 	case wordColor:
 		return strings.Contains(ColorsOf(o), key)
 	case wordType:
@@ -666,14 +648,6 @@ type SpecContext struct {
 	// target list from no resolving object at all.
 	ResolutionTargets []state.Target
 	Resolving         bool
-	// ResolutionRemembered is the Remembered set of the spell or ability
-	// currently resolving (effects.Ctx.Remembered, built by RememberChanged$
-	// and friends), for the IsRemembered filter predicate. Like
-	// ResolutionTargets it is bound only while Resolving is true -- a target
-	// offer is built before any remember happens, and a shape-only check has
-	// no set to consult -- so IsRemembered fails closed there rather than
-	// matching whatever the live board holds.
-	ResolutionRemembered []state.Target
 	// ManaValue overrides the object's mana value for cmc predicates, with
 	// HasManaValue set. It carries the CR 202.3e chosen-X effect: a caller
 	// that has the chosen {X} passes the resulting mana value here so a
