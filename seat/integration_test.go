@@ -147,6 +147,7 @@ func TestBotAdaptersAgreeOverCommanderGame(t *testing.T) {
 	botGame := rand.New(rand.NewPCG(7, 7^0x9e3779b97f4a7c15))
 	cmdPinned := 0
 	poolN := 0
+	stackN := 0
 	n := 0
 	for !eView.G.Over && !eGame.G.Over && eView.Pending() != nil && eGame.Pending() != nil && n < 200000 {
 		d := eView.Pending()
@@ -178,6 +179,14 @@ func TestBotAdaptersAgreeOverCommanderGame(t *testing.T) {
 		if boardView.Pool.Total() > 0 {
 			poolN++
 		}
+		// The public stack census (C8's facts, task botcounter1), the
+		// commander twin of the whole-game test's own agreement.
+		if !slices.Equal(boardView.Stack, boardGame.Stack) {
+			t.Fatalf("intent %d: stack census diverged: view %v vs game %v (step %s)", n, boardView.Stack, boardGame.Stack, eGame.G.Step)
+		}
+		if len(boardGame.Stack) > 0 {
+			stackN++
+		}
 		cmdPinned++
 		inGame := botpolicy.Decide(boardGame, eGame.Pending(), botGame)
 		if inView.Seq != inGame.Seq || inView.Player != inGame.Player || !slices.Equal(inView.Choices, inGame.Choices) {
@@ -200,6 +209,9 @@ func TestBotAdaptersAgreeOverCommanderGame(t *testing.T) {
 	if poolN == 0 {
 		t.Fatal("no decision ever carried a non-zero Pool -- the tap gate's pool fact was never exercised over the commander game")
 	}
+	if stackN == 0 {
+		t.Fatal("no decision ever carried a non-empty stack census -- the stack fact was never exercised over the commander game")
+	}
 	if h1, h2 := eView.L.Head(), eGame.L.Head(); h1 != h2 {
 		t.Fatalf("chains diverged: view %s, game %s", h1, h2)
 	}
@@ -221,7 +233,17 @@ func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
 	// over the whole game, including an AttachedTo that stays at 0 on both
 	// halves (the agreement must still hold when the fact is "unattached").
 	names, decks := testutil.SampleDecks(t, 4)
-	agreeOverGame(t, names, decks, 0, false)
+	agreeOverGame(t, names, decks, 0, false, false)
+
+	// Scenario 1b (botcounter1, the counter identity): a two-seat mirror
+	// whose seat-1 list carries a real SP$ Counter (authored inline, no
+	// corpus fixture) opposite seat 0's vanilla creatures, so the game
+	// genuinely produces foreign stack spells the seat-1 bot counters —
+	// the C8 rule's preserving half — while Card.Counter and the stack
+	// census go non-zero on BOTH adapter halves and are pinned equal on
+	// every intent.
+	namesC, decksC := counterMirrorDecks(t)
+	agreeOverGame(t, namesC, decksC, 5, false, true)
 
 	// Scenario 2 (op3, the attachment fact): a controlled two-seat game
 	// whose seat-0 deck includes two free Equip:0 Equipments (bareGreavesSrc,
@@ -234,7 +256,7 @@ func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
 	// the wrong reason. agreeOverGame fails on any divergence between the two
 	// halves AND asserts the field actually went non-zero (wantAttached).
 	names2, decks2 := equippingDeck(t)
-	agreeOverGame(t, names2, decks2, 3, true)
+	agreeOverGame(t, names2, decks2, 3, true, false)
 }
 
 // TestOp3Seed13GreavesLoopTerminates is the measured op3 regression test: a
@@ -307,9 +329,13 @@ func equippingDeck(t testing.TB) ([]string, [][]*cards.Card) {
 // Card in the casting census (which since op3 includes AttachedTo), and the
 // final chain head. wantAttached additionally requires that at least one
 // decision carried a non-zero Card.AttachedTo, so a deck-set that never
-// attaches the two halves can not pass the AttachedTo agreement vacuously.
-func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uint64, wantAttached bool) {
+// attaches the two halves can not pass the AttachedTo agreement vacuously;
+// wantCounter does the same for the botcounter1 facts — a Card.Counter true
+// and a foreign stack spell for the decider — so a deck-set without a
+// counter cannot pass the C8-fact agreement vacuously.
+func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uint64, wantAttached, wantCounter bool) {
 	t.Helper()
+	stackN, counterN, foreignSpellN := 0, 0, 0
 	cfg := rules.Config{Seed: seed, Names: names, Decks: decks}
 	eView := rules.New(cfg)
 	eGame := rules.New(cfg)
@@ -369,6 +395,32 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 		if boardView.Pool.Total() > 0 {
 			poolN++
 		}
+		// The public stack census (C8's facts, task botcounter1): bottom-to-top
+		// order on both halves, pinned on every intent — and counted when
+		// non-empty so the pin is not vacuous (a whole game always resolves
+		// something through the stack).
+		if !slices.Equal(boardView.Stack, boardGame.Stack) {
+			t.Fatalf("intent %d: stack census diverged: view %v vs game %v (step %s)", n, boardView.Stack, boardGame.Stack, eGame.G.Step)
+		}
+		if len(boardGame.Stack) > 0 {
+			stackN++
+		}
+		// The counter identity (C8): a card whose SP$ ability is a Counter
+		// reads true on both halves — the view half off CardView.SpellAPI,
+		// the game half off cards.Face.SpellAbility().API — and a foreign
+		// stack spell is what makes the census worth reading at all.
+		for _, c := range boardGame.Cards {
+			if c.Counter {
+				counterN++
+				break
+			}
+		}
+		for _, s := range boardGame.Stack {
+			if s.IsSpell && s.Controller != d.Player {
+				foreignSpellN++
+				break
+			}
+		}
 		// op3 (A1, the attachment fact): an AttachedTo divergence is the
 		// adapters reading different facts, and the non-zero count besides
 		// proves the field actually BOTHERS to run rather than staying at 0
@@ -405,9 +457,50 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 	if poolN == 0 {
 		t.Fatal("no decision ever carried a non-zero Pool -- the tap gate's pool fact was never exercised over the whole game")
 	}
+	if stackN == 0 {
+		t.Fatal("no decision ever carried a non-empty stack census -- the stack fact was never exercised over the whole game")
+	}
+	if wantCounter && counterN == 0 {
+		t.Fatal("no decision ever carried a Counter card fact -- the counter identity was never exercised over the whole game")
+	}
+	if wantCounter && foreignSpellN == 0 {
+		t.Fatal("no decision ever saw a foreign spell on the stack -- the C8 census was never exercised over the whole game")
+	}
 	if h1, h2 := eView.L.Head(), eGame.L.Head(); h1 != h2 {
 		t.Fatalf("chains diverged: view %s, game %s", h1, h2)
 	}
+}
+
+// counterSpellSrc is a plain unconditional counter (the Counterspell
+// shape: SP$ Counter at a spell, no TargetMin/Max/Choices), authored inline
+// so the counter-identity parity and the C8 mirror run without a corpus
+// fixture. Its ManaCost makes it genuinely castable at instant speed.
+const counterSpellSrc = `Name:Test Counterspell
+ManaCost:U U
+Types:Instant
+A:SP$ Counter | TargetType$ Spell | ValidTgts$ Card | SpellDescription:Counter target spell.
+Oracle:Counter target spell.
+`
+
+// counterMirrorDecks returns the (names, decks) of scenario 1b: seat 0
+// plays islands and a vanilla creature (a foreign spell seat 1 can
+// counter), seat 1 plays islands and counterspells (Card.Counter true on
+// both adapter halves). Short lists keep the mirror's games short (decking
+// ends them) so the seat package's test-time budget still covers it.
+func counterMirrorDecks(t testing.TB) ([]string, [][]*cards.Card) {
+	counter := parseTestCard(t, counterSpellSrc)
+	bear := parseTestCard(t, "Name:Bear\nManaCost:1\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	island := parseTestCard(t, "Name:Island\nTypes:Basic Land Island\nOracle:x\n")
+	var d0, d1 []*cards.Card
+	for i := 0; i < 19; i++ {
+		d0 = append(d0, island)
+		d1 = append(d1, island)
+	}
+	for i := 0; i < 5; i++ {
+		d0 = append(d0, bear)
+		d1 = append(d1, counter)
+	}
+	return []string{"a", "b"}, [][]*cards.Card{d0, d1}
 }
 
 // bareGreavesSrc is a free Equip:0 Equipment, the op3 hang's own shape

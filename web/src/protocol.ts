@@ -162,6 +162,20 @@ export interface CardView {
    */
   mana_cost?: string;
   /**
+   * SpellAPI is the API of the card's primary cast-shape ability (its
+   * SP$ line -- "Counter" for Counterspell, "DealDamage" for Lightning
+   * Bolt, "" for a card with no spell ability, which is every creature
+   * and every activated-ability permanent). It is a printed card fact,
+   * projected for exactly the cards the projection already carries the
+   * printed ManaCost and Types of -- a visible card's own text is open
+   * information -- so a seat that can read a card's cost can read what
+   * the cast does at the same grain. The bot policy's casting rule reads
+   * it (carried into botpolicy.Card.Counter) to tell a counter spell
+   * from any other cast. A hidden hand's cards are never projected as
+   * CardViews at all, so this never leaks hidden information.
+   */
+  spell_api?: string;
+  /**
    * Printing is what an image lookup keys on; Token ("#12") tells two
    * copies of one card apart in the stack, the log and an arrow.
    */

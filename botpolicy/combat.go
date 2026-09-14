@@ -81,6 +81,7 @@ func NewBoard(numPlayers int) Board {
 		Life:       make(map[state.PlayerID]int32, numPlayers),
 		Cards:      make(map[state.ObjID]Card, 16),
 		Commanders: make(map[state.ObjID]Commander, 8),
+		Stack:      make([]StackEntry, 0, 8),
 	}
 }
 
@@ -124,6 +125,23 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 	clear(b.Life)
 	clear(b.Cards)
 	clear(b.Commanders)
+	// The public stack census (C8's facts): the stack's own bottom-to-top
+	// order, truncated in place so the reused Board's slice never carries a
+	// stale entry from the previous refill (the same clear-the-buckets
+	// discipline the maps above get). IsSpell is o.Ability == nil — exactly
+	// the test the view-shaped half mirrors as StackView.Kind == "spell"
+	// (view/view.go's stackViews projects an ability object as
+	// "trigger"/"ability" and a card object as "spell"), so the two halves
+	// agree entry for entry, order included, on every intent of a whole
+	// game (seat/integration_test.go's parity tests).
+	b.Stack = b.Stack[:0]
+	for _, id := range g.Stack {
+		o := g.Obj(id)
+		if o == nil {
+			continue
+		}
+		b.Stack = append(b.Stack, StackEntry{ID: id, Controller: o.Controller, IsSpell: o.Ability == nil})
+	}
 	b.IsMain = g.Step.IsMain()
 	b.Pool = g.Players[me].Pool
 	for i := range g.Players {
@@ -221,6 +239,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				OnBattlefield: z == state.ZBattlefield,
 				Produces:      f.ManaProduction(),
 				InstantSpeed:  hasTypeWord(f.Types, "Instant") || hasFlash(ch.Keywords(id)),
+				Counter:       f.SpellAbility() != nil && f.SpellAbility().API == "Counter",
 			}
 		}
 	}

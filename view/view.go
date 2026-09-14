@@ -239,6 +239,18 @@ type CardView struct {
 	// ManaCost is the printed cost in Forge's notation ("1 W", "R", "X G").
 	// Hand lists render it as symbols.
 	ManaCost string `json:"mana_cost,omitempty"`
+	// SpellAPI is the API of the card's primary cast-shape ability (its
+	// SP$ line -- "Counter" for Counterspell, "DealDamage" for Lightning
+	// Bolt, "" for a card with no spell ability, which is every creature
+	// and every activated-ability permanent). It is a printed card fact,
+	// projected for exactly the cards the projection already carries the
+	// printed ManaCost and Types of -- a visible card's own text is open
+	// information -- so a seat that can read a card's cost can read what
+	// the cast does at the same grain. The bot policy's casting rule reads
+	// it (carried into botpolicy.Card.Counter) to tell a counter spell
+	// from any other cast. A hidden hand's cards are never projected as
+	// CardViews at all, so this never leaks hidden information.
+	SpellAPI string `json:"spell_api,omitempty"`
 	// Printing is what an image lookup keys on; Token ("#12") tells two
 	// copies of one card apart in the stack, the log and an arrow.
 	Printing Printing `json:"printing"`
@@ -666,6 +678,13 @@ func cardView(g *state.Game, ch Chars, id state.ObjID) CardView {
 		cv.Types = strings.Join(f.Types, " ")
 		cv.ManaCost = f.ManaCost
 		cv.Printing = Printing{Name: f.Name}
+		// The spell-ability API projection: the card's own SP$ line, the
+		// same fact boardFromGame reads for the casting census. Empty when
+		// the card has no spell ability (a creature, a land, a permanent
+		// with only activated abilities).
+		if sa := f.SpellAbility(); sa != nil {
+			cv.SpellAPI = sa.API
+		}
 		// The mana-production projection (Task dp2): what tapping this card
 		// puts in the pool, from its own abilities. A nil pointer keeps a card
 		// with no mana ability off the wire; p is a fresh value per call, so

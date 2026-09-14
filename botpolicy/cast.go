@@ -102,6 +102,21 @@ type Card struct {
 	// card while it is still in hand, and it is the fact the land-drop ranking
 	// (chooseLand) reads to pick a land in the colour the hand still needs.
 	Produces cards.ManaProduction
+	// Counter reports whether this card's primary cast-shape ability (its
+	// SP$ line) is a Counter -- i.e. casting it counters a spell. It is
+	// filled by both adapter halves from the same printed face fact -- the
+	// projected CardView.SpellAPI on the view half, the face's own
+	// cards.Face.SpellAbility().API on the game half -- so a card is a
+	// counter whichever host asked (pinned over a whole game by the
+	// adapter-parity tests, non-vacuously over a counterspell-vs-creature
+	// mirror). The casting rule (C8) reads it: a counter is only worth its
+	// mana at a stack holding a FOREIGN spell, never at an own-spells-only
+	// (or empty) stack, where casting it would spend mana to counter the
+	// caster's own play. A card whose counter lives on an AB/trigger line
+	// rather than its SP$ line (Mausoleum Wanderer) is NOT a counter here,
+	// and is out of the cast-side rule's scope by design -- those route
+	// through the ability/trigger paths, not chooseCast.
+	Counter bool
 }
 
 // braceForm normalises a brace-form mana cost ("{2}{U}{U}") to the
@@ -267,6 +282,21 @@ func (b Board) commandTax(id state.ObjID) int32 {
 //     hands and sit on mana the phase threw away, so C7 is deliberately a
 //     preference, not a refusal. A command-zone commander cast is priced by
 //     value alone, never held for the reserve.
+//   - C8 (a counter needs a foreign spell): a "cast" option whose Card is a
+//     counter (Card.Counter — its SP$ ability is a Counter) is not cast at
+//     all when the Board's stack census shows NO foreign spell — every
+//     stack spell is the deciding seat's own, or the stack is empty.
+//     Casting a counter then can only target the caster's own spell (the
+//     commit point is HERE, before the mana is spent: once cast, the
+//     target ask's Min-1 leaves no exit), so the wasted self-counter shape
+//     — the bot spending {U}{U} to nuke its own Brainstorm — is refused
+//     outright. A counter cast at a stack holding a foreign spell keeps
+//     its ordinary score: countering an opponent's spell is exactly the
+//     behaviour this rule exists to preserve, and in multiplayer a stack
+//     spell by any other seat is foreign, so four-seat play keeps every
+//     real target. The census is b.Stack, an ordered slice filled
+//     identically by both adapter halves, so no map iteration order can
+//     reach the choice.
 //
 // Like the target and combat branches it consumes no rng: the pick is a
 // pure function of the offered options and the board facts.
@@ -285,8 +315,23 @@ func (b Board) chooseCast(d *decision.Decision) int {
 	// commander does). A hard block, by contrast, made the bot decline
 	// casting its good hands and sat passively on mana the phase threw away.
 	res := b.reserve()
+	// C8's census: is there a foreign spell on the stack for a counter to
+	// eat? Read in b.Stack's own order — deterministic by construction.
+	foreignSpell := false
+	for _, s := range b.Stack {
+		if s.IsSpell && s.Controller != d.Player {
+			foreignSpell = true
+			break
+		}
+	}
 	for _, o := range d.Options {
 		if o.Kind != "cast" {
+			continue
+		}
+		// C8: a counter with no foreign spell to counter is not cast at all,
+		// whatever it would otherwise score — the wasted self-counter is
+		// refused at the commit point, before the mana is ever spent.
+		if b.Cards[o.Obj].Counter && !foreignSpell {
 			continue
 		}
 		// CR1: price the command-zone tax on the commander's mana value, not

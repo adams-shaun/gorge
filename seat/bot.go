@@ -90,6 +90,17 @@ func boardFromView(v view.View) botpolicy.Board {
 		Cards:      make(map[state.ObjID]botpolicy.Card, 16),
 		Commanders: make(map[state.ObjID]botpolicy.Commander, 8),
 	}
+	// The public stack census (C8's facts): the projected StackView list is
+	// the stack's own bottom-to-top order, so the census slice is that same
+	// order and every read of it is deterministic. IsSpell mirrors the
+	// game-shaped half's o.Ability == nil test exactly: the View's Kind is
+	// "spell" precisely for the objects whose Ability is nil (an ability
+	// object projects as "trigger" or "ability", view/view.go's
+	// stackViews).
+	b.Stack = make([]botpolicy.StackEntry, 0, len(v.Stack))
+	for _, sv := range v.Stack {
+		b.Stack = append(b.Stack, botpolicy.StackEntry{ID: sv.ID, Controller: sv.Controller, IsSpell: sv.Kind == "spell"})
+	}
 	for _, p := range v.Players {
 		b.Life[p.ID] = p.Life
 		if p.ID == v.Viewer {
@@ -187,6 +198,7 @@ func boardFromView(v view.View) botpolicy.Board {
 					OnBattlefield: battlefield,
 					Produces:      produces,
 					InstantSpeed:  instantSpeedView(cv),
+					Counter:       cv.SpellAPI == "Counter",
 				}
 			}
 		}
