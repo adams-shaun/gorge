@@ -439,8 +439,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if !digDone && changeNum > 0 && int32(len(eligible)) > changeNum {
 			// A real choice: record the look, then ask the library's owner.
-			h.Emit(events.Event{Kind: events.Note, Player: p,
-				Text: "looks at the top of the library", IDs: top, Secret: true})
+			emitLook(h, []state.PlayerID{p}, state.ZLibrary, top, "looks at the top of the library")
 			minv := int32(0)
 			if !optional {
 				minv = changeNum
@@ -526,6 +525,13 @@ func digDestPhrase(dest state.Zone) string {
 // redacting them. PeekAndReveal looks at the library; Reveal and RevealHand
 // look at hand.
 //
+// Look$ True (28 corpus RevealHand lines — Gitaxian Probe, Glasses of
+// Urza, Slayer's Bounty) turns the reveal into a PRIVATE look (CR 701.20e:
+// a card looked at is shown only to the player the effect specifies — here
+// the activator, not every seat): the note becomes a Secret Note scoped to
+// the looker through emitLook, the one private-look channel every
+// looker-scoped effect shares. The public reveal (no Look$) is unchanged.
+//
 // RevealHand's Forge semantics act on the WHOLE hand ("look at target
 // player's hand", "target opponent reveals their hand" — both shapes are
 // whole-hand), so when its SA carries NO NumCards$ parameter the amount is
@@ -552,27 +558,52 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 	if sa.API == "PeekAndReveal" {
 		zone = state.ZLibrary
 	}
-	// RevealOptional$ on the peek shape (task fb-3f1cc033, Delver of
-	// Secrets): the peeking player is asked whether to reveal before the
-	// Note goes out. The ask is the same mid-resolution vocabulary every
-	// other asking primitive uses — KChoose yes/no with a ResumeKind, the
-	// answer re-entering effReveal through rules' resumeResolution with
-	// Ctx.RevealOpt set. A host that cannot ask (an effects-package double,
-	// fuzz) keeps the pre-ask behaviour: the mandatory reveal, as the
-	// deterministic fallback (the same R-9 degradation Scry/Surveil
-	// carry). Out of scope, deliberately: RevealOptional$ on the non-peek
-	// shapes (Reveal/RevealHand) and every other unread reveal param
-	// (PeekAmount$, RevealValid$, NoReveal$/NoPeek$) — see the report's
-	// Issues section.
+	// The may-reveal ask (task fb-3f1cc033, Delver of Secrets' peek; widened
+	// to Optional$ by the round-2 review's Look$ task): the deciding player
+	// is asked whether to reveal before the Note goes out. The ask is the
+	// same mid-resolution vocabulary every other asking primitive uses —
+	// KChoose yes/no with a ResumeKind, the answer re-entering effReveal
+	// through rules' resumeResolution with Ctx.RevealOpt set. A host that
+	// cannot ask (an effects-package double, fuzz) keeps the pre-ask
+	// behaviour: the mandatory reveal, as the deterministic fallback (the
+	// same R-9 degradation Scry/Surveil carry). Still unread here,
+	// deliberately: PeekAmount$, RevealValid$, NoReveal$/NoPeek$ and
+	// RememberRevealedPlayer$ — see the report's Issues section.
 	answer := c.RevealOpt
 	c.RevealOpt = "" // fx42 scoping: consumed once; a nested peek poses its own ask
-	optional := sa.API == "PeekAndReveal" &&
-		strings.EqualFold(strings.TrimSpace(sa.Params["RevealOptional"]), "True")
+	look := strings.EqualFold(strings.TrimSpace(sa.Params["Look"]), "True")
+	revealType := strings.TrimSpace(sa.Params["RevealType"])
+	// The may-reveal ask: PeekAndReveal poses it through RevealOptional$
+	// (Delver of Secrets); the Reveal/RevealHand shapes pose it through
+	// Optional$ ("you may reveal" — Liar's Pendulum's two RevealHand lines
+	// and the corpus's five Reveal lines), which used to be ignored and the
+	// reveal forced. No corpus line combines Look$ with either flag, but the
+	// ask is shaped to work for one anyway: a look is asked of the LOOKER
+	// (the activator gains the information), a reveal of the player whose
+	// cards would be shown.
+	optional := strings.EqualFold(strings.TrimSpace(sa.Params["RevealOptional"]), "True") ||
+		strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True")
 	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberRevealed"]), "True")
 	g := h.Game()
 	for _, t := range Defined(h, c, sa) {
 		p := PlayerOf(h, c, t)
 		pool := zoneOf(g, zone, p)
+		if revealType != "" {
+			// RevealType$ (Slayer's Bounty: "look at the creature cards in
+			// target opponent's hand") narrows the pool to the cards of that
+			// type before any count is taken — Forge's RevealHandEffect
+			// filters the hand by RevealType the same way. An unresolvable
+			// spec matches nothing (the filter's fail-closed convention), so
+			// a look/reveal over an unknown type shows nothing rather than
+			// everything.
+			filtered := make([]state.ObjID, 0, len(pool))
+			for _, id := range pool {
+				if MatchesSpecCtx(g, revealType, id, c.SpecContext(c.Controller)) {
+					filtered = append(filtered, id)
+				}
+			}
+			pool = filtered
+		}
 		n := amt
 		if wholeHand || int32(len(pool)) < n {
 			n = int32(len(pool))
@@ -580,38 +611,60 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 		if n == 0 {
 			continue
 		}
+		asker := p
+		if look {
+			asker = c.Controller
+		}
 		if optional && answer == "" {
-			// The ask must carry WHAT is being revealed: the peeking player is
-			// deciding whether to reveal a card only they can see, and the
-			// library is not projected to that seat (view exposes only
-			// LibrarySize), so a count-only prompt asks a blind question.
-			// The card names go into the prompt and the yes option's label,
-			// and the top card rides the option's Obj — the same private
-			// channel the hidden-library "search" options use (view.project
-			// attaches a decision only to its own Decision.Player, so this
-			// payload reaches the peeking seat alone; even an Omniscient
-			// spectator gets no decision).
-			names := make([]string, 0, n)
-			for _, id := range pool[:n] {
-				if o := g.Obj(id); o != nil && o.Face() != nil {
-					names = append(names, o.Face().Name)
+			// The peek ask's wording and payload are byte-stable: a golden
+			// game (Delver of Secrets) poses exactly this ask.
+			var prompt, yesLabel string
+			options := []decision.Option{
+				{Index: 0, Kind: "yes", Label: "", Player: asker},
+				{Index: 1, Kind: "no", Label: "No", Player: asker},
+			}
+			if sa.API == "PeekAndReveal" && !look {
+				// The ask must carry WHAT is being revealed: the peeking player is
+				// deciding whether to reveal a card only they can see, and the
+				// library is not projected to that seat (view exposes only
+				// LibrarySize), so a count-only prompt asks a blind question.
+				// The card names go into the prompt and the yes option's label,
+				// and the top card rides the option's Obj — the same private
+				// channel the hidden-library "search" options use (view.project
+				// attaches a decision only to its own Decision.Player, so this
+				// payload reaches the peeking seat alone; even an Omniscient
+				// spectator gets no decision).
+				names := make([]string, 0, n)
+				for _, id := range pool[:n] {
+					if o := g.Obj(id); o != nil && o.Face() != nil {
+						names = append(names, o.Face().Name)
+					}
+				}
+				prompt = "Reveal the top " + strconv.Itoa(int(n)) + " card(s) of your library?"
+				if len(names) > 0 {
+					prompt = "Reveal the top " + strconv.Itoa(int(n)) + " card(s) of your library — " + strings.Join(names, ", ") + "?"
+				}
+				yesLabel = "Yes — reveal"
+				if len(names) == 1 {
+					yesLabel = "Yes — reveal " + names[0]
+				}
+				options[0].Obj = pool[0]
+			} else {
+				// The decider already owns what is being decided over (a hand
+				// reveal asks its owner; a look asks its looker), so the ask
+				// carries no payload of its own — what "yes" later emits
+				// reaches exactly the seats the shape allows.
+				if look {
+					prompt, yesLabel = "Look at the target player's hand?", "Yes — look"
+				} else {
+					prompt, yesLabel = "Reveal your hand?", "Yes — reveal"
 				}
 			}
-			prompt := "Reveal the top " + strconv.Itoa(int(n)) + " card(s) of your library?"
-			if len(names) > 0 {
-				prompt = "Reveal the top " + strconv.Itoa(int(n)) + " card(s) of your library — " + strings.Join(names, ", ") + "?"
-			}
-			yesLabel := "Yes — reveal"
-			if len(names) == 1 {
-				yesLabel = "Yes — reveal " + names[0]
-			}
-			d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+			options[0].Label = yesLabel
+			d := &decision.Decision{Player: asker, Kind: decision.KChoose, Min: 1, Max: 1,
 				ResumeKind: "reveal_optional", ResumeSA: sa, Source: c.Source,
-				Prompt: prompt,
-				Options: []decision.Option{
-					{Index: 0, Kind: "yes", Label: yesLabel, Obj: pool[0], Player: p},
-					{Index: 1, Kind: "no", Label: "No", Player: p},
-				}}
+				Prompt:  prompt,
+				Options: options}
 			if h.Ask(d) {
 				return
 			}
@@ -625,14 +678,26 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		revealed := append([]state.ObjID(nil), pool[:n]...)
-		// No Text: the Note's payload is the ids, and view.Describe renders
-		// them ("player 0 reveals Mountain #82") — defect 1's second half,
-		// the client's only data path for hidden-zone ids in a reveal. A
-		// Text-carrying Note would need the names baked in at emit time,
-		// duplicating Describe's obj() naming; an empty Text with ids keeps
-		// the naming in one place. Ruling T23-w still passes the Note
-		// through RedactEvents unchanged (it is non-Secret).
-		h.Emit(events.Event{Kind: events.Note, Player: p, IDs: revealed})
+		if look {
+			// CR 701.20e: a card looked at this way is shown only to the
+			// player the effect specifies — the activator — so the record is
+			// a Secret Note scoped to the looker (emitLook), NOT the public
+			// Note the pre-fix build emitted here (the round-2 review's
+			// Gitaxian Probe leak: every seat and spectator read the target's
+			// whole hand off it). RememberRevealed$ below still sees the
+			// looked-at cards: the chained subs that read Remembered are part
+			// of the same walk the looker's own card drives.
+			emitLook(h, []state.PlayerID{asker}, zone, revealed, "")
+		} else {
+			// No Text: the Note's payload is the ids, and view.Describe renders
+			// them ("player 0 reveals Mountain #82") — defect 1's second half,
+			// the client's only data path for hidden-zone ids in a reveal. A
+			// Text-carrying Note would need the names baked in at emit time,
+			// duplicating Describe's obj() naming; an empty Text with ids keeps
+			// the naming in one place. Ruling T23-w still passes the Note
+			// through RedactEvents unchanged (it is non-Secret).
+			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: revealed})
+		}
 		if remember {
 			// RememberRevealed$ (task fb-3f1cc033): the revealed cards join
 			// the walk's Remembered set, where a chained ConditionDefined$
@@ -697,8 +762,7 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 		if int32(len(lib)) < k {
 			k = int32(len(lib))
 		}
-		h.Emit(events.Event{Kind: events.Note, Player: p,
-			Text: "looks at the top of the library", Secret: true})
+		emitLook(h, []state.PlayerID{p}, state.ZLibrary, nil, "looks at the top of the library")
 		d := &decision.Decision{Player: p, Kind: decision.KArrange,
 			Min:        int(k),
 			Max:        int(k),
@@ -784,8 +848,7 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, numKey, kind, verb string) 
 		if int32(len(lib)) < k {
 			k = int32(len(lib))
 		}
-		h.Emit(events.Event{Kind: events.Note, Player: p,
-			Text: "looks at the top of the library", Secret: true})
+		emitLook(h, []state.PlayerID{p}, state.ZLibrary, nil, "looks at the top of the library")
 		d := &decision.Decision{Player: p, Kind: decision.KArrange,
 			Min:        0,
 			Max:        int(k),
