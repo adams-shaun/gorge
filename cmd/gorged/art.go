@@ -17,7 +17,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -59,10 +58,14 @@ type artCache struct {
 	// requests). It is enforced by paceWait as a LIMITER over the request
 	// stream (measured against a clock, not a fixed sleep) and shared by
 	// EVERY process using this cache directory through a locked stamp file
-	// (paceFile): the deploy's one-shot fill, the old servers it overlaps
-	// and both demo servers after it together stay within one pace, and
-	// prewarm and browser-driven fetches can never race each other into
-	// 429s. It is a field, not a constant, for the same reason namedBaseURL
+	// (paceFile): the deploy's one-shot fill and both demo servers after it
+	// stay within one pace, and so do the old servers a deploy replaces —
+	// once they run a binary that knows the stamp file. The FIRST deploy
+	// after that code lands overlaps old-binary servers, which pace only
+	// themselves; that unshared window is one deploy wide and the fill's
+	// own budget bounds it, so prewarm and browser-driven fetches can
+	// never race each other into 429s. It is a field, not a constant, for
+	// the same reason namedBaseURL
 	// is: a test seam, so a package whose budget is measured in whole
 	// seconds can exercise the prewarm without paying the real-world pacing
 	// (never the other way round — production keeps the 100ms). With pace 0
@@ -141,7 +144,8 @@ const paceFile = ".scryfall-pace"
 
 // paceWait spaces Scryfall request starts at least a.pace apart — the <=10
 // req/s limiter — across EVERY process using a.dir, not just this one: it
-// takes the stamp file's flock, waits out whatever is left of the gap since
+// takes the stamp file's flock (lockPace, in pace_lock_unix.go on unix and
+// pace_lock_other.go elsewhere), waits out whatever is left of the gap since
 // the start any process last stamped, stamps its own start, and releases.
 // Within a process the pacing semaphore already serializes callers; the
 // flock extends that to the deploy's fill and both demo servers, which would
@@ -175,44 +179,6 @@ func (a *artCache) paceWait(ctx context.Context) error {
 		return fmt.Errorf("art pace stamp: %w", err)
 	}
 	return nil
-}
-
-// lockPace opens the stamp file and takes its exclusive flock, giving up when
-// ctx is done. flock(2) cannot be interrupted by a context, so a contended
-// wait runs in a goroutine; if ctx wins, that goroutine closes the file once
-// its flock call returns, which releases a lock taken too late instead of
-// leaking it. flock locks belong to the open file description, so two caches
-// in one process exclude each other exactly as two processes do.
-func (a *artCache) lockPace(ctx context.Context) (*os.File, error) {
-	f, err := os.OpenFile(filepath.Join(a.dir, paceFile), os.O_RDWR|os.O_CREATE, 0o644)
-	if err != nil {
-		return nil, err
-	}
-	fd := int(f.Fd())
-	err = syscall.Flock(fd, syscall.LOCK_EX|syscall.LOCK_NB)
-	if err == nil {
-		return f, nil
-	}
-	if !errors.Is(err, syscall.EWOULDBLOCK) {
-		_ = f.Close()
-		return nil, err
-	}
-	locked := make(chan error, 1)
-	go func() { locked <- syscall.Flock(fd, syscall.LOCK_EX) }()
-	select {
-	case err := <-locked:
-		if err != nil {
-			_ = f.Close()
-			return nil, err
-		}
-		return f, nil
-	case <-ctx.Done():
-		go func() {
-			<-locked
-			_ = f.Close()
-		}()
-		return nil, ctx.Err()
-	}
 }
 
 // doScryfall is the single outbound Scryfall-client path. Keeping the limiter
