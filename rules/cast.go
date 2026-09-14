@@ -1173,7 +1173,7 @@ func (c Cost) dropAnnouncePrefix(n int) Cost {
 // after payIdx kept live, and (for a spell) the Delve credit the payment
 // subtracts taken off the generic. It is exactly the cost manaAsk's decision
 // would commit to if it offered alt, with the still-unsettled pips free.
-func (pc *pendingCast) announceCost(payIdx int, alt pipAlt, payColor state.Mana, payLife, payGeneric int32) Cost {
+func (e *Engine) announceCost(pc *pendingCast, payIdx int, alt pipAlt, payColor state.Mana, payLife, payGeneric int32) Cost {
 	c := pc.cost.WithX(pc.x)
 	for i := range c.Colored {
 		c.Colored[i] += payColor[i]
@@ -1198,7 +1198,13 @@ func (pc *pendingCast) announceCost(payIdx int, alt pipAlt, payColor state.Mana,
 			c.Generic = 0
 		}
 	}
-	return c.dropAnnouncePrefix(payIdx + 1)
+	// Use the same total-cost composition that manaToPay charges after every
+	// flexible pip is announced. A RaiseCost (or SetCost) can make a twobrid
+	// generic face infeasible even if the base cost was payable; commander tax
+	// is an additional cost applied after reductions.
+	c = pc.mods.apply(c.dropAnnouncePrefix(payIdx + 1))
+	c.Generic = addClampedGeneric(c.Generic, int64(pc.taxGeneric))
+	return c
 }
 
 // announceFeasible reports whether offering alternative alt at the payIdx-th
@@ -1210,8 +1216,8 @@ func (pc *pendingCast) announceCost(payIdx int, alt pipAlt, payColor state.Mana,
 // payment that can only strand the cast in an unpayable remainder (and an
 // abort at targetAsk). It uses the same resolveMana the payment stage
 // charges, so the offered set and the charged cost can never disagree.
-func (pc *pendingCast) announceFeasible(payIdx int, alt pipAlt, payColor state.Mana, payLife, payGeneric int32, pool state.Mana, snow state.Mana, life int32) bool {
-	c := pc.announceCost(payIdx, alt, payColor, payLife, payGeneric)
+func (e *Engine) announceFeasible(pc *pendingCast, payIdx int, alt pipAlt, payColor state.Mana, payLife, payGeneric int32, pool state.Mana, snow state.Mana, life int32) bool {
+	c := e.announceCost(pc, payIdx, alt, payColor, payLife, payGeneric)
 	return c.payable(pool, snow, life)
 }
 
@@ -1279,7 +1285,7 @@ func (e *Engine) manaAsk() bool {
 			}
 			seen[alt.color] = true
 			if rem[state.ManaIndex(alt.color)] > 0 &&
-				pc.announceFeasible(pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
+				e.announceFeasible(pc, pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
 				addPip(alt)
 			}
 		case alt.generic > 0:
@@ -1287,12 +1293,12 @@ func (e *Engine) manaAsk() bool {
 				continue
 			}
 			seenGeneric = true
-			if pc.announceFeasible(pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
+			if e.announceFeasible(pc, pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
 				addPip(alt)
 			}
 		case alt.life > 0:
 			if life >= 2 &&
-				pc.announceFeasible(pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
+				e.announceFeasible(pc, pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
 				addPip(alt)
 			}
 		}

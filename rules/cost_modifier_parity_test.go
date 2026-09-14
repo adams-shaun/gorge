@@ -463,6 +463,39 @@ func TestTwobridGenericFaceOnlyWhenFeasible(t *testing.T) {
 	replayCheck(t, e2, cfg2)
 }
 
+// TestTwobridAnnouncementSeesRaiseCost proves the flexible-pip announcement
+// uses the same total-cost composition as payment. With Thalia out, {2/W}
+// from {W}{W} has exactly one completion: pay white for the pip and the other
+// white for Thalia's tax. Its generic face would make the final cost {3}, so
+// CR 601.2b must not offer it and choosing the legal face must reach stack.
+func TestTwobridAnnouncementSeesRaiseCost(t *testing.T) {
+	spellSrc := "Name:Taxed Prowler\nManaCost:2/W\nTypes:Sorcery\nOracle:x\n"
+	e, cfg, spell := newFixtureDeck(t, 82, spellSrc, thaliaRv2cSrc)
+	putCreature(t, e, 0, thaliaRv2cSrc)
+	addMana(t, e, 0, "WW")
+
+	opt := castByName(t, e, 0, "Taxed Prowler")
+	if opt == nil {
+		t.Fatal("{W}{W} must pay the white face plus Thalia's raise")
+	}
+	submitChoices(t, e, opt.Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("pip decision: %+v", d)
+	}
+	if len(d.Options) != 1 || d.Options[0].Kind != "pay_W" {
+		t.Fatalf("generic {2} face plus Thalia is unpayable from {W}{W}; options %+v", d.Options)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	if e.G.Obj(spell).Zone != state.ZStack {
+		t.Fatalf("Taxed Prowler on %s, want stack", e.G.Obj(spell).Zone)
+	}
+	if e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("pool after white face plus Thalia raise = %d, want 0", e.G.Players[0].Pool.Total())
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestSnowCostPaidOnlyBySnowMana pins {S} (CR 107.4h): the pip is payable
 // only by a mana a snow permanent produced, and paying it consumes the snow
 // unit (the pool slot and the parallel tally together).
