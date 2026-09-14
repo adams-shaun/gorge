@@ -657,6 +657,17 @@ func (e *Engine) resolveTop() {
 		// moving to a card zone. This build has no "ceases to exist" zone,
 		// so it is parked in exile as the closest existing approximation.
 		e.emit(events.Event{Kind: events.Resolve, Obj: id})
+		// CR 702.35b: the mandatory, respondable madness trigger makes its
+		// cast-or-graveyard choice only as it resolves. Stifle reaches this
+		// object before this branch; if the exiled card has moved meanwhile,
+		// the ability simply finishes with no choice.
+		if o.Ability.API == "MadnessCast" {
+			if e.askMadnessCast(o) {
+				return
+			}
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZExile})
+			return
+		}
 		// CR 603.5: an optional triggered ability goes on the stack regardless
 		// (putTriggersOnStack pushes it unconditionally), and its controller
 		// -- or whatever seat its OptionalDecider$ names -- chooses whether to

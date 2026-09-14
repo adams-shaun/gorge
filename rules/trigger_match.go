@@ -44,8 +44,10 @@ type pendingTrigger struct {
 	// optional trigger whose decider is the owner and routes a yes through
 	// castMiracle (miracle.go) instead of minting a triggered-ability stack
 	// object. optionalDecider, triggerLabel and pushTrigger all special-case it.
-	// Madness is the same shape (altcast.go): the CR 702.35a cast offer queued
-	// by offerMadness after a discard exiled the card.
+	// Madness marks the mandatory triggered ability created after its owner
+	// accepts the optional discard-to-exile replacement (CR 702.35a-b). Unlike
+	// Miracle it is pushed unconditionally and asks whether to cast only when
+	// the respondable ability resolves.
 	Miracle bool
 	Madness bool
 	// Evoke marks the CR 702.79a mandatory sacrifice follow-up queued by

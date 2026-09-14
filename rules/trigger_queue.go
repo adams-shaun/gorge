@@ -111,12 +111,11 @@ func (e *Engine) putTriggersOnStack() bool {
 		// REGARDLESS of whether its controller wants to apply the effect; the
 		// choice is made as it resolves (resolveTop's ability branch poses
 		// askOptionalAtResolution). So an OptionalDecider$ trigger is pushed
-		// unconditionally here, exactly like a mandatory one. Only a Miracle
-		// offer (Task 18) or a Madness offer (altcast.go) keeps asking at
-		// placement -- both are keyword CAST offers, not 603.5 optional
-		// triggered abilities, and the answer decides whether the card is
-		// cast for the keyword cost at all.
-		if who, optional, askable := e.optionalDecider(pt); optional && (pt.Miracle || pt.Madness) {
+		// unconditionally here, exactly like a mandatory one. Miracle is the
+		// lone keyword cast offer decided at placement. Madness is mandatory
+		// here: its cast choice happens only when its respondable keyword
+		// ability resolves.
+		if who, optional, askable := e.optionalDecider(pt); optional && pt.Miracle {
 			if !askable {
 				// The decider left the game between this trigger matching and
 				// its turn to be placed. R2 forbids assuming the answer, so
@@ -251,13 +250,17 @@ func (e *Engine) takeAnsweredTrigger(d *decision.Decision) (pendingTrigger, bool
 // is recorded, and it is the whole of what a log-only replay needs. No event
 // kind and no Event field was added for Task 27.
 func (e *Engine) pushTrigger(pt pendingTrigger) {
-	// altcosts: a Madness offer is placed by casting the card for its madness
-	// cost (castMadness, altcast.go) -- the Miracle shape; the no answer puts
-	// the card into its owner's graveyard (handleTriggerOptional). Evoke is a
-	// mandatory triggered ability: KeywordTriggerPush mints a genuine stack
-	// object from the builtin SVar, so players may respond to or counter it.
+	// Evoke and Madness are mandatory keyword-triggered abilities minted as
+	// genuine stack objects. Madness's cast-or-graveyard choice is made when
+	// that object resolves, not here, so either one may be responded to or
+	// countered before doing anything.
 	if pt.Madness {
-		e.castMadness(pt)
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwMadnessCast", Text: "madness cast"})
+		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
 	if pt.Evoke {
@@ -535,17 +538,16 @@ func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optiona
 	// Task 18: a Miracle offer is always optional and its decider is always the
 	// owner (the controller of the drawn card). It has no T: line to read, so
 	// this must be special-cased before triggerOf (which would fail for it).
-	// Madness is the same shape; Evoke is a MANDATORY follow-up with no
-	// yes/no question (its ability is still placed on the stack), so it
-	// reports not-optional before triggerOf could mis-read face Triggers[0].
-	if pt.Miracle || pt.Madness {
+	// Evoke and Madness are mandatory follow-ups with no placement question;
+	// Madness asks whether to cast only at resolution.
+	if pt.Miracle {
 		who = pt.Controller
 		if int(who) >= len(e.G.Players) || e.G.Players[who].Lost {
 			return who, true, false
 		}
 		return who, true, true
 	}
-	if pt.Evoke {
+	if pt.Evoke || pt.Madness {
 		return 0, false, false
 	}
 	t, ok := e.triggerOf(pt)
@@ -659,10 +661,8 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 	// a TriggerDescription$ (there is no T: line). This is the label the brief's
 	// interface spells -- "Miracle — reveal <name> and cast it for <cost>?" --
 	// and it is what askTriggerOptional shows inside its offer prompt.
-	// Madness (altcast.go) is the same shape with its own verb; Evoke is the
-	// mandatory follow-up's label -- an ordering ask may name it beside the
-	// entering creature's own ETB triggers, though it never asks anything
-	// itself.
+	// Madness and Evoke are mandatory keyword-triggered abilities; their labels
+	// may appear in an ordering ask beside ordinary simultaneous triggers.
 	if pt.Miracle || pt.Madness || pt.Evoke {
 		name := "it"
 		if o := e.G.Obj(pt.Source); o != nil {
@@ -673,10 +673,10 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 		if pt.Evoke {
 			return name + ": sacrifice it (evoked)"
 		}
-		head, verb := "Miracle", "reveal "
 		if pt.Madness {
-			head, verb = "Madness", "cast "
+			return name + ": madness cast-or-graveyard trigger"
 		}
+		head, verb := "Miracle", "reveal "
 		o := e.G.Obj(pt.Source)
 		cost := ""
 		if o != nil && o.Face() != nil {
@@ -886,6 +886,10 @@ func (e *Engine) handleTriggerOptional(d *decision.Decision, in decision.Intent)
 	if e.resume != nil {
 		rp := e.resume
 		e.resume = nil
+		if rp.kind == "madness" {
+			e.resolveMadnessChoice(rp, yes)
+			return
+		}
 		if yes {
 			e.resumeResolution(rp, d.Chosen(in))
 		} else {
@@ -900,10 +904,6 @@ func (e *Engine) handleTriggerOptional(d *decision.Decision, in decision.Intent)
 	if pt, ok := e.takeAnsweredTrigger(d); ok {
 		if yes {
 			e.pushTrigger(pt)
-		} else if pt.Madness {
-			// A declined madness cast still moves the card (CR 702.35a: "or put
-			// it into your graveyard"); a declined Miracle offer moves nothing.
-			e.madnessDeclined(pt)
 		}
 	}
 	e.resumeTriggerDrain()

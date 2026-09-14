@@ -19,9 +19,9 @@ func (e *Engine) sorcerySpeed(p state.PlayerID) bool {
 
 // abilityZoneOK reports whether ability ab may be activated while the
 // source cardinal is in zone z (CR 602.1b): the printed ActivationZone$
-// when present, the battlefield by default. Values other than Battlefield /
-// Graveyard (Hand, Command, Exile, Stack) are not enumerated by this
-// build's zone walk, so they simply never offer an option.
+// when present, the battlefield by default. Battlefield, Hand and Graveyard
+// are enumerated by the legal-action walks; other values (Command, Exile,
+// Stack) are not and therefore never offer an option.
 func abilityZoneOK(ab *cards.SA, z state.Zone) bool {
 	az, ok := ab.Params["ActivationZone"]
 	if !ok {
@@ -32,6 +32,8 @@ func abilityZoneOK(ab *cards.SA, z state.Zone) bool {
 		return z == state.ZBattlefield
 	case "Graveyard":
 		return z == state.ZGraveyard
+	case "Hand":
+		return z == state.ZHand
 	}
 	return false
 }
@@ -308,12 +310,25 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !instantSpeed && !sorcery {
 			continue
 		}
-		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
-			continue
-		}
+		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
 		cost := e.offerCostFor(p, id, e.rawBaseCost(p, id), false)
-		if e.castable(p, id, cost, false) {
+		if targetsAvailable && e.castable(p, id, cost, false) {
 			add("cast", "Cast "+f.Name, id)
+		}
+		// Alternative costs replace the printed mana cost but not additional
+		// costs such as commander tax (CR 118.9d, 903.8). Dash and the other
+		// cast alternatives therefore remain available from the command zone;
+		// offerCostFor applies the same tax beginCast later charges.
+		for _, ka := range [...]struct{ mode, head string }{
+			{"evoked", "Evoke"}, {"dashed", "Dash"}, {"overloaded", "Overload"},
+		} {
+			alt, ok := keywordAltCost(f, ka.head)
+			if !ok || (ka.mode != "overloaded" && !targetsAvailable) ||
+				!e.castable(p, id, e.offerCostFor(p, id, alt, false), false) {
+				continue
+			}
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode})
 		}
 	}
 

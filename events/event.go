@@ -264,7 +264,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
-	"delayed_register", "delayed_push", "library_order", "card_token"}
+	"delayed_register", "delayed_push", "library_order", "card_token", "keyword_trigger_push"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

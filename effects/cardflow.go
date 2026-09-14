@@ -43,15 +43,16 @@ func zoneOf(g *state.Game, z state.Zone, p state.PlayerID) []state.ObjID {
 }
 
 func emitDiscard(h Host, id state.ObjID, p state.PlayerID) {
-	to := state.ZGraveyard
 	text := ""
 	if o := h.Game().Obj(id); o != nil && o.Face() != nil {
 		if _, ok := o.Face().KeywordParam("Madness"); ok {
-			to = state.ZExile
+			// Rules recognizes this proposed hand-to-graveyard discard and
+			// offers Madness's optional exile replacement before it is emitted.
 			text = "discarded (madness)"
 		}
 	}
-	h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: to, Player: p, Text: text})
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand,
+		To: state.ZGraveyard, Player: p, Text: text})
 }
 
 // DrawFor is exported so the rules package can use the same code path for the

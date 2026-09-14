@@ -17,16 +17,13 @@
 //   - Warp: "exile this creature at the beginning of the next end step,
 //     then you may cast it from exile on a later turn" -- a delayed trigger
 //     registers the exile (__kwWarpExile), and legal.go's exile walk offers
-//     the recast when warpRecastAvailable derives the eligibility from the
-//     log (the CastFlags that would mark it reset when the permanent left
-//     the battlefield, but the log is permanent).
-//   - Madness (CR 702.35a: "If you discard this card, discard it into exile.
-//     When you do, cast it for its madness cost or put it into your
-//     graveyard"): the discard sites in effects/cardflow.go and rules route
-//     a madness card's discard to exile with a "discarded" Text marker; the
-//     offer queued here is a pendingTrigger like Miracle's, a yes entering
-//     beginCast's "madness" mode and a no putting the card into its
-//     owner's graveyard.
+//     the recast only while the most recent exile transition is the move
+//     caused by that exact delayed trigger.
+//   - Madness (CR 702.35a-b): discarding normally proposes a hand-to-graveyard
+//     move. The card's owner may replace that move with exile; doing so queues
+//     a genuine keyword-triggered ability. Players may respond to or counter
+//     that ability, and only as it resolves does the owner choose whether to
+//     cast the card for its madness cost or put it into the graveyard.
 //
 // All of it is rules-layer on purpose: the pieces need ParseCost, payMana,
 // AddContinuous and the pendingTrigger queue, none of which effects may
@@ -94,13 +91,73 @@ func (e *Engine) altCostEnter(ev events.Event) {
 	}
 }
 
-// offerMadness queues the madness cast offer (CR 702.35a) after a discard
-// exiled the card: a pendingTrigger the drain treats exactly like a Miracle
-// offer -- an optional yes/no whose decider is the card's owner, a yes
-// entering the ordinary cast flow with the "madness" mode. The discard site
-// (effects/cardflow.go, the discard costs, the cleanup step) is what exiled
-// the card and marked the move "discarded", so matching that marker here is
-// the whole of the detection.
+func (e *Engine) madnessReplacementApplies(ev events.Event) bool {
+	if ev.From != state.ZHand || ev.To != state.ZGraveyard ||
+		ev.Text != "discarded (madness)" {
+		return false
+	}
+	o := e.G.Obj(ev.Obj)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	_, ok := o.Face().KeywordParam("Madness")
+	return ok
+}
+
+func (e *Engine) parkMadnessDiscard(ev events.Event) {
+	o := e.G.Obj(ev.Obj)
+	if o == nil {
+		return
+	}
+	owner := o.Owner
+	if int(owner) >= len(e.G.Players) || e.G.Players[owner].Lost {
+		e.applyingMadnessChoice = true
+		e.emit(ev)
+		e.applyingMadnessChoice = false
+		return
+	}
+	e.madnessChoices = append(e.madnessChoices, ev)
+	if e.pending == nil {
+		e.askMadnessReplacement(owner)
+	}
+}
+
+func (e *Engine) askMadnessReplacement(owner state.PlayerID) {
+	ev := e.madnessChoices[0]
+	name := "this card"
+	if o := e.G.Obj(ev.Obj); o != nil && o.Face() != nil {
+		name = o.Face().Name
+	}
+	e.ask(&decision.Decision{Player: owner, Kind: decision.KReplacement,
+		Min: 1, Max: 1, Source: ev.Obj,
+		Prompt: "Exile " + name + " instead of discarding it to use madness?",
+		Options: []decision.Option{
+			{Index: 0, Kind: "madness_exile", Label: "Exile it (madness)", Obj: ev.Obj},
+			{Index: 1, Kind: "madness_graveyard", Label: "Discard it normally", Obj: ev.Obj},
+		}})
+}
+
+func (e *Engine) handleMadnessReplacement(d *decision.Decision, in decision.Intent) {
+	if len(e.madnessChoices) == 0 {
+		return
+	}
+	ev := e.madnessChoices[0]
+	e.madnessChoices = e.madnessChoices[1:]
+	chosen := d.Chosen(in)
+	if len(chosen) == 1 && chosen[0].Kind == "madness_exile" {
+		ev.To = state.ZExile
+		ev.Text = "discarded (madness exile)"
+	}
+	e.applyingMadnessChoice = true
+	e.emit(ev)
+	e.applyingMadnessChoice = false
+	e.askNextReplacementChoice()
+}
+
+// offerMadness queues the triggered ability created by accepting madness's
+// optional discard replacement (CR 702.35a-b). The accepted replacement emits
+// a marked hand-to-exile move; matching both that marker and the zone pair
+// prevents an unrelated exile from creating the cast window.
 func (e *Engine) offerMadness(ev events.Event) {
 	o := e.G.Obj(ev.Obj)
 	if o == nil || o.Face() == nil {
@@ -109,14 +166,7 @@ func (e *Engine) offerMadness(ev events.Event) {
 	if _, ok := o.Face().KeywordParam("Madness"); !ok {
 		return
 	}
-	// Only a DISCARD opens the madness cast window (CR 702.35a: "If a player
-	// discards this card ..."); a hand->exile move by any other means (an
-	// ExileFromHand cost such as Fury's evoke, a future wheel effect) does
-	// not. Every discard site marks its madness move "discarded" through
-	// discardEventText/emitDiscard, so the marker is the whole of the
-	// discrimination -- without it, evoking Fury while holding a Fiery
-	// Temper would falsely offer the Temper's madness cast.
-	if !strings.Contains(ev.Text, "discarded") {
+	if ev.Text != "discarded (madness exile)" {
 		return
 	}
 	owner := o.Owner
@@ -134,32 +184,64 @@ func (e *Engine) offerMadness(ev events.Event) {
 	})
 }
 
-// castMadness is the yes answer's placement step (pushTrigger): the card is
-// still in exile -- something else may have moved it since the offer was
-// queued -- and the ordinary cast flow with Mode "madness" charges the
-// printed madness cost. Same drainAwaitsTarget continuation as castMiracle.
-func (e *Engine) castMadness(pt pendingTrigger) {
-	o := e.G.Obj(pt.Source)
-	if o == nil || o.Zone != state.ZExile || o.Controller != pt.Controller {
-		// The offer can no longer be honoured; put the card where declining
-		// would have (CR 702.35a's "or put it into your graveyard") so it is
-		// not stranded in exile by a race it did not choose.
-		if o != nil && o.Zone == state.ZExile {
-			e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone,
-				To: state.ZGraveyard, Text: "madness not cast"})
-		}
-		return
+// castMadness is the yes answer while the respondable madness ability is
+// resolving. The ability has already left the stack; the card must still be
+// in the exile zone the replacement put it in. beginCast's ordinary flow
+// charges the printed madness cost and records the spell on the stack.
+func (e *Engine) castMadness(p state.PlayerID, id state.ObjID) bool {
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZExile || o.Owner != p {
+		return false
 	}
-	e.drainAwaitsTarget = false
-	e.beginCast(pt.Controller, decision.Option{Kind: "cast", Obj: pt.Source, Mode: "madness"})
-	e.drainAwaitsTarget = e.pending != nil
+	e.beginCast(p, decision.Option{Kind: "cast", Obj: id, Mode: "madness"})
+	return true
 }
 
-// madnessDeclined is the no answer's placement step (handleTriggerOptional):
-// the card has not been cast, so CR 702.35a puts it into its owner's
-// graveyard.
-func (e *Engine) madnessDeclined(pt pendingTrigger) {
-	if o := e.G.Obj(pt.Source); o != nil && o.Zone == state.ZExile {
+func (e *Engine) askMadnessCast(ability *state.Object) bool {
+	if ability == nil {
+		return false
+	}
+	card := e.G.Obj(ability.Source)
+	if card == nil || card.Zone != state.ZExile || card.Face() == nil ||
+		int(card.Owner) >= len(e.G.Players) || e.G.Players[card.Owner].Lost {
+		return false
+	}
+	cost, ok := keywordAltCost(card.Face(), "Madness")
+	if !ok {
+		return false
+	}
+	name := card.Face().Name
+	d := &decision.Decision{Player: card.Owner, Kind: decision.KTriggerOptional,
+		Min: 1, Max: 1, Source: card.ID, ResumeKind: "madness",
+		Prompt: "Cast " + name + " for its madness cost?"}
+	if e.castable(card.Owner, card.ID, e.offerCostFor(card.Owner, card.ID, cost, false), false) {
+		raw, _ := card.Face().KeywordParam("Madness")
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "yes",
+			Label: "Cast " + name + " for " + raw, Obj: card.ID})
+	}
+	d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "no",
+		Label: "Put " + name + " into its owner's graveyard", Obj: card.ID})
+	e.ask(d)
+	e.resume = &resumePoint{kind: "madness", obj: ability.ID}
+	return true
+}
+
+func (e *Engine) resolveMadnessChoice(rp *resumePoint, yes bool) {
+	ability := e.G.Obj(rp.obj)
+	if ability == nil {
+		return
+	}
+	card, owner := ability.Source, ability.Controller
+	e.finishResumption(rp.obj)
+	if yes && e.castMadness(owner, card) {
+		return
+	}
+	e.madnessDeclined(card)
+	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
+}
+
+func (e *Engine) madnessDeclined(id state.ObjID) {
+	if o := e.G.Obj(id); o != nil && o.Zone == state.ZExile {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone,
 			To: state.ZGraveyard, Text: "madness not cast"})
 	}
@@ -228,11 +310,12 @@ func (e *Engine) warpRecastAvailable(id state.ObjID) bool {
 	for i := exileIdx - 1; i >= 0; i-- {
 		ev := log[i]
 		if ev.Kind == events.MoveZone && ev.Obj == id {
-			// id moved between zones after the DelayedPush we are looking
-			// for; keep scanning for the DelayedPush beneath it.
-			continue
+			// The latest exile is entitled only when no incarnation/zone move
+			// intervenes between the warp trigger and that exile. An unrelated
+			// later exile therefore cannot reuse historical warp provenance.
+			return false
 		}
-		if ev.Kind == events.DelayedPush && ev.Obj == id {
+		if ev.Kind == events.DelayedPush && ev.Obj == id && ev.Counter == "__kwWarpExile" {
 			pushIdx = i
 			break
 		}
@@ -250,26 +333,10 @@ func (e *Engine) warpRecastAvailable(id state.ObjID) bool {
 	return false
 }
 
-// discardDestZone is the zone a DISCARD of card id sends it to: exile when
-// the card carries the Madness keyword (CR 702.35a: "If you discard this
-// card, discard it into exile"), the graveyard otherwise. Every discard site
-// (effects/cardflow.go's arms, the discard costs in cast.go and
-// mana_activation.go, the cleanup step) routes its MoveZone destination
-// through this one helper so the replacement cannot be missed by the next
-// sibling. Callers pair it with discardEventText, which marks the event so
-// offerMadness can tell a discard from any other hand->graveyard move --
-// without the marker a plain discard event is indistinguishable from one,
-// so the marker is only ever ADDED (existing non-madness discards keep
-// emitting exactly the events they always did, keeping every golden replay
-// byte-identical).
-func discardDestZone(g *state.Game, id state.ObjID) state.Zone {
-	if o := g.Obj(id); o != nil && o.Face() != nil {
-		if _, ok := o.Face().KeywordParam("Madness"); ok {
-			return state.ZExile
-		}
-	}
-	return state.ZGraveyard
-}
+// discardDestZone is always the graveyard. Madness is an OPTIONAL replacement
+// of that proposed move, not an automatic exile; applyReplacements parks the
+// marked discard and asks its owner before either destination is emitted.
+func discardDestZone(_ *state.Game, _ state.ObjID) state.Zone { return state.ZGraveyard }
 
 // discardEventText is the Text a discard MoveZone carries: the "discarded"
 // marker (so offerMadness can detect the discard) only for a madness card,

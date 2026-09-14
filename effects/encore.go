@@ -14,11 +14,11 @@
 //
 // CardToken carries each copy's required defender into state; the combat
 // declaration solver enforces "attacks that opponent this turn if able".
-// The rest is one CardToken copy per opponent (a copy of the card object itself, whatever
-// zone it resolved from -- the cost exiled it, so exile), haste granted
-// until end of turn through the layer system, and one end-step delayed
-// sacrifice per token (the __kwEncoreSacrifice builtin SVar,
-// cards/link.go).
+// The rest is one CardToken copy per opponent (a copy of the card object itself,
+// whatever zone it resolved from -- the cost exiled it, so exile), haste
+// granted until end of turn through the layer system, and ONE end-step delayed
+// trigger remembering the whole token group. Countering that single trigger
+// therefore saves every surviving token, matching one Encore activation.
 package effects
 
 import (
@@ -39,6 +39,7 @@ func effEncore(h Host, c *Ctx, sa *cards.SA) {
 	// in AliveFrom's fixed seat order -- never a map, so the token order is
 	// replay-stable. The card is in exile (its own cost exiled it), but the
 	// copy is created from the object wherever it sits.
+	var tokens []state.ObjID
 	for _, p := range g.AliveFrom(c.Controller) {
 		if p == c.Controller {
 			continue
@@ -60,10 +61,14 @@ func effEncore(h Host, c *Ctx, sa *cards.SA) {
 			Source: want, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddKeywords: []string{"Haste"}, UntilEOT: true,
 		})
-		// "Sacrifice them at the beginning of the next end step": one
-		// delayed trigger per token, resolved through the ordinary
-		// DelayedPush machinery against the __kwEncoreSacrifice builtin.
-		h.Emit(events.Event{Kind: events.DelayedRegister, Obj: want,
-			Player: c.Controller, Step: state.StepEnd, Counter: "__kwEncoreSacrifice"})
+		tokens = append(tokens, want)
+	}
+	// One activation creates one delayed triggered ability, remembering all
+	// token identities. DelayedPush carries the group into the builtin
+	// sacrifice SA's DelayTriggerRememberedLKI definition.
+	if len(tokens) > 0 {
+		h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+			Player: c.Controller, Step: state.StepEnd,
+			Counter: "__kwEncoreSacrificeGroup", IDs: tokens})
 	}
 }

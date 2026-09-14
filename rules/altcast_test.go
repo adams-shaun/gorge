@@ -2,8 +2,8 @@
 // by a real card script from the ticket's table (the corpus .cards/cardsfolder
 // entry, never a name-sharing fixture): Nulldrifter and Fury for evoke (mana
 // and ExileFromHand costs), Ragavan for dash, Impulsive Pilferer for encore,
-// Cyclonic Rift for overload, Timeline Culler for warp, Fiery Temper
-// (discarded by Mind Rot) for madness, and Redirect Lightning for the
+// Cyclonic Rift for overload, Timeline Culler for warp, Emrakul, the World
+// Anew (discarded by Mind Rot) for madness, and Redirect Lightning for the
 // AlternateAdditionalCost either-or.
 //
 // The fixtures that are NOT the card under test (the red card Fury's evoke
@@ -258,6 +258,41 @@ func TestEvokeExileCostExilesTheChosenCard(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+func TestDashCommanderPaysTaxFromTheCommandZone(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	ragavan, ok := reg.Lookup("Ragavan, Nimble Pilferer")
+	if !ok {
+		t.Fatal("registry lacks Ragavan")
+	}
+	cfg := Config{Seed: 913, Names: []string{"a", "b"}, Format: FormatCommander,
+		Decks: [][]*cards.Card{
+			append([]*cards.Card{ragavan}, mountainDeck(t, 39)...),
+			mountainDeck(t, 40),
+		}, Commanders: [][]int{{0}, nil}, Tokens: reg.Tokens}
+	cfg = seatZeroStart(cfg)
+	e := New(cfg)
+	e.Advance()
+	driveToStep(t, e, 1, 0, state.StepMain1)
+	id := e.G.Players[0].Commanders[0]
+	// Cast once normally, then return the same commander so the second cast
+	// owes {2}. This uses the real command-zone accounting event path.
+	addMana(t, e, 0, "R")
+	submitChoices(t, e, castModeOption(t, e, id, ""))
+	passUntilStackEmpty(t, e, 40)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZCommand})
+	e.pending = nil
+	e.priorityRound()
+	addMana(t, e, 0, "CCCR") // dash {1}{R} plus commander tax {2}
+	submitChoices(t, e, castModeOption(t, e, id, "dashed"))
+	passUntilStackEmpty(t, e, 40)
+	if got := e.G.Players[0].Pool.Total(); got != 0 {
+		t.Fatalf("dashed command-zone Ragavan left %d mana; commander tax was not paid", got)
+	}
+	if o := e.G.Obj(id); o.Zone != state.ZBattlefield || o.CastFlags&state.FlagDashed == 0 {
+		t.Fatalf("command-zone dash: zone=%s flags=%d", o.Zone, o.CastFlags)
+	}
+}
+
 func TestDashCastsGainHasteAndReturnAtTheEndStep(t *testing.T) {
 	e, cfg, _ := altCostEngine(t, 914, []string{"Ragavan, Nimble Pilferer"}, nil, nil)
 	id := findCardObj(t, e, 0, "Ragavan, Nimble Pilferer", state.ZHand)
@@ -342,6 +377,80 @@ func TestEncoreActivatesFromTheGraveyardIntoHastedTokenCopies(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+func TestEncoreCreatesOneDelayedTriggerForAllOpponentTokens(t *testing.T) {
+	reg := freshEncoreRegistry(t)
+	pilferer, ok := reg.Lookup("Impulsive Pilferer")
+	if !ok {
+		t.Fatal("fresh registry lacks Impulsive Pilferer")
+	}
+	stifle, ok := testutil.CorpusRegistry(t).Lookup("Stifle")
+	if !ok {
+		t.Fatal("registry lacks Stifle")
+	}
+	decks := [][]*cards.Card{
+		append([]*cards.Card{pilferer, stifle}, mountainDeck(t, 38)...),
+		mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40),
+	}
+	cfg := seatZeroStart(Config{Seed: 936, Names: []string{"a", "b", "c", "d"},
+		Decks: decks, Tokens: reg.Tokens})
+	e := New(cfg)
+	e.Advance()
+	id := findCardObj(t, e, 0, "Impulsive Pilferer", state.ZGraveyard)
+	stifleID := findCardObj(t, e, 0, "Stifle", state.ZHand)
+	addMana(t, e, 0, "CCCR")
+	d := e.Pending()
+	encore := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "ability" && opt.Obj == id {
+			encore = opt.Index
+		}
+	}
+	submitChoices(t, e, encore)
+	passUntilStackEmpty(t, e, 80)
+	var tokens []state.ObjID
+	for _, tid := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(tid); o.IsToken && o.Face() != nil && o.Face().Name == "Impulsive Pilferer" {
+			tokens = append(tokens, tid)
+		}
+	}
+	if len(tokens) != 3 || len(e.G.Delayed) != 1 || len(e.G.Delayed[0].Remembered) != 3 {
+		t.Fatalf("encore group: tokens=%v delayed=%+v", tokens, e.G.Delayed)
+	}
+	e.pending = nil
+	e.setStep(state.StepEnd)
+	e.priorityRound()
+	// The one group trigger is now on the stack. Fund and cast the real
+	// Stifle at it; countering it must save all three tokens.
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("encore delayed stack=%v, want one trigger", e.G.Stack)
+	}
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "U", Amount: 1})
+	e.pending = nil
+	e.priorityRound()
+	submitChoices(t, e, castModeOption(t, e, stifleID, ""))
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget || len(d.Options) != 1 {
+		t.Fatalf("Stifle target over encore group: %+v", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	passUntilStackEmpty(t, e, 80)
+	for _, tid := range tokens {
+		if o := e.G.Obj(tid); o.Zone != state.ZBattlefield {
+			t.Fatalf("Stifling the one encore trigger failed to save token %d: %s", tid, o.Zone)
+		}
+	}
+	pushes := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.DelayedPush && ev.Counter == "__kwEncoreSacrificeGroup" {
+			pushes++
+		}
+	}
+	if pushes != 1 {
+		t.Fatalf("encore emitted %d group delayed triggers, want 1", pushes)
+	}
+	replayCheck(t, e, cfg)
+}
+
 func TestOverloadedCastTargetsEachNotOne(t *testing.T) {
 	e, cfg, _ := altCostEngine(t, 916, []string{"Cyclonic Rift"}, nil, []string{altBearSrc, altProtectedBearSrc})
 	id := findCardObj(t, e, 0, "Cyclonic Rift", state.ZHand)
@@ -421,22 +530,28 @@ func TestWarpCastsFromTheGraveyardExileAtEndStepAndRecastFromExile(t *testing.T)
 	if o := e.G.Obj(id); o.Zone != state.ZBattlefield {
 		t.Fatalf("Timeline Culler after the later end step: %s, want battlefield", o.Zone)
 	}
+	// An unrelated later exile must not reuse the historical warp trigger.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield,
+		To: state.ZExile, Text: "exiled by unrelated removal"})
+	driveToStepAll(t, e, e.G.Turn+2, 0, state.StepMain1)
+	addMana(t, e, 0, "BB")
+	for _, opt := range e.Pending().Options {
+		if opt.Obj == id && opt.Mode == "warp_recast" {
+			t.Fatalf("unrelated re-exile reused old warp provenance: %+v", opt)
+		}
+	}
 	replayCheck(t, e, cfg)
 }
 
-func TestMadnessDiscardExilesAndOffersTheCast(t *testing.T) {
-	e, cfg, _ := altCostEngine(t, 918, []string{"Fiery Temper", "Mind Rot"}, []string{altRedSrc}, nil)
-	temper := findCardObj(t, e, 0, "Fiery Temper", state.ZHand)
+func TestMadnessEmrakulUsesOptionalReplacementAndRespondableTrigger(t *testing.T) {
+	e, cfg, _ := altCostEngine(t, 918, []string{"Emrakul, the World Anew", "Mind Rot"}, []string{altRedSrc}, nil)
+	emrakul := findCardObj(t, e, 0, "Emrakul, the World Anew", state.ZHand)
 	ember := findCardObj(t, e, 0, "Ember", state.ZHand)
-	addMana(t, e, 0, "CCBR")
-	// Cast Mind Rot targeting seat 0, the discarder of the Temper.
+	// {2}{B} for Mind Rot followed by Emrakul's six-{C} madness cost.
+	addMana(t, e, 0, "CCCCCCCCB")
 	mr := findCardObj(t, e, 0, "Mind Rot", state.ZHand)
-	mrIdx := castModeOption(t, e, mr, "")
-	submitChoices(t, e, mrIdx)
+	submitChoices(t, e, castModeOption(t, e, mr, ""))
 	d := e.Pending()
-	if d == nil || d.Kind != decision.KTarget {
-		t.Fatalf("Mind Rot target ask: %+v", d)
-	}
 	seat0 := -1
 	for _, o := range d.Options {
 		if o.Kind == "player" && o.Player == 0 {
@@ -444,58 +559,119 @@ func TestMadnessDiscardExilesAndOffersTheCast(t *testing.T) {
 		}
 	}
 	submitChoices(t, e, seat0)
-	passOnceP(t, e) // seat 0 passes
-	passOnceP(t, e) // seat 1 passes; Mind Rot resolves and its TgtChoose discard ask suspends it
-	// The discard choice: the Temper plus the Ember.
+	passOnceP(t, e)
+	passOnceP(t, e)
 	d = e.Pending()
-	if d == nil || d.Kind != decision.KModes || len(d.Options) < 2 {
-		t.Fatalf("discard choice: %+v", d)
+	if d == nil || d.Kind != decision.KModes {
+		t.Fatalf("Mind Rot discard choice: %+v", d)
 	}
-	temperIdx, emberIdx := -1, -1
+	emrakulIdx, emberIdx := -1, -1
 	for _, o := range d.Options {
-		if o.Obj == temper {
-			temperIdx = o.Index
+		if o.Obj == emrakul {
+			emrakulIdx = o.Index
 		}
 		if o.Obj == ember {
 			emberIdx = o.Index
 		}
 	}
-	if temperIdx < 0 || emberIdx < 0 {
-		t.Fatalf("discard options missing the seeded cards: %+v", d.Options)
-	}
-	submitChoices(t, e, temperIdx, emberIdx)
-	// CR 702.35a: the discarded madness card is in exile, and the owner is
-	// asked to cast it for its madness cost.
-	if o := e.G.Obj(temper); o.Zone != state.ZExile {
-		t.Fatalf("Fiery Temper zone %s, want exile", o.Zone)
-	}
+	submitChoices(t, e, emrakulIdx, emberIdx)
+	// CR 702.35a: Madness first offers an optional replacement. Nothing has
+	// moved until the owner accepts it.
 	d = e.Pending()
-	if d == nil || d.Kind != decision.KTriggerOptional || d.Player != 0 {
-		t.Fatalf("madness offer: %+v", d)
+	if d == nil || d.Kind != decision.KReplacement || e.G.Obj(emrakul).Zone != state.ZHand {
+		t.Fatalf("madness replacement: pending=%+v zone=%s", d, e.G.Obj(emrakul).Zone)
 	}
-	submitChoices(t, e, 0) // yes
-	// The cast flow from exile at the madness cost {R}, then its damage
-	// target ask.
+	submitChoices(t, e, 0) // exile instead of putting it in the graveyard
+	if e.G.Obj(emrakul).Zone != state.ZExile || e.G.Obj(ember).Zone != state.ZGraveyard {
+		t.Fatalf("discard destinations: Emrakul=%s Ember=%s", e.G.Obj(emrakul).Zone, e.G.Obj(ember).Zone)
+	}
+	// CR 702.35b: accepting the replacement creates one real triggered
+	// ability on the stack. Priority exists before its cast choice.
 	d = e.Pending()
-	if d == nil || d.Kind != decision.KTarget {
-		t.Fatalf("madness cast target ask: %+v", d)
+	if d == nil || d.Kind != decision.KPriority || len(e.G.Stack) != 1 {
+		t.Fatalf("priority over madness trigger: pending=%+v stack=%v", d, e.G.Stack)
 	}
-	foe := -1
+	ability := e.G.Obj(e.G.Stack[0])
+	if ability == nil || ability.Ability == nil || ability.Ability.API != "MadnessCast" || ability.Source != emrakul {
+		t.Fatalf("madness stack ability: %+v", ability)
+	}
+	passOnceP(t, e)
+	passOnceP(t, e)
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTriggerOptional || d.Source != emrakul {
+		t.Fatalf("madness resolution choice: %+v", d)
+	}
+	yes := -1
 	for _, o := range d.Options {
-		if o.Kind == "player" && o.Player == 1 {
-			foe = o.Index
+		if o.Kind == "yes" {
+			yes = o.Index
 		}
 	}
-	submitChoices(t, e, foe)
-	passUntilStackEmpty(t, e, 40)
-	if o := e.G.Obj(temper); o.Zone != state.ZGraveyard {
-		t.Fatalf("Fiery Temper after resolving: %s", o.Zone)
+	if yes < 0 {
+		t.Fatalf("funded six-C madness cast not offered: %+v", d.Options)
 	}
-	if life := e.G.Players[1].Life; life != 17 {
-		t.Fatalf("opponent life %d, want 17", life)
+	submitChoices(t, e, yes)
+	if got := e.G.Players[0].Pool.Total(); got != 0 {
+		t.Fatalf("pool after Mind Rot and six-C madness = %d, want 0", got)
 	}
-	if life := e.G.Players[0].Life; life != 20 {
-		t.Fatalf("caster life %d, want 20 (the Ember discard was not a cost)", life)
+	if o := e.G.Obj(emrakul); o.Zone != state.ZStack {
+		t.Fatalf("six-C madness cast left Emrakul in %s, want stack", o.Zone)
+	}
+	replayCheck(t, e, cfg)
+}
+
+func TestMadnessTriggerCanBeStifled(t *testing.T) {
+	e, cfg, _ := altCostEngine(t, 937, []string{"Emrakul, the World Anew", "Stifle"}, nil, nil)
+	emrakul := findCardObj(t, e, 0, "Emrakul, the World Anew", state.ZHand)
+	stifle := findCardObj(t, e, 0, "Stifle", state.ZHand)
+	addMana(t, e, 0, "U")
+	e.pending = nil
+	e.emit(events.Event{Kind: events.MoveZone, Obj: emrakul, From: state.ZHand,
+		To: state.ZGraveyard, Text: "discarded (madness)"})
+	submitChoices(t, e, 0) // accept the exile replacement
+	if len(e.G.Stack) != 1 || e.G.Obj(e.G.Stack[0]).Ability.API != "MadnessCast" {
+		t.Fatalf("madness did not create one stack trigger: %v", e.G.Stack)
+	}
+	trigger := e.G.Stack[0]
+	submitChoices(t, e, castModeOption(t, e, stifle, ""))
+	d := e.Pending()
+	target := -1
+	for _, opt := range d.Options {
+		if opt.Obj == trigger {
+			target = opt.Index
+		}
+	}
+	if target < 0 {
+		t.Fatalf("Stifle cannot target madness trigger: %+v", d)
+	}
+	submitChoices(t, e, target)
+	passUntilStackEmpty(t, e, 60)
+	if o := e.G.Obj(emrakul); o.Zone != state.ZExile {
+		t.Fatalf("Stifled madness trigger moved Emrakul to %s", o.Zone)
+	}
+	replayCheck(t, e, cfg)
+}
+
+func TestMadnessReplacementMayBeDeclined(t *testing.T) {
+	e, cfg, _ := altCostEngine(t, 934, []string{"Emrakul, the World Anew"}, nil, nil)
+	id := findCardObj(t, e, 0, "Emrakul, the World Anew", state.ZHand)
+	// This is the event every discard implementation proposes; the real
+	// Emrakul keyword supplies the replacement being tested.
+	e.pending = nil
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand,
+		To: state.ZGraveyard, Text: "discarded (madness)"})
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement || e.G.Obj(id).Zone != state.ZHand {
+		t.Fatalf("optional madness replacement: pending=%+v zone=%s", d, e.G.Obj(id).Zone)
+	}
+	submitChoices(t, e, 1) // decline exile
+	if o := e.G.Obj(id); o.Zone != state.ZGraveyard {
+		t.Fatalf("declined madness replacement moved Emrakul to %s", o.Zone)
+	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.KeywordTriggerPush && ev.Obj == id {
+			t.Fatal("declined madness replacement created a trigger")
+		}
 	}
 	replayCheck(t, e, cfg)
 }
@@ -631,6 +807,34 @@ func TestWarpDoesNotGrantEveryWarpCardGraveyardPermission(t *testing.T) {
 			t.Fatalf("ordinary Warp card offered from graveyard: %+v", opt)
 		}
 	}
+}
+
+func TestSpiritGuideActivatesFromHandAndPaysItsExileCost(t *testing.T) {
+	e, cfg, _ := altCostEngine(t, 935, []string{"Elvish Spirit Guide"}, []string{altElfSrc}, nil)
+	guide := findCardObj(t, e, 0, "Elvish Spirit Guide", state.ZHand)
+	elf := findCardObj(t, e, 0, "Test Elf", state.ZHand)
+	d := e.Pending()
+	activate := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "activate" && opt.Obj == guide {
+			activate = opt.Index
+		}
+	}
+	if activate < 0 {
+		t.Fatalf("hand-zone Spirit Guide not offered: %+v", d.Options)
+	}
+	submitChoices(t, e, activate)
+	// CARDNAME leaves exactly one legal cost object, so the synchronous mana
+	// path pays it without a meaningless singleton choice.
+	if e.G.Obj(guide).Zone != state.ZExile || e.G.Players[0].Pool[state.MG] != 1 {
+		t.Fatalf("Spirit Guide payment: zone=%s pool=%+v", e.G.Obj(guide).Zone, e.G.Players[0].Pool)
+	}
+	// Spend the produced mana through the real cast payment path.
+	submitChoices(t, e, castModeOption(t, e, elf, ""))
+	if e.G.Players[0].Pool.Total() != 0 || e.G.Obj(elf).Zone != state.ZStack {
+		t.Fatalf("Spirit Guide mana not spent: pool=%+v elf=%s", e.G.Players[0].Pool, e.G.Obj(elf).Zone)
+	}
+	replayCheck(t, e, cfg)
 }
 
 func TestManaAbilityExileCostIsPaid(t *testing.T) {

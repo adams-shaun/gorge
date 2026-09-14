@@ -7,6 +7,8 @@
 package rules
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
@@ -46,6 +48,15 @@ import (
 func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	if ev.Kind != events.MoveZone {
 		return ev, false
+	}
+	// CR 702.35a: Madness first offers its owner an OPTIONAL replacement of
+	// the proposed discard-to-graveyard move with a hand-to-exile move. Park
+	// before either destination is logged. When the answer emits the selected
+	// move, applyingMadnessChoice suppresses this one interposition while all
+	// ordinary card/format replacements remain eligible.
+	if !e.applyingMadnessChoice && e.madnessReplacementApplies(ev) {
+		e.parkMadnessDiscard(ev)
+		return ev, true
 	}
 	// CR 903.9 (Task m32): a commander about to be put into its owner's
 	// graveyard, hand or library from anywhere, or exiled from anywhere, may
@@ -416,6 +427,10 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 // hand-built decision and degrades to a Note, the same totality stance as
 // handleCmdZone.
 func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
+	if len(d.Options) > 0 && strings.HasPrefix(d.Options[0].Kind, "madness_") {
+		e.handleMadnessReplacement(d, in)
+		return
+	}
 	if len(e.replChoices) == 0 {
 		e.emit(events.Event{Kind: events.Note, Player: in.Player,
 			Text: "replacement-order decision answered with no competition parked"})
@@ -433,9 +448,26 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	e.triggerBefore = rc.before
 	e.applyReplacement(rc.ev, rc.cands[chosen[0].Index])
 	e.triggerBefore = before
-	if len(e.replChoices) > 0 && e.pending == nil {
+	e.askNextReplacementChoice()
+}
+
+// askNextReplacementChoice resumes either replacement queue after an answer.
+// Ordinary competing replacements take precedence when accepting/declining a
+// Madness choice itself created one; once that queue drains, any further
+// simultaneous madness discards are asked in their original event order.
+func (e *Engine) askNextReplacementChoice() {
+	if e.pending != nil {
+		return
+	}
+	if len(e.replChoices) > 0 {
 		if o := e.G.Obj(e.replChoices[0].ev.Obj); o != nil && int(o.Controller) < len(e.G.Players) {
 			e.askReplacementChoice(o.Controller)
+		}
+		return
+	}
+	if len(e.madnessChoices) > 0 {
+		if o := e.G.Obj(e.madnessChoices[0].Obj); o != nil && int(o.Owner) < len(e.G.Players) {
+			e.askMadnessReplacement(o.Owner)
 		}
 	}
 }

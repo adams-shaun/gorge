@@ -70,6 +70,11 @@ var builtinSVars = map[string]string{
 	// Evoke's mandatory ETB trigger. It is minted as a real triggered ability
 	// by KeywordTriggerPush, so players receive priority and may counter it.
 	"__kwEvokeSacrifice": "DB$ Sacrifice | Defined$ Self",
+	// Madness's real triggered ability is handled by rules at resolution: its
+	// owner may cast the exiled source card for the madness cost, otherwise it
+	// goes to the graveyard. A distinct API marker lets the ordinary stack
+	// object stay respondable without pretending this is an effects primitive.
+	"__kwMadnessCast": "DB$ MadnessCast",
 	// Dash (CR 702): "returned from the battlefield to its owner's hand at
 	// the beginning of the next end step". The registered source is the
 	// dashed permanent itself, so Defined$ Self is it.
@@ -78,7 +83,8 @@ var builtinSVars = map[string]string{
 	"__kwWarpExile": "DB$ ChangeZone | Defined$ Self | Origin$ Battlefield | Destination$ Exile",
 	// Encore tokens: "Sacrifice them at the beginning of the next end step".
 	// Each token registers its own delayed trigger, so Self is that token.
-	"__kwEncoreSacrifice": "DB$ Sacrifice | Defined$ Self",
+	"__kwEncoreSacrifice":      "DB$ Sacrifice | Defined$ Self",
+	"__kwEncoreSacrificeGroup": "DB$ Sacrifice | Defined$ DelayTriggerRememberedLKI",
 }
 
 // ResolveSVar compiles the ability an SVar name refers to, recursively

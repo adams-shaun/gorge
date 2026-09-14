@@ -4,6 +4,7 @@ import (
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -257,6 +258,7 @@ func (e *Engine) Clone() *Engine {
 			c.replChoices[i] = rc
 		}
 	}
+	c.madnessChoices = append([]events.Event(nil), e.madnessChoices...)
 	return c
 }
 

@@ -867,7 +867,10 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	8: "83ffd462c2aa6819",
+	// 8 seats moved to 8155d2b35a633d76 (controller-authorized altcosts review):
+	// Force of Will now pays ExileFromHand<1/Blue> instead of the old generic
+	// mana fallback, changing that bot game's legal actions and trajectory.
+	8: "8155d2b35a633d76",
 }
 
 func TestHeads(t *testing.T) {

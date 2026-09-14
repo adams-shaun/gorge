@@ -319,6 +319,14 @@ type Engine struct {
 	// KReplacement decision is outstanding carries the same parked
 	// competitions the original does.
 	replChoices []replChoice
+	// madnessChoices parks discard moves while the card's owner decides
+	// whether to apply Madness's optional hand-to-exile replacement. The queue
+	// is plain event data and is cloned at intent boundaries like replChoices.
+	madnessChoices []events.Event
+	// applyingMadnessChoice suppresses only the Madness interposition while an
+	// answered choice emits its selected destination; ordinary card and format
+	// replacement effects still receive that resulting move.
+	applyingMadnessChoice bool
 
 	// suppressedCast holds the card object ids whose cast option is held out
 	// of the current priority window because their cast attempt aborted
