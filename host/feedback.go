@@ -2,10 +2,13 @@ package host
 
 import (
 	"fmt"
+	"os"
+	"sort"
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/protocol"
+	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
 )
@@ -47,6 +50,43 @@ type FeedbackMatch struct {
 	Format       Format              `json:"format,omitempty"`
 	StartingLife int32               `json:"starting_life,omitempty"`
 	Commanders   [][]int             `json:"commanders,omitempty"`
+
+	// Tokens carries the raw token scripts — keyed by file stem, the exact
+	// spelling a card's TokenScript$ parameter uses — behind the match's
+	// rules.Config.Tokens. rules.Config.Tokens is replay input (rules.New
+	// copies it onto Game.Tokens, and events.Apply's TokenCreate case mints
+	// from it), so a replay rebuilt from match.json alone needs it exactly
+	// as it needed the deck contents: without it, the replayed engine's
+	// effToken emits an "unknown token script" Note where the log records a
+	// TokenCreate, and the replay diverges at that event.
+	//
+	// The scripts are shipped as text, not as compiled cards, because a
+	// compiled *cards.Card cannot survive a JSON round trip: its derived
+	// P/T, CMC and colour-identity fields are unexported (cards/ir.go), so
+	// a JSON decode would leave them zero — a 1/1 Goblin replayed as a 0/0.
+	// A token Card IS fully determined by its script text, and the repro
+	// tool recompiles each entry with cards.ParseBytes + Card.Link +
+	// ApplyIntrinsics — the exact pipeline compileScripts runs the corpus
+	// through — so the rebuilt cards are the ones the match played with.
+	//
+	// The whole cfg.Tokens is captured, not only the tokens some deck seems
+	// to reference: the engine never enumerates which tokens a deck can
+	// create (TokenScript$ reaches effToken through spell abilities,
+	// triggers, replacements, keyword expansions and SVar bodies alike), so
+	// any filtered capture could miss an indirect creator and reproduce the
+	// very unknown-token divergence this field exists to prevent. The whole
+	// pinned corpus's token text is ~150 KB, noise beside the snapshot cap.
+	Tokens map[string]string `json:"tokens,omitempty"`
+
+	// TokensUnread lists the tokens whose script text could not be read
+	// back, as "<stem>: <reason>". The live match's cfg.Tokens holds the
+	// compiled cards; only each card's own source path needs reading back,
+	// and a miss (a corpus file moved or vanished since the match started,
+	// or a synthetic token compiled from bytes with no file behind it) is
+	// recorded here rather than dropped silently: a replay that later
+	// reaches one of these stems will diverge the same way a missing
+	// Tokens table would, and match.json says why.
+	TokensUnread []string `json:"tokens_unread,omitempty"`
 }
 
 // FeedbackLog is log.json's content: the match's events.Log as of the
@@ -159,8 +199,14 @@ func (r *Registry) SnapshotForFeedback(id TableID, seat *state.PlayerID) (Feedba
 	headSeq := head(m)
 	m.mu.RUnlock()
 
+	// The token scripts are read back outside the lock: cfg.Tokens is the
+	// registry-owned, never-mutated map the match was built with (the same
+	// discipline viewAt's replay already relies on for cfg), and the file
+	// reads are disk I/O no concurrent Submit should wait behind.
+	tokens, tokensUnread := tokenScripts(cfg)
+
 	snap := FeedbackSnapshot{
-		Match: feedbackMatch(sc, deckCards),
+		Match: feedbackMatch(sc, deckCards, tokens, tokensUnread),
 		Log: FeedbackLog{
 			Log:         *l,
 			Head:        l.Head(),
@@ -183,13 +229,48 @@ func (r *Registry) SnapshotForFeedback(id TableID, seat *state.PlayerID) (Feedba
 }
 
 // feedbackMatch copies the sidecar's fields into the exported FeedbackMatch
-// and attaches the deck contents.
-func feedbackMatch(sc sidecar, deckCards [][]string) FeedbackMatch {
+// and attaches the deck contents and the token scripts.
+func feedbackMatch(sc sidecar, deckCards [][]string, tokens map[string]string, tokensUnread []string) FeedbackMatch {
 	return FeedbackMatch{
 		Table: sc.Table, Match: sc.Match, Seed: sc.Seed, Seats: sc.Seats, Names: sc.Names,
 		PlayerNames: sc.PlayerNames, Decks: sc.Decks, DeckCards: deckCards, Spectator: sc.Spectator,
 		State: sc.State, Result: sc.Result, Winner: sc.Winner, Head: sc.Head, Events: sc.Events,
 		Turns: sc.Turns, Reason: sc.Reason, Mulligans: sc.Mulligans, Format: sc.Format,
 		StartingLife: sc.StartingLife, Commanders: sc.Commanders,
+		Tokens: tokens, TokensUnread: tokensUnread,
 	}
+}
+
+// tokenScripts reads the raw script text behind cfg.Tokens back off each
+// token card's own source path — the file that path names is what the
+// compiled card was parsed from, so reading it back is exact. See
+// FeedbackMatch.Tokens for why text and not the compiled cards, and why the
+// whole map rather than a deck-filtered subset. Stems are walked in sorted
+// order so TokensUnread (the only order-sensitive output) is deterministic;
+// the map itself marshals with sorted keys either way.
+func tokenScripts(cfg rules.Config) (map[string]string, []string) {
+	if len(cfg.Tokens) == 0 {
+		return nil, nil
+	}
+	stems := make([]string, 0, len(cfg.Tokens))
+	for s := range cfg.Tokens {
+		stems = append(stems, s)
+	}
+	sort.Strings(stems)
+	out := make(map[string]string, len(stems))
+	var unread []string
+	for _, s := range stems {
+		c := cfg.Tokens[s]
+		if c == nil || c.Path == "" {
+			unread = append(unread, s+": token card carries no source path")
+			continue
+		}
+		src, err := os.ReadFile(c.Path)
+		if err != nil {
+			unread = append(unread, s+": "+err.Error())
+			continue
+		}
+		out[s] = string(src)
+	}
+	return out, unread
 }

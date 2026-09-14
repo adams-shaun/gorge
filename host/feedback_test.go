@@ -49,7 +49,7 @@ func TestFeedbackMatchMarshalsTheSidecarsKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fm := feedbackMatch(sc, [][]string{{"x"}, {"y"}})
+	fm := feedbackMatch(sc, [][]string{{"x"}, {"y"}}, nil, nil)
 	fmRaw, err := json.Marshal(fm)
 	if err != nil {
 		t.Fatal(err)
@@ -61,12 +61,31 @@ func TestFeedbackMatchMarshalsTheSidecarsKeys(t *testing.T) {
 			t.Errorf("sidecar key %q missing from FeedbackMatch's JSON", k)
 		}
 	}
+	// A match whose cfg.Tokens is empty (a corpus with no tokens compiled,
+	// or a registry built without one) carries no tokens key at all — the
+	// omitempty keeps the plain sidecar-plus-deck shape byte-comparable.
 	extra := len(got) - len(want)
 	if extra != 1 {
 		t.Errorf("FeedbackMatch carries %d keys beyond the sidecar's %d, want exactly 1 (deck_cards)", extra, len(want))
 	}
 	if !got["deck_cards"] {
 		t.Error("FeedbackMatch's JSON is missing deck_cards")
+	}
+	// With tokens captured, both new keys appear: the scripts themselves
+	// and, when any could not be read back, the reason list. These are the
+	// only fields beyond the sidecar plus deck_cards by design — anything
+	// else must be added here, so the snapshot shape cannot drift silently.
+	fm.Tokens = map[string]string{"r_1_1_goblin": "Name:Goblin Token\n"}
+	fm.TokensUnread = []string{"c_3_3_wurm: no source path"}
+	fmRaw, err = json.Marshal(fm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got = sidecarKeys(t, fmRaw)
+	extra = len(got) - len(want)
+	if extra != 3 || !got["tokens"] || !got["tokens_unread"] {
+		t.Errorf("FeedbackMatch with tokens carries %d keys beyond the sidecar (want 3: deck_cards, tokens, tokens_unread); keys deck_cards=%v tokens=%v tokens_unread=%v",
+			extra, got["deck_cards"], got["tokens"], got["tokens_unread"])
 	}
 	// And the shared values must agree, not just the key names.
 	var scBack, fmBack map[string]any

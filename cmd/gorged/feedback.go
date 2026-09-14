@@ -304,19 +304,33 @@ func feedbackSeat(field, reportURL string) (*state.PlayerID, bool, error) {
 	return &p, true, nil
 }
 
-// tableIDFromURL extracts the table id a live-table URL names: the path
-// segment after /t/, up to the next /, ? or # — "/t/t1?seat=0" and
-// "/t/t1/m/1" both read t1. Anything else (lobby, empty) reads "".
+// tableIDFromURL extracts the table id a live-table URL names: the whole
+// path segment after the /t/ route — "/t/t1?seat=0" (the live route) and
+// "/t/t1/m/1" (an archived match's route, which the web router serves) both
+// read t1. Splitting on path segments means only a complete segment counts,
+// so a longer or lookalike path can never bleed into the id, and a "/t/"
+// that appears only in the query string or fragment is not a route. The
+// segment is percent-decoded, so a client that escaped the id
+// ("/t/t1%2Fx") still reads the id the server registered; a segment that
+// does not decode reads "" rather than a mangled id. Anything else (lobby,
+// empty, unparseable) reads "".
 func tableIDFromURL(reportURL string) string {
-	i := strings.Index(reportURL, "/t/")
-	if i < 0 {
+	u, err := url.Parse(strings.TrimSpace(reportURL))
+	if err != nil {
 		return ""
 	}
-	rest := reportURL[i+len("/t/"):]
-	if end := strings.IndexAny(rest, "/?#"); end >= 0 {
-		rest = rest[:end]
+	segs := strings.Split(u.Path, "/")
+	for i, seg := range segs {
+		if seg != "t" || i+1 >= len(segs) {
+			continue
+		}
+		id, err := url.PathUnescape(segs[i+1])
+		if err != nil {
+			return ""
+		}
+		return id
 	}
-	return rest
+	return ""
 }
 
 // feedbackID is a sortable, collision-resistant directory name: the UTC
