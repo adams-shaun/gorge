@@ -42,26 +42,22 @@ func KeywordHead(k string) string {
 	return strings.TrimSpace(k)
 }
 
-// SplitList is the ONE parser for every Forge script parameter that carries
-// a keyword list: a static's AddKeyword$ ("Vigilance & Lifelink"), a Pump's
-// KW$, an Animate's RemoveKeywords$, a CantHaveKeyword$ — and, because
-// Forge writes type lists the same way, a static's AddType$/AddTypes$
-// ("Creature & Spirit"). Forge writes these lists with EITHER separator —
-// comma ("Vigilance, Trample") or ampersand ("Deathtouch & Lifelink", the
-// form StaticAbilityContinuous.java's split(" & ") and Pump's own keyword
-// split read) — so a reader that splits on only one of them parses a list
-// written the other way as ONE bogus member (the Batterskull/Loxodon
-// Warhammer/Sword of Fire and Ice defect: "Vigilance & Lifelink" read as a
-// single keyword, so the bearer gained nothing). Every reader of such a
-// parameter goes through here; a member's own parameters ("Protection from
-// red", "Ward:1", "Equip:2") contain neither separator and survive intact.
-// Whitespace around each member is trimmed, empty members are dropped, and
-// an absent or empty list yields nil.
-func SplitList(list string) []string {
+// SplitKeywordList parses Forge's ampersand-joined keyword-list grammar.
+// StaticAbilityContinuous.java splits AddKeyword$ on " & ", and Pump's KW$
+// uses the same form: "Vigilance & Lifelink" is two keywords. A comma is NOT
+// a list separator. Keyword parameters use commas themselves, for example
+// "Protection:Spell.Instant,Spell.Sorcery:..." and
+// "OnlyUntapChosen:Artifact,Creature,Land", and must stay one member.
+//
+// Whitespace around each member is trimmed, empty members are dropped, and an
+// absent or empty list yields nil. Every implemented keyword-list reader uses
+// this function; type-list parsing is deliberately separate because it has a
+// different Forge grammar.
+func SplitKeywordList(list string) []string {
 	var out []string
-	for _, part := range strings.FieldsFunc(list, func(r rune) bool { return r == ',' || r == '&' }) {
-		if p := strings.TrimSpace(part); p != "" {
-			out = append(out, p)
+	for _, part := range strings.Split(list, "&") {
+		if part = strings.TrimSpace(part); part != "" {
+			out = append(out, part)
 		}
 	}
 	return out

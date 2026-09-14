@@ -14,12 +14,10 @@ import (
 // rv2b: static AddKeyword$ lists written with Forge's "&" separator
 // ("Vigilance & Lifelink") parsed as ONE bogus keyword, so every Equipment /
 // Aura static whose grant carried more than one keyword granted nothing at
-// all. The pump path (KW$) already split on "&" but not on ",", the static
-// path split on "," but not on "&" — the two readers disagreed, and both were
-// re-expressions of Forge's grammar that could drift. The fix is one shared
-// parser, cards.SplitList, that every keyword/type-list reader now routes
-// through; this file pins the real corpus cards the defect broke and the
-// reader wiring itself.
+// all. The fix is cards.SplitKeywordList, the shared parser for the Forge
+// ampersand grammar. Commas remain inside a keyword's parameters; type lists
+// keep their separate grammar. This file pins the real corpus cards the
+// defect broke and the rules-side reader wiring.
 
 // equipGrants drives the Equip ability of eq onto bearer and waits for the
 // stack to empty, so the static's Affected$ grant is live.
@@ -228,72 +226,28 @@ func skullID(e *Engine, name string) state.ObjID {
 	return 0
 }
 
-// TestKeywordListReadersShareTheParser enumerates EVERY reader of a Forge
-// keyword/type-list parameter and pins that each one routes through the one
-// shared parser, cards.SplitList — so the next reader added to the engine
-// has a parser to call and the "A & B" bug cannot regrow in a re-expression:
+// TestKeywordListReadersShareTheParser enumerates the implemented readers of
+// Forge keyword-list parameters. The parser itself, including the two
+// comma-bearing corpus forms, is pinned in cards.TestSplitKeywordList.
 //
-//  1. cards.SplitList itself: both separators, parameters preserved.
-//  2. rules.statList — the S: static AddKeyword$/AddTypes$ path (rules/layers.go).
-//  3. rules.grantKeywords — the pure keyword-grant KW$ path feeding
+//  1. rules.statKeywords — the S: static AddKeyword$ path (rules/layers.go).
+//  2. rules.grantKeywords — the pure keyword-grant KW$ path feeding
 //     decision.Grant (rules/legal.go).
-//  4. the effects Pump/PumpAll KW$ path, driven end to end through a real
-//     cast (effects/combatfx.go calls cards.SplitList at both call sites).
+//  3. effects Pump and PumpAll — both have no KW$ read of their own: they
+//     pass their SA to registerPumpEffects, whose sole read calls
+//     cards.SplitKeywordList. effects.TestPumpKeywordListReadersUseTheSharedParser
+//     executes both paths directly.
 func TestKeywordListReadersShareTheParser(t *testing.T) {
-	// 1. The shared parser: "&" and "," both separate; a member's own
-	// parameters survive; empty input is nil.
-	if got := cards.SplitList("Vigilance & Lifelink"); len(got) != 2 || got[0] != "Vigilance" || got[1] != "Lifelink" {
-		t.Errorf("SplitList ampersand = %v", got)
-	}
-	if got := cards.SplitList("Vigilance, Lifelink"); len(got) != 2 || got[0] != "Vigilance" || got[1] != "Lifelink" {
-		t.Errorf("SplitList comma = %v", got)
-	}
-	if got := cards.SplitList("Protection from red & Ward:1"); len(got) != 2 || got[0] != "Protection from red" || got[1] != "Ward:1" {
-		t.Errorf("SplitList parameters = %v", got)
-	}
-	if got := cards.SplitList(""); got != nil {
-		t.Errorf("SplitList empty = %v, want nil", got)
-	}
-	if got := cards.SplitList("Flying & Trample & Indestructible & Haste"); len(got) != 4 {
-		t.Errorf("SplitList four-way = %v, want 4 members", got)
-	}
-
-	// 2. The static path (AddKeyword$ / AddTypes$ through statList).
+	// 1. The static keyword path must divide the Forge ampersand list.
 	st := cards.Static{Mode: "Continuous", Params: map[string]string{
 		"AddKeyword": "Vigilance & Lifelink",
-		"AddTypes":   "Creature & Spirit",
 	}}
-	if got := statList(st, "AddKeyword"); len(got) != 2 {
-		t.Errorf("statList(AddKeyword) = %v, want 2 members", got)
-	}
-	if got := statList(st, "AddTypes"); len(got) != 2 || got[0] != "Creature" || got[1] != "Spirit" {
-		t.Errorf("statList(AddTypes) = %v", got)
+	if got := statKeywords(st); len(got) != 2 || got[0] != "Vigilance" || got[1] != "Lifelink" {
+		t.Errorf("statKeywords = %v, want [Vigilance Lifelink]", got)
 	}
 
-	// 3. The pure-grant path (grantKeywords feeds decision.Grant).
+	// 2. The pure-grant path (grantKeywords feeds decision.Grant).
 	if got := grantKeywords("Deathtouch & Lifelink"); len(got) != 2 || got[0] != "Deathtouch" || got[1] != "Lifelink" {
 		t.Errorf("grantKeywords = %v", got)
 	}
-	if got := grantKeywords("Vigilance,Trample"); len(got) != 2 {
-		t.Errorf("grantKeywords comma = %v", got)
-	}
-
-	// 4. The Pump KW$ path, end to end through a real cast: the bearer gains
-	// BOTH keywords of the "&"-joined grant.
-	pump := card(t, "Name:Pump\nManaCost:G\nTypes:Instant\n"+
-		"A:SP$ Pump | ValidTgts$ Creature | KW$ Deathtouch & Lifelink\nOracle:x\n")
-	e := handEngine(t, pump)
-	bear := onBoard(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
-	e.G.Players[0].Pool[state.MG] = 1
-	e.askPriority(0)
-	castFirst(t, e, "cast")
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KTarget {
-		t.Fatalf("want target decision, got %+v", d)
-	}
-	targetObject(t, e, bear)
-	for i := 0; i < 4 && len(e.G.Stack) > 0; i++ {
-		castFirst(t, e, "pass")
-	}
-	assertGrants(t, e, bear, []string{"Deathtouch", "Lifelink"})
 }

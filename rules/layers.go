@@ -81,7 +81,7 @@ func (e *Engine) staticEffects() []ContinuousEffect {
 				if hasStat(st, "AddKeyword") {
 					kw := base
 					kw.Layer = LAbilities
-					kw.AddKeywords = statList(st, "AddKeyword")
+					kw.AddKeywords = statKeywords(st)
 					out = append(out, kw)
 				}
 				if hasStat(st, "AddType") || hasStat(st, "AddTypes") {
@@ -135,15 +135,25 @@ func statInt(st cards.Static, key string) int32 {
 	return int32(n)
 }
 
-// statList splits an additive static parameter (AddKeyword, AddTypes) into
-// its members through cards.SplitList -- the shared Forge list parser -- so
-// both of Forge's separators (",", "Vigilance, Trample"; "&", "Vigilance &
-// Lifelink") are honoured and a keyword carrying its own parameters
-// ("Protection from red", "Ward:1") survives intact. AddTypes$ lists are
-// written the same two ways ("Creature & Spirit"), so one parser serves
-// both.
+// statKeywords parses AddKeyword$ through the shared Forge keyword-list
+// parser. In particular its ampersands divide keywords while commas remain
+// inside a keyword's parameters.
+func statKeywords(st cards.Static) []string {
+	return cards.SplitKeywordList(st.Params["AddKeyword"])
+}
+
+// statList parses additive TYPE parameters. Type lists retain their existing
+// comma-separated grammar; they must not use SplitKeywordList, whose
+// ampersand grammar is specific to keyword parameters.
 func statList(st cards.Static, key string) []string {
-	return cards.SplitList(st.Params[key])
+	var out []string
+	for _, v := range strings.Split(st.Params[key], ",") {
+		v = strings.TrimSpace(v)
+		if v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
 }
 
 // Layer, Sublayer and ContinuousEffect moved to state/continuous.go in Task
