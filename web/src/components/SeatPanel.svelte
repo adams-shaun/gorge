@@ -186,29 +186,21 @@
     logic.submit();
   }
 
-  // ---- the pick rows' hover inspector ---------------------------------
-  // The two `.pick` card rows this panel renders — the arrange strip and the
-  // mulligan bottom round — were the card surfaces that had NO hover detail:
-  // bare CardImages in buttons, while CardTile (the mulligan keep hand in
-  // this very panel), HandList and StackTile all open the shared CardDetail
-  // inspector on hover/focus. A tile-sized face is the reading affordance at
-  // exactly these prompts, so both rows get the same HoverCard dwell/focus
-  // mechanism, driven by ONE shared hover state — only one row renders at a
-  // time (the branches are exclusive) and only one card can be under the
-  // pointer or focused. CardDetail portals itself to <body> (see the NOTE in
-  // the style block: this panel is a containing block for fixed
-  // descendants), so the detail escapes the panel's own clipping and blur.
-  const pickHover = new CardHover();
+  // ---- the arrange strip's hover inspector ----------------------------
+  // The arrange strip is the one card surface that had NO hover detail:
+  // bare CardImages in `.pick` buttons, while CardTile (the mulligan keep
+  // hand in this very panel), HandList and StackTile all open the shared
+  // CardDetail inspector on hover/focus. A tile-sized face is the reading
+  // affordance at exactly this prompt, so the strip gets the same HoverCard
+  // dwell/focus mechanism (fb-20260914T063020Z Job 1). CardDetail portals
+  // itself to <body> (see the NOTE in the style block: this panel is a
+  // containing block for fixed descendants), so the detail escapes the
+  // panel's own clipping and blur.
+  const arrangeHover = new CardHover();
 
-  // The cards the pick rows currently show — the present list the panel's
-  // lifecycle contract supervises against.
-  const pickRowCards = $derived(
-    arrange !== null
-      ? arrange.options.map((o) => arrangeCard(arrange, o))
-      : mull !== null && mull.phase === 'bottom'
-        ? mull.cards.map((o) => cardFor(o)).filter((c): c is CardView => c !== undefined)
-        : [],
-  );
+  // The cards the strip currently shows — the present list the lifecycle
+  // contract supervises against.
+  const arrangeCards = $derived(arrange !== null ? arrange.options.map((o) => arrangeCard(arrange, o)) : []);
   // PANEL LIFETIME FOLLOWS THE ASK, NOT THE POINTER. The decision on screen
   // can change under a stationary pointer (the seat's next ask answered from
   // another tab; the seqswap case) — the row re-renders, pointerleave never
@@ -218,7 +210,7 @@
   // supervise — a test drives CardHover directly, the way the CardTile and
   // StackTile tests do.)
   $effect(() => {
-    pickHover.supervise(pickRowCards);
+    arrangeHover.supervise(arrangeCards);
   });
 
   // The prompt context line (brief Job 3): who the prompt is from and what
@@ -360,12 +352,6 @@
               data-option={opt.index}
               aria-pressed={at >= 0}
               aria-label={card ? card.name : opt.label}
-              onpointerenter={(e) => card && pickHover.arm(card, e.currentTarget)}
-              onpointerleave={() => pickHover.close()}
-              onfocus={(e) => card && pickHover.open(card, e.currentTarget)}
-              onblur={() => pickHover.close()}
-              onkeydown={(e) => pickHover.keydown(e)}
-              aria-describedby={pickHover.hover.show && pickHover.card?.id === card?.id ? `card-detail-${card?.id}` : undefined}
               onclick={() => logic.toggle(opt.index)}
               disabled={logic.busy}
             >
@@ -385,7 +371,6 @@
             Bottom {bottomCount} {bottomCount === 1 ? 'card' : 'cards'}
           </button>
         </div>
-        {#if pickHover.hover.show && pickHover.card && pickHover.anchor}<CardDetail card={pickHover.card} anchor={pickHover.anchor} />{/if}
       {:else if placement === 'strip' && tone === 'initiative'}
         <!-- The split (brief Job 2): the ACTIONS surface serves OFFERED windows
              — what this seat could do while it holds priority. A decision the
@@ -423,12 +408,12 @@
                 data-option={opt.index}
                 aria-pressed={at >= 0}
                 aria-label={opt.label}
-                onpointerenter={(e) => pickHover.arm(card, e.currentTarget)}
-                onpointerleave={() => pickHover.close()}
-                onfocus={(e) => pickHover.open(card, e.currentTarget)}
-                onblur={() => pickHover.close()}
-                onkeydown={(e) => pickHover.keydown(e)}
-                aria-describedby={pickHover.hover.show && pickHover.card?.id === card.id ? `card-detail-${card.id}` : undefined}
+                onpointerenter={(e) => arrangeHover.arm(card, e.currentTarget)}
+                onpointerleave={() => arrangeHover.close()}
+                onfocus={(e) => arrangeHover.open(card, e.currentTarget)}
+                onblur={() => arrangeHover.close()}
+                onkeydown={(e) => arrangeHover.keydown(e)}
+                aria-describedby={arrangeHover.hover.show && arrangeHover.card?.id === card.id ? `card-detail-${card.id}` : undefined}
                 onclick={() => logic.toggle(opt.index)}
                 disabled={logic.busy}
               >
@@ -449,7 +434,7 @@
               >{arrange.min === arrange.max ? 'Confirm order' : 'Confirm'}</button>
             {/if}
           </div>
-          {#if pickHover.hover.show && pickHover.card && pickHover.anchor}<CardDetail card={pickHover.card} anchor={pickHover.anchor} />{/if}
+          {#if arrangeHover.hover.show && arrangeHover.card && arrangeHover.anchor}<CardDetail card={arrangeHover.card} anchor={arrangeHover.anchor} />{/if}
         </div>
       {:else}
         <div class="options" data-options>

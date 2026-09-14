@@ -212,10 +212,9 @@ describe('HoverCard', () => {
 
 describe('CardHover', () => {
   // CardHover is HoverCard plus the two companions a MANY-triggers-one-panel
-  // surface needs (SeatPanel's arrange strip and mulligan bottom row, whose
-  // components cannot declare a local $state rune — the `state` prop shadows
-  // it): arm/open remember the card, supervise closes against a present list
-  // and clears them.
+  // surface needs (SeatPanel's arrange strip, whose component cannot declare
+  // a local $state rune — the `state` prop shadows it): arm/open remember the
+  // card, supervise closes against a present list and clears them.
 
   const cardA: CardView = {
     id: 11, name: 'Brazen Borrower', types: 'Creature', printing: { name: 'Brazen Borrower' }, token: '#11',

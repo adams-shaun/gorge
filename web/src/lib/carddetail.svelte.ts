@@ -257,8 +257,8 @@ export function placePanel(anchor: AnchorRect, vw: number, vh: number, panelWidt
  * renders the detail panel needs alongside it: the card the panel describes
  * and the anchor rect it is placed against. CardTile and StackTile own one
  * HoverCard per tile and hand-roll those companions inline; a surface that
- * renders MANY triggers against ONE panel (HandList's hand lines, SeatPanel's
- * arrange strip and mulligan bottom row) owns ONE CardHover instead — only
+ * renders MANY triggers against ONE panel (HandList's hand lines,
+ * SeatPanel's arrange strip) owns ONE CardHover instead — only
  * one card can be under the pointer or focused at a time.
  *
  * It exists as a class because its consumers render inside components whose
