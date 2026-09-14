@@ -24,6 +24,7 @@ func commanderFixture(t *testing.T) *cards.Registry {
 		// land subtype and produces only colourless, so it fits any deck.
 		"Plains":   "Name:Plains\nTypes:Basic Land Plains\n",
 		"Mountain": "Name:Mountain\nTypes:Basic Land Mountain\n",
+		"Forest":   "Name:Forest\nTypes:Basic Land Forest\n",
 		"Badlands": "Name:Badlands\nTypes:Land Swamp Mountain\nOracle:({T}: Add {B} or {R}.)\n",
 		"Wastes":   "Name:Wastes\nTypes:Basic Land\nOracle:{T}: Add {C}.\n",
 		// Amalia is the white legendary-commander: identity {W}.
@@ -44,6 +45,15 @@ func commanderFixture(t *testing.T) *cards.Registry {
 		// defense box instead. This fixture carries PT like the real
 		// Hearthhull, the Worldseed (6/7) does.
 		"Hearthhull": "Name:Hearthhull\nManaCost:1 B R G\nTypes:Legendary Artifact Spacecraft\nPT:6/7\n",
+		// A mono-colour legendary commander for the could-produce regression
+		// fixtures below.
+		"Ember Dragon":  "Name:Ember Dragon\nManaCost:R\nTypes:Legendary Creature Dragon\nOracle:Ember Dragon.\n",
+		"Verdant Hydra": "Name:Verdant Hydra\nManaCost:G\nTypes:Legendary Creature Hydra\nOracle:Verdant Hydra.\n",
+		// Basic-typed lands with an "any colour" production: each could produce
+		// one mana of ANY colour, so CR 903.5d binds it to a full-WUBRG
+		// commander no matter what its basic land type's intrinsic colour is.
+		"Painted Mountain": "Name:Painted Mountain\nTypes:Land Mountain\nOracle:Painted Mountain enters the battlefield.\nA:AB$ Mana | Cost$ T | Produced$ Any | Amount$ 1 | SpellDescription$ Add one mana of any color.\n",
+		"Painted Forest":   "Name:Painted Forest\nTypes:Land Forest\nOracle:Painted Forest enters the battlefield.\nA:AB$ Mana | Cost$ T | Produced$ Any | Amount$ 1 | SpellDescription$ Add one mana of any color.\n",
 	}
 	for name, src := range scripts {
 		c, diags := cards.ParseBytes("fixture.txt", []byte(src))
@@ -155,6 +165,46 @@ func TestValidateCommanderRejectsBasicLandTypeProduction(t *testing.T) {
 	}
 }
 
+// TestValidateCommanderRejectsAnyColourProducerUnderMonoCommander pins the
+// CR 903.5d "each colour of mana it could produce" reading for a basic-typed
+// land whose own production is "one mana of any colour": such a card could
+// produce all five colours, so it is not legal in a mono-colour deck whatever
+// its basic land type's intrinsic colour is. This is the class the rv2c fix
+// had to catch — the subtype-only could-produce read saw just the land type's
+// own colour (red for a Mountain, green for a Forest) and let an any-colour
+// producer into a mono-red or mono-green commander deck.
+func TestValidateCommanderRejectsAnyColourProducerUnderMonoCommander(t *testing.T) {
+	r := commanderFixture(t)
+	// A mono-red commander whose deck holds a Land Mountain that taps for one
+	// mana of ANY colour: the card could produce W/U/B/G too, so CR 903.5d
+	// rejects it under a commander whose identity is only {R}.
+	f := File{Name: "RED", Commander: "Ember Dragon", Cards: []Entry{
+		{"Ember Dragon", 1}, {"Mountain", 98}, {"Painted Mountain", 1},
+	}}
+	err := f.ValidateCommander(r)
+	if err == nil || !strings.Contains(err.Error(), "Painted Mountain") || !strings.Contains(err.Error(), "903.5d") {
+		t.Fatalf("want an any-colour could-produce error for a mono-red deck, got %v", err)
+	}
+	// The same shape for green: a Land Forest that taps for any colour is not
+	// legal under a mono-green commander either.
+	f2 := File{Name: "GREEN", Commander: "Verdant Hydra", Cards: []Entry{
+		{"Verdant Hydra", 1}, {"Forest", 98}, {"Painted Forest", 1},
+	}}
+	err2 := f2.ValidateCommander(r)
+	if err2 == nil || !strings.Contains(err2.Error(), "Painted Forest") || !strings.Contains(err2.Error(), "903.5d") {
+		t.Fatalf("want an any-colour could-produce error for a mono-green deck, got %v", err2)
+	}
+	// Control: the same mono-red deck is legal once the any-colour land is a
+	// plain Mountain (produces only red). The 903.5d check must reject only
+	// the any-colour card, not the deck around it.
+	f3 := File{Name: "RED-OK", Commander: "Ember Dragon", Cards: []Entry{
+		{"Ember Dragon", 1}, {"Mountain", 99},
+	}}
+	if err := f3.ValidateCommander(r); err != nil {
+		t.Fatalf("control mono-red deck rejected: %v", err)
+	}
+}
+
 func TestValidateCommanderRejectsOutsideColourIdentity(t *testing.T) {
 	r := commanderFixture(t)
 	f := legalMonoWhiteCommander()
@@ -199,6 +249,27 @@ func corpusCardScript(t *testing.T, rel string) []byte {
 		t.Fatalf("reading corpus script %s: %v", rel, err)
 	}
 	return blob
+}
+
+// TestBasicLandCouldProducePrecision pins the precision of the CR 903.5d
+// could-produce read against real corpus data. Murmuring Bosk is a Land
+// Forest whose printed mana ability is "{T}: Add {W} or {B}" (Produced$
+// Combo W B) plus the green its Forest basic land type grants. Its
+// could-produce set is therefore green|white|black — NOT all five, which is
+// what a coarse "any non-plain production" read (or cards.ManaProduction's
+// Any flag, set for Combo W B too) would return and what would wrongly bar it
+// from an Abzan (WBG) commander deck.
+func TestBasicLandCouldProducePrecision(t *testing.T) {
+	blob := corpusCardScript(t, "m/murmuring_bosk.txt")
+	c, diags := cards.ParseBytes("murmuring_bosk.txt", blob)
+	if len(diags) > 0 {
+		t.Fatalf("Murmuring Bosk parse: %v", diags)
+	}
+	got := basicLandCouldProduce(c)
+	want := cards.ColourGreen | cards.ColourWhite | cards.ColourBlack
+	if got != want {
+		t.Fatalf("Murmuring Bosk could-produce = %08b, want %08b (green|white|black, not all five)", got, want)
+	}
 }
 
 // TestIsCommanderEligibleRejectsLegendaryNonCreature pins the half of CR
