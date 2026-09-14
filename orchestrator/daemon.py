@@ -115,6 +115,16 @@ def _local_slot_free(issue: issues.Issue, what: str) -> bool:
     return _slot_free(issue, False, what)
 
 
+def _local_tier_seat(issue: issues.Issue, what: str) -> str | None:
+    """'local' if a glm slot is free, else 'overflow' (terra) if a paid slot
+    is free, else None -- the work waits."""
+    if _slot_free(issue, False, what):
+        return "local"
+    if _slot_free(issue, True, what + " (terra overflow)"):
+        return "overflow"
+    return None
+
+
 # --- per-status advancement --------------------------------------------------
 
 def advance_new(issue: issues.Issue) -> None:
@@ -130,10 +140,11 @@ def advance_new(issue: issues.Issue) -> None:
     name = seats.triage_name(issue.id)
     status_path = config.ORCH_STATE_DIR / "triage" / issue.id / "status.json"
     if not pi.already_launched(name):
-        if not _local_slot_free(issue, "triage"):
+        seat = _local_tier_seat(issue, "triage")
+        if seat is None:
             return
-        seats.launch_triage(issue.id, config.ISSUES_DIR / f"{issue.id}.md")
-        issue.log("triage dispatched (local)")
+        seats.launch_triage(issue.id, config.ISSUES_DIR / f"{issue.id}.md", overflow=(seat == "overflow"))
+        issue.log("triage dispatched (" + ("terra, local cap full" if seat == "overflow" else "local") + ")")
         issue.save()
         return
     st = pi.read_status(status_path)
@@ -164,20 +175,22 @@ def advance_new(issue: issues.Issue) -> None:
 
 
 def advance_briefed(issue: issues.Issue) -> None:
-    if not _local_slot_free(issue, "implementer r1"):
+    seat = _local_tier_seat(issue, "implementer round 1")
+    if seat is None:
         return
     wt = git_ops.create_worktree(issue.id)
     issue.worktree = str(wt.relative_to(config.REPO))
     issue.branch = f"wt/{issue.id}"
-    issue.seat_kind = "local"
+    issue.seat_kind = seat
     issue.local_rounds = 1
     tag = seats.round_tag(issue)
     name = seats.implementer_name(issue.id, tag)
     if pi.already_launched(name):
         return  # a prior tick crashed after launch but before save; don't double-launch
-    seats.launch_implementer(issue.id, wt, tag, issue.brief, escalated=False, findings_text=None)
+    seats.launch_implementer(issue.id, wt, tag, issue.brief, escalated=False, findings_text=None,
+                             overflow=(seat == "overflow"))
     issue.status = "dispatched"
-    issue.log(f"implementer dispatched (local, {tag})")
+    issue.log(f"implementer dispatched ({'terra, local cap full' if seat == 'overflow' else 'local'}, {tag})")
     issue.save()
 
 
@@ -188,7 +201,11 @@ def _pending_findings_path(issue: issues.Issue) -> Path:
 def _redispatch_implementer(issue: issues.Issue, findings: str) -> None:
     escalated = issue.seat_kind == "escalated"
     will_escalate = escalated or issue.local_rounds + 1 > config.MAX_LOCAL_ROUNDS
-    if not _slot_free(issue, will_escalate, "redispatch"):
+    if will_escalate:
+        seat = "escalated" if _slot_free(issue, True, "redispatch") else None
+    else:
+        seat = _local_tier_seat(issue, "redispatch")
+    if seat is None:
         # Park with the findings; advance_waiting retries each tick. Nothing
         # above (a gate run, a verdict read) is repeated while parked.
         pending = _pending_findings_path(issue)
@@ -208,6 +225,8 @@ def _redispatch_implementer(issue: issues.Issue, findings: str) -> None:
             issue.seat_kind = "escalated"
             issue.escalated_rounds = 1
             escalated = True
+        else:
+            issue.seat_kind = seat  # local, or terra overflow when glm is full
     tag = seats.round_tag(issue)
     name = seats.implementer_name(issue.id, tag)
     if pi.already_launched(name):
@@ -216,9 +235,11 @@ def _redispatch_implementer(issue: issues.Issue, findings: str) -> None:
         issue.save()
         return
     wt = config.REPO / issue.worktree
-    seats.launch_implementer(issue.id, wt, tag, issue.brief, escalated=escalated, findings_text=findings)
+    overflow = issue.seat_kind == "overflow"
+    seats.launch_implementer(issue.id, wt, tag, issue.brief, escalated=escalated, findings_text=findings,
+                             overflow=overflow)
     issue.status = "dispatched"
-    issue.log(f"implementer redispatched ({'escalated/sol' if escalated else 'local'}, {tag})")
+    issue.log(f"implementer redispatched ({'escalated/sol' if escalated else 'terra overflow' if overflow else 'local'}, {tag})")
     issue.save()
 
 

@@ -40,6 +40,8 @@ def round_tag(issue) -> str:
     ladder currently stands."""
     if issue.seat_kind == "escalated":
         return f"sol{issue.escalated_rounds}"
+    if issue.seat_kind == "overflow":
+        return f"t{issue.local_rounds}"
     return f"r{issue.local_rounds}"
 
 
@@ -51,7 +53,7 @@ def triage_out_dir(wt: Path) -> Path:
     return wt / ".ds4" / "triage"
 
 
-def launch_triage(issue_id: str, issue_path: Path) -> tuple[subprocess.Popen, Path]:
+def launch_triage(issue_id: str, issue_path: Path, overflow: bool = False) -> tuple[subprocess.Popen, Path]:
     """Triage runs in its own detached worktree of main (git_ops.
     create_triage_worktree). It only writes one brief file, never code; the
     daemon copies that brief out and removes the worktree when triage ends.
@@ -78,7 +80,9 @@ def launch_triage(issue_id: str, issue_path: Path) -> tuple[subprocess.Popen, Pa
         system_rel=".ds4/triage/system.md",
         report_rel=".ds4/triage/triage-report.md",
         out_path=status_path,
-        provider=config.LOCAL_PROVIDER, model=config.LOCAL_MODEL, thinking=config.LOCAL_THINKING,
+        provider=config.OVERFLOW_PROVIDER if overflow else config.LOCAL_PROVIDER,
+        model=config.OVERFLOW_MODEL if overflow else config.LOCAL_MODEL,
+        thinking=config.OVERFLOW_THINKING if overflow else config.LOCAL_THINKING,
     )
     return proc, status_path
 
@@ -93,6 +97,7 @@ def implementer_status_path(wt: Path, tag: str) -> Path:
 
 def launch_implementer(
     issue_id: str, wt: Path, tag: str, brief_text: str, escalated: bool, findings_text: str | None,
+    overflow: bool = False,
 ) -> tuple[subprocess.Popen, Path]:
     ds4 = wt / ".ds4"
     ds4.mkdir(parents=True, exist_ok=True)
@@ -105,9 +110,12 @@ def launch_implementer(
         findings_path.write_text(findings_text)
         message_rel = str(findings_path.relative_to(wt))
     status_path = implementer_status_path(wt, tag)
-    provider = config.IMPLEMENTER_ESCALATED_PROVIDER if escalated else config.LOCAL_PROVIDER
-    model = config.IMPLEMENTER_ESCALATED_MODEL if escalated else config.LOCAL_MODEL
-    thinking = "high" if escalated else config.LOCAL_THINKING
+    if escalated:
+        provider, model, thinking = config.IMPLEMENTER_ESCALATED_PROVIDER, config.IMPLEMENTER_ESCALATED_MODEL, "high"
+    elif overflow:
+        provider, model, thinking = config.OVERFLOW_PROVIDER, config.OVERFLOW_MODEL, config.OVERFLOW_THINKING
+    else:
+        provider, model, thinking = config.LOCAL_PROVIDER, config.LOCAL_MODEL, config.LOCAL_THINKING
     proc = pi.launch(
         name=implementer_name(issue_id, tag),
         cwd=wt,

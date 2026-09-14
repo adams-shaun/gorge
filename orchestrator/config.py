@@ -65,6 +65,13 @@ POLL_SECONDS = 60
 # findings, and a finished implementer waits in `dispatched` for a reviewer.
 MAX_LOCAL_SEATS = 2
 MAX_PAID_SEATS = 4
+# User-set 2026-09-14: work held only by the local cap goes to terra instead
+# of waiting (triage, and every non-escalated implementer round). Those
+# rounds are tagged t<n> and still count toward MAX_LOCAL_ROUNDS; the sol
+# escalation ladder is unchanged.
+OVERFLOW_PROVIDER = "openai-codex"
+OVERFLOW_MODEL = "gpt-5.6-terra"
+OVERFLOW_THINKING = "high"
 MAX_LOCAL_ROUNDS = 2  # after this many failed local rounds, escalate to SOL
 MAX_ESCALATED_ROUNDS = 2  # after this many failed SOL rounds, stop and flag a human
 
