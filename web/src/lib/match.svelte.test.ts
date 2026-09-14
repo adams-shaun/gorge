@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { EventBody, MatchInfo, MatchStart, View } from '../protocol';
+import { clientBreadcrumbs } from './breadcrumbs';
 
 // match.svelte.ts calls fetchView (PL-16's post-decision/match_end refresh,
 // and Task 21's cursor-driven fetch), fetchEvents (backfill, finished-match
@@ -243,6 +244,29 @@ describe('MatchState — DVR cursor fetching (Task 21)', () => {
     await drain();
 
     expect(m.view).toEqual(view(9)); // never clobbered by the later-resolving, earlier-issued fetches
+  });
+
+  it('feedback keeps the assigned view sequence while a scrub fetch is still pending', async () => {
+    fetchViewMock.mockReset();
+    fetchEventsMock.mockReset();
+    const delayed = deferred<View>();
+    fetchViewMock.mockReturnValueOnce(delayed.promise);
+    const m = new MatchState('t1');
+    m.apply({ v: 1, t: 'snapshot', table: 't1', match: 1, seq: 0, body: { view: view(10), turn_starts: [0], head: 10 } });
+    m.apply({ v: 1, t: 'event', table: 't1', match: 1, seq: 11, body: ev(11) });
+
+    // The DVR cursor immediately moves to 11, but the board is still the
+    // snapshot rendered at 10 until showCursor's fetch resolves. Feedback
+    // must capture the board sequence, not the requested cursor.
+    m.dispatch({ type: 'pause' });
+    await settle(() => fetchViewMock.mock.calls.length === 1);
+    expect(m.dvr.cursor).toBe(11);
+    expect(m.renderedSeq).toBe(10);
+    expect(clientBreadcrumbs.snapshot(null).view).toEqual({ sequence: 10, intent_index: null });
+
+    delayed.resolve(view(11));
+    await settle(() => m.renderedSeq === 11);
+    expect(clientBreadcrumbs.snapshot(null).view).toEqual({ sequence: 11, intent_index: null });
   });
 
   it('scrubbing before the cached events window triggers exactly one bounded backfill', async () => {

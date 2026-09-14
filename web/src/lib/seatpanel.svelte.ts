@@ -16,6 +16,7 @@ import {
 } from './playsettings';
 import { autoPassLogText, pushAutoPassLog, type AutoPassKind, type AutoPassLog } from './autolog';
 import { loadYields, saveYields } from './yields';
+import { clientBreadcrumbs } from './breadcrumbs';
 import {
   emptyRemembered,
   loadRemembered,
@@ -400,6 +401,7 @@ export class SeatPanelState {
     // so a new match on the same table reads empty — a yield granted in game
     // N never auto-passes in game N+1 (review r2).
     this.yieldList = [...loadYields(table, match, yieldStorage)];
+    clientBreadcrumbs.setPlay(this.settings, this.yieldList);
   }
 
   /** pending is the decision this seat must answer right now, or null when the game is waiting on someone else. */
@@ -583,7 +585,7 @@ export class SeatPanelState {
    * impossible. A wait of 0 ms never schedules: the pass posts immediately,
    * which is the pre-pacing path the tests rely on.
    */
-  private passWait: { seq: number; index: number; kind: AutoPassKind } | null = null;
+  private passWait: { seq: number; index: number; kind: AutoPassKind; reason: string } | null = null;
   private passTimer: ReturnType<typeof setTimeout> | null = null;
   /** Latest view supplied to considerAuto; firePass re-derives against this exact view. */
   private currentView: View | null = null;
@@ -671,6 +673,7 @@ export class SeatPanelState {
     this.yieldList = [...next];
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- a write-through copy into the non-reactive store layer (lib/yields.ts), never stored on the state
     saveYields(this.table, this.match, new Set(this.yieldList), this.yieldStorage);
+    clientBreadcrumbs.setPlay(this.settings, this.yieldList);
   }
 
   /**
@@ -736,6 +739,7 @@ export class SeatPanelState {
   private applySettings(next: PlaySettings) {
     this.settings = next;
     saveSettings(this.storage, next);
+    clientBreadcrumbs.setPlay(this.settings, this.yieldList);
   }
 
   /** patchSettings applies a partial change through withChange (which relabels the preset when the result matches one) and persists. */
@@ -1134,7 +1138,7 @@ export class SeatPanelState {
       return;
     }
 
-    this.dispatchPass(view, verdict.index, verdict.kind);
+    this.dispatchPass(view, verdict.index, verdict.kind, verdict.reason);
   }
 
   /**
@@ -1181,7 +1185,7 @@ export class SeatPanelState {
    * inspect more of View.
    */
   private derivePass(view: View):
-    | { act: 'pass'; index: number; kind: Exclude<AutoPassKind, 'act'> }
+    | { act: 'pass'; index: number; kind: Exclude<AutoPassKind, 'act'>; reason: string }
     | { act: 'stop'; reason: StopReason }
     | null {
     const d = this.pending;
@@ -1200,7 +1204,7 @@ export class SeatPanelState {
     // decide() owns the same shape and classifies it under Auto's counter.
     if (!autoOn && this.oneShot === 'none') {
       const index = this.skipEmpty ? emptyPriorityWindow(d, view, this.ctx.seat) : null;
-      return index === null ? null : { act: 'pass', index, kind: 'empty' };
+      return index === null ? null : { act: 'pass', index, kind: 'empty', reason: 'empty-window' };
     }
 
     // A one-shot run feeds decide() its OWN settings: autoPass forced on,
@@ -1224,7 +1228,7 @@ export class SeatPanelState {
       : this.oneShot === 'resolve-all'
       ? 'resolve-all'
       : 'auto';
-    return { ...verdict, kind };
+    return { ...verdict, kind, reason: 'no-stop-rule' };
   }
 
   /**
@@ -1248,17 +1252,19 @@ export class SeatPanelState {
    * un-records it again, so an abandoned pass never looks answered and the
    * loop guard can never trip on a pass that was never posted.
    */
-  private dispatchPass(view: View, index: number, kind: AutoPassKind) {
+  private dispatchPass(view: View, index: number, kind: AutoPassKind, reason: string) {
     const d = this.pending;
     if (d === null) return;
+    // This is the single exit for every machine pass. Carry its reason to
+    // postPass, so a cancelled pacing wait is never reported as an action.
     const ms = this.paceMs(view);
     if (kind !== 'act') this.autoActedSeq = d.seq;
     if (ms <= 0) {
-      this.postPass(kind, index, view);
+      this.postPass(kind, index, view, reason);
       return;
     }
     if (this.passTimer !== null) clearTimeout(this.passTimer);
-    this.passWait = { seq: d.seq, index, kind };
+    this.passWait = { seq: d.seq, index, kind, reason };
     this.passTimer = setTimeout(() => this.firePass(), ms);
   }
 
@@ -1287,7 +1293,7 @@ export class SeatPanelState {
     const fresh = w.kind === 'act' ? this.deriveActPass(view) : this.derivePass(view);
     if (fresh?.act === 'pass' && fresh.index === w.index && fresh.kind === w.kind) {
       if (w.kind !== 'act') this.autoActedSeq = w.seq;
-      this.postPass(w.kind, w.index, view);
+      this.postPass(w.kind, w.index, view, fresh.reason);
       return;
     }
 
@@ -1297,7 +1303,10 @@ export class SeatPanelState {
   }
 
   /** One actual automatic post: count it and, if enabled NOW, log the current view. */
-  private postPass(kind: AutoPassKind, index: number, view: View) {
+  private postPass(kind: AutoPassKind, index: number, view: View, reason: string) {
+    // This is the actual post edge for every automatic pass. Recording here
+    // means a cancelled pacing wait is not misreported as an action.
+    clientBreadcrumbs.record('auto_pass', { reason, mode: kind, seq: this.pending?.seq ?? null, choice: index });
     this.countPass(kind);
     if (this.settings.logAutoPasses) {
       this.autoLog = pushAutoPassLog(this.autoLog, autoPassLogText(kind, view, this.ctx.seat), view.turn);
@@ -1413,16 +1422,16 @@ export class SeatPanelState {
     // the mode this preference exists for).
     const verdict = this.deriveActPass(view);
     if (verdict === null) return;
-    this.dispatchPass(view, verdict.index, verdict.kind);
+    this.dispatchPass(view, verdict.index, verdict.kind, verdict.reason);
   }
 
   /** Re-derive a paced pass-after-acting candidate after its one-shot token was consumed. */
-  private deriveActPass(view: View): { act: 'pass'; index: number; kind: 'act' } | null {
+  private deriveActPass(view: View): { act: 'pass'; index: number; kind: 'act'; reason: string } | null {
     const d = this.pending;
     const autoOn = this.auto && !this.machinePaused;
     if (d === null || !this.actPass || autoOn || this.oneShot !== 'none') return null;
     const verdict = decide({ decision: d, view, seat: this.ctx.seat, settings: { ...this.settings, autoPass: true }, yields: this.yields });
-    return verdict.act === 'pass' ? { ...verdict, kind: 'act' } : null;
+    return verdict.act === 'pass' ? { ...verdict, kind: 'act', reason: 'no-stop-rule' } : null;
   }
 
   /** begin resets the seat across a match boundary. (The component keys the panel by match, so a new match is a fresh instance — this is belt and braces.) The settings are a property of the PLAYER, not of the match: auto (autoPass), the stops and pass-after-acting all survive begin() untouched. */
@@ -1784,6 +1793,8 @@ export class SeatPanelState {
     this.busy = true;
     this.error = null;
     const epoch = this.seqEpoch;
+    const options = choices.map((index) => ({ index, kind: d.options.find((option) => option.index === index)?.kind ?? 'unknown' }));
+    clientBreadcrumbs.record('intent_sent', { decision_kind: d.kind, seq: d.seq, choices: options });
     try {
       await postIntent(this.table, this.match, { seq: d.seq, player: d.player, choices } satisfies Intent, this.ctx);
       // A rewind (or match boundary) landed while the post was in flight:
@@ -1817,16 +1828,22 @@ export class SeatPanelState {
       this.picked = [];
       this.confirming = false;
     } catch (e) {
+      // Record every server refusal before deciding whether its seq space is
+      // still current. A rewind must keep its UI recovery silent, but the
+      // rejected request is exactly the breadcrumb a feedback report needs.
+      const message = e instanceof Error ? e.message : String(e);
+      const stale = epoch !== this.seqEpoch;
+      clientBreadcrumbs.record('intent_rejected', { decision_kind: d.kind, seq: d.seq, message, stale });
       // A rejection against a discarded seq space (a rewind landed
       // mid-flight) is not an error the player can act on — the undo already
       // moved the game. Stay silent; the restored decision is pending.
-      if (epoch !== this.seqEpoch) return;
+      if (stale) return;
       // Surfaced, not swallowed: the intent was rejected (a stale seq, a
       // race, a refusal) and the game is exactly where it was — recover by
       // adopting the CURRENT decision rather than wedging on the stale one.
       this.picked = [];
       this.confirming = false;
-      this.error = e instanceof Error ? e.message : String(e);
+      this.error = message;
       void this.refreshPending();
     } finally {
       // busy belongs to the post's seq epoch. A rewind can already have

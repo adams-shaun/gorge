@@ -176,6 +176,77 @@ func TestFeedbackRejectsANonPNGButKeepsTheText(t *testing.T) {
 	}
 }
 
+// client.json is retained exactly as the browser sent it. Table and seat are
+// report metadata too, rather than only transient inputs to snapshot capture.
+func TestFeedbackStoresClientBreadcrumbs(t *testing.T) {
+	fs := newTestStore(t)
+	const client = `{"view":{"sequence":17},"actions":[{"type":"intent_sent"}]}`
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	for name, value := range map[string]string{
+		"text":        "picker skipped",
+		"url":         "http://localhost:8080/t/t1?seat=2",
+		"table":       "t1",
+		"seat":        "2",
+		"client.json": client,
+	} {
+		if err := mw.WriteField(name, value); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := mw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/feedback", &body)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	rec := httptest.NewRecorder()
+	fs.submit(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want %d (%s)", rec.Code, http.StatusCreated, rec.Body.String())
+	}
+	dir := storedReports(t, fs)[0]
+	got := readReport(t, dir)
+	if got.Table != "t1" || got.Seat != "2" || got.Client != "client.json" {
+		t.Fatalf("metadata = table %q seat %q client %q", got.Table, got.Seat, got.Client)
+	}
+	stored, err := os.ReadFile(filepath.Join(dir, "client.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(stored) != client {
+		t.Fatalf("client.json = %q, want verbatim %q", stored, client)
+	}
+}
+
+func TestFeedbackRejectsMalformedClientBreadcrumbsButKeepsReport(t *testing.T) {
+	fs := newTestStore(t)
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	for name, value := range map[string]string{"text": "stale board", "client.json": "{"} {
+		if err := mw.WriteField(name, value); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := mw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/feedback", &body)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	rec := httptest.NewRecorder()
+	fs.submit(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusCreated)
+	}
+	dir := storedReports(t, fs)[0]
+	got := readReport(t, dir)
+	if got.Text != "stale board" || !strings.HasPrefix(got.Client, "rejected:") {
+		t.Fatalf("report = %+v, want text retained and client rejection", got)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "client.json")); !os.IsNotExist(err) {
+		t.Fatalf("malformed client.json was stored, err = %v", err)
+	}
+}
+
 // Two reports submitted in the same second must not collide: the id carries
 // random bytes precisely so a busy moment cannot overwrite a report.
 func TestFeedbackIDsDoNotCollide(t *testing.T) {

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Decision, Option, View } from '../protocol';
 import { rememberKey } from './remembered';
 import { SeatPanelState, autoNoteText } from './seatpanel.svelte';
+import { clientBreadcrumbs } from './breadcrumbs';
 
 // The UNDO pause (fb-20260914T063523Z): pressing UNDO rewinds the board to
 // the decision point of the player's last action, and the autopilot machine
@@ -296,7 +297,8 @@ describe('the undo pause', () => {
     expect(p.picked).toEqual([]);
   });
 
-  it('a late rejection from the old epoch cannot clear busy, surface an error, or mutate the restored post', async () => {
+  it('a late rejection from the old epoch remains a stale breadcrumb without mutating the restored post', async () => {
+    const record = vi.spyOn(clientBreadcrumbs, 'record');
     const p = armedSeat();
     const oldPost = deferred();
     const newPost = deferred();
@@ -314,6 +316,9 @@ describe('the undo pause', () => {
 
     oldPost.reject(new Error('old seq rejected'));
     await drain();
+    expect(record).toHaveBeenCalledWith('intent_rejected', {
+      decision_kind: 'priority', seq: 1, message: 'old seq rejected', stale: true,
+    });
     expect(p.busy).toBe(true);
     expect(p.error).toBeNull();
     expect(p.pending).toBe(restored);
@@ -325,6 +330,7 @@ describe('the undo pause', () => {
     await settle(() => p.postedSeq === 1 && !p.busy);
     expect(p.pending).toBeNull();
     expect(p.picked).toEqual([]);
+    record.mockRestore();
   });
 
   it('two consecutive undos each walk back one of the player\'s own intents, and the machine posts nothing in between', async () => {

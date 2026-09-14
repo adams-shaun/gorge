@@ -56,6 +56,11 @@ const maxFeedbackBytes = 12 << 20 // 12 MiB
 // spend the whole budget on a text field.
 const maxFeedbackTextBytes = 16 << 10 // 16 KiB
 
+// maxFeedbackClientBytes bounds the browser diagnostic sidecar. It is kept
+// separate from the whole multipart cap so screenshots cannot make a client
+// breadcrumb dump unexpectedly large on disk.
+const maxFeedbackClientBytes = 256 << 10 // 256 KiB
+
 // maxFeedbackSnapshotBytes caps the three snapshot files' combined size.
 // The log dominates: measured over 189 completed four-seat Commander
 // matches (the m38 repo decks, played out at full speed), the largest log
@@ -96,6 +101,9 @@ type report struct {
 	URL        string `json:"url,omitempty"`
 	UserAgent  string `json:"user_agent,omitempty"`
 	Screenshot string `json:"screenshot,omitempty"`
+	Table      string `json:"table,omitempty"`
+	Seat       string `json:"seat,omitempty"`
+	Client     string `json:"client,omitempty"`
 	Snapshot   string `json:"snapshot,omitempty"`
 }
 
@@ -138,6 +146,8 @@ func (fs *feedbackStore) submit(w http.ResponseWriter, r *http.Request) {
 		Text:      text,
 		URL:       strings.TrimSpace(r.FormValue("url")),
 		UserAgent: r.UserAgent(),
+		Table:     strings.TrimSpace(r.FormValue("table")),
+		Seat:      strings.TrimSpace(r.FormValue("seat")),
 	}
 
 	// The screenshot is optional, and a bad one must not lose the words: a
@@ -153,13 +163,24 @@ func (fs *feedbackStore) submit(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// client.json is optional, but when supplied it must be a bounded valid
+	// JSON document. Like a bad screenshot, a bad client sidecar never loses
+	// the prose report: its rejection is recorded in report.json.
+	if raw, present := feedbackFormValue(r, "client.json"); present {
+		switch name, err := fs.writeClientJSON(dir, raw); {
+		case err != nil:
+			rep.Client = "rejected: " + err.Error()
+		default:
+			rep.Client = name
+		}
+	}
+
 	// The snapshot is captured before report.json is written, so the report
 	// can say what the capture produced. It is best-effort in both halves:
 	// a panic inside the snapshot path is recovered into an unavailable
 	// reason, and a report whose table is unknown is still stored whole —
 	// the words are the part that cannot be re-typed.
-	rep.Snapshot = fs.captureSnapshot(dir, rep.URL,
-		strings.TrimSpace(r.FormValue("table")), strings.TrimSpace(r.FormValue("seat")))
+	rep.Snapshot = fs.captureSnapshot(dir, rep.URL, rep.Table, rep.Seat)
 
 	body, err := json.MarshalIndent(rep, "", "  ")
 	if err != nil {
@@ -200,6 +221,36 @@ func (fs *feedbackStore) writePNG(dir string, src io.Reader) (string, error) {
 		return "", fmt.Errorf("could not be stored")
 	}
 	if _, err := io.Copy(f, src); err != nil {
+		return "", fmt.Errorf("could not be stored")
+	}
+	return name, nil
+}
+
+// feedbackFormValue reports a multipart value without conflating an absent
+// field with an explicitly submitted empty one (empty client.json is invalid).
+func feedbackFormValue(r *http.Request, name string) (string, bool) {
+	if r.MultipartForm == nil {
+		return "", false
+	}
+	values, ok := r.MultipartForm.Value[name]
+	if !ok || len(values) == 0 {
+		return "", false
+	}
+	return values[0], true
+}
+
+// writeClientJSON preserves a valid submitted sidecar byte-for-byte under the
+// fixed name client.json. The report record, not a failed HTTP response,
+// carries any rejection so the human's text always survives.
+func (fs *feedbackStore) writeClientJSON(dir, raw string) (string, error) {
+	if len(raw) > maxFeedbackClientBytes {
+		return "", fmt.Errorf("over the %d-byte cap", maxFeedbackClientBytes)
+	}
+	if !json.Valid([]byte(raw)) {
+		return "", fmt.Errorf("not valid JSON")
+	}
+	const name = "client.json"
+	if err := os.WriteFile(filepath.Join(dir, name), []byte(raw), 0o644); err != nil {
 		return "", fmt.Errorf("could not be stored")
 	}
 	return name, nil

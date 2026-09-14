@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import { parseRoute, type Route } from './lib/router';
   import { versionWatch } from './lib/versioncheck.svelte';
+  import { installConsoleBreadcrumbs } from './lib/breadcrumbs';
+  import { getSeat } from './lib/seat';
   import FeedbackButton from './components/FeedbackButton.svelte';
   import Overview from './routes/Overview.svelte';
   import Table from './routes/Table.svelte';
@@ -20,16 +22,21 @@
     // ever polls. Wired at the APP level, not the seat panel: one watch per
     // page, whatever routes and seat panels mount beneath it.
     versionWatch.start();
+    const uninstallBreadcrumbs = installConsoleBreadcrumbs();
     return () => {
       removeEventListener('popstate', onPop);
       versionWatch.stop();
+      uninstallBreadcrumbs();
     };
   });
 </script>
 
 <!-- Mounted outside the route switch: the feedback affordance is available on
      every page, and a route change must not tear down a half-written report. -->
-<FeedbackButton />
+<FeedbackButton
+  table={route.kind === 'table' || route.kind === 'match' ? route.table : null}
+  seat={getSeat()?.seat ?? null}
+/>
 
 <!-- The stale-client banner (fb-3ab6d9da defect 2): non-intrusive by design —
      it overlays nothing and steals no focus; the player reloads when ready. -->
