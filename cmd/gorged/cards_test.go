@@ -187,7 +187,10 @@ func TestCardTextBackfillsALegacyArtCacheWithoutReFetchingTheImage(t *testing.T)
 }
 
 // A multi-faced card carries its printed facts on the faces; the sidecar
-// takes the FRONT face (the one-face contract — no face picker).
+// A multi-faced card carries its printed facts on the faces; for a lookup
+// by the card's combined name (no face matches) the sidecar still takes the
+// FRONT face. A lookup by one face's printed name takes THAT face — the
+// back-face test below pins it.
 func TestCardTextTakesTheFrontFaceOfADoubleFacedCard(t *testing.T) {
 	ac, _ := factsFixture(t, map[string]scryNamed{
 		"Delver of Secrets": {
@@ -195,16 +198,7 @@ func TestCardTextTakesTheFrontFaceOfADoubleFacedCard(t *testing.T) {
 			ImageURIs: struct {
 				Normal string `json:"normal"`
 			}{Normal: "/img/delver.jpg"},
-			CardFaces: []struct {
-				ManaCost   string `json:"mana_cost"`
-				TypeLine   string `json:"type_line"`
-				OracleText string `json:"oracle_text"`
-				Power      string `json:"power"`
-				Toughness  string `json:"toughness"`
-				ImageURIs  struct {
-					Normal string `json:"normal"`
-				} `json:"image_uris"`
-			}{
+			CardFaces: []scryFace{
 				{ManaCost: "{U}", TypeLine: "Creature — Human Wizard", OracleText: "At the beginning of your upkeep...", Power: "1", Toughness: "1"},
 				{TypeLine: "Creature — Insect", OracleText: "Flying", Power: "3", Toughness: "2"},
 			},
@@ -219,6 +213,35 @@ func TestCardTextTakesTheFrontFaceOfADoubleFacedCard(t *testing.T) {
 	}
 	if body["toughness"] != "1" {
 		t.Fatalf("front face toughness: %+v", body)
+	}
+}
+
+// A lookup by the BACK face's printed name takes that face's facts: a
+// transformed Delver of Secrets is on the wire as "Insectile Aberration",
+// and its sidecar must carry the Insectile Aberration face (task
+// fb-20260914T033246Z-3f1cc033, defect 3).
+func TestCardTextTakesTheMatchedFaceOfADoubleFacedCard(t *testing.T) {
+	ac, _ := factsFixture(t, map[string]scryNamed{
+		"Insectile Aberration": {
+			Name: "Delver of Secrets // Insectile Aberration",
+			ImageURIs: struct {
+				Normal string `json:"normal"`
+			}{Normal: "/img/delver.jpg"},
+			CardFaces: []scryFace{
+				{Name: "Delver of Secrets", ManaCost: "{U}", TypeLine: "Creature — Human Wizard", OracleText: "At the beginning of your upkeep...", Power: "1", Toughness: "1"},
+				{Name: "Insectile Aberration", TypeLine: "Creature — Insect", OracleText: "Flying", Power: "3", Toughness: "2"},
+			},
+		},
+	})
+	code, body := getJSON(t, ac.text, "/cards/named?exact=Insectile+Aberration")
+	if code != http.StatusOK {
+		t.Fatalf("want 200, got %d", code)
+	}
+	if body["oracle_text"] != "Flying" || body["power"] != "3" || body["toughness"] != "2" {
+		t.Fatalf("back face not served: %+v", body)
+	}
+	if body["name"] != "Insectile Aberration" {
+		t.Fatalf("matched face name not served: %+v", body)
 	}
 }
 

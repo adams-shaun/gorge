@@ -173,6 +173,8 @@ func TestArtCacheConcurrentRequestsJoinOneFetch(t *testing.T) {
 }
 
 func TestArtCacheUsesTheFrontFaceOfADoubleFacedCard(t *testing.T) {
+	// The requested name matches no face (the fixture faces carry no
+	// printed name), so the front-face fallback still governs.
 	ac, _ := artFixture(t, nil)
 	// artFixture's JSON handler only emits image_uris, so build the
 	// card_faces shape by hand against the same test server.
@@ -208,5 +210,50 @@ func TestArtCacheUsesTheFrontFaceOfADoubleFacedCard(t *testing.T) {
 	}
 	if string(got) != "front" {
 		t.Fatalf("cached bytes = %q, want the front face's image", got)
+	}
+}
+
+// TestArtCacheUsesTheMatchedFaceForABackFaceName is task
+// fb-20260914T033246Z-3f1cc033 defect 3: a transform card's back-face name
+// must cache and serve the BACK face's art. Scryfall's named lookup lists
+// both faces for either name and leaves the top-level image_uris empty, so
+// the old code — which took card_faces[0] unconditionally — resolved
+// "Insectile Aberration" to Delver of Secrets' art forever, and a
+// transformed Delver never displayed its back side. The cache is keyed by
+// the exact requested name, so the back name gets its own jpg.
+func TestArtCacheUsesTheMatchedFaceForABackFaceName(t *testing.T) {
+	ac, _ := artFixture(t, nil)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/cards/named", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"name": "Delver of Secrets // Insectile Aberration",
+			"card_faces": []map[string]any{
+				{"name": "Delver of Secrets", "image_uris": map[string]string{"normal": "http://" + r.Host + "/img/front.jpg"}},
+				{"name": "Insectile Aberration", "image_uris": map[string]string{"normal": "http://" + r.Host + "/img/back.jpg"}},
+			},
+		})
+	})
+	mux.HandleFunc("/img/back.jpg", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/jpeg")
+		_, _ = w.Write([]byte("back"))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	ac.client = srv.Client()
+	ac.namedBaseURL = srv.URL + "/cards/named?exact="
+
+	w := httptest.NewRecorder()
+	ac.named(w, httptest.NewRequest(http.MethodGet, "/art/named?exact=Insectile+Aberration", nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", w.Code, w.Body.String())
+	}
+	key := artKey("Insectile Aberration")
+	got, err := os.ReadFile(ac.jpgPath(key))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "back" {
+		t.Fatalf("cached bytes = %q, want the back face's image", got)
 	}
 }

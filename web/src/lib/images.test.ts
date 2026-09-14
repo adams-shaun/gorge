@@ -43,9 +43,38 @@ describe('images', () => {
     expect(await im.url('Nonexistent')).toBeNull();
     expect(calls.length).toBe(2);
   });
-  it('uses the front face of a double-faced card', async () => {
+  it('uses the front face of a double-faced card when no face name matches', async () => {
     const { env } = fakeEnv({ 'Delver of Secrets': { card_faces: [{ image_uris: { normal: 'https://img/front.jpg' } }, { image_uris: { normal: 'https://img/back.jpg' } }] } });
     expect(await createImages(env).url('Delver of Secrets')).toBe('https://img/front.jpg');
+  });
+  it('resolves a back-face name to the back face of a double-faced card', async () => {
+    // task fb-20260914T033246Z-3f1cc033 defect 3: Scryfall lists BOTH faces
+    // for either name of a transform card and leaves the top-level
+    // image_uris empty, so the old front-face-only fallback resolved
+    // "Insectile Aberration" to Delver of Secrets' art forever and a
+    // transformed Delver never displayed its back side. The face whose
+    // printed name is the requested one must win.
+    const { env } = fakeEnv({
+      'Insectile Aberration': {
+        card_faces: [
+          { name: 'Delver of Secrets', image_uris: { normal: 'https://img/front.jpg' } },
+          { name: 'Insectile Aberration', image_uris: { normal: 'https://img/back.jpg' } },
+        ],
+      },
+    });
+    expect(await createImages(env).url('Insectile Aberration')).toBe('https://img/back.jpg');
+  });
+  it('prefers a top-level image over the face list when one is present', async () => {
+    const { env } = fakeEnv({
+      'Insectile Aberration': {
+        image_uris: { normal: 'https://img/top.jpg' },
+        card_faces: [
+          { name: 'Delver of Secrets', image_uris: { normal: 'https://img/front.jpg' } },
+          { name: 'Insectile Aberration', image_uris: { normal: 'https://img/back.jpg' } },
+        ],
+      },
+    });
+    expect(await createImages(env).url('Insectile Aberration')).toBe('https://img/top.jpg');
   });
   it('spaces requests at least 100ms apart', async () => {
     const { env, calls, tick } = fakeEnv({ A: { image_uris: { normal: 'a' } }, B: { image_uris: { normal: 'b' } }, C: { image_uris: { normal: 'c' } } });

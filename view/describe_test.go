@@ -103,6 +103,11 @@ func TestDescribeTemplates(t *testing.T) {
 		{"ask", events.Event{Kind: events.DecisionAsk, Player: 0, Text: "priority"}, "Ann is asked: priority"},
 		{"answer", events.Event{Kind: events.DecisionMade, Player: 0, Text: "priority:[2]"}, "Ann answers priority:[2]"},
 		{"note", events.Event{Kind: events.Note, Text: "Bob reveals Bolt"}, "Bob reveals Bolt"},
+		// effReveal's reveal (task fb-20260914T033246Z-3f1cc033, defect 1):
+		// the Note carries the ids and no text, and Describe names what was
+		// revealed — the client's only data path for hidden-zone ids.
+		{"reveal note", events.Event{Kind: events.Note, Player: 1, IDs: []state.ObjID{bolt}}, "Bob reveals Bolt #2"},
+		{"reveal note two", events.Event{Kind: events.Note, Player: 0, IDs: []state.ObjID{bolt, bear}}, "Ann reveals Bolt #2, Bear #1"},
 		{"redacted note", events.Event{Kind: events.Note, Secret: true, Player: 1}, "Bob looks at hidden cards"},
 		{"land", events.Event{Kind: events.LandPlayed, Player: 0}, "Ann plays a land"},
 		{"target player", events.Event{Kind: events.TargetsChosen, Obj: bolt, Player: 0, Amount: 1}, "Bolt #2 targets Ann"},

@@ -156,6 +156,17 @@ type Ctx struct {
 	// applied by the rules handler, unlike Modes/UnlessPay/Discard where the
 	// effect re-reads the answer -- so the field is only a done-marker.
 	Arrange bool
+	// RevealOpt is the answered RevealOptional$ yes/no on a re-entered
+	// mid-resolution reveal (task fb-3f1cc033, the Delver of Secrets
+	// PeekAndReveal shape): "yes" means the peeking player chose to reveal
+	// (the Note is emitted, RememberRevealed$ fires) and "no" means they
+	// declined (no Note, Remembered unchanged). "" on the first pass, where
+	// the effect poses the ask (or, when the host cannot ask, falls back to
+	// the mandatory reveal — the same R-9 degradation Scry/Surveil carry).
+	// effReveal consumes and clears it before continuing, so a nested
+	// RevealOptional$ peek in the same walk poses its own ask (fx42
+	// scoping).
+	RevealOpt string
 }
 
 type Effect func(h Host, c *Ctx, sa *cards.SA)
@@ -273,6 +284,14 @@ const maxChain = 32
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	reg := registry.load()
 	for d := 0; sa != nil && d < maxChain; d, sa = d+1, sa.Sub {
+		// Condition* gate (task fb-3f1cc033): a sub whose supported condition
+		// is evaluated and not met is skipped and the chain continues. An
+		// unresolved shape (supported=false) runs unconditionally, the
+		// documented pre-gate behaviour — see conditions.go for the exact
+		// boundary and the counts behind it.
+		if met, supported := conditionMet(h, c, sa); supported && !met {
+			continue
+		}
 		fn, ok := reg[sa.API]
 		if !ok {
 			// Unimplemented primitives must be loud but harmless: deck-build

@@ -2,6 +2,7 @@ package effects
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
@@ -398,6 +399,23 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 	if sa.API == "PeekAndReveal" {
 		zone = state.ZLibrary
 	}
+	// RevealOptional$ on the peek shape (task fb-3f1cc033, Delver of
+	// Secrets): the peeking player is asked whether to reveal before the
+	// Note goes out. The ask is the same mid-resolution vocabulary every
+	// other asking primitive uses — KChoose yes/no with a ResumeKind, the
+	// answer re-entering effReveal through rules' resumeResolution with
+	// Ctx.RevealOpt set. A host that cannot ask (an effects-package double,
+	// fuzz) keeps the pre-ask behaviour: the mandatory reveal, as the
+	// deterministic fallback (the same R-9 degradation Scry/Surveil
+	// carry). Out of scope, deliberately: RevealOptional$ on the non-peek
+	// shapes (Reveal/RevealHand) and every other unread reveal param
+	// (PeekAmount$, RevealValid$, NoReveal$/NoPeek$) — see the report's
+	// Issues section.
+	answer := c.RevealOpt
+	c.RevealOpt = "" // fx42 scoping: consumed once; a nested peek poses its own ask
+	optional := sa.API == "PeekAndReveal" &&
+		strings.EqualFold(strings.TrimSpace(sa.Params["RevealOptional"]), "True")
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberRevealed"]), "True")
 	g := h.Game()
 	for _, t := range Defined(h, c, sa) {
 		p := PlayerOf(h, c, t)
@@ -409,8 +427,54 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 		if n == 0 {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.Note, Player: p, Text: "reveals cards",
-			IDs: append([]state.ObjID(nil), pool[:n]...)})
+		if optional && answer == "" {
+			d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+				ResumeKind: "reveal_optional", ResumeSA: sa, Source: c.Source,
+				Prompt: "Reveal the top " + strconv.Itoa(int(n)) + " card(s) of your library?",
+				Options: []decision.Option{
+					{Index: 0, Kind: "yes", Label: "Yes — reveal", Player: p},
+					{Index: 1, Kind: "no", Label: "No", Player: p},
+				}}
+			if h.Ask(d) {
+				return
+			}
+			// h.Ask false — no host to ask (R-9): fall through to the
+			// mandatory reveal below, deterministic run to run.
+		}
+		if optional && answer == "no" {
+			// Declined: no Note, and RememberRevealed$ finds nothing —
+			// a chained gate (Delver's ConditionDefined$ Remembered)
+			// correctly does not fire. The walk continues.
+			continue
+		}
+		revealed := append([]state.ObjID(nil), pool[:n]...)
+		// No Text: the Note's payload is the ids, and view.Describe renders
+		// them ("player 0 reveals Mountain #82") — defect 1's second half,
+		// the client's only data path for hidden-zone ids in a reveal. A
+		// Text-carrying Note would need the names baked in at emit time,
+		// duplicating Describe's obj() naming; an empty Text with ids keeps
+		// the naming in one place. Ruling T23-w still passes the Note
+		// through RedactEvents unchanged (it is non-Secret).
+		h.Emit(events.Event{Kind: events.Note, Player: p, IDs: revealed})
+		if remember {
+			// RememberRevealed$ (task fb-3f1cc033): the revealed cards join
+			// the walk's Remembered set, where a chained ConditionDefined$
+			// Remembered gate (Delver's transform) reads them. Fresh backing
+			// array: on an ability resume Ctx.Remembered aliases the stack
+			// object's own Remembered slice, and appending in place would
+			// write shared state without an event. Measured at the corpus
+			// pin: of the 67 PeekAndReveal+RememberRevealed SVar lines, 43
+			// have downstream subs that read Remembered — all of them
+			// condition gates or Defined$ Remembered bodies that Forge
+			// itself intends to see the reveal (the Kinship family), so
+			// inheriting the reveal here is the semantics, not a leak.
+			next := make([]state.Target, 0, len(c.Remembered)+len(revealed))
+			next = append(next, c.Remembered...)
+			for _, id := range revealed {
+				next = append(next, state.Target{Obj: id})
+			}
+			c.Remembered = next
+		}
 	}
 }
 

@@ -469,6 +469,18 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.resumeResolution(rp, chosen)
 		return
 	}
+	// A RevealOptional$ yes/no (task fb-3f1cc033, the Delver of Secrets
+	// peek) is a mid-resolution effect ask wearing KChoose's ordinary wire
+	// shape, exactly like "search" above: route it to the suspended
+	// resolution before the cast/cleanup flows get a look in. A yes/no
+	// answer is one option; the reveal_optional arm of resumeResolution maps
+	// it onto ctx.RevealOpt.
+	if e.resume != nil && e.resume.kind == "reveal_optional" {
+		rp := e.resume
+		e.resume = nil
+		e.resumeResolution(rp, chosen)
+		return
+	}
 	switch e.choosing {
 	case chooseCast:
 		e.castAnswer(d, chosen)

@@ -100,6 +100,16 @@ func Describe(g *state.Game, ev events.Event) string {
 	case events.DecisionMade:
 		return player(g, ev.Player) + " answers " + ev.Text
 	case events.Note:
+		if ev.Text == "" && len(ev.IDs) > 0 && !ev.Secret {
+			// effReveal's reveal (task fb-3f1cc033): the Note carries the
+			// revealed cards' ids and no text of its own, so Describe renders
+			// them — the transcript line names WHAT was revealed ("player 0
+			// reveals Mountain #82"), which is the only data path a client
+			// has for hidden-zone ids in a Note. Rule 3 of view.RedactEvents
+			// (Ruling T23-w) passes a non-Secret Note through unchanged, so
+			// these ids are public by contract on every viewer's line.
+			return player(g, ev.Player) + " reveals " + objs(g, ev.IDs)
+		}
 		if ev.Text != "" {
 			return ev.Text
 		}

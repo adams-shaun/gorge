@@ -11,7 +11,10 @@ const SPACING = 100;
 const OFFLINE_FOR = 60_000;
 const KEY = 'gorge.img.';
 
-type Scryfall = { image_uris?: { normal?: string }; card_faces?: { image_uris?: { normal?: string } }[] };
+type Scryfall = {
+  image_uris?: { normal?: string };
+  card_faces?: { name?: string; image_uris?: { normal?: string } }[];
+};
 
 /** createImages resolves exact card names to card art served from this app's own origin (art.go proxies and caches Scryfall server-side) with memory + localStorage caches, request spacing and an offline backoff. */
 export function createImages(src: Partial<ImageSource> = {}) {
@@ -57,7 +60,19 @@ export function createImages(src: Partial<ImageSource> = {}) {
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`art ${res.status}`);
     const j = (await res.json()) as Scryfall;
-    const path = j.image_uris?.normal ?? j.card_faces?.[0]?.image_uris?.normal ?? null;
+    // A multi-faced card (Delver of Secrets / Insectile Aberration) puts no
+    // top-level image_uris in the response and lists card_faces[0] = the
+    // FRONT face for either name — so the front-face-only fallback resolved
+    // a back-face name to the front art forever (task
+    // fb-20260914T033246Z-3f1cc033, defect 3). Pick the face whose printed
+    // name is the requested one; fall back to the front face, then to the
+    // top-level image (single-faced cards).
+    const face = j.card_faces?.find((f) => f.name === name);
+    const path =
+      j.image_uris?.normal ??
+      face?.image_uris?.normal ??
+      j.card_faces?.[0]?.image_uris?.normal ??
+      null;
     return path ? withBase(path) : null;
   }
 

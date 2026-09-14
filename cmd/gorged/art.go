@@ -96,6 +96,22 @@ type cardFacts struct {
 	Toughness  string `json:"toughness,omitempty"`
 }
 
+// scryFace is one entry of Scryfall's card_faces: the face's printed name
+// (the face picker's key, task fb-20260914T033246Z-3f1cc033) plus the
+// printed facts and image the front-face fallback and the matching-face
+// path both read.
+type scryFace struct {
+	Name       string `json:"name"`
+	ManaCost   string `json:"mana_cost"`
+	TypeLine   string `json:"type_line"`
+	OracleText string `json:"oracle_text"`
+	Power      string `json:"power"`
+	Toughness  string `json:"toughness"`
+	ImageURIs  struct {
+		Normal string `json:"normal"`
+	} `json:"image_uris"`
+}
+
 // scryNamed is the slice of Scryfall's named-lookup response the cache
 // reads: the image fields fetch() always wanted, plus the printed facts the
 // /cards/named sidecar keeps. A multi-faced card carries its printed facts
@@ -110,27 +126,63 @@ type scryNamed struct {
 	ImageURIs  struct {
 		Normal string `json:"normal"`
 	} `json:"image_uris"`
-	CardFaces []struct {
-		ManaCost   string `json:"mana_cost"`
-		TypeLine   string `json:"type_line"`
-		OracleText string `json:"oracle_text"`
-		Power      string `json:"power"`
-		Toughness  string `json:"toughness"`
-		ImageURIs  struct {
-			Normal string `json:"normal"`
-		} `json:"image_uris"`
-	} `json:"card_faces"`
+	CardFaces []scryFace `json:"card_faces"`
+}
+
+// faceFor returns the card_face whose printed name is the requested one, or
+// nil when no face matches (a single-faced card, or a name Scryfall answers
+// with a combined multi-face name). Comparison is case-insensitive on the
+// trimmed face name: Scryfall prints faces exactly as the client requests
+// them ("Insectile Aberration"), but being liberal here costs nothing and
+// the fallback below is the front face either way.
+func (c *scryNamed) faceFor(name string) *scryFace {
+	for i := range c.CardFaces {
+		if strings.EqualFold(strings.TrimSpace(c.CardFaces[i].Name), strings.TrimSpace(name)) {
+			return &c.CardFaces[i]
+		}
+	}
+	return nil
+}
+
+// faceImage picks the image bytes to cache for the requested name: the
+// top-level image when Scryfall carries one (single-faced cards),
+// otherwise the face whose printed name is the requested one — task
+// fb-20260914T033246Z-3f1cc033: Scryfall's named lookup lists BOTH faces
+// for either name of a transform card and leaves the top-level image_uris
+// empty, so a back-face name (Insectile Aberration) must pick
+// card_faces[1], not the front face card_faces[0] the old code took —
+// falling back to the front face for a name that matches no face. The
+// cache is keyed by the exact requested name, so the back face's name gets
+// its own .jpg and its own blob route entry; the client needs no change.
+func (c *scryNamed) faceImage(name string) string {
+	if c.ImageURIs.Normal != "" {
+		return c.ImageURIs.Normal
+	}
+	if match := c.faceFor(name); match != nil {
+		return match.ImageURIs.Normal
+	}
+	if len(c.CardFaces) > 0 {
+		return c.CardFaces[0].ImageURIs.Normal
+	}
+	return ""
 }
 
 // facts collapses a Scryfall named response to the six-field record, taking
 // the FRONT face's printed facts for a multi-faced card (Scryfall leaves the
-// top-level fields empty there). One face is the contract — see the report:
-// no face picker.
-func (c *scryNamed) facts() cardFacts {
+// top-level fields empty there) — EXCEPT when the requested name is one
+// face's own printed name (task fb-20260914T033246Z-3f1cc033: a transformed
+// Delver of Secrets is on the wire as "Insectile Aberration", and its
+// sidecar must carry THAT face's oracle text and P/T, not the front
+// face's). One face is still the contract for a name that matches no face.
+func (c *scryNamed) facts(name string) cardFacts {
 	f := cardFacts{Name: c.Name, ManaCost: c.ManaCost, TypeLine: c.TypeLine,
 		OracleText: c.OracleText, Power: c.Power, Toughness: c.Toughness}
 	if len(c.CardFaces) > 0 {
-		face := c.CardFaces[0]
+		face := &c.CardFaces[0]
+		if match := c.faceFor(name); match != nil {
+			face = match
+			f.Name = face.Name
+		}
 		if f.ManaCost == "" {
 			f.ManaCost = face.ManaCost
 		}
@@ -351,13 +403,10 @@ func (a *artCache) fetch(ctx context.Context, key, name string) (bool, error) {
 	// The sidecar is written BEFORE the image download: a card whose image
 	// fetch fails still has its text on disk, and a text lookup that raced
 	// this fetch finds the facts rather than firing a second named request.
-	if err := a.writeFacts(key, card.facts()); err != nil {
+	if err := a.writeFacts(key, card.facts(name)); err != nil {
 		return false, err
 	}
-	imgURL := card.ImageURIs.Normal
-	if imgURL == "" && len(card.CardFaces) > 0 {
-		imgURL = card.CardFaces[0].ImageURIs.Normal
-	}
+	imgURL := card.faceImage(name)
 	if imgURL == "" {
 		return false, a.writeMiss(key)
 	}
@@ -387,7 +436,7 @@ func (a *artCache) fetchFacts(ctx context.Context, key, name string) (bool, erro
 	if !known {
 		return false, a.writeMiss(key)
 	}
-	if err := a.writeFacts(key, card.facts()); err != nil {
+	if err := a.writeFacts(key, card.facts(name)); err != nil {
 		return false, err
 	}
 	return true, nil
