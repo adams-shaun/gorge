@@ -1,5 +1,5 @@
 import type { Decision, View } from '../protocol';
-import { castableAfterTap } from './castable';
+import { castableAfterTap, respondableAfterTap } from './castable';
 import type { OpponentObjectRule, OpponentTriggerRule, PlaySettings, StoppableStep } from './playsettings';
 import { stackYieldKey } from './yields';
 
@@ -22,6 +22,16 @@ import { stackYieldKey } from './yields';
  * no cast option yet -- and a mana-only window that would reveal it is
  * exactly the window the player is about to need. actionable() consults
  * castableAfterTap so both auto-pass paths stop there.
+ *
+ * The SECOND exception is the response rules' own blind spot (fb-20260914T114244Z,
+ * the same float-then-cast model seen from the other side): respondable()'s
+ * option-kind test reads the window as dead exactly when the player is
+ * holding a counterspell and the untapped lands to pay for it, because the
+ * cast option does not exist until the mana floats. respondableFor() is the
+ * arm the stack rules go through: respondable()'s kinds OR lib/castable's
+ * instant-speed hand scan, so a Mana Leak with two untapped Islands stops
+ * the window and a sorcery does not (the timing filter is the difference
+ * between "I can act" and "I could cast this on my own turn anyway").
  *
  * decide() can only ever return an index pointing at an option whose kind
  * is "pass". It is structurally incapable of returning a "concede": the
@@ -148,6 +158,27 @@ export function actionable(decision: Decision, view: View, seat: number): boolea
  */
 export function respondable(decision: Decision): boolean {
   return decision.options.some((o) => o.kind === 'cast' || o.kind === 'ability');
+}
+
+/**
+ * respondableFor is the predicate decide()'s stack rules go through: could
+ * this seat respond to the object on the stack if it stopped NOW. It is
+ * respondable()'s option-kind test OR lib/castable's instant-speed hand
+ * scan (respondableAfterTap): the engine prices a cast against the floating
+ * pool only, so a window where the player holds a castable counterspell and
+ * the untapped lands to pay for it still offers nothing but mana taps --
+ * and reading that window as "nothing to respond with" silently eats exactly
+ * the response the if-respondable rules exist to protect (the Kitesail
+ * Apprentice / Mana Leak report). The hand half carries its own timing
+ * filter: only Instant or Flash cards count, so a sorcery that merely
+ * becomes affordable after tapping never stops an opponent-spell window
+ * (it could not respond even if it floated first).
+ *
+ * Kept as one function (not an inline OR at each arm) so the three arms
+ * cannot drift apart and the next if-respondable consumer inherits the fix.
+ */
+export function respondableFor(view: View, seat: number, decision: Decision): boolean {
+  return respondable(decision) || respondableAfterTap(view, seat);
 }
 
 /**
@@ -306,13 +337,13 @@ export function decide(args: {
       } else {
         const rule = opponentRuleFor(settings, top.kind);
         if (rule === 'always') return { act: 'stop', reason: 'opponent-object' };
-        if (rule === 'if-respondable' && respondable(decision)) return { act: 'stop', reason: 'opponent-object' };
-        if (rule === 'targets-me-if-respondable' && respondable(decision) && targetsMe(view, seat, top)) {
+        if (rule === 'if-respondable' && respondableFor(view, seat, decision)) return { act: 'stop', reason: 'opponent-object' };
+        if (rule === 'targets-me-if-respondable' && respondableFor(view, seat, decision) && targetsMe(view, seat, top)) {
           return { act: 'stop', reason: 'opponent-object' };
         }
         // 'never' (and a rule the arms above did not meet) falls through.
       }
-    } else if (baselineStack === null && settings.ownObjects === 'if-respondable' && respondable(decision)) {
+    } else if (baselineStack === null && settings.ownObjects === 'if-respondable' && respondableFor(view, seat, decision)) {
       // Resolve All only stops for NEW opponent objects. An own trigger or
       // ability pushed while it runs is part of resolving the stack, even
       // under Full Control; persistent Auto still honours ownObjects.

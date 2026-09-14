@@ -52,6 +52,28 @@ function isLand(card: CardView): boolean {
 }
 
 /**
+ * isInstantSpeed reports whether the card could be cast at a moment's notice
+ * under the engine's own timing rules (rules/legal.go's instantSpeed test):
+ * the Types line carries the Instant type word, or the derived keyword list
+ * carries Flash (the exact spelling the engine grants and projects --
+ * view/view.go's cardView copies ch.Keywords verbatim, and rules/legal.go
+ * tests HasKeyword(id, "Flash"), so the wire word is exactly "Flash").
+ *
+ * This is the timing half the plain castability question deliberately does
+ * NOT answer: castableAfterTap is a CASTABILITY question by doctrine, so a
+ * sorcery in hand makes every mana-only window stop-worthy in the player's
+ * own turn -- but an auto-pass rule that stops for a SORCERY whenever the
+ * opponent does anything would defeat the very auto-pass it serves (the
+ * casual opponentSpell 'if-respondable' arm). A response to a resolving
+ * spell must be instant-speed; this is the one extra gate respondableAfterTap
+ * applies on top of castability.
+ */
+function isInstantSpeed(card: CardView): boolean {
+  if ((card.types ?? '').split(/\s+/).includes('Instant')) return true;
+  return (card.keywords ?? []).some((k) => k === 'Flash');
+}
+
+/**
  * spendable folds Pool and Available into one map: mana floating NOW plus
  * mana tapping would add. Every Available unit is spendable at most once --
  * the maps are per-colour counts of distinct sources, so plain addition is
@@ -150,19 +172,46 @@ function affordable(cost: ManaSymbol[], spend: Partial<Record<ManaUnit, number>>
 }
 
 /**
- * cardCastableAfterTap reports whether ONE hand card would be affordable once
- * the seat's Available mana joined its Pool. A land never counts (a land drop
- * is the action that CREATES the mana, never a spell that spends it), a card
- * with no printed cost does not count (a zero-cost card is already offered by
- * the engine whenever it is castable, so it never needs this window-stop
- * path), and everything else goes through affordable().
+ * cardAffordableAfterTap is the shared money test: would this ONE card be
+ * affordable once the seat's Available mana joined its Pool. A card with no
+ * printed cost does not count (a zero-cost card is already offered by the
+ * engine whenever it is castable, so it never needs this window-stop path);
+ * everything else goes through affordable(). The land exclusion lives in the
+ * two callers below, which each add their own timing question on top.
  */
-export function cardCastableAfterTap(p: PlayerView, card: CardView): boolean {
-  if (isLand(card)) return false;
+function cardAffordableAfterTap(p: PlayerView, card: CardView): boolean {
   if (!card.mana_cost) return false;
   const cost = manaSymbols(card.mana_cost);
   if (cost.length === 0) return false;
   return affordable(cost, spendable(p), p.life);
+}
+
+/**
+ * cardCastableAfterTap reports whether ONE hand card would be affordable once
+ * the seat's Available mana joined its Pool. A land never counts (a land drop
+ * is the action that CREATES the mana, never a spell that spends it).
+ */
+export function cardCastableAfterTap(p: PlayerView, card: CardView): boolean {
+  if (isLand(card)) return false;
+  return cardAffordableAfterTap(p, card);
+}
+
+/**
+ * cardRespondableAfterTap is the instant-speed variant: it reports whether ONE
+ * hand card would both be affordable after tapping AND castable at response
+ * speed -- an Instant, or a card carrying the Flash keyword (isInstantSpeed
+ * above). This is the predicate an opponent-spell/trigger response rule wants:
+ * a sorcery that becomes affordable after tapping must NOT stop a window the
+ * player can only watch (casual's if-respondable would otherwise stop for the
+ * whole game), while a Mana Leak in hand with two untapped Islands is exactly
+ * the answer the player is holding. Same fail-closed shape as the plain
+ * variant: a card the cost or timing question cannot answer YES to never
+ * stops anything.
+ */
+export function cardRespondableAfterTap(p: PlayerView, card: CardView): boolean {
+  if (isLand(card)) return false;
+  if (!isInstantSpeed(card)) return false;
+  return cardAffordableAfterTap(p, card);
 }
 
 /**
@@ -177,4 +226,23 @@ export function castableAfterTap(view: View, seat: number): boolean {
   const p = view.players?.find((pl) => pl.seat === seat);
   if (!p || !Array.isArray(p.hand)) return false;
   return p.hand.some((c) => cardCastableAfterTap(p, c));
+}
+
+/**
+ * respondableAfterTap is the instant-speed sibling of castableAfterTap: it
+ * reports whether ANY hand card would be castable after tapping AND at
+ * response speed (Instant type or Flash keyword -- cardRespondableAfterTap
+ * above). It answers the question an opponent-object response rule asks --
+ * "could this seat still interact with the spell on the stack if it stopped
+ * and tapped out?" -- which the option-kind test alone cannot: the engine
+ * prices a cast against the FLOATING pool only, so the window where the
+ * opponent's spell sits on the stack carries only tap offers even when the
+ * player holds a castable counterspell and the untapped lands to pay for it.
+ * The hand scan, fail-closed shape and seat scoping are identical to
+ * castableAfterTap's (a hand the view does not carry reads as false).
+ */
+export function respondableAfterTap(view: View, seat: number): boolean {
+  const p = view.players?.find((pl) => pl.seat === seat);
+  if (!p || !Array.isArray(p.hand)) return false;
+  return p.hand.some((c) => cardRespondableAfterTap(p, c));
 }

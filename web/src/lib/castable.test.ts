@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cardCastableAfterTap, castableAfterTap } from './castable';
+import { cardCastableAfterTap, cardRespondableAfterTap, castableAfterTap, respondableAfterTap } from './castable';
 import type { CardView, PlayerView, View } from '../protocol';
 
 /**
@@ -205,5 +205,52 @@ describe('castableAfterTap — fails closed', () => {
     expect(cardCastableAfterTap(p, card({ mana_cost: 'R' }))).toBe(true);
     expect(cardCastableAfterTap(p, card({ types: 'Land Forest', mana_cost: '' }))).toBe(false);
     expect(cardCastableAfterTap(p, card({ mana_cost: 'X G' }))).toBe(false);
+  });
+});
+
+describe('respondableAfterTap — the instant-speed response question (fb-20260914T114244Z)', () => {
+  it('the report shape: Mana Leak ({1}{U}) in hand, pool empty, two untapped Islands (Available {U}) stops', () => {
+    const p = player({ hand: [card({ name: 'Mana Leak', mana_cost: '1 U' })], available: { U: 2 } });
+    expect(respondableAfterTap(view(p), 0)).toBe(true);
+  });
+
+  it('a SORCERY that becomes affordable after tapping does NOT count — a sorcery cannot respond to a resolving spell', () => {
+    const p = player({ hand: [card({ types: 'Sorcery', mana_cost: '1 U' })], available: { U: 2 } });
+    expect(respondableAfterTap(view(p), 0)).toBe(false);
+  });
+
+  it('a Flash creature counts (the exact spelling the engine projects, view/view.go ch.Keywords)', () => {
+    const p = player({ hand: [card({ types: 'Creature Bear', mana_cost: '1 U', keywords: ['Flash'] })], available: { U: 2 } });
+    expect(respondableAfterTap(view(p), 0)).toBe(true);
+  });
+
+  it('a creature without Flash does not count', () => {
+    const p = player({ hand: [card({ types: 'Creature Bear', mana_cost: '1 U', keywords: ['Vigilance'] })], available: { U: 2 } });
+    expect(respondableAfterTap(view(p), 0)).toBe(false);
+  });
+
+  it('an instant that is NOT affordable after tapping does not count (the money half still applies)', () => {
+    const p = player({ hand: [card({ mana_cost: '4 U' })], available: { U: 2 } });
+    expect(respondableAfterTap(view(p), 0)).toBe(false);
+  });
+
+  it('a land in hand never counts, even with an instant-speed type word absent', () => {
+    const p = player({ hand: [card({ types: 'Land Island', mana_cost: '' })], available: { U: 2 } });
+    expect(respondableAfterTap(view(p), 0)).toBe(false);
+  });
+
+  it('fails closed exactly like castableAfterTap: no readable hand, or a seat the view does not carry', () => {
+    const withCard = player({ hand: [card({ mana_cost: 'U' })], available: { U: 1 } });
+    expect(respondableAfterTap(view(withCard, false), 1)).toBe(false);
+    const hidden = player({ hand: null as unknown as CardView[] });
+    expect(respondableAfterTap(view(hidden), 0)).toBe(false);
+  });
+
+  it('cardRespondableAfterTap is per-card: timing and money are visible separately', () => {
+    const p = player({ available: { U: 2 } });
+    expect(cardRespondableAfterTap(p, card({ mana_cost: '1 U' }))).toBe(true);
+    expect(cardRespondableAfterTap(p, card({ types: 'Sorcery', mana_cost: '1 U' }))).toBe(false);
+    expect(cardRespondableAfterTap(p, card({ types: 'Sorcery', mana_cost: '1 U', keywords: ['Flash'] }))).toBe(true);
+    expect(cardRespondableAfterTap(p, card({ mana_cost: '4 U' }))).toBe(false);
   });
 });

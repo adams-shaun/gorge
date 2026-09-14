@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { actionable, decide, emptyPriorityWindow, respondable, STEPS, STOPPABLE_STEPS, turnSide } from './autopilot';
+import { actionable, decide, emptyPriorityWindow, respondable, respondableFor, STEPS, STOPPABLE_STEPS, turnSide } from './autopilot';
 import { applyPreset, defaultSettings, type PlaySettings, type StoppableStep, type StepStop } from './playsettings';
 import type { CardView, Decision, Option, PlayerView, View } from '../protocol';
 
@@ -161,6 +161,104 @@ describe('decide', () => {
   it('casual: an opponent spell on top with nothing to respond with passes (if-respondable)', () => {
     const d = priority(ONLY_MANA);
     expect(run(d, view(0, 'draw', [stackEntry(9, 1, 'spell')]))).toEqual({ act: 'pass', index: 1 });
+  });
+
+  // --- the if-respondable arms see the tap-then-cast hand (fb-20260914T114244Z):
+  // the engine prices a cast against the FLOATING pool only, so a window where the
+  // player holds a castable counterspell and the untapped lands to pay for it
+  // offers nothing but mana taps — respondable()'s option-kind test read that
+  // window as dead and silently ate the response the rule exists to protect.
+
+  it('casual: the report shape — opponent spell on top, mana-only window, Mana Leak + 2 untapped Islands in view STOPS', () => {
+    const d = priority(ONLY_MANA); // activate + pass + concede — the window as the engine offers it, pool empty
+    const v = withHand(view(0, 'draw', [stackEntry(9, 1, 'spell')]), 0, {
+      hand: [handCard({ name: 'Mana Leak', mana_cost: '1 U' })], // handCard defaults types to Instant
+      pool: {},
+      available: { U: 2 },
+    });
+    expect(run(d, v)).toEqual({ act: 'stop', reason: 'opponent-object' });
+  });
+
+  it('casual: the same shape with NO hand still passes (the empty-hand pin above stays valid)', () => {
+    const d = priority(ONLY_MANA);
+    const v = withHand(view(0, 'draw', [stackEntry(9, 1, 'spell')]), 0, { hand: [], available: { U: 2 } });
+    expect(run(d, v)).toEqual({ act: 'pass', index: 1 });
+  });
+
+  it('casual: a SORCERY castable after tapping does NOT stop an opponent-spell window (the timing filter)', () => {
+    const d = priority(ONLY_MANA);
+    const v = withHand(view(0, 'draw', [stackEntry(9, 1, 'spell')]), 0, {
+      hand: [handCard({ types: 'Sorcery', mana_cost: '1 U' })],
+      available: { U: 2 },
+    });
+    expect(run(d, v)).toEqual({ act: 'pass', index: 1 });
+  });
+
+  it('casual: a FLASH creature castable after tapping stops an opponent-spell window', () => {
+    const d = priority(ONLY_MANA);
+    const v = withHand(view(0, 'draw', [stackEntry(9, 1, 'spell')]), 0, {
+      hand: [handCard({ types: 'Creature Bear', mana_cost: '1 U', keywords: ['Flash'] })],
+      available: { U: 2 },
+    });
+    expect(run(d, v)).toEqual({ act: 'stop', reason: 'opponent-object' });
+  });
+
+  it('casual: an instant that is NOT affordable after tapping still passes (the money half applies)', () => {
+    const d = priority(ONLY_MANA);
+    const v = withHand(view(0, 'draw', [stackEntry(9, 1, 'spell')]), 0, {
+      hand: [handCard({ mana_cost: '4 U' })],
+      available: { U: 2 },
+    });
+    expect(run(d, v)).toEqual({ act: 'pass', index: 1 });
+  });
+
+  it('casual: a targets-me opponent trigger + mana-only window + castable instant in hand STOPS (targets-me-if-respondable)', () => {
+    const d = priority(ONLY_MANA);
+    const v = withHand(view(0, 'draw', [stackEntry(9, 1, 'trigger', [{ player: 0, is_player: true }])]), 0, {
+      hand: [handCard({ mana_cost: '1 U' })],
+      available: { U: 2 },
+    });
+    expect(run(d, v)).toEqual({ act: 'stop', reason: 'opponent-object' });
+  });
+
+  it('casual: a targets-me opponent trigger + mana-only window + castable SORCERY in hand passes (timing, not money)', () => {
+    const d = priority(ONLY_MANA);
+    const v = withHand(view(0, 'draw', [stackEntry(9, 1, 'trigger', [{ player: 0, is_player: true }])]), 0, {
+      hand: [handCard({ types: 'Sorcery', mana_cost: '1 U' })],
+      available: { U: 2 },
+    });
+    expect(run(d, v)).toEqual({ act: 'pass', index: 1 });
+  });
+
+  it('casual: a trigger NOT targeting me passes even with a castable instant in hand (targets-me still gates the trigger arm)', () => {
+    const d = priority(ONLY_MANA);
+    const v = withHand(view(0, 'draw', [stackEntry(9, 1, 'trigger', [{ player: 1, is_player: true }])]), 0, {
+      hand: [handCard({ mana_cost: '1 U' })],
+      available: { U: 2 },
+    });
+    expect(run(d, v)).toEqual({ act: 'pass', index: 1 });
+  });
+
+  it("full-control's ownObjects if-respondable: an OWN object on top + mana-only window + castable instant STOPS (own-object)", () => {
+    const d = priority(ONLY_MANA);
+    const s = { ...applyPreset('full-control'), autoPass: true };
+    const v = withHand(view(0, 'draw', [stackEntry(9, 0, 'spell')]), 0, {
+      hand: [handCard({ mana_cost: '1 U' })],
+      available: { U: 2 },
+    });
+    expect(run(d, v, s)).toEqual({ act: 'stop', reason: 'own-object' });
+  });
+
+  it("respondableFor is respondable OR the instant-speed hand scan, and never asks another seat's hand", () => {
+    const d = priority(ONLY_MANA);
+    const holding = withHand(view(0, 'draw'), 0, { hand: [handCard({ mana_cost: '1 U' })], available: { U: 2 } });
+    expect(respondableFor(holding, 0, d)).toBe(true);
+    expect(respondableFor(view(0, 'draw'), 0, d)).toBe(false);
+    expect(respondableFor(holding, 1, d)).toBe(false); // another seat's hand is a hidden zone
+    const withCast = priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]);
+    expect(respondableFor(view(0, 'draw'), 0, withCast)).toBe(true);
+    const sorceryOnly = withHand(view(0, 'draw'), 0, { hand: [handCard({ types: 'Sorcery', mana_cost: '1 U' })], available: { U: 2 } });
+    expect(respondableFor(sorceryOnly, 0, d)).toBe(false);
   });
 
   it('casual: an opponent ability on top with a cast available stops (if-respondable)', () => {
