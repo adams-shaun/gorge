@@ -687,6 +687,11 @@ func (e *Engine) resolveTop() {
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
 			Targets: targets, Remembered: o.Remembered, TriggerContext: e.triggerContexts[id]}
+		// CR 107.3i: X is the value the activator chose for a Cost$ carrying
+		// {X} (recorded on the ability stack object by commitCast's CastInfo,
+		// emitted right after the AbilityPush). Zero for a trigger, which was
+		// never paid an X.
+		ctx.X = o.X
 		// A cost-paid sacrifice carried its objects' LKI snapshot on the
 		// engine (rules/cast.go commitCast), keyed by this stack object id;
 		// load it so the ability's Sacrificed$<Property> heads resolve against
@@ -774,6 +779,14 @@ func (e *Engine) resolveTop() {
 	if sa != nil {
 		e.damaging = id
 		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets}
+		// CR 107.3i: X is the value the caster chose for the mana cost's {X},
+		// recorded on the stack object by commitCast's CastInfo (the same
+		// value the ETB/replacement path already reads as o.X). Without this
+		// every numeric parameter that reads the paid X (TokenAmount$ X,
+		// Amount$ X, SVar:X:Count$xPaid, ...) resolves to 0 and the spell's
+		// body does nothing -- Entreat the Angels resolved to the graveyard
+		// having created zero Angels.
+		ctx.X = o.X
 		// Same as the ability branch: carry the sacrifice LKI (engine-keyed)
 		// onto resolution so Sacrificed$<Property> heads resolve against what
 		// this spell sacrificed.

@@ -106,15 +106,21 @@ func TestMiracleWithXAsksX(t *testing.T) {
 	if o.Zone != state.ZStack || o.X != 2 || o.CastFlags&state.FlagMiracle == 0 {
 		t.Fatalf("after X=2: zone=%s X=%d flags=%d", o.Zone, o.X, o.CastFlags)
 	}
-	// NOTE: the resolved effect would create TokenAmount$ X Angels (xPaid ==
-	// 2), but binding the chosen X into the resolving effect's Ctx.X happens in
-	// rules/stack.go's resolveAbility -- held on a parallel agent's branch and
-	// not editable here -- so on this snapshot the spell still resolves but
-	// xPaid reads 0. Assert resolution itself (stack -> graveyard) rather than
-	// the angel count; the parallel X-binding completes this.
+	// The resolved effect creates TokenAmount$ X Angels (xPaid == 2):
+	// resolveTop's spell branch binds the CastInfo-recorded X into
+	// effects.Ctx.X, so SVar:X:Count$xPaid answers the chosen value.
 	passUntilStackEmpty(t, e, 30)
 	if e.G.Obj(en).Zone != state.ZGraveyard {
 		t.Fatalf("Entreat zone %s after resolving", e.G.Obj(en).Zone)
+	}
+	angels := 0
+	for _, tok := range e.G.Zone(state.ZBattlefield, 0) {
+		if f := e.G.Obj(tok).Face(); f != nil && f.Name == "Angel Token" {
+			angels++
+		}
+	}
+	if angels != 2 {
+		t.Fatalf("Angels on the battlefield = %d, want 2", angels)
 	}
 	replayCheck(t, e, cfg)
 }

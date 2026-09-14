@@ -246,6 +246,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		return
 	}
 	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, Targets: o.Targets}
+	// CR 107.3i: X is the value paid for the object's {X}, preserved on the
+	// stack object by CastInfo -- the same binding resolveTop's spell and
+	// ability branches now carry. A spell whose resolution suspends on a
+	// mid-resolution ask (modes, discard, dig, unless-pay) keeps the paid
+	// X for the rest of the walk instead of resuming with 0. Set here for
+	// every resume; the replacement arm below has no other X to restore.
+	ctx.X = o.X
 	if rp.replacement {
 		// fx44: this suspended frame is a ReplaceWith$ body, so restore the
 		// replacement context applyReplacements seeded for it. Ctx.Replaced is
@@ -253,13 +260,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// rp.replaced) and Ctx.Remembered is the single-element list seeded
 		// from that same object, so a Defined$ ReplacedCard resolution and an
 		// SVar:X Remembered$Amount gate find their subject after the
-		// suspension; Ctx.X is the cast-time value preserved on the stack
-		// object. Without these the completed move (Mox Diamond's
+		// suspension. Without these the completed move (Mox Diamond's
 		// MoveToBattlefield) targets nothing and the object never leaves the
 		// stack.
 		ctx.Replaced = rp.replaced
 		ctx.Remembered = []state.Target{{Obj: rp.replaced}}
-		ctx.X = o.X
 	}
 	var svars map[string]string
 	if o.Ability != nil {
