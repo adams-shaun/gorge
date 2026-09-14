@@ -322,6 +322,18 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 func effCounter(h Host, c *Ctx, sa *cards.SA) {
 	skip := false
 	switched := strings.EqualFold(strings.TrimSpace(sa.Params["UnlessSwitched"]), "True")
+	// RememberCountered$ True / RememberCounteredSA$ True append every object
+	// this effect counters (spells AND ability objects) to Ctx.Remembered, in
+	// stack order, so a SubAbility$ chained after the counter can count them:
+	// Swift Silence's "Draw a card for each spell countered this way"
+	// (SVar:X:Remembered$Amount) and Glen Elendra's Answer's "Create a 1/1
+	// Faerie for each spell and ability countered this way"
+	// (SVar:X:Count$RememberedSize). Forge spells the flag two ways because
+	// its own Defined$ forms distinguish a remembered CARD from a remembered
+	// SA; every consumer this build has counts Remembered, so both flags
+	// append the countered object itself.
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberCountered"]), "True") ||
+		strings.EqualFold(strings.TrimSpace(sa.Params["RememberCounteredSA"]), "True")
 	if cost := strings.TrimSpace(sa.Params["UnlessCost"]); cost != "" && !switched {
 		// fx42: take the answer into a local and clear c.UnlessPay BEFORE
 		// handling it, so a NESTED unless-pay consumer reached below this one
@@ -382,6 +394,9 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 			// "ceases to exist" rest every resolved ability already takes
 			// (CR 608.2m, rules/stack.go's ability tail parks it in exile),
 			// so a countered ability moves there, never to the graveyard.
+			if remember {
+				c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+			}
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 				From: state.ZStack, To: state.ZExile, Text: "countered"})
 			continue
@@ -389,6 +404,9 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		to := state.ZGraveyard
 		if o.CastFlags&state.FlagFlashback != 0 {
 			to = state.ZExile
+		}
+		if remember {
+			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 			From: state.ZStack, To: to, Text: "countered"})

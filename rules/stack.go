@@ -164,124 +164,41 @@ func targetsStackObjects(tt string) bool {
 	return false
 }
 
-// stackObjKind classifies one stack object for TargetType$ legality: a card
-// object (Face != nil) is a spell; an ability object is the
-// triggered/activated split both the CR (603.1/602.1) and the view's
-// StackView.Kind make. The split is state.TriggerOf -- membership in the
-// source face's T: lines is a TriggerPush mint (a triggered ability);
-// membership in its AB$ list is an AbilityPush mint (an activated ability);
-// anything else is a DelayedPush mint, whose Ability was resolved from the
-// registration's Execute$ SVar rather than copied from either list -- and a
-// delayed trigger IS a triggered ability (CR 603.7), so that branch counts
-// as triggered. When the source or its face is gone the split is unknowable
-// and the object counts as activated (the view's own "ability" verdict),
-// which keeps a Triggered-only counter from firing on an object no evidence
-// ties to a trigger; a broad Activated,Triggered/SpellAbility counter still
-// reaches it. Pointer identity is sound for the membership tests: every mint
-// copies the parsed slice's pointer (TriggerPush/AbilityPush), StackCopy
-// re-copies it, and ResolveSVar always parses a fresh SA, so a delayed
-// trigger's Ability can never alias a face-list entry.
-func (e *Engine) stackObjKind(o *state.Object) stackObjKind {
-	if o.Face() != nil {
-		return stackSpell
-	}
-	if _, ok := state.TriggerOf(e.G, o); ok {
-		return stackTriggered
-	}
-	if src := e.G.Obj(o.Source); src != nil {
-		if f := src.Face(); f != nil {
-			for _, ab := range f.Abilities {
-				if ab == o.Ability {
-					return stackActivated
-				}
-			}
-			// A real source face that lists neither a trigger nor this
-			// ability minted it from an SVar: DelayedPush (CR 603.7).
-			return stackTriggered
-		}
-	}
-	return stackActivated
-}
-
-// stackObjKind is the TargetType$-relevant kind of a stack object.
-type stackObjKind uint8
+// stackObjKind classifies one stack object for TargetType$ legality. The
+// classifier moved to state.StackKindOf -- effects' Defined$ ValidStack arm
+// must admit exactly what this census admits and cannot import rules, so one
+// shared classifier serves both (state.StackKindOf's doc). The type alias
+// and the three kind constants keep every existing rules-side name valid.
+type stackObjKind = state.StackObjKind
 
 const (
-	stackSpell     stackObjKind = iota // a card object (a Face) on the stack
-	stackActivated                     // an ability object minted by AbilityPush
-	stackTriggered                     // an ability object minted by TriggerPush/DelayedPush
+	stackSpell     = state.StackKindSpell     // a card object (a Face) on the stack
+	stackActivated = state.StackKindActivated // an ability object minted by AbilityPush
+	stackTriggered = state.StackKindTriggered // an ability object minted by TriggerPush/DelayedPush
 )
 
-// targetTypeToken is one comma-separated TargetType$ token: which stack
-// object kinds its base admits, the controller qualifier read off the
-// qualifiers after the base ("YouCtrl" -- controller must be the chooser;
-// "OppCtrl" -- controller must not be; e.g. Weaver of Harmony's
-// `Activated.YouCtrl,Triggered.YouCtrl`, Kang Dynasty's `Spell.OppCtrl`),
-// and the card-type restriction the base or a qualifier can impose: the
-// bases "Instant" and "Sorcery" (Spider Sense's `Instant,Sorcery,Triggered`)
-// and the Spell qualifiers "Instant"/"Sorcery" (Sister of Silence's
+func (e *Engine) stackObjKind(o *state.Object) stackObjKind { return state.StackKindOf(e.G, o) }
+
+// targetTypeToken is state.StackKindToken: one comma-separated TargetType$
+// token -- which stack object kinds its base admits, the controller qualifier
+// read off the qualifiers after the base ("YouCtrl" -- controller must be the
+// chooser; "OppCtrl" -- controller must not be; e.g. Weaver of Harmony's
+// `Activated.YouCtrl,Triggered.YouCtrl`, Kang Dynasty's `Spell.OppCtrl`), and
+// the card-type restriction the base or a qualifier can impose -- the bases
+// "Instant" and "Sorcery" (Spider Sense's `Instant,Sorcery,Triggered`) and the
+// Spell qualifiers "Instant"/"Sorcery" (Sister of Silence's
 // `Spell.Instant,Spell.Sorcery,Activated,Triggered`) restrict the Spell kind
-// to instant/sorcery CARD objects -- a creature spell is not admitted.
+// to instant/sorcery CARD objects -- a creature spell is never admitted.
 // Any OTHER qualifier (singleTarget, numTargets GE1, ...) is NOT read -- the
 // token admits its full kind set with no restriction, the same widening the
 // AGENTS.md TargetType$ row records.
-type targetTypeToken struct {
-	kinds       [3]bool // indexed by stackObjKind; only lookups, never ranged
-	instantOnly bool    // the stackSpell kind admits only Instant cards
-	sorceryOnly bool    // the stackSpell kind admits only Sorcery cards
-	youCtrl     bool
-	oppCtrl     bool
-}
+type targetTypeToken = state.StackKindToken
 
 // stackTargetKindTokens parses a TargetType$ value into its kind tokens.
 // A parameter that is absent -- or whose tokens name no stack kind at all --
 // defaults to Spell-only (today's behaviour, deliberately narrow: a spec
 // that never said it wants abilities does not get them).
-func stackTargetKindTokens(tt string) []targetTypeToken {
-	spellOnly := targetTypeToken{kinds: [3]bool{stackSpell: true}}
-	var toks []targetTypeToken
-	for _, t := range strings.Split(tt, ",") {
-		base, rest, _ := strings.Cut(strings.TrimSpace(t), ".")
-		var tok targetTypeToken
-		switch base {
-		case "Spell":
-			tok.kinds[stackSpell] = true
-		case "Instant":
-			tok.kinds[stackSpell] = true
-			tok.instantOnly = true
-		case "Sorcery":
-			tok.kinds[stackSpell] = true
-			tok.sorceryOnly = true
-		case "Activated":
-			tok.kinds[stackActivated] = true
-		case "Triggered":
-			tok.kinds[stackTriggered] = true
-		case "SpellAbility":
-			tok.kinds[stackSpell] = true
-			tok.kinds[stackActivated] = true
-			tok.kinds[stackTriggered] = true
-		default:
-			continue // a non-stack token never contributes a stack kind
-		}
-		for _, q := range strings.Split(rest, ".") {
-			switch strings.TrimSpace(q) {
-			case "YouCtrl":
-				tok.youCtrl = true
-			case "OppCtrl":
-				tok.oppCtrl = true
-			case "Instant": // Sister of Silence's Spell.Instant shape
-				tok.instantOnly = true
-			case "Sorcery":
-				tok.sorceryOnly = true
-			}
-		}
-		toks = append(toks, tok)
-	}
-	if len(toks) == 0 {
-		return []targetTypeToken{spellOnly}
-	}
-	return toks
-}
+func stackTargetKindTokens(tt string) []targetTypeToken { return state.StackKindTokens(tt) }
 
 // stackKindAdmits reports whether any TargetType$ token admits the stack
 // object o (of kind k) controlled by controller, from chooser you's
@@ -291,40 +208,10 @@ func stackTargetKindTokens(tt string) []targetTypeToken {
 // instantOnly/sorceryOnly token checks the card object's Face, so a creature
 // spell is never admitted by Spider Sense's `Instant,Sorcery,Triggered` or
 // Sister of Silence's `Spell.Instant,Spell.Sorcery,...`; a Face-less object
-// (never reachable for stackSpell, since stackObjKind only classifies a
+// (never reachable for stackSpell, since StackObjKind only classifies a
 // Face-bearing object as a spell) fails closed.
 func stackKindAdmits(toks []targetTypeToken, k stackObjKind, o *state.Object, controller, you state.PlayerID) bool {
-	for _, tok := range toks {
-		if !tok.kinds[k] {
-			continue
-		}
-		if tok.instantOnly || tok.sorceryOnly {
-			f := o.Face()
-			if f == nil {
-				continue
-			}
-			if tok.instantOnly && !f.IsInstant() {
-				continue
-			}
-			if tok.sorceryOnly && !f.IsSorcery() {
-				continue
-			}
-		}
-		if tok.youCtrl {
-			if controller == you {
-				return true
-			}
-			continue
-		}
-		if tok.oppCtrl {
-			if controller == you {
-				continue
-			}
-			return true
-		}
-		return true
-	}
-	return false
+	return state.StackKindAdmits(toks, k, o, controller, you)
 }
 
 // targetName is the object's name for a target prompt, tolerating the ability
