@@ -31,6 +31,9 @@ func commanderFixture(t *testing.T) *cards.Registry {
 		// A planeswalker that says it can be your commander: eligible by the
 		// Oracle phrase even though it is not a legendary creature.
 		"Isahara": "Name:Isahara\nManaCost:3\nTypes:Planeswalker\nOracle:Isahara can be your commander.\n",
+		// Legendary Spacecraft are commander-eligible despite not being
+		// creatures.
+		"Hearthhull": "Name:Hearthhull\nManaCost:1 B R G\nTypes:Legendary Artifact Spacecraft\n",
 	}
 	for name, src := range scripts {
 		c, diags := cards.ParseBytes("fixture.txt", []byte(src))
@@ -154,8 +157,8 @@ func corpusCardScript(t *testing.T, rel string) []byte {
 
 // TestIsCommanderEligibleRejectsLegendaryNonCreature pins the half of CR
 // 903.3's eligibility condition the other tests never exercised: a legendary
-// non-creature — artifact, land, enchantment or sorcery — is not a legal
-// commander unless its Oracle says it can be. Karakas is a legendary land
+// non-creature other than a Spacecraft — artifact, land, enchantment or
+// sorcery — is not a legal commander unless its Oracle says it can be. Karakas is a legendary land
 // from the pinned corpus. Deleting `&& f.IsCreature()` from IsCommanderEligible
 // makes this test fail by name.
 func TestIsCommanderEligibleRejectsLegendaryNonCreature(t *testing.T) {
@@ -186,6 +189,14 @@ func TestValidateCommanderRejectsNonEligibleCommander(t *testing.T) {
 	f.Commander = "Knight" // a plain creature, not legendary, no prose marker
 	if err := f.ValidateCommander(r); err == nil || !strings.Contains(err.Error(), "legendary creature") {
 		t.Fatalf("want a not-a-legendary-creature error, got %v", err)
+	}
+}
+
+func TestValidateCommanderAcceptsLegendarySpacecraft(t *testing.T) {
+	r := commanderFixture(t)
+	f := File{Name: "SPACECRAFT", Commander: "Hearthhull", Cards: []Entry{{"Hearthhull", 1}, {"Mountain", 99}}}
+	if err := f.ValidateCommander(r); err != nil {
+		t.Fatalf("legendary Spacecraft commander rejected: %v", err)
 	}
 }
 

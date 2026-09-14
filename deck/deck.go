@@ -67,12 +67,13 @@ func (f File) CommanderIndex() int {
 }
 
 // IsCommanderEligible reports whether a card may be a commander: it is a
-// legendary creature, or one of the cards the corpus marks as saying it can
-// be a commander (planeswalker-legends, Partner/choose-a-background cases,
-// which the corpus carries only as Oracle prose — see the report).
+// legendary creature or legendary Spacecraft, or one of the cards the corpus
+// marks as saying it can be a commander (planeswalker-legends,
+// Partner/choose-a-background cases, which the corpus carries only as Oracle
+// prose — see the report).
 func IsCommanderEligible(c *cards.Card) bool {
 	for _, f := range c.Faces {
-		if f.IsLegendary() && f.IsCreature() {
+		if f.IsLegendary() && (f.IsCreature() || f.IsSpacecraft()) {
 			return true
 		}
 	}
@@ -169,7 +170,7 @@ func (f File) ValidateCommander(r *cards.Registry) error {
 		return fmt.Errorf("commander %q is not in the registry", f.Commander)
 	}
 	if !IsCommanderEligible(cmdr) {
-		return fmt.Errorf("commander %q is not a legendary creature or a card that says it can be your commander", f.Commander)
+		return fmt.Errorf("commander %q is not a legendary creature or Spacecraft, or a card that says it can be your commander", f.Commander)
 	}
 	cmdrID := cmdr.ColourIdentity()
 

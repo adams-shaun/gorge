@@ -7,7 +7,7 @@ import (
 // repoCommanderDecks is the table of the m38 interim mono-colour Commander
 // deck files and the commander each declares. It is the one place a new
 // Commander deck must be listed: the driver below is table-driven over it,
-// so a sixth deck added later is validated by construction, and the
+// so a further deck added later is validated by construction, and the
 // cross-check at the bottom fails any deck file that declares a commander
 // the table does not name, so a Commander deck can never silently skip
 // validation.
@@ -20,13 +20,14 @@ var repoCommanderDecks = []struct {
 	{"foundations-wretched-ranks", "Ghoulcaller Gisa"},
 	{"foundations-reign-of-dragons", "Lathliss, Dragon Queen"},
 	{"foundations-tramplesaurus-rex", "Ghalta, Primal Hunger"},
+	{"hearthhull-worldseed-landfall", "Hearthhull, the Worldseed"},
 }
 
 // TestRepoCommanderDecksValidate is the m38 acceptance gate: every interim
 // Commander deck file is a legal Commander deck by deck.ValidateCommander
 // (CR 903.4: exactly 100 cards including the commander, singleton except
 // basic lands; CR 903.5: every card's colour identity a subset of the
-// commander's). Table-driven over the five files so a sixth deck added
+// commander's). Table-driven over the six files so a further deck added
 // later must be added to the table — the driver is the construction — and
 // the cross-check at the end fails any deck file that declares a commander
 // the table does not name.
@@ -50,7 +51,7 @@ func TestRepoCommanderDecksValidate(t *testing.T) {
 	}
 
 	// Every deck file that declares a commander must be in the table: a
-	// sixth Commander deck whose file landed in decks/ but not in
+	// additional Commander deck whose file landed in decks/ but not in
 	// repoCommanderDecks is a fixture error, not a silent pass.
 	for _, name := range RepoDeckNames() {
 		f := RepoDeckFile(t, name)

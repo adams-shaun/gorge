@@ -81,6 +81,9 @@ func TestServesTablesOverHTTP(t *testing.T) {
 	if got := byID["foundations-calling-all-angels"]; got.Format != "commander" || got.Commander != "Giada, Font of Hope" {
 		t.Fatalf("commander deck metadata %+v", got)
 	}
+	if got := byID["hearthhull-worldseed-landfall"]; got.Name != "Hearthhull, the Worldseed Landfall" || got.Format != "commander" || got.Archetype != "landfall lands" || got.Commander != "Hearthhull, the Worldseed" {
+		t.Fatalf("Hearthhull commander deck metadata %+v", got)
+	}
 	for _, tc := range []struct {
 		body string
 		want string

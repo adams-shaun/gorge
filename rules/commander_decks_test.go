@@ -47,6 +47,7 @@ var repoCommanderGames = []struct {
 	// and the "cast at least once" oracle is unchanged. 1018 casts twice,
 	// which makes it the least fragile of the ten.
 	{"foundations-tramplesaurus-rex", "foundations-wretched-ranks", 1005, 5005, []uint64{1005, 1015, 1009, 1018}},
+	{"hearthhull-worldseed-landfall", "foundations-wretched-ranks", 1006, 5006, nil},
 }
 
 // TestRepoCommanderDecksPlayAndCastTheirCommander is the m38 play evidence

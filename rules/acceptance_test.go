@@ -15,9 +15,12 @@ import (
 // on its first run against the 12 repo decks, checked in by hand. The test
 // below asserts the MEASURED set equals this table EXACTLY, in both
 // directions -- a newly-missing card is a regression, a table entry that is
-// now fully supported is stale and must be deleted -- so this table only
-// ever shrinks, and only by implementing a real primitive (Ruling W2: this
-// project does not grow the "supported" set just to make the ratchet green).
+// now fully supported is stale and must be deleted -- so, for a fixed deck
+// catalogue, this table only ever shrinks, and only by implementing a real
+// primitive (Ruling W2: this project does not grow the "supported" set just
+// to make the ratchet green). Adding a newly imported deck can extend the
+// measured worklist; its entries must be measured from the compiled corpus,
+// never marked supported without an implementation.
 //
 // Measured 2026-09-04 against the compiled IR cache at .cards/ir.gob.gz
 // (corpus master @ 95f04e8a04c8925fa97cb226fc3341cabcc90a53): originally 35
@@ -72,15 +75,39 @@ import (
 // Task 15 (protection) registered the five kw:Protection from <colour>
 // keywords, retiring Goblin Piledriver (Protection from blue) and Knight of
 // Infamy (Protection from white) -- the last two entries on this table -- so
-// the ratchet is now EMPTY: every one of the 136 distinct cards across the
-// 12 Legacy decks is fully supported by this build. The table that follows
-// is intentionally left as an empty literal rather than deleted, so the
-// ancient comment history above it survives verbatim as the table's own
-// provenance. Task m38 (Ruling M38-P) extended the ratchet's scope: the test
-// below iterates RepoDeckNames() whole (the 12 Legacy decks PLUS the five
-// interim foundations-* commander decks), so the five new 100-card,
-// singleton lists are held to the same no-gap standard from day one.
-var knownUnsupported = map[string][]string{}
+// the ratchet became EMPTY: every one of the 136 distinct cards across the
+// 12 Legacy decks was fully supported by this build. Task m38 (Ruling M38-P)
+// extended the ratchet's scope to the five interim foundations-* Commander
+// decks, also with no gaps. The 2026-09-14 Hearthhull import is the first
+// external list admitted with its measured missing primitives retained below;
+// its game-completion evidence is intentionally not mistaken for full rules
+// coverage.
+var knownUnsupported = map[string][]string{
+	// Hearthhull, the Worldseed landfall import (2026-09-14): measured against
+	// .cards/ir.gob.gz at FORGE_REF. These are real missing primitives, kept in
+	// the worklist rather than registered inertly just to admit the new deck.
+	"Baloth Prime":              {"api:Untap", "trig:Sacrificed"},
+	"Braids, Arisen Nightmare":  {"api:RepeatEach"},
+	"Conduit of Worlds":         {"api:Play"},
+	"Constant Mists":            {"api:Fog", "kw:Buyback"},
+	"Deflecting Swat":           {"api:ChangeTargets"},
+	"Evendo Brushrazer":         {"trig:Sacrificed"},
+	"Exploration Broodship":     {"kw:Station"},
+	"Fog":                       {"api:Fog"},
+	"Hearthhull, the Worldseed": {"kw:Station"},
+	"Horizon Explorer":          {"api:Untap", "trig:AttackersDeclaredOneTarget"},
+	"Lord Windgrace":            {"kw:CARDNAME can be your commander."},
+	"Mayhem Devil":              {"trig:Sacrificed"},
+	"Necrodominance":            {"repl:BeginPhase"},
+	"Necropotence":              {"repl:BeginPhase", "trig:Discarded"},
+	"Planetary Annihilation":    {"api:ChooseCard", "api:SacrificeAll"},
+	"Ragavan, Nimble Pilferer":  {"kw:Dash"},
+	"Szarel, Genesis Shepherd":  {"trig:Sacrificed"},
+	"Through the Forest Gate":   {"api:Shuffle"},
+	"Virtue of Strength":        {"api:ReplaceMana", "repl:ProduceMana"},
+	"Walk-In Closet":            {"trig:UnlockDoor"},
+	"Ziatora's Proving Ground":  {"kw:Cycling"},
+}
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card
 // across every deck file (the 12 Legacy decks and the m38 commander decks)

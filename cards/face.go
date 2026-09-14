@@ -26,6 +26,7 @@ func (f *Face) IsCreature() bool     { return f.hasType("Creature") }
 func (f *Face) IsInstant() bool      { return f.hasType("Instant") }
 func (f *Face) IsSorcery() bool      { return f.hasType("Sorcery") }
 func (f *Face) IsArtifact() bool     { return f.hasType("Artifact") }
+func (f *Face) IsSpacecraft() bool   { return f.hasType("Spacecraft") }
 func (f *Face) IsEnchantment() bool  { return f.hasType("Enchantment") }
 func (f *Face) IsPlaneswalker() bool { return f.hasType("Planeswalker") }
 
