@@ -441,9 +441,7 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 			player, ok = sc.AttackedTarget.Player, true
 		}
 	case "TriggeredCardController":
-		if o := e.G.Obj(sc.TriggerCard); o != nil {
-			player, ok = o.Controller, true
-		}
+		player, ok = effects.TriggeredCardController(e.G, sc.TriggerContext, nil)
 	}
 	if !ok {
 		if failClosed {
@@ -721,7 +719,7 @@ func (e *Engine) resolveTop() {
 		// latter) fall straight through to their effect below.
 		if t, ok := e.findTriggerForAbility(o.Source, o.Ability); ok {
 			if spec := t.Params["OptionalDecider"]; spec != "" {
-				who, askable := e.deciderFromSpec(spec, o.Controller, o.Remembered)
+				who, askable := e.deciderFromSpec(spec, o.Controller, o.Remembered, e.triggerContexts[id])
 				if !askable {
 					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 						From: state.ZStack, To: state.ZExile, Text: "ceased to exist: its optional decider left the game"})

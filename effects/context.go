@@ -109,20 +109,8 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	case "TriggeredActivator":
 		return oneTriggerPlayer(c.TriggerActivator)
 	case "TriggeredCardController":
-		for _, t := range c.Remembered {
-			if !t.IsPlayer {
-				// A card that left the battlefield is referred to as it last
-				// existed (CR 603.10a): its controller then, not the owner the
-				// move reset it to.
-				if c.LKI != nil && c.LKI.ID == t.Obj && c.LKI.Zone == state.ZBattlefield {
-					if o := g.Obj(t.Obj); o == nil || o.Zone != state.ZBattlefield {
-						return []state.Target{{Player: c.LKI.Controller, IsPlayer: true}}
-					}
-				}
-				if o := g.Obj(t.Obj); o != nil {
-					return []state.Target{{Player: o.Controller, IsPlayer: true}}
-				}
-			}
+		if p, ok := TriggeredCardController(g, c.TriggerContext, c.Remembered); ok {
+			return []state.Target{{Player: p, IsPlayer: true}}
 		}
 		return nil
 	case "Equipped", "Enchanted", "AttachedTo":

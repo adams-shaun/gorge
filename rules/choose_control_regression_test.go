@@ -871,3 +871,88 @@ func TestTriggeredManaGoesToTheDefinedPlayer(t *testing.T) {
 		}
 	}
 }
+
+// stealAndKill gives player 1's fresh Bear to player 0 and kills it, then
+// puts the resulting triggers on the stack (none of these fixtures asks to
+// order them).
+func stealAndKill(t *testing.T, e *Engine) state.ObjID {
+	t.Helper()
+	bear := onBoardReady(t, e, 1, "Name:Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e.emit(events.Event{Kind: events.ControlChange, Obj: bear, Player: 0})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZBattlefield, To: state.ZGraveyard})
+	e.putTriggersOnStack()
+	if d := e.Pending(); d != nil && d.Kind == decision.KTriggerOrder {
+		t.Fatalf("unexpected trigger ordering: %+v", d)
+	}
+	return bear
+}
+
+// TestFecundityOffersTheStolenCreaturesLastController: CR 603.10a on the
+// stack -- Fecundity's "that creature's controller may draw" asks, and
+// draws for, the player who controlled the creature as it died (its taker),
+// although the move returned it to its owner before the ability resolved.
+func TestFecundityOffersTheStolenCreaturesLastController(t *testing.T) {
+	e := stealEngine(t, 738)
+	onBoardCard(t, e, 1, choiceCorpusCard(t, "Fecundity"))
+	stealAndKill(t, e)
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("Fecundity trigger not on the stack: %v", e.G.Stack)
+	}
+	hands := [2]int{len(e.G.Zone(state.ZHand, 0)), len(e.G.Zone(state.ZHand, 1))}
+	e.resolveTop()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTriggerOptional || d.Player != 0 {
+		t.Fatalf("Fecundity's optional draw asked %+v, want the taker (player 0)", d)
+	}
+	yes := -1
+	for _, o := range d.Options {
+		if o.Kind == "yes" {
+			yes = o.Index
+		}
+	}
+	submitChoices(t, e, yes)
+	if got := [2]int{len(e.G.Zone(state.ZHand, 0)), len(e.G.Zone(state.ZHand, 1))}; got != [2]int{hands[0] + 1, hands[1]} {
+		t.Fatalf("hands = %v, want the taker to draw: %v", got, [2]int{hands[0] + 1, hands[1]})
+	}
+}
+
+// TestTriggeredCardControllerFromTheStackIsTheLastController: a synthetic
+// "whenever a creature dies, its controller draws a card" resolving from the
+// stack draws for the stolen creature's taker.
+func TestTriggeredCardControllerFromTheStackIsTheLastController(t *testing.T) {
+	e := stealEngine(t, 739)
+	onBoard(t, e, 1, "Name:Wake\nTypes:Enchantment\n"+
+		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature | TriggerZones$ Battlefield | Execute$ TrigDraw | TriggerDescription$ x\n"+
+		"SVar:TrigDraw:DB$ Draw | Defined$ TriggeredCardController | NumCards$ 1\nOracle:x\n")
+	stealAndKill(t, e)
+	hands := [2]int{len(e.G.Zone(state.ZHand, 0)), len(e.G.Zone(state.ZHand, 1))}
+	e.resolveTop()
+	if got := [2]int{len(e.G.Zone(state.ZHand, 0)), len(e.G.Zone(state.ZHand, 1))}; got != [2]int{hands[0] + 1, hands[1]} {
+		t.Fatalf("hands = %v, want the taker to draw: %v", got, [2]int{hands[0] + 1, hands[1]})
+	}
+}
+
+// TestMeathookMassacreIIPayerIsTheStolenCreaturesLastController: the owner's
+// Meathook Massacre II sees its stolen creature die as "a creature an
+// opponent controls" and names that opponent (the taker) as the player who
+// may pay 3 life. ChangeZone does not pose UnlessCost$ yet, so this pins the
+// payer referent the way the stack object will resolve it: through the
+// trigger context the ability carries onto the stack.
+func TestMeathookMassacreIIPayerIsTheStolenCreaturesLastController(t *testing.T) {
+	e := stealEngine(t, 740)
+	meathook := onBoardCard(t, e, 1, choiceCorpusCard(t, "Meathook Massacre II"))
+	stealAndKill(t, e)
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("Meathook trigger not on the stack: %v", e.G.Stack)
+	}
+	id := e.G.Stack[0]
+	o := e.G.Obj(id)
+	if o.Source != meathook || o.Ability.Params["UnlessPayer"] != "TriggeredCardController" {
+		t.Fatalf("stack object is not Meathook's opponent-death trigger: %+v", o.Ability)
+	}
+	ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller, Remembered: o.Remembered, TriggerContext: e.triggerContexts[id]}
+	payer := effects.Defined(e, ctx, &cards.SA{Params: map[string]string{"Defined": o.Ability.Params["UnlessPayer"]}})
+	if len(payer) != 1 || !payer[0].IsPlayer || payer[0].Player != 0 {
+		t.Fatalf("UnlessPayer$ TriggeredCardController resolves to %+v, want the taker (player 0)", payer)
+	}
+}

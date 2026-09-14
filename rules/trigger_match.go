@@ -405,7 +405,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					Remembered:     triggerRemembered(ev, id),
 					Captured:       triggerRemembered(ev, id),
 					LKI:            objLKI,
-					TriggerContext: observer.triggerReferents(t, id, ev),
+					TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
 				},
 			})
 		}

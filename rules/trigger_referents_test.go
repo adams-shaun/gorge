@@ -33,7 +33,7 @@ func TestTriggerReferentsUseEventRoles(t *testing.T) {
 		{"AttackersDeclaredOneTarget", events.Event{Kind: events.DeclareAttackers, IDs: []state.ObjID{other}, Player: 1}, effects.TriggerContext{DefendingPlayer: state.Target{IsPlayer: true, Player: 1}, AttackingPlayer: state.Target{IsPlayer: true, Player: 1}, AttackedTarget: state.Target{IsPlayer: true, Player: 1}}},
 		{"Always", events.Event{Kind: events.Damage, Obj: other}, effects.TriggerContext{}},
 	} {
-		if got := e.triggerReferents(cards.Trigger{Mode: tt.mode}, source, tt.ev); got != tt.want {
+		if got := e.triggerReferents(cards.Trigger{Mode: tt.mode}, source, tt.ev, nil); got != tt.want {
 			t.Errorf("%s: got %+v, want %+v", tt.mode, got, tt.want)
 		}
 	}

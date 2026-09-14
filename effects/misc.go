@@ -375,6 +375,11 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 			if len(c.Targets) > 0 {
 				payer = PlayerOf(h, c, c.Targets[0])
 			}
+			if strings.TrimSpace(sa.Params["UnlessPayer"]) == "TriggeredCardController" {
+				if p, ok := TriggeredCardController(h.Game(), c.TriggerContext, c.Remembered); ok {
+					payer = p
+				}
+			}
 			shown := unlessCostLabel(cost)
 			d := &decision.Decision{Player: payer, Kind: decision.KModes,
 				Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay",

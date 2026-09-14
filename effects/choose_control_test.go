@@ -408,8 +408,7 @@ func TestRepeatEachChaosDefilerKeepsIterationsRemembered(t *testing.T) {
 // shape (31 corpus lines): Forge's default is GE1, so with no creature dead
 // this turn (X=0) Gravelighter takes the false arm -- each player sacrifices
 // a creature -- instead of drawing. (Its X head, ThisTurnEntered_..., is not
-// modelled, so the true arm is not reachable here; the comparator itself is
-// shared with the literal and SVar forms tested above.)
+// modelled, so the X=1 case below holds X at a supported count.)
 func TestBranchGravelighterDefaultsToGE1(t *testing.T) {
 	card, sa := corpusSA(t, "Gravelighter", "TrigBranch")
 	if sa.Params["BranchConditionSVarCompare"] != "" {
@@ -426,6 +425,28 @@ func TestBranchGravelighterDefaultsToGE1(t *testing.T) {
 	gz, bz := h.g.Obj(src.ID).Zone, h.g.Obj(bear.ID).Zone
 	if len(h.g.Zone(state.ZHand, 0)) != 0 || gz != state.ZGraveyard || bz != state.ZGraveyard {
 		t.Fatalf("X=0 with no compare: hand=%d Gravelighter=%v bear=%v, want no draw and both creatures sacrificed",
+			len(h.g.Zone(state.ZHand, 0)), gz, bz)
+	}
+
+	// X=1, still no compare: the true arm (draw, no sacrifice). The real
+	// SVar X head is not modelled, so X is held at a supported count that is
+	// 1 here -- the Branch SA and both arms are the card's own.
+	h = newHost(t, 2)
+	src = h.g.AddObject(card, 0)
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: src.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	book := h.g.AddObject(mkCard(t, "Name:Book\nTypes:Sorcery\nOracle:x\n"), 0)
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: book.ID, From: state.ZLibrary, To: state.ZLibrary})
+	bear = h.g.AddObject(mkCard(t, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n"), 1)
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: bear.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	svars := make(map[string]string, len(src.Face().SVars))
+	for k, v := range src.Face().SVars {
+		svars[k] = v
+	}
+	svars["X"] = "Count$Valid Creature.YouCtrl"
+	effBranch(h, &Ctx{Source: src.ID, Controller: 0, SVars: svars}, sa)
+	gz, bz = h.g.Obj(src.ID).Zone, h.g.Obj(bear.ID).Zone
+	if len(h.g.Zone(state.ZHand, 0)) != 1 || gz != state.ZBattlefield || bz != state.ZBattlefield {
+		t.Fatalf("X=1 with no compare: hand=%d Gravelighter=%v bear=%v, want a draw and no sacrifice",
 			len(h.g.Zone(state.ZHand, 0)), gz, bz)
 	}
 }
