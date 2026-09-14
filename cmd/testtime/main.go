@@ -496,13 +496,35 @@ const skipAnomalyMargin = 0.06
 
 // Wall-time comparisons use rows whose test count is within 5% of this run,
 // avoiding false comparisons across historical suite-size changes. A run below
-// half the median wall time per test is refused. This preserves the measured
-// honest rules spread (12.0-14.8s at 445-450 tests, under 20% around its median)
-// while decisively catching the measured 14.8s -> 3.0s collapse.
+// half the median wall time per test is refused — but only when the prior rows'
+// median wall (seconds, not per-test) is at least wallPredicateFloorS. This
+// preserves the measured honest rules spread (12.0-14.8s at 445-450 tests, under
+// 20% around its median) while decisively catching the measured 14.8s -> 3.0s
+// collapse.
 const (
 	comparableTestMargin = 0.05
 	wallCollapseRatio    = 0.50
 )
+
+// wallPredicateFloorS is the smallest prior median WALL (seconds, not per-test)
+// for which the wall-collapse predicate is trusted at all; below it the
+// predicate is skipped and the suite is governed by the skip-fraction check
+// alone (the check that caught the real missing-corpus incident for rules).
+//
+// Derivation: writeHistory records wall_s rounded to one decimal (%.1f), so a
+// suite whose real wall is well under a second writes every row as 0.0 or 0.1.
+// historyWallBaseline discards the 0.0 rows (r.wall <= 0) and keeps only the
+// rows that happened to round UP to 0.1, inflating the per-test baseline by up
+// to an order of magnitude. The measured case: botpolicy's history is 0.0s rows
+// at 5-102 tests plus one 0.1s/114-test row; an honest 0.006s run of ~109
+// top-level tests (0.0001 s/test) was refused against the 0.1/114 = 0.0009
+// s/test "baseline" — rounding noise, not a collapse (measured 2026-09-14 at
+// main 5b45575, reproduced via `go run ./cmd/testtime -changed`). The floor is
+// 1.0s = 10x the 0.1s recording resolution: at that median, quantization is at
+// most 10% of the baseline, far from the 50% collapse ratio, so rounding can no
+// longer manufacture or mask a collapse on its own. The rules suite (12-15s)
+// sits far above the floor and keeps full protection.
+const wallPredicateFloorS = 1.0
 
 // skipFraction returns the fraction of top-level tests in a run that were
 // skipped. A run with no tests reported is treated as 0 (nothing to be
@@ -611,7 +633,10 @@ func skipAnomalous(skipped, tests int, haveHistory bool, baseline float64) bool 
 // historyWallBaseline returns the median wall time per test among usable prior
 // rows whose test count is within 5% of the current count. No comparable rows
 // means no baseline, so a first measurement (or a substantially resized suite)
-// cannot be refused by the wall predicate.
+// cannot be refused by the wall predicate. A baseline whose comparable rows'
+// median WALL is under wallPredicateFloorS is recording-resolution noise, not
+// signal (see the constant's derivation): such a baseline is reported as
+// "no history" so the wall predicate never fires on it.
 func historyWallBaseline(path string, tests int) (haveHistory bool, baseline float64) {
 	if tests <= 0 {
 		return false, 0
@@ -620,14 +645,15 @@ func historyWallBaseline(path string, tests int) (haveHistory bool, baseline flo
 	if err != nil {
 		return false, 0
 	}
-	var ratios []float64
+	var ratios, walls []float64
 	for _, r := range parseHistoryRows(data) {
 		if r.tests <= 0 || r.wall <= 0 || math.Abs(float64(r.tests-tests))/float64(tests) > comparableTestMargin {
 			continue
 		}
 		ratios = append(ratios, r.wall/float64(r.tests))
+		walls = append(walls, r.wall)
 	}
-	if len(ratios) == 0 {
+	if len(ratios) == 0 || median(walls) < wallPredicateFloorS {
 		return false, 0
 	}
 	return true, median(ratios)
