@@ -406,6 +406,114 @@ func TestSkipAnomalous(t *testing.T) {
 	}
 }
 
+// botpolicyShapedHistory mirrors the real botpolicy/TEST_HISTORY.md shape that
+// produced the false positive (measured 2026-09-14 at main 5b45575): every row
+// 0.0s except one 0.1s/114-test row, five-column old format for most rows.
+const botpolicyShapedHistory = "# Test history — botpolicy\n\nbudget_s: 5\n\n| date (UTC) | commit | wall_s | tests | skipped | runner |\n|---|---|---|---|---|---|\n" +
+	"| 2026-09-06T07:33Z | e6410d6+ | 0.0 | 5 | sadams |\n" +
+	"| 2026-09-06T23:34Z | f9354cb+ | 0.0 | 53 | sadams |\n" +
+	"| 2026-09-07T10:47Z | 587f31d+ | 0.0 | 76 | sadams |\n" +
+	"| 2026-09-08T00:45Z | e3fcd5a+ | 0.0 | 98 | sadams |\n" +
+	"| 2026-09-09T20:10Z | f7d8580+ | 0.0 | 98 | 0 | sadams |\n" +
+	"| 2026-09-10T20:28Z | fa4da46+ | 0.0 | 102 | 3 | sadams |\n" +
+	"| 2026-09-07T23:52Z | 6d295c0+ | 0.1 | 114 | sadams |\n"
+
+// TestWallPredicateIgnoresSubResolutionHistory is the point of the task: a
+// suite whose prior comparable rows' median wall is under wallPredicateFloorS
+// (recording-resolution noise — every row is a rounded 0.0 or 0.1) must never
+// be refused by the wall-collapse predicate. The measured false positive: an
+// honest 0.006s run of 109-122 tests against botpolicy's 0.0/0.1 history, where
+// the only row surviving the r.wall>0 filter (0.1s/114 tests) inflated the
+// per-test baseline to 0.0009 s/test.
+func TestWallPredicateIgnoresSubResolutionHistory(t *testing.T) {
+	t.Run("baseline below floor is no history", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "TEST_HISTORY.md")
+		if err := os.WriteFile(path, []byte(botpolicyShapedHistory), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		// 109 tests: the 0.1s/114 row IS comparable (|114-109|/109 = 4.6%), so
+		// this is exactly the shape that refused before the fix.
+		have, baseline := historyWallBaseline(path, 109)
+		if have {
+			t.Errorf("sub-resolution history produced baseline %g; want haveHistory=false", baseline)
+		}
+		if wallAnomalous(0.006, 109, have, baseline) {
+			t.Error("honest 0.006s/109 run refused by wall predicate")
+		}
+	})
+
+	t.Run("end to end: botpolicy-shaped 109-test run accepted", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "TEST_HISTORY.md")
+		if err := os.WriteFile(path, []byte(botpolicyShapedHistory), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		before, _ := os.ReadFile(path)
+		contrib, wrote := measurePackage("botpolicy", path, "example.com/gorge/botpolicy",
+			"2026-09-14T00:00Z", "dd44444", "sadams", testResult{elapsed: 0.006, tests: 109, skipped: 0})
+		if !wrote || contrib != 0 {
+			t.Errorf("honest sub-second run wrote=%v contrib=%d, want true/0", wrote, contrib)
+		}
+		after, _ := os.ReadFile(path)
+		if string(after) == string(before) {
+			t.Error("accepted run did not append a row")
+		}
+	})
+
+	t.Run("end to end: 122-test run accepted", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "TEST_HISTORY.md")
+		if err := os.WriteFile(path, []byte(botpolicyShapedHistory), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		contrib, wrote := measurePackage("botpolicy", path, "example.com/gorge/botpolicy",
+			"2026-09-14T00:00Z", "dd44444", "sadams", testResult{elapsed: 0.006, tests: 122, skipped: 0})
+		if !wrote || contrib != 0 {
+			t.Errorf("honest sub-second run wrote=%v contrib=%d, want true/0", wrote, contrib)
+		}
+	})
+}
+
+// TestWallPredicateFloorBoundary pins the floor constant itself: a history
+// whose comparable rows' median wall sits just under 1.0s is noise (predicate
+// off); one just over 1.0s is real signal (predicate on and able to refuse).
+func TestWallPredicateFloorBoundary(t *testing.T) {
+	mk := func(wall string) string {
+		return "# Test history — x\n\nbudget_s: 5\n\n| date (UTC) | commit | wall_s | tests | skipped | runner |\n|---|---|---|---|---|---|\n" +
+			"| 2026-09-08T22:22Z | aa11111 | " + wall + " | 446 | 0 | sadams |\n" +
+			"| 2026-09-08T23:09Z | bb22222 | " + wall + " | 447 | 0 | sadams |\n" +
+			"| 2026-09-09T00:45Z | cc33333 | " + wall + " | 450 | 0 | sadams |\n"
+	}
+	t.Run("median 0.9s is below the floor", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "TEST_HISTORY.md")
+		if err := os.WriteFile(path, []byte(mk("0.9")), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if have, _ := historyWallBaseline(path, 450); have {
+			t.Error("0.9s median wall must not arm the wall predicate")
+		}
+		// The inflation trap the floor closes: a 0.9s/450 baseline is
+		// 0.002 s/test, so an honest 0.001 s/test run would refuse.
+		if wallAnomalous(0.45, 450, false, 0) {
+			t.Error("wall predicate must be inert below the floor")
+		}
+	})
+	t.Run("median 1.1s is above the floor and still catches a collapse", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "TEST_HISTORY.md")
+		if err := os.WriteFile(path, []byte(mk("1.1")), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		have, baseline := historyWallBaseline(path, 450)
+		if !have {
+			t.Fatal("1.1s median wall must arm the wall predicate")
+		}
+		if !wallAnomalous(0.4, 450, have, baseline) {
+			t.Error("0.4s run against 1.1s median must be anomalous")
+		}
+		if wallAnomalous(1.1, 450, have, baseline) {
+			t.Error("honest 1.1s run must not be anomalous")
+		}
+	})
+}
+
 func TestHistoryWallBaselineAndAnomaly(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "TEST_HISTORY.md")
