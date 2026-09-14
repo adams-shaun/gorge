@@ -551,9 +551,25 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	rememberLKICapture := func(id state.ObjID) {
 		if remember {
 			c.Sacrificed = append(c.Sacrificed, state.SacrificedInfoOf(g, id))
+			// Forge's RememberSacrificed$ also remembers the card, which is
+			// what a following ConditionDefined$ Remembered, Remembered$Amount
+			// or RememberedCard reads (Braids, Scapeshift, Victimize).
+			c.Remembered = append(copyTargets(c.Remembered), state.Target{Obj: id})
 		}
 	}
-	for _, t := range Defined(h, c, sa) {
+	who := Defined(h, c, sa)
+	// A Sacrifice that names neither Defined$ nor ValidTgts$ but a SacValid$
+	// other than itself is Forge's default Defined$ You: its controller
+	// sacrifices a matching permanent (Braids's "you may sacrifice an
+	// artifact, creature, ..."). Only a SacValid$ Self/Card.Self line (or no
+	// SacValid$ at all) sacrifices the source object itself. Corpus: 66 such
+	// lines, which previously sacrificed the source whatever its type.
+	if _, targeted := sa.Params["ValidTgts"]; !targeted && strings.TrimSpace(sa.Params["Defined"]) == "" {
+		if v := strings.TrimSpace(sa.Params["SacValid"]); v != "" && v != "Self" && v != "Card.Self" {
+			who = []state.Target{{Player: c.Controller, IsPlayer: true}}
+		}
+	}
+	for _, t := range who {
 		if t.IsPlayer {
 			// Bounds guard: g.Zone indexes g.zones[zoneIndex(z, p)] and
 			// zoneIndex has no bounds check, so an out-of-range target-supplied

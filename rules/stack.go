@@ -441,9 +441,7 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 			player, ok = sc.AttackedTarget.Player, true
 		}
 	case "TriggeredCardController":
-		if o := e.G.Obj(sc.TriggerCard); o != nil {
-			player, ok = o.Controller, true
-		}
+		player, ok = effects.TriggeredCardController(e.G, sc.TriggerContext, nil)
 	}
 	if !ok {
 		if failClosed {
@@ -635,6 +633,9 @@ func (e *Engine) recordChosenTargets(targetObj state.ObjID, chosen []decision.Op
 func (e *Engine) resolveTop() {
 	id := e.G.Stack[len(e.G.Stack)-1]
 	o := e.G.Obj(id)
+	savedResolving := e.resolvingObj
+	e.resolvingObj = id
+	defer func() { e.resolvingObj = savedResolving }()
 
 	if o.Ability != nil {
 		// A triggered or activated ability with no printed card: Ruling
@@ -718,7 +719,7 @@ func (e *Engine) resolveTop() {
 		// latter) fall straight through to their effect below.
 		if t, ok := e.findTriggerForAbility(o.Source, o.Ability); ok {
 			if spec := t.Params["OptionalDecider"]; spec != "" {
-				who, askable := e.deciderFromSpec(spec, o.Controller, o.Remembered)
+				who, askable := e.deciderFromSpec(spec, o.Controller, o.Remembered, e.triggerContexts[id])
 				if !askable {
 					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 						From: state.ZStack, To: state.ZExile, Text: "ceased to exist: its optional decider left the game"})
@@ -756,7 +757,7 @@ func (e *Engine) resolveTop() {
 		// lookup two lines above already gets this right by reading from
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
-			Targets: targets, Remembered: o.Remembered, TriggerContext: e.triggerContexts[id]}
+			Targets: targets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id]}
 		// CR 107.3i: X is the value the activator chose for a Cost$ carrying
 		// {X} (recorded on the ability stack object by commitCast's CastInfo,
 		// emitted right after the AbilityPush). Zero for a trigger, which was
@@ -781,6 +782,7 @@ func (e *Engine) resolveTop() {
 		ctx.Modes = o.ChosenModes
 		e.damaging = o.Source
 		e.contChain = e.contChain[:0]
+		e.repeatReported = nil
 		effects.Resolve(e, ctx, o.Ability)
 		e.damaging = 0
 		if e.resume != nil {
@@ -871,6 +873,7 @@ func (e *Engine) resolveTop() {
 		// that announcement instead of posing its old resolution-time ask.
 		ctx.Modes = o.ChosenModes
 		e.contChain = e.contChain[:0]
+		e.repeatReported = nil
 		effects.Resolve(e, ctx, sa)
 		e.damaging = 0
 		if e.resume != nil {
@@ -1074,6 +1077,22 @@ func (e *Engine) emitTap(obj state.ObjID, tapper state.PlayerID, entering bool) 
 	e.tapObj, e.tapPlayer, e.tapEntering = obj, tapper, entering
 	e.emit(events.Event{Kind: events.Tap, Obj: obj})
 	e.tapObj, e.tapPlayer, e.tapEntering = savedObj, savedPlayer, savedEntering
+}
+
+// LegalTargets satisfies effects.Host for target-changing effects. It exposes
+// the same census used by cast and trigger target decisions, so a redirect
+// cannot bypass protection, CantTarget, stack-kind, zone, or filter legality.
+func (e *Engine) LegalTargets(chooser state.PlayerID, source state.ObjID, sa *cards.SA) []state.Target {
+	cs := e.legalTargetCandidates(chooser, source, source, sa)
+	out := make([]state.Target, 0, len(cs))
+	for _, c := range cs {
+		if c.kind == "player" {
+			out = append(out, state.Target{Player: c.player, IsPlayer: true})
+		} else {
+			out = append(out, state.Target{Obj: c.obj})
+		}
+	}
+	return out
 }
 
 // CastThisTurn satisfies effects.Host's CastThisTurn for Count$ThisTurnCast

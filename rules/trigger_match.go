@@ -275,6 +275,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 				Source:     dt.Source,
 				Controller: dt.Controller,
 				Remembered: append([]state.Target(nil), dt.Remembered...),
+				Captured:   append([]state.Target(nil), dt.Remembered...),
 			},
 		})
 	}
@@ -385,17 +386,26 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				// nothing to run.
 				continue
 			}
+			// CR 603.3a/603.10a: a leaves-the-battlefield ability's source
+			// is controlled by whoever controlled it as it left, not by the
+			// owner the move has since reset it to (a stolen creature's own
+			// dies trigger belongs to the player who stole it).
+			controller := o.Controller
+			if objLKI != nil && id == ev.Obj && leftBattlefield(ev) {
+				controller = objLKI.Controller
+			}
 			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 				Source:     id,
-				Controller: o.Controller,
+				Controller: controller,
 				Idx:        ti,
 				SA:         t.Effect,
 				Ctx: effects.Ctx{
 					Source:         id,
-					Controller:     o.Controller,
+					Controller:     controller,
 					Remembered:     triggerRemembered(ev, id),
+					Captured:       triggerRemembered(ev, id),
 					LKI:            objLKI,
-					TriggerContext: observer.triggerReferents(t, id, ev),
+					TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
 				},
 			})
 		}
@@ -639,8 +649,18 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 		// itself, e.g. Undying's counters_EQ0_P1P1: read it against the LKI
 		// (what it was the moment before the move reset it), not the live
 		// object already in the destination zone.
-		if source == ev.Obj && ev.Obj != 0 && lki != nil {
-			if !effects.MatchesObjectCtx(e.G, v, lki, e.specCtx(source, e.controllerOf(source))) {
+		// A permanent that LEFT the battlefield is likewise matched as it
+		// last existed there (CR 603.10a) -- in particular its controller:
+		// "a creature you control dies" must see a stolen creature as the
+		// taker's, though the move has already handed it back to its owner.
+		// ctrl is the trigger source's controller at that moment too, which
+		// for the departed source itself is its LKI controller.
+		ctrl := e.controllerOf(source)
+		if source == ev.Obj && lki != nil && leftBattlefield(ev) {
+			ctrl = lki.Controller
+		}
+		if ev.Obj != 0 && lki != nil && (source == ev.Obj || leftBattlefield(ev)) {
+			if !effects.MatchesObjectCtx(e.G, v, lki, e.specCtx(source, ctrl)) {
 				return false
 			}
 		} else if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, e.controllerOf(source))) {
@@ -782,10 +802,23 @@ func (e *Engine) sacrificedMatches(t cards.Trigger, source state.ObjID, ev event
 			return false
 		}
 	}
-	if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, e.controllerOf(ev.Obj), ctrl) {
+	// The sacrificing player is the permanent's controller as it was
+	// sacrificed (Forge GameAction.sacrifice reads the LKI): a stolen
+	// permanent its taker sacrifices is the taker's sacrifice, although the
+	// move has already returned it to its owner.
+	sacrificer := e.controllerOf(ev.Obj)
+	if lki != nil {
+		sacrificer = lki.Controller
+	}
+	if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, sacrificer, ctrl) {
 		return false
 	}
 	return true
+}
+
+// leftBattlefield reports a zone change whose object left the battlefield.
+func leftBattlefield(ev events.Event) bool {
+	return ev.Kind == events.MoveZone && ev.From == state.ZBattlefield && ev.To != state.ZBattlefield
 }
 
 func (e *Engine) discardedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
@@ -1057,7 +1090,7 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
 				return false
 			}
-		} else if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		} else if !effects.MatchesPlayerSpecFrom(e.G, v, ev.Player, ctrl, source) {
 			return false
 		}
 	}

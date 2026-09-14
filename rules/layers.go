@@ -254,6 +254,7 @@ func (e *Engine) nextTurnFor(p state.PlayerID) int32 {
 // from rules/combat.go's cleanupStep, which runs it on entry to the cleanup
 // step.
 func (e *Engine) EndOfTurnCleanup() {
+	e.expireControl(controlAtCleanup)
 	kept := e.continuous[:0]
 	for _, ce := range e.continuous {
 		// A Permanent one-shot survives cleanup (CR 611.2a).

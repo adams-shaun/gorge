@@ -183,6 +183,21 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 					out = append(out, t.Obj)
 				}
 			}
+		case "ChosenCard":
+			// Dauthi Voidwalker and the wider ChooseCard -> Effect family do
+			// not set RememberChosen$: the chosen card lives in Ctx.Chosen, or
+			// on the event-backed source when a later ability reads it.
+			chosen := c.Chosen
+			if len(chosen) == 0 {
+				if o := h.Game().Obj(c.Source); o != nil {
+					chosen = o.Chosen
+				}
+			}
+			for _, t := range chosen {
+				if !t.IsPlayer && h.Game().Obj(t.Obj) != nil {
+					out = append(out, t.Obj)
+				}
+			}
 		}
 	}
 	return out
@@ -359,6 +374,11 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 			payer := c.Controller
 			if len(c.Targets) > 0 {
 				payer = PlayerOf(h, c, c.Targets[0])
+			}
+			if strings.TrimSpace(sa.Params["UnlessPayer"]) == "TriggeredCardController" {
+				if p, ok := TriggeredCardController(h.Game(), c.TriggerContext, c.Remembered); ok {
+					payer = p
+				}
 			}
 			shown := unlessCostLabel(cost)
 			d := &decision.Decision{Player: payer, Kind: decision.KModes,
@@ -761,9 +781,10 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 // activating player; with Defined$ it is each player the selector names, so
 // Vernal Bloom's Defined$ TriggeredCardController gives the extra {G} to the
 // tapped Forest's controller rather than to the enchantment's. An object
-// selector names that object's controller (PlayerOf). A selector this build
-// cannot bind keeps the activating player -- effMana's behaviour before it read
-// Defined$ -- rather than silently dropping the mana.
+// selector names that object's controller (PlayerOf). A Defined$ that resolves
+// to nobody adds nothing, as in Forge (SpellAbilityEffect.getDefinedPlayers has
+// no activator fallback): Valleymaker's Defined$ ChosenPlayer must not hand the
+// mana to its controller when no player was chosen.
 func ManaRecipients(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	if strings.TrimSpace(sa.Params["Defined"]) == "" {
 		return []state.PlayerID{c.Controller}
@@ -776,9 +797,6 @@ func ManaRecipients(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 			continue
 		}
 		out = append(out, p)
-	}
-	if len(out) == 0 {
-		return []state.PlayerID{c.Controller}
 	}
 	return out
 }

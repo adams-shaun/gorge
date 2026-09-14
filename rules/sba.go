@@ -237,6 +237,9 @@ func (e *Engine) checkStateBased() {
 		players: map[state.PlayerID]bool{},
 		alive:   e.G.AliveCount(),
 	}
+	// Safety net for a duration-ending change folded outside Engine.emit
+	// (the Updated replacement paths call events.Emit directly).
+	e.expireControl(controlOnEvent)
 	for pass := 0; pass < maxSBAPasses; pass++ {
 		changed := e.checkLoseConditions(tried)
 		if e.annihilateOppositeCounters() {
