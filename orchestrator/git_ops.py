@@ -57,10 +57,18 @@ def remove_worktree(issue_id: str) -> None:
 
 def rebase_onto_main(wt: Path) -> tuple[bool, str]:
     r = _run(["git", "rebase", "main"], cwd=wt, check=False)
-    if r.returncode != 0:
-        _run(["git", "rebase", "--abort"], cwd=wt, check=False)
-        return False, r.stdout + r.stderr
-    return True, r.stdout + r.stderr
+    if r.returncode == 0:
+        return True, r.stdout + r.stderr
+    _run(["git", "rebase", "--abort"], cwd=wt, check=False)
+    # A branch that already contains a merge commit (a seat that integrated
+    # main mid-task) makes rebase linearize and replay conflicts that merge
+    # already resolved. Merging main in is equivalent for the --no-ff merge
+    # that follows, so try it before calling the branch conflicted.
+    m = _run(["git", "merge", "--no-edit", "main"], cwd=wt, check=False)
+    if m.returncode == 0:
+        return True, r.stdout + r.stderr + "\n[rebase conflicted; merged main instead]\n" + m.stdout + m.stderr
+    _run(["git", "merge", "--abort"], cwd=wt, check=False)
+    return False, r.stdout + r.stderr + "\n--- merge fallback ---\n" + m.stdout + m.stderr
 
 
 def diff_stat(wt: Path) -> str:
