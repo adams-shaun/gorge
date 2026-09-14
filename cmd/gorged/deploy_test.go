@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -50,7 +51,10 @@ exit 0
 // 8090-8099 (a successful bind proves no gorged is there for the script's
 // port sweep to stop), and every path the script writes — persistence dirs,
 // logs, art dir — is overridden into temp dirs, so the live demo on
-// 8080/8081 and its /tmp logs are never touched.
+// 8080/8081 and its /tmp logs are never touched. A probe gorged (the test
+// binary re-exec'd from a copy literally named gorged, the reviewer's own
+// shape) listens on [::1] of the first port through every subtest: the
+// sweep must leave a gorged bound to ANOTHER address of a demo port alone.
 func TestDeployStartsTheServersWhenTheArtFillFails(t *testing.T) {
 	for _, tool := range []string{"bash", "setsid", "nohup", "ss", "curl"} {
 		if _, err := exec.LookPath(tool); err != nil {
@@ -74,6 +78,7 @@ func TestDeployStartsTheServersWhenTheArtFillFails(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ports := demoTestPorts(t)
+			probe := startGorgedProbe(t, ports[0])
 			tmp := t.TempDir()
 			rec := filepath.Join(tmp, "calls")
 			stub := filepath.Join(tmp, "gorged")
@@ -127,6 +132,9 @@ func TestDeployStartsTheServersWhenTheArtFillFails(t *testing.T) {
 					}
 				}
 			}
+			if !processAlive(probe) {
+				t.Errorf("the deploy's port sweep killed the probe gorged on [::1]:%d — a gorged bound to another address of a demo port must be left alone", ports[0])
+			}
 
 			// The stub servers are started in the background: wait for both.
 			var calls [][]string
@@ -170,7 +178,10 @@ func TestDeployStartsTheServersWhenTheArtFillFails(t *testing.T) {
 }
 
 // demoTestPorts binds two free ports in the task range 8090-8099 and answers
-// the deploy script's /api/tables probes on them until the test ends.
+// the deploy script's /api/tables probes on them until the test ends. It
+// SKIPS — never fails — when fewer than two are free: other sessions run
+// servers in this range by design, and six parallel runs of this test would
+// otherwise turn a busy range into six false failures.
 func demoTestPorts(t *testing.T) []int {
 	t.Helper()
 	var ports []int
@@ -188,9 +199,121 @@ func demoTestPorts(t *testing.T) []int {
 		ports = append(ports, p)
 	}
 	if len(ports) < 2 {
-		t.Fatalf("fewer than two free ports in 8090-8099 (got %v)", ports)
+		t.Skipf("fewer than two free ports in 8090-8099 (got %v); another session is using the range", ports)
 	}
 	return ports
+}
+
+// startGorgedProbe reproduces the reviewer's probe exactly: a process whose
+// /proc/<pid>/comm reads gorged (this test binary, copied under that name
+// and re-exec'd into its helper) with a LISTENING socket on [::1]:port —
+// another address of a port the deploy is about to bind on 127.0.0.1. The
+// script's port sweep must never touch it; the caller asserts the process
+// is still alive once the deploy has run. The probe is killed at cleanup.
+func startGorgedProbe(t *testing.T, port int) *os.Process {
+	t.Helper()
+	exe, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	bin := filepath.Join(dir, "gorged") // the copy's basename is what /proc/<pid>/comm shows
+	if err := copyFile(bin, exe); err != nil {
+		t.Fatalf("copying the test binary to %s: %v", bin, err)
+	}
+	ready := filepath.Join(dir, "ready")
+	cmd := exec.Command(bin, "-test.run", "^TestGorgedProbeHelper$")
+	cmd.Env = append(os.Environ(),
+		"GORGE_PROBE_PORT="+fmt.Sprint(port),
+		"GORGE_PROBE_READY="+ready)
+	log, err := os.Create(filepath.Join(dir, "probe.log"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = log.Close() })
+	cmd.Stdout, cmd.Stderr = log, log
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = cmd.Process.Kill()
+		_, _ = cmd.Process.Wait()
+	})
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		if fileExists(ready) {
+			break
+		}
+		if time.Now().After(deadline) {
+			b, _ := os.ReadFile(log.Name())
+			t.Fatalf("probe gorged on [::1]:%d never became ready: %s", port, b)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	// Prove the probe really is the shape that used to be swept: a listening
+	// socket rendered exactly as [::1]:port in ss -lptn — matched by the old
+	// port-only filter, which is how a re-reviewer's probe got killed.
+	deadline = time.Now().Add(10 * time.Second)
+	for {
+		out, err := exec.Command("ss", "-lptn").Output()
+		if err != nil {
+			t.Fatalf("ss -lptn: %v", err)
+		}
+		if strings.Contains(string(out), fmt.Sprintf("[::1]:%d", port)) {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("the probe gorged's socket never showed in ss -lptn as [::1]:%d; the probe does not reproduce the reviewer's shape", port)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return cmd.Process
+}
+
+// processAlive reports whether p is still running (signal 0 delivery).
+func processAlive(p *os.Process) bool {
+	return p.Signal(syscall.Signal(0)) == nil
+}
+
+// copyFile copies src to a new file at dst.
+func copyFile(dst, src string) error {
+	s, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+	d, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o755)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(d, s); err != nil {
+		_ = d.Close()
+		return err
+	}
+	return d.Close()
+}
+
+// TestGorgedProbeHelper is not a test a human runs: it is the body of the
+// probe gorged process startGorgedProbe re-execs this binary into (from a
+// copy named gorged, so /proc/<pid>/comm matches the sweep's comm check).
+// It binds [::1]:$GORGE_PROBE_PORT, signals readiness by creating
+// $GORGE_PROBE_READY, and then blocks until killed — the parent asserts the
+// deploy's sweep left it running. In an ordinary run of the suite the env is
+// unset and this skips in milliseconds.
+func TestGorgedProbeHelper(t *testing.T) {
+	port := os.Getenv("GORGE_PROBE_PORT")
+	if port == "" {
+		t.Skip("probe helper: only run through startGorgedProbe")
+	}
+	ln, err := net.Listen("tcp6", "[::1]:"+port)
+	if err != nil {
+		t.Fatalf("probe bind [::1]:%s: %v", port, err)
+	}
+	defer ln.Close()
+	if err := os.WriteFile(os.Getenv("GORGE_PROBE_READY"), []byte("listening"), 0o644); err != nil {
+		t.Fatalf("probe ready file: %v", err)
+	}
+	<-make(chan struct{}) // block until the parent's cleanup kills us
 }
 
 func readDeployCalls(t *testing.T, path string) [][]string {
