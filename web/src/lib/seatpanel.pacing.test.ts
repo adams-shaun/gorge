@@ -148,7 +148,7 @@ describe('the wait is cancellable', () => {
     expect(p.autoLog.map((n) => n.text)).toEqual(['Auto-passed: Lightning Bolt resolving']);
   });
 
-  it('re-derives at fire: a same-stack trigger newly targeting this seat stops instead of posting (r3)', async () => {
+  it('re-derives at fire: even an in-place view mutation cannot authorize the scheduled pass (r3)', async () => {
     vi.useFakeTimers();
     const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
     const initial = view('main1', 0, 2, [{ ...stackView('Opponent trigger'), kind: 'trigger' }]);
@@ -156,14 +156,12 @@ describe('the wait is cancellable', () => {
     p.considerAuto(initial); // no target: Casual may pass this trigger
     await vi.advanceTimersByTimeAsync(200);
 
-    // Same seq and same viewStamp: only the target changed. The timer stays
-    // at its original deadline, but its scheduled verdict is not trusted.
-    const targeted = view('main1', 0, 2, [{
-      ...stackView('Opponent trigger'),
-      kind: 'trigger',
-      targets: [{ player: 0, is_player: true }],
-    }]);
-    p.considerAuto(targeted);
+    // Production projections replace the whole View and restart pacing. This
+    // deliberately mutates the same object to hold the fire-time defence too:
+    // even if a caller breaks that projection contract, the candidate verdict
+    // is not trusted when its timer reaches the original deadline.
+    initial.stack[0].targets = [{ player: 0, is_player: true }];
+    p.considerAuto(initial);
     await vi.advanceTimersByTimeAsync(200);
 
     expect(postIntentMock).not.toHaveBeenCalled();
@@ -184,7 +182,7 @@ describe('the wait is cancellable', () => {
 
     const controlledByMe = view('main1', 0, 2, [trigger]);
     controlledByMe.players = [{ seat: 0, battlefield: [{ id: 42, controller: 0 }] }] as unknown as View['players'];
-    p.considerAuto(controlledByMe); // viewStamp still does not change
+    p.considerAuto(controlledByMe); // every new view cancels before reclassification
     await vi.advanceTimersByTimeAsync(200);
 
     expect(postIntentMock).not.toHaveBeenCalled();
@@ -192,7 +190,7 @@ describe('the wait is cancellable', () => {
     expect(autoNoteText(p.note)).toContain("opponent's object is on the stack");
   });
 
-  it('an unrelated view change keeps the original deadline when the fresh verdict is still pass (r3)', async () => {
+  it('an unrelated view change cancels the old deadline and starts a full fresh wait (r3)', async () => {
     vi.useFakeTimers();
     const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
     const trigger = { ...stackView('Harmless trigger'), kind: 'trigger' };
@@ -204,13 +202,38 @@ describe('the wait is cancellable', () => {
 
     const lifeChanged = view('main1', 0, 2, [trigger]);
     lifeChanged.players = [{ seat: 1, life: 19 }] as unknown as View['players'];
-    p.considerAuto(lifeChanged); // same stamp: retain the original 400 ms beat
-    await vi.advanceTimersByTimeAsync(200);
+    p.considerAuto(lifeChanged);
+    await vi.advanceTimersByTimeAsync(200); // the OLD 400 ms deadline
+    expect(postIntentMock).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(199);
+    expect(postIntentMock).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1); // a full resolveMs after the update
     await settle(() => p.postedSeq === 1);
 
     expect(postIntentMock).toHaveBeenCalledTimes(1);
     expect(postIntentMock.mock.calls[0][2].choices).toEqual([1]);
     expect(p.autoLog.map((n) => n.text)).toEqual(['Auto-passed: Harmless trigger resolving']);
+  });
+
+  it('a steady stream of new views keeps cancelling the pass until the view settles', async () => {
+    vi.useFakeTimers();
+    const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
+    p.adoptView(quiet(1));
+    p.considerAuto(view('draw', 0, 2));
+
+    for (let life = 19; life >= 16; life--) {
+      await vi.advanceTimersByTimeAsync(150);
+      const update = view('draw', 0, 2);
+      update.players = [{ seat: 1, life }] as unknown as View['players'];
+      p.considerAuto(update);
+      expect(postIntentMock).not.toHaveBeenCalled();
+    }
+
+    await vi.advanceTimersByTimeAsync(199);
+    expect(postIntentMock).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    await settle(() => p.postedSeq === 1);
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
   });
 
   it("a settings change during the wait cancels it and the new 'always stop' trigger rule never posts (r3)", async () => {
@@ -386,7 +409,7 @@ describe('the log notes', () => {
     expect(autoPassLogText('hard-skip', view('main2', 0, 2, [stackView('Giant Growth', 1)]), seat)).toBe('Skip turn: passed main 2');
   });
 
-  it('paced wording is computed at fire time from the current view, not the scheduled view', async () => {
+  it('paced wording is computed from the fresh view after that view gets its own full wait', async () => {
     vi.useFakeTimers();
     const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
     p.adoptView(quiet(1));
@@ -395,8 +418,10 @@ describe('the log notes', () => {
 
     const named = view('end', 1, 2);
     named.players = [{ seat: 1, name: 'Ana' }] as unknown as View['players'];
-    p.considerAuto(named); // names are outside viewStamp, so the deadline is unchanged
-    await vi.advanceTimersByTimeAsync(100);
+    p.considerAuto(named);
+    await vi.advanceTimersByTimeAsync(199);
+    expect(postIntentMock).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
     await settle(() => p.postedSeq === 1);
 
     expect(p.autoLog.map((n) => n.text)).toEqual(["Auto-passed: Ana's end step"]);

@@ -2,7 +2,7 @@
   import { onMount, onDestroy, untrack } from 'svelte';
   import type { CardView, Option, SeatInfo, View } from '../protocol';
   import type { SeatCtx } from '../lib/seat';
-  import { SeatPanelState, autoNoteText, isConcede, mulliganPhase, toneOf, viewStamp } from '../lib/seatpanel.svelte';
+  import { SeatPanelState, autoNoteText, isConcede, mulliganPhase, toneOf } from '../lib/seatpanel.svelte';
   import { modalPickerOpen } from '../lib/modals';
   import CardImage from './CardImage.svelte';
   import CardTile from './CardTile.svelte';
@@ -117,13 +117,11 @@
     void logic.settings;
     void logic.oneShot;
     void logic.pending?.seq;
-    void view.step;
-    void view.turn;
-    // A cheap pacing hint: these visible stack/step changes restart the full
-    // delay. Correctness does not depend on this hand-maintained stamp —
-    // considerAuto always records the latest view and firePass re-runs the
-    // complete decision against it before posting.
-    void viewStamp(view);
+    // MatchState replaces its complete View on every server projection.
+    // Track that object directly: every new view cancels an old pacing timer,
+    // then considerAuto may start a fresh full wait. A hand-maintained field
+    // list would inevitably miss the next view field autopilot learns to read.
+    void view;
     untrack(() => {
       logic.expireRun(view);
       logic.considerAuto(view);

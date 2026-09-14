@@ -152,23 +152,6 @@ export function mulliganPhase(d: Decision | null): MulliganPhase {
 export const AUTO_PASS_CAP = 40;
 
 /**
- * viewStamp is a cheap pacing hint: a turn/step or stack-object change
- * restarts the full delay so the player gets a complete beat for the newly
- * visible state. It is deliberately NOT the pass's correctness guard.
- * decide() can read more of View than this stamp (and may read more in the
- * future), so firePass always re-runs the decision against currentView before
- * posting. An omitted field can therefore preserve a timer, never authorize
- * a stale pass.
- */
-export function viewStamp(view: View): string {
-  const top = view.stack.length > 0 ? view.stack[view.stack.length - 1] : null;
-  const topKey = top === null
-    ? '-'
-    : `${top.id}|${top.kind}|${top.name}|${top.controller}|${top.optional ? 1 : 0}`;
-  return `${view.turn}|${view.step}|${view.stack.map((o) => o.id).join('.')}|${topKey}`;
-}
-
-/**
  * AutoOffReason is why auto is no longer running, as distinct from
  * StopReason (why auto declined THIS window but stays armed). The two are
  * separate vocabularies because they need separate words on screen: one is
@@ -396,18 +379,14 @@ export class SeatPanelState {
    * decision `seq` by option `index`, classified as `kind`, and is waiting
    * settings.pacing's stepMs/resolveMs before actually posting — the visible
    * beat that makes skipped windows seen rather than felt. It is abandoned
-   * (cancelPassWait) on any decision change (adopt), Escape, a hand answer,
-   * a run cancel, the panel's destruction or the match boundary; the timer
-   * itself (firePass) re-validates the seq before posting, so a stale pass
-   * is structurally impossible. A wait of 0 ms never schedules: the pass
-   * posts immediately, which is the pre-pacing path the tests rely on.
-   *
-   * `stamp` is only the restart-the-delay hint described by viewStamp. The
-   * firing edge re-derives with currentView and current settings/run mode;
-   * neither the scheduled verdict nor any hand-maintained view identity is
-   * trusted to authorize the post.
+   * (cancelPassWait) on any new view object, decision change (adopt), Escape,
+   * a hand answer, a run cancel, the panel's destruction or the match
+   * boundary; the timer itself (firePass) also re-validates the seq and
+   * complete verdict before posting, so a stale pass is structurally
+   * impossible. A wait of 0 ms never schedules: the pass posts immediately,
+   * which is the pre-pacing path the tests rely on.
    */
-  private passWait: { seq: number; index: number; kind: AutoPassKind; stamp: string } | null = null;
+  private passWait: { seq: number; index: number; kind: AutoPassKind } | null = null;
   private passTimer: ReturnType<typeof setTimeout> | null = null;
   /** Latest view supplied to considerAuto; firePass re-derives against this exact view. */
   private currentView: View | null = null;
@@ -762,27 +741,24 @@ export class SeatPanelState {
    * run cap, then and only then decide().
    */
   considerAuto(view: View) {
-    // Update this before every early return, including the "same stamp, keep
-    // waiting" return below. A view may change a field decide() reads without
-    // changing viewStamp; firePass must still see that current value.
+    // Every server projection is a complete new View object. Abandon a paced
+    // candidate before every early return when that object changes, then let
+    // the ordinary classification below decide whether the fresh view starts
+    // a NEW full wait. Object identity is deliberately the boundary: unlike a
+    // field stamp, it cannot omit a field decide() learns to read later.
+    const viewChanged = this.currentView !== null && this.currentView !== view;
     this.currentView = view;
+    if (viewChanged) this.cancelPassWait();
     const d = this.pending;
     if (d === null || this.busy || d.seq === this.postedSeq) return;
     // A one-shot run ends the moment its turn is over, whether or not a
     // decision is pending (see expireRun).
     this.expireRun(view);
 
-    // A paced pass is already in flight for this decision: hold. While the
-    // view it was derived from is still the live one, the timer owns the
-    // pass. If the view moved — turn, step, any stack id, or the top
-    // object's identity/content at the same depth — the wait is abandoned,
-    // never posted stale, and control falls through to re-derive the pass
-    // against what the player now sees.
-    if (this.passWait !== null) {
-      const w = this.passWait;
-      if (w.stamp === viewStamp(view)) return;
-      this.cancelPassWait();
-    }
+    // A paced pass already in flight for this exact View owns the pass. A
+    // different View was cancelled above and therefore falls through to
+    // re-derive and, if still passable, starts a new full wait.
+    if (this.passWait !== null) return;
 
     const autoOn = this.auto && !this.machinePaused;
 
@@ -911,7 +887,7 @@ export class SeatPanelState {
       return;
     }
     if (this.passTimer !== null) clearTimeout(this.passTimer);
-    this.passWait = { seq: d.seq, index, kind, stamp: viewStamp(view) };
+    this.passWait = { seq: d.seq, index, kind };
     this.passTimer = setTimeout(() => this.firePass(), ms);
   }
 
