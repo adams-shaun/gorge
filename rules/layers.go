@@ -576,38 +576,26 @@ func (e *Engine) restrictionBlocksTarget(id state.ObjID, actor state.PlayerID) b
 }
 
 // restrictionApplies reports whether a registered restriction's ValidCard$/
-// ValidTarget$ spec selects the object id. The Forge filter grammar has no
-// IsRemembered predicate, so the remembered-object set the Effect captured is
-// matched directly (the dominant shape for Vines/Incinerate); any other spec
-// falls back to the ordinary spec matcher so a restriction that names a
-// quality (CantTarget with ValidCard$ Creature, say) still works.
+// ValidTarget$ spec selects the object id. A spec containing IsRemembered is
+// resolved through the ordinary object matcher with the effect's remembered
+// set bound to the SpecContext -- the general filter implements IsRemembered
+// (both bare and compound: Card.IsRemembered+Creature keeps both halves),
+// which is the dominant shape for Vines/Incinerate; any other spec falls back
+// to the same matcher so a restriction that names a quality (CantTarget with
+// ValidCard$ Creature, say) still works.
 func (e *Engine) restrictionApplies(ce ContinuousEffect, id state.ObjID) bool {
 	spec := ce.RestrictParams["ValidCard"]
 	if spec == "" {
 		spec = ce.RestrictParams["ValidTarget"]
 	}
-	if spec != "" && strings.Contains(spec, "IsRemembered") {
-		// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature, a + AND or
-		// a , OR list) cannot be resolved by the remembered-set match alone:
-		// the extra predicate would be silently dropped and the restriction
-		// would over-apply to a remembered object that fails it. No corpus
-		// restriction static carries one (measured; see AGENTS.md / report), so
-		// reject it here -- the restriction does not apply, the same
-		// "unsupported" fallback the Note path uses -- rather than mis-apply.
-		if strings.ContainsAny(spec, "+,") {
-			return false
-		}
-		for _, r := range ce.Remembered {
-			if r == id {
-				return true
-			}
-		}
-		return false
-	}
 	if spec == "" {
 		return len(ce.Remembered) > 0
 	}
-	return effects.MatchesSpecFrom(e.G, spec, id, ce.Controller, ce.Source)
+	sc := effects.SpecContext{You: ce.Controller, Source: ce.Source}
+	for _, r := range ce.Remembered {
+		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
+	}
+	return effects.MatchesSpecCtx(e.G, spec, id, sc)
 }
 
 // restrictionActorMatches scopes a CantTarget restriction by Activator$:

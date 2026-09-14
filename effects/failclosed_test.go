@@ -11,15 +11,17 @@ import (
 // this build does NOT implement still matches NOTHING and is still reported by
 // UnknownPredicates -- it never silently becomes an always-true predicate that
 // widens a filter. The families chosen are deliberately the biggest remaining
-// ones from the census that this seat left unknown (they need per-effect
-// Remembered/Imprinted tracking this build does not carry), so a future seat
-// inherits an honest, measured boundary rather than a guessed one.
+// ones from the pc1 census that this seat left unknown (they need exile
+// provenance, zone-history lookups and imprint tracking this build does not
+// carry), so a future seat inherits an honest, measured boundary rather than
+// a guessed one.
 //
-// "IsRemembered" and "ExiledWithSource" are the two largest. A card that uses
-// e.g. `Card.IsRemembered` (Return of the Wildspeaker-style "you may play this
-// card from exile" clauses, the exile-until-leaves shapes) must fail closed:
-// the predicate matches nothing, so those clauses stay inert rather than
-// firing against every card.
+// "ExiledWithSource" and "sameName" are the two largest still-unimplemented
+// families (IsRemembered was the third and is now implemented -- its real
+// semantics are asserted in bangpredicate_test.go's leaf 2b). A card that
+// uses e.g. `Card.ExiledWithSource` (the exile-until-leaves shapes) must fail
+// closed: the predicate matches nothing, so those clauses stay inert rather
+// than firing against every card.
 func TestUnimplementedPredicateFailsClosed(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	g := state.NewGame([]string{"you", "them"})
@@ -28,8 +30,8 @@ func TestUnimplementedPredicateFailsClosed(t *testing.T) {
 	// The predicates a later seat still owes, largest first. Each must match
 	// nothing -- never become an always-true predicate.
 	for _, spec := range []string{
-		"Card.IsRemembered",
 		"Card.ExiledWithSource",
+		"Creature.sameName",
 		"Creature.wasDealtDamageThisTurn",
 		"Permanent.IsImprinted",
 		"Creature.HasCounters", // negative: this one IS implemented, so it breaks the loop below
@@ -44,7 +46,7 @@ func TestUnimplementedPredicateFailsClosed(t *testing.T) {
 	}
 
 	// And UnknownPredicates keeps reporting each unimplemented one.
-	for _, want := range []string{"IsRemembered", "ExiledWithSource", "wasDealtDamageThisTurn", "IsImprinted"} {
+	for _, want := range []string{"ExiledWithSource", "sameName", "wasDealtDamageThisTurn", "IsImprinted"} {
 		found := false
 		for _, u := range UnknownPredicates("Card." + want) {
 			if u == want {

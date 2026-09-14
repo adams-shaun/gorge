@@ -79,5 +79,15 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 // the same permanent cannot inherit one another's bindings. A prospective cast
 // or an ordinary static has no entry and therefore no trigger context.
 func (e *Engine) targetSpecContext(source, stack state.ObjID, you state.PlayerID) effects.SpecContext {
-	return effects.SpecContext{You: you, Source: source, TriggerContext: e.triggerContexts[stack]}
+	sc := effects.SpecContext{You: you, Source: source, TriggerContext: e.triggerContexts[stack]}
+	// The stack object's Remembered (the trigger-captured set for a
+	// triggered ability) feeds the IsRemembered predicate at offer/placement
+	// time, exactly as the resolution's own Ctx feeds it later -- Forge's
+	// IsRemembered is a property of the host card's remembered list either
+	// way. A cast proposal (stack == the card) and an ability proposal
+	// (stack == 0) carry no remembered set, so this changes nothing for them.
+	if o := e.G.Obj(stack); o != nil {
+		sc.Remembered = append(sc.Remembered, o.Remembered...)
+	}
+	return sc
 }

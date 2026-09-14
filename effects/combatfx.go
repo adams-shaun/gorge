@@ -4,15 +4,131 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
 func init() {
 	Register("Tap", effTap)
+	Register("TapAll", effTapAll)
+	Register("UntapAll", effUntapAll)
 	Register("Pump", effPump)
 	Register("PumpAll", effPumpAll)
 	Register("Animate", effAnimate)
 	Register("Protection", effProtection)
+}
+
+// effTapAll is Forge's TapAllEffect (78 raw corpus lines, 75 files): the
+// battlefield walk is the DEFINED players' when the script names one (or
+// targets), every living seat's otherwise; ValidCards$ filters it (default
+// "Permanent"). RememberTapped$ is Forge's clear-then-add contract, exactly
+// like SacrificeAll's RememberSacrificed$: the resolution's Remembered set
+// is REPLACED by the cards this primitive tapped (Forge clears the host
+// card's list before computing the victim list, then adds one entry per
+// card in it -- tapped or not, every listed card is remembered).
+// TapperController$ hands the tap provenance to each card's own controller
+// (Forge's per-card tapper), the resolving controller otherwise.
+func effTapAll(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
+	spec := sa.Params["ValidCards"]
+	if spec == "" {
+		spec = "Permanent"
+	}
+	remember := strings.EqualFold(sa.Params["RememberTapped"], "True")
+	if remember {
+		c.Remembered = nil
+	}
+	tapper := c.Controller
+	perCardTapper := strings.TrimSpace(sa.Params["TapperController"]) != ""
+	players := g.AliveFrom(0)
+	if dv := strings.TrimSpace(sa.Params["Defined"]); dv != "" {
+		players = nil
+		for _, t := range Defined(h, c, sa) {
+			if t.IsPlayer {
+				if int(t.Player) < len(g.Players) {
+					players = append(players, t.Player)
+				}
+				continue
+			}
+			if o := g.Obj(t.Obj); o != nil {
+				players = append(players, o.Controller)
+			}
+		}
+	}
+	for _, p := range players {
+		ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, p)...)
+		for _, id := range ids {
+			if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				continue
+			}
+			if remember {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			}
+			o := g.Obj(id)
+			if o == nil || o.Zone != state.ZBattlefield || o.Tapped {
+				continue
+			}
+			tap := tapper
+			if perCardTapper {
+				tap = o.Controller
+			}
+			h.EmitTap(id, tap, false)
+		}
+	}
+}
+
+// effUntapAll is Forge's UntapAllEffect (126 raw corpus lines, 125 files):
+// the same battlefield walk as effTapAll, filtered by ValidCards$ (Forge's
+// default is no filter at all -- the whole battlefield -- so "Permanent" is
+// the equivalent default here). RememberUntapped$ remembers ONLY the cards
+// that actually untapped (Forge adds inside the untapped branch), and the
+// resolution's Remembered set is extended, not replaced (UntapAll has no
+// clear-remembered step). ControllerUntaps$ hands the per-card controller
+// the untap provenance, the resolving controller otherwise.
+func effUntapAll(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
+	spec := sa.Params["ValidCards"]
+	if spec == "" {
+		spec = "Permanent"
+	}
+	remember := strings.EqualFold(sa.Params["RememberUntapped"], "True")
+	untapper := c.Controller
+	perCardUntapper := strings.TrimSpace(sa.Params["ControllerUntaps"]) != ""
+	players := g.AliveFrom(0)
+	if dv := strings.TrimSpace(sa.Params["Defined"]); dv != "" {
+		players = nil
+		for _, t := range Defined(h, c, sa) {
+			if t.IsPlayer {
+				if int(t.Player) < len(g.Players) {
+					players = append(players, t.Player)
+				}
+				continue
+			}
+			if o := g.Obj(t.Obj); o != nil {
+				players = append(players, o.Controller)
+			}
+		}
+	}
+	for _, p := range players {
+		ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, p)...)
+		for _, id := range ids {
+			if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				continue
+			}
+			o := g.Obj(id)
+			if o == nil || o.Zone != state.ZBattlefield || !o.Tapped {
+				continue
+			}
+			untap := untapper
+			if perCardUntapper {
+				untap = o.Controller
+			}
+			h.Emit(events.Event{Kind: events.Untap, Obj: id, Player: untap})
+			if remember {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			}
+		}
+	}
 }
 
 // effTap taps each Defined$ permanent. The tapper is the resolving ability's

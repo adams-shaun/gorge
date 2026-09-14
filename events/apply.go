@@ -147,6 +147,8 @@ func Apply(g *state.Game, e Event) {
 				g.Objs[i].EnteredThisTurn = false
 				g.Objs[i].WasDealtDamageThisTurn = false
 			}
+			// The per-add entry list is per-turn state too.
+			g.Entered = nil
 		}
 
 	case Priority:
@@ -389,6 +391,8 @@ func Apply(g *state.Game, e Event) {
 				o.Chosen = rememberedFrom(e.IDs)
 			case "remembered":
 				o.Remembered = append(o.Remembered, rememberedFrom(e.IDs)...)
+			case "clear-remembered":
+				o.Remembered = nil
 			}
 		}
 
@@ -661,6 +665,17 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	// state even from a malformed caller-supplied From.
 	o.EnteredThisTurn = true
 	o.EnteredFrom = enteredFrom
+	// Record the per-add entry the Count$ThisTurnEntered_* heads and the
+	// ThisTurnEntered* filter predicates read (Forge's per-zone
+	// getCardsAddedThisTurn lists, one append per add). Every Move routes
+	// through events.Apply, so this stays inside the Apply-only mutation
+	// discipline; the TurnChange case clears the list with the rest of the
+	// per-turn state. A reversed CR 733.1 cast proposal keeps its entries:
+	// the proposal's PutOnStack entry and the reverse move's entry both
+	// land, and no corpus head reads the zones that pair touches
+	// (Hand_from_Stack does, and the double entry it sees is the honest
+	// record of the two moves).
+	g.Entered = append(g.Entered, state.ZoneEntry{Obj: id, To: to, From: enteredFrom})
 	switch to {
 	case state.ZBattlefield:
 		o.SummonSick = true

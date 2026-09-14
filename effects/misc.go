@@ -72,20 +72,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		mode, params := parseStaticLine(c.SVars, name)
 		switch mode {
 		case "CantTarget", "CantRegenerate":
-			// A compound IsRemembered spec (Card.IsRemembered+Creature) cannot
-			// be resolved by the remembered-set match alone -- the extra
-			// predicate would be silently dropped, over-applying the
-			// restriction. No corpus restriction static carries one (see the
-			// report / AGENTS.md), so treat it as unsupported here and keep
-			// the Note instead of registering something that over-applies.
-			if compoundRememberedSpec(params) {
-				if mode != "" {
-					h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-						Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
-				}
-				registered = true
-				continue
-			}
+			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
+			// faithfully through the general filter now that it implements
+			// IsRemembered (rules/layers.go restrictionApplies consults the
+			// same matcher with the registered remembered set bound), so the
+			// old "reject compounds, keep the Note" guard is gone: the
+			// restriction registers for real.
 			ce := state.ContinuousEffect{
 				Source:         c.Source,
 				Controller:     c.Controller,
@@ -220,20 +212,6 @@ func IsNextTurnDuration(dur string) bool {
 	return false
 }
 
-// compoundRememberedSpec reports whether a restriction static's valid-spec is
-// a COMPOUND expression containing IsRemembered (a + AND or a , OR list) --
-// a shape the remembered-set match cannot resolve faithfully. The corpus's
-// CantTarget/CantRegenerate statics all use a bare Card.IsRemembered, so this
-// is a defensive guard against silently over-applying a restriction whose
-// extra predicate would be dropped (see rules/layers.go restrictionApplies).
-func compoundRememberedSpec(params map[string]string) bool {
-	spec := params["ValidCard"]
-	if spec == "" {
-		spec = params["ValidTarget"]
-	}
-	return strings.Contains(spec, "IsRemembered") && strings.ContainsAny(spec, "+,")
-}
-
 // effectUntilEOT decides expiry for an Effect registration: a one-shot spell
 // (instant/sorcery) source, or an explicit this-turn Duration$, is UntilEOT
 // and is dropped at end-of-turn cleanup (rules' EndOfTurnCleanup); anything
@@ -266,6 +244,32 @@ func effectUntilEOT(h Host, source state.ObjID, dur string) bool {
 // per-resolution parameter, not stored state), so there is nothing to
 // actually clear. The Note records that the step ran.
 func effCleanup(h Host, c *Ctx, sa *cards.SA) {
+	// Forge's CleanUpEffect: ClearRemembered$ True clears the host card's
+	// remembered list (the persistent list the next resolution of this card
+	// reads -- without this an activated ability that remembers would
+	// accumulate across activations). The ctx-level list is cleared with it:
+	// every consumer downstream of this point in the chain (and the next
+	// resolution) must see an empty list, which is what Forge's host
+	// list clear produces. The clear is recorded as a real event ONLY when
+	// the source's list actually held entries -- clearing an empty list is
+	// a no-op, and emitting for it would move every chain head that carries
+	// a ClearRemembered$ cleanup for no observable change (measured: Delver
+	// of Secrets' DBCleanup in the 4/6/8-seat golden games runs its cleanup
+	// with an empty list).
+	if strings.EqualFold(sa.Params["ClearRemembered"], "True") {
+		c.Remembered = nil
+		if c.Source != 0 {
+			if o := h.Game().Obj(c.Source); o != nil && len(o.Remembered) > 0 {
+				// A real clear: the event is what a replay folds, so the next
+				// resolution of this card sees the empty list.
+				h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "clear-remembered"})
+				return
+			}
+		}
+	}
+	// The cosmetic fallback (an empty-list clear, or a Cleanup with nothing
+	// to clear): the Note main has always emitted, byte-for-byte, so golden
+	// games whose cleanups run on empty lists replay identically.
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "clears remembered/imprinted objects"})
 }
 
@@ -417,6 +421,7 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 			// so a countered ability moves there, never to the graveyard.
 			if remember {
 				c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+				eventRemember(h, c, o.ID)
 			}
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 				From: state.ZStack, To: state.ZExile, Text: "countered"})
@@ -428,6 +433,7 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if remember {
 			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+			eventRemember(h, c, o.ID)
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 			From: state.ZStack, To: to, Text: "countered"})

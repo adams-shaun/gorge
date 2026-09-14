@@ -105,7 +105,6 @@ var knownUnsupported = map[string][]string{
 	"Necropotence":                 {"repl:BeginPhase"},
 	"Ob Nixilis, Captive Kingpin":  {"trig:LifeLostAll"},
 	"Ojer Axonil, Deepest Might":   {"api:ReplaceEffect", "repl:DamageDone"},
-	"Planetary Annihilation":       {"api:SacrificeAll"},
 	"Profane Tutor":                {"kw:Suspend"},
 	"Ragavan, Nimble Pilferer":     {"kw:Dash"},
 	"Razorkin Needlehead":          {"trig:Drawn"},

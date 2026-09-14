@@ -56,19 +56,59 @@ func TestBangPredicateNegation(t *testing.T) {
 		t.Errorf("Creature.!IsCommander must not match a commander")
 	}
 
-	// Leaf 2: !<X> on an UNRECOGNISED <X> matches nothing and is still
-	// reported by UnknownPredicates. IsRemembered is a family pc2 deliberately
-	// left unknown; its negation must fail closed too -- "not known" is not
-	// "yes".
-	if MatchesObjectCtx(g, "Creature.!IsRemembered", plain, SpecContext{You: 0}) {
-		t.Errorf("Creature.!IsRemembered must match nothing (IsRemembered is unrecognised)")
+	// Leaf 2: !<X> on an UNRECOGNISED <X> still matches nothing and is still
+	// reported by UnknownPredicates -- "not known" is not "yes".
+	// ExiledWithSource is the largest family the pc1 census still leaves
+	// unknown (it needs exile provenance this build does not track); its
+	// negation must fail closed too.
+	if MatchesObjectCtx(g, "Creature.!ExiledWithSource", plain, SpecContext{You: 0}) {
+		t.Errorf("Creature.!ExiledWithSource must match nothing (ExiledWithSource is unrecognised)")
 	}
-	if un := UnknownPredicates("Creature.!IsRemembered"); len(un) != 1 || un[0] != "!IsRemembered" {
-		t.Errorf("UnknownPredicates(Creature.!IsRemembered) = %v, want [!IsRemembered]", un)
+	if un := UnknownPredicates("Creature.!ExiledWithSource"); len(un) != 1 || un[0] != "!ExiledWithSource" {
+		t.Errorf("UnknownPredicates(Creature.!ExiledWithSource) = %v, want [!ExiledWithSource]", un)
 	}
 	// The bare unknown form is still reported exactly the same way.
-	if un := UnknownPredicates("Creature.IsRemembered"); len(un) != 1 || un[0] != "IsRemembered" {
-		t.Errorf("UnknownPredicates(Creature.IsRemembered) = %v, want [IsRemembered]", un)
+	if un := UnknownPredicates("Creature.ExiledWithSource"); len(un) != 1 || un[0] != "ExiledWithSource" {
+		t.Errorf("UnknownPredicates(Creature.ExiledWithSource) = %v, want [ExiledWithSource]", un)
+	}
+
+	// Leaf 2b (pc2): IsRemembered is now IMPLEMENTED, so its negation is a
+	// real negation -- the remembered creature is excluded and the
+	// un-remembered one admitted, and the census reports neither form. The
+	// remembered set rides the SpecContext (the resolution's Remembered list,
+	// what RememberChanged$/RememberChosen$ added this walk).
+	remembered := g.Obj(corpusObject(t, reg, g, "Grizzly Bears").ID)
+	sc := SpecContext{You: 0, Remembered: []state.Target{{Obj: remembered.ID}}, Resolving: true}
+	if !MatchesObjectCtx(g, "Creature.!IsRemembered", plain, sc) {
+		t.Errorf("Creature.!IsRemembered must match a creature the resolution did not remember")
+	}
+	if MatchesObjectCtx(g, "Creature.!IsRemembered", remembered, sc) {
+		t.Errorf("Creature.!IsRemembered must not match a remembered creature")
+	}
+	if !MatchesObjectCtx(g, "Creature.IsRemembered", remembered, sc) {
+		t.Errorf("Creature.IsRemembered must match a remembered creature")
+	}
+	// An EMPTY remembered set fails closed to no-match (never always-true).
+	if MatchesObjectCtx(g, "Creature.IsRemembered", plain, SpecContext{You: 0}) {
+		t.Errorf("Creature.IsRemembered with no remembered set must match nothing")
+	}
+	// The compound keeps both halves: the remembered creature that also
+	// carries the rest of the conjunction matches, an un-remembered one does
+	// not, and a remembered non-creature base never reaches the predicate.
+	if MatchesObjectCtx(g, "Creature.IsRemembered+HasCounters", remembered, sc) {
+		t.Errorf("the compound must not match a remembered creature with no counters")
+	}
+	countedRemembered := g.Obj(corpusObject(t, reg, g, "Grizzly Bears").ID)
+	countedRemembered.AddCounter("P1P1", 1)
+	sc2 := SpecContext{You: 0, Remembered: []state.Target{{Obj: countedRemembered.ID}}, Resolving: true}
+	if !MatchesObjectCtx(g, "Creature.IsRemembered+HasCounters", countedRemembered, sc2) {
+		t.Errorf("the compound must match a remembered creature with a counter (both halves)")
+	}
+	// And the census agrees the forms are recognised.
+	for _, spec := range []string{"Creature.IsRemembered", "Creature.!IsRemembered", "Creature.IsRemembered+HasCounters"} {
+		if un := UnknownPredicates(spec); len(un) != 0 {
+			t.Errorf("UnknownPredicates(%q) = %v, want empty (recognised)", spec, un)
+		}
 	}
 
 	// Leaf 4: ! and non<X> compose without one path shadowing the other.

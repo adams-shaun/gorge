@@ -82,6 +82,28 @@ type Game struct {
 
 	// zones is indexed by zoneIndex(z, p); the stack lives in Stack instead.
 	zones [][]ObjID
+
+	// Entered holds, in move order, every zone entry made this turn -- the
+	// per-add list Forge keeps per zone (CardUtil.getThisTurnEntered reads
+	// it). It is derived exclusively inside events.Apply (each Move appends
+	// one entry; the TurnChange reset clears it) so a replay folds the
+	// identical list. Objects that ceased (ZCeased) stay listed: Forge's
+	// list keeps the card too, and validity is evaluated against the object
+	// wherever it now lives.
+	Entered []ZoneEntry
+}
+
+// ZoneEntry is one zone entry made this turn: the object that moved, the
+// zone it entered (To) and the zone it actually came from (From -- the real
+// pre-move zone, the same value events.Move recorded on the object's
+// EnteredFrom). A card that entered a zone twice (bounced and replayed) is
+// listed once per entry, exactly like Forge's per-zone
+// getCardsAddedThisTurn lists, which the Count$ThisTurnEntered_* heads and
+// the ThisTurnEntered* filter predicates read.
+type ZoneEntry struct {
+	Obj  ObjID
+	To   Zone
+	From Zone
 }
 
 // DelayedTrigger is one registered delayed triggered ability awaiting its
@@ -180,6 +202,11 @@ func (g *Game) Clone() *Game {
 		c.Objs[i] = g.Objs[i].CloneDeep()
 	}
 	c.Stack = append([]ObjID(nil), g.Stack...)
+	// Entered is appended to in place by every Move (one entry per zone
+	// entry this turn), so a clone must own its own copy -- sharing the
+	// backing array would let either evolve and corrupt the other (the same
+	// rule as Delayed below and Stack above).
+	c.Entered = append([]ZoneEntry(nil), g.Entered...)
 	// Delayed is written in place (append on registration, remove on firing),
 	// so a clone must own its own registrations -- sharing the live one's
 	// backing array would let either evolve and corrupt the other (the same

@@ -14,28 +14,24 @@ import (
 // SVar:X:Count$Compare Y GE2.3.2) and the Will-of-the-X commander cycle's
 // inline CharmNum$ Count$Compare Y GE1.2.1.
 //
-// Scope note: this task's fix is the Compare head in effects/count.go alone.
-// The card-text MOVEMENT contract ("one Forest onto the battlefield tapped,
-// the rest into hand") rides on three downstream mechanisms outside this
-// task's authorized scope, each measured and filed separately: the
-// `Card.IsRemembered` filter predicate (unknown, fails closed -- the largest
-// unknown-predicate family, 266 cards / 365 uses), the mid-resolution
-// Remembered set surviving a suspension (a cast spell's Remembered lives only
-// in the resolving Ctx frame, lost when DBBattlefield's own ask suspends the
-// walk), and object-target dispatch for an exactly-`Origin$ Library`
-// ChangeZone carrying `Defined$` (effSearchLibrary reads a Defined$ as the
-// library-OWNER selector). Measured with them absent: after the main search
-// is answered, DBBattlefield poses a zero-option 0..0 "choose 0 card(s)"
-// search ask, the empty answer is its only legal one, and the chain completes
-// without moving anything -- so the tests below pin the decision bounds (the
-// user-reported defect) and the chain completing without wedging, and the
-// movement contract is NOT pinned here.
+// Scope note: this task's fix is the Compare head in effects/count.go plus
+// the remembered-filter plumbing. The card-text MOVEMENT contract ("one
+// Forest onto the battlefield tapped, the rest into hand") is now pinned in
+// full: the `Card.IsRemembered` filter predicate (effects/filter.go) makes
+// DBBattlefield's sub-search offer the remembered Forests and the answer
+// moves one to the battlefield tapped, and the mid-resolution Remembered set
+// survives the sub-search's suspension -- the hidden-library search ask rides
+// the walk's Remembered (effects/zone.go ResumeRemembered, restored by
+// rules/resolution.go's resume), so DBHand's Defined$ Remembered resolves to
+// the captured set and the un-chosen Forests reach the hand. Both legs are
+// asserted below.
 
 // drainSearchChain answers every follow-on hidden-search choose the
 // resolution chain poses, passing priority when nothing else is pending, and
 // returns once the game is back at a priority decision or over. A zero-option
-// 0..0 ask takes the empty answer (its only legal one); a one-option ask
-// takes that option.
+// 0..0 ask takes the empty answer (its only legal one); a multi-option ask
+// takes the first option (DBBattlefield's remembered-Forest sub-search, a
+// 0..1 ask since the IsRemembered filter went live).
 func drainSearchChain(t *testing.T, e *Engine, limit int) {
 	t.Helper()
 	for i := 0; i < limit && !e.G.Over; i++ {
@@ -65,6 +61,25 @@ func drainSearchChain(t *testing.T, e *Engine, limit int) {
 			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: nil}); err != nil {
 				t.Fatalf("submit empty answer: %v", err)
 			}
+			continue
+		}
+		if d.Kind == decision.KChoose && d.ResumeKind == "search" {
+			// DBBattlefield's sub-search: choose the first offered card (Min 0
+			// keeps the fail-to-find allowance; the pinned behaviour is that a
+			// chosen Forest enters the battlefield tapped).
+			submitChoices(t, e, d.Options[0].Index)
+			continue
+		}
+		if d.Kind == decision.KChoose && d.ResumeKind == "" && d.Min == d.Max && len(d.Options) >= d.Min && d.Min > 0 {
+			// The CR 514.1 cleanup-step discard ("down to the hand-size
+			// limit") the drain now reaches when the turn ends: its options
+			// are Kind "discard" and it is a KChoose, not a mid-resolution
+			// resume. Submit the first Min options deterministically.
+			chs := make([]int, d.Min)
+			for i := range chs {
+				chs[i] = d.Options[i].Index
+			}
+			submitChoices(t, e, chs...)
 			continue
 		}
 		if len(d.Options) == 1 {
@@ -101,12 +116,38 @@ func TestNissasPilgrimageSearchMaxFollowsSpellMastery(t *testing.T) {
 		}
 	}
 	// The search is answerable with two Forests now, and the resolution
-	// chain completes: DBBattlefield's remembered-filter sub-search poses
-	// its zero-option 0..0 ask (see the scope note above), the empty answer
-	// closes it, and no sub-ability wedges the game. The whole game still
+	// chain completes: DBBattlefield's remembered-filter sub-search is a
+	// REAL ask now (the IsRemembered filter is live -- see the scope note
+	// above), the answer moves one remembered Forest onto the battlefield
+	// tapped, and no sub-ability wedges the game. The whole game still
 	// replays byte-for-byte from the log.
 	submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
 	drainSearchChain(t, e, 20)
+	battlefieldForests := 0
+	for _, fid := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(fid); o != nil && o.Face() != nil && o.Face().Name == "Forest" {
+			battlefieldForests++
+			if !o.Tapped {
+				t.Fatalf("the chosen Forest entered untapped")
+			}
+		}
+	}
+	if battlefieldForests != 1 {
+		t.Fatalf("battlefield Forests after the chain = %d, want exactly 1 (the sub-search's answer)", battlefieldForests)
+	}
+	// The rest-into-hand leg: the un-chosen Forests ride the mid-resolution
+	// Remembered set through the sub-search's suspension (ResumeRemembered)
+	// and DBHand's Defined$ Remembered moves them -- the third mechanism the
+	// scope note above used to call still-open.
+	handForests := 0
+	for _, hid := range e.G.Zone(state.ZHand, 0) {
+		if o := e.G.Obj(hid); o != nil && o.Face() != nil && o.Face().Name == "Forest" {
+			handForests++
+		}
+	}
+	if handForests != 1 {
+		t.Fatalf("hand Forests after the chain = %d, want exactly 1 (the un-chosen one)", handForests)
+	}
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KPriority {
 		t.Fatalf("after the search chain the game must be back at priority, got %+v", d)

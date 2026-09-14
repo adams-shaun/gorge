@@ -16,6 +16,7 @@ func init() {
 	Register("Destroy", effDestroy)
 	Register("DestroyAll", effDestroyAll)
 	Register("Sacrifice", effSacrifice)
+	Register("SacrificeAll", effSacrificeAll)
 }
 
 // ParseZone maps a Forge zone name to a state.Zone. Unknown names resolve to
@@ -235,7 +236,15 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
 		Min: int(min), Max: int(max), Source: c.Source,
 		ResumeKind: "search", ResumeSA: sa,
-		Prompt: prompt}
+		// The walk's Remembered rides the ask (rules restores it on the
+		// resume) so the re-entered eligibility recheck and the SubAbility$
+		// after this one still see the cards RememberChanged$ captured -- a
+		// cast spell's mid-resolution Remembered lives only in the resolving
+		// Ctx frame, and without the ride the answer's recheck (and Nissa's
+		// Pilgrimage's "one onto the battlefield" leg) would re-resolve
+		// IsRemembered against an empty set and move nothing.
+		ResumeRemembered: copyTargets(c.Remembered),
+		Prompt:           prompt}
 	for _, id := range eligible {
 		name := "a card"
 		if o := g.Obj(id); o != nil && o.Face() != nil {
@@ -505,6 +514,55 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 					From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 			}
 		}
+	}
+}
+
+// effSacrificeAll is Forge's SacrificeAllEffect (146 raw corpus lines, 130
+// files): with a Defined$ the named objects are sacrificed as-is; without
+// one every battlefield permanent matching ValidCards$ is (Forge's default
+// list is the whole battlefield, so the empty-spec default here is the
+// equivalent "Permanent"). RememberSacrificed$ is Forge's clear-then-add
+// contract: the resolution's Remembered set is REPLACED by exactly the
+// cards this primitive sacrificed (Forge clears the host card's remembered
+// list after the victim list was computed from it, then adds one entry per
+// sacrificed card) -- "the cards sacrificed this way". Sacrifice ignores
+// Indestructible and never consults regeneration (CR 701.16), exactly like
+// effSacrifice.
+func effSacrificeAll(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
+	var victims []state.ObjID
+	if dv := strings.TrimSpace(sa.Params["Defined"]); dv != "" {
+		for _, t := range Defined(h, c, sa) {
+			if t.IsPlayer {
+				continue
+			}
+			if o := g.Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+				victims = append(victims, o.ID)
+			}
+		}
+	} else {
+		spec := sa.Params["ValidCards"]
+		if spec == "" {
+			spec = "Permanent"
+		}
+		for _, p := range g.AliveFrom(0) {
+			ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, p)...)
+			for _, id := range ids {
+				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+					victims = append(victims, id)
+				}
+			}
+		}
+	}
+	remember := sa.Params["RememberSacrificed"] != ""
+	if remember {
+		c.Remembered = nil
+	}
+	for _, id := range victims {
+		if remember {
+			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+		}
+		h.Emit(events.Sacrifice(id))
 	}
 }
 

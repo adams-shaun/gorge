@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -68,6 +69,36 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		return controllersOf(g, c.Chosen)
 	case "Targeted", "ParentTarget":
 		return copyTargets(c.Targets)
+	case "TriggeredTarget", "TriggeredTargetLKICopy":
+		// The triggering event's target -- the card a ChangesZone trigger
+		// moved, the creature a DamageDone trigger wounded, the player an
+		// attack declared against (rules/trigger_referents.go captures it as
+		// TriggerContext.TriggerTarget, per stack instance). LKI spelling is
+		// the same set, exactly like the TriggeredCard family above. A target
+		// that named an object since ceased or a player seat that is gone is
+		// unbound rather than falling back to the resolution's targets --
+		// that fallback is for forms this build does not MODEL, not for a
+		// known form whose binding is absent (Forge's getDefined* yields an
+		// empty list when the triggering object is missing).
+		if t := c.TriggerTarget; t.IsPlayer {
+			if int(t.Player) < len(g.Players) {
+				return []state.Target{t}
+			}
+			return nil
+		} else if t.Obj != 0 && g.Obj(t.Obj) != nil {
+			return []state.Target{t}
+		}
+		return nil
+	case "TriggeredTargetController":
+		if t := c.TriggerTarget; t.IsPlayer {
+			if int(t.Player) < len(g.Players) {
+				return []state.Target{{Player: t.Player, IsPlayer: true}}
+			}
+			return nil
+		} else if o := g.Obj(t.Obj); o != nil {
+			return []state.Target{{Player: o.Controller, IsPlayer: true}}
+		}
+		return nil
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
 		"TriggeredSpellAbility", "TriggeredAttacker", "TriggeredSource":
 		// M1 does not model LKI copies, new-object identity or the
@@ -225,6 +256,20 @@ func relatedPlayers(g *state.Game, ts []state.Target, owner bool) []state.Target
 // backing array. A nil s yields nil, not an empty-but-non-nil slice, so
 // Defined's observable results are unchanged for every input — only the
 // aliasing is fixed.
+// eventRemember records one remembered card on the resolution's source with
+// the event-backed Choose entry Forge's host.addRemembered writes. The
+// ctx-level list a chained SubAbility reads is the caller's job; this is the
+// persistent half -- the source object's event-backed Remembered list, which
+// survives the resolution and is what Card.IsRemembered and
+// Count$RememberedSize read later (Forge's host card remembered list).
+func eventRemember(h Host, c *Ctx, id state.ObjID) {
+	if c.Source == 0 {
+		return
+	}
+	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "remembered",
+		IDs: []state.ObjID{id}})
+}
+
 func copyTargets(s []state.Target) []state.Target {
 	return append([]state.Target(nil), s...)
 }

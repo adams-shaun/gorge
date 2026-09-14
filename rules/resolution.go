@@ -417,6 +417,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	if rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.loopRemembered...)
 	}
+	// A mid-resolution ask that rode the walk's Remembered (the hidden-library
+	// search sets ResumeRemembered -- a cast spell's Remembered lives only in
+	// the resolving Ctx frame, so without the ride the resume rebuilds an
+	// empty set and the re-entered primitive's eligibility recheck and the
+	// chain's later sub-abilities see nothing). The loop and replacement
+	// branches above are authoritative when they fire; this applies only to
+	// the ordinary frames, which never carry rp.remembered otherwise.
+	if rp.remembered != nil && !rp.replacement && !rp.loopBound {
+		ctx.Remembered = append([]state.Target(nil), rp.remembered...)
+	}
 	effects.SetSVars(ctx, svars)
 	if rp.sa != nil {
 		switch rp.kind {

@@ -203,47 +203,15 @@ func randomChoices(h Host, choices []state.Target, n int) []state.Target {
 	return picked
 }
 
-// choiceMatches adds the resolution-local remembered predicate to the normal
-// object matcher. IsRemembered is deliberately here rather than global filter
-// state: a choice must see the objects this resolution remembered, never a
-// similarly named object elsewhere in the game. Each alternative's
-// IsRemembered / !IsRemembered conjunct is decided against Ctx.Remembered and
-// the rest of that alternative goes to the ordinary matcher, so a compound
-// such as Chaos Defiler's Card.IsRemembered+withoutIndestructible keeps both
-// halves.
+// choiceMatches is the ordinary object matcher evaluated from the chooser's
+// perspective: the caller overrides Ctx.Controller to the chooser, so
+// Choices$ Card.YouOwn means the chooser's card, not the spell's controller's.
+// IsRemembered needs no resolution-local special case any more -- the general
+// filter implements it against the resolution's Remembered set (plus the
+// source's event-backed list), which is exactly the binding a choice's
+// "a card you remembered earlier" filter wants.
 func choiceMatches(g *state.Game, c *Ctx, spec string, o *state.Object) bool {
-	sc := c.SpecContext(c.Controller)
-	if !strings.Contains(spec, "IsRemembered") {
-		return MatchesObjectCtx(g, spec, o, sc)
-	}
-	remembered := targetIn(c.Remembered, state.Target{Obj: o.ID})
-	for _, alt := range strings.Split(spec, ",") {
-		base, preds, qualified := strings.Cut(strings.TrimSpace(alt), ".")
-		ok := true
-		var rest []string
-		if qualified {
-			for _, p := range strings.Split(preds, "+") {
-				switch strings.TrimSpace(p) {
-				case "IsRemembered":
-					ok = ok && remembered
-				case "!IsRemembered":
-					ok = ok && !remembered
-				default:
-					rest = append(rest, p)
-				}
-			}
-		}
-		if !ok {
-			continue
-		}
-		if len(rest) > 0 {
-			base += "." + strings.Join(rest, "+")
-		}
-		if MatchesObjectCtx(g, base, o, sc) {
-			return true
-		}
-	}
-	return false
+	return MatchesObjectCtx(g, spec, o, c.SpecContext(c.Controller))
 }
 
 func choiceChoosers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
@@ -262,9 +230,17 @@ func choiceChoosers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	return out
 }
 
-func choiceRecord(h Host, c *Ctx, sa *cards.SA, picked []state.Target) {
+func choiceRecord(h Host, c *Ctx, sa *cards.SA, picked []state.Target, playerChoice bool) {
 	c.Choice = append([]state.Target(nil), picked...)
-	c.Chosen = append(c.Chosen, picked...)
+	if playerChoice {
+		// Forge's ChoosePlayerEffect calls host.setChosenPlayer(chosen) once
+		// per chooser: a single player field, last chooser wins, and the card
+		// entries an earlier ChooseCard chose are untouched (its separate
+		// field). Drop the old player entries, keep the card entries.
+		c.Chosen = append(keepChosenPlayers(c.Chosen), picked...)
+	} else {
+		c.Chosen = append(c.Chosen, picked...)
+	}
 	c.ChosenValid = true
 	if strings.EqualFold(sa.Params["RememberChosen"], "True") {
 		c.Remembered = append(c.Remembered, picked...)
@@ -286,13 +262,37 @@ func choiceRecord(h Host, c *Ctx, sa *cards.SA, picked []state.Target) {
 	}
 }
 
+// keepChosenPlayers returns only the player entries of a chosen list -- the
+// half of Forge's chosen state that a ChooseCard's setChosenCards leaves
+// alone.
+func keepChosenPlayers(ts []state.Target) []state.Target {
+	var out []state.Target
+	for _, t := range ts {
+		if t.IsPlayer {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
 func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 	choosers := choiceChoosers(h, c, sa)
 	i := c.ChoiceTarget
 	if c.ChoiceDone {
-		choiceRecord(h, c, sa, c.Choice)
+		choiceRecord(h, c, sa, c.Choice, false)
 		c.ChoiceDone, c.Choice = false, nil
 		i++
+	} else if i == 0 && c.Choice == nil {
+		// Fresh entry: Forge's ChooseCardEffect ends in host.setChosenCards(allChosen)
+		// -- the union across THIS SA's choosers REPLACING the cards a previous
+		// choice SA left. Forge's chosen player is a separate field that
+		// setChosenCards does not touch, so only the object entries are reset
+		// here -- the bug this closes is the same KIND accumulating across SAs
+		// (a second ChooseCard's Defined$ ChosenCard follow-up saw the first
+		// SA's cards too). The union across this SA's choosers is
+		// choiceRecord's append (Forge accumulates allChosen the same way
+		// inside one SA).
+		c.Chosen = keepChosenPlayers(c.Chosen)
 	}
 	minBase, maxBase := choiceBounds(h, c, sa, true)
 	for ; i < len(choosers); i++ {
@@ -305,7 +305,7 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 			min = max
 		}
 		if strings.EqualFold(sa.Params["AtRandom"], "True") {
-			choiceRecord(h, c, sa, randomChoices(h, choices, max))
+			choiceRecord(h, c, sa, randomChoices(h, choices, max), false)
 			continue
 		}
 		d := &decision.Decision{Player: choosers[i], Kind: decision.KChoose, Source: c.Source, Min: min, Max: max, ResumeKind: "choice", ResumeSA: sa, ResumeTarget: i, ResumeChoices: append([]state.Target(nil), c.Chosen...), ResumeChosenValid: c.ChosenValid, ResumeRemembered: append([]state.Target(nil), c.Remembered...), Prompt: sa.Params["ChoiceTitle"]}
@@ -318,7 +318,7 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 		if Ask(h, d) {
 			return
 		}
-		choiceRecord(h, c, sa, choices[:min])
+		choiceRecord(h, c, sa, choices[:min], false)
 	}
 }
 
@@ -337,7 +337,7 @@ func effChoosePlayer(h Host, c *Ctx, sa *cards.SA) {
 	choosers := choiceChoosers(h, c, sa)
 	i := c.ChoiceTarget
 	if c.ChoiceDone {
-		choiceRecord(h, c, sa, c.Choice)
+		choiceRecord(h, c, sa, c.Choice, true)
 		c.ChoiceDone, c.Choice = false, nil
 		i++
 	}
@@ -390,7 +390,7 @@ func effChoosePlayer(h Host, c *Ctx, sa *cards.SA) {
 			min = max
 		}
 		if strings.EqualFold(sa.Params["Random"], "True") {
-			choiceRecord(h, c, sa, randomChoices(h, choices, max))
+			choiceRecord(h, c, sa, randomChoices(h, choices, max), true)
 			continue
 		}
 		d := &decision.Decision{Player: choosers[i], Kind: decision.KChoose, Source: c.Source, Min: min, Max: max, ResumeKind: "choice", ResumeSA: sa, ResumeTarget: i, ResumeChoices: append([]state.Target(nil), c.Chosen...), ResumeChosenValid: c.ChosenValid, ResumeRemembered: append([]state.Target(nil), c.Remembered...), Prompt: sa.Params["ChoiceTitle"]}
@@ -403,7 +403,7 @@ func effChoosePlayer(h Host, c *Ctx, sa *cards.SA) {
 		if Ask(h, d) {
 			return
 		}
-		choiceRecord(h, c, sa, choices[:min])
+		choiceRecord(h, c, sa, choices[:min], true)
 	}
 }
 
@@ -453,6 +453,34 @@ func controlPlayer(h Host, c *Ctx, sa *cards.SA) (state.PlayerID, bool) {
 			return t.Player, true
 		} else if o := g.Obj(t.Obj); o != nil {
 			return o.Controller, true
+		}
+		return 0, false
+	}
+	// The next seat in turn order (Forge's getNextPlayerAfter -- "the player
+	// to your right" is the seat that plays BEFORE you, the last of the
+	// alive seats reachable from the controller; "left" is the next one).
+	// An unbound form (no other living seat) names nobody. Checked BEFORE the
+	// whitelist switch below, whose default would otherwise decline these.
+	if v == "NextPlayerToYourRight" || v == "NextPlayerToYourLeft" {
+		alive := g.AliveFrom(c.Controller)
+		if len(alive) < 2 {
+			return 0, false
+		}
+		if v == "NextPlayerToYourRight" {
+			return alive[len(alive)-1], true
+		}
+		return alive[1], true
+	}
+	if strings.HasPrefix(v, "Player.withMost") {
+		// Forge resolves a Player.<property> defined player by matching the
+		// property against every seat and taking the first match in seat
+		// order; the withMost* family is implemented in the shared player
+		// filter (MatchesPlayerSpecFrom), so this walk cannot disagree with
+		// a trigger restriction or attack declaration using the same spec.
+		for _, p := range g.AliveFrom(0) {
+			if MatchesPlayerSpecFrom(g, v, p, c.Controller, c.Source) {
+				return p, true
+			}
 		}
 		return 0, false
 	}
@@ -548,6 +576,16 @@ func effGainControl(h Host, c *Ctx, sa *cards.SA) {
 		h.RegisterControl(gr)
 		if strings.EqualFold(sa.Params["Untap"], "True") {
 			h.Emit(events.Event{Kind: events.Untap, Obj: o.ID})
+		}
+		if strings.EqualFold(sa.Params["RememberControlled"], "True") && !targetIn(c.Remembered, state.Target{Obj: o.ID}) {
+			// Forge (ControlGainEffect): source.addRemembered(tgtC) once per
+			// gained permanent -- the persistent host-card list a later
+			// Card.IsRemembered spec ("the permanents you gained control of
+			// this way", e.g. Ambition's Cost's follow-up or a broker deck's
+			// next trigger) matches. Recorded at ctx level for the same walk's
+			// SubAbility$ and event-backed on the source for later reads.
+			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+			eventRemember(h, c, o.ID)
 		}
 	}
 }

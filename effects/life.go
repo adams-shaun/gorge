@@ -20,7 +20,7 @@ func effGainLife(h Host, c *Ctx, sa *cards.SA) {
 	if n < 0 {
 		n = 0
 	}
-	for _, t := range Defined(h, c, sa) {
+	for _, t := range actingPlayers(h, c, sa) {
 		h.Emit(events.Event{Kind: events.LifeChange, Player: PlayerOf(h, c, t), Amount: n})
 	}
 }
@@ -30,7 +30,7 @@ func effLoseLife(h Host, c *Ctx, sa *cards.SA) {
 	if n < 0 {
 		n = 0
 	}
-	for _, t := range Defined(h, c, sa) {
+	for _, t := range actingPlayers(h, c, sa) {
 		h.Emit(events.Event{Kind: events.LifeChange, Player: PlayerOf(h, c, t), Amount: -n})
 	}
 }
