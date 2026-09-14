@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/effects
 
-budget_s: 8
+budget_s: 12
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|

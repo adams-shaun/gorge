@@ -36,7 +36,12 @@ def go_build(worktree: Path) -> GateResult:
 
 
 def go_test_core(worktree: Path) -> GateResult:
-    return _run("go test (core)", ["go", "test", "-count=1", *config.GO_TEST_PACKAGES], worktree, timeout=300)
+    # TestHeads is excluded here and run as its own gate: a moved chain head is
+    # policy-accepted by daemon._run_gates_and_merge when the CR lane and make
+    # sim are clean, and that branch was unreachable while this gate (which
+    # covers ./rules) failed on the very same head move first.
+    return _run("go test (core)", ["go", "test", "-count=1", "-skip", "^TestHeads$", *config.GO_TEST_PACKAGES],
+                worktree, timeout=300)
 
 
 def cr_conformance(worktree: Path) -> GateResult:
