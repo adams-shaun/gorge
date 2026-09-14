@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, untrack } from 'svelte';
+  import { onMount, onDestroy, untrack } from 'svelte';
   import type { CardView, Option, SeatInfo, View } from '../protocol';
   import type { SeatCtx } from '../lib/seat';
   import { SeatPanelState, autoNoteText, isConcede, mulliganPhase, toneOf } from '../lib/seatpanel.svelte';
@@ -117,13 +117,20 @@
     void logic.settings;
     void logic.oneShot;
     void logic.pending?.seq;
-    void view.step;
-    void view.turn;
+    // MatchState replaces its complete View on every server projection.
+    // Track that object directly: every new view cancels an old pacing timer,
+    // then considerAuto may start a fresh full wait. A hand-maintained field
+    // list would inevitably miss the next view field autopilot learns to read.
+    void view;
     untrack(() => {
       logic.expireRun(view);
       logic.considerAuto(view);
     });
   });
+  // The paced pass is abandoned when the panel goes away: a timer owned by a
+  // destroyed surface must not post (prio5). The state object itself is
+  // per-match and survives, so this is the timer's cancellation edge only.
+  onDestroy(() => logic.cancelPass());
 
   const decision = $derived(logic.pending && logic.pending.seq !== logic.postedSeq ? logic.pending : null);
   const primary = $derived(logic.primary());

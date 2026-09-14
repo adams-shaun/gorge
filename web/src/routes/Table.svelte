@@ -307,7 +307,7 @@
         {#if !seated}
           <DvrBar dvr={m.dvr} onAction={(a) => m.dispatch(a)} {finished} />
         {/if}
-        <div class="log"><Transcript dvr={m.dvr} identities={logIdentities} cardColour={logCardColour} onSeek={seated ? () => {} : (seq) => m.dispatch({ type: 'scrub', seq })} /></div>
+        <div class="log"><Transcript dvr={m.dvr} identities={logIdentities} cardColour={logCardColour} notes={panel?.autoLog ?? []} onSeek={seated ? () => {} : (seq) => m.dispatch({ type: 'scrub', seq })} /></div>
       </footer>
     {:else if finished && m.loadError}
       <div class="load-error">
