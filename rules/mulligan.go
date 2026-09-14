@@ -13,9 +13,11 @@ import (
 // by stepPregame (rules/turn.go's step dispatches here while e.pregame). It
 // is plain data, never a closure, so a clone copies it like cast/choosing.
 //
-// seats is the round order -- AliveFrom(0), a slice, deterministic, the same
-// APNAP shape the engine uses everywhere. kept[i], taken[i] and seats[i]
-// correspond by position. limit is Config.Mulligans, which is the PERMITTED
+// seats is the round order -- e.G.AliveFrom(startingPlayer) at New time, a
+// slice, deterministic: CR 103.5 has the STARTING PLAYER declare first and
+// each other player follow in turn order, so the round starts at the toss
+// winner, not at seat 0 (kept[i], taken[i] and seats[i] correspond by
+// position). limit is Config.Mulligans, which is the PERMITTED
 // COUNT -- the most mulligans one seat may take (Ruling FL-113, rule R-8.4).
 // It is NOT the CR 103.5b multiplayer free mulligan, which is derived from the
 // seat count and exempts a seat from the bottoming PENALTY, never from the

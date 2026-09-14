@@ -29,7 +29,7 @@ func onBoard(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID 
 
 func layerEngine(t *testing.T) *Engine {
 	t.Helper()
-	return New(Config{Seed: 1, Names: []string{"a", "b"},
+	return New(Config{Seed: 1, Names: []string{"a", "b"}, PinnedStart: true,
 		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}})
 }
 

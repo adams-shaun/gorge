@@ -53,7 +53,7 @@ func TestCR601NoMandatoryCounterCastOnEmptyStack(t *testing.T) {
 			if seats == 2 {
 				seed = 0
 			}
-			e := New(Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens, Mulligans: 1})
+			e := New(Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens, Mulligans: 1, PinnedStart: true})
 			b := newTestBot(7)
 			e.Advance()
 			checked := 0

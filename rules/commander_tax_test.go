@@ -352,7 +352,7 @@ func TestCommanderNoOfferWithoutPayableTax(t *testing.T) {
 func TestCommanderCastCountReplaysExactlyFromTheEventStream(t *testing.T) {
 	deck0 := twoCommanderDeck(t, commanderBeatstickSrc, commanderBattleGolemSrc)
 	deck1 := twoCommanderDeck(t, commanderBeatstickSrc, commanderBattleGolemSrc)
-	cfg := Config{Seed: 36, Names: []string{"a", "b"},
+	cfg := Config{Seed: 36, Names: []string{"a", "b"}, PinnedStart: true,
 		Decks:      [][]*cards.Card{deck0, deck1},
 		Commanders: [][]int{{0, 1}, {0, 1}},
 		Format:     FormatCommander,
@@ -393,7 +393,7 @@ func TestCommanderCastCountReplaysExactlyFromTheEventStream(t *testing.T) {
 // covered: the offer walk, the tax composition and the counter increment.
 func TestCommanderTaxGatedOffOutsideCommanderFormat(t *testing.T) {
 	deck0, deck1 := commanderDeck(t, commanderBeatstickSrc), commanderDeck(t, commanderBeatstickSrc)
-	cfg := Config{Seed: 37, Names: []string{"a", "b"},
+	cfg := Config{Seed: 37, Names: []string{"a", "b"}, PinnedStart: true,
 		Decks:      [][]*cards.Card{deck0, deck1},
 		Commanders: [][]int{{0}, {0}},
 		// Format deliberately NOT set: FormatConstructed is the zero value.

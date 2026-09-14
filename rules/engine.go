@@ -14,6 +14,7 @@ package rules
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
@@ -70,6 +71,20 @@ type Config struct {
 	// events.Apply's TokenCreate case has something to mint from. Replay
 	// must pass the same table a live match's Config did.
 	Tokens map[string]*cards.Card
+	// PinnedStart pins the game's starting player to StartSeat instead of
+	// drawing the CR 103.1 toss: New begins turn 1 (and, with Mulligans, the
+	// CR 103.5 mulligan round) there and consumes NO rng value at all, so a
+	// pinned game's genesis rng stream is byte-identical to the pre-toss
+	// engine's. PinnedStart exists because CR 103.1 also lets the players
+	// agree on a mutually acceptable determination -- a test fixture pinning
+	// a scenario is exactly such an agreement, and the future
+	// toss-winner-chooses host (see the "Known approximations" row in
+	// AGENTS.md) needs the same hook. It carries in the Config replay is
+	// handed, so a pinned game replays identically. Both zero values (the
+	// default) mean the toss: one IntN over the surviving seats, drawn in
+	// New before any per-seat shuffle.
+	PinnedStart bool
+	StartSeat   state.PlayerID
 }
 
 type Engine struct {
@@ -469,6 +484,20 @@ func New(cfg Config) *Engine {
 		}
 	}
 	e.emit(events.Event{Kind: events.GameStart, Amount: int32(len(cfg.Names))})
+	// CR 103.1: the starting player is determined by a random method. Unless
+	// the Config pins one (PinnedStart -- the "players agree" arm of 103.1,
+	// and the hook the future toss-winner-chooses host needs), draw the toss
+	// HERE, as the FIRST rng consumption of the game, before any per-seat
+	// shuffle: the toss value is then a pure function of (seed, seat count),
+	// independent of every deck size. The surviving-seat resolution happens
+	// after the deal below; uniform over the survivors in every real game.
+	// CR 103.1's second half -- the toss winner CHOOSES who takes the first
+	// turn -- is not implemented; see the "Known approximations" row in
+	// AGENTS.md.
+	toss := -1
+	if !cfg.PinnedStart && len(cfg.Names) > 0 {
+		toss = e.rng.IntN(len(cfg.Names))
+	}
 	// Match-wide dense commander indexing for Player.CmdDamage (assigned at
 	// genesis): a commander's dense index is the sum of (valid commanders in
 	// seats before its owner) + (its own position within its owner's
@@ -554,6 +583,16 @@ func New(cfg Config) *Engine {
 		}
 	}
 	alive := e.G.AliveFrom(0)
+	// CR 103.1: the starting seat is the toss result, not seat 0. When
+	// nobody decked out during genesis (every real game) alive is all seats
+	// in ascending order, so alive[toss] is exactly the tossed seat and the
+	// determination is uniform. A Config that decked a seat out during the
+	// deal maps the toss onto the survivors with a modulo -- deterministic,
+	// and uniform over the survivors whenever the survivor count divides the
+	// seat count (always, in a game where nobody decked out, which is every
+	// real game). A pinned Config (PinnedStart) skips the toss entirely and
+	// consumes no rng value. The zero-alive guard below runs FIRST: a seat
+	// index is only resolved once at least one survivor exists.
 	if len(alive) == 0 {
 		// Ruling T22-e: nobody survived genesis to begin a turn for --
 		// every deck too small to deal (the per-seat Over check above
@@ -568,6 +607,16 @@ func New(cfg Config) *Engine {
 		e.checkGameOver()
 		return e
 	}
+	// Resolve the starting seat. A pinned Config takes its seat (or, if
+	// that seat left the game during the deal, the next survivor in turn
+	// order -- AliveFrom(pin)[0] is exactly that); the toss maps onto the
+	// survivors with a modulo.
+	start := alive[0]
+	if cfg.PinnedStart {
+		start = e.G.AliveFrom(cfg.StartSeat)[0]
+	} else {
+		start = alive[toss%len(alive)]
+	}
 	// Ruling T22-f: begin with the first seat still alive, not always seat
 	// 0 -- an early seat that decked out during its own opening draw (Over
 	// still false, since other seats remain, but that seat's own Lost is
@@ -575,6 +624,16 @@ func New(cfg Config) *Engine {
 	// simply skipped in turn order everywhere else (NextAlive, priority);
 	// this is genesis's own equivalent for the very first turn.
 	if !e.G.Over {
+		// CR 103.1: record the toss publicly -- one Note naming the winner,
+		// rendered verbatim by view/describe.go, so it lands in every seat's
+		// transcript and on the web client with no UI work. Emitted exactly
+		// once per game, before the mulligan round / turn 1 begins; a pinned
+		// start (the players' agreed arm of 103.1) is not a toss and emits
+		// none.
+		if !cfg.PinnedStart {
+			e.emit(events.Event{Kind: events.Note, Player: start,
+				Text: playerName(e.G, start) + " won the toss and takes the first turn"})
+		}
 		if cfg.Mulligans > 0 {
 			// Ruling R-8.4: the London mulligan round lives between the deal
 			// and turn 1. e.pregame makes step() dispatch to stepPregame
@@ -582,13 +641,31 @@ func New(cfg Config) *Engine {
 			// round's end calls beginTurn below. Over is already false (the
 			// per-seat deck-out guard above returned early) -- a game that
 			// ended during the deal never starts a round.
+			// CR 103.5: the starting player declares first, then each other
+			// player in turn order -- AliveFrom(start) is that order, which
+			// is also beginTurn's seat at the round's end.
 			e.pregame = true
-			e.mulligan = newMulliganRound(alive, cfg.Mulligans)
+			e.mulligan = newMulliganRound(e.G.AliveFrom(start), cfg.Mulligans)
 		} else {
-			e.beginTurn(alive[0])
+			e.beginTurn(start)
 		}
 	}
 	return e
+}
+
+// playerName is the display name view/describe.go's own player() helper
+// builds: the wire PlayerName, else the deck-identity Name, else "seat N".
+// New cannot import view (package order), so the identical fallback order is
+// repeated here; the Note it feeds is rendered verbatim.
+func playerName(g *state.Game, p state.PlayerID) string {
+	pl := g.Players[p]
+	if pl.PlayerName != "" {
+		return pl.PlayerName
+	}
+	if pl.Name != "" {
+		return pl.Name
+	}
+	return "seat " + strconv.Itoa(int(p))
 }
 
 // emit is the engine's single mutation entry point. Task 20 inserts

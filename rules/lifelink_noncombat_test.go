@@ -37,7 +37,7 @@ func linkBoard(t *testing.T, reg *cards.Registry, p0, p1 []string) (*Engine, Con
 	for _, name := range p1 {
 		d1 = append(d1, mustCorpusCard(t, reg, name))
 	}
-	cfg := Config{Seed: 47, Names: []string{"a", "b"},
+	cfg := Config{Seed: 47, Names: []string{"a", "b"}, PinnedStart: true,
 		Decks: [][]*cards.Card{
 			append(d0, mountainDeck(t, 40-len(d0))...),
 			append(d1, mountainDeck(t, 40-len(d1))...),

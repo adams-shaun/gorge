@@ -826,7 +826,7 @@ func newFixtureDeckWithTokens(t *testing.T, seed uint64, fixtureSrc string) (*En
 	t.Helper()
 	fixture := card(t, fixtureSrc)
 	name := fixture.Faces[0].Name
-	cfg := Config{Seed: seed, Names: []string{"a", "b"},
+	cfg := Config{Seed: seed, Names: []string{"a", "b"}, PinnedStart: true,
 		Decks: [][]*cards.Card{
 			append([]*cards.Card{fixture}, mountainDeck(t, 39)...),
 			mountainDeck(t, 40),

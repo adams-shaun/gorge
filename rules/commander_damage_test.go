@@ -79,7 +79,7 @@ func commanderGame(t *testing.T, seed uint64, format Format, life int32, seatCmd
 		deck = append(deck, mountainDeck(t, 40-len(deck))...)
 		decks[p] = deck
 	}
-	cfg := Config{Seed: seed, Names: names, Decks: decks,
+	cfg := Config{Seed: seed, Names: names, Decks: decks, PinnedStart: true,
 		Commanders: cmds, StartingLife: life, Format: format}
 	return New(cfg), cfg
 }

@@ -43,7 +43,7 @@ import (
 // the damage completes).
 func TestResumeTriggerDrainIsInertWhileAResolutionIsSuspended(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	cfg := Config{Seed: 42, Tokens: reg.Tokens}
+	cfg := Config{Seed: 42, Tokens: reg.Tokens, PinnedStart: true}
 	for _, n := range []string{"ur-delver", "death-n-taxes", "ur-delver"} {
 		cfg.Names = append(cfg.Names, n)
 		cfg.Decks = append(cfg.Decks, testutil.RepoDeck(t, reg, n))

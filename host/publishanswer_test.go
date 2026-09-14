@@ -26,6 +26,7 @@ package host
 
 import (
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -43,10 +44,21 @@ func TestPublishedDecisionIsAnswerableTheMomentItPublishes(t *testing.T) {
 		seenHuman int
 	)
 	var r *Registry
+	// primed gates the hook off until the test has submitted the prime below.
+	// The prime exists because the pre-toss engine's FIRST decision belonged
+	// to seat 0 and had no pace sleep before it, so the hook could not have
+	// answered it -- the test had to. Under the CR 103.1 toss the toss winner
+	// may be the bot (it is, at seed 42's match seed): seat 0's first decision
+	// now follows a slept decision, and without the gate the hook and the
+	// prime would both answer it, one of them rejected. The gate is checked
+	// at hook entry, so the hook either skips the primed decision entirely
+	// (primed still false) or runs only on later decisions (primed true means
+	// the prime's SubmitIntent already happened).
+	var primed atomic.Bool // written by the test goroutine, read on the match goroutine
 	o := testOptions(t)
 	o.Seats = twoSeatHumans // seat 0 human, seat 1 bot
 	o.Sleep = func(d time.Duration, stop <-chan struct{}) {
-		if d != pace {
+		if d != pace || !primed.Load() {
 			return // only the per-decision pace sleep is the defect-B window
 		}
 		// We are on the match goroutine, inside the pace sleep that follows
@@ -102,14 +114,15 @@ func TestPublishedDecisionIsAnswerableTheMomentItPublishes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Drive the FIRST decision from outside: no pace sleep precedes it (the
-	// injected Sleep above therefore cannot answer it), so await seat 0's
-	// initial park and submit its intent. That unblocks the loop; every human
-	// decision from there is answered inside the injected Sleep.
+	// Drive the FIRST human decision from outside: the hook above is gated
+	// off until this SubmitIntent completes, so it cannot answer the decision
+	// the prime is answering; every human decision from there is answered
+	// inside the injected Sleep.
 	d0 := waitPending(t, r, "t1", 1, 0)
 	if err := r.SubmitIntent("t1", 1, 0, legalIntent(d0)); err != nil {
 		t.Fatalf("prime SubmitIntent: %v", err)
 	}
+	primed.Store(true)
 
 	// Poll for the outcome rather than r.Wait, which cannot complete under the
 	// defect: a rejected human answer wedges the match. Detect the bug as soon

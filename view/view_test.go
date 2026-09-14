@@ -1474,7 +1474,7 @@ func TestR3StackTriggerReportsOptionalityAtResolution(t *testing.T) {
 func TestR3QueuedTriggerStillReportsOptionalityOnThePendingEntry(t *testing.T) {
 	deck0 := append([]*cards.Card{r3Card(t, r3OptionalSrc), r3Card(t, r3DrainerSrc)}, r3Filler(t, 5)...)
 	deck1 := r3Filler(t, 7)
-	e := rules.New(rules.Config{Seed: 11, Names: []string{"alice", "bob"},
+	e := rules.New(rules.Config{Seed: 11, Names: []string{"alice", "bob"}, PinnedStart: true,
 		Decks: [][]*cards.Card{deck0, deck1}})
 	e.Advance()
 

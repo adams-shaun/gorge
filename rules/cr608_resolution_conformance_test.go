@@ -21,7 +21,7 @@ import (
 func crResolutionEngine(t *testing.T, extras ...[]string) *Engine {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
-	cfg := Config{Seed: 42, Tokens: reg.Tokens}
+	cfg := Config{Seed: 42, Tokens: reg.Tokens, PinnedStart: true}
 	for p, ns := range extras {
 		name := "ur-delver"
 		if p == 1 {

@@ -143,7 +143,7 @@ func TestWillOfTheJeskaiCharmNumCountsACommander(t *testing.T) {
 		for i := range opp {
 			opp[i] = mountain
 		}
-		cfg := Config{Seed: 4210, Names: []string{"willcaster", "opponent"},
+		cfg := Config{Seed: 4210, Names: []string{"willcaster", "opponent"}, PinnedStart: true,
 			Decks:      [][]*cards.Card{deck, opp},
 			Tokens:     reg.Tokens,
 			Commanders: [][]int{{1}, {}}}

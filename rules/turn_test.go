@@ -39,7 +39,7 @@ func newSeats(t *testing.T, n int) *Engine {
 		names[i] = string(rune('a' + i))
 		decks[i] = mountainDeck(t, 40)
 	}
-	e := New(Config{Seed: 42, Names: names, Decks: decks})
+	e := New(Config{Seed: 42, Names: names, Decks: decks, PinnedStart: true})
 	e.Advance()
 	return e
 }

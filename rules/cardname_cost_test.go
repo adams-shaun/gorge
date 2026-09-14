@@ -20,7 +20,7 @@ func selfSacrificeBoard(t *testing.T, c *cards.Card) (*Engine, Config, state.Obj
 	// bear is distinct from the two card copies, so it never satisfies a
 	// CARDNAME sacrifice and never spoils the "exactly the source" oracle.
 	bear := card(t, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
-	cfg := Config{Seed: 31, Names: []string{"a", "b"}, Decks: [][]*cards.Card{
+	cfg := Config{Seed: 31, Names: []string{"a", "b"}, PinnedStart: true, Decks: [][]*cards.Card{
 		append([]*cards.Card{c, c, bear}, mountainDeck(t, 37)...), mountainDeck(t, 40),
 	}}
 	e := New(cfg)

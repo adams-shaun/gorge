@@ -136,7 +136,7 @@ func waitPendingSeq(t *testing.T, r *Registry, id TableID, want uint64) *decisio
 }
 
 // driveHumanUntil answers each newly parked seat-0 decision until done fires.
-// Seed 55's sample-deck match is a compact deterministic fixture whose final
+// Seed 45's sample-deck match is a compact deterministic fixture whose final
 // intent belongs to seat 0, which exposes the terminal undo boundary.
 func driveHumanUntil(t *testing.T, r *Registry, done <-chan struct{}) {
 	t.Helper()
@@ -165,7 +165,11 @@ func driveHumanUntil(t *testing.T, r *Registry, done <-chan struct{}) {
 func addTerminalUndoTable(t *testing.T, r *Registry, pace time.Duration) {
 	t.Helper()
 	cfg := TableConfig{ID: "t1", Name: "terminal undo", Seats: 2, Decks: []string{"a", "b"},
-		Seed: 55, Pace: pace, Spectator: view.Omniscient, Humans: []int{0}}
+		// Seed 45, not the original 55: under the CR 103.1 toss seed 55's match
+		// ends on a seat-1 (bot) intent, and the watcher below needs the final
+		// intent to be seat 0's. 45 is measured to keep the fixture's shape
+		// (game ends, final intent seat 0's).
+		Seed: 45, Pace: pace, Spectator: view.Omniscient, Humans: []int{0}}
 	if err := r.AddTable(cfg); err != nil {
 		t.Fatal(err)
 	}

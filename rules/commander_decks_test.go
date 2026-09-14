@@ -83,11 +83,12 @@ func TestRepoCommanderDecksPlayAndCastTheirCommander(t *testing.T) {
 			maxCasts := int32(0)
 			for _, seed := range seeds {
 				cfg := Config{
-					Seed:   seed,
-					Names:  []string{this, that},
-					Decks:  [][]*cards.Card{deck0, deck1},
-					Tokens: reg.Tokens,
-					Format: FormatCommander,
+					Seed:        seed,
+					Names:       []string{this, that},
+					PinnedStart: true,
+					Decks:       [][]*cards.Card{deck0, deck1},
+					Tokens:      reg.Tokens,
+					Format:      FormatCommander,
 					// CR 903.9's 40-life start; the m31 CR 903.8 tax and m33
 					// 21-damage clock run because FormatCommander is set.
 					StartingLife: 40,

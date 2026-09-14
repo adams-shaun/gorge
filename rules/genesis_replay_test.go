@@ -21,7 +21,7 @@ func smallDeckGame(t *testing.T, n, deckSize int) (*Engine, Config) {
 		names[i] = string(rune('a' + i))
 		decks[i] = mountainDeck(t, deckSize)
 	}
-	cfg := Config{Seed: 7, Names: names, Decks: decks}
+	cfg := Config{Seed: 7, Names: names, Decks: decks, PinnedStart: true}
 	e := New(cfg)
 	e.Advance()
 	return e, cfg

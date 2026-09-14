@@ -155,9 +155,13 @@ func (e *Engine) askAttackers() {
 	// keen-engineering and 91/200 holding reign-of-dragons. Rotate before
 	// concluding anything about a seat.
 	//
-	// Seat 0 is also always the starting player (genesis beginTurn of the
-	// first living seat), so the residual seat-0 deficit is turn order and
-	// this tiebreak confounded; they have not been separated.
+	// Seat 0's win deficit measured here was partly turn order: before the
+	// CR 103.1 toss (rules/engine.go New) seat 0 was ALWAYS the starting
+	// player, so this tiebreak and the first-turn advantage both pointed the
+	// same way and were confounded. The toss removes the confound -- the
+	// starting seat is now uniform -- so the residual seat-0 deficit, if any
+	// survives a re-measurement, is this tiebreak's alone. The 800-game
+	// numbers above have NOT been re-measured since the toss.
 	//
 	// The engine's order is not the defect -- it has to be deterministic and
 	// it has to match declare-blockers -- but it is what a positional

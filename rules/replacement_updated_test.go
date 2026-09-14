@@ -133,6 +133,10 @@ func newFixtureDeck(t *testing.T, seed uint64, fixtureSrc string, extras ...stri
 		deck = append(deck, card(t, extra))
 	}
 	cfg := Config{Seed: seed, Names: []string{"a", "b"},
+		// PinnedStart: a scenario fixture is the "players agree" arm of CR
+		// 103.1 -- pinned, so genesis consumes no toss draw and the stream is
+		// the pre-toss engine's.
+		PinnedStart: true,
 		Decks: [][]*cards.Card{
 			append(deck, mountainDeck(t, 40-len(deck))...),
 			mountainDeck(t, 40),

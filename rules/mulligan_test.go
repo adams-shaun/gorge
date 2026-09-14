@@ -16,7 +16,7 @@ import (
 func twoSeatConfig(t *testing.T, deckSize, mulligans int) Config {
 	t.Helper()
 	return Config{
-		Seed: 42, Mulligans: mulligans,
+		Seed: 42, Mulligans: mulligans, PinnedStart: true,
 		Names: []string{"a", "b"},
 		Decks: [][]*cards.Card{mountainDeck(t, deckSize), mountainDeck(t, deckSize)},
 	}
@@ -25,7 +25,7 @@ func twoSeatConfig(t *testing.T, deckSize, mulligans int) Config {
 func fourSeatConfig(t *testing.T, deckSize, mulligans int) Config {
 	t.Helper()
 	return Config{
-		Seed: 42, Mulligans: mulligans,
+		Seed: 42, Mulligans: mulligans, PinnedStart: true,
 		Names: []string{"a", "b", "c", "d"},
 		Decks: [][]*cards.Card{
 			mountainDeck(t, deckSize), mountainDeck(t, deckSize),

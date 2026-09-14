@@ -29,7 +29,7 @@ func walkerBoard(t *testing.T, reg *cards.Registry, name string, onBoard ...*car
 	t.Helper()
 	walker := mustCorpusCard(t, reg, name)
 	deck := append([]*cards.Card{walker}, onBoard...)
-	cfg := Config{Seed: 31, Names: []string{"a", "b"},
+	cfg := Config{Seed: 31, Names: []string{"a", "b"}, PinnedStart: true,
 		Decks: [][]*cards.Card{
 			append(deck, mountainDeck(t, 40-len(deck))...),
 			mountainDeck(t, 40),

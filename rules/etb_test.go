@@ -33,7 +33,7 @@ func etbConfig(t *testing.T, seed uint64, s0, s1 []string) (
 		}
 		return append(out, mountainDeck(t, 40-len(out))...)
 	}
-	cfg := Config{Seed: seed, Names: []string{"a", "b"},
+	cfg := Config{Seed: seed, Names: []string{"a", "b"}, PinnedStart: true,
 		Decks:  [][]*cards.Card{build(s0), build(s1)},
 		Tokens: map[string]*cards.Card{}}
 	e := New(cfg)

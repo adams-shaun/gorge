@@ -55,7 +55,7 @@ func TestMasterOfDiversionTriggerReferent(t *testing.T) {
 		t.Fatal("missing corpus bear")
 	}
 	deck := append(mountainDeck(t, 40), master, bear)
-	e := New(Config{Seed: 42, Names: []string{"attacker", "bystander", "defender"}, Decks: [][]*cards.Card{deck, deck, deck}})
+	e := New(Config{Seed: 42, Names: []string{"attacker", "bystander", "defender"}, Decks: [][]*cards.Card{deck, deck, deck}, PinnedStart: true})
 	e.Advance()
 	attacker := crAbortMove(t, e, 0, "Master of Diversion", state.ZBattlefield)
 	mine := crAbortMove(t, e, 0, "Runeclaw Bear", state.ZBattlefield)
@@ -119,7 +119,7 @@ Oracle:synthetic context probe
 `)
 	bear := card(t, "Name:Probe bear\nTypes:Creature Bear\nPT:2/2\nOracle:synthetic\n")
 	deck := append(mountainDeck(t, 40), watcher, bear)
-	e := New(Config{Seed: 42, Names: []string{"source", "target"}, Decks: [][]*cards.Card{deck, deck}})
+	e := New(Config{Seed: 42, Names: []string{"source", "target"}, Decks: [][]*cards.Card{deck, deck}, PinnedStart: true})
 	e.Advance()
 	source := crAbortMove(t, e, 0, "Referent watcher", state.ZBattlefield)
 	mine := crAbortMove(t, e, 0, "Probe bear", state.ZBattlefield)
