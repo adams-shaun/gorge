@@ -18,13 +18,23 @@ import (
 	"time"
 )
 
-// fakeClock is the pacing/backoff clock a test injects into artCache.now and
-// artCache.sleep: sleep RECORDS the pause and advances the fake clock, so a
-// test exercises the limiter and the 429 backoff without waiting real time.
+// fakeClock is the pacing/backoff clock a test injects into artCache.now,
+// artCache.sleep and artCache.afterFunc: sleep RECORDS the pause and advances
+// the fake clock, firing any timer it passes, so a test exercises the
+// limiter, the 429 backoff and the fill budget without waiting real time.
+// Like sleepCtx, a sleep returns ctx's error when ctx is already done or is
+// cancelled while it waits (here: by a timer firing during the advance).
 type fakeClock struct {
 	mu     sync.Mutex
 	now    time.Time
 	sleeps []time.Duration
+	timers []*fakeTimer
+}
+
+type fakeTimer struct {
+	at   time.Time
+	f    func()
+	done bool
 }
 
 func newFakeClock() *fakeClock {
@@ -38,17 +48,65 @@ func (c *fakeClock) Now() time.Time {
 }
 
 func (c *fakeClock) Sleep(ctx context.Context, d time.Duration) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	c.mu.Lock()
 	c.sleeps = append(c.sleeps, d)
-	c.now = c.now.Add(d)
+	target := c.now.Add(d)
 	c.mu.Unlock()
-	return nil
+	for {
+		c.mu.Lock()
+		var next *fakeTimer
+		for _, tm := range c.timers {
+			if !tm.done && !tm.at.After(target) && (next == nil || tm.at.Before(next.at)) {
+				next = tm
+			}
+		}
+		if next == nil {
+			c.now = target
+			c.mu.Unlock()
+			return nil
+		}
+		next.done = true
+		if next.at.After(c.now) {
+			c.now = next.at
+		}
+		c.mu.Unlock()
+		next.f()
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+	}
+}
+
+func (c *fakeClock) AfterFunc(d time.Duration, f func()) func() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	tm := &fakeTimer{at: c.now.Add(d), f: f}
+	c.timers = append(c.timers, tm)
+	return func() bool {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		pending := !tm.done
+		tm.done = true
+		return pending
+	}
 }
 
 func (c *fakeClock) recorded() []time.Duration {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return append([]time.Duration(nil), c.sleeps...)
+}
+
+// tWriter routes the one-shot fill's stderr into the test log.
+type tWriter struct{ t *testing.T }
+
+func (w tWriter) Write(p []byte) (int, error) {
+	w.t.Helper()
+	w.t.Log(strings.TrimRight(string(p), "\n"))
+	return len(p), nil
 }
 
 // scryFixture builds an httptest server standing in for Scryfall with a
@@ -154,7 +212,7 @@ func TestExhausted429RetriesAreAFailureNotAMiss(t *testing.T) {
 	f.ac.sleep = clk.Sleep
 
 	dir := prewarmNamedDir(t, "Alpha Card")
-	st, err := fillArt(context.Background(), f.ac, dir, "art fill", t.Logf)
+	st, err := fillArt(context.Background(), f.ac, dir, "art fill", t.Logf, fillLimits{})
 	if err != nil {
 		t.Fatalf("fillArt: %v", err)
 	}
@@ -275,7 +333,7 @@ func TestFillArtCachesEveryDeckNameAndReports(t *testing.T) {
 	ac.pace = 0
 	decks := prewarmFixture(t)
 
-	st, err := fillArt(context.Background(), ac, decks, "art fill", t.Logf)
+	st, err := fillArt(context.Background(), ac, decks, "art fill", t.Logf, fillLimits{})
 	if err != nil {
 		t.Fatalf("fillArt: %v", err)
 	}
@@ -294,7 +352,7 @@ func TestFillArtCachesEveryDeckNameAndReports(t *testing.T) {
 	ac2.client = ac.client
 	ac2.namedBaseURL = ac.namedBaseURL
 	ac2.pace = 0
-	st2, err := fillArt(context.Background(), ac2, decks, "art fill", t.Logf)
+	st2, err := fillArt(context.Background(), ac2, decks, "art fill", t.Logf, fillLimits{})
 	if err != nil {
 		t.Fatalf("second fillArt: %v", err)
 	}
@@ -381,7 +439,7 @@ func TestRunPrewarmArtOnlyExitCodeWiring(t *testing.T) {
 		return ac, nil
 	}
 	artDir := t.TempDir()
-	if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: artDir}); code != 0 {
+	if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: artDir}, tWriter{t}); code != 0 {
 		t.Errorf("runPrewarmArtOnly on a healthy Scryfall = exit %d, want 0", code)
 	}
 	if _, err := os.Stat(filepath.Join(artDir, artKey("Alpha Card")+".jpg")); err != nil {
@@ -410,7 +468,7 @@ func TestRunPrewarmArtOnlyExitCodeWiring(t *testing.T) {
 		ac.pace = 0
 		return ac, nil
 	}
-	if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: t.TempDir()}); code != 1 {
+	if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: t.TempDir()}, tWriter{t}); code != 1 {
 		t.Errorf("runPrewarmArtOnly on a dead Scryfall = exit %d, want 1", code)
 	}
 }
@@ -469,7 +527,7 @@ func TestSiblingImageFailureFailsTheFillAndRemainsRetryable(t *testing.T) {
 		t.Cleanup(func() { newServeArtCache = orig })
 		artDir := t.TempDir()
 
-		if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: artDir}); code != 1 {
+		if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: artDir}, tWriter{t}); code != 1 {
 			t.Fatalf("one-shot with failed sibling image = exit %d, want 1", code)
 		}
 		if frontHits.Load() == 0 || backHits.Load() == 0 {
@@ -480,7 +538,7 @@ func TestSiblingImageFailureFailsTheFillAndRemainsRetryable(t *testing.T) {
 		}
 
 		failBack.Store(false)
-		if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: artDir}); code != 0 {
+		if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: artDir}, tWriter{t}); code != 0 {
 			t.Fatalf("one-shot retry after sibling recovers = exit %d, want 0", code)
 		}
 		for _, name := range []string{"Alpha Card", "Alpha Back"} {
@@ -503,7 +561,7 @@ func TestSiblingImageFailureFailsTheFillAndRemainsRetryable(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		st, err := fillArt(context.Background(), ac, decks, "art fill", t.Logf)
+		st, err := fillArt(context.Background(), ac, decks, "art fill", t.Logf, fillLimits{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -515,7 +573,7 @@ func TestSiblingImageFailureFailsTheFillAndRemainsRetryable(t *testing.T) {
 		}
 
 		failBack.Store(false)
-		st, err = fillArt(context.Background(), ac, decks, "art fill", t.Logf)
+		st, err = fillArt(context.Background(), ac, decks, "art fill", t.Logf, fillLimits{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -671,7 +729,7 @@ func TestFillCompletesAWarmFrontFaceWhoseSiblingWasNeverCached(t *testing.T) {
 		failBack.Store(false)
 		reset()
 		dir, ac := seedFrontOnly(t)
-		st, err := fillArt(context.Background(), ac, decks, "art fill", t.Logf)
+		st, err := fillArt(context.Background(), ac, decks, "art fill", t.Logf, fillLimits{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -691,7 +749,7 @@ func TestFillCompletesAWarmFrontFaceWhoseSiblingWasNeverCached(t *testing.T) {
 		}
 
 		reset()
-		if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: dir}); code != 0 {
+		if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: dir}, tWriter{t}); code != 0 {
 			t.Fatalf("second one-shot = exit %d, want 0", code)
 		}
 		if n := named.Load() + frontImg.Load() + backImg.Load(); n != 0 {
@@ -704,7 +762,7 @@ func TestFillCompletesAWarmFrontFaceWhoseSiblingWasNeverCached(t *testing.T) {
 			t.Fatal(err)
 		}
 		reset()
-		st, err = fillArt(context.Background(), ac, decks, "art fill", t.Logf)
+		st, err = fillArt(context.Background(), ac, decks, "art fill", t.Logf, fillLimits{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -717,7 +775,7 @@ func TestFillCompletesAWarmFrontFaceWhoseSiblingWasNeverCached(t *testing.T) {
 		failBack.Store(true)
 		reset()
 		dir, ac := seedFrontOnly(t)
-		if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: dir}); code != 1 {
+		if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: dir}, tWriter{t}); code != 1 {
 			t.Fatalf("one-shot over a warm front with a failing sibling = exit %d, want 1", code)
 		}
 		if ac.complete(front) {
@@ -732,7 +790,7 @@ func TestFillCompletesAWarmFrontFaceWhoseSiblingWasNeverCached(t *testing.T) {
 		}
 
 		failBack.Store(false)
-		if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: dir}); code != 0 {
+		if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: dir}, tWriter{t}); code != 0 {
 			t.Fatalf("retry after the sibling recovers = exit %d, want 0", code)
 		}
 		if !ac.complete(front) || !fileExists(ac.jpgPath(back)) {
@@ -772,7 +830,7 @@ func TestFillCachesTheImagelessHalfOfASplitCard(t *testing.T) {
 	ac.pace = 0
 	decks := prewarmNamedDir(t, "Boom")
 
-	st, err := fillArt(context.Background(), ac, decks, "art fill", t.Logf)
+	st, err := fillArt(context.Background(), ac, decks, "art fill", t.Logf, fillLimits{})
 	if err != nil {
 		t.Fatal(err)
 	}

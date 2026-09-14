@@ -102,9 +102,11 @@ deploy-demo: web
 ART_DIR ?= /mnt/sata/gorge-data/art
 
 # prewarm-art fills the durable card-art cache from the repo's deck files and
-# exits — the exact command the deploy runs ahead of both demo servers, usable
-# by hand or from cron. A no-op (zero Scryfall fetches) when the cache is
-# already complete; exits non-zero if any name failed.
+# exits — the fill the deploy runs ahead of both demo servers, usable by hand
+# or from cron. A no-op (zero Scryfall fetches) when the cache is already
+# complete; exits non-zero if any name failed. Run by hand it is strict and
+# unbounded; the deploy adds -prewarm-art-budget and a failure-streak limit
+# and starts its servers whatever the fill's exit.
 .PHONY: prewarm-art
 prewarm-art:
 	go run ./cmd/gorged -prewarm-art-only -decks internal/testutil/decks -art-dir $(ART_DIR)
