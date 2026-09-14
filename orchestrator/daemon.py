@@ -130,6 +130,47 @@ def _local_tier_seat(issue: issues.Issue, what: str) -> str | None:
 
 # --- per-status advancement --------------------------------------------------
 
+SEAT_START_GRACE_S = 180
+
+
+def _all_seat_models() -> tuple[str, ...]:
+    return (config.LOCAL_MODEL, config.OVERFLOW_MODEL, config.IMPLEMENTER_ESCALATED_MODEL, config.REVIEWER_MODEL)
+
+
+def _seat_dead(name: str, st: dict | None) -> bool:
+    """A seat that was launched, never wrote a terminal status, and has no
+    live process -- killed by a reboot or an OOM. Without this the issue waits
+    forever on a status that will never arrive. The launch log's age gives a
+    starting seat time to appear in /proc."""
+    if pi.is_terminal(st) or not pi.already_launched(name):
+        return False
+    if name in pi.running_names(*_all_seat_models()):
+        return False
+    try:
+        age = time.time() - pi.launch_log_path(name).stat().st_mtime
+    except OSError:
+        return False
+    return age > SEAT_START_GRACE_S
+
+
+def _relaunch_implementer_round(issue: issues.Issue, wt: Path, tag: str, why: str) -> None:
+    """Re-run the CURRENT round under the same tag, uncounted: the seat died
+    (or never started) without a result. Its uncommitted work and the round's
+    findings stay in the worktree."""
+    kind = issue.seat_kind
+    paid = kind in ("escalated", "overflow")
+    if not _slot_free(issue, paid, f"rerun {tag}"):
+        return
+    findings_path = wt / ".ds4" / f"findings-{tag}.md"
+    prior = findings_path.read_text() if findings_path.exists() else ""
+    note = (f"NOTE: an earlier run of round {tag} was lost ({why}) before it reported. Any uncommitted work "
+            "it left is still in the worktree: check `git status`, keep what is sound, and finish the brief.\n\n")
+    seats.launch_implementer(issue.id, wt, tag, issue.brief, escalated=(kind == "escalated"),
+                             findings_text=note + prior, overflow=(kind == "overflow"))
+    issue.log(f"implementer {tag} relaunched ({why}); round not counted")
+    issue.save()
+
+
 def advance_new(issue: issues.Issue) -> None:
     if issue.source == "inbox" and "## Done means" in issue.report:
         # A hand-authored ticket that is already a full brief (it carries a
@@ -151,6 +192,13 @@ def advance_new(issue: issues.Issue) -> None:
         issue.save()
         return
     st = pi.read_status(status_path)
+    if _seat_dead(name, st):
+        _set_aside(pi.launch_log_path(name))
+        _set_aside(status_path)
+        git_ops.remove_triage_worktree(issue.id)
+        issue.log("triage seat died without a result; relaunch queued")
+        issue.save()
+        return
     if not pi.is_terminal(st):
         return
     state_dir = config.ORCH_STATE_DIR / "triage" / issue.id
@@ -257,6 +305,15 @@ def advance_dispatched(issue: issues.Issue) -> None:
     tag = seats.round_tag(issue)
     status_path = seats.implementer_status_path(wt, tag)
     st = pi.read_status(status_path)
+    name = seats.implementer_name(issue.id, tag)
+    if _seat_dead(name, st):
+        _set_aside(pi.launch_log_path(name))
+        _set_aside(status_path)
+        issue.log(f"implementer {tag} seat died without a result")
+        issue.save()
+    if not pi.is_terminal(st) and not pi.already_launched(name):
+        _relaunch_implementer_round(issue, wt, tag, "seat died or never started")
+        return
     if not pi.is_terminal(st):
         return
     outcome = st.get("status")
@@ -364,6 +421,14 @@ def advance_review(issue: issues.Issue) -> None:
     tag = seats.round_tag(issue)
     status_path = seats.review_status_path(wt, tag)
     st = pi.read_status(status_path)
+    rname = seats.review_name(issue.id, tag)
+    if _seat_dead(rname, st) or (not pi.is_terminal(st) and not pi.already_launched(rname)):
+        _set_aside(pi.launch_log_path(rname))
+        _set_aside(status_path)
+        issue.status = "dispatched"  # advance_dispatched relaunches the review when a paid slot opens
+        issue.log(f"review {tag} seat died without a verdict; review requeued")
+        issue.save()
+        return
     if not pi.is_terminal(st):
         return
     if st.get("status") != "DONE" and _provider_cut_off(st):
