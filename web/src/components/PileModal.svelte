@@ -60,7 +60,6 @@
        data-pile-modal is the modal guard's marker (lib/modals.ts): while this
        modal is open, the document-level hotkeys are suppressed so Space
        cannot post PASS and Enter cannot arm a run underneath it. -->
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div class="backdrop" data-pile-backdrop data-pile-modal role="presentation" use:portal onclick={backdropClick}>
     <div
       class="dialog"

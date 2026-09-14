@@ -1,5 +1,3 @@
-import type { AnchorRect } from './carddetail.svelte';
-
 /** MenuAnchor is the badge's bounding-rect corners placeMenu needs; it adds
  *  `bottom` to the detail panel's AnchorRect, since the menu hangs either
  *  below or above the badge. */

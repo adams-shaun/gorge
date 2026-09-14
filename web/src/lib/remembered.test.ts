@@ -158,6 +158,46 @@ describe('loadRemembered / saveRemembered — persistence (B3)', () => {
     }
   });
 
+  it('a payload whose entries violate the whole-store invariants degrades to empty (not trimmed, not deduped)', () => {
+    // a syntactically valid blob with MORE than the cap: neither returned as-is nor evicted — corrupt
+    const overCap = JSON.stringify({
+      version: 1,
+      entries: Array.from({ length: REMEMBERED_CAP + 1 }, (_, i) => ({
+        key: rememberKey('trigger_optional', `p${i}`), choice: i % 2, label: `label ${i}`, savedAt: i,
+      })),
+    });
+    // duplicate keys (two entries under one key)
+    const dupKey = JSON.stringify({
+      version: 1,
+      entries: [
+        { key: rememberKey('trigger_optional', 'p1'), choice: 0, label: 'A', savedAt: 1 },
+        { key: rememberKey('trigger_optional', 'p1'), choice: 1, label: 'B', savedAt: 2 },
+      ],
+    });
+    // a key whose kind is not rememberable cannot have been written by this store
+    const alienKind = JSON.stringify({
+      version: 1,
+      entries: [{ key: rememberKey('modes', PLACEMENT_PROMPT), choice: 0, label: 'A', savedAt: 1 }],
+    });
+    for (const raw of [overCap, dupKey, alienKind]) {
+      const s = fakeStorage();
+      s.setItem(REMEMBERED_STORAGE_KEY, raw);
+      expect(loadRemembered(s), `raw: ${raw.slice(0, 80)}…`).toEqual(emptyRemembered());
+    }
+    // exactly AT the cap is still valid, and a rememberable-kind key loads
+    const atCap = JSON.stringify({
+      version: 1,
+      entries: Array.from({ length: REMEMBERED_CAP }, (_, i) => ({
+        key: rememberKey('trigger_optional', `p${i}`), choice: 0, label: `label ${i}`, savedAt: i,
+      })),
+    });
+    const s2 = fakeStorage();
+    s2.setItem(REMEMBERED_STORAGE_KEY, atCap);
+    const loaded = loadRemembered(s2);
+    expect(loaded.entries).toHaveLength(REMEMBERED_CAP);
+    expect(loaded.entries[0].label).toBe('label 0');
+  });
+
   it('a throwing storage degrades to empty on read and is swallowed on write', () => {
     expect(loadRemembered(throwingStorage)).toEqual(emptyRemembered());
     expect(() => saveRemembered(throwingStorage, withRemember(emptyRemembered(), 'k', 0, 'l', 1))).not.toThrow();

@@ -42,6 +42,9 @@ export const REMEMBERED_STORAGE_KEY = 'gorge.remembered-decisions.v1';
 /** The only decision kind the remember affordance is offered for (B1). */
 export const REMEMBERABLE_KINDS: readonly string[] = ['trigger_optional'];
 
+/** keyPrefixes is every rememberKey prefix a persisted entry may carry, derived from REMEMBERABLE_KINDS — a key whose kind is not rememberable (or that lacks the NUL separator) cannot have been written by this store, so a payload carrying one is corrupt. */
+const KEY_PREFIXES: readonly string[] = REMEMBERABLE_KINDS.map((k) => k + '\u0000');
+
 /** rememberable reports whether a decision kind may offer the remember checkbox and be auto-answered. */
 export function rememberable(kind: string): boolean {
   return REMEMBERABLE_KINDS.includes(kind);
@@ -120,22 +123,36 @@ export function withoutRemember(store: RememberedStore, key: string): Remembered
 
 const CHOICES: readonly number[] = [0, 1];
 
+/** keyPrefixOf reports whether a persisted key belongs to a rememberable kind (kind + NUL separator). */
+function keyPrefixOf(key: string): boolean {
+  return KEY_PREFIXES.some((p) => key.startsWith(p));
+}
+
 /**
  * validate returns the store from a parsed value, or null when it is
  * corrupt: wrong version, a non-array entry list, an entry with a
- * missing/wrong-typed field or a choice that is not 0 or 1. Corrupt means
- * empty, not a partial merge — a half-understood blob should not half-apply
- * (the playsettings rule).
+ * missing/wrong-typed field, a choice that is not 0 or 1, a key whose kind
+ * is not rememberable, more than REMEMBERED_CAP entries, or a duplicate
+ * key. The whole-store invariants (cap, uniqueness, rememberable kinds) are
+ * checked on the PERSISTED payload, not just on withRemember's output: a
+ * syntactically valid localStorage blob that violates them is treated as
+ * corrupt exactly like a malformed one. Corrupt means empty, not a partial
+ * merge — a half-understood blob should not half-apply (the playsettings
+ * rule).
  */
 function validate(v: unknown): RememberedStore | null {
   if (typeof v !== 'object' || v === null || Array.isArray(v)) return null;
   const o = v as Record<string, unknown>;
   if (o.version !== 1 || !Array.isArray(o.entries)) return null;
+  if (o.entries.length > REMEMBERED_CAP) return null;
   const entries: RememberedEntry[] = [];
+  const seen = new Set<string>();
   for (const e of o.entries) {
     if (typeof e !== 'object' || e === null || Array.isArray(e)) return null;
     const r = e as Record<string, unknown>;
-    if (typeof r.key !== 'string' || r.key === '') return null;
+    if (typeof r.key !== 'string' || r.key === '' || !keyPrefixOf(r.key)) return null;
+    if (seen.has(r.key)) return null;
+    seen.add(r.key);
     if (typeof r.choice !== 'number' || !CHOICES.includes(r.choice)) return null;
     if (typeof r.label !== 'string') return null;
     if (typeof r.savedAt !== 'number' || !Number.isFinite(r.savedAt)) return null;
