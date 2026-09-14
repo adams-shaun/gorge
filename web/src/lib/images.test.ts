@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createImages } from './images';
+import { createImages, IMAGE_KEY } from './images';
 
 function fakeEnv(responses: Record<string, unknown | Error>) {
   const calls: string[] = [];
@@ -38,7 +38,7 @@ describe('images', () => {
     expect(await im.url('Goblin Guide')).toBe('https://img/gg.jpg');
     expect(await im.url('Goblin Guide')).toBe('https://img/gg.jpg');
     expect(calls.length).toBe(1);
-    expect(store.get('gorge.img.v2.Goblin Guide')).toBe('https://img/gg.jpg');
+    expect(store.get(`${IMAGE_KEY}Goblin Guide`)).toBe('https://img/gg.jpg');
     expect(await im.url('Nonexistent')).toBeNull();
     expect(await im.url('Nonexistent')).toBeNull();
     expect(calls.length).toBe(2);
@@ -61,7 +61,7 @@ describe('images', () => {
     expect(await createImages(env).url('Insectile Aberration')).toBe('/art/blob/new-back.jpg');
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatch(/^\/art\/named\?exact=Insectile%20Aberration$/);
-    expect(store.get('gorge.img.v2.Insectile Aberration')).toBe('/art/blob/new-back.jpg');
+    expect(store.get(`${IMAGE_KEY}Insectile Aberration`)).toBe('/art/blob/new-back.jpg');
     expect(store.get('gorge.img.Insectile Aberration')).toBe('/art/blob/old-front.jpg');
   });
   it('uses the front face of a double-faced card when no face name matches', async () => {

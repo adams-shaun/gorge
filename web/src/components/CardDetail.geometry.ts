@@ -1,4 +1,5 @@
 import { mount } from 'svelte';
+import { IMAGE_KEY } from '../lib/images';
 import type { CardView } from '../protocol';
 import '../app.css';
 import CardDetail from './CardDetail.svelte';
@@ -25,11 +26,11 @@ import CardDetail from './CardDetail.svelte';
 
 const BLANK_GIF = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
 
-localStorage.setItem('gorge.img.v2.Giada, Font of Hope', BLANK_GIF);
+localStorage.setItem(`${IMAGE_KEY}Giada, Font of Hope`, BLANK_GIF);
 // A known-no-image entry: the resolver stores null as '' and reads it back as
 // null, so this card resolves no image and the plate stays absent — the normal
 // case, not an error.
-localStorage.setItem('gorge.img.v2.Squire', '');
+localStorage.setItem(`${IMAGE_KEY}Squire`, '');
 
 const giada: CardView = {
   id: 1,

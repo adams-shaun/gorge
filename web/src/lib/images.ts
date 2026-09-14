@@ -13,7 +13,18 @@ const OFFLINE_FOR = 60_000;
 // browsers may hold a valid immutable URL whose bytes were selected by older
 // face-matching logic; changing this namespace makes them resolve the name
 // again instead of returning that stale URL before lookup() can run.
-const KEY = 'gorge.img.v2.';
+// v3 (task fb-20260914T113850Z-682e875e): a name resolved to null while the
+// server's art cache was cold (each deploy used to wipe it) is stored
+// permanently by toStorage and never re-asked. The server now keeps a
+// durable, prewarmed cache, so bumping the namespace lets such a stored null
+// re-resolve once against the warm server; every miss that re-resolves to a
+// miss costs one same-origin request.
+// Exported so every test fixture that seeds image-storage keys derives its
+// keys from this one constant — a future bump cannot silently strand a
+// fixture on the old namespace again (CardDetail.geometry.ts did exactly
+// that on this bump).
+export const IMAGE_KEY = 'gorge.img.v3.';
+const KEY = IMAGE_KEY;
 
 type Scryfall = {
   image_uris?: { normal?: string };
