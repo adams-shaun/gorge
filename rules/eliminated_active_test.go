@@ -34,18 +34,18 @@ import (
 // active player's turn still HAS an end step, so a living seat's trigger
 // still fires there.
 //
-// Phase$ matching is a substring test (trigger_match.go phaseMatches:
-// strings.Contains(step.String(), "end")), so Phase$ End resolves at BOTH
-// end-combat and the end step of a completed turn. That is the engine's
-// current behaviour (and a real-card quirk this task does not own), so a
-// correctly-completed turn fires this trigger once (end-combat), then once
-// more (end): 5 life each. The assertion below deliberately frames the
-// guarantee as "seat 2's life increased by an end-of-turn firing of 5,"
-// which is what a turn-ending mutation removes and this test pins.
+// Phase$ matching goes through state.ParsePhases (the one Forge phase-name
+// parser), so `Phase$ End of Turn` resolves at exactly the end step -- the
+// name Forge's PhaseType.smartValueOf resolves. (An earlier draft wrote the
+// bare `Phase$ End` and relied on the substring tolerance the old parser
+// had; bare "End" is not a Forge script name, so the shared parser reports
+// it and the trigger never fires.) A correctly-completed turn fires this
+// trigger once, gaining exactly 5; the assertion below pins that exact
+// delta, which is what a turn-ending mutation removes and this test pins.
 const endGainSrc = `Name:Endgainer
 ManaCost:W
 Types:Enchantment
-T:Mode$ Phase | Phase$ End | Execute$ TrigEndGain | TriggerDescription$ gain 5 life
+T:Mode$ Phase | Phase$ End of Turn | Execute$ TrigEndGain | TriggerDescription$ gain 5 life
 SVar:TrigEndGain:DB$ GainLife | LifeAmount$ 5 | Defined$ You
 Oracle:x
 `
@@ -278,12 +278,12 @@ func TestLivingSeatsEndOfTurnTriggerStillFiresOnTheEliminatedTurn(t *testing.T) 
 	if e.G.Turn != 3 {
 		t.Fatalf("turn = %d, want 3", e.G.Turn)
 	}
-	// Phase$ End fires at end-combat AND the end step (substring match), so a
-	// completed turn grants 5 life per such firing. The tripwire is that seat 2
-	// gained at least one 5-life firing during the eliminated turn; ending the
-	// turn at the elimination removes all of them and this fails.
-	if delta := e.G.Players[2].Life - life; delta != 5 && delta != 10 {
-		t.Fatalf("seat 2 life delta across the eliminated turn = %d, want one or two 5-life firings of its end-of-turn trigger — "+
+	// Phase$ End of Turn fires at exactly the end step, so a completed turn
+	// grants exactly one 5-life firing. The tripwire is that seat 2 gained it
+	// during the eliminated turn; ending the turn at the elimination removes
+	// it and this fails.
+	if delta := e.G.Players[2].Life - life; delta != 5 {
+		t.Fatalf("seat 2 life delta across the eliminated turn = %d, want the one 5-life firing of its end-of-turn trigger — "+
 			"the living seat's trigger did not fire on the eliminated player's turn", delta)
 	}
 }

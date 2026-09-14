@@ -266,6 +266,12 @@ type Engine struct {
 	// once-per-turn gate); see there.
 	triggerFireCount map[triggerKey]int32
 	damageOnceFired  map[triggerKey]int32
+	// phaseUnknownNoted memoizes the Phase$ specs whose names this engine has
+	// already reported as unresolvable (rules.trigger_match.go's phaseMatches
+	// reporting), so one spec emits exactly one Note per game no matter how
+	// often its trigger is walked. Cloned like the other bookkeeping maps so
+	// a branch that becomes live cannot re-emit the same Note.
+	phaseUnknownNoted map[string]bool
 
 	// choosing says which flow is waiting on the current KChoose decision
 	// (Task 8). It is plain data, not a closure, so Engine.Clone (a sibling

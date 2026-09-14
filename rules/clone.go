@@ -134,6 +134,12 @@ func (e *Engine) Clone() *Engine {
 	}
 	c.triggerFireCount = cloneCounts(e.triggerFireCount)
 	c.damageOnceFired = cloneCounts(e.damageOnceFired)
+	if e.phaseUnknownNoted != nil {
+		c.phaseUnknownNoted = make(map[string]bool, len(e.phaseUnknownNoted))
+		for k, v := range e.phaseUnknownNoted {
+			c.phaseUnknownNoted[k] = v
+		}
+	}
 	if e.triggerTurnFires != nil {
 		c.triggerTurnFires = make(map[triggerKey]turnFires, len(e.triggerTurnFires))
 		for k, v := range e.triggerTurnFires {
