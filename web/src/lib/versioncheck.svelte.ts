@@ -25,7 +25,15 @@ import { withBase } from './basepath';
  *
  * Poll errors are swallowed: the network being down is not a version change,
  * and a transient failure must never surface as a banner. A non-200 (a proxy
- * answering for `/`) is equally silent. A page whose OWN script src is not a
+ * answering for `/`) is equally silent. The poll is issued with
+ * `cache: 'no-store'`: host/httpapi/static.go serves index.html with no
+ * Cache-Control directive, so under fetch's default cache mode a browser (or
+ * a shared proxy) is allowed to satisfy the poll from its cached PRE-deploy
+ * index — the old bundle src compared against the old bundle src, stale
+ * forever and the banner never fires, which is exactly the class of silence
+ * this module exists to close. no-store forces each cadence to observe the
+ * DEPLOYED index; the cost is one uncached GET per minute, which is the point.
+ * A page whose OWN script src is not a
  * built asset (the vite dev server's `/src/main.ts`) is never watched — in
  * dev the served index.html legitimately names a different bundle, and a dev
  * tab is not a stale deployment.
@@ -127,10 +135,10 @@ export class VersionWatch {
     this.#started = false;
   }
 
-  /** pollOnce fetches the served index.html and compares; every failure mode is silence (swallowed), because none of them is a version change. */
+  /** pollOnce fetches the served index.html — uncached (see the module doc: a cached pre-deploy index would silence the watch forever) — and compares; every failure mode is silence (swallowed), because none of them is a version change. */
   async pollOnce(doFetch: typeof fetch): Promise<void> {
     try {
-      const res = await doFetch(withBase('/'), { headers: { Accept: 'text/html' } });
+      const res = await doFetch(withBase('/'), { cache: 'no-store', headers: { Accept: 'text/html' } });
       if (!res.ok) return;
       const served = parseBundleSrc(await res.text());
       if (bundleStale(this.#loaded, served)) this.#stale = true;

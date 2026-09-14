@@ -71,15 +71,17 @@ interface PendingTimer {
   fn: () => void;
 }
 
-/** manualEnv is a watch environment with a manual clock (setTimeout collects; the test fires) and a counting fetch. */
+/** manualEnv is a watch environment with a manual clock (setTimeout collects; the test fires) and a counting fetch that also records each request's init options. */
 function manualEnv(html: () => string | undefined, base = '') {
   setBasePathForTests(base);
   const timers: PendingTimer[] = [];
   let clock = 0;
   const fetches: string[] = [];
+  const inits: RequestInit[] = [];
   const env = {
-    fetch: vi.fn(async (input: RequestInfo | URL) => {
+    fetch: vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       fetches.push(String(input));
+      inits.push(init ?? {});
       const body = html();
       if (body === undefined) throw new Error('network down');
       return new Response(body, { status: 200, headers: { 'Content-Type': 'text/html' } });
@@ -106,7 +108,7 @@ function manualEnv(html: () => string | undefined, base = '') {
     timers.shift()!.fn();
     await new Promise((r) => setImmediate(r));
   };
-  return { env, fetches, fireNext, timers };
+  return { env, fetches, inits, fireNext, timers };
 }
 
 describe('VersionWatch', () => {
@@ -125,7 +127,7 @@ describe('VersionWatch', () => {
   });
 
   it('start() polls once immediately, then keeps the slow cadence; an unchanged hash stays silent', async () => {
-    const { env, fetches, fireNext, timers } = manualEnv(() => BUILT_HTML('old'));
+    const { env, fetches, inits, fireNext, timers } = manualEnv(() => BUILT_HTML('old'));
     const w = new VersionWatch();
     w.start(env);
     await new Promise((r) => setImmediate(r));
@@ -137,6 +139,24 @@ describe('VersionWatch', () => {
     expect(fetches).toHaveLength(2); // one more poll per cadence tick
     expect(w.stale).toBe(false);
     expect(timers).toHaveLength(1); // and still armed
+    w.stop();
+  });
+
+  it('every poll is issued uncached (cache: no-store) — a cached pre-deploy index would compare old src to old src and stay silent forever', async () => {
+    // The finding this pins: host/httpapi/static.go serves index.html with no
+    // Cache-Control, so fetch's default cache mode lets a browser (or a shared
+    // proxy) answer the poll from its cached PRE-deploy index. The watch would
+    // then compare the loaded old bundle src against a served OLD src and never
+    // raise the banner — the exact silence defect 2 exists to close.
+    const { env, inits, fireNext, timers } = manualEnv(() => BUILT_HTML('old'));
+    const w = new VersionWatch();
+    w.start(env);
+    await new Promise((r) => setImmediate(r));
+    expect(inits).toHaveLength(1);
+    expect(inits[0].cache).toBe('no-store');
+    await fireNext();
+    expect(inits).toHaveLength(2);
+    expect(inits[1].cache).toBe('no-store'); // every cadence tick observes, not recalls
     w.stop();
   });
 
