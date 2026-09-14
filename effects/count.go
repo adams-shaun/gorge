@@ -307,7 +307,7 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 		var n int32
 		for _, p := range g.AliveFrom(0) {
 			for _, id := range g.Zone(zone, p) {
-				if MatchesSpecCtx(g, arg, id, c.SpecContext(c.Controller)) {
+				if matchesZoneSpecCtx(g, arg, id, c.SpecContext(c.Controller), zone) {
 					n++
 				}
 			}

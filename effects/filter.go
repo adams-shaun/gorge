@@ -762,6 +762,61 @@ func MatchesSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecContext) 
 	return MatchesObjectCtx(g, spec, o, sc)
 }
 
+// matchesZoneSpecCtx matches a filter over a known zone. Forge's Permanent
+// base names a permanent card when a count already scoped the candidates to a
+// non-battlefield zone; it must not re-check the object's current zone and
+// reject every graveyard, hand, library, or exile card. All other bases and
+// predicates retain MatchesObjectCtx's ordinary semantics.
+func matchesZoneSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecContext, zone state.Zone) bool {
+	o := g.Obj(id)
+	if o == nil {
+		return false
+	}
+	if zone == state.ZBattlefield {
+		return MatchesObjectCtx(g, spec, o, sc)
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		base, rest, _ := strings.Cut(alt, ".")
+		if base == "CARDNAME" {
+			if sc.Source == 0 || o.ID != sc.Source {
+				continue
+			}
+		} else if !matchesBaseInZone(g, base, o, zone) {
+			continue
+		}
+		all := true
+		for _, p := range strings.Split(rest, "+") {
+			if p == "" {
+				continue
+			}
+			res, ok := matchPredicate(g, p, o, sc)
+			if !ok || !res {
+				all = false
+				break
+			}
+		}
+		if all {
+			return true
+		}
+	}
+	return false
+}
+
+func matchesBaseInZone(g *state.Game, base string, o *state.Object, zone state.Zone) bool {
+	if neg := strings.TrimPrefix(base, "non"); neg != base {
+		return !matchesBaseInZone(g, neg, o, zone)
+	}
+	if base != "Permanent" || zone == state.ZBattlefield {
+		return matchesBase(g, base, o)
+	}
+	return hasType(o, "Artifact") || hasType(o, "Creature") || hasType(o, "Enchantment") ||
+		hasType(o, "Land") || hasType(o, "Planeswalker") || hasType(o, "Battle")
+}
+
 // MatchesSpecFrom is MatchesSpecCtx with an explicit source object, which the
 // CARDNAME base and Self/Other predicates are relative to, and no numeric-RHS
 // resolver.

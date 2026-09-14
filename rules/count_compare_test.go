@@ -125,66 +125,144 @@ func TestNissasPilgrimageSearchMaxFollowsSpellMastery(t *testing.T) {
 
 func TestWillOfTheJeskaiCharmNumCountsACommander(t *testing.T) {
 	reg := searchTestRegistry(t)
-	will := searchCorpusCard(t, reg, "Will of the Jeskai")
-	isamaru := searchCorpusCard(t, reg, "Isamaru, Hound of Konda")
-	forest := searchCorpusCard(t, reg, "Forest")
-	mountain := searchCorpusCard(t, reg, "Mountain")
-
-	build := func(commander bool) (*Engine, state.ObjID) {
-		deck := []*cards.Card{will, isamaru}
-		for len(deck) < 40 {
-			if len(deck)%2 == 0 {
-				deck = append(deck, mountain)
-			} else {
-				deck = append(deck, forest)
-			}
-		}
-		opp := make([]*cards.Card, 40)
-		for i := range opp {
-			opp[i] = mountain
-		}
-		cfg := seatZeroStart(Config{Seed: 4210, Names: []string{"willcaster", "opponent"},
-			Decks:      [][]*cards.Card{deck, opp},
-			Tokens:     reg.Tokens,
-			Commanders: [][]int{{1}, {}}})
-		e := New(cfg)
-		e.Advance()
-		toMain1(t, e)
-		if commander {
-			var cmdr state.ObjID
-			for _, id := range e.G.Zone(state.ZCommand, 0) {
-				cmdr = id
-			}
-			if cmdr == 0 {
-				t.Fatal("no commander in the command zone")
-			}
-			e.emit(events.Event{Kind: events.MoveZone, Obj: cmdr, From: state.ZCommand, To: state.ZBattlefield})
-			e.pending = nil
-			e.priorityRound()
-		}
-		id := searchMoveByName(t, e, "Will of the Jeskai", state.ZHand)
-		addMana(t, e, 0, "RRRR")
-		return e, id
-	}
-
 	// No commander on the battlefield: the compared SVar counts 0, GE1
 	// fails, and the modal ask is the plain choose-one.
-	e, id := build(false)
+	e, id := commanderCharmCast(t, reg, "Will of the Jeskai", "RRRR", false)
 	d := castFixture(t, e, id, -1)
 	if d.Kind != decision.KModes || d.Min != 1 || d.Max != 1 {
 		t.Fatalf("without a commander: modal decision min=%d max=%d kind=%v, want KModes 1..1", d.Min, d.Max, d.Kind)
 	}
 
-	// Commander on the battlefield: CharmNum resolves to 2 and the ask
-	// accepts a both-modes answer.
-	e2, id2 := build(true)
+	// Commander on the battlefield: CharmNum resolves to 2, but
+	// MinCharmNum$ 1 makes the second mode optional.
+	e2, id2 := commanderCharmCast(t, reg, "Will of the Jeskai", "RRRR", true)
 	d2 := castFixture(t, e2, id2, -1)
-	if d2.Kind != decision.KModes || d2.Min != 2 || d2.Max != 2 {
-		t.Fatalf("with a commander: modal decision min=%d max=%d, want KModes 2..2", d2.Min, d2.Max)
+	if d2.Kind != decision.KModes || d2.Min != 1 || d2.Max != 2 {
+		t.Fatalf("with a commander: modal decision min=%d max=%d, want KModes 1..2", d2.Min, d2.Max)
 	}
-	submitChoices(t, e2, d2.Options[0].Index, d2.Options[1].Index)
+	if err := d2.Validate(decision.Intent{Seq: d2.Seq, Player: d2.Player, Choices: []int{d2.Options[1].Index}}); err != nil {
+		t.Fatalf("one-mode answer rejected: %v", err)
+	}
+	submitChoices(t, e2, d2.Options[1].Index)
 	passUntilStackEmpty(t, e2, 20)
 	if z := e2.G.Obj(id2).Zone; z != state.ZGraveyard {
 		t.Fatalf("resolved Will in %s, want graveyard", z)
+	}
+}
+
+// commanderCharmCast makes a corpus Charm cast with an optional commander on
+// the battlefield, so Count$Valid Card.IsCommander+YouCtrl can exercise the
+// same cast-time context production uses.
+func commanderCharmCast(t *testing.T, reg *cards.Registry, spell, mana string, commander bool) (*Engine, state.ObjID) {
+	t.Helper()
+	card := searchCorpusCard(t, reg, spell)
+	isamaru := searchCorpusCard(t, reg, "Isamaru, Hound of Konda")
+	forest := searchCorpusCard(t, reg, "Forest")
+	mountain := searchCorpusCard(t, reg, "Mountain")
+	deck := []*cards.Card{card, isamaru}
+	for len(deck) < 40 {
+		if len(deck)%2 == 0 {
+			deck = append(deck, mountain)
+		} else {
+			deck = append(deck, forest)
+		}
+	}
+	opp := make([]*cards.Card, 40)
+	for i := range opp {
+		opp[i] = mountain
+	}
+	cfg := seatZeroStart(Config{Seed: 4210, Names: []string{"charmcaster", "opponent"},
+		Decks: [][]*cards.Card{deck, opp}, Tokens: reg.Tokens,
+		Commanders: [][]int{{1}, {}}})
+	e := New(cfg)
+	e.Advance()
+	toMain1(t, e)
+	if commander {
+		var cmdr state.ObjID
+		for _, id := range e.G.Zone(state.ZCommand, 0) {
+			cmdr = id
+		}
+		if cmdr == 0 {
+			t.Fatal("no commander in the command zone")
+		}
+		e.emit(events.Event{Kind: events.MoveZone, Obj: cmdr, From: state.ZCommand, To: state.ZBattlefield})
+		e.pending = nil
+		e.priorityRound()
+	}
+	id := searchMoveByName(t, e, spell, state.ZHand)
+	addMana(t, e, 0, mana)
+	return e, id
+}
+
+func TestKamahlsWillCanChooseOneLegalMode(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, id := commanderCharmCast(t, reg, "Kamahl's Will", "GGGG", true)
+	d := castFixture(t, e, id, -1)
+	if d.Kind != decision.KModes || d.Min != 1 || d.Max != 1 || len(d.Options) != 1 {
+		t.Fatalf("modal decision = %+v, want its one target-legal mode at 1..1", d)
+	}
+	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
+		t.Fatalf("the remaining legal mode was rejected: %v", err)
+	}
+}
+
+func TestWailOfTheForgottenAllowsOneOfThreeModes(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := searchEngine(t, reg, "Wail of the Forgotten")
+	// Make DBReturn target-legal too, so all three modes are eligible.
+	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
+		for _, id := range e.G.Zone(z, 0) {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Grizzly Bears" {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: state.ZBattlefield})
+				break
+			}
+		}
+		if len(e.G.Zone(state.ZBattlefield, 0)) > 0 {
+			break
+		}
+	}
+	moved := 0
+	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
+		for _, id := range append([]state.ObjID(nil), e.G.Zone(z, 0)...) {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name != "Wail of the Forgotten" {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: state.ZGraveyard})
+				moved++
+				if moved == 8 {
+					break
+				}
+			}
+		}
+		if moved == 8 {
+			break
+		}
+	}
+	if moved != 8 {
+		t.Fatalf("moved %d permanents to graveyard, want 8", moved)
+	}
+	e.pending = nil
+	e.priorityRound()
+	id := searchMoveByName(t, e, "Wail of the Forgotten", state.ZHand)
+	addMana(t, e, 0, "UB")
+	d := castFixture(t, e, id, -1)
+	if d.Kind != decision.KModes || d.Min != 1 || d.Max != 3 {
+		t.Fatalf("modal decision min=%d max=%d kind=%v, want KModes 1..3", d.Min, d.Max, d.Kind)
+	}
+}
+
+func TestTriggeredCharmMinCharmNumUsesCorpusScript(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := searchEngine(t, reg, "Invasion of Fiora")
+	id := searchMoveByName(t, e, "Invasion of Fiora", state.ZBattlefield)
+	f := e.G.Obj(id).Face()
+	if len(f.Triggers) == 0 || f.Triggers[0].Effect == nil {
+		t.Fatal("Invasion of Fiora has no compiled triggered Charm")
+	}
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack = %v, want MoveZone-triggered ability", e.G.Stack)
+	}
+	e.askTriggerModes(0, e.G.Stack[0], f.Triggers[0].Effect)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KModes || d.Min != 1 || d.Max != 2 {
+		t.Fatalf("triggered modal decision = %+v, want KModes 1..2", d)
 	}
 }

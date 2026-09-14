@@ -743,32 +743,28 @@ func chosenModeLabels(chosen []decision.Option) []string {
 }
 
 // modeDecision builds the shared KModes option vocabulary used by spell
-// announcement and triggered-ability placement. charmNum is already resolved
-// by the caller: casting has an effects context available, while placement
-// deliberately accepts only the trigger path's literal/default count.
-func modeDecision(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, charmNum int) *decision.Decision {
+// announcement and triggered-ability placement. min and max are resolved by
+// effects.CharmModeBounds against the caller's complete effects context.
+func modeDecision(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, min, max int) *decision.Decision {
 	choices := strings.Split(sa.Params["Choices"], ",")
 	for i := range choices {
 		choices[i] = strings.TrimSpace(choices[i])
 	}
-	return modeDecisionForChoices(p, source, sa, svars, choices, charmNum)
+	return modeDecisionForChoices(p, source, sa, svars, choices, min, max)
 }
 
 // modeDecisionForChoices is modeDecision over an explicit eligible subset.
 // Casting uses it to omit modes whose mandatory targets cannot be chosen;
 // ResumeModes preserves the SVar vocabulary server-side while Index stays
 // dense for the wire.
-func modeDecisionForChoices(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, choices []string, charmNum int) *decision.Decision {
-	if charmNum < 1 {
-		charmNum = 1
+func modeDecisionForChoices(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, choices []string, min, max int) *decision.Decision {
+	if max > len(choices) {
+		max = len(choices)
 	}
-	if charmNum > len(choices) {
-		charmNum = len(choices)
-	}
-	d := &decision.Decision{Player: p, Kind: decision.KModes, Min: charmNum, Max: charmNum,
+	d := &decision.Decision{Player: p, Kind: decision.KModes, Min: min, Max: max,
 		Source: source, ResumeKind: "modes", ResumeSA: sa,
 		ResumeModes: append([]string(nil), choices...),
-		Prompt:      "Choose " + strconv.Itoa(charmNum) + " mode(s)"}
+		Prompt:      "Choose " + strconv.Itoa(min) + " to " + strconv.Itoa(max) + " mode(s)"}
 	for i, name := range choices {
 		label := name
 		if sub := cards.ResolveSVar(svars, name); sub != nil {

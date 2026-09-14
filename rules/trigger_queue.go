@@ -9,7 +9,6 @@ package rules
 
 import (
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -728,21 +727,14 @@ func (e *Engine) abilityLabel(o *state.Object, t cards.Trigger) string {
 // the chosen SVar names onto the stack object (handleModes' placement
 // branch) rather than re-entering a suspended resolution.
 //
-// CharmNum is read as a literal integer (default 1, the overwhelmingly
-// common "choose one"), because the full Num/Qty grammar needs a resolving
-// context this placement ask does not have; a trigger whose CharmNum is
-// computed is rare and degrades to 1, same as the no-engine-host fallback.
-// The option list mirrors effCharm's -- Choices$ order, SpellDescription$ as
-// the label, resolved from the trigger's source SVar table -- so an index
-// chosen here maps to the same SVar name modeChoiceNames produces at
-// resolution.
+// The placement context has the triggering source, its SVar table, and the
+// trigger controller, which is enough for effects.Num to resolve the same
+// literal, SVar, and inline Count$ bounds as spell announcement and
+// resolution. The option list mirrors effCharm's -- Choices$ order,
+// SpellDescription$ as the label, resolved from the trigger's source SVar
+// table -- so an index chosen here maps to the same SVar name modeChoiceNames
+// produces at resolution.
 func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA) {
-	charmNum := 1
-	if v, ok := sa.Params["CharmNum"]; ok {
-		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil && n >= 1 {
-			charmNum = n
-		}
-	}
 	var source state.ObjID
 	var svars map[string]string
 	if so := e.G.Obj(obj); so != nil {
@@ -753,7 +745,14 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 			svars = sf.SVars
 		}
 	}
-	e.ask(modeDecision(p, source, sa, svars, charmNum))
+	ctx := &effects.Ctx{Source: source, Controller: p, TriggerContext: e.triggerContexts[obj]}
+	effects.SetSVars(ctx, svars)
+	choices := strings.Split(sa.Params["Choices"], ",")
+	min, max := effects.CharmModeBounds(e, ctx, sa, len(choices))
+	if min > len(choices) {
+		return
+	}
+	e.ask(modeDecision(p, source, sa, svars, min, max))
 }
 
 // askTriggerOrder is R1: the controller of two or more simultaneous triggers
