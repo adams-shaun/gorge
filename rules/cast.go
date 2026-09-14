@@ -58,6 +58,11 @@ type pendingCast struct {
 	discards    []state.ObjID
 	discardPart int
 
+	// convoke is the deterministic set of creatures committed to a Convoke
+	// payment. Their coloured contribution is folded into cost before the
+	// regular mana window, then each is tapped with an event at payment.
+	convoke []state.ObjID
+
 	// payIdx / payColor / payLife carry the hybrid and Phyrexian payment
 	// announcement (CR 601.2b/107.4e-f). manaAsk walks the cost's combined
 	// hybrid-then-Phyrexian pip list one decision at a time; payIdx is the
@@ -208,6 +213,14 @@ func keywordAltCost(f *cards.Face, head string) (Cost, bool) {
 	return ParseCost(s), true
 }
 
+func buybackCost(f *cards.Face) (Cost, bool) {
+	s, ok := f.KeywordParam("Buyback")
+	if !ok {
+		return Cost{}, false
+	}
+	return ParseCost(s), true
+}
+
 // altAddCostParts splits a face's AlternateAdditionalCost keyword into its
 // alternative parts: the parameter is the parts joined by ":" (e.g. Bone
 // Shards' "Sac<1/Creature>:Discard<1/Card>", Redirect Lightning's
@@ -230,6 +243,96 @@ func altAddCostParts(f *cards.Face) []string {
 		}
 	}
 	return out
+}
+
+func harmonizeCost(f *cards.Face) (Cost, bool) {
+	s, ok := f.KeywordParam("Harmonize")
+	if !ok {
+		return Cost{}, false
+	}
+	return ParseCost(s), true
+}
+
+// harmonizePayment applies the keyword's creature-power reduction in stable
+// battlefield order and returns the creatures that pay it by becoming tapped.
+func (e *Engine) harmonizePayment(p state.PlayerID, id state.ObjID, c Cost) (Cost, []state.ObjID) {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil || !o.Face().HasKeyword("Harmonize") {
+		return c, nil
+	}
+	var tapped []state.ObjID
+	for _, cid := range e.G.Zone(state.ZBattlefield, p) {
+		if c.Generic == 0 {
+			break
+		}
+		co := e.G.Obj(cid)
+		if co == nil || co.Tapped || co.Face() == nil || !co.Face().IsCreature() || co.Face().Power() <= 0 {
+			continue
+		}
+		reduce := int32(co.Face().Power())
+		if reduce > c.Generic {
+			reduce = c.Generic
+		}
+		c.Generic -= reduce
+		tapped = append(tapped, cid)
+	}
+	return c, tapped
+}
+
+type suspendInfo struct {
+	time int32
+	cost Cost
+}
+
+// suspendCost parses Forge's Suspend:<time>:<cost> keyword form.
+// convokeCost commits untapped creatures in battlefield order, consuming a
+// needed colour when that creature has one and otherwise one generic mana.
+// It returns the reduced cost and exactly the creatures that must be tapped.
+func (e *Engine) convokeCost(p state.PlayerID, id state.ObjID, c Cost) (Cost, []state.ObjID) {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil || !e.HasKeyword(id, "Convoke") {
+		return c, nil
+	}
+	var tapped []state.ObjID
+	for _, cid := range e.G.Zone(state.ZBattlefield, p) {
+		co := e.G.Obj(cid)
+		if co == nil || co.Tapped || co.Face() == nil || !co.Face().IsCreature() {
+			continue
+		}
+		used := false
+		for _, col := range []byte{'W', 'U', 'B', 'R', 'G'} {
+			i := state.ManaIndex(col)
+			if c.Colored[i] > 0 && strings.Contains(effects.ColorsOf(co), string(col)) {
+				c.Colored[i]--
+				used = true
+				break
+			}
+		}
+		if !used && c.Generic > 0 {
+			c.Generic--
+			used = true
+		}
+		if used {
+			tapped = append(tapped, cid)
+		}
+	}
+	return c, tapped
+}
+
+func suspendCost(f *cards.Face) (suspendInfo, bool) {
+	raw, ok := f.KeywordParam("Suspend")
+	if !ok {
+		return suspendInfo{}, false
+	}
+	n, rest, ok := strings.Cut(raw, ":")
+	if !ok {
+		return suspendInfo{}, false
+	}
+	time, err := strconv.ParseInt(strings.TrimSpace(n), 10, 32)
+	if err != nil || time < 0 {
+		return suspendInfo{}, false
+	}
+	return suspendInfo{time: int32(time), cost: ParseCost(rest)}, true
 }
 
 // flashbackCost is id's Flashback cost: the printed parameter if this face
@@ -577,6 +680,20 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		if sc, ok := surgeCost(f); ok {
 			cost = sc
 		}
+	case "buyback":
+		if bc, ok := buybackCost(f); ok {
+			cost = cost.Plus(bc)
+		}
+	case "harmonize":
+		if hc, ok := harmonizeCost(f); ok {
+			cost = hc
+		}
+	case "suspend":
+		if sc, ok := suspendCost(f); ok {
+			cost = sc.cost
+		}
+	case "suspend_cast":
+		cost = Cost{}
 	case "flashback":
 		cost = e.flashbackCost(id)
 	case "miracle":
@@ -618,6 +735,12 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	if opt.AltCostIndex == 0 && opt.Mode == "" {
 		cost = withSpellAbilityExtras(f, cost)
 	}
+	cost, convoke := e.convokeCost(p, id, cost)
+	if opt.Mode == "harmonize" {
+		var harmony []state.ObjID
+		cost, harmony = e.harmonizePayment(p, id, cost)
+		convoke = append(convoke, harmony...)
+	}
 	// The either-or additional cost (AlternateAdditionalCost) is a CHOICE,
 	// not a fixed component, so the parts are only captured here and the ask
 	// (altAddAsk) folds the chosen part into cost before any other cost stage
@@ -630,10 +753,10 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	if opt.AltCostIndex == 0 && opt.Mode == "" {
 		pcAlt := altAddCostParts(f)
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
-			cost: cost, raise: raise, reduce: reduce, taxGeneric: tax, altAddParts: pcAlt}
+			cost: cost, raise: raise, reduce: reduce, convoke: convoke, taxGeneric: tax, altAddParts: pcAlt}
 	} else {
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
-			cost: cost, raise: raise, reduce: reduce, taxGeneric: tax}
+			cost: cost, convoke: convoke, raise: raise, reduce: reduce, taxGeneric: tax}
 	}
 	// CR 903.8: the commander tax, applied to whatever cost this cast pays
 	// (the base/alternative/kicked/flashback/surged/miracle cost resolved
@@ -685,6 +808,13 @@ func (e *Engine) continueCast() {
 		return
 	}
 	if e.etbAsk() {
+		return
+	}
+	// Suspend does not put a spell on the stack: its alternate action pays
+	// the keyword cost and exiles the card with time counters. Targets are
+	// chosen only when its later free cast is announced.
+	if e.cast.mode == "suspend" {
+		e.payCast()
 		return
 	}
 	// CR 601.2a: the object reaches the stack before the target choice
@@ -1736,6 +1866,12 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagOverloaded)
 	case "warped":
 		return events.FlagsString(state.FlagWarped)
+	case "buyback":
+		return events.FlagsString(state.FlagBuyback)
+	case "harmonize":
+		return events.FlagsString(state.FlagHarmonize)
+	case "suspend":
+		return events.FlagsString(state.FlagSuspend)
 	}
 	return ""
 }
@@ -1883,7 +2019,7 @@ func (e *Engine) targetAsk() bool {
 // no reversal is owed.
 func (e *Engine) pushCast() bool {
 	pc := e.cast
-	if pc == nil || pc.mode == "land" || pc.ability >= 0 {
+	if pc == nil || pc.mode == "land" || pc.mode == "suspend" || pc.ability >= 0 {
 		return false
 	}
 	if pc.pushed {
@@ -2246,6 +2382,9 @@ func (e *Engine) payCast() {
 	if pc.payLife != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.payLife})
 	}
+	for _, id := range pc.convoke {
+		e.emit(events.Event{Kind: events.Tap, Obj: id})
+	}
 	for _, id := range pc.delve {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
 	}
@@ -2267,6 +2406,15 @@ func (e *Engine) payCast() {
 	}
 	for _, id := range pc.sacs {
 		e.emit(events.Sacrifice(id))
+	}
+	if pc.mode == "suspend" {
+		info, _ := suspendCost(e.G.Obj(pc.card).Face())
+		e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: pc.from, To: state.ZExile, Text: "suspended"})
+		if info.time > 0 {
+			e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: "TIME", Amount: info.time})
+		}
+		e.cast, e.choosing = nil, chooseNone
+		return
 	}
 	if e.sacrificedLKI == nil {
 		e.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo)
@@ -2458,5 +2606,6 @@ func init() {
 		// minting attacking token copies), and kw:AlternateAdditionalCost
 		// (the mandatory either-or additional cost choice).
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
-		"kw:Encore", "kw:AlternateAdditionalCost")
+		"kw:Encore", "kw:AlternateAdditionalCost",
+		"kw:Buyback", "kw:Transmute", "kw:Suspend", "kw:Convoke", "kw:Harmonize", "kw:Cycling")
 }

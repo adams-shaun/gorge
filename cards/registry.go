@@ -93,6 +93,9 @@ type cacheFile struct {
 // exactly the way a v1-vs-Tokens cache would. Version 4 carries Card's
 // AlternateMode, which name-characteristic matching needs to distinguish a
 // split card from a transforming double-faced card away from the battlefield.
+// Keyword expansions are also re-linked after decoding below, so a newly
+// added idempotent expansion does not force every worktree to rewrite its
+// corpus.
 const cacheVersion = 4
 
 func (r *Registry) Save(path string) error {
@@ -156,6 +159,10 @@ func LoadRegistry(path string) (*Registry, error) {
 		// gob construction route must end with the same derived values as the
 		// ParseBytes route.
 		for _, f := range c.Faces {
+			// Re-link decoded faces so a newly added idempotent keyword expansion
+			// is present even when this worktree intentionally reuses the shared,
+			// read-only corpus cache.
+			f.link(c.Path)
 			f.derive()
 		}
 		r.Add(c)

@@ -969,8 +969,11 @@ func (e *Engine) resolveTop() {
 // stack, so its CastFlags (set by commitCast's CastInfo, if any) still
 // reflect how it was cast.
 func spellRestZone(o *state.Object) state.Zone {
-	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.IsCopy) {
+	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 || o.IsCopy) {
 		return state.ZExile
+	}
+	if o != nil && o.CastFlags&state.FlagBuyback != 0 {
+		return state.ZHand
 	}
 	return state.ZGraveyard
 }

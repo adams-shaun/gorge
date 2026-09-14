@@ -95,7 +95,7 @@ var knownUnsupported = map[string][]string{
 	"Chandra, Awakened Inferno":    {"repl:Counter"},
 	"Chromatic Orrery":             {"stat:ManaConvert"},
 	"Conduit of Worlds":            {"api:Play"},
-	"Constant Mists":               {"api:Fog", "kw:Buyback"},
+	"Constant Mists":               {"api:Fog"},
 	"Crypt Ghast":                  {"kw:Extort"},
 	"Exotic Orchard":               {"api:ManaReflected"},
 	"Exploration Broodship":        {"kw:Station"},
@@ -111,7 +111,6 @@ var knownUnsupported = map[string][]string{
 	"Ob Nixilis, Captive Kingpin":  {"trig:LifeLostAll"},
 	"Ojer Axonil, Deepest Might":   {"api:ReplaceEffect", "repl:DamageDone"},
 	"Planetary Annihilation":       {"api:SacrificeAll"},
-	"Profane Tutor":                {"kw:Suspend"},
 	"Razorkin Needlehead":          {"trig:Drawn"},
 	"Sheoldred, the Apocalypse":    {"trig:Drawn"},
 	"Solphim, Mayhem Dominus":      {"api:ReplaceEffect", "repl:DamageDone"},
@@ -126,7 +125,6 @@ var knownUnsupported = map[string][]string{
 	"Valgavoth, Harrower of Souls": {"trig:LifeLost"},
 	"Vial Smasher the Fierce":      {"kw:Partner"},
 	"Walk-In Closet":               {"trig:UnlockDoor"},
-	"Ziatora's Proving Ground":     {"kw:Cycling"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card

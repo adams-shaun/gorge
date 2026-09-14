@@ -368,7 +368,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if e.castSuppressed(p, id) {
 			continue
 		}
-		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
+		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash") || e.castWithFlash(p, id)
 		if !instantSpeed && !sorcery {
 			continue
 		}
@@ -390,6 +390,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		// condition: the kicked/surged/flashback/miracle offers below set
 		// Mode, and beginCast skips the fold for those.
 		base := e.offerCostFor(p, id, e.rawBaseCost(p, id), false)
+		convokeBase, _ := e.convokeCost(p, id, base)
 		// An either-or additional cost (AlternateAdditionalCost) makes the
 		// plain cast's gate existential: the cast is offerable when AT LEAST
 		// ONE alternative part is payable (the choice itself is asked by the
@@ -399,12 +400,12 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if targetsAvailable {
 			if len(altParts) > 0 {
 				for _, part := range altParts {
-					if e.castable(p, id, withSpellAbilityExtras(f, base).Plus(ParseCost(part)), false) {
+					if e.castable(p, id, withSpellAbilityExtras(f, convokeBase).Plus(ParseCost(part)), false) {
 						add("cast", "Cast "+f.Name, id)
 						break
 					}
 				}
-			} else if e.castable(p, id, withSpellAbilityExtras(f, base), false) {
+			} else if e.castable(p, id, withSpellAbilityExtras(f, convokeBase), false) {
 				add("cast", "Cast "+f.Name, id)
 			}
 		}
@@ -455,6 +456,12 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			}
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode})
+		}
+		if bc, ok := buybackCost(f); ok && e.castable(p, id, e.offerCostFor(p, id, base.Plus(bc), false), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + f.Name + " (buyback)", Obj: id, Mode: "buyback"})
+		}
+		if sc, ok := suspendCost(f); ok && e.castable(p, id, e.offerCostFor(p, id, sc.cost, false), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Suspend " + f.Name, Obj: id, Mode: "suspend"})
 		}
 	}
 
@@ -526,6 +533,25 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		}
 	}
 
+	// Harmonize is a graveyard alternative. It is offered as its own cast
+	// transaction, then spellRestZone exiles it after resolution.
+	for _, id := range e.G.Zone(state.ZGraveyard, p) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		f := o.Face()
+		if !f.IsInstant() && !e.castWithFlash(p, id) && !sorcery {
+			continue
+		}
+		if hc, ok := harmonizeCost(f); ok && e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			hc, _ = e.harmonizePayment(p, id, hc)
+			if e.castable(p, id, e.offerCostFor(p, id, hc, false), false) {
+				out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + f.Name + " (harmonize)", Obj: id, Mode: "harmonize"})
+			}
+		}
+	}
+
 	// Flashback: a graveyard walk, same instant-speed timing as hand cards,
 	// gated on the derived keyword (so a continuous-effect grant, e.g.
 	// Snapcaster Mage, counts) rather than the printed one.
@@ -551,6 +577,22 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if fc := e.flashbackCost(id); e.castable(p, id, e.offerCostFor(p, id, fc, false), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (flashback)", Obj: id, Mode: "flashback"})
+		}
+	}
+
+	// A suspended card whose final time counter was removed may be cast for
+	// free during its owner's upkeep. Passing leaves it in exile, implementing
+	// the keyword's optional cast without a second special decision kind.
+	if e.G.Active == p && e.G.Step == state.StepUpkeep {
+		for _, id := range e.G.Zone(state.ZExile, p) {
+			o := e.G.Obj(id)
+			if o == nil || o.Face() == nil || o.Counter("TIME") != 0 {
+				continue
+			}
+			if _, ok := suspendCost(o.Face()); !ok || !e.castTargetsAvailable(p, id, o.Face().SpellAbility()) {
+				continue
+			}
+			out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + o.Face().Name + " (suspend)", Obj: id, Mode: "suspend_cast"})
 		}
 	}
 
@@ -644,7 +686,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 	// not always true: Task 14 round 1 shipped a second, Equip-only loop and
 	// deleted it again on the main merge (one offer path, one activation
 	// path), so do not resurrect one.
-	for _, z := range []state.Zone{state.ZBattlefield, state.ZGraveyard} {
+	for _, z := range []state.Zone{state.ZBattlefield, state.ZGraveyard, state.ZHand} {
 		for _, id := range e.G.Zone(z, p) {
 			o := e.G.Obj(id)
 			f := o.Face()

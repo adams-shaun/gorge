@@ -256,6 +256,22 @@ func (e *Engine) adjustedCost(p state.PlayerID, id state.ObjID) Cost {
 	return c
 }
 
+// castWithFlash reports whether an active CastWithFlash static gives p
+// permission to cast id at instant speed. It is intentionally shared by every
+// zone that can cast a spell; a Vedalken Orrery must not stop working when a
+// later alternative permits casting from another zone.
+func (e *Engine) castWithFlash(p state.PlayerID, id state.ObjID) bool {
+	for _, sv := range e.activeStatics("CastWithFlash") {
+		if !e.actorMatches(sv, "Caster", p) {
+			continue
+		}
+		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+			return true
+		}
+	}
+	return false
+}
+
 // alternativeCosts lists extra ways to cast id, each becoming its own
 // "cast" option in legalActions so the client can present the choice
 // without knowing any rules. Two sources: another permanent's static
@@ -338,7 +354,7 @@ func parseAmount(s string, def int32) int32 {
 }
 
 func init() {
-	effects.RegisterNonAPI("stat:CantBeCast", "stat:CantBeActivated", "stat:RaiseCost",
+	effects.RegisterNonAPI("stat:CantBeCast", "stat:CantBeActivated", "stat:RaiseCost", "stat:CastWithFlash",
 		"stat:ReduceCost", "stat:AlternativeCost", "stat:CantBlock", "stat:CantBlockBy",
 		"stat:Continuous", "stat:NumLoyaltyAct")
 }

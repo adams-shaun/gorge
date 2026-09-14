@@ -32,6 +32,21 @@ func (e *Engine) finishEnteredStep() {
 	if e.G.Step == state.StepUntap && !e.finishUntapStep(0) {
 		return
 	}
+	if e.G.Step == state.StepUpkeep {
+		// CR 702.62: each suspended card owned by the active player loses one
+		// time counter at upkeep. Once the last is gone legalActions offers its
+		// no-cost cast; passing is the optional "may cast" choice. Gated on the
+		// step actually entered, so a BeginPhase replacement that skipped the
+		// upkeep step (landing directly on the draw) does not decrement.
+		for _, id := range e.G.Zone(state.ZExile, e.G.Active) {
+			o := e.G.Obj(id)
+			if o != nil && o.Face() != nil {
+				if _, ok := suspendCost(o.Face()); ok && o.Counter("TIME") > 0 {
+					e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
+				}
+			}
+		}
+	}
 	// An upkeep skip can land the turn directly on the draw step, whose
 	// turn-based action must still run (CR 504.1 -- the skip took the upkeep
 	// step, never the draw's draw). drawStepTurnAction is the one entry to
