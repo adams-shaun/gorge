@@ -163,6 +163,7 @@ def _redispatch_implementer(issue: issues.Issue, findings: str) -> None:
     name = seats.implementer_name(issue.id, tag)
     if pi.already_launched(name):
         issue.status = "dispatched"
+        issue.log(f"redispatch to {tag} skipped: a launch marker for {name} already exists (manual reset?) -- will poll its existing status file")
         issue.save()
         return
     wt = config.REPO / issue.worktree
@@ -268,6 +269,11 @@ def _run_gates_and_merge(issue: issues.Issue, wt: Path) -> None:
             passed = False
     if not passed:
         fail_summary = "\n\n".join(f"### {r.name}\n{r.output[-3000:]}" for r in results if not r.ok)
+        # Always keep the failure in the issue's own history: the findings
+        # file is only written when a redispatch actually launches, and a
+        # skipped launch (already-launched marker) used to lose the output.
+        issue.log("gates failed: " + ", ".join(r.name for r in results if not r.ok)
+                  + "\n" + fail_summary[-1500:])
         _handle_gate_or_review_failure(issue, f"gates failed:\n{fail_summary}")
         return
     _merge_push_deploy(issue, wt)

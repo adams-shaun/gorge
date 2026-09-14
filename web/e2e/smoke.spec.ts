@@ -322,6 +322,12 @@ function watch(page: Page, base: string): Issues {
     // nothing is pending for this seat, and /intent answers 409 on a stale
     // seq; the client recovers from both by design (see seatpanel.ts
     // refreshPending / postIntent). It is not a product failure.
+    // 502 from the Scryfall-backed proxies (/art/... images, /cards/named
+    // printed facts) is gorged reporting that the UPSTREAM failed
+    // (cmd/gorged/art.go answers StatusBadGateway only on an upstream error). A Scryfall outage (observed 2026-09-14: 503
+    // upstream) is not a gorge product failure and must not block every web
+    // merge; any other status on those paths, and every other path's failure, still counts.
+    if (r.status() === 502 && sameOrigin(base, r.url()) && /^\/(art\/|cards\/named$)/.test(new URL(r.url()).pathname)) return;
     if (sameOrigin(base, r.url()) && r.status() >= 400 && r.status() !== 409) {
       c.failed.push(`HTTP ${r.status()} ${r.request().method()} ${r.url()}`);
     }
