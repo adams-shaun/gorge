@@ -331,15 +331,23 @@ type costMod struct {
 // 601.2f order: every increase first, then every reduction in static order
 // (each with its own MinMana floor), then a SetCost floor last.
 type costMods struct {
-	raises   []int32
-	reduces  []costMod
-	setFloor int32
+	raises []int32
+	// raiseCol / raiseLife carry the aggregated RaiseCost Cost$ raises: the
+	// coloured pips, generic and life a "Black spells you cast cost {B} more"
+	// static adds to the total (an additional cost — never reduced by the
+	// reductions that follow, per CR 601.2f's increase-then-reduce order).
+	raiseCol  state.Mana
+	raiseGen  int32
+	raiseLife int32
+	reduces   []costMod
+	setFloor  int32
 }
 
 // empty reports whether the composition would change nothing, so a caller can
 // keep its old zero-value shorthand.
 func (m costMods) empty() bool {
-	return len(m.raises) == 0 && len(m.reduces) == 0 && m.setFloor == 0
+	return len(m.raises) == 0 && m.raiseGen == 0 && m.raiseLife == 0 &&
+		m.raiseCol.Total() == 0 && len(m.reduces) == 0 && m.setFloor == 0
 }
 
 // apply composes c with the modifiers, CR 601.2f: increases before
@@ -352,6 +360,11 @@ func (m costMods) apply(c Cost) Cost {
 	for _, r := range m.raises {
 		c.Generic = addClampedGeneric(c.Generic, int64(r))
 	}
+	for i := range m.raiseCol {
+		c.Colored[i] = addClampedGeneric(c.Colored[i], int64(m.raiseCol[i]))
+	}
+	c.Generic = addClampedGeneric(c.Generic, int64(m.raiseGen))
+	c.Life = addClampedGeneric(c.Life, int64(m.raiseLife))
 	for _, red := range m.reduces {
 		leftover := red.generic
 		if red.hasColor {
@@ -509,6 +522,40 @@ func (e *Engine) modAmount(sv staticView) int32 {
 	return effects.EvalCount(e, ctx, raw)
 }
 
+// raiseFromCost parses a RaiseCost Cost$ into its mana and life raise. Only
+// the plain shapes apply: single colour letters, numeric tokens, and the
+// fixed PayLife<N> token. Anything else — hybrid pips (none in the corpus's
+// cost raises), X/T, or a <...> component this build does not model as an
+// additional raise (Waterbend, ExileFromHand, BeholdExile, Sac<...>,
+// AddCounter, tapXType) — reports false, so the static degrades to the
+// Amount$ reading (absent → the zero raise) rather than silently pricing an
+// unmodelled cost as one generic mana.
+func raiseFromCost(s string) (col state.Mana, gen, life int32, ok bool) {
+	for _, sym := range splitCostTokens(s) {
+		switch {
+		case len(sym) == 1 && strings.ContainsRune("WUBRGC", rune(sym[0])):
+			col[state.ManaIndex(sym[0])]++
+		case isDigitRun(sym):
+			n, err := strconv.ParseInt(sym, 10, 64)
+			if err != nil || n < 0 || n > int64(math.MaxInt32) {
+				return col, 0, 0, false
+			}
+			gen = addClampedGeneric(gen, n)
+		default:
+			if m := lifeCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					return col, 0, 0, false
+				}
+				life = addClampedGeneric(life, n)
+				continue
+			}
+			return col, 0, 0, false
+		}
+	}
+	return col, gen, life, true
+}
+
 // costActorMatches is the cost-modifier actor gate: a RaiseCost/ReduceCost
 // static with an Activator$ or Caster$ parameter scopes to whose cost it
 // modifies. With neither it applies regardless of actor.
@@ -541,6 +588,26 @@ func (e *Engine) costModifiers(p state.PlayerID, id state.ObjID, scope costScope
 				continue
 			}
 			if mode == "RaiseCost" {
+				// A RaiseCost Cost$ names the whole additional cost (Forge
+				// CostAdjustment's RaiseCost branch): a plain mana/life cost
+				// is raised as-is, pips and life included. A Cost$ paired
+				// with an Amount$ ("you may pay {1}{G} any number of times")
+				// is an OPTIONAL additional-cost shape this build does not
+				// model — the exotic Amount$ skips the static below, so only
+				// the plain raise applies. Cost$ shapes that are not plain
+				// mana/life (Waterbend, ExileFromHand, Sac<...>) parse
+				// nowhere and are skipped by raiseFromCost.
+				rc, rg, rl, costOK := raiseFromCost(sv.Params["Cost"])
+				if costOK {
+					if _, hasAmt := sv.Params["Amount"]; !hasAmt {
+						for i := range rc {
+							mods.raiseCol[i] = addClampedGeneric(mods.raiseCol[i], int64(rc[i]))
+						}
+						mods.raiseGen = addClampedGeneric(mods.raiseGen, int64(rg))
+						mods.raiseLife = addClampedGeneric(mods.raiseLife, int64(rl))
+						continue
+					}
+				}
 				mods.raises = append(mods.raises, e.modAmount(sv))
 				continue
 			}

@@ -560,3 +560,44 @@ func TestConditionPlayerTurnGatesTheReduction(t *testing.T) {
 	}
 	e.G.Active = 0
 }
+
+// TestRaiseCostManaShapeAddsPips pins the RaiseCost Cost\$ raise (Andradite
+// Leech's real line): the additional cost is whole mana — the raised spell
+// owes the extra {B} pip, and a non-black spell is untouched.
+func TestRaiseCostManaShapeAddsPips(t *testing.T) {
+	blightSrc := "Name:Blight\nManaCost:B\nTypes:Sorcery\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n"
+	leechSrc := "Name:Andradite Leech\nManaCost:2 B\nTypes:Creature Leech\nPT:2/2\n" +
+		"A:AB$ Pump | Cost$ B | Defined$ Self | NumAtt$ +1 | NumDef$ +1 | SpellDescription$ CARDNAME gets +1/+1 until end of turn.\n" +
+		"S:Mode$ RaiseCost | ValidCard$ Card.Black | Activator$ You | Type$ Spell | Cost$ B | Description$ Black spells you cast cost {B} more to cast.\n" +
+		"Oracle:x\n"
+	e, cfg, _ := newFixtureDeck(t, 80, blightSrc, leechSrc)
+	putCreature(t, e, 0, leechSrc)
+	addMana(t, e, 0, "B")
+	if castByName(t, e, 0, "Blight") != nil {
+		t.Fatal("a {B} spell raised by {B} needs two black; one must not be enough")
+	}
+	addMana(t, e, 0, "B")
+	opt := castByName(t, e, 0, "Blight")
+	if opt == nil {
+		t.Fatal("the raised {B}{B} should be castable with two black")
+	}
+	submitChoices(t, e, opt.Index)
+	if d := e.Pending(); d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("Blight's target decision: %+v", d)
+	}
+	submitChoices(t, e, 0)
+	if e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("pool after paying the raised cost = %d, want 0", e.G.Players[0].Pool.Total())
+	}
+	replayCheck(t, e, cfg)
+	// A non-black spell is untouched by the ValidCard$ Card.Black raise.
+	leech2Src := "Name:Andradite Leech\nManaCost:2 B\nTypes:Creature Leech\nPT:2/2\n" +
+		"S:Mode$ RaiseCost | ValidCard$ Card.Black | Activator$ You | Type$ Spell | Cost$ B | Description$ Black spells you cast cost {B} more to cast.\n" +
+		"Oracle:x\n"
+	e2, _, _ := newFixtureDeck(t, 81, "Name:Filler\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n", leech2Src)
+	putCreature(t, e2, 0, leech2Src)
+	addMana(t, e2, 0, "R")
+	if castByName(t, e2, 0, "Filler") == nil {
+		t.Fatal("a red spell is not black: the {B} raise must not touch it")
+	}
+}
