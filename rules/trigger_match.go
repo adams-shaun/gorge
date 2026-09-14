@@ -62,7 +62,8 @@ type pendingTrigger struct {
 
 // triggerKey identifies one T: line: the object that carries it, plus that
 // object's own Triggers index (a card can have more than one). Used both for
-// the cascade bound and for DamageDealtOnce's once-per-turn gate.
+// the cascade bound and for DamageDealtOnce/DamageDoneOnce's once-per-turn
+// gate.
 type triggerKey struct {
 	Source state.ObjID
 	Idx    int
@@ -318,7 +319,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			if e.triggerFireCount[key] >= maxTriggerFires {
 				continue // cascade bound: see maxTriggerFires.
 			}
-			if t.Mode == "DamageDealtOnce" {
+			if t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" {
 				if e.damageOnceFired == nil {
 					e.damageOnceFired = map[triggerKey]int32{}
 				}
@@ -429,7 +430,7 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		matched = e.abilityCastMatches(t, source, ev)
 	case "Attacks":
 		matched = e.attacksMatches(t, source, ev)
-	case "DamageDone", "DamageDealtOnce":
+	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":
 		matched = e.damageMatches(t, source, ev)
 	case "BecomesTarget":
 		matched = e.becomesTargetMatches(t, source, ev)
@@ -672,23 +673,46 @@ func (e *Engine) damageSource() state.ObjID {
 	return e.G.Stack[len(e.G.Stack)-1]
 }
 
-// damageMatches implements Mode$ DamageDone and DamageDealtOnce (the once-
-// per-turn gate itself lives in checkTriggers, alongside the cascade bound;
-// this is purely the per-event parameter match, shared by both modes).
+// damageMatches implements Mode$ DamageDone, DamageDealtOnce and
+// DamageDoneOnce (the once-per-turn gate itself lives in checkTriggers,
+// alongside the cascade bound; this is purely the per-event parameter match,
+// shared by all three modes).
 func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.Damage {
 		return false
 	}
-	if strings.EqualFold(t.Params["CombatDamage"], "True") {
-		// dealCombatDamage (rules/combat.go) is fully implemented, but
-		// events.Event still carries nothing to distinguish combat from
-		// noncombat damage at the point a trigger checks it, so a trigger
-		// that insists on CombatDamage$ True can never fire yet regardless.
+	// CombatDamage$ splits the mode between combat and noncombat damage
+	// (CR 702.1x: combat damage is what the combat damage step's attackers
+	// and blockers assign -- a DealDamage cast during that step is still not
+	// combat damage). events.Event deliberately carries no such flag -- its
+	// binary encoding is hash-chained and replayed -- so the distinction is
+	// e.combatDamaging (engine.go), set only around dealCombatDamage's
+	// assignment loop (combat.go) and read here synchronously inside emit's
+	// checkTriggers; replay rebuilds it by re-executing the same setter.
+	// CombatDamage$ False is the complement (16 corpus trigger lines): only
+	// noncombat damage, so an in-flight combat assignment fails it. Before
+	// the flag existed True returned false unconditionally (978 dead corpus
+	// trigger lines, Umezawa's Jitte among them) and False fell through and
+	// matched everything.
+	switch cd := t.Params["CombatDamage"]; {
+	case strings.EqualFold(cd, "True") && !e.combatDamaging:
+		return false
+	case strings.EqualFold(cd, "False") && e.combatDamaging:
 		return false
 	}
 	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidSource"]; ok {
+		// The damage's source: the resolving spell or ability while it is the
+		// stack top (damageSource), or the dealing creature during combat's
+		// assignment loop (e.damaging, set alongside combatDamaging). During
+		// combat the stack is empty, so damageSource alone would return zero
+		// and every ValidSource$ CombatDamage$ trigger -- Umezawa's Jitte's
+		// ValidSource$ Creature.EquippedBy among them -- would stay dead even
+		// with the flag in place.
 		src := e.damageSource()
+		if src == 0 && e.combatDamaging {
+			src = e.damaging
+		}
 		if src == 0 || !effects.MatchesSpecCtx(e.G, v, src, e.specCtx(source, ctrl)) {
 			return false
 		}
@@ -1010,7 +1034,7 @@ func (e *Engine) stateTriggerOutstanding(source state.ObjID, idx int) bool {
 func init() {
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:SpellCast", "trig:Attacks", "trig:DamageDone",
-		"trig:DamageDealtOnce", "trig:BecomesTarget", "trig:LandPlayed", "trig:Phase",
+		"trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:BecomesTarget", "trig:LandPlayed", "trig:Phase",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		"repl:Moved",
 		// Task 16 keyword triggers, expanded by cards/keywords.go into ordinary

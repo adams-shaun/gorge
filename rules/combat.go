@@ -1057,6 +1057,11 @@ func (e *Engine) damageStep(firstStrike bool) {
 		// damage when the recipient is protected from it (CR 702.16d); reset
 		// before the next assignment.
 		e.damaging = x.from
+		// combatDamaging marks THIS assignment's Damage event as combat damage
+		// (see engine.go): damageMatches reads it inside the emit's
+		// synchronous checkTriggers, and a prevented hit (the protection Note
+		// substituted for the Damage event) never reaches it.
+		e.combatDamaging = true
 		var prevented bool
 		if x.toObj != 0 {
 			// Task 15 fix round 1 (Critical C1): the return value of the
@@ -1106,6 +1111,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 			e.emit(events.Event{Kind: events.LifeChange, Player: x.lifelink, Amount: x.amount})
 		}
 		e.damaging = 0
+		e.combatDamaging = false
 	}
 }
 

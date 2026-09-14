@@ -246,8 +246,9 @@ type Engine struct {
 	// completed move never happens (fx44, Mox Diamond). Zero whenever no
 	// replacement is in flight.
 	replReplaced state.ObjID
-	// triggerFireCount and damageOnceFired are trigger.go's own bookkeeping
-	// (cascade bound and the DamageDealtOnce once-per-turn gate); see there.
+	// triggerFireCount and damageOnceFired are trigger_match.go's own
+	// bookkeeping (the cascade bound and the DamageDealtOnce/DamageDoneOnce
+	// once-per-turn gate); see there.
 	triggerFireCount map[triggerKey]int32
 	damageOnceFired  map[triggerKey]int32
 
@@ -415,6 +416,23 @@ type Engine struct {
 	// from crossing. So the field is always zero at a clone boundary and
 	// copying it would copy a constant.
 	damaging state.ObjID
+
+	// combatDamaging distinguishes a combat-damage Damage event from a
+	// noncombat one at trigger-match time (CombatDamage$ True/False, CR
+	// 702.1x names the combat damage step's own assignments) WITHOUT touching
+	// events.Event: the event struct's binary encoding is hash-chained and
+	// replayed, so per-event context lives in engine state and is rebuilt by
+	// replay because replay re-executes the same setter (the pg2 precedent).
+	// dealCombatDamage (combat.go) sets it true alongside e.damaging for the
+	// length of each assignment and clears it with the same reset; triggers
+	// are checked synchronously inside emit (checkTriggers on the stored
+	// event), so the flag is valid at match time. Every non-combat Damage
+	// site -- the resolving ability in resolveTop/resumeResolution and the
+	// effects/damage.go primitives those wrap -- leaves it false, and a
+	// DealDamage cast during the combat damage step is still NOT combat
+	// damage. Not copied by Clone, for the same reason as damaging above:
+	// always zero at a clone boundary.
+	combatDamaging bool
 
 	// foreachBuf is forEachObject's (trigger_match.go) scratch snapshot
 	// buffer. forEachObject copies each zone into it before walking it -- fn
