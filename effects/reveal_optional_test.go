@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
@@ -33,7 +34,7 @@ func revealBoard(t *testing.T) (*fakeHost, []state.ObjID) {
 // ResumeKind "reveal_optional" and SUSPENDS, so a chained SubAbility$ does
 // not run before the answer (task fb-20260914T033246Z-3f1cc033, defect 1).
 func TestRevealOptionalPeekPosesTheYesNoAsk(t *testing.T) {
-	h, _ := revealBoard(t)
+	h, ids := revealBoard(t)
 	sh := &suspendHost{fakeHost: *h}
 	ctx := &Ctx{Controller: 0, Source: 3}
 	sa := sa(t, "SP$ PeekAndReveal | Defined$ You | NumCards$ 1 | RevealOptional$ True | RememberRevealed$ True")
@@ -52,6 +53,18 @@ func TestRevealOptionalPeekPosesTheYesNoAsk(t *testing.T) {
 	}
 	if len(sh.asked.Options) != 2 || sh.asked.Options[0].Kind != "yes" || sh.asked.Options[1].Kind != "no" {
 		t.Fatalf("options = %+v, want yes then no", sh.asked.Options)
+	}
+	// The ask carries WHAT would be revealed (round-2 finding 1): the
+	// peeking player is deciding over a card only they can see and the
+	// library is not projected to their seat, so the name goes into the
+	// prompt and the yes option's label, and the card rides the option's
+	// Obj — the same private channel the hidden-library "search" options
+	// use.
+	if sh.asked.Options[0].Label != "Yes — reveal Bolt" || sh.asked.Options[0].Obj != ids[0] {
+		t.Fatalf("yes option = %+v, want label naming the top card and its Obj", sh.asked.Options[0])
+	}
+	if sh.asked.Prompt == "" || !strings.Contains(sh.asked.Prompt, "Bolt") {
+		t.Fatalf("prompt = %q, want it to name the top card", sh.asked.Prompt)
 	}
 	// Suspended means the chain stopped: the sub-ability never ran on the
 	// first pass.

@@ -124,29 +124,26 @@ func TestConditionGateUnresolvedShapesRunUnconditionally(t *testing.T) {
 	}
 }
 
-// TestConditionGateBattlefieldDefault pins the no-ConditionDefined group:
-// ConditionPresent$ without a Defined group counts over the BATTLEFIELD and
-// the spec's own controller qualifier scopes it — Dominaria's Judgment's
-// five-condition chain (Land.YouCtrl per colour), which used to grant every
-// protection unconditionally and now grants each only when that land is
-// actually in play under the caster's control.
-func TestConditionGateBattlefieldDefault(t *testing.T) {
-	h, ids := conditionBoard(t)
-	plains := mkCard(t, "Name:Plains\nTypes:Land Plains Basic\nOracle:x\n")
-	pid := h.g.AddObject(plains, 0).ID
-	h.g.Obj(pid).Zone = state.ZBattlefield
-	h.g.SetZone(state.ZBattlefield, 0, append(h.g.Zone(state.ZBattlefield, 0), pid))
-	sa := sa(t, "DB$ PumpAll | ValidCards$ Creature.YouCtrl | KW$ Protection from white | ConditionPresent$ Plains.YouCtrl | ConditionCompare$ GE1")
-	if met, resolved := conditionMet(h, &Ctx{Controller: 0, Source: ids[3]}, sa); !met || !resolved {
-		t.Fatalf("a Plains in play: met=%v resolved=%v, want true true", met, resolved)
-	}
-	// Seat 1's Plains does not satisfy seat 0's Plains.YouCtrl.
-	p1 := h.g.AddObject(plains, 1).ID
-	h.g.Obj(p1).Zone = state.ZBattlefield
-	h.g.SetZone(state.ZBattlefield, 1, append(h.g.Zone(state.ZBattlefield, 1), p1))
-	h.g.SetZone(state.ZBattlefield, 0, h.g.Zone(state.ZBattlefield, 0)[:0])
-	if met, resolved := conditionMet(h, &Ctx{Controller: 0, Source: ids[3]}, sa); met || !resolved {
-		t.Fatalf("only the opponent's Plains: met=%v resolved=%v, want false true", met, resolved)
+// TestConditionGatePresentWithoutDefinedIsUnresolved pins the scope line
+// round 2 drew: a ConditionPresent$ (or bare Compare$) WITHOUT a
+// ConditionDefined$ group is UNRESOLVED — its default group is the
+// battlefield, a corpus-wide grammar (408 raw lines, re-measured) round 1
+// built without authorization, so round 2 removed it and the sub runs
+// unconditionally again (the pre-gate behaviour, documented in the
+// report's Issues section).
+func TestConditionGatePresentWithoutDefinedIsUnresolved(t *testing.T) {
+	h, _ := conditionBoard(t)
+	for _, line := range []string{
+		// Dominaria's Judgment's five-condition chain shape.
+		"DB$ PumpAll | ValidCards$ Creature.YouCtrl | KW$ Protection from white | ConditionPresent$ Plains.YouCtrl | ConditionCompare$ GE1",
+		// Bare Present, no Compare.
+		"DB$ Pump | ConditionPresent$ Creature",
+		// Bare Compare, no Present, no Defined.
+		"DB$ Pump | ConditionCompare$ GE1",
+	} {
+		if _, resolved := conditionMet(h, &Ctx{Controller: 0, Source: 4}, sa(t, line)); resolved {
+			t.Fatalf("a Present-without-Defined gate resolved — battlefield-scan scope, removed in round 2: %s", line)
+		}
 	}
 }
 

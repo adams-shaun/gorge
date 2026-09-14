@@ -428,11 +428,35 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		if optional && answer == "" {
+			// The ask must carry WHAT is being revealed: the peeking player is
+			// deciding whether to reveal a card only they can see, and the
+			// library is not projected to that seat (view exposes only
+			// LibrarySize), so a count-only prompt asks a blind question.
+			// The card names go into the prompt and the yes option's label,
+			// and the top card rides the option's Obj — the same private
+			// channel the hidden-library "search" options use (view.project
+			// attaches a decision only to its own Decision.Player, so this
+			// payload reaches the peeking seat alone; even an Omniscient
+			// spectator gets no decision).
+			names := make([]string, 0, n)
+			for _, id := range pool[:n] {
+				if o := g.Obj(id); o != nil && o.Face() != nil {
+					names = append(names, o.Face().Name)
+				}
+			}
+			prompt := "Reveal the top " + strconv.Itoa(int(n)) + " card(s) of your library?"
+			if len(names) > 0 {
+				prompt = "Reveal the top " + strconv.Itoa(int(n)) + " card(s) of your library — " + strings.Join(names, ", ") + "?"
+			}
+			yesLabel := "Yes — reveal"
+			if len(names) == 1 {
+				yesLabel = "Yes — reveal " + names[0]
+			}
 			d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
 				ResumeKind: "reveal_optional", ResumeSA: sa, Source: c.Source,
-				Prompt: "Reveal the top " + strconv.Itoa(int(n)) + " card(s) of your library?",
+				Prompt: prompt,
 				Options: []decision.Option{
-					{Index: 0, Kind: "yes", Label: "Yes — reveal", Player: p},
+					{Index: 0, Kind: "yes", Label: yesLabel, Obj: pool[0], Player: p},
 					{Index: 1, Kind: "no", Label: "No", Player: p},
 				}}
 			if h.Ask(d) {

@@ -73,11 +73,27 @@ func newArtCache(dir string) (*artCache, error) {
 	}, nil
 }
 
+// artKeyVersion busts the whole cache whenever the meaning of the bytes a
+// key's fetch writes changes — round 2 of task fb-20260914T033246Z-3f1cc033:
+// the round-1 fix made a back-face name (Insectile Aberration) fetch its own
+// face's art, but the live server had already cached that name under the
+// OLD code with the FRONT face's bytes, and ensure() treats an existing JPG
+// as a permanent hit while blob() marks the URL immutable — so after deploy
+// the same key kept serving the wrong art from both the server's disk and
+// every browser's year-long cache. Folding the version into the hash gives
+// every name a NEW key, so the first request after deploy re-fetches at the
+// new key and the old key's URL (and the browser entry pinning it) is
+// simply never requested again. Legacy files at old keys are never read;
+// they are dead weight until the cache dir is cleared. The next change to
+// what a fetch writes bumps this string again.
+const artKeyVersion = "gorge-art-v2"
+
 // artKey derives the cache filename from the exact card name so an arbitrary
 // name never reaches a filesystem path directly (no traversal, no encoding
-// surprises from commas, apostrophes, or non-ASCII names).
+// surprises from commas, apostrophes, or non-ASCII names). The version is
+// hashed in (see artKeyVersion), so a bump rotates every key at once.
 func artKey(name string) string {
-	sum := sha256.Sum256([]byte(name))
+	sum := sha256.Sum256([]byte(artKeyVersion + "\x00" + name))
 	return hex.EncodeToString(sum[:])
 }
 

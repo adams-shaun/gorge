@@ -5,17 +5,24 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
-	"github.com/adams-shaun/gorge/state"
 )
 
 // conditions.go implements the ONE Condition* shape this build gates a
 // sub-ability on: `ConditionDefined$ Remembered` + optional
 // `ConditionPresent$ <spec>` + optional `ConditionCompare$ <op><n>` —
 // Delver of Secrets' "transform only if the revealed card was an instant or
-// sorcery" shape, and the same shape Temur Sabertooth's pump and the
-// Kinship family gate on. Forge spells the compare without a space
-// ("EQ1"; 793 corpus lines) and the brief's "EQ 1" spelling is accepted
-// too.
+// sorcery" shape, and the same shape the Kinship family gates on. Forge
+// spells the compare without a space ("EQ1"; 793 corpus lines) and the
+// brief's "EQ 1" spelling is accepted too.
+//
+// The gate scopes to the DEFINED group the brief authorized: the
+// ConditionDefined$ value must be Remembered (the revealed/captured objects
+// the resolving walk carries). A ConditionPresent$ WITHOUT a
+// ConditionDefined$ is NOT implemented — Forge's default group there is the
+// whole battlefield (408 raw corpus lines carry Present-without-Defined,
+// re-measured at the worktree pin), which is a different, corpus-wide
+// grammar round 1 built without authorization and round 2 removed (see the
+// report); those subs run UNCONDITIONALLY, the pre-gate behaviour.
 //
 // Deliberate scope (task fb-3f1cc033): the wider Condition vocabulary —
 // ConditionCheckSVar$ (802 lines), ConditionSVarCompare$ (705),
@@ -39,7 +46,9 @@ import (
 //     whether the sub should run;
 //   - (…, false) the gate carries something unsupported — the caller runs
 //     the sub anyway (the pre-condition-engine behaviour, documented in
-//     the task report);
+//     the task report). A ConditionPresent$ with NO ConditionDefined$ is in
+//     this class on purpose: its default group is the battlefield, a
+//     grammar this task did not authorize.
 //   - a sub with no Condition* key at all is not gated: (true, false).
 func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	defined := strings.TrimSpace(sa.Params["ConditionDefined"])
@@ -68,7 +77,17 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		// it and none is the shape this file scopes. Unresolved.
 		return false, false
 	}
-	if defined != "" && defined != "Remembered" {
+	if defined == "" {
+		// ConditionPresent$ (or Compare$) with NO ConditionDefined$: the
+		// default group is the battlefield, a corpus-wide grammar (408 raw
+		// lines, re-measured) round 1 built without authorization and round
+		// 2 removed — resolving it here changed unrelated cards' behaviour
+		// through the global Resolve hook. UNRESOLVED: the sub runs
+		// unconditionally, the pre-gate behaviour, listed in the report's
+		// Issues section.
+		return false, false
+	}
+	if defined != "Remembered" {
 		// Only the Remembered family is in scope among DEFINED groups: the
 		// revealed/captured objects a walk carries in Ctx.Remembered.
 		// Targeted, ChosenCard, Self, Imprinted and the rest need Ctx state
@@ -79,45 +98,22 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	g := h.Game()
 	sc := c.SpecContext(c.Controller)
 	count := 0
-	if defined == "" {
-		// No ConditionDefined\$ names a group: Forge's default group is the
-		// BATTLEFIELD — the corpus's 408 Present-without-Defined lines are
-		// overwhelmingly controller-scoped permanents (Land.YouCtrl,
-		// Artifact.YouCtrl, Dominaria's Judgment's five-condition chain),
-		// and the spec's own YouCtrl/YouOwn/OppCtrl qualifiers do the
-		// player scoping. Known narrowing, listed in the task report:
-		// YouOwn specs that mean a hand or graveyard card
-		// (Instant.YouOwn,Sorcery.YouOwn — 11 raw lines) see only the
-		// battlefield here.
-		for p := range g.Players {
-			for _, id := range zoneOf(g, state.ZBattlefield, state.PlayerID(p)) {
-				o := g.Obj(id)
-				if o == nil {
-					continue
-				}
-				if present == "" || MatchesObjectCtx(g, present, o, sc) {
-					count++
-				}
-			}
+	for _, t := range c.Remembered {
+		if t.IsPlayer {
+			// A Card spec never matches a player entry; skip rather than
+			// hand MatchesObjectCtx an object-less target.
+			continue
 		}
-	} else {
-		for _, t := range c.Remembered {
-			if t.IsPlayer {
-				// A Card spec never matches a player entry; skip rather than
-				// hand MatchesObjectCtx an object-less target.
-				continue
-			}
-			o := g.Obj(t.Obj)
-			if o == nil {
-				continue
-			}
-			if present == "" {
-				count++
-				continue
-			}
-			if MatchesObjectCtx(g, present, o, sc) {
-				count++
-			}
+		o := g.Obj(t.Obj)
+		if o == nil {
+			continue
+		}
+		if present == "" {
+			count++
+			continue
+		}
+		if MatchesObjectCtx(g, present, o, sc) {
+			count++
 		}
 	}
 	if present != "" {

@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -8,6 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
+	"github.com/adams-shaun/gorge/view"
 )
 
 // delverFixture loads the REAL corpus Delver of Secrets onto seat 0's
@@ -88,6 +90,44 @@ func TestDelverWithALandOnTopAndARevealDeclinedDoesNotTransform(t *testing.T) {
 	}
 	if notes := revealNotes(e); len(notes) != 0 {
 		t.Fatalf("a declined reveal left reveal Notes: %+v", notes)
+	}
+}
+
+// TestDelverRevealAskCarriesTheTopCardOnlyToThePeekingSeat is round-2
+// finding 1's pin: the may-reveal decision must tell the deciding seat WHAT
+// it is deciding over (the library is not projected to that seat, and the
+// public Note exists only after "yes"), and that payload must reach ONLY
+// the peeking seat — view.project attaches a decision to no viewer whose
+// seat is not Decision.Player, not even an Omniscient spectator.
+func TestDelverRevealAskCarriesTheTopCardOnlyToThePeekingSeat(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, _, d := delverFixture(t, reg, "Mountain")
+	top := e.G.Zone(state.ZLibrary, 0)[0]
+
+	own := view.Project(e.G, e, 0, d)
+	if own.Decision == nil {
+		t.Fatal("the peeking seat's view carries no decision")
+	}
+	if got := own.Decision.Options[0].Label; got != "Yes — reveal Mountain" {
+		t.Fatalf("yes label = %q, want it to name the card being revealed", got)
+	}
+	if got := own.Decision.Options[0].Obj; got != top {
+		t.Fatalf("yes option Obj = %d, want the top card %d", got, top)
+	}
+	if !strings.Contains(own.Decision.Prompt, "Mountain") {
+		t.Fatalf("prompt = %q, want it to name the card", own.Decision.Prompt)
+	}
+
+	for _, other := range []struct {
+		viewer state.PlayerID
+		what   string
+	}{{1, "the opponent's view"}} {
+		if v := view.Project(e.G, e, other.viewer, d); v.Decision != nil {
+			t.Fatalf("%s carries the reveal ask — the payload must reach the peeking seat alone", other.what)
+		}
+	}
+	if v := view.ProjectFor(e.G, e, view.NoSeat, view.Omniscient, d); v.Decision != nil {
+		t.Fatal("an Omniscient spectator's view carries the reveal ask")
 	}
 }
 
