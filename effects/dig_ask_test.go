@@ -317,3 +317,59 @@ func TestDigLookNoteIsSecretToItsOwner(t *testing.T) {
 		}
 	}
 }
+
+// TestDigMultiPlayerResumeKeepsEveryLibrary is the r3 multi-target regression.
+// Seat 0's no-choice window completes before seat 1 poses the first real ask;
+// re-entry must skip that completed library, apply the answer to seat 1, and
+// preserve M1's deterministic first-eligible take for seat 2 rather than
+// abandoning it. ResumeTarget/DigTarget are indices, not player guesses, so
+// the same rule also covers multiple object targets mapping to one controller.
+func TestDigMultiPlayerResumeKeepsEveryLibrary(t *testing.T) {
+	h := &askHost{}
+	h.g = state.NewGame(names(3))
+	bear := mkCard(t, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	land := mkCard(t, "Name:Isle\nTypes:Basic Land Island\nOracle:x\n")
+	libs := make([][]state.ObjID, 3)
+	for p := state.PlayerID(0); p < 3; p++ {
+		libs[p] = []state.ObjID{
+			h.g.AddObject(land, p).ID,
+			h.g.AddObject(bear, p).ID,
+			h.g.AddObject(land, p).ID,
+		}
+		h.g.SetZone(state.ZLibrary, p, libs[p])
+	}
+	// Seat 0 has exactly one eligible card, so it completes without asking.
+	// Seats 1 and 2 each have a strict-superset choice.
+	h.g.SetZone(state.ZLibrary, 0, libs[0][:2])
+	effect := sa(t, "SP$ Dig | Defined$ Player | DigNum$ 3 | ChangeNum$ 1 | Optional$ True | ChangeValid$ Land | DestinationZone$ Hand")
+	Resolve(h, &Ctx{Controller: 0}, effect)
+	if h.asked == nil || h.asked.Player != 1 || h.asked.ResumeTarget != 1 {
+		t.Fatalf("decision = %+v, want seat 1 at Defined$ target index 1", h.asked)
+	}
+	if hand := h.g.Zone(state.ZHand, 0); len(hand) != 1 || hand[0] != libs[0][0] {
+		t.Fatalf("seat 0 hand = %v, want its completed no-choice take [%d]", hand, libs[0][0])
+	}
+	if len(h.g.Zone(state.ZHand, 2)) != 0 {
+		t.Fatal("seat 2 was processed before seat 1's ask suspended the effect")
+	}
+
+	picked := libs[1][2] // choose seat 1's SECOND eligible card.
+	h.asked = nil
+	ctx := &Ctx{Controller: 0, Dig: []state.ObjID{picked}, DigDone: true, DigTarget: 1}
+	Resolve(h, ctx, effect)
+	if ctx.Dig != nil || ctx.DigDone || ctx.DigTarget != 0 {
+		t.Fatalf("re-entry fields were not consumed: Dig=%v Done=%v Target=%d", ctx.Dig, ctx.DigDone, ctx.DigTarget)
+	}
+	if h.asked != nil {
+		t.Fatalf("later target unexpectedly posed a second ask instead of preserving deterministic processing: %+v", h.asked)
+	}
+	if hand := h.g.Zone(state.ZHand, 0); len(hand) != 1 || hand[0] != libs[0][0] {
+		t.Fatalf("seat 0 was processed twice on re-entry: hand %v", hand)
+	}
+	if hand := h.g.Zone(state.ZHand, 1); len(hand) != 1 || hand[0] != picked {
+		t.Fatalf("seat 1 hand = %v, want its answered second eligible card [%d]", hand, picked)
+	}
+	if hand := h.g.Zone(state.ZHand, 2); len(hand) != 1 || hand[0] != libs[2][0] {
+		t.Fatalf("seat 2 hand = %v, want deterministic later-target take [%d]", hand, libs[2][0])
+	}
+}

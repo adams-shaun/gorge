@@ -357,15 +357,18 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 // itself is on the look Note; the prompt names the card text). Min honours
 // Optional$ -- 0 when the take is optional, ChangeNum when it is not -- and
 // Max is ChangeNum. The answer re-enters through ResumeKind "dig" with
-// Ctx.Dig/DigDone set (rules/resolution.go), scoped to this primitive like
-// every other Ctx answer field.
+// Ctx.Dig/DigDone and the asking target's index set (rules/resolution.go),
+// scoped to this primitive like every other Ctx answer field.
 //
 // A host that cannot answer (the fuzz/no-engine stand-in, R-9) and the
 // no-choice path (eligible <= ChangeNum) keep M1's silent behaviour
 // deterministically: the first ChangeNum eligible cards in zone order move,
-// the rest stay exactly where they are. On the no-choice path nothing new is
-// emitted at all, so a game that never reaches a strict-superset Dig replays
-// byte-identically to the pre-dig1 engine.
+// the rest stay exactly where they are. A resumed multi-target Dig applies
+// the answer only to the target that asked, skips earlier targets that already
+// completed before suspension, and preserves that same deterministic behaviour
+// for every later target; chained per-library asks remain separate work. On the
+// no-choice path nothing new is emitted at all, so a game that never reaches a
+// strict-superset Dig replays byte-identically to the pre-dig1 engine.
 //
 // Still unread here (each a real divergence, named in AGENTS.md's Dig row):
 // Optional$ on the NO-CHOICE path (eligible <= ChangeNum still takes all
@@ -397,14 +400,17 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	dest := ParseZone(destName)
 	optional := sa.Params["Optional"] == "True"
 	// fx42 scoping: capture and clear the answered pick BEFORE the target
-	// loop, so every target sees the one answer (a multi-target Defined$ asks
-	// only the first library -- the later targets' windows cannot contain the
-	// answered ids) and a nested Dig below this walk poses its own ask.
+	// loop. DigTarget identifies the exact target that asked: earlier targets
+	// completed before suspension and must be skipped, that target consumes
+	// the answer, and later targets retain M1's deterministic processing until
+	// chained per-library asks exist. A nested Dig below this walk therefore
+	// poses its own ask instead of inheriting any of these fields.
 	digAns := c.Dig
 	digDone := c.DigDone
-	c.Dig, c.DigDone = nil, false
+	digTarget := c.DigTarget
+	c.Dig, c.DigDone, c.DigTarget = nil, false, 0
 	g := h.Game()
-	for _, t := range Defined(h, c, sa) {
+	for targetIndex, t := range Defined(h, c, sa) {
 		p := PlayerOf(h, c, t)
 		lib := zoneOf(g, state.ZLibrary, p)
 		n := digNum
@@ -412,9 +418,15 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			n = int32(len(lib))
 		}
 		top := append([]state.ObjID(nil), lib[:n]...)
-		if digDone {
-			// Re-entry: move exactly the answered cards that still sit in
-			// THIS target's window (a per-window filter keeps a stray answer
+		if digDone && targetIndex < digTarget {
+			// This target completed on the first pass before a later library
+			// suspended the effect. Re-running it could move a second batch (or
+			// newly create a choice after its first batch left), so skip it.
+			continue
+		}
+		if digDone && targetIndex == digTarget {
+			// Re-entry: move exactly the answered cards that still sit in the
+			// ASKING target's window (a per-window filter keeps a stray answer
 			// from moving an object that left the window meanwhile), in the
 			// player's answer order.
 			for _, id := range digAns {
@@ -432,7 +444,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				eligible = append(eligible, id)
 			}
 		}
-		if changeNum > 0 && int32(len(eligible)) > changeNum {
+		if !digDone && changeNum > 0 && int32(len(eligible)) > changeNum {
 			// A real choice: record the look, then ask the library's owner.
 			h.Emit(events.Event{Kind: events.Note, Player: p,
 				Text: "looks at the top of the library", IDs: top, Secret: true})
@@ -445,12 +457,13 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				verb = "put "
 			}
 			d := &decision.Decision{Player: p, Kind: decision.KChoose,
-				Min:        int(minv),
-				Max:        int(changeNum),
-				Source:     c.Source,
-				ResumeKind: "dig",
-				ResumeSA:   sa,
-				Prompt:     "Look at the top " + strconv.Itoa(int(n)) + " card(s) of your library: " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)}
+				Min:          int(minv),
+				Max:          int(changeNum),
+				Source:       c.Source,
+				ResumeKind:   "dig",
+				ResumeSA:     sa,
+				ResumeTarget: targetIndex,
+				Prompt:       "Look at the top " + strconv.Itoa(int(n)) + " card(s) of your library: " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)}
 			for _, id := range eligible {
 				name := "a card"
 				if o := g.Obj(id); o != nil && o.Face() != nil {
