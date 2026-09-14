@@ -48,7 +48,7 @@ func zoneHas(ids []state.ObjID, want state.ObjID) bool {
 func TestCommanderGenesisPlacesCommandersBeforeTheDeal(t *testing.T) {
 	deck0, deck1 := commanderDeckPair(t)
 	cfg := Config{
-		Seed: 11, Names: []string{"a", "b"}, PinnedStart: true,
+		Seed: 11, Names: []string{"a", "b"},
 		Decks:        [][]*cards.Card{deck0, deck1},
 		Commanders:   [][]int{{0}, {0}},
 		StartingLife: 40,
@@ -120,7 +120,7 @@ func TestCommanderGenesisPlacesCommandersBeforeTheDeal(t *testing.T) {
 // placement is keyed off Config.Commanders alone.
 func TestCommanderGenesisDefaultsToTwentyLife(t *testing.T) {
 	deck0, deck1 := commanderDeckPair(t)
-	cfg := Config{Seed: 12, Names: []string{"a", "b"}, PinnedStart: true,
+	cfg := Config{Seed: 12, Names: []string{"a", "b"},
 		Decks:      [][]*cards.Card{deck0, deck1},
 		Commanders: [][]int{{0}, {0}},
 	}
@@ -140,7 +140,7 @@ func TestCommanderGenesisDefaultsToTwentyLife(t *testing.T) {
 func TestCommanderIndexOutOfRangeDegrades(t *testing.T) {
 	deck0, deck1 := commanderDeckPair(t)
 	// seat 0 names index 5 (valid, < 40); seat 1 names index 99 (out of range).
-	cfg := Config{Seed: 13, Names: []string{"a", "b"}, PinnedStart: true,
+	cfg := Config{Seed: 13, Names: []string{"a", "b"},
 		Decks:      [][]*cards.Card{deck0, deck1},
 		Commanders: [][]int{{5}, {99}},
 	}

@@ -352,7 +352,7 @@ func TestCommanderNoOfferWithoutPayableTax(t *testing.T) {
 func TestCommanderCastCountReplaysExactlyFromTheEventStream(t *testing.T) {
 	deck0 := twoCommanderDeck(t, commanderBeatstickSrc, commanderBattleGolemSrc)
 	deck1 := twoCommanderDeck(t, commanderBeatstickSrc, commanderBattleGolemSrc)
-	cfg := Config{Seed: 36, Names: []string{"a", "b"}, PinnedStart: true,
+	cfg := Config{Seed: 36, Names: []string{"a", "b"},
 		Decks:      [][]*cards.Card{deck0, deck1},
 		Commanders: [][]int{{0, 1}, {0, 1}},
 		Format:     FormatCommander,
@@ -393,11 +393,14 @@ func TestCommanderCastCountReplaysExactlyFromTheEventStream(t *testing.T) {
 // covered: the offer walk, the tax composition and the counter increment.
 func TestCommanderTaxGatedOffOutsideCommanderFormat(t *testing.T) {
 	deck0, deck1 := commanderDeck(t, commanderBeatstickSrc), commanderDeck(t, commanderBeatstickSrc)
-	cfg := Config{Seed: 37, Names: []string{"a", "b"}, PinnedStart: true,
+	cfg := Config{Seed: 37, Names: []string{"a", "b"},
 		Decks:      [][]*cards.Card{deck0, deck1},
 		Commanders: [][]int{{0}, {0}},
 		// Format deliberately NOT set: FormatConstructed is the zero value.
 	}
+	// Seat 0 is the protagonist; seatZeroStart advances the seed until the
+	// CR 103.1 toss starts seat 0 (the effective seed travels in cfg).
+	cfg = seatZeroStart(cfg)
 	e := New(cfg)
 	e.Advance()
 	driveToStep(t, e, 1, 0, state.StepMain1)

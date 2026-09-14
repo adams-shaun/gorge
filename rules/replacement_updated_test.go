@@ -132,28 +132,36 @@ func newFixtureDeck(t *testing.T, seed uint64, fixtureSrc string, extras ...stri
 	for _, extra := range extras {
 		deck = append(deck, card(t, extra))
 	}
-	cfg := Config{Seed: seed, Names: []string{"a", "b"},
-		// PinnedStart: a scenario fixture is the "players agree" arm of CR
-		// 103.1 -- pinned, so genesis consumes no toss draw and the stream is
-		// the pre-toss engine's.
-		PinnedStart: true,
-		Decks: [][]*cards.Card{
-			append(deck, mountainDeck(t, 40-len(deck))...),
-			mountainDeck(t, 40),
-		},
-		// Non-nil (not just the zero value) so a caller that mints a test
-		// fixture into the live game via a logged TokenCreate event (Task
-		// 9's cast_test.go putToken, for a second card replayFromLog could
-		// otherwise never reconstruct -- see this function's own doc above)
-		// shares the same map between e.G.Tokens and the cfg this function
-		// returns: both are copies of this one Config value, and a map is a
-		// reference type, so a key added to e.G.Tokens after New() is also
-		// visible through cfg.Tokens at replayCheck time. Every caller that
-		// never touches Tokens sees no behaviour change: an empty map reads
-		// exactly like a nil one everywhere TokenCreate's Apply case reads it.
-		Tokens: map[string]*cards.Card{},
+	var e *Engine
+	var cfg Config
+	build := func(s uint64) Config {
+		return Config{Seed: s, Names: []string{"a", "b"},
+			Decks: [][]*cards.Card{
+				append(append([]*cards.Card{fixture}, deck[1:]...), mountainDeck(t, 40-len(deck))...),
+				mountainDeck(t, 40),
+			},
+			// Non-nil (not just the zero value) so a caller that mints a test
+			// fixture into the live game via a logged TokenCreate event (Task
+			// 9's cast_test.go putToken, for a second card replayFromLog could
+			// otherwise never reconstruct -- see this function's own doc above)
+			// shares the same map between e.G.Tokens and the cfg this function
+			// returns: both are copies of this one Config value, and a map is a
+			// reference type, so a key added to e.G.Tokens after New() is also
+			// visible through cfg.Tokens at replayCheck time. Every caller that
+			// never touches Tokens sees no behaviour change: an empty map reads
+			// exactly like a nil one everywhere TokenCreate's Apply case reads it.
+			Tokens: map[string]*cards.Card{},
+		}
 	}
-	e := New(cfg)
+	// Under the CR 103.1 toss (rules.New draws the starting seat) these
+	// scenario fixtures' protagonist is seat 0 -- before the toss it was
+	// always the starting player, and every caller funds and moves seat 0's
+	// zones by index. seatZeroStart advances the seed until the toss starts
+	// seat 0 (see its own doc); the caller's seed still pins deck content
+	// whenever the toss already starts seat 0, and the effective seed
+	// travels out in the returned cfg for replayCheck.
+	cfg = seatZeroStart(build(seed))
+	e = New(cfg)
 	e.Advance()
 
 	var id state.ObjID
@@ -172,6 +180,14 @@ func newFixtureDeck(t *testing.T, seed uint64, fixtureSrc string, extras ...stri
 			t.Fatalf("fixture %q not found in seat 0's hand or library", name)
 		}
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZHand})
+		// The bridge ran after Advance built the upkeep priority snapshot, so
+		// that snapshot does not offer the bridged card and a caller casting
+		// from the pending decision would fatal. Clearing the stale pending
+		// and re-driving is the same net state the live Submit loop reaches
+		// (cast_test.go and friends do the same e.pending = nil) -- the fresh
+		// ask is seat 0's priority with the fixture in hand.
+		e.pending = nil
+		e.Advance()
 	}
 	return e, cfg, id
 }

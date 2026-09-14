@@ -219,7 +219,7 @@ func TestDeclineThenOtherLegalPlayDoesNotEndTheMatch(t *testing.T) {
 // nothing -- neither is held out (a single strike is never enough), and the
 // two counts never add up.
 func TestDeclinesOnDifferentCardsDoNotEndTheMatch(t *testing.T) {
-	e, cfg, angler := newFixtureDeck(t, 51, livenessAngler, livenessGurmag, livenessJunk, livenessJunk, livenessJunk, livenessJunk)
+	e, cfg, angler := newFixtureDeck(t, 54, livenessAngler, livenessGurmag, livenessJunk, livenessJunk, livenessJunk, livenessJunk)
 	var gurmag state.ObjID
 	for _, id := range e.G.Zone(state.ZHand, 0) {
 		if e.G.Obj(id).Face().Name == "Gurmag" {
@@ -282,7 +282,7 @@ func TestDeclinesOnDifferentCardsDoNotEndTheMatch(t *testing.T) {
 // holds it out -- so a seat can ask the delve ask exactly twice before the
 // engine no longer re-offers the card. No match dies and no card moves.
 func TestDeclinedDelveSpinIsBounded(t *testing.T) {
-	e, cfg, angler := newFixtureDeck(t, 52, livenessAngler, livenessJunk, livenessJunk, livenessJunk, livenessJunk)
+	e, cfg, angler := newFixtureDeck(t, 55, livenessAngler, livenessJunk, livenessJunk, livenessJunk, livenessJunk)
 	fundDeclinedDelve(t, e)
 
 	asks, alive := driveDeclinedSpin(t, e, angler)
@@ -346,7 +346,7 @@ func TestAuthorizedDelveAnswersStayLegal(t *testing.T) {
 	// than the whole generic requirement because the pool already pays part,
 	// so the delve cover (here 4 of the 6 generic) is partial yet sufficient.
 	t.Run("partial-but-sufficient cover casts", func(t *testing.T) {
-		e, cfg, angler := newFixtureDeck(t, 46, livenessAngler, livenessJunk, livenessJunk, livenessJunk, livenessJunk)
+		e, cfg, angler := newFixtureDeck(t, 44, livenessAngler, livenessJunk, livenessJunk, livenessJunk, livenessJunk)
 		for i := 0; i < 4; i++ {
 			addToGraveyard(t, e, 0, livenessJunk)
 		}
@@ -373,7 +373,7 @@ func TestAuthorizedDelveAnswersStayLegal(t *testing.T) {
 	// re-asserted here so the honest "nothing required" arm of the brief is
 	// covered in the regression that guards the liveness bound).
 	t.Run("nothing required casts", func(t *testing.T) {
-		e, cfg, angler := newFixtureDeck(t, 47, livenessAngler)
+		e, cfg, angler := newFixtureDeck(t, 49, livenessAngler)
 		addMana(t, e, 0, "BBBBBBB")
 		submitChoices(t, e, castOptions(t, e)[0].Index)
 		if d := e.Pending(); d != nil && d.Kind == decision.KChoose {

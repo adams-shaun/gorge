@@ -249,7 +249,7 @@ func TestSurveilEmptyReplaysByteIdentically(t *testing.T) {
 // decision is mutated to disagree and answered, and the Note plus the
 // Options[0] ("bottom") routing must both hold.
 func TestArrangeMixedKindDegradesWithNote(t *testing.T) {
-	e, _, id := scryFixture(t, 209)
+	e, _, id := scryFixture(t, 205)
 	d := scryDecision(t, e, id)
 	top := []state.ObjID{d.Options[0].Obj, d.Options[1].Obj, d.Options[2].Obj}
 	libBefore := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 0)...)

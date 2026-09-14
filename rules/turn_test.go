@@ -39,7 +39,12 @@ func newSeats(t *testing.T, n int) *Engine {
 		names[i] = string(rune('a' + i))
 		decks[i] = mountainDeck(t, 40)
 	}
-	e := New(Config{Seed: 42, Names: names, Decks: decks, PinnedStart: true})
+	// Under the CR 103.1 toss (rules.New draws the starting seat) these
+	// scenario fixtures' protagonist is seat 0 -- before the toss it was
+	// always the starting player, and every caller addresses seats by index.
+	// seatZeroStart advances the seed until the toss starts seat 0 (see its
+	// own doc); the effective seed is a pure function of the requested one.
+	e := New(seatZeroStart(Config{Seed: 42, Names: names, Decks: decks}))
 	e.Advance()
 	return e
 }

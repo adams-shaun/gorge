@@ -204,7 +204,7 @@ func replayCheck(t *testing.T, e *Engine, cfg Config) {
 }
 
 func TestXIsChosenAndRecorded(t *testing.T) {
-	e, cfg, id := newFixtureDeck(t, 21, "Name:Endless\nManaCost:X\nTypes:Creature Eldrazi\nPT:0/0\nOracle:x\n")
+	e, cfg, id := newFixtureDeck(t, 20, "Name:Endless\nManaCost:X\nTypes:Creature Eldrazi\nPT:0/0\nOracle:x\n")
 	addMana(t, e, 0, "GGG") // helper: three ManaAdd events into seat 0's pool
 	castFirst(t, e, "cast")
 	d := e.Pending()
@@ -245,7 +245,7 @@ func TestKickerOffersASecondCastOptionAndFlagsTheSpell(t *testing.T) {
 		t.Fatal("the 'if kicked' trigger did not fire")
 	}
 	// Not kicked: the trigger must not fire.
-	e2, _, id2 := newFixtureDeck(t, 23, src)
+	e2, _, id2 := newFixtureDeck(t, 25, src)
 	addMana(t, e2, 0, "RR")
 	submitChoices(t, e2, castOptions(t, e2)[0].Index)
 	passUntilStackEmpty(t, e2, 20)

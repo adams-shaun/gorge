@@ -71,20 +71,6 @@ type Config struct {
 	// events.Apply's TokenCreate case has something to mint from. Replay
 	// must pass the same table a live match's Config did.
 	Tokens map[string]*cards.Card
-	// PinnedStart pins the game's starting player to StartSeat instead of
-	// drawing the CR 103.1 toss: New begins turn 1 (and, with Mulligans, the
-	// CR 103.5 mulligan round) there and consumes NO rng value at all, so a
-	// pinned game's genesis rng stream is byte-identical to the pre-toss
-	// engine's. PinnedStart exists because CR 103.1 also lets the players
-	// agree on a mutually acceptable determination -- a test fixture pinning
-	// a scenario is exactly such an agreement, and the future
-	// toss-winner-chooses host (see the "Known approximations" row in
-	// AGENTS.md) needs the same hook. It carries in the Config replay is
-	// handed, so a pinned game replays identically. Both zero values (the
-	// default) mean the toss: one IntN over the surviving seats, drawn in
-	// New before any per-seat shuffle.
-	PinnedStart bool
-	StartSeat   state.PlayerID
 }
 
 type Engine struct {
@@ -484,18 +470,17 @@ func New(cfg Config) *Engine {
 		}
 	}
 	e.emit(events.Event{Kind: events.GameStart, Amount: int32(len(cfg.Names))})
-	// CR 103.1: the starting player is determined by a random method. Unless
-	// the Config pins one (PinnedStart -- the "players agree" arm of 103.1,
-	// and the hook the future toss-winner-chooses host needs), draw the toss
-	// HERE, as the FIRST rng consumption of the game, before any per-seat
-	// shuffle: the toss value is then a pure function of (seed, seat count),
-	// independent of every deck size. The surviving-seat resolution happens
-	// after the deal below; uniform over the survivors in every real game.
-	// CR 103.1's second half -- the toss winner CHOOSES who takes the first
-	// turn -- is not implemented; see the "Known approximations" row in
-	// AGENTS.md.
+	// CR 103.1: the starting player is determined by a random method. Draw
+	// the toss HERE, as the FIRST rng consumption of the game, before any
+	// per-seat shuffle: the toss value is then a pure function of (seed,
+	// seat count), independent of every deck size. The surviving-seat
+	// resolution happens after the deal below (the toss draw is uniform over
+	// every seat, so conditioned on naming a survivor it is uniform over the
+	// survivors -- see the resolution site). CR 103.1's second half -- the
+	// toss winner CHOOSES who takes the first turn -- is not implemented;
+	// see the "Known approximations" row in AGENTS.md.
 	toss := -1
-	if !cfg.PinnedStart && len(cfg.Names) > 0 {
+	if len(cfg.Names) > 0 {
 		toss = e.rng.IntN(len(cfg.Names))
 	}
 	// Match-wide dense commander indexing for Player.CmdDamage (assigned at
@@ -583,16 +568,9 @@ func New(cfg Config) *Engine {
 		}
 	}
 	alive := e.G.AliveFrom(0)
-	// CR 103.1: the starting seat is the toss result, not seat 0. When
-	// nobody decked out during genesis (every real game) alive is all seats
-	// in ascending order, so alive[toss] is exactly the tossed seat and the
-	// determination is uniform. A Config that decked a seat out during the
-	// deal maps the toss onto the survivors with a modulo -- deterministic,
-	// and uniform over the survivors whenever the survivor count divides the
-	// seat count (always, in a game where nobody decked out, which is every
-	// real game). A pinned Config (PinnedStart) skips the toss entirely and
-	// consumes no rng value. The zero-alive guard below runs FIRST: a seat
-	// index is only resolved once at least one survivor exists.
+	// CR 103.1: the starting seat is the toss result, not seat 0. The
+	// zero-alive guard below runs FIRST: a seat index is only resolved once
+	// at least one survivor exists.
 	if len(alive) == 0 {
 		// Ruling T22-e: nobody survived genesis to begin a turn for --
 		// every deck too small to deal (the per-seat Over check above
@@ -607,15 +585,28 @@ func New(cfg Config) *Engine {
 		e.checkGameOver()
 		return e
 	}
-	// Resolve the starting seat. A pinned Config takes its seat (or, if
-	// that seat left the game during the deal, the next survivor in turn
-	// order -- AliveFrom(pin)[0] is exactly that); the toss maps onto the
-	// survivors with a modulo.
+	// Resolve the starting seat uniformly over the SURVIVORS. The pre-shuffle
+	// toss draw is uniform over every seat, so CONDITIONED on naming a
+	// survivor it is already uniform over the survivors -- it is the first
+	// candidate and costs no further rng. Only when it named a seat the deal
+	// eliminated does rejection sampling draw again: IntN over all seats,
+	// retried until a survivor is hit, each round uniform over the survivors
+	// once conditioned. In the no-elimination case -- every real game -- the
+	// stream is exactly one IntN and the candidate is always the first. A
+	// modulo over the survivor count instead would be BIASED: three seats
+	// with seat 0 eliminated maps two of the three toss outcomes onto one
+	// survivor (measured 395/205 over 600 seeds on the pre-fix code).
 	start := alive[0]
-	if cfg.PinnedStart {
-		start = e.G.AliveFrom(cfg.StartSeat)[0]
-	} else {
-		start = alive[toss%len(alive)]
+	if toss >= 0 {
+		isAlive := make(map[state.PlayerID]bool, len(alive))
+		for _, s := range alive {
+			isAlive[s] = true
+		}
+		r := state.PlayerID(toss)
+		for !isAlive[r] {
+			r = state.PlayerID(e.rng.IntN(len(cfg.Names)))
+		}
+		start = r
 	}
 	// Ruling T22-f: begin with the first seat still alive, not always seat
 	// 0 -- an early seat that decked out during its own opening draw (Over
@@ -627,13 +618,10 @@ func New(cfg Config) *Engine {
 		// CR 103.1: record the toss publicly -- one Note naming the winner,
 		// rendered verbatim by view/describe.go, so it lands in every seat's
 		// transcript and on the web client with no UI work. Emitted exactly
-		// once per game, before the mulligan round / turn 1 begins; a pinned
-		// start (the players' agreed arm of 103.1) is not a toss and emits
-		// none.
-		if !cfg.PinnedStart {
-			e.emit(events.Event{Kind: events.Note, Player: start,
-				Text: playerName(e.G, start) + " won the toss and takes the first turn"})
-		}
+		// once per game, before the mulligan round / turn 1 begins; a game
+		// already Over at genesis is not begun by anyone and records no toss.
+		e.emit(events.Event{Kind: events.Note, Player: start,
+			Text: tossName(e.G, start) + " won the toss and takes the first turn"})
 		if cfg.Mulligans > 0 {
 			// Ruling R-8.4: the London mulligan round lives between the deal
 			// and turn 1. e.pregame makes step() dispatch to stepPregame
@@ -653,15 +641,14 @@ func New(cfg Config) *Engine {
 	return e
 }
 
-// playerName is the display name view/describe.go's own player() helper
-// builds: the wire PlayerName, else the deck-identity Name, else "seat N".
-// New cannot import view (package order), so the identical fallback order is
-// repeated here; the Note it feeds is rendered verbatim.
-func playerName(g *state.Game, p state.PlayerID) string {
+// tossName is the identity the toss Note's text carries: the deck-identity
+// Name, else "seat N". F3 (TestPlayerNamesDoNotReachTheChain) keeps the
+// per-seat PlayerName -- a display name -- out of the event chain entirely,
+// and the Note is event text, so it uses the same deck identity every other
+// event text already carries. (view/describe.go's player label may prefer
+// PlayerName; that is a view projection, not chain text.)
+func tossName(g *state.Game, p state.PlayerID) string {
 	pl := g.Players[p]
-	if pl.PlayerName != "" {
-		return pl.PlayerName
-	}
 	if pl.Name != "" {
 		return pl.Name
 	}

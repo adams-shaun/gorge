@@ -21,7 +21,7 @@ func smallDeckGame(t *testing.T, n, deckSize int) (*Engine, Config) {
 		names[i] = string(rune('a' + i))
 		decks[i] = mountainDeck(t, deckSize)
 	}
-	cfg := Config{Seed: 7, Names: names, Decks: decks, PinnedStart: true}
+	cfg := Config{Seed: 7, Names: names, Decks: decks}
 	e := New(cfg)
 	e.Advance()
 	return e, cfg
@@ -84,8 +84,12 @@ func TestGenesisStopsAtEliminationDuringTheOpeningDraw(t *testing.T) {
 // whenever the seat that decked out is not the LAST one -- three seats,
 // only the first eliminated, still leaves two others to play the game out.
 // Genesis used to end with an unconditional beginTurn(0) regardless, handing
-// turn 1 to a player who is already out of the game. It must go to the
-// first seat still alive instead.
+// turn 1 to a player who is already out of the game. It must go to a seat
+// still alive instead -- under the CR 103.1 toss EITHER survivor is a valid
+// starting seat (the toss is uniform over the survivors; the census pinning
+// that on this exact config is TestTossIsUniformOverGenesisSurvivors), so
+// the assertion is "the start is a survivor and turn 1 runs for it", never
+// "the start is seat 1".
 func TestGenesisBeginsWithTheFirstAliveSeat(t *testing.T) {
 	names := []string{"a", "b", "c"}
 	cfg := Config{Seed: 5, Names: names,
@@ -99,21 +103,19 @@ func TestGenesisBeginsWithTheFirstAliveSeat(t *testing.T) {
 	if !e.G.Players[0].Lost {
 		t.Fatal("seat 0 should be the one who decked out")
 	}
-	if e.G.Active == 0 {
-		t.Fatalf("Active = %d, an eliminated seat must not receive turn 1", e.G.Active)
-	}
-	if e.G.Active != 1 {
-		t.Fatalf("Active = %d, want 1 (the first seat still alive)", e.G.Active)
+	alive := map[state.PlayerID]bool{1: true, 2: true}
+	if !alive[e.G.Active] {
+		t.Fatalf("Active = %d, an eliminated seat must not receive turn 1; want a survivor (1 or 2)", e.G.Active)
 	}
 	if e.G.Turn != 1 {
 		t.Fatalf("Turn = %d, want 1: the game should still have started for the surviving seats", e.G.Turn)
 	}
 	d := e.Pending()
 	if d == nil {
-		t.Fatal("expected a live decision -- the game did start, just for the right seat")
+		t.Fatal("expected a live decision -- the game did start, just for a survivor")
 	}
-	if d.Player == 0 {
-		t.Fatalf("decision handed to the eliminated seat: %+v", d)
+	if d.Player != e.G.Active {
+		t.Fatalf("decision handed to seat %d, want the starting seat %d: %+v", d.Player, e.G.Active, d)
 	}
 }
 

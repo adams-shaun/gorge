@@ -826,28 +826,37 @@ func newFixtureDeckWithTokens(t *testing.T, seed uint64, fixtureSrc string) (*En
 	t.Helper()
 	fixture := card(t, fixtureSrc)
 	name := fixture.Faces[0].Name
-	cfg := Config{Seed: seed, Names: []string{"a", "b"}, PinnedStart: true,
-		Decks: [][]*cards.Card{
-			append([]*cards.Card{fixture}, mountainDeck(t, 39)...),
-			mountainDeck(t, 40),
-		},
-		Tokens: map[string]*cards.Card{
-			"r_1_1_goblin":                      card(t, "Name:Goblin Token\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n"),
-			"c_3_3_a_phyrexian_wurm_deathtouch": card(t, "Name:Phyrexian Wurm Token\nTypes:Creature Phyrexian Wurm\nPT:3/3\nK:Deathtouch\nOracle:x\n"),
-			// b_0_0_phyrexian_germ is the Living Weapon token this task's test
-			// needs (Book of a Skull's K:Living Weapon mints it, then a
-			// __kwLWAttach Attach fastens the Equipment onto it).
-			"b_0_0_phyrexian_germ": card(t, "Name:Phyrexian Germ Token\nTypes:Creature Phyrexian Germ\nPT:0/0\nOracle:x\n"),
-			// TestPaidXSurvivesAMidResolutionSuspension (x_paid_test.go) casts a
-			// fixture whose SubAbility creates Entreat the Angels-shaped tokens
-			// whose TokenScript$ is w_4_4_angel_flying; tokenized here so that
-			// test and every TokenCreate firing it shares a source. (The
-			// corpus-based Entreat tests need no entry: their engine uses the
-			// corpus token registry directly.)
-			"w_4_4_angel_flying": card(t, "Name:Angel Token\nTypes:Creature Angel\nPT:4/4\nK:Flying\nOracle:x\n"),
-		},
+	var e *Engine
+	var cfg Config
+	build := func(s uint64) Config {
+		return Config{Seed: s, Names: []string{"a", "b"},
+			Decks: [][]*cards.Card{
+				append([]*cards.Card{fixture}, mountainDeck(t, 39)...),
+				mountainDeck(t, 40),
+			},
+			Tokens: map[string]*cards.Card{
+				"r_1_1_goblin":                      card(t, "Name:Goblin Token\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n"),
+				"c_3_3_a_phyrexian_wurm_deathtouch": card(t, "Name:Phyrexian Wurm Token\nTypes:Creature Phyrexian Wurm\nPT:3/3\nK:Deathtouch\nOracle:x\n"),
+				// b_0_0_phyrexian_germ is the Living Weapon token this task's test
+				// needs (Book of a Skull's K:Living Weapon mints it, then a
+				// __kwLWAttach Attach fastens the Equipment onto it).
+				"b_0_0_phyrexian_germ": card(t, "Name:Phyrexian Germ Token\nTypes:Creature Phyrexian Germ\nPT:0/0\nOracle:x\n"),
+				// TestPaidXSurvivesAMidResolutionSuspension (x_paid_test.go) casts a
+				// fixture whose SubAbility creates Entreat the Angels-shaped tokens
+				// whose TokenScript$ is w_4_4_angel_flying; tokenized here so that
+				// test and every TokenCreate firing it shares a source. (The
+				// corpus-based Entreat tests need no entry: their engine uses the
+				// corpus token registry directly.)
+				"w_4_4_angel_flying": card(t, "Name:Angel Token\nTypes:Creature Angel\nPT:4/4\nK:Flying\nOracle:x\n"),
+			},
+		}
 	}
-	e := New(cfg)
+	// Same seatZeroStart treatment as newFixtureDeck: these scenario
+	// fixtures' protagonist is seat 0, and under the CR 103.1 toss the
+	// starting seat is drawn from the rng. The effective seed travels out in
+	// the returned cfg for replayCheck.
+	cfg = seatZeroStart(build(seed))
+	e = New(cfg)
 	e.Advance()
 
 	var id state.ObjID
@@ -866,6 +875,14 @@ func newFixtureDeckWithTokens(t *testing.T, seed uint64, fixtureSrc string) (*En
 			t.Fatalf("fixture %q not found in seat 0's hand or library", name)
 		}
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZHand})
+		// The bridge ran after Advance built the upkeep priority snapshot, so
+		// that snapshot does not offer the bridged card and a caller casting
+		// from the pending decision would fatal. Clearing the stale pending
+		// and re-driving is the same net state the live Submit loop reaches
+		// (cast_test.go and friends do the same e.pending = nil) -- the fresh
+		// ask is seat 0's priority with the fixture in hand.
+		e.pending = nil
+		e.Advance()
 	}
 	return e, cfg, id
 }

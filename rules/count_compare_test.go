@@ -143,10 +143,10 @@ func TestWillOfTheJeskaiCharmNumCountsACommander(t *testing.T) {
 		for i := range opp {
 			opp[i] = mountain
 		}
-		cfg := Config{Seed: 4210, Names: []string{"willcaster", "opponent"}, PinnedStart: true,
+		cfg := seatZeroStart(Config{Seed: 4210, Names: []string{"willcaster", "opponent"},
 			Decks:      [][]*cards.Card{deck, opp},
 			Tokens:     reg.Tokens,
-			Commanders: [][]int{{1}, {}}}
+			Commanders: [][]int{{1}, {}}})
 		e := New(cfg)
 		e.Advance()
 		toMain1(t, e)

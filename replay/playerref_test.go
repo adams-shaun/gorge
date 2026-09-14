@@ -63,10 +63,7 @@ func raiderConfig(t *testing.T) rules.Config {
 	for i := range deck1 {
 		deck1[i] = mountain
 	}
-	// PinnedStart: this fixture is a seat-role scenario (the ATTACKER deck sits
-	// at seat 0 and the test drives its first attack), which is CR 103.1's
-	// "players agree" determination -- pin, so genesis consumes no toss draw.
-	return rules.Config{Seed: 11, Names: []string{"attacker", "defender"}, PinnedStart: true,
+	return rules.Config{Seed: 36, Names: []string{"attacker", "defender"},
 		Decks: [][]*cards.Card{deck0, deck1}}
 }
 

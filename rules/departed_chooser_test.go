@@ -44,11 +44,16 @@ import (
 // after the loss.
 func TestDepartedChooserResumptionEventStreamIsDeterministic(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	cfg := Config{Seed: 42, Tokens: reg.Tokens, PinnedStart: true}
+	cfg := Config{Seed: 42, Tokens: reg.Tokens}
 	for _, n := range []string{"ur-delver", "death-n-taxes", "ur-delver"} {
 		cfg.Names = append(cfg.Names, n)
 		cfg.Decks = append(cfg.Decks, testutil.RepoDeck(t, reg, n))
 	}
+	// Seat 0 is the protagonist; seatZeroStart advances the seed until the
+	// CR 103.1 toss starts seat 0. It runs here, after the decks are
+	// appended -- on the deck-less Config it would be a no-op (New with no
+	// Names draws no toss).
+	cfg = seatZeroStart(cfg)
 	e := New(cfg)
 	e.Advance()
 	toMain1(t, e)
@@ -190,8 +195,14 @@ func TestDepartedChooserResumptionEventStreamIsDeterministic(t *testing.T) {
 	// chain in the graveyard with an empty stack, the departure sweep's 61
 	// MoveZone events, no stray Resolve from the abandoned continuation --
 	// holds unchanged, which is what says the added grant is all that moved.
-	if got := e.L.Head(); got != "fce95fd882697445" {
-		t.Fatalf("chain head = %s, want fce95fd882697445", got)
+	// Regenerated for the CR 103.1 toss (rules.New draws the starting seat):
+	// the toss draw shifts every per-seat shuffle and this fixture's seed
+	// advanced 42 -> 47 with it (seatZeroStart, the seat-0-protagonist
+	// guarantee), so the stream -- and with it this scenario's chain head --
+	// moved. No card behaviour moved with it; every other assertion here
+	// holds unchanged.
+	if got := e.L.Head(); got != "aca71279b0a00f2a" {
+		t.Fatalf("chain head = %s, want aca71279b0a00f2a", got)
 	}
 
 	// T21-e: a log-only replay must reconstruct the identical Game. If any

@@ -79,8 +79,12 @@ func commanderGame(t *testing.T, seed uint64, format Format, life int32, seatCmd
 		deck = append(deck, mountainDeck(t, 40-len(deck))...)
 		decks[p] = deck
 	}
-	cfg := Config{Seed: seed, Names: names, Decks: decks, PinnedStart: true,
+	cfg := Config{Seed: seed, Names: names, Decks: decks,
 		Commanders: cmds, StartingLife: life, Format: format}
+	// The commander suites' protagonist is seat 0 (every test drives to
+	// turn 1 seat 0); seatZeroStart advances the seed until the CR 103.1
+	// toss starts seat 0. The effective seed travels out in cfg.
+	cfg = seatZeroStart(cfg)
 	return New(cfg), cfg
 }
 

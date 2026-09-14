@@ -1,13 +1,11 @@
 package rules
 
 // The CR 103.1 toss: rules.New draws the starting seat from the engine rng
-// (one IntN over the seats, BEFORE any per-seat shuffle) unless the Config
-// pins one. This file pins the toss end to end -- the census (the starting
-// seat is neither fixed nor degenerate), the public toss Note, the rotated
-// CR 103.5 mulligan round, replay-exactness of a tossed game, and the
-// pinned-start arm (the "players agree" determination, which must consume no
-// rng value at all so a pinned game's genesis stream stays byte-identical to
-// the pre-toss engine's).
+// (one IntN over the seats, BEFORE any per-seat shuffle). This file pins the
+// toss end to end -- the census (the starting seat is neither fixed nor
+// degenerate), the public toss Note, the rotated CR 103.5 mulligan round,
+// replay-exactness of a tossed game, and uniformity over the SURVIVORS when
+// the deal itself eliminates a seat.
 
 import (
 	"strings"
@@ -30,13 +28,32 @@ func tossNotes(e *Engine) []events.Event {
 	return out
 }
 
-// tossedTwoSeat is a two-seat mountain-deck Config with the toss live (no
-// pin). Seed 1 measurably tosses the game to seat 1.
+// tossedTwoSeat is a two-seat mountain-deck Config with the toss live. Seed 1
+// measurably tosses the game to seat 1.
 func tossedTwoSeat(t *testing.T, seed uint64, mulligans int) Config {
 	t.Helper()
 	return Config{Seed: seed, Mulligans: mulligans,
 		Names: []string{"a", "b"},
 		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}}
+}
+
+// seatZeroStart returns cfg with the smallest seed >= cfg.Seed whose CR 103.1
+// toss starts seat 0. The scenario fixtures predate the toss: their
+// protagonist is seat 0 -- before the toss seat 0 was always the starting
+// player, so every fixture addresses seats and turns by index -- and the
+// winner-chooses arm that would let a fixture name its starter is
+// deliberately unbuilt (the "Known approximations" row in AGENTS.md). The
+// toss draw sits BEFORE any shuffle, so it is deck-independent and the first
+// acceptable seed is a pure function of the requested one; the effective seed
+// travels in the returned Config, which is what a replay must be handed.
+func seatZeroStart(cfg Config) Config {
+	for {
+		e := New(cfg)
+		if e.G.Active == 0 {
+			return cfg
+		}
+		cfg.Seed++
+	}
 }
 
 // TestTossDeterminesTheStartingPlayerNotAlwaysSeatZero is the census: across
@@ -85,7 +102,7 @@ func TestTossNoteIsEmittedExactlyOnceAndNamesTheStartingPlayer(t *testing.T) {
 		if notes[0].Player != e.G.Active {
 			t.Fatalf("seed=%d: toss Note names seat %d, game started at %d", seed, notes[0].Player, e.G.Active)
 		}
-		want := playerName(e.G, e.G.Active) + " won the toss and takes the first turn"
+		want := tossName(e.G, e.G.Active) + " won the toss and takes the first turn"
 		if notes[0].Text != want {
 			t.Fatalf("seed=%d: toss Note text %q, want %q", seed, notes[0].Text, want)
 		}
@@ -150,36 +167,39 @@ func TestMulliganRoundAsksTheTossWinnerFirst(t *testing.T) {
 	}
 }
 
-// TestPinnedStartIsStreamNeutralAndDeterministic: a pinned start (the
-// "players agree" arm of CR 103.1) consumes NO rng value -- genesis's draw
-// count is exactly the per-seat shuffles' -- emits no toss Note, and begins
-// at the pinned seat. Out-of-range pins degrade, never panic: AliveFrom wraps
-// the pinned seat into the alive set by turn order.
-func TestPinnedStartIsStreamNeutralAndDeterministic(t *testing.T) {
-	// Two 40-card decks: two shuffles of 39 draws each, nothing else -- 78,
-	// the pre-toss engine's exact genesis draw count.
-	const pristineDraws = uint64(78)
-	for _, pin := range []state.PlayerID{0, 1} {
-		cfg := Config{Seed: 1, Names: []string{"a", "b"}, PinnedStart: true, StartSeat: pin,
-			Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}}
-		e := New(cfg)
-		if e.G.Active != pin {
-			t.Fatalf("pin=%d: game started at seat %d", pin, e.G.Active)
+// TestTossIsUniformOverGenesisSurvivors is the survivor-bias regression
+// test (fix round 2): when the deal itself eliminates a seat, the toss must
+// stay uniform over the SURVIVORS -- not be reduced modulo the survivor
+// count. Three seats with seat 0's three-card deck (it decks out during its
+// opening hand, CR 704.5c) leave seats 1 and 2 alive; the pre-fix engine
+// drew IntN(3) and took alive[toss%2], so two of the three toss outcomes
+// mapped onto one survivor -- measured map[1:395 2:205] over 600 seeds
+// (true p=1/2 would put the minority near 300, sigma ~12). The assertion is
+// "both survivors observed, minority >= 240": under uniformity that bound
+// sits ~5 sigma below the mean (failure probability ~1e-6), while the biased
+// 1/3 mapping (minority ~200) fails it overwhelmingly.
+func TestTossIsUniformOverGenesisSurvivors(t *testing.T) {
+	census := map[state.PlayerID]int{}
+	for seed := uint64(1); seed <= 600; seed++ {
+		e := New(Config{Seed: seed, Names: []string{"a", "b", "c"},
+			Decks: [][]*cards.Card{mountainDeck(t, 3), mountainDeck(t, 40), mountainDeck(t, 40)}})
+		if !e.G.Players[0].Lost || e.G.Over {
+			t.Fatalf("seed %d: fixture precondition failed (lost=%v over=%v)", seed, e.G.Players[0].Lost, e.G.Over)
 		}
-		if draws := e.RNGDraws(); draws != pristineDraws {
-			t.Fatalf("pin=%d: genesis consumed %d rng values, want %d (the toss draw must not run)", pin, draws, pristineDraws)
-		}
-		if notes := tossNotes(e); len(notes) != 0 {
-			t.Fatalf("pin=%d: pinned start emitted %d toss Notes, want none", pin, len(notes))
-		}
+		census[e.G.Active]++
 	}
-	// An out-of-range pin wraps through AliveFrom: seat 9 in a two-seat game
-	// resolves to seat 1 (the first alive seat at or after 9 in turn order),
-	// deterministically, with no panic.
-	cfg := Config{Seed: 1, Names: []string{"a", "b"}, PinnedStart: true, StartSeat: 9,
-		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}}
-	e := New(cfg)
-	if e.G.Active != 1 {
-		t.Fatalf("out-of-range pin: game started at seat %d, want the AliveFrom(9) wrap to seat 1", e.G.Active)
+	if census[0] != 0 {
+		t.Fatalf("eliminated seat 0 started %d games", census[0])
+	}
+	if census[1] == 0 || census[2] == 0 {
+		t.Fatalf("both survivors must be observed as the starting seat, got %v", census)
+	}
+	minority := census[1]
+	if census[2] < minority {
+		minority = census[2]
+	}
+	if minority < 240 {
+		t.Fatalf("survivor toss census over 600 seeds = %v: the minority survivor started %d games, "+
+			"want >= 240 (uniform p=1/2); a modulo-mapped toss measures ~200", census, minority)
 	}
 }

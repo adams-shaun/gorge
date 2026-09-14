@@ -48,12 +48,19 @@ func TestCR601NoMandatoryCounterCastOnEmptyStack(t *testing.T) {
 			// which changes the subsequent game enough that this audit sees no
 			// counterspell hand at an empty-stack priority boundary. Seed 0 keeps
 			// the same two representative decks and bot while exercising 66 such
-			// boundaries; the other seat counts remain on the acceptance seed.
+			// boundaries. Under the CR 103.1 toss (rules.New draws the starting
+			// seat) the four-seat game's turn order shifted the same way and its
+			// audit went vacuous, so seed 43 -- measured: 166 boundaries, the
+			// violation guard still armed. The other seat counts remain on the
+			// acceptance seed.
 			seed := uint64(42)
 			if seats == 2 {
 				seed = 0
 			}
-			e := New(Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens, Mulligans: 1, PinnedStart: true})
+			if seats == 4 {
+				seed = 43
+			}
+			e := New(Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens, Mulligans: 1})
 			b := newTestBot(7)
 			e.Advance()
 			checked := 0
@@ -121,7 +128,7 @@ func TestCR601TargetsPrecedeManaPayment(t *testing.T) {
 			for i := range deck {
 				deck[i] = c
 			}
-			e := New(Config{Seed: 42, Names: []string{"caster", "opponent"}, Decks: [][]*cards.Card{deck, deck}, Tokens: reg.Tokens})
+			e := New(seatZeroStart(Config{Seed: 42, Names: []string{"caster", "opponent"}, Decks: [][]*cards.Card{deck, deck}, Tokens: reg.Tokens}))
 			e.Advance()
 			e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "R", Amount: 3})
 			e.askPriority(0)
