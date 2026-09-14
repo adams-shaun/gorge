@@ -356,6 +356,97 @@ func TestWalkerLeaveAndReturnMayActivateAgain(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// recordLoyaltyPush records a real AbilityPush without resolving its effect,
+// then removes its transient stack object so legal-action generation again has
+// an empty-stack sorcery window. It is deliberately used only for log-folding
+// probes: normal activation flow is covered by the end-to-end Jace tests.
+func recordLoyaltyPush(e *Engine, walker state.ObjID, ability int) {
+	e.emit(events.Event{Kind: events.AbilityPush, Obj: walker, Player: 0, Amount: int32(ability)})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: e.G.NextID - 1, From: state.ZStack, To: state.ZExile})
+}
+
+// TestLoyaltyActivationUsesFaceAtPush proves the CR 606.3 scan classifies an
+// AbilityPush by the source face active WHEN it was pushed, not the source's
+// current face. The back face deliberately places its loyalty ability at a
+// different index, the shape a current-face lookup would lose after FlipFace.
+func TestLoyaltyActivationUsesFaceAtPush(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, _, walker := walkerBoard(t, reg, "Jace, the Mind Sculptor")
+	e.G.Obj(walker).Card = &cards.Card{Faces: []*cards.Face{
+		{Name: "front", Types: []string{"Planeswalker"}, Loyalty: "3", Abilities: []*cards.SA{
+			{Kind: "AB", API: "Draw", Params: map[string]string{"Planeswalker": "True"}},
+		}},
+		{Name: "back", Types: []string{"Planeswalker"}, Loyalty: "3", Abilities: []*cards.SA{
+			{Kind: "AB", API: "Draw", Params: map[string]string{}},
+			{Kind: "AB", API: "Draw", Params: map[string]string{"Planeswalker": "True"}},
+		}},
+	}}
+	recordLoyaltyPush(e, walker, 0)
+	e.emit(events.Event{Kind: events.FlipFace, Obj: walker, Amount: 1})
+	if got := e.loyaltyActivationsThisTurn(walker); got != 1 {
+		t.Fatalf("loyalty activations after front-face push and flip = %d, want 1", got)
+	}
+	if loyaltyAbilityOffered(e, 0, walker, 1) {
+		t.Fatal("back-face loyalty ability offered after a front-face activation")
+	}
+}
+
+// TestLoyaltyStintUsesFoldedZoneHistory makes the MoveZone From fields lie in
+// both directions. events.Move uses the object's actual zone, so the loyalty
+// stint fold must too: a same-zone battlefield re-append cannot reset the
+// gate, while a real leave/re-entry must reset it even when both From fields
+// claim the opposite.
+func TestLoyaltyStintUsesFoldedZoneHistory(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	jaceCard := mustCorpusCard(t, reg, "Jace, the Mind Sculptor")
+	plusTwo := jaceAbility(t, jaceCard, "AddCounter", 2)
+
+	t.Run("stale entry on battlefield reappend does not reset", func(t *testing.T) {
+		e, cfg, walker := walkerBoard(t, reg, "Jace, the Mind Sculptor")
+		recordLoyaltyPush(e, walker, plusTwo)
+		// Actual battlefield -> battlefield, despite From claiming exile.
+		e.emit(events.Event{Kind: events.MoveZone, Obj: walker, From: state.ZExile, To: state.ZBattlefield})
+		if got := e.loyaltyActivationsThisTurn(walker); got != 1 {
+			t.Fatalf("activations after same-zone reappend = %d, want 1", got)
+		}
+		if loyaltyAbilityOffered(e, 0, walker, plusTwo) {
+			t.Fatal("same-zone reappend reset the loyalty gate")
+		}
+		replayCheck(t, e, cfg)
+	})
+
+	t.Run("stale exit and entry still reset on real reentry", func(t *testing.T) {
+		e, cfg, walker := walkerBoard(t, reg, "Jace, the Mind Sculptor")
+		recordLoyaltyPush(e, walker, plusTwo)
+		// Actual battlefield -> exile, then exile -> battlefield. Both From
+		// values are stale, so an Event.From-based scan misses both crossings.
+		e.emit(events.Event{Kind: events.MoveZone, Obj: walker, From: state.ZExile, To: state.ZExile})
+		e.emit(events.Event{Kind: events.MoveZone, Obj: walker, From: state.ZBattlefield, To: state.ZBattlefield})
+		if got := e.loyaltyActivationsThisTurn(walker); got != 0 {
+			t.Fatalf("activations after real leave/re-entry = %d, want 0", got)
+		}
+		if !loyaltyAbilityOffered(e, 0, walker, plusTwo) {
+			t.Fatal("real leave/re-entry did not reset the loyalty gate")
+		}
+		replayCheck(t, e, cfg)
+	})
+}
+
+// TestLoyaltyGateIgnoresRejectedNegativeAbilityPush exercises option building
+// after a hostile logged AbilityPush. Apply rejects a negative ability index;
+// the historical gate must also bounds-check it rather than panicking.
+func TestLoyaltyGateIgnoresRejectedNegativeAbilityPush(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	jaceCard := mustCorpusCard(t, reg, "Jace, the Mind Sculptor")
+	plusTwo := jaceAbility(t, jaceCard, "AddCounter", 2)
+	e, cfg, walker := walkerBoard(t, reg, "Jace, the Mind Sculptor")
+	e.emit(events.Event{Kind: events.AbilityPush, Obj: walker, Player: 0, Amount: -1})
+	if !loyaltyAbilityOffered(e, 0, walker, plusTwo) {
+		t.Fatal("rejected negative AbilityPush withheld a legal loyalty ability")
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestOathOfTeferiGrantsASecondLoyaltyActivation: the S:Mode$ NumLoyaltyAct
 // static (Twice$ True, ValidCard$ Planeswalker.YouCtrl) raises the
 // per-permanent limit from 1 to 2 for planeswalkers the enchantment's

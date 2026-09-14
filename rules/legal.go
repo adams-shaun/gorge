@@ -137,45 +137,62 @@ func isLoyaltyAbility(ab *cards.SA) bool {
 }
 
 // loyaltyActivationsThisTurn counts how many loyalty abilities of the
-// permanent id have been activated this turn, scanning the replayable event
-// log backward to the nearest turn boundary. Two things stop the scan early:
+// permanent id have been activated in its current battlefield stint this turn.
+// It folds the whole replayable log forward because both facts an AbilityPush
+// needs are historical: the source's active face at that event, and whether a
+// MoveZone ACTUALLY crossed the battlefield boundary. Event.From is advisory
+// (events.Move deliberately uses the object's recorded zone instead), so it
+// must not decide a stint boundary.
 //
-//   - TurnChange: CR 606.3's window is the turn, not a player's own turn.
-//   - a MoveZone crossing the battlefield boundary for id: a permanent that
-//     leaves the battlefield and returns is a NEW object (CR 400.7), so its
-//     previous stint's activations -- all of them earlier in the log -- must
-//     not count against the new one. The re-entry move is the stint boundary
-//     in both directions (an entry move means everything earlier was a
-//     different object; a leaving move means the count so far belongs to the
-//     stint that just ended), so one boundary check serves both.
-//
-// An AbilityPush records the activated ability's face index in Amount; that
-// index is mapped through the object's CURRENT face -- the face is what the
-// offer loop reads too, so the two can never disagree. The battlefield-to-
-// battlefield re-append Move (events.Move's same-zone case) is neither a
-// leaving nor an entering move and correctly does not reset the count.
+// Every genesis object starts outside the battlefield and on face zero. The
+// fold keeps just those two facts for id. MoveZone's To is authoritative after
+// Apply succeeds, so a same-zone re-append leaves onBattlefield unchanged even
+// when a malformed From claims otherwise. FlipFace is applied after any push
+// on its old face, exactly as events.Apply does. TurnChange resets the count
+// but deliberately retains the folded zone and face for the next turn.
 func (e *Engine) loyaltyActivationsThisTurn(id state.ObjID) int {
 	o := e.G.Obj(id)
-	if o == nil {
+	if o == nil || o.Card == nil || len(o.Card.Faces) == 0 {
 		return 0
 	}
-	f := o.Face()
+
 	used := 0
-	for i := len(e.L.Events) - 1; i >= 0; i-- {
-		ev := e.L.Events[i]
-		if ev.Kind == events.TurnChange {
-			break
-		}
-		if ev.Kind == events.MoveZone && ev.Obj == id {
-			left := ev.From == state.ZBattlefield && ev.To != state.ZBattlefield
-			entered := ev.To == state.ZBattlefield && ev.From != state.ZBattlefield
-			if left || entered {
-				break
+	onBattlefield := false
+	faceIdx := 0
+	for _, ev := range e.L.Events {
+		switch ev.Kind {
+		case events.TurnChange:
+			// CR 606.3's window is a turn, not a player's own turn.
+			used = 0
+
+		case events.MoveZone:
+			if ev.Obj != id || !ev.To.Valid() {
+				continue
 			}
-		}
-		if ev.Kind == events.AbilityPush && ev.Obj == id {
+			nextOnBattlefield := ev.To == state.ZBattlefield
+			if onBattlefield != nextOnBattlefield {
+				// CR 400.7: every real departure or entry starts a new
+				// permanent stint. This is derived from the folded zone,
+				// never the caller-controlled Event.From.
+				used = 0
+			}
+			onBattlefield = nextOnBattlefield
+
+		case events.AbilityPush:
+			if ev.Obj != id || !onBattlefield || int(ev.Player) >= len(e.G.Players) ||
+				ev.Amount < 0 || faceIdx >= len(o.Card.Faces) {
+				continue
+			}
+			// Amount indexes the active face's ability list. Check the exact
+			// face and bounds that events.Apply used at push time.
+			f := o.Card.Faces[faceIdx]
 			if f != nil && int(ev.Amount) < len(f.Abilities) && isLoyaltyAbility(f.Abilities[int(ev.Amount)]) {
 				used++
+			}
+
+		case events.FlipFace:
+			if ev.Obj == id && ev.Amount >= 0 && int(ev.Amount) < len(o.Card.Faces) {
+				faceIdx = int(ev.Amount)
 			}
 		}
 	}
