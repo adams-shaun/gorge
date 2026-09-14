@@ -1,4 +1,4 @@
-//go:build !unix
+//go:build !(linux || darwin || dragonfly || freebsd || netbsd || openbsd)
 
 package main
 
@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 )
 
-// lockPace is the non-unix fallback of the cross-process Scryfall pace
-// limiter: it opens the stamp file but takes NO lock on it, because
-// syscall.Flock (pace_lock_unix.go) has no Windows counterpart. The limiter
+// lockPace is the fallback on platforms without syscall.Flock: it opens the
+// stamp file but takes NO lock on it. This includes Windows, AIX and Solaris;
+// pace_lock_unix.go lists the Flock-capable GOOS targets exactly. The limiter
 // degrades to PER-PROCESS: the pacing semaphore still serializes one
 // process's outbound requests at exactly a.pace, but two gorged processes
 // sharing one cache directory no longer pace each other and can each send up

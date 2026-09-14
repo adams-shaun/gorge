@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
 )
@@ -132,9 +131,7 @@ func TestDeployStartsTheServersWhenTheArtFillFails(t *testing.T) {
 					}
 				}
 			}
-			if !processAlive(probe) {
-				t.Errorf("the deploy's port sweep killed the probe gorged on [::1]:%d — a gorged bound to another address of a demo port must be left alone", ports[0])
-			}
+			assertGorgedProbeListening(t, probe)
 
 			// The stub servers are started in the background: wait for both.
 			var calls [][]string
@@ -208,9 +205,16 @@ func demoTestPorts(t *testing.T) []int {
 // /proc/<pid>/comm reads gorged (this test binary, copied under that name
 // and re-exec'd into its helper) with a LISTENING socket on [::1]:port —
 // another address of a port the deploy is about to bind on 127.0.0.1. The
-// script's port sweep must never touch it; the caller asserts the process
-// is still alive once the deploy has run. The probe is killed at cleanup.
-func startGorgedProbe(t *testing.T, port int) *os.Process {
+// script's port sweep must never touch it; the caller asserts its socket and
+// PID still appear in ss after the deploy. That proves the process is alive
+// AND still owns the [::1] listener — unlike signal 0, it cannot mistake an
+// unreaped zombie for a live probe. The probe is killed and reaped at cleanup.
+type gorgedProbe struct {
+	cmd  *exec.Cmd
+	port int
+}
+
+func startGorgedProbe(t *testing.T, port int) *gorgedProbe {
 	t.Helper()
 	exe, err := os.Executable()
 	if err != nil {
@@ -267,12 +271,28 @@ func startGorgedProbe(t *testing.T, port int) *os.Process {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	return cmd.Process
+	probe := &gorgedProbe{cmd: cmd, port: port}
+	assertGorgedProbeListening(t, probe)
+	return probe
 }
 
-// processAlive reports whether p is still running (signal 0 delivery).
-func processAlive(p *os.Process) bool {
-	return p.Signal(syscall.Signal(0)) == nil
+// assertGorgedProbeListening proves the exact PID still owns its [::1]
+// listener. A killed probe becomes a zombie until Cleanup reaps it, for which
+// signal 0 would still succeed; a zombie cannot retain a listening socket.
+func assertGorgedProbeListening(t *testing.T, probe *gorgedProbe) {
+	t.Helper()
+	out, err := exec.Command("ss", "-lptn").Output()
+	if err != nil {
+		t.Fatalf("ss -lptn: %v", err)
+	}
+	address := fmt.Sprintf("[::1]:%d", probe.port)
+	pid := fmt.Sprintf("pid=%d,", probe.cmd.Process.Pid)
+	for _, line := range strings.Split(string(out), "\n") {
+		if strings.Contains(line, address) && strings.Contains(line, pid) {
+			return
+		}
+	}
+	t.Errorf("the deploy's port sweep killed probe pid %d or closed its [::1]:%d listener; ss -lptn:\n%s", probe.cmd.Process.Pid, probe.port, out)
 }
 
 // copyFile copies src to a new file at dst.

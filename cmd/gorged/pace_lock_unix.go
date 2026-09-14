@@ -1,4 +1,4 @@
-//go:build unix
+//go:build linux || darwin || dragonfly || freebsd || netbsd || openbsd
 
 package main
 
@@ -18,9 +18,9 @@ import (
 const pacePollInterval = 10 * time.Millisecond
 
 // lockPace opens the pace stamp file and takes its exclusive flock, giving up
-// when ctx is done. (unix only — syscall.Flock has no Windows counterpart;
-// pace_lock_other.go carries the fallback, which locks nothing and degrades
-// the limiter to per-process.)
+// when ctx is done. This file is limited to the GOOS targets whose syscall
+// package provides Flock; pace_lock_other.go carries the fallback everywhere
+// else, which locks nothing and degrades the limiter to per-process.
 //
 // The wait is a non-blocking LOCK_EX|LOCK_NB attempt every pacePollInterval,
 // not one blocking flock(2) in a goroutine: a blocking flock cannot be

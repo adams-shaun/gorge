@@ -51,14 +51,14 @@ OMNI_LOG=${OMNI_LOG:-/tmp/gorge-demo-omni.log}
 # per server (single-flight is per-process, so a first-fetch race between the
 # two servers can still fetch a cold name twice — harmless: image and facts
 # writers use process-unique staging files and publish only complete artifacts
-# with atomic renames). Scryfall pacing IS shared by every gorged whose
-# BINARY knows the stamp file (artCache.paceWait): the fill below and both
-# new servers pace each other, and so do the old servers a deploy replaces
-# once they run a binary this new — but the FIRST deploy after the stamp
-# file's introduction overlaps servers from the old binary, which pace only
-# themselves. That window is one deploy wide and the fill's budget bounds
-# it; from the second deploy on everything sharing this dir stays within
-# ~10 req/s.
+# with atomic renames). Scryfall pacing IS shared by every lock-aware gorged
+# whose BINARY knows the stamp file (artCache.paceWait): the fill below and
+# both new servers pace each other, and so do old servers a deploy replaces
+# once they run a binary this new. The FIRST deploy after the stamp file's
+# introduction overlaps old-binary servers, which pace only themselves; the
+# fill's budget bounds that unshared window's duration, not its aggregate
+# request rate. From the second deploy on, every lock-aware process sharing
+# this dir stays within ~10 req/s.
 ART_DIR=${ART_DIR:-/mnt/sata/gorge-data/art}
 
 # Bounds on the pre-start art fill. Art is cosmetic: Scryfall being slow,
@@ -77,8 +77,9 @@ ART_FILL_CEILING=${ART_FILL_CEILING:-230s}
 # 124 on a ceiling (measured 2026-09-14: a child ignoring TERM ran its full 8s
 # under uutils, and was killed at 1.3s by gnutimeout, Ubuntu's GNU build).
 # That is the fallback's limit: under uutils the ceiling stops WAITING at
-# 230s but cannot force-kill a fill wedged past gorged's own budget — that
-# child outlives the deploy and is only bounded by the next deploy's sweep.
+# 230s but cannot force-kill a fill wedged past gorged's own budget. Because
+# -prewarm-art-only never listens, a later deploy's listener-only sweep cannot
+# find it; a TERM-ignoring child can survive indefinitely until manual cleanup.
 # With no timeout at all, gorged's own -prewarm-art-budget is the only bound.
 TIMEOUT=$(command -v gnutimeout || command -v timeout || true)
 
@@ -233,7 +234,7 @@ ${TIMEOUT:+"$TIMEOUT" -k 5s "$ART_FILL_CEILING"} "$BIN" -prewarm-art-only \
 	-prewarm-art-max-consecutive-failures "$ART_FILL_MAX_FAILURES" \
 	-decks "$DECKS" -art-dir "$ART_DIR" || art_rc=$?
 if [ "$art_rc" -ne 0 ]; then
-	say "!!! art fill INCOMPLETE (exit $art_rc; 124/137 = the $ART_FILL_CEILING hard ceiling under GNU timeout, 125 = ceiling hit under uutils timeout, which never escalates to SIGKILL) — see the summary above; starting the servers anyway, their background prewarm finishes the cache"
+	say "!!! art fill INCOMPLETE (exit $art_rc; 124/137 = the $ART_FILL_CEILING hard ceiling under GNU timeout; 125 = uutils timeout gave up after TERM and cannot force-kill a wedged fill) — see the summary above; starting the servers anyway, their background prewarm finishes the cache"
 fi
 
 stop_all

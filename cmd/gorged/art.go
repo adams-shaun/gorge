@@ -58,13 +58,12 @@ type artCache struct {
 	// requests). It is enforced by paceWait as a LIMITER over the request
 	// stream (measured against a clock, not a fixed sleep) and shared by
 	// EVERY process using this cache directory through a locked stamp file
-	// (paceFile): the deploy's one-shot fill and both demo servers after it
-	// stay within one pace, and so do the old servers a deploy replaces —
-	// once they run a binary that knows the stamp file. The FIRST deploy
-	// after that code lands overlaps old-binary servers, which pace only
-	// themselves; that unshared window is one deploy wide and the fill's
-	// own budget bounds it, so prewarm and browser-driven fetches can
-	// never race each other into 429s. It is a field, not a constant, for
+	// (paceFile): the deploy's one-shot fill and every lock-aware demo server
+	// stay within one pace, including old servers a deploy replaces once they
+	// run a binary that knows the stamp file. The FIRST deploy after that code
+	// lands overlaps old-binary servers, which pace only themselves; its fill
+	// budget bounds the duration of that unshared window, not its aggregate
+	// request rate. It is a field, not a constant, for
 	// the same reason namedBaseURL
 	// is: a test seam, so a package whose budget is measured in whole
 	// seconds can exercise the prewarm without paying the real-world pacing
@@ -144,8 +143,9 @@ const paceFile = ".scryfall-pace"
 
 // paceWait spaces Scryfall request starts at least a.pace apart — the <=10
 // req/s limiter — across EVERY process using a.dir, not just this one: it
-// takes the stamp file's flock (lockPace, in pace_lock_unix.go on unix and
-// pace_lock_other.go elsewhere), waits out whatever is left of the gap since
+// takes the stamp file's flock (lockPace, in pace_lock_unix.go on
+// Flock-capable targets and pace_lock_other.go elsewhere), waits out whatever
+// is left of the gap since
 // the start any process last stamped, stamps its own start, and releases.
 // Within a process the pacing semaphore already serializes callers; the
 // flock extends that to the deploy's fill and both demo servers, which would
