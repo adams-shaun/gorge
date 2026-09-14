@@ -14,10 +14,12 @@ class FakeES implements EventSourceLike {
 }
 
 const hello = (session: string) => JSON.stringify({ v: 1, t: 'hello', seq: 0, body: { session, tables: [] } });
+const rewind = () => JSON.stringify({ v: 1, t: 'rewind', seq: 5, table: 't1', match: 1, body: {} });
 
 describe('stream', () => {
   it('parses frames and rejects garbage', () => {
     expect(parseFrame(hello('s1'))?.t).toBe('hello');
+    expect(parseFrame(rewind())?.t).toBe('rewind');
     expect(parseFrame('{')).toBeNull();
     expect(parseFrame(JSON.stringify({ v: 2, t: 'hello', seq: 0, body: {} }))).toBeNull(); // wrong version
   });
@@ -30,9 +32,10 @@ describe('stream', () => {
     es.emit('hello', hello('s1'));
     expect(s.session).toBe('s1');
     es.emit('widget', JSON.stringify({ v: 1, t: 'widget', seq: 5, table: 't1', match: 1, body: {} }));
+    es.emit('rewind', rewind());
     es.emit('hello', hello('s2'));
     expect(s.session).toBe('s2');
-    expect(seen).toEqual(['hello', 'widget', 'hello']);
+    expect(seen).toEqual(['hello', 'widget', 'rewind', 'hello']);
     s.close();
     expect(es.closed).toBe(true);
   });

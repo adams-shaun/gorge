@@ -16,6 +16,7 @@ export const tablesURL = () => withBase('/api/tables');
 export const matchesURL = (t: string) => withBase(`/api/tables/${enc(t)}/matches`);
 export const pendingURL = (t: string, k: number) => withBase(`/api/tables/${enc(t)}/matches/${k}/pending`);
 export const intentURL = (t: string, k: number) => withBase(`/api/tables/${enc(t)}/matches/${k}/intent`);
+export const undoURL = (t: string, k: number) => withBase(`/api/tables/${enc(t)}/matches/${k}/undo`);
 export const gamesURL = () => withBase('/api/games');
 export const decksURL = () => withBase('/api/decks');
 
@@ -118,6 +119,18 @@ export async function postIntent(t: string, k: number, intent: Intent, ctx: Seat
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ctx.token}` },
     body: JSON.stringify(intent),
+  });
+  if (!res.ok) {
+    const e = (await res.json().catch(() => ({}))) as Partial<ErrorBody>;
+    throw new ApiError(res.status, e.code ?? 'http', e.message ?? res.statusText);
+  }
+}
+
+/** postUndo requests an in-place rewind. The seat claim is the same bearer fence as an intent; the rewind frame confirms when it lands. */
+export async function postUndo(t: string, k: number, ctx: SeatCtx): Promise<void> {
+  const res = await fetch(undoURL(t, k), {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${ctx.token}` },
   });
   if (!res.ok) {
     const e = (await res.json().catch(() => ({}))) as Partial<ErrorBody>;

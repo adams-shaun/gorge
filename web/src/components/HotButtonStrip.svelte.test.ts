@@ -12,7 +12,7 @@ vi.mock('../lib/api', async (importOriginal) => ({
 vi.mock('../lib/images', () => ({ images: { url: () => new Promise<string | null>(() => {}), offline: () => false } }));
 
 const ctx = { seat: 0, token: 'tok' };
-const seats: SeatInfo[] = [{ name: 'Ari', deck: 'deck', colour: '#e5484d' }];
+const seats: SeatInfo[] = [{ name: 'Ari', deck: 'deck', colour: '#e5484d', human: true }];
 const player: PlayerView = {
   seat: 0, name: 'Ari', life: 20, lost: false, library_size: 53, hand_size: 0,
   graveyard_size: 0, hand: [], battlefield: [], graveyard: [], exile: [], pool: {},
@@ -43,13 +43,15 @@ function stripState(state: SeatPanelState, decision: Decision | null): string {
 const option = (index: number, kind: string, label: string) => ({ index, kind, label, player: 0 });
 
 describe('HotButtonStrip — server options regrouped into one instrument', () => {
-  it('renders exactly five slots, with PASS enabled only by a pass option', () => {
+  it('renders six slots including UNDO, with PASS enabled only by a pass option', () => {
     const priority: Decision = {
       seq: 1, player: 0, kind: 'priority', prompt: 'Priority', min: 1, max: 1,
       options: [option(7, 'cast', 'Cast spell'), option(42, 'pass', 'Pass priority')],
     };
     const html = strip(priority);
-    expect([...html.matchAll(/data-hot-tab="/g)]).toHaveLength(5);
+    expect([...html.matchAll(/data-hot-tab="/g)]).toHaveLength(6);
+    expect(html).toMatch(/data-hot-tab="undo"[^>]*aria-disabled="false"/);
+    expect(html).toContain('data-undo');
     expect(html).toMatch(/data-hot-tab="pass"[^>]*aria-disabled="false"/);
     expect(html).toContain('data-pass-action');
 
@@ -73,6 +75,23 @@ describe('HotButtonStrip — server options regrouped into one instrument', () =
     const empty = strip(emptyPriority);
     expect(empty).toMatch(/data-hot-tab="actions"[^>]*aria-disabled="true"/);
     expect(empty).toContain('data-seat-panel');
+  });
+
+  it('disables UNDO when another human seat would need to consent', () => {
+    const priority: Decision = {
+      seq: 1, player: 0, kind: 'priority', prompt: 'Priority', min: 1, max: 1,
+      options: [option(42, 'pass', 'Pass priority')],
+    };
+    const state = new SeatPanelState('t1', 1, ctx, null);
+    state.adoptView(priority);
+    const html = render(HotButtonStrip, {
+      props: {
+        view: { ...baseView, decision: priority },
+        seats: [...seats, { name: 'Bo', deck: 'deck2', colour: '#22c55e', human: true }],
+        state, ctx, table: 't1', match: 1,
+      },
+    }).html;
+    expect(html).toMatch(/data-hot-tab="undo"[^>]*aria-disabled="true"[^>]*disabled/);
   });
 
   it('uses one contextual slot: choose says Done picking and attackers says Done selecting attackers', () => {

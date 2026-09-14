@@ -18,6 +18,9 @@ export interface DvrState {
 
 export type DvrAction =
   | { type: 'snapshot'; match: string; head: number; turnStarts: number[] }
+  // A rewind reuses the same match identity with a shorter history. Unlike a
+  // same-match snapshot, it must discard the old tail and return to live.
+  | { type: 'rewind'; match: string; head: number; turnStarts: number[] }
   | { type: 'event'; body: EventBody }
   // 'head' advances the cursor/head WITHOUT storing a transcript line: the
   // seated path receives the spectator frame stream but must not render its
@@ -49,6 +52,11 @@ export function dvrReducer(s: DvrState, a: DvrAction): DvrState {
         events: [], turnStarts: [...a.turnStarts], gap: false,
       };
     }
+    case 'rewind':
+      return {
+        match: a.match, head: a.head, cursor: a.head, live: true,
+        events: [], turnStarts: [...a.turnStarts], gap: false,
+      };
     case 'event': {
       const seq = a.body.event.seq;
       if (seq <= s.head) return s; // already accounted for: a duplicate, or redelivered after a snapshot dropped events

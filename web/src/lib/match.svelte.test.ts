@@ -377,3 +377,25 @@ describe('MatchState — stale paused-cursor fetches never clobber a fresher vie
     expect(m.view).toEqual(view(42)); // still match 2's view, untouched by match 1's stale fetch
   });
 });
+
+describe('MatchState rewind', () => {
+  it('applies the shorter full snapshot, clears the pending decision, and rejects stale live fetches', async () => {
+    fetchViewMock.mockReset();
+    fetchEventsMock.mockReset();
+    const slow = deferred<View>();
+    fetchViewMock.mockImplementationOnce(() => slow.promise);
+    const m = new MatchState('t1');
+    m.apply({ v: 1, t: 'snapshot', table: 't1', match: 1, seq: 20, body: { view: view(20), turn_starts: [0, 10], head: 20, seats } });
+    m.apply({ v: 1, t: 'decision', table: 't1', match: 1, seq: 20, body: { player: 0, kind: 'priority', prompt: 'act' } });
+    expect(m.decision).not.toBeNull();
+
+    m.apply({ v: 1, t: 'rewind', table: 't1', match: 1, seq: 5, body: { view: view(5), turn_starts: [0], head: 5, seats } });
+    expect(m.decision).toBeNull();
+    expect(m.view).toEqual(view(5));
+    expect(m.dvr).toMatchObject({ head: 5, cursor: 5, live: true, events: [], turnStarts: [0] });
+
+    slow.resolve(view(999));
+    await drain();
+    expect(m.view).toEqual(view(5));
+  });
+});

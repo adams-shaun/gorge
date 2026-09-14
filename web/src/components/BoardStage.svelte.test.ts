@@ -113,8 +113,10 @@ describe('BoardStage — the phase band is a reserved lane', () => {
     const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
     await page.goto(`${url}src/components/PhaseLane.geometry.html?seats=2`);
     const tabs = page.locator('[data-hot-tab]');
-    await expect.poll(() => tabs.count()).toBe(5);
-    for (let i = 0; i < 5; i++) await expect.soft(tabs.nth(i).getAttribute('aria-label')).resolves.toBeTruthy();
+    await expect.poll(() => tabs.count()).toBe(6);
+    const count = await tabs.count();
+    for (let i = 0; i < count; i++) await expect.soft(tabs.nth(i).getAttribute('aria-label')).resolves.toBeTruthy();
+    await expect.soft(page.locator('[data-undo]').getAttribute('aria-label')).resolves.toBe('Undo my last action');
 
     const actions = page.locator('[data-hot-tab="actions"]');
     const panel = page.locator('[data-hot-panel="actions"]');

@@ -194,7 +194,13 @@
       void m.loadFinished(match);
       return;
     }
-    const off = session.stream.onFrame((f) => m.apply(f));
+    const off = session.stream.onFrame((f) => {
+      // MatchState owns the board/DVR half of rewind; the panel owns pending
+      // posts and timers. Reset both before the frame's shorter seq space is
+      // exposed, so no paced pass from the discarded tail can fire into it.
+      if (f.t === 'rewind') panelCache?.state.rewind();
+      m.apply(f);
+    });
     void session.focus(table);
     const t = tables.list.find((x) => x.info.id === table);
     if (t) m.seats = t.seats;

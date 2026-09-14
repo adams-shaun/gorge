@@ -15,7 +15,7 @@ export interface Stream {
   close(): void;
 }
 
-const FRAME_TYPES: FrameType[] = ['hello', 'widget', 'match_start', 'snapshot', 'event', 'decision', 'match_end', 'table_halted', 'overflow', 'error'];
+const FRAME_TYPES: FrameType[] = ['hello', 'widget', 'match_start', 'snapshot', 'event', 'decision', 'match_end', 'table_halted', 'overflow', 'error', 'rewind'];
 
 /** parseFrame decodes one SSE data line; anything malformed or from another protocol version is dropped. */
 export function parseFrame(data: string): Frame | null {

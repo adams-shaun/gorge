@@ -366,6 +366,22 @@ describe('the wait is cancellable', () => {
     expect(p.runPassed).toBe(0);
   });
 
+  it('a rewind clears the pending decision, one-shot run and paced pass', async () => {
+    vi.useFakeTimers();
+    const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
+    p.adoptView(quiet(1));
+    p.startEndTurn(view('end', 0, 2));
+    p.considerAuto(view('end', 0, 2));
+    expect(p.endTurn).toBe(true);
+
+    p.rewind();
+    expect(p.pending).toBeNull();
+    expect(p.oneShot).toBe('none');
+    expect(p.postedSeq).toBeNull();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(postIntentMock).not.toHaveBeenCalled();
+  });
+
   it('turning the machine off mid-beat (setAuto(false)) abandons its paced pass', async () => {
     vi.useFakeTimers();
     const p = pacedSeat({ stepMs: 200, resolveMs: 400 });

@@ -22,6 +22,9 @@ export class MatchState {
   loadError = $state<string | null>(null);
   private inflight = false;
   private again = false;
+  // Invalidates live view/transcript requests started before a match change
+  // or rewind; those responses describe a seq space the client discarded.
+  private liveEpoch = 0;
   private cache = new ViewCache((seq) => this.fetchViewAt(seq));
   private seeking = 0;
   // seatSince is the last seq the seated path backfilled redacted transcript
@@ -34,6 +37,8 @@ export class MatchState {
     if (f.table !== this.table) return;
     switch (f.t) {
       case 'match_start':
+        this.liveEpoch++;
+        this.seeking++;
         this.match = f.match ?? null;
         this.seats = (f.body as MatchStart).seats;
         this.view = null; // the previous match's board; wait for this one's snapshot before showing anything
@@ -64,6 +69,28 @@ export class MatchState {
           } else {
             this.view = s.view;
           }
+        }
+        break;
+      }
+      case 'rewind': {
+        const s = f.body as Snapshot;
+        // A rewind is a same-match snapshot with a NON-monotonic head. Drop
+        // every client-side tail and force the DVR live at the new head; old
+        // pending decisions and in-flight reads belong to the discarded seq
+        // space and must never reappear.
+        this.liveEpoch++;
+        this.seeking++;
+        this.match = f.match ?? this.match;
+        this.decision = null;
+        this.halted = null;
+        this.seats = s.seats;
+        this.seatSince = 0;
+        this.dispatch({ type: 'rewind', match: `${this.table}/${this.match}`, head: s.head, turnStarts: s.turn_starts });
+        if (this.seat) {
+          void this.refreshLive();
+          void this.backfillEvents(0);
+        } else {
+          this.view = s.view;
         }
         break;
       }
@@ -103,7 +130,7 @@ export class MatchState {
   dispatch(a: DvrAction) {
     const wasLive = this.dvr.live;
     this.dvr = dvrReducer(this.dvr, a);
-    if (a.type === 'snapshot' || a.type === 'reset') this.cache.clear();
+    if (a.type === 'snapshot' || a.type === 'rewind' || a.type === 'reset') this.cache.clear();
     // Going live — whether by an explicit 'live' action or a new match's
     // snapshot arriving live — permanently invalidates any paused-cursor
     // fetch still in flight: bump the token so a late resolution can never
@@ -126,9 +153,10 @@ export class MatchState {
     if (this.match === null) return;
     if (this.inflight) { this.again = true; return; }
     this.inflight = true;
+    const epoch = this.liveEpoch;
     try {
       const v = await this.fetchViewAt(this.dvr.head);
-      if (this.dvr.live) this.view = v;
+      if (this.dvr.live && epoch === this.liveEpoch) this.view = v;
     } catch { /* a 409 while the head moved: the next burst refetches */ }
     finally {
       this.inflight = false;
@@ -139,9 +167,11 @@ export class MatchState {
   /** backfillEvents paints the redacted transcript lines for the seated path: events since `since`, capped at the current head (anything past it is a race the next backfill covers). Returns normally on failure — the next decision boundary retries. */
   async backfillEvents(since: number) {
     if (this.match === null || !this.seat) return;
+    const epoch = this.liveEpoch;
     try {
       const head = this.dvr.head;
       const all = await this.fetchEventsAt(this.match, since);
+      if (epoch !== this.liveEpoch) return;
       this.dispatch({ type: 'backfill', events: all.filter((b) => b.event.seq <= head) });
       this.seatSince = head;
     } catch { /* next boundary retries */ }

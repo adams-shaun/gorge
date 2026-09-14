@@ -1331,6 +1331,11 @@ export class SeatPanelState {
     this.note = { kind: 'off' };
   }
 
+  /** rewind discards every action tied to the old seq tail, including a pending decision, one-shot run and paced pass timer. Persistent play settings survive just as they do across begin(). */
+  rewind() {
+    this.begin();
+  }
+
   /**
    * adoptView synchronises with the parent's view: the seat-scoped view at
    * head carries the decision asked of this seat (and only this seat's).
