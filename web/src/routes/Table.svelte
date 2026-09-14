@@ -27,6 +27,7 @@
   import { buildCardOwnerColour } from '../lib/logrender';
   import { href, navigate } from '../lib/router';
   import { getSeat } from '../lib/seat';
+  import { clientBreadcrumbs } from '../lib/breadcrumbs';
 
   // match (from the /t/:table/m/:match route) names a specific, already-played
   // match. Task 21's finished mode replays it end to end via loadFinished:
@@ -130,6 +131,13 @@
   // decision -- the seat was seated but could never act). m.view?.decision
   // is the same underlying data (it's what SeatPanelState.adoptView is
   // itself seeded from, a few lines above) without touching panel at all.
+  // The feedback collector follows the same rendered cursor and pending
+  // decision the table does. It records context only; it never changes match
+  // state or requests data.
+  $effect(() => {
+    clientBreadcrumbs.setView(m.dvr.cursor, m.view?.decision?.seq ?? null);
+  });
+
   $effect(() => {
     const d = m.view?.decision ?? null;
     const expected = expectedCardFollowUp;

@@ -5,6 +5,7 @@
   import { hotkeyAction } from '../lib/hotkeys';
   import { modalPickerOpen } from '../lib/modals';
   import { postUndo } from '../lib/api';
+  import { clientBreadcrumbs } from '../lib/breadcrumbs';
   import { turnSide } from '../lib/autopilot';
   import { autoNoteText, isConcede, toneOf, type SeatPanelState } from '../lib/seatpanel.svelte';
   import SeatPanel from './SeatPanel.svelte';
@@ -110,6 +111,7 @@
     if (!undoAllowed) return;
     undoPosting = true;
     logic.error = null;
+    clientBreadcrumbs.record('undo', { table, match });
     try {
       await postUndo(table, match, ctx);
     } catch (e) {
@@ -159,6 +161,7 @@
       const action = hotkeyAction(e, modalPickerOpen);
       if (action === null) return;
       e.preventDefault();
+      clientBreadcrumbs.record('hotkey', { key: e.key, action });
       switch (action) {
         case 'pass':
           logic.passClick();

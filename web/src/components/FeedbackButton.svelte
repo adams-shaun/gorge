@@ -1,4 +1,8 @@
 <script lang="ts">
+  import { clientBreadcrumbs } from '../lib/breadcrumbs';
+
+  let { table = null, seat = null }: { table?: string | null; seat?: number | null } = $props();
+
   /**
    * A persistent feedback affordance, mounted once at the app root so it
    * appears above every route. Capturing a screenshot uses the browser's own
@@ -72,6 +76,11 @@
       const form = new FormData();
       form.set('text', text);
       form.set('url', location.href);
+      // App supplies route and seat context; do not reverse-engineer either
+      // from the URL here (the URL also carries the bearer token).
+      if (table !== null) form.set('table', table);
+      if (seat !== null) form.set('seat', String(seat));
+      form.set('client.json', JSON.stringify(clientBreadcrumbs.snapshot()));
       if (screenshot) form.set('screenshot', screenshot, 'screenshot.png');
       const res = await fetch('/api/feedback', { method: 'POST', body: form });
       result = res.ok ? 'ok' : 'error';
