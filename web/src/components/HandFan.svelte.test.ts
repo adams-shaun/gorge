@@ -119,6 +119,18 @@ describe('HandFan options affordance (ui23)', () => {
     expect(html).not.toContain('badge__n');
   });
 
+  it('a direct target badge names the scenario, not just the candidate (fb-9946410e r2)', () => {
+    const one = bundle();
+    one.byObj.set(16, [{ index: 5, kind: 'permanent', label: 'Wasteland (Ari)', obj: 16, player: 0 }]);
+    const { html } = render(HandFan, { props: { player: ballistaHand, width: BOARD_W, options: one, open0: 16 } });
+    expect(html).toContain('data-single-action');
+    expect(html).toContain('data-action-icon="target"');
+    expect(html).toContain('aria-label="Target Wasteland (Ari)"');
+    expect(html).toContain('title="Target Wasteland (Ari)"');
+    expect(html).not.toContain('aria-label="Wasteland (Ari)"');
+    expect(html).not.toContain('title="Wasteland (Ari)"');
+  });
+
   it('two options keep the count badge and popout with server labels VERBATIM', () => {
     const two = bundle();
     two.byObj.set(16, [

@@ -137,6 +137,24 @@ export const ACTION_GLYPHS: Record<SingleActionIcon, string> = {
   action: '›',
 };
 
+/**
+ * actionAccessibleLabel is the accessible name + title the DIRECT-action
+ * badge wears (the glyph itself is aria-hidden, so this string is all a
+ * screen-reader user or a hover ever gets). The wire label already names its
+ * scenario for every kind except a target candidate: cast options are
+ * "Cast <name>", activations "Tap <name> for mana", attackers "Attack with
+ * <name> at <defender>", blockers "<name> blocks <defender>" (rules/legal.go,
+ * rules/combat.go, rules/cast.go). A target option's label is only the
+ * candidate's own name — "Ari" or "Wasteland (Ari)" (rules/stack.go
+ * targetOptionLabel) — so it is prefixed with the scenario verb here, in ONE
+ * place, rather than re-phrased per renderer. The target prefix never
+ * collides with a raw "Target …" wire label: targetOptionLabel never emits
+ * one (it is the candidate's face name, optionally " (<controller>)").
+ */
+export function actionAccessibleLabel(option: Pick<Option, 'kind' | 'label'>): string {
+  return scenarioIconOf(option.kind) === 'target' ? `Target ${option.label}` : option.label;
+}
+
 /** The count-badge noun for each icon: "3 targets for Ari", "2 blocks for
  *  Bear" — wording that names the scenario, not just "actions". */
 const SCENARIO_NOUN: Record<SingleActionIcon, string> = {

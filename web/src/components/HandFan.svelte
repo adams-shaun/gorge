@@ -3,7 +3,7 @@
   import { visibleHand } from '../lib/board';
   import { handFanLayout, PLAY_CARD_WIDTH, type HandFanSpec } from '../lib/handfan';
   import type { CardOptions } from '../lib/cardoptions';
-  import { ACTION_GLYPHS, postSingleAction, singleActionIcon, tileScenario, tileOptions } from '../lib/cardoptions';
+  import { ACTION_GLYPHS, actionAccessibleLabel, postSingleAction, singleActionIcon, tileScenario, tileOptions } from '../lib/cardoptions';
   import CardImage from './CardImage.svelte';
   import CardDetail from './CardDetail.svelte';
   import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
@@ -208,8 +208,8 @@
                 type="button"
                 data-single-action
                 data-action-icon={icon}
-                aria-label={action.label}
-                title={action.label}
+                aria-label={actionAccessibleLabel(action)}
+                title={actionAccessibleLabel(action)}
                 onclick={(event) => postSingleAction(opt, false, event.ctrlKey)}
               >
                 <span aria-hidden="true">{ACTION_GLYPHS[icon]}</span>

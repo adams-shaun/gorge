@@ -14,6 +14,7 @@ import {
   postTileOption,
   singleActionIcon,
   scenarioIconOf,
+  actionAccessibleLabel,
   tileScenario,
   ACTION_GLYPHS,
   singleTapOptionOf,
@@ -197,6 +198,26 @@ describe('single-action card affordance', () => {
       expect(ACTION_GLYPHS[icon]).toBeTruthy();
       expect(ACTION_GLYPHS[icon].length).toBeGreaterThan(0);
     }
+  });
+
+  it('actionAccessibleLabel prefixes a target candidate with its scenario verb, in one place (fb-9946410e r2)', () => {
+    // A target option's wire label is only the candidate's own name, so the
+    // direct badge's accessible name would read neither "target" nor the
+    // scenario. The prefix lives here, once, not per renderer.
+    expect(actionAccessibleLabel({ kind: 'permanent', label: 'Wasteland (Ari)' })).toBe('Target Wasteland (Ari)');
+    expect(actionAccessibleLabel({ kind: 'player', label: 'Ari' })).toBe('Target Ari');
+  });
+
+  it('every other scenario kind already names its scenario in the wire label and passes through verbatim', () => {
+    // cast/activate/attacker/block labels are minted with their scenario verb
+    // server-side ("Cast X", "Tap X for mana", "Attack with X at Y", "X blocks
+    // Y"), and the neutral kinds are descriptive — re-phrasing them would only
+    // risk lying about what the option does.
+    expect(actionAccessibleLabel({ kind: 'cast', label: 'Cast Fireball' })).toBe('Cast Fireball');
+    expect(actionAccessibleLabel({ kind: 'activate', label: 'Tap Island for mana' })).toBe('Tap Island for mana');
+    expect(actionAccessibleLabel({ kind: 'attacker', label: 'Attack with Bear at Ari' })).toBe('Attack with Bear at Ari');
+    expect(actionAccessibleLabel({ kind: 'block', label: 'Bear blocks Hill Giant' })).toBe('Bear blocks Hill Giant');
+    expect(actionAccessibleLabel({ kind: 'ability', label: 'Wasteland: sacrifice it' })).toBe('Wasteland: sacrifice it');
   });
 
   describe('tileScenario — the count badge\'s scenario', () => {

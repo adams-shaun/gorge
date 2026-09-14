@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Option } from '../protocol';
   import type { TileOptions } from '../lib/cardoptions';
-  import { ACTION_GLYPHS, postSingleAction, postTileOption, singleActionIcon, singleTapOptionOf, tileScenario } from '../lib/cardoptions';
+  import { ACTION_GLYPHS, actionAccessibleLabel, postSingleAction, postTileOption, singleActionIcon, singleTapOptionOf, tileScenario } from '../lib/cardoptions';
   import {
     placeMenu,
     placeRadial,
@@ -115,8 +115,8 @@
       type="button"
       data-single-action
       data-action-icon={icon}
-      aria-label={action.label}
-      title={action.label}
+      aria-label={actionAccessibleLabel(action)}
+      title={actionAccessibleLabel(action)}
       onclick={(event) => {
         event.stopPropagation();
         postSingleAction(tileOptions, true, event.ctrlKey);
