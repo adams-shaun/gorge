@@ -206,6 +206,7 @@ export type AutoOffReason = 'loop' | 'cap';
  */
 export type AutoNote =
   | { kind: 'off' }
+  | { kind: 'paused' }
   | { kind: 'skip-off'; reason: AutoOffReason }
   | { kind: 'skipped'; count: number }
   | { kind: 'armed' }
@@ -260,6 +261,8 @@ export function autoNoteText(note: AutoNote): string {
   switch (note.kind) {
     case 'off':
       return 'Auto is off. You answer every window that offers you something to do.';
+    case 'paused':
+      return 'Undo paused automatic passing so it cannot re-answer the window you rewound to. Press the Auto switch (or apply a preset) to resume it.';
     case 'skip-off':
       return `${OFF_TEXT[note.reason]} Empty windows are no longer skipped either.`;
     case 'skipped':
@@ -420,6 +423,16 @@ export class SeatPanelState {
    * player's own Auto switch clears it. Flipping the persisted autoPass from
    * a guard would have written a preference the player never chose — a
    * reload would then come back with auto off for good.
+   *
+   * rewind() (an UNDO) sets it too: rewinding is the player deliberately
+   * taking the controls back, so the machine must not instantly re-answer
+   * the restored window (auto, the empty-window floor, pass-after-acting,
+   * the identical-trigger auto-order — all of them read this brake). The
+   * pause is session-scoped like the runaway brake: the persisted
+   * settings.autoPass survives, a reload comes back as the player left it,
+   * and the same resume paths clear it (the Auto switch, a named preset,
+   * and arming a one-shot run — a run press is explicit consent, the same
+   * consent the act-pass token carries).
    */
   machinePaused = $state(false);
 
@@ -559,6 +572,18 @@ export class SeatPanelState {
   private actPassActedSeq: number | null = null;
   /** presetBackup holds the settings Ctrl+Shift+F replaced, so toggling back restores them exactly. Session-scoped: the backup is a convenience, not a preference. */
   private presetBackup: PlaySettings | null = null;
+
+  /**
+   * seqEpoch counts seq-space discards: begin() bumps it, so a rewind (and
+   * a match boundary) invalidates every in-flight intent posted against the
+   * old space. post() captures it before its await and re-checks after: the
+   * server's response to a pre-rewind intent describes a seq space the
+   * client discarded, and letting its bookkeeping through would mark the
+   * RESTORED decision — which can carry the SAME seq — as already answered
+   * (match.svelte.ts's liveEpoch guards the DVR half of exactly this race;
+   * this is the panel-state half).
+   */
+  private seqEpoch = 0;
 
   /** auto is settings.autoPass: the persisted preference, ON by default (casual). Reading it is a read of settings. */
   get auto(): boolean {
@@ -852,6 +877,11 @@ export class SeatPanelState {
 
   private startRun(kind: 'end-turn' | 'hard-skip' | 'resolve-all', view: View, baseline: ReadonlySet<number> | null = null) {
     if (this.busy) return;
+    // Arming a run is the player explicitly asking the machine to pass — the
+    // same consent class as the act-pass token — so it also lifts an undo's
+    // pause. Left set, the run chip would sit armed while derivePass refused
+    // every window: a machine the player started and could not see working.
+    this.machinePaused = false;
     // Starting a run is the player taking the controls: any paced pass the
     // AUTO paths had pending dies here (r2 finding — the old auto wait used
     // to survive, post at its old deadline and count as autoPassed). The
@@ -985,7 +1015,9 @@ export class SeatPanelState {
     // dormant). It runs BEFORE the early return below, because a window with
     // actions on it is exactly the one this preference exists to pass, and
     // that window is precisely the one the empty-window floor never touches.
-    if (!autoOn && this.oneShot === 'none' && this.actPassArmed && d.kind === 'priority') {
+    // A machinePaused machine spends no token either (the undo pause) — the
+    // guard is belt to begin()'s disarm-braces on the rewind path.
+    if (!autoOn && !this.machinePaused && this.oneShot === 'none' && this.actPassArmed && d.kind === 'priority') {
       this.consumeActPass(view);
       return;
     }
@@ -1050,6 +1082,11 @@ export class SeatPanelState {
     const d = this.pending;
     if (d === null || this.busy || d.seq === this.postedSeq) return false;
     if (this.autoOrderedSeq !== null && d.seq === this.autoOrderedSeq) return false;
+    // The undo pause (and the runaway brake — same brake, same reason)
+    // silences the auto-order too: a restored identical trigger_order ask
+    // must sit pending for the player, not be submitted by the machine the
+    // player just stopped. adopt() reaches here before any considerAuto.
+    if (this.machinePaused) return false;
     if (!this.settings.autoOrderIdenticalTriggers || !identicalTriggerOrder(d)) return false;
     if (this.oneShot !== 'none') this.cancelRun(); // the run's stop, noted in its own register
     this.autoOrderedSeq = d.seq;
@@ -1076,6 +1113,13 @@ export class SeatPanelState {
     | null {
     const d = this.pending;
     if (d === null) return null;
+    // The undo pause owns the whole classification: while it holds, neither
+    // auto, nor the empty-window floor, nor a one-shot run passes anything.
+    // It must gate HERE, before the autoOn split below, not only on the
+    // floor branch: with autoPass ON, machinePaused already makes autoOn
+    // false, so gating only the floor branch would fall through to decide()
+    // with the real (auto-on) settings and the machine would pass anyway.
+    if (this.machinePaused) return null;
     const autoOn = this.auto && !this.machinePaused;
 
     // The empty-window floor runs whether or not auto is on, so a Manual
@@ -1310,6 +1354,9 @@ export class SeatPanelState {
 
   /** begin resets the seat across a match boundary. (The component keys the panel by match, so a new match is a fresh instance — this is belt and braces.) The settings are a property of the PLAYER, not of the match: auto (autoPass), the stops and pass-after-acting all survive begin() untouched. */
   begin() {
+    // A new seq space invalidates every in-flight intent posted against the
+    // old one (see seqEpoch; post() re-checks after its await).
+    this.seqEpoch += 1;
     this.cancelPassWait();
     this.pending = null;
     this.picked = [];
@@ -1342,9 +1389,30 @@ export class SeatPanelState {
     this.note = { kind: 'off' };
   }
 
-  /** rewind discards every action tied to the old seq tail, including a pending decision, one-shot run and paced pass timer. Persistent play settings survive just as they do across begin(). */
+  /**
+   * rewind discards every action tied to the old seq tail, including a
+   * pending decision, one-shot run and paced pass timer. Persistent play
+   * settings survive just as they do across begin().
+   *
+   * An UNDO is the player deliberately taking the controls back — unlike a
+   * hand answer, which is not a stop request (prio3), rewinding says "stop
+   * answering for me". So beyond begin()'s discard, rewind PAUSES the
+   * machine (machinePaused — the runaway brake, never the persisted
+   * preference): without it the autopilot loop re-runs considerAuto against
+   * the restored decision, re-derives the same pass verdict it made before
+   * the undo (begin() cleared every loop-guard seq) and posts it — the
+   * player's undo undone by their own client. While the pause holds, NOTHING
+   * machine-side answers the restored window: not auto, not the empty-window
+   * floor, not pass-after-acting (its token was disarmed anyway), not the
+   * identical-trigger auto-order. The restored decision sits pending until
+   * the player answers it or clicks UNDO again — which is exactly what makes
+   * multi-step undoing possible. The pause clears on the player's own
+   * resume paths: the Auto switch, a named preset, or arming a one-shot run.
+   */
   rewind() {
     this.begin();
+    this.machinePaused = true;
+    this.note = { kind: 'paused' };
   }
 
   /**
@@ -1551,8 +1619,16 @@ export class SeatPanelState {
     if (d === null || this.busy) return;
     this.busy = true;
     this.error = null;
+    const epoch = this.seqEpoch;
     try {
       await postIntent(this.table, this.match, { seq: d.seq, player: d.player, choices } satisfies Intent, this.ctx);
+      // A rewind (or match boundary) landed while the post was in flight:
+      // the response describes a seq space the client discarded. Touch
+      // nothing — the restored decision, which can carry the SAME seq, must
+      // not read as answered, and no error may surface for a post the
+      // player's own undo superseded. The rewind path itself re-based the
+      // panel (pending was cleared, the restored decision re-adopted).
+      if (epoch !== this.seqEpoch) return;
       this.postedSeq = d.seq;
       // The hand answers that can carry a real action are click()'s post-on-click
       // (min == max == 1) and submit()'s multi-pick commit; both funnel through
@@ -1577,6 +1653,10 @@ export class SeatPanelState {
       this.picked = [];
       this.confirming = false;
     } catch (e) {
+      // A rejection against a discarded seq space (a rewind landed
+      // mid-flight) is not an error the player can act on — the undo already
+      // moved the game. Stay silent; the restored decision is pending.
+      if (epoch !== this.seqEpoch) return;
       // Surfaced, not swallowed: the intent was rejected (a stale seq, a
       // race, a refusal) and the game is exactly where it was — recover by
       // adopting the CURRENT decision rather than wedging on the stale one.
