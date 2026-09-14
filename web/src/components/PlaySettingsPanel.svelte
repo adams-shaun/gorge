@@ -60,10 +60,11 @@
   /**
    * The GAME OPTIONS editor for the whole play-settings model
    * (lib/playsettings.ts). It is bound to the seat panel's settings object:
-   * every change goes through a SeatPanelState write path — editSettings
-   * for the ordinary edits (withChange relabels the preset Custom while the
-   * configuration matches none, and back to a named preset when an edit is
-   * undone), setAuto / setActPass for the two switches that carry
+   * every change goes through a SeatPanelState write path — the same write
+   * path decide() reads: editSettings for the ordinary edits (withChange
+   * relabels the preset Custom while the configuration matches none, and
+   * back to a named preset when an edit is undone), pressAuto /
+   * setActPass for the two switches that carry
    * machine-side consequences (re-arming a tripped runaway brake, disarming
    * an armed pass), and applyNamedPreset for the preset picker and the
    * Reset button, which need the same re-arm effects setAuto carries.
@@ -155,9 +156,9 @@
       class:on={s.autoPass}
       aria-checked={s.autoPass}
       data-toggle="auto-pass"
-      onclick={() => state.setAuto(!s.autoPass)}
+      onclick={() => state.pressAuto()}
     >
-      <span>Auto pass</span><span class="state" aria-hidden="true">{s.autoPass ? 'On' : 'Off'}</span>
+      <span>Auto pass</span><span class="state" aria-hidden="true">{state.machinePaused ? 'Paused' : s.autoPass ? 'On' : 'Off'}</span>
     </button>
   </section>
 

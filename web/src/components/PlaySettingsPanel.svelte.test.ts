@@ -165,18 +165,31 @@ describe('PlaySettingsPanel — the GAME OPTIONS editor (rendered)', () => {
     expect(elem(html, 'data-reset-settings')).toContain('Reset to Casual');
   });
 
-  it('the Auto pass switch goes through setAuto (the runaway brake clears), not a raw patch', () => {
+  it('the Auto pass switch goes through pressAuto (the brake clears, auto REARMS), not a raw patch', () => {
     const state = new SeatPanelState('t1', 1, ctx, null);
     // Trip the brake the way the loop guard does, then perform the exact
     // call the Auto pass switch's onclick makes.
     state.suspendAuto('cap');
     expect(state.machinePaused).toBe(true);
-    state.setAuto(!state.settings.autoPass);
+    state.pressAuto();
     expect(state.machinePaused).toBe(false);
-    expect(state.settings.autoPass).toBe(false);
-    expect(state.settings.preset).toBe('custom');
+    // The brake's own note promises "Press the Auto switch to rearm it" —
+    // which the old setAuto(!autoPass) onclick BROKE for an auto-on player
+    // (pressing turned auto off). pressAuto calls setAuto(true): the brake
+    // lifts and auto is rearmed, exactly what the note says.
+    expect(state.settings.autoPass).toBe(true);
     const html = panel(state);
-    expect(tag(html, 'data-toggle="auto-pass"')).toContain('aria-checked="false"');
+    expect(tag(html, 'data-toggle="auto-pass"')).toContain('aria-checked="true"');
+  });
+
+  it('while the undo pause holds, the Auto pass switch reads Paused (fb-20260914T063523Z)', () => {
+    const state = new SeatPanelState('t1', 1, ctx, null);
+    state.rewind();
+    const html = panel(state);
+    // The machine is paused but the preference is untouched: the switch
+    // shows its paused state, not Off.
+    expect(elem(html, 'data-toggle="auto-pass"')).toContain('Paused');
+    expect(tag(html, 'data-toggle="auto-pass"')).toContain('aria-checked="true"');
   });
 
   it('applyNamedPreset re-arms a tripped runaway brake when the preset runs auto (paused-to-Casual)', () => {
@@ -349,6 +362,26 @@ describe('PlaySettingsPanel — real clicks in a real browser (PlaySettingsPanel
     });
     expect((await stateOf(page)).paused).toBe(true);
     await page.locator('[data-preset="casual"]').click();
+    expect(await stateOf(page)).toEqual({ paused: false, autoPass: true, preset: 'casual' });
+    expect(await page.locator('[data-toggle="auto-pass"]').getAttribute('aria-checked')).toBe('true');
+    await page.close();
+  });
+
+  it('pressing the real Auto pass switch while the UNDO pause holds resumes the machine and preserves the enabled preference (r2 finding)', async () => {
+    const page = await open();
+    // Rewind the fixture's real state the way the stream's rewind frame
+    // does: the machine pauses, the persisted preference stays on.
+    await page.evaluate(() => {
+      (window as unknown as { playSettingsState: { rewind: () => void } }).playSettingsState.rewind();
+    });
+    expect(await stateOf(page)).toEqual({ paused: true, autoPass: true, preset: 'casual' });
+    // The switch itself reads Paused while the machine is paused.
+    expect(await page.locator('[data-toggle="auto-pass"]').textContent()).toContain('Paused');
+    // The r2 break: the old onclick was setAuto(!autoPass), which for the
+    // default auto-ON player DISABLED auto, cleared the brake and left the
+    // empty-window floor to instantly pass the restored window. The
+    // pause-aware switch must resume instead — real click, real handler.
+    await page.locator('[data-toggle="auto-pass"]').click();
     expect(await stateOf(page)).toEqual({ paused: false, autoPass: true, preset: 'casual' });
     expect(await page.locator('[data-toggle="auto-pass"]').getAttribute('aria-checked')).toBe('true');
     await page.close();

@@ -243,10 +243,10 @@
             role="switch"
             aria-checked={logic.auto}
             data-auto-toggle
-            onclick={() => logic.setAuto(!logic.auto)}
+            onclick={() => logic.pressAuto()}
           >
             <span class="dot" aria-hidden="true"></span>
-            <span class="word">{logic.auto ? 'Auto' : 'Manual'}</span>
+            <span class="word">{logic.machinePaused ? 'Paused' : logic.auto ? 'Auto' : 'Manual'}</span>
           </button>
           <!-- The empty-window floor's own switch, beside auto's rather than
                buried in a menu: it changes whether the game stops for you, so

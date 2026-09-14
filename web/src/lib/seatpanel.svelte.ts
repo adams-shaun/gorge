@@ -262,7 +262,7 @@ export function autoNoteText(note: AutoNote): string {
     case 'off':
       return 'Auto is off. You answer every window that offers you something to do.';
     case 'paused':
-      return 'Undo paused automatic passing so it cannot re-answer the window you rewound to. Press the Auto switch (or apply a preset) to resume it.';
+      return 'Undo paused automatic passing so it cannot re-answer the window you rewound to. Press the Auto switch (or apply a preset) to start it again.';
     case 'skip-off':
       return `${OFF_TEXT[note.reason]} Empty windows are no longer skipped either.`;
     case 'skipped':
@@ -430,9 +430,11 @@ export class SeatPanelState {
    * the identical-trigger auto-order — all of them read this brake). The
    * pause is session-scoped like the runaway brake: the persisted
    * settings.autoPass survives, a reload comes back as the player left it,
-   * and the same resume paths clear it (the Auto switch, a named preset,
-   * and arming a one-shot run — a run press is explicit consent, the same
-   * consent the act-pass token carries).
+   * and the same resume paths clear it (the pause-aware Auto switch — see
+   * pressAuto — and a named preset). A one-shot run is NOT a resume path:
+   * while the pause holds, startRun refuses to arm, so a run press can
+   * never re-enable machine posting on the window the player just rewound
+   * to.
    */
   machinePaused = $state(false);
 
@@ -733,6 +735,22 @@ export class SeatPanelState {
     this.note = this.auto ? { kind: 'armed' } : { kind: 'off' };
   }
 
+  /**
+   * pressAuto is the Auto switch's click path — every rendered Auto switch
+   * (the seat panel's Auto/Manual toggle and GAME OPTIONS' Auto pass switch)
+   * goes through this one method, so they cannot drift. Its dual is the
+   * undo pause: while machinePaused holds, the switch reads "Paused" and
+   * pressing it STARTS the machine — setAuto(true) — instead of toggling the
+   * persisted preference off. That is the resume the paused note promises:
+   * with auto enabled (the default), pressing the switch leaves autoPass
+   * exactly as it was and only lifts the brake; with auto off it turns auto
+   * on, which is what pressing an Auto switch means. Unpaused it is the
+   * ordinary toggle.
+   */
+  pressAuto() {
+    this.setAuto(this.machinePaused ? true : !this.auto);
+  }
+
   /** setAuto is the Auto/Manual control: a settings change (autoPass), persisted. Turning it on — or re-arming it while it is on — clears the runaway brake and the previous run so an old count never trips the cap. */
   setAuto(on: boolean) {
     this.cancelRun(false);
@@ -876,12 +894,15 @@ export class SeatPanelState {
   }
 
   private startRun(kind: 'end-turn' | 'hard-skip' | 'resolve-all', view: View, baseline: ReadonlySet<number> | null = null) {
-    if (this.busy) return;
-    // Arming a run is the player explicitly asking the machine to pass — the
-    // same consent class as the act-pass token — so it also lifts an undo's
-    // pause. Left set, the run chip would sit armed while derivePass refused
-    // every window: a machine the player started and could not see working.
-    this.machinePaused = false;
+    // While the undo pause holds, a run cannot arm: a run is the machine
+    // passing on the player's behalf, and the pause exists precisely so the
+    // machine does not answer the window the player just rewound to. The
+    // pause clears only on the player's own resume paths (pressAuto, a named
+    // preset); after that the buttons arm as usual. Refusing — rather than
+    // arming a run that derivePass would hold — also keeps the paused note
+    // on screen: an armed run chip would overwrite it with a note claiming
+    // the machine is passing when the pause holds it back.
+    if (this.busy || this.machinePaused) return;
     // Starting a run is the player taking the controls: any paced pass the
     // AUTO paths had pending dies here (r2 finding — the old auto wait used
     // to survive, post at its old deadline and count as autoPassed). The
@@ -1407,7 +1428,10 @@ export class SeatPanelState {
    * identical-trigger auto-order. The restored decision sits pending until
    * the player answers it or clicks UNDO again — which is exactly what makes
    * multi-step undoing possible. The pause clears on the player's own
-   * resume paths: the Auto switch, a named preset, or arming a one-shot run.
+   * resume paths: the pause-aware Auto switch (pressAuto — while paused it
+   * starts the machine rather than toggling the preference off) and a named
+   * preset. A one-shot run is not a resume path: startRun refuses to arm
+   * while the pause holds.
    */
   rewind() {
     this.begin();

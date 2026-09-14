@@ -224,6 +224,46 @@ describe('the undo pause', () => {
     expect(seqs()).toEqual([1, 2, 2, 1]);
   });
 
+  it('the pause-aware Auto switch resumes without touching the enabled preference (the real r2 break)', () => {
+    // r2 finding: the paused note told the default auto-ON player to press
+    // the Auto switch, but the switch's onclick was setAuto(!autoPass) —
+    // with the persisted default that DISABLED auto, cleared the brake and
+    // the empty-window floor instantly passed the restored window. The
+    // pause-aware switch (pressAuto) must instead call setAuto(true): the
+    // brake lifts and the enabled preference survives untouched.
+    const p = armedSeat(); // autoPass true — the Casual default
+    p.rewind();
+    expect(p.machinePaused).toBe(true);
+    p.pressAuto();
+    expect(p.machinePaused).toBe(false);
+    expect(p.settings.autoPass).toBe(true);
+    expect(p.auto).toBe(true);
+    expect(p.note.kind).toBe('armed');
+  });
+
+  it('the pause-aware Auto switch on a paused Manual seat turns auto on, and the machine runs again', async () => {
+    const p = manualSeat();
+    p.adoptView(quiet(9));
+    p.rewind();
+    p.adoptView(quiet(9));
+    p.considerAuto(view());
+    await settle(() => postIntentMock.mock.calls.length === 0); // paused: nothing posts
+    p.pressAuto(); // the switch reads Paused; pressing it starts the machine
+    expect(p.machinePaused).toBe(false);
+    expect(p.settings.autoPass).toBe(true);
+    p.considerAuto(view());
+    await settle(() => p.postedSeq === 9);
+    expect(seqs()).toEqual([9]);
+  });
+
+  it('unpaused, pressAuto is the ordinary toggle the switches always were', () => {
+    const p = armedSeat();
+    p.pressAuto();
+    expect(p.settings.autoPass).toBe(false);
+    p.pressAuto();
+    expect(p.settings.autoPass).toBe(true);
+  });
+
   it('both resume paths clear the pause: the Auto switch and applying a named preset', async () => {
     const viaSwitch = armedSeat();
     viaSwitch.rewind();
@@ -239,13 +279,30 @@ describe('the undo pause', () => {
     expect(viaPreset.note.kind).toBe('armed');
   });
 
-  it('arming a one-shot run after an undo is consent: the pause lifts and the run passes', async () => {
+  it('while the pause holds a one-shot run cannot arm: the machine answers nothing on the restored window (r2 finding)', async () => {
+    // r2 finding: startRun used to lift the pause — an unauthorized resume
+    // path (End Turn / Hard Skip / Resolve All could re-enable machine
+    // posting on the just-restored window). Now the arm is REFUSED while
+    // the pause holds: the run never arms, the paused note stays on screen
+    // (an armed run chip would overwrite it with a note claiming the
+    // machine is passing), and nothing posts. After the player resumes,
+    // the buttons arm as usual.
     const p = armedSeat();
-    p.rewind();
-    expect(p.machinePaused).toBe(true);
-    p.startEndTurn(view('main1', 0, 2));
-    expect(p.machinePaused).toBe(false);
     p.adoptView(quiet(3));
+    p.rewind();
+    p.adoptView(quiet(3));
+    p.startEndTurn(view('main1', 0, 2));
+    expect(p.oneShot).toBe('none');
+    expect(p.machinePaused).toBe(true);
+    expect(p.note.kind).toBe('paused');
+    p.considerAuto(view('main1', 0, 2));
+    await settle(() => postIntentMock.mock.calls.length === 0);
+    expect(p.pending?.seq).toBe(3);
+
+    // Resume, and the run arms and passes the restored window as before.
+    p.pressAuto();
+    p.startEndTurn(view('main1', 0, 2));
+    expect(p.oneShot).toBe('end-turn');
     p.considerAuto(view('main1', 0, 2));
     await settle(() => p.postedSeq === 3);
     expect(p.endTurn).toBe(true);
