@@ -10,9 +10,8 @@ import (
 
 func init() { Register("ManaReflected", effManaReflected) }
 
-// manaReflectedColours is the fixed candidate order: the five colours, then
-// colourless (the "Type" half of ColorOrType$). Never a map, so the offered
-// option list and the deterministic single-colour pick are stable.
+// manaReflectedOrder is the fixed candidate order. Never a map, so the
+// offered option list and deterministic single-colour pick are stable.
 const manaReflectedOrder = "WUBRGC"
 
 // ManaReflectedCandidates resolves which mana symbols an "AB$ ManaReflected"
@@ -31,10 +30,9 @@ const manaReflectedOrder = "WUBRGC"
 //     ("Any"/"Combo Any" count as all five colours; "Combo R G" as R and G)
 //     -- or "Is" -- the object's own colours (effects.ColorsOf).
 //
-// ColorOrType$ widens the set: "Color" (the default and the corpus's 16
-// occurrences) keeps colours only; "Type" (8 occurrences) adds colourless,
-// because Forge's "mana of any TYPE" includes {C} (CR 107.4c reads {C} as a
-// type-specific symbol, not a colour).
+// ColorOrType$ "Color" keeps coloured symbols. "Type" additionally admits
+// colourless, but only when a reflected mana ability can actually produce
+// {C}; it never manufactures colourless merely because the parameter appears.
 //
 // An unknown element in either parameter degrades to an empty set, which the
 // executor reports as a Note rather than inventing mana.
@@ -84,9 +82,8 @@ func ManaReflectedCandidates(h Host, c *Ctx, sa *cards.SA) []string {
 			set[string(r)] = true
 		}
 	}
-	if widenType {
-		// "mana of any TYPE": colourless is an addable type (CR 107.4c).
-		set["C"] = true
+	if !widenType {
+		delete(set, "C")
 	}
 	var out []string
 	for _, s := range manaReflectedOrder {
@@ -101,8 +98,8 @@ func ManaReflectedCandidates(h Host, c *Ctx, sa *cards.SA) []string {
 // could produce. It mirrors effMana's own classifier exactly: a blank or
 // "Any"/"Combo Any" Produced$ is every colour; a "Combo <colours>" shape is
 // exactly those colours (effects.ComboColours rejects every other combo
-// word); a plain brace/space-stripped rune list contributes its coloured
-// runes. Non-colourless non-literal amounts and RestrictValid$-style spend
+// word); a plain brace/space-stripped rune list contributes its coloured and
+// colourless runes. Non-colourless non-literal amounts and RestrictValid$-style spend
 // restrictions are unread here -- the ability adds one mana of a COLOUR, and
 // "could produce" is the colours question, not the amount or the
 // restrictions one (CR 605.1b: a mana ability's add is what it reflects).
@@ -129,13 +126,13 @@ func producibleSymbols(o *state.Object) string {
 		}
 		runes := strings.NewReplacer("{", "", "}", "", " ", "").Replace(p)
 		for _, r := range runes {
-			if strings.ContainsRune("WUBRG", r) {
+			if strings.ContainsRune("WUBRGC", r) {
 				set[byte(r)] = true
 			}
 		}
 	}
 	var b strings.Builder
-	for _, c := range "WUBRG" {
+	for _, c := range "WUBRGC" {
 		if set[byte(c)] {
 			b.WriteByte(byte(c))
 		}

@@ -79,12 +79,9 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	}
 	if defined == "" {
 		// ConditionPresent$ (or Compare$) with NO ConditionDefined$: the
-		// default group is the battlefield, a corpus-wide grammar (408 raw
-		// lines, re-measured) round 1 built without authorization and round
-		// 2 removed — resolving it here changed unrelated cards' behaviour
-		// through the global Resolve hook. UNRESOLVED: the sub runs
-		// unconditionally, the pre-gate behaviour, listed in the report's
-		// Issues section.
+		// default group is the battlefield, a corpus-wide grammar. It remains
+		// unresolved here; primitives with an explicitly supported local form
+		// (Untap's Fabled Passage gate) evaluate that form themselves.
 		return false, false
 	}
 	if defined != "Remembered" {

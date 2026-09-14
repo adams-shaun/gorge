@@ -79,8 +79,7 @@ import (
 // decks. The Hearthhull and Valgavoth imports add 54 measured gaps across 579
 // distinct cards in the pinned corpus; entries retire only when their
 // primitives are implemented. The untap/mana wave (api:Untap, api:ManaReflected,
-// stat:ManaConvert, stat:UntapOtherPlayer, kw:Cumulative upkeep and the
-// unscheduled repl:Untap the monolith family turned out to also carry)
+// stat:ManaConvert, stat:UntapOtherPlayer and kw:Cumulative upkeep)
 // retired Fabled Passage, Exotic Orchard and Chromatic Orrery outright and
 // shrank Baloth Prime and Horizon Explorer to their remaining trig: gaps.
 var knownUnsupported = map[string][]string{

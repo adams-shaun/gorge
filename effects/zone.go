@@ -131,7 +131,47 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			withAmt = int32(n)
 		}
 	}
-	for _, t := range Defined(h, c, sa) {
+	targets := Defined(h, c, sa)
+	// Imprint effects such as Chrome Mox name Origin$ Hand and ChangeType$
+	// but no Defined$/target: select eligible cards from their controller's
+	// hand. A singleton needs no question; several pose the ordinary resumed
+	// KChoose, preserving the answer's order in the Imprint event.
+	if len(targets) == 1 && targets[0].Obj == c.Source && !targets[0].IsPlayer &&
+		len(originZones) == 1 && originZones[0] == state.ZHand && !originAll &&
+		strings.EqualFold(sa.Params["Imprint"], "True") {
+		targets = nil
+		if c.ImprintDone {
+			for _, id := range c.Imprint {
+				targets = append(targets, state.Target{Obj: id})
+			}
+			c.Imprint, c.ImprintDone = nil, false
+		} else {
+			spec := sa.Params["ChangeType"]
+			if spec == "" {
+				spec = "Card"
+			}
+			for _, id := range h.Game().Zone(state.ZHand, c.Controller) {
+				if o := h.Game().Obj(id); o != nil && MatchesSpecCtx(h.Game(), spec, id, c.SpecContext(c.Controller)) {
+					targets = append(targets, state.Target{Obj: id})
+				}
+			}
+			max := Num(h, c, sa, "ChangeNum", 1)
+			if int32(len(targets)) > max {
+				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: int(max), Max: int(max), Source: c.Source,
+					ResumeKind: "imprint", ResumeSA: sa, Prompt: "Choose a card to imprint"}
+				for _, target := range targets {
+					o := h.Game().Obj(target.Obj)
+					d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "imprint", Obj: target.Obj, Label: o.Face().Name})
+				}
+				if h.Ask(d) {
+					return
+				}
+				targets = targets[:max]
+			}
+		}
+	}
+	var imprinted []state.ObjID
+	for _, t := range targets {
 		if t.IsPlayer {
 			continue
 		}
@@ -149,6 +189,9 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: to})
+		if strings.EqualFold(sa.Params["Imprint"], "True") && to == state.ZExile {
+			imprinted = append(imprinted, o.ID)
+		}
 		// RememberChanged$ True (Forge's spelling on the ChangeZone in the
 		// Flickerwisp delayed-trigger family): the moved object joins the
 		// ability's Remembered, so a DelayedTrigger that runs as a later
@@ -164,6 +207,9 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if withKind != "" && to == state.ZBattlefield {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: withKind, Amount: withAmt})
 		}
+	}
+	if len(imprinted) > 0 {
+		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: imprinted})
 	}
 }
 

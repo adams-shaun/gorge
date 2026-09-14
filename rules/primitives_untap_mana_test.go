@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -12,16 +13,14 @@ import (
 // script (the exact Forge lines, inlined per the licensing rule -- never a
 // .cards .txt):
 //
-//	api:Untap              Basalt Monolith  (+ its repl:Untap CantHappen)
+//	api:Untap              Basalt Monolith
 //	api:ManaReflected      Exotic Orchard, Fellwar Stone, Chrome Mox
 //	stat:ManaConvert       Chromatic Orrery, Quicksilver Elemental
 //	stat:UntapOtherPlayer  Endbringer
 //	kw:Cumulative upkeep   Mystic Remora
 //
-// The three monolith/vault artifacts carry a R:Event$ Untap replacement the
-// brief's primitive table omitted (measured against the compiled corpus:
-// their missing sets are {api:Untap, repl:Untap}); Basalt Monolith proves
-// both halves in one test.
+// The monolith/vault R:Event$ Untap replacement is a separate, unsupported
+// primitive and is intentionally not retired by this ticket.
 
 const basaltMonolithScript = "Name:Basalt Monolith\nManaCost:3\nTypes:Artifact\n" +
 	"R:Event$ Untap | ValidCard$ Card.Self | ValidStepTurnToController$ You | Layer$ CantHappen | Description$ This artifact doesn't untap during your untap step.\n" +
@@ -96,12 +95,10 @@ func (e *Engine) hasEvent(kind events.Kind, obj state.ObjID) bool {
 	return false
 }
 
-// TestBasaltMonolithUntapAndDoesNotUntap proves api:Untap and repl:Untap on
-// Basalt Monolith's real script: the {3} ability untaps it mid-turn (the
-// paid untap is never gated), and its own untap step's automatic untap is
-// suppressed by its CantHappen replacement (recorded as a Note, never a
-// silent nothing).
-func TestBasaltMonolithUntapAndDoesNotUntap(t *testing.T) {
+// TestBasaltMonolithUntap proves api:Untap on Basalt Monolith's real script.
+// A stun counter replaces its paid untap, just as it replaces an untap-step
+// untap (CR 122.1d); after it is consumed the ability untaps normally.
+func TestBasaltMonolithUntap(t *testing.T) {
 	e := handEngine(t)
 	basalt := onBoard(t, e, 0, basaltMonolithScript)
 	e.emit(events.Event{Kind: events.Tap, Obj: basalt})
@@ -122,28 +119,23 @@ func TestBasaltMonolithUntapAndDoesNotUntap(t *testing.T) {
 		t.Fatal("Basalt's {3} untap did not untap it")
 	}
 
-	// repl:Untap: tap it again and enter the NEXT untap step. The automatic
-	// untap must be suppressed by its own CantHappen replacement and the
-	// log must carry the Note that says so.
+	// A stun counter replaces the first paid untap: it is removed and Basalt
+	// remains tapped. The second activation has no stun left and untaps it.
 	e.emit(events.Event{Kind: events.Tap, Obj: basalt})
-	e.G.Turn = 2
-	e.beginTurn(0)
-	if e.G.Obj(basalt).Tapped != true {
-		t.Fatal("Basalt untapped during its controller's untap step despite CantHappen")
+	e.emit(events.Event{Kind: events.CounterChange, Obj: basalt, Counter: "STUN", Amount: 1})
+	e.G.Players[0].Pool[state.MC] = 3
+	e.priorityRound()
+	castFirst(t, e, "ability")
+	passUntilStackEmpty(t, e, 8)
+	if !e.G.Obj(basalt).Tapped || e.G.Obj(basalt).Counter("STUN") != 0 {
+		t.Fatalf("stun did not replace paid untap: tapped=%v stun=%d", e.G.Obj(basalt).Tapped, e.G.Obj(basalt).Counter("STUN"))
 	}
-	if !e.hasEvent(events.Note, basalt) {
-		t.Fatal("suppressed untap recorded no Note")
-	}
-
-	// The paid untap still works during the same turn it was suppressed in
-	// -- an ability untap is never gated by the untap-step replacement (the
-	// Mana Vault / Basalt Monolith pay-to-untap shape).
 	e.G.Players[0].Pool[state.MC] = 3
 	e.priorityRound()
 	castFirst(t, e, "ability")
 	passUntilStackEmpty(t, e, 8)
 	if e.G.Obj(basalt).Tapped {
-		t.Fatal("the {3} paid untap was gated by the untap-step replacement")
+		t.Fatal("Basalt did not untap after its stun counter was removed")
 	}
 }
 
@@ -236,6 +228,21 @@ func TestExoticOrchardReflectedMana(t *testing.T) {
 // Defined machinery, finds no imprint record in this build, and is therefore
 // not offered at all (an ability that can only resolve into a Note must not
 // be offered).
+func TestReflectingPoolTypeReflectsOnlyProducedColourless(t *testing.T) {
+	e := handEngine(t)
+	pool := onBoard(t, e, 0, "Name:Reflecting Pool\nManaCost:no cost\nTypes:Land\n"+
+		"A:AB$ ManaReflected | Cost$ T | ColorOrType$ Type | Valid$ Land.YouCtrl | ReflectProperty$ Produce | SpellDescription$ Add one mana of any type that a land you control could produce.\nOracle:x\n")
+	sa := e.G.Obj(pool).Face().Abilities[0]
+	ctx := &effects.Ctx{Source: pool, Controller: 0, SVars: e.G.Obj(pool).Face().SVars}
+	if got := effects.ManaReflectedCandidates(e, ctx, sa); len(got) != 0 {
+		t.Fatalf("Reflecting Pool alone reflected mana: %v", got)
+	}
+	_ = onBoard(t, e, 0, mountainScript())
+	if got := effects.ManaReflectedCandidates(e, ctx, sa); len(got) != 1 || got[0] != "R" {
+		t.Fatalf("Reflecting Pool plus Mountain = %v, want [R]", got)
+	}
+}
+
 func TestFellwarStoneAndChromeMoxReflectedShapes(t *testing.T) {
 	e := handEngine(t)
 	onBoard(t, e, 0, "Name:Fellwar Stone\nManaCost:2\nTypes:Artifact\n"+
@@ -251,10 +258,23 @@ func TestFellwarStoneAndChromeMoxReflectedShapes(t *testing.T) {
 	}
 
 	e2 := handEngine(t)
-	_ = onBoard(t, e2, 0, chromeMoxScript)
+	chrome := onBoard(t, e2, 0, chromeMoxScript)
+	blue := e2.G.AddObject(card(t, ancestralRecallScript), 0)
+	blue.Zone = state.ZHand
+	e2.G.SetZone(state.ZHand, 0, append(e2.G.Zone(state.ZHand, 0), blue.ID))
+	// Resolve Chrome Mox's real enter-the-battlefield imprint effect. With one
+	// eligible card the generic ChangeZone selector has no choice to ask.
+	effects.Resolve(e2, &effects.Ctx{Source: chrome, Controller: 0, SVars: e2.G.Obj(chrome).Face().SVars}, e2.G.Obj(chrome).Face().Triggers[0].Effect)
+	if got := e2.G.Obj(chrome).Imprinted; len(got) != 1 || got[0] != blue.ID {
+		t.Fatalf("Chrome Mox did not retain its imprint: %v", got)
+	}
 	e2.priorityRound()
-	if optionKinds(e2.Pending())["activate"] != 0 {
-		t.Fatalf("Chrome Mox offered without an imprinted card: %+v", e2.Pending())
+	if optionKinds(e2.Pending())["activate"] != 1 {
+		t.Fatalf("Chrome Mox did not offer mana from its imprinted blue card: %+v", e2.Pending())
+	}
+	castFirst(t, e2, "activate")
+	if e2.G.Players[0].Pool[state.MU] != 1 {
+		t.Fatalf("Chrome Mox did not produce the imprinted card's U: %+v", e2.G.Players[0].Pool)
 	}
 }
 
@@ -303,8 +323,16 @@ func TestChromaticOrreryManaConvert(t *testing.T) {
 	e2.G.Players[0].Pool = state.Mana{}
 	e2.G.Players[0].Pool[state.MR] = 1
 	e2.priorityRound()
-	if optionKinds(e2.Pending())["activate"] != 0 {
+	if optionKinds(e2.Pending())["ability"] != 0 {
 		t.Fatal("red mana paid Quicksilver's {U} ability although only BLUE converts")
+	}
+	// Blue conversion is positive too: it can pay the ability's printed {U}
+	// as a different colour, here represented by a {G} ability cost.
+	e2.G.Players[0].Pool = state.Mana{}
+	e2.G.Players[0].Pool[state.MU] = 1
+	e2.priorityRound()
+	if optionKinds(e2.Pending())["ability"] != 1 {
+		t.Fatal("blue mana did not pay Quicksilver's own activated ability")
 	}
 }
 
@@ -312,6 +340,46 @@ func TestChromaticOrreryManaConvert(t *testing.T) {
 // of stat:UntapOtherPlayer beyond Endbringer's Card.Self: Drumbellower's
 // ValidCard$ Creature.YouCtrl untaps EVERY creature its controller controls
 // during each other player's untap step, and nothing else.
+func TestFabledPassageUntapsOnlyAtFourLands(t *testing.T) {
+	e := handEngine(t)
+	passage := onBoard(t, e, 0, "Name:Fabled Passage\nManaCost:no cost\nTypes:Land\n"+
+		"A:AB$ ChangeZone | Cost$ T Sac<1/CARDNAME> | Origin$ Library | Destination$ Battlefield | Tapped$ True | ChangeType$ Land.Basic | RememberChanged$ True | SubAbility$ DBUntap\n"+
+		"SVar:DBUntap:DB$ Untap | Defined$ Remembered | ConditionPresent$ Land.YouCtrl | ConditionCompare$ GE4\nOracle:x\n")
+	fetched := onBoard(t, e, 0, mountainScript())
+	e.emit(events.Event{Kind: events.Tap, Obj: fetched})
+	untap := e.G.Obj(passage).Face().Abilities[0].Sub
+	ctx := &effects.Ctx{Source: passage, Controller: 0, Remembered: []state.Target{{Obj: fetched}}}
+	effects.Resolve(e, ctx, untap)
+	if !e.G.Obj(fetched).Tapped {
+		t.Fatal("Fabled Passage untapped fetched land below four lands")
+	}
+	_ = onBoard(t, e, 0, forestScript())
+	_ = onBoard(t, e, 0, forestScript())
+	effects.Resolve(e, ctx, untap)
+	if e.G.Obj(fetched).Tapped {
+		t.Fatal("Fabled Passage did not untap fetched land at four lands")
+	}
+}
+
+func TestQuestForRenewalNeedsFourQuestCounters(t *testing.T) {
+	e := handEngine(t)
+	quest := onBoard(t, e, 1, "Name:Quest for Renewal\nManaCost:1 G\nTypes:Enchantment\n"+
+		"S:Mode$ UntapOtherPlayer | ValidCard$ Creature.YouCtrl | IsPresent$ Card.Self+counters_GE4_QUEST | Description$ As long as there are four or more quest counters on CARDNAME, untap all creatures you control during each other player's untap step.\nOracle:x\n")
+	creature := onBoard(t, e, 1, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e.emit(events.Event{Kind: events.Tap, Obj: creature})
+	e.G.Turn = 2
+	e.beginTurn(0)
+	if !e.G.Obj(creature).Tapped {
+		t.Fatal("Quest for Renewal untapped below four quest counters")
+	}
+	e.emit(events.Event{Kind: events.CounterChange, Obj: quest, Counter: "QUEST", Amount: 4})
+	e.G.Turn = 3
+	e.beginTurn(0)
+	if e.G.Obj(creature).Tapped {
+		t.Fatal("Quest for Renewal did not untap at four quest counters")
+	}
+}
+
 func TestDrumbellowerUntapsItsCreaturesForEachOtherPlayer(t *testing.T) {
 	e := handEngine(t)
 	drum := onBoard(t, e, 1, "Name:Drumbellower\nManaCost:2 W\nTypes:Creature Spirit\nPT:2/1\nK:Flying\n"+
@@ -339,23 +407,24 @@ func TestDrumbellowerUntapsItsCreaturesForEachOtherPlayer(t *testing.T) {
 func TestMysticRemoraCumulativeUpkeep(t *testing.T) {
 	e := handEngine(t)
 	remora := onBoard(t, e, 0, mysticRemoraScript)
+	_ = onBoard(t, e, 0, mountainScript())
 	e.G.Turn = 2
 
-	// Turn 2's upkeep: one age counter, demand {1}, the pool can pay it, so
-	// "pay" is offered first and paying keeps the Remora with its age
-	// counter on it. The fixture crosses the step boundaries by hand so its
-	// floating mana survives CR 500.4's step-end emptying -- the payment
-	// floats only from mana produced during the untap step itself (this
-	// build's payment API has no tap-to-pay; see the report's Issues), so a
-	// real game reaches the "pay" arm exactly this way.
-	e.setStep(state.StepUntap)
-	e.setStep(state.StepUpkeep)
-	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "W", Amount: 1})
-	e.startCumulativeUpkeep()
+	// Turn 2's upkeep: the pool starts empty, so CR 702.46b opens a mana-only
+	// payment window. Tapping a Mountain returns to the cumulative choice;
+	// paying keeps the Remora and its age counter.
+	e.beginTurn(0)
 	d := e.Pending()
+	if d == nil || len(d.Options) != 2 || d.Options[0].Kind != "activate" || d.Options[1].Kind != "done" {
+		t.Fatalf("expected cumulative mana window, got %+v", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+		t.Fatalf("activate mana: %v", err)
+	}
+	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 ||
 		d.Options[0].Kind != "cumulative_pay" || d.Options[1].Kind != "cumulative_sac" {
-		t.Fatalf("expected the cumulative pay-or-sacrifice choice, got %+v", d)
+		t.Fatalf("expected the cumulative pay-or-sacrifice choice after mana, got %+v", d)
 	}
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
 		t.Fatalf("submit pay: %v", err)
@@ -373,6 +442,12 @@ func TestMysticRemoraCumulativeUpkeep(t *testing.T) {
 	// Turn 3's upkeep with an empty pool: the demand is now {2} for two age
 	// counters, paying is impossible, so ONLY sacrifice is offered and the
 	// answer sacrifices the Remora to its graveyard.
+	// Remove the mana source so the next upkeep has no payment route.
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if id != remora {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
+		}
+	}
 	e.G.Turn = 3
 	e.beginTurn(0)
 	d = e.Pending()

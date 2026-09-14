@@ -166,6 +166,11 @@ func Apply(g *state.Game, e Event) {
 			o.AddCounter(e.Counter, e.Amount)
 		}
 
+	case Imprint:
+		if o := g.Obj(e.Obj); o != nil {
+			o.Imprinted = append([]state.ObjID(nil), e.IDs...)
+		}
+
 	case DeclareAttackers:
 		// e.Player names the attacking player for every ID in this event, so
 		// it is validated once, like TurnChange/Priority above, rather than
@@ -679,6 +684,9 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.Counters = nil
 		o.Targets = nil
 		o.Remembered = nil
+		if wasBattlefield {
+			o.Imprinted = nil
+		}
 		// X/CastFlags/Chosen* carry cast-time and choose-time information
 		// forward from the stack onto the permanent it resolves into (an
 		// ETB "if it was kicked" trigger needs to read X/CastFlags off the

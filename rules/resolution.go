@@ -368,6 +368,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.SearchDone = true
+		case "imprint":
+			// An Imprint$ True public-zone choice. The effect consumes this
+			// answer on re-entry and emits the persistent Imprint event.
+			ctx.Imprint = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.Imprint = append(ctx.Imprint, o.Obj)
+				}
+			}
+			ctx.ImprintDone = true
 		case "dig":
 			// A Dig look-and-take pick was answered: the library owner chose
 			// which of the window's ChangeValid$-eligible cards to move to

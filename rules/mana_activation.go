@@ -25,33 +25,36 @@ const (
 // intent boundary. cast says the answer resumes CR 601.2g payment rather
 // than the ordinary priority round.
 type manaActivation struct {
-	player    state.PlayerID
-	source    state.ObjID
-	abilities []*cards.SA
-	cast      bool
+	player     state.PlayerID
+	source     state.ObjID
+	abilities  []*cards.SA
+	cast       bool
+	cumulative bool
 }
 
 // manaColorActivation holds an already-paid mana ability while its controller
 // chooses the colour that Produced$ Any (or Combo Any) will add.
 type manaColorActivation struct {
-	player  state.PlayerID
-	source  state.ObjID
-	ability *cards.SA
-	cast    bool
+	player     state.PlayerID
+	source     state.ObjID
+	ability    *cards.SA
+	cast       bool
+	cumulative bool
 }
 
 // manaDiscardActivation holds a synchronous mana ability while its discard
 // cost is chosen. It is separate from pendingCast so activating mana during a
 // spell's CR 601.2g payment window never overwrites the outer cast flow.
 type manaDiscardActivation struct {
-	player   state.PlayerID
-	source   state.ObjID
-	ability  *cards.SA
-	cost     Cost
-	sacs     []state.ObjID
-	discards []state.ObjID
-	part     int
-	cast     bool
+	player     state.PlayerID
+	source     state.ObjID
+	ability    *cards.SA
+	cost       Cost
+	sacs       []state.ObjID
+	discards   []state.ObjID
+	part       int
+	cast       bool
+	cumulative bool
 }
 
 // isManaAbilityAPI reports whether an ability's Forge API names a mana
@@ -112,12 +115,26 @@ func (e *Engine) availableManaAbilities(p state.PlayerID, id state.ObjID) []*car
 // distinct activated abilities sharing one tap cost, so their controller must
 // choose one before the source is tapped.
 func (e *Engine) activateMana(p state.PlayerID, source state.ObjID, cast bool) {
+	e.activateManaFor(p, source, cast, false)
+}
+
+// activateCumulativeMana is the CR 702.46b payment-window entry. It uses the
+// same mana ability machinery as casting, then returns to the cumulative
+// payment decision rather than granting priority.
+func (e *Engine) activateCumulativeMana(p state.PlayerID, source state.ObjID) {
+	e.activateManaFor(p, source, false, true)
+}
+
+func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cumulative bool) {
 	abilities := e.availableManaAbilities(p, source)
 	if len(abilities) == 0 {
 		return
 	}
 	if len(abilities) == 1 {
-		e.resolveManaAbility(p, source, abilities[0], cast)
+		e.resolveManaAbility(p, source, abilities[0], cast, cumulative)
+		if cumulative && e.choosing == chooseNone {
+			e.cumulativePaymentAsk()
+		}
 		return
 	}
 	o := e.G.Obj(source)
@@ -133,7 +150,7 @@ func (e *Engine) activateMana(p state.PlayerID, source state.ObjID, cast bool) {
 		d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: source,
 			Ability: i, Label: "Add " + label})
 	}
-	e.manaActivation = &manaActivation{player: p, source: source, abilities: abilities, cast: cast}
+	e.manaActivation = &manaActivation{player: p, source: source, abilities: abilities, cast: cast, cumulative: cumulative}
 	e.choosing = chooseMana
 	e.ask(d)
 }
@@ -287,7 +304,10 @@ func (e *Engine) commitManaDiscard() {
 	}
 	e.manaDiscardActivation = nil
 	e.choosing = chooseNone
-	e.resolveManaEffect(md.player, md.source, md.ability, md.cast)
+	e.resolveManaEffect(md.player, md.source, md.ability, md.cast, md.cumulative)
+	if md.cumulative && e.choosing == chooseNone {
+		e.cumulativePaymentAsk()
+	}
 }
 
 // answerManaDiscard records one ordinary discard part and continues payment.
@@ -309,7 +329,7 @@ func (e *Engine) answerManaDiscard(chosen []decision.Option) bool {
 // resolveManaAbility pays this ability's actual activation cost, then resolves
 // it outside the stack. In particular, Sac and Discard costs are emitted
 // before the mana effect, and no phantom generic mana is charged.
-func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *cards.SA, cast bool) {
+func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *cards.SA, cast, cumulative bool) {
 	if !e.manaAbilityPayable(p, source, ma) {
 		return
 	}
@@ -317,7 +337,7 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 	sacs, _ := e.manaSacrifices(p, source, cost)
 	if len(cost.Discard) > 0 {
 		e.manaDiscardActivation = &manaDiscardActivation{player: p, source: source,
-			ability: ma, cost: cost, sacs: sacs, cast: cast}
+			ability: ma, cost: cost, sacs: sacs, cast: cast, cumulative: cumulative}
 		e.continueManaDiscard()
 		return
 	}
@@ -333,10 +353,10 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 	for _, id := range sacs {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
 	}
-	e.resolveManaEffect(p, source, ma, cast)
+	e.resolveManaEffect(p, source, ma, cast, cumulative)
 }
 
-func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *cards.SA, cast bool) {
+func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *cards.SA, cast, cumulative bool) {
 	produced := strings.TrimSpace(ma.Params["Produced"])
 	// AB$ ManaReflected: compute the reflected set and either add its single
 	// colour or ask. The ask is the ordinary mana-colour choice
@@ -358,12 +378,12 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 		case 1:
 			e.resolveManaEffectColor(p, source, ma, cols[0])
 		default:
-			e.askManaColor(p, source, ma, cast, cols)
+			e.askManaColor(p, source, ma, cast, cumulative, cols)
 		}
 		return
 	}
 	if produced == "Any" || produced == "Combo Any" {
-		e.askManaColor(p, source, ma, cast, []string{"W", "U", "B", "R", "G"})
+		e.askManaColor(p, source, ma, cast, cumulative, []string{"W", "U", "B", "R", "G"})
 		return
 	}
 	// A "Combo <colours>" shape is "add one of these", not "add each of
@@ -373,7 +393,7 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 	// branch above) and every combo it cannot resolve to a plain colour list,
 	// which then falls to resolveManaEffectColor and fails closed in effMana.
 	if colours, ok := effects.ComboColours(produced); ok {
-		e.askManaColor(p, source, ma, cast, colours)
+		e.askManaColor(p, source, ma, cast, cumulative, colours)
 		return
 	}
 	e.resolveManaEffectColor(p, source, ma, produced)
@@ -382,13 +402,13 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 // askManaColor poses the colour choice for a Produced value that names a
 // fixed set (the five colours for Any/Combo Any, or the named colours of a
 // "Combo <colours>" shape) and pauses until it is answered.
-func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA, cast bool, colours []string) {
+func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA, cast, cumulative bool, colours []string) {
 	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: manaColourPrompt(ma), Source: source}
 	for i, color := range colours {
 		d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: source, Label: "Add " + color})
 	}
-	e.manaColorActivation = &manaColorActivation{player: p, source: source, ability: ma, cast: cast}
+	e.manaColorActivation = &manaColorActivation{player: p, source: source, ability: ma, cast: cast, cumulative: cumulative}
 	e.choosing = chooseManaColor
 	e.ask(d)
 }
@@ -455,10 +475,13 @@ func (e *Engine) answerManaColor(chosen []decision.Option) bool {
 		return false
 	}
 	color := strings.TrimPrefix(chosen[0].Label, "Add ")
-	if len(color) != 1 || !strings.Contains("WUBRG", color) {
+	if len(color) != 1 || !strings.Contains("WUBRGC", color) {
 		return ma.cast
 	}
 	e.resolveManaEffectColor(ma.player, ma.source, ma.ability, color)
+	if ma.cumulative && e.choosing == chooseNone {
+		e.cumulativePaymentAsk()
+	}
 	return ma.cast
 }
 
@@ -473,7 +496,10 @@ func (e *Engine) answerManaActivation(chosen []decision.Option) bool {
 	}
 	idx := chosen[0].Ability
 	if idx >= 0 && idx < len(ma.abilities) {
-		e.resolveManaAbility(ma.player, ma.source, ma.abilities[idx], ma.cast)
+		e.resolveManaAbility(ma.player, ma.source, ma.abilities[idx], ma.cast, ma.cumulative)
+		if ma.cumulative && e.choosing == chooseNone {
+			e.cumulativePaymentAsk()
+		}
 	}
 	return ma.cast
 }

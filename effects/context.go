@@ -41,6 +41,17 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		return []state.Target{{Obj: c.Source}}
 	case "Remembered":
 		return copyTargets(c.Remembered)
+	case "Imprinted":
+		if o := g.Obj(c.Source); o != nil {
+			out := make([]state.Target, 0, len(o.Imprinted))
+			for _, id := range o.Imprinted {
+				if g.Obj(id) != nil {
+					out = append(out, state.Target{Obj: id})
+				}
+			}
+			return out
+		}
+		return nil
 	case "Targeted", "ParentTarget":
 		return copyTargets(c.Targets)
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",

@@ -55,8 +55,9 @@ type cumulativeUpkeep struct {
 	// that leaves the battlefield mid-queue is skipped by its ID.
 	queue []state.ObjID
 	// current is the permanent being asked; amount its scaled per-age cost.
-	current state.ObjID
-	amount  Cost
+	current    state.ObjID
+	amount     Cost
+	windowDone bool
 }
 
 // scaleCost returns c with every component multiplied by n: colours, generic
@@ -156,60 +157,86 @@ func (e *Engine) placeAgeCounterAndAsk(id state.ObjID) {
 	}
 	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "AGE", Amount: 1})
 	ages := o.Counter("AGE") // after the increment
-	amount := scaleCost(ParseCost(param), ages)
-	cu.amount = amount
-
-	name := f.Name
-	costLabel := strconv.FormatInt(int64(ages), 10) + " age counter(s)"
-	var opts []decision.Option
-	if amount.Priceable() && e.costPayable(cu.player, id, false, amount) {
-		opts = append(opts, decision.Option{Index: len(opts), Kind: "cumulative_pay",
-			Label: "Pay " + param + " per age (" + costLabel + ")", Obj: id})
-	}
-	opts = append(opts, decision.Option{Index: len(opts), Kind: "cumulative_sac",
-		Label: "Sacrifice " + name, Obj: id})
-	e.choosing = chooseCumulative
-	e.ask(&decision.Decision{Player: cu.player, Kind: decision.KChoose, Min: 1, Max: 1,
-		Prompt:  name + " — cumulative upkeep: pay " + param + " for each age counter, or sacrifice",
-		Source:  id,
-		Options: opts})
+	cu.amount = scaleCost(ParseCost(param), ages)
+	cu.windowDone = false
+	e.cumulativePaymentAsk()
 }
 
-// cumulativeAnswer applies the answered pay-or-sacrifice choice for the
-// current permanent and drives the queue on. Payment is the conversion-aware
-// payManaConv (a ManaConvert static applies to every payment its controller
-// makes); a pay answer from a pool that cannot cover it (state changed
-// between offer and answer) declines into the sacrifice, never a silent
-// nothing. The sacrifice is a plain MoveZone so state-based actions and
-// zone-change triggers see it exactly as any other sacrifice.
-func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
+// cumulativePaymentAsk is CR 702.46b's mana-ability payment window followed
+// by the pay-or-sacrifice answer. It shares the cast payment window's source
+// gate, but does not grant priority: only mana abilities and Done are legal.
+func (e *Engine) cumulativePaymentAsk() {
 	cu := e.cumulative
 	if cu == nil {
 		return
 	}
 	id := cu.current
-	e.choosing = chooseNone
-	paid := false
-	if len(chosen) > 0 && chosen[0].Kind == "cumulative_pay" && e.G.Obj(id) != nil &&
-		e.costPayable(cu.player, id, false, cu.amount) {
-		if e.payManaConv(cu.player, cu.amount, e.paymentConv(cu.player, id, false)) {
-			paid = true
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZBattlefield {
+		e.continueCumulative()
+		return
+	}
+	if !cu.windowDone && cu.amount.Priceable() && !e.costPayable(cu.player, id, false, cu.amount) {
+		var sources []state.ObjID
+		for _, source := range e.G.Zone(state.ZBattlefield, cu.player) {
+			if e.untappedManaSource(cu.player, source) {
+				sources = append(sources, source)
+			}
+		}
+		if len(sources) > 0 {
+			d := &decision.Decision{Player: cu.player, Kind: decision.KChoose, Min: 1, Max: 1,
+				Prompt: "Activate mana abilities to pay cumulative upkeep", Source: id}
+			for _, source := range sources {
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "activate", Obj: source,
+					Label: "Tap " + e.G.Obj(source).Face().Name + " for mana"})
+			}
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "done", Label: "Done"})
+			e.choosing = chooseCumulative
+			e.ask(d)
+			return
 		}
 	}
+	param, _ := o.Face().KeywordParam("Cumulative upkeep")
+	costLabel := strconv.FormatInt(int64(o.Counter("AGE")), 10) + " age counter(s)"
+	var opts []decision.Option
+	if cu.amount.Priceable() && e.costPayable(cu.player, id, false, cu.amount) {
+		opts = append(opts, decision.Option{Index: len(opts), Kind: "cumulative_pay", Label: "Pay " + param + " per age (" + costLabel + ")", Obj: id})
+	}
+	opts = append(opts, decision.Option{Index: len(opts), Kind: "cumulative_sac", Label: "Sacrifice " + o.Face().Name, Obj: id})
+	e.choosing = chooseCumulative
+	e.ask(&decision.Decision{Player: cu.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: o.Face().Name + " — cumulative upkeep: pay " + param + " for each age counter, or sacrifice", Source: id, Options: opts})
+}
+
+// cumulativeAnswer applies a mana-window answer or pays/sacrifices the
+// current permanent and drives the queue on.
+func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
+	cu := e.cumulative
+	if cu == nil || len(chosen) == 0 {
+		return
+	}
+	e.choosing = chooseNone
+	switch chosen[0].Kind {
+	case "activate":
+		e.activateCumulativeMana(cu.player, chosen[0].Obj)
+		return
+	case "done":
+		cu.windowDone = true
+		e.cumulativePaymentAsk()
+		return
+	}
+	id := cu.current
+	paid := chosen[0].Kind == "cumulative_pay" && e.G.Obj(id) != nil &&
+		e.costPayable(cu.player, id, false, cu.amount) &&
+		e.payManaConv(cu.player, cu.amount, e.paymentConv(cu.player, id, false))
 	if !paid {
 		if o := e.G.Obj(id); o != nil && o.Zone == state.ZBattlefield {
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id,
-				From: state.ZBattlefield, To: state.ZGraveyard,
-				Text: "sacrificed for cumulative upkeep"})
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed for cumulative upkeep"})
 		}
 	}
 	e.continueCumulative()
 }
 
-// register the keyword and the untap-event primitives this file implements:
-// kw:Cumulative upkeep here; repl:Untap (rules/untap.go's R:Event$ Untap
-// replacement machinery) and stat:UntapOtherPlayer (rules/untap.go's
-// beginTurn extension) live beside their matcher.
 func init() {
-	effects.RegisterNonAPI("kw:Cumulative upkeep", "stat:UntapOtherPlayer", "repl:Untap")
+	effects.RegisterNonAPI("kw:Cumulative upkeep", "stat:UntapOtherPlayer")
 }

@@ -12,25 +12,15 @@ func (e *Engine) beginTurn(active state.PlayerID) {
 	e.emit(events.Event{Kind: events.TurnChange, Player: active, Amount: e.G.Turn + 1})
 	e.setStep(state.StepUntap)
 	for _, id := range e.G.Zone(state.ZBattlefield, active) {
-		// The R:Event$ Untap replacements ("this permanent doesn't untap
-		// during its controller's untap step", the CantHappen layer) and the
-		// stat:UntapOtherPlayer static ("untap this during each other
-		// player's untap step") both shape exactly this turn-based action;
-		// rules/untap.go owns their grammar. Both are no-ops on a game with
-		// none of the two in play, so every game without the affected cards
-		// emits the identical Untap event per tapped permanent as before.
+		// effects.TryUntap, reached through untapTurnPermanent, applies the
+		// shared stun-counter replacement to the turn-based untap action.
 		e.untapTurnPermanent(id)
 	}
 	// stat:UntapOtherPlayer: during active's untap step, EVERY other living
 	// player's battlefield permanent the statics match untaps too (CR's
 	// "untap during each other player's untap step", and the command-zone
 	// plane shape "all permanents untap during each player's untap step").
-	// AliveFrom(0) order keeps the event stream deterministic. A permanent
-	// with the static AND an untap replacement is shaped by the same
-	// replacement gate -- the ValidStepTurnToController$ You gate on every
-	// corpus replacement ("during its CONTROLLER'S untap step") fails for a
-	// foreign seat's step, which is exactly right: the static's whole point
-	// is untapping outside that step.
+	// AliveFrom(0) order keeps the event stream deterministic.
 	for _, p := range e.G.AliveFrom(0) {
 		if p == active {
 			continue
