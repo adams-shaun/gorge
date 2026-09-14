@@ -152,6 +152,26 @@ export function mulliganPhase(d: Decision | null): MulliganPhase {
 export const AUTO_PASS_CAP = 40;
 
 /**
+ * viewStamp is the identity of the view a paced pass was derived from (prio5
+ * r2): the turn, the step, every stack entry's object id, and the identity
+ * and content of the TOP object — the thing the pacing decision and the log
+ * wording actually read. Two views with the same turn, step and stack DEPTH
+ * can still differ in what is resolving (the top spell resolves and another
+ * is revealed beneath it at the same depth), so depth alone is not enough:
+ * a wait held for one view must not fire for another. It is a pure function
+ * of the wire view so the seat panel component can read it as ONE reactive
+ * dependency (every id and the top's name are tracked through it) and the
+ * state's hold/cancel test compares exactly what the component observes.
+ */
+export function viewStamp(view: View): string {
+  const top = view.stack.length > 0 ? view.stack[view.stack.length - 1] : null;
+  const topKey = top === null
+    ? '-'
+    : `${top.id}|${top.kind}|${top.name}|${top.controller}|${top.optional ? 1 : 0}`;
+  return `${view.turn}|${view.step}|${view.stack.map((o) => o.id).join('.')}|${topKey}`;
+}
+
+/**
  * AutoOffReason is why auto is no longer running, as distinct from
  * StopReason (why auto declined THIS window but stays armed). The two are
  * separate vocabularies because they need separate words on screen: one is
@@ -384,8 +404,14 @@ export class SeatPanelState {
    * itself (firePass) re-validates the seq before posting, so a stale pass
    * is structurally impossible. A wait of 0 ms never schedules: the pass
    * posts immediately, which is the pre-pacing path the tests rely on.
+   *
+   * The wait's view identity is `stamp` (viewStamp): turn, step, every stack
+   * id and the top object's identity/content. Replacing the resolving top
+   * object at the SAME depth is therefore also a different view — the r2
+   * finding this closes — so the wait is cancelled and re-derived, never
+   * posted at the old deadline with the old spell's name.
    */
-  private passWait: { seq: number; index: number; kind: AutoPassKind; text: string; turn: number; step: string; stackLen: number } | null = null;
+  private passWait: { seq: number; index: number; kind: AutoPassKind; text: string; turn: number; stamp: string } | null = null;
   private passTimer: ReturnType<typeof setTimeout> | null = null;
   /**
    * autoActedSeq is the seq auto last posted for. If a decision with that
@@ -652,6 +678,13 @@ export class SeatPanelState {
 
   private startRun(kind: 'end-turn' | 'hard-skip', view: View) {
     if (this.busy) return;
+    // Starting a run is the player taking the controls: any paced pass the
+    // AUTO paths had pending dies here (r2 finding — the old auto wait used
+    // to survive, post at its old deadline and count as autoPassed). The
+    // effect re-runs considerAuto because oneShot changed, so the same
+    // window is re-derived and re-paced under the run's own rules and
+    // register — End turn / Skip turn, counted in runPassed.
+    this.cancelPassWait();
     this.oneShot = kind;
     this.runPassed = 0;
     this.autoRun = 0;
@@ -739,12 +772,13 @@ export class SeatPanelState {
 
     // A paced pass is already in flight for this decision: hold. While the
     // view it was derived from is still the live one, the timer owns the
-    // pass. If the view moved (turn, step or stack depth changed), the wait
-    // is abandoned — never posted stale — and control falls through to
-    // re-derive the pass against what the player now sees.
+    // pass. If the view moved — turn, step, any stack id, or the top
+    // object's identity/content at the same depth — the wait is abandoned,
+    // never posted stale, and control falls through to re-derive the pass
+    // against what the player now sees.
     if (this.passWait !== null) {
       const w = this.passWait;
-      if (w.turn === view.turn && w.step === view.step && w.stackLen === view.stack.length) return;
+      if (w.stamp === viewStamp(view)) return;
       this.cancelPassWait();
     }
 
@@ -864,7 +898,7 @@ export class SeatPanelState {
       return;
     }
     if (this.passTimer !== null) clearTimeout(this.passTimer);
-    this.passWait = { seq: d.seq, index, kind, text, turn: view.turn, step: view.step, stackLen: view.stack.length };
+    this.passWait = { seq: d.seq, index, kind, text, turn: view.turn, stamp: viewStamp(view) };
     this.passTimer = setTimeout(() => this.firePass(), ms);
   }
 

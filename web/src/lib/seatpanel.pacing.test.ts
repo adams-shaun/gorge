@@ -143,6 +143,63 @@ describe('the wait is cancellable', () => {
     expect(p.autoLog.map((n) => n.text)).toEqual(['Auto-passed: Lightning Bolt resolving']);
   });
 
+  it('the top stack object REPLACED at the same depth cancels and re-paces: no post at the old deadline, the new spell logged (r2)', async () => {
+    vi.useFakeTimers();
+    const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
+    p.adoptView(quiet(1));
+    p.considerAuto(view('main1', 0, 2, [stackView('Lightning Bolt')]));
+    await vi.advanceTimersByTimeAsync(200);
+    expect(postIntentMock).not.toHaveBeenCalled();
+    // The top object resolves and the object beneath it is revealed at the
+    // SAME depth: same turn, same step, same stack length — but a different
+    // resolving object. The old wait must die (never post at its original
+    // deadline, never log the old spell); the pass is re-derived against
+    // the new view and paces again from scratch.
+    p.considerAuto(view('main1', 0, 2, [{ ...stackView('Giant Growth'), id: 10 }]));
+    await vi.advanceTimersByTimeAsync(200); // the ORIGINAL 400 ms deadline
+    expect(postIntentMock).not.toHaveBeenCalled();
+    expect(p.autoLog).toEqual([]);
+    await vi.advanceTimersByTimeAsync(200); // the NEW full beat
+    await settle(() => p.postedSeq === 1);
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(p.autoPassed).toBe(1); // counted once, for the pass that actually posted
+    expect(p.autoLog.map((n) => n.text)).toEqual(['Auto-passed: Giant Growth resolving']);
+  });
+
+  it('clicking End Turn during an automatic wait re-classifies the pass: runPassed and the run register, not autoPassed (r2)', async () => {
+    vi.useFakeTimers();
+    const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
+    p.adoptView(quiet(1));
+    p.considerAuto(view('main1', 0, 2, []));
+    expect(postIntentMock).not.toHaveBeenCalled();
+    p.startEndTurn(view('main1', 0, 2)); // the click takes the controls mid-beat
+    expect(p.endTurn).toBe(true);
+    p.considerAuto(view('main1', 0, 2)); // the effect re-runs considerAuto on oneShot
+    await vi.advanceTimersByTimeAsync(200); // the re-derived wait, under the run
+    await settle(() => p.postedSeq === 1);
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(p.runPassed).toBe(1);
+    expect(p.autoPassed).toBe(0); // the old auto wait did NOT post
+    expect(p.autoLog.map((n) => n.text)).toEqual(['End turn: passed main 1']);
+  });
+
+  it('shift-click Hard Skip during a wait does the same under the skip register (r2)', async () => {
+    vi.useFakeTimers();
+    const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
+    p.adoptView(quiet(1));
+    p.considerAuto(view('main1', 0, 2, [stackView('Lightning Bolt')]));
+    expect(postIntentMock).not.toHaveBeenCalled();
+    p.startHardSkip(view('main1', 0, 2, [stackView('Lightning Bolt')]));
+    expect(p.hardSkip).toBe(true);
+    p.considerAuto(view('main1', 0, 2, [stackView('Lightning Bolt')]));
+    await vi.advanceTimersByTimeAsync(400); // resolveMs: a stack is resolving
+    await settle(() => p.postedSeq === 1);
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(p.runPassed).toBe(1);
+    expect(p.autoPassed).toBe(0);
+    expect(p.autoLog.map((n) => n.text)).toEqual(['Skip turn: passed main 1']);
+  });
+
   it('Escape during the wait abandons the pass', async () => {
     vi.useFakeTimers();
     const p = pacedSeat({ stepMs: 200, resolveMs: 400 });

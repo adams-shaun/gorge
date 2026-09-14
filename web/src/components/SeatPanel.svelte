@@ -2,7 +2,7 @@
   import { onMount, onDestroy, untrack } from 'svelte';
   import type { CardView, Option, SeatInfo, View } from '../protocol';
   import type { SeatCtx } from '../lib/seat';
-  import { SeatPanelState, autoNoteText, isConcede, mulliganPhase, toneOf } from '../lib/seatpanel.svelte';
+  import { SeatPanelState, autoNoteText, isConcede, mulliganPhase, toneOf, viewStamp } from '../lib/seatpanel.svelte';
   import { modalPickerOpen } from '../lib/modals';
   import CardImage from './CardImage.svelte';
   import CardTile from './CardTile.svelte';
@@ -119,7 +119,12 @@
     void logic.pending?.seq;
     void view.step;
     void view.turn;
-    void view.stack.length; // a stack change re-derives a paced pass (prio5): the view it was derived from is gone
+    // The FULL view identity a paced pass is derived from (prio5 r2): turn,
+    // step, every stack entry's id and the top object's identity/content.
+    // Reading the stamp tracks exactly what viewStamp compares, so a same-
+    // depth top-object replacement re-runs this effect and re-derives the
+    // wait instead of letting the old timer fire for a view that is gone.
+    void viewStamp(view);
     untrack(() => {
       logic.expireRun(view);
       logic.considerAuto(view);
