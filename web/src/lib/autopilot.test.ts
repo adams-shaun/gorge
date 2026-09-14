@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { actionable, decide, emptyPriorityWindow, respondable, STEPS, STOPPABLE_STEPS, turnSide } from './autopilot';
 import { applyPreset, defaultSettings, type PlaySettings, type StoppableStep, type StepStop } from './playsettings';
-import type { Decision, Option, View } from '../protocol';
+import type { CardView, Decision, Option, PlayerView, View } from '../protocol';
 
 /** view builds a View with only the fields decide reads: active (whose turn), step, stack, and the battlefield data the targets-me lookup reads. */
 const view = (
@@ -29,6 +29,42 @@ const stackEntry = (
   kind = 'spell',
   targets: { obj?: number; player: number; is_player: boolean }[] = [],
 ) => ({ id, controller, kind, targets });
+
+/** handCard builds one minimal CardView for a hand entry; only the fields castableAfterTap reads are named. */
+const handCard = (over: Partial<CardView>): CardView =>
+  ({
+    id: 1,
+    name: 'Card',
+    types: 'Instant',
+    mana_cost: 'R',
+    controller: 0,
+    owner: 0,
+    ...over,
+  }) as CardView;
+
+/** withHand returns the view with seat `seat`'s own hand, pool and availability attached (the viewer's own hidden zone). */
+const withHand = (v: View, seat: number, over: Partial<PlayerView>): View => {
+  const players = [...(v.players ?? [])];
+  const at = players.findIndex((p) => p.seat === seat);
+  const base = at >= 0 ? players[at] : { seat };
+  const merged = {
+    life: 20,
+    lost: false,
+    hand: [],
+    battlefield: [],
+    graveyard: [],
+    exile: [],
+    pool: {},
+    command: [],
+    commanders: [],
+    commander_casts: [],
+    ...base,
+    ...over,
+  } as PlayerView;
+  if (at >= 0) players[at] = merged;
+  else players.push(merged);
+  return { ...v, players } as View;
+};
 
 const RESPONDABLE = [opt('pass', 0), opt('cast', 1), opt('concede', 2)];
 const ONLY_MANA = [opt('activate', 0), opt('pass', 1), opt('concede', 2)];
@@ -360,13 +396,37 @@ describe('decide', () => {
     }
   });
 
-  it('actionable is false exactly when every option kind is pass, concede or activate', () => {
-    expect(actionable(priority([opt('pass', 0), opt('concede', 1)]))).toBe(false);
-    expect(actionable(priority([opt('pass', 0)]))).toBe(false);
-    expect(actionable(priority([opt('activate', 0), opt('pass', 1), opt('concede', 2)]))).toBe(false);
-    expect(actionable(priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]))).toBe(true);
-    expect(actionable(priority([opt('ability', 0)]))).toBe(true);
-    expect(actionable(priority([opt('play_land', 0), opt('activate', 1), opt('pass', 2), opt('concede', 3)]))).toBe(true);
+  it('actionable is false exactly when every option kind is pass, concede or activate AND no hand card is castable after tapping', () => {
+    // SEMANTICS CHANGED (fb-20260914T014141Z): the old pin — "false exactly when every
+    // option kind is pass/concede/activate" — no longer holds. A mana-only window
+    // whose hand holds a card the seat could cast after tapping (lib/castable,
+    // the post-land Lava Spike window) is now actionable: the engine prices a
+    // cast against the floating pool only, so the cast option does not exist
+    // YET, and auto-passing the tap would eat exactly the window the player
+    // wants. These pins keep the view hand-less (the empty hand fails closed),
+    // so every line below is the OLD semantics on the kind test alone.
+    const noHand = view(0, 'main1');
+    expect(actionable(priority([opt('pass', 0), opt('concede', 1)]), noHand, 0)).toBe(false);
+    expect(actionable(priority([opt('pass', 0)]), noHand, 0)).toBe(false);
+    expect(actionable(priority([opt('activate', 0), opt('pass', 1), opt('concede', 2)]), noHand, 0)).toBe(false);
+    expect(actionable(priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]), noHand, 0)).toBe(true);
+    expect(actionable(priority([opt('ability', 0)]), noHand, 0)).toBe(true);
+    expect(actionable(priority([opt('play_land', 0), opt('activate', 1), opt('pass', 2), opt('concede', 3)]), noHand, 0)).toBe(true);
+  });
+
+  it('actionable on a mana-only window: a hand card castable after tapping makes it TRUE, an uncastable hand does not', () => {
+    const d = priority(ONLY_MANA);
+    // Post-land Lava Spike: pool empty, one untapped Mountain (Available {R}), {R} spell in hand.
+    const stop = withHand(view(0, 'main1'), 0, { hand: [handCard({ mana_cost: 'R' })], available: { R: 1 } });
+    expect(actionable(d, stop, 0)).toBe(true);
+    // Same window, wrong colour in play: the hand is dead mana-wise, still not actionable.
+    const pass = withHand(view(0, 'main1'), 0, { hand: [handCard({ mana_cost: '2 U' })], available: { R: 1 } });
+    expect(actionable(d, pass, 0)).toBe(false);
+    // A castable-from-the-pool hand carries the cast option already (kind test);
+    // the helper must not make the window MORE than actionable — same verdict either way.
+    const floating = withHand(view(0, 'main1'), 0, { hand: [handCard({ mana_cost: 'R' })], pool: { R: 1 } });
+    const castable = priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]);
+    expect(actionable(castable, floating, 0)).toBe(true);
   });
 
   it('respondable is true exactly when a cast or ability option is offered (not play_land, not activate)', () => {
@@ -377,10 +437,48 @@ describe('decide', () => {
     expect(respondable(priority([opt('ability', 0)]))).toBe(true);
   });
 
-  it('a mana-only window (activate + pass + concede) is not actionable and emptyPriorityWindow returns the pass index', () => {
+  it('a mana-only window with a dead-mana hand is not actionable and emptyPriorityWindow returns the pass index', () => {
     const d = priority(ONLY_MANA);
-    expect(actionable(d)).toBe(false);
-    expect(emptyPriorityWindow(d)).toBe(1);
+    const v = withHand(view(0, 'main1'), 0, { hand: [handCard({ mana_cost: '4 U' })], available: { R: 1 } });
+    expect(actionable(d, v, 0)).toBe(false);
+    expect(emptyPriorityWindow(d, v, 0)).toBe(1);
+  });
+
+  it('a mana-only window with a castable-after-tap hand is NOT an empty priority window', () => {
+    const d = priority(ONLY_MANA);
+    const v = withHand(view(0, 'main1'), 0, { hand: [handCard({ mana_cost: 'R' })], available: { R: 1 } });
+    expect(emptyPriorityWindow(d, v, 0)).toBe(null);
+  });
+
+  // --- the post-land window (fb-20260914T014141Z): smart stops now catch the tap-then-cast shape ---
+
+  it('casual decide(): a post-land mana-only window with a castable-after-tap card in hand STOPS (stop-set)', () => {
+    const d = priority(ONLY_MANA); // activate + pass + concede — exactly the window after the turn-1 Mountain
+    const v = withHand(view(0, 'main1'), 0, { hand: [handCard({ name: 'Lava Spike', mana_cost: 'R' })], available: { R: 1 } });
+    const s = withSteps('yours', { main1: 'smart' });
+    expect(run(d, v, s)).toEqual({ act: 'stop', reason: 'stop-set' });
+  });
+
+  it('casual decide(): the same mana-only window with only uncastable cards in hand passes', () => {
+    const d = priority(ONLY_MANA);
+    const v = withHand(view(0, 'main1'), 0, { hand: [handCard({ mana_cost: 'X R' })], available: { R: 1 } });
+    const s = withSteps('yours', { main1: 'smart' });
+    expect(run(d, v, s)).toEqual({ act: 'pass', index: 1 });
+  });
+
+  it('the castable-after-tap stop does not fire on another seat\u2019s hand (the helper fails closed) and never depends on turnSide', () => {
+    const d = priority(ONLY_MANA);
+    const handless = view(0, 'main1'); // the hand is the viewer\u2019s hidden zone; a view without it fails closed
+    const s = withSteps('yours', { main1: 'smart' });
+    expect(run(d, handless, s)).toEqual({ act: 'pass', index: 1 });
+    // The stop is about the SEAT's own mana and hand, not whose turn it is:
+    // actionable() is TRUE for the same shape on the opponent's turn (the
+    // helper is turn-side-blind), but casual has no opponents-side main-phase
+    // rule at all, so decide() still passes — the stop fires only where the
+    // caller's step rules consult it.
+    const mine = withHand(view(1, 'main1'), 0, { hand: [handCard({ mana_cost: 'R' })], available: { R: 1 } });
+    expect(actionable(d, mine, 0)).toBe(true);
+    expect(run(d, mine, s)).toEqual({ act: 'pass', index: 1 });
   });
 
   it('an opponent spell on top does not stop a window that only offers a land drop (not respondable)', () => {

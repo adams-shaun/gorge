@@ -1058,7 +1058,7 @@ export class SeatPanelState {
     // seat is still not stopped at a window that asks nothing. With Auto on,
     // decide() owns the same shape and classifies it under Auto's counter.
     if (!autoOn && this.oneShot === 'none') {
-      const index = this.skipEmpty ? emptyPriorityWindow(d) : null;
+      const index = this.skipEmpty ? emptyPriorityWindow(d, view, this.ctx.seat) : null;
       return index === null ? null : { act: 'pass', index, kind: 'empty' };
     }
 
