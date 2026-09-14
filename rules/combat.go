@@ -1052,6 +1052,14 @@ func (e *Engine) damageStep(firstStrike bool) {
 			}
 		}
 	}
+	// One damage pass is ONE damage batch (CR 510.4): every Damage event the
+	// emit loop below produces latches the DamageDealtOnce/DamageDoneOnce
+	// triggers together and accumulates their referent amounts, closed (and
+	// the referent totals patched) when the pass finishes dealing. The
+	// first-strike pass and the regular pass are separate calls of this
+	// function, hence separate batches -- a double striker triggers a bearer's
+	// Jitte once per step, twice for the attack.
+	e.openDamageBatch()
 	for _, x := range as {
 		// e.damaging names the dealing creature for the whole of this
 		// assignment so emit's protection check (Task 15) can prevent the
@@ -1114,6 +1122,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 		e.damaging = 0
 		e.combatDamaging = false
 	}
+	e.closeDamageBatch()
 }
 
 // maxHandSize is CR 514.1: at the beginning of a player's cleanup step, if

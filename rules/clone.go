@@ -129,7 +129,16 @@ func (e *Engine) Clone() *Engine {
 		}
 	}
 	c.triggerFireCount = cloneCounts(e.triggerFireCount)
-	c.damageOnceFired = cloneCounts(e.damageOnceFired)
+	if e.damageBatchOpen {
+		c.damageBatchOpen = true
+		if e.damageBatchIdx != nil {
+			c.damageBatchIdx = make(map[damageBatchKey]int, len(e.damageBatchIdx))
+			for k, v := range e.damageBatchIdx {
+				c.damageBatchIdx[k] = v
+			}
+		}
+		c.damageBatchLog = append([]damageBatchEntry(nil), e.damageBatchLog...)
+	}
 	if e.triggerTurnFires != nil {
 		c.triggerTurnFires = make(map[triggerKey]turnFires, len(e.triggerTurnFires))
 		for k, v := range e.triggerTurnFires {

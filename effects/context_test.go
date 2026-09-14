@@ -48,6 +48,11 @@ func (h *fakeHost) AddContinuous(ce state.ContinuousEffect) {
 // rather than inventing a registry it cannot answer for.
 func (h *fakeHost) RegenerationDisallowed(id state.ObjID) bool { return false }
 
+// The damage-batch bracket has nothing to latch here (no trigger machinery),
+// so the double reports no-ops; the dealDamage loops' bracketing still runs.
+func (h *fakeHost) BeginDamageBatch() {}
+func (h *fakeHost) EndDamageBatch()   {}
+
 // CastThisTurn has no real turn log to count here (Task 17); the effects
 // package tests set up their own boards, so the double reports zero.
 func (h *fakeHost) CastThisTurn() int { return 0 }

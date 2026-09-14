@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -337,7 +338,7 @@ Oracle:x
 	}
 }
 
-func TestDamageDealtOnceFiresAtMostOncePerTurn(t *testing.T) {
+func TestDamageDealtOnceFiresPerDamageBatch(t *testing.T) {
 	src := `Name:Vampire
 ManaCost:1 B
 Types:Creature Vampire
@@ -348,14 +349,27 @@ Oracle:x
 `
 	e := layerEngine(t)
 	onBoard(t, e, 0, src)
+	// Two SEPARATE non-combat Damage events are two damage batches (Forge
+	// dealDamage brackets each call's damage; nothing here brackets them
+	// together), so the trigger fires per event. The old once-per-turn latch
+	// suppressed the second firing -- this test used to pin exactly that and
+	// was flipped by the per-batch fix.
 	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 2})
 	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 2})
-	e.putTriggersOnStack()
-	if len(e.G.Stack) != 1 {
-		t.Fatalf("stack = %v, want exactly one trigger for two damage events in the same turn", e.G.Stack)
+	if len(e.pendingTriggers) != 2 {
+		t.Fatalf("pendingTriggers = %d, want two (one per separate damage batch)", len(e.pendingTriggers))
+	}
+	e.putTriggersOnStack() // two same-controller triggers ask for an order
+	if d := e.Pending(); d == nil || d.Kind != decision.KTriggerOrder {
+		t.Fatalf("pending = %+v, want the two triggers to ask for an order", d)
+	}
+	submit(t, e, 0, 1)
+	if len(e.G.Stack) != 2 {
+		t.Fatalf("stack = %v, want both triggers placed", e.G.Stack)
 	}
 	e.resolveTop() // clear the stack so the next check counts only new triggers.
-	// Advancing to the next turn resets the gate.
+	e.resolveTop()
+	// A third event, a turn later, fires again.
 	e.G.Turn++
 	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 2})
 	e.putTriggersOnStack()
