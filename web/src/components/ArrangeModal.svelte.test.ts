@@ -51,6 +51,16 @@ describe('ArrangeModal — the card-face popup for a KArrange ask', () => {
     expect(html).toContain('data-arrange-submit');
   });
 
+  it('a fresh pure reorder (no picks yet) opens as a reorder surface: every card kept in offered order, no pool row, submit enabled', () => {
+    const { html } = render(ArrangeModal, { props: { open: true, decision: reorder, seed: [], onSubmit: () => {}, onClose: () => {} } });
+    // No pool row — the ask has no destination; the cards are all kept.
+    expect(html).not.toContain('data-arrange-pool-card');
+    // The keep row is the full offered order (arrangeSeed's default).
+    expect(html).toMatch(/aria-label="1: Brazen Borrower"/);
+    expect(html).toMatch(/aria-label="5: Unholy Heat"/);
+    expect(html).not.toMatch(/data-arrange-submit[^>]*disabled/);
+  });
+
   it('a scry (Min 0) shows the pool row and names its destination', () => {
     const { html } = render(ArrangeModal, { props: { open: true, decision: scry, seed: [], onSubmit: () => {}, onClose: () => {} } });
     expect(html).toContain('data-arrange-pool');
@@ -59,10 +69,15 @@ describe('ArrangeModal — the card-face popup for a KArrange ask', () => {
     expect(html).toContain('Nothing kept');
   });
 
-  it('the submit is disabled while the keep pile violates the decision’s min/max', () => {
-    const closed = render(ArrangeModal, { props: { open: true, decision: reorder, seed: [], onSubmit: () => {}, onClose: () => {} } }).html;
-    expect(closed).toMatch(/data-arrange-submit[^>]*disabled/);
-    const open5 = render(ArrangeModal, { props: { open: true, decision: reorder, seed: [0, 1, 2, 3, 4], onSubmit: () => {}, onClose: () => {} } }).html;
-    expect(open5).not.toMatch(/data-arrange-submit[^>]*disabled/);
+  it('the submit gate never blocks a shape the wire poses: a fresh reorder and a fresh scry are both submittable states', () => {
+    // The seed default (arrangeSeed) makes a min/max violation unreachable
+    // from a seed: a pure reorder always opens with every card kept, and a
+    // scry's min is 0. The disabled guard stays as a bound (a host bug or a
+    // future wire shape could still violate it); the reachable states are
+    // pinned here.
+    const reorderFull = render(ArrangeModal, { props: { open: true, decision: reorder, seed: [], onSubmit: () => {}, onClose: () => {} } }).html;
+    expect(reorderFull).not.toMatch(/data-arrange-submit[^>]*disabled/);
+    const scryEmpty = render(ArrangeModal, { props: { open: true, decision: scry, seed: [], onSubmit: () => {}, onClose: () => {} } }).html;
+    expect(scryEmpty).not.toMatch(/data-arrange-submit[^>]*disabled/);
   });
 });

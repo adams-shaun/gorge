@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Decision, Option } from '../protocol';
 import { pickOption } from './seatpanel.svelte';
-import { arrangeCard, arrangeDestination, arrangeOrder, arrangeSplit, moveWithin } from './arrange';
+import { arrangeCard, arrangeDestination, arrangeOrder, arrangeSeed, arrangeSplit, moveWithin } from './arrange';
 
 // A KArrange reorder the way effRearrangeTopOfLibrary poses it: Min == Max ==
 // len(options), every option Kind "bottom", Label the card's name, Obj the
@@ -33,6 +33,30 @@ describe('arrangeDestination — pile B’s destination, in the UI’s words', (
     expect(arrangeDestination(reorder)).toBe('the bottom of the library');
     expect(arrangeDestination(surveil)).toBe('the graveyard');
     expect(arrangeDestination({ ...reorder, options: [opt(0, 'x', 1, 'exile')] })).toBe('exile');
+  });
+});
+
+describe('arrangeSeed — the picked set an arrange surface starts from', () => {
+  it('a fresh pure reorder seeds every option, in offered order — it opens as a reorder surface', () => {
+    expect(arrangeSeed(reorder, [])).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it('a partial inline pick on a pure reorder is a prefix; the unpicked options follow in offered order', () => {
+    expect(arrangeSeed(reorder, [3, 1])).toEqual([3, 1, 0, 2, 4]);
+  });
+
+  it('a full pick on a pure reorder is the pick itself — the player’s order, untouched', () => {
+    expect(arrangeSeed(reorder, [4, 3, 2, 1, 0])).toEqual([4, 3, 2, 1, 0]);
+  });
+
+  it('a scry seeds only what was picked — the rest stays in the pool', () => {
+    expect(arrangeSeed(scry, [2, 0])).toEqual([2, 0]);
+    expect(arrangeSeed(scry, [])).toEqual([]);
+  });
+
+  it('indices naming no option of this decision, and repeats, are dropped', () => {
+    expect(arrangeSeed(scry, [2, 99, 2])).toEqual([2]);
+    expect(arrangeSeed(reorder, [0, 99])).toEqual([0, 1, 2, 3, 4]);
   });
 });
 

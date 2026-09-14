@@ -32,8 +32,11 @@ export interface ArrangeSplit {
 /**
  * arrangeSplit derives the two piles from the decision and the picked
  * indices (the SeatPanelState `picked` array, which for a KArrange decision
- * IS the keep pile in order). Pile A is the picked options in picked order;
- * pile B is the rest in offered order. An index in `picked` that names no
+ * IS the keep pile in order). A caller seeding a surface from the seat's
+ * picked array passes it through arrangeSeed first: a pure reorder must open
+ * with EVERY card kept (offered order where the seat has not yet picked).
+ * Pile A is the picked options in picked order; pile B is the rest in
+ * offered order. An index in `picked` that names no
  * option of this decision is ignored, never invented — the split is always
  * built from the wire's own options.
  */
@@ -47,6 +50,36 @@ export function arrangeSplit(d: Decision, picked: readonly number[]): ArrangeSpl
   }
   const pool: Option[] = d.options.filter((o) => byIndex.has(o.index));
   return { keep, pool };
+}
+
+/**
+ * arrangeSeed is the picked set an arrange surface STARTS from, given the
+ * decision and the seat's current picked array (the SeatPanelState `picked`):
+ *
+ *  - a scry/surveil (min < max): the picked prefix as-is — the player's
+ *    inline click-order work, which the popup continues;
+ *  - a PURE REORDER (min == max == len(options), every card must be kept):
+ *    the picked prefix is honoured when non-empty, and the options the seat
+ *    has NOT picked follow in OFFERED order — so a fresh ask opens with every
+ *    card in the keep row in offered order (the reorder surface the ask is),
+ *    and a partial inline pick continues in the modal instead of stranding
+ *    the unpicked cards in a pool the ask does not have.
+ *
+ * Indices naming no option of this decision, and repeats, are dropped — the
+ * seed is always a subset of the wire's own options.
+ */
+export function arrangeSeed(d: Decision, picked: readonly number[]): number[] {
+  const seen = new Set<number>();
+  const valid: number[] = [];
+  for (const i of picked) {
+    if (!seen.has(i) && d.options.some((o) => o.index === i)) {
+      seen.add(i);
+      valid.push(i);
+    }
+  }
+  if (!(d.min === d.max && d.max === d.options.length)) return valid;
+  const rest = d.options.filter((o) => !seen.has(o.index)).map((o) => o.index);
+  return [...valid, ...rest];
 }
 
 /**

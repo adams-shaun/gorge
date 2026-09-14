@@ -1371,6 +1371,13 @@ export class SeatPanelState {
     this.postedSeq = null;
     this.picked = [];
     this.confirming = false;
+    // The arrange popup, when open, belongs to the PREVIOUS ask: a new
+    // decision closes it, so its edit state can never be presented as (or
+    // submitted for) an ask the player has not answered — the two-tab path
+    // where seat's next arrange ask arrives while this one sits open. The
+    // popup's own modal also resets on a seq change (ArrangeModal), so a
+    // future mount site that forgets to close still cannot reuse edits.
+    this.arrangeOpen = false;
     // The identical-trigger auto-order runs at ADOPT, not only in
     // considerAuto: the decision frame can arrive while no view change
     // follows it, and the submit must not depend on the next effect tick.

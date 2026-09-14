@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import type { Decision } from '../protocol';
-  import { arrangeCard, arrangeDestination, arrangeFromOrder, arrangeOrder, arrangeSplit, moveWithin, type ArrangeSplit } from '../lib/arrange';
+  import { arrangeCard, arrangeDestination, arrangeFromOrder, arrangeOrder, arrangeSeed, arrangeSplit, moveWithin, type ArrangeSplit } from '../lib/arrange';
   import CardImage from './CardImage.svelte';
 
   /**
@@ -28,9 +28,13 @@
    * arrangeOrder is that equivalence). The caller owns posting; this
    * component owns only the arrangement.
    *
-   * A pure reorder (Min == Max == N) keeps every card: the pool row is
-   * hidden and a card can only move, never leave. Hovering a face shows it
-   * large beside the rows (the reporter's "mouseover for full card art").
+   * A pure reorder (Min == Max == N) keeps every card: it opens with all
+   * options in the keep row — the seat's picked prefix first, the rest in
+   * offered order (lib/arrange.ts arrangeSeed) — and the pool row is hidden;
+   * a card can only move, never leave (a keep-card's click does not drop on
+   * a pure reorder, because the pool it would drop to does not exist).
+   * Hovering a face shows it large beside the rows (the reporter's
+   * "mouseover for full card art").
    */
   let { open, decision, seed = [], onSubmit, onClose }: {
     open: boolean;
@@ -51,9 +55,37 @@
   let preview = $state<number | null>(null);
   let dragging = $state<number | null>(null);
 
+  /**
+   * The decision sequence the edit state belongs to. The edit state (and the
+   * whole arrangement) belongs to ONE ask: a decision with a different seq
+   * arriving while this modal is mounted — the same seat's next arrange ask,
+   * answered from another tab or resolved while this one sat open — must not
+   * inherit it, or the old ask's ordering would be presented (and could be
+   * submitted) as the new ask's answer. The caller closes the popup across a
+   * decision change (SeatPanelState.adopt); this is the modal's own guard,
+   * so a future mount site that forgets to close still cannot reuse edits.
+   * (Effects do not run on the server; the SSR render has nothing to reset.)
+   */
+  let shownSeq = $state<number | null>(null);
+
+  /** A pure reorder keeps every card — nothing can drop to a pool that does not exist. */
+  const pureReorder = $derived(decision.min === decision.max && decision.max === decision.options.length);
+
+  const startOrder = $derived(arrangeSeed(decision, seed));
+
   const split = $derived.by((): ArrangeSplit => {
     if (edits !== null) return arrangeFromOrder(decision, edits);
-    return open ? arrangeSplit(decision, seed) : { keep: [], pool: [] };
+    return open ? arrangeSplit(decision, startOrder) : { keep: [], pool: [] };
+  });
+
+  $effect(() => {
+    const seq = decision.seq;
+    if (shownSeq !== null && seq !== shownSeq) {
+      edits = null;
+      preview = null;
+      dragging = null;
+    }
+    shownSeq = seq;
   });
 
   $effect(() => {
@@ -92,6 +124,7 @@
   }
 
   function dropToPool(optIndex: number): void {
+    if (pureReorder) return; // nothing can leave a pure reorder's keep pile
     const order = arrangeOrder(split);
     const at = order.indexOf(optIndex);
     if (at < 0) return;
@@ -138,7 +171,7 @@
       <div class="body" data-arrange-body>
         <div class="piles">
           <section class="pile keep">
-            <h3>Top of the library, in this order</h3>
+            <h3>{pureReorder ? 'Top of the library, in this order' : 'Keep, in this order'}</h3>
             <ul class="cards" data-arrange-keep>
               {#each split.keep as o, i (o.obj)}
                 {@const card = arrangeCard(decision, o)}
@@ -386,6 +419,16 @@
   .preview {
     flex: none;
     width: var(--card-w-large, 220px);
+    /* Size-invariant: the aside is as tall as its tallest content (the large
+       card plus its name) whether or not a card is hovered. Without this the
+       dialog is content-sized and centred, so a hover grows it, the rows
+       shift under the stationary cursor, the hover target changes, the
+       preview clears, the dialog shrinks back under the cursor — a hover
+       feedback loop that made the whole modal breathe (observed as an
+       endlessly oscillating layout in the browser gate). A constant box
+       breaks the loop at the only place it can be broken: the resize. */
+    min-height: calc(var(--card-w-large, 220px) * 88 / 63 + 3.5rem);
+    justify-content: center;
     display: flex;
     flex-direction: column;
     align-items: center;

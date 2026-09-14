@@ -1,4 +1,4 @@
-import { chromium } from 'playwright';
+import { chromium, type Page } from 'playwright';
 import { createServer } from 'vite';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -70,9 +70,57 @@ describe('PromptSurface', () => {
 
 
 describe('ArrangeModal (via the seat panel)', () => {
-  it('keeps cards by click, orders them by drag, and posts the picked order', async () => {
+  /** The HTML5 drag event sequence a real drag produces, dispatched on the keep row. */
+  const dragKeepCard = (page: Page, from: number, onto: number) =>
+    page.evaluate(([f, t]) => {
+      const dt = new DataTransfer();
+      const source = document.querySelector(`[data-arrange-keep-card="${f}"]`)!;
+      const target = document.querySelector(`[data-arrange-keep-card="${t}"]`)!;
+      source.dispatchEvent(new DragEvent('dragstart', { dataTransfer: dt, bubbles: true }));
+      target.dispatchEvent(new DragEvent('dragover', { dataTransfer: dt, bubbles: true, cancelable: true }));
+      target.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }));
+      source.dispatchEvent(new DragEvent('dragend', { dataTransfer: dt, bubbles: true }));
+    }, [from, onto] as const);
+
+  it('a pure reorder opens as a reorder surface — every card kept in offered order, drop guarded, drag reorder posted', async () => {
     const page = await browser.newPage();
+
     await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
+
+    await page.locator('[data-arrange-open]').click();
+    const keep = page.locator('[data-arrange-keep]');
+    expect(await keep.isVisible()).toBe(true);
+    // The MINOR fix's initial state, in a real browser: a fresh pure reorder
+    // opens with EVERY card in the keep row, in offered order, and no pool
+    // row — it is a reorder surface from the first paint, not a picking one.
+    expect(await keep.locator('[data-arrange-keep-card]').count()).toBe(5);
+    expect(await page.locator('[data-arrange-pool-card]').count()).toBe(0);
+    expect(await page.locator('[data-arrange-submit]').isDisabled()).toBe(false);
+
+    // The drop guard: on a pure reorder nothing can leave the keep pile (the
+    // pool it would drop to does not exist), so clicking a kept card is a no-op.
+    await keep.locator('[data-arrange-keep-card="2"] button.face').click();
+    expect(await keep.locator('[data-arrange-keep-card]').count()).toBe(5);
+    expect(await page.locator('[data-arrange-submit]').isDisabled()).toBe(false);
+
+    // Drag the keep pile's card 3 onto card 0: the pile reads 3, 0, 1, 2, 4.
+    await dragKeepCard(page, 3, 0);
+    expect(await keep.locator('[data-arrange-keep-card="3"] button.face').getAttribute('aria-label')).toBe('1: Spell Pierce');
+    expect(await keep.locator('[data-arrange-keep-card="0"] button.face').getAttribute('aria-label')).toBe('2: Brazen Borrower');
+
+    await page.locator('[data-arrange-submit]').click();
+    const posted = JSON.parse(await page.evaluate(() => (window as unknown as { __posted?: string }).__posted ?? 'null')) as { seq: number; player: number; choices: number[] };
+    expect(posted.seq).toBe(7);
+    expect(posted.player).toBe(0);
+    expect(posted.choices).toEqual([3, 0, 1, 2, 4]);
+
+    await page.close();
+  });
+
+  it('a scry keeps cards by click from the pool, orders them by drag, and posts the picked order', async () => {
+    const page = await browser.newPage();
+
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=scry`);
 
     await page.locator('[data-arrange-open]').click();
     const keep = page.locator('[data-arrange-keep]');
@@ -90,16 +138,8 @@ describe('ArrangeModal (via the seat panel)', () => {
     expect(await keep.locator('[data-arrange-keep-card="0"] button.face').getAttribute('aria-label')).toBe('2: Brazen Borrower');
 
     // Drag the keep pile's last card (3) onto its first (1): the pile reads
-    // 3, 1, 0. The drag is the HTML5 event sequence a real drag produces.
-    await page.evaluate(() => {
-      const dt = new DataTransfer();
-      const source = document.querySelector('[data-arrange-keep-card="3"]')!;
-      const onto = document.querySelector('[data-arrange-keep-card="1"]')!;
-      source.dispatchEvent(new DragEvent('dragstart', { dataTransfer: dt, bubbles: true }));
-      onto.dispatchEvent(new DragEvent('dragover', { dataTransfer: dt, bubbles: true, cancelable: true }));
-      onto.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }));
-      source.dispatchEvent(new DragEvent('dragend', { dataTransfer: dt, bubbles: true }));
-    });
+    // 3, 1, 0.
+    await dragKeepCard(page, 3, 1);
     expect(await keep.locator('[data-arrange-keep-card="3"] button.face').getAttribute('aria-label')).toBe('1: Spell Pierce');
     expect(await keep.locator('[data-arrange-keep-card="1"] button.face').getAttribute('aria-label')).toBe('2: Fabled Pass');
 
@@ -118,19 +158,60 @@ describe('ArrangeModal (via the seat panel)', () => {
 
   it('the same final keep order posted through the old click-order picker is byte-identical', async () => {
     const page = await browser.newPage();
+
     await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
 
     // The old answer path, kept on the surface: clicking the arrange row's
     // cards in the final order appends each index, building exactly the
     // picked array the popup posts for the same ordering (lib/arrange.ts's
-    // arrangeOrder). 3, 1, 0, 2, 4 again.
-    for (const i of [3, 1, 0, 2, 4]) {
+    // arrangeOrder). 3, 0, 1, 2, 4 — the same ordering the drag test posted.
+    for (const i of [3, 0, 1, 2, 4]) {
       await page.locator(`[data-arrange-row] [data-option="${i}"]`).click();
     }
     await page.locator('[data-submit]').click();
 
     const posted = JSON.parse(await page.evaluate(() => (window as unknown as { __posted?: string }).__posted ?? 'null')) as { seq: number; player: number; choices: number[] };
-    expect(posted.choices).toEqual([3, 1, 0, 2, 4]);
+    expect(posted.choices).toEqual([3, 0, 1, 2, 4]);
+
+    await page.close();
+  });
+
+  it('a new decision while the modal is open closes it; the reopened modal is the NEW ask, never the old ask’s edits (stale-edits regression)', { timeout: 30_000 }, async () => {
+    const page = await browser.newPage();
+
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=seqswap`);
+
+    await page.locator('[data-arrange-open]').click();
+    const keep = page.locator('[data-arrange-keep]');
+    expect(await keep.locator('[data-arrange-keep-card]').count()).toBe(5);
+    // Edit the keep order so the modal's edit state is live for seq 7.
+    await dragKeepCard(page, 3, 0);
+    expect(await keep.locator('[data-arrange-keep-card="3"] button.face').getAttribute('aria-label')).toBe('1: Spell Pierce');
+
+    // The ask changes underneath the open popup — the two-tab path: another
+    // tab answered seq 7 and the seat's next arrange ask (seq 9) arrived.
+    // The swap button sits under the modal's backdrop, so the swap is
+    // dispatched programmatically, exactly as an SSE view replacement would
+    // land.
+    await page.evaluate(() => (document.querySelector('[data-swap-decision]') as HTMLButtonElement).click());
+
+    // The popup belonged to the old ask: it is closed, and the board now
+    // asks decision B. The settle wait covers the paced art lookups (100 ms
+    // apart in lib/images) finishing their layout-affecting resolution.
+    await page.waitForFunction(() => document.querySelectorAll('[data-arrange-modal]').length === 0, null, { timeout: 10_000 });
+    await page.waitForTimeout(1500);
+    expect(await page.locator('[data-answer-surface] [data-prompt]').textContent()).toContain('Rearrange the top 3 card(s)');
+
+    // Reopening is the NEW ask, fresh: three decision-B cards in offered
+    // order — none of decision A's edits — and the posted intent is B's.
+    await page.locator('[data-arrange-open]').click({ timeout: 10_000 });
+    expect(await page.locator('[data-arrange-keep-card]').count()).toBe(3);
+    expect(await page.locator('[data-arrange-keep-card="0"] button.face').getAttribute('aria-label')).toBe('1: Absorb Vis');
+    expect(await page.locator('[data-arrange-keep-card="2"] button.face').getAttribute('aria-label')).toBe('3: Counterspell');
+    await page.locator('[data-arrange-submit]').click({ timeout: 10_000 });
+    const posted = JSON.parse(await page.evaluate(() => (window as unknown as { __posted?: string }).__posted ?? 'null')) as { seq: number; choices: number[] };
+    expect(posted.seq).toBe(9);
+    expect(posted.choices).toEqual([0, 1, 2]);
 
     await page.close();
   });
