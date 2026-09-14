@@ -86,10 +86,10 @@ func newFeedbackStore(dir string, reg *host.Registry) (*feedbackStore, error) {
 
 // report is the JSON written beside any screenshot. Received is the server's
 // own clock, not the client's: a timestamp a submitter controls is not a
-// timestamp. Snapshot is empty when the report named no table; otherwise it
-// says what the capture produced — "captured" with the files written, or
-// "unavailable: <reason>" / "partial: <reason>" when some or all of it
-// could not be.
+// timestamp. Snapshot says what the capture produced — "captured" with the
+// files written, or "unavailable: <reason>" / "partial: <reason>" when some
+// or all of it could not be. A report that names no table records that fact
+// as unavailable rather than silently omitting the snapshot status.
 type report struct {
 	Received   string `json:"received"`
 	Text       string `json:"text"`
@@ -209,15 +209,15 @@ func (fs *feedbackStore) writePNG(dir string, src io.Reader) (string, error) {
 // log.json and view.json beside it, and returns the status string for
 // report.json's snapshot field. Every failure mode degrades to a reason
 // recorded in that field — the report itself is never lost to a snapshot
-// problem — and a report that names no table at all snapshots nothing
-// (empty status, the field omitted).
+// problem — and a report that names no table at all records why no snapshot
+// was attempted.
 func (fs *feedbackStore) captureSnapshot(dir, reportURL, tableField, seatField string) (status string) {
 	tableID := tableField
 	if tableID == "" {
 		tableID = tableIDFromURL(reportURL)
 	}
 	if tableID == "" {
-		return "" // not a table report: nothing to snapshot
+		return "unavailable: no table named"
 	}
 	if fs.reg == nil {
 		return "unavailable: server has no table registry"

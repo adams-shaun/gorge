@@ -391,22 +391,27 @@ func TestFeedbackUnknownTableStillStoresTheReport(t *testing.T) {
 		}
 	}
 
-	// A report naming no table at all snapshots nothing and says nothing.
-	rec = postFeedback(t, fs, "the lobby looks odd", "http://localhost:8080/", nil)
+	// A report with neither a URL nor an explicit table still records why
+	// there is no snapshot; an omitted status would recreate the ambiguity
+	// this field exists to remove.
+	rec = postFeedback(t, fs, "the lobby looks odd", "", nil)
 	if rec.Code != 201 {
 		t.Fatalf("no table: status = %d (body %q)", rec.Code, rec.Body.String())
 	}
+	foundNoTable := false
 	for _, d := range storedReports(t, fs) {
 		rep := readReport(t, d)
 		if rep.Text != "the lobby looks odd" {
 			continue
 		}
-		if got := rep.Snapshot; got != "" {
-			t.Fatalf("no-table report snapshot status %q, want empty", got)
+		foundNoTable = true
+		if got := rep.Snapshot; got != "unavailable: no table named" {
+			t.Fatalf("no-table report snapshot status %q, want %q", got, "unavailable: no table named")
 		}
-		return
 	}
-	t.Fatal("the no-table report was not stored")
+	if !foundNoTable {
+		t.Fatal("the no-table report was not stored")
+	}
 
 	// An unparseable seat is a reason, not a 400. Report directories are
 	// timestamped-and-randomised, so find the one by its text, not its
