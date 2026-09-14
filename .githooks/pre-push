@@ -1,5 +1,6 @@
 #!/bin/sh
-# 1. Refuse to push any commit whose message carries an AI-attribution trailer.
+# 1. Refuse to push any commit whose message carries an AI-attribution trailer
+#    or an issue-tracker reference (spelled [j]ira so this hook never matches itself).
 # 2. When main is pushed, run the race detector once (FL-56): nobody else runs -race.
 zero=0000000000000000000000000000000000000000
 push_main=0
@@ -12,13 +13,13 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 	# whatever origin already has.
 	if [ "$remote_sha" = "$zero" ]; then
 		bad=$(git log --format='%h %s%n%b' "$local_sha" --not --remotes=origin |
-			grep -Ei '^Co-Authored-By:|Generated with .*Claude' | head -3)
+			grep -Ei '^Co-Authored-By:|Generated with .*Claude|^Ref:|[j]ira' | head -3)
 	else
 		bad=$(git log --format='%h %s%n%b' "$remote_sha..$local_sha" |
-			grep -Ei '^Co-Authored-By:|Generated with .*Claude' | head -3)
+			grep -Ei '^Co-Authored-By:|Generated with .*Claude|^Ref:|[j]ira' | head -3)
 	fi
 	if [ -n "$bad" ]; then
-		echo "pre-push: refusing $local_ref — attribution trailer in pushed commits:" >&2
+		echo "pre-push: refusing $local_ref — attribution trailer or issue-tracker reference in pushed commits:" >&2
 		echo "$bad" >&2
 		echo "amend/rebase the offending commit(s), then push again" >&2
 		exit 1

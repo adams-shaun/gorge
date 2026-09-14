@@ -1,4 +1,13 @@
 #!/bin/sh
+# Staged content may not reference the issue tracker (spelled [j]ira so this
+# hook never matches itself). Runs before the SKIP_TESTTIME bypass below.
+bad=$(git diff --cached -U0 --no-color | grep -E '^\+' | grep -v '^+++ ' | grep -Ei '[j]ira' | head -3)
+if [ -n "$bad" ]; then
+	echo "pre-commit: staged lines reference the issue tracker; gorge carries no such references:" >&2
+	echo "$bad" >&2
+	exit 1
+fi
+
 # Enforce per-package test-time budgets (Task TT). Runs `go run ./cmd/testtime
 # -changed` when the index contains a staged .go file, then stages every
 # TEST_HISTORY.md the tool touched. SKIP_TESTTIME=1 bypasses entirely.
