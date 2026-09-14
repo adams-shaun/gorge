@@ -94,27 +94,25 @@ func run(args []string, stdout, stderr io.Writer) int {
 		n = *at
 	}
 
-	if *list {
-		// A timeline is evidence about a recording, so verify the complete
-		// recording before presenting any of it. Driving a second engine below
-		// is only for the per-intent labels; this full pass is what compares
-		// every generated event and the final recorded head.
-		if _, err := replayCapture(l, cfg, meta); err != nil {
-			printDivergence(stdout, err)
-			return 1
-		}
-		return listIntents(l, cfg, stdout, stderr)
-	}
-
-	var e *rules.Engine
-	if *at < 0 {
-		e, err = replayCapture(l, cfg, meta)
-	} else {
-		e, err = replay.ReplayTo(l, cfg, n)
-	}
+	// Every rendered point is evidence about the complete recording. Verify
+	// every generated event and the final recorded head before presenting a
+	// timeline or an -at prefix; ReplayTo alone can prove only that prefix.
+	full, err := replayCapture(l, cfg, meta)
 	if err != nil {
 		printDivergence(stdout, err)
 		return 1
+	}
+	if *list {
+		return listIntents(l, cfg, stdout, stderr)
+	}
+
+	e := full
+	if *at >= 0 {
+		e, err = replay.ReplayTo(l, cfg, n)
+		if err != nil {
+			printDivergence(stdout, err)
+			return 1
+		}
 	}
 
 	printSummary(e, l, n, meta, *omniscient, stdout)

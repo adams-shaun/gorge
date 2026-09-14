@@ -185,6 +185,25 @@ func TestReproFixtureAtReplaysToIntent(t *testing.T) {
 	}
 }
 
+// TestReproFixtureAtRejectsTamperedCapture pins -at to the complete-capture
+// validation boundary. A valid prefix is not enough: a forged final head may
+// not be rendered as a verified reproduction.
+func TestReproFixtureAtRejectsTamperedCapture(t *testing.T) {
+	requireCorpus(t)
+	dir := tamperFixture(t, func(lg map[string]any) {
+		lg["head"] = "deadbeefdeadbeef"
+	})
+	var out bytes.Buffer
+	if code := run([]string{"-at", "0", dir}, &out, io.Discard); code == 0 {
+		t.Fatalf("-at accepted a corrupt full capture:\n%s", out.String())
+	}
+	for _, want := range []string{"DIVERGED", "log.json head"} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("output missing %q:\n%s", want, out.String())
+		}
+	}
+}
+
 // TestReproFixtureAtRejectsOutOfRange refuses a requested point rather than
 // relying on ReplayTo's library-level clamping and then labelling the clamped
 // capture with the unchecked request.

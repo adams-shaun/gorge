@@ -183,6 +183,25 @@ func fixtureTimestamp() string {
 	return t.UTC().Format(time.RFC3339)
 }
 
+// committedFixtureDir is the only destination used by the opt-in fixture
+// generator. fixtureRel is relative to this package's test cwd, while root is
+// the repository root, so the package path must be explicit here.
+func committedFixtureDir(root string) string {
+	return filepath.Join(root, "cmd", "repro", filepath.FromSlash(fixtureRel))
+}
+
+// TestCommittedFixtureDir pins the generator's destination to the fixture the
+// package tests and AGENTS.md document, rather than a similarly named root-level
+// testdata tree.
+func TestCommittedFixtureDir(t *testing.T) {
+	root := filepath.Join(string(filepath.Separator), "repo")
+	got := committedFixtureDir(root)
+	want := filepath.Join(root, "cmd", "repro", "testdata", "feedback", fixtureID)
+	if got != want {
+		t.Fatalf("committedFixtureDir(%q) = %q, want %q", root, got, want)
+	}
+}
+
 // TestGenerateCommittedFixture regenerates the fixture. Skipped unless
 // REPRO_REGEN_FIXTURE=1; run it, then commit the files it wrote.
 func TestGenerateCommittedFixture(t *testing.T) {
@@ -216,7 +235,7 @@ func TestGenerateCommittedFixture(t *testing.T) {
 	if got := e.L.Head(); got != meta.Head {
 		t.Fatalf("replayed head %q, recorded %q", got, meta.Head)
 	}
-	dst := filepath.Join(root, "testdata", "feedback", fixtureID)
+	dst := committedFixtureDir(root)
 	if err := os.MkdirAll(dst, 0o755); err != nil {
 		t.Fatal(err)
 	}
