@@ -144,16 +144,17 @@ type feedbackLog struct {
 // feedbackMatchJSON unmarshals match.json the way a repro tool would: the
 // sidecar's config plus the deck contents and the token scripts.
 type feedbackMatchJSON struct {
-	Table       string            `json:"table"`
-	Match       int               `json:"match"`
-	Seed        uint64            `json:"seed"`
-	Names       []string          `json:"names"`
-	PlayerNames []string          `json:"player_names"`
-	Decks       []string          `json:"decks"`
-	DeckCards   [][]string        `json:"deck_cards"`
-	Tokens      map[string]string `json:"tokens"`
-	Mulligans   int               `json:"mulligans"`
-	Format      string            `json:"format"`
+	Table        string            `json:"table"`
+	Match        int               `json:"match"`
+	Seed         uint64            `json:"seed"`
+	Names        []string          `json:"names"`
+	PlayerNames  []string          `json:"player_names"`
+	Decks        []string          `json:"decks"`
+	DeckCards    [][]string        `json:"deck_cards"`
+	Tokens       map[string]string `json:"tokens"`
+	TokensUnread []string          `json:"tokens_unread"`
+	Mulligans    int               `json:"mulligans"`
+	Format       string            `json:"format"`
 }
 
 // rebuildConfig is the reproduction path a report consumer takes: a
@@ -741,6 +742,52 @@ func TestFeedbackReplaysAMatchThatCreatesTokens(t *testing.T) {
 		t.Fatal("replay without the recorded tokens reproduced the log — the token capture is not load-bearing")
 	} else {
 		t.Logf("replay without tokens, as expected: %v", err)
+	}
+
+	// A match keeps the compiled token after startup, so deleting the script
+	// does not stop live play. It does make a later snapshot non-replayable if
+	// this already-recorded TokenCreate is reached. The files and report must
+	// still be retained, but report.json must say partial — never captured.
+	if err := os.Remove(tok.Path); err != nil {
+		t.Fatalf("remove live token's source script: %v", err)
+	}
+	unreadStore, err := newFeedbackStore(filepath.Join(t.TempDir(), "feedback"), r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec = postFeedbackSeat(t, unreadStore, "token source disappeared", "http://localhost:8080/t/tok", "0")
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("unread token: status = %d (body %q)", rec.Code, rec.Body.String())
+	}
+	unreadDirs := storedReports(t, unreadStore)
+	if len(unreadDirs) != 1 {
+		t.Fatalf("unread token: stored %d reports", len(unreadDirs))
+	}
+	status := readReport(t, unreadDirs[0]).Snapshot
+	if !strings.HasPrefix(status, "partial: token scripts unavailable: r_1_1_goblin:") {
+		t.Fatalf("unread token snapshot status %q, want partial with the unread-token reason", status)
+	}
+	unreadMatchRaw, unreadLogRaw, _ := feedbackSnapshotFiles(t, unreadDirs[0])
+	var unreadMatch feedbackMatchJSON
+	if err := json.Unmarshal(unreadMatchRaw, &unreadMatch); err != nil {
+		t.Fatal(err)
+	}
+	if len(unreadMatch.TokensUnread) != 1 || !strings.HasPrefix(unreadMatch.TokensUnread[0], "r_1_1_goblin:") {
+		t.Fatalf("tokens_unread = %q, want the missing live token", unreadMatch.TokensUnread)
+	}
+	var unreadLog feedbackLog
+	if err := json.Unmarshal(unreadLogRaw, &unreadLog); err != nil {
+		t.Fatal(err)
+	}
+	created := false
+	for _, ev := range unreadLog.Events {
+		if ev.Kind == events.TokenCreate && ev.Text == "r_1_1_goblin" {
+			created = true
+			break
+		}
+	}
+	if !created {
+		t.Fatal("partial snapshot's log has no r_1_1_goblin TokenCreate — unread script was not replay-critical")
 	}
 }
 

@@ -276,8 +276,21 @@ func (fs *feedbackStore) captureSnapshot(dir, reportURL, tableField, seatField s
 		}
 		captured = append(captured, f.name)
 	}
+	// A file landing is not by itself proof that the snapshot is replayable.
+	// In particular, a live match can retain a compiled token after its source
+	// script has disappeared; match.json then records tokens_unread, and a
+	// replay that reaches that token will diverge. Collect every semantic
+	// shortfall here so no new partial snapshot can accidentally be labelled
+	// captured merely because all of its files were written.
+	var partial []string
+	if len(snap.Match.TokensUnread) != 0 {
+		partial = append(partial, "token scripts unavailable: "+strings.Join(snap.Match.TokensUnread, "; "))
+	}
 	if snap.View == nil && snap.ViewErr != "" {
-		return fmt.Sprintf("partial: view unavailable: %s (captured: %s)", snap.ViewErr, strings.Join(captured, " "))
+		partial = append(partial, "view unavailable: "+snap.ViewErr)
+	}
+	if len(partial) != 0 {
+		return fmt.Sprintf("partial: %s (captured: %s)", strings.Join(partial, "; "), strings.Join(captured, " "))
 	}
 	return "captured: " + strings.Join(captured, " ")
 }
