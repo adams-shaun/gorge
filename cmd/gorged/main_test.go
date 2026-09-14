@@ -22,6 +22,7 @@ import (
 )
 
 func TestServesTablesOverHTTP(t *testing.T) {
+	t.Parallel()
 	testutil.CorpusRegistry(t) // Skips when .cards/ is absent
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -328,6 +329,7 @@ func expectStatus(t *testing.T, url, path string, want int) protocol.ErrorBody {
 // forces t1 single-shot anyway, pace 0 so the wait is about the wire, and a
 // fixed -seat-token so the test holds a seat without scraping stderr.
 func TestHumanSeatTakesADecisionEndToEnd(t *testing.T) {
+	t.Parallel()
 	url, cancel, done := startServe(t, config{tables: 1, seats: 2, humansRaw: "0", pace: 0, perpetual: true, seatToken: "tok"})
 	defer cancel()
 	waitTables(t, url, 1)
@@ -401,6 +403,7 @@ func TestHumanSeatTakesADecisionEndToEnd(t *testing.T) {
 // decision a real player meets. Answering "keep" must move the match past
 // the round.
 func TestTheHumanSeatIsAskedToMulligan(t *testing.T) {
+	t.Parallel()
 	url, cancel, done := startServe(t, config{tables: 1, seats: 2, humansRaw: "0", pace: 0, perpetual: true, seatToken: "tok", mulligans: 1})
 	defer cancel()
 	waitTables(t, url, 1)
@@ -584,7 +587,16 @@ func TestAHumanPlaysAMatchToCompletion(t *testing.T) {
 // TestHumanSeatRefusesTheOtherSeat: a token minted for seat 0 is refused
 // when the request names seat 1 — the claim≠requested comparison of M2e-2,
 // and the whole reason the resolver cannot be a rubber stamp (R-E3-3).
+//
+// The startServe-based tests in this file are fully independent — own
+// listener on a random port, own tempdirs, no package-global mutated (the
+// newServeArtCache seam is only ever swapped by the sequential prewarm
+// test) — so the eight of them that drive a served server directly run in
+// parallel. That is not decoration: the package's wall-time budget
+// (TEST_HISTORY.md, budget_s) was already at zero headroom before the
+// serve-level prewarm test was added, and serializing these buys nothing.
 func TestHumanSeatRefusesTheOtherSeat(t *testing.T) {
+	t.Parallel()
 	url, cancel, done := startServe(t, config{tables: 1, seats: 2, humansRaw: "0", pace: 0, seatToken: "tok"})
 	defer cancel()
 	waitTables(t, url, 1)
@@ -608,6 +620,7 @@ func TestHumanSeatRefusesTheOtherSeat(t *testing.T) {
 // TestHumanSeatRefusesAMissingToken: ?seat=0 with no token is a 401 — the
 // resolver declines, and claimSeat refuses like an Authorize failure.
 func TestHumanSeatRefusesAMissingToken(t *testing.T) {
+	t.Parallel()
 	url, cancel, done := startServe(t, config{tables: 1, seats: 2, humansRaw: "0", pace: 0, seatToken: "tok"})
 	defer cancel()
 	waitTables(t, url, 1)
@@ -625,6 +638,7 @@ func TestHumanSeatRefusesAMissingToken(t *testing.T) {
 // TestHumanSeatRefusesAnUnknownToken: a token nobody was minted is a 401 —
 // unknown tokens are refused exactly like absent ones (R-E3-3).
 func TestHumanSeatRefusesAnUnknownToken(t *testing.T) {
+	t.Parallel()
 	url, cancel, done := startServe(t, config{tables: 1, seats: 2, humansRaw: "0", pace: 0, seatToken: "tok"})
 	defer cancel()
 	waitTables(t, url, 1)
@@ -665,6 +679,7 @@ func TestBotTablesStayPerpetualBesideAHumanTable(t *testing.T) {
 // byte-identically to before the flag existed: a request naming a seat is
 // refused 403, spectator-only, because Options.Seat stays nil.
 func TestNoHumansIsSpectatorOnly(t *testing.T) {
+	t.Parallel()
 	url, cancel, done := startServe(t, config{tables: 1, seats: 2, pace: 0, perpetual: true})
 	defer cancel()
 	waitTables(t, url, 1)
@@ -780,6 +795,7 @@ func commanderView(t *testing.T, url, seqs string) view.View {
 // (the repoCommanderGames row that casts Sai), so a cast is guaranteed by
 // the same evidence the engine milestone was gated on, not hoped for.
 func TestCommanderTableServesACommanderGameEndToEnd(t *testing.T) {
+	t.Parallel()
 	url, cancel, done := startServe(t, config{tables: 1, seats: 2, pace: 0, perpetual: false,
 		formatsRaw: "commander", seed: 12833769953399007376})
 	defer cancel()

@@ -31,6 +31,27 @@ OMNI_PORT=${OMNI_PORT:-8081}
 PUB_DIR=${PUB_DIR:-/tmp/gorge-demo-pub}
 OMNI_DIR=${OMNI_DIR:-/tmp/gorge-demo-omni}
 
+# Durable card-art cache, OUTSIDE the wiped persistence dirs (task
+# fb-20260914T113850Z-682e875e). The `rm -rf` inside start_one stays: a stale
+# persistence config resuming with zero-valued fields is a correctness hazard
+# (ledger finding cp). The art cache has no such hazard — every cache key is
+# hashed under artKeyVersion (cmd/gorged/art.go), so a change in what a fetch
+# writes rotates every key at once and stale bytes can never come back
+# semantically wrong — which is why the wipe's rationale does NOT extend to
+# the art cache, and why it must not be re-added: wiping it used to destroy
+# the whole deck pool's art on every merge and leave browsers showing missing
+# art for minutes while the cache refilled one paced Scryfall request at a
+# time (gorged's startup prewarm refills it from the deck files instead).
+# /mnt/sata is the reporter's suggested durable home; it is rw in the
+# controller/deploy mount namespace (the server's /proc/<pid>/mounts shows it
+# rw) even though an agent worktree jail binds it ro. Both servers share the
+# one dir, so each name is fetched from Scryfall once per deploy, not once
+# per server (single-flight is per-process, so a first-fetch race between the
+# two servers can still fetch a cold name twice — harmless: image and facts
+# writers use process-unique staging files and publish only complete artifacts
+# with atomic renames).
+ART_DIR=${ART_DIR:-/mnt/sata/gorge-data/art}
+
 say() { printf 'deploy-demo: %s\n' "$*"; }
 
 # SWEEP=ports (default) stops only the gorged serving the two demo ports.
@@ -125,6 +146,7 @@ start_one() {
 		-pace "$PACE" \
 		-format "$FORMATS" \
 		-seed "$SEED" \
+		-art-dir "$ART_DIR" \
 		-vsbot \
 		>"$log" 2>&1 </dev/null 9>&- &
 	say "started $spectator on 127.0.0.1:$port (log $log)"

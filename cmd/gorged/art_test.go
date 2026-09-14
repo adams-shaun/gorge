@@ -1,17 +1,21 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 // artFixture builds an httptest server standing in for Scryfall, serving
@@ -171,6 +175,151 @@ func TestArtCacheConcurrentRequestsJoinOneFetch(t *testing.T) {
 	}
 	if got := hits.Load(); got != 1 {
 		t.Fatalf("8 concurrent requests for the same never-seen name should join one fetch, got %d Scryfall hits", got)
+	}
+}
+
+// roundTripFunc and downloadReadBarrier let the cross-process regression
+// below hold both image copies inside io.Copy. At that point download has
+// already opened its staging file, which makes a reused deterministic temp
+// pathname fail reliably rather than depending on scheduler timing.
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+type downloadReadBarrier struct {
+	mu      sync.Mutex
+	arrived int
+	release chan struct{}
+}
+
+func (b *downloadReadBarrier) wait(ctx context.Context) error {
+	b.mu.Lock()
+	b.arrived++
+	if b.arrived == 2 {
+		close(b.release)
+	}
+	release := b.release
+	b.mu.Unlock()
+	select {
+	case <-release:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+type barrierBody struct {
+	ctx     context.Context
+	barrier *downloadReadBarrier
+	body    *strings.Reader
+	entered bool
+}
+
+func (b *barrierBody) Read(p []byte) (int, error) {
+	if !b.entered {
+		b.entered = true
+		if err := b.barrier.wait(b.ctx); err != nil {
+			return 0, err
+		}
+	}
+	return b.body.Read(p)
+}
+
+func (*barrierBody) Close() error { return nil }
+
+// TestArtCachesSharingADirectoryPublishAtomically is the deploy topology:
+// public and omniscient are separate processes, so their per-process
+// inflight maps cannot join first fetches, but both point at one ART_DIR.
+// Both writers must succeed, and a reader must see only complete immutable
+// image and facts artifacts. Unique staging files are load-bearing: fixed
+// <key>.jpg.tmp / <key>.json.tmp names race at rename and can expose the
+// inode one process is still writing.
+func TestArtCachesSharingADirectoryPublishAtomically(t *testing.T) {
+	dir := t.TempDir()
+	caches := make([]*artCache, 2)
+	for i := range caches {
+		var err error
+		caches[i], err = newArtCache(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		caches[i].pace = 0
+	}
+
+	const name = "Shared Card"
+	const namedJSON = `{"name":"Shared Card","mana_cost":"{G}","type_line":"Creature — Test","oracle_text":"Complete facts.","power":"2","toughness":"3","image_uris":{"normal":"https://fixture.invalid/image.jpg"}}`
+	image := strings.Repeat("complete-image-bytes-", 16*1024)
+	barrier := &downloadReadBarrier{release: make(chan struct{})}
+	var namedHits, imageHits atomic.Int32
+	client := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		switch r.URL.Path {
+		case "/cards/named":
+			namedHits.Add(1)
+			return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(namedJSON))}, nil
+		case "/image.jpg":
+			imageHits.Add(1)
+			return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: &barrierBody{
+				ctx: r.Context(), barrier: barrier, body: strings.NewReader(image),
+			}}, nil
+		default:
+			return &http.Response{StatusCode: http.StatusNotFound, Header: make(http.Header), Body: http.NoBody}, nil
+		}
+	})}
+	for _, ac := range caches {
+		ac.client = client
+		ac.namedBaseURL = "https://fixture.invalid/cards/named?exact="
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	type result struct {
+		hit bool
+		err error
+	}
+	results := make(chan result, len(caches))
+	key := artKey(name)
+	for _, ac := range caches {
+		go func(ac *artCache) {
+			hit, err := ac.ensure(ctx, key, name)
+			results <- result{hit: hit, err: err}
+		}(ac)
+	}
+	for range caches {
+		got := <-results
+		if got.err != nil || !got.hit {
+			t.Errorf("shared-directory ensure = (%v, %v), want (true, nil)", got.hit, got.err)
+		}
+	}
+	if got := namedHits.Load(); got != 2 {
+		t.Errorf("named lookups = %d, want 2 independent process fetches", got)
+	}
+	if got := imageHits.Load(); got != 2 {
+		t.Errorf("image downloads = %d, want 2 independent process fetches", got)
+	}
+
+	gotImage, err := os.ReadFile(caches[0].jpgPath(key))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(gotImage) != image {
+		t.Fatalf("published image is incomplete: got %d bytes, want %d", len(gotImage), len(image))
+	}
+	gotFacts, err := os.ReadFile(caches[0].factsPath(key))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var facts cardFacts
+	if err := json.Unmarshal(gotFacts, &facts); err != nil {
+		t.Fatalf("published facts are incomplete: %v (bytes %q)", err, gotFacts)
+	}
+	wantFacts := cardFacts{Name: name, ManaCost: "{G}", TypeLine: "Creature — Test", OracleText: "Complete facts.", Power: "2", Toughness: "3"}
+	if facts != wantFacts {
+		t.Errorf("published facts = %+v, want %+v", facts, wantFacts)
+	}
+	if temps, err := filepath.Glob(filepath.Join(dir, ".*.tmp")); err != nil {
+		t.Fatal(err)
+	} else if len(temps) != 0 {
+		t.Errorf("staging files left behind: %v", temps)
 	}
 }
 
