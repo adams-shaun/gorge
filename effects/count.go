@@ -69,6 +69,16 @@ func EvalCount(h Host, c *Ctx, expr string) int32 {
 	if body, ok := strings.CutPrefix(expr, "Sacrificed$"); ok {
 		return evalSacrificed(c, strings.TrimSpace(body))
 	}
+	// A Remembered$... expression answers a question about the objects this
+	// resolving spell/ability has remembered so far (Ctx.Remembered): the one
+	// head this build models is Amount -- the number of remembered objects,
+	// which is Swift Silence's "Draw a card for each spell countered this
+	// way" (SVar:X:Remembered$Amount after effCounter's RememberCountered$
+	// True appended every countered spell). The /Op suffix is applied the
+	// same way Count$ applies it. An unmodelled head degrades to zero.
+	if body, ok := strings.CutPrefix(expr, "Remembered$"); ok {
+		return evalRemembered(c, strings.TrimSpace(body))
+	}
 	// A TriggerCount$... expression answers a question about the event that
 	// fired the trigger currently resolving -- "how much damage did that event
 	// deal" (TriggerCount$DamageAmount), "how much life did it gain/lose"
@@ -171,6 +181,23 @@ func sacrificedNumeric(c *Ctx, f func(state.SacrificedInfo) int32) int32 {
 	var n int32
 	for _, s := range c.Sacrificed {
 		n += f(s)
+	}
+	return n
+}
+
+func evalRemembered(c *Ctx, body string) int32 {
+	body, op, hasOp := strings.Cut(body, "/")
+	var n int32
+	switch strings.TrimSpace(body) {
+	case "Amount":
+		n = int32(len(c.Remembered))
+	default:
+		// An out-of-scope head degrades to zero, the same conservative
+		// no-op evalSacrificed's default takes.
+		return 0
+	}
+	if hasOp {
+		n = applyCountOp(n, op)
 	}
 	return n
 }
