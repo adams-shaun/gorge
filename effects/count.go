@@ -125,6 +125,20 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 	if body, ok := strings.CutPrefix(expr, "TriggerCount$"); ok {
 		return evalTriggerCount(c, strings.TrimSpace(body))
 	}
+	// A SVar$<name>[/Op] indirection resolves another SVar on the same face
+	// and applies the suffix (Herald of War-adjacent shapes:
+	// SVar:Z:SVar$Y/Times.2 chains two reductions' amounts).
+	if rest, ok := strings.CutPrefix(expr, "SVar$"); ok {
+		name, op, hasOp := strings.Cut(rest, "/")
+		var n int32
+		if body, ok2 := c.SVars[strings.TrimSpace(name)]; ok2 {
+			n = evalCountExpr(h, c, body, depth+1)
+		}
+		if hasOp {
+			n = applyCountOp(n, op)
+		}
+		return n
+	}
 	body, ok := strings.CutPrefix(expr, "Count$")
 	if !ok {
 		if n, err := strconv.Atoi(expr); err == nil {
