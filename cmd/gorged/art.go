@@ -50,6 +50,13 @@ type artCache struct {
 	// production; tests point it at an httptest server instead so this
 	// package's tests never touch the real network.
 	namedBaseURL string
+	// pace is the pause held under sem after each outbound fetch pair — the
+	// 100ms Scryfall courtesy in production. It is a field, not a constant,
+	// for the same reason namedBaseURL is: a test seam, so a package whose
+	// budget is measured in whole seconds can exercise the prewarm without
+	// paying the real-world pacing (never the other way round — production
+	// keeps the 100ms).
+	pace time.Duration
 
 	mu       sync.Mutex
 	inflight map[string]chan struct{} // key -> closed when that key's fetch finishes
@@ -69,6 +76,7 @@ func newArtCache(dir string) (*artCache, error) {
 		client:       &http.Client{Timeout: 15 * time.Second},
 		sem:          make(chan struct{}, 1),
 		namedBaseURL: scryfallNamedURL,
+		pace:         100 * time.Millisecond,
 		inflight:     map[string]chan struct{}{},
 	}, nil
 }
@@ -405,7 +413,7 @@ func (a *artCache) fetch(ctx context.Context, key, name string) (bool, error) {
 		return false, ctx.Err()
 	}
 	defer func() {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(a.pace)
 		<-a.sem
 	}()
 
@@ -442,7 +450,7 @@ func (a *artCache) fetchFacts(ctx context.Context, key, name string) (bool, erro
 		return false, ctx.Err()
 	}
 	defer func() {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(a.pace)
 		<-a.sem
 	}()
 	card, known, err := a.lookupNamed(ctx, name)
@@ -539,4 +547,50 @@ func (a *artCache) writeFacts(key string, facts cardFacts) error {
 		return err
 	}
 	return os.Rename(tmp, a.factsPath(key))
+}
+
+// prewarmArt fills the cache for every distinct card name (plus each
+// commander) referenced by the deck files in dir, in sorted order, walking
+// the names a dealt table's browser can ask for rather than the whole
+// corpus (deckCardNames). It runs in a background goroutine started by
+// serve — a deploy that wipes the persistence dir used to destroy the art
+// cache with it and leave every viewer staring at missing art for minutes
+// while browsers refilled it one paced request at a time; a warm cache at
+// startup closes that window. Never blocks or fails serving: every error is
+// logged through logf and left to self-heal — a network failure writes no
+// .miss (only a genuine Scryfall 404 does), so the next browser request for
+// that name retries the fetch.
+//
+// ensure/ensureText are load-bearing here: both are single-flight (joined by
+// any concurrent browser request for the same name, so prewarm and a browser
+// share one Scryfall round trip) and disk-checked (a name already on disk
+// costs nothing). ensure covers the image; the follow-up ensureText
+// backfills the facts sidecar for a name whose image was cached before
+// sidecars were kept. ctx is serve()'s own, so shutdown cancels an in-flight
+// prewarm cleanly.
+func prewarmArt(ctx context.Context, ac *artCache, dir string, logf func(string, ...any)) {
+	names, err := deckCardNames(dir)
+	if err != nil {
+		logf("art prewarm: reading decks in %s: %v", dir, err)
+		return
+	}
+	if len(names) == 0 {
+		return
+	}
+	logf("art prewarm: %d distinct card names from %s", len(names), dir)
+	for _, name := range names {
+		key := artKey(name)
+		ok, err := ac.ensure(ctx, key, name)
+		if err != nil {
+			logf("art prewarm %q: %v", name, err)
+			continue
+		}
+		if !ok {
+			continue // a genuine Scryfall 404 recorded a .miss; nothing to backfill
+		}
+		if _, err := ac.ensureText(ctx, key, name); err != nil {
+			logf("art prewarm facts %q: %v", name, err)
+		}
+	}
+	logf("art prewarm: done (%d names)", len(names))
 }

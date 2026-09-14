@@ -73,6 +73,24 @@ type config struct {
 	// filed against a bug was destroyed by the deploy that shipped its fix.
 	// A report is the one artifact here that cannot be regenerated.
 	feedback string
+	// artDir is the -art-dir flag: where the card-art cache (art.go) lives.
+	// Empty keeps the historical <dir>/art so every existing deployment, test
+	// and local run is byte-for-byte unchanged; a durable path — deploy-demo.sh
+	// passes /mnt/sata/gorge-data/art — survives the persistence dir's
+	// deploy-time wipe. A stale durable cache can never come back semantically
+	// wrong: every key is hashed under artKeyVersion (art.go), so a change in
+	// what a fetch writes rotates every key at once and the old bytes are
+	// simply never requested again. That is why the wipe's rationale does NOT
+	// extend to the art cache.
+	artDir string
+	// prewarm arms serve's background art-cache prewarm (art.go prewarmArt).
+	// The zero value is OFF — the same convention vsbot and feedback follow, so
+	// a config built in a test (or any caller that does not go through main)
+	// never fires a single outbound request — and main() sets it true after
+	// flag.Parse so the real binary always prewarms. A test that wants the
+	// wiring exercised sets it true itself and points the cache's
+	// namedBaseURL at its own fixture first.
+	prewarm bool
 }
 
 func main() {
@@ -86,6 +104,7 @@ func main() {
 	flag.DurationVar(&c.cooldown, "cooldown", 5*time.Second, "pause between matches on a perpetual table")
 	flag.StringVar(&c.dir, "dir", "gorged-data", "persistence directory")
 	flag.StringVar(&c.feedback, "feedback", "feedback", "directory player bug reports are written to (kept OUT of -dir, which deploys wipe)")
+	flag.StringVar(&c.artDir, "art-dir", "", "durable card-art cache directory (default <dir>/art, which deploy scripts wipe with the persistence dir)")
 	flag.StringVar(&c.spectator, "spectator", "omniscient", "spectator visibility: public or omniscient")
 	flag.Uint64Var(&c.seed, "seed", 1, "seed of table 1; table i uses seed+i-1")
 	flag.BoolVar(&c.perpetual, "perpetual", true, "start a new match when one ends")
@@ -95,6 +114,11 @@ func main() {
 	flag.StringVar(&c.seatToken, "seat-token", "", "fixed bearer token for the first human slot (tests and local use only; default mints a random token per slot)")
 	flag.BoolVar(&c.vsbot, "vsbot", false, "arm the on-demand play-vs-bot flow (landing page seats a human against a bot via POST /api/games)")
 	flag.Parse()
+	// The real binary always prewarms (config.prewarm's doc comment): the
+	// background goroutine fills the art cache for every deck card at startup
+	// so a fresh deploy never serves a missing-art window. A config built in a
+	// test keeps the zero value — off — and never touches the network.
+	c.prewarm = true
 
 	ln, err := net.Listen("tcp", c.addr)
 	if err != nil {
@@ -208,7 +232,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	// owns "/" for the SPA and every /api/ path), so this is additive: a
 	// server with the art directory unavailable would only ever affect these
 	// two new patterns, never anything httpapi already serves.
-	ac, err := newArtCache(filepath.Join(c.dir, "art"))
+	ac, err := newArtCache(c.artCacheDir())
 	if err != nil {
 		return err
 	}
@@ -257,6 +281,21 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 			fmt.Fprintf(os.Stderr, "gorged: table t1 seat %d joins at http://%s/t/t1?seat=%d&token=%s\n",
 				s, joinHost(ln.Addr()), s, gate.token(seat))
 		}
+	}
+	// Task fb-20260914T113850Z-682e875e: prewarm the art cache for every
+	// distinct card name (plus each commander) across the dealt decks, in a
+	// background goroutine (art.go prewarmArt): after a deploy the whole pool
+	// would otherwise refill lazily, one paced Scryfall fetch per browser
+	// request, and every viewer saw missing art for minutes. serve()'s own ctx
+	// cancels the prewarm on shutdown; ensure/ensureText are single-flight and
+	// disk-checked, so a prewarm racing a browser's first request for the same
+	// name shares one Scryfall round trip and a warm name costs nothing. Off
+	// (the zero value) in any config that did not come through main — a test
+	// config must never fire an outbound request.
+	if c.prewarm {
+		go prewarmArt(ctx, ac, c.decks, func(f string, a ...any) {
+			fmt.Fprintf(os.Stderr, "gorged: "+f+"\n", a...)
+		})
 	}
 	select {
 	case err := <-errc:
@@ -462,6 +501,58 @@ func (g config) hostOptions(reg *cards.Registry, load func(string) (host.Deck, e
 	// the engine and the bots themselves.
 	return host.Options{Dir: g.dir, LoadDeck: load, Tokens: reg.Tokens, Sync: true, Cooldown: g.cooldown,
 		MaxDecisionsPerTurn: host.DefaultMaxDecisionsPerTurn}
+}
+
+// artCacheDir resolves where the card-art cache lives: -art-dir when set,
+// else the historical <dir>/art. The empty default is pinned by a test so
+// every existing deployment and test keeps its exact location; only a caller
+// that explicitly asks for durability (deploy-demo.sh) moves the cache out
+// from under the wiped persistence dir.
+func (c config) artCacheDir() string {
+	if c.artDir != "" {
+		return c.artDir
+	}
+	return filepath.Join(c.dir, "art")
+}
+
+// deckCardNames collects the distinct printed card names every deck file in
+// dir references, plus each commander, sorted — the set of names a browser
+// viewing a dealt table can ask the art cache for. Prewarm walks these, not
+// the whole corpus: the dealt decks are a bounded, sane warm set (measured
+// 436 distinct names across this repo's 19 deck files), while the corpus is
+// ~33k cards. Names are parsed from the deck files only (deck.Parse — no
+// registry lookup), so this reads nothing but JSON.
+func deckCardNames(dir string) ([]string, error) {
+	stems, err := deckFiles(dir)
+	if err != nil {
+		return nil, err
+	}
+	seen := make(map[string]bool)
+	var names []string
+	add := func(n string) {
+		n = strings.TrimSpace(n)
+		if n == "" || seen[n] {
+			return
+		}
+		seen[n] = true
+		names = append(names, n)
+	}
+	for _, stem := range stems {
+		raw, err := os.ReadFile(filepath.Join(dir, stem+".json"))
+		if err != nil {
+			return nil, err
+		}
+		f, err := deck.Parse(raw)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", filepath.Join(dir, stem+".json"), err)
+		}
+		add(f.Commander)
+		for _, e := range f.Cards {
+			add(e.Name)
+		}
+	}
+	sort.Strings(names)
+	return names, nil
 }
 
 // deckFiles lists the deck names (file stems) in dir, sorted, so seat
