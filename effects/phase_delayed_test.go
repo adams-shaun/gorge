@@ -7,8 +7,8 @@ package effects
 // fires, so even a multi-step value fires exactly once, at the first listed
 // phase still ahead), and an unresolvable value still records the
 // unrecognized-phase Note instead of firing at the wrong phase. The old
-// delayedPhaseStep substring switch mapped `Main1,Main2` to Main1 (a step
-// already behind a combat-phase registration) and had no notion of ranges.
+// delayedPhaseStep substring switch checked `main2` before `main1`, so it
+// mapped `Main1,Main2` to Main2 and had no notion of ranges.
 
 import (
 	"strings"

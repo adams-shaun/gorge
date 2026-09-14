@@ -137,6 +137,14 @@ func ParsePhases(spec string) (StepSet, []string) {
 				}
 				to = tStep
 			}
+			// Forge's EnumSet.range rejects a backwards closed range rather
+			// than producing an empty set. Report the complete element here
+			// too: silently accepting it would make a misspelled/reversed
+			// Phase$ gate indistinguishable from a deliberately empty one.
+			if from > to {
+				unknown = append(unknown, el)
+				continue
+			}
 			for i := int(from); i <= int(to) && i < numSteps; i++ {
 				set |= one(Step(i))
 			}

@@ -119,6 +119,61 @@ func TestCarpetOfFlowersListFiresAtBothMains(t *testing.T) {
 	assertPhaseFires(t, e, id, state.StepMain1, state.StepMain2)
 }
 
+// Phase$ is Forge's validPhases gate for EVERY trigger mode, not a property
+// of Mode$ Phase. These real corpus probes pin the two other already-supported
+// modes carrying it: Moraug's landfall must occur only in a main phase, and
+// Dovin's Acuity must see an instant only in a main phase. Calling the common
+// matcher directly isolates the event/step contract from each effect's own
+// resolution tests.
+func TestPhaseGateAppliesToChangesZoneAndSpellCast(t *testing.T) {
+	t.Run("ChangesZone Moraug", func(t *testing.T) {
+		e, id := phaseCardEngine(t, "Moraug, Fury of Akoum")
+		tr := crTriggerFixture(t, e, id, "ChangesZone", "AddPhase")
+		if tr.Params["Phase"] != "Main1,Main2" {
+			t.Fatalf("corpus fixture changed: Phase = %q", tr.Params["Phase"])
+		}
+		land := onBoard(t, e, 0, "Name:Phase Gate Land\nTypes:Land\nOracle:x\n")
+		ev := events.Event{Kind: events.MoveZone, Obj: land, From: state.ZHand, To: state.ZBattlefield}
+		for _, tc := range []struct {
+			step state.Step
+			want bool
+		}{
+			{state.StepUpkeep, false},
+			{state.StepMain1, true},
+			{state.StepMain2, true},
+			{state.StepBeginCombat, false},
+		} {
+			e.G.Step = tc.step
+			if got := e.triggerMatches(tr, id, ev, nil); got != tc.want {
+				t.Errorf("ChangesZone at %s = %t, want %t", tc.step, got, tc.want)
+			}
+		}
+	})
+	t.Run("SpellCast Dovins Acuity", func(t *testing.T) {
+		e, id := phaseCardEngine(t, "Dovin's Acuity")
+		tr := crTriggerFixture(t, e, id, "SpellCast", "ChangeZone")
+		if tr.Params["Phase"] != "Main1,Main2" {
+			t.Fatalf("corpus fixture changed: Phase = %q", tr.Params["Phase"])
+		}
+		instant := onBoard(t, e, 0, "Name:Phase Gate Instant\nManaCost:U\nTypes:Instant\nOracle:x\n")
+		ev := events.Event{Kind: events.PutOnStack, Obj: instant, Player: 0, From: state.ZHand, To: state.ZStack}
+		for _, tc := range []struct {
+			step state.Step
+			want bool
+		}{
+			{state.StepUpkeep, false},
+			{state.StepMain1, true},
+			{state.StepMain2, true},
+			{state.StepBeginCombat, false},
+		} {
+			e.G.Step = tc.step
+			if got := e.triggerMatches(tr, id, ev, nil); got != tc.want {
+				t.Errorf("SpellCast at %s = %t, want %t", tc.step, got, tc.want)
+			}
+		}
+	})
+}
+
 // TestPhaseTriggerUnknownNameReportsAndNeverFires pins the reporting half of
 // the gate: a Phase$ value no Forge script name resolves (here the bare
 // "End" the old substring parser used to accept) queues nothing and emits
@@ -152,5 +207,39 @@ Oracle:x
 	}
 	if count != 1 {
 		t.Fatalf("unknown Phase$ spec emitted %d Notes, want exactly 1", count)
+	}
+}
+
+// The same reporting contract covers non-Phase modes. An invalid Phase$ on
+// a zone trigger must fail closed and report rather than silently firing on
+// every zone change (the bug that the old Mode$ Phase-only parser left open).
+func TestPhaseGateReportsUnknownForChangesZone(t *testing.T) {
+	e := New(seatZeroStart(Config{Seed: 42, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 41)}}))
+	e.Advance()
+	e.pending = nil
+	src := onBoard(t, e, 0, `Name:Unknown Phase Gate
+Types:Enchantment
+T:Mode$ ChangesZone | Phase$ End | Origin$ Any | Destination$ Battlefield | Execute$ TrigGain
+SVar:TrigGain:DB$ GainLife | LifeAmount$ 1 | Defined$ You
+Oracle:x
+`)
+	target := onBoard(t, e, 0, "Name:Entering Card\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	ev := events.Event{Kind: events.MoveZone, Obj: target, From: state.ZHand, To: state.ZBattlefield}
+	for i := 0; i < 2; i++ {
+		e.checkFaceTriggers(e, ev, nil, false, false)
+		if n := queuedPhaseTriggers(e, src); n != 0 {
+			t.Fatalf("unknown ChangesZone Phase$ queued %d triggers, want 0", n)
+		}
+		e.pendingTriggers = nil
+	}
+	count := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "Phase$ End ") {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("unknown ChangesZone Phase$ emitted %d Notes, want exactly 1", count)
 	}
 }

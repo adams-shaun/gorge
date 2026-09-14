@@ -348,20 +348,23 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			objLKI = lki
 		}
 		for ti, t := range f.Triggers {
-			if ev.Kind == events.StepChange && !leaving && t.Mode == "Phase" {
-				// Ratchet-visible reporting (the brief's gate): a Phase$ value
-				// the shared parser cannot resolve is a Note naming it, once
-				// per engine per spec, and the trigger never fires. Real
-				// corpus scripts all resolve, so this is live only for future
-				// scripts and fuzz fixtures.
+			if !leaving {
+				// Phase$ is a common Forge trigger gate, not a Mode$ Phase
+				// parameter: ChangesZone, SpellCast, and every other supported
+				// trigger mode may carry it. Report an unresolvable value once
+				// per engine per spec, while triggerMatches rejects it on every
+				// event. Keeping reporting outside the scratch look-back walk
+				// means a Note is a real event, never an observer side effect.
 				spec := t.Params["Phase"]
-				if _, unknown := state.ParsePhases(spec); len(unknown) > 0 {
-					if e.phaseUnknownNoted == nil {
-						e.phaseUnknownNoted = map[string]bool{}
-					}
-					if !e.phaseUnknownNoted[spec] {
-						e.phaseUnknownNoted[spec] = true
-						phaseNotes = append(phaseNotes, phaseNote{id: id, spec: spec})
+				if strings.TrimSpace(spec) != "" {
+					if _, unknown := state.ParsePhases(spec); len(unknown) > 0 {
+						if e.phaseUnknownNoted == nil {
+							e.phaseUnknownNoted = map[string]bool{}
+						}
+						if !e.phaseUnknownNoted[spec] {
+							e.phaseUnknownNoted[spec] = true
+							phaseNotes = append(phaseNotes, phaseNote{id: id, spec: spec})
+						}
 					}
 				}
 			}
@@ -508,7 +511,7 @@ func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 // Undying's counters_EQ0_P1P1 -- can see the object as it was before Move
 // reset it, not the live object already in the destination zone.
 func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
-	if !e.zoneGate(t, source, ev) {
+	if !e.zoneGate(t, source, ev) || !e.phaseGate(t) {
 		return false
 	}
 	var matched bool
@@ -1169,25 +1172,28 @@ func (e *Engine) landPlayedMatches(t cards.Trigger, source state.ObjID, ev event
 	return true
 }
 
-// phaseMatches implements Mode$ Phase. The Phase$ value is resolved by
-// state.ParsePhases -- the ONE Forge phase-name parser (smartValueOf /
-// parseRange parity), so `End of Turn`, `BeginCombat`, `EndCombat`, `Main`,
-// comma lists and `A->B` ranges all match the steps Forge matches them to;
-// the previous substring test against the step's engine name silently
-// dropped every multi-word script name (902 raw `End of Turn` lines fired
-// never). An unresolvable name never matches, and the walk that reaches it
-// emits one Note per game saying so (see checkFaceTriggers) -- reported,
-// never silently dropped. An ABSENT Phase$ param stays an ungated trigger
-// (Forge: a null validPhases gate).
+// phaseGate applies Forge's Phase$ (validPhases) uniformly to every trigger
+// mode. It is deliberately before the mode switch in triggerMatches: a
+// ChangesZone or SpellCast trigger with Phase$ Main1 must not fire during an
+// upkeep, and an unresolvable name fails closed. checkFaceTriggers reports
+// that invalid name once as a Note; this bool-only matcher does not emit
+// while it may be walking a scratch look-back observer. An absent Phase$
+// remains ungated, matching Forge's null validPhases.
+func (e *Engine) phaseGate(t cards.Trigger) bool {
+	spec := t.Params["Phase"]
+	if strings.TrimSpace(spec) == "" {
+		return true
+	}
+	set, unknown := state.ParsePhases(spec)
+	return len(unknown) == 0 && set.Has(e.G.Step)
+}
+
+// phaseMatches implements Mode$ Phase after phaseGate has already checked
+// its Phase$ parameter. The mode itself is only a StepChange event plus its
+// optional ValidPlayer$ restriction.
 func (e *Engine) phaseMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.StepChange {
 		return false
-	}
-	if spec := t.Params["Phase"]; strings.TrimSpace(spec) != "" {
-		set, unknown := state.ParsePhases(spec)
-		if len(unknown) > 0 || !set.Has(ev.Step) {
-			return false
-		}
 	}
 	if v, ok := t.Params["ValidPlayer"]; ok {
 		// StepChange carries no Player of its own -- a step always belongs

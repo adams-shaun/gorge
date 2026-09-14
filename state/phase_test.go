@@ -111,6 +111,9 @@ func TestParsePhasesUnknownReported(t *testing.T) {
 		{"Combat", nil, []string{"Combat"}},
 		// A range with an unknown end reports the whole element.
 		{"Upkeep->Never", nil, []string{"Upkeep->Never"}},
+		// Forge's EnumSet.range rejects a backwards closed range rather than
+		// silently returning an empty set.
+		{"EndCombat->BeginCombat", nil, []string{"EndCombat->BeginCombat"}},
 		// An empty element inside a list is reported too (Forge throws).
 		{"Upkeep,", []Step{StepUpkeep}, []string{""}},
 	}
