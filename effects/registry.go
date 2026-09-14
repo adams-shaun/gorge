@@ -42,6 +42,16 @@ type Host interface {
 	// and Protection reach the layer system without effects importing rules,
 	// which would be an import cycle (effects sits below rules). Task 19c.
 	AddContinuous(state.ContinuousEffect)
+	// RegisterControl records one GainControl effect with the lifetime its
+	// LoseControl$ names (CR 611.2b "for as long as", CR 514.2 end of turn),
+	// so the engine can end it through a ControlChange event the moment that
+	// duration ends. A grant with no duration is permanent: it supersedes
+	// every earlier control effect on the object (CR 613.7 timestamp order).
+	RegisterControl(ControlGrant)
+	// LegalTargets returns the targets the rules engine would offer for sa.
+	// Redirect effects use this shared census rather than duplicating target
+	// legality below rules (protection and continuous restrictions included).
+	LegalTargets(chooser state.PlayerID, source state.ObjID, sa *cards.SA) []state.Target
 	// RegenerationDisallowed reports whether an Effect-registered
 	// CantRegenerate restriction makes id unable to be regenerated (Incinerate's
 	// "can't be regenerated this turn"). Consulted by ReplaceDestruction before
@@ -90,6 +100,39 @@ type Host interface {
 	// already walks sa.Sub. A host that never suspends (an effects-package
 	// double, where Ask returns false) never sees this call.
 	SuspendContinuation(sa *cards.SA)
+	// SuspendRepeat reports that one iteration of a RepeatEach loop suspended
+	// at a mid-resolution ask. The host must bind the suspended iteration's
+	// Remembered to the pending ask (and to the iteration's own continuation
+	// frames) and resume the loop at the next subject once they complete,
+	// rather than dropping the remaining subjects (CR 608.2c). The Resolve
+	// loop enclosing the RepeatEach reports that SA through
+	// SuspendContinuation next; the host drops that report, because the loop
+	// frame re-enters the RepeatEach itself and so walks its Sub.
+	SuspendRepeat(RepeatSuspension)
+}
+
+// RepeatCursor is a RepeatEach loop re-entered after an iteration suspended:
+// the subjects captured when the loop started (never re-derived mid-loop),
+// the index of the next subject, and the completed iteration's final
+// Remembered so the objects that iteration remembered outlive it.
+type RepeatCursor struct {
+	SA       *cards.SA
+	Subjects []state.Target
+	Next     int
+	Last     []state.Target
+	HasLast  bool
+}
+
+// RepeatSuspension is what effRepeatEach reports when an iteration asks.
+// Body is the suspended iteration's Remembered (the loop subject plus
+// anything the iteration remembered before asking); Outer and Chosen are the
+// RepeatEach resolution's own bindings, restored when the loop re-enters.
+type RepeatSuspension struct {
+	RepeatCursor
+	Body        []state.Target
+	Outer       []state.Target
+	Chosen      []state.Target
+	ChosenValid bool
 }
 
 // Ctx carries the bindings a Forge script refers to during resolution.
@@ -158,6 +201,23 @@ type Ctx struct {
 	// discarder, which is why a plain ObjID is not enough state to rebuild:
 	// the two player roles are re-derived from Ctx on re-entry.
 	Discard []state.ObjID
+	// Choice is the selected card(s) or player(s) from ChooseCard,
+	// ChoosePlayer, or ChangeTargets. ChoiceDone distinguishes an answered
+	// empty optional choice from its first pass.
+	Choice     []state.Target
+	ChoiceDone bool
+	// ChoiceTarget is the index of the per-player chooser currently being
+	// resumed. It keeps multi-player ChooseCard/ChoosePlayer asks from
+	// returning to the first chooser after every answer.
+	ChoiceTarget int
+	// Chosen holds card/player choices for the remaining resolution chain.
+	// Unlike Choice it is not the transport for a pending answer; filters such
+	// as Creature.nonChosenCard consult it after ChooseCard has returned.
+	Chosen      []state.Target
+	ChosenValid bool
+	// Repeat is set only on the re-entry of a suspended RepeatEach loop; the
+	// RepeatEach whose SA it names consumes and clears it.
+	Repeat *RepeatCursor
 	// Search is the answered hidden-library KChoose selection on a re-entered
 	// ChangeZone resolution. SearchDone distinguishes "answered with no cards"
 	// from the first pass; Search preserves the player's answer order. The
@@ -323,9 +383,14 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// is evaluated and not met is skipped and the chain continues. An
 		// unresolved shape (supported=false) runs unconditionally, the
 		// documented pre-gate behaviour — see conditions.go for the exact
-		// boundary and the counts behind it.
-		if met, supported := conditionMet(h, c, sa); supported && !met {
-			continue
+		// boundary and the counts behind it. A RepeatEach re-entered at its
+		// loop cursor already passed its gate when the loop began; its
+		// remaining iterations are part of that same resolution.
+		resumingLoop := c.Repeat != nil && c.Repeat.SA == sa
+		if !resumingLoop {
+			if met, supported := conditionMet(h, c, sa); supported && !met {
+				continue
+			}
 		}
 		fn, ok := reg[sa.API]
 		if !ok {

@@ -1057,7 +1057,7 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
 				return false
 			}
-		} else if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		} else if !effects.MatchesPlayerSpecFrom(e.G, v, ev.Player, ctrl, source) {
 			return false
 		}
 	}

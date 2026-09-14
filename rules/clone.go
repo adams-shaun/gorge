@@ -78,6 +78,9 @@ func (e *Engine) Clone() *Engine {
 		d := *e.pending
 		d.Options = append([]decision.Option(nil), e.pending.Options...)
 		d.ResumeModes = append([]string(nil), e.pending.ResumeModes...)
+		d.ResumeChoices = append([]state.Target(nil), e.pending.ResumeChoices...)
+		d.ResumeChosenValid = e.pending.ResumeChosenValid
+		d.ResumeRemembered = append([]state.Target(nil), e.pending.ResumeRemembered...)
 		c.pending = &d
 	}
 	if e.resume != nil {
@@ -91,6 +94,7 @@ func (e *Engine) Clone() *Engine {
 		// original's list.
 		c.resume = cloneResume(e.resume)
 	}
+	c.controlGrants = append([]controlGrant(nil), e.controlGrants...)
 	if e.continuous != nil {
 		c.continuous = make([]ContinuousEffect, len(e.continuous))
 		for i, ce := range e.continuous {
@@ -357,6 +361,16 @@ func cloneResume(rp *resumePoint) *resumePoint {
 		return nil
 	}
 	cp := *rp
+	cp.choices = append([]state.Target(nil), rp.choices...)
+	cp.chosenValid = rp.chosenValid
+	cp.remembered = append([]state.Target(nil), rp.remembered...)
+	cp.loopRemembered = append([]state.Target(nil), rp.loopRemembered...)
+	if rp.repeat != nil {
+		cur := *rp.repeat
+		cur.subjects = append([]state.Target(nil), rp.repeat.subjects...)
+		cur.last = append([]state.Target(nil), rp.repeat.last...)
+		cp.repeat = &cur
+	}
 	cp.outer = cloneResume(rp.outer)
 	return &cp
 }

@@ -44,7 +44,8 @@ func controlReferent(p string) (op, ref string, ok bool) {
 	}
 	switch ref {
 	case "TriggeredTarget", "TriggeredDefendingPlayer", "TriggeredPlayer", "TriggeredCard",
-		"Targeted", "TargetedPlayer", "ThisTargetedPlayer", "TargetedController", "TargetedOrController":
+		"Targeted", "TargetedPlayer", "ThisTargetedPlayer", "TargetedController", "TargetedOrController",
+		"Remembered":
 		return op, ref, true
 	}
 	return "", "", false
@@ -79,6 +80,19 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 			return nil, false
 		}
 		targets = sc.ResolutionTargets
+	case "Remembered", "RememberedPlayer":
+		// Resolution-only, like Targeted*: the objects/players this
+		// resolution remembers -- a RepeatEach loop's current subject.
+		// RememberedPlayer (RememberedPlayerCtrl's referent) admits only
+		// player entries.
+		if !sc.Resolving {
+			return nil, false
+		}
+		for _, t := range sc.Remembered {
+			if t.IsPlayer || ref == "Remembered" {
+				targets = append(targets, t)
+			}
+		}
 	default:
 		return nil, false
 	}
@@ -165,5 +179,5 @@ func matchTargetedPlayerCtrl(g *state.Game, o *state.Object, sc SpecContext) (bo
 // independent of trigger provenance.
 func (c *Ctx) SpecContext(you state.PlayerID) SpecContext {
 	return SpecContext{You: you, Source: c.Source, TriggerContext: c.TriggerContext,
-		ResolutionTargets: c.Targets, Resolving: true}
+		ResolutionTargets: c.Targets, Remembered: c.Remembered, Chosen: c.Chosen, ChosenValid: c.ChosenValid, Resolving: true}
 }

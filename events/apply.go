@@ -38,6 +38,13 @@ func Apply(g *state.Game, e Event) {
 			g.Monarch, g.HasMonarch = e.Player, true
 		}
 
+	case ControlChange:
+		if validPlayer(g, e.Player) {
+			if o := g.Obj(e.Obj); o != nil {
+				o.Controller = e.Player
+			}
+		}
+
 	case LibraryOrder:
 		// A library-arranging effect (Ponder, later Scry/Surveil) set a
 		// complete new order on a player's library. Mechanically identical to
@@ -378,6 +385,10 @@ func Apply(g *state.Game, e Event) {
 				o.ChosenType = e.Text
 			case "number":
 				o.ChosenNumber = e.Amount
+			case "chosen":
+				o.Chosen = rememberedFrom(e.IDs)
+			case "remembered":
+				o.Remembered = append(o.Remembered, rememberedFrom(e.IDs)...)
 			}
 		}
 
@@ -638,6 +649,12 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	}
 
 	o.Zone = to
+	// A new object in a new zone has its owner's default control. The old
+	// controller is needed above to remove it from the battlefield/stack, so
+	// reset only after removal and placement have used that zone ownership.
+	if to != state.ZBattlefield && to != state.ZStack {
+		o.Controller = o.Owner
+	}
 	// A zone change is the single source of zone-entry provenance. Capture
 	// the actual old zone (not Event.From, which Move deliberately treats as
 	// advisory) so replay and a live game derive identical ThisTurnEntered*
@@ -696,6 +713,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		if wasBattlefield {
 			o.X, o.CastFlags = 0, 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber = "", "", 0
+			o.Chosen = nil
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
 		// when a permanent spell carries its announcement onto the battlefield).

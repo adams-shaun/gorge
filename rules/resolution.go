@@ -91,7 +91,40 @@ type resumePoint struct {
 	before *triggerSnapshot // immutable look-back if a batch replacement suspends
 	// target is Dig's index into its deterministic Defined$ target list. It
 	// keeps a resumed answer attached to the library that actually asked.
-	target int
+	target      int
+	choices     []state.Target
+	chosenValid bool
+	remembered  []state.Target
+	// loopBound frames resume inside a RepeatEach iteration (or at the
+	// RepeatEach itself, kind "repeat"): Ctx.Remembered is rebuilt from
+	// loopRemembered rather than from the stack object, because the loop
+	// binds its current subject there and the stack object never saw it.
+	loopBound      bool
+	loopRemembered []state.Target
+	// repeat is a kind "repeat" frame's loop cursor.
+	repeat *repeatCursor
+}
+
+// repeatCursor is the loop position a kind "repeat" frame re-enters with.
+// last is the final Remembered of the iteration that completed just before
+// the frame runs, handed over by that iteration's own frame.
+type repeatCursor struct {
+	subjects []state.Target
+	next     int
+	last     []state.Target
+	hasLast  bool
+}
+
+// contFrame is one enclosing-loop suspension reported during a resolution
+// pass: a plain Resolve loop (resume at sa.Sub) or a RepeatEach loop
+// (repeat != nil; re-enter sa itself at the cursor).
+type contFrame struct {
+	sa          *cards.SA
+	repeat      *repeatCursor
+	bound       bool
+	remembered  []state.Target
+	choices     []state.Target
+	chosenValid bool
 }
 
 // Ask implements effects.Host.Ask (rules' side of the interface, and the
@@ -118,9 +151,16 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 	// the whole of that body's resolution, so an ask posed from within it
 	// must resume still under the flag — see the resumePoint field's
 	// comment and resumeResolution's restore of it.
+	// A replacement can ask after its Updated MoveZone has removed the
+	// resolving spell from the stack. Its source is still the replacement's
+	// permanent, and is the object the replacement resume must rebuild from.
+	if e.applyingReplacement && d.Source != 0 {
+		obj = d.Source
+	}
 	e.resume = &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA,
 		replacement: e.applyingReplacement, replaced: e.replReplaced, action: e.replAction,
-		before: e.triggerBefore, target: d.ResumeTarget}
+		before: e.triggerBefore, target: d.ResumeTarget, choices: append([]state.Target(nil), d.ResumeChoices...),
+		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...)}
 	return true
 }
 
@@ -150,7 +190,42 @@ func (e *Engine) SuspendContinuation(sa *cards.SA) {
 	if sa == e.resume.sa {
 		return // this loop is the one that asked; its own re-entry walks sa.Sub.
 	}
-	e.contChain = append(e.contChain, sa)
+	if sa == e.repeatReported {
+		// The RepeatEach just recorded its own loop frame, whose re-entry runs
+		// the remaining iterations and then walks sa.Sub itself.
+		e.repeatReported = nil
+		return
+	}
+	e.contChain = append(e.contChain, contFrame{sa: sa})
+}
+
+// SuspendRepeat implements effects.Host.SuspendRepeat. Everything recorded so
+// far in this pass -- the pending ask and the continuation frames of loops
+// nested inside the iteration -- resumes inside that iteration, so each is
+// bound to the iteration's Remembered unless a deeper loop already bound it.
+// The loop's own frame follows them, bound to the RepeatEach's Remembered.
+func (e *Engine) SuspendRepeat(s effects.RepeatSuspension) {
+	if e.resume == nil {
+		return
+	}
+	body := append([]state.Target(nil), s.Body...)
+	if !e.resume.loopBound {
+		e.resume.loopBound, e.resume.loopRemembered = true, body
+	}
+	for i := range e.contChain {
+		if !e.contChain[i].bound {
+			e.contChain[i].bound, e.contChain[i].remembered = true, body
+		}
+	}
+	e.contChain = append(e.contChain, contFrame{
+		sa:          s.SA,
+		repeat:      &repeatCursor{subjects: append([]state.Target(nil), s.Subjects...), next: s.Next},
+		bound:       true,
+		remembered:  append([]state.Target(nil), s.Outer...),
+		choices:     append([]state.Target(nil), s.Chosen...),
+		chosenValid: s.ChosenValid,
+	})
+	e.repeatReported = s.SA
 }
 
 // handleModes applies an answered KModes decision. ResumeKind and the trigger
@@ -241,7 +316,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	e.triggerBefore = rp.before
 	defer func() { e.triggerBefore = before }()
 	o := e.G.Obj(rp.obj)
-	if o == nil || o.Zone != state.ZStack {
+	if o == nil || (o.Zone != state.ZStack && !rp.replacement) {
 		// The suspended object left the stack while the decision was
 		// outstanding. Nothing but the answer can un-freeze the engine, so
 		// this is unreachable in a well-formed match; it degrades to a
@@ -249,7 +324,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// other resolution exit.
 		return
 	}
-	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, Targets: o.Targets}
+	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, Targets: o.Targets,
+		Chosen: append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
+		ChoiceTarget: rp.target}
 	// CR 107.3i: X is the value paid for the object's {X}, preserved on the
 	// stack object by CastInfo -- the same binding resolveTop's spell and
 	// ability branches now carry. A spell whose resolution suspends on a
@@ -269,6 +346,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// stack.
 		ctx.Replaced = rp.replaced
 		ctx.Remembered = []state.Target{{Obj: rp.replaced}}
+		if rp.remembered != nil {
+			ctx.Remembered = append([]state.Target(nil), rp.remembered...)
+		}
 	}
 	var svars map[string]string
 	if o.Ability != nil {
@@ -300,9 +380,19 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	} else if f := o.Face(); f != nil {
 		svars = f.SVars
 	}
+	if rp.loopBound {
+		ctx.Remembered = append([]state.Target(nil), rp.loopRemembered...)
+	}
 	effects.SetSVars(ctx, svars)
 	if rp.sa != nil {
 		switch rp.kind {
+		case "repeat":
+			// A RepeatEach loop re-entered after one of its iterations
+			// suspended: no answer, just the cursor (CR 608.2c).
+			if cur := rp.repeat; cur != nil {
+				ctx.Repeat = &effects.RepeatCursor{SA: rp.sa, Subjects: cur.subjects, Next: cur.next,
+					Last: cur.last, HasLast: cur.hasLast}
+			}
 		case "unless_pay":
 			// The payer agreed to pay (option 0 is "Pay … — make a copy") or
 			// not. Payment happens HERE, in rules, because payMana owns the
@@ -361,6 +451,19 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.Discard = ids
+		case "choice":
+			// ChooseCard, ChoosePlayer and ChangeTargets all use KChoose. Keep
+			// the concrete target shape rather than just an ObjID because player
+			// zero is a real target too.
+			ctx.Choice = make([]state.Target, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Kind == "player" {
+					ctx.Choice = append(ctx.Choice, state.Target{Player: o.Player, IsPlayer: true})
+				} else if o.Obj != 0 {
+					ctx.Choice = append(ctx.Choice, state.Target{Obj: o.Obj})
+				}
+			}
+			ctx.ChoiceDone = true
 		case "search":
 			// A hidden-library KChoose answer is an ordered subset. Preserve
 			// that order for ChangeZone's MoveZone sequence, and set a separate
@@ -440,6 +543,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// reports no live frame still needs (measured: the full rules suite
 		// runs no path where a recursive reset clobbers a needed report).
 		e.contChain = e.contChain[:0]
+		e.repeatReported = nil
 		// fx44: restore the replacement context the suspended body was
 		// resolving under. applyReplacements reset e.applyingReplacement to
 		// false when the body suspended, so without this the resumed body's
@@ -465,6 +569,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// Linking them now means the nested ask, when answered, resumes
 			// every suspended continuation rather than dropping the outer
 			// ones (fx32).
+			if rp.loopBound {
+				// Still inside the loop iteration this frame resumed: whatever
+				// suspended at this level continues with its Remembered.
+				e.bindLoopFrames(ctx.Remembered)
+			}
 			e.resume.outer = e.buildContinuationChain(e.contChain, rp.obj, rp.outer)
 			return
 		}
@@ -477,9 +586,29 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		e.emit(events.Event{Kind: events.Note, Obj: rp.obj,
 			Text: "mid-resolution answer resumed with no sub-ability recorded"})
 	}
-	if rp.outer != nil {
-		// No nested ask this pass and the frame itself completed: continue
+	if rp.replacement && o.Zone != state.ZStack {
+		// An Updated ETB replacement has already completed the spell's move.
+		// Its answer resumes only the replacement body; there is no stack
+		// object to finish or priority round to create here.
+		return
+	}
+	if rp.outer != nil { // No nested ask this pass and the frame itself completed: continue
 		// outward through the runner-up continuations this frame carried.
+		if rp.loopBound {
+			// Hand this frame's Remembered to the next frame. A loop frame
+			// folds in what the finished iteration remembered. Any other next
+			// frame runs at this frame's level -- the rest of the same
+			// iteration, or (after a loop frame) the rest of the chain that
+			// enclosed the loop -- and takes it as is, so what the loop
+			// remembered is not lost to the stack object's stale Remembered.
+			if next := rp.outer; next.kind == "repeat" && next.repeat != nil {
+				next.repeat.last = append([]state.Target(nil), ctx.Remembered...)
+				next.repeat.hasLast = true
+			} else {
+				next.loopBound = true
+				next.loopRemembered = append([]state.Target(nil), ctx.Remembered...)
+			}
+		}
 		e.resumeResolution(rp.outer, nil)
 		return
 	}
@@ -507,9 +636,10 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 // given `tail` (the outer continuation of the frame being re-entered) onto
 // the end. The resulting head is the what the new pending point must run
 // after its own answer, or nil if there is nothing left to continue.
-func (e *Engine) buildContinuationChain(sas []*cards.SA, obj state.ObjID, tail *resumePoint) *resumePoint {
+func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tail *resumePoint) *resumePoint {
 	var head, prev *resumePoint
-	for _, sa := range sas {
+	for _, cf := range frames {
+		sa := cf.sa
 		// fx44: a continuation frame is the rest of the same resolution that
 		// just suspended, so it carries the replacement context too — a body
 		// that asks again and then continues must keep emitting under the
@@ -518,7 +648,12 @@ func (e *Engine) buildContinuationChain(sas []*cards.SA, obj state.ObjID, tail *
 		// replaced/id carried by this frame comes from the engine's active
 		// replacement context).
 		f := &resumePoint{obj: obj, sa: sa.Sub, replacement: e.applyingReplacement,
-			replaced: e.replReplaced, action: e.replAction, before: e.triggerBefore}
+			replaced: e.replReplaced, action: e.replAction, before: e.triggerBefore,
+			loopBound: cf.bound, loopRemembered: cf.remembered}
+		if cf.repeat != nil {
+			f.kind, f.sa, f.repeat = "repeat", sa, cf.repeat
+			f.choices, f.chosenValid = cf.choices, cf.chosenValid
+		}
 		if head == nil {
 			head = f
 		} else {
@@ -667,4 +802,18 @@ func (e *Engine) moveResolvedOffStack(o *state.Object) {
 	e.ensureLeftTheStack(id, rest, "a replacement fully discarded this resolved "+
 		"spell's own move off the stack without relocating it anywhere; sent to its "+
 		"resting zone instead of re-resolving forever")
+}
+
+// bindLoopFrames binds the pending ask and every continuation frame recorded
+// this pass that no deeper RepeatEach already bound to remembered.
+func (e *Engine) bindLoopFrames(remembered []state.Target) {
+	snap := append([]state.Target(nil), remembered...)
+	if e.resume != nil && !e.resume.loopBound {
+		e.resume.loopBound, e.resume.loopRemembered = true, snap
+	}
+	for i := range e.contChain {
+		if !e.contChain[i].bound {
+			e.contChain[i].bound, e.contChain[i].remembered = true, snap
+		}
+	}
 }

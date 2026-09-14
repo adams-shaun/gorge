@@ -103,6 +103,13 @@ type Engine struct {
 	// continuous holds every registered continuous effect, live or expired.
 	// The layer system (layers.go) is the only reader and writer.
 	continuous []ContinuousEffect
+	// controlGrants holds the GainControl effects that can still end (see
+	// rules/control.go). It is engine continuation state only; every take and
+	// return is a ControlChange event, so the log alone rebuilds Game state.
+	controlGrants []controlGrant
+	// expiringControl guards expireControl against re-entry through the
+	// ControlChange events it emits.
+	expiringControl bool
 
 	// pregame is true while the London mulligan round runs, between the
 	// opening deal and turn 1. Config.Mulligans > 0 sets it in New; step()
@@ -291,7 +298,11 @@ type Engine struct {
 	// re-entry, drained into the resume chain as soon as that re-entry
 	// suspends again, and nil whenever no re-entry is in flight — so a Clone
 	// need not carry it (the same resolution re-derives the same chain).
-	contChain []*cards.SA
+	contChain []contFrame
+	// repeatReported is the RepeatEach SA whose loop frame SuspendRepeat
+	// just recorded, so the enclosing Resolve loop's report of the same SA
+	// is not recorded a second time as a plain continuation.
+	repeatReported *cards.SA
 
 	// cast holds the in-progress cast-flow state while choosing ==
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
@@ -886,6 +897,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		ev.Kind != events.DecisionMade && ev.Kind != events.Note {
 		e.suppressedCast = nil
 		e.castAborts = nil
+		// CR 611.2b: a "for as long as" control effect ends the moment its
+		// condition stops holding, not at the next state-based check.
+		e.expireControl(controlOnEvent)
 	}
 	return stored
 }

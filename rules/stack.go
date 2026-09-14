@@ -781,6 +781,7 @@ func (e *Engine) resolveTop() {
 		ctx.Modes = o.ChosenModes
 		e.damaging = o.Source
 		e.contChain = e.contChain[:0]
+		e.repeatReported = nil
 		effects.Resolve(e, ctx, o.Ability)
 		e.damaging = 0
 		if e.resume != nil {
@@ -871,6 +872,7 @@ func (e *Engine) resolveTop() {
 		// that announcement instead of posing its old resolution-time ask.
 		ctx.Modes = o.ChosenModes
 		e.contChain = e.contChain[:0]
+		e.repeatReported = nil
 		effects.Resolve(e, ctx, sa)
 		e.damaging = 0
 		if e.resume != nil {
@@ -1074,6 +1076,22 @@ func (e *Engine) emitTap(obj state.ObjID, tapper state.PlayerID, entering bool) 
 	e.tapObj, e.tapPlayer, e.tapEntering = obj, tapper, entering
 	e.emit(events.Event{Kind: events.Tap, Obj: obj})
 	e.tapObj, e.tapPlayer, e.tapEntering = savedObj, savedPlayer, savedEntering
+}
+
+// LegalTargets satisfies effects.Host for target-changing effects. It exposes
+// the same census used by cast and trigger target decisions, so a redirect
+// cannot bypass protection, CantTarget, stack-kind, zone, or filter legality.
+func (e *Engine) LegalTargets(chooser state.PlayerID, source state.ObjID, sa *cards.SA) []state.Target {
+	cs := e.legalTargetCandidates(chooser, source, source, sa)
+	out := make([]state.Target, 0, len(cs))
+	for _, c := range cs {
+		if c.kind == "player" {
+			out = append(out, state.Target{Player: c.player, IsPlayer: true})
+		} else {
+			out = append(out, state.Target{Obj: c.obj})
+		}
+	}
+	return out
 }
 
 // CastThisTurn satisfies effects.Host's CastThisTurn for Count$ThisTurnCast

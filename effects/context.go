@@ -41,6 +41,31 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		return []state.Target{{Obj: c.Source}}
 	case "Remembered":
 		return copyTargets(c.Remembered)
+	case "ChosenCard", "ChosenPlayer":
+		// ChooseCard/ChoosePlayer bind the current resolution's most recent
+		// choice here. This is deliberately distinct from Remembered: Forge
+		// only copies the answer there when RememberChosen$ is set. A later,
+		// independently resolving ability reads the same event-backed choice
+		// from its source permanent.
+		if c.ChosenValid || len(c.Chosen) > 0 {
+			return copyTargets(c.Chosen)
+		}
+		if o := g.Obj(c.Source); o != nil {
+			return copyTargets(o.Chosen)
+		}
+		return nil
+	case "Player.IsRemembered":
+		return playersOf(c.Remembered)
+	case "Player.Chosen":
+		return playersOf(c.Chosen)
+	case "RememberedController":
+		return controllersOf(g, c.Remembered)
+	case "RememberedOwner":
+		return ownersOf(g, c.Remembered)
+	case "TargetedController", "TargetedPlayer":
+		return controllersOf(g, c.Targets)
+	case "ChosenController":
+		return controllersOf(g, c.Chosen)
 	case "Targeted", "ParentTarget":
 		return copyTargets(c.Targets)
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
@@ -100,7 +125,7 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 			return []state.Target{{Obj: o.AttachedTo}}
 		}
 		return nil
-	case "Opponent":
+	case "Opponent", "Player.Opponent", "Player.Other":
 		var out []state.Target
 		for _, p := range g.AliveFrom(c.Controller) {
 			if p != c.Controller {
@@ -164,6 +189,37 @@ func playersOf(ts []state.Target) []state.Target {
 	for _, t := range ts {
 		if t.IsPlayer {
 			out = append(out, t)
+		}
+	}
+	return out
+}
+
+func controllersOf(g *state.Game, ts []state.Target) []state.Target {
+	return relatedPlayers(g, ts, false)
+}
+
+func ownersOf(g *state.Game, ts []state.Target) []state.Target {
+	return relatedPlayers(g, ts, true)
+}
+
+func relatedPlayers(g *state.Game, ts []state.Target, owner bool) []state.Target {
+	seen := map[state.PlayerID]bool{}
+	var out []state.Target
+	for _, t := range ts {
+		p := t.Player
+		if !t.IsPlayer {
+			o := g.Obj(t.Obj)
+			if o == nil {
+				continue
+			}
+			p = o.Controller
+			if owner {
+				p = o.Owner
+			}
+		}
+		if !seen[p] {
+			seen[p] = true
+			out = append(out, state.Target{Player: p, IsPlayer: true})
 		}
 	}
 	return out
