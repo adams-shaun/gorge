@@ -557,6 +557,44 @@ describe('decide', () => {
     expect(run(d, v, s)).toEqual({ act: 'stop', reason: 'stop-set' });
   });
 
+  it('casual decide(): decision-offered Tundra and any-source taps stop the own-main window, while dead mana still passes', () => {
+    const tap = (obj: number) => priority([
+      { ...opt('activate', 0), obj }, opt('pass', 1), opt('concede', 2),
+    ]);
+    const s = withSteps('yours', { main1: 'smart' });
+    const tundra = withHand(view(0, 'main1'), 0, {
+      hand: [handCard({ mana_cost: 'W' })], pool: {}, available: { C: 1 },
+      battlefield: [handCard({ id: 7, name: 'Tundra', types: 'Land Plains Island', produces: { colour: [1, 1, 0, 0, 0, 0], any: false } })],
+    });
+    expect(run(tap(7), tundra, s)).toEqual({ act: 'stop', reason: 'stop-set' });
+
+    const any = withHand(view(0, 'main1'), 0, {
+      hand: [handCard({ mana_cost: 'W' })], pool: {},
+      battlefield: [handCard({ id: 7, name: 'Any land', types: 'Land', produces: { colour: [0, 0, 0, 0, 0, 1], any: true } })],
+    });
+    expect(run(tap(7), any, s)).toEqual({ act: 'stop', reason: 'stop-set' });
+
+    const dead = withHand(view(0, 'main1'), 0, {
+      hand: [handCard({ mana_cost: 'U' })], pool: {},
+      battlefield: [handCard({ id: 7, name: 'Mountain', types: 'Land', produces: { colour: [0, 0, 0, 1, 0, 0], any: false } })],
+    });
+    expect(run(tap(7), dead, s)).toEqual({ act: 'pass', index: 1 });
+  });
+
+  it('casual decide(): a payable tap ability stops, but sacrifice and summon-sick abilities remain invisible', () => {
+    const d = priority([{ ...opt('activate', 0), obj: 7 }, opt('pass', 1), opt('concede', 2)]);
+    const s = withSteps('yours', { main1: 'smart' });
+    const source = handCard({ id: 7, name: 'Rock', types: 'Artifact', produces: { colour: [0, 0, 0, 0, 0, 1], any: false } });
+    const ability = handCard({ id: 8, name: 'Ability Rock', types: 'Artifact', ability_costs: ['1 T'] } as unknown as Partial<CardView>);
+    const payable = withHand(view(0, 'main1'), 0, { pool: {}, battlefield: [source, ability] });
+    expect(run(d, payable, s)).toEqual({ act: 'stop', reason: 'stop-set' });
+
+    const sacrifice = withHand(view(0, 'main1'), 0, { pool: {}, battlefield: [source, handCard({ id: 8, ability_costs: ['1 T Sac<1/Artifact>'] } as unknown as Partial<CardView>)] });
+    expect(run(d, sacrifice, s)).toEqual({ act: 'pass', index: 1 });
+    const sick = withHand(view(0, 'main1'), 0, { pool: {}, battlefield: [source, handCard({ id: 8, types: 'Creature', summon_sick: true, ability_costs: ['1 T'] } as unknown as Partial<CardView>)] });
+    expect(run(d, sick, s)).toEqual({ act: 'pass', index: 1 });
+  });
+
   it('casual decide(): the same mana-only window with only uncastable cards in hand passes', () => {
     const d = priority(ONLY_MANA);
     const v = withHand(view(0, 'main1'), 0, { hand: [handCard({ mana_cost: 'X R' })], available: { R: 1 } });

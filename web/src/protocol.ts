@@ -225,6 +225,14 @@ export interface CardView {
    */
   attached_to?: number;
   /**
+   * AbilityCosts is the Forge Cost$ of each non-mana activated ability, in
+   * face ability order. It is projected only for battlefield cards and the
+   * viewer's own hand: those are the cards an interactive seat can use to
+   * decide whether floating mana would unlock an ability. Other zones leave
+   * it nil, rather than turning this into a general rules-text projection.
+   */
+  ability_costs?: string[];
+  /**
    * Produces is what this card's mana abilities add to the pool when a
    * tap-for-mana activation runs them, derived from the compiled abilities
    * (cards.Face.ManaProduction) rather than land subtypes: a basic land's

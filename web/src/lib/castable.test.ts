@@ -208,6 +208,70 @@ describe('castableAfterTap — fails closed', () => {
   });
 });
 
+describe('castableAfterTap — decision tap offers (fb-20260914T125925Z)', () => {
+  const tapDecision = (obj: number): import('../protocol').Decision => ({
+    seq: 1, player: 0, kind: 'priority', prompt: 'priority', min: 1, max: 1,
+    options: [
+      { index: 0, kind: 'activate', label: 'tap', obj, player: 0 },
+      { index: 1, kind: 'pass', label: 'pass', player: 0 },
+      { index: 2, kind: 'concede', label: 'concede', player: 0 },
+    ],
+  });
+
+  it('uses an offered Tundra tap, not Available, to pay a white hand card', () => {
+    const p = player({
+      hand: [card({ mana_cost: 'W' })], pool: {}, available: { C: 1 },
+      battlefield: [card({ id: 7, name: 'Tundra', types: 'Land Plains Island', produces: { colour: [1, 1, 0, 0, 0, 0], any: false } })],
+    });
+    expect(castableAfterTap(view(p), 0, tapDecision(7))).toBe(true);
+  });
+
+  it('treats an offered any-producer as every colour for this safe stop bound', () => {
+    const p = player({
+      hand: [card({ mana_cost: 'W' })], pool: {},
+      battlefield: [card({ id: 7, name: 'Cavern', types: 'Land', produces: { colour: [0, 0, 0, 0, 0, 1], any: true } })],
+    });
+    expect(castableAfterTap(view(p), 0, tapDecision(7))).toBe(true);
+  });
+
+  it('uses the same offered Tundra tap for an instant-speed response', () => {
+    const p = player({
+      hand: [card({ mana_cost: 'U' })], pool: {},
+      battlefield: [card({ id: 7, name: 'Tundra', types: 'Land Plains Island', produces: { colour: [1, 1, 0, 0, 0, 0], any: false } })],
+    });
+    expect(respondableAfterTap(view(p), 0, tapDecision(7))).toBe(true);
+  });
+
+  it('does not stop for a hand card that the offered taps cannot pay for', () => {
+    const p = player({
+      hand: [card({ mana_cost: 'U' })], pool: {},
+      battlefield: [card({ id: 7, name: 'Mountain', types: 'Land Mountain', produces: { colour: [0, 0, 0, 1, 0, 0], any: false } })],
+    });
+    expect(castableAfterTap(view(p), 0, tapDecision(7))).toBe(false);
+  });
+
+  it('recognises a non-mana ability payable after an offered tap, but skips sacrifice and sick tap abilities', () => {
+    const base = player({
+      pool: {},
+      battlefield: [
+        card({ id: 7, name: 'Rock', types: 'Artifact', produces: { colour: [0, 0, 0, 0, 0, 1], any: false } }),
+        card({ id: 8, name: 'Ability Rock', types: 'Artifact', ability_costs: ['1 T'] } as unknown as Partial<CardView>),
+      ],
+    });
+    const d = tapDecision(7);
+    expect(castableAfterTap(view(base), 0, d)).toBe(true);
+
+    const sacrifice = player({ ...base, battlefield: [base.battlefield[0], card({ id: 8, ability_costs: ['1 T Sac<1/Artifact>'] } as unknown as Partial<CardView>)] });
+    expect(castableAfterTap(view(sacrifice), 0, d)).toBe(false);
+
+    const sick = player({ ...base, battlefield: [base.battlefield[0], card({ id: 8, types: 'Creature', summon_sick: true, ability_costs: ['1 T'] } as unknown as Partial<CardView>)] });
+    expect(castableAfterTap(view(sick), 0, d)).toBe(false);
+
+    const tapped = player({ ...base, battlefield: [base.battlefield[0], card({ id: 8, tapped: true, ability_costs: ['1 T'] } as unknown as Partial<CardView>)] });
+    expect(castableAfterTap(view(tapped), 0, d)).toBe(false);
+  });
+});
+
 describe('respondableAfterTap — the instant-speed response question (fb-20260914T114244Z)', () => {
   it('the report shape: Mana Leak ({1}{U}) in hand, pool empty, two untapped Islands (Available {U}) stops', () => {
     const p = player({ hand: [card({ name: 'Mana Leak', mana_cost: '1 U' })], available: { U: 2 } });

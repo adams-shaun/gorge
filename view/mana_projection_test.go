@@ -1,6 +1,7 @@
 package view
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -68,6 +69,31 @@ func TestCardViewProjectsManaProduction(t *testing.T) {
 // engine actually resolves plus the Any flag -- never a coloured pip the pool
 // will not receive -- so a client and the policy both see that this source
 // cannot be leaned on for a specific colour.
+func TestCardViewProjectsNonManaAbilityCostsOnlyWhereASeatCanAct(t *testing.T) {
+	g := state.NewGame([]string{"alice", "bob"})
+	gadget := parsedWithIntrinsics(t, "gadget.txt", "Name:Gadget\nManaCost:2\nTypes:Artifact\nA:AB$ Draw | Cost$ 1 T | Oracle:x\nA:AB$ Mana | Cost$ T | Produced$ C | Oracle:x\nA:AB$ Destroy | Cost$ Sac<1/Artifact> | Oracle:x\n")
+	bf := g.AddObject(gadget, 0)
+	hand := g.AddObject(gadget, 0)
+	grave := g.AddObject(gadget, 0)
+	hand.Zone = state.ZHand
+	grave.Zone = state.ZGraveyard
+	g.SetZone(state.ZBattlefield, 0, []state.ObjID{bf.ID})
+	g.SetZone(state.ZHand, 0, []state.ObjID{hand.ID})
+	g.SetZone(state.ZGraveyard, 0, []state.ObjID{grave.ID})
+
+	pv := Project(g, flatChars{g}, 0, nil).Players[0]
+	want := []string{"1 T", "Sac<1/Artifact>"}
+	if got := pv.Battlefield[0].AbilityCosts; !slices.Equal(got, want) {
+		t.Fatalf("battlefield ability costs = %#v, want %#v", got, want)
+	}
+	if got := pv.Hand[0].AbilityCosts; !slices.Equal(got, want) {
+		t.Fatalf("own hand ability costs = %#v, want %#v", got, want)
+	}
+	if got := pv.Graveyard[0].AbilityCosts; got != nil {
+		t.Fatalf("graveyard ability costs = %#v, want nil", got)
+	}
+}
+
 func TestCardViewProjectsAnyConservatively(t *testing.T) {
 	g := state.NewGame([]string{"alice", "bob"})
 	cavern := parsedWithIntrinsics(t, "cavern.txt",

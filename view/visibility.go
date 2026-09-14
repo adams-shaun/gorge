@@ -92,7 +92,9 @@ func ProjectFor(g *state.Game, ch Chars, viewer state.PlayerID, vis Visibility, 
 		if g != nil {
 			for i := range v.Players {
 				p := &g.Players[i]
-				v.Players[i].Hand = cardViews(g, ch, g.Zone(state.ZHand, p.ID))
+				// An omniscient spectator can read this hand, but cannot act from it:
+				// ability costs are only needed on a viewer's own hand.
+				v.Players[i].Hand = cardViews(g, ch, g.Zone(state.ZHand, p.ID), false)
 			}
 		}
 		v.Visibility = vis.String()
