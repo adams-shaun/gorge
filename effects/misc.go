@@ -375,6 +375,17 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZStack {
 			continue
 		}
+		if o.Ability != nil {
+			// CR 701.5a: to counter a spell or ability is to cancel it,
+			// removing it from the stack so it never resolves. An ability is
+			// not a card and has no graveyard to move to -- this is the same
+			// "ceases to exist" rest every resolved ability already takes
+			// (CR 608.2m, rules/stack.go's ability tail parks it in exile),
+			// so a countered ability moves there, never to the graveyard.
+			h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
+				From: state.ZStack, To: state.ZExile, Text: "countered"})
+			continue
+		}
 		to := state.ZGraveyard
 		if o.CastFlags&state.FlagFlashback != 0 {
 			to = state.ZExile

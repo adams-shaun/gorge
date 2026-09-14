@@ -164,6 +164,169 @@ func targetsStackObjects(tt string) bool {
 	return false
 }
 
+// stackObjKind classifies one stack object for TargetType$ legality: a card
+// object (Face != nil) is a spell; an ability object is the
+// triggered/activated split both the CR (603.1/602.1) and the view's
+// StackView.Kind make. The split is state.TriggerOf -- membership in the
+// source face's T: lines is a TriggerPush mint (a triggered ability);
+// membership in its AB$ list is an AbilityPush mint (an activated ability);
+// anything else is a DelayedPush mint, whose Ability was resolved from the
+// registration's Execute$ SVar rather than copied from either list -- and a
+// delayed trigger IS a triggered ability (CR 603.7), so that branch counts
+// as triggered. When the source or its face is gone the split is unknowable
+// and the object counts as activated (the view's own "ability" verdict),
+// which keeps a Triggered-only counter from firing on an object no evidence
+// ties to a trigger; a broad Activated,Triggered/SpellAbility counter still
+// reaches it. Pointer identity is sound for the membership tests: every mint
+// copies the parsed slice's pointer (TriggerPush/AbilityPush), StackCopy
+// re-copies it, and ResolveSVar always parses a fresh SA, so a delayed
+// trigger's Ability can never alias a face-list entry.
+func (e *Engine) stackObjKind(o *state.Object) stackObjKind {
+	if o.Face() != nil {
+		return stackSpell
+	}
+	if _, ok := state.TriggerOf(e.G, o); ok {
+		return stackTriggered
+	}
+	if src := e.G.Obj(o.Source); src != nil {
+		if f := src.Face(); f != nil {
+			for _, ab := range f.Abilities {
+				if ab == o.Ability {
+					return stackActivated
+				}
+			}
+			// A real source face that lists neither a trigger nor this
+			// ability minted it from an SVar: DelayedPush (CR 603.7).
+			return stackTriggered
+		}
+	}
+	return stackActivated
+}
+
+// stackObjKind is the TargetType$-relevant kind of a stack object.
+type stackObjKind uint8
+
+const (
+	stackSpell     stackObjKind = iota // a card object (a Face) on the stack
+	stackActivated                     // an ability object minted by AbilityPush
+	stackTriggered                     // an ability object minted by TriggerPush/DelayedPush
+)
+
+// targetTypeToken is one comma-separated TargetType$ token: which stack
+// object kinds its base admits, the controller qualifier read off the
+// qualifiers after the base ("YouCtrl" -- controller must be the chooser;
+// "OppCtrl" -- controller must not be; e.g. Weaver of Harmony's
+// `Activated.YouCtrl,Triggered.YouCtrl`, Kang Dynasty's `Spell.OppCtrl`),
+// and the card-type restriction the base or a qualifier can impose: the
+// bases "Instant" and "Sorcery" (Spider Sense's `Instant,Sorcery,Triggered`)
+// and the Spell qualifiers "Instant"/"Sorcery" (Sister of Silence's
+// `Spell.Instant,Spell.Sorcery,Activated,Triggered`) restrict the Spell kind
+// to instant/sorcery CARD objects -- a creature spell is not admitted.
+// Any OTHER qualifier (singleTarget, numTargets GE1, ...) is NOT read -- the
+// token admits its full kind set with no restriction, the same widening the
+// AGENTS.md TargetType$ row records.
+type targetTypeToken struct {
+	kinds       [3]bool // indexed by stackObjKind; only lookups, never ranged
+	instantOnly bool    // the stackSpell kind admits only Instant cards
+	sorceryOnly bool    // the stackSpell kind admits only Sorcery cards
+	youCtrl     bool
+	oppCtrl     bool
+}
+
+// stackTargetKindTokens parses a TargetType$ value into its kind tokens.
+// A parameter that is absent -- or whose tokens name no stack kind at all --
+// defaults to Spell-only (today's behaviour, deliberately narrow: a spec
+// that never said it wants abilities does not get them).
+func stackTargetKindTokens(tt string) []targetTypeToken {
+	spellOnly := targetTypeToken{kinds: [3]bool{stackSpell: true}}
+	var toks []targetTypeToken
+	for _, t := range strings.Split(tt, ",") {
+		base, rest, _ := strings.Cut(strings.TrimSpace(t), ".")
+		var tok targetTypeToken
+		switch base {
+		case "Spell":
+			tok.kinds[stackSpell] = true
+		case "Instant":
+			tok.kinds[stackSpell] = true
+			tok.instantOnly = true
+		case "Sorcery":
+			tok.kinds[stackSpell] = true
+			tok.sorceryOnly = true
+		case "Activated":
+			tok.kinds[stackActivated] = true
+		case "Triggered":
+			tok.kinds[stackTriggered] = true
+		case "SpellAbility":
+			tok.kinds[stackSpell] = true
+			tok.kinds[stackActivated] = true
+			tok.kinds[stackTriggered] = true
+		default:
+			continue // a non-stack token never contributes a stack kind
+		}
+		for _, q := range strings.Split(rest, ".") {
+			switch strings.TrimSpace(q) {
+			case "YouCtrl":
+				tok.youCtrl = true
+			case "OppCtrl":
+				tok.oppCtrl = true
+			case "Instant": // Sister of Silence's Spell.Instant shape
+				tok.instantOnly = true
+			case "Sorcery":
+				tok.sorceryOnly = true
+			}
+		}
+		toks = append(toks, tok)
+	}
+	if len(toks) == 0 {
+		return []targetTypeToken{spellOnly}
+	}
+	return toks
+}
+
+// stackKindAdmits reports whether any TargetType$ token admits the stack
+// object o (of kind k) controlled by controller, from chooser you's
+// perspective. Token semantics are OR, matching ValidTgts$ alternatives:
+// the object is offered when SOME token whose kind set contains k admits it
+// under that token's own controller and card-type restriction. An
+// instantOnly/sorceryOnly token checks the card object's Face, so a creature
+// spell is never admitted by Spider Sense's `Instant,Sorcery,Triggered` or
+// Sister of Silence's `Spell.Instant,Spell.Sorcery,...`; a Face-less object
+// (never reachable for stackSpell, since stackObjKind only classifies a
+// Face-bearing object as a spell) fails closed.
+func stackKindAdmits(toks []targetTypeToken, k stackObjKind, o *state.Object, controller, you state.PlayerID) bool {
+	for _, tok := range toks {
+		if !tok.kinds[k] {
+			continue
+		}
+		if tok.instantOnly || tok.sorceryOnly {
+			f := o.Face()
+			if f == nil {
+				continue
+			}
+			if tok.instantOnly && !f.IsInstant() {
+				continue
+			}
+			if tok.sorceryOnly && !f.IsSorcery() {
+				continue
+			}
+		}
+		if tok.youCtrl {
+			if controller == you {
+				return true
+			}
+			continue
+		}
+		if tok.oppCtrl {
+			if controller == you {
+				continue
+			}
+			return true
+		}
+		return true
+	}
+	return false
+}
+
 // targetName is the object's name for a target prompt, tolerating the ability
 // stack object (no Face) a triggered ability's own target ask produces by
 // falling back to its source permanent's name.
@@ -183,6 +346,21 @@ func (e *Engine) targetName(source state.ObjID) string {
 	// prompt, so this is only reached for an object with no name at all --
 	// an unreadable name there is better than a fabricated one.
 	return "target"
+}
+
+// targetOptionLabel renders one target option's label: the target's name
+// followed by its controller's. The Face-less ability object a
+// TargetType$ Activated/Triggered census now offers has no name of its own,
+// so targetName's fallback (the source permanent's name) serves -- the two
+// census consumers (cast.go's targetAsk and stack.go's askTarget) share this
+// one helper so an ability object can never reach a nil-Face dereference in
+// either.
+func (e *Engine) targetOptionLabel(candidate targetCandidate) string {
+	label := e.G.Players[candidate.player].Name
+	if candidate.obj != 0 {
+		label = e.targetName(candidate.obj) + " (" + label + ")"
+	}
+	return label
 }
 
 // protectionSource resolves the object whose characteristics decide whether
@@ -272,8 +450,16 @@ func (e *Engine) legalTargetCandidates(p state.PlayerID, source, excludeSelf sta
 			// its objects are enumerated ONCE each -- labelled with the
 			// object's own controller -- rather than once per alive seat,
 			// which would offer the same spell N times in an N-seat game and
-			// drift the option list. Face-less ability objects remain outside
-			// the targetable population (see the TargetType$ row in AGENTS.md).
+			// drift the option list. Which stack objects are targetable is
+			// TargetType$'s job (CR 115.5 aside): Spell admits card objects,
+			// Instant/Sorcery admit instant/sorcery card objects only (Spider
+			// Sense, Sister of Silence), Activated/Triggered admit the ability
+			// objects AbilityPush/TriggerPush mint, SpellAbility admits all
+			// three, and a TargetType$ naming no stack kind falls back to
+			// Spell -- the pre-fix behaviour, kept for every spec that never
+			// said otherwise (the default stays the narrow one, never
+			// widened).
+			toks := stackTargetKindTokens(sa.Params["TargetType"])
 			for _, oid := range e.G.Zone(state.ZStack, 0) {
 				o := e.G.Obj(oid)
 				// CR 115.5: a spell or ability on the stack is an illegal
@@ -282,11 +468,13 @@ func (e *Engine) legalTargetCandidates(p state.PlayerID, source, excludeSelf sta
 				// stack -- its own id must never be offered, or a
 				// counterspell would counter itself. Only the source OBJECT
 				// is excluded, never a different copy of the same card.
-				if o == nil || o.Face() == nil || (excludeSelf != 0 && oid == excludeSelf) {
+				if o == nil || (excludeSelf != 0 && oid == excludeSelf) {
 					continue
 				}
-				if effects.MatchesSpecCtx(e.G, spec, oid, sc) &&
-					!(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc)) {
+				if !stackKindAdmits(toks, e.stackObjKind(o), o, o.Controller, p) {
+					continue
+				}
+				if effects.MatchesSpecCtx(e.G, spec, oid, sc) {
 					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: o.Controller})
 				}
 			}
@@ -327,10 +515,10 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		Prompt: "Choose a target for " + e.targetName(source),
 		Source: source, TargetEffect: describeTargetEffect(sa)}
 	for _, candidate := range e.legalTargetCandidates(p, source, source, sa) {
-		label := e.G.Players[candidate.player].Name
-		if candidate.obj != 0 {
-			label = e.G.Obj(candidate.obj).Face().Name + " (" + label + ")"
-		}
+		// targetOptionLabel tolerates the Face-less ability object a
+		// TargetType$ Activated/Triggered spec now offers: targetName falls
+		// back to the source permanent's name.
+		label := e.targetOptionLabel(candidate)
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player})
 	}
