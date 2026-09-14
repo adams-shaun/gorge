@@ -73,7 +73,17 @@ def web_check(worktree: Path) -> GateResult:
 
 
 def web_test(worktree: Path) -> GateResult:
-    return _run("npm test", ["npm", "test"], worktree / "web", timeout=300)
+    """vitest includes real-browser geometry tests that flake under box load
+    (5+ agents on one host): a BoardStage layout probe failed once and passed
+    on immediate re-run on both main and the branch, and the failure sent an
+    approved diff to a paid escalation. One retry, never more; a second
+    failure is a real failure, and the first failure's output is kept."""
+    first = _run("npm test", ["npm", "test"], worktree / "web", timeout=300)
+    if first.ok:
+        return first
+    second = _run("npm test", ["npm", "test"], worktree / "web", timeout=300)
+    second.output = f"[first run failed, retried once]\n{first.output[-6000:]}\n--- retry ---\n{second.output}"
+    return second
 
 
 def web_build(worktree: Path) -> GateResult:
