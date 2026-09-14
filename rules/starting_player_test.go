@@ -109,6 +109,32 @@ func TestTossNoteIsEmittedExactlyOnceAndNamesTheStartingPlayer(t *testing.T) {
 	}
 }
 
+// TestTossNoteIsEmittedWhenOpeningDealEndsTheGame covers both early-return
+// positions in New's deal loop. The determination still gets exactly one
+// public Note, but its text cannot claim that the terminal game began turn 1.
+func TestTossNoteIsEmittedWhenOpeningDealEndsTheGame(t *testing.T) {
+	for _, shortSeat := range []int{0, 1} {
+		decks := [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}
+		decks[shortSeat] = mountainDeck(t, 3)
+		e := New(Config{Seed: 1, Names: []string{"a", "b"}, Decks: decks})
+		if !e.G.Over || e.G.Turn != 0 {
+			t.Fatalf("short seat %d: fixture did not end during the deal (over=%v turn=%d)", shortSeat, e.G.Over, e.G.Turn)
+		}
+		notes := tossNotes(e)
+		if len(notes) != 1 {
+			t.Fatalf("short seat %d: %d toss Notes, want exactly 1", shortSeat, len(notes))
+		}
+		winner := notes[0].Player
+		if e.G.Players[winner].Lost {
+			t.Fatalf("short seat %d: toss Note names eliminated seat %d", shortSeat, winner)
+		}
+		want := tossName(e.G, winner) + " won the toss; the game ended before the first turn"
+		if notes[0].Text != want {
+			t.Fatalf("short seat %d: toss Note text %q, want %q", shortSeat, notes[0].Text, want)
+		}
+	}
+}
+
 // TestTossedGameReplaysByteIdentically: a seeded two-seat game whose toss
 // winner is NOT seat 0 replays byte-identically through the logged intents --
 // same chain head, same RNGDraws count (Ruling P5's replay contract).

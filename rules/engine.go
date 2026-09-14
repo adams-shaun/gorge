@@ -564,6 +564,13 @@ func New(cfg Config) *Engine {
 		// from a deliberately tiny Config -- but New must not hand back an
 		// Engine that has already both ended and kept moving.
 		if e.G.Over {
+			// A deliberately undersized opening deck can end the game before
+			// genesis reaches the common toss-recording path below. The random
+			// determination still happened before the shuffles, so record it
+			// exactly once here too; do not claim that a first turn will begin.
+			if start, ok := e.resolveToss(toss, e.G.AliveFrom(0), len(cfg.Names)); ok {
+				e.recordToss(start, false)
+			}
 			return e
 		}
 	}
@@ -596,18 +603,7 @@ func New(cfg Config) *Engine {
 	// modulo over the survivor count instead would be BIASED: three seats
 	// with seat 0 eliminated maps two of the three toss outcomes onto one
 	// survivor (measured 395/205 over 600 seeds on the pre-fix code).
-	start := alive[0]
-	if toss >= 0 {
-		isAlive := make(map[state.PlayerID]bool, len(alive))
-		for _, s := range alive {
-			isAlive[s] = true
-		}
-		r := state.PlayerID(toss)
-		for !isAlive[r] {
-			r = state.PlayerID(e.rng.IntN(len(cfg.Names)))
-		}
-		start = r
-	}
+	start, _ := e.resolveToss(toss, alive, len(cfg.Names))
 	// Ruling T22-f: begin with the first seat still alive, not always seat
 	// 0 -- an early seat that decked out during its own opening draw (Over
 	// still false, since other seats remain, but that seat's own Lost is
@@ -618,10 +614,8 @@ func New(cfg Config) *Engine {
 		// CR 103.1: record the toss publicly -- one Note naming the winner,
 		// rendered verbatim by view/describe.go, so it lands in every seat's
 		// transcript and on the web client with no UI work. Emitted exactly
-		// once per game, before the mulligan round / turn 1 begins; a game
-		// already Over at genesis is not begun by anyone and records no toss.
-		e.emit(events.Event{Kind: events.Note, Player: start,
-			Text: tossName(e.G, start) + " won the toss and takes the first turn"})
+		// once per game, before the mulligan round / turn 1 begins.
+		e.recordToss(start, true)
 		if cfg.Mulligans > 0 {
 			// Ruling R-8.4: the London mulligan round lives between the deal
 			// and turn 1. e.pregame makes step() dispatch to stepPregame
@@ -639,6 +633,38 @@ func New(cfg Config) *Engine {
 		}
 	}
 	return e
+}
+
+// resolveToss maps the pre-shuffle random determination onto the seats that
+// survived the opening deal. The original candidate is already uniform over
+// every configured seat; rejection sampling an eliminated candidate preserves
+// uniformity over survivors without consuming another draw in ordinary games.
+func (e *Engine) resolveToss(toss int, alive []state.PlayerID, seats int) (state.PlayerID, bool) {
+	if toss < 0 || len(alive) == 0 || seats <= 0 {
+		return 0, false
+	}
+	candidate := state.PlayerID(toss)
+	for {
+		for _, p := range alive {
+			if p == candidate {
+				return candidate, true
+			}
+		}
+		candidate = state.PlayerID(e.rng.IntN(seats))
+	}
+}
+
+// recordToss emits the one public record of the random determination. A game
+// that ended during its opening deal still records a winner, but it must not
+// claim that the first turn began.
+func (e *Engine) recordToss(winner state.PlayerID, takesFirstTurn bool) {
+	text := tossName(e.G, winner) + " won the toss"
+	if takesFirstTurn {
+		text += " and takes the first turn"
+	} else {
+		text += "; the game ended before the first turn"
+	}
+	e.emit(events.Event{Kind: events.Note, Player: winner, Text: text})
 }
 
 // tossName is the identity the toss Note's text carries: the deck-identity
