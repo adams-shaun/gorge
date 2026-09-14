@@ -9,7 +9,7 @@
   let format: VsBotFormat = $state('constructed');
   let humanDeck = $state('');
   let botDeck = $state('');
-  let mulligans: VsBotMulligans = $state(1);
+  let mulligans: VsBotMulligans = $state(6);
   let decks = $state<DeckInfo[]>([]);
   let loadingDecks = $state(true);
   let busy = $state(false);

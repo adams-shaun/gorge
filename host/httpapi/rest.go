@@ -412,9 +412,9 @@ func (h *handler) games(w http.ResponseWriter, r *http.Request) {
 		}
 		format = f
 	}
-	if req.Mulligans != nil && (*req.Mulligans < 0 || *req.Mulligans > 7) {
+	if req.Mulligans != nil && (*req.Mulligans < 0 || *req.Mulligans > 6) {
 		writeError(w, http.StatusBadRequest, "bad_request",
-			"mulligans must be between 0 and 7")
+			"mulligans must be between 0 and 6")
 		return
 	}
 	resp, err := h.opts.CreateGame(CreateGameOptions{
