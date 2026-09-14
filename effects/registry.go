@@ -23,6 +23,12 @@ type Host interface {
 	// log a complete description of the match.
 	Game() *state.Game
 	Emit(events.Event)
+	// EmitDamage emits a Damage event and returns the event that actually
+	// landed after replacement effects. A prevention returns a non-Damage
+	// result; an amount-changing replacement returns Damage with the applied
+	// amount. Damage riders (lifelink/deathtouch/commander damage) must consume
+	// this result rather than the proposed event.
+	EmitDamage(events.Event) events.Event
 	// Rand is the engine's seeded generator. Effects that need randomness must
 	// use it and nothing else, or replay breaks.
 	Rand(n int) int
@@ -86,7 +92,7 @@ type Host interface {
 	// CounterAllowed reports whether a spell or ability may be countered.
 	// Counter replacement effects are rules, not a MoveZone replacement: they
 	// stop Counter before it emits the move off the stack.
-	CounterAllowed(state.ObjID) bool
+	CounterAllowed(target, cause state.ObjID) bool
 }
 
 // Ctx carries the bindings a Forge script refers to during resolution.

@@ -1063,6 +1063,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 		// substituted for the Damage event) never reaches it.
 		e.combatDamaging = true
 		var prevented bool
+		dealt := x.amount
 		if x.toObj != 0 {
 			// Task 15 fix round 1 (Critical C1): the return value of the
 			// Damage emit is read here. emit swallows a protected permanent's
@@ -1079,8 +1080,11 @@ func (e *Engine) damageStep(firstStrike bool) {
 			// did NOT land -- skips both riders for a prevented assignment.
 			ev := e.emit(events.Event{Kind: events.Damage, Obj: x.toObj, Amount: x.amount})
 			prevented = ev.Kind != events.Damage
-			if x.deathtouch && !prevented {
-				e.emit(events.Event{Kind: events.CounterChange, Obj: x.toObj,
+			if !prevented {
+				dealt = ev.Amount
+			}
+			if x.deathtouch && !prevented && ev.Obj != 0 {
+				e.emit(events.Event{Kind: events.CounterChange, Obj: ev.Obj,
 					Counter: "Deathtouched", Amount: 1})
 			}
 		} else {
@@ -1097,18 +1101,17 @@ func (e *Engine) damageStep(firstStrike bool) {
 			// player-hit, consistent with the Obj branch. Non-Commander games
 			// take the original single-emit path untouched, so this task
 			// changes nothing about them.
-			if e.format == FormatCommander {
-				ev := e.emit(events.Event{Kind: events.Damage, Player: x.toPlayer, Amount: x.amount})
-				prevented = ev.Kind != events.Damage
-				if !prevented {
-					e.tallyCmdDamage(x.toPlayer, x.from, x.amount)
+			ev := e.emit(events.Event{Kind: events.Damage, Player: x.toPlayer, Amount: x.amount})
+			prevented = ev.Kind != events.Damage
+			if !prevented {
+				dealt = ev.Amount
+				if e.format == FormatCommander && ev.Obj == 0 {
+					e.tallyCmdDamage(ev.Player, x.from, dealt)
 				}
-			} else {
-				e.emit(events.Event{Kind: events.Damage, Player: x.toPlayer, Amount: x.amount})
 			}
 		}
 		if x.hasLink && !prevented {
-			e.emit(events.Event{Kind: events.LifeChange, Player: x.lifelink, Amount: x.amount})
+			e.emit(events.Event{Kind: events.LifeChange, Player: x.lifelink, Amount: dealt})
 		}
 		e.damaging = 0
 		e.combatDamaging = false

@@ -109,27 +109,21 @@ func newDamageRider(h Host, c *Ctx, amount int32) damageRider {
 // LifeChange rides the damage emit itself, so the gain is visible at the same
 // instant the damage is, with no stack, no trigger queue and no ask.
 //
-// landed must be false when the damage event did not land: prevention (CR
-// 702.16d, protection) replaces a Damage event with a Note, and a prevented
-// hit gains nothing. Every caller that can observe the replacement reports it
-// (emitObjectDamage's state-delta check); the player arm cannot be prevented
-// in this build (protection arms objects only, rules/engine.go's emit checks
-// ev.Obj != 0), so it reports landed for any positive amount.
-func payLifelinkRider(r damageRider, landed bool) {
-	if !landed || r.amount <= 0 || !r.hasLifelink {
+// dealt is the amount on the Damage event that actually landed after
+// replacement effects. It is zero for prevention, and may differ from the
+// proposed amount for a multiplier or other amount-changing replacement.
+func payLifelinkRider(r damageRider, dealt int32) {
+	if dealt <= 0 || !r.hasLifelink {
 		return
 	}
 	r.h.Emit(events.Event{Kind: events.LifeChange, Player: r.controller,
-		Amount: r.amount})
+		Amount: dealt})
 }
 
-// emitObjectDamage marks the shared SBA witness only when positive damage from
-// a derived-deathtouch source actually increased the recipient's marked
-// damage. Host.Emit cannot expose a replacement event, so the state delta is
-// the effects-layer observation that protection or prevention did not replace
-// the Damage event -- the same observation gates the lifelink rider
-// (payLifelinkRider), so a prevented hit pays no deathtouch marker and no
-// life.
+// emitObjectDamage marks the shared SBA witness only when EmitDamage returns
+// positive applied damage. The same returned result gates and prices lifelink,
+// so prevention pays neither rider and amount replacement prices both from the
+// event that actually landed.
 //
 // CR 306.8: damage dealt to a planeswalker permanent removes that many
 // loyalty counters instead of being marked as damage, so a walker target
@@ -153,32 +147,36 @@ func emitObjectDamage(r damageRider, target state.ObjID) {
 	if f := o.Face(); f != nil && f.IsPlaneswalker() {
 		// A walker's damage removes loyalty counters (CR 306.8) but is still
 		// damage dealt -- the lifelink rider pays for it too.
-		landed := false
+		dealt := int32(0)
 		if r.amount != 0 {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: target,
 				Counter: "LOYALTY", Amount: -r.amount})
-			landed = r.amount > 0
+			dealt = r.amount
 		}
-		payLifelinkRider(r, landed)
+		payLifelinkRider(r, dealt)
 		return
 	}
-	before := o.Damage
-	h.Emit(events.Event{Kind: events.Damage, Obj: target, Amount: r.amount})
-	o = h.Game().Obj(target)
-	landed := r.amount > 0 && o != nil && o.Damage > before
-	if landed && h.HasKeyword(r.source, "Deathtouch") {
-		h.Emit(events.Event{Kind: events.CounterChange, Obj: target,
+	applied := h.EmitDamage(events.Event{Kind: events.Damage, Obj: target, Amount: r.amount})
+	dealt := int32(0)
+	if applied.Kind == events.Damage {
+		dealt = applied.Amount
+	}
+	if dealt > 0 && applied.Obj != 0 && h.HasKeyword(r.source, "Deathtouch") {
+		h.Emit(events.Event{Kind: events.CounterChange, Obj: applied.Obj,
 			Counter: "Deathtouched", Amount: 1})
 	}
-	payLifelinkRider(r, landed)
+	payLifelinkRider(r, dealt)
 }
 
 // emitPlayerDamage lands one non-combat Damage event on a player and pays the
-// lifelink rider for it. The player arm has no prevention path in this build
-// (see payLifelinkRider), so any positive amount landed.
+// lifelink rider from the amount that survived replacement effects.
 func emitPlayerDamage(r damageRider, target state.PlayerID) {
-	r.h.Emit(events.Event{Kind: events.Damage, Player: target, Amount: r.amount})
-	payLifelinkRider(r, r.amount > 0)
+	applied := r.h.EmitDamage(events.Event{Kind: events.Damage, Player: target, Amount: r.amount})
+	dealt := int32(0)
+	if applied.Kind == events.Damage {
+		dealt = applied.Amount
+	}
+	payLifelinkRider(r, dealt)
 }
 
 // effDamageAll is the sweep pattern: iterate the battlefield in seat order,

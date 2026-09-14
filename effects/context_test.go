@@ -77,7 +77,11 @@ func (h *fakeHost) SuspendContinuation(*cards.SA) {}
 
 func (h *fakeHost) ReplaceEvent(string, string, int32) {}
 
-func (h *fakeHost) CounterAllowed(state.ObjID) bool { return true }
+func (h *fakeHost) EmitDamage(e events.Event) events.Event {
+	h.Emit(e)
+	return e
+}
+func (h *fakeHost) CounterAllowed(state.ObjID, state.ObjID) bool { return true }
 
 func newHost(t *testing.T, seats int) *fakeHost {
 	t.Helper()

@@ -238,6 +238,7 @@ func (e *Engine) Clone() *Engine {
 		c.replChoices = make([]replChoice, len(e.replChoices))
 		for i, rc := range e.replChoices {
 			rc.cands = append([]replMatch(nil), rc.cands...)
+			rc.used = append([]replMatch(nil), rc.used...)
 			c.replChoices[i] = rc
 		}
 	}

@@ -67,10 +67,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	what := strings.TrimSpace(sa.Params["StaticAbilities"] + " " + sa.Params["Triggers"])
 	remembered := effectRemembered(h, c, sa)
 	registered := false
-	for _, name := range strings.Fields(sa.Params["StaticAbilities"]) {
+	for _, name := range strings.FieldsFunc(sa.Params["StaticAbilities"], func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	}) {
 		mode, params := parseStaticLine(c.SVars, name)
 		switch mode {
-		case "CantTarget", "CantRegenerate":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage":
 			// A compound IsRemembered spec (Card.IsRemembered+Creature) cannot
 			// be resolved by the remembered-set match alone -- the extra
 			// predicate would be silently dropped, over-applying the
@@ -387,7 +389,7 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZStack {
 			continue
 		}
-		if !h.CounterAllowed(o.ID) {
+		if !h.CounterAllowed(o.ID, c.Source) {
 			h.Emit(events.Event{Kind: events.Note, Obj: o.ID, Text: "counter prevented"})
 			continue
 		}

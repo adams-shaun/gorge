@@ -151,7 +151,28 @@ func protecColourLetter(q string) rune {
 // scans both ordinary battlefield statics and an EffectZone$ Stack source,
 // since Banefire's self-static exists while its spell is resolving; the
 // source/Combat gates are evaluated against the damage currently in flight.
-func (e *Engine) cantPreventDamage(damageSource state.ObjID) bool {
+func (e *Engine) cantPreventDamage(damageSource, target state.ObjID) bool {
+	// Effect-created restrictions (Skullcrack, Call In a Professional, and
+	// the rest of the StaticAbilities$ family) live in the same registry as
+	// CantTarget/CantRegenerate. A restriction with no Affected$ is global;
+	// an IsRemembered restriction applies only to the captured target.
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantPreventDamage" {
+			continue
+		}
+		spec := ce.RestrictParams["Affected"]
+		if spec == "" {
+			return true
+		}
+		if strings.Contains(spec, "IsRemembered") {
+			for _, id := range ce.Remembered {
+				if id == target {
+					return true
+				}
+			}
+		}
+	}
+
 	forbidden := false
 	e.forEachObject(func(id state.ObjID) {
 		if forbidden {
@@ -174,8 +195,7 @@ func (e *Engine) cantPreventDamage(damageSource state.ObjID) bool {
 				(strings.EqualFold(combat, "False") && e.combatDamaging) {
 				continue
 			}
-			if check := st.Params["CheckSVar"]; check != "" && check == "X" &&
-				!staticCompare(o.X, st.Params["SVarCompare"]) {
+			if !e.replacementConditionHolds(st.Params, id) {
 				continue
 			}
 			forbidden = true
@@ -183,33 +203,6 @@ func (e *Engine) cantPreventDamage(damageSource state.ObjID) bool {
 		}
 	})
 	return forbidden
-}
-
-func staticCompare(n int32, spec string) bool {
-	for _, op := range []string{"GE", "GT", "LE", "LT", "EQ"} {
-		if rhs, ok := strings.CutPrefix(spec, op); ok {
-			var v int32
-			for _, r := range rhs {
-				if r < '0' || r > '9' {
-					return false
-				}
-				v = v*10 + int32(r-'0')
-			}
-			switch op {
-			case "GE":
-				return n >= v
-			case "GT":
-				return n > v
-			case "LE":
-				return n <= v
-			case "LT":
-				return n < v
-			case "EQ":
-				return n == v
-			}
-		}
-	}
-	return false
 }
 
 func init() {

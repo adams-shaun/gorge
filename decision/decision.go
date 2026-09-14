@@ -82,14 +82,12 @@ const (
 	// of Option.Kind is new.
 	KChoose Kind = "choose"
 	// KReplacement is CR 616.1's order choice: two or more replacement effects
-	// are trying to modify the way one event affects an object, and the
-	// affected player (the controller of the affected object) chooses the
-	// order in which they apply. Min == Max == 1 over one option per
-	// competing replacement, in the deterministic scan order the engine
-	// found them in; each option's Kind is "replacement" and its Obj is the
-	// source permanent that owns that replacement. Posed BEFORE anything
-	// relocates (the modified event is parked), so answering never sees the
-	// object already moved.
+	// are trying to modify one event, and the affected player (the damaged
+	// player, or the controller of an affected object) chooses which applies
+	// next. Min == Max == 1 over one option per currently applicable effect;
+	// after each choice the set is recomputed against the modified event.
+	// Each option's Kind is "replacement" and Obj is the source permanent.
+	// Posed before the move or damage lands.
 	KReplacement Kind = "replacement"
 	// KArrange is the ordered-subset ask a library-arranging effect poses
 	// (Ruling J0): the engine offers N cards, and the answer is an ordered

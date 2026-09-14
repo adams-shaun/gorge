@@ -92,6 +92,19 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 		return ev, false
 	}
 	if ev.Kind != events.MoveZone {
+		if ev.Kind == events.Damage {
+			matches = e.applicableDamageReplacements(ev, matches)
+			if len(matches) == 0 {
+				return ev, false
+			}
+			if len(matches) > 1 {
+				if p, ok := e.damageAffectedPlayer(ev); ok && !e.G.Players[p].Lost {
+					e.poseDamageReplacementChoice(ev, matches, p)
+					return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+						Text: "damage awaiting replacement-order choice"}, true
+				}
+			}
+		}
 		return e.applyNonMoveReplacements(ev, matches)
 	}
 
@@ -148,16 +161,21 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	return ev, false
 }
 
-// applyNonMoveReplacements applies the event-rewriting and prevention forms.
-// Damage modifiers keep the event, changing its amount before the one logged
-// Damage event; a non-modifying ReplaceWith$ or Prevent$ replaces it entirely.
-// Several amount modifiers are applied in the deterministic source scan order,
-// the same currently documented all-Updated composition used for entry effects.
+// applyNonMoveReplacements applies a lone damage replacement, or the
+// deterministic fallback used when the affected player has left the game.
+// Competing replacements for a live affected player are parked and ordered by
+// KReplacement instead.
 func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
 	for _, m := range matches {
+		// CR 616.1e: after each modification, applicability is checked again
+		// against the changed event (not the original amount).
+		if !e.replacementMatches(*m.repl, m.id, ev) {
+			continue
+		}
 		if ev.Kind == events.Damage && m.repl.Params["Prevent"] == "True" {
-			if !e.cantPreventDamage(e.damaging) {
-				return ev, true
+			if !e.cantPreventDamage(e.damaging, ev.Obj) {
+				return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+					Text: "damage prevented by replacement effect"}, true
 			}
 			continue
 		}
@@ -178,6 +196,31 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 		return ev, true
 	}
 	return ev, false
+}
+
+func (e *Engine) applicableDamageReplacements(ev events.Event, matches []replMatch) []replMatch {
+	out := matches[:0]
+	for _, m := range matches {
+		if !e.replacementMatches(*m.repl, m.id, ev) {
+			continue
+		}
+		if m.repl.Params["Prevent"] == "True" && e.cantPreventDamage(e.damaging, ev.Obj) {
+			continue
+		}
+		out = append(out, m)
+	}
+	return out
+}
+
+func (e *Engine) damageAffectedPlayer(ev events.Event) (state.PlayerID, bool) {
+	if ev.Obj == 0 {
+		return ev.Player, int(ev.Player) < len(e.G.Players)
+	}
+	o := e.G.Obj(ev.Obj)
+	if o == nil || int(o.Controller) >= len(e.G.Players) {
+		return 0, false
+	}
+	return o.Controller, true
 }
 
 // replMatch is one replacement effect the engine found applicable to an
@@ -228,11 +271,11 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 // both the guard and that record afterward so an outer replacement keeps its
 // own state.
 func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *cards.SA, ev *events.Event) {
-	savedRepl, savedEvent := e.replReplaced, e.replacingEvent
+	savedRepl, savedEvent, savedSource := e.replReplaced, e.replacingEvent, e.replacingSource
 	e.applyingReplacement = true
-	e.replReplaced, e.replacingEvent = replaced, ev
+	e.replReplaced, e.replacingEvent, e.replacingSource = replaced, ev, ctx.Source
 	e.resolveReplacementWith(ctx, with)
-	e.replReplaced, e.replacingEvent = savedRepl, savedEvent
+	e.replReplaced, e.replacingEvent, e.replacingSource = savedRepl, savedEvent, savedSource
 	e.applyingReplacement = false
 }
 
@@ -308,6 +351,14 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 // damaging is saved and restored (never zeroed) so an outer in-flight
 // assignment keeps its own attribution once the replacement returns.
 func (e *Engine) resolveReplacementWith(ctx *effects.Ctx, with *cards.SA) {
+	// ReplaceEffect rewrites the held event and must retain e.damaging as the
+	// ORIGINAL damage source (Affected$ ReplacedSourceController needs it).
+	// A body that emits its own damage still attributes that new event to the
+	// permanent owning the replacement.
+	if with.API == "ReplaceEffect" {
+		effects.Resolve(e, ctx, with)
+		return
+	}
 	saved := e.damaging
 	e.damaging = ctx.Source
 	effects.Resolve(e, ctx, with)
@@ -363,6 +414,9 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 			return false
 		}
 	}
+	if !e.replacementConditionHolds(r.Params, source) {
+		return false
+	}
 	// CR 603.10/Forge ValidLKI: a look-back-in-time gate on the moving
 	// object, evaluated against it as it is right before the move applies --
 	// which for a replacement is its live state, since a replacement runs
@@ -392,6 +446,9 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 // recipient, and IsCombat$/DamageAmount$ describe this in-flight event.
 func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev events.Event) bool {
 	ctrl := e.controllerOf(source)
+	if v := r.Params["ValidCause"]; v != "" && !e.replacementCauseMatches(v, source, e.damaging) {
+		return false
+	}
 	if v := r.Params["ValidSource"]; v != "" &&
 		(e.damaging == 0 || !effects.MatchesSpecFrom(e.G, v, e.damaging, ctrl, source)) {
 		return false
@@ -463,6 +520,26 @@ func (e *Engine) ReplaceEvent(name, raw string, resolved int32) {
 	}
 	if (name == "DamageAmount" || name == "Amount") && resolved > 0 {
 		ev.Amount = resolved
+		return
+	}
+	if name != "Affected" {
+		return
+	}
+	switch raw {
+	case "Self":
+		ev.Obj, ev.Player = e.replacingSource, 0
+	case "Enchanted", "Equipped":
+		if source := e.G.Obj(e.replacingSource); source != nil && source.AttachedTo != 0 {
+			ev.Obj, ev.Player = source.AttachedTo, 0
+		}
+	case "ReplacedSourceController":
+		if source := e.G.Obj(e.damaging); source != nil {
+			ev.Obj, ev.Player = 0, source.Controller
+		}
+	case "ReplacedTargetController":
+		if target := e.G.Obj(ev.Obj); target != nil {
+			ev.Obj, ev.Player = 0, target.Controller
+		}
 	}
 }
 
@@ -504,10 +581,225 @@ func replCountOp(base int32, op string) int32 {
 	return int32(v)
 }
 
+// replacementConditionHolds evaluates the condition gates shared by damage,
+// counter and CantPreventDamage text. Unknown condition shapes fail closed:
+// an inactive conditional replacement must never be widened into an
+// unconditional one.
+func (e *Engine) replacementConditionHolds(params map[string]string, source state.ObjID) bool {
+	o := e.G.Obj(source)
+	if o == nil {
+		return false
+	}
+	ctrl := o.Controller
+	if strings.EqualFold(params["PlayerTurn"], "True") && e.G.Active != ctrl {
+		return false
+	}
+	if strings.EqualFold(params["Hellbent"], "True") && len(e.G.Zone(state.ZHand, ctrl)) != 0 {
+		return false
+	}
+	if strings.EqualFold(params["Revolt"], "True") && !e.revoltThisTurn(ctrl) {
+		return false
+	}
+	if strings.EqualFold(params["Delirium"], "True") && e.graveyardCardTypeCount(ctrl) < 4 {
+		return false
+	}
+	if _, ok := params["CheckDefinedPlayer"]; ok {
+		// The only corpus shape is You.isMonarch. Monarch state is not yet
+		// represented, so fail closed instead of preventing damage always.
+		return false
+	}
+	if spec, ok := params["IsPresent"]; ok {
+		zone := state.ZBattlefield
+		if z := params["PresentZone"]; z != "" {
+			zone = effects.ParseZone(z)
+		}
+		n := e.countPresentInZone(spec, source, ctrl, zone, params["PresentDefined"])
+		cmp := params["PresentCompare"]
+		if cmp == "" {
+			cmp = "GE1"
+		}
+		if !comparePresent(n, cmp) {
+			return false
+		}
+	}
+	if check, ok := params["CheckSVar"]; ok {
+		n := e.replacementCheckValue(source, check)
+		if cmp := params["SVarCompare"]; cmp != "" {
+			op, rhs, valid := splitCompare(strings.TrimSpace(cmp))
+			if !valid || !applyCompare(int(n), op, rhs) {
+				return false
+			}
+		} else if n == 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func (e *Engine) replacementCheckValue(source state.ObjID, check string) int32 {
+	o := e.G.Obj(source)
+	if o == nil {
+		return 0
+	}
+	ctx := e.replCtx(replMatch{id: source}, events.Event{})
+	if check == "X" {
+		return o.X
+	}
+	body := check
+	if ctx.SVars != nil {
+		if v, ok := ctx.SVars[check]; ok {
+			body = v
+		}
+	}
+	switch body {
+	case "Count$Party":
+		roles := map[string]bool{}
+		for _, id := range e.G.Zone(state.ZBattlefield, o.Controller) {
+			if f := e.G.Obj(id).Face(); f != nil {
+				for _, typ := range f.Types {
+					switch typ {
+					case "Cleric", "Rogue", "Warrior", "Wizard":
+						roles[typ] = true
+					}
+				}
+			}
+		}
+		return int32(len(roles))
+	case "Count$Valid Permanent.YouCtrl$Colors":
+		colors := ""
+		for _, id := range e.G.Zone(state.ZBattlefield, o.Controller) {
+			colors += effects.ColorsOf(e.G.Obj(id))
+		}
+		var n int32
+		for _, c := range "WUBRG" {
+			if strings.ContainsRune(colors, c) {
+				n++
+			}
+		}
+		return n
+	case "Count$Presence_Dragon.1.0":
+		for _, id := range e.G.Zone(state.ZBattlefield, o.Controller) {
+			if faceHasType(e.G.Obj(id), "Dragon") {
+				return 1
+			}
+		}
+		return 0
+	}
+	return effects.EvalCount(e, ctx, body)
+}
+
+func (e *Engine) countPresentInZone(spec string, source state.ObjID, you state.PlayerID, zone state.Zone, defined string) int {
+	if defined == "Self" {
+		o := e.G.Obj(source)
+		if o == nil || o.Zone != zone {
+			return 0
+		}
+		if spec == "Card.equipping" {
+			if o.AttachedTo != 0 {
+				return 1
+			}
+			return 0
+		}
+		if effects.MatchesSpecFrom(e.G, spec, source, you, source) {
+			return 1
+		}
+		return 0
+	}
+	n := 0
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o != nil && o.Zone == zone && effects.MatchesSpecFrom(e.G, spec, id, you, source) {
+			n++
+		}
+	})
+	return n
+}
+
+func (e *Engine) revoltThisTurn(controller state.PlayerID) bool {
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.MoveZone && ev.From == state.ZBattlefield {
+			// Move preserves the object's pre-move controller outside the
+			// battlefield, so this is the controller at the moment it left —
+			// exactly Revolt's "a permanent you controlled" test (not owner).
+			if o := e.G.Obj(ev.Obj); o != nil && o.Controller == controller {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (e *Engine) graveyardCardTypeCount(controller state.PlayerID) int {
+	seen := map[string]bool{}
+	for _, id := range e.G.Zone(state.ZGraveyard, controller) {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil {
+			for _, typ := range o.Face().Types {
+				switch typ {
+				case "Artifact", "Battle", "Creature", "Enchantment", "Instant", "Kindred", "Land", "Planeswalker", "Sorcery":
+					seen[typ] = true
+				}
+			}
+		}
+	}
+	return len(seen)
+}
+
+func faceHasType(o *state.Object, typ string) bool {
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	for _, got := range o.Face().Types {
+		if got == typ {
+			return true
+		}
+	}
+	return false
+}
+
+func (e *Engine) replacementCauseMatches(spec string, replacementSource, cause state.ObjID) bool {
+	o := e.G.Obj(cause)
+	if o == nil {
+		return false
+	}
+	kind, quals, _ := strings.Cut(strings.TrimSpace(spec), ".")
+	switch kind {
+	case "Spell":
+		if o.Ability != nil {
+			return false
+		}
+	case "SpellAbility":
+		// Both spell cards and minted ability objects qualify.
+	default:
+		return false
+	}
+	if quals == "" {
+		return true
+	}
+	if strings.HasPrefix(quals, "IsTargeting Self") {
+		for _, t := range o.Targets {
+			if !t.IsPlayer && t.Obj == replacementSource {
+				return true
+			}
+		}
+		return false
+	}
+	switch quals {
+	case "YouCtrl":
+		return o.Controller == e.controllerOf(replacementSource)
+	case "OppCtrl", "YouDontCtrl":
+		return o.Controller != e.controllerOf(replacementSource)
+	}
+	return false
+}
+
 // CounterAllowed implements effects.Host. A Counter event is the attempted
 // removal of a stack object, not a CounterChange event, so it is checked at
 // Counter's sole stack-removal path before the MoveZone is emitted.
-func (e *Engine) CounterAllowed(target state.ObjID) bool {
+func (e *Engine) CounterAllowed(target, cause state.ObjID) bool {
 	blocked := false
 	e.forEachObject(func(source state.ObjID) {
 		if blocked {
@@ -518,8 +810,12 @@ func (e *Engine) CounterAllowed(target state.ObjID) bool {
 			return
 		}
 		for i := range o.Face().Repls {
-			r := o.Face().Repls[i]
-			if r.Event == "Counter" && e.counterReplacementMatches(r, source, target) {
+			r := &o.Face().Repls[i]
+			if r.Event == "Counter" && e.counterReplacementMatches(*r, source, target, cause) {
+				if r.With != nil {
+					e.runReplaceWith(e.replCtx(replMatch{id: source, repl: r},
+						events.Event{Obj: target}), target, r.With, nil)
+				}
 				blocked = true
 				return
 			}
@@ -528,7 +824,7 @@ func (e *Engine) CounterAllowed(target state.ObjID) bool {
 	return !blocked
 }
 
-func (e *Engine) counterReplacementMatches(r cards.Repl, source, target state.ObjID) bool {
+func (e *Engine) counterReplacementMatches(r cards.Repl, source, target, cause state.ObjID) bool {
 	o := e.G.Obj(source)
 	t := e.G.Obj(target)
 	if o == nil || t == nil || t.Zone != state.ZStack {
@@ -541,38 +837,79 @@ func (e *Engine) counterReplacementMatches(r cards.Repl, source, target state.Ob
 		!effects.MatchesSpecFrom(e.G, v, target, o.Controller, source) {
 		return false
 	}
-	return counterValidSA(e.G, t, r.Params["ValidSA"], o.Controller)
+	if v := r.Params["ValidCause"]; v != "" && !e.replacementCauseMatches(v, source, cause) {
+		return false
+	}
+	if !e.replacementConditionHolds(r.Params, source) {
+		return false
+	}
+	return counterValidSA(e.G, t, r.Params["ValidSA"], o.Controller, source)
 }
 
 // counterValidSA is the Spell/Activated/Triggered subset used by R:Event$
 // Counter. A qualifier scopes the stack object's controller relative to the
 // replacement source; an unrecognised qualifier fails closed.
-func counterValidSA(g *state.Game, target *state.Object, spec string, you state.PlayerID) bool {
+func counterValidSA(g *state.Game, target *state.Object, spec string, you state.PlayerID, source state.ObjID) bool {
 	if spec == "" {
 		return true
 	}
 	for _, alt := range strings.Split(spec, ",") {
-		kind, qual, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		kind, quals, _ := strings.Cut(strings.TrimSpace(alt), ".")
 		isKind := (kind == "Spell" && target.Ability == nil) ||
+			(kind == "SpellAbility") ||
 			(kind == "Activated" && target.Ability != nil && !isTriggered(g, target)) ||
 			(kind == "Triggered" && target.Ability != nil && isTriggered(g, target))
 		if !isKind {
 			continue
 		}
-		switch qual {
-		case "":
+		if quals == "" {
 			return true
-		case "YouCtrl":
-			if target.Controller == you {
-				return true
-			}
-		case "OppCtrl", "YouDontCtrl":
-			if target.Controller != you {
-				return true
+		}
+		// Spell qualifiers are card characteristics plus controller-relative
+		// predicates. Reuse the ordinary object-filter grammar rather than a
+		// hand-maintained qualifier allowlist, so Creature/Instant/colour/P/T
+		// and future recognised predicates cannot drift from targeting.
+		if target.Ability == nil && counterSpellQualifiers(g, target, quals, you, source) {
+			return true
+		}
+		// Ability objects have no card face; their corpus qualifiers are the
+		// controller-relative forms, evaluated explicitly against the wrapper.
+		if target.Ability != nil {
+			switch quals {
+			case "YouCtrl":
+				if target.Controller == you {
+					return true
+				}
+			case "OppCtrl", "YouDontCtrl":
+				if target.Controller != you {
+					return true
+				}
 			}
 		}
 	}
 	return false
+}
+
+func counterSpellQualifiers(g *state.Game, target *state.Object, quals string, you state.PlayerID, source state.ObjID) bool {
+	var ordinary []string
+	for _, q := range strings.Split(quals, "+") {
+		switch q {
+		case "hasKeywordFlash":
+			if target.Face() == nil || !target.Face().HasKeyword("Flash") {
+				return false
+			}
+		case "wasCastByYou":
+			if target.Controller != you {
+				return false
+			}
+		default:
+			ordinary = append(ordinary, q)
+		}
+	}
+	if len(ordinary) == 0 {
+		return true
+	}
+	return effects.MatchesSpecFrom(g, "Card."+strings.Join(ordinary, "+"), target.ID, you, source)
 }
 
 func isTriggered(g *state.Game, o *state.Object) bool {
@@ -589,9 +926,15 @@ func isTriggered(g *state.Game, o *state.Object) bool {
 // data), so Clone copies the queue with one slice copy, the same class as
 // cmdZone.
 type replChoice struct {
-	ev     events.Event
-	cands  []replMatch
-	before *triggerSnapshot // immutable SBA look-back, safe to share in Clone
+	ev       events.Event
+	cands    []replMatch
+	used     []replMatch
+	before   *triggerSnapshot // immutable SBA look-back, safe to share in Clone
+	player   state.PlayerID
+	damaging state.ObjID
+	combat   bool
+	lifelink bool
+	deadly   bool
 }
 
 // poseReplacementChoice starts a CR 616.1 order-selection suspension: the
@@ -609,7 +952,7 @@ func (e *Engine) poseReplacementChoice(ev events.Event, matches []replMatch) {
 	if int(p) >= len(e.G.Players) {
 		return
 	}
-	e.replChoices = append(e.replChoices, replChoice{ev: ev, cands: matches, before: e.triggerBefore})
+	e.replChoices = append(e.replChoices, replChoice{ev: ev, cands: matches, before: e.triggerBefore, player: p})
 	if e.pending == nil {
 		e.askReplacementChoice(p)
 	}
@@ -622,15 +965,31 @@ func (e *Engine) poseReplacementChoice(ev events.Event, matches []replMatch) {
 // iteration). Only the front of the queue is ever asked -- see
 // handleReplacement's resumption for how the queue hands from one choice to
 // the next.
+func (e *Engine) poseDamageReplacementChoice(ev events.Event, matches []replMatch, p state.PlayerID) {
+	source := e.protectionSource(e.damaging)
+	e.replChoices = append(e.replChoices, replChoice{
+		ev: ev, cands: matches, before: e.triggerBefore, player: p,
+		damaging: source, combat: e.combatDamaging,
+		lifelink: e.HasKeyword(source, "Lifelink"), deadly: e.HasKeyword(source, "Deathtouch"),
+	})
+	if e.pending == nil {
+		e.askReplacementChoice(p)
+	}
+}
+
 func (e *Engine) askReplacementChoice(p state.PlayerID) {
 	rc := e.replChoices[0]
-	name := "this object"
-	if o := e.G.Obj(rc.ev.Obj); o != nil && o.Face() != nil && o.Face().Name != "" {
-		name = o.Face().Name
+	name := "this event"
+	prompt := "Several replacement effects would modify damage: choose which applies next."
+	if rc.ev.Kind == events.MoveZone {
+		name = "this object"
+		if o := e.G.Obj(rc.ev.Obj); o != nil && o.Face() != nil && o.Face().Name != "" {
+			name = o.Face().Name
+		}
+		prompt = "Several replacement effects would change how " + name + " moves: choose the order they apply."
 	}
 	d := &decision.Decision{Player: p, Kind: decision.KReplacement, Min: 1, Max: 1,
-		Prompt: "Several replacement effects would change how " + name + " moves: choose the order they apply.",
-		Source: rc.ev.Obj}
+		Prompt: prompt, Source: rc.ev.Obj}
 	for i, c := range rc.cands {
 		label := "a replacement"
 		if so := e.G.Obj(c.id); so != nil && so.Face() != nil && so.Face().Name != "" {
@@ -673,12 +1032,110 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	}
 	before := e.triggerBefore
 	e.triggerBefore = rc.before
-	e.applyReplacement(rc.ev, rc.cands[chosen[0].Index])
+	if rc.ev.Kind == events.Damage {
+		e.handleDamageReplacementChoice(rc, chosen[0].Index)
+	} else {
+		e.applyReplacement(rc.ev, rc.cands[chosen[0].Index])
+	}
 	e.triggerBefore = before
 	if len(e.replChoices) > 0 && e.pending == nil {
-		if o := e.G.Obj(e.replChoices[0].ev.Obj); o != nil && int(o.Controller) < len(e.G.Players) {
-			e.askReplacementChoice(o.Controller)
+		e.askReplacementChoice(e.replChoices[0].player)
+	}
+}
+
+func (e *Engine) handleDamageReplacementChoice(rc replChoice, selected int) {
+	savedDamaging, savedCombat := e.damaging, e.combatDamaging
+	e.damaging, e.combatDamaging = rc.damaging, rc.combat
+	defer func() { e.damaging, e.combatDamaging = savedDamaging, savedCombat }()
+	m := rc.cands[selected]
+	rc.used = append(rc.used, m)
+	if e.applyChosenDamageReplacement(&rc.ev, m) {
+		return
+	}
+	for {
+		rc.cands = e.remainingDamageReplacements(rc.ev, rc.used)
+		switch len(rc.cands) {
+		case 0:
+			e.finishChosenDamage(rc)
+			return
+		case 1:
+			m = rc.cands[0]
+			rc.used = append(rc.used, m)
+			if e.applyChosenDamageReplacement(&rc.ev, m) {
+				return
+			}
+		default:
+			// The first modification can leave several effects applicable. Ask
+			// again over exactly that recomputed set (CR 616.1e), preserving the
+			// already-modified amount and the original damage rider metadata.
+			e.replChoices = append([]replChoice{rc}, e.replChoices...)
+			if e.pending == nil {
+				e.askReplacementChoice(rc.player)
+			}
+			return
 		}
+	}
+}
+
+func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) []replMatch {
+	var out []replMatch
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			return
+		}
+		for i := range o.Face().Repls {
+			r := &o.Face().Repls[i]
+			already := false
+			for _, u := range used {
+				if u.id == id && u.repl == r {
+					already = true
+					break
+				}
+			}
+			if already || !e.replacementMatches(*r, id, ev) {
+				continue
+			}
+			if r.Params["Prevent"] == "True" && e.cantPreventDamage(e.damaging, ev.Obj) {
+				continue
+			}
+			out = append(out, replMatch{id: id, repl: r})
+		}
+	})
+	return out
+}
+
+// applyChosenDamageReplacement modifies ev in place. It reports terminal when
+// the chosen effect prevented/replaced the damage entirely; ReplaceEffect is
+// nonterminal and lets applicability be recomputed against its new amount.
+func (e *Engine) applyChosenDamageReplacement(ev *events.Event, m replMatch) bool {
+	if m.repl.Params["Prevent"] == "True" {
+		return true
+	}
+	if m.repl.With == nil {
+		return true
+	}
+	e.runReplaceWith(e.replCtx(m, *ev), ev.Obj, m.repl.With, ev)
+	return m.repl.With.API != "ReplaceEffect"
+}
+
+func (e *Engine) finishChosenDamage(rc replChoice) {
+	savedDamaging, savedCombat, savedApplying := e.damaging, e.combatDamaging, e.applyingReplacement
+	e.damaging, e.combatDamaging, e.applyingReplacement = rc.damaging, rc.combat, true
+	applied := e.emit(rc.ev)
+	e.damaging, e.combatDamaging, e.applyingReplacement = savedDamaging, savedCombat, savedApplying
+	if applied.Kind != events.Damage || applied.Amount <= 0 {
+		return
+	}
+	if rc.deadly && applied.Obj != 0 {
+		e.emit(events.Event{Kind: events.CounterChange, Obj: applied.Obj,
+			Counter: "Deathtouched", Amount: 1})
+	}
+	if rc.lifelink {
+		e.emit(events.Event{Kind: events.LifeChange, Player: e.controllerOf(rc.damaging), Amount: applied.Amount})
+	}
+	if rc.combat && applied.Obj == 0 && e.format == FormatCommander {
+		e.tallyCmdDamage(applied.Player, rc.damaging, applied.Amount)
 	}
 }
 
