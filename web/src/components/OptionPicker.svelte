@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Option } from '../protocol';
   import type { TileOptions } from '../lib/cardoptions';
-  import { postSingleAction, postTileOption, singleActionIcon, singleTapOptionOf } from '../lib/cardoptions';
+  import { ACTION_GLYPHS, actionAccessibleLabel, postSingleAction, postTileOption, singleActionIcon, singleTapOptionOf, tileScenario } from '../lib/cardoptions';
   import {
     placeMenu,
     placeRadial,
@@ -81,6 +81,11 @@
       : [],
   );
 
+  // The count badge's scenario: the icon+noun every option in the list agrees
+  // on, or null for a mixed list (the bare neutral count — the rule never
+  // claims a scenario the list does not have).
+  const scenario = $derived(tileScenario(tileOptions));
+
   const MANA_LABEL = /^Add ([WUBRGC])$/i;
   const manaSymbols = $derived(tileOptions.list.map((option) => option.label.match(MANA_LABEL)?.[1]?.toUpperCase() ?? null));
   const isManaChoice = $derived(manaSymbols.length > 0 && manaSymbols.every((symbol) => symbol !== null));
@@ -110,14 +115,14 @@
       type="button"
       data-single-action
       data-action-icon={icon}
-      aria-label={action.label}
-      title={action.label}
+      aria-label={actionAccessibleLabel(action)}
+      title={actionAccessibleLabel(action)}
       onclick={(event) => {
         event.stopPropagation();
         postSingleAction(tileOptions, true, event.ctrlKey);
       }}
     >
-      <span aria-hidden="true">{icon === 'tap' ? '↻' : icon === 'cast' ? '✦' : '›'}</span>
+      <span aria-hidden="true">{ACTION_GLYPHS[icon]}</span>
     </button>
   {:else}
     <button
@@ -126,14 +131,20 @@
       type="button"
       aria-haspopup="menu"
       aria-expanded={open}
-      aria-label="{tileOptions.list.length} actions {subject}"
+      aria-label={scenario
+        ? `${tileOptions.list.length} ${scenario.noun} ${subject}`
+        : `${tileOptions.list.length} actions ${subject}`}
       title="Options {subject}"
+      data-action-icon={scenario?.icon}
       bind:this={badgeEl}
       onclick={(event) => {
         event.stopPropagation();
         toggle();
       }}
     >
+      {#if scenario}
+        <span class="badge__icon" aria-hidden="true">{ACTION_GLYPHS[scenario.icon]}</span>
+      {/if}
       <span class="badge__n data">{tileOptions.list.length}</span>
     </button>
   {/if}
@@ -202,15 +213,18 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 1.1rem;
-    height: 1.1rem;
+    gap: 2px;
+    /* 1.1rem + 25% (task fb-9946410e): the badge box grew, the font went up
+       one token step (t-10 → t-12, the scale's nearest step to +25%). */
+    min-width: 1.375rem;
+    height: 1.375rem;
     padding: 0 0.25rem;
     border-radius: 3px;
     border: var(--edge-w, 1px) solid var(--edge-inst);
     background: var(--instrument);
     color: var(--ink);
     font-family: var(--font-data);
-    font-size: var(--t-10);
+    font-size: var(--t-12);
     font-weight: 600;
     cursor: pointer;
   }
@@ -218,7 +232,9 @@
   .badge--offered { background: var(--offered); border-color: var(--offered); color: var(--felt-sunk); }
   .badge.selected,
   .action-icon.selected { outline: 2px solid var(--ink); outline-offset: 1px; }
-  .action-icon { width: 1.35rem; padding: 0; font-size: var(--t-14); line-height: 1; }
+  /* 1.35rem + 25%; the icon font has no single token at +25% of t-14, so the
+     token itself is scaled. */
+  .action-icon { width: 1.6875rem; padding: 0; font-size: calc(var(--t-14) * 1.25); line-height: 1; }
   .badge__n { font-size: inherit; }
   .badge:hover,
   .badge[aria-expanded='true'],

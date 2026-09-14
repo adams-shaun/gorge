@@ -3,7 +3,7 @@
   import { visibleHand } from '../lib/board';
   import { handFanLayout, PLAY_CARD_WIDTH, type HandFanSpec } from '../lib/handfan';
   import type { CardOptions } from '../lib/cardoptions';
-  import { postSingleAction, singleActionIcon, tileOptions } from '../lib/cardoptions';
+  import { ACTION_GLYPHS, actionAccessibleLabel, postSingleAction, singleActionIcon, tileScenario, tileOptions } from '../lib/cardoptions';
   import CardImage from './CardImage.svelte';
   import CardDetail from './CardDetail.svelte';
   import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
@@ -197,6 +197,7 @@
                real button is never nested inside one; it anchors to the card's
                TOP EDGE (a bare face has no corner meaning to preserve, and the
                icon/badge clears the card in front of it on the overlap fan). -->
+          {@const scenario = tileScenario(opt)}
           <div class="tile-actions">
             {#if opt.list.length === 1}
               {@const action = opt.list[0]}
@@ -207,11 +208,11 @@
                 type="button"
                 data-single-action
                 data-action-icon={icon}
-                aria-label={action.label}
-                title={action.label}
+                aria-label={actionAccessibleLabel(action)}
+                title={actionAccessibleLabel(action)}
                 onclick={(event) => postSingleAction(opt, false, event.ctrlKey)}
               >
-                <span aria-hidden="true">{icon === 'tap' ? '↻' : icon === 'cast' ? '✦' : '›'}</span>
+                <span aria-hidden="true">{ACTION_GLYPHS[icon]}</span>
               </button>
             {:else}
               <button
@@ -220,10 +221,16 @@
                 type="button"
                 aria-haspopup="menu"
                 aria-expanded={openForCard(c.id)}
-                aria-label="{opt.list.length} actions for {c.name}"
+                aria-label={scenario
+                  ? `${opt.list.length} ${scenario.noun} for ${c.name}`
+                  : `${opt.list.length} actions for ${c.name}`}
                 title="Options for {c.name}"
+                data-action-icon={scenario?.icon}
                 onclick={() => toggleCard(c.id)}
               >
+                {#if scenario}
+                  <span class="badge__icon" aria-hidden="true">{ACTION_GLYPHS[scenario.icon]}</span>
+                {/if}
                 <span class="badge__n data">{opt.list.length}</span>
               </button>
             {/if}
@@ -356,15 +363,17 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 1.1rem;
-    height: 1.1rem;
+    gap: 2px;
+    /* +25% over the pre-fb-9946410e 1.1rem, matching OptionPicker's badge. */
+    min-width: 1.375rem;
+    height: 1.375rem;
     padding: 0 0.25rem;
     border-radius: 3px;
     border: var(--edge-w) solid var(--edge-inst);
     background: var(--instrument);
     color: var(--ink);
     font-family: var(--font-data);
-    font-size: var(--t-10);
+    font-size: var(--t-12);
     font-weight: 600;
     cursor: pointer;
   }
@@ -384,9 +393,9 @@
     outline-offset: 1px;
   }
   .action-icon {
-    width: 1.35rem;
+    width: 1.6875rem;
     padding: 0;
-    font-size: var(--t-14);
+    font-size: calc(var(--t-14) * 1.25);
     line-height: 1;
   }
   .sel {

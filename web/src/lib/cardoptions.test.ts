@@ -13,6 +13,10 @@ import {
   postSingleAction,
   postTileOption,
   singleActionIcon,
+  scenarioIconOf,
+  actionAccessibleLabel,
+  tileScenario,
+  ACTION_GLYPHS,
   singleTapOptionOf,
   type CardOptions,
 } from './cardoptions';
@@ -166,7 +170,82 @@ describe('single-action card affordance', () => {
     expect(singleActionIcon(opt(4, 9, 'cast'))).toBe('cast');
     expect(singleActionIcon(opt(5, 9, 'activate'))).toBe('tap');
     expect(singleActionIcon(opt(6, 9, 'ability'))).toBe('action');
-    expect(singleActionIcon(opt(7, 9, 'permanent'))).toBe('action');
+    expect(singleActionIcon(opt(7, 9, 'permanent'))).toBe('target');
+  });
+
+  it('maps every scenario the reporter named to its own icon (task fb-9946410e)', () => {
+    // play from hand → cast (✦, kept); target of a spell/ability/trigger →
+    // bullseye; select as attacker → sword; select as defender → shield;
+    // tap/activate → ↻ (kept); everything else stays neutral.
+    expect(scenarioIconOf('cast')).toBe('cast');
+    expect(scenarioIconOf('permanent')).toBe('target');
+    expect(scenarioIconOf('player')).toBe('target');
+    expect(scenarioIconOf('attacker')).toBe('attack');
+    expect(scenarioIconOf('block')).toBe('block');
+    expect(scenarioIconOf('activate')).toBe('tap');
+    for (const neutral of ['ability', 'sacrifice', 'discard', 'x', 'name', 'type', 'number', 'exile', 'division', 'pay_2']) {
+      expect(scenarioIconOf(neutral)).toBe('action');
+    }
+  });
+
+  it('every icon has a glyph and a count-badge noun — the tables the badges render from', () => {
+    const icons = new Set(['cast', 'tap', 'target', 'attack', 'block', 'action']);
+    for (const kind of ['cast', 'activate', 'permanent', 'player', 'attacker', 'block', 'ability']) {
+      icons.delete(scenarioIconOf(kind));
+    }
+    expect(icons.size).toBe(0); // every mapped icon is covered by the tables
+    for (const icon of ['cast', 'tap', 'target', 'attack', 'block', 'action'] as const) {
+      expect(ACTION_GLYPHS[icon]).toBeTruthy();
+      expect(ACTION_GLYPHS[icon].length).toBeGreaterThan(0);
+    }
+  });
+
+  it('actionAccessibleLabel prefixes a target candidate with its scenario verb, in one place (fb-9946410e r2)', () => {
+    // A target option's wire label is only the candidate's own name, so the
+    // direct badge's accessible name would read neither "target" nor the
+    // scenario. The prefix lives here, once, not per renderer.
+    expect(actionAccessibleLabel({ kind: 'permanent', label: 'Wasteland (Ari)' })).toBe('Target Wasteland (Ari)');
+    expect(actionAccessibleLabel({ kind: 'player', label: 'Ari' })).toBe('Target Ari');
+  });
+
+  it('every other scenario kind already names its scenario in the wire label and passes through verbatim', () => {
+    // cast/activate/attacker/block labels are minted with their scenario verb
+    // server-side ("Cast X", "Tap X for mana", "Attack with X at Y", "X blocks
+    // Y"), and the neutral kinds are descriptive — re-phrasing them would only
+    // risk lying about what the option does.
+    expect(actionAccessibleLabel({ kind: 'cast', label: 'Cast Fireball' })).toBe('Cast Fireball');
+    expect(actionAccessibleLabel({ kind: 'activate', label: 'Tap Island for mana' })).toBe('Tap Island for mana');
+    expect(actionAccessibleLabel({ kind: 'attacker', label: 'Attack with Bear at Ari' })).toBe('Attack with Bear at Ari');
+    expect(actionAccessibleLabel({ kind: 'block', label: 'Bear blocks Hill Giant' })).toBe('Bear blocks Hill Giant');
+    expect(actionAccessibleLabel({ kind: 'ability', label: 'Wasteland: sacrifice it' })).toBe('Wasteland: sacrifice it');
+  });
+
+  describe('tileScenario — the count badge\'s scenario', () => {
+    const tile = (list: Option[]): import('./cardoptions').TileOptions =>
+      ({ list, pickedOrder: [], tone: 'offered', post: vi.fn() });
+
+    it('a same-scenario list names the scenario: three target options are "3 targets"', () => {
+      const s = tileScenario(tile([
+        opt(0, 5, 'permanent', 'Bear'), opt(1, 5, 'player', 'Ari'), opt(2, 5, 'permanent', 'Hill Giant'),
+      ]));
+      expect(s).toEqual({ icon: 'target', noun: 'targets' });
+    });
+
+    it('an attacker list is "attacks", a blocker list is "blocks", a cast list is "plays"', () => {
+      expect(tileScenario(tile([opt(0, 5, 'attacker'), opt(1, 5, 'attacker')]))).toEqual({ icon: 'attack', noun: 'attacks' });
+      expect(tileScenario(tile([opt(0, 5, 'block')]))).toEqual({ icon: 'block', noun: 'blocks' });
+      expect(tileScenario(tile([opt(0, 5, 'cast'), opt(1, 5, 'cast')]))).toEqual({ icon: 'cast', noun: 'plays' });
+    });
+
+    it('a list of all-neutral options still names the neutral scenario, not a fake one', () => {
+      expect(tileScenario(tile([opt(0, 5, 'ability'), opt(1, 5, 'ability')]))).toEqual({ icon: 'action', noun: 'actions' });
+    });
+
+    it('a genuinely MIXED list gets null — the badge falls back to the bare neutral count', () => {
+      expect(tileScenario(tile([opt(0, 5, 'cast'), opt(1, 5, 'ability')]))).toBeNull();
+      expect(tileScenario(tile([opt(0, 5, 'permanent'), opt(1, 5, 'block')]))).toBeNull();
+      expect(tileScenario(tile([]))).toBeNull();
+    });
   });
 
   it('posts the sole option own wire index, never its list position (R-E4-1)', () => {

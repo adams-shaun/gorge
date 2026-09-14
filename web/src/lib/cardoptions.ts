@@ -86,17 +86,107 @@ export interface TileOptions {
 }
 
 /**
- * A one-option card acts directly instead of opening a one-row menu. The wire
- * can distinguish a cast and the dedicated mana activation (`activate`, whose
- * server label is "Tap … for mana"). A general `ability` option does not carry
- * its cost, so it stays neutral rather than guessing whether that ability taps.
+ * The badge's scenario icon, derived from the option's WIRE kind — a pure
+ * wire-kind → glyph mapping (R-E4-2: display, not rules). A one-option card
+ * acts directly instead of opening a one-row menu. The wire can distinguish a
+ * cast, the dedicated mana activation (`activate`, whose server label is
+ * "Tap … for mana"), a target candidate (`permanent` object / `player` seat),
+ * an attacker declaration and a blocker declaration. A general `ability`
+ * option does not carry its cost, so it stays neutral rather than guessing
+ * whether that ability taps; every other kind (sacrifice, discard, x, name,
+ * …) is equally neutral.
  */
-export type SingleActionIcon = 'cast' | 'tap' | 'action';
+export type SingleActionIcon = 'cast' | 'tap' | 'target' | 'attack' | 'block' | 'action';
+
+/**
+ * scenarioIconOf maps ONE option's wire kind to its scenario icon. Exactly the
+ * four scenarios the reporter named plus the two pre-existing ones: cast, tap,
+ * target (bullseye), attacker (sword), blocker (shield), neutral.
+ */
+export function scenarioIconOf(kind: string): SingleActionIcon {
+  switch (kind) {
+    case 'cast': return 'cast';
+    case 'activate': return 'tap';
+    case 'permanent':
+    case 'player': return 'target';
+    case 'attacker': return 'attack';
+    case 'block': return 'block';
+    default: return 'action';
+  }
+}
 
 export function singleActionIcon(option: Option): SingleActionIcon {
-  if (option.kind === 'cast') return 'cast';
-  if (option.kind === 'activate') return 'tap';
-  return 'action';
+  return scenarioIconOf(option.kind);
+}
+
+/**
+ * ACTION_GLYPHS is the icon → text-glyph table the badges render. Plain text
+ * glyphs in the existing register (↻ ✦ ›), not colour emoji: the two new
+ * pictographs carry an explicit U+FE0E text-presentation selector so a font
+ * that owns both a text and an emoji face (U+2694 ⚔ is in Noto Color Emoji)
+ * keeps the monochrome one. Verified against the fonts this deployment's
+ * browsers fall back to (IBM Plex Mono lacks all three; DejaVu Sans Mono has
+ * ◎ and ⚔, Noto Sans Symbols/FreeSans have ⛨) — see the task report.
+ */
+export const ACTION_GLYPHS: Record<SingleActionIcon, string> = {
+  cast: '✦',
+  tap: '↻',
+  target: '◎',
+  attack: '⚔\uFE0E',
+  block: '⛨\uFE0E',
+  action: '›',
+};
+
+/**
+ * actionAccessibleLabel is the accessible name + title the DIRECT-action
+ * badge wears (the glyph itself is aria-hidden, so this string is all a
+ * screen-reader user or a hover ever gets). The wire label already names its
+ * scenario for every kind except a target candidate: cast options are
+ * "Cast <name>", activations "Tap <name> for mana", attackers "Attack with
+ * <name> at <defender>", blockers "<name> blocks <defender>" (rules/legal.go,
+ * rules/combat.go, rules/cast.go). A target option's label is only the
+ * candidate's own name — "Ari" or "Wasteland (Ari)" (rules/stack.go
+ * targetOptionLabel) — so it is prefixed with the scenario verb here, in ONE
+ * place, rather than re-phrased per renderer. The target prefix never
+ * collides with a raw "Target …" wire label: targetOptionLabel never emits
+ * one (it is the candidate's face name, optionally " (<controller>)").
+ */
+export function actionAccessibleLabel(option: Pick<Option, 'kind' | 'label'>): string {
+  return scenarioIconOf(option.kind) === 'target' ? `Target ${option.label}` : option.label;
+}
+
+/** The count-badge noun for each icon: "3 targets for Ari", "2 blocks for
+ *  Bear" — wording that names the scenario, not just "actions". */
+const SCENARIO_NOUN: Record<SingleActionIcon, string> = {
+  cast: 'plays',
+  tap: 'activations',
+  target: 'targets',
+  attack: 'attacks',
+  block: 'blocks',
+  action: 'actions',
+};
+
+export interface TileScenario {
+  icon: SingleActionIcon;
+  /** Count-badge noun, e.g. "targets" for a target list. */
+  noun: string;
+}
+
+/**
+ * tileScenario derives the scenario a TILE's option list names, for the count
+ * badge: the scenario only when EVERY option in the list maps to the same
+ * icon — a list that genuinely mixes scenarios (a cast next to an ability,
+ * a target next to a block) gets null and the badge falls back to the bare
+ * neutral count, because a mixed icon would claim a scenario the list does
+ * not have. The rule never lies and never needs to know a decision kind.
+ */
+export function tileScenario(tile: Pick<TileOptions, 'list'>): TileScenario | null {
+  if (tile.list.length === 0) return null;
+  const first = scenarioIconOf(tile.list[0].kind);
+  for (const option of tile.list) {
+    if (scenarioIconOf(option.kind) !== first) return null;
+  }
+  return { icon: first, noun: SCENARIO_NOUN[first] };
 }
 
 /**
