@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'svelte/server';
 import type { CardView, Decision, Option, PlayerView, SeatInfo, View } from '../protocol';
+import { SeatPanelState } from '../lib/seatpanel.svelte';
 import SeatPanel from './SeatPanel.svelte';
 
 // SSR via svelte/server, the repo's component-test pattern: onMount and
@@ -276,6 +277,21 @@ describe('SeatPanel — the prompt surface (fb prompts: never passed over, never
     const offered = strip(view(priority));
     expect(offered).not.toContain('data-strip-pointer');
     expect(offered).toContain('data-option="0"');
+  });
+
+  it('while the undo pause holds, the Auto/Manual toggle reads Paused and the note says how to resume (fb-20260914T063523Z)', () => {
+    // The route hands the panel its shared SeatPanelState; rewind() (the
+    // stream's rewind frame) pauses the machine on it.
+    const state = new SeatPanelState('t1', 1, ctx, null);
+    state.rewind();
+    const { html } = render(SeatPanel, { props: { ...props(view(priority)), state } });
+    // The toggle beside the note reads the paused state, not Auto/Manual.
+    expect(html).toContain('<span class="word">Paused</span>');
+    // The note names the resume control the player actually has: the
+    // pause-aware Auto switch (pressAuto), whose press STARTS the machine
+    // instead of toggling the persisted preference off.
+    expect(html).toContain('Undo paused automatic passing');
+    expect(html).toContain('Press the Auto switch');
   });
 
   // fb-20260914T062319Z-88b4069a part A: an optional trigger is a blocked

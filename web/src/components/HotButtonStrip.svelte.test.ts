@@ -204,6 +204,22 @@ describe('HotButtonStrip — the status chip', () => {
     expect(html).toContain('Casual');
   });
 
+  it('shows the undo pause and its resume control in the always-visible live-strip chip', () => {
+    const state = new SeatPanelState('t1', 1, ctx, null);
+    // Table handles a rewind frame by calling this before adopting the
+    // restored view. The nested strip SeatPanel hides its autobar, so the
+    // status chip itself must expose the pause; otherwise the live game still
+    // says Casual while its machine silently refuses to run.
+    state.rewind();
+    state.adoptView(priority);
+    const html = stripState(state, priority);
+    expect(html).toMatch(/data-play-mode="paused"/);
+    expect(html).toContain('data-auto-note');
+    expect(html).toContain('Auto paused — press to resume');
+    expect(html).toContain('Press the Auto switch (or apply a preset)');
+    expect(html).not.toMatch(/data-play-mode="casual"/);
+  });
+
   it('END TURN names the live run, and the hard skip names its warning', () => {
     const state = new SeatPanelState('t1', 1, ctx, null);
     state.setActPass(false);
