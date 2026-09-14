@@ -2,24 +2,16 @@
 
 package main
 
-import (
-	"context"
-	"os"
-	"path/filepath"
-)
+import "context"
 
-// lockPace is the fallback on platforms without syscall.Flock: it opens the
-// stamp file but takes NO lock on it. This includes Windows, AIX and Solaris;
-// pace_lock_unix.go lists the Flock-capable GOOS targets exactly. The limiter
-// degrades to PER-PROCESS: the pacing semaphore still serializes one
-// process's outbound requests at exactly a.pace, but two gorged processes
-// sharing one cache directory no longer pace each other and can each send up
-// to 10 req/s. Nothing downstream depends on more: a stamp written by a
-// concurrent process can only make this one wait an extra gap, never less,
-// and the deploy's fill budget bounds the window. Production deployments of
-// gorged are unix; this fallback exists so GOOS=windows builds — and anyone
-// porting further — compile and behave conservatively rather than not at all.
-func (a *artCache) lockPace(ctx context.Context) (*os.File, error) {
-	_ = ctx // no lock to wait for; the context governs the requests, not the open
-	return os.OpenFile(filepath.Join(a.dir, paceFile), os.O_RDWR|os.O_CREATE, 0o644)
+// lockPace is the fallback on platforms without syscall.Flock, including
+// Windows, AIX and Solaris. It degrades the limiter to per-process sharing:
+// every artCache for the same directory uses one synchronized in-memory stamp,
+// so their complete read/wait/write sequences remain serialized and a stale
+// waiter can never overwrite a newer request start. Separate processes do not
+// share that state and may each send up to 10 req/s. Production deployments of
+// gorged are Unix; the fallback exists so other targets compile and retain a
+// conservative, race-free per-process limiter.
+func (a *artCache) lockPace(ctx context.Context) (paceLock, error) {
+	return lockProcessPace(ctx, a.dir)
 }

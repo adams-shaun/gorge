@@ -334,6 +334,45 @@ func TestScryfallPaceIsSharedByEveryCacheOnTheDirectory(t *testing.T) {
 	}
 }
 
+// TestProcessPaceLockSerializesTheWholeStampUpdate exercises the fallback
+// directly on Unix. Two caches sharing a directory must not interleave the
+// stamp read and write: a timed-out waiter cannot acquire while another holds
+// the state, and the next holder sees the newest value without a leaked lock.
+func TestProcessPaceLockSerializesTheWholeStampUpdate(t *testing.T) {
+	dir := t.TempDir()
+	held, err := lockProcessPace(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer held.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	if lock, err := lockProcessPace(ctx, dir); !errors.Is(err, context.DeadlineExceeded) {
+		if lock != nil {
+			_ = lock.Close()
+		}
+		t.Fatalf("contended process-local waiter = %v, want context deadline", err)
+	}
+
+	if _, err := held.WriteAt([]byte("newstamp"), 0); err != nil {
+		t.Fatal(err)
+	}
+	_ = held.Close()
+	next, err := lockProcessPace(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer next.Close()
+	var stamp [8]byte
+	if _, err := next.ReadAt(stamp[:], 0); err != nil {
+		t.Fatal(err)
+	}
+	if string(stamp[:]) != "newstamp" {
+		t.Fatalf("next holder read %q, want newest serialized stamp", stamp)
+	}
+}
+
 // TestPaceLockExcludesOtherDescriptorsAndCancelsCleanly pins the lock under
 // the shared pace. flock belongs to the open file description, so a second
 // open of the stamp file — which is what another process has — cannot take

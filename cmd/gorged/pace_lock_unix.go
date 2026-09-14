@@ -35,7 +35,7 @@ const pacePollInterval = 10 * time.Millisecond
 //
 // flock locks belong to the open file description, so two caches in one
 // process exclude each other exactly as two processes do.
-func (a *artCache) lockPace(ctx context.Context) (*os.File, error) {
+func (a *artCache) lockPace(ctx context.Context) (paceLock, error) {
 	f, err := os.OpenFile(filepath.Join(a.dir, paceFile), os.O_RDWR|os.O_CREATE, 0o644)
 	if err != nil {
 		return nil, err

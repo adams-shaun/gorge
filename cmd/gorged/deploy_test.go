@@ -174,31 +174,68 @@ func TestDeployStartsTheServersWhenTheArtFillFails(t *testing.T) {
 	}
 }
 
-// demoTestPorts binds two free ports in the task range 8090-8099 and answers
-// the deploy script's /api/tables probes on them until the test ends. It
-// SKIPS — never fails — when fewer than two are free: other sessions run
-// servers in this range by design, and six parallel runs of this test would
-// otherwise turn a busy range into six false failures.
+// demoTestPorts reserves every IPv4 candidate while it scans the task range,
+// then chooses two and answers the deploy script's /api/tables probes on them
+// until the test ends. The first port must also accept a temporary [::1] bind,
+// because startGorgedProbe will use that address. Thus a review server already
+// on [::1]:8090 is treated as a busy candidate rather than becoming a 10-second
+// helper failure. It SKIPS — never fails — when no dual-address first port or
+// fewer than two IPv4 ports are free: other sessions use this range by design.
 func demoTestPorts(t *testing.T) []int {
 	t.Helper()
-	var ports []int
-	for p := 8090; p <= 8099 && len(ports) < 2; p++ {
+	type candidate struct {
+		port int
+		ln   net.Listener
+		v6   bool
+	}
+	var candidates []candidate
+	for p := 8090; p <= 8099; p++ {
 		ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", p))
 		if err != nil {
 			continue
 		}
+		t.Cleanup(func() { _ = ln.Close() })
+		v6, err := net.Listen("tcp6", fmt.Sprintf("[::1]:%d", p))
+		if err == nil {
+			_ = v6.Close()
+		}
+		candidates = append(candidates, candidate{port: p, ln: ln, v6: err == nil})
+	}
+
+	first := -1
+	for i := range candidates {
+		if candidates[i].v6 {
+			first = i
+			break
+		}
+	}
+	if len(candidates) < 2 || first < 0 {
+		var ports []int
+		for _, c := range candidates {
+			ports = append(ports, c.port)
+		}
+		t.Skipf("need two IPv4 ports and one dual-address port in 8090-8099 (IPv4 candidates %v); another session is using the range", ports)
+	}
+	second := 0
+	if second == first {
+		second++
+	}
+	selected := []candidate{candidates[first], candidates[second]}
+	selectedPorts := map[int]bool{selected[0].port: true, selected[1].port: true}
+	for _, c := range candidates {
+		if !selectedPorts[c.port] {
+			_ = c.ln.Close()
+		}
+	}
+	for _, c := range selected {
 		srv := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = io.WriteString(w, `[{"id":"t1","format":"commander"}]`)
 		})}
-		go func() { _ = srv.Serve(ln) }()
+		go func() { _ = srv.Serve(c.ln) }()
 		t.Cleanup(func() { _ = srv.Close() })
-		ports = append(ports, p)
 	}
-	if len(ports) < 2 {
-		t.Skipf("fewer than two free ports in 8090-8099 (got %v); another session is using the range", ports)
-	}
-	return ports
+	return []int{selected[0].port, selected[1].port}
 }
 
 // startGorgedProbe reproduces the reviewer's probe exactly: a process whose
@@ -212,6 +249,7 @@ func demoTestPorts(t *testing.T) []int {
 type gorgedProbe struct {
 	cmd  *exec.Cmd
 	port int
+	done <-chan error
 }
 
 func startGorgedProbe(t *testing.T, port int) *gorgedProbe {
@@ -239,14 +277,33 @@ func startGorgedProbe(t *testing.T, port int) *gorgedProbe {
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+		close(done)
+	}()
 	t.Cleanup(func() {
+		select {
+		case <-done:
+			return
+		default:
+		}
 		_ = cmd.Process.Kill()
-		_, _ = cmd.Process.Wait()
+		<-done
 	})
 	deadline := time.Now().Add(10 * time.Second)
 	for {
 		if fileExists(ready) {
 			break
+		}
+		select {
+		case err := <-done:
+			b, _ := os.ReadFile(log.Name())
+			if strings.Contains(string(b), "address already in use") {
+				t.Skipf("probe port [::1]:%d was claimed after selection: %v: %s", port, err, b)
+			}
+			t.Fatalf("probe gorged on [::1]:%d exited before ready: %v: %s", port, err, b)
+		default:
 		}
 		if time.Now().After(deadline) {
 			b, _ := os.ReadFile(log.Name())
@@ -271,7 +328,7 @@ func startGorgedProbe(t *testing.T, port int) *gorgedProbe {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	probe := &gorgedProbe{cmd: cmd, port: port}
+	probe := &gorgedProbe{cmd: cmd, port: port, done: done}
 	assertGorgedProbeListening(t, probe)
 	return probe
 }

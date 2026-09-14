@@ -56,14 +56,16 @@ type artCache struct {
 	// pace is the minimum spacing between two outbound Scryfall request
 	// starts — the <=10 req/s courtesy Scryfall asks for (50-100ms between
 	// requests). It is enforced by paceWait as a LIMITER over the request
-	// stream (measured against a clock, not a fixed sleep) and shared by
-	// EVERY process using this cache directory through a locked stamp file
-	// (paceFile): the deploy's one-shot fill and every lock-aware demo server
-	// stay within one pace, including old servers a deploy replaces once they
-	// run a binary that knows the stamp file. The FIRST deploy after that code
-	// lands overlaps old-binary servers, which pace only themselves; its fill
-	// budget bounds the duration of that unshared window, not its aggregate
-	// request rate. It is a field, not a constant, for
+	// stream (measured against a clock, not a fixed sleep). On Flock-capable
+	// systems it is shared by EVERY process using this cache directory through
+	// a locked stamp file (paceFile); elsewhere it is shared by every cache in
+	// this process through synchronized memory. Thus the deploy's one-shot fill
+	// and every lock-aware Unix demo server stay within one pace, including old
+	// servers a deploy replaces once they run a binary that knows the stamp
+	// file. The FIRST deploy after that code lands overlaps old-binary servers,
+	// which pace only themselves; its fill budget bounds the duration of that
+	// unshared window, not its aggregate request rate. It is a field, not a
+	// constant, for
 	// the same reason namedBaseURL
 	// is: a test seam, so a package whose budget is measured in whole
 	// seconds can exercise the prewarm without paying the real-world pacing
@@ -134,23 +136,28 @@ func sleepCtx(ctx context.Context, d time.Duration) error {
 	}
 }
 
-// paceFile is the cross-process limiter's stamp, inside the cache dir: an
-// exclusive flock on it serializes paceWait across every process sharing the
-// directory, and its first 8 bytes hold the most recent request start
-// (big-endian Unix nanoseconds). The blob route serves only 64-hex keys, so
-// it is never reachable over HTTP.
+// paceFile is the cross-process limiter's stamp on Flock-capable systems,
+// inside the cache dir. Its first 8 bytes hold the most recent request start
+// (big-endian Unix nanoseconds). On other systems the same bytes live in the
+// processPaceState keyed by cache directory. The blob route serves only
+// 64-hex keys, so this name is never reachable over HTTP.
 const paceFile = ".scryfall-pace"
 
+// paceLock is the common locked-stamp contract. Unix implementations back it
+// with an *os.File and flock; fallback targets back it with synchronized,
+// process-local memory. Close releases the lock in either case.
+type paceLock interface {
+	io.ReaderAt
+	io.WriterAt
+	io.Closer
+}
+
 // paceWait spaces Scryfall request starts at least a.pace apart — the <=10
-// req/s limiter — across EVERY process using a.dir, not just this one: it
-// takes the stamp file's flock (lockPace, in pace_lock_unix.go on
-// Flock-capable targets and pace_lock_other.go elsewhere), waits out whatever
-// is left of the gap since
-// the start any process last stamped, stamps its own start, and releases.
-// Within a process the pacing semaphore already serializes callers; the
-// flock extends that to the deploy's fill and both demo servers, which would
-// otherwise each allow 10 req/s. The lock is held for at most one pace.
-// With pace == 0 (tests) it does nothing and touches no file.
+// req/s limiter. lockPace supplies cross-process exclusion through flock on
+// supported systems and process-local exclusion everywhere else. While the
+// lock is held, paceWait reads the most recent start, waits out the rest of
+// the gap, stamps its own start, and releases. The lock is held for at most
+// one pace. With pace == 0 (tests) it does nothing and touches no state.
 func (a *artCache) paceWait(ctx context.Context) error {
 	if a.pace <= 0 {
 		return nil
@@ -159,7 +166,7 @@ func (a *artCache) paceWait(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("art pace lock: %w", err)
 	}
-	defer f.Close() // closing the descriptor releases the flock
+	defer f.Close() // releases the flock or process-local lock
 	var stamp [8]byte
 	var last time.Time
 	if n, _ := f.ReadAt(stamp[:], 0); n == len(stamp) {
@@ -184,9 +191,9 @@ func (a *artCache) paceWait(ctx context.Context) error {
 // doScryfall is the single outbound Scryfall-client path. Keeping the limiter
 // beside client.Do makes it impossible for a new metadata, image, or retry
 // caller to use this client without pacing unless it explicitly bypasses this
-// helper. The caller holds a.sem, serializing this process's request starts
-// across background prewarm and browser-driven fetches; paceWait's stamp-file
-// lock extends the spacing to every other process on the same cache dir.
+// helper. The caller holds a.sem, serializing this cache's request starts;
+// paceWait extends that spacing to every cache in the process and, where flock
+// is available, every process on the same cache directory.
 func (a *artCache) doScryfall(req *http.Request) (*http.Response, error) {
 	if err := a.paceWait(req.Context()); err != nil {
 		return nil, err
