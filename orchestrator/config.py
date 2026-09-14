@@ -56,12 +56,15 @@ MAX_MINUTES = 75
 # --- loop policy -----------------------------------------------------------
 
 POLL_SECONDS = 60
-# At most this many local-model seats run at once, counted across every repo
-# on the box (they share one SGLang server). 2026-09-14: ten concurrent glm
-# seats left the server with 3 running / 7 queued requests at 33 tok/s and
-# every seat crawled. The cap gates NEW work only (triage, first implementer
-# round); a redispatch of a ticket already in flight is never held.
-MAX_LOCAL_SEATS = 4
+# Concurrency caps, counted from live pi-agent processes across every repo on
+# the box. Local (glm) seats share one SGLang server: 2026-09-14 ten
+# concurrent seats left it 3 running / 7 queued at 33 tok/s. Paid seats
+# (sol implementer + terra reviewer) share the ChatGPT plan. User-set
+# 2026-09-14: local 2, paid 4. A launch with no free slot waits: new work
+# stays in new/briefed, an in-flight ticket parks in `waiting` with its
+# findings, and a finished implementer waits in `dispatched` for a reviewer.
+MAX_LOCAL_SEATS = 2
+MAX_PAID_SEATS = 4
 MAX_LOCAL_ROUNDS = 2  # after this many failed local rounds, escalate to SOL
 MAX_ESCALATED_ROUNDS = 2  # after this many failed SOL rounds, stop and flag a human
 

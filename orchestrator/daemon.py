@@ -96,13 +96,22 @@ def _unmet_dependency(text: str) -> str | None:
     return None
 
 
-def _local_slot_free(issue: issues.Issue, what: str) -> bool:
-    running = pi.running_names(config.LOCAL_MODEL)
-    if len(running) < config.MAX_LOCAL_SEATS:
+def _slot_free(issue: issues.Issue, paid: bool, what: str) -> bool:
+    if paid:
+        running = pi.running_names(config.IMPLEMENTER_ESCALATED_MODEL, config.REVIEWER_MODEL)
+        cap = config.MAX_PAID_SEATS
+    else:
+        running = pi.running_names(config.LOCAL_MODEL)
+        cap = config.MAX_LOCAL_SEATS
+    if len(running) < cap:
         return True
-    log.debug("issue %s: %s held, %d local seats running (cap %d)",
-              issue.id, what, len(running), config.MAX_LOCAL_SEATS)
+    log.debug("issue %s: %s held, %d %s seats running (cap %d)",
+              issue.id, what, len(running), "paid" if paid else "local", cap)
     return False
+
+
+def _local_slot_free(issue: issues.Issue, what: str) -> bool:
+    return _slot_free(issue, False, what)
 
 
 # --- per-status advancement --------------------------------------------------
@@ -162,8 +171,25 @@ def advance_briefed(issue: issues.Issue) -> None:
     issue.save()
 
 
+def _pending_findings_path(issue: issues.Issue) -> Path:
+    return config.ORCH_STATE_DIR / "pending" / f"{issue.id}.md"
+
+
 def _redispatch_implementer(issue: issues.Issue, findings: str) -> None:
     escalated = issue.seat_kind == "escalated"
+    will_escalate = escalated or issue.local_rounds + 1 > config.MAX_LOCAL_ROUNDS
+    if not _slot_free(issue, will_escalate, "redispatch"):
+        # Park with the findings; advance_waiting retries each tick. Nothing
+        # above (a gate run, a verdict read) is repeated while parked.
+        pending = _pending_findings_path(issue)
+        pending.parent.mkdir(parents=True, exist_ok=True)
+        pending.write_text(findings)
+        if issue.status != "waiting":
+            issue.status = "waiting"
+            issue.log(f"fix round due ({'sol' if will_escalate else 'local'}); waiting for a seat slot")
+            issue.save()
+        return
+    _pending_findings_path(issue).unlink(missing_ok=True)
     if escalated:
         issue.escalated_rounds += 1
     else:
@@ -186,6 +212,12 @@ def _redispatch_implementer(issue: issues.Issue, findings: str) -> None:
     issue.save()
 
 
+def advance_waiting(issue: issues.Issue) -> None:
+    pending = _pending_findings_path(issue)
+    findings = pending.read_text() if pending.exists() else "Previous round failed; see the last findings file."
+    _redispatch_implementer(issue, findings)
+
+
 def advance_dispatched(issue: issues.Issue) -> None:
     wt = config.REPO / issue.worktree
     tag = seats.round_tag(issue)
@@ -203,6 +235,8 @@ def advance_dispatched(issue: issues.Issue) -> None:
             issue.status = "review"
             issue.save()
             return
+        if not _slot_free(issue, True, "review"):
+            return  # stays dispatched; the terminal status is re-read next tick
         seats.launch_review(issue.id, wt, tag)
         issue.status = "review"
         issue.log(f"implementer {outcome} ({tag}), review dispatched (terra)")
@@ -372,6 +406,7 @@ ADVANCERS = {
     "new": advance_new,
     "briefed": advance_briefed,
     "dispatched": advance_dispatched,
+    "waiting": advance_waiting,
     "review": advance_review,
 }
 
@@ -381,7 +416,9 @@ def tick() -> None:
         log.debug("paused (touch %s to resume)", config.PAUSE_FILE)
         return
     discover_new_issues()
-    for issue in issues.open_issues():
+    # In-flight tickets claim free seat slots before new work does.
+    order = {"review": 0, "dispatched": 1, "waiting": 2, "briefed": 3, "new": 4}
+    for issue in sorted(issues.open_issues(), key=lambda i: order.get(i.status, 5)):
         advancer = ADVANCERS.get(issue.status)
         if advancer is None:
             continue

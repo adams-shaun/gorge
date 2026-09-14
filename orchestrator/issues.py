@@ -35,6 +35,7 @@ STATUSES = (
     "new",             # just noticed, no brief yet
     "briefed",         # a brief exists, not yet dispatched
     "dispatched",      # an implementer seat is running or just finished
+    "waiting",         # a fix round is due but no seat slot is free
     "review",          # a reviewer seat is running or just finished
     "gate",            # local deterministic gates are running
     "merged",          # landed on main, pushed, deployed

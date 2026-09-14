@@ -199,6 +199,8 @@ func issueEntries(dir, root string) ([]Entry, error) {
 			e.Disposition = "reported — awaiting triage"
 		case "briefed", "dispatched", "review":
 			e.Disposition = fm["status"] + " — seat active"
+		case "waiting":
+			e.Disposition = "waiting — fix round queued for a seat slot"
 		default:
 			e.Disposition = "open — status " + fm["status"]
 		}
