@@ -839,7 +839,11 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	8: "6d153fa9cd9b61f4",
+	// 8 seats moved to d9f960ddd818ded2 (autonomous orchestrator): resolving fb-20260914T084916Z-71c842c2 (goblin piledrive, should get +2/+0 for each other attacking goblin.... doesn'...)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	8: "d9f960ddd818ded2",
 }
 
 func TestHeads(t *testing.T) {
