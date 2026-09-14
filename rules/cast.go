@@ -563,10 +563,6 @@ func (e *Engine) castModeAsk() bool {
 	}
 	ctx := &effects.Ctx{Source: pc.card, Controller: pc.player}
 	effects.SetSVars(ctx, f.SVars)
-	charmNum := effects.Num(e, ctx, sa, "CharmNum", 1)
-	if charmNum < 1 {
-		charmNum = 1
-	}
 	choices := strings.Split(sa.Params["Choices"], ",")
 	legal := make([]string, 0, len(choices))
 	for _, name := range choices {
@@ -581,15 +577,16 @@ func (e *Engine) castModeAsk() bool {
 			legal = append(legal, name)
 		}
 	}
-	if int(charmNum) > len(legal) {
-		// No legal set of modes can complete its mandatory target choices. This
+	min, max := effects.CharmModeBounds(e, ctx, sa, len(legal))
+	if min > len(legal) {
+		// No legal set of modes can complete its required target choices. This
 		// is the modal counterpart of targetAsk's no-legal-target reversal; use
 		// the no-progress suppression so an automated seat cannot propose the
 		// same impossible cast forever.
 		e.abortCast(pc, "cast aborted: no legal modal choice", true)
 		return true
 	}
-	d := modeDecisionForChoices(pc.player, pc.card, sa, f.SVars, legal, int(charmNum))
+	d := modeDecisionForChoices(pc.player, pc.card, sa, f.SVars, legal, min, max)
 	d.ResumeKind = "cast_modes"
 	e.ask(d)
 	return true

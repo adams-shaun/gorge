@@ -567,7 +567,29 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// effCharm runs CharmNum$ of the Choices$ sub-abilities in chosen order.
+// CharmModeBounds resolves a Charm's selectable range. Forge defaults
+// MinCharmNum$ to CharmNum$, but an explicit MinCharmNum$ permits choosing
+// fewer modes. Both values use Num so literal, SVar, and inline Count$ forms
+// share the same evaluation in spell, trigger, and resolution paths.
+func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int) {
+	max = int(Num(h, c, sa, "CharmNum", 1))
+	if max < 1 {
+		max = 1
+	}
+	min = max
+	if _, ok := sa.Params["MinCharmNum"]; ok {
+		min = int(Num(h, c, sa, "MinCharmNum", int32(min)))
+	}
+	if max > choices {
+		max = choices
+	}
+	if min < 0 {
+		min = 0
+	}
+	return min, max
+}
+
+// effCharm runs the selected Choices$ sub-abilities in chosen order.
 // Cast spells (CR 601.2b) and triggered abilities (CR 603.3c) arrive with
 // Ctx.Modes pre-seeded from their earlier announcement. A Charm reached only
 // during resolution still poses KModes and suspends until resumeResolution
@@ -615,17 +637,16 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	for i, name := range choices {
 		subs[i] = cards.ResolveSVar(c.SVars, name)
 	}
-	charmNum := Num(h, c, sa, "CharmNum", 1)
-	if charmNum < 1 {
-		charmNum = 1
-	}
-	if int(charmNum) > len(choices) {
-		charmNum = int32(len(choices))
+	min, max := CharmModeBounds(h, c, sa, len(choices))
+	if min > len(choices) {
+		// Forge declines a Charm whose required minimum exceeds its available
+		// modes. A no-engine host must likewise make no arbitrary choice.
+		return
 	}
 	d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
-		Min: int(charmNum), Max: int(charmNum), Source: c.Source,
+		Min: min, Max: max, Source: c.Source,
 		ResumeKind: "modes", ResumeSA: sa,
-		Prompt: "Choose " + strconv.Itoa(int(charmNum)) + " mode(s)"}
+		Prompt: "Choose " + strconv.Itoa(min) + " to " + strconv.Itoa(max) + " mode(s)"}
 	for i, name := range choices {
 		label := name
 		if subs[i] != nil {

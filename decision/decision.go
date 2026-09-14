@@ -26,8 +26,9 @@ const (
 	// hand card -- exactly the distinct-index shape Validate already enforces
 	// for KTriggerOrder, so no new wire format is needed (Ruling U2).
 	KMulligan Kind = "mulligan"
-	// KModes is a modal pick: Min == Max == CharmNum$ (default 1) over one
-	// "mode" option per Choices$ sub-ability, in Choices$ order. Spell modes
+	// KModes is a modal pick: MinCharmNum$ (default CharmNum$) through
+	// CharmNum$ (default 1) over one "mode" option per Choices$ sub-ability,
+	// in Choices$ order. Spell modes
 	// are announced during casting (CR 601.2b), trigger modes at placement
 	// (CR 603.3c), while nested Charm and unless-pay asks may suspend
 	// resolution. handleModes records ModeChosen; ResumeKind and the trigger
