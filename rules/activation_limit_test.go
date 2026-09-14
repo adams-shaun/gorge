@@ -206,10 +206,11 @@ func TestActivationLimitInlineCountWithheldAtComputedCount(t *testing.T) {
 // on the zero-production shape forever (the deck's seed-7 intent stall).
 // Vivi is the right fixture because her ability costs {0} -- a dry pool can
 // never do the withholding -- and produces X=power=0 mana, so nothing else
-// advances between two activations. The leaves: first activation offered and
-// resolved through the singleton no-ask path, exactly one ManaActivate
-// marker in the log, second offer withheld the same turn, and the marker is
-// replay-safe (the log re-folds to the same chain head).
+// advances between two activations. Produced$ Combo U R requires a real
+// colour KChoose after priority's activate option; the leaves answer that
+// choice, assert priority returned, then prove the second offer is withheld.
+// The log has exactly one ManaActivate marker and is replay-safe (the log
+// re-folds to the same chain head).
 func TestManaAbilityActivationLimitOfferedOnceThenWithheld(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	vivi, ok := reg.Lookup("Vivi Ornitier")
@@ -248,12 +249,22 @@ func TestManaAbilityActivationLimitOfferedOnceThenWithheld(t *testing.T) {
 	}
 	submitChoices(t, e, act.Index)
 
-	// The singleton no-ask path resolved the ability (Cost$ 0: no tap, no
-	// mana charged; Amount$ X is power 0, so the pool gains nothing), so
-	// priority is back without an intermediate ask -- and the once-per-turn
-	// limit must now withhold the offer.
+	// Vivi's Produced$ Combo U R is not a singleton no-ask path: completing
+	// the activation requires choosing U or R. The second-offer assertion must
+	// happen only after that colour choice returns priority; otherwise a
+	// KChoose has no "activate" option whether the ActivationLimit gate exists
+	// or not.
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Source != id {
+		t.Fatalf("expected Vivi mana colour choice after activation, got %+v", d)
+	}
+	submitChoices(t, e, manaOption(t, d, "U"))
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("expected priority after Vivi mana colour choice, got %+v", d)
+	}
 	if hasActivateOption(e, id) {
-		t.Fatalf("Vivi Ornitier mana ability offered twice in one turn: %+v", e.Pending().Options)
+		t.Fatalf("Vivi Ornitier mana ability offered twice in one turn: %+v", d.Options)
 	}
 
 	// Exactly one scan marker, attributed to the source with the ability's
