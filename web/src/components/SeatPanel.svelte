@@ -350,8 +350,17 @@
              this panel there for exactly that tone); duplicating its option
              list here would be a second posting surface for the same answer.
              The panel itself stays mounted: it owns the polling/autopilot
-             lifecycle shared with the board surface. -->
-        <p class="pointer" data-strip-pointer>This is a required prompt, not an action — it is answered on the board. The game cannot move until it is.</p>
+             lifecycle shared with the board surface.
+             fb-20260914T062319Z-88b4069a (part A): an optional trigger is
+             exactly such a blocked decision — the ANSWER must be given, but
+             the CHOICE is optional — and the generic "required prompt" wording
+             read to the player as a mandatory yes. The two wordings are pinned
+             by SeatPanel.svelte.test.ts. -->
+        {#if decision?.kind === 'trigger_optional'}
+          <p class="pointer" data-strip-pointer>This is an optional ability: choose whether it happens. The game cannot move until you answer.</p>
+        {:else}
+          <p class="pointer" data-strip-pointer>This is a required prompt, not an action — it is answered on the board. The game cannot move until it is.</p>
+        {/if}
       {:else if arrange !== null}
         <!-- The arrange ask (brief Job 4): card faces in OFFERED order, each
              click toggling it into/out of the keep pile (the picked array, in
@@ -397,6 +406,18 @@
             <button class="primary" type="button" data-primary onclick={(e) => logic.primaryClick(e.ctrlKey)} disabled={logic.busy}>
               {primary.label}
             </button>
+          {/if}
+          {#if decision.kind === 'trigger_optional'}
+            <!-- The remember affordance (fb-20260914T062319Z-88b4069a B4):
+                 default OFF; when checked, click()'s post-on-click stores the
+                 chosen index under the full-prompt key, and every identical
+                 future prompt is auto-answered with it (manageable in GAME
+                 OPTIONS). It sits above the options because a min==max==1 ask
+                 posts on the click itself — the box must be settable first. -->
+            <label class="remember" data-remember-answer>
+              <input type="checkbox" bind:checked={logic.rememberChoice} disabled={logic.busy} />
+              <span>Remember this answer for identical future prompts</span>
+            </label>
           {/if}
           <div class="list">
             {#each decision.options.filter((opt) => !isConcede(opt) && opt.index !== primary?.index) as opt (opt.index)}
@@ -701,6 +722,24 @@
     max-height: 11rem;
     overflow-y: auto;
     min-height: 0;
+  }
+  /* The remember checkbox (fb part B): one quiet line above the option list,
+     styled as panel chrome rather than a form control so it reads as part of
+     the ask, not as a separate dialog. */
+  .remember {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-1) var(--sp-2);
+    color: var(--ink-dim);
+    font-size: var(--t-11);
+    line-height: 1.35;
+    cursor: pointer;
+  }
+  .remember:hover { color: var(--ink); }
+  .remember input {
+    margin: 0;
+    accent-color: var(--offered);
   }
   .primary {
     background: var(--offered);

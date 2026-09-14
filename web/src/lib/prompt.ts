@@ -42,6 +42,14 @@ export function shapeOf(d: Decision): string | null {
       // The mulligan layout speaks for itself (keep/mulligan buttons, the
       // bottoming submit); a shape line would say it twice.
       return null;
+    case 'trigger_optional':
+      // The ask is a yes/no on an OPTIONAL triggered ability (Min == Max == 1
+      // over "yes"/"no", engine rules/trigger_queue.go): "Pick 1 option"
+      // reads as a mandatory selection of one of N, which is exactly the
+      // misreading the optional-trigger report describes. The shape line says
+      // both halves — the ability is optional, the answer is still a choice
+      // between yes and no.
+      return 'Optional ability — choose Yes or No';
     case 'priority':
       return null;
     default: {
