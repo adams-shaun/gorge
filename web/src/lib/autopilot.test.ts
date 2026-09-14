@@ -158,6 +158,47 @@ describe('decide', () => {
     expect(run(d, v)).toEqual({ act: 'pass', index: 0 });
   });
 
+  // --- targets-me counts MY objects ON THE STACK (prio7) ---
+
+  it('casual: an opponent trigger targeting MY spell lower on the stack + respondable stops', () => {
+    const d = priority(RESPONDABLE);
+    // my spell (id 8, controller 0) under the opponent's trigger (id 9) that targets it
+    const v = view(0, 'draw', [
+      stackEntry(8, 0, 'spell'),
+      stackEntry(9, 1, 'trigger', [{ obj: 8, player: 0, is_player: false }]),
+    ]);
+    expect(run(d, v)).toEqual({ act: 'stop', reason: 'opponent-object' });
+  });
+
+  it('casual: an opponent trigger targeting the OPPONENT’s own spell on the stack passes', () => {
+    const d = priority(RESPONDABLE);
+    const v = view(0, 'draw', [
+      stackEntry(8, 1, 'spell'),
+      stackEntry(9, 1, 'trigger', [{ obj: 8, player: 1, is_player: false }]),
+    ]);
+    expect(run(d, v)).toEqual({ act: 'pass', index: 0 });
+  });
+
+  it('casual: an opponent trigger targeting MY ability on the stack + respondable stops', () => {
+    const d = priority(RESPONDABLE);
+    const v = view(0, 'draw', [
+      stackEntry(8, 0, 'ability'),
+      stackEntry(9, 1, 'trigger', [{ obj: 8, player: 0, is_player: false }]),
+    ]);
+    expect(run(d, v)).toEqual({ act: 'stop', reason: 'opponent-object' });
+  });
+
+  it('casual: an opponent trigger targeting MY card in my graveyard + respondable stops (public-zone controller)', () => {
+    const d = priority(RESPONDABLE);
+    const v = view(
+      0, 'draw',
+      [stackEntry(9, 1, 'trigger', [{ obj: 5, player: 0, is_player: false }])],
+      [{ seat: 0, cards: [] }],
+    );
+    (v.players as { seat: number; graveyard: { id: number; controller: number }[] }[])[0].graveyard = [{ id: 5, controller: 0 }];
+    expect(run(d, v)).toEqual({ act: 'stop', reason: 'opponent-object' });
+  });
+
   it('no-tells: the same opponent trigger targeting the opponent\u2019s own creature stops (always)', () => {
     const d = priority(RESPONDABLE);
     const s = applyPreset('no-tells');

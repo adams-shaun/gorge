@@ -121,17 +121,37 @@ export function emptyPriorityWindow(decision: Decision): number | null {
 /**
  * targetsMe reports whether any target of the given stack entry is this seat
  * (a player target) or an object this seat controls. The controller lookup
- * reads the view's public battlefield data — view.players[*].battlefield,
- * each CardView carrying its own id and controller (view/view.go's zone
- * lists are keyed by controller) — so an object this seat used to control
- * but that has left the battlefield (a graveyard card, a spell on the stack)
- * is never "mine" by this test; those targets conservatively do not stop.
+ * reads every public zone the View exposes plus the stack:
+ *
+ * - every CardView[] zone on view.players[*] — battlefield, graveyard,
+ *   exile, and hand (present only for the viewer's own seat, a CR 400.2
+ *   hidden zone) — found structurally by walking the player object's array
+ *   fields and admitting only entries shaped like a CardView (numeric id +
+ *   numeric controller), so a zone the view gains later is covered without
+ *   this function changing, and a non-card array field can never contribute
+ *   a bogus id. view/view.go's cardView() sets Controller for every zone,
+ *   so graveyard/exile targets ("target card in a graveyard") count;
+ * - view.stack, where a spell or ability object's controller is the seat
+ *   that cast/activated it — a counterspell at MY spell on the stack must
+ *   count as "targeting me", not just one at my creature.
+ *
+ * Every entry is the object's CURRENT controller, so an object that changed
+ * zones or controllers resolves to whoever holds it now. The function stays
+ * pure: it only reads the view it is given.
  */
 function targetsMe(view: View, seat: number, top: { targets: { obj?: number; player: number; is_player: boolean }[] }): boolean {
   const controllers = new Map<number, number>();
   for (const p of view.players ?? []) {
-    for (const c of p.battlefield ?? []) controllers.set(c.id, c.controller);
+    for (const zone of Object.values(p)) {
+      if (!Array.isArray(zone)) continue;
+      for (const c of zone) {
+        if (c !== null && typeof c === 'object' && typeof c.id === 'number' && typeof c.controller === 'number') {
+          controllers.set(c.id, c.controller);
+        }
+      }
+    }
   }
+  for (const s of view.stack ?? []) controllers.set(s.id, s.controller);
   return (top.targets ?? []).some((t) =>
     t.is_player ? t.player === seat : t.obj !== undefined && controllers.get(t.obj) === seat
   );
