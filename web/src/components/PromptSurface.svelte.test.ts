@@ -324,4 +324,51 @@ describe('the arrange modal preview (fb-20260914T063020Z Job 2)', () => {
 
     await page.close();
   });
+
+  it('clears card A’s description while card B’s delayed lookup is pending, then renders only B’s result', async () => {
+    const page = await browser.newPage();
+    await page.route('**/PromptSurface.fixture.html*', async (route) => {
+      const res = await route.fetch();
+      await route.fulfill({ response: res, body: (await res.text()).replace('</head>', '<meta name="gorge-cards" content=""></head>') });
+    });
+
+    let notifyBStarted = () => {};
+    const bStarted = new Promise<void>((resolve) => { notifyBStarted = resolve; });
+    let releaseB = () => {};
+    const bReleased = new Promise<void>((resolve) => { releaseB = resolve; });
+    await page.route('**/cards/named*', async (route) => {
+      const name = new URL(route.request().url()).searchParams.get('exact') ?? '';
+      if (name === 'Fabled Pass') {
+        notifyBStarted();
+        await bReleased;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ name, oracle_text: `${name} rules text.` }),
+      });
+    });
+
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
+    await page.locator('[data-arrange-open]').click();
+    const preview = page.locator('[data-arrange-preview]');
+    const oracle = preview.locator('[data-arrange-preview-oracle]');
+
+    // Resolve A first, then move keyboard focus directly to B. B's art/name
+    // change immediately while its request remains deliberately unresolved.
+    await page.locator('[data-arrange-keep-card="0"] button.face').focus();
+    await oracle.waitFor({ state: 'visible', timeout: 5_000 });
+    expect(await oracle.textContent()).toBe('Brazen Borrower rules text.');
+    await page.locator('[data-arrange-keep-card="1"] button.face').focus();
+    await bStarted;
+    expect(await preview.locator('.name').textContent()).toBe('Fabled Pass');
+    expect(await oracle.count()).toBe(0); // never B art/name with A text
+
+    releaseB();
+    await oracle.waitFor({ state: 'visible', timeout: 5_000 });
+    expect(await oracle.textContent()).toBe('Fabled Pass rules text.');
+    expect(await oracle.textContent()).not.toContain('Brazen Borrower');
+
+    await page.close();
+  });
 });

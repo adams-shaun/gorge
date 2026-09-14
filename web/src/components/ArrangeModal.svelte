@@ -121,11 +121,12 @@
       previewOrc = null;
       return;
     }
+    // The art and name switch synchronously with `preview`; clear the prior
+    // card's printed facts in that same effect before a possibly-async lookup
+    // starts, so card B can never be shown with card A's oracle text.
+    previewOrc = null;
     const v = resolver(o.label);
-    if (v === null) {
-      previewOrc = null;
-      return;
-    }
+    if (v === null) return;
     if (typeof (v as Promise<OracleCard | null>).then === 'function') {
       let cancelled = false;
       (v as Promise<OracleCard | null>).then((c) => {

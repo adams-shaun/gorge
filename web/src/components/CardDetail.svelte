@@ -75,11 +75,12 @@
 
   $effect(() => {
     const name = card.name;
+    // A mounted inspector can move directly from one card to another. Clear
+    // the prior card's printed facts before resolving the new name so an
+    // asynchronous catalog cannot briefly pair card B with card A's text.
+    orc = null;
     const v = resolver(name);
-    if (v === null) {
-      orc = null;
-      return;
-    }
+    if (v === null) return;
     if (typeof (v as Promise<OracleCard | null>).then === 'function') {
       let cancelled = false;
       (v as Promise<OracleCard | null>).then((c) => {
