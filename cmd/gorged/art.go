@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -129,8 +130,8 @@ func sleepCtx(ctx context.Context, d time.Duration) error {
 }
 
 // paceWait spaces Scryfall request starts at least a.pace apart — the <=10
-// req/s limiter. It must be called with the pacing semaphore held (fetch and
-// fetchFacts hold it across the whole fetch), so lastAPI needs no lock of its
+// req/s limiter. It must be called with the pacing semaphore held (fetchCard
+// holds it across the whole fetch), so lastAPI needs no lock of its
 // own. With pace == 0 (tests) it does nothing.
 func (a *artCache) paceWait(ctx context.Context) error {
 	if a.pace <= 0 {
@@ -228,6 +229,7 @@ func artKey(name string) string {
 func (a *artCache) jpgPath(key string) string   { return filepath.Join(a.dir, key+".jpg") }
 func (a *artCache) missPath(key string) string  { return filepath.Join(a.dir, key+".miss") }
 func (a *artCache) factsPath(key string) string { return filepath.Join(a.dir, key+".json") }
+func (a *artCache) facesPath(key string) string { return filepath.Join(a.dir, key+".faces") }
 
 // cardFacts is the exact record GET /cards/named serves — the six fields
 // web/src/lib/oracle.ts normalises a catalog entry to, and nothing else.
@@ -257,7 +259,7 @@ type scryFace struct {
 }
 
 // scryNamed is the slice of Scryfall's named-lookup response the cache
-// reads: the image fields fetch() always wanted, plus the printed facts the
+// reads: the image fields fetchCard always wanted, plus the printed facts the
 // /cards/named sidecar keeps. A multi-faced card carries its printed facts
 // on the faces, not the top level — see facts().
 type scryNamed struct {
@@ -419,46 +421,85 @@ func (a *artCache) text(w http.ResponseWriter, r *http.Request) {
 // It joins the SAME single-flight map as ensure: a text lookup arriving
 // while the art fetch for the same name is still running waits for it and
 // then reads the sidecar the fetch wrote, so one never-fired Scryfall named
-// request serves both.
+// request serves both. A card already fetched for art before facts were kept
+// (a .jpg but no .json) is backfilled by the same fetchCard, which skips the
+// image download because the .jpg is already on disk.
 func (a *artCache) ensureText(ctx context.Context, key, name string) (bool, error) {
-	if _, err := os.Stat(a.factsPath(key)); err == nil {
-		return true, nil
-	}
-	if _, err := os.Stat(a.missPath(key)); err == nil {
-		return false, nil
-	}
+	return a.singleFlight(ctx, key, func() (bool, bool) {
+		if fileExists(a.factsPath(key)) {
+			return true, true
+		}
+		if fileExists(a.missPath(key)) {
+			return false, true
+		}
+		return false, false
+	}, func() (bool, error) {
+		return a.servedDespiteSiblings(a.factsPath(key))(a.fetchCard(ctx, key, name))
+	})
+}
 
-	a.mu.Lock()
-	ch, inflight := a.inflight[key]
-	if !inflight {
-		ch = make(chan struct{})
-		a.inflight[key] = ch
-	}
-	a.mu.Unlock()
-
-	if inflight {
+// singleFlight is the one join-or-run discipline ensure, ensureText and
+// ensureComplete share. check reports (hit, decided) from disk; when it is
+// undecided, the first caller for key runs work while every concurrent caller
+// for the same key waits and then re-checks disk (and becomes the runner if
+// the earlier work failed to settle it).
+func (a *artCache) singleFlight(ctx context.Context, key string, check func() (hit, decided bool), work func() (bool, error)) (bool, error) {
+	for {
+		if hit, decided := check(); decided {
+			return hit, nil
+		}
+		a.mu.Lock()
+		ch, inflight := a.inflight[key]
+		if !inflight {
+			ch = make(chan struct{})
+			a.inflight[key] = ch
+			a.mu.Unlock()
+			return a.runFlight(key, ch, check, work)
+		}
+		a.mu.Unlock()
 		select {
 		case <-ch:
-			return a.ensureText(ctx, key, name) // re-check disk now that the fetch that was running has finished
+			// re-check disk now that the fetch that was running has finished
 		case <-ctx.Done():
 			return false, ctx.Err()
 		}
 	}
+}
 
+// runFlight runs work as key's single in-flight fetch and releases the slot
+// when it returns. It re-checks disk first: a runner that finished between
+// this caller's check and its claiming the slot may already have settled it.
+func (a *artCache) runFlight(key string, ch chan struct{}, check func() (bool, bool), work func() (bool, error)) (bool, error) {
 	defer func() {
 		a.mu.Lock()
 		delete(a.inflight, key)
 		a.mu.Unlock()
 		close(ch)
 	}()
-	// A card already fetched for art before facts were kept (a legacy cache
-	// dir from before the sidecar existed, or an image download that never
-	// completed) has a .jpg but no .json: backfill it with ONE paced
-	// metadata-only request rather than re-fetching the image.
-	if _, err := os.Stat(a.jpgPath(key)); err == nil {
-		return a.fetchFacts(ctx, key, name)
+	if hit, decided := check(); decided {
+		return hit, nil
 	}
-	return a.fetch(ctx, key, name)
+	return work()
+}
+
+// servedDespiteSiblings adapts fetchCard's result for a CLIENT route, which
+// asked for exactly one face: when only a sibling face failed
+// (incompleteFacesError)
+// and the requested artifact at path is on disk, the request is a hit — the
+// sibling is fetched when a client asks for it by name, and the one-shot fill
+// (ensureComplete) still sees the entry as incomplete because no face
+// manifest was written.
+func (a *artCache) servedDespiteSiblings(path string) func(bool, error) (bool, error) {
+	return func(hit bool, err error) (bool, error) {
+		var inc *incompleteFacesError
+		if errors.As(err, &inc) && fileExists(path) {
+			if a.logf != nil {
+				a.logf("art: %v", err)
+			}
+			return true, nil
+		}
+		return hit, err
+	}
 }
 
 // blob serves a cached image's bytes. key is validated as an exact 64-hex
@@ -487,47 +528,96 @@ func (a *artCache) blob(w http.ResponseWriter, r *http.Request) {
 // on a first request. Concurrent requests for the same never-seen name join
 // the one in-flight fetch rather than each starting their own.
 func (a *artCache) ensure(ctx context.Context, key, name string) (bool, error) {
-	if _, err := os.Stat(a.jpgPath(key)); err == nil {
-		return true, nil
-	}
-	if _, err := os.Stat(a.missPath(key)); err == nil {
-		return false, nil
-	}
-
-	a.mu.Lock()
-	ch, inflight := a.inflight[key]
-	if !inflight {
-		ch = make(chan struct{})
-		a.inflight[key] = ch
-	}
-	a.mu.Unlock()
-
-	if inflight {
-		select {
-		case <-ch:
-			return a.ensure(ctx, key, name) // re-check disk now that the fetch that was running has finished
-		case <-ctx.Done():
-			return false, ctx.Err()
+	return a.singleFlight(ctx, key, func() (bool, bool) {
+		if fileExists(a.jpgPath(key)) {
+			return true, true
 		}
-	}
-
-	defer func() {
-		a.mu.Lock()
-		delete(a.inflight, key)
-		a.mu.Unlock()
-		close(ch)
-	}()
-	return a.fetch(ctx, key, name)
+		if fileExists(a.missPath(key)) {
+			return false, true
+		}
+		return false, false
+	}, func() (bool, error) {
+		return a.servedDespiteSiblings(a.jpgPath(key))(a.fetchCard(ctx, key, name))
+	})
 }
 
-// fetch does the actual Scryfall round trip: one paced, 429-retried request
-// for the card's metadata, then (on a hit) one more for the image bytes. Both
-// go through a.sem so only one such pair is ever in flight across the whole
-// server, and every lookup and image request is spaced by doScryfall's limiter
-// (<=10 Scryfall req/s no matter who — prewarm or a browser — asked).
-func (a *artCache) fetch(ctx context.Context, key, name string) (bool, error) {
-	// The whole pair — named lookup, then image download — is paced as one
-	// unit under the semaphore, exactly as it was before facts were kept.
+// ensureComplete is the FILL's question, stricter than ensure's: is every
+// artifact a client can request for this card on disk — the requested name's
+// art and facts AND every sibling face's art and facts? A client can only be
+// told which siblings exist by a Scryfall named response, so a .jpg+.json pair
+// alone cannot answer it: an entry cached before sibling faces were kept, or
+// by a fetch killed between the requested image and a sibling, looks exactly
+// like a complete single-faced card. complete() therefore trusts only the face
+// manifest fetchCard writes LAST, after every sibling is on disk; anything
+// else re-runs fetchCard, which makes one named lookup and downloads only the
+// artifacts still missing. (hit=false only for a genuine Scryfall 404.)
+func (a *artCache) ensureComplete(ctx context.Context, key, name string) (bool, error) {
+	return a.singleFlight(ctx, key, func() (bool, bool) {
+		if a.complete(key) {
+			return true, true
+		}
+		if !fileExists(a.jpgPath(key)) && fileExists(a.missPath(key)) {
+			return false, true
+		}
+		return false, false
+	}, func() (bool, error) {
+		return a.fetchCard(ctx, key, name)
+	})
+}
+
+// faceManifest is the <key>.faces record: the printed names of every OTHER
+// named face of the card this key's named response described (empty
+// for a single-faced card). Its presence means fetchCard finished that
+// response completely; complete() re-verifies each listed sibling on disk.
+type faceManifest struct {
+	Siblings []string `json:"siblings"`
+}
+
+// complete reports whether key's requested artifacts and every sibling its
+// face manifest names are on disk. No manifest (a legacy or interrupted
+// entry) or an unreadable one is incomplete.
+func (a *artCache) complete(key string) bool {
+	if !fileExists(a.jpgPath(key)) || !fileExists(a.factsPath(key)) {
+		return false
+	}
+	b, err := os.ReadFile(a.facesPath(key))
+	if err != nil {
+		return false
+	}
+	var m faceManifest
+	if err := json.Unmarshal(b, &m); err != nil || m.Siblings == nil {
+		return false
+	}
+	for _, sib := range m.Siblings {
+		sk := artKey(sib)
+		if !fileExists(a.jpgPath(sk)) || !fileExists(a.factsPath(sk)) {
+			return false
+		}
+	}
+	return true
+}
+
+// incompleteFacesError is fetchCard's failure when the requested name's own
+// artifacts are on disk but a sibling face's are not. The fill counts it as a
+// failure; a client route that asked only for the requested face does not
+// (see servedDespiteSiblings).
+type incompleteFacesError struct{ err error }
+
+func (e *incompleteFacesError) Error() string { return e.err.Error() }
+func (e *incompleteFacesError) Unwrap() error { return e.err }
+
+// fetchCard does the actual Scryfall round trip for every caller — client art,
+// client text, legacy facts backfill, and the fill: one paced, 429-retried
+// named request, then whichever of the requested image, the facts sidecar and
+// the sibling faces' art/facts are still missing, then the face manifest.
+// Everything runs under a.sem so only one card's requests are ever in flight
+// across the whole server, and every request is spaced by doScryfall's
+// limiter (<=10 Scryfall req/s no matter who — prewarm or a browser — asked).
+//
+// The manifest is written only after every other artifact is on disk, so a
+// failure or a kill at any earlier point leaves the entry incomplete for the
+// next fill, which retries it rather than reporting it present.
+func (a *artCache) fetchCard(ctx context.Context, key, name string) (bool, error) {
 	select {
 	case a.sem <- struct{}{}:
 	case <-ctx.Done():
@@ -548,96 +638,71 @@ func (a *artCache) fetch(ctx context.Context, key, name string) (bool, error) {
 	if err := a.writeFacts(key, card.facts(name)); err != nil {
 		return false, err
 	}
-	imgURL := card.faceImage(name)
-	if imgURL == "" {
-		return false, a.writeMiss(key)
-	}
-	if err := a.download(ctx, key, imgURL); err != nil {
-		return false, err
+	// A legacy entry already holding the requested image (an art-only cache
+	// being backfilled with facts, or a front face being completed with its
+	// siblings) never re-downloads it.
+	if !fileExists(a.jpgPath(key)) {
+		imgURL := card.faceImage(name)
+		if imgURL == "" {
+			return false, a.writeMiss(key)
+		}
+		if err := a.download(ctx, key, imgURL); err != nil {
+			return false, err
+		}
 	}
 	// One named response carries every face of the card: cache the OTHER
 	// faces too, so a transformed split/DFC the deck only names on one side
 	// is already on disk when a client asks for the face it transformed
-	// into — zero extra api.scryfall.com requests. A sibling failure makes
-	// this name's fetch fail: otherwise the one-shot fill would report a
-	// complete cache while a requested sibling was still absent.
-	if err := a.cacheSiblingFaces(ctx, card, name); err != nil {
-		// fetch is entered only when this JPG was absent. Remove the artifact
-		// just published so the next prewarm pass cannot mistake the requested
-		// face for a complete warm hit and will retry the named response and
-		// its siblings. The facts sidecar can remain useful meanwhile.
-		if rerr := os.Remove(a.jpgPath(key)); rerr != nil && !os.IsNotExist(rerr) {
-			return false, fmt.Errorf("%w (also could not remove requested image for retry: %v)", err, rerr)
-		}
+	// into — zero extra api.scryfall.com requests.
+	siblings, err := a.cacheSiblingFaces(ctx, card, name)
+	if err != nil {
+		return false, &incompleteFacesError{err: err}
+	}
+	if err := a.writeFaceManifest(key, faceManifest{Siblings: siblings}); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-// cacheSiblingFaces writes the art and facts of every face of a multi-faced
-// card other than the name that was asked for, from the SAME named response
-// (no extra Scryfall API request; each face's image is one CDN download).
-// Every failure is returned to fetch/fetchFacts: sibling faces are part of a
-// complete fill, so silently skipping one would make the summary and one-shot
-// exit status claim success for an incomplete cache.
-func (a *artCache) cacheSiblingFaces(ctx context.Context, card *scryNamed, requested string) error {
+// cacheSiblingFaces writes the art and facts of every named face of a
+// multi-faced card other than the name that was asked for, from the SAME named
+// response (no extra Scryfall API request; each face's image is one CDN
+// download), and returns those faces' names for the manifest. A face's image
+// is chosen by faceImage — exactly what a cold client request for that face's
+// name would cache — so a split, Room or adventure half, whose art is the
+// card's top-level image rather than its own, is covered too. Every failure is
+// returned: sibling faces are part of a complete fill, so silently skipping one
+// would make the summary and one-shot exit status claim success for an
+// incomplete cache.
+func (a *artCache) cacheSiblingFaces(ctx context.Context, card *scryNamed, requested string) ([]string, error) {
+	siblings := []string{}
 	for i := range card.CardFaces {
 		face := &card.CardFaces[i]
 		fname := strings.TrimSpace(face.Name)
-		if fname == "" || strings.EqualFold(fname, requested) || face.ImageURIs.Normal == "" {
+		if fname == "" || strings.EqualFold(fname, requested) {
 			continue
 		}
+		img := card.faceImage(fname)
+		if img == "" {
+			continue // no art anywhere in the response; a request would record a miss
+		}
 		fkey := artKey(fname)
-		if _, err := os.Stat(a.jpgPath(fkey)); err != nil {
-			if err := a.download(ctx, fkey, face.ImageURIs.Normal); err != nil {
-				return fmt.Errorf("cache sibling image %q: %w", fname, err)
+		if !fileExists(a.jpgPath(fkey)) {
+			if err := a.download(ctx, fkey, img); err != nil {
+				return nil, fmt.Errorf("cache sibling image %q: %w", fname, err)
 			}
 		}
-		if _, err := os.Stat(a.factsPath(fkey)); err != nil {
+		if !fileExists(a.factsPath(fkey)) {
 			if err := a.writeFacts(fkey, card.facts(fname)); err != nil {
-				return fmt.Errorf("cache sibling facts %q: %w", fname, err)
+				return nil, fmt.Errorf("cache sibling facts %q: %w", fname, err)
 			}
 		}
+		siblings = append(siblings, fname)
 	}
-	return nil
+	return siblings, nil
 }
 
-// fetchFacts backfills ONLY the facts sidecar for a name that already has
-// cached art but no sidecar (see ensureText). Same pacing discipline as
-// fetch: one paced request through the semaphore — and the same 429 retry —
-// plus the sibling-face caching fetch does, since this named response is
-// just as capable of filling the other faces' art for free.
-func (a *artCache) fetchFacts(ctx context.Context, key, name string) (bool, error) {
-	select {
-	case a.sem <- struct{}{}:
-	case <-ctx.Done():
-		return false, ctx.Err()
-	}
-	defer func() { <-a.sem }()
-	card, known, err := a.lookupNamed(ctx, name)
-	if err != nil {
-		return false, err
-	}
-	if !known {
-		return false, a.writeMiss(key)
-	}
-	if err := a.writeFacts(key, card.facts(name)); err != nil {
-		return false, err
-	}
-	if err := a.cacheSiblingFaces(ctx, card, name); err != nil {
-		// fetchFacts is entered only when this sidecar was absent. Remove the
-		// newly published sidecar so the next text/fill request retries instead
-		// of treating this name as complete while a sibling is still missing.
-		if rerr := os.Remove(a.factsPath(key)); rerr != nil && !os.IsNotExist(rerr) {
-			return false, fmt.Errorf("%w (also could not remove requested facts for retry: %v)", err, rerr)
-		}
-		return false, err
-	}
-	return true, nil
-}
-
-// lookupNamed does the one Scryfall named round trip both fetch and
-// fetchFacts need: card is nil with known=false exactly when Scryfall
+// lookupNamed does the one Scryfall named round trip fetchCard needs: card is nil with known=false exactly when Scryfall
 // answered 404 (the caller records the miss), and a non-200 anything else
 // is an error — except 429, the rate limit, which is backed off (honouring
 // Retry-After when the header carries it, exponential otherwise) and
@@ -772,11 +837,20 @@ func (a *artCache) writeMiss(key string) error {
 // discipline download() uses: a concurrent text() request never observes a
 // partially-written .json, including when two gorged processes share a cache.
 func (a *artCache) writeFacts(key string, facts cardFacts) error {
-	b, err := json.Marshal(facts)
+	return a.writeJSONAtomic(a.factsPath(key), "."+key+"-*.json.tmp", facts)
+}
+
+// writeFaceManifest publishes key's face manifest atomically (see complete).
+func (a *artCache) writeFaceManifest(key string, m faceManifest) error {
+	return a.writeJSONAtomic(a.facesPath(key), "."+key+"-*.faces.tmp", m)
+}
+
+func (a *artCache) writeJSONAtomic(dst, pattern string, v any) error {
+	b, err := json.Marshal(v)
 	if err != nil {
 		return err
 	}
-	f, err := a.createTemp("." + key + "-*.json.tmp")
+	f, err := a.createTemp(pattern)
 	if err != nil {
 		return err
 	}
@@ -789,7 +863,7 @@ func (a *artCache) writeFacts(key string, facts cardFacts) error {
 	if err := f.Close(); err != nil {
 		return err
 	}
-	return os.Rename(tmp, a.factsPath(key))
+	return os.Rename(tmp, dst)
 }
 
 // artFillStats is what one fill pass over a deck directory did. String()
@@ -798,9 +872,12 @@ func (a *artCache) writeFacts(key string, facts cardFacts) error {
 type artFillStats struct {
 	// Names is how many distinct deck names the pass walked.
 	Names int
-	// Cached counts names this pass fetched (art or facts was missing).
+	// Cached counts names this pass fetched or completed: art, facts, a
+	// sibling face, or the face manifest was missing (a legacy entry cached
+	// before sibling faces were kept costs one named lookup here, once).
 	Cached int
-	// Present counts names already complete on disk before this pass.
+	// Present counts names already complete on disk before this pass — every
+	// face, per the face manifest (see artCache.complete).
 	Present int
 	// NotFound counts names Scryfall genuinely does not know (a .miss —
 	// a fact, not a failure; a miss recorded by an EARLIER pass counts
@@ -820,13 +897,14 @@ func (s artFillStats) String() string {
 
 // fillArt walks every distinct card name (plus each commander) referenced by
 // the deck files in dir, in sorted order, and leaves each one complete in the
-// cache — art, facts sidecar, and (via fetch's sibling-face caching) every
-// other face of a multi-faced card. It is the ONE fill loop: prewarmArt
+// cache — art, facts sidecar, and (via fetchCard's sibling-face caching and
+// face manifest) every other face of a multi-faced card, whatever the
+// requested name's own files already were. It is the ONE fill loop: prewarmArt
 // (serve's background pass) and the -prewarm-art-only one-shot both go
 // through it, so their guarantees cannot drift apart. label is the log-line
 // prefix distinguishing the caller ("art prewarm" / "art fill").
 //
-// A name already complete on disk costs nothing (ensure/ensureText are
+// A name already complete on disk costs nothing (ensureComplete is
 // disk-checked and single-flight), which is what makes the fill idempotent:
 // a second pass makes zero fetches. Every per-name error is logged through
 // logf and left to self-heal — a network failure writes no .miss (only a
@@ -845,8 +923,8 @@ func fillArt(ctx context.Context, ac *artCache, dir, label string, logf func(str
 			return st, err
 		}
 		key := artKey(name)
-		complete := fileExists(ac.jpgPath(key)) && fileExists(ac.factsPath(key))
-		ok, err := ac.ensure(ctx, key, name)
+		complete := ac.complete(key)
+		ok, err := ac.ensureComplete(ctx, key, name)
 		if err != nil {
 			st.Failed++
 			logf("%s %q: %v", label, name, err)
@@ -854,11 +932,6 @@ func fillArt(ctx context.Context, ac *artCache, dir, label string, logf func(str
 		}
 		if !ok {
 			st.NotFound++ // a genuine Scryfall 404 recorded a .miss; nothing to backfill
-			continue
-		}
-		if _, err := ac.ensureText(ctx, key, name); err != nil {
-			st.Failed++
-			logf("%s facts %q: %v", label, name, err)
 			continue
 		}
 		if complete {

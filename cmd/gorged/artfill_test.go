@@ -420,11 +420,10 @@ func srvImg(r *http.Request) string { return "http://" + r.Host + "/img/alpha.jp
 // TestSiblingImageFailureFailsTheFillAndRemainsRetryable is the sol2 review
 // regression: a successful requested-face download followed by a failed
 // sibling CDN download must make the one-shot exit non-zero, not claim the
-// deck name was cached. The requested artifact that initiated fetch/fetchFacts
-// is rolled back on that failure so a later pass retries the SAME deck name;
-// otherwise its warm primary face would hide the missing sibling forever.
-// Both callers of cacheSiblingFaces are exercised so their contracts cannot
-// drift: a fully cold fetch and a legacy JPG whose facts need backfilling.
+// deck name was cached. No face manifest is published on that failure, so a
+// later pass retries the SAME deck name instead of letting its warm primary
+// face hide the missing sibling forever. Both entry shapes are exercised: a
+// fully cold fetch and a legacy JPG whose facts need backfilling.
 func TestSiblingImageFailureFailsTheFillAndRemainsRetryable(t *testing.T) {
 	var failBack atomic.Bool
 	failBack.Store(true)
@@ -511,8 +510,8 @@ func TestSiblingImageFailureFailsTheFillAndRemainsRetryable(t *testing.T) {
 		if st.Failed != 1 || st.Cached != 0 {
 			t.Fatalf("facts-backfill stats = %+v, want Failed=1 Cached=0", st)
 		}
-		if fileExists(ac.factsPath(frontKey)) {
-			t.Fatal("requested facts remained warm and would hide the failed sibling on the next pass")
+		if ac.complete(frontKey) || fileExists(ac.facesPath(frontKey)) {
+			t.Fatal("a face manifest was published despite the failed sibling; the next pass would count the name present")
 		}
 
 		failBack.Store(false)
@@ -598,5 +597,204 @@ func TestFetchCachesBothFacesOfAMultiFacedCard(t *testing.T) {
 	ac.blob(wb, rb)
 	if wb.Code != http.StatusOK || !strings.Contains(wb.Body.String(), "img/back.jpg") {
 		t.Fatalf("back blob: got %d %q", wb.Code, wb.Body.String())
+	}
+}
+
+// TestFillCompletesAWarmFrontFaceWhoseSiblingWasNeverCached is the sol2
+// review regression: a deck name whose OWN art and facts were cached before
+// sibling faces were kept (or by a fetch killed between the requested image
+// and a sibling) has a .jpg and .json yet the client can still request an
+// uncached back face. Completeness is decided by every face the named
+// response lists — recorded in the face manifest — not by the requested
+// name's files, so the fill must fetch the back face, count the name cached
+// (or failed, exiting 1), and only then become a zero-request no-op.
+func TestFillCompletesAWarmFrontFaceWhoseSiblingWasNeverCached(t *testing.T) {
+	var failBack atomic.Bool
+	var named, frontImg, backImg atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("/cards/named", func(w http.ResponseWriter, r *http.Request) {
+		named.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"name":"Alpha Card // Alpha Back","card_faces":[
+			{"name":"Alpha Card","type_line":"Creature","image_uris":{"normal":"http://%s/img/front.jpg"}},
+			{"name":"Alpha Back","type_line":"Creature — Back","image_uris":{"normal":"http://%s/img/back.jpg"}}]}`,
+			r.Host, r.Host)
+	})
+	mux.HandleFunc("/img/front.jpg", func(w http.ResponseWriter, _ *http.Request) {
+		frontImg.Add(1)
+		_, _ = io.WriteString(w, "front")
+	})
+	mux.HandleFunc("/img/back.jpg", func(w http.ResponseWriter, _ *http.Request) {
+		backImg.Add(1)
+		if failBack.Load() {
+			http.Error(w, "sibling unavailable", http.StatusInternalServerError)
+			return
+		}
+		_, _ = io.WriteString(w, "back")
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	orig := newServeArtCache
+	t.Cleanup(func() { newServeArtCache = orig })
+	newServeArtCache = func(dir string) (*artCache, error) {
+		ac, err := newArtCache(dir)
+		if err != nil {
+			return nil, err
+		}
+		ac.client = srv.Client()
+		ac.namedBaseURL = srv.URL + "/cards/named?exact="
+		ac.pace = 0
+		return ac, nil
+	}
+	decks := prewarmNamedDir(t, "Alpha Card")
+	front, back := artKey("Alpha Card"), artKey("Alpha Back")
+	// seedFrontOnly lays down exactly the pre-feature shape: the requested
+	// name's v2 JPG and JSON, no sibling files, no face manifest.
+	seedFrontOnly := func(t *testing.T) (string, *artCache) {
+		t.Helper()
+		dir := t.TempDir()
+		ac, err := newServeArtCache(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(ac.jpgPath(front), []byte("legacy front"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := ac.writeFacts(front, cardFacts{Name: "Alpha Card"}); err != nil {
+			t.Fatal(err)
+		}
+		return dir, ac
+	}
+	reset := func() { named.Store(0); frontImg.Store(0); backImg.Store(0) }
+
+	t.Run("fill fetches the missing sibling, then is a no-op", func(t *testing.T) {
+		failBack.Store(false)
+		reset()
+		dir, ac := seedFrontOnly(t)
+		st, err := fillArt(context.Background(), ac, decks, "art fill", t.Logf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := (artFillStats{Names: 1, Cached: 1}); st != want {
+			t.Fatalf("front-only cache stats = %+v, want %+v (not already present)", st, want)
+		}
+		if named.Load() != 1 || frontImg.Load() != 0 || backImg.Load() != 1 {
+			t.Errorf("requests named=%d front=%d back=%d, want 1/0/1 (the warm front image is not re-downloaded)",
+				named.Load(), frontImg.Load(), backImg.Load())
+		}
+		if b, err := os.ReadFile(ac.jpgPath(back)); err != nil || string(b) != "back" {
+			t.Fatalf("back face art = %q %v, want the sibling image", b, err)
+		}
+		var facts cardFacts
+		if b, err := os.ReadFile(ac.factsPath(back)); err != nil || json.Unmarshal(b, &facts) != nil || facts.TypeLine != "Creature — Back" {
+			t.Fatalf("back face facts = %+v %v, want the back face's printed facts", facts, err)
+		}
+
+		reset()
+		if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: dir}); code != 0 {
+			t.Fatalf("second one-shot = exit %d, want 0", code)
+		}
+		if n := named.Load() + frontImg.Load() + backImg.Load(); n != 0 {
+			t.Errorf("second one-shot made %d Scryfall requests, want 0", n)
+		}
+
+		// A sibling removed after completion (manifest present, file gone) is
+		// incomplete again — the manifest is re-verified, not trusted blindly.
+		if err := os.Remove(ac.jpgPath(back)); err != nil {
+			t.Fatal(err)
+		}
+		reset()
+		st, err = fillArt(context.Background(), ac, decks, "art fill", t.Logf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if st.Cached != 1 || backImg.Load() != 1 {
+			t.Errorf("removed-sibling pass stats = %+v back downloads = %d, want Cached=1 and one back download", st, backImg.Load())
+		}
+	})
+
+	t.Run("failed sibling of a warm front face exits 1 and stays retryable", func(t *testing.T) {
+		failBack.Store(true)
+		reset()
+		dir, ac := seedFrontOnly(t)
+		if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: dir}); code != 1 {
+			t.Fatalf("one-shot over a warm front with a failing sibling = exit %d, want 1", code)
+		}
+		if ac.complete(front) {
+			t.Fatal("entry marked complete while its sibling is absent")
+		}
+		// A client that asks for the front face itself is still served from
+		// disk: only the fill's completeness question fails.
+		w := httptest.NewRecorder()
+		ac.named(w, httptest.NewRequest(http.MethodGet, "/art/named?exact=Alpha+Card", nil))
+		if w.Code != http.StatusOK {
+			t.Fatalf("/art/named for the warm front face = %d, want 200", w.Code)
+		}
+
+		failBack.Store(false)
+		if code := runPrewarmArtOnly(context.Background(), config{decks: decks, artDir: dir}); code != 0 {
+			t.Fatalf("retry after the sibling recovers = exit %d, want 0", code)
+		}
+		if !ac.complete(front) || !fileExists(ac.jpgPath(back)) {
+			t.Fatal("retry did not complete the sibling face")
+		}
+	})
+}
+
+// TestFillCachesTheImagelessHalfOfASplitCard pins "all faces" for the layouts
+// whose halves carry no image of their own — split cards, Rooms, adventures:
+// Scryfall puts their art on the top level and lists the halves in
+// card_faces without image_uris. A deck naming one half ("Boom") must leave
+// the other half ("Bust") complete too, with the shared art and that half's
+// own printed facts, because the wire can name either half; an image-bearing
+// face filter would skip it and leave a client cold fetch behind.
+func TestFillCachesTheImagelessHalfOfASplitCard(t *testing.T) {
+	var named atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("/cards/named", func(w http.ResponseWriter, r *http.Request) {
+		named.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"name":"Boom // Bust","image_uris":{"normal":"http://%s/img/boom-bust.jpg"},"card_faces":[
+			{"name":"Boom","type_line":"Sorcery","oracle_text":"Destroy target land you control and target land you don't control."},
+			{"name":"Bust","type_line":"Sorcery","oracle_text":"Destroy all lands."}]}`, r.Host)
+	})
+	mux.HandleFunc("/img/", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, "bytes:"+r.URL.Path)
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	ac, err := newArtCache(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	ac.client = srv.Client()
+	ac.namedBaseURL = srv.URL + "/cards/named?exact="
+	ac.pace = 0
+	decks := prewarmNamedDir(t, "Boom")
+
+	st, err := fillArt(context.Background(), ac, decks, "art fill", t.Logf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := (artFillStats{Names: 1, Cached: 1}); st != want {
+		t.Fatalf("stats = %+v, want %+v", st, want)
+	}
+	bust := artKey("Bust")
+	if b, err := os.ReadFile(ac.jpgPath(bust)); err != nil || string(b) != "bytes:/img/boom-bust.jpg" {
+		t.Fatalf("Bust art = %q %v, want the card's shared top-level image", b, err)
+	}
+	var facts cardFacts
+	if b, err := os.ReadFile(ac.factsPath(bust)); err != nil || json.Unmarshal(b, &facts) != nil || facts.OracleText != "Destroy all lands." {
+		t.Fatalf("Bust facts = %+v %v, want Bust's own printed facts", facts, err)
+	}
+	if !ac.complete(artKey("Boom")) {
+		t.Fatal("Boom not complete after the fill")
+	}
+
+	named.Store(0)
+	w := httptest.NewRecorder()
+	ac.named(w, httptest.NewRequest(http.MethodGet, "/art/named?exact=Bust", nil))
+	if w.Code != http.StatusOK || named.Load() != 0 {
+		t.Fatalf("/art/named Bust after the fill = %d with %d Scryfall lookups, want 200 from disk", w.Code, named.Load())
 	}
 }
