@@ -135,14 +135,24 @@ func statInt(st cards.Static, key string) int32 {
 	return int32(n)
 }
 
-// statList splits a comma-separated additive parameter (AddKeyword,
-// AddTypes) into its members.
+// statList splits an additive static parameter (AddKeyword, AddTypes) into
+// its members. Forge writes multi-item lists two ways -- comma-joined
+// ("AddTypes$ Creature,Dragon") and "&"-joined ("AddKeyword$ Flying & Haste",
+// the separator grantKeywords and effects.splitKeywords already parse for
+// KW$, and multi-protection's two-keyword join per rules/protection.go) -- so
+// both split here. Measured over the corpus at the fix pin: 224 AddKeyword$
+// (of 1947) and 103 AddType$/AddTypes$ (of 418) values carry an "&" join
+// (among them Basilisk Collar's "Deathtouch & Lifelink", which granted NO
+// keyword before this), and no value uses "&" inside a single keyword, so
+// the split cannot cut a legitimate item in half.
 func statList(st cards.Static, key string) []string {
 	var out []string
-	for _, v := range strings.Split(st.Params[key], ",") {
-		v = strings.TrimSpace(v)
-		if v != "" {
-			out = append(out, v)
+	for _, part := range strings.Split(st.Params[key], ",") {
+		for _, v := range strings.Split(part, "&") {
+			v = strings.TrimSpace(v)
+			if v != "" {
+				out = append(out, v)
+			}
 		}
 	}
 	return out

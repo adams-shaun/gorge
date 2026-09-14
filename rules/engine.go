@@ -604,7 +604,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// clause). e.damaging is the source of in-flight damage; a zero damaging
 	// (no source recorded) never suppresses a Damage event.
 	if ev.Kind == events.Damage && ev.Obj != 0 && e.damaging != 0 &&
-		e.protectedFrom(ev.Obj, e.damaging) {
+		e.protectedFrom(ev.Obj, e.protectionSource(e.damaging)) {
 		return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "prevented: protection"})
 	}
 	if ev.Kind == events.Attach && ev.Obj != 0 && len(ev.IDs) > 0 &&
