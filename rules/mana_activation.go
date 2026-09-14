@@ -328,26 +328,27 @@ func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA
 	e.ask(d)
 }
 
-// manaColourPrompt names the amount of mana the ability adds whenever that
-// amount is determinate, so a player choosing the colour of "Add three mana
-// of any one color" (Lion's Eye Diamond) sees the whole deal instead of a
-// bare "Choose a colour of mana" that reads like the card only offered one
-// colour of mana. The amount is the explicit literal Amount$ when the script
-// carries one, else Num's default of 1 when the param is absent -- the same
-// read effMana resolves through, so the prompt cannot disagree with what the
-// pool will actually receive. Any non-literal amount (X, Y, an SVar or
-// inline Count$ expression) and a non-positive literal keep the generic
-// prompt: the ask site cannot price those, and a wrong number in the prompt
-// is worse than no number. The "any one color" wording is kept verbatim from
-// the oracle shape (Produced$ Any / Combo Any, CR 107.4) so the player sees
-// that the ONE choice covers all of the mana; a restricted "Combo <colours>"
-// shape is not "any" colour, so its prompt only names the amount.
+// manaColourPrompt names the amount of mana the ability adds when the script
+// carries an EXPLICIT, positive literal Amount$, so a player choosing the
+// colour of "Add three mana of any one color" (Lion's Eye Diamond) sees the
+// whole deal instead of a bare "Choose a colour of mana" that reads like the
+// card only offered one colour of mana. Every other shape keeps the generic
+// prompt: an absent Amount$ (the prompt must not invent "1" for the pool that
+// effMana will actually resolve — the brief's boundary is explicit-literal
+// only), a non-literal amount (X, Y, an SVar or inline Count$ expression) the
+// ask site cannot price, and a non-positive literal — a wrong number in the
+// prompt is worse than no number. The "any one color" wording is kept
+// verbatim from the oracle shape (Produced$ Any / Combo Any, CR 107.4) so the
+// player sees that the ONE choice covers all of the mana; a restricted
+// "Combo <colours>" shape is not "any" colour, so its prompt only names the
+// amount.
 func manaColourPrompt(ma *cards.SA) string {
 	generic := "Choose a colour of mana"
 	raw, ok := ma.Params["Amount"]
 	if !ok {
-		// Absent Amount$ resolves to 1 in effMana (Num's default).
-		raw = "1"
+		// No Amount$ param: stay generic — the prompt must not invent an
+		// amount the script never stated.
+		return generic
 	}
 	n, err := strconv.Atoi(strings.TrimSpace(raw))
 	if err != nil || n <= 0 {

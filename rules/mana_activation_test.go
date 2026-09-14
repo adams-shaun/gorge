@@ -181,9 +181,9 @@ func TestLotusPetalPaysSacrificeAndChoosesColor(t *testing.T) {
 	if d == nil || d.Kind != decision.KChoose || d.Min != 1 || d.Max != 1 || len(d.Options) != 5 {
 		t.Fatalf("colour decision = %+v", d)
 	}
-	// Lotus Petal carries no Amount$ param: effMana's Num default of 1 is
-	// what the pool will receive, so the prompt names it.
-	if d.Prompt != "Add 1 mana of any one color — choose the colour" {
+	// Lotus Petal carries no Amount$ param: the prompt stays generic — the
+	// amount wording is reserved for an explicitly present literal Amount$.
+	if d.Prompt != "Choose a colour of mana" {
 		t.Fatalf("Lotus Petal prompt = %q", d.Prompt)
 	}
 	for i, opt := range d.Options {
@@ -263,11 +263,11 @@ func TestManaAbilityChoiceOptionsMarkSource(t *testing.T) {
 }
 
 // TestManaColourPromptNamesDeterminateAmount pins the wording table of
-// manaColourPrompt directly: a determinate amount (explicit literal Amount$
-// or the absent default of 1) is named, with "any one color" verbatim on the
-// Any shapes so the one-colour choice is visibly the whole deal; a
-// non-literal amount (X/Y, an inline Count$ body) and a non-positive literal
-// stay generic.
+// manaColourPrompt directly: an explicitly present, positive literal Amount$
+// is named, with "any one color" verbatim on the Any shapes so the
+// one-colour choice is visibly the whole deal; an ABSENT Amount$ param (no
+// amount is invented for it), a non-literal amount (X/Y, an inline Count$
+// body) and a non-positive literal all stay generic.
 func TestManaColourPromptNamesDeterminateAmount(t *testing.T) {
 	generic := "Choose a colour of mana"
 	cases := []struct {
@@ -275,7 +275,8 @@ func TestManaColourPromptNamesDeterminateAmount(t *testing.T) {
 	}{
 		{"Any", "3", "Add 3 mana of any one color — choose the colour"},
 		{"Any", "1", "Add 1 mana of any one color — choose the colour"},
-		{"Any", "", "Add 1 mana of any one color — choose the colour"},
+		{"Any", "", generic},
+		{"", "", generic},
 		{"Combo Any", "2", "Add 2 mana of any one color — choose the colour"},
 		{"Combo R G", "2", "Add 2 mana — choose the colour"},
 		{"Any", "X", generic},
