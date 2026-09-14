@@ -235,6 +235,11 @@ const (
 	// every earlier Kind's numeric value -- and therefore the hash chain and
 	// every golden replay already locked in -- is unaffected.
 	CardToken
+	// KeywordTriggerPush mints a mandatory triggered ability supplied by a
+	// keyword rather than a face T: line. Obj is the source permanent, Player
+	// its controller and Counter a cards.ResolveSVar builtin name. It is used
+	// by Evoke so its sacrifice trigger is a real respondable stack object.
+	KeywordTriggerPush
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -245,7 +250,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(CardToken) + 1
+	NumKinds = int(KeywordTriggerPush) + 1
 )
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so

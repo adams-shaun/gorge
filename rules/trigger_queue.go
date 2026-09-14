@@ -253,17 +253,20 @@ func (e *Engine) takeAnsweredTrigger(d *decision.Decision) (pendingTrigger, bool
 func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// altcosts: a Madness offer is placed by casting the card for its madness
 	// cost (castMadness, altcast.go) -- the Miracle shape; the no answer puts
-	// the card into its owner's graveyard (handleTriggerOptional). An Evoke
-	// follow-up is MANDATORY and never mints a stack object or poses a
-	// question either: CR 702.79a's sacrifice is unconditional, so its
-	// pushTrigger arm emits the sacrifice MoveZone at placement (see
-	// sacrificeEvoked, altcast.go) and the drain continues.
+	// the card into its owner's graveyard (handleTriggerOptional). Evoke is a
+	// mandatory triggered ability: KeywordTriggerPush mints a genuine stack
+	// object from the builtin SVar, so players may respond to or counter it.
 	if pt.Madness {
 		e.castMadness(pt)
 		return
 	}
 	if pt.Evoke {
-		e.sacrificeEvoked(pt)
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwEvokeSacrifice", Text: "evoke sacrifice"})
+		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
 	// Task 18: a Miracle offer is placed by casting the card for its miracle
@@ -533,9 +536,8 @@ func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optiona
 	// owner (the controller of the drawn card). It has no T: line to read, so
 	// this must be special-cased before triggerOf (which would fail for it).
 	// Madness is the same shape; Evoke is a MANDATORY follow-up with no
-	// question at all (the sacrifice is emitted at placement), so it reports
-	// not-optional before triggerOf could mis-read face Triggers[0] for its
-	// Idx.
+	// yes/no question (its ability is still placed on the stack), so it
+	// reports not-optional before triggerOf could mis-read face Triggers[0].
 	if pt.Miracle || pt.Madness {
 		who = pt.Controller
 		if int(who) >= len(e.G.Players) || e.G.Players[who].Lost {

@@ -4,13 +4,10 @@
 // other cast modes do (rules/legal.go offers, rules/cast.go's beginCast
 // switch); this file owns the post-cast machinery the keywords imply:
 //
-//   - Evoke (CR 702.79a: cast for the evoke cost and "when it enters ... its
-//     controller sacrifices it" -- the sacrifice is UNCONDITIONAL, there is
-//     no pay-to-keep option): a mandatory ETB follow-up queued by
-//     checkTriggers when a FlagEvoked creature enters (altCostEnter) and
-//     sacrificed at placement by pushTrigger's Evoke arm, inside the ordinary
-//     trigger drain. The MH3 non-mana evoke costs (Fury/Grief's
-//     ExileFromHand) are paid as Exile cost parts during the cast itself.
+//   - Evoke (CR 702.79a): a mandatory ETB follow-up is queued by
+//     altCostEnter and KeywordTriggerPush mints its builtin sacrifice as a
+//     real respondable triggered ability. The MH3 ExileFromHand costs are
+//     paid as Exile cost parts during the cast itself.
 //   - Dash (CR 702: "it gains haste, and it's returned from the battlefield
 //     to its owner's hand at the beginning of the next end step"): the haste
 //     is a UntilEOT layer-6 continuous grant; the return is a Mode$ Phase
@@ -41,6 +38,7 @@ package rules
 import (
 	"strings"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
@@ -50,10 +48,10 @@ import (
 // altCostEnter is called from checkTriggers for every MoveZone onto the
 // battlefield. Three keyword follow-ups key off the CastFlags the spell
 // carried onto the permanent (a zone change preserves them from the stack):
-// an evoked creature queues its pay-or-sacrifice trigger, a dashed creature
-// gains haste until end of turn and registers its end-step return, and a
-// warped creature registers its end-step exile. Each registration is its own
-// DelayedRegister event, so a replay rebuilds the identical set.
+// an evoked creature queues its mandatory sacrifice trigger, a dashed
+// creature gains haste until end of turn and registers its end-step return,
+// and a warped creature registers its end-step exile. Each delayed
+// registration is its own DelayedRegister event, so replay rebuilds it.
 //
 // Called inside emit (checkTriggers's own context), so the ClockTick
 // AddContinuous emits for the haste grant lands between the entering
@@ -94,28 +92,6 @@ func (e *Engine) altCostEnter(ev events.Event) {
 		e.emit(events.Event{Kind: events.DelayedRegister, Obj: ev.Obj,
 			Player: o.Controller, Step: state.StepEnd, Counter: "__kwWarpExile"})
 	}
-}
-
-// sacrificeEvoked applies the evoked creature's CR 702.79a sacrifice at the
-// follow-up's PLACEMENT (pushTrigger's Evoke arm): the sacrifice is
-// unconditional, so there is no decision to pose and the MoveZone is emitted
-// right here, inside the ordinary drain -- ordered among the other
-// same-controller triggers an ordering ask may have just settled, and never
-// before them. It is NOT a stack object: no face T: line backs it (the
-// keyword expansion carries none), so the minting machinery a TriggerPush
-// needs does not exist for it -- an opponent cannot respond to the sacrifice
-// itself, the one fidelity gap this shortcut carries (recorded in the
-// ticket report's Issues).
-func (e *Engine) sacrificeEvoked(pt pendingTrigger) {
-	o := e.G.Obj(pt.Source)
-	if o == nil || o.Zone != state.ZBattlefield {
-		return
-	}
-	if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
-		return
-	}
-	e.emit(events.Event{Kind: events.MoveZone, Obj: pt.Source, From: o.Zone,
-		To: state.ZGraveyard, Text: "sacrificed (evoke)"})
 }
 
 // offerMadness queues the madness cast offer (CR 702.35a) after a discard
@@ -206,6 +182,25 @@ func (e *Engine) madnessDeclined(pt pendingTrigger) {
 // A card exiled by anything other than its own warp trigger fails step 3 and
 // gets no offer. Everything is a fixed-order walk of the log, so a replayed
 // game derives the same answer.
+// warpGraveyardAllowed is the separate permission to use Warp from a
+// graveyard. Warp itself grants hand use only; Timeline Culler is the one
+// corpus card whose Continuous static explicitly grants Spell.Warp from its
+// own graveyard.
+func warpGraveyardAllowed(f *cards.Face) bool {
+	if f == nil {
+		return false
+	}
+	for _, st := range f.Statics {
+		if st.Mode == "Continuous" && st.Params["MayPlay"] == "True" &&
+			strings.Contains(st.Params["ValidSA"], "Spell.Warp") &&
+			strings.Contains(st.Params["AffectedZone"], "Graveyard") &&
+			strings.Contains(st.Params["EffectZone"], "Graveyard") {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *Engine) warpRecastAvailable(id state.ObjID) bool {
 	log := e.L.Events
 	exileIdx := -1

@@ -12,10 +12,9 @@
 // offer gate, the payment machinery and the CR 602.2b flow are the ordinary
 // ones and this primitive only resolves the effect.
 //
-// The one CR clause this build does NOT enforce is "attacks that opponent
-// this turn if able": there is no attack-requirement machinery to hang it on
-// (recorded in the ticket report's Issues). Everything else is exact: one
-// CardToken copy per opponent (a copy of the card object itself, whatever
+// CardToken carries each copy's required defender into state; the combat
+// declaration solver enforces "attacks that opponent this turn if able".
+// The rest is one CardToken copy per opponent (a copy of the card object itself, whatever
 // zone it resolved from -- the cost exiled it, so exile), haste granted
 // until end of turn through the layer system, and one end-step delayed
 // sacrifice per token (the __kwEncoreSacrifice builtin SVar,
@@ -45,7 +44,10 @@ func effEncore(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		want := g.NextID
-		h.Emit(events.Event{Kind: events.CardToken, Obj: c.Source, Player: c.Controller})
+		// Amount encodes defender+1 for events.Apply: the token's required
+		// opponent is replay-derived state, not an effects-side mutation.
+		h.Emit(events.Event{Kind: events.CardToken, Obj: c.Source, Player: c.Controller,
+			Amount: int32(p) + 1})
 		tok := g.Obj(want)
 		if tok == nil {
 			continue

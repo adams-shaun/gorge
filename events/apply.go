@@ -408,6 +408,35 @@ func Apply(g *state.Game, e Event) {
 		o.IsToken = true
 		o.FaceIdx = faceIdx
 		Move(g, o.ID, state.ZLibrary, state.ZBattlefield)
+		// Encore encodes its required defender as seat+1; zero remains the
+		// ordinary CardToken shape. The current turn is folded here so replay
+		// reconstructs the same one-turn attack requirement.
+		if e.Amount > 0 {
+			defender := state.PlayerID(e.Amount - 1)
+			if validPlayer(g, defender) {
+				o.EncoreAttackTurn = g.Turn
+				o.EncoreAttackDefender = defender
+			}
+		}
+
+	case KeywordTriggerPush:
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		src := g.Obj(e.Obj)
+		if src == nil || src.Face() == nil {
+			break
+		}
+		sa := cards.ResolveSVar(src.Face().SVars, e.Counter)
+		if sa == nil {
+			break
+		}
+		incarnation := src.Incarnation
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		o.Source = e.Obj
+		o.SourceIncarnation = incarnation
 
 	case StackCopy:
 		if !validPlayer(g, e.Player) {
@@ -487,13 +516,19 @@ func Apply(g *state.Game, e Event) {
 		if g.Obj(e.Obj) == nil || !e.Step.Valid() {
 			break
 		}
+		src := g.Obj(e.Obj)
+		track := strings.HasPrefix(e.Counter, "__kwDash") ||
+			strings.HasPrefix(e.Counter, "__kwWarp") ||
+			strings.HasPrefix(e.Counter, "__kwEncore")
 		g.Delayed = append(g.Delayed, state.DelayedTrigger{
-			ID:         g.DelayedNext,
-			Phase:      e.Step,
-			Source:     e.Obj,
-			Controller: e.Player,
-			Execute:    e.Counter,
-			Remembered: rememberedFrom(e.IDs),
+			ID:                g.DelayedNext,
+			Phase:             e.Step,
+			Source:            e.Obj,
+			Controller:        e.Player,
+			Execute:           e.Counter,
+			Remembered:        rememberedFrom(e.IDs),
+			SourceIncarnation: src.Incarnation,
+			TrackSource:       track,
 		})
 		g.DelayedNext++
 
@@ -510,8 +545,24 @@ func Apply(g *state.Game, e Event) {
 		if !validPlayer(g, e.Player) {
 			break
 		}
+		// Consume the registration first, even when its tracked permanent has
+		// changed incarnation. A stale dash/warp/encore promise expires once;
+		// it must neither act on the returned object nor be retried forever.
+		var registration *state.DelayedTrigger
+		for i := range g.Delayed {
+			if g.Delayed[i].ID == uint32(e.Amount) {
+				dt := g.Delayed[i]
+				registration = &dt
+				g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
+				break
+			}
+		}
 		src := g.Obj(e.Obj)
 		if src == nil {
+			break
+		}
+		if registration != nil && registration.TrackSource &&
+			src.Incarnation != registration.SourceIncarnation {
 			break
 		}
 		f := src.Face()
@@ -526,13 +577,10 @@ func Apply(g *state.Game, e Event) {
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
 		o.Source = e.Obj
-		o.Remembered = rememberedFrom(e.IDs)
-		for i := range g.Delayed {
-			if g.Delayed[i].ID == uint32(e.Amount) {
-				g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
-				break
-			}
+		if registration != nil && registration.TrackSource {
+			o.SourceIncarnation = src.Incarnation
 		}
+		o.Remembered = rememberedFrom(e.IDs)
 
 	case CmdDamage:
 		// Commander combat damage to a player (CR 903.10, Task m33): fold
@@ -654,6 +702,13 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	}
 
 	o.Zone = to
+	// The incarnation stamp is used by promises tied to a particular
+	// permanent (evoke/dash/warp/encore), so only crossing the battlefield
+	// boundary advances it. A provisional hand->stack->hand CR 733 reversal
+	// must restore byte-identical state and is not a permanent incarnation.
+	if enteredFrom != to && (enteredFrom == state.ZBattlefield || to == state.ZBattlefield) {
+		o.Incarnation++
+	}
 	// A zone change is the single source of zone-entry provenance. Capture
 	// the actual old zone (not Event.From, which Move deliberately treats as
 	// advisory) so replay and a live game derive identical ThisTurnEntered*

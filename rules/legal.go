@@ -192,9 +192,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !instantSpeed && !sorcery {
 			continue
 		}
-		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
-			continue
-		}
+		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
 		// offerCostFor prices the MANA the offer will charge (601.2f
 		// modifiers, then the commander tax); withSpellAbilityExtras adds the
 		// spell's own ADDITIONAL non-mana parts on top. Both are needed and
@@ -218,17 +216,22 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		// cast flow, altAddAsk), never when all of them are unpayable. Cards
 		// without the keyword keep the ordinary single-cost gate.
 		altParts := altAddCostParts(f)
-		if len(altParts) > 0 {
-			for _, part := range altParts {
-				if e.castable(p, id, withSpellAbilityExtras(f, base).Plus(ParseCost(part)), false) {
-					add("cast", "Cast "+f.Name, id)
-					break
+		if targetsAvailable {
+			if len(altParts) > 0 {
+				for _, part := range altParts {
+					if e.castable(p, id, withSpellAbilityExtras(f, base).Plus(ParseCost(part)), false) {
+						add("cast", "Cast "+f.Name, id)
+						break
+					}
 				}
+			} else if e.castable(p, id, withSpellAbilityExtras(f, base), false) {
+				add("cast", "Cast "+f.Name, id)
 			}
-		} else if e.castable(p, id, withSpellAbilityExtras(f, base), false) {
-			add("cast", "Cast "+f.Name, id)
 		}
 		for i, alt := range e.alternativeCosts(p, id) {
+			if !targetsAvailable {
+				continue
+			}
 			// Ruling (Task 9 fix round 1, Important 1): this used to gate on
 			// mana-only alt.CanPay, but ParseCost now produces Sac/SubCounter/
 			// Tap parts that the cast flow enforces -- an AlternativeCost whose
@@ -246,11 +249,11 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 					Label: altCostLabel(f.Name, i), Obj: id, AltCostIndex: i + 1})
 			}
 		}
-		if kc, ok := kickerCost(f); ok && e.castable(p, id, base.Plus(kc), false) {
+		if kc, ok := kickerCost(f); ok && targetsAvailable && e.castable(p, id, base.Plus(kc), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (kicked)", Obj: id, Mode: "kicked"})
 		}
-		if sc, ok := surgeCost(f); ok && e.spellsCastThisTurn(p) > 0 && e.castable(p, id, e.offerCostFor(p, id, sc, false), false) {
+		if sc, ok := surgeCost(f); ok && targetsAvailable && e.spellsCastThisTurn(p) > 0 && e.castable(p, id, e.offerCostFor(p, id, sc, false), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (surged)", Obj: id, Mode: "surged"})
 		}
@@ -266,7 +269,8 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			{"evoked", "Evoke"}, {"dashed", "Dash"}, {"overloaded", "Overload"}, {"warped", "Warp"},
 		} {
 			alt, ok := keywordAltCost(f, ka.head)
-			if !ok || !e.castable(p, id, e.offerCostFor(p, id, alt, false), false) {
+			if !ok || (ka.mode != "overloaded" && !targetsAvailable) ||
+				!e.castable(p, id, e.offerCostFor(p, id, alt, false), false) {
 				continue
 			}
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
@@ -341,9 +345,9 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		}
 	}
 
-	// Warp from the graveyard: "You may cast this card from your hand or
-	// graveyard for its warp cost." Same walk shape as Flashback above (the
-	// printed keyword, never a continuous-effect grant, is what warp uses).
+	// Warp from the graveyard requires a separate MayPlay Spell.Warp static;
+	// Warp itself grants only the hand alternative. Timeline Culler is the
+	// corpus shape carrying that explicit graveyard permission.
 	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
 		f := o.Face()
@@ -351,7 +355,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		wc, ok := keywordAltCost(f, "Warp")
-		if !ok || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if !ok || !warpGraveyardAllowed(f) || e.castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
@@ -372,14 +376,15 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 	// turn"). The exile-zone walk offers the cast only to a warp card that
 	// the log shows was warp-cast and end-step-exiled, on a turn strictly
 	// after that exile -- the flag alone cannot say it (CastFlags reset when
-	// the permanent left the battlefield), but the log can.
+	// the permanent left the battlefield), but the log can. This later cast
+	// pays the normal mana cost and is not itself flagged warped.
 	for _, id := range e.G.Zone(state.ZExile, p) {
 		o := e.G.Obj(id)
 		f := o.Face()
 		if f == nil || o.IsToken {
 			continue
 		}
-		wc, ok := keywordAltCost(f, "Warp")
+		_, ok := keywordAltCost(f, "Warp")
 		if !ok || !e.warpRecastAvailable(id) || e.castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
@@ -390,23 +395,26 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		if e.castable(p, id, e.offerCostFor(p, id, wc, false), false) {
+		normal := e.rawBaseCost(p, id)
+		if e.castable(p, id, e.offerCostFor(p, id, normal, false), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
-				Label: "Cast " + f.Name + " (warped)", Obj: id, Mode: "warped"})
+				Label: "Cast " + f.Name + " (from warp exile)", Obj: id, Mode: "warp_recast"})
 		}
 	}
 
-	for _, id := range e.G.Zone(state.ZBattlefield, p) {
-		o := e.G.Obj(id)
-		f := o.Face()
-		if f == nil {
-			continue
-		}
-		// A mana ability with no tap cost (Lotus Petal) remains activatable
-		// while its source is tapped. availableManaAbilities applies each
-		// ability's actual cost, including its individual tap gate.
-		if len(e.availableManaAbilities(p, id)) > 0 {
-			add("activate", "Tap "+f.Name+" for mana", id)
+	// Mana abilities may explicitly function from the battlefield, hand or
+	// graveyard (Spirit Guides and Jack-o'-Lantern). availableManaAbilities
+	// applies each ability's ActivationZone and full cost gate.
+	for _, z := range []state.Zone{state.ZBattlefield, state.ZHand, state.ZGraveyard} {
+		for _, id := range e.G.Zone(z, p) {
+			o := e.G.Obj(id)
+			f := o.Face()
+			if f == nil {
+				continue
+			}
+			if len(e.availableManaAbilities(p, id)) > 0 {
+				add("activate", "Activate "+f.Name+" for mana", id)
+			}
 		}
 	}
 

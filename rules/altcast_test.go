@@ -33,7 +33,11 @@ import (
 const (
 	altRedSrc = "Name:Ember\nManaCost:R\nTypes:Instant\n" +
 		"A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1 | SpellDescription$ Deal 1 damage.\n"
-	altBearSrc = "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	altBearSrc          = "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	altProtectedBearSrc = "Name:Protected Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nK:Protection from Blue\nOracle:x\n"
+	altElfSrc           = "Name:Test Elf\nManaCost:G\nTypes:Creature Elf\nPT:1/1\nOracle:x\n"
+	altDragonSrc        = "Name:Test Dragon\nManaCost:R\nTypes:Creature Dragon\nPT:1/1\nOracle:x\n"
+	altArtifactSrc      = "Name:Test Relic\nManaCost:1\nTypes:Artifact\nOracle:x\n"
 )
 
 // altCostEngine builds a two-seat engine: seat 0's deck is the named CORPUS
@@ -187,12 +191,9 @@ func TestEvokeCastPaysTheEvokeCostAndSacrifices(t *testing.T) {
 	// charged the keyword cost in place of the mana cost.
 	addMana(t, e, 0, "CCU")
 	submitChoices(t, e, castModeOption(t, e, id, "evoked"))
-	passOnceP(t, e) // seat 0 passes
-	passOnceP(t, e) // seat 1 passes; the evoked spell resolves onto the battlefield
-	// CR 702.79a: the entry queues the evoke sacrifice follow-up -- a
-	// mandatory trigger with no question, whose placement inside the drain
-	// emits the sacrifice. Nothing is on the stack, so the drain is already
-	// finished by the time the second pass returns.
+	passUntilStackEmpty(t, e, 40)
+	// CR 702.79a: the entry queues a real mandatory triggered ability. It is
+	// respondable on the stack, then sacrifices the creature when it resolves.
 	if o := e.G.Obj(id); o.Zone != state.ZGraveyard {
 		t.Fatalf("evoked Nulldrifter in %s, want graveyard (CR 702.79a sacrifices it)", o.Zone)
 	}
@@ -202,12 +203,12 @@ func TestEvokeCastPaysTheEvokeCostAndSacrifices(t *testing.T) {
 	sacrificed := false
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.MoveZone && ev.Obj == id && ev.From == state.ZBattlefield &&
-			ev.To == state.ZGraveyard && ev.Text == "sacrificed (evoke)" {
+			ev.To == state.ZGraveyard && ev.Text == "sacrificed" {
 			sacrificed = true
 		}
 	}
 	if !sacrificed {
-		t.Fatal("no sacrificed-(evoke) MoveZone in the log")
+		t.Fatal("no evoke sacrifice MoveZone in the log")
 	}
 	replayCheck(t, e, cfg)
 }
@@ -246,6 +247,7 @@ func TestEvokeExileCostExilesTheChosenCard(t *testing.T) {
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{}}); err != nil {
 		t.Fatalf("empty division answer: %v", err)
 	}
+	passUntilStackEmpty(t, e, 40)
 	// CR 702.79a: the evoked creature is sacrificed -- unconditionally.
 	if o := e.G.Obj(id); o.Zone != state.ZGraveyard {
 		t.Fatalf("evoked Fury in %s, want graveyard", o.Zone)
@@ -321,6 +323,14 @@ func TestEncoreActivatesFromTheGraveyardIntoHastedTokenCopies(t *testing.T) {
 	if !e.HasKeyword(tokID, "Haste") {
 		t.Fatal("encore token has no haste")
 	}
+	// The token must attack its corresponding opponent this turn if able.
+	driveToStepAll(t, e, e.G.Turn, 0, state.StepDeclareAttackers)
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KAttackers || len(d.Options) != 1 ||
+		d.Options[0].Obj != tokID || d.Options[0].Player != 1 {
+		t.Fatalf("encore attack requirement: %+v", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
 	// Sacrificed at the beginning of the next end step; a token that leaves
 	// the battlefield ceases to exist (CR 704.5d), so the object's tombstone
 	// zone is ZCeased, not the graveyard.
@@ -333,16 +343,22 @@ func TestEncoreActivatesFromTheGraveyardIntoHastedTokenCopies(t *testing.T) {
 }
 
 func TestOverloadedCastTargetsEachNotOne(t *testing.T) {
-	e, cfg, _ := altCostEngine(t, 916, []string{"Cyclonic Rift"}, nil, []string{altBearSrc, altBearSrc})
+	e, cfg, _ := altCostEngine(t, 916, []string{"Cyclonic Rift"}, nil, []string{altBearSrc, altProtectedBearSrc})
 	id := findCardObj(t, e, 0, "Cyclonic Rift", state.ZHand)
 	b1 := findCardObj(t, e, 1, "Bear", state.ZBattlefield)
-	b2 := findCardObj(t, e, 1, "Bear", state.ZBattlefield)
+	b2 := findCardObj(t, e, 1, "Protected Bear", state.ZBattlefield)
 	if b1 == b2 {
 		t.Fatal("the two Bears resolved to one object")
 	}
 	addMana(t, e, 0, "CCCCCCCU")
 	submitChoices(t, e, castModeOption(t, e, id, "overloaded"))
-	// No target decision at all: the overloaded spell targets "each".
+	// No target decision or TargetsChosen event: overload says "each", so
+	// protection from blue does not exclude the protected permanent.
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.TargetsChosen && ev.Obj == id {
+			t.Fatalf("overload emitted a targeting event: %+v", ev)
+		}
+	}
 	passUntilStackEmpty(t, e, 40)
 	if o := e.G.Obj(id); o.Zone != state.ZGraveyard {
 		t.Fatalf("Cyclonic Rift zone %s", o.Zone)
@@ -354,6 +370,19 @@ func TestOverloadedCastTargetsEachNotOne(t *testing.T) {
 	}
 	if got := len(e.G.Zone(state.ZBattlefield, 0)); got != 0 {
 		t.Fatalf("seat 0 lost %d permanents to its own overloaded Rift", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+func TestOverloadIsCastableWhenOnlyProtectedObjectsMatch(t *testing.T) {
+	e, cfg, _ := altCostEngine(t, 928, []string{"Cyclonic Rift"}, nil, []string{altProtectedBearSrc})
+	id := findCardObj(t, e, 0, "Cyclonic Rift", state.ZHand)
+	bear := findCardObj(t, e, 1, "Protected Bear", state.ZBattlefield)
+	addMana(t, e, 0, "CCCCCCCU")
+	submitChoices(t, e, castModeOption(t, e, id, "overloaded"))
+	passUntilStackEmpty(t, e, 40)
+	if o := e.G.Obj(bear); o.Zone != state.ZHand {
+		t.Fatalf("protected Bear in %s, overload does not target and must bounce it", o.Zone)
 	}
 	replayCheck(t, e, cfg)
 }
@@ -378,18 +407,19 @@ func TestWarpCastsFromTheGraveyardExileAtEndStepAndRecastFromExile(t *testing.T)
 	if o := e.G.Obj(id); o.Zone != state.ZExile {
 		t.Fatalf("Timeline Culler after the end step: %s, want exile", o.Zone)
 	}
-	// On a later turn, the recast from exile is offered and works.
+	// On a later turn, the recast from exile uses the NORMAL {B}{B} cost and
+	// is not warped again, so it receives no second end-step exile trigger.
 	driveToStepAll(t, e, e.G.Turn+2, 0, state.StepMain1)
-	addMana(t, e, 0, "B")
-	submitChoices(t, e, castModeOption(t, e, id, "warped"))
+	addMana(t, e, 0, "BB")
+	submitChoices(t, e, castModeOption(t, e, id, "warp_recast"))
 	passUntilStackEmpty(t, e, 40)
-	if o := e.G.Obj(id); o.Zone != state.ZBattlefield {
-		t.Fatalf("Timeline Culler after recast: %s, want battlefield", o.Zone)
+	if o := e.G.Obj(id); o.Zone != state.ZBattlefield || o.CastFlags&state.FlagWarped != 0 {
+		t.Fatalf("Timeline Culler after normal recast: zone=%s flags=%d", o.Zone, o.CastFlags)
 	}
 	driveToStepAll(t, e, e.G.Turn, 0, state.StepEnd)
 	passUntilStackEmpty(t, e, 40)
-	if o := e.G.Obj(id); o.Zone != state.ZExile {
-		t.Fatalf("Timeline Culler after the second cycle: %s, want exile", o.Zone)
+	if o := e.G.Obj(id); o.Zone != state.ZBattlefield {
+		t.Fatalf("Timeline Culler after the later end step: %s, want battlefield", o.Zone)
 	}
 	replayCheck(t, e, cfg)
 }
@@ -497,8 +527,8 @@ func TestMadnessExileByNonDiscardDoesNotOfferTheCast(t *testing.T) {
 	submitChoices(t, e, temperIdx) // exile the Temper as the evoke cost
 	passOnceP(t, e)
 	passOnceP(t, e) // the evoked Fury resolves onto the battlefield
-	// The evoke sacrifice and Fury's ETB share one ordering ask; the
-	// sacrifice lands when the follow-up is placed (no question of its own).
+	// The evoke sacrifice and Fury's ETB share one ordering ask; both become
+	// real triggered abilities on the stack.
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KTriggerOrder {
 		t.Fatalf("ordering ask: %+v", d)
@@ -511,6 +541,7 @@ func TestMadnessExileByNonDiscardDoesNotOfferTheCast(t *testing.T) {
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{}}); err != nil {
 		t.Fatalf("empty division answer: %v", err)
 	}
+	passUntilStackEmpty(t, e, 40)
 	if o := e.G.Obj(id); o.Zone != state.ZGraveyard {
 		t.Fatalf("evoked Fury in %s, want graveyard", o.Zone)
 	}
@@ -523,6 +554,298 @@ func TestMadnessExileByNonDiscardDoesNotOfferTheCast(t *testing.T) {
 		if ev.Kind == events.DecisionAsk && ev.Text == string(decision.KTriggerOptional) {
 			t.Fatalf("bogus madness cast offer in the log: %+v", ev)
 		}
+	}
+	replayCheck(t, e, cfg)
+}
+
+func TestEvokeSacrificeIsARespondableTriggeredAbility(t *testing.T) {
+	e, cfg, _ := altCostEngine(t, 923, []string{"Nulldrifter", "Stifle"}, nil, nil)
+	null := findCardObj(t, e, 0, "Nulldrifter", state.ZHand)
+	stifle := findCardObj(t, e, 0, "Stifle", state.ZHand)
+	addMana(t, e, 0, "CCCUU")
+	submitChoices(t, e, castModeOption(t, e, null, "evoked"))
+	// Resolve Nulldrifter's cast trigger, then Nulldrifter itself. Its evoke
+	// trigger is now a genuine ability object on the stack.
+	for i := 0; i < 2; i++ {
+		passOnceP(t, e)
+	}
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack after evoke entry: %v", e.G.Stack)
+	}
+	evokeAbility := e.G.Stack[0]
+	if o := e.G.Obj(evokeAbility); o == nil || o.Ability == nil || o.Source != null {
+		t.Fatalf("evoke stack object: %+v", o)
+	}
+	// Cast the real Stifle and target the evoke trigger.
+	d := e.Pending()
+	idx := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "cast" && opt.Obj == stifle {
+			idx = opt.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("Stifle not offered: %+v", d.Options)
+	}
+	submitChoices(t, e, idx)
+	d = e.Pending()
+	target := -1
+	for _, opt := range d.Options {
+		if opt.Obj == evokeAbility {
+			target = opt.Index
+		}
+	}
+	if target < 0 {
+		t.Fatalf("Stifle cannot target evoke trigger: %+v", d)
+	}
+	submitChoices(t, e, target)
+	passUntilStackEmpty(t, e, 40)
+	if o := e.G.Obj(null); o.Zone != state.ZBattlefield {
+		t.Fatalf("Stifled evoke moved Nulldrifter to %s", o.Zone)
+	}
+	replayCheck(t, e, cfg)
+}
+
+func TestDashDelayedReturnDoesNotFollowABlinkedPermanent(t *testing.T) {
+	e, cfg, _ := altCostEngine(t, 924, []string{"Ragavan, Nimble Pilferer"}, nil, nil)
+	id := findCardObj(t, e, 0, "Ragavan, Nimble Pilferer", state.ZHand)
+	addMana(t, e, 0, "CR")
+	submitChoices(t, e, castModeOption(t, e, id, "dashed"))
+	passUntilStackEmpty(t, e, 40)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZExile})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZExile, To: state.ZBattlefield})
+	driveToStepAll(t, e, e.G.Turn, 0, state.StepEnd)
+	passUntilStackEmpty(t, e, 40)
+	if o := e.G.Obj(id); o.Zone != state.ZBattlefield {
+		t.Fatalf("dash trigger followed the blinked object to %s", o.Zone)
+	}
+	replayCheck(t, e, cfg)
+}
+
+func TestWarpDoesNotGrantEveryWarpCardGraveyardPermission(t *testing.T) {
+	e, _, _ := altCostEngine(t, 925, []string{"Network Marauder"}, nil, nil)
+	id := findCardObj(t, e, 0, "Network Marauder", state.ZGraveyard)
+	addMana(t, e, 0, "CU")
+	for _, opt := range e.Pending().Options {
+		if opt.Kind == "cast" && opt.Obj == id && opt.Mode == "warped" {
+			t.Fatalf("ordinary Warp card offered from graveyard: %+v", opt)
+		}
+	}
+}
+
+func TestManaAbilityExileCostIsPaid(t *testing.T) {
+	e, cfg, _ := altCostEngine(t, 926, []string{"Cadaverous Bloom"}, []string{altRedSrc}, nil)
+	bloom := findCardObj(t, e, 0, "Cadaverous Bloom", state.ZBattlefield)
+	if got := e.AvailableMana(0).Total(); got != 0 {
+		t.Fatalf("exile-cost Bloom advertised as %d free available mana", got)
+	}
+	ember := findCardObj(t, e, 0, "Ember", state.ZHand)
+	d := e.Pending()
+	activate := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "activate" && opt.Obj == bloom {
+			activate = opt.Index
+		}
+	}
+	if activate < 0 {
+		t.Fatalf("Cadaverous Bloom mana ability not offered: %+v", d.Options)
+	}
+	submitChoices(t, e, activate)
+	// Choose its black-mana ability, then the real hand card to exile.
+	d = e.Pending()
+	black := -1
+	for _, opt := range d.Options {
+		if opt.Label == "Add B" {
+			black = opt.Index
+		}
+	}
+	submitChoices(t, e, black)
+	d = e.Pending()
+	exile := -1
+	for _, opt := range d.Options {
+		if opt.Obj == ember {
+			exile = opt.Index
+		}
+	}
+	if exile < 0 {
+		t.Fatalf("mana exile ask omits Ember: %+v", d)
+	}
+	submitChoices(t, e, exile)
+	if o := e.G.Obj(ember); o.Zone != state.ZExile {
+		t.Fatalf("mana cost left Ember in %s", o.Zone)
+	}
+	if got := e.G.Players[0].Pool[state.MB]; got != 2 {
+		t.Fatalf("Bloom added %d black mana, want 2", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+func TestAlternateAdditionalCostGrammarIsNotGenericMana(t *testing.T) {
+	tests := []struct {
+		raw string
+		ok  func(Cost) bool
+	}{
+		{"Reveal<1/Elf>", func(c Cost) bool { return len(c.Reveal) == 1 }},
+		{"Behold<1/Dragon>", func(c Cost) bool { return len(c.Behold) == 1 }},
+		{"Blight<2>", func(c Cost) bool { return len(c.Blight) == 1 && c.Blight[0].N == 2 }},
+		{"Forage", func(c Cost) bool { return c.Forage }},
+		{"tapXType<1/Artifact>", func(c Cost) bool { return len(c.TapPermanent) == 1 }},
+	}
+	for _, tc := range tests {
+		c := ParseCost(tc.raw)
+		if c.Generic != 0 || !tc.ok(c) {
+			t.Errorf("ParseCost(%q) = %+v", tc.raw, c)
+		}
+	}
+}
+
+func TestAlternateAdditionalCostSpecialPayments(t *testing.T) {
+	chooseKind := func(t *testing.T, e *Engine, kind string) {
+		t.Helper()
+		d := e.Pending()
+		for _, opt := range d.Options {
+			if opt.Kind == kind {
+				submitChoices(t, e, opt.Index)
+				return
+			}
+		}
+		t.Fatalf("no %s option in %+v", kind, d)
+	}
+	chooseObj := func(t *testing.T, e *Engine, id state.ObjID) {
+		t.Helper()
+		d := e.Pending()
+		for _, opt := range d.Options {
+			if opt.Obj == id {
+				submitChoices(t, e, opt.Index)
+				return
+			}
+		}
+		t.Fatalf("no object %d option in %+v", id, d)
+	}
+
+	t.Run("behold", func(t *testing.T) {
+		e, _, _ := altCostEngine(t, 930, []string{"Caustic Exhale"}, []string{altDragonSrc}, []string{altBearSrc})
+		spell := findCardObj(t, e, 0, "Caustic Exhale", state.ZHand)
+		dragon := findCardObj(t, e, 0, "Test Dragon", state.ZHand)
+		bear := findCardObj(t, e, 1, "Bear", state.ZBattlefield)
+		addMana(t, e, 0, "B")
+		submitChoices(t, e, castModeOption(t, e, spell, ""))
+		chooseKind(t, e, "altaddcost") // behold is the only payable option
+		chooseObj(t, e, bear)
+		if e.G.Obj(dragon).Zone != state.ZHand {
+			t.Fatal("behold moved the revealed Dragon")
+		}
+	})
+
+	t.Run("blight", func(t *testing.T) {
+		e, _, _ := altCostEngine(t, 931, []string{"Bogslither's Embrace"}, []string{altBearSrc}, []string{altBearSrc})
+		spell := findCardObj(t, e, 0, "Bogslither's Embrace", state.ZHand)
+		mine := findCardObj(t, e, 0, "Bear", state.ZBattlefield)
+		theirs := findCardObj(t, e, 1, "Bear", state.ZBattlefield)
+		addMana(t, e, 0, "CB")
+		submitChoices(t, e, castModeOption(t, e, spell, ""))
+		chooseKind(t, e, "altaddcost")
+		chooseObj(t, e, theirs)
+		if got := e.G.Obj(mine).Counter("M1M1"); got != 1 {
+			t.Fatalf("blight counters = %d, want 1", got)
+		}
+	})
+
+	t.Run("forage", func(t *testing.T) {
+		e, _, _ := altCostEngine(t, 932, []string{"Feed the Cycle"}, []string{altRedSrc, altElfSrc, altDragonSrc}, []string{altBearSrc})
+		spell := findCardObj(t, e, 0, "Feed the Cycle", state.ZHand)
+		var fuel []state.ObjID
+		for _, name := range []string{"Ember", "Test Elf", "Test Dragon"} {
+			fuel = append(fuel, findCardObj(t, e, 0, name, state.ZGraveyard))
+		}
+		bear := findCardObj(t, e, 1, "Bear", state.ZBattlefield)
+		addMana(t, e, 0, "CB")
+		submitChoices(t, e, castModeOption(t, e, spell, ""))
+		chooseKind(t, e, "altaddcost")
+		chooseKind(t, e, "forage_exile")
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KChoose || d.Min != 3 {
+			t.Fatalf("forage exile ask: %+v", d)
+		}
+		submitChoices(t, e, d.Options[0].Index, d.Options[1].Index, d.Options[2].Index)
+		chooseObj(t, e, bear)
+		for _, id := range fuel {
+			if e.G.Obj(id).Zone != state.ZExile {
+				t.Fatalf("forage fuel %d not exiled", id)
+			}
+		}
+	})
+
+	t.Run("tap artifact", func(t *testing.T) {
+		e, _, _ := altCostEngine(t, 933, []string{"Disruption Protocol"}, []string{altArtifactSrc}, []string{altRedSrc})
+		spell := findCardObj(t, e, 0, "Disruption Protocol", state.ZHand)
+		relic := findCardObj(t, e, 0, "Test Relic", state.ZBattlefield)
+		shock := findCardObj(t, e, 1, "Ember", state.ZHand)
+		e.emit(events.Event{Kind: events.PutOnStack, Obj: shock, Player: 1, From: state.ZHand, To: state.ZStack})
+		e.pending = nil
+		e.priorityRound()
+		addMana(t, e, 0, "UU")
+		submitChoices(t, e, castModeOption(t, e, spell, ""))
+		chooseKind(t, e, "altaddcost")
+		chooseObj(t, e, shock)
+		if !e.G.Obj(relic).Tapped {
+			t.Fatal("tap-artifact additional cost did not tap the relic")
+		}
+	})
+}
+
+func TestAlternateAdditionalCostRevealPaysWithARealCard(t *testing.T) {
+	e, cfg, _ := altCostEngine(t, 929, []string{"Wren's Run Vanquisher"}, []string{altElfSrc}, nil)
+	vanquisher := findCardObj(t, e, 0, "Wren's Run Vanquisher", state.ZHand)
+	elf := findCardObj(t, e, 0, "Test Elf", state.ZHand)
+	addMana(t, e, 0, "CG")
+	submitChoices(t, e, castModeOption(t, e, vanquisher, ""))
+	// Choose the Reveal branch rather than {3}; its sole matching Elf is a
+	// forced selection and is publicly named by the payment event.
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "altaddcost" {
+		t.Fatalf("reveal-or-pay ask: %+v", d)
+	}
+	reveal := -1
+	for _, opt := range d.Options {
+		if opt.Label == "Pay Reveal<1/Elf>" {
+			reveal = opt.Index
+		}
+	}
+	submitChoices(t, e, reveal)
+	if o := e.G.Obj(elf); o.Zone != state.ZHand {
+		t.Fatalf("revealed Elf moved to %s", o.Zone)
+	}
+	found := false
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && ev.Text == "revealed Test Elf as a cost" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("reveal payment was not publicly recorded")
+	}
+	replayCheck(t, e, cfg)
+}
+
+func TestAlternateAdditionalCostSinglePartIsMandatory(t *testing.T) {
+	e, cfg, _ := altCostEngine(t, 927, []string{"Dusk Rose Reliquary"}, []string{altBearSrc}, nil)
+	reliquary := findCardObj(t, e, 0, "Dusk Rose Reliquary", state.ZHand)
+	bear := findCardObj(t, e, 0, "Bear", state.ZBattlefield)
+	addMana(t, e, 0, "W")
+	submitChoices(t, e, castModeOption(t, e, reliquary, ""))
+	// There is no either-or ask for this one-part form; the ordinary
+	// sacrifice-cost chooser is mandatory.
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 1 || d.Options[0].Obj != bear {
+		t.Fatalf("single-part sacrifice ask: %+v", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	if o := e.G.Obj(bear); o.Zone != state.ZGraveyard {
+		t.Fatalf("single-part sacrifice left Bear in %s", o.Zone)
+	}
+	if o := e.G.Obj(reliquary); o.Zone != state.ZStack {
+		t.Fatalf("Reliquary after payment in %s, want stack", o.Zone)
 	}
 	replayCheck(t, e, cfg)
 }

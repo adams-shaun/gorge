@@ -82,10 +82,17 @@ type Object struct {
 	PreStackEntryFrom     Zone
 	HasPreStackEntry      bool
 
+	// Incarnation advances whenever an object crosses the battlefield
+	// boundary. ObjID is stable for the match, but a permanent that leaves and
+	// returns is a new object under CR 400.7; delayed and keyword-triggered
+	// actions snapshot this value when tied to that permanent incarnation.
+	Incarnation uint32
+
 	// Stack-only.
-	Ability *cards.SA
-	Source  ObjID
-	Targets []Target
+	Ability           *cards.SA
+	Source            ObjID
+	SourceIncarnation uint32
+	Targets           []Target
 	// Remembered carries a triggered ability's Ctx.Remembered from the
 	// moment it was queued (rules.checkTriggers) through to resolution. An
 	// ability object has no Face (Ruling F3) and therefore no card-script
@@ -98,6 +105,11 @@ type Object struct {
 	IsAttacking bool
 	Attacking   PlayerID
 	BlockedBy   []ObjID
+	// EncoreAttackTurn/Defender record "attacks that opponent this turn if
+	// able" on an encore token. Zero Turn means no requirement; turns begin
+	// at 1, so the zero value is unambiguous.
+	EncoreAttackTurn     int32
+	EncoreAttackDefender PlayerID
 
 	// Timestamp orders continuous effects. Assigned from Game.Clock whenever
 	// the object enters the battlefield.

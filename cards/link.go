@@ -67,6 +67,9 @@ func (f *Face) link(path string) []Diag {
 // falls back to this table when the face's own table lacks the name, so a
 // replayed DelayedPush resolves the identical ability a live game did.
 var builtinSVars = map[string]string{
+	// Evoke's mandatory ETB trigger. It is minted as a real triggered ability
+	// by KeywordTriggerPush, so players receive priority and may counter it.
+	"__kwEvokeSacrifice": "DB$ Sacrifice | Defined$ Self",
 	// Dash (CR 702): "returned from the battlefield to its owner's hand at
 	// the beginning of the next end step". The registered source is the
 	// dashed permanent itself, so Defined$ Self is it.

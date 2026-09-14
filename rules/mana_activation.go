@@ -18,6 +18,7 @@ const (
 	chooseMana chooseFor = iota + 6
 	chooseManaColor
 	chooseManaDiscard
+	chooseManaExile
 )
 
 // manaActivation is the one outstanding choice among a permanent's distinct
@@ -44,14 +45,16 @@ type manaColorActivation struct {
 // cost is chosen. It is separate from pendingCast so activating mana during a
 // spell's CR 601.2g payment window never overwrites the outer cast flow.
 type manaDiscardActivation struct {
-	player   state.PlayerID
-	source   state.ObjID
-	ability  *cards.SA
-	cost     Cost
-	sacs     []state.ObjID
-	discards []state.ObjID
-	part     int
-	cast     bool
+	player    state.PlayerID
+	source    state.ObjID
+	ability   *cards.SA
+	cost      Cost
+	sacs      []state.ObjID
+	discards  []state.ObjID
+	exiles    []state.ObjID
+	part      int
+	exilePart int
+	cast      bool
 }
 
 // availableManaAbilities returns exactly the individual mana abilities that
@@ -65,7 +68,7 @@ func (e *Engine) availableManaAbilities(p state.PlayerID, id state.ObjID) []*car
 	}
 	var out []*cards.SA
 	for _, ma := range o.Face().ManaAbilities() {
-		if !e.abilityRestricted(p, id, ma) && e.manaAbilityPayable(p, id, ma) {
+		if abilityZoneOK(ma, o.Zone) && !e.abilityRestricted(p, id, ma) && e.manaAbilityPayable(p, id, ma) {
 			out = append(out, ma)
 		}
 	}
@@ -107,7 +110,8 @@ func (e *Engine) manaAbilityPayable(p state.PlayerID, source state.ObjID, ma *ca
 		return false
 	}
 	cost := ParseCost(ma.Params["Cost"])
-	if cost.X != 0 || (cost.Tap && o.Tapped) || !cost.payable(e.G.Players[p].Pool, e.G.Players[p].Life) {
+	if cost.X != 0 || len(cost.Reveal) > 0 || len(cost.Behold) > 0 || len(cost.TapPermanent) > 0 ||
+		len(cost.Blight) > 0 || cost.Forage || (cost.Tap && o.Tapped) || !cost.payable(e.G.Players[p].Pool, e.G.Players[p].Life) {
 		return false
 	}
 	for _, part := range cost.SubCounter {
@@ -118,7 +122,10 @@ func (e *Engine) manaAbilityPayable(p state.PlayerID, source state.ObjID, ma *ca
 	if _, ok := e.manaSacrifices(p, source, cost); !ok {
 		return false
 	}
-	_, ok := e.manaDiscards(p, source, cost)
+	if _, ok := e.manaDiscards(p, source, cost); !ok {
+		return false
+	}
+	_, ok := e.manaExiles(p, source, cost)
 	return ok
 }
 
@@ -151,6 +158,31 @@ func (e *Engine) manaSacrifices(p state.PlayerID, source state.ObjID, cost Cost)
 // manaDiscards performs the pure offer-side feasibility walk for a mana
 // ability's discard cost. It reserves deterministic candidates but consumes
 // no RNG; the payment continuation makes the actual choice.
+func (e *Engine) manaExiles(p state.PlayerID, source state.ObjID, cost Cost) ([]state.ObjID, bool) {
+	var exiles []state.ObjID
+	reserved := map[state.ObjID]bool{}
+	for _, part := range cost.Exile {
+		zone := part.Zone
+		if zone == 0 {
+			zone = state.ZHand
+		}
+		var candidates []state.ObjID
+		for _, id := range e.G.Zone(zone, p) {
+			if !reserved[id] && effects.MatchesSpecFrom(e.G, part.Spec, id, p, source) {
+				candidates = append(candidates, id)
+			}
+		}
+		if part.N <= 0 || int(part.N) > len(candidates) {
+			return nil, false
+		}
+		for i := 0; i < int(part.N); i++ {
+			reserved[candidates[i]] = true
+			exiles = append(exiles, candidates[i])
+		}
+	}
+	return exiles, true
+}
+
 func (e *Engine) manaDiscards(p state.PlayerID, source state.ObjID, cost Cost) ([]state.ObjID, bool) {
 	var discards []state.ObjID
 	reserved := map[state.ObjID]bool{}
@@ -222,6 +254,44 @@ func (e *Engine) continueManaDiscard() {
 		e.ask(d)
 		return
 	}
+	for md.exilePart < len(md.cost.Exile) {
+		part := md.cost.Exile[md.exilePart]
+		zone := part.Zone
+		if zone == 0 {
+			zone = state.ZHand
+		}
+		reserved := make(map[state.ObjID]bool, len(md.exiles))
+		for _, id := range md.exiles {
+			reserved[id] = true
+		}
+		var candidates []state.ObjID
+		for _, id := range e.G.Zone(zone, md.player) {
+			if !reserved[id] && effects.MatchesSpecFrom(e.G, part.Spec, id, md.player, md.source) {
+				candidates = append(candidates, id)
+			}
+		}
+		n := int(part.N)
+		if n <= 0 || n > len(candidates) {
+			e.manaDiscardActivation = nil
+			e.choosing = chooseNone
+			return
+		}
+		if n == 1 && len(candidates) == 1 && candidates[0] == md.source &&
+			strings.EqualFold(part.Spec, "CARDNAME") {
+			md.exiles = append(md.exiles, md.source)
+			md.exilePart++
+			continue
+		}
+		d := &decision.Decision{Player: md.player, Kind: decision.KChoose, Min: n, Max: n,
+			Prompt: "Exile a card to pay the mana ability cost", Source: md.source}
+		for _, id := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana_exile",
+				Obj: id, Label: e.G.Obj(id).Face().Name})
+		}
+		e.choosing = chooseManaExile
+		e.ask(d)
+		return
+	}
 	e.commitManaDiscard()
 }
 
@@ -235,6 +305,12 @@ func (e *Engine) commitManaDiscard() {
 	for _, id := range md.discards {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand,
 			To: discardDestZone(e.G, id), Text: discardEventText(e.G, id, "discarded as a cost")})
+	}
+	for _, id := range md.exiles {
+		if o := e.G.Obj(id); o != nil {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone,
+				To: state.ZExile, Text: "exiled as a mana ability cost"})
+		}
 	}
 	if md.cost.Tap {
 		e.emit(events.Event{Kind: events.Tap, Obj: md.source})
@@ -266,6 +342,20 @@ func (e *Engine) answerManaDiscard(chosen []decision.Option) bool {
 	return cast
 }
 
+func (e *Engine) answerManaExile(chosen []decision.Option) bool {
+	md := e.manaDiscardActivation
+	if md == nil {
+		return false
+	}
+	for _, opt := range chosen {
+		md.exiles = append(md.exiles, opt.Obj)
+	}
+	md.exilePart++
+	cast := md.cast
+	e.continueManaDiscard()
+	return cast
+}
+
 // resolveManaAbility pays this ability's actual activation cost, then resolves
 // it outside the stack. In particular, Sac and Discard costs are emitted
 // before the mana effect, and no phantom generic mana is charged.
@@ -275,7 +365,7 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 	}
 	cost := ParseCost(ma.Params["Cost"])
 	sacs, _ := e.manaSacrifices(p, source, cost)
-	if len(cost.Discard) > 0 {
+	if len(cost.Discard) > 0 || len(cost.Exile) > 0 {
 		e.manaDiscardActivation = &manaDiscardActivation{player: p, source: source,
 			ability: ma, cost: cost, sacs: sacs, cast: cast}
 		e.continueManaDiscard()

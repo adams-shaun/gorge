@@ -161,6 +161,10 @@ type pendingCast struct {
 	// so an abort cannot leave a partially paid exile on the board.
 	exiles    []state.ObjID
 	exilePart int
+
+	reveals, beholds, taps, blights             []state.ObjID
+	revealPart, beholdPart, tapPart, blightPart int
+	forageDone                                  bool
 }
 
 // etbChoice is one "as this enters" choice, pre-computed: its kind
@@ -219,17 +223,11 @@ func altAddCostParts(f *cards.Face) []string {
 		return nil
 	}
 	parts := strings.Split(param, ":")
-	if len(parts) < 2 {
-		return nil
-	}
 	out := make([]string, 0, len(parts))
 	for _, p := range parts {
 		if p = strings.TrimSpace(p); p != "" {
 			out = append(out, p)
 		}
-	}
-	if len(out) < 2 {
-		return nil
 	}
 	return out
 }
@@ -346,6 +344,32 @@ func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability b
 			reserved[avail[i]] = true
 		}
 	}
+	for _, part := range cost.Reveal {
+		if len(e.costCandidates(p, id, state.ZHand, part.Spec, true, false)) < int(part.N) {
+			return false
+		}
+	}
+	for _, part := range cost.Behold {
+		n := len(e.costCandidates(p, id, state.ZHand, part.Spec, true, false)) +
+			len(e.costCandidates(p, id, state.ZBattlefield, part.Spec, false, false))
+		if n < int(part.N) {
+			return false
+		}
+	}
+	for _, part := range cost.TapPermanent {
+		if len(e.costCandidates(p, id, state.ZBattlefield, part.Spec, false, true)) < int(part.N) {
+			return false
+		}
+	}
+	for range cost.Blight {
+		if len(e.costCandidates(p, id, state.ZBattlefield, "Creature.YouCtrl", false, false)) == 0 {
+			return false
+		}
+	}
+	if cost.Forage && len(e.G.Zone(state.ZGraveyard, p)) < 3 &&
+		len(e.costCandidates(p, id, state.ZBattlefield, "Food.YouCtrl", false, false)) == 0 {
+		return false
+	}
 	if o := e.G.Obj(id); o != nil {
 		for _, part := range cost.SubCounter {
 			if o.Counter(part.Spec) < part.N {
@@ -359,6 +383,20 @@ func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability b
 		return false
 	}
 	return true
+}
+
+func (e *Engine) costCandidates(p state.PlayerID, source state.ObjID, zone state.Zone, spec string, excludeSource, untapped bool) []state.ObjID {
+	var out []state.ObjID
+	for _, id := range e.G.Zone(zone, p) {
+		o := e.G.Obj(id)
+		if o == nil || (excludeSource && id == source) || (untapped && o.Tapped) {
+			continue
+		}
+		if effects.MatchesSpecFrom(e.G, spec, id, p, source) {
+			out = append(out, id)
+		}
+	}
+	return out
 }
 
 // sacrificeMatchSpec normalizes Forge's NICKNAME spelling to CARDNAME before
@@ -481,6 +519,22 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	if len(extra.SubCounter) > 0 {
 		cost.SubCounter = append(append([]CostPart(nil), cost.SubCounter...), extra.SubCounter...)
 	}
+	if len(extra.Exile) > 0 {
+		cost.Exile = append(append([]CostPart(nil), cost.Exile...), extra.Exile...)
+	}
+	if len(extra.Reveal) > 0 {
+		cost.Reveal = append(append([]CostPart(nil), cost.Reveal...), extra.Reveal...)
+	}
+	if len(extra.Behold) > 0 {
+		cost.Behold = append(append([]CostPart(nil), cost.Behold...), extra.Behold...)
+	}
+	if len(extra.TapPermanent) > 0 {
+		cost.TapPermanent = append(append([]CostPart(nil), cost.TapPermanent...), extra.TapPermanent...)
+	}
+	if len(extra.Blight) > 0 {
+		cost.Blight = append(append([]CostPart(nil), cost.Blight...), extra.Blight...)
+	}
+	cost.Forage = cost.Forage || extra.Forage
 	cost.Tap = cost.Tap || extra.Tap
 	return cost
 }
@@ -612,6 +666,9 @@ func (e *Engine) continueCast() {
 	if e.altAddAsk() {
 		return
 	}
+	if e.forageAsk() || e.revealCostAsk() || e.beholdCostAsk() || e.tapPermanentCostAsk() || e.blightCostAsk() {
+		return
+	}
 	if e.xAsk() {
 		return
 	}
@@ -675,6 +732,15 @@ func (e *Engine) altAddAsk() bool {
 		return false
 	}
 	pc.altAddDone = true
+	if len(pc.altAddParts) == 1 {
+		part := ParseCost(pc.altAddParts[0])
+		if !e.castable(pc.player, pc.card, pc.cost.Plus(part), pc.ability >= 0) {
+			e.abortCast(pc, "additional cost no longer payable; cast aborted", true)
+			return true
+		}
+		pc.cost = pc.cost.Plus(part)
+		return false
+	}
 	payable := make([]int, 0, len(pc.altAddParts))
 	unpayable := make([]int, 0, len(pc.altAddParts))
 	for i, part := range pc.altAddParts {
@@ -698,6 +764,134 @@ func (e *Engine) altAddAsk() bool {
 	e.choosing = chooseCast
 	e.ask(d)
 	return true
+}
+
+func (e *Engine) forageAsk() bool {
+	pc := e.cast
+	if pc == nil || !pc.cost.Forage || pc.forageDone {
+		return false
+	}
+	pc.forageDone = true
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Choose how to forage", Source: pc.card}
+	if len(e.G.Zone(state.ZGraveyard, pc.player)) >= 3 {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "forage_exile", Label: "Exile three cards from your graveyard"})
+	}
+	for _, id := range e.costCandidates(pc.player, pc.card, state.ZBattlefield, "Food.YouCtrl", false, false) {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "forage_food", Obj: id,
+			Label: "Sacrifice " + e.targetName(id)})
+	}
+	if len(d.Options) == 0 {
+		e.abortCast(pc, "forage no longer payable; cast aborted", true)
+		return true
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
+}
+
+func (e *Engine) revealCostAsk() bool {
+	pc := e.cast
+	for pc.revealPart < len(pc.cost.Reveal) {
+		part := pc.cost.Reveal[pc.revealPart]
+		candidates := e.costCandidates(pc.player, pc.card, state.ZHand, part.Spec, true, false)
+		if len(candidates) < int(part.N) {
+			e.abortCast(pc, "reveal cost no longer payable; cast aborted", true)
+			return true
+		}
+		if len(candidates) == int(part.N) {
+			pc.reveals = append(pc.reveals, candidates...)
+			pc.revealPart++
+			continue
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: int(part.N), Max: int(part.N),
+			Prompt: "Choose cards to reveal", Source: pc.card}
+		for _, id := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "revealcost", Obj: id, Label: e.targetName(id)})
+		}
+		e.choosing = chooseCast
+		e.ask(d)
+		return true
+	}
+	return false
+}
+
+func (e *Engine) beholdCostAsk() bool {
+	pc := e.cast
+	for pc.beholdPart < len(pc.cost.Behold) {
+		part := pc.cost.Behold[pc.beholdPart]
+		candidates := append(e.costCandidates(pc.player, pc.card, state.ZBattlefield, part.Spec, false, false),
+			e.costCandidates(pc.player, pc.card, state.ZHand, part.Spec, true, false)...)
+		if len(candidates) < int(part.N) {
+			e.abortCast(pc, "behold cost no longer payable; cast aborted", true)
+			return true
+		}
+		if len(candidates) == int(part.N) {
+			pc.beholds = append(pc.beholds, candidates...)
+			pc.beholdPart++
+			continue
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: int(part.N), Max: int(part.N),
+			Prompt: "Choose permanents or cards to behold", Source: pc.card}
+		for _, id := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "beholdcost", Obj: id, Label: e.targetName(id)})
+		}
+		e.choosing = chooseCast
+		e.ask(d)
+		return true
+	}
+	return false
+}
+
+func (e *Engine) tapPermanentCostAsk() bool {
+	pc := e.cast
+	for pc.tapPart < len(pc.cost.TapPermanent) {
+		part := pc.cost.TapPermanent[pc.tapPart]
+		candidates := e.costCandidates(pc.player, pc.card, state.ZBattlefield, part.Spec, false, true)
+		if len(candidates) < int(part.N) {
+			e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
+			return true
+		}
+		if len(candidates) == int(part.N) {
+			pc.taps = append(pc.taps, candidates...)
+			pc.tapPart++
+			continue
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: int(part.N), Max: int(part.N),
+			Prompt: "Choose permanents to tap", Source: pc.card}
+		for _, id := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "tapcost", Obj: id, Label: e.targetName(id)})
+		}
+		e.choosing = chooseCast
+		e.ask(d)
+		return true
+	}
+	return false
+}
+
+func (e *Engine) blightCostAsk() bool {
+	pc := e.cast
+	for pc.blightPart < len(pc.cost.Blight) {
+		candidates := e.costCandidates(pc.player, pc.card, state.ZBattlefield, "Creature.YouCtrl", false, false)
+		if len(candidates) == 0 {
+			e.abortCast(pc, "blight cost no longer payable; cast aborted", true)
+			return true
+		}
+		if len(candidates) == 1 {
+			pc.blights = append(pc.blights, candidates[0])
+			pc.blightPart++
+			continue
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+			Prompt: "Choose a creature to blight", Source: pc.card}
+		for _, id := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "blightcost", Obj: id, Label: e.targetName(id)})
+		}
+		e.choosing = chooseCast
+		e.ask(d)
+		return true
+	}
+	return false
 }
 
 // exAsk offers the next unsettled Exile cost part (ExileFromHand /
@@ -1431,7 +1625,8 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		return
 	}
 	kind := d.Options[0].Kind
-	if len(chosen) > 0 && (chosen[0].Kind == "activate" || chosen[0].Kind == "done") {
+	if len(chosen) > 0 && (chosen[0].Kind == "activate" || chosen[0].Kind == "done" ||
+		chosen[0].Kind == "forage_exile" || chosen[0].Kind == "forage_food") {
 		kind = chosen[0].Kind
 	}
 	switch kind {
@@ -1472,6 +1667,32 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			pc.exiles = append(pc.exiles, o.Obj)
 		}
 		pc.exilePart++
+	case "revealcost":
+		for _, o := range chosen {
+			pc.reveals = append(pc.reveals, o.Obj)
+		}
+		pc.revealPart++
+	case "beholdcost":
+		for _, o := range chosen {
+			pc.beholds = append(pc.beholds, o.Obj)
+		}
+		pc.beholdPart++
+	case "tapcost":
+		for _, o := range chosen {
+			pc.taps = append(pc.taps, o.Obj)
+		}
+		pc.tapPart++
+	case "blightcost":
+		for _, o := range chosen {
+			pc.blights = append(pc.blights, o.Obj)
+		}
+		pc.blightPart++
+	case "forage_exile":
+		pc.cost.Exile = append(pc.cost.Exile, CostPart{N: 3, Spec: "Card", Zone: state.ZGraveyard})
+	case "forage_food":
+		if len(chosen) > 0 {
+			pc.sacs = append(pc.sacs, chosen[0].Obj)
+		}
 	case "pay_W", "pay_U", "pay_B", "pay_R", "pay_G":
 		// A hybrid or Phyrexian pip paid with pool mana: record which colour.
 		if len(chosen) > 0 {
@@ -1599,23 +1820,11 @@ func (e *Engine) targetAsk() bool {
 		excludeSelf = pc.card
 	}
 	candidates := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sa)
-	// An overloaded cast (CR 601.2c by way of the overload text: "target"
-	// reads "each") does not ask CR 601.2c at all -- its targets are EVERY
-	// legal candidate for the spell's ValidTgts spec, recorded in the same
-	// deterministic order the offer would have used. Zero candidates resolve
-	// untargeted ("each" of nothing), so this bypasses both the min gate and
-	// the ask; the ordinary CR 608.2b recheck at resolution still guards
-	// legality. The targets are recorded here, after the push (a zone change
-	// clears Targets), exactly as handleTarget would have.
+	// Overload changes the word "target" to "each". It makes no selection at
+	// announcement time: the current matching set is derived at resolution,
+	// so permanents entering or changing controller in response are handled.
+	// No target decision/event is emitted and zero objects is legal.
 	if pc.mode == "overloaded" {
-		var chosen []decision.Option
-		for _, cand := range candidates {
-			chosen = append(chosen, decision.Option{Index: len(chosen), Kind: cand.kind,
-				Label: e.targetOptionLabel(cand), Obj: cand.obj, Player: cand.player})
-		}
-		if pc.stackObj != 0 {
-			e.recordChosenTargets(pc.stackObj, chosen)
-		}
 		return false
 	}
 	if min > 0 && len(candidates) < min {
@@ -1788,11 +1997,12 @@ func (e *Engine) manaWindowAsk() bool {
 		return false
 	}
 	var sources []state.ObjID
-	for _, id := range e.G.Zone(state.ZBattlefield, pc.player) {
-		if !e.untappedManaSource(pc.player, id) {
-			continue
+	for _, z := range []state.Zone{state.ZBattlefield, state.ZHand, state.ZGraveyard} {
+		for _, id := range e.G.Zone(z, pc.player) {
+			if e.untappedManaSource(pc.player, id) {
+				sources = append(sources, id)
+			}
 		}
-		sources = append(sources, id)
 	}
 	if len(sources) == 0 {
 		return false
@@ -1802,7 +2012,7 @@ func (e *Engine) manaWindowAsk() bool {
 		Prompt: "Activate mana abilities to pay for " + name, Source: pc.card}
 	for _, id := range sources {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "activate",
-			Obj: id, Label: "Tap " + e.G.Obj(id).Face().Name + " for mana"})
+			Obj: id, Label: "Activate " + e.G.Obj(id).Face().Name + " for mana"})
 	}
 	d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "done", Label: "Done"})
 	e.choosing = chooseCast
@@ -1820,12 +2030,41 @@ func (e *Engine) untappedManaSource(p state.PlayerID, id state.ObjID) bool {
 // with a usable mana ability -- the condition under which the 601.2g window
 // could supply the mana a pool alone cannot.
 func (e *Engine) hasUntappedManaSource(p state.PlayerID) bool {
-	for _, id := range e.G.Zone(state.ZBattlefield, p) {
-		if e.untappedManaSource(p, id) {
-			return true
+	for _, z := range []state.Zone{state.ZBattlefield, state.ZHand, state.ZGraveyard} {
+		for _, id := range e.G.Zone(z, p) {
+			if e.untappedManaSource(p, id) {
+				return true
+			}
 		}
 	}
 	return false
+}
+
+func (e *Engine) emitChoiceCosts(pc *pendingCast) {
+	names := func(ids []state.ObjID) string {
+		out := make([]string, 0, len(ids))
+		for _, id := range ids {
+			out = append(out, e.targetName(id))
+		}
+		return strings.Join(out, ", ")
+	}
+	if len(pc.reveals) > 0 {
+		e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+			IDs: append([]state.ObjID(nil), pc.reveals...), Text: "revealed " + names(pc.reveals) + " as a cost"})
+	}
+	if len(pc.beholds) > 0 {
+		e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+			IDs: append([]state.ObjID(nil), pc.beholds...), Text: "beheld " + names(pc.beholds) + " as a cost"})
+	}
+	for _, id := range pc.taps {
+		e.emit(events.Event{Kind: events.Tap, Obj: id, Text: "tapped as a cost"})
+	}
+	for i, id := range pc.blights {
+		if i < len(pc.cost.Blight) {
+			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "M1M1",
+				Amount: pc.cost.Blight[i].N})
+		}
+	}
 }
 
 // payCast implements CR 601.2h (pay all costs) and, for a spell, CR 601.2i
@@ -1911,6 +2150,7 @@ func (e *Engine) payCast() {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})
 			}
 		}
+		e.emitChoiceCosts(pc)
 		if pc.cost.Tap {
 			e.emit(events.Event{Kind: events.Tap, Obj: pc.card})
 		}
@@ -2017,6 +2257,7 @@ func (e *Engine) payCast() {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})
 		}
 	}
+	e.emitChoiceCosts(pc)
 	// Capture the sacrifice LKI before the MoveZones (see the ability branch's
 	// comment): the sacrificed permanents are still on the battlefield here.
 	var sacrificedLKI []state.SacrificedInfo

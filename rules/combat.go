@@ -60,6 +60,19 @@ func (e *Engine) canAttack(id state.ObjID) bool {
 	return true
 }
 
+// encoreAttackDefender reports the opponent an encore token must attack this
+// turn if able. The requirement expires by turn number and becomes impossible
+// (therefore nonbinding) if that opponent has left the game.
+func (e *Engine) encoreAttackDefender(id state.ObjID) (state.PlayerID, bool) {
+	o := e.G.Obj(id)
+	if o == nil || o.EncoreAttackTurn == 0 || o.EncoreAttackTurn != e.G.Turn ||
+		int(o.EncoreAttackDefender) >= len(e.G.Players) || e.G.Players[o.EncoreAttackDefender].Lost ||
+		!e.canAttack(id) {
+		return 0, false
+	}
+	return o.EncoreAttackDefender, true
+}
+
 // canBlock reports whether blocker may be declared against attacker (CR
 // 509.1a): an untapped creature controlled by the defending player, gated by
 // Flying/Reach (CR 702.9b) and by any CantBlock/CantBlockBy static
@@ -176,6 +189,9 @@ func (e *Engine) askAttackers() {
 	var opts []decision.Option
 	for _, d := range defenders {
 		for _, id := range attackers {
+			if required, ok := e.encoreAttackDefender(id); ok && d != required {
+				continue
+			}
 			opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
 				Label: "Attack with " + e.G.Obj(id).Face().Name + " at " + e.G.Players[d].Name,
 				Obj:   id, Player: d})
@@ -256,6 +272,9 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 		if seen[o.Obj] {
 			return fmt.Errorf("attacker %d declared against more than one defender", o.Obj)
 		}
+		if required, ok := e.encoreAttackDefender(o.Obj); ok && o.Player != required {
+			return fmt.Errorf("encore attacker %d must attack player %d", o.Obj, required)
+		}
 		seen[o.Obj] = true
 	}
 	return e.validateAttackDeclaration(d, in)
@@ -278,6 +297,9 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 	f := o.Face()
 	if f == nil || !e.canAttack(id) {
 		return false
+	}
+	if _, ok := e.encoreAttackDefender(id); ok {
+		return true
 	}
 	for _, st := range f.Statics {
 		if st.Mode != "MustAttack" {

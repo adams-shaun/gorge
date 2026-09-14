@@ -48,18 +48,23 @@ type ManaPair struct{ A, B byte }
 // it; rule/cast.go's payment stage resolves the announced choice and spends
 // against both the pool and the payer's life (see Cost.payable).
 type Cost struct {
-	Colored    state.Mana
-	Generic    int32
-	Life       int32
-	X          int
-	Hybrid     []ManaPair
-	Phyrexian  []byte
-	Tap        bool
-	Sac        []CostPart
-	Discard    []CostPart
-	SubCounter []CostPart
-	AddCounter []CostPart
-	Exile      []CostPart
+	Colored      state.Mana
+	Generic      int32
+	Life         int32
+	X            int
+	Hybrid       []ManaPair
+	Phyrexian    []byte
+	Tap          bool
+	Sac          []CostPart
+	Discard      []CostPart
+	SubCounter   []CostPart
+	AddCounter   []CostPart
+	Exile        []CostPart
+	Reveal       []CostPart
+	Behold       []CostPart
+	TapPermanent []CostPart
+	Blight       []CostPart
+	Forage       bool
 }
 
 // nonManaCost matches Sac<N/Spec>, Discard<N/Spec>, and SubCounter<N/Kind> tokens. Forge
@@ -100,6 +105,9 @@ var addCounterCost = regexp.MustCompile(`^AddCounter<(\d+)/(LOYALTY)(?:/[^>]*)?>
 // has no source from which to resolve their value.
 var lifeCost = regexp.MustCompile(`^PayLife<(\d+)>$`)
 
+var choiceCost = regexp.MustCompile(`^(Reveal|Behold|tapXType)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+var blightCost = regexp.MustCompile(`^Blight<(\d+)>$`)
+
 // ParseCost accepts both Forge's space-separated form ("2 U U") and the
 // bracketed oracle form ("{2}{U}{U}"). "no cost" and "" are free.
 func ParseCost(s string) Cost {
@@ -115,6 +123,8 @@ func ParseCost(s string) Cost {
 			c.Tap = true
 		case sym == "X":
 			c.X++
+		case sym == "Forage":
+			c.Forage = true
 		case len(sym) == 1 && strings.ContainsAny(sym, "WUBRGC"):
 			c.Colored[state.ManaIndex(sym[0])]++
 		case isHybrid(sym):
@@ -122,6 +132,32 @@ func ParseCost(s string) Cost {
 		case isPhyrexian(sym):
 			c.Phyrexian = append(c.Phyrexian, phyrexianColor(sym))
 		default:
+			if m := choiceCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[2], 10, 64)
+				if err != nil || n <= 0 || n > int64(math.MaxInt32) {
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					continue
+				}
+				part := CostPart{N: int32(n), Spec: strings.ReplaceAll(m[3], ";", ",")}
+				switch m[1] {
+				case "Reveal":
+					c.Reveal = append(c.Reveal, part)
+				case "Behold":
+					c.Behold = append(c.Behold, part)
+				default:
+					c.TapPermanent = append(c.TapPermanent, part)
+				}
+				continue
+			}
+			if m := blightCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n <= 0 || n > int64(math.MaxInt32) {
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					continue
+				}
+				c.Blight = append(c.Blight, CostPart{N: int32(n), Spec: "Creature.YouCtrl"})
+				continue
+			}
 			if m := lifeCost.FindStringSubmatch(sym); m != nil {
 				n, err := strconv.ParseInt(m[1], 10, 64)
 				if err != nil || n < 0 || n > int64(math.MaxInt32) {
@@ -334,6 +370,19 @@ func (c Cost) Plus(d Cost) Cost {
 	if len(d.Exile) > 0 {
 		c.Exile = append(append([]CostPart(nil), c.Exile...), d.Exile...)
 	}
+	if len(d.Reveal) > 0 {
+		c.Reveal = append(append([]CostPart(nil), c.Reveal...), d.Reveal...)
+	}
+	if len(d.Behold) > 0 {
+		c.Behold = append(append([]CostPart(nil), c.Behold...), d.Behold...)
+	}
+	if len(d.TapPermanent) > 0 {
+		c.TapPermanent = append(append([]CostPart(nil), c.TapPermanent...), d.TapPermanent...)
+	}
+	if len(d.Blight) > 0 {
+		c.Blight = append(append([]CostPart(nil), c.Blight...), d.Blight...)
+	}
+	c.Forage = c.Forage || d.Forage
 	return c
 }
 
@@ -496,6 +545,15 @@ func formatCost(c Cost) string {
 		}
 		parts = append(parts, "ExileFrom"+from+"<"+strconv.FormatInt(int64(part.N), 10)+"/"+part.Spec+">")
 	}
+	appendCostParts("Reveal", c.Reveal)
+	appendCostParts("Behold", c.Behold)
+	appendCostParts("tapXType", c.TapPermanent)
+	for _, part := range c.Blight {
+		parts = append(parts, "Blight<"+strconv.FormatInt(int64(part.N), 10)+">")
+	}
+	if c.Forage {
+		parts = append(parts, "Forage")
+	}
 	return strings.Join(parts, " ")
 }
 
@@ -504,7 +562,7 @@ func formatCost(c Cost) string {
 // even though it takes no payment), so a caller using this to skip the
 // cast-flow stages is told the truth.
 func (c Cost) HasNonMana() bool {
-	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0
+	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage
 }
 
 // costModifiers reports the RaiseCost and ReduceCost generic-mana amounts
@@ -569,7 +627,8 @@ func (e *Engine) costActorMatches(sv staticView, actor state.PlayerID) bool {
 // before trusting the pool and life total.
 func (c Cost) Priceable() bool {
 	return c.X == 0 && !c.Tap && len(c.Sac) == 0 && len(c.Discard) == 0 && len(c.SubCounter) == 0 &&
-		len(c.Exile) == 0 && len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
+		len(c.Exile) == 0 && len(c.Reveal) == 0 && len(c.Behold) == 0 && len(c.TapPermanent) == 0 &&
+		len(c.Blight) == 0 && !c.Forage && len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
 }
 
 // pip is one coloured-or-flexible demand inside a cost's mana part: the set

@@ -48,10 +48,9 @@ type pendingTrigger struct {
 	// by offerMadness after a discard exiled the card.
 	Miracle bool
 	Madness bool
-	// Evoke marks the CR 702.79a sacrifice follow-up queued by altCostEnter
-	// when a FlagEvoked creature enters: a MANDATORY queue entry (no yes/no,
-	// no question at all -- the sacrifice is unconditional) whose pushTrigger
-	// arm emits the sacrifice MoveZone at placement.
+	// Evoke marks the CR 702.79a mandatory sacrifice follow-up queued by
+	// altCostEnter. It has no yes/no choice; pushTrigger mints a real
+	// respondable keyword-triggered ability on the stack.
 	Evoke bool
 	// Delayed marks a Mode$ Phase delayed trigger registration (CR 603.7)
 	// rather than a matched T: line. It is queued by checkDelayedTriggers when

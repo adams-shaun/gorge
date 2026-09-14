@@ -275,6 +275,8 @@ func Describe(g *state.Game, ev events.Event) string {
 		// stack. Obj is the minted stack object; its source name is what a
 		// reader recognises, so prefer it and fall back to the minted id.
 		return obj(g, ev.Obj) + " triggers (delayed)"
+	case events.KeywordTriggerPush:
+		return obj(g, ev.Obj) + " triggers (" + strings.TrimPrefix(ev.Counter, "__kw") + ")"
 	}
 	return "unknown event"
 }
