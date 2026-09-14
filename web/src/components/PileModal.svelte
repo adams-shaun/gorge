@@ -1,6 +1,8 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import type { CardView } from '../protocol';
+  import { CardHover } from '../lib/carddetail.svelte';
+  import CardDetail from './CardDetail.svelte';
   import CardImage from './CardImage.svelte';
 
   /**
@@ -10,6 +12,16 @@
    * this component. Cards render as real card faces (CardImage), the same
    * face a board tile shows, in a wrapping grid — not a text index; a pile
    * is cards, not a table of contents.
+   *
+   * Each card in the list carries the shared hover inspector (the SeatPanel
+   * arrange-strip pattern): one CardHover for the whole list, pointer dwell
+   * (250 ms) or keyboard focus opens the portalled CardDetail, leave/blur
+   * close it, and a card leaving the pile closes its panel through supervise
+   * — a card can leave the graveyard as play continues while the modal sits
+   * open, and a removed element never fires pointerleave. CardDetail portals
+   * itself to <body>, so it is a sibling of this modal's backdrop, not a
+   * descendant of it; CardDetail's z-index (1001) sits above the backdrop's
+   * 1000 so the panel reads over the dim rather than under it.
    */
   let { open, title, cards, returnFocus = null, onClose }: {
     open: boolean;
@@ -23,6 +35,11 @@
   let wasOpen = false;
   let lastReturnFocus: HTMLElement | null = null;
 
+  // The list's shared hover inspector. One panel serves every card in the
+  // pile (CardHover keeps the pointer's card and the focused card separate
+  // internally, so the two input owners cannot close each other).
+  const hover = new CardHover();
+
   $effect(() => {
     if (open) {
       wasOpen = true;
@@ -30,10 +47,37 @@
       void tick().then(() => dialog?.focus());
     } else if (wasOpen) {
       wasOpen = false;
+      // The modal is gone; a detail panel must not survive it (its state
+      // lives in this component, which stays mounted while the rail does).
+      hover.close();
       lastReturnFocus?.focus();
       lastReturnFocus = null;
     }
   });
+
+  // PANEL LIFETIME FOLLOWS THE PILE, NOT THE POINTER (the arrange-strip
+  // contract): while the modal sits open, play continues and a card can
+  // leave the pile — the row disappears, pointerleave never fires, and the
+  // panel would hang open on a card that no longer exists. Whenever the
+  // shown card is no longer among the present cards the hover closes.
+  $effect(() => {
+    hover.supervise(cards);
+  });
+
+  /**
+   * Escape peels layers: with this card's panel open it closes the panel
+   * and keeps the event from the window handler, so the SECOND Escape (with
+   * no panel open) closes the modal itself. With no panel open the event is
+   * untouched and reaches the window handler — the modal's Escape-close is
+   * exactly as it was.
+   */
+  function pileKeydown(card: CardView, event: KeyboardEvent): void {
+    if (event.key !== 'Escape') return;
+    if (!hover.hover.show || hover.card?.id !== card.id) return;
+    hover.close();
+    event.stopPropagation();
+    event.preventDefault();
+  }
 
   function portal(node: HTMLElement) {
     document.body.appendChild(node);
@@ -76,12 +120,24 @@
       <ul class="cards" data-pile-scroll>
         {#each cards as card (card.id)}
           <li data-obj={card.id}>
-            <CardImage {card} size="tile" pt={false} />
-            <span class="card-name">{card.name}</span>
-            <span class="types">{card.types}</span>
+            <button
+              type="button"
+              class="pile-card"
+              onpointerenter={(e) => hover.arm(card, e.currentTarget)}
+              onpointerleave={() => hover.leave(card)}
+              onfocus={(e) => hover.open(card, e.currentTarget)}
+              onblur={() => hover.blur(card)}
+              onkeydown={(e) => pileKeydown(card, e)}
+              aria-describedby={hover.hover.show && hover.card?.id === card.id ? `card-detail-${card.id}` : undefined}
+            >
+              <CardImage {card} size="tile" pt={false} />
+              <span class="card-name">{card.name}</span>
+              <span class="types">{card.types}</span>
+            </button>
           </li>
         {/each}
       </ul>
+      {#if hover.hover.show && hover.card && hover.anchor}<CardDetail card={hover.card} anchor={hover.anchor} />{/if}
     </div>
   </div>
 {/if}
@@ -152,11 +208,30 @@
     --card-w: var(--card-w-large, 132px);
   }
   li {
+    width: var(--card-w);
+  }
+  /* The card is a real button so keyboard focus is the native affordance
+     (focus opens the detail immediately, blur closes it); the button carries
+     the layout the li used to hold. The button's click does nothing — the
+     pile list is a reading surface, not a casting surface — so the cursor
+     stays default. */
+  .pile-card {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.3rem;
-    width: var(--card-w);
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: center;
+    cursor: default;
+  }
+  .pile-card:focus-visible {
+    outline: var(--edge-w) solid var(--initiative);
+    outline-offset: 2px;
   }
   .card-name {
     max-width: 100%;

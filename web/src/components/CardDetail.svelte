@@ -268,18 +268,22 @@
 <style>
   /* A floating read-only panel: instrument register (cool, dense — where the
      engine explains what it did), pointer-events none so no underlying
-     interaction is ever blocked by it. z-index 6 sits above the board's
-     other overlays (RecentStrip uses 4) AND above the seat panel (8). It
-     used to sit below the seat panel on the grounds that the sheet is real
-     clickable UI -- but this panel sets pointer-events: none, so stacking
-     over the sheet cannot take a click from it, and the mulligan proved the
-     cost: the hand whose cards you hover IS inside the seat panel, so the
-     detail opened underneath the thing that raised it and was unreadable.
-     The number is about visual order only, and a transient read-only panel
-     the reader explicitly asked for should win that order. */
+     interaction is ever blocked by it. It sits above the board's other
+     overlays (RecentStrip uses 4) AND above the seat panel (8). It used to
+     sit below the seat panel on the grounds that the sheet is real clickable
+     UI -- but this panel sets pointer-events: none, so stacking over the
+     sheet cannot take a click from it, and the mulligan proved the cost: the
+     hand whose cards you hover IS inside the seat panel, so the detail opened
+     underneath the thing that raised it and was unreadable. 1001 extends the
+     same rule to the pile/arrange modals: their backdrops are z-index 1000
+     (the only two overlays above 30 in the client), a pile card's detail is
+     opened from INSIDE that backdrop, and a read-only pointer-transparent
+     panel would otherwise render dimmed underneath the very modal the reader
+     opened. A transient read-only panel the reader explicitly asked for wins
+     visual order everywhere. */
   .card-detail {
     position: fixed;
-    z-index: 9;
+    z-index: 1001;
     pointer-events: none;
     display: flex;
     flex-direction: column;

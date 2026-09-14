@@ -1,7 +1,14 @@
 import { mount } from 'svelte';
 import type { CardView, PlayerView, SeatInfo, View } from '../protocol';
 import '../app.css';
+import PileFixture from './PileModal.fixture.svelte';
 import SeatTable from './SeatTable.svelte';
+
+// `?case=shrink` mounts the reactive wrapper (PileModal.fixture.svelte): a
+// PileModal open on a live $state pile a test can shrink through
+// window.__pileRemoveFirst, for the removal-while-open and Escape-layering
+// cases. Without the param the fixture is the real rail path: SeatTable, as
+// the player reaches the modal.
 
 const card = (id: number): CardView => ({
   id, name: `Archive Card ${id}`, types: id % 2 === 0 ? 'Creature — Wizard' : 'Instant',
@@ -21,7 +28,11 @@ const view: View = {
 };
 const seats: SeatInfo[] = [{ name: 'Alice', deck: 'archive', colour: '#e5484d' }];
 
-mount(SeatTable, {
-  target: document.querySelector('#fixture')!,
-  props: { view, seats, onFocus: () => {} },
-});
+if (new URLSearchParams(location.search).get('case') === 'shrink') {
+  mount(PileFixture, { target: document.querySelector('#fixture')! });
+} else {
+  mount(SeatTable, {
+    target: document.querySelector('#fixture')!,
+    props: { view, seats, onFocus: () => {} },
+  });
+}
