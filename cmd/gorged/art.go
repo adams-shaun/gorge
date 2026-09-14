@@ -42,28 +42,29 @@ import (
 type artCache struct {
 	dir    string
 	client *http.Client
-	// sem serializes outbound Scryfall requests to one at a time, with a
-	// pause after each — the same discipline images.ts used to keep
-	// client-side (Scryfall asks for <=10 req/s); centralising it here
-	// means the whole server, not one browser, is what's paced.
+	// sem serializes outbound Scryfall work to one fetch at a time. Every
+	// request in that work — named metadata, requested-face image, sibling-
+	// face images, and every retry — goes through doScryfall, whose shared
+	// limiter spaces their starts (Scryfall asks for <=10 req/s).
 	sem chan struct{}
 	// namedBaseURL is "https://api.scryfall.com/cards/named?exact=" in
 	// production; tests point it at an httptest server instead so this
 	// package's tests never touch the real network.
 	namedBaseURL string
-	// pace is the minimum spacing between two api.scryfall.com request
+	// pace is the minimum spacing between two outbound Scryfall request
 	// starts — the <=10 req/s courtesy Scryfall asks for (50-100ms between
 	// requests). It is enforced by paceWait as a LIMITER over the request
 	// stream (measured against a clock, not a fixed sleep), so prewarm and
 	// browser-driven fetches — which share this one artCache — can never
-	// race each other into 429s: every outbound named lookup is spaced from
-	// the previous one whoever asked for it. It is a field, not a constant,
+	// race each other into 429s: every named lookup and image download is
+	// spaced from the previous request whoever asked for it. It is a field,
+	// not a constant,
 	// for the same reason namedBaseURL is: a test seam, so a package whose
 	// budget is measured in whole seconds can exercise the prewarm without
 	// paying the real-world pacing (never the other way round — production
 	// keeps the 100ms).
 	pace time.Duration
-	// lastAPI is the start time of the most recent api.scryfall.com request,
+	// lastAPI is the start time of the most recent outbound Scryfall request,
 	// paceWait's reference point. Guarded by sem (capacity 1): every caller
 	// that touches it holds the semaphore across its whole fetch, so reads
 	// and writes are serialized without a lock of their own.
@@ -127,10 +128,10 @@ func sleepCtx(ctx context.Context, d time.Duration) error {
 	}
 }
 
-// paceWait spaces api.scryfall.com request starts at least a.pace apart —
-// the <=10 req/s limiter. It must be called with the pacing semaphore held
-// (fetch and fetchFacts hold it across the whole fetch), so lastAPI needs no
-// lock of its own. With pace == 0 (tests) it does nothing.
+// paceWait spaces Scryfall request starts at least a.pace apart — the <=10
+// req/s limiter. It must be called with the pacing semaphore held (fetch and
+// fetchFacts hold it across the whole fetch), so lastAPI needs no lock of its
+// own. With pace == 0 (tests) it does nothing.
 func (a *artCache) paceWait(ctx context.Context) error {
 	if a.pace <= 0 {
 		return nil
@@ -142,6 +143,18 @@ func (a *artCache) paceWait(ctx context.Context) error {
 	}
 	a.lastAPI = a.now()
 	return nil
+}
+
+// doScryfall is the single outbound Scryfall-client path. Keeping the limiter
+// beside client.Do makes it impossible for a new metadata, image, or retry
+// caller to use this client without pacing unless it explicitly bypasses this
+// helper. The caller holds a.sem, serializing lastAPI and request starts across
+// background prewarm and browser-driven fetches.
+func (a *artCache) doScryfall(req *http.Request) (*http.Response, error) {
+	if err := a.paceWait(req.Context()); err != nil {
+		return nil, err
+	}
+	return a.client.Do(req)
 }
 
 // scryMaxRetries caps the 429 RETRIES of the loop in lookupNamed/download:
@@ -510,8 +523,8 @@ func (a *artCache) ensure(ctx context.Context, key, name string) (bool, error) {
 // fetch does the actual Scryfall round trip: one paced, 429-retried request
 // for the card's metadata, then (on a hit) one more for the image bytes. Both
 // go through a.sem so only one such pair is ever in flight across the whole
-// server, and the named lookup is additionally spaced by paceWait's limiter
-// (<=10 api.scryfall.com req/s no matter who — prewarm or a browser — asked).
+// server, and every lookup and image request is spaced by doScryfall's limiter
+// (<=10 Scryfall req/s no matter who — prewarm or a browser — asked).
 func (a *artCache) fetch(ctx context.Context, key, name string) (bool, error) {
 	// The whole pair — named lookup, then image download — is paced as one
 	// unit under the semaphore, exactly as it was before facts were kept.
@@ -609,13 +622,10 @@ func (a *artCache) fetchFacts(ctx context.Context, key, name string) (bool, erro
 // pool ends with every fetchable name on disk instead of skipping whatever
 // it hit the limit on. It acquires NO semaphore of its own — the caller
 // holds the pacing semaphore across the whole fetch, including the image
-// download — but it DOES consult the limiter (paceWait) before each
-// attempt, which is what spaces the request stream whoever asked.
+// download — but every attempt DOES go through doScryfall, which spaces the
+// shared request stream whoever asked.
 func (a *artCache) lookupNamed(ctx context.Context, name string) (*scryNamed, bool, error) {
 	for attempt := 0; ; attempt++ {
-		if err := a.paceWait(ctx); err != nil {
-			return nil, false, err
-		}
 		u := a.namedBaseURL + url.QueryEscape(name)
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 		if err != nil {
@@ -623,7 +633,7 @@ func (a *artCache) lookupNamed(ctx context.Context, name string) (*scryNamed, bo
 		}
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("User-Agent", artUserAgent)
-		resp, err := a.client.Do(req)
+		resp, err := a.doScryfall(req)
 		if err != nil {
 			return nil, false, err
 		}
@@ -676,10 +686,12 @@ func (a *artCache) createTemp(pattern string) (*os.File, error) {
 	return f, nil
 }
 
-// download fetches one image URL (the Scryfall CDN, not the rate-limited
-// API) and publishes it atomically at the key. A 429 here is backed off and
-// retried the same way lookupNamed does — the CDN honours the same header —
-// so one name's fetch never ends half-done because of a rate limit.
+// download fetches one Scryfall image URL and publishes it atomically at the
+// key. Every attempt goes through the same limiter as named metadata, so a
+// cold name's API request, requested-face image, sibling-face images, and any
+// retries cannot burst independently. A 429 here is backed off and retried the
+// same way lookupNamed does — the CDN honours the same header — so one name's
+// fetch never ends half-done because of a rate limit.
 func (a *artCache) download(ctx context.Context, key, imgURL string) error {
 	for attempt := 0; ; attempt++ {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, imgURL, nil)
@@ -687,7 +699,7 @@ func (a *artCache) download(ctx context.Context, key, imgURL string) error {
 			return err
 		}
 		req.Header.Set("User-Agent", artUserAgent)
-		resp, err := a.client.Do(req)
+		resp, err := a.doScryfall(req)
 		if err != nil {
 			return err
 		}

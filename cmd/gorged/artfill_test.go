@@ -168,41 +168,94 @@ func TestExhausted429RetriesAreAFailureNotAMiss(t *testing.T) {
 	}
 }
 
-// TestLimiterSpacesAPIRequests is the brief's limiter gate: with the REAL
-// 100ms pace on and a fake clock, every api.scryfall.com request start is
-// spaced at least a.pace after the previous one — whoever asked (here the
-// prewarm loop, the same path a browser's ensure takes). Real wall time must
-// not move, because the clock is fake.
-func TestLimiterSpacesAPIRequests(t *testing.T) {
-	script := make([]string, 3)
-	f := newScryFixture(t, script)
-	script[0] = f.namedJSON("Alpha Card")
-	script[1] = f.namedJSON("Beta Card")
-	script[2] = f.namedJSON("Gamma Card")
+// TestLimiterSpacesEveryScryfallRequest is the brief's limiter gate: with
+// the REAL 100ms pace on a fake clock, every outbound Scryfall request start
+// is spaced at least a.pace after the previous one. The sequence deliberately
+// includes named metadata, the requested image, a multi-face sibling image,
+// then another card's metadata and image; a limiter applied only to named
+// lookups cannot pass. Real wall time must not move because the clock is fake.
+func TestLimiterSpacesEveryScryfallRequest(t *testing.T) {
 	clk := newFakeClock()
-	f.ac.now = clk.Now
-	f.ac.sleep = clk.Sleep
-	f.ac.pace = 100 * time.Millisecond // the production pace, on the fake clock
+	var mu sync.Mutex
+	var starts []time.Time
+	var paths []string
+	record := func(r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		starts = append(starts, clk.Now())
+		paths = append(paths, r.URL.Path)
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/cards/named", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Query().Get("exact") {
+		case "Alpha Card":
+			fmt.Fprintf(w, `{"name":"Alpha Card // Alpha Back","card_faces":[
+				{"name":"Alpha Card","image_uris":{"normal":"http://%s/img/alpha-front.jpg"}},
+				{"name":"Alpha Back","image_uris":{"normal":"http://%s/img/alpha-back.jpg"}}]}`,
+				r.Host, r.Host)
+		case "Beta Card":
+			fmt.Fprintf(w, `{"name":"Beta Card","image_uris":{"normal":"http://%s/img/beta.jpg"}}`, r.Host)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+	mux.HandleFunc("/img/", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		w.Header().Set("Content-Type", "image/jpeg")
+		_, _ = io.WriteString(w, "image:"+r.URL.Path)
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	ac, err := newArtCache(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	ac.client = srv.Client()
+	ac.namedBaseURL = srv.URL + "/cards/named?exact="
+	ac.now = clk.Now
+	ac.sleep = clk.Sleep
+	ac.pace = 100 * time.Millisecond // the production pace, on the fake clock
 
 	start := time.Now()
-	prewarmArt(context.Background(), f.ac, prewarmNamedDir(t, "Alpha Card", "Beta Card", "Gamma Card"), t.Logf)
+	prewarmArt(context.Background(), ac, prewarmNamedDir(t, "Alpha Card", "Beta Card"), t.Logf)
 	if elapsed := time.Since(start); elapsed > 2*time.Second {
 		t.Errorf("pacing waited %v of REAL time; the clock injection leaked", elapsed)
 	}
 
-	// Assert on the recorded sleeps: between request i and i+1 paceWait
-	// sleeps exactly pace (fake time), so no real second was ever waited.
-	sleeps := clk.recorded()
-	if len(sleeps) != 2 {
-		t.Fatalf("recorded sleeps = %v, want two 100ms gaps (3 lookups)", sleeps)
+	mu.Lock()
+	gotStarts := append([]time.Time(nil), starts...)
+	gotPaths := append([]string(nil), paths...)
+	mu.Unlock()
+	wantPaths := []string{"/cards/named", "/img/alpha-front.jpg", "/img/alpha-back.jpg", "/cards/named", "/img/beta.jpg"}
+	if fmt.Sprint(gotPaths) != fmt.Sprint(wantPaths) {
+		t.Fatalf("request paths = %v, want %v", gotPaths, wantPaths)
 	}
-	for i, d := range sleeps {
-		if d < 100*time.Millisecond {
-			t.Errorf("sleep[%d] = %v, want >= the 100ms pace", i, d)
+	for i := 1; i < len(gotStarts); i++ {
+		if gap := gotStarts[i].Sub(gotStarts[i-1]); gap < ac.pace {
+			t.Errorf("request %d (%s) started %v after %s, want >= %v", i, gotPaths[i], gap, gotPaths[i-1], ac.pace)
 		}
 	}
-	if fakeElapsed := clk.Now().Sub(newFakeClock().now); fakeElapsed != 200*time.Millisecond {
-		t.Errorf("fake clock advanced %v, want exactly 200ms of pacing", fakeElapsed)
+
+	// Five outbound requests need four fake 100ms waits. This assertion
+	// catches both unpaced ordinary images and an unpaced sibling-face image.
+	sleeps := clk.recorded()
+	if len(sleeps) != 4 {
+		t.Fatalf("recorded sleeps = %v, want four 100ms gaps (5 total requests)", sleeps)
+	}
+	for i, d := range sleeps {
+		if d < ac.pace {
+			t.Errorf("sleep[%d] = %v, want >= %v", i, d, ac.pace)
+		}
+	}
+	if fakeElapsed := clk.Now().Sub(newFakeClock().now); fakeElapsed != 400*time.Millisecond {
+		t.Errorf("fake clock advanced %v, want exactly 400ms of pacing", fakeElapsed)
+	}
+	if _, err := os.Stat(ac.jpgPath(artKey("Alpha Back"))); err != nil {
+		t.Errorf("multi-face sibling image was not cached: %v", err)
 	}
 }
 
