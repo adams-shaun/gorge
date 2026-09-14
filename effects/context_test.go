@@ -84,6 +84,24 @@ func (h *fakeHost) HasKeyword(id state.ObjID, kw string) bool {
 	o := h.g.Obj(id)
 	return o != nil && o.Face() != nil && o.Face().HasKeyword(kw)
 }
+func (h *fakeHost) Power(id state.ObjID) int32 {
+	o := h.g.Obj(id)
+	if o == nil || o.Face() == nil {
+		return 0
+	}
+	return int32(o.Face().Power()) + o.Counter("P1P1") - o.Counter("M1M1")
+}
+func (h *fakeHost) Toughness(id state.ObjID) int32 {
+	o := h.g.Obj(id)
+	if o == nil || o.Face() == nil {
+		return 0
+	}
+	return int32(o.Face().Toughness()) + o.Counter("P1P1") - o.Counter("M1M1")
+}
+func (h *fakeHost) IsCreature(id state.ObjID) bool {
+	o := h.g.Obj(id)
+	return o != nil && o.Face() != nil && o.Face().IsCreature()
+}
 
 // Ask reports false: an effects-package test double has no engine to drive,
 // so a mid-resolution ask falls back to the primitive's deterministic
@@ -123,6 +141,7 @@ func (h *fakeHost) SetDamageSource(id state.ObjID) state.ObjID {
 // was declared (never asserted on today; the rules package owns the
 // behaviour this method exists for).
 func (h *fakeHost) BatchDepartures(ids []state.ObjID) { h.batch = ids }
+func (h *fakeHost) EndBatchDepartures()               { h.batch = nil }
 
 func newHost(t *testing.T, seats int) *fakeHost {
 	t.Helper()

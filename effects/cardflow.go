@@ -426,8 +426,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				if !containsID(top, id) {
 					continue
 				}
-				h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-					From: state.ZLibrary, To: dest, Player: p, Secret: true})
+				ev := moveZoneEvent(c, id, state.ZLibrary, dest)
+				ev.Player, ev.Secret = p, true
+				h.Emit(ev)
 			}
 			continue
 		}
@@ -474,8 +475,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
 				Text: "takes the first matching card(s) (no engine host to ask)", Secret: true})
 			for i := int32(0); i < changeNum && i < int32(len(eligible)); i++ {
-				h.Emit(events.Event{Kind: events.MoveZone, Obj: eligible[i],
-					From: state.ZLibrary, To: dest, Player: p, Secret: true})
+				ev := moveZoneEvent(c, eligible[i], state.ZLibrary, dest)
+				ev.Player, ev.Secret = p, true
+				h.Emit(ev)
 			}
 			continue
 		}
@@ -490,8 +492,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				continue
 			}
-			h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-				From: state.ZLibrary, To: dest, Player: p, Secret: true})
+			ev := moveZoneEvent(c, id, state.ZLibrary, dest)
+			ev.Player, ev.Secret = p, true
+			h.Emit(ev)
 			moved++
 		}
 	}

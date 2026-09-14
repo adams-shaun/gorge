@@ -1187,7 +1187,11 @@ func (e *Engine) cleanupBody() {
 				continue
 			}
 			if o.Damage > 0 {
-				e.emit(events.Event{Kind: events.Damage, Obj: id, Amount: -o.Damage})
+				ev := events.Event{Kind: events.Damage, Obj: id, Amount: -o.Damage}
+				if f := o.Face(); e.IsCreature(id) && f != nil && f.IsPlaneswalker() && !f.IsCreature() {
+					ev.Counter = "creature"
+				}
+				e.emit(ev)
 			}
 			if n := o.Counter("Shield"); n > 0 {
 				e.emit(events.Event{Kind: events.CounterChange, Obj: id,

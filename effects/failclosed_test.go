@@ -15,7 +15,7 @@ import (
 // Remembered/Imprinted tracking this build does not carry), so a future seat
 // inherits an honest, measured boundary rather than a guessed one.
 //
-// "IsRemembered" and "ExiledWithSource" are the two largest. A card that uses
+// "IsRemembered" remains the largest. A card that uses
 // e.g. `Card.IsRemembered` (Return of the Wildspeaker-style "you may play this
 // card from exile" clauses, the exile-until-leaves shapes) must fail closed:
 // the predicate matches nothing, so those clauses stay inert rather than
@@ -32,6 +32,8 @@ func TestUnimplementedPredicateFailsClosed(t *testing.T) {
 		"Card.ExiledWithSource",
 		"Creature.wasDealtDamageThisTurn",
 		"Permanent.IsImprinted",
+		"Creature.ChosenCard",
+		"Creature.nonChosenCard",
 		"Creature.HasCounters", // negative: this one IS implemented, so it breaks the loop below
 	} {
 		// Every unimplemented spec must match nothing.
@@ -44,7 +46,7 @@ func TestUnimplementedPredicateFailsClosed(t *testing.T) {
 	}
 
 	// And UnknownPredicates keeps reporting each unimplemented one.
-	for _, want := range []string{"IsRemembered", "ExiledWithSource", "wasDealtDamageThisTurn", "IsImprinted"} {
+	for _, want := range []string{"IsRemembered", "ExiledWithSource", "wasDealtDamageThisTurn", "IsImprinted", "ChosenCard", "nonChosenCard"} {
 		found := false
 		for _, u := range UnknownPredicates("Card." + want) {
 			if u == want {

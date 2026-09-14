@@ -592,6 +592,18 @@ func (e *Engine) HasKeyword(id state.ObjID, kw string) bool {
 	return false
 }
 
+// IsCreature reads the current layer-derived type list. In particular, a
+// planeswalker animated by a layer-4 effect is a creature for damage marking,
+// even though its printed face is not.
+func (e *Engine) IsCreature(id state.ObjID) bool {
+	for _, typ := range e.Derived(id).Types {
+		if typ == "Creature" {
+			return true
+		}
+	}
+	return false
+}
+
 // RegenerationDisallowed implements effects.Host for the CantRegenerate
 // restriction (Task ce1): reports whether an Effect-registered restriction
 // forbids id from regenerating. Consulted by effects.ReplaceDestruction, so

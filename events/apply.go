@@ -75,6 +75,14 @@ func Apply(g *state.Game, e Event) {
 		}
 		Move(g, e.Obj, e.From, e.To)
 		if o := g.Obj(e.Obj); o != nil {
+			// MoveZone reserves its otherwise-unused IDs payload for the source
+			// when an effect exiles a card. This provenance is event-derived,
+			// hence survives replay, and clears as soon as the card leaves exile.
+			if e.To == state.ZExile && len(e.IDs) > 0 {
+				o.ExiledWith = e.IDs[0]
+			} else if e.To != state.ZExile {
+				o.ExiledWith = 0
+			}
 			if e.Text == "reversed" && o.HasPreStackEntry {
 				o.EnteredThisTurn = o.PreStackEntryThisTurn
 				o.EnteredFrom = o.PreStackEntryFrom
@@ -112,9 +120,19 @@ func Apply(g *state.Game, e Event) {
 			walker := false
 			if f := o.Face(); f != nil && f.IsPlaneswalker() {
 				walker = true
-				o.AddCounter("LOYALTY", -e.Amount)
+				// Cleanup represents removal of marked damage with a negative
+				// Damage event. It must never restore loyalty; only positive
+				// damage has the CR 120.3c loyalty conversion.
+				if e.Amount > 0 {
+					o.AddCounter("LOYALTY", -e.Amount)
+				}
 			}
-			if !walker || o.Face().IsCreature() {
+			// Counter is Damage's existing, encoded characteristic carrier:
+			// effects/rules set it to creature from the current layer result.
+			// The printed-face fallback retains direct-event callers and normal
+			// printed creature behavior.
+			creature := e.Counter == "creature" || (o.Face() != nil && o.Face().IsCreature())
+			if !walker || creature {
 				o.Damage += e.Amount
 				if o.Damage < 0 {
 					o.Damage = 0

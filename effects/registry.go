@@ -63,6 +63,12 @@ type Host interface {
 	// continuous effect (rules.Engine.HasKeyword). Effects that gate on a
 	// keyword (Destroy on Indestructible) must ask this, never the face.
 	HasKeyword(id state.ObjID, kw string) bool
+	// Power, Toughness and IsCreature are current derived characteristics.
+	// Damage/count effects must not read a printed face when layers modify P/T
+	// or make a planeswalker a creature.
+	Power(id state.ObjID) int32
+	Toughness(id state.ObjID) int32
+	IsCreature(id state.ObjID) bool
 	// CastThisTurn counts the spells cast this turn by anyone, derived from
 	// the event log so a replay that rebuilds the game arrives at the same
 	// number (Task 17's Count$ThisTurnCast backing — a copy/Storm count
@@ -128,11 +134,11 @@ type Host interface {
 	// than whatever an earlier member's departure already stripped (a
 	// destroy-all over a lifelink-granting Equipment and its bearer: the
 	// bearer's lifelink LKI must not depend on battlefield order). Entries
-	// are consumed by the matching departure capture; the next call
-	// rebuilds the snapshot, so an unconsumed straggler (an
-	// Indestructible batch member that never leaves) cannot outlive one
-	// effect call.
+	// are consumed by the matching departure capture. EndBatchDepartures
+	// clears any remaining entry after the effect loop, including a member
+	// regeneration kept on the battlefield.
 	BatchDepartures(ids []state.ObjID)
+	EndBatchDepartures()
 }
 
 // RepeatCursor is a RepeatEach loop re-entered after an iteration suspended:

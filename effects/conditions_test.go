@@ -110,7 +110,7 @@ func TestConditionGateUnresolvedShapesRunUnconditionally(t *testing.T) {
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0}, sa(t, notPresent)); resolved {
 		t.Fatal("ConditionNotPresent$ resolved — out of the scoped shape")
 	}
-	unknownPred := "DB$ Pump | ConditionDefined$ Remembered | ConditionPresent$ Card.ExiledWithSource"
+	unknownPred := "DB$ Pump | ConditionDefined$ Remembered | ConditionPresent$ Card.IsImprinted"
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0}, sa(t, unknownPred)); resolved {
 		t.Fatal("an unknown predicate in Present resolved — would count a false zero")
 	}

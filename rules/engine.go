@@ -572,6 +572,11 @@ func (e *Engine) BatchDepartures(ids []state.ObjID) {
 	}
 }
 
+// EndBatchDepartures closes a destruction/sacrifice batch even if one of its
+// proposed moves was prevented or replaced. Without this explicit boundary,
+// that survivor's pre-batch LKI could be consumed by an unrelated later move.
+func (e *Engine) EndBatchDepartures() { e.batchLifelink = nil }
+
 // chooseFor names the flow a pending KChoose decision belongs to. Task 9
 // declares chooseCast (rules/cast.go); Tasks 12 and 18 add the "as this
 // enters" and miracle cases in their own files.

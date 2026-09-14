@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -292,6 +293,34 @@ func relatedPlayers(g *state.Game, ts []state.Target, owner bool) []state.Target
 // aliasing is fixed.
 func copyTargets(s []state.Target) []state.Target {
 	return append([]state.Target(nil), s...)
+}
+
+// moveZoneEvent preserves an exile's source provenance in MoveZone's existing
+// IDs carrier. All effect primitives that move a card into exile use this one
+// constructor, so ExiledWithSource is derived from the logged move rather than
+// a live-only side table.
+func moveZoneEvent(c *Ctx, id state.ObjID, from, to state.Zone) events.Event {
+	ev := events.Event{Kind: events.MoveZone, Obj: id, From: from, To: to}
+	if to == state.ZExile && exileProvenanceNeeded(c) {
+		ev.IDs = []state.ObjID{c.Source}
+	}
+	return ev
+}
+
+// exileProvenanceNeeded avoids changing every ordinary exile event merely
+// because it shares the movement primitive. A source needs the association
+// only when its own compiled script later names ExiledWithSource; testing the
+// immutable SVar table makes that decision stable through replay.
+func exileProvenanceNeeded(c *Ctx) bool {
+	if c == nil || c.Source == 0 {
+		return false
+	}
+	for _, body := range c.SVars {
+		if strings.Contains(body, "ExiledWithSource") {
+			return true
+		}
+	}
+	return false
 }
 
 // PlayerOf resolves a target to a player: an explicit player target, or the

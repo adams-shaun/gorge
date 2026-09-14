@@ -6,6 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
@@ -538,5 +539,105 @@ func TestDestroyAllBatchLifelinkLKIIrrespectiveOfBattlefieldOrder(t *testing.T) 
 			}
 			replayCheck(t, e, cfg)
 		})
+	}
+}
+
+// TestNamedDamageSourceCreditsItsController proves DamageSource$ does not
+// retain the resolving spell's controller when the named lifelink source is
+// opponent-owned.
+func TestNamedDamageSourceCreditsItsController(t *testing.T) {
+	link := "Name:Opponent Link\nTypes:Creature\nPT:2/5\nK:Lifelink\nOracle:x\n"
+	e := layerEngine(t)
+	id := onBoard(t, e, 1, link)
+	ctx := &effects.Ctx{Source: id, Controller: 0, Targets: []state.Target{{Obj: id}}}
+	effects.Resolve(e, ctx, &cards.SA{Kind: "DB", API: "DealDamage", Params: map[string]string{
+		"Defined": "Targeted", "DamageSource": "Targeted", "NumDmg": "2"}})
+	if got := e.G.Players[1].Life; got != 22 {
+		t.Fatalf("lifelink recipient seat 1 life = %d, want 22", got)
+	}
+	if got := e.G.Players[0].Life; got != 20 {
+		t.Fatalf("resolving controller life = %d, want 20", got)
+	}
+}
+
+// TestValakutExplorationExileProvenanceUsesItsRealScripts proves the card's
+// Dig -> exile and end-step ChangeZoneAll -> DamageAll chain sees cards it
+// exiled, rather than treating ExiledWithSource as an unknown predicate.
+func TestValakutExplorationExileProvenanceUsesItsRealScripts(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, cfg, ids := dsBoard(t, reg, "Valakut Exploration")
+	val := ids["Valakut Exploration"]
+	var card state.ObjID
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Owner == 0 && o.Face() != nil && o.Face().Name == "Mountain" {
+			card = o.ID
+			break
+		}
+	}
+	if val == 0 || card == 0 {
+		t.Fatalf("fixture ids valakut=%d card=%d", val, card)
+	}
+	if o := e.G.Obj(card); o.Zone != state.ZLibrary {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: card, From: o.Zone, To: state.ZLibrary})
+	}
+	order := append([]state.ObjID{card}, e.G.Zone(state.ZLibrary, 0)...)
+	for i := 1; i < len(order); i++ {
+		if order[i] == card {
+			order = append(order[:i], order[i+1:]...)
+			break
+		}
+	}
+	e.emit(events.Event{Kind: events.Shuffle, Player: 0, IDs: order, Secret: true})
+	f := e.G.Obj(val).Face()
+	ctx := &effects.Ctx{Source: val, Controller: 0, SVars: f.SVars}
+	effects.Resolve(e, ctx, cards.ResolveSVar(f.SVars, "TrigExile"))
+	if o := e.G.Obj(card); o.Zone != state.ZExile || o.ExiledWith != val {
+		t.Fatalf("Dig exile = zone %s source %d, want exile with %d", o.Zone, o.ExiledWith, val)
+	}
+	effects.Resolve(e, ctx, cards.ResolveSVar(f.SVars, "TrigGraveyard"))
+	if got := e.G.Players[1].Life; got != 19 {
+		t.Fatalf("Valakut end-step damage seat 1 life = %d, want 19", got)
+	}
+	if got := e.G.Obj(card).Zone; got != state.ZGraveyard {
+		t.Fatalf("Valakut exiled card zone = %s, want graveyard", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestAnimatedWalkerDamageAndCleanup uses a layer-animated printed walker to
+// pin both halves of CR 120.3e and the negative-Damage cleanup boundary.
+func TestAnimatedWalkerDamageAndCleanup(t *testing.T) {
+	e := layerEngine(t)
+	walkerObj := e.G.AddObject(card(t, "Name:Animated Jace\nTypes:Planeswalker Jace\nLoyalty:4\nOracle:x\n"), 0)
+	walker := walkerObj.ID
+	e.emit(events.Event{Kind: events.MoveZone, Obj: walker, From: walkerObj.Zone, To: state.ZBattlefield})
+	e.AddContinuous(state.ContinuousEffect{Source: walker, Controller: 0,
+		Affects: "Card.Self", Layer: LType, AddTypes: []string{"Creature"}})
+	e.emit(events.Event{Kind: events.Damage, Obj: walker, Amount: 2, Counter: "creature"})
+	if o := e.G.Obj(walker); o.Damage != 2 || o.Counter("LOYALTY") != 2 {
+		t.Fatalf("animated walker after damage: marked=%d loyalty=%d, want 2/2", o.Damage, o.Counter("LOYALTY"))
+	}
+	e.cleanupBody()
+	if o := e.G.Obj(walker); o.Damage != 0 || o.Counter("LOYALTY") != 2 {
+		t.Fatalf("animated walker after cleanup: marked=%d loyalty=%d, want 0/2", o.Damage, o.Counter("LOYALTY"))
+	}
+}
+
+// TestRefPropertyCountsUseDerivedPT proves Targeted$ properties include
+// continuous modifications and both +1/+1 and -1/-1 counters.
+func TestRefPropertyCountsUseDerivedPT(t *testing.T) {
+	e := layerEngine(t)
+	id := onBoard(t, e, 0, "Name:Count Target\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	e.AddContinuous(state.ContinuousEffect{Source: id, Controller: 0,
+		Affects: "Card.Self", Layer: LPT, Sub: SubModify, AddPower: 3, AddToughness: 3})
+	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "P1P1", Amount: 2})
+	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "M1M1", Amount: 1})
+	ctx := &effects.Ctx{Controller: 0, Targets: []state.Target{{Obj: id}}}
+	if got := effects.EvalCount(e, ctx, "Targeted$CardPower"); got != 6 {
+		t.Fatalf("Targeted CardPower = %d, want 6 (2 + 3 + 2 - 1)", got)
+	}
+	if got := effects.EvalCount(e, ctx, "Targeted$CardToughness"); got != 6 {
+		t.Fatalf("Targeted CardToughness = %d, want 6 (2 + 3 + 2 - 1)", got)
 	}
 }

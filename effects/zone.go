@@ -148,7 +148,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if _, present := sa.Params["Origin"]; present && !originAll && !zoneIn(originZones, o.Zone) {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: to})
+		h.Emit(moveZoneEvent(c, o.ID, o.Zone, to))
 		// RememberChanged$ True (Forge's spelling on the ChangeZone in the
 		// Flickerwisp delayed-trigger family): the moved object joins the
 		// ability's Remembered, so a DelayedTrigger that runs as a later
@@ -347,8 +347,9 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			!MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-			From: state.ZLibrary, To: to, Player: owner})
+		ev := moveZoneEvent(c, id, state.ZLibrary, to)
+		ev.Player = owner
+		h.Emit(ev)
 		moved = append(moved, id)
 		if to == state.ZBattlefield && sa.Params["WithCountersType"] != "" {
 			amount := int32(1)
@@ -447,7 +448,15 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 			ids := append([]state.ObjID(nil), g.Zone(z, p)...)
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-					h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: to})
+					h.Emit(moveZoneEvent(c, id, z, to))
+					// ChangeZoneAll's remembered movement is needed for the
+					// exiled-with-this-source cleanup/tally shape (Valakut
+					// Exploration). Other ChangeZoneAll RememberChanged forms
+					// remain outside this narrow provenance feature.
+					if strings.EqualFold(sa.Params["RememberChanged"], "True") &&
+						strings.Contains(sa.Params["ChangeType"], "ExiledWithSource") {
+						c.Remembered = append(c.Remembered, state.Target{Obj: id})
+					}
 				}
 			}
 		}
@@ -479,6 +488,7 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if len(victims) > 0 {
 		h.BatchDepartures(victims)
+		defer h.EndBatchDepartures()
 	}
 	for _, id := range victims {
 		o := h.Game().Obj(id)
@@ -527,6 +537,7 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if len(victims) > 0 {
 		h.BatchDepartures(victims)
+		defer h.EndBatchDepartures()
 	}
 	for _, id := range victims {
 		if g.Obj(id) == nil || g.Obj(id).Zone != state.ZBattlefield {
@@ -648,6 +659,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if len(victims) > 0 {
 		h.BatchDepartures(victims)
+		defer h.EndBatchDepartures()
 	}
 	for _, id := range victims {
 		if g.Obj(id) == nil || g.Obj(id).Zone != state.ZBattlefield {

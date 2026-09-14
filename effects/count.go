@@ -306,11 +306,11 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		switch {
 		case prop == "CardPower":
 			if f != nil {
-				n += int32(f.Power()) + o.Counter("P1P1")
+				n += refPower(h, o)
 			}
 		case prop == "CardToughness":
 			if f != nil {
-				n += int32(f.Toughness()) + o.Counter("P1P1")
+				n += refToughness(h, o)
 			}
 		case prop == "CardManaCost":
 			if f != nil {
@@ -331,6 +331,24 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		n = applyCountOp(n, op)
 	}
 	return n, true
+}
+
+// refPower/refToughness use rules' derived characteristics while a referenced
+// object is a battlefield permanent. A referred-to object that already left
+// keeps the LKI-compatible printed-plus-counters fallback: no live layer
+// applies in a graveyard, and asking Host for it would read a different state.
+func refPower(h Host, o *state.Object) int32 {
+	if o.Zone == state.ZBattlefield {
+		return h.Power(o.ID)
+	}
+	return int32(o.Face().Power()) + o.Counter("P1P1") - o.Counter("M1M1")
+}
+
+func refToughness(h Host, o *state.Object) int32 {
+	if o.Zone == state.ZBattlefield {
+		return h.Toughness(o.ID)
+	}
+	return int32(o.Face().Toughness()) + o.Counter("P1P1") - o.Counter("M1M1")
 }
 
 func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
@@ -362,12 +380,12 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 		return int32(len(c.Remembered))
 	case "CardPower":
 		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
-			return int32(o.Face().Power()) + o.Counter("P1P1")
+			return refPower(h, o)
 		}
 		return 0
 	case "CardToughness":
 		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
-			return int32(o.Face().Toughness()) + o.Counter("P1P1")
+			return refToughness(h, o)
 		}
 		return 0
 	}

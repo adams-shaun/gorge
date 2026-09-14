@@ -83,6 +83,15 @@ var predicates = map[string]predFn{
 		s := g.Obj(src)
 		return s != nil && s.ChosenType != "" && hasType(o, s.ChosenType)
 	},
+	// An object records this association in events.Apply when an effect moves
+	// it to exile with moveZoneEvent. Both spellings use the same tracked
+	// provenance; LKI refinements are outside this narrow association.
+	"ExiledWithSource": func(_ *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		return src != 0 && o.ExiledWith == src
+	},
+	"ExiledWithSourceLKI": func(_ *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		return src != 0 && o.ExiledWith == src
+	},
 }
 
 // colorLetter maps a colour's English name to its WUBRG letter -- note Blue

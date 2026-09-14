@@ -133,7 +133,15 @@ func newDamageRider(h Host, c *Ctx, sa *cards.SA, amount int32) damageRider {
 	if c.SourceLifelinkLKIValid && source == own {
 		hasLifelink = c.SourceLifelinkLKI
 	}
-	return damageRider{h: h, source: source, controller: c.Controller,
+	// Lifelink belongs to the resolved damaging object, not to the spell or
+	// ability's controller. Object.Controller survives a zone change, so it
+	// is also the available LKI controller if the named source left before
+	// this independently resolving effect dealt damage.
+	controller := c.Controller
+	if o := h.Game().Obj(source); o != nil {
+		controller = o.Controller
+	}
+	return damageRider{h: h, source: source, controller: controller,
 		amount: amount, hasLifelink: hasLifelink}
 }
 
@@ -187,7 +195,15 @@ func emitObjectDamage(r damageRider, target state.ObjID) {
 	} else {
 		beforeDamage = o.Damage
 	}
-	h.Emit(events.Event{Kind: events.Damage, Obj: target, Amount: r.amount})
+	ev := events.Event{Kind: events.Damage, Obj: target, Amount: r.amount}
+	// events.Apply cannot import rules' layer engine. Carry the current
+	// creature result on the Damage event so an animated planeswalker gets
+	// marked damage as well as loyalty loss; printed creatures remain a
+	// backwards-compatible fallback for direct event users.
+	if h.IsCreature(target) && o.Face() != nil && o.Face().IsPlaneswalker() && !o.Face().IsCreature() {
+		ev.Counter = "creature"
+	}
+	h.Emit(ev)
 	o = h.Game().Obj(target)
 	landed := false
 	if o != nil && r.amount > 0 {
