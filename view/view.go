@@ -777,23 +777,11 @@ func abilityName(g *state.Game, o *state.Object) string {
 
 // triggerLine finds the T: line an ability object was minted from: the
 // trigger on its source's active face whose Effect is exactly o.Ability
-// (events/apply.go's TriggerPush case sets it so). ok is false for an
-// ability object that is not a trigger, or whose source has changed face.
+// (events/apply.go's TriggerPush case sets it so). The classification is
+// state.TriggerOf, shared with rules' TargetType$ target legality so the
+// view's Kind and the engine's legality cannot disagree.
 func triggerLine(g *state.Game, o *state.Object) (cards.Trigger, bool) {
-	src := g.Obj(o.Source)
-	if src == nil {
-		return cards.Trigger{}, false
-	}
-	f := src.Face()
-	if f == nil {
-		return cards.Trigger{}, false
-	}
-	for _, t := range f.Triggers {
-		if t.Effect == o.Ability {
-			return t, true
-		}
-	}
-	return cards.Trigger{}, false
+	return state.TriggerOf(g, o)
 }
 
 // abilityText finds the T: line an ability object was minted from (see

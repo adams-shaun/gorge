@@ -1355,10 +1355,9 @@ func (e *Engine) targetAsk() bool {
 		Prompt: "Choose a target for " + e.targetName(pc.card),
 		Source: src, TargetEffect: describeTargetEffect(sa)}
 	for _, candidate := range candidates {
-		label := e.G.Players[candidate.player].Name
-		if candidate.obj != 0 {
-			label = e.G.Obj(candidate.obj).Face().Name + " (" + label + ")"
-		}
+		// Shared with stack.go's askTarget so a Face-less ability object (a
+		// TargetType$ Activated/Triggered census) can never nil-deref here.
+		label := e.targetOptionLabel(candidate)
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player})
 	}
