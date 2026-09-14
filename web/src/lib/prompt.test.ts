@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CardView, Decision, PlayerView, View } from '../protocol';
+import type { CardView, Decision, PlayerView, StackView, View } from '../protocol';
 import { promptContext, promptContextText, shapeOf, sourceCause, sourceNameOf } from './prompt';
 
 const player = (hand: CardView[]): PlayerView => ({
@@ -11,10 +11,10 @@ const card = (id: number, name: string): CardView => ({
   id, name, types: 'Instant', printing: { name }, token: `#${id}`, tapped: false,
   power: 0, toughness: 0, damage: 0, attacking: false, controller: 0, owner: 0, summon_sick: false,
 });
-const view = (stack: { id: number; name: string }[] = [], hand: CardView[] = []): View => ({
+const view = (stack: (Pick<StackView, 'id' | 'name'> & Partial<StackView>)[] = [], hand: CardView[] = []): View => ({
   viewer: 0, visibility: 'seat', turn: 1, round: 1, step: 'main1', phase: 'main1',
   active: 0, priority: 0, over: false, draw: false, winner: null,
-  players: [player(hand)], stack: stack.map((s) => ({ ...s, kind: 'spell', text: '', controller: 0, targets: [], optional: false })), pending: [],
+  players: [player(hand)], stack: stack.map((s) => ({ ...s, kind: s.kind ?? 'spell', text: '', controller: 0, targets: [], optional: false })), pending: [],
 });
 const decision = (over: Partial<Decision>): Decision => ({
   seq: 1, player: 0, kind: 'target', prompt: 'p', min: 1, max: 1, options: [], ...over,

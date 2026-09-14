@@ -77,7 +77,10 @@
     prompt: 'Choose a target', source: 9,
     options: [{ index: 0, kind: 'target', label: 'Target Bo', obj: 3, player: 0 }],
   };
-  const decision: Decision = which === 'arrange' ? arrange : which === 'scry' ? scry : which === 'seqswap' ? arrange : target;
+  function initialDecision(): Decision {
+    return which === 'arrange' ? arrange : which === 'scry' ? scry : which === 'seqswap' ? arrange : target;
+  }
+  const decision = initialDecision();
   // The seqswap case's view is state: the swap button replaces its decision
   // under the mounted panel, exactly as the next SSE view would.
   let view = $state<View>({ ...base, decision });
