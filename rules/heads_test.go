@@ -787,12 +787,20 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	4: "c232a4aca592e0f8",
+	// 4 seats moved to e361b9ce5ce9ef7c (autonomous orchestrator): resolving fb-20260914T063255Z-ce14a643 (gitaxian probe -- prompt should display user's hand to me, but it did not)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	4: "e361b9ce5ce9ef7c",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	6: "c8c36b87e598c090",
+	// 6 seats moved to 5500cdf6c3ef69bc (autonomous orchestrator): resolving fb-20260914T063255Z-ce14a643 (gitaxian probe -- prompt should display user's hand to me, but it did not)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	6: "5500cdf6c3ef69bc",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -827,7 +835,11 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	8: "f73802c021dea724",
+	// 8 seats moved to 6d153fa9cd9b61f4 (autonomous orchestrator): resolving fb-20260914T063255Z-ce14a643 (gitaxian probe -- prompt should display user's hand to me, but it did not)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	8: "6d153fa9cd9b61f4",
 }
 
 func TestHeads(t *testing.T) {
