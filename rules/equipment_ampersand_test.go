@@ -237,6 +237,8 @@ func skullID(e *Engine, name string) state.ObjID {
 //     pass their SA to registerPumpEffects, whose sole read calls
 //     cards.SplitKeywordList. effects.TestPumpKeywordListReadersUseTheSharedParser
 //     executes both paths directly.
+//  4. effects GainControl — its AddKWs$ read calls cards.SplitKeywordList and
+//     effects.TestGainControlKeywordListReaderUsesSharedParser executes it.
 func TestKeywordListReadersShareTheParser(t *testing.T) {
 	// 1. The static keyword path must divide the Forge ampersand list.
 	st := cards.Static{Mode: "Continuous", Params: map[string]string{

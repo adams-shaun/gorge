@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"sync"
 	"testing"
 
@@ -181,6 +182,25 @@ func TestGainControlEmrakulCorpusSA(t *testing.T) {
 	effGainControl(h, &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}}, sa)
 	if g.Obj(ids["theirBig"]).Controller != 0 {
 		t.Fatal("Emrakul did not gain the targeted player's creature")
+	}
+}
+
+// TestGainControlKeywordListReaderUsesSharedParser covers GainControl's
+// AddKWs$ reader, the keyword-list path separate from Pump/PumpAll. The first
+// keyword deliberately carries commas in its parameters: ampersands divide
+// list members, while parameter commas must survive intact.
+func TestGainControlKeywordListReaderUsesSharedParser(t *testing.T) {
+	g, ids := board(t)
+	h := &fakeHost{g: g}
+	sa := sa(t, "DB$ GainControl | Defined$ Targeted | NewController$ You | AddKWs$ Protection:Spell.Instant,Spell.Sorcery:instant spells and from sorcery spells & Haste")
+	effGainControl(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["theirBig"]}}}, sa)
+
+	if len(h.controls) != 1 {
+		t.Fatalf("registered control grants = %d, want 1", len(h.controls))
+	}
+	want := []string{"Protection:Spell.Instant,Spell.Sorcery:instant spells and from sorcery spells", "Haste"}
+	if got := h.controls[0].AddKeywords; !slices.Equal(got, want) {
+		t.Fatalf("AddKWs keywords = %q, want %q", got, want)
 	}
 }
 

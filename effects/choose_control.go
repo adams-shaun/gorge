@@ -489,7 +489,7 @@ func effGainControl(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	base := ControlGrant{You: c.Controller, Source: c.Source, Duration: dur, SVars: c.SVars,
-		AddKeywords: splitKeywords(sa.Params["AddKWs"])}
+		AddKeywords: cards.SplitKeywordList(sa.Params["AddKWs"])}
 	if src := g.Obj(c.Source); src != nil && src.Zone == state.ZBattlefield {
 		base.SourceStamp = src.Timestamp
 	}

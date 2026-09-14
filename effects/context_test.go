@@ -23,6 +23,7 @@ type fakeHost struct {
 	g          *state.Game
 	log        []events.Event
 	continuous []state.ContinuousEffect
+	controls   []ControlGrant
 	n          int
 }
 
@@ -41,7 +42,9 @@ func (h *fakeHost) Rand(n int) int { h.n++; return 0 }
 func (h *fakeHost) AddContinuous(ce state.ContinuousEffect) {
 	h.continuous = append(h.continuous, ce)
 }
-func (h *fakeHost) RegisterControl(ControlGrant) {}
+func (h *fakeHost) RegisterControl(gr ControlGrant) {
+	h.controls = append(h.controls, gr)
+}
 func (h *fakeHost) LegalTargets(chooser state.PlayerID, source state.ObjID, sa *cards.SA) []state.Target {
 	var out []state.Target
 	spec := sa.Params["ValidTgts"]
