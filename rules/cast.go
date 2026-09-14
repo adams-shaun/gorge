@@ -1124,16 +1124,112 @@ func (c Cost) hasManaPayment() bool {
 	return c.Colored.Total() > 0 || c.Generic > 0
 }
 
+// dropAnnouncePrefix removes the first n announcement pips (in announcePip
+// order: two-colour hybrids, then monocolour hybrids, then Phyrexian, then
+// hybrid-Phyrexian) from the cost, leaving the rest as the cost's live
+// choices. It is how announceCost keeps the pips a manaAsk has not yet
+// settled, so a feasibility check never sees a pip the flow already decided.
+func (c Cost) dropAnnouncePrefix(n int) Cost {
+	drop := n
+	if drop < len(c.Hybrid) {
+		c.Hybrid = c.Hybrid[drop:]
+		drop = 0
+	} else {
+		drop -= len(c.Hybrid)
+		c.Hybrid = nil
+	}
+	if drop > 0 {
+		if drop < len(c.Twobrid) {
+			c.Twobrid = c.Twobrid[drop:]
+			drop = 0
+		} else {
+			drop -= len(c.Twobrid)
+			c.Twobrid = nil
+		}
+	}
+	if drop > 0 {
+		if drop < len(c.Phyrexian) {
+			c.Phyrexian = c.Phyrexian[drop:]
+			drop = 0
+		} else {
+			drop -= len(c.Phyrexian)
+			c.Phyrexian = nil
+		}
+	}
+	if drop > 0 {
+		if drop < len(c.HybridPhyrexian) {
+			c.HybridPhyrexian = c.HybridPhyrexian[drop:]
+		} else {
+			c.HybridPhyrexian = nil
+		}
+	}
+	return c
+}
+
+// announceCost reconstructs the cost for checking feasibility of offering
+// alternative alt at the payIdx-th announcement pip: X folded, the pips
+// already committed (payColor/payLife/payGeneric, the aggregate of pips 0..
+// payIdx-1) and the candidate alt baked into Colored/Generic/Life, the pips
+// after payIdx kept live, and (for a spell) the Delve credit the payment
+// subtracts taken off the generic. It is exactly the cost manaAsk's decision
+// would commit to if it offered alt, with the still-unsettled pips free.
+func (pc *pendingCast) announceCost(payIdx int, alt pipAlt, payColor state.Mana, payLife, payGeneric int32) Cost {
+	c := pc.cost.WithX(pc.x)
+	for i := range c.Colored {
+		c.Colored[i] += payColor[i]
+	}
+	c.Generic = addClampedGeneric(c.Generic, int64(payGeneric))
+	c.Life = addClampedGeneric(c.Life, int64(payLife))
+	switch {
+	case alt.color != 0:
+		c.Colored[state.ManaIndex(alt.color)]++
+	case alt.generic > 0:
+		c.Generic = addClampedGeneric(c.Generic, int64(alt.generic))
+	case alt.life > 0:
+		c.Life = addClampedGeneric(c.Life, int64(alt.life))
+	}
+	if pc.ability < 0 && len(pc.delve) > 0 {
+		// A Delve spell pays its generic from the graveyard (CR 702.65), so
+		// the eligibility same as the offer/payment gates (castable, payCast)
+		// subtract the credit before measuring the generic shortfall.
+		if c.Generic > int32(len(pc.delve)) {
+			c.Generic -= int32(len(pc.delve))
+		} else {
+			c.Generic = 0
+		}
+	}
+	return c.dropAnnouncePrefix(payIdx + 1)
+}
+
+// announceFeasible reports whether offering alternative alt at the payIdx-th
+// announcement pip still leaves the whole cost payable from pool/snow/life,
+// given the pips already committed (payColor/payLife/payGeneric) and the
+// payer's current resources. It is the CR 601.2b legality question: an
+// announced payment is offered only if SOME legal assignment of the still-
+// unsettled pips makes the cost payable, so a player is never offered a
+// payment that can only strand the cast in an unpayable remainder (and an
+// abort at targetAsk). It uses the same resolveMana the payment stage
+// charges, so the offered set and the charged cost can never disagree.
+func (pc *pendingCast) announceFeasible(payIdx int, alt pipAlt, payColor state.Mana, payLife, payGeneric int32, pool state.Mana, snow state.Mana, life int32) bool {
+	c := pc.announceCost(payIdx, alt, payColor, payLife, payGeneric)
+	return c.payable(pool, snow, life)
+}
+
 // manaAsk offers the player's payment choice for the next unsettled hybrid or
 // Phyrexian pip of the cost (CR 601.2b), one decision per pip. Only payment
 // alternatives that are legal right now -- a hybrid half with pool mana of
 // that colour left, or a Phyrexian pip's colour or two life if the payer has
-// both -- are offered, with the valid one first, so the deterministic bot
-// fallback (index 0) always picks a legal payment and a no-answer host never
-// wedges. The offer gate (castable) already proved at least one alternative
-// is available, so the decision is never empty. It returns true once it has
-// asked (and therefore suspended); payCast applies the accumulated payColor /
-// payLife when every pip is settled.
+// both -- are offered, and each ONLY if some legal assignment of the still-
+// unsettled pips makes the whole cost payable (announceFeasible), so a
+// payment a player can actually complete is the only thing on the menu: a
+// twobrid {2/W} generic face with not enough mana (or too little left for the
+// pips after it) is not offered, because choosing it can only abandon the
+// cast. The valid one comes first, so the deterministic bot fallback (index
+// 0) always picks a legal payment and a no-answer host never wedges. The
+// offer gate (castable) already proved at least one alternative is feasible,
+// so the decision is never empty. It returns true once it has asked (and
+// therefore suspended); payCast applies the accumulated payColor / payLife
+// when every pip is settled.
 func (e *Engine) manaAsk() bool {
 	pc := e.cast
 	if pc == nil || pc.payIdx >= pc.cost.annPipCount() {
@@ -1141,19 +1237,38 @@ func (e *Engine) manaAsk() bool {
 	}
 	alts := pc.cost.announcePip(pc.payIdx)
 	// remaining pool = the payer's pool minus what earlier announced pips
-	// (payColor) have already reserved, and the life already committed.
-	rem := e.G.Players[pc.player].Pool
+	// (payColor) have already reserved, and the life already committed. The
+	// feasibility check gets the FULL pool/life (the commitments are baked into
+	// the cost it evaluates); rem/life here are only the quick per-colour
+	// pre-filter.
+	pool, snow := e.G.Players[pc.player].Pool, e.G.Players[pc.player].Snow
+	fullLife := e.G.Players[pc.player].Life
+	rem := pool
 	for i := range rem {
 		rem[i] -= pc.payColor[i]
 	}
-	life := e.G.Players[pc.player].Life - pc.cost.Life - pc.payLife
+	life := fullLife - pc.cost.Life - pc.payLife
 	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose how to pay a mana symbol of " + e.G.Obj(pc.card).Face().Name,
 		Source: pc.card}
+	addPip := func(alt pipAlt) {
+		switch {
+		case alt.color != 0:
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "pay_" + string(alt.color), Label: "Pay " + string(alt.color), Amount: 1})
+		case alt.generic > 0:
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "pay_generic", Label: fmt.Sprintf("Pay %d generic", alt.generic), Amount: int(alt.generic)})
+		case alt.life > 0:
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "pay_life", Label: "Pay 2 life", Amount: 2})
+		}
+	}
 	// One option per DISTINCT colour alternative with pool mana left (A then
 	// B; a single-colour Phyrexian pip carries the same colour twice, so the
 	// seen set keeps one option for it), then a monocolour hybrid's generic
-	// face, then life.
+	// face, then life -- each gated on announceFeasible AND the quick resource
+	// pre-check.
 	seen := map[byte]bool{}
 	seenGeneric := false
 	for _, alt := range alts {
@@ -1163,30 +1278,34 @@ func (e *Engine) manaAsk() bool {
 				continue
 			}
 			seen[alt.color] = true
-			if rem[state.ManaIndex(alt.color)] > 0 {
-				d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-					Kind: "pay_" + string(alt.color), Label: "Pay " + string(alt.color), Amount: 1})
+			if rem[state.ManaIndex(alt.color)] > 0 &&
+				pc.announceFeasible(pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
+				addPip(alt)
 			}
 		case alt.generic > 0:
 			if seenGeneric {
 				continue
 			}
 			seenGeneric = true
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-				Kind: "pay_generic", Label: fmt.Sprintf("Pay %d generic", alt.generic), Amount: int(alt.generic)})
+			if pc.announceFeasible(pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
+				addPip(alt)
+			}
 		case alt.life > 0:
-			if life >= 2 {
-				d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-					Kind: "pay_life", Label: "Pay 2 life", Amount: 2})
+			if life >= 2 &&
+				pc.announceFeasible(pc.payIdx, alt, pc.payColor, pc.payLife, pc.payGeneric, pool, snow, fullLife) {
+				addPip(alt)
 			}
 		}
 	}
 	if len(d.Options) == 0 {
-		// Defensive: castable already proved at least one alternative, but a
-		// colourless Phyrexian pip with a colourless-only pool is offered its
-		// life payment so the decision can never be empty.
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-			Kind: "pay_life", Label: "Pay 2 life", Amount: 2})
+		// Defensive: the offer gate proved at least one pip alternative
+		// completes the cost, so a feasible option is always present for a
+		// gated cast; this arm only guards a logic bug. Rather than offer an
+		// infeasible payment, offer the first alternative (index 0, the
+		// deterministic best) so the decision is never empty -- the abort path
+		// that alternatives-only filtering can otherwise leave unreachable is
+		// never chosen by a gated cast that somehow reached an empty menu.
+		addPip(alts[0])
 	}
 	e.choosing = chooseCast
 	e.ask(d)
@@ -1237,8 +1356,16 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 	if pc == nil || len(d.Options) == 0 {
 		return
 	}
+	// The decision's CHOSEN option identifies the answer, never the first
+	// offered option. Most chooseCast decisions are single-kind (an {X} value,
+	// a Delve exile, a sacrifice) so Options[0].Kind would coincidentally be
+	// right, but a hybrid/Phyrexian/twobrid pip decision offers MIXED kinds
+	// (pay_W, pay_generic, pay_life) and the mana window offers activate/done,
+	// so dispatching on Options[0].Kind would mis-route a non-first choice
+	// (picking a twobrid generic face from a decision whose first option is
+	// pay_W fell into the pay_W branch and minted a colourless pip).
 	kind := d.Options[0].Kind
-	if len(chosen) > 0 && (chosen[0].Kind == "activate" || chosen[0].Kind == "done") {
+	if len(chosen) > 0 {
 		kind = chosen[0].Kind
 	}
 	switch kind {

@@ -333,8 +333,11 @@ func TestSpectralProcessionTwobridPayments(t *testing.T) {
 		if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "pay_W" {
 			t.Fatalf("pip %d: %+v", i, d)
 		}
-		if len(d.Options) != 2 {
-			t.Fatalf("pip %d: options %+v, want pay_W and pay_generic", i, d.Options)
+		// With exactly WWW there is one legal completion -- every pip paid
+		// white -- so the generic face (2 mana each) is NOT offered: choosing
+		// it on any pip would leave the rest of the cost unpayable.
+		if len(d.Options) != 1 {
+			t.Fatalf("pip %d: options %+v, want only pay_W (the generic face cannot complete WWW)", i, d.Options)
 		}
 		submitChoices(t, e, 0)
 	}
@@ -384,6 +387,80 @@ func TestSpectralProcessionTwobridPayments(t *testing.T) {
 	if castByName(t, e4, 0, "Spectral Procession") != nil {
 		t.Fatal("three mana cannot pay three {2/W} pips")
 	}
+}
+
+// TestTwobridGenericFaceOnlyWhenFeasible pins the CR 601.2b legality question
+// manaAsk now enforces: a monocolour hybrid's generic face is offered only
+// when some assignment of the still-unsettled pips makes the whole cost
+// payable. A single {2/W} with exactly {W} is paid only one way (the colour
+// face), so the generic face is withheld; with {W}{W} the generic face is
+// genuinely payable, so it is offered and selecting it casts the spell cleanly
+// end to end rather than stranding the cast in an abort.
+func TestTwobridGenericFaceOnlyWhenFeasible(t *testing.T) {
+	prowlerSrc := "Name:Prowler\nManaCost:2W\nTypes:Creature Cat\nPT:2/1\nOracle:x\n"
+
+	// Exactly {W}: only the colour face completes the {2/W} pip.
+	e, cfg, prowler := newFixtureDeck(t, 80, prowlerSrc)
+	addMana(t, e, 0, "W")
+	opt := castByName(t, e, 0, "Prowler")
+	if opt == nil {
+		t.Fatal("Prowler {2/W} must be castable with {W}")
+	}
+	submitChoices(t, e, opt.Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("pip decision: %+v", d)
+	}
+	if len(d.Options) != 1 || d.Options[0].Kind != "pay_W" {
+		t.Fatalf("with only {W} the generic face is not feasible; options %+v", d.Options)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	if e.G.Obj(prowler).Zone != state.ZStack {
+		t.Fatalf("Prowler on %s, want stack", e.G.Obj(prowler).Zone)
+	}
+	if e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("pool after {W} payment = %d, want 0", e.G.Players[0].Pool.Total())
+	}
+	passUntilStackEmpty(t, e, 20)
+	if e.G.Obj(prowler).Zone != state.ZBattlefield {
+		t.Fatalf("resolved prowler on %s, want battlefield", e.G.Obj(prowler).Zone)
+	}
+	replayCheck(t, e, cfg)
+
+	// {W}{W}: either face completes the cast; the generic face is offered and
+	// selecting it casts the spell cleanly (no abort at targetAsk).
+	e2, cfg2, prowler2 := newFixtureDeck(t, 81, prowlerSrc)
+	addMana(t, e2, 0, "WW")
+	opt2 := castByName(t, e2, 0, "Prowler")
+	if opt2 == nil {
+		t.Fatal("Prowler {2/W} must be castable with {W}{W}")
+	}
+	submitChoices(t, e2, opt2.Index)
+	d2 := e2.Pending()
+	if d2 == nil || d2.Kind != decision.KChoose {
+		t.Fatalf("pip decision 2: %+v", d2)
+	}
+	genIdx := -1
+	for _, o := range d2.Options {
+		if o.Kind == "pay_generic" {
+			genIdx = o.Index
+		}
+	}
+	if genIdx < 0 {
+		t.Fatalf("the generic face must be offered when {W}{W} can pay it: %+v", d2.Options)
+	}
+	submitChoices(t, e2, genIdx)
+	if e2.G.Obj(prowler2).Zone != state.ZStack {
+		t.Fatalf("Prowler (generic face) on %s, want stack", e2.G.Obj(prowler2).Zone)
+	}
+	if e2.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("pool after generic payment = %d, want 0", e2.G.Players[0].Pool.Total())
+	}
+	passUntilStackEmpty(t, e2, 20)
+	if e2.G.Obj(prowler2).Zone != state.ZBattlefield {
+		t.Fatalf("resolved prowler2 on %s, want battlefield", e2.G.Obj(prowler2).Zone)
+	}
+	replayCheck(t, e2, cfg2)
 }
 
 // TestSnowCostPaidOnlyBySnowMana pins {S} (CR 107.4h): the pip is payable
