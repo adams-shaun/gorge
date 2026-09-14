@@ -1137,7 +1137,7 @@ func TestTheSummaryReportsTheStartingPlayerSplit(t *testing.T) {
 	starters := []int{0, 1, 1}
 	winners := []int{0, 1, -1} // -1: a draw
 	if err := bench(0, 3, 2, "bot", "bot", func(g uint64, _ []string) (gameOutcome, error) {
-		o := gameOutcome{turns: 10, intents: 50, starter: starters[g]}
+		o := gameOutcome{turns: 10, intents: 50, starter: starters[g], starterSet: true}
 		if winners[g] >= 0 {
 			o.winner, o.winnerSeat = "bot", winners[g]
 		}
@@ -1163,14 +1163,25 @@ func TestTheSummaryReportsTheStartingPlayerSplit(t *testing.T) {
 func TestTheStartingPlayerLineIsSuppressedWithoutStarters(t *testing.T) {
 	var buf bytes.Buffer
 	if err := bench(0, 3, 2, "bot", "bot", func(_ uint64, _ []string) (gameOutcome, error) {
-		// starter: -1 is the documented "no starter recorded" value: a
-		// hand-built outcome that leaves the field at its zero value reads
-		// as seat 0 having started, which this test must not do.
-		return gameOutcome{winner: "bot", winnerSeat: 0, turns: 10, intents: 50, starter: -1}, nil
+		// starterSet stays false: a hand-built outcome that leaves the field
+		// at its zero value must not invent a seat-0 start.
+		return gameOutcome{winner: "bot", winnerSeat: 0, turns: 10, intents: 50}, nil
 	}, &buf); err != nil {
 		t.Fatalf("bench: %v", err)
 	}
 	if strings.Contains(buf.String(), "starting player:") {
 		t.Errorf("starting-player line printed with no starters recorded:\n%s", buf.String())
+	}
+}
+
+// TestStartingPlayerRejectsAnInvalidRecordedSeat keeps the fold defensive:
+// only a present, in-range first TurnChange can index the per-seat split.
+func TestStartingPlayerRejectsAnInvalidRecordedSeat(t *testing.T) {
+	var buf bytes.Buffer
+	err := bench(0, 1, 2, "bot", "bot", func(_ uint64, _ []string) (gameOutcome, error) {
+		return gameOutcome{turns: 1, starter: 2, starterSet: true}, nil
+	}, &buf)
+	if err == nil || !strings.Contains(err.Error(), "starter seat 2 out of range [0,2)") {
+		t.Fatalf("bench invalid starter error = %v, want range error", err)
 	}
 }

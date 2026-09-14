@@ -8,7 +8,6 @@
 package view_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -54,7 +53,7 @@ func tossedEngine(t *testing.T, seed uint64, mulligans int, playerNames []string
 	for {
 		won := false
 		for _, ev := range e.L.Events {
-			if ev.Kind == events.Note && strings.Contains(ev.Text, "won the toss") {
+			if ev.Kind == events.Note && ev.Counter == events.NoteToss {
 				if ev.Player == 1 {
 					won = true
 				}
@@ -99,6 +98,18 @@ func TestPregameViewProjectsTheTossWinnerAsActive(t *testing.T) {
 // TestPregameViewReportsNoActiveSeatWhenNoTurnBegan: a game the opening
 // deal ended never began a turn, so its view has no active seat -- not the
 // seat-0 zero value.
+// TestLiveViewPreservesPriority guards the normal turn projection against
+// pregame handling: only Active is special during a mulligan round. A live
+// seat's priority is always the event-folded g.Priority, including seat 1.
+func TestLiveViewPreservesPriority(t *testing.T) {
+	g := state.NewGame([]string{"a", "b"})
+	g.Turn, g.Active, g.Priority = 1, 1, 1
+	v := view.Project(g, nil, 0, nil)
+	if v.Priority != 1 {
+		t.Fatalf("live view priority = %d, want 1", v.Priority)
+	}
+}
+
 func TestPregameViewReportsNoActiveSeatWhenNoTurnBegan(t *testing.T) {
 	decks := mountainDecks(t, 2)
 	decks[1] = decks[1][:3]
@@ -121,13 +132,13 @@ func TestDescribeRendersTheTossNoteThroughThePlayerName(t *testing.T) {
 	e := tossedEngine(t, 1, 1, []string{"Alice", "Bob"})
 	var note events.Event
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && strings.Contains(ev.Text, "won the toss") {
+		if ev.Kind == events.Note && ev.Counter == events.NoteToss {
 			note = ev
 			break
 		}
 	}
-	if note.Text != "b won the toss" {
-		t.Fatalf("fixture precondition: chain text %q", note.Text)
+	if note.Text != "b won the toss" || note.Counter != events.NoteToss {
+		t.Fatalf("fixture precondition: chain text/discriminator %q/%q", note.Text, note.Counter)
 	}
 	// The line names the seat the way the player box does -- the seat's own
 	// display name -- even though the chain text carries the deck identity.
@@ -139,6 +150,16 @@ func TestDescribeRendersTheTossNoteThroughThePlayerName(t *testing.T) {
 // TestDescribeRendersTheTossResolution: the Toss event says who takes the
 // first turn, through player() as well; the terminal resolution Note
 // (no first turn began) renders its own text verbatim.
+// TestDescribeLeavesAnUnmarkedTossPhraseAlone proves the toss renderer uses
+// the Note's explicit discriminator rather than rewriting unrelated prose.
+func TestDescribeLeavesAnUnmarkedTossPhraseAlone(t *testing.T) {
+	g := state.NewGame([]string{"a", "b"})
+	ev := events.Event{Kind: events.Note, Player: 1, Text: "The crowd won the toss"}
+	if got, want := view.Describe(g, ev), ev.Text; got != want {
+		t.Fatalf("unmarked toss phrase = %q, want %q", got, want)
+	}
+}
+
 func TestDescribeRendersTheTossResolution(t *testing.T) {
 	e := tossedEngine(t, 1, 1, []string{"Alice", "Bob"})
 	var toss events.Event

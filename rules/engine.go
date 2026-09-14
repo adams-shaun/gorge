@@ -524,7 +524,7 @@ func New(cfg Config) *Engine {
 	// through player(), so a seated human still reads their own name.
 	if toss >= 0 {
 		e.emit(events.Event{Kind: events.Note, Player: state.PlayerID(toss),
-			Text: tossName(e.G, state.PlayerID(toss)) + " won the toss"})
+			Counter: events.NoteToss, Text: tossName(e.G, state.PlayerID(toss)) + " won the toss"})
 	}
 	// Match-wide dense commander indexing for Player.CmdDamage (assigned at
 	// genesis): a commander's dense index is the sum of (valid commanders in

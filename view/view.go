@@ -384,18 +384,13 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 	v.Step = g.Step.String()
 	v.Phase = PhaseOf(g.Step)
 	v.Active = g.Active
+	v.Priority = g.Priority
 	// Terminal genesis (the game ended during its opening deal) never began
 	// a turn, so it has no active seat -- the zero value would read as seat
 	// 0 having the turn. A live pregame is different: rules.New's Toss event
 	// has folded the real starting seat into g.Active by then.
 	if g.Over && g.Turn == 0 {
 		v.Active = NoSeat
-	}
-	// And nobody holds priority before any turn begins (the London mulligan
-	// round runs on its own asks, not on priority; terminal genesis never
-	// granted any) -- the zero value would read as seat 0 holding it.
-	if g.Turn == 0 {
-		v.Priority = NoSeat
 	}
 	v.Over = g.Over
 	v.Draw = g.Draw

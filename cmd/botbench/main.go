@@ -199,10 +199,12 @@ type gameOutcome struct {
 	intents    int
 	// starter is the seat that took the first turn, from the game log's
 	// first TurnChange (the CR 103.1 toss winner, resolved over the
-	// survivors) -- the seat the starting-player split attributes by. -1
-	// when the game never reached turn 1 (a genesis stall) or the outcome
-	// was built by a test's synthetic player that did not set it.
-	starter int
+	// survivors) -- the seat the starting-player split attributes by.
+	// starterSet distinguishes a real seat 0 from an outcome source (notably
+	// an older synthetic test player) that supplied no starter at all; an int
+	// zero value cannot do that because seat 0 is real.
+	starter    int
+	starterSet bool
 	// stallOn names the watchdog cap that ended the game before it could
 	// finish, distinguishing the two failure modes a reader must tell apart:
 	// "turns" (the turn watchdog fired at -max-turns -- the game ran long)
@@ -220,15 +222,26 @@ func (o gameOutcome) isStalled() bool { return o.stallOn != "" }
 
 // firstTurnSeat reads the seat the game's first TurnChange handed the turn
 // to -- the CR 103.1 toss winner resolved over the survivors -- which is
-// what the report's starting-player split attributes wins by. -1 when the
-// log holds no TurnChange (the game ended during its opening deal).
-func firstTurnSeat(e *rules.Engine) int {
+// what the report's starting-player split attributes wins by. The boolean is
+// false when the log holds no TurnChange (the game ended during its opening
+// deal).
+func firstTurnSeat(e *rules.Engine) (int, bool) {
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.TurnChange {
-			return int(ev.Player)
+			return int(ev.Player), true
 		}
 	}
-	return -1
+	return 0, false
+}
+
+// recordStarter attaches the first-turn seat when the game reached turn 1.
+// Keeping presence separate from the integer makes an omitted synthetic field
+// suppress the optional split rather than inventing a seat-0 start.
+func recordStarter(o gameOutcome, e *rules.Engine) gameOutcome {
+	if starter, ok := firstTurnSeat(e); ok {
+		o.starter, o.starterSet = starter, true
+	}
+	return o
 }
 
 // playMatch plays one game between the given per-seat seats to completion, or
@@ -264,7 +277,7 @@ func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, max
 		// the turn number the engine already reports (state.Game.Turn) and
 		// caps nothing under rules/.
 		if maxTurns > 0 && e.G.Turn >= int32(maxTurns) {
-			return gameOutcome{stallOn: "turns", turns: e.G.Turn, intents: n, starter: firstTurnSeat(e)}, nil
+			return recordStarter(gameOutcome{stallOn: "turns", turns: e.G.Turn, intents: n}, e), nil
 		}
 		d := e.Pending()
 		v := view.Project(e.G, e, d.Player, d)
@@ -287,7 +300,7 @@ func playMatch(cfg rules.Config, pols []string, seats []seat.Seat, maxTurns, max
 		// decision mid-game, itself a non-terminating stall). This is a
 		// stalled outcome -- NOT an error -- so the run records it and steps
 		// over the pair instead of killing the whole matrix.
-		return gameOutcome{stallOn: "intents", turns: e.G.Turn, intents: n, starter: firstTurnSeat(e)}, nil
+		return recordStarter(gameOutcome{stallOn: "intents", turns: e.G.Turn, intents: n}, e), nil
 	}
 	return outcomeFrom(e, pols, n), nil
 }
@@ -300,12 +313,11 @@ func outcomeFrom(e *rules.Engine, pols []string, intents int) gameOutcome {
 	var o gameOutcome
 	o.turns = e.G.Turn
 	o.intents = intents
-	o.starter = firstTurnSeat(e)
 	if !e.G.Draw {
 		o.winner = pols[e.G.Winner]
 		o.winnerSeat = int(e.G.Winner)
 	}
-	return o
+	return recordStarter(o, e)
 }
 
 // stallNotice is the loud, unmistakable summary line a run with any stalled
@@ -415,6 +427,7 @@ type outcomeKind struct {
 	aWin       bool
 	bWin       bool
 	starter    int
+	starterSet bool
 }
 
 // classifyOutcome splits one gameOutcome into the classification the singles
@@ -425,7 +438,12 @@ type outcomeKind struct {
 // exactly as they were before this helper existed.
 func classifyOutcome(g int, oc gameOutcome, seats int) (outcomeKind, error) {
 	var k outcomeKind
-	k.starter = oc.starter
+	if oc.starterSet {
+		if oc.starter < 0 || oc.starter >= seats {
+			return outcomeKind{}, fmt.Errorf("starter seat %d out of range [0,%d)", oc.starter, seats)
+		}
+		k.starter, k.starterSet = oc.starter, true
+	}
 	switch {
 	case oc.isStalled():
 		k.stall = true
@@ -559,9 +577,9 @@ func benchWithPool(baseSeed uint64, games, seats int, aName, bName string, play 
 		}
 		// The starting-player tally, over every game that reached turn 1
 		// (stalled games with a starter still count as starts; a genesis
-		// stall has starter -1 and is skipped). A draw counts as a start
-		// with no win, like the seat tally.
-		if kind.starter >= 0 {
+		// stall and an older synthetic outcome leave starterSet false). A draw
+		// counts as a start with no win, like the seat tally.
+		if kind.starterSet {
 			anyStarts = true
 			starts[kind.starter]++
 			if kind.winnerSeat == kind.starter && !kind.stall && !kind.draw {
@@ -952,7 +970,7 @@ func playOnePairWithPool(baseSeed uint64, pos, games int, aName, bName string, p
 		}
 		// The starting-player tally: the play/draw measurement the seat
 		// split no longer provides, since the toss decides who plays first.
-		if kind.starter >= 0 {
+		if kind.starterSet {
 			r.starts[kind.starter]++
 			if !kind.stall && !kind.draw && kind.winnerSeat == kind.starter {
 				r.startWins[kind.starter]++

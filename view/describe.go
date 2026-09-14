@@ -118,14 +118,13 @@ func Describe(g *state.Game, ev events.Event) string {
 			return player(g, ev.Player) + " reveals " + objs(g, ev.IDs)
 		}
 		if ev.Text != "" {
-			// The toss announcement (rules.New's pre-deal Note) is the one Note
-			// whose text names a seat as its subject in deck-identity form:
-			// the transcript renders it through player() like every other
-			// seat-naming line, so a seated human reads their own display name
-			// ("You won the toss") instead of the deck identity the chain text
-			// carries. The suffix is the engine's exact sentence tail; no other
-			// Note emitter (effects' own Note texts) ends in it.
-			if strings.HasSuffix(ev.Text, "won the toss") {
+			// The toss announcement (rules.New's pre-deal Note) names a seat in
+			// deck-identity chain text. Its explicit Counter discriminator,
+			// rather than a phrase in arbitrary user-facing Note text, tells the
+			// transcript to render that subject through player() like every other
+			// seat-naming line; a seated human therefore reads their display name
+			// ("You won the toss") without changing the hashed text.
+			if ev.Counter == events.NoteToss {
 				return player(g, ev.Player) + " won the toss"
 			}
 			return ev.Text

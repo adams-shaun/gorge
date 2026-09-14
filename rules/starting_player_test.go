@@ -21,7 +21,7 @@ import (
 func tossNotes(e *Engine) []events.Event {
 	var out []events.Event
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && strings.Contains(ev.Text, "won the toss") {
+		if ev.Kind == events.Note && ev.Counter == events.NoteToss {
 			out = append(out, ev)
 		}
 	}
@@ -131,7 +131,7 @@ func TestTossNotePrecedesTheFirstShuffle(t *testing.T) {
 		noteAt, shuffleAt := -1, -1
 		for i, ev := range e.L.Events {
 			switch {
-			case ev.Kind == events.Note && strings.Contains(ev.Text, "won the toss") && noteAt < 0:
+			case ev.Kind == events.Note && ev.Counter == events.NoteToss && noteAt < 0:
 				noteAt = i
 			case ev.Kind == events.Shuffle && shuffleAt < 0:
 				shuffleAt = i
@@ -296,6 +296,29 @@ func TestMulliganRoundAsksTheTossWinnerFirst(t *testing.T) {
 	}
 	if d.Player != 0 {
 		t.Fatalf("second mulligan ask went to seat %d, want seat 0 (turn order after seat 1)", d.Player)
+	}
+}
+
+// TestMulliganPromptNamesTheDisplayPlayerWithDuplicateDecks is the
+// seat-facing integration contract: duplicate deck identities are valid, so
+// only the table's PlayerName tells a human whether they play or draw. It
+// drives rules.New through its real Toss and mulligan ask rather than
+// handcrafting the prompt the web receives.
+func TestMulliganPromptNamesTheDisplayPlayerWithDuplicateDecks(t *testing.T) {
+	cfg := tossedTwoSeat(t, 1, 1) // seed 1 starts seat 1
+	cfg.Names = []string{"same-deck", "same-deck"}
+	cfg.PlayerNames = []string{"Alice", "Bob"}
+	e := New(cfg)
+	e.Advance()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KMulligan || d.Player != 1 {
+		t.Fatalf("pending = %+v, want seat 1 mulligan", d)
+	}
+	if got, want := d.Prompt, "Bob plays first. Keep your hand (put 0 cards on the bottom of your library) or take a mulligan?"; got != want {
+		t.Fatalf("duplicate-deck mulligan prompt = %q, want %q", got, want)
+	}
+	if strings.Contains(d.Prompt, "same-deck plays first") {
+		t.Fatalf("duplicate-deck mulligan prompt is ambiguous: %q", d.Prompt)
 	}
 }
 

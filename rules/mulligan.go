@@ -137,12 +137,10 @@ func bottomingPrompt(bottom int) string {
 // accepts, in the same real English as bottomingPrompt (finding bh: the old
 // "keeps 7 and bottoms 1, or mulligans" was engine-speak). With a permitted
 // mulligan remaining the seat has a choice; once the allowance is spent
-// London offers only a keep. starterName is the deck identity the chain text
-// carries (tossName), never the display PlayerName: a prompt travels as
-// Decision.Prompt on the wire (the log's DecisionAsk event carries only the
-// decision's kind), so it is chain-free -- but seat-facing text convention
-// still uses the deck identity, and the client renders the seat names it
-// already has beside it.
+// London offers only a keep. The prompt is chain-free wire text, so it names
+// the starter with their display PlayerName when present (falling back to the
+// deck identity); deck identities are not unique at a table and therefore
+// cannot tell a seated human who plays first.
 func keepMulliganPrompt(starterName string, bottom, taken, limit, freeMulligans int) string {
 	penalty := fmt.Sprintf("put %s on the bottom of your library", putCount(bottom))
 	if bottom == 0 && freeMulligans > 0 {
@@ -155,6 +153,24 @@ func keepMulliganPrompt(starterName string, bottom, taken, limit, freeMulligans 
 		choice = fmt.Sprintf("Keep your hand (%s)", penalty)
 	}
 	return starterName + " plays first. " + choice
+}
+
+// mulliganStarterName is the seat-facing identity for the pregame prompt.
+// PlayerName is supplied by the table and identifies a human even when two
+// players chose the same deck; Name is the deterministic fallback for bots or
+// callers without display names. The final fallback is defensive: mulligan
+// seats originate from AliveFrom, but malformed state must not panic while
+// constructing a client decision.
+func mulliganStarterName(g *state.Game, p state.PlayerID) string {
+	if g != nil && int(p) < len(g.Players) {
+		if name := g.Players[p].PlayerName; name != "" {
+			return name
+		}
+		if name := g.Players[p].Name; name != "" {
+			return name
+		}
+	}
+	return fmt.Sprintf("seat %d", p)
 }
 
 func (e *Engine) askKeepMulligan(i int) {
@@ -171,7 +187,7 @@ func (e *Engine) askKeepMulligan(i int) {
 	// the toss winner AliveFrom(start) begins with), so the decision is
 	// made knowing play/draw without opening the transcript.
 	e.ask(decision.New(p, decision.KMulligan,
-		keepMulliganPrompt(tossName(e.G, m.seats[0]), m.bottomCount(i), m.taken[i], m.limit, m.freeMulligans), 1, 1, opts))
+		keepMulliganPrompt(mulliganStarterName(e.G, m.seats[0]), m.bottomCount(i), m.taken[i], m.limit, m.freeMulligans), 1, 1, opts))
 }
 
 // askBottoming offers seat i a bottoming decision over its kept hand: one

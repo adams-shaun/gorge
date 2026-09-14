@@ -12,6 +12,14 @@ import (
 
 type Kind uint8
 
+// NoteToss marks the pre-deal Note that announces CR 103.1's random
+// determination. Note.Text is user-facing chain text and therefore cannot be
+// used as an event discriminator: an unrelated Note is allowed to say the
+// same words. Counter is otherwise unused by Note, so this explicit marker
+// lets view render the subject through player() without rewriting arbitrary
+// notes.
+const NoteToss = "toss"
+
 const (
 	GameStart Kind = iota
 	Shuffle

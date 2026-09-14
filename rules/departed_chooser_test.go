@@ -200,10 +200,11 @@ func TestDepartedChooserResumptionEventStreamIsDeterministic(t *testing.T) {
 	// Toss resolution event was added after the deal, so this fixture's
 	// genesis prefix -- and with it this scenario's chain head -- moved. No
 	// card behaviour moved with it: the stream differs from the pre-rv2a one
-	// only in the Note's position, its shortened text and the one new Toss
-	// event, and every other assertion here holds unchanged.
-	if got := e.L.Head(); got != "23cac7ccf70ed451" {
-		t.Fatalf("chain head = %s, want 23cac7ccf70ed451", got)
+	// only in the Note's position, its shortened text, explicit NoteToss
+	// discriminator, and the one new Toss event; every other assertion here
+	// holds unchanged.
+	if got := e.L.Head(); got != "1f9ef806fd35a4e1" {
+		t.Fatalf("chain head = %s, want 1f9ef806fd35a4e1", got)
 	}
 
 	// T21-e: a log-only replay must reconstruct the identical Game. If any
