@@ -77,6 +77,20 @@
     ro.observe(root);
     return () => ro.disconnect();
   });
+
+  // Redraw when any internal scroller scrolls (fb-20260914T121642Z): the
+  // stack rail's section.stack is a real overflow-y container, scroll does
+  // not bubble, and a scrolled tile moves under a line whose endpoints were
+  // measured at the old scroll offset. A capture-phase listener on
+  // `document` sees every descendant scroller's scroll (capture propagation
+  // reaches the target even for non-bubbling events) and the document's own
+  // scroll; passive, never polling, cleaned up with the component.
+  $effect(() => {
+    if (!root) return;
+    const onScroll = () => recompute();
+    document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+    return () => document.removeEventListener('scroll', onScroll, { capture: true });
+  });
 </script>
 
 <div class="arrows" bind:this={root}>

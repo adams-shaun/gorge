@@ -23,6 +23,28 @@ describe('arrowsFor', () => {
     ]);
   });
 
+  it('a counterspell on the stack targets the spell beneath it — the stack-to-stack pair the rail renders (fb-20260914T121642Z)', () => {
+    // view.stack lists bottom first, so the bolt (890) sits BELOW the
+    // counterspell (900) in the rail; the arrow runs from the upper tile to
+    // the lower one. No new wire or target projection was needed for the
+    // arrow: it was always computed — the defect was the overlay's clipped
+    // host (pinned by Arrows.geometry.test.ts).
+    const view = {
+      players: [
+        { seat: 0, battlefield: [], hand: null, graveyard: [], exile: [], pool: null },
+        { seat: 1, battlefield: [], hand: null, graveyard: [], exile: [], pool: null },
+      ],
+      stack: [
+        { id: 890, kind: 'spell', name: 'Lightning Bolt', text: '', controller: 1, targets: [] },
+        { id: 900, kind: 'spell', name: 'Counterspell', text: '', controller: 0, targets: [{ obj: 890, player: 1, is_player: false }] },
+      ],
+      pending: [],
+    } as unknown as View;
+    expect(arrowsFor(view)).toEqual([
+      { from: { obj: 900 }, to: { obj: 890 }, kind: 'target' },
+    ]);
+  });
+
   it('returns no arrows for an empty stack and no combat', () => {
     const view = {
       players: [
