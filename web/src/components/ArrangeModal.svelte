@@ -1,7 +1,8 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import type { Decision } from '../protocol';
+  import type { Decision, Option } from '../protocol';
   import { arrangeCard, arrangeDestination, arrangeFromOrder, arrangeOrder, arrangeSeed, arrangeSplit, moveWithin, type ArrangeSplit } from '../lib/arrange';
+  import { oracle, type OracleCard } from '../lib/oracle';
   import CardImage from './CardImage.svelte';
 
   /**
@@ -34,15 +35,22 @@
    * a card can only move, never leave (a keep-card's click does not drop on
    * a pure reorder, because the pool it would drop to does not exist).
    * Hovering a face shows it large beside the rows (the reporter's
-   * "mouseover for full card art").
+   * "mouseover for full card art"), with the printed description beneath it
+   * (fb-20260914T063020Z Job 2: art AND description — resolved by name
+   * through lib/oracle, the way CardDetail resolves its oracle block; no
+   * catalog renders no block).
    */
-  let { open, decision, seed = [], onSubmit, onClose }: {
+  let { open, decision, seed = [], onSubmit, onClose, resolver = oracle.text, preview0 = null }: {
     open: boolean;
     decision: Decision;
     /** seed is the picked order the arrangement starts from (the seat's current picked set, so reopening the modal keeps the work). */
     seed?: readonly number[];
     onSubmit: (order: number[]) => void;
     onClose: () => void;
+    /** resolver resolves the previewed option's name to its printed facts; injectable for the SSR test harness (which has no catalog and no $effect), exactly as CardDetail's is. Production never passes it. */
+    resolver?: (name: string) => OracleCard | null | Promise<OracleCard | null>;
+    /** preview0 seeds the hovered preview for the SSR test harness (no pointer events), the way CardTile's open0 seeds its menu. Production never passes it. */
+    preview0?: number | null;
   } = $props();
 
   let dialog = $state<HTMLElement | null>(null);
@@ -52,7 +60,11 @@
   // which is also what SSR renders), and the edited order once any move has
   // happened. Working in the modal never posts until submit.
   let edits = $state<readonly number[] | null>(null);
-  let preview = $state<number | null>(null);
+  // Seeded from the prop (a test's injected preview) at mount/SSR time only
+  // — in production only a pointer/focus event ever sets it, and the prop is
+  // a seed, not a stream (the same shape CardTile's initialAnchor has).
+  const initialPreview = () => preview0 ?? null;
+  let preview = $state<number | null>(initialPreview());
   let dragging = $state<number | null>(null);
 
   /**
@@ -76,6 +88,54 @@
   const split = $derived.by((): ArrangeSplit => {
     if (edits !== null) return arrangeFromOrder(decision, edits);
     return open ? arrangeSplit(decision, startOrder) : { keep: [], pool: [] };
+  });
+
+  /** previewedOption is the option the preview aside is showing, or null. */
+  function previewedOption(): Option | null {
+    if (preview === null) return null;
+    return [...split.keep, ...split.pool].find((x) => x.index === preview) ?? null;
+  }
+
+  // The preview's printed description, resolved by name through the catalog
+  // (fb-20260914T063020Z: the reporter asked for art AND description; the
+  // aside had only art and the name). Best-effort like CardDetail's oracle:
+  // the default resolver is the async catalog, which with no meta tag
+  // resolves null without a request, and the block renders nothing until a
+  // resolver returns text — no catalog is the NORMAL case, not an error.
+  // The initialiser covers the synchronous-resolver path (server render
+  // never runs the effect below, so a seeded preview's text must be in place
+  // from the first render — the same shape CardDetail's initialOracle has).
+  let previewOrc = $state<OracleCard | null>(initialPreviewOrc());
+
+  function initialPreviewOrc(): OracleCard | null {
+    const o = previewedOption();
+    if (o === null) return null;
+    const v = resolver(o.label);
+    if (v !== null && typeof (v as Promise<OracleCard | null>).then !== 'function') return v as OracleCard;
+    return null;
+  }
+
+  $effect(() => {
+    const o = previewedOption();
+    if (o === null) {
+      previewOrc = null;
+      return;
+    }
+    const v = resolver(o.label);
+    if (v === null) {
+      previewOrc = null;
+      return;
+    }
+    if (typeof (v as Promise<OracleCard | null>).then === 'function') {
+      let cancelled = false;
+      (v as Promise<OracleCard | null>).then((c) => {
+        if (!cancelled) previewOrc = c;
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    previewOrc = v as OracleCard;
   });
 
   $effect(() => {
@@ -249,6 +309,7 @@
           {:else}
             <p class="hint">Hover a card for full art.</p>
           {/if}
+          {#if previewOrc?.oracle_text}<p class="oracle" data-arrange-preview-oracle>{previewOrc.oracle_text}</p>{/if}
         </aside>
       </div>
       <footer>
@@ -426,8 +487,17 @@
        preview clears, the dialog shrinks back under the cursor — a hover
        feedback loop that made the whole modal breathe (observed as an
        endlessly oscillating layout in the browser gate). A constant box
-       breaks the loop at the only place it can be broken: the resize. */
-    min-height: calc(var(--card-w-large, 220px) * 88 / 63 + 3.5rem);
+       breaks the loop at the only place it can be broken: the resize.
+
+       The printed description (data-arrange-preview-oracle) is part of that
+       contract: its box is a FIXED height, scrolled when the text runs long,
+       and its height is reserved in min-height below — so the aside is the
+       same height in all four states (hovered/not × text/no-text) and a
+       resolved description can never re-open the breathing loop. With no
+       catalog the box renders nothing and the space stays reserved: the
+       no-catalog degradation, not a hole. */
+    --preview-oracle-h: 9rem;
+    min-height: calc(var(--card-w-large, 220px) * 88 / 63 + 3.5rem + var(--preview-oracle-h) + var(--sp-2));
     justify-content: center;
     display: flex;
     flex-direction: column;
@@ -437,6 +507,15 @@
   .preview .name {
     white-space: normal;
     text-align: center;
+  }
+  .preview .oracle {
+    height: var(--preview-oracle-h);
+    margin: 0;
+    align-self: stretch;
+    overflow-y: auto;
+    font-size: var(--t-11);
+    line-height: 1.45;
+    color: var(--ink-dim);
   }
   footer {
     display: flex;

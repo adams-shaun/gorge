@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
 import type { CardView } from '../protocol';
 import {
+  CardHover,
   DWELL,
   HoverCard,
   MIN_SIDE_BY_SIDE_VIEWPORT,
@@ -206,6 +207,58 @@ describe('HoverCard', () => {
     expect(h.superviseRendering(16)).toBe(false);
     expect(h.superviseRendering(12)).toBe(true);
     expect(h.show).toBe(false);
+  });
+});
+
+describe('CardHover', () => {
+  // CardHover is HoverCard plus the two companions a MANY-triggers-one-panel
+  // surface needs (SeatPanel's arrange strip and mulligan bottom row, whose
+  // components cannot declare a local $state rune — the `state` prop shadows
+  // it): arm/open remember the card, supervise closes against a present list
+  // and clears them.
+
+  const cardA: CardView = {
+    id: 11, name: 'Brazen Borrower', types: 'Creature', printing: { name: 'Brazen Borrower' }, token: '#11',
+    tapped: false, power: 2, toughness: 1, damage: 0, attacking: false, controller: 0, owner: 0, summon_sick: false,
+  };
+  const cardB: CardView = { ...cardA, id: 12, name: 'Fabled Pass', token: '#12' };
+  const el = { getBoundingClientRect: () => ({ left: 10, top: 20, right: 90, bottom: 148 }) } as HTMLElement;
+
+  it('arm dwells, then opens with the card and the captured anchor; leave/blur/Escape close', () => {
+    const { env, tick } = fakeTimer();
+    const h = new CardHover(env);
+    h.arm(cardA, el);
+    expect(h.card).toBe(cardA);
+    expect(h.hover.show).toBe(false);
+    tick(DWELL);
+    expect(h.hover.show).toBe(true);
+    expect(h.anchor).toEqual({ left: 10, top: 20, right: 90 });
+
+    h.close();
+    expect(h.hover.show).toBe(false);
+    expect(h.card).toBe(cardA); // the card stays so the closed render still knows what it described
+
+    h.open(cardB, el); // keyboard focus opens immediately
+    expect(h.hover.show).toBe(true);
+    expect(h.card).toBe(cardB);
+    h.keydown({ key: 'Escape' });
+    expect(h.hover.show).toBe(false);
+  });
+
+  it('supervise closes when the shown card leaves the present list and clears the companions; keeps it while present', () => {
+    const { env } = fakeTimer();
+    const h = new CardHover(env);
+    h.open(cardA, el);
+    expect(h.supervise([cardA, cardB])).toBe(false); // still present
+    expect(h.hover.show).toBe(true);
+    expect(h.card).toBe(cardA);
+
+    expect(h.supervise([cardB])).toBe(true); // the card went away
+    expect(h.hover.show).toBe(false);
+    expect(h.card).toBe(null);
+    expect(h.anchor).toBe(null);
+
+    expect(h.supervise([])).toBe(false); // nothing to supervise
   });
 });
 

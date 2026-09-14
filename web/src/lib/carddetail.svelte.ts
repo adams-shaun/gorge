@@ -1,3 +1,5 @@
+import type { CardView } from '../protocol';
+
 /**
  * carddetail.svelte.ts owns the open/close state of the hover detail panel
  * and the viewport-safe placement math for it. The panel itself is
@@ -248,4 +250,76 @@ export function placePanel(anchor: AnchorRect, vw: number, vh: number, panelWidt
   const bottom = vh - (anchor.top - PANEL_MARGIN);
   const maxHeight = Math.max(MIN_PANEL_HEIGHT, anchor.top - 2 * PANEL_MARGIN);
   return { x, bottom, maxHeight };
+}
+
+/**
+ * CardHover is HoverCard plus the two reactive companions every surface that
+ * renders the detail panel needs alongside it: the card the panel describes
+ * and the anchor rect it is placed against. CardTile and StackTile own one
+ * HoverCard per tile and hand-roll those companions inline; a surface that
+ * renders MANY triggers against ONE panel (HandList's hand lines, SeatPanel's
+ * arrange strip and mulligan bottom row) owns ONE CardHover instead — only
+ * one card can be under the pointer or focused at a time.
+ *
+ * It exists as a class because its consumers render inside components whose
+ * own props can shadow the `$state` rune (SeatPanel's `state` prop makes a
+ * local `$state` declaration in that component a store subscription — see
+ * the comment at its arrange branch): a .svelte.ts class instance carries
+ * the reactivity, the component cannot declare it.
+ *
+ * arm/open take the element the trigger lives on and capture its bounding
+ * rect at open time — the same capture-on-open the per-tile surfaces do
+ * inline. supervise re-feeds the set of cards the surface currently shows;
+ * when the card the panel describes is no longer among them the panel
+ * closes and the companions clear.
+ */
+export class CardHover {
+  hover: HoverCard;
+  card = $state<CardView | null>(null);
+  anchor = $state<AnchorRect | null>(null);
+
+  /** env passes through to the HoverCard, so a test can inject a fake clock (the same TimerEnv HoverCard takes). */
+  constructor(env: Partial<TimerEnv> = {}) {
+    this.hover = new HoverCard(env);
+  }
+
+  arm(card: CardView, el: HTMLElement): void {
+    this.card = card;
+    this.hover.arm(card.id, () => {
+      this.anchor = rectOf(el);
+    });
+  }
+
+  open(card: CardView, el: HTMLElement): void {
+    this.card = card;
+    this.hover.open(card.id, () => {
+      this.anchor = rectOf(el);
+    });
+  }
+
+  close(): void {
+    this.hover.close();
+  }
+
+  keydown(e: { key: string }): void {
+    this.hover.keydown(e);
+  }
+
+  /**
+   * supervise feeds the present list through the lifecycle contract and
+   * clears the companions when the panel closed because its card went away.
+   * Returns true when a live panel was closed.
+   */
+  supervise(present: readonly { id: number }[]): boolean {
+    if (this.card === null) return false;
+    if (!this.hover.supervise(this.card.id, present)) return false;
+    this.card = null;
+    this.anchor = null;
+    return true;
+  }
+}
+
+function rectOf(el: HTMLElement): AnchorRect {
+  const r = el.getBoundingClientRect();
+  return { left: r.left, top: r.top, right: r.right };
 }
