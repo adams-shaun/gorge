@@ -20,6 +20,7 @@ var repoCommanderDecks = []struct {
 	{"foundations-wretched-ranks", "Ghoulcaller Gisa"},
 	{"foundations-reign-of-dragons", "Lathliss, Dragon Queen"},
 	{"foundations-tramplesaurus-rex", "Ghalta, Primal Hunger"},
+	{"valgavoth-endless-punishment", "Valgavoth, Harrower of Souls"},
 }
 
 // TestRepoCommanderDecksValidate is the m38 acceptance gate: every interim
