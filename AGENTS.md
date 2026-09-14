@@ -64,8 +64,12 @@ go run ./cmd/repro -omniscient <feedback-dir>  # show every hand in the summary
 go run ./cmd/repro -emit-test <pkg> <feedback-dir>
                                              # copy the snapshot into
                                              # <pkg>/testdata/feedback/<id>/ and write a
-                                             # failing test skeleton (feedback.EngineAt);
-                                             # replace the TODO with the assertion
+                                             # failing test skeleton (feedback.EngineAt) as
+                                             # the target package's EXTERNAL test package
+                                             # (package <name>_test: feedback imports the
+                                             # engine tier, so an internal-package skeleton
+                                             # would be an import cycle for an engine-side
+                                             # target); replace the TODO with the assertion
 ```
 
 Exit 0 is a verified replay: the rebuilt event stream matches the recording

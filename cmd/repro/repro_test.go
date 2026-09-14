@@ -182,14 +182,22 @@ func TestReproFixtureOmniscientShowsHands(t *testing.T) {
 // TestEngineAtMatchesReplayToHeads pins the brief's equality gate: for a
 // spread of intent counts, EngineAt's engine and a hand-rolled
 // replay.ReplayTo over the same snapshot's (Log, Config) stand at the same
-// head — the same replay by construction, not two code paths.
+// head — the same replay by construction, not two code paths. The negative
+// case is NOT tautological: EngineAt normalizes n<0 to len(Intents) itself
+// (ReplayTo clamps negatives to genesis), so EngineAt(-1) is compared
+// against the explicit full-intent ReplayTo — and asserted to actually be
+// the capture point, not genesis.
 func TestEngineAtMatchesReplayToHeads(t *testing.T) {
 	requireCorpus(t)
 	l, cfg, meta, err := feedback.Load(fixtureRel)
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
-	for _, n := range []int{-1, 0, 1, 7, meta.IntentCount - 1, meta.IntentCount} {
+	full, err := replay.Replay(l, cfg)
+	if err != nil {
+		t.Fatalf("full replay: %v", err)
+	}
+	for _, n := range []int{0, 1, 7, meta.IntentCount - 1, meta.IntentCount} {
 		e1 := feedback.EngineAt(t, fixtureRel, n)
 		e2, err := replay.ReplayTo(l, cfg, n)
 		if err != nil {
@@ -199,6 +207,14 @@ func TestEngineAtMatchesReplayToHeads(t *testing.T) {
 			t.Errorf("n=%d: EngineAt head %s (%d events), ReplayTo head %s (%d events)",
 				n, e1.L.Head(), len(e1.L.Events), e2.L.Head(), len(e2.L.Events))
 		}
+	}
+	neg := feedback.EngineAt(t, fixtureRel, -1)
+	if neg.L.Head() != full.L.Head() || len(neg.L.Events) != len(full.L.Events) {
+		t.Errorf("EngineAt(-1) head %s (%d events), full replay head %s (%d events)",
+			neg.L.Head(), len(neg.L.Events), full.L.Head(), len(full.L.Events))
+	}
+	if neg.L.Head() != meta.Head {
+		t.Errorf("EngineAt(-1) head %s is not the capture point (recorded %s)", neg.L.Head(), meta.Head)
 	}
 }
 
@@ -255,15 +271,83 @@ func TestReproEmitTestSkeletonCompilesAndFailsOnTODO(t *testing.T) {
 		t.Errorf("snapshot not copied: %v", err)
 	}
 
+	// The generated test is the target package's EXTERNAL test package —
+	// feedback imports the engine tier, so an internal-package skeleton
+	// would be an import cycle for any engine-side target. The declaration
+	// (not the file name) is what makes it external.
+	san := sanitize(fixtureID)
+	raw, err := os.ReadFile(filepath.Join(scratch, "repro_feedback_"+san+"_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), "package emittmp_test") {
+		t.Errorf("generated skeleton is not the external test package:\n%s", raw)
+	}
+
 	// The generated test compiles and fails on its TODO, not on load.
 	cmd := exec.Command("go", "test", "./zzrepro-emittest", "-run", "TestFeedbackRepro20260914T120000Z_fb01")
 	cmd.Dir = root
-	raw, err := cmd.CombinedOutput()
+	raw2, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("generated test passed; it must fail on the TODO:\n%s", raw)
+		t.Fatalf("generated test passed; it must fail on the TODO:\n%s", raw2)
 	}
-	if !strings.Contains(string(raw), "TODO: assert the reported behaviour") {
-		t.Fatalf("generated test failed for another reason:\n%s", raw)
+	if !strings.Contains(string(raw2), "TODO: assert the reported behaviour") {
+		t.Fatalf("generated test failed for another reason:\n%s", raw2)
+	}
+}
+
+// TestReproEmitTestIntoRulesCompilesAndFailsOnTODO is the probe the scratch
+// package cannot be: the NATURAL target for a repro test is an engine
+// package (the reported behaviour lives in rules/), and an internal-package
+// skeleton emitted there forms rules -> feedback -> rules — an import cycle
+// the go toolchain refuses at setup. The skeleton is the external test
+// package, so emitting into the real rules package must compile and fail
+// only on the TODO. The file (and its copied snapshot) is removed on
+// cleanup; the run compiles the rules test binary from the build cache
+// because nothing in rules changed.
+func TestReproEmitTestIntoRulesCompilesAndFailsOnTODO(t *testing.T) {
+	requireCorpus(t)
+	root, err := feedback.Root()
+	if err != nil {
+		t.Skipf("no repo root: %v", err)
+	}
+	san := sanitize(fixtureID)
+	testPath := filepath.Join(root, "rules", "repro_feedback_"+san+"_test.go")
+	dataDir := filepath.Join(root, "rules", "testdata", "feedback", fixtureID)
+	// Only remove what this test created: rules/testdata is not ours if it
+	// already carried content before the emit.
+	testdataPreExisting := false
+	if ents, err := os.ReadDir(filepath.Join(root, "rules", "testdata")); err == nil && len(ents) > 0 {
+		testdataPreExisting = true
+	}
+	t.Cleanup(func() {
+		os.Remove(testPath)
+		os.RemoveAll(dataDir)
+		if !testdataPreExisting {
+			os.Remove(filepath.Join(root, "rules", "testdata", "feedback"))
+			os.Remove(filepath.Join(root, "rules", "testdata"))
+		}
+	})
+
+	var out bytes.Buffer
+	if code := run([]string{"-emit-test", "rules", fixtureRel}, &out, io.Discard); code != 0 {
+		t.Fatalf("emit exit %d, output:\n%s", code, out.String())
+	}
+	raw, err := os.ReadFile(testPath)
+	if err != nil {
+		t.Fatalf("skeleton not written into rules/: %v", err)
+	}
+	if !strings.Contains(string(raw), "package rules_test") {
+		t.Fatalf("skeleton emitted into rules/ is not the external test package:\n%s", raw)
+	}
+	cmd := exec.Command("go", "test", "./rules", "-run", "^TestFeedbackRepro20260914T120000Z_fb01$")
+	cmd.Dir = root
+	res, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("emitted rules test passed; it must fail on the TODO:\n%s", res)
+	}
+	if !strings.Contains(string(res), "TODO: assert the reported behaviour") {
+		t.Fatalf("emitted rules test failed for another reason:\n%s", res)
 	}
 }
 

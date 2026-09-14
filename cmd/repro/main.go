@@ -332,6 +332,16 @@ func choiceSummary(d *decision.Decision, it decision.Intent) string {
 // feedback.EngineAt and ends in the TODO. <pkg> is a package directory:
 // absolute, or relative to the repo root (the same root the corpus was
 // found at).
+//
+// The skeleton is written as the package's EXTERNAL test package
+// (`package <name>_test`, the `_test` suffix on the declaration, not the
+// file name): feedback imports the engine's upstream packages — rules,
+// replay, cards, state, events — so a skeleton declaring the internal
+// package would make the target depend on feedback and feedback depend on
+// the target, which the go toolchain rejects as an import cycle exactly
+// when the natural target is an engine package (emitting into `rules` was
+// the failure that motivated this). An external test file sits outside
+// that cycle by construction, wherever the snapshot is emitted.
 func emitTest(pkg, dir string, meta feedback.Meta, stdout io.Writer) error {
 	root, err := feedback.Root()
 	if err != nil {
@@ -374,7 +384,12 @@ func emitTest(pkg, dir string, meta feedback.Meta, stdout io.Writer) error {
 // It reproduces the state the report was filed at: the snapshot under
 // testdata/feedback/%s/ is replayed to every recorded intent. Assert the
 // reported behaviour at the TODO, then drop this notice.
-package %s
+//
+// This is the target package's EXTERNAL test package (the _test suffix on
+// the declaration): feedback imports the engine tier, so the internal test
+// package would form an import cycle wherever the snapshot is emitted into
+// an engine package. The external package may import feedback freely.
+package %s_test
 
 import (
 	"path/filepath"
