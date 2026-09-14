@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 import signal
 import sys
 import time
@@ -138,8 +139,17 @@ def advance_new(issue: issues.Issue) -> None:
     st = pi.read_status(status_path)
     if not pi.is_terminal(st):
         return
+    state_dir = config.ORCH_STATE_DIR / "triage" / issue.id
+    twt = git_ops.triage_worktree_path(issue.id)
+    if twt.exists():
+        # Keep the triage record (brief, report, system) beside its status,
+        # then drop the worktree -- the brief lives on in the issue file.
+        for f in seats.triage_out_dir(twt).glob("*"):
+            if f.is_file():
+                shutil.copy2(f, state_dir / f.name)
+        git_ops.remove_triage_worktree(issue.id)
     if st.get("status") == "DONE":
-        brief_path = config.ORCH_STATE_DIR / "triage" / issue.id / "brief.md"
+        brief_path = state_dir / "brief.md"
         if brief_path.exists():
             issue.brief = brief_path.read_text()
             issue.status = "briefed"

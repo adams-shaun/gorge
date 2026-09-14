@@ -47,26 +47,36 @@ def triage_name(issue_id: str) -> str:
     return f"triage-{issue_id}"  # single-shot: triage is never redispatched
 
 
+def triage_out_dir(wt: Path) -> Path:
+    return wt / ".ds4" / "triage"
+
+
 def launch_triage(issue_id: str, issue_path: Path) -> tuple[subprocess.Popen, Path]:
-    """Triage runs directly against the main checkout (read-only exploration,
-    no worktree needed) since it only writes one brief file, never code."""
-    out_dir = config.ORCH_STATE_DIR / "triage" / issue_id
+    """Triage runs in its own detached worktree of main (git_ops.
+    create_triage_worktree). It only writes one brief file, never code; the
+    daemon copies that brief out and removes the worktree when triage ends.
+    The status file stays under ORCH_STATE_DIR: pi-agent's wrapper writes it
+    from outside the jail."""
+    from . import git_ops
+    wt = git_ops.create_triage_worktree(issue_id)
+    out_dir = triage_out_dir(wt)
     out_dir.mkdir(parents=True, exist_ok=True)
-    brief_path = out_dir / "brief.md"
+    state_dir = config.ORCH_STATE_DIR / "triage" / issue_id
+    state_dir.mkdir(parents=True, exist_ok=True)
     system_path = out_dir / "system.md"
     system_path.write_text(_combined_system(TRIAGE_TAIL.read_text()))
-    status_path = out_dir / "status.json"
     task_path = out_dir / "task.md"
     task_path.write_text(
-        f"Issue file: {issue_path.relative_to(config.REPO)}\n"
-        f"Write the brief to: {brief_path.relative_to(config.REPO)}\n"
+        f"Issue file: .ds4/issues/{issue_path.name}\n"
+        f"Write the brief to: .ds4/triage/brief.md\n"
     )
+    status_path = state_dir / "status.json"
     proc = pi.launch(
         name=triage_name(issue_id),
-        cwd=config.REPO,
-        brief_rel=str(task_path.relative_to(config.REPO)),
-        system_rel=str(system_path.relative_to(config.REPO)),
-        report_rel=str((out_dir / "triage-report.md").relative_to(config.REPO)),
+        cwd=wt,
+        brief_rel=".ds4/triage/task.md",
+        system_rel=".ds4/triage/system.md",
+        report_rel=".ds4/triage/triage-report.md",
         out_path=status_path,
         provider=config.LOCAL_PROVIDER, model=config.LOCAL_MODEL, thinking=config.LOCAL_THINKING,
     )

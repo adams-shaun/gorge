@@ -28,11 +28,48 @@ def create_worktree(issue_id: str) -> Path:
     ledger = config.LEDGER_JSON
     if ledger.exists():
         (wt / ".ds4" / "ledger.json").write_bytes(ledger.read_bytes())
-    cards_link = wt / ".cards"
-    if not cards_link.exists():
-        cards_link.symlink_to(config.REPO / ".cards")
+    # .superpowers is gitignored: without the link a seat cannot read
+    # gorge-context.md or the task-brief examples its prompt points at.
+    for name in (".cards", ".superpowers"):
+        link = wt / name
+        if not link.exists() and (config.REPO / name).exists():
+            link.symlink_to(config.REPO / name)
     link_node_modules(wt)  # implementer seats run vitest/svelte-check; never npm install
     return wt
+
+
+def triage_worktree_path(issue_id: str) -> Path:
+    return config.WORKTREES_DIR / f"triage-{issue_id}"
+
+
+def create_triage_worktree(issue_id: str) -> Path:
+    """A detached checkout of main for one triage seat. Triage used to run
+    with --cwd at the repo root, which put its pi session under the root's
+    .ds4/pi-sessions -- invisible to ds4-dash, which only scans
+    .worktrees/*/. Its own worktree also means the seat reads a fixed main,
+    not a checkout the daemon is merging into underneath it.
+
+    The seat is jailed to this directory, so everything it must read that git
+    does not carry is placed here: every issue file (it checks open issues for
+    Depends-On), the ledger, and links to .cards and .superpowers."""
+    wt = triage_worktree_path(issue_id)
+    if not wt.exists():
+        _run(["git", "worktree", "add", "--detach", str(wt), "main"])
+    issues_dst = wt / ".ds4" / "issues"
+    issues_dst.mkdir(parents=True, exist_ok=True)
+    for f in config.ISSUES_DIR.glob("*.md"):
+        (issues_dst / f.name).write_bytes(f.read_bytes())
+    if config.LEDGER_JSON.exists():
+        (wt / ".ds4" / "ledger.json").write_bytes(config.LEDGER_JSON.read_bytes())
+    for name in (".cards", ".superpowers"):
+        link = wt / name
+        if not link.exists() and (config.REPO / name).exists():
+            link.symlink_to(config.REPO / name)
+    return wt
+
+
+def remove_triage_worktree(issue_id: str) -> None:
+    _run(["git", "worktree", "remove", "--force", str(triage_worktree_path(issue_id))], check=False)
 
 
 def touches_web_files(wt: Path) -> bool:
