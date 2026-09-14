@@ -285,6 +285,10 @@ export class CardHover {
   // merely leaves that same card).
   private pointer: { card: CardView; el: HTMLElement; ready: boolean } | null = null;
   private focusedId: number | null = null;
+  // Browsers focus a button as the default action of pointerdown. Remember
+  // that short hand-off so open() can distinguish it from Tab/Enter focus:
+  // pointer focus belongs to the pointer and must release on pointerleave.
+  private pointerFocusId: number | null = null;
 
   /** env passes through to the HoverCard, so a test can inject a fake clock (the same TimerEnv HoverCard takes). */
   constructor(env: Partial<TimerEnv> = {}) {
@@ -303,13 +307,41 @@ export class CardHover {
 
   /** A pointerleave releases only the pointer that entered this card. */
   leave(card: CardView): void {
+    if (this.pointerFocusId === card.id) this.pointerFocusId = null;
     if (this.pointer?.card.id !== card.id) return;
     this.pointer = null;
     if (this.focusedId !== null || this.card?.id !== card.id) return;
     this.hover.close();
   }
 
+  /**
+   * pointerdown transfers ownership to the pointer and opens immediately.
+   * Doing the transfer here, rather than waiting for focus, also covers a
+   * click on an already-focused button: browsers emit no second focus event
+   * in that case. The mark tells a focus event that does follow not to take
+   * keyboard ownership back.
+   */
+  pointerdown(card: CardView, el: HTMLElement): void {
+    this.pointerFocusId = card.id;
+    this.openPointer(card, el);
+  }
+
+  /** A pointer focus happens before pointerup; an unused mark must not leak. */
+  pointerup(card: CardView): void {
+    if (this.pointerFocusId === card.id) this.pointerFocusId = null;
+  }
+
   open(card: CardView, el: HTMLElement): void {
+    const pointerOrigin = this.pointerFocusId === card.id;
+    // A focus event consumes any preceding pointerdown mark, including one
+    // for another card. It must never leak into a later keyboard focus.
+    this.pointerFocusId = null;
+    if (pointerOrigin) {
+      // pointerdown already opened the inspector and transferred ownership;
+      // repeat the idempotent open so the focus event cannot take it back.
+      this.openPointer(card, el);
+      return;
+    }
     this.focusedId = card.id;
     this.card = card;
     this.hover.open(card.id, () => {
@@ -341,6 +373,7 @@ export class CardHover {
   close(): void {
     this.pointer = null;
     this.focusedId = null;
+    this.pointerFocusId = null;
     this.hover.close();
   }
 
@@ -362,6 +395,15 @@ export class CardHover {
     this.card = null;
     this.anchor = null;
     return true;
+  }
+
+  private openPointer(card: CardView, el: HTMLElement): void {
+    this.focusedId = null;
+    this.pointer = { card, el, ready: true };
+    this.card = card;
+    this.hover.open(card.id, () => {
+      this.anchor = rectOf(el);
+    });
   }
 
   private armPointer(id: number): void {

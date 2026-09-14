@@ -289,6 +289,47 @@ describe('CardHover', () => {
     h.blur(cardA);
     expect(h.hover.show).toBe(false);
   });
+
+  it('makes pointer-origin focus pointer-owned while retaining keyboard focus ownership', () => {
+    const h = new CardHover();
+    h.pointerdown(cardA, el);
+    expect(h.hover.show).toBe(true); // pointerdown itself is the immediate-open path
+    h.open(cardA, el); // browser focus following a click
+    h.pointerup(cardA);
+    h.leave(cardA);
+    expect(h.hover.show).toBe(false);
+
+    h.pointerdown(cardB, el);
+    h.pointerup(cardB); // an unused pointer mark cannot taint a later Tab
+    h.open(cardB, el);
+    h.leave(cardB);
+    expect(h.hover.show).toBe(true);
+  });
+
+  it('transfers an existing keyboard focus owner on same-card pointerdown', () => {
+    const h = new CardHover();
+    h.open(cardA, el);
+    h.pointerdown(cardA, el); // an already-focused button emits no new focus
+    h.pointerup(cardA);
+    h.leave(cardA);
+    expect(h.hover.show).toBe(false);
+  });
+
+  it('immediately reopens on a second click when the DOM button stayed focused', () => {
+    const h = new CardHover();
+    h.pointerdown(cardA, el);
+    h.open(cardA, el);
+    h.pointerup(cardA);
+    h.leave(cardA);
+    expect(h.hover.show).toBe(false);
+
+    h.arm(cardA, el); // pointer returns; its 250 ms dwell remains pending
+    h.pointerdown(cardA, el); // no focus event follows on an already-focused element
+    expect(h.hover.show).toBe(true);
+    h.pointerup(cardA);
+    h.leave(cardA);
+    expect(h.hover.show).toBe(false);
+  });
 });
 
 describe('placePanel', () => {

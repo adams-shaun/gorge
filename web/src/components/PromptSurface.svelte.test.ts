@@ -225,6 +225,26 @@ describe('ArrangeModal (via the seat panel)', () => {
  * with a real pointer and keyboard — the SSR harness cannot hover or focus.
  */
 describe('the arrange strip hover inspector (fb-20260914T063020Z Job 1)', () => {
+  /** Give the portalled inspector the same catalog and resolved art plate as the demo. */
+  async function injectCatalog(page: Page): Promise<void> {
+    await page.route('**/PromptSurface.fixture.html*', async (route) => {
+      const res = await route.fetch();
+      await route.fulfill({ response: res, body: (await res.text()).replace('</head>', '<meta name="gorge-cards" content=""></head>') });
+    });
+    await page.route('**/cards/named*', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ name: 'Brazen Borrower', oracle_text: 'Flying, ward 2.' }),
+      }));
+    await page.route('**/art/named*', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ image_uris: { normal: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==' } }),
+      }));
+  }
+
   it('hovering a strip card opens the CardDetail inspector (portalled to <body>), describing that card', async () => {
     const page = await browser.newPage();
     await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
@@ -243,6 +263,86 @@ describe('the arrange strip hover inspector (fb-20260914T063020Z Job 1)', () => 
     await page.mouse.move(5, 5);
     await page.waitForFunction(() => document.querySelectorAll('body > .card-detail').length === 0, null, { timeout: 5_000 });
 
+    await page.close();
+  });
+
+  it('clicking a strip card opens the inspector, then pointer leave closes it', async () => {
+    const page = await browser.newPage();
+    await injectCatalog(page);
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
+
+    await page.locator('[data-arrange-row] [data-option="0"]').click();
+    const detail = page.locator('body > .card-detail');
+    await detail.waitFor({ state: 'visible', timeout: 5_000 });
+    expect(await detail.isVisible()).toBe(true);
+
+    await page.mouse.move(5, 5);
+    await page.waitForFunction(() => document.querySelectorAll('body > .card-detail').length === 0, null, { timeout: 5_000 });
+    await page.close();
+  });
+
+  it('clicking a keyboard-focused strip card transfers ownership to the pointer, so leave closes it', async () => {
+    const page = await browser.newPage();
+    await injectCatalog(page);
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
+
+    const pick = page.locator('[data-arrange-row] [data-option="0"]');
+    const detail = page.locator('body > .card-detail');
+    await pick.focus();
+    await detail.waitFor({ state: 'visible', timeout: 5_000 });
+
+    // An already-focused button gets pointer events on click but no second
+    // focus event. pointerdown itself must therefore transfer ownership.
+    await pick.click();
+    await page.mouse.move(5, 5);
+    await page.waitForFunction(() => document.querySelectorAll('body > .card-detail').length === 0, null, { timeout: 5_000 });
+    await page.close();
+  });
+
+  it('a second click on the still-focused strip card reopens the inspector immediately', async () => {
+    const page = await browser.newPage();
+    await injectCatalog(page);
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
+
+    const pick = page.locator('[data-arrange-row] [data-option="0"]');
+    const detail = page.locator('body > .card-detail');
+    await pick.click();
+    await detail.waitFor({ state: 'visible', timeout: 5_000 });
+    await page.mouse.move(5, 5);
+    await page.waitForFunction(() => document.querySelectorAll('body > .card-detail').length === 0, null, { timeout: 5_000 });
+    expect(await pick.evaluate((el) => document.activeElement === el)).toBe(true);
+
+    // No focus event follows this click. The panel must be mounted by the
+    // pointerdown path, before the 250 ms hover dwell could fire.
+    await pick.click();
+    expect(await detail.count()).toBe(1);
+    expect(await detail.isVisible()).toBe(true);
+    await page.mouse.move(5, 5);
+    await page.waitForFunction(() => document.querySelectorAll('body > .card-detail').length === 0, null, { timeout: 5_000 });
+    await page.close();
+  });
+
+  it('leaving a clicked strip card removes the portalled panel before it can cover Confirm', async () => {
+    const page = await browser.newPage();
+    await injectCatalog(page);
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
+
+    await page.locator('[data-arrange-row] [data-option="0"]').click();
+    await page.locator('body > .card-detail--has-plate').waitFor({ state: 'visible', timeout: 5_000 });
+    await page.mouse.move(5, 5);
+    await page.waitForFunction(() => document.querySelectorAll('body > .card-detail').length === 0, null, { timeout: 5_000 });
+
+    // The detail is portalled and pointer-transparent, so elementFromPoint
+    // alone cannot see visual occlusion. Check both its absence and rectangle
+    // intersection against the board-mounted Confirm control.
+    const coversConfirm = await page.locator('[data-answer-surface] [data-submit]').evaluate((confirm) => {
+      const c = confirm.getBoundingClientRect();
+      return [...document.querySelectorAll('body > .card-detail')].some((panel) => {
+        const p = panel.getBoundingClientRect();
+        return p.left < c.right && c.left < p.right && p.top < c.bottom && c.top < p.bottom;
+      });
+    });
+    expect(coversConfirm).toBe(false);
     await page.close();
   });
 

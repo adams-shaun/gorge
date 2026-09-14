@@ -437,6 +437,8 @@
                 aria-label={opt.label}
                 onpointerenter={(e) => arrangeHover.arm(card, e.currentTarget)}
                 onpointerleave={() => arrangeHover.leave(card)}
+                onpointerdown={(e) => arrangeHover.pointerdown(card, e.currentTarget)}
+                onpointerup={() => arrangeHover.pointerup(card)}
                 onfocus={(e) => arrangeHover.open(card, e.currentTarget)}
                 onblur={() => arrangeHover.blur(card)}
                 onkeydown={(e) => arrangeHover.keydown(e)}
