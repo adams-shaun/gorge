@@ -20,7 +20,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// the causing spell chose several targets. ev.Obj is that spell/ability.
 		c.TriggerTarget = state.Target{Obj: source}
 		c.TriggerSource = e.protectionSource(ev.Obj)
-	case "DamageDone", "DamageDealtOnce":
+	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":
 		c.TriggerSource = e.damaging
 		c.TriggerAmount = ev.Amount
 		c.TriggerTarget = state.Target{Obj: ev.Obj}
