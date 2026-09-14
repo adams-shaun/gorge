@@ -133,6 +133,84 @@ func attachedBy(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjI
 	return s != nil && s.AttachedTo == o.ID && s.Zone == state.ZBattlefield
 }
 
+// sharesTypeArg splits the space-bearing two-token predicate
+// "sharesCardTypeWith <X>" and classifies its referent. The referent is a
+// resolution-time object list: the remembered set (RememberedCard — its
+// first card entry, Braids's "a permanent that shares a card type with
+// it" — Remembered, RememberedLKI), the triggering card
+// (TriggeredCard/TriggeredCardLKICopy), the resolution's targets (Targeted),
+// or the source itself (Self). A referent with no live binding — and any
+// other <X>, including a nested predicate — is unrecognised: the token
+// stays unknown and the spec fails closed, never widened.
+func sharesTypeArg(p string) (string, bool) {
+	name, arg, has := strings.Cut(p, " ")
+	if !has || name != "sharesCardTypeWith" {
+		return "", false
+	}
+	arg = strings.TrimSpace(arg)
+	if arg == "" || strings.ContainsAny(arg, ".+,!") {
+		return "", false
+	}
+	switch arg {
+	case "RememberedCard", "Remembered", "RememberedLKI", "TriggeredCard",
+		"TriggeredCardLKICopy", "Targeted", "Self":
+		return arg, true
+	}
+	return "", false
+}
+
+// sharesCardTypeWith reports whether o shares at least one CARD type with
+// any object the referent names (Forge Card.sharesCardTypeWith: an
+// intersection over the card types — Artifact, Creature, Enchantment, Land,
+// Planeswalker, Battle — not supertypes or subtypes). The referent object
+// is read live from the game, so a remembered card in the graveyard still
+// answers from its own face (CR 603.10's LKI reading applies to
+// power/toughness/counters, not types). An unbound referent matches
+// nothing — fail closed, never widened.
+func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
+	var ts []state.Target
+	switch ref {
+	case "RememberedCard":
+		for _, t := range sc.Remembered {
+			if !t.IsPlayer {
+				ts = append(ts, t)
+				break // the FIRST card entry, per Forge's RememberedCard
+			}
+		}
+	case "Remembered", "RememberedLKI":
+		for _, t := range sc.Remembered {
+			if !t.IsPlayer {
+				ts = append(ts, t)
+			}
+		}
+	case "TriggeredCard", "TriggeredCardLKICopy":
+		if sc.TriggerCard != 0 {
+			ts = append(ts, state.Target{Obj: sc.TriggerCard})
+		}
+	case "Targeted":
+		ts = sc.ResolutionTargets
+	case "Self":
+		if sc.Source != 0 {
+			ts = append(ts, state.Target{Obj: sc.Source})
+		}
+	}
+	for _, t := range ts {
+		if t.IsPlayer {
+			continue
+		}
+		r := g.Obj(t.Obj)
+		if r == nil {
+			continue
+		}
+		for _, cardType := range []string{"Artifact", "Battle", "Creature", "Enchantment", "Land", "Planeswalker"} {
+			if hasType(o, cardType) && hasType(r, cardType) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // attachedToArg splits the space-bearing two-token predicate "AttachedTo <X>"
 // into its argument and reports whether the argument is a single literal type
 // or object class the base grammar (matchesBase) can answer from the object in
@@ -208,6 +286,10 @@ const (
 	// The two-token space form "AttachedTo <X>": <X> is a literal type or
 	// object class answerable from the object in hand (the base grammar).
 	wordAttachedTo
+	// The two-token space form "sharesCardTypeWith <X>": <X> is a
+	// resolution-time referent (RememberedCard, TriggeredCard, ...) the
+	// SpecContext resolves.
+	wordSharesCardType
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -251,6 +333,9 @@ func wordPredicate(p string) (wordKind, string) {
 	if arg, ok := attachedToArg(p); ok {
 		return wordAttachedTo, arg
 	}
+	if arg, ok := sharesTypeArg(p); ok {
+		return wordSharesCardType, arg
+	}
 	if predicateTypeWords[p] {
 		return wordType, p
 	}
@@ -268,6 +353,8 @@ func wordPredicate(p string) (wordKind, string) {
 func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc SpecContext) bool {
 	source := sc.Source
 	switch kind {
+	case wordSharesCardType:
+		return sharesCardTypeWith(g, o, sc, key)
 	case wordColor:
 		return strings.Contains(ColorsOf(o), key)
 	case wordType:

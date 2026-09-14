@@ -662,3 +662,70 @@ func (c Cost) Pay(p state.Mana) (state.Mana, bool) {
 	out, _, ok := c.resolveMana(p, 0)
 	return out, ok
 }
+
+// ParseUnlessCost strictly parses an UnlessCost$ value for the mid-resolution
+// unless-pay path. Unlike ParseCost — which degrades every token it does not
+// know to one generic mana, silently buying a dynamic or unmodelled cost for
+// {1} — this parser is total and strict: every token must be a mana symbol
+// (a WUBRGC letter or a numeric generic), a fixed PayLife<N>, or a
+// Sac<N/Spec>, Discard<N/Spec> or SubCounter<N/Kind> component. Anything
+// else — X, Y, Z (whose value is a cast choice or an SVar the unless-pay
+// answer does not carry), DamageYou<N>, PayEnergy<N>, Return<...>,
+// ExileFromGrave<...>, Reveal<...>, Draw<...>, LifeTotalHalfUp, DefinedCost_*,
+// CopyCost, or any prose — reports ok=false, and the unless-pay arm treats
+// that as a hard decline (the conservative read: a payer who "pays" a cost
+// the engine cannot price has not paid it).
+func ParseUnlessCost(s string) (Cost, bool) {
+	s = strings.TrimSpace(s)
+	if s == "" || strings.EqualFold(s, "no cost") {
+		return Cost{}, true
+	}
+	s = strings.NewReplacer("{", " ", "}", " ").Replace(s)
+	var c Cost
+	for _, sym := range splitCostTokens(s) {
+		switch {
+		case sym == "T" || sym == "X":
+			// An unfolded X is never priceable here: payMana does not charge
+			// it, so a "pay" from an empty pool would satisfy it for free.
+			return Cost{}, false
+		case len(sym) == 1 && strings.ContainsAny(sym, "WUBRGC"):
+			c.Colored[state.ManaIndex(sym[0])]++
+		default:
+			if n, err := strconv.Atoi(sym); err == nil && n >= 0 {
+				c.Generic = addClampedGeneric(c.Generic, int64(n))
+				continue
+			}
+			if m := lifeCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					return Cost{}, false
+				}
+				c.Life = addClampedGeneric(c.Life, n)
+				continue
+			}
+			if m := nonManaCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[2], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					return Cost{}, false
+				}
+				// Fold Forge's ";" OR alternation into the "," MatchesSpec
+				// already uses, so "Artifact;Creature" matches either.
+				spec := strings.ReplaceAll(m[3], ";", ",")
+				part := CostPart{N: int32(n), Spec: spec}
+				switch m[1] {
+				case "Sac":
+					c.Sac = append(c.Sac, part)
+				case "Discard":
+					c.Discard = append(c.Discard, part)
+				default:
+					c.SubCounter = append(c.SubCounter, part)
+				}
+				continue
+			}
+			// Every other token — a dynamic amount, an unmodelled cost verb,
+			// or prose — makes the whole cost unpriceable.
+			return Cost{}, false
+		}
+	}
+	return c, true
+}

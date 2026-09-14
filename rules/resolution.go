@@ -166,10 +166,25 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 	var replSource state.ObjID
 	if e.applyingReplacement && d.Source != 0 {
 		replSource = d.Source
-		if d.Source == e.resolvingObj {
-			if so := e.G.Obj(d.Source); so != nil && so.Zone != state.ZStack {
-				obj = d.Source
-			}
+		// The resume must rebuild from the replacement's host in exactly two
+		// shapes: a permanent spell whose own Updated entry replacement asks
+		// (Sower of Discord — d.Source IS e.resolvingObj but the move has
+		// already taken it off the stack, so the top of the stack is some
+		// unrelated object), and a permanent that entered by a replacement with
+		// NO stack resolution in flight at all (a land drop: Hallowed Fountain's
+		// "you may pay 2 life. If you don't, it enters tapped" — e.resolvingObj
+		// is 0, so the original d.Source == e.resolvingObj gate never fired and
+		// the answer degraded to a no-op). Every other shape — a replacement
+		// asking while a DIFFERENT spell is resolving (Mox Diamond reanimated by
+		// a sorcery: d.Source is the mox, already on the battlefield, but the
+		// spell whose chain the replacement interrupted is still the top of the
+		// stack and MUST own the resume) — keeps the ordinary top-of-stack
+		// resume. resolveTop keeps e.resolvingObj == the stack top for the whole
+		// of a spell's resolution, so "top of stack is the interrupted spell" is
+		// exactly "e.resolvingObj != 0 && d.Source != e.resolvingObj".
+		if so := e.G.Obj(d.Source); so != nil && so.Zone != state.ZStack &&
+			(e.resolvingObj == 0 || d.Source == e.resolvingObj) {
+			obj = d.Source
 		}
 	}
 	e.resume = &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA, replSource: replSource,
@@ -428,35 +443,37 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					Last: cur.last, HasLast: cur.hasLast}
 			}
 		case "unless_pay":
-			// The payer agreed to pay (option 0 is "Pay … — make a copy") or
-			// not. Payment happens HERE, in rules, because payMana owns the
-			// cost grammar and emits the ManaAdd events — so a replay
-			// re-derives the identical payment. An answer to pay from a pool
-			// that cannot cover it is a decline: the copy is not made,
+			// The payer agreed to pay (option 0 is "Pay …") or not. Payment
+			// happens HERE, in rules, because payMana owns the cost grammar and
+			// emits the ManaAdd events — so a replay re-derives the identical
+			// payment. An answer to pay from a payer that cannot cover the cost
+			// is a decline: the effect's body runs (or not) per its orientation,
 			// deterministically.
-			paid := ParseCost(rp.sa.Params["UnlessCost"])
-			if !paid.Priceable() {
+			paid, ok := ParseUnlessCost(rp.sa.Params["UnlessCost"])
+			if !ok {
 				// I-5: an unless-cost the payment API cannot price is a hard
 				// DECLINE. ParseCost("X") is {Generic:0, X:1}; payMana never
 				// charges the unfolded X, so an empty pool "pays" it for free
 				// and the counterspell stays inert. An unpriceable cost must
-				// counter, never resolve at zero. This is the conservative
+				// decline, never resolve at zero. This is the conservative
 				// correct behaviour: a cleared counter is closer to the card
 				// than a no-op. The real fix (M4) is cost-grammar work — a
 				// value for X from CastInfo/ModeChosen or an SVar folded into
-				// Generic via WithX before payment, and a payer that can
-				// actually tap-to-pay mid-resolution — and belongs in
-				// rules/mana.go's cost grammar, not here. Until then the
-				// ask is still posed to the payer (the answer is recorded by
-				// ModeChosen) but neither "pay" nor "decline" can save the
-				// spell, so every unpriceable unless-pay resolves to the
-				// counter. Declining here (rather than suppressing the ask in
-				// effects, which cannot import rules' cost type) keeps the
-				// decision on the wire for hosts to observe while never
-				// letting an empty pool satisfy it.
+				// Generic via WithX before payment. ParseUnlessCost is the
+				// strict parser: every token must be a mana symbol, a fixed
+				// PayLife<N>, or a Sac/Discard/SubCounter component; X, Y,
+				// DamageYou<N>, PayEnergy<N>, Return<...>, ExileFromGrave<...>,
+				// Reveal<...>, LifeTotalHalfUp, DefinedCost_* and every other
+				// dynamic or unmodelled token declines here rather than
+				// ParseCost's flat {1} substitution buying it for one generic.
+				// The ask is still posed to the payer (the answer is recorded by
+				// ModeChosen) but cannot succeed. Declining here (rather than
+				// suppressing the ask in effects, which cannot import rules'
+				// cost type) keeps the decision on the wire for hosts to observe
+				// while never letting an empty pool satisfy it.
 				ctx.UnlessPay = "decline"
 			} else if len(chosen) > 0 && chosen[0].Index == 0 {
-				if e.payMana(chosen[0].Player, paid) {
+				if e.payUnlessCost(chosen[0].Player, paid, ctx, rp.obj) {
 					ctx.UnlessPay = "pay"
 				} else {
 					ctx.UnlessPay = "decline"
@@ -464,6 +481,30 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			} else {
 				ctx.UnlessPay = "decline"
 			}
+			// The payer whose answer this is (the unlessProceed gate moves a
+			// decline on to the next UnlessPayer$ payer, and a pay ends the
+			// ask), threaded through the decision's ResumeTarget via the
+			// resume point — the same channel the "choice" and "dig" arms use.
+			ctx.UnlessNext = rp.target
+		case "sacrifice":
+			// A player-targeted Sacrifice's KChoose (CR 701.21a: the
+			// sacrificing player chooses which of their permanents) was
+			// answered. The chosen options carry the object in Obj (the same
+			// shape the "discard" and "dig" arms read), so the id list goes
+			// straight to Ctx.SacPicks in the player's answer order; SacDone
+			// distinguishes "answered, possibly with nothing" (an Optional$
+			// decline) from the first pass, and SacTarget keeps the answer
+			// attached to the exact Defined$ target that asked. effSacrifice
+			// consumes and clears all three at the top of its own walk, so a
+			// nested sacrifice cannot inherit the outer answer.
+			ctx.SacPicks = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.SacPicks = append(ctx.SacPicks, o.Obj)
+				}
+			}
+			ctx.SacDone = true
+			ctx.SacTarget = rp.target
 		case "discard":
 			// A mid-resolution discard choice ("Mode$ RevealYouChoose"
 			// Thoughtseize/Duress — the CASTER picks out of the target's

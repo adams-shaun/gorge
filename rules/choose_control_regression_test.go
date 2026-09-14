@@ -806,6 +806,15 @@ func TestBraidsRepeatEachSeesTheSacrificedCard(t *testing.T) {
 	hand, life := len(e.G.Zone(state.ZHand, 0)), e.G.Players[1].Life
 	e.emit(events.Event{Kind: events.TriggerPush, Obj: braids, Player: 0, Amount: 0})
 	e.resolveTop()
+	// The controller's optional sacrifice is now a real KChoose (CR
+	// 701.21a): the relic and Braids itself are both eligible, offered in
+	// battlefield order. Answer with option 0 -- the relic, which is what
+	// the pre-ask engine deterministically took.
+	if d := e.Pending(); d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("pending decision = %+v, want the sacrifice KChoose", d)
+	} else {
+		submitChoices(t, e, 0)
+	}
 	if e.G.Obj(braids).Zone != state.ZBattlefield || e.G.Obj(relic).Zone != state.ZGraveyard {
 		t.Fatalf("Braids zone %v relic zone %v, want Braids kept and the relic sacrificed",
 			e.G.Obj(braids).Zone, e.G.Obj(relic).Zone)

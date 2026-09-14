@@ -1,0 +1,488 @@
+package rules
+
+import (
+	"testing"
+
+	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/internal/testutil"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// The unless-cost and sacrifice-choice behaviour tests on real corpus cards:
+// a player-targeted Sacrifice asks its player (CR 701.21a), Amount$ sizes the
+// ask, and every UnlessCost$ — not only Counter's and CopySpellAbility's —
+// poses its pay decision, charges the cost through the engine's payment path,
+// and applies the UnlessSwitched$ orientation.
+
+// answerSacrifice submits, against the pending sacrifice KChoose, the option
+// carrying the named permanent (or no option at all when name is "" — the
+// Optional$ decline).
+func answerSacrifice(t *testing.T, e *Engine, name string) {
+	t.Helper()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("pending decision = %+v, want the sacrifice KChoose", d)
+	}
+	if name == "" {
+		submitChoices(t, e)
+		return
+	}
+	for _, o := range d.Options {
+		if o.Obj != 0 {
+			if o2 := e.G.Obj(o.Obj); o2 != nil && o2.Face() != nil && o2.Face().Name == name {
+				submitChoices(t, e, o.Index)
+				return
+			}
+		}
+	}
+	t.Fatalf("no %q option in the sacrifice ask %+v", name, d.Options)
+}
+
+// answerUnlessPay submits the pending unless-pay KModes: index 0 pays,
+// anything else declines.
+func answerUnlessPay(t *testing.T, e *Engine, pay bool) {
+	t.Helper()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "unless_pay" {
+		t.Fatalf("pending decision = %+v, want the unless-pay KModes", d)
+	}
+	idx := 1
+	if pay {
+		idx = 0
+	}
+	submitChoices(t, e, idx)
+}
+
+// TestBraidsOpponentChoosesItsSacrifice drives Braids, Arisen Nightmare's real
+// end-step trigger across two seats: the controller's optional sacrifice is a
+// real ask (the relic and Braids itself are both eligible), and the opponent's
+// RepeatEach iteration poses ITS own optional sacrifice — over the permanent
+// that shares a card type with the sacrificed one (sharesCardTypeWith
+// RememberedCard, the predicate that used to fail closed). A sacrificing
+// opponent is remembered as the card's controller, so the
+// SVar:X:Remembered$Valid Card.RememberedPlayerCtrl gate (X != 0) keeps them
+// from losing 2 life and keeps Braids's controller from drawing.
+func TestBraidsOpponentChoosesItsSacrifice(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := stealEngine(t, 737)
+	relic := onBoard(t, e, 0, "Name:Relic\nTypes:Artifact\nOracle:x\n")
+	braids := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Braids, Arisen Nightmare"))
+	trinket := onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Mind Stone"))
+	hand := len(e.G.Zone(state.ZHand, 0))
+	life := e.G.Players[1].Life
+
+	e.emit(events.Event{Kind: events.TriggerPush, Obj: braids, Player: 0, Amount: 0})
+	e.resolveTop()
+
+	// Seat 0's optional sacrifice: give up the relic, keep Braids.
+	answerSacrifice(t, e, "Relic")
+	// Seat 1's optional sacrifice: the artifact that shares the relic's card
+	// type. It sacrifices Catching Sphere.
+	answerSacrifice(t, e, "Mind Stone")
+
+	if e.G.Obj(braids).Zone != state.ZBattlefield {
+		t.Fatalf("Braids zone = %v, want it kept", e.G.Obj(braids).Zone)
+	}
+	if e.G.Obj(relic).Zone != state.ZGraveyard || e.G.Obj(trinket).Zone != state.ZGraveyard {
+		t.Fatalf("relic zone %v trinket zone %v, want both sacrificed",
+			e.G.Obj(relic).Zone, e.G.Obj(trinket).Zone)
+	}
+	if got := e.G.Players[1].Life; got != life {
+		t.Fatalf("opponent life = %d, want %d (they sacrificed, so no loss)", got, life)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != hand {
+		t.Fatalf("Braids controller hand = %d, want %d (no draw when the opponent sacrificed)", got, hand)
+	}
+}
+
+// TestBraidsOpponentDeclinesItsSacrifice is the mirror: the opponent's ask is
+// answered with nothing (the Optional$ decline), the sharing-type predicate
+// admits nothing for them, and the
+// SVar:X:Remembered$Valid Card.RememberedPlayerCtrl gate reads X == 0 — so the
+// opponent loses 2 life and Braids's controller draws the card.
+func TestBraidsOpponentDeclinesItsSacrifice(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := stealEngine(t, 737)
+	relic := onBoard(t, e, 0, "Name:Relic\nTypes:Artifact\nOracle:x\n")
+	braids := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Braids, Arisen Nightmare"))
+	onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Mind Stone"))
+	hand := len(e.G.Zone(state.ZHand, 0))
+	life := e.G.Players[1].Life
+
+	e.emit(events.Event{Kind: events.TriggerPush, Obj: braids, Player: 0, Amount: 0})
+	e.resolveTop()
+
+	answerSacrifice(t, e, "Relic")
+	answerSacrifice(t, e, "")
+
+	if e.G.Obj(relic).Zone != state.ZGraveyard {
+		t.Fatalf("relic zone = %v, want the controller's sacrifice", e.G.Obj(relic).Zone)
+	}
+	if got := e.G.Players[1].Life; got != life-2 {
+		t.Fatalf("opponent life = %d, want %d (they declined)", got, life-2)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != hand+1 {
+		t.Fatalf("Braids controller hand = %d, want %d (the draw for the declined opponent)", got, hand+1)
+	}
+}
+
+// TestSacrificeHonoursAmountTwo drives Barter in Blood's real "Each player
+// sacrifices two creatures": with three creatures apiece the ask is exactly
+// two (Min == Max == 2 over the three eligible), and each seat buries exactly
+// the two it named, keeping the third.
+func TestSacrificeHonoursAmountTwo(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := handEngine(t, mustCorpusCard(t, reg, "Barter in Blood"))
+	kept0 := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Grizzly Bears"))
+	a := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Goblin Piledriver"))
+	b := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Goblin Piledriver"))
+	kept1 := onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Grizzly Bears"))
+	c := onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Grizzly Bears"))
+	d := onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Grizzly Bears"))
+	addMana(t, e, 0, "BBBB")
+	e.askPriority(0)
+	submitChoices(t, e, passToCast(t, e, handIDsByFace(e)["Barter in Blood"]))
+	passUntilNonPriority(t, e, 8)
+
+	// Seat 0's ask: exactly two of the three.
+	ans0 := e.Pending()
+	if ans0 == nil || ans0.Kind != decision.KChoose || ans0.Min != 2 || ans0.Max != 2 || len(ans0.Options) != 3 {
+		t.Fatalf("seat 0 sacrifice ask = %+v, want Min==Max==2 over 3 creatures", ans0)
+	}
+	submitChoices(t, e, optionsNotKept(t, e, ans0, kept0)...)
+	// Seat 1's ask: the same shape, its own battlefield.
+	ans1 := e.Pending()
+	if ans1 == nil || ans1.Kind != decision.KChoose || ans1.Player != 1 || ans1.Min != 2 || ans1.Max != 2 || len(ans1.Options) != 3 {
+		t.Fatalf("seat 1 sacrifice ask = %+v, want Min==Max==2 over seat 1's 3 creatures", ans1)
+	}
+	submitChoices(t, e, optionsNotKept(t, e, ans1, kept1)...)
+	if got := e.Pending(); got != nil && got.Kind == decision.KChoose {
+		t.Fatalf("unexpected third sacrifice ask: %+v", got)
+	}
+	// Seat 0 buried exactly two of its three: whatever went to the graveyard,
+	// the one it kept is still on the battlefield and a third was NOT buried.
+	if e.G.Obj(kept0).Zone != state.ZBattlefield {
+		t.Fatalf("seat 0 kept creature zone = %v, want battlefield (only 2 of 3 sacrificed)", e.G.Obj(kept0).Zone)
+	}
+	if e.G.Obj(kept1).Zone != state.ZBattlefield {
+		t.Fatalf("seat 1 kept creature zone = %v, want battlefield", e.G.Obj(kept1).Zone)
+	}
+	buried := 0
+	for _, id := range []state.ObjID{kept0, a, b} {
+		if e.G.Obj(id).Zone == state.ZGraveyard {
+			buried++
+		}
+	}
+	if buried != 2 {
+		t.Fatalf("seat 0 buried %d creatures, want exactly 2", buried)
+	}
+	buried = 0
+	for _, id := range []state.ObjID{kept1, c, d} {
+		if e.G.Obj(id).Zone == state.ZGraveyard {
+			buried++
+		}
+	}
+	if buried != 2 {
+		t.Fatalf("seat 1 buried %d creatures, want exactly 2", buried)
+	}
+}
+
+// TestMeathookUnlessPayPaysLife drives Meathook Massacre II's second trigger
+// ("Whenever a creature an opponent controls dies, they may pay 3 life. If
+// they don't, return that card under your control with a finality counter"):
+// TrigReturn2 is a DB$ ChangeZone with UnlessCost$ PayLife<3> and
+// UnlessPayer$ TriggeredCardController — the API that ignored UnlessCost$
+// before the shared gate existed. Paying costs the dying creature's
+// controller 3 life and the card STAYS dead; the decline is the returned-with-
+// finality-counter branch (the mirror, TestMeathookUnlessPayDeclined, pins
+// the pay branch of the YOU-control trigger TrigReturn1's oracle shares).
+func TestMeathookUnlessPayPaysLife(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := stealEngine(t, 737)
+	hook := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Meathook Massacre II"))
+	bear := onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Grizzly Bears"))
+	life := e.G.Players[1].Life
+
+	e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZBattlefield,
+		To: state.ZGraveyard, Text: "died"})
+	e.putTriggersOnStack()
+	e.resolveTop()
+	answerUnlessPay(t, e, true)
+
+	if got := e.G.Players[1].Life; got != life-3 {
+		t.Fatalf("payer life = %d, want %d", got, life-3)
+	}
+	if o := e.G.Obj(bear); o == nil || o.Zone != state.ZGraveyard {
+		t.Fatalf("the bear zone = %v, want it kept dead (the pay prevented the return)", o)
+	}
+	if o := e.G.Obj(hook); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("Meathook zone = %v, want it kept", o)
+	}
+}
+
+// TestMeathookUnlessPayDeclined is the mirror: the dying creature's controller
+// declines, the card returns under Meathook's controller (seat 0) with a
+// finality counter, and no life moves.
+func TestMeathookUnlessPayDeclined(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := stealEngine(t, 737)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Meathook Massacre II"))
+	bear := onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Grizzly Bears"))
+	life := e.G.Players[1].Life
+
+	e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZBattlefield,
+		To: state.ZGraveyard, Text: "died"})
+	e.putTriggersOnStack()
+	e.resolveTop()
+	answerUnlessPay(t, e, false)
+
+	if got := e.G.Players[1].Life; got != life {
+		t.Fatalf("payer life = %d, want %d (declined)", got, life)
+	}
+	if o := e.G.Obj(bear); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("the bear zone = %v, want it returned to the battlefield", o)
+	} else if o.Controller != 0 {
+		t.Fatalf("returned bear controller = %d, want Meathook's controller 0", o.Controller)
+	} else if counterTotal(o, "FINALITY") != 1 {
+		t.Fatalf("returned bear counters = %v, want one FINALITY counter", o.Counters)
+	}
+}
+
+// counterTotal reads the total N of one counter kind on an object.
+func counterTotal(o *state.Object, kind string) int32 {
+	n := int32(0)
+	for _, c := range o.Counters {
+		if c.Kind == kind {
+			n += c.N
+		}
+	}
+	return n
+}
+
+// TestTapUnlessCostHallowedFountain drives the dual land's ETB replacement
+// ("you may pay 2 life. If you don't, it enters tapped"): a DB$ Tap with
+// UnlessCost$ PayLife<2> and UnlessPayer$ You, resolved through the shared
+// gate inside a replacement body. Paying keeps it untapped; declining taps it.
+func TestTapUnlessCostHallowedFountain(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	fountain := mustCorpusCard(t, reg, "Hallowed Fountain")
+	for _, tc := range []struct {
+		name     string
+		pay      bool
+		wantTaps bool
+	}{{"pays", true, false}, {"declines", false, true}} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := handEngine(t, fountain)
+			e.askPriority(0)
+			id := handIDsByFace(e)["Hallowed Fountain"]
+			submitChoices(t, e, passToPlay(t, e, id))
+			answerUnlessPay(t, e, tc.pay)
+			if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
+				t.Fatalf("fountain zone = %v, want the battlefield", o)
+			} else if o.Tapped != tc.wantTaps {
+				t.Fatalf("fountain tapped = %t, want %t", o.Tapped, tc.wantTaps)
+			}
+			wantLife := int32(20)
+			if tc.pay {
+				wantLife = 18
+			}
+			if got := e.G.Players[0].Life; got != wantLife {
+				t.Fatalf("life = %d, want %d", got, wantLife)
+			}
+		})
+	}
+}
+
+// TestDrawUnlessCostWitchsMark drives the sorcery's real switched unless-cost
+// ("You may discard a card. If you do, draw two cards."): a SP$ Draw with
+// UnlessCost$ Discard<1/Card>, UnlessSwitched$ True and a chained DBToken that
+// runs whether the cost was paid or not (Forge's UnlessResolveSubs default
+// 'Always'). Paying discards a card through the engine's payment path and
+// draws two; declining does neither — and the chained token sub runs either
+// way.
+func TestDrawUnlessCostWitchsMark(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	mark := mustCorpusCard(t, reg, "Witch's Mark")
+	bear := mustCorpusCard(t, reg, "Grizzly Bears")
+	for _, tc := range []struct {
+		name      string
+		pay       bool
+		wantDraws int
+		wantDisc  bool
+	}{{"pays", true, 2, true}, {"declines", false, 0, false}} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := handEngine(t, mark, bear, bear)
+			addMana(t, e, 0, "RR")
+			e.askPriority(0)
+			id := handIDsByFace(e)["Witch's Mark"]
+			// The token sub's target ask (Min 0) may come before payment;
+			// answer it with nothing. The cast flow's payment follows.
+			submitChoices(t, e, passToCast(t, e, id))
+			for i := 0; i < 6 && e.Pending() != nil; i++ {
+				d := e.Pending()
+				switch d.Kind {
+				case decision.KModes:
+					if d.ResumeKind != "unless_pay" {
+						t.Fatalf("unexpected KModes ask: %+v", d)
+					}
+					answerUnlessPay(t, e, tc.pay)
+				case decision.KChoose:
+					submitChoices(t, e) // the optional token target: none
+				case decision.KPriority:
+					return // the spell resolved; the rest is the priority round
+				default:
+					t.Fatalf("unexpected decision %s: %+v", d.Kind, d)
+				}
+			}
+			draws := 0
+			disc := false
+			for _, ev := range e.L.Events {
+				if ev.Kind == events.Draw && ev.Player == 0 {
+					draws++
+				}
+				if events.IsDiscard(ev) && ev.Player == 0 {
+					disc = true
+				}
+			}
+			if draws != tc.wantDraws {
+				t.Fatalf("draws = %d, want %d", draws, tc.wantDraws)
+			}
+			if disc != tc.wantDisc {
+				t.Fatalf("discarded = %t, want %t", disc, tc.wantDisc)
+			}
+		})
+	}
+}
+
+// TestUnswitchedUnlessPayPreventsTheEffect drives a fixture burn spell with
+// the DEFAULT (unswitched) orientation — "deals 3 damage unless its
+// controller pays 4 life" — through the shared gate: paying prevents the
+// damage, declining lets it through. This is the orientation the Counter
+// family already had; the point is that the same gate now serves a
+// DealDamage, whose UnlessCost$ used to be ignored entirely.
+func TestUnswitchedUnlessPayPreventsTheEffect(t *testing.T) {
+	fixture := card(t, "Name:Test Salvo\nManaCost:R\nTypes:Instant\n"+
+		"A:SP$ DealDamage | ValidTgts$ Creature | NumDmg$ 3 | UnlessCost$ PayLife<4> | UnlessPayer$ TargetedController\nOracle:x\n")
+	bear := card(t, "Name:Target Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	for _, tc := range []struct {
+		name       string
+		pay        bool
+		wantDamage bool
+	}{{"pays", true, false}, {"declines", false, true}} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := handEngine(t, fixture)
+			bearID := onBoardCard(t, e, 0, bear)
+			addMana(t, e, 0, "RR")
+			e.askPriority(0)
+			id := handIDsByFace(e)["Test Salvo"]
+			submitChoices(t, e, passToCast(t, e, id))
+			// Target the bear on seat 0 (the payer is its controller, seat 0).
+			tgt := passUntilNonPriority(t, e, 8)
+			if tgt == nil || tgt.Kind != decision.KTarget {
+				t.Fatalf("pending decision = %+v, want the target ask", tgt)
+			}
+			idx := -1
+			for _, o := range tgt.Options {
+				if o.Obj == bearID {
+					idx = o.Index
+				}
+			}
+			if idx < 0 {
+				t.Fatalf("the bear is not offered as a target: %+v", tgt.Options)
+			}
+			submitChoices(t, e, idx)
+			// The resolution runs once both seats pass; drain the priority
+			// rounds until the unless-pay ask is pending.
+			for i := 0; i < 8; i++ {
+				p := e.Pending()
+				if p == nil {
+					t.Fatal("no decision pending after the target answer")
+				}
+				if p.Kind == decision.KModes && p.ResumeKind == "unless_pay" {
+					break
+				}
+				if p.Kind != decision.KPriority {
+					t.Fatalf("pending decision = %+v, want priority or the unless-pay ask", p)
+				}
+				passIdx := -1
+				for _, o := range p.Options {
+					if o.Kind == "pass" {
+						passIdx = o.Index
+					}
+				}
+				if passIdx < 0 {
+					t.Fatalf("priority decision with no pass option: %+v", p)
+				}
+				if err := e.Submit(decision.Intent{Seq: p.Seq, Player: p.Player, Choices: []int{passIdx}}); err != nil {
+					t.Fatalf("submit pass: %v", err)
+				}
+			}
+			answerUnlessPay(t, e, tc.pay)
+			dmg := int32(0)
+			for _, ev := range e.L.Events {
+				if ev.Kind == events.Damage && ev.Obj == bearID {
+					dmg += ev.Amount
+				}
+			}
+			if tc.wantDamage && dmg != 3 {
+				t.Fatalf("damage dealt = %d, want 3", dmg)
+			}
+			if !tc.wantDamage && dmg != 0 {
+				t.Fatalf("damage dealt = %d, want 0 (the pay prevented the effect)", dmg)
+			}
+			if tc.pay {
+				if got := e.G.Players[0].Life; got != 16 {
+					t.Fatalf("payer life = %d, want 16", got)
+				}
+			}
+		})
+	}
+}
+
+// passToPlay walks the priority passes until a play_land option for obj is
+// offered and returns its index (the land-drop shape of passToCast).
+func passToPlay(t *testing.T, e *Engine, obj state.ObjID) int {
+	t.Helper()
+	for i := 0; i < 8; i++ {
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KPriority {
+			t.Fatalf("expected a priority decision while seeking the land drop of %d, got %+v", obj, d)
+		}
+		for _, o := range d.Options {
+			if o.Kind == "play_land" && o.Obj == obj {
+				return o.Index
+			}
+		}
+		pass := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				pass = o.Index
+			}
+		}
+		if pass < 0 {
+			t.Fatalf("priority decision with no pass and no land drop of %d: %+v", obj, d.Options)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{pass}}); err != nil {
+			t.Fatalf("submit pass: %v", err)
+		}
+	}
+	t.Fatalf("never got to the land drop of %d", obj)
+	return -1
+}
+
+// optionsNotKept returns the indexes of the ask's options whose object is not
+// the keeper — the two creatures the ask must bury in TestSacrificeHonoursAmountTwo.
+func optionsNotKept(t *testing.T, e *Engine, d *decision.Decision, keeper state.ObjID) []int {
+	t.Helper()
+	var out []int
+	for _, o := range d.Options {
+		if o.Obj != keeper {
+			out = append(out, o.Index)
+		}
+	}
+	if len(out) != len(d.Options)-1 {
+		t.Fatalf("options %+v do not single out the keeper %d", d.Options, keeper)
+	}
+	return out
+}

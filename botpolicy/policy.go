@@ -403,7 +403,21 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 		case "discard":
 			in.Choices = b.chooseDiscard(d)
 		case "exile", "sacrifice":
-			in.Choices = b.chooseWorst(d)
+			// An OPTIONAL give-up (Min 0) is declined: this policy cannot read
+			// what the sacrifice or exile buys (Scapeshift's "sacrifice any
+			// number of lands" then searches for exactly that many; Braids's
+			// sacrifice draws), so handing over permanents for nothing it can
+			// see is the losing side of the bet — and taking the offered Max
+			// of an "any number" ask (Scapeshift's full board of lands) once
+			// starved the seat for the rest of the game (measured: the
+			// hearthhull-worldseed-landfall commander game never cast its
+			// commander after one Max-lands Scapeshift). A mandatory ask
+			// (Min > 0, the Fleshbag/Gatekeeper "sacrifice a creature" shape
+			// and every Sac cost) still gives up the least valuable Max
+			// options.
+			if d.Min > 0 {
+				in.Choices = b.chooseWorst(d)
+			}
 		case "dig":
 			// A Dig look-and-take: take the first Max options in offered
 			// (library) order -- the exact mirror of effDig's no-ask stand-in

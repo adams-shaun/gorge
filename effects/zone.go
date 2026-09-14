@@ -84,6 +84,7 @@ func zoneIn(zones []state.Zone, want state.Zone) bool {
 }
 
 func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
 	to := ParseZone(sa.Params["Destination"])
 	var originZones []state.Zone
 	var originAll bool
@@ -163,6 +164,33 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if withKind != "" && to == state.ZBattlefield {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: withKind, Amount: withAmt})
+		}
+		// GainControl$ on a ChangeZone that lands the object on the
+		// battlefield: the moved permanent enters under the named player's
+		// control instead of its owner's (CR 613.7: the grant supersedes any
+		// earlier control effect). "True" — 255 of the 269 raw corpus values —
+		// means the effect's controller (Meathook Massacre II's "return that
+		// card under your control with a finality counter"); the other values
+		// name a player reference resolved like any Defined$ player selector.
+		// A permanent grant: no LoseControl$ duration is part of this
+		// parameter's grammar on ChangeZone. A value that names no resolvable
+		// player is loud (a Note) rather than silently keeping the owner.
+		if to == state.ZBattlefield {
+			if gc := strings.TrimSpace(sa.Params["GainControl"]); gc != "" {
+				p, ok := changeZoneGainController(h, c, gc)
+				if ok {
+					gr := ControlGrant{Obj: o.ID, ObjStamp: o.Timestamp, Previous: o.Controller,
+						Controller: p, You: c.Controller, Source: c.Source}
+					if src := g.Obj(c.Source); src != nil && src.Zone == state.ZBattlefield {
+						gr.SourceStamp = src.Timestamp
+					}
+					h.Emit(events.Event{Kind: events.ControlChange, Obj: o.ID, Player: p})
+					h.RegisterControl(gr)
+				} else {
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+						Text: "ChangeZone GainControl$ " + gc + " names no player"})
+				}
+			}
 		}
 	}
 }
@@ -513,6 +541,19 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 // HasKeyword/Indestructible gate and no ReplaceDestruction/regeneration
 // consultation -- a regenerated creature does not survive being sacrificed.
 // Same CR 608.2b caveat as effDestroy: only existence-and-zone is rechecked.
+//
+// A sacrifice aimed at a PLAYER now asks that player (CR 701.21a: "its
+// controller chooses one") through a real KChoose over their matching
+// permanents: Amount$ (default 1) sizes the ask, Optional$ True makes it
+// "may sacrifice" (Min 0), and a hand of fewer eligible permanents than
+// Amount$ sacrifices everything it has without asking (there is no choice
+// to record, the effDiscard TgtChoose strict-supersets rule). The answer
+// re-enters this effect through ResumeKind "sacrifice" with Ctx.SacPicks
+// set, one suspension per Defined$ target (the cursor mirrors effDig's
+// per-library asks). An Optional$ ask whose no-host fallback runs takes the
+// first Amount$ eligible permanents — the same pick the pre-ask engine made
+// — so games that never reach a real player answer replay byte-identically
+// up to the pick the answer names.
 func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	// SacValid$ narrows WHAT may be sacrificed ("Creature.nonToken",
@@ -557,6 +598,18 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			c.Remembered = append(copyTargets(c.Remembered), state.Target{Obj: id})
 		}
 	}
+	// fx42 scoping: capture and clear the answered per-player pick BEFORE the
+	// target loop, so a nested sacrifice below this walk poses its own ask.
+	// SacTarget identifies the exact target that asked: earlier targets
+	// completed before suspension and must be skipped, that target consumes
+	// the answer, and later targets pose their own asks (Dig's per-library
+	// ask shape).
+	sacAns := c.SacPicks
+	sacDone := c.SacDone
+	sacTarget := c.SacTarget
+	c.SacPicks, c.SacDone, c.SacTarget = nil, false, 0
+	amount := sacrificeAmount(h, c, sa)
+	optional := sa.Params["Optional"] == "True"
 	who := Defined(h, c, sa)
 	// A Sacrifice that names neither Defined$ nor ValidTgts$ but a SacValid$
 	// other than itself is Forge's default Defined$ You: its controller
@@ -569,7 +622,41 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			who = []state.Target{{Player: c.Controller, IsPlayer: true}}
 		}
 	}
-	for _, t := range who {
+	for targetIndex, t := range who {
+		if sacDone {
+			// Re-entry after some target's ask suspended: earlier targets
+			// completed on the first pass and must be skipped (re-running
+			// them would sacrifice a second batch); the asking target
+			// applies its answer; later targets fall through to the normal
+			// paths below and pose their own asks (Dig's per-library shape).
+			if targetIndex < sacTarget {
+				continue
+			}
+			if targetIndex == sacTarget {
+				if t.IsPlayer {
+					// Sacrifice exactly the answered cards that still sit on
+					// this player's battlefield (a zone check keeps a stray
+					// answer from moving an object that left meanwhile), in
+					// the player's answer order.
+					for _, id := range sacAns {
+						if o := g.Obj(id); o == nil || o.Zone != state.ZBattlefield {
+							continue
+						}
+						rememberLKICapture(id)
+						h.Emit(events.Sacrifice(id))
+					}
+				} else if len(sacAns) > 0 {
+					// The object-optional ask's sole option was answered
+					// "sacrifice it": the object was already zone-checked on
+					// the first pass, but re-check here in case it moved.
+					if o := g.Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+						rememberLKICapture(o.ID)
+						h.Emit(events.Sacrifice(o.ID))
+					}
+				}
+				continue
+			}
+		}
 		if t.IsPlayer {
 			// Bounds guard: g.Zone indexes g.zones[zoneIndex(z, p)] and
 			// zoneIndex has no bounds check, so an out-of-range target-supplied
@@ -580,20 +667,65 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			if int(t.Player) >= len(g.Players) {
 				continue
 			}
-			// A sacrifice aimed at a player: that player sacrifices one
-			// matching permanent. Real Magic has the player choose; this
-			// engine does not ask (the mid-resolution ask machinery is being
-			// reworked elsewhere), so the stand-in is deterministic and
-			// replay-stable: the first permanent in battlefield order that
-			// satisfies SacValid$. "You" in the spec is the sacrificing
-			// player, since they choose from their own permanents.
 			ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, t.Player)...)
+			eligible := make([]state.ObjID, 0, len(ids))
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(t.Player)) {
-					rememberLKICapture(id)
-					h.Emit(events.Sacrifice(id))
-					break
+					eligible = append(eligible, id)
 				}
+			}
+			minv, maxv := int32(0), int32(0)
+			ask := false
+			if optional {
+				// "You may sacrifice ...": any number up to Amount$ (capped at
+				// what exists), including none. A real choice whenever there is
+				// something to sacrifice.
+				if len(eligible) > 0 {
+					ask = true
+					maxv = amount
+					if maxv > int32(len(eligible)) {
+						maxv = int32(len(eligible))
+					}
+				}
+			} else if int32(len(eligible)) > amount {
+				// Mandatory with a choice: exactly Amount$ of the eligible.
+				ask = true
+				minv, maxv = amount, amount
+			}
+			// (the remaining shape — eligible <= amount, not optional —
+			// sacrifices everything eligible without asking: no choice to
+			// record, the effDiscard TgtChoose strict-supersets rule.)
+			n := amount
+			if ask {
+				d := &decision.Decision{Player: t.Player, Kind: decision.KChoose,
+					Min:          int(minv),
+					Max:          int(maxv),
+					Source:       c.Source,
+					ResumeKind:   "sacrifice",
+					ResumeSA:     sa,
+					ResumeTarget: targetIndex,
+					Prompt:       sacrificePrompt(optional, maxv)}
+				for _, id := range eligible {
+					name := "a permanent"
+					if o := g.Obj(id); o != nil && o.Face() != nil {
+						name = o.Face().Name
+					}
+					d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+						Kind: "sacrifice", Label: name, Obj: id, Player: t.Player})
+				}
+				if h.Ask(d) {
+					return // resolution suspended; the answer re-enters with Ctx.SacPicks set.
+				}
+				// Fuzz/no-engine host: the deterministic stand-in (R-9) keeps
+				// the pre-ask behaviour — the first Amount$ eligible permanents
+				// in zone order, so an Optional$ "may sacrifice" plays "do".
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: t.Player,
+					Text: "sacrifices the first matching permanent(s) (no engine host to ask)", Secret: true})
+				n = maxv
+			}
+			for i := int32(0); i < n && int(i) < len(eligible); i++ {
+				rememberLKICapture(eligible[i])
+				h.Emit(events.Sacrifice(eligible[i]))
 			}
 			continue
 		}
@@ -606,7 +738,114 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		// "which one may be sacrificed" step does not re-filter a concrete
 		// object (and would misfire on the corpus's SacValid$ Self lines,
 		// where "Self" is not a type the filter grammar knows).
+		//
+		// Optional$ True on an object target is a real yes/no ("you may
+		// sacrifice this artifact"): a 0..1 ask over the object, answered
+		// through the same "sacrifice" resume. A host that cannot ask keeps
+		// the mandatory sacrifice (the pre-ask behaviour).
+		if optional {
+			d := &decision.Decision{Player: o.Controller, Kind: decision.KChoose,
+				Min: 0, Max: 1, Source: c.Source,
+				ResumeKind: "sacrifice", ResumeSA: sa, ResumeTarget: targetIndex,
+				Prompt: sacrificePrompt(true, 1)}
+			name := "a permanent"
+			if o.Face() != nil {
+				name = o.Face().Name
+			}
+			d.Options = append(d.Options, decision.Option{Index: 0,
+				Kind: "sacrifice", Label: name, Obj: o.ID, Player: o.Controller})
+			if h.Ask(d) {
+				return
+			}
+			// No-host stand-in: the mandatory sacrifice the pre-ask engine
+			// made, with the Note that records why the richer path did not run.
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: o.Controller,
+				Text: "sacrifices the first matching permanent(s) (no engine host to ask)", Secret: true})
+		}
 		rememberLKICapture(o.ID)
 		h.Emit(events.Sacrifice(o.ID))
 	}
+}
+
+// sacrificePrompt renders the player-targeted sacrifice ask's prompt.
+func sacrificePrompt(optional bool, n int32) string {
+	if optional {
+		return "Choose up to " + strconv.Itoa(int(n)) + " permanent(s) to sacrifice, or none"
+	}
+	return "Choose " + strconv.Itoa(int(n)) + " permanent(s) to sacrifice"
+}
+
+// sacrificeAmount resolves Amount$ (default 1). Literals pass through; a
+// non-literal resolves through the count evaluator (an SVar name, an inline
+// Count$ expression, or {X}). The "X" shape deserves its own arm: on a
+// triggered ability Ctx.X is the ability object's own X -- zero, a trigger
+// was never paid an X -- so an Amount$ X on a permanent's trigger (Meathook
+// Massacre II's "each player sacrifices X creatures") must read the paid X
+// off the SOURCE permanent, which CastInfo carried out of the cast onto the
+// battlefield object. An Amount$ that is none of literal, SVar, Count$,
+// Sacrificed$ or X is an unknown shape and keeps the pre-Amount$-reading
+// behaviour (1) rather than degrading to zero.
+func sacrificeAmount(h Host, c *Ctx, sa *cards.SA) int32 {
+	raw, ok := sa.Params["Amount"]
+	if !ok {
+		return 1
+	}
+	raw = strings.TrimSpace(raw)
+	if n, err := strconv.Atoi(raw); err == nil {
+		return int32(n)
+	}
+	if raw == "X" {
+		if c.X != 0 {
+			return c.X
+		}
+		if o := h.Game().Obj(c.Source); o != nil {
+			return o.X
+		}
+		return 0
+	}
+	known := strings.HasPrefix(raw, "Count$") || strings.HasPrefix(raw, "Sacrificed$") ||
+		strings.HasPrefix(raw, "TriggerCount$")
+	if !known && c.SVars != nil {
+		_, known = c.SVars[raw]
+	}
+	v := Num(h, c, sa, "Amount", 0)
+	if !known && v == 0 {
+		return 1 // unknown shape: today's fixed-one behaviour, not a silent zero
+	}
+	return v
+}
+
+// changeZoneGainController resolves ChangeZone's GainControl$ value to the
+// player who takes the moved permanent. "True" is the effect's controller;
+// the rest are the player-reference forms the corpus actually writes.
+// ok=false means no resolvable player — the caller is loud rather than
+// silently keeping the owner's control.
+func changeZoneGainController(h Host, c *Ctx, gc string) (state.PlayerID, bool) {
+	g := h.Game()
+	first := func(ts []state.Target) (state.PlayerID, bool) {
+		for _, t := range ts {
+			if t.IsPlayer {
+				return t.Player, true
+			}
+			if o := g.Obj(t.Obj); o != nil {
+				return o.Controller, true
+			}
+		}
+		return 0, false
+	}
+	switch gc {
+	case "True":
+		return c.Controller, true
+	case "ChosenPlayer":
+		return first(c.Chosen)
+	case "Targeted", "ParentTarget":
+		return first(c.Targets)
+	case "Player.IsRemembered":
+		return first(playersOf(c.Remembered))
+	case "TriggeredCardController":
+		return TriggeredCardController(g, c.TriggerContext, c.Remembered)
+	case "DelayTriggerRemembered":
+		return first(controllersOf(g, c.Remembered))
+	}
+	return 0, false
 }

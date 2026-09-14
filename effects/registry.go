@@ -248,6 +248,25 @@ type Ctx struct {
 	Dig       []state.ObjID
 	DigDone   bool
 	DigTarget int
+	// UnlessNext is the index of the UnlessPayer$ payer whose answered
+	// unless-pay choice this re-entry applies (0 on a first pass). The
+	// unlessProceed gate (Resolve) consumes and clears it; rules' resume
+	// arm copies it off the resume point, where Ask stored the asking
+	// decision's ResumeTarget. A decline moves the gate on to payer idx+1,
+	// so a multi-payer UnlessPayer$ asks each payer in turn.
+	UnlessNext int
+	// SacPicks is the answered per-player sacrifice choice on a re-entered
+	// Sacrifice resolution: the object(s) the sacrificing player chose to
+	// sacrifice, in the player's answer order. SacDone distinguishes
+	// "answered (possibly with nothing)" from the first pass and SacTarget
+	// identifies the Defined$ target index whose player posed that ask, so
+	// re-entry skips targets already processed before suspension and
+	// continues asking later targets. The asking effect consumes and clears
+	// all three at the top of its own walk (the fx42 scoping discipline), so
+	// a nested sacrifice below it poses its own ask instead of inheriting.
+	SacPicks  []state.ObjID
+	SacDone   bool
+	SacTarget int
 	// Arrange is the answered KArrange decision on a re-entered
 	// mid-resolution resolution (Ruling J0): true once rules' handleArrange
 	// has applied the answered arrangement and emitted the LibraryOrder
@@ -418,6 +437,29 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			// validation is supposed to have caught this already.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "unimplemented API " + sa.API})
+			continue
+		}
+		// UnlessCost$ gate: every API with an UnlessCost$ pays (or declines)
+		// before its body runs. This is the one shared unless-cost path —
+		// the gate poses the pay decision, rules' resume arm charges the
+		// cost, and the re-entry applies the orientation. An SA whose body
+		// is skipped still walks sa.Sub (Forge's UnlessResolveSubs default
+		// 'Always').
+		if !unlessProceed(h, c, sa) {
+			if h.Suspended() {
+				// The gate posed the unless-pay ask and suspended the
+				// resolution: stop here exactly as an asking effect body
+				// would. The resume re-enters THIS SA (the ask's ResumeSA),
+				// where the gate consumes the answer and the loop walks
+				// sa.Sub — so this loop's own continuation is dropped, like
+				// any asking loop's (SuspendContinuation's innermost rule).
+				h.SuspendContinuation(sa)
+				return
+			}
+			// The body is skipped (paid on an unswitched shape, or every
+			// payer declined on a switched one) but the Sub chain still
+			// walks: Forge's UnlessResolveSubs default 'Always' resolves the
+			// subs whether the cost was paid or not.
 			continue
 		}
 		fn(h, c, sa)

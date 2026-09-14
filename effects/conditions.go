@@ -25,9 +25,8 @@ import (
 // report); those subs run UNCONDITIONALLY, the pre-gate behaviour.
 //
 // Deliberate scope (task fb-3f1cc033): the wider Condition vocabulary —
-// ConditionCheckSVar$ (802 lines), ConditionSVarCompare$ (705),
-// Condition$ (577), ConditionZone$ (57), ConditionManaSpent$ (34), the
-// other ConditionDefined$ values (Targeted 161, ChosenCard 90, Self 72,
+// Condition$ (577 raw lines), ConditionZone$ (57), ConditionManaSpent$ (34),
+// the other ConditionDefined$ values (Targeted 161, ChosenCard 90, Self 72,
 // Imprinted 34, ...), and ConditionNotPresent$ (8) — is NOT implemented. A
 // sub carrying any of those is UNRESOLVED: conditionMet reports
 // resolved=false and Resolve's walk runs the sub UNCONDITIONALLY, exactly
@@ -38,6 +37,15 @@ import (
 // in ways no test asked for, while ungated preserves every observable
 // behaviour except the one shape the supported set covers. Every
 // unresolved key family is listed in the task report's Issues section.
+//
+// ConditionCheckSVar$/ConditionSVarCompare$ ARE implemented (added with the
+// unless-cost task): the SVar name — an SVar body the count evaluator
+// knows, an inline $ expression, or a signed literal — is compared under
+// <op><operand> (Forge's default GE1), and an unknown name stays
+// UNRESOLVED (run-unconditionally), never a silent 0. This is what makes
+// Vampire Lacerator's "you lose 1 life unless an opponent has 10 or less
+// life" (ConditionCheckSVar$ OpponentSmallest | ConditionSVarCompare$ GE11)
+// gate correctly.
 
 // conditionMet evaluates sa's Condition* gate against the resolving
 // context. It returns (met, resolved):
@@ -55,21 +63,82 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	present := strings.TrimSpace(sa.Params["ConditionPresent"])
 	notPresent := strings.TrimSpace(sa.Params["ConditionNotPresent"])
 	compare := strings.TrimSpace(sa.Params["ConditionCompare"])
-	if defined == "" && present == "" && notPresent == "" && compare == "" {
+	checkSVarParam := strings.TrimSpace(sa.Params["ConditionCheckSVar"])
+	if defined == "" && present == "" && notPresent == "" && compare == "" && checkSVarParam == "" {
 		return true, false // not gated
 	}
-	// Any other Condition* key (CheckSVar, SVarCompare, Zone, ManaSpent,
-	// PlayerTurn, ...) beside the supported four makes the shape
-	// unsupported. ConditionDescription$ is display text, not part of the
-	// evaluation, and is ignored.
+	// Any other Condition* key (Zone, ManaSpent, PlayerTurn, ...) beside the
+	// supported six makes the shape unsupported. ConditionDescription$ is
+	// display text, not part of the evaluation, and is ignored.
 	for k := range sa.Params {
 		if !strings.HasPrefix(k, "Condition") || k == "ConditionDescription" {
 			continue
 		}
 		switch k {
-		case "ConditionDefined", "ConditionPresent", "ConditionNotPresent", "ConditionCompare":
+		case "ConditionDefined", "ConditionPresent", "ConditionNotPresent", "ConditionCompare",
+			"ConditionCheckSVar", "ConditionSVarCompare":
 		default:
 			return false, false
+		}
+	}
+	// The ConditionCheckSVar$/ConditionSVarCompare$ gate (802/705 raw corpus
+	// lines): the SVar name is resolved through the count evaluator and
+	// compared under <op><operand> — Forge's SpellAbilityCondition default is
+	// GE 1 when no ConditionSVarCompare$ is written, and the operand is itself
+	// SVar-resolvable (Braids, Arisen Nightmare's "ConditionCheckSVar$ X |
+	// ConditionSVarCompare$ EQ0" where SVar:X:Remembered$Valid
+	// Card.RememberedPlayerCtrl answers "did any remembered opponent sacrifice
+	// this way"). An SVar name that resolves to nothing and is not a literal
+	// keeps the unresolved (run-unconditionally) behaviour, never a silent 0.
+	if checkSVar := checkSVarParam; checkSVar != "" {
+		value, ok := resolveSVarCount(h, c, checkSVar)
+		if !ok {
+			return false, false
+		}
+		op, operand := "GE", "1"
+		if cmp := strings.TrimSpace(sa.Params["ConditionSVarCompare"]); cmp != "" {
+			if len(cmp) < 3 {
+				return false, false
+			}
+			op, operand = cmp[:2], cmp[2:]
+		}
+		rhs, ok := resolveSVarCount(h, c, operand)
+		if !ok {
+			return false, false
+		}
+		switch op {
+		case "EQ":
+			if value != rhs {
+				return false, true
+			}
+		case "NE":
+			if value == rhs {
+				return false, true
+			}
+		case "GE":
+			if value < rhs {
+				return false, true
+			}
+		case "GT":
+			if value <= rhs {
+				return false, true
+			}
+		case "LE":
+			if value > rhs {
+				return false, true
+			}
+		case "LT":
+			if value >= rhs {
+				return false, true
+			}
+		default:
+			return false, false
+		}
+		// A sub gated ONLY by the SVar check (the corpus's dominant shape) is
+		// fully resolved here; the Defined/Present grammar below does not
+		// apply to it.
+		if defined == "" && present == "" && notPresent == "" {
+			return true, true
 		}
 	}
 	if notPresent != "" {
@@ -174,4 +243,31 @@ func parseConditionCompare(v string) (op string, n int, ok bool) {
 		return "", 0, false
 	}
 	return op, n, true
+}
+
+// resolveSVarCount resolves a ConditionCheckSVar$ name (or a
+// ConditionSVarCompare$ operand) to its count. A signed literal passes
+// through; an SVar name resolves through the resolving card's table and its
+// body through the count evaluator (Remembered$Valid Card.RememberedPlayerCtrl,
+// Count$..., Sacrificed$...); anything else is offered to the evaluator as an
+// inline expression. ok is false only for a name that is neither a literal
+// nor a table entry (the unresolved, run-anyway behaviour).
+func resolveSVarCount(h Host, c *Ctx, name string) (int32, bool) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return 0, false
+	}
+	if n, err := strconv.Atoi(name); err == nil {
+		return int32(n), true
+	}
+	if c.SVars != nil {
+		if body, ok := c.SVars[name]; ok {
+			return EvalCount(h, c, body), true
+		}
+	}
+	// An inline Count$/Remembered$/Sacrificed$ expression is its own body.
+	if strings.Contains(name, "$") {
+		return EvalCount(h, c, name), true
+	}
+	return 0, false
 }

@@ -41,8 +41,19 @@ func TestChoosePolicy(t *testing.T) {
 	if got := choose("x", 4, 1, 1).Choices; len(got) != 1 || got[0] != 3 {
 		t.Fatalf("x: %v, want the highest", got)
 	}
-	if got := choose("exile", 5, 0, 3).Choices; len(got) != 3 || got[0] != 0 || got[2] != 2 {
-		t.Fatalf("exile: %v, want the first three", got)
+	// An optional give-up (Min 0) is declined — the policy cannot read what
+	// the exile or sacrifice buys (Scapeshift's "sacrifice any number of
+	// lands" then searches for exactly that many; see the policy's arm), so
+	// it hands over nothing. A mandatory ask (Min > 0) still gives up the
+	// least valuable Max options.
+	if got := choose("exile", 5, 0, 3).Choices; len(got) != 0 {
+		t.Fatalf("exile optional: %v, want nothing given up", got)
+	}
+	if got := choose("exile", 5, 2, 3).Choices; len(got) != 3 || got[0] != 0 || got[2] != 2 {
+		t.Fatalf("exile mandatory: %v, want the three least valuable", got)
+	}
+	if got := choose("sacrifice", 2, 0, 1).Choices; len(got) != 0 {
+		t.Fatalf("sacrifice optional: %v, want nothing given up", got)
 	}
 	if got := choose("sacrifice", 2, 1, 1).Choices; len(got) != 1 || got[0] != 0 {
 		t.Fatalf("sacrifice: %v", got)

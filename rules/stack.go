@@ -1147,3 +1147,99 @@ func targetsPermanents(spec string) bool {
 	}
 	return false
 }
+
+// payUnlessCost charges a mid-resolution UnlessCost$ to payer p, all or
+// nothing: every non-mana component's feasibility is checked BEFORE anything
+// is charged, so a payer who cannot cover one part pays nothing at all.
+// Mana (and a fixed PayLife<N>, and Phyrexian life) goes through payMana so
+// the ManaAdd/LifeChange events a replay needs are the ordinary ones. A
+// Sac<N/Spec> part sacrifices the payer's first N eligible permanents in
+// battlefield order and a Discard<N/Spec> part discards the payer's first N
+// eligible cards in hand order — deterministic stand-in picks, not a real
+// payer choice (CR 701.21a wants the payer to choose; a nested asking round
+// inside payment is not built yet, and the deterministic pick is
+// replay-stable and never wedges). A SubCounter<N/Kind> part removes the
+// counters from the resolving ability's source, the same host Forge's
+// payCostToPreventEffect takes them from. Reports whether the whole cost was
+// paid; a false return is the unless-pay arm's decline.
+func (e *Engine) payUnlessCost(p state.PlayerID, cost Cost, ctx *effects.Ctx, stackObj state.ObjID) bool {
+	if int(p) < 0 || int(p) >= len(e.G.Players) {
+		return false
+	}
+	g := e.G
+	// The source the SubCounter parts drain and the spec context the
+	// Sac/Discard specs evaluate against ("You" in a Sac cost spec is the
+	// payer, since they pay from their own battlefield and hand).
+	src := ctx.Source
+	if o := g.Obj(stackObj); o != nil && o.Ability != nil {
+		src = o.Source
+	}
+	sc := ctx.SpecContext(p)
+	pick := func(zone state.Zone, part CostPart) ([]state.ObjID, bool) {
+		if int(p) >= len(g.Players) {
+			return nil, false
+		}
+		var eligible []state.ObjID
+		for _, id := range g.Zone(zone, p) {
+			if effects.MatchesSpecCtx(g, part.Spec, id, sc) {
+				eligible = append(eligible, id)
+			}
+		}
+		if int32(len(eligible)) < part.N {
+			return nil, false
+		}
+		return eligible[:part.N], true
+	}
+	var sacIDs, discardIDs []state.ObjID
+	for _, part := range cost.Sac {
+		ids, ok := pick(state.ZBattlefield, part)
+		if !ok {
+			return false
+		}
+		sacIDs = append(sacIDs, ids...)
+	}
+	for _, part := range cost.Discard {
+		ids, ok := pick(state.ZHand, part)
+		if !ok {
+			return false
+		}
+		discardIDs = append(discardIDs, ids...)
+	}
+	type counterDrain struct {
+		obj  state.ObjID
+		kind string
+		n    int32
+	}
+	var drains []counterDrain
+	for _, part := range cost.SubCounter {
+		o := g.Obj(src)
+		if o == nil {
+			return false
+		}
+		have := int32(0)
+		for _, ct := range o.Counters {
+			if ct.Kind == part.Spec {
+				have += ct.N
+			}
+		}
+		if have < part.N {
+			return false
+		}
+		drains = append(drains, counterDrain{obj: o.ID, kind: part.Spec, n: part.N})
+	}
+	// Everything is affordable: charge. Mana and life first (the ordinary
+	// payment events), then the non-mana moves.
+	if !e.payMana(p, cost) {
+		return false
+	}
+	for _, id := range sacIDs {
+		e.emit(events.Sacrifice(id))
+	}
+	for _, id := range discardIDs {
+		e.emit(events.Discard(id, p))
+	}
+	for _, d := range drains {
+		e.emit(events.Event{Kind: events.CounterChange, Obj: d.obj, Counter: d.kind, Amount: -d.n})
+	}
+	return true
+}

@@ -109,7 +109,7 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 	// True appended every countered spell). The /Op suffix is applied the
 	// same way Count$ applies it. An unmodelled head degrades to zero.
 	if body, ok := strings.CutPrefix(expr, "Remembered$"); ok {
-		return evalRemembered(c, strings.TrimSpace(body))
+		return evalRemembered(h, c, strings.TrimSpace(body))
 	}
 	// A TriggerCount$... expression answers a question about the event that
 	// fired the trigger currently resolving -- "how much damage did that event
@@ -129,6 +129,21 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 	if !ok {
 		if n, err := strconv.Atoi(expr); err == nil {
 			return int32(n)
+		}
+		// A bare head form: Forge writes SVar bodies both ways
+		// ("Count$PlayerCountOpponents" and
+		// "SVar:OpponentSmallest:PlayerCountOpponents$LowestLifeTotal"), and
+		// the head/argument separator of the bare form is the "$" the
+		// Count$ form spells as a space. A bare head this evaluator knows
+		// (with its "/Op" suffix) evaluates exactly like its Count$ twin;
+		// anything else degrades to zero as before.
+		body2, op2, hasOp2 := strings.Cut(expr, "/")
+		if h2, a2, has := strings.Cut(strings.TrimSpace(body2), "$"); has && bareCountHead(h2) {
+			n := evalCountBody(h, c, h2+" "+a2, depth)
+			if hasOp2 {
+				n = applyCountOp(n, op2)
+			}
+			return n
 		}
 		return 0
 	}
@@ -217,16 +232,39 @@ func sacrificedNumeric(c *Ctx, f func(state.SacrificedInfo) int32) int32 {
 	return n
 }
 
-func evalRemembered(c *Ctx, body string) int32 {
+func evalRemembered(h Host, c *Ctx, body string) int32 {
 	body, op, hasOp := strings.Cut(body, "/")
 	var n int32
 	switch strings.TrimSpace(body) {
 	case "Amount":
 		n = int32(len(c.Remembered))
 	default:
-		// An out-of-scope head degrades to zero, the same conservative
-		// no-op evalSacrificed's default takes.
-		return 0
+		// Remembered$Valid <spec> — the count of remembered entries matching
+		// an ordinary card spec (Braids, Arisen Nightmare's
+		// SVar:X:Remembered$Valid Card.RememberedPlayerCtrl, which answers
+		// "how many remembered cards are controlled by a remembered player",
+		// i.e. "did any remembered opponent sacrifice this way"). Every
+		// remembered entry — cards AND players — is offered to the matcher;
+		// a player entry matches only a player-typed base. Evaluated with
+		// the resolution's own bindings (Remembered itself, so a compound
+		// spec like Card.RememberedPlayerCtrl sees the remembered players).
+		if spec, ok := strings.CutPrefix(strings.TrimSpace(body), "Valid "); ok && h != nil {
+			n = 0
+			g := h.Game()
+			for _, t := range c.Remembered {
+				if t.IsPlayer {
+					continue
+				}
+				sc := c.SpecContext(c.Controller)
+				if MatchesSpecCtx(g, strings.TrimSpace(spec), t.Obj, sc) {
+					n++
+				}
+			}
+		} else {
+			// An out-of-scope head degrades to zero, the same conservative
+			// no-op evalSacrificed's default takes.
+			return 0
+		}
 	}
 	if hasOp {
 		n = applyCountOp(n, op)
@@ -243,16 +281,26 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 	case "Compare":
 		return evalCompare(h, c, arg, depth)
 	case "xPaid":
-		return c.X
+		// CR 107.3i: the {X} paid for the resolving spell or ability. On a
+		// TRIGGER of a permanent that was cast for {X} the ability object's
+		// own X is zero (a trigger was never paid an X), so the paid value
+		// is read off the source permanent, which CastInfo carried out of
+		// the cast onto the battlefield object (Meathook Massacre II's
+		// SVar:X:Count$xPaid driving "each player sacrifices X creatures").
+		if c.X != 0 {
+			return c.X
+		}
+		if o := g.Obj(c.Source); o != nil {
+			return o.X
+		}
+		return 0
 	case "YourLifeTotal":
 		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
 			return 0
 		}
 		return g.Players[c.Controller].Life
-	case "PlayerCountPlayers":
-		return int32(g.AliveCount())
-	case "PlayerCountOpponents":
-		return int32(g.AliveCount() - 1)
+	case "PlayerCountPlayers", "PlayerCountOpponents":
+		return playerCountHead(g, c, head, arg)
 	case "ThisTurnCast":
 		// Task 17 (Storm): spells cast this turn by anyone, read off the
 		// log via h.CastThisTurn() so a replay derives the same count. The
@@ -530,4 +578,60 @@ func SetSVars(c *Ctx, sv map[string]string) {
 		copied[k] = v
 	}
 	c.SVars = copied
+}
+
+// playerCountHead resolves the PlayerCountPlayers$/PlayerCountOpponents$
+// heads and their $argument. "Amount" (and no argument at all) is the count
+// itself: the number of alive players, or of alive opponents of the
+// resolving controller. The life-total arguments read the set's extreme
+// life (PlayerCountOpponents$LowestLifeTotal is Vampire Lacerator's
+// "unless an opponent has 10 or less life"). The corpus's other arguments —
+// HighestValid, HighestCounters, HighestCardsInGraveyard/Hand,
+// PlayerCountPropertyYou* — name properties this evaluator does not model;
+// degrading them to zero follows the unmodelled-head convention here rather
+// than silently answering with the bare count, which the life-total and
+// hand-size comparisons would misread as a real total.
+func playerCountHead(g *state.Game, c *Ctx, head, arg string) int32 {
+	// The referenced set: all alive players, or the alive opponents of the
+	// resolving controller.
+	var ps []state.PlayerID
+	if head == "PlayerCountPlayers" {
+		ps = g.AliveFrom(0)
+	} else {
+		for _, p := range g.AliveFrom(c.Controller) {
+			if p != c.Controller {
+				ps = append(ps, p)
+			}
+		}
+	}
+	switch arg {
+	case "", "Amount":
+		return int32(len(ps))
+	case "LowestLifeTotal", "HighestLifeTotal":
+		if len(ps) == 0 {
+			return 0
+		}
+		best := g.Players[ps[0]].Life
+		for _, p := range ps[1:] {
+			l := g.Players[p].Life
+			if (arg == "LowestLifeTotal" && l < best) || (arg == "HighestLifeTotal" && l > best) {
+				best = l
+			}
+		}
+		return best
+	}
+	return 0
+}
+
+// bareCountHead reports whether h names a count head this evaluator
+// implements, for the bare (Count$-less) SVar-body form.
+func bareCountHead(h string) bool {
+	switch h {
+	case "Compare", "xPaid", "YourLifeTotal", "PlayerCountPlayers",
+		"PlayerCountOpponents", "ThisTurnCast", "RememberedSize",
+		"CardPower", "CardToughness", "Valid", "ValidExile", "ValidGraveyard",
+		"ValidHand", "ValidLibrary", "ValidStack":
+		return true
+	}
+	return false
 }

@@ -332,74 +332,14 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 // for the unsupported cost, switched and multi-target shapes.
 //
 // UnlessSwitched$ True inverts the whole ask -- paying CAUSES the counter --
-// and is not implemented. The ask is therefore SUPPRESSED on those five
-// corpus shapes rather than posed backwards, which keeps the unconditional
-// counter they had before this ask existed. See .superpowers/ISSUES.md I-4.
+// and is now real switched semantics through the shared unlessProceed gate
+// (effects/resolve dispatch): paying counters, declining lets the spell
+// resolve. The gate lives in effects.Resolve so every API shares it; the
+// pay/decline labels for a Counter's ask live in poseUnlessAsk's
+// Counter arm.
 func effCounter(h Host, c *Ctx, sa *cards.SA) {
-	skip := false
-	switched := strings.EqualFold(strings.TrimSpace(sa.Params["UnlessSwitched"]), "True")
-	// RememberCountered$ True / RememberCounteredSA$ True append every object
-	// this effect counters (spells AND ability objects) to Ctx.Remembered, in
-	// stack order, so a SubAbility$ chained after the counter can count them:
-	// Swift Silence's "Draw a card for each spell countered this way"
-	// (SVar:X:Remembered$Amount) and Glen Elendra's Answer's "Create a 1/1
-	// Faerie for each spell and ability countered this way"
-	// (SVar:X:Count$RememberedSize). Forge spells the flag two ways because
-	// its own Defined$ forms distinguish a remembered CARD from a remembered
-	// SA; every consumer this build has counts Remembered, so both flags
-	// append the countered object itself.
 	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberCountered"]), "True") ||
 		strings.EqualFold(strings.TrimSpace(sa.Params["RememberCounteredSA"]), "True")
-	if cost := strings.TrimSpace(sa.Params["UnlessCost"]); cost != "" && !switched {
-		// fx42: take the answer into a local and clear c.UnlessPay BEFORE
-		// handling it, so a NESTED unless-pay consumer reached below this one
-		// in the same walk (a Counter or CopySpellAbility in this effect's Sub
-		// chain) does not inherit this consumer's answered value — it must
-		// pose its own ask. The only readers of Ctx.UnlessPay are this
-		// primitive's top and effCopySpellAbility's top, and neither reads it
-		// again afterwards, so clearing here confines the answer to the
-		// primitive that asked for it.
-		ans := c.UnlessPay
-		c.UnlessPay = ""
-		switch ans {
-		case "pay":
-			// Re-entry, paid: the spell resolves normally, so do NOT counter.
-			skip = true
-		case "decline":
-			// Re-entry, declined: counter it below.
-		default:
-			// First pass: pose the pay decision to the controller of the
-			// countered spell. Untargeted scripts fall back to c.Controller;
-			// their explicit UnlessPayer selectors are not implemented.
-			payer := c.Controller
-			if len(c.Targets) > 0 {
-				payer = PlayerOf(h, c, c.Targets[0])
-			}
-			if strings.TrimSpace(sa.Params["UnlessPayer"]) == "TriggeredCardController" {
-				if p, ok := TriggeredCardController(h.Game(), c.TriggerContext, c.Remembered); ok {
-					payer = p
-				}
-			}
-			shown := unlessCostLabel(cost)
-			d := &decision.Decision{Player: payer, Kind: decision.KModes,
-				Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay",
-				ResumeSA: sa, Prompt: "Pay " + shown + " to save the spell, or decline",
-				Options: []decision.Option{
-					{Index: 0, Kind: "mode", Label: "Pay " + shown + " — don't counter", Obj: c.Source, Player: payer},
-					{Index: 1, Kind: "mode", Label: "Don't pay", Obj: c.Source, Player: payer},
-				}}
-			if h.Ask(d) {
-				return // resolution suspended; the answer re-enters this effect.
-			}
-			// Fuzz/no-engine host: the deterministic decline (R-9). The pay
-			// was never posed, so resolve as if the player declined: counter.
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "may pay declined (UnlessCost not asked on this host)"})
-		}
-	}
-	if skip {
-		return
-	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -432,33 +372,6 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 			From: state.ZStack, To: to, Text: "countered"})
 	}
-}
-
-// unlessCostLabel renders an UnlessCost$ value for the humans a
-// decision.Decision can reach. A plain mana cost ("1", "3", "2 U", "R R") is
-// already readable and comes back verbatim -- that is every repo-deck Counter
-// with an UnlessCost$ except Mausoleum Wanderer and Reality Smasher.
-// Everything else is raw Forge script: a bare SVar name (X, Y, Z, whose value
-// this engine does not read at all) or a bracket form (Discard<1/Hand>,
-// ExileFromGrave<1/All>, PayLife<5>). Those must not reach a player's screen,
-// so they render as "the cost". Display only: the amount actually charged is
-// still ParseCost(sa.Params["UnlessCost"]) in rules' resumeResolution, and
-// AGENTS.md records what that substitution really costs.
-func unlessCostLabel(cost string) string {
-	fields := strings.Fields(cost)
-	if len(fields) == 0 {
-		return "the cost"
-	}
-	for _, f := range fields {
-		if _, err := strconv.Atoi(f); err == nil {
-			continue // generic amount
-		}
-		if strings.Trim(f, "WUBRGC") == "" {
-			continue // colour/colourless symbols
-		}
-		return "the cost"
-	}
-	return cost
 }
 
 // effDelayedTrigger implements Mode$ Phase delayed triggers -- the
