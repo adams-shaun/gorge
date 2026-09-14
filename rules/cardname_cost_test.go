@@ -80,11 +80,13 @@ func TestCardnameSacrificeAbilityOfferedAndPaid(t *testing.T) {
 			e.Advance()
 			opt := abilityOption(t, e, source, idx)
 			submitChoices(t, e, opt.Index)
+			// A bare CARDNAME cost has exactly one possible payment: its source.
+			// It must be recorded without a KChoose; a target ask, when the
+			// ability has one, remains a real choice and still comes before payment.
 			d := e.Pending()
-			if d == nil || d.Kind != decision.KChoose || d.Min != 1 || d.Max != 1 || len(d.Options) != 1 || d.Options[0].Kind != "sacrifice" || d.Options[0].Obj != source {
-				t.Fatalf("payment must offer only source %d, never same-name decoy %d: %+v", source, decoy, d)
+			if d != nil && d.Kind == decision.KChoose {
+				t.Fatalf("self-sacrifice payment wrongly posed a choice for source %d, never same-name decoy %d: %+v", source, decoy, d)
 			}
-			submitChoices(t, e, d.Options[0].Index)
 			// CR 601.2c-before-601.2h: the sacrifice is part of paying the cost
 			// (601.2h), so it is executed only once the target is chosen. Answer
 			// any pending target (the engine offers only legal targets; prefer
@@ -127,6 +129,9 @@ func TestCardnameSacrificeCostCannotUseAnotherCopy(t *testing.T) {
 	// stale/manual activation reaches it without the offer gate.
 	start := len(e.L.Events)
 	e.beginActivation(0, decision.Option{Obj: source, Ability: 0})
+	if !hasNote(e, "sacrifice cost no longer payable") {
+		t.Fatal("missing unpayable self-sacrifice abort Note")
+	}
 	if e.cast != nil || e.Pending() != nil || len(e.G.Stack) != 0 {
 		t.Fatal("payment accepted another copy")
 	}

@@ -242,11 +242,12 @@ func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability b
 	reserved := map[state.ObjID]bool{}
 	for _, part := range cost.Sac {
 		var avail []state.ObjID
+		matchSpec := sacrificeMatchSpec(part.Spec)
 		for _, oid := range e.G.Zone(state.ZBattlefield, p) {
 			if reserved[oid] { // an earlier Sac part already claimed this one
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, part.Spec, oid, p, id) {
+			if effects.MatchesSpecFrom(e.G, matchSpec, oid, p, id) {
 				avail = append(avail, oid)
 			}
 		}
@@ -273,6 +274,17 @@ func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability b
 		return false
 	}
 	return true
+}
+
+// sacrificeMatchSpec normalizes Forge's NICKNAME spelling to CARDNAME before
+// the source-aware filter is applied. The filter owns CARDNAME's object-ID
+// semantics; costs use this helper at both offer and payment time so the two
+// stages cannot disagree about whether a self-reference is payable.
+func sacrificeMatchSpec(spec string) string {
+	if strings.EqualFold(spec, "NICKNAME") {
+		return "CARDNAME"
+	}
+	return spec
 }
 
 // discardCandidates returns the still-available cards that can pay one
@@ -721,9 +733,10 @@ func (e *Engine) sacAsk() bool {
 	pc := e.cast
 	for pc.sacPart < len(pc.cost.Sac) {
 		part := pc.cost.Sac[pc.sacPart]
+		matchSpec := sacrificeMatchSpec(part.Spec)
 		var candidates []state.ObjID
 		for _, oid := range e.G.Zone(state.ZBattlefield, pc.player) {
-			if effects.MatchesSpecFrom(e.G, part.Spec, oid, pc.player, pc.card) {
+			if effects.MatchesSpecFrom(e.G, matchSpec, oid, pc.player, pc.card) {
 				already := false
 				for _, s := range pc.sacs {
 					if s == oid {
@@ -759,6 +772,19 @@ func (e *Engine) sacAsk() bool {
 			// succeed.
 			e.abortCast(pc, "sacrifice cost no longer payable; cast/activation aborted", true)
 			return true
+		}
+		// CARDNAME and NICKNAME are bare source-object references in Forge
+		// sacrifice costs. When the source is their sole candidate, this exact
+		// one-object payment has no player choice: record it and settle the next
+		// cost part instead of posing a KChoose the player can only answer one
+		// way. The candidate check above deliberately stays first, so a source
+		// that has left the battlefield still takes the ordinary unpayable-cost
+		// abort path.
+		if part.N == 1 && len(candidates) == 1 && candidates[0] == pc.card &&
+			(strings.EqualFold(part.Spec, "CARDNAME") || strings.EqualFold(part.Spec, "NICKNAME")) {
+			pc.sacs = append(pc.sacs, pc.card)
+			pc.sacPart++
+			continue
 		}
 		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
 			Prompt: "Sacrifice a permanent to cast " + e.G.Obj(pc.card).Face().Name,

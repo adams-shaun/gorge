@@ -119,11 +119,9 @@ func TestScaldingTarnPayLifeActivation(t *testing.T) {
 			beforePool := e.G.Players[0].Pool
 			opt := abilityOption(t, e, id, 0)
 			submitChoices(t, e, opt.Index)
-			d := e.Pending()
-			if d == nil || d.Kind != decision.KChoose || len(d.Options) != 1 || d.Options[0].Kind != "sacrifice" || d.Options[0].Obj != id {
-				t.Fatalf("sacrifice decision = %+v, want Scalding Tarn", d)
+			if d := e.Pending(); d != nil && d.Kind == decision.KChoose {
+				t.Fatalf("Scalding Tarn wrongly posed a singleton sacrifice choice: %+v", d)
 			}
-			submitChoices(t, e, d.Options[0].Index)
 			if got := e.G.Players[0].Life; got != beforeLife-1 {
 				t.Fatalf("life after activation = %d, want %d", got, beforeLife-1)
 			}
@@ -137,7 +135,7 @@ func TestScaldingTarnPayLifeActivation(t *testing.T) {
 			// poses its library-search decision.
 			submitChoices(t, e, 0)
 			submitChoices(t, e, 0)
-			d = e.Pending()
+			d := e.Pending()
 			if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "search" {
 				t.Fatalf("search decision = %+v", d)
 			}
