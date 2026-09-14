@@ -32,7 +32,13 @@ const FACES = COLOURS + 'C';
  * than being dropped, so one unparseable pip can never blank the rest of a
  * cost. Unknown pips render as themselves so the corruption is visible.
  */
-function parseSymbol(t: string): ManaSymbol {
+/**
+ * parseSymbol classifies ONE whitespace-delimited mana token. Exported for the
+ * oracle-text tokenizer (lib/oracletext.ts), which reuses this exact classifier
+ * so a {B} in printed oracle text and a B in a Forge cost draw identical pips
+ * — there must not be a second colour classifier.
+ */
+export function parseSymbol(t: string): ManaSymbol {
   if (/^\d+$/.test(t)) return { kind: 'generic', value: Number(t), text: t };
   if (/^[XYZ]$/.test(t)) return { kind: 'variable', letter: t as 'X' | 'Y' | 'Z', text: t };
   if (new RegExp(`^[${COLOURS}]$`).test(t)) return { kind: 'colour', colour: t as ManaColour, text: t };
@@ -46,8 +52,11 @@ function parseSymbol(t: string): ManaSymbol {
   if (m) return { kind: 'phyrexianHybrid', a: col(m[1]), b: col(m[2]), text: t };
   m = t.match(new RegExp(`^P([${COLOURS}])([${COLOURS}])$`));
   if (m) return { kind: 'phyrexianHybrid', a: col(m[1]), b: col(m[2]), text: t };
-  // Phyrexian single colour.
-  m = t.match(new RegExp(`^([${COLOURS}])P$`));
+  // Phyrexian single colour. The slash form ("W/P") is Scryfall's braced
+  // notation for the same symbol — the oracle-text tokenizer feeds braced
+  // tokens here verbatim, so the printed {W/P} and the corpus "WP" must
+  // classify alike.
+  m = t.match(new RegExp(`^([${COLOURS}])/?P$`));
   if (m) return { kind: 'phyrexian', colour: col(m[1]), text: t };
   // Twobrid — {2/X} in both corpus notations, slashed and unslashed.
   m = t.match(new RegExp(`^2/([${COLOURS}])$`));
