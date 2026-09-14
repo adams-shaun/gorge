@@ -296,11 +296,11 @@ type Engine struct {
 	manaActivation        *manaActivation
 	manaColorActivation   *manaColorActivation
 	manaDiscardActivation *manaDiscardActivation
-	// cumulative holds the upkeep's in-flight cumulative-upkeep flow
-	// (kw:Cumulative upkeep, rules/cumulative.go): the permanents still to
-	// age and the one currently asked. Plain data, Clone-copied, the same
-	// class as the mana-activation states above.
-	cumulative *cumulativeUpkeep
+	// Resolution-time payment windows. cumulative belongs to the replayable
+	// keyword trigger; triggerCost belongs to an ordinary triggered effect
+	// carrying Cost$ (Mana Vault). Both are plain data and Clone-copied.
+	cumulative  *cumulativeUpkeep
+	triggerCost *triggeredEffectCost
 
 	// cmdZone is the queue of parked commander zone changes (CR 903.9, Task
 	// m32, rules/replacement.go): MoveZone events a commander is about to

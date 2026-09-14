@@ -128,7 +128,9 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 // sets e.resume, and handleModes clears it the moment the answer lands, so
 // the resume pass re-enters the chain with nothing suspended and walks the
 // rest of it exactly once.
-func (e *Engine) Suspended() bool { return e.resume != nil }
+func (e *Engine) Suspended() bool {
+	return e.resume != nil || e.cumulative != nil || e.triggerCost != nil
+}
 
 // SuspendContinuation implements effects.Host.SuspendContinuation: an
 // effects.Resolve loop stopped because the resolution suspended at a
@@ -297,6 +299,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		svars = f.SVars
 	}
 	effects.SetSVars(ctx, svars)
+	// An accepted optional trigger may itself carry Cost$ (Mana Vault's
+	// "you may pay {4}; if you do" untap). The optional answer chooses to
+	// attempt the effect; payment is a separate resolution-time window with
+	// mana-ability opportunities. Direct mandatory triggers enter the same
+	// window from resolveTop.
+	if rp.kind == "optional" && rp.sa != nil && rp.sa.API != "CumulativeUpkeep" && rp.sa.Params["Cost"] != "" {
+		e.startTriggeredEffectCost(rp, ctx.Source)
+		return
+	}
 	if rp.sa != nil {
 		switch rp.kind {
 		case "unless_pay":
@@ -378,6 +389,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.ImprintDone = true
+		case "untap":
+			ctx.Untap = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.Untap = append(ctx.Untap, o.Obj)
+				}
+			}
+			ctx.UntapDone = true
 		case "dig":
 			// A Dig look-and-take pick was answered: the library owner chose
 			// which of the window's ChangeValid$-eligible cards to move to
@@ -420,6 +439,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			} else {
 				ctx.RevealOpt = "no"
 			}
+		case "effect_paid":
+			// The trigger's Cost$ was paid by triggeredCostAnswer; run the
+			// parked effect without opening the payment window a second time.
 		case "optional":
 			// CR 603.5: the decider answered yes to applying this optional
 			// triggered ability's effect. The answer is a yes/no, not a mode

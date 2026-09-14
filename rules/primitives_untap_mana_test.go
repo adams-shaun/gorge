@@ -3,6 +3,7 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
@@ -139,6 +140,35 @@ func TestBasaltMonolithUntap(t *testing.T) {
 	}
 }
 
+func TestCloudOfFaeriesUntapUpToSelection(t *testing.T) {
+	const cloud = "Name:Cloud of Faeries\nManaCost:1 U\nTypes:Creature Faerie\nPT:1/1\n" +
+		"T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigUntap\n" +
+		"SVar:TrigUntap:DB$ Untap | UntapUpTo$ True | UntapType$ Land | Amount$ 2\nOracle:x\n"
+	e := handEngine(t)
+	lands := []state.ObjID{onBoard(t, e, 0, mountainScript()), onBoard(t, e, 0, forestScript()), onBoard(t, e, 0, mountainScript())}
+	for _, id := range lands {
+		e.emit(events.Event{Kind: events.Tap, Obj: id})
+	}
+	o := e.G.AddObject(card(t, cloud), 0)
+	o.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), o.ID))
+	e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZHand, To: state.ZBattlefield})
+	e.putTriggersOnStack()
+	e.resolveTop()
+	d := e.Pending()
+	if d == nil || d.ResumeKind != "untap" || d.Min != 0 || d.Max != 2 || len(d.Options) != 3 {
+		t.Fatalf("Cloud of Faeries untap choice = %+v", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{1}}); err != nil {
+		t.Fatal(err)
+	}
+	for i, id := range lands {
+		if got, want := e.G.Obj(id).Tapped, i != 1; got != want {
+			t.Fatalf("land %d tapped=%v want %v", i, got, want)
+		}
+	}
+}
+
 // TestEndbringerUntapsDuringOtherPlayersUntapSteps proves
 // stat:UntapOtherPlayer on Endbringer's real script: it untaps during every
 // OTHER player's untap step (and a neighbouring permanent without the static
@@ -258,23 +288,53 @@ func TestFellwarStoneAndChromeMoxReflectedShapes(t *testing.T) {
 	}
 
 	e2 := handEngine(t)
-	chrome := onBoard(t, e2, 0, chromeMoxScript)
+	chromeObj := e2.G.AddObject(card(t, chromeMoxScript), 0)
+	chromeObj.Zone = state.ZHand
+	e2.G.SetZone(state.ZHand, 0, append(e2.G.Zone(state.ZHand, 0), chromeObj.ID))
+	chrome := chromeObj.ID
 	blue := e2.G.AddObject(card(t, ancestralRecallScript), 0)
 	blue.Zone = state.ZHand
-	e2.G.SetZone(state.ZHand, 0, append(e2.G.Zone(state.ZHand, 0), blue.ID))
-	// Resolve Chrome Mox's real enter-the-battlefield imprint effect. With one
-	// eligible card the generic ChangeZone selector has no choice to ask.
-	effects.Resolve(e2, &effects.Ctx{Source: chrome, Controller: 0, SVars: e2.G.Obj(chrome).Face().SVars}, e2.G.Obj(chrome).Face().Triggers[0].Effect)
-	if got := e2.G.Obj(chrome).Imprinted; len(got) != 1 || got[0] != blue.ID {
-		t.Fatalf("Chrome Mox did not retain its imprint: %v", got)
+	green := e2.G.AddObject(card(t, giantGrowthScript), 0)
+	green.Zone = state.ZHand
+	e2.G.SetZone(state.ZHand, 0, append(e2.G.Zone(state.ZHand, 0), blue.ID, green.ID))
+	// Drive Chrome Mox's REAL ETB trigger through the stack. Two eligible
+	// cards force the resumed KChoose path; choose the second and prove a
+	// clone replays the same answer byte-for-byte.
+	e2.emit(events.Event{Kind: events.MoveZone, Obj: chrome, From: state.ZHand, To: state.ZBattlefield})
+	e2.putTriggersOnStack()
+	e2.resolveTop()
+	d := e2.Pending()
+	if d == nil || d.Kind != decision.KTriggerOptional {
+		t.Fatalf("Chrome Mox optional trigger did not ask at resolution: %+v", d)
+	}
+	if err := e2.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+		t.Fatalf("accept imprint trigger: %v", err)
+	}
+	d = e2.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 || d.ResumeKind != "imprint" {
+		t.Fatalf("expected two-card imprint choice, got %+v", d)
+	}
+	clone := e2.Clone()
+	in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{1}}
+	if err := e2.Submit(in); err != nil {
+		t.Fatalf("choose second imprint: %v", err)
+	}
+	if err := clone.Submit(in); err != nil {
+		t.Fatalf("replay second imprint on clone: %v", err)
+	}
+	if diff := diffGames(e2.G, clone.G); diff != "" {
+		t.Fatalf("imprint replay diverged:\n%s", diff)
+	}
+	if got := e2.G.Obj(chrome).Imprinted; len(got) != 1 || got[0] != green.ID {
+		t.Fatalf("Chrome Mox did not retain the chosen second imprint: %v", got)
 	}
 	e2.priorityRound()
 	if optionKinds(e2.Pending())["activate"] != 1 {
 		t.Fatalf("Chrome Mox did not offer mana from its imprinted blue card: %+v", e2.Pending())
 	}
 	castFirst(t, e2, "activate")
-	if e2.G.Players[0].Pool[state.MU] != 1 {
-		t.Fatalf("Chrome Mox did not produce the imprinted card's U: %+v", e2.G.Players[0].Pool)
+	if e2.G.Players[0].Pool[state.MG] != 1 {
+		t.Fatalf("Chrome Mox did not produce the chosen imprinted card's G: %+v", e2.G.Players[0].Pool)
 	}
 }
 
@@ -326,13 +386,19 @@ func TestChromaticOrreryManaConvert(t *testing.T) {
 	if optionKinds(e2.Pending())["ability"] != 0 {
 		t.Fatal("red mana paid Quicksilver's {U} ability although only BLUE converts")
 	}
-	// Blue conversion is positive too: it can pay the ability's printed {U}
-	// as a different colour, here represented by a {G} ability cost.
+	// Positive Blue->AnyColor coverage needs a DIFFERENT pip; Quicksilver's
+	// printed ability costs {U}, which would be vacuous. Add a gained-style
+	// green activation to the same source face: the source-scoped static must
+	// let blue pay {G}, so both its printed {U} and gained {G} abilities are
+	// offered. Reverting ManaConvert leaves only the printed one.
+	gained := &cards.SA{Kind: "AB", API: "GainLife", Params: map[string]string{
+		"Cost": "G", "Defined": "You", "LifeAmount": "1", "SpellDescription": "gained green ability"}}
+	e2.G.Obj(e2.G.Zone(state.ZBattlefield, 0)[0]).Face().Abilities = append(e2.G.Obj(e2.G.Zone(state.ZBattlefield, 0)[0]).Face().Abilities, gained)
 	e2.G.Players[0].Pool = state.Mana{}
 	e2.G.Players[0].Pool[state.MU] = 1
 	e2.priorityRound()
-	if optionKinds(e2.Pending())["ability"] != 1 {
-		t.Fatal("blue mana did not pay Quicksilver's own activated ability")
+	if got := optionKinds(e2.Pending())["ability"]; got != 2 {
+		t.Fatalf("blue mana offered %d Quicksilver abilities, want printed {U} plus gained {G}", got)
 	}
 }
 
@@ -399,66 +465,149 @@ func TestDrumbellowerUntapsItsCreaturesForEachOtherPlayer(t *testing.T) {
 	}
 }
 
-// TestMysticRemoraCumulativeUpkeep proves kw:Cumulative upkeep on Mystic
-// Remora's real script: at its controller's upkeep an age counter is placed
-// and a pay-or-sacrifice choice is asked; paying keeps it and leaves the age
-// counters in place, the next upkeep doubles the demand, and an unpayable
-// demand offers sacrifice only.
+// TestMysticRemoraCumulativeUpkeep proves the keyword is a real upkeep
+// trigger. Its age counter is absent while the ability waits on the stack;
+// only resolution places it, then opens the mana-only payment window.
 func TestMysticRemoraCumulativeUpkeep(t *testing.T) {
 	e := handEngine(t)
 	remora := onBoard(t, e, 0, mysticRemoraScript)
 	_ = onBoard(t, e, 0, mountainScript())
 	e.G.Turn = 2
-
-	// Turn 2's upkeep: the pool starts empty, so CR 702.46b opens a mana-only
-	// payment window. Tapping a Mountain returns to the cumulative choice;
-	// paying keeps the Remora and its age counter.
 	e.beginTurn(0)
+	if got := e.G.Obj(remora).Counter("AGE"); got != 0 {
+		t.Fatalf("age counter appeared before the upkeep trigger resolved: %d", got)
+	}
+	e.priorityRound()
+	if len(e.G.Stack) != 1 || e.G.Obj(e.G.Stack[0]).Ability.API != "CumulativeUpkeep" {
+		t.Fatalf("cumulative upkeep was not placed as a triggered ability: %v", e.G.Stack)
+	}
+	if got := e.G.Obj(remora).Counter("AGE"); got != 0 {
+		t.Fatalf("age counter appeared while the trigger was still on stack: %d", got)
+	}
+	e.resolveTop()
 	d := e.Pending()
 	if d == nil || len(d.Options) != 2 || d.Options[0].Kind != "activate" || d.Options[1].Kind != "done" {
-		t.Fatalf("expected cumulative mana window, got %+v", d)
+		t.Fatalf("expected cumulative mana window at resolution, got %+v", d)
+	}
+	if got := e.G.Obj(remora).Counter("AGE"); got != 1 {
+		t.Fatalf("resolution placed %d age counters, want 1", got)
 	}
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
 		t.Fatalf("activate mana: %v", err)
 	}
 	d = e.Pending()
-	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 ||
-		d.Options[0].Kind != "cumulative_pay" || d.Options[1].Kind != "cumulative_sac" {
-		t.Fatalf("expected the cumulative pay-or-sacrifice choice after mana, got %+v", d)
+	if d == nil || len(d.Options) != 2 || d.Options[0].Kind != "cumulative_pay" {
+		t.Fatalf("expected pay-or-sacrifice after mana, got %+v", d)
 	}
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
-		t.Fatalf("submit pay: %v", err)
+		t.Fatalf("pay upkeep: %v", err)
 	}
-	if e.G.Obj(remora).Zone != state.ZBattlefield {
-		t.Fatal("the paid cumulative upkeep sacrificed the Remora")
+	if e.G.Obj(remora).Zone != state.ZBattlefield || len(e.G.Stack) != 0 {
+		t.Fatalf("paid Remora/stack = %s/%v", e.G.Obj(remora).Zone, e.G.Stack)
 	}
-	if e.G.Obj(remora).Counter("AGE") != 1 {
-		t.Fatalf("expected 1 age counter, got %d", e.G.Obj(remora).Counter("AGE"))
-	}
-	if e.G.Players[0].Pool.Total() != 0 {
-		t.Fatalf("the payment did not spend the pool: %+v", e.G.Players[0].Pool)
-	}
+}
 
-	// Turn 3's upkeep with an empty pool: the demand is now {2} for two age
-	// counters, paying is impossible, so ONLY sacrifice is offered and the
-	// answer sacrifices the Remora to its graveyard.
-	// Remove the mana source so the next upkeep has no payment route.
-	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
-		if id != remora {
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
+// TestCumulativeUpkeepOrdersWithOrdinaryUpkeepTriggers pins CR 603.3b: both
+// trigger from the same StepChange and the controller orders them. Resolving
+// the ordinary trigger first still leaves AGE at zero; resolving cumulative
+// upkeep second places it.
+func TestCumulativeUpkeepOrdersWithOrdinaryUpkeepTriggers(t *testing.T) {
+	const watcher = "Name:Upkeep Watcher\nManaCost:1\nTypes:Artifact\n" +
+		"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | Execute$ TrigLife\n" +
+		"SVar:TrigLife:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+	e := handEngine(t)
+	remora := onBoard(t, e, 0, mysticRemoraScript)
+	_ = onBoard(t, e, 0, watcher)
+	e.beginTurn(0)
+	if !e.putTriggersOnStack() || e.Pending() == nil || e.Pending().Kind != decision.KTriggerOrder {
+		t.Fatalf("simultaneous upkeep triggers did not ask for order: %+v", e.Pending())
+	}
+	// Cumulative is discovered before Watcher and choice[0] is pushed first,
+	// so it sits below Watcher and resolves second.
+	d := e.Pending()
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0, 1}}); err != nil {
+		t.Fatal(err)
+	}
+	if len(e.G.Stack) != 2 {
+		t.Fatalf("stack = %v, want two upkeep triggers", e.G.Stack)
+	}
+	e.pending = nil
+	e.resolveTop()
+	if got := e.G.Obj(remora).Counter("AGE"); got != 0 {
+		t.Fatalf("ordinary upkeep trigger observed premature age counter %d", got)
+	}
+	e.resolveTop()
+	if got := e.G.Obj(remora).Counter("AGE"); got != 1 {
+		t.Fatalf("cumulative trigger resolution left AGE=%d, want 1", got)
+	}
+}
+
+func TestManaVaultTriggerChargesItsRealCost(t *testing.T) {
+	e := handEngine(t)
+	vault := onBoard(t, e, 0, "Name:Mana Vault\nManaCost:1\nTypes:Artifact\n"+
+		"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | OptionalDecider$ You | Execute$ TrigUntap\n"+
+		"SVar:TrigUntap:AB$ Untap | Cost$ 4 | Defined$ Self\nOracle:x\n")
+	e.emit(events.Event{Kind: events.Tap, Obj: vault})
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepUpkeep})
+	e.putTriggersOnStack()
+	e.resolveTop()
+	d := e.Pending()
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	d = e.Pending()
+	if d == nil || d.Options[0].Kind != "trigger_cost_pay" {
+		t.Fatalf("Mana Vault did not ask for its {4}: %+v", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	if !e.G.Obj(vault).Tapped {
+		t.Fatal("Mana Vault untapped although its {4} payment failed")
+	}
+}
+
+func TestManaVaultTriggerCanActivateManaAndPay(t *testing.T) {
+	e := handEngine(t)
+	vault := onBoard(t, e, 0, "Name:Mana Vault\nManaCost:1\nTypes:Artifact\n"+
+		"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | OptionalDecider$ You | Execute$ TrigUntap\n"+
+		"SVar:TrigUntap:AB$ Untap | Cost$ 4 | Defined$ Self\nOracle:x\n")
+	for i := 0; i < 4; i++ {
+		_ = onBoard(t, e, 0, mountainScript())
+	}
+	e.emit(events.Event{Kind: events.Tap, Obj: vault})
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepUpkeep})
+	e.putTriggersOnStack()
+	e.resolveTop()
+	d := e.Pending()
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 4; i++ {
+		d = e.Pending()
+		if d == nil || d.Options[0].Kind != "activate" {
+			t.Fatalf("mana payment window %d = %+v", i, d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+			t.Fatal(err)
 		}
 	}
-	e.G.Turn = 3
-	e.beginTurn(0)
 	d = e.Pending()
-	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 1 ||
-		d.Options[0].Kind != "cumulative_sac" {
-		t.Fatalf("expected sacrifice-only for an unpayable demand, got %+v", d)
+	if d == nil || d.Options[0].Kind != "trigger_cost_pay" {
+		t.Fatalf("paid trigger choice = %+v", d)
 	}
-	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
-		t.Fatalf("submit sacrifice: %v", err)
+	clone := e.Clone()
+	in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}
+	if err := e.Submit(in); err != nil {
+		t.Fatal(err)
 	}
-	if e.G.Obj(remora).Zone != state.ZGraveyard {
-		t.Fatalf("Remora not sacrificed for cumulative upkeep: zone %v", e.G.Obj(remora).Zone)
+	if err := clone.Submit(in); err != nil {
+		t.Fatal(err)
+	}
+	if diff := diffGames(e.G, clone.G); diff != "" {
+		t.Fatalf("trigger-cost replay diverged:\n%s", diff)
+	}
+	if e.G.Obj(vault).Tapped || e.G.Players[0].Pool.Total() != 0 || len(e.G.Stack) != 0 {
+		t.Fatalf("paid Mana Vault result: tapped=%v pool=%v stack=%v", e.G.Obj(vault).Tapped, e.G.Players[0].Pool, e.G.Stack)
 	}
 }

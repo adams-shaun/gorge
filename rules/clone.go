@@ -196,13 +196,24 @@ func (e *Engine) Clone() *Engine {
 	}
 	if e.cumulative != nil {
 		cu := *e.cumulative
-		cu.queue = append([]state.ObjID(nil), e.cumulative.queue...)
 		cu.amount.Sac = append([]CostPart(nil), e.cumulative.amount.Sac...)
 		cu.amount.Discard = append([]CostPart(nil), e.cumulative.amount.Discard...)
 		cu.amount.SubCounter = append([]CostPart(nil), e.cumulative.amount.SubCounter...)
+		cu.amount.AddCounter = append([]CostPart(nil), e.cumulative.amount.AddCounter...)
 		cu.amount.Hybrid = append([]ManaPair(nil), e.cumulative.amount.Hybrid...)
 		cu.amount.Phyrexian = append([]byte(nil), e.cumulative.amount.Phyrexian...)
 		c.cumulative = &cu
+	}
+	if e.triggerCost != nil {
+		tc := *e.triggerCost
+		tc.resume = cloneResume(e.triggerCost.resume)
+		tc.amount.Sac = append([]CostPart(nil), e.triggerCost.amount.Sac...)
+		tc.amount.Discard = append([]CostPart(nil), e.triggerCost.amount.Discard...)
+		tc.amount.SubCounter = append([]CostPart(nil), e.triggerCost.amount.SubCounter...)
+		tc.amount.AddCounter = append([]CostPart(nil), e.triggerCost.amount.AddCounter...)
+		tc.amount.Hybrid = append([]ManaPair(nil), e.triggerCost.amount.Hybrid...)
+		tc.amount.Phyrexian = append([]byte(nil), e.triggerCost.amount.Phyrexian...)
+		c.triggerCost = &tc
 	}
 	if e.cast != nil {
 		pc := *e.cast

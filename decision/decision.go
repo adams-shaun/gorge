@@ -266,7 +266,8 @@ type Decision struct {
 	TargetEffect *TargetEffect `json:"target_effect,omitempty"`
 	// ResumeKind, ResumeSA, ResumeModes and ResumeTarget are server-side only.
 	// ResumeKind selects a cast/placement/resolution continuation ("cast_modes",
-	// "modes", "unless_pay", "discard", "arrange", "search", "dig"); ResumeSA
+	// "modes", "unless_pay", "discard", "arrange", "search", "imprint",
+	// "untap", "dig"); ResumeSA
 	// names the exact sub-ability involved. ResumeModes maps a filtered cast-time
 	// mode option back to its SVar name while keeping wire indices dense.
 	// ResumeTarget is Dig's index into the deterministic Defined$ target list:

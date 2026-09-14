@@ -33,11 +33,11 @@ func (e *Engine) beginTurn(active state.PlayerID) {
 		}
 	}
 	e.setStep(state.StepUpkeep)
-	// The upkeep's turn-based cumulative-upkeep action (kw:Cumulative upkeep)
-	// runs here and may suspend on its pay-or-sacrifice choices; when it has
-	// nothing to do it emits this turn's Priority event itself, byte-identical
-	// to the old unconditional tail.
-	e.startCumulativeUpkeep()
+	// Start of turn resets the pass count along with the holder. Cumulative
+	// upkeep is a real Phase trigger expanded from its keyword, so the upkeep
+	// StepChange above queues it alongside every other upkeep trigger; the
+	// ordinary priority round orders and places them before anyone may act.
+	e.emit(events.Event{Kind: events.Priority, Player: active})
 }
 
 func (e *Engine) setStep(s state.Step) {
@@ -478,24 +478,14 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 // hand-built decision -- is dropped with a Note and priority resumes.
 func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
-	// A hidden-library ChangeZone and a Dig look-and-take use KChoose's
-	// ordinary ordered subset wire shape, but they are mid-resolution effect
-	// asks rather than one of the cast/cleanup flows tracked by e.choosing.
-	// Resume them before dispatching those flows; an empty chosen slice is
-	// the legitimate "fail to find" / Optional-decline answer.
-	if e.resume != nil && (e.resume.kind == "search" || e.resume.kind == "dig") {
-		rp := e.resume
-		e.resume = nil
-		e.resumeResolution(rp, chosen)
-		return
-	}
-	// A RevealOptional$ yes/no (task fb-3f1cc033, the Delver of Secrets
-	// peek) is a mid-resolution effect ask wearing KChoose's ordinary wire
-	// shape, exactly like "search" above: route it to the suspended
-	// resolution before the cast/cleanup flows get a look in. A yes/no
-	// answer is one option; the reveal_optional arm of resumeResolution maps
-	// it onto ctx.RevealOpt.
-	if e.resume != nil && e.resume.kind == "reveal_optional" {
+	// Every KChoose carrying a resume point is a mid-resolution effect ask,
+	// regardless of its ResumeKind (search, dig, imprint, untap selection,
+	// reveal-optional, and future siblings). Dispatch by role rather than an
+	// allowlist: the asking effect already recorded the exact SA and answer
+	// interpretation in e.resume, while cast/cleanup flows never do. This is
+	// the structural guard against silently dropping the next KChoose-based
+	// primitive merely because its string was not added here.
+	if e.resume != nil {
 		rp := e.resume
 		e.resume = nil
 		e.resumeResolution(rp, chosen)
@@ -550,12 +540,13 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// mid-resolution), so e.drainAwaitsTarget is necessarily false here.
 		e.discardCleanup(chosen)
 	case chooseCumulative:
-		// kw:Cumulative upkeep (rules/cumulative.go): the pay-or-sacrifice
-		// choice for the permanent being aged was answered. cumulativeAnswer
-		// applies the payment or the sacrifice and either asks the next
-		// queued permanent or emits the turn's Priority event -- the upkeep
-		// action's own resume, the mirror of chooseCleanup above.
+		// The cumulative-upkeep trigger is resolving and waiting in its
+		// mana/payment window (rules/cumulative.go).
 		e.cumulativeAnswer(chosen)
+	case chooseTriggeredCost:
+		// A Cost$ carried by a triggered effect (Mana Vault's pay-{4} untap)
+		// is paid during resolution rather than being silently ignored.
+		e.triggeredCostAnswer(chosen)
 	case chooseDamageDivision:
 		// Task jj-cmb (F40): the combat damage step's controller
 		// damage-division decision (CR 510.1c) was answered.

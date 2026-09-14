@@ -39,12 +39,13 @@ func TestEtbCounterExpandsToAReplacement(t *testing.T) {
 
 func TestTriggerKeywordsExpandWithLinkedEffects(t *testing.T) {
 	cases := map[string]struct{ src, mode, api string }{
-		"Undying":       {"K:Undying", "ChangesZone", "ChangeZone"},
-		"Evolve":        {"K:Evolve", "ChangesZone", "PutCounter"},
-		"Exalted":       {"K:Exalted", "Attacks", "Pump"},
-		"Prowess":       {"K:Prowess", "SpellCast", "Pump"},
-		"Storm":         {"K:Storm", "SpellCast", "CopySpellAbility"},
-		"Living Weapon": {"K:Living Weapon", "ChangesZone", "Token"},
+		"Undying":           {"K:Undying", "ChangesZone", "ChangeZone"},
+		"Evolve":            {"K:Evolve", "ChangesZone", "PutCounter"},
+		"Exalted":           {"K:Exalted", "Attacks", "Pump"},
+		"Prowess":           {"K:Prowess", "SpellCast", "Pump"},
+		"Storm":             {"K:Storm", "SpellCast", "CopySpellAbility"},
+		"Living Weapon":     {"K:Living Weapon", "ChangesZone", "Token"},
+		"Cumulative upkeep": {"K:Cumulative upkeep:1", "Phase", "CumulativeUpkeep"},
 	}
 	for kw, tc := range cases {
 		f := expanded(t, "Name:C\nManaCost:1\nTypes:Creature\nPT:1/1\n"+tc.src+"\nOracle:x\n")

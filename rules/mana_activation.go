@@ -118,10 +118,10 @@ func (e *Engine) activateMana(p state.PlayerID, source state.ObjID, cast bool) {
 	e.activateManaFor(p, source, cast, false)
 }
 
-// activateCumulativeMana is the CR 702.46b payment-window entry. It uses the
-// same mana ability machinery as casting, then returns to the cumulative
-// payment decision rather than granting priority.
-func (e *Engine) activateCumulativeMana(p state.PlayerID, source state.ObjID) {
+// activatePaymentMana is the resolution-time payment-window entry shared by
+// cumulative upkeep and Cost$-bearing trigger effects. It returns to whichever
+// of those windows is live rather than granting priority.
+func (e *Engine) activatePaymentMana(p state.PlayerID, source state.ObjID) {
 	e.activateManaFor(p, source, false, true)
 }
 
@@ -133,7 +133,7 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 	if len(abilities) == 1 {
 		e.resolveManaAbility(p, source, abilities[0], cast, cumulative)
 		if cumulative && e.choosing == chooseNone {
-			e.cumulativePaymentAsk()
+			e.paymentWindowAsk()
 		}
 		return
 	}
@@ -306,7 +306,7 @@ func (e *Engine) commitManaDiscard() {
 	e.choosing = chooseNone
 	e.resolveManaEffect(md.player, md.source, md.ability, md.cast, md.cumulative)
 	if md.cumulative && e.choosing == chooseNone {
-		e.cumulativePaymentAsk()
+		e.paymentWindowAsk()
 	}
 }
 
@@ -480,7 +480,7 @@ func (e *Engine) answerManaColor(chosen []decision.Option) bool {
 	}
 	e.resolveManaEffectColor(ma.player, ma.source, ma.ability, color)
 	if ma.cumulative && e.choosing == chooseNone {
-		e.cumulativePaymentAsk()
+		e.paymentWindowAsk()
 	}
 	return ma.cast
 }
@@ -498,7 +498,7 @@ func (e *Engine) answerManaActivation(chosen []decision.Option) bool {
 	if idx >= 0 && idx < len(ma.abilities) {
 		e.resolveManaAbility(ma.player, ma.source, ma.abilities[idx], ma.cast, ma.cumulative)
 		if ma.cumulative && e.choosing == chooseNone {
-			e.cumulativePaymentAsk()
+			e.paymentWindowAsk()
 		}
 	}
 	return ma.cast

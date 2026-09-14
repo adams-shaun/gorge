@@ -158,6 +158,11 @@ type Ctx struct {
 	// Imprint$ True so a nested ordinary ChangeZone cannot consume it.
 	Imprint     []state.ObjID
 	ImprintDone bool
+	// Untap is the answered UntapType$ selection. UntapDone distinguishes an
+	// answered empty "up to" choice from the first pass and scopes the answer
+	// to the Untap primitive that asked.
+	Untap     []state.ObjID
+	UntapDone bool
 	// Dig is the answered Dig look-and-take pick on a re-entered mid-resolution
 	// resolution: the object(s) the library's owner picked out of the top
 	// DigNum$ window to move to DestinationZone$, in the player's answer

@@ -154,6 +154,7 @@ func LoadRegistry(path string) (*Registry, error) {
 		// gob construction route must end with the same derived values as the
 		// ParseBytes route.
 		for _, f := range c.Faces {
+			refreshKeywordExpansions(f)
 			f.derive()
 		}
 		r.Add(c)
@@ -162,11 +163,26 @@ func LoadRegistry(path string) (*Registry, error) {
 		r.Tokens = cf.Tokens
 		for _, c := range r.Tokens {
 			for _, f := range c.Faces {
+				refreshKeywordExpansions(f)
 				f.derive()
 			}
 		}
 	}
 	return r, nil
+}
+
+// refreshKeywordExpansions applies newly added idempotent keyword expansions
+// to a decoded cache without forcing users to rewrite the gitignored corpus
+// cache merely because the Go implementation learned another keyword. Existing
+// cached expansions carry KeywordLine and are skipped. Any newly appended
+// trigger is linked from its generated Execute$ SVar here; cumulative upkeep
+// is the current such migration and touches only its roughly eighty faces.
+func refreshKeywordExpansions(f *Face) {
+	before := len(f.Triggers)
+	f.expandKeywords()
+	for i := before; i < len(f.Triggers); i++ {
+		f.Triggers[i].Effect = ResolveSVar(f.SVars, f.Triggers[i].Params["Execute"])
+	}
 }
 
 // CompileDir walks a cardsfolder tree, parses, links and applies intrinsics.

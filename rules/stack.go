@@ -690,6 +690,18 @@ func (e *Engine) resolveTop() {
 				return
 			}
 		}
+		// Cumulative upkeep is an ordinary trigger through placement, but its
+		// age/payment resolution needs rules' cost machinery. A Cost$ on any
+		// other triggered effect likewise opens a real payment window instead
+		// of effects silently executing it for free (Mana Vault).
+		if o.Ability.API == "CumulativeUpkeep" {
+			e.startCumulativeUpkeep(id, o.Source, o.Ability)
+			return
+		}
+		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered && o.Ability.Params["Cost"] != "" {
+			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)
+			return
+		}
 		// The ability object itself has no Face, so its SVar table (needed
 		// for Num's SVar indirection, e.g. Goblin Piledriver's "NumAtt$ +X")
 		// comes from the permanent that granted it (o.Source) instead.

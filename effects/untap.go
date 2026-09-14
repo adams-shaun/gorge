@@ -1,27 +1,24 @@
 package effects
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
-func init() { Register("Untap", effUntap) }
+func init() {
+	Register("Untap", effUntap)
+	// Rules intercepts this internal keyword-expansion API while its triggered
+	// ability resolves; registration keeps the expanded face's primitive set
+	// supported and the no-engine effects fallback harmless.
+	Register("CumulativeUpkeep", func(Host, *Ctx, *cards.SA) {})
+}
 
-// effUntap implements "AB$ Untap" / "DB$ Untap": the listed objects untap.
-// Targets act exactly as for Tap (effTap, combatfx.go): Forge's rule is that
-// an ability that names targets acts on them and one that names none acts on
-// its source, which Defined's empty-Defined arm already resolves -- so an
-// untap activation with ValidTgts$ gets its targets from Ctx.Targets and an
-// Untap sub with Defined$ Remembered/ReplacedCard acts on that set, each of
-// the ticket's real cards through one of those two arms (Basalt Monolith's
-// {3}: Untap this artifact is source-less and source-directed; Fabled
-// Passage's and Baloth Prime's DB$ Untap chain off Remembered / no Defined).
-//
-// TryUntap applies CR 122.1d's stun replacement to every untap event. It is
-// shared by ability effects and the turn-based untap step: a stun counter is
-// removed instead of untapping the permanent. Keeping the replacement at this
-// single event proposal point prevents the two untap sites from drifting.
+// TryUntap is the shared CR 122.1d event proposal for effects and the untap
+// step: a stun counter is removed instead of untapping the permanent.
 func TryUntap(h Host, id state.ObjID) {
 	o := h.Game().Obj(id)
 	if o == nil || o.Zone != state.ZBattlefield || !o.Tapped {
@@ -34,10 +31,6 @@ func TryUntap(h Host, id state.ObjID) {
 	h.Emit(events.Event{Kind: events.Untap, Obj: id})
 }
 
-// untapBattlefieldCondition implements Untap's Fabled Passage class: a
-// ConditionPresent$ with no ConditionDefined$ counts battlefield objects.
-// It stays local rather than widening Resolve's condition grammar for every
-// unrelated API. Unknown predicates fail closed for this local supported form.
 func untapBattlefieldCondition(h Host, c *Ctx, sa *cards.SA) bool {
 	spec, ok := sa.Params["ConditionPresent"]
 	if !ok || sa.Params["ConditionDefined"] != "" {
@@ -56,11 +49,10 @@ func untapBattlefieldCondition(h Host, c *Ctx, sa *cards.SA) bool {
 			}
 		}
 	}
-	cmp := sa.Params["ConditionCompare"]
-	if cmp == "" {
+	op, want, ok := parseConditionCompare(sa.Params["ConditionCompare"])
+	if sa.Params["ConditionCompare"] == "" {
 		return n > 0
 	}
-	op, want, ok := parseConditionCompare(cmp)
 	if !ok {
 		return false
 	}
@@ -81,16 +73,92 @@ func untapBattlefieldCondition(h Host, c *Ctx, sa *cards.SA) bool {
 	return false
 }
 
-// A permanent that is not on the battlefield, or already untapped, is skipped:
-// untapping an untapped permanent is a no-op (CR 701.27a), and an object that
-// left the battlefield mid-resolution must not be touched.
+// untapTypeCandidates resolves the corpus's UntapType$ family in deterministic
+// seat/zone order. A Defined$ player narrows which battlefield is searched;
+// otherwise the type/controller predicates themselves determine membership.
+func untapTypeCandidates(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
+	g := h.Game()
+	owners := g.AliveFrom(0)
+	if def := Defined(h, c, sa); len(def) > 0 {
+		var ps []state.PlayerID
+		for _, t := range def {
+			if t.IsPlayer {
+				seen := false
+				for _, p := range ps {
+					seen = seen || p == t.Player
+				}
+				if !seen {
+					ps = append(ps, t.Player)
+				}
+			}
+		}
+		if len(ps) > 0 {
+			owners = ps
+		}
+	}
+	spec := sa.Params["UntapType"]
+	var out []state.ObjID
+	for _, p := range owners {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				out = append(out, id)
+			}
+		}
+	}
+	return out
+}
+
+// effUntap supports both ordinary listed/targeted untaps and Forge's
+// UntapType$ + Amount$ chooser family. UntapExactly$ fixes Min=Max; UntapUpTo$
+// permits zero through Amount. The resumed answer is scoped and consumed here,
+// so a nested Untap poses its own choice.
 func effUntap(h Host, c *Ctx, sa *cards.SA) {
 	if !untapBattlefieldCondition(h, c, sa) {
 		return
 	}
-	for _, t := range Defined(h, c, sa) {
-		if !t.IsPlayer {
-			TryUntap(h, t.Obj)
+	if sa.Params["UntapType"] == "" {
+		for _, t := range Defined(h, c, sa) {
+			if !t.IsPlayer {
+				TryUntap(h, t.Obj)
+			}
 		}
+		return
+	}
+
+	var chosen []state.ObjID
+	if c.UntapDone {
+		chosen = append(chosen, c.Untap...)
+		c.Untap, c.UntapDone = nil, false
+	} else {
+		candidates := untapTypeCandidates(h, c, sa)
+		n := int(Num(h, c, sa, "Amount", 1))
+		if n <= 0 || len(candidates) == 0 {
+			return
+		}
+		if n > len(candidates) {
+			n = len(candidates)
+		}
+		upTo := strings.EqualFold(sa.Params["UntapUpTo"], "True")
+		needsAsk := upTo || len(candidates) > n
+		if needsAsk {
+			min := n
+			if upTo {
+				min = 0
+			}
+			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+				Min: min, Max: n, Source: c.Source, ResumeKind: "untap", ResumeSA: sa,
+				Prompt: "Choose permanents to untap"}
+			for _, id := range candidates {
+				o := h.Game().Obj(id)
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "untap", Obj: id, Label: o.Face().Name})
+			}
+			if h.Ask(d) {
+				return
+			}
+		}
+		chosen = candidates[:n]
+	}
+	for _, id := range chosen {
+		TryUntap(h, id)
 	}
 }
