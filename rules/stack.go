@@ -697,6 +697,10 @@ func (e *Engine) resolveTop() {
 		// load it so the ability's Sacrificed$<Property> heads resolve against
 		// what it sacrificed. Mirror of triggerContexts: engine-only.
 		ctx.Sacrificed = e.sacrificedLKI[id]
+		if link, ok := e.sourceLifelinkLKI[id]; ok {
+			ctx.SourceLifelinkLKI = link
+			ctx.SourceLifelinkLKIValid = true
+		}
 		effects.SetSVars(ctx, svars)
 		// CR 603.3c: the mode choice was announced at placement (pushTrigger
 		// asked KModes and handleModes recorded the answer into ChosenModes).

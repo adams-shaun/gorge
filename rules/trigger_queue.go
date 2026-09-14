@@ -331,10 +331,17 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	e.emit(events.Event{Kind: events.TriggerPush, Player: pt.Controller,
 		Obj: pt.Source, Amount: int32(pt.Idx), IDs: ids, Text: "triggered ability"})
 	if len(e.G.Stack) > stackLen {
+		id := e.G.Stack[len(e.G.Stack)-1]
 		if e.triggerContexts == nil {
 			e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 		}
-		e.triggerContexts[e.G.Stack[len(e.G.Stack)-1]] = pt.Ctx.TriggerContext
+		e.triggerContexts[id] = pt.Ctx.TriggerContext
+		if pt.Ctx.SourceLifelinkLKIValid {
+			if e.sourceLifelinkLKI == nil {
+				e.sourceLifelinkLKI = make(map[state.ObjID]bool)
+			}
+			e.sourceLifelinkLKI[id] = pt.Ctx.SourceLifelinkLKI
+		}
 	}
 	// Task 7: a trigger that declares ValidTgts$ asks its controller for
 	// targets RIGHT AFTER its TriggerPush -- the ability object is now top of

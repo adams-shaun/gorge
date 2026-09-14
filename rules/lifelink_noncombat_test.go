@@ -166,8 +166,8 @@ func TestBrionStoutarmThrowGainsLife(t *testing.T) {
 // TestBrionStoutarmThrowAtPlaneswalkerGainsLife pins the planeswalker arm:
 // the same throw at a planeswalker removes loyalty counters (CR 306.8, the
 // damage is never marked as card damage) and the lifelink rider still pays.
-// Teferi, Hero of Dominaria enters at 5 loyalty (per its corpus script), so
-// the 3-power throw leaves it alive at 2.
+// Teferi, Hero of Dominaria enters at 4 loyalty (per its corpus script), so
+// the 3-power throw leaves it alive at 1.
 func TestBrionStoutarmThrowAtPlaneswalkerGainsLife(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, cfg := linkBoard(t, reg, []string{"Brion Stoutarm", "Hill Giant"},
@@ -377,6 +377,74 @@ func TestGrantedLifelinkEquipmentDamageGainsLife(t *testing.T) {
 	}
 	if n := countLifeChanges(t, e, 0, 1); n != 1 {
 		t.Fatalf("logged %d lifelink LifeChange(0, +1) events, want 1", n)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestSacrificedGrantedLifelinkSourceUsesLKI pins CR 608.2h at the boundary
+// the live-grant test above does not cross: an Equipment grants lifelink to a
+// source whose damage ability sacrifices that source as its cost. The logged
+// sacrifice detaches the live grant before the independent ability resolves,
+// so its damage must use the source's last derived lifelink state rather than
+// the now-graveyard card's current characteristics.
+func TestSacrificedGrantedLifelinkSourceUsesLKI(t *testing.T) {
+	collar := "Name:Life Collar\nManaCost:1\nTypes:Artifact Equipment\nK:Equip:2\n" +
+		"S:Mode$ Continuous | Affected$ Creature.EquippedBy | AddKeyword$ Lifelink | Description$ Equipped creature has lifelink.\nOracle:x\n"
+	pinger := "Name:Sac Pinger\nManaCost:2 R\nTypes:Creature Wizard\nPT:1/2\n" +
+		"A:AB$ DealDamage | Cost$ Sac<1/CARDNAME> | ValidTgts$ Player | NumDmg$ 1 | SpellDescription$ deals 1.\nOracle:x\n"
+	e, cfg, collarID := newFixtureDeck(t, 107, collar, pinger)
+	var pingerID state.ObjID
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Face() != nil && o.Face().Name == "Sac Pinger" {
+			pingerID = o.ID
+		}
+	}
+	if pingerID == 0 {
+		t.Fatal("board missing the Sac Pinger fixture")
+	}
+	for _, id := range []state.ObjID{collarID, pingerID} {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: e.G.Obj(id).Zone, To: state.ZBattlefield})
+	}
+	addMana(t, e, 0, "CC")
+	e.Advance()
+	equipOpt := abilityOption(t, e, collarID, 0)
+	submitChoices(t, e, equipOpt.Index)
+	targetObject(t, e, pingerID)
+	passUntilStackEmpty(t, e, 20)
+	if !e.HasKeyword(pingerID, "Lifelink") {
+		t.Fatal("pinger lacks the Equipment-granted lifelink before activation")
+	}
+
+	opt := abilityOption(t, e, pingerID, 0)
+	submitChoices(t, e, opt.Index)
+	activateAnswers(t, e, pingerID, 0, 1)
+	passUntilStackEmpty(t, e, 20)
+
+	if o := e.G.Obj(pingerID); o.Zone != state.ZGraveyard {
+		t.Fatalf("sacrificed source zone = %s, want graveyard", o.Zone)
+	}
+	if got := e.G.Players[1].Life; got != 19 {
+		t.Fatalf("defender life = %d, want 19", got)
+	}
+	if got := e.G.Players[0].Life; got != 21 {
+		t.Fatalf("source controller life = %d, want 21 from source LKI", got)
+	}
+	if n := countLifeChanges(t, e, 0, 1); n != 1 {
+		t.Fatalf("logged %d lifelink LifeChange(0, +1) events, want 1", n)
+	}
+	sacrifice, damage := -1, -1
+	for i, ev := range e.L.Events {
+		if ev.Kind == events.MoveZone && ev.Obj == pingerID && ev.From == state.ZBattlefield &&
+			ev.To == state.ZGraveyard && ev.Text == "sacrificed" {
+			sacrifice = i
+		}
+		if ev.Kind == events.Damage && ev.Player == 1 && ev.Amount == 1 {
+			damage = i
+		}
+	}
+	if sacrifice < 0 || damage < 0 || sacrifice >= damage {
+		t.Fatalf("logged sacrifice/damage order = %d/%d, want sacrifice before damage", sacrifice, damage)
 	}
 	replayCheck(t, e, cfg)
 }

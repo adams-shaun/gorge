@@ -66,10 +66,11 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 // at a new site -- a new emitter takes a rider, and payLifelinkRider runs for
 // it unless the emitter can prove the damage did not land.
 type damageRider struct {
-	h          Host
-	source     state.ObjID
-	controller state.PlayerID
-	amount     int32
+	h           Host
+	source      state.ObjID
+	controller  state.PlayerID
+	amount      int32
+	hasLifelink bool
 }
 
 // newDamageRider builds the rider for one resolving DealDamage/DamageAll.
@@ -87,7 +88,19 @@ func newDamageRider(h Host, c *Ctx, amount int32) damageRider {
 	if o := h.Game().Obj(source); o != nil && o.Ability != nil && o.Source != 0 {
 		source = o.Source
 	}
-	return damageRider{h: h, source: source, controller: c.Controller, amount: amount}
+	hasLifelink := h.HasKeyword(source, "Lifelink")
+	// CR 608.2h: an independently resolving ability whose source is no
+	// longer on the battlefield uses that source's last known information.
+	// This matters for a granted keyword: Equipment stops applying once its
+	// bearer is sacrificed, but the source had lifelink at its last moment on
+	// the battlefield. While the source remains there, always prefer its live
+	// derived state so detaching the Equipment before resolution removes the
+	// rider as it should.
+	if c.SourceLifelinkLKIValid {
+		hasLifelink = c.SourceLifelinkLKI
+	}
+	return damageRider{h: h, source: source, controller: c.Controller,
+		amount: amount, hasLifelink: hasLifelink}
 }
 
 // payLifelinkRider is CR 702.15a's life gain for NON-COMBAT damage: when
@@ -103,7 +116,7 @@ func newDamageRider(h Host, c *Ctx, amount int32) damageRider {
 // in this build (protection arms objects only, rules/engine.go's emit checks
 // ev.Obj != 0), so it reports landed for any positive amount.
 func payLifelinkRider(r damageRider, landed bool) {
-	if !landed || r.amount <= 0 || !r.h.HasKeyword(r.source, "Lifelink") {
+	if !landed || r.amount <= 0 || !r.hasLifelink {
 		return
 	}
 	r.h.Emit(events.Event{Kind: events.LifeChange, Player: r.controller,

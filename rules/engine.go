@@ -199,6 +199,15 @@ type Engine struct {
 	// builds effects.Ctx.Sacrificed; the entry is removed when the stack
 	// object leaves, mirroring triggerContexts.
 	sacrificedLKI map[state.ObjID][]state.SacrificedInfo
+	// sourceLifelinkLKI maps an independently resolving ability's stack object
+	// to its source permanent's derived lifelink state at the last moment that
+	// source existed on the battlefield. The map's presence is the validity
+	// bit: false is authoritative LKI too. It is captured before a source is
+	// sacrificed as its own activation cost, refreshed for already-stacked and
+	// pending abilities when their source later departs, cloned at intent
+	// boundaries, and removed with the stack object. Resolution copies it into
+	// effects.Ctx; effects uses it only when the source is no longer live.
+	sourceLifelinkLKI map[state.ObjID]bool
 	// orderedTriggers is how many LEADING entries of pendingTriggers have
 	// already had their order settled by an answered KTriggerOrder decision
 	// (or, for a lone trigger, by there being nothing to decide). It is the
@@ -644,16 +653,50 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			lki = &cp
 		}
 	}
+	// CR 608.2h source LKI: if a permanent leaves after one of its
+	// independent abilities was created, preserve its derived lifelink state
+	// at the departure boundary. Walk the ordered stack and pending-trigger
+	// slices rather than a map, so this bookkeeping can never introduce event
+	// nondeterminism. An ability whose source is sacrificed as its own cost is
+	// minted only after this move; commitCast captures that sibling explicitly.
+	departingSource := ev.Kind == events.MoveZone && ev.From == state.ZBattlefield &&
+		ev.To != state.ZBattlefield
+	var departingSourceLifelink bool
+	if departingSource {
+		departingSourceLifelink = e.HasKeyword(ev.Obj, "Lifelink")
+		for _, id := range e.G.Stack {
+			if o := e.G.Obj(id); o != nil && o.Ability != nil && o.Source == ev.Obj {
+				if e.sourceLifelinkLKI == nil {
+					e.sourceLifelinkLKI = make(map[state.ObjID]bool)
+				}
+				e.sourceLifelinkLKI[id] = departingSourceLifelink
+			}
+		}
+		for i := range e.pendingTriggers {
+			if e.pendingTriggers[i].Source == ev.Obj {
+				e.pendingTriggers[i].Ctx.SourceLifelinkLKI = departingSourceLifelink
+				e.pendingTriggers[i].Ctx.SourceLifelinkLKIValid = true
+			}
+		}
+	}
 	stackLen := len(e.G.Stack)
 	stored := events.Emit(e.G, e.L, ev)
 	if ev.Kind == events.StackCopy && len(e.G.Stack) > stackLen {
+		copyID := e.G.Stack[len(e.G.Stack)-1]
 		if tc, ok := e.triggerContexts[ev.Obj]; ok {
-			e.triggerContexts[e.G.Stack[len(e.G.Stack)-1]] = tc
+			e.triggerContexts[copyID] = tc
+		}
+		if link, ok := e.sourceLifelinkLKI[ev.Obj]; ok {
+			if e.sourceLifelinkLKI == nil {
+				e.sourceLifelinkLKI = make(map[state.ObjID]bool)
+			}
+			e.sourceLifelinkLKI[copyID] = link
 		}
 	}
 	if ev.Kind == events.MoveZone && ev.From == state.ZStack && ev.To != state.ZStack {
 		delete(e.triggerContexts, ev.Obj)
 		delete(e.sacrificedLKI, ev.Obj)
+		delete(e.sourceLifelinkLKI, ev.Obj)
 	}
 	if ev.Kind == events.PutOnStack && e.deferCastTrigger {
 		// CR 601.2i: the cast trigger must not fire at the up-front push
@@ -667,6 +710,17 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.deferredPush, e.deferredPushLKI = &cp, lp
 	} else {
 		e.checkTriggers(stored, lki)
+	}
+	if departingSource {
+		// The departure event itself may just have queued a dies/leaves trigger.
+		// It was not present in the pre-event loop above, so attach the same
+		// pre-departure derived snapshot now, before the queue can be drained.
+		for i := range e.pendingTriggers {
+			if e.pendingTriggers[i].Source == ev.Obj {
+				e.pendingTriggers[i].Ctx.SourceLifelinkLKI = departingSourceLifelink
+				e.pendingTriggers[i].Ctx.SourceLifelinkLKIValid = true
+			}
+		}
 	}
 	// E2: any genuinely state-changing event proves the game is making
 	// progress, so it clears the held-out cast suppression (suppressedCast,
