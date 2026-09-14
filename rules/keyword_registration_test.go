@@ -20,6 +20,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Undying":        "TestUndyingReturnsOnceWithACounter",
 		"kw:Evolve":         "TestEvolveGrowsOnlyForBiggerCreatures",
 		"kw:Exalted":        "TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells",
+		"kw:Dethrone":       "TestDethroneCountsOnlyTheAttackedPlayersLife",
 		"kw:Prowess":        "TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells",
 	} {
 		if !sup[kw] {

@@ -99,6 +99,13 @@ func (f *Face) expandKeywords() {
 		case "Exalted":
 			f.addKeywordTrigger(head, k, "Mode$ Attacks | ValidCard$ Creature.YouCtrl | Alone$ True | TriggerDescription$ Exalted",
 				"DB$ Pump | Defined$ TriggeredAttacker | NumAtt$ +1 | NumDef$ +1", has)
+		case "Dethrone":
+			// CR 702.105: the attacked player, not merely any player at the
+			// table, must have life greater than or equal to this creature's
+			// controller. attacksMatches owns that event-relative comparison;
+			// the rest is an ordinary attack trigger.
+			f.addKeywordTrigger(head, k, "Mode$ Attacks | ValidCard$ Card.Self | Dethrone$ True | TriggerDescription$ Dethrone",
+				"DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ 1", has)
 		case "Prowess":
 			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.nonCreature | ValidActivatingPlayer$ You | TriggerDescription$ Prowess",
 				"DB$ Pump | Defined$ Self | NumAtt$ +1 | NumDef$ +1", has)

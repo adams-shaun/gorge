@@ -3,7 +3,9 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -77,6 +79,55 @@ func TestEvolveGrowsOnlyForBiggerCreatures(t *testing.T) {
 	passUntilStackEmpty(t, e, 20)
 	if e.G.Obj(one).Counter("P1P1") != 1 {
 		t.Fatal("evolved for an opponent's creature")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestDethroneCountsOnlyTheAttackedPlayersLife drives Treasonous Ogre's
+// actual compiled script. Dethrone uses the defender carried by the attack
+// event: a different player having more life must not make an attack at a
+// lower-life opponent eligible.
+func TestDethroneCountsOnlyTheAttackedPlayersLife(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	ogre, ok := reg.Lookup("Treasonous Ogre")
+	if !ok {
+		t.Fatal("Treasonous Ogre missing from corpus")
+	}
+	if d := ogre.Link(); len(d) != 0 {
+		t.Fatalf("link Treasonous Ogre: %v", d)
+	}
+	deck := make([]*cards.Card, 40)
+	for i := range deck {
+		deck[i] = ogre
+	}
+	cfg := seatZeroStart(Config{Seed: 85, Names: []string{"ogre", "other"}, Decks: [][]*cards.Card{deck, deck}})
+	e := New(cfg)
+	var id state.ObjID
+	for _, candidate := range e.G.Objs {
+		if candidate.Owner == 0 && candidate.Face() != nil && candidate.Face().Name == "Treasonous Ogre" {
+			id = candidate.ID
+			break
+		}
+	}
+	if id == 0 {
+		t.Fatal("Treasonous Ogre was not created")
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, To: state.ZBattlefield})
+	// Seat 1 is tied for the most life, so attacking it triggers Dethrone.
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{id}})
+	e.priorityRound()
+	passUntilStackEmpty(t, e, 20)
+	if got := e.G.Obj(id).Counter("P1P1"); got != 1 {
+		t.Fatalf("Dethrone at tied-most-life defender gave %d counters, want 1", got)
+	}
+	// Now the defender is below the attacker's life. Dethrone must not use
+	// another seat's life total or fire a second time.
+	e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: 1})
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{id}})
+	e.priorityRound()
+	passUntilStackEmpty(t, e, 20)
+	if got := e.G.Obj(id).Counter("P1P1"); got != 1 {
+		t.Fatalf("Dethrone fired against a lower-life defender: counters %d", got)
 	}
 	replayCheck(t, e, cfg)
 }

@@ -638,6 +638,17 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 	if v, ok := t.Params["Alone"]; ok && strings.EqualFold(v, "True") && len(ev.IDs) != 1 {
 		return false
 	}
+	// Dethrone (CR 702.105) is an attack trigger whose additional condition
+	// is relative to the defender named by this DeclareAttackers event. This
+	// must not scan all players: attacking a low-life opponent while another
+	// opponent has the most life does not satisfy Dethrone.
+	if v, ok := t.Params["Dethrone"]; ok && strings.EqualFold(v, "True") {
+		ctrl := e.controllerOf(source)
+		if int(ctrl) >= len(e.G.Players) || int(ev.Player) >= len(e.G.Players) ||
+			e.G.Players[ev.Player].Life < e.G.Players[ctrl].Life {
+			return false
+		}
+	}
 	spec, ok := t.Params["ValidCard"]
 	if !ok {
 		for _, id := range ev.IDs {
@@ -1041,7 +1052,7 @@ func init() {
 		// ChangesZone / Attacks / SpellCast triggers routed through the modes
 		// above: Undying and Evolve are ChangesZone triggers, Exalted is
 		// (Alone$) Attacks, Prowess is SpellCast.
-		"kw:Undying", "kw:Evolve", "kw:Exalted", "kw:Prowess",
+		"kw:Undying", "kw:Evolve", "kw:Exalted", "kw:Dethrone", "kw:Prowess",
 		// Task 17: Storm's expansion (cards/keywords.go) is a SpellCast
 		// trigger whose effect is CopySpellAbility -- the expansion existed
 		// since Task 11; registering the keyword here completes its
