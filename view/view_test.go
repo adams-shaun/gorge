@@ -777,7 +777,7 @@ func driveRepeatedCastsWithinMainPhase(t *testing.T, e *rules.Engine, permanent,
 func TestRedactEventsClosesTheTriggerPushLeakMeasured(t *testing.T) {
 	deck0 := append([]*cards.Card{r3Card(t, drawWatcherSrc)}, nCopies(t, drawSpellSrc, 39)...)
 	deck1 := r3Filler(t, 40)
-	e := rules.New(rules.Config{Seed: 11, Names: []string{"alice", "bob"},
+	e := rules.New(rules.Config{Seed: 20, Names: []string{"alice", "bob"},
 		Decks: [][]*cards.Card{deck0, deck1}})
 	e.Advance()
 
@@ -1474,7 +1474,7 @@ func TestR3StackTriggerReportsOptionalityAtResolution(t *testing.T) {
 func TestR3QueuedTriggerStillReportsOptionalityOnThePendingEntry(t *testing.T) {
 	deck0 := append([]*cards.Card{r3Card(t, r3OptionalSrc), r3Card(t, r3DrainerSrc)}, r3Filler(t, 5)...)
 	deck1 := r3Filler(t, 7)
-	e := rules.New(rules.Config{Seed: 11, Names: []string{"alice", "bob"},
+	e := rules.New(rules.Config{Seed: 17, Names: []string{"alice", "bob"},
 		Decks: [][]*cards.Card{deck0, deck1}})
 	e.Advance()
 

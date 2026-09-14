@@ -14,6 +14,7 @@ package rules
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
@@ -89,6 +90,15 @@ type Engine struct {
 
 	rng     *rng
 	pending *decision.Decision
+
+	// deferGameOver is true only while New processes the opening deal. A
+	// library-empty draw still emits PlayerLost and runs every other SBA, but
+	// checkGameOver waits until New has recorded the CR 103.1 toss. That keeps
+	// GameOver as the final event of a terminal genesis burst (the host's
+	// persisted-boundary contract) and lets an all-undersized opening deal
+	// reach the truthful no-survivor draw instead of accidentally crowning an
+	// undealt short deck.
+	deferGameOver bool
 
 	// continuous holds every registered continuous effect, live or expired.
 	// The layer system (layers.go) is the only reader and writer.
@@ -469,6 +479,19 @@ func New(cfg Config) *Engine {
 		}
 	}
 	e.emit(events.Event{Kind: events.GameStart, Amount: int32(len(cfg.Names))})
+	// CR 103.1: the starting player is determined by a random method. Draw
+	// the toss HERE, as the FIRST rng consumption of the game, before any
+	// per-seat shuffle: the toss value is then a pure function of (seed,
+	// seat count), independent of every deck size. The surviving-seat
+	// resolution happens after the deal below (the toss draw is uniform over
+	// every seat, so conditioned on naming a survivor it is uniform over the
+	// survivors -- see the resolution site). CR 103.1's second half -- the
+	// toss winner CHOOSES who takes the first turn -- is not implemented;
+	// see the "Known approximations" row in AGENTS.md.
+	toss := -1
+	if len(cfg.Names) > 0 {
+		toss = e.rng.IntN(len(cfg.Names))
+	}
 	// Match-wide dense commander indexing for Player.CmdDamage (assigned at
 	// genesis): a commander's dense index is the sum of (valid commanders in
 	// seats before its owner) + (its own position within its owner's
@@ -486,6 +509,11 @@ func New(cfg Config) *Engine {
 			totalCmd += len(cfg.commandersFor(i, len(cfg.Decks[i])))
 		}
 	}
+	// Opening hands are dealt as one genesis operation. Defer only the final
+	// GameOver event: drawCard still emits losses and runs all other SBAs, but
+	// the terminal marker must follow the public toss Note so the host can
+	// recognize and persist the complete genesis burst.
+	e.deferGameOver = true
 	for i, deck := range cfg.Decks {
 		if i >= len(cfg.Names) {
 			// Ruling T22-m (fix round 2): a malformed Config with more
@@ -539,35 +567,42 @@ func New(cfg Config) *Engine {
 		for j := 0; j < openingHand; j++ {
 			e.drawCard(p)
 		}
-		// Ruling T22-c: a deck smaller than the opening hand decks its owner
-		// out before genesis even finishes dealing -- drawCard's own
-		// checkStateBased call (below) can now actually set Over true here,
-		// where nothing could before Task 22 made losing real. Genesis used
-		// to plough on regardless: shuffling and dealing the NEXT seat's
-		// hand, then unconditionally calling beginTurn on a game already
-		// over. Every real deck this build ships is far larger than
-		// openingHand, so this is not reachable from ordinary play, only
-		// from a deliberately tiny Config -- but New must not hand back an
-		// Engine that has already both ended and kept moving.
-		if e.G.Over {
-			return e
+		if e.G.AliveCount() <= 1 {
+			// Preserve T22-c's terminal-deal boundary: once at most one seat
+			// remains, do not shuffle or deal a later hand. A later seat whose
+			// configured library could not supply seven cards is nevertheless
+			// also doomed by this same opening deal; account for that loss so
+			// an all-undersized table truthfully reaches CR 104.4a's no-survivor
+			// draw rather than accidentally crowning an undealt short deck.
+			for next := i + 1; next < len(cfg.Decks) && next < len(cfg.Names); next++ {
+				available := len(cfg.Decks[next]) - len(cfg.commandersFor(next, len(cfg.Decks[next])))
+				if available < openingHand && !e.G.Players[next].Lost {
+					e.emit(events.Event{Kind: events.PlayerLost, Player: state.PlayerID(next), Text: "drew from an empty library"})
+				}
+			}
+			if e.finishTerminalGenesis(toss, len(cfg.Names)) {
+				return e
+			}
 		}
 	}
-	alive := e.G.AliveFrom(0)
-	if len(alive) == 0 {
-		// Ruling T22-e: nobody survived genesis to begin a turn for --
-		// every deck too small to deal (the per-seat Over check above
-		// covers the ordinary "someone lost, someone remains" case; this
-		// is what happens when NO seat remains at all), or, the
-		// pre-existing panic this closes as a side effect, a zero-seat
-		// Config with no decks even attempted. checkGameOver's own "zero
-		// alive" branch is exactly CR 104.4a's draw, so run it rather than
-		// calling beginTurn(0) against a Players slice that may not even
-		// have an index 0: that used to reach Zone(ZBattlefield, 0)'s
-		// zoneIndex arithmetic against a zero-length g.zones and panic.
-		e.checkGameOver()
+	if e.finishTerminalGenesis(toss, len(cfg.Names)) {
 		return e
 	}
+	e.deferGameOver = false
+	alive := e.G.AliveFrom(0)
+	// CR 103.1: the starting seat is the toss result, not seat 0.
+	// Resolve the starting seat uniformly over the SURVIVORS. The pre-shuffle
+	// toss draw is uniform over every seat, so CONDITIONED on naming a
+	// survivor it is already uniform over the survivors -- it is the first
+	// candidate and costs no further rng. Only when it named a seat the deal
+	// eliminated does rejection sampling draw again: IntN over all seats,
+	// retried until a survivor is hit, each round uniform over the survivors
+	// once conditioned. In the no-elimination case -- every real game -- the
+	// stream is exactly one IntN and the candidate is always the first. A
+	// modulo over the survivor count instead would be BIASED: three seats
+	// with seat 0 eliminated maps two of the three toss outcomes onto one
+	// survivor (measured 395/205 over 600 seeds on the pre-fix code).
+	start, _ := e.resolveToss(toss, alive, len(cfg.Names))
 	// Ruling T22-f: begin with the first seat still alive, not always seat
 	// 0 -- an early seat that decked out during its own opening draw (Over
 	// still false, since other seats remain, but that seat's own Lost is
@@ -575,6 +610,11 @@ func New(cfg Config) *Engine {
 	// simply skipped in turn order everywhere else (NextAlive, priority);
 	// this is genesis's own equivalent for the very first turn.
 	if !e.G.Over {
+		// CR 103.1: record the toss publicly -- one Note naming the winner,
+		// rendered verbatim by view/describe.go, so it lands in every seat's
+		// transcript and on the web client with no UI work. Emitted exactly
+		// once per game, before the mulligan round / turn 1 begins.
+		e.recordToss(start, true)
 		if cfg.Mulligans > 0 {
 			// Ruling R-8.4: the London mulligan round lives between the deal
 			// and turn 1. e.pregame makes step() dispatch to stepPregame
@@ -582,13 +622,89 @@ func New(cfg Config) *Engine {
 			// round's end calls beginTurn below. Over is already false (the
 			// per-seat deck-out guard above returned early) -- a game that
 			// ended during the deal never starts a round.
+			// CR 103.5: the starting player declares first, then each other
+			// player in turn order -- AliveFrom(start) is that order, which
+			// is also beginTurn's seat at the round's end.
 			e.pregame = true
-			e.mulligan = newMulliganRound(alive, cfg.Mulligans)
+			e.mulligan = newMulliganRound(e.G.AliveFrom(start), cfg.Mulligans)
 		} else {
-			e.beginTurn(alive[0])
+			e.beginTurn(start)
 		}
 	}
 	return e
+}
+
+// finishTerminalGenesis records and finalizes a game whose opening deal left
+// at most one survivor. The toss Note deliberately precedes checkGameOver:
+// host.boundsOf recognizes a complete terminal burst only when GameOver is its
+// final event. With one survivor, rejection sampling maps the toss uniformly
+// onto that survivor. With none, there is no possible starting player, so the
+// Note truthfully names the original randomly determined seat and says no first
+// turn began. A malformed zero-seat Config drew no toss and has nobody to name.
+func (e *Engine) finishTerminalGenesis(toss, seats int) bool {
+	alive := e.G.AliveFrom(0)
+	if len(alive) > 1 {
+		return false
+	}
+	e.deferGameOver = false
+	if toss >= 0 {
+		winner := state.PlayerID(toss)
+		if len(alive) == 1 {
+			winner, _ = e.resolveToss(toss, alive, seats)
+		}
+		e.recordToss(winner, false)
+	}
+	// Ruling T22-e: nobody survived genesis is CR 104.4a's draw; one
+	// survivor is CR 104.2a's winner. This MUST remain the final genesis
+	// event for persistence/replay burst boundaries.
+	e.checkGameOver()
+	return true
+}
+
+// resolveToss maps the pre-shuffle random determination onto the seats that
+// survived the opening deal. The original candidate is already uniform over
+// every configured seat; rejection sampling an eliminated candidate preserves
+// uniformity over survivors without consuming another draw in ordinary games.
+func (e *Engine) resolveToss(toss int, alive []state.PlayerID, seats int) (state.PlayerID, bool) {
+	if toss < 0 || len(alive) == 0 || seats <= 0 {
+		return 0, false
+	}
+	candidate := state.PlayerID(toss)
+	for {
+		for _, p := range alive {
+			if p == candidate {
+				return candidate, true
+			}
+		}
+		candidate = state.PlayerID(e.rng.IntN(seats))
+	}
+}
+
+// recordToss emits the one public record of the random determination. A game
+// that ended during its opening deal still records a winner, but it must not
+// claim that the first turn began.
+func (e *Engine) recordToss(winner state.PlayerID, takesFirstTurn bool) {
+	text := tossName(e.G, winner) + " won the toss"
+	if takesFirstTurn {
+		text += " and takes the first turn"
+	} else {
+		text += "; the game ended before the first turn"
+	}
+	e.emit(events.Event{Kind: events.Note, Player: winner, Text: text})
+}
+
+// tossName is the identity the toss Note's text carries: the deck-identity
+// Name, else "seat N". F3 (TestPlayerNamesDoNotReachTheChain) keeps the
+// per-seat PlayerName -- a display name -- out of the event chain entirely,
+// and the Note is event text, so it uses the same deck identity every other
+// event text already carries. (view/describe.go's player label may prefer
+// PlayerName; that is a view projection, not chain text.)
+func tossName(g *state.Game, p state.PlayerID) string {
+	pl := g.Players[p]
+	if pl.Name != "" {
+		return pl.Name
+	}
+	return "seat " + strconv.Itoa(int(p))
 }
 
 // emit is the engine's single mutation entry point. Task 20 inserts

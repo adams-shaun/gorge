@@ -35,6 +35,9 @@ func walkerBoard(t *testing.T, reg *cards.Registry, name string, onBoard ...*car
 			mountainDeck(t, 40),
 		},
 	}
+	// Seat 0 is the protagonist (the board parks at seat 0 turns);
+	// seatZeroStart advances the seed until the CR 103.1 toss starts seat 0.
+	cfg = seatZeroStart(cfg)
 	e := New(cfg)
 	var id state.ObjID
 	for i := range e.G.Objs {

@@ -631,8 +631,8 @@ func driveTriggerGame(t *testing.T, e *Engine, limit int, orders [][]int, yesNo 
 func TestReplayFromLogAloneReconstructsOrderedAndOptionalTriggers(t *testing.T) {
 	deck0 := append([]*cards.Card{card(t, scholarSrc), card(t, grinderSrc), card(t, mayGainSrc)},
 		mountainDeck(t, 37)...)
-	cfg := Config{Seed: 11, Names: []string{"a", "b"},
-		Decks: [][]*cards.Card{deck0, mountainDeck(t, 40)}}
+	cfg := seatZeroStart(Config{Seed: 11, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{deck0, mountainDeck(t, 40)}})
 	e := New(cfg)
 	scholar := findAndPlay(t, e, 0, "Scholar")
 	grinder := findAndPlay(t, e, 0, "Grinder")

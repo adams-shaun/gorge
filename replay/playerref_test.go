@@ -63,7 +63,7 @@ func raiderConfig(t *testing.T) rules.Config {
 	for i := range deck1 {
 		deck1[i] = mountain
 	}
-	return rules.Config{Seed: 11, Names: []string{"attacker", "defender"},
+	return rules.Config{Seed: 36, Names: []string{"attacker", "defender"},
 		Decks: [][]*cards.Card{deck0, deck1}}
 }
 

@@ -726,7 +726,11 @@ func (e *Engine) ceaseDeadTokens(tried *sbaAttempts) bool {
 // simultaneous. There is no winner in that case; Amount: 1 tells Apply's
 // GameOver case to record a draw (Game.Draw) instead of a winner.
 func (e *Engine) checkGameOver() {
-	if e.G.Over {
+	// New deals opening hands as one genesis operation. Losses and every
+	// other SBA are already real at that point, but the terminal GameOver is
+	// deferred until New has emitted the public toss Note; GameOver must stay
+	// last for the host's persisted burst-boundary contract.
+	if e.deferGameOver || e.G.Over {
 		return
 	}
 	alive := e.G.AliveFrom(0)

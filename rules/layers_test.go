@@ -29,8 +29,11 @@ func onBoard(t *testing.T, e *Engine, p state.PlayerID, src string) state.ObjID 
 
 func layerEngine(t *testing.T) *Engine {
 	t.Helper()
-	return New(Config{Seed: 1, Names: []string{"a", "b"},
-		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}})
+	// Seat 0 is the protagonist of every layer/synthetic-upkeep fixture (the
+	// synthetic StepChange emits rely on G.Active reading seat 0);
+	// seatZeroStart advances the seed until the CR 103.1 toss starts seat 0.
+	return New(seatZeroStart(Config{Seed: 1, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}}))
 }
 
 func TestDerivedStartsFromPrintedCharacteristics(t *testing.T) {

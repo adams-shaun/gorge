@@ -29,7 +29,7 @@ const flickerwispSrc = "Name:Flickerwisp\nManaCost:1 W W\nTypes:Creature Element
 // exiled target's id.
 func delayedFixture(t *testing.T) (*Engine, Config, state.ObjID) {
 	t.Helper()
-	e, cfg, find := etbConfig(t, 77,
+	e, cfg, find := etbConfig(t, 81,
 		[]string{flickerwispSrc, "Name:TargetGuy\nTypes:Creature\nPT:2/2\nOracle:x\n"}, nil)
 	tg := find("TargetGuy", 0)
 	e.emit(events.Event{Kind: events.MoveZone, Obj: tg,

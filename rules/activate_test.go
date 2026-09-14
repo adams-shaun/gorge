@@ -72,7 +72,7 @@ func indexOfPlayerOption(d *decision.Decision, p state.PlayerID) int {
 // pushes a real ability stack object, and its effect (a Draw) resolves.
 func TestManaCostAbilityGoesOnTheStackAndResolves(t *testing.T) {
 	src := "Name:Sailor\nManaCost:U\nTypes:Creature Spirit\nPT:1/1\nA:AB$ Draw | Cost$ 3 U | NumCards$ 1 | Defined$ You | SpellDescription$ Draw a card.\nOracle:x\n"
-	e, cfg, id := newFixtureDeck(t, 31, src)
+	e, cfg, id := newFixtureDeck(t, 34, src)
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
 	addMana(t, e, 0, "UUUU")
 	e.Advance()
@@ -150,7 +150,7 @@ func TestRemoveCounterCostAndTargetedAbility(t *testing.T) {
 	src := "Name:Ballista\nManaCost:X X\nTypes:Artifact Creature Construct\nPT:0/0\n" +
 		"A:AB$ PutCounter | Cost$ 4 | CounterType$ P1P1 | CounterNum$ 1 | SpellDescription$ Put a +1/+1 counter on CARDNAME.\n" +
 		"A:AB$ DealDamage | Cost$ SubCounter<1/P1P1> | ValidTgts$ Any | NumDmg$ 1 | SpellDescription$ It deals 1 damage to any target.\nOracle:x\n"
-	e, cfg, _ := newFixtureDeck(t, 32, src)
+	e, cfg, _ := newFixtureDeck(t, 36, src)
 	id := putCreature(t, e, 0, src) // drives to Main1 and leaves e.pending nil, so the Advance below re-asks a fresh priority decision
 	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "P1P1", Amount: 2})
 	e.Advance()
@@ -178,7 +178,7 @@ func TestRemoveCounterCostAndTargetedAbility(t *testing.T) {
 func TestGraveyardActivationWithSacrificeCost(t *testing.T) {
 	src := "Name:Breaker\nManaCost:6 G\nTypes:Creature Eldrazi\nPT:5/7\nK:Devoid\n" +
 		"A:AB$ ChangeZone | Cost$ 2 C Sac<1/Land> | Origin$ Graveyard | Destination$ Hand | ActivationZone$ Graveyard | SpellDescription$ Return CARDNAME from your graveyard to your hand.\nOracle:x\n"
-	e, cfg, id := newFixtureDeck(t, 33, src)
+	e, cfg, id := newFixtureDeck(t, 39, src)
 	// The sacrificial land is a real deck Mountain moved with a logged
 	// MoveZone, not a putLands fixture: replayCheck reconstructs a deck card
 	// from the config, but putLands bypasses events (direct AddObject), so
@@ -261,7 +261,7 @@ func TestRealCorpusSacCostWithAlternationAndDescriptionPays(t *testing.T) {
 	src := "Name:Trawler\nManaCost:1 U\nTypes:Creature Whale\nPT:3/3\n" +
 		"A:AB$ ChangeZone | Cost$ 2 Sac<1/Artifact;Creature/artifact or creature> | Origin$ Graveyard | Destination$ Hand | ActivationZone$ Graveyard | SpellDescription$ Return CARDNAME from your graveyard to your hand.\nOracle:x\n"
 	bearSrc := "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
-	e, cfg, id := newFixtureDeck(t, 37, src, bearSrc)
+	e, cfg, id := newFixtureDeck(t, 38, src, bearSrc)
 	bear := putCreature(t, e, 0, bearSrc)
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZGraveyard})
 	addMana(t, e, 0, "GG")
@@ -378,7 +378,7 @@ func TestActivateSkipsRestrictedManaAbility(t *testing.T) {
 		"A:AB$ Mana | Cost$ T | Produced$ U | SpellDescription$ Add {U}.\nOracle:x\n"
 	needle := "Name:NeedleB\nManaCost:1\nTypes:Artifact\n" +
 		"S:Mode$ CantBeActivated | ValidCard$ Card.NamedCard | ValidSA$ Activated.ManaAbility<Produce:B> | Description$ Mint's {B} mana ability can't be activated.\nOracle:x\n"
-	e, _, m := newFixtureDeck(t, 40, mint, needle)
+	e, _, m := newFixtureDeck(t, 41, mint, needle)
 	e.emit(events.Event{Kind: events.MoveZone, Obj: m, From: state.ZHand, To: state.ZBattlefield})
 	n := moveSeeded(t, e, 0, needle, state.ZBattlefield)
 	e.emit(events.Event{Kind: events.Choose, Obj: n, Counter: "name", Text: "Mint"})

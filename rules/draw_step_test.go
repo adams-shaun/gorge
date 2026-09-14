@@ -282,19 +282,29 @@ func TestDrawHappensOnceEvenWhenTwoDrawTriggersAreOrdered(t *testing.T) {
 // TestStartingPlayerStillSkipsTheirFirstDraw pins CR 103.8a across the move:
 // turn 1 (the starting player's own first turn) still draws nothing, and
 // turn 2 (the next seat's first turn, but not the game's first turn) draws
-// exactly once.
+// exactly once. The starting seat is the engine's CR 103.1 toss, read off
+// e.G.Active after New -- never re-derived from the seed, which would make
+// the test compete with the implementation for the same rng stream.
 func TestStartingPlayerStillSkipsTheirFirstDraw(t *testing.T) {
-	e := newSeats(t, 2)
-	hand0 := len(e.G.Zone(state.ZHand, 0))
-	driveToStep(t, e, 1, 0, state.StepDraw)
-	if got := len(e.G.Zone(state.ZHand, 0)); got != hand0 {
-		t.Fatalf("seat 0 hand at turn 1's draw step = %d, want %d unchanged -- CR 103.8a", got, hand0)
+	names := []string{"a", "b"}
+	decks := [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}
+	e := New(Config{Seed: 1, Names: names, Decks: decks}) // measured: the toss gives seat 1
+	e.Advance()
+	start := e.G.Active
+	if start == 0 {
+		t.Fatalf("fixture seed must toss the game to someone other than seat 0, got active=%d", start)
+	}
+	other := 1 - start
+	handStart := len(e.G.Zone(state.ZHand, start))
+	driveToStep(t, e, 1, start, state.StepDraw)
+	if got := len(e.G.Zone(state.ZHand, start)); got != handStart {
+		t.Fatalf("starting player (seat %d) hand at turn 1's draw step = %d, want %d unchanged -- CR 103.8a", start, got, handStart)
 	}
 
-	hand1 := len(e.G.Zone(state.ZHand, 1))
-	driveToStep(t, e, 2, 1, state.StepDraw)
-	if got := len(e.G.Zone(state.ZHand, 1)); got != hand1+1 {
-		t.Fatalf("seat 1 hand at turn 2's draw step = %d, want %d -- seat 1 is not the starting player", got, hand1+1)
+	handOther := len(e.G.Zone(state.ZHand, other))
+	driveToStep(t, e, 2, other, state.StepDraw)
+	if got := len(e.G.Zone(state.ZHand, other)); got != handOther+1 {
+		t.Fatalf("seat %d hand at turn 2's draw step = %d, want %d -- seat %d is not the starting player", other, got, handOther+1, other)
 	}
 }
 

@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/protocol"
 	"github.com/adams-shaun/gorge/view"
@@ -112,6 +114,88 @@ func TestAFinishedMatchIsServedFromDiskAfterRestart(t *testing.T) {
 	mid, err := r.ViewAt("t1", 1, uint64(ms[0].Events/2))
 	if err != nil || mid.Over || mid.Turn == 0 {
 		t.Fatalf("ViewAt mid after restart: %+v, %v", mid, err)
+	}
+}
+
+// TestTerminalGenesisIsServedFromDiskAfterRestart is the CR 103.1 toss
+// persistence regression. Both opening decks are undersized, so New records a
+// toss Note and then ends genesis without a decision. GameOver must remain the
+// final event: boundsOf uses that terminal marker to recognize the complete
+// genesis burst, and reconcileLog would otherwise discard the entire log on a
+// restart as an incomplete tail.
+func TestTerminalGenesisIsServedFromDiskAfterRestart(t *testing.T) {
+	dir := t.TempDir()
+	o := diskOptions(t, dir)
+	load := o.LoadDeck
+	o.LoadDeck = func(name string) (Deck, error) {
+		d, err := load(name)
+		if err != nil {
+			return Deck{}, err
+		}
+		d.Cards = append([]*cards.Card(nil), d.Cards[:3]...)
+		return d, nil
+	}
+	cfg := TableConfig{ID: "t1", Name: "terminal-genesis", Seats: 2,
+		Decks: []string{"a", "b"}, Seed: 1, Spectator: view.Omniscient}
+
+	r, err := New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.AddTable(cfg); err != nil {
+		r.Close()
+		t.Fatal(err)
+	}
+	if err := r.Start("t1"); err != nil {
+		r.Close()
+		t.Fatal(err)
+	}
+	r.Wait("t1")
+	ms, err := r.Matches("t1")
+	if err != nil || len(ms) != 1 || ms[0].State != protocol.MatchFinished {
+		r.Close()
+		t.Fatalf("live terminal match = %+v, %v", ms, err)
+	}
+	liveEvents, err := r.Events("t1", 1, 0)
+	if err != nil {
+		r.Close()
+		t.Fatalf("live events: %v", err)
+	}
+	liveHead := ms[0].Head
+	r.Close()
+
+	liveLog, err := readLog(dir, "t1", 1)
+	if err != nil {
+		t.Fatalf("read live terminal log: %v", err)
+	}
+	if len(liveLog.Events) < 2 || liveLog.Events[len(liveLog.Events)-1].Kind != events.GameOver {
+		t.Fatalf("live terminal genesis does not end in GameOver: %+v", liveLog.Events)
+	}
+	tossNotes := 0
+	for _, ev := range liveLog.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "won the toss") {
+			tossNotes++
+		}
+	}
+	if tossNotes != 1 {
+		t.Fatalf("live terminal genesis has %d toss Notes, want exactly 1", tossNotes)
+	}
+
+	r2, err := New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r2.Close()
+	ms, err = r2.Matches("t1")
+	if err != nil || len(ms) != 1 || ms[0].State != protocol.MatchFinished || ms[0].Head != liveHead {
+		t.Fatalf("restarted terminal match = %+v, %v; want finished head %s", ms, err, liveHead)
+	}
+	restartedEvents, err := r2.Events("t1", 1, 0)
+	if err != nil {
+		t.Fatalf("restarted terminal genesis does not replay: %v", err)
+	}
+	if !reflect.DeepEqual(restartedEvents, liveEvents) {
+		t.Fatalf("restarted terminal genesis returned %d events, live returned %d", len(restartedEvents), len(liveEvents))
 	}
 }
 

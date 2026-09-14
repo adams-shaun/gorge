@@ -48,6 +48,11 @@ func TestResumeTriggerDrainIsInertWhileAResolutionIsSuspended(t *testing.T) {
 		cfg.Names = append(cfg.Names, n)
 		cfg.Decks = append(cfg.Decks, testutil.RepoDeck(t, reg, n))
 	}
+	// Seat 0 is the protagonist; seatZeroStart advances the seed until the
+	// CR 103.1 toss starts seat 0. It runs here, after the decks are
+	// appended -- on the deck-less Config it would be a no-op (New with no
+	// Names draws no toss).
+	cfg = seatZeroStart(cfg)
 	e := New(cfg)
 	e.Advance()
 	toMain1(t, e)

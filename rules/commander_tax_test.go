@@ -398,6 +398,9 @@ func TestCommanderTaxGatedOffOutsideCommanderFormat(t *testing.T) {
 		Commanders: [][]int{{0}, {0}},
 		// Format deliberately NOT set: FormatConstructed is the zero value.
 	}
+	// Seat 0 is the protagonist; seatZeroStart advances the seed until the
+	// CR 103.1 toss starts seat 0 (the effective seed travels in cfg).
+	cfg = seatZeroStart(cfg)
 	e := New(cfg)
 	e.Advance()
 	driveToStep(t, e, 1, 0, state.StepMain1)

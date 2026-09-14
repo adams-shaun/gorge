@@ -41,7 +41,7 @@ func TestAuraTargetsOnCastAttachesOnResolutionAndDiesWithItsBearer(t *testing.T)
 		"S:Mode$ Continuous | Affected$ Creature.EnchantedBy | AddPower$ 2 | AddKeyword$ Trample | Description$ x\n" +
 		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | Execute$ TrigChangeZone | TriggerDescription$ x\n" +
 		"SVar:TrigChangeZone:DB$ ChangeZone | Origin$ Graveyard | Destination$ Hand | Defined$ TriggeredCardLKICopy\nOracle:x\n"
-	e, cfg, ra := newFixtureDeck(t, 62, rancor)
+	e, cfg, ra := newFixtureDeck(t, 64, rancor)
 	bear := putToken(t, e, 1, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n", state.ZBattlefield)
 	addMana(t, e, 0, "G")
 	castFirst(t, e, "cast")
@@ -75,7 +75,7 @@ func TestAuraTargetsOnCastAttachesOnResolutionAndDiesWithItsBearer(t *testing.T)
 func TestLivingWeaponCreatesAGermAndAttaches(t *testing.T) {
 	skull := "Name:Skull\nManaCost:5\nTypes:Artifact Equipment\nK:Living Weapon\nK:Equip:5\n" +
 		"S:Mode$ Continuous | Affected$ Creature.EquippedBy | AddPower$ 4 | AddToughness$ 4 | Description$ x\nOracle:x\n"
-	e, cfg, sk := newFixtureDeckWithTokens(t, 63, skull)
+	e, cfg, sk := newFixtureDeckWithTokens(t, 68, skull)
 	addMana(t, e, 0, "GGGGG")
 	castFirst(t, e, "cast")
 	passUntilStackEmpty(t, e, 30)

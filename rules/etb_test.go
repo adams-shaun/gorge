@@ -144,7 +144,7 @@ func TestChaliceCountersSpellsOfTheChargedManaValue(t *testing.T) {
 		"T:Mode$ SpellCast | ValidCard$ Card.cmcEQY | ValidActivatingPlayer$ Player | TriggerZones$ Battlefield | Execute$ TrigCounter | TriggerDescription$ x\n" +
 		"SVar:TrigCounter:DB$ Counter | Defined$ TriggeredSpellAbility\nSVar:X:Count$xPaid\nSVar:Y:Count$CardCounters.CHARGE\nOracle:x\n"
 	bolt := "Name:Bolt\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3\nOracle:x\n"
-	e, cfg, find := etbConfig(t, 43, []string{chalice}, []string{bolt})
+	e, cfg, find := etbConfig(t, 53, []string{chalice}, []string{bolt})
 	ch := find("Chalice", 0)
 	addMana(t, e, 0, "GG")
 	castFirst(t, e, "cast")
@@ -210,7 +210,7 @@ func TestNeedleNamesACardAndCavernChoosesAType(t *testing.T) {
 		"SVar:DBNameCard:DB$ NameCard | Defined$ You | SpellDescription$ x\n" +
 		"S:Mode$ CantBeActivated | ValidCard$ Card.NamedCard | ValidSA$ Activated.!ManaAbility | Description$ x\nOracle:x\n"
 	ballista := "Name:Ballista\nManaCost:X X\nTypes:Artifact Creature Construct\nPT:0/0\nA:AB$ DealDamage | Cost$ SubCounter<1/P1P1> | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n"
-	e, cfg, find := etbConfig(t, 45, []string{needle}, []string{ballista})
+	e, cfg, find := etbConfig(t, 54, []string{needle}, []string{ballista})
 	n := find("Needle", 0)
 	b := putCreature(t, e, 1, ballista)
 	e.emit(events.Event{Kind: events.CounterChange, Obj: b, Counter: "P1P1", Amount: 2})
@@ -245,7 +245,7 @@ func TestNeedleNamesACardAndCavernChoosesAType(t *testing.T) {
 		"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\nOracle:x\n"
 	grunt := "Name:Grunt\nManaCost:R\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n"
 	{ // a land played through its own one-stage flow, in its own scope
-		e2, cfg2, find2 := etbConfig(t, 46, []string{cavern, grunt}, nil)
+		e2, cfg2, find2 := etbConfig(t, 55, []string{cavern, grunt}, nil)
 		cv := find2("Cavern", 0)
 		idx := -1
 		for _, o := range e2.Pending().Options {

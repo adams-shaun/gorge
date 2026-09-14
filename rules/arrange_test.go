@@ -50,7 +50,7 @@ func arrangeDecision(t *testing.T, e *Engine, id state.ObjID) *decision.Decision
 // resolution suspended -- the spell stays on the stack, the asking effect has
 // returned, and nothing before the ask re-runs until the answer arrives.
 func TestArrangePosesDecisionAndSuspends(t *testing.T) {
-	e, _, id := arrangeFixture(t, 101)
+	e, _, id := arrangeFixture(t, 100)
 	d := arrangeDecision(t, e, id)
 	if d.Min != 3 || d.Max != 3 {
 		t.Fatalf("Min/Max = %d/%d, want 3/3 (a full reorder is a permutation over the top N)", d.Min, d.Max)
@@ -181,7 +181,7 @@ func sameObjSet(a, b []state.ObjID) bool {
 // LibraryOrder event -- or an event that did not actually set the order --
 // would produce a reconstructed library that diverges from the live one.
 func TestArrangeReplaysByteIdentically(t *testing.T) {
-	e, cfg, id := arrangeFixture(t, 104)
+	e, cfg, id := arrangeFixture(t, 105)
 	d := arrangeDecision(t, e, id)
 	submitChoices(t, e, d.Options[2].Index, d.Options[0].Index, d.Options[1].Index)
 	replayCheck(t, e, cfg)

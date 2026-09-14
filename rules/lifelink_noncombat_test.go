@@ -43,6 +43,9 @@ func linkBoard(t *testing.T, reg *cards.Registry, p0, p1 []string) (*Engine, Con
 			append(d1, mountainDeck(t, 40-len(d1))...),
 		},
 	}
+	// Seat 0 is the protagonist (the board parks at seat 0 turns);
+	// seatZeroStart advances the seed until the CR 103.1 toss starts seat 0.
+	cfg = seatZeroStart(cfg)
 	e := New(cfg)
 	onBattlefield := func(seat state.PlayerID, named []*cards.Card) {
 		for i := range e.G.Objs {

@@ -43,6 +43,11 @@ func TestPublishedDecisionIsAnswerableTheMomentItPublishes(t *testing.T) {
 		seenHuman int
 	)
 	var r *Registry
+	// Seed 3, not the historical 42: the CR 103.1 toss (rules.New draws the
+	// starting seat from MatchSeed(tableSeed, k), k = the game index) starts
+	// seat 0 -- the human -- at 3's game 1, measured, so the FIRST decision
+	// belongs to seat 0 and no pace sleep precedes it, exactly the shape the
+	// pre-toss seed 42 fixture had.
 	o := testOptions(t)
 	o.Seats = twoSeatHumans // seat 0 human, seat 1 bot
 	o.Sleep = func(d time.Duration, stop <-chan struct{}) {
@@ -94,7 +99,7 @@ func TestPublishedDecisionIsAnswerableTheMomentItPublishes(t *testing.T) {
 	r, _ = New(o)
 	t.Cleanup(func() { r.Close() })
 	cfg := TableConfig{ID: "t1", Name: "race", Seats: 2, Decks: []string{"a", "b"},
-		Seed: 42, Pace: pace, Spectator: view.Omniscient, Perpetual: false}
+		Seed: 3, Pace: pace, Spectator: view.Omniscient, Perpetual: false}
 	if err := r.AddTable(cfg); err != nil {
 		t.Fatal(err)
 	}
