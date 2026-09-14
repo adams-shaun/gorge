@@ -422,12 +422,17 @@ describe('decide', () => {
       .toEqual({ act: 'pass', index: 0 });
   });
 
-  it('the Resolve All baseline skips the own-object rule for arm-time objects too, but not a step stop', () => {
+  it('Resolve All skips the own-object rule for both arm-time and NEW own objects, but not a step stop', () => {
     const d = priority(RESPONDABLE);
     const mine = namedEntry(9, 0, 'Blood Artist', 'Whenever a creature dies, each opponent loses 1 life');
+    const newMine = namedEntry(10, 0, 'Young Pyromancer', 'Whenever you cast an instant or sorcery spell, create a token');
     const s = defaultSettings();
     s.ownObjects = 'if-respondable';
     expect(decide({ decision: d, view: view(0, 'draw', [mine]), seat: 0, settings: s, baselineStack: new Set([9]) }))
+      .toEqual({ act: 'pass', index: 0 });
+    // A seat-owned trigger pushed during the run is not one of Resolve All's
+    // stop conditions, even under Full Control and when a response is offered.
+    expect(decide({ decision: d, view: view(0, 'draw', [mine, newMine]), seat: 0, settings: s, baselineStack: new Set([9]) }))
       .toEqual({ act: 'pass', index: 0 });
     const stopped = withSteps('yours', { draw: 'forced' });
     expect(decide({ decision: d, view: view(0, 'draw', [artist]), seat: 0, settings: stopped, baselineStack: new Set([9]) }))

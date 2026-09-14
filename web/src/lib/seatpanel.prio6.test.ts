@@ -285,6 +285,30 @@ describe('Resolve All', () => {
     expect(p.runPassed).toBe(2);
   });
 
+  it('passes a NEW seat-owned trigger under Full Control while still stopping for new opponents', async () => {
+    const p = immediateSeat();
+    p.skipEmpty = false;
+    p.settings = { ...p.settings, ownObjects: 'if-respondable' };
+    const armed = view('draw', 0, 2, [stackView(9, 'Lightning Bolt')]);
+    p.adoptView(live(1));
+    p.startResolveAll(armed);
+    p.considerAuto(armed);
+    await settle(() => p.postedSeq === 1);
+
+    // Resolving the opponent's spell pushed our trigger. It was not in the
+    // baseline and the window offers a response, but Resolve All's only new-
+    // object stop is an OPPONENT object, so Full Control's ownObjects rule
+    // must not terminate the run.
+    const mine = entry(10, 0, 'Young Pyromancer', 'Whenever you cast an instant or sorcery spell, create a token');
+    const withNewOwnTrigger = view('draw', 0, 2, [stackView(9, 'Lightning Bolt'), mine]);
+    p.adoptView(live(2));
+    p.considerAuto(withNewOwnTrigger);
+    await settle(() => p.postedSeq === 2);
+    expect(p.oneShot).toBe('resolve-all');
+    expect(p.runPassed).toBe(2);
+    expect(postIntentMock.mock.calls[1][2].choices).toEqual([1]);
+  });
+
   it('any non-priority decision ends the run (the not-priority stop verdict)', async () => {
     const p = immediateSeat();
     const armed = view('draw', 0, 2, [stackView(9, 'Lightning Bolt')]);

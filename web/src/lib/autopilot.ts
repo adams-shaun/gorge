@@ -185,8 +185,9 @@ export function decide(args: {
    * an opponent object that was present at arm time does not stop the run
    * (the rule checks are skipped for it); a NEW opponent object — an id not
    * in the baseline — stops per the caller's settings, exactly as a plain
-   * End Turn would. Own objects on the baseline pass the own-object rule
-   * the same way; a new own object is judged by the settings as usual.
+   * End Turn would. Resolve All never stops for the seat's own objects,
+   * whether they were present at arm time or were added while resolving;
+   * only a NEW opponent object is subject to a stack stop rule.
    */
   baselineStack?: ReadonlySet<number>;
 }): AutoVerdict {
@@ -227,7 +228,10 @@ export function decide(args: {
         }
         // 'never' (and a rule the arms above did not meet) falls through.
       }
-    } else if (settings.ownObjects === 'if-respondable' && respondable(decision)) {
+    } else if (baselineStack === null && settings.ownObjects === 'if-respondable' && respondable(decision)) {
+      // Resolve All only stops for NEW opponent objects. An own trigger or
+      // ability pushed while it runs is part of resolving the stack, even
+      // under Full Control; persistent Auto still honours ownObjects.
       return { act: 'stop', reason: 'own-object' };
     }
   }
