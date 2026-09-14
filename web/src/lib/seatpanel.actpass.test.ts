@@ -58,12 +58,12 @@ const view = (step = 'draw', active = 0, stack: { id: number; controller: number
   ({ active, step, turn: 2, stack }) as unknown as View;
 
 /**
- * floatReadyView is a view whose seat 0 holds one untapped mana source
- * (Available {R: 1}) and a hand card that becomes castable once that mana
- * floats ({1}{R} — the Lava-Spike-after-the-Mountain shape). It is what makes
- * a mana-only tap window STOP-worthy (castableAfterTap true) instead of
- * empty-floor'd, so the tap tests exercise the player's own click on a
- * window that genuinely surfaces.
+ * floatReadyView is a view whose seat 0 carries a projected potential action
+ * (rv2c: the server's own legal-offer walk priced against the hypothetical
+ * tapped-out pool — here, the Lava-Spike-after-the-Mountain shape as one
+ * projected cast). It is what makes a mana-only tap window STOP-worthy
+ * (castableAfterTap true) instead of empty-floor'd, so the tap tests exercise
+ * the player's own click on a window that genuinely surfaces.
  */
 const floatReadyView = (step = 'main1'): View =>
   ({
@@ -74,8 +74,9 @@ const floatReadyView = (step = 'main1'): View =>
     players: [{
       seat: 0, name: 'P0', life: 20, lost: false, library_size: 40, hand_size: 1,
       graveyard_size: 0, battlefield: [], graveyard: [], exile: [],
-      pool: {}, available: { R: 1 },
+      pool: {},
       hand: [{ id: 7, name: 'Lava Spike', types: 'Instant', mana_cost: 'R', printing: {}, token: '' }],
+      potential_actions: [{ kind: 'cast', obj: 7, label: 'Cast Lava Spike' }],
     }],
   }) as unknown as View;
 

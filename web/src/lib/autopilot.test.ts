@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { actionable, actionables, decide, emptyPriorityWindow, respondable, respondableFor, STEPS, STOPPABLE_STEPS, turnSide } from './autopilot';
 import { applyPreset, defaultSettings, type PlaySettings, type StoppableStep, type StepStop } from './playsettings';
-import type { CardView, Decision, Option, PlayerView, View } from '../protocol';
+import type { CardView, Decision, Option, PlayerView, PotentialAction, View } from '../protocol';
 
 /** view builds a View with only the fields decide reads: active (whose turn), step, stack, and the battlefield data the targets-me lookup reads. */
 const view = (
@@ -30,7 +30,10 @@ const stackEntry = (
   targets: { obj?: number; player: number; is_player: boolean }[] = [],
 ) => ({ id, controller, kind, targets });
 
-/** handCard builds one minimal CardView for a hand entry; only the fields castableAfterTap reads are named. */
+/** pot builds one projected PotentialAction: a real play the engine WOULD offer once the seat's mana floated. */
+const pot = (kind: string, obj = 7): PotentialAction => ({ kind, obj, label: 'Cast Card' });
+
+/** handCard builds one minimal CardView for a hand entry; only the fields the fixture reads are named. */
 const handCard = (over: Partial<CardView>): CardView =>
   ({
     id: 1,
@@ -171,70 +174,62 @@ describe('decide', () => {
 
   it('casual: the report shape — opponent spell on top, mana-only window, Mana Leak + 2 untapped Islands in view STOPS', () => {
     const d = priority(ONLY_MANA); // activate + pass + concede — the window as the engine offers it, pool empty
+    // rv2c: the server projects the walk — the Mana Leak the seat could pay
+    // once its Islands float — and the client reads that, not a printed cost.
     const v = withHand(view(0, 'draw', [stackEntry(9, 1, 'spell')]), 0, {
-      hand: [handCard({ name: 'Mana Leak', mana_cost: '1 U' })], // handCard defaults types to Instant
-      pool: {},
-      available: { U: 2 },
+      potential_actions: [pot('cast', 1)],
     });
     expect(run(d, v)).toEqual({ act: 'stop', reason: 'opponent-object' });
   });
 
   it('casual: the same shape with NO hand still passes (the empty-hand pin above stays valid)', () => {
     const d = priority(ONLY_MANA);
-    const v = withHand(view(0, 'draw', [stackEntry(9, 1, 'spell')]), 0, { hand: [], available: { U: 2 } });
+    // rv2c: no projection — the engine would unlock nothing here.
+    const v = view(0, 'draw', [stackEntry(9, 1, 'spell')]);
     expect(run(d, v)).toEqual({ act: 'pass', index: 1 });
   });
 
   it('casual: a SORCERY castable after tapping does NOT stop an opponent-spell window (the timing filter)', () => {
     const d = priority(ONLY_MANA);
-    const v = withHand(view(0, 'draw', [stackEntry(9, 1, 'spell')]), 0, {
-      hand: [handCard({ types: 'Sorcery', mana_cost: '1 U' })],
-      available: { U: 2 },
-    });
+    // rv2c: the server's own timing gates keep a sorcery out of a response
+    // window's projection — the client's old types-line timing filter is gone.
+    const v = view(0, 'draw', [stackEntry(9, 1, 'spell')]);
     expect(run(d, v)).toEqual({ act: 'pass', index: 1 });
   });
 
   it('casual: a FLASH creature castable after tapping stops an opponent-spell window', () => {
     const d = priority(ONLY_MANA);
     const v = withHand(view(0, 'draw', [stackEntry(9, 1, 'spell')]), 0, {
-      hand: [handCard({ types: 'Creature Bear', mana_cost: '1 U', keywords: ['Flash'] })],
-      available: { U: 2 },
+      potential_actions: [pot('cast')],
     });
     expect(run(d, v)).toEqual({ act: 'stop', reason: 'opponent-object' });
   });
 
-  it('casual: an instant that is NOT affordable after tapping still passes (the money half applies)', () => {
+  it('casual: a play the engine would NOT unlock still passes (the money half lives server-side now)', () => {
     const d = priority(ONLY_MANA);
-    const v = withHand(view(0, 'draw', [stackEntry(9, 1, 'spell')]), 0, {
-      hand: [handCard({ mana_cost: '4 U' })],
-      available: { U: 2 },
-    });
+    const v = view(0, 'draw', [stackEntry(9, 1, 'spell')]);
     expect(run(d, v)).toEqual({ act: 'pass', index: 1 });
   });
 
   it('casual: a targets-me opponent trigger + mana-only window + castable instant in hand STOPS (targets-me-if-respondable)', () => {
     const d = priority(ONLY_MANA);
     const v = withHand(view(0, 'draw', [stackEntry(9, 1, 'trigger', [{ player: 0, is_player: true }])]), 0, {
-      hand: [handCard({ mana_cost: '1 U' })],
-      available: { U: 2 },
+      potential_actions: [pot('cast')],
     });
     expect(run(d, v)).toEqual({ act: 'stop', reason: 'opponent-object' });
   });
 
   it('casual: a targets-me opponent trigger + mana-only window + castable SORCERY in hand passes (timing, not money)', () => {
     const d = priority(ONLY_MANA);
-    const v = withHand(view(0, 'draw', [stackEntry(9, 1, 'trigger', [{ player: 0, is_player: true }])]), 0, {
-      hand: [handCard({ types: 'Sorcery', mana_cost: '1 U' })],
-      available: { U: 2 },
-    });
+    // rv2c: a sorcery is never in a response window's projection.
+    const v = view(0, 'draw', [stackEntry(9, 1, 'trigger', [{ player: 0, is_player: true }])]);
     expect(run(d, v)).toEqual({ act: 'pass', index: 1 });
   });
 
   it('casual: a trigger NOT targeting me passes even with a castable instant in hand (targets-me still gates the trigger arm)', () => {
     const d = priority(ONLY_MANA);
     const v = withHand(view(0, 'draw', [stackEntry(9, 1, 'trigger', [{ player: 1, is_player: true }])]), 0, {
-      hand: [handCard({ mana_cost: '1 U' })],
-      available: { U: 2 },
+      potential_actions: [pot('cast')],
     });
     expect(run(d, v)).toEqual({ act: 'pass', index: 1 });
   });
@@ -243,22 +238,25 @@ describe('decide', () => {
     const d = priority(ONLY_MANA);
     const s = { ...applyPreset('full-control'), autoPass: true };
     const v = withHand(view(0, 'draw', [stackEntry(9, 0, 'spell')]), 0, {
-      hand: [handCard({ mana_cost: '1 U' })],
-      available: { U: 2 },
+      potential_actions: [pot('cast')],
     });
     expect(run(d, v, s)).toEqual({ act: 'stop', reason: 'own-object' });
   });
 
-  it("respondableFor is respondable OR the instant-speed hand scan, and never asks another seat's hand", () => {
+  it('respondableFor is respondable OR the projection scan, and never asks another seat\u2019s projection', () => {
     const d = priority(ONLY_MANA);
-    const holding = withHand(view(0, 'draw'), 0, { hand: [handCard({ mana_cost: '1 U' })], available: { U: 2 } });
+    // rv2c: the seat's own projection (the engine's walk) is the only hand
+    // the scan ever reads.
+    const holding = withHand(view(0, 'draw'), 0, { potential_actions: [pot('cast')] });
     expect(respondableFor(holding, 0, d)).toBe(true);
     expect(respondableFor(view(0, 'draw'), 0, d)).toBe(false);
-    expect(respondableFor(holding, 1, d)).toBe(false); // another seat's hand is a hidden zone
+    expect(respondableFor(holding, 1, d)).toBe(false); // the projection rides the viewer's own seat only
     const withCast = priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]);
     expect(respondableFor(view(0, 'draw'), 0, withCast)).toBe(true);
-    const sorceryOnly = withHand(view(0, 'draw'), 0, { hand: [handCard({ types: 'Sorcery', mana_cost: '1 U' })], available: { U: 2 } });
-    expect(respondableFor(sorceryOnly, 0, d)).toBe(false);
+    // A response window never projects a sorcery-speed play (the server's
+    // timing gates), so a projection-less view is not respondable either.
+    const projectionless = view(0, 'draw');
+    expect(respondableFor(projectionless, 0, d)).toBe(false);
   });
 
   it('casual: an opponent ability on top with a cast available stops (if-respondable)', () => {
@@ -512,17 +510,20 @@ describe('decide', () => {
     expect(actionable(priority([opt('play_land', 0), opt('activate', 1), opt('pass', 2), opt('concede', 3)]), noHand, 0)).toBe(true);
   });
 
-  it('actionable on a mana-only window: a hand card castable after tapping makes it TRUE, an uncastable hand does not', () => {
+  it('actionable on a mana-only window: a projected play makes it TRUE, an empty projection does not', () => {
     const d = priority(ONLY_MANA);
-    // Post-land Lava Spike: pool empty, one untapped Mountain (Available {R}), {R} spell in hand.
-    const stop = withHand(view(0, 'main1'), 0, { hand: [handCard({ mana_cost: 'R' })], available: { R: 1 } });
+    // rv2c: the server projected the walk — a play the seat could pay once
+    // its untapped sources floated.
+    const stop = withHand(view(0, 'main1'), 0, { potential_actions: [pot('cast')] });
     expect(actionable(d, stop, 0)).toBe(true);
-    // Same window, wrong colour in play: the hand is dead mana-wise, still not actionable.
-    const pass = withHand(view(0, 'main1'), 0, { hand: [handCard({ mana_cost: '2 U' })], available: { R: 1 } });
+    // Same window, empty projection: the engine would unlock nothing, not
+    // actionable.
+    const pass = view(0, 'main1');
     expect(actionable(d, pass, 0)).toBe(false);
-    // A castable-from-the-pool hand carries the cast option already (kind test);
-    // the helper must not make the window MORE than actionable — same verdict either way.
-    const floating = withHand(view(0, 'main1'), 0, { hand: [handCard({ mana_cost: 'R' })], pool: { R: 1 } });
+    // A castable-from-the-pool hand carries the cast option already (kind
+    // test); the helper must not make the window MORE than actionable — same
+    // verdict either way.
+    const floating = view(0, 'main1');
     const castable = priority([opt('pass', 0), opt('cast', 1), opt('concede', 2)]);
     expect(actionable(castable, floating, 0)).toBe(true);
   });
@@ -535,16 +536,16 @@ describe('decide', () => {
     expect(respondable(priority([opt('ability', 0)]))).toBe(true);
   });
 
-  it('a mana-only window with a dead-mana hand is not actionable and emptyPriorityWindow returns the pass index', () => {
+  it('a mana-only window with an empty projection is not actionable and emptyPriorityWindow returns the pass index', () => {
     const d = priority(ONLY_MANA);
-    const v = withHand(view(0, 'main1'), 0, { hand: [handCard({ mana_cost: '4 U' })], available: { R: 1 } });
+    const v = view(0, 'main1');
     expect(actionable(d, v, 0)).toBe(false);
     expect(emptyPriorityWindow(d, v, 0)).toBe(1);
   });
 
-  it('a mana-only window with a castable-after-tap hand is NOT an empty priority window', () => {
+  it('a mana-only window with a projected play is NOT an empty priority window', () => {
     const d = priority(ONLY_MANA);
-    const v = withHand(view(0, 'main1'), 0, { hand: [handCard({ mana_cost: 'R' })], available: { R: 1 } });
+    const v = withHand(view(0, 'main1'), 0, { potential_actions: [pot('cast')] });
     expect(emptyPriorityWindow(d, v, 0)).toBe(null);
   });
 
@@ -552,75 +553,74 @@ describe('decide', () => {
 
   it('casual decide(): a post-land mana-only window with a castable-after-tap card in hand STOPS (stop-set)', () => {
     const d = priority(ONLY_MANA); // activate + pass + concede — exactly the window after the turn-1 Mountain
-    const v = withHand(view(0, 'main1'), 0, { hand: [handCard({ name: 'Lava Spike', mana_cost: 'R' })], available: { R: 1 } });
+    // rv2c: the server projected the Lava Spike cast (the Mountain floats
+    // first); the client reads the projection.
+    const v = withHand(view(0, 'main1'), 0, { potential_actions: [pot('cast', 5)] });
     const s = withSteps('yours', { main1: 'smart' });
     expect(run(d, v, s)).toEqual({ act: 'stop', reason: 'stop-set' });
   });
 
-  it('casual decide(): decision-offered Tundra and any-source taps stop the own-main window, while dead mana still passes', () => {
-    const tap = (obj: number) => priority([
-      { ...opt('activate', 0), obj }, opt('pass', 1), opt('concede', 2),
-    ]);
+  it('casual decide(): the server projection, not a per-card produces join, decides the own-main window', () => {
+    // rv2c: the predecessor joined the decision's activate offers to
+    // battlefield CardView.Produces projections (and priced Indeterminate
+    // sources — Tron, a Cradle — at zero). The server projection carries
+    // every shape, including the multi-colour and any-colour ones, and the
+    // client reads it directly.
+    const d = priority(ONLY_MANA);
     const s = withSteps('yours', { main1: 'smart' });
-    const tundra = withHand(view(0, 'main1'), 0, {
-      hand: [handCard({ mana_cost: 'W' })], pool: {}, available: { C: 1 },
-      battlefield: [handCard({ id: 7, name: 'Tundra', types: 'Land Plains Island', produces: { colour: [1, 1, 0, 0, 0, 0], any: false } })],
-    });
-    expect(run(tap(7), tundra, s)).toEqual({ act: 'stop', reason: 'stop-set' });
+    const stoppable = withHand(view(0, 'main1'), 0, { potential_actions: [pot('cast')] });
+    expect(run(d, stoppable, s)).toEqual({ act: 'stop', reason: 'stop-set' });
 
-    const any = withHand(view(0, 'main1'), 0, {
-      hand: [handCard({ mana_cost: 'W' })], pool: {},
-      battlefield: [handCard({ id: 7, name: 'Any land', types: 'Land', produces: { colour: [0, 0, 0, 0, 0, 1], any: true } })],
-    });
-    expect(run(tap(7), any, s)).toEqual({ act: 'stop', reason: 'stop-set' });
-
-    const dead = withHand(view(0, 'main1'), 0, {
-      hand: [handCard({ mana_cost: 'U' })], pool: {},
-      battlefield: [handCard({ id: 7, name: 'Mountain', types: 'Land', produces: { colour: [0, 0, 0, 1, 0, 0], any: false } })],
-    });
-    expect(run(tap(7), dead, s)).toEqual({ act: 'pass', index: 1 });
+    const passing = view(0, 'main1');
+    expect(run(d, passing, s)).toEqual({ act: 'pass', index: 1 });
   });
 
-  it('casual decide(): a payable tap ability stops, but sacrifice and summon-sick abilities remain invisible', () => {
+  it('casual decide(): a projected activation stops, but an activation the engine withholds does not project at all', () => {
     const d = priority([{ ...opt('activate', 0), obj: 7 }, opt('pass', 1), opt('concede', 2)]);
     const s = withSteps('yours', { main1: 'smart' });
-    const source = handCard({ id: 7, name: 'Rock', types: 'Artifact', produces: { colour: [0, 0, 0, 0, 0, 1], any: false } });
-    const ability = handCard({ id: 8, name: 'Ability Rock', types: 'Artifact', ability_costs: ['1 T'] } as unknown as Partial<CardView>);
-    const payable = withHand(view(0, 'main1'), 0, { pool: {}, battlefield: [source, ability] });
+    // rv2c: the payable shape (including the effective-cost one — a printed
+    // 2 T reduced by a live ReduceCost static arrives already reduced) is a
+    // server-projected ability.
+    const payable = withHand(view(0, 'main1'), 0, { potential_actions: [pot('ability', 8)] });
     expect(run(d, payable, s)).toEqual({ act: 'stop', reason: 'stop-set' });
 
-    // The projected cost is effective: a printed 2 T reduced by a live
-    // ReduceCost$ 1 | Type$ Ability static arrives as 1 T and must stop too.
-    const reduced = withHand(view(0, 'main1'), 0, { pool: {}, battlefield: [source, handCard({ id: 8, name: 'Printed 2 T ability', ability_costs: ['1 T'] } as unknown as Partial<CardView>)] });
-    expect(run(d, reduced, s)).toEqual({ act: 'stop', reason: 'stop-set' });
-
-    const sacrifice = withHand(view(0, 'main1'), 0, { pool: {}, battlefield: [source, handCard({ id: 8, ability_costs: ['1 T Sac<1/Artifact>'] } as unknown as Partial<CardView>)] });
+    // The engine withholds the unpayable and the summoning-sick shapes
+    // outright (rules/legal.go's own gates), so their windows carry no
+    // projection and pass — no client-side ability_costs reading left.
+    const sacrifice = view(0, 'main1');
     expect(run(d, sacrifice, s)).toEqual({ act: 'pass', index: 1 });
-    const sick = withHand(view(0, 'main1'), 0, { pool: {}, battlefield: [source, handCard({ id: 8, types: 'Creature', summon_sick: true, ability_costs: ['1 T'] } as unknown as Partial<CardView>)] });
+    const sick = view(0, 'main1');
     expect(run(d, sick, s)).toEqual({ act: 'pass', index: 1 });
-
-    const hasty = withHand(view(0, 'main1'), 0, { pool: {}, battlefield: [source, handCard({ id: 8, types: 'Creature', summon_sick: true, keywords: ['Haste'], ability_costs: ['1 T'] } as unknown as Partial<CardView>)] });
-    expect(run(d, hasty, s)).toEqual({ act: 'stop', reason: 'stop-set' });
   });
 
-  it('casual decide(): the same mana-only window with only uncastable cards in hand passes', () => {
+  it('rv2c (replaces the "only uncastable cards in hand passes" pin): an X spell the engine prices at 0 projects, and an empty projection still passes', () => {
     const d = priority(ONLY_MANA);
-    const v = withHand(view(0, 'main1'), 0, { hand: [handCard({ mana_cost: 'X R' })], available: { R: 1 } });
     const s = withSteps('yours', { main1: 'smart' });
-    expect(run(d, v, s)).toEqual({ act: 'pass', index: 1 });
+    // The engine prices X at 0 (CR 107.3b) and offers the Blaze from the
+    // floating {R} — the projection carries it, so the old client-side pin
+    // (a variable pip is unaffordable BY DEFINITION) is gone: the window now
+    // stops, because the player CAN act.
+    const withX = withHand(view(0, 'main1'), 0, { hand: [handCard({ mana_cost: 'X R' })], potential_actions: [pot('cast')] });
+    expect(run(d, withX, s)).toEqual({ act: 'stop', reason: 'stop-set' });
+    // An empty projection still passes — the pin's surviving half, now a
+    // server fact instead of a client derivation.
+    const empty = withHand(view(0, 'main1'), 0, { hand: [handCard({ mana_cost: 'X R' })] });
+    expect(run(d, empty, s)).toEqual({ act: 'pass', index: 1 });
   });
 
-  it('the castable-after-tap stop does not fire on another seat\u2019s hand (the helper fails closed) and never depends on turnSide', () => {
+  it('the projection stop does not fire on another seat\u2019s projection (the helper fails closed) and never depends on turnSide', () => {
     const d = priority(ONLY_MANA);
-    const handless = view(0, 'main1'); // the hand is the viewer\u2019s hidden zone; a view without it fails closed
+    // The projection is the viewer's own seat's only (view/view.go gates on
+    // p.ID == viewer); a view without it fails closed.
+    const projectionless = view(0, 'main1');
     const s = withSteps('yours', { main1: 'smart' });
-    expect(run(d, handless, s)).toEqual({ act: 'pass', index: 1 });
-    // The stop is about the SEAT's own mana and hand, not whose turn it is:
+    expect(run(d, projectionless, s)).toEqual({ act: 'pass', index: 1 });
+    // The stop is about the SEAT's own projected plays, not whose turn it is:
     // actionable() is TRUE for the same shape on the opponent's turn (the
     // helper is turn-side-blind), but casual has no opponents-side main-phase
     // rule at all, so decide() still passes — the stop fires only where the
     // caller's step rules consult it.
-    const mine = withHand(view(1, 'main1'), 0, { hand: [handCard({ mana_cost: 'R' })], available: { R: 1 } });
+    const mine = withHand(view(1, 'main1'), 0, { potential_actions: [pot('cast')] });
     expect(actionable(d, mine, 0)).toBe(true);
     expect(run(d, mine, s)).toEqual({ act: 'pass', index: 1 });
   });

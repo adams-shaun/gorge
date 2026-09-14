@@ -547,9 +547,16 @@ describe('the post-land window — castable after tapping (fb-20260914T014141Z)'
   const tapOnly = (seq: number): Decision =>
     ({ seq, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1, options: [activate(0), pass(1), concede(2)] });
 
-  /** postLandView carries seat 0's own hand, pool and availability: one untapped Mountain (Available {R}) and a Lava Spike ({R}). */
-  const postLandView = (hand: { mana_cost: string }[] = [{ mana_cost: 'R' }]): View =>
-    ({
+  /**
+   * postLandView carries seat 0's own projected potential actions (rv2c) when
+   * the server's walk would unlock the hand (the Lava Spike {R} the untapped
+   * Mountain pays), and carries NO projection when it would not — the same
+   * server fact the old fixture expressed with hand + Available, now one
+   * list. castable defaults to "every hand card is the {R} Lava Spike".
+   */
+  const postLandView = (hand: { mana_cost: string }[] = [{ mana_cost: 'R' }]): View => {
+    const castable = hand.length > 0 && hand.every((c) => c.mana_cost === 'R');
+    return {
       active: 0,
       step: 'main1',
       turn: 1,
@@ -560,10 +567,11 @@ describe('the post-land window — castable after tapping (fb-20260914T014141Z)'
           life: 20,
           hand: hand.map((c, i) => ({ id: 5 + i, name: 'Card', types: 'Instant', controller: 0, owner: 0, ...c })),
           pool: {},
-          available: { R: 1 },
+          ...(castable ? { potential_actions: [{ kind: 'cast', obj: 5, label: 'Cast Card' }] } : {}),
         },
       ],
-    }) as unknown as View;
+    } as unknown as View;
+  };
 
   it('manual mode (skipEmpty on): the floor does NOT swallow a tap-only window whose hand is castable after tapping', async () => {
     const p = manualSeat(); // auto off; skipEmpty defaults ON — the manual floor is live
@@ -578,7 +586,7 @@ describe('the post-land window — castable after tapping (fb-20260914T014141Z)'
   it('manual mode (skipEmpty on): the floor still swallows the same window when the hand is dead mana-wise', async () => {
     const p = manualSeat();
     p.adoptView(tapOnly(4));
-    p.considerAuto(postLandView([{ mana_cost: '4 U' }])); // unpayable from one Mountain
+    p.considerAuto(postLandView([{ mana_cost: '4 U' }])); // unpayable from one Mountain: the walk projects nothing
     await settle(() => p.postedSeq === 4);
     expect(postIntentMock).toHaveBeenCalledTimes(1);
     expect(postIntentMock.mock.calls[0][2].choices).toEqual([1]); // the pass option's index
