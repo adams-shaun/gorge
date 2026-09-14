@@ -885,7 +885,7 @@ func (e *Engine) composedOfferCost(p state.PlayerID, id state.ObjID, base Cost, 
 // feasibility are conjunctive, and the stricter composed answer can only
 // withhold a legal offer (the safe direction), never offer an illegal one.
 func (e *Engine) offerCastable(p state.PlayerID, id state.ObjID, base Cost, scope costScope, ability bool) bool {
-	return e.offerCastableUsing(e.collectCostStatics(), p, id, base, scope, ability)
+	return e.offerCastableUsing(e.collectCostStatics(), p, id, base, scope, ability, nil)
 }
 
 // fixLifeXCost resolves an announced PayLife<X> cost part whose source face
@@ -958,7 +958,14 @@ func (e *Engine) fixLifeXCost(p state.PlayerID, id state.ObjID, c Cost) (Cost, b
 	return out, true
 }
 
-func (e *Engine) offerCastableUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, base Cost, scope costScope, ability bool) bool {
+// offerCastableUsing is offerCastable's core with the statics collected
+// once (the walk shares one collection) and the mana pool optionally
+// overridden: hyp nil is the ordinary real-pool gate, hyp non-nil prices the
+// mana feasibility against the potential-action walk's hypothetical bound
+// (the pool the seat would hold after floating every untapped source) while
+// every non-mana read stays real. The two modes share one body, so the walk
+// cannot drift from the offer it mirrors.
+func (e *Engine) offerCastableUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, base Cost, scope costScope, ability bool, hyp *state.Mana) bool {
 	// The SVar-fixed PayLife<X> conversion (fixLifeXCost) shapes the cost the
 	// gate prices into the exact cost the payment will store (beginCast and
 	// beginActivation convert through the same helper), so an offered cost and
@@ -979,14 +986,14 @@ func (e *Engine) offerCastableUsing(statics costStaticViews, p state.PlayerID, i
 	if e.HasKeyword(id, "Delve") {
 		delve = int32(len(e.G.Zone(state.ZGraveyard, p)))
 	}
-	if !e.manaFeasible(p, id, ability, base, mods, tax, delve) {
+	if !e.manaFeasiblePriced(p, id, ability, base, mods, tax, delve, hyp) {
 		// A target-dependent reducer cannot be in the ordinary pre-target
 		// snapshot, but it may make one legal target choice payable. Retry with
 		// exactly those potential reductions; target-dependent raises/floors
 		// remain absent until the actual target is known (see the helper's
 		// contract).
 		potential := e.costModifiersWithTargetsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), true)
-		if !e.manaFeasible(p, id, ability, base, potential, tax, delve) {
+		if !e.manaFeasiblePriced(p, id, ability, base, potential, tax, delve, hyp) {
 			return false
 		}
 		mods = potential

@@ -966,6 +966,33 @@ func (e *Engine) manaFeasibleGrant(p state.PlayerID, id state.ObjID, ability boo
 		e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, id, ability))
 }
 
+// manaFeasiblePool is manaFeasible priced against an EXPLICIT pool instead of
+// the seat's restriction-adjusted floating one. The ordinary gate
+// (manaFeasible above) is exactly this with the real manaAvailableFor pool;
+// the potential-action walk (rules/legal.go legalActionsPriced) passes the
+// hypothetical bound the seat would hold after floating every untapped
+// source. The payer grants and conversion shaping are the same reads in both
+// modes, so a potential action and the offer the walk mirrors can never
+// disagree about what the pool may satisfy.
+func (e *Engine) manaFeasiblePool(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, pool state.Mana) bool {
+	pl := e.G.Players[p]
+	return mods.feasibleAny(c, pool, pl.Snow, pl.Life, taxGeneric, delve,
+		e.payerGrantsPayLifeInsteadOfB(p),
+		pipRider{anyColor: e.payerGrantsIgnoreColor(p, id), anyType: e.payerGrantsIgnoreType(p, id)},
+		e.paymentConv(p, id, ability))
+}
+
+// manaFeasiblePriced is manaFeasible's priced-mode entry: hyp nil keeps the
+// ordinary real-pool gate, hyp non-nil prices the feasibility against the
+// potential walk's hypothetical bound (rules/legal.go legalActionsPriced).
+func (e *Engine) manaFeasiblePriced(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, hyp *state.Mana) bool {
+	pool := e.manaAvailableFor(p, id, ability)
+	if hyp != nil {
+		pool = *hyp
+	}
+	return e.manaFeasiblePool(p, id, ability, c, mods, taxGeneric, delve, pool)
+}
+
 // effectZoneOK reports whether a static whose EffectZone$ reads v applies
 // while its source sits in zone z. Forge's default is the battlefield, and
 // the corpus names zones with Forge's comma-separated All/Battlefield/Stack/

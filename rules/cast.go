@@ -532,9 +532,22 @@ func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32) in
 // rule is that wrongly withholding a legal option is safe, while wrongly
 // offering an unpayable one is an illegal game action).
 func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability bool) bool {
+	return e.castablePriced(p, id, cost, ability, e.G.Players[p].Pool)
+}
+
+// castablePriced is castable priced against an explicit pool: pool is the
+// mana the cost must resolve against, whatever the seat is actually holding
+// right now. The ordinary offer path passes the seat's floating pool
+// (castable above); the potential-action walk (legalActionsPriced) passes the
+// hypothetical one the seat would hold after floating every untapped source.
+// Every non-mana part -- Sac candidates, Discard candidates, SubCounter
+// counts, Tap untappedness -- is checked against the REAL state in both
+// modes: floating or hypothetical mana never satisfies a sacrifice, and that
+// is the point -- the hypothetical pool is a mana bound only.
+func (e *Engine) castablePriced(p state.PlayerID, id state.ObjID, cost Cost, ability bool, pool state.Mana) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic)
-	if !e.costPayable(p, id, ability, mana) {
+	if !e.costPayablePool(p, id, ability, mana, pool) {
 		return false
 	}
 	return e.nonManaCastable(p, id, cost, ability)

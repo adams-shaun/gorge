@@ -127,6 +127,13 @@ func TestViewMarshalsClosed(t *testing.T) {
 		// seat. The grant-gated reveal rules/static_grants_test.go pins the
 		// seat scoping end to end.
 		"library_top": true,
+		// potential_actions (rv2c) is DERIVED from the seat's own hidden zones
+		// (the legal-offer walk reads the seat's hand, command zone and
+		// graveyard), which is exactly why it is gated on "is this the
+		// viewer's own seat" in project(), like Hand above — for every other
+		// seat it is never filled and omitempty drops the key. The payload
+		// itself carries only action kinds and object ids, never a card list.
+		"potential_actions": true,
 	})
 	// StackView is public (R3) so it is a lesser leak surface, but the
 	// reflection is the same shape and cheap, so it is pinned too. The two

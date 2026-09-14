@@ -67,6 +67,17 @@ type Chars interface {
 	// only; a nil ch degrades to false, the same way it degrades every
 	// other derived fact.
 	MayLookAtLibraryTop(state.PlayerID) bool
+	// PotentialActions is the seat's own "what could I still do after tapping
+	// out" projection: the engine's legal-offer walk priced against the
+	// hypothetical pool its untapped sources could produce (rules.
+	// PotentialActions). Only real plays are carried (cast/ability/play_land,
+	// never the mana tap), so a client's stop decision reads this instead of
+	// re-deriving castability from printed costs -- which drifts from the
+	// engine on every cost rule (live RaiseCost/ReduceCost, command-zone
+	// casts, flashback, X at 0, indeterminate sources). The projection reads
+	// the seat's own hidden zones, so the view attaches it to the viewer's
+	// own seat only.
+	PotentialActions(state.PlayerID) []decision.PotentialAction
 }
 
 // View is one seat's complete picture of the game: everything public, plus
@@ -191,6 +202,18 @@ type PlayerView struct {
 	// distinction it keeps against Available (which carries omitempty and is
 	// absent when nothing is available).
 	Pool map[string]int32 `json:"pool"`
+	// PotentialActions is this seat's "what could I still do after tapping
+	// out" projection, filled ONLY for the viewer's own seat (the walk reads
+	// the seat's own hand, command zone and graveyard -- a CR 400.2 hidden
+	// zone, so another seat's would leak it). Empty/nil means the engine
+	// would offer nothing the seat could pay for even after floating every
+	// untapped source: the auto-pass stop decision reads this field and
+	// nothing else, so it inherits the engine's own cost rules (live
+	// RaiseCost/ReduceCost, commander tax, command-zone and flashback casts,
+	// X priced at 0, indeterminate sources) instead of a client-side
+	// re-derivation of them. It carries omitempty: a seat with no potential
+	// actions is absent, like Available.
+	PotentialActions []decision.PotentialAction `json:"potential_actions,omitempty"`
 	// Available is what this player could produce right now by tapping
 	// untapped permanents' free-to-tap mana abilities — the "free mana one
 	// gains by tapping lands or other effects" half of the seat box's line
@@ -526,6 +549,18 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 		pv.Pool = poolView(p.Pool)
 		if p.ID == viewer {
 			pv.Hand = cardViews(g, ch, g.Zone(state.ZHand, p.ID), true, p.ID, viewer, false)
+		}
+		// PotentialActions is the viewer's own "what could I still do after
+		// tapping out" projection (rules.PotentialActions): the engine's own
+		// legal-offer walk priced against the hypothetical tapped-out pool. It
+		// is projected for the VIEWER'S OWN SEAT ONLY (CR 400.2): the walk
+		// reads that seat's hand, command zone and graveyard, so projecting
+		// another seat's would leak their hidden zones -- a seat the view does
+		// not belong to carries no field at all (nil), and a spectator
+		// (viewer naming no real seat) never matches the gate above. A nil
+		// ch degrades to an empty projection like every other derived fact.
+		if p.ID == viewer && ch != nil {
+			pv.PotentialActions = ch.PotentialActions(p.ID)
 		}
 		v.Players = append(v.Players, pv)
 	}
