@@ -26,6 +26,10 @@ LANE_RULES = REPO / ".ds4" / "lane-rules.txt"
 ORCH_STATE_DIR = REPO / ".ds4" / "orchestrator"
 LOG_FILE = ORCH_STATE_DIR / "daemon.log"
 PAUSE_FILE = ORCH_STATE_DIR / "pause"
+# Present while the paid provider refuses work (usage limit reached). Every
+# paid slot reads as full, so paid rounds and reviews wait instead of failing.
+# The daemon creates it on detection; delete it by hand once the plan resets.
+PAID_OFF_FILE = ORCH_STATE_DIR / "paid-off"
 PID_FILE = ORCH_STATE_DIR / "daemon.pid"
 
 PI_AGENT_BIN = Path.home() / "projects" / "ds4-harness" / "bin" / "pi-agent"
