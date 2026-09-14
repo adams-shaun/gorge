@@ -343,7 +343,11 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 // more ChangeValid$-eligible cards than ChangeNum, the pick is a real
 // decision and effDig poses it -- the same strict-supersets rule effDiscard's
 // TgtChoose arm already uses, so a decision nobody could answer differently
-// is never emitted. The look is recorded first as a Secret Note carrying the
+// is never emitted. ChangeNum$ 0 (the corpus's three reveal-machinery digs:
+// birthing_ritual, sanity_grinding, stomping_slabs) takes nothing, so the
+// ask gate also requires changeNum > 0 -- otherwise a zero cap with any
+// eligible card would pose a Min==Max==0 KChoose whose only legal answer is
+// the empty one, a decision nobody could answer differently by definition. The look is recorded first as a Secret Note carrying the
 // window's ids (only the library's owner may know what sat on top; the same
 // channel effRearrangeTopOfLibrary uses, with the ids added so the owner's
 // client can render what was seen -- view/redact.go rule (1) passes a Secret
@@ -365,7 +369,7 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 //
 // Still unread here (each a real divergence, named in AGENTS.md's Dig row):
 // Optional$ on the NO-CHOICE path (eligible <= ChangeNum still takes all
-// eligible), the remainder-ordering decision ("the rest on the bottom in any
+// eligible; ChangeNum$ 0 takes nothing silently, correctly), the remainder-ordering decision ("the rest on the bottom in any
 // order"; RestRandomOrder$), DestinationZone2$, LibraryPosition$, Reveal$,
 // ForceRevealToController$ (only the ask path records the look at all),
 // Choser$ (the opponent-chooses planeswalker shape) and ChangeNum$ Any
@@ -428,7 +432,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				eligible = append(eligible, id)
 			}
 		}
-		if int32(len(eligible)) > changeNum {
+		if changeNum > 0 && int32(len(eligible)) > changeNum {
 			// A real choice: record the look, then ask the library's owner.
 			h.Emit(events.Event{Kind: events.Note, Player: p,
 				Text: "looks at the top of the library", IDs: top, Secret: true})
@@ -462,7 +466,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			// today's behaviour -- the first ChangeNum eligible cards in zone
 			// order -- with the Note that records why the richer path did
 			// not run.
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
 				Text: "takes the first matching card(s) (no engine host to ask)", Secret: true})
 			for i := int32(0); i < changeNum && i < int32(len(eligible)); i++ {
 				h.Emit(events.Event{Kind: events.MoveZone, Obj: eligible[i],

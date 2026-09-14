@@ -198,6 +198,40 @@ func TestDigNoHostFallbackKeepsTheFirstEligibleWithANote(t *testing.T) {
 	}
 }
 
+// TestDigNoHostFallbackNoteNamesTheLibraryOwner is the r2 minor finding: the
+// fallback Note is Secret, so it must carry Player = the library's owner;
+// without it a Dig of another player's library routed that private note to
+// seat 0 (the zero value), the one reader the note must NOT reach.
+func TestDigNoHostFallbackNoteNamesTheLibraryOwner(t *testing.T) {
+	h := newHost(t, 2)
+	bear := mkCard(t, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	land := mkCard(t, "Name:Isle\nTypes:Basic Land Island\nOracle:x\n")
+	ids := []state.ObjID{
+		h.g.AddObject(land, 1).ID,
+		h.g.AddObject(bear, 1).ID,
+		h.g.AddObject(land, 1).ID,
+	}
+	h.g.SetZone(state.ZLibrary, 1, ids)
+	Resolve(h, &Ctx{Controller: 1}, sa(t, digAskSA))
+	if hand := h.g.Zone(state.ZHand, 1); len(hand) != 1 || hand[0] != ids[0] {
+		t.Fatalf("seat 1 hand = %v, want [%d] (the deterministic fallback take)", hand, ids[0])
+	}
+	var fallback *events.Event
+	for i := range h.log {
+		e := &h.log[i]
+		if e.Kind == events.Note && strings.Contains(e.Text, "no engine host to ask") {
+			fallback = e
+			break
+		}
+	}
+	if fallback == nil {
+		t.Fatalf("no fallback Note in %+v", h.log)
+	}
+	if !fallback.Secret || fallback.Player != 1 {
+		t.Fatalf("fallback Note = %+v, want Secret to the library's owner (seat 1)", fallback)
+	}
+}
+
 // TestDigReentryIgnoresIdsOutsideTheWindow keeps a stray or stale answer
 // from moving an object that is not (or no longer) in the target's look
 // window -- the per-window filter, the mirror of effDiscard's per-hand
@@ -214,6 +248,34 @@ func TestDigReentryIgnoresIdsOutsideTheWindow(t *testing.T) {
 		sa(t, digAskSA))
 	if hand := h.g.Zone(state.ZHand, 0); len(hand) != 1 || hand[0] != ids[1] {
 		t.Fatalf("hand = %v, want [%d] (only the in-window pick moved)", hand, ids[1])
+	}
+}
+
+// TestDigZeroChangeNumNeverAsks is the ChangeNum$ 0 regression (r2 finding):
+// a zero cap takes nothing, so a Dig with eligible cards in its window must
+// not pose the Min==Max==0 KChoose (whose only legal answer is the empty one
+// -- a decision nobody could answer differently) nor emit the look Note.
+// The corpus carries exactly three such Dig lines (birthing_ritual,
+// sanity_grinding, stomping_slabs), all reveal-machinery shapes whose real
+// content is RememberRevealed$/Reveal$, both of which remain unread -- but
+// the take is genuinely zero either way, so the silent no-op is correct.
+func TestDigZeroChangeNumNeverAsks(t *testing.T) {
+	h, ids := digAskFixture(t)
+	Resolve(h, &Ctx{Controller: 0},
+		sa(t, "SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 0 | Optional$ True | ChangeValid$ Land | DestinationZone$ Hand"))
+	if h.asked != nil {
+		t.Fatalf("a Min==Max==0 decision was posed for ChangeNum$ 0: %+v", h.asked)
+	}
+	for _, e := range h.log {
+		if e.Kind == events.Note && e.Text == "looks at the top of the library" {
+			t.Fatal("a look Note was emitted for a ChangeNum$ 0 dig: it takes nothing, so there is no decision")
+		}
+	}
+	if hand := h.g.Zone(state.ZHand, 0); len(hand) != 0 {
+		t.Fatalf("hand = %v, want empty (ChangeNum$ 0 takes nothing)", hand)
+	}
+	if lib := h.g.Zone(state.ZLibrary, 0); len(lib) != 4 || lib[0] != ids[0] || lib[3] != ids[3] {
+		t.Fatalf("library = %v, want the whole window untouched", lib)
 	}
 }
 
