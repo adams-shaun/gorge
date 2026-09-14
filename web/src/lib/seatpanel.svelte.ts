@@ -1828,17 +1828,22 @@ export class SeatPanelState {
       this.picked = [];
       this.confirming = false;
     } catch (e) {
+      // Record every server refusal before deciding whether its seq space is
+      // still current. A rewind must keep its UI recovery silent, but the
+      // rejected request is exactly the breadcrumb a feedback report needs.
+      const message = e instanceof Error ? e.message : String(e);
+      const stale = epoch !== this.seqEpoch;
+      clientBreadcrumbs.record('intent_rejected', { decision_kind: d.kind, seq: d.seq, message, stale });
       // A rejection against a discarded seq space (a rewind landed
       // mid-flight) is not an error the player can act on — the undo already
       // moved the game. Stay silent; the restored decision is pending.
-      if (epoch !== this.seqEpoch) return;
+      if (stale) return;
       // Surfaced, not swallowed: the intent was rejected (a stale seq, a
       // race, a refusal) and the game is exactly where it was — recover by
       // adopting the CURRENT decision rather than wedging on the stale one.
       this.picked = [];
       this.confirming = false;
-      this.error = e instanceof Error ? e.message : String(e);
-      clientBreadcrumbs.record('intent_rejected', { decision_kind: d.kind, seq: d.seq, message: this.error });
+      this.error = message;
       void this.refreshPending();
     } finally {
       // busy belongs to the post's seq epoch. A rewind can already have

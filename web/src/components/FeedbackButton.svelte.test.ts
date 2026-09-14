@@ -19,7 +19,7 @@ describe('FeedbackButton breadcrumbs', () => {
     await server?.close();
   });
 
-  it('submits route context and a client.json with settings and an action', async () => {
+  it('submits route/seat context and production intent breadcrumbs', async () => {
     const page: Page = await browser.newPage();
     await page.goto(`${url}src/components/FeedbackButton.fixture.html`);
     await page.getByRole('button', { name: 'Feedback' }).click();
@@ -30,11 +30,15 @@ describe('FeedbackButton breadcrumbs', () => {
 
     expect(form).toMatchObject({ text: 'the target picker skipped', table: 'table-fixture', seat: '2' });
     const client = JSON.parse(form!.client) as {
-      play: { settings: { preset: string }; active_yields: string[] };
-      actions: { type: string }[];
+      play: { settings: { preset: string } };
+      actions: { type: string; detail?: { decision_kind?: string; choices?: { index: number }[] } }[];
     };
     expect(client.play.settings.preset).toBe('casual');
-    expect(client.play.active_yields).toEqual(['9:trigger:yield']);
-    expect(client.actions).toEqual(expect.arrayContaining([expect.objectContaining({ type: 'intent_sent' })]));
+    expect(client.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        type: 'intent_sent',
+        detail: expect.objectContaining({ decision_kind: 'target', choices: [{ index: 3, kind: 'permanent' }] }),
+      }),
+    ]));
   });
 });

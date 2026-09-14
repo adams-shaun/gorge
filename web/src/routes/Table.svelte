@@ -27,7 +27,6 @@
   import { buildCardOwnerColour } from '../lib/logrender';
   import { href, navigate } from '../lib/router';
   import { getSeat } from '../lib/seat';
-  import { clientBreadcrumbs } from '../lib/breadcrumbs';
 
   // match (from the /t/:table/m/:match route) names a specific, already-played
   // match. Task 21's finished mode replays it end to end via loadFinished:
@@ -119,25 +118,6 @@
   let expectedCardFollowUp = $state<{ seq: number; obj: number } | null>(null);
   let autoOpenCardDecision = $state<{ seq: number; obj: number } | null>(null);
   //
-  // This reads the raw wire decision (m.view?.decision), not panel.active,
-  // deliberately: panel is a $derived.by whose body has the side effect of
-  // constructing a SeatPanelState instance into an external cache
-  // (panelCache) the first time it's read for a given match. That was safe
-  // while every reader of `panel` was itself a $derived (mulligan, concede,
-  // boardOptions) -- but adding an $effect that also read panel?.active
-  // here caused a second, independently-scheduled evaluation of that
-  // impure derived, which corrupted panelCache mid-game (SeatPanel would
-  // mount against a stale/incomplete SeatPanelState, breaking every
-  // decision -- the seat was seated but could never act). m.view?.decision
-  // is the same underlying data (it's what SeatPanelState.adoptView is
-  // itself seeded from, a few lines above) without touching panel at all.
-  // The feedback collector follows the same rendered cursor and pending
-  // decision the table does. It records context only; it never changes match
-  // state or requests data.
-  $effect(() => {
-    clientBreadcrumbs.setView(m.dvr.cursor, m.view?.decision?.seq ?? null);
-  });
-
   $effect(() => {
     const d = m.view?.decision ?? null;
     const expected = expectedCardFollowUp;

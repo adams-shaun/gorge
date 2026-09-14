@@ -4,6 +4,7 @@ import { fetchEvents, fetchMatches, fetchView } from './api';
 import { ViewCache } from './viewcache';
 import { turnStartsFrom } from './turns';
 import type { SeatCtx } from './seat';
+import { clientBreadcrumbs } from './breadcrumbs';
 
 /** frameSeq reads the seq an event/decision frame was addressed at, for the seated path's seq chit. */
 function frameSeq(f: Frame): number | null {
@@ -15,6 +16,8 @@ function frameSeq(f: Frame): number | null {
 export class MatchState {
   match = $state<number | null>(null);
   view = $state<View | null>(null);
+  /** Sequence of the view actually assigned to the rendered board. */
+  renderedSeq = $state<number | null>(null);
   seats = $state<SeatInfo[]>([]);
   dvr = $state<DvrState>(initialDvr);
   decision = $state<DecisionBody | null>(null);
@@ -41,7 +44,7 @@ export class MatchState {
         this.seeking++;
         this.match = f.match ?? null;
         this.seats = (f.body as MatchStart).seats;
-        this.view = null; // the previous match's board; wait for this one's snapshot before showing anything
+        this.setRenderedView(null, null); // the previous match's board; wait for this one's snapshot before showing anything
         this.decision = null;
         this.halted = null;
         this.seatSince = 0;
@@ -67,7 +70,7 @@ export class MatchState {
             void this.refreshLive();
             void this.backfillEvents(0);
           } else {
-            this.view = s.view;
+            this.setRenderedView(s.view, s.head);
           }
         }
         break;
@@ -90,7 +93,7 @@ export class MatchState {
           void this.refreshLive();
           void this.backfillEvents(0);
         } else {
-          this.view = s.view;
+          this.setRenderedView(s.view, s.head);
         }
         break;
       }
@@ -127,6 +130,17 @@ export class MatchState {
     }
   }
 
+  /**
+   * setRenderedView is the sole view-assignment edge. DVR cursor state can
+   * move before its asynchronous fetch resolves, so breadcrumbs must follow
+   * this assigned view sequence rather than the requested cursor.
+   */
+  private setRenderedView(view: View | null, seq: number | null) {
+    this.view = view;
+    this.renderedSeq = seq;
+    clientBreadcrumbs.setView(seq, view?.decision?.seq ?? null);
+  }
+
   dispatch(a: DvrAction) {
     const wasLive = this.dvr.live;
     this.dvr = dvrReducer(this.dvr, a);
@@ -154,9 +168,10 @@ export class MatchState {
     if (this.inflight) { this.again = true; return; }
     this.inflight = true;
     const epoch = this.liveEpoch;
+    const seq = this.dvr.head;
     try {
-      const v = await this.fetchViewAt(this.dvr.head);
-      if (this.dvr.live && epoch === this.liveEpoch) this.view = v;
+      const v = await this.fetchViewAt(seq);
+      if (this.dvr.live && epoch === this.liveEpoch) this.setRenderedView(v, seq);
     } catch { /* a 409 while the head moved: the next burst refetches */ }
     finally {
       this.inflight = false;
@@ -193,7 +208,7 @@ export class MatchState {
     // seeking on any transition to live, but this guards directly against
     // ever writing a paused-cursor view once we're no longer paused,
     // regardless of how the token bookkeeping got there.
-    if (v && token === this.seeking && !this.dvr.live) this.view = v;
+    if (v && token === this.seeking && !this.dvr.live) this.setRenderedView(v, seq);
   }
 
   /**
