@@ -75,6 +75,33 @@ export function stepLabel(step: string): string {
 }
 
 /**
+ * STEP_FULL_LABELS is the unhurried spoken name, used where there is room
+ * for it (the settings editor's step-stop grid): "Main 1", not "Main";
+ * "Beginning of combat", not "Begin". Same keys as STEP_LABELS — a step the
+ * compact label knows but this map does not would fall through to
+ * stepLabel rather than disappear.
+ */
+const STEP_FULL_LABELS: Record<string, string> = {
+  'untap': 'Untap',
+  'upkeep': 'Upkeep',
+  'draw': 'Draw',
+  'main1': 'Main 1',
+  'begin-combat': 'Beginning of combat',
+  'declare-attackers': 'Declare attackers',
+  'declare-blockers': 'Declare blockers',
+  'combat-damage': 'Combat damage',
+  'end-combat': 'End of combat',
+  'main2': 'Main 2',
+  'end': 'End step',
+  'cleanup': 'Cleanup',
+};
+
+/** stepFullName is the full spoken name of a wire step, falling back to stepLabel. */
+export function stepFullName(step: string): string {
+  return STEP_FULL_LABELS[step] ?? stepLabel(step);
+}
+
+/**
  * PHASE_GROUPS is STEPS in engine order, cut into its phases. Built by a
  * single left-to-right pass so the cell order can never diverge from the
  * order the engine walks; a step with no group entry lands in a trailing

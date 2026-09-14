@@ -6,9 +6,11 @@ import {
   applyPreset,
   defaultSettings,
   loadSettings,
+  presetPatch,
   saveSettings,
   withChange,
   type PlaySettings,
+  type PresetName,
   type StepStop,
   type StoppableStep,
 } from './playsettings';
@@ -461,6 +463,43 @@ export class SeatPanelState {
   /** patchSettings applies a partial change through withChange (which relabels the preset when the result matches one) and persists. */
   private patchSettings(patch: Partial<PlaySettings>) {
     this.applySettings(withChange(this.settings, patch));
+  }
+
+  /**
+   * editSettings is the GAME OPTIONS editor's write path (prio4): a partial
+   * change applied through withChange — so the preset relabels itself
+   * Custom while the configuration matches none, and back to a named preset
+   * when an edit is undone — and persisted. A settings edit ends a live
+   * one-shot run (editing the rules is the player taking the controls) but
+   * touches nothing else: the runaway brake still clears only on the Auto
+   * switch or on applying a named preset that runs auto (applyNamedPreset
+   * below), which is what its note tells the player to press.
+   */
+  editSettings(patch: Partial<PlaySettings>) {
+    this.cancelRun(false);
+    this.patchSettings(patch);
+  }
+
+  /**
+   * applyNamedPreset is the GAME OPTIONS preset picker's and "Reset to
+   * Casual" button's write path: the named preset applied through
+   * withChange (presetPatch covers every field, so withChange relabels the
+   * preset itself) PLUS the machine-side re-arm effects setAuto carries.
+   * The runaway brake is a pause of the machine, not a setting — and
+   * picking Casual or No tells after the brake tripped is the player asking
+   * the machine to run again, so leaving machinePaused set would leave the
+   * panel reading auto-pass on while considerAuto keeps refusing to act.
+   * The cleared run counters and the armed/off note mirror setAuto exactly;
+   * on full-control (autoPass false) the brake clear is harmless and the
+   * note is off, exactly as setAuto(false) would leave it.
+   */
+  applyNamedPreset(id: PresetName) {
+    this.cancelRun(false);
+    this.machinePaused = false;
+    this.autoRun = 0;
+    this.autoActedSeq = null;
+    this.patchSettings(presetPatch(id));
+    this.note = this.auto ? { kind: 'armed' } : { kind: 'off' };
   }
 
   /** setAuto is the Auto/Manual control: a settings change (autoPass), persisted. Turning it on — or re-arming it while it is on — clears the runaway brake and the previous run so an old count never trips the cap. */
