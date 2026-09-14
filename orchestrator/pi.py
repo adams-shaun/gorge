@@ -115,3 +115,23 @@ def events_age_seconds(status: dict) -> Optional[float]:
     if not events or not Path(events).exists():
         return None
     return time.time() - Path(events).stat().st_mtime
+
+
+def running_names(model: str) -> set[str]:
+    """--name of every live pi-agent process running `model`, any repo.
+    pi-agent forks several processes per run, so names are de-duplicated."""
+    names: set[str] = set()
+    for d in Path("/proc").iterdir():
+        if not d.name.isdigit():
+            continue
+        try:
+            argv = (d / "cmdline").read_bytes().split(b"\0")
+        except OSError:
+            continue
+        args = [a.decode(errors="replace") for a in argv]
+        if model not in args:
+            continue
+        for i, a in enumerate(args[:-1]):
+            if a == "--name":
+                names.add(args[i + 1])
+    return names

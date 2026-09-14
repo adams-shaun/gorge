@@ -96,6 +96,15 @@ def _unmet_dependency(text: str) -> str | None:
     return None
 
 
+def _local_slot_free(issue: issues.Issue, what: str) -> bool:
+    running = pi.running_names(config.LOCAL_MODEL)
+    if len(running) < config.MAX_LOCAL_SEATS:
+        return True
+    log.debug("issue %s: %s held, %d local seats running (cap %d)",
+              issue.id, what, len(running), config.MAX_LOCAL_SEATS)
+    return False
+
+
 # --- per-status advancement --------------------------------------------------
 
 def advance_new(issue: issues.Issue) -> None:
@@ -111,6 +120,8 @@ def advance_new(issue: issues.Issue) -> None:
     name = seats.triage_name(issue.id)
     status_path = config.ORCH_STATE_DIR / "triage" / issue.id / "status.json"
     if not pi.already_launched(name):
+        if not _local_slot_free(issue, "triage"):
+            return
         seats.launch_triage(issue.id, config.ISSUES_DIR / f"{issue.id}.md")
         issue.log("triage dispatched (local)")
         issue.save()
@@ -134,6 +145,8 @@ def advance_new(issue: issues.Issue) -> None:
 
 
 def advance_briefed(issue: issues.Issue) -> None:
+    if not _local_slot_free(issue, "implementer r1"):
+        return
     wt = git_ops.create_worktree(issue.id)
     issue.worktree = str(wt.relative_to(config.REPO))
     issue.branch = f"wt/{issue.id}"

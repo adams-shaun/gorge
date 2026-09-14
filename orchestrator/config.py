@@ -56,6 +56,12 @@ MAX_MINUTES = 75
 # --- loop policy -----------------------------------------------------------
 
 POLL_SECONDS = 60
+# At most this many local-model seats run at once, counted across every repo
+# on the box (they share one SGLang server). 2026-09-14: ten concurrent glm
+# seats left the server with 3 running / 7 queued requests at 33 tok/s and
+# every seat crawled. The cap gates NEW work only (triage, first implementer
+# round); a redispatch of a ticket already in flight is never held.
+MAX_LOCAL_SEATS = 4
 MAX_LOCAL_ROUNDS = 2  # after this many failed local rounds, escalate to SOL
 MAX_ESCALATED_ROUNDS = 2  # after this many failed SOL rounds, stop and flag a human
 
