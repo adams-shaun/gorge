@@ -69,6 +69,23 @@ var predicates = map[string]predFn{
 	"nonBlack": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return !strings.Contains(ColorsOf(o), "B")
 	},
+	// Permanent is both a base (matchesBase) and a predicate token: a base
+	// rewritten by the Remembered./Targeted./Triggered. prefix handling
+	// (MatchesObjectCtx) lands it in the predicate position -- Bifurcate's
+	// `ChangeType$ Targeted.Permanent+sameName` becomes Card.Permanent+sameName.
+	// Forge cardHasProperty's "Permanent" is card.isPermanent(), which is
+	// `isInPlay() || getType().isPermanent()` -- so off the battlefield the
+	// test is the card's printed type (a permanent card in a library or
+	// graveyard still matches, an instant or sorcery does not), not its
+	// zone. Bifurcate searches a LIBRARY for "a permanent card", so the
+	// zone reading would have made the rewrite a no-op there.
+	"Permanent": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		if o.Zone == state.ZBattlefield {
+			return true
+		}
+		f := o.Face()
+		return f != nil && f.IsPermanent()
+	},
 	"kicked": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagKicked != 0
 	},
@@ -221,6 +238,16 @@ const (
 	// resolving Ctx's remembered object list, never an object's persistent
 	// event-backed remembered state.
 	wordIsRemembered
+	// The name-predicate family (Forge CardProperty): named<Name> and
+	// notnamed<Name> compare the candidate's name characteristics with the
+	// argument text (key carries it, `;`/`_` normalised); sameName compares
+	// it with the alternative's name referent -- MatchesObjectCtx has
+	// already rewritten SpecContext.Source to it (the ability's source card
+	// by default, or the Remembered./Targeted./Triggered. context object a
+	// base prefix names).
+	wordNamed
+	wordNotnamed
+	wordSameName
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -230,6 +257,26 @@ const (
 func wordPredicate(p string) (wordKind, string) {
 	if l, is := colorLetter[p]; is {
 		return wordColor, l
+	}
+	// notnamed before named: both prefixes are literal token prefixes and
+	// "notnamed..." does not start with "named", but checking in this order
+	// documents that neither is a prefix of the other's grammar. An empty
+	// argument (a bare `named`) stays recognised and never matches -- Forge
+	// sharesNameWith("") is false.
+	if name, ok := strings.CutPrefix(p, "notnamed"); ok {
+		if name == "" {
+			// A bare `notnamed` would negate to always-true (the negation of
+			// "no name at all"), which the fail-closed contract forbids; it
+			// stays unknown instead.
+			return wordUnknown, ""
+		}
+		return wordNotnamed, nameArg(name)
+	}
+	if name, ok := strings.CutPrefix(p, "named"); ok {
+		return wordNamed, nameArg(name)
+	}
+	if p == "sameName" {
+		return wordSameName, ""
 	}
 	switch p {
 	case "Colorless":
@@ -332,6 +379,31 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 	case wordTargetedPlayerCtrl:
 		matched, ok := matchTargetedPlayerCtrl(g, o, sc)
 		return ok && matched
+	case wordNamed:
+		// Forge CardProperty "named<X>": card.sharesNameWith the argument.
+		return sharesName(o, key)
+	case wordNotnamed:
+		// Forge implements no notnamed predicate and the corpus carries
+		// none (measured); this engine gives the token the negation
+		// semantics its shape implies rather than the always-true trap an
+		// unrecognised-but-plausible token could be mistaken for.
+		return !sharesName(o, key)
+	case wordSameName:
+		// Forge CardProperty "sameName": card.sharesNameWith(source). The
+		// referent is SpecContext.Source as MatchesObjectCtx rewrote it: the
+		// resolving ability's source card by default (Evil Twin's
+		// ValidTgts$ Creature.sameName), or the Remembered./Targeted./
+		// Triggered. context object the alternative's base prefix names
+		// (Eradicate's Remembered.sameName, Bifurcate's Targeted.*,
+		// Bloodbond March's Triggered.sameName).
+		if sc.Source == 0 {
+			return false
+		}
+		s := g.Obj(sc.Source)
+		if s == nil || s.Face() == nil {
+			return false
+		}
+		return sharesName(o, s.Face().Name)
 	case wordAttachedTo:
 		// Forge's AttachedTo <X>: this object (an Aura or Equipment) is
 		// attached to something, and the permanent it is attached to (its
@@ -428,6 +500,42 @@ func recognisedPredicate(p string) bool {
 	}
 	if x, has := strings.CutPrefix(p, "!"); has && x != "" {
 		return positiveRecognised(x)
+	}
+	return false
+}
+
+// nameArg normalises a named<Name>/notnamed<Name> argument the way Forge's
+// CardProperty does: a card name containing a comma is written with ';' (the
+// spec's own ',' is the OR delimiter -- `namedCalim; Djinn Emperor` names
+// "Calim, Djinn Emperor"), and '_' stands for a space (`namedAether_Burst`).
+func nameArg(p string) string {
+	return strings.NewReplacer(";", ",", "_", " ").Replace(p)
+}
+
+// sharesName reports whether o's name characteristics include name -- Forge
+// Card.sharesNameWith(String): the current face's printed name, plus
+// CR 708.4a's both-names rule for a multi-face card away from the stack and
+// the battlefield (a split card in a library, hand or graveyard carries both
+// halves' names). On the stack the chosen half is the only name, on the
+// battlefield the permanent's current face (CR 711.5's transformed back
+// face included). An empty name never matches; an ability object (Card nil)
+// has no name. gorge's IR does not carry AlternateMode, so off the stack and
+// battlefield ANY face's name counts -- measured against the corpus, no
+// named/notnamed/sameName spec names a transform back face, so the
+// transform-back-face over-match has zero measured population there.
+func sharesName(o *state.Object, name string) bool {
+	if name == "" || o == nil || o.Card == nil {
+		return false
+	}
+	if f := o.Face(); f != nil && f.Name == name {
+		return true
+	}
+	if o.Zone != state.ZStack && o.Zone != state.ZBattlefield && len(o.Card.Faces) > 1 {
+		for _, f := range o.Card.Faces {
+			if f != nil && f.Name == name {
+				return true
+			}
+		}
 	}
 	return false
 }
@@ -659,6 +767,56 @@ func parseCMC(cost string) int32 {
 	return n
 }
 
+// contextBase reports whether a filter base prefix names a context object
+// the alternative's source-relative predicates are measured against. Forge's
+// filterListByType switches on the same three prefixes (Remembered; Targeted,
+// including TargetedCard; Triggered, including TriggeredCard/Attacker/Object)
+// and then replaces the prefix with Card. A base with no such prefix leaves
+// the alternative's source at the ability's own source card.
+func contextBase(base string) bool {
+	return strings.HasPrefix(base, "Remembered") ||
+		strings.HasPrefix(base, "Targeted") ||
+		strings.HasPrefix(base, "Triggered")
+}
+
+// contextReferent resolves the object id the context base prefix names, or
+// bound=false when nothing in the walk binds it -- the caller must treat an
+// unbound referent as "this alternative matches nothing", never as "fall
+// back to the source card", because Forge's getType returns an EMPTY
+// collection there (Eradicate with nothing remembered destroys nothing;
+// it does not destroy everything named after its own source).
+func contextReferent(g *state.Game, base string, sc SpecContext) (state.ObjID, bool) {
+	switch {
+	case strings.HasPrefix(base, "Remembered"):
+		// Forge: the first remembered Card.
+		for _, t := range sc.Remembered {
+			if !t.IsPlayer && t.Obj != 0 && g.Obj(t.Obj) != nil {
+				return t.Obj, true
+			}
+		}
+		return 0, false
+	case strings.HasPrefix(base, "Targeted"):
+		// Forge: sa.findTargetedCards().get(0). ResolutionTargets is set only
+		// while a resolution walk is live (Ctx.SpecContext and the legality
+		// recheck), so an offer-time match is unbound, as target legality
+		// must be.
+		for _, t := range sc.ResolutionTargets {
+			if !t.IsPlayer && t.Obj != 0 && g.Obj(t.Obj) != nil {
+				return t.Obj, true
+			}
+		}
+		return 0, false
+	default: // Triggered
+		// Forge: sa.getTriggeringObject(AbilityKey.Card) -- the event's card
+		// role, which rules captures into TriggerContext.TriggerCard for the
+		// ChangesZone/SpellCast events the corpus's Triggered.* specs ride on.
+		if sc.TriggerCard != 0 && g.Obj(sc.TriggerCard) != nil {
+			return sc.TriggerCard, true
+		}
+		return 0, false
+	}
+}
+
 // matchesBase handles the base type, including a "non" prefix.
 func matchesBase(g *state.Game, base string, o *state.Object) bool {
 	if neg := strings.TrimPrefix(base, "non"); neg != base {
@@ -697,7 +855,9 @@ type SpecContext struct {
 	ResolutionTargets []state.Target
 	// Remembered is the resolving spell or ability's Remembered set (a
 	// RepeatEach iteration binds its subject here). Like ResolutionTargets it
-	// is meaningful only while Resolving.
+	// is meaningful only while Resolving. It is also the Remembered.* base
+	// prefix's context referent (contextReferent): Eradicate's
+	// `ChangeType$ Remembered.sameName` shares names with the captured card.
 	Remembered []state.Target
 	// Chosen is the current resolution's selected cards/players. It is used
 	// by Forge's ChosenCard/nonChosenCard predicates, not persisted game state.
@@ -740,6 +900,27 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 			continue
 		}
 		base, rest, _ := strings.Cut(alt, ".")
+		asc := sc
+		// Forge's filterListByType (AbilityUtils.getType): a Remembered.*,
+		// Targeted.* (TargetedCard included) or Triggered.* (TriggeredCard/
+		// TriggeredAttacker/TriggeredObject included) base names the context
+		// object every source-relative predicate in the alternative is
+		// measured against -- Eradicate's `ChangeType$ Remembered.sameName`,
+		// Bifurcate's `Targeted.Permanent+sameName`, Bloodbond March's
+		// `Triggered.sameName` -- and the base itself degrades to Card. A
+		// prefix with no bound referent leaves the alternative nothing to
+		// match, exactly as Forge's getType returns an empty collection
+		// there. Rewriting SpecContext.Source (a per-alternative copy) makes
+		// Self/Other/sameName/NamedCard and the rest relative to the referent
+		// the way Forge passes the card into cardHasProperty.
+		if contextBase(base) {
+			ref, bound := contextReferent(g, base, asc)
+			if !bound {
+				continue
+			}
+			asc.Source = ref
+			base = "Card"
+		}
 		if base == "CARDNAME" {
 			// CR 201.5: a self-reference means this object, not another
 			// object with the same name. Without a source, fail closed.
@@ -761,7 +942,7 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 			// unknown, so it fails closed: never an always-true fallback, which
 			// would silently widen the filter instead of showing up as a
 			// missing action.
-			res, ok := matchPredicate(g, p, o, sc)
+			res, ok := matchPredicate(g, p, o, asc)
 			if !ok || !res {
 				all = false
 				break
