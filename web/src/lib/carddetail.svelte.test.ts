@@ -259,6 +259,36 @@ describe('CardHover', () => {
 
     expect(h.supervise([])).toBe(false); // nothing to supervise
   });
+
+  it('keeps pointer and focus ownership separate across cards', () => {
+    const { env, tick } = fakeTimer();
+    const h = new CardHover(env);
+
+    h.arm(cardA, el);
+    tick(DWELL);
+    expect(h.card).toBe(cardA);
+    expect(h.hover.show).toBe(true);
+
+    h.open(cardB, el);
+    expect(h.card).toBe(cardB);
+    h.leave(cardA); // stale pointerleave from A must not close focused B
+    expect(h.card).toBe(cardB);
+    expect(h.hover.show).toBe(true);
+
+    h.blur(cardB);
+    expect(h.hover.show).toBe(false);
+  });
+
+  it('does not close a focused card when the pointer leaves that same card', () => {
+    const h = new CardHover();
+    h.open(cardA, el);
+    h.arm(cardA, el);
+    h.leave(cardA);
+    expect(h.card).toBe(cardA);
+    expect(h.hover.show).toBe(true);
+    h.blur(cardA);
+    expect(h.hover.show).toBe(false);
+  });
 });
 
 describe('placePanel', () => {

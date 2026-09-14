@@ -265,6 +265,32 @@ describe('the arrange strip hover inspector (fb-20260914T063020Z Job 1)', () => 
     await page.close();
   });
 
+  it('a stale pointerleave from card A cannot close keyboard-focused card B', async () => {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
+
+    const cardA = page.locator('[data-arrange-row] [data-option="0"]');
+    const cardB = page.locator('[data-arrange-row] [data-option="1"]');
+    const detail = page.locator('body > .card-detail');
+
+    // Open A by pointer dwell, then move keyboard ownership to B without
+    // moving the pointer. Leaving A afterwards is a stale event with respect
+    // to the shared panel and must not dismiss B's focus inspector.
+    await cardA.hover();
+    await detail.waitFor({ state: 'visible', timeout: 5_000 });
+    await cardB.focus();
+    expect(await detail.textContent()).toContain('Fabled Pass');
+    await page.mouse.move(5, 5);
+    expect(await detail.isVisible()).toBe(true);
+    expect(await detail.textContent()).toContain('Fabled Pass');
+    expect(await cardB.getAttribute('aria-describedby')).toBe('card-detail-12');
+
+    // Once B actually loses focus, its inspector closes.
+    await cardB.evaluate((el) => el.blur());
+    await page.waitForFunction(() => document.querySelectorAll('body > .card-detail').length === 0, null, { timeout: 5_000 });
+    await page.close();
+  });
+
   it('a card leaving the ask closes the panel with no pointer event (the lifecycle contract)', async () => {
     const page = await browser.newPage();
     await page.goto(`${url}src/components/PromptSurface.fixture.html?case=seqswap`);

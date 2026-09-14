@@ -409,9 +409,9 @@
                 aria-pressed={at >= 0}
                 aria-label={opt.label}
                 onpointerenter={(e) => arrangeHover.arm(card, e.currentTarget)}
-                onpointerleave={() => arrangeHover.close()}
+                onpointerleave={() => arrangeHover.leave(card)}
                 onfocus={(e) => arrangeHover.open(card, e.currentTarget)}
-                onblur={() => arrangeHover.close()}
+                onblur={() => arrangeHover.blur(card)}
                 onkeydown={(e) => arrangeHover.keydown(e)}
                 aria-describedby={arrangeHover.hover.show && arrangeHover.card?.id === card.id ? `card-detail-${card.id}` : undefined}
                 onclick={() => logic.toggle(opt.index)}
