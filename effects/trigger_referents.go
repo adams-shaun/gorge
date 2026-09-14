@@ -20,6 +20,11 @@ type TriggerContext struct {
 	DefendingPlayer state.Target
 	TriggerPlayer   state.Target
 	TriggerCard     state.ObjID
+	// TriggerMana is the fixed-order WUBRGC set of mana types produced by
+	// the mana ability that caused a TapsForMana trigger. ManaReflected's
+	// ReflectProperty$ Produced form consumes it; unlike TriggerAmount, it
+	// preserves mixed-type production.
+	TriggerMana string
 	// TriggerAmount is the magnitude the causing event carried -- the Damage
 	// event's dealt-damage amount for a DamageDone/DamageDealtOnce trigger,
 	// etc. It is what the TriggerCount$ heads (DamageAmount, LifeAmount,

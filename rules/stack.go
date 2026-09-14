@@ -691,14 +691,16 @@ func (e *Engine) resolveTop() {
 			}
 		}
 		// Cumulative upkeep is an ordinary trigger through placement, but its
-		// age/payment resolution needs rules' cost machinery. A Cost$ on any
-		// other triggered effect likewise opens a real payment window instead
-		// of effects silently executing it for free (Mana Vault).
+		// age/payment resolution needs rules' cost machinery. Mana Vault's
+		// triggered Untap is the one ordinary effect shape authorized to use
+		// that window; unrelated Cost$-bearing trigger effects retain their
+		// established executor semantics.
 		if o.Ability.API == "CumulativeUpkeep" {
 			e.startCumulativeUpkeep(id, o.Source, o.Ability)
 			return
 		}
-		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered && o.Ability.Params["Cost"] != "" {
+		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
+			o.Ability.API == "Untap" && o.Ability.Params["Cost"] != "" {
 			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)
 			return
 		}

@@ -225,6 +225,11 @@ const (
 	// order. It is append-only so replay rebuilds the later Defined.Imprinted
 	// reference without a live resolution context.
 	Imprint
+	// ChangeControl moves a battlefield permanent to another controller
+	// without changing zones. Obj is the permanent and Player the new
+	// controller. The dedicated event keeps replay authoritative for control-
+	// changing action costs such as Herald of Leshrac's cumulative upkeep.
+	ChangeControl
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -235,7 +240,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(Imprint) + 1
+	NumKinds = int(ChangeControl) + 1
 )
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
@@ -249,7 +254,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
-	"delayed_register", "delayed_push", "library_order", "imprint"}
+	"delayed_register", "delayed_push", "library_order", "imprint", "change_control"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

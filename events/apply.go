@@ -171,6 +171,17 @@ func Apply(g *state.Game, e Event) {
 			o.Imprinted = append([]state.ObjID(nil), e.IDs...)
 		}
 
+	case ChangeControl:
+		o := g.Obj(e.Obj)
+		if o == nil || o.Zone != state.ZBattlefield || !validPlayer(g, e.Player) || o.Controller == e.Player {
+			break
+		}
+		old := o.Controller
+		remove(g, o.ID, state.ZBattlefield, old)
+		o.Controller = e.Player
+		o.SummonSick = true
+		g.SetZone(state.ZBattlefield, e.Player, append(g.Zone(state.ZBattlefield, e.Player), o.ID))
+
 	case DeclareAttackers:
 		// e.Player names the attacking player for every ID in this event, so
 		// it is validated once, like TurnChange/Priority above, rather than

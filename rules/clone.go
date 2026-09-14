@@ -202,6 +202,10 @@ func (e *Engine) Clone() *Engine {
 		cu.amount.AddCounter = append([]CostPart(nil), e.cumulative.amount.AddCounter...)
 		cu.amount.Hybrid = append([]ManaPair(nil), e.cumulative.amount.Hybrid...)
 		cu.amount.Phyrexian = append([]byte(nil), e.cumulative.amount.Phyrexian...)
+		if e.cumulative.action != nil {
+			action := *e.cumulative.action
+			cu.action = &action
+		}
 		c.cumulative = &cu
 	}
 	if e.triggerCost != nil {

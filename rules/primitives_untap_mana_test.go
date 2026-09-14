@@ -57,6 +57,10 @@ const chromeMoxScript = "Name:Chrome Mox\nManaCost:0\nTypes:Artifact\n" +
 	"SVar:TrigExile:DB$ ChangeZone | Imprint$ True | Origin$ Hand | Destination$ Exile | ChangeType$ Card.nonArtifact+nonLand | ChangeNum$ 1\n" +
 	"A:AB$ ManaReflected | Cost$ T | Valid$ Defined.Imprinted | ColorOrType$ Color | ReflectProperty$ Is | SpellDescription$ Add one mana of any of the exiled card's colors.\nOracle:x\n"
 
+const manaFlareScript = "Name:Mana Flare\nManaCost:2 R\nTypes:Enchantment\n" +
+	"T:Mode$ TapsForMana | ValidCard$ Land | Execute$ TrigMana | TriggerZones$ Battlefield | Static$ True | TriggerDescription$ Whenever a player taps a land for mana, that player adds one mana of any type that land produced.\n" +
+	"SVar:TrigMana:DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced | Defined$ TriggeredActivator\nOracle:x\n"
+
 const ancestralRecallScript = "Name:Ancestral Recall\nManaCost:U\nTypes:Instant\n" +
 	"A:SP$ Draw | NumCards$ 3 | SpellDescription$ Draw three cards.\nOracle:x\n"
 
@@ -336,6 +340,40 @@ func TestFellwarStoneAndChromeMoxReflectedShapes(t *testing.T) {
 	if e2.G.Players[0].Pool[state.MG] != 1 {
 		t.Fatalf("Chrome Mox did not produce the chosen imprinted card's G: %+v", e2.G.Players[0].Pool)
 	}
+
+	// CR 607.2a: the linked card stops being "the exiled card" after it
+	// leaves exile. The persistent imprint ID must not follow it into another
+	// zone and continue granting mana colours.
+	e2.emit(events.Event{Kind: events.MoveZone, Obj: green.ID, From: state.ZExile, To: state.ZGraveyard})
+	e2.emit(events.Event{Kind: events.Untap, Obj: chrome})
+	e2.priorityRound()
+	if optionKinds(e2.Pending())["activate"] != 0 {
+		t.Fatalf("Chrome Mox still offered mana after its imprinted card left exile: %+v", e2.Pending().Options)
+	}
+}
+
+// TestManaFlareReflectsTheProducedManaType pins the Produced half of
+// api:ManaReflected on Mana Flare's real SVar. Unlike Produce/Is, Defined$
+// names the player receiving mana; the candidate type comes from the
+// triggering mana event retained in TriggerContext.
+func TestManaFlareReflectsTheProducedManaType(t *testing.T) {
+	e := handEngine(t)
+	flare := onBoard(t, e, 0, manaFlareScript)
+	sa := cards.ResolveSVar(e.G.Obj(flare).Face().SVars, "TrigMana")
+	if sa == nil || sa.Params["ReflectProperty"] != "Produced" {
+		t.Fatalf("Mana Flare's real reflected-mana SVar changed: %+v", sa)
+	}
+	land := onBoard(t, e, 1, forestScript())
+	tc := e.triggerReferents(e.G.Obj(flare).Face().Triggers[0], flare,
+		events.Event{Kind: events.ManaAdd, Player: 1, Obj: land, Counter: "G", Amount: 1})
+	ctx := &effects.Ctx{Source: flare, Controller: 0, TriggerContext: tc}
+	effects.Resolve(e, ctx, sa)
+	if got := e.G.Players[1].Pool[state.MG]; got != 1 {
+		t.Fatalf("Mana Flare added %d green to the triggering player, want 1", got)
+	}
+	if got := e.G.Players[0].Pool.Total(); got != 0 {
+		t.Fatalf("Mana Flare gave its controller the triggering player's mana: %+v", e.G.Players[0].Pool)
+	}
 }
 
 // TestChromaticOrreryManaConvert proves stat:ManaConvert on Chromatic
@@ -539,6 +577,120 @@ func TestCumulativeUpkeepOrdersWithOrdinaryUpkeepTriggers(t *testing.T) {
 	e.resolveTop()
 	if got := e.G.Obj(remora).Counter("AGE"); got != 1 {
 		t.Fatalf("cumulative trigger resolution left AGE=%d, want 1", got)
+	}
+}
+
+func TestCumulativeUpkeepRecognizesEveryCorpusActionCost(t *testing.T) {
+	labels := []string{
+		"AddCounter<1/M1M1>",
+		"AddCounter<1/P1P1/Creature.OppCtrl/creature an opponent controls>",
+		"AddMana<1/R>",
+		"Discard<1/Card>",
+		"Draw<1/You>",
+		"ExileFromTop<1/Card>",
+		"FlipCoin<1>",
+		"GainControl<1/Land.YouDontCtrl/land you don't control>",
+		"GainLife<1/Player.Opponent>",
+		"PutCardToLibFromSameGrave<2/-1/Card>",
+		"Sac<1/Creature>",
+		"Sac<1/Land>",
+	}
+	for _, label := range labels {
+		if action, ok := parseCumulativeAction(label); !ok || action == nil {
+			t.Errorf("parseCumulativeAction(%q) = %+v, %v", label, action, ok)
+		}
+	}
+	if action, ok := parseCumulativeAction("MakeCoffee<1>"); ok || action != nil {
+		t.Fatalf("unknown cumulative action was accepted: %+v", action)
+	}
+}
+
+// TestPhyrexianSoulgorgerPaysCumulativeUpkeepWithAChosenCreature
+// exercises the real action-cost keyword shape. Paying Sac<1/Creature> opens
+// a scaled object choice; choosing another creature keeps Soulgorger rather
+// than treating the non-mana token as an unpriceable generic cost.
+func TestPhyrexianSoulgorgerPaysCumulativeUpkeepWithAChosenCreature(t *testing.T) {
+	const soulgorgerScript = "Name:Phyrexian Soulgorger\nManaCost:3\nTypes:Snow Artifact Creature Phyrexian Construct\nPT:8/8\n" +
+		"K:Cumulative upkeep:Sac<1/Creature>:Sacrifice a creature.\nOracle:x\n"
+	e := handEngine(t)
+	soulgorger := onBoard(t, e, 0, soulgorgerScript)
+	bear := onBoard(t, e, 0, "Name:Grizzly Bears\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e.beginTurn(0)
+	e.putTriggersOnStack()
+	e.resolveTop()
+	d := e.Pending()
+	if d == nil || len(d.Options) != 2 || d.Options[0].Kind != "cumulative_pay" {
+		t.Fatalf("Soulgorger action upkeep did not offer payment: %+v", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	d = e.Pending()
+	if d == nil || len(d.Options) != 2 || d.Options[0].Kind != "cumulative_action_sac" {
+		t.Fatalf("Soulgorger did not ask which creature to sacrifice: %+v", d)
+	}
+	pick := 0
+	if d.Options[pick].Obj == soulgorger {
+		pick = 1
+	}
+	if d.Options[pick].Obj != bear {
+		t.Fatalf("Soulgorger sacrifice options do not contain the other creature: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{pick}}); err != nil {
+		t.Fatal(err)
+	}
+	if e.G.Obj(soulgorger).Zone != state.ZBattlefield || e.G.Obj(bear).Zone != state.ZGraveyard {
+		t.Fatalf("paid action upkeep zones: Soulgorger=%s Bear=%s", e.G.Obj(soulgorger).Zone, e.G.Obj(bear).Zone)
+	}
+
+	// The second age counter repeats the action twice. Two fresh creatures
+	// are both required and chosen in one exact-size decision.
+	bear2 := onBoard(t, e, 0, "Name:Bear Two\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	bear3 := onBoard(t, e, 0, "Name:Bear Three\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepUpkeep})
+	e.putTriggersOnStack()
+	e.resolveTop()
+	d = e.Pending()
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	d = e.Pending()
+	if d == nil || d.Min != 2 || d.Max != 2 {
+		t.Fatalf("second Soulgorger upkeep did not scale to two sacrifices: %+v", d)
+	}
+	var picks []int
+	for _, option := range d.Options {
+		if option.Obj == bear2 || option.Obj == bear3 {
+			picks = append(picks, option.Index)
+		}
+	}
+	if len(picks) != 2 {
+		t.Fatalf("scaled sacrifice options lost fresh creatures: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: picks}); err != nil {
+		t.Fatal(err)
+	}
+	if e.G.Obj(bear2).Zone != state.ZGraveyard || e.G.Obj(bear3).Zone != state.ZGraveyard || e.G.Obj(soulgorger).Counter("AGE") != 2 {
+		t.Fatalf("scaled upkeep result: age=%d Bear Two=%s Bear Three=%s", e.G.Obj(soulgorger).Counter("AGE"), e.G.Obj(bear2).Zone, e.G.Obj(bear3).Zone)
+	}
+}
+
+func TestUnrelatedTriggeredEffectCostIsNotIntercepted(t *testing.T) {
+	const keldonRaiderScript = "Name:Keldon Raider\nManaCost:2 R R\nTypes:Creature Human Warrior\nPT:4/3\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDiscard | TriggerDescription$ When CARDNAME enters, you may discard a card. If you do, draw a card.\n" +
+		"SVar:TrigDiscard:AB$ Draw | Cost$ Discard<1/Card>\nOracle:x\n"
+	e := handEngine(t)
+	raider := e.G.AddObject(card(t, keldonRaiderScript), 0)
+	raider.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 0, []state.ObjID{raider.ID})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: raider.ID, From: state.ZHand, To: state.ZBattlefield})
+	e.putTriggersOnStack()
+	e.resolveTop()
+	if e.triggerCost != nil || e.Pending() != nil && e.Pending().Prompt == "Keldon Raider — pay Discard<1/Card>?" {
+		t.Fatalf("unrelated Draw Cost$ entered Mana Vault's payment window: %+v", e.Pending())
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != 1 {
+		t.Fatalf("Keldon Raider's established trigger execution drew %d cards, want 1", got)
 	}
 }
 

@@ -45,7 +45,10 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		if o := g.Obj(c.Source); o != nil {
 			out := make([]state.Target, 0, len(o.Imprinted))
 			for _, id := range o.Imprinted {
-				if g.Obj(id) != nil {
+				// Imprint links an exiled card only for as long as that card
+				// remains in exile. The persistent ID must not follow it through
+				// a later zone change (Chrome Mox, CR 607.2a).
+				if linked := g.Obj(id); linked != nil && linked.Zone == state.ZExile {
 					out = append(out, state.Target{Obj: id})
 				}
 			}

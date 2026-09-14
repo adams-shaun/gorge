@@ -304,7 +304,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// attempt the effect; payment is a separate resolution-time window with
 	// mana-ability opportunities. Direct mandatory triggers enter the same
 	// window from resolveTop.
-	if rp.kind == "optional" && rp.sa != nil && rp.sa.API != "CumulativeUpkeep" && rp.sa.Params["Cost"] != "" {
+	if rp.kind == "optional" && rp.sa != nil && rp.sa.API == "Untap" && rp.sa.Params["Cost"] != "" {
 		e.startTriggeredEffectCost(rp, ctx.Source)
 		return
 	}

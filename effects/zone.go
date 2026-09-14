@@ -190,7 +190,12 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: to})
 		if strings.EqualFold(sa.Params["Imprint"], "True") && to == state.ZExile {
-			imprinted = append(imprinted, o.ID)
+			// A replacement may redirect or suppress the proposed exile. Record
+			// the link only after observing the event's actual result; otherwise
+			// Defined.Imprinted would follow a card that was never imprinted.
+			if moved := h.Game().Obj(o.ID); moved != nil && moved.Zone == state.ZExile {
+				imprinted = append(imprinted, o.ID)
+			}
 		}
 		// RememberChanged$ True (Forge's spelling on the ChangeZone in the
 		// Flickerwisp delayed-trigger family): the moved object joins the

@@ -54,6 +54,16 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerSource = e.protectionSource(ev.Obj)
 	case "Phase":
 		c.TriggerPlayer = player(e.G.Active)
+	case "TapsForMana":
+		// The ManaAdd event names the activating player, producing permanent,
+		// produced type and amount without overloading Remembered. This mode's
+		// matcher remains a separate primitive; retaining all four roles here
+		// makes ReflectProperty$ Produced exact once that trigger is queued.
+		c.TriggerPlayer = player(ev.Player)
+		c.TriggerCard = ev.Obj
+		c.TriggerSource = ev.Obj
+		c.TriggerMana = ev.Counter
+		c.TriggerAmount = ev.Amount
 	}
 	return c
 }

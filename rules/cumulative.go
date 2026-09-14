@@ -2,6 +2,7 @@ package rules
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
@@ -13,21 +14,35 @@ import (
 // Cumulative upkeep is expanded by cards into an ordinary beginning-of-upkeep
 // Phase trigger. Consequently it is ordered and placed with every other upkeep
 // trigger and can be responded to or countered before it resolves (CR 702.46a).
-// This file owns only that trigger's resolution-time age counter and payment
-// window. triggeredEffectCost is the sibling window for a Cost$ on a normal
-// trigger effect, notably Mana Vault's optional pay-{4} Untap.
+// This file owns that trigger's resolution-time age counter and payment window.
+// triggeredEffectCost is the narrower sibling window for Mana Vault's Cost$-
+// bearing triggered Untap effect.
 const (
 	chooseCumulative    chooseFor = chooseManaDiscard + 1
 	chooseTriggeredCost chooseFor = chooseManaDiscard + 2
 )
+
+type cumulativeAction struct {
+	kind string
+	n    int32
+	spec string
+}
 
 type cumulativeUpkeep struct {
 	stackObj   state.ObjID
 	source     state.ObjID
 	player     state.PlayerID
 	amount     Cost
+	action     *cumulativeAction
 	costLabel  string
 	windowDone bool
+
+	// actionRemaining counts repeated action payments still to make. Most
+	// action costs ask once per age counter; object sacrifices/discards ask
+	// for the full scaled set at once, while PutCardToLibFromSameGrave uses
+	// actionOwner between its graveyard and card-selection asks.
+	actionRemaining int32
+	actionOwner     state.PlayerID
 }
 
 type triggeredEffectCost struct {
@@ -39,7 +54,7 @@ type triggeredEffectCost struct {
 	windowDone bool
 }
 
-// scaleCost repeats every payable component once per age counter.
+// scaleCost repeats every mana/life payment component once per age counter.
 func scaleCost(c Cost, n int32) Cost {
 	if n <= 1 {
 		return c
@@ -54,11 +69,75 @@ func scaleCost(c Cost, n int32) Cost {
 		out.Phyrexian = append(out.Phyrexian, c.Phyrexian...)
 	}
 	out.Tap, out.X = c.Tap, c.X
-	out.Sac = append(out.Sac, c.Sac...)
-	out.Discard = append(out.Discard, c.Discard...)
-	out.SubCounter = append(out.SubCounter, c.SubCounter...)
-	out.AddCounter = append(out.AddCounter, c.AddCounter...)
 	return out
+}
+
+// parseCumulativeAction recognizes the complete non-mana/action vocabulary in
+// the pinned corpus. These are actions performed once per age counter, not
+// malformed mana symbols; keeping the parser local prevents ordinary Cost$
+// callers from acquiring cumulative-upkeep-only semantics.
+func parseCumulativeAction(label string) (*cumulativeAction, bool) {
+	label = strings.TrimSpace(label)
+	open := strings.IndexByte(label, '<')
+	if open <= 0 || !strings.HasSuffix(label, ">") {
+		return nil, false
+	}
+	kind := label[:open]
+	fields := strings.Split(label[open+1:len(label)-1], "/")
+	if len(fields) == 0 {
+		return nil, false
+	}
+	n64, err := strconv.ParseInt(fields[0], 10, 32)
+	if err != nil || n64 <= 0 {
+		return nil, false
+	}
+	a := &cumulativeAction{kind: kind, n: int32(n64)}
+	switch kind {
+	case "Sac", "Discard":
+		if len(fields) < 2 {
+			return nil, false
+		}
+		a.spec = fields[1]
+	case "AddCounter":
+		if len(fields) < 2 {
+			return nil, false
+		}
+		a.spec = fields[1]
+		if len(fields) >= 3 {
+			a.spec += "/" + fields[2]
+		}
+	case "AddMana":
+		if len(fields) < 2 || len(fields[1]) != 1 || !strings.ContainsRune("WUBRGC", rune(fields[1][0])) {
+			return nil, false
+		}
+		a.spec = fields[1]
+	case "Draw":
+		if len(fields) < 2 || fields[1] != "You" {
+			return nil, false
+		}
+	case "ExileFromTop":
+		if len(fields) < 2 || fields[1] != "Card" {
+			return nil, false
+		}
+	case "FlipCoin":
+	case "GainControl":
+		if len(fields) < 2 {
+			return nil, false
+		}
+		a.spec = fields[1]
+	case "GainLife":
+		if len(fields) < 2 || fields[1] != "Player.Opponent" {
+			return nil, false
+		}
+	case "PutCardToLibFromSameGrave":
+		if len(fields) < 3 || fields[2] != "Card" {
+			return nil, false
+		}
+		a.spec = fields[2]
+	default:
+		return nil, false
+	}
+	return a, true
 }
 
 // startCumulativeUpkeep starts resolution of the already-stacked keyword
@@ -72,15 +151,21 @@ func (e *Engine) startCumulativeUpkeep(stackObj, source state.ObjID, sa *cards.S
 	}
 	e.emit(events.Event{Kind: events.CounterChange, Obj: source, Counter: "AGE", Amount: 1})
 	label := sa.Params["Cost"]
-	e.cumulative = &cumulativeUpkeep{
-		stackObj: stackObj, source: source, player: o.Controller,
+	action, actionOK := parseCumulativeAction(label)
+	cu := &cumulativeUpkeep{stackObj: stackObj, source: source, player: o.Controller,
 		amount: scaleCost(ParseCost(label), o.Counter("AGE")), costLabel: label,
+		actionRemaining: o.Counter("AGE")}
+	if actionOK {
+		cu.action = action
+		cu.amount = Cost{}
 	}
+	e.cumulative = cu
 	e.cumulativePaymentAsk()
 }
 
-// startTriggeredEffectCost parks a normal trigger effect before it runs and
-// opens the same mana-ability-only payment window used by cumulative upkeep.
+// startTriggeredEffectCost parks Mana Vault's triggered Untap before it runs
+// and opens the same mana-ability-only payment window used by mana cumulative
+// upkeep. Callers gate this helper on API == Untap.
 func (e *Engine) startTriggeredEffectCost(rp *resumePoint, source state.ObjID) {
 	o := e.G.Obj(rp.obj)
 	if o == nil || o.Zone != state.ZStack || rp.sa == nil {
@@ -136,13 +221,17 @@ func (e *Engine) cumulativePaymentAsk() {
 		e.finishCumulative()
 		return
 	}
-	if e.paymentManaAsk(cu.player, cu.source, cu.amount, cu.windowDone,
+	if cu.action == nil && e.paymentManaAsk(cu.player, cu.source, cu.amount, cu.windowDone,
 		"Activate mana abilities to pay cumulative upkeep", chooseCumulative) {
 		return
 	}
 	age := strconv.FormatInt(int64(o.Counter("AGE")), 10)
 	var opts []decision.Option
-	if cu.amount.Priceable() && e.costPayable(cu.player, cu.source, false, cu.amount) {
+	payable := cu.action != nil && e.cumulativeActionPayable(cu)
+	if cu.action == nil {
+		payable = cu.amount.Priceable() && e.costPayable(cu.player, cu.source, false, cu.amount)
+	}
+	if payable {
 		opts = append(opts, decision.Option{Index: 0, Kind: "cumulative_pay", Obj: cu.source,
 			Label: "Pay " + cu.costLabel + " per age (" + age + " age counter(s))"})
 	}
@@ -151,6 +240,171 @@ func (e *Engine) cumulativePaymentAsk() {
 	e.choosing = chooseCumulative
 	e.ask(&decision.Decision{Player: cu.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: o.Face().Name + " — cumulative upkeep: pay or sacrifice", Source: cu.source, Options: opts})
+}
+
+func (e *Engine) cumulativeObjects(cu *cumulativeUpkeep, zone state.Zone, spec string) []state.ObjID {
+	var out []state.ObjID
+	players := []state.PlayerID{cu.player}
+	if zone == state.ZBattlefield && (strings.Contains(spec, "OppCtrl") || strings.Contains(spec, "YouDontCtrl")) {
+		players = e.G.AliveFrom(0)
+	}
+	if zone == state.ZGraveyard {
+		players = e.G.AliveFrom(0)
+	}
+	for _, p := range players {
+		for _, id := range e.G.Zone(zone, p) {
+			if effects.MatchesSpecFrom(e.G, spec, id, cu.player, cu.source) {
+				out = append(out, id)
+			}
+		}
+	}
+	return out
+}
+
+func (e *Engine) cumulativeActionPayable(cu *cumulativeUpkeep) bool {
+	a := cu.action
+	if a == nil || cu.actionRemaining <= 0 {
+		return false
+	}
+	total := int(a.n * cu.actionRemaining)
+	switch a.kind {
+	case "Sac":
+		return len(e.cumulativeObjects(cu, state.ZBattlefield, a.spec)) >= total
+	case "Discard":
+		return len(e.cumulativeObjects(cu, state.ZHand, a.spec)) >= total
+	case "Draw", "ExileFromTop":
+		return len(e.G.Zone(state.ZLibrary, cu.player)) >= total
+	case "AddMana", "FlipCoin":
+		return true
+	case "AddCounter":
+		if !strings.Contains(a.spec, "/") {
+			return e.G.Obj(cu.source) != nil
+		}
+		_, targetSpec, _ := strings.Cut(a.spec, "/")
+		return len(e.cumulativeObjects(cu, state.ZBattlefield, targetSpec)) > 0
+	case "GainControl":
+		return len(e.cumulativeObjects(cu, state.ZBattlefield, a.spec)) >= total
+	case "GainLife":
+		return len(e.G.AliveFrom(cu.player)) > 1
+	case "PutCardToLibFromSameGrave":
+		groups := 0
+		for _, p := range e.G.AliveFrom(0) {
+			groups += len(e.G.Zone(state.ZGraveyard, p)) / int(a.n)
+		}
+		return groups >= int(cu.actionRemaining)
+	}
+	return false
+}
+
+func (e *Engine) cumulativeObjectDecision(cu *cumulativeUpkeep, ids []state.ObjID, min, max int, kind, prompt string) {
+	d := &decision.Decision{Player: cu.player, Kind: decision.KChoose, Min: min, Max: max,
+		Prompt: prompt, Source: cu.source}
+	for _, id := range ids {
+		label := "card"
+		if o := e.G.Obj(id); o != nil && o.Face() != nil {
+			label = o.Face().Name
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: kind, Obj: id, Label: label})
+	}
+	e.choosing = chooseCumulative
+	e.ask(d)
+}
+
+func (e *Engine) continueCumulativeAction() {
+	cu := e.cumulative
+	if cu == nil || cu.action == nil {
+		return
+	}
+	if cu.actionRemaining <= 0 {
+		e.finishCumulative()
+		return
+	}
+	a := cu.action
+	total := int(a.n * cu.actionRemaining)
+	switch a.kind {
+	case "Sac":
+		e.cumulativeObjectDecision(cu, e.cumulativeObjects(cu, state.ZBattlefield, a.spec), total, total,
+			"cumulative_action_sac", "Choose permanents to sacrifice for cumulative upkeep")
+	case "Discard":
+		e.cumulativeObjectDecision(cu, e.cumulativeObjects(cu, state.ZHand, a.spec), total, total,
+			"cumulative_action_discard", "Choose cards to discard for cumulative upkeep")
+	case "Draw":
+		for i := 0; i < total; i++ {
+			effects.DrawFor(e, cu.player)
+		}
+		cu.actionRemaining = 0
+		e.finishCumulative()
+	case "ExileFromTop":
+		for i := 0; i < total; i++ {
+			lib := e.G.Zone(state.ZLibrary, cu.player)
+			if len(lib) == 0 {
+				break
+			}
+			e.emit(events.Event{Kind: events.MoveZone, Obj: lib[0], From: state.ZLibrary, To: state.ZExile})
+		}
+		cu.actionRemaining = 0
+		e.finishCumulative()
+	case "AddMana":
+		e.emit(events.Event{Kind: events.ManaAdd, Player: cu.player, Counter: a.spec, Amount: int32(total)})
+		cu.actionRemaining = 0
+		e.finishCumulative()
+	case "FlipCoin":
+		for i := 0; i < total; i++ {
+			outcome := "tails"
+			if e.Rand(2) == 0 {
+				outcome = "heads"
+			}
+			e.emit(events.Event{Kind: events.Note, Player: cu.player, Obj: cu.source, Text: "flips " + outcome})
+		}
+		cu.actionRemaining = 0
+		e.finishCumulative()
+	case "AddCounter":
+		counter, targetSpec, targeted := strings.Cut(a.spec, "/")
+		if !targeted {
+			e.emit(events.Event{Kind: events.CounterChange, Obj: cu.source, Counter: counter, Amount: int32(total)})
+			cu.actionRemaining = 0
+			e.finishCumulative()
+			return
+		}
+		e.cumulativeObjectDecision(cu, e.cumulativeObjects(cu, state.ZBattlefield, targetSpec), 1, 1,
+			"cumulative_action_counter", "Choose a permanent to receive a "+counter+" counter")
+	case "GainControl":
+		e.cumulativeObjectDecision(cu, e.cumulativeObjects(cu, state.ZBattlefield, a.spec), total, total,
+			"cumulative_action_control", "Choose permanents to gain control of")
+	case "GainLife":
+		d := &decision.Decision{Player: cu.player, Kind: decision.KChoose, Min: 1, Max: 1,
+			Prompt: "Choose an opponent to gain life", Source: cu.source}
+		for _, p := range e.G.AliveFrom(cu.player) {
+			if p == cu.player {
+				continue
+			}
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "cumulative_action_life",
+				Player: p, Label: e.G.Players[p].Name})
+		}
+		e.choosing = chooseCumulative
+		e.ask(d)
+	case "PutCardToLibFromSameGrave":
+		var owners []state.PlayerID
+		for _, p := range e.G.AliveFrom(0) {
+			if len(e.G.Zone(state.ZGraveyard, p)) >= int(a.n) {
+				owners = append(owners, p)
+			}
+		}
+		if len(owners) == 1 {
+			cu.actionOwner = owners[0]
+			e.cumulativeObjectDecision(cu, e.G.Zone(state.ZGraveyard, owners[0]), int(a.n), int(a.n),
+				"cumulative_action_grave_card", "Choose cards from one graveyard")
+			return
+		}
+		d := &decision.Decision{Player: cu.player, Kind: decision.KChoose, Min: 1, Max: 1,
+			Prompt: "Choose a graveyard", Source: cu.source}
+		for _, p := range owners {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "cumulative_action_grave",
+				Player: p, Label: e.G.Players[p].Name + "'s graveyard"})
+		}
+		e.choosing = chooseCumulative
+		e.ask(d)
+	}
 }
 
 func (e *Engine) triggeredCostPaymentAsk() {
@@ -187,14 +441,71 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 		cu.windowDone = true
 		e.cumulativePaymentAsk()
 		return
-	}
-	paid := chosen[0].Kind == "cumulative_pay" && cu.amount.Priceable() &&
-		e.payManaConv(cu.player, cu.amount, e.paymentConv(cu.player, cu.source, false))
-	if !paid {
-		if o := e.G.Obj(cu.source); o != nil && o.Zone == state.ZBattlefield {
-			e.emit(events.Event{Kind: events.MoveZone, Obj: cu.source, From: state.ZBattlefield,
-				To: state.ZGraveyard, Text: "sacrificed for cumulative upkeep"})
+	case "cumulative_pay":
+		if cu.action != nil {
+			e.continueCumulativeAction()
+			return
 		}
+		if e.payManaConv(cu.player, cu.amount, e.paymentConv(cu.player, cu.source, false)) {
+			e.finishCumulative()
+			return
+		}
+	case "cumulative_action_sac":
+		for _, option := range chosen {
+			if o := e.G.Obj(option.Obj); o != nil && o.Zone == state.ZBattlefield {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZBattlefield,
+					To: state.ZGraveyard, Text: "sacrificed for cumulative upkeep"})
+			}
+		}
+		cu.actionRemaining = 0
+		e.finishCumulative()
+		return
+	case "cumulative_action_discard":
+		for _, option := range chosen {
+			if o := e.G.Obj(option.Obj); o != nil && o.Zone == state.ZHand && o.Owner == cu.player {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZHand,
+					To: state.ZGraveyard, Text: "discarded for cumulative upkeep"})
+			}
+		}
+		cu.actionRemaining = 0
+		e.finishCumulative()
+		return
+	case "cumulative_action_counter":
+		counter, _, _ := strings.Cut(cu.action.spec, "/")
+		e.emit(events.Event{Kind: events.CounterChange, Obj: chosen[0].Obj, Counter: counter, Amount: cu.action.n})
+		cu.actionRemaining--
+		e.continueCumulativeAction()
+		return
+	case "cumulative_action_control":
+		for _, option := range chosen {
+			e.emit(events.Event{Kind: events.ChangeControl, Obj: option.Obj, Player: cu.player})
+		}
+		cu.actionRemaining = 0
+		e.finishCumulative()
+		return
+	case "cumulative_action_life":
+		e.emit(events.Event{Kind: events.LifeChange, Player: chosen[0].Player, Amount: cu.action.n})
+		cu.actionRemaining--
+		e.continueCumulativeAction()
+		return
+	case "cumulative_action_grave":
+		cu.actionOwner = chosen[0].Player
+		e.cumulativeObjectDecision(cu, e.G.Zone(state.ZGraveyard, cu.actionOwner), int(cu.action.n), int(cu.action.n),
+			"cumulative_action_grave_card", "Choose cards from one graveyard")
+		return
+	case "cumulative_action_grave_card":
+		for _, option := range chosen {
+			if o := e.G.Obj(option.Obj); o != nil && o.Zone == state.ZGraveyard && o.Owner == cu.actionOwner {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZGraveyard, To: state.ZLibrary})
+			}
+		}
+		cu.actionRemaining--
+		e.continueCumulativeAction()
+		return
+	}
+	if o := e.G.Obj(cu.source); o != nil && o.Zone == state.ZBattlefield {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: cu.source, From: state.ZBattlefield,
+			To: state.ZGraveyard, Text: "sacrificed for cumulative upkeep"})
 	}
 	e.finishCumulative()
 }

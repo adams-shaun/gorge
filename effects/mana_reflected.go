@@ -25,10 +25,12 @@ const manaReflectedOrder = "WUBRGC"
 //     battlefield in AliveFrom(0) x zone order via MatchesSpecFrom, with the
 //     resolving source as the filter's "Self" and its controller as "You".
 //
-//   - ReflectProperty$ decides what is read off each object: "Produce" --
-//     every mana symbol one of the object's mana abilities could produce
-//     ("Any"/"Combo Any" count as all five colours; "Combo R G" as R and G)
-//     -- or "Is" -- the object's own colours (effects.ColorsOf).
+//   - ReflectProperty$ decides what is read: "Produce" unions what the
+//     matching objects' mana abilities could produce; "Is" reads the matching
+//     objects' colours; "Produced" reads the mana types captured from the
+//     mana event that caused a TapsForMana trigger. Produced intentionally
+//     does not scan Defined$ objects: those values name the player receiving
+//     the additional mana, not an object (Mana Flare/Kinnan).
 //
 // ColorOrType$ "Color" keeps coloured symbols. "Type" additionally admits
 // colourless, but only when a reflected mana ability can actually produce
@@ -37,6 +39,26 @@ const manaReflectedOrder = "WUBRGC"
 // An unknown element in either parameter degrades to an empty set, which the
 // executor reports as a Note rather than inventing mana.
 func ManaReflectedCandidates(h Host, c *Ctx, sa *cards.SA) []string {
+	property := strings.TrimSpace(sa.Params["ReflectProperty"])
+	widenType := strings.TrimSpace(sa.Params["ColorOrType"]) == "Type"
+	if property == "Produced" {
+		set := map[byte]bool{}
+		for _, r := range c.TriggerMana {
+			if strings.ContainsRune("WUBRGC", r) && (widenType || r != 'C') {
+				set[byte(r)] = true
+			}
+		}
+		var out []string
+		for _, symbol := range manaReflectedOrder {
+			if set[byte(symbol)] {
+				out = append(out, string(symbol))
+			}
+		}
+		return out
+	}
+	if property != "Produce" && property != "Is" {
+		return nil
+	}
 	spec := strings.TrimSpace(sa.Params["Valid"])
 	if spec == "" {
 		return nil
@@ -64,8 +86,7 @@ func ManaReflectedCandidates(h Host, c *Ctx, sa *cards.SA) []string {
 			}
 		}
 	}
-	produce := sa.Params["ReflectProperty"] == "Produce"
-	widenType := strings.TrimSpace(sa.Params["ColorOrType"]) == "Type"
+	produce := property == "Produce"
 	set := map[string]bool{}
 	for _, id := range objs {
 		o := h.Game().Obj(id)
@@ -160,10 +181,28 @@ func producibleSymbols(o *state.Object) string {
 // not invent a colour.
 func effManaReflected(h Host, c *Ctx, sa *cards.SA) {
 	produced := strings.TrimSpace(sa.Params["Produced"])
+	recipient := c.Controller
+	if strings.TrimSpace(sa.Params["ReflectProperty"]) == "Produced" {
+		// On this corpus shape Defined$ names who receives the additional
+		// mana (TriggeredActivator, TriggeredCardController, or You), unlike
+		// Produce/Is where Valid$ names reflected objects. Resolve those three
+		// roles locally so the ordinary Defined grammar is not widened for
+		// unrelated effects.
+		switch strings.TrimSpace(sa.Params["Defined"]) {
+		case "TriggeredActivator":
+			if c.TriggerPlayer.IsPlayer {
+				recipient = c.TriggerPlayer.Player
+			}
+		case "TriggeredCardController":
+			if o := h.Game().Obj(c.TriggerCard); o != nil {
+				recipient = o.Controller
+			}
+		}
+	}
 	// The rules-engine colour-ask path re-enters with Produced$ set to one
 	// plain letter: add exactly one mana of that colour.
 	if len(produced) == 1 && strings.ContainsRune(ManaSymbols, rune(produced[0])) {
-		h.Emit(events.Event{Kind: events.ManaAdd, Player: c.Controller,
+		h.Emit(events.Event{Kind: events.ManaAdd, Player: recipient,
 			Counter: produced, Amount: 1})
 		return
 	}
@@ -173,12 +212,12 @@ func effManaReflected(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "ManaReflected found no mana to reflect"})
 	case 1:
-		h.Emit(events.Event{Kind: events.ManaAdd, Player: c.Controller,
+		h.Emit(events.Event{Kind: events.ManaAdd, Player: recipient,
 			Counter: cols[0], Amount: 1})
 	default:
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "chose first reflected colour " + cols[0] + " (no ask possible)"})
-		h.Emit(events.Event{Kind: events.ManaAdd, Player: c.Controller,
+		h.Emit(events.Event{Kind: events.ManaAdd, Player: recipient,
 			Counter: cols[0], Amount: 1})
 	}
 }
