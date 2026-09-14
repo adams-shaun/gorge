@@ -109,9 +109,10 @@ func TestTossNoteIsEmittedExactlyOnceAndNamesTheStartingPlayer(t *testing.T) {
 	}
 }
 
-// TestTossNoteIsEmittedWhenOpeningDealEndsTheGame covers both early-return
-// positions in New's deal loop. The determination still gets exactly one
-// public Note, but its text cannot claim that the terminal game began turn 1.
+// TestTossNoteIsEmittedWhenOpeningDealEndsTheGame covers either seat losing
+// during New's deal loop. The determination still gets exactly one public
+// Note, but its text cannot claim that the terminal game began turn 1, and
+// GameOver remains the burst's final event for host persistence.
 func TestTossNoteIsEmittedWhenOpeningDealEndsTheGame(t *testing.T) {
 	for _, shortSeat := range []int{0, 1} {
 		decks := [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}
@@ -132,6 +133,33 @@ func TestTossNoteIsEmittedWhenOpeningDealEndsTheGame(t *testing.T) {
 		if notes[0].Text != want {
 			t.Fatalf("short seat %d: toss Note text %q, want %q", shortSeat, notes[0].Text, want)
 		}
+		if got := e.L.Events[len(e.L.Events)-1].Kind; got != events.GameOver {
+			t.Fatalf("short seat %d: final genesis event = %v, want GameOver", shortSeat, got)
+		}
+	}
+}
+
+// TestTossNoteSurvivesWhenEveryOpeningDeckIsUndersized pins the no-survivor
+// terminal shape: the pre-drawn random determination is still recorded exactly
+// once even though nobody remains to become starting player. Its truthful Note
+// precedes the CR 104.4a draw, leaving GameOver as the final event.
+func TestTossNoteSurvivesWhenEveryOpeningDeckIsUndersized(t *testing.T) {
+	e := New(Config{Seed: 1, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{mountainDeck(t, 3), mountainDeck(t, 3)}})
+	if !e.G.Over || !e.G.Draw || e.G.Turn != 0 || e.G.AliveCount() != 0 {
+		t.Fatalf("terminal genesis = over %v draw %v turn %d alive %d, want a before-turn draw with no survivors",
+			e.G.Over, e.G.Draw, e.G.Turn, e.G.AliveCount())
+	}
+	notes := tossNotes(e)
+	if len(notes) != 1 {
+		t.Fatalf("toss Notes = %d, want exactly 1", len(notes))
+	}
+	want := tossName(e.G, notes[0].Player) + " won the toss; the game ended before the first turn"
+	if notes[0].Text != want {
+		t.Fatalf("toss Note text %q, want %q", notes[0].Text, want)
+	}
+	if len(e.L.Events) < 2 || e.L.Events[len(e.L.Events)-2].Kind != events.Note || e.L.Events[len(e.L.Events)-1].Kind != events.GameOver {
+		t.Fatalf("terminal genesis tail = %+v, want toss Note then GameOver", e.L.Events[max(0, len(e.L.Events)-2):])
 	}
 }
 

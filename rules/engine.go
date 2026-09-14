@@ -91,6 +91,15 @@ type Engine struct {
 	rng     *rng
 	pending *decision.Decision
 
+	// deferGameOver is true only while New processes the opening deal. A
+	// library-empty draw still emits PlayerLost and runs every other SBA, but
+	// checkGameOver waits until New has recorded the CR 103.1 toss. That keeps
+	// GameOver as the final event of a terminal genesis burst (the host's
+	// persisted-boundary contract) and lets an all-undersized opening deal
+	// reach the truthful no-survivor draw instead of accidentally crowning an
+	// undealt short deck.
+	deferGameOver bool
+
 	// continuous holds every registered continuous effect, live or expired.
 	// The layer system (layers.go) is the only reader and writer.
 	continuous []ContinuousEffect
@@ -500,6 +509,11 @@ func New(cfg Config) *Engine {
 			totalCmd += len(cfg.commandersFor(i, len(cfg.Decks[i])))
 		}
 	}
+	// Opening hands are dealt as one genesis operation. Defer only the final
+	// GameOver event: drawCard still emits losses and runs all other SBAs, but
+	// the terminal marker must follow the public toss Note so the host can
+	// recognize and persist the complete genesis burst.
+	e.deferGameOver = true
 	for i, deck := range cfg.Decks {
 		if i >= len(cfg.Names) {
 			// Ruling T22-m (fix round 2): a malformed Config with more
@@ -553,45 +567,30 @@ func New(cfg Config) *Engine {
 		for j := 0; j < openingHand; j++ {
 			e.drawCard(p)
 		}
-		// Ruling T22-c: a deck smaller than the opening hand decks its owner
-		// out before genesis even finishes dealing -- drawCard's own
-		// checkStateBased call (below) can now actually set Over true here,
-		// where nothing could before Task 22 made losing real. Genesis used
-		// to plough on regardless: shuffling and dealing the NEXT seat's
-		// hand, then unconditionally calling beginTurn on a game already
-		// over. Every real deck this build ships is far larger than
-		// openingHand, so this is not reachable from ordinary play, only
-		// from a deliberately tiny Config -- but New must not hand back an
-		// Engine that has already both ended and kept moving.
-		if e.G.Over {
-			// A deliberately undersized opening deck can end the game before
-			// genesis reaches the common toss-recording path below. The random
-			// determination still happened before the shuffles, so record it
-			// exactly once here too; do not claim that a first turn will begin.
-			if start, ok := e.resolveToss(toss, e.G.AliveFrom(0), len(cfg.Names)); ok {
-				e.recordToss(start, false)
+		if e.G.AliveCount() <= 1 {
+			// Preserve T22-c's terminal-deal boundary: once at most one seat
+			// remains, do not shuffle or deal a later hand. A later seat whose
+			// configured library could not supply seven cards is nevertheless
+			// also doomed by this same opening deal; account for that loss so
+			// an all-undersized table truthfully reaches CR 104.4a's no-survivor
+			// draw rather than accidentally crowning an undealt short deck.
+			for next := i + 1; next < len(cfg.Decks) && next < len(cfg.Names); next++ {
+				available := len(cfg.Decks[next]) - len(cfg.commandersFor(next, len(cfg.Decks[next])))
+				if available < openingHand && !e.G.Players[next].Lost {
+					e.emit(events.Event{Kind: events.PlayerLost, Player: state.PlayerID(next), Text: "drew from an empty library"})
+				}
 			}
-			return e
+			if e.finishTerminalGenesis(toss, len(cfg.Names)) {
+				return e
+			}
 		}
 	}
-	alive := e.G.AliveFrom(0)
-	// CR 103.1: the starting seat is the toss result, not seat 0. The
-	// zero-alive guard below runs FIRST: a seat index is only resolved once
-	// at least one survivor exists.
-	if len(alive) == 0 {
-		// Ruling T22-e: nobody survived genesis to begin a turn for --
-		// every deck too small to deal (the per-seat Over check above
-		// covers the ordinary "someone lost, someone remains" case; this
-		// is what happens when NO seat remains at all), or, the
-		// pre-existing panic this closes as a side effect, a zero-seat
-		// Config with no decks even attempted. checkGameOver's own "zero
-		// alive" branch is exactly CR 104.4a's draw, so run it rather than
-		// calling beginTurn(0) against a Players slice that may not even
-		// have an index 0: that used to reach Zone(ZBattlefield, 0)'s
-		// zoneIndex arithmetic against a zero-length g.zones and panic.
-		e.checkGameOver()
+	if e.finishTerminalGenesis(toss, len(cfg.Names)) {
 		return e
 	}
+	e.deferGameOver = false
+	alive := e.G.AliveFrom(0)
+	// CR 103.1: the starting seat is the toss result, not seat 0.
 	// Resolve the starting seat uniformly over the SURVIVORS. The pre-shuffle
 	// toss draw is uniform over every seat, so CONDITIONED on naming a
 	// survivor it is already uniform over the survivors -- it is the first
@@ -633,6 +632,33 @@ func New(cfg Config) *Engine {
 		}
 	}
 	return e
+}
+
+// finishTerminalGenesis records and finalizes a game whose opening deal left
+// at most one survivor. The toss Note deliberately precedes checkGameOver:
+// host.boundsOf recognizes a complete terminal burst only when GameOver is its
+// final event. With one survivor, rejection sampling maps the toss uniformly
+// onto that survivor. With none, there is no possible starting player, so the
+// Note truthfully names the original randomly determined seat and says no first
+// turn began. A malformed zero-seat Config drew no toss and has nobody to name.
+func (e *Engine) finishTerminalGenesis(toss, seats int) bool {
+	alive := e.G.AliveFrom(0)
+	if len(alive) > 1 {
+		return false
+	}
+	e.deferGameOver = false
+	if toss >= 0 {
+		winner := state.PlayerID(toss)
+		if len(alive) == 1 {
+			winner, _ = e.resolveToss(toss, alive, seats)
+		}
+		e.recordToss(winner, false)
+	}
+	// Ruling T22-e: nobody survived genesis is CR 104.4a's draw; one
+	// survivor is CR 104.2a's winner. This MUST remain the final genesis
+	// event for persistence/replay burst boundaries.
+	e.checkGameOver()
+	return true
 }
 
 // resolveToss maps the pre-shuffle random determination onto the seats that
