@@ -36,6 +36,12 @@ type TriggerContext struct {
 	// and survives to resolution through the per-stack-instance
 	// triggerContexts map. Zero when the causing event carried no amount.
 	TriggerAmount int32
+	// TriggerPaidX snapshots the paid X of TriggerCard when this trigger
+	// matched. CR 107.3m binds that value at trigger time: it must survive if
+	// the card later leaves the stack or battlefield before the ability
+	// resolves. Zero is both a valid paid value and the value for a triggering
+	// card with no paid X.
+	TriggerPaidX int32
 }
 
 // TriggeredCardController is the one resolver for "that card's controller"

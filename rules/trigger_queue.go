@@ -430,6 +430,42 @@ func (e *Engine) triggerOf(pt pendingTrigger) (cards.Trigger, bool) {
 // "this is not a face trigger, apply no trigger-only rule" rather than as an
 // error. A source that has ceased to exist entirely (a token or copy gone
 // from the board) degrades the same way.
+// triggerPaidX implements CR 107.3m's X binding for a triggered ability that
+// is already a stack object: the value of X in its text is the X chosen for
+// the spell that became the permanent it is on (an ETB trigger of a cast
+// creature -- Wan Shi Tong) or the X of the spell it triggered on (a cast
+// trigger -- Hydroid Krasis, Genesis Hydra; a magecraft trigger on another
+// permanent -- Zaxara's "put X +1/+1 counters" reads the triggering spell).
+// The trigger object itself was never paid an X (events.Apply's TriggerPush
+// records the trigger index in Amount, and commitCast emits no CastInfo for
+// it), so its own o.X is 0. The causing event's card contributes the value
+// captured in TriggerContext.TriggerPaidX when the trigger matched. It must
+// not be read from the card at resolution: an ETB permanent can have died or
+// been bounced in the meantime, and events.Move correctly clears its live X.
+//
+// An activated ability never falls back: CR 107.3i gives its X only from the
+// {X} paid for the activation itself, recorded on the ability object by
+// CastInfo -- findTriggerForAbility returns false for one, so the early exit
+// below is what keeps a Walking Ballista's ability from inheriting its own
+// cast-time X.
+//
+// The trigger context is engine-only (rules.pushTrigger, keyed by stack id),
+// and a Mode$ Phase delayed trigger -- pushed via DelayedPush, with no
+// context -- reads 0 here, its status quo.
+func (e *Engine) triggerPaidX(stack state.ObjID, o *state.Object) int32 {
+	if o == nil || o.Ability == nil {
+		return 0
+	}
+	if _, ok := e.findTriggerForAbility(o.Source, o.Ability); !ok {
+		return 0
+	}
+	tc, ok := e.triggerContexts[stack]
+	if !ok {
+		return 0
+	}
+	return tc.TriggerPaidX
+}
+
 func (e *Engine) findTriggerForAbility(source state.ObjID, sa *cards.SA) (cards.Trigger, bool) {
 	if sa == nil {
 		return cards.Trigger{}, false

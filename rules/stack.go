@@ -761,8 +761,14 @@ func (e *Engine) resolveTop() {
 		// CR 107.3i: X is the value the activator chose for a Cost$ carrying
 		// {X} (recorded on the ability stack object by commitCast's CastInfo,
 		// emitted right after the AbilityPush). Zero for a trigger, which was
-		// never paid an X.
+		// never paid an X -- and for a trigger CR 107.3m rebinds X to the
+		// spell that became the permanent (an ETB trigger) or the spell the
+		// trigger fired on (a cast/magecraft trigger), which triggerPaidX
+		// reads off the causing event's card.
 		ctx.X = o.X
+		if ctx.X == 0 {
+			ctx.X = e.triggerPaidX(id, o)
+		}
 		// A cost-paid sacrifice carried its objects' LKI snapshot on the
 		// engine (rules/cast.go commitCast), keyed by this stack object id;
 		// load it so the ability's Sacrificed$<Property> heads resolve against

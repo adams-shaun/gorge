@@ -595,6 +595,17 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 		return false
 	}
 	spec := t.Params["TriggerZones"]
+	if spec == "" && ev.Kind == events.PutOnStack && source == ev.Obj && t.Mode == "SpellCast" {
+		// CR 601.2i: the spell's OWN cast trigger fires while the source is
+		// the spell sitting on the stack -- exactly the event being walked.
+		// The battlefield default would gate it out (the source is in ZStack,
+		// and the PutOnStack look-back zone below is the zone it came FROM,
+		// the hand), so every bare "When you cast this spell" script --
+		// Hydroid Krasis, Genesis Hydra, Ulamog, World Breaker -- would
+		// never fire at all. An EXPLICIT TriggerZones$ stays authoritative:
+		// a script naming one knows where its trigger lives.
+		return true
+	}
 	if spec == "" {
 		// "When you discard this card" (Orvar, Bartered Cow, Titanbones: 14
 		// of the corpus's Mode$ Discarded lines) declares no TriggerZones$,

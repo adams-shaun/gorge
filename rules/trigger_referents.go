@@ -72,6 +72,13 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 	case "Phase":
 		c.TriggerPlayer = player(e.G.Active)
 	}
+	// CR 107.3m binds X when the trigger fires, not when it resolves. In
+	// particular, an ETB trigger may remain on the stack after its permanent
+	// dies, at which point Move has correctly cleared the object's live X.
+	// Keep the event's card value with the rest of the trigger provenance.
+	if card := e.G.Obj(c.TriggerCard); card != nil {
+		c.TriggerPaidX = card.X
+	}
 	return c
 }
 
