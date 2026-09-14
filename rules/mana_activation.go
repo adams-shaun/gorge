@@ -236,7 +236,7 @@ func (e *Engine) commitManaDiscard() {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZGraveyard, Text: "discarded as a cost"})
 	}
 	if md.cost.Tap {
-		e.emit(events.Event{Kind: events.Tap, Obj: md.source})
+		e.emitManaTap(md.player, md.source)
 	}
 	for _, part := range md.cost.SubCounter {
 		e.emit(events.Event{Kind: events.CounterChange, Obj: md.source, Counter: part.Spec, Amount: -part.N})
@@ -265,6 +265,15 @@ func (e *Engine) answerManaDiscard(chosen []decision.Option) bool {
 	return cast
 }
 
+// emitManaTap preserves "tapped for mana" as transient engine context while
+// trigger matching runs. Tap's existing event payload stays unchanged, so a
+// mana activation without a matching trigger keeps its historic event chain.
+func (e *Engine) emitManaTap(p state.PlayerID, source state.ObjID) {
+	e.tappingForMana, e.manaTapPlayer = source, p
+	e.emit(events.Event{Kind: events.Tap, Obj: source})
+	e.tappingForMana = 0
+}
+
 // resolveManaAbility pays this ability's actual activation cost, then resolves
 // it outside the stack. In particular, Sac and Discard costs are emitted
 // before the mana effect, and no phantom generic mana is charged.
@@ -284,7 +293,7 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 		return
 	}
 	if cost.Tap {
-		e.emit(events.Event{Kind: events.Tap, Obj: source})
+		e.emitManaTap(p, source)
 	}
 	for _, part := range cost.SubCounter {
 		e.emit(events.Event{Kind: events.CounterChange, Obj: source, Counter: part.Spec, Amount: -part.N})

@@ -434,6 +434,14 @@ type Engine struct {
 	// always zero at a clone boundary.
 	combatDamaging bool
 
+	// tappingForMana identifies the Tap event that pays an activated mana
+	// ability's tap cost. Like combatDamaging it is synchronous event context,
+	// not an Event field: changing Tap's encoded payload would move every chain
+	// head even in games with no TapsForMana trigger. emitManaTap sets and clears
+	// it around emit; Clone only runs at an intent boundary, where it is zero.
+	tappingForMana state.ObjID
+	manaTapPlayer  state.PlayerID
+
 	// foreachBuf is forEachObject's (trigger_match.go) scratch snapshot
 	// buffer. forEachObject copies each zone into it before walking it -- fn
 	// may move objects between zones (a trigger match putting something on
