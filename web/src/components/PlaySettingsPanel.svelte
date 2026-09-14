@@ -322,6 +322,39 @@
     </button>
     <button type="button" class="reset" data-reset-settings onclick={() => applyPreset('casual')}>Reset to Casual</button>
   </section>
+
+  <!-- Remembered trigger answers (fb-20260914T062319Z-88b4069a B4): the
+       management list for the remember checkbox on optional-trigger prompts.
+       One row per remembered answer — the prompt's label (card + trigger
+       text), the answer itself, and a Forget button — plus Forget all. This
+       is a state write (state.removeRemembered / state.clearRemembered), not
+       a settings edit, exactly like Clear yields. -->
+  <section class="sec">
+    <h3>Remembered trigger answers</h3>
+    {#if state.remembered.entries.length === 0}
+      <p class="legend" data-remembered-empty>None. Tick “Remember this answer” on an optional-trigger prompt to store one.</p>
+    {:else}
+      <ul class="remlist" data-remembered-list>
+        {#each state.remembered.entries as e, i (i)}
+          <li class="remrow" data-remembered-entry>
+            <span class="remlabel" title={e.label}>{e.label}</span>
+            <span class="remchoice" data-remembered-choice={e.choice}>{e.choice === 0 ? 'Yes' : 'No'}</span>
+            <button
+              type="button"
+              class="remforget"
+              data-remembered-delete={i}
+              aria-label={`Forget ${e.label}`}
+              onclick={() => state.removeRemembered(state.remembered.entries[i]?.key ?? '')}
+            >Forget</button>
+          </li>
+        {/each}
+      </ul>
+      <button type="button" class="row" data-remembered-clear onclick={() => state.clearRemembered()}>
+        <span>Forget all remembered answers ({state.remembered.entries.length})</span>
+        <span class="state" aria-hidden="true">Clear</span>
+      </button>
+    {/if}
+  </section>
 </div>
 
 <style>
@@ -489,6 +522,46 @@
     background: var(--offered);
     color: var(--felt-sunk);
   }
+  ul.remlist {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    max-height: 12rem;
+    overflow-y: auto;
+  }
+  .remrow {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-1) 0;
+    border-bottom: 1px solid var(--edge-inst);
+  }
+  .remrow:last-child { border-bottom: 0; }
+  .remlabel {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ink-inst);
+  }
+  .remchoice {
+    flex: 0 0 auto;
+    padding: 0 var(--sp-1);
+    color: var(--ink-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .remforget {
+    flex: 0 0 auto;
+    padding: 2px var(--sp-2);
+    border: 1px solid var(--edge-inst);
+    background: var(--instrument-raised);
+    color: var(--ink-inst);
+    font-family: var(--font-ui);
+    font-size: var(--t-10);
+    cursor: pointer;
+  }
+  .remforget:hover { color: var(--ink); }
   .vh {
     position: absolute;
     width: 1px;

@@ -237,6 +237,13 @@ describe('SeatPanel — the prompt surface (fb prompts: never passed over, never
     prompt: 'Rearrange the top 3 card(s); the first card you pick goes on top',
     options: [opt(0, 'bottom', 'Brazen Borrower', 11), opt(1, 'bottom', 'Fabled Pass', 12), opt(2, 'bottom', 'Spell Pierce', 14)],
   };
+  // The engine's measured trigger_optional shape (rules/trigger_queue.go
+  // askTriggerOptional): Min == Max == 1, "yes" first, prompt "<question>? — <label>".
+  const optionalAsk: Decision = {
+    seq: 13, player: 1, kind: 'trigger_optional', min: 1, max: 1, source: 9,
+    prompt: 'Put this optional triggered ability on the stack? — Bloodghast: Whenever a land enters, Bloodghast may return from the graveyard',
+    options: [opt(0, 'yes', 'Yes — Bloodghast: Whenever a land enters, Bloodghast may return from the graveyard', 9), opt(1, 'no', 'No', 9)],
+  };
 
   it('the context line names the source and the shape of the answer (Job 3)', () => {
     const { html } = render(SeatPanel, { props: props(bolt(target)) });
@@ -269,5 +276,29 @@ describe('SeatPanel — the prompt surface (fb prompts: never passed over, never
     const offered = strip(view(priority));
     expect(offered).not.toContain('data-strip-pointer');
     expect(offered).toContain('data-option="0"');
+  });
+
+  // fb-20260914T062319Z-88b4069a part A: an optional trigger is a blocked
+  // decision (no pass — the answer must be given) but the CHOICE is optional,
+  // and the generic "required prompt" pointer read to the player as a
+  // mandatory yes. Both wordings are pinned here.
+  it('the strip pointer says the ability is optional for a trigger_optional decision, and stays generic otherwise', () => {
+    const strip = (v: View) => render(SeatPanel, { props: { ...props(v), placement: 'strip' as const } }).html;
+    const optionalPointer = strip(bolt(optionalAsk));
+    expect(optionalPointer).toContain('data-strip-pointer');
+    expect(optionalPointer).toContain('This is an optional ability: choose whether it happens. The game cannot move until you answer.');
+    expect(optionalPointer).not.toContain('required prompt');
+    const genericPointer = strip(bolt(target));
+    expect(genericPointer).toContain('This is a required prompt, not an action — it is answered on the board. The game cannot move until it is.');
+  });
+
+  it('a trigger_optional prompt renders the remember checkbox above the options; other kinds do not (B4)', () => {
+    const optionalHtml = render(SeatPanel, { props: props(bolt(optionalAsk)) }).html;
+    expect(optionalHtml).toContain('data-remember-answer');
+    expect(optionalHtml).toContain('Remember this answer for identical future prompts');
+    expect(optionalHtml).toContain('data-option="0"');
+    const generic = render(SeatPanel, { props: props(bolt(target)) }).html;
+    expect(generic).not.toContain('data-remember-answer');
+    expect(generic).not.toContain('Remember this answer for identical future prompts');
   });
 });

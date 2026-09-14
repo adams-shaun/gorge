@@ -127,7 +127,7 @@ describe('VersionWatch', () => {
   });
 
   it('start() polls once immediately, then keeps the slow cadence; an unchanged hash stays silent', async () => {
-    const { env, fetches, inits, fireNext, timers } = manualEnv(() => BUILT_HTML('old'));
+    const { env, fetches, fireNext, timers } = manualEnv(() => BUILT_HTML('old'));
     const w = new VersionWatch();
     w.start(env);
     await new Promise((r) => setImmediate(r));
@@ -148,7 +148,7 @@ describe('VersionWatch', () => {
     // proxy) answer the poll from its cached PRE-deploy index. The watch would
     // then compare the loaded old bundle src against a served OLD src and never
     // raise the banner — the exact silence defect 2 exists to close.
-    const { env, inits, fireNext, timers } = manualEnv(() => BUILT_HTML('old'));
+    const { env, inits, fireNext } = manualEnv(() => BUILT_HTML('old'));
     const w = new VersionWatch();
     w.start(env);
     await new Promise((r) => setImmediate(r));
