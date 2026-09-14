@@ -3,6 +3,7 @@ package rules
 import (
 	"math"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -53,6 +54,21 @@ type Cost struct {
 	Discard    []CostPart
 	SubCounter []CostPart
 	AddCounter []CostPart
+
+	// Unknown lists the HEAD (the text before any "<...>") of every cost
+	// token this parse did not model, in order of appearance, deduplicated.
+	// A token lands here exactly when it fell through to the final
+	// degrade-to-one-generic fallback: ParseCost priced it as one generic
+	// mana (or one life-equivalent of nothing) without giving it real
+	// semantics. Tokens that matched a recognised shape but carried a
+	// malformed value (e.g. "Sac<1/" truncated) do NOT land here -- the head
+	// is modelled even when that instance is degenerate. Payment behaviour is
+	// unchanged by this field: it is a pure report, read by the parameter
+	// census (rules/paramcensus_test.go) so the repo-deck ratchet can name
+	// cost tokens a card's script carries that the engine silently
+	// substitutes generic mana for (e.g. Chthonian Nightmare's
+	// "PayEnergy<X> ... Return<1/CARDNAME>").
+	Unknown []string
 }
 
 // nonManaCost matches Sac<N/Spec>, Discard<N/Spec>, and SubCounter<N/Kind> tokens. Forge
@@ -158,7 +174,15 @@ func ParseCost(s string) Cost {
 				continue
 			}
 			// An unrecognised symbol (including a malformed hybrid/Phyrexian
-			// token) degrades to one generic mana, never a hard parse error.
+			// token) degrades to one generic mana, never a hard parse error -- and
+			// is REPORTED as unmodelled (Cost.Unknown), so the parameter census
+			// can name it instead of the substitution staying silent.
+			if i := strings.IndexByte(sym, '<'); i > 0 {
+				sym = sym[:i]
+			}
+			if !slices.Contains(c.Unknown, sym) {
+				c.Unknown = append(c.Unknown, sym)
+			}
 			c.Generic = addClampedGeneric(c.Generic, 1)
 		}
 	}
