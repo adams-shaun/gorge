@@ -70,9 +70,39 @@ export function turnSide(view: View, seat: number): TurnSide {
 }
 
 /**
+ * isActionKind is the ONE kind test for "this option kind is a real action":
+ * an option that is neither pass, concede nor activate. Every classifier that
+ * decides whether a priority window (or a posted choice on one) carries
+ * something to do goes through this predicate, so the kinds excluded as
+ * not-a-play are stated once and cannot drift apart:
+ *
+ *  - pass and concede are non-answers by definition;
+ *  - activate is the tap-for-mana offer the engine hangs on every priority
+ *    window that has an untapped source (rules/legal.go's
+ *    availableManaAbilities loop), so counting it as an action makes almost
+ *    every window "actionable" and defeats both the empty-window skip and the
+ *    smart step rule — tapping mana with nothing to spend it on is not a play
+ *    (fb-3ab6d9da: it also armed pass-after-acting, machine-passing the very
+ *    window the floated mana unlocked).
+ *
+ * The wire fact that makes the activate exclusion safe on every consumer: a
+ * priority decision's activate kind is only ever the mana tap (non-mana
+ * activated abilities are offered as kind "ability", legal.go's ability
+ * loop), and the one other activate on the wire (cast.go's mid-cast
+ * mana-source ask) sits on a non-priority decision those consumers already
+ * refuse. respondable() below is deliberately NOT this predicate: it answers
+ * a different question (could the seat interact with a resolving spell) and
+ * admits only cast/ability.
+ */
+export function isActionKind(kind: string): boolean {
+  return kind !== 'pass' && kind !== 'concede' && kind !== 'activate';
+}
+
+/**
  * actionable reports whether a priority decision offers the player a real
  * action. The kind test covers the obvious shapes: an option that is neither
- * pass, concede nor activate (cast, ability, play_land, ...). The engine
+ * pass, concede nor activate (cast, ability, play_land, ...) — isActionKind
+ * above, shared with actedOption's per-choice arming test. The engine
  * offers an "activate" (tap for mana) option for every available mana source
  * at every priority window (rules/legal.go's availableManaAbilities loop), so
  * counting those taps as actions would make almost every window "actionable"
@@ -96,7 +126,7 @@ export function turnSide(view: View, seat: number): TurnSide {
  * wherever the caller's own step rules consult it.
  */
 export function actionable(decision: Decision, view: View, seat: number): boolean {
-  if (decision.options.some((o) => o.kind !== 'pass' && o.kind !== 'concede' && o.kind !== 'activate')) return true;
+  if (decision.options.some((o) => isActionKind(o.kind))) return true;
   // Mana-only (or pass/concede-only) window: stop-worthy when tapping would
   // make a hand card castable. A pass/concede-only window never gains
   // anything here in practice -- if Available were non-zero the engine would

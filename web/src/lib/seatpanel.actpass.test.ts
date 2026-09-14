@@ -4,10 +4,13 @@ import { SeatPanelState, autoNoteText } from './seatpanel.svelte';
 
 // The "pass after acting" preference (settings.passAfterAct): after this
 // seat POSTS a hand answer to a priority decision carrying a real action,
-// its NEXT priority window is passed once. decide() is the safety oracle and
-// is tested in autopilot.test.ts; what these tests hold down is the token's
-// lifecycle — what arms it, what consumes it, what clears it, and that the
-// machine can only ever post a pass.
+// its NEXT priority window is passed once. "Real action" is actedOption's
+// kind test: an option whose kind is neither pass, concede nor activate —
+// the activate exclusion (fb-3ab6d9da) is what keeps a mana tap from arming
+// the pass that would machine-pass the very window the floated mana just
+// unlocked. decide() is the safety oracle and is tested in autopilot.test.ts;
+// what these tests hold down is the token's lifecycle — what arms it, what
+// consumes it, what clears it, and that the machine can only ever post a pass.
 const { postIntentMock, fetchPendingMock } = vi.hoisted(() => ({ postIntentMock: vi.fn(), fetchPendingMock: vi.fn() }));
 vi.mock('./api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./api')>()),
@@ -19,6 +22,7 @@ const ctx = { seat: 0, token: 'tok' };
 
 const cast = (i: number): Option => ({ index: i, kind: 'cast', label: `Cast ${i}`, player: 0 });
 const ability = (i: number): Option => ({ index: i, kind: 'ability', label: `Ability ${i}`, player: 0 });
+const activate = (i: number): Option => ({ index: i, kind: 'activate', label: `Tap source ${i} for mana`, player: 0 });
 const pass = (i: number): Option => ({ index: i, kind: 'pass', label: 'Pass priority', player: 0 });
 const concede = (i: number): Option => ({ index: i, kind: 'concede', label: 'Concede', player: 0 });
 const target = (i: number): Option => ({ index: i, kind: 'target', label: `Target ${i}`, player: 0 });
@@ -30,6 +34,14 @@ const quiet = (seq: number): Decision =>
 /** live is a priority window where the player has a real action. */
 const live = (seq: number): Decision =>
   ({ seq, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1, options: [cast(0), pass(1), concede(2)] });
+
+/** tappable is the pre-tap priority window (fb-3ab6d9da): a mana tap, a pass and a concede — no real action. */
+const tappable = (seq: number): Decision =>
+  ({ seq, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1, options: [activate(0), pass(1), concede(2)] });
+
+/** abilityWindow is a priority window whose only real action is a non-mana activated ability (Kind "ability"). */
+const abilityWindow = (seq: number): Decision =>
+  ({ seq, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1, options: [ability(0), pass(1), concede(2)] });
 
 /** choose is a non-priority decision — a target ask, the shape a cast hands back. */
 const targetAsk = (seq: number): Decision =>
@@ -44,6 +56,28 @@ const multi = (seq: number): Decision =>
 
 const view = (step = 'draw', active = 0, stack: { id: number; controller: number }[] = []): View =>
   ({ active, step, turn: 2, stack }) as unknown as View;
+
+/**
+ * floatReadyView is a view whose seat 0 holds one untapped mana source
+ * (Available {R: 1}) and a hand card that becomes castable once that mana
+ * floats ({1}{R} — the Lava-Spike-after-the-Mountain shape). It is what makes
+ * a mana-only tap window STOP-worthy (castableAfterTap true) instead of
+ * empty-floor'd, so the tap tests exercise the player's own click on a
+ * window that genuinely surfaces.
+ */
+const floatReadyView = (step = 'main1'): View =>
+  ({
+    active: 0,
+    step,
+    turn: 2,
+    stack: [],
+    players: [{
+      seat: 0, name: 'P0', life: 20, lost: false, library_size: 40, hand_size: 1,
+      graveyard_size: 0, battlefield: [], graveyard: [], exile: [],
+      pool: {}, available: { R: 1 },
+      hand: [{ id: 7, name: 'Lava Spike', types: 'Instant', mana_cost: 'R', printing: {}, token: '' }],
+    }],
+  }) as unknown as View;
 
 function fakeStorage(): Storage {
   const store = new Map<string, string>();
@@ -299,6 +333,72 @@ describe('pass after acting — what arms the token', () => {
     p.adoptView(live(1)); // the same decision comes back
     p.considerAuto(view());
     expect(postIntentMock).toHaveBeenCalledTimes(1); // the failed cast; no machine pass
+  });
+});
+
+describe('pass after acting — arming boundaries: a mana tap is not an action (fb-3ab6d9da)', () => {
+  beforeEach(() => {
+    postIntentMock.mockReset();
+    fetchPendingMock.mockReset();
+    postIntentMock.mockResolvedValue(undefined);
+  });
+
+  it('posting a mana tap (the priority-window activate option) does NOT arm — the next live window is the player\'s', async () => {
+    const p = manual();
+    // The pre-tap window: the hand holds a card castable once the untapped
+    // source floats (the reported Lava-Spike-after-the-Mountain shape), so the
+    // window surfaces instead of being floor-passed, and the engine offers a
+    // tap for the source. The player taps for mana by hand.
+    p.adoptView(tappable(1));
+    p.considerAuto(floatReadyView()); // nothing armed yet: the window surfaces
+    expect(postIntentMock).not.toHaveBeenCalled();
+    p.click(0); // the tap — the exact click the reported flow makes
+    await settle(() => p.postedSeq === 1);
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(postIntentMock.mock.calls[0][2].choices).toEqual([0]);
+
+    // The NEXT priority window — the one where the floated mana makes the
+    // held spell affordable and the engine offers the cast — must be the
+    // player's. Before the fix this window was machine-passed.
+    p.adoptView(live(2));
+    p.considerAuto(floatReadyView());
+    expect(postIntentMock).toHaveBeenCalledTimes(1); // the tap only; nothing armed
+    expect(p.actPassed).toBe(0);
+  });
+
+  it('posting a cast still arms (the boundary the tap fix must not dull)', async () => {
+    const p = manual();
+    await arm(p);
+    p.adoptView(live(2));
+    p.considerAuto(view());
+    await settle(() => p.postedSeq === 2);
+    expect(p.actPassed).toBe(1);
+    expect(postIntentMock.mock.calls[0][2].choices).toEqual([1]); // the pass index
+  });
+
+  it('posting an ability still arms — non-mana activated abilities are Kind "ability", not "activate"', async () => {
+    const p = manual();
+    p.adoptView(abilityWindow(1));
+    p.click(0); // the ability — a real action
+    await settle(() => p.postedSeq === 1);
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    p.adoptView(live(2));
+    p.considerAuto(view());
+    await settle(() => p.postedSeq === 2);
+    expect(p.actPassed).toBe(1);
+    expect(postIntentMock.mock.calls[1][2].choices).toEqual([1]);
+  });
+
+  it('the Ctrl-held skip still skips (the existing boundary survives the new exclusion)', async () => {
+    const p = manual();
+    p.adoptView(live(1));
+    p.click(0, { holdPriority: true }); // the cast, Ctrl held: hold priority
+    await settle(() => p.postedSeq === 1);
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    p.adoptView(live(2));
+    p.considerAuto(floatReadyView()); // nothing was armed — the window is the player's
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(p.actPassed).toBe(0);
   });
 });
 
