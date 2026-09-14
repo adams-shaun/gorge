@@ -48,6 +48,26 @@ function selectHtml(html: string, which: string): string {
   return m[0];
 }
 
+describe('PlaySettingsPanel — Clear yields (prio6)', () => {
+  // One DISTINCT table id per test: the yield store's in-memory layer is
+  // module-level and shared by every SeatPanelState this file constructs.
+  it('is disabled with nothing yielded, showing None', () => {
+    const html = panel(new SeatPanelState('yt-none', 1, ctx, null));
+    expect(html).toContain('data-clear-yields');
+    expect(tag(html, 'data-clear-yields')).toContain('disabled');
+    expect(elem(html, 'data-clear-yields')).toContain('None');
+  });
+
+  it('is enabled with yields, and the count says how many the clear would drop', () => {
+    const state = new SeatPanelState('yt-two', 1, ctx, null);
+    state.addYield('1:Blood Artist:drain');
+    state.addYield('2:Soul Warden:gain');
+    const html = panel(state);
+    expect(tag(html, 'data-clear-yields')).not.toContain('disabled');
+    expect(elem(html, 'data-clear-yields')).toContain('Clear yields (2)');
+  });
+});
+
 describe('PlaySettingsPanel — the GAME OPTIONS editor (rendered)', () => {
   it('renders casual by default: preset pressed, its blurb shown, the opponent rules reflecting it', () => {
     const html = panel(new SeatPanelState('t1', 1, ctx, null));

@@ -306,6 +306,20 @@
     >
       <span>Log auto-passes</span><span class="state" aria-hidden="true">{s.logAutoPasses ? 'On' : 'Off'}</span>
     </button>
+    <!-- Clear yields (prio6): the GAME OPTIONS action for the stack tile
+         menus' "Always pass for …" set — game-scoped, per table, so this is
+         a state write (state.clearYields), not a settings edit. Disabled
+         with nothing yielded, and the count says how much it would clear. -->
+    <button
+      type="button"
+      class="row"
+      data-clear-yields
+      disabled={state.yieldList.length === 0}
+      onclick={() => state.clearYields()}
+    >
+      <span>Clear yields{state.yieldList.length > 0 ? ` (${state.yieldList.length})` : ''}</span>
+      <span class="state" aria-hidden="true">{state.yieldList.length > 0 ? 'Clear' : 'None'}</span>
+    </button>
     <button type="button" class="reset" data-reset-settings onclick={() => applyPreset('casual')}>Reset to Casual</button>
   </section>
 </div>
@@ -385,6 +399,11 @@
     background: var(--offered);
     color: var(--felt-sunk);
   }
+  .row:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  button.row:disabled:hover { color: var(--ink-inst); }
   button.row + button.row { margin-top: 1px; }
   .row.sel {
     padding: var(--sp-1) 0;

@@ -347,4 +347,90 @@ describe('decide', () => {
     expect(respondable(d)).toBe(false);
     expect(run(d, view(0, 'draw', [stackEntry(9, 1, 'spell')]))).toEqual({ act: 'pass', index: 2 });
   });
+
+  // ---- prio6: always-yield per ability, and the Resolve All baseline ----
+  // A yield key is `${controller}:${name}:${text}` — the same three facts
+  // the stack tile renders (lib/yields.ts). The entry below is shaped like
+  // the real wire StackView for an ability: name is the SOURCE's face name,
+  // text the ability's own text (view/view.go's abilityName/abilityText).
+  const namedEntry = (
+    id: number,
+    controller: number,
+    name: string,
+    text: string,
+    kind = 'trigger',
+    targets: { obj?: number; player: number; is_player: boolean }[] = [],
+  ) => ({ id, controller, kind, name, text, targets });
+  // artist targets me (a player target on seat 0), so every one of casual's
+  // opponent-rule shapes genuinely stops for it before the yield is granted.
+  const artist = namedEntry(9, 1, 'Blood Artist', 'Whenever a creature dies, each opponent loses 1 life', 'trigger', [{ player: 0, is_player: true }]);
+  // other is a spell (kind spell), so casual's opponentSpell (if-respondable) stops for it.
+  const other = namedEntry(10, 1, 'Soul Warden', 'Whenever a creature enters, its controller gains 1 life', 'spell');
+  const artistKey = '1:Blood Artist:Whenever a creature dies, each opponent loses 1 life';
+
+  it('a yielded key skips the opponent-object stop for THAT entry, but not for another entry', () => {
+    const d = priority(RESPONDABLE);
+    // Without the yield, casual stops (opponent spell, if-respondable).
+    expect(run(d, view(0, 'draw', [artist]))).toEqual({ act: 'stop', reason: 'opponent-object' });
+    // With the artist's key yielded, the opponent-object rule is skipped
+    // for it and the window passes. A DIFFERENT key changes nothing.
+    expect(decide({ decision: d, view: view(0, 'draw', [artist]), seat: 0, settings: defaultSettings(), yields: new Set([artistKey]) }))
+      .toEqual({ act: 'pass', index: 0 });
+    expect(decide({ decision: d, view: view(0, 'draw', [other]), seat: 0, settings: defaultSettings(), yields: new Set([artistKey]) }))
+      .toEqual({ act: 'stop', reason: 'opponent-object' });
+  });
+
+  it('a yield overrides every opponent rule shape — always, if-respondable, targets-me — but not a step stop', () => {
+    const d = priority(RESPONDABLE);
+    const yields = new Set([artistKey]);
+    for (const rule of ['always', 'if-respondable', 'targets-me-if-respondable'] as const) {
+      const s = defaultSettings();
+      s.opponentTrigger = rule;
+      expect(decide({ decision: d, view: view(0, 'draw', [artist]), seat: 0, settings: s, yields }))
+        .toEqual({ act: 'pass', index: 0 });
+    }
+    // The step rules still apply: a yield is per ability, never per step.
+    const stopped = withSteps('yours', { draw: 'forced' });
+    expect(decide({ decision: d, view: view(0, 'draw', [artist]), seat: 0, settings: stopped, yields }))
+      .toEqual({ act: 'stop', reason: 'stop-set' });
+  });
+
+  it('a yield does not make the own-object rule skip: the key names the controller, so an own entry never matches', () => {
+    const d = priority(RESPONDABLE);
+    const mine = namedEntry(9, 0, 'Blood Artist', 'Whenever a creature dies, each opponent loses 1 life');
+    const s = defaultSettings();
+    s.ownObjects = 'if-respondable';
+    expect(decide({ decision: d, view: view(0, 'draw', [mine]), seat: 0, settings: s, yields: new Set([artistKey]) }))
+      .toEqual({ act: 'stop', reason: 'own-object' });
+  });
+
+  it('the Resolve All baseline passes through arm-time opponent objects but stops on a NEW opponent object', () => {
+    const d = priority(RESPONDABLE);
+    const settings = defaultSettings();
+    // The arm-time entry (id 9) is on the baseline: the run plays through it.
+    expect(decide({ decision: d, view: view(0, 'draw', [artist]), seat: 0, settings, baselineStack: new Set([9]) }))
+      .toEqual({ act: 'pass', index: 0 });
+    // A NEW opponent object (id 10) stops per the settings — the same stop
+    // a plain End Turn would take.
+    expect(decide({ decision: d, view: view(0, 'draw', [artist, other]), seat: 0, settings, baselineStack: new Set([9]) }))
+      .toEqual({ act: 'stop', reason: 'opponent-object' });
+    // And when the settings say never to stop for opponent spells, the new
+    // object does not stop either — the run honours the player's own rules
+    // for what arrived after the press.
+    settings.opponentSpell = 'never';
+    expect(decide({ decision: d, view: view(0, 'draw', [artist, other]), seat: 0, settings, baselineStack: new Set([9]) }))
+      .toEqual({ act: 'pass', index: 0 });
+  });
+
+  it('the Resolve All baseline skips the own-object rule for arm-time objects too, but not a step stop', () => {
+    const d = priority(RESPONDABLE);
+    const mine = namedEntry(9, 0, 'Blood Artist', 'Whenever a creature dies, each opponent loses 1 life');
+    const s = defaultSettings();
+    s.ownObjects = 'if-respondable';
+    expect(decide({ decision: d, view: view(0, 'draw', [mine]), seat: 0, settings: s, baselineStack: new Set([9]) }))
+      .toEqual({ act: 'pass', index: 0 });
+    const stopped = withSteps('yours', { draw: 'forced' });
+    expect(decide({ decision: d, view: view(0, 'draw', [artist]), seat: 0, settings: stopped, baselineStack: new Set([9]) }))
+      .toEqual({ act: 'stop', reason: 'stop-set' });
+  });
 });

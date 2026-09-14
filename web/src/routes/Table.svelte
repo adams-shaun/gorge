@@ -290,7 +290,18 @@
              the row is the anchor and grows if the control needs height.
              The state stays here (SeatPanelState wiring); only the markup's
              host row moved. -->
-        <Rail view={m.view} seats={m.seats} decision={seated ? null : m.decision} emphasizeTop={seated} events={m.dvr.events} showLog={showLog} onToggleLog={toggleLog}>
+        <Rail
+          view={m.view}
+          seats={m.seats}
+          decision={seated ? null : m.decision}
+          emphasizeTop={seated}
+          events={m.dvr.events}
+          showLog={showLog}
+          onToggleLog={toggleLog}
+          yields={panel?.yields ?? null}
+          onYield={panel ? (key) => panel.addYield(key) : null}
+          viewerSeat={seated ? (seatCtx?.seat ?? null) : null}
+        >
           {#snippet logbar()}
             {#if panel && concede}
               <ConcedeControl

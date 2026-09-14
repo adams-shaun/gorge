@@ -1,5 +1,6 @@
 import type { Decision, View } from '../protocol';
 import type { OpponentObjectRule, OpponentTriggerRule, PlaySettings, StoppableStep } from './playsettings';
+import { stackYieldKey } from './yields';
 
 /**
  * autopilot is the "auto" decision logic for a seat: pass priority for the
@@ -169,8 +170,27 @@ export function decide(args: {
    * cap still bounds the run.
    */
   ffwd?: boolean;
+  /**
+   * yields is the game-scoped set of "always pass for this ability" keys
+   * (prio6, lib/yields.ts): when the TOP stack entry's key is in the set,
+   * the opponent-object rule is skipped for it — the player has already
+   * said, for this game, that they never stop for that ability. The step
+   * rules still apply: a yield is per ability, never per step.
+   */
+  yields?: ReadonlySet<string>;
+  /**
+   * baselineStack is the Resolve All run's arm-time stack (prio6): the ids
+   * of the objects that were already on the stack when the run started.
+   * Resolve All's whole point is to play through the stack AS IT STANDS, so
+   * an opponent object that was present at arm time does not stop the run
+   * (the rule checks are skipped for it); a NEW opponent object — an id not
+   * in the baseline — stops per the caller's settings, exactly as a plain
+   * End Turn would. Own objects on the baseline pass the own-object rule
+   * the same way; a new own object is judged by the settings as usual.
+   */
+  baselineStack?: ReadonlySet<number>;
 }): AutoVerdict {
-  const { decision, view, seat, settings, ffwd = false } = args;
+  const { decision, view, seat, settings, ffwd = false, yields = null, baselineStack = null } = args;
 
   // Safety first: auto NEVER answers anything but a plain single-pick
   // priority decision with exactly one pass option. Target, blockers,
@@ -189,16 +209,24 @@ export function decide(args: {
 
   // 2. Stack rules, on the TOP of the stack only (the object that resolves
   // next). ffwd passes through all of them (pressing FFWD is consent).
+  // Resolve All's baseline passes through them too, but ONLY for the
+  // objects that were on the stack when the run was armed: the run is the
+  // player's "resolve what is already there". A yield skips the
+  // opponent-object rule for its one key, whatever run is asking.
   const top = view.stack.length > 0 ? view.stack[view.stack.length - 1] : null;
-  if (top !== null && !ffwd) {
+  if (top !== null && !ffwd && !(baselineStack?.has(top.id) ?? false)) {
     if (top.controller !== seat) {
-      const rule = opponentRuleFor(settings, top.kind);
-      if (rule === 'always') return { act: 'stop', reason: 'opponent-object' };
-      if (rule === 'if-respondable' && respondable(decision)) return { act: 'stop', reason: 'opponent-object' };
-      if (rule === 'targets-me-if-respondable' && respondable(decision) && targetsMe(view, seat, top)) {
-        return { act: 'stop', reason: 'opponent-object' };
+      if (yields?.has(stackYieldKey(top))) {
+        // yielded: the player always passes for this ability this game.
+      } else {
+        const rule = opponentRuleFor(settings, top.kind);
+        if (rule === 'always') return { act: 'stop', reason: 'opponent-object' };
+        if (rule === 'if-respondable' && respondable(decision)) return { act: 'stop', reason: 'opponent-object' };
+        if (rule === 'targets-me-if-respondable' && respondable(decision) && targetsMe(view, seat, top)) {
+          return { act: 'stop', reason: 'opponent-object' };
+        }
+        // 'never' (and a rule the arms above did not meet) falls through.
       }
-      // 'never' (and a rule the arms above did not meet) falls through.
     } else if (settings.ownObjects === 'if-respondable' && respondable(decision)) {
       return { act: 'stop', reason: 'own-object' };
     }

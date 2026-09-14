@@ -44,6 +44,9 @@
     showLog = true,
     onToggleLog = null,
     logbar = null,
+    yields = null,
+    onYield = null,
+    viewerSeat = null,
   }: {
     view: View;
     seats: SeatInfo[];
@@ -70,6 +73,12 @@
      *  SeatPanelState wiring); Rail only hosts the markup in the one row
      *  that had spare room. */
     logbar?: Snippet | null;
+    /** yields is the seated player's game-scoped always-pass set (prio6); null (spectator) renders no marker and no menu. */
+    yields?: ReadonlySet<string> | null;
+    /** onYield is the stack tile menu's write path into the seat panel's yield set. */
+    onYield?: ((key: string) => void) | null;
+    /** viewerSeat is the seat the stack is rendered for; an opponent-owned entry offers the always-yield menu. */
+    viewerSeat?: number | null;
   } = $props();
 
   // The reader's explicit pick, or null to follow (focusSeat decides what
@@ -136,7 +145,7 @@
   <section class="stack">
     <h3>Stack{#if topFirst.length > 0} <span class="count">{topFirst.length}</span>{/if}</h3>
     {#each topFirst as s, i (s.id)}
-      <StackTile stack={s} {view} emphasized={emphasizeTop && i === 0} dimmed={emphasizeTop && i > 0} />
+      <StackTile stack={s} {view} emphasized={emphasizeTop && i === 0} dimmed={emphasizeTop && i > 0} {yields} {onYield} {viewerSeat} />
     {/each}
   </section>
 
