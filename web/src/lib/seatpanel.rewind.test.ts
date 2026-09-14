@@ -59,6 +59,18 @@ const triggerOptional = (seq: number): Decision => ({
     { index: 1, kind: 'no', label: 'No', player: 0 },
   ],
 });
+const choose = (seq: number): Decision => ({
+  seq,
+  player: 0,
+  kind: 'choose',
+  prompt: 'Choose one or two cards.',
+  min: 1,
+  max: 2,
+  options: [
+    { index: 0, kind: 'card', label: 'Card 0', obj: 90, player: 0 },
+    { index: 1, kind: 'card', label: 'Card 1', obj: 91, player: 0 },
+  ],
+});
 
 const view = (step = 'draw', active = 0, turn = 2, stack: { id: number; controller: number; kind?: string }[] = []): View =>
   ({ active, step, turn, stack }) as unknown as View;
@@ -79,12 +91,26 @@ function manualSeat(): SeatPanelState {
   return p;
 }
 
+function deferred() {
+  let resolve!: () => void;
+  let reject!: (e: unknown) => void;
+  const promise = new Promise<void>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 async function settle(predicate: () => boolean, maxTicks = 200): Promise<void> {
   for (let i = 0; i < maxTicks; i++) {
     if (predicate()) return;
     await Promise.resolve();
   }
   throw new Error(`settle: condition still false after ${maxTicks} microtask ticks`);
+}
+
+async function drain(ticks = 20): Promise<void> {
+  for (let i = 0; i < ticks; i++) await Promise.resolve();
 }
 
 const seqs = () => postIntentMock.mock.calls.map((c) => (c[2] as { seq: number }).seq);
@@ -209,28 +235,96 @@ describe('the undo pause', () => {
     expect(seqs()).toEqual([8, 8]);
   });
 
-  it('an in-flight hand answer whose response lands after a rewind cannot mark the restored same-seq decision as answered', async () => {
+  it('a lost pre-rewind post does not keep the restored window busy: PASS posts immediately', async () => {
     const p = armedSeat();
-    // A controlled post: click the cast, hold the response in flight.
-    let release!: () => void;
-    postIntentMock.mockReturnValueOnce(new Promise<void>((res) => (release = res)));
+    const lost = deferred();
+    postIntentMock.mockReturnValueOnce(lost.promise).mockResolvedValueOnce(undefined);
+
+    p.adoptView(live(1));
+    p.click(0); // the old-space intent never settles
+    expect(p.busy).toBe(true);
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+
+    p.rewind();
+    p.adoptView(live(1)); // restored decision: SAME seq, fresh object
+    expect(p.busy).toBe(false);
+    expect(p.active?.seq).toBe(1);
+    p.passClick();
+
+    // Do not release `lost` before this assertion: rewind itself must release
+    // the stale busy lock. Waiting for the abandoned response can wedge the
+    // restored decision forever in a real browser.
+    expect(postIntentMock).toHaveBeenCalledTimes(2);
+    await settle(() => p.postedSeq === 1);
+    expect(p.busy).toBe(false);
+    expect(p.pending).toBeNull();
+    expect(p.machinePaused).toBe(true);
+  });
+
+  it('a late success from the old epoch cannot clear or mutate a new in-flight post', async () => {
+    const p = armedSeat();
+    const oldPost = deferred();
+    const newPost = deferred();
+    postIntentMock.mockReturnValueOnce(oldPost.promise).mockReturnValueOnce(newPost.promise);
+
     p.adoptView(live(1));
     p.click(0);
-    // The rewind frame lands while the post is still awaiting the server.
     p.rewind();
-    p.adoptView(live(1)); // the restored decision: SAME seq, fresh object
-    release();
-    await settle(() => !p.busy);
-    // The response's bookkeeping must not have marked the restored decision
-    // answered, and no error may surface for a post the undo superseded.
-    expect(p.postedSeq).toBeNull();
-    expect(p.active?.seq).toBe(1);
-    expect(p.pending?.seq).toBe(1);
+    const restored = choose(1);
+    p.adoptView(restored);
+    p.toggle(0);
+    p.submit();
+    expect(postIntentMock).toHaveBeenCalledTimes(2);
+    expect(p.busy).toBe(true);
+    expect(p.pending).toBe(restored);
+    expect(p.picked).toEqual([0]);
+
+    oldPost.resolve();
+    await drain();
+    // All four values belong to the restored epoch/new post. The old
+    // completion may touch none of them — especially not busy, or a second
+    // click could overlap the still-live new request.
+    expect(p.busy).toBe(true);
     expect(p.error).toBeNull();
-    // And the machine stays paused: the restored window is the player's.
-    p.considerAuto(view());
-    await settle(() => postIntentMock.mock.calls.length === 1);
-    expect(p.machinePaused).toBe(true);
+    expect(p.pending).toBe(restored);
+    expect(p.picked).toEqual([0]);
+    expect(p.postedSeq).toBeNull();
+
+    newPost.resolve();
+    await settle(() => p.postedSeq === 1 && !p.busy);
+    expect(p.pending).toBeNull();
+    expect(p.picked).toEqual([]);
+  });
+
+  it('a late rejection from the old epoch cannot clear busy, surface an error, or mutate the restored post', async () => {
+    const p = armedSeat();
+    const oldPost = deferred();
+    const newPost = deferred();
+    postIntentMock.mockReturnValueOnce(oldPost.promise).mockReturnValueOnce(newPost.promise);
+
+    p.adoptView(live(1));
+    p.click(0);
+    p.rewind();
+    const restored = choose(1);
+    p.adoptView(restored);
+    p.toggle(1);
+    p.submit();
+    expect(postIntentMock).toHaveBeenCalledTimes(2);
+    expect(p.busy).toBe(true);
+
+    oldPost.reject(new Error('old seq rejected'));
+    await drain();
+    expect(p.busy).toBe(true);
+    expect(p.error).toBeNull();
+    expect(p.pending).toBe(restored);
+    expect(p.picked).toEqual([1]);
+    expect(p.postedSeq).toBeNull();
+    expect(fetchPendingMock).not.toHaveBeenCalled();
+
+    newPost.resolve();
+    await settle(() => p.postedSeq === 1 && !p.busy);
+    expect(p.pending).toBeNull();
+    expect(p.picked).toEqual([]);
   });
 
   it('two consecutive undos each walk back one of the player\'s own intents, and the machine posts nothing in between', async () => {

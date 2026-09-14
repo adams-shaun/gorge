@@ -1428,8 +1428,12 @@ export class SeatPanelState {
   /** begin resets the seat across a match boundary. (The component keys the panel by match, so a new match is a fresh instance — this is belt and braces.) The settings are a property of the PLAYER, not of the match: auto (autoPass), the stops and pass-after-acting all survive begin() untouched. */
   begin() {
     // A new seq space invalidates every in-flight intent posted against the
-    // old one (see seqEpoch; post() re-checks after its await).
+    // old one (see seqEpoch; post() re-checks after its await). Relinquish
+    // that post's busy lock here rather than waiting for a response that may
+    // be delayed forever: the restored window belongs to the new epoch and
+    // must be answerable immediately.
     this.seqEpoch += 1;
+    this.busy = false;
     this.cancelPassWait();
     this.pending = null;
     this.picked = [];
@@ -1825,7 +1829,10 @@ export class SeatPanelState {
       this.error = e instanceof Error ? e.message : String(e);
       void this.refreshPending();
     } finally {
-      this.busy = false;
+      // busy belongs to the post's seq epoch. A rewind can already have
+      // released the old lock and a hand answer can have acquired a NEW one;
+      // the old promise settling must not clear that new post's lock.
+      if (epoch === this.seqEpoch) this.busy = false;
     }
   }
 
