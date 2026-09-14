@@ -163,7 +163,12 @@ func (e *Engine) loyaltyActivationsThisTurn(id state.ObjID) int {
 		switch ev.Kind {
 		case events.TurnChange:
 			// CR 606.3's window is a turn, not a player's own turn.
-			used = 0
+			// Mirror events.Apply's validity gate: an invalid player leaves
+			// Game.Turn unchanged, so its rejected event cannot open a new
+			// loyalty-activation window in this historical fold either.
+			if int(ev.Player) < len(e.G.Players) {
+				used = 0
+			}
 
 		case events.MoveZone:
 			if ev.Obj != id || !ev.To.Valid() {
@@ -204,29 +209,35 @@ func (e *Engine) loyaltyActivationsThisTurn(id state.ObjID) int {
 // S:Mode$ NumLoyaltyAct static whose ValidCard$ matches the permanent --
 // Oath of Teferi's "twice each turn rather than only once" (Twice$ True,
 // ValidCard$ Planeswalker.YouCtrl) and Urza, Lord Protector's self-scoped
-// same (ValidCard$ Card.Self). A matching Twice$ True raises the limit to 2
-// (max, so two stacked Twice statics do not compound); a matching
-// Additional$ N adds N -- Forge's two parameters, combined this way because
-// an additional-activation grant (The Chain Veil's "as though none of its
-// loyalty abilities had been activated") must stack on top of a twice grant
-// rather than being absorbed by it. Statics that match neither parameter
-// leave the limit alone. The ValidCard$ match resolves against the static's
-// own source and controller (e.specCtx), exactly as castRestricted and
-// abilityRestricted resolve theirs.
+// same (ValidCard$ Card.Self). Any matching Twice$ True raises the base limit
+// to 2 (max, so two stacked Twice statics do not compound); every matching
+// Additional$ N then adds N -- Forge's two parameters are accumulated
+// separately so their result cannot depend on battlefield scan order. An
+// additional-activation grant (The Chain Veil's "as though none of its loyalty
+// abilities had been activated") therefore stacks on top of a twice grant
+// rather than being absorbed by it. Statics that match neither parameter leave
+// the limit alone. The ValidCard$ match resolves against the static's own source
+// and controller (e.specCtx), exactly as castRestricted and abilityRestricted
+// resolve theirs.
 func (e *Engine) loyaltyAbilityLimit(id state.ObjID) int {
-	limit := 1
+	twice := false
+	additional := 0
 	for _, sv := range e.activeStatics("NumLoyaltyAct") {
 		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
-		if sv.Params["Twice"] == "True" && limit < 2 {
-			limit = 2
+		if sv.Params["Twice"] == "True" {
+			twice = true
 		}
 		if raw, ok := sv.Params["Additional"]; ok {
-			limit += int(parseAmount(raw, 0))
+			additional += int(parseAmount(raw, 0))
 		}
 	}
-	return limit
+	base := 1
+	if twice {
+		base = 2
+	}
+	return base + additional
 }
 
 // activationLimitReached reports whether this object has already activated the

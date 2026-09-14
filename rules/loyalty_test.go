@@ -447,6 +447,30 @@ func TestLoyaltyGateIgnoresRejectedNegativeAbilityPush(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestRejectedTurnChangeDoesNotResetLoyaltyGate proves the historical CR
+// 606.3 fold rejects the same malformed TurnChange as events.Apply. Logging an
+// out-of-range player must not create a new activation window while the real
+// turn and active player remain unchanged.
+func TestRejectedTurnChangeDoesNotResetLoyaltyGate(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	jaceCard := mustCorpusCard(t, reg, "Jace, the Mind Sculptor")
+	plusTwo := jaceAbility(t, jaceCard, "AddCounter", 2)
+	e, cfg, walker := walkerBoard(t, reg, "Jace, the Mind Sculptor")
+	recordLoyaltyPush(e, walker, plusTwo)
+	turn, active := e.G.Turn, e.G.Active
+	e.emit(events.Event{Kind: events.TurnChange, Player: state.PlayerID(255), Amount: turn + 1})
+	if e.G.Turn != turn || e.G.Active != active {
+		t.Fatalf("rejected TurnChange mutated turn/active: got %d/%d, want %d/%d", e.G.Turn, e.G.Active, turn, active)
+	}
+	if got := e.loyaltyActivationsThisTurn(walker); got != 1 {
+		t.Fatalf("activations after rejected TurnChange = %d, want 1", got)
+	}
+	if loyaltyAbilityOffered(e, 0, walker, plusTwo) {
+		t.Fatal("rejected TurnChange reset the loyalty activation gate")
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestOathOfTeferiGrantsASecondLoyaltyActivation: the S:Mode$ NumLoyaltyAct
 // static (Twice$ True, ValidCard$ Planeswalker.YouCtrl) raises the
 // per-permanent limit from 1 to 2 for planeswalkers the enchantment's
@@ -493,6 +517,41 @@ func TestOathOfTeferiGrantsASecondLoyaltyActivation(t *testing.T) {
 		t.Fatal("[+2] offered a third time (Oath grants exactly two activations)")
 	}
 	replayCheck(t, e, cfg)
+}
+
+// TestLoyaltyAbilityLimitCombinesGrantsIndependentOfOrder pins the structural
+// combination rule for NumLoyaltyAct: Twice raises the base to two and
+// Additional adds on top, regardless of deterministic battlefield scan order.
+func TestLoyaltyAbilityLimitCombinesGrantsIndependentOfOrder(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	grant := func(name string, params map[string]string) *cards.Card {
+		return &cards.Card{Faces: []*cards.Face{{
+			Name: name, Types: []string{"Enchantment"},
+			Statics: []cards.Static{{Mode: "NumLoyaltyAct", Params: params}},
+		}}}
+	}
+	twice := grant("Twice grant", map[string]string{
+		"ValidCard": "Planeswalker.YouCtrl",
+		"Twice":     "True",
+	})
+	additional := grant("Additional grant", map[string]string{
+		"ValidCard":  "Planeswalker.YouCtrl",
+		"Additional": "1",
+	})
+	for _, tc := range []struct {
+		name   string
+		grants []*cards.Card
+	}{
+		{name: "additional before twice", grants: []*cards.Card{additional, twice}},
+		{name: "twice before additional", grants: []*cards.Card{twice, additional}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e, _, walker := walkerBoard(t, reg, "Jace, the Mind Sculptor", tc.grants...)
+			if got := e.loyaltyAbilityLimit(walker); got != 3 {
+				t.Fatalf("combined loyalty activation limit = %d, want 3", got)
+			}
+		})
+	}
 }
 
 // TestJaceMinusOneAtOneLoyaltyIsOfferedAndKills: the [-1] ability is gated by
