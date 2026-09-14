@@ -183,3 +183,12 @@ def commits_ahead(issue_id: str) -> int:
         return int(r.stdout.strip())
     except ValueError:
         return -1
+
+
+def uncommitted_paths(wt: Path) -> list[str]:
+    """Paths a seat changed but never committed. Generated test histories
+    are ignored: the pre-commit hook rewrites them on every run, so their
+    presence alone is not unfinished work."""
+    r = _run(["git", "status", "--porcelain", "--untracked-files=all"], cwd=wt, check=False)
+    paths = [line[3:] for line in r.stdout.splitlines() if len(line) > 3]
+    return [p for p in paths if not p.endswith("TEST_HISTORY.md")]

@@ -261,6 +261,20 @@ def advance_dispatched(issue: issues.Issue) -> None:
         commits = " ".join(st.get("commits", []))
         if commits:
             issue.commits = commits
+        if git_ops.commits_ahead(issue.id) == 0:
+            dirty = git_ops.uncommitted_paths(wt)
+            if dirty:
+                # A seat that reports DONE with its fix still in the working
+                # tree would otherwise be reviewed as an empty diff, approved,
+                # and closed as superseded -- deleting the worktree and the
+                # work with it (fb-20260914T114737Z-5aaad6ad lost a full fix
+                # that way). Send it back to commit instead.
+                listing = "\n".join(f"- {p}" for p in dirty[:40])
+                _redispatch_implementer(issue, f"Round {tag} reported {outcome} but committed nothing; "
+                                        f"these changes are still uncommitted in the worktree:\n{listing}\n\n"
+                                        "Verify them against the brief, then commit (stage specific paths). "
+                                        "Nothing is reviewed until it is committed.")
+                return
         review_name = seats.review_name(issue.id, tag)
         if pi.already_launched(review_name):
             issue.status = "review"
@@ -321,6 +335,11 @@ def _handle_gate_or_review_failure(issue: issues.Issue, findings: str) -> None:
 
 
 def _run_gates_and_merge(issue: issues.Issue, wt: Path) -> None:
+    if git_ops.commits_ahead(issue.id) == 0 and git_ops.uncommitted_paths(wt):
+        issue.status = "human_needed"
+        issue.log("approved with no commits but uncommitted changes in the worktree; parked, worktree kept")
+        issue.save()
+        return
     if git_ops.commits_ahead(issue.id) == 0:
         # An approved round with no commits is a "nothing to do here" outcome
         # (superseded / already covered). Never record it as a merge: the old
