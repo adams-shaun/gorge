@@ -1,7 +1,7 @@
 import type { Decision, Intent, Option, View } from '../protocol';
 import { fetchPending, postIntent, ApiError } from './api';
 import type { SeatCtx } from './seat';
-import { STOPPABLE_STEPS, decide, emptyPriorityWindow, type StopReason, type Stops, type TurnSide } from './autopilot';
+import { STOPPABLE_STEPS, decide, emptyPriorityWindow, isActionKind, type StopReason, type Stops, type TurnSide } from './autopilot';
 import {
   applyPreset,
   defaultSettings,
@@ -19,19 +19,33 @@ import { loadYields, saveYields } from './yields';
 
 /**
  * actedOption reports whether the posted `choices` (wire indices) contain at
- * least one real action on a priority decision — an option whose kind is
- * neither pass nor concede (cast, ability, play_land, ...). The kind comes
- * off the wire option itself, resolved by index; a choice that names no
- * option on the decision is not an action. This is the arming test for
- * pass-after-acting, and it deliberately mirrors `actionable`'s kind test
- * in autopilot.ts (per-choice rather than per-decision).
+ * least one real action on a priority decision — an option whose kind
+ * passes isActionKind (autopilot.ts): neither pass, nor concede, nor
+ * activate. The kind comes off the wire option itself, resolved by index; a
+ * choice that names no option on the decision is not an action. This is the
+ * arming test for pass-after-acting, and it is the per-choice counterpart of
+ * `actionable`'s per-decision test — the SAME shared predicate (isActionKind),
+ * so the two cannot drift apart again. The activate exclusion is the fix for
+ * fb-3ab6d9da. The wire fact it rests on: in a PRIORITY decision, Kind
+ * "activate" is only ever the tap-for-mana option (rules/legal.go's
+ * availableManaAbilities loop — `add("activate", "Tap <name> for mana", id)`);
+ * non-mana activated abilities are offered as Kind "ability" (legal.go's
+ * ability loop), and the one other "activate" on the wire (cast.go's mid-cast
+ * mana-source ask) sits on a non-priority decision, which the kind test above
+ * already refuses. A mana tap therefore arms nothing: it is not "I am done
+ * acting" — it is the prelude to acting in the NEXT window, the one where the
+ * freshly floated mana makes the held spell affordable and the engine offers
+ * the cast. Counting the tap as an action machine-passed exactly that window,
+ * so the player never saw the spell become playable. An earlier version of
+ * this comment claimed to mirror `actionable`'s kind test while inlining a
+ * test that did not — now both call the one shared predicate.
  * (Moved here from actpass.ts, which prio3 deleted with the per-table keys.)
  */
 export function actedOption(d: Decision, choices: number[]): boolean {
   if (d.kind !== 'priority') return false;
   return choices.some((i) => {
     const o = d.options.find((opt) => opt.index === i);
-    return o !== undefined && o.kind !== 'pass' && o.kind !== 'concede';
+    return o !== undefined && isActionKind(o.kind);
   });
 }
 
@@ -1503,6 +1517,9 @@ export class SeatPanelState {
       // the machine paths (auto, the one-shot runs, the empty-window floor,
       // the act-pass pass itself) post only the pass verdict's index, and a
       // non-priority decision fails the kind test, so none of them arm.
+      // A mana tap (Kind "activate" on a priority window) fails the kind
+      // test too — arming on the tap machine-passed the very window the
+      // freshly floated mana unlocked (fb-3ab6d9da).
       // Concede never reaches here as an action: click() returns before
       // posting it once and confirmConcede posts a concede kind, which the
       // test rejects.
