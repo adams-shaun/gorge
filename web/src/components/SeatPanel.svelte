@@ -7,9 +7,11 @@
   import { arrangeCard } from '../lib/arrange';
   import { modalPickerOpen } from '../lib/modals';
   import ArrangeModal from './ArrangeModal.svelte';
+  import CardDetail from './CardDetail.svelte';
   import CardImage from './CardImage.svelte';
   import CardTile from './CardTile.svelte';
   import ManaPool from './ManaPool.svelte';
+  import { CardHover } from '../lib/carddetail.svelte';
 
   /**
    * SeatPanel is a human seat's decision surface: the status readout,
@@ -183,6 +185,33 @@
     logic.setPicked(order);
     logic.submit();
   }
+
+  // ---- the arrange strip's hover inspector ----------------------------
+  // The arrange strip is the one card surface that had NO hover detail:
+  // bare CardImages in `.pick` buttons, while CardTile (the mulligan keep
+  // hand in this very panel), HandList and StackTile all open the shared
+  // CardDetail inspector on hover/focus. A tile-sized face is the reading
+  // affordance at exactly this prompt, so the strip gets the same HoverCard
+  // dwell/focus mechanism (fb-20260914T063020Z Job 1). CardDetail portals
+  // itself to <body> (see the NOTE in the style block: this panel is a
+  // containing block for fixed descendants), so the detail escapes the
+  // panel's own clipping and blur.
+  const arrangeHover = new CardHover();
+
+  // The cards the strip currently shows — the present list the lifecycle
+  // contract supervises against.
+  const arrangeCards = $derived(arrange !== null ? arrange.options.map((o) => arrangeCard(arrange, o)) : []);
+  // PANEL LIFETIME FOLLOWS THE ASK, NOT THE POINTER. The decision on screen
+  // can change under a stationary pointer (the seat's next ask answered from
+  // another tab; the seqswap case) — the row re-renders, pointerleave never
+  // fires, and the panel would describe a card the engine no longer offers.
+  // Whenever the shown card is no longer among the present cards the hover
+  // closes. (Runs only client-side; the SSR render has no open panel to
+  // supervise — a test drives CardHover directly, the way the CardTile and
+  // StackTile tests do.)
+  $effect(() => {
+    arrangeHover.supervise(arrangeCards);
+  });
 
   // The prompt context line (brief Job 3): who the prompt is from and what
   // shape the answer takes, from fields already on the wire (source,
@@ -379,6 +408,12 @@
                 data-option={opt.index}
                 aria-pressed={at >= 0}
                 aria-label={opt.label}
+                onpointerenter={(e) => arrangeHover.arm(card, e.currentTarget)}
+                onpointerleave={() => arrangeHover.leave(card)}
+                onfocus={(e) => arrangeHover.open(card, e.currentTarget)}
+                onblur={() => arrangeHover.blur(card)}
+                onkeydown={(e) => arrangeHover.keydown(e)}
+                aria-describedby={arrangeHover.hover.show && arrangeHover.card?.id === card.id ? `card-detail-${card.id}` : undefined}
                 onclick={() => logic.toggle(opt.index)}
                 disabled={logic.busy}
               >
@@ -399,6 +434,7 @@
               >{arrange.min === arrange.max ? 'Confirm order' : 'Confirm'}</button>
             {/if}
           </div>
+          {#if arrangeHover.hover.show && arrangeHover.card && arrangeHover.anchor}<CardDetail card={arrangeHover.card} anchor={arrangeHover.anchor} />{/if}
         </div>
       {:else}
         <div class="options" data-options>

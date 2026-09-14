@@ -216,3 +216,185 @@ describe('ArrangeModal (via the seat panel)', () => {
     await page.close();
   });
 });
+
+/**
+ * The arrange surfaces' card detail (fb-20260914T063020Z): the strip's cards
+ * get the same hover/focus CardDetail inspector every other card surface
+ * has, and the modal's preview shows the printed description beside the art.
+ * Browser tests, because these are asks about what a player can SEE and do
+ * with a real pointer and keyboard — the SSR harness cannot hover or focus.
+ */
+describe('the arrange strip hover inspector (fb-20260914T063020Z Job 1)', () => {
+  it('hovering a strip card opens the CardDetail inspector (portalled to <body>), describing that card', async () => {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
+
+    const pick = page.locator('[data-arrange-row] [data-option="0"]');
+    await pick.hover();
+    // The panel lives on <body>, not inside the seat panel — the panel is a
+    // containing block for fixed descendants (its own style NOTE), which is
+    // exactly why CardDetail portals.
+    const detail = page.locator('body > .card-detail');
+    await detail.waitFor({ state: 'visible', timeout: 5_000 }); // the ~250ms dwell
+    expect(await detail.textContent()).toContain('Brazen Borrower');
+    expect(await pick.getAttribute('aria-describedby')).toBe('card-detail-11');
+
+    // pointer leave closes it again
+    await page.mouse.move(5, 5);
+    await page.waitForFunction(() => document.querySelectorAll('body > .card-detail').length === 0, null, { timeout: 5_000 });
+
+    await page.close();
+  });
+
+  it('keyboard focus opens the inspector immediately, and Escape closes it', async () => {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
+
+    const pick = page.locator('[data-arrange-row] [data-option="0"]');
+    await pick.focus();
+    const detail = page.locator('body > .card-detail');
+    await detail.waitFor({ state: 'visible', timeout: 5_000 });
+
+    // No catalog in the fixture: the designed degradation is the wire-only
+    // ledger — no oracle block, no art plate.
+    expect(await detail.locator('.card-detail__oracle').count()).toBe(0);
+
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => document.querySelectorAll('body > .card-detail').length === 0, null, { timeout: 5_000 });
+
+    await page.close();
+  });
+
+  it('a stale pointerleave from card A cannot close keyboard-focused card B', async () => {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
+
+    const cardA = page.locator('[data-arrange-row] [data-option="0"]');
+    const cardB = page.locator('[data-arrange-row] [data-option="1"]');
+    const detail = page.locator('body > .card-detail');
+
+    // Open A by pointer dwell, then move keyboard ownership to B without
+    // moving the pointer. Leaving A afterwards is a stale event with respect
+    // to the shared panel and must not dismiss B's focus inspector.
+    await cardA.hover();
+    await detail.waitFor({ state: 'visible', timeout: 5_000 });
+    await cardB.focus();
+    expect(await detail.textContent()).toContain('Fabled Pass');
+    await page.mouse.move(5, 5);
+    expect(await detail.isVisible()).toBe(true);
+    expect(await detail.textContent()).toContain('Fabled Pass');
+    expect(await cardB.getAttribute('aria-describedby')).toBe('card-detail-12');
+
+    // Once B actually loses focus, its inspector closes.
+    await cardB.evaluate((el) => el.blur());
+    await page.waitForFunction(() => document.querySelectorAll('body > .card-detail').length === 0, null, { timeout: 5_000 });
+    await page.close();
+  });
+
+  it('a card leaving the ask closes the panel with no pointer event (the lifecycle contract)', async () => {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=seqswap`);
+
+    await page.locator('[data-arrange-row] [data-option="0"]').hover();
+    await page.locator('body > .card-detail').waitFor({ state: 'visible', timeout: 5_000 });
+
+    // The ask changes underneath the stationary pointer (the two-tab path);
+    // the swap is dispatched programmatically exactly as an SSE view
+    // replacement would land. Decision B's options do not carry the card
+    // the panel describes, so the panel closes without pointerleave.
+    await page.evaluate(() => (document.querySelector('[data-swap-decision]') as HTMLButtonElement).click());
+    await page.waitForFunction(() => document.querySelectorAll('body > .card-detail').length === 0, null, { timeout: 5_000 });
+
+    await page.close();
+  });
+});
+
+describe('the arrange modal preview (fb-20260914T063020Z Job 2)', () => {
+  it('without a catalog, hovering a card shows the large art and its name — and no oracle block (the designed degradation)', async () => {
+    const page = await browser.newPage();
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
+
+    await page.locator('[data-arrange-open]').click();
+    await page.locator('[data-arrange-keep-card="0"] button.face').hover();
+    const preview = page.locator('[data-arrange-preview]');
+    await preview.locator('.name').waitFor({ state: 'visible', timeout: 5_000 });
+    expect(await preview.locator('.name').textContent()).toBe('Brazen Borrower');
+    expect(await preview.locator('[data-arrange-preview-oracle]').count()).toBe(0);
+
+    await page.close();
+  });
+
+  it('with a catalog, the preview shows the printed description under the large art', async () => {
+    const page = await browser.newPage();
+    // A page WITH a catalog: the <meta name="gorge-cards"> tag opts in
+    // (empty content = the same-origin catalog — exactly what cmd/gorged
+    // injects into its served index), rewritten into the fixture response.
+    await page.route('**/PromptSurface.fixture.html*', async (route) => {
+      const res = await route.fetch();
+      await route.fulfill({ response: res, body: (await res.text()).replace('</head>', '<meta name="gorge-cards" content=""></head>') });
+    });
+    await page.route('**/cards/named*', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ name: 'Brazen Borrower', oracle_text: 'Flying, ward 2.' }),
+      }));
+
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
+    await page.locator('[data-arrange-open]').click();
+    await page.locator('[data-arrange-keep-card="0"] button.face').hover();
+
+    const oracle = page.locator('[data-arrange-preview-oracle]');
+    await oracle.waitFor({ state: 'visible', timeout: 5_000 });
+    expect(await oracle.textContent()).toContain('Flying, ward 2.');
+
+    await page.close();
+  });
+
+  it('clears card A’s description while card B’s delayed lookup is pending, then renders only B’s result', async () => {
+    const page = await browser.newPage();
+    await page.route('**/PromptSurface.fixture.html*', async (route) => {
+      const res = await route.fetch();
+      await route.fulfill({ response: res, body: (await res.text()).replace('</head>', '<meta name="gorge-cards" content=""></head>') });
+    });
+
+    let notifyBStarted = () => {};
+    const bStarted = new Promise<void>((resolve) => { notifyBStarted = resolve; });
+    let releaseB = () => {};
+    const bReleased = new Promise<void>((resolve) => { releaseB = resolve; });
+    await page.route('**/cards/named*', async (route) => {
+      const name = new URL(route.request().url()).searchParams.get('exact') ?? '';
+      if (name === 'Fabled Pass') {
+        notifyBStarted();
+        await bReleased;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ name, oracle_text: `${name} rules text.` }),
+      });
+    });
+
+    await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
+    await page.locator('[data-arrange-open]').click();
+    const preview = page.locator('[data-arrange-preview]');
+    const oracle = preview.locator('[data-arrange-preview-oracle]');
+
+    // Resolve A first, then move keyboard focus directly to B. B's art/name
+    // change immediately while its request remains deliberately unresolved.
+    await page.locator('[data-arrange-keep-card="0"] button.face').focus();
+    await oracle.waitFor({ state: 'visible', timeout: 5_000 });
+    expect(await oracle.textContent()).toBe('Brazen Borrower rules text.');
+    await page.locator('[data-arrange-keep-card="1"] button.face').focus();
+    await bStarted;
+    expect(await preview.locator('.name').textContent()).toBe('Fabled Pass');
+    expect(await oracle.count()).toBe(0); // never B art/name with A text
+
+    releaseB();
+    await oracle.waitFor({ state: 'visible', timeout: 5_000 });
+    expect(await oracle.textContent()).toBe('Fabled Pass rules text.');
+    expect(await oracle.textContent()).not.toContain('Brazen Borrower');
+
+    await page.close();
+  });
+});
