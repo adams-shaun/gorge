@@ -116,9 +116,10 @@ type Meta struct {
 	// Head is the chain hash log.json recorded at the capture prefix: what
 	// a full replay must reproduce.
 	Head string
-	// IntentCount is len(Log.Intents) as recorded; Turn/Step/Priority/
-	// Active are the game facts read off the same locked instant the log
-	// was copied. Step is the Step's String() spelling.
+	// IntentCount is derived from len(Log.Intents), not trusted from the
+	// redundant intent_count metadata in log.json; Turn/Step/Priority/Active
+	// are the game facts read off the same locked instant the log was copied.
+	// Step is the Step's String() spelling.
 	IntentCount int
 	Turn        int32
 	Step        string
@@ -170,7 +171,7 @@ func Load(dir string) (*events.Log, rules.Config, Meta, error) {
 		Dir:          dir,
 		ID:           filepath.Base(dir),
 		Head:         lg.Head,
-		IntentCount:  lg.IntentCount,
+		IntentCount:  len(lg.Intents),
 		Turn:         lg.Turn,
 		Step:         lg.Step,
 		Priority:     lg.Priority,

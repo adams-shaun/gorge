@@ -84,54 +84,71 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 
-	n := meta.IntentCount
+	intentCount := len(l.Intents)
+	n := intentCount
+	if *at < -1 || *at > intentCount {
+		fmt.Fprintf(stderr, "repro: -at must be between 0 and %d (got %d)\n", intentCount, *at)
+		return 2
+	}
 	if *at >= 0 {
 		n = *at
 	}
 
 	if *list {
+		// A timeline is evidence about a recording, so verify the complete
+		// recording before presenting any of it. Driving a second engine below
+		// is only for the per-intent labels; this full pass is what compares
+		// every generated event and the final recorded head.
+		if _, err := replayCapture(l, cfg, meta); err != nil {
+			printDivergence(stdout, err)
+			return 1
+		}
 		return listIntents(l, cfg, stdout, stderr)
 	}
 
 	var e *rules.Engine
 	if *at < 0 {
-		// The full replay is the verifying one: replay.Replay re-derives the
-		// whole match, compares every event byte for byte as it is produced,
-		// and checks the rebuilt chain against the log's own.
-		e, err = replay.Replay(l, cfg)
+		e, err = replayCapture(l, cfg, meta)
 	} else {
 		e, err = replay.ReplayTo(l, cfg, n)
 	}
 	if err != nil {
-		fmt.Fprintf(stdout, "DIVERGED: %v\n", err)
-		var div *replay.Divergence
-		if errors.As(err, &div) {
-			fmt.Fprintln(stdout, "  a corpus change since the report was filed is a real, expected cause:")
-			fmt.Fprintln(stdout, "  the snapshot replays against the corpus as it was at the report pin.")
-		}
+		printDivergence(stdout, err)
 		return 1
-	}
-	if *at < 0 {
-		if len(e.L.Events) != len(l.Events) {
-			fmt.Fprintf(stdout, "DIVERGED: replay reached %d events, the recording has %d\n", len(e.L.Events), len(l.Events))
-			return 1
-		}
-		// The head the replay rebuilt must equal log.json's own `head`
-		// field — the capture recorded the chain hash at exactly this
-		// prefix. Check the recording's internal consistency first, so a
-		// tampered head fails here without ever running the engine.
-		if want := l.HeadAt(len(l.Events)); meta.Head != want {
-			fmt.Fprintf(stdout, "DIVERGED: log.json head %q does not match its own event chain %q\n", meta.Head, want)
-			return 1
-		}
-		if got := e.L.Head(); got != meta.Head {
-			fmt.Fprintf(stdout, "DIVERGED: replayed head %s, recorded %s\n", got, meta.Head)
-			return 1
-		}
 	}
 
 	printSummary(e, l, n, meta, *omniscient, stdout)
 	return 0
+}
+
+// replayCapture verifies every recorded intent and event, then checks the
+// redundant head stored by the feedback capture. replay.Replay validates the
+// event stream's own chain; the explicit meta.Head check also catches a
+// log.json whose head field alone was corrupted.
+func replayCapture(l *events.Log, cfg rules.Config, meta feedback.Meta) (*rules.Engine, error) {
+	e, err := replay.Replay(l, cfg)
+	if err != nil {
+		return e, err
+	}
+	if len(e.L.Events) != len(l.Events) {
+		return e, fmt.Errorf("replay reached %d events, the recording has %d", len(e.L.Events), len(l.Events))
+	}
+	if want := l.HeadAt(len(l.Events)); meta.Head != want {
+		return e, fmt.Errorf("log.json head %q does not match its own event chain %q", meta.Head, want)
+	}
+	if got := e.L.Head(); got != meta.Head {
+		return e, fmt.Errorf("replayed head %s, recorded %s", got, meta.Head)
+	}
+	return e, nil
+}
+
+func printDivergence(w io.Writer, err error) {
+	fmt.Fprintf(w, "DIVERGED: %v\n", err)
+	var div *replay.Divergence
+	if errors.As(err, &div) {
+		fmt.Fprintln(w, "  a corpus change since the report was filed is a real, expected cause:")
+		fmt.Fprintln(w, "  the snapshot replays against the corpus as it was at the report pin.")
+	}
 }
 
 // printSummary writes the human summary at the replay point: the game
@@ -156,7 +173,7 @@ func printSummary(e *rules.Engine, l *events.Log, n int, meta feedback.Meta, omn
 	for _, u := range meta.TokensUnread {
 		seedNote += "\n  token script unavailable at capture: " + u
 	}
-	fmt.Fprintf(stdout, "replayed %d of %d recorded intents (%d events); recorded head %s\n", n, meta.IntentCount, len(e.L.Events), shortHead(meta.Head))
+	fmt.Fprintf(stdout, "replayed %d of %d recorded intents (%d events); recorded head %s\n", n, len(l.Intents), len(e.L.Events), shortHead(meta.Head))
 	if seedNote != "" {
 		fmt.Fprintf(stdout, "warning:%s\n", seedNote)
 	}
@@ -275,10 +292,10 @@ func shortHead(h string) string {
 // listIntents prints the intent timeline: for each recorded intent, its
 // index, the seat that answered, the decision kind and prompt it answered,
 // and the labels of the options the answer chose — everything a seat needs
-// to find the moment a report is about. The engine is driven forward one
-// Submit at a time from intent 0, so every decision is read exactly as it
-// was asked, and an intent the current engine refuses stops the listing
-// with the rejection (the same rejection a full replay would report).
+// to find the moment a report is about. run has already verified the complete
+// replay before calling this renderer. This second engine is driven forward
+// one Submit at a time only so every decision can be rendered as it was asked;
+// it is not the recording's validation boundary.
 func listIntents(l *events.Log, cfg rules.Config, stdout, stderr io.Writer) int {
 	e, err := replay.ReplayTo(l, cfg, 0)
 	if err != nil {

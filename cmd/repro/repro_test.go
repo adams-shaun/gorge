@@ -101,8 +101,12 @@ func TestReproFixtureTamperedEventNamesFirstSeq(t *testing.T) {
 		// the first draw is the first event whose kind is 3.
 		for _, ev := range evs {
 			e := ev.(map[string]any)
-			if e["kind"] == float64(3) { // draw
-				e["obj"] = float64(e["obj"].(float64) + 1000)
+			if e["kind"] == json.Number("3") { // draw
+				obj, err := e["obj"].(json.Number).Int64()
+				if err != nil {
+					panic(err)
+				}
+				e["obj"] = obj + 1000
 				return
 			}
 		}
@@ -125,6 +129,27 @@ func TestReproFixtureTamperedEventNamesFirstSeq(t *testing.T) {
 	}
 }
 
+// TestReproFixtureListRejectsPostGenesisTamper pins -list to the same full
+// validation boundary as an ordinary replay. Event 50 is the land-choice
+// decision_made event, well after genesis; changing only its recorded answer
+// used to leave the rendered timeline looking valid and exit 0.
+func TestReproFixtureListRejectsPostGenesisTamper(t *testing.T) {
+	requireCorpus(t)
+	dir := tamperFixture(t, func(lg map[string]any) {
+		e := lg["events"].([]any)[50].(map[string]any)
+		e["text"] = "choose:[999]"
+	})
+	var out bytes.Buffer
+	if code := run([]string{"-list", dir}, &out, io.Discard); code == 0 {
+		t.Fatalf("-list accepted a tampered post-genesis event:\n%s", out.String())
+	}
+	for _, want := range []string{"DIVERGED", "diverged at event 50"} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("output missing %q:\n%s", want, out.String())
+		}
+	}
+}
+
 // TestReproFixtureListPrintsTimeline: -list prints one line per recorded
 // intent with its index, seat and decision, and exits 0.
 func TestReproFixtureListPrintsTimeline(t *testing.T) {
@@ -134,8 +159,8 @@ func TestReproFixtureListPrintsTimeline(t *testing.T) {
 		t.Fatalf("exit %d, output:\n%s", code, out.String())
 	}
 	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
-	if len(lines) != 21+1 { // one per intent, plus the game-not-over silence
-		t.Logf("timeline:\n%s", out.String())
+	if len(lines) != 21 { // one line per intent; this fixture is not game over
+		t.Fatalf("timeline has %d lines, want 21:\n%s", len(lines), out.String())
 	}
 	if !strings.Contains(out.String(), "  0  seat 0  priority") {
 		t.Errorf("timeline missing intent 0:\n%s", out.String())
@@ -157,6 +182,37 @@ func TestReproFixtureAtReplaysToIntent(t *testing.T) {
 		if !strings.Contains(out.String(), want) {
 			t.Errorf("summary missing %q:\n%s", want, out.String())
 		}
+	}
+}
+
+// TestReproFixtureAtRejectsOutOfRange refuses a requested point rather than
+// relying on ReplayTo's library-level clamping and then labelling the clamped
+// capture with the unchecked request.
+func TestReproFixtureAtRejectsOutOfRange(t *testing.T) {
+	requireCorpus(t)
+	var stderr bytes.Buffer
+	if code := run([]string{"-at", "999", fixtureRel}, io.Discard, &stderr); code != 2 {
+		t.Fatalf("exit %d, want usage exit 2; stderr:\n%s", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "between 0 and 21 (got 999)") {
+		t.Errorf("range error missing actual bounds:\n%s", stderr.String())
+	}
+}
+
+// TestReproFixtureIgnoresTamperedIntentCount derives both the default replay
+// point and its summary denominator from the actual intents array. The
+// redundant intent_count capture metadata is not allowed to relabel state.
+func TestReproFixtureIgnoresTamperedIntentCount(t *testing.T) {
+	requireCorpus(t)
+	dir := tamperFixture(t, func(lg map[string]any) {
+		lg["intent_count"] = json.Number("999")
+	})
+	var out bytes.Buffer
+	if code := run([]string{dir}, &out, io.Discard); code != 0 {
+		t.Fatalf("exit %d, output:\n%s", code, out.String())
+	}
+	if !strings.Contains(out.String(), "replayed 21 of 21 recorded intents") {
+		t.Errorf("summary trusted tampered intent_count:\n%s", out.String())
 	}
 }
 
@@ -396,7 +452,9 @@ func tamperFixture(t *testing.T, edit func(map[string]any)) string {
 		t.Fatal(err)
 	}
 	var lg map[string]any
-	if err := json.Unmarshal(raw, &lg); err != nil {
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.UseNumber() // preserve the uint64 seed exactly while editing another field
+	if err := dec.Decode(&lg); err != nil {
 		t.Fatal(err)
 	}
 	edit(lg)
