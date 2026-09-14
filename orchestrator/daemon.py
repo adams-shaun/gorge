@@ -101,6 +101,8 @@ def _slot_free(issue: issues.Issue, paid: bool, what: str) -> bool:
     if paid and config.PAID_OFF_FILE.exists():
         log.debug("issue %s: %s held, paid provider marked off (%s)", issue.id, what, config.PAID_OFF_FILE)
         return False
+    if not paid and not _local_endpoint_up():
+        return False
     if paid:
         running = pi.running_names(config.IMPLEMENTER_ESCALATED_MODEL, config.REVIEWER_MODEL)
         cap = config.MAX_PAID_SEATS
@@ -129,6 +131,71 @@ def _local_tier_seat(issue: issues.Issue, what: str) -> str | None:
 
 
 # --- per-status advancement --------------------------------------------------
+
+ENDPOINT_DOWN_RE = None  # compiled lazily below
+
+
+def _endpoint_failed(st: dict | None) -> bool:
+    """True when a seat ended because its model endpoint was unreachable (a
+    pod still loading after a reboot, a gateway 503) rather than because the
+    model failed the task. Only the agent harness's own errorMessage fields
+    count, so a seat's test output that happens to say "Connection refused"
+    does not."""
+    global ENDPOINT_DOWN_RE
+    import re
+    if ENDPOINT_DOWN_RE is None:
+        ENDPOINT_DOWN_RE = re.compile(
+            r'"errorMessage":"[^"]*(upstream connect error|Connection refused|no healthy upstream|503 Service Unavailable)')
+    if not st:
+        return False
+    for key in ("transcript", "events"):
+        p = st.get(key)
+        if not p:
+            continue
+        try:
+            text = Path(p).read_text(errors="replace")
+        except OSError:
+            continue
+        if ENDPOINT_DOWN_RE.search(text):
+            return True
+    return False
+
+
+_local_probe: tuple[float, bool] = (0.0, True)
+
+
+def _local_endpoint_up() -> bool:
+    """Probe the local model endpoint (cached 30s). Any HTTP answer below 500
+    with the seat credential means the upstream is serving; a connection error
+    or a 5xx means it is down or still loading, so no local seat is launched
+    into it."""
+    global _local_probe
+    now = time.time()
+    if now - _local_probe[0] < 30:
+        return _local_probe[1]
+    import os
+    import urllib.error
+    import urllib.request
+    up = True
+    try:
+        models = json.loads(Path.home().joinpath(".pi/agent/models.json").read_text())
+        base = models.get("providers", models)[config.LOCAL_PROVIDER]["baseUrl"].rstrip("/")
+        req = urllib.request.Request(base + "/models")
+        key = os.environ.get("BM_LLMS_API_KEY")
+        if key:
+            req.add_header("Authorization", "Bearer " + key)
+        try:
+            with urllib.request.urlopen(req, timeout=5) as r:
+                up = r.status < 500
+        except urllib.error.HTTPError as e:
+            up = e.code < 500
+    except (urllib.error.URLError, OSError, KeyError, ValueError):
+        up = False
+    if up != _local_probe[1]:
+        log.warning("local model endpoint %s", "back up" if up else "DOWN; local seats held")
+    _local_probe = (now, up)
+    return up
+
 
 SEAT_START_GRACE_S = 180
 
@@ -219,6 +286,10 @@ def advance_new(issue: issues.Issue) -> None:
         else:
             issue.status = "human_needed"
             issue.log("triage claimed DONE but wrote no brief.md")
+    elif _endpoint_failed(st):
+        _set_aside(pi.launch_log_path(name))
+        _set_aside(status_path)
+        issue.log("triage failed on an unreachable model endpoint; relaunch queued")
     else:
         issue.status = "human_needed"
         issue.log(f"triage ended {st.get('status')}: {st.get('final_text', '')[:300]}")
@@ -349,6 +420,14 @@ def advance_dispatched(issue: issues.Issue) -> None:
     elif outcome == "NEEDS_CONTEXT":
         issue.status = "human_needed"
         issue.log(f"implementer needs context: {st.get('final_text', '')[:400]}")
+        issue.save()
+    elif _endpoint_failed(st):
+        # The model endpoint was unreachable: not the seat's failure. Set the
+        # round aside; the next tick relaunches the same round, uncounted, once
+        # a slot (and, for local seats, a healthy endpoint) is available.
+        _set_aside(status_path)
+        _set_aside(pi.launch_log_path(name))
+        issue.log(f"implementer {tag} failed on an unreachable model endpoint; round not counted, rerun queued")
         issue.save()
     elif _provider_cut_off(st):
         # The provider stopped the seat mid-round. Re-run the SAME round once
