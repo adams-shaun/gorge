@@ -9,8 +9,10 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// Num resolves a numeric parameter. A literal is used directly; anything else
-// is treated as an SVar name whose body is a Count$ expression. An expression
+// Num resolves a numeric parameter. A literal is used directly (a leading
+// sign included); anything else is treated as an SVar name whose body is a
+// Count$ expression, after stripping a leading sign that carries Forge's
+// stat-direction convention rather than naming the reference. An expression
 // this build does not model evaluates to zero rather than to the default, so
 // the failure mode is "the card did nothing" rather than "the card did
 // something arbitrary".
@@ -24,11 +26,24 @@ func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
 	}
 	raw = strings.TrimSpace(raw)
 	if n, err := strconv.Atoi(raw); err == nil {
-		return int32(n)
+		return int32(n) // a signed literal ("+2"/"-2") lands here: Atoi eats the sign
+	}
+	// Forge writes a stat direction as a sign on the value ("NumAtt$ +X" --
+	// Goblin Piledriver), so a signed non-literal is not a reference NAMED
+	// with the sign but an ordinary reference carrying a direction. Strip a
+	// leading sign here and resolve the bare body through the fallbacks
+	// below, applying the sign to whatever they return. A lone sign with
+	// nothing after it is not a value and keeps the degrade-to-zero path.
+	sign := int32(1)
+	if len(raw) > 1 && (raw[0] == '+' || raw[0] == '-') {
+		if raw[0] == '-' {
+			sign = -1
+		}
+		raw = raw[1:]
 	}
 	if c.SVars != nil {
 		if body, ok := c.SVars[raw]; ok {
-			return EvalCount(h, c, body)
+			return sign * EvalCount(h, c, body)
 		}
 	}
 	// An inline Count$ expression (Storm's own Amount$ Count$ThisTurnCast/
@@ -38,16 +53,16 @@ func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
 	// zero, silencing the whole SpellCopy/amount the expression was meant to
 	// size). The SVar-indirection form above stays authoritative for names.
 	if strings.HasPrefix(raw, "Count$") {
-		return EvalCount(h, c, raw)
+		return sign * EvalCount(h, c, raw)
 	}
 	if strings.HasPrefix(raw, "Sacrificed$") {
-		return EvalCount(h, c, raw)
+		return sign * EvalCount(h, c, raw)
 	}
 	if strings.HasPrefix(raw, "TriggerCount$") {
-		return EvalCount(h, c, raw)
+		return sign * EvalCount(h, c, raw)
 	}
 	if raw == "X" {
-		return c.X
+		return sign * c.X
 	}
 	return 0
 }
@@ -55,7 +70,24 @@ func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
 // EvalCount evaluates a "Count$..." expression. The grammar in the corpus is a
 // head, an optional space-separated argument, and an optional "/Op" suffix.
 func EvalCount(h Host, c *Ctx, expr string) int32 {
+	return evalCountExpr(h, c, expr, 0)
+}
+
+// maxCountDepth bounds the SVar recursion the Compare head introduces: a
+// compared value or a branch may name another SVar, whose body may itself be
+// a Count$Compare naming further SVars. The corpus chains are two deep
+// (Nissa's Pilgrimage: X -> Y; The Biblioplex: X -> Y -> Z), so 8 is generous
+// headroom against a self-referential or accidental-cycle SVar table, which
+// would otherwise be the only unbounded recursion in this evaluator.
+const maxCountDepth = 8
+
+// evalCountExpr is EvalCount's body plus a recursion depth for the Compare
+// head's SVar-name resolution; the public entry point always starts at 0.
+func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 	if h == nil || c == nil {
+		return 0
+	}
+	if depth > maxCountDepth {
 		return 0
 	}
 	expr = strings.TrimSpace(expr)
@@ -101,7 +133,7 @@ func EvalCount(h Host, c *Ctx, expr string) int32 {
 		return 0
 	}
 	body, op, hasOp := strings.Cut(body, "/")
-	n := evalCountBody(h, c, strings.TrimSpace(body))
+	n := evalCountBody(h, c, strings.TrimSpace(body), depth)
 	if hasOp {
 		n = applyCountOp(n, op)
 	}
@@ -202,12 +234,14 @@ func evalRemembered(c *Ctx, body string) int32 {
 	return n
 }
 
-func evalCountBody(h Host, c *Ctx, body string) int32 {
+func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 	g := h.Game()
 	head, arg, _ := strings.Cut(body, " ")
 	arg = strings.TrimSpace(arg)
 
 	switch head {
+	case "Compare":
+		return evalCompare(h, c, arg, depth)
 	case "xPaid":
 		return c.X
 	case "YourLifeTotal":
@@ -281,6 +315,78 @@ func evalCountBody(h Host, c *Ctx, body string) int32 {
 		return n
 	}
 	return 0
+}
+
+// evalCompare resolves a "Compare <Name> <OP><threshold>.<ifTrue>.<ifFalse>"
+// body -- the spell-mastery / lieutenant form Forge encodes as
+// `SVar:X:Count$Compare Y GE2.3.2` (Nissa's Pilgrimage: 2 basic Forests, or 3
+// with two or more instants/sorceries in the graveyard). <Name> resolves the
+// compared value: an SVar body evaluated recursively (Y's
+// `Count$ValidGraveyard Instant.YouOwn,Sorcery.YouOwn`), else the token itself
+// as an inline expression. <OP> is one of GE/GT/EQ/LE/LT and the threshold a
+// plain integer; the branches are each an integer literal or an SVar name
+// resolved the same way as <Name>, which closes the corpus's SVar-named
+// branch singletons (`GE4.X.4`, `LT5.X.Z`, `GE1.Y.Z`, ...) for free. The
+// no-parseable-threshold singletons (`GEMePlus.3.2`, `LTZ.2.0`) and the
+// argument-less forms (`Count$Compare TronCheck`, ...) fail closed to zero
+// exactly as before -- no semantics are invented for them.
+func evalCompare(h Host, c *Ctx, arg string, depth int) int32 {
+	name, rest, _ := strings.Cut(arg, " ")
+	rest = strings.TrimSpace(rest)
+	if name == "" || rest == "" {
+		// Argument-less shapes (`Count$Compare TronCheck`) have nothing to
+		// compare; degrade to zero rather than guessing.
+		return 0
+	}
+	if len(rest) < 2 {
+		return 0
+	}
+	op, tail := rest[:2], rest[2:]
+	thTok, branches, _ := strings.Cut(tail, ".")
+	th, err := strconv.Atoi(thTok)
+	if err != nil {
+		// GEMePlus.3.2 / LTZ.2.0: the threshold names an expression, not a
+		// literal. Out of scope -- fail closed to zero, same as before.
+		return 0
+	}
+	ifTok, elseTok, _ := strings.Cut(branches, ".")
+	value := evalCountOperand(h, c, name, depth)
+	var hit bool
+	switch op {
+	case "GE":
+		hit = value >= int32(th)
+	case "GT":
+		hit = value > int32(th)
+	case "EQ":
+		hit = value == int32(th)
+	case "LE":
+		hit = value <= int32(th)
+	case "LT":
+		hit = value < int32(th)
+	default:
+		// Not one of the five comparison heads.
+		return 0
+	}
+	if hit {
+		return evalCountOperand(h, c, ifTok, depth)
+	}
+	return evalCountOperand(h, c, elseTok, depth)
+}
+
+// evalCountOperand resolves one Compare operand: an integer literal directly,
+// an SVar body through the ordinary expression evaluator, else the token
+// itself as an inline expression (EvalCount degrades a bare unknown word to
+// zero, the convention every other head follows).
+func evalCountOperand(h Host, c *Ctx, tok string, depth int) int32 {
+	if n, err := strconv.Atoi(tok); err == nil {
+		return int32(n)
+	}
+	if c.SVars != nil {
+		if body, ok := c.SVars[tok]; ok {
+			return evalCountExpr(h, c, body, depth+1)
+		}
+	}
+	return evalCountExpr(h, c, tok, depth+1)
 }
 
 // splitDot splits an "a.b" pair into two integers, defaulting either side to

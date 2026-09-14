@@ -80,4 +80,39 @@ describe('ArrangeModal — the card-face popup for a KArrange ask', () => {
     const scryEmpty = render(ArrangeModal, { props: { open: true, decision: scry, seed: [], onSubmit: () => {}, onClose: () => {} } }).html;
     expect(scryEmpty).not.toMatch(/data-arrange-submit[^>]*disabled/);
   });
+
+  // fb-20260914T063020Z Job 2: the preview carries the printed description
+  // beside the large art, resolved by name through lib/oracle — the same
+  // best-effort resolver CardDetail's oracle block uses.
+  describe('the preview aside (fb-20260914T063020Z Job 2)', () => {
+    const props0 = (over: Record<string, unknown> = {}) => ({
+      open: true, decision: reorder, seed: [], onSubmit: () => {}, onClose: () => {}, ...over,
+    });
+
+    it('shows the printed description under the art when the catalog resolves it (a sync resolver seeds the server render)', () => {
+      const { html } = render(ArrangeModal, {
+        props: props0({ preview0: 3, resolver: (name: string) => ({ name, oracle_text: `Put ${name} back on top.` }) }),
+      });
+      expect(html).toContain('data-arrange-preview-oracle');
+      expect(html).toContain('Put Spell Pierce back on top.');
+      // art and name still render above the text
+      expect(html).toContain('data-arrange-preview');
+      expect(html).toMatch(/<p class="name[^"]*"[^>]*>Spell Pierce<\/p>/);
+    });
+
+    it('renders nothing for the oracle block when the resolver answers null — the designed no-catalog degradation, and the aside still renders', () => {
+      const { html } = render(ArrangeModal, {
+        props: props0({ preview0: 3, resolver: () => null }),
+      });
+      expect(html).not.toContain('data-arrange-preview-oracle');
+      expect(html).toContain('data-arrange-preview');
+      expect(html).toContain('data-arrange-modal'); // the modal itself is untouched
+    });
+
+    it('the production default (no catalog in the test env) resolves nothing and the hint aside renders', () => {
+      const { html } = render(ArrangeModal, { props: props0() });
+      expect(html).toContain('Hover a card for full art.');
+      expect(html).not.toContain('data-arrange-preview-oracle');
+    });
+  });
 });
