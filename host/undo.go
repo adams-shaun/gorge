@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/decision"
@@ -41,15 +42,16 @@ import (
 // the alternative — reseeding on rewind — would fork the hash chain and
 // break every replay guarantee the log carries. Do not reseed.
 //
-// The request is a buffered, non-blocking signal on the live match's undo
-// channel (Registry.Undo), consumed at the next play-loop boundary or — if
-// the loop is parked on the requester's decision — by that await's own
-// select, whichever comes first. n is computed at CONSUMPTION time, from
-// the log as it stands then: a signal that raced a burst rewinds to the
-// requester's last intent as of the boundary, which after a quick answer
-// in between may be one intent later than the click. 204 means the signal
-// was posted, not that the rewind has landed; the client observes the
-// rewind on the stream (the rewind frame) like any other board change.
+// Requests enter undoQueue, whose size-one channel is only a wakeup: a
+// protected pending count preserves every accepted request instead of
+// silently coalescing rapid clicks. After each rewind it rearms the wakeup
+// for the next queued request, whose rewind point is recomputed from the
+// now-truncated log. Admission reserves one extant human intent per request,
+// so accepting more clicks than can be serviced is impossible. The wakeup is
+// consumed at the next play-loop boundary or — if the loop is parked on the
+// requester's decision — by that await's own select, whichever comes first.
+// 204 means the request was queued, not that the rewind has landed; the
+// client observes each rewind on the stream like any other board change.
 
 // OnRewindFunc observes one truncation of a live match's log (see Undo).
 // toIntent is the intent count the match was rewound TO (its log now holds
@@ -69,6 +71,57 @@ import (
 // exactly as an OnBurst error does (D15): a sink that cannot record the
 // truncation must not keep receiving a chain it has diverged from.
 type OnRewindFunc func(t TableID, k int, toIntent int, headSeq uint64) error
+
+// undoQueue turns a size-one wakeup channel into a lossless queue for the
+// sole human requester's undo clicks. pending includes the request currently
+// being serviced until complete is called under the match lock after its log
+// truncation; Registry.Undo takes that same match lock while reserving an
+// extant human intent, so a concurrent request cannot overbook the old log.
+type undoQueue struct {
+	mu      sync.Mutex
+	signal  chan state.PlayerID
+	pending int
+	player  state.PlayerID
+}
+
+func newUndoQueue() *undoQueue {
+	return &undoQueue{signal: make(chan state.PlayerID, 1)}
+}
+
+// request reserves one of available extant intents. The first request arms
+// signal; later requests need no channel slot because complete rearms it.
+func (q *undoQueue) request(player state.PlayerID, available int) error {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if q.pending >= available {
+		return fmt.Errorf("host: seat %d has no unqueued submitted intent to undo", player)
+	}
+	if q.pending > 0 && q.player != player {
+		return fmt.Errorf("host: undo already queued by seat %d", q.player)
+	}
+	q.player = player
+	q.pending++
+	if q.pending == 1 {
+		q.signal <- player
+	}
+	return nil
+}
+
+// complete retires the request whose rewind just landed and rearms the
+// wakeup when another accepted request remains. It is called under m.mu,
+// after the live log has been truncated, preserving request's lock order
+// (m.mu then q.mu) and its one-reservation-per-extant-intent invariant.
+func (q *undoQueue) complete(player state.PlayerID) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if q.pending == 0 || q.player != player {
+		panic("host: completed an undo that was not queued")
+	}
+	q.pending--
+	if q.pending > 0 {
+		q.signal <- q.player
+	}
+}
 
 // undoRequest is the parked human's await outcome when the undo channel
 // fires before any intent: it carries the requesting seat (the channel's
@@ -97,12 +150,11 @@ func asUndo(err error) (state.PlayerID, bool) {
 // — because a rewind discards actions other people took and no consent
 // flow exists (out of scope; a table with two or more distinct human seats
 // is refused with that reason). The seat must be a real human seat of the
-// live match, the match must be live, and the requester must have at least
-// one logged intent — the rewind point the request names must exist. The
-// consumption-time recomputation (see Undo's doc) can still find nothing
-// to undo in a race; that degenerate case drops the signal silently.
+// live match, and the requester must have an unreserved logged intent. Each
+// accepted request reserves one, so rapid repeated requests are all serviced
+// and an excess request is explicitly rejected rather than silently dropped.
 //
-// 204 means the signal was posted to the live loop; the rewind itself is
+// 204 means the request was queued for the live loop; the rewind itself is
 // observed on the stream (the rewind frame) or through Pending/ViewAt.
 func (r *Registry) Undo(id TableID, k int, player state.PlayerID) error {
 	r.mu.RLock()
@@ -133,27 +185,16 @@ func (r *Registry) Undo(id TableID, k int, player state.PlayerID) error {
 		return err
 	}
 	m.mu.RLock()
-	st, undo := m.state, m.undo
-	// The rewind point must exist at request time: a requester with no
-	// logged intent has no last action to undo. This read shares the match
-	// lock with every other engine/log reader; the play loop may append a bot
-	// intent concurrently before it reaches its next boundary.
-	_, hasIntent := lastIntentOf(m.e.L.Intents, player)
-	m.mu.RUnlock()
-	if st != protocol.MatchLive {
-		return fmt.Errorf("host: match %d is %s, nothing to undo", k, st)
+	defer m.mu.RUnlock()
+	if m.state != protocol.MatchLive {
+		return fmt.Errorf("host: match %d is %s, nothing to undo", k, m.state)
 	}
-	// Best-effort (the log only grows, so a rejection here is final; the
-	// mirror-image race — intents appear between this check and consumption —
-	// only widens what the rewind will cover).
-	if !hasIntent {
-		return fmt.Errorf("host: seat %d has no submitted intent to undo in match %d", player, k)
-	}
-	select {
-	case undo <- player:
-	default:
-		// A request already pending: one rewind covers them all (the sole
-		// human seat is the only possible requester).
+	// Hold m.mu across the reservation. rewindToLastIntent takes it for
+	// writing and completes one reservation only after truncating the log,
+	// so concurrent requests always count intents in the matching prefix.
+	available := intentCountOf(m.e.L.Intents, player)
+	if err := m.undo.request(player, available); err != nil {
+		return fmt.Errorf("host: match %d: %w", k, err)
 	}
 	return nil
 }
@@ -162,6 +203,16 @@ func (r *Registry) Undo(id TableID, k int, player state.PlayerID) error {
 // ok false when they have none. Caretaker-substituted answers count as the
 // human's: they are logged with the seat's own Player and were the seat's
 // action in every observable sense.
+func intentCountOf(ins []decision.Intent, p state.PlayerID) int {
+	n := 0
+	for i := range ins {
+		if ins[i].Player == p {
+			n++
+		}
+	}
+	return n
+}
+
 func lastIntentOf(ins []decision.Intent, p state.PlayerID) (int, bool) {
 	for i := len(ins) - 1; i >= 0; i-- {
 		if ins[i].Player == p {
@@ -262,12 +313,16 @@ func (r *Registry) serviceUndo(ctx context.Context, t *table, m *match, seats []
 		if data == nil {
 			return fmt.Errorf("host: undo rewind left match %d with no pending decision", m.k)
 		}
+		// Retire this reservation only after the log reflects it. If another
+		// accepted click is queued, complete rearms the size-one wakeup; its
+		// next service recomputes the previous human intent from this prefix.
+		m.undo.complete(req)
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	parked := parkSeat(ctx, seats, data, m.undo)
+	parked := parkSeat(ctx, seats, data, m.undo.signal)
 	r.pushRewind(t, m)
 	return parked, nil
 }

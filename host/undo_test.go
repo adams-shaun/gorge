@@ -230,6 +230,75 @@ func TestUndoRewindsToTheRequesterLastDecisionAndReplaysIdentically(t *testing.T
 	}
 }
 
+// TestUndoQueuePreservesEveryAcceptedRequest pins the structural queue behind
+// Registry.Undo: the size-one channel is a wakeup, not storage, so two rapid
+// accepted requests survive even while only one channel value can be buffered.
+func TestUndoQueuePreservesEveryAcceptedRequest(t *testing.T) {
+	t.Parallel()
+	q := newUndoQueue()
+	if err := q.request(0, 2); err != nil {
+		t.Fatal(err)
+	}
+	if err := q.request(0, 2); err != nil {
+		t.Fatal(err)
+	}
+	if err := q.request(0, 2); err == nil {
+		t.Fatal("a third request overbooked two extant human intents")
+	}
+
+	first := <-q.signal
+	select {
+	case <-q.signal:
+		t.Fatal("queue stored multiple wakeups instead of one pending count")
+	default:
+	}
+	q.complete(first)
+	second := <-q.signal
+	q.complete(second)
+	select {
+	case <-q.signal:
+		t.Fatal("queue remained armed after both requests completed")
+	default:
+	}
+}
+
+// TestRapidDoubleUndoPerformsTwoRewinds exercises the review break through
+// Registry.Undo: two 204-equivalent accepted calls made back-to-back each
+// produce an OnRewind and walk to a distinct earlier human decision.
+func TestRapidDoubleUndoPerformsTwoRewinds(t *testing.T) {
+	t.Parallel()
+	o := testOptions(t)
+	rewound := make(chan int, 2)
+	o.OnRewind = func(_ TableID, _ int, n int, _ uint64) error { rewound <- n; return nil }
+	r := undoTable(t, o, "t1")
+
+	var seqs []uint64
+	for i := 0; i < 3; i++ {
+		seqs = append(seqs, answerOnce(t, r, "t1").Seq)
+	}
+	waitIntents(t, r, "t1", 5)
+
+	if err := r.Undo("t1", 1, 0); err != nil {
+		t.Fatalf("first rapid Undo: %v", err)
+	}
+	if err := r.Undo("t1", 1, 0); err != nil {
+		t.Fatalf("second rapid Undo: %v", err)
+	}
+	first, second := waitRewind(t, rewound), waitRewind(t, rewound)
+	if second >= first {
+		t.Fatalf("queued rewinds did not walk backward: intent boundaries %d then %d", first, second)
+	}
+	_ = waitPendingSeq(t, r, "t1", seqs[1])
+
+	m := liveMatch(t, r, "t1")
+	m.mu.RLock()
+	got := len(m.e.L.Intents)
+	m.mu.RUnlock()
+	if got != second {
+		t.Fatalf("after two accepted requests log holds %d intents, second rewind reported %d", got, second)
+	}
+}
+
 // TestRepeatedUndoWalksBackOneHumanIntentAtATime: every undo removes exactly
 // one of the requester's own actions (bot intents between go with it), until
 // the requester has none left and the seat is pending on the game's very

@@ -83,13 +83,12 @@ type match struct {
 	winner     *uint8
 	head       string
 	reason     string // crash reason (Task 13)
-	// undo carries an undo request (Registry.Undo, host/undo.go) into the
-	// play loop: buffered, size 1, the requesting seat as payload, signalled
-	// non-blocking, consumed either at the top of the loop's next iteration
-	// or in a parked human seat's await select — whichever the loop reaches
-	// first. Created at match build, never reassigned, and dies with the
-	// match: a signal left buffered on a finished match is simply never read.
-	undo chan state.PlayerID
+	// undo queues accepted undo requests (Registry.Undo, host/undo.go) for the
+	// play loop. Its size-one signal channel is only a wakeup: undoQueue's
+	// pending count preserves every accepted click, rearming the wakeup after
+	// each rewind until the queue is empty. Created at match build, never
+	// reassigned, and dies with the match.
+	undo *undoQueue
 }
 
 // snapshot is a cloned engine at an intent boundary that began a turn.
@@ -187,7 +186,7 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 	e.L.Reserve(defaultExpectedEvents)
 	e.Advance()
 	m := &match{table: t, k: k, seed: seed, cfg: cfg, seats: infos, decks: deckNames, e: e, state: protocol.MatchLive,
-		undo: make(chan state.PlayerID, 1)}
+		undo: newUndoQueue()}
 	m.bounds = []uint64{uint64(len(e.L.Events))}
 	m.turnStarts = turnStartsIn(e.L.Events, 0)
 	m.snapshotGenesis()
@@ -510,7 +509,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 		// a submit racing the rewind would be validated against a decision
 		// the match no longer asks and silently dropped.
 		select {
-		case req := <-m.undo:
+		case req := <-m.undo.signal:
 			parked.abandon()
 			var err error
 			parked, err = r.serviceUndo(ctx, t, m, seats, &brd, req)
@@ -546,7 +545,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 			if data == nil {
 				return r.crash(t, m, fmt.Errorf("engine stalled: game not over and no decision pending"))
 			}
-			parked = parkSeat(ctx, seats, data, m.undo)
+			parked = parkSeat(ctx, seats, data, m.undo.signal)
 		}
 		// Await the answer to the parked decision (parked at the first live
 		// iteration or at the end of the previous one). A bot seat resolved
@@ -620,7 +619,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 		// match mutex must never be held across one. Publishing happens only
 		// after this, so the park-before-publish ordering still holds.
 		if nextData != nil {
-			next = parkSeat(ctx, seats, nextData, m.undo)
+			next = parkSeat(ctx, seats, nextData, m.undo.signal)
 		}
 		// Park the engine's NEXT decision BEFORE publishing it: the seat that
 		// owns it is now accept-ready, so the fan-out below cannot expose a
