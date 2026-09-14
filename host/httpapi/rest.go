@@ -350,6 +350,12 @@ type CreateGameRequest struct {
 	Format    string `json:"format"`
 	HumanDeck string `json:"human_deck,omitempty"`
 	BotDeck   string `json:"bot_deck,omitempty"`
+	// Mulligans is the optional London mulligan allowance for the created
+	// game (finding fb-20260914T114629Z-6c81e4d6: a play-vs-bot game could
+	// mulligan exactly once, with no knob at any layer). It is a pointer so
+	// 0 — "0 disables the pre-game round" — is distinguishable from an
+	// omitted field, which keeps the server default.
+	Mulligans *int `json:"mulligans,omitempty"`
 }
 
 // CreateGameOptions is the validated request handed across Options.CreateGame.
@@ -359,6 +365,9 @@ type CreateGameOptions struct {
 	Format    host.Format
 	HumanDeck string
 	BotDeck   string
+	// Mulligans is the validated mulligan allowance; nil keeps the builder's
+	// server-side default.
+	Mulligans *int
 }
 
 // CreateGameResponse is what a successful POST /api/games returns: the new
@@ -403,8 +412,13 @@ func (h *handler) games(w http.ResponseWriter, r *http.Request) {
 		}
 		format = f
 	}
+	if req.Mulligans != nil && (*req.Mulligans < 0 || *req.Mulligans > 7) {
+		writeError(w, http.StatusBadRequest, "bad_request",
+			"mulligans must be between 0 and 7")
+		return
+	}
 	resp, err := h.opts.CreateGame(CreateGameOptions{
-		Format: format, HumanDeck: req.HumanDeck, BotDeck: req.BotDeck,
+		Format: format, HumanDeck: req.HumanDeck, BotDeck: req.BotDeck, Mulligans: req.Mulligans,
 	})
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "bad_request", err.Error())

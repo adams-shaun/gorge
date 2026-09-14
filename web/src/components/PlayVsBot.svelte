@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fetchDecks, type DeckInfo } from '../lib/api';
-  import { VS_BOT_FORMATS, startPlayVsBot, type VsBotFormat } from '../lib/playvsbot';
+  import { VS_BOT_FORMATS, VS_BOT_MULLIGANS, startPlayVsBot, type VsBotFormat, type VsBotMulligans } from '../lib/playvsbot';
 
   // The landing-page entry point that sits the player down 1v1 against a bot.
   // Deck ids come only from the server catalogue; empty values deliberately
@@ -9,6 +9,7 @@
   let format: VsBotFormat = $state('constructed');
   let humanDeck = $state('');
   let botDeck = $state('');
+  let mulligans: VsBotMulligans = $state(1);
   let decks = $state<DeckInfo[]>([]);
   let loadingDecks = $state(true);
   let busy = $state(false);
@@ -44,7 +45,7 @@
     busy = true;
     error = null;
     try {
-      const join = await startPlayVsBot(format, humanDeck, botDeck);
+      const join = await startPlayVsBot(format, humanDeck, botDeck, mulligans);
       window.location.href = join;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
@@ -64,6 +65,15 @@
       </label>
     {/each}
   </div>
+  <label class="mulligans">
+    <span>Mulligans</span>
+    <select aria-label="Mulligans" bind:value={mulligans} data-testid="mulligans">
+      {#each VS_BOT_MULLIGANS as n (n)}
+        <option value={n}>{n}</option>
+      {/each}
+    </select>
+    <span class="mulligan-hint">each redraw adds one card you put on the bottom</span>
+  </label>
   <div class="pickers" aria-busy={loadingDecks}>
     <label class="picker">
       <span>Your deck</span>
@@ -116,6 +126,25 @@
   .formats {
     display: flex;
     gap: var(--sp-3);
+  }
+  .mulligans {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    font-size: var(--t-12);
+    color: var(--ink-dim);
+  }
+  .mulligans select {
+    width: auto;
+    padding: var(--sp-1) var(--sp-2);
+    border: 1px solid var(--edge-inst);
+    border-radius: var(--radius);
+    background: var(--instrument-raised);
+    color: var(--ink-inst);
+    font: var(--t-14) var(--font-ui);
+  }
+  .mulligan-hint {
+    color: var(--ink-dim);
   }
   .format {
     display: flex;

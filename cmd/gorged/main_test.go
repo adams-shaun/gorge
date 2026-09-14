@@ -262,6 +262,25 @@ func waitDecision(t *testing.T, pendingURL, seat, tok string) decision.Decision 
 	}
 }
 
+// fastPollDecision is waitDecision with a 5ms poll: the mulligan-allowance
+// test waits on ~10 decisions across two created games, and at the shared
+// 50ms granularity the poll sleep alone is a visible slice of the package's
+// test-time budget. Same harness (decisionOnce), just a tighter tick.
+func fastPollDecision(t *testing.T, pendingURL, seat, tok string) decision.Decision {
+	t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		d, status := decisionOnce(t, pendingURL, seat, tok)
+		if status == http.StatusOK {
+			return d
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("no decision offered to seat %s: last status %d", seat, status)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
 // seatViewOver reports whether match 1's seat-0 view is over, used as the
 // "seat view changed" fallback when a game runs to completion instead of
 // asking the seat again.
@@ -866,5 +885,125 @@ func TestCommanderTableDealtAnInvalidDeckFailsAtStartup(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		cancel()
 		t.Fatal("serve did not refuse the invalid commander deck at startup (validation gone?)")
+	}
+}
+
+// createVsBotGame POSTs the play-vs-bot create flow with the given JSON body
+// and returns the served table's base URL parts: the table id and the human
+// seat's bearer token, straight from the CreateGameResponse. It is the
+// mulligan-allowance test's harness: the flow is the only way a client can
+// name its own London allowance (finding fb-20260914T114629Z-6c81e4d6).
+func createVsBotGame(t *testing.T, url, body string) (table string, tok string) {
+	t.Helper()
+	resp, err := http.Post(url+"/api/games", "application/json", strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var g httpapi.CreateGameResponse
+	if err := json.NewDecoder(resp.Body).Decode(&g); err != nil {
+		t.Fatalf("create-game decode: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("POST /api/games status %d body %+v", resp.StatusCode, g)
+	}
+	return g.Table, g.Token
+}
+
+// answerMulligan posts one intent answering the given decision with the
+// named option indices, through the same URL shape the client builds.
+func answerMulligan(t *testing.T, url, table, tok string, d decision.Decision, choices []int) {
+	t.Helper()
+	in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}
+	body, err := json.Marshal(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/tables/%s/matches/1/intent", url, table), bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer "+tok)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("mulligan answer returned %d, want 204", resp.StatusCode)
+	}
+}
+
+// TestVsBotGameHonoursRequestedMulliganAllowance is the product proof for
+// finding fb-20260914T114629Z-6c81e4d6: a play-vs-bot game created with
+// "mulligans": 3 re-offers the keep/mulligan ask (option 1, "mulligan") until
+// the seat has taken 3 — the 4th ask offers ONLY "keep" — and then bottoms
+// the 3-card penalty, after which the match proceeds. The omission path is
+// the other half: with "mulligans": 0 no pregame ask ever reaches the human
+// (the first decision of the game is not a mulligan), and with the field
+// absent the server default still runs, exactly as before this field existed.
+// Both scenarios share one serve boot: the vsbot flow mints a fresh table per
+// POST /api/games, so a second create is free — and the package's test-time
+// budget is per-boot, so two boots for one finding would spend it twice.
+func TestVsBotGameHonoursRequestedMulliganAllowance(t *testing.T) {
+	url, cancel, done := startServe(t, config{tables: 1, seats: 2, pace: 0, perpetual: true, seatToken: "tok", vsbot: true, mulligans: 1})
+	defer cancel()
+
+	table, tok := createVsBotGame(t, url, `{"format":"constructed","mulligans":3}`)
+	pendingURL := fmt.Sprintf("%s/api/tables/%s/matches/1/pending", url, table)
+
+	// Take three mulligans: option 1 ("mulligan") of each keep/mulligan ask.
+	for taken := 1; taken <= 3; taken++ {
+		d := fastPollDecision(t, pendingURL, "0", tok)
+		if d.Kind != decision.KMulligan {
+			t.Fatalf("after %d prior mulligan(s) the seat is asked %q, want mulligan", taken-1, d.Kind)
+		}
+		if len(d.Options) != 2 {
+			t.Fatalf("mulligan ask #%d offers %d options, want keep+mulligan", taken, len(d.Options))
+		}
+		answerMulligan(t, url, table, tok, d, []int{1})
+	}
+
+	// The allowance is spent: the next ask offers only "keep".
+	d := fastPollDecision(t, pendingURL, "0", tok)
+	if d.Kind != decision.KMulligan || len(d.Options) != 1 || d.Options[0].Kind != "keep" {
+		t.Fatalf("4th ask is %q with %d option(s), want mulligan with only \"keep\"", d.Kind, len(d.Options))
+	}
+	answerMulligan(t, url, table, tok, d, []int{0})
+
+	// The bottoming ask: 3 cards on the bottom (freeMulligans is 0 at two
+	// seats). Answer the first three hand indices.
+	d = fastPollDecision(t, pendingURL, "0", tok)
+	if d.Kind != decision.KMulligan || d.Min != 3 || d.Max != 3 {
+		t.Fatalf("bottoming ask is %q Min %d Max %d, want mulligan 3/3", d.Kind, d.Min, d.Max)
+	}
+	answerMulligan(t, url, table, tok, d, []int{0, 1, 2})
+
+	// The pregame round is over: the seat is asked something else entirely.
+	// 5ms tick — this loop usually exits on its first or second poll.
+	deadline := time.Now().Add(15 * time.Second)
+	for {
+		d, status := decisionOnce(t, pendingURL, "0", tok)
+		if status == http.StatusOK && d.Kind != decision.KMulligan {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("game did not advance past the 3-mulligan round (last %q status %d)", d.Kind, status)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	// The 0 leaf, on the same boot: an explicit 0 disables the London round
+	// entirely — the human seat's first decision is a real game decision,
+	// never a mulligan. The pointer wiring in the create flow is what makes
+	// the value reachable at all.
+	table2, tok2 := createVsBotGame(t, url, `{"format":"constructed","mulligans":0}`)
+	d2 := fastPollDecision(t, fmt.Sprintf("%s/api/tables/%s/matches/1/pending", url, table2), "0", tok2)
+	if d2.Kind == decision.KMulligan {
+		t.Fatalf("first decision of a mulligans-0 game is %q: the pregame round still ran", d2.Kind)
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatalf("serve: %v", err)
 	}
 }

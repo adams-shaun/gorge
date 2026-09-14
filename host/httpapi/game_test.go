@@ -116,6 +116,61 @@ func TestCreateGameRejectsUnknownFormat(t *testing.T) {
 	}
 }
 
+// TestCreateGameMulligansDecodeLeaf is the decode leaf for the per-game
+// London allowance (finding fb-20260914T114629Z-6c81e4d6): an omitted
+// "mulligans" must reach the builder as a NIL CreateGameOptions.Mulligans
+// (server default), an explicit 0 must reach it as a POINTER to 0 — a
+// non-pointer field would collapse the two — and 8/-1 are rejected 400
+// bad_request, the shape a ParseFormat failure takes.
+func TestCreateGameMulligansDecodeLeaf(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		body    string
+		wantPtr bool // false: the builder must receive nil; true: a pointer to wantVal
+		wantVal int
+		wantErr bool
+	}{
+		{name: "omitted stays nil", body: `{"format":"constructed"}`},
+		{name: "explicit zero is a pointer to zero", body: `{"format":"constructed","mulligans":0}`, wantPtr: true},
+		{name: "three threads through", body: `{"format":"constructed","mulligans":3}`, wantPtr: true, wantVal: 3},
+		{name: "eight is out of range", body: `{"format":"constructed","mulligans":8}`, wantErr: true},
+		{name: "negative is out of range", body: `{"format":"constructed","mulligans":-1}`, wantErr: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration, <-chan struct{}) {}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { r.Close() })
+			var got *int
+			srv := httptest.NewServer(NewHandler(r, Options{CreateGame: func(req CreateGameOptions) (CreateGameResponse, error) {
+				got = req.Mulligans
+				return CreateGameResponse{Table: "g1"}, nil
+			}}))
+			t.Cleanup(srv.Close)
+			status, e, _ := postGames(t, srv.URL, tc.body)
+			if tc.wantErr {
+				if status != http.StatusBadRequest || e.Code != "bad_request" {
+					t.Fatalf("status %d err %+v, want 400 bad_request", status, e)
+				}
+				return
+			}
+			if status != http.StatusOK {
+				t.Fatalf("status %d, want 200", status)
+			}
+			if tc.wantPtr {
+				if got == nil || *got != tc.wantVal {
+					t.Fatalf("builder received mulligans %v, want pointer to %d", got, tc.wantVal)
+				}
+				return
+			}
+			if got != nil {
+				t.Fatalf("omitted mulligans reached the builder as %d, want nil", *got)
+			}
+		})
+	}
+}
+
 func TestCreateGamePassesOptionalDeckSelectionsToBuilder(t *testing.T) {
 	r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration, <-chan struct{}) {}})
 	if err != nil {

@@ -20,4 +20,16 @@ describe('PlayVsBot entry point', () => {
     expect(html).toContain('Bot deck');
     expect(html.match(/>Random<\/option>/g)).toHaveLength(2);
   });
+
+  it('offers the mulligan selector, 0 through 7, defaulting to 1 (finding fb-20260914T114629Z-6c81e4d6)', () => {
+    const { html } = render(PlayVsBot, {});
+    expect(html).toContain('Mulligans');
+    expect(html).toContain('data-testid="mulligans"');
+    expect(html).toContain('each redraw adds one card you put on the bottom');
+    for (const n of [0, 1, 2, 3, 4, 5, 6, 7]) {
+      expect(html).toContain(`value="${n}"`);
+    }
+    // The default 1 is the preselected option (today's behaviour).
+    expect(html).toMatch(/<option value="1" selected/);
+  });
 });
