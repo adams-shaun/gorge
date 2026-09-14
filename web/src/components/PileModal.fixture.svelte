@@ -9,11 +9,15 @@
    *
    * The wrapper mounts PileModal OPEN with a live $state pile. A test hovers
    * a card, waits out the 250 ms dwell, then takes that card out of the pile
-   * through window.__pileRemoveFirst — the modal stays open, the row
+   * through window.__pileRemoveLast — the modal stays open, the row
    * disappears without any pointer event (a removed element never fires
    * pointerleave), and the detail panel must close through supervise. The
-   * Escape layering (detail first, modal second) is driven here too: onClose
-   * really closes, so the second Escape ends with the modal gone.
+   * removed card is the FINAL one deliberately: removing a non-final card
+   * reflows its neighbour into the stationary pointer's spot, and the
+   * browser's re-hover there legitimately arms a NEW card's dwell — a real
+   * behaviour a removal test must not race against. The Escape layering
+   * (detail first, modal second) is driven here too: onClose really closes,
+   * so the second Escape ends with the modal gone.
    */
   const card = (id: number): CardView => ({
     id,
@@ -34,8 +38,8 @@
   let cards = $state([card(1), card(2), card(3)]);
   let open = $state(true);
 
-  (window as unknown as { __pileRemoveFirst: () => void }).__pileRemoveFirst = () => {
-    cards = cards.slice(1);
+  (window as unknown as { __pileRemoveLast: () => void }).__pileRemoveLast = () => {
+    cards = cards.slice(0, -1);
   };
 </script>
 

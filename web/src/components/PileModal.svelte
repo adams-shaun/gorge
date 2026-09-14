@@ -64,21 +64,6 @@
     hover.supervise(cards);
   });
 
-  /**
-   * Escape peels layers: with this card's panel open it closes the panel
-   * and keeps the event from the window handler, so the SECOND Escape (with
-   * no panel open) closes the modal itself. With no panel open the event is
-   * untouched and reaches the window handler — the modal's Escape-close is
-   * exactly as it was.
-   */
-  function pileKeydown(card: CardView, event: KeyboardEvent): void {
-    if (event.key !== 'Escape') return;
-    if (!hover.hover.show || hover.card?.id !== card.id) return;
-    hover.close();
-    event.stopPropagation();
-    event.preventDefault();
-  }
-
   function portal(node: HTMLElement) {
     document.body.appendChild(node);
     return { destroy: () => node.remove() };
@@ -88,11 +73,24 @@
     if (event.target === event.currentTarget) onClose();
   }
 
+  /**
+   * Escape peels layers from ONE window-level handler, because the panel has
+   * two open paths and only one of them leaves the key event on a card
+   * button: keyboard focus sits on the focused button, but a pointer dwell
+   * leaves focus on the dialog — the event bubbles past the list and this
+   * window handler is the only place BOTH paths reach. With the panel open
+   * the first Escape closes it (pointer or focus path alike) and the modal
+   * stays; the SECOND Escape — with no panel open — closes the modal, exactly
+   * the modal's Escape-close as it always was.
+   */
   function keydown(event: KeyboardEvent): void {
-    if (open && event.key === 'Escape') {
-      event.preventDefault();
-      onClose();
+    if (!open || event.key !== 'Escape') return;
+    event.preventDefault();
+    if (hover.hover.show) {
+      hover.close();
+      return;
     }
+    onClose();
   }
 </script>
 
@@ -127,7 +125,6 @@
               onpointerleave={() => hover.leave(card)}
               onfocus={(e) => hover.open(card, e.currentTarget)}
               onblur={() => hover.blur(card)}
-              onkeydown={(e) => pileKeydown(card, e)}
               aria-describedby={hover.hover.show && hover.card?.id === card.id ? `card-detail-${card.id}` : undefined}
             >
               <CardImage {card} size="tile" pt={false} />

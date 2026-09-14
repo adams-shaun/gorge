@@ -114,34 +114,51 @@ describe('PileModal — the card list\'s shared hover inspector', () => {
 
   it('a card leaving the pile while its detail is open closes the panel and keeps the modal open', async () => {
     const page = await openShrink();
-    await page.locator('[data-obj="1"] button').hover();
-    const detail = page.locator('#card-detail-1');
+    // The removed card is the hovered FINAL one: removing a final card
+    // reflows nothing under the stationary pointer, so the assertion below
+    // cannot be flaked by the browser re-arming the dwell on whatever shifts
+    // into the pointer's spot (removing a non-final card moves its neighbour
+    // under the pointer, which legitimately opens a NEW card's panel a dwell
+    // later — a race a removal test must not run).
+    await page.locator('[data-obj="3"] button').hover();
+    const detail = page.locator('#card-detail-3');
     await detail.waitFor({ state: 'visible', timeout: 5_000 });
 
     // The pile changes under the pointer (play continues while the modal
     // sits open); the removed row never fires pointerleave, so supervise is
     // what must close the panel.
-    await page.evaluate(() => (window as unknown as { __pileRemoveFirst: () => void }).__pileRemoveFirst());
+    await page.evaluate(() => (window as unknown as { __pileRemoveLast: () => void }).__pileRemoveLast());
     await detail.waitFor({ state: 'hidden', timeout: 5_000 });
     expect(await page.locator('body > .card-detail').count()).toBe(0);
     // the modal itself stayed open, now on the shorter pile
     expect(await page.getByRole('dialog', { name: 'Fixture graveyard' }).isVisible()).toBe(true);
-    expect(await page.locator('[data-obj="1"]').count()).toBe(0);
-    expect(await page.locator('[data-obj="3"]').count()).toBe(1);
+    expect(await page.locator('[data-obj="3"]').count()).toBe(0);
+    expect(await page.locator('[data-obj="1"]').count()).toBe(1);
     await page.close();
   });
 
-  it('Escape peels layers: an open detail first, the modal on the next press; with no detail open the modal closes directly', async () => {
+  it('Escape peels layers on BOTH open paths — a pointer-dwell detail and a focused one — the modal only on the next press', async () => {
     const page = await openShrink();
-    const first = page.locator('[data-obj="1"] button');
-    await first.focus();
+    // POINTER PATH (the regression this test pins): a dwell opens the detail
+    // while the DIALOG keeps focus — no card button owns the key event, so
+    // the window-level handler is what must peel the layer, not a per-card
+    // keydown that never runs.
+    await page.locator('[data-obj="1"] button').hover();
     const detail = page.locator('#card-detail-1');
-    await detail.waitFor({ state: 'visible', timeout: 1_000 });
-
+    await detail.waitFor({ state: 'visible', timeout: 5_000 });
+    expect(await page.evaluate(() => document.activeElement?.getAttribute('role'))).toBe('dialog');
     await page.keyboard.press('Escape');
     await detail.waitFor({ state: 'hidden', timeout: 5_000 });
     expect(await page.getByRole('dialog', { name: 'Fixture graveyard' }).isVisible()).toBe(true);
 
+    // FOCUS PATH: a focused card's detail peels the same way.
+    await page.locator('[data-obj="2"] button').focus();
+    await page.locator('#card-detail-2').waitFor({ state: 'visible', timeout: 1_000 });
+    await page.keyboard.press('Escape');
+    await page.locator('#card-detail-2').waitFor({ state: 'hidden', timeout: 5_000 });
+    expect(await page.getByRole('dialog', { name: 'Fixture graveyard' }).isVisible()).toBe(true);
+
+    // With no panel open, Escape closes the modal itself.
     await page.keyboard.press('Escape');
     await page.getByRole('dialog', { name: 'Fixture graveyard' }).waitFor({ state: 'hidden', timeout: 5_000 });
     await page.close();
