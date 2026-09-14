@@ -188,6 +188,11 @@ func issueEntries(dir, root string) ([]Entry, error) {
 			} else {
 				e.Disposition = "merged"
 			}
+		case "superseded":
+			// Reviewer-approved no-diff outcome: nothing of this issue's
+			// own landed, so there is no commit to name.
+			e.Status = "closed"
+			e.Disposition = "superseded — no commits of its own"
 		case "human_needed":
 			e.Disposition = "needs human"
 		case "new":

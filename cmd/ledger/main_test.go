@@ -110,7 +110,7 @@ func writeIssue(t *testing.T, dir, name, frontmatter string) {
 const issueFixture = "---\nid: %s\ntitle: %s\nstatus: %s\ncommits: %s\n---\n\nBody prose.\n"
 
 // The statuses observed in the live .ds4/issues at the time of the change.
-// merged is the ONLY closed value — a human_needed defect is still an unfixed
+// merged (and superseded, below) are the only closed values — a human_needed defect is still an unfixed
 // defect (it needs a human, which is what its disposition says) — and every
 // active pipeline status opens with a disposition naming where it stands.
 func TestIssueEntriesMapsTheObservedStatuses(t *testing.T) {
@@ -154,6 +154,20 @@ func TestIssueEntriesMergedWithoutCommitsFallsBack(t *testing.T) {
 	}
 	if got[0].Disposition != "merged" {
 		t.Fatalf("Disposition = %q, want the bare fallback", got[0].Disposition)
+	}
+}
+
+// superseded is a reviewer-approved no-diff close: closed, and it must never
+// name a commit, because none of its own landed.
+func TestIssueEntriesClosesSupersededWithoutACommit(t *testing.T) {
+	dir := t.TempDir()
+	writeIssue(t, dir, "a.md", "---\nid: fb-s\ntitle: t\nstatus: superseded\ncommits: \n---\n")
+	got, err := issueEntries(dir, dir)
+	if err != nil || len(got) != 1 {
+		t.Fatalf("got %+v, err %v", got, err)
+	}
+	if got[0].Status != "closed" || got[0].Disposition != "superseded — no commits of its own" {
+		t.Fatalf("superseded = %+v", got[0])
 	}
 }
 

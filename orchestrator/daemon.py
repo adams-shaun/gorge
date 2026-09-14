@@ -91,7 +91,7 @@ def _unmet_dependency(text: str) -> str | None:
             if not dep:
                 continue
             found = issues.find(dep)
-            if found is None or found.status != "merged":
+            if found is None or found.status not in ("merged", "superseded"):
                 return dep
     return None
 
@@ -243,6 +243,19 @@ def _handle_gate_or_review_failure(issue: issues.Issue, findings: str) -> None:
 
 
 def _run_gates_and_merge(issue: issues.Issue, wt: Path) -> None:
+    if git_ops.commits_ahead(issue.id) == 0:
+        # An approved round with no commits is a "nothing to do here" outcome
+        # (superseded / already covered). Never record it as a merge: the old
+        # path logged "merged as <current main>", which named someone else's
+        # commit as this issue's fix.
+        _archive_round_files(issue, wt)
+        git_ops.remove_worktree(issue.id)
+        issue.status = "superseded"
+        issue.closed_by = ""
+        issue.log("approved with no commits; closed as superseded (see last report)")
+        issue.save()
+        log.info("issue %s SUPERSEDED (no commits)", issue.id)
+        return
     ok, rebase_out = git_ops.rebase_onto_main(wt)
     if not ok:
         _handle_gate_or_review_failure(issue, f"rebase onto main conflicted:\n{rebase_out[-3000:]}")
@@ -359,8 +372,10 @@ def tick() -> None:
         advancer = ADVANCERS.get(issue.status)
         if advancer is None:
             continue
-        if issue.status == "new" and issue.source == "inbox":
-            blocker = _unmet_dependency(issue.report)
+        # Inbox tickets carry Depends-On in the report; triage writes it into
+        # the brief. Either one holds the issue until the dependency closes.
+        if issue.status in ("new", "briefed"):
+            blocker = _unmet_dependency(issue.report + "\n" + (issue.brief or ""))
             if blocker:
                 continue
         try:

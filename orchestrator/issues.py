@@ -38,6 +38,7 @@ STATUSES = (
     "review",          # a reviewer seat is running or just finished
     "gate",            # local deterministic gates are running
     "merged",          # landed on main, pushed, deployed
+    "superseded",      # reviewer approved a no-diff outcome (covered elsewhere)
     "human_needed",    # the ladder ran out; a person must look
 )
 
@@ -142,7 +143,7 @@ def all_issues() -> list[Issue]:
 
 
 def open_issues() -> list[Issue]:
-    return [i for i in all_issues() if i.status not in ("merged", "human_needed")]
+    return [i for i in all_issues() if i.status not in ("merged", "superseded", "human_needed")]
 
 
 def find(issue_id: str) -> Optional[Issue]:

@@ -138,3 +138,11 @@ def refresh_ledger() -> None:
 
 def is_paused() -> bool:
     return config.PAUSE_FILE.exists()
+
+
+def commits_ahead(issue_id: str) -> int:
+    r = _run(["git", "rev-list", "--count", f"main..wt/{issue_id}"], cwd=config.REPO, check=False)
+    try:
+        return int(r.stdout.strip())
+    except ValueError:
+        return -1
