@@ -23,7 +23,9 @@ export type PresetName = Exclude<Preset, 'custom'>;
  * StepStop is one step's stop rule:
  *  - 'off'    — never stop at that step;
  *  - 'smart'  — stop only if the window is actionable() (there is something
- *               to do); a mana-only window still passes;
+ *               to do; since lib/castable a mana-only window whose hand
+ *               holds a card castable after tapping counts too); a mana-only
+ *               window with a dead-mana hand still passes;
  *  - 'forced' — stop whenever priority is posed at that step, even with
  *               nothing to do.
  */

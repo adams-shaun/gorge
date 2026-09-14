@@ -1,4 +1,5 @@
 import type { Decision, View } from '../protocol';
+import { castableAfterTap } from './castable';
 import type { OpponentObjectRule, OpponentTriggerRule, PlaySettings, StoppableStep } from './playsettings';
 import { stackYieldKey } from './yields';
 
@@ -12,10 +13,15 @@ import { stackYieldKey } from './yields';
  * answers one question: what should the seat do with this decision, right
  * now? Note the wire fact this module builds on: a priority decision's
  * options carry Kind ("pass", "cast", "ability", "concede", ...), so "no
- * action available" is answerable client-side -- an option list whose kinds
- * are only "pass", "concede" and "activate" means the player can do
- * nothing that matters (the engine offers a mana tap for every available
- * source at every priority window; see actionable()).
+ * action available" is mostly answerable client-side -- an option list whose
+ * kinds are only "pass", "concede" and "activate" usually means the player
+ * can do nothing that matters (the engine offers a mana tap for every
+ * available source at every priority window; see actionable()). The ONE
+ * exception is lib/castable's: the engine prices a cast against the FLOATING
+ * pool only, so a hand card that becomes castable after tapping is offered
+ * no cast option yet -- and a mana-only window that would reveal it is
+ * exactly the window the player is about to need. actionable() consults
+ * castableAfterTap so both auto-pass paths stop there.
  *
  * decide() can only ever return an index pointing at an option whose kind
  * is "pass". It is structurally incapable of returning a "concede": the
@@ -24,6 +30,7 @@ import { stackYieldKey } from './yields';
  */
 
 export type TurnSide = 'yours' | 'opponents';
+
 
 export interface Stops {
   yours: Set<string>;
@@ -64,18 +71,39 @@ export function turnSide(view: View, seat: number): TurnSide {
 
 /**
  * actionable reports whether a priority decision offers the player a real
- * action: an option that is not pass, concede or activate (cast, ability,
- * play_land, ...). An option list whose kinds are only pass, concede and
- * activate means the player can do nothing that matters: the engine offers
- * an "activate" (tap for mana) option for every available mana source at
- * every priority window (rules/legal.go's availableManaAbilities loop), so
- * counting those taps as actions would make almost every window
- * "actionable" and defeat both the empty-window skip and the
- * smart step rule. Tapping mana with nothing to spend it on is
- * not a play.
+ * action. The kind test covers the obvious shapes: an option that is neither
+ * pass, concede nor activate (cast, ability, play_land, ...). The engine
+ * offers an "activate" (tap for mana) option for every available mana source
+ * at every priority window (rules/legal.go's availableManaAbilities loop), so
+ * counting those taps as actions would make almost every window "actionable"
+ * and defeat both the empty-window skip and the smart step rule -- tapping
+ * mana with nothing to spend it on is not a play.
+ *
+ * The one exception to that kind test is the float-then-cast payment model:
+ * the engine prices a cast against the FLOATING pool only, so the window
+ * AFTER a land drop (or any window with untapped sources but no floating
+ * mana) carries nothing but taps even when the player is holding a spell they
+ * are about to want to cast -- Lava Spike after the turn-1 Mountain. For that
+ * shape actionable() consults lib/castable's castableAfterTap: a mana-only
+ * window stops when any nonland card in the seat's own hand becomes castable
+ * once Available joins Pool. A window whose card is already affordable from
+ * the pool carries a cast option and is caught by the kind test, so the
+ * helper never double-counts; a window with no untapped source, or a hand of
+ * unaffordable cards, is still "empty" and still passes.
+ *
+ * view/seat name WHOSE hand and mana are read: the seat the stop rules are
+ * deciding for. The helper itself never asks whose turn it is -- it fires
+ * wherever the caller's own step rules consult it.
  */
-export function actionable(decision: Decision): boolean {
-  return decision.options.some((o) => o.kind !== 'pass' && o.kind !== 'concede' && o.kind !== 'activate');
+export function actionable(decision: Decision, view: View, seat: number): boolean {
+  if (decision.options.some((o) => o.kind !== 'pass' && o.kind !== 'concede' && o.kind !== 'activate')) return true;
+  // Mana-only (or pass/concede-only) window: stop-worthy when tapping would
+  // make a hand card castable. A pass/concede-only window never gains
+  // anything here in practice -- if Available were non-zero the engine would
+  // have offered the taps -- but the predicate is a pure read of the view and
+  // costs one hand scan, so one shared test covers both callers without
+  // restating the shape.
+  return castableAfterTap(view, seat);
 }
 
 /**
@@ -95,12 +123,18 @@ export function respondable(decision: Decision): boolean {
 /**
  * emptyPriorityWindow reports the one window shape the panel skips even when
  * auto is OFF: a plain single-pick priority window with nothing actionable
- * on it. "Actionable" is actionable()'s test — pass, concede and activate
- * do not count (a mana tap is offered at every window and is not a play),
- * so this covers both the only-pass-and-concede shape and the mana-only
- * shape (activate + pass + concede). There is nothing to decide there --
- * the player's only non-suicidal answer is the pass, so stopping to collect
- * it is a click that carries no information. This is deliberately the SAME shape test decide()
+ * on it. "Actionable" is actionable()'s test -- pass, concede and activate
+ * do not count as option kinds (a mana tap is offered at every window and is
+ * not a play), EXCEPT that a mana-only window whose hand holds a card that
+ * becomes castable after tapping IS actionable now (lib/castable: the
+ * float-then-cast payment model hides the cast behind the tap). So this
+ * covers the only-pass-and-concede shape and the mana-only shape whose hand
+ * is dead mana-wise, and deliberately does NOT cover the post-land window
+ * holding a spell the player is about to want -- that window stops, in
+ * manual mode too (skipEmpty on). There is nothing to decide in the covered
+ * shapes -- the player's only non-suicidal answer is the pass, so stopping
+ * to collect it is a click that carries no information. This is deliberately
+ * the SAME shape test decide()
  * applies before its own !actionable branch (single-pick, exactly one pass
  * option), factored out rather than restated, so the manual-mode skip can
  * never come to a different conclusion than auto would.
@@ -109,12 +143,12 @@ export function respondable(decision: Decision): boolean {
  * shape. Like decide(), it is structurally incapable of pointing at a
  * concede: the index always comes from the pass option that was found.
  */
-export function emptyPriorityWindow(decision: Decision): number | null {
+export function emptyPriorityWindow(decision: Decision, view: View, seat: number): number | null {
   if (decision.kind !== 'priority') return null;
   if (decision.min !== 1 || decision.max !== 1) return null;
   const passOptions = decision.options.filter((o) => o.kind === 'pass');
   if (passOptions.length !== 1) return null;
-  if (actionable(decision)) return null;
+  if (actionable(decision, view, seat)) return null;
   return passOptions[0].index;
 }
 
@@ -259,12 +293,13 @@ export function decide(args: {
   // 3. Step rule for the current turn side and step — this applies to ffwd
   // too (the c2f4db8f contract: a set stop stops a fast-forward). 'forced'
   // stops whenever priority is posed, even with nothing to do; 'smart' stops
-  // only when the window offers a real action (actionable(), so a mana-only
-  // window still passes); 'off' — or a step outside the ten stoppable ones —
-  // falls through.
+  // only when the window offers a real action (actionable(): a mana-only
+  // window still passes UNLESS tapping would make a hand card castable —
+  // lib/castable, the post-land Lava Spike window); 'off' — or a step
+  // outside the ten stoppable ones — falls through.
   const side = turnSide(view, seat);
   const stepRule = settings.steps[side][view.step as StoppableStep] ?? 'off';
-  if (stepRule === 'forced' || (stepRule === 'smart' && actionable(decision))) {
+  if (stepRule === 'forced' || (stepRule === 'smart' && actionable(decision, view, seat))) {
     return { act: 'stop', reason: 'stop-set' };
   }
 

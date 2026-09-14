@@ -491,3 +491,75 @@ describe('the words — no enum identifier ever reaches the screen', () => {
     expect(new Set(texts).size).toBe(texts.length); // every state says something different
   });
 });
+
+// fb-20260914T014141Z: the post-land window. After a land drop the engine's
+// float-then-cast payment model leaves the window nothing but a tap-for-mana
+// "activate" option, so the old shape test read the window as empty and BOTH
+// auto-pass paths (casual's smart stop, the manual empty-window floor) sailed
+// past the spell the player was holding. lib/castable's castableAfterTap
+// extended actionable(); these tests hold the panel-level wiring on both
+// paths: the floor must not swallow the window in manual mode, and auto must
+// stop there under casual.
+describe('the post-land window — castable after tapping (fb-20260914T014141Z)', () => {
+  beforeEach(() => {
+    postIntentMock.mockReset();
+    fetchPendingMock.mockReset();
+    postIntentMock.mockResolvedValue(undefined);
+  });
+
+  /** tapOnly is the window after the land drop: one tap-for-mana activate, a pass, a concede. */
+  const tapOnly = (seq: number): Decision =>
+    ({ seq, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1, options: [activate(0), pass(1), concede(2)] });
+
+  /** postLandView carries seat 0's own hand, pool and availability: one untapped Mountain (Available {R}) and a Lava Spike ({R}). */
+  const postLandView = (hand: { mana_cost: string }[] = [{ mana_cost: 'R' }]): View =>
+    ({
+      active: 0,
+      step: 'main1',
+      turn: 1,
+      stack: [],
+      players: [
+        {
+          seat: 0,
+          life: 20,
+          hand: hand.map((c, i) => ({ id: 5 + i, name: 'Card', types: 'Instant', controller: 0, owner: 0, ...c })),
+          pool: {},
+          available: { R: 1 },
+        },
+      ],
+    }) as unknown as View;
+
+  it('manual mode (skipEmpty on): the floor does NOT swallow a tap-only window whose hand is castable after tapping', async () => {
+    const p = manualSeat(); // auto off; skipEmpty defaults ON — the manual floor is live
+    p.adoptView(tapOnly(3));
+    p.considerAuto(postLandView());
+    await settle(() => p.busy === false);
+    expect(postIntentMock).not.toHaveBeenCalled(); // the window is the player's to answer
+    expect(p.emptySkipped).toBe(0); // the floor declined: this window is not "empty"
+    expect(p.active?.seq).toBe(3);
+  });
+
+  it('manual mode (skipEmpty on): the floor still swallows the same window when the hand is dead mana-wise', async () => {
+    const p = manualSeat();
+    p.adoptView(tapOnly(4));
+    p.considerAuto(postLandView([{ mana_cost: '4 U' }])); // unpayable from one Mountain
+    await settle(() => p.postedSeq === 4);
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(postIntentMock.mock.calls[0][2].choices).toEqual([1]); // the pass option's index
+    expect(p.emptySkipped).toBe(1);
+  });
+
+  it('auto (casual): a smart yours.main1 stop catches the post-land window and the note surfaces', async () => {
+    const p = armedSeat();
+    // The harness's armed seat has every step rule off (the stops setter above
+    // wrote them); set yours.main1 to smart — the same rule decide()'s smart
+    // branch consumes — exactly like the 'auto stops at a stop' tests do.
+    p.stops = { yours: new Set(['main1']), opponents: new Set() };
+    p.adoptView(tapOnly(9));
+    p.considerAuto(postLandView());
+    expect(postIntentMock).not.toHaveBeenCalled();
+    expect(p.auto).toBe(true); // Auto stays armed; the window is the player's
+    expect(p.active?.seq).toBe(9);
+    expect(autoNoteText(p.note)).toBe('Auto stopped here: you set a stop on this step.');
+  });
+});
