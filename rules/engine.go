@@ -299,6 +299,11 @@ type Engine struct {
 	// suspends again, and nil whenever no re-entry is in flight — so a Clone
 	// need not carry it (the same resolution re-derives the same chain).
 	contChain []contFrame
+	// resolvingObj is the stack object whose resolution is running (resolveTop
+	// or a resumed resolution), kept through its final move off the stack so
+	// an entry replacement that asks can tell whether it interrupted that
+	// resolution's own move. Zero outside a resolution.
+	resolvingObj state.ObjID
 	// repeatReported is the RepeatEach SA whose loop frame SuspendRepeat
 	// just recorded, so the enclosing Resolve loop's report of the same SA
 	// is not recorded a second time as a plain continuation.

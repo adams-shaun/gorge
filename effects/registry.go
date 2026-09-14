@@ -142,6 +142,13 @@ type Ctx struct {
 	Controller state.PlayerID
 	Targets    []state.Target
 	Remembered []state.Target
+	// Captured is the part of Remembered the resolution started with because
+	// its trigger, delayed trigger or replacement put the event's object there
+	// (this engine's stand-in for Forge's separate TriggeredCard), rather than
+	// because a Remember* parameter of the resolution chose it. Forge keeps
+	// neither in a host's remembered list, so a RepeatEach over players does
+	// not carry these into its iterations.
+	Captured []state.Target
 	// SourceLifelinkLKI is the source permanent's derived lifelink state at
 	// the last moment it existed on the battlefield. The validity bit is
 	// separate because "it did not have lifelink" is authoritative LKI too.
@@ -374,6 +381,19 @@ func RegisterNonAPI(prefixed ...string) {
 }
 
 const maxChain = 32
+
+// Ask poses d through the host unless it offers nothing to choose. A
+// decision with no options cannot be answered meaningfully (a seat can only
+// submit the empty answer), so the asking effect takes its no-host path --
+// the same result an answered empty choice produces -- without a pending
+// decision or a resume. Effects should ask through this rather than
+// h.Ask directly.
+func Ask(h Host, d *decision.Decision) bool {
+	if d == nil || len(d.Options) == 0 {
+		return false
+	}
+	return h.Ask(d)
+}
 
 // Resolve runs an ability and every sub-ability chained beneath it.
 func Resolve(h Host, c *Ctx, sa *cards.SA) {

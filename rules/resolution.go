@@ -95,6 +95,9 @@ type resumePoint struct {
 	choices     []state.Target
 	chosenValid bool
 	remembered  []state.Target
+	// replSource is the host of the replacement whose body asked (the
+	// ReplaceWith$ body's own Ctx.Source); zero outside a replacement.
+	replSource state.ObjID
 	// loopBound frames resume inside a RepeatEach iteration (or at the
 	// RepeatEach itself, kind "repeat"): Ctx.Remembered is rebuilt from
 	// loopRemembered rather than from the stack object, because the loop
@@ -151,13 +154,25 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 	// the whole of that body's resolution, so an ask posed from within it
 	// must resume still under the flag — see the resumePoint field's
 	// comment and resumeResolution's restore of it.
-	// A replacement can ask after its Updated MoveZone has removed the
-	// resolving spell from the stack. Its source is still the replacement's
-	// permanent, and is the object the replacement resume must rebuild from.
+	// A replacement body resumes from the object whose resolution it
+	// interrupted -- normally still on top of the stack (a sorcery that
+	// reanimates Mox Diamond), so the rest of that spell's chain and its
+	// completion still run after the answer. The one exception is a permanent
+	// spell whose own Updated entry replacement asks (Sower of Discord): the
+	// move has already taken the resolving object off the stack, so the top
+	// of the stack is some unrelated object and the resume must rebuild from
+	// the entering permanent itself. replSource keeps the replacement's host
+	// for the resumed body's own Source either way.
+	var replSource state.ObjID
 	if e.applyingReplacement && d.Source != 0 {
-		obj = d.Source
+		replSource = d.Source
+		if d.Source == e.resolvingObj {
+			if so := e.G.Obj(d.Source); so != nil && so.Zone != state.ZStack {
+				obj = d.Source
+			}
+		}
 	}
-	e.resume = &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA,
+	e.resume = &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA, replSource: replSource,
 		replacement: e.applyingReplacement, replaced: e.replReplaced, action: e.replAction,
 		before: e.triggerBefore, target: d.ResumeTarget, choices: append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...)}
@@ -315,6 +330,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	before := e.triggerBefore
 	e.triggerBefore = rp.before
 	defer func() { e.triggerBefore = before }()
+	savedResolving := e.resolvingObj
+	e.resolvingObj = rp.obj
+	defer func() { e.resolvingObj = savedResolving }()
 	o := e.G.Obj(rp.obj)
 	if o == nil || (o.Zone != state.ZStack && !rp.replacement) {
 		// The suspended object left the stack while the decision was
@@ -334,22 +352,6 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// X for the rest of the walk instead of resuming with 0. Set here for
 	// every resume; the replacement arm below has no other X to restore.
 	ctx.X = o.X
-	if rp.replacement {
-		// fx44: this suspended frame is a ReplaceWith$ body, so restore the
-		// replacement context applyReplacements seeded for it. Ctx.Replaced is
-		// the object the replaced event was about (ev.Obj, threaded via
-		// rp.replaced) and Ctx.Remembered is the single-element list seeded
-		// from that same object, so a Defined$ ReplacedCard resolution and an
-		// SVar:X Remembered$Amount gate find their subject after the
-		// suspension. Without these the completed move (Mox Diamond's
-		// MoveToBattlefield) targets nothing and the object never leaves the
-		// stack.
-		ctx.Replaced = rp.replaced
-		ctx.Remembered = []state.Target{{Obj: rp.replaced}}
-		if rp.remembered != nil {
-			ctx.Remembered = append([]state.Target(nil), rp.remembered...)
-		}
-	}
 	var svars map[string]string
 	if o.Ability != nil {
 		// A triggered or activated ability: mirror resolveTop's ability
@@ -361,6 +363,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			ctx.TriggerContext = e.triggerContexts[rp.obj]
 		}
 		ctx.Remembered = o.Remembered
+		ctx.Captured = o.Remembered
 		if link, ok := e.sourceLifelinkLKI[rp.obj]; ok {
 			ctx.SourceLifelinkLKI = link
 			ctx.SourceLifelinkLKIValid = true
@@ -379,6 +382,37 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		}
 	} else if f := o.Face(); f != nil {
 		svars = f.SVars
+	}
+	if rp.replacement {
+		// fx44: this suspended frame is a ReplaceWith$ body, so restore the
+		// replacement context applyReplacements seeded for it. Ctx.Replaced is
+		// the object the replaced event was about (ev.Obj, threaded via
+		// rp.replaced) and Ctx.Remembered is the single-element list seeded
+		// from that same object, so a Defined$ ReplacedCard resolution and an
+		// SVar:X Remembered$Amount gate find their subject after the
+		// suspension. Without these the completed move (Mox Diamond's
+		// MoveToBattlefield) targets nothing and the object never leaves the
+		// stack.
+		ctx.Replaced = rp.replaced
+		ctx.Remembered = []state.Target{{Obj: rp.replaced}}
+		ctx.Captured = ctx.Remembered
+		if rp.remembered != nil {
+			ctx.Remembered = append([]state.Target(nil), rp.remembered...)
+		}
+		// The body's own Source is the replacement's host, which differs from
+		// the resolving object when that object caused another permanent's
+		// replacement (a reanimation spell and Mox Diamond's discard): the
+		// body's choices and SVars belong to the host.
+		if rs := rp.replSource; rs != 0 && rs != rp.obj {
+			if src := e.G.Obj(rs); src != nil {
+				ctx.Source, ctx.Controller, ctx.X = rs, src.Controller, src.X
+				ctx.TriggerContext = effects.TriggerContext{}
+				svars = nil
+				if f := src.Face(); f != nil {
+					svars = f.SVars
+				}
+			}
+		}
 	}
 	if rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.loopRemembered...)
@@ -530,6 +564,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		src := rp.obj
 		if o.Ability != nil {
 			src = o.Source
+		}
+		if rp.replacement && rp.replSource != 0 {
+			src = rp.replSource
 		}
 		e.damaging = src
 		// A fresh re-entry: reset the enclosing-loop continuation reports the

@@ -635,6 +635,9 @@ func (e *Engine) recordChosenTargets(targetObj state.ObjID, chosen []decision.Op
 func (e *Engine) resolveTop() {
 	id := e.G.Stack[len(e.G.Stack)-1]
 	o := e.G.Obj(id)
+	savedResolving := e.resolvingObj
+	e.resolvingObj = id
+	defer func() { e.resolvingObj = savedResolving }()
 
 	if o.Ability != nil {
 		// A triggered or activated ability with no printed card: Ruling
@@ -756,7 +759,7 @@ func (e *Engine) resolveTop() {
 		// lookup two lines above already gets this right by reading from
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
-			Targets: targets, Remembered: o.Remembered, TriggerContext: e.triggerContexts[id]}
+			Targets: targets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id]}
 		// CR 107.3i: X is the value the activator chose for a Cost$ carrying
 		// {X} (recorded on the ability stack object by commitCast's CastInfo,
 		// emitted right after the AbilityPush). Zero for a trigger, which was

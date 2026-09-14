@@ -82,6 +82,10 @@ type ControlGrant struct {
 	CheckSVar string
 	Compare   string
 	SVars     map[string]string
+	// AddKeywords is GainControl's AddKWs$ ("gains haste" on a threaten
+	// effect): keywords the object has for as long as this control effect
+	// lasts.
+	AddKeywords []string
 }
 
 // battlefieldStamped returns id only while it is the same battlefield object

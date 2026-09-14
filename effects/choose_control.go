@@ -315,7 +315,7 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 		if d.Prompt == "" {
 			d.Prompt = "Choose card"
 		}
-		if h.Ask(d) {
+		if Ask(h, d) {
 			return
 		}
 		choiceRecord(h, c, sa, choices[:min])
@@ -400,46 +400,87 @@ func effChoosePlayer(h Host, c *Ctx, sa *cards.SA) {
 		if d.Prompt == "" {
 			d.Prompt = "Choose player"
 		}
-		if h.Ask(d) {
+		if Ask(h, d) {
 			return
 		}
 		choiceRecord(h, c, sa, choices[:min])
 	}
 }
 
-func controlPlayer(h Host, c *Ctx, sa *cards.SA) state.PlayerID {
+// controlPlayer resolves NewController$, the player who gains control. ok is
+// false when the value names nobody this resolution can bind; the control
+// change then does not happen (Forge's getDefinedPlayers yields no player),
+// rather than silently handing control to the effect's own controller --
+// which for "that player gains control of CARDNAME" (Karona, Drooling Ogre,
+// Contested War Zone) is a no-op that looks like success.
+func controlPlayer(h Host, c *Ctx, sa *cards.SA) (state.PlayerID, bool) {
+	g := h.Game()
 	v := strings.TrimSpace(sa.Params["NewController"])
-	if v == "" || v == "You" || v == "True" {
-		return c.Controller
-	}
-	if v == "ChosenPlayer" {
+	switch v {
+	case "", "You", "True":
+		return c.Controller, true
+	case "ChosenPlayer", "Player.Chosen":
 		for _, t := range c.Chosen {
 			if t.IsPlayer {
-				return t.Player
+				return t.Player, true
 			}
 		}
 		// A choice made by an earlier, independently resolving ability is
 		// event-backed on its source rather than present in this fresh Ctx.
-		if o := h.Game().Obj(c.Source); o != nil {
+		if o := g.Obj(c.Source); o != nil {
 			for _, t := range o.Chosen {
 				if t.IsPlayer {
-					return t.Player
+					return t.Player, true
 				}
 			}
 		}
-	}
-	if v == "Player.IsRemembered" {
+		return 0, false
+	case "Player.IsRemembered":
 		for _, t := range c.Remembered {
 			if t.IsPlayer {
-				return t.Player
+				return t.Player, true
 			}
 		}
+		return 0, false
+	case "TriggeredSourceController":
+		// DamageDone's source: "that creature's controller".
+		if o := g.Obj(c.TriggerSource); o != nil {
+			return o.Controller, true
+		}
+		return 0, false
+	case "TriggeredTarget":
+		if t := c.TriggerTarget; t.IsPlayer {
+			return t.Player, true
+		} else if o := g.Obj(t.Obj); o != nil {
+			return o.Controller, true
+		}
+		return 0, false
 	}
-	for _, t := range Defined(h, c, &cards.SA{Params: map[string]string{"Defined": v}}) {
-		return PlayerOf(h, c, t)
+	switch v {
+	case "Remembered", "RememberedController", "TriggeredPlayer", "TriggeredActivator",
+		"TriggeredAttackingPlayer", "TriggeredDefendingPlayer", "TriggeredCardController",
+		"Opponent", "Player.Opponent", "Targeted", "TargetedPlayer", "TargetedController", "ParentTarget":
+	default:
+		// Defined() falls back to the resolution's targets for a form it does
+		// not model; that is never a meaningful new controller.
+		return 0, false
 	}
-	return c.Controller
+	ts := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": v}})
+	// A player named directly wins over an object's controller ("target
+	// player gains control of target creature" lists both targets).
+	for _, t := range ts {
+		if t.IsPlayer && int(t.Player) < len(g.Players) {
+			return t.Player, true
+		}
+	}
+	for _, t := range ts {
+		if o := g.Obj(t.Obj); o != nil {
+			return o.Controller, true
+		}
+	}
+	return 0, false
 }
+
 func effGainControl(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	dur, unknown := ParseControlDuration(sa.Params["LoseControl"])
@@ -447,7 +488,8 @@ func effGainControl(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "GainControl LoseControl$ " + unknown + " unimplemented"})
 		return
 	}
-	base := ControlGrant{You: c.Controller, Source: c.Source, Duration: dur, SVars: c.SVars}
+	base := ControlGrant{You: c.Controller, Source: c.Source, Duration: dur, SVars: c.SVars,
+		AddKeywords: splitKeywords(sa.Params["AddKWs"])}
 	if src := g.Obj(c.Source); src != nil && src.Zone == state.ZBattlefield {
 		base.SourceStamp = src.Timestamp
 	}
@@ -481,7 +523,11 @@ func effGainControl(h Host, c *Ctx, sa *cards.SA) {
 	} else {
 		ts = Defined(h, c, sa)
 	}
-	p := controlPlayer(h, c, sa)
+	p, ok := controlPlayer(h, c, sa)
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "GainControl NewController$ " + sa.Params["NewController"] + " names no player"})
+		return
+	}
 	for _, t := range ts {
 		if t.IsPlayer {
 			continue
@@ -506,7 +552,11 @@ func effGainControl(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 func effControlSpell(h Host, c *Ctx, sa *cards.SA) {
-	p := controlPlayer(h, c, sa)
+	p, ok := controlPlayer(h, c, sa)
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "ControlSpell NewController$ " + sa.Params["NewController"] + " names no player"})
+		return
+	}
 	for _, t := range Defined(h, c, sa) {
 		if !t.IsPlayer {
 			if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZStack {
@@ -612,7 +662,11 @@ func effChangeTargets(h Host, c *Ctx, sa *cards.SA) {
 		restriction = sa.Params["RandomTargetRestriction"]
 	}
 	var candidates []state.Target
-	for _, t := range h.LegalTargets(chooser, target.ID, subject) {
+	// CR 115.7: a changed target must be one the spell or ability could
+	// legally target, which is decided from its own controller's side
+	// ("target creature an opponent controls" names the redirected spell's
+	// opponents, not the redirecting player's).
+	for _, t := range h.LegalTargets(target.Controller, target.ID, subject) {
 		if targetAllowed(h, c, restriction, t) {
 			candidates = append(candidates, t)
 		}
@@ -677,12 +731,13 @@ func effChangeTargets(h Host, c *Ctx, sa *cards.SA) {
 		}
 		d.Options = append(d.Options, o)
 	}
-	if h.Ask(d) {
+	if Ask(h, d) {
 		return
 	}
-	// A no-ask host takes the conservative Optional answer: no target changes.
-	c.ChoiceDone = true
-	c.Choice = nil
+	// A no-ask host (or a redirect with no legal new target) takes the
+	// conservative Optional answer: no target changes. It must not leave
+	// ChoiceDone set, which a later choice in the same chain would read as
+	// its own answer.
 }
 
 func repeatPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
@@ -821,7 +876,8 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 		c.Repeat = nil
 		subjects, start = cur.Subjects, cur.Next
 		if cur.HasLast && start > 0 && start <= len(subjects) {
-			c.Remembered = rememberIteration(c.Remembered, cur.Last, subjects[start-1])
+			prev := subjects[start-1]
+			c.Remembered = rememberIteration(c.Remembered, cur.Last, iterationBase(c, prev), prev)
 		}
 	} else {
 		var ok bool
@@ -850,7 +906,8 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 		cc.Repeat = nil
 		// Forge binds the current loop subject as Remembered; the resolving
 		// source/controller remain those of the outer spell or ability.
-		cc.Remembered = []state.Target{t}
+		base := iterationBase(c, t)
+		cc.Remembered = append(copyTargets(base), t)
 		Resolve(h, &cc, sub)
 		if h.Suspended() {
 			h.SuspendRepeat(RepeatSuspension{
@@ -862,22 +919,58 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 			})
 			return
 		}
-		c.Remembered = rememberIteration(c.Remembered, cc.Remembered, t)
+		c.Remembered = rememberIteration(c.Remembered, cc.Remembered, base, t)
 	}
+}
+
+// iterationBase is what an iteration's Remembered holds besides its subject.
+// Forge's RepeatEachEffect swaps only remembered PLAYERS out for a player
+// loop, so the cards the resolution remembered stay visible to the body
+// (Braids's "a permanent that shares a card type with it"). The event object
+// a trigger captured is not part of that list in Forge and is left out here.
+// A card or spell loop binds its subject alone.
+func iterationBase(c *Ctx, subject state.Target) []state.Target {
+	if !subject.IsPlayer {
+		return nil
+	}
+	captured := copyTargets(c.Captured)
+	var out []state.Target
+	for _, t := range c.Remembered {
+		if t.IsPlayer {
+			continue
+		}
+		if i := indexTarget(captured, t); i >= 0 {
+			captured = append(captured[:i], captured[i+1:]...)
+			continue
+		}
+		out = append(out, t)
+	}
+	return out
+}
+
+func indexTarget(ts []state.Target, want state.Target) int {
+	for i, t := range ts {
+		if t == want {
+			return i
+		}
+	}
+	return -1
 }
 
 // rememberIteration folds what one RepeatEach iteration remembered back into
 // the loop's own Remembered. Forge adds the subject to the host's remembered
 // list for the iteration and removes only the subject afterwards, so
 // anything the iteration remembered (RememberChosen$, RememberDiscarded$, ...)
-// is still remembered by the sub-abilities after the loop. The result is a
-// fresh slice: outer may share a backing array with a stack object.
-func rememberIteration(outer, body []state.Target, subject state.Target) []state.Target {
+// is still remembered by the sub-abilities after the loop. body is the
+// iteration's final Remembered; base (the entries it started with besides
+// the subject) and the subject are not additions. The result is a fresh
+// slice: outer may share a backing array with a stack object.
+func rememberIteration(outer, body, base []state.Target, subject state.Target) []state.Target {
 	out := copyTargets(outer)
-	dropped := false
+	start := append(copyTargets(base), subject)
 	for _, t := range body {
-		if !dropped && t == subject {
-			dropped = true
+		if i := indexTarget(start, t); i >= 0 {
+			start = append(start[:i], start[i+1:]...)
 			continue
 		}
 		out = append(out, t)
@@ -889,14 +982,16 @@ func effBranch(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	v := Num(h, c, &cards.SA{Params: map[string]string{"condition": sa.Params["BranchConditionSVar"]}}, "condition", 0)
-	cmp := sa.Params["BranchConditionSVarCompare"]
+	// Forge's BranchEffect defaults an absent BranchConditionSVarCompare$ to
+	// GE1 (31 of the corpus's Branch lines rely on it: "if X is at least
+	// one"). An operator this build does not know takes the false arm.
+	cmp := strings.TrimSpace(sa.Params["BranchConditionSVarCompare"])
+	if cmp == "" {
+		cmp = "GE1"
+	}
 	op := ""
-	for _, x := range []string{"GE", "GT", "LE", "LT", "EQ"} {
-		if strings.HasPrefix(cmp, x) {
-			op = x
-			cmp = strings.TrimPrefix(cmp, x)
-			break
-		}
+	if len(cmp) >= 2 {
+		op, cmp = strings.ToUpper(cmp[:2]), cmp[2:]
 	}
 	n, err := strconv.Atoi(cmp)
 	if err != nil {
@@ -909,19 +1004,7 @@ func effBranch(h Host, c *Ctx, sa *cards.SA) {
 			n = int(EvalCount(h, c, "Count$"+raw))
 		}
 	}
-	yes := op == ""
-	switch op {
-	case "GE":
-		yes = v >= int32(n)
-	case "GT":
-		yes = v > int32(n)
-	case "LE":
-		yes = v <= int32(n)
-	case "LT":
-		yes = v < int32(n)
-	case "EQ":
-		yes = v == int32(n)
-	}
+	yes := compareCount(op, int(v), n)
 	name := sa.Params["FalseSubAbility"]
 	if yes {
 		name = sa.Params["TrueSubAbility"]

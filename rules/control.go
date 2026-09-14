@@ -13,6 +13,9 @@ type controlGrant struct {
 	// untilTurn is the turn at whose cleanup an UntilTheEndOfYourNextTurn
 	// grant ends, fixed when the effect begins.
 	untilTurn int32
+	// kwStamp is the timestamp of the AddKWs$ keyword grant registered with
+	// this control effect (0 for none); it is removed when the grant ends.
+	kwStamp uint32
 }
 
 // controlMoment says which fixed points of the turn are being passed when
@@ -25,26 +28,28 @@ const (
 	controlAtCleanup
 )
 
-// RegisterControl implements effects.Host. A permanent control change
-// supersedes every earlier control effect on that object: nothing that
-// expires later can hand it back (CR 613.7), so their records are dropped.
-// A grant with a duration is kept until expireControl ends it.
+// RegisterControl implements effects.Host: every control change is recorded
+// in timestamp order until expireControl ends it or its object leaves the
+// battlefield.
 func (e *Engine) RegisterControl(gr effects.ControlGrant) {
 	o := e.G.Obj(gr.Obj)
 	if o == nil || o.Zone != state.ZBattlefield {
 		return
 	}
-	if gr.Duration.Permanent() {
-		kept := e.controlGrants[:0]
-		for _, g := range e.controlGrants {
-			if g.Obj != gr.Obj {
-				kept = append(kept, g)
-			}
-		}
-		e.controlGrants = kept
-		return
+	// AddKWs$: the keywords are a layer-6 grant on the object itself, so the
+	// ordinary source-leaves rule already ends them when it leaves the
+	// battlefield; a grant with a shorter duration removes them early.
+	var kwStamp uint32
+	if len(gr.AddKeywords) > 0 {
+		e.AddContinuous(ContinuousEffect{Source: gr.Obj, Affects: "Card.Self", Controller: gr.Controller,
+			Layer: state.LAbilities, AddKeywords: append([]string(nil), gr.AddKeywords...)})
+		kwStamp = e.G.Clock
 	}
-	cg := controlGrant{ControlGrant: gr}
+	// A permanent change is recorded too: as the latest grant it keeps every
+	// earlier grant's expiry from moving control (CR 613.7), it ends if its
+	// controller leaves the game (CR 800.4a), and its record drops -- with its
+	// keywords -- when the object leaves the battlefield.
+	cg := controlGrant{ControlGrant: gr, kwStamp: kwStamp}
 	if gr.Duration.NextTurn {
 		cg.untilTurn = e.nextTurnFor(gr.You)
 		if cg.untilTurn == 0 {
@@ -92,6 +97,18 @@ func (e *Engine) expireControl(m controlMoment) {
 	if len(e.controlGrants) == 0 || e.expiringControl {
 		return
 	}
+	// Fast path, run on every state-changing emit while any grant exists:
+	// nothing ends and nothing left the battlefield, so no allocation.
+	changing := false
+	for _, g := range e.controlGrants {
+		if o := e.G.Obj(g.Obj); o == nil || o.Zone != state.ZBattlefield || o.Timestamp != g.ObjStamp || e.grantEnded(g, m) {
+			changing = true
+			break
+		}
+	}
+	if !changing {
+		return
+	}
 	e.expiringControl = true
 	defer func() { e.expiringControl = false }()
 	for pass := 0; pass <= len(e.controlGrants)+1 && len(e.controlGrants) > 0; pass++ {
@@ -116,6 +133,10 @@ func (e *Engine) expireControl(m controlMoment) {
 				}
 			}
 			e.controlGrants = live
+			// A record dropped because its object left the battlefield takes
+			// its keyword grant with it: the returning permanent is a new
+			// object (CR 400.7) that must not keep a stolen creature's haste.
+			e.dropControlKeywords(old, ended)
 			return
 		}
 		type change struct {
@@ -176,6 +197,7 @@ func (e *Engine) expireControl(m controlMoment) {
 			}
 		}
 		e.controlGrants = live
+		e.dropControlKeywords(old, ended)
 		for _, ch := range changes {
 			e.emit(events.Event{Kind: events.ControlChange, Obj: ch.obj, Player: ch.to})
 		}
@@ -184,5 +206,29 @@ func (e *Engine) expireControl(m controlMoment) {
 			// checked as ordinary state from here on.
 			m = controlOnEvent
 		}
+	}
+}
+
+// dropControlKeywords removes the AddKWs$ keyword grants of the ended grants.
+// It rewrites e.continuous in place and bumps continuousVersion, the same
+// discipline EndOfTurnCleanup keeps for its own in-place removals.
+func (e *Engine) dropControlKeywords(grants []controlGrant, ended []bool) {
+	removed := false
+	for i, g := range grants {
+		if !ended[i] || g.kwStamp == 0 {
+			continue
+		}
+		kept := e.continuous[:0]
+		for _, ce := range e.continuous {
+			if ce.Timestamp == g.kwStamp && ce.Source == g.Obj && len(ce.AddKeywords) > 0 {
+				removed = true
+				continue
+			}
+			kept = append(kept, ce)
+		}
+		e.continuous = kept
+	}
+	if removed {
+		e.continuousVersion++
 	}
 }

@@ -58,6 +58,10 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 	case "SpellCast", "AbilityCast", "SpellAbilityCast":
 		c.TriggerCard = ev.Obj
 		c.TriggerSource = e.protectionSource(ev.Obj)
+		// TriggeredActivator is the player who cast or activated it, the
+		// same ev.Player ValidActivatingPlayer$ is matched against
+		// (Tangleroot: "that player adds {G}").
+		c.TriggerActivator = player(ev.Player)
 	case "Phase":
 		c.TriggerPlayer = player(e.G.Active)
 	}

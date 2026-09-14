@@ -195,8 +195,8 @@ func TestChangeTargetsCommandeerCorpusSA(t *testing.T) {
 	spell.Targets = []state.Target{{Player: 1, IsPlayer: true}}
 	c := &Ctx{Controller: 0, Targets: []state.Target{{Obj: spell.ID}}}
 	effChangeTargets(h, c, sa)
-	if !c.ChoiceDone {
-		t.Fatal("hostless ChangeTargets must complete deterministically")
+	if c.ChoiceDone || len(spell.Targets) != 1 || !spell.Targets[0].IsPlayer || spell.Targets[0].Player != 1 {
+		t.Fatalf("hostless ChangeTargets must keep the targets and leave no answer behind: done=%v targets=%+v", c.ChoiceDone, spell.Targets)
 	}
 }
 
@@ -401,5 +401,102 @@ func TestRepeatEachChaosDefilerKeepsIterationsRemembered(t *testing.T) {
 	}
 	if destroyed != 1 || h.g.Obj(src.ID).Zone != state.ZBattlefield {
 		t.Fatalf("Chaos Defiler destroyed %d opponent permanents (source zone %v), want exactly 1", destroyed, h.g.Obj(src.ID).Zone)
+	}
+}
+
+// TestBranchGravelighterDefaultsToGE1 is the no-BranchConditionSVarCompare$
+// shape (31 corpus lines): Forge's default is GE1, so with no creature dead
+// this turn (X=0) Gravelighter takes the false arm -- each player sacrifices
+// a creature -- instead of drawing. (Its X head, ThisTurnEntered_..., is not
+// modelled, so the true arm is not reachable here; the comparator itself is
+// shared with the literal and SVar forms tested above.)
+func TestBranchGravelighterDefaultsToGE1(t *testing.T) {
+	card, sa := corpusSA(t, "Gravelighter", "TrigBranch")
+	if sa.Params["BranchConditionSVarCompare"] != "" {
+		t.Fatalf("Gravelighter fixture changed: %+v", sa)
+	}
+	h := newHost(t, 2)
+	src := h.g.AddObject(card, 0)
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: src.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	h.g.AddObject(mkCard(t, "Name:Book\nTypes:Sorcery\nOracle:x\n"), 0)
+	bear := h.g.AddObject(mkCard(t, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n"), 1)
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: bear.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	effBranch(h, &Ctx{Source: src.ID, Controller: 0, SVars: src.Face().SVars}, sa)
+	// Seat 0's only creature is Gravelighter itself.
+	gz, bz := h.g.Obj(src.ID).Zone, h.g.Obj(bear.ID).Zone
+	if len(h.g.Zone(state.ZHand, 0)) != 0 || gz != state.ZGraveyard || bz != state.ZGraveyard {
+		t.Fatalf("X=0 with no compare: hand=%d Gravelighter=%v bear=%v, want no draw and both creatures sacrificed",
+			len(h.g.Zone(state.ZHand, 0)), gz, bz)
+	}
+}
+
+// TestGainControlNewControllerTriggeredPlayers: NewController$ TriggeredPlayer
+// (Karona, False God) and TriggeredActivator (Drooling Ogre) hand control to
+// the player the trigger names; an unbound referent changes nothing rather
+// than defaulting to the effect's own controller.
+func TestGainControlNewControllerTriggeredPlayers(t *testing.T) {
+	for _, name := range []string{"Karona, False God", "Drooling Ogre"} {
+		card, sa := corpusSA(t, name, "TrigControl")
+		h := newHost(t, 3)
+		src := h.g.AddObject(card, 0)
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: src.ID, From: state.ZLibrary, To: state.ZBattlefield})
+		c := &Ctx{Source: src.ID, Controller: 0, SVars: src.Face().SVars}
+		effGainControl(h, c, sa)
+		if got := h.g.Obj(src.ID).Controller; got != 0 {
+			t.Fatalf("%s with no trigger binding moved to %d", name, got)
+		}
+		c.TriggerPlayer = state.Target{Player: 2, IsPlayer: true}
+		c.TriggerActivator = state.Target{Player: 2, IsPlayer: true}
+		effGainControl(h, c, sa)
+		if got := h.g.Obj(src.ID).Controller; got != 2 || !containsID(h.g.Zone(state.ZBattlefield, 2), src.ID) {
+			t.Fatalf("%s controller = %d, want the triggering player 2", name, got)
+		}
+	}
+}
+
+// TestChooseCardWithNoCandidatesDoesNotAsk: a choice with nothing to choose
+// poses no decision (a 0-option KChoose) and records an empty choice.
+func TestChooseCardWithNoCandidatesDoesNotAsk(t *testing.T) {
+	card, _ := corpusSA(t, "Mount Doom", "")
+	var choose *cards.SA
+	for _, sa := range card.Faces[0].Abilities {
+		if sa.API == "ChooseCard" {
+			choose = sa
+		}
+	}
+	h := &askHost{fakeHost: *newHost(t, 2)}
+	c := &Ctx{Controller: 0}
+	effChooseCard(h, c, choose)
+	if h.asked != nil || len(c.Chosen) != 0 {
+		t.Fatalf("empty ChooseCard asked %+v chose %+v", h.asked, c.Chosen)
+	}
+}
+
+// TestRepeatEachPlayerLoopKeepsRememberedCardsButNotTheTriggerObject: a
+// player loop's iteration sees the cards the resolution remembered (Forge
+// swaps out only remembered players) but not the object a trigger captured:
+// Archfiend of Despair's end-step trigger must not make its own controller
+// lose life through Defined$ Remembered.
+func TestRepeatEachPlayerLoopKeepsRememberedCardsButNotTheTriggerObject(t *testing.T) {
+	card, sa := corpusSA(t, "Archfiend of Despair", "RepeatOpps")
+	h := newHost(t, 2)
+	src := h.g.AddObject(card, 0)
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: src.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	captured := []state.Target{{Obj: src.ID}}
+	c := &Ctx{Source: src.ID, Controller: 0, Remembered: copyTargets(captured), Captured: copyTargets(captured),
+		SVars: map[string]string{"TrigLoseLife": "DB$ LoseLife | Defined$ Remembered | LifeAmount$ 1"}}
+	effRepeatEach(h, c, sa)
+	if h.g.Players[0].Life != 20 || h.g.Players[1].Life != 19 {
+		t.Fatalf("life = [%d %d], want [20 19]", h.g.Players[0].Life, h.g.Players[1].Life)
+	}
+
+	// A remembered (not captured) card stays visible to each iteration.
+	relic := h.g.AddObject(mkCard(t, "Name:Relic\nTypes:Artifact\nOracle:x\n"), 0)
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: relic.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	c = &Ctx{Source: src.ID, Controller: 0, Remembered: []state.Target{{Obj: src.ID}, {Obj: relic.ID}}, Captured: copyTargets(captured),
+		SVars: map[string]string{"TrigLoseLife": "DB$ Destroy | Defined$ Remembered"}}
+	effRepeatEach(h, c, sa)
+	if rz, sz := h.g.Obj(relic.ID).Zone, h.g.Obj(src.ID).Zone; rz != state.ZGraveyard || sz != state.ZBattlefield {
+		t.Fatalf("relic zone %v source zone %v, want the remembered relic destroyed and the trigger source kept", rz, sz)
 	}
 }

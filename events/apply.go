@@ -41,7 +41,7 @@ func Apply(g *state.Game, e Event) {
 	case ControlChange:
 		if validPlayer(g, e.Player) {
 			if o := g.Obj(e.Obj); o != nil {
-				o.Controller = e.Player
+				changeControl(g, o, e.Player)
 			}
 		}
 
@@ -725,6 +725,45 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		}
 		o.AttachedTo = 0
 	}
+}
+
+// changeControl gives o to controller p. The battlefield is keyed by
+// controller (zoneOwner), so a permanent moves from its old controller's list
+// to the new one's, the way Forge's controllerChangeZoneCorrection does;
+// every per-controller reader (untap step, attackers, blockers, mana and
+// activation offers, statics, projections) then sees it under its controller.
+// The stack is one shared list, so a spell only changes its Controller.
+//
+// On the battlefield a control change also:
+//   - removes the permanent from combat (CR 506.4): it stops attacking, loses
+//     its blockers, and attackers it blocked keep a zero tombstone so they stay
+//     blocked (CR 509.1h), exactly as a departing blocker does in Move;
+//   - makes it summoning sick (CR 302.6): its new controller has not controlled
+//     it continuously since their most recent turn began. TurnChange clears it
+//     from the active player's list, i.e. at its new controller's next turn.
+func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
+	if o.Controller == p {
+		return
+	}
+	if o.Zone == state.ZBattlefield {
+		remove(g, o.ID, state.ZBattlefield, o.Controller)
+		g.SetZone(state.ZBattlefield, p, append(g.Zone(state.ZBattlefield, p), o.ID))
+		for i := range g.Objs {
+			other := &g.Objs[i]
+			if other.ID == o.ID {
+				continue
+			}
+			for j, blocker := range other.BlockedBy {
+				if blocker == o.ID {
+					other.BlockedBy[j] = 0
+				}
+			}
+		}
+		o.IsAttacking = false
+		o.BlockedBy = nil
+		o.SummonSick = true
+	}
+	o.Controller = p
 }
 
 // validPlayer reports whether p indexes an existing seat.

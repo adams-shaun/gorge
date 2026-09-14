@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"sync"
 	"testing"
 
@@ -117,7 +118,7 @@ func TestCommandeerChangesTargetAfterAnsweredChoice(t *testing.T) {
 			break
 		}
 	}
-	if got := target.Targets; len(got) != 1 || !got[0].IsPlayer || got[0].Player != 0 {
+	if got := e.G.Obj(target.ID).Targets; len(got) != 1 || !got[0].IsPlayer || got[0].Player != 0 {
 		t.Fatalf("Commandeer target = %+v, want player 0", got)
 	}
 }
@@ -156,8 +157,8 @@ func TestWishclawChosenPlayerGainsControl(t *testing.T) {
 		t.Fatalf("Wishclaw player choice = %+v", d)
 	}
 	submitChoices(t, e, d.Options[0].Index)
-	if wish.Controller != 1 {
-		t.Fatalf("Wishclaw controller = %d, want 1", wish.Controller)
+	if e.G.Obj(wish.ID).Controller != 1 {
+		t.Fatalf("Wishclaw controller = %d, want 1", e.G.Obj(wish.ID).Controller)
 	}
 }
 
@@ -193,18 +194,18 @@ func TestFlayerTemporaryControlExpiresAndZoneChangeResetsControl(t *testing.T) {
 	}
 	sa := cards.ResolveSVar(flayer.Face().SVars, "TrigGainControl")
 	effects.Resolve(e, &effects.Ctx{Source: flayer.ID, Controller: 0, Targets: []state.Target{{Obj: target.ID}}, SVars: flayer.Face().SVars}, sa)
-	if target.Controller != 0 {
-		t.Fatalf("Flayer did not gain control: %d", target.Controller)
+	if e.G.Obj(target.ID).Controller != 0 {
+		t.Fatalf("Flayer did not gain control: %d", e.G.Obj(target.ID).Controller)
 	}
 	e.EndOfTurnCleanup()
-	if target.Controller != 1 {
-		t.Fatalf("temporary control did not expire: %d", target.Controller)
+	if e.G.Obj(target.ID).Controller != 1 {
+		t.Fatalf("temporary control did not expire: %d", e.G.Obj(target.ID).Controller)
 	}
 	e.emit(events.Event{Kind: events.ControlChange, Obj: target.ID, Player: 0})
 	e.emit(events.Event{Kind: events.MoveZone, Obj: target.ID, From: state.ZBattlefield, To: state.ZGraveyard})
 	e.emit(events.Event{Kind: events.MoveZone, Obj: target.ID, From: state.ZGraveyard, To: state.ZBattlefield})
-	if target.Controller != 1 {
-		t.Fatalf("zone change retained stolen control: %d", target.Controller)
+	if e.G.Obj(target.ID).Controller != 1 {
+		t.Fatalf("zone change retained stolen control: %d", e.G.Obj(target.ID).Controller)
 	}
 }
 
@@ -362,21 +363,21 @@ func TestVedalkenShacklesControlEndsWhenSourceUntaps(t *testing.T) {
 	e, shackles, victim := controlBoard(t, 720, "Vedalken Shackles")
 	sa := shackles.Face().Abilities[abilityIndex(t, shackles.Card, "GainControl")]
 	stealWith(t, e, shackles, sa, 0, victim.ID)
-	if victim.Controller != 1 {
-		t.Fatalf("untapped Shackles stole the creature (CR 611.2b): controller %d", victim.Controller)
+	if e.G.Obj(victim.ID).Controller != 1 {
+		t.Fatalf("untapped Shackles stole the creature (CR 611.2b): controller %d", e.G.Obj(victim.ID).Controller)
 	}
 	e.emit(events.Event{Kind: events.Tap, Obj: shackles.ID})
 	stealWith(t, e, shackles, sa, 0, victim.ID)
-	if victim.Controller != 0 {
-		t.Fatalf("tapped Shackles did not steal: controller %d", victim.Controller)
+	if e.G.Obj(victim.ID).Controller != 0 {
+		t.Fatalf("tapped Shackles did not steal: controller %d", e.G.Obj(victim.ID).Controller)
 	}
 	e.EndOfTurnCleanup()
-	if victim.Controller != 0 {
-		t.Fatalf("Shackles control ended at cleanup while still tapped: controller %d", victim.Controller)
+	if e.G.Obj(victim.ID).Controller != 0 {
+		t.Fatalf("Shackles control ended at cleanup while still tapped: controller %d", e.G.Obj(victim.ID).Controller)
 	}
 	e.emit(events.Event{Kind: events.Untap, Obj: shackles.ID})
-	if victim.Controller != 1 {
-		t.Fatalf("control survived Shackles untapping: controller %d", victim.Controller)
+	if e.G.Obj(victim.ID).Controller != 1 {
+		t.Fatalf("control survived Shackles untapping: controller %d", e.G.Obj(victim.ID).Controller)
 	}
 }
 
@@ -389,16 +390,16 @@ func TestKelloggControlEndsWhenSourceLeavesOrChangesHands(t *testing.T) {
 	e, kellogg, victim := controlBoard(t, 721, "Kellogg, Dangerous Mind")
 	sa := kellogg.Face().Abilities[abilityIndex(t, kellogg.Card, "GainControl")]
 	stealWith(t, e, kellogg, sa, 0, victim.ID)
-	if victim.Controller != 0 {
-		t.Fatalf("Kellogg did not steal: controller %d", victim.Controller)
+	if e.G.Obj(victim.ID).Controller != 0 {
+		t.Fatalf("Kellogg did not steal: controller %d", e.G.Obj(victim.ID).Controller)
 	}
 	e.EndOfTurnCleanup()
-	if victim.Controller != 0 {
-		t.Fatalf("Kellogg's control ended at cleanup: controller %d", victim.Controller)
+	if e.G.Obj(victim.ID).Controller != 0 {
+		t.Fatalf("Kellogg's control ended at cleanup: controller %d", e.G.Obj(victim.ID).Controller)
 	}
 	e.emit(events.Event{Kind: events.ControlChange, Obj: kellogg.ID, Player: 1})
-	if victim.Controller != 1 {
-		t.Fatalf("control survived Kellogg changing hands: controller %d", victim.Controller)
+	if e.G.Obj(victim.ID).Controller != 1 {
+		t.Fatalf("control survived Kellogg changing hands: controller %d", e.G.Obj(victim.ID).Controller)
 	}
 
 	e, kellogg, victim = controlBoard(t, 722, "Kellogg, Dangerous Mind")
@@ -406,12 +407,12 @@ func TestKelloggControlEndsWhenSourceLeavesOrChangesHands(t *testing.T) {
 	stealWith(t, e, flayer, cards.ResolveSVar(flayer.Face().SVars, "TrigGainControl"), 0, victim.ID)
 	stealWith(t, e, kellogg, sa, 0, victim.ID)
 	e.EndOfTurnCleanup()
-	if victim.Controller != 0 {
-		t.Fatalf("earlier EOT steal expiring overrode Kellogg's later effect: controller %d", victim.Controller)
+	if e.G.Obj(victim.ID).Controller != 0 {
+		t.Fatalf("earlier EOT steal expiring overrode Kellogg's later effect: controller %d", e.G.Obj(victim.ID).Controller)
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: kellogg.ID, From: state.ZBattlefield, To: state.ZGraveyard})
-	if victim.Controller != 1 {
-		t.Fatalf("control survived Kellogg leaving play: controller %d", victim.Controller)
+	if e.G.Obj(victim.ID).Controller != 1 {
+		t.Fatalf("control survived Kellogg leaving play: controller %d", e.G.Obj(victim.ID).Controller)
 	}
 }
 
@@ -430,14 +431,14 @@ func TestPowerOfPersuasionControlLastsThroughYourNextTurn(t *testing.T) {
 			e.emit(events.Event{Kind: events.TurnChange, Player: active, Amount: int32(turn + 1)})
 		}
 		e.EndOfTurnCleanup()
-		if victim.Controller != 0 {
-			t.Fatalf("control ended at the cleanup of turn %d: controller %d", turn+1, victim.Controller)
+		if e.G.Obj(victim.ID).Controller != 0 {
+			t.Fatalf("control ended at the cleanup of turn %d: controller %d", turn+1, e.G.Obj(victim.ID).Controller)
 		}
 	}
 	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 3})
 	e.EndOfTurnCleanup()
-	if victim.Controller != 1 {
-		t.Fatalf("control survived the end of the controller's next turn: controller %d", victim.Controller)
+	if e.G.Obj(victim.ID).Controller != 1 {
+		t.Fatalf("control survived the end of the controller's next turn: controller %d", e.G.Obj(victim.ID).Controller)
 	}
 }
 
@@ -448,41 +449,43 @@ func TestOldManOfTheSeaStaticCommandCheck(t *testing.T) {
 	sa := oldMan.Face().Abilities[abilityIndex(t, oldMan.Card, "GainControl")]
 	e.emit(events.Event{Kind: events.Tap, Obj: oldMan.ID})
 	stealWith(t, e, oldMan, sa, 0, victim.ID)
-	if victim.Controller != 0 {
-		t.Fatalf("Old Man did not steal a 1/1: controller %d", victim.Controller)
+	if e.G.Obj(victim.ID).Controller != 0 {
+		t.Fatalf("Old Man did not steal a 1/1: controller %d", e.G.Obj(victim.ID).Controller)
 	}
 	e.emit(events.Event{Kind: events.CounterChange, Obj: victim.ID, Counter: "P1P1", Amount: 1})
-	if victim.Controller != 0 {
-		t.Fatalf("control ended while power 2 <= Old Man's 2: controller %d", victim.Controller)
+	if e.G.Obj(victim.ID).Controller != 0 {
+		t.Fatalf("control ended while power 2 <= Old Man's 2: controller %d", e.G.Obj(victim.ID).Controller)
 	}
 	e.emit(events.Event{Kind: events.CounterChange, Obj: victim.ID, Counter: "P1P1", Amount: 1})
-	if victim.Controller != 1 {
-		t.Fatalf("control survived power 3 > Old Man's 2: controller %d", victim.Controller)
+	if e.G.Obj(victim.ID).Controller != 1 {
+		t.Fatalf("control survived power 3 > Old Man's 2: controller %d", e.G.Obj(victim.ID).Controller)
 	}
 }
 
 // TestControlEndsAtEndOfCombatAndWhenAuraUnattaches covers the two remaining
 // LoseControl$ terms with their real scripts. Their triggers' bindings are
 // supplied directly, because the trigger modes themselves (AttackersDeclared
-// with AttackingPlayer$, Attached) and Defined$ TriggeredAttackingPlayer /
-// TriggeredTarget are not modelled: Tahngarth's effect is resolved as its
-// attacking opponent controls it, and Eriette's with the Aura as the
-// triggering source and the enchanted permanent as its target.
+// with AttackingPlayer$, Attached) are not what is under test: Tahngarth's
+// effect is resolved with the attacking opponent as TriggeredAttackingPlayer,
+// and Eriette's with the Aura as the triggering source and the enchanted
+// permanent as its target.
 func TestControlEndsAtEndOfCombatAndWhenAuraUnattaches(t *testing.T) {
 	e, tahngarth, _ := controlBoard(t, 725, "Tahngarth, First Mate")
 	sa := cards.ResolveSVar(tahngarth.Face().SVars, "TrigGainControl")
 	e.emit(events.Event{Kind: events.StepChange, Step: state.StepDeclareAttackers})
-	effects.Resolve(e, &effects.Ctx{Source: tahngarth.ID, Controller: 1, SVars: tahngarth.Face().SVars}, sa)
-	if tahngarth.Controller != 1 {
-		t.Fatalf("Tahngarth not given to the attacking player: controller %d", tahngarth.Controller)
+	ctx := &effects.Ctx{Source: tahngarth.ID, Controller: 0, SVars: tahngarth.Face().SVars}
+	ctx.AttackingPlayer = state.Target{Player: 1, IsPlayer: true}
+	effects.Resolve(e, ctx, sa)
+	if e.G.Obj(tahngarth.ID).Controller != 1 {
+		t.Fatalf("Tahngarth not given to the attacking player: controller %d", e.G.Obj(tahngarth.ID).Controller)
 	}
 	e.setStep(state.StepEndCombat)
-	if tahngarth.Controller != 1 {
-		t.Fatalf("control ended before the end of combat step ended: controller %d", tahngarth.Controller)
+	if e.G.Obj(tahngarth.ID).Controller != 1 {
+		t.Fatalf("control ended before the end of combat step ended: controller %d", e.G.Obj(tahngarth.ID).Controller)
 	}
 	e.setStep(state.StepMain2)
-	if tahngarth.Controller != 0 {
-		t.Fatalf("control survived the end of combat: controller %d", tahngarth.Controller)
+	if e.G.Obj(tahngarth.ID).Controller != 0 {
+		t.Fatalf("control survived the end of combat: controller %d", e.G.Obj(tahngarth.ID).Controller)
 	}
 
 	e, eriette, victim := controlBoard(t, 726, "Eriette, the Beguiler")
@@ -490,19 +493,19 @@ func TestControlEndsAtEndOfCombatAndWhenAuraUnattaches(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: aura.ID, From: state.ZLibrary, To: state.ZBattlefield})
 	e.emit(events.Event{Kind: events.Attach, Obj: aura.ID, IDs: []state.ObjID{victim.ID}})
 	sa = cards.ResolveSVar(eriette.Face().SVars, "TrigGainControl")
-	ctx := &effects.Ctx{Source: eriette.ID, Controller: 0, Targets: []state.Target{{Obj: victim.ID}}, SVars: eriette.Face().SVars}
+	ctx = &effects.Ctx{Source: eriette.ID, Controller: 0, Targets: []state.Target{{Obj: victim.ID}}, SVars: eriette.Face().SVars}
 	ctx.TriggerSource = aura.ID
 	effects.Resolve(e, ctx, sa)
-	if victim.Controller != 0 {
-		t.Fatalf("Eriette did not gain control: controller %d", victim.Controller)
+	if e.G.Obj(victim.ID).Controller != 0 {
+		t.Fatalf("Eriette did not gain control: controller %d", e.G.Obj(victim.ID).Controller)
 	}
 	e.EndOfTurnCleanup()
-	if victim.Controller != 0 {
-		t.Fatalf("Aura-bound control ended at cleanup: controller %d", victim.Controller)
+	if e.G.Obj(victim.ID).Controller != 0 {
+		t.Fatalf("Aura-bound control ended at cleanup: controller %d", e.G.Obj(victim.ID).Controller)
 	}
 	e.emit(events.Event{Kind: events.Attach, Obj: aura.ID})
-	if victim.Controller != 1 {
-		t.Fatalf("control survived the Aura becoming unattached: controller %d", victim.Controller)
+	if e.G.Obj(victim.ID).Controller != 1 {
+		t.Fatalf("control survived the Aura becoming unattached: controller %d", e.G.Obj(victim.ID).Controller)
 	}
 }
 
@@ -527,12 +530,344 @@ func TestChaosDefilerRemembersEveryAskedIteration(t *testing.T) {
 	e.resolveTop()
 	for _, p := range []state.PlayerID{1, 2} {
 		d := e.Pending()
-		if d == nil || d.Kind != decision.KChoose || d.Player != 0 || len(d.Options) != 1 || d.Options[0].Obj != relics[p] {
-			t.Fatalf("iteration for opponent %d asked %+v, want only relic %d", p, d, relics[p])
+		// Iteration 1 offers only opponent 1's relic. Iteration 2 also offers
+		// it: as in Forge, the card iteration 1 remembered stays remembered,
+		// so ControlledBy Remembered names its controller as well.
+		want := 1
+		if p == 2 {
+			want = 2
 		}
-		submitChoices(t, e, d.Options[0].Index)
+		pick := -1
+		if d != nil {
+			for _, o := range d.Options {
+				if o.Obj == relics[p] {
+					pick = o.Index
+				}
+			}
+		}
+		if d == nil || d.Kind != decision.KChoose || d.Player != 0 || len(d.Options) != want || pick < 0 {
+			t.Fatalf("iteration for opponent %d asked %+v, want %d option(s) including relic %d", p, d, want, relics[p])
+		}
+		submitChoices(t, e, pick)
 	}
 	if z1, z2 := e.G.Obj(relics[1]).Zone, e.G.Obj(relics[2]).Zone; z1 != state.ZGraveyard || z2 != state.ZBattlefield {
 		t.Fatalf("relic zones = [%v %v], want opponent 1's destroyed and opponent 2's kept", z1, z2)
+	}
+}
+
+// stealEngine is a two-seat game at Main 1 of turn 1 with seat 0 active.
+func stealEngine(t *testing.T, seed uint64) *Engine {
+	t.Helper()
+	e := New(seatZeroStart(Config{Seed: seed, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}}))
+	e.Advance()
+	toMain1(t, e)
+	return e
+}
+
+func inZone(e *Engine, z state.Zone, p state.PlayerID, id state.ObjID) bool {
+	return containsObj(e.G.Zone(z, p), id)
+}
+
+func pendingFrom(e *Engine, source state.ObjID) []pendingTrigger {
+	var out []pendingTrigger
+	for _, pt := range e.pendingTriggers {
+		if pt.Source == source {
+			out = append(out, pt)
+		}
+	}
+	return out
+}
+
+const diesToYou = "Name:Victim\nTypes:Creature Bear\nPT:2/2\n" +
+	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | Execute$ TrigLife | TriggerDescription$ When this dies, you gain 1 life.\n" +
+	"SVar:TrigLife:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+
+// TestStolenCreatureLivesInItsControllersBattlefield drives a real Act of
+// Treason steal through attack, death and reanimation, checking the game's
+// zone invariants at every step. A control change moves the permanent to its
+// new controller's battlefield list (every per-controller reader -- attackers,
+// the untap step, statics -- sees it there), takes it out of combat (CR
+// 506.4), makes it summoning sick (CR 302.6) unless AddKWs$ grants haste,
+// and a leaves-the-battlefield trigger is controlled by the player who
+// controlled it as it died (CR 603.3a/603.10a).
+func TestStolenCreatureLivesInItsControllersBattlefield(t *testing.T) {
+	e := stealEngine(t, 731)
+	victim := onBoardReady(t, e, 1, diesToYou)
+	e.emit(events.Event{Kind: events.Tap, Obj: victim})
+	testutil.CheckInvariants(t, e.G, nil, "setup")
+
+	treason := e.G.AddObject(choiceCorpusCard(t, "Act of Treason"), 0)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: treason.ID, From: state.ZLibrary, To: state.ZStack})
+	effects.Resolve(e, &effects.Ctx{Source: treason.ID, Controller: 0, Targets: []state.Target{{Obj: victim}},
+		SVars: treason.Face().SVars}, treason.Face().SpellAbility())
+	testutil.CheckInvariants(t, e.G, nil, "after steal")
+	v := e.G.Obj(victim)
+	if v.Controller != 0 || !inZone(e, state.ZBattlefield, 0, victim) || inZone(e, state.ZBattlefield, 1, victim) {
+		t.Fatalf("stolen creature controller %d, in lists [0:%v 1:%v]", v.Controller,
+			inZone(e, state.ZBattlefield, 0, victim), inZone(e, state.ZBattlefield, 1, victim))
+	}
+	if v.Tapped || !v.SummonSick || !e.HasKeyword(victim, "Haste") || !e.canAttack(victim) {
+		t.Fatalf("Act of Treason: tapped=%v sick=%v haste=%v canAttack=%v, want untapped, sick, hasty and able to attack",
+			v.Tapped, v.SummonSick, e.HasKeyword(victim, "Haste"), e.canAttack(victim))
+	}
+
+	passUntilKind(t, e, decision.KAttackers, 40)
+	d := e.Pending()
+	pick := -1
+	for _, o := range d.Options {
+		if o.Obj == victim && pick < 0 {
+			pick = o.Index
+		}
+	}
+	if pick < 0 {
+		t.Fatalf("thief was not offered the stolen creature as an attacker: %+v", d.Options)
+	}
+	submitChoices(t, e, pick)
+	testutil.CheckInvariants(t, e.G, nil, "after attack")
+	if !v.IsAttacking {
+		t.Fatal("stolen creature is not attacking")
+	}
+
+	// CR 506.4: a control change removes it from combat.
+	e.emit(events.Event{Kind: events.ControlChange, Obj: victim, Player: 1})
+	testutil.CheckInvariants(t, e.G, nil, "control returned mid-combat")
+	if v.IsAttacking || !inZone(e, state.ZBattlefield, 1, victim) {
+		t.Fatalf("returned creature attacking=%v in owner's list=%v", v.IsAttacking, inZone(e, state.ZBattlefield, 1, victim))
+	}
+	e.emit(events.Event{Kind: events.ControlChange, Obj: victim, Player: 0})
+
+	e.emit(events.Event{Kind: events.MoveZone, Obj: victim, From: state.ZBattlefield, To: state.ZGraveyard})
+	testutil.CheckInvariants(t, e.G, nil, "after death")
+	if !inZone(e, state.ZGraveyard, 1, victim) || inZone(e, state.ZBattlefield, 0, victim) || inZone(e, state.ZBattlefield, 1, victim) {
+		t.Fatal("dead stolen creature is not only in its owner's graveyard")
+	}
+	if pts := pendingFrom(e, victim); len(pts) != 1 || pts[0].Controller != 0 {
+		t.Fatalf("dies trigger instances = %+v, want exactly one controlled by the taker", pts)
+	}
+
+	e.emit(events.Event{Kind: events.MoveZone, Obj: victim, From: state.ZGraveyard, To: state.ZBattlefield})
+	testutil.CheckInvariants(t, e.G, nil, "after reanimation")
+	if v.Controller != 1 || !inZone(e, state.ZBattlefield, 1, victim) || e.HasKeyword(victim, "Haste") {
+		t.Fatalf("reanimated creature controller=%d haste=%v, want a new object under its owner", v.Controller, e.HasKeyword(victim, "Haste"))
+	}
+	e.EndOfTurnCleanup()
+	testutil.CheckInvariants(t, e.G, nil, "after cleanup")
+	if v.Controller != 1 {
+		t.Fatalf("expired Act of Treason moved the new object: controller %d", v.Controller)
+	}
+}
+
+// TestStolenPermanentUntapsAndSickensUnderItsController: a permanent control
+// change on the taker's own turn leaves the creature unable to attack (CR
+// 302.6); the owner's untap step no longer untaps it and the taker's does,
+// which is also when its summoning sickness ends.
+func TestStolenPermanentUntapsAndSickensUnderItsController(t *testing.T) {
+	e := stealEngine(t, 732)
+	victim := onBoardReady(t, e, 1, "Name:Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e.emit(events.Event{Kind: events.ControlChange, Obj: victim, Player: 0})
+	testutil.CheckInvariants(t, e.G, nil, "after steal")
+	if e.canAttack(victim) {
+		t.Fatal("a creature taken this turn can attack without haste")
+	}
+	e.emit(events.Event{Kind: events.Tap, Obj: victim})
+	e.beginTurn(1)
+	testutil.CheckInvariants(t, e.G, nil, "owner's untap")
+	if v := e.G.Obj(victim); !v.Tapped || !v.SummonSick {
+		t.Fatalf("owner's untap step touched the taker's creature: tapped=%v sick=%v", v.Tapped, v.SummonSick)
+	}
+	e.beginTurn(0)
+	testutil.CheckInvariants(t, e.G, nil, "taker's untap")
+	if v := e.G.Obj(victim); v.Tapped || v.SummonSick || !e.canAttack(victim) {
+		t.Fatalf("taker's turn: tapped=%v sick=%v canAttack=%v", v.Tapped, v.SummonSick, e.canAttack(victim))
+	}
+}
+
+// TestStolenCreatureDeathAndSacrificeUseLastKnownController: "a creature you
+// control dies" and "whenever you sacrifice a permanent" (Evendo Brushrazer)
+// see a stolen permanent as its taker's as it leaves, although the move has
+// already returned it to its owner.
+func TestStolenCreatureDeathAndSacrificeUseLastKnownController(t *testing.T) {
+	e := stealEngine(t, 733)
+	watch := "Name:Watch\nTypes:Enchantment\n" +
+		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature.%s | TriggerZones$ Battlefield | Execute$ TrigLife | TriggerDescription$ x\n" +
+		"SVar:TrigLife:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+	takerYou := onBoard(t, e, 0, strings.ReplaceAll(watch, "%s", "YouCtrl"))
+	takerOpp := onBoard(t, e, 0, strings.ReplaceAll(watch, "%s", "OppCtrl"))
+	ownerYou := onBoard(t, e, 1, strings.ReplaceAll(watch, "%s", "YouCtrl"))
+	victim := onBoardReady(t, e, 1, "Name:Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e.emit(events.Event{Kind: events.ControlChange, Obj: victim, Player: 0})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: victim, From: state.ZBattlefield, To: state.ZGraveyard})
+	if len(pendingFrom(e, takerYou)) != 1 || len(pendingFrom(e, takerOpp)) != 0 || len(pendingFrom(e, ownerYou)) != 0 {
+		t.Fatalf("dies watchers fired taker-YouCtrl=%d taker-OppCtrl=%d owner-YouCtrl=%d, want 1/0/0",
+			len(pendingFrom(e, takerYou)), len(pendingFrom(e, takerOpp)), len(pendingFrom(e, ownerYou)))
+	}
+
+	e = stealEngine(t, 734)
+	takerBrush := onBoardCard(t, e, 0, choiceCorpusCard(t, "Evendo Brushrazer"))
+	ownerBrush := onBoardCard(t, e, 1, choiceCorpusCard(t, "Evendo Brushrazer"))
+	relic := onBoard(t, e, 1, "Name:Relic\nTypes:Artifact\nOracle:x\n")
+	e.emit(events.Event{Kind: events.ControlChange, Obj: relic, Player: 0})
+	e.emit(events.Sacrifice(relic))
+	if len(pendingFrom(e, takerBrush)) != 1 || len(pendingFrom(e, ownerBrush)) != 0 {
+		t.Fatalf("Brushrazer fired taker=%d owner=%d, want the taker's sacrifice only",
+			len(pendingFrom(e, takerBrush)), len(pendingFrom(e, ownerBrush)))
+	}
+}
+
+// TestMoxDiamondReanimatedFinishesTheReanimatingSpell: a replacement that
+// asks while ANOTHER spell is resolving (a sorcery returning Mox Diamond)
+// resumes from that spell, so after the discard answer the rest of its chain
+// (gain 3 life) still runs and the sorcery leaves the stack.
+func TestMoxDiamondReanimatedFinishesTheReanimatingSpell(t *testing.T) {
+	e := stealEngine(t, 735)
+	mox := e.G.AddObject(choiceCorpusCard(t, "Mox Diamond"), 0)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: mox.ID, From: state.ZLibrary, To: state.ZGraveyard})
+	seedLands(t, e, 0, 3)
+	spell := e.G.AddObject(card(t, "Name:Return\nTypes:Sorcery\nManaCost:B\n"+
+		"A:SP$ ChangeZone | ValidTgts$ Artifact | TgtZone$ Graveyard | Origin$ Graveyard | Destination$ Battlefield | SubAbility$ DBGain\n"+
+		"SVar:DBGain:DB$ GainLife | Defined$ You | LifeAmount$ 3\nOracle:x\n"), 0)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: spell.ID, From: state.ZLibrary, To: state.ZStack})
+	e.emit(events.Event{Kind: events.TargetsChosen, Obj: spell.ID, IDs: []state.ObjID{mox.ID}})
+	life := e.G.Players[0].Life
+	e.resolveTop()
+	d := e.Pending()
+	if d == nil || d.ResumeKind != "discard" {
+		t.Fatalf("Mox Diamond's replacement did not ask: %+v", d)
+	}
+	land := -1
+	for _, o := range d.Options {
+		if o.Kind == "discard" && land < 0 {
+			land = o.Index
+		}
+	}
+	submitChoices(t, e, land)
+	if z := e.G.Obj(mox.ID).Zone; z != state.ZBattlefield {
+		t.Fatalf("Mox zone = %v, want battlefield", z)
+	}
+	if got := e.G.Players[0].Life; got != life+3 {
+		t.Fatalf("life = %d, want %d: the reanimating spell's chain stopped at the replacement", got, life+3)
+	}
+	if z := e.G.Obj(spell.ID).Zone; z != state.ZGraveyard || len(e.G.Stack) != 0 {
+		t.Fatalf("sorcery zone = %v stack = %v, want graveyard and an empty stack", z, e.G.Stack)
+	}
+}
+
+// TestDeflectingSwatOffersTheSpellControllersLegalTargets: CR 115.7 -- the
+// new target must be legal for the redirected spell, judged from ITS
+// controller's side. An opponent's "destroy target creature an opponent
+// controls" aimed at one of our creatures may be moved to our other creature,
+// never to the caster's own.
+func TestDeflectingSwatOffersTheSpellControllersLegalTargets(t *testing.T) {
+	e := stealEngine(t, 736)
+	mineA := onBoard(t, e, 0, "Name:A\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	mineB := onBoard(t, e, 0, "Name:B\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	theirs := onBoard(t, e, 1, "Name:C\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	murder := e.G.AddObject(card(t, "Name:Murder\nTypes:Instant\nManaCost:B\nA:SP$ Destroy | ValidTgts$ Creature.OppCtrl\nOracle:x\n"), 1)
+	swat := e.G.AddObject(choiceCorpusCard(t, "Deflecting Swat"), 0)
+	for _, id := range []state.ObjID{murder.ID, swat.ID} {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZStack})
+	}
+	e.emit(events.Event{Kind: events.TargetsChosen, Obj: murder.ID, IDs: []state.ObjID{mineA}})
+	e.emit(events.Event{Kind: events.TargetsChosen, Obj: swat.ID, IDs: []state.ObjID{murder.ID}})
+	effects.Resolve(e, &effects.Ctx{Source: swat.ID, Controller: 0, Targets: []state.Target{{Obj: murder.ID}},
+		SVars: swat.Face().SVars}, swat.Face().SpellAbility())
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("Deflecting Swat did not ask: %+v", d)
+	}
+	offered := map[state.ObjID]int{}
+	for _, o := range d.Options {
+		offered[o.Obj] = o.Index
+	}
+	if _, ok := offered[theirs]; ok {
+		t.Fatalf("offered the caster's own creature, illegal for its spell: %+v", d.Options)
+	}
+	idx, ok := offered[mineB]
+	if !ok {
+		t.Fatalf("did not offer our other creature, legal for the spell: %+v", d.Options)
+	}
+	submitChoices(t, e, idx)
+	if got := e.G.Obj(murder.ID).Targets; len(got) != 1 || got[0].Obj != mineB {
+		t.Fatalf("Murder targets = %+v, want creature %d", got, mineB)
+	}
+}
+
+// TestBraidsRepeatEachSeesTheSacrificedCard drives Braids, Arisen Nightmare's
+// real end-step trigger: its controller sacrifices a matching permanent (not
+// Braids itself -- SacValid$ without Defined$ is "you sacrifice"), the
+// sacrificed card is remembered, and each opponent's iteration still sees
+// that card beside the loop's player. The opponent cannot sacrifice here, so
+// they lose 2 life and Braids's controller draws.
+func TestBraidsRepeatEachSeesTheSacrificedCard(t *testing.T) {
+	e := stealEngine(t, 737)
+	relic := onBoard(t, e, 0, "Name:Relic\nTypes:Artifact\nOracle:x\n")
+	braids := onBoardCard(t, e, 0, choiceCorpusCard(t, "Braids, Arisen Nightmare"))
+	hand, life := len(e.G.Zone(state.ZHand, 0)), e.G.Players[1].Life
+	e.emit(events.Event{Kind: events.TriggerPush, Obj: braids, Player: 0, Amount: 0})
+	e.resolveTop()
+	if e.G.Obj(braids).Zone != state.ZBattlefield || e.G.Obj(relic).Zone != state.ZGraveyard {
+		t.Fatalf("Braids zone %v relic zone %v, want Braids kept and the relic sacrificed",
+			e.G.Obj(braids).Zone, e.G.Obj(relic).Zone)
+	}
+	if got := e.G.Players[1].Life; got != life-2 {
+		t.Fatalf("opponent life = %d, want %d", got, life-2)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != hand+1 {
+		t.Fatalf("Braids controller hand = %d, want %d", got, hand+1)
+	}
+}
+
+// TestTriggeredManaGoesToTheDefinedPlayer: Defined$ TriggeredPlayer (Eladamri's
+// Vineyard, each player's first main phase) and Defined$ TriggeredActivator
+// (Tangleroot, whoever casts a creature spell) add the mana for THAT player,
+// and only for them. Over turns 1-3 with seat 0 starting, seat 0 has two
+// first main phases and seat 1 one.
+func TestTriggeredManaGoesToTheDefinedPlayer(t *testing.T) {
+	reg := choiceCorpusRegistry(t)
+	want := map[string][2]int32{"Eladamri's Vineyard": {4, 2}, "Tangleroot": {1, 1}}
+	for _, name := range []string{"Eladamri's Vineyard", "Tangleroot"} {
+		c, ok := reg.Lookup(name)
+		if !ok {
+			t.Fatalf("missing %s", name)
+		}
+		e := New(seatZeroStart(Config{Seed: 900, Names: []string{"a", "b"}, Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}}))
+		e.Advance()
+		onBoardCard(t, e, 0, c)
+		start := len(e.L.Events)
+		if name == "Tangleroot" {
+			for p := state.PlayerID(0); p < 2; p++ {
+				cr := e.G.AddObject(card(t, "Name:Bear\nTypes:Creature Bear\nManaCost:G\nPT:2/2\nOracle:x\n"), p)
+				e.emit(events.Event{Kind: events.MoveZone, Obj: cr.ID, From: state.ZLibrary, To: state.ZHand})
+				e.emit(events.Event{Kind: events.PutOnStack, Obj: cr.ID, Player: p, From: state.ZHand, To: state.ZStack, Text: "Bear"})
+				e.putTriggersOnStack()
+				for i := 0; i < 50 && len(e.G.Stack) > 0; i++ {
+					d := e.Pending()
+					if d == nil {
+						e.Advance()
+						continue
+					}
+					if d.Kind == decision.KPriority {
+						submitPass(t, e)
+						continue
+					}
+					ch := []int{}
+					for j := 0; j < d.Min; j++ {
+						ch = append(ch, j)
+					}
+					submitChoices(t, e, ch...)
+				}
+			}
+		}
+		driveToStepAll(t, e, 3, 0, state.StepMain2)
+		var sum [2]int32
+		for _, ev := range e.L.Events[start:] {
+			if ev.Kind == events.ManaAdd && int(ev.Player) < 2 {
+				sum[ev.Player] += ev.Amount
+			}
+		}
+		if sum != want[name] {
+			t.Errorf("%s mana by player = %v, want %v", name, sum, want[name])
+		}
 	}
 }
