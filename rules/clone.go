@@ -200,6 +200,12 @@ func (e *Engine) Clone() *Engine {
 		ma.discards = append([]state.ObjID(nil), e.manaDiscardActivation.discards...)
 		c.manaDiscardActivation = &ma
 	}
+	if e.manaUnlessActivation != nil {
+		ma := *e.manaUnlessActivation
+		ma.triggers = clonePendingTriggers(e.manaUnlessActivation.triggers)
+		ma.payers = append([]state.PlayerID(nil), e.manaUnlessActivation.payers...)
+		c.manaUnlessActivation = &ma
+	}
 	if e.cast != nil {
 		pc := *e.cast
 		pc.cost.Sac = append([]CostPart(nil), e.cast.cost.Sac...)

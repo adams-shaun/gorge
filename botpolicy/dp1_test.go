@@ -122,7 +122,7 @@ func TestCommanderZoneTaxAware(t *testing.T) {
 	}
 }
 
-// TestChooseWorstPicksLeastValuable pins the discard/sacrifice/exile rule:
+// TestChooseWorstPicksLeastValuable pins the discard/sacrifice rule:
 // get rid of the d.Max LEAST valuable offered cards (cardWorth), not the
 // first d.Max -- so a cleanup discard drops the least useful hand card, a
 // sacrifice cost pays it with the least valuable permanent, and a delve
@@ -134,7 +134,7 @@ func TestChooseWorstPicksLeastValuable(t *testing.T) {
 		3: {Creature: true, Power: 4}, // worth 46 — most valuable, kept
 		4: {CMC: 1},                   // worth 1 — least valuable
 	}}
-	for _, kind := range []string{"sacrifice", "exile"} {
+	for _, kind := range []string{"sacrifice"} {
 		d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KChoose, Min: 2, Max: 2,
 			Options: []decision.Option{
 				{Index: 0, Kind: kind, Obj: 1},

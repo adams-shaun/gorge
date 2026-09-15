@@ -59,17 +59,6 @@ func unlessProceed(h Host, c *Ctx, sa *cards.SA) bool {
 	if cost == "" {
 		return true
 	}
-	if sa.API == "Mana" {
-		// A mana ability is structurally off the stack (CR 605.3a) and its
-		// resolution is driven synchronously inside the payment window — a
-		// suspension there would leave the payment flow holding a pending
-		// decision with no stack object to resume and drop the mana. The
-		// one corpus carrier (Thomil, the Destroyer's "You may sacrifice a
-		// creature. If you do, add {B}{B}{B}") keeps its pre-gate
-		// behaviour: the UnlessCost$ is ignored and the mana is produced.
-		// A real mid-payment ask for a mana ability is not built.
-		return true
-	}
 	switched := strings.EqualFold(strings.TrimSpace(sa.Params["UnlessSwitched"]), "True")
 	// The answer and payer cursor are consumed (and cleared) at the top of
 	// every pass — the fx42 scoping discipline: an unless SA reached below a
@@ -81,7 +70,7 @@ func unlessProceed(h Host, c *Ctx, sa *cards.SA) bool {
 	c.UnlessPay = ""
 	idx := c.UnlessNext
 	c.UnlessNext = 0
-	payers := unlessPayers(h, c, sa)
+	payers := UnlessPayers(h, c, sa)
 	switch ans {
 	case "pay":
 		// Orientation: a pay runs the body exactly when the shape is
@@ -157,12 +146,12 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 	return false
 }
 
-// unlessPayers resolves the UnlessPayer$ selector to the players who get the
+// UnlessPayers resolves the UnlessPayer$ selector to the players who get the
 // pay offer, in deterministic AliveFrom order, deduplicated. The default
 // (Forge's own default) is TargetedController — the controller of the first
 // target — with the resolving controller as the fallback when nothing
 // resolvable is named, so an untargeted SA still asks today's player.
-func unlessPayers(h Host, c *Ctx, sa *cards.SA) []state.Target {
+func UnlessPayers(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	g := h.Game()
 	if g == nil {
 		return nil

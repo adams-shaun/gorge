@@ -320,6 +320,7 @@ type Engine struct {
 	manaActivation        *manaActivation
 	manaColorActivation   *manaColorActivation
 	manaDiscardActivation *manaDiscardActivation
+	manaUnlessActivation  *manaUnlessActivation
 
 	// cmdZone is the queue of parked commander zone changes (CR 903.9, Task
 	// m32, rules/replacement.go): MoveZone events a commander is about to

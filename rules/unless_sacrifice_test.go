@@ -3,6 +3,7 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
@@ -52,6 +53,39 @@ func answerUnlessPay(t *testing.T, e *Engine, pay bool) {
 		idx = 0
 	}
 	submitChoices(t, e, idx)
+}
+
+// TestManaUnlessCostThomil drives the corpus's activated-mana carrier. Mana
+// abilities are off-stack, so this proves their UnlessCost$ still asks and
+// charges rather than taking effects.Resolve's stack-resume shortcut.
+func TestManaUnlessCostThomil(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := stealEngine(t, 740)
+	thomil := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Thomil, the Destroyer"))
+	victim := onBoard(t, e, 0, "Name:Victim\nTypes:Creature\nOracle:x\n")
+	o := e.G.Obj(thomil)
+	var mana *cards.SA
+	for _, sa := range o.Face().ManaAbilities() {
+		if sa.Params["UnlessCost"] != "" {
+			mana = sa
+			break
+		}
+	}
+	if mana == nil {
+		t.Fatal("Thomil mana ability with UnlessCost missing from corpus")
+	}
+	e.resolveManaAbility(0, thomil, mana, false)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "mana_unless" {
+		t.Fatalf("pending = %+v, want off-stack mana unless-pay decision", d)
+	}
+	submitChoices(t, e, 0)
+	if e.G.Obj(victim).Zone != state.ZGraveyard {
+		t.Fatalf("sacrifice cost zone = %v, want graveyard", e.G.Obj(victim).Zone)
+	}
+	if got := e.G.Players[0].Pool[state.MB]; got != 3 {
+		t.Fatalf("black mana = %d, want 3 after paid switched unless", got)
+	}
 }
 
 // TestBraidsOpponentChoosesItsSacrifice drives Braids, Arisen Nightmare's real

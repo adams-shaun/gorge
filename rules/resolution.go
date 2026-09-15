@@ -265,6 +265,19 @@ func (e *Engine) SuspendRepeat(s effects.RepeatSuspension) {
 // first two also cache the chosen SVar names on the stack object so resolution
 // executes the announcement without asking again.
 func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
+	// An activated mana ability resolves outside the stack. Its UnlessCost$
+	// answer is therefore owned by the mana activation flow rather than an
+	// effects resume point, but is still recorded like every KModes answer.
+	if d.ResumeKind == "mana_unless" {
+		chosen := d.Chosen(in)
+		labels := chosenModeLabels(chosen)
+		e.emit(events.Event{Kind: events.ModeChosen, Obj: d.Source, Player: in.Player,
+			Text: strings.Join(labels, ",")})
+		e.choosing = chooseNone
+		e.answerManaUnless(chosen)
+		return
+	}
+
 	// CR 601.2b cast branch: the spell is already provisionally on the stack,
 	// but no targets have been selected and no cost has been paid. Record the
 	// answer on that spell, then resume the cast transaction at target choice.
