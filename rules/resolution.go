@@ -454,6 +454,25 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					Last: cur.last, HasLast: cur.hasLast}
 			}
 		case "unless_pay":
+			// Ward has non-mana payment forms (sacrifice, discard, tap and
+			// several keyword-specific costs). Its payment handler owns those
+			// choices; ordinary unless-pay effects retain the shared mana path.
+			if rp.sa.API == "Ward" {
+				if len(chosen) > 0 && chosen[0].Index == 0 {
+					paid, asked := e.beginWardPayment(rp, ctx)
+					if asked {
+						return
+					}
+					if paid {
+						ctx.UnlessPay = "pay"
+					} else {
+						ctx.UnlessPay = "decline"
+					}
+				} else {
+					ctx.UnlessPay = "decline"
+				}
+				break
+			}
 			// The payer agreed to pay (option 0 is "Pay … — make a copy") or
 			// not. Payment happens HERE, in rules, because payMana owns the
 			// cost grammar and emits the ManaAdd events — so a replay
@@ -487,6 +506,34 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				} else {
 					ctx.UnlessPay = "decline"
 				}
+			} else {
+				ctx.UnlessPay = "decline"
+			}
+		case "ward_mana":
+			if e.answerWardMana(rp, chosen, ctx) {
+				return
+			}
+		case "ward_alt":
+			// The Discard<...>:<mana> Ward alternative can choose its mana
+			// half even when it is not already floating; it receives the same
+			// CR 702.21a activation window as an ordinary numeric Ward.
+			if len(chosen) == 1 && chosen[0].Kind == "ward_mana" {
+				_, manaRaw, _ := strings.Cut(rp.sa.Params["UnlessCost"], ">:")
+				cost := ParseCost(manaRaw)
+				if e.payMana(chosen[0].Player, cost) {
+					ctx.UnlessPay = "pay"
+				} else if cost.hasManaPayment() && e.hasUntappedManaSource(chosen[0].Player) {
+					e.askWardMana(rp, chosen[0].Player, cost)
+					return
+				} else {
+					ctx.UnlessPay = "decline"
+				}
+				break
+			}
+			fallthrough
+		case "ward_blight", "ward_evidence", "ward_waterbend", "ward_tap", "ward_sac", "ward_discard":
+			if e.settleWardPayment(rp.kind, rp.sa, ctx, chosen) {
+				ctx.UnlessPay = "pay"
 			} else {
 				ctx.UnlessPay = "decline"
 			}
@@ -524,6 +571,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.ChoiceDone = true
+		case "sacrifice":
+			ctx.Sacrifice = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.Sacrifice = append(ctx.Sacrifice, o.Obj)
+				}
+			}
 		case "search":
 			// A hidden-library KChoose answer is an ordered subset. Preserve
 			// that order for ChangeZone's MoveZone sequence, and set a separate

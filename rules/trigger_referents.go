@@ -27,6 +27,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// the causing spell chose several targets. ev.Obj is that spell/ability.
 		c.TriggerTarget = state.Target{Obj: source}
 		c.TriggerSource = e.protectionSource(ev.Obj)
+		c.TriggerStack = ev.Obj
 	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":
 		// The damage source the causing event names: the published override
 		// when a DamageSource$ emitter set one (Kediss' DamageAll with

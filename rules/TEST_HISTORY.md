@@ -1,6 +1,9 @@
 # Test history — github.com/adams-shaun/gorge/rules
 
 budget_s: 300
+budget_s: 124
+budget_s: 53
+
 <!--
 A row far below the others is very likely VACUOUS, not fast. MEASURED
 2026-09-08 in .worktrees/fx14, same commit, same tool, back to back:
@@ -419,3 +422,13 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-14T19:59Z | 8c7335e+ | 44.4 | 661 | 1 | sadams |
 | 2026-09-15T00:48Z | 64d73d4+ | 51.6 | 661 | 1 | sadams |
 | 2026-09-15T21:45Z | 8c47fdb+ | 110.0 | 800 | 1 | sadams |
+| 2026-09-14T17:21Z | c9c2c65+ | 41.2 | 639 | 1 | sadams |
+| 2026-09-14T17:35Z | 7918ca3+ | 41.0 | 641 | 1 | sadams |
+| 2026-09-15T00:42Z | eb62b5a+ | 42.2 | 643 | 1 | sadams |
+| 2026-09-15T09:56Z | e65c990+ | 45.6 | 645 | 1 | sadams |
+| 2026-09-15T09:57Z | e65c990+ | 40.6 | 645 | 1 | sadams |
+| 2026-09-15T10:05Z | 91bd6a3+ | 44.2 | 646 | 1 | sadams |
+| 2026-09-15T10:12Z | 4664d77+ | 40.4 | 647 | 1 | sadams |
+| 2026-09-15T10:46Z | 65be547+ | 62.0 | 780 | 1 | sadams |
+| 2026-09-15T10:47Z | 92c6430+ | 63.9 | 780 | 1 | sadams |
+| 2026-09-15T22:42Z | f840f32+ | 117.0 | 813 | 1 | sadams |

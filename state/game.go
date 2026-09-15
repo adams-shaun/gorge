@@ -10,6 +10,8 @@ type Player struct {
 	Lost        bool
 	LandsPlayed int32
 	Pool        Mana
+	// Counters records player counters (currently poison, used by Ward costs).
+	Counters []Counter
 
 	// Commanders lists this seat's commanders, in Config order, sized at
 	// genesis and never grown. CmdCasts runs parallel to it: entry k counts
@@ -23,6 +25,32 @@ type Player struct {
 	Commanders []ObjID
 	CmdCasts   []int32
 	CmdDamage  []int32
+}
+
+// Counter returns this player's count of kind.
+func (p *Player) Counter(kind string) int32 {
+	for _, c := range p.Counters {
+		if c.Kind == kind {
+			return c.N
+		}
+	}
+	return 0
+}
+
+// AddCounter changes one player-counter kind, clamping at zero.
+func (p *Player) AddCounter(kind string, n int32) {
+	for i := range p.Counters {
+		if p.Counters[i].Kind == kind {
+			p.Counters[i].N += n
+			if p.Counters[i].N < 0 {
+				p.Counters[i].N = 0
+			}
+			return
+		}
+	}
+	if n > 0 {
+		p.Counters = append(p.Counters, Counter{Kind: kind, N: n})
+	}
 }
 
 // Game is the complete authoritative state. Everything a client sees is a
@@ -177,6 +205,7 @@ func (g *Game) Clone() *Game {
 	c.Players = make([]Player, len(g.Players))
 	for i := range g.Players {
 		c.Players[i] = g.Players[i]
+		c.Players[i].Counters = append([]Counter(nil), g.Players[i].Counters...)
 		c.Players[i].Commanders = append([]ObjID(nil), g.Players[i].Commanders...)
 		c.Players[i].CmdCasts = append([]int32(nil), g.Players[i].CmdCasts...)
 		c.Players[i].CmdDamage = append([]int32(nil), g.Players[i].CmdDamage...)
