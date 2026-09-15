@@ -727,6 +727,15 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.RiotChoice = ""
 		}
 	default:
+		// CR 702.103: a Soulbond pair ends when either member leaves the
+		// battlefield. Move itself is the complete logged state transition, so
+		// clear the remaining member here too; replay derives the same break
+		// without a second event.
+		if wasBattlefield && o.Paired != 0 {
+			if partner := g.Obj(o.Paired); partner != nil && partner.Paired == o.ID {
+				partner.Paired = 0
+			}
+		}
 		// Leaving the battlefield or the stack resets everything that only
 		// exists while a permanent or spell is in play.
 		o.Tapped = false

@@ -181,7 +181,7 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 		// the dredge card's N and returns it to hand -- the ordinary draw is
 		// skipped; option 1 (or an empty answer) re-emits the ordinary draw.
 		ch := d.Chosen(in)
-		if len(ch) > 0 && ch[0].Index == 0 {
+		if len(ch) > 0 && ch[0].Kind == "dredge" {
 			e.applyDredge(in.Player, ch[0].Obj)
 		} else {
 			e.resumeOrdinaryDraw(in.Player)

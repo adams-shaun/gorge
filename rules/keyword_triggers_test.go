@@ -644,6 +644,10 @@ func TestSoulbondUsesRealCorpusCard(t *testing.T) {
 	if e.G.Obj(wid).Paired != bo.ID || e.G.Obj(bo.ID).Paired != wid {
 		t.Fatalf("pairing not reciprocal: lookout.Paired=%d bear.Paired=%d", e.G.Obj(wid).Paired, e.G.Obj(bo.ID).Paired)
 	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: bo.ID, From: state.ZBattlefield, To: state.ZGraveyard})
+	if e.G.Obj(wid).Paired != 0 {
+		t.Fatalf("Soulbond partner remained paired after the other creature left: %d", e.G.Obj(wid).Paired)
+	}
 }
 
 // TestSoulbondTriggersWhenAnotherCreatureEnters covers Soulbond's second CR
