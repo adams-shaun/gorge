@@ -1147,6 +1147,22 @@ func cloneDamageSourceLKI(in map[state.ObjID]effects.DamageSourceLKI) map[state.
 func (e *Engine) Pending() *decision.Decision { return e.pending }
 
 func (e *Engine) ask(d *decision.Decision) {
+	// Empty-answer-only tripwire (the class the Squadron Hawk fail-to-find
+	// search wedged): a decision whose ONLY legal answer is the empty one
+	// (Min 0 with Max 0, or no options at all) can never be answered
+	// differently by any seat, so posing it strands the game on an ask a
+	// client has no control to send. Every asking primitive in effects goes
+	// through effects.Ask, which refuses to post the shape and resolves it
+	// silently instead; this boundary guard is what fails a test loudly if
+	// any construction site -- here or a future one -- ever posts one
+	// anyway. Panic rather than quietly fixing: by the time a decision
+	// reaches ask the asking caller has already chosen its resolution path,
+	// and silently swallowing it here would leave the caller's suspended
+	// half-resolution dangling.
+	if effects.OnlyEmptyAnswer(d) {
+		panic(fmt.Sprintf("rules: decision %s for seat %d posed with only the empty answer legal (Min %d Max %d, %d options) -- asking primitives must resolve this shape silently (effects.Ask), never post it",
+			d.Kind, d.Player, d.Min, d.Max, len(d.Options)))
+	}
 	// Option.Index/position identity (finding bi). Every decision that can
 	// reach a seat flows through ask -- ask is what sets d.Seq and e.pending,
 	// so a decision that skipped it is not pending and no seat can answer it
