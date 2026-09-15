@@ -19,6 +19,7 @@ const (
 	chooseManaColor
 	chooseManaDiscard
 	chooseManaUnless
+	chooseUnlessCost
 )
 
 // manaActivation is the one outstanding choice among a permanent's distinct
@@ -541,8 +542,26 @@ func (e *Engine) answerManaUnless(chosen []decision.Option) bool {
 	paid := false
 	if len(chosen) == 1 && chosen[0].Index == 0 {
 		if cost, ok := ParseUnlessCost(m.ability.Params["UnlessCost"]); ok {
+			if len(cost.Sac) > 0 || len(cost.Discard) > 0 {
+				// Activated mana stays off stack, but a sacrifice/discard in
+				// its unless cost is still a real payer choice. The payment
+				// continuation returns through finishManaUnlessPayment.
+				e.beginUnlessPayment(payer, cost, &effects.Ctx{Source: m.source, Controller: m.player}, m.source, nil)
+				return m.cast
+			}
 			paid = e.payUnlessCost(payer, cost, &effects.Ctx{Source: m.source, Controller: m.player}, m.source)
 		}
+	}
+	e.finishManaUnlessPayment(paid)
+	return m.cast
+}
+
+// finishManaUnlessPayment completes one payer's answer after either a direct
+// payment or an asynchronous Sac/Discard choice.
+func (e *Engine) finishManaUnlessPayment(paid bool) {
+	m := e.manaUnlessActivation
+	if m == nil {
+		return
 	}
 	switched := strings.EqualFold(strings.TrimSpace(m.ability.Params["UnlessSwitched"]), "True")
 	if paid || m.next+1 == len(m.payers) {
@@ -563,11 +582,10 @@ func (e *Engine) answerManaUnless(chosen []decision.Option) bool {
 		} else {
 			e.resolveTriggeredManaAbilities(m.triggers, m.cast)
 		}
-		return m.cast
+		return
 	}
 	m.next++
 	e.askManaUnlessDecision()
-	return m.cast
 }
 
 // askManaColor poses the colour choice for a Produced value that names a

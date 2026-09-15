@@ -206,6 +206,17 @@ func (e *Engine) Clone() *Engine {
 		ma.payers = append([]state.PlayerID(nil), e.manaUnlessActivation.payers...)
 		c.manaUnlessActivation = &ma
 	}
+	if e.unlessPayment != nil {
+		u := *e.unlessPayment
+		u.cost.Sac = append([]CostPart(nil), e.unlessPayment.cost.Sac...)
+		u.cost.Discard = append([]CostPart(nil), e.unlessPayment.cost.Discard...)
+		u.cost.SubCounter = append([]CostPart(nil), e.unlessPayment.cost.SubCounter...)
+		u.sacs = append([]state.ObjID(nil), e.unlessPayment.sacs...)
+		u.discards = append([]state.ObjID(nil), e.unlessPayment.discards...)
+		u.ctx = cloneUnlessCtx(e.unlessPayment.ctx)
+		u.rp = cloneResume(e.unlessPayment.rp)
+		c.unlessPayment = &u
+	}
 	if e.cast != nil {
 		pc := *e.cast
 		pc.cost.Sac = append([]CostPart(nil), e.cast.cost.Sac...)

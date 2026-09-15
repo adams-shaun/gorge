@@ -95,6 +95,10 @@ type resumePoint struct {
 	choices     []state.Target
 	chosenValid bool
 	remembered  []state.Target
+	// unlessPay is set only after a nested non-mana unless-cost payment has
+	// completed. It prevents the resumed `unless_pay` arm from charging that
+	// payment a second time.
+	unlessPay string
 	// replSource is the host of the replacement whose body asked (the
 	// ReplaceWith$ body's own Ctx.Source); zero outside a replacement.
 	replSource state.ObjID
@@ -202,7 +206,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 // sets e.resume, and handleModes clears it the moment the answer lands, so
 // the resume pass re-enters the chain with nothing suspended and walks the
 // rest of it exactly once.
-func (e *Engine) Suspended() bool { return e.resume != nil }
+func (e *Engine) Suspended() bool { return e.resume != nil || e.unlessPayment != nil }
 
 // SuspendContinuation implements effects.Host.SuspendContinuation: an
 // effects.Resolve loop stopped because the resolution suspended at a
@@ -456,6 +460,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					Last: cur.last, HasLast: cur.hasLast}
 			}
 		case "unless_pay":
+			if rp.unlessPay != "" {
+				ctx.UnlessPay = rp.unlessPay
+				ctx.UnlessNext = rp.target
+				break
+			}
 			// The payer agreed to pay (option 0 is "Pay …") or not. Payment
 			// happens HERE, in rules, because payMana owns the cost grammar and
 			// emits the ManaAdd events — so a replay re-derives the identical
@@ -486,6 +495,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// while never letting an empty pool satisfy it.
 				ctx.UnlessPay = "decline"
 			} else if len(chosen) > 0 && chosen[0].Index == 0 {
+				if len(paid.Sac) > 0 || len(paid.Discard) > 0 {
+					// Sacrifice and discard are choice-bearing costs. Park this
+					// resume before any mutation and let the payer select every
+					// component; finishUnlessPayment re-enters with unlessPay
+					// set, so this arm never charges it twice.
+					e.beginUnlessPayment(chosen[0].Player, paid, ctx, rp.obj, rp)
+					return
+				}
 				if e.payUnlessCost(chosen[0].Player, paid, ctx, rp.obj) {
 					ctx.UnlessPay = "pay"
 				} else {

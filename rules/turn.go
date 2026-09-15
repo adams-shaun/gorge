@@ -552,6 +552,10 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		if e.answerManaDiscard(chosen) && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard {
 			e.continueCast()
 		}
+	case chooseUnlessCost:
+		// A Sac/Discard component of an already-accepted UnlessCost$ needs
+		// its payer's real choice before the suspended effect can resume.
+		e.answerUnlessPayment(chosen)
 	case chooseManaColor:
 		// A CR 605.3b triggered mana ability may pose its own colour choice
 		// after this one; the cast resumes only once none is pending.

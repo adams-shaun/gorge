@@ -21,9 +21,8 @@ func rng(seed uint64) *rand.Rand {
 
 // TestChoosePolicy pins the KChoose branch: the offer vocabulary decides
 // the pick, not d.Kind -- "x" takes the highest option (the most an {X}
-// cost can pay for; options ascend), mandatory "sacrifice" and cleanup
-// "discard" rank offered cards, while unrelated exile decisions retain the
-// default-first fallback; "yes"
+// cost can pay for; options ascend), "exile", mandatory "sacrifice" and
+// cleanup "discard" rank offered cards; "yes"
 // answers yes, and "name"/"type"/"number" take the first offer. Moved here from seat/bot_test.go's TestBotChoosePolicy and
 // rules/testbot_test.go's mirror of it, which were the same test twice
 // (Ruling F7).
@@ -42,14 +41,13 @@ func TestChoosePolicy(t *testing.T) {
 	if got := choose("x", 4, 1, 1).Choices; len(got) != 1 || got[0] != 3 {
 		t.Fatalf("x: %v, want the highest", got)
 	}
-	// Optional give-up decisions retain the pre-existing default-first
-	// fallback. Only the new mandatory sacrifice decision needs a policy arm:
-	// it ranks the offered permanents rather than sacrificing arbitrarily.
-	if got := choose("exile", 5, 0, 3).Choices; len(got) != 1 || got[0] != 0 {
-		t.Fatalf("exile optional: %v, want the default first option", got)
+	// Exile retains the pre-task least-value policy whether optional or
+	// mandatory; sacrifice's new player-facing ask is scoped separately.
+	if got := choose("exile", 5, 0, 3).Choices; len(got) != 3 || got[0] != 0 || got[2] != 2 {
+		t.Fatalf("exile optional: %v, want the three least valuable", got)
 	}
-	if got := choose("exile", 5, 2, 3).Choices; len(got) != 2 || got[0] != 0 || got[1] != 1 {
-		t.Fatalf("exile mandatory: %v, want default-first minimum", got)
+	if got := choose("exile", 5, 2, 3).Choices; len(got) != 3 || got[0] != 0 || got[2] != 2 {
+		t.Fatalf("exile mandatory: %v, want the three least valuable", got)
 	}
 	if got := choose("sacrifice", 2, 0, 1).Choices; len(got) != 1 || got[0] != 0 {
 		t.Fatalf("sacrifice optional: %v, want the default first option", got)

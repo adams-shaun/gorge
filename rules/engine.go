@@ -321,6 +321,10 @@ type Engine struct {
 	manaColorActivation   *manaColorActivation
 	manaDiscardActivation *manaDiscardActivation
 	manaUnlessActivation  *manaUnlessActivation
+	// unlessPayment carries an in-progress non-mana unless-cost payment. It
+	// keeps the enclosing resolution suspended while the payer chooses the
+	// sacrifice/discard objects that pay it.
+	unlessPayment *unlessPayment
 
 	// cmdZone is the queue of parked commander zone changes (CR 903.9, Task
 	// m32, rules/replacement.go): MoveZone events a commander is about to

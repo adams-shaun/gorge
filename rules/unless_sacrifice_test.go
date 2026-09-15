@@ -62,7 +62,8 @@ func TestManaUnlessCostThomil(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e := stealEngine(t, 740)
 	thomil := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Thomil, the Destroyer"))
-	victim := onBoard(t, e, 0, "Name:Victim\nTypes:Creature\nOracle:x\n")
+	keeper := onBoard(t, e, 0, "Name:Keeper\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	victim := onBoard(t, e, 0, "Name:Victim\nTypes:Creature\nPT:1/1\nOracle:x\n")
 	o := e.G.Obj(thomil)
 	var mana *cards.SA
 	for _, sa := range o.Face().ManaAbilities() {
@@ -80,8 +81,28 @@ func TestManaUnlessCostThomil(t *testing.T) {
 		t.Fatalf("pending = %+v, want off-stack mana unless-pay decision", d)
 	}
 	submitChoices(t, e, 0)
+	// Sac<1/Creature> has two legal payers' permanents. The nested cost
+	// decision must let the payer choose Victim rather than silently taking
+	// Keeper, the first battlefield object in zone order.
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Min != 1 || d.Max != 1 || len(d.Options) != 2 {
+		t.Fatalf("pending = %+v, want the Sac<1/Creature> payment choice", d)
+	}
+	pick := -1
+	for _, o := range d.Options {
+		if o.Obj == victim {
+			pick = o.Index
+		}
+	}
+	if pick < 0 {
+		t.Fatalf("Victim %d absent from payment options %+v", victim, d.Options)
+	}
+	submitChoices(t, e, pick)
 	if e.G.Obj(victim).Zone != state.ZGraveyard {
-		t.Fatalf("sacrifice cost zone = %v, want graveyard", e.G.Obj(victim).Zone)
+		t.Fatalf("chosen sacrifice cost zone = %v, want graveyard", e.G.Obj(victim).Zone)
+	}
+	if e.G.Obj(keeper).Zone != state.ZBattlefield {
+		t.Fatalf("unchosen first creature zone = %v, want battlefield", e.G.Obj(keeper).Zone)
 	}
 	if got := e.G.Players[0].Pool[state.MB]; got != 3 {
 		t.Fatalf("black mana = %d, want 3 after paid switched unless", got)

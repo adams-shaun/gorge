@@ -402,12 +402,14 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 			in.Choices = []int{d.Options[len(d.Options)-1].Index} // the most it can pay for
 		case "discard":
 			in.Choices = b.chooseDiscard(d)
+		case "exile":
+			// Preserve the existing exile policy: this task adds sacrifice
+			// choices, not a new policy for unrelated exile effects.
+			in.Choices = b.chooseWorst(d)
 		case "sacrifice":
-			// This is the new player-facing sacrifice decision. Mandatory
-			// sacrifices need a legal subset, and pick the least valuable
-			// permanents; optional asks deliberately retain the policy's
-			// pre-existing default-first behaviour rather than globally
-			// changing how optional give-up decisions are evaluated.
+			// Player-facing sacrifice asks use the same least-value choice as
+			// the pre-existing mandatory give-up decisions. Optional asks still
+			// take their first offered permanent, matching the no-host fallback.
 			if d.Min > 0 {
 				in.Choices = b.chooseWorst(d)
 			} else {
