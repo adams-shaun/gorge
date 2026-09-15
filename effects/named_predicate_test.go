@@ -75,6 +75,48 @@ func TestNamedPredicateMatchesPrintedName(t *testing.T) {
 	}
 }
 
+// TestNamedPredicateKeepsRawCommaInGrandeurCost is the regression for a real
+// corpus spelling that cannot use Forge's usual ';' comma workaround. The
+// Korlash ability's Discard spec is passed unchanged to MatchesSpec by the
+// cost path, so losing its comma as an OR delimiter made its Grandeur ability
+// unpayable even with another Korlash in hand.
+func TestNamedPredicateKeepsRawCommaInGrandeurCost(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	korlash, ok := reg.Lookup("Korlash, Heir to Blackblade")
+	if !ok {
+		t.Fatal("Korlash, Heir to Blackblade missing from corpus")
+	}
+	const cost = "Discard<1/Card.namedKorlash, Heir to Blackblade>"
+	found := false
+	for _, sa := range korlash.Faces[0].Abilities {
+		if sa.Params["Cost"] == cost {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("Korlash's raw Grandeur Cost missing %q", cost)
+	}
+
+	g := state.NewGame([]string{"you", "them"})
+	o := g.AddObject(korlash, 0)
+	o.Zone = state.ZHand
+	g.SetZone(state.ZHand, 0, []state.ObjID{o.ID})
+	const spec = "Card.namedKorlash, Heir to Blackblade"
+	if !MatchesSpec(g, spec, o.ID, 0) {
+		t.Errorf("MatchesSpec(%q, Korlash) = false, want true", spec)
+	}
+	if got := UnknownPredicates(spec); len(got) != 0 {
+		t.Errorf("UnknownPredicates(%q) = %v, want none", spec, got)
+	}
+
+	// A true alternative delimiter remains an OR: the raw-name fix must not
+	// collapse the routine Card.namedX,Card.namedY form into one long name.
+	if !MatchesSpec(g, "Card.namedNope,Card.namedKorlash, Heir to Blackblade", o.ID, 0) {
+		t.Error("a dotted alternative after a raw-comma name was not split")
+	}
+}
+
 // TestNotnamedPredicate is the negated sibling. Forge implements no notnamed
 // predicate and the corpus carries none (measured); the engine gives the
 // token the negation of named rather than the fail-closed unknown, so any

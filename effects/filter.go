@@ -10,7 +10,9 @@ import (
 
 // A Forge filter spec is alternatives separated by "," (OR). Each alternative
 // is a base type, optionally negated with a "non" prefix, followed by
-// ".pred+pred+..." (AND).
+// ".pred+pred+..." (AND). A raw comma in a named<Name>/notnamed<Name>
+// argument is part of the printed name when what follows is not another
+// filter alternative; filterAlternatives owns that ambiguity in one place.
 //
 // Unknown predicates never match. A filter that silently widens is how a rules
 // engine quietly does the wrong thing, so the failure mode is "this card does
@@ -491,6 +493,64 @@ func nameArg(p string) string {
 	return strings.NewReplacer(";", ",", "_", " ").Replace(p)
 }
 
+// filterAlternatives splits the OR grammar without tearing a raw comma out of
+// a named<Name>/notnamed<Name> argument. Forge normally spells a name comma
+// as ';', but real scripts also carry e.g. Card.namedKorlash, Heir to
+// Blackblade in Grandeur costs. A comma remains part of that name unless its
+// right side begins a syntactic filter alternative (Card.namedX,Creature...;
+// both the dotted and bare-base forms are recognised). Keeping the splitter
+// shared means matching, quality classification, and the unknown-predicate
+// census all parse the same filter.
+func filterAlternatives(spec string) []string {
+	var out []string
+	start := 0
+	for i := 0; i < len(spec); i++ {
+		if spec[i] != ',' || rawNameComma(spec[start:i], spec[i+1:]) {
+			continue
+		}
+		out = append(out, spec[start:i])
+		start = i + 1
+	}
+	return append(out, spec[start:])
+}
+
+// rawNameComma reports whether the comma after left belongs to the last
+// predicate of the current alternative. Once '+' has started another
+// predicate, a name argument is complete and cannot own a following comma.
+func rawNameComma(left, right string) bool {
+	_, predicates, has := strings.Cut(left, ".")
+	if !has {
+		return false
+	}
+	parts := strings.Split(predicates, "+")
+	last := parts[len(parts)-1]
+	if _, ok := strings.CutPrefix(last, "named"); !ok {
+		if _, ok := strings.CutPrefix(last, "notnamed"); !ok {
+			return false
+		}
+	}
+	return !startsFilterAlternative(strings.TrimSpace(right))
+}
+
+// startsFilterAlternative recognises the base at the start of an alternative,
+// independently of the candidate object. The filter grammar permits the
+// universal bases and every known type word (with the ordinary non<X> base
+// negation); a name continuation such as "Heir to Blackblade" is none of
+// those. A card name literally ending in ", Creature" remains intrinsically
+// ambiguous with the documented OR grammar and must use Forge's ';' spelling.
+func startsFilterAlternative(s string) bool {
+	base := s
+	if i := strings.IndexAny(base, ".+,"); i >= 0 {
+		base = base[:i]
+	}
+	base = strings.TrimSpace(base)
+	if base == "CARDNAME" || base == "Any" || base == "Card" || base == "Permanent" || base == "Spell" {
+		return true
+	}
+	base = strings.TrimPrefix(base, "non")
+	return predicateTypeWords[base]
+}
+
 // sharesName reports whether o's name characteristics include name -- Forge
 // Card.sharesNameWith(String): the current face's printed name, plus CR
 // 708.4a's both-names rule for a SPLIT card away from the stack and the
@@ -896,7 +956,7 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 	if resolve == nil {
 		resolve = noResolve
 	}
-	for _, alt := range strings.Split(spec, ",") {
+	for _, alt := range filterAlternatives(spec) {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -1113,7 +1173,7 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 // Forge's `Mandatory$` parameter, which is recorded in AGENTS.md as
 // deliberately unread and is a different thing.
 func SearchStatesQuality(spec string) bool {
-	for _, alt := range strings.Split(spec, ",") {
+	for _, alt := range filterAlternatives(spec) {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -1153,7 +1213,7 @@ func possessionPredicate(p string) bool {
 // card-validation pass uses it to refuse cards it would otherwise misplay.
 func UnknownPredicates(spec string) []string {
 	var out []string
-	for _, alt := range strings.Split(spec, ",") {
+	for _, alt := range filterAlternatives(spec) {
 		_, rest, _ := strings.Cut(strings.TrimSpace(alt), ".")
 		for _, p := range strings.Split(rest, "+") {
 			if p == "" {
