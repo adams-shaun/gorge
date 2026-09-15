@@ -250,8 +250,19 @@ func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to
 // here is fine), then the WithCountersType$/WithCountersAmount$ entry
 // counters when the move lands on the battlefield. Keeping the object path
 // and the hand-choice path on this one helper means the two cannot drift
-// apart on any of the three.
+// apart on any of the three. Tapped$ True is event-backed for the hidden
+// library paths, but not for a card entering from hand; before every such
+// move this common path makes the narrowing replay-visible rather than
+// silently entering the card untapped.
 func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32, player state.PlayerID, hasPlayer bool) {
+	if from == state.ZHand && to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
+		notePlayer := c.Controller
+		if hasPlayer {
+			notePlayer = player
+		}
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: notePlayer,
+			Text: "Tapped$ True on a hand ChangeZone is not implemented; the card enters untapped"})
+	}
 	ev := moveZoneEvent(c, id, from, to)
 	if hasPlayer {
 		ev.Player = player
@@ -507,8 +518,7 @@ func handMoveChooserFor(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID) (sta
 // text/explicit-marker optionality, R-9 stand-in text, zero-eligible silence,
 // library tail) are this walk's contracts, unchanged. Still unread here, each
 // a scoped-out follow-up:
-// Tapped$ True (unread on the object path too), Destination$
-// Hand/Sideboard oddities (2 lines), and any ConditionPresent$/
+// Destination$ Hand/Sideboard oddities (2 lines), and any ConditionPresent$/
 // ConditionDefined$ gate (the engine-wide Condition* gap).
 func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []state.PlayerID,
 	count handMoveCount, random bool, chooserFor func(Host, *Ctx, *cards.SA, state.PlayerID) (state.PlayerID, bool),
@@ -537,10 +547,10 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 	// hand's OWNER as its Player (a hidden-zone move of another player's
 	// card -- the same attribution the library search's move carries),
 	// while the whole-hand shape keeps its historical event shape
-	// (eventPlayer false, the r1 golden contract). Tapped$ True is
-	// deliberately NOT read here -- it is unread on the object path too, a
-	// pre-existing gap recorded as a follow-up, not something to fix on this
-	// path alone.
+	// (eventPlayer false, the r1 golden contract). settleChangeZoneMoveAs is
+	// also the one loud Tapped$ True fallback for every hand-origin mover, so
+	// concrete Defined$ objects and future hand-owner selectors cannot silently
+	// miss the unsupported entry state.
 	settleHandMove := func(id state.ObjID, owner state.PlayerID) {
 		settleChangeZoneMoveAs(h, c, sa, id, state.ZHand, to, withKind, withAmt, owner, eventPlayer)
 	}

@@ -630,6 +630,40 @@ func TestOviyaRealScriptFilteredHandPutBack(t *testing.T) {
 	}
 }
 
+// TestHERBIEScoutUnitTappedPutBackEmitsNote runs the real compiled H.E.R.B.I.E.
+// Scout Unit hand mover. Tapped entry is not yet event-backed for hidden-hand
+// moves, so the required loud fallback records the narrowing immediately
+// before moving the selected land rather than silently entering it untapped.
+func TestHERBIEScoutUnitTappedPutBackEmitsNote(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	card, ok := reg.Lookup("H.E.R.B.I.E. Scout Unit")
+	if !ok {
+		t.Fatal("corpus has no H.E.R.B.I.E. Scout Unit")
+	}
+	db := cards.ResolveSVar(card.Faces[0].SVars, "DBChangeZone")
+	if db == nil || db.Params["Origin"] != "Hand" || db.Params["Destination"] != "Battlefield" || db.Params["Tapped"] != "True" {
+		t.Fatalf("H.E.R.B.I.E. Scout Unit hand mover drifted: %+v", db)
+	}
+	g := state.NewGame(names(2))
+	source := corpusObject(t, reg, g, "H.E.R.B.I.E. Scout Unit")
+	land := corpusObject(t, reg, g, "Forest")
+	g.SetZone(state.ZHand, 0, []state.ObjID{land.ID})
+	land.Zone = state.ZHand
+	h := &askHost{}
+	h.g = g
+	Resolve(h, &Ctx{Source: source.ID, Controller: 0,
+		HandMove: []state.ObjID{land.ID}, HandMoveDone: true}, db)
+	if land.Zone != state.ZBattlefield || land.Tapped {
+		t.Fatalf("land = zone %s tapped %v, want the documented untapped battlefield fallback", land.Zone, land.Tapped)
+	}
+	for _, ev := range h.log {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "Tapped$ True on a hand ChangeZone is not implemented") {
+			return
+		}
+	}
+	t.Fatalf("Tapped$ True hand move emitted no unsupported-shape Note: %+v", h.log)
+}
+
 // TestVolrathsDungeonRealScriptMarkerlessPutBackIsRequired proves that
 // absent Optional$/Mandatory$ is not itself a decline. Volrath's Dungeon's
 // oracle says the target "puts a card"; with one hand card it therefore moves
