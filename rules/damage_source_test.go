@@ -724,3 +724,100 @@ func TestRefPropertyCountsUseDerivedPT(t *testing.T) {
 		t.Fatalf("Targeted CardToughness = %d, want 6 (2 + 3 + 2 - 1)", got)
 	}
 }
+
+// TestNamedDamageSourceRealCastGainsOpponentController is the round-2 review's
+// opponent-owned lifelink probe, driven through the REAL cast-and-resolution
+// path (not a direct effects.Resolve): a spell with DamageSource$ Targeted at
+// an OPPONENT-controlled lifelink creature makes that creature deal 2 to
+// itself, and the lifelink rider must pay the CREATURE's controller (seat 1),
+// never the caster. Pre-fix (controller := c.Controller) the +2 went to seat 0.
+func TestNamedDamageSourceRealCastGainsOpponentController(t *testing.T) {
+	spell := "Name:Redirector\nManaCost:R\nTypes:Instant\n" +
+		"A:SP$ DealDamage | ValidTgts$ Creature | NumDmg$ 2 | DamageSource$ Targeted | " +
+		"SpellDescription$ The target creature deals damage to itself.\nOracle:x\n"
+	oppLink := "Name:Opp Link\nManaCost:G\nTypes:Creature\nPT:2/5\nK:Lifelink\nOracle:x\n"
+	e, _, id := newFixtureDeck(t, 42, spell)
+	opp := onBoard(t, e, 1, oppLink)
+	moveToHand(t, e, id)
+	addMana(t, e, 0, "R")
+	castFirst(t, e, "cast")
+	targetObject(t, e, opp)
+	passUntilStackEmpty(t, e, 30)
+	if got := e.G.Players[1].Life; got != 22 {
+		t.Fatalf("opponent life = %d, want 22 (opponent controls the lifelink source)", got)
+	}
+	if got := e.G.Players[0].Life; got != 20 {
+		t.Fatalf("caster life = %d, want 20 (caster must not gain)", got)
+	}
+	recip := -1
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.LifeChange && ev.Amount == 2 {
+			recip = int(ev.Player)
+		}
+	}
+	if recip != 1 {
+		t.Fatalf("lifelink LifeChange recipient = seat %d, want seat 1", recip)
+	}
+}
+
+// TestPrintedCreatureWalkerCleanupKeepsLoyalty is the round-2 review's
+// printed-creature-walker clean-up probe: a face that is BOTH Creature and
+// Planeswalker takes marked damage AND loses loyalty, and the end-of-step
+// clean-up's negative Damage event must clear ONLY the marked damage -- it
+// must never re-apply the CR 306.8 loyalty conversion (which would "restore"
+// loyalty 2 -> 4). Pre-fix the clean-up restored loyalty because the
+// conversion ignored the sign of the Damage amount.
+func TestPrintedCreatureWalkerCleanupKeepsLoyalty(t *testing.T) {
+	e := layerEngine(t)
+	walker := card(t, "Name:Printed Walker\nTypes:Creature Planeswalker\nLoyalty:4\nPT:2/4\nOracle:x\n")
+	w := e.G.AddObject(walker, 0)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: w.ID, From: w.Zone, To: state.ZBattlefield})
+	effects.Resolve(e, &effects.Ctx{Source: w.ID, Controller: 0,
+		Targets: []state.Target{{Obj: w.ID}}}, &cards.SA{Kind: "DB", API: "DealDamage",
+		Params: map[string]string{"Defined": "Targeted", "NumDmg": "2"}})
+	if o := e.G.Obj(w.ID); o.Damage != 2 || o.Counter("LOYALTY") != 2 {
+		t.Fatalf("printed creature-walker after damage: marked=%d loyalty=%d, want 2/2", o.Damage, o.Counter("LOYALTY"))
+	}
+	e.cleanupBody()
+	if o := e.G.Obj(w.ID); o.Damage != 0 || o.Counter("LOYALTY") != 2 {
+		t.Fatalf("printed creature-walker after cleanup: marked=%d loyalty=%d, want 0/2 (cleanup must NOT restore loyalty)", o.Damage, o.Counter("LOYALTY"))
+	}
+}
+
+// TestBatchLifelinkClearedAfterRegeneratedBatchMember is the round-2 review's
+// stale-snapshot probe: a destroy-all batch in which a lifelink-bearing member
+// is REGENERATED (stays) never consumes its pre-batch lifelink snapshot. The
+// end-of-batch clear must reset batchLifelink so a later departure reads live
+// state rather than the stale pre-batch TRUE entry. Pre-fix (no end-of-batch
+// clear) batchLifelink survived non-nil after the batch.
+func TestBatchLifelinkClearedAfterRegeneratedBatchMember(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, _, ids := dsBoard(t, reg, "Prodigal Pyromancer", "Basilisk Collar", "Magus of the Disk")
+	collarID := ids["Basilisk Collar"]
+	timID := ids["Prodigal Pyromancer"]
+	addMana(t, e, 0, "CC")
+	e.Advance()
+	opt := abilityOption(t, e, collarID, 0)
+	submitChoices(t, e, opt.Index)
+	targetObject(t, e, timID)
+	passUntilStackEmpty(t, e, 20)
+	if !e.HasKeyword(timID, "Lifelink") {
+		t.Fatal("bearer did not gain lifelink from the collar")
+	}
+	regenEffect(e, timID, "Regenerate", nil)
+	e.emit(events.Event{Kind: events.Untap, Obj: ids["Magus of the Disk"]})
+	e.priorityRound()
+	addMana(t, e, 0, "C")
+	opt = abilityOption(t, e, ids["Magus of the Disk"], 0)
+	submitChoices(t, e, opt.Index)
+	passUntilStackEmpty(t, e, 20)
+	if z := e.G.Obj(timID).Zone; z != state.ZBattlefield {
+		t.Fatalf("bearer zone = %s, want battlefield (regenerated)", z)
+	}
+	if z := e.G.Obj(collarID).Zone; z != state.ZGraveyard {
+		t.Fatalf("collar zone = %s, want graveyard", z)
+	}
+	if e.batchLifelink != nil {
+		t.Fatalf("batchLifelink=%v leaked after a batch with a regenerated member", e.batchLifelink)
+	}
+}
