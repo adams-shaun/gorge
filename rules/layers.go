@@ -116,12 +116,14 @@ func (e *Engine) staticEffects() []ContinuousEffect {
 				// NOT a layer effect and is carried as a rules-mod on the effect
 				// itself (MayPlay + AffectedZone) rather than as a layer mark;
 				// rules/legal.go's mayPlayLandIds consults it. Only the
-				// unconditional MayPlay$ True shape is implemented -- a
-				// MayPlayLimit$/Condition$/per-type grant is out of scope and
-				// fails closed (MayPlay stays false), so nothing is silently
-				// over-applied. Expiry is the ordinary source-leaves rule
-				// (CR 611.3b) via active()'s battlefield scan.
-				if v, ok := st.Params["MayPlay"]; ok && strings.EqualFold(strings.TrimSpace(v), "True") {
+				// unconditional MayPlay$ True shape is implemented; the
+				// mayPlayUnconditional guard rejects a richer grant (MayPlayLimit$
+				// once-per-turn/per-type, Condition$/ValidAfterStack$/Secondary$
+				// qualifiers, any other MayPlay* family key) so it fails closed
+				// (MayPlay stays false) rather than being silently over-applied
+				// against the ordinary LandsPlayed limit. Expiry is the ordinary
+				// source-leaves rule (CR 611.3b) via active()'s battlefield scan.
+				if mayPlayUnconditional(st) {
 					mp := base
 					mp.MayPlay = true
 					mp.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
@@ -131,6 +133,41 @@ func (e *Engine) staticEffects() []ContinuousEffect {
 		}
 	}
 	return out
+}
+
+// mayPlayUnconditional reports whether a Mode$ Continuous static carries the
+// single unconditional "you may play <cards> from <zone>" grant this package
+// implements: MayPlay$ True, an Affects (Affected$) spec and an AffectedZone,
+// and nothing else gating it. A richer grant is out of scope and must fail
+// closed (MayPlay stays false) so it is never silently over-applied -- in
+// particular a MayPlayLimit$ once-per-turn/per-type grant (Muldrotha's
+// MayPlayLimit$ 1 + MayPlayText$) must NOT share the ordinary LandsPlayed
+// limit, and a Condition$/ValidAfterStack$/Secondary$ qualifier or any other
+// MayPlay* family key (MayPlayWithoutManaCost$, MayPlayPlayer$, etc.) changes
+// the semantics beyond the unconditional shape. The check is structural (any
+// MayPlay* key other than MayPlay itself rejects) so a new rich parameter
+// cannot slip past as a missed instance. Iterating st.Params only yields a
+// boolean, so map order never reaches an event/option/view -- determinism is
+// preserved.
+func mayPlayUnconditional(st cards.Static) bool {
+	v, ok := st.Params["MayPlay"]
+	if !ok || !strings.EqualFold(strings.TrimSpace(v), "True") {
+		return false
+	}
+	for key := range st.Params {
+		switch key {
+		case "MayPlay", "Affected", "AffectedZone", "Description", "EffectZone":
+			// The keys the unconditional land grant (and only it) carries
+			// besides MayPlay itself.
+			continue
+		}
+		lower := strings.ToLower(key)
+		if strings.HasPrefix(lower, "mayplay") || lower == "condition" ||
+			lower == "validafterstack" || lower == "secondary" {
+			return false
+		}
+	}
+	return true
 }
 
 // hasStat reports whether a static line carries the named parameter.
