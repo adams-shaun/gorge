@@ -313,10 +313,15 @@ type Engine struct {
 	cmdZone []cmdZoneMove
 	// replChoices is the queue of parked replacement choices (see replChoice /
 	// handleReplacement in replacement.go): CR 616.1 ordering for MoveZone,
-	// ProduceMana and BeginPhase, replacement-time mana-colour choices, and an
-	// Optional$ BeginPhase yes/no. Plain value entries are deep-copied by Clone,
-	// so every in-flight event survives an intent boundary.
+	// Untap, ProduceMana and BeginPhase, replacement-time mana-colour choices,
+	// and an Optional$ BeginPhase yes/no. Plain value entries are deep-copied by
+	// Clone, so every in-flight event survives an intent boundary.
 	replChoices []replChoice
+	// untapResume is set only around one Untap emission from finishUntapStep.
+	// If that event parks an Untap replacement choice, poseUntapReplacementChoice
+	// moves this continuation into the queued choice; otherwise it is cleared
+	// before the next permanent. It is therefore never live at a clone boundary.
+	untapResume *untapStep
 
 	// suppressedCast holds the card object ids whose cast option is held out
 	// of the current priority window because their cast attempt aborted

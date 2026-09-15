@@ -520,6 +520,55 @@ func TestReplacementManaColorResumesCastPayment(t *testing.T) {
 	}
 }
 
+// TestCompetingUntapReplacementsUseAffectedPlayerOrder drives the real
+// battlefield Intruder Alarm and command-zone Edge of Malacol scripts against
+// one tapped Memnite. Both prevent its untap, but Edge's ReplaceWith$ adds two
+// counters, so the affected permanent's controller must get the CR 616.1
+// choice rather than whichever replacement appears first in the zone scan.
+func TestCompetingUntapReplacementsUseAffectedPlayerOrder(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, cfg, ids := realCardEngine(t, reg, 100, "Edge of Malacol", "Intruder Alarm", "Memnite")
+	edge, memnite := ids[0], ids[2]
+	e.emit(events.Event{Kind: events.MoveZone, Obj: edge, From: state.ZBattlefield, To: state.ZCommand})
+	e.emit(events.Event{Kind: events.Tap, Obj: memnite})
+	e.pending = nil
+	// beginTurn's actual untap loop must park here. The answer must resume that
+	// loop and advance to upkeep only after the selected replacement completes.
+	e.beginTurn(0)
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement || len(d.Options) != 2 {
+		t.Fatalf("untap replacement decision = %+v, want two KReplacement options", d)
+	}
+	edgeChoice := -1
+	for _, opt := range d.Options {
+		if o := e.G.Obj(opt.Obj); o != nil && o.Face() != nil && o.Face().Name == "Edge of Malacol" {
+			edgeChoice = opt.Index
+		}
+	}
+	if edgeChoice < 0 {
+		t.Fatalf("untap replacement options = %+v, no Edge of Malacol", d.Options)
+	}
+	// The parked turn-based continuation is part of the replacement choice, so
+	// answering a clone must resume its own untap scan too.
+	clone := e.Clone()
+	submitChoices(t, clone, edgeChoice)
+	if o := clone.G.Obj(memnite); !o.Tapped || o.Counter("P1P1") != 2 ||
+		clone.G.Step != state.StepUpkeep || clone.Pending() == nil || clone.Pending().Kind != decision.KPriority {
+		t.Fatalf("clone after untap answer: Memnite=%+v step=%s pending=%+v, want tapped two-counter Memnite and upkeep priority",
+			o, clone.G.Step, clone.Pending())
+	}
+	submitChoices(t, e, edgeChoice)
+	if o := e.G.Obj(memnite); !o.Tapped || o.Counter("P1P1") != 2 {
+		t.Fatalf("choosing Edge replacement left Memnite tapped=%v counters=%+v, want tapped with two +1/+1 counters",
+			o.Tapped, o.Counters)
+	}
+	if e.G.Step != state.StepUpkeep || e.Pending() == nil || e.Pending().Kind != decision.KPriority {
+		t.Fatalf("after untap answer: step=%s pending=%+v, want upkeep priority", e.G.Step, e.Pending())
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestCommandZoneReplacementSourcesAreDiscovered pins the replacement-only
 // command-zone scan on one real source for each ticket event that exists
 // there. Trigger discovery remains on the ordinary object walk.

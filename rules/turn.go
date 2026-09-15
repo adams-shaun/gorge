@@ -28,16 +28,8 @@ func (e *Engine) beginTurn(active state.PlayerID) {
 // before priority; a replacement may park either entry, in which case the
 // eventual answer resumes this helper again.
 func (e *Engine) finishEnteredStep() {
-	if e.G.Step == state.StepUntap {
-		for _, id := range e.G.Zone(state.ZBattlefield, e.G.Active) {
-			if e.G.Obj(id).Tapped {
-				e.emit(events.Event{Kind: events.Untap, Obj: id})
-			}
-		}
-		e.setStep(state.StepUpkeep)
-		if e.pending != nil {
-			return
-		}
+	if e.G.Step == state.StepUntap && !e.finishUntapStep(0) {
+		return
 	}
 	// An upkeep skip can land the turn directly on the draw step, whose
 	// turn-based action must still run (CR 504.1 -- the skip took the upkeep
@@ -48,6 +40,40 @@ func (e *Engine) finishEnteredStep() {
 	}
 	// Entry resets the pass count along with the active holder.
 	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
+}
+
+// untapStep is the remaining deterministic battlefield scan after a
+// replacement-order decision parks one Untap event. It belongs to the queued
+// replacement choice, not Game state: the final selected replacement is what
+// the log records, and replay reaches the same turn-based scan naturally.
+type untapStep struct {
+	next int
+}
+
+// finishUntapStep performs the untap turn-based action from next onward. An
+// Untap replacement competition can suspend on one permanent; its answered
+// choice resumes at the following permanent, rather than advancing to upkeep
+// while the choice is pending or re-processing the already replaced event.
+func (e *Engine) finishUntapStep(next int) bool {
+	ids := e.G.Zone(state.ZBattlefield, e.G.Active)
+	for i := next; i < len(ids); i++ {
+		o := e.G.Obj(ids[i])
+		if o == nil || !o.Tapped {
+			continue
+		}
+		e.untapResume = &untapStep{next: i + 1}
+		e.emit(events.Event{Kind: events.Untap, Obj: ids[i]})
+		if e.pending != nil {
+			// poseUntapReplacementChoice transferred this continuation to its
+			// queue entry. Do not enter upkeep until its answer finishes this
+			// scan, and do not retain transient state across the pending intent.
+			e.untapResume = nil
+			return false
+		}
+		e.untapResume = nil
+	}
+	e.setStep(state.StepUpkeep)
+	return e.pending == nil
 }
 
 // drawStepTurnAction runs the draw step's turn-based action (CR 504.1) when

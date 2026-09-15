@@ -100,7 +100,7 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	}
 	switch ev.Kind {
 	case events.Untap:
-		return e.applySimpleReplacement(ev, matches[0])
+		return e.continueUntapReplacements(ev, matches)
 	case events.StepChange:
 		return e.continuePhaseReplacements(ev, matches, nil)
 	case events.FlipFace:
@@ -223,6 +223,26 @@ func (e *Engine) replacementFaces(id state.ObjID, ev events.Event) []*cards.Face
 		return []*cards.Face{f}
 	}
 	return nil
+}
+
+// continueUntapReplacements applies the sole replacement automatically, but
+// parks a competition for the untapped permanent's controller. Each Untap
+// replacement prevents the original event (and may run its ReplaceWith$), so
+// the chosen effect completes the event and the others get no second pass.
+// This is the same CR 616.1 affected-player choice as MoveZone, with Untap's
+// event-specific applySimpleReplacement semantics.
+func (e *Engine) continueUntapReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	if len(matches) == 1 {
+		return e.applySimpleReplacement(ev, matches[0])
+	}
+	o := e.G.Obj(ev.Obj)
+	if o != nil && int(o.Controller) < len(e.G.Players) && !e.G.Players[o.Controller].Lost {
+		e.poseUntapReplacementChoice(ev, matches)
+		return ev, true
+	}
+	// A departed affected player cannot choose; retain the deterministic scan
+	// order fallback used by the other replacement competitions.
+	return e.applySimpleReplacement(ev, matches[0])
 }
 
 // applySimpleReplacement handles events whose replacement prevents the event
@@ -821,6 +841,9 @@ const (
 	replChoiceManaColor
 	replChoicePhaseOrder
 	replChoicePhaseOptional
+	// replChoiceUntap parks competing effects that would replace one Untap.
+	// It is appended so existing in-memory enum values remain unchanged.
+	replChoiceUntap
 )
 
 type replChoice struct {
@@ -835,6 +858,7 @@ type replChoice struct {
 	boundary   bool   // phase: this choice owns setStep's boundary cleanup
 	leaving    state.Step
 	before     *triggerSnapshot // immutable SBA look-back, safe to share in Clone
+	untap      *untapStep       // remaining turn-based untaps after an order answer
 }
 
 // poseReplacementChoice starts a CR 616.1 order-selection suspension: the
@@ -843,6 +867,25 @@ type replChoice struct {
 // replacement applies first. Mirrors commander-zone parking: the ask is posed
 // only when no other decision is already pending (the caller has already
 // ruled out a departed controller, which makes no choices under CR 800.4a).
+// poseUntapReplacementChoice starts the CR 616.1 choice between effects
+// replacing one Untap. The affected player is the untapped object's
+// controller, not either replacement source's controller.
+func (e *Engine) poseUntapReplacementChoice(ev events.Event, matches []replMatch) {
+	o := e.G.Obj(ev.Obj)
+	if o == nil || int(o.Controller) >= len(e.G.Players) {
+		return
+	}
+	rc := replChoice{kind: replChoiceUntap, ev: ev, cands: matches, before: e.triggerBefore}
+	if e.untapResume != nil {
+		resume := *e.untapResume
+		rc.untap = &resume
+	}
+	e.replChoices = append(e.replChoices, rc)
+	if e.pending == nil {
+		e.askReplacementChoice(o.Controller)
+	}
+}
+
 func (e *Engine) poseReplacementChoice(ev events.Event, matches []replMatch) {
 	o := e.G.Obj(ev.Obj)
 	if o == nil {
@@ -969,6 +1012,12 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 		}
 		e.ask(d)
 		return
+	case replChoiceUntap:
+		name := "this object"
+		if o := e.G.Obj(rc.ev.Obj); o != nil && o.Face() != nil && o.Face().Name != "" {
+			name = o.Face().Name
+		}
+		d.Prompt = "Several replacement effects would change how " + name + " untaps: choose which applies first."
 	default:
 		name := "this object"
 		if o := e.G.Obj(rc.ev.Obj); o != nil && o.Face() != nil && o.Face().Name != "" {
@@ -1079,6 +1128,17 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		} else {
 			rc.applied[rc.selected] = true
 			e.resumeParkedPhase(rc)
+		}
+	case replChoiceUntap:
+		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) {
+			e.triggerBefore = before
+			e.emit(events.Event{Kind: events.Note, Player: in.Player,
+				Text: "untap replacement-order answer out of range"})
+			return
+		}
+		e.applySimpleReplacement(rc.ev, rc.cands[chosen[0].Index])
+		if rc.untap != nil && e.pending == nil {
+			e.finishUntapStep(rc.untap.next)
 		}
 	default:
 		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) {

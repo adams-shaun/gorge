@@ -240,6 +240,10 @@ func (e *Engine) Clone() *Engine {
 			rc.cands = append([]replMatch(nil), rc.cands...)
 			rc.applied = append([]bool(nil), rc.applied...)
 			rc.applicable = append([]int(nil), rc.applicable...)
+			if rc.untap != nil {
+				resume := *rc.untap
+				rc.untap = &resume
+			}
 			c.replChoices[i] = rc
 		}
 	}
