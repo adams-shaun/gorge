@@ -551,6 +551,9 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 // snapshot-only approximation and the fallback for a consumer that has only
 // a state.Game.
 func RoundOf(g *state.Game, evs []events.Event) int32 {
+	if g == nil {
+		return 1
+	}
 	n := len(g.Players)
 	if n <= 0 {
 		return 1

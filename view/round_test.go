@@ -169,6 +169,9 @@ func TestRoundOfFoldsEliminationWithoutJump(t *testing.T) {
 // before any turn has been taken": no TurnChange seen yet folds to round 1,
 // and the very first TurnChange must not itself open a round 2.
 func TestRoundOfFirstRoundHandlesNoTurn(t *testing.T) {
+	if got := RoundOf(nil, nil); got != 1 {
+		t.Fatalf("nil game: RoundOf = %d, want 1", got)
+	}
 	if got := RoundOf(roundTestGame(4, 20), nil); got != 1 {
 		t.Fatalf("empty log: RoundOf = %d, want 1", got)
 	}
