@@ -498,6 +498,18 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 		e.emit(events.Event{Kind: events.Note, Player: p, Text: "Play found no card to play"})
 		return
 	}
+	if o.Face().IsLand() {
+		// A "play" permission can play a land, but it does not grant an
+		// additional land drop. Lands never become spells or enter the stack.
+		if int(p) >= len(e.G.Players) || e.G.Players[p].LandsPlayed >= 1 {
+			e.emit(events.Event{Kind: events.Note, Player: p, Text: "Play cannot use an additional land drop"})
+			return
+		}
+		e.cast = &pendingCast{player: p, card: id, from: o.Zone, mode: "land", ability: -1}
+		e.collectETBChoices(p)
+		e.continueCast()
+		return
+	}
 	cost := e.rawBaseCost(p, id)
 	if withoutManaCost {
 		cost = Cost{}
