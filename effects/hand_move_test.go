@@ -189,6 +189,24 @@ func TestHandMoveChangeZoneNoHostTakesFirstEligible(t *testing.T) {
 	}
 }
 
+// TestHandMoveChangeZoneExileDoesNotParseUnusedCounterAmount guards an
+// exact-Origin$ Hand picker that moves to exile with a dynamic
+// WithCountersAmount$. Counters only apply on entry to the battlefield, so
+// this path must neither parse X nor emit its malformed-amount Note.
+func TestHandMoveChangeZoneExileDoesNotParseUnusedCounterAmount(t *testing.T) {
+	h, ids := handAskFixture(t)
+	Resolve(h, &Ctx{Controller: 0, HandMove: []state.ObjID{ids[1]}, HandMoveDone: true}, sa(t,
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Land | WithCountersType$ TIME | WithCountersAmount$ X"))
+	if o := h.g.Obj(ids[1]); o.Zone != state.ZExile {
+		t.Fatalf("answered land is on %s, want exile", o.Zone)
+	}
+	for _, ev := range h.log {
+		if ev.Kind == events.Note {
+			t.Fatalf("unused exile counter amount emitted Note: %+v", ev)
+		}
+	}
+}
+
 // TestHandMoveChangeZoneHonoursRememberChanged pins the one settle extra
 // the brief authorised: RememberChanged$ True joins the moved card to
 // Ctx.Remembered in answer order. Tapped$ is deliberately NOT read on this

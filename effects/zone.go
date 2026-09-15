@@ -134,7 +134,13 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	// is added post-move. Counter (not the Move carrying it along) is what
 	// keeps events/apply.go's Move from knowing anything about counters.
 	withKind := sa.Params["WithCountersType"]
-	withAmt := withCounterAmount(h, c, sa)
+	var withAmt int32
+	// WithCounters* only takes effect when the object enters the battlefield.
+	// Parsing a dynamic/malformed amount emits a Note, so do not parse it for
+	// another destination where no CounterChange can ever be emitted.
+	if to == state.ZBattlefield && withKind != "" {
+		withAmt = withCounterAmount(h, c, sa)
+	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -243,7 +249,12 @@ func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	done := c.HandMoveDone
 	c.HandMove, c.HandMoveDone = nil, false
 	withKind := sa.Params["WithCountersType"]
-	withAmt := withCounterAmount(h, c, sa)
+	var withAmt int32
+	// Match the object path: WithCounters* has no effect away from the
+	// battlefield, and parsing a dynamic amount there must not emit a Note.
+	if to == state.ZBattlefield && withKind != "" {
+		withAmt = withCounterAmount(h, c, sa)
+	}
 	// settleHandMove settles one chosen card: exactly the shared ChangeZone
 	// mover. Tapped$ True is deliberately NOT read here -- it is unread on
 	// the object path too, a pre-existing gap recorded as a follow-up, not
