@@ -18,11 +18,26 @@ package rules
 //     staticEffects' Continuous filter, the trigger-queue drain,
 //     mustAttackRequired's direct scan) are declared in handRoots below --
 //     those are ATTRIBUTION (which function to read), never read lists.
+//   - the scan is data-flow shaped, not shape-matched: an access counts
+//     wherever the Params map is reached -- `x.Params["k"]`, a LOCAL ALIAS
+//     (`p := x.Params; p["k"]`), a HELPER-PASSED map (a function whose
+//     parameter is a map[string]string, attributed through its call sites'
+//     arguments), or a range. An aliased or helper-passed read the scanner
+//     cannot attribute fails the rot guard, so a consumer cannot hide by
+//     renaming the map.
 //   - an unregistered read FAILS the ratchet (the rot guard): any
 //     `.Params[...]` access the scanner cannot resolve -- a new dynamic key,
 //     a new base variable, a read in a function no root reaches -- breaks
 //     TestParamCensusScanIsComplete until it is classified, so the read sets
 //     cannot silently rot.
+//   - the rules-side generic machinery (cast/activation/legality/targeting)
+//     applies to whatever primitive runs, so its SA reads join every api's
+//     read set -- but the API-SPECIALISED rules paths (the mana-ability
+//     offer/payment/resolution chain, the Charm mode ask/resume, the
+//     unless-pay resume for Counter/CopySpellAbility) run only for their own
+//     APIs, and apiSpecificRulesSA attributes their reads accordingly: the
+//     mana path's `Amount$` read no longer masks api:Sacrifice's unread
+//     `Amount$`.
 //   - rules.ParseCost reports every token it does not model in Cost.Unknown
 //     (rules/mana.go) instead of degrading it silently; the census turns
 //     those into `cost:<Token>` labels alongside `param:<Primitive>.<Key>`
@@ -47,7 +62,9 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -119,6 +136,10 @@ var baseBuckets = map[string]bucket{
 type callSite struct {
 	callee string
 	args   []string
+	// exprs renders each argument expression's text ("c.SVars",
+	// "sa.Params", a plain identifier) for map[string]string-parameter
+	// attribution: args[i] is the rendered text, "" when not renderable.
+	exprs []string
 }
 
 // fnInfo is one function's scanned shape. name is package-qualified
@@ -133,6 +154,20 @@ type fnInfo struct {
 	callSites []callSite
 	sig       []string
 	strParams map[string]int
+	// mapParams records parameters whose declared type is map[string]string
+	// (the Params maps' type): an index read on one is a potential Params
+	// read attributed through the call sites' arguments, never silently
+	// dropped.
+	mapParams map[string]int
+	// mapIdxRds records literal keys indexed on a mapParams parameter
+	// ("" marks a dynamic key, which cannot be attributed and fails).
+	mapIdxRds map[string]map[string]bool
+	// stringMapResults holds this function's result POSITIONS typed
+	// map[string]string, so a local assigned from a call can be tracked.
+	stringMapResults []int
+	// aliases maps a local name to the base text of the Params map it was
+	// assigned (`params := sa.Params` -> "sa", chains resolved).
+	aliases map[string]string
 }
 
 type scan struct {
@@ -146,22 +181,42 @@ type scan struct {
 	modeFns      map[string]string
 	dispatchFns  map[string]bool
 	unclassified []string
+	// guardErrs carries rotGuard's findings; failGuard turns them into test
+	// failures, and the probes inspect the list directly.
+	guardErrs []string
+	// mapAttributed records which map[string]string parameters had at least
+	// one attributed call site ("pkg:fn:param"), set by propagateKeyReads.
+	mapAttributed map[string]bool
+	// mapArgFailures collects map[string]string-parameter call sites whose
+	// argument could not be attributed to a Params map, resolved during
+	// propagateKeyReads and surfaced by rotGuard.
+	mapArgFailures []string
 	// ambiguousStat records activeStatics calls whose mode is not a literal,
 	// for rotGuard to reconcile against handRoots.stat.
 	ambiguousStat map[string][]string
+	// complete marks a scan over the REAL packages (scanPackages): the
+	// apiSpecificRulesSA staleness check only makes sense there -- a probe's
+	// synthetic scan deliberately contains none of the real functions.
+	complete bool
 }
 
-// scanPackages parses the non-test sources of the rules package (dir ".",
-// where a rules test binary runs) and the effects package ("../effects").
-func scanPackages(t *testing.T) *scan {
-	t.Helper()
-	s := &scan{
+// newScan builds an empty scan; scanPackages and the synthetic-source probes
+// both start here.
+func newScan() *scan {
+	return &scan{
 		fns:         map[string]*fnInfo{},
 		apiImpl:     map[string]string{},
 		statRoots:   map[string]map[string]bool{},
 		modeFns:     map[string]string{},
 		dispatchFns: map[string]bool{},
 	}
+}
+
+// scanPackages parses the non-test sources of the rules package (dir ".",
+// where a rules test binary runs) and the effects package ("../effects").
+func scanPackages(t *testing.T) *scan {
+	t.Helper()
+	s := newScan()
 	for _, spec := range []struct{ dir, pkg string }{
 		{dir: ".", pkg: "rules"},
 		{dir: "../effects", pkg: "effects"},
@@ -174,11 +229,98 @@ func scanPackages(t *testing.T) *scan {
 			if strings.HasSuffix(f, "_test.go") {
 				continue
 			}
-			s.scanFile(t, f, spec.pkg)
+			src, err := os.ReadFile(f)
+			if err != nil {
+				t.Fatalf("paramcensus: read %s: %v", f, err)
+			}
+			s.scanSource(t, f, spec.pkg, string(src))
 		}
 	}
 	s.propagateKeyReads()
+	s.complete = true
 	return s
+}
+
+// scanSource scans one compilation unit from its bytes -- the real packages'
+// files and the probes' synthetic sources all come through here. Pass one
+// declares every function's signature shape (string params, map[string]string
+// params, map[string]string result positions) so pass two can classify
+// aliases, helper-passed maps and call-returned maps without declaration-order
+// dependence; pass two collects reads, calls and attribution roots.
+func (s *scan) scanSource(t *testing.T, path, pkg, src string) {
+	fset := token.NewFileSet()
+	af, err := parser.ParseFile(fset, path, src, 0)
+	if err != nil {
+		t.Fatalf("paramcensus: parse %s: %v", path, err)
+	}
+	for _, decl := range af.Decls {
+		fd, ok := decl.(*ast.FuncDecl)
+		if !ok || fd.Body == nil {
+			continue
+		}
+		fi := s.fnOf(pkg, s.funcName(fd))
+		position := 0
+		for _, p := range fd.Type.Params.List {
+			for _, pn := range p.Names {
+				fi.sig = append(fi.sig, pn.Name)
+				if pt, ok := p.Type.(*ast.Ident); ok && pt.Name == "string" {
+					fi.strParams[pn.Name] = position
+				}
+				if isStringMap(p.Type) {
+					fi.mapParams[pn.Name] = position
+				}
+				position++
+			}
+			if len(p.Names) == 0 {
+				position++
+			}
+		}
+		if fd.Type.Results != nil {
+			rpos := 0
+			for _, r := range fd.Type.Results.List {
+				if isStringMap(r.Type) {
+					for range max(1, len(r.Names)) {
+						fi.stringMapResults = append(fi.stringMapResults, rpos)
+						rpos++
+					}
+				}
+				rpos += max(1, len(r.Names))
+			}
+		}
+	}
+	for _, decl := range af.Decls {
+		fd, ok := decl.(*ast.FuncDecl)
+		if !ok || fd.Body == nil {
+			continue
+		}
+		s.scanFuncBody(t, fset, fd, pkg)
+	}
+}
+
+// funcName renders a declaration's name the way fnInfo keys it: methods keep
+// their receiver type ("Engine.triggerMatches").
+func (s *scan) funcName(fd *ast.FuncDecl) string {
+	name := fd.Name.Name
+	if fd.Recv != nil && len(fd.Recv.List) > 0 {
+		if star, ok := fd.Recv.List[0].Type.(*ast.StarExpr); ok {
+			if id, ok := star.X.(*ast.Ident); ok {
+				name = id.Name + "." + name
+			}
+		}
+	}
+	return name
+}
+
+// isStringMap reports whether the type expression is exactly
+// map[string]string -- the type of every cards Params map.
+func isStringMap(e ast.Expr) bool {
+	mt, ok := e.(*ast.MapType)
+	if !ok {
+		return false
+	}
+	k, kok := mt.Key.(*ast.Ident)
+	v, vok := mt.Value.(*ast.Ident)
+	return kok && vok && k.Name == "string" && v.Name == "string"
 }
 
 func (s *scan) failf(t *testing.T, pos token.Position, format string, args ...any) {
@@ -196,6 +338,8 @@ func (s *scan) fnOf(pkg, name string) *fnInfo {
 		keyRds:    map[bucket]map[string]bool{},
 		calls:     map[string]bool{},
 		strParams: map[string]int{},
+		mapParams: map[string]int{},
+		aliases:   map[string]string{},
 	}
 	s.fns[key] = fi
 	return fi
@@ -232,16 +376,16 @@ func exprText(e ast.Expr) string {
 // scanFile parses one source file: signatures, direct reads, calls, call-site
 // literals, Register/activeStatics/dispatch-switch attribution, and the
 // range-over-Params whitelist pattern (see scanRangeWhitelist).
-func (s *scan) scanFile(t *testing.T, path, pkg string) {
-	fset := token.NewFileSet()
-	af, err := parser.ParseFile(fset, path, nil, 0)
-	if err != nil {
-		t.Fatalf("paramcensus: parse %s: %v", path, err)
-	}
+// scanFuncBody is pass two for one function: writes, the Params-alias
+// pre-pass, then reads/calls/roots. Aliases and helper-passed maps are
+// classified here so a Params read cannot hide behind a renamed map.
+func (s *scan) scanFuncBody(t *testing.T, fset *token.FileSet, fd *ast.FuncDecl, pkg string) {
+	name := s.funcName(fd)
+	fi := s.fnOf(pkg, name)
 	// Assignment LHS index expressions are writes (`copy.Params["Produced"] = c`),
 	// never reads.
 	writes := map[ast.Node]bool{}
-	ast.Inspect(af, func(n ast.Node) bool {
+	ast.Inspect(fd.Body, func(n ast.Node) bool {
 		as, ok := n.(*ast.AssignStmt)
 		if !ok {
 			return true
@@ -253,78 +397,230 @@ func (s *scan) scanFile(t *testing.T, path, pkg string) {
 		}
 		return true
 	})
-
-	for _, decl := range af.Decls {
-		fd, ok := decl.(*ast.FuncDecl)
-		if !ok || fd.Body == nil {
-			continue
-		}
-		name := fd.Name.Name
-		if fd.Recv != nil && len(fd.Recv.List) > 0 {
-			if star, ok := fd.Recv.List[0].Type.(*ast.StarExpr); ok {
-				if id, ok := star.X.(*ast.Ident); ok {
-					name = id.Name + "." + name
-				}
+	// Alias pre-pass: every local assigned a `.Params` selector (directly or
+	// through another alias) becomes an alias; locals assigned another
+	// selector's map, a map[string]string composite/make, or a call whose
+	// result at that position is a map[string]string are tracked so an index
+	// READ on them is classified rather than silently dropped.
+	otherAliases := map[string]bool{}
+	localStringMaps := map[string]bool{}
+	s.collectAliases(fd.Body, fi, otherAliases, localStringMaps)
+	s.scanDispatchSwitch(t, fset, fd, pkg)
+	ast.Inspect(fd.Body, func(n ast.Node) bool {
+		switch v := n.(type) {
+		case *ast.IndexExpr:
+			if writes[v] {
+				return true
 			}
-		}
-		fi := s.fnOf(pkg, name)
-		for _, p := range fd.Type.Params.List {
-			for _, pn := range p.Names {
-				fi.sig = append(fi.sig, pn.Name)
-				if pt, ok := p.Type.(*ast.Ident); ok && pt.Name == "string" {
-					fi.strParams[pn.Name] = len(fi.sig) - 1
+			switch xb := v.X.(type) {
+			case *ast.SelectorExpr:
+				if xb.Sel.Name != "Params" {
+					return true // .SVars and every other map field: not a param read
 				}
-			}
-		}
-		s.scanDispatchSwitch(t, fset, fd, pkg)
-		ast.Inspect(fd.Body, func(n ast.Node) bool {
-			switch v := n.(type) {
-			case *ast.IndexExpr:
-				if writes[v] {
+				s.recordParamsRead(t, fset, fi, name, v, exprText(xb.X), pkg)
+			case *ast.Ident:
+				if base, aliased := fi.aliases[xb.Name]; aliased {
+					s.recordParamsRead(t, fset, fi, name, v, base, pkg)
 					return true
 				}
-				sel, ok := v.X.(*ast.SelectorExpr)
-				if !ok || sel.Sel.Name != "Params" {
+				if _, isMapParam := fi.mapParams[xb.Name]; isMapParam {
+					s.recordMapParamRead(t, fset, fi, name, v, xb.Name)
 					return true
 				}
-				base := exprText(sel.X)
-				b, ok := s.bucketOf(t, fset, v.Pos(), base, pkg)
-				if !ok {
-					return true
-				}
-				switch idx := v.Index.(type) {
-				case *ast.BasicLit:
-					if idx.Kind != token.STRING {
-						s.failf(t, fset.Position(v.Pos()), "%s: non-string literal Params key %s", name, idx.Value)
-						return true
-					}
-					key, err := strconv.Unquote(idx.Value)
-					if err != nil {
-						s.failf(t, fset.Position(v.Pos()), "%s: unparseable Params key %s", name, idx.Value)
-						return true
-					}
-					s.addRead(fi, b, key)
-				case *ast.Ident:
-					if _, isParam := fi.strParams[idx.Name]; isParam {
-						s.addKeyRead(fi, b, idx.Name)
-						return true
-					}
+				if localStringMaps[xb.Name] {
 					s.failf(t, fset.Position(v.Pos()),
-						"%s: dynamic Params key %q that is not a function parameter -- resolve it via a parameter or classify it", name, idx.Name)
-				default:
-					s.failf(t, fset.Position(v.Pos()), "%s: unclassifiable Params key expression %T", name, v.Index)
+						"%s: index read on local map[string]string %q that is not a tracked Params alias -- classify it", name, xb.Name)
+					return true
 				}
+				if otherAliases[xb.Name] {
+					return true // an alias of a non-Params map field: not a param read
+				}
+				// Anything else indexed under a plain identifier is a slice,
+				// array or non-string map -- never a Params map (whose only
+				// shapes are the selector, alias, helper-param and local
+				// forms classified above).
 				return true
-			case *ast.CallExpr:
-				s.scanCall(t, fset, fi, name, v, pkg)
-				return true
-			case *ast.RangeStmt:
-				s.scanRangeWhitelist(t, fset, fi, name, v, pkg, writes)
+			default:
+				// A call result (or composite) indexed directly is a slice or a
+				// non-Params map -- never a Params read (a call returning an SA
+				// reaches the map only through a `.Params` selector, which the
+				// case above classifies). One exception fails loudly: a call
+				// whose position-0 result is itself a map[string]string must
+				// not be indexed without classification.
+				if ce, ok := v.X.(*ast.CallExpr); ok {
+					if id, ok := ce.Fun.(*ast.Ident); ok {
+						if target := s.fns[fi.pkg+":"+id.Name]; target != nil && slices.Contains(target.stringMapResults, 0) {
+							s.failf(t, fset.Position(v.Pos()),
+								"%s: indexes the map[string]string result of %s directly -- assign it to a tracked local or classify it", name, id.Name)
+						}
+					}
+				}
 				return true
 			}
 			return true
-		})
+		case *ast.CallExpr:
+			s.scanCall(t, fset, fi, name, v, pkg)
+			return true
+		case *ast.RangeStmt:
+			s.scanRangeWhitelist(t, fset, fi, name, v, pkg, writes)
+			return true
+		}
+		return true
+	})
+}
+
+// recordParamsRead records one `.Params[...]` (or alias) access on the given
+// base text -- the shared read logic for selector and aliased forms.
+func (s *scan) recordParamsRead(t *testing.T, fset *token.FileSet, fi *fnInfo, name string, v *ast.IndexExpr, base, pkg string) {
+	b, ok := s.bucketOf(t, fset, v.Pos(), base, pkg)
+	if !ok {
+		return
 	}
+	switch idx := v.Index.(type) {
+	case *ast.BasicLit:
+		if idx.Kind != token.STRING {
+			s.failf(t, fset.Position(v.Pos()), "%s: non-string literal Params key %s", name, idx.Value)
+			return
+		}
+		key, err := strconv.Unquote(idx.Value)
+		if err != nil {
+			s.failf(t, fset.Position(v.Pos()), "%s: unparseable Params key %s", name, idx.Value)
+			return
+		}
+		s.addRead(fi, b, key)
+	case *ast.Ident:
+		if _, isParam := fi.strParams[idx.Name]; isParam {
+			s.addKeyRead(fi, b, idx.Name)
+			return
+		}
+		s.failf(t, fset.Position(v.Pos()),
+			"%s: dynamic Params key %q that is not a function parameter -- resolve it via a parameter or classify it", name, idx.Name)
+	default:
+		s.failf(t, fset.Position(v.Pos()), "%s: unclassifiable Params key expression %T", name, v.Index)
+	}
+}
+
+// recordMapParamRead records an index on a map[string]string parameter (the
+// helper-passed-map form). Literal keys are attributed through the call
+// sites' arguments in propagateKeyReads; a dynamic key cannot be attributed
+// and fails. Whitelisted non-card maps (parseStaticLine's SVar table, ...) skip
+// attribution entirely.
+func (s *scan) recordMapParamRead(t *testing.T, fset *token.FileSet, fi *fnInfo, name string, v *ast.IndexExpr, param string) {
+	if _, skipped := stringMapParams[fi.pkg+":"+fi.name+":"+param]; skipped {
+		return
+	}
+	var key string
+	switch idx := v.Index.(type) {
+	case *ast.BasicLit:
+		if idx.Kind == token.STRING {
+			if k, err := strconv.Unquote(idx.Value); err == nil {
+				key = k
+			}
+		}
+		if key == "" {
+			s.failf(t, fset.Position(v.Pos()), "%s: non-string literal key on map[string]string parameter %q", name, param)
+			return
+		}
+	case *ast.Ident:
+		if _, isStr := fi.strParams[idx.Name]; isStr {
+			// A dynamic key taken from a string parameter: the read is real
+			// but its key is only known at the call sites, where BOTH the
+			// key argument and the map argument must be attributed.
+			key = ""
+		} else {
+			s.failf(t, fset.Position(v.Pos()),
+				"%s: dynamic key %q on map[string]string parameter %q is not a function parameter -- classify it", name, idx.Name, param)
+			return
+		}
+	default:
+		s.failf(t, fset.Position(v.Pos()), "%s: unclassifiable key expression on map[string]string parameter %q", name, param)
+		return
+	}
+	if fi.mapIdxRds == nil {
+		fi.mapIdxRds = map[string]map[string]bool{}
+	}
+	if fi.mapIdxRds[param] == nil {
+		fi.mapIdxRds[param] = map[string]bool{}
+	}
+	fi.mapIdxRds[param][key] = true
+}
+
+// collectAliases finds the Params-alias and local-string-map locals of one
+// function body: single assignments (`x := y.Params`, `x := y.SVars`,
+// `x := otherAlias`, `x := make(map[string]string...)`,
+// `x := map[string]string{...}`, `x := f(...)` with a map[string]string
+// result at that position) and var declarations of the same shapes.
+func (s *scan) collectAliases(body *ast.BlockStmt, fi *fnInfo, otherAliases, localStringMaps map[string]bool) {
+	track := func(lhs *ast.Ident, rhs ast.Expr) {
+		rhs = ast.Unparen(rhs)
+		switch r := rhs.(type) {
+		case *ast.SelectorExpr:
+			if r.Sel.Name == "Params" {
+				fi.aliases[lhs.Name] = exprText(r.X)
+			} else {
+				otherAliases[lhs.Name] = true
+			}
+		case *ast.Ident:
+			if base, ok := fi.aliases[r.Name]; ok {
+				fi.aliases[lhs.Name] = base
+			} else if otherAliases[r.Name] {
+				otherAliases[lhs.Name] = true
+			}
+		case *ast.CompositeLit:
+			if isStringMap(r.Type) {
+				localStringMaps[lhs.Name] = true
+			}
+		case *ast.CallExpr:
+			if callee, ok := r.Fun.(*ast.Ident); ok {
+				if target := s.fns[fi.pkg+":"+callee.Name]; target != nil {
+					for _, pos := range target.stringMapResults {
+						if pos == 0 {
+							localStringMaps[lhs.Name] = true
+						}
+					}
+				}
+			}
+		}
+	}
+	ast.Inspect(body, func(n ast.Node) bool {
+		switch v := n.(type) {
+		case *ast.AssignStmt:
+			if len(v.Rhs) == 1 && len(v.Lhs) == 1 {
+				if id, ok := v.Lhs[0].(*ast.Ident); ok && (v.Tok == token.DEFINE || v.Tok == token.ASSIGN) {
+					track(id, v.Rhs[0])
+				}
+			} else if len(v.Rhs) == 1 && len(v.Lhs) > 1 && v.Tok == token.DEFINE {
+				// Multi-assign from one call: a map[string]string result at
+				// position i makes LHS i a tracked local string map.
+				if ce, ok := ast.Unparen(v.Rhs[0]).(*ast.CallExpr); ok {
+					if callee, ok := ce.Fun.(*ast.Ident); ok {
+						if target := s.fns[fi.pkg+":"+callee.Name]; target != nil {
+							for _, pos := range target.stringMapResults {
+								if pos < len(v.Lhs) {
+									if id, ok := v.Lhs[pos].(*ast.Ident); ok {
+										localStringMaps[id.Name] = true
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		case *ast.GenDecl:
+			for _, spec := range v.Specs {
+				vs, ok := spec.(*ast.ValueSpec)
+				if !ok || len(vs.Values) != len(vs.Names) {
+					continue
+				}
+				for i, val := range vs.Values {
+					if id := vs.Names[i]; id != nil {
+						track(id, val)
+					}
+				}
+			}
+		}
+		return true
+	})
 }
 
 // scanDispatchSwitch derives the trigger Mode$ dispatch from
@@ -462,27 +758,56 @@ func (s *scan) scanCall(t *testing.T, fset *token.FileSet, fi *fnInfo, fname str
 		return
 	}
 	args := make([]string, len(ce.Args))
+	exprs := make([]string, len(ce.Args))
 	for i, a := range ce.Args {
+		exprs[i] = argText(a)
 		if lit, ok := a.(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			if v, err := strconv.Unquote(lit.Value); err == nil {
 				args[i] = v
 			}
 		}
 	}
-	fi.callSites = append(fi.callSites, callSite{callee: callee, args: args})
+	fi.callSites = append(fi.callSites, callSite{callee: callee, args: args, exprs: exprs})
 }
 
-// scanRangeWhitelist handles the one `for k := range X.Params` shape in the
-// scanned code (Engine.mustAttackRequired): a range over a Params map whose
-// body switches on the range variable is a READ of the keys named in the case
-// clauses (the whitelist). A range whose body does not match that shape is a
-// rot-guard failure. Derived from the code, not hand-set.
+// argText renders an argument expression for map[string]string-parameter
+// attribution: plain identifiers, one-level selector chains and parenthesised
+// forms of those; anything else renders "" (unattributable, and the rot
+// guard says so when it is a map argument).
+func argText(e ast.Expr) string {
+	switch v := ast.Unparen(e).(type) {
+	case *ast.Ident:
+		return v.Name
+	case *ast.SelectorExpr:
+		if x, ok := v.X.(*ast.Ident); ok {
+			return x.Name + "." + v.Sel.Name
+		}
+	}
+	return ""
+}
+
+// scanRangeWhitelist handles `for k := range X.Params` shapes (X a selector
+// base or a tracked alias): a range over a Params map whose body switches on
+// the range variable is a READ of the keys named in the case clauses (the
+// whitelist). A range whose body does not match that shape is a rot-guard
+// failure. Derived from the code, not hand-set.
 func (s *scan) scanRangeWhitelist(t *testing.T, fset *token.FileSet, fi *fnInfo, fname string, rs *ast.RangeStmt, pkg string, writes map[ast.Node]bool) {
-	sel, ok := rs.X.(*ast.SelectorExpr)
-	if !ok || sel.Sel.Name != "Params" {
+	var base string
+	switch x := rs.X.(type) {
+	case *ast.SelectorExpr:
+		if x.Sel.Name != "Params" {
+			return
+		}
+		base = exprText(x.X)
+	case *ast.Ident:
+		if b, ok := fi.aliases[x.Name]; ok {
+			base = b
+		} else {
+			return // range over some other map: not a Params read
+		}
+	default:
 		return
 	}
-	base := exprText(sel.X)
 	b, ok := s.bucketOf(t, fset, rs.X.Pos(), base, pkg)
 	if !ok {
 		return
@@ -592,12 +917,37 @@ func (s *scan) bucketOf(t *testing.T, fset *token.FileSet, pos token.Pos, base, 
 	return 0, false
 }
 
-// propagateKeyReads resolves `.Params[paramIdent]` reads: every caller of a
-// function that reads one of its own string parameters as a key gains the
-// literal keys passed at those positions. This is what makes hasStat /
-// statInt / statList / actorMatches / effects/count's Num-body read keys
-// derived from call sites rather than guessed.
+// stringMapParams whitelists the map[string]string-typed parameters whose
+// maps are NOT card Params maps, so their index reads are not attributed:
+// each entry is "pkg:func:param" with its justification. Anything not listed
+// here AND not called with a `.Params`/alias argument fails the rot guard.
+var stringMapParams = map[string]string{
+	// effects/misc.go parseStaticLine: svars is the face's SVars table (a
+	// cards.SA's SVar: bodies), read by NAME to fetch a static line -- not a
+	// card Params map.
+	"effects:parseStaticLine:svars": "SVars table lookup by static-line name, not a card Params map",
+	// effects/misc.go compoundRememberedSpec: params is the map parseStaticLine
+	// built from one SVar static line -- its ValidCard$/ValidTarget$ keys are
+	// consumed here, but the map originates in an SVar body, not a card's
+	// Params map.
+	"effects:compoundRememberedSpec:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
+}
+
+// propagateKeyReads resolves two indirect read shapes:
+//
+//   - `.Params[paramIdent]` reads: every caller of a function that reads one
+//     of its own string parameters as a key gains the literal keys passed at
+//     those positions (hasStat / statInt / statList / actorMatches /
+//     effects/count's Num-body).
+//   - map[string]string-parameter reads (the helper-passed-map form): a
+//     literal key indexed on such a parameter is attributed to the caller
+//     with the BUCKET of the argument expression -- which must be a `.Params`
+//     selector or a tracked Params alias; anything else is a
+//     mapArgFailure the rot guard surfaces. parseStaticLine and
+//     compoundRememberedSpec are whitelisted (stringMapParams): their maps
+//     are SVar tables and parsed static lines, not card Params.
 func (s *scan) propagateKeyReads() {
+	s.mapAttributed = map[string]bool{}
 	for _, fi := range s.fns {
 		for _, cs := range fi.callSites {
 			target := s.fns[fi.pkg+":"+cs.callee]
@@ -611,6 +961,41 @@ func (s *scan) propagateKeyReads() {
 						continue
 					}
 					s.addRead(fi, b, cs.args[idx])
+				}
+			}
+			for param, keys := range target.mapIdxRds {
+				idx, ok := target.mapParams[param]
+				if !ok || idx >= len(cs.exprs) {
+					continue
+				}
+				s.mapAttributed[target.pkg+":"+target.name+":"+param] = true
+				arg := cs.exprs[idx]
+				var base string
+				switch {
+				case strings.HasSuffix(arg, ".Params"):
+					base = strings.TrimSuffix(arg, ".Params")
+				default:
+					if b, isAlias := fi.aliases[arg]; isAlias {
+						base = b
+						break
+					}
+					s.mapArgFailures = append(s.mapArgFailures, fmt.Sprintf(
+						"%s calls %s passing %q for map[string]string parameter %q -- not a Params map; classify it in stringMapParams or fix the argument",
+						fi.name, target.name, arg, param))
+					continue
+				}
+				b, ok := s.bucketOf(nil, token.NewFileSet(), token.NoPos, base, fi.pkg)
+				if !ok {
+					continue // already recorded as unclassified by bucketOf
+				}
+				for key := range keys {
+					if key == "" {
+						s.mapArgFailures = append(s.mapArgFailures, fmt.Sprintf(
+							"%s: map[string]string parameter %q of %s is indexed with a dynamic key -- classify it",
+							target.name, param, fi.name))
+						continue
+					}
+					s.addRead(fi, b, key)
 				}
 			}
 		}
@@ -650,6 +1035,53 @@ func (s *scan) closureReads(fi *fnInfo, exclude map[string]bool, visited map[str
 // ---------------------------------------------------------------------------
 // 2. Attribution roots the code does not state in a machine-readable position
 // ---------------------------------------------------------------------------
+
+// apiSpecificRulesSA names the rules functions whose SA (bSA) reads execute
+// only inside the listed APIs' code paths -- NOT for every cast/activation/
+// targeting of any primitive. Their direct SA reads are REMOVED from the
+// generic rules union and attributed to exactly the named APIs, so the mana
+// path's `Amount$`/`Produced$` reads no longer mask e.g. api:Sacrifice's
+// genuinely unread `Amount$`, and the unless-pay resume's `UnlessCost$` read
+// no longer masks api:Sacrifice's unread `UnlessCost$`. Each entry was
+// verified by reading its callers: every call site sits on a path only that
+// API reaches (the mana-ability offer/payment/resolution chain, the Charm
+// mode ask/resume pair, the modal-trigger placement ask, the unless-pay
+// resume arms effCounter/effCopySpellAbility suspend with). The rot guard
+// fails on a stale entry (renamed function, or one that no longer reads SA
+// params); a NEW api-specialised path must be added here or its reads
+// over-suppress every other API's real gaps.
+var apiSpecificRulesSA = map[string][]string{
+	// The mana-ability chain: activateMana through resolveManaEffectColor,
+	// the AvailableMana projection, and activatedMatchesValidSA's
+	// Produced$-based mana-ability recognition -- all run on mana abilities
+	// (api:Mana) only.
+	"Engine.activateMana":           {"Mana"},
+	"Engine.manaAbilityPayable":     {"Mana"},
+	"Engine.emitManaTap":            {"Mana"},
+	"Engine.isTriggeredManaAbility": {"Mana"},
+	"triggeredManaColourChoice":     {"Mana"},
+	"Engine.resolveManaAbility":     {"Mana"},
+	"Engine.resolveManaEffect":      {"Mana"},
+	"manaColourPrompt":              {"Mana"},
+	"Engine.AvailableMana":          {"Mana"},
+	"addAvailable":                  {"Mana"},
+	"availableAmount":               {"Mana"},
+	"activatedMatchesValidSA":       {"Mana"},
+	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
+	// the per-mode target declaration (modalTargetSA), the resume-side mode
+	// decisions/labels, and the modal-trigger placement ask (CharmNum$).
+	"Engine.castModeAsk":     {"Charm"},
+	"modalTargetSA":          {"Charm"},
+	"modeDecision":           {"Charm"},
+	"modeDecisionForChoices": {"Charm"},
+	"modeLabels":             {"Charm"},
+	"modeChoiceNames":        {"Charm"},
+	"Engine.askTriggerModes": {"Charm"},
+	// The unless-pay resume arm: only effCounter and effCopySpellAbility
+	// suspend with an UnlessCost$ ask, so resumeResolution's UnlessCost$
+	// read belongs to those two APIs alone.
+	"Engine.resumeResolution": {"Counter", "CopySpellAbility"},
+}
 
 // handRoots declares ATTRIBUTION (which function to read for a primitive) for
 // the few roots the code does not state via Register / the dispatch switch /
@@ -707,13 +1139,30 @@ func (s *scan) derived() *derivedReads {
 	}
 	// api: the effects implementation's closure, UNION the generic cast/
 	// activation/legality machinery: every rules-side SA read applies to
-	// whatever primitive is being cast, activated or targeted, so all of them
-	// are reads for every api primitive. (The union can only over-suppress a
-	// key whose name the machinery genuinely reads for a different purpose;
-	// the seeded baseline is hand-checked against exactly that.)
+	// whatever primitive is being cast, activated or targeted. The
+	// API-SPECIALISED rules paths (apiSpecificRulesSA) are excluded from the
+	// union and attributed to their own APIs only -- the mana path's
+	// Amount$/Produced$ reads must not mark Amount$ read for api:Sacrifice.
 	rulesAllSA := map[string]bool{}
+	specialised := map[string]map[string]bool{} // api -> direct SA reads
+	excludedSA := map[string]bool{}
+	for fn, apis := range apiSpecificRulesSA {
+		excludedSA[fn] = true
+		fi := s.fns["rules:"+fn]
+		if fi == nil {
+			continue // rotGuard already failed on the stale entry
+		}
+		for k := range fi.reads[bSA] {
+			for _, api := range apis {
+				if specialised[api] == nil {
+					specialised[api] = map[string]bool{}
+				}
+				specialised[api][k] = true
+			}
+		}
+	}
 	for key, fi := range s.fns {
-		if !strings.HasPrefix(key, "rules:") {
+		if !strings.HasPrefix(key, "rules:") || excludedSA[fi.name] {
 			continue
 		}
 		for k := range fi.reads[bSA] {
@@ -740,6 +1189,9 @@ func (s *scan) derived() *derivedReads {
 			keys[k] = true
 		}
 		for k := range effectsGeneric[bSA] {
+			keys[k] = true
+		}
+		for k := range specialised[api] {
 			keys[k] = true
 		}
 		d.api[api] = keys
@@ -821,17 +1273,23 @@ func (s *scan) derived() *derivedReads {
 // 3. The rot guard
 // ---------------------------------------------------------------------------
 
-// rotGuard fails when a read escaped the census:
+// rotGuard collects every way a read could have escaped the census into
+// s.guardErrs:
 //
 //   - any unclassified access collected during the scan;
 //   - an effects function reading Params but unreachable from every
 //     Register'd implementation (a primitive implemented but never
 //     registered, or a helper only dead code reaches);
 //   - a rules function reading trigger/static/replacement params outside
-//     every attribution root for that bucket.
+//     every attribution root for that bucket;
+//   - a map[string]string parameter indexed but never attributed through a
+//     `.Params`/alias call-site argument, or an unattributable argument;
+//   - a stale apiSpecificRulesSA entry (the function is gone or no longer
+//     reads SA params).
 //
 // A new read therefore cannot join the codebase without either being
-// attributed or failing this test.
+// attributed or failing the guard; failGuard turns the findings into test
+// failures and the probes inspect the list directly.
 func (s *scan) rotGuard(t *testing.T) {
 	t.Helper()
 	// Every non-literal activeStatics call site must be covered by a
@@ -846,14 +1304,15 @@ func (s *scan) rotGuard(t *testing.T) {
 			}
 		}
 		if !covered {
-			t.Errorf("paramcensus: activeStatics non-literal mode call in %s (%s) has no handRoots.stat attribution",
-				fname, strings.Join(sites, ", "))
+			s.guardErrs = append(s.guardErrs, fmt.Sprintf(
+				"paramcensus: activeStatics non-literal mode call in %s (%s) has no handRoots.stat attribution",
+				fname, strings.Join(sites, ", ")))
 		}
 	}
 	if len(s.unclassified) > 0 {
 		sort.Strings(s.unclassified)
-		t.Fatalf("paramcensus: %d unclassified Params reads (the census cannot rot):\n%s",
-			len(s.unclassified), strings.Join(s.unclassified, "\n"))
+		s.guardErrs = append(s.guardErrs, fmt.Sprintf("paramcensus: %d unclassified Params reads (the census cannot rot):\n%s",
+			len(s.unclassified), strings.Join(s.unclassified, "\n")))
 	}
 	// effects reachability.
 	visited := map[string]bool{}
@@ -871,7 +1330,8 @@ func (s *scan) rotGuard(t *testing.T) {
 			total += len(fi.reads[b])
 		}
 		if total > 0 && !visited[fi.name] {
-			t.Errorf("paramcensus: effects function %s reads Params but is unreachable from every Register'd implementation", fi.name)
+			s.guardErrs = append(s.guardErrs, fmt.Sprintf(
+				"paramcensus: effects function %s reads Params but is unreachable from every Register'd implementation", fi.name))
 		}
 	}
 	// rules bucket reachability.
@@ -884,9 +1344,50 @@ func (s *scan) rotGuard(t *testing.T) {
 				continue
 			}
 			if !s.reachFromRoots(b, fi.name) {
-				t.Errorf("paramcensus: rules function %s reads %s params outside every attribution root for that bucket", fi.name, b)
+				s.guardErrs = append(s.guardErrs, fmt.Sprintf(
+					"paramcensus: rules function %s reads %s params outside every attribution root for that bucket", fi.name, b))
 			}
 		}
+	}
+	// Helper-passed maps: every indexed map[string]string parameter must have
+	// been attributed through a call site (whitelisted non-card maps never
+	// enter mapIdxRds at all).
+	for key, fi := range s.fns {
+		for param := range fi.mapIdxRds {
+			if !s.mapAttributed[key+":"+param] {
+				s.guardErrs = append(s.guardErrs, fmt.Sprintf(
+					"paramcensus: %s indexes map[string]string parameter %q but no call site passes a Params map -- the helper is unreachable or mis-fed", fi.name, param))
+			}
+		}
+	}
+	sort.Strings(s.mapArgFailures)
+	s.guardErrs = append(s.guardErrs, s.mapArgFailures...)
+	if !s.complete {
+		return
+	}
+	// apiSpecificRulesSA must name real rules functions that still read SA
+	// params -- a renamed or refactored function must not leave a silent
+	// stale entry behind.
+	for fn := range apiSpecificRulesSA {
+		fi, ok := s.fns["rules:"+fn]
+		if !ok {
+			s.guardErrs = append(s.guardErrs, fmt.Sprintf(
+				"paramcensus: apiSpecificRulesSA names rules function %q, which no longer exists -- rename the entry", fn))
+			continue
+		}
+		if len(fi.reads[bSA]) == 0 {
+			s.guardErrs = append(s.guardErrs, fmt.Sprintf(
+				"paramcensus: apiSpecificRulesSA entry %q no longer reads SA params -- delete the stale entry", fn))
+		}
+	}
+}
+
+// failGuard fails the test if rotGuard collected any findings.
+func (s *scan) failGuard(t *testing.T) {
+	t.Helper()
+	if len(s.guardErrs) > 0 {
+		sort.Strings(s.guardErrs)
+		t.Fatalf("paramcensus rot guard: %d findings:\n%s", len(s.guardErrs), strings.Join(s.guardErrs, "\n"))
 	}
 }
 
@@ -940,51 +1441,67 @@ func (s *scan) reachFromRoots(b bucket, fn string) bool {
 // ---------------------------------------------------------------------------
 
 // structuralKeys are the keys the cards IR itself consumes (cards/parse.go,
-// cards/link.go) rather than any effects/rules implementation: the line heads
-// and the chain pointers. They are never `.Params[...]` read in Go because
-// the parser turned them into structure (Trigger.Mode, Repl.With, sa.Sub...)
-// before any primitive ran.
-var structuralKeys = map[string]map[string]bool{
-	"sa":   {"SubAbility": true},
-	"trig": {"Mode": true, "Execute": true},
-	"stat": {"Mode": true},
-	"repl": {"Event": true, "ReplaceWith": true},
-}
+// cards/link.go, cards/keywords.go) rather than any effects/rules
+// implementation: the line heads, the chain pointers, and the keyword-
+// expansion tags. They are never `.Params[...]` read in Go because the parser
+// turned them into structure (Trigger.Mode, Repl.With, sa.Sub...) before any
+// primitive ran.
+//
+// Keyword and KeywordLine are generated by cards/keywords.go's
+// expandKeywords, not read from any Forge script (measured at the corpus
+// pin: ZERO raw cardsfolder lines carry `| Keyword$ ` or `KeywordLine$` --
+// re-measure that claim before trusting this classification for a new
+// corpus): every expanded ability/trigger/replacement is tagged
+// Params["Keyword"] (head) and Params["KeywordLine"] (the full line) so
+// nothing downstream needs to re-derive the difference. Both tags are
+// consumed structurally: the KeywordLine tag IS the idempotence check in
+// cards/keywords.go's `has` closure (the T:/R:/A: lookups at the top of
+// expandKeywords), and rules/cast.go's collectETBChoices reads the Keyword
+// tag ("ETBReplacement") to find an ETB replacement's target options. They
+// are therefore never a per-primitive script parameter and are never
+// measured.
+var structuralKeys = func() map[string]map[string]bool {
+	m := map[string]map[string]bool{
+		"sa":   {"SubAbility": true},
+		"trig": {"Mode": true, "Execute": true},
+		"stat": {"Mode": true},
+		"repl": {"Event": true, "ReplaceWith": true},
+	}
+	for _, keys := range m {
+		keys["Keyword"] = true
+		keys["KeywordLine"] = true
+	}
+	return m
+}()
 
 // ignoredParamKeys are keys the census deliberately does NOT report, each
 // with the Forge behaviour that makes it presentation/AI-only. Verified
 // against the pinned Forge checkout (~/projects/ref/forge; grep the key to
 // see every consumer).
 var ignoredParamKeys = map[string]string{
-	// forge/ai reading: targeting and payment heuristics, never rules
-	// behaviour (forge-gui the AI reads these in its score functions).
-	"AILogic":            "forge-ai targeting heuristic (AbilityFactory getAiLogic); no rules effect",
-	"AITgts":             "forge-ai target scoring hint",
-	"AILifeThreshold":    "forge-ai life-threshold heuristic for AI choices",
-	"AINoRecursiveCheck": "forge-ai recursion guard for AI evaluation only",
-	"AIPhyrexianPayment": "forge-ai Phyrexian-cost payment preference",
-	// Human-readable text: rendered in Forge's UI, never read by rules.
-	// (SpellDescription is NOT ignored: this engine reads it for ability
-	// option labels -- rules/legal.go's legalActions -- so it is a real read.)
-	"StackDescription":      "stack-item caption template",
-	"TriggerDescription":    "trigger caption template",
-	"ChangeTypeDesc":        "UI text for a search's ChangeType$",
-	"ValidDescription":      "UI text naming the valid cards",
-	"CostDesc":              "UI text for an alternate cost",
-	"ConditionDescription":  "display text for a Condition* gate (effects/conditions.go documents it as ignored display text)",
-	"PrecostDesc":           "UI text preceding a cost prompt",
-	"TgtPrompt":             "target-prompt UI text",
-	"ChoiceTitle":           "choice-dialog title",
-	"AdditionalDescription": "extra rules-text fragment for the UI",
-	"VoteMessage":           "vote dialog message text",
-	// AI curse marker: forge-ai uses it to prefer targeting; no rules effect.
-	"IsCurse": "forge-ai marks curse Auras/spells for AI preference",
-	// Human-readable description text (Forge renders it in dialogs).
-	"Description": "UI/dialog description text",
-	// forge-game ChangeZoneEffect.java: the search prompt's message text.
-	"SelectPrompt": "search prompt message text (forge-game ChangeZoneEffect.java:1110)",
-	// forge-game EffectEffect.java:150-162: the effect token's picture key.
-	"Image": "effect token image key (forge-game EffectEffect.java:150)",
+	// Forge citations below are relative to ~/projects/ref/forge. These keys
+	// affect Forge AI or rendered text only, never its game rules.
+	"AILogic":            "AI heuristic; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
+	"AITgts":             "AI target hint; forge-game/src/main/java/forge/game/card/CardState.java",
+	"AILifeThreshold":    "AI life threshold; forge-ai/src/main/java/forge/ai/AiController.java",
+	"AINoRecursiveCheck": "AI recursion guard; forge-ai/src/main/java/forge/ai/ability/DelayedTriggerAi.java",
+	"AIPhyrexianPayment": "AI payment preference; forge-ai/src/main/java/forge/ai/ComputerUtilMana.java",
+	// SpellDescription is deliberately NOT ignored: legalActions renders it.
+	"StackDescription":      "stack caption; forge-game/src/main/java/forge/game/card/CardFactory.java",
+	"TriggerDescription":    "trigger caption; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
+	"ChangeTypeDesc":        "search UI text; forge-game/src/main/java/forge/game/ability/effects/ChangeZoneEffect.java",
+	"ValidDescription":      "valid-card UI text; forge-game/src/main/java/forge/game/card/Card.java",
+	"CostDesc":              "alternate-cost UI text; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
+	"ConditionDescription":  "condition display text; forge-game/src/main/java/forge/game/ability/SpellAbilityEffect.java",
+	"PrecostDesc":           "cost-prompt prefix; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
+	"TgtPrompt":             "target-prompt UI text; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
+	"ChoiceTitle":           "choice-dialog title; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
+	"AdditionalDescription": "extra UI rules-text fragment; forge-game/src/main/java/forge/game/ability/effects/CharmEffect.java",
+	"VoteMessage":           "vote-dialog message; forge-game/src/main/java/forge/game/ability/effects/VoteEffect.java",
+	"IsCurse":               "AI curse marker; forge-game/src/main/java/forge/game/spellability/SpellAbility.java",
+	"Description":           "UI/dialog description; forge-game/src/main/java/forge/game/card/CardFactory.java",
+	"SelectPrompt":          "search prompt message; forge-game/src/main/java/forge/game/ability/effects/ChangeZoneEffect.java",
+	"Image":                 "effect-token image key; forge-game/src/main/java/forge/game/card/CardFactory.java",
 }
 
 // censusResult is one census run: per-card labels plus aggregate sets.
@@ -1013,6 +1530,7 @@ func measureParamCensus(t *testing.T, drop map[string]map[string]bool) (censusRe
 		censusOnce.Do(func() {
 			s := scanPackages(t)
 			s.rotGuard(t)
+			s.failGuard(t)
 			censusReads = s.derived()
 			censusBase = walkRepoDeckCensus(t, censusReads, nil)
 		})
@@ -1020,6 +1538,7 @@ func measureParamCensus(t *testing.T, drop map[string]map[string]bool) (censusRe
 	}
 	s := scanPackages(t)
 	s.rotGuard(t)
+	s.failGuard(t)
 	d := s.derived()
 	return walkRepoDeckCensus(t, d, drop), d
 }
@@ -1177,9 +1696,9 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 // must be deleted -- so it only ever shrinks, and only when a real read or a
 // real ParseCost model is added.
 var knownUnsupportedParams = map[string][]string{
-	"Abbot of Keral Keep":         {"param:api:Cleanup.ClearRemembered", "param:api:Dig.RememberChanged", "param:api:Effect.ExileOnMoved", "param:trig:SpellCast.Keyword", "param:trig:SpellCast.KeywordLine"},
+	"Abbot of Keral Keep":         {"param:api:Cleanup.ClearRemembered", "param:api:Dig.RememberChanged", "param:api:Effect.ExileOnMoved"},
 	"Ad Nauseam":                  {"param:api:Repeat.RepeatOptional"},
-	"Adaptive Automaton":          {"param:api:ChooseType.Type", "param:repl:Moved.KeywordLine"},
+	"Adaptive Automaton":          {"param:api:ChooseType.Type"},
 	"Aether Vial":                 {"param:api:ChangeZone.Optional"},
 	"Aftermath Analyst":           {"param:api:ChangeZoneAll.Tapped"},
 	"Ancient Stirrings":           {"param:api:Dig.ForceRevealToController"},
@@ -1193,23 +1712,19 @@ var knownUnsupportedParams = map[string][]string{
 	"Baloth Prime":                {"param:api:PutCounter.ETB", "param:api:Token.TokenTapped"},
 	"Banisher Priest":             {"param:api:ChangeZone.Duration"},
 	"Banishing Light":             {"param:api:ChangeZone.Duration"},
-	"Batterskull":                 {"param:api:Attach.Keyword", "param:api:Attach.KeywordLine", "param:trig:ChangesZone.Keyword", "param:trig:ChangesZone.KeywordLine"},
-	"Battlegrace Angel":           {"param:trig:Attacks.Keyword", "param:trig:Attacks.KeywordLine"},
 	"Bile Blight":                 {"param:api:Cleanup.ClearRemembered", "param:api:Pump.RememberTargets"},
 	"Blazemire Verge":             {"param:api:Mana.IsPresent"},
-	"Blood Crypt":                 {"param:api:Tap.UnlessPayer"},
+	"Blood Crypt":                 {"param:api:Tap.UnlessCost", "param:api:Tap.UnlessPayer"},
 	"Bloodchief Ascension":        {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Bloodsoaked Champion":        {"param:api:ChangeZone.CheckSVar"},
-	"Bonesplitter":                {"param:api:Attach.Keyword", "param:api:Attach.KeywordLine"},
 	"Borderland Ranger":           {"param:api:ChangeZone.ShuffleNonMandatory"},
-	"Braids, Arisen Nightmare":    {"param:api:Cleanup.ClearRemembered", "param:api:Sacrifice.Optional"},
+	"Braids, Arisen Nightmare":    {"param:api:Cleanup.ClearRemembered", "param:api:Sacrifice.Amount", "param:api:Sacrifice.Optional"},
 	"Brainstorm":                  {"param:api:ChangeZone.Mandatory", "param:api:ChangeZone.Reorder"},
 	"Burning Wish":                {"param:api:ChangeZone.Hidden", "param:api:ChangeZone.Reveal"},
-	"Butcher Ghoul":               {"param:trig:ChangesZone.Keyword", "param:trig:ChangesZone.KeywordLine"},
-	"Cavern of Souls":             {"param:api:ChooseType.Type", "param:api:Mana.AddsNoCounter", "param:api:Mana.RestrictValid", "param:repl:Moved.KeywordLine"},
+	"Cavern of Souls":             {"param:api:ChooseType.Type", "param:api:Mana.AddsNoCounter", "param:api:Mana.RestrictValid"},
 	"Celestial Colonnade":         {"param:api:Animate.Colors", "param:api:Animate.Keywords", "param:api:Animate.OverwriteColors"},
 	"Chain Lightning":             {"param:api:CopySpellAbility.Controller"},
-	"Chalice of the Void":         {"param:api:PutCounter.ETB", "param:repl:Moved.KeywordLine"},
+	"Chalice of the Void":         {"param:api:PutCounter.ETB"},
 	"Chandra, Awakened Inferno":   {"cost:SubCounter", "param:api:Cleanup.ClearRemembered", "param:api:DealDamage.ReplaceDyingDefined", "param:api:DealDamage.Ultimate", "param:api:Effect.EffectOwner", "param:api:Effect.Name"},
 	"Chaos Warp":                  {"param:api:Dig.DestinationZone2", "param:api:Dig.LibraryPosition2", "param:api:Dig.Reveal"},
 	"Conduit of Worlds":           {"param:api:Cleanup.ClearRemembered", "param:stat:Continuous.AffectedZone", "param:stat:Continuous.MayPlay"},
@@ -1226,33 +1741,28 @@ var knownUnsupportedParams = map[string][]string{
 	"Demonic Tutor":               {"param:api:ChangeZone.Mandatory"},
 	"Eldrazi Temple":              {"param:api:Mana.RestrictValid"},
 	"Electrostatic Bolt":          {"param:api:DealDamage.ConditionCheckSVar", "param:api:DealDamage.ConditionSVarCompare"},
-	"Empty the Warrens":           {"param:trig:SpellCast.Keyword", "param:trig:SpellCast.KeywordLine"},
-	"Endless One":                 {"param:api:PutCounter.ETB", "param:repl:Moved.KeywordLine"},
+	"Endless One":                 {"param:api:PutCounter.ETB"},
 	"Escape Tunnel":               {"param:api:Effect.ExileOnMoved"},
 	"Evendo Brushrazer":           {"param:stat:Continuous.AffectedZone", "param:stat:Continuous.CheckSVar", "param:stat:Continuous.Condition", "param:stat:Continuous.MayPlay"},
-	"Experiment One":              {"param:trig:ChangesZone.Keyword", "param:trig:ChangesZone.KeywordLine"},
 	"Exploration Broodship":       {"param:stat:Continuous.AddStaticAbility"},
 	"Fabled Passage":              {"param:api:Cleanup.ClearRemembered"},
-	"Flayer Husk":                 {"param:api:Attach.Keyword", "param:api:Attach.KeywordLine", "param:trig:ChangesZone.Keyword", "param:trig:ChangesZone.KeywordLine"},
 	"Flickerwisp":                 {"param:api:ChangeZone.Mandatory", "param:api:Cleanup.ClearRemembered", "param:api:DelayedTrigger.RememberObjects"},
 	"Forbidding Watchtower":       {"param:api:Animate.Colors", "param:api:Animate.OverwriteColors"},
 	"Force of Will":               {"cost:ExileFromHand", "param:api:Counter.Destination", "param:stat:AlternativeCost.EffectZone", "param:stat:AlternativeCost.ValidSA"},
-	"Foreboding Ruins":            {"cost:Reveal", "param:api:Tap.UnlessPayer"},
+	"Foreboding Ruins":            {"cost:Reveal", "param:api:Tap.UnlessCost", "param:api:Tap.UnlessPayer"},
 	"Forked Bolt":                 {"param:api:DealDamage.DividedAsYouChoose"},
 	"Gamble":                      {"param:api:ChangeZone.Mandatory"},
-	"Geralf's Messenger":          {"param:trig:ChangesZone.Keyword", "param:trig:ChangesZone.KeywordLine"},
 	"Ghalta, Primal Hunger":       {"param:stat:ReduceCost.EffectZone"},
 	"Ghost Quarter":               {"param:api:ChangeZone.Optional", "param:api:ChangeZone.ShuffleNonMandatory"},
-	"Giada, Font of Hope":         {"param:api:Mana.RestrictValid", "param:api:PutCounter.ETB", "param:repl:Moved.KeywordLine"},
+	"Giada, Font of Hope":         {"param:api:Mana.RestrictValid", "param:api:PutCounter.ETB"},
 	"Gitaxian Probe":              {"param:api:RevealHand.Look"},
-	"Gleeful Arsonist":            {"param:trig:ChangesZone.Keyword", "param:trig:ChangesZone.KeywordLine"},
 	"Goblin Guide":                {"param:api:Dig.LibraryPosition2", "param:api:Dig.Reveal"},
 	"Grand Abolisher":             {"param:stat:CantBeActivated.AffectedZone", "param:stat:CantBeActivated.Condition", "param:stat:CantBeCast.Condition"},
 	"Grave Titan":                 {"param:trig:Attacks.Secondary"},
 	"Gravecrawler":                {"param:stat:Continuous.AffectedZone", "param:stat:Continuous.EffectZone", "param:stat:Continuous.IsPresent", "param:stat:Continuous.MayPlay"},
 	"Grim Tutor":                  {"param:api:ChangeZone.Mandatory"},
-	"Hallowed Fountain":           {"param:api:Tap.UnlessPayer"},
-	"Hangarback Walker":           {"param:api:PutCounter.ETB", "param:repl:Moved.KeywordLine"},
+	"Hallowed Fountain":           {"param:api:Tap.UnlessCost", "param:api:Tap.UnlessPayer"},
+	"Hangarback Walker":           {"param:api:PutCounter.ETB"},
 	"Hearthhull, the Worldseed":   {"param:stat:Continuous.AddAbility", "param:stat:Continuous.AddTrigger"},
 	"Icetill Explorer":            {"param:stat:Continuous.AdjustLandPlays", "param:stat:Continuous.AffectedZone", "param:stat:Continuous.MayPlay"},
 	"Imperial Seal":               {"param:api:ChangeZone.Mandatory"},
@@ -1265,25 +1775,20 @@ var knownUnsupportedParams = map[string][]string{
 	"Journey to Nowhere":          {"param:api:ChangeZone.ForgetOtherTargets", "param:api:ChangeZone.RememberTargets"},
 	"Karn Liberated":              {"param:api:ChangeZone.Hidden", "param:api:ChangeZone.Mandatory", "param:api:ChangeZoneAll.GainControl", "param:api:RestartGame.RestrictFromValid", "param:api:RestartGame.RestrictFromZone", "param:api:RestartGame.Ultimate"},
 	"Karn, the Great Creator":     {"param:api:Animate.Duration", "param:api:ChangeZone.Hidden", "param:api:ChangeZone.Reveal", "param:stat:CantBeActivated.AffectedZone"},
-	"Knight of Infamy":            {"param:trig:Attacks.Keyword", "param:trig:Attacks.KeywordLine"},
 	"Knight of the White Orchid":  {"param:api:ChangeZone.ShuffleNonMandatory", "param:trig:ChangesZone.CheckSVar", "param:trig:ChangesZone.SVarCompare"},
 	"Kodama's Reach":              {"param:api:ChangeZone.Mandatory", "param:api:ChangeZone.NoLooking", "param:api:ChangeZone.Reveal", "param:api:Cleanup.ClearRemembered"},
 	"Kor Skyfisher":               {"param:api:ChangeZone.Hidden", "param:api:ChangeZone.Mandatory"},
 	"Land Tax":                    {"param:api:ChangeZone.ShuffleNonMandatory", "param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Leonin Relic-Warder":         {"param:api:ChangeZone.ForgetOtherTargets", "param:api:ChangeZone.RememberTargets"},
-	"Leonin Scimitar":             {"param:api:Attach.Keyword", "param:api:Attach.KeywordLine"},
-	"Lightning Greaves":           {"param:api:Attach.Keyword", "param:api:Attach.KeywordLine"},
 	"Linvala, Keeper of Silence":  {"param:stat:CantBeActivated.AffectedZone"},
 	"Lion's Eye Diamond":          {"param:api:Mana.InstantSpeed"},
 	"Lord Windgrace":              {"param:api:Cleanup.ClearRemembered", "param:api:Destroy.Ultimate", "param:api:Discard.RememberDiscarded"},
-	"Loxodon Warhammer":           {"param:api:Attach.Keyword", "param:api:Attach.KeywordLine"},
 	"Master of Etherium":          {"param:stat:Continuous.CharacteristicDefining"},
 	"Matter Reshaper":             {"param:api:Dig.DestinationZone2", "param:api:Dig.Reveal"},
-	"Meathook Massacre II":        {"param:api:ChangeZone.GainControl", "param:api:ChangeZone.UnlessPayer"},
+	"Meathook Massacre II":        {"param:api:ChangeZone.GainControl", "param:api:ChangeZone.UnlessCost", "param:api:ChangeZone.UnlessPayer", "param:api:Sacrifice.Amount"},
 	"Mishra's Factory":            {"param:api:Animate.RemoveCreatureTypes"},
 	"Mistveil Plains":             {"param:api:ChangeZone.IsPresent", "param:api:ChangeZone.PresentCompare"},
-	"Mogis, God of Slaughter":     {"param:api:DealDamage.UnlessPayer", "param:stat:Continuous.CheckSVar", "param:stat:Continuous.RemoveType", "param:stat:Continuous.SVarCompare"},
-	"Monastery Swiftspear":        {"param:trig:SpellCast.Keyword", "param:trig:SpellCast.KeywordLine"},
+	"Mogis, God of Slaughter":     {"param:api:DealDamage.UnlessCost", "param:api:DealDamage.UnlessPayer", "param:stat:Continuous.CheckSVar", "param:stat:Continuous.RemoveType", "param:stat:Continuous.SVarCompare"},
 	"Myriad Landscape":            {"param:api:ChangeZone.ShareLandType"},
 	"Necrodominance":              {"cost:PayLife", "param:api:ChangeZone.Hidden", "param:stat:Continuous.SetMaxHandSize"},
 	"Necropotence":                {"param:api:ChangeZone.ExileFaceDown", "param:api:Cleanup.ClearRemembered", "param:api:DelayedTrigger.RememberObjects", "param:api:DelayedTrigger.ValidPlayer"},
@@ -1294,15 +1799,14 @@ var knownUnsupportedParams = map[string][]string{
 	"Overseer of the Damned":      {"param:api:Token.TokenTapped"},
 	"Palace Jailer":               {"param:api:Effect.EffectOwner", "param:api:Effect.ForgetOnMoved"},
 	"Path to Exile":               {"param:api:ChangeZone.Optional", "param:api:ChangeZone.ShuffleNonMandatory"},
-	"Phyrexian Revoker":           {"param:repl:Moved.KeywordLine"},
-	"Pithing Needle":              {"param:repl:Moved.KeywordLine"},
+	"Phyrexian Obliterator":       {"param:api:Sacrifice.Amount"},
+	"Planar Engineering":          {"param:api:Sacrifice.Amount"},
 	"Ponder":                      {"param:api:RearrangeTopOfLibrary.MayShuffle"},
 	"Profane Tutor":               {"param:api:ChangeZone.Mandatory"},
 	"Purphoros, God of the Forge": {"param:stat:Continuous.CheckSVar", "param:stat:Continuous.RemoveType", "param:stat:Continuous.SVarCompare"},
 	"Ragavan, Nimble Pilferer":    {"param:api:Cleanup.ClearRemembered", "param:api:Dig.RememberChanged", "param:api:Effect.ForgetOnMoved"},
 	"Rakdos, Lord of Riots":       {"param:stat:CantBeCast.CheckSVar", "param:stat:CantBeCast.EffectZone", "param:stat:CantBeCast.SVarCompare"},
 	"Ramunap Excavator":           {"param:stat:Continuous.AffectedZone", "param:stat:Continuous.MayPlay"},
-	"Rancor":                      {"param:api:Attach.Keyword", "param:api:Attach.KeywordLine"},
 	"Razorkin Needlehead":         {"param:stat:Continuous.Condition"},
 	"Reality Smasher":             {"param:api:Counter.UnlessPayer", "param:trig:BecomesTarget.ValidSource"},
 	"Realms Uncharted":            {"param:api:ChangeZone.DifferentNames", "param:api:ChangeZone.Mandatory", "param:api:ChangeZone.NoLooking", "param:api:ChangeZone.Reveal", "param:api:Cleanup.ClearRemembered"},
@@ -1313,18 +1817,16 @@ var knownUnsupportedParams = map[string][]string{
 	"Riddlesmith":                 {"cost:Draw"},
 	"Righteous Valkyrie":          {"param:stat:Continuous.CheckSVar", "param:stat:Continuous.SVarCompare"},
 	"Roiling Vortex":              {"param:trig:SpellCast.ValidSA"},
-	"Sanctum Prelate":             {"param:repl:Moved.KeywordLine"},
-	"Scapeshift":                  {"param:api:Cleanup.ClearRemembered", "param:api:Sacrifice.Optional"},
+	"Scapeshift":                  {"param:api:Cleanup.ClearRemembered", "param:api:Sacrifice.Amount", "param:api:Sacrifice.Optional"},
 	"Scourge of Valkas":           {"param:api:DealDamage.DamageSource"},
 	"Screaming Nemesis":           {"param:api:Cleanup.ClearRemembered"},
 	"Sea Gate Wreckage":           {"param:api:Draw.Activation"},
 	"Serra Avenger":               {"param:stat:CantBeCast.CheckSVar", "param:stat:CantBeCast.EffectZone", "param:stat:CantBeCast.SVarCompare"},
 	"Silkwrap":                    {"param:api:ChangeZone.Duration"},
-	"Skullclamp":                  {"param:api:Attach.Keyword", "param:api:Attach.KeywordLine"},
 	"Skyclave Apparition":         {"param:api:Cleanup.ClearRemembered", "param:api:Token.TokenPower", "param:api:Token.TokenToughness"},
 	"Snapcaster Mage":             {"param:api:Pump.PumpZone"},
 	"Solemn Simulacrum":           {"param:api:ChangeZone.ShuffleNonMandatory"},
-	"Sower of Discord":            {"param:api:Cleanup.ClearRemembered", "param:repl:Moved.KeywordLine", "param:trig:DamageDoneOnce.ActiveZones", "param:trig:DamageDoneOnce.Secondary"},
+	"Sower of Discord":            {"param:api:Cleanup.ClearRemembered", "param:trig:DamageDoneOnce.ActiveZones", "param:trig:DamageDoneOnce.Secondary"},
 	"Splendid Reclamation":        {"param:api:ChangeZoneAll.Tapped"},
 	"Springbloom Druid":           {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Squadron Hawk":               {"param:api:ChangeZone.ShuffleNonMandatory"},
@@ -1332,44 +1834,39 @@ var knownUnsupportedParams = map[string][]string{
 	"Static Orb":                  {"param:stat:Continuous.IsPresent"},
 	"Steel Leaf Champion":         {"param:stat:CantBlockBy.ValidAttacker"},
 	"Stoneforge Mystic":           {"param:api:ChangeZone.ShuffleNonMandatory"},
-	"Strangleroot Geist":          {"param:trig:ChangesZone.Keyword", "param:trig:ChangesZone.KeywordLine"},
-	"Sublime Archangel":           {"param:trig:Attacks.Keyword", "param:trig:Attacks.KeywordLine"},
 	"Sun Titan":                   {"param:trig:Attacks.Secondary"},
-	"Sword of Fire and Ice":       {"param:api:Attach.Keyword", "param:api:Attach.KeywordLine", "param:stat:Continuous.AddSVar"},
+	"Sword of Fire and Ice":       {"param:stat:Continuous.AddSVar"},
 	"Szarel, Genesis Shepherd":    {"param:stat:Continuous.AffectedZone", "param:stat:Continuous.MayPlay"},
 	"Tainted Peak":                {"param:api:Mana.IsPresent"},
 	"Temple of the False God":     {"param:api:Mana.IsPresent", "param:api:Mana.PresentCompare"},
 	"Temur Sabertooth":            {"param:api:ChangeZone.Hidden", "param:api:Cleanup.ClearRemembered"},
-	"Tendrils of Agony":           {"param:trig:SpellCast.Keyword", "param:trig:SpellCast.KeywordLine"},
 	"Terminus":                    {"param:api:ChangeZoneAll.LibraryPosition"},
 	"The Lord of Pain":            {"param:trig:SpellCast.ActivatorThisTurnCast"},
 	"Thirst for Knowledge":        {"param:api:Discard.UnlessType"},
 	"Thornspire Verge":            {"param:api:Mana.IsPresent"},
 	"Through the Forest Gate":     {"param:api:Dig.SkipReorder", "param:api:Dig.Tapped"},
 	"Thunderbreak Regent":         {"param:trig:BecomesTarget.ValidSource"},
-	"Tome of Legends":             {"param:api:PutCounter.ETB", "param:repl:Moved.KeywordLine", "param:trig:Attacks.Secondary"},
+	"Tome of Legends":             {"param:api:PutCounter.ETB", "param:trig:Attacks.Secondary"},
 	"Toxic Deluge":                {"cost:PayLife"},
 	"Trinket Mage":                {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Troop of Ponies":             {"param:api:ChangeZone.ForgetChanged", "param:api:ChangeZone.Mandatory", "param:api:ChangeZone.NoLooking", "param:api:ChangeZone.Reveal", "param:api:Cleanup.ClearRemembered"},
-	"Umezawa's Jitte":             {"param:api:Attach.Keyword", "param:api:Attach.KeywordLine"},
 	"Valakut Exploration":         {"param:api:ChangeZoneAll.RememberChanged", "param:api:Cleanup.ClearRemembered", "param:api:DamageAll.ValidPlayers", "param:api:Dig.RememberChanged", "param:api:Effect.ForgetOnMoved", "param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Valkyrie Harbinger":          {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Vampire Lacerator":           {"param:api:LoseLife.ConditionCheckSVar", "param:api:LoseLife.ConditionSVarCompare"},
 	"Vampiric Tutor":              {"param:api:ChangeZone.Mandatory"},
-	"Vastwood Hydra":              {"param:api:PutCounter.ChoiceAmount", "param:api:PutCounter.DividedAsYouChoose", "param:api:PutCounter.ETB", "param:api:PutCounter.MinChoiceAmount", "param:repl:Moved.KeywordLine"},
-	"Vexing Devil":                {"cost:DamageYou", "param:api:Sacrifice.UnlessPayer", "param:api:Sacrifice.UnlessSwitched"},
+	"Vastwood Hydra":              {"param:api:PutCounter.ChoiceAmount", "param:api:PutCounter.DividedAsYouChoose", "param:api:PutCounter.ETB", "param:api:PutCounter.MinChoiceAmount"},
+	"Vexing Devil":                {"cost:DamageYou", "param:api:Sacrifice.UnlessCost", "param:api:Sacrifice.UnlessPayer", "param:api:Sacrifice.UnlessSwitched"},
 	"Vial Smasher the Fierce":     {"param:api:Cleanup.ClearChosenPlayer", "param:trig:SpellCast.ActivatorThisTurnCast"},
 	"Victimize":                   {"param:api:ChangeZone.ConditionCheckSVar", "param:api:ChangeZone.ConditionSVarCompare", "param:api:Cleanup.ClearRemembered"},
 	"Vines of Vastwood":           {"param:api:Effect.ExileOnMoved"},
 	"Virtue of Persistence":       {"param:api:ChangeZone.GainControl", "param:api:ChangeZone.Mandatory"},
-	"Voracious Hydra":             {"param:api:PutCounter.ETB", "param:repl:Moved.KeywordLine"},
+	"Voracious Hydra":             {"param:api:PutCounter.ETB"},
 	"Walk-In Closet":              {"param:api:Effect.ReplacementEffects", "param:stat:Continuous.AffectedZone", "param:stat:Continuous.MayPlay"},
-	"Walking Ballista":            {"param:api:PutCounter.ETB", "param:repl:Moved.KeywordLine"},
+	"Walking Ballista":            {"param:api:PutCounter.ETB"},
 	"Wastewood Verge":             {"param:api:Mana.IsPresent"},
 	"Whirler Rogue":               {"cost:tapXType", "param:api:Effect.ExileOnMoved"},
 	"Whisperer of the Wilds":      {"param:api:Mana.IsPresent"},
 	"Windgrace's Judgment":        {"param:api:Destroy.TargetsForEachPlayer"},
-	"Winged Boots":                {"param:api:Attach.Keyword", "param:api:Attach.KeywordLine"},
 	"World Shaper":                {"param:api:ChangeZoneAll.Tapped", "param:api:Mill.Optional"},
 	"Wrenn and Six":               {"param:api:Effect.Name", "param:api:Effect.Stackable", "param:api:Effect.Ultimate"},
 	"Yavimaya Elder":              {"param:api:ChangeZone.ShuffleNonMandatory"},
@@ -1408,6 +1905,7 @@ func TestEveryRepoDeckParamsAreRead(t *testing.T) {
 func TestParamCensusScanIsComplete(t *testing.T) {
 	s := scanPackages(t)
 	s.rotGuard(t)
+	s.failGuard(t)
 }
 
 // TestParamCensusDetectsADeletedConsumer is the done-means probe: pretend the
@@ -1534,6 +2032,154 @@ func TestParamCensusPinsTheImportReviewExamples(t *testing.T) {
 
 // TestParseCostReportsUnmodelledCostTokens pins the reporting half: tokens
 // ParseCost does not model land in Cost.Unknown; modelled ones never do.
+// TestParamCensusCatchesAliasedParamsReads pins the alias finding: a
+// consumer that reads the Params map through a local alias (`p := sa.Params;
+// p["SacValid"]`) must be DERIVED by the scan -- the old selector-shape-only
+// scan silently skipped it, and an unreachable aliased consumer passed
+// TestParamCensusScanIsComplete. Both halves are pinned: the read is
+// attributed, and the unreachable consumer fails the rot guard by name.
+func TestParamCensusCatchesAliasedParamsReads(t *testing.T) {
+	s := newScan()
+	s.scanSource(t, "probe_alias.go", "effects", `package effects
+
+import "github.com/adams-shaun/gorge/cards"
+
+func censusProbeAlias(sa *cards.SA) string {
+	params := sa.Params
+	chained := params
+	return chained["SacValid"]
+}
+`)
+	if fi := s.fns["effects:censusProbeAlias"]; fi == nil || !fi.reads[bSA]["SacValid"] {
+		t.Fatalf("aliased (and chained-alias) Params read not derived -- the scan is still shape-matched: %+v", fi)
+	}
+	s.rotGuard(t)
+	flagged := false
+	for _, err := range s.guardErrs {
+		if strings.Contains(err, "censusProbeAlias") && strings.Contains(err, "unreachable") {
+			flagged = true
+		}
+	}
+	if !flagged {
+		t.Fatalf("rot guard did not flag the unreachable aliased consumer; findings: %v", s.guardErrs)
+	}
+}
+
+// TestParamCensusCatchesHelperPassedMaps pins the helper-passed-map finding:
+// a function whose parameter is a map[string]string gets its index reads
+// attributed through the call sites' arguments (so the CALLER carries the
+// read with the argument's bucket), and a call passing a non-Params map --
+// or no call at all -- fails the rot guard.
+func TestParamCensusCatchesHelperPassedMaps(t *testing.T) {
+	s := newScan()
+	s.scanSource(t, "probe_helper.go", "effects", `package effects
+
+import "github.com/adams-shaun/gorge/cards"
+
+func censusProbeHelper(m map[string]string) string {
+	return m["SacValid"]
+}
+
+func censusProbeCaller(sa *cards.SA) string {
+	return censusProbeHelper(sa.Params)
+}
+`)
+	s.propagateKeyReads()
+	if fi := s.fns["effects:censusProbeCaller"]; fi == nil || !fi.reads[bSA]["SacValid"] {
+		t.Fatalf("helper-passed Params read not attributed to the caller: %+v", fi)
+	}
+	s.rotGuard(t)
+	// (The caller's own unreachability finding is inherent to synthetic code;
+	// what must hold is the helper attribution: no non-Params / unattributed
+	// finding for the helper or its call site.)
+	for _, err := range s.guardErrs {
+		if strings.Contains(err, "not a Params map") || strings.Contains(err, "no call site passes") {
+			t.Fatalf("helper attribution failed: %s", err)
+		}
+	}
+
+	// The same helper fed a non-Params map[string]string (here an alias of
+	// the face's SVars table) must fail the guard instead of passing.
+	s2 := newScan()
+	s2.scanSource(t, "probe_helper2.go", "effects", `package effects
+
+import "github.com/adams-shaun/gorge/cards"
+
+func censusProbeHelper2(m map[string]string) string {
+	return m["SacValid"]
+}
+
+func censusProbeCaller2(sa *cards.SA) string {
+	svars := sa.SVars
+	return censusProbeHelper2(svars)
+}
+`)
+	s2.propagateKeyReads()
+	s2.rotGuard(t)
+	flagged := false
+	for _, err := range s2.guardErrs {
+		if strings.Contains(err, "censusProbeCaller2") && strings.Contains(err, "not a Params map") {
+			flagged = true
+		}
+	}
+	if !flagged {
+		t.Fatalf("rot guard did not flag the non-Params map argument; findings: %v", s2.guardErrs)
+	}
+}
+
+// TestParamCensusAttributesSpecialisedRulesPaths pins the api-specific
+// attribution: the mana path's Amount$/Produced$ reads belong to api:Mana
+// alone, the unless-pay resume's UnlessCost$ to Counter/CopySpellAbility, the
+// Charm mode paths' Choices$/CharmNum$ to api:Charm -- so the genuinely
+// unread parameters on other APIs surface in the census (Sacrifice.Amount on
+// the five repo-deck carriers; Vexing Devil's Sacrifice.UnlessCost).
+func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
+	res, d := measureParamCensus(t, nil)
+	want := map[string]map[string]bool{
+		"Mana":             {"Amount": true, "Produced": true},
+		"Counter":          {"UnlessCost": true},
+		"CopySpellAbility": {"UnlessCost": true},
+		"Charm":            {"CharmNum": true, "Choices": true},
+	}
+	for api, keys := range want {
+		for key := range keys {
+			if !d.api[api][key] {
+				t.Errorf("d.api[%q][%q] = false -- the specialised attribution lost a real read", api, key)
+			}
+		}
+	}
+	for _, wrong := range []struct{ api, key string }{
+		{"Sacrifice", "Amount"}, {"Sacrifice", "UnlessCost"}, {"Sacrifice", "Produced"},
+		{"DealDamage", "CharmNum"}, {"DealDamage", "Produced"}, {"ChangeZone", "Amount"},
+	} {
+		if d.api[wrong.api][wrong.key] {
+			t.Errorf("d.api[%q][%q] = true -- a specialised rules path still over-suppresses this API's gap", wrong.api, wrong.key)
+		}
+	}
+	// The census-level effect on the real repo decks: every Sacrifice ability
+	// carrying an Amount$ or UnlessCost$ its implementation never reads is now
+	// labelled (previously masked by the Mana/Counter reads).
+	for card, label := range map[string]string{
+		"Braids, Arisen Nightmare": "param:api:Sacrifice.Amount",
+		"Phyrexian Obliterator":    "param:api:Sacrifice.Amount",
+		"Planar Engineering":       "param:api:Sacrifice.Amount",
+		"Scapeshift":               "param:api:Sacrifice.Amount",
+		"Meathook Massacre II":     "param:api:Sacrifice.Amount",
+		"Vexing Devil":             "param:api:Sacrifice.UnlessCost",
+	} {
+		found := false
+		for _, l := range res.labels[card] {
+			if l == label {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("%s: expected %s in the census (labels %v)", card, label, res.labels[card])
+		}
+	}
+}
+
 func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 	cases := []struct {
 		cost string
@@ -1542,6 +2188,13 @@ func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 		{"PayEnergy<X> Sac<1/Creature> Return<1/CARDNAME>", []string{"PayEnergy", "Return"}},
 		{"PayLife<5>", nil},
 		{"PayLife<X>", []string{"PayLife"}},
+		// Recognised heads whose INSTANCE is malformed or out of range: the
+		// head is known, the instance is not modelled -- reported too.
+		{"PayLife<99999999999999999999>", []string{"PayLife"}},
+		{"Sac<99999999999999999999/Creature>", []string{"Sac"}},
+		{"AddCounter<99999999999999999999/LOYALTY>", []string{"AddCounter"}},
+		{"PayLife<abc>", []string{"PayLife"}},
+		{"Sac</Creature>", []string{"Sac"}},
 		{"2 U U Sac<1/Creature>", nil},
 		{"AddCounter<1/M1M1>", []string{"AddCounter"}},
 		{"", nil},
