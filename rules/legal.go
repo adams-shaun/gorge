@@ -17,6 +17,80 @@ func (e *Engine) sorcerySpeed(p state.PlayerID) bool {
 	return e.G.Active == p && e.G.Step.IsMain() && len(e.G.Stack) == 0
 }
 
+// mayPlayLandIds returns the ids of lands in player p's zones that an active
+// may-play-from-zone grant (a S:Mode$ Continuous static carrying MayPlay$ True
+// and an AffectedZone$, e.g. Conduit of Worlds' "You may play lands from your
+// graveyard") lets p play this turn, in deterministic order. The result is
+// empty unless p is at sorcery speed with a land drop remaining -- the same
+// once-per-turn gate the hand walk applies, so a graveyard land and a hand
+// land share one land drop per turn. A land already in p's hand never appears
+// here (the ordinary hand walk offers it), and neither does a land in a hidden
+// zone. Each candidate must match the granting effect's Affects filter (the
+// Affected$ spec) through the same spec matcher the layer system uses, so a
+// Land.YouOwn grant never offers an opponent's land or a non-land permanent.
+//
+// Order comes from e.active() (a sorted slice), then each effect's parsed
+// AffectedZone order, then the zone slice order -- never a map -- so the
+// resulting option list is reproducible run to run. Zones are deduplicated
+// per (zone, id) so two grants naming the same zone never offer the same land
+// twice. Only zones a land can meaningfully be played from (graveyard, exile)
+// are walked, since hand is covered by the normal walk and library is hidden.
+func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
+	if !e.sorcerySpeed(p) || e.G.Players[p].LandsPlayed >= 1 {
+		return nil
+	}
+	type offered struct {
+		zone state.Zone
+		id   state.ObjID
+	}
+	var out []state.ObjID
+	var seen []offered
+	for _, ce := range e.active() {
+		if !ce.MayPlay || ce.Controller != p {
+			continue
+		}
+		zones, all, ok := effects.ParseZones(ce.AffectedZone)
+		if !ok && !all {
+			continue
+		}
+		consider := func(z state.Zone) {
+			if z != state.ZGraveyard && z != state.ZExile {
+				return
+			}
+			for _, id := range e.G.Zone(z, p) {
+				o := e.G.Obj(id)
+				if o == nil || o.Face() == nil || !o.Face().IsLand() {
+					continue
+				}
+				if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+					continue
+				}
+				dup := false
+				for _, s := range seen {
+					if s.zone == z && s.id == id {
+						dup = true
+						break
+					}
+				}
+				if dup {
+					continue
+				}
+				seen = append(seen, offered{z, id})
+				out = append(out, id)
+			}
+		}
+		if all {
+			consider(state.ZGraveyard)
+			consider(state.ZExile)
+		} else {
+			for _, z := range zones {
+				consider(z)
+			}
+		}
+	}
+	return out
+}
+
 // abilityZoneOK reports whether ability ab may be activated while the
 // source cardinal is in zone z (CR 602.1b): the printed ActivationZone$
 // when present, the battlefield by default. Values other than Battlefield /
@@ -243,6 +317,22 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		}
 	}
 
+	// A may-play-from-zone grant (Conduit of Worlds, Crucible of Worlds, ...)
+	// makes lands in a granted zone playable this turn. This is the SECOND
+	// play_land source alongside the hand walk above, never a replacement for
+	// it; the once-per-turn land-drop gate is the same sorcerySpeed &&
+	// LandsPlayed < 1 condition the hand walk applies, so a graveyard land
+	// and a hand land share one land drop. The zones walked, the Affects
+	// filter each grant applies, and the deterministic order all come from
+	// mayPlayLandIds.
+	for _, id := range e.mayPlayLandIds(p) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		add("play_land", "Play "+o.Face().Name, id)
+	}
+
 	// Command zone (CR 903.8, Commander format): a player may cast a
 	// commander they own from the command zone. This is a SECOND cast source
 	// alongside the hand walk above, never a replacement for it. A
@@ -453,22 +543,32 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 
 	case "play_land":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
-		// Task 12: a land with an "as this enters" choice (an
-		// ETBReplacement whose ReplaceWith$ is NameCard/ChooseType/
-		// ChooseNumber, e.g. Cavern of Souls) goes through the same
-		// one-stage cast flow a spell does -- collect the choice, ask it via
-		// chooseETB, record it with a Choose event, then commitCast moves the
-		// land and logs the play. A land with none keeps the original direct
-		// path (no pendingCast, no flow), so ordinary lands are untouched.
-		// Both paths share the same continuation machinery: etbAnswer/
-		// continueCast/commitCast below, never a parallel one.
-		pc := &pendingCast{player: in.Player, card: opt.Obj, from: state.ZHand, mode: "land", ability: -1}
+		// Task 12: a land with an "as this enters" choice goes through the
+		// same one-stage cast flow a spell does -- collect the choice, ask it
+		// via chooseETB, record it with a Choose event, then continueCast's
+		// payCast moves the land and logs the play. A land with none keeps
+		// the original direct path (no pendingCast, no flow), so ordinary
+		// lands are untouched. Both paths share the same continuation
+		// machinery, never a parallel one.
+		//
+		// The source zone is the object's CURRENT zone, not hardcoded to the
+		// hand: a may-play grant lets a land be played from the graveyard (or
+		// exile), so a hand land and a graveyard land must move From the zone
+		// they were actually offered from. A land that somehow left its zone
+		// between the offer and the answer (only a hand-built intent makes
+		// that possible) resolves from whatever zone it is in, and the
+		// MoveZone/LandPlayed below still records a legal play.
+		from := state.ZHand
+		if o := e.G.Obj(opt.Obj); o != nil {
+			from = o.Zone
+		}
+		pc := &pendingCast{player: in.Player, card: opt.Obj, from: from, mode: "land", ability: -1}
 		e.cast = pc
 		e.collectETBChoices(in.Player)
 		if len(pc.etbs) == 0 {
 			e.cast = nil
 			e.emit(events.Event{Kind: events.MoveZone, Obj: opt.Obj,
-				From: state.ZHand, To: state.ZBattlefield})
+				From: from, To: state.ZBattlefield})
 			e.emit(events.Event{Kind: events.LandPlayed, Player: in.Player})
 			return
 		}
