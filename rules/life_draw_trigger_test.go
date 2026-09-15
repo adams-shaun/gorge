@@ -163,6 +163,29 @@ func TestLifeLostAllObNixilisQueuesOnceForDamageAllPlayers(t *testing.T) {
 	}
 }
 
+func TestLifeLostAllObNixilisAggregatesEachPlayersBatchLoss(t *testing.T) {
+	e := layerEngine(t)
+	source := onBoardCard(t, e, 0, corpusCard(t, "Ob Nixilis, Captive Kingpin"))
+	trigger := e.G.Obj(source).Face().Triggers[0]
+	if trigger.Mode != "LifeLostAll" || trigger.Params["ValidAmountEach"] != "EQ1" {
+		t.Fatalf("Ob Nixilis trigger fixture changed: %+v", trigger)
+	}
+
+	// Two serialized combat assignments can hit the same player during one
+	// simultaneous damage event. Ob Nixilis sees that player lose two life,
+	// not two independent one-life losses.
+	e.BeginLifeLossBatch()
+	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 1})
+	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 1})
+	e.EndLifeLossBatch()
+	if got := e.G.Players[1].Life; got != 18 {
+		t.Fatalf("opponent life after two simultaneous one-damage hits = %d, want 18", got)
+	}
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("two-life batch queued %#v for Ob Nixilis %d, want no trigger", e.pendingTriggers, source)
+	}
+}
+
 func TestValgavothLifeLostFirstTimeGate(t *testing.T) {
 	e := layerEngine(t)
 	valgavoth := corpusCard(t, "Valgavoth, Harrower of Souls")

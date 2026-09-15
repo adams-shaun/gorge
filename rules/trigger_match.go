@@ -1237,18 +1237,26 @@ func lifeLoss(ev events.Event) (state.PlayerID, int32, bool) {
 
 // lifeLostMatches implements Mode$ LifeLost and LifeLostAll. LifeLost sees
 // each losing player. LifeLostAll is deferred by Begin/EndLifeLossBatch and
-// matches exactly once when every affected player in that simultaneous group
-// satisfies its ValidPlayer$ and ValidAmountEach$ constraints.
+// matches exactly once after adding every serialized loss for each player in
+// the simultaneous group. A combat assignment may serialize two one-damage
+// hits to one player, but that player lost two life in the one event.
 func (e *Engine) lifeLostMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	ctrl := e.controllerOf(source)
 	if t.Mode == "LifeLostAll" && e.finishingLifeLossBatch {
-		matched := false
+		amounts := make([]int32, len(e.G.Players))
 		for _, be := range e.lifeLossBatch {
 			p, amount, ok := lifeLoss(be)
-			if !ok {
+			if ok && int(p) < len(amounts) {
+				amounts[p] += amount
+			}
+		}
+		matched := false
+		for p, amount := range amounts {
+			if amount == 0 {
 				continue
 			}
-			if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, p, ctrl) {
+			player := state.PlayerID(p)
+			if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, player, ctrl) {
 				continue
 			}
 			if v := t.Params["ValidAmountEach"]; v != "" && !compareLife(amount, v) {
