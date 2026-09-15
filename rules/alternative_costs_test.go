@@ -266,10 +266,15 @@ func TestHarmonizeWildRideUsesAnnouncedPower(t *testing.T) {
 func TestTransmuteAndCyclingRealHandActivations(t *testing.T) {
 	t.Run("Dizzy Spell searches matching mana value", func(t *testing.T) {
 		e := handEngine(t, corpusAlternativeCard(t, "Dizzy Spell"))
-		// handEngine's library is all Mountains (mana value one), exactly the
-		// same mana value as Dizzy Spell and therefore a real legal Transmute
-		// search result.
-		wanted := e.G.Zone(state.ZLibrary, 0)[0]
+		// Transmute searches for a card with the source's PRINTED mana value
+		// (Dizzy Spell's is one). handEngine's library is all Mountains, and a
+		// land has no mana cost, so its mana value is zero: the unmodified
+		// library holds no legal search result and the search would correctly
+		// fail to find. Seed one mana-value-one card for the search to find.
+		seed := card(t, "Name:Ember Study\nManaCost:U\nTypes:Instant\nOracle:x\n")
+		sObj := e.G.AddObject(seed, 0)
+		e.G.SetZone(state.ZLibrary, 0, append([]state.ObjID{sObj.ID}, e.G.Zone(state.ZLibrary, 0)...))
+		wanted := sObj.ID
 		id := e.G.Zone(state.ZHand, 0)[0]
 		e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MU] = 1, 2
 		var opt decision.Option
