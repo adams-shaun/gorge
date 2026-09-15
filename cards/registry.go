@@ -159,6 +159,16 @@ func LoadRegistry(path string) (*Registry, error) {
 		// gob construction route must end with the same derived values as the
 		// ParseBytes route.
 		for _, f := range c.Faces {
+			// derive FIRST: a decoded face's cmc is zero, and link's keyword
+			// expansion reads it — Transmute's search spec is
+			// Card.cmcEQ<Cmc()>, so relinking before deriving would expand a
+			// reusable cache as cmcEQ0 instead of the source's mana value.
+			// The ParseBytes route has the same order (parse derives, then
+			// compileScripts links) for the same reason. derive is a pure
+			// function of printed fields, so the second derive after link is
+			// a no-op for them; it stays so both routes end with the same
+			// derived values link's added abilities could someday depend on.
+			f.derive()
 			// Re-link decoded faces so a newly added idempotent keyword expansion
 			// is present even when this worktree intentionally reuses the shared,
 			// read-only corpus cache.
@@ -171,6 +181,11 @@ func LoadRegistry(path string) (*Registry, error) {
 		r.Tokens = cf.Tokens
 		for _, c := range r.Tokens {
 			for _, f := range c.Faces {
+				// The same derive-before-link order as the cards loop above:
+				// token scripts share compileScripts' parse/link pipeline, so a
+				// stale token cache relinks its keyword expansions too.
+				f.derive()
+				f.link(c.Path)
 				f.derive()
 			}
 		}
