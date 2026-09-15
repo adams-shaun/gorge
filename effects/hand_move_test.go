@@ -189,29 +189,50 @@ func TestHandMoveChangeZoneNoHostTakesFirstEligible(t *testing.T) {
 	}
 }
 
-// TestHandMoveChangeZoneHonoursTappedAndRemember pins the two settle extras
-// the hand path shares with the library search: Tapped$ True enters the land
-// tapped (the "entered tapped" event, not a later tap), and RememberChanged$
-// True joins the moved card to Ctx.Remembered in answer order.
-func TestHandMoveChangeZoneHonoursTappedAndRemember(t *testing.T) {
+// TestHandMoveChangeZoneHonoursRememberChanged pins the one settle extra
+// the brief authorised: RememberChanged$ True joins the moved card to
+// Ctx.Remembered in answer order. Tapped$ is deliberately NOT read on this
+// path (unread on the object path too -- a recorded follow-up, not a
+// handmove1 behaviour).
+func TestHandMoveChangeZoneHonoursRememberChanged(t *testing.T) {
 	h, ids := handAskFixture(t)
 	c := &Ctx{Controller: 0, HandMove: []state.ObjID{ids[2]}, HandMoveDone: true}
 	Resolve(h, c, sa(t,
-		"DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | Tapped$ True | RememberChanged$ True"))
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | RememberChanged$ True"))
 	o := h.g.Obj(ids[2])
-	if o.Zone != state.ZBattlefield || !o.Tapped {
-		t.Fatalf("moved land zone/tapped = %s/%v, want battlefield/tapped", o.Zone, o.Tapped)
+	if o.Zone != state.ZBattlefield {
+		t.Fatalf("moved land zone = %s, want battlefield", o.Zone)
 	}
-	var enteredTapped bool
+	if o.Tapped {
+		t.Fatalf("moved land is tapped: Tapped$ must stay unread on the hand path")
+	}
 	for i := range h.log {
-		if h.log[i].Kind == events.Tap && h.log[i].Obj == ids[2] && h.log[i].Text == "entered tapped" {
-			enteredTapped = true
+		if h.log[i].Kind == events.Tap && h.log[i].Obj == ids[2] {
+			t.Fatalf("a Tap event was emitted on the hand path: %+v", h.log[i])
 		}
-	}
-	if !enteredTapped {
-		t.Fatalf("no \"entered tapped\" event in %+v", h.log)
 	}
 	if len(c.Remembered) != 1 || c.Remembered[0].Obj != ids[2] {
 		t.Fatalf("Remembered = %+v, want exactly the moved card", c.Remembered)
+	}
+}
+
+// TestHandMoveChangeZoneNonLiteralChangeNumStaysOnObjectPath pins the R2
+// scope restriction: a non-literal ChangeNum$ (an SVar name or inline
+// Count$) does NOT reach the hand path -- it stays on the pre-existing
+// object path, which for a selectorless Origin$ Hand shape moves nothing
+// (the same silent no-op the fix found before handmove1).
+func TestHandMoveChangeZoneNonLiteralChangeNumStaysOnObjectPath(t *testing.T) {
+	for _, num := range []string{"NumInHand", "X", "Count$Valid Land.YouCtrl"} {
+		h, ids := handAskFixture(t)
+		Resolve(h, &Ctx{Controller: 0}, sa(t,
+			"DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | ChangeNum$ "+num))
+		if h.asked != nil {
+			t.Fatalf("ChangeNum$ %s posed a decision: %+v", num, h.asked)
+		}
+		for _, id := range ids {
+			if o := h.g.Obj(id); o.Zone != state.ZHand {
+				t.Fatalf("ChangeNum$ %s moved ids[%d] to %s: must stay on the object path", num, id, o.Zone)
+			}
+		}
 	}
 }

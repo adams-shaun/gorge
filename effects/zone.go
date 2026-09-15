@@ -113,12 +113,16 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// no-op the handmove1 fix replaces with a real hand choice.
 		// DefinedPlayer$-bearing lines name another player's hand and stay on
 		// the (broken) object path until the per-player follow-up lands; a
-		// ValidTgts$-bearing line names real targets the object path moves.
+		// ValidTgts$-bearing line names real targets the object path moves; and
+		// a non-literal ChangeNum$ (an SVar name or inline Count$, ~45 raw
+		// lines) is a scoped-out follow-up that also stays on that old path.
 		if len(originZones) == 1 && originZones[0] == state.ZHand && !originAll &&
 			sa.Params["ChangeType"] != "" && sa.Params["Defined"] == "" &&
 			sa.Params["DefinedPlayer"] == "" && sa.Params["ValidTgts"] == "" {
-			effChangeZoneHand(h, c, sa, to)
-			return
+			if _, literal := handChangeNum(sa); literal {
+				effChangeZoneHand(h, c, sa, to)
+				return
+			}
 		}
 	}
 	// WithCountersType$/WithCountersAmount$ make the move put counters on the
@@ -170,6 +174,24 @@ func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to
 	}
 }
 
+// handChangeNum reads the SA's ChangeNum$ as a plain integer literal
+// (absent = 1, Forge's ChangeZoneEffect default for this shape). The second
+// return is false for anything else -- a non-integer value, or a negative
+// one -- and the caller routes that SA to the pre-existing object path
+// instead: evaluating SVar/Count$ count expressions here is a scoped-out
+// follow-up, not part of handmove1.
+func handChangeNum(sa *cards.SA) (int32, bool) {
+	v, present := sa.Params["ChangeNum"]
+	if !present || v == "" {
+		return 1, true
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n < 0 {
+		return 0, false
+	}
+	return int32(n), true
+}
+
 // effChangeZoneHand implements Forge's "choose N cards matching ChangeType$
 // from your hand" ChangeZone shape (handmove1): Origin$ Hand, a ChangeType$
 // card filter, ChangeNum$ cards, no object selector. The eligible pool is the
@@ -192,10 +214,11 @@ func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to
 // defaults the count to one card (ChangeNum$ absent reads as "a card" in
 // every text this shape carries: Burgeoning, Elvish Pioneer, Kami of Bamboo
 // Groves), and the corpus's 70 absent-ChangeNum$ exact-Hand lines are all
-// singular-take texts. A non-literal ChangeNum$ (an SVar name or inline
-// Count$) resolves through Num and degrades to 0 -- "takes nothing" -- when
-// its expression is unmodelled, the same fail-closed convention Num documents
-// everywhere else.
+// singular-take texts. Only a PLAIN INTEGER literal ChangeNum$ reaches this
+// path: the routing guard in effChangeZone leaves a non-literal value (an
+// SVar name or inline Count$, ~45 raw lines) on the pre-existing object
+// path, so this function never sees one and no count expression is
+// evaluated here (a scoped-out follow-up).
 //
 // The answer re-enters through ResumeKind "hand_move" with Ctx.HandMove /
 // HandMoveDone set (rules/resolution.go); both are captured and cleared at
@@ -204,7 +227,8 @@ func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to
 // inheriting the outer answer. A host that cannot ask (the fuzz/no-engine
 // stand-in, R-9) takes the first ChangeNum eligible cards in the decision's
 // own deterministic option order, with the Note that records why the richer
-// path did not run. Still unread here, each a scoped-out follow-up: Optional$
+// path did not run. Still unread here, each a scoped-out follow-up: Tapped$
+// True (entry-tapped, unread on the object path too), Optional$
 // True on the ChangeZone itself (23 raw lines -- the optional take is asked
 // as mandatory), Destination$ Hand/Sideboard oddities (2 lines), and any
 // ConditionPresent$/ConditionDefined$ gate (the engine-wide Condition* gap).
@@ -219,16 +243,12 @@ func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	c.HandMove, c.HandMoveDone = nil, false
 	withKind := sa.Params["WithCountersType"]
 	withAmt := withCounterAmount(h, c, sa)
-	tapped := to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True")
-	// settleHandMove settles one chosen card: the shared ChangeZone mover, then
-	// Tapped$ True's entry state for a battlefield landing (the same
-	// "entered tapped" event applyLibrarySearch emits; the object path does
-	// not read Tapped$ -- a pre-existing gap recorded in the handmove1 report).
+	// settleHandMove settles one chosen card: exactly the shared ChangeZone
+	// mover. Tapped$ True is deliberately NOT read here -- it is unread on
+	// the object path too, a pre-existing gap recorded as a follow-up, not
+	// something to fix on this path alone.
 	settleHandMove := func(id state.ObjID) {
 		settleChangeZoneMove(h, c, sa, id, state.ZHand, to, withKind, withAmt)
-		if tapped {
-			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: c.Controller, Text: "entered tapped"})
-		}
 	}
 	if done {
 		// Re-entry: move exactly the answered cards that still sit in the
@@ -250,10 +270,7 @@ func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		}
 		return
 	}
-	n := Num(h, c, sa, "ChangeNum", 1)
-	if n < 0 {
-		n = 0
-	}
+	n, _ := handChangeNum(sa)
 	eligible := make([]state.ObjID, 0, len(hand))
 	for _, id := range hand {
 		if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
