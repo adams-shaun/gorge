@@ -1,6 +1,9 @@
 package feedback
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -26,6 +29,110 @@ func TestCompileTokenDerivesTheCard(t *testing.T) {
 	if !strings.Contains(strings.Join(f.Types, " "), "Goblin") {
 		t.Errorf("types = %v, want Goblin Warrior among them", f.Types)
 	}
+}
+
+// TestResolveTokensSyncWinsOverCorpus is the test the previous round's
+// review asked for. The old sync round-trip test could not detect a
+// dropped sync-directory read because the capture, the sync directory and
+// the live corpus all carried the SAME current token scripts, so removing
+// the sync read changed nothing observable. Here the sync directory
+// carries a script that DIFFERS observably from the live corpus (the same
+// stem, a different P/T), and resolveTokens must return the synced version
+// — proving Load prefers the exact historical text over the current corpus
+// when the two disagree.
+func TestResolveTokensSyncWinsOverCorpus(t *testing.T) {
+	reg, err := openCorpus()
+	if err != nil {
+		t.Fatalf("openCorpus: %v", err)
+	}
+	// Pick a stem that exists in the live corpus so the fallback would have
+	// produced a real (differing) token too; the synced script overrides it.
+	const stem = "r_1_1_goblin"
+	corpus, ok := reg.Tokens[stem]
+	if !ok {
+		t.Fatalf("corpus carries no %q token", stem)
+	}
+	corpusP, corpusT := corpus.Faces[0].Power(), corpus.Faces[0].Toughness()
+
+	syncText := "Name:Goblin Token\nManaCost:no cost\nColors:red\nTypes:Creature Goblin\nPT:3/4\nOracle:\n"
+	id := "zz-sync-wins-test"
+	syncDir, err := TokenSyncDir(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.RemoveAll(syncDir) })
+	if err := os.MkdirAll(syncDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeSyncTokens(t, syncDir, map[string]string{stem: syncText}); err != nil {
+		t.Fatal(err)
+	}
+
+	dir := filepath.Join(t.TempDir(), id)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := resolveTokens(dir, matchJSON{}, reg)
+	if err != nil {
+		t.Fatalf("resolveTokens: %v", err)
+	}
+	got := resolved[stem]
+	if got == nil {
+		t.Fatalf("resolved tokens carry no %q", stem)
+	}
+	if p, tgh := got.Faces[0].Power(), got.Faces[0].Toughness(); p != 3 || tgh != 4 {
+		t.Errorf("synced token resolved to %d/%d, want 3/4 (sync must beat corpus %d/%d)", p, tgh, corpusP, corpusT)
+	}
+}
+
+// TestResolveTokensFallsBackToCorpusWhenSyncMissing pins the other side of
+// the precedence: a stripped fixture with NO sync directory (a fresh
+// checkout that never ran the fixture generator) resolves through the live
+// corpus token map, so such a fixture replays anyway instead of failing.
+func TestResolveTokensFallsBackToCorpusWhenSyncMissing(t *testing.T) {
+	reg, err := openCorpus()
+	if err != nil {
+		t.Fatalf("openCorpus: %v", err)
+	}
+	const stem = "r_1_1_goblin"
+	corpus, ok := reg.Tokens[stem]
+	if !ok {
+		t.Fatalf("corpus carries no %q token", stem)
+	}
+
+	// A fixture id whose sync directory does not exist anywhere.
+	id := "zz-sync-absent-test"
+	syncDir, _ := TokenSyncDir(id)
+	if _, err := os.Stat(syncDir); err == nil {
+		t.Fatalf("test sync dir %s unexpectedly exists", syncDir)
+	}
+
+	dir := filepath.Join(t.TempDir(), id)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := resolveTokens(dir, matchJSON{}, reg)
+	if err != nil {
+		t.Fatalf("resolveTokens: %v", err)
+	}
+	got := resolved[stem]
+	if got == nil {
+		t.Fatalf("corpus fallback produced no %q token", stem)
+	}
+	if p, tgh := got.Faces[0].Power(), got.Faces[0].Toughness(); p != corpus.Faces[0].Power() || tgh != corpus.Faces[0].Toughness() {
+		t.Errorf("corpus fallback resolved to %d/%d, want corpus %d/%d", p, tgh, corpus.Faces[0].Power(), corpus.Faces[0].Toughness())
+	}
+}
+
+// writeSyncTokens writes a tokens.json map into a token sync directory in
+// the exact shape readTokenScripts reads back (keyed stem → script text).
+func writeSyncTokens(t *testing.T, dir string, texts map[string]string) error {
+	t.Helper()
+	raw, err := json.MarshalIndent(texts, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(dir, "tokens.json"), append(raw, '\n'), 0o644)
 }
 
 // TestConfigResolvesDecksThroughTheRegistry pins the deck half of Load's
