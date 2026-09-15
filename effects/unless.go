@@ -90,9 +90,13 @@ func unlessProceed(h Host, c *Ctx, sa *cards.SA) bool {
 	case "decline":
 		// A decline moves on to the next payer; only when every payer has
 		// declined does the orientation decide the body. idx is the payer
-		// whose answer this is.
+		// whose answer this is. A host that cannot pose the NEXT ask is also
+		// a decline, so it must use that same orientation rather than running
+		// every switched effect (the old `!poseUnlessAsk` inverted this case).
 		if idx+1 < len(payers) {
-			return !poseUnlessAsk(h, c, sa, cost, payers, idx+1)
+			if poseUnlessAsk(h, c, sa, cost, payers, idx+1) {
+				return false
+			}
 		}
 		return !switched
 	}
@@ -103,7 +107,12 @@ func unlessProceed(h Host, c *Ctx, sa *cards.SA) bool {
 	if len(payers) == 0 {
 		payers = []state.Target{{Player: c.Controller, IsPlayer: true}}
 	}
-	return !poseUnlessAsk(h, c, sa, cost, payers, 0)
+	if poseUnlessAsk(h, c, sa, cost, payers, 0) {
+		return false
+	}
+	// No engine host means poseUnlessAsk deterministically declined. Apply
+	// exactly the same orientation as an answered decline.
+	return !switched
 }
 
 // poseUnlessAsk offers payer payers[i] the unless cost. Reports whether the
@@ -208,6 +217,14 @@ func unlessPayers(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		if p, ok := TriggeredCardController(g, c.TriggerContext, c.Remembered); ok {
 			add(p)
 		}
+	case "TriggeredSourceSAController", "TriggeredSourceController", "TriggeredSpellAbilityController", "NonTriggeredCardController":
+		// These forms name the controller of the resolving/triggering source,
+		// not the target's controller. Ctx.Controller is bound from that source
+		// when the triggered ability is put on the stack and survives its source
+		// leaving play.
+		add(c.Controller)
+	case "TriggeredTargetController":
+		addTargets([]state.Target{c.TriggerTarget})
 	case "TriggeredActivator":
 		if c.TriggerActivator.IsPlayer {
 			add(c.TriggerActivator.Player)
@@ -223,15 +240,11 @@ func unlessPayers(h Host, c *Ctx, sa *cards.SA) []state.Target {
 			add(c.AttackingPlayer.Player)
 		}
 	default:
-		// TriggeredSourceSAController, TriggeredSpellAbilityController,
-		// TriggeredSourceController, NonTriggeredCardController,
-		// EnchantedController, ImprintedController, ... — every form whose
-		// referent this build does not model resolves like the default: the
-		// targets' controller, else the resolving controller. The
-		// TriggeredSourceSA family is the corpus's Counter shape (Reality
-		// Smasher): the triggered SA's controller IS the first target's
-		// controller there, so the fallback asks the right player without
-		// modelling the referent.
+		// EnchantedController, ImprintedController, ReplacedPlayer and the
+		// other forms whose referent this build does not retain fall back to
+		// the resolving target's controller, then the caller asks c.Controller
+		// when that produced no payer. Never fold the TriggeredSource* family
+		// into this branch: those have a distinct, available source binding.
 		addTargets(c.Targets)
 	}
 	// Deterministic AliveFrom order, whoever named them.
