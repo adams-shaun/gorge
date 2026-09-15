@@ -378,6 +378,44 @@ Oracle:x
 	}
 }
 
+// A damage producer can nest inside another batch owner (for example, an
+// effect or replacement that emits damage while resolving a DamageAll). The
+// inner bracket is part of the outer simultaneous batch, so its End must not
+// clear the outer latch: all three events below queue one trigger totaling 6.
+func TestNestedDamageBatchesKeepOuterOnceLatch(t *testing.T) {
+	src := `Name:Vampire
+ManaCost:1 B
+Types:Creature Vampire
+PT:2/2
+T:Mode$ DamageDealtOnce | ValidTarget$ Player | Execute$ TrigGain | TriggerDescription$ x
+SVar:TrigGain:DB$ GainLife | LifeAmount$ 1 | Defined$ You
+Oracle:x
+`
+	e := layerEngine(t)
+	onBoard(t, e, 0, src)
+
+	e.BeginDamageBatch()
+	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 1})
+	e.BeginDamageBatch()
+	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 2})
+	e.EndDamageBatch()
+	if !e.damageBatchOpen || e.damageBatchDepth != 1 {
+		t.Fatalf("inner End closed the outer batch: open=%v depth=%d", e.damageBatchOpen, e.damageBatchDepth)
+	}
+	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 3})
+	e.EndDamageBatch()
+
+	if e.damageBatchOpen || e.damageBatchDepth != 0 {
+		t.Fatalf("outer End left batch open=%v depth=%d", e.damageBatchOpen, e.damageBatchDepth)
+	}
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("pendingTriggers = %d, want 1 for the nested outer batch", len(e.pendingTriggers))
+	}
+	if got := e.pendingTriggers[0].Ctx.TriggerContext.TriggerAmount; got != 6 {
+		t.Fatalf("trigger damage amount = %d, want 6 (1 + 2 + 3 in one batch)", got)
+	}
+}
+
 // Negative Damage repairs clear marked damage during cleanup/regeneration;
 // they are not damage dealt. Both Once modes must ignore the repair, rather
 // than adding another trigger after the positive damage that it clears.

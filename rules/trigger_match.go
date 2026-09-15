@@ -522,16 +522,16 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 // openDamageBatch opens a damage batch: the Damage events emitted until the
 // matching closeDamageBatch are one simultaneous batch for the
 // DamageDealtOnce/DamageDoneOnce latch (CR 510.4; Forge dealAssignedDamage).
-// Reentrant (a nested begin inside an open batch, say a replacement body
-// dealing damage mid-batch) is a no-op -- the nested damage belongs to the
-// batch already open.
+// Reentrant brackets belong to the same simultaneous batch: depth makes an
+// inner close consume only its own begin, so it cannot close the outer batch
+// early.
 func (e *Engine) openDamageBatch() {
-	if e.damageBatchOpen {
-		return
+	if e.damageBatchDepth == 0 {
+		e.damageBatchOpen = true
+		e.damageBatchIdx = nil
+		e.damageBatchLog = nil
 	}
-	e.damageBatchOpen = true
-	e.damageBatchIdx = nil
-	e.damageBatchLog = nil
+	e.damageBatchDepth++
 }
 
 // closeDamageBatch closes the open damage batch: every entry's queued trigger
@@ -545,7 +545,11 @@ func (e *Engine) openDamageBatch() {
 // append-only while a batch is open, and nothing drains mid-batch) falls back
 // to the first event's amount rather than patching a stranger.
 func (e *Engine) closeDamageBatch() {
-	if !e.damageBatchOpen {
+	if e.damageBatchDepth == 0 {
+		return
+	}
+	e.damageBatchDepth--
+	if e.damageBatchDepth != 0 {
 		return
 	}
 	e.damageBatchOpen = false

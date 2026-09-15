@@ -256,6 +256,7 @@ func seedInternalQueues(t *testing.T, e *Engine) state.ObjID {
 	// so Clone's copies of all three batch fields have something to prove.
 	onceKey := damageBatchKey{triggerKey: triggerKey{Source: 1, Idx: 0}, dealt: true, obj: src}
 	e.damageBatchOpen = true
+	e.damageBatchDepth = 1
 	e.damageBatchIdx = map[damageBatchKey]int{onceKey: 0}
 	e.damageBatchLog = []damageBatchEntry{{key: onceKey, idx: 0, amount: 3}}
 	e.sourceLifelinkLKI = map[state.ObjID]bool{src: true}
@@ -300,11 +301,11 @@ func TestCloneStaysIndependentAndReplaysInLockstep(t *testing.T) {
 	// drained the same seeded queue back down to empty.
 	if len(c.continuous) != len(e.continuous) || len(c.pendingTriggers) != len(e.pendingTriggers) ||
 		len(c.triggerFireCount) != len(e.triggerFireCount) || len(c.damageBatchLog) != len(e.damageBatchLog) ||
-		len(c.sourceLifelinkLKI) != len(e.sourceLifelinkLKI) || c.cast == nil {
-		t.Fatalf("clone did not copy the seeded internal state: continuous %d/%d, triggers %d/%d, fireCount %d/%d, onceFired %d/%d, sourceLKI %d/%d, cast nil=%v",
+		c.damageBatchDepth != e.damageBatchDepth || len(c.sourceLifelinkLKI) != len(e.sourceLifelinkLKI) || c.cast == nil {
+		t.Fatalf("clone did not copy the seeded internal state: continuous %d/%d, triggers %d/%d, fireCount %d/%d, batchLog %d/%d, batchDepth %d/%d, sourceLKI %d/%d, cast nil=%v",
 			len(c.continuous), len(e.continuous), len(c.pendingTriggers), len(e.pendingTriggers),
 			len(c.triggerFireCount), len(e.triggerFireCount), len(c.damageBatchLog), len(e.damageBatchLog),
-			len(c.sourceLifelinkLKI), len(e.sourceLifelinkLKI), c.cast == nil)
+			c.damageBatchDepth, e.damageBatchDepth, len(c.sourceLifelinkLKI), len(e.sourceLifelinkLKI), c.cast == nil)
 	}
 	headBefore, drawsBefore, eventsBefore := e.L.Head(), e.RNGDraws(), len(e.L.Events)
 	if got := diffGames(e.G, c.G); got != "" {

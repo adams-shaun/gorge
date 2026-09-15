@@ -135,6 +135,7 @@ func (e *Engine) Clone() *Engine {
 	c.triggerFireCount = cloneCounts(e.triggerFireCount)
 	if e.damageBatchOpen {
 		c.damageBatchOpen = true
+		c.damageBatchDepth = e.damageBatchDepth
 		if e.damageBatchIdx != nil {
 			c.damageBatchIdx = make(map[damageBatchKey]int, len(e.damageBatchIdx))
 			for k, v := range e.damageBatchIdx {

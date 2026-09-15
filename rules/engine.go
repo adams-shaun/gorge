@@ -275,9 +275,12 @@ type Engine struct {
 	// accumulated batch amount the queued trigger's referent is patched to at
 	// batch close. Never opened across a drain: pendingTriggers is append-only
 	// while a batch is open, so the batch entries' recorded indices stay valid.
-	damageBatchOpen bool
-	damageBatchIdx  map[damageBatchKey]int
-	damageBatchLog  []damageBatchEntry
+	// damageBatchDepth counts nested brackets, so an inner effect cannot close
+	// its caller's simultaneous batch early.
+	damageBatchOpen  bool
+	damageBatchDepth int
+	damageBatchIdx   map[damageBatchKey]int
+	damageBatchLog   []damageBatchEntry
 	// phaseUnknownNoted memoizes the Phase$ specs whose names this engine has
 	// already reported as unresolvable (rules.trigger_match.go's phaseMatches
 	// reporting), so one spec emits exactly one Note per game no matter how
