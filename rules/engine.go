@@ -236,6 +236,10 @@ type Engine struct {
 	// boundaries, and removed with the stack object. Resolution copies it into
 	// effects.Ctx; effects uses it only when the source is no longer live.
 	sourceLifelinkLKI map[state.ObjID]bool
+	// sourceControllerLKI is the matching pre-departure controller snapshot.
+	// It is separate from sourceLifelinkLKI because false lifelink is still a
+	// valid snapshot, and a controller may be seat zero.
+	sourceControllerLKI map[state.ObjID]state.PlayerID
 	// orderedTriggers is how many LEADING entries of pendingTriggers have
 	// already had their order settled by an answered KTriggerOrder decision
 	// (or, for a lone trigger, by there being nothing to decide). It is the
@@ -937,7 +941,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			}
 		}
 	}
-	departingSource, departingSourceLifelink := e.captureSourceLifelinkLKI(ev)
+	departingSource, departingSourceLifelink, departingSourceController := e.captureSourceLifelinkLKI(ev)
 	stackLen := len(e.G.Stack)
 	stored := events.Emit(e.G, e.L, ev)
 	if ev.Kind == events.StackCopy && len(e.G.Stack) > stackLen {
@@ -961,6 +965,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			}
 			e.sourceLifelinkLKI[copyID] = link
 		}
+		if controller, ok := e.sourceControllerLKI[ev.Obj]; ok {
+			if e.sourceControllerLKI == nil {
+				e.sourceControllerLKI = make(map[state.ObjID]state.PlayerID)
+			}
+			e.sourceControllerLKI[copyID] = controller
+		}
 	}
 	if ev.Kind == events.MoveZone {
 		// CR 400.7: an object that changes zones is a new object with no
@@ -972,6 +982,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.triggerLKI, ev.Obj)
 		delete(e.sacrificedLKI, ev.Obj)
 		delete(e.sourceLifelinkLKI, ev.Obj)
+		delete(e.sourceControllerLKI, ev.Obj)
 	}
 	if ev.Kind == events.PutOnStack && e.deferCastTrigger {
 		// CR 601.2i: the cast trigger must not fire at the up-front push
@@ -994,7 +1005,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		}
 		e.tappedTurn[ev.Obj] = e.G.Turn
 	}
-	e.finishSourceLifelinkLKI(ev, departingSource, departingSourceLifelink)
+	e.finishSourceLifelinkLKI(ev, departingSource, departingSourceLifelink, departingSourceController)
 	// E2: any genuinely state-changing event proves the game is making
 	// progress, so it clears the held-out cast suppression (suppressedCast,
 	// see engine.go): a declined card's option comes back the moment the
@@ -1025,10 +1036,10 @@ func (e *Engine) emit(ev events.Event) events.Event {
 // slices rather than a map keeps this bookkeeping incapable of changing event
 // order. A self-sacrifice activation is not minted until after its departure;
 // payCast captures that one sibling before paying the cost.
-func (e *Engine) captureSourceLifelinkLKI(ev events.Event) (bool, bool) {
+func (e *Engine) captureSourceLifelinkLKI(ev events.Event) (bool, bool, state.PlayerID) {
 	if ev.Kind != events.MoveZone || ev.From != state.ZBattlefield ||
 		ev.To == state.ZBattlefield {
-		return false, false
+		return false, false, 0
 	}
 	// A destruction batch's own pre-state wins (rules.Engine.BatchDepartures,
 	// effects.Host): a later batch member must read the lifelink state from
@@ -1044,27 +1055,34 @@ func (e *Engine) captureSourceLifelinkLKI(ev events.Event) (bool, bool) {
 	} else {
 		link = e.HasKeyword(ev.Obj, "Lifelink")
 	}
+	controller := e.G.Obj(ev.Obj).Controller
 	for _, id := range e.G.Stack {
 		if o := e.G.Obj(id); o != nil && o.Ability != nil && o.Source == ev.Obj {
 			if e.sourceLifelinkLKI == nil {
 				e.sourceLifelinkLKI = make(map[state.ObjID]bool)
 			}
+			if e.sourceControllerLKI == nil {
+				e.sourceControllerLKI = make(map[state.ObjID]state.PlayerID)
+			}
 			e.sourceLifelinkLKI[id] = link
+			e.sourceControllerLKI[id] = controller
 		}
 	}
 	for i := range e.pendingTriggers {
 		if e.pendingTriggers[i].Source == ev.Obj {
 			e.pendingTriggers[i].Ctx.SourceLifelinkLKI = link
 			e.pendingTriggers[i].Ctx.SourceLifelinkLKIValid = true
+			e.pendingTriggers[i].Ctx.SourceControllerLKI = controller
+			e.pendingTriggers[i].Ctx.SourceControllerLKIValid = true
 		}
 	}
-	return true, link
+	return true, link, controller
 }
 
 // finishSourceLifelinkLKI attaches the same pre-departure snapshot to a
 // dies/leaves trigger that the event itself just queued. Such a trigger did not
 // exist during captureSourceLifelinkLKI's pre-event walk.
-func (e *Engine) finishSourceLifelinkLKI(ev events.Event, departing, link bool) {
+func (e *Engine) finishSourceLifelinkLKI(ev events.Event, departing, link bool, controller state.PlayerID) {
 	if !departing {
 		return
 	}
@@ -1072,6 +1090,8 @@ func (e *Engine) finishSourceLifelinkLKI(ev events.Event, departing, link bool) 
 		if e.pendingTriggers[i].Source == ev.Obj {
 			e.pendingTriggers[i].Ctx.SourceLifelinkLKI = link
 			e.pendingTriggers[i].Ctx.SourceLifelinkLKIValid = true
+			e.pendingTriggers[i].Ctx.SourceControllerLKI = controller
+			e.pendingTriggers[i].Ctx.SourceControllerLKIValid = true
 		}
 	}
 }

@@ -787,9 +787,43 @@ func TestPrintedCreatureWalkerCleanupKeepsLoyalty(t *testing.T) {
 // TestBatchLifelinkClearedAfterRegeneratedBatchMember is the round-2 review's
 // stale-snapshot probe: a destroy-all batch in which a lifelink-bearing member
 // is REGENERATED (stays) never consumes its pre-batch lifelink snapshot. The
-// end-of-batch clear must reset batchLifelink so a later departure reads live
-// state rather than the stale pre-batch TRUE entry. Pre-fix (no end-of-batch
-// clear) batchLifelink survived non-nil after the batch.
+// TestDepartedStolenSourceCreditsLastController exercises the independently
+// resolving path after the source has left the battlefield. Move resets an
+// object's Controller to Owner, so this catches the bug where lifelink paid
+// owner 0 rather than last controller 1. The source is also the named
+// DamageSource$ (Self), ensuring the rider's named-source path uses the same
+// LKI controller rather than merely the resolving ability's controller.
+func TestDepartedStolenSourceCreditsLastController(t *testing.T) {
+	e := layerEngine(t)
+	source := onBoard(t, e, 0, "Name:Stolen Spark\nTypes:Creature\nPT:2/2\nK:Lifelink\n"+
+		"A:AB$ DealDamage | Defined$ You | NumDmg$ 2 | DamageSource$ Self\nOracle:x\n")
+	e.emit(events.Event{Kind: events.ControlChange, Obj: source, Player: 1})
+	e.emit(events.Event{Kind: events.AbilityPush, Obj: source, Player: 1})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: source, From: state.ZBattlefield, To: state.ZGraveyard})
+	if got := e.G.Obj(source).Controller; got != 0 {
+		t.Fatalf("fixture departure controller = %d, want owner 0", got)
+	}
+	stack := e.G.Stack[len(e.G.Stack)-1]
+	if got, ok := e.sourceControllerLKI[stack]; !ok || got != 1 {
+		t.Fatalf("source controller LKI = %d, valid=%v, want 1/true", got, ok)
+	}
+	e.resolveTop()
+	if got := e.G.Players[0].Life; got != 20 {
+		t.Fatalf("owner life = %d, want 20", got)
+	}
+	if got := e.G.Players[1].Life; got != 20 {
+		t.Fatalf("last controller life = %d, want 20 (damage and lifelink net)", got)
+	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.LifeChange && ev.Amount == 2 && ev.Player != 1 {
+			t.Fatalf("lifelink recipient = seat %d, want last controller seat 1", ev.Player)
+		}
+	}
+}
+
+// TestBatchLifelinkClearedAfterRegeneratedBatchMember checks that the
+// end-of-batch clear resets batchLifelink so a later departure reads live
+// state rather than a stale pre-batch TRUE entry.
 func TestBatchLifelinkClearedAfterRegeneratedBatchMember(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, _, ids := dsBoard(t, reg, "Prodigal Pyromancer", "Basilisk Collar", "Magus of the Disk")

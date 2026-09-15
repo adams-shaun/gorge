@@ -379,6 +379,10 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			ctx.SourceLifelinkLKI = link
 			ctx.SourceLifelinkLKIValid = true
 		}
+		if controller, ok := e.sourceControllerLKI[rp.obj]; ok {
+			ctx.SourceControllerLKI = controller
+			ctx.SourceControllerLKIValid = true
+		}
 		// CR 603.3c: keep the placement-announced mode choice across the
 		// suspension, so the resumed resolution of a modal trigger runs
 		// exactly the modes chosen when the ability was put on the stack

@@ -134,11 +134,12 @@ func newDamageRider(h Host, c *Ctx, sa *cards.SA, amount int32) damageRider {
 		hasLifelink = c.SourceLifelinkLKI
 	}
 	// Lifelink belongs to the resolved damaging object, not to the spell or
-	// ability's controller. Object.Controller survives a zone change, so it
-	// is also the available LKI controller if the named source left before
-	// this independently resolving effect dealt damage.
+	// ability's controller. Move resets Object.Controller to Owner, so the
+	// independently resolving source uses its pre-departure controller LKI.
 	controller := c.Controller
-	if o := h.Game().Obj(source); o != nil {
+	if c.SourceControllerLKIValid && source == own {
+		controller = c.SourceControllerLKI
+	} else if o := h.Game().Obj(source); o != nil {
 		controller = o.Controller
 	}
 	return damageRider{h: h, source: source, controller: controller,

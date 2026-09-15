@@ -142,6 +142,12 @@ func (e *Engine) Clone() *Engine {
 			c.sourceLifelinkLKI[id] = link
 		}
 	}
+	if e.sourceControllerLKI != nil {
+		c.sourceControllerLKI = make(map[state.ObjID]state.PlayerID, len(e.sourceControllerLKI))
+		for id, controller := range e.sourceControllerLKI {
+			c.sourceControllerLKI[id] = controller
+		}
+	}
 	c.triggerFireCount = cloneCounts(e.triggerFireCount)
 	c.damageOnceFired = cloneCounts(e.damageOnceFired)
 	if e.phaseUnknownNoted != nil {

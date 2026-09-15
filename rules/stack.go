@@ -783,6 +783,10 @@ func (e *Engine) resolveTop() {
 			ctx.SourceLifelinkLKI = link
 			ctx.SourceLifelinkLKIValid = true
 		}
+		if controller, ok := e.sourceControllerLKI[id]; ok {
+			ctx.SourceControllerLKI = controller
+			ctx.SourceControllerLKIValid = true
+		}
 		effects.SetSVars(ctx, svars)
 		// CR 603.3c: the mode choice was announced at placement (pushTrigger
 		// asked KModes and handleModes recorded the answer into ChosenModes).

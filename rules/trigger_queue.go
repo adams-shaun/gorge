@@ -350,6 +350,12 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			}
 			e.sourceLifelinkLKI[id] = pt.Ctx.SourceLifelinkLKI
 		}
+		if pt.Ctx.SourceControllerLKIValid {
+			if e.sourceControllerLKI == nil {
+				e.sourceControllerLKI = make(map[state.ObjID]state.PlayerID)
+			}
+			e.sourceControllerLKI[id] = pt.Ctx.SourceControllerLKI
+		}
 	}
 	// Task 7: a trigger that declares ValidTgts$ asks its controller for
 	// targets RIGHT AFTER its TriggerPush -- the ability object is now top of

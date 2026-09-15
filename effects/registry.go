@@ -187,6 +187,12 @@ type Ctx struct {
 	// derived source while it remains a permanent.
 	SourceLifelinkLKI      bool
 	SourceLifelinkLKIValid bool
+	// SourceControllerLKI is the source permanent's controller immediately
+	// before it left the battlefield. Move resets Controller to Owner, so an
+	// independently resolving lifelink ability needs this companion snapshot
+	// to credit its last controller rather than its owner.
+	SourceControllerLKI      state.PlayerID
+	SourceControllerLKIValid bool
 	// Sacrificed carries the last-known-information snapshot of every object
 	// this resolving spell/ability sacrificed, as it was at the instant of the
 	// sacrifice (state.SacrificedInfo). Built two ways, feeding one field: a
