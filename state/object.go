@@ -129,6 +129,11 @@ type Object struct {
 	// source of truth. Nil when no modal announcement has been made.
 	ChosenModes []string
 
+	// Imprinted holds cards this object associated with through ImprintCards$
+	// or by exiling them with its effect. It is event-backed so a replay keeps
+	// Forge's host-card list for Defined$ ExiledWith and ImprintedController.
+	Imprinted []ObjID
+
 	// AttachedTo is the permanent this Aura or Equipment is attached to; 0
 	// means unattached. Reset whenever the object itself leaves the
 	// battlefield (events.Move) -- an Aura or Equipment cannot stay
@@ -207,6 +212,7 @@ func (o *Object) CloneDeep() Object {
 	c.BlockedBy = append([]ObjID(nil), o.BlockedBy...)
 	c.Chosen = append([]Target(nil), o.Chosen...)
 	c.ChosenModes = append([]string(nil), o.ChosenModes...)
+	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
 	return c
 }
 

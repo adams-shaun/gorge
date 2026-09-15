@@ -879,7 +879,12 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	8: "0fc2433539e2f454",
+	// 8 seats moved to a6473abe5f9f4377: Flickerwisp's 8-seat acceptance
+	// trigger exiles object 348. ChangeZone now records its Forge
+	// handleExiledWith association as Imprint before the existing
+	// RememberChanged/DelayedRegister sequence, so DefinedCards$ ExiledWith
+	// can distinguish it from another player's exiled cards on replay.
+	8: "a6473abe5f9f4377",
 }
 
 func TestHeads(t *testing.T) {

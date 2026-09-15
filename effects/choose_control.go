@@ -79,7 +79,7 @@ func choiceZones(sa *cards.SA) map[state.Zone]bool {
 // definedCardPool resolves the object-set role carried by DefinedCards$.
 // Unlike Defined(), an unknown role must not fall back to the resolution's
 // targets: that would widen a constrained choice to unrelated objects.
-func definedCardPool(c *Ctx, raw string) ([]state.Target, string) {
+func definedCardPool(g *state.Game, c *Ctx, raw string) ([]state.Target, string) {
 	root, qualifier, _ := strings.Cut(strings.TrimSpace(raw), ".")
 	switch root {
 	case "Targeted", "TargetedCard", "ParentTargeted":
@@ -94,8 +94,16 @@ func definedCardPool(c *Ctx, raw string) ([]state.Target, string) {
 		}
 		return nil, qualifier
 	case "ExiledWith":
-		// The state does not retain craft/exile provenance. Fail closed rather
-		// than substituting every exiled card or the resolution's targets.
+		// Forge's hostCard.getExiledCards is the source's imprinted/exiled
+		// association, not every card in the shared exile zone. The list is
+		// event-backed by Imprint and cardChoices still intersects ChoiceZone$.
+		if o := g.Obj(c.Source); o != nil {
+			out := make([]state.Target, 0, len(o.Imprinted))
+			for _, id := range o.Imprinted {
+				out = append(out, state.Target{Obj: id})
+			}
+			return out, qualifier
+		}
 		return nil, qualifier
 	default:
 		return nil, qualifier
@@ -123,7 +131,7 @@ func cardChoices(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID) []state.T
 	zones := choiceZones(sa)
 	if raw := strings.TrimSpace(sa.Params["DefinedCards"]); raw != "" {
 		var qualifier string
-		candidates, qualifier = definedCardPool(c, raw)
+		candidates, qualifier = definedCardPool(g, c, raw)
 		// A DefinedCards$ set already supplies its zone. ChoiceZone$, when
 		// present, remains an additional restriction on that set.
 		if _, explicit := sa.Params["ChoiceZone"]; !explicit {
@@ -449,6 +457,17 @@ func controlPlayer(h Host, c *Ctx, sa *cards.SA) (state.PlayerID, bool) {
 		for _, t := range c.Remembered {
 			if t.IsPlayer {
 				return t.Player, true
+			}
+		}
+		return 0, false
+	case "ImprintedController":
+		// Forge's addPlayer(host.getImprintedCards(), "ImprintedController")
+		// returns the first imprinted card's current controller.
+		if src := g.Obj(c.Source); src != nil {
+			for _, id := range src.Imprinted {
+				if o := g.Obj(id); o != nil {
+					return o.Controller, true
+				}
 			}
 		}
 		return 0, false

@@ -150,6 +150,12 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: to})
+		// Forge's ChangeZoneEffect.handleExiledWith associates a non-token
+		// card exiled by this effect with its host. This is the same persisted
+		// list DefinedCards$ ExiledWith and ImprintedController consume.
+		if to == state.ZExile && !o.IsToken && c.Source != 0 {
+			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{o.ID}})
+		}
 		// RememberChanged$ True (Forge's spelling on the ChangeZone in the
 		// Flickerwisp delayed-trigger family): the moved object joins the
 		// ability's Remembered, so a DelayedTrigger that runs as a later
@@ -359,6 +365,11 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZLibrary, To: to, Player: owner})
+		if to == state.ZExile && c.Source != 0 {
+			if o := g.Obj(id); o != nil && !o.IsToken {
+				h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}})
+			}
+		}
 		moved = append(moved, id)
 		if to == state.ZBattlefield && sa.Params["WithCountersType"] != "" {
 			amount := int32(1)

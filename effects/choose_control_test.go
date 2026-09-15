@@ -69,6 +69,57 @@ func TestChooseCardDauthiCarriesChosenCardIntoEffect(t *testing.T) {
 	}
 }
 
+func TestChooseCardExiledWithCorpusSA(t *testing.T) {
+	card, sa := corpusSA(t, "Ore-Rich Stalactite", "")
+	if sa.API != "Mana" { // front face; Cosmium Catalyst is alternate face.
+		t.Fatalf("unexpected front ability %+v", sa)
+	}
+	var choose *cards.SA
+	for _, f := range card.Faces {
+		for _, a := range f.Abilities {
+			if a.API == "ChooseCard" && a.Params["DefinedCards"] == "ExiledWith" {
+				choose = a
+			}
+		}
+	}
+	if choose == nil {
+		t.Fatal("Cosmium Catalyst's ExiledWith choice missing")
+	}
+	h := newHost(t, 2)
+	src := h.g.AddObject(card, 0)
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: src.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	mine := h.g.AddObject(mkCard(t, "Name:Crafted\nTypes:Instant\nOracle:x\n"), 0)
+	other := h.g.AddObject(mkCard(t, "Name:Other\nTypes:Instant\nOracle:x\n"), 1)
+	for _, o := range []*state.Object{mine, other} {
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZLibrary, To: state.ZExile})
+	}
+	h.Emit(events.Event{Kind: events.Imprint, Obj: src.ID, IDs: []state.ObjID{mine.ID}})
+	c := &Ctx{Source: src.ID, Controller: 0}
+	effChooseCard(h, c, choose)
+	if len(c.Chosen) != 1 || c.Chosen[0].Obj != mine.ID {
+		t.Fatalf("ExiledWith choice = %+v, want only crafted %d", c.Chosen, mine.ID)
+	}
+	if got := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "Imprinted"}}); len(got) != 1 || got[0].Obj != mine.ID {
+		t.Fatalf("Defined Imprinted = %+v, want crafted card", got)
+	}
+}
+
+func TestGainControlImprintedControllerSuddenSubstitution(t *testing.T) {
+	card, gain := corpusSA(t, "Sudden Substitution", "DBGainControl")
+	h := newHost(t, 2)
+	src := h.g.AddObject(card, 0)
+	target := h.g.AddObject(mkCard(t, "Name:Creature\nTypes:Creature\nPT:1/1\nOracle:x\n"), 0)
+	imprinted := h.g.AddObject(mkCard(t, "Name:Spell\nTypes:Instant\nOracle:x\n"), 1)
+	for _, o := range []*state.Object{src, target, imprinted} {
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	}
+	h.Emit(events.Event{Kind: events.Imprint, Obj: src.ID, IDs: []state.ObjID{imprinted.ID}})
+	effGainControl(h, &Ctx{Source: src.ID, Controller: 0, Remembered: []state.Target{{Obj: target.ID}}}, gain)
+	if got := h.g.Obj(target.ID).Controller; got != 1 {
+		t.Fatalf("Sudden Substitution target controller = %d, want imprinted controller 1", got)
+	}
+}
+
 func TestChoosePlayerReplacesPlayerChoiceAndKeepsCards(t *testing.T) {
 	card, chooseCard := corpusSA(t, "Dauthi Voidwalker", "")
 	_, choosePlayer := corpusSA(t, "Sower of Discord", "ChooseP")

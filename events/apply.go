@@ -45,6 +45,19 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 
+	case Imprint:
+		if o := g.Obj(e.Obj); o != nil {
+			if e.Text == "clear" {
+				o.Imprinted = nil
+			} else {
+				for _, id := range e.IDs {
+					if g.Obj(id) != nil {
+						o.Imprinted = append(o.Imprinted, id)
+					}
+				}
+			}
+		}
+
 	case LibraryOrder:
 		// A library-arranging effect (Ponder, later Scry/Surveil) set a
 		// complete new order on a player's library. Mechanically identical to

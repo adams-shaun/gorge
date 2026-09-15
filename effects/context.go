@@ -26,6 +26,17 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	if spec, ok := strings.CutPrefix(sa.Params["Defined"], "ValidStack"); ok {
 		return validStackTargets(g, strings.TrimSpace(spec), c)
 	}
+	if spec, ok := strings.CutPrefix(sa.Params["Defined"], "Remembered."); ok {
+		var out []state.Target
+		for _, t := range c.Remembered {
+			if !t.IsPlayer {
+				if o := g.Obj(t.Obj); o != nil && MatchesObjectCtx(g, "Card."+spec, o, c.SpecContext(c.Controller)) {
+					out = append(out, t)
+				}
+			}
+		}
+		return out
+	}
 	switch sa.Params["Defined"] {
 	case "":
 		// Forge's rule: an ability that names targets acts on them; one that
@@ -42,6 +53,17 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		return []state.Target{{Obj: c.Source}}
 	case "Remembered":
 		return copyTargets(c.Remembered)
+	case "Imprinted", "ImprintedLKI":
+		if o := g.Obj(c.Source); o != nil {
+			out := make([]state.Target, 0, len(o.Imprinted))
+			for _, id := range o.Imprinted {
+				if g.Obj(id) != nil {
+					out = append(out, state.Target{Obj: id})
+				}
+			}
+			return out
+		}
+		return nil
 	case "ChosenCard", "ChosenPlayer":
 		// ChooseCard/ChoosePlayer bind the current resolution's most recent
 		// choice here. This is deliberately distinct from Remembered: Forge
@@ -272,6 +294,34 @@ func eventRemember(h Host, c *Ctx, id state.ObjID) {
 // clearEventRemembered mirrors Forge host.clearRemembered.  Rider primitives
 // call it before replacing their ctx set, so Count$RememberedSize and a later
 // resolution observe exactly the same persistent set as the current chain.
+// imprint records Forge's host.addImprintedCards. TargetedSource names the
+// source card of a targeted stack ability when one exists; ordinary targets
+// are themselves cards. The one shared resolver is used by every API so a
+// future ImprintCards$ rider cannot be accidentally skipped by its primitive.
+func imprint(h Host, c *Ctx, sa *cards.SA) {
+	if c.Source == 0 || strings.TrimSpace(sa.Params["ImprintCards"]) == "" {
+		return
+	}
+	var ids []state.ObjID
+	for _, t := range Defined(h, c, &cards.SA{Params: map[string]string{"Defined": sa.Params["ImprintCards"]}}) {
+		if t.IsPlayer {
+			continue
+		}
+		id := t.Obj
+		if sa.Params["ImprintCards"] == "TargetedSource" {
+			if o := h.Game().Obj(id); o != nil && o.Source != 0 {
+				id = o.Source
+			}
+		}
+		if h.Game().Obj(id) != nil {
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) > 0 {
+		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: ids})
+	}
+}
+
 func clearEventRemembered(h Host, c *Ctx) {
 	if c.Source != 0 {
 		if o := h.Game().Obj(c.Source); o != nil && len(o.Remembered) > 0 {
