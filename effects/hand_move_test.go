@@ -662,6 +662,52 @@ func TestVolrathsDungeonRealScriptMarkerlessPutBackIsRequired(t *testing.T) {
 	}
 }
 
+// TestLostHoursUnsupportedLibraryPositionEmitsNote runs the one corpus
+// hand-move spelling with LibraryPosition$ 2 (third from the top). The
+// hidden-hand mover cannot place a card at an arbitrary library index, so it
+// takes the deterministic top placement but makes that narrowing visible.
+func TestLostHoursUnsupportedLibraryPositionEmitsNote(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	card, ok := reg.Lookup("Lost Hours")
+	if !ok {
+		t.Fatal("corpus has no Lost Hours")
+	}
+	var ab *cards.SA
+	for _, candidate := range card.Faces[0].Abilities {
+		if candidate.API == "ChangeZone" && candidate.Params["Origin"] == "Hand" {
+			ab = candidate
+			break
+		}
+	}
+	if ab == nil || ab.Params["LibraryPosition"] != "2" {
+		t.Fatalf("Lost Hours compiled ability drifted: %+v", ab)
+	}
+	g := state.NewGame(names(2))
+	source := corpusObject(t, reg, g, "Lost Hours")
+	bear := corpusObject(t, reg, g, "Grizzly Bears")
+	bear.Owner, bear.Controller, bear.Zone = 1, 1, state.ZHand
+	g.SetZone(state.ZHand, 1, []state.ObjID{bear.ID})
+	h := &askHost{}
+	h.g = g
+	Resolve(h, &Ctx{Source: source.ID, Controller: 0,
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}}, ab)
+	if h.asked != nil {
+		t.Fatalf("one-card required Lost Hours move posed a decision: %+v", h.asked)
+	}
+	if got := g.Zone(state.ZLibrary, 1); len(got) != 1 || got[0] != bear.ID {
+		t.Fatalf("target library = %v, want the deterministic top placement of %d", got, bear.ID)
+	}
+	found := false
+	for _, ev := range h.log {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "LibraryPosition$ 2 is not implemented") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("unsupported LibraryPosition$ 2 emitted no Note: %+v", h.log)
+	}
+}
+
 // TestKastralMixedHandOriginEmitsNote pins the unsupported mixed-origin
 // chooser's loud fallback on the real corpus Kastral script. Its optional
 // Bird picker spans Hand and Graveyard, so neither exact hidden-origin walker

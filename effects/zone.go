@@ -891,8 +891,12 @@ func handLibraryTail(h Host, g *state.Game, sa *cards.SA, source state.ObjID, ow
 		shuffleLibrary(h, g, owner)
 		return // a shuffled library has no meaningful LibraryPosition$
 	}
-	bottom := strings.TrimSpace(sa.Params["LibraryPosition"]) == "-1"
-	libraryOrderPlacement(h, g, owner, moved, bottom)
+	position := strings.TrimSpace(sa.Params["LibraryPosition"])
+	if position != "" && position != "0" && position != "-1" {
+		h.Emit(events.Event{Kind: events.Note, Obj: source, Player: owner,
+			Text: "LibraryPosition$ " + position + " is not implemented; the cards go on top"})
+	}
+	libraryOrderPlacement(h, g, owner, moved, position == "-1")
 }
 
 // handDestPhrase names the hand-move destination in the human-readable
