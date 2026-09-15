@@ -1269,9 +1269,12 @@ func (e *Engine) applyLifeReplacements(ev events.Event) (events.Event, bool) {
 			}
 			// A gain replaced by a loss/draw does not log the original gain.
 			if r.With != nil && r.With.API == "LoseLife" {
+				// This is no longer a gain event, so no later GainLife
+				// replacement can modify it. The LifeReduced pass below then
+				// evaluates the resulting loss in its normal scan order.
 				ev.Amount = -ev.Amount
 				changed = true
-				return false
+				return true
 			}
 			if r.With != nil && r.With.API == "Draw" {
 				for i := int32(0); i < ev.Amount; i++ {

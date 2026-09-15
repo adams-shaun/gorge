@@ -1165,6 +1165,11 @@ func (e *Engine) drawnMatches(t cards.Trigger, source state.ObjID, ev events.Eve
 			return false
 		}
 	}
+	// PlayerTurn$ is the trigger controller's turn, not the drawing player's:
+	// Keranos's "on each of your turns" must reject an opponent's first draw.
+	if strings.EqualFold(t.Params["PlayerTurn"], "True") && e.G.Active != ctrl {
+		return false
+	}
 	if v, ok := t.Params["FirstCardInDrawStep"]; ok {
 		first := e.firstCardInDrawStep(ev.Player)
 		if (strings.EqualFold(v, "True") && !first) || (strings.EqualFold(v, "False") && first) {

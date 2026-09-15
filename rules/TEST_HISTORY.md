@@ -3,6 +3,7 @@
 budget_s: 300
 budget_s: 124
 budget_s: 53
+budget_s: 51
 
 <!--
 A row far below the others is very likely VACUOUS, not fast. MEASURED
@@ -444,3 +445,4 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-15T01:15Z | 18daca3+ | 42.8 | 644 | 1 | sadams |
 | 2026-09-15T01:23Z | da3cd88+ | 44.4 | 644 | 1 | sadams |
 | 2026-09-15T09:58Z | 18b051f+ | 45.7 | 649 | 1 | sadams |
+| 2026-09-15T10:06Z | a2d561f+ | 49.3 | 651 | 1 | sadams |

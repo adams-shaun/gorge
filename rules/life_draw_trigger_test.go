@@ -75,6 +75,30 @@ func TestBlackWidowDrawnNumberAndValidPlayer(t *testing.T) {
 	}
 }
 
+func TestKeranosDrawnOnlyTriggersOnControllerTurn(t *testing.T) {
+	e := layerEngine(t)
+	source := onBoardCard(t, e, 0, corpusCard(t, "Keranos, God of Storms"))
+	if got := e.G.Obj(source).Face().Triggers[0].Params["PlayerTurn"]; got != "True" {
+		t.Fatalf("Keranos PlayerTurn = %q, want True", got)
+	}
+
+	// Keranos owns the source but the opponent owns this first drawn card.
+	// Number$ alone would admit it, so this pins the controller-turn gate.
+	e.G.Active = 1
+	opponentDraw := e.G.Zone(state.ZLibrary, 1)[0]
+	e.emit(events.Event{Kind: events.Draw, Player: 1, Obj: opponentDraw, From: state.ZLibrary, To: state.ZHand, Secret: true})
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("opponent-turn first draw queued %#v, want no Keranos trigger", e.pendingTriggers)
+	}
+
+	e.G.Active = 0
+	controllerDraw := e.G.Zone(state.ZLibrary, 0)[0]
+	e.emit(events.Event{Kind: events.Draw, Player: 0, Obj: controllerDraw, From: state.ZLibrary, To: state.ZHand, Secret: true})
+	if len(e.pendingTriggers) != 1 || e.pendingTriggers[0].Source != source {
+		t.Fatalf("controller-turn first draw queued %#v, want Keranos", e.pendingTriggers)
+	}
+}
+
 func TestOrcishBowmastersDrawnSkipsFirstDrawStepCard(t *testing.T) {
 	e := layerEngine(t)
 	bowmasters := corpusCard(t, "Orcish Bowmasters")
@@ -266,6 +290,25 @@ func TestAlhammarretsArchiveDoublesGain(t *testing.T) {
 	e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: 3})
 	if got := e.G.Players[0].Life; got != 26 {
 		t.Fatalf("life after Archive +3 gain = %d, want 26", got)
+	}
+}
+
+func TestGainReplacedByLossSkipsLaterGainReplacements(t *testing.T) {
+	e := layerEngine(t)
+	remedy := onBoardCard(t, e, 0, corpusCard(t, "Tainted Remedy"))
+	archive := onBoardCard(t, e, 1, corpusCard(t, "Alhammarret's Archive"))
+	if got := e.G.Obj(remedy).Face().Repls[0].Event; got != "GainLife" {
+		t.Fatalf("Tainted Remedy replacement event = %q, want GainLife", got)
+	}
+	if got := e.G.Obj(archive).Face().Repls[0].Event; got != "GainLife" {
+		t.Fatalf("Alhammarret's Archive replacement event = %q, want GainLife", got)
+	}
+
+	// Battlefield scan reaches Remedy before Archive. Remedy transforms the
+	// gain into a loss, which means Archive can no longer double it.
+	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: 3})
+	if got := e.G.Players[1].Life; got != 17 {
+		t.Fatalf("life after Remedy replaces +3 under Archive = %d, want 17", got)
 	}
 }
 
