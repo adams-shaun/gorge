@@ -443,6 +443,16 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 	case "flashback":
 		cost = e.flashbackCost(id)
+	case "mayplay":
+		// rules/mayplay.go granted this play from a non-hand zone. The
+		// printed cost is paid (the default below) unless the granting
+		// static said MayPlayWithoutManaCost$ True, in which case the mana
+		// part is free while non-mana additional costs still apply
+		// (CR 118.9) -- so this mode folds into the withSpellAbilityExtras
+		// condition below, exactly like a plain cast.
+		if free, ok := e.mayPlayGrant(p, id); ok && free {
+			cost = Cost{}
+		}
 	case "miracle":
 		// Task 18: a Miracle cast pays the printed Miracle cost (CR 702.93d) in
 		// place of the card's normal cost. KeywordParam is read off the face;
@@ -464,7 +474,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// re-added mana part would double charge. Only a plain cast reaches this
 	// (pc.ability < 0 and no alternative/flashback recast), and a spell with
 	// no SP Cost$ contributes nothing.
-	if opt.AltCostIndex == 0 && opt.Mode == "" {
+	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// CR 903.8: the commander tax, applied to whatever cost this cast pays

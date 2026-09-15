@@ -303,12 +303,49 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 	}
 
 	// Valid / ValidZone forms count objects in a zone matching a filter.
+	// A `$<Property>` suffix sums that numeric property over the matches
+	// instead of counting them -- Mosswort Bridge's gate
+	// `Count$Valid Creature.YouCtrl$CardPower` ("creatures you control have
+	// total power 10 or greater") is the corpus shape (62 raw lines over 61
+	// files: CardPower 42, CardManaCost 13, CardToughness 5). An unrecognised
+	// property keeps the whole token as the spec -- the pre-existing
+	// fail-closed behaviour, since such a token never matched anyway -- and
+	// the Greatest/Least/Different/Colors variants are out of scope here.
 	if zone, ok := countZone(head); ok {
+		spec, prop, hasProp := strings.Cut(arg, "$")
+		if !hasProp {
+			spec, prop = arg, ""
+		} else {
+			prop = strings.TrimSpace(prop)
+			switch prop {
+			case "CardPower", "CardToughness", "CardManaCost":
+			default:
+				// Not a summed property (GreatestCardPower, DifferentNames,
+				// Colors, ...): keep the old whole-token spec read.
+				spec, prop = arg, ""
+			}
+		}
 		var n int32
 		for _, p := range g.AliveFrom(0) {
 			for _, id := range g.Zone(zone, p) {
-				if MatchesSpecCtx(g, arg, id, c.SpecContext(c.Controller)) {
+				if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+					continue
+				}
+				if prop == "" {
 					n++
+					continue
+				}
+				o := g.Obj(id)
+				if o == nil || o.Face() == nil {
+					continue
+				}
+				switch prop {
+				case "CardPower":
+					n += int32(o.Face().Power()) + o.Counter("P1P1")
+				case "CardToughness":
+					n += int32(o.Face().Toughness()) + o.Counter("P1P1")
+				case "CardManaCost":
+					n += o.Face().Cmc()
 				}
 			}
 		}

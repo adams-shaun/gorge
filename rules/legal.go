@@ -310,6 +310,22 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		}
 	}
 
+	// MayPlay grants (rules/mayplay.go): an S:Mode$ Continuous ... MayPlay$
+	// True static -- a battlefield grant like Conduit of Worlds' "You may
+	// play lands from your graveyard" or the affected card's own self-grant
+	// -- opens the ordinary play action from the graveyard or exile. The
+	// walk appends AFTER the flashback casts so a granted card and its
+	// flashback are two distinct options, and reindexes the returned
+	// options because every earlier index must stay stable. A hand zone is
+	// deliberately not walked: a hand card's ordinary cast is already
+	// offered above, and a MayPlay static may not WIDEN a hand cast beyond
+	// what the walk already gates (no MayPlayIgnoreType/WithFlash reading
+	// exists yet -- an under-grant, recorded in the AGENTS.md audit).
+	for _, opt := range e.mayPlayGrantOffers(p, sorcery) {
+		opt.Index = len(out)
+		out = append(out, opt)
+	}
+
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		o := e.G.Obj(id)
 		f := o.Face()
@@ -462,13 +478,22 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		// path (no pendingCast, no flow), so ordinary lands are untouched.
 		// Both paths share the same continuation machinery: etbAnswer/
 		// continueCast/commitCast below, never a parallel one.
-		pc := &pendingCast{player: in.Player, card: opt.Obj, from: state.ZHand, mode: "land", ability: -1}
+		// The from-zone is the card's CURRENT zone, not the hand: since the
+		// MayPlay grants (rules/mayplay.go) the play_land offer also comes
+		// from the graveyard or exile, and commitCast must move the land
+		// back out of the zone it actually sits in (CR 118.3a -- the
+		// permission names the zone it grants). A hand play keeps from=hand.
+		from := state.ZHand
+		if o := e.G.Obj(opt.Obj); o != nil {
+			from = o.Zone
+		}
+		pc := &pendingCast{player: in.Player, card: opt.Obj, from: from, mode: "land", ability: -1}
 		e.cast = pc
 		e.collectETBChoices(in.Player)
 		if len(pc.etbs) == 0 {
 			e.cast = nil
 			e.emit(events.Event{Kind: events.MoveZone, Obj: opt.Obj,
-				From: state.ZHand, To: state.ZBattlefield})
+				From: from, To: state.ZBattlefield})
 			e.emit(events.Event{Kind: events.LandPlayed, Player: in.Player})
 			return
 		}

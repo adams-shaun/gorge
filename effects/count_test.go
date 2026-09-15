@@ -64,6 +64,32 @@ func TestEvalCountValidCountsTheBattlefield(t *testing.T) {
 	}
 }
 
+func TestEvalCountValidSumsAPropertySuffix(t *testing.T) {
+	g, _ := board(t)
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0}
+	// You control the Bear (2/2, MV 2), the Flier (1/1, MV 2) and the
+	// Giant (5/5, MV 5) is the opponent's: the sum property suffix sums
+	// over the MATCHES only.
+	if got := EvalCount(h, c, "Count$Valid Creature.YouCtrl$CardPower"); got != 3 {
+		t.Errorf("Creature.YouCtrl$CardPower = %d, want 3", got)
+	}
+	if got := EvalCount(h, c, "Count$Valid Creature.YouCtrl$CardToughness"); got != 3 {
+		t.Errorf("Creature.YouCtrl$CardToughness = %d, want 3", got)
+	}
+	if got := EvalCount(h, c, "Count$Valid Creature$CardManaCost"); got != 9 {
+		t.Errorf("Creature$CardManaCost = %d, want 9 (Bear+Giant+Flier: 2+5+2)", got)
+	}
+	if got := EvalCount(h, c, "Count$Valid Creature.YouCtrl$CardManaCost"); got != 4 {
+		t.Errorf("Creature.YouCtrl$CardManaCost = %d, want 4", got)
+	}
+	// An unrecognised property keeps the old whole-token spec read: it
+	// never matched anything, so it stays a zero count, not a widening.
+	if got := EvalCount(h, c, "Count$Valid Creature$GreatestCardPower"); got != 0 {
+		t.Errorf("GreatestCardPower token = %d, want 0 (out of scope, fail closed)", got)
+	}
+}
+
 func TestEvalCountZoneScopedForms(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}

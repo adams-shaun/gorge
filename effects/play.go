@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -31,10 +32,14 @@ func init() { Register("Play", effPlay) }
 // WithoutManaCost$ semantics (cast the card for free) are applied by the cast
 // flow, not here, because mana is paid in rules where the cost grammar lives.
 func effPlay(h Host, c *Ctx, sa *cards.SA) {
-	if c.PlayDone && c.Play != 0 {
-		// Re-entry after the answer: rules' resumeResolution has already begun
-		// the cast of c.Play (the "play" resume arm calls beginCast), so there
-		// is nothing for this effect to do but let the suspension finish.
+	if c.PlayDone {
+		// Re-entry after the answer -- INCLUDING a decline (an Optional$
+		// Play answered with the empty choice): rules' resumeResolution has
+		// consumed the answer (it began the cast of c.Play, or nothing for a
+		// decline), so there is nothing for this effect to do but let the
+		// suspension finish. Clearing Play keeps the answer scoped to this
+		// one resume: a nested Play reached below this one in the same walk
+		// must pose its own ask instead of inheriting the answered card.
 		c.PlayDone = false
 		c.Play = 0
 		return
@@ -89,10 +94,51 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 			uniq = append(uniq, id)
 		}
 	}
+	// ValidSA$ narrows the population to the card SHAPES the play may play
+	// ("Spell" = a nonland card, "Instant,Sorcery", "Spell.cmcLE4", ...). It
+	// is OR over comma tokens and AND over the + parts of each token; a
+	// predicate the reader does not know fails that token closed, so an
+	// unknown shape never widens the offer.
+	if spec := strings.TrimSpace(sa.Params["ValidSA"]); spec != "" {
+		var kept []state.ObjID
+		for _, id := range uniq {
+			if o := g.Obj(id); o != nil && o.Face() != nil && validSAOK(o.Face(), spec) {
+				kept = append(kept, id)
+			}
+		}
+		uniq = kept
+	}
 	candidates = uniq
 
+	// Optional$ True makes the whole ask declinable (Min 0: the empty answer
+	// is a decline). Amount$ sizes the ask: the default (and an unparseable
+	// value, which stays conservative) is one card; a literal N offers up to
+	// N; "All" offers every candidate (measured corpus: 1 x56, All x68,
+	// 2 x4, 3 x5, X/ChandraX x3 -- the X shapes fall back to one card rather
+	// than risk an over-wide offer).
+	min := 1
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") {
+		min = 0
+	}
+	max := 1
+	switch amt := strings.TrimSpace(sa.Params["Amount"]); amt {
+	case "", "1":
+	case "All":
+		max = len(candidates)
+	default:
+		if n, err := strconv.Atoi(amt); err == nil && n > 1 {
+			max = n
+		}
+	}
+	if max > len(candidates) {
+		max = len(candidates)
+	}
+	if max < min {
+		max = min
+	}
+
 	d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
-		Min: 1, Max: 1, Source: c.Source, ResumeKind: "play",
+		Min: min, Max: max, Source: c.Source, ResumeKind: "play",
 		ResumeSA: sa, Prompt: "Play a card from this zone"}
 	for _, id := range candidates {
 		label := "Play it"
@@ -111,9 +157,80 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		return // resolution suspended; the answer re-enters rules' "play" arm.
 	}
 	// Fuzz/no-engine host: play the first candidate deterministically (R-9).
+	// PlayDone marks the answer consumed so a re-entry (there is none on
+	// this path, but the field must not be left half-set) reads it as one.
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 		Text: "Play chose the first candidate (no engine host to ask)"})
 	c.Play = candidates[0]
+	c.PlayDone = true
+}
+
+// validSAOK reports whether the face passes a ValidSA$ spec: OR over the
+// comma tokens, AND over the + parts of one token, and each part may be a
+// dotted chain ("Spell.Instant") whose segments all have to hold. The
+// vocabulary is the one the corpus' 253 ValidSA$ Play lines actually use:
+// Spell (a nonland card), SpellAbility (no card-shape meaning on its own),
+// Instant/Sorcery/Creature types, their non forms, the cmcLE/cmcLT/cmcEQ
+// comparisons against a literal or the letter X (unresolvable -- the SA
+// carries no X -- fails closed), and the pass-through markers MayPlaySource
+// and YouOwn (provenance and ownership are already enforced by the
+// population path). Any other segment fails its part closed.
+func validSAOK(f *cards.Face, spec string) bool {
+	for _, tok := range strings.Split(spec, ",") {
+		all := true
+		sawPart := false
+		for _, part := range strings.Split(tok, "+") {
+			partOK := true
+			for _, seg := range strings.Split(part, ".") {
+				seg = strings.TrimSpace(seg)
+				switch {
+				case seg == "":
+				case seg == "Spell":
+					partOK = partOK && !f.IsLand()
+				case seg == "SpellAbility", seg == "MayPlaySource", seg == "YouOwn":
+				case seg == "Instant":
+					partOK = partOK && f.IsInstant()
+				case seg == "Sorcery":
+					partOK = partOK && f.IsSorcery()
+				case seg == "Creature":
+					partOK = partOK && f.IsCreature()
+				case seg == "nonCreature":
+					partOK = partOK && !f.IsCreature()
+				case seg == "nonLand":
+					partOK = partOK && !f.IsLand()
+				case strings.HasPrefix(seg, "cmcLE"), strings.HasPrefix(seg, "cmcLT"),
+					strings.HasPrefix(seg, "cmcEQ"):
+					n := -1
+					num := seg[5:]
+					if num != "X" {
+						if v, err := strconv.Atoi(num); err == nil {
+							n = v
+						}
+					}
+					if n < 0 {
+						partOK = false // X or unresolvable: fail closed
+						break
+					}
+					switch {
+					case strings.HasPrefix(seg, "cmcLE"):
+						partOK = partOK && f.Cmc() <= int32(n)
+					case strings.HasPrefix(seg, "cmcLT"):
+						partOK = partOK && f.Cmc() < int32(n)
+					default:
+						partOK = partOK && f.Cmc() == int32(n)
+					}
+				default:
+					partOK = false // unknown segment: fail closed
+				}
+			}
+			sawPart = true
+			all = all && partOK
+		}
+		if sawPart && all {
+			return true
+		}
+	}
+	return false
 }
 
 // ZoneFromString maps a Forge zone name to a state.Zone. Only the zones a
@@ -132,6 +249,8 @@ func ZoneFromString(s string) (state.Zone, bool) {
 		return state.ZLibrary, true
 	case "Battlefield":
 		return state.ZBattlefield, true
+	case "Command":
+		return state.ZCommand, true
 	}
 	return 0, false
 }
