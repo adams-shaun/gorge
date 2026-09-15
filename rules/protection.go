@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -101,7 +102,7 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 		return o.Zone == state.ZStack && o.Face() != nil
 	}
 	if strings.EqualFold(q, "Permanent.ThisTurnCast") {
-		return o.Zone == state.ZBattlefield && o.EnteredThisTurn
+		return o.Zone == state.ZBattlefield && e.permanentCastThisTurn(o.ID)
 	}
 	// Forge's remaining printed parameterised K:Protection qualities include
 	// mana-value bounds, counters and "coloured spells". They cannot be sent
@@ -206,4 +207,45 @@ func protecColourLetter(q string) rune {
 func init() {
 	effects.RegisterNonAPI("kw:Protection", "kw:Protection from white", "kw:Protection from blue",
 		"kw:Protection from black", "kw:Protection from red", "kw:Protection from green")
+}
+
+// permanentCastThisTurn reports whether the permanent id became a permanent by
+// resolving as a spell cast this turn (Forge's Permanent.ThisTurnCast, CR
+// 601.2). EnteredThisTurn is not enough: a token, a reanimated card or a
+// flickered permanent also entered this turn without being cast. The answer
+// is derived from the event log, like spellsCastThisTurn, so a replay agrees:
+// walking back to the last TurnChange, the object's most recent battlefield
+// entry must be its stack->battlefield resolution, and the most recent zone
+// event before that must be the PutOnStack a cast emits. A copy of a spell
+// (StackCopy) or an ability never emits a PutOnStack for its object, so it
+// does not qualify.
+func (e *Engine) permanentCastThisTurn(id state.ObjID) bool {
+	entered := false
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			return false
+		}
+		if ev.Obj != id {
+			continue
+		}
+		switch ev.Kind {
+		case events.PutOnStack:
+			return entered
+		case events.MoveZone, events.Draw:
+			if entered {
+				// Some other zone move sits between the resolution and the
+				// cast: the object reached the stack without being cast.
+				return false
+			}
+			if ev.To != state.ZBattlefield {
+				continue
+			}
+			if ev.From != state.ZStack {
+				return false
+			}
+			entered = true
+		}
+	}
+	return false
 }

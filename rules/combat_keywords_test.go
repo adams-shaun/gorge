@@ -360,22 +360,68 @@ func TestGoadDurationsUseRealJonAndVislorScripts(t *testing.T) {
 	}
 
 	vislor := onBoardCard(t, e, 0, corpusKeywordCard(t, "Vislor Turlough"))
+	// Vislor's chain donates itself (GainControl) before DBGoad resolves, so
+	// the goad is made by Vislor's original controller while the opponent
+	// controls it. The control transfer goes through the logged ControlChange
+	// event, never a direct Controller write.
+	e.emit(events.Event{Kind: events.ControlChange, Obj: vislor, Player: 1})
 	vislorGoad := cards.ResolveSVar(e.G.Obj(vislor).Face().SVars, "DBGoad")
 	effects.Resolve(e, &effects.Ctx{Source: vislor, Controller: 0, Targets: []state.Target{{Obj: victim}}}, vislorGoad)
-	if got := e.G.Obj(vislor).Goads; len(got) != 1 || got[0].Duration != "AsLongAsControl" || got[0].Source != vislor || got[0].Controller != 0 {
+	if got := e.G.Obj(vislor).Goads; len(got) != 1 || got[0].Duration != "AsLongAsControl" || got[0].Source != vislor || got[0].Controller != 1 || got[0].Player != 0 {
 		t.Fatalf("Vislor's conditional goad = %v", got)
 	}
-	// Goad records the source, duration, and controlled creature's controller
-	// in the event that Apply replays. There is not yet a gain-control event,
-	// so this ticket deliberately does not invent an unlogged control change
-	// to test the later pruning path.
 	found := false
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.Goad && ev.Obj == vislor {
-			found = ev.Player == 0 && ev.Text == "AsLongAsControl" && len(ev.IDs) == 1 && ev.IDs[0] == vislor && ev.Amount == 1
+			found = ev.Player == 0 && ev.Text == "AsLongAsControl" && len(ev.IDs) == 1 && ev.IDs[0] == vislor && ev.Amount == 2
 		}
 	}
 	if !found {
 		t.Fatal("Vislor's goad event did not preserve its conditional lifetime")
+	}
+	// "For as long as they control it": control returning ends the goad, and
+	// a later return to the same opponent does not revive it.
+	e.emit(events.Event{Kind: events.ControlChange, Obj: vislor, Player: 0})
+	if got := e.G.Obj(vislor).Goads; len(got) != 0 {
+		t.Fatalf("Vislor's goad survived losing control: %v", got)
+	}
+	e.emit(events.Event{Kind: events.ControlChange, Obj: vislor, Player: 1})
+	if got := e.G.Obj(vislor).Goads; len(got) != 0 {
+		t.Fatalf("Vislor's ended goad revived on a later control change: %v", got)
+	}
+}
+
+func TestProtectionThisTurnCastIgnoresUncastEntries(t *testing.T) {
+	e := combatEngine(t)
+	emrakul := onBoardCard(t, e, 0, corpusKeywordCard(t, "Emrakul, the World Anew"))
+	lib := e.G.Zone(state.ZLibrary, 1)
+	cast, reanimated, flickered := lib[0], lib[1], lib[2]
+
+	e.emit(events.Event{Kind: events.PutOnStack, Obj: cast, Player: 1, From: state.ZLibrary, To: state.ZStack})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: cast, From: state.ZStack, To: state.ZBattlefield})
+	if !e.protectedFrom(emrakul, cast) {
+		t.Fatal("a permanent cast this turn is not matched by Permanent.ThisTurnCast")
+	}
+
+	e.emit(events.Event{Kind: events.MoveZone, Obj: reanimated, From: state.ZLibrary, To: state.ZGraveyard})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: reanimated, From: state.ZGraveyard, To: state.ZBattlefield})
+	if o := e.G.Obj(reanimated); o.Zone != state.ZBattlefield || !o.EnteredThisTurn {
+		t.Fatalf("reanimated fixture zone=%s entered=%v", o.Zone, o.EnteredThisTurn)
+	}
+	if e.protectedFrom(emrakul, reanimated) {
+		t.Fatal("a permanent that entered this turn without being cast is protected against")
+	}
+
+	e.emit(events.Event{Kind: events.PutOnStack, Obj: flickered, Player: 1, From: state.ZLibrary, To: state.ZStack})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: flickered, From: state.ZStack, To: state.ZBattlefield})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: flickered, From: state.ZBattlefield, To: state.ZExile})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: flickered, From: state.ZExile, To: state.ZBattlefield})
+	if e.protectedFrom(emrakul, flickered) {
+		t.Fatal("a cast permanent flickered back as a new object is still treated as cast")
+	}
+
+	e.emit(events.Event{Kind: events.TurnChange, Player: 1, Amount: 1})
+	if e.protectedFrom(emrakul, cast) {
+		t.Fatal("a permanent cast last turn is still treated as cast this turn")
 	}
 }

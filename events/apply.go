@@ -42,6 +42,10 @@ func Apply(g *state.Game, e Event) {
 		if validPlayer(g, e.Player) {
 			if o := g.Obj(e.Obj); o != nil {
 				changeControl(g, o, e.Player)
+				// An AsLongAsControl goad ends the moment its controller
+				// condition fails; pruning here keeps a later return of
+				// control from reviving it.
+				pruneGoads(g)
 			}
 		}
 
