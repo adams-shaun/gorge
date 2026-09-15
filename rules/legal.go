@@ -93,9 +93,9 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 
 // abilityZoneOK reports whether ability ab may be activated while the
 // source cardinal is in zone z (CR 602.1b): the printed ActivationZone$
-// when present, the battlefield by default. Values other than Battlefield /
-// Graveyard (Hand, Command, Exile, Stack) are not enumerated by this
-// build's zone walk, so they simply never offer an option.
+// when present, the battlefield by default. Battlefield, Hand and Graveyard
+// are enumerated by the legal-action walks; other values (Command, Exile,
+// Stack) are not and therefore never offer an option.
 func abilityZoneOK(ab *cards.SA, z state.Zone) bool {
 	az, ok := ab.Params["ActivationZone"]
 	if !ok {
@@ -106,6 +106,8 @@ func abilityZoneOK(ab *cards.SA, z state.Zone) bool {
 		return z == state.ZBattlefield
 	case "Graveyard":
 		return z == state.ZGraveyard
+	case "Hand":
+		return z == state.ZHand
 	}
 	return false
 }
@@ -370,9 +372,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !instantSpeed && !sorcery {
 			continue
 		}
-		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
-			continue
-		}
+		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
 		// offerCostFor prices the MANA the offer will charge (601.2f
 		// modifiers, then the commander tax); withSpellAbilityExtras adds the
 		// spell's own ADDITIONAL non-mana parts on top. Both are needed and
@@ -390,10 +390,28 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		// condition: the kicked/surged/flashback/miracle offers below set
 		// Mode, and beginCast skips the fold for those.
 		base := e.offerCostFor(p, id, e.rawBaseCost(p, id), false)
-		if e.castable(p, id, withSpellAbilityExtras(f, base), false) {
-			add("cast", "Cast "+f.Name, id)
+		// An either-or additional cost (AlternateAdditionalCost) makes the
+		// plain cast's gate existential: the cast is offerable when AT LEAST
+		// ONE alternative part is payable (the choice itself is asked by the
+		// cast flow, altAddAsk), never when all of them are unpayable. Cards
+		// without the keyword keep the ordinary single-cost gate.
+		altParts := altAddCostParts(f)
+		if targetsAvailable {
+			if len(altParts) > 0 {
+				for _, part := range altParts {
+					if e.castable(p, id, withSpellAbilityExtras(f, base).Plus(ParseCost(part)), false) {
+						add("cast", "Cast "+f.Name, id)
+						break
+					}
+				}
+			} else if e.castable(p, id, withSpellAbilityExtras(f, base), false) {
+				add("cast", "Cast "+f.Name, id)
+			}
 		}
 		for i, alt := range e.alternativeCosts(p, id) {
+			if !targetsAvailable {
+				continue
+			}
 			// Ruling (Task 9 fix round 1, Important 1): this used to gate on
 			// mana-only alt.CanPay, but ParseCost now produces Sac/SubCounter/
 			// Tap parts that the cast flow enforces -- an AlternativeCost whose
@@ -411,13 +429,32 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 					Label: altCostLabel(f.Name, i), Obj: id, AltCostIndex: i + 1})
 			}
 		}
-		if kc, ok := kickerCost(f); ok && e.castable(p, id, base.Plus(kc), false) {
+		if kc, ok := kickerCost(f); ok && targetsAvailable && e.castable(p, id, base.Plus(kc), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (kicked)", Obj: id, Mode: "kicked"})
 		}
-		if sc, ok := surgeCost(f); ok && e.spellsCastThisTurn(p) > 0 && e.castable(p, id, e.offerCostFor(p, id, sc, false), false) {
+		if sc, ok := surgeCost(f); ok && targetsAvailable && e.spellsCastThisTurn(p) > 0 && e.castable(p, id, e.offerCostFor(p, id, sc, false), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (surged)", Obj: id, Mode: "surged"})
+		}
+		// The alternative-cost keyword family (altcosts), from the hand: evoke
+		// (CR 702), dash, overload and warp each become their own "cast" mode
+		// option paying the printed keyword cost in place of the mana cost.
+		// Madness does NOT offer from the hand here (CR 702.35a: the madness
+		// cast window opens only on the discard, through the pending-trigger
+		// machinery, exactly like Miracle); warp additionally offers from the
+		// graveyard and -- after an end-step exile -- from exile, in the walks
+		// below.
+		for _, ka := range [...]struct{ mode, head string }{
+			{"evoked", "Evoke"}, {"dashed", "Dash"}, {"overloaded", "Overload"}, {"warped", "Warp"},
+		} {
+			alt, ok := keywordAltCost(f, ka.head)
+			if !ok || (ka.mode != "overloaded" && !targetsAvailable) ||
+				!e.castable(p, id, e.offerCostFor(p, id, alt, false), false) {
+				continue
+			}
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode})
 		}
 	}
 
@@ -467,12 +504,25 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !instantSpeed && !sorcery {
 			continue
 		}
-		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
-			continue
-		}
+		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
 		cost := e.offerCostFor(p, id, e.rawBaseCost(p, id), false)
-		if e.castable(p, id, cost, false) {
+		if targetsAvailable && e.castable(p, id, cost, false) {
 			add("cast", "Cast "+f.Name, id)
+		}
+		// Alternative costs replace the printed mana cost but not additional
+		// costs such as commander tax (CR 118.9d, 903.8). Dash and the other
+		// cast alternatives therefore remain available from the command zone;
+		// offerCostFor applies the same tax beginCast later charges.
+		for _, ka := range [...]struct{ mode, head string }{
+			{"evoked", "Evoke"}, {"dashed", "Dash"}, {"overloaded", "Overload"},
+		} {
+			alt, ok := keywordAltCost(f, ka.head)
+			if !ok || (ka.mode != "overloaded" && !targetsAvailable) ||
+				!e.castable(p, id, e.offerCostFor(p, id, alt, false), false) {
+				continue
+			}
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode})
 		}
 	}
 
@@ -504,17 +554,76 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		}
 	}
 
-	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+	// Warp from the graveyard requires a separate MayPlay Spell.Warp static;
+	// Warp itself grants only the hand alternative. Timeline Culler is the
+	// corpus shape carrying that explicit graveyard permission.
+	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
 		f := o.Face()
 		if f == nil {
 			continue
 		}
-		// A mana ability with no tap cost (Lotus Petal) remains activatable
-		// while its source is tapped. availableManaAbilities applies each
-		// ability's actual cost, including its individual tap gate.
-		if len(e.availableManaAbilities(p, id)) > 0 {
-			add("activate", "Tap "+f.Name+" for mana", id)
+		wc, ok := keywordAltCost(f, "Warp")
+		if !ok || !warpGraveyardAllowed(f) || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
+		if !instantSpeed && !sorcery {
+			continue
+		}
+		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
+		if e.castable(p, id, e.offerCostFor(p, id, wc, false), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (warped)", Obj: id, Mode: "warped"})
+		}
+	}
+
+	// Warp recast from exile (CR 702: "exile this creature at the beginning
+	// of the next end step, then you may cast it from exile on a later
+	// turn"). The exile-zone walk offers the cast only to a warp card that
+	// the log shows was warp-cast and end-step-exiled, on a turn strictly
+	// after that exile -- the flag alone cannot say it (CastFlags reset when
+	// the permanent left the battlefield), but the log can. This later cast
+	// pays the normal mana cost and is not itself flagged warped.
+	for _, id := range e.G.Zone(state.ZExile, p) {
+		o := e.G.Obj(id)
+		f := o.Face()
+		if f == nil || o.IsToken {
+			continue
+		}
+		_, ok := keywordAltCost(f, "Warp")
+		if !ok || !e.warpRecastAvailable(id) || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
+		if !instantSpeed && !sorcery {
+			continue
+		}
+		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
+		normal := e.rawBaseCost(p, id)
+		if e.castable(p, id, e.offerCostFor(p, id, normal, false), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (from warp exile)", Obj: id, Mode: "warp_recast"})
+		}
+	}
+
+	// Mana abilities may explicitly function from the battlefield, hand or
+	// graveyard (Spirit Guides and Jack-o'-Lantern). availableManaAbilities
+	// applies each ability's ActivationZone and full cost gate.
+	for _, z := range []state.Zone{state.ZBattlefield, state.ZHand, state.ZGraveyard} {
+		for _, id := range e.G.Zone(z, p) {
+			o := e.G.Obj(id)
+			f := o.Face()
+			if f == nil {
+				continue
+			}
+			if len(e.availableManaAbilities(p, id)) > 0 {
+				add("activate", "Activate "+f.Name+" for mana", id)
+			}
 		}
 	}
 

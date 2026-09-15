@@ -96,6 +96,12 @@ type DelayedTrigger struct {
 	Controller PlayerID
 	Execute    string // the SVar name of the ability to run when it fires
 	Remembered []Target
+	// SourceIncarnation is captured for keyword promises whose effect applies
+	// to that exact permanent (dash/warp). Ordinary CR 603.7 delayed triggers,
+	// including Encore's group cleanup, intentionally leave TrackSource false:
+	// they exist independently of their source after registration.
+	SourceIncarnation uint32
+	TrackSource       bool
 }
 
 const startingLife = 20

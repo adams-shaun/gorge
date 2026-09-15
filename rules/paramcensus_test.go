@@ -137,9 +137,15 @@ var baseBuckets = map[string]bucket{
 	"sa": bSA, "ab": bSA, "sub": bSA, "cp": bSA, "copy": bSA,
 	"targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,
 	"head": bSA, "ma": bSA, "pt.SA": bSA,
-	// selector bases: r.With is cards.Repl's resolved With *cards.SA,
-	// rp.sa the resume plan's SA, o.Ability the stack object's resolved SA.
-	"r.With": bSA, "rp.sa": bSA, "o.Ability": bSA,
+	// selector bases: r.With and m.repl.With are cards.Repl's resolved
+	// With *cards.SA (the ReplaceWith$ body: a real SA parameter map, read
+	// as generic machinery), rp.sa the resume plan's SA, o.Ability the
+	// stack object's resolved SA.
+	"r.With": bSA, "m.repl.With": bSA, "rp.sa": bSA, "o.Ability": bSA,
+	// index bases: candidates/rc.cands are []replMatch (the phase-
+	// replacement pipeline and its parked-choice resume), so element .repl
+	// is the same cards.Repl pair the named bases read.
+	"candidates[i].repl": bRepl, "rc.cands[i].repl": bRepl,
 }
 
 // callSite records one package-local call with its string-literal arguments
@@ -372,14 +378,23 @@ func (s *scan) addKeyRead(fi *fnInfo, b bucket, param string) {
 }
 
 // exprText renders the base expression of a .Params selector for bucket
-// lookup: plain identifiers and one-level selector chains (m.repl, pt.SA).
+// lookup: plain identifiers and selector/index chains of any depth
+// (m.repl, pt.SA, m.repl.With, rc.cands[i].repl). An index expression
+// renders with a fixed "[i]" placeholder: the bucket depends on the ELEMENT
+// type (which slice it indexes), never on which element, so one table entry
+// covers every index. A chain whose head is not renderable (a call result,
+// a composite) renders "" and fails the rot guard.
 func exprText(e ast.Expr) string {
 	switch v := e.(type) {
 	case *ast.Ident:
 		return v.Name
 	case *ast.SelectorExpr:
-		if x, ok := v.X.(*ast.Ident); ok {
-			return x.Name + "." + v.Sel.Name
+		if x := exprText(v.X); x != "" {
+			return x + "." + v.Sel.Name
+		}
+	case *ast.IndexExpr:
+		if x := exprText(v.X); x != "" {
+			return x + "[i]"
 		}
 	}
 	return ""
@@ -1111,7 +1126,11 @@ var handRoots = struct {
 		"RaiseCost":  {"Engine.adjustedCost", "Engine.costModifiers"},
 		"ReduceCost": {"Engine.adjustedCost", "Engine.costModifiers"},
 		// staticEffects filters on st.Mode != "Continuous" before reading.
-		"Continuous": {"Engine.staticEffects"},
+		"Continuous": {"Engine.staticEffects", "warpGraveyardAllowed"},
+		// warpGraveyardAllowed scans Continuous MayPlay statics directly
+		// over the face's Statics slice (Timeline Culler's explicit
+		// graveyard-Warp permission), with no activeStatics call -- the
+		// same direct-scan shape mustAttackRequired has.
 		// mustAttackRequired scans MustAttack statics directly, with no
 		// activeStatics call; its Params reads are the whitelist switch.
 		"MustAttack": {"Engine.mustAttackRequired"},
@@ -1130,8 +1149,12 @@ var handRoots = struct {
 	// applyReplacements is the replacement pipeline's root beside
 	// replacementMatches, whose `r.Event != "Moved"` early return scopes every
 	// r.Params read in it to repl:Moved. collectETBChoices reads the
-	// ETBReplacement repl's Keyword$ at cast-offer time.
-	repl: []string{"Engine.applyReplacements", "Engine.collectETBChoices"},
+	// ETBReplacement repl's Keyword$ at cast-offer time. handleReplacement is
+	// the parked-repl-choice decision handler (it resumes the parked phase
+	// machinery and reads the parked repl's Optional$ directly), reached
+	// through the decision resume path rather than the pipeline.
+	repl: []string{"Engine.applyReplacements", "Engine.collectETBChoices",
+		"Engine.handleReplacement"},
 }
 
 // derivedReads is the per-primitive read set the scan attributes.
@@ -1766,14 +1789,13 @@ var knownUnsupportedParams = map[string][]string{
 	"Abbot of Keral Keep":         {"param:api:Cleanup.ClearRemembered", "param:api:Dig.RememberChanged", "param:api:Effect.ExileOnMoved"},
 	"Ad Nauseam":                  {"param:api:Cleanup.ClearRemembered", "param:api:Dig.RememberChanged", "param:api:Dig.Reveal", "param:api:Repeat.RepeatOptional"},
 	"Adaptive Automaton":          {"param:api:ChooseType.Type"},
-	"Aether Vial":                 {"param:api:ChangeZone.Optional"},
 	"Aftermath Analyst":           {"param:api:ChangeZoneAll.Tapped"},
 	"Ancient Stirrings":           {"param:api:Dig.ForceRevealToController"},
 	"Angelic Accord":              {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Angelic Overseer":            {"param:stat:Continuous.IsPresent"},
 	"Angelic Skirmisher":          {"param:api:Pump.KWChoice"},
 	"Army of the Damned":          {"param:api:Token.TokenTapped"},
-	"Assassin's Trophy":           {"param:api:ChangeZone.Optional", "param:api:ChangeZone.ShuffleNonMandatory"},
+	"Assassin's Trophy":           {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Auriok Steelshaper":          {"param:stat:Continuous.IsPresent", "param:stat:ReduceCost.ValidSpell"},
 	"Azusa, Lost but Seeking":     {"param:stat:Continuous.AdjustLandPlays"},
 	"Baloth Prime":                {"param:api:PutCounter.ETB", "param:api:Token.TokenTapped"},
@@ -1814,12 +1836,12 @@ var knownUnsupportedParams = map[string][]string{
 	"Fabled Passage":              {"param:api:Cleanup.ClearRemembered"},
 	"Flickerwisp":                 {"param:api:ChangeZone.Mandatory", "param:api:Cleanup.ClearRemembered", "param:api:DelayedTrigger.RememberObjects"},
 	"Forbidding Watchtower":       {"param:api:Animate.Colors", "param:api:Animate.OverwriteColors"},
-	"Force of Will":               {"cost:ExileFromHand", "param:api:Counter.Destination", "param:stat:AlternativeCost.EffectZone", "param:stat:AlternativeCost.ValidSA"},
-	"Foreboding Ruins":            {"cost:Reveal", "param:api:Tap.UnlessCost", "param:api:Tap.UnlessPayer"},
+	"Force of Will":               {"param:api:Counter.Destination", "param:stat:AlternativeCost.EffectZone", "param:stat:AlternativeCost.ValidSA"},
+	"Foreboding Ruins":            {"param:api:Tap.UnlessCost", "param:api:Tap.UnlessPayer"},
 	"Forked Bolt":                 {"param:api:DealDamage.DividedAsYouChoose"},
 	"Gamble":                      {"param:api:ChangeZone.Mandatory"},
 	"Ghalta, Primal Hunger":       {"param:stat:ReduceCost.EffectZone"},
-	"Ghost Quarter":               {"param:api:ChangeZone.Optional", "param:api:ChangeZone.ShuffleNonMandatory"},
+	"Ghost Quarter":               {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Ghoulcaller's Chant":         {"param:api:ChangeZone.Mandatory"},
 	"Giada, Font of Hope":         {"param:api:Mana.RestrictValid", "param:api:PutCounter.ETB"},
 	"Goblin Guide":                {"param:api:Dig.LibraryPosition2", "param:api:Dig.Reveal"},
@@ -1864,7 +1886,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Oracle of Mul Daya":          {"param:stat:Continuous.AdjustLandPlays", "param:stat:Continuous.MayLookAt"},
 	"Overseer of the Damned":      {"param:api:Token.TokenTapped"},
 	"Palace Jailer":               {"param:api:Effect.EffectOwner", "param:api:Effect.ForgetOnMoved"},
-	"Path to Exile":               {"param:api:ChangeZone.Optional", "param:api:ChangeZone.ShuffleNonMandatory"},
+	"Path to Exile":               {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Phyrexian Obliterator":       {"param:api:Sacrifice.Amount"},
 	"Planar Engineering":          {"param:api:Sacrifice.Amount"},
 	"Planetary Annihilation":      {"param:api:ChooseCard.Reveal"},
@@ -1930,7 +1952,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Walk-In Closet":              {"param:api:ChangeZone.Hidden", "param:api:Effect.ReplacementEffects"},
 	"Walking Ballista":            {"param:api:PutCounter.ETB"},
 	"Wastewood Verge":             {"param:api:Mana.IsPresent"},
-	"Whirler Rogue":               {"cost:tapXType", "param:api:Effect.ExileOnMoved"},
+	"Whirler Rogue":               {"param:api:Effect.ExileOnMoved"},
 	"Whisperer of the Wilds":      {"param:api:Mana.IsPresent"},
 	"Windgrace's Judgment":        {"param:api:Destroy.TargetsForEachPlayer"},
 	"World Shaper":                {"param:api:ChangeZoneAll.Tapped", "param:api:Mill.Optional"},
@@ -2067,20 +2089,25 @@ func TestParamCensusDetectsADeletedConsumer(t *testing.T) {
 }
 
 // TestParamCensusPinsTheImportReviewExamples pins the examples the task
-// brief was written from: Force of Will's ExileFromHand<1/Card.Blue+Other>
-// and Daze's Return<1/Island> alternative costs (ParseCost silently
-// substituting generic mana), Chandra's SubCounter<X/LOYALTY> and Whirler
-// Rogue's tapXType<2/Artifact> activation costs. (The brief's other
-// example, Reanimate's GainControl$ on api:ChangeZone, is not in any repo
-// deck; the same label appears in the baseline on Meathook Massacre II and
-// retires the moment the read is implemented.)
+// brief was written from: Daze's Return<1/Island> alternative cost (ParseCost
+// silently substituting generic mana), Chandra's SubCounter<X/LOYALTY>, plus
+// Relic of Progenitus's bare Exile<1/Card.YouOwn> and Vexing Devil's
+// DamageYou<1> -- still unmodelled heads. Force of Will's
+// ExileFromHand<1/Card.Blue+Other> and Whirler Rogue's tapXType<2/Artifact>
+// were in the original pin but the alternative-cost work on main
+// (ExileFromHand/ExileFromGrave/Reveal/Behold/tapXType/Blight/Forage heads in
+// ParseCost) now models them, so the pin also asserts they are GONE --
+// cost: labels only ever shrink when a real ParseCost model lands.
+// (The brief's other example, Reanimate's GainControl$ on api:ChangeZone, is
+// not in any repo deck; the same label appears in the baseline on Meathook
+// Massacre II and retires the moment the read is implemented.)
 func TestParamCensusPinsTheImportReviewExamples(t *testing.T) {
 	res, _ := measureParamCensus(t, nil)
 	want := map[string]string{
-		"Force of Will":             "cost:ExileFromHand",
+		"Relic of Progenitus":       "cost:Exile",
 		"Daze":                      "cost:Return",
 		"Chandra, Awakened Inferno": "cost:SubCounter",
-		"Whirler Rogue":             "cost:tapXType",
+		"Vexing Devil":              "cost:DamageYou",
 	}
 	for card, label := range want {
 		found := false
@@ -2092,6 +2119,19 @@ func TestParamCensusPinsTheImportReviewExamples(t *testing.T) {
 		}
 		if !found {
 			t.Errorf("%s: expected %s in the census (labels %v) -- the gap was fixed or the census went blind", card, label, res.labels[card])
+		}
+	}
+	// The two original cost examples retired with main's alternative-cost
+	// ParseCost heads; assert the shrink so a regression that reintroduces
+	// the silent substitution fails here.
+	for card, label := range map[string]string{
+		"Force of Will": "cost:ExileFromHand",
+		"Whirler Rogue": "cost:tapXType",
+	} {
+		for _, l := range res.labels[card] {
+			if l == label {
+				t.Errorf("%s: %s is back in the census -- ParseCost stopped modelling the token", card, label)
+			}
 		}
 	}
 }
@@ -2268,7 +2308,7 @@ func TestParamCensusCatchesFaceOwnedCosts(t *testing.T) {
 	}}
 	want := []string{
 		"cost:PayEnergy", "cost:Return", "cost:PaySurge",
-		"cost:ExileFromGrave", "cost:PayMiracle",
+		"cost:PayMiracle",
 	}
 	d := &derivedReads{api: map[string]map[string]bool{}, trig: map[string]map[string]bool{}, stat: map[string]map[string]bool{}, repl: map[string]map[string]bool{}}
 	if got := cardCensusLabels(c, d, nil); !sameSet(got, want) {

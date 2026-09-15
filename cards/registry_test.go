@@ -13,7 +13,7 @@ func fixtureRegistry(t *testing.T) *Registry {
 	for _, src := range []string{
 		"Name:Lightning Bolt\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3\nOracle:x\n",
 		"Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n",
-		"Name:Delver of Secrets\nManaCost:U\nTypes:Creature Human Wizard\nPT:1/1\nOracle:x\nALTERNATE\nName:Insectile Aberration\nTypes:Creature Human Insect\nPT:3/2\nK:Flying\nOracle:x\n",
+		"Name:Delver of Secrets\nManaCost:U\nTypes:Creature Human Wizard\nPT:1/1\nOracle:x\nAlternateMode:DoubleFaced\nALTERNATE\nName:Insectile Aberration\nTypes:Creature Human Insect\nPT:3/2\nK:Flying\nOracle:x\n",
 	} {
 		c, _ := ParseBytes("fixture.txt", []byte(src))
 		c.Link()
@@ -52,6 +52,10 @@ func TestRegistryCacheRoundTrip(t *testing.T) {
 	}
 	if len(back.Cards) != len(r.Cards) {
 		t.Fatalf("cards = %d, want %d", len(back.Cards), len(r.Cards))
+	}
+	delver, ok := back.Lookup("Delver of Secrets")
+	if !ok || delver.AlternateMode != "DoubleFaced" {
+		t.Fatalf("Delver AlternateMode = %q, want DoubleFaced", delver.AlternateMode)
 	}
 	// Structure must survive, not just names: the sub-ability tree and the
 	// intrinsic mana ability are what the engine actually consumes.

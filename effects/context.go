@@ -19,20 +19,13 @@ import (
 // out := s[:0]; for range append(out, ...) idiom) must not be able to corrupt
 // state a later effect in the same Sub chain still relies on.
 func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
-	g := h.Game()
-	// Defined$ ValidStack <spec>: every stack object matching the spec. It is
-	// a prefix, not a whole-value case, because the spec rides in the same
-	// parameter after one space ("ValidStack Spell.OppCtrl,...").
-	if spec, ok := strings.CutPrefix(sa.Params["Defined"], "ValidStack"); ok {
-		return validStackTargets(g, strings.TrimSpace(spec), c)
-	}
-	if ts, ok := definedSpec(h, c, sa.Params["Defined"]); ok {
+	if ts, ok := knownDefinedTargets(h, c, sa.Params["Defined"]); ok {
 		return ts
 	}
-	// Forge joins independent Defined selectors with " & " to name all of
-	// them (Karazikar's "TriggeredAttackingPlayer & You" is the corpus
-	// example), not their set intersection. Resolve each known selector in
-	// script order so player effects act on both players deterministically.
+	// Keep Defined's historical per-member fallback for a mixed known/unknown
+	// expression. knownDefinedTargets is deliberately stricter for callers
+	// that need a fail-closed fetch-list classification, not a new public
+	// contract for ordinary effects.
 	if strings.Contains(sa.Params["Defined"], " & ") {
 		var out []state.Target
 		for _, part := range strings.Split(sa.Params["Defined"], " & ") {
@@ -54,6 +47,38 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		return copyTargets(c.Targets)
 	}
 	return []state.Target{{Obj: c.Source}}
+}
+
+// knownDefinedTargets resolves a Defined$ form only when every selector in it
+// is modelled. Unlike Defined, it never falls back to the source or chosen
+// targets: callers such as a hidden-library ChangeZone need to distinguish an
+// actual object fetch list from an unrecognised selector. Forge's " & " joins
+// independent selectors, not their intersection, so known members are joined
+// in script order. One unknown member makes the whole expression unknown --
+// the fail-closed direction.
+func knownDefinedTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
+	g := h.Game()
+	// Defined$ ValidStack <spec>: every stack object matching the spec. It is
+	// a prefix, not a whole-value case, because the spec rides in the same
+	// parameter after one space ("ValidStack Spell.OppCtrl,...").
+	if stackSpec, ok := strings.CutPrefix(spec, "ValidStack"); ok {
+		return validStackTargets(g, strings.TrimSpace(stackSpec), c), true
+	}
+	if ts, ok := definedSpec(h, c, spec); ok {
+		return ts, true
+	}
+	if !strings.Contains(spec, " & ") {
+		return nil, false
+	}
+	var out []state.Target
+	for _, part := range strings.Split(spec, " & ") {
+		ts, ok := knownDefinedTargets(h, c, strings.TrimSpace(part))
+		if !ok {
+			return nil, false
+		}
+		out = append(out, ts...)
+	}
+	return out, true
 }
 
 // definedSpec resolves one RECOGNISED Defined$ value. The bool distinguishes
@@ -78,6 +103,19 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return []state.Target{{Obj: c.Source}}, true
 	case "You":
 		return []state.Target{{Player: c.Controller, IsPlayer: true}}, true
+	case "TopOfLibrary", "BottomOfLibrary":
+		// Library order is top-first. These selectors name one known card, not
+		// a player whose whole library should be searched; hidden-origin
+		// ChangeZone therefore consumes the returned identity as its fetch list.
+		lib := g.Zone(state.ZLibrary, c.Controller)
+		if len(lib) == 0 {
+			return nil, true
+		}
+		i := 0
+		if spec == "BottomOfLibrary" {
+			i = len(lib) - 1
+		}
+		return []state.Target{{Obj: lib[i]}}, true
 	case "Remembered":
 		return copyTargets(c.Remembered), true
 	case "ChosenCard", "ChosenPlayer":

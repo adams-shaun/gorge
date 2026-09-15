@@ -21,10 +21,24 @@ import (
 // are safe for concurrent use" was asserted in comments but never
 // demonstrated by a test. Here several goroutines hit GET .../view (no
 // seq, so it resolves to whatever the current head is) and GET
-// .../events?since=0 concurrently, throughout a real, un-paced, running
-// match, and the match must still finish cleanly underneath them.
+// .../events?since=0 concurrently, while the match goroutine is mid-game
+// and running, and the match must still finish cleanly underneath them.
+//
+// The match is paced with the same Sleep-gate pattern pausedServer uses
+// (sse_test): the shared loader now serves short fixture decks (see
+// fixtureDeckSize -- the CR 103.1 toss shift made un-paced fixture matches
+// cost seconds), so without a gate the whole match would finish between
+// two scheduler slices and the reads would race a FINISHED match, not a
+// live one. The gate holds the match loop at its first decision while the
+// 50 concurrent reads run against the live registry; closing the gate
+// releases the loop and the match finishes underneath nothing. No sleep:
+// the reads start only when the registry itself reports a live match, and
+// the test ends when the registry reports a clean finish.
 func TestConcurrentRESTReadsAgainstALiveMatch(t *testing.T) {
-	r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration, <-chan struct{}) {}})
+	gate := make(chan struct{})
+	r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration, <-chan struct{}) {
+		<-gate
+	}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,6 +110,8 @@ func TestConcurrentRESTReadsAgainstALiveMatch(t *testing.T) {
 		t.Error(e)
 	}
 
+	// Release the match loop; the match must still finish cleanly.
+	close(gate)
 	r.Wait("t1")
 	ms, err := r.Matches("t1")
 	if err != nil || len(ms) != 1 || ms[0].State != protocol.MatchFinished {

@@ -174,9 +174,9 @@ func TestConditionGatePresentWithoutDefinedResolvesBattlefield(t *testing.T) {
 	}
 
 	// Out of scope: an unknown predicate in Present fails closed (would count
-	// a false zero). (ExiledWithSource is a KNOWN predicate since the
-	// damage-provenance work registered it, so use a still-unknown one.)
-	unknown := sa(t, "DB$ Pump | ConditionPresent$ Card.IsRemembered")
+	// a false zero). IsRemembered is resolution-local and implemented; use
+	// IsImprinted, which remains unknown here.
+	unknown := sa(t, "DB$ Pump | ConditionPresent$ Card.IsImprinted")
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0, Source: 4}, unknown); resolved {
 		t.Fatal("an unknown predicate in Present resolved — would count a false zero")
 	}

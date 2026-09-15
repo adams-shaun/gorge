@@ -54,6 +54,7 @@ K:Flying
 T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDraw
 SVar:TrigDraw:DB$ Draw | NumCards$ 1
 Oracle:Flying
+AlternateMode:DoubleFaced
 ALTERNATE
 Name:Back Face
 Types:Creature Horror
@@ -71,6 +72,9 @@ func TestParseMultiFaceAndLineKinds(t *testing.T) {
 		t.Fatalf("faces = %d, want 2", len(c.Faces))
 	}
 	front, back := c.Faces[0], c.Faces[1]
+	if c.AlternateMode != "DoubleFaced" {
+		t.Errorf("AlternateMode = %q, want DoubleFaced", c.AlternateMode)
+	}
 	if front.PT != "1/1" || back.PT != "3/2" {
 		t.Errorf("PT front=%q back=%q", front.PT, back.PT)
 	}

@@ -101,6 +101,14 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// and the answer resumes this same effect before its SubAbility runs.
 		// Other origins keep the existing public-zone/object path below.
 		if len(originZones) == 1 && originZones[0] == state.ZLibrary && !originAll {
+			// Forge treats a Defined$ that resolves to objects in a hidden
+			// library as the already-selected fetch list, not as the owner of a
+			// fresh whole-library search. This is structural rather than keyed to
+			// Remembered: ChosenCard, TopOfLibrary once resolved, and future
+			// object-valued Defined selectors share the same dispatcher.
+			if moveDefinedLibraryObjects(h, c, sa, to) {
+				return
+			}
 			effSearchLibrary(h, c, sa, to)
 			return
 		}
@@ -312,15 +320,22 @@ func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
 			Kind: "hand_move", Label: name, Obj: id, Player: c.Controller})
 	}
-	if h.Ask(d) {
+	// The shared ask boundary (effects.Ask): a ChangeNum$ 0 pick over a
+	// nonempty eligible hand is Min == Max == 0 -- the empty-answer-only
+	// shape -- so it is never posted; AskEmpty resolves silently through the
+	// stand-in below, which moves zero cards.
+	oc := Ask(h, d)
+	if oc == AskAsked {
 		return // resolution suspended; the answer re-enters with Ctx.HandMove set.
 	}
 	// R-9: a host without a decision channel cannot ask a player, so it
 	// supplies the deterministic answer in the player's place -- the first
 	// ChangeNum eligible cards in the same ordered eligible list the
 	// decision's options were built from.
-	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-		Text: "moves the first matching card(s) from hand (no engine host to ask)"})
+	if oc == AskNoHost {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "moves the first matching card(s) from hand (no engine host to ask)"})
+	}
 	for i := int32(0); i < n && i < int32(len(eligible)); i++ {
 		settleHandMove(eligible[i])
 	}
@@ -423,6 +438,17 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	if !SearchStatesQuality(spec) {
 		min = max
 	}
+	// An empty choice is not a choice: asking it suspends a real engine host
+	// until it submits an empty answer, even though no answer can differ.
+	// Complete the fail-to-find directly (including its required shuffle).
+	if min == 0 && max == 0 {
+		// A submitted search answer resumes in a fresh Ctx, so remembered
+		// objects do not leak into its SubAbility chain. Preserve that existing
+		// continuation contract while omitting the otherwise meaningless ask.
+		c.Remembered = nil
+		applyLibrarySearch(h, c, sa, owner, to, nil)
+		return
+	}
 	// The prompt must not offer a choice the decision will refuse. A
 	// quantity-only search has Min == Max, so "up to" would be a lie the
 	// player only discovers when their answer is rejected.
@@ -435,7 +461,12 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
 		Min: int(min), Max: int(max), Source: c.Source,
 		ResumeKind: "search", ResumeSA: sa,
-		Prompt: prompt}
+		// A nested hidden search resumes in the same resolution, not from a
+		// blank spell context. The fetch list built by a preceding search is
+		// therefore available to Card.IsRemembered and Defined$ Remembered in
+		// the rest of this chain.
+		ResumeRemembered: append([]state.Target(nil), c.Remembered...),
+		Prompt:           prompt}
 	for _, id := range eligible {
 		name := "a card"
 		if o := g.Obj(id); o != nil && o.Face() != nil {
@@ -444,7 +475,15 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
 			Kind: "search", Label: name, Obj: id, Player: owner})
 	}
-	if h.Ask(d) {
+	// The shared ask boundary (effects.Ask) refuses to post a decision whose
+	// only legal answer is the empty one -- with zero eligible cards max
+	// clamps to 0 and a stated-quality search's Min is already 0, so that is
+	// exactly the Squadron Hawk fail-to-find shape that used to soft-lock the
+	// game. AskEmpty resolves it silently through the stand-in below: the
+	// search still shuffles, and a fail-to-find is legitimate under
+	// CR 701.23b, so nothing is degraded and no R-9 Note is recorded.
+	oc := Ask(h, d)
+	if oc == AskAsked {
 		return
 	}
 	// R-9: a host without a decision channel cannot ask a player, so it
@@ -456,7 +495,9 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	// (701.23d's "as many as possible"). For a stated-quality search
 	// (CR 701.23b) finding nothing is a legitimate fail-to-find, so the
 	// stand-in still finds nothing, exactly as before. Either way the
-	// search's unconditional shuffle still happens.
+	// search's unconditional shuffle still happens. An AskEmpty run takes
+	// the same stand-in silently (no Note): skipping the ask is the correct
+	// resolution, not a degradation.
 	var picked []state.ObjID
 	if !SearchStatesQuality(spec) {
 		n := int(min)
@@ -466,13 +507,157 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		if n > 0 {
 			picked = append(picked, eligible[:n]...)
 		}
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
-			Text: "finds " + strconv.Itoa(n) + " card(s) (no engine host to ask)"})
-	} else {
+		if oc == AskNoHost {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
+				Text: "finds " + strconv.Itoa(n) + " card(s) (no engine host to ask)"})
+		}
+	} else if oc == AskNoHost {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
 			Text: "finds no card (no engine host to ask)"})
 	}
 	applyLibrarySearch(h, c, sa, owner, to, picked)
+}
+
+// libraryFetch is one owner and the direct-library objects moved for them.
+// The slice stays in Defined$ order; a map would make emitted move/shuffle
+// events nondeterministic.
+type libraryFetch struct {
+	owner state.PlayerID
+	ids   []state.ObjID
+}
+
+// moveDefinedLibraryObjects implements Forge's hidden-origin Defined$ fetch
+// list. When Defined$ resolves to object(s), those identities are the list to
+// move; they do NOT select a library owner for a new search. As with the
+// ordinary object path, ChangeType$ does not re-filter an already named
+// object. This covers Remembered, ChosenCard, TopOfLibrary, BottomOfLibrary,
+// and every future object-valued Defined selector through the same dispatch.
+//
+// Object selectors from Hand and Graveyard already use effChangeZone's normal
+// object path. Library is the exceptional origin because it otherwise enters
+// effSearchLibrary. A Defined$ yielding only player targets still belongs to
+// the search-owner path below. Each touched owner is shuffled once, even when
+// another sub-effect already moved every fetched object: Nissa's Pilgrimage's
+// final fetch-list step is the script's shuffle point after its chosen Forest
+// entered the battlefield.
+//
+// Optional$ True is a choice over the whole known fetch list, not permission
+// to silently move it. Kenessos's DBBottom is the corpus example: after its
+// player declines to put the revealed card onto the battlefield, they may put
+// that card on the bottom. The yes/no decision suspends before either a move
+// or a shuffle; its answer is scoped in Ctx so a nested optional fetch cannot
+// inherit it. A no-host run keeps the previous deterministic mover (yes), the
+// R-9 fallback used by the other optional mid-resolution effects.
+//
+// An unrecognised Defined$ selector is a fail-closed no-op here. In
+// particular it must not pass through Defined's public source fallback: that
+// fallback would make an unknown selector look like an object fetch list and
+// silently consume the hidden-origin effect. A resolved player target takes
+// the ordinary search-owner path below, regardless of which selector yielded
+// it; the target kind, not a closed spelling list, defines the role.
+func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool {
+	if strings.TrimSpace(sa.Params["Defined"]) == "" {
+		return false
+	}
+	if _, owner := sa.Params["DefinedPlayer"]; owner {
+		return false
+	}
+	g := h.Game()
+	targets, known := knownDefinedTargets(h, c, sa.Params["Defined"])
+	if !known {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unrecognised Defined library fetch " + sa.Params["Defined"]})
+		return true
+	}
+	var fetches []libraryFetch
+	objectList := false
+	playerList := false
+	addOwner := func(p state.PlayerID) int {
+		for i := range fetches {
+			if fetches[i].owner == p {
+				return i
+			}
+		}
+		fetches = append(fetches, libraryFetch{owner: p})
+		return len(fetches) - 1
+	}
+	for _, t := range targets {
+		if t.IsPlayer {
+			playerList = true
+			continue
+		}
+		objectList = true
+		o := g.Obj(t.Obj)
+		if o == nil || int(o.Owner) >= len(g.Players) {
+			continue
+		}
+		i := addOwner(o.Owner)
+		if o.Zone == state.ZLibrary {
+			fetches[i].ids = append(fetches[i].ids, o.ID)
+		}
+	}
+	if !objectList {
+		// A resolved player list identifies whose library to search. Deriving
+		// that role from the resolved target kind covers every selector with a
+		// player binding (Remembered, Targeted, ChosenPlayer, and future ones),
+		// instead of losing an unlisted spelling to a direct-fetch no-op. An
+		// empty object fetch (an empty Remembered/ChosenCard list or an empty
+		// library's TopOfLibrary) is still a direct fetch and must not degrade
+		// to a fresh whole-library search.
+		return !playerList
+	}
+
+	optional := strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True")
+	answer := c.DefinedLibraryMove
+	c.DefinedLibraryMove = "" // fx42 scoping: a nested fetch asks for itself.
+	if optional && answer == "" {
+		prompt := strings.TrimSpace(sa.Params["OptionalPrompt"])
+		if prompt == "" {
+			prompt = "Move the selected card(s)?"
+		}
+		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+			Source: c.Source, ResumeKind: "defined_library_optional", ResumeSA: sa,
+			ResumeRemembered: append([]state.Target(nil), c.Remembered...), Prompt: prompt,
+			Options: []decision.Option{
+				{Index: 0, Kind: "yes", Label: "Yes", Player: c.Controller},
+				{Index: 1, Kind: "no", Label: "No", Player: c.Controller},
+			}}
+		if Ask(h, d) == AskAsked {
+			return true
+		}
+		// AskNoHost cannot represent a decline. Preserve the prior direct-move
+		// fallback rather than leaving a headless resolution suspended.
+		answer = "yes"
+	}
+	if optional && answer == "no" {
+		return true
+	}
+
+	withKind := sa.Params["WithCountersType"]
+	var withAmt int32
+	if to == state.ZBattlefield && withKind != "" {
+		withAmt = withCounterAmount(h, c, sa)
+	}
+	for i := range fetches {
+		f := &fetches[i]
+		moved := make([]state.ObjID, 0, len(f.ids))
+		for _, id := range f.ids {
+			o := g.Obj(id)
+			// Recheck at the point of movement: a malformed or stale Defined$
+			// target must not move an object from a new zone.
+			if o == nil || o.Zone != state.ZLibrary || o.Owner != f.owner {
+				continue
+			}
+			settleChangeZoneMove(h, c, sa, id, state.ZLibrary, to, withKind, withAmt)
+			moved = append(moved, id)
+			if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
+				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: f.owner, Text: "entered tapped"})
+			}
+		}
+		shuffleLibrary(h, sa, f.owner)
+		placeLibraryObjects(h, sa, f.owner, moved, to)
+	}
+	return true
 }
 
 // searchPlayers resolves whose library is searched. DefinedPlayer$ takes
@@ -567,20 +752,28 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		}
 	}
 
-	shuffle := !strings.EqualFold(sa.Params["NoShuffle"], "True") &&
-		!strings.EqualFold(sa.Params["Shuffle"], "False")
-	if shuffle {
-		order := append([]state.ObjID(nil), g.Zone(state.ZLibrary, owner)...)
-		for i := len(order) - 1; i > 0; i-- {
-			j := h.Rand(i + 1)
-			order[i], order[j] = order[j], order[i]
-		}
-		h.Emit(events.Event{Kind: events.Shuffle, Player: owner, IDs: order, Secret: true})
-	}
+	shuffleLibrary(h, sa, owner)
+	placeLibraryObjects(h, sa, owner, moved, to)
+}
 
-	// "Shuffle, then put that card on top" tutors need the placement after
-	// the randomisation. MoveZone library->library first records the selected
-	// cards in answer order; this one LibraryOrder makes position 0/-1 exact.
+// shuffleLibrary is shared by an ordinary hidden search and an already-known
+// Defined$ fetch list. Forge's NoShuffle$/Shuffle$ controls apply to both;
+// the default is a shuffle.
+func shuffleLibrary(h Host, sa *cards.SA, owner state.PlayerID) {
+	if strings.EqualFold(sa.Params["NoShuffle"], "True") || strings.EqualFold(sa.Params["Shuffle"], "False") {
+		return
+	}
+	order := append([]state.ObjID(nil), h.Game().Zone(state.ZLibrary, owner)...)
+	for i := len(order) - 1; i > 0; i-- {
+		j := h.Rand(i + 1)
+		order[i], order[j] = order[j], order[i]
+	}
+	h.Emit(events.Event{Kind: events.Shuffle, Player: owner, IDs: order, Secret: true})
+}
+
+// placeLibraryObjects implements LibraryPosition$ after its source library
+// was shuffled. It is shared by a searched subset and a Defined$ fetch list.
+func placeLibraryObjects(h Host, sa *cards.SA, owner state.PlayerID, moved []state.ObjID, to state.Zone) {
 	position := strings.TrimSpace(sa.Params["LibraryPosition"])
 	if to != state.ZLibrary || len(moved) == 0 || (position != "0" && position != "-1") {
 		return
@@ -589,7 +782,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	for _, id := range moved {
 		selected[id] = true
 	}
-	lib := g.Zone(state.ZLibrary, owner)
+	lib := h.Game().Zone(state.ZLibrary, owner)
 	rest := make([]state.ObjID, 0, len(lib)-len(moved))
 	placed := make([]state.ObjID, 0, len(moved))
 	for _, id := range moved {

@@ -18,6 +18,10 @@ import (
 type CostPart struct {
 	N    int32
 	Spec string
+	// Zone is the zone an Exile cost part pays from: ZHand for an
+	// ExileFromHand token (the default zero value) or ZGraveyard for an
+	// ExileFromGrave token. Sac/Discard/SubCounter parts never read it.
+	Zone state.Zone
 }
 
 // ManaPair is one two-colour hybrid symbol: both A and B are WUBRG letters,
@@ -27,11 +31,13 @@ type ManaPair struct{ A, B byte }
 // Cost is a parsed cost. X counts how many "X" symbols appeared (almost
 // always 0 or 1; WithX folds a chosen value into Generic once per symbol).
 // Life, Tap, Sac, Discard and SubCounter are non-mana components a cast or
-// activation must satisfy separately from mana payment; AddCounter<N/LOYALTY>
-// is a free non-mana component (a planeswalker's [+N] loyalty gain) settled
-// beside SubCounter by the ability branch in rules/cast.go. Life is paid through
-// payMana's LifeChange event; Tap, Sac, Discard and SubCounter are settled by
-// the cast-flow stages in rules/cast.go. Pay and CanPay remain pool-only helpers.
+// activation must satisfy separately from mana payment; Exile<N/Spec> (from
+// ExileFromHand/ExileFromGrave tokens) exiles matching cards as the payment;
+// AddCounter<N/LOYALTY> is a free non-mana component (a planeswalker's [+N]
+// loyalty gain) settled beside SubCounter by the ability branch in
+// rules/cast.go. Life is paid through payMana's LifeChange event; Tap, Sac,
+// Discard, SubCounter and Exile are settled by the cast-flow stages in
+// rules/cast.go. Pay and CanPay remain pool-only helpers.
 //
 // Hybrid and Phyrexian symbols are no longer flattened to generic. A hybrid
 // pip (GW) is recorded in Hybrid as the pair of colours it accepts; a
@@ -43,17 +49,23 @@ type ManaPair struct{ A, B byte }
 // it; rule/cast.go's payment stage resolves the announced choice and spends
 // against both the pool and the payer's life (see Cost.payable).
 type Cost struct {
-	Colored    state.Mana
-	Generic    int32
-	Life       int32
-	X          int
-	Hybrid     []ManaPair
-	Phyrexian  []byte
-	Tap        bool
-	Sac        []CostPart
-	Discard    []CostPart
-	SubCounter []CostPart
-	AddCounter []CostPart
+	Colored      state.Mana
+	Generic      int32
+	Life         int32
+	X            int
+	Hybrid       []ManaPair
+	Phyrexian    []byte
+	Tap          bool
+	Sac          []CostPart
+	Discard      []CostPart
+	SubCounter   []CostPart
+	AddCounter   []CostPart
+	Exile        []CostPart
+	Reveal       []CostPart
+	Behold       []CostPart
+	TapPermanent []CostPart
+	Blight       []CostPart
+	Forage       bool
 
 	// Unknown lists the HEAD (the text before any "<...>") of every cost
 	// token this parse did not model, in order of appearance, deduplicated.
@@ -81,6 +93,16 @@ type Cost struct {
 // (MatchesSpec's own separator) at the parse site. Ruling FL-54.
 var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter|Discard)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
+// exileCost matches Forge's ExileFromHand<N/Spec> and ExileFromGrave<N/Spec>
+// tokens -- exiling a matching card from the named zone as a cost payment
+// (CR 118.8 lists exiling a card from one's hand among the payment actions;
+// the graveyard form is the encore family's "exile this card from your
+// graveyard"). As with the other non-mana tokens the trailing
+// "/description" is dropped here and ";" alternations fold to ",".
+// ExileFromHand evoke costs (the MH3 evoke family: Fury, Grief, ...) and the
+// AlternateAdditionalCost ExileFromGrave line are the corpus users.
+var exileCost = regexp.MustCompile(`^ExileFrom(Hand|Grave)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+
 // addCounterCost matches Forge's AddCounter<N/LOYALTY> token -- the
 // planeswalker loyalty cost, and deliberately ONLY it (CR 107.4: the [+N]
 // symbol): adding loyalty counters is not a payment at all, so an AddCounter
@@ -99,6 +121,9 @@ var addCounterCost = regexp.MustCompile(`^AddCounter<(\d+)/(LOYALTY)(?:/[^>]*)?>
 // has no source from which to resolve their value.
 var lifeCost = regexp.MustCompile(`^PayLife<(\d+)>$`)
 
+var choiceCost = regexp.MustCompile(`^(Reveal|Behold|tapXType)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+var blightCost = regexp.MustCompile(`^Blight<(\d+)>$`)
+
 // ParseCost accepts both Forge's space-separated form ("2 U U") and the
 // bracketed oracle form ("{2}{U}{U}"). "no cost" and "" are free.
 func ParseCost(s string) Cost {
@@ -114,6 +139,8 @@ func ParseCost(s string) Cost {
 			c.Tap = true
 		case sym == "X":
 			c.X++
+		case sym == "Forage":
+			c.Forage = true
 		case len(sym) == 1 && strings.ContainsAny(sym, "WUBRGC"):
 			c.Colored[state.ManaIndex(sym[0])]++
 		case isHybrid(sym):
@@ -121,6 +148,40 @@ func ParseCost(s string) Cost {
 		case isPhyrexian(sym):
 			c.Phyrexian = append(c.Phyrexian, phyrexianColor(sym))
 		default:
+			if m := choiceCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[2], 10, 64)
+				if err != nil || n <= 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				part := CostPart{N: int32(n), Spec: strings.ReplaceAll(m[3], ";", ",")}
+				switch m[1] {
+				case "Reveal":
+					c.Reveal = append(c.Reveal, part)
+				case "Behold":
+					c.Behold = append(c.Behold, part)
+				default:
+					c.TapPermanent = append(c.TapPermanent, part)
+				}
+				continue
+			}
+			if m := blightCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n <= 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				c.Blight = append(c.Blight, CostPart{N: int32(n), Spec: "Creature.YouCtrl"})
+				continue
+			}
 			if m := lifeCost.FindStringSubmatch(sym); m != nil {
 				n, err := strconv.ParseInt(m[1], 10, 64)
 				if err != nil || n < 0 || n > int64(math.MaxInt32) {
@@ -157,6 +218,24 @@ func ParseCost(s string) Cost {
 				default:
 					c.SubCounter = append(c.SubCounter, part)
 				}
+				continue
+			}
+			if m := exileCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[2], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				spec := strings.ReplaceAll(m[3], ";", ",")
+				part := CostPart{N: int32(n), Spec: spec}
+				if m[1] == "Grave" {
+					part.Zone = state.ZGraveyard
+				}
+				c.Exile = append(c.Exile, part)
 				continue
 			}
 			if m := addCounterCost.FindStringSubmatch(sym); m != nil {
@@ -337,6 +416,22 @@ func (c Cost) Plus(d Cost) Cost {
 	if len(d.AddCounter) > 0 {
 		c.AddCounter = append(append([]CostPart(nil), c.AddCounter...), d.AddCounter...)
 	}
+	if len(d.Exile) > 0 {
+		c.Exile = append(append([]CostPart(nil), c.Exile...), d.Exile...)
+	}
+	if len(d.Reveal) > 0 {
+		c.Reveal = append(append([]CostPart(nil), c.Reveal...), d.Reveal...)
+	}
+	if len(d.Behold) > 0 {
+		c.Behold = append(append([]CostPart(nil), c.Behold...), d.Behold...)
+	}
+	if len(d.TapPermanent) > 0 {
+		c.TapPermanent = append(append([]CostPart(nil), c.TapPermanent...), d.TapPermanent...)
+	}
+	if len(d.Blight) > 0 {
+		c.Blight = append(append([]CostPart(nil), c.Blight...), d.Blight...)
+	}
+	c.Forage = c.Forage || d.Forage
 	return c
 }
 
@@ -492,6 +587,22 @@ func formatCost(c Cost) string {
 	appendCostParts("Discard", c.Discard)
 	appendCostParts("SubCounter", c.SubCounter)
 	appendCostParts("AddCounter", c.AddCounter)
+	for _, part := range c.Exile {
+		from := "Hand"
+		if part.Zone == state.ZGraveyard {
+			from = "Grave"
+		}
+		parts = append(parts, "ExileFrom"+from+"<"+strconv.FormatInt(int64(part.N), 10)+"/"+part.Spec+">")
+	}
+	appendCostParts("Reveal", c.Reveal)
+	appendCostParts("Behold", c.Behold)
+	appendCostParts("tapXType", c.TapPermanent)
+	for _, part := range c.Blight {
+		parts = append(parts, "Blight<"+strconv.FormatInt(int64(part.N), 10)+">")
+	}
+	if c.Forage {
+		parts = append(parts, "Forage")
+	}
 	return strings.Join(parts, " ")
 }
 
@@ -500,7 +611,7 @@ func formatCost(c Cost) string {
 // even though it takes no payment), so a caller using this to skip the
 // cast-flow stages is told the truth.
 func (c Cost) HasNonMana() bool {
-	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0
+	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage
 }
 
 // costModifiers reports the RaiseCost and ReduceCost generic-mana amounts
@@ -565,7 +676,8 @@ func (e *Engine) costActorMatches(sv staticView, actor state.PlayerID) bool {
 // before trusting the pool and life total.
 func (c Cost) Priceable() bool {
 	return c.X == 0 && !c.Tap && len(c.Sac) == 0 && len(c.Discard) == 0 && len(c.SubCounter) == 0 &&
-		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
+		len(c.Exile) == 0 && len(c.Reveal) == 0 && len(c.Behold) == 0 && len(c.TapPermanent) == 0 &&
+		len(c.Blight) == 0 && !c.Forage && len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
 }
 
 // pip is one coloured-or-flexible demand inside a cost's mana part: the set
