@@ -73,6 +73,8 @@ const borealCentaurSrc = "Name:Boreal Centaur\nManaCost:1 G\nTypes:Snow Creature
 const ajaniSleeperSrc = "Name:Ajani Sleeper Agent\nManaCost:1 G GWP W\nTypes:Legendary Planeswalker Ajani\nLoyalty:4\n" +
 	"Oracle:Compleated\n"
 
+const colorlessHybridSrc = "Name:Colourless Hybrid\nManaCost:C/W\nTypes:Artifact\nOracle:x\n"
+
 const testBearSrc = "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 
 // castByName returns seat p's cast option for the named card.
@@ -550,9 +552,54 @@ func TestSnowCostPaidOnlyBySnowMana(t *testing.T) {
 	replayCheck(t, e2, cfg2)
 }
 
+// TestColorlessHybridCostsParseAndPay covers the {C/W} half of CR 107.4e.
+// Unlike generic mana, the colourless face is a strict {C} pip: a white mana
+// pays the other face, but an unrelated coloured mana does not. The cast path
+// also proves pay_C is dispatched as an announced flexible-pip payment rather
+// than falling through and repeating its decision.
+func TestColorlessHybridCostsParseAndPay(t *testing.T) {
+	c := ParseCost("C/W")
+	if c.Generic != 0 || len(c.Hybrid) != 1 || c.Hybrid[0] != (ManaPair{A: 'C', B: 'W'}) {
+		t.Fatalf("ParseCost(\"C/W\") = %+v, want one C/W hybrid", c)
+	}
+	if !c.CanPay(pool(0, 0, 0, 0, 0, 1)) || !c.CanPay(pool(1, 0, 0, 0, 0, 0)) {
+		t.Fatal("C/W must be payable by either C or W")
+	}
+	if c.CanPay(pool(0, 1, 0, 0, 0, 0)) {
+		t.Fatal("C/W must not be payable by U")
+	}
+
+	e, cfg, card := newFixtureDeck(t, 83, colorlessHybridSrc)
+	addMana(t, e, 0, "C")
+	opt := castByName(t, e, 0, "Colourless Hybrid")
+	if opt == nil {
+		t.Fatal("C/W must be castable from a C pool")
+	}
+	submitChoices(t, e, opt.Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 1 || d.Options[0].Kind != "pay_C" {
+		t.Fatalf("C/W payment decision = %+v, want only pay_C", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	if e.G.Obj(card).Zone != state.ZStack || e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("after C payment: zone=%s pool=%v, want stack and empty pool", e.G.Obj(card).Zone, e.G.Players[0].Pool)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestHybridPhyrexianCostsParseAndPay pins the three-part compleated symbol:
 // one pip payable by either colour or two life.
 func TestHybridPhyrexianCostsParseAndPay(t *testing.T) {
+	// Forge also emits the same symbol P-first on the real Lukka, Bound to
+	// Ruin script; normalise that spelling before payment choices are built.
+	pfirst := ParseCost("PRG")
+	if len(pfirst.HybridPhyrexian) != 1 || pfirst.HybridPhyrexian[0] != (HybridPhyrexian{A: 'R', B: 'G'}) {
+		t.Fatalf("ParseCost(\"PRG\") = %+v, want one R/G/P hybrid-Phyrexian pip", pfirst)
+	}
+	if !pfirst.CanPay(pool(0, 0, 0, 1, 0, 0)) || !pfirst.payable(state.Mana{}, state.Mana{}, 2) {
+		t.Fatal("PRG must be payable by R or by two life")
+	}
+
 	c := ParseCost("1 G GWP W")
 	if c.Generic != 1 || c.Colored[state.MG] != 1 || c.Colored[state.MW] != 1 ||
 		len(c.HybridPhyrexian) != 1 || c.HybridPhyrexian[0] != (HybridPhyrexian{A: 'G', B: 'W'}) {

@@ -815,7 +815,15 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	4: "2753ceca0bed344d",
+	// rv2c-cost-modifiers-forge-parity moved 4 seats to 470c788766457635.
+	// Stream diff: the first difference is seq 3418, where dimir-tempo's
+	// Dismember (obj 236) previously reverses after its two Phyrexian payment
+	// answers. Its announcement feasibility check used the unmodified cost,
+	// while payment used the composed cost. Applying the same modifiers during
+	// announcement makes the cast complete: it chooses a target, spends two
+	// black mana and four life, resolves, and kills that target. This is the
+	// required 601.2b/601.2f agreement, not a speculative golden update.
+	4: "470c788766457635",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -879,7 +887,14 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	8: "0fc2433539e2f454",
+	// rv2c-cost-modifiers-forge-parity moved 8 seats to e0fc242aa734a6c6 for
+	// the same measured Dismember correction. The pre-fix stream first differs
+	// at seq 9477: it repeatedly announces Phyrexian choices then reverses the
+	// cast as unaffordable; the composed feasibility check instead selects a
+	// target, pays two black and four life, and resolves Dismember. Filtering
+	// infeasible flexible-pip answers also removes the bad abort path, so later
+	// bot choices legitimately diverge.
+	8: "e0fc242aa734a6c6",
 }
 
 func TestHeads(t *testing.T) {

@@ -1398,7 +1398,7 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			pc.discards = append(pc.discards, o.Obj)
 		}
 		pc.discardPart++
-	case "pay_W", "pay_U", "pay_B", "pay_R", "pay_G":
+	case "pay_W", "pay_U", "pay_B", "pay_R", "pay_G", "pay_C":
 		// A hybrid or Phyrexian pip paid with pool mana: record which colour.
 		if len(chosen) > 0 {
 			pc.payColor[state.ManaIndex(chosen[0].Kind[4])]++

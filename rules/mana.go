@@ -18,7 +18,7 @@ type CostPart struct {
 	Spec string
 }
 
-// ManaPair is one two-colour hybrid symbol: both A and B are WUBRG letters,
+// ManaPair is one two-face hybrid symbol: each face is a WUBRGC mana symbol,
 // and either one spells the pip (CR 107.4e).
 type ManaPair struct{ A, B byte }
 
@@ -237,9 +237,9 @@ func addClampedGeneric(v int32, n int64) int32 {
 // isHybrid reports whether sym is a two-colour hybrid pip: either the
 // slash form ("W/U") or the concatenated form ("GW", "WB"). A second
 // character of 'P' is Phyrexian, not hybrid, and is handled by
-// isPhyrexian. Both letters must be distinct WUBRG colours (a doubled
+// isPhyrexian. Both faces must be distinct WUBRGC mana symbols (a doubled
 // letter, "WW", is not a hybrid — it is a script typo and degrades to
-// generic).
+// generic). This includes colourless hybrid, such as {C/W}.
 func isHybrid(sym string) bool {
 	var a, b byte
 	if len(sym) == 3 && sym[1] == '/' {
@@ -249,7 +249,7 @@ func isHybrid(sym string) bool {
 	} else {
 		return false
 	}
-	return a != b && strings.ContainsRune("WUBRG", rune(a)) && strings.ContainsRune("WUBRG", rune(b))
+	return a != b && strings.ContainsRune("WUBRGC", rune(a)) && strings.ContainsRune("WUBRGC", rune(b))
 }
 
 // hybridPair normalises a hybrid symbol to its two colours as a ManaPair.
@@ -324,20 +324,31 @@ func twobridPair(sym string) Twobrid {
 }
 
 // isHybridPhyrexian reports whether sym is a three-part hybrid-Phyrexian
-// pip (CR 107.4f, Forge's concatenated `GWP`, or the slash form `G/W/P`):
-// two distinct WUBRG colours and a trailing P. It may be paid with either
-// colour or two life. Measured corpus population: 4 ManaCost files (the
-// compleated planeswalkers — Ajani Sleeper Agent, Lukka Bound to Ruin,
+// pip (CR 107.4f): two distinct WUBRG colours and P. Forge writes the usual
+// `GWP`/`G/W/P` spelling and also the P-first `PRG` spelling on Lukka, Bound
+// to Ruin; both mean a choice of either colour or two life. Measured corpus
+// population: 4 ManaCost files (Ajani Sleeper Agent, Lukka Bound to Ruin,
 // Nahiri the Unforgiving, Tamiyo Compleated Sage).
 func isHybridPhyrexian(sym string) bool {
-	if a, b, ok := splitHybridSlash(sym); ok && len(b) == 3 && b[2] == 'P' {
-		return a[0] != b[0] && strings.ContainsRune("WUBRG", rune(a[0])) &&
+	if a, b, ok := splitHybridSlash(sym); ok {
+		if len(a) != 1 || len(b) != 3 || b[1] != '/' {
+			return false
+		}
+		if a[0] == 'P' {
+			return b[0] != b[2] && strings.ContainsRune("WUBRG", rune(b[0])) &&
+				strings.ContainsRune("WUBRG", rune(b[2]))
+		}
+		return b[2] == 'P' && a[0] != b[0] && strings.ContainsRune("WUBRG", rune(a[0])) &&
 			strings.ContainsRune("WUBRG", rune(b[0]))
 	}
-	if len(sym) != 3 || sym[2] != 'P' {
+	if len(sym) != 3 {
 		return false
 	}
-	return sym[0] != sym[1] && strings.ContainsRune("WUBRG", rune(sym[0])) &&
+	if sym[0] == 'P' {
+		return sym[1] != sym[2] && strings.ContainsRune("WUBRG", rune(sym[1])) &&
+			strings.ContainsRune("WUBRG", rune(sym[2]))
+	}
+	return sym[2] == 'P' && sym[0] != sym[1] && strings.ContainsRune("WUBRG", rune(sym[0])) &&
 		strings.ContainsRune("WUBRG", rune(sym[1]))
 }
 
@@ -345,7 +356,13 @@ func isHybridPhyrexian(sym string) bool {
 // colours. sym is guaranteed by isHybridPhyrexian.
 func hybridPhyrexianPair(sym string) HybridPhyrexian {
 	if a, b, ok := splitHybridSlash(sym); ok {
+		if a[0] == 'P' {
+			return HybridPhyrexian{A: b[0], B: b[2]}
+		}
 		return HybridPhyrexian{A: a[0], B: b[0]}
+	}
+	if sym[0] == 'P' {
+		return HybridPhyrexian{A: sym[1], B: sym[2]}
 	}
 	return HybridPhyrexian{A: sym[0], B: sym[1]}
 }
