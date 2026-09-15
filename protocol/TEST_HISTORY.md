@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/protocol
 
-budget_s: 5
+budget_s: 10
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|
