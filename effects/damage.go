@@ -260,6 +260,16 @@ func effDamageAll(h Host, c *Ctx, sa *cards.SA) {
 	if n < 0 {
 		n = 0
 	}
+	// DamageAll is one simultaneous damage event even though its individual
+	// hits are serialized in the log. Keep its complete permanent-and-player
+	// pass inside the boundary so LifeLostAll observes the affected group once.
+	if b, ok := h.(interface {
+		BeginLifeLossBatch()
+		EndLifeLossBatch()
+	}); ok {
+		b.BeginLifeLossBatch()
+		defer b.EndLifeLossBatch()
+	}
 	spec := strings.TrimSpace(sa.Params["ValidCards"])
 	g := h.Game()
 	rider := newDamageRider(h, c, sa, n)

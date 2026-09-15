@@ -58,10 +58,10 @@ func TestOrcishBowmastersDrawnSkipsFirstDrawStepCard(t *testing.T) {
 	}
 }
 
-func TestLifeLostAllObNixilisQueuesOnceForSimultaneousOpponents(t *testing.T) {
-	// Ob Nixilis's real "one or more opponents each lose exactly 1 life"
-	// needs a three-seat batch: two serialized events are one simultaneous
-	// event, hence exactly one trigger.
+func TestLifeLostAllObNixilisQueuesOnceForDamageAllPlayers(t *testing.T) {
+	// DamageAll must batch all serialized player hits. Ogre Painbringer is the
+	// broad real-card regression (every player); End the Festivities supplies
+	// Ob Nixilis's exact-one-life condition for the one-trigger assertion.
 	e := New(seatZeroStart(Config{Seed: 1, Names: []string{"a", "b", "c"},
 		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40)}}))
 	ob := corpusCard(t, "Ob Nixilis, Captive Kingpin")
@@ -69,10 +69,29 @@ func TestLifeLostAllObNixilisQueuesOnceForSimultaneousOpponents(t *testing.T) {
 	if got := e.G.Obj(source).Face().Triggers[0].Mode; got != "LifeLostAll" {
 		t.Fatalf("Ob Nixilis trigger mode = %q, want LifeLostAll", got)
 	}
-	e.BeginLifeLossBatch()
-	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
-	e.emit(events.Event{Kind: events.LifeChange, Player: 2, Amount: -1})
-	e.EndLifeLossBatch()
+	ogre := onBoardCard(t, e, 0, corpusCard(t, "Ogre Painbringer"))
+	ogreFace := e.G.Obj(ogre).Face()
+	ogreDamage := cards.ResolveSVar(ogreFace.SVars, "TrigDmg")
+	if ogreDamage == nil || ogreDamage.API != "DamageAll" || ogreDamage.Params["ValidPlayers"] != "Player" {
+		t.Fatalf("Ogre Painbringer DamageAll fixture changed: %+v", ogreDamage)
+	}
+	e.resolveAbility(ogre, 0, nil, ogreDamage, ogreFace.SVars)
+	for _, p := range []state.PlayerID{0, 1, 2} {
+		if got := e.G.Players[p].Life; got != 17 {
+			t.Fatalf("player %d life after Ogre Painbringer = %d, want 17", p, got)
+		}
+	}
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("Ob Nixilis must not trigger for 3-life losses: %#v", e.pendingTriggers)
+	}
+
+	festivities := onBoardCard(t, e, 0, corpusCard(t, "End the Festivities"))
+	festivitiesFace := e.G.Obj(festivities).Face()
+	festivitiesDamage := festivitiesFace.Abilities[0]
+	if festivitiesDamage.API != "DamageAll" || festivitiesDamage.Params["ValidPlayers"] != "Player.Opponent" || festivitiesDamage.Params["NumDmg"] != "1" {
+		t.Fatalf("End the Festivities DamageAll fixture changed: %+v", festivitiesDamage)
+	}
+	e.resolveAbility(festivities, 0, nil, festivitiesDamage, festivitiesFace.SVars)
 	if len(e.pendingTriggers) != 1 || e.pendingTriggers[0].Source != source {
 		t.Fatalf("simultaneous opponent losses queued %#v, want one Ob Nixilis trigger", e.pendingTriggers)
 	}
