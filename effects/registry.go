@@ -154,6 +154,21 @@ type Ctx struct {
 	// search cannot inherit the outer answer.
 	Search     []state.ObjID
 	SearchDone bool
+	// Extort is the answered optional {W/B} payment on a re-entered Extort
+	// resolution (M2d-2): "pay" means the caster agreed to pay and the drain
+	// runs; anything else ("decline", first pass with a host that cannot ask)
+	// means no drain. rules' resumeResolution sets it from the recorded answer
+	// before re-running the suspended effExtort, and effExtort clears it after
+	// reading so a nested Extort below it poses its own ask.
+	Extort string
+	// Play is the answered card a resolved Play effect chose to play from a
+	// zone (CR 701.23): the object the controller selected among the offered
+	// candidates. rules' resumeResolution sets it from the recorded answer
+	// before re-running the suspended effPlay, which then casts/plays it from
+	// its own zone. PlayDone distinguishes "answered (possibly with no card)"
+	// from the first pass.
+	Play     state.ObjID
+	PlayDone bool
 	// Dig is the answered Dig look-and-take pick on a re-entered mid-resolution
 	// resolution: the object(s) the library's owner picked out of the top
 	// DigNum$ window to move to DestinationZone$, in the player's answer

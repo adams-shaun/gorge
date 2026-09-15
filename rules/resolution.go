@@ -159,6 +159,30 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 	// CR 601.2b cast branch: the spell is already provisionally on the stack,
 	// but no targets have been selected and no cost has been paid. Record the
 	// answer on that spell, then resume the cast transaction at target choice.
+	// CR 702.55 dredge: a draw-step draw replaced by a graveyard dredge is
+	// NOT a stack object, so the ordinary mid-resolution resume path (which
+	// re-enters a suspended stack-object resolution) does not apply. Handle
+	// the answered dredge here: option 0 mills the dredge card's N and returns
+	// it to hand (the ordinary draw is already skipped by the ask's
+	// suspension), option 1 (or an empty answer) lets the draw happen, which
+	// the suspended DrawFor re-runs as the ordinary draw.
+	if d.ResumeKind == "dredge" {
+		// CR 702.55 dredge: a draw replaced by a graveyard dredge is not a
+		// stack object, so the ordinary mid-resolution resume (which re-enters
+		// a suspended stack-object resolution) does not apply. Option 0 mills
+		// the dredge card's N and returns it to hand -- the ordinary draw is
+		// skipped; option 1 (or an empty answer) re-emits the ordinary draw.
+		ch := d.Chosen(in)
+		if len(ch) > 0 && ch[0].Index == 0 {
+			e.applyDredge(in.Player, ch[0].Obj)
+		} else {
+			e.resumeOrdinaryDraw(in.Player)
+		}
+		if e.resume != nil {
+			e.resume = nil
+		}
+		return
+	}
 	if d.ResumeKind == "cast_modes" {
 		pc := e.cast
 		if pc == nil || pc.ability >= 0 || pc.stackObj == 0 {
@@ -409,6 +433,36 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				ctx.RevealOpt = "yes"
 			} else {
 				ctx.RevealOpt = "no"
+			}
+		case "play":
+			// A Play effect (Conduit of Worlds, Spinerock Knoll) was answered:
+			// the chosen option's Obj is the card to play from its current zone
+			// (exile/graveyard). Begin a cast of it with mode "play", which
+			// zeroes its mana cost (WithoutManaCost$) and lets pushCast move it
+			// from wherever it is. The answered card that began the cast is
+			// recorded on Ctx.Play so the re-entered effPlay (if it re-enters)
+			// knows not to ask again; the cast flow runs to completion rather
+			// than re-posting its own ask here.
+			if len(chosen) > 0 && chosen[0].Obj != 0 {
+				ctx.Play = chosen[0].Obj
+				ctx.PlayDone = true
+				e.beginPlay(ctx.Controller, chosen[0].Obj)
+			}
+		case "extort":
+			// Extort's optional {W/B} payment was answered. Option 0 is "pay";
+			// anything else is a decline. The hybrid pip is charged from the
+			// caster's pool as one W or B when available; a pool lacking both
+			// colours deterministically declines (the drain never runs without
+			// the mana being genuinely paid). The re-entered effExtort reads
+			// Ctx.Extort and runs the drain only on "pay".
+			if len(chosen) > 0 && chosen[0].Index == 0 {
+				if e.payExtortPip(chosen[0].Player) {
+					ctx.Extort = "pay"
+				} else {
+					ctx.Extort = "decline"
+				}
+			} else {
+				ctx.Extort = "decline"
 			}
 		case "optional":
 			// CR 603.5: the decider answered yes to applying this optional

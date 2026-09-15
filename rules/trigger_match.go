@@ -349,6 +349,31 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				},
 			})
 		}
+		// A keyword granted in layer 6 has the same rules text as a printed
+		// keyword. Keyword expansion only adds triggers for printed K: lines,
+		// so synthesize Dethrone's ordinary attack trigger here for a creature
+		// that currently has (but does not print) it. This is deliberately a
+		// read-only derived-characteristics check: granting and removing the
+		// keyword remains entirely in the existing continuous-effect system.
+		if ev.Kind == events.DeclareAttackers && e.HasKeyword(id, "Dethrone") && !f.HasKeyword("Dethrone") {
+			t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
+				"Mode": "Attacks", "ValidCard": "Card.Self", "Dethrone": "True",
+			}, Effect: &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
+				"Defined": "Self", "CounterType": "P1P1", "CounterNum": "1",
+			}}}
+			if observer.triggerMatches(t, id, ev, objLKI) {
+				key := triggerKey{Source: id, Idx: -1}
+				if e.triggerFireCount == nil {
+					e.triggerFireCount = map[triggerKey]int32{}
+				}
+				if e.triggerFireCount[key] < maxTriggerFires {
+					e.triggerFireCount[key]++
+					e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, SA: t.Effect,
+						Ctx: effects.Ctx{Source: id, Controller: o.Controller, Remembered: triggerRemembered(ev, id), LKI: objLKI,
+							TriggerContext: observer.triggerReferents(t, id, ev)}})
+				}
+			}
+		}
 	})
 }
 
@@ -638,15 +663,19 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 	if v, ok := t.Params["Alone"]; ok && strings.EqualFold(v, "True") && len(ev.IDs) != 1 {
 		return false
 	}
-	// Dethrone (CR 702.105) is an attack trigger whose additional condition
-	// is relative to the defender named by this DeclareAttackers event. This
-	// must not scan all players: attacking a low-life opponent while another
-	// opponent has the most life does not satisfy Dethrone.
+	// Dethrone (CR 702.105) fires only when the attacked player has the
+	// greatest life total (tied is enough) among ALL players. Comparing only
+	// the attacker and its defender is wrong in multiplayer: a third player
+	// with more life prevents the trigger even though it was not attacked.
 	if v, ok := t.Params["Dethrone"]; ok && strings.EqualFold(v, "True") {
-		ctrl := e.controllerOf(source)
-		if int(ctrl) >= len(e.G.Players) || int(ev.Player) >= len(e.G.Players) ||
-			e.G.Players[ev.Player].Life < e.G.Players[ctrl].Life {
+		if int(ev.Player) >= len(e.G.Players) || e.G.Players[ev.Player].Lost {
 			return false
+		}
+		life := e.G.Players[ev.Player].Life
+		for i := range e.G.Players {
+			if !e.G.Players[i].Lost && e.G.Players[i].Life > life {
+				return false
+			}
 		}
 	}
 	spec, ok := t.Params["ValidCard"]
@@ -1052,7 +1081,7 @@ func init() {
 		// ChangesZone / Attacks / SpellCast triggers routed through the modes
 		// above: Undying and Evolve are ChangesZone triggers, Exalted is
 		// (Alone$) Attacks, Prowess is SpellCast.
-		"kw:Undying", "kw:Evolve", "kw:Exalted", "kw:Dethrone", "kw:Prowess",
+		"kw:Undying", "kw:Evolve", "kw:Exalted", "kw:Dethrone", "kw:Prowess", "kw:Riot", "kw:Hideaway", "kw:Extort", "kw:Myriad", "kw:Soulbond", "kw:Dredge",
 		// Task 17: Storm's expansion (cards/keywords.go) is a SpellCast
 		// trigger whose effect is CopySpellAbility -- the expansion existed
 		// since Task 11; registering the keyword here completes its

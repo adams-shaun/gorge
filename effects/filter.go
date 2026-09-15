@@ -120,6 +120,18 @@ func init() {
 	predicates["EquippedBy"] = attachedBy
 	predicates["EnchantedBy"] = attachedBy
 	predicates["AttachedBy"] = attachedBy
+	// Soulbond's "PairedWith" and "Paired" predicates (CR 702.103): the
+	// Affected$ spec `Creature.PairedWith` names the creature a source is
+	// paired with, and `Creature.Self+Paired` names the source itself when it
+	// is paired. PairedWith reads source.Paired (the source is the effect's
+	// own permanent).
+	predicates["Paired"] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.Paired != 0
+	}
+	predicates["PairedWith"] = func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		s := g.Obj(src)
+		return s != nil && s.Paired == o.ID && o.Zone == state.ZBattlefield
+	}
 }
 
 // attachedBy reports whether o is the permanent src is currently attached

@@ -52,6 +52,23 @@ func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
 	return true
 }
 
+// payExtortPip charges the {W/B} hybrid pip (one mana of either W or B)
+// from p's pool, emitting the ManaAdd events so a replay re-derives it. It
+// returns false (and charges nothing) when the pool has neither colour, so
+// an Extort payment a player genuinely cannot make is a decline rather than
+// a free drain.
+func (e *Engine) payExtortPip(p state.PlayerID) bool {
+	pool := e.G.Players[p].Pool
+	for _, idx := range []int{state.MW, state.MB} {
+		if pool[idx] > 0 {
+			e.emit(events.Event{Kind: events.ManaAdd, Player: p,
+				Counter: manaLetters[idx], Amount: -1})
+			return true
+		}
+	}
+	return false
+}
+
 // targetBounds resolves a targeting subject's TargetMin$/TargetMax$ to the
 // decision's Min/Max. Missing bounds default to 1 (the M1 single-target
 // contract: a spell or ability that targets at all targets one thing).

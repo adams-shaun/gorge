@@ -22,6 +22,7 @@ func init() {
 	Register("Scry", effScry)
 	Register("Surveil", effSurveil)
 	Register("NameCard", effNameCard)
+	Register("Hideaway", effHideaway)
 }
 
 // zoneOf is a bounds-checked g.Zone. PlayerOf returns a target's raw Player
@@ -51,8 +52,57 @@ func DrawFor(h Host, p state.PlayerID) {
 		h.Emit(events.Event{Kind: events.PlayerLost, Player: p, Text: "drew from an empty library"})
 		return
 	}
+	// Dredge (CR 702.55): before a player draws a card, if they have a card
+	// with Dredge in the graveyard they may instead mill N cards (N = the
+	// dredge number) and return that card from the graveyard to their hand,
+	// and the draw is replaced. This is a player choice at the point of the
+	// draw, so it is posed as a mid-resolution KModes yes/no for the first
+	// dredge card in the graveyard (scan order). Higher-numbered or multiple
+	// dredgers would be a chooser, not modelled here; neither a fluff/no-host
+	// host nor an empty answer dredges anything (the draw proceeds).
+	if id, n := dredgeCandidate(g, p); n > 0 {
+		// Pose the dredge choice. The answer routes through rules' "dredge"
+		// resume arm (ResumeKind), which performs the mill + hand return and
+		// skips the ordinary draw. A host that cannot ask (or any decline)
+		// leaves the draw to happen below.
+		d := &decision.Decision{Player: p, Kind: decision.KModes, Min: 1, Max: 1,
+			ResumeKind: "dredge",
+			Prompt: "Dredge " + strconv.Itoa(int(n)) + "?",
+			Options: []decision.Option{
+				{Index: 0, Kind: "mode", Label: "Dredge " + strconv.Itoa(int(n)) + " (mill, then return " + objName(g, id) + " to hand)", Obj: id, Player: p},
+				{Index: 1, Kind: "mode", Label: "Draw card", Obj: id, Player: p},
+			}}
+		if h.Ask(d) {
+			return // resolution suspended; the answer re-enters via dredge arm.
+		}
+	}
 	h.Emit(events.Event{Kind: events.Draw, Player: p, Obj: lib[0],
 		From: state.ZLibrary, To: state.ZHand, Secret: true})
+}
+
+// dredgeCandidate finds the first card in p's graveyard that carries the
+// Dredge keyword, returning its id and dredge number. Zone scan order is
+// deterministic, so the choice is replay-stable.
+func dredgeCandidate(g *state.Game, p state.PlayerID) (state.ObjID, int32) {
+	for _, id := range g.Zone(state.ZGraveyard, p) {
+		o := g.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		if n, ok := o.Face().KeywordParam("Dredge"); ok {
+			if v, err := strconv.Atoi(strings.TrimSpace(n)); err == nil {
+				return id, int32(v)
+			}
+		}
+	}
+	return 0, 0
+}
+
+func objName(g *state.Game, id state.ObjID) string {
+	if o := g.Obj(id); o != nil && o.Face() != nil {
+		return o.Face().Name
+	}
+	return "it"
 }
 
 func effDraw(h Host, c *Ctx, sa *cards.SA) {
@@ -846,6 +896,26 @@ func destinationPhrase(kind string) string {
 // the first card in the controller's library, which is at least a
 // deterministic, legal name for whatever downstream sub-ability expects
 // one, recorded now as the Choose event so the choice survives replay.
+// effHideaway implements CR 702.75: when a permanent with Hideaway enters,
+// exile the top N cards of its controller's library face down. Exile
+// provenance is carried by the MoveZone event, so a later Play ability can
+// resolve Defined$ ExiledWith without guessing from names or zone order.
+func effHideaway(h Host, c *Ctx, sa *cards.SA) {
+	n := int(Num(h, c, sa, "Amount", 4))
+	if n < 0 {
+		n = 0
+	}
+	g := h.Game()
+	lib := zoneOf(g, state.ZLibrary, c.Controller)
+	if n > len(lib) {
+		n = len(lib)
+	}
+	for _, id := range lib[:n] {
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZExile,
+			Counter: "exiled_with", Amount: int32(c.Source), Secret: true})
+	}
+}
+
 func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 	if o := h.Game().Obj(c.Source); o != nil && o.ChosenName != "" {
 		return

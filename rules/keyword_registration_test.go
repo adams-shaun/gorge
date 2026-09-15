@@ -21,6 +21,12 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Evolve":         "TestEvolveGrowsOnlyForBiggerCreatures",
 		"kw:Exalted":        "TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells",
 		"kw:Dethrone":       "TestDethroneCountsOnlyTheAttackedPlayersLife",
+		"kw:Riot":           "TestRiotAndHideawayUseRealCorpusCards",
+		"kw:Hideaway":       "TestRiotAndHideawayUseRealCorpusCards",
+		"kw:Extort":         "TestExtortUsesRealCorpusCard",
+		"kw:Dredge":         "TestDredgeUsesRealCorpusCard",
+		"kw:Myriad":         "TestMyriadUsesRealCorpusCard",
+		"kw:Soulbond":       "TestSoulbondUsesRealCorpusCard",
 		"kw:Prowess":        "TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells",
 	} {
 		if !sup[kw] {

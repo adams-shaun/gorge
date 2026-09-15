@@ -110,6 +110,15 @@ type Object struct {
 	ChosenName   string
 	ChosenType   string
 	ChosenNumber int32
+	// RiotChoice is set by the logged as-enters Riot choice. It survives the
+	// hand/stack path and Move consumes it on battlefield entry.
+	RiotChoice string
+	// IntrinsicKeywords are keyword choices that become part of this
+	// permanent's characteristics (currently Riot's haste choice).
+	IntrinsicKeywords []string
+	// ExiledWith records the permanent that exiled this card for an effect
+	// such as Hideaway. Zero means no tracked exile provenance.
+	ExiledWith ObjID
 
 	// ChosenModes carries a modal spell's CR 601.2b announcement or a modal
 	// triggered ability's CR 603.3c placement choice to resolution: the SVar
@@ -126,6 +135,12 @@ type Object struct {
 	// battlefield (events.Move) -- an Aura or Equipment cannot stay
 	// "attached" once it isn't a permanent.
 	AttachedTo ObjID
+
+	// Paired is the permanent this Soulbond creature is paired with (CR 702.103):
+	// a creature its controller may pair it with when either enters an the
+	// battlefield, as long as the controller controls both. 0 means unpaired.
+	// Reset whenever the object leaves the battlefield (events.Move).
+	Paired ObjID
 
 	// IsToken and IsCopy mark an object that only ever exists on the stack
 	// or the battlefield (CR 111.7 tokens, CR 707.10 copies). See Ephemeral.
@@ -198,6 +213,7 @@ func (o *Object) CloneDeep() Object {
 	c.Remembered = append([]Target(nil), o.Remembered...)
 	c.BlockedBy = append([]ObjID(nil), o.BlockedBy...)
 	c.ChosenModes = append([]string(nil), o.ChosenModes...)
+	c.IntrinsicKeywords = append([]string(nil), o.IntrinsicKeywords...)
 	return c
 }
 

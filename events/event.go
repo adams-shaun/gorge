@@ -220,6 +220,16 @@ const (
 	// value, and therefore the hash chain and every golden replay already
 	// locked in, is unaffected.
 	LibraryOrder
+	// Pair records a Soulbond pairing (CR 702.103): Obj is the pairing
+	// permanent and IDs[0] is its chosen partner. Appended after
+	// LibraryOrder, following the same append-only precedent, so all earlier
+	// Kinds keep their numeric values and the hash chain and golden replays
+	// are unaffected.
+	Pair
+	// MyriadCopy records one Myriad (CR 702.109) attacker token: a copy of
+	// the attack-creature Obj that enters tapped and attacking the opponent
+	// named by Player. Appended after Pair, same append-only precedent.
+	MyriadCopy
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's

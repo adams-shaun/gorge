@@ -28,6 +28,38 @@ func Apply(g *state.Game, e Event) {
 		// its answer in a cast/trigger cache or suspended-resolution context, so
 		// Apply writes nothing; the log lets replay re-derive the same branch.
 
+	case Pair:
+		// CR 702.103: a Soulbond pairing. Obj is the pairing permanent and
+		// IDs[0] its chosen partner; both fields are set reciprocally when
+		// both are battlefield permanents. Neither half is written when a
+		// pairing ends (the paired field is reset by each object's own
+		// Move when one leaves the battlefield).
+		if len(e.IDs) > 0 {
+			applyPair(g, e.Obj, e.IDs[0])
+		}
+
+	case MyriadCopy:
+		// CR 702.109: a Myriad attacker token. Mint a copy of the source
+		// attack-creature (same face/power/toughness, marked IsToken and
+		// IsCopy), put it directly onto the battlefield tapped and attacking
+		// the opponent named by Player. If the source is gone the copy still
+		// enters (from its last-known characteristics: we clone the object
+		// as it is now, which is the best available LKI for a transient
+		// copy).
+		src := g.Obj(e.Obj)
+		if src != nil && src.Face() != nil {
+			o := g.AddObject(src.Card, e.Player)
+			o.FaceIdx = src.FaceIdx
+			o.IsToken = true
+			o.IsCopy = true
+			Move(g, o.ID, state.ZLibrary, state.ZBattlefield)
+			o.Tapped = true
+			o.IsAttacking = true
+			if len(e.IDs) > 0 {
+				o.Attacking = state.PlayerID(e.IDs[0])
+			}
+		}
+
 	case Shuffle:
 		if validPlayer(g, e.Player) {
 			g.SetZone(state.ZLibrary, e.Player, append([]state.ObjID(nil), e.IDs...))
@@ -63,6 +95,11 @@ func Apply(g *state.Game, e Event) {
 		}
 		Move(g, e.Obj, e.From, e.To)
 		if o := g.Obj(e.Obj); o != nil {
+			if e.Counter == "exiled_with" && e.To == state.ZExile {
+				o.ExiledWith = state.ObjID(e.Amount)
+			} else if e.To != state.ZExile {
+				o.ExiledWith = 0
+			}
 			if e.Text == "reversed" && o.HasPreStackEntry {
 				o.EnteredThisTurn = o.PreStackEntryThisTurn
 				o.EnteredFrom = o.PreStackEntryFrom
@@ -316,7 +353,7 @@ func Apply(g *state.Game, e Event) {
 			break
 		}
 		f := src.Face()
-		if f == nil || e.Amount < 0 || int(e.Amount) >= len(f.Triggers) {
+		if f == nil || e.Amount < -1 || int(e.Amount) >= len(f.Triggers) {
 			break
 		}
 		o := g.AddObject(nil, e.Player)
@@ -327,7 +364,16 @@ func Apply(g *state.Game, e Event) {
 		// same reset; ordering them after is what makes Remembered actually
 		// survive onto the stack (Ruling T20-c).
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
-		o.Ability = f.Triggers[e.Amount].Effect
+		if e.Amount == -1 {
+			// A layer-granted Dethrone has no printed Trigger index. The
+			// matcher already established its condition; this logged sentinel
+			// carries the fixed keyword body through replay.
+			o.Ability = &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
+				"Defined": "Self", "CounterType": "P1P1", "CounterNum": "1",
+			}}
+		} else {
+			o.Ability = f.Triggers[e.Amount].Effect
+		}
 		o.Source = e.Obj
 		// FL-41: an id in IDs is either a real object (the ordinary case)
 		// or a player reference (state.PlayerRef, rules.pushTrigger) --
@@ -373,6 +419,8 @@ func Apply(g *state.Game, e Event) {
 				o.ChosenType = e.Text
 			case "number":
 				o.ChosenNumber = e.Amount
+			case "riot":
+				o.RiotChoice = e.Text
 			}
 		}
 
@@ -668,6 +716,15 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 					o.AddCounter("LOYALTY", int32(n))
 				}
 			}
+			// Riot's choice is made before this entry. Applying it in Move
+			// makes all entry paths obey the same logged choice.
+			switch o.RiotChoice {
+			case "counter":
+				o.AddCounter("P1P1", 1)
+			case "haste":
+				o.IntrinsicKeywords = append(o.IntrinsicKeywords, "Haste")
+			}
+			o.RiotChoice = ""
 		}
 	default:
 		// Leaving the battlefield or the stack resets everything that only
@@ -677,6 +734,10 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.IsAttacking = false
 		o.BlockedBy = nil
 		o.Counters = nil
+		o.IntrinsicKeywords = nil
+		o.ExiledWith = 0
+		o.RiotChoice = ""
+		o.Paired = 0
 		o.Targets = nil
 		o.Remembered = nil
 		// X/CastFlags/Chosen* carry cast-time and choose-time information
@@ -728,5 +789,18 @@ func remove(g *state.Game, id state.ObjID, z state.Zone, p state.PlayerID) {
 			g.SetZone(z, p, out)
 			return
 		}
+	}
+}
+
+// applyPair writes a Soulbond pairing (CR 702.103): both permanents' Paired
+// fields are set to each other's id when both are on the battlefield. Neither
+// half is written for an object that has left the battlefield (its own Move
+// already reset it).
+func applyPair(g *state.Game, srcID, partnerID state.ObjID) {
+	src := g.Obj(srcID)
+	partner := g.Obj(partnerID)
+	if src != nil && src.Zone == state.ZBattlefield && partner != nil && partner.Zone == state.ZBattlefield {
+		src.Paired = partnerID
+		partner.Paired = srcID
 	}
 }
