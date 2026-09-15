@@ -1198,6 +1198,15 @@ func (e *Engine) becomesTargetMatches(t cards.Trigger, source state.ObjID, ev ev
 	if !targeted {
 		return false
 	}
+	if t.Params["Ward"] == "True" {
+		// CR 702.21a compares the Ward permanent's controller with the
+		// controller of the targeting spell or ability ON THE STACK. For an
+		// ability, protectionSource would unwrap ev.Obj to its source
+		// permanent, whose controller may have changed since activation.
+		if ev.Obj == 0 || e.controllerOf(ev.Obj) == e.controllerOf(source) {
+			return false
+		}
+	}
 	if v, ok := t.Params["ValidTarget"]; ok {
 		return effects.MatchesSpecCtx(e.G, v, source, e.specCtx(source, e.controllerOf(source)))
 	}
@@ -1552,6 +1561,6 @@ func init() {
 		// trigger whose effect is CopySpellAbility -- the expansion existed
 		// since Task 11; registering the keyword here completes its
 		// semantics now that api:CopySpellAbility is implemented.
-		"kw:Storm",
+		"kw:Storm", "kw:Ward", "kw:Annihilator",
 	)
 }

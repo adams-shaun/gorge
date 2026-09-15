@@ -1,6 +1,8 @@
 # Test history — github.com/adams-shaun/gorge/rules
 
+budget_s: 300
 budget_s: 124
+budget_s: 53
 
 <!--
 A row far below the others is very likely VACUOUS, not fast. MEASURED
@@ -400,6 +402,15 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-15T10:07Z | 5bece96+ | 55.7 | 764 | 1 | sadams |
 | 2026-09-15T10:09Z | 5bece96+ | 54.7 | 764 | 1 | sadams |
 | 2026-09-15T09:45Z | 6064b42+ | 49.1 | 743 | 1 | sadams |
+| 2026-09-14T20:40Z | 4ea89c4+ | 46.4 | 663 | 1 | sadams |
+| 2026-09-14T22:39Z | f617517+ | 47.8 | 666 | 1 | sadams |
+| 2026-09-15T01:30Z | f617517+ | 50.3 | 666 | 1 | sadams |
+| 2026-09-15T01:31Z | f617517+ | 46.6 | 666 | 1 | sadams |
+| 2026-09-15T01:39Z | 6944368+ | 47.6 | 722 | 1 | sadams |
+| 2026-09-15T10:30Z | 2d2e0a1+ | 47.6 | 723 | 1 | sadams |
+| 2026-09-15T10:36Z | 5c58ce8+ | 49.1 | 723 | 1 | sadams |
+| 2026-09-15T10:42Z | 23fa91f+ | 51.3 | 752 | 1 | sadams |
+| 2026-09-15T19:54Z | a9b5b62+ | 53.1 | 753 | 1 | sadams |
 | 2026-09-15T10:39Z | f2abd10+ | 56.6 | 767 | 1 | sadams |
 | 2026-09-15T10:53Z | 6fe3f77+ | 60.2 | 782 | 1 | sadams |
 | 2026-09-15T10:56Z | 6fe3f77+ | 59.8 | 782 | 1 | sadams |
@@ -413,3 +424,16 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-15T11:26Z | 3e4f44a+ | 58.6 | 786 | 1 | sadams |
 | 2026-09-15T11:38Z | b5da989+ | 58.0 | 787 | 1 | sadams |
 | 2026-09-15T13:11Z | 5261434+ | 55.0 | 790 | 1 | sadams |
+| 2026-09-14T19:59Z | 8c7335e+ | 44.4 | 661 | 1 | sadams |
+| 2026-09-15T00:48Z | 64d73d4+ | 51.6 | 661 | 1 | sadams |
+| 2026-09-15T21:45Z | 8c47fdb+ | 110.0 | 800 | 1 | sadams |
+| 2026-09-14T17:21Z | c9c2c65+ | 41.2 | 639 | 1 | sadams |
+| 2026-09-14T17:35Z | 7918ca3+ | 41.0 | 641 | 1 | sadams |
+| 2026-09-15T00:42Z | eb62b5a+ | 42.2 | 643 | 1 | sadams |
+| 2026-09-15T09:56Z | e65c990+ | 45.6 | 645 | 1 | sadams |
+| 2026-09-15T09:57Z | e65c990+ | 40.6 | 645 | 1 | sadams |
+| 2026-09-15T10:05Z | 91bd6a3+ | 44.2 | 646 | 1 | sadams |
+| 2026-09-15T10:12Z | 4664d77+ | 40.4 | 647 | 1 | sadams |
+| 2026-09-15T10:46Z | 65be547+ | 62.0 | 780 | 1 | sadams |
+| 2026-09-15T10:47Z | 92c6430+ | 63.9 | 780 | 1 | sadams |
+| 2026-09-15T22:42Z | f840f32+ | 117.0 | 813 | 1 | sadams |

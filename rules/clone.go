@@ -235,6 +235,10 @@ func (e *Engine) Clone() *Engine {
 		ma.exiles = append([]state.ObjID(nil), e.manaDiscardActivation.exiles...)
 		c.manaDiscardActivation = &ma
 	}
+	if e.wardMana != nil {
+		wm := *e.wardMana
+		c.wardMana = &wm
+	}
 	if e.cast != nil {
 		pc := *e.cast
 		pc.cost.Sac = append([]CostPart(nil), e.cast.cost.Sac...)

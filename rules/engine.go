@@ -346,6 +346,9 @@ type Engine struct {
 	manaActivation        *manaActivation
 	manaColorActivation   *manaColorActivation
 	manaDiscardActivation *manaDiscardActivation
+	// wardMana holds a CR 702.21a mana-payment window while a Ward trigger
+	// is resolving. It is plain data so Clone preserves the suspended choice.
+	wardMana *wardManaPayment
 
 	// cmdZone is the queue of parked commander zone changes (CR 903.9, Task
 	// m32, rules/replacement.go): MoveZone events a commander is about to

@@ -79,10 +79,12 @@ func (c *Card) ColourIdentity() uint8 {
 	return m
 }
 
-// Card is one script file.
+// Card is one script file. AlternateMode describes how its faces relate;
+// name-characteristic rules distinguish split cards from transforming DFCs.
 type Card struct {
-	Path  string
-	Faces []*Face
+	Path          string
+	AlternateMode string
+	Faces         []*Face
 }
 
 // Diag is a non-fatal parse complaint. The whole corpus is expected to produce

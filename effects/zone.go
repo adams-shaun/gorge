@@ -1021,6 +1021,17 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	if !SearchStatesQuality(spec) {
 		min = max
 	}
+	// An empty choice is not a choice: asking it suspends a real engine host
+	// until it submits an empty answer, even though no answer can differ.
+	// Complete the fail-to-find directly (including its required shuffle).
+	if min == 0 && max == 0 {
+		// A submitted search answer resumes in a fresh Ctx, so remembered
+		// objects do not leak into its SubAbility chain. Preserve that existing
+		// continuation contract while omitting the otherwise meaningless ask.
+		c.Remembered = nil
+		applyLibrarySearch(h, c, sa, owner, to, nil)
+		return
+	}
 	// The prompt must not offer a choice the decision will refuse. A
 	// quantity-only search has Min == Max, so "up to" would be a lie the
 	// player only discovers when their answer is rejected.
@@ -1609,19 +1620,54 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			if int(t.Player) >= len(g.Players) {
 				continue
 			}
-			// A sacrifice aimed at a player: that player sacrifices one
-			// matching permanent. Real Magic has the player choose; this
-			// engine does not ask (the mid-resolution ask machinery is being
-			// reworked elsewhere), so the stand-in is deterministic and
-			// replay-stable: the first permanent in battlefield order that
-			// satisfies SacValid$. "You" in the spec is the sacrificing
-			// player, since they choose from their own permanents.
+			// This ticket's multi-permanent amount and chooser belong only to the
+			// Annihilator expansion, whose generated SA carries the count in its
+			// Annihilator$ marker (cards/keywords.go) so that Amount$ stays a
+			// genuinely unread parameter for ordinary Sacrifice lines. Ordinary
+			// player-targeted Sacrifice retains its established one-permanent
+			// behavior until that broader primitive is implemented as its own task.
+			n := 1
+			if ann := sa.Params["Annihilator"]; ann != "" {
+				if v, err := strconv.Atoi(ann); err == nil && v >= 0 {
+					n = v
+				}
+			}
 			ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, t.Player)...)
+			eligible := make([]state.ObjID, 0, len(ids))
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(t.Player)) {
-					victims = append(victims, id)
-					break
+					eligible = append(eligible, id)
 				}
+			}
+			if n > len(eligible) {
+				n = len(eligible)
+			}
+			chosen := c.Sacrifice
+			c.Sacrifice = nil
+			// Annihilator's one defending player makes this ask resumable without
+			// changing the established multi-player Sacrifice fallback.
+			if chosen == nil && sa.Params["Annihilator"] != "" && len(eligible) > n {
+				opts := make([]decision.Option, 0, len(eligible))
+				for _, id := range eligible {
+					opts = append(opts, decision.Option{Index: len(opts), Kind: "sacrifice", Obj: id, Label: g.Obj(id).Face().Name})
+				}
+				if h.Ask(&decision.Decision{Player: t.Player, Kind: decision.KChoose, Min: n, Max: n,
+					Prompt: "Choose permanents to sacrifice", Options: opts, ResumeKind: "sacrifice", ResumeSA: sa}) {
+					return
+				}
+			}
+			if chosen == nil {
+				chosen = eligible[:n]
+			}
+			// The chosen permanents join the batched victims below, so the
+			// departure snapshot and LKI capture stay one batch (effDestroyAll's
+			// discipline) whatever the sacrifice count.
+			for _, id := range chosen {
+				o := g.Obj(id)
+				if o == nil || o.Zone != state.ZBattlefield || o.Controller != t.Player || !MatchesSpecCtx(g, spec, id, c.SpecContext(t.Player)) {
+					continue
+				}
+				victims = append(victims, id)
 			}
 			continue
 		}
