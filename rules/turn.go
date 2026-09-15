@@ -33,18 +33,24 @@ func (e *Engine) finishEnteredStep() {
 		return
 	}
 	if e.G.Step == state.StepUpkeep {
-		// CR 702.62: each suspended card owned by the active player loses one
-		// time counter at upkeep. Once the last is gone legalActions offers its
-		// no-cost cast; passing is the optional "may cast" choice. Gated on the
-		// step actually entered, so a BeginPhase replacement that skipped the
-		// upkeep step (landing directly on the draw) does not decrement.
+		// CR 702.62: only a card that entered exile through the Suspend action
+		// loses TIME counters. The final-counter trigger then casts it if able;
+		// it is not an optional priority action and arbitrary exiled Suspend
+		// cards never acquire that permission. Gated on the step actually
+		// entered, so a BeginPhase replacement that skipped the upkeep step
+		// (landing directly on the draw) does not decrement.
 		for _, id := range e.G.Zone(state.ZExile, e.G.Active) {
 			o := e.G.Obj(id)
-			if o != nil && o.Face() != nil {
-				if _, ok := suspendCost(o.Face()); ok && o.Counter("TIME") > 0 {
-					e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
-				}
+			if o == nil || o.CastFlags&state.FlagSuspend == 0 || o.Counter("TIME") <= 0 {
+				continue
 			}
+			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
+			if o.Counter("TIME") == 0 {
+				e.suspendedCasts = append(e.suspendedCasts, id)
+			}
+		}
+		if e.startSuspendedCast() {
+			return
 		}
 	}
 	// An upkeep skip can land the turn directly on the draw step, whose
@@ -153,6 +159,27 @@ func (e *Engine) drawStepTurnAction() bool {
 	return e.G.Over
 }
 
+// startSuspendedCast consumes the next final-counter trigger before anyone
+// gets priority. A targetless/un-castable card is simply left in exile, the
+// "if able" part of CR 702.62; a legal one enters the ordinary no-cost cast
+// flow and can still ask for targets.
+func (e *Engine) startSuspendedCast() bool {
+	for len(e.suspendedCasts) > 0 {
+		id := e.suspendedCasts[0]
+		e.suspendedCasts = e.suspendedCasts[1:]
+		o := e.G.Obj(id)
+		if o == nil || o.Zone != state.ZExile || o.CastFlags&state.FlagSuspend == 0 || o.Face() == nil {
+			continue
+		}
+		if !e.castTargetsAvailable(o.Owner, id, o.Face().SpellAbility()) {
+			continue
+		}
+		e.beginCast(o.Owner, decision.Option{Kind: "cast", Obj: id, Mode: "suspend_cast"})
+		return true
+	}
+	return false
+}
+
 func (e *Engine) setStep(s state.Step) {
 	leaving := e.G.Step
 	previous := e.stepLeaving
@@ -191,6 +218,9 @@ func (e *Engine) finishStepBoundary(leaving, entering state.Step) {
 // step performs the smallest unit of automatic engine work.
 func (e *Engine) step() {
 	e.checkStateBased()
+	if e.startSuspendedCast() {
+		return
+	}
 	if e.G.Over {
 		return
 	}
@@ -601,6 +631,8 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 			e.resumeTriggerDrain()
 			return
 		}
+	case chooseOpening:
+		e.handleOpening(d, in)
 	case chooseETB:
 		// Task 12: an "as this enters" choice was answered. Record it on the
 		// card (etbAnswer, via a Choose event), then continue the flow -- the

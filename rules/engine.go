@@ -127,6 +127,10 @@ type Engine struct {
 	// kept/taken counts and the phase cursor. Never a closure, so Clone copies
 	// it like cast/choosing.
 	mulligan mulliganRound
+	// opening is the optional opening-hand effects round, before mulligans and
+	// turn one. It holds only object IDs and parsed SVar names, so replay and
+	// Clone reproduce the same pregame choices without ambient state.
+	opening openingRound
 	// blockerRound is the declare-blockers step's per-defender cursor
 	// (rules/combat.go, Task m34): an attack may be split across several
 	// defending players, and each declares its own blocks, one KBlockers
@@ -338,6 +342,11 @@ type Engine struct {
 	// cast holds the in-progress cast-flow state while choosing ==
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
 	cast *pendingCast
+	// suspendedCasts is the mandatory "cast it if able" trigger created when
+	// a real suspended card loses its final TIME counter. IDs are appended in
+	// exile order and consumed before priority; it is plain replayable engine
+	// continuation state, not an inference from arbitrary exile cards.
+	suspendedCasts []state.ObjID
 	// manaActivation is non-nil while a source with several available mana
 	// abilities waits for its controller to select one. manaColorActivation
 	// similarly holds an already-paid Produced$ Any ability, and
@@ -751,6 +760,11 @@ func New(cfg Config) *Engine {
 		// transcript and on the web client with no UI work. Emitted exactly
 		// once per game, before the mulligan round / turn 1 begins.
 		e.recordToss(start, true)
+		e.opening = e.newOpeningRound(start, cfg.Mulligans)
+		if len(e.opening.effects) > 0 {
+			e.stepOpening()
+			return e
+		}
 		if cfg.Mulligans > 0 {
 			// Ruling R-8.4: the London mulligan round lives between the deal
 			// and turn 1. e.pregame makes step() dispatch to stepPregame

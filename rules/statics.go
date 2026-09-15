@@ -272,6 +272,13 @@ func (e *Engine) castWithFlash(p state.PlayerID, id state.ObjID) bool {
 	return false
 }
 
+// spellTimingOK is the one timing predicate for every zone which offers a
+// spell cast. CastWithFlash is a permission, not a hand-only property: it
+// also applies to Flashback, Harmonize, and command-zone casts.
+func (e *Engine) spellTimingOK(p state.PlayerID, id state.ObjID, f *cards.Face, sorcery bool) bool {
+	return sorcery || (f != nil && (f.IsInstant() || e.HasKeyword(id, "Flash") || e.castWithFlash(p, id)))
+}
+
 // alternativeCosts lists extra ways to cast id, each becoming its own
 // "cast" option in legalActions so the client can present the choice
 // without knowing any rules. Two sources: another permanent's static

@@ -368,8 +368,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if e.castSuppressed(p, id) {
 			continue
 		}
-		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash") || e.castWithFlash(p, id)
-		if !instantSpeed && !sorcery {
+		if !e.spellTimingOK(p, id, f, sorcery) {
 			continue
 		}
 		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
@@ -507,8 +506,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if e.castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
-		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
-		if !instantSpeed && !sorcery {
+		if !e.spellTimingOK(p, id, f, sorcery) {
 			continue
 		}
 		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
@@ -541,7 +539,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		f := o.Face()
-		if !f.IsInstant() && !e.castWithFlash(p, id) && !sorcery {
+		if !e.spellTimingOK(p, id, f, sorcery) {
 			continue
 		}
 		if hc, ok := harmonizeCost(f); ok && e.castTargetsAvailable(p, id, f.SpellAbility()) {
@@ -567,8 +565,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if e.castSuppressed(p, id) {
 			continue
 		}
-		instantSpeed := f.IsInstant() || e.HasKeyword(id, "Flash")
-		if !instantSpeed && !sorcery {
+		if !e.spellTimingOK(p, id, f, sorcery) {
 			continue
 		}
 		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
@@ -577,22 +574,6 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if fc := e.flashbackCost(id); e.castable(p, id, e.offerCostFor(p, id, fc, false), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (flashback)", Obj: id, Mode: "flashback"})
-		}
-	}
-
-	// A suspended card whose final time counter was removed may be cast for
-	// free during its owner's upkeep. Passing leaves it in exile, implementing
-	// the keyword's optional cast without a second special decision kind.
-	if e.G.Active == p && e.G.Step == state.StepUpkeep {
-		for _, id := range e.G.Zone(state.ZExile, p) {
-			o := e.G.Obj(id)
-			if o == nil || o.Face() == nil || o.Counter("TIME") != 0 {
-				continue
-			}
-			if _, ok := suspendCost(o.Face()); !ok || !e.castTargetsAvailable(p, id, o.Face().SpellAbility()) {
-				continue
-			}
-			out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + o.Face().Name + " (suspend)", Obj: id, Mode: "suspend_cast"})
 		}
 	}
 
