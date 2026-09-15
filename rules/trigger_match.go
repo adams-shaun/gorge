@@ -1156,6 +1156,15 @@ func (e *Engine) drawnMatches(t cards.Trigger, source state.ObjID, ev events.Eve
 	if v, ok := t.Params["ValidCard"]; ok && !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
 		return false
 	}
+	if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	if v := t.Params["Number"]; v != "" {
+		want, err := strconv.Atoi(v)
+		if err != nil || e.drawNumberThisTurn(ev.Player) != want {
+			return false
+		}
+	}
 	if v, ok := t.Params["FirstCardInDrawStep"]; ok {
 		first := e.firstCardInDrawStep(ev.Player)
 		if (strings.EqualFold(v, "True") && !first) || (strings.EqualFold(v, "False") && first) {
@@ -1163,6 +1172,24 @@ func (e *Engine) drawnMatches(t cards.Trigger, source state.ObjID, ev events.Eve
 		}
 	}
 	return true
+}
+
+// drawNumberThisTurn counts p's draws in the current turn, including the Draw
+// event currently being matched. The log is the replay-stable source of this
+// per-turn fact; each player has its own ordinal because "their second card"
+// must not count another seat's draw.
+func (e *Engine) drawNumberThisTurn(p state.PlayerID) int {
+	n := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.Draw && ev.Player == p {
+			n++
+		}
+	}
+	return n
 }
 
 // firstCardInDrawStep reports whether the most recently emitted Draw for p is
@@ -1236,10 +1263,57 @@ func (e *Engine) lifeLostMatches(t cards.Trigger, source state.ObjID, ev events.
 	if v, ok := t.Params["ValidAmountEach"]; ok && !compareLife(amount, v) {
 		return false
 	}
+	// On LifeLost, LifeAmount$ describes the amount just lost, not the
+	// LifeTotal$ intervening-if grammar used by other trigger modes.
+	if v := t.Params["LifeAmount"]; v != "" && !compareLife(amount, v) {
+		return false
+	}
+	if strings.EqualFold(t.Params["PlayerTurn"], "True") && e.G.Active != ctrl {
+		return false
+	}
+	if v := t.Params["ValidCause"]; v != "" && !e.lifeLossCauseMatches(v, ctrl) {
+		return false
+	}
 	if strings.EqualFold(t.Params["FirstTime"], "True") && !e.firstLifeLossThisTurn(p) {
 		return false
 	}
 	return true
+}
+
+// lifeLossCauseMatches recognizes the spell/ability cause grammar carried by
+// LifeLost triggers. Events intentionally do not encode an extra source field,
+// so a synchronous trigger read uses the Engine's in-flight resolving source;
+// it is set around every stack resolution and cleared afterward, and thus
+// replay derives the same answer. Combat damage is a creature cause, not a
+// SpellAbility cause.
+func (e *Engine) lifeLossCauseMatches(spec string, you state.PlayerID) bool {
+	if e.combatDamaging || e.damaging == 0 {
+		return false
+	}
+	cause := e.G.Obj(e.damaging)
+	if cause == nil {
+		return false
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		base, qualifier, qualified := strings.Cut(strings.TrimSpace(alt), ".")
+		if base != "SpellAbility" {
+			continue
+		}
+		if !qualified || qualifier == "" {
+			return true
+		}
+		switch qualifier {
+		case "YouCtrl":
+			if cause.Controller == you {
+				return true
+			}
+		case "OppCtrl":
+			if cause.Controller != you {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // firstLifeLossThisTurn is true only for the newest life-loss event of p in
@@ -1494,7 +1568,9 @@ func abilityCastValidSA(ab *cards.SA, validSA string) bool {
 // fire, never that an unreadable life/creature count is presumed large
 // enough to let a win or counter trigger slip through.
 func (e *Engine) triggerConditionHolds(t cards.Trigger, source state.ObjID) bool {
-	if v, ok := t.Params["LifeAmount"]; ok {
+	// LifeLost's LifeAmount$ is matched against the causing loss by
+	// lifeLostMatches, rather than against a player's current life total.
+	if v, ok := t.Params["LifeAmount"]; ok && t.Mode != "LifeLost" && t.Mode != "LifeLostAll" {
 		if !e.lifeConditionHolds(t, source, v) {
 			return false
 		}

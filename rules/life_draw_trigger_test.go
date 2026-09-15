@@ -38,6 +38,43 @@ func TestSheoldredDrawnTriggerUsesDrawEventPlayer(t *testing.T) {
 	}
 }
 
+func TestFateUnravelerDamagesTheDrawingOpponent(t *testing.T) {
+	e := layerEngine(t)
+	source := onBoardCard(t, e, 0, corpusCard(t, "Fate Unraveler"))
+	drawn := e.G.Zone(state.ZLibrary, 1)[0]
+	e.emit(events.Event{Kind: events.Draw, Player: 1, Obj: drawn, From: state.ZLibrary, To: state.ZHand, Secret: true})
+	e.putTriggersOnStack()
+	if len(e.G.Stack) != 1 || e.G.Obj(e.G.Stack[0]).Source != source {
+		t.Fatalf("Fate Unraveler trigger stack = %v, want its one trigger", e.G.Stack)
+	}
+	e.resolveTop()
+	if got := e.G.Players[1].Life; got != 19 {
+		t.Fatalf("drawing opponent life = %d, want 19", got)
+	}
+	if got := e.G.Players[0].Life; got != 20 {
+		t.Fatalf("Fate Unraveler controller life = %d, want 20", got)
+	}
+}
+
+func TestBlackWidowDrawnNumberAndValidPlayer(t *testing.T) {
+	e := layerEngine(t)
+	source := onBoardCard(t, e, 0, corpusCard(t, "Black Widow, Agile Avenger"))
+	// The unmodified card says an OPPONENT's SECOND draw. Neither controller
+	// draw nor the opponent's first draw may queue it.
+	for _, p := range []state.PlayerID{0, 1} {
+		drawn := e.G.Zone(state.ZLibrary, p)[0]
+		e.emit(events.Event{Kind: events.Draw, Player: p, Obj: drawn, From: state.ZLibrary, To: state.ZHand, Secret: true})
+		if len(e.pendingTriggers) != 0 {
+			t.Fatalf("draw %d queued %#v, want no Black Widow trigger", p, e.pendingTriggers)
+		}
+	}
+	drawn := e.G.Zone(state.ZLibrary, 1)[0]
+	e.emit(events.Event{Kind: events.Draw, Player: 1, Obj: drawn, From: state.ZLibrary, To: state.ZHand, Secret: true})
+	if len(e.pendingTriggers) != 1 || e.pendingTriggers[0].Source != source {
+		t.Fatalf("opponent second draw queued %#v, want Black Widow", e.pendingTriggers)
+	}
+}
+
 func TestOrcishBowmastersDrawnSkipsFirstDrawStepCard(t *testing.T) {
 	e := layerEngine(t)
 	bowmasters := corpusCard(t, "Orcish Bowmasters")
@@ -76,6 +113,11 @@ func TestLifeLostAllObNixilisQueuesOnceForDamageAllPlayers(t *testing.T) {
 		t.Fatalf("Ogre Painbringer DamageAll fixture changed: %+v", ogreDamage)
 	}
 	e.resolveAbility(ogre, 0, nil, ogreDamage, ogreFace.SVars)
+	for _, id := range []state.ObjID{source, ogre} {
+		if got := e.G.Obj(id).Damage; got != 0 {
+			t.Fatalf("player-only Ogre Painbringer damaged permanent %d for %d", id, got)
+		}
+	}
 	for _, p := range []state.PlayerID{0, 1, 2} {
 		if got := e.G.Players[p].Life; got != 17 {
 			t.Fatalf("player %d life after Ogre Painbringer = %d, want 17", p, got)
@@ -117,6 +159,59 @@ func TestValgavothLifeLostFirstTimeGate(t *testing.T) {
 	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
 	if len(e.pendingTriggers) != 1 {
 		t.Fatalf("second active-opponent loss queued %#v, want no second Valgavoth", e.pendingTriggers)
+	}
+}
+
+func TestLoseLifeAllBatchesOpponentsForObNixilis(t *testing.T) {
+	e := New(seatZeroStart(Config{Seed: 1, Names: []string{"a", "b", "c"},
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40)}}))
+	source := onBoardCard(t, e, 0, corpusCard(t, "Ob Nixilis, Captive Kingpin"))
+	// The real Meathook Massacre sub-ability is the common "each opponent
+	// loses one life" shape; it must produce a single LifeLostAll group.
+	meathook := corpusCard(t, "The Meathook Massacre").Faces[0]
+	loss := cards.ResolveSVar(meathook.SVars, "TrigLoseLife")
+	if loss == nil || loss.API != "LoseLife" || loss.Params["Defined"] != "Opponent" {
+		t.Fatalf("Meathook loss fixture changed: %+v", loss)
+	}
+	e.resolveAbility(source, 0, nil, loss, meathook.SVars)
+	if len(e.pendingTriggers) != 1 || e.pendingTriggers[0].Source != source {
+		t.Fatalf("LoseLife opponent group queued %#v, want one Ob Nixilis trigger", e.pendingTriggers)
+	}
+}
+
+func TestKefkaLifeLostPlayerTurnGate(t *testing.T) {
+	e := layerEngine(t)
+	kefka := *corpusCard(t, "Kefka, Ruler of Ruin")
+	kefka.Faces = kefka.Faces[1:2] // unmodified Ruler face carries this trigger.
+	source := onBoardCard(t, e, 0, &kefka)
+	e.G.Active = 1
+	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("opponent loss outside Kefka controller turn queued %#v", e.pendingTriggers)
+	}
+	e.G.Active = 0
+	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
+	if len(e.pendingTriggers) != 1 || e.pendingTriggers[0].Source != source {
+		t.Fatalf("opponent loss during Kefka controller turn queued %#v", e.pendingTriggers)
+	}
+}
+
+func TestSahirLifeLostCauseAndAmountGates(t *testing.T) {
+	e := layerEngine(t)
+	source := onBoardCard(t, e, 0, corpusCard(t, "Sahir, Visitor in Darkness"))
+	// Sahir's unmodified secondary trigger requires exactly one life lost to
+	// a spell or ability its controller controls. A causeless event and a
+	// two-life event must not satisfy either half of that condition.
+	e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: -1})
+	e.damaging = source
+	e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: -2})
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("invalid Sahir losses queued %#v", e.pendingTriggers)
+	}
+	e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: -1})
+	e.damaging = 0
+	if len(e.pendingTriggers) != 1 || e.pendingTriggers[0].Source != source {
+		t.Fatalf("Sahir one-life controlled cause queued %#v", e.pendingTriggers)
 	}
 }
 
