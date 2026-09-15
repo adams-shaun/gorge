@@ -272,7 +272,24 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 	}
 	e, err := replay.Replay(l, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("host: %s/%d does not replay: %w", t.cfg.ID, sc.Match, err)
+		// fb-20260915T094418Z: readLog's reconcileLog trims the file to the
+		// last burst's ask boundary (the crash-cut protection, kept — see
+		// reconcileLog), but a burst may legitimately extend past its last
+		// DecisionAsk, so a match parked or ended on such a burst persists a
+		// tail the trim cut, and the replay of the recorded intents runs
+		// past the trimmed end. That is the tolerated shape, and the
+		// reproduced tail is verified the strong way: the sidecar's Head is
+		// the chain hash over the FULL stream the match held at its terminal
+		// transition, so a replayed log reaching the same head — and the
+		// same recorded event count — reproduced the cut tail byte for byte.
+		// Anything else stays the rejection it was.
+		if !(replay.CutTailReplayed(err, e, sc.Head) && len(e.L.Events) == sc.Events) {
+			return nil, fmt.Errorf("host: %s/%d does not replay: %w", t.cfg.ID, sc.Match, err)
+		}
+		// Accepted: the engine's own log is the full, chain-verified stream,
+		// so the bookkeeping below derives from it rather than from the
+		// trimmed recording.
+		l = e.L
 	}
 	return &match{table: t, k: sc.Match, seed: sc.Seed, cfg: cfg, seats: sc.Seats, decks: sc.Decks, e: e,
 		bounds: boundsOf(l.Events), turnStarts: turnStartsIn(l.Events, 0), state: sc.State, result: sc.Result,
@@ -284,7 +301,9 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 // recorded intents, apply the rest of that burst's events onto the clone's
 // own game, and project. Zones, life, damage, counters and the stack are
 // exact at every seq; derived P/T from continuous effects and the pending
-// tray are as of the burst's start (at most one resolution stale).
+// tray are as of the burst's start (at most one resolution stale) — and a seq
+// strictly inside a burst's overshoot tail (fb-20260915T094418Z) is as of the
+// tail's end, at most the one Submit's continuation ahead, the same tolerance.
 //
 // A reader must never crash (D15's philosophy, extended to readers by
 // fix round 1, FL-43): boundsOf already keeps a crashed match's poison
@@ -336,10 +355,40 @@ func viewAt(cfg rules.Config, l *events.Log, snaps []snapshot, seq uint64, viewe
 			return view.View{}, fmt.Errorf("host: replay intent %d: %w", i, err)
 		}
 	}
-	if got := uint64(len(e.L.Events)); got != bounds[j] {
+	// fb-20260915T094418Z: a burst does not always end at its last
+	// DecisionAsk. Engine.Submit runs handle, then — whether or not handle
+	// just asked a fresh decision — the SBA pass and the step handler's
+	// continuation can still emit events before Submit returns, so the
+	// replayed engine can legitimately stop PAST bounds[j]: the extra
+	// events are the same burst's overshoot tail, which the recording
+	// carries (the live log, and a file whose tail reconcileLog chose not
+	// to cut — see matchForLog). got < bounds[j] stays a real error: a
+	// replay that stops SHORT of the boundary is an engine change or a
+	// broken log, and the incremental compare inside ReplayTo has already
+	// rejected the divergent shapes it can see.
+	got := uint64(len(e.L.Events))
+	if got < bounds[j] {
 		return view.View{}, fmt.Errorf("host: replay reached seq %d, boundary %d is %d", got, j, bounds[j])
 	}
-	for s := bounds[j]; s <= seq; s++ {
+	if got > bounds[j] {
+		// The overshoot tail. The engine has already applied those events,
+		// so the apply loop below must not re-apply them (it starts at got);
+		// but first the tail is verified against the recording — the manual
+		// snapshot path above submits intents without ReplayTo's own
+		// compare, and this check is what makes serving the tail from the
+		// engine's state trustworthy rather than assumed. A recording that
+		// stops short of the replay (a log cut mid-burst) cannot verify a
+		// tail it does not carry and stays an error.
+		if got > n {
+			return view.View{}, fmt.Errorf("host: replay produced %d events, the recording has %d", got, n)
+		}
+		for i := bounds[j]; i < got; i++ {
+			if string(e.L.Events[i].Append(nil)) != string(l.Events[i].Append(nil)) {
+				return view.View{}, fmt.Errorf("host: replay tail event %d differs from the recording", i)
+			}
+		}
+	}
+	for s := got; s <= seq; s++ {
 		events.Apply(e.G, l.Events[s])
 	}
 	v = view.ProjectFor(e.G, e, viewer, vis, d)

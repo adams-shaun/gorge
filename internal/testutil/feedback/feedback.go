@@ -390,7 +390,7 @@ func compileToken(stem, src string) (*cards.Card, error) {
 // gate is pinned in cmd/repro's tests.
 func EngineAt(t testing.TB, dir string, n int) *rules.Engine {
 	t.Helper()
-	l, cfg, _, err := Load(dir)
+	l, cfg, meta, err := Load(dir)
 	if err != nil {
 		t.Fatalf("feedback: %v", err)
 	}
@@ -399,7 +399,15 @@ func EngineAt(t testing.TB, dir string, n int) *rules.Engine {
 	}
 	e, err := replay.ReplayTo(l, cfg, n)
 	if err != nil {
-		t.Fatalf("feedback: %s: replay to intent %d: %v", dir, n, err)
+		// fb-20260915T094418Z: a capture whose server ran the pre-fix host
+		// carries a log trimmed to the last burst's ask boundary while its
+		// head field was taken over the full chain — the recorded intents'
+		// replay runs past the recording's end. When the chain proves the
+		// reconstructed tail (replay.CutTailReplayed), that is a verified
+		// capture, not a divergence.
+		if !replay.CutTailReplayed(err, e, meta.Head) {
+			t.Fatalf("feedback: %s: replay to intent %d: %v", dir, n, err)
+		}
 	}
 	return e
 }

@@ -715,3 +715,131 @@ func tamperFixture(t *testing.T, edit func(map[string]any)) string {
 	}
 	return dir
 }
+
+// cutTailFixtureRel is the second committed fixture: the REAL
+// fb-20260915T094418Z capture — a vs-bot Commander match parked mid-burst
+// on the CR 903.9 commander_zone ask, recorded by the pre-fix host. Its
+// log.json is the legacy capture shape: trimmed to the last burst's ask
+// boundary (1324 events) while its head field was taken over the FULL
+// chain (1326 events — the burst's post-ask tail, two real events, which
+// the trim cut). The replay of the recorded intents reconstructs the tail;
+// the chain proves it byte-exact, so the capture verifies and exits 0.
+const cutTailFixtureRel = "testdata/feedback/20260915T094418Z-e484f1db"
+
+// TestReproCutTailCaptureExitsZero: the CLI on the parked-burst capture
+// verifies the head — reconstructed tail included — and prints the summary,
+// exiting 0. This is the regression for repro's own half of
+// fb-20260915T094418Z: the same capture used to exit 1 with a spurious
+// "replay diverged at event 1324" the moment the replay ran past the trim.
+func TestReproCutTailCaptureExitsZero(t *testing.T) {
+	requireCorpus(t)
+	var out bytes.Buffer
+	if code := run([]string{cutTailFixtureRel}, &out, io.Discard); code != 0 {
+		t.Fatalf("exit %d, output:\n%s", code, out.String())
+	}
+	for _, want := range []string{
+		"== feedback report 20260915T094418Z-e484f1db",
+		"replayed 249 of 249 recorded intents (1326 events)", // the two reconstructed tail events included
+		"recorded head",
+		"pending: seat 0 commander_zone",
+		"Valgavoth, Harrower of Souls would go to the graveyard: put it into the command zone instead?",
+	} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("summary output missing %q:\n%s", want, out.String())
+		}
+	}
+}
+
+// tamperCutTailFixture is tamperFixture pointed at the second fixture (its
+// match.json is already token-stripped, so a copied temp dir resolves its
+// tokens through the live corpus — the fresh-clone path, which replays).
+func tamperCutTailFixture(t *testing.T, edit func(map[string]any)) string {
+	t.Helper()
+	dir := t.TempDir()
+	for _, f := range []string{"match.json", "report.json"} {
+		raw, err := os.ReadFile(filepath.Join(cutTailFixtureRel, f))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, f), raw, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	raw, err := os.ReadFile(filepath.Join(cutTailFixtureRel, "log.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var lg map[string]any
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.UseNumber()
+	if err := dec.Decode(&lg); err != nil {
+		t.Fatal(err)
+	}
+	edit(lg)
+	out, err := json.Marshal(lg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "log.json"), out, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return dir
+}
+
+// TestReproCutTailCaptureRejectsATamperedHead: the cut-tail tolerance is
+// the chain, not a blind pass. A capture of exactly the legacy shape whose
+// head field no longer chains to the replayed stream (here: head altered)
+// still reports DIVERGED and exits non-zero — the reconstructed tail is
+// accepted only when it is proven byte-exact.
+func TestReproCutTailCaptureRejectsATamperedHead(t *testing.T) {
+	requireCorpus(t)
+	dir := tamperCutTailFixture(t, func(lg map[string]any) {
+		lg["head"] = "deadbeefdeadbeef"
+	})
+	var out bytes.Buffer
+	if code := run([]string{dir}, &out, io.Discard); code == 0 {
+		t.Fatalf("tampered head exited 0:\n%s", out.String())
+	}
+	if !strings.Contains(out.String(), "DIVERGED") {
+		t.Errorf("output missing DIVERGED:\n%s", out.String())
+	}
+}
+
+// TestReproCutTailCaptureRejectsATamperedRecordedEvent: a corrupted event
+// inside the RECORDED prefix still diverges at that event, named — the
+// tolerance never widens into the recorded region.
+func TestReproCutTailCaptureRejectsATamperedRecordedEvent(t *testing.T) {
+	requireCorpus(t)
+	dir := tamperCutTailFixture(t, func(lg map[string]any) {
+		evs := lg["events"].([]any)
+		e := evs[len(evs)-1].(map[string]any) // the recorded DecisionAsk at the trim point
+		if e["kind"] != json.Number("20") {
+			panic("fixture's last recorded event is not the ask (kind 20)")
+		}
+		e["text"] = "tampered"
+	})
+	var out bytes.Buffer
+	if code := run([]string{dir}, &out, io.Discard); code == 0 {
+		t.Fatalf("tampered event exited 0:\n%s", out.String())
+	}
+	got := out.String()
+	if !strings.Contains(got, "DIVERGED") || !strings.Contains(got, "diverged at event") {
+		t.Errorf("output missing the divergence:\n%s", got)
+	}
+}
+
+// TestEngineAtLoadsTheCutTailCapture: feedback.EngineAt — the entry a
+// -emit-test skeleton calls — replays the same legacy capture to every
+// recorded intent, tolerance and all, so a test bootstrapped from this
+// capture reaches the parked board instead of failing on the trim.
+func TestEngineAtLoadsTheCutTailCapture(t *testing.T) {
+	requireCorpus(t)
+	e := feedback.EngineAt(t, cutTailFixtureRel, -1)
+	if len(e.L.Events) != 1326 {
+		t.Fatalf("EngineAt produced %d events, want the full 1326 (tail reconstructed)", len(e.L.Events))
+	}
+	d := e.Pending()
+	if d == nil || d.Kind != "commander_zone" {
+		t.Fatalf("pending is %+v, want the parked commander_zone ask", d)
+	}
+}
