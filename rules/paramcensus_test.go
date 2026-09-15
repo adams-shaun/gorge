@@ -1543,6 +1543,33 @@ func measureParamCensus(t *testing.T, drop map[string]map[string]bool) (censusRe
 	return walkRepoDeckCensus(t, d, drop), d
 }
 
+// faceUnknownCostLabels returns every unmodelled cost token from every
+// face-owned value production passes to ParseCost: the printed ManaCost and
+// the four parameterised casting keywords. SA/static Cost$ and UnlessCost$
+// values are walked beside their owning primitive below. Keeping the
+// face-owned sources together is deliberate: a new printed or keyword cost
+// cannot silently evade the ratchet merely because it is not a Params entry.
+func faceUnknownCostLabels(f *cards.Face) []string {
+	inputs := []string{f.ManaCost}
+	for _, keyword := range [...]string{"Kicker", "Surge", "Flashback", "Miracle"} {
+		if cost, ok := f.KeywordParam(keyword); ok {
+			inputs = append(inputs, cost)
+		}
+	}
+	seen := map[string]bool{}
+	for _, input := range inputs {
+		for _, token := range ParseCost(input).Unknown {
+			seen["cost:"+token] = true
+		}
+	}
+	out := make([]string, 0, len(seen))
+	for label := range seen {
+		out = append(out, label)
+	}
+	sort.Strings(out)
+	return out
+}
+
 // walkRepoDeckCensus does the card-side walk. Params are labelled only for
 // REGISTERED primitives (an unimplemented primitive's unread params are
 // noise -- the first ratchet owns the card); cost tokens are labelled
@@ -1575,6 +1602,9 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 				}
 			}
 			for _, f := range c.Faces {
+				for _, label := range faceUnknownCostLabels(f) {
+					addLabel(label)
+				}
 				var walk func(sa *cards.SA)
 				walk = func(sa *cards.SA) {
 					if sa == nil {
@@ -2174,6 +2204,29 @@ func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
 		if !found {
 			t.Errorf("%s: expected %s in the census (labels %v)", card, label, res.labels[card])
 		}
+	}
+}
+
+// TestParamCensusCatchesPrintedAndKeywordCosts pins the cost sources that
+// are not Params maps: the normal printed cost plus Kicker, Surge, Flashback
+// and Miracle. All five are parsed by production cast paths, and an unknown
+// token in any of them must become a cost: label.
+func TestParamCensusCatchesPrintedAndKeywordCosts(t *testing.T) {
+	f := &cards.Face{
+		ManaCost: "PayEnergy<X>",
+		Keywords: []string{
+			"Kicker:Return<1/CARDNAME>",
+			"Surge:PaySurge<1>",
+			"Flashback:ExileFromGrave<1/Card>",
+			"Miracle:PayMiracle<1>",
+		},
+	}
+	want := []string{
+		"cost:PayEnergy", "cost:Return", "cost:PaySurge",
+		"cost:ExileFromGrave", "cost:PayMiracle",
+	}
+	if got := faceUnknownCostLabels(f); !sameSet(got, want) {
+		t.Errorf("face-owned costs = %v, want %v", got, want)
 	}
 }
 
