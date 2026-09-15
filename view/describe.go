@@ -17,6 +17,13 @@ import (
 //
 // ClockTick describes as "" (the client hides empty lines); an unknown
 // Kind as "unknown event" rather than a panic.
+func firstID(ids []state.ObjID) state.ObjID {
+	if len(ids) > 0 {
+		return ids[0]
+	}
+	return 0
+}
+
 func Describe(g *state.Game, ev events.Event) string {
 	switch ev.Kind {
 	case events.GameStart:
@@ -25,6 +32,12 @@ func Describe(g *state.Game, ev events.Event) string {
 		return player(g, ev.Player) + " shuffles their library"
 	case events.LibraryOrder:
 		return player(g, ev.Player) + " rearranges the top of their library"
+	case events.Pair:
+		return obj(g, ev.Obj) + " pairs with " + obj(g, firstID(ev.IDs))
+	case events.MyriadCopy:
+		return obj(g, ev.Obj) + " creates a Myriad copy attacking " + player(g, state.PlayerID(firstID(ev.IDs)))
+	case events.MyriadCleanup:
+		return "Myriad tokens are exiled at end of combat"
 	case events.MoveZone:
 		return obj(g, ev.Obj) + " moves from " + zone(ev.From) + " to " + zone(ev.To)
 	case events.Draw:

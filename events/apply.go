@@ -47,16 +47,28 @@ func Apply(g *state.Game, e Event) {
 		// as it is now, which is the best available LKI for a transient
 		// copy).
 		src := g.Obj(e.Obj)
-		if src != nil && src.Face() != nil {
+		if validPlayer(g, e.Player) && src != nil && src.Face() != nil {
 			o := g.AddObject(src.Card, e.Player)
 			o.FaceIdx = src.FaceIdx
 			o.IsToken = true
 			o.IsCopy = true
+			o.IsMyriad = true
 			Move(g, o.ID, state.ZLibrary, state.ZBattlefield)
 			o.Tapped = true
 			o.IsAttacking = true
 			if len(e.IDs) > 0 {
 				o.Attacking = state.PlayerID(e.IDs[0])
+			}
+		}
+
+	case MyriadCleanup:
+		// CR 702.109a: every token created by Myriad is exiled at end of
+		// combat. Move is called only from this event fold, so replay performs
+		// the same deterministic arena-order cleanup without synthetic events.
+		for i := range g.Objs {
+			o := &g.Objs[i]
+			if o.IsMyriad && o.Zone == state.ZBattlefield {
+				Move(g, o.ID, state.ZBattlefield, state.ZExile)
 			}
 		}
 
@@ -95,10 +107,21 @@ func Apply(g *state.Game, e Event) {
 		}
 		Move(g, e.Obj, e.From, e.To)
 		if o := g.Obj(e.Obj); o != nil {
-			if e.Counter == "exiled_with" && e.To == state.ZExile {
-				o.ExiledWith = state.ObjID(e.Amount)
-			} else if e.To != state.ZExile {
+			if e.To == state.ZExile {
+				switch e.Counter {
+				case "exiled_with_face_down":
+					o.ExiledWith = state.ObjID(e.Amount)
+					o.FaceDown = true
+				case "exiled_with":
+					o.ExiledWith = state.ObjID(e.Amount)
+					o.FaceDown = false
+				default:
+					o.ExiledWith = 0
+					o.FaceDown = false
+				}
+			} else {
 				o.ExiledWith = 0
+				o.FaceDown = false
 			}
 			if e.Text == "reversed" && o.HasPreStackEntry {
 				o.EnteredThisTurn = o.PreStackEntryThisTurn
@@ -745,7 +768,9 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.Counters = nil
 		o.IntrinsicKeywords = nil
 		o.ExiledWith = 0
+		o.FaceDown = false
 		o.RiotChoice = ""
+		o.IsMyriad = false
 		o.Paired = 0
 		o.Targets = nil
 		o.Remembered = nil

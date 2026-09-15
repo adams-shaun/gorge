@@ -47,6 +47,9 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	if ev.Kind != events.MoveZone {
 		return ev, false
 	}
+	if e.applyRiotReplacement(ev) {
+		return ev, true
+	}
 	// CR 903.9 (Task m32): a commander about to be put into its owner's
 	// graveyard, hand or library from anywhere, or exiled from anywhere, may
 	// instead be put into the command zone by its OWNER. This is a
@@ -276,6 +279,33 @@ func (e *Engine) resolveReplacementWith(ctx *effects.Ctx, with *cards.SA) {
 	e.damaging = ctx.Source
 	effects.Resolve(e, ctx, with)
 	e.damaging = saved
+}
+
+// applyRiotReplacement parks every non-cast battlefield entry of a Riot
+// creature before it happens. Cast flow already records RiotChoice through
+// collectETBChoices, but reanimation/blink/search entries only visit this
+// general MoveZone path. The parked move is emitted after handleChoose logs
+// the choice, making events.Move the single place that applies it.
+func (e *Engine) applyRiotReplacement(ev events.Event) bool {
+	if ev.To != state.ZBattlefield || e.riotMove != nil {
+		return false
+	}
+	o := e.G.Obj(ev.Obj)
+	if o == nil || o.Zone == state.ZBattlefield || o.Face() == nil ||
+		!o.Face().HasKeyword("Riot") || o.RiotChoice != "" {
+		return false
+	}
+	move := ev
+	e.riotMove = &move
+	d := &decision.Decision{Player: o.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: o.ID, Prompt: "Choose how this creature enters (counter or haste)",
+		Options: []decision.Option{
+			{Index: 0, Kind: "riot", Label: "Enter with a +1/+1 counter", Obj: o.ID, Player: o.Controller},
+			{Index: 1, Kind: "riot", Label: "Gain haste", Obj: o.ID, Player: o.Controller},
+		}}
+	e.choosing = chooseRiot
+	e.ask(d)
+	return true
 }
 
 // replacementMatches implements R:Event$ Moved's own Origin$/Destination$/

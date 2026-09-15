@@ -18,10 +18,9 @@ func init() { Register("Myriad", effMyriad) }
 // effect context). The tokens are created tapped and attacking, which is the
 // Myriad copy's entry condition.
 //
-// The engine stands in for the token's exile-at-end-of-combat and for the
-// "copy" fidelity (the token is a copy of the source's card/face, so it
-// shares printed characteristics); those are M4 territory. This covers the
-// core Myriad contract -- for each other opponent, one attacking token copy.
+// events.MyriadCleanup exiles these marked tokens as end combat ends. The
+// copy is the source's current card/face, preserving its printed
+// characteristics for the token's battlefield lifetime.
 func effMyriad(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	src := g.Obj(c.Source)

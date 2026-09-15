@@ -88,6 +88,10 @@ type resumePoint struct {
 	// target is Dig's index into its deterministic Defined$ target list. It
 	// keeps a resumed answer attached to the library that actually asked.
 	target int
+	// player is the decision's owner. Dredge uses it to apply the answered
+	// replacement to the player drawing even when the enclosing effect's
+	// controller is someone else.
+	player state.PlayerID
 	// direct identifies an effect invoked outside stack resolution (currently
 	// an enters-the-battlefield replacement such as Hideaway). It resumes its
 	// source directly rather than requiring a stack object.
@@ -124,7 +128,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 	// comment and resumeResolution's restore of it.
 	e.resume = &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA,
 		replacement: e.applyingReplacement, replaced: e.replReplaced, before: e.triggerBefore,
-		target: d.ResumeTarget, direct: direct}
+		target: d.ResumeTarget, player: d.Player, direct: direct}
 	return true
 }
 
@@ -174,21 +178,18 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 	// it to hand (the ordinary draw is already skipped by the ask's
 	// suspension), option 1 (or an empty answer) lets the draw happen, which
 	// the suspended DrawFor re-runs as the ordinary draw.
-	if d.ResumeKind == "dredge" {
-		// CR 702.55 dredge: a draw replaced by a graveyard dredge is not a
-		// stack object, so the ordinary mid-resolution resume (which re-enters
-		// a suspended stack-object resolution) does not apply. Option 0 mills
-		// the dredge card's N and returns it to hand -- the ordinary draw is
-		// skipped; option 1 (or an empty answer) re-emits the ordinary draw.
+	if d.ResumeKind == "dredge" && (e.resume == nil || e.resume.direct) {
+		// A turn-based draw has no enclosing stack resolution to re-enter.
+		// A Draw API on a resolving spell/ability instead falls through to
+		// resumeResolution below, which restores its cursor and finishes every
+		// remaining draw and SubAbility$ exactly once.
 		ch := d.Chosen(in)
 		if len(ch) > 0 && ch[0].Kind == "dredge" {
 			e.applyDredge(in.Player, ch[0].Obj)
 		} else {
 			e.resumeOrdinaryDraw(in.Player)
 		}
-		if e.resume != nil {
-			e.resume = nil
-		}
+		e.resume = nil
 		return
 	}
 	if d.ResumeKind == "cast_modes" {
@@ -331,6 +332,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	effects.SetSVars(ctx, svars)
 	if rp.sa != nil {
 		switch rp.kind {
+		case "dredge":
+			// CR 702.55 replaces exactly the one draw that asked. The enclosing
+			// Draw cursor advances only after the replacement (or declined
+			// ordinary draw) completes; effDraw then re-enters at that cursor
+			// and performs all remaining draws before its SubAbility$.
+			if len(chosen) > 0 && chosen[0].Kind == "dredge" {
+				e.applyDredge(rp.player, chosen[0].Obj)
+			} else {
+				e.resumeOrdinaryDraw(rp.player)
+			}
+			ctx.DrawDone = int32(rp.target + 1)
 		case "unless_pay":
 			// The payer agreed to pay (option 0 is "Pay … — make a copy") or
 			// not. Payment happens HERE, in rules, because payMana owns the

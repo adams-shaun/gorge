@@ -31,6 +31,16 @@ func (e *Engine) setStep(s state.Step) {
 		}
 	}
 	if leaving == state.StepEndCombat && s != leaving {
+		// CR 702.109a exiles every Myriad token at end of combat before the
+		// combat-state reset. Emit only when one exists, so unrelated combats
+		// retain their established event stream while replay still folds the
+		// same deterministic cleanup whenever it matters.
+		for i := range e.G.Objs {
+			if o := &e.G.Objs[i]; o.IsMyriad && o.Zone == state.ZBattlefield {
+				e.emit(events.Event{Kind: events.MyriadCleanup})
+				break
+			}
+		}
 		// CR 511.3 removes creatures and planeswalkers from combat as the end
 		// of combat step ends, not when it begins. Keeping the leaving-step
 		// boundary here covers every transition made through setStep exactly
@@ -506,6 +516,26 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 			e.resumeTriggerDrain()
 			return
 		}
+	case chooseRiot:
+		// Riot is an as-enters replacement for every MoveZone path, including
+		// reanimation and blink that never create pendingCast. Record the
+		// choice first, then re-emit the parked entry; Apply consumes it on
+		// battlefield entry.
+		if e.riotMove == nil || len(chosen) != 1 {
+			e.riotMove = nil
+			e.choosing = chooseNone
+			e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "Riot answered with no entry pending"})
+			return
+		}
+		choice := "haste"
+		if chosen[0].Index == 0 {
+			choice = "counter"
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: e.riotMove.Obj, Counter: "riot", Text: choice})
+		move := *e.riotMove
+		e.riotMove = nil
+		e.choosing = chooseNone
+		e.emit(move)
 	case chooseETB:
 		// Task 12: an "as this enters" choice was answered. Record it on the
 		// card (etbAnswer, via a Choose event), then continue the flow -- the

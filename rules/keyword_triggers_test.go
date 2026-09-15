@@ -8,6 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
+	"github.com/adams-shaun/gorge/view"
 )
 
 // Task 16 keyword triggers: Undying, Evolve, Exalted, Prowess. Each keyword
@@ -210,6 +211,22 @@ func TestRiotAndHideawayUseRealCorpusCards(t *testing.T) {
 	if !e.HasKeyword(id, "Haste") || e.G.Obj(id).Counter("P1P1") != 0 {
 		t.Fatal("Riot haste choice was not applied")
 	}
+	// Reanimation/blink does not create pendingCast. The general MoveZone
+	// replacement must still offer Riot before the creature enters.
+	eReanimated := New(cfgSpider)
+	rid := eReanimated.G.Objs[0].ID
+	eReanimated.emit(events.Event{Kind: events.MoveZone, Obj: rid, From: state.ZLibrary, To: state.ZGraveyard})
+	eReanimated.emit(events.Event{Kind: events.MoveZone, Obj: rid, From: state.ZGraveyard, To: state.ZBattlefield})
+	rd := eReanimated.Pending()
+	if rd == nil || rd.Kind != decision.KChoose || len(rd.Options) != 2 {
+		t.Fatalf("non-cast Riot choice = %+v, want counter/haste choice", rd)
+	}
+	if err := eReanimated.Submit(decision.Intent{Seq: rd.Seq, Player: 0, Choices: []int{0}}); err != nil {
+		t.Fatalf("submit non-cast Riot choice: %v", err)
+	}
+	if o := eReanimated.G.Obj(rid); o.Zone != state.ZBattlefield || o.Counter("P1P1") != 1 || eReanimated.HasKeyword(rid, "Haste") {
+		t.Fatalf("non-cast Riot entry = %+v, want counter and no haste", o)
+	}
 
 	knoll, ok := reg.Lookup("Spinerock Knoll")
 	if !ok {
@@ -248,6 +265,17 @@ func TestRiotAndHideawayUseRealCorpusCards(t *testing.T) {
 	}
 	if e2.G.Obj(exiledID).ExiledWith != kid {
 		t.Fatalf("Hideaway provenance = %d, want %d", e2.G.Obj(exiledID).ExiledWith, kid)
+	}
+	if !e2.G.Obj(exiledID).FaceDown {
+		t.Fatal("Hideaway exile is not persisted face down")
+	}
+	owner := view.Project(e2.G, e2, 0, nil).Players[0].Exile
+	opponent := view.Project(e2.G, e2, 1, nil).Players[0].Exile
+	if len(owner) != 1 || !owner[0].FaceDown || owner[0].Name == "" {
+		t.Fatalf("controller Hideaway view = %+v, want identifiable face-down card", owner)
+	}
+	if len(opponent) != 1 || !opponent[0].FaceDown || opponent[0].Name != "" || opponent[0].Types != "" || opponent[0].ManaCost != "" {
+		t.Fatalf("opponent Hideaway view leaked its face: %+v", opponent)
 	}
 	lib := e2.G.Zone(state.ZLibrary, 0)
 	wantBottom := []state.ObjID{bottom.Options[2].Obj, bottom.Options[0].Obj, bottom.Options[1].Obj}
@@ -665,6 +693,76 @@ func TestDredgeCannotReplaceDrawWithInsufficientLibrary(t *testing.T) {
 // TestSoulbondUsesRealCorpusCard drives Tandem Lookout's real script from the
 // commander deck. Its K:Soulbond entry trigger must pair it reciprocally with
 // another unpaired creature its controller controls.
+// TestDredgeResumesEveryDrawAndContinuation proves an actual Golgari Thug
+// replacement cannot abandon a surrounding Draw 2 or its SubAbility$. Both
+// choices are exercised: dredging the first draw, and declining both offered
+// replacements to draw two cards normally.
+func TestDredgeResumesEveryDrawAndContinuation(t *testing.T) {
+	thug, ok := testutil.CorpusRegistry(t).Lookup("Golgari Thug")
+	if !ok {
+		t.Fatal("Golgari Thug missing from corpus")
+	}
+	drawTwo := card(t, "Name:Draw Two\nManaCost:U\nTypes:Sorcery\nA:SP$ Draw | Defined$ You | NumCards$ 2 | SubAbility$ After\nSVar:After:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n")
+	for _, tc := range []struct {
+		name        string
+		firstDredge bool
+		wantDraws   int
+	}{
+		{name: "dredge first", firstDredge: true, wantDraws: 1},
+		{name: "decline", firstDredge: false, wantDraws: 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			deck := append([]*cards.Card{thug, drawTwo}, mountainDeck(t, 38)...)
+			e := New(seatZeroStart(Config{Seed: 241, Names: []string{"a", "b"}, Decks: [][]*cards.Card{deck, mountainDeck(t, 40)}}))
+			e.Advance()
+			var tid, did state.ObjID
+			for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
+				for _, id := range e.G.Zone(z, 0) {
+					switch e.G.Obj(id).Face().Name {
+					case "Golgari Thug":
+						tid = id
+					case "Draw Two":
+						did = id
+					}
+				}
+			}
+			if tid == 0 || did == 0 {
+				t.Fatalf("fixture ids thug=%d draw=%d", tid, did)
+			}
+			e.emit(events.Event{Kind: events.MoveZone, Obj: tid, From: e.G.Obj(tid).Zone, To: state.ZGraveyard})
+			start := len(e.L.Events)
+			life := e.G.Players[0].Life
+			e.emit(events.Event{Kind: events.PutOnStack, Obj: did, From: e.G.Obj(did).Zone, To: state.ZStack, Player: 0})
+			e.resolveTop()
+			first := e.Pending()
+			if first == nil || first.ResumeKind != "dredge" {
+				t.Fatalf("first Draw 2 replacement = %+v", first)
+			}
+			choice := len(first.Options) - 1 // ordinary draw
+			if tc.firstDredge {
+				choice = 0
+			}
+			if err := e.Submit(decision.Intent{Seq: first.Seq, Player: 0, Choices: []int{choice}}); err != nil {
+				t.Fatal(err)
+			}
+			for d := e.Pending(); d != nil && d.ResumeKind == "dredge"; d = e.Pending() {
+				if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{len(d.Options) - 1}}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			draws := 0
+			for _, ev := range e.L.Events[start:] {
+				if ev.Kind == events.Draw && ev.Player == 0 {
+					draws++
+				}
+			}
+			if draws != tc.wantDraws || e.G.Players[0].Life != life+1 || e.G.Obj(did).Zone != state.ZGraveyard {
+				t.Fatalf("draws=%d life=%d spell zone=%v, want draws=%d life=%d resolved graveyard", draws, e.G.Players[0].Life, e.G.Obj(did).Zone, tc.wantDraws, life+1)
+			}
+		})
+	}
+}
+
 func TestSoulbondUsesRealCorpusCard(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	lookout, ok := reg.Lookup("Tandem Lookout")
@@ -813,6 +911,24 @@ func TestMyriadUsesRealCorpusCard(t *testing.T) {
 	if tokens != 1 {
 		t.Fatalf("Myriad created %d attacker tokens, want 1", tokens)
 	}
+	// CR 702.109a exiles Myriad tokens as the end-of-combat step ends.
+	e.setStep(state.StepEndCombat)
+	e.advanceStep()
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if e.G.Obj(id).IsMyriad {
+			t.Fatal("Myriad token remained on battlefield after combat")
+		}
+	}
+	exiled := false
+	for _, o := range e.G.Objs {
+		if o.IsToken && o.IsCopy && o.Zone == state.ZExile {
+			exiled = true
+		}
+	}
+	if !exiled {
+		t.Fatal("Myriad token was not exiled at end of combat")
+	}
+	replayCheck(t, e, cfg)
 }
 
 func TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells(t *testing.T) {

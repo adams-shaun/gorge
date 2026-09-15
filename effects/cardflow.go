@@ -45,7 +45,12 @@ func zoneOf(g *state.Game, z state.Zone, p state.PlayerID) []state.ObjID {
 
 // DrawFor is exported so the rules package can use the same code path for the
 // draw step. Drawing from an empty library is a loss, checked by SBAs.
-func DrawFor(h Host, p state.PlayerID) {
+func DrawFor(h Host, p state.PlayerID) { drawFor(h, p, -1, nil) }
+
+// drawFor is DrawFor with an optional enclosing Draw cursor. A nonnegative
+// cursor is recorded on a dredge decision so rules can continue that exact
+// multi-card resolution after its replacement is answered.
+func drawFor(h Host, p state.PlayerID, cursor int, resumeSA *cards.SA) {
 	g := h.Game()
 	lib := zoneOf(g, state.ZLibrary, p)
 	if len(lib) == 0 {
@@ -63,7 +68,7 @@ func DrawFor(h Host, p state.PlayerID) {
 		// Pose every legal replacement plus the ordinary draw. A player with
 		// several dredgers chooses which replacement applies (CR 616.1).
 		d := &decision.Decision{Player: p, Kind: decision.KModes, Min: 1, Max: 1,
-			ResumeKind: "dredge", Prompt: "Replace draw with Dredge?"}
+			ResumeKind: "dredge", ResumeTarget: cursor, ResumeSA: resumeSA, Prompt: "Replace draw with Dredge?"}
 		for _, candidate := range candidates {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "dredge",
 				Label: "Dredge " + strconv.Itoa(int(candidate.n)) + " (mill, then return " + objName(g, candidate.id) + " to hand)", Obj: candidate.id, Player: p})
@@ -111,12 +116,23 @@ func objName(g *state.Game, id state.ObjID) string {
 
 func effDraw(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "NumCards", 1)
-	for _, t := range Defined(h, c, sa) {
-		p := PlayerOf(h, c, t)
-		for i := int32(0); i < n; i++ {
-			DrawFor(h, p)
-		}
+	if n <= 0 {
+		return
 	}
+	targets := Defined(h, c, sa)
+	total := int32(len(targets)) * n
+	for c.DrawDone < total {
+		p := PlayerOf(h, c, targets[c.DrawDone/n])
+		drawFor(h, p, int(c.DrawDone), sa)
+		if h.Suspended() {
+			// A Dredge choice is between individual draws. Its resume point
+			// carries this cursor; do not run later draws or SubAbility$ yet.
+			return
+		}
+		c.DrawDone++
+	}
+	// DrawDone is scoped to this primitive like the other Ctx answer fields.
+	c.DrawDone = 0
 }
 
 // effDiscard moves cards from a player's hand to their graveyard. Which
@@ -922,7 +938,7 @@ func effHideaway(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZExile,
-			Counter: "exiled_with", Amount: int32(c.Source), Secret: true})
+			Counter: "exiled_with_face_down", Amount: int32(c.Source), Secret: true})
 		hideawayBottom(h, c, sa)
 		return
 	}
@@ -949,7 +965,7 @@ func effHideaway(h Host, c *Ctx, sa *cards.SA) {
 	// The no-host degradation chooses the first card, then retains the offered
 	// order for the rest on the bottom.
 	h.Emit(events.Event{Kind: events.MoveZone, Obj: lib[0], From: state.ZLibrary, To: state.ZExile,
-		Counter: "exiled_with", Amount: int32(c.Source), Secret: true})
+		Counter: "exiled_with_face_down", Amount: int32(c.Source), Secret: true})
 	hideawayBottom(h, c, sa)
 }
 

@@ -288,6 +288,10 @@ type Engine struct {
 	// cast holds the in-progress cast-flow state while choosing ==
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
 	cast *pendingCast
+	// riotMove parks a non-cast battlefield entry while its controller makes
+	// Riot's as-enters choice. The event is emitted only after Choose records
+	// the answer, so every entry path reaches events.Move with RiotChoice set.
+	riotMove *events.Event
 	// manaActivation is non-nil while a source with several available mana
 	// abilities waits for its controller to select one. manaColorActivation
 	// similarly holds an already-paid Produced$ Any ability, and

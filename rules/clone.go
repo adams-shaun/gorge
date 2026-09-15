@@ -74,6 +74,10 @@ func (e *Engine) Clone() *Engine {
 		// shared.
 		castAborts: cloneAbortCounts(e.castAborts),
 	}
+	if e.riotMove != nil {
+		ev := *e.riotMove
+		c.riotMove = &ev
+	}
 	if e.pending != nil {
 		d := *e.pending
 		d.Options = append([]decision.Option(nil), e.pending.Options...)

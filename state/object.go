@@ -119,6 +119,10 @@ type Object struct {
 	// ExiledWith records the permanent that exiled this card for an effect
 	// such as Hideaway. Zero means no tracked exile provenance.
 	ExiledWith ObjID
+	// FaceDown records a face-down exile (CR 702.75 Hideaway). It is state,
+	// rather than merely a Secret event flag, so later projections know not to
+	// reveal the card to another player.
+	FaceDown bool
 
 	// ChosenModes carries a modal spell's CR 601.2b announcement or a modal
 	// triggered ability's CR 603.3c placement choice to resolution: the SVar
@@ -144,8 +148,9 @@ type Object struct {
 
 	// IsToken and IsCopy mark an object that only ever exists on the stack
 	// or the battlefield (CR 111.7 tokens, CR 707.10 copies). See Ephemeral.
-	IsToken bool
-	IsCopy  bool
+	IsToken  bool
+	IsCopy   bool
+	IsMyriad bool
 }
 
 func (o *Object) Face() *cards.Face {

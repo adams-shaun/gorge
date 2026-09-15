@@ -31,6 +31,9 @@ const (
 	chooseCast chooseFor = iota + 1
 	chooseETB
 	chooseMiracle
+	// chooseRiot is deliberately outside the independently extended
+	// chooseCleanup/chooseMana ranges in combat.go and mana_activation.go.
+	chooseRiot chooseFor = 9
 )
 
 // pendingCast is the cast flow's own state, live only between beginCast and
@@ -942,6 +945,10 @@ func (e *Engine) discardAsk() bool {
 // play_land). Nothing is asked and no choice is recorded for an etbCounter
 // replacement (its ReplaceWith$ is PutCounter) -- those need only Ctx.X, not
 // a player decision.
+// collectETBChoices is the cast-path fast path. Entries that do not pass
+// through a pending cast (reanimation, blink, or a direct ChangeZone) are
+// caught by applyRiotReplacement in replacement.go before their MoveZone is
+// logged, so Riot is never limited to spells cast normally.
 func (e *Engine) collectETBChoices(you state.PlayerID) {
 	pc := e.cast
 	if pc == nil {

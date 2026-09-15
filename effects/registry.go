@@ -169,6 +169,11 @@ type Ctx struct {
 	// from the first pass.
 	Play     state.ObjID
 	PlayDone bool
+	// DrawDone is the number of individual draws a multi-card Draw has already
+	// completed. A dredge choice suspends between draws; rules restores this
+	// cursor after applying the selected replacement so the enclosing Draw
+	// continues rather than restarting or abandoning its remaining cards.
+	DrawDone int32
 	// Dig is the answered Dig look-and-take pick on a re-entered mid-resolution
 	// resolution: the object(s) the library's owner picked out of the top
 	// DigNum$ window to move to DestinationZone$, in the player's answer

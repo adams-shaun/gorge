@@ -230,6 +230,11 @@ const (
 	// the attack-creature Obj that enters tapped and attacking the opponent
 	// named by Player. Appended after Pair, same append-only precedent.
 	MyriadCopy
+	// MyriadCleanup exiles every Myriad token still on the battlefield as the
+	// end-of-combat step ends (CR 702.109a). Its event-sourced arena scan keeps
+	// live play and log replay in lockstep without adding one delayed trigger
+	// per token.
+	MyriadCleanup
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -240,7 +245,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(LibraryOrder) + 1
+	NumKinds = int(MyriadCleanup) + 1
 )
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
@@ -254,7 +259,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
-	"delayed_register", "delayed_push", "library_order"}
+	"delayed_register", "delayed_push", "library_order", "pair", "myriad_copy", "myriad_cleanup"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
