@@ -459,8 +459,17 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if bc, ok := buybackCost(f); ok && e.castable(p, id, e.offerCostFor(p, id, base.Plus(bc), false), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + f.Name + " (buyback)", Obj: id, Mode: "buyback"})
 		}
-		if sc, ok := suspendCost(f); ok && e.castable(p, id, e.offerCostFor(p, id, sc.cost, false), false) {
-			out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Suspend " + f.Name, Obj: id, Mode: "suspend"})
+		if sc, ok := suspendCost(f); ok {
+			offer := sc.cost
+			if sc.timeX {
+				// XMin<N> is part of the announcement, not a later payment
+				// preference: do not offer a Suspend X action that cannot pay
+				// even its smallest legal X.
+				offer = offer.WithX(sc.minTime)
+			}
+			if e.castable(p, id, e.offerCostFor(p, id, offer, false), false) {
+				out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Suspend " + f.Name, Obj: id, Mode: "suspend"})
+			}
 		}
 	}
 

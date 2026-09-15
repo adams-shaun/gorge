@@ -48,6 +48,10 @@ type pendingCast struct {
 
 	x     int32
 	xDone bool
+	// suspendTimeX makes the chosen cast X also set the number of TIME
+	// counters; suspendMinX is Forge's XMin<N> lower bound.
+	suspendTimeX bool
+	suspendMinX  int32
 
 	delve     []state.ObjID
 	delveDone bool
@@ -283,8 +287,10 @@ func (e *Engine) harmonizePayment(p state.PlayerID, id state.ObjID, c Cost) (Cos
 }
 
 type suspendInfo struct {
-	time int32
-	cost Cost
+	time    int32
+	timeX   bool
+	minTime int32
+	cost    Cost
 }
 
 // convokePayment is one announced non-mana payment. color is zero for a
@@ -296,7 +302,9 @@ type convokePayment struct {
 	power int32
 }
 
-// suspendCost parses Forge's Suspend:<time>:<cost> keyword form.
+// suspendCost parses Forge's Suspend:<time>:<cost> keyword form. X-time
+// scripts put their lower bound in the leading XMin<N> cost token; the same
+// announced X pays the cost and becomes the number of TIME counters.
 // convokeCost commits untapped creatures in battlefield order, consuming a
 // needed colour when that creature has one and otherwise one generic mana.
 // It returns the reduced cost and exactly the creatures that must be tapped.
@@ -339,6 +347,26 @@ func suspendCost(f *cards.Face) (suspendInfo, bool) {
 	n, rest, ok := strings.Cut(raw, ":")
 	if !ok {
 		return suspendInfo{}, false
+	}
+	if strings.TrimSpace(n) == "X" {
+		fields := strings.Fields(rest)
+		info := suspendInfo{timeX: true}
+		if len(fields) > 0 && strings.HasPrefix(fields[0], "XMin") {
+			min, err := strconv.ParseInt(strings.TrimPrefix(fields[0], "XMin"), 10, 32)
+			if err != nil || min < 0 {
+				return suspendInfo{}, false
+			}
+			info.minTime = int32(min)
+			fields = fields[1:]
+		}
+		info.cost = ParseCost(strings.Join(fields, " "))
+		// The corpus's X-time Suspend form charges that same X. Without a
+		// cost X there is no finite legal option range to announce, so do not
+		// offer a made-up bound.
+		if info.cost.X == 0 {
+			return suspendInfo{}, false
+		}
+		return info, true
 	}
 	time, err := strconv.ParseInt(strings.TrimSpace(n), 10, 32)
 	if err != nil || time < 0 {
@@ -782,6 +810,11 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// The tax is captured as a separate generic amount (taxGeneric) rather
 	// than folded into cost, so manaToPay adds it AFTER the 601.2f modifiers
 	// and never lets those spill onto it.
+	if opt.Mode == "suspend" {
+		if sc, ok := suspendCost(f); ok && sc.timeX {
+			e.cast.suspendTimeX, e.cast.suspendMinX = true, sc.minTime
+		}
+	}
 	e.collectETBChoices(p)
 	e.continueCast()
 }
@@ -1189,6 +1222,10 @@ func (e *Engine) xAsk() bool {
 	if pc.cost.X <= 0 {
 		return false
 	}
+	min := int32(0)
+	if pc.suspendTimeX {
+		min = pc.suspendMinX
+	}
 	pool := e.G.Players[pc.player].Pool
 	gy := int32(len(e.G.Zone(state.ZGraveyard, pc.player)))
 	// Bound: past this many mana no further X is ever payable, since a
@@ -1196,7 +1233,7 @@ func (e *Engine) xAsk() bool {
 	// the best possible Delve credit are fixed at this instant.
 	bound := pool.Total() + gy + 1
 	var max int32
-	for x := int32(0); x <= bound; x++ {
+	for x := min; x <= bound; x++ {
 		wx := e.manaToPayX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
 		if !wx.payable(pool, e.G.Players[pc.player].Life) {
@@ -1206,7 +1243,7 @@ func (e *Engine) xAsk() bool {
 	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose a value for X", Source: pc.card}
-	for x := int32(0); x <= max; x++ {
+	for x := min; x <= max; x++ {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "x",
 			Label: fmt.Sprintf("X = %d", x), Amount: int(x)})
 	}
@@ -2527,13 +2564,18 @@ func (e *Engine) payCast() {
 	}
 	if pc.mode == "suspend" {
 		info, _ := suspendCost(e.G.Obj(pc.card).Face())
+		time := info.time
+		if info.timeX {
+			time = pc.x
+		}
 		// CastInfo is the replayable provenance marker: only this action sets
 		// FlagSuspend, so an arbitrary exiled Suspend card is never treated as
-		// having been suspended.
-		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Counter: events.FlagsString(state.FlagSuspend)})
+		// having been suspended. Its Amount retains X while the card is exiled:
+		// counter-removal triggers on X-time Suspend cards read xPaid there.
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.x, Counter: events.FlagsString(state.FlagSuspend)})
 		e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: pc.from, To: state.ZExile, Text: "suspended"})
-		if info.time > 0 {
-			e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: "TIME", Amount: info.time})
+		if time > 0 {
+			e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: "TIME", Amount: time})
 		}
 		e.cast, e.choosing = nil, chooseNone
 		return

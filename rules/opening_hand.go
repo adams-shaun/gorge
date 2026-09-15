@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -31,6 +32,50 @@ type openingEffect struct {
 	svar   string
 }
 
+// openingActionSVar finds the SVar which performs the pregame action. Forge's
+// keyword parameter is normally that action's name (FromHand, RevealCard),
+// but some scripts name its delayed child instead: Chancellor of the Tangle
+// says ManaOnMain while RevealCard is the actual reveal-and-register action.
+// Prefer an explicit pregame action, then a SVar which chains into the named
+// child. Sorting keeps the fallback deterministic if a future script has more
+// than one descriptive opening action.
+func openingActionSVar(f *cards.Face, raw string) string {
+	name, _, _ := strings.Cut(raw, ":")
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return ""
+	}
+	if sa := cards.ResolveSVar(f.SVars, name); sa != nil &&
+		(strings.HasPrefix(name, "From") || strings.HasPrefix(name, "Exile") ||
+			strings.Contains(strings.ToLower(sa.Params["SpellDescription"]), "opening hand")) {
+		return name
+	}
+	keys := make([]string, 0, len(f.SVars))
+	for key := range f.SVars {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		sa := cards.ResolveSVar(f.SVars, key)
+		if sa != nil && sa.Params["SubAbility"] == name &&
+			strings.Contains(strings.ToLower(sa.Params["SpellDescription"]), "opening hand") {
+			return key
+		}
+	}
+	for _, key := range keys {
+		sa := cards.ResolveSVar(f.SVars, key)
+		if sa != nil && strings.Contains(strings.ToLower(sa.Params["SpellDescription"]), "opening hand") {
+			return key
+		}
+	}
+	// A parameter that is itself an SVar remains the final conservative
+	// fallback for scripts without Forge's descriptive field.
+	if cards.ResolveSVar(f.SVars, name) != nil {
+		return name
+	}
+	return ""
+}
+
 func cloneOpening(o openingRound) openingRound {
 	o.effects = append([]openingEffect(nil), o.effects...)
 	return o
@@ -48,14 +93,15 @@ func (e *Engine) newOpeningRound(start state.PlayerID, mulligans int) openingRou
 			if !ok {
 				continue
 			}
-			svar, requirement, _ := strings.Cut(raw, ":")
-			// !PlayFirst is Gemstone Caverns' gate. Other FromHand shapes are
-			// unconditional; unsupported predicates fail closed rather than
-			// accidentally granting a pregame effect.
+			_, requirement, _ := strings.Cut(raw, ":")
+			// !PlayFirst is Gemstone Caverns' and Impatient Iguana's gate.
+			// Other FromHand shapes are unconditional; unsupported predicates
+			// fail closed rather than accidentally granting a pregame effect.
 			if strings.Contains(requirement, "!PlayFirst") && p == start {
 				continue
 			}
-			if svar == "" || cards.ResolveSVar(o.Face().SVars, svar) == nil {
+			svar := openingActionSVar(o.Face(), raw)
+			if svar == "" {
 				continue
 			}
 			r.effects = append(r.effects, openingEffect{player: p, card: id, svar: svar})

@@ -74,6 +74,32 @@ func TestSuspendProfaneTutorHasProvenanceAndForcedCast(t *testing.T) {
 	}
 }
 
+func TestSuspendXBenalishCommanderAnnouncesTimeAndCost(t *testing.T) {
+	e := handEngine(t, corpusAlternativeCard(t, "Benalish Commander"))
+	commander := e.G.Zone(state.ZHand, 0)[0]
+	if info, ok := suspendCost(e.G.Obj(commander).Face()); !ok || !info.timeX || info.minTime != 1 || info.cost.X != 1 {
+		t.Fatalf("Benalish Suspend parse = %+v, %v", info, ok)
+	}
+	e.G.Players[0].Pool[state.MC] = 1
+	e.G.Players[0].Pool[state.MW] = 2
+	castMode(t, e, commander, "suspend")
+	if e.cast == nil || !e.cast.suspendTimeX || e.cast.suspendMinX != 1 {
+		t.Fatalf("Suspend X pending cast = %+v", e.cast)
+	}
+	d := e.Pending()
+	if d == nil || len(d.Options) != 1 || d.Options[0].Kind != "x" || d.Options[0].Amount != 1 {
+		t.Fatalf("Suspend X did not offer only its payable XMin1 choice: %+v", d)
+	}
+	submitChoices(t, e, 0)
+	o := e.G.Obj(commander)
+	if o.Zone != state.ZExile || o.Counter("TIME") != 1 || o.X != 1 || o.CastFlags&state.FlagSuspend == 0 {
+		t.Fatalf("Suspend X did not share announced X between cost and time: %+v", o)
+	}
+	if e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("Suspend X cost left mana behind: %v", e.G.Players[0].Pool)
+	}
+}
+
 func TestConvokeCrowdsFavorCommitsChosenCreature(t *testing.T) {
 	e := handEngine(t, corpusAlternativeCard(t, "Crowd's Favor"))
 	creature := card(t, "Name:Red Druid\nManaCost:R\nTypes:Creature Elf\nPT:1/1\nA:AB$ Mana | Cost$ T | Produced$ R\nOracle:x\n")
@@ -214,6 +240,63 @@ func TestGemstoneCavernsOpeningHandEffect(t *testing.T) {
 		return
 	}
 	t.Fatal("could not construct non-starting Gemstone opening hand")
+}
+
+func TestOpeningHandRevealActionAndPlayFirstGate(t *testing.T) {
+	chancellor := corpusAlternativeCard(t, "Chancellor of the Tangle")
+	iguana := corpusAlternativeCard(t, "Impatient Iguana")
+	fill := card(t, "Name:Filler\nTypes:Basic Land\nOracle:x\n")
+	deck := func(c *cards.Card) []*cards.Card {
+		out := make([]*cards.Card, 40)
+		out[0] = c
+		for i := 1; i < len(out); i++ {
+			out[i] = fill
+		}
+		return out
+	}
+	foundChancellor := false
+	for seed := uint64(1); seed < 200; seed++ {
+		e := New(Config{Seed: seed, Names: []string{"a", "b"}, Decks: [][]*cards.Card{deck(chancellor), deck(chancellor)}})
+		d := e.Pending()
+		if d == nil || d.Options[0].Kind != "opening_yes" {
+			continue
+		}
+		id := d.Options[0].Obj
+		if e.G.Obj(id).Face().Name != "Chancellor of the Tangle" || e.opening.effects[e.opening.index].svar != "RevealCard" {
+			t.Fatalf("Chancellor opening action = %+v, want RevealCard", e.opening.effects)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+			t.Fatal(err)
+		}
+		revealed := false
+		for _, ev := range e.L.Events {
+			if ev.Kind == events.Note {
+				for _, got := range ev.IDs {
+					revealed = revealed || got == id
+				}
+			}
+		}
+		if !revealed || e.G.Obj(id).Zone != state.ZHand {
+			t.Fatalf("Chancellor did not reveal from opening hand: revealed=%v zone=%s", revealed, e.G.Obj(id).Zone)
+		}
+		foundChancellor = true
+		break
+	}
+	if !foundChancellor {
+		t.Fatal("could not construct Chancellor opening hand")
+	}
+	for seed := uint64(1); seed < 200; seed++ {
+		e := New(Config{Seed: seed, Names: []string{"a", "b"}, Decks: [][]*cards.Card{deck(iguana), deck(iguana)}})
+		d := e.Pending()
+		if d == nil || d.Options[0].Kind != "opening_yes" {
+			continue
+		}
+		if d.Player == e.opening.start {
+			t.Fatalf("!PlayFirst offered Impatient Iguana to starting player %d", d.Player)
+		}
+		return
+	}
+	t.Fatal("could not construct opening hands for real reveal scripts")
 }
 
 // Keep events imported above in this file's behavioural setup, rather than
