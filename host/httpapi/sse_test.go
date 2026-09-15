@@ -61,19 +61,36 @@ func readSSE(t *testing.T, body io.Reader, n int) []sseFrame {
 
 // pausedServer builds a registry whose table waits on `gate` at every
 // decision so the test controls pacing, serves it, and returns the handler
-// (via newHandler) so tests can observe the grace map directly.
-func pausedServer(t *testing.T, o Options, gate chan struct{}, ring int) (*httptest.Server, *host.Registry, *handler) {
+// (via newHandler) so tests can observe the grace map directly. A non-zero
+// variadic pace sets the table's Pace instead (sleep after every decision),
+// for tests that need a match spanning many ticks without a gate.
+func pausedServer(t *testing.T, o Options, gate chan struct{}, ring int, pace ...time.Duration) (*httptest.Server, *host.Registry, *handler) {
 	t.Helper()
-	r, err := host.New(host.Options{LoadDeck: loader(t), Ring: ring, Sleep: func(time.Duration, <-chan struct{}) {
+	r, err := host.New(host.Options{LoadDeck: loader(t), Ring: ring, Sleep: func(d time.Duration, stop <-chan struct{}) {
 		if gate != nil {
 			<-gate
+			return
+		}
+		// No gate: honour the table's own Pace (host.defaultSleep is
+		// unexported; this is the same timer-or-stop shape).
+		if d > 0 {
+			timer := time.NewTimer(d)
+			defer timer.Stop()
+			select {
+			case <-timer.C:
+			case <-stop:
+			}
 		}
 	}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { r.Close() })
-	if err := r.AddTable(host.TableConfig{ID: "t1", Name: "Table 1", Seats: 4, Decks: []string{"a", "b", "c", "d"}, Seed: 5, Spectator: view.Omniscient}); err != nil {
+	cfg := host.TableConfig{ID: "t1", Name: "Table 1", Seats: 4, Decks: []string{"a", "b", "c", "d"}, Seed: 5, Spectator: view.Omniscient}
+	if len(pace) > 0 && pace[0] > 0 {
+		cfg.Pace = pace[0]
+	}
+	if err := r.AddTable(cfg); err != nil {
 		t.Fatal(err)
 	}
 	h, mux := newHandler(r, o)
@@ -214,7 +231,13 @@ func TestAnIDOlderThanTheRingStartsOverWithHello(t *testing.T) {
 }
 
 func TestWidgetsAreCoalescedToTheTicker(t *testing.T) {
-	srv, r, _ := pausedServer(t, Options{WidgetInterval: 40 * time.Millisecond}, nil, 0)
+	// The fixture match is paced (sleep after every decision): 641 decisions
+	// at 250µs each spans ~160ms, i.e. several 40ms ticker periods with a
+	// widget-worth of bursts inside each. Without the pace a fixture-deck
+	// match runs in ~10ms and finishes inside one tick, and the count bound
+	// below could no longer tell a coalescing writer from a per-burst one
+	// (measured: both emit ~2 widgets on an unpaced 10ms match).
+	srv, r, _ := pausedServer(t, Options{WidgetInterval: 40 * time.Millisecond}, nil, 0, 250*time.Microsecond)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	resp := openStream(t, ctx, srv.URL, "")
@@ -256,7 +279,17 @@ func TestWidgetsAreCoalescedToTheTicker(t *testing.T) {
 	if widgets == 0 || withID != 0 {
 		t.Fatalf("%d widgets, %d with ids", widgets, withID)
 	}
-	maxTicks := int(elapsed/(40*time.Millisecond)) + 10
+	// Coalescing means at most one widget frame per table per tick, and the
+	// widgets are only dirty from the first state change to the first tick
+	// after the match ends -- so the emitting ticks all fall inside
+	// [start, Wait+interval]. The fixture match is short by construction
+	// (fixtureDeckSize), so the old +10 slack would have admitted a
+	// per-decision widget stream (641 decisions here) at a short match's
+	// tick count; the slack covers the ticker's phase lag past Wait plus
+	// scheduler jitter -- the discriminator is the two orders of magnitude
+	// between ~18 coalesced widgets and the 641 per-burst ones a
+	// bypass-the-ticker mutation emits.
+	maxTicks := int(elapsed/(40*time.Millisecond)) + 3
 	if widgets > maxTicks {
 		t.Fatalf("%d widgets for a %v match with a 40ms ticker (%d decisions)", widgets, elapsed, ms[0].Events)
 	}
