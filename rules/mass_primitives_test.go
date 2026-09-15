@@ -1119,3 +1119,56 @@ func TestLordWindgraceCanBeCommander(t *testing.T) {
 		t.Fatalf("Lord Windgrace is not offered as a command-zone cast: %+v", d.Options)
 	}
 }
+
+// TestIllegalCommanderConfigurationIsRejected is the NEGATIVE half of the
+// kw:Partner / kw:CanBeCommander deck-construction work (CR 903.4/903.13):
+// legalCommandersFor must actually run on every Commander-format New, so each
+// illegal configuration seats NOTHING (empty command zone, the rejected cards
+// stay in the library) and the CR 903 rejection Note lands on the log. Every
+// card here is real corpus script; the pair cases are deliberately WRONG
+// pairs -- legendary creatures with no Partner ability, a plain Partner paired
+// with a Partner-with card (CR 903.13a/c: not a legal pair), and two
+// Partner-with cards whose named partners are not each other.
+func TestIllegalCommanderConfigurationIsRejected(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	cases := []struct {
+		name string
+		cmds []string
+	}{
+		{"single noncommander card", []string{"Orcish Bowmasters"}},
+		{"legendary cards with no Partner ability", []string{"Lord Windgrace", "Sheoldred, the Apocalypse"}},
+		{"plain Partner paired with a Partner-with card", []string{"Vial Smasher the Fierce", "Krav, the Unredeemed"}},
+		{"Partner-with cards that do not name each other", []string{"Krav, the Unredeemed", "Will Kenrith"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var cmds []*cards.Card
+			for _, n := range tc.cmds {
+				cmds = append(cmds, lookup(t, reg, n))
+			}
+			indices := make([]int, len(cmds))
+			for i := range indices {
+				indices[i] = i
+			}
+			e := New(commanderConfig(t, reg, cmds, indices))
+			e.Advance()
+			if got := e.G.Players[0].Commanders; len(got) != 0 {
+				t.Fatalf("illegal configuration seated %d commander(s), want 0", len(got))
+			}
+			for _, id := range e.G.Zone(state.ZLibrary, 0) {
+				if o := e.G.Obj(id); o != nil && o.Zone == state.ZCommand {
+					t.Fatalf("a rejected commander card sits in the command zone")
+				}
+			}
+			rejected := false
+			for _, ev := range e.L.Events {
+				if ev.Kind == events.Note && strings.Contains(ev.Text, "commander configuration rejected under CR 903") {
+					rejected = true
+				}
+			}
+			if !rejected {
+				t.Fatalf("no CR 903 rejection Note on the log for %q", tc.name)
+			}
+		})
+	}
+}
