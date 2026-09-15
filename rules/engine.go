@@ -437,14 +437,16 @@ type Engine struct {
 	// always zero at a clone boundary.
 	combatDamaging bool
 
-	// manaFromTap is true only while a paid mana ability whose Cost$ contains
-	// T resolves its ManaAdd event. ProduceMana replacements are all written
-	// as "if [a permanent] is tapped for mana" and consult this provenance;
-	// merely naming a source object on ManaAdd is not enough (a sacrifice-only
-	// ability such as Krark-Clan Ironworks must not be multiplied). Like
-	// damaging/combatDamaging it is synchronous scratch, zero at every intent
-	// boundary and deliberately not cloned.
-	manaFromTap bool
+	// manaFromTap and manaProducer identify the paid mana ability currently
+	// resolving. ProduceMana replacements are all written as "if [a permanent]
+	// is tapped for mana", so they need both its producer and tap provenance;
+	// a sacrifice-only ability such as Krark-Clan Ironworks must not be
+	// multiplied. They are synchronous scratch rather than fields on ManaAdd:
+	// producer attribution is needed to choose the replacement, but is not a
+	// property of the resulting mana event and adding it changed every replay
+	// chain head. Both are zero at an intent boundary and deliberately uncloned.
+	manaFromTap  bool
+	manaProducer state.ObjID
 
 	// stepLeaving points at the step whose setStep transition is currently
 	// being offered to BeginPhase replacements. An Optional$ replacement can

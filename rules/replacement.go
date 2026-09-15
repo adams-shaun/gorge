@@ -93,7 +93,7 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 		}
 	})
 	if ev.Kind == events.ManaAdd {
-		return e.continueManaReplacements(ev, manaCandidates, nil, false, e.manaFromTap)
+		return e.continueManaReplacements(ev, manaCandidates, nil, false, e.manaFromTap, e.manaProducer)
 	}
 	if len(matches) == 0 {
 		return ev, false
@@ -187,9 +187,9 @@ func (e *Engine) forEachReplacementSource(fn func(id state.ObjID)) {
 }
 
 // replacementEvent maps the event log's concrete events to Forge R:Event$
-// names. ManaAdd carries its producing source in Obj (set by effMana), while
-// Engine.manaFromTap separately proves that this activation actually paid a
-// tap cost; ProduceMana replacements need both pieces.
+// names. ManaAdd's producer and tap provenance live in synchronous Engine
+// scratch instead of its hash-chained fields; ProduceMana matching requires
+// both, while the logged event remains the ordinary final mana production.
 func replacementEvent(ev events.Event) (string, bool) {
 	switch ev.Kind {
 	case events.MoveZone:
@@ -201,7 +201,7 @@ func replacementEvent(ev events.Event) (string, bool) {
 	case events.FlipFace:
 		return "Transform", true
 	case events.ManaAdd:
-		return "ProduceMana", ev.Obj != 0
+		return "ProduceMana", true
 	default:
 		return "", false
 	}
@@ -383,10 +383,16 @@ func (e *Engine) applyTransformReplacement(ev events.Event, matches []replMatch)
 // is automatic. Only the final rewritten ManaAdd enters the event log, so a
 // log-only replay needs no transient provenance or replacement state.
 func (e *Engine) continueManaReplacements(ev events.Event, candidates []replMatch,
-	applied []bool, changed, tapped bool) (events.Event, bool) {
+	applied []bool, changed, tapped bool, producer state.ObjID) (events.Event, bool) {
 	if applied == nil {
 		applied = make([]bool, len(candidates))
 	}
+	// A colour/order answer resumes after resolveManaEffectColor restored its
+	// synchronous scratch. Rebind producer for every applicability recheck so
+	// a parked replacement still sees the permanent that produced this mana.
+	savedProducer := e.manaProducer
+	e.manaProducer = producer
+	defer func() { e.manaProducer = savedProducer }()
 	for {
 		var applicable []int
 		savedTap := e.manaFromTap
@@ -406,7 +412,7 @@ func (e *Engine) continueManaReplacements(ev events.Event, candidates []replMatc
 			return stored, true
 		}
 		if len(applicable) > 1 && int(ev.Player) < len(e.G.Players) && !e.G.Players[ev.Player].Lost {
-			e.poseManaReplacementChoice(ev, candidates, applied, applicable, changed, tapped)
+			e.poseManaReplacementChoice(ev, candidates, applied, applicable, changed, tapped, producer)
 			return ev, true
 		}
 		// A sole applicable replacement is mandatory. A choice-valued colour
@@ -416,7 +422,7 @@ func (e *Engine) continueManaReplacements(ev events.Event, candidates []replMatc
 		i := applicable[0]
 		if manaReplacementNeedsColor(candidates[i]) && int(ev.Player) < len(e.G.Players) &&
 			!e.G.Players[ev.Player].Lost {
-			e.poseManaColorReplacementChoice(ev, candidates, applied, i, changed, tapped)
+			e.poseManaColorReplacementChoice(ev, candidates, applied, i, changed, tapped, producer)
 			return ev, true
 		}
 		choice := ""
@@ -429,6 +435,8 @@ func (e *Engine) continueManaReplacements(ev events.Event, candidates []replMatc
 	}
 }
 
+// applyOneManaReplacement applies a body while its producer is bound in
+// Engine scratch by continueManaReplacements (or by the resume wrapper).
 func (e *Engine) applyOneManaReplacement(ev events.Event, m replMatch, color string) events.Event {
 	if m.repl.With == nil {
 		return ev
@@ -438,9 +446,21 @@ func (e *Engine) applyOneManaReplacement(ev events.Event, m replMatch, color str
 	if m.face != nil {
 		effects.SetSVars(ctx, m.face.SVars)
 	}
-	e.runReplaceWith(ctx, ev.Obj, m.repl.With)
+	// The producer is contextual (not ManaAdd.Obj), but ReplaceWith$ still
+	// resolves against that object for Defined$/Remembered$ references.
+	e.runReplaceWith(ctx, e.manaProducer, m.repl.With)
 	ev.Amount, ev.Counter = ctx.ManaAmount, ctx.ManaType
 	return ev
+}
+
+// applyOneManaReplacementWithProducer restores the contextual producer for
+// the one rewrite that occurs immediately after an answered replacement
+// decision; continueManaReplacements then rebinds it for later rechecks.
+func (e *Engine) applyOneManaReplacementWithProducer(ev events.Event, m replMatch, color string, producer state.ObjID) events.Event {
+	saved := e.manaProducer
+	e.manaProducer = producer
+	defer func() { e.manaProducer = saved }()
+	return e.applyOneManaReplacement(ev, m, color)
 }
 
 // manaReplacementNeedsColor identifies every choice-valued spelling the
@@ -736,11 +756,11 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 		// Only genuine production replaces: a ManaAdd without a producing
 		// source (a test seed, a spend) and a negative Amount (spending, not
 		// producing) are outside the class.
-		if ev.Kind != events.ManaAdd || ev.Obj == 0 || ev.Amount <= 0 || !e.manaFromTap {
+		if ev.Kind != events.ManaAdd || e.manaProducer == 0 || ev.Amount <= 0 || !e.manaFromTap {
 			return false
 		}
 		if v, ok := r.Params["ValidCard"]; ok &&
-			!effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
+			!effects.MatchesSpecFrom(e.G, v, e.manaProducer, you, source) {
 			return false
 		}
 		// ValidActivator$ You: the player adding the mana (whoever activated
@@ -847,18 +867,19 @@ const (
 )
 
 type replChoice struct {
-	kind       replChoiceKind
-	ev         events.Event
-	cands      []replMatch
-	applied    []bool // mana/phase: candidates that already had their opportunity
-	applicable []int  // order decision option -> candidate index
-	selected   int    // mana colour / phase optional: candidate awaiting its answer
-	changed    bool   // mana: at least one rewrite already happened
-	manaTapped bool   // mana: provenance survives the decision boundary
-	boundary   bool   // phase: this choice owns setStep's boundary cleanup
-	leaving    state.Step
-	before     *triggerSnapshot // immutable SBA look-back, safe to share in Clone
-	untap      *untapStep       // remaining turn-based untaps after an order answer
+	kind         replChoiceKind
+	ev           events.Event
+	cands        []replMatch
+	applied      []bool      // mana/phase: candidates that already had their opportunity
+	applicable   []int       // order decision option -> candidate index
+	selected     int         // mana colour / phase optional: candidate awaiting its answer
+	changed      bool        // mana: at least one rewrite already happened
+	manaTapped   bool        // mana: tap provenance survives the decision boundary
+	manaProducer state.ObjID // mana: producer survives the decision boundary
+	boundary     bool        // phase: this choice owns setStep's boundary cleanup
+	leaving      state.Step
+	before       *triggerSnapshot // immutable SBA look-back, safe to share in Clone
+	untap        *untapStep       // remaining turn-based untaps after an order answer
 }
 
 // poseReplacementChoice starts a CR 616.1 order-selection suspension: the
@@ -908,11 +929,11 @@ func (e *Engine) poseReplacementChoice(ev events.Event, matches []replMatch) {
 // re-evaluated after the selected rewrite, including effects newly enabled by
 // a changed ManaAmount$.
 func (e *Engine) poseManaReplacementChoice(ev events.Event, candidates []replMatch,
-	applied []bool, applicable []int, changed, tapped bool) {
+	applied []bool, applicable []int, changed, tapped bool, producer state.ObjID) {
 	e.replChoices = append(e.replChoices, replChoice{kind: replChoiceMana, ev: ev,
 		cands: candidates, applied: append([]bool(nil), applied...),
 		applicable: append([]int(nil), applicable...), changed: changed,
-		manaTapped: tapped, before: e.triggerBefore})
+		manaTapped: tapped, manaProducer: producer, before: e.triggerBefore})
 	if e.pending == nil {
 		e.askReplacementChoice(ev.Player)
 	}
@@ -923,10 +944,10 @@ func (e *Engine) poseManaReplacementChoice(ev events.Event, candidates []replMat
 // body. Candidate state and the applied bitmap are retained so the answer can
 // resume the same CR 616.1 applicability loop.
 func (e *Engine) poseManaColorReplacementChoice(ev events.Event, candidates []replMatch,
-	applied []bool, selected int, changed, tapped bool) {
+	applied []bool, selected int, changed, tapped bool, producer state.ObjID) {
 	e.replChoices = append(e.replChoices, replChoice{kind: replChoiceManaColor, ev: ev,
 		cands: candidates, applied: append([]bool(nil), applied...), selected: selected,
-		changed: changed, manaTapped: tapped, before: e.triggerBefore})
+		changed: changed, manaTapped: tapped, manaProducer: producer, before: e.triggerBefore})
 	if e.pending == nil {
 		e.askReplacementChoice(ev.Player)
 	}
@@ -1085,9 +1106,9 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 			e.replChoices = append([]replChoice{rc}, e.replChoices...)
 			break
 		}
-		rc.ev = e.applyOneManaReplacement(rc.ev, rc.cands[i], "")
+		rc.ev = e.applyOneManaReplacementWithProducer(rc.ev, rc.cands[i], "", rc.manaProducer)
 		rc.applied[i] = true
-		e.continueManaReplacements(rc.ev, rc.cands, rc.applied, true, rc.manaTapped)
+		e.continueManaReplacements(rc.ev, rc.cands, rc.applied, true, rc.manaTapped, rc.manaProducer)
 	case replChoiceManaColor:
 		color := strings.TrimPrefix(chosen[0].Label, "Add ")
 		if len(color) != 1 || !strings.Contains("WUBRG", color) ||
@@ -1097,9 +1118,9 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 				Text: "mana colour replacement answer out of range"})
 			return
 		}
-		rc.ev = e.applyOneManaReplacement(rc.ev, rc.cands[rc.selected], color)
+		rc.ev = e.applyOneManaReplacementWithProducer(rc.ev, rc.cands[rc.selected], color, rc.manaProducer)
 		rc.applied[rc.selected] = true
-		e.continueManaReplacements(rc.ev, rc.cands, rc.applied, true, rc.manaTapped)
+		e.continueManaReplacements(rc.ev, rc.cands, rc.applied, true, rc.manaTapped, rc.manaProducer)
 	case replChoicePhaseOrder:
 		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.applicable) {
 			e.triggerBefore = before

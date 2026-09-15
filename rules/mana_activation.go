@@ -376,16 +376,17 @@ func (e *Engine) resolveManaEffectColor(p state.PlayerID, source state.ObjID, ma
 		copy.Params[k] = v
 	}
 	copy.Params["Produced"] = produced
-	// ProduceMana replacement text is specifically "if [this permanent] is
-	// tapped for mana". Preserve that activation provenance across effMana's
-	// synchronous ManaAdd without adding a field to the hash-chained Event:
-	// Obj identifies the producer, while this scoped bit says whether T was
-	// actually in this ability's paid cost. A sacrifice-only KCI activation
-	// therefore carries its source for attribution but is not tap-produced.
-	saved := e.manaFromTap
+	// ProduceMana replacements need the ability's source and whether its
+	// paid cost included T. Preserve both only for effMana's synchronous emit:
+	// producer attribution is replacement matching context, not a durable
+	// property of the resulting ManaAdd (putting it in Event.Obj moved every
+	// replay chain head). A sacrifice-only KCI activation therefore identifies
+	// its source but is not tap-produced.
+	savedTap, savedProducer := e.manaFromTap, e.manaProducer
 	e.manaFromTap = ParseCost(ma.Params["Cost"]).Tap
+	e.manaProducer = source
 	e.resolveAbility(source, p, nil, &copy, o.Face().SVars)
-	e.manaFromTap = saved
+	e.manaFromTap, e.manaProducer = savedTap, savedProducer
 }
 
 // answerManaColor completes a Produced$ Any choice after the activation cost

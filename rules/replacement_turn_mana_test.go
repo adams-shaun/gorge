@@ -238,6 +238,14 @@ func TestVirtueOfStrengthTriplesBasicLandMana(t *testing.T) {
 	if pool[state.MR] != 3 || pool.Total() != 3 || !e.G.Obj(mtn0).Tapped {
 		t.Fatalf("basic land mana = %+v, want three red (tripled once, not twice)", pool)
 	}
+	// The producer is synchronous replacement context, not a durable ManaAdd
+	// field. This preserves the pre-ProduceMana event encoding for unrelated
+	// games while the rewritten amount remains replayable.
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.ManaAdd && ev.Player == 0 && ev.Counter == "R" && ev.Amount == 3 && ev.Obj != 0 {
+			t.Fatalf("rewritten ManaAdd has producer Obj %d; producer context must not alter the event stream", ev.Obj)
+		}
+	}
 
 	// Seat 0's NON-basic Volcanic Island: untouched by the Land.Basic gate.
 	e.priorityRound()
@@ -280,8 +288,8 @@ func TestDampingSphereReplacesTypeAndAmount(t *testing.T) {
 // TestNyxbloomDoesNotMultiplySacrificeOnlyMana proves ProduceMana's
 // tap-for-mana provenance with two real scripts. Krark-Clan Ironworks pays a
 // sacrifice-only cost, so Nyxbloom Ancient's "tap a permanent for mana"
-// replacement does not apply even though the ManaAdd still names KCI as its
-// producing source.
+// replacement does not apply even though synchronous replacement context
+// identifies KCI as the producer.
 func TestNyxbloomDoesNotMultiplySacrificeOnlyMana(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, cfg, ids := realCardEngine(t, reg, 73, "Nyxbloom Ancient", "Krark-Clan Ironworks")

@@ -801,7 +801,7 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 		amt = 0
 	}
 	for _, r := range runes {
-		h.Emit(events.Event{Kind: events.ManaAdd, Obj: c.Source, Player: c.Controller,
+		h.Emit(events.Event{Kind: events.ManaAdd, Player: c.Controller,
 			Counter: string(r), Amount: amt})
 	}
 }
