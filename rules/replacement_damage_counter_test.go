@@ -390,6 +390,51 @@ func TestSpiderPunkStopsProtectionPrevention(t *testing.T) {
 	}
 }
 
+// TestSpiderPunkStopsReplaceDamagePreventionBodies closes the round-4
+// finding: stat:CantPreventDamage used to exclude only the legacy
+// Prevent$ True shape, so the DB$ ReplaceDamage prevention-body family
+// (Thunderstaff, Battletide Alchemist) still reduced damage Spider-Punk
+// forbids preventing. Every damage-replacement selection and application
+// path now classifies prevention through the one damageReplacementPrevents
+// predicate, so both shapes are excluded everywhere.
+func TestSpiderPunkStopsReplaceDamagePreventionBodies(t *testing.T) {
+	reg := sharedCorpus(t)
+
+	t.Run("single-match path: Thunderstaff", func(t *testing.T) {
+		e := newSeats(t, 2)
+		e.pending = nil
+		onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Spider-Punk"))
+		onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Thunderstaff"))
+		source := onBoard(t, e, 1, "Name:Attacker\nTypes:Creature\nPT:2/2\nOracle:x\n")
+		e.damaging, e.combatDamaging = source, true
+		e.emit(events.Event{Kind: events.Damage, Player: 0, Amount: 2})
+		e.damaging, e.combatDamaging = 0, false
+		if got := e.G.Players[0].Life; got != 18 {
+			t.Fatalf("life = %d, want 18: Spider-Punk forbids Thunderstaff's ReplaceDamage prevention", got)
+		}
+	})
+
+	t.Run("ordered optional path: Battletide Alchemist is filtered before the ask", func(t *testing.T) {
+		e := newSeats(t, 2)
+		e.pending = nil
+		onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Spider-Punk"))
+		onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Battletide Alchemist"))
+		source := onBoard(t, e, 1, "Name:Attacker\nTypes:Creature\nPT:3/3\nOracle:x\n")
+		e.damaging = source
+		e.emit(events.Event{Kind: events.Damage, Player: 0, Amount: 3})
+		e.damaging = 0
+		// The prevention body is excluded by the CantPreventDamage filter
+		// before the order choice is computed, so no replacement ask may be
+		// posed at all -- and none of the 3 damage may be prevented.
+		if d := e.Pending(); d != nil && d.Kind != decision.KPriority {
+			t.Fatalf("pending = %+v, want only the ordinary priority ask: unpreventable damage must not ask about a prevention body", d)
+		}
+		if got := e.G.Players[0].Life; got != 17 {
+			t.Fatalf("life = %d, want 17: none of the 3 damage may be prevented", got)
+		}
+	})
+}
+
 // TestOjerAxonilRaisesSmallNoncombatRedDamage uses the unmodified compiled
 // corpus replacement: DamageAmount$ LTX (less than Ojer's power),
 // ValidSource$ Card.RedSource+YouCtrl (the <Colour>Source predicate family),

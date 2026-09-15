@@ -189,12 +189,17 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 		if !e.replacementMatches(*m.repl, m.id, ev) {
 			continue
 		}
-		if ev.Kind == events.Damage && m.repl.Params["Prevent"] == "True" {
-			if !e.cantPreventDamage(e.damaging, ev.Obj) {
+		if ev.Kind == events.Damage && damageReplacementPrevents(*m.repl) {
+			if e.cantPreventDamage(e.damaging, ev.Obj) {
+				// Neither a Prevent$ True line nor a DB$ ReplaceDamage body
+				// may touch damage that cannot be prevented (Spider-Punk).
+				continue
+			}
+			if m.repl.Params["Prevent"] == "True" {
 				return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
 					Text: "damage prevented by replacement effect"}, true
 			}
-			continue
+			// a ReplaceDamage body falls through to its subtracting arm below
 		}
 		if m.repl.With == nil {
 			// Counter's Layer$ CantHappen shape has no ReplaceWith$: stopping
@@ -227,13 +232,27 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 	return ev, false
 }
 
+// damageReplacementPrevents reports whether this replacement is a
+// PREVENTION body: either the legacy Prevent$ True shape or a DB$
+// ReplaceDamage body, which subtracts its Amount from the held damage event
+// and prevents exactly that much (the Thunderstaff/Battletide shield
+// family). stat:CantPreventDamage must exclude BOTH shapes, so every
+// damage-replacement selection and application path classifies prevention
+// through this one predicate and cannot drift apart.
+func damageReplacementPrevents(r cards.Repl) bool {
+	if r.Params["Prevent"] == "True" {
+		return true
+	}
+	return r.With != nil && r.With.API == "ReplaceDamage"
+}
+
 func (e *Engine) applicableDamageReplacements(ev events.Event, matches []replMatch) []replMatch {
 	out := matches[:0]
 	for _, m := range matches {
 		if !e.replacementMatches(*m.repl, m.id, ev) {
 			continue
 		}
-		if m.repl.Params["Prevent"] == "True" && e.cantPreventDamage(e.damaging, ev.Obj) {
+		if damageReplacementPrevents(*m.repl) && e.cantPreventDamage(e.damaging, ev.Obj) {
 			continue
 		}
 		out = append(out, m)
@@ -1447,7 +1466,7 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 			m := replMatch{id: ce.Source, repl: r,
 				key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
 			if !alreadyUsed(m) && e.replacementMatches(*r, ce.Source, ev) &&
-				!(r.Params["Prevent"] == "True" && e.cantPreventDamage(e.damaging, ev.Obj)) {
+				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.damaging, ev.Obj)) {
 				out = append(out, m)
 			}
 		}
@@ -1462,7 +1481,7 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 			if alreadyUsed(replMatch{id: id, repl: r}) || !e.replacementMatches(*r, id, ev) {
 				continue
 			}
-			if r.Params["Prevent"] == "True" && e.cantPreventDamage(e.damaging, ev.Obj) {
+			if damageReplacementPrevents(*r) && e.cantPreventDamage(e.damaging, ev.Obj) {
 				continue
 			}
 			out = append(out, replMatch{id: id, repl: r})
@@ -1475,6 +1494,15 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 // the chosen effect prevented/replaced the damage entirely; ReplaceEffect is
 // nonterminal and lets applicability be recomputed against its new amount.
 func (e *Engine) applyChosenDamageReplacement(ev *events.Event, m replMatch) bool {
+	// Defense in depth: both candidate-producing paths already filter
+	// prevention bodies out under CantPreventDamage, but the application
+	// point re-checks so a future selection path cannot reintroduce the
+	// leak. A skipped body is nonterminal, so the caller recomputes the
+	// remaining candidates against the still-standing event (m is in
+	// rc.used, so it cannot be picked twice).
+	if damageReplacementPrevents(*m.repl) && e.cantPreventDamage(e.damaging, ev.Obj) {
+		return false
+	}
 	if m.repl.Params["Prevent"] == "True" {
 		return true
 	}
