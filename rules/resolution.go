@@ -547,6 +547,24 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 			ctx.DigDone = true
 			ctx.DigTarget = rp.target
+		case "hand_move":
+			// A "choose N cards matching ChangeType$ from Origin$ Hand" pick was
+			// answered (handmove1): the hand's owner chose which of the
+			// ChangeType$-eligible cards to move to Destination$. The chosen
+			// options carry the object in Obj (the same shape the "search",
+			// "discard" and "dig" arms read), so the id list is read straight
+			// off them, in the player's answer order. HandMoveDone distinguishes
+			// "answered, possibly with no cards" from the first pass.
+			// effChangeZoneHand consumes and clears both at the top of its own
+			// walk (the fx42 scoping discipline), so a nested hand move cannot
+			// inherit the outer answer.
+			ctx.HandMove = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.HandMove = append(ctx.HandMove, o.Obj)
+				}
+			}
+			ctx.HandMoveDone = true
 		case "arrange":
 			// Ruling J0: rules' handleArrange already applied the answered
 			// arrangement and emitted the LibraryOrder event before calling
