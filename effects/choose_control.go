@@ -237,7 +237,7 @@ func choiceRecord(h Host, c *Ctx, sa *cards.SA, picked []state.Target, playerCho
 		// per chooser: a single player field, last chooser wins, and the card
 		// entries an earlier ChooseCard chose are untouched (its separate
 		// field). Drop the old player entries, keep the card entries.
-		c.Chosen = append(keepChosenPlayers(c.Chosen), picked...)
+		c.Chosen = append(keepChosenCards(c.Chosen), picked...)
 	} else {
 		c.Chosen = append(c.Chosen, picked...)
 	}
@@ -262,13 +262,23 @@ func choiceRecord(h Host, c *Ctx, sa *cards.SA, picked []state.Target, playerCho
 	}
 }
 
-// keepChosenPlayers returns only the player entries of a chosen list -- the
-// half of Forge's chosen state that a ChooseCard's setChosenCards leaves
-// alone.
+// keepChosenPlayers returns only player entries, the half a ChooseCard keeps.
 func keepChosenPlayers(ts []state.Target) []state.Target {
 	var out []state.Target
 	for _, t := range ts {
 		if t.IsPlayer {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
+// keepChosenCards returns only object entries, the separate chosen-cards
+// field Forge leaves untouched when ChoosePlayer replaces its chosen player.
+func keepChosenCards(ts []state.Target) []state.Target {
+	var out []state.Target
+	for _, t := range ts {
+		if !t.IsPlayer {
 			out = append(out, t)
 		}
 	}

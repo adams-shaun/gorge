@@ -73,7 +73,11 @@ type Object struct {
 	// It is never a second source of truth for a completed zone change.
 	PreStackEntryThisTurn bool
 	PreStackEntryFrom     Zone
-	HasPreStackEntry      bool
+	// PreStackEnteredLen is the entry-list boundary before a proposed cast.
+	// A CR 733.1 reverse restores that boundary, removing the proposal and
+	// every reversible cost move it made without touching earlier casts.
+	PreStackEnteredLen int
+	HasPreStackEntry   bool
 
 	// Stack-only.
 	Ability *cards.SA

@@ -69,6 +69,35 @@ func TestChooseCardDauthiCarriesChosenCardIntoEffect(t *testing.T) {
 	}
 }
 
+func TestChoosePlayerReplacesPlayerChoiceAndKeepsCards(t *testing.T) {
+	card, chooseCard := corpusSA(t, "Dauthi Voidwalker", "")
+	_, choosePlayer := corpusSA(t, "Sower of Discord", "ChooseP")
+	h := newHost(t, 3)
+	src := h.g.AddObject(card, 0)
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: src.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	exiled := h.g.AddObject(mkCard(t, "Name:Exiled\nTypes:Sorcery\nOracle:x\n"), 1)
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: exiled.ID, From: state.ZLibrary, To: state.ZExile})
+	h.Emit(events.Event{Kind: events.CounterChange, Obj: exiled.ID, Counter: "VOID", Amount: 1})
+	c := &Ctx{Source: src.ID, Controller: 0}
+	effChooseCard(h, c, chooseCard)
+	if len(c.Chosen) != 1 || c.Chosen[0].Obj != exiled.ID {
+		t.Fatalf("card choice = %+v, want exiled card", c.Chosen)
+	}
+	effChoosePlayer(h, c, choosePlayer)
+	effChoosePlayer(h, c, choosePlayer) // a second player choice replaces the first
+	cards, players := 0, 0
+	for _, chosen := range c.Chosen {
+		if chosen.IsPlayer {
+			players++
+		} else if chosen.Obj == exiled.ID {
+			cards++
+		}
+	}
+	if cards != 1 || players != 1 {
+		t.Fatalf("ChoosePlayer must retain cards and replace players, got %+v", c.Chosen)
+	}
+}
+
 func TestChooseCardLastOneStandingCorpusSA(t *testing.T) {
 	_, sa := corpusSA(t, "Last One Standing", "")
 	if sa.API != "ChooseCard" || sa.Params["AtRandom"] != "True" {

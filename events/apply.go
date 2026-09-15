@@ -70,6 +70,7 @@ func Apply(g *state.Game, e Event) {
 			if e.To == state.ZStack {
 				o.PreStackEntryThisTurn = o.EnteredThisTurn
 				o.PreStackEntryFrom = o.EnteredFrom
+				o.PreStackEnteredLen = len(g.Entered)
 				o.HasPreStackEntry = true
 			}
 		}
@@ -78,12 +79,17 @@ func Apply(g *state.Game, e Event) {
 			if e.Text == "reversed" && o.HasPreStackEntry {
 				o.EnteredThisTurn = o.PreStackEntryThisTurn
 				o.EnteredFrom = o.PreStackEntryFrom
+				if o.PreStackEnteredLen <= len(g.Entered) {
+					g.Entered = g.Entered[:o.PreStackEnteredLen]
+				}
 				o.PreStackEntryThisTurn = false
 				o.PreStackEntryFrom = state.ZLibrary
+				o.PreStackEnteredLen = 0
 				o.HasPreStackEntry = false
 			} else if wasStack && e.To != state.ZStack {
 				o.PreStackEntryThisTurn = false
 				o.PreStackEntryFrom = state.ZLibrary
+				o.PreStackEnteredLen = 0
 				o.HasPreStackEntry = false
 			}
 		}

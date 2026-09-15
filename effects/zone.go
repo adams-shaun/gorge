@@ -161,6 +161,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// directly.
 		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+			eventRemember(h, c, o.ID)
 		}
 		if withKind != "" && to == state.ZBattlefield {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: withKind, Amount: withAmt})
@@ -375,6 +376,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		}
 		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			eventRemember(h, c, id)
 		}
 		if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
 			// This establishes the object's entry state; it is not the CR
@@ -557,10 +559,12 @@ func effSacrificeAll(h Host, c *Ctx, sa *cards.SA) {
 	remember := sa.Params["RememberSacrificed"] != ""
 	if remember {
 		c.Remembered = nil
+		clearEventRemembered(h, c)
 	}
 	for _, id := range victims {
 		if remember {
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			eventRemember(h, c, id)
 		}
 		h.Emit(events.Sacrifice(id))
 	}
@@ -613,6 +617,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			// what a following ConditionDefined$ Remembered, Remembered$Amount
 			// or RememberedCard reads (Braids, Scapeshift, Victimize).
 			c.Remembered = append(copyTargets(c.Remembered), state.Target{Obj: id})
+			eventRemember(h, c, id)
 		}
 	}
 	who := Defined(h, c, sa)

@@ -37,24 +37,11 @@ func effTapAll(h Host, c *Ctx, sa *cards.SA) {
 	remember := strings.EqualFold(sa.Params["RememberTapped"], "True")
 	if remember {
 		c.Remembered = nil
+		clearEventRemembered(h, c)
 	}
 	tapper := c.Controller
 	perCardTapper := strings.TrimSpace(sa.Params["TapperController"]) != ""
-	players := g.AliveFrom(0)
-	if dv := strings.TrimSpace(sa.Params["Defined"]); dv != "" {
-		players = nil
-		for _, t := range Defined(h, c, sa) {
-			if t.IsPlayer {
-				if int(t.Player) < len(g.Players) {
-					players = append(players, t.Player)
-				}
-				continue
-			}
-			if o := g.Obj(t.Obj); o != nil {
-				players = append(players, o.Controller)
-			}
-		}
-	}
+	players := allPlayersFor(h, c, sa)
 	for _, p := range players {
 		ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, p)...)
 		for _, id := range ids {
@@ -63,6 +50,7 @@ func effTapAll(h Host, c *Ctx, sa *cards.SA) {
 			}
 			if remember {
 				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				eventRemember(h, c, id)
 			}
 			o := g.Obj(id)
 			if o == nil || o.Zone != state.ZBattlefield || o.Tapped {
@@ -94,21 +82,7 @@ func effUntapAll(h Host, c *Ctx, sa *cards.SA) {
 	remember := strings.EqualFold(sa.Params["RememberUntapped"], "True")
 	untapper := c.Controller
 	perCardUntapper := strings.TrimSpace(sa.Params["ControllerUntaps"]) != ""
-	players := g.AliveFrom(0)
-	if dv := strings.TrimSpace(sa.Params["Defined"]); dv != "" {
-		players = nil
-		for _, t := range Defined(h, c, sa) {
-			if t.IsPlayer {
-				if int(t.Player) < len(g.Players) {
-					players = append(players, t.Player)
-				}
-				continue
-			}
-			if o := g.Obj(t.Obj); o != nil {
-				players = append(players, o.Controller)
-			}
-		}
-	}
+	players := allPlayersFor(h, c, sa)
 	for _, p := range players {
 		ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, p)...)
 		for _, id := range ids {
@@ -126,9 +100,34 @@ func effUntapAll(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Untap, Obj: id, Player: untap})
 			if remember {
 				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				eventRemember(h, c, id)
 			}
 		}
 	}
+}
+
+// allPlayersFor scopes an All primitive to its Defined$ players or (when it
+// has targets but no explicit Defined$) its chosen player targets.  Forge's
+// TargetRestrictions supplies ValidTgts$ as the latter form (Mana Short and
+// Early Harvest); falling back to every battlefield is only correct when the
+// SA has neither selector.
+func allPlayersFor(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
+	g := h.Game()
+	if strings.TrimSpace(sa.Params["Defined"]) == "" {
+		if _, targeted := sa.Params["ValidTgts"]; !targeted {
+			return g.AliveFrom(0)
+		}
+	}
+	seen := map[state.PlayerID]bool{}
+	var out []state.PlayerID
+	for _, t := range Defined(h, c, sa) {
+		p := PlayerOf(h, c, t)
+		if int(p) < len(g.Players) && !seen[p] {
+			seen[p] = true
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // effTap taps each Defined$ permanent. The tapper is the resolving ability's

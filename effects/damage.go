@@ -55,6 +55,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 			emitObjectDamage(rider, t.Obj)
 			if remember {
 				c.Remembered = append(c.Remembered, state.Target{Obj: t.Obj})
+				eventRemember(h, c, t.Obj)
 			}
 		}
 	}

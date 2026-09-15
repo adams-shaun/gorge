@@ -1021,7 +1021,10 @@ func playerHasMost(g *state.Game, p state.PlayerID, kind string) bool {
 		}
 		return g.Players[p].Life == best
 	case "CardsInHand":
-		best, holder := -1, -1
+		// Forge's getPlayerWithMostCardsInHand starts with no candidate and
+		// only binds when a player has a positive hand; all-empty hands name
+		// nobody. Ties retain the first player in seat order.
+		best, holder := 0, -1
 		for i := range g.Players {
 			if n := len(g.Zone(state.ZHand, state.PlayerID(i))); n > best {
 				best, holder = n, i
@@ -1057,7 +1060,9 @@ func playerHasMost(g *state.Game, p state.PlayerID, kind string) bool {
 			holders++
 		}
 	}
-	if only && holders != 1 {
+	// Forge requires a unique leader for PermanentInPlay as well as the
+	// explicit Type...Only spelling. A shared top count names nobody.
+	if (only || kind == "PermanentInPlay") && holders != 1 {
 		return false
 	}
 	return count(p) == best

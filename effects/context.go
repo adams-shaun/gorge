@@ -266,8 +266,18 @@ func eventRemember(h Host, c *Ctx, id state.ObjID) {
 	if c.Source == 0 {
 		return
 	}
-	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "remembered",
-		IDs: []state.ObjID{id}})
+	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "remembered", IDs: []state.ObjID{id}})
+}
+
+// clearEventRemembered mirrors Forge host.clearRemembered.  Rider primitives
+// call it before replacing their ctx set, so Count$RememberedSize and a later
+// resolution observe exactly the same persistent set as the current chain.
+func clearEventRemembered(h Host, c *Ctx) {
+	if c.Source != 0 {
+		if o := h.Game().Obj(c.Source); o != nil && len(o.Remembered) > 0 {
+			h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "clear-remembered"})
+		}
+	}
 }
 
 func copyTargets(s []state.Target) []state.Target {
