@@ -190,21 +190,22 @@ func TestStepStringIsTotal(t *testing.T) {
 // games whose stack objects never carry a populated ChosenModes, so this
 // leaf exists because removing the line fails nothing until now.
 func TestCloneDeepDoesNotAliasChosenModes(t *testing.T) {
-	orig := Object{ID: 7, ChosenModes: []string{"GainLife", "Draw", "CreateToken"}}
+	orig := Object{ID: 7, ChosenModes: []string{"GainLife", "Draw", "CreateToken"}, Imprinted: []ObjID{8}, ExiledWith: []ObjID{9}}
 	c := orig.CloneDeep()
 	if len(c.ChosenModes) != 3 || c.ChosenModes[0] != "GainLife" ||
-		c.ChosenModes[1] != "Draw" || c.ChosenModes[2] != "CreateToken" {
-		t.Fatalf("clone did not copy ChosenModes: %v", c.ChosenModes)
+		c.ChosenModes[1] != "Draw" || c.ChosenModes[2] != "CreateToken" ||
+		len(c.Imprinted) != 1 || c.Imprinted[0] != 8 || len(c.ExiledWith) != 1 || c.ExiledWith[0] != 9 {
+		t.Fatalf("clone did not copy resolution associations: %+v", c)
 	}
 	// An in-place write (never an append, which would reallocate regardless
 	// of whether CloneDeep aliased): only a shared backing array lets a
 	// write to the copy reach the original.
-	c.ChosenModes[1] = "mutated"
-	if orig.ChosenModes[1] == "mutated" {
-		t.Fatal("CloneDeep aliases ChosenModes: mutating the copy changed the original")
+	c.ChosenModes[1], c.Imprinted[0], c.ExiledWith[0] = "mutated", 80, 90
+	if orig.ChosenModes[1] == "mutated" || orig.Imprinted[0] == 80 || orig.ExiledWith[0] == 90 {
+		t.Fatal("CloneDeep aliases an association slice")
 	}
-	if orig.ChosenModes[1] != "Draw" {
-		t.Fatalf("original ChosenModes changed: %v", orig.ChosenModes)
+	if orig.ChosenModes[1] != "Draw" || orig.Imprinted[0] != 8 || orig.ExiledWith[0] != 9 {
+		t.Fatalf("original associations changed: %+v", orig)
 	}
 }
 

@@ -50,9 +50,18 @@ func Apply(g *state.Game, e Event) {
 			if e.Text == "clear" {
 				o.Imprinted = nil
 			} else {
+				// Text is an in-kind discriminator, not a new Event field:
+				// ImprintCards$ records Forge's imprintedCards list while a
+				// ChangeZone-to-exile records the separate exiledCards list.
+				// Both associations survive replay, but only the latter is
+				// pruned when its card leaves exile (in Move below).
+				list := &o.Imprinted
+				if e.Text == "exiled-with" {
+					list = &o.ExiledWith
+				}
 				for _, id := range e.IDs {
 					if g.Obj(id) != nil {
-						o.Imprinted = append(o.Imprinted, id)
+						*list = append(*list, id)
 					}
 				}
 			}
@@ -646,6 +655,16 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	enteredFrom := o.Zone
 	wasBattlefield := enteredFrom == state.ZBattlefield
 	wasStack := enteredFrom == state.ZStack
+	if enteredFrom == state.ZExile && to != state.ZExile {
+		// Forge's exiledCards association is a zone relationship, not an
+		// imprint. Once this object leaves exile it is a new object for that
+		// association, even if a later effect exiles the same engine ObjID.
+		// Do this inside Apply's Move fold so live play and log replay prune
+		// every source's list identically.
+		for i := range g.Objs {
+			g.Objs[i].ExiledWith = withoutObjID(g.Objs[i].ExiledWith, id)
+		}
+	}
 	if wasBattlefield && to != state.ZBattlefield {
 		// Leaving combat removes this permanent as a blocker, but does not
 		// make creatures it blocked unblocked (CR 506.4, 509.1h). Preserve
@@ -775,6 +794,26 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 //   - makes it summoning sick (CR 302.6): its new controller has not controlled
 //     it continuously since their most recent turn began. TurnChange clears it
 //     from the active player's list, i.e. at its new controller's next turn.
+//
+// withoutObjID returns ids without id, retaining its order and avoiding an
+// allocation when no entry matches. ExiledWith is a short insertion-ordered
+// relation, so an ordered slice preserves deterministic selector results.
+func withoutObjID(ids []state.ObjID, id state.ObjID) []state.ObjID {
+	for i, got := range ids {
+		if got != id {
+			continue
+		}
+		out := append([]state.ObjID(nil), ids[:i]...)
+		for _, got := range ids[i:] {
+			if got != id {
+				out = append(out, got)
+			}
+		}
+		return out
+	}
+	return ids
+}
+
 func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 	if o.Controller == p {
 		return

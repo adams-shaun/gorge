@@ -70,12 +70,12 @@ func TestChooseCardDauthiCarriesChosenCardIntoEffect(t *testing.T) {
 }
 
 func TestChooseCardExiledWithCorpusSA(t *testing.T) {
-	card, sa := corpusSA(t, "Ore-Rich Stalactite", "")
+	catalyst, sa := corpusSA(t, "Ore-Rich Stalactite", "")
 	if sa.API != "Mana" { // front face; Cosmium Catalyst is alternate face.
 		t.Fatalf("unexpected front ability %+v", sa)
 	}
 	var choose *cards.SA
-	for _, f := range card.Faces {
+	for _, f := range catalyst.Faces {
 		for _, a := range f.Abilities {
 			if a.API == "ChooseCard" && a.Params["DefinedCards"] == "ExiledWith" {
 				choose = a
@@ -85,22 +85,39 @@ func TestChooseCardExiledWithCorpusSA(t *testing.T) {
 	if choose == nil {
 		t.Fatal("Cosmium Catalyst's ExiledWith choice missing")
 	}
+	// Parallax Wave's real activation produces the ExiledWith association.
+	// It must not be simulated with an Imprint event: Forge maintains the
+	// exiledCards and imprintedCards collections separately.
+	wave, exile := corpusSA(t, "Parallax Wave", "")
+	if exile.API != "ChangeZone" || exile.Params["Destination"] != "Exile" {
+		t.Fatalf("Parallax Wave exile fixture changed: %+v", exile)
+	}
 	h := newHost(t, 2)
-	src := h.g.AddObject(card, 0)
-	h.Emit(events.Event{Kind: events.MoveZone, Obj: src.ID, From: state.ZLibrary, To: state.ZBattlefield})
-	mine := h.g.AddObject(mkCard(t, "Name:Crafted\nTypes:Instant\nOracle:x\n"), 0)
-	other := h.g.AddObject(mkCard(t, "Name:Other\nTypes:Instant\nOracle:x\n"), 1)
-	for _, o := range []*state.Object{mine, other} {
-		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZLibrary, To: state.ZExile})
+	src := h.g.AddObject(wave, 0)
+	target := h.g.AddObject(mkCard(t, "Name:Exiled\nTypes:Creature\nPT:1/1\nOracle:x\n"), 1)
+	other := h.g.AddObject(mkCard(t, "Name:Other\nTypes:Creature\nPT:1/1\nOracle:x\n"), 1)
+	for _, o := range []*state.Object{src, target, other} {
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZLibrary, To: state.ZBattlefield})
 	}
-	h.Emit(events.Event{Kind: events.Imprint, Obj: src.ID, IDs: []state.ObjID{mine.ID}})
+	effChangeZone(h, &Ctx{Source: src.ID, Controller: 0, Targets: []state.Target{{Obj: target.ID}}}, exile)
+	liveSource, liveTarget := h.g.Obj(src.ID), h.g.Obj(target.ID)
+	if liveTarget.Zone != state.ZExile || len(liveSource.ExiledWith) != 1 || liveSource.ExiledWith[0] != target.ID {
+		t.Fatalf("Parallax Wave association = zone %v exiledWith %v, want exile [%d]", liveTarget.Zone, liveSource.ExiledWith, target.ID)
+	}
 	c := &Ctx{Source: src.ID, Controller: 0}
-	effChooseCard(h, c, choose)
-	if len(c.Chosen) != 1 || c.Chosen[0].Obj != mine.ID {
-		t.Fatalf("ExiledWith choice = %+v, want only crafted %d", c.Chosen, mine.ID)
+	if got := cardChoices(h, c, choose, 0); len(got) != 1 || got[0].Obj != target.ID {
+		t.Fatalf("ExiledWith choice = %+v, want only Parallax Wave's target %d", got, target.ID)
 	}
-	if got := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "Imprinted"}}); len(got) != 1 || got[0].Obj != mine.ID {
-		t.Fatalf("Defined Imprinted = %+v, want crafted card", got)
+	if got := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "Imprinted"}}); len(got) != 0 {
+		t.Fatalf("ordinary exile leaked into Defined Imprinted: %+v", got)
+	}
+
+	// Leaving exile dissolves the relation. Re-exiling the same engine object
+	// through an unrelated MoveZone must not revive Parallax Wave's link.
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: target.ID, From: state.ZExile, To: state.ZHand})
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: target.ID, From: state.ZHand, To: state.ZExile})
+	if got := cardChoices(h, c, choose, 0); len(got) != 0 || len(h.g.Obj(src.ID).ExiledWith) != 0 {
+		t.Fatalf("stale ExiledWith after leave/re-exile: choices=%+v relation=%v", got, h.g.Obj(src.ID).ExiledWith)
 	}
 }
 

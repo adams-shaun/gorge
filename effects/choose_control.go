@@ -94,12 +94,13 @@ func definedCardPool(g *state.Game, c *Ctx, raw string) ([]state.Target, string)
 		}
 		return nil, qualifier
 	case "ExiledWith":
-		// Forge's hostCard.getExiledCards is the source's imprinted/exiled
-		// association, not every card in the shared exile zone. The list is
-		// event-backed by Imprint and cardChoices still intersects ChoiceZone$.
+		// Forge's hostCard.getExiledCards is the source's ChangeZone exile
+		// association, not ImprintCards$ and not every card in the shared exile
+		// zone. The list is event-backed by Imprint's "exiled-with"
+		// discriminator and cardChoices still intersects ChoiceZone$.
 		if o := g.Obj(c.Source); o != nil {
-			out := make([]state.Target, 0, len(o.Imprinted))
-			for _, id := range o.Imprinted {
+			out := make([]state.Target, 0, len(o.ExiledWith))
+			for _, id := range o.ExiledWith {
 				out = append(out, state.Target{Obj: id})
 			}
 			return out, qualifier

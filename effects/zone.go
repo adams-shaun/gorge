@@ -151,10 +151,12 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: to})
 		// Forge's ChangeZoneEffect.handleExiledWith associates a non-token
-		// card exiled by this effect with its host. This is the same persisted
-		// list DefinedCards$ ExiledWith and ImprintedController consume.
+		// card exiled by this effect with the host's distinct exiledCards
+		// collection. It is deliberately NOT an ImprintCards$ association:
+		// DefinedCards$ ExiledWith consumes this list, while
+		// ImprintedController only consumes explicit ImprintCards$ entries.
 		if to == state.ZExile && !o.IsToken && c.Source != 0 {
-			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{o.ID}})
+			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{o.ID}, Text: "exiled-with"})
 		}
 		// RememberChanged$ True (Forge's spelling on the ChangeZone in the
 		// Flickerwisp delayed-trigger family): the moved object joins the
@@ -367,7 +369,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			From: state.ZLibrary, To: to, Player: owner})
 		if to == state.ZExile && c.Source != 0 {
 			if o := g.Obj(id); o != nil && !o.IsToken {
-				h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}})
+				h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}, Text: "exiled-with"})
 			}
 		}
 		moved = append(moved, id)

@@ -33,6 +33,9 @@ func Describe(g *state.Game, ev events.Event) string {
 		if ev.Text == "clear" {
 			return obj(g, ev.Obj) + " clears imprinted cards"
 		}
+		if ev.Text == "exiled-with" {
+			return obj(g, ev.Obj) + " exiles card(s) with it"
+		}
 		return obj(g, ev.Obj) + " imprints card(s)"
 	case events.MoveZone:
 		return obj(g, ev.Obj) + " moves from " + zone(ev.From) + " to " + zone(ev.To)

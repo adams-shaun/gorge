@@ -230,8 +230,10 @@ const (
 	// distinct event: control is neither ownership nor a zone change, and a
 	// replay must retain it when the object later moves.
 	ControlChange
-	// Imprint updates the source object's Forge-style imprinted-card list.
-	// Obj is the source and IDs are the cards to add; Text "clear" clears it.
+	// Imprint updates one source-card association. Obj is the source and IDs
+	// are the cards to add: ordinary text is Forge's imprintedCards list,
+	// Text "exiled-with" is its distinct exiledCards list, and Text "clear"
+	// clears only imprintedCards. Reusing Text avoids changing Event's layout.
 	// It is append-only so prior event ordinals and replay hashes stay stable.
 	Imprint
 	// NumKinds is the number of defined Kind constants, one past the last

@@ -1079,6 +1079,30 @@ func TestChooseKindString(t *testing.T) {
 	}
 }
 
+// TestImprintSeparatesExplicitAndExiledWith proves the two Forge host-card
+// collections cannot leak into one another, and that the zone-derived one
+// dies when its card leaves exile. Both state changes are folded by Apply,
+// so emitting the same events through a live log or replay has this result.
+func TestImprintSeparatesExplicitAndExiledWith(t *testing.T) {
+	g, source := gameWithOneCard(t)
+	card := g.AddObject(bearCard(), 1)
+	Apply(g, Event{Kind: MoveZone, Obj: card.ID, From: state.ZLibrary, To: state.ZExile})
+	Apply(g, Event{Kind: Imprint, Obj: source, IDs: []state.ObjID{card.ID}, Text: "exiled-with"})
+	Apply(g, Event{Kind: Imprint, Obj: source, IDs: []state.ObjID{card.ID}})
+	got := g.Obj(source)
+	if len(got.ExiledWith) != 1 || got.ExiledWith[0] != card.ID || len(got.Imprinted) != 1 || got.Imprinted[0] != card.ID {
+		t.Fatalf("associations = exiledWith %v imprinted %v, want both [%d]", got.ExiledWith, got.Imprinted, card.ID)
+	}
+	Apply(g, Event{Kind: MoveZone, Obj: card.ID, From: state.ZExile, To: state.ZHand})
+	if len(got.ExiledWith) != 0 || len(got.Imprinted) != 1 || got.Imprinted[0] != card.ID {
+		t.Fatalf("leaving exile = exiledWith %v imprinted %v, want [] [%d]", got.ExiledWith, got.Imprinted, card.ID)
+	}
+	Apply(g, Event{Kind: Imprint, Obj: source, Text: "clear"})
+	if len(got.Imprinted) != 0 {
+		t.Fatalf("clear imprint retained %v", got.Imprinted)
+	}
+}
+
 // TestTokenCreateMintsFromTheGameTokenTable is Task 4's carrier for
 // TokenCreate: the minted object comes from Game.Tokens (never from data
 // smuggled through the event itself), lands on the battlefield summoning

@@ -129,10 +129,16 @@ type Object struct {
 	// source of truth. Nil when no modal announcement has been made.
 	ChosenModes []string
 
-	// Imprinted holds cards this object associated with through ImprintCards$
-	// or by exiling them with its effect. It is event-backed so a replay keeps
-	// Forge's host-card list for Defined$ ExiledWith and ImprintedController.
+	// Imprinted holds cards ImprintCards$ explicitly associated with this
+	// object. It is distinct from ExiledWith: Forge's host card has separate
+	// imprintedCards and exiledCards collections, and their consumers must not
+	// make an ordinary exile satisfy an Imprinted selector.
 	Imprinted []ObjID
+	// ExiledWith holds cards this object exiled through ChangeZone. The
+	// association exists only while the card remains in exile; events.Move
+	// removes it when the card leaves. It is what DefinedCards$ ExiledWith
+	// consumes, not the Imprinted list above.
+	ExiledWith []ObjID
 
 	// AttachedTo is the permanent this Aura or Equipment is attached to; 0
 	// means unattached. Reset whenever the object itself leaves the
@@ -213,6 +219,7 @@ func (o *Object) CloneDeep() Object {
 	c.Chosen = append([]Target(nil), o.Chosen...)
 	c.ChosenModes = append([]string(nil), o.ChosenModes...)
 	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
+	c.ExiledWith = append([]ObjID(nil), o.ExiledWith...)
 	return c
 }
 
