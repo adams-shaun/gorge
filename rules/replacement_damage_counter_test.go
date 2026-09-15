@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -11,10 +12,41 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// TestFieryEmancipationTriplesDamage uses the unmodified compiled corpus
-// replacement: ReplaceEffect changes DamageAmount before DamageDone is logged.
+// sharedCorpus loads the compiled corpus once per test binary. Every test in
+// this file used to pay a full testutil.CorpusRegistry load -- a git
+// rev-parse subprocess plus a gunzip and gob decode of the whole IR cache,
+// ~0.25s apiece, which across this file's corpus-driven tests was the single
+// largest share of the rules package's wall time and what held it at its
+// test-time budget boundary. The loaded corpus is immutable: cards.Registry
+// is written only by compile-time Add, no engine path writes through a card
+// face (state lives on state.Object), and the one Tokens handout below
+// (e.G.Tokens = reg.Tokens) is only ever read in this file -- each game
+// still gets the registry's own token map because no test here mints into
+// it. If the corpus is absent the first caller Skips without populating the
+// memo, so every test still skips on its own.
+var (
+	sharedCorpusMu  sync.Mutex
+	sharedCorpusReg *cards.Registry
+)
+
+func sharedCorpus(t *testing.T) *cards.Registry {
+	t.Helper()
+	sharedCorpusMu.Lock()
+	defer sharedCorpusMu.Unlock()
+	if sharedCorpusReg == nil {
+		sharedCorpusReg = testutil.CorpusRegistry(t)
+	}
+	return sharedCorpusReg
+}
+
+// TestBloodOfTheMartyrEffectCreatedOptionalReplacement uses the unmodified
+// compiled corpus replacement: ReplaceEffect changes the damage's affected
+// player before DamageDone is logged. The Optional$ "may" belongs to the
+// replacement's OptionalDecider$ -- "You", the source's controller -- not to
+// the damaged creature's controller (the Battletide Alchemist round-2
+// finding; both corpus Optional$ DamageDone lines name "You").
 func TestBloodOfTheMartyrEffectCreatedOptionalReplacement(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	e.pending = nil
 	blood := e.G.AddObject(mustCorpusCard(t, reg, "Blood of the Martyr"), 0)
@@ -28,10 +60,10 @@ func TestBloodOfTheMartyrEffectCreatedOptionalReplacement(t *testing.T) {
 	e.emit(events.Event{Kind: events.Damage, Obj: target, Amount: 2})
 	e.damaging = 0
 	d := e.Pending()
-	if d == nil || d.Kind != decision.KReplacement || d.Player != 1 {
-		t.Fatalf("pending = %+v, want affected creature controller's optional replacement choice", d)
+	if d == nil || d.Kind != decision.KReplacement || d.Player != 0 {
+		t.Fatalf("pending = %+v, want OptionalDecider$ You's ask (the source's controller, seat 0)", d)
 	}
-	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 1, Choices: []int{0}}); err != nil {
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{0}}); err != nil {
 		t.Fatal(err)
 	}
 	if got := e.G.Obj(target).Damage; got != 0 {
@@ -39,6 +71,132 @@ func TestBloodOfTheMartyrEffectCreatedOptionalReplacement(t *testing.T) {
 	}
 	if got := e.G.Players[0].Life; got != 18 {
 		t.Fatalf("replacement controller life = %d, want 18 after accepting redirection", got)
+	}
+}
+
+// TestBattletideAlchemistAsksItsControllerAndPreventsClerics is the real
+// round-2 finding's probe: Battletide Alchemist's Optional$ True |
+// OptionalDecider$ You | ReplaceWith$ DB$ ReplaceDamage body. The choice is
+// Battletide's controller's, not the damaged player's; accepting prevents
+// exactly X of the damage, where X is Count$Valid Cleric.YouCtrl (Battletide
+// itself is a Cleric, so X is 1 here), and declining prevents nothing --
+// the unimplemented-body defect this closes made accepting erase ALL of it.
+func TestBattletideAlchemistAsksItsControllerAndPreventsClerics(t *testing.T) {
+	reg := sharedCorpus(t)
+
+	t.Run("decline prevents nothing", func(t *testing.T) {
+		e := newSeats(t, 2)
+		e.pending = nil
+		onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Battletide Alchemist"))
+		source := onBoard(t, e, 1, "Name:Attacker\nTypes:Creature\nPT:3/3\nOracle:x\n")
+		e.damaging = source
+		e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 3})
+		e.damaging = 0
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KReplacement || d.Player != 0 {
+			t.Fatalf("pending = %+v, want the decider's (seat 0) KReplacement ask, not the damaged player's", d)
+		}
+		// The skip option sits at index len(cands) == 1.
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{1}}); err != nil {
+			t.Fatal(err)
+		}
+		if got := e.G.Players[1].Life; got != 17 {
+			t.Fatalf("damaged player life = %d, want 17 after declining the may", got)
+		}
+		if d := e.Pending(); d != nil && d.Kind != decision.KPriority {
+			t.Fatalf("pending after decline = %+v, want only the ordinary priority ask", d)
+		}
+	})
+
+	t.Run("accept prevents one Cleric's worth", func(t *testing.T) {
+		e := newSeats(t, 2)
+		e.pending = nil
+		onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Battletide Alchemist"))
+		source := onBoard(t, e, 1, "Name:Attacker\nTypes:Creature\nPT:3/3\nOracle:x\n")
+		e.damaging = source
+		e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 3})
+		e.damaging = 0
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KReplacement || d.Player != 0 {
+			t.Fatalf("pending = %+v, want the decider's (seat 0) KReplacement ask", d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{0}}); err != nil {
+			t.Fatal(err)
+		}
+		// X is 1 (Battletide itself): 3 - 1 = 2 damage lands.
+		if got := e.G.Players[1].Life; got != 18 {
+			t.Fatalf("damaged player life = %d, want 18 after accepting one Cleric's prevention", got)
+		}
+	})
+
+	t.Run("accept fully prevents when X covers the damage", func(t *testing.T) {
+		e := newSeats(t, 2)
+		e.pending = nil
+		onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Battletide Alchemist"))
+		onBoard(t, e, 0, "Name:Second Cleric\nTypes:Creature Cleric\nPT:1/1\nOracle:x\n")
+		source := onBoard(t, e, 1, "Name:Attacker\nTypes:Creature\nPT:3/3\nOracle:x\n")
+		e.damaging = source
+		e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 2})
+		e.damaging = 0
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KReplacement || d.Player != 0 {
+			t.Fatalf("pending = %+v, want the decider's (seat 0) KReplacement ask", d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{0}}); err != nil {
+			t.Fatal(err)
+		}
+		// X is 2 (Battletide plus the other Cleric): nothing lands, and no
+		// reduced Damage event is emitted.
+		if got := e.G.Players[1].Life; got != 20 {
+			t.Fatalf("damaged player life = %d, want 20 after full prevention", got)
+		}
+	})
+}
+
+// TestThunderstaffPreventsExactlyItsAmount pins the single-match
+// ReplaceDamage body: Thunderstaff's "prevent 1 of that damage" must leave
+// the rest standing, not erase the whole event (the pre-fix defect applied
+// every DB$ ReplaceDamage body as a silent full prevention).
+func TestThunderstaffPreventsExactlyItsAmount(t *testing.T) {
+	reg := sharedCorpus(t)
+	e := newSeats(t, 2)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Thunderstaff"))
+	source := onBoard(t, e, 1, "Name:Attacker\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	e.damaging, e.combatDamaging = source, true
+	e.emit(events.Event{Kind: events.Damage, Player: 0, Amount: 2})
+	e.damaging, e.combatDamaging = 0, false
+	if got := e.G.Players[0].Life; got != 19 {
+		t.Fatalf("life = %d, want 19: Thunderstaff prevents exactly 1 of 2", got)
+	}
+
+	// Noncombat damage does not match IsCombat$ True at all.
+	e.damaging = source
+	e.emit(events.Event{Kind: events.Damage, Player: 0, Amount: 2})
+	e.damaging = 0
+	if got := e.G.Players[0].Life; got != 17 {
+		t.Fatalf("life = %d, want 17: noncombat damage bypasses Thunderstaff", got)
+	}
+}
+
+// TestUnpriceableReplaceDamageBodyDoesNotMatch pins the fail-closed gate: a
+// ReplaceDamage body whose Amount$ names a value frame this build does not
+// resolve (here an undefined SVar name, the same class as Power Leak's
+// PaidAmount) is not a match, so the damage lands untouched instead of being
+// silently erased.
+func TestUnpriceableReplaceDamageBodyDoesNotMatch(t *testing.T) {
+	e := newSeats(t, 2)
+	onBoard(t, e, 0, "Name:Unpriceable Shield\nTypes:Enchantment\n"+
+		"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidTarget$ You | ReplaceWith$ R\n"+
+		"SVar:R:DB$ ReplaceDamage | Amount$ NeverCounted\nOracle:x\n")
+	source := onBoard(t, e, 1, "Name:Source\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	e.damaging = source
+	e.emit(events.Event{Kind: events.Damage, Player: 0, Amount: 2})
+	e.damaging = 0
+	if got := e.G.Players[0].Life; got != 18 {
+		t.Fatalf("life = %d, want 18: an unpriceable prevention body must not erase damage", got)
+	}
+	if d := e.Pending(); d != nil && d.Kind != decision.KPriority {
+		t.Fatalf("pending = %+v, want only the ordinary priority ask", d)
 	}
 }
 
@@ -50,7 +208,7 @@ func TestBloodOfTheMartyrEffectCreatedOptionalReplacement(t *testing.T) {
 // rider fire and the spell leave the stack while the second recipient's
 // damage is still awaiting its order choice.
 func TestDamageAllParksEveryRecipientBeforeTheChainResumes(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	e.pending = nil
 	fiery := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Fiery Emancipation"))
@@ -119,7 +277,7 @@ func TestDamageAllParksEveryRecipientBeforeTheChainResumes(t *testing.T) {
 // modifiers must be asked of the NEW recipient's controller, not the original
 // one.
 func TestRecomputedDamageOrderChoiceGoesToTheNewAffectedPlayer(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	e.pending = nil
 	// Player 1 controls the optional redirector (the Blood of the Martyr
@@ -175,7 +333,7 @@ func TestRecomputedDamageOrderChoiceGoesToTheNewAffectedPlayer(t *testing.T) {
 }
 
 func TestFieryEmancipationTriplesDamage(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Fiery Emancipation"))
 	source := onBoard(t, e, 0, "Name:Red Source\nManaCost:R\nTypes:Creature\nPT:1/1\nOracle:x\n")
@@ -197,7 +355,7 @@ func TestFieryEmancipationTriplesDamage(t *testing.T) {
 // Counterspell's real effect: the Counter primitive must ask the replacement
 // before it moves the target off the stack.
 func TestChandraCannotBeCountered(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	chandra := e.G.AddObject(mustCorpusCard(t, reg, "Chandra, Awakened Inferno"), 0)
 	chandra.Zone = state.ZStack
@@ -218,7 +376,7 @@ func TestChandraCannotBeCountered(t *testing.T) {
 // CantPreventDamage static. Protection is the engine's current prevention
 // path, so the protected creature must still take the blue source's damage.
 func TestSpiderPunkStopsProtectionPrevention(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Spider-Punk"))
 	target := onBoard(t, e, 1, "Name:Protected\nTypes:Creature\nPT:1/3\nK:Protection from blue\nOracle:x\n")
@@ -238,7 +396,7 @@ func TestSpiderPunkStopsProtectionPrevention(t *testing.T) {
 // IsCombat$ False, and a VarValue$ X whose SVar is Count$CardPower. Noncombat
 // red damage below the power is raised to the power; combat damage is not.
 func TestOjerAxonilRaisesSmallNoncombatRedDamage(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Ojer Axonil, Deepest Might"))
 	source := onBoard(t, e, 0, "Name:Red Source\nManaCost:R\nTypes:Creature\nPT:1/1\nOracle:x\n")
@@ -266,7 +424,7 @@ func TestOjerAxonilRaisesSmallNoncombatRedDamage(t *testing.T) {
 // (VarValue$ ReplaceCount$DamageAmount/Twice, no SVar indirection) on the
 // enchanted creature's combat damage.
 func TestTheSoundOfDrumsDoublesCombatDamage(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	aura := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "The Sound of Drums"))
 	bear := onBoard(t, e, 0, "Name:Bear\nManaCost:G\nTypes:Creature\nPT:2/2\nOracle:x\n")
@@ -287,7 +445,7 @@ func TestTheSoundOfDrumsDoublesCombatDamage(t *testing.T) {
 // cannot counter a spell you control, while your own copy of the same
 // replacement does not shield the opponent's spells.
 func TestPalisadeGiantRedirectsDamageToItself(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	giant := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Palisade Giant"))
 	source := onBoard(t, e, 1, "Name:Source\nManaCost:R\nTypes:Creature\nPT:1/1\nOracle:x\n")
@@ -306,7 +464,7 @@ func TestPalisadeGiantRedirectsDamageToItself(t *testing.T) {
 }
 
 func TestDamageReplacementPropagatesAppliedAmountToLifelink(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Fiery Emancipation"))
 	source := onBoard(t, e, 0, "Name:Lifelink Source\nManaCost:R\nTypes:Creature\nPT:1/1\nK:Lifelink\nOracle:x\n")
@@ -323,7 +481,7 @@ func TestDamageReplacementPropagatesAppliedAmountToLifelink(t *testing.T) {
 }
 
 func TestPreventReplacementSuppressesLifelink(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Blessed Sanctuary"))
 	source := onBoard(t, e, 0, "Name:Lifelink Source\nManaCost:R\nTypes:Creature\nPT:1/1\nK:Lifelink\nOracle:x\n")
@@ -340,7 +498,7 @@ func TestPreventReplacementSuppressesLifelink(t *testing.T) {
 }
 
 func TestDamageReplacementPropagatesAppliedCommanderDamage(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e, _ := commanderGame(t, commanderDamageSeed, FormatCommander, 40,
 		[][]string{{cmdCreature(7)}, {}})
 	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Fiery Emancipation"))
@@ -355,7 +513,7 @@ func TestDamageReplacementPropagatesAppliedCommanderDamage(t *testing.T) {
 }
 
 func TestConditionalCounterReplacementUsesPaidX(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	for _, tc := range []struct {
 		x             int32
 		wantCountered bool
@@ -379,7 +537,7 @@ func TestConditionalCounterReplacementUsesPaidX(t *testing.T) {
 }
 
 func TestGuileReplacesCounterWithExile(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Guile"))
 	target := e.G.AddObject(mustCorpusCard(t, reg, "Banefire"), 1)
@@ -398,7 +556,7 @@ func TestGuileReplacesCounterWithExile(t *testing.T) {
 }
 
 func TestInactiveDemonfireDoesNotForbidPrevention(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	demonfire := e.G.AddObject(mustCorpusCard(t, reg, "Demonfire"), 0)
 	demonfire.Zone = state.ZStack
@@ -419,7 +577,7 @@ func TestInactiveDemonfireDoesNotForbidPrevention(t *testing.T) {
 }
 
 func TestEffectCreatedCantPreventDamage(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	skullcrack := e.G.AddObject(mustCorpusCard(t, reg, "Skullcrack"), 0)
 	skullcrack.Zone = state.ZStack
@@ -441,7 +599,7 @@ func TestEffectCreatedCantPreventDamage(t *testing.T) {
 }
 
 func TestCompetingDamageReplacementsAskAndRecompute(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	for _, tc := range []struct {
 		name        string
 		chooseFiery bool
@@ -489,7 +647,7 @@ func TestCompetingDamageReplacementsAskAndRecompute(t *testing.T) {
 }
 
 func TestVigorUsesReplacedDamageAmountAndTarget(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Vigor"))
 	target := onBoard(t, e, 0, "Name:Other Creature\nTypes:Creature\nPT:2/2\nOracle:x\n")
@@ -506,7 +664,7 @@ func TestVigorUsesReplacedDamageAmountAndTarget(t *testing.T) {
 }
 
 func TestDamageReplacementSupportedBodyFamilies(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 
 	t.Run("ChangeZone Weeping Angel", func(t *testing.T) {
 		e := newSeats(t, 2)
@@ -606,7 +764,7 @@ func TestDamageReplacementSupportedBodyFamilies(t *testing.T) {
 }
 
 func TestFieryEmancipationModifiesPlaneswalkerDamageBeforeLoyaltyExchange(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Fiery Emancipation"))
 	walker := onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Jace, the Mind Sculptor"))
@@ -624,7 +782,7 @@ func TestFieryEmancipationModifiesPlaneswalkerDamageBeforeLoyaltyExchange(t *tes
 }
 
 func TestDamageReplacementChoiceSuspendsRemainingAbilityChain(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	e.pending = nil
 	fiery := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Fiery Emancipation"))
@@ -667,7 +825,7 @@ func TestDamageReplacementChoiceSuspendsRemainingAbilityChain(t *testing.T) {
 }
 
 func TestCounterReplacementCompetitionLetsAffectedPlayerChoose(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	e.pending = nil
 	guile := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Guile"))
@@ -703,7 +861,7 @@ func TestCounterReplacementCompetitionLetsAffectedPlayerChoose(t *testing.T) {
 }
 
 func TestHexingSquelcherProtectsYourSpells(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+	reg := sharedCorpus(t)
 	e := newSeats(t, 2)
 	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Hexing Squelcher"))
 	mine := e.G.AddObject(mustCorpusCard(t, reg, "Counterspell"), 0)

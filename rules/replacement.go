@@ -116,7 +116,7 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 			}
 			if len(matches) > 1 || hasOptionalReplacement(matches) {
 				if p, ok := e.damageAffectedPlayer(ev); ok && !e.G.Players[p].Lost {
-					e.poseDamageReplacementChoice(ev, matches, p)
+					e.poseDamageReplacementChoice(ev, matches, e.replacementAskPlayer(matches, p))
 					return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
 						Text: "damage awaiting replacement-order choice"}, true
 				}
@@ -201,6 +201,18 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 			// the event is its complete replacement.
 			return ev, true
 		}
+		if m.repl.With.API == "ReplaceDamage" {
+			// Handled here, not through runReplaceWith/effects.Resolve: the
+			// body subtracts its Amount from the held event and reports
+			// terminal when fully prevented (its prevention Note is the log's
+			// record, exactly as a Prevent$ True match's) or leaves the
+			// reduced event standing for the next modifier. Its SubAbility$
+			// chain is deliberately not run (see applyReplaceDamageBody).
+			if e.applyReplaceDamageBody(&ev, m) {
+				return ev, true
+			}
+			continue
+		}
 		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, &ev)
 		if m.repl.With.API == "ReplaceEffect" {
 			// The body rewrote the held amount (changed) or could not resolve
@@ -258,6 +270,89 @@ func hasOptionalReplacement(matches []replMatch) bool {
 		}
 	}
 	return false
+}
+
+// replacementOptionalDecider resolves the controller an Optional$ True
+// replacement's "may" belongs to, from Forge's OptionalDecider$ -- named in
+// the replacement source's frame. The corpus's two Optional$ DamageDone lines
+// (Blood of the Martyr, Battletide Alchemist) both say "You": the source's
+// controller, not the damaged player. An ABSENT parameter resolves to nobody
+// (the caller keeps its historical default); a present spec this build does
+// not resolve also resolves to nobody, and the match gate above excluded the
+// replacement already, so this is only reachable for "You".
+func (e *Engine) replacementOptionalDecider(r cards.Repl, source state.ObjID) (state.PlayerID, bool) {
+	if strings.TrimSpace(r.Params["OptionalDecider"]) != "You" {
+		return 0, false
+	}
+	ctrl := e.controllerOf(source)
+	if ctrl < 0 || int(ctrl) >= len(e.G.Players) {
+		return 0, false
+	}
+	return ctrl, true
+}
+
+// replacementAskPlayer picks who answers a damage replacement competition.
+// The CR 616.1 order choice belongs to the affected player -- except that a
+// competition of exactly ONE Optional$ True replacement belongs to that
+// replacement's OptionalDecider$ (Blood of the Martyr and Battletide
+// Alchemist both name "You": their own controller), because then the only
+// question posed is the optional replacement's own "may", not an order.
+// A decider who has lost or left makes no choices (CR 800.4a), so the
+// affected player answers instead.
+func (e *Engine) replacementAskPlayer(matches []replMatch, affected state.PlayerID) state.PlayerID {
+	if len(matches) == 1 && strings.EqualFold(matches[0].repl.Params["Optional"], "True") {
+		if dp, ok := e.replacementOptionalDecider(*matches[0].repl, matches[0].id); ok &&
+			!e.G.Players[dp].Lost {
+			return dp
+		}
+	}
+	return affected
+}
+
+// replaceDamageAmount resolves a DB$ ReplaceDamage body's Amount$ in the
+// replacement source's context: the corpus's prevention-shield family prices
+// it with a literal (Thunderstaff's 1), an SVar (Battletide Alchemist's
+// AlchemicX, the card-defined ShieldAmount of Forcefield's "prevent all but
+// 1") or an inline expression. The bool distinguishes an unresolvable value
+// frame (Power Leak's PaidAmount) -- which the match gate turns into a
+// non-match -- from a resolvable amount of zero, which legitimately prevents
+// nothing.
+func (e *Engine) replaceDamageAmount(ev events.Event, m replMatch) (int32, bool) {
+	if m.repl.With == nil || m.repl.With.API != "ReplaceDamage" {
+		return 0, false
+	}
+	return effects.NumResolved(e, e.replCtx(m, ev), m.repl.With, "Amount", 0)
+}
+
+// applyReplaceDamageBody applies a DB$ ReplaceDamage body to the held damage
+// event: it subtracts the body's Amount from the event's remaining amount and
+// reports whether the event is TERMINAL (fully prevented -- the prevention
+// Note this records is the log's witness, and no reduced Damage event is
+// emitted) or still stands with its reduced amount for the next modifier in
+// the chain (CR 616.1e: each later opportunity reads the changed event). A
+// resolvable amount of zero prevents nothing and leaves the event standing.
+// The body's SubAbility$ chain is deliberately NOT run here: every corpus
+// body that carries one (Divine Deflection's counter-deal, Forcefield's
+// self-exile) is an Effect-shield shape whose sub reads bindings this
+// per-event application does not have, and running them would fire a
+// wrong-outcome rider -- the prevention itself is the correct core.
+func (e *Engine) applyReplaceDamageBody(ev *events.Event, m replMatch) bool {
+	n, ok := e.replaceDamageAmount(*ev, m)
+	if !ok || n <= 0 {
+		return false
+	}
+	prevented := n
+	if prevented > ev.Amount {
+		prevented = ev.Amount
+	}
+	ev.Amount -= prevented
+	who := "a replacement effect"
+	if o := e.G.Obj(m.id); o != nil && o.Face() != nil && o.Face().Name != "" {
+		who = o.Face().Name
+	}
+	e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
+		Text: who + " prevented " + strconv.Itoa(int(prevented)) + " of the damage"})
+	return ev.Amount <= 0
 }
 
 // replacementBodySA turns the body retained by an Effect-created replacement
@@ -508,6 +603,32 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 	ctrl := e.controllerOf(source)
 	if v := r.Params["ValidCause"]; v != "" && !e.replacementCauseMatches(v, source, e.damaging) {
 		return false
+	}
+	// A DB$ ReplaceDamage body must RESOLVE its Amount$ before this
+	// replacement may match: the body is Forge's "prevent N of that damage"
+	// idiom, and a match this build cannot price would previously be applied
+	// as a silent FULL prevention (the body's emissions were supposed to
+	// replace the event, so the engine discarded it -- and the body emitted
+	// nothing). Amount$ values resolvable through the shared numeric grammar
+	// (a literal; an SVar such as Battletide's AlchemicX or a card-defined
+	// ShieldAmount; an inline Count$/ReplaceCount$ expression) match; an
+	// unmodelled value frame (Power Leak's PaidAmount, an undefined name)
+	// fails closed and leaves the damage untouched, per CR 616.1's "only
+	// applicable replacements apply".
+	if r.With != nil && r.With.API == "ReplaceDamage" {
+		if _, ok := e.replaceDamageAmount(ev, replMatch{id: source, repl: &r}); !ok {
+			return false
+		}
+	}
+	// An Optional$ True damage replacement whose OptionalDecider$ names a
+	// frame this build does not resolve also fails closed: asking the damaged
+	// player would answer a "may" that belongs to somebody else (the
+	// Battletide Alchemist round-2 finding). An ABSENT parameter keeps the
+	// historical default, where the affected player answers.
+	if strings.EqualFold(r.Params["Optional"], "True") {
+		if v := strings.TrimSpace(r.Params["OptionalDecider"]); v != "" && v != "You" {
+			return false
+		}
 	}
 	if v := r.Params["ValidSource"]; v != "" &&
 		(e.damaging == 0 || !effects.MatchesSpecFrom(e.G, v, e.damaging, ctrl, source)) {
@@ -1108,6 +1229,16 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 	if rc.ev.Kind == events.Damage && hasOptionalReplacement(rc.cands) {
 		d.Options = append(d.Options, decision.Option{Index: len(rc.cands), Kind: "skip_replacement",
 			Label: "Do not apply an optional replacement"})
+		// A single-optional competition asked of its OptionalDecider$ is the
+		// replacement's own "may", not an order among several: pose it as
+		// one (Battletide Alchemist round-2 finding).
+		if len(rc.cands) == 1 && strings.EqualFold(rc.cands[0].repl.Params["Optional"], "True") {
+			label := "Apply the replacement"
+			if o := e.G.Obj(rc.cands[0].id); o != nil && o.Face() != nil && o.Face().Name != "" {
+				label = "Apply " + o.Face().Name + "'s replacement"
+			}
+			d.Prompt = label + " to this damage?"
+		}
 	}
 	// A replacement-order choice can arise in the middle of an effect's Emit.
 	// Enter through Host.Ask so effects.Resolve sees Suspended and records the
@@ -1180,11 +1311,13 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 			next := e.replChoices[0]
 			// CR 616.1e: the affected player is recomputed from the parked
 			// event at ask time, so a competition whose recipient changed
-			// while parked asks the NEW affected player.
+			// while parked asks the NEW affected player -- except that a
+			// single-optional competition's "may" still belongs to its
+			// OptionalDecider$ (replacementAskPlayer).
 			if p, ok := e.damageAffectedPlayer(next.ev); ok && !e.G.Players[p].Lost {
-				e.replChoices[0].player = p
+				e.replChoices[0].player = e.replacementAskPlayer(next.cands, p)
 				if e.pending == nil {
-					e.askReplacementChoice(p)
+					e.askReplacementChoice(e.replChoices[0].player)
 				}
 				return
 			}
@@ -1347,6 +1480,12 @@ func (e *Engine) applyChosenDamageReplacement(ev *events.Event, m replMatch) boo
 	}
 	if m.repl.With == nil {
 		return true
+	}
+	if m.repl.With.API == "ReplaceDamage" {
+		// The body subtracts its Amount from the held event; a fully
+		// prevented event is terminal, a reduced one stands for the
+		// recomputation below (CR 616.1e).
+		return e.applyReplaceDamageBody(ev, m)
 	}
 	e.runReplaceWith(e.replCtx(m, *ev), ev.Obj, m.repl.With, ev)
 	return m.repl.With.API != "ReplaceEffect"
