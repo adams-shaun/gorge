@@ -526,13 +526,23 @@ func TestPrintSeatsShowsOpponentAuraOnItsHost(t *testing.T) {
 	var out bytes.Buffer
 	printSeats(&out, players, false)
 	got := out.String()
-	if !strings.Contains(got, "Grizzly Bears (#20) 2/2, attachments: Pacifism (seat 0's), Rancor") {
-		t.Errorf("host line does not list both attachments:\n%s", got)
+	if !strings.Contains(got, "  - Grizzly Bears (#20) 2/2") {
+		t.Errorf("host line missing:\n%s", got)
 	}
-	if strings.Contains(got, "- Pacifism") || strings.Contains(got, "- Rancor") {
+	if !strings.Contains(got, "    - Pacifism (#10) 0/0 (seat 0's)") {
+		t.Errorf("opponent's Aura not rendered under its host with its controller:\n%s", got)
+	}
+	if !strings.Contains(got, "    - Rancor (#21) 0/0") {
+		t.Errorf("own attachment not rendered under its host:\n%s", got)
+	}
+	// A standalone permanent line starts the line with exactly two spaces;
+	// a nested attachment line carries four. Anchor on the newline so a
+	// nested "    - Pacifism" cannot be mistaken for a standalone "  - "
+	// line (its substring would otherwise match).
+	if strings.Contains(got, "\n  - Pacifism") || strings.Contains(got, "\n  - Rancor") {
 		t.Errorf("an attachment also printed as a standalone permanent:\n%s", got)
 	}
-	if !strings.Contains(got, "- Plains (#11)") {
+	if !strings.Contains(got, "  - Plains (#11)") {
 		t.Errorf("unattached permanent missing:\n%s", got)
 	}
 }
@@ -547,6 +557,37 @@ func TestPrintSeatsKeepsAttachmentWithMissingHost(t *testing.T) {
 	printSeats(&out, players, false)
 	if !strings.Contains(out.String(), "- Bonesplitter (#10) 0/0, attached to #99 (not on the battlefield)") {
 		t.Errorf("orphaned attachment not printed:\n%s", out.String())
+	}
+}
+
+// TestPrintSeatsAttachmentFullDetail is the regression for the review
+// finding that a nested attachment was flattened to a name: a tapped
+// attachment with counters and damage lost its object id, P/T, tapped
+// state, damage and counters, and two same-name attachments became
+// indistinguishable. Each attached permanent must carry the full
+// characteristics a standalone one would.
+func TestPrintSeatsAttachmentFullDetail(t *testing.T) {
+	players := []view.PlayerView{
+		{ID: 0, Name: "Caster", Battlefield: []view.CardView{
+			{ID: 10, Name: "Lightning Greaves", Power: 2, Toughness: 2, Tapped: true,
+				Damage: 3, Counters: map[string]int32{"+1/+1": 2}, AttachedTo: 20},
+		}},
+		{ID: 1, Name: "Target", Battlefield: []view.CardView{
+			{ID: 20, Name: "Grizzly Bears", Power: 2, Toughness: 2, Tapped: true},
+			{ID: 21, Name: "Lightning Greaves", Power: 2, Toughness: 2, AttachedTo: 20},
+		}},
+	}
+	var out bytes.Buffer
+	printSeats(&out, players, false)
+	got := out.String()
+	if !strings.Contains(got, "    - Lightning Greaves (#10) 2/2, damage 3, tapped, counters +1/+1:2 (seat 0's)") {
+		t.Errorf("tapped counter-bearing attachment lost detail:\n%s", got)
+	}
+	if !strings.Contains(got, "    - Lightning Greaves (#21) 2/2") {
+		t.Errorf("same-name attachment not rendered by its own id:\n%s", got)
+	}
+	if !strings.Contains(got, "  - Grizzly Bears (#20) 2/2, tapped") {
+		t.Errorf("host detail missing:\n%s", got)
 	}
 }
 

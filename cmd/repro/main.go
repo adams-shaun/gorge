@@ -232,15 +232,18 @@ func printSeats(stdout io.Writer, players []view.PlayerView, omniscient bool) {
 			controller[c.ID] = players[i].ID
 		}
 	}
-	attached := map[state.ObjID][]string{}
+	// attached indexes every seat's attachments under the id of the host
+	// they modify. Indexing across ALL seats before any seat prints is
+	// deliberate: view.ProjectFor groups battlefields by controller, and an
+	// Aura is routinely controlled by one seat and attached to another
+	// seat's creature (a Pacifism on the opponent), so a per-seat index
+	// would suppress that Aura from its controller's section and never show
+	// it on the host.
+	attached := map[state.ObjID][]view.CardView{}
 	for i := range players {
 		for _, c := range players[i].Battlefield {
 			if c.AttachedTo != 0 && onBattlefield[c.AttachedTo] {
-				label := c.Name
-				if players[i].ID != controller[c.AttachedTo] {
-					label = fmt.Sprintf("%s (seat %d's)", c.Name, players[i].ID)
-				}
-				attached[c.AttachedTo] = append(attached[c.AttachedTo], label)
+				attached[c.AttachedTo] = append(attached[c.AttachedTo], c)
 			}
 		}
 	}
@@ -258,25 +261,50 @@ func printSeats(stdout io.Writer, players []view.PlayerView, omniscient bool) {
 			if c.AttachedTo != 0 && onBattlefield[c.AttachedTo] {
 				continue // printed with its host
 			}
-			line := fmt.Sprintf("  - %s (#%d) %d/%d", c.Name, c.ID, c.Power, c.Toughness)
-			if c.Damage != 0 {
-				line += fmt.Sprintf(", damage %d", c.Damage)
-			}
-			if c.Tapped {
-				line += ", tapped"
-			}
-			if ks := counterKinds(c.Counters); ks != "" {
-				line += ", counters " + ks
-			}
+			line := fmt.Sprintf("  - %s", permanentDetail(c))
 			if c.AttachedTo != 0 {
 				line += fmt.Sprintf(", attached to #%d (not on the battlefield)", c.AttachedTo)
 			}
-			if names := attached[c.ID]; len(names) != 0 {
-				line += ", attachments: " + strings.Join(names, ", ")
-			}
 			fmt.Fprintln(stdout, line)
+			// Render each attached permanent in full — object id, P/T,
+			// tapped, damage and counters — on its own nested line under the
+			// host, rather than collapsing it to a name in an "attachments:"
+			// suffix. A name-only suffix loses everything that distinguishes
+			// two attachments: a tapped Equipment with counters or damage
+			// would print identically to a fresh untapped one, and two
+			// same-name attachments would be indistinguishable. The
+			// cross-controller relationship is preserved: an Aura one seat
+			// controls on another seat's permanent names the controlling
+			// seat, so the reader can tell whose attachment it is.
+			for _, a := range attached[c.ID] {
+				nest := fmt.Sprintf("    - %s", permanentDetail(a))
+				if controller[a.ID] != controller[c.ID] {
+					nest += fmt.Sprintf(" (seat %d's)", controller[a.ID])
+				}
+				fmt.Fprintln(stdout, nest)
+			}
 		}
 	}
+}
+
+// permanentDetail renders one permanent's public characteristics — name,
+// object id, power/toughness, damage, tapped and counters — as the shared
+// body of both a host's own line and an attached line. Reusing it for the
+// nested attachment means an attachment carries the same detail a
+// standalone permanent would, so nothing is lost when an Aura or Equipment
+// is printed under its host instead of as its own battlefield entry.
+func permanentDetail(c view.CardView) string {
+	line := fmt.Sprintf("%s (#%d) %d/%d", c.Name, c.ID, c.Power, c.Toughness)
+	if c.Damage != 0 {
+		line += fmt.Sprintf(", damage %d", c.Damage)
+	}
+	if c.Tapped {
+		line += ", tapped"
+	}
+	if ks := counterKinds(c.Counters); ks != "" {
+		line += ", counters " + ks
+	}
+	return line
 }
 
 // cardNames renders a CardView list as "Name (#id)" comma-joined, in list
