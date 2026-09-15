@@ -209,6 +209,7 @@ const (
 	// about whether a word is recognised, exactly as the type-word family is.
 	wordInZoneStack
 	wordActivePlayerCtrl
+	wordTopLibrary
 	wordHasCounters
 	wordHistoric
 	wordIsCommander
@@ -239,6 +240,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordInZoneStack, ""
 	case "ActivePlayerCtrl":
 		return wordActivePlayerCtrl, ""
+	case "TopLibrary":
+		return wordTopLibrary, ""
 	case "HasCounters":
 		return wordHasCounters, ""
 	case "Historic":
@@ -297,6 +300,16 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// Forge's ActivePlayerCtrl: the object is controlled by the active
 		// player -- the seat whose turn it is, g.Active.
 		return o.Controller == g.Active
+	case wordTopLibrary:
+		// Forge's TopLibrary: the object is the top card of its library --
+		// index 0 of the owner's library slice, the card the next draw takes
+		// (effects.drawFor draws lib[0]). A card deeper in the library never
+		// matches, and a card that is not in a library at all never matches.
+		if o.Zone != state.ZLibrary {
+			return false
+		}
+		ids := g.Zone(state.ZLibrary, o.Owner)
+		return len(ids) > 0 && ids[0] == o.ID
 	case wordHasCounters:
 		// Forge's HasCounters: the object has at least one counter of any
 		// kind on it.

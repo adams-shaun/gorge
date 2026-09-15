@@ -313,8 +313,8 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 	// MayPlay grants (rules/mayplay.go): an S:Mode$ Continuous ... MayPlay$
 	// True static -- a battlefield grant like Conduit of Worlds' "You may
 	// play lands from your graveyard" or the affected card's own self-grant
-	// -- opens the ordinary play action from the graveyard or exile. The
-	// walk appends AFTER the flashback casts so a granted card and its
+	// -- opens the ordinary play action from the graveyard, exile or the top
+	// card of the library. The walk appends AFTER the flashback casts so a granted card and its
 	// flashback are two distinct options, and reindexes the returned
 	// options because every earlier index must stay stable. A hand zone is
 	// deliberately not walked: a hand card's ordinary cast is already
@@ -480,9 +480,10 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		// continueCast/commitCast below, never a parallel one.
 		// The from-zone is the card's CURRENT zone, not the hand: since the
 		// MayPlay grants (rules/mayplay.go) the play_land offer also comes
-		// from the graveyard or exile, and commitCast must move the land
-		// back out of the zone it actually sits in (CR 118.3a -- the
-		// permission names the zone it grants). A hand play keeps from=hand.
+		// from the graveyard, exile or the top of the library, and commitCast
+		// must move the land back out of the zone it actually sits in
+		// (CR 118.3a -- the permission names the zone it grants). A hand play
+		// keeps from=hand.
 		from := state.ZHand
 		if o := e.G.Obj(opt.Obj); o != nil {
 			from = o.Zone

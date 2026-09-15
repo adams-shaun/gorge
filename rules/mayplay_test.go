@@ -279,3 +279,297 @@ func mountainCard(t *testing.T) *cards.Card {
 	t.Helper()
 	return card(t, "Name:Mountain\nTypes:Land Mountain\nOracle:x\n")
 }
+
+// TestKaZarGrantsPlayLandFromTopOfLibrary drives Ka-Zar of the Savage Land's
+// real static -- S:Mode$ Continuous | Affected$ Land.TopLibrary+YouCtrl |
+// AffectedZone$ Library | MayPlay$ True -- through the priority walk: the top
+// card of its controller's library, when a land, must be offered as an
+// ordinary play_land that consumes the turn's land drop and moves from the
+// library onto the battlefield. The card BENEATH the top is never offered --
+// a MayPlay grant exposes exactly the one card it lets you play, and walking
+// only the top card keeps deeper library identities out of the option list.
+func TestKaZarGrantsPlayLandFromTopOfLibrary(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	kazar, ok := reg.Lookup("Ka-Zar of the Savage Land")
+	if !ok {
+		t.Fatal("Ka-Zar of the Savage Land missing from corpus")
+	}
+	if d := kazar.Link(); len(d) != 0 {
+		t.Fatalf("link Ka-Zar: %v", d)
+	}
+	e, _, _ := newFixtureDeck(t, 215, "Name:Blank\nTypes:Sorcery\nOracle:x\n")
+	ko := e.G.AddObject(kazar, 0)
+	ko.Zone = state.ZBattlefield
+	top := e.G.AddObject(mountainCard(t), 0)
+	beneath := e.G.AddObject(card(t, "Name:Forest\nTypes:Land Forest\nOracle:x\n"), 0)
+	e.G.SetZone(state.ZBattlefield, 0, append(e.G.Zone(state.ZBattlefield, 0), ko.ID))
+	// The library's fixture cards sit beneath the two lands; the TOP of the
+	// library is index 0 (drawFor draws lib[0]).
+	e.G.SetZone(state.ZLibrary, 0, append([]state.ObjID{top.ID, beneath.ID},
+		e.G.Zone(state.ZLibrary, 0)...))
+	e.G.Step, e.G.Active, e.G.Priority, e.G.Turn = state.StepMain1, 0, 0, 1
+	e.pending = nil
+	e.Advance()
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("priority = %+v, want priority for seat 0", d)
+	}
+	var playIdx int = -1
+	for _, o := range d.Options {
+		if o.Kind == "play_land" && o.Obj == top.ID {
+			playIdx = o.Index
+		}
+		if o.Kind == "play_land" && o.Obj == beneath.ID {
+			t.Fatalf("non-top library card offered: %+v", o)
+		}
+	}
+	if playIdx < 0 {
+		t.Fatalf("top-of-library land not offered as play_land: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{playIdx}}); err != nil {
+		t.Fatalf("submit play_land: %v", err)
+	}
+	if top.Zone != state.ZBattlefield {
+		t.Fatalf("land zone %v, want battlefield (played from the library)", top.Zone)
+	}
+	if e.G.Players[0].LandsPlayed != 1 {
+		t.Fatalf("LandsPlayed = %d, want 1 (the granted play is the land drop)", e.G.Players[0].LandsPlayed)
+	}
+	d = e.Pending()
+	if d == nil {
+		t.Fatal("no pending decision after the land play")
+	}
+	for _, o := range d.Options {
+		if o.Kind == "play_land" {
+			t.Fatalf("play_land still offered after the drop: %+v", o)
+		}
+	}
+}
+
+// TestKorlessaCastsDragonFromTopOfLibrary drives Korlessa, Scale Singer's
+// real static -- S:Mode$ Continuous | Affected$ Dragon.TopLibrary+YouCtrl+
+// nonLand | AffectedZone$ Library | MayPlay$ True -- end to end: a Dragon on
+// top of the library is offered as a cast paying its printed mana cost, and
+// resolving it moves it from the library through the stack onto the
+// battlefield. A non-Dragon sitting beneath the Dragon is never offered.
+func TestKorlessaCastsDragonFromTopOfLibrary(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	korlessa, ok := reg.Lookup("Korlessa, Scale Singer")
+	if !ok {
+		t.Fatal("Korlessa, Scale Singer missing from corpus")
+	}
+	if d := korlessa.Link(); len(d) != 0 {
+		t.Fatalf("link Korlessa: %v", d)
+	}
+	e, _, _ := newFixtureDeck(t, 216, "Name:Blank\nTypes:Sorcery\nOracle:x\n")
+	ko := e.G.AddObject(korlessa, 0)
+	ko.Zone = state.ZBattlefield
+	dragon := e.G.AddObject(card(t, "Name:Fire Dragon\nManaCost:2 R\nTypes:Creature Dragon\nPT:2/2\nOracle:x\n"), 0)
+	bear := e.G.AddObject(card(t, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), 0)
+	e.G.SetZone(state.ZBattlefield, 0, append(e.G.Zone(state.ZBattlefield, 0), ko.ID))
+	e.G.SetZone(state.ZLibrary, 0, append([]state.ObjID{dragon.ID, bear.ID},
+		e.G.Zone(state.ZLibrary, 0)...))
+	// Fund Korlessa's {G}{U} grant... no, the DRAGON's printed cost is paid;
+	// {2}{R} needs R. Fund the dragon's {2}{R}.
+	e.G.Players[0].Pool[state.MR] = 1
+	e.G.Players[0].Pool[state.MG] = 2
+	e.G.Step, e.G.Active, e.G.Priority, e.G.Turn = state.StepMain1, 0, 0, 1
+	e.pending = nil
+	e.Advance()
+
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("no pending decision")
+	}
+	var castIdx int = -1
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == dragon.ID {
+			castIdx = o.Index
+			if o.Mode != "mayplay" {
+				t.Fatalf("cast option mode %q, want mayplay", o.Mode)
+			}
+		}
+		if (o.Kind == "cast" || o.Kind == "play_land") && o.Obj == bear.ID {
+			t.Fatalf("non-top library card offered: %+v", o)
+		}
+	}
+	if castIdx < 0 {
+		t.Fatalf("top-of-library Dragon not offered as a cast: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{castIdx}}); err != nil {
+		t.Fatalf("submit cast: %v", err)
+	}
+	if dragon.Zone != state.ZStack {
+		t.Fatalf("dragon zone %v, want stack after the cast", dragon.Zone)
+	}
+	passUntilStackEmpty(t, e, 40)
+	if dragon.Zone != state.ZBattlefield {
+		t.Fatalf("dragon zone %v, want battlefield after resolution", dragon.Zone)
+	}
+}
+
+// TestKessGraveyardInstantCastsOnItsControllerTurn drives Kess, Dissident
+// Mage's real static -- Condition$ PlayerTurn -- through its POSITIVE side:
+// on its controller's turn the graveyard instant is offered, casts for its
+// printed cost, and MayPlayLimit$ 1 stops a second offer in the same turn.
+func TestKessGraveyardInstantCastsOnItsControllerTurn(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	kess, ok := reg.Lookup("Kess, Dissident Mage")
+	if !ok {
+		t.Fatal("Kess, Dissident Mage missing from corpus")
+	}
+	if d := kess.Link(); len(d) != 0 {
+		t.Fatalf("link Kess: %v", d)
+	}
+	e, _, _ := newFixtureDeck(t, 217, "Name:Blank\nTypes:Sorcery\nOracle:x\n")
+	ko := e.G.AddObject(kess, 0)
+	ko.Zone = state.ZBattlefield
+	bolt := e.G.AddObject(card(t, "Name:Bolt\nManaCost:U\nTypes:Instant\nOracle:x\n"), 0)
+	bolt.Zone = state.ZGraveyard
+	e.G.SetZone(state.ZBattlefield, 0, append(e.G.Zone(state.ZBattlefield, 0), ko.ID))
+	e.G.SetZone(state.ZGraveyard, 0, append(e.G.Zone(state.ZGraveyard, 0), bolt.ID))
+	e.G.Players[0].Pool[state.MU] = 2
+	e.G.Step, e.G.Active, e.G.Priority, e.G.Turn = state.StepMain1, 0, 0, 1
+	e.pending = nil
+	e.Advance()
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("priority = %+v, want priority for seat 0", d)
+	}
+	var castIdx int = -1
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == bolt.ID {
+			castIdx = o.Index
+		}
+	}
+	if castIdx < 0 {
+		t.Fatalf("graveyard instant not offered on its controller's turn: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{castIdx}}); err != nil {
+		t.Fatalf("submit cast: %v", err)
+	}
+	if bolt.Zone != state.ZStack {
+		t.Fatalf("bolt zone %v, want stack after the cast", bolt.Zone)
+	}
+	passUntilStackEmpty(t, e, 40)
+	d = e.Pending()
+	if d == nil {
+		t.Fatal("no pending decision after the instant resolved")
+	}
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == bolt.ID {
+			t.Fatalf("MayPlayLimit$ 1 not enforced -- instant offered twice in one turn: %+v", o)
+		}
+	}
+}
+
+// TestKessGraveyardInstantNotOfferedOnOpponentTurn is the opponent-turn
+// regression for the same Condition$ PlayerTurn gate: with the identical
+// board during an OPPONENT's turn (seat 0 holding priority at instant speed,
+// the card an instant so only the Condition gate can withhold it), the
+// graveyard instant must NOT be offered.
+func TestKessGraveyardInstantNotOfferedOnOpponentTurn(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	kess, ok := reg.Lookup("Kess, Dissident Mage")
+	if !ok {
+		t.Fatal("Kess, Dissident Mage missing from corpus")
+	}
+	e, _, _ := newFixtureDeck(t, 218, "Name:Blank\nTypes:Sorcery\nOracle:x\n")
+	ko := e.G.AddObject(kess, 0)
+	ko.Zone = state.ZBattlefield
+	bolt := e.G.AddObject(card(t, "Name:Bolt\nManaCost:U\nTypes:Instant\nOracle:x\n"), 0)
+	bolt.Zone = state.ZGraveyard
+	e.G.SetZone(state.ZBattlefield, 0, append(e.G.Zone(state.ZBattlefield, 0), ko.ID))
+	e.G.SetZone(state.ZGraveyard, 0, append(e.G.Zone(state.ZGraveyard, 0), bolt.ID))
+	e.G.Players[0].Pool[state.MU] = 2
+	// Seat 1's turn; seat 0 holds priority (instant speed is available to
+	// seat 0 here, so only the Condition$ PlayerTurn gate can withhold the
+	// grant).
+	e.G.Step, e.G.Active, e.G.Priority, e.G.Turn = state.StepMain1, 1, 0, 1
+	e.pending = nil
+	e.Advance()
+
+	d := e.Pending()
+	if d == nil || d.Player != 0 {
+		t.Fatalf("pending = %+v, want priority for seat 0", d)
+	}
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == bolt.ID {
+			t.Fatalf("graveyard instant offered during the opponent's turn: %+v", o)
+		}
+	}
+}
+
+// TestGravecrawlerCastsFromGraveyardWithZombieOnBattlefield drives
+// Gravecrawler's real IsPresent$ gate -- S:Mode$ Continuous | Affected$
+// Card.Self | AffectedZone$ Graveyard | IsPresent$ Zombie.YouCtrl -- through
+// both sides: with a Zombie on the battlefield the crawler in the graveyard
+// is offered and casts; with no Zombie anywhere the offer is withheld.
+func TestGravecrawlerCastsFromGraveyardWithZombieOnBattlefield(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	crawler, ok := reg.Lookup("Gravecrawler")
+	if !ok {
+		t.Fatal("Gravecrawler missing from corpus")
+	}
+	if d := crawler.Link(); len(d) != 0 {
+		t.Fatalf("link Gravecrawler: %v", d)
+	}
+	zombieSrc := "Name:Patch Zombie\nManaCost:1 B\nTypes:Creature Zombie\nPT:2/2\nOracle:x\n"
+	// With a Zombie on the battlefield.
+	e, _, _ := newFixtureDeck(t, 219, "Name:Blank\nTypes:Sorcery\nOracle:x\n")
+	zo := e.G.AddObject(card(t, zombieSrc), 0)
+	zo.Zone = state.ZBattlefield
+	gc := e.G.AddObject(crawler, 0)
+	gc.Zone = state.ZGraveyard
+	e.G.SetZone(state.ZBattlefield, 0, append(e.G.Zone(state.ZBattlefield, 0), zo.ID))
+	e.G.SetZone(state.ZGraveyard, 0, append(e.G.Zone(state.ZGraveyard, 0), gc.ID))
+	e.G.Players[0].Pool[state.MB] = 1
+	e.G.Step, e.G.Active, e.G.Priority, e.G.Turn = state.StepMain1, 0, 0, 1
+	e.pending = nil
+	e.Advance()
+
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("no pending decision")
+	}
+	var castIdx int = -1
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == gc.ID {
+			castIdx = o.Index
+		}
+	}
+	if castIdx < 0 {
+		t.Fatalf("Gravecrawler not offered with a Zombie on the battlefield: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{castIdx}}); err != nil {
+		t.Fatalf("submit cast: %v", err)
+	}
+	if gc.Zone != state.ZStack {
+		t.Fatalf("Gravecrawler zone %v, want stack after the cast", gc.Zone)
+	}
+	passUntilStackEmpty(t, e, 40)
+
+	// Without a Zombie (the crawler itself is on the battlefield now, and it
+	// IS a Zombie, so remove it to exile first) the crawler in the graveyard
+	// is not offered.
+	e2, _, _ := newFixtureDeck(t, 220, "Name:Blank\nTypes:Sorcery\nOracle:x\n")
+	gc2 := e2.G.AddObject(crawler, 0)
+	gc2.Zone = state.ZGraveyard
+	e2.G.SetZone(state.ZGraveyard, 0, append(e2.G.Zone(state.ZGraveyard, 0), gc2.ID))
+	e2.G.Players[0].Pool[state.MB] = 1
+	e2.G.Step, e2.G.Active, e2.G.Priority, e2.G.Turn = state.StepMain1, 0, 0, 1
+	e2.pending = nil
+	e2.Advance()
+
+	d = e2.Pending()
+	if d == nil {
+		t.Fatal("no pending decision (no-zombie arm)")
+	}
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == gc2.ID {
+			t.Fatalf("Gravecrawler offered with no Zombie on the battlefield: %+v", o)
+		}
+	}
+}
