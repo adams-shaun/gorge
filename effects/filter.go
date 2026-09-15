@@ -69,23 +69,6 @@ var predicates = map[string]predFn{
 	"nonBlack": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return !strings.Contains(ColorsOf(o), "B")
 	},
-	// Permanent is both a base (matchesBase) and a predicate token: a base
-	// rewritten by the Remembered./Targeted./Triggered. prefix handling
-	// (MatchesObjectCtx) lands it in the predicate position -- Bifurcate's
-	// `ChangeType$ Targeted.Permanent+sameName` becomes Card.Permanent+sameName.
-	// Forge cardHasProperty's "Permanent" is card.isPermanent(), which is
-	// `isInPlay() || getType().isPermanent()` -- so off the battlefield the
-	// test is the card's printed type (a permanent card in a library or
-	// graveyard still matches, an instant or sorcery does not), not its
-	// zone. Bifurcate searches a LIBRARY for "a permanent card", so the
-	// zone reading would have made the rewrite a no-op there.
-	"Permanent": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
-		if o.Zone == state.ZBattlefield {
-			return true
-		}
-		f := o.Face()
-		return f != nil && f.IsPermanent()
-	},
 	"kicked": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagKicked != 0
 	},
@@ -94,7 +77,7 @@ var predicates = map[string]predFn{
 	},
 	"NamedCard": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		s := g.Obj(src)
-		return s != nil && s.ChosenName != "" && o.Face() != nil && o.Face().Name == s.ChosenName
+		return s != nil && s.ChosenName != "" && sharesName(o, s.ChosenName)
 	},
 	"ChosenType": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		s := g.Obj(src)
@@ -241,10 +224,8 @@ const (
 	// The name-predicate family (Forge CardProperty): named<Name> and
 	// notnamed<Name> compare the candidate's name characteristics with the
 	// argument text (key carries it, `;`/`_` normalised); sameName compares
-	// it with the alternative's name referent -- MatchesObjectCtx has
-	// already rewritten SpecContext.Source to it (the ability's source card
-	// by default, or the Remembered./Targeted./Triggered. context object a
-	// base prefix names).
+	// it with the source card, or with the name referent encoded by its own
+	// Remembered./Targeted./Triggered. base shape.
 	wordNamed
 	wordNotnamed
 	wordSameName
@@ -513,16 +494,12 @@ func nameArg(p string) string {
 }
 
 // sharesName reports whether o's name characteristics include name -- Forge
-// Card.sharesNameWith(String): the current face's printed name, plus
-// CR 708.4a's both-names rule for a multi-face card away from the stack and
-// the battlefield (a split card in a library, hand or graveyard carries both
-// halves' names). On the stack the chosen half is the only name, on the
-// battlefield the permanent's current face (CR 711.5's transformed back
-// face included). An empty name never matches; an ability object (Card nil)
-// has no name. gorge's IR does not carry AlternateMode, so off the stack and
-// battlefield ANY face's name counts -- measured against the corpus, no
-// named/notnamed/sameName spec names a transform back face, so the
-// transform-back-face over-match has zero measured population there.
+// Card.sharesNameWith(String): the current face's printed name, plus CR
+// 708.4a's both-names rule for a SPLIT card away from the stack and the
+// battlefield. A transforming DFC has only its front-face characteristics in
+// those zones (CR 712), while its transformed face is current on the
+// battlefield. An empty name never matches; an ability object (Card nil) has
+// no name.
 func sharesName(o *state.Object, name string) bool {
 	if name == "" || o == nil || o.Card == nil {
 		return false
@@ -530,11 +507,12 @@ func sharesName(o *state.Object, name string) bool {
 	if f := o.Face(); f != nil && f.Name == name {
 		return true
 	}
-	if o.Zone != state.ZStack && o.Zone != state.ZBattlefield && len(o.Card.Faces) > 1 {
-		for _, f := range o.Card.Faces {
-			if f != nil && f.Name == name {
-				return true
-			}
+	if o.Card.AlternateMode != "Split" || o.Zone == state.ZStack || o.Zone == state.ZBattlefield {
+		return false
+	}
+	for _, f := range o.Card.Faces {
+		if f != nil && f.Name == name {
+			return true
 		}
 	}
 	return false
@@ -767,54 +745,62 @@ func parseCMC(cost string) int32 {
 	return n
 }
 
-// contextBase reports whether a filter base prefix names a context object
-// the alternative's source-relative predicates are measured against. Forge's
-// filterListByType switches on the same three prefixes (Remembered; Targeted,
-// including TargetedCard; Triggered, including TriggeredCard/Attacker/Object)
-// and then replaces the prefix with Card. A base with no such prefix leaves
-// the alternative's source at the ability's own source card.
-func contextBase(base string) bool {
+// sameNameContextBase recognises only the three base-prefix forms which
+// carry sameName's referent. Keeping this rewrite name-specific is important:
+// Remembered.*, Targeted.*, and Triggered.* have many unrelated predicates
+// whose grammar and behaviour this task must not expand.
+func sameNameContextBase(base, rest string) bool {
+	if !hasPredicate(rest, "sameName") {
+		return false
+	}
 	return strings.HasPrefix(base, "Remembered") ||
 		strings.HasPrefix(base, "Targeted") ||
 		strings.HasPrefix(base, "Triggered")
 }
 
-// contextReferent resolves the object id the context base prefix names, or
-// bound=false when nothing in the walk binds it -- the caller must treat an
-// unbound referent as "this alternative matches nothing", never as "fall
-// back to the source card", because Forge's getType returns an EMPTY
-// collection there (Eradicate with nothing remembered destroys nothing;
-// it does not destroy everything named after its own source).
-func contextReferent(g *state.Game, base string, sc SpecContext) (state.ObjID, bool) {
+func hasPredicate(rest, want string) bool {
+	for _, p := range strings.Split(rest, "+") {
+		if p == want {
+			return true
+		}
+	}
+	return false
+}
+
+// sameNameContextReferent resolves the object whose name a sameName context
+// base names. An absent binding fails closed rather than falling back to the
+// ability source.
+func sameNameContextReferent(g *state.Game, base string, sc SpecContext) (state.ObjID, bool) {
 	switch {
 	case strings.HasPrefix(base, "Remembered"):
-		// Forge: the first remembered Card.
 		for _, t := range sc.Remembered {
 			if !t.IsPlayer && t.Obj != 0 && g.Obj(t.Obj) != nil {
 				return t.Obj, true
 			}
 		}
-		return 0, false
 	case strings.HasPrefix(base, "Targeted"):
-		// Forge: sa.findTargetedCards().get(0). ResolutionTargets is set only
-		// while a resolution walk is live (Ctx.SpecContext and the legality
-		// recheck), so an offer-time match is unbound, as target legality
-		// must be.
 		for _, t := range sc.ResolutionTargets {
 			if !t.IsPlayer && t.Obj != 0 && g.Obj(t.Obj) != nil {
 				return t.Obj, true
 			}
 		}
-		return 0, false
-	default: // Triggered
-		// Forge: sa.getTriggeringObject(AbilityKey.Card) -- the event's card
-		// role, which rules captures into TriggerContext.TriggerCard for the
-		// ChangesZone/SpellCast events the corpus's Triggered.* specs ride on.
+	case strings.HasPrefix(base, "Triggered"):
 		if sc.TriggerCard != 0 && g.Obj(sc.TriggerCard) != nil {
 			return sc.TriggerCard, true
 		}
-		return 0, false
 	}
+	return 0, false
+}
+
+// isPermanentCard is Forge's card.isPermanent() reading used only by
+// Targeted.Permanent+sameName: a battlefield object is permanent, and away
+// from the battlefield a card's printed type decides it.
+func isPermanentCard(o *state.Object) bool {
+	if o.Zone == state.ZBattlefield {
+		return true
+	}
+	f := o.Face()
+	return f != nil && f.IsPermanent()
 }
 
 // matchesBase handles the base type, including a "non" prefix.
@@ -901,20 +887,14 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 		}
 		base, rest, _ := strings.Cut(alt, ".")
 		asc := sc
-		// Forge's filterListByType (AbilityUtils.getType): a Remembered.*,
-		// Targeted.* (TargetedCard included) or Triggered.* (TriggeredCard/
-		// TriggeredAttacker/TriggeredObject included) base names the context
-		// object every source-relative predicate in the alternative is
-		// measured against -- Eradicate's `ChangeType$ Remembered.sameName`,
-		// Bifurcate's `Targeted.Permanent+sameName`, Bloodbond March's
-		// `Triggered.sameName` -- and the base itself degrades to Card. A
-		// prefix with no bound referent leaves the alternative nothing to
-		// match, exactly as Forge's getType returns an empty collection
-		// there. Rewriting SpecContext.Source (a per-alternative copy) makes
-		// Self/Other/sameName/NamedCard and the rest relative to the referent
-		// the way Forge passes the card into cardHasProperty.
-		if contextBase(base) {
-			ref, bound := contextReferent(g, base, asc)
+		contextualSameName := sameNameContextBase(base, rest)
+		// Forge's sameName forms can name their referent in the base:
+		// Remembered.sameName, Targeted.Permanent+sameName, and
+		// Triggered.sameName. Rewrite only those name-predicate alternatives;
+		// a global rewrite would activate unrelated Remembered/Targeted/
+		// Triggered filters outside this task's scope.
+		if contextualSameName {
+			ref, bound := sameNameContextReferent(g, base, asc)
 			if !bound {
 				continue
 			}
@@ -933,6 +913,17 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 		all := true
 		for _, p := range strings.Split(rest, "+") {
 			if p == "" {
+				continue
+			}
+			// Permanent is an auxiliary part of Forge's
+			// Targeted.Permanent+sameName base spelling, not a globally
+			// implemented predicate. Limit its type-based reading to that
+			// contextual sameName form so Card.Permanent remains fail-closed.
+			if contextualSameName && p == "Permanent" {
+				if !isPermanentCard(o) {
+					all = false
+					break
+				}
 				continue
 			}
 			// matchPredicate evaluates every recognised shape -- the predicates

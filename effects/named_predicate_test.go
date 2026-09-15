@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -27,7 +28,7 @@ func namedBoard(t *testing.T) (*state.Game, map[string]state.ObjID) {
 		g.SetZone(zone, owner, append(g.Zone(zone, owner), o.ID))
 		return o.ID
 	}
-	split := "Name:Split Left\nManaCost:1 R\nTypes:Instant\nOracle:x\n\nALTERNATE\n\nName:Split Right\nManaCost:1 U\nTypes:Instant\nOracle:x\n"
+	split := "Name:Split Left\nManaCost:1 R\nTypes:Instant\nOracle:x\nAlternateMode:Split\n\nALTERNATE\n\nName:Split Right\nManaCost:1 U\nTypes:Instant\nOracle:x\n"
 	ids := map[string]state.ObjID{
 		"hawk1":   mkIn(0, state.ZLibrary, "Name:Squadron Hawk\nManaCost:1 W\nTypes:Creature Bird\nPT:1/1\nOracle:x\n"),
 		"hawk2":   mkIn(0, state.ZBattlefield, "Name:Squadron Hawk\nManaCost:1 W\nTypes:Creature Bird\nPT:1/1\nOracle:x\n"),
@@ -124,6 +125,50 @@ func TestNamedSplitCardBothNamesOffBattlefield(t *testing.T) {
 	}
 }
 
+// TestNamedDFCKeepsFrontFaceAwayFromBattlefield uses the real compiled Delver
+// card: unlike a split card, a transforming DFC in a library has only its
+// front-face characteristics (CR 712).
+func TestNamedDFCKeepsFrontFaceAwayFromBattlefield(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	delver, ok := reg.Lookup("Delver of Secrets")
+	if !ok || delver.AlternateMode != "DoubleFaced" {
+		t.Fatalf("Delver layout = %q, want DoubleFaced", delver.AlternateMode)
+	}
+	g := state.NewGame([]string{"you", "them"})
+	o := g.AddObject(delver, 0)
+	o.Zone = state.ZLibrary
+	g.SetZone(state.ZLibrary, 0, []state.ObjID{o.ID})
+	if !MatchesSpec(g, "Card.namedDelver of Secrets", o.ID, 0) {
+		t.Error("library Delver missed its front face")
+	}
+	if MatchesSpec(g, "Card.namedInsectile Aberration", o.ID, 0) {
+		t.Error("library Delver matched its transformed face")
+	}
+}
+
+// TestNamedCardUsesNameCharacteristics covers Forge's uppercase NamedCard
+// sibling: it compares with the source's chosen name using the same split/DFC
+// rules as named<Name>, rather than just comparing the current face string.
+func TestNamedCardUsesNameCharacteristics(t *testing.T) {
+	g, id := namedBoard(t)
+	g.Obj(id["bear"]).ChosenName = "Split Right"
+	if !MatchesSpecFrom(g, "Card.NamedCard", id["libleft"], 0, id["bear"]) {
+		t.Error("NamedCard missed the second name of a library split card")
+	}
+	g.Obj(id["bear"]).ChosenName = "Insectile Aberration"
+	reg := testutil.CorpusRegistry(t)
+	delver, ok := reg.Lookup("Delver of Secrets")
+	if !ok {
+		t.Fatal("Delver missing from corpus")
+	}
+	o := g.AddObject(delver, 0)
+	o.Zone = state.ZLibrary
+	g.SetZone(state.ZLibrary, 0, append(g.Zone(state.ZLibrary, 0), o.ID))
+	if MatchesSpecFrom(g, "Card.NamedCard", o.ID, 0, id["bear"]) {
+		t.Error("NamedCard matched a DFC's transformed face in the library")
+	}
+}
+
 // TestSameNamePredicateSourceRelative covers the plain source-relative shape
 // (Evil Twin's ValidTgts$ Creature.sameName): candidates share the SOURCE
 // card's name, and the conjunction partners still apply.
@@ -148,10 +193,9 @@ func TestSameNamePredicateSourceRelative(t *testing.T) {
 	}
 }
 
-// TestSameNameBasePrefixReferents pins Forge filterListByType's source
-// switch: a Remembered./Targeted./Triggered. base points every
-// source-relative predicate at the named context object and degrades the
-// base to Card; an unbound referent leaves the alternative nothing to match.
+// TestSameNameBasePrefixReferents pins the sameName-specific context forms:
+// Remembered./Targeted./Triggered. name the card whose name sameName compares
+// against; an unbound referent leaves the alternative nothing to match.
 func TestSameNameBasePrefixReferents(t *testing.T) {
 	g, id := namedBoard(t)
 	hawkInLib := id["hawk1"]
@@ -170,8 +214,8 @@ func TestSameNameBasePrefixReferents(t *testing.T) {
 		t.Error("unbound Remembered fell back to the source card")
 	}
 
-	// Targeted.Permanent+sameName (Bifurcate): base degrades to Card and
-	// "Permanent" is now a predicate the candidate must also satisfy.
+	// Targeted.Permanent+sameName (Bifurcate): the context base degrades to
+	// Card and its Permanent auxiliary is checked only for this sameName form.
 	sc = SpecContext{You: 0, Source: id["bear"], ResolutionTargets: []state.Target{{Obj: id["hawk2"]}}, Resolving: true}
 	if !MatchesObjectCtx(g, "Targeted.Permanent+sameName", g.Obj(id["bfhawk"]), sc) {
 		t.Error("the battlefield Hawk missed Targeted.Permanent+sameName")
@@ -181,15 +225,6 @@ func TestSameNameBasePrefixReferents(t *testing.T) {
 	}
 	if MatchesObjectCtx(g, "Targeted.Permanent+sameName", g.Obj(id["under"]), sc) {
 		t.Error("a library instant matched a Permanent predicate")
-	}
-	// Forge's isPermanent is type-based off the battlefield: a permanent
-	// CARD in a library matches (Bifurcate searches a library for "a
-	// permanent card"), an instant does not.
-	if !MatchesObjectCtx(g, "Card.Permanent", g.Obj(hawkInLib), SpecContext{You: 0}) {
-		t.Error("a library Hawk card missed the Permanent predicate")
-	}
-	if MatchesObjectCtx(g, "Card.Permanent", g.Obj(id["under"]), SpecContext{You: 0}) {
-		t.Error("a library instant matched the Permanent predicate")
 	}
 	if !MatchesObjectCtx(g, "Targeted.Permanent+sameName", g.Obj(hawkInLib), sc) {
 		t.Error("a library Hawk card missed Targeted.Permanent+sameName")
@@ -209,15 +244,12 @@ func TestSameNameBasePrefixReferents(t *testing.T) {
 		t.Error("an absent TriggerCard bound the referent")
 	}
 
-	// The referent also steers Self/Other: Remembered.Self is the remembered
-	// object, not the ability source (Forge passes the referent into
-	// cardHasProperty).
+	// The context rewrite is intentionally limited to sameName. An unrelated
+	// Remembered.Self filter remains fail-closed rather than gaining new
+	// behaviour as a side effect of this task.
 	sc = SpecContext{You: 0, Source: id["bear"], Remembered: []state.Target{{Obj: id["giant"]}}}
-	if !MatchesObjectCtx(g, "Remembered.Self", g.Obj(id["giant"]), sc) {
-		t.Error("Remembered.Self missed the remembered object")
-	}
-	if MatchesObjectCtx(g, "Remembered.Self", g.Obj(id["bear"]), sc) {
-		t.Error("Remembered.Self matched the ability source instead of the referent")
+	if MatchesObjectCtx(g, "Remembered.Self", g.Obj(id["giant"]), sc) {
+		t.Error("unrelated Remembered.Self gained name-predicate behaviour")
 	}
 }
 

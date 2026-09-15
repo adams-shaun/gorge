@@ -156,28 +156,38 @@ func TestSquadronHawkSearchFindsUpToThreeNamed(t *testing.T) {
 }
 
 // TestSquadronHawkSearchWithNoHawksResolvesSilently is the fail-to-find side:
-// the only Hawk is the one in play, the search's eligible set is empty, and
-// the resolution completes with no library moves and one shuffle -- never a
-// wedge.
+// the only Hawk is the one in play, so the search has no selectable cards.
+// It must shuffle and complete directly -- publishing an empty KChoose would
+// suspend a live host until somebody submitted a meaningless empty answer.
 func TestSquadronHawkSearchWithNoHawksResolvesSilently(t *testing.T) {
 	e, cfg, id := hawkSeats(t, 1, 0)
-	d := hawkCastAndAccept(t, e, id)
-	if d.Min != 0 || d.Max != 0 || len(d.Options) != 0 {
-		t.Fatalf("Min/Max/options = %d/%d/%d, want 0/0/0 (fail-to-find)", d.Min, d.Max, len(d.Options))
+	addMana(t, e, 0, "WC")
+	d := castFixture(t, e, id, -1)
+	if d == nil || d.Kind != decision.KTriggerOptional || d.Player != 0 {
+		t.Fatalf("pending = %+v, want seat 0's optional-trigger ask", d)
 	}
 	start := len(e.L.Events)
-	submitChoices(t, e)
+	submitChoices(t, e, 0) // accept the trigger; the empty search is direct
 	if e.G.Over || e.Suspended() {
 		t.Fatalf("game wedged: over=%v suspended=%v", e.G.Over, e.Suspended())
 	}
-	moves := 0
+	if d := e.Pending(); d != nil && d.Kind == decision.KChoose {
+		t.Fatalf("empty library search published KChoose: %+v", d)
+	}
+	moves, shuffles := 0, 0
 	for _, ev := range e.L.Events[start:] {
 		if ev.Kind == events.MoveZone && ev.From == state.ZLibrary {
 			moves++
 		}
+		if ev.Kind == events.Shuffle && ev.Player == 0 {
+			shuffles++
+		}
 	}
 	if moves != 0 {
 		t.Fatalf("fail-to-find emitted %d library moves, want 0", moves)
+	}
+	if shuffles != 1 {
+		t.Fatalf("fail-to-find shuffles = %d, want 1", shuffles)
 	}
 	passUntilStackEmpty(t, e, 20)
 	replayCheck(t, e, cfg)

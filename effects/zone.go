@@ -438,6 +438,17 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	if !SearchStatesQuality(spec) {
 		min = max
 	}
+	// An empty choice is not a choice: asking it suspends a real engine host
+	// until it submits an empty answer, even though no answer can differ.
+	// Complete the fail-to-find directly (including its required shuffle).
+	if min == 0 && max == 0 {
+		// A submitted search answer resumes in a fresh Ctx, so remembered
+		// objects do not leak into its SubAbility chain. Preserve that existing
+		// continuation contract while omitting the otherwise meaningless ask.
+		c.Remembered = nil
+		applyLibrarySearch(h, c, sa, owner, to, nil)
+		return
+	}
 	// The prompt must not offer a choice the decision will refuse. A
 	// quantity-only search has Min == Max, so "up to" would be a lie the
 	// player only discovers when their answer is rejected.
