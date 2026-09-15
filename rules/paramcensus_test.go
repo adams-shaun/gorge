@@ -48,14 +48,26 @@ package rules
 //     table entry the build now reads is stale and must be deleted. It only
 //     ever shrinks, and only when a real read (or a real parse) is added.
 //
-// Scope: the census walks exactly what cards.Face.Primitives walks (the
+// Scope: the census walks what cards.Face.Primitives walks (the
 // Abilities/Triggers/Statics/Repls plus the SubAbility chains link.go
-// resolved), and censuses only REGISTERED primitives -- an unimplemented
-// primitive is the first ratchet's business, and when one registers it
-// automatically comes under this census. Keyword heads (kw:...) carry no
-// parameter maps; their expansions are censused through the expanded
-// abilities' APIs. SVar bodies link.go did not link anywhere are unreachable
-// by construction and out of scope.
+// resolved) AND every SVar body in each face's own SVar table, and censuses
+// only REGISTERED primitives -- an unimplemented primitive is the first
+// ratchet's business, and when one registers it automatically comes under
+// this census. Keyword heads (kw:...) carry no parameter maps; their
+// expansions are censused through the expanded abilities' APIs. The SVar
+// walk is load-bearing, not decoration: ResolveSVar's production callers
+// execute bodies the Link pass never attached -- Charm's `Choices$` entries
+// (effects/misc.go effCharm), Repeat/RepeatEach's `RepeatSubAbility$`
+// (effects/choose_control.go), Branch's True/FalseSubAbility$
+// (rules/resolution.go) and the delayed trigger's Execute$
+// (rules/trigger_match.go) -- so a body an execution-bearing parameter
+// names must be censused like a linked sub-ability. The walk is the
+// conservative superset: EVERY face SVar is parsed, not only the ones a
+// parameter reference can be traced through, so a new execution-bearing
+// parameter cannot silently open a blind spot. Ability-less bodies
+// (`SVar:X:Count$...` expressions behind ConditionCheckSVar$/SVarCompare$)
+// fail parseSA and drop out; cycle protection is ResolveSVar's depth cap
+// plus one visit per SVar name.
 
 import (
 	"fmt"
@@ -1576,6 +1588,17 @@ func faceUnknownCostLabels(f *cards.Face) []string {
 // first ratchet owns the card); cost tokens are labelled regardless, because
 // an unmodelled token in a cost string is a real silent substitution even
 // when the primitive around it is already unsupported.
+//
+// The walk also parses EVERY SVar in each face's own SVar table through
+// cards.ResolveSVar and censuses the resulting bodies like linked
+// sub-abilities. This is the conservative superset of walking only the
+// execution-bearing SVar-reference parameters -- `Choices$` (effCharm),
+// `RepeatSubAbility$`/`RepeatEach` (effRepeat/effRepeatEach), Branch's
+// True/FalseSubAbility$ (resumeResolution) and the delayed trigger's
+// `Execute$` (checkDelayedTriggers) -- so the next execution-bearing
+// parameter is covered without touching this walk (see the file-head scope
+// note). One visit per name; ResolveSVar's depth cap bounds any body's own
+// SubAbility$ chain.
 func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string]bool) []string {
 	labels := map[string]bool{}
 	addLabel := func(l string) { labels[l] = true }
@@ -1662,6 +1685,13 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 			}
 			walk(r.With)
 		}
+		// SVar bodies the Link pass did not attach (see the comment above):
+		// one ResolveSVar per name; a body that is not an ability (Count$
+		// expressions behind ConditionCheckSVar$/SVarCompare$) fails parseSA
+		// and yields nil.
+		for name := range f.SVars {
+			walk(cards.ResolveSVar(f.SVars, name))
+		}
 	}
 	out := make([]string, 0, len(labels))
 	for label := range labels {
@@ -1734,7 +1764,7 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 // real ParseCost model is added.
 var knownUnsupportedParams = map[string][]string{
 	"Abbot of Keral Keep":         {"param:api:Cleanup.ClearRemembered", "param:api:Dig.RememberChanged", "param:api:Effect.ExileOnMoved"},
-	"Ad Nauseam":                  {"param:api:Repeat.RepeatOptional"},
+	"Ad Nauseam":                  {"param:api:Cleanup.ClearRemembered", "param:api:Dig.RememberChanged", "param:api:Dig.Reveal", "param:api:Repeat.RepeatOptional"},
 	"Adaptive Automaton":          {"param:api:ChooseType.Type"},
 	"Aether Vial":                 {"param:api:ChangeZone.Optional"},
 	"Aftermath Analyst":           {"param:api:ChangeZoneAll.Tapped"},
@@ -1755,7 +1785,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Bloodchief Ascension":        {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Bloodsoaked Champion":        {"param:api:ChangeZone.CheckSVar"},
 	"Borderland Ranger":           {"param:api:ChangeZone.ShuffleNonMandatory"},
-	"Braids, Arisen Nightmare":    {"param:api:Cleanup.ClearRemembered", "param:api:Sacrifice.Amount", "param:api:Sacrifice.Optional"},
+	"Braids, Arisen Nightmare":    {"param:api:Cleanup.ClearRemembered", "param:api:Draw.ConditionCheckSVar", "param:api:Draw.ConditionSVarCompare", "param:api:LoseLife.ConditionCheckSVar", "param:api:LoseLife.ConditionSVarCompare", "param:api:Sacrifice.Amount", "param:api:Sacrifice.Optional"},
 	"Brainstorm":                  {"param:api:ChangeZone.Mandatory", "param:api:ChangeZone.Reorder"},
 	"Burning Wish":                {"param:api:ChangeZone.Hidden", "param:api:ChangeZone.Reveal"},
 	"Cavern of Souls":             {"param:api:ChooseType.Type", "param:api:Mana.AddsNoCounter", "param:api:Mana.RestrictValid"},
@@ -1790,6 +1820,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Gamble":                      {"param:api:ChangeZone.Mandatory"},
 	"Ghalta, Primal Hunger":       {"param:stat:ReduceCost.EffectZone"},
 	"Ghost Quarter":               {"param:api:ChangeZone.Optional", "param:api:ChangeZone.ShuffleNonMandatory"},
+	"Ghoulcaller's Chant":         {"param:api:ChangeZone.Mandatory"},
 	"Giada, Font of Hope":         {"param:api:Mana.RestrictValid", "param:api:PutCounter.ETB"},
 	"Goblin Guide":                {"param:api:Dig.LibraryPosition2", "param:api:Dig.Reveal"},
 	"Grand Abolisher":             {"param:stat:CantBeActivated.AffectedZone", "param:stat:CantBeActivated.Condition", "param:stat:CantBeCast.Condition"},
@@ -1806,6 +1837,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Infernal Tutor":              {"param:api:ChangeZone.ConditionCheckSVar", "param:api:ChangeZone.ConditionSVarCompare", "param:api:ChangeZone.Mandatory", "param:api:Cleanup.ClearRemembered", "param:api:Reveal.ConditionCheckSVar"},
 	"Into the Roil":               {"param:api:Draw.Condition"},
 	"Jace, the Mind Sculptor":     {"param:api:ChangeZone.Mandatory", "param:api:ChangeZoneAll.Shuffle", "param:api:ChangeZoneAll.Ultimate", "param:api:Dig.LibraryPosition2"},
+	"Jeska's Will":                {"param:api:Cleanup.ClearRemembered", "param:api:Dig.RememberChanged", "param:api:Effect.ForgetOnMoved"},
 	"Journey to Nowhere":          {"param:api:ChangeZone.ForgetOtherTargets", "param:api:ChangeZone.RememberTargets"},
 	"Karn Liberated":              {"param:api:ChangeZone.Hidden", "param:api:ChangeZone.Mandatory", "param:api:ChangeZoneAll.GainControl", "param:api:RestartGame.RestrictFromValid", "param:api:RestartGame.RestrictFromZone", "param:api:RestartGame.Ultimate"},
 	"Karn, the Great Creator":     {"param:api:Animate.Duration", "param:api:ChangeZone.Hidden", "param:api:ChangeZone.Reveal", "param:stat:CantBeActivated.AffectedZone"},
@@ -1880,6 +1912,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Through the Forest Gate":     {"param:api:Dig.SkipReorder", "param:api:Dig.Tapped"},
 	"Thunderbreak Regent":         {"param:trig:BecomesTarget.ValidSource"},
 	"Tome of Legends":             {"param:api:PutCounter.ETB", "param:trig:Attacks.Secondary"},
+	"Torment of Hailfire":         {"param:api:LoseLife.UnlessCost", "param:api:LoseLife.UnlessPayer"},
 	"Toxic Deluge":                {"cost:PayLife"},
 	"Trinket Mage":                {"param:api:ChangeZone.ShuffleNonMandatory"},
 	"Troop of Ponies":             {"param:api:ChangeZone.ForgetChanged", "param:api:ChangeZone.Mandatory", "param:api:ChangeZone.NoLooking", "param:api:ChangeZone.Reveal", "param:api:Cleanup.ClearRemembered"},
@@ -1894,7 +1927,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Vines of Vastwood":           {"param:api:Effect.ExileOnMoved"},
 	"Virtue of Persistence":       {"param:api:ChangeZone.GainControl", "param:api:ChangeZone.Mandatory"},
 	"Voracious Hydra":             {"param:api:PutCounter.ETB"},
-	"Walk-In Closet":              {"param:api:Effect.ReplacementEffects"},
+	"Walk-In Closet":              {"param:api:ChangeZone.Hidden", "param:api:Effect.ReplacementEffects"},
 	"Walking Ballista":            {"param:api:PutCounter.ETB"},
 	"Wastewood Verge":             {"param:api:Mana.IsPresent"},
 	"Whirler Rogue":               {"cost:tapXType", "param:api:Effect.ExileOnMoved"},
@@ -2240,6 +2273,54 @@ func TestParamCensusCatchesFaceOwnedCosts(t *testing.T) {
 	d := &derivedReads{api: map[string]map[string]bool{}, trig: map[string]map[string]bool{}, stat: map[string]map[string]bool{}, repl: map[string]map[string]bool{}}
 	if got := cardCensusLabels(c, d, nil); !sameSet(got, want) {
 		t.Errorf("card-side face-owned costs = %v, want %v", got, want)
+	}
+}
+
+// TestParamCensusCatchesSVarBodyGaps pins the SVar-body walk: a body named
+// by an execution-bearing SVar-reference parameter -- Charm's `Choices$`
+// entries (effCharm resolves and runs each) or Repeat's `RepeatSubAbility$`
+// (effRepeat resolves and runs it) -- must be censused like a linked
+// sub-ability. Before that walk existed the outer primitives' own params
+// (Choices$, RepeatSubAbility$) were all read, the bodies were never
+// attached by Link, and a repo-deck card could carry an unread parameter or
+// an unmodelled cost token inside a selected/repeated body that no ratchet
+// saw. The fixture runs the real derived read sets (measureParamCensus),
+// and each expected label is reachable ONLY through the SVar body: remove
+// the face-SVar walk from cardCensusLabels and both labels disappear.
+func TestParamCensusCatchesSVarBodyGaps(t *testing.T) {
+	_, d := measureParamCensus(t, nil)
+	// Preconditions: the outer primitives' parameters the fixture carries are
+	// genuinely read (so the labels can only come from the bodies), and the
+	// body keys are genuinely unread (so the fixture measures a real gap).
+	if !d.api["Charm"]["Choices"] || !d.api["Repeat"]["RepeatSubAbility"] {
+		t.Fatalf("outer Choices$/RepeatSubAbility$ reads lost -- fixture premise broken")
+	}
+	if d.api["LoseLife"]["UnlessCost"] {
+		t.Fatalf("api:LoseLife now reads UnlessCost$ -- re-point the fixture at a genuinely unread key")
+	}
+	c := &cards.Card{Faces: []*cards.Face{{
+		// A modal spell whose one mode loses life unless a cost is paid
+		// (Torment of Hailfire's shape), and a repeat whose body carries an
+		// energy cost ParseCost does not model (the Chthonian Nightmare
+		// shape, reached through RepeatSubAbility$).
+		Abilities: []*cards.SA{
+			{Kind: "SP", API: "Charm", Params: map[string]string{"Choices": "DBMode,DBMoney", "CharmNum": "1"}},
+			{Kind: "SP", API: "Repeat", Params: map[string]string{"RepeatNum": "2", "RepeatSubAbility": "DBMoney"}},
+		},
+		SVars: map[string]string{
+			"DBMode":  "DB$ LoseLife | UnlessCost$ 3 | Defined$ Remembered",
+			"DBMoney": "DB$ LoseLife | Cost$ PayEnergy<X>",
+		},
+	}}}
+	want := []string{"param:api:LoseLife.UnlessCost", "cost:PayEnergy"}
+	if got := cardCensusLabels(c, d, nil); !sameSet(got, want) {
+		t.Errorf("SVar-body census = %v, want %v -- an unread key or unmodelled token inside a Choices$/RepeatSubAbility$ body is not being reported", got, want)
+	}
+	// The drop plumbing reaches the bodies too: pretending the LoseLife
+	// UnlessCost$ read existed (it does not) must not un-report the body's
+	// gap through some other path.
+	if got := cardCensusLabels(c, d, map[string]map[string]bool{"api:LoseLife": {"UnlessCost": true}}); !sameSet(got, want) {
+		t.Errorf("drop-simulated census = %v, want %v", got, want)
 	}
 }
 
