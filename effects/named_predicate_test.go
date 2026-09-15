@@ -148,7 +148,7 @@ func TestNotnamedPredicate(t *testing.T) {
 	}
 }
 
-// TestNamedSplitCardBothNamesOffBattlefield pins CR 708.4a: away from the
+// TestNamedSplitCardBothNamesOffBattlefield pins CR 709.4: away from the
 // stack and battlefield a split card carries both halves' names, so a
 // `named` search in a library finds either half; on the battlefield the
 // permanent's current face is the only name.
@@ -158,7 +158,7 @@ func TestNamedSplitCardBothNamesOffBattlefield(t *testing.T) {
 		t.Error("library split card missed its front name")
 	}
 	if !MatchesSpec(g, "Card.namedSplit Right", id["libleft"], 0) {
-		t.Error("library split card missed its back name (CR 708.4a)")
+		t.Error("library split card missed its back name (CR 709.4)")
 	}
 	if !MatchesSpec(g, "Card.namedSplit Left", id["bfleft"], 0) {
 		t.Error("battlefield split card missed its current face name")
@@ -316,6 +316,83 @@ func TestSameNameBasePrefixReferents(t *testing.T) {
 	sc = SpecContext{You: 0, Source: id["bear"], Remembered: []state.Target{{Obj: id["giant"]}}}
 	if MatchesObjectCtx(g, "Remembered.Self", g.Obj(id["giant"]), sc) {
 		t.Error("unrelated Remembered.Self gained name-predicate behaviour")
+	}
+}
+
+// TestSameNameSplitSourceSharesEitherHalf is the regression for sameName
+// reducing its source to one name. Forge Card.sharesNameWith(Card) compares
+// both cards' full name sets, and a split card away from the stack has both
+// halves' names (CR 709.4), so a library or graveyard split source shares a
+// name with a card named only for its right half -- directly and through the
+// Remembered./Targeted./Triggered. referent forms.
+func TestSameNameSplitSourceSharesEitherHalf(t *testing.T) {
+	g, id := namedBoard(t)
+	add := func(zone state.Zone, name string) *state.Object {
+		c, d := cards.ParseBytes("t.txt", []byte("Name:"+name+"\nManaCost:1 U\nTypes:Instant\nOracle:x\n"))
+		if len(d) != 0 {
+			t.Fatalf("diags: %v", d)
+		}
+		c.Link()
+		o := g.AddObject(c, 0)
+		o.Zone = zone
+		g.SetZone(zone, 0, append(g.Zone(zone, 0), o.ID))
+		return o
+	}
+	right := add(state.ZLibrary, "Split Right")
+	left := add(state.ZGraveyard, "Split Left")
+
+	// Plain source-relative sameName with a library split source.
+	sc := SpecContext{You: 0, Source: id["libleft"]}
+	if !MatchesObjectCtx(g, "Card.sameName", right, sc) {
+		t.Error("a Split Right card must share a name with a library split source")
+	}
+	if !MatchesObjectCtx(g, "Card.sameName", left, sc) {
+		t.Error("a Split Left card must share a name with a library split source")
+	}
+	if MatchesObjectCtx(g, "Card.sameName", g.Obj(id["bear"]), sc) {
+		t.Error("a Bear shared a name with a split source")
+	}
+
+	// The referent forms reach the same comparison.
+	sc = SpecContext{You: 0, Source: id["bear"], Remembered: []state.Target{{Obj: id["libleft"]}}}
+	if !MatchesObjectCtx(g, "Remembered.sameName", right, sc) {
+		t.Error("Remembered.sameName missed the remembered split card's right half")
+	}
+	sc = SpecContext{You: 0, Source: id["bear"],
+		TriggerContext: TriggerContext{TriggerCard: id["libleft"]}}
+	if !MatchesObjectCtx(g, "Triggered.sameName", right, sc) {
+		t.Error("Triggered.sameName missed the triggering split card's right half")
+	}
+
+	// A split source on the battlefield keeps only its selected face, the
+	// zone scope sharesName already applies to a candidate.
+	sc = SpecContext{You: 0, Source: id["bfleft"]}
+	if MatchesObjectCtx(g, "Card.sameName", right, sc) {
+		t.Error("a battlefield split source contributed its unselected half's name")
+	}
+	if !MatchesObjectCtx(g, "Card.sameName", left, sc) {
+		t.Error("a battlefield split source lost its selected face's name")
+	}
+}
+
+// TestNamedPredicateRawCommaInZoneCount pins the raw-comma name grammar on
+// both object-filter paths: the ordinary MatchesSpec split, and the zone
+// count path (Count$Valid<Zone>) that splits alternatives separately. A
+// printed comma in the argument is part of the name, not an OR delimiter.
+func TestNamedPredicateRawCommaInZoneCount(t *testing.T) {
+	g, id := namedBoard(t)
+	const spec = "Card.namedCalim, Djinn Emperor"
+	if !MatchesSpec(g, spec, id["comma"], 0) {
+		t.Errorf("MatchesSpec(%q) missed the comma-named card", spec)
+	}
+	if !matchesZoneSpecCtx(g, spec, id["comma"], SpecContext{}, state.ZLibrary) {
+		t.Errorf("matchesZoneSpecCtx(%q) missed the comma-named card", spec)
+	}
+	if matchesZoneSpecCtx(g, spec, id["hawk1"], SpecContext{}, state.ZLibrary) {
+		t.Errorf("matchesZoneSpecCtx(%q) matched a Squadron Hawk", spec)
+	}
+	if got := UnknownPredicates(spec); len(got) != 0 {
+		t.Errorf("UnknownPredicates(%q) = %v, want none", spec, got)
 	}
 }
 
