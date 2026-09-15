@@ -512,7 +512,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 // events nondeterministic.
 type libraryFetch struct {
 	owner state.PlayerID
-	moved []state.ObjID
+	ids   []state.ObjID
 }
 
 // moveDefinedLibraryObjects implements Forge's hidden-origin Defined$ fetch
@@ -530,6 +530,14 @@ type libraryFetch struct {
 // another sub-effect already moved every fetched object: Nissa's Pilgrimage's
 // final fetch-list step is the script's shuffle point after its chosen Forest
 // entered the battlefield.
+//
+// Optional$ True is a choice over the whole known fetch list, not permission
+// to silently move it. Kenessos's DBBottom is the corpus example: after its
+// player declines to put the revealed card onto the battlefield, they may put
+// that card on the bottom. The yes/no decision suspends before either a move
+// or a shuffle; its answer is scoped in Ctx so a nested optional fetch cannot
+// inherit it. A no-host run keeps the previous deterministic mover (yes), the
+// R-9 fallback used by the other optional mid-resolution effects.
 func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool {
 	if strings.TrimSpace(sa.Params["Defined"]) == "" {
 		return false
@@ -549,11 +557,6 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 		fetches = append(fetches, libraryFetch{owner: p})
 		return len(fetches) - 1
 	}
-	withKind := sa.Params["WithCountersType"]
-	var withAmt int32
-	if to == state.ZBattlefield && withKind != "" {
-		withAmt = withCounterAmount(h, c, sa)
-	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -564,21 +567,63 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 			continue
 		}
 		i := addOwner(o.Owner)
-		if o.Zone != state.ZLibrary {
-			continue
-		}
-		settleChangeZoneMove(h, c, sa, o.ID, state.ZLibrary, to, withKind, withAmt)
-		fetches[i].moved = append(fetches[i].moved, o.ID)
-		if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
-			h.Emit(events.Event{Kind: events.Tap, Obj: o.ID, Player: o.Owner, Text: "entered tapped"})
+		if o.Zone == state.ZLibrary {
+			fetches[i].ids = append(fetches[i].ids, o.ID)
 		}
 	}
 	if !objectList {
 		return false
 	}
-	for _, f := range fetches {
+
+	optional := strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True")
+	answer := c.DefinedLibraryMove
+	c.DefinedLibraryMove = "" // fx42 scoping: a nested fetch asks for itself.
+	if optional && answer == "" {
+		prompt := strings.TrimSpace(sa.Params["OptionalPrompt"])
+		if prompt == "" {
+			prompt = "Move the selected card(s)?"
+		}
+		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+			Source: c.Source, ResumeKind: "defined_library_optional", ResumeSA: sa,
+			ResumeRemembered: append([]state.Target(nil), c.Remembered...), Prompt: prompt,
+			Options: []decision.Option{
+				{Index: 0, Kind: "yes", Label: "Yes", Player: c.Controller},
+				{Index: 1, Kind: "no", Label: "No", Player: c.Controller},
+			}}
+		if Ask(h, d) == AskAsked {
+			return true
+		}
+		// AskNoHost cannot represent a decline. Preserve the prior direct-move
+		// fallback rather than leaving a headless resolution suspended.
+		answer = "yes"
+	}
+	if optional && answer == "no" {
+		return true
+	}
+
+	withKind := sa.Params["WithCountersType"]
+	var withAmt int32
+	if to == state.ZBattlefield && withKind != "" {
+		withAmt = withCounterAmount(h, c, sa)
+	}
+	for i := range fetches {
+		f := &fetches[i]
+		moved := make([]state.ObjID, 0, len(f.ids))
+		for _, id := range f.ids {
+			o := g.Obj(id)
+			// Recheck at the point of movement: a malformed or stale Defined$
+			// target must not move an object from a new zone.
+			if o == nil || o.Zone != state.ZLibrary || o.Owner != f.owner {
+				continue
+			}
+			settleChangeZoneMove(h, c, sa, id, state.ZLibrary, to, withKind, withAmt)
+			moved = append(moved, id)
+			if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
+				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: f.owner, Text: "entered tapped"})
+			}
+		}
 		shuffleLibrary(h, sa, f.owner)
-		placeLibraryObjects(h, sa, f.owner, f.moved, to)
+		placeLibraryObjects(h, sa, f.owner, moved, to)
 	}
 	return true
 }

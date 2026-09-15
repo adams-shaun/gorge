@@ -581,6 +581,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// event, not on Ctx, so this is a done-marker rather than an
 			// answer the effect re-reads.
 			ctx.Arrange = true
+		case "defined_library_optional":
+			// An Optional$ object-valued Defined$ library fetch list (Kenessos's
+			// DBBottom): option zero accepts the whole direct move; every other
+			// answer declines it. The effect consumes this marker before any
+			// nested optional fetch can see it.
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.DefinedLibraryMove = "yes"
+			} else {
+				ctx.DefinedLibraryMove = "no"
+			}
 		case "reveal_optional":
 			// Task fb-3f1cc033 (Delver of Secrets): the peeking player's
 			// RevealOptional$ yes/no was answered. Option 0 is "yes"; anything
