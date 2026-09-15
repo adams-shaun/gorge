@@ -376,6 +376,16 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			objLKI = lki
 		}
 		for ti, t := range f.Triggers {
+			// LifeLostAll is evaluated once at the end of a simultaneous
+			// life-loss batch. Do not queue it once per serialized Damage/
+			// LifeChange event, and do not let the finishing pass re-check
+			// unrelated trigger modes.
+			if t.Mode == "LifeLostAll" && e.lifeLossBatchDepth > 0 && !e.finishingLifeLossBatch {
+				continue
+			}
+			if e.finishingLifeLossBatch && t.Mode != "LifeLostAll" {
+				continue
+			}
 			if !leaving {
 				// Phase$ is a common Forge trigger gate, not a Mode$ Phase
 				// parameter: ChangesZone, SpellCast, and every other supported
@@ -1193,17 +1203,33 @@ func lifeLoss(ev events.Event) (state.PlayerID, int32, bool) {
 	return 0, 0, false
 }
 
-// lifeLostMatches implements Mode$ LifeLost and LifeLostAll. The event log
-// represents each affected player as one life-changing event, so one matching
-// player is the engine's atomic "one or more" group. ValidAmountEach$ is
-// applied to that player's positive loss. FirstTime$ is an event-history gate
-// scoped to that player and the current turn.
+// lifeLostMatches implements Mode$ LifeLost and LifeLostAll. LifeLost sees
+// each losing player. LifeLostAll is deferred by Begin/EndLifeLossBatch and
+// matches exactly once when every affected player in that simultaneous group
+// satisfies its ValidPlayer$ and ValidAmountEach$ constraints.
 func (e *Engine) lifeLostMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	ctrl := e.controllerOf(source)
+	if t.Mode == "LifeLostAll" && e.finishingLifeLossBatch {
+		matched := false
+		for _, be := range e.lifeLossBatch {
+			p, amount, ok := lifeLoss(be)
+			if !ok {
+				continue
+			}
+			if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, p, ctrl) {
+				continue
+			}
+			if v := t.Params["ValidAmountEach"]; v != "" && !compareLife(amount, v) {
+				return false
+			}
+			matched = true
+		}
+		return matched
+	}
 	p, amount, ok := lifeLoss(ev)
 	if !ok {
 		return false
 	}
-	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidPlayer"]; ok && !effects.MatchesPlayerSpec(e.G, v, p, ctrl) {
 		return false
 	}

@@ -58,16 +58,23 @@ func TestOrcishBowmastersDrawnSkipsFirstDrawStepCard(t *testing.T) {
 	}
 }
 
-func TestLifeLostAllObNixilisMatchesOneLifeLoss(t *testing.T) {
-	e := layerEngine(t)
+func TestLifeLostAllObNixilisQueuesOnceForSimultaneousOpponents(t *testing.T) {
+	// Ob Nixilis's real "one or more opponents each lose exactly 1 life"
+	// needs a three-seat batch: two serialized events are one simultaneous
+	// event, hence exactly one trigger.
+	e := New(seatZeroStart(Config{Seed: 1, Names: []string{"a", "b", "c"},
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40)}}))
 	ob := corpusCard(t, "Ob Nixilis, Captive Kingpin")
 	source := onBoardCard(t, e, 0, ob)
 	if got := e.G.Obj(source).Face().Triggers[0].Mode; got != "LifeLostAll" {
 		t.Fatalf("Ob Nixilis trigger mode = %q, want LifeLostAll", got)
 	}
+	e.BeginLifeLossBatch()
 	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
+	e.emit(events.Event{Kind: events.LifeChange, Player: 2, Amount: -1})
+	e.EndLifeLossBatch()
 	if len(e.pendingTriggers) != 1 || e.pendingTriggers[0].Source != source {
-		t.Fatalf("one opposing life loss queued %#v, want Ob Nixilis trigger", e.pendingTriggers)
+		t.Fatalf("simultaneous opponent losses queued %#v, want one Ob Nixilis trigger", e.pendingTriggers)
 	}
 }
 
@@ -80,25 +87,17 @@ func TestValgavothLifeLostFirstTimeGate(t *testing.T) {
 		t.Fatalf("Valgavoth trigger fixture changed: %+v", trig)
 	}
 
-	// The trigger's ValidPlayer$ Opponent.Active qualifier is intentionally
-	// unsupported (see AGENTS.md), so exercise the LifeLost event and first-
-	// time gate with a copied trigger whose player predicate is the supported
-	// parent relation. The corpus object itself remains immutable.
-	params := make(map[string]string, len(trig.Params))
-	for k, v := range trig.Params {
-		params[k] = v
-	}
-	params["ValidPlayer"] = "Opponent"
-	trig.Params = params
+	// ValidPlayer$ Opponent.Active is the unmodified corpus condition: the
+	// opponent must be the active player, and FirstTime permits only its first
+	// life-loss event this turn.
+	e.G.Active = 1
 	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
-	first := e.L.Events[len(e.L.Events)-1]
-	if !e.lifeLostMatches(trig, source, first) {
-		t.Fatal("Valgavoth's first opposing life-loss event did not match")
+	if len(e.pendingTriggers) != 1 || e.pendingTriggers[0].Source != source {
+		t.Fatalf("first active-opponent loss queued %#v, want Valgavoth", e.pendingTriggers)
 	}
 	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
-	second := e.L.Events[len(e.L.Events)-1]
-	if e.lifeLostMatches(trig, source, second) {
-		t.Fatal("Valgavoth's second opposing life-loss event matched despite FirstTime")
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("second active-opponent loss queued %#v, want no second Valgavoth", e.pendingTriggers)
 	}
 }
 
@@ -143,5 +142,27 @@ func TestBloodletterLifeReducedDoublesOpponentLossOnYourTurn(t *testing.T) {
 	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -3})
 	if got := e.G.Players[1].Life; got != 14 {
 		t.Fatalf("life after Bloodletter loss replacement = %d, want 14", got)
+	}
+}
+
+func TestAlhammarretsArchiveDoublesGain(t *testing.T) {
+	e := layerEngine(t)
+	archive := corpusCard(t, "Alhammarret's Archive")
+	onBoardCard(t, e, 0, archive)
+	e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: 3})
+	if got := e.G.Players[0].Life; got != 26 {
+		t.Fatalf("life after Archive +3 gain = %d, want 26", got)
+	}
+}
+
+func TestTwoBloodlettersEachApplyOnce(t *testing.T) {
+	e := layerEngine(t)
+	bloodletter := corpusCard(t, "Bloodletter of Aclazotz")
+	onBoardCard(t, e, 0, bloodletter)
+	onBoardCard(t, e, 0, bloodletter)
+	e.G.Active = 0
+	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -3})
+	if got := e.G.Players[1].Life; got != 8 {
+		t.Fatalf("life after two Bloodletters -3 = %d, want 8", got)
 	}
 }

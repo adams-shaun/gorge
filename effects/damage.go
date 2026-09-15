@@ -46,6 +46,17 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	rider := newDamageRider(h, c, sa, n)
 	prev := h.SetDamageSource(rider.source)
 	defer h.SetDamageSource(prev)
+	// A multi-target DealDamage is one simultaneous damage event for triggers
+	// such as Ob Nixilis's LifeLostAll. The optional hook keeps effects below
+	// rules in the package graph; test hosts that do not model trigger queues
+	// simply do not implement it.
+	if b, ok := h.(interface {
+		BeginLifeLossBatch()
+		EndLifeLossBatch()
+	}); ok {
+		b.BeginLifeLossBatch()
+		defer b.EndLifeLossBatch()
+	}
 	// RememberDamaged$ True makes the resolution remember the objects it
 	// damaged, so a SubAbility$ (Incinerate's DB$ Effect reading
 	// RememberObjects$ Remembered.Creature) can act on exactly what took the

@@ -5,6 +5,7 @@
 package rules
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -1246,73 +1247,200 @@ func (e *Engine) replacementChoicePlayer(rc replChoice) (state.PlayerID, bool) {
 	}
 }
 
-// applyLifeReplacements handles the life-event replacement class without
-// changing events.Event: positive LifeChange is a gain, while a negative
-// LifeChange and player Damage are life loss. CantGainLife statics and a
-// Prevent$ GainLife replacement suppress a gain before it is logged. The
-// ReplaceCount$Amount/Twice LifeReduced shape modifies the proposed loss
-// before it is logged, which covers Bloodletter and any sibling that uses the
-// same Forge replacement expression.
+// applyLifeReplacements evaluates all applicable GainLife and LifeReduced
+// replacements against the proposed event before it reaches the log. The
+// transformations are read from the replacement body's ReplaceCount$ grammar,
+// not card names, so Archives, Reflection, Cleric Class, Bloodletter and their
+// corpus siblings share one path. Each R: line is visited once in deterministic
+// battlefield order; repeated doublers therefore compose (3 -> 6 -> 12).
 func (e *Engine) applyLifeReplacements(ev events.Event) (events.Event, bool) {
-	if ev.Kind == events.LifeChange && ev.Amount > 0 && e.lifeGainPrevented(ev.Player) {
-		return e.emit(events.Event{Kind: events.Note, Player: ev.Player, Text: "prevented: cannot gain life"}), true
+	changed := false
+	if ev.Kind == events.LifeChange && ev.Amount > 0 {
+		if e.lifeGainPrevented(ev.Player) {
+			return e.emit(events.Event{Kind: events.Note, Player: ev.Player, Text: "prevented: cannot gain life"}), true
+		}
+		e.forEachLifeReplacement("GainLife", ev.Player, func(source state.ObjID, r *cards.Repl) bool {
+			if !e.replacementCondition(source, r) || r.Params["ValidSource"] != "" {
+				return false
+			}
+			if amount, ok := e.replaceCount(source, r, "LifeGained", ev.Amount); ok {
+				ev.Amount, changed = amount, true
+				return false
+			}
+			// A gain replaced by a loss/draw does not log the original gain.
+			if r.With != nil && r.With.API == "LoseLife" {
+				ev.Amount = -ev.Amount
+				changed = true
+				return false
+			}
+			if r.With != nil && r.With.API == "Draw" {
+				for i := int32(0); i < ev.Amount; i++ {
+					effects.DrawFor(e, ev.Player)
+				}
+				changed = true
+				return true
+			}
+			return false
+		})
+		if changed && ev.Amount > 0 {
+			return e.emitLifeReplacement(ev)
+		}
 	}
 
-	p, _, losing := lifeLoss(ev)
+	p, loss, losing := lifeLoss(ev)
 	if !losing {
+		if changed { // Draw replacement consumed the original gain.
+			return ev, true
+		}
 		return ev, false
 	}
-	forEachReplacement := func(fn func(state.ObjID, *cards.Repl) bool) {
-		done := false
-		e.forEachObject(func(id state.ObjID) {
-			if done {
-				return
-			}
-			o := e.G.Obj(id)
-			if o == nil || o.Face() == nil {
-				return
-			}
-			for i := range o.Face().Repls {
-				if fn(id, &o.Face().Repls[i]) {
-					done = true
-					return
-				}
-			}
-		})
-	}
-	var twice bool
-	forEachReplacement(func(source state.ObjID, r *cards.Repl) bool {
-		if r.Event != "LifeReduced" || !replacementActive(e, source, r) ||
-			!replacementPlayerMatches(e, source, r, p) ||
-			!strings.EqualFold(r.Params["PlayerTurn"], "True") || e.G.Active != e.controllerOf(source) {
+	consumed := false
+	e.forEachLifeReplacement("LifeReduced", p, func(source state.ObjID, r *cards.Repl) bool {
+		if strings.EqualFold(r.Params["IsDamage"], "True") && ev.Kind != events.Damage {
 			return false
 		}
-		// ReplaceEffect is intentionally not a general API yet. Its one
-		// directly evaluable life-reduction expression is structural, not a
-		// card-name special case: every future R: line with this exact amount
-		// transform is covered by the same branch.
-		if r.With == nil || r.With.API != "ReplaceEffect" ||
-			!strings.EqualFold(r.With.Params["VarName"], "Amount") ||
-			!strings.EqualFold(r.With.Params["VarValue"], "ReplaceCount$Amount/Twice") {
+		if strings.EqualFold(r.Params["PlayerTurn"], "True") && e.G.Active != e.controllerOf(source) {
 			return false
 		}
-		twice = true
-		return true
+		if !e.replacementCondition(source, r) {
+			return false
+		}
+		if result := r.Params["Result"]; result != "" && !compareLife(e.G.Players[p].Life-loss, result) {
+			return false
+		}
+		if amount, ok := e.replaceCount(source, r, "Amount", loss); ok {
+			loss, changed = amount, true
+			return false
+		}
+		// A non-ReplaceEffect body (Enduring Angel's transform then SetLife)
+		// wholly replaces the loss. Its primitive chain emits all mutations.
+		if r.With != nil {
+			o := e.G.Obj(source)
+			if o != nil && o.Face() != nil {
+				e.runReplaceWith(&effects.Ctx{Source: source, Controller: o.Controller, SVars: o.Face().SVars}, 0, "", r.With)
+				changed, consumed = true, true
+				return true
+			}
+		}
+		return false
 	})
-	if !twice {
+	if consumed {
+		return ev, true
+	}
+	if !changed {
 		return ev, false
 	}
-	if ev.Amount >= -(1<<30) && ev.Amount <= 1<<30 {
-		ev.Amount *= 2
+	if ev.Kind == events.Damage {
+		ev.Amount = loss
+	} else {
+		ev.Amount = -loss
 	}
-	// A replacement applies only once to a proposed event. Re-enter emit so
-	// the modified event takes the normal Apply/trigger path, while the guard
-	// prevents this same R: line from doubling it again.
+	return e.emitLifeReplacement(ev)
+}
+
+// emitLifeReplacement logs a fully transformed event without starting a new
+// replacement pass. A replacement may apply only once to a particular event;
+// all still-applicable siblings were already folded by applyLifeReplacements.
+func (e *Engine) emitLifeReplacement(ev events.Event) (events.Event, bool) {
 	saved := e.applyingReplacement
 	e.applyingReplacement = true
 	stored := e.emit(ev)
 	e.applyingReplacement = saved
 	return stored, true
+}
+
+// forEachLifeReplacement is the one deterministic collector for both life
+// replacement classes. Returning true stops early (a replacement consumed the
+// event, e.g. Lich's draw-instead body).
+func (e *Engine) forEachLifeReplacement(event string, p state.PlayerID, fn func(state.ObjID, *cards.Repl) bool) {
+	stop := false
+	e.forEachObject(func(id state.ObjID) {
+		if stop {
+			return
+		}
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			return
+		}
+		for i := range o.Face().Repls {
+			r := &o.Face().Repls[i]
+			if r.Event == event && replacementActive(e, id, r) && replacementPlayerMatches(e, id, r, p) && fn(id, r) {
+				stop = true
+				return
+			}
+		}
+	})
+}
+
+// replacementCondition reads the common CheckSVar$/SVarCompare$ gate (Phial
+// of Galadriel) from the replacement source's current context.
+func (e *Engine) replacementCondition(source state.ObjID, r *cards.Repl) bool {
+	o := e.G.Obj(source)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	if spec := r.Params["IsPresent"]; spec != "" {
+		found := false
+		for _, p := range e.G.AliveFrom(0) {
+			for _, id := range e.G.Zone(state.ZBattlefield, p) {
+				if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, o.Controller)) {
+					found = true
+					break
+				}
+			}
+			if found {
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	name := r.Params["CheckSVar"]
+	if name == "" {
+		return true
+	}
+	value := effects.EvalCount(e, &effects.Ctx{Source: source, Controller: o.Controller, SVars: o.Face().SVars}, o.Face().SVars[name])
+	return compareLife(value, r.Params["SVarCompare"])
+}
+
+// replaceCount evaluates ReplaceEffect's ReplaceCount$Amount/LifeGained
+// forms. It follows SVar indirection and supports the three corpus operators:
+// Twice, Plus.N and LimitMax.<SVar>.
+func (e *Engine) replaceCount(source state.ObjID, r *cards.Repl, name string, amount int32) (int32, bool) {
+	if r.With == nil || r.With.API != "ReplaceEffect" || !strings.EqualFold(r.With.Params["VarName"], name) {
+		return 0, false
+	}
+	expr := r.With.Params["VarValue"]
+	o := e.G.Obj(source)
+	if o == nil || o.Face() == nil {
+		return 0, false
+	}
+	if body, ok := o.Face().SVars[expr]; ok {
+		expr = body
+	}
+	prefix := "ReplaceCount$" + name
+	if !strings.HasPrefix(expr, prefix) {
+		return 0, false
+	}
+	op := strings.TrimPrefix(expr, prefix)
+	if op == "/Twice" {
+		return amount * 2, true
+	}
+	if n, err := strconv.ParseInt(strings.TrimPrefix(op, "/Plus."), 10, 32); strings.HasPrefix(op, "/Plus.") && err == nil {
+		return amount + int32(n), true
+	}
+	if arg, ok := strings.CutPrefix(op, "/LimitMax."); ok {
+		limit := effects.EvalCount(e, &effects.Ctx{Source: source, Controller: o.Controller, SVars: o.Face().SVars}, o.Face().SVars[arg])
+		if limit < 0 {
+			limit = 0
+		}
+		if amount > limit {
+			amount = limit
+		}
+		return amount, true
+	}
+	return 0, false
 }
 
 // lifeGainPrevented checks active CantGainLife statics and R:Event$ GainLife
