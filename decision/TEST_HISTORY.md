@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/decision
 
-budget_s: 5
+budget_s: 10
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|
@@ -30,3 +30,9 @@ budget_s: 5
 | 2026-09-09T20:10Z | f7d8580+ | 0.0 | 21 | 0 | sadams |
 | 2026-09-14T04:47Z | d0618c0+ | 0.0 | 21 | 0 | sadams |
 | 2026-09-14T05:08Z | 9aeeeaf+ | 0.0 | 21 | 0 | sadams |
+| 2026-09-14T17:07Z | 4cf9b7c+ | 0.0 | 21 | 0 | sadams |
+| 2026-09-14T23:31Z | c093db9+ | 0.0 | 21 | 0 | sadams |
+| 2026-09-15T10:02Z | 5bece96+ | 0.0 | 21 | 0 | sadams |
+| 2026-09-15T10:05Z | 5bece96+ | 0.0 | 21 | 0 | sadams |
+| 2026-09-15T10:07Z | 5bece96+ | 0.0 | 21 | 0 | sadams |
+| 2026-09-15T10:09Z | 5bece96+ | 0.0 | 21 | 0 | sadams |

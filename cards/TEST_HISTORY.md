@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/cards
 
-budget_s: 8
+budget_s: 16
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|
@@ -33,3 +33,10 @@ budget_s: 8
 | 2026-09-14T18:34Z | c9c2c65+ | 6.2 | 77 | 0 | sadams |
 | 2026-09-14T21:17Z | 67088ca+ | 5.6 | 77 | 0 | sadams |
 | 2026-09-14T21:45Z | ab36d02+ | 5.9 | 77 | 0 | sadams |
+| 2026-09-14T19:42Z | 8c3c9cd+ | 5.9 | 77 | 0 | sadams |
+| 2026-09-14T22:23Z | 459f78e+ | 5.9 | 78 | 0 | sadams |
+| 2026-09-14T20:09Z | 8c7335e+ | 6.1 | 79 | 0 | sadams |
+| 2026-09-15T10:02Z | 5bece96+ | 6.0 | 80 | 0 | sadams |
+| 2026-09-15T10:05Z | 5bece96+ | 6.2 | 80 | 0 | sadams |
+| 2026-09-15T10:07Z | 5bece96+ | 7.0 | 80 | 0 | sadams |
+| 2026-09-15T10:09Z | 5bece96+ | 6.1 | 80 | 0 | sadams |

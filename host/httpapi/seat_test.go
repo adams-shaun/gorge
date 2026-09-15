@@ -45,7 +45,7 @@ func claimResolver(by map[string]state.PlayerID) func(*http.Request) (SeatClaim,
 		if !ok {
 			return SeatClaim{}, false
 		}
-		return SeatClaim{Seat: s}, true
+		return SeatClaim{Table: "t1", Seat: s}, true
 	}
 }
 
@@ -54,7 +54,7 @@ func claimResolver(by map[string]state.PlayerID) func(*http.Request) (SeatClaim,
 // — ThinkTimeout 0 means a human never answers on its own — and stays
 // parked; bot slots 2 and 3 answer their own decisions, so the parked point
 // is the first human decision, where both human openers are still in hand.
-// claims maps X-Seat-Session to the seat it holds and is installed as
+// claims maps X-Seat-Session to the seat it holds on t1 and is installed as
 // Options.Seat; nil claims means no resolver at all, the spectator-only
 // default. The registry is closed on cleanup; with the table's context
 // cancelled the parked seat falls to its deterministic caretaker and the
@@ -79,6 +79,40 @@ func parkedSeatServer(t *testing.T, claims map[string]state.PlayerID) (*httptest
 		o.Seat = claimResolver(claims)
 	}
 	srv := httptest.NewServer(NewHandler(r, o))
+	t.Cleanup(srv.Close)
+	return srv, r
+}
+
+// tableClaimServer has two tables but only starts t1, which is enough to
+// prove the authorisation boundary: every t2 request must be rejected before
+// a missing match or pending decision can reveal whether t2 has one.
+func tableClaimServer(t *testing.T) (*httptest.Server, *host.Registry) {
+	t.Helper()
+	r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration, <-chan struct{}) {}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { r.Close() })
+	for _, id := range []host.TableID{"t1", "t2"} {
+		cfg := host.TableConfig{ID: id, Name: string(id), Seats: 4, Decks: []string{"a", "b", "c", "d"},
+			Seed: 5, Spectator: view.Omniscient, Humans: []int{0}}
+		if err := r.AddTable(cfg); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := r.Start("t1"); err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(NewHandler(r, Options{Seat: func(r *http.Request) (SeatClaim, bool) {
+		switch r.Header.Get("X-Seat-Session") {
+		case "t1-seat0":
+			return SeatClaim{Table: "t1", Seat: 0}, true
+		case "legacy-seat0":
+			return SeatClaim{Seat: 0}, true // the pre-deploy token shape
+		default:
+			return SeatClaim{}, false
+		}
+	}}))
 	t.Cleanup(srv.Close)
 	return srv, r
 }
@@ -176,6 +210,52 @@ func liveHead(t *testing.T, r *host.Registry) uint64 {
 }
 
 var seatClaims = map[string]state.PlayerID{"s0": 0, "s1": 1}
+
+// TestTableBoundSeatClaimRejectsEveryOtherTable is the table-driven audit of
+// the entire current seat-authorised REST surface. Each request carries the
+// exact same table-A token yet is rejected before table B's match state is
+// consulted; the companion table-A request reaches its normal handler. Add a
+// new seat-authorised route here with its registration so this boundary stays
+// reviewed as one set rather than as a collection of ad hoc checks.
+func TestTableBoundSeatClaimRejectsEveryOtherTable(t *testing.T) {
+	srv, r := tableClaimServer(t)
+	parked, _ := parkedSeat(t, r)
+	pending := fmt.Sprintf("/api/tables/t1/matches/1/pending?seat=%d", parked)
+	code, _, raw := seatReq(t, http.MethodGet, srv.URL+pending, "t1-seat0", nil)
+	if code != http.StatusOK {
+		t.Fatalf("table-A pending: %d", code)
+	}
+	if code, e, _ := seatReq(t, http.MethodGet, srv.URL+pending, "legacy-seat0", nil); code != http.StatusForbidden || e.Code != "forbidden" {
+		t.Fatalf("legacy unbound claim on table A: %d %+v", code, e)
+	}
+	var d decision.Decision
+	if err := json.Unmarshal(raw, &d); err != nil {
+		t.Fatal(err)
+	}
+
+	routes := []struct {
+		name, method, path string
+		body               any
+	}{
+		{"view", http.MethodGet, "/api/tables/%s/matches/1/view?seat=0", nil},
+		{"events", http.MethodGet, "/api/tables/%s/matches/1/events?seat=0", nil},
+		{"pending", http.MethodGet, "/api/tables/%s/matches/1/pending?seat=0", nil},
+		{"intent", http.MethodPost, "/api/tables/%s/matches/1/intent", answerFor(&d)},
+		{"undo", http.MethodPost, "/api/tables/%s/matches/1/undo", nil},
+	}
+	for _, route := range routes {
+		t.Run(route.name, func(t *testing.T) {
+			pathB := fmt.Sprintf(route.path, "t2")
+			if code, e, _ := seatReq(t, route.method, srv.URL+pathB, "t1-seat0", route.body); code != http.StatusForbidden || e.Code != "forbidden" {
+				t.Fatalf("table-B %s with table-A claim: %d %+v", route.name, code, e)
+			}
+			pathA := fmt.Sprintf(route.path, "t1")
+			if code, e, _ := seatReq(t, route.method, srv.URL+pathA, "t1-seat0", route.body); code == http.StatusForbidden || code == http.StatusUnauthorized {
+				t.Fatalf("table-A %s did not reach its handler: %d %+v", route.name, code, e)
+			}
+		})
+	}
+}
 
 // TestSeatParamAbsentIsByteIdenticalToToday pins the M2e-2 contract
 // "?seat= absent keeps today's spectator behaviour exactly" at the byte

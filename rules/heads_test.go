@@ -790,7 +790,11 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	2: "57da6b9d46fe0c72",
+	// 2 seats moved to c969c2c17c67617a (autonomous orchestrator): resolving inbox-engine-gap-event-triggers (Engine: Sacrifice, discard, tap and crime triggers)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	2: "c969c2c17c67617a",
 	// 4 seats moved to c232a4aca592e0f8 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -807,7 +811,11 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	4: "4ef9d4faf9010d79",
+	// 4 seats moved to 2753ceca0bed344d (autonomous orchestrator): resolving inbox-engine-gap-event-triggers (Engine: Sacrifice, discard, tap and crime triggers)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	4: "2753ceca0bed344d",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -867,10 +875,19 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	// 8 seats moved to 8155d2b35a633d76 (controller-authorized altcosts review):
-	// Force of Will now pays ExileFromHand<1/Blue> instead of the old generic
-	// mana fallback, changing that bot game's legal actions and trajectory.
-	8: "8155d2b35a633d76",
+	// 8 seats moved to 0fc2433539e2f454 (autonomous orchestrator): resolving inbox-engine-gap-event-triggers (Engine: Sacrifice, discard, tap and crime triggers)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	// 8 seats moved to fde5ae50e5f7e31b (autonomous orchestrator): resolving inbox-rv2d-look-at-hand-stays-private (Hidden-information leak: "look at target's hand" is broadcast to every seat and )
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	// 8 seats moved to c54d57bf94915dcb when the controller-authorized
+	// alternative-cost fix was reconciled with main: Force of Will pays its
+	// real ExileFromHand<1/Blue> cost rather than generic mana, changing the
+	// bot's legal actions and trajectory.
+	8: "c54d57bf94915dcb",
 }
 
 func TestHeads(t *testing.T) {

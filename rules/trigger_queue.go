@@ -9,7 +9,6 @@ package rules
 
 import (
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -358,11 +357,32 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 		}
 		e.triggerContexts[id] = pt.Ctx.TriggerContext
+		if pt.Ctx.LKI != nil {
+			if e.triggerLKI == nil {
+				e.triggerLKI = make(map[state.ObjID]triggerObjectLKI)
+			}
+			lki := pt.Ctx.LKI.CloneDeep()
+			e.triggerLKI[id] = triggerObjectLKI{object: &lki,
+				power: pt.Ctx.LKIPower, toughness: pt.Ctx.LKIToughness,
+				ptValid: pt.Ctx.LKIPTValid}
+		}
 		if pt.Ctx.SourceLifelinkLKIValid {
 			if e.sourceLifelinkLKI == nil {
 				e.sourceLifelinkLKI = make(map[state.ObjID]bool)
 			}
 			e.sourceLifelinkLKI[id] = pt.Ctx.SourceLifelinkLKI
+		}
+		if pt.Ctx.SourceControllerLKIValid {
+			if e.sourceControllerLKI == nil {
+				e.sourceControllerLKI = make(map[state.ObjID]state.PlayerID)
+			}
+			e.sourceControllerLKI[id] = pt.Ctx.SourceControllerLKI
+		}
+		if pt.Ctx.DamageSourceLKI != nil {
+			if e.damageSourceLKI == nil {
+				e.damageSourceLKI = make(map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI)
+			}
+			e.damageSourceLKI[id] = cloneDamageSourceLKI(pt.Ctx.DamageSourceLKI)
 		}
 	}
 	// Task 7: a trigger that declares ValidTgts$ asks its controller for
@@ -452,6 +472,42 @@ func (e *Engine) triggerOf(pt pendingTrigger) (cards.Trigger, bool) {
 // "this is not a face trigger, apply no trigger-only rule" rather than as an
 // error. A source that has ceased to exist entirely (a token or copy gone
 // from the board) degrades the same way.
+// triggerPaidX implements CR 107.3m's X binding for a triggered ability that
+// is already a stack object: the value of X in its text is the X chosen for
+// the spell that became the permanent it is on (an ETB trigger of a cast
+// creature -- Wan Shi Tong) or the X of the spell it triggered on (a cast
+// trigger -- Hydroid Krasis, Genesis Hydra; a magecraft trigger on another
+// permanent -- Zaxara's "put X +1/+1 counters" reads the triggering spell).
+// The trigger object itself was never paid an X (events.Apply's TriggerPush
+// records the trigger index in Amount, and commitCast emits no CastInfo for
+// it), so its own o.X is 0. The causing event's card contributes the value
+// captured in TriggerContext.TriggerPaidX when the trigger matched. It must
+// not be read from the card at resolution: an ETB permanent can have died or
+// been bounced in the meantime, and events.Move correctly clears its live X.
+//
+// An activated ability never falls back: CR 107.3i gives its X only from the
+// {X} paid for the activation itself, recorded on the ability object by
+// CastInfo -- findTriggerForAbility returns false for one, so the early exit
+// below is what keeps a Walking Ballista's ability from inheriting its own
+// cast-time X.
+//
+// The trigger context is engine-only (rules.pushTrigger, keyed by stack id),
+// and a Mode$ Phase delayed trigger -- pushed via DelayedPush, with no
+// context -- reads 0 here, its status quo.
+func (e *Engine) triggerPaidX(stack state.ObjID, o *state.Object) int32 {
+	if o == nil || o.Ability == nil {
+		return 0
+	}
+	if _, ok := e.findTriggerForAbility(o.Source, o.Ability); !ok {
+		return 0
+	}
+	tc, ok := e.triggerContexts[stack]
+	if !ok {
+		return 0
+	}
+	return tc.TriggerPaidX
+}
+
 func (e *Engine) findTriggerForAbility(source state.ObjID, sa *cards.SA) (cards.Trigger, bool) {
 	if sa == nil {
 		return cards.Trigger{}, false
@@ -558,7 +614,7 @@ func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optiona
 	if spec == "" {
 		return 0, false, false
 	}
-	who, askable = e.deciderFromSpec(spec, pt.Controller, pt.Ctx.Remembered)
+	who, askable = e.deciderFromSpec(spec, pt.Controller, pt.Ctx.Remembered, pt.Ctx.TriggerContext)
 	return who, true, askable
 }
 
@@ -572,12 +628,18 @@ func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optiona
 // controller is the ability's controller and remembered the objects the
 // trigger captured; the returned askable is false when the decider has left
 // the game.
-func (e *Engine) deciderFromSpec(spec string, controller state.PlayerID, remembered []state.Target) (who state.PlayerID, askable bool) {
+func (e *Engine) deciderFromSpec(spec string, controller state.PlayerID, remembered []state.Target, tc effects.TriggerContext) (who state.PlayerID, askable bool) {
 	who = controller
 	switch spec {
 	case "You":
 		// The controller, which who already is.
-	case "TriggeredCardController", "TriggeredSourceController":
+	case "TriggeredCardController":
+		// The shared resolver: a card that left the battlefield is its
+		// last-known controller's (Fecundity on a stolen creature's death).
+		if p, ok := effects.TriggeredCardController(e.G, tc, remembered); ok {
+			who = p
+		}
+	case "TriggeredSourceController":
 		if len(remembered) > 0 {
 			if o := e.G.Obj(remembered[0].Obj); o != nil {
 				who = o.Controller
@@ -646,7 +708,7 @@ func (e *Engine) StackOptional(id state.ObjID) (optional bool, decider state.Pla
 	if spec == "" {
 		return false, 0
 	}
-	who, askable := e.deciderFromSpec(spec, o.Controller, o.Remembered)
+	who, askable := e.deciderFromSpec(spec, o.Controller, o.Remembered, e.triggerContexts[id])
 	if !askable {
 		return false, 0
 	}
@@ -725,21 +787,14 @@ func (e *Engine) abilityLabel(o *state.Object, t cards.Trigger) string {
 // the chosen SVar names onto the stack object (handleModes' placement
 // branch) rather than re-entering a suspended resolution.
 //
-// CharmNum is read as a literal integer (default 1, the overwhelmingly
-// common "choose one"), because the full Num/Qty grammar needs a resolving
-// context this placement ask does not have; a trigger whose CharmNum is
-// computed is rare and degrades to 1, same as the no-engine-host fallback.
-// The option list mirrors effCharm's -- Choices$ order, SpellDescription$ as
-// the label, resolved from the trigger's source SVar table -- so an index
-// chosen here maps to the same SVar name modeChoiceNames produces at
-// resolution.
+// The placement context has the triggering source, its SVar table, and the
+// trigger controller, which is enough for effects.Num to resolve the same
+// literal, SVar, and inline Count$ bounds as spell announcement and
+// resolution. The option list mirrors effCharm's -- Choices$ order,
+// SpellDescription$ as the label, resolved from the trigger's source SVar
+// table -- so an index chosen here maps to the same SVar name modeChoiceNames
+// produces at resolution.
 func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA) {
-	charmNum := 1
-	if v, ok := sa.Params["CharmNum"]; ok {
-		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil && n >= 1 {
-			charmNum = n
-		}
-	}
 	var source state.ObjID
 	var svars map[string]string
 	if so := e.G.Obj(obj); so != nil {
@@ -750,7 +805,14 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 			svars = sf.SVars
 		}
 	}
-	e.ask(modeDecision(p, source, sa, svars, charmNum))
+	ctx := &effects.Ctx{Source: source, Controller: p, TriggerContext: e.triggerContexts[obj]}
+	effects.SetSVars(ctx, svars)
+	choices := strings.Split(sa.Params["Choices"], ",")
+	min, max := effects.CharmModeBounds(e, ctx, sa, len(choices))
+	if min > len(choices) {
+		return
+	}
+	e.ask(modeDecision(p, source, sa, svars, min, max))
 }
 
 // askTriggerOrder is R1: the controller of two or more simultaneous triggers

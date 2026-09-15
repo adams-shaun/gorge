@@ -129,6 +129,10 @@ type Object struct {
 	ChosenName   string
 	ChosenType   string
 	ChosenNumber int32
+	// Chosen is the current card/player choice. It is distinct from
+	// Remembered: Forge uses Player.Chosen for the most recent choice and
+	// Player.IsRemembered for choices explicitly marked RememberChosen$.
+	Chosen []Target
 
 	// ChosenModes carries a modal spell's CR 601.2b announcement or a modal
 	// triggered ability's CR 603.3c placement choice to resolution: the SVar
@@ -145,6 +149,11 @@ type Object struct {
 	// battlefield (events.Move) -- an Aura or Equipment cannot stay
 	// "attached" once it isn't a permanent.
 	AttachedTo ObjID
+
+	// ExiledWith is the object whose effect most recently put this card into
+	// exile. events.Apply derives it from a MoveZone event's existing IDs
+	// carrier, so Card.ExiledWithSource filters replay without ambient state.
+	ExiledWith ObjID
 
 	// IsToken and IsCopy mark an object that only ever exists on the stack
 	// or the battlefield (CR 111.7 tokens, CR 707.10 copies). See Ephemeral.
@@ -200,7 +209,7 @@ func (o *Object) AddCounter(kind string, n int32) {
 }
 
 // CloneDeep returns a value copy of o whose slice fields (Counters, Targets,
-// Remembered, BlockedBy, ChosenModes) are independently backed, so mutating
+// Remembered, BlockedBy, Chosen, ChosenModes) are independently backed, so mutating
 // the copy's slices can never alias o's -- everything else (Card, a shared
 // pointer into the immutable compiled corpus, plus every scalar field) is
 // correct as a plain value copy. This is the one definition of "deep-copy an
@@ -216,6 +225,7 @@ func (o *Object) CloneDeep() Object {
 	c.Targets = append([]Target(nil), o.Targets...)
 	c.Remembered = append([]Target(nil), o.Remembered...)
 	c.BlockedBy = append([]ObjID(nil), o.BlockedBy...)
+	c.Chosen = append([]Target(nil), o.Chosen...)
 	c.ChosenModes = append([]string(nil), o.ChosenModes...)
 	return c
 }

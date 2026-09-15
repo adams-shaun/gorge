@@ -92,8 +92,7 @@ func (e *Engine) altCostEnter(ev events.Event) {
 }
 
 func (e *Engine) madnessReplacementApplies(ev events.Event) bool {
-	if ev.From != state.ZHand || ev.To != state.ZGraveyard ||
-		ev.Text != "discarded (madness)" {
+	if ev.To != state.ZGraveyard || !events.IsDiscard(ev) {
 		return false
 	}
 	o := e.G.Obj(ev.Obj)
@@ -331,27 +330,4 @@ func (e *Engine) warpRecastAvailable(id state.ObjID) bool {
 		}
 	}
 	return false
-}
-
-// discardDestZone is always the graveyard. Madness is an OPTIONAL replacement
-// of that proposed move, not an automatic exile; applyReplacements parks the
-// marked discard and asks its owner before either destination is emitted.
-func discardDestZone(_ *state.Game, _ state.ObjID) state.Zone { return state.ZGraveyard }
-
-// discardEventText is the Text a discard MoveZone carries: the "discarded"
-// marker (so offerMadness can detect the discard) only for a madness card,
-// whose move to exile is the one event the marker disambiguates. A
-// non-madness discard keeps the caller's existing Text -- today's sites
-// either carry "discarded as a cost" already or carry none -- so no golden
-// replay moves.
-func discardEventText(g *state.Game, id state.ObjID, base string) string {
-	if o := g.Obj(id); o != nil && o.Face() != nil {
-		if _, ok := o.Face().KeywordParam("Madness"); ok {
-			if base == "" {
-				return "discarded (madness)"
-			}
-			return strings.TrimSuffix(base, " as a cost") + " (madness)"
-		}
-	}
-	return base
 }

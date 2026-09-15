@@ -7,12 +7,18 @@ import { clientBreadcrumbs } from './breadcrumbs';
 // transcript) and fetchMatches (finished-match load); stub api so this stays
 // a hermetic test of apply()/dispatch()/showCursor()/loadFinished() with
 // hand-built frames, no network.
-const { fetchViewMock, fetchEventsMock, fetchMatchesMock } = vi.hoisted(() => ({
-  fetchViewMock: vi.fn(),
-  fetchEventsMock: vi.fn(),
-  fetchMatchesMock: vi.fn(),
-}));
-vi.mock('./api', () => ({ fetchView: fetchViewMock, fetchEvents: fetchEventsMock, fetchMatches: fetchMatchesMock }));
+const { fetchViewMock, fetchEventsMock, fetchMatchesMock, ApiErrorMock } = vi.hoisted(() => {
+  class ApiErrorMock extends Error {
+    constructor(public status: number) { super(`HTTP ${status}`); }
+  }
+  return {
+    fetchViewMock: vi.fn(),
+    fetchEventsMock: vi.fn(),
+    fetchMatchesMock: vi.fn(),
+    ApiErrorMock,
+  };
+});
+vi.mock('./api', () => ({ ApiError: ApiErrorMock, fetchView: fetchViewMock, fetchEvents: fetchEventsMock, fetchMatches: fetchMatchesMock }));
 
 const { MatchState } = await import('./match.svelte');
 
@@ -58,6 +64,15 @@ async function drain(ticks = 20): Promise<void> {
 }
 
 describe('MatchState', () => {
+  it('returns a stale table-bound seat claim to the lobby instead of leaving its board stuck', () => {
+    const assign = vi.fn();
+    vi.stubGlobal('location', { assign });
+    const m = new MatchState('g1', { seat: 0, token: 'old-token' });
+    (m as any).leaveRejectedSeatClaim(new ApiErrorMock(403));
+    expect(assign).toHaveBeenCalledWith('/');
+    vi.unstubAllGlobals();
+  });
+
   // ui16 discrimination proof, entry path 1 — COLD LOAD. The table route is
   // entered directly (or refreshed): onMount seeds m.seats once from
   // tables.list, which is empty until the SSE hello (or tables.load) lands,

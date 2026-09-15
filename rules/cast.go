@@ -981,10 +981,6 @@ func (e *Engine) castModeAsk() bool {
 	}
 	ctx := &effects.Ctx{Source: pc.card, Controller: pc.player}
 	effects.SetSVars(ctx, f.SVars)
-	charmNum := effects.Num(e, ctx, sa, "CharmNum", 1)
-	if charmNum < 1 {
-		charmNum = 1
-	}
 	choices := strings.Split(sa.Params["Choices"], ",")
 	legal := make([]string, 0, len(choices))
 	for _, name := range choices {
@@ -999,15 +995,16 @@ func (e *Engine) castModeAsk() bool {
 			legal = append(legal, name)
 		}
 	}
-	if int(charmNum) > len(legal) {
-		// No legal set of modes can complete its mandatory target choices. This
+	min, max := effects.CharmModeBounds(e, ctx, sa, len(legal))
+	if min > len(legal) {
+		// No legal set of modes can complete its required target choices. This
 		// is the modal counterpart of targetAsk's no-legal-target reversal; use
 		// the no-progress suppression so an automated seat cannot propose the
 		// same impossible cast forever.
 		e.abortCast(pc, "cast aborted: no legal modal choice", true)
 		return true
 	}
-	d := modeDecisionForChoices(pc.player, pc.card, sa, f.SVars, legal, int(charmNum))
+	d := modeDecisionForChoices(pc.player, pc.card, sa, f.SVars, legal, min, max)
 	d.ResumeKind = "cast_modes"
 	e.ask(d)
 	return true
@@ -2118,6 +2115,7 @@ func (e *Engine) payCast() {
 		// this only if the source is gone; a source that remains in play uses
 		// its live derived state instead.
 		sourceLifelinkLKI := e.HasKeyword(pc.card, "Lifelink")
+		sourceControllerLKI := e.G.Obj(pc.card).Controller
 		// Task 10: an activated ability. The shared stages above (X, Delve --
 		// never present on an ability --, Sac) have already run and been
 		// recorded; what differs from a spell here is the cost's remaining
@@ -2137,8 +2135,7 @@ func (e *Engine) payCast() {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
 		}
 		for _, id := range pc.discards {
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand,
-				To: discardDestZone(e.G, id), Text: discardEventText(e.G, id, "discarded as a cost")})
+			e.emit(events.DiscardCost(id))
 		}
 		// Exile cost parts (ExileFromHand/ExileFromGrave): each chosen card
 		// leaves its zone (hand, or the graveyard for a self-reference) for
@@ -2152,7 +2149,8 @@ func (e *Engine) payCast() {
 		}
 		e.emitChoiceCosts(pc)
 		if pc.cost.Tap {
-			e.emit(events.Event{Kind: events.Tap, Obj: pc.card})
+			// The {T} cost's payer taps the permanent (Forge CostTap).
+			e.emitTap(pc.card, pc.player, false)
 		}
 		for _, part := range pc.cost.SubCounter {
 			e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: part.Spec, Amount: -part.N})
@@ -2181,7 +2179,7 @@ func (e *Engine) payCast() {
 			sacrificedLKI = append(sacrificedLKI, state.SacrificedInfoOf(e.G, id))
 		}
 		for _, id := range pc.sacs {
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+			e.emit(events.Sacrifice(id))
 		}
 		// AbilityPush mints the ability object onto the stack AFTER the cost
 		// settles, so an aborted activation leaves no stack object behind
@@ -2215,7 +2213,11 @@ func (e *Engine) payCast() {
 			if e.sourceLifelinkLKI == nil {
 				e.sourceLifelinkLKI = make(map[state.ObjID]bool)
 			}
+			if e.sourceControllerLKI == nil {
+				e.sourceControllerLKI = make(map[state.ObjID]state.PlayerID)
+			}
 			e.sourceLifelinkLKI[pc.stackObj] = sourceLifelinkLKI
+			e.sourceControllerLKI[pc.stackObj] = sourceControllerLKI
 			break
 		}
 		e.cast, e.choosing = nil, chooseNone
@@ -2248,8 +2250,7 @@ func (e *Engine) payCast() {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
 	}
 	for _, id := range pc.discards {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand,
-			To: discardDestZone(e.G, id), Text: discardEventText(e.G, id, "discarded as a cost")})
+		e.emit(events.DiscardCost(id))
 	}
 	// Exile cost parts (see the ability branch above for the why).
 	for _, id := range pc.exiles {
@@ -2265,7 +2266,7 @@ func (e *Engine) payCast() {
 		sacrificedLKI = append(sacrificedLKI, state.SacrificedInfoOf(e.G, id))
 	}
 	for _, id := range pc.sacs {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+		e.emit(events.Sacrifice(id))
 	}
 	if e.sacrificedLKI == nil {
 		e.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo)
@@ -2402,7 +2403,7 @@ func (e *Engine) fireDeferredCastTrigger() {
 	e.deferredPush = nil
 	lki := e.deferredPushLKI
 	e.deferredPushLKI = nil
-	e.checkTriggers(*ev, lki)
+	e.checkTriggers(*ev, lki, 0, 0, false)
 }
 
 // recordCmdCast increments the CmdCasts[k] bookkeeping parallel to

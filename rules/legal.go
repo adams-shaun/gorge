@@ -17,6 +17,80 @@ func (e *Engine) sorcerySpeed(p state.PlayerID) bool {
 	return e.G.Active == p && e.G.Step.IsMain() && len(e.G.Stack) == 0
 }
 
+// mayPlayLandIds returns the ids of lands in player p's zones that an active
+// may-play-from-zone grant (a S:Mode$ Continuous static carrying MayPlay$ True
+// and an AffectedZone$, e.g. Conduit of Worlds' "You may play lands from your
+// graveyard") lets p play this turn, in deterministic order. The result is
+// empty unless p is at sorcery speed with a land drop remaining -- the same
+// once-per-turn gate the hand walk applies, so a graveyard land and a hand
+// land share one land drop per turn. A land already in p's hand never appears
+// here (the ordinary hand walk offers it), and neither does a land in a hidden
+// zone. Each candidate must match the granting effect's Affects filter (the
+// Affected$ spec) through the same spec matcher the layer system uses, so a
+// Land.YouOwn grant never offers an opponent's land or a non-land permanent.
+//
+// Order comes from e.active() (a sorted slice), then each effect's parsed
+// AffectedZone order, then the zone slice order -- never a map -- so the
+// resulting option list is reproducible run to run. Zones are deduplicated
+// per (zone, id) so two grants naming the same zone never offer the same land
+// twice. Only zones a land can meaningfully be played from (graveyard, exile)
+// are walked, since hand is covered by the normal walk and library is hidden.
+func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
+	if !e.sorcerySpeed(p) || e.G.Players[p].LandsPlayed >= 1 {
+		return nil
+	}
+	type offered struct {
+		zone state.Zone
+		id   state.ObjID
+	}
+	var out []state.ObjID
+	var seen []offered
+	for _, ce := range e.active() {
+		if !ce.MayPlay || ce.Controller != p {
+			continue
+		}
+		zones, all, ok := effects.ParseZones(ce.AffectedZone)
+		if !ok && !all {
+			continue
+		}
+		consider := func(z state.Zone) {
+			if z != state.ZGraveyard && z != state.ZExile {
+				return
+			}
+			for _, id := range e.G.Zone(z, p) {
+				o := e.G.Obj(id)
+				if o == nil || o.Face() == nil || !o.Face().IsLand() {
+					continue
+				}
+				if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+					continue
+				}
+				dup := false
+				for _, s := range seen {
+					if s.zone == z && s.id == id {
+						dup = true
+						break
+					}
+				}
+				if dup {
+					continue
+				}
+				seen = append(seen, offered{z, id})
+				out = append(out, id)
+			}
+		}
+		if all {
+			consider(state.ZGraveyard)
+			consider(state.ZExile)
+		} else {
+			for _, z := range zones {
+				consider(z)
+			}
+		}
+	}
+	return out
+}
+
 // abilityZoneOK reports whether ability ab may be activated while the
 // source cardinal is in zone z (CR 602.1b): the printed ActivationZone$
 // when present, the battlefield by default. Battlefield, Hand and Graveyard
@@ -62,6 +136,110 @@ func isLoyaltyAbility(ab *cards.SA) bool {
 		}
 	}
 	return false
+}
+
+// loyaltyActivationsThisTurn counts how many loyalty abilities of the
+// permanent id have been activated in its current battlefield stint this turn.
+// It folds the whole replayable log forward because both facts an AbilityPush
+// needs are historical: the source's active face at that event, and whether a
+// MoveZone ACTUALLY crossed the battlefield boundary. Event.From is advisory
+// (events.Move deliberately uses the object's recorded zone instead), so it
+// must not decide a stint boundary.
+//
+// Every genesis object starts outside the battlefield and on face zero. The
+// fold keeps just those two facts for id. MoveZone's To is authoritative after
+// Apply succeeds, so a same-zone re-append leaves onBattlefield unchanged even
+// when a malformed From claims otherwise. FlipFace is applied after any push
+// on its old face, exactly as events.Apply does. TurnChange resets the count
+// but deliberately retains the folded zone and face for the next turn.
+func (e *Engine) loyaltyActivationsThisTurn(id state.ObjID) int {
+	o := e.G.Obj(id)
+	if o == nil || o.Card == nil || len(o.Card.Faces) == 0 {
+		return 0
+	}
+
+	used := 0
+	onBattlefield := false
+	faceIdx := 0
+	for _, ev := range e.L.Events {
+		switch ev.Kind {
+		case events.TurnChange:
+			// CR 606.3's window is a turn, not a player's own turn.
+			// Mirror events.Apply's validity gate: an invalid player leaves
+			// Game.Turn unchanged, so its rejected event cannot open a new
+			// loyalty-activation window in this historical fold either.
+			if int(ev.Player) < len(e.G.Players) {
+				used = 0
+			}
+
+		case events.MoveZone:
+			if ev.Obj != id || !ev.To.Valid() {
+				continue
+			}
+			nextOnBattlefield := ev.To == state.ZBattlefield
+			if onBattlefield != nextOnBattlefield {
+				// CR 400.7: every real departure or entry starts a new
+				// permanent stint. This is derived from the folded zone,
+				// never the caller-controlled Event.From.
+				used = 0
+			}
+			onBattlefield = nextOnBattlefield
+
+		case events.AbilityPush:
+			if ev.Obj != id || !onBattlefield || int(ev.Player) >= len(e.G.Players) ||
+				ev.Amount < 0 || faceIdx >= len(o.Card.Faces) {
+				continue
+			}
+			// Amount indexes the active face's ability list. Check the exact
+			// face and bounds that events.Apply used at push time.
+			f := o.Card.Faces[faceIdx]
+			if f != nil && int(ev.Amount) < len(f.Abilities) && isLoyaltyAbility(f.Abilities[int(ev.Amount)]) {
+				used++
+			}
+
+		case events.FlipFace:
+			if ev.Obj == id && ev.Amount >= 0 && int(ev.Amount) < len(o.Card.Faces) {
+				faceIdx = int(ev.Amount)
+			}
+		}
+	}
+	return used
+}
+
+// loyaltyAbilityLimit resolves how many loyalty abilities the permanent id
+// may have activated this turn: 1 (CR 606.3) raised by every live
+// S:Mode$ NumLoyaltyAct static whose ValidCard$ matches the permanent --
+// Oath of Teferi's "twice each turn rather than only once" (Twice$ True,
+// ValidCard$ Planeswalker.YouCtrl) and Urza, Lord Protector's self-scoped
+// same (ValidCard$ Card.Self). Any matching Twice$ True raises the base limit
+// to 2 (max, so two stacked Twice statics do not compound); every matching
+// Additional$ N then adds N -- Forge's two parameters are accumulated
+// separately so their result cannot depend on battlefield scan order. An
+// additional-activation grant (The Chain Veil's "as though none of its loyalty
+// abilities had been activated") therefore stacks on top of a twice grant
+// rather than being absorbed by it. Statics that match neither parameter leave
+// the limit alone. The ValidCard$ match resolves against the static's own source
+// and controller (e.specCtx), exactly as castRestricted and abilityRestricted
+// resolve theirs.
+func (e *Engine) loyaltyAbilityLimit(id state.ObjID) int {
+	twice := false
+	additional := 0
+	for _, sv := range e.activeStatics("NumLoyaltyAct") {
+		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+			continue
+		}
+		if sv.Params["Twice"] == "True" {
+			twice = true
+		}
+		if raw, ok := sv.Params["Additional"]; ok {
+			additional += int(parseAmount(raw, 0))
+		}
+	}
+	base := 1
+	if twice {
+		base = 2
+	}
+	return base + additional
 }
 
 // activationLimitReached reports whether this object has already activated the
@@ -280,6 +458,22 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		}
 	}
 
+	// A may-play-from-zone grant (Conduit of Worlds, Crucible of Worlds, ...)
+	// makes lands in a granted zone playable this turn. This is the SECOND
+	// play_land source alongside the hand walk above, never a replacement for
+	// it; the once-per-turn land-drop gate is the same sorcerySpeed &&
+	// LandsPlayed < 1 condition the hand walk applies, so a graveyard land
+	// and a hand land share one land drop. The zones walked, the Affects
+	// filter each grant applies, and the deterministic order all come from
+	// mayPlayLandIds.
+	for _, id := range e.mayPlayLandIds(p) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		add("play_land", "Play "+o.Face().Name, id)
+	}
+
 	// Command zone (CR 903.8, Commander format): a player may cast a
 	// commander they own from the command zone. This is a SECOND cast source
 	// alongside the hand walk above, never a replacement for it. A
@@ -469,19 +663,25 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				}
 				// CR 606.3: a planeswalker's loyalty ability may be activated
 				// only at the time a sorcery could be played -- during the
-				// controller's own main phase with an empty stack -- and each
-				// loyalty ability at most ONCE per turn. sorcerySpeed already
-				// folds the own-turn and main-phase halves; the once-per-turn
-				// half reuses the same event-log scan the ActivationLimit$ gate
-				// uses, at a fixed limit of 1, because no corpus loyalty ability
-				// carries that parameter and the gate must exist anyway (before
-				// this gate the [+2]/[0] abilities were offered, payable and
-				// repeatable without bound -- the live Jace draw-three exploit).
+				// controller's own main phase with an empty stack -- and a
+				// player may not activate a loyalty ability of a PERMANENT if
+				// any loyalty ability OF THAT PERMANENT has already been
+				// activated this turn. The gate is per permanent, not per
+				// ability index: after [+2] the [0] draw-three is just as
+				// withheld as a second [+2]. sorcerySpeed already folds the
+				// own-turn and main-phase halves; the once-per-turn half is
+				// the loyaltyActivationsThisTurn scan below (the event-log
+				// scan the ActivationLimit$ gate uses, keyed to the object
+				// and bounded by its current battlefield stint, CR 400.7),
+				// because no corpus loyalty ability carries ActivationLimit$
+				// and the gate must exist anyway (before this gate the
+				// [+2]/[0] abilities were offered, payable and repeatable
+				// without bound -- the live Jace draw-three exploit).
 				if isLoyaltyAbility(ab) {
 					if !sorcery {
 						continue
 					}
-					if e.activationLimitReached(id, p, i, "1") {
+					if e.loyaltyActivationsThisTurn(id) >= e.loyaltyAbilityLimit(id) {
 						continue
 					}
 				}
@@ -562,22 +762,32 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 
 	case "play_land":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
-		// Task 12: a land with an "as this enters" choice (an
-		// ETBReplacement whose ReplaceWith$ is NameCard/ChooseType/
-		// ChooseNumber, e.g. Cavern of Souls) goes through the same
-		// one-stage cast flow a spell does -- collect the choice, ask it via
-		// chooseETB, record it with a Choose event, then commitCast moves the
-		// land and logs the play. A land with none keeps the original direct
-		// path (no pendingCast, no flow), so ordinary lands are untouched.
-		// Both paths share the same continuation machinery: etbAnswer/
-		// continueCast/commitCast below, never a parallel one.
-		pc := &pendingCast{player: in.Player, card: opt.Obj, from: state.ZHand, mode: "land", ability: -1}
+		// Task 12: a land with an "as this enters" choice goes through the
+		// same one-stage cast flow a spell does -- collect the choice, ask it
+		// via chooseETB, record it with a Choose event, then continueCast's
+		// payCast moves the land and logs the play. A land with none keeps
+		// the original direct path (no pendingCast, no flow), so ordinary
+		// lands are untouched. Both paths share the same continuation
+		// machinery, never a parallel one.
+		//
+		// The source zone is the object's CURRENT zone, not hardcoded to the
+		// hand: a may-play grant lets a land be played from the graveyard (or
+		// exile), so a hand land and a graveyard land must move From the zone
+		// they were actually offered from. A land that somehow left its zone
+		// between the offer and the answer (only a hand-built intent makes
+		// that possible) resolves from whatever zone it is in, and the
+		// MoveZone/LandPlayed below still records a legal play.
+		from := state.ZHand
+		if o := e.G.Obj(opt.Obj); o != nil {
+			from = o.Zone
+		}
+		pc := &pendingCast{player: in.Player, card: opt.Obj, from: from, mode: "land", ability: -1}
 		e.cast = pc
 		e.collectETBChoices(in.Player)
 		if len(pc.etbs) == 0 {
 			e.cast = nil
 			e.emit(events.Event{Kind: events.MoveZone, Obj: opt.Obj,
-				From: state.ZHand, To: state.ZBattlefield})
+				From: from, To: state.ZBattlefield})
 			e.emit(events.Event{Kind: events.LandPlayed, Player: in.Player})
 			return
 		}
@@ -698,21 +908,13 @@ func pureGrantKeywords(ab *cards.SA) []string {
 	return grantKeywords(ab.Params["KW"])
 }
 
-// grantKeywords splits a KW$ parameter's "&"-joined keyword list into
-// head-stripped words (the same separator effects' splitKeywords uses,
-// re-expressed here because this package cannot import effects).
+// grantKeywords splits a KW$ parameter's keyword list into head-stripped
+// words through cards.SplitKeywordList -- the shared Forge parser -- because
+// this package cannot re-express the grammar without drifting from it. The
+// Forge list separator is ampersand; a comma remains part of a parameter.
 func grantKeywords(kw string) []string {
-	kw = strings.TrimSpace(kw)
-	if kw == "" {
-		return nil
-	}
-	parts := strings.Split(kw, "&")
 	var out []string
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p == "" {
-			continue
-		}
+	for _, p := range cards.SplitKeywordList(kw) {
 		out = append(out, cards.KeywordHead(p))
 	}
 	return out

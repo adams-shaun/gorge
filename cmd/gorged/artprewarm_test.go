@@ -182,7 +182,7 @@ func TestPrewarmBackfillsFactsForALegacyArtOnlyCache(t *testing.T) {
 	if _, err := os.Stat(ac.factsPath(key)); err != nil {
 		t.Fatalf("prewarm did not backfill the facts sidecar: %v", err)
 	}
-	if got := hits.Load(); got != 1 { // exactly the one named lookup fetchFacts needs; no image download path
+	if got := hits.Load(); got != 1 { // exactly the one named lookup the backfill needs; no image download
 		t.Errorf("legacy backfill made %d named lookups, want 1 (metadata only)", got)
 	}
 }

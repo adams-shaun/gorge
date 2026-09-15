@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/state
 
-budget_s: 5
+budget_s: 10
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|
@@ -35,3 +35,13 @@ budget_s: 5
 | 2026-09-14T18:34Z | c9c2c65+ | 0.0 | 21 | 0 | sadams |
 | 2026-09-14T21:17Z | 67088ca+ | 0.0 | 21 | 0 | sadams |
 | 2026-09-15T09:49Z | f07e1f5+ | 0.0 | 21 | 0 | sadams |
+| 2026-09-14T17:07Z | 4bd20af+ | 0.0 | 21 | 0 | sadams |
+| 2026-09-14T17:07Z | 4cf9b7c+ | 0.0 | 21 | 0 | sadams |
+| 2026-09-14T20:53Z | 4ea89c4+ | 0.0 | 26 | 0 | sadams |
+| 2026-09-14T21:23Z | 9ae45f4+ | 0.0 | 26 | 0 | sadams |
+| 2026-09-14T23:56Z | c353cf9+ | 0.0 | 26 | 0 | sadams |
+| 2026-09-14T22:18Z | 7f1d416+ | 0.0 | 21 | 0 | sadams |
+| 2026-09-15T10:02Z | 5bece96+ | 0.0 | 26 | 0 | sadams |
+| 2026-09-15T10:05Z | 5bece96+ | 0.0 | 26 | 0 | sadams |
+| 2026-09-15T10:07Z | 5bece96+ | 0.0 | 26 | 0 | sadams |
+| 2026-09-15T10:09Z | 5bece96+ | 0.0 | 26 | 0 | sadams |

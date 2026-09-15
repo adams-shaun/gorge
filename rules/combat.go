@@ -239,7 +239,8 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 	}
 	for _, opt := range chosen {
 		if !e.HasKeyword(opt.Obj, "Vigilance") {
-			e.emit(events.Event{Kind: events.Tap, Obj: opt.Obj})
+			// CR 508.1f: the player declaring attackers taps them.
+			e.emitTap(opt.Obj, d.Player, false)
 		}
 	}
 }
@@ -1208,7 +1209,11 @@ func (e *Engine) cleanupBody() {
 				continue
 			}
 			if o.Damage > 0 {
-				e.emit(events.Event{Kind: events.Damage, Obj: id, Amount: -o.Damage})
+				ev := events.Event{Kind: events.Damage, Obj: id, Amount: -o.Damage}
+				if f := o.Face(); e.IsCreature(id) && f != nil && f.IsPlaneswalker() && !f.IsCreature() {
+					ev.Counter = "creature"
+				}
+				e.emit(ev)
 			}
 			if n := o.Counter("Shield"); n > 0 {
 				e.emit(events.Event{Kind: events.CounterChange, Obj: id,
@@ -1242,9 +1247,9 @@ const chooseCleanup chooseFor = iota + 4
 const chooseDamageDivision chooseFor = iota + 5
 
 // discardCleanup applies an answered CR 514.1 discard decision: each chosen
-// card moves from the active player's hand to their graveyard (a plain
-// MoveZone event per card, in the order the client selected them), then the
-// CR 514.2 body runs (cleanupBody), then the turn hands to the next player's
+// card moves from the active player's hand to their graveyard (a canonical
+// discard MoveZone event per card, in the order the client selected them),
+// then the CR 514.2 body runs (cleanupBody), then the turn hands to the next player's
 // turn (advanceStep). The move events ride the ordinary emit path, so
 // state-based actions and triggered abilities matched by the discard are
 // queued exactly as for any other zone change and handled by the same
@@ -1267,9 +1272,7 @@ func (e *Engine) discardCleanup(chosen []decision.Option) {
 	// expects chooseNone here).
 	e.choosing = chooseNone
 	for _, opt := range chosen {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: opt.Obj,
-			From: state.ZHand, To: discardDestZone(e.G, opt.Obj),
-			Text: discardEventText(e.G, opt.Obj, ""), Player: e.G.Active})
+		e.emit(events.Discard(opt.Obj, e.G.Active))
 	}
 	e.cleanupBody()
 	e.advanceStep()

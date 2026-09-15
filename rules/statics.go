@@ -340,7 +340,7 @@ func parseAmount(s string, def int32) int32 {
 func init() {
 	effects.RegisterNonAPI("stat:CantBeCast", "stat:CantBeActivated", "stat:RaiseCost",
 		"stat:ReduceCost", "stat:AlternativeCost", "stat:CantBlock", "stat:CantBlockBy",
-		"stat:Continuous")
+		"stat:Continuous", "stat:NumLoyaltyAct")
 }
 
 // altCostLabel names the nth (0-indexed) alternative-cost option for a

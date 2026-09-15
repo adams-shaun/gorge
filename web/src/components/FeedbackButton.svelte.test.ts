@@ -1,22 +1,13 @@
-import { chromium, type Browser, type Page } from 'playwright';
-import { createServer, type ViteDevServer } from 'vite';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { type Browser, type Page } from 'playwright';
+import { browserURL, sharedBrowser } from '../test/browser';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 describe('FeedbackButton breadcrumbs', () => {
-  let server: ViteDevServer;
   let browser: Browser;
-  let url = '';
+  const url = browserURL;
 
   beforeAll(async () => {
-    server = await createServer({ root: process.cwd(), configLoader: 'runner', server: { port: 0 } });
-    await server.listen();
-    url = server.resolvedUrls!.local[0];
-    browser = await chromium.launch();
-  });
-
-  afterAll(async () => {
-    await browser?.close();
-    await server?.close();
+    browser = await sharedBrowser();
   });
 
   it('submits route/seat context and production intent breadcrumbs', async () => {

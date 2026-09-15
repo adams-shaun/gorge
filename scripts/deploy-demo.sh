@@ -30,6 +30,8 @@ PUB_PORT=${PUB_PORT:-8080}
 OMNI_PORT=${OMNI_PORT:-8081}
 PUB_DIR=${PUB_DIR:-/tmp/gorge-demo-pub}
 OMNI_DIR=${OMNI_DIR:-/tmp/gorge-demo-omni}
+PUB_LOG=${PUB_LOG:-/tmp/gorge-demo-pub.log}
+OMNI_LOG=${OMNI_LOG:-/tmp/gorge-demo-omni.log}
 
 # Durable card-art cache, OUTSIDE the wiped persistence dirs (task
 # fb-20260914T113850Z-682e875e). The `rm -rf` inside start_one stays: a stale
@@ -49,13 +51,44 @@ OMNI_DIR=${OMNI_DIR:-/tmp/gorge-demo-omni}
 # per server (single-flight is per-process, so a first-fetch race between the
 # two servers can still fetch a cold name twice — harmless: image and facts
 # writers use process-unique staging files and publish only complete artifacts
-# with atomic renames).
+# with atomic renames). Scryfall pacing IS shared by every lock-aware gorged
+# whose BINARY knows the stamp file (artCache.paceWait): the fill below and
+# both new servers pace each other, and so do old servers a deploy replaces
+# once they run a binary this new. The FIRST deploy after the stamp file's
+# introduction overlaps old-binary servers, which pace only themselves; the
+# fill's budget bounds that unshared window's duration, not its aggregate
+# request rate. From the second deploy on, every lock-aware process sharing
+# this dir stays within ~10 req/s.
 ART_DIR=${ART_DIR:-/mnt/sata/gorge-data/art}
+
+# Bounds on the pre-start art fill. Art is cosmetic: Scryfall being slow,
+# rate-limiting or down must never block or indefinitely delay a deploy, and
+# the post-merge hook waits only 600s for the deploy lock before it gives up
+# on the NEXT merge's deploy. ART_FILL_BUDGET is gorged's own clean stop
+# (it prints the summary); ART_FILL_MAX_FAILURES stops a pass against an
+# erroring Scryfall after that many names in a row; ART_FILL_CEILING is the
+# hard wall-clock kill in case the binary itself wedges. Build, fill ceiling
+# and start together stay well inside the hook's 600s.
+ART_FILL_BUDGET=${ART_FILL_BUDGET:-200s}
+ART_FILL_MAX_FAILURES=${ART_FILL_MAX_FAILURES:-10}
+ART_FILL_CEILING=${ART_FILL_CEILING:-230s}
+# The ceiling prefers GNU timeout. uutils coreutils 0.2.2 (this box's
+# /usr/bin/timeout) never escalates `-k` to SIGKILL and exits 125 rather than
+# 124 on a ceiling (measured 2026-09-14: a child ignoring TERM ran its full 8s
+# under uutils, and was killed at 1.3s by gnutimeout, Ubuntu's GNU build).
+# That is the fallback's limit: under uutils the ceiling stops WAITING at
+# 230s but cannot force-kill a fill wedged past gorged's own budget. Because
+# -prewarm-art-only never listens, a later deploy's listener-only sweep cannot
+# find it; a TERM-ignoring child can survive indefinitely until manual cleanup.
+# With no timeout at all, gorged's own -prewarm-art-budget is the only bound.
+TIMEOUT=$(command -v gnutimeout || command -v timeout || true)
 
 say() { printf 'deploy-demo: %s\n' "$*"; }
 
-# SWEEP=ports (default) stops only the gorged serving the two demo ports.
-# SWEEP=all stops every gorged on the box.
+# SWEEP=ports (default) stops only the gorged serving the two demo ports —
+# on the ADDRESSES this deploy binds (127.0.0.1, plus a wildcard listener,
+# which would keep those binds from succeeding). SWEEP=all stops every gorged
+# on the box.
 #
 # The default is narrow on purpose. A wide sweep once killed a task agent's
 # own measurement server mid-run: agents are told to serve on 8090-8099 to
@@ -73,10 +106,18 @@ SWEEP=${SWEEP:-ports}
 # day of work. Sockets are the safe index -- a server that is serving has
 # a listening socket -- and /proc/<pid>/comm is an exact process name, not
 # a substring of a command line, so nothing else can match it.
+#
+# The port sweep matches the LISTENER ADDRESS, not just the port number:
+# "the thing occupying the ports I am about to bind" binds 127.0.0.1:P
+# itself, or a wildcard (0.0.0.0/[*]/*:P) that would keep that bind from
+# succeeding. A gorged bound to another SPECIFIC address of the same port
+# — [::1]:P, say, a probe or a review server — keeps its own bind and its
+# own port number to itself; sweeping it killed exactly such a process
+# (found by a re-reviewer probing [::1]:8090 while the deploy test ran).
 gorged_pids() {
 	local filter='LISTEN'
 	if [ "$SWEEP" != "all" ]; then
-		filter="(:$PUB_PORT|:$OMNI_PORT)[[:space:]]"
+		filter="[[:space:]](127\\.0\\.0\\.1|0\\.0\\.0\\.0|\\*|\\[::\\]):($PUB_PORT|$OMNI_PORT)[[:space:]]"
 	fi
 	# `|| true` is load-bearing, not defensive noise. grep exits 1 when it
 	# matches nothing, and with `set -o pipefail` that failure becomes the
@@ -171,9 +212,34 @@ fi
 
 [ -x "$BIN" ] || { say "no binary at $BIN (run make deploy-demo, not this script)"; exit 1; }
 
+# Fill the card-art cache BEFORE any server is touched, so a deploy normally
+# never serves a cold-cache missing-art window and the two servers' startup
+# prewarms become no-ops. The cache lives in the durable ART_DIR (outside the
+# wiped persistence dirs), and the fill is idempotent: a second run makes zero
+# fetches. A genuine Scryfall 404 is a fact (a .miss marker), not a failure.
+#
+# The fill is BOUNDED (see ART_FILL_* above) and it NEVER aborts the deploy.
+# A non-zero exit — failed names, a spent budget, a tripped failure streak or
+# the hard ceiling — is reported loudly and the servers start anyway: their
+# background prewarm (the same fill loop, unbounded) completes the cache.
+# Aborting instead let one flaky name keep new code off the demo, and an
+# unbounded 429 storm (about 60s per name) hold the deploy lock for hours
+# while later merges' deploys timed out behind it. Rate limiting and 429
+# backoff live inside gorged itself (artCache.paceWait / lookupNamed), so this
+# can never burst the API.
+say "filling card-art cache from $DECKS into $ART_DIR (budget $ART_FILL_BUDGET, ceiling $ART_FILL_CEILING)"
+art_rc=0
+${TIMEOUT:+"$TIMEOUT" -k 5s "$ART_FILL_CEILING"} "$BIN" -prewarm-art-only \
+	-prewarm-art-budget "$ART_FILL_BUDGET" \
+	-prewarm-art-max-consecutive-failures "$ART_FILL_MAX_FAILURES" \
+	-decks "$DECKS" -art-dir "$ART_DIR" || art_rc=$?
+if [ "$art_rc" -ne 0 ]; then
+	say "!!! art fill INCOMPLETE (exit $art_rc; 124/137 = the $ART_FILL_CEILING hard ceiling under GNU timeout; 125 = uutils timeout gave up after TERM and cannot force-kill a wedged fill) — see the summary above; starting the servers anyway, their background prewarm finishes the cache"
+fi
+
 stop_all
-start_one "$PUB_PORT" public "$PUB_DIR" /tmp/gorge-demo-pub.log
-start_one "$OMNI_PORT" omniscient "$OMNI_DIR" /tmp/gorge-demo-omni.log
+start_one "$PUB_PORT" public "$PUB_DIR" "$PUB_LOG"
+start_one "$OMNI_PORT" omniscient "$OMNI_DIR" "$OMNI_LOG"
 wait_ready "$PUB_PORT"
 wait_ready "$OMNI_PORT"
 

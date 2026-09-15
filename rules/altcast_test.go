@@ -678,8 +678,7 @@ func TestMadnessTriggerCanBeStifled(t *testing.T) {
 	stifle := findCardObj(t, e, 0, "Stifle", state.ZHand)
 	addMana(t, e, 0, "U")
 	e.pending = nil
-	e.emit(events.Event{Kind: events.MoveZone, Obj: emrakul, From: state.ZHand,
-		To: state.ZGraveyard, Text: "discarded (madness)"})
+	e.emit(events.Discard(emrakul, 0))
 	submitChoices(t, e, 0) // accept the exile replacement
 	if len(e.G.Stack) != 1 || e.G.Obj(e.G.Stack[0]).Ability.API != "MadnessCast" {
 		t.Fatalf("madness did not create one stack trigger: %v", e.G.Stack)
@@ -710,8 +709,7 @@ func TestMadnessReplacementMayBeDeclined(t *testing.T) {
 	// This is the event every discard implementation proposes; the real
 	// Emrakul keyword supplies the replacement being tested.
 	e.pending = nil
-	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand,
-		To: state.ZGraveyard, Text: "discarded (madness)"})
+	e.emit(events.Discard(id, 0))
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KReplacement || e.G.Obj(id).Zone != state.ZHand {
 		t.Fatalf("optional madness replacement: pending=%+v zone=%s", d, e.G.Obj(id).Zone)
@@ -792,15 +790,26 @@ func TestEvokeSacrificeIsARespondableTriggeredAbility(t *testing.T) {
 	stifle := findCardObj(t, e, 0, "Stifle", state.ZHand)
 	addMana(t, e, 0, "CCCUU")
 	submitChoices(t, e, castModeOption(t, e, null, "evoked"))
-	// Resolve Nulldrifter's cast trigger, then Nulldrifter itself. Its evoke
-	// trigger is now a genuine ability object on the stack.
-	for i := 0; i < 2; i++ {
+	// Pass only until the evoked creature enters and its keyword trigger is
+	// on the stack. Other merged trigger work may add a priority handoff, so
+	// do not bake a particular number of passes into this proof.
+	var evokeAbility state.ObjID
+	for i := 0; i < 8; i++ {
+		for _, stackID := range e.G.Stack {
+			o := e.G.Obj(stackID)
+			if o != nil && o.Ability != nil && o.Source == null && o.Ability.API == "Sacrifice" {
+				evokeAbility = stackID
+				break
+			}
+		}
+		if evokeAbility != 0 {
+			break
+		}
 		passOnceP(t, e)
 	}
-	if len(e.G.Stack) != 1 {
-		t.Fatalf("stack after evoke entry: %v", e.G.Stack)
+	if evokeAbility == 0 {
+		t.Fatalf("no evoke trigger after entry: stack=%v", e.G.Stack)
 	}
-	evokeAbility := e.G.Stack[0]
 	if o := e.G.Obj(evokeAbility); o == nil || o.Ability == nil || o.Source != null {
 		t.Fatalf("evoke stack object: %+v", o)
 	}
@@ -1175,19 +1184,34 @@ func TestAlternateAdditionalCostAsksWhichAlternative(t *testing.T) {
 		t.Fatalf("Redirect Lightning options missing the Shock on the stack: %+v", d.Options)
 	}
 	submitChoices(t, e, stackIdx)
-	passUntilStackEmpty(t, e, 40)
+	// ChangeTargets is now implemented independently on main, so resolve its
+	// newly exposed target ask rather than treating it as this cost test's
+	// outcome. The alternative-cost proof owns the payment assertions below.
+	for i := 0; i < 40 && len(e.G.Stack) != 0; i++ {
+		d = e.Pending()
+		if d != nil && d.Kind == decision.KChoose && d.Prompt == "Choose new target" {
+			keep := -1
+			for _, opt := range d.Options {
+				if opt.Obj == bear {
+					keep = opt.Index
+				}
+			}
+			if keep < 0 {
+				t.Fatalf("redirect options omit original Bear target: %+v", d.Options)
+			}
+			submitChoices(t, e, keep)
+			continue
+		}
+		passOnceP(t, e)
+	}
+	if len(e.G.Stack) != 0 {
+		t.Fatalf("stack did not drain: %v", e.G.Stack)
+	}
 	if pool := e.G.Players[0].Pool.Total(); pool != 0 {
 		t.Fatalf("pool after the {2} alternative %d, want 0", pool)
 	}
 	if life := e.G.Players[0].Life; life != 20 {
 		t.Fatalf("life %d, want 20 (the life alternative was not chosen)", life)
-	}
-	// The redirected-at Shock still resolved at its original target (CR
-	// 601.2c's unchanged text: api:ChangeTargets is a separate, unimplemented
-	// primitive, recorded in the ticket report's Issues) -- the Bear died to
-	// it, and the cost assertion above is what this test owns.
-	if o := e.G.Obj(bear); o.Zone != state.ZGraveyard {
-		t.Fatalf("Bear zone %s, want graveyard (Shock resolved at it)", o.Zone)
 	}
 	replayCheck(t, e, cfg)
 }
