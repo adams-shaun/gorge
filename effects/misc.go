@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -183,6 +184,21 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 					out = append(out, t.Obj)
 				}
 			}
+		case "ChosenCard":
+			// Dauthi Voidwalker and the wider ChooseCard -> Effect family do
+			// not set RememberChosen$: the chosen card lives in Ctx.Chosen, or
+			// on the event-backed source when a later ability reads it.
+			chosen := c.Chosen
+			if len(chosen) == 0 {
+				if o := h.Game().Obj(c.Source); o != nil {
+					chosen = o.Chosen
+				}
+			}
+			for _, t := range chosen {
+				if !t.IsPlayer && h.Game().Obj(t.Obj) != nil {
+					out = append(out, t.Obj)
+				}
+			}
 		}
 	}
 	return out
@@ -360,6 +376,11 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 			if len(c.Targets) > 0 {
 				payer = PlayerOf(h, c, c.Targets[0])
 			}
+			if strings.TrimSpace(sa.Params["UnlessPayer"]) == "TriggeredCardController" {
+				if p, ok := TriggeredCardController(h.Game(), c.TriggerContext, c.Remembered); ok {
+					payer = p
+				}
+			}
 			shown := unlessCostLabel(cost)
 			d := &decision.Decision{Player: payer, Kind: decision.KModes,
 				Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay",
@@ -470,10 +491,23 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 			Text: "registers a delayed trigger at " + mode + " (not implemented)"})
 		return
 	}
-	phase, ok := delayedPhaseStep(sa.Params["Phase"])
-	if !ok {
+	set, unknown := state.ParsePhases(sa.Params["Phase"])
+	if len(unknown) > 0 {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "registers a delayed trigger at unrecognized phase " + sa.Params["Phase"]})
+		return
+	}
+	// One one-shot registration for the FIRST member of the set the game will
+	// still reach (state.EarliestAfter): Forge's delayed trigger is removed
+	// from TriggerHandler.delayedTriggers the moment it fires, so even a
+	// multi-step Phase$ value (`Main1,Main2`, the open `Upkeep->` range) fires
+	// exactly once, at the first listed phase still ahead -- and a single-step
+	// value maps to the very step a registration used to carry, so every
+	// already-working shape is unchanged.
+	step, ok := state.EarliestAfter(set, h.Game().Step)
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "registers a delayed trigger with no Phase"})
 		return
 	}
 	exec := sa.Params["Execute"]
@@ -483,50 +517,8 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
-		Player: c.Controller, Step: phase, Counter: exec,
+		Player: c.Controller, Step: step, Counter: exec,
 		IDs: encodeRemembered(c.Remembered), Text: sa.Params["Phase"]})
-}
-
-// delayedPhaseStep maps a Forge Phase$ value to the state.Step whose entry
-// fires the delayed trigger. The matching is by substring against the step
-// names and the Forge spellings, the same loose tolerance phaseMatches uses
-// for a T: line's Phase$; an unrecognized value returns ok=false and the
-// caller records a Note rather than firing at the wrong phase. A delayed
-// trigger fires on entering the mapped step, which for the common
-// "beginning of the next end step" / "beginning of the next upkeep" shapes
-// is exactly the first such step after the trigger is registered; the
-// one-shot removal in events.Apply's DelayedPush case keeps it from firing
-// again on later occurrences.
-func delayedPhaseStep(phase string) (state.Step, bool) {
-	p := strings.ToLower(phase)
-	switch {
-	case strings.Contains(p, "upkeep"):
-		return state.StepUpkeep, true
-	case strings.Contains(p, "draw"):
-		return state.StepDraw, true
-	case strings.Contains(p, "end combat"), strings.Contains(p, "endcombat"):
-		return state.StepEndCombat, true
-	case strings.Contains(p, "begin combat"), strings.Contains(p, "begincombat"):
-		return state.StepBeginCombat, true
-	case strings.Contains(p, "declare attackers"), p == "attackers":
-		return state.StepDeclareAttackers, true
-	case strings.Contains(p, "declare blockers"), p == "blockers":
-		return state.StepDeclareBlockers, true
-	case strings.Contains(p, "combat damage"), strings.Contains(p, "damage"):
-		return state.StepCombatDamage, true
-	case strings.Contains(p, "main 2"), strings.Contains(p, "main2"):
-		return state.StepMain2, true
-	case strings.Contains(p, "main 1"), strings.Contains(p, "main1"), strings.Contains(p, "main"):
-		return state.StepMain1, true
-	case strings.Contains(p, "end of turn"), strings.Contains(p, "endstep"), p == "end",
-		strings.Contains(p, "end step"):
-		return state.StepEnd, true
-	case strings.Contains(p, "cleanup"):
-		return state.StepCleanup, true
-	case strings.Contains(p, "untap"):
-		return state.StepUntap, true
-	}
-	return 0, false
 }
 
 // encodeRemembered turns a Remembered target list into the []ObjID an event
@@ -576,7 +568,29 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// effCharm runs CharmNum$ of the Choices$ sub-abilities in chosen order.
+// CharmModeBounds resolves a Charm's selectable range. Forge defaults
+// MinCharmNum$ to CharmNum$, but an explicit MinCharmNum$ permits choosing
+// fewer modes. Both values use Num so literal, SVar, and inline Count$ forms
+// share the same evaluation in spell, trigger, and resolution paths.
+func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int) {
+	max = int(Num(h, c, sa, "CharmNum", 1))
+	if max < 1 {
+		max = 1
+	}
+	min = max
+	if _, ok := sa.Params["MinCharmNum"]; ok {
+		min = int(Num(h, c, sa, "MinCharmNum", int32(min)))
+	}
+	if max > choices {
+		max = choices
+	}
+	if min < 0 {
+		min = 0
+	}
+	return min, max
+}
+
+// effCharm runs the selected Choices$ sub-abilities in chosen order.
 // Cast spells (CR 601.2b) and triggered abilities (CR 603.3c) arrive with
 // Ctx.Modes pre-seeded from their earlier announcement. A Charm reached only
 // during resolution still poses KModes and suspends until resumeResolution
@@ -624,17 +638,16 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	for i, name := range choices {
 		subs[i] = cards.ResolveSVar(c.SVars, name)
 	}
-	charmNum := Num(h, c, sa, "CharmNum", 1)
-	if charmNum < 1 {
-		charmNum = 1
-	}
-	if int(charmNum) > len(choices) {
-		charmNum = int32(len(choices))
+	min, max := CharmModeBounds(h, c, sa, len(choices))
+	if min > len(choices) {
+		// Forge declines a Charm whose required minimum exceeds its available
+		// modes. A no-engine host must likewise make no arbitrary choice.
+		return
 	}
 	d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
-		Min: int(charmNum), Max: int(charmNum), Source: c.Source,
+		Min: min, Max: max, Source: c.Source,
 		ResumeKind: "modes", ResumeSA: sa,
-		Prompt: "Choose " + strconv.Itoa(int(charmNum)) + " mode(s)"}
+		Prompt: "Choose " + strconv.Itoa(min) + " to " + strconv.Itoa(max) + " mode(s)"}
 	for i, name := range choices {
 		label := name
 		if subs[i] != nil {
@@ -672,14 +685,14 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// effBecomeMonarch records who becomes the monarch. Monarchy itself is
-// game-level state Task 22 adds; M1 only has the Note.
+// effBecomeMonarch records the game-level designation as an event so a
+// conditional trigger observes it identically in the live game and on replay.
 func effBecomeMonarch(h Host, c *Ctx, sa *cards.SA) {
 	targets := Defined(h, c, sa)
 	if len(targets) == 0 {
 		return
 	}
-	h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, targets[0]), Text: "becomes the monarch"})
+	h.Emit(events.Event{Kind: events.MonarchChange, Player: PlayerOf(h, c, targets[0])})
 }
 
 // effRestartGame ends the game as a draw. Actually restarting (leaving
@@ -704,7 +717,8 @@ func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
 }
 
 // effMana implements "AB$ Mana": add Amount mana of Produced's colour(s) to
-// the activating player's pool. Absorbed from Task 14's stopgap: the
+// the pool of each ManaRecipients player (the activating player unless
+// Defined$ names another). Absorbed from Task 14's stopgap: the
 // negative-Amount clamp is Ruling T14-f, kept verbatim for the same reason as
 // DealDamage's -- events.Apply's ManaAdd case is a plain "+=", so an
 // unclamped negative would drop the pool below zero instead of doing
@@ -712,9 +726,9 @@ func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
 //
 // Two things are folded in on top of that. "Any"/"Combo Any" resolves to
 // colourless rather than asking (a real choice awaits the milestone that
-// makes every R-9 stand-in real; the real ask lives on the activation path
-// in rules, which rewrites Produced to a single chosen colour before this
-// primitive ever runs). A dual-producing ability such as "Add {R}{R}" is
+// makes every R-9 stand-in real; the real ask lives in rules, on both the
+// activation path and the CR 605.3b triggered-mana path, which rewrite
+// Produced to a single chosen colour before this primitive ever runs). A dual-producing ability such as "Add {R}{R}" is
 // walked one symbol at a time rather than split on whitespace, since
 // Produced$ carries no spaces of its own.
 //
@@ -800,8 +814,35 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	if amt < 0 {
 		amt = 0
 	}
-	for _, r := range runes {
-		h.Emit(events.Event{Kind: events.ManaAdd, Player: c.Controller,
-			Counter: string(r), Amount: amt})
+	for _, p := range ManaRecipients(h, c, sa) {
+		for _, r := range runes {
+			h.Emit(events.Event{Kind: events.ManaAdd, Player: p,
+				Counter: string(r), Amount: amt})
+		}
 	}
+}
+
+// ManaRecipients is the player or players a Mana SA adds its mana for. Forge's
+// ManaEffect adds to getDefinedPlayersOrTargeted: with no Defined$ that is the
+// activating player; with Defined$ it is each player the selector names, so
+// Vernal Bloom's Defined$ TriggeredCardController gives the extra {G} to the
+// tapped Forest's controller rather than to the enchantment's. An object
+// selector names that object's controller (PlayerOf). A Defined$ that resolves
+// to nobody adds nothing, as in Forge (SpellAbilityEffect.getDefinedPlayers has
+// no activator fallback): Valleymaker's Defined$ ChosenPlayer must not hand the
+// mana to its controller when no player was chosen.
+func ManaRecipients(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
+	if strings.TrimSpace(sa.Params["Defined"]) == "" {
+		return []state.PlayerID{c.Controller}
+	}
+	g := h.Game()
+	var out []state.PlayerID
+	for _, t := range Defined(h, c, sa) {
+		p := PlayerOf(h, c, t)
+		if int(p) >= len(g.Players) || slices.Contains(out, p) {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
 }

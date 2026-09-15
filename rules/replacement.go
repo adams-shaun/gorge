@@ -47,6 +47,13 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	if !ok {
 		return ev, false
 	}
+	// Madness is an optional discard replacement and must park before either
+	// destination is logged. The guarded re-emit still permits ordinary card
+	// and format replacements on the chosen destination.
+	if ev.Kind == events.MoveZone && !e.applyingMadnessChoice && e.madnessReplacementApplies(ev) {
+		e.parkMadnessDiscard(ev)
+		return ev, true
+	}
 	// CR 903.9 (Task m32): a commander about to be put into its owner's
 	// graveyard, hand or library from anywhere, or exiled from anywhere, may
 	// instead be put into the command zone by its OWNER. This is a
@@ -251,7 +258,7 @@ func (e *Engine) continueUntapReplacements(ev events.Event, matches []replMatch)
 // untap step and consequently does not match ValidStepTurnToController$.
 func (e *Engine) applySimpleReplacement(ev events.Event, m replMatch) (events.Event, bool) {
 	if m.repl.With != nil {
-		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With)
+		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, "", m.repl.With)
 	}
 	return ev, true
 }
@@ -267,7 +274,7 @@ func (e *Engine) applySimpleReplacement(ev events.Event, m replMatch) (events.Ev
 // exactly the steps that actually happened.
 func (e *Engine) applyBeginPhaseReplacement(ev events.Event, m replMatch) (events.Event, bool) {
 	if m.repl.With != nil {
-		e.runReplaceWith(e.replCtx(m, ev), 0, m.repl.With)
+		e.runReplaceWith(e.replCtx(m, ev), 0, "", m.repl.With)
 	}
 	// Cleanup is never skipped: the turn's 514.1/514.2 work is what makes the
 	// next turn begin correctly, and no corpus line names it. Bounding the
@@ -370,7 +377,7 @@ func (e *Engine) resumeParkedPhase(rc replChoice) {
 func (e *Engine) applyTransformReplacement(ev events.Event, matches []replMatch) (events.Event, bool) {
 	for _, m := range matches {
 		if m.repl.With != nil {
-			e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With)
+			e.runReplaceWith(e.replCtx(m, ev), ev.Obj, "", m.repl.With)
 		}
 	}
 	return ev, false
@@ -408,7 +415,7 @@ func (e *Engine) continueManaReplacements(ev events.Event, candidates []replMatc
 				return ev, false
 			}
 			stored := events.Emit(e.G, e.L, ev)
-			e.checkTriggers(stored, nil)
+			e.checkTriggers(stored, nil, 0, 0, false)
 			return stored, true
 		}
 		if len(applicable) > 1 && int(ev.Player) < len(e.G.Players) && !e.G.Players[ev.Player].Lost {
@@ -448,7 +455,7 @@ func (e *Engine) applyOneManaReplacement(ev events.Event, m replMatch, color str
 	}
 	// The producer is contextual (not ManaAdd.Obj), but ReplaceWith$ still
 	// resolves against that object for Defined$/Remembered$ references.
-	e.runReplaceWith(ctx, e.manaProducer, m.repl.With)
+	e.runReplaceWith(ctx, e.manaProducer, "", m.repl.With)
 	ev.Amount, ev.Counter = ctx.ManaAmount, ctx.ManaType
 	return ev
 }
@@ -504,6 +511,7 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		// comment), so o.X is the cast-time value here.
 		X:          o.X,
 		Remembered: []state.Target{{Obj: ev.Obj}},
+		Captured:   []state.Target{{Obj: ev.Obj}},
 		// Replaced names the object the replaced event (ev) was about, so a
 		// ReplaceWith$ that says Defined$ ReplacedCard (the Rest in Peace /
 		// Dryad Militant / Leyline of the Void shape: "exile it instead") can
@@ -525,12 +533,12 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 // replaced object for the body's Defined$/Remembered$ reads and restoring
 // both the guard and that record afterward so an outer replacement keeps its
 // own state.
-func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *cards.SA) {
-	savedRepl := e.replReplaced
+func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, action string, with *cards.SA) {
+	savedRepl, savedAction := e.replReplaced, e.replAction
 	e.applyingReplacement = true
-	e.replReplaced = replaced
+	e.replReplaced, e.replAction = replaced, action
 	e.resolveReplacementWith(ctx, with)
-	e.replReplaced = savedRepl
+	e.replReplaced, e.replAction = savedRepl, savedAction
 	e.applyingReplacement = false
 }
 
@@ -556,14 +564,14 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		// exactly as it would for an unreplaced entry), THEN resolve the With
 		// so a Tap lands on an object already in its new zone (an object
 		// still on the stack is a no-op to effTap).
-		departing, link := e.captureSourceLifelinkLKI(ev)
+		departing, link, controller := e.captureSourceLifelinkLKI(ev)
 		stored := events.Emit(e.G, e.L, ev)
-		e.checkTriggers(stored, nil)
-		e.finishSourceLifelinkLKI(ev, departing, link)
-		e.runReplaceWith(ctx, ev.Obj, m.repl.With)
+		e.checkTriggers(stored, nil, 0, 0, false)
+		e.finishSourceLifelinkLKI(ev, departing, link, controller)
+		e.runReplaceWith(ctx, ev.Obj, "", m.repl.With)
 		return stored, true
 	}
-	e.runReplaceWith(ctx, ev.Obj, m.repl.With)
+	e.runReplaceWith(ctx, ev.Obj, events.ActionMarker(ev), m.repl.With)
 	return ev, true
 }
 
@@ -576,15 +584,15 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 // counters" (Triskelion) finishes BOTH attrs set, not whichever the scan
 // reached first.
 func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
-	departing, link := e.captureSourceLifelinkLKI(ev)
+	departing, link, controller := e.captureSourceLifelinkLKI(ev)
 	stored := events.Emit(e.G, e.L, ev)
-	e.checkTriggers(stored, nil)
-	e.finishSourceLifelinkLKI(ev, departing, link)
+	e.checkTriggers(stored, nil, 0, 0, false)
+	e.finishSourceLifelinkLKI(ev, departing, link, controller)
 	for _, m := range matches {
 		if m.repl.With == nil {
 			continue
 		}
-		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With)
+		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, "", m.repl.With)
 	}
 	return stored, true
 }
@@ -660,6 +668,19 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 	case "Moved":
 		if ev.Kind != events.MoveZone {
 			return false
+		}
+		// Discard$ True narrows a Moved replacement to a discard. EffectOnly$
+		// excludes cost and cleanup discards; ValidCause$ names its cause.
+		if r.Params["Discard"] == "True" {
+			if !events.IsDiscard(ev) {
+				return false
+			}
+			if r.Params["EffectOnly"] == "True" && (events.IsDiscardCost(ev) || e.actionCause() == 0) {
+				return false
+			}
+			if spec := r.Params["ValidCause"]; spec != "" && !e.discardCauseAdmits(spec, source, ev) {
+				return false
+			}
 		}
 		if o, ok := r.Params["Origin"]; ok && o != "Any" && effects.ParseZone(o) != ev.From {
 			return false
@@ -1074,6 +1095,10 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 // hand-built decision and degrades to a Note, the same totality stance as
 // handleCmdZone.
 func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
+	if len(d.Options) > 0 && strings.HasPrefix(d.Options[0].Kind, "madness_") {
+		e.handleMadnessReplacement(d, in)
+		return
+	}
 	if len(e.replChoices) == 0 {
 		e.emit(events.Event{Kind: events.Note, Player: in.Player,
 			Text: "replacement decision answered with no event parked"})
@@ -1177,9 +1202,24 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	if manaDecision && e.pending == nil && len(e.replChoices) == 0 && e.cast != nil {
 		e.continueCast()
 	}
-	if len(e.replChoices) > 0 && e.pending == nil {
+	e.askNextReplacementChoice()
+}
+
+// askNextReplacementChoice hands over to either an ordinary replacement
+// competition or a simultaneous Madness choice after the current answer.
+func (e *Engine) askNextReplacementChoice() {
+	if e.pending != nil {
+		return
+	}
+	if len(e.replChoices) > 0 {
 		if p, ok := e.replacementChoicePlayer(e.replChoices[0]); ok {
 			e.askReplacementChoice(p)
+		}
+		return
+	}
+	if len(e.madnessChoices) > 0 {
+		if o := e.G.Obj(e.madnessChoices[0].Obj); o != nil && int(o.Owner) < len(e.G.Players) {
+			e.askMadnessReplacement(o.Owner)
 		}
 	}
 }

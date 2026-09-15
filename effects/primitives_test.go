@@ -184,14 +184,14 @@ func TestDealDamageIgnoresObjectsOffTheBattlefield(t *testing.T) {
 func TestDamageAllHitsMatchingCreaturesOnly(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
-	Resolve(h, &Ctx{Controller: 0}, sa(t, "SP$ DamageAll | NumDmg$ 1"))
+	Resolve(h, &Ctx{Controller: 0}, sa(t, "SP$ DamageAll | ValidCards$ Creature | NumDmg$ 1"))
 	for _, name := range []string{"myBear", "myFlier", "theirBig"} {
 		if got := g.Obj(ids[name]).Damage; got != 1 {
 			t.Errorf("%s damage = %d, want 1", name, got)
 		}
 	}
 	if g.Obj(ids["myLand"]).Damage != 0 {
-		t.Error("DamageAll's default ValidCards$ Creature must not hit a land")
+		t.Error("DamageAll's explicit ValidCards$ Creature must not hit a land")
 	}
 }
 
@@ -675,6 +675,50 @@ func TestPumpRegistersLayerContinuousEffectsOnTheTarget(t *testing.T) {
 	}
 }
 
+// TestPumpKeywordListReadersUseTheSharedParser covers both effects that read
+// KW$. Their only KW$ read lives in registerPumpEffects, which calls
+// cards.SplitKeywordList; keeping the two routes in one test guards the
+// structural wiring as well as the resulting grants.
+func TestPumpKeywordListReadersUseTheSharedParser(t *testing.T) {
+	const kw = "Protection:Spell.Instant,Spell.Sorcery:instant spells and from sorcery spells & Lifelink"
+	want := []string{"Protection:Spell.Instant,Spell.Sorcery:instant spells and from sorcery spells", "Lifelink"}
+	for _, tc := range []struct {
+		name  string
+		sa    string
+		ctx   func(map[string]state.ObjID) *Ctx
+		count int
+	}{
+		{
+			name: "Pump",
+			sa:   "DB$ Pump | ValidTgts$ Creature | KW$ " + kw,
+			ctx: func(ids map[string]state.ObjID) *Ctx {
+				return &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}}
+			},
+			count: 1,
+		},
+		{
+			name:  "PumpAll",
+			sa:    "DB$ PumpAll | ValidCards$ Creature.YouCtrl | KW$ " + kw,
+			ctx:   func(map[string]state.ObjID) *Ctx { return &Ctx{Controller: 0} },
+			count: 2,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g, ids := board(t)
+			h := &fakeHost{g: g}
+			Resolve(h, tc.ctx(ids), sa(t, tc.sa))
+			if len(h.continuous) != tc.count {
+				t.Fatalf("continuous effects = %d, want %d", len(h.continuous), tc.count)
+			}
+			for _, ce := range h.continuous {
+				if ce.Layer != state.LAbilities || !reflect.DeepEqual(ce.AddKeywords, want) {
+					t.Errorf("continuous effect = %+v, want keywords %q", ce, want)
+				}
+			}
+		})
+	}
+}
+
 // TestPumpRequiresTheBattlefield mirrors the old Note-based zone guard: a
 // target that has left the battlefield gets no continuous effect registered.
 func TestPumpRequiresTheBattlefield(t *testing.T) {
@@ -1029,8 +1073,8 @@ func TestVoteRecordsANotePerVotingPlayer(t *testing.T) {
 func TestBecomeMonarchRecordsTheTargetPlayer(t *testing.T) {
 	h := newHost(t, 2)
 	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}}, sa(t, "AB$ BecomeMonarch | ValidTgts$ Player"))
-	if len(h.log) != 1 || h.log[0].Kind != events.Note || h.log[0].Player != 1 {
-		t.Fatalf("log = %+v", h.log)
+	if len(h.log) != 1 || h.log[0].Kind != events.MonarchChange || h.log[0].Player != 1 || !h.g.IsMonarch(1) {
+		t.Fatalf("log = %+v, monarch = %v/%d", h.log, h.g.HasMonarch, h.g.Monarch)
 	}
 }
 

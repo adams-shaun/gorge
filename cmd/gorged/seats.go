@@ -7,27 +7,21 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 
+	"github.com/adams-shaun/gorge/host"
 	"github.com/adams-shaun/gorge/host/httpapi"
 	"github.com/adams-shaun/gorge/state"
 )
 
-// seatGate is the Options.Seat resolver of a -humans server: it mints one
-// opaque token per human slot at startup and grants exactly the seat whose
-// token a request carries. A token minted for seat 0 satisfies ?seat=0 on
-// every table — SeatClaim carries no table (R-E3-1) — which is precisely
-// why only table t1 may have humans, and why the resolver is the real
-// enforcement behind M2e-2's claim-vs-requested comparison rather than the
-// rubber stamp that would make that comparison tautological.
-//
-// The token is startup state, not game state: it never reaches an event, a
-// view, the log or a file (determinism). This is deliberately not
-// authentication — gorged binds a plain :8080 with no accounts, TLS,
-// sessions, cookies, expiry or rate limiting, and the gate must not grow
-// into any of those.
+// seatGate is the Options.Seat resolver of a -humans server. Each opaque
+// token grants exactly one (table, seat) claim, never the same seat at every
+// table. The token is process-local state: it never reaches an event, view,
+// log or file. It is deliberately not general authentication.
 type seatGate struct {
-	tokenToSeat map[string]state.PlayerID // bearer token -> the seat it holds
-	seatTokens  map[state.PlayerID]string // seat -> its token, for the join-URL print
+	mu           sync.RWMutex
+	tokenToClaim map[string]httpapi.SeatClaim // bearer token -> the table and seat it holds
+	claimTokens  map[httpapi.SeatClaim]string // claim -> token, for join-URL printing
 }
 
 // newSeatGate mints the human slots' tokens. With seed empty (the default)
@@ -36,10 +30,10 @@ type seatGate struct {
 // — the first human slot takes the literal string and every later slot
 // derives a deterministic variant "<tok>-<slot>", so a test can drive a
 // seat without scraping stderr.
-func newSeatGate(seed string, humans []int) (*seatGate, error) {
+func newSeatGate(seed string, table host.TableID, humans []int) (*seatGate, error) {
 	g := &seatGate{
-		tokenToSeat: make(map[string]state.PlayerID, len(humans)),
-		seatTokens:  make(map[state.PlayerID]string, len(humans)),
+		tokenToClaim: make(map[string]httpapi.SeatClaim, len(humans)),
+		claimTokens:  make(map[httpapi.SeatClaim]string, len(humans)),
 	}
 	for i, s := range humans {
 		tok := seed
@@ -52,8 +46,9 @@ func newSeatGate(seed string, humans []int) (*seatGate, error) {
 		} else if i > 0 {
 			tok = fmt.Sprintf("%s-%d", seed, s)
 		}
-		g.tokenToSeat[tok] = state.PlayerID(s)
-		g.seatTokens[state.PlayerID(s)] = tok
+		claim := httpapi.SeatClaim{Table: table, Seat: state.PlayerID(s)}
+		g.tokenToClaim[tok] = claim
+		g.claimTokens[claim] = tok
 	}
 	return g, nil
 }
@@ -61,42 +56,41 @@ func newSeatGate(seed string, humans []int) (*seatGate, error) {
 // resolve implements httpapi.Options.Seat. The token is read from the
 // Authorization: Bearer header first, then from the ?token= query — the
 // browser needs the query form, and the Svelte client will use it. An
-// absent or unknown token declines the request, which claimSeat turns into
-// a 401; only a claim whose seat agrees with the request's own ?seat=
-// reaches the seat-scoped methods (seatFromQuery).
+// absent or unknown token declines the request, which claimForTable turns
+// into a 401; only a claim whose table and seat agree with the request
+// reaches the table-scoped seat methods.
 func (g *seatGate) resolve(r *http.Request) (httpapi.SeatClaim, bool) {
 	tok := bearerToken(r)
 	if tok == "" {
 		tok = r.URL.Query().Get("token")
 	}
-	seat, ok := g.tokenToSeat[tok]
-	if !ok {
-		return httpapi.SeatClaim{}, false
-	}
-	return httpapi.SeatClaim{Seat: seat}, true
+	g.mu.RLock()
+	claim, ok := g.tokenToClaim[tok]
+	g.mu.RUnlock()
+	return claim, ok
 }
 
-// token returns the slot's join token, for the startup print.
-func (g *seatGate) token(seat state.PlayerID) string {
-	return g.seatTokens[seat]
+// token returns the claim's join token, for the startup print.
+func (g *seatGate) token(table host.TableID, seat state.PlayerID) string {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return g.claimTokens[httpapi.SeatClaim{Table: table, Seat: seat}]
 }
 
-// mint creates a fresh opaque token for seat and registers it in the gate,
-// so a request carrying it resolves to that seat. It is the on-demand-game
-// path (Task ui11): each game mints its own token rather than reusing a
-// startup slot's, and a token is never unregistered once minted, so an
-// already-created game stays playable even after a later one — a seat is the
-// only thing a claim carries (R-E3-1), and every on-demand game seats the
-// human at seat 0, so all such tokens grant the same human seat and can
-// coexist. The returned token is the one the caller puts in the join URL.
-func (g *seatGate) mint(seat state.PlayerID) (string, error) {
+// mint creates and records a fresh opaque token for exactly one table and
+// seat. Old unbound tokens cannot be represented here and therefore fail the
+// httpapi claimForTable fence after deployment.
+func (g *seatGate) mint(table host.TableID, seat state.PlayerID) (string, error) {
 	var b [16]byte
 	if _, err := rand.Read(b[:]); err != nil {
 		return "", fmt.Errorf("seats: minting token: %w", err)
 	}
 	tok := hex.EncodeToString(b[:])
-	g.tokenToSeat[tok] = seat
-	g.seatTokens[seat] = tok
+	claim := httpapi.SeatClaim{Table: table, Seat: seat}
+	g.mu.Lock()
+	g.tokenToClaim[tok] = claim
+	g.claimTokens[claim] = tok
+	g.mu.Unlock()
 	return tok, nil
 }
 

@@ -220,6 +220,21 @@ const (
 	// value, and therefore the hash chain and every golden replay already
 	// locked in, is unaffected.
 	LibraryOrder
+	// MonarchChange gives the designation to Player. It is a state transition,
+	// not a Note, so conditional "if you're the monarch" triggers replay from
+	// the same state as the live match. Appended after LibraryOrder to preserve
+	// every prior event ordinal.
+	MonarchChange
+	// ControlChange transfers control of a permanent or a stack object. Obj is
+	// the controlled object and Player its new controller. It is deliberately a
+	// distinct event: control is neither ownership nor a zone change, and a
+	// replay must retain it when the object later moves.
+	ControlChange
+	// CardToken mints a battlefield token that is a copy of the card object Obj
+	// names. Appending after main's existing events preserves their ordinals.
+	CardToken
+	// KeywordTriggerPush mints a mandatory keyword-provided triggered ability.
+	KeywordTriggerPush
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -230,7 +245,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(LibraryOrder) + 1
+	NumKinds = int(KeywordTriggerPush) + 1
 )
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
@@ -244,7 +259,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
-	"delayed_register", "delayed_push", "library_order"}
+	"delayed_register", "delayed_push", "library_order", "monarch_change", "control_change", "card_token", "keyword_trigger_push"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -328,6 +343,14 @@ var flagNames = [...]struct {
 	{"surged", state.FlagSurged},
 	{"flashback", state.FlagFlashback},
 	{"miracle", state.FlagMiracle},
+	// Appended at the end, keeping the historic four first: a flag list is
+	// canonicalised in THIS table order, so appending new flags after the
+	// old ones keeps FlagsString(FlagsFrom(s)) stable for every name the
+	// original table already knew.
+	{"evoked", state.FlagEvoked},
+	{"dashed", state.FlagDashed},
+	{"overloaded", state.FlagOverloaded},
+	{"warped", state.FlagWarped},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

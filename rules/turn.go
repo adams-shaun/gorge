@@ -10,8 +10,9 @@ import (
 
 func (e *Engine) beginTurn(active state.PlayerID) {
 	e.emit(events.Event{Kind: events.TurnChange, Player: active, Amount: e.G.Turn + 1})
+	prior := e.pending
 	e.setStep(state.StepUntap)
-	if e.pending != nil {
+	if e.pending != nil && e.pending != prior {
 		// An Optional$ BeginPhase replacement parked the entry. Its answer
 		// calls finishEnteredStep after entering or skipping the step.
 		return
@@ -62,8 +63,9 @@ func (e *Engine) finishUntapStep(next int) bool {
 			continue
 		}
 		e.untapResume = &untapStep{next: i + 1}
+		prior := e.pending
 		e.emit(events.Event{Kind: events.Untap, Obj: ids[i]})
-		if e.pending != nil {
+		if e.pending != nil && e.pending != prior {
 			// poseUntapReplacementChoice transferred this continuation to its
 			// queue entry. Do not enter upkeep until its answer finishes this
 			// scan, and do not retain transient state across the pending intent.
@@ -166,6 +168,8 @@ func (e *Engine) finishStepBoundary(leaving, entering state.Step) {
 		// Ruling T21-e keeps the reset event-sourced so a log-only replay also
 		// learns that IsAttacking and BlockedBy were cleared.
 		e.emit(events.Event{Kind: events.EndCombatReset})
+		// CR 511.3: "until end of combat" control effects end with the step.
+		e.expireControl(controlAtEndOfCombat)
 	}
 }
 
@@ -539,7 +543,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	// asks rather than one of the cast/cleanup flows tracked by e.choosing.
 	// Resume them before dispatching those flows; an empty chosen slice is
 	// the legitimate "fail to find" / Optional-decline answer.
-	if e.resume != nil && (e.resume.kind == "search" || e.resume.kind == "dig") {
+	if e.resume != nil && (e.resume.kind == "search" || e.resume.kind == "dig" || e.resume.kind == "choice" || e.resume.kind == "hand_move") {
 		rp := e.resume
 		e.resume = nil
 		e.resumeResolution(rp, chosen)
@@ -562,7 +566,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.castAnswer(d, chosen)
 		// A mana ability selection or Produced$ Any colour choice installed
 		// its own decision; only a fully resolved singleton may continue.
-		if e.pending != nil || e.choosing == chooseMana || e.choosing == chooseManaColor || e.choosing == chooseManaDiscard {
+		if e.pending != nil || e.choosing == chooseMana || e.choosing == chooseManaColor || e.choosing == chooseManaDiscard || e.choosing == chooseManaExile {
 			return
 		}
 		e.continueCast()
@@ -617,15 +621,20 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// Several individual mana abilities share one tap cost. A payment
 		// window resumes its cast after the selected ability resolves; an
 		// ordinary activation falls through to Advance's priority round.
-		if e.answerManaActivation(chosen) && e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard {
+		if e.answerManaActivation(chosen) && e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
 			e.continueCast()
 		}
 	case chooseManaDiscard:
-		if e.answerManaDiscard(chosen) && e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard {
+		if e.answerManaDiscard(chosen) && e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
+			e.continueCast()
+		}
+	case chooseManaExile:
+		if e.answerManaExile(chosen) && e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
 			e.continueCast()
 		}
 	case chooseManaColor:
-		if e.answerManaColor(chosen) && e.pending == nil {
+		// A triggered mana ability may pose a further colour choice.
+		if e.answerManaColor(chosen) && e.pending == nil && e.choosing != chooseManaColor {
 			e.continueCast()
 		}
 	// Tasks 12, 18 add their cases here; Task D1 adds chooseCleanup.

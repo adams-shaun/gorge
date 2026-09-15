@@ -31,7 +31,9 @@ func ReplaceDestruction(h Host, id state.ObjID) bool {
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "Deathtouched", Amount: -n})
 	}
 	if !o.Tapped {
-		h.Emit(events.Event{Kind: events.Tap, Obj: id})
+		// The regenerated permanent's controller taps it (CR 701.19a; Forge
+		// RegenerationEffect passes the card's controller as the tapper).
+		h.EmitTap(id, o.Controller, false)
 	}
 	h.Emit(events.Event{Kind: events.EndCombatReset, Obj: id})
 	return true

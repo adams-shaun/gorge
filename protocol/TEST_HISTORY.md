@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/protocol
 
-budget_s: 5
+budget_s: 10
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|
@@ -12,3 +12,7 @@ budget_s: 5
 | 2026-09-07T23:43Z | bb61a7b+ | 0.0 | 5 | sadams |
 | 2026-09-09T03:27Z | e49a507+ | 0.0 | 5 | 0 | sadams |
 | 2026-09-14T02:39Z | 5b45575+ | 0.0 | 5 | 0 | sadams |
+| 2026-09-14T21:45Z | ab36d02+ | 0.0 | 5 | 0 | sadams |
+| 2026-09-15T10:53Z | 6fe3f77+ | 0.0 | 5 | 0 | sadams |
+| 2026-09-15T10:56Z | 6fe3f77+ | 0.0 | 5 | 0 | sadams |
+| 2026-09-15T10:58Z | 6fe3f77+ | 0.0 | 5 | 0 | sadams |

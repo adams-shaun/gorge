@@ -79,19 +79,25 @@ import (
 // decks. The Hearthhull and Valgavoth imports add 54 measured gaps across 579
 // distinct cards in the pinned corpus; entries retire only when their
 // primitives are implemented.
+//
+// Task altcosts (the alternative-cost keyword family) retired the one entry
+// the merged decks carried: kw:Dash (Ragavan, Nimble Pilferer), implemented
+// to CR 702's dash shape in rules/altcast.go with a named proof test in
+// rules/altcast_test.go. kw:Evoke, kw:Encore, kw:Overload, kw:Warp,
+// kw:Madness and kw:AlternateAdditionalCost registered in the same task are
+// needed only by the three held commander decks (Rakdos Scam.exe, Vivi
+// cEDH, Ulalek Eldrazi), whose entries land in this table when they are
+// imported.
 var knownUnsupported = map[string][]string{
-	"Archfiend of Despair":         {"api:RepeatEach", "stat:CantGainLife"},
-	"Baloth Prime":                 {"api:Untap", "trig:Sacrificed"},
+	"Archfiend of Despair":         {"stat:CantGainLife"},
+	"Baloth Prime":                 {"api:Untap"},
 	"Bloodletter of Aclazotz":      {"api:ReplaceEffect", "repl:LifeReduced"},
-	"Braids, Arisen Nightmare":     {"api:RepeatEach"},
 	"Chandra, Awakened Inferno":    {"repl:Counter"},
 	"Chromatic Orrery":             {"stat:ManaConvert"},
 	"Conduit of Worlds":            {"api:Play"},
 	"Constant Mists":               {"api:Fog", "kw:Buyback"},
-	"Crypt Ghast":                  {"kw:Extort", "trig:TapsForMana"},
-	"Dauthi Voidwalker":            {"api:ChooseCard", "kw:Shadow"},
-	"Deflecting Swat":              {"api:ChangeTargets"},
-	"Evendo Brushrazer":            {"trig:Sacrificed"},
+	"Crypt Ghast":                  {"kw:Extort"},
+	"Dauthi Voidwalker":            {"kw:Shadow"},
 	"Exotic Orchard":               {"api:ManaReflected"},
 	"Exploration Broodship":        {"kw:Station"},
 	"Fabled Passage":               {"api:Untap"},
@@ -100,36 +106,28 @@ var knownUnsupported = map[string][]string{
 	"Fog":                          {"api:Fog"},
 	"Gamble":                       {"api:Shuffle"},
 	"Hearthhull, the Worldseed":    {"kw:Station"},
-	"Horizon Explorer":             {"api:Untap", "trig:AttackersDeclaredOneTarget"},
-	"Karazikar, the Eye Tyrant":    {"api:Goad", "trig:AttackersDeclaredOneTarget"},
+	"Horizon Explorer":             {"api:Untap"},
+	"Karazikar, the Eye Tyrant":    {"api:Goad"},
 	"Kederekt Parasite":            {"trig:Drawn"},
-	"Last One Standing":            {"api:ChooseCard"},
 	"Lord Windgrace":               {"kw:CARDNAME can be your commander."},
-	"Manabarbs":                    {"trig:TapsForMana"},
-	"Mayhem Devil":                 {"trig:Sacrificed"},
-	"Necropotence":                 {"trig:Discarded"},
 	"Ob Nixilis, Captive Kingpin":  {"trig:LifeLostAll"},
 	"Ojer Axonil, Deepest Might":   {"api:ReplaceEffect", "repl:DamageDone"},
-	"Planetary Annihilation":       {"api:ChooseCard", "api:SacrificeAll"},
-	"Price of Progress":            {"api:RepeatEach"},
+	"Planetary Annihilation":       {"api:SacrificeAll"},
 	"Profane Tutor":                {"kw:Suspend"},
-	"Ragavan, Nimble Pilferer":     {"kw:Dash"},
 	"Razorkin Needlehead":          {"trig:Drawn"},
 	"Sheoldred, the Apocalypse":    {"trig:Drawn"},
 	"Solphim, Mayhem Dominus":      {"api:ReplaceEffect", "repl:DamageDone"},
-	"Sower of Discord":             {"api:ChoosePlayer"},
 	"Spiked Corridor":              {"api:ReplaceEffect", "repl:DamageDone", "trig:UnlockDoor"},
 	"Spinerock Knoll":              {"api:Play", "kw:Hideaway"},
 	"Sulfuric Vortex":              {"repl:GainLife"},
-	"Szarel, Genesis Shepherd":     {"trig:Sacrificed"},
 	"The Lord of Pain":             {"stat:CantGainLife"},
 	"Through the Forest Gate":      {"api:Shuffle"},
 	"Uncivil Unrest":               {"api:ReplaceEffect", "repl:DamageDone"},
 	"Underworld Dreams":            {"trig:Drawn"},
-	"Unholy Annex":                 {"api:Branch", "trig:UnlockDoor"},
+	"Unholy Annex":                 {"trig:UnlockDoor"},
 	"Valgavoth, Harrower of Souls": {"kw:Ward", "trig:LifeLost"},
 	"Vein Ripper":                  {"kw:Ward"},
-	"Vial Smasher the Fierce":      {"api:ChoosePlayer", "kw:Partner"},
+	"Vial Smasher the Fierce":      {"kw:Partner"},
 	"Walk-In Closet":               {"trig:UnlockDoor"},
 	"Ziatora's Proving Ground":     {"kw:Cycling"},
 }

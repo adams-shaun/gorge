@@ -60,6 +60,19 @@ func (e *Engine) canAttack(id state.ObjID) bool {
 	return true
 }
 
+// encoreAttackDefender reports the opponent an encore token must attack this
+// turn if able. The requirement expires by turn number and becomes impossible
+// (therefore nonbinding) if that opponent has left the game.
+func (e *Engine) encoreAttackDefender(id state.ObjID) (state.PlayerID, bool) {
+	o := e.G.Obj(id)
+	if o == nil || o.EncoreAttackTurn == 0 || o.EncoreAttackTurn != e.G.Turn ||
+		int(o.EncoreAttackDefender) >= len(e.G.Players) || e.G.Players[o.EncoreAttackDefender].Lost ||
+		!e.canAttack(id) {
+		return 0, false
+	}
+	return o.EncoreAttackDefender, true
+}
+
 // canBlock reports whether blocker may be declared against attacker (CR
 // 509.1a): an untapped creature controlled by the defending player, gated by
 // Flying/Reach (CR 702.9b) and by any CantBlock/CantBlockBy static
@@ -176,6 +189,9 @@ func (e *Engine) askAttackers() {
 	var opts []decision.Option
 	for _, d := range defenders {
 		for _, id := range attackers {
+			if required, ok := e.encoreAttackDefender(id); ok && d != required {
+				continue
+			}
 			opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
 				Label: "Attack with " + e.G.Obj(id).Face().Name + " at " + e.G.Players[d].Name,
 				Obj:   id, Player: d})
@@ -223,7 +239,8 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 	}
 	for _, opt := range chosen {
 		if !e.HasKeyword(opt.Obj, "Vigilance") {
-			e.emit(events.Event{Kind: events.Tap, Obj: opt.Obj})
+			// CR 508.1f: the player declaring attackers taps them.
+			e.emitTap(opt.Obj, d.Player, false)
 		}
 	}
 }
@@ -256,6 +273,9 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 		if seen[o.Obj] {
 			return fmt.Errorf("attacker %d declared against more than one defender", o.Obj)
 		}
+		if required, ok := e.encoreAttackDefender(o.Obj); ok && o.Player != required {
+			return fmt.Errorf("encore attacker %d must attack player %d", o.Obj, required)
+		}
 		seen[o.Obj] = true
 	}
 	return e.validateAttackDeclaration(d, in)
@@ -278,6 +298,9 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 	f := o.Face()
 	if f == nil || !e.canAttack(id) {
 		return false
+	}
+	if _, ok := e.encoreAttackDefender(id); ok {
+		return true
 	}
 	for _, st := range f.Statics {
 		if st.Mode != "MustAttack" {
@@ -1186,7 +1209,11 @@ func (e *Engine) cleanupBody() {
 				continue
 			}
 			if o.Damage > 0 {
-				e.emit(events.Event{Kind: events.Damage, Obj: id, Amount: -o.Damage})
+				ev := events.Event{Kind: events.Damage, Obj: id, Amount: -o.Damage}
+				if f := o.Face(); e.IsCreature(id) && f != nil && f.IsPlaneswalker() && !f.IsCreature() {
+					ev.Counter = "creature"
+				}
+				e.emit(ev)
 			}
 			if n := o.Counter("Shield"); n > 0 {
 				e.emit(events.Event{Kind: events.CounterChange, Obj: id,
@@ -1220,9 +1247,9 @@ const chooseCleanup chooseFor = iota + 4
 const chooseDamageDivision chooseFor = iota + 5
 
 // discardCleanup applies an answered CR 514.1 discard decision: each chosen
-// card moves from the active player's hand to their graveyard (a plain
-// MoveZone event per card, in the order the client selected them), then the
-// CR 514.2 body runs (cleanupBody), then the turn hands to the next player's
+// card moves from the active player's hand to their graveyard (a canonical
+// discard MoveZone event per card, in the order the client selected them),
+// then the CR 514.2 body runs (cleanupBody), then the turn hands to the next player's
 // turn (advanceStep). The move events ride the ordinary emit path, so
 // state-based actions and triggered abilities matched by the discard are
 // queued exactly as for any other zone change and handled by the same
@@ -1245,8 +1272,7 @@ func (e *Engine) discardCleanup(chosen []decision.Option) {
 	// expects chooseNone here).
 	e.choosing = chooseNone
 	for _, opt := range chosen {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: opt.Obj,
-			From: state.ZHand, To: state.ZGraveyard, Player: e.G.Active})
+		e.emit(events.Discard(opt.Obj, e.G.Active))
 	}
 	e.cleanupBody()
 	e.advanceStep()

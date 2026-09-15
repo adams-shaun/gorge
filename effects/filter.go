@@ -83,6 +83,15 @@ var predicates = map[string]predFn{
 		s := g.Obj(src)
 		return s != nil && s.ChosenType != "" && hasType(o, s.ChosenType)
 	},
+	// An object records this association in events.Apply when an effect moves
+	// it to exile with moveZoneEvent. Both spellings use the same tracked
+	// provenance; LKI refinements are outside this narrow association.
+	"ExiledWithSource": func(_ *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		return src != 0 && o.ExiledWith == src
+	},
+	"ExiledWithSourceLKI": func(_ *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		return src != 0 && o.ExiledWith == src
+	},
 }
 
 // colorLetter maps a colour's English name to its WUBRG letter -- note Blue
@@ -373,6 +382,9 @@ func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 // whether a word is recognised. An unrecognised word is "the engine does not
 // know", never "true" -- that is the fail-closed contract.
 func positiveRecognised(p string) bool {
+	if p == "ChosenCard" || p == "nonChosenCard" || p == "RememberedPlayerCtrl" {
+		return true
+	}
 	if _, _, ok := controlReferent(p); ok {
 		return true
 	}
@@ -412,6 +424,29 @@ func recognisedPredicate(p string) bool {
 // referent. The latter remains a recognised grammar shape for the census, but
 // cannot be negated into a match when its resolution context is absent.
 func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (result, ok bool) {
+	if p == "ChosenCard" || p == "nonChosenCard" {
+		if !sc.ChosenValid {
+			return false, true
+		}
+		chosen := false
+		for _, t := range sc.Chosen {
+			if !t.IsPlayer && t.Obj == o.ID {
+				chosen = true
+				break
+			}
+		}
+		if p == "nonChosenCard" {
+			chosen = !chosen
+		}
+		return chosen, true
+	}
+	if p == "RememberedPlayerCtrl" {
+		// Forge's RememberedPlayerCtrl: controlled by a player this
+		// resolution remembers (Price of Progress's "each player ... they
+		// control" inside RepeatEach). Resolution-only; with no remembered
+		// player there is no binding, so it fails closed even beneath '!'.
+		return matchControlReferent(g, o, sc, "ControlledBy", "RememberedPlayer")
+	}
 	if op, ref, recognised := controlReferent(p); recognised {
 		return matchControlReferent(g, o, sc, op, ref)
 	}
@@ -647,7 +682,15 @@ type SpecContext struct {
 	// its own targets have been chosen. Resolving distinguishes a real empty
 	// target list from no resolving object at all.
 	ResolutionTargets []state.Target
-	Resolving         bool
+	// Remembered is the resolving spell or ability's Remembered set (a
+	// RepeatEach iteration binds its subject here). Like ResolutionTargets it
+	// is meaningful only while Resolving.
+	Remembered []state.Target
+	// Chosen is the current resolution's selected cards/players. It is used
+	// by Forge's ChosenCard/nonChosenCard predicates, not persisted game state.
+	Chosen      []state.Target
+	ChosenValid bool
+	Resolving   bool
 	// ManaValue overrides the object's mana value for cmc predicates, with
 	// HasManaValue set. It carries the CR 202.3e chosen-X effect: a caller
 	// that has the chosen {X} passes the resulting mana value here so a
@@ -728,6 +771,61 @@ func MatchesSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecContext) 
 	return MatchesObjectCtx(g, spec, o, sc)
 }
 
+// matchesZoneSpecCtx matches a filter over a known zone. Forge's Permanent
+// base names a permanent card when a count already scoped the candidates to a
+// non-battlefield zone; it must not re-check the object's current zone and
+// reject every graveyard, hand, library, or exile card. All other bases and
+// predicates retain MatchesObjectCtx's ordinary semantics.
+func matchesZoneSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecContext, zone state.Zone) bool {
+	o := g.Obj(id)
+	if o == nil {
+		return false
+	}
+	if zone == state.ZBattlefield {
+		return MatchesObjectCtx(g, spec, o, sc)
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		base, rest, _ := strings.Cut(alt, ".")
+		if base == "CARDNAME" {
+			if sc.Source == 0 || o.ID != sc.Source {
+				continue
+			}
+		} else if !matchesBaseInZone(g, base, o, zone) {
+			continue
+		}
+		all := true
+		for _, p := range strings.Split(rest, "+") {
+			if p == "" {
+				continue
+			}
+			res, ok := matchPredicate(g, p, o, sc)
+			if !ok || !res {
+				all = false
+				break
+			}
+		}
+		if all {
+			return true
+		}
+	}
+	return false
+}
+
+func matchesBaseInZone(g *state.Game, base string, o *state.Object, zone state.Zone) bool {
+	if neg := strings.TrimPrefix(base, "non"); neg != base {
+		return !matchesBaseInZone(g, neg, o, zone)
+	}
+	if base != "Permanent" || zone == state.ZBattlefield {
+		return matchesBase(g, base, o)
+	}
+	return hasType(o, "Artifact") || hasType(o, "Creature") || hasType(o, "Enchantment") ||
+		hasType(o, "Land") || hasType(o, "Planeswalker") || hasType(o, "Battle")
+}
+
 // MatchesSpecFrom is MatchesSpecCtx with an explicit source object, which the
 // CARDNAME base and Self/Other predicates are relative to, and no numeric-RHS
 // resolver.
@@ -743,8 +841,32 @@ func MatchesSpec(g *state.Game, spec string, id state.ObjID, you state.PlayerID)
 // MatchesPlayerSpec is the player-side filter: You, Opponent, Player.
 // Unknown qualifiers fail closed so restrictions and triggers are not widened.
 func MatchesPlayerSpec(g *state.Game, spec string, p, you state.PlayerID) bool {
+	return MatchesPlayerSpecFrom(g, spec, p, you, 0)
+}
+
+// MatchesPlayerSpecFrom also resolves Player.Chosen and Player.IsRemembered
+// against the source object's event-backed choice state. Keeping the source
+// explicit lets ordinary player filters retain their existing API while
+// trigger matching can supply its owning permanent.
+func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, source state.ObjID) bool {
 	for _, alt := range strings.Split(spec, ",") {
 		base, qualifier, qualified := strings.Cut(strings.TrimSpace(alt), ".")
+		if (base == "Player" || base == "Any") && qualified && (qualifier == "Chosen" || qualifier == "IsRemembered") {
+			o := g.Obj(source)
+			if o == nil {
+				continue
+			}
+			set := o.Chosen
+			if qualifier == "IsRemembered" {
+				set = o.Remembered
+			}
+			for _, t := range set {
+				if t.IsPlayer && t.Player == p {
+					return true
+				}
+			}
+			continue
+		}
 		switch base {
 		case "Player", "Any":
 			if !qualified {

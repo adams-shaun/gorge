@@ -11,6 +11,17 @@ var basicLandMana = []struct{ Subtype, Color string }{
 // ApplyIntrinsics adds abilities the engine grants rather than the script.
 // It is idempotent: calling it twice adds nothing the second time.
 func (f *Face) ApplyIntrinsics() {
+	// Every path that constructs a Face (ParseBytes, the gob decode) runs
+	// derive; this is the LAST load-time step that can change a face's
+	// contents (it adds the intrinsic mana abilities below), so the derived
+	// fields are refreshed here for EVERY face, not only the lands whose
+	// abilities this call extends — a non-land face's derived values must
+	// still equal what the gob decode route (which re-derives after decode,
+	// over the same final content) computes. Deriving only inside the land
+	// branch left every non-land face on the parse route holding the
+	// pre-Link identity (the rv2c route-diff defect: Clay Champion, Dredging
+	// Claw, Lashwrithe, Veteran's Powerblade).
+	defer f.derive()
 	if !f.IsLand() {
 		return
 	}
@@ -30,7 +41,4 @@ func (f *Face) ApplyIntrinsics() {
 			Line:   "intrinsic: basic land mana",
 		})
 	}
-	// Parsing derives before intrinsics are granted; refresh at this final
-	// load-time step so fresh scripts and decoded caches agree.
-	f.derive()
 }
