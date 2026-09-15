@@ -147,6 +147,32 @@ func TestWardBlightMayUseATappedCreatureAndPoisonLoses(t *testing.T) {
 	}
 }
 
+// TestWardUsesTargetingStackObjectsController pins CR 702.21a's distinction
+// between an activated ability's source characteristics and the controller of
+// the ability object on the stack. A later gain-control event can leave these
+// different; AbilityPush already records that controller independently.
+func TestWardUsesTargetingStackObjectsController(t *testing.T) {
+	e := combatEngine(t)
+	warded := onBoardCard(t, e, 0, corpusKeywordCard(t, "Vein Ripper"))
+	source := onBoard(t, e, 0, "Name:Borrowed source\nTypes:Creature\nPT:1/1\nA:AB$ Draw | Cost$ T\nOracle:x\n")
+	payment := onBoard(t, e, 1, "Name:Ward payment\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	e.emit(events.Event{Kind: events.AbilityPush, Obj: source, Player: 1})
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("ability stack = %v, want one ability", e.G.Stack)
+	}
+	ability := e.G.Stack[0]
+	if e.G.Obj(ability).Controller != 1 || e.G.Obj(ability).Source != source || e.G.Obj(source).Controller != 0 {
+		t.Fatalf("stack/source controllers = ability %+v source %+v", e.G.Obj(ability), e.G.Obj(source))
+	}
+	e.emit(events.Event{Kind: events.TargetsChosen, Obj: ability, IDs: []state.ObjID{warded}})
+	e.putTriggersOnStack()
+	e.resolveTop()
+	d := e.Pending()
+	if d == nil || d.Player != 1 {
+		t.Fatalf("Ward did not charge the opponent-controlled stack ability: pending=%+v payment=%d", d, payment)
+	}
+}
+
 func TestWardManaPaymentActivatesManaAbilities(t *testing.T) {
 	e := combatEngine(t)
 	warded := onBoardCard(t, e, 0, corpusKeywordCard(t, "Kitesail Larcenist"))
@@ -314,14 +340,20 @@ func TestGoadDurationsUseRealJonAndVislorScripts(t *testing.T) {
 	vislor := onBoardCard(t, e, 0, corpusKeywordCard(t, "Vislor Turlough"))
 	vislorGoad := cards.ResolveSVar(e.G.Obj(vislor).Face().SVars, "DBGoad")
 	effects.Resolve(e, &effects.Ctx{Source: vislor, Controller: 0, Targets: []state.Target{{Obj: victim}}}, vislorGoad)
-	if got := e.G.Obj(vislor).Goads; len(got) != 1 || got[0].Duration != "AsLongAsControl" {
+	if got := e.G.Obj(vislor).Goads; len(got) != 1 || got[0].Duration != "AsLongAsControl" || got[0].Source != vislor || got[0].Controller != 0 {
 		t.Fatalf("Vislor's conditional goad = %v", got)
 	}
-	// Gain-control has no event primitive yet; this is the state transition its
-	// eventual event will fold through. A later event prunes the inactive goad.
-	e.G.Obj(vislor).Controller = 1
-	e.emit(events.Event{Kind: events.MoveZone, Obj: victim, From: state.ZBattlefield, To: state.ZGraveyard})
-	if got := e.G.Obj(vislor).Goads; len(got) != 0 {
-		t.Fatalf("Vislor's AsLongAsControl goad survived control change: %v", got)
+	// Goad records the source, duration, and controlled creature's controller
+	// in the event that Apply replays. There is not yet a gain-control event,
+	// so this ticket deliberately does not invent an unlogged control change
+	// to test the later pruning path.
+	found := false
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Goad && ev.Obj == vislor {
+			found = ev.Player == 0 && ev.Text == "AsLongAsControl" && len(ev.IDs) == 1 && ev.IDs[0] == vislor && ev.Amount == 1
+		}
+	}
+	if !found {
+		t.Fatal("Vislor's goad event did not preserve its conditional lifetime")
 	}
 }
