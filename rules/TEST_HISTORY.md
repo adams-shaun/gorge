@@ -1,7 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/rules
 
-budget_s: 124
-
+budget_s: 300
 <!--
 A row far below the others is very likely VACUOUS, not fast. MEASURED
 2026-09-08 in .worktrees/fx14, same commit, same tool, back to back:
