@@ -247,10 +247,12 @@ func TestConvokeMarchOfMultitudesAnnouncesEveryCreatureAndFundsX(t *testing.T) {
 	}
 	submitChoices(t, e, whites[0], whites[1], generic[2])
 	d = e.Pending()
-	if d == nil || len(d.Options) != 2 || d.Options[1].Kind != "x" || d.Options[1].Amount != 1 {
+	// X=0 would leave the announced generic helper reducing nothing, so the
+	// X ask offers exactly the one absorbing value: X=1.
+	if d == nil || len(d.Options) != 1 || d.Options[0].Kind != "x" || d.Options[0].Amount != 1 {
 		t.Fatalf("Convoke-funded X=1 was not offered: %+v", d)
 	}
-	submitChoices(t, e, 1)
+	submitChoices(t, e, 0)
 	if e.cast != nil || e.G.Obj(spell).Zone != state.ZStack {
 		t.Fatalf("March did not complete its Convoke/X payment: cast=%+v zone=%s", e.cast, e.G.Obj(spell).Zone)
 	}
@@ -277,10 +279,13 @@ func TestHarmonizeZenithFestivalFundsX(t *testing.T) {
 	}
 	submitChoices(t, e, 0)
 	d = e.Pending()
-	if d == nil || len(d.Options) != 4 || d.Options[3].Amount != 3 {
-		t.Fatalf("Harmonize-funded X=3 was not offered: %+v", d)
+	// X=0 would leave the announced 3-power creature reducing nothing (the
+	// {0}{R}{R} rest is already payable from the pool), so the X ask offers
+	// only the values that absorb the whole announcement: 1, 2, 3.
+	if d == nil || len(d.Options) != 3 || d.Options[2].Amount != 3 {
+		t.Fatalf("Harmonize-funded X options are not the absorbing 1..3: %+v", d)
 	}
-	submitChoices(t, e, 3)
+	submitChoices(t, e, 2)
 	if e.G.Obj(spell.ID).Zone != state.ZStack || !e.G.Obj(helper.ID).Tapped {
 		t.Fatalf("Harmonize X cast did not pay and tap: spell=%s helper tapped=%v", e.G.Obj(spell.ID).Zone, e.G.Obj(helper.ID).Tapped)
 	}
@@ -303,6 +308,145 @@ func TestHarmonizeWildRideUsesAnnouncedPower(t *testing.T) {
 	submitChoices(t, e, 0) // target the creature
 	if !e.G.Obj(id.ID).Tapped || e.G.Players[0].Pool[state.MR] != 0 {
 		t.Fatalf("Harmonize did not pay after announced reduction: tapped=%v pool=%v", e.G.Obj(id.ID).Tapped, e.G.Players[0].Pool)
+	}
+}
+
+func TestConvokeOverSelectionIsRejectedAndResubmitted(t *testing.T) {
+	e := handEngine(t, corpusAlternativeCard(t, "Crowd's Favor"))
+	for i := 0; i < 2; i++ {
+		creature := card(t, "Name:Red Druid\nManaCost:R\nTypes:Creature Elf\nPT:1/1\nA:AB$ Mana | Cost$ T | Produced$ R\nOracle:x\n")
+		id := e.G.AddObject(creature, 0)
+		id.Zone = state.ZBattlefield
+		e.G.SetZone(state.ZBattlefield, 0, append(e.G.Zone(state.ZBattlefield, 0), id.ID))
+	}
+	spell := e.G.Zone(state.ZHand, 0)[0]
+	castMode(t, e, spell, "")
+	d := e.Pending()
+	if d == nil || len(d.Options) != 2 || d.Options[0].Kind != "convoke_R" || d.Options[1].Kind != "convoke_R" {
+		t.Fatalf("Convoke did not offer both red creatures: %+v", d)
+	}
+	if d.Max != 1 {
+		t.Fatalf("Convoke offer Max=%d, want 1: the {R} cost absorbs exactly one contribution", d.Max)
+	}
+	// The over-selection the finding traces: two distinct groups pass the
+	// decision's static Validate, but the {R} cost absorbs only one
+	// contribution, so the second creature would be tapped for nothing.
+	// Submit must reject the answer and keep THIS decision pending for a
+	// legal resubmission, exactly like validateAttackers.
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0, 1}}); err == nil {
+		t.Fatal("over-selection of two colour contributions for one {R} was accepted")
+	}
+	if p := e.Pending(); p == nil || p.Seq != d.Seq {
+		t.Fatalf("rejected over-selection did not preserve the pending decision: %+v", p)
+	}
+	submitChoices(t, e, 0)
+	submitChoices(t, e, 0) // the target ask
+	tapped := 0
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if e.G.Obj(id).Tapped {
+			tapped++
+		}
+	}
+	if tapped != 1 {
+		t.Fatalf("exactly one convoke creature may be tapped as payment, got %d", tapped)
+	}
+	if e.G.Obj(spell).Zone != state.ZStack {
+		t.Fatalf("legal single-contribution resubmission did not cast: spell in %s", e.G.Obj(spell).Zone)
+	}
+}
+
+func TestConvokeXAnnouncementPricesEveryCreature(t *testing.T) {
+	e := handEngine(t, corpusAlternativeCard(t, "March of the Multitudes"))
+	for i := 0; i < 2; i++ {
+		c := card(t, "Name:White Helper\nManaCost:W\nTypes:Creature Human\nPT:1/1\nOracle:x\n")
+		o := e.G.AddObject(c, 0)
+		o.Zone = state.ZBattlefield
+		e.G.SetZone(state.ZBattlefield, 0, append(e.G.Zone(state.ZBattlefield, 0), o.ID))
+	}
+	e.G.Players[0].Pool[state.MG] = 1
+	e.G.Players[0].Pool[state.MW] = 2
+	spell := e.G.Zone(state.ZHand, 0)[0]
+	castMode(t, e, spell, "")
+	d := e.Pending()
+	var generic []int
+	for i, o := range d.Options {
+		if o.Kind == "convoke_generic" {
+			generic = append(generic, i)
+		}
+	}
+	if len(generic) != 2 {
+		t.Fatalf("both creatures were not offered as generic contributions: %+v", d.Options)
+	}
+	// With {X} unfixed the generic requirement is open, so the announcement
+	// of two generic contributions is accepted at answer time (CR 601.2b
+	// announces Convoke before X) and xAsk prices it: only the X values
+	// whose cost absorbs BOTH creatures are offered.
+	submitChoices(t, e, generic[0], generic[1])
+	d = e.Pending()
+	if d == nil || len(d.Options) != 1 || d.Options[0].Kind != "x" || d.Options[0].Amount != 2 {
+		t.Fatalf("X ask did not narrow to the only absorbing value X=2: %+v", d)
+	}
+	submitChoices(t, e, 0)
+	if e.cast != nil || e.G.Obj(spell).Zone != state.ZStack {
+		t.Fatalf("convoke-funded X=2 cast did not complete: cast=%+v zone=%s", e.cast, e.G.Obj(spell).Zone)
+	}
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if !e.G.Obj(id).Tapped {
+			t.Fatalf("announced convoke creature %d was not tapped", id)
+		}
+	}
+}
+
+func TestHarmonizePaysDerivedPowerNotPrinted(t *testing.T) {
+	e := handEngine(t, corpusAlternativeCard(t, "Wild Ride"))
+	creature := card(t, "Name:Boosted Druid\nTypes:Creature Elf\nPT:1/1\nA:AB$ Mana | Cost$ T | Produced$ R\nOracle:x\n")
+	id := e.G.AddObject(creature, 0)
+	id.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{id.ID})
+	// +3/+1 in +1/+1 counters: the CR 613.4-derived power is 4, the printed
+	// power is 1. Harmonize {4}{R} must be payable from the {R} pool alone.
+	e.emit(events.Event{Kind: events.CounterChange, Obj: id.ID, Counter: "P1P1", Amount: 3})
+	e.G.Players[0].Pool[state.MR] = 1
+	spell := e.G.Zone(state.ZHand, 0)[0]
+	castMode(t, e, spell, "harmonize")
+	d := e.Pending()
+	if d == nil || len(d.Options) != 1 || d.Options[0].Kind != "harmonize" {
+		t.Fatalf("Harmonize was not offered over the boosted creature: %+v", d)
+	}
+	if d.Options[0].Amount != 4 {
+		t.Fatalf("Harmonize credited printed power %d, want the derived 4", d.Options[0].Amount)
+	}
+	submitChoices(t, e, 0)
+	submitChoices(t, e, 0) // target the creature
+	if !e.G.Obj(id.ID).Tapped || e.G.Players[0].Pool[state.MR] != 0 {
+		t.Fatalf("Harmonize did not pay by derived power: tapped=%v pool=%v", e.G.Obj(id.ID).Tapped, e.G.Players[0].Pool)
+	}
+}
+
+func TestHarmonizeReducedDerivedPowerPaysOnlyItsPower(t *testing.T) {
+	e := handEngine(t, corpusAlternativeCard(t, "Wild Ride"))
+	creature := card(t, "Name:Diminished Druid\nTypes:Creature Elf\nPT:4/4\nA:AB$ Mana | Cost$ T | Produced$ R\nOracle:x\n")
+	id := e.G.AddObject(creature, 0)
+	id.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{id.ID})
+	// Three -1/-1 counters: the CR 613.4-derived power is 1, the printed 4.
+	// Harmonize {4}{R} then reduces by 1, leaving {3}{R} for the pool.
+	e.emit(events.Event{Kind: events.CounterChange, Obj: id.ID, Counter: "M1M1", Amount: 3})
+	e.G.Players[0].Pool[state.MR] = 1
+	e.G.Players[0].Pool[state.MC] = 3
+	spell := e.G.Zone(state.ZHand, 0)[0]
+	castMode(t, e, spell, "harmonize")
+	d := e.Pending()
+	if d == nil || len(d.Options) != 1 || d.Options[0].Kind != "harmonize" {
+		t.Fatalf("Harmonize was not offered over the diminished creature: %+v", d)
+	}
+	if d.Options[0].Amount != 1 {
+		t.Fatalf("Harmonize credited printed power %d, want the derived 1", d.Options[0].Amount)
+	}
+	submitChoices(t, e, 0)
+	submitChoices(t, e, 0) // target the creature
+	if !e.G.Obj(id.ID).Tapped || e.G.Players[0].Pool[state.MR] != 0 || e.G.Players[0].Pool[state.MC] != 0 {
+		t.Fatalf("Harmonize did not pay by derived power: tapped=%v pool=%v", e.G.Obj(id.ID).Tapped, e.G.Players[0].Pool)
 	}
 }
 

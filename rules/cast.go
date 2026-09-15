@@ -273,10 +273,18 @@ func (e *Engine) harmonizePayment(p state.PlayerID, id state.ObjID, c Cost) (Cos
 			break
 		}
 		co := e.G.Obj(cid)
-		if co == nil || co.Tapped || co.Face() == nil || !co.Face().IsCreature() || co.Face().Power() <= 0 {
+		if co == nil || co.Tapped || co.Face() == nil || !co.Face().IsCreature() {
 			continue
 		}
-		reduce := int32(co.Face().Power())
+		// The reduction is the creature's ACTUAL power (CR 702.46a: "reduce
+		// that spell's generic cost by its power"): layer-7 effects and
+		// P1P1/M1M1 counters apply, not the printed face. harmonizePayment
+		// and convokeAsk's offer must read the same number or the offer
+		// gate and the payment disagree on what the creature funds.
+		reduce := e.Derived(cid).Power
+		if reduce <= 0 {
+			continue
+		}
 		if reduce > c.Generic {
 			reduce = c.Generic
 		}
@@ -1246,18 +1254,46 @@ func (e *Engine) xAsk() bool {
 		}
 	}
 	bound := pool.Total() + gy + credit + 1
-	var max int32
+	var legal []int32
+	maxOld := int32(0)
 	for x := min; x <= bound; x++ {
 		wx := e.paymentManaX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
 		if !wx.payable(pool, e.G.Players[pc.player].Life) {
 			break
 		}
-		max = x
+		maxOld = x
+		// Every announced contribution must actually reduce this X's cost
+		// (convokeAbsorbs against the PRE-contribution total manaToPayX --
+		// paymentManaX has already applied them): an announcement
+		// over-selected for the generic total cannot be made legal by
+		// choosing a small X, so that X is not offered and the larger X
+		// that absorbs every creature is. The payable check breaks at the
+		// first unpayable X -- generic only grows with x, so everything
+		// past it is unpayable too -- while a no-op X is skipped without
+		// breaking: absorption improves monotonically with x. Without
+		// announced contributions the absorb check is vacuously true, so
+		// the offer is exactly the old payable range.
+		if !e.convokeAbsorbs(pc, e.manaToPayX(pc, x), pc.convoke, false) {
+			continue
+		}
+		legal = append(legal, x)
+	}
+	vals := legal
+	if len(vals) == 0 {
+		// Either the whole range was unpayable (a proposal the offer gate
+		// would have priced differently, or one made directly -- the CR 733
+		// audit does exactly that), or every payable X left an announced
+		// contribution a no-op. In both, the OLD offer stands and payCast's
+		// own payable check aborts as it always did (CR 733.2), rather
+		// than this ask wedging or moving the abort site.
+		for x := min; x <= maxOld; x++ {
+			vals = append(vals, x)
+		}
 	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose a value for X", Source: pc.card}
-	for x := min; x <= max; x++ {
+	for _, x := range vals {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "x",
 			Label: fmt.Sprintf("X = %d", x), Amount: int(x)})
 	}
@@ -1738,6 +1774,89 @@ func (e *Engine) applyConvoke(pc *pendingCast, m Cost) Cost {
 	return m
 }
 
+// convokeAbsorbs reports whether every announced Convoke/Harmonize payment
+// actually reduces the outstanding mana requirement m when applied in
+// announcement order. A colour contribution whose pip is already covered,
+// or a generic/power contribution against a generic total already at {0},
+// pays nothing -- CR 601.2b/702.51a let a creature be tapped only for a
+// reduction the total cost still needs -- and payCast taps every announced
+// creature, so an announcement containing such a no-op is an illegal
+// over-payment that must be rejected, not silently tapped.
+//
+// With an unfixed {X} the generic requirement is not yet known when the
+// announcement is answered (CR 601.2b announces Convoke before X), so a
+// generic/power contribution against {0} generic is tentatively allowed
+// there (xOpen) and xAsk prices the announcement against every candidate X
+// with xOpen false, m already X-folded.
+func (e *Engine) convokeAbsorbs(pc *pendingCast, m Cost, pays []convokePayment, xOpen bool) bool {
+	for _, pay := range pays {
+		if pay.color != 0 {
+			i := state.ManaIndex(pay.color)
+			if m.Colored[i] <= 0 {
+				return false
+			}
+			m.Colored[i]--
+			continue
+		}
+		if m.Generic <= 0 {
+			if xOpen {
+				continue
+			}
+			return false
+		}
+		reduce := pay.power
+		if reduce <= 0 {
+			reduce = 1
+		}
+		m.Generic -= reduce
+		if m.Generic < 0 {
+			m.Generic = 0
+		}
+	}
+	return true
+}
+
+// validateCastContributions is the Submit-time gate for the cast flow's
+// Convoke/Harmonize announcement decision (convokeAsk). The decision's
+// static Validate sees only the offered option list -- two white creatures
+// each carry a convoke_W option for a {W} spell, in distinct groups -- so
+// an over-selection passes it; this gate rejects any answer containing a
+// contribution that reduces nothing (convokeAbsorbs), before the intent is
+// recorded and the pending decision is consumed, exactly like
+// validateAttackers. The client then resubmits a legal subset. Any other
+// KChoose decision, and an out-of-range choice (Validate's own error), is
+// passed through untouched.
+func (e *Engine) validateCastContributions(d *decision.Decision, in decision.Intent) error {
+	pc := e.cast
+	if pc == nil || len(in.Choices) == 0 {
+		return nil
+	}
+	var pays []convokePayment
+	for _, c := range in.Choices {
+		if c < 0 || c >= len(d.Options) {
+			return nil
+		}
+		o := d.Options[c]
+		switch {
+		case o.Kind == "harmonize":
+			pays = append(pays, convokePayment{id: o.Obj, power: int32(o.Amount)})
+		case strings.HasPrefix(o.Kind, "convoke_"):
+			color := byte(0)
+			if o.Kind != "convoke_generic" {
+				color = o.Kind[len("convoke_")]
+			}
+			pays = append(pays, convokePayment{id: o.Obj, color: color})
+		default:
+			return nil // a different cast-flow ask, not the convoke announcement
+		}
+	}
+	all := append(append([]convokePayment(nil), pc.convoke...), pays...)
+	if !e.convokeAbsorbs(pc, e.manaToPay(pc), all, pc.cost.X > 0) {
+		return fmt.Errorf("announcement reduces nothing: the outstanding cost cannot absorb every chosen contribution")
+	}
+	return nil
+}
+
 // convokeAsk announces every creature used for Convoke or Harmonize. It is
 // deliberately before manaWindowAsk: tapping is part of paying, so a chosen
 // creature cannot first be used as a mana source.
@@ -1769,9 +1888,15 @@ func (e *Engine) convokeAsk() bool {
 			continue
 		}
 		group := fmt.Sprintf("payment:%d", id)
-		if isHarmonize && (mana.Generic > 0 || hasX) && o.Face().Power() > 0 {
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "harmonize", Obj: id,
-				Group: group, Amount: o.Face().Power(), Label: "Tap " + o.Face().Name + " (reduce by " + strconv.Itoa(int(o.Face().Power())) + ")"})
+		if isHarmonize && (mana.Generic > 0 || hasX) {
+			// The reduction offered is the creature's ACTUAL power (CR
+			// 702.46a), the same number harmonizePayment credits: a printed
+			// 1/1 currently boosted to 4 funds four generic, and a printed
+			// 4/4 reduced to 1 funds only one.
+			if p := e.Derived(id).Power; p > 0 {
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "harmonize", Obj: id,
+					Group: group, Amount: int(p), Label: "Tap " + o.Face().Name + " (reduce by " + strconv.Itoa(int(p)) + ")"})
+			}
 		}
 		if !isConvoke {
 			continue
@@ -1790,7 +1915,19 @@ func (e *Engine) convokeAsk() bool {
 	if len(d.Options) == 0 {
 		return false
 	}
+	// The announcement cannot tap more creatures than the cost can absorb:
+	// each chosen contribution reduces exactly one outstanding slot (a
+	// colour pip or one generic), so Max is the outstanding slot count.
+	// With an unfixed {X} the generic requirement is not yet known (CR
+	// 601.2b announces Convoke before X), so the bound is left open and
+	// xAsk prices the announcement against every candidate X instead;
+	// convokeAbsorbs's answer gate plus that pricing close the rest.
 	d.Max = len(d.Options)
+	if !hasX {
+		if slots := int(mana.Colored.Total() + mana.Generic); slots < d.Max {
+			d.Max = slots
+		}
+	}
 	e.choosing = chooseCast
 	e.ask(d)
 	return true

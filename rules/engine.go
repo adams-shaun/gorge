@@ -1207,6 +1207,19 @@ func (e *Engine) Submit(in decision.Intent) error {
 			return err
 		}
 	}
+	if d.Kind == decision.KChoose {
+		// The cast flow's Convoke/Harmonize announcement (convokeAsk): the
+		// static option list cannot express "only while the outstanding
+		// cost can still absorb the contribution", so an over-selection
+		// (two white creatures for one {W}) passes Validate's per-index and
+		// group checks. Reject it here, before the intent is recorded and
+		// the pending decision consumed, so a legal subset can be
+		// resubmitted -- the same preserve-and-reject shape as
+		// validateAttackers above.
+		if err := e.validateCastContributions(d, in); err != nil {
+			return err
+		}
+	}
 	e.L.Intents = append(e.L.Intents, in)
 	e.emit(events.Event{Kind: events.DecisionMade, Player: in.Player,
 		Text: fmt.Sprintf("%s:%v", d.Kind, in.Choices)})
