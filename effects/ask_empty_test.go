@@ -287,33 +287,47 @@ func TestAskingSitesStillAskWhenACandidateExists(t *testing.T) {
 	})
 }
 
-// TestDefinedObjectLibraryMoveNeverPosesAWholeLibrarySearch guards the shape
-// the empty-answer fix made reachable: once an empty sub-search stops
-// suspending the chain, a ChangeType-less `Origin$ Library | Defined$
-// Remembered` step (Nissa's Pilgrimage's DBHand) runs with the remembered
-// cards still set. It must not be read as a `Card` filter search that offers
-// the owner's whole hidden library; the fetch itself is unimplemented
-// (rv2d-nissas-pilgrimage-defined-library-fetch), so it resolves with no ask
-// and no move. A Defined$ that names a player still searches that library.
-func TestDefinedObjectLibraryMoveNeverPosesAWholeLibrarySearch(t *testing.T) {
-	t.Run("Defined$ Remembered objects: no ask, no move", func(t *testing.T) {
-		h := &askHost{}
-		h.g = state.NewGame(names(2))
-		src := h.g.AddObject(mkCard(t, "Name:Asker\nTypes:Sorcery\nOracle:x\n"), 0)
-		fillLibrary(h.g, 0, mkCard(t, "Name:Forest\nTypes:Basic Land Forest\nOracle:x\n"), 3)
-		lib := h.g.Zone(state.ZLibrary, 0)
-		c := &Ctx{Source: src.ID, Controller: 0,
-			Remembered: []state.Target{{Obj: lib[0]}, {Obj: lib[1]}}}
-		Resolve(h, c, sa(t, "DB$ ChangeZone | Origin$ Library | Destination$ Hand | Defined$ Remembered"))
-		if h.asked != nil {
-			t.Fatalf("posed %+v; a Defined$-objects library move must never offer the whole library", h.asked)
-		}
-		for _, ev := range h.log {
-			if ev.Kind == events.MoveZone {
-				t.Fatalf("moved a card: %+v", ev)
+// TestDefinedHiddenOriginObjectsMoveDirectly covers the structural Defined$
+// dispatch. Library is exceptional because it normally enters the search
+// path; when Defined$ resolves objects it is the fetch list, never a fresh
+// whole-library choice. Hand and Graveyard use the ordinary object mover, and
+// share the same identity/origin contract.
+func TestDefinedHiddenOriginObjectsMoveDirectly(t *testing.T) {
+	cases := []struct {
+		name, origin, destination, params string
+		from, to                          state.Zone
+	}{
+		// ChangeType$ cannot re-filter an already named hidden fetch list.
+		{"library remembered fetch list", "Library", "Hand", " | ChangeType$ Creature", state.ZLibrary, state.ZHand},
+		{"hand remembered objects", "Hand", "Exile", "", state.ZHand, state.ZExile},
+		{"graveyard remembered objects", "Graveyard", "Battlefield", "", state.ZGraveyard, state.ZBattlefield},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			h := &askHost{}
+			h.g = state.NewGame(names(2))
+			src := h.g.AddObject(mkCard(t, "Name:Asker\nTypes:Sorcery\nOracle:x\n"), 0)
+			fillLibrary(h.g, 0, mkCard(t, "Name:Forest\nTypes:Basic Land Forest\nOracle:x\n"), 3)
+			ids := append([]state.ObjID(nil), h.g.Zone(state.ZLibrary, 0)[:2]...)
+			for _, id := range ids {
+				if tc.from != state.ZLibrary {
+					h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: tc.from})
+				}
 			}
-		}
-	})
+			h.log = nil // setup is not resolution evidence
+			Resolve(h, &Ctx{Source: src.ID, Controller: 0,
+				Remembered: []state.Target{{Obj: ids[0]}, {Obj: ids[1]}}},
+				sa(t, "DB$ ChangeZone | Origin$ "+tc.origin+" | Destination$ "+tc.destination+" | Defined$ Remembered"+tc.params))
+			if h.asked != nil {
+				t.Fatalf("posed %+v; Defined$ objects must not become a fresh choice", h.asked)
+			}
+			for _, id := range ids {
+				if got := h.g.Obj(id).Zone; got != tc.to {
+					t.Fatalf("object %d in %s, want %s", id, got, tc.to)
+				}
+			}
+		})
+	}
 	t.Run("Defined$ You still searches", func(t *testing.T) {
 		h := &askHost{}
 		h.g = state.NewGame(names(2))

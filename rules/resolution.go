@@ -435,6 +435,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	if rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.loopRemembered...)
 	}
+	// A mid-resolution picker may have built a Remembered fetch list before
+	// it suspended. The stack object only carries trigger-time remembered
+	// entries, so restore the asking effect's snapshot after rebuilding this
+	// fresh context; otherwise Card.IsRemembered and Defined$ Remembered in a
+	// chained hidden-origin ChangeZone see an empty list on re-entry.
+	if rp.remembered != nil {
+		ctx.Remembered = append([]state.Target(nil), rp.remembered...)
+	}
 	effects.SetSVars(ctx, svars)
 	if rp.sa != nil {
 		switch rp.kind {

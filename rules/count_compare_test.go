@@ -14,113 +14,79 @@ import (
 // SVar:X:Count$Compare Y GE2.3.2) and the Will-of-the-X commander cycle's
 // inline CharmNum$ Count$Compare Y GE1.2.1.
 //
-// Scope note: this task's fix is the Compare head in effects/count.go alone.
-// The card-text MOVEMENT contract ("one Forest onto the battlefield tapped,
-// the rest into hand") rides on three downstream mechanisms outside this
-// task's authorized scope, each measured and filed separately: the
-// `Card.IsRemembered` filter predicate (unknown, fails closed -- the largest
-// unknown-predicate family, 266 cards / 365 uses), the mid-resolution
-// Remembered set surviving a suspension (a cast spell's Remembered lives only
-// in the resolving Ctx frame, lost when DBBattlefield's own ask suspends the
-// walk), and object-target dispatch for an exactly-`Origin$ Library`
-// ChangeZone carrying `Defined$` (effSearchLibrary reads a Defined$ as the
-// library-OWNER selector). Measured with them absent: after the main search
-// is answered, DBBattlefield poses a zero-option 0..0 "choose 0 card(s)"
-// search ask, the empty answer is its only legal one, and the chain completes
-// without moving anything -- so the tests below pin the decision bounds (the
-// user-reported defect) and the chain completing without wedging, and the
-// movement contract is NOT pinned here.
-
-// drainSearchChain answers every follow-on hidden-search choose the
-// resolution chain poses, passing priority when nothing else is pending, and
-// returns once the game is back at a priority decision or over. A zero-option
-// 0..0 ask takes the empty answer (its only legal one); a one-option ask
-// takes that option.
-func drainSearchChain(t *testing.T, e *Engine, limit int) {
-	t.Helper()
-	for i := 0; i < limit && !e.G.Over; i++ {
-		d := e.Pending()
-		if d == nil {
-			t.Fatalf("no decision pending mid-chain (game over: %v)", e.G.Over)
-		}
-		if d.Kind == decision.KPriority {
-			idx := -1
-			for _, o := range d.Options {
-				if o.Kind == "pass" {
-					idx = o.Index
-				}
-			}
-			if idx < 0 {
-				t.Fatalf("priority decision with no pass option: %+v", d)
-			}
-			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
-				t.Fatalf("submit pass: %v", err)
-			}
-			continue
-		}
-		if len(d.Options) == 0 {
-			if d.Min != 0 || d.Max != 0 {
-				t.Fatalf("zero-option sub-ask is not 0..0: %+v", d)
-			}
-			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: nil}); err != nil {
-				t.Fatalf("submit empty answer: %v", err)
-			}
-			continue
-		}
-		if len(d.Options) == 1 {
-			submitChoices(t, e, d.Options[0].Index)
-			continue
-		}
-		t.Fatalf("unexpected multi-option sub-ask: %+v", d)
-	}
-}
+// Nissa's full cast-path test below also guards the three continuation
+// contracts its search chain needs: Card.IsRemembered sees the resolution's
+// remembered list, that list survives a nested KChoose suspension, and an
+// object-valued Defined$ at Origin$ Library is a direct fetch list rather than
+// a new search over hidden cards.
 
 func TestNissasPilgrimageSearchMaxFollowsSpellMastery(t *testing.T) {
 	reg := searchTestRegistry(t)
-	e, cfg := searchEngine(t, reg, "Nissa's Pilgrimage")
-	_, d := castSearchSpell(t, e, "Nissa's Pilgrimage")
-	// Empty spell graveyard: mastery fails, so "up to two" -- Min 0 (a
-	// stated-quality filter keeps the fail-to-find allowance) and Max 2.
-	// Before the Compare head this read max=0: "choose up to 0 card(s)",
-	// the user-reported defect.
-	if d.Kind != decision.KChoose || d.Min != 0 || d.Max != 2 {
-		t.Fatalf("empty spell graveyard: search decision min=%d max=%d kind=%v, want KChoose 0..2", d.Min, d.Max, d.Kind)
-	}
-	forests := map[state.ObjID]bool{}
-	for _, fid := range e.G.Zone(state.ZLibrary, 0) {
-		if o := e.G.Obj(fid); o != nil && o.Face() != nil && o.Face().Name == "Forest" {
-			forests[fid] = true
+	run := func(t *testing.T, e *Engine, cfg Config, mainMax, picks int) {
+		t.Helper()
+		_, d := castSearchSpell(t, e, "Nissa's Pilgrimage")
+		if d.Kind != decision.KChoose || d.Min != 0 || d.Max != mainMax {
+			t.Fatalf("main search = %v %d..%d, want KChoose 0..%d", d.Kind, d.Min, d.Max, mainMax)
 		}
-	}
-	if len(forests) == 0 || len(d.Options) != len(forests) {
-		t.Fatalf("options = %d, library basic Forests = %d", len(d.Options), len(forests))
-	}
-	for _, o := range d.Options {
-		if !forests[o.Obj] {
-			t.Fatalf("search option %d is not a library basic Forest", o.Obj)
+		if len(d.Options) < picks {
+			t.Fatalf("main search has %d options, need %d", len(d.Options), picks)
 		}
-	}
-	// The search is answerable with two Forests now, and the resolution
-	// chain completes: DBBattlefield's remembered-filter sub-search poses
-	// its zero-option 0..0 ask (see the scope note above), the empty answer
-	// closes it, and no sub-ability wedges the game. The whole game still
-	// replays byte-for-byte from the log.
-	submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
-	drainSearchChain(t, e, 20)
-	d = e.Pending()
-	if d == nil || d.Kind != decision.KPriority {
-		t.Fatalf("after the search chain the game must be back at priority, got %+v", d)
-	}
-	replayCheck(t, e, cfg)
+		picked := append([]decision.Option(nil), d.Options[:picks]...)
+		indices := make([]int, 0, picks)
+		for _, o := range picked {
+			indices = append(indices, o.Index)
+		}
+		submitChoices(t, e, indices...)
 
-	// Spell mastery: two instants in the graveyard raise the max to three.
-	e2, _ := searchEngine(t, reg, "Nissa's Pilgrimage", "Giant Growth", "Giant Growth")
-	searchMoveByName(t, e2, "Giant Growth", state.ZGraveyard)
-	searchMoveByName(t, e2, "Giant Growth", state.ZGraveyard)
-	_, d2 := castSearchSpell(t, e2, "Nissa's Pilgrimage")
-	if d2.Kind != decision.KChoose || d2.Min != 0 || d2.Max != 3 {
-		t.Fatalf("two instants in graveyard: search decision min=%d max=%d, want 0..3", d2.Min, d2.Max)
+		// DBBattlefield sees the exact list remembered by the main search,
+		// never a fresh offer over the whole library.
+		d = e.Pending()
+		if d == nil || d.Kind != decision.KChoose || len(d.Options) != picks || d.Max != 1 {
+			t.Fatalf("remembered battlefield fetch = %+v, want %d options and max 1", d, picks)
+		}
+		for _, o := range d.Options {
+			found := false
+			for _, want := range picked {
+				found = found || o.Obj == want.Obj
+			}
+			if !found {
+				t.Fatalf("battlefield fetch offered non-selected library card %d", o.Obj)
+			}
+		}
+		battlefield := d.Options[0].Obj
+		submitChoices(t, e, d.Options[0].Index)
+		if d = e.Pending(); d == nil || d.Kind != decision.KPriority {
+			t.Fatalf("after fetch list chain pending = %+v, want priority", d)
+		}
+		if o := e.G.Obj(battlefield); o == nil || o.Zone != state.ZBattlefield || !o.Tapped {
+			t.Fatalf("selected Forest = %+v, want tapped battlefield Forest", o)
+		}
+		for _, want := range picked[1:] {
+			if o := e.G.Obj(want.Obj); o == nil || o.Zone != state.ZHand {
+				t.Fatalf("remaining selected Forest %d in %+v, want hand", want.Obj, o)
+			}
+		}
+		shuffled := false
+		for _, ev := range e.L.Events {
+			shuffled = shuffled || ev.Kind == events.Shuffle && ev.Player == 0
+		}
+		if !shuffled {
+			t.Fatal("Nissa's final Defined$ fetch list did not shuffle the library")
+		}
+		replayCheck(t, e, cfg)
 	}
+
+	// Without spell mastery, one selected Forest reaches the battlefield
+	// tapped. Before Count$Compare this main decision incorrectly had max 0.
+	e, cfg := searchEngine(t, reg, "Nissa's Pilgrimage")
+	run(t, e, cfg, 2, 1)
+
+	// Spell mastery raises the offer to three; selecting two proves one enters
+	// tapped and the other travels through DBHand's Defined$ fetch list.
+	e2, cfg2 := searchEngine(t, reg, "Nissa's Pilgrimage", "Giant Growth", "Giant Growth")
+	searchMoveByName(t, e2, "Giant Growth", state.ZGraveyard)
+	searchMoveByName(t, e2, "Giant Growth", state.ZGraveyard)
+	run(t, e2, cfg2, 3, 2)
 }
 
 func TestWillOfTheJeskaiCharmNumCountsACommander(t *testing.T) {
