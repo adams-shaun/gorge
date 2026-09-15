@@ -894,9 +894,9 @@ test.describe('gorged [wheel1] Underground Sea fixture', () => {
 });
 
 // ui24 — construct the board the seed-1 game cannot produce. This shared
-// two-human fixture is a pure fixed-seed transcript: after wheel1 plays and
-// activates its Underground Sea, the driver casts the zero-cost Memnites and
-// otherwise only echoes wire options.
+// two-human fixture casts the zero-cost Memnites and otherwise echoes wire
+// options. Do not assume a particular opening-hand composition: the engine's
+// seeded shuffle is intentionally free to change as start-of-game draws evolve.
 test.describe('gorged [ui24] constructed board fixture', () => {
   test.skip(!FIXTURE, 'SMOKE_FIXTURE unset — run via scripts/smoke.sh');
   test.describe.configure({ mode: 'serial' });
@@ -904,11 +904,12 @@ test.describe('gorged [ui24] constructed board fixture', () => {
   test('a board tile posts its non-zero wire index and a long menu escapes the quadrant (R-E4-1)', async ({ browser, request }) => {
     const b = FIXTURE as string;
 
-    // Cast every zero-cost creature for both seats, then stop at seat 0's
-    // first real attack declaration. Turn 1/2 creatures are summoning-sick;
-    // this is deterministically turn 3 and has all seven seat-0 creatures.
+    // Cast every zero-cost creature for both seats, declining early attack
+    // declarations until seat 0 has the seven attackers this menu test needs.
+    // The fixture deck is shuffled, so the first declaration need not have
+    // seven Memnites even with a fixed seed.
     const attack = await driveFixtureUntil(request, b,
-      (d) => d.kind === 'attackers' && d.player === 0);
+      (d) => d.kind === 'attackers' && d.player === 0 && d.options.length >= 7);
     expect(attack.options.length, 'fixture must offer at least seven attackers').toBeGreaterThanOrEqual(7);
 
     const ctx = await browser.newContext({ viewport: { width: 1000, height: 700 } });
