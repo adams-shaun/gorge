@@ -136,14 +136,8 @@ func TestTossNotePrecedesTheFirstShuffle(t *testing.T) {
 		if noteAt > shuffleAt {
 			t.Fatalf("mulligans=%d: toss Note (event %d) came after the first Shuffle (event %d)", mulligans, noteAt, shuffleAt)
 		}
-		// A Toss Kind remains decodable for historical logs, but new genesis
-		// streams carry no extra resolution event: the normal TurnChange records
-		// the starter, and the moved Note is the sole stream delta.
-		for _, ev := range e.L.Events {
-			if ev.Kind == events.Toss {
-				t.Fatalf("mulligans=%d: new genesis emitted obsolete Toss event", mulligans)
-			}
-		}
+		// The ordinary TurnChange records the starter. The moved Note is the
+		// sole event-stream delta; it needs no dedicated state event.
 	}
 }
 
@@ -245,9 +239,9 @@ func TestTossedGameReplaysByteIdentically(t *testing.T) {
 func TestMulliganRoundAsksTheTossWinnerFirst(t *testing.T) {
 	cfg := tossedTwoSeat(t, 1, 1) // measured: seed 1 tosses to seat 1
 	e := New(cfg)
-	// Applying the pre-deal toss Note supplies the live pregame active seat;
-	// the round order is what New built from it. The Note names the winner --
-	// that is the fixture's precondition.
+	// PregameStarter exposes the resolved seat to a view while the round's
+	// order remains what New built from it. The Note names the winner -- that
+	// is the fixture's precondition.
 	notes := tossNotes(e)
 	if len(notes) != 1 || notes[0].Player != 1 {
 		t.Fatalf("fixture precondition failed: toss notes %+v", notes)

@@ -147,12 +147,15 @@ func TestDescribeRendersTheTossNoteThroughThePlayerName(t *testing.T) {
 	}
 }
 
-// TestDescribeLeavesAnUnmatchedTossPhraseAlone proves the renderer binds the
-// whole deterministic deck-name text, rather than rewriting arbitrary prose.
-func TestDescribeLeavesAnUnmatchedTossPhraseAlone(t *testing.T) {
+// TestDescribeLeavesANonGenesisTossPhraseAlone proves the renderer recognizes
+// the genesis event's structural position as well as its text. A later card
+// effect is allowed to use the exact same words and seat-bound deck identity;
+// it must remain verbatim rather than being rewritten through PlayerName.
+func TestDescribeLeavesANonGenesisTossPhraseAlone(t *testing.T) {
 	g := state.NewGame([]string{"a", "b"})
-	ev := events.Event{Kind: events.Note, Player: 1, Text: "The crowd won the toss"}
+	g.Players[0].PlayerName = "Alice"
+	ev := events.Event{Seq: 9, Kind: events.Note, Player: 0, Text: "a won the toss"}
 	if got, want := view.Describe(g, ev), ev.Text; got != want {
-		t.Fatalf("unmatched toss phrase = %q, want %q", got, want)
+		t.Fatalf("non-genesis toss phrase = %q, want %q", got, want)
 	}
 }
