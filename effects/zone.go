@@ -84,104 +84,6 @@ func zoneIn(zones []state.Zone, want state.Zone) bool {
 	return false
 }
 
-// ExiledWith is Forge's host-card association consumed through Defined$ or
-// DefinedCards$ ExiledWith. The relation is state that must be event-backed
-// for replay, but emitting that event for an exile no supported selector can
-// observe needlessly changes the
-// transcript. In particular, Flickerwisp returns its target through its
-// delayed RememberedLKI, not ExiledWith; recording an unrelated association
-// there changed an acceptance chain head without changing its behaviour.
-//
-// This is capability based rather than a card-name exception: every face and
-// every SVar body is scanned, so a current or future card whose own ability
-// can resolve DefinedCards$ ExiledWith gets the association regardless of
-// which ChangeZone path created it. Other Forge consumers such as
-// ExiledWithSource remain unimplemented and therefore cannot observe it.
-// tracksPersistentRemembered is the same lazy state-materialization boundary
-// for ChangeZone's RememberChanged$ rider. The current Ctx is sufficient for
-// the chain and delayed-registration capture; source state is only needed
-// when this source script can later read Card/Player.IsRemembered or
-// Count$RememberedSize. Keeping that event out of a Flickerwisp resolution
-// preserves its historical transcript while retaining the persistent list for
-// every source that can observe it.
-func tracksPersistentRemembered(g *state.Game, source state.ObjID) bool {
-	o := g.Obj(source)
-	if o == nil || o.Card == nil {
-		return false
-	}
-	uses := func(params map[string]string) bool {
-		for _, value := range params {
-			if strings.Contains(value, "IsRemembered") || strings.Contains(value, "RememberedSize") {
-				return true
-			}
-		}
-		return false
-	}
-	for _, f := range o.Card.Faces {
-		if f == nil {
-			continue
-		}
-		for _, a := range f.Abilities {
-			if a != nil && uses(a.Params) {
-				return true
-			}
-		}
-		for _, tr := range f.Triggers {
-			if uses(tr.Params) {
-				return true
-			}
-		}
-		for _, st := range f.Statics {
-			if uses(st.Params) {
-				return true
-			}
-		}
-		for _, repl := range f.Repls {
-			if uses(repl.Params) {
-				return true
-			}
-		}
-		for _, body := range f.SVars {
-			if strings.Contains(body, "IsRemembered") || strings.Contains(body, "RememberedSize") {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// tracksExiledWith applies the ExiledWith capability test described above.
-func tracksExiledWith(g *state.Game, source state.ObjID) bool {
-	o := g.Obj(source)
-	if o == nil || o.Card == nil || (o.Zone != state.ZBattlefield && o.Zone != state.ZStack && o.Zone != state.ZCommand) {
-		return false
-	}
-	for _, f := range o.Card.Faces {
-		if f == nil {
-			continue
-		}
-		for _, a := range f.Abilities {
-			if a != nil && (strings.HasPrefix(strings.TrimSpace(a.Params["Defined"]), "ExiledWith") ||
-				strings.HasPrefix(strings.TrimSpace(a.Params["DefinedCards"]), "ExiledWith")) {
-				return true
-			}
-		}
-		// SVars include effects reachable through Execute$, Choices$, Repeat,
-		// and other non-SubAbility references. Map order cannot affect this
-		// boolean existential result or any emitted association order.
-		for _, body := range f.SVars {
-			for _, part := range strings.Split(body, "|") {
-				key, value, ok := strings.Cut(strings.TrimSpace(part), "$")
-				if ok && (strings.TrimSpace(key) == "Defined" || strings.TrimSpace(key) == "DefinedCards") &&
-					strings.HasPrefix(strings.TrimSpace(value), "ExiledWith") {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
 func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	to := ParseZone(sa.Params["Destination"])
 	var originZones []state.Zone
@@ -253,7 +155,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// collection. It is deliberately NOT an ImprintCards$ association:
 		// DefinedCards$ ExiledWith consumes this list, while
 		// ImprintedController only consumes explicit ImprintCards$ entries.
-		if to == state.ZExile && tracksExiledWith(h.Game(), c.Source) && !o.IsToken {
+		if to == state.ZExile && c.Source != 0 && !o.IsToken {
 			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{o.ID}, Text: "exiled-with"})
 		}
 		// RememberChanged$ True (Forge's spelling on the ChangeZone in the
@@ -267,9 +169,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// directly.
 		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
-			if tracksPersistentRemembered(h.Game(), c.Source) {
-				eventRemember(h, c, o.ID)
-			}
+			eventRemember(h, c, o.ID)
 		}
 		if withKind != "" && to == state.ZBattlefield {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: withKind, Amount: withAmt})
@@ -467,7 +367,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZLibrary, To: to, Player: owner})
-		if to == state.ZExile && tracksExiledWith(g, c.Source) {
+		if to == state.ZExile && c.Source != 0 {
 			if o := g.Obj(id); o != nil && !o.IsToken {
 				h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}, Text: "exiled-with"})
 			}
@@ -489,9 +389,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		}
 		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
-			if tracksPersistentRemembered(g, c.Source) {
-				eventRemember(h, c, id)
-			}
+			eventRemember(h, c, id)
 		}
 		if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
 			// This establishes the object's entry state; it is not the CR

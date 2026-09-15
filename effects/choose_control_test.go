@@ -121,13 +121,12 @@ func TestChooseCardExiledWithCorpusSA(t *testing.T) {
 	}
 }
 
-// TestChangeZoneSkipsUnobservableExiledWithAssociation uses Flickerwisp's
-// real exile SA. Its delayed trigger returns the RememberChanged target, and
-// no face/SVar on Flickerwisp consumes DefinedCards$ ExiledWith, so the
-// association must not add an otherwise invisible replay event. Parallax
-// Wave above proves the same structural gate still records it whenever the
-// source script does consume that selector.
-func TestChangeZoneSkipsUnobservableExiledWithAssociation(t *testing.T) {
+// TestChangeZoneRecordsExiledWithAndRemembered uses Flickerwisp's real exile
+// SA. Forge records both riders even though its delayed trigger only consumes
+// RememberChanged through DelayTriggerRememberedLKI: exiledCards and the host
+// card's remembered collection are persistent card state, not an optimization
+// based on a statically visible consumer.
+func TestChangeZoneRecordsExiledWithAndRemembered(t *testing.T) {
 	wisp, exile := corpusSA(t, "Flickerwisp", "TrigExile")
 	if exile.API != "ChangeZone" || exile.Params["Destination"] != "Exile" {
 		t.Fatalf("Flickerwisp exile fixture changed: %+v", exile)
@@ -139,16 +138,16 @@ func TestChangeZoneSkipsUnobservableExiledWithAssociation(t *testing.T) {
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZLibrary, To: state.ZBattlefield})
 	}
 	effChangeZone(h, &Ctx{Source: src.ID, Controller: 0, Targets: []state.Target{{Obj: target.ID}}}, exile)
-	if got := h.g.Obj(src.ID).ExiledWith; len(got) != 0 {
-		t.Fatalf("Flickerwisp ExiledWith = %v, want no unobservable association", got)
+	if got := h.g.Obj(src.ID).ExiledWith; len(got) != 1 || got[0] != target.ID {
+		t.Fatalf("Flickerwisp ExiledWith = %v, want [%d]", got, target.ID)
 	}
+	var exiledWith, remembered bool
 	for _, e := range h.log {
-		if e.Kind == events.Imprint && e.Obj == src.ID && e.Text == "exiled-with" {
-			t.Fatalf("Flickerwisp emitted unobservable ExiledWith event: %+v", e)
-		}
-		if e.Kind == events.Choose && e.Obj == src.ID && e.Counter == "remembered" {
-			t.Fatalf("Flickerwisp emitted unobservable persistent Remembered event: %+v", e)
-		}
+		exiledWith = exiledWith || (e.Kind == events.Imprint && e.Obj == src.ID && e.Text == "exiled-with" && len(e.IDs) == 1 && e.IDs[0] == target.ID)
+		remembered = remembered || (e.Kind == events.Choose && e.Obj == src.ID && e.Counter == "remembered" && len(e.IDs) == 1 && e.IDs[0] == target.ID)
+	}
+	if !exiledWith || !remembered {
+		t.Fatalf("Flickerwisp rider events: exiled-with=%v remembered=%v, log=%+v", exiledWith, remembered, h.log)
 	}
 }
 
