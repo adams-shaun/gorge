@@ -41,7 +41,7 @@ type pendingCast struct {
 	player  state.PlayerID
 	card    state.ObjID
 	from    state.Zone
-	mode    string // "", "kicked", "surged", "flashback", "miracle"
+	mode    string // "", "kicked", "surged", "flashback", "miracle", and the alternative-cost modes this file offers
 	ability int    // -1 for a spell (Task 10 uses >= 0)
 
 	cost Cost
@@ -144,6 +144,27 @@ type pendingCast struct {
 	etbName   string
 	etbType   string
 	etbNumber int32
+
+	// altAddParts are the alternative parts of the card's
+	// AlternateAdditionalCost keyword ("As an additional cost to cast this
+	// spell, sacrifice a creature or pay {3}{B}"): one KChoose over them at
+	// cast-announcement time (altAddAsk), and the chosen part's cost folded
+	// into cost for the ordinary cost stages to settle. Empty for a card
+	// without the keyword; altAddDone marks the one ask already posed.
+	altAddParts []string
+	altAddDone  bool
+
+	// exiles / exilePart carry the Exile cost parts (ExileFromHand /
+	// ExileFromGrave tokens: the evoke alternative cast's Fury/Grief shape,
+	// encore's "exile this card from your graveyard") through the same ask
+	// stage / commit shape sacAsk and sacs use. Nothing moves until payCast,
+	// so an abort cannot leave a partially paid exile on the board.
+	exiles    []state.ObjID
+	exilePart int
+
+	reveals, beholds, taps, blights             []state.ObjID
+	revealPart, beholdPart, tapPart, blightPart int
+	forageDone                                  bool
 }
 
 // etbChoice is one "as this enters" choice, pre-computed: its kind
@@ -171,6 +192,44 @@ func surgeCost(f *cards.Face) (Cost, bool) {
 		return Cost{}, false
 	}
 	return ParseCost(s), true
+}
+
+// keywordAltCost resolves any of the alternative-cast keyword family
+// (Evoke, Dash, Overload, Warp, Madness) to a parsed Cost, reporting whether
+// the keyword is printed at all. All five are "you may cast this for [cost]
+// instead of its mana cost" shapes whose post-cast behaviour lives elsewhere
+// (the ETB machinery for evoke, modeFlags for the rest), so they share one
+// parameter read.
+func keywordAltCost(f *cards.Face, head string) (Cost, bool) {
+	s, ok := f.KeywordParam(head)
+	if !ok {
+		return Cost{}, false
+	}
+	return ParseCost(s), true
+}
+
+// altAddCostParts splits a face's AlternateAdditionalCost keyword into its
+// alternative parts: the parameter is the parts joined by ":" (e.g. Bone
+// Shards' "Sac<1/Creature>:Discard<1/Card>", Redirect Lightning's
+// "PayLife<5>:2"). "As an additional cost to cast this spell, [A] or [B]"
+// is a MANDATORY either-or (CR 601.2h), so the cast flow asks which one and
+// folds the chosen part into the total cost. An empty or missing keyword
+// yields nil; a parameter with no ":" yields nil (a single-part form would
+// be an ordinary additional cost, which no corpus line uses -- the keyword's
+// whole point is the either-or).
+func altAddCostParts(f *cards.Face) []string {
+	param, ok := f.KeywordParam("AlternateAdditionalCost")
+	if !ok {
+		return nil
+	}
+	parts := strings.Split(param, ":")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // flashbackCost is id's Flashback cost: the printed parameter if this face
@@ -261,6 +320,56 @@ func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability b
 	if !e.discardCostPayable(p, id, cost.Discard, !ability) {
 		return false
 	}
+	// Exile cost parts (ExileFromHand/ExileFromGrave): each needs N matching
+	// cards still available in the part's zone, reserved against the earlier
+	// parts the same way the Sac parts above reserve against each other.
+	for _, part := range cost.Exile {
+		zone := part.Zone
+		if zone == 0 {
+			zone = state.ZHand
+		}
+		var avail []state.ObjID
+		for _, oid := range e.G.Zone(zone, p) {
+			if reserved[oid] {
+				continue
+			}
+			if effects.MatchesSpecFrom(e.G, part.Spec, oid, p, id) {
+				avail = append(avail, oid)
+			}
+		}
+		if int32(len(avail)) < part.N {
+			return false
+		}
+		for i := int32(0); i < part.N; i++ {
+			reserved[avail[i]] = true
+		}
+	}
+	for _, part := range cost.Reveal {
+		if len(e.costCandidates(p, id, state.ZHand, part.Spec, true, false)) < int(part.N) {
+			return false
+		}
+	}
+	for _, part := range cost.Behold {
+		n := len(e.costCandidates(p, id, state.ZHand, part.Spec, true, false)) +
+			len(e.costCandidates(p, id, state.ZBattlefield, part.Spec, false, false))
+		if n < int(part.N) {
+			return false
+		}
+	}
+	for _, part := range cost.TapPermanent {
+		if len(e.costCandidates(p, id, state.ZBattlefield, part.Spec, false, true)) < int(part.N) {
+			return false
+		}
+	}
+	for range cost.Blight {
+		if len(e.costCandidates(p, id, state.ZBattlefield, "Creature.YouCtrl", false, false)) == 0 {
+			return false
+		}
+	}
+	if cost.Forage && len(e.G.Zone(state.ZGraveyard, p)) < 3 &&
+		len(e.costCandidates(p, id, state.ZBattlefield, "Food.YouCtrl", false, false)) == 0 {
+		return false
+	}
 	if o := e.G.Obj(id); o != nil {
 		for _, part := range cost.SubCounter {
 			if o.Counter(part.Spec) < part.N {
@@ -274,6 +383,20 @@ func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability b
 		return false
 	}
 	return true
+}
+
+func (e *Engine) costCandidates(p state.PlayerID, source state.ObjID, zone state.Zone, spec string, excludeSource, untapped bool) []state.ObjID {
+	var out []state.ObjID
+	for _, id := range e.G.Zone(zone, p) {
+		o := e.G.Obj(id)
+		if o == nil || (excludeSource && id == source) || (untapped && o.Tapped) {
+			continue
+		}
+		if effects.MatchesSpecFrom(e.G, spec, id, p, source) {
+			out = append(out, id)
+		}
+	}
+	return out
 }
 
 // sacrificeMatchSpec normalizes Forge's NICKNAME spelling to CARDNAME before
@@ -396,6 +519,22 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	if len(extra.SubCounter) > 0 {
 		cost.SubCounter = append(append([]CostPart(nil), cost.SubCounter...), extra.SubCounter...)
 	}
+	if len(extra.Exile) > 0 {
+		cost.Exile = append(append([]CostPart(nil), cost.Exile...), extra.Exile...)
+	}
+	if len(extra.Reveal) > 0 {
+		cost.Reveal = append(append([]CostPart(nil), cost.Reveal...), extra.Reveal...)
+	}
+	if len(extra.Behold) > 0 {
+		cost.Behold = append(append([]CostPart(nil), cost.Behold...), extra.Behold...)
+	}
+	if len(extra.TapPermanent) > 0 {
+		cost.TapPermanent = append(append([]CostPart(nil), cost.TapPermanent...), extra.TapPermanent...)
+	}
+	if len(extra.Blight) > 0 {
+		cost.Blight = append(append([]CostPart(nil), cost.Blight...), extra.Blight...)
+	}
+	cost.Forage = cost.Forage || extra.Forage
 	cost.Tap = cost.Tap || extra.Tap
 	return cost
 }
@@ -451,6 +590,21 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		} else {
 			cost = Cost{}
 		}
+	case "evoked", "dashed", "overloaded", "warped", "madness":
+		// The alternative-cost keyword family (altcosts): each mode's cost is
+		// the printed keyword parameter in place of the mana cost, exactly the
+		// Miracle shape. Evoke and Madness casts come from hand and exile
+		// respectively via the pending-trigger/cast-offer machinery; a stale
+		// option whose keyword is gone (the face cannot change, so in practice
+		// only a hand-built option) falls back to the empty cost rather than
+		// charging the printed mana cost.
+		head := map[string]string{"evoked": "Evoke", "dashed": "Dash",
+			"overloaded": "Overload", "warped": "Warp", "madness": "Madness"}[opt.Mode]
+		if mc, ok := f.KeywordParam(head); ok {
+			cost = ParseCost(mc)
+		} else {
+			cost = Cost{}
+		}
 	}
 	// CR 601.2b/f/h: a spell's own SpellAbility may carry an explicit Cost$
 	// (Forge's SP Cost) naming an additional cost -- most commonly a
@@ -463,6 +617,23 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// no SP Cost$ contributes nothing.
 	if opt.AltCostIndex == 0 && opt.Mode == "" {
 		cost = withSpellAbilityExtras(f, cost)
+	}
+	// The either-or additional cost (AlternateAdditionalCost) is a CHOICE,
+	// not a fixed component, so the parts are only captured here and the ask
+	// (altAddAsk) folds the chosen part into cost before any other cost stage
+	// runs. Only a plain cast carries them: a kicked/surged/etc. cast of the
+	// same card pays that mode's cost without recomposing this choice (no
+	// corpus card pairs both shapes). The OFFER gate already proved at least
+	// one part is payable (legal.go); the ask narrows it to exactly one.
+	tax := e.commanderTaxAmount(p, id)
+	raise, reduce := e.costModifiers(p, id, "Spell")
+	if opt.AltCostIndex == 0 && opt.Mode == "" {
+		pcAlt := altAddCostParts(f)
+		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
+			cost: cost, raise: raise, reduce: reduce, taxGeneric: tax, altAddParts: pcAlt}
+	} else {
+		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
+			cost: cost, raise: raise, reduce: reduce, taxGeneric: tax}
 	}
 	// CR 903.8: the commander tax, applied to whatever cost this cast pays
 	// (the base/alternative/kicked/flashback/surged/miracle cost resolved
@@ -478,10 +649,6 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// The tax is captured as a separate generic amount (taxGeneric) rather
 	// than folded into cost, so manaToPay adds it AFTER the 601.2f modifiers
 	// and never lets those spill onto it.
-	tax := e.commanderTaxAmount(p, id)
-	raise, reduce := e.costModifiers(p, id, "Spell")
-	e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
-		cost: cost, raise: raise, reduce: reduce, taxGeneric: tax}
 	e.collectETBChoices(p)
 	e.continueCast()
 }
@@ -496,6 +663,12 @@ func (e *Engine) continueCast() {
 	if e.cast == nil {
 		return
 	}
+	if e.altAddAsk() {
+		return
+	}
+	if e.forageAsk() || e.revealCostAsk() || e.beholdCostAsk() || e.tapPermanentCostAsk() || e.blightCostAsk() {
+		return
+	}
 	if e.xAsk() {
 		return
 	}
@@ -506,6 +679,9 @@ func (e *Engine) continueCast() {
 		return
 	}
 	if e.discardAsk() {
+		return
+	}
+	if e.exAsk() {
 		return
 	}
 	if e.etbAsk() {
@@ -537,6 +713,248 @@ func (e *Engine) continueCast() {
 		return
 	}
 	e.payCast()
+}
+
+// altAddAsk poses the AlternateAdditionalCost either-or choice: which ONE
+// alternative additional cost this cast pays (CR 601.2h). It runs FIRST in
+// continueCast -- before the {X} ask -- because the chosen part folds into
+// cost and every later stage (Delve, sac, discard, the mana window and the
+// final payment) must see the total it will actually charge. ALL parts are
+// offered, the payable ones FIRST (deterministically: script order within
+// each group), so an automated seat taking the first option always takes one
+// it can pay; a seat that picks an unpayable part walks into a later stage's
+// abort (CR 733.1 reversal). When NO part is payable the flow aborts (the
+// offer gate already proved one was payable at offer time, so this is a
+// board that changed under the flow).
+func (e *Engine) altAddAsk() bool {
+	pc := e.cast
+	if pc == nil || pc.altAddDone || len(pc.altAddParts) == 0 {
+		return false
+	}
+	pc.altAddDone = true
+	if len(pc.altAddParts) == 1 {
+		part := ParseCost(pc.altAddParts[0])
+		if !e.castable(pc.player, pc.card, pc.cost.Plus(part), pc.ability >= 0) {
+			e.abortCast(pc, "additional cost no longer payable; cast aborted", true)
+			return true
+		}
+		pc.cost = pc.cost.Plus(part)
+		return false
+	}
+	payable := make([]int, 0, len(pc.altAddParts))
+	unpayable := make([]int, 0, len(pc.altAddParts))
+	for i, part := range pc.altAddParts {
+		if e.castable(pc.player, pc.card, pc.cost.Plus(ParseCost(part)), pc.ability >= 0) {
+			payable = append(payable, i)
+		} else {
+			unpayable = append(unpayable, i)
+		}
+	}
+	order := append(append([]int(nil), payable...), unpayable...)
+	if len(payable) == 0 {
+		e.abortCast(pc, "additional cost no longer payable; cast aborted", true)
+		return true
+	}
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Choose an additional cost to cast " + e.targetName(pc.card), Source: pc.card}
+	for _, i := range order {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "altaddcost",
+			Label: "Pay " + formatCost(ParseCost(pc.altAddParts[i])), Amount: i})
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
+}
+
+func (e *Engine) forageAsk() bool {
+	pc := e.cast
+	if pc == nil || !pc.cost.Forage || pc.forageDone {
+		return false
+	}
+	pc.forageDone = true
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Choose how to forage", Source: pc.card}
+	if len(e.G.Zone(state.ZGraveyard, pc.player)) >= 3 {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "forage_exile", Label: "Exile three cards from your graveyard"})
+	}
+	for _, id := range e.costCandidates(pc.player, pc.card, state.ZBattlefield, "Food.YouCtrl", false, false) {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "forage_food", Obj: id,
+			Label: "Sacrifice " + e.targetName(id)})
+	}
+	if len(d.Options) == 0 {
+		e.abortCast(pc, "forage no longer payable; cast aborted", true)
+		return true
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
+}
+
+func (e *Engine) revealCostAsk() bool {
+	pc := e.cast
+	for pc.revealPart < len(pc.cost.Reveal) {
+		part := pc.cost.Reveal[pc.revealPart]
+		candidates := e.costCandidates(pc.player, pc.card, state.ZHand, part.Spec, true, false)
+		if len(candidates) < int(part.N) {
+			e.abortCast(pc, "reveal cost no longer payable; cast aborted", true)
+			return true
+		}
+		if len(candidates) == int(part.N) {
+			pc.reveals = append(pc.reveals, candidates...)
+			pc.revealPart++
+			continue
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: int(part.N), Max: int(part.N),
+			Prompt: "Choose cards to reveal", Source: pc.card}
+		for _, id := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "revealcost", Obj: id, Label: e.targetName(id)})
+		}
+		e.choosing = chooseCast
+		e.ask(d)
+		return true
+	}
+	return false
+}
+
+func (e *Engine) beholdCostAsk() bool {
+	pc := e.cast
+	for pc.beholdPart < len(pc.cost.Behold) {
+		part := pc.cost.Behold[pc.beholdPart]
+		candidates := append(e.costCandidates(pc.player, pc.card, state.ZBattlefield, part.Spec, false, false),
+			e.costCandidates(pc.player, pc.card, state.ZHand, part.Spec, true, false)...)
+		if len(candidates) < int(part.N) {
+			e.abortCast(pc, "behold cost no longer payable; cast aborted", true)
+			return true
+		}
+		if len(candidates) == int(part.N) {
+			pc.beholds = append(pc.beholds, candidates...)
+			pc.beholdPart++
+			continue
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: int(part.N), Max: int(part.N),
+			Prompt: "Choose permanents or cards to behold", Source: pc.card}
+		for _, id := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "beholdcost", Obj: id, Label: e.targetName(id)})
+		}
+		e.choosing = chooseCast
+		e.ask(d)
+		return true
+	}
+	return false
+}
+
+func (e *Engine) tapPermanentCostAsk() bool {
+	pc := e.cast
+	for pc.tapPart < len(pc.cost.TapPermanent) {
+		part := pc.cost.TapPermanent[pc.tapPart]
+		candidates := e.costCandidates(pc.player, pc.card, state.ZBattlefield, part.Spec, false, true)
+		if len(candidates) < int(part.N) {
+			e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
+			return true
+		}
+		if len(candidates) == int(part.N) {
+			pc.taps = append(pc.taps, candidates...)
+			pc.tapPart++
+			continue
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: int(part.N), Max: int(part.N),
+			Prompt: "Choose permanents to tap", Source: pc.card}
+		for _, id := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "tapcost", Obj: id, Label: e.targetName(id)})
+		}
+		e.choosing = chooseCast
+		e.ask(d)
+		return true
+	}
+	return false
+}
+
+func (e *Engine) blightCostAsk() bool {
+	pc := e.cast
+	for pc.blightPart < len(pc.cost.Blight) {
+		candidates := e.costCandidates(pc.player, pc.card, state.ZBattlefield, "Creature.YouCtrl", false, false)
+		if len(candidates) == 0 {
+			e.abortCast(pc, "blight cost no longer payable; cast aborted", true)
+			return true
+		}
+		if len(candidates) == 1 {
+			pc.blights = append(pc.blights, candidates[0])
+			pc.blightPart++
+			continue
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+			Prompt: "Choose a creature to blight", Source: pc.card}
+		for _, id := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "blightcost", Obj: id, Label: e.targetName(id)})
+		}
+		e.choosing = chooseCast
+		e.ask(d)
+		return true
+	}
+	return false
+}
+
+// exAsk offers the next unsettled Exile cost part (ExileFromHand /
+// ExileFromGrave), walking pc.cost.Exile in order (pc.exilePart) the way
+// sacAsk walks pc.cost.Sac. Candidates come from the part's zone (the payer's
+// hand, or their graveyard for the encore self-exile shape) and are filtered
+// through MatchesSpecFrom so CARDNAME self-references resolve to the source
+// object exactly as they do for sacrifice costs. A part with too few
+// candidates aborts the whole cast (nothing has moved yet); a part whose sole
+// candidate IS the source records it without a decision, mirroring
+// sacAsk's CARDNAME singleton rule.
+func (e *Engine) exAsk() bool {
+	pc := e.cast
+	for pc.exilePart < len(pc.cost.Exile) {
+		part := pc.cost.Exile[pc.exilePart]
+		zone := part.Zone
+		if zone == 0 {
+			zone = state.ZHand
+		}
+		var candidates []state.ObjID
+		for _, oid := range e.G.Zone(zone, pc.player) {
+			if effects.MatchesSpecFrom(e.G, part.Spec, oid, pc.player, pc.card) {
+				already := false
+				for _, s := range pc.exiles {
+					if s == oid {
+						already = true
+						break
+					}
+				}
+				if !already {
+					candidates = append(candidates, oid)
+				}
+			}
+		}
+		n := int(part.N)
+		if n <= 0 || n > len(candidates) {
+			e.abortCast(pc, "exile cost no longer payable; cast/activation aborted", true)
+			return true
+		}
+		// A singleton self-reference (encore's ExileFromGrave<1/CARDNAME>, the
+		// sole candidate being the resolving card itself) has no player choice.
+		if part.N == 1 && len(candidates) == 1 && candidates[0] == pc.card &&
+			strings.EqualFold(part.Spec, "CARDNAME") {
+			pc.exiles = append(pc.exiles, pc.card)
+			pc.exilePart++
+			continue
+		}
+		zoneName := "hand"
+		if zone == state.ZGraveyard {
+			zoneName = "graveyard"
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
+			Prompt: "Exile " + strconv.Itoa(n) + " card(s) from your " + zoneName +
+				" to cast " + e.targetName(pc.card), Source: pc.card}
+		for _, id := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "exilecost",
+				Obj: id, Label: e.G.Obj(id).Face().Name})
+		}
+		e.choosing = chooseCast
+		e.ask(d)
+		return true
+	}
+	return false
 }
 
 // castModeAsk poses CR 601.2b's mode announcement for a modal spell. It uses
@@ -1204,7 +1622,8 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		return
 	}
 	kind := d.Options[0].Kind
-	if len(chosen) > 0 && (chosen[0].Kind == "activate" || chosen[0].Kind == "done") {
+	if len(chosen) > 0 && (chosen[0].Kind == "activate" || chosen[0].Kind == "done" ||
+		chosen[0].Kind == "forage_exile" || chosen[0].Kind == "forage_food") {
 		kind = chosen[0].Kind
 	}
 	switch kind {
@@ -1231,6 +1650,46 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			pc.discards = append(pc.discards, o.Obj)
 		}
 		pc.discardPart++
+	case "altaddcost":
+		// The either-or additional cost (AlternateAdditionalCost): the chosen
+		// part's cost folds into pc.cost (Plus), so the ordinary stages settle
+		// it and payCast charges it. The chosen part rides on Option.Amount
+		// (the index into pc.altAddParts), not the option Index, for the same
+		// reason xAsk's value does.
+		if len(chosen) > 0 && chosen[0].Amount >= 0 && int(chosen[0].Amount) < len(pc.altAddParts) {
+			pc.cost = pc.cost.Plus(ParseCost(pc.altAddParts[chosen[0].Amount]))
+		}
+	case "exilecost":
+		for _, o := range chosen {
+			pc.exiles = append(pc.exiles, o.Obj)
+		}
+		pc.exilePart++
+	case "revealcost":
+		for _, o := range chosen {
+			pc.reveals = append(pc.reveals, o.Obj)
+		}
+		pc.revealPart++
+	case "beholdcost":
+		for _, o := range chosen {
+			pc.beholds = append(pc.beholds, o.Obj)
+		}
+		pc.beholdPart++
+	case "tapcost":
+		for _, o := range chosen {
+			pc.taps = append(pc.taps, o.Obj)
+		}
+		pc.tapPart++
+	case "blightcost":
+		for _, o := range chosen {
+			pc.blights = append(pc.blights, o.Obj)
+		}
+		pc.blightPart++
+	case "forage_exile":
+		pc.cost.Exile = append(pc.cost.Exile, CostPart{N: 3, Spec: "Card", Zone: state.ZGraveyard})
+	case "forage_food":
+		if len(chosen) > 0 {
+			pc.sacs = append(pc.sacs, chosen[0].Obj)
+		}
 	case "pay_W", "pay_U", "pay_B", "pay_R", "pay_G":
 		// A hybrid or Phyrexian pip paid with pool mana: record which colour.
 		if len(chosen) > 0 {
@@ -1266,6 +1725,17 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagFlashback)
 	case "miracle":
 		return events.FlagsString(state.FlagMiracle)
+	// The alternative-cost keyword family: the flag is what the ETB machinery
+	// (evoke's sacrifice trigger, dash's haste + delayed return, warp's
+	// delayed exile) and the warp recast offer read.
+	case "evoked":
+		return events.FlagsString(state.FlagEvoked)
+	case "dashed":
+		return events.FlagsString(state.FlagDashed)
+	case "overloaded":
+		return events.FlagsString(state.FlagOverloaded)
+	case "warped":
+		return events.FlagsString(state.FlagWarped)
 	}
 	return ""
 }
@@ -1347,6 +1817,13 @@ func (e *Engine) targetAsk() bool {
 		excludeSelf = pc.card
 	}
 	candidates := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sa)
+	// Overload changes the word "target" to "each". It makes no selection at
+	// announcement time: the current matching set is derived at resolution,
+	// so permanents entering or changing controller in response are handled.
+	// No target decision/event is emitted and zero objects is legal.
+	if pc.mode == "overloaded" {
+		return false
+	}
 	if min > 0 && len(candidates) < min {
 		// CR 601.2c: a proposal with fewer legal targets than its mandatory
 		// minimum cannot be announced. Reverse the whole proposal (CR 733.1):
@@ -1517,11 +1994,12 @@ func (e *Engine) manaWindowAsk() bool {
 		return false
 	}
 	var sources []state.ObjID
-	for _, id := range e.G.Zone(state.ZBattlefield, pc.player) {
-		if !e.untappedManaSource(pc.player, id) {
-			continue
+	for _, z := range []state.Zone{state.ZBattlefield, state.ZHand, state.ZGraveyard} {
+		for _, id := range e.G.Zone(z, pc.player) {
+			if e.untappedManaSource(pc.player, id) {
+				sources = append(sources, id)
+			}
 		}
-		sources = append(sources, id)
 	}
 	if len(sources) == 0 {
 		return false
@@ -1531,7 +2009,7 @@ func (e *Engine) manaWindowAsk() bool {
 		Prompt: "Activate mana abilities to pay for " + name, Source: pc.card}
 	for _, id := range sources {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "activate",
-			Obj: id, Label: "Tap " + e.G.Obj(id).Face().Name + " for mana"})
+			Obj: id, Label: "Activate " + e.G.Obj(id).Face().Name + " for mana"})
 	}
 	d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "done", Label: "Done"})
 	e.choosing = chooseCast
@@ -1549,12 +2027,41 @@ func (e *Engine) untappedManaSource(p state.PlayerID, id state.ObjID) bool {
 // with a usable mana ability -- the condition under which the 601.2g window
 // could supply the mana a pool alone cannot.
 func (e *Engine) hasUntappedManaSource(p state.PlayerID) bool {
-	for _, id := range e.G.Zone(state.ZBattlefield, p) {
-		if e.untappedManaSource(p, id) {
-			return true
+	for _, z := range []state.Zone{state.ZBattlefield, state.ZHand, state.ZGraveyard} {
+		for _, id := range e.G.Zone(z, p) {
+			if e.untappedManaSource(p, id) {
+				return true
+			}
 		}
 	}
 	return false
+}
+
+func (e *Engine) emitChoiceCosts(pc *pendingCast) {
+	names := func(ids []state.ObjID) string {
+		out := make([]string, 0, len(ids))
+		for _, id := range ids {
+			out = append(out, e.targetName(id))
+		}
+		return strings.Join(out, ", ")
+	}
+	if len(pc.reveals) > 0 {
+		e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+			IDs: append([]state.ObjID(nil), pc.reveals...), Text: "revealed " + names(pc.reveals) + " as a cost"})
+	}
+	if len(pc.beholds) > 0 {
+		e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+			IDs: append([]state.ObjID(nil), pc.beholds...), Text: "beheld " + names(pc.beholds) + " as a cost"})
+	}
+	for _, id := range pc.taps {
+		e.emit(events.Event{Kind: events.Tap, Obj: id, Text: "tapped as a cost"})
+	}
+	for i, id := range pc.blights {
+		if i < len(pc.cost.Blight) {
+			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "M1M1",
+				Amount: pc.cost.Blight[i].N})
+		}
+	}
 }
 
 // payCast implements CR 601.2h (pay all costs) and, for a spell, CR 601.2i
@@ -1630,6 +2137,17 @@ func (e *Engine) payCast() {
 		for _, id := range pc.discards {
 			e.emit(events.DiscardCost(id))
 		}
+		// Exile cost parts (ExileFromHand/ExileFromGrave): each chosen card
+		// leaves its zone (hand, or the graveyard for a self-reference) for
+		// exile. Read the zone live: the settled card is still where exAsk
+		// found it, but a From read from the object keeps a graveyard
+		// self-exile honest about where it moved from.
+		for _, id := range pc.exiles {
+			if o := e.G.Obj(id); o != nil {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})
+			}
+		}
+		e.emitChoiceCosts(pc)
 		if pc.cost.Tap {
 			// The {T} cost's payer taps the permanent (Forge CostTap).
 			e.emitTap(pc.card, pc.player, false)
@@ -1734,6 +2252,13 @@ func (e *Engine) payCast() {
 	for _, id := range pc.discards {
 		e.emit(events.DiscardCost(id))
 	}
+	// Exile cost parts (see the ability branch above for the why).
+	for _, id := range pc.exiles {
+		if o := e.G.Obj(id); o != nil {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})
+		}
+	}
+	e.emitChoiceCosts(pc)
 	// Capture the sacrifice LKI before the MoveZones (see the ability branch's
 	// comment): the sacrificed permanents are still on the battlefield here.
 	var sacrificedLKI []state.SacrificedInfo
@@ -1922,5 +2447,16 @@ func (e *Engine) castSuppressed(p state.PlayerID, id state.ObjID) bool {
 }
 
 func init() {
-	effects.RegisterNonAPI("kw:Kicker", "kw:Surge", "kw:Flashback", "kw:Delve")
+	effects.RegisterNonAPI("kw:Kicker", "kw:Surge", "kw:Flashback", "kw:Delve",
+		// The alternative-cost keyword family (altcosts): each is implemented
+		// to its CR shape with a named proof test in altcast_test.go --
+		// kw:Evoke (alternative cast + ETB unconditional sacrifice), kw:Dash
+		// (alternative cast + haste + delayed return), kw:Overload
+		// (alternative cast + target-reads-each), kw:Warp (alternative cast
+		// from hand/graveyard/exile + delayed exile), kw:Madness (exile on
+		// discard + immediate cast offer), kw:Encore (graveyard activation
+		// minting attacking token copies), and kw:AlternateAdditionalCost
+		// (the mandatory either-or additional cost choice).
+		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
+		"kw:Encore", "kw:AlternateAdditionalCost")
 }
