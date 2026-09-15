@@ -11,17 +11,14 @@ import (
 )
 
 // SeatClaim is what Options.Seat resolves a request to when it may act as a
-// seat: the seat the request acts for. The http layer's only use of a claim
-// is to refuse a request whose own ?seat= names a different seat — the claim
-// and the request must agree before the seat-scoped Registry method runs, so
-// one claim can never read another seat's hand or pending decision, or
-// submit for it. Everything else about the claim (who holds it, whether they
-// still do) is the resolver's business: local gorged resolves the request's
-// session, which claims a seat and holds it, and a pod would resolve a
-// signed header instead. That indirection is the whole of the pod-readiness
-// (design M2e-2), and it costs this one field.
+// seat. A claim names both the table and seat it may act for. Every
+// seat-authorised endpoint verifies the request table through claimForTable
+// before it reaches the Registry, so a token for seat 0 at one table cannot
+// read or act as seat 0 at another. A zero Table is an old unbound claim and
+// is deliberately rejected after deployment.
 type SeatClaim struct {
-	Seat state.PlayerID
+	Table host.TableID
+	Seat  state.PlayerID
 }
 
 // Options configures the handler. Every duration defaults when zero.
@@ -35,9 +32,9 @@ type Options struct {
 	// Authorize: nil — the default — keeps today's spectator-only behaviour,
 	// nobody may act as a seat, so any request that names one is refused
 	// outright. A non-nil resolver that declines a request is refused like
-	// an Authorize failure (401); a claim whose seat disagrees with the
-	// ?seat= a request asks for is refused (403); only an agreeing claim
-	// reaches the seat-scoped Registry methods. See SeatClaim.
+	// an Authorize failure (401); a claim whose table or seat disagrees with
+	// the request is refused (403); only an agreeing claim reaches the
+	// seat-scoped Registry methods. See SeatClaim.
 	Seat func(*http.Request) (SeatClaim, bool) // nil = spectator-only (M2e-2)
 	// CreateGame, when non-nil, arms the POST /api/games endpoint that seats
 	// a human against a bot on demand (Task ui11). It builds and starts a

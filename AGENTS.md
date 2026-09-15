@@ -248,6 +248,17 @@ because the outcome is already recorded and an error cannot un-record it, so
 an embedder that persists through `OnMatchEnd` must handle its own
 persistence failures inside the callback.
 
+## Seat-privacy boundary
+
+A seat credential names **both its table and seat**. Every current
+seat-authorised HTTP route (`view`, `events`, `pending`, `intent`, `undo`)
+goes through `host/httpapi`'s `claimForTable`; a mismatched or legacy unbound
+claim is 403 and must never reach registry state. `cmd/gorged` mints startup
+and vs-bot tokens with that pair, so after deployment old tokens stop working;
+the web client returns a rejected stale join to the lobby, where it obtains a
+fresh game claim. Stream session ids are random 128-bit values issued only in
+`hello`; `host.Session.serial`, not the public id, preserves fan-out order.
+
 ## Running a gorged server while you work
 
 Two orchestrator sessions share this box, and one of them serves a live demo

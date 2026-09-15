@@ -201,10 +201,9 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if err != nil {
 		return fmt.Errorf("opening corpus at %s: %w (run make fetch-cards compile-cards)", c.cards, err)
 	}
-	// R-E3-1: -humans applies to table t1 alone (SeatClaim carries no
-	// table, so one human table is the only configuration in which an
-	// un-table-scoped claim is honest). Parse it now so a malformed list or
-	// "-humans with -tables 0" fails before anything listens.
+	// -humans applies to table t1 alone by configuration. Claims are now
+	// table-bound, so this is no longer a security restriction; parse it now
+	// so a malformed list or "-humans with -tables 0" fails before listening.
 	if err := c.applyHumans(); err != nil {
 		return err
 	}
@@ -259,7 +258,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		// token per human slot, minted at startup. With no humans the
 		// resolver stays nil and the server is spectator-only, exactly as
 		// before the flag existed.
-		gate, err = newSeatGate(c.seatToken, c.humans)
+		gate, err = newSeatGate(c.seatToken, "t1", c.humans)
 		if err != nil {
 			return err
 		}
@@ -274,7 +273,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	// is refused 403 (TestNoHumansIsSpectatorOnly).
 	if c.vsbot && len(cmdPool)+len(conPool) > 0 {
 		if gate == nil {
-			gate = &seatGate{tokenToSeat: map[string]state.PlayerID{}, seatTokens: map[state.PlayerID]string{}}
+			gate = &seatGate{tokenToClaim: map[string]httpapi.SeatClaim{}, claimTokens: map[httpapi.SeatClaim]string{}}
 		}
 		opts.CreateGame = c.createGame(r, gate, cmdPool, conPool, vis)
 		opts.Seat = gate.resolve
@@ -332,7 +331,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 			// to the seat. Humans are on t1 alone (FL-97), so the table
 			// is not a guess.
 			fmt.Fprintf(os.Stderr, "gorged: table t1 seat %d joins at http://%s/t/t1?seat=%d&token=%s\n",
-				s, joinHost(ln.Addr()), s, gate.token(seat))
+				s, joinHost(ln.Addr()), s, gate.token("t1", seat))
 		}
 	}
 	// Task fb-20260914T113850Z-682e875e: prewarm the art cache for every
@@ -506,10 +505,10 @@ func loadDeckCatalogue(dir string, commander, constructed []string) ([]httpapi.D
 // constructed tables the constructed pool — so one server runs both formats
 // side by side and a commander deck is never dealt as a 100-card
 // constructed pile. A table the -format list does not reach (fewer entries
-// than tables) is constructed, the zero value. R-E3-1: the human slots
-// apply to table t1 alone — SeatClaim carries no table, so a claim minted
-// for t1 seat s would satisfy the same seat on every table. R-E3-2: a
-// human-seated table is single-shot by definition, and the -perpetual flag
+// than tables) is constructed, the zero value. Human slots apply to table
+// t1 alone; claims bind to their table, so a token for t1 cannot act on
+// another table. R-E3-2: a human-seated table is single-shot by definition,
+// and the -perpetual flag
 // defaults to true, so a naive copy of the bot config would make AddTable
 // reject it (perpetual+humans); Perpetual is forced false for t1,
 // regardless of the flag, and the bot tables keep the flag. AddTable still

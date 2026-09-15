@@ -42,7 +42,7 @@ func freshGameLock(t *testing.T) (*host.Registry, *seatGate) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { r.Close() })
-	gate := &seatGate{tokenToSeat: map[string]state.PlayerID{}, seatTokens: map[state.PlayerID]string{}}
+	gate := &seatGate{tokenToClaim: map[string]httpapi.SeatClaim{}, claimTokens: map[httpapi.SeatClaim]string{}}
 	return r, gate
 }
 
@@ -68,8 +68,8 @@ func TestCreateGameBuildsARealSingleShotHumanVsBotTable(t *testing.T) {
 	// The token resolves to seat 0 through the gate, exactly as the
 	// seat-scoped HTTP endpoints will.
 	claim, ok := gate.resolve(httptest.NewRequest(http.MethodGet, "/pending?seat=0&token="+resp.Token, nil))
-	if !ok || claim.Seat != state.PlayerID(0) {
-		t.Fatalf("token did not resolve: %+v ok=%v", claim, ok)
+	if !ok || claim.Table != host.TableID(resp.Table) || claim.Seat != state.PlayerID(0) {
+		t.Fatalf("token did not resolve to its table and seat: %+v ok=%v", claim, ok)
 	}
 	// Seat 0 parks on a real decision: the human-vs-bot match began and the
 	// bot seat is not answering for the human.
