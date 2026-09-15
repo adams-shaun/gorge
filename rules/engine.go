@@ -361,21 +361,20 @@ type Engine struct {
 	// clone taken with a decision outstanding carries the same queue. It is
 	// always empty in a non-Commander game: nothing ever parks there.
 	cmdZone []cmdZoneMove
-	// replChoices is the queue of parked CR 616.1 order-selection choices (see
-	// replChoice / poseReplacementChoice / handleReplacement rules/replacement.go):
-	// a MoveZone event more than one replacement would modify, deferred until
-	// the affected controller chooses the order. Mirrors cmdZone -- a queue of
-	// plain value entries cloned by one slice copy -- so a clone taken while a
-	// KReplacement decision is outstanding carries the same parked
-	// competitions the original does.
+	// replChoices is the queue of parked replacement choices (see replChoice /
+	// handleReplacement in replacement.go): CR 616.1 ordering for MoveZone,
+	// Untap, ProduceMana and BeginPhase, replacement-time mana-colour choices,
+	// and an Optional$ BeginPhase yes/no. Plain value entries are deep-copied by
+	// Clone, so every in-flight event survives an intent boundary.
 	replChoices []replChoice
-	// madnessChoices parks discard moves while the card's owner decides
-	// whether to apply Madness's optional hand-to-exile replacement. The queue
-	// is plain event data and is cloned at intent boundaries like replChoices.
+	// untapResume is set only around one Untap emission from finishUntapStep.
+	// If that event parks an Untap replacement choice, it moves into the queue.
+	untapResume *untapStep
+	// madnessChoices parks discard moves while the card's owner decides whether
+	// to apply Madness's optional hand-to-exile replacement.
 	madnessChoices []events.Event
 	// applyingMadnessChoice suppresses only the Madness interposition while an
-	// answered choice emits its selected destination; ordinary card and format
-	// replacement effects still receive that resulting move.
+	// answered choice emits its selected destination.
 	applyingMadnessChoice bool
 
 	// suppressedCast holds the card object ids whose cast option is held out
@@ -492,62 +491,24 @@ type Engine struct {
 	// always zero at a clone boundary.
 	combatDamaging bool
 
-	// tappingForMana identifies the Tap event that pays an activated mana
-	// ability's tap cost. Like combatDamaging it is synchronous event context,
-	// not an Event field: changing Tap's encoded payload would move every chain
-	// head even in games with no TapsForMana trigger. emitManaTap sets and clears
-	// it around emit; Clone only runs at an intent boundary, where it is zero.
+	// manaFromTap and manaProducer identify the mana ability currently
+	// resolving. They are synchronous context rather than ManaAdd fields.
+	manaFromTap  bool
+	manaProducer state.ObjID
+	// stepLeaving is the step transition currently offered to BeginPhase
+	// replacements; parked choices own a value copy.
+	stepLeaving *state.Step
+
+	// Tapping and damage provenance are likewise synchronous event context.
 	tappingForMana      state.ObjID
 	tappingManaProduced string
-
-	// tapObj, tapPlayer and tapEntering are the same kind of synchronous
-	// context for every Tap producer (emitTap): tapObj is the permanent whose
-	// Tap event is being emitted, tapPlayer the player who tapped it (Forge
-	// Card.tap's tapper, which a Taps trigger's ValidPlayer$ and
-	// TriggeredActivator read), and tapEntering marks a permanent given its
-	// tapped entry state by an ETB$ True replacement body, which never
-	// becomes tapped (CR 603.2e). Zero at every intent boundary.
-	tapObj      state.ObjID
-	tapPlayer   state.PlayerID
-	tapEntering bool
-	// tappedTurn records, per object, the turn in which it last became
-	// tapped, for Taps FirstTime$ (Forge Card.tappedThisTurn). An entry state
-	// is not recorded, and a zone change forgets the object (CR 400.7). Engine
-	// bookkeeping rebuilt by replay, which re-executes the same taps.
-	tappedTurn map[state.ObjID]int32
-	// triggerTurnFires counts, per T: line, how many times it triggered in
-	// the turn it last triggered, for ActivationLimit$ ("triggers only once
-	// each turn"; Forge Trigger.checkActivationLimit).
-	triggerTurnFires map[triggerKey]turnFires
-
-	// dmgSrcOverride is the in-flight DAMAGE SOURCE a DamageAll/DealDamage
-	// emitter publishes for the events it is about to emit, when DamageSource$
-	// (or the unwrapped ability source) names an object other than what the
-	// engine's own bookkeeping would read: rules.Engine.SetDamageSource sets
-	// it (effects.Host, the only channel effects -> rules has) and
-	// inFlightDamageSource reports it to the three Damage-provenance readers
-	// -- emit's protection check, damageMatches' ValidSource$, and
-	// triggerReferents' DamageDone TriggerSource role. Zero outside a damage
-	// emit; the emitter restores the previous value before returning (and
-	// DealDamage/DamageAll never ask mid-loop, so nothing suspends inside
-	// the window). Not copied by Clone: always zero at a clone boundary,
-	// and replay re-executes the same setter exactly as it does for
-	// damaging/combatDamaging.
-	dmgSrcOverride state.ObjID
-
-	// batchLifelink is the CR 603.10a pre-batch lifelink snapshot a
-	// multi-object destroy/sacrifice effect takes through rules.Engine
-	// .BatchDepartures (effects.Host) before emitting its MoveZone batch:
-	// each object's derived lifelink state from immediately before the
-	// FIRST departure, so a bearer whose lifelink-granting Equipment leaves
-	// earlier in the same batch still captures the right LKI regardless of
-	// battlefield order. An entry is consumed (deleted) by the departure
-	// capture that reads it; BatchDepartures rebuilds the map wholesale, so
-	// an unconsumed straggler (an Indestructible batch member) cannot
-	// outlive one effect call. Nil outside a batch. Not copied by Clone:
-	// always consumed or rebuilt within one effect call, never live at a
-	// clone boundary.
-	batchLifelink map[state.ObjID]bool
+	tapObj              state.ObjID
+	tapPlayer           state.PlayerID
+	tapEntering         bool
+	tappedTurn          map[state.ObjID]int32
+	triggerTurnFires    map[triggerKey]turnFires
+	dmgSrcOverride      state.ObjID
+	batchLifelink       map[state.ObjID]bool
 
 	// foreachBuf is forEachObject's (trigger_match.go) scratch snapshot
 	// buffer. forEachObject copies each zone into it before walking it -- fn

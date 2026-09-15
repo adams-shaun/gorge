@@ -312,17 +312,17 @@ type Ctx struct {
 	// applied by the rules handler, unlike Modes/UnlessPay/Discard where the
 	// effect re-reads the answer -- so the field is only a done-marker.
 	Arrange bool
-	// HandMove is the answered "choose N cards matching ChangeType$ from
-	// Origin$ Hand" pick on a re-entered ChangeZone resolution (handmove1):
-	// the object(s) the hand's owner picked out of the ChangeType$-eligible
-	// cards, in the player's answer order, to move to Destination$. rules'
-	// resumeResolution sets it from the recorded answer before re-running the
-	// suspended sub-ability, so effChangeZoneHand's re-entry moves exactly the
-	// chosen cards instead of asking again; HandMoveDone distinguishes
-	// "answered (possibly with no cards)" from the first pass. The asking
-	// effect consumes and clears both at the top of its own walk (the fx42
-	// scoping discipline), so a nested hand move cannot inherit the outer
-	// answer.
+	// ManaAmount and ManaType are the in-flight unit of mana a ProduceMana
+	// replacement modifies. rules seeds them from a ManaAdd event and then
+	// emits the transformed event, so ReplaceMana never writes game state
+	// directly and replay records the final mana production normally.
+	ManaAmount int32
+	ManaType   string
+	// ManaChoice is the W/U/B/R/G answer to a choice-valued ReplaceMana
+	// body (ReplaceType$ Any, ReplaceColor$ Chosen, ReplaceMana$ Any).
+	// Rules parks the ManaAdd and supplies this on resume.
+	ManaChoice string
+	// HandMove is the answered Origin$ Hand ChangeZone selection.
 	HandMove     []state.ObjID
 	HandMoveDone bool
 	// RevealOpt is the answered RevealOptional$ yes/no on a re-entered
