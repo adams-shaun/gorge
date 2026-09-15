@@ -3,6 +3,7 @@ package rules
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -222,13 +223,13 @@ func (e *Engine) settleWardPayment(kind string, sa *cards.SA, ctx *effects.Ctx, 
 			_, manaRaw, _ := strings.Cut(raw, ">:")
 			return e.payMana(payer, ParseCost(manaRaw))
 		}
-		if chosen[0].Kind != "ward_discard" || len(ids) != 1 || !containsObj(e.G.Zone(state.ZHand, payer), ids[0]) {
+		if chosen[0].Kind != "ward_discard" || len(ids) != 1 || !slices.Contains(e.G.Zone(state.ZHand, payer), ids[0]) {
 			return false
 		}
 		e.emit(events.Event{Kind: events.MoveZone, Obj: ids[0], From: state.ZHand, To: state.ZGraveyard, Text: "discarded for ward"})
 		return true
 	case "ward_blight":
-		if len(ids) != 1 || !containsObj(e.wardPermanents(payer, ctx.Source, "Creature", false), ids[0]) {
+		if len(ids) != 1 || !slices.Contains(e.wardPermanents(payer, ctx.Source, "Creature", false), ids[0]) {
 			return false
 		}
 		m := wardSpecialCost.FindStringSubmatch(raw)
@@ -237,7 +238,7 @@ func (e *Engine) settleWardPayment(kind string, sa *cards.SA, ctx *effects.Ctx, 
 		return true
 	case "ward_evidence":
 		for _, id := range ids {
-			if !containsObj(e.G.Zone(state.ZGraveyard, payer), id) {
+			if !slices.Contains(e.G.Zone(state.ZGraveyard, payer), id) {
 				return false
 			}
 		}
@@ -252,7 +253,7 @@ func (e *Engine) settleWardPayment(kind string, sa *cards.SA, ctx *effects.Ctx, 
 		return true
 	case "ward_waterbend":
 		for _, id := range ids {
-			if !containsObj(e.wardPermanents(payer, ctx.Source, "Artifact,Creature", true), id) {
+			if !slices.Contains(e.wardPermanents(payer, ctx.Source, "Artifact,Creature", true), id) {
 				return false
 			}
 		}
@@ -267,7 +268,7 @@ func (e *Engine) settleWardPayment(kind string, sa *cards.SA, ctx *effects.Ctx, 
 		}
 		return true
 	case "ward_tap":
-		if len(ids) != 1 || !containsObj(e.wardPermanents(payer, ctx.Source, "Artifact,Creature", true), ids[0]) {
+		if len(ids) != 1 || !slices.Contains(e.wardPermanents(payer, ctx.Source, "Artifact,Creature", true), ids[0]) {
 			return false
 		}
 		e.emit(events.Event{Kind: events.Tap, Obj: ids[0]})
@@ -287,11 +288,11 @@ func (e *Engine) settleWardPayment(kind string, sa *cards.SA, ctx *effects.Ctx, 
 			return false
 		}
 		for _, id := range ids {
-			valid := containsObj(e.G.Zone(zone, payer), id)
+			valid := slices.Contains(e.G.Zone(zone, payer), id)
 			if kind == "ward_sac" {
 				valid = valid && effects.MatchesSpecFrom(e.G, sacrificeMatchSpec(part.Spec), id, payer, ctx.Source)
 			} else {
-				valid = valid && containsObj(e.discardCandidates(payer, ctx.Source, part, false, nil), id)
+				valid = valid && slices.Contains(e.discardCandidates(payer, ctx.Source, part, false, nil), id)
 			}
 			if !valid {
 				return false
@@ -402,13 +403,4 @@ func (e *Engine) answerWardMana(rp *resumePoint, chosen []decision.Option, ctx *
 		e.continueWardMana()
 	}
 	return true
-}
-
-func containsObj(ids []state.ObjID, want state.ObjID) bool {
-	for _, id := range ids {
-		if id == want {
-			return true
-		}
-	}
-	return false
 }
