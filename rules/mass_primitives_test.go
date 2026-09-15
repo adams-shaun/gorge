@@ -717,6 +717,69 @@ func TestRoomAlternateCastUnlocksFrontDoor(t *testing.T) {
 	}
 }
 
+// TestRoomUnlockTargetedTriggerPlacesTarget is the target-bearing half of
+// trig:UnlockDoor's leaf (real corpus Bottomless Pool / Locker Room). The
+// locked door's Execute$ SVar must receive its target ask while it is put on
+// the stack, just as an ordinary triggered ability does.
+func TestRoomUnlockTargetedTriggerPlacesTarget(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	bear := card(t, bearSrc)
+	e := corpusEngine(t, reg, []*cards.Card{lookup(t, reg, "Bottomless Pool")}, []*cards.Card{bear})
+	moveByName(t, e, 0, "Bottomless Pool", state.ZHand)
+	bearID := moveByName(t, e, 1, "Bear", state.ZBattlefield)
+	addMana(t, e, 0, "UUUUUU")
+	castNamed(t, e, "Locker Room")
+	passUntilStackEmpty(t, e, 30)
+	room := state.ObjID(0)
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Locker Room" {
+			room = id
+		}
+	}
+	if room == 0 {
+		t.Fatal("Locker Room never entered the battlefield")
+	}
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("no priority to unlock Bottomless Pool (got %+v)", d)
+	}
+	unlock := -1
+	for _, o := range d.Options {
+		if o.Kind == "unlock" && o.Obj == room && o.Label == "Unlock Bottomless Pool" {
+			unlock = o.Index
+		}
+	}
+	if unlock < 0 {
+		t.Fatalf("no Bottomless Pool unlock option in %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{unlock}}); err != nil {
+		t.Fatalf("submit Bottomless Pool unlock: %v", err)
+	}
+	// The unlock's trigger is drained once both seats pass priority, just as
+	// it is in play; only then is its placement target decision posed.
+	passToKind(t, e, decision.KTarget)
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("unlock target decision = %+v, want KTarget", d)
+	}
+	pick := -1
+	for _, o := range d.Options {
+		if o.Obj == bearID {
+			pick = o.Index
+		}
+	}
+	if pick < 0 {
+		t.Fatalf("Bottomless Pool did not offer the opposing Bear: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{pick}}); err != nil {
+		t.Fatalf("submit Bottomless Pool target: %v", err)
+	}
+	answerQuiet(t, e, 40)
+	if got := e.G.Obj(bearID).Zone; got != state.ZHand {
+		t.Fatalf("Bottomless Pool left Bear in %s, want hand", got)
+	}
+}
+
 func TestRoomUnlockCreatesTheDemon(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e := corpusEngine(t, reg,
