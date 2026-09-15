@@ -517,9 +517,13 @@ func Apply(g *state.Game, e Event) {
 			break
 		}
 		src := g.Obj(e.Obj)
+		// Dash and Warp refer to the exact permanent that received their
+		// keyword promise. Encore's grouped delayed trigger does not: CR
+		// 603.7 leaves it independent of the card that created it, and it
+		// must sacrifice its remembered token group even if that card later
+		// changes zones and returns as a new incarnation.
 		track := strings.HasPrefix(e.Counter, "__kwDash") ||
-			strings.HasPrefix(e.Counter, "__kwWarp") ||
-			strings.HasPrefix(e.Counter, "__kwEncore")
+			strings.HasPrefix(e.Counter, "__kwWarp")
 		g.Delayed = append(g.Delayed, state.DelayedTrigger{
 			ID:                g.DelayedNext,
 			Phase:             e.Step,
@@ -546,8 +550,10 @@ func Apply(g *state.Game, e Event) {
 			break
 		}
 		// Consume the registration first, even when its tracked permanent has
-		// changed incarnation. A stale dash/warp/encore promise expires once;
-		// it must neither act on the returned object nor be retried forever.
+		// changed incarnation. A stale dash/warp promise expires once; it must
+		// neither act on the returned object nor be retried forever. Ordinary
+		// delayed triggers, including Encore's group cleanup, are independent
+		// of their source and still resolve.
 		var registration *state.DelayedTrigger
 		for i := range g.Delayed {
 			if g.Delayed[i].ID == uint32(e.Amount) {
@@ -703,7 +709,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 
 	o.Zone = to
 	// The incarnation stamp is used by promises tied to a particular
-	// permanent (evoke/dash/warp/encore), so only crossing the battlefield
+	// permanent (evoke/dash/warp), so only crossing the battlefield
 	// boundary advances it. A provisional hand->stack->hand CR 733 reversal
 	// must restore byte-identical state and is not a permanent incarnation.
 	if enteredFrom != to && (enteredFrom == state.ZBattlefield || to == state.ZBattlefield) {

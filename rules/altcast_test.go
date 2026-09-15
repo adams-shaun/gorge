@@ -451,6 +451,58 @@ func TestEncoreCreatesOneDelayedTriggerForAllOpponentTokens(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+func TestEncoreCleanupSurvivesSourceChangingIncarnation(t *testing.T) {
+	reg := freshEncoreRegistry(t)
+	pilferer, ok := reg.Lookup("Impulsive Pilferer")
+	if !ok {
+		t.Fatal("fresh registry lacks Impulsive Pilferer")
+	}
+	cfg := seatZeroStart(Config{Seed: 938, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{append([]*cards.Card{pilferer}, mountainDeck(t, 39)...), mountainDeck(t, 40)}, Tokens: reg.Tokens})
+	e := New(cfg)
+	e.Advance()
+	source := findCardObj(t, e, 0, "Impulsive Pilferer", state.ZGraveyard)
+	addMana(t, e, 0, "CCCR")
+	ability := -1
+	for _, opt := range e.Pending().Options {
+		if opt.Kind == "ability" && opt.Obj == source {
+			ability = opt.Index
+		}
+	}
+	if ability < 0 {
+		t.Fatalf("Encore was not offered: %+v", e.Pending().Options)
+	}
+	submitChoices(t, e, ability)
+	passUntilStackEmpty(t, e, 80)
+	var token state.ObjID
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(id); o.IsToken && o.Face() != nil && o.Face().Name == "Impulsive Pilferer" {
+			token = id
+		}
+	}
+	if token == 0 || e.G.Obj(source).Zone != state.ZExile || len(e.G.Delayed) != 1 {
+		t.Fatalf("encore setup: source=%s token=%d delayed=%+v", e.G.Obj(source).Zone, token, e.G.Delayed)
+	}
+	// A delayed trigger exists independently of its source (CR 603.7). Make
+	// the exiled source a new battlefield incarnation before the cleanup;
+	// the remembered token must still be sacrificed.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: source, From: state.ZExile, To: state.ZBattlefield})
+	// The still-live Encore token must attack before this turn can reach its
+	// end step, so satisfy the independent attack requirement first.
+	driveToStepAll(t, e, e.G.Turn, 0, state.StepDeclareAttackers)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers || len(d.Options) != 1 || d.Options[0].Obj != token {
+		t.Fatalf("encore attack requirement after source move: %+v", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	driveToStepAll(t, e, e.G.Turn, 0, state.StepEnd)
+	passUntilStackEmpty(t, e, 40)
+	if o := e.G.Obj(token); o.Zone != state.ZCeased {
+		t.Fatalf("encore token survived after source changed incarnation: %s", o.Zone)
+	}
+	replayCheck(t, e, cfg)
+}
+
 func TestOverloadedCastTargetsEachNotOne(t *testing.T) {
 	e, cfg, _ := altCostEngine(t, 916, []string{"Cyclonic Rift"}, nil, []string{altBearSrc, altProtectedBearSrc})
 	id := findCardObj(t, e, 0, "Cyclonic Rift", state.ZHand)
