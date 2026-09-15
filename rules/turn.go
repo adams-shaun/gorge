@@ -549,13 +549,12 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.resumeResolution(rp, chosen)
 		return
 	}
-	// A RevealOptional$ yes/no (task fb-3f1cc033, the Delver of Secrets
-	// peek) is a mid-resolution effect ask wearing KChoose's ordinary wire
-	// shape, exactly like "search" above: route it to the suspended
-	// resolution before the cast/cleanup flows get a look in. A yes/no
-	// answer is one option; the reveal_optional arm of resumeResolution maps
-	// it onto ctx.RevealOpt.
-	if e.resume != nil && e.resume.kind == "reveal_optional" {
+	// RevealOptional$ and Optional$ direct-library-fetch yes/no decisions are
+	// mid-resolution effect asks wearing KChoose's ordinary wire shape,
+	// exactly like "search" above: route them to the suspended resolution
+	// before the cast/cleanup flows get a look in. Their resume arms map the
+	// one chosen option onto the asking effect's scoped context field.
+	if e.resume != nil && (e.resume.kind == "reveal_optional" || e.resume.kind == "defined_library_optional") {
 		rp := e.resume
 		e.resume = nil
 		e.resumeResolution(rp, chosen)

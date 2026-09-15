@@ -325,6 +325,11 @@ type Ctx struct {
 	// HandMove is the answered Origin$ Hand ChangeZone selection.
 	HandMove     []state.ObjID
 	HandMoveDone bool
+	// DefinedLibraryMove is the answered Optional$ True choice for an
+	// object-valued Defined$ fetch list from Origin$ Library. "yes" moves the
+	// list; "no" leaves it in place. It is consumed by
+	// moveDefinedLibraryObjects before a nested fetch list can inherit it.
+	DefinedLibraryMove string
 	// RevealOpt is the answered RevealOptional$ yes/no on a re-entered
 	// mid-resolution reveal (task fb-3f1cc033, the Delver of Secrets
 	// PeekAndReveal shape): "yes" means the peeking player chose to reveal

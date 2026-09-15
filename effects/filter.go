@@ -217,6 +217,10 @@ const (
 	// The two-token space form "AttachedTo <X>": <X> is a literal type or
 	// object class answerable from the object in hand (the base grammar).
 	wordAttachedTo
+	// IsRemembered is resolution-local: it compares the candidate against the
+	// resolving Ctx's remembered object list, never an object's persistent
+	// event-backed remembered state.
+	wordIsRemembered
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -246,6 +250,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordBlockingSource, ""
 	case "blockedBySource":
 		return wordBlockedBySource, ""
+	case "IsRemembered":
+		return wordIsRemembered, ""
 	}
 	if targetReferent(p) {
 		return wordTargetedPlayerCtrl, ""
@@ -342,6 +348,13 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 			return false
 		}
 		return matchesBase(g, key, a)
+	case wordIsRemembered:
+		for _, t := range sc.Remembered {
+			if !t.IsPlayer && t.Obj == o.ID {
+				return true
+			}
+		}
+		return false
 	}
 	return false
 }
