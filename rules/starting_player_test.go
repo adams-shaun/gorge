@@ -144,8 +144,8 @@ func TestTossNotePrecedesTheFirstShuffle(t *testing.T) {
 // TestTossNoteIsEmittedWhenOpeningDealEndsTheGame covers either seat losing
 // during New's deal loop. The pre-deal announcement still names the CR 103.1
 // toss winner even when the deal eliminated them (the toss DID happen, and
-// truthfully, before the deal); the resolution Note records only why no turn
-// began, and GameOver remains the burst's final event for host persistence.
+// truthfully, before the deal). It is the only genesis Note; GameOver remains
+// the burst's final event for host persistence.
 func TestTossNoteIsEmittedWhenOpeningDealEndsTheGame(t *testing.T) {
 	for _, shortSeat := range []int{0, 1} {
 		decks := [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}
@@ -164,16 +164,6 @@ func TestTossNoteIsEmittedWhenOpeningDealEndsTheGame(t *testing.T) {
 		if got, want := notes[0].Text, tossName(e.G, notes[0].Player)+" won the toss"; got != want {
 			t.Fatalf("short seat %d: toss Note text %q, want %q", shortSeat, got, want)
 		}
-		// The resolution Note explains why no turn began.
-		resolutions := 0
-		for _, ev := range e.L.Events {
-			if ev.Kind == events.Note && ev.Text == "The game ended before the first turn" {
-				resolutions++
-			}
-		}
-		if resolutions != 1 {
-			t.Fatalf("short seat %d: %d resolution Notes, want exactly 1", shortSeat, resolutions)
-		}
 		if got := e.L.Events[len(e.L.Events)-1].Kind; got != events.GameOver {
 			t.Fatalf("short seat %d: final genesis event = %v, want GameOver", shortSeat, got)
 		}
@@ -183,8 +173,8 @@ func TestTossNoteIsEmittedWhenOpeningDealEndsTheGame(t *testing.T) {
 // TestTossNoteSurvivesWhenEveryOpeningDeckIsUndersized pins the no-survivor
 // terminal shape: the pre-drawn random determination is still recorded (the
 // pre-deal announcement, before any shuffle) even though nobody remains to
-// become starting player, and the resolution Note precedes the CR 104.4a
-// draw, leaving GameOver as the final event.
+// become starting player. The toss is the only Note, and CR 104.4a's GameOver
+// remains the final event.
 func TestTossNoteSurvivesWhenEveryOpeningDeckIsUndersized(t *testing.T) {
 	e := New(Config{Seed: 1, Names: []string{"a", "b"},
 		Decks: [][]*cards.Card{mountainDeck(t, 3), mountainDeck(t, 3)}})
@@ -200,11 +190,8 @@ func TestTossNoteSurvivesWhenEveryOpeningDeckIsUndersized(t *testing.T) {
 	if notes[0].Text != want {
 		t.Fatalf("toss Note text %q, want %q", notes[0].Text, want)
 	}
-	if len(e.L.Events) < 2 || e.L.Events[len(e.L.Events)-2].Kind != events.Note || e.L.Events[len(e.L.Events)-1].Kind != events.GameOver {
-		t.Fatalf("terminal genesis tail = %+v, want resolution Note then GameOver", e.L.Events[max(0, len(e.L.Events)-2):])
-	}
-	if got := e.L.Events[len(e.L.Events)-2].Text; got != "The game ended before the first turn" {
-		t.Fatalf("terminal resolution Note = %q", got)
+	if got := e.L.Events[len(e.L.Events)-1].Kind; got != events.GameOver {
+		t.Fatalf("terminal genesis final event = %v, want GameOver", got)
 	}
 }
 

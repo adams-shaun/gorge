@@ -575,11 +575,10 @@ func New(cfg Config) *Engine {
 	// public. The Note names the seat the rng handed the toss to -- the true
 	// CR 103.1 winner -- even if the deal below then eliminates them; who
 	// actually takes the first turn is resolved after the deal has fixed the
-	// survivors, and a game the deal ended gets a separate
-	// resolution Note in finishTerminalGenesis saying why no turn began. The
-	// text carries the deck identity, never the display PlayerName (F3 keeps
-	// display names out of the chain); view/describe.go renders this one Note
-	// through player(), so a seated human still reads their own name.
+	// survivors. The text carries the deck identity, never the display
+	// PlayerName (F3 keeps display names out of the chain); view/describe.go
+	// renders this one Note through player(), so a seated human still reads
+	// their own name.
 	if toss >= 0 {
 		e.emit(events.Event{Kind: events.Note, Player: state.PlayerID(toss),
 			Text: tossName(e.G, state.PlayerID(toss)) + " won the toss"})
@@ -672,12 +671,12 @@ func New(cfg Config) *Engine {
 					e.emit(events.Event{Kind: events.PlayerLost, Player: state.PlayerID(next), Text: "drew from an empty library"})
 				}
 			}
-			if e.finishTerminalGenesis(toss, len(cfg.Names)) {
+			if e.finishTerminalGenesis() {
 				return e
 			}
 		}
 	}
-	if e.finishTerminalGenesis(toss, len(cfg.Names)) {
+	if e.finishTerminalGenesis() {
 		return e
 	}
 	e.deferGameOver = false
@@ -727,33 +726,17 @@ func New(cfg Config) *Engine {
 	return e
 }
 
-// finishTerminalGenesis records and finalizes a game whose opening deal left
-// at most one survivor. The toss was announced before the first shuffle (the
-// pre-deal Note in New), so this function records only the RESOLUTION: a Note
-// saying why no first turn began, kept ahead of checkGameOver because
-// host.boundsOf recognizes a complete terminal burst only when GameOver is its
-// final event. With one survivor, rejection sampling maps the toss uniformly
-// onto that survivor. With none, there is no possible starting player. The
-// Note deliberately does not repeat "won the toss" -- that claim appears
-// exactly once per game's log, in the pre-deal announcement. A malformed
-// zero-seat Config drew no toss and has nothing to resolve.
-func (e *Engine) finishTerminalGenesis(toss, seats int) bool {
-	alive := e.G.AliveFrom(0)
-	if len(alive) > 1 {
+// finishTerminalGenesis finalizes a game whose opening deal left at most one
+// survivor. The toss was already announced before the first shuffle (the
+// pre-deal Note in New); terminal genesis therefore needs no additional Note.
+// Ruling T22-e: nobody survived genesis is CR 104.4a's draw; one survivor is
+// CR 104.2a's winner. GameOver remains the final genesis event for the host's
+// persistence/replay burst boundaries.
+func (e *Engine) finishTerminalGenesis() bool {
+	if e.G.AliveCount() > 1 {
 		return false
 	}
 	e.deferGameOver = false
-	if toss >= 0 {
-		winner := state.PlayerID(toss)
-		if len(alive) == 1 {
-			winner, _ = e.resolveToss(toss, alive, seats)
-		}
-		e.emit(events.Event{Kind: events.Note, Player: winner,
-			Text: "The game ended before the first turn"})
-	}
-	// Ruling T22-e: nobody survived genesis is CR 104.4a's draw; one
-	// survivor is CR 104.2a's winner. This MUST remain the final genesis
-	// event for persistence/replay burst boundaries.
 	e.checkGameOver()
 	return true
 }

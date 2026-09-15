@@ -122,7 +122,7 @@ func Describe(g *state.Game, ev events.Event) string {
 			// to say the same words and must remain verbatim. The transcript renders
 			// this one subject through player(), so PlayerName remains visible
 			// without entering the event chain.
-			if ev.Seq == 1 && g != nil && int(ev.Player) < len(g.Players) && ev.Text == g.Players[ev.Player].Name+" won the toss" {
+			if ev.Seq == 1 && g != nil && ev.Text == tossNoteText(g, ev.Player) {
 				return player(g, ev.Player) + " won the toss"
 			}
 			return ev.Text
@@ -373,6 +373,22 @@ func player(g *state.Game, p state.PlayerID) string {
 		}
 	}
 	return "seat " + strconv.Itoa(int(p))
+}
+
+// tossNoteText is the deterministic chain text rules.New emits for its
+// genesis toss Note. It deliberately follows player()'s deck-name fallback
+// but excludes PlayerName, which is display-only and must not reach the hash
+// chain. Keeping the fallback here makes an empty deck identity render through
+// PlayerName rather than leaking the raw "seat N" chain text to the transcript.
+func tossNoteText(g *state.Game, p state.PlayerID) string {
+	name := ""
+	if g != nil && int(p) < len(g.Players) {
+		name = g.Players[p].Name
+	}
+	if name == "" {
+		name = "seat " + strconv.Itoa(int(p))
+	}
+	return name + " won the toss"
 }
 
 // life is the seat's life total as of g, or "?" when unresolvable.

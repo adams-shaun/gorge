@@ -129,21 +129,38 @@ func TestPregameViewReportsNoActiveSeatWhenNoTurnBegan(t *testing.T) {
 // player box shows -- instead of echoing the raw chain text. Before this
 // the transcript read "a won the toss" beside "Alice is asked".
 func TestDescribeRendersTheTossNoteThroughThePlayerName(t *testing.T) {
-	e := tossedEngine(t, 1, 1, []string{"Alice", "Bob"})
-	var note events.Event
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && ev.Text == "b won the toss" {
-			note = ev
-			break
-		}
-	}
-	if note.Text != "b won the toss" {
-		t.Fatalf("fixture precondition: chain text %q", note.Text)
-	}
-	// The line names the seat the way the player box does -- the seat's own
-	// display name -- even though the chain text carries the deck identity.
-	if got, want := view.Describe(e.G, note), "Bob won the toss"; got != want {
-		t.Fatalf("describe toss note = %q, want %q", got, want)
+	for _, tc := range []struct {
+		name      string
+		deckNames []string
+		chainText string
+	}{
+		{name: "deck identity", deckNames: []string{"a", "b"}, chainText: "b won the toss"},
+		// tossName falls back to "seat N" when a Config has no deck identity;
+		// the transcript must still recognize the same deterministic text and
+		// render the PlayerName rather than leaking that fallback to humans.
+		{name: "empty deck identity", deckNames: []string{"", ""}, chainText: "seat 1 won the toss"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := rules.New(rules.Config{Seed: 1, Names: tc.deckNames,
+				Decks: mountainDecks(t, 2), Mulligans: 1,
+				PlayerNames: []string{"Alice", "Bob"}})
+			var note events.Event
+			for _, ev := range e.L.Events {
+				if ev.Kind == events.Note && ev.Text == tc.chainText {
+					note = ev
+					break
+				}
+			}
+			if note.Text != tc.chainText || note.Player != 1 {
+				t.Fatalf("fixture precondition: toss Note = %+v, want seat 1 %q", note, tc.chainText)
+			}
+			// The line names the seat the way the player box does -- the seat's
+			// own display name -- even though the chain text carries its
+			// deterministic deck-identity (or seat-number) fallback.
+			if got, want := view.Describe(e.G, note), "Bob won the toss"; got != want {
+				t.Fatalf("describe toss note = %q, want %q", got, want)
+			}
+		})
 	}
 }
 
