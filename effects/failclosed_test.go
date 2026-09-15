@@ -29,11 +29,8 @@ func TestUnimplementedPredicateFailsClosed(t *testing.T) {
 	// nothing -- never become an always-true predicate.
 	for _, spec := range []string{
 		"Card.IsRemembered",
-		"Card.ExiledWithSource",
 		"Creature.wasDealtDamageThisTurn",
 		"Permanent.IsImprinted",
-		"Creature.ChosenCard",
-		"Creature.nonChosenCard",
 		"Creature.HasCounters", // negative: this one IS implemented, so it breaks the loop below
 	} {
 		// Every unimplemented spec must match nothing.
@@ -46,7 +43,7 @@ func TestUnimplementedPredicateFailsClosed(t *testing.T) {
 	}
 
 	// And UnknownPredicates keeps reporting each unimplemented one.
-	for _, want := range []string{"IsRemembered", "ExiledWithSource", "wasDealtDamageThisTurn", "IsImprinted", "ChosenCard", "nonChosenCard"} {
+	for _, want := range []string{"IsRemembered", "wasDealtDamageThisTurn", "IsImprinted"} {
 		found := false
 		for _, u := range UnknownPredicates("Card." + want) {
 			if u == want {

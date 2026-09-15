@@ -120,11 +120,15 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// Shadows uses this as a DamageSource$: the enchanted creature, not the
 		// Aura whose trigger is resolving, deals the reflected damage. Preserve
 		// the target's kind here; callers that require an object (the damage
-		// rider) already reject player entries rather than guessing.
+		// rider) already reject player entries rather than guessing. When the
+		// causing event's mode did not capture a TriggerTarget (a hand-built
+		// context or an Attached-mode trigger the referent walk does not
+		// model), fall back to the chosen targets -- Defined's pre-branch
+		// convention for a trigger selector whose provenance was not recorded.
 		if c.TriggerTarget.Obj != 0 || c.TriggerTarget.IsPlayer {
 			return []state.Target{c.TriggerTarget}, true
 		}
-		return nil, true
+		return copyTargets(c.Targets), true
 	case "TriggeredSource":
 		// The damage source the causing event recorded (pg2's
 		// TriggerContext.TriggerSource): a DamageDone execute's "that source
@@ -234,6 +238,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	// the bool whether that fallback is acceptable).
 	return nil, false
 }
+
 // objectsOf returns Remembered's object entries (IsPlayer false) as a fresh
 // slice -- never aliasing Ctx.Remembered, for the reason copyTargets' own
 // doc comment gives.
