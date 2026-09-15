@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/replay"
 )
 
 // TestCompileTokenDerivesTheCard pins the token recompilation Load does:
@@ -31,31 +32,15 @@ func TestCompileTokenDerivesTheCard(t *testing.T) {
 	}
 }
 
-// TestResolveTokensSyncWinsOverCorpus is the test the previous round's
-// review asked for. The old sync round-trip test could not detect a
-// dropped sync-directory read because the capture, the sync directory and
-// the live corpus all carried the SAME current token scripts, so removing
-// the sync read changed nothing observable. Here the sync directory
-// carries a script that DIFFERS observably from the live corpus (the same
-// stem, a different P/T), and resolveTokens must return the synced version
-// — proving Load prefers the exact historical text over the current corpus
-// when the two disagree.
-func TestResolveTokensSyncWinsOverCorpus(t *testing.T) {
-	reg, err := openCorpus()
-	if err != nil {
-		t.Fatalf("openCorpus: %v", err)
-	}
-	// Pick a stem that exists in the live corpus so the fallback would have
-	// produced a real (differing) token too; the synced script overrides it.
+// TestLoadSyncTokensWinOverCorpus exercises the production boundary, not
+// resolveTokens in isolation: this stripped copy of a real fixture has a
+// synced script that differs from the live corpus. Load must put
+// that 3/4 card in Config.Tokens, which is exactly the Config replay receives.
+func TestLoadSyncTokensWinOverCorpus(t *testing.T) {
 	const stem = "r_1_1_goblin"
-	corpus, ok := reg.Tokens[stem]
-	if !ok {
-		t.Fatalf("corpus carries no %q token", stem)
-	}
-	corpusP, corpusT := corpus.Faces[0].Power(), corpus.Faces[0].Toughness()
+	const id = "zz-load-sync-wins-test"
+	dir := copyStrippedFixture(t, id)
 
-	syncText := "Name:Goblin Token\nManaCost:no cost\nColors:red\nTypes:Creature Goblin\nPT:3/4\nOracle:\n"
-	id := "zz-sync-wins-test"
 	syncDir, err := TokenSyncDir(id)
 	if err != nil {
 		t.Fatal(err)
@@ -64,64 +49,113 @@ func TestResolveTokensSyncWinsOverCorpus(t *testing.T) {
 	if err := os.MkdirAll(syncDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := writeSyncTokens(t, syncDir, map[string]string{stem: syncText}); err != nil {
+	if err := writeSyncTokens(t, syncDir, map[string]string{stem: "Name:Goblin Token\nManaCost:no cost\nColors:red\nTypes:Creature Goblin\nPT:3/4\nOracle:\n"}); err != nil {
 		t.Fatal(err)
+	}
+	reg, err := openCorpus()
+	if err != nil {
+		t.Fatal(err)
+	}
+	corpus := reg.Tokens[stem]
+	if corpus == nil {
+		t.Fatalf("corpus carries no %q token", stem)
+	}
+	if corpus.Faces[0].Power() == 3 && corpus.Faces[0].Toughness() == 4 {
+		t.Fatalf("live corpus %q is already 3/4; test fixture no longer distinguishes sync precedence", stem)
 	}
 
-	dir := filepath.Join(t.TempDir(), id)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	resolved, err := resolveTokens(dir, matchJSON{}, reg)
+	l, cfg, meta, err := Load(dir)
 	if err != nil {
-		t.Fatalf("resolveTokens: %v", err)
+		t.Fatalf("Load: %v", err)
 	}
-	got := resolved[stem]
+	got := cfg.Tokens[stem]
 	if got == nil {
-		t.Fatalf("resolved tokens carry no %q", stem)
+		t.Fatalf("Load Config.Tokens carries no %q", stem)
 	}
-	if p, tgh := got.Faces[0].Power(), got.Faces[0].Toughness(); p != 3 || tgh != 4 {
-		t.Errorf("synced token resolved to %d/%d, want 3/4 (sync must beat corpus %d/%d)", p, tgh, corpusP, corpusT)
+	if p, toughness := got.Faces[0].Power(), got.Faces[0].Toughness(); p != 3 || toughness != 4 {
+		t.Fatalf("Load Config.Tokens[%q] = %d/%d, want synced 3/4", stem, p, toughness)
+	}
+	// Replay consumes precisely the Config Load returned. This fixture does
+	// not mint a token, so its recorded event chain remains unchanged while
+	// still proving the production Config supplied to replay contains it.
+	e, err := replay.Replay(l, cfg)
+	if err != nil {
+		t.Fatalf("replay with Load config: %v", err)
+	}
+	if got := e.L.Head(); got != meta.Head {
+		t.Errorf("replay head %q, want recorded %q", got, meta.Head)
 	}
 }
 
-// TestResolveTokensFallsBackToCorpusWhenSyncMissing pins the other side of
-// the precedence: a stripped fixture with NO sync directory (a fresh
-// checkout that never ran the fixture generator) resolves through the live
-// corpus token map, so such a fixture replays anyway instead of failing.
-func TestResolveTokensFallsBackToCorpusWhenSyncMissing(t *testing.T) {
+// TestLoadFallsBackToCorpusWhenSyncMissing exercises the other production
+// branch: a stripped fixture under an id with no sync directory must Load
+// successfully with the current corpus token map.
+func TestLoadFallsBackToCorpusWhenSyncMissing(t *testing.T) {
+	const stem = "r_1_1_goblin"
+	const id = "zz-load-sync-absent-test"
+	dir := copyStrippedFixture(t, id)
+	syncDir, err := TokenSyncDir(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.RemoveAll(syncDir); err != nil {
+		t.Fatal(err)
+	}
+
 	reg, err := openCorpus()
 	if err != nil {
-		t.Fatalf("openCorpus: %v", err)
+		t.Fatal(err)
 	}
-	const stem = "r_1_1_goblin"
-	corpus, ok := reg.Tokens[stem]
-	if !ok {
+	corpus := reg.Tokens[stem]
+	if corpus == nil {
 		t.Fatalf("corpus carries no %q token", stem)
 	}
-
-	// A fixture id whose sync directory does not exist anywhere.
-	id := "zz-sync-absent-test"
-	syncDir, _ := TokenSyncDir(id)
-	if _, err := os.Stat(syncDir); err == nil {
-		t.Fatalf("test sync dir %s unexpectedly exists", syncDir)
+	l, cfg, meta, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load without sync: %v", err)
 	}
+	got := cfg.Tokens[stem]
+	if got == nil {
+		t.Fatalf("Load corpus fallback carries no %q", stem)
+	}
+	if p, toughness := got.Faces[0].Power(), got.Faces[0].Toughness(); p != corpus.Faces[0].Power() || toughness != corpus.Faces[0].Toughness() {
+		t.Fatalf("Load corpus fallback token = %d/%d, want corpus %d/%d", p, toughness, corpus.Faces[0].Power(), corpus.Faces[0].Toughness())
+	}
+	e, err := replay.Replay(l, cfg)
+	if err != nil {
+		t.Fatalf("replay with corpus fallback: %v", err)
+	}
+	if got := e.L.Head(); got != meta.Head {
+		t.Errorf("replay head %q, want recorded %q", got, meta.Head)
+	}
+}
 
+const fixtureIDForTest = "20260914T120000Z-fb01"
+
+// copyStrippedFixture gives Load a real, committed capture shape under a
+// caller-selected id. Its match.json contains no token text, so that id
+// selects either the synced-token or missing-sync branch in Load.
+func copyStrippedFixture(t *testing.T, id string) string {
+	t.Helper()
+	root, err := Root()
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := filepath.Join(root, "cmd", "repro", "testdata", "feedback", fixtureIDForTest)
 	dir := filepath.Join(t.TempDir(), id)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	resolved, err := resolveTokens(dir, matchJSON{}, reg)
-	if err != nil {
-		t.Fatalf("resolveTokens: %v", err)
+	for _, name := range []string{"match.json", "log.json"} {
+		raw, err := os.ReadFile(filepath.Join(src, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), raw, 0o644); err != nil {
+			t.Fatal(err)
+		}
 	}
-	got := resolved[stem]
-	if got == nil {
-		t.Fatalf("corpus fallback produced no %q token", stem)
-	}
-	if p, tgh := got.Faces[0].Power(), got.Faces[0].Toughness(); p != corpus.Faces[0].Power() || tgh != corpus.Faces[0].Toughness() {
-		t.Errorf("corpus fallback resolved to %d/%d, want corpus %d/%d", p, tgh, corpus.Faces[0].Power(), corpus.Faces[0].Toughness())
-	}
+	return dir
 }
 
 // writeSyncTokens writes a tokens.json map into a token sync directory in
