@@ -376,15 +376,13 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// ValidTgts$ Creature.sameName), or the Remembered./Targeted./
 		// Triggered. context object the alternative's base prefix names
 		// (Eradicate's Remembered.sameName, Bifurcate's Targeted.*,
-		// Bloodbond March's Triggered.sameName).
+		// Bloodbond March's Triggered.sameName). sourceName has the same DFC
+		// zone-characteristic rule as sharesName, rather than trusting a
+		// retained transformed FaceIdx after the source has left play.
 		if sc.Source == 0 {
 			return false
 		}
-		s := g.Obj(sc.Source)
-		if s == nil || s.Face() == nil {
-			return false
-		}
-		return sharesName(o, s.Face().Name)
+		return sharesName(o, sourceName(g.Obj(sc.Source)))
 	case wordAttachedTo:
 		// Forge's AttachedTo <X>: this object (an Aura or Equipment) is
 		// attached to something, and the permanent it is attached to (its
@@ -497,25 +495,43 @@ func nameArg(p string) string {
 // Card.sharesNameWith(String): the current face's printed name, plus CR
 // 708.4a's both-names rule for a SPLIT card away from the stack and the
 // battlefield. A transforming DFC has only its front-face characteristics in
-// those zones (CR 712), while its transformed face is current on the
-// battlefield. An empty name never matches; an ability object (Card nil) has
-// no name.
+// those zones (CR 712), even when its retained FaceIdx still identifies the
+// face it had while transformed. On the battlefield and stack, every layout
+// instead uses its selected face. An empty name never matches; an ability
+// object (Card nil) has no name.
 func sharesName(o *state.Object, name string) bool {
 	if name == "" || o == nil || o.Card == nil {
 		return false
 	}
-	if f := o.Face(); f != nil && f.Name == name {
-		return true
-	}
-	if o.Card.AlternateMode != "Split" || o.Zone == state.ZStack || o.Zone == state.ZBattlefield {
+	if o.Card.AlternateMode == "Split" && o.Zone != state.ZStack && o.Zone != state.ZBattlefield {
+		for _, f := range o.Card.Faces {
+			if f != nil && f.Name == name {
+				return true
+			}
+		}
 		return false
 	}
-	for _, f := range o.Card.Faces {
-		if f != nil && f.Name == name {
-			return true
-		}
+	return sourceName(o) == name
+}
+
+// sourceName returns the one name Forge's sameName comparison takes from its
+// source object. events.Move retains FaceIdx, but a non-battlefield/non-stack
+// DFC has front-face characteristics (CR 712), so its retained transformed
+// index must not select the back name. A split source likewise has a primary
+// face name here; sharesName gives the candidate the split card's both-name
+// treatment separately, matching Forge Card.sharesNameWith(Card).
+func sourceName(o *state.Object) string {
+	if o == nil || o.Card == nil {
+		return ""
 	}
-	return false
+	f := o.Face()
+	if o.Zone != state.ZStack && o.Zone != state.ZBattlefield && len(o.Card.Faces) != 0 {
+		f = o.Card.Faces[0]
+	}
+	if f == nil {
+		return ""
+	}
+	return f.Name
 }
 
 // matchPositive evaluates a recognised positive-evaluation predicate token p
