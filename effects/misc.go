@@ -67,6 +67,30 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	what := strings.TrimSpace(sa.Params["StaticAbilities"] + " " + sa.Params["Triggers"])
 	remembered := effectRemembered(h, c, sa)
 	registered := false
+	// Effect can also create a replacement rather than a layer restriction.
+	// Forge stores its R: body behind an SVar name in ReplacementEffects$.
+	// Keep the parsed event data in state (which cannot import cards) and the
+	// body text for rules to resolve under this Effect's source context.
+	for _, name := range strings.FieldsFunc(sa.Params["ReplacementEffects"], func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	}) {
+		event, params := parseReplacementLine(c.SVars, name)
+		body := ""
+		if with := params["ReplaceWith"]; with != "" {
+			body = c.SVars[with]
+		}
+		if event == "DamageDone" && body != "" {
+			h.AddContinuous(state.ContinuousEffect{
+				Source: c.Source, Controller: c.Controller,
+				UntilEOT: effectUntilEOT(h, c.Source, dur), Duration: dur,
+				ReplacementEvent: event, ReplacementParams: params, ReplacementBody: body,
+			})
+			registered = true
+		} else if name != "" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "continuous replacement unimplemented (" + name + ")"})
+		}
+	}
 	for _, name := range strings.FieldsFunc(sa.Params["StaticAbilities"], func(r rune) bool {
 		return r == ',' || r == ' ' || r == '\t' || r == '\n'
 	}) {
@@ -126,6 +150,24 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 // the S: line's own grammar (cards/parse.go's "S" case). An empty or
 // malformed body degrades to "" mode and a nil map, which the switch in
 // effEffect treats as unimplemented rather than as a registration.
+// parseReplacementLine parses an Effect's SVar replacement body ("Event$
+// DamageDone | ...") using the same key/value grammar as parseStaticLine.
+func parseReplacementLine(svars map[string]string, name string) (string, map[string]string) {
+	body := strings.TrimSpace(svars[name])
+	if body == "" {
+		return "", nil
+	}
+	params := make(map[string]string)
+	for _, seg := range strings.Split(body, "|") {
+		key, val, ok := strings.Cut(strings.TrimSpace(seg), "$")
+		if !ok {
+			continue
+		}
+		params[strings.TrimSpace(key)] = strings.TrimSpace(val)
+	}
+	return params["Event"], params
+}
+
 func parseStaticLine(svars map[string]string, name string) (string, map[string]string) {
 	body := strings.TrimSpace(svars[name])
 	if body == "" {

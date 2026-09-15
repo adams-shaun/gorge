@@ -13,6 +13,167 @@ import (
 
 // TestFieryEmancipationTriplesDamage uses the unmodified compiled corpus
 // replacement: ReplaceEffect changes DamageAmount before DamageDone is logged.
+func TestBloodOfTheMartyrEffectCreatedOptionalReplacement(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := newSeats(t, 2)
+	e.pending = nil
+	blood := e.G.AddObject(mustCorpusCard(t, reg, "Blood of the Martyr"), 0)
+	blood.Zone = state.ZStack
+	// Resolve the real Effect head exactly as the spell does; its SVar carries
+	// the Optional$ DamageDone replacement that must survive the source moving.
+	effects.Resolve(e, &effects.Ctx{Source: blood.ID, Controller: 0, SVars: blood.Face().SVars}, blood.Face().SpellAbility())
+	target := onBoard(t, e, 1, "Name:Target\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	source := onBoard(t, e, 0, "Name:Source\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	e.damaging = source
+	e.emit(events.Event{Kind: events.Damage, Obj: target, Amount: 2})
+	e.damaging = 0
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement || d.Player != 1 {
+		t.Fatalf("pending = %+v, want affected creature controller's optional replacement choice", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 1, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := e.G.Obj(target).Damage; got != 0 {
+		t.Fatalf("target damage = %d, want 0 after optional redirection", got)
+	}
+	if got := e.G.Players[0].Life; got != 18 {
+		t.Fatalf("replacement controller life = %d, want 18 after accepting redirection", got)
+	}
+}
+
+// TestDamageAllParksEveryRecipientBeforeTheChainResumes pins the
+// multi-recipient settlement order (CR 616.1): a DamageAll over two creatures
+// with two competing amount modifiers parks one order choice per recipient
+// event, and the spell's chained rider (and its departure from the stack)
+// waits for the LAST answer. Resuming after the first answer would let the
+// rider fire and the spell leave the stack while the second recipient's
+// damage is still awaiting its order choice.
+func TestDamageAllParksEveryRecipientBeforeTheChainResumes(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := newSeats(t, 2)
+	e.pending = nil
+	fiery := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Fiery Emancipation"))
+	onBoard(t, e, 0, "Name:Plus Two\nTypes:Enchantment\n"+
+		"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidSource$ Card.YouCtrl | ValidTarget$ Creature | ReplaceWith$ D\n"+
+		"SVar:D:DB$ ReplaceEffect | VarName$ DamageAmount | VarValue$ X\n"+
+		"SVar:X:ReplaceCount$DamageAmount/Plus.2\nOracle:x\n")
+	t1 := onBoard(t, e, 1, "Name:Victim One\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	t2 := onBoard(t, e, 1, "Name:Victim Two\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	spell := e.G.AddObject(card(t, "Name:Damage All\nManaCost:R\nTypes:Instant\n"+
+		"A:SP$ DamageAll | ValidCards$ Creature | NumDmg$ 2 | SubAbility$ Gain\n"+
+		"SVar:Gain:DB$ GainLife | Defined$ You | LifeAmount$ 5\nOracle:x\n"), 0)
+	spell.Zone = state.ZStack
+	e.G.SetZone(state.ZStack, 0, []state.ObjID{spell.ID})
+	e.G.Stack = []state.ObjID{spell.ID}
+	e.resolveTop()
+	answers := 0
+	for {
+		d := e.Pending()
+		if d == nil || d.Kind == decision.KPriority {
+			break
+		}
+		if d.Kind != decision.KReplacement {
+			t.Fatalf("answer %d: pending kind %v, want KReplacement (%+v)", answers, d.Kind, d)
+		}
+		answers++
+		// After the first answer the rider must NOT have run and the spell
+		// must still be on the stack: the second recipient's choice is owed.
+		if answers == 2 {
+			if got := e.G.Players[0].Life; got != 20 {
+				t.Fatalf("rider ran before the second recipient's answer: life = %d, want 20", got)
+			}
+			if got := e.G.Obj(spell.ID).Zone; got != state.ZStack {
+				t.Fatalf("spell zone after first answer = %s, want stack", got)
+			}
+		}
+		if answers > 4 {
+			t.Fatalf("too many replacement asks: %+v", d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if answers != 2 {
+		t.Fatalf("replacement asks = %d, want one per recipient (2)", answers)
+	}
+	// Both recipients' damage settled before the rider: each victim took the
+	// answered (2+2)*3 = 12 damage and died from it, and the rider ran once.
+	for _, id := range []state.ObjID{t1, t2} {
+		if got := e.G.Obj(id).Zone; got != state.ZGraveyard {
+			t.Fatalf("victim zone = %s, want graveyard after lethal settled damage", got)
+		}
+	}
+	if got := e.G.Players[0].Life; got != 25 {
+		t.Fatalf("rider life = %d, want 25 from exactly one GainLife after both answers", got)
+	}
+	if got := e.G.Obj(spell.ID).Zone; got != state.ZGraveyard {
+		t.Fatalf("spell zone = %s, want graveyard after the chain resumed", got)
+	}
+	_ = fiery
+}
+
+// TestRecomputedDamageOrderChoiceGoesToTheNewAffectedPlayer pins CR 616.1e's
+// affected-player recompute: a redirect replacement chosen first changes the
+// damage's recipient, and the recomputed order choice over the remaining
+// modifiers must be asked of the NEW recipient's controller, not the original
+// one.
+func TestRecomputedDamageOrderChoiceGoesToTheNewAffectedPlayer(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := newSeats(t, 2)
+	e.pending = nil
+	// Player 1 controls the optional redirector (the Blood of the Martyr
+	// shape): damage to a player can be redirected to its controller.
+	_ = onBoard(t, e, 1, "Name:Redirector\nTypes:Enchantment\n"+
+		"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidTarget$ Player | Optional$ True | ReplaceWith$ D\n"+
+		"SVar:D:DB$ ReplaceEffect | VarName$ Affected | VarValue$ You\nOracle:x\n")
+	_ = onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Fiery Emancipation"))
+	onBoard(t, e, 0, "Name:Plus Two\nTypes:Enchantment\n"+
+		"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidSource$ Card.YouCtrl | ValidTarget$ Player | ReplaceWith$ D\n"+
+		"SVar:D:DB$ ReplaceEffect | VarName$ DamageAmount | VarValue$ X\n"+
+		"SVar:X:ReplaceCount$DamageAmount/Plus.2\nOracle:x\n")
+	source := onBoard(t, e, 0, "Name:Source\nManaCost:R\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	e.damaging = source
+	e.emit(events.Event{Kind: events.Damage, Player: 0, Amount: 2})
+	e.damaging = 0
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement || d.Player != 0 {
+		t.Fatalf("pending = %+v, want the original recipient's (player 0's) order choice", d)
+	}
+	// Choose the redirector: the damage becomes player 1's to take, and the
+	// recomputed competition over the remaining modifiers belongs to player 1.
+	redir := -1
+	for _, opt := range d.Options {
+		if opt.Label == "Apply Redirector's replacement" {
+			redir = opt.Index
+		}
+	}
+	if redir < 0 {
+		t.Fatalf("redirector missing from options: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{redir}}); err != nil {
+		t.Fatal(err)
+	}
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KReplacement {
+		t.Fatalf("after redirection pending = %+v, want a recomputed order choice", d)
+	}
+	if d.Player != 1 {
+		t.Fatalf("recomputed order choice asked player %d, want the new recipient's controller 1", d.Player)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 1, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	// Redirected 2 damage, then Fiery's thrice and Plus.2: (2*3)+2 = 8 to
+	// player 1; player 0 untouched.
+	if got := e.G.Players[1].Life; got != 12 {
+		t.Fatalf("player 1 life = %d, want 12 after the redirected, tripled, doubled damage", got)
+	}
+	if got := e.G.Players[0].Life; got != 20 {
+		t.Fatalf("player 0 life = %d, want 20", got)
+	}
+}
+
 func TestFieryEmancipationTriplesDamage(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e := newSeats(t, 2)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -654,6 +655,51 @@ func TestFirstStrikeKillsBeforeTheNormalDamageStep(t *testing.T) {
 	}
 	if o := e.G.Obj(atk); o.Zone != state.ZBattlefield {
 		t.Fatalf("first striker zone = %v, want battlefield (it took no damage back)", o.Zone)
+	}
+}
+
+// TestFirstStrikeReplacementOrderSettlesBeforeRegularPass pins a CR 510.4
+// continuation: a replacement-order question during first-strike damage must
+// hold both the remaining pass and its SBA until answered. Otherwise a blocker
+// lethally hit by the answered first-strike damage gets an illegal regular hit.
+func TestFirstStrikeReplacementOrderSettlesBeforeRegularPass(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := combatEngine(t)
+	fiery := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Fiery Emancipation"))
+	onBoard(t, e, 0, "Name:Plus Two\nTypes:Enchantment\n"+
+		"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidSource$ Card.YouCtrl | ValidTarget$ Creature | ReplaceWith$ D\n"+
+		"SVar:D:DB$ ReplaceEffect | VarName$ DamageAmount | VarValue$ X\n"+
+		"SVar:X:ReplaceCount$DamageAmount/Plus.2\nOracle:x\n")
+	atk := onBoardReady(t, e, 0, "Name:Duelist\nTypes:Creature Soldier\nPT:2/2\nK:First Strike\nOracle:x\n")
+	blk := onBoard(t, e, 1, "Name:Guard\nTypes:Creature Soldier\nPT:2/2\nOracle:x\n")
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{atk}})
+	e.emit(events.Event{Kind: events.DeclareBlockers, Player: 1, Pairs: [][2]state.ObjID{{atk, blk}}})
+	e.combatRound = combatRound{hasFirst: true, pass: true, active: true}
+	e.finishCombatPass()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement {
+		t.Fatalf("pending = %+v, want first-strike replacement order", d)
+	}
+	if got := e.G.Obj(blk).Damage; got != 0 {
+		t.Fatalf("blocker damage before answer = %d, want parked", got)
+	}
+	idx := -1
+	for _, opt := range d.Options {
+		if opt.Obj == fiery {
+			idx = opt.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("Fiery missing from %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+		t.Fatal(err)
+	}
+	if o := e.G.Obj(blk); o.Zone != state.ZGraveyard {
+		t.Fatalf("blocker zone = %s, want graveyard before regular pass", o.Zone)
+	}
+	if got := e.G.Obj(atk).Damage; got != 0 {
+		t.Fatalf("attacker damage = %d, want 0: dead blocker cannot deal regular damage", got)
 	}
 }
 

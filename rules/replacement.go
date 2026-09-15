@@ -73,6 +73,23 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	// forEachObject's deterministic scan order, rather than the single first
 	// match the M1 build took.
 	var matches []replMatch
+	// Effect-created replacements (Blood of the Martyr and the broader
+	// ReplacementEffects$ family) are active independently of their source's
+	// current zone. active() enforces the Effect duration; reconstruct the
+	// Forge R: body into the same replMatch path used by printed replacements
+	// so filters, ordering and replacement context cannot drift.
+	for _, ce := range e.active() {
+		if ce.ReplacementEvent == "" || ce.ReplacementBody == "" {
+			continue
+		}
+		if with := replacementBodySA(ce.ReplacementBody); with != nil {
+			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams, With: with}
+			if e.replacementMatches(*r, ce.Source, ev) {
+				matches = append(matches, replMatch{id: ce.Source, repl: r,
+					key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
+			}
+		}
+	}
 	e.forEachObject(func(id state.ObjID) {
 		o := e.G.Obj(id)
 		if o == nil {
@@ -97,7 +114,7 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 			if len(matches) == 0 {
 				return ev, false
 			}
-			if len(matches) > 1 {
+			if len(matches) > 1 || hasOptionalReplacement(matches) {
 				if p, ok := e.damageAffectedPlayer(ev); ok && !e.G.Players[p].Lost {
 					e.poseDamageReplacementChoice(ev, matches, p)
 					return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
@@ -229,6 +246,42 @@ func (e *Engine) damageAffectedPlayer(ev events.Event) (state.PlayerID, bool) {
 type replMatch struct {
 	id   state.ObjID
 	repl *cards.Repl
+	// key identifies an Effect-created replacement across active() rebuilds.
+	// Printed replacement pointers are immutable face entries and need no key.
+	key string
+}
+
+func hasOptionalReplacement(matches []replMatch) bool {
+	for _, m := range matches {
+		if strings.EqualFold(m.repl.Params["Optional"], "True") {
+			return true
+		}
+	}
+	return false
+}
+
+// replacementBodySA turns the body retained by an Effect-created replacement
+// into the same immutable SA shape cards.Parse builds for a printed R: line.
+// It deliberately shares the ordinary `Kind$ API | Key$ Value` grammar rather
+// than recognizing Blood of the Martyr by name.
+func replacementBodySA(body string) *cards.SA {
+	parts := strings.Split(body, "|")
+	if len(parts) == 0 {
+		return nil
+	}
+	head := strings.TrimSpace(parts[0])
+	kind, api, ok := strings.Cut(head, "$")
+	if !ok || strings.TrimSpace(api) == "" {
+		return nil
+	}
+	sa := &cards.SA{Kind: strings.TrimSpace(kind), API: strings.TrimSpace(api), Params: make(map[string]string)}
+	for _, part := range parts[1:] {
+		key, value, ok := strings.Cut(strings.TrimSpace(part), "$")
+		if ok && strings.TrimSpace(key) != "" {
+			sa.Params[strings.TrimSpace(key)] = strings.TrimSpace(value)
+		}
+	}
+	return sa
 }
 
 // replCtx builds the effects.Ctx a replacement's ReplaceWith$ resolves
@@ -533,6 +586,8 @@ func (e *Engine) ReplaceEvent(name, raw string, resolved int32) {
 		return
 	}
 	switch raw {
+	case "You":
+		ev.Obj, ev.Player = 0, e.controllerOf(e.replacingSource)
 	case "Self":
 		ev.Obj, ev.Player = e.replacingSource, 0
 	case "Enchanted", "Equipped":
@@ -1050,6 +1105,10 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 		}
 		d.Options = append(d.Options, decision.Option{Index: i, Kind: "replacement", Obj: c.id, Label: label})
 	}
+	if rc.ev.Kind == events.Damage && hasOptionalReplacement(rc.cands) {
+		d.Options = append(d.Options, decision.Option{Index: len(rc.cands), Kind: "skip_replacement",
+			Label: "Do not apply an optional replacement"})
+	}
 	// A replacement-order choice can arise in the middle of an effect's Emit.
 	// Enter through Host.Ask so effects.Resolve sees Suspended and records the
 	// remaining SA chain. A recomputation ask already owns that resume point;
@@ -1085,7 +1144,8 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	e.replChoices = e.replChoices[1:]
 	rp := e.resume
 	chosen := d.Chosen(in)
-	if len(chosen) == 0 || chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) {
+	if len(chosen) == 0 || chosen[0].Index < 0 || chosen[0].Index > len(rc.cands) ||
+		(chosen[0].Index == len(rc.cands) && !(rc.ev.Kind == events.Damage && hasOptionalReplacement(rc.cands))) {
 		e.emit(events.Event{Kind: events.Note, Player: in.Player,
 			Text: "replacement-order answer out of range"})
 		return
@@ -1102,15 +1162,64 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		e.applyReplacement(rc.ev, rc.cands[chosen[0].Index])
 	}
 	e.triggerBefore = before
+	if completed && len(e.replChoices) > 0 {
+		// The same parked resolution produced more than one replacement
+		// choice: a multi-recipient DealDamage/DamageAll parks one per
+		// recipient event before its enclosing chain suspends. The original
+		// resume point must stay parked until the LAST of them is answered --
+		// resuming after the first would run the remaining SA chain (and move
+		// the spell off the stack) while a later recipient's damage is still
+		// awaiting its CR 616.1 order choice, and the chained riders would
+		// fire before the effect's own damage settled. If the application
+		// itself posed a nested ask (e.resume no longer rp), chain this
+		// frame's continuation behind the new one so nothing is dropped.
+		if rp != nil && e.resume != rp {
+			e.resume.outer = &resumePoint{kind: rp.kind, obj: rp.obj, outer: rp.outer}
+		}
+		for len(e.replChoices) > 0 {
+			next := e.replChoices[0]
+			// CR 616.1e: the affected player is recomputed from the parked
+			// event at ask time, so a competition whose recipient changed
+			// while parked asks the NEW affected player.
+			if p, ok := e.damageAffectedPlayer(next.ev); ok && !e.G.Players[p].Lost {
+				e.replChoices[0].player = p
+				if e.pending == nil {
+					e.askReplacementChoice(p)
+				}
+				return
+			}
+			// CR 800.4a: an affected player who has left the game or lost
+			// makes no choices. Its candidates apply in deterministic scan
+			// order and the queue drains on.
+			e.replChoices = e.replChoices[1:]
+			switch {
+			case next.counter:
+				e.applyChosenCounterReplacement(next, 0)
+			case next.ev.Kind == events.Damage:
+				completed = e.handleDamageReplacementChoice(next, 0)
+			default:
+				e.applyReplacement(next.ev, next.cands[0])
+			}
+			if !completed {
+				return
+			}
+		}
+	}
+	if completed && rc.combat && e.combatRound.assignments != nil {
+		// A combat damage pass was parked at this assignment. Finish the
+		// remaining precomputed assignments before running SBAs or the regular
+		// pass; a newly parked replacement simply returns again.
+		e.damageStep(false)
+		if e.pending == nil && e.combatRound.assignments == nil && e.combatRound.active {
+			e.completeCombatPass(e.combatRound.pass)
+		}
+	}
 	if completed && rp != nil && e.resume == rp {
 		// The parked event and its riders are complete. Resume only the chain
 		// after the effect that proposed it; the effect itself must not emit the
 		// same damage/counter event a second time.
 		e.resume = nil
 		e.resumeResolution(rp, nil)
-	}
-	if len(e.replChoices) > 0 && e.pending == nil {
-		e.askReplacementChoice(e.replChoices[0].player)
 	}
 }
 
@@ -1121,10 +1230,23 @@ func (e *Engine) handleDamageReplacementChoice(rc replChoice, selected int) bool
 	savedDamaging, savedCombat := e.damaging, e.combatDamaging
 	e.damaging, e.combatDamaging = rc.damaging, rc.combat
 	defer func() { e.damaging, e.combatDamaging = savedDamaging, savedCombat }()
-	m := rc.cands[selected]
-	rc.used = append(rc.used, m)
-	if e.applyChosenDamageReplacement(&rc.ev, m) {
-		return true
+	var m replMatch
+	if selected == len(rc.cands) {
+		// This is the explicit "do not apply" answer for an Optional$ True
+		// replacement. Mark every currently applicable optional replacement as
+		// used so recomputation cannot immediately pose the same question again;
+		// non-optional replacements remain eligible and still apply.
+		for _, m := range rc.cands {
+			if strings.EqualFold(m.repl.Params["Optional"], "True") {
+				rc.used = append(rc.used, m)
+			}
+		}
+	} else {
+		m := rc.cands[selected]
+		rc.used = append(rc.used, m)
+		if e.applyChosenDamageReplacement(&rc.ev, m) {
+			return true
+		}
 	}
 	for {
 		rc.cands = e.remainingDamageReplacements(rc.ev, rc.used)
@@ -1140,19 +1262,63 @@ func (e *Engine) handleDamageReplacementChoice(rc replChoice, selected int) bool
 			}
 		default:
 			// The first modification can leave several effects applicable. Ask
-			// again over exactly that recomputed set (CR 616.1e), preserving the
-			// already-modified amount and the original damage rider metadata.
-			e.replChoices = append([]replChoice{rc}, e.replChoices...)
-			if e.pending == nil {
-				e.askReplacementChoice(rc.player)
+			// again over exactly that recomputed set (CR 616.1e), preserving
+			// the already-modified amount and the original damage rider
+			// metadata. CR 616.1e also recomputes the AFFECTED player: after a
+			// redirection the choice belongs to the new recipient's controller,
+			// never the original one, so re-derive it from the modified event.
+			if p, ok := e.damageAffectedPlayer(rc.ev); ok && !e.G.Players[p].Lost {
+				rc.player = p
+				e.replChoices = append([]replChoice{rc}, e.replChoices...)
+				if e.pending == nil {
+					e.askReplacementChoice(p)
+				}
+				return false
 			}
-			return false
+			// CR 800.4a: the recomputed affected player is lost or gone and
+			// makes no choices, so the remaining candidates apply in
+			// deterministic scan order -- the same fallback the initial pose
+			// takes -- and the parked event settles here.
+			for {
+				if len(rc.cands) == 0 {
+					e.finishChosenDamage(rc)
+					return true
+				}
+				m = rc.cands[0]
+				rc.used = append(rc.used, m)
+				if e.applyChosenDamageReplacement(&rc.ev, m) {
+					return true
+				}
+				rc.cands = e.remainingDamageReplacements(rc.ev, rc.used)
+			}
 		}
 	}
 }
 
 func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) []replMatch {
 	var out []replMatch
+	alreadyUsed := func(m replMatch) bool {
+		for _, u := range used {
+			if u.id == m.id && (u.repl == m.repl || (m.key != "" && u.key == m.key)) {
+				return true
+			}
+		}
+		return false
+	}
+	for _, ce := range e.active() {
+		if ce.ReplacementEvent == "" || ce.ReplacementBody == "" {
+			continue
+		}
+		if with := replacementBodySA(ce.ReplacementBody); with != nil {
+			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams, With: with}
+			m := replMatch{id: ce.Source, repl: r,
+				key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
+			if !alreadyUsed(m) && e.replacementMatches(*r, ce.Source, ev) &&
+				!(r.Params["Prevent"] == "True" && e.cantPreventDamage(e.damaging, ev.Obj)) {
+				out = append(out, m)
+			}
+		}
+	}
 	e.forEachObject(func(id state.ObjID) {
 		o := e.G.Obj(id)
 		if o == nil || o.Face() == nil {
@@ -1160,14 +1326,7 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 		}
 		for i := range o.Face().Repls {
 			r := &o.Face().Repls[i]
-			already := false
-			for _, u := range used {
-				if u.id == id && u.repl == r {
-					already = true
-					break
-				}
-			}
-			if already || !e.replacementMatches(*r, id, ev) {
+			if alreadyUsed(replMatch{id: id, repl: r}) || !e.replacementMatches(*r, id, ev) {
 				continue
 			}
 			if r.Params["Prevent"] == "True" && e.cantPreventDamage(e.damaging, ev.Obj) {

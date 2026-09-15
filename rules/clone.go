@@ -104,6 +104,13 @@ func (e *Engine) Clone() *Engine {
 				ce.RestrictParams = m
 			}
 			ce.Remembered = append([]state.ObjID(nil), ce.Remembered...)
+			if ce.ReplacementParams != nil {
+				m := make(map[string]string, len(ce.ReplacementParams))
+				for k, v := range ce.ReplacementParams {
+					m[k] = v
+				}
+				ce.ReplacementParams = m
+			}
 			c.continuous[i] = ce
 		}
 	}
@@ -302,6 +309,7 @@ func cloneMulligan(m mulliganRound) mulliganRound {
 // original's.
 func cloneCombatRound(cr combatRound) combatRound {
 	cr.queue = append([]state.ObjID(nil), cr.queue...)
+	cr.assignments = append([]assignment(nil), cr.assignments...)
 	if cr.done != nil {
 		done := make([]divChoice, len(cr.done))
 		for i, dc := range cr.done {
