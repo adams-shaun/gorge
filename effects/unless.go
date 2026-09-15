@@ -70,12 +70,21 @@ func unlessProceed(h Host, c *Ctx, sa *cards.SA) bool {
 	c.UnlessPay = ""
 	idx := c.UnlessNext
 	c.UnlessNext = 0
-	payers := UnlessPayers(h, c, sa)
-	switch ans {
-	case "pay":
-		// Orientation: a pay runs the body exactly when the shape is
-		// switched ("if that player does, ...").
+	// A paid answer is authoritative even if a re-entry fixture or nested
+	// continuation did not retain every transient payer binding from the ask.
+	if ans == "pay" {
 		return switched
+	}
+	payers, payerKnown := unlessPayerTargets(h, c, sa)
+	// A named selector whose binding is unavailable must not silently charge
+	// an unrelated target or the resolving controller. Treat it as a decline:
+	// the ordinary "unless" body runs, while a switched "if they pay" body
+	// does not. The unqualified default remains known even when it has no
+	// target, and retains its historical controller fallback below.
+	if !payerKnown {
+		return !switched
+	}
+	switch ans {
 	case "decline":
 		// A decline moves on to the next payer; only when every payer has
 		// declined does the orientation decide the body. idx is the payer
@@ -147,14 +156,24 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 }
 
 // UnlessPayers resolves the UnlessPayer$ selector to the players who get the
-// pay offer, in deterministic AliveFrom order, deduplicated. The default
-// (Forge's own default) is TargetedController — the controller of the first
-// target — with the resolving controller as the fallback when nothing
-// resolvable is named, so an untargeted SA still asks today's player.
+// pay offer, in deterministic AliveFrom order, deduplicated. It returns no
+// targets for an unresolved named selector; callers that need to distinguish
+// that from Forge's unqualified default use unlessPayerTargets below.
 func UnlessPayers(h Host, c *Ctx, sa *cards.SA) []state.Target {
+	out, _ := unlessPayerTargets(h, c, sa)
+	return out
+}
+
+// unlessPayerTargets is the binding-aware half of UnlessPayers. known is
+// false only when a *named* payer cannot be resolved from state the engine
+// actually carries. That distinction prevents an Aura's EnchantedController
+// (or an unmodelled ImprintedController) from falling through to c.Targets
+// and asking the wrong player. A missing target for the empty/default
+// selector remains known: Forge defaults it to the resolving controller.
+func unlessPayerTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 	g := h.Game()
 	if g == nil {
-		return nil
+		return nil, false
 	}
 	spec := strings.TrimSpace(sa.Params["UnlessPayer"])
 	var out []state.Target
@@ -176,15 +195,47 @@ func UnlessPayers(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		}
 	}
 	switch spec {
-	case "", "TargetedController", "TargetedPlayer", "ThisTargetedController", "TargetedOrController":
+	case "":
+		addTargets(c.Targets)
+	case "TargetedController", "TargetedPlayer", "ThisTargetedController", "TargetedOrController":
+		// A missing target uses the historical resolving-controller fallback
+		// below. This is a known target selector, unlike an unknown role.
 		addTargets(c.Targets)
 	case "You":
 		add(c.Controller)
+	case "EnchantedController":
+		// Aura sources retain their attachment in state.Object.AttachedTo.
+		// The attached permanent's controller is the named payer, not the
+		// Aura's controller (Power Taint and Paralyze).
+		source := g.Obj(c.Source)
+		if source == nil || source.AttachedTo == 0 {
+			return nil, false
+		}
+		enchanted := g.Obj(source.AttachedTo)
+		if enchanted == nil {
+			return nil, false
+		}
+		add(enchanted.Controller)
+	case "EnchantedPlayer":
+		// Attachments to players are not represented by state.Object (its
+		// AttachedTo is an ObjID), so there is no honest binding to use.
+		return nil, false
+	case "ImprintedController":
+		// The engine currently has no persistent imprint relation. Do not use
+		// arbitrary Ctx.Remembered entries: those are often trigger subjects,
+		// not an imprint, and would charge the wrong player.
+		return nil, false
 	case "Targeted", "ParentTarget":
 		addTargets(c.Targets)
 	case "TriggeredTarget":
+		if !c.TriggerTarget.IsPlayer && c.TriggerTarget.Obj == 0 {
+			return nil, false
+		}
 		addTargets([]state.Target{c.TriggerTarget})
 	case "Remembered", "RememberedController", "Player.IsRemembered":
+		if len(c.Remembered) == 0 {
+			return nil, false
+		}
 		addTargets(c.Remembered)
 	case "Player":
 		for _, p := range g.AliveFrom(0) {
@@ -197,14 +248,20 @@ func UnlessPayers(h Host, c *Ctx, sa *cards.SA) []state.Target {
 			}
 		}
 	case "ChosenPlayer":
+		if len(c.Chosen) == 0 {
+			return nil, false
+		}
 		addTargets(c.Chosen)
 	case "TriggeredPlayer":
-		if c.TriggerPlayer.IsPlayer {
-			add(c.TriggerPlayer.Player)
+		if !c.TriggerPlayer.IsPlayer {
+			return nil, false
 		}
+		add(c.TriggerPlayer.Player)
 	case "TriggeredCardController", "TriggeredCardLKIController":
 		if p, ok := TriggeredCardController(g, c.TriggerContext, c.Remembered); ok {
 			add(p)
+		} else {
+			return nil, false
 		}
 	case "TriggeredSourceSAController", "TriggeredSourceController", "TriggeredSpellAbilityController", "NonTriggeredCardController":
 		// These forms name the controller of the resolving/triggering source,
@@ -213,28 +270,36 @@ func UnlessPayers(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		// leaving play.
 		add(c.Controller)
 	case "TriggeredTargetController":
+		if !c.TriggerTarget.IsPlayer && c.TriggerTarget.Obj == 0 {
+			return nil, false
+		}
 		addTargets([]state.Target{c.TriggerTarget})
 	case "TriggeredActivator":
 		if c.TriggerActivator.IsPlayer {
 			add(c.TriggerActivator.Player)
 		} else if o := g.Obj(c.TriggerActivator.Obj); o != nil {
 			add(o.Controller)
+		} else {
+			// Old trigger contexts did not retain activators. Keep their
+			// documented source-controller fallback until every such context
+			// is populated; real contexts above use the actual activator.
+			add(c.Controller)
 		}
 	case "TriggeredDefendingPlayer", "DefendingPlayer":
-		if c.DefendingPlayer.IsPlayer {
-			add(c.DefendingPlayer.Player)
+		if !c.DefendingPlayer.IsPlayer {
+			return nil, false
 		}
+		add(c.DefendingPlayer.Player)
 	case "TriggeredAttackingPlayer", "TriggeredAttackerController":
-		if c.AttackingPlayer.IsPlayer {
-			add(c.AttackingPlayer.Player)
+		if !c.AttackingPlayer.IsPlayer {
+			return nil, false
 		}
+		add(c.AttackingPlayer.Player)
 	default:
-		// EnchantedController, ImprintedController, ReplacedPlayer and the
-		// other forms whose referent this build does not retain fall back to
-		// the resolving target's controller, then the caller asks c.Controller
-		// when that produced no payer. Never fold the TriggeredSource* family
-		// into this branch: those have a distinct, available source binding.
-		addTargets(c.Targets)
+		// Do not silently substitute c.Targets for a selector the context does
+		// not carry (ImprintedController, ReplacedPlayer, Player.targetedBy,
+		// etc.). That used to charge an unrelated target; fail closed instead.
+		return nil, false
 	}
 	// Deterministic AliveFrom order, whoever named them.
 	alive := g.AliveFrom(0)
@@ -242,13 +307,29 @@ func UnlessPayers(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	for i, p := range alive {
 		rank[p] = i
 	}
+	if len(out) == 0 && !unlessPayerControllerFallback(spec) {
+		// A named binding that yielded no live player is unavailable, not the
+		// default-selector case where c.Controller is intentionally used.
+		return nil, false
+	}
 	sortTargets(out, rank)
-	return out
+	return out, true
 }
 
 // sortTargets orders player targets by the seat order rank (AliveFrom
 // position), keeping the slice's own order for ties (no ties arise — add
 // dedupes — but the comparator is total regardless).
+// unlessPayerControllerFallback identifies the legacy target-based selector
+// family whose absent target is deliberately charged to c.Controller. Every
+// other selector must bind a real role or fail closed.
+func unlessPayerControllerFallback(spec string) bool {
+	switch spec {
+	case "", "TargetedController", "TargetedPlayer", "ThisTargetedController", "TargetedOrController", "Targeted", "ParentTarget":
+		return true
+	}
+	return false
+}
+
 func sortTargets(ts []state.Target, rank map[state.PlayerID]int) {
 	for i := 1; i < len(ts); i++ {
 		for j := i; j > 0 && rank[ts[j].Player] < rank[ts[j-1].Player]; j-- {

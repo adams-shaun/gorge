@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
@@ -298,6 +299,32 @@ func TestGiantOpportunityStrictOptionalSacrifice(t *testing.T) {
 // controller 3 life and the card STAYS dead; the decline is the returned-with-
 // finality-counter branch (the mirror, TestMeathookUnlessPayDeclined, pins
 // the pay branch of the YOU-control trigger TrigReturn1's oracle shares).
+// TestPowerTaintUnlessPayerEnchantedController drives a real priceable
+// non-target payer. Power Taint's controller is seat 0, while the enchanted
+// enchantment belongs to seat 1: its upkeep trigger must offer the {2} to
+// seat 1 from the Aura's live attachment, not silently fall back to the Aura
+// controller or an unrelated target.
+func TestPowerTaintUnlessPayerEnchantedController(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := stealEngine(t, 737)
+	taint := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Power Taint"))
+	enchanted := onBoard(t, e, 1, "Name:Victim Enchantment\nTypes:Enchantment\nOracle:x\n")
+	e.G.Obj(taint).AttachedTo = enchanted
+	sa := cards.ResolveSVar(e.G.Obj(taint).Face().SVars, "TrigLoseLife")
+	if sa == nil || sa.Params["UnlessPayer"] != "EnchantedController" || sa.Params["UnlessCost"] != "2" {
+		t.Fatalf("Power Taint TrigLoseLife = %+v, want priceable EnchantedController unless", sa)
+	}
+	effects.Resolve(e, &effects.Ctx{Source: taint, Controller: 0,
+		TriggerContext: effects.TriggerContext{TriggerPlayer: state.Target{Player: 1, IsPlayer: true}}}, sa)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "unless_pay" {
+		t.Fatalf("pending = %+v, want Power Taint unless-pay decision", d)
+	}
+	if d.Player != 1 {
+		t.Fatalf("Power Taint payer = seat %d, want enchanted controller seat 1", d.Player)
+	}
+}
+
 func TestMeathookUnlessPayPaysLife(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e := stealEngine(t, 737)
