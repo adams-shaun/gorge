@@ -135,15 +135,14 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// real hand choice (the rv2b extension drops handmove1's ChangeType$
 		// requirement: the whole 246-line no-selector Origin$ Hand population
 		// routes here now, 19 of it untyped).
-		// A non-literal ChangeNum$ (an SVar name or inline Count$, 15 raw
-		// lines -- Count$ValidHand, CountAuras, HandX, VoteNum, X, XFetch, Y)
-		// cannot yet be evaluated into a choice bound, so it no longer falls to
-		// the silent no-op: it emits a Note naming the unreadable count and
-		// moves nothing.
+		// An SVar or inline count expression is evaluated through Num where the
+		// count grammar supports it (for example Wrenn and Seven's SVar X counts
+		// lands in hand). An unknown count remains loud rather than falling through
+		// to the old source-default no-op: it emits a Note and moves nothing.
 		if len(originZones) == 1 && originZones[0] == state.ZHand && !originAll &&
 			sa.Params["Defined"] == "" &&
 			sa.Params["DefinedPlayer"] == "" && sa.Params["ValidTgts"] == "" {
-			if _, literal := handChangeNum(sa); literal {
+			if _, supported := handMoveCountOf(h, c, sa); supported {
 				effChangeZoneHand(h, c, sa, to)
 				return
 			}
@@ -322,9 +321,12 @@ func handMoveCountOf(h Host, c *Ctx, sa *cards.SA) (handMoveCount, bool) {
 	if n, ok := handChangeNum(sa); ok {
 		return handMoveCount{fixed: n}, true
 	}
-	resolvable := raw == "X"
-	if c != nil && c.SVars != nil && c.SVars[raw] != "" {
-		resolvable = true
+	resolvable := raw == "X" || strings.HasPrefix(raw, "Count$") ||
+		strings.HasPrefix(raw, "Sacrificed$") || strings.HasPrefix(raw, "TriggerCount$")
+	if c != nil && c.SVars != nil {
+		if _, exists := c.SVars[raw]; exists {
+			resolvable = true
+		}
 	}
 	if !resolvable {
 		return handMoveCount{}, false

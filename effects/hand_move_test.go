@@ -237,14 +237,11 @@ func TestHandMoveChangeZoneHonoursRememberChanged(t *testing.T) {
 	}
 }
 
-// TestHandMoveChangeZoneNonLiteralChangeNumEmitsNoteAndStaysSilent pins the
-// rv2b routing change for a non-literal ChangeNum$ (an SVar name, an inline
-// Count$, or a literal that cannot fit the count's range): it no longer
-// falls to the pre-handmove1 silent no-op -- the routing emits a Note naming
-// the unreadable count -- and it still never asks and never moves (the count
-// expression itself is the scoped-out follow-up).
-func TestHandMoveChangeZoneNonLiteralChangeNumEmitsNoteAndStaysSilent(t *testing.T) {
-	for _, num := range []string{"NumInHand", "X", "Count$Valid Land.YouCtrl", "2147483648"} {
+// TestHandMoveChangeZoneUnknownChangeNumEmitsNoteAndStaysSilent pins the
+// loud fallback for a count expression Num cannot resolve. It must not fall
+// through to Defined's source default and silently do nothing.
+func TestHandMoveChangeZoneUnknownChangeNumEmitsNoteAndStaysSilent(t *testing.T) {
+	for _, num := range []string{"CountAuras", "HandX", "2147483648"} {
 		h, ids := handAskFixture(t)
 		before := len(h.log)
 		Resolve(h, &Ctx{Controller: 0}, sa(t,
@@ -266,6 +263,40 @@ func TestHandMoveChangeZoneNonLiteralChangeNumEmitsNoteAndStaysSilent(t *testing
 		if notes != 1 {
 			t.Fatalf("ChangeNum$ %s emitted %d Notes, want exactly 1: %+v", num, notes, h.log[before:])
 		}
+	}
+}
+
+// TestHandMoveChangeZoneEvaluatesWholeHandCounts proves the whole-hand route
+// shares handMoveCountOf with the owner-selected route: NumInHand, an SVar
+// count and the equivalent inline Count$ expression all use the count as the
+// bound rather than being rejected merely because it is non-literal.
+func TestHandMoveChangeZoneEvaluatesWholeHandCounts(t *testing.T) {
+	for _, tc := range []struct {
+		name, count string
+		svars       map[string]string
+	}{
+		{"NumInHand", "NumInHand", nil},
+		{"SVar", "X", map[string]string{"X": "Count$ValidHand Land.YouCtrl"}},
+		{"inline", "Count$ValidHand Land.YouCtrl", nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h, ids := handAskFixture(t)
+			Resolve(h, &Ctx{Controller: 0, SVars: tc.svars}, sa(t,
+				"DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | ChangeNum$ "+tc.count+" | Mandatory$ True"))
+			if h.asked != nil {
+				t.Fatalf("ChangeNum$ %s posed a decision: %+v", tc.count, h.asked)
+			}
+			for _, id := range []state.ObjID{ids[1], ids[2]} {
+				if o := h.g.Obj(id); o.Zone != state.ZBattlefield {
+					t.Fatalf("ChangeNum$ %s left eligible land %d on %s, want battlefield", tc.count, id, o.Zone)
+				}
+			}
+			for _, ev := range h.log {
+				if ev.Kind == events.Note {
+					t.Fatalf("ChangeNum$ %s emitted unsupported-count Note: %+v", tc.count, ev)
+				}
+			}
+		})
 	}
 }
 
@@ -947,7 +978,7 @@ func TestHandMoveOwnersUnmodelledSelectorAndChooserAreLoud(t *testing.T) {
 	for _, tc := range []struct{ name, sa string }{
 		{"CardOwner selector", "DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | DefinedPlayer$ CardOwner | ChangeNum$ 1"},
 		{"unknown chooser", "DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Card | DefinedPlayer$ Targeted | Chooser$ Remembered | ChangeNum$ 1"},
-		{"unresolvable count", "DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Card | DefinedPlayer$ Targeted | ChangeNum$ Count$ValidHand"},
+		{"unresolvable count", "DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Card | DefinedPlayer$ Targeted | ChangeNum$ CountAuras"},
 	} {
 		h, _, hand1 := ownersFixture(t)
 		before := len(h.log)
