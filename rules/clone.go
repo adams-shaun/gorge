@@ -120,6 +120,16 @@ func (e *Engine) Clone() *Engine {
 			c.triggerContexts[id] = tc
 		}
 	}
+	if e.triggerLKI != nil {
+		c.triggerLKI = make(map[state.ObjID]triggerObjectLKI, len(e.triggerLKI))
+		for id, lki := range e.triggerLKI {
+			if lki.object != nil {
+				cp := lki.object.CloneDeep()
+				lki.object = &cp
+			}
+			c.triggerLKI[id] = lki
+		}
+	}
 	if e.sacrificedLKI != nil {
 		c.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo, len(e.sacrificedLKI))
 		for id, info := range e.sacrificedLKI {

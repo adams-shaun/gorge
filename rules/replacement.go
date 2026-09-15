@@ -229,7 +229,7 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		// still on the stack is a no-op to effTap).
 		departing, link := e.captureSourceLifelinkLKI(ev)
 		stored := events.Emit(e.G, e.L, ev)
-		e.checkTriggers(stored, nil)
+		e.checkTriggers(stored, nil, 0, 0, false)
 		e.finishSourceLifelinkLKI(ev, departing, link)
 		e.runReplaceWith(ctx, ev.Obj, "", m.repl.With)
 		return stored, true
@@ -252,7 +252,7 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
 	departing, link := e.captureSourceLifelinkLKI(ev)
 	stored := events.Emit(e.G, e.L, ev)
-	e.checkTriggers(stored, nil)
+	e.checkTriggers(stored, nil, 0, 0, false)
 	e.finishSourceLifelinkLKI(ev, departing, link)
 	for _, m := range matches {
 		if m.repl.With == nil {

@@ -1873,7 +1873,7 @@ func (e *Engine) fireDeferredCastTrigger() {
 	e.deferredPush = nil
 	lki := e.deferredPushLKI
 	e.deferredPushLKI = nil
-	e.checkTriggers(*ev, lki)
+	e.checkTriggers(*ev, lki, 0, 0, false)
 }
 
 // recordCmdCast increments the CmdCasts[k] bookkeeping parallel to

@@ -565,8 +565,9 @@ func TestNamedDamageSourceCreditsItsController(t *testing.T) {
 // exiled, rather than treating ExiledWithSource as an unknown predicate.
 func TestValakutExplorationExileProvenanceUsesItsRealScripts(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	e, cfg, ids := dsBoard(t, reg, "Valakut Exploration")
+	e, cfg, ids := dsBoard(t, reg, "Valakut Exploration", "Grizzly Bears")
 	val := ids["Valakut Exploration"]
+	bear := ids["Grizzly Bears"]
 	var card state.ObjID
 	for i := range e.G.Objs {
 		o := &e.G.Objs[i]
@@ -599,14 +600,94 @@ func TestValakutExplorationExileProvenanceUsesItsRealScripts(t *testing.T) {
 	if got := e.G.Players[1].Life; got != 19 {
 		t.Fatalf("Valakut end-step damage seat 1 life = %d, want 19", got)
 	}
+	if got := e.G.Obj(bear).Damage; got != 0 {
+		t.Fatalf("Valakut player-only DamageAll marked the bear for %d, want 0", got)
+	}
 	if got := e.G.Obj(card).Zone; got != state.ZGraveyard {
 		t.Fatalf("Valakut exiled card zone = %s, want graveyard", got)
 	}
 	replayCheck(t, e, cfg)
 }
 
+// TestSpitefulShadowsUsesTriggeredTargetAsDamageSource pins the one
+// DamageSource$ referent the first implementation missed. The real Aura is
+// attached to an opponent-owned lifelink creature; when that creature is dealt
+// 2 damage, Spiteful's real trigger makes the creature deal 2 to its own
+// controller. Its controller therefore loses 2 and gains 2, netting 20.
+func TestSpitefulShadowsUsesTriggeredTargetAsDamageSource(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := layerEngine(t)
+	creature := onBoard(t, e, 1, "Name:Linked Giant\nTypes:Creature Giant\nPT:2/5\nK:Lifelink\nOracle:x\n")
+	pinger := onBoard(t, e, 0, "Name:Spark Source\nTypes:Creature Wizard\nPT:1/1\nOracle:x\n")
+	auraObj := e.G.AddObject(mustCorpusCard(t, reg, "Spiteful Shadows"), 0)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: auraObj.ID, From: auraObj.Zone, To: state.ZBattlefield})
+	e.emit(events.Event{Kind: events.Attach, Obj: auraObj.ID, IDs: []state.ObjID{creature}})
+	e.pending, e.pendingTriggers = nil, nil
+
+	effects.Resolve(e, &effects.Ctx{Source: pinger, Controller: 0,
+		Targets: []state.Target{{Obj: creature}}}, &cards.SA{Kind: "DB", API: "DealDamage",
+		Params: map[string]string{"Defined": "Targeted", "NumDmg": "2"}})
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("Spiteful queued %d triggers, want 1", len(e.pendingTriggers))
+	}
+	e.putTriggersOnStack()
+	e.resolveTop()
+	if got := e.G.Players[1].Life; got != 20 {
+		t.Fatalf("opponent life = %d, want 20 (2 damage, then +2 lifelink)", got)
+	}
+	if n := countLifeChanges(t, e, 1, 2); n != 1 {
+		t.Fatalf("logged %d LifeChange(1, +2) events, want 1", n)
+	}
+	sawReflected := false
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Damage && ev.Obj == 0 && ev.Player == 1 && ev.Amount == 2 {
+			sawReflected = true
+		}
+	}
+	if !sawReflected {
+		t.Fatal("Spiteful's reflected player Damage event is missing")
+	}
+}
+
+// TestStalkingVengeanceUsesTheDyingCreaturesDerivedPowerLKI proves a real
+// TriggeredCard$CardPower script sees the event object's pre-move snapshot
+// after trigger placement. The Bear has a layer-derived +2/+2 before dying;
+// the live graveyard object has neither that layer nor battlefield counters,
+// so only the preserved trigger LKI can deal 4.
+func TestStalkingVengeanceUsesTheDyingCreaturesDerivedPowerLKI(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, cfg, ids := dsBoard(t, reg, "Stalking Vengeance", "Grizzly Bears")
+	bear := ids["Grizzly Bears"]
+	e.AddContinuous(state.ContinuousEffect{Source: bear, Controller: 0,
+		Affects: "Card.Self", Layer: LPT, Sub: SubModify, AddPower: 2, AddToughness: 2})
+	if got := e.Power(bear); got != 4 {
+		t.Fatalf("pumped Bear power = %d, want 4", got)
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZBattlefield, To: state.ZGraveyard})
+	e.pending = nil
+	if !e.putTriggersOnStack() {
+		t.Fatal("Stalking Vengeance did not ask for its trigger target")
+	}
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("Stalking target decision = %+v", d)
+	}
+	idx := indexOfPlayerOption(d, 1)
+	if idx < 0 {
+		t.Fatalf("seat 1 not offered: %+v", d.Options)
+	}
+	submitChoices(t, e, idx)
+	passUntilStackEmpty(t, e, 20)
+	if got := e.G.Players[1].Life; got != 16 {
+		t.Fatalf("Stalking damage left seat 1 at %d, want 16", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestAnimatedWalkerDamageAndCleanup uses a layer-animated printed walker to
-// pin both halves of CR 120.3e and the negative-Damage cleanup boundary.
+// pin both halves of CR 120.3e and the negative-Damage cleanup boundary. It
+// drives the production DealDamage emitter so removing its derived-creature
+// marker makes the marked-damage assertion fail.
 func TestAnimatedWalkerDamageAndCleanup(t *testing.T) {
 	e := layerEngine(t)
 	walkerObj := e.G.AddObject(card(t, "Name:Animated Jace\nTypes:Planeswalker Jace\nLoyalty:4\nOracle:x\n"), 0)
@@ -614,7 +695,9 @@ func TestAnimatedWalkerDamageAndCleanup(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: walker, From: walkerObj.Zone, To: state.ZBattlefield})
 	e.AddContinuous(state.ContinuousEffect{Source: walker, Controller: 0,
 		Affects: "Card.Self", Layer: LType, AddTypes: []string{"Creature"}})
-	e.emit(events.Event{Kind: events.Damage, Obj: walker, Amount: 2, Counter: "creature"})
+	effects.Resolve(e, &effects.Ctx{Source: walker, Controller: 0,
+		Targets: []state.Target{{Obj: walker}}}, &cards.SA{Kind: "DB", API: "DealDamage",
+		Params: map[string]string{"Defined": "Targeted", "NumDmg": "2"}})
 	if o := e.G.Obj(walker); o.Damage != 2 || o.Counter("LOYALTY") != 2 {
 		t.Fatalf("animated walker after damage: marked=%d loyalty=%d, want 2/2", o.Damage, o.Counter("LOYALTY"))
 	}

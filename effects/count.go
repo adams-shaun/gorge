@@ -299,6 +299,14 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 			continue
 		}
 		o := g.Obj(t.Obj)
+		lki := c.LKI != nil && c.LKI.ID == t.Obj
+		if lki {
+			// A zone-change trigger must read the causing object's snapshot,
+			// not the same id after Move has cleared its counters and removed
+			// battlefield layers. triggerLKI carries this value through the
+			// TriggerPush wrapper to both initial and resumed resolution.
+			o = c.LKI
+		}
 		if o == nil {
 			continue
 		}
@@ -306,11 +314,19 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		switch {
 		case prop == "CardPower":
 			if f != nil {
-				n += refPower(h, o)
+				if lki && c.LKIPTValid {
+					n += c.LKIPower
+				} else {
+					n += refPower(h, o, lki)
+				}
 			}
 		case prop == "CardToughness":
 			if f != nil {
-				n += refToughness(h, o)
+				if lki && c.LKIPTValid {
+					n += c.LKIToughness
+				} else {
+					n += refToughness(h, o, lki)
+				}
 			}
 		case prop == "CardManaCost":
 			if f != nil {
@@ -320,7 +336,8 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 			n += o.Counter(strings.TrimPrefix(prop, "CardCounters."))
 		case prop == "Valid" || strings.HasPrefix(prop, "Valid "):
 			spec := strings.TrimSpace(strings.TrimPrefix(prop, "Valid"))
-			if MatchesSpecCtx(g, spec, t.Obj, c.SpecContext(c.Controller)) {
+			if (lki && MatchesObjectCtx(g, spec, o, c.SpecContext(c.Controller))) ||
+				(!lki && MatchesSpecCtx(g, spec, t.Obj, c.SpecContext(c.Controller))) {
 				n++
 			}
 		default:
@@ -337,15 +354,15 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 // object is a battlefield permanent. A referred-to object that already left
 // keeps the LKI-compatible printed-plus-counters fallback: no live layer
 // applies in a graveyard, and asking Host for it would read a different state.
-func refPower(h Host, o *state.Object) int32 {
-	if o.Zone == state.ZBattlefield {
+func refPower(h Host, o *state.Object, snapshot bool) int32 {
+	if !snapshot && o.Zone == state.ZBattlefield {
 		return h.Power(o.ID)
 	}
 	return int32(o.Face().Power()) + o.Counter("P1P1") - o.Counter("M1M1")
 }
 
-func refToughness(h Host, o *state.Object) int32 {
-	if o.Zone == state.ZBattlefield {
+func refToughness(h Host, o *state.Object, snapshot bool) int32 {
+	if !snapshot && o.Zone == state.ZBattlefield {
 		return h.Toughness(o.ID)
 	}
 	return int32(o.Face().Toughness()) + o.Counter("P1P1") - o.Counter("M1M1")
@@ -380,12 +397,12 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 		return int32(len(c.Remembered))
 	case "CardPower":
 		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
-			return refPower(h, o)
+			return refPower(h, o, false)
 		}
 		return 0
 	case "CardToughness":
 		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
-			return refToughness(h, o)
+			return refToughness(h, o, false)
 		}
 		return 0
 	}

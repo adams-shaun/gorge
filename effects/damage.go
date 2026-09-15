@@ -228,29 +228,30 @@ func emitPlayerDamage(r damageRider, target state.PlayerID) {
 	payLifelinkRider(r, r.amount > 0)
 }
 
-// effDamageAll is the sweep pattern: iterate the battlefield in seat order,
-// filter by ValidCards$ (default "Creature"), emit; then the ValidPlayers$
-// arm (Pestilence, Valakut Exploration, Earthquake). Seat order keeps the
-// event sequence deterministic. DamageSource$ applies to the player arm too
-// (the lifelink rider pays for player damage from a named source), through
-// the same rider.
+// effDamageAll is the sweep pattern: when ValidCards$ is present, iterate the
+// battlefield in seat order, filter and emit; then run the independent
+// ValidPlayers$ arm (Pestilence, Valakut Exploration, Earthquake). An absent
+// ValidCards$ means no object half at all -- Valakut's player-only sweep must
+// not inherit a synthetic Creature default. Seat order keeps the event
+// sequence deterministic. DamageSource$ applies to the player arm too (the
+// lifelink rider pays for player damage from a named source), through the same
+// rider.
 func effDamageAll(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "NumDmg", 1)
 	if n < 0 {
 		n = 0
 	}
-	spec := sa.Params["ValidCards"]
-	if spec == "" {
-		spec = "Creature"
-	}
+	spec := strings.TrimSpace(sa.Params["ValidCards"])
 	g := h.Game()
 	rider := newDamageRider(h, c, sa, n)
 	prev := h.SetDamageSource(rider.source)
 	defer h.SetDamageSource(prev)
-	for _, p := range g.AliveFrom(0) {
-		for _, id := range g.Zone(state.ZBattlefield, p) {
-			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-				emitObjectDamage(rider, id)
+	if spec != "" {
+		for _, p := range g.AliveFrom(0) {
+			for _, id := range g.Zone(state.ZBattlefield, p) {
+				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+					emitObjectDamage(rider, id)
+				}
 			}
 		}
 	}

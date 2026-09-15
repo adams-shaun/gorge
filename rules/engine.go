@@ -73,6 +73,12 @@ type Config struct {
 	Tokens map[string]*cards.Card
 }
 
+type triggerObjectLKI struct {
+	object           *state.Object
+	power, toughness int32
+	ptValid          bool
+}
+
 type Engine struct {
 	G *state.Game
 	L *events.Log
@@ -206,6 +212,11 @@ type Engine struct {
 	// triggers, cloned at intent boundaries and removed when the stack object
 	// leaves. Never encoded in events or inferred from a resolving source.
 	triggerContexts map[state.ObjID]effects.TriggerContext
+	// triggerLKI preserves the causing event's object snapshot from trigger
+	// match through placement and resolution. TriggerPush can log Remembered
+	// ids but not the pre-move object value (whose counters Move clears), so
+	// this replay-derived map is the LKI analogue of triggerContexts.
+	triggerLKI map[state.ObjID]triggerObjectLKI
 	// sacrificedLKI maps a stack object id to the last-known-information
 	// snapshot of every permanent that object sacrificed (as a cost), captured
 	// at the instant of the sacrifice (Task sac1). It is engine-only, never
@@ -913,11 +924,17 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// state, damage, controller, zone), not the reset state Move leaves it
 	// in. See effects.Ctx.LKI.
 	var lki *state.Object
+	var lkiPower, lkiToughness int32
+	var lkiPTValid bool
 	switch ev.Kind {
 	case events.MoveZone, events.Draw, events.PutOnStack:
 		if o := e.G.Obj(ev.Obj); o != nil {
 			cp := o.CloneDeep()
 			lki = &cp
+			if o.Zone == state.ZBattlefield && o.Face() != nil {
+				lkiPower, lkiToughness = e.Power(o.ID), e.Toughness(o.ID)
+				lkiPTValid = true
+			}
 		}
 	}
 	departingSource, departingSourceLifelink := e.captureSourceLifelinkLKI(ev)
@@ -927,6 +944,16 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		copyID := e.G.Stack[len(e.G.Stack)-1]
 		if tc, ok := e.triggerContexts[ev.Obj]; ok {
 			e.triggerContexts[copyID] = tc
+		}
+		if lki, ok := e.triggerLKI[ev.Obj]; ok {
+			if e.triggerLKI == nil {
+				e.triggerLKI = make(map[state.ObjID]triggerObjectLKI)
+			}
+			if lki.object != nil {
+				cp := lki.object.CloneDeep()
+				lki.object = &cp
+			}
+			e.triggerLKI[copyID] = lki
 		}
 		if link, ok := e.sourceLifelinkLKI[ev.Obj]; ok {
 			if e.sourceLifelinkLKI == nil {
@@ -942,6 +969,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	if ev.Kind == events.MoveZone && ev.From == state.ZStack && ev.To != state.ZStack {
 		delete(e.triggerContexts, ev.Obj)
+		delete(e.triggerLKI, ev.Obj)
 		delete(e.sacrificedLKI, ev.Obj)
 		delete(e.sourceLifelinkLKI, ev.Obj)
 	}
@@ -956,7 +984,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		cp, lp := stored, lki
 		e.deferredPush, e.deferredPushLKI = &cp, lp
 	} else {
-		e.checkTriggers(stored, lki)
+		e.checkTriggers(stored, lki, lkiPower, lkiToughness, lkiPTValid)
 	}
 	if ev.Kind == events.Tap && !e.tapIsEntryState(ev) {
 		// Recorded after the triggers above were matched, so a FirstTime$

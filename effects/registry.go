@@ -214,6 +214,11 @@ type Ctx struct {
 	// Undying's "if it had no +1/+1 counters" must read this, not the live
 	// object. nil for every other trigger.
 	LKI *state.Object
+	// LKIPower/LKIToughness are that snapshot's derived battlefield P/T,
+	// captured before the move removes continuous effects. The validity bit
+	// distinguishes a real zero from a non-battlefield/no-characteristic LKI.
+	LKIPower, LKIToughness int32
+	LKIPTValid             bool
 	// Modes is the answered modal choice on a re-entered mid-resolution
 	// resolution (M2d-2): the SVar names of the chosen Choices$ sub-abilities,
 	// in execution order. rules' resumeResolution sets it from the recorded

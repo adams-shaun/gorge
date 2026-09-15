@@ -115,6 +115,16 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// ability-vs-card distinction separately: every one of these forms
 		// names the same Remembered object entry a trigger captured.
 		return objectsOf(c.Remembered), true
+	case "TriggeredTarget":
+		// The object or player that received the triggering event. Spiteful
+		// Shadows uses this as a DamageSource$: the enchanted creature, not the
+		// Aura whose trigger is resolving, deals the reflected damage. Preserve
+		// the target's kind here; callers that require an object (the damage
+		// rider) already reject player entries rather than guessing.
+		if c.TriggerTarget.Obj != 0 || c.TriggerTarget.IsPlayer {
+			return []state.Target{c.TriggerTarget}, true
+		}
+		return nil, true
 	case "TriggeredSource":
 		// The damage source the causing event recorded (pg2's
 		// TriggerContext.TriggerSource): a DamageDone execute's "that source
