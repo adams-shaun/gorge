@@ -267,6 +267,13 @@ type Ctx struct {
 	SacPicks  []state.ObjID
 	SacDone   bool
 	SacTarget int
+	// SacOptional is the answered first step of an Optional$ + StrictAmount$
+	// sacrifice: "sacrifice" means its player elected the exact batch and
+	// "decline" means they did not. It is separate from SacPicks because a
+	// KChoose represents a range, while this Forge shape permits only zero or
+	// exactly Amount$. SacOptionalTarget identifies that player's target slot.
+	SacOptional       string
+	SacOptionalTarget int
 	// Arrange is the answered KArrange decision on a re-entered
 	// mid-resolution resolution (Ruling J0): true once rules' handleArrange
 	// has applied the answered arrangement and emitted the LibraryOrder

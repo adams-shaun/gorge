@@ -581,7 +581,20 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	sacTarget := c.SacTarget
 	c.SacPicks, c.SacDone, c.SacTarget = nil, false, 0
 	amount := sacrificeAmount(h, c, sa)
+	// An Amount$ of zero has no legal sacrifice and, crucially, no meaningful
+	// answer. Do not produce a 0..0 KChoose merely because eligible cards
+	// happen to exist (an Optional$ Amount$ X trigger with X=0 has this shape).
+	if amount <= 0 {
+		return
+	}
 	optional := sa.Params["Optional"] == "True"
+	strict := optional && sa.Params["StrictAmount"] == "True"
+	// Optional + StrictAmount is not a 0..Amount range: it is specifically
+	// "none, or exactly Amount". The KModes answer is consumed below before a
+	// possible exact-batch KChoose; keeping it separate prevents a partial
+	// sacrifice from taking the card's "if you do" continuation.
+	sacOptional, sacOptionalTarget := c.SacOptional, c.SacOptionalTarget
+	c.SacOptional, c.SacOptionalTarget = "", 0
 	who := Defined(h, c, sa)
 	// A Sacrifice that names neither Defined$ nor ValidTgts$ but a SacValid$
 	// other than itself is Forge's default Defined$ You: its controller
@@ -595,6 +608,14 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	for targetIndex, t := range who {
+		if sacOptional != "" {
+			if targetIndex < sacOptionalTarget {
+				continue
+			}
+			if targetIndex == sacOptionalTarget && sacOptional == "decline" {
+				continue
+			}
+		}
 		if sacDone {
 			// Re-entry after some target's ask suspended: earlier targets
 			// completed on the first pass and must be skipped (re-running
@@ -648,11 +669,46 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			}
 			minv, maxv := int32(0), int32(0)
 			ask := false
+			// n is the deterministic/no-host batch. An optional strict batch
+			// with too few eligible permanents cannot be paid partially, so it
+			// starts at zero rather than falling through to the old first-N path.
+			n := amount
 			if optional {
-				// "You may sacrifice ...": any number up to Amount$ (capped at
-				// what exists), including none. A real choice whenever there is
-				// something to sacrifice.
-				if len(eligible) > 0 {
+				if strict {
+					switch {
+					case sacOptional == "sacrifice" && targetIndex == sacOptionalTarget:
+						// The player accepted the first yes/no step. If there is a
+						// genuine identity choice, ask for EXACTLY Amount; when every
+						// eligible permanent is required, there is nothing left to ask.
+						if int32(len(eligible)) > amount {
+							ask = true
+							minv, maxv = amount, amount
+						}
+					case int32(len(eligible)) >= amount:
+						// KChoose can express a range but not the disjoint set
+						// {0, Amount}, so ask yes/no first and only then (above)
+						// choose the exact batch.
+						d := &decision.Decision{Player: t.Player, Kind: decision.KModes,
+							Min: 1, Max: 1, Source: c.Source, ResumeKind: "sacrifice_optional",
+							ResumeSA: sa, ResumeTarget: targetIndex,
+							Prompt: "Sacrifice " + strconv.Itoa(int(amount)) + " permanent(s)?",
+							Options: []decision.Option{
+								{Index: 0, Kind: "mode", Label: "Sacrifice " + strconv.Itoa(int(amount)) + " permanent(s)", Obj: c.Source, Player: t.Player},
+								{Index: 1, Kind: "mode", Label: "Don't sacrifice", Obj: c.Source, Player: t.Player},
+							}}
+						if Ask(h, d) {
+							return
+						}
+						// R-9 no-host fallback: preserve the old deterministic pick,
+						// but only as a complete strict batch.
+						h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: t.Player,
+							Text: "sacrifices the first matching permanent(s) (no engine host to ask)", Secret: true})
+					case int32(len(eligible)) < amount:
+						n = 0
+					}
+				} else if len(eligible) > 0 {
+					// A non-strict optional sacrifice permits any number through
+					// Amount$, including none.
 					ask = true
 					maxv = amount
 					if maxv > int32(len(eligible)) {
@@ -664,10 +720,9 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 				ask = true
 				minv, maxv = amount, amount
 			}
-			// (the remaining shape — eligible <= amount, not optional —
-			// sacrifices everything eligible without asking: no choice to
-			// record, the effDiscard TgtChoose strict-supersets rule.)
-			n := amount
+			// (the remaining mandatory shape — eligible <= amount — sacrifices
+			// everything eligible without asking: no choice to record, the
+			// effDiscard TgtChoose strict-supersets rule.)
 			if ask {
 				d := &decision.Decision{Player: t.Player, Kind: decision.KChoose,
 					Min:          int(minv),
@@ -676,7 +731,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 					ResumeKind:   "sacrifice",
 					ResumeSA:     sa,
 					ResumeTarget: targetIndex,
-					Prompt:       sacrificePrompt(optional, maxv)}
+					Prompt:       sacrificePrompt(optional && !strict, maxv)}
 				for _, id := range eligible {
 					name := "a permanent"
 					if o := g.Obj(id); o != nil && o.Face() != nil {
@@ -685,7 +740,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 					d.Options = append(d.Options, decision.Option{Index: len(d.Options),
 						Kind: "sacrifice", Label: name, Obj: id, Player: t.Player})
 				}
-				if h.Ask(d) {
+				if Ask(h, d) {
 					return // resolution suspended; the answer re-enters with Ctx.SacPicks set.
 				}
 				// Fuzz/no-engine host: the deterministic stand-in (R-9) keeps
@@ -716,6 +771,12 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		// through the same "sacrifice" resume. A host that cannot ask keeps
 		// the mandatory sacrifice (the pre-ask behaviour).
 		if optional {
+			// A concrete target cannot satisfy a strict batch greater than one:
+			// it may decline, but it must not sacrifice this one object as a
+			// partial payment.
+			if strict && amount != 1 {
+				continue
+			}
 			d := &decision.Decision{Player: o.Controller, Kind: decision.KChoose,
 				Min: 0, Max: 1, Source: c.Source,
 				ResumeKind: "sacrifice", ResumeSA: sa, ResumeTarget: targetIndex,
@@ -726,7 +787,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			}
 			d.Options = append(d.Options, decision.Option{Index: 0,
 				Kind: "sacrifice", Label: name, Obj: o.ID, Player: o.Controller})
-			if h.Ask(d) {
+			if Ask(h, d) {
 				return
 			}
 			// No-host stand-in: the mandatory sacrifice the pre-ask engine

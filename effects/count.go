@@ -130,21 +130,6 @@ func evalCountExpr(h Host, c *Ctx, expr string, depth int) int32 {
 		if n, err := strconv.Atoi(expr); err == nil {
 			return int32(n)
 		}
-		// A bare head form: Forge writes SVar bodies both ways
-		// ("Count$PlayerCountOpponents" and
-		// "SVar:OpponentSmallest:PlayerCountOpponents$LowestLifeTotal"), and
-		// the head/argument separator of the bare form is the "$" the
-		// Count$ form spells as a space. A bare head this evaluator knows
-		// (with its "/Op" suffix) evaluates exactly like its Count$ twin;
-		// anything else degrades to zero as before.
-		body2, op2, hasOp2 := strings.Cut(expr, "/")
-		if h2, a2, has := strings.Cut(strings.TrimSpace(body2), "$"); has && bareCountHead(h2) {
-			n := evalCountBody(h, c, h2+" "+a2, depth)
-			if hasOp2 {
-				n = applyCountOp(n, op2)
-			}
-			return n
-		}
 		return 0
 	}
 	body, op, hasOp := strings.Cut(body, "/")
@@ -299,8 +284,10 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) int32 {
 			return 0
 		}
 		return g.Players[c.Controller].Life
-	case "PlayerCountPlayers", "PlayerCountOpponents":
-		return playerCountHead(g, c, head, arg)
+	case "PlayerCountPlayers":
+		return int32(g.AliveCount())
+	case "PlayerCountOpponents":
+		return int32(g.AliveCount() - 1)
 	case "ThisTurnCast":
 		// Task 17 (Storm): spells cast this turn by anyone, read off the
 		// log via h.CastThisTurn() so a replay derives the same count. The
@@ -578,60 +565,4 @@ func SetSVars(c *Ctx, sv map[string]string) {
 		copied[k] = v
 	}
 	c.SVars = copied
-}
-
-// playerCountHead resolves the PlayerCountPlayers$/PlayerCountOpponents$
-// heads and their $argument. "Amount" (and no argument at all) is the count
-// itself: the number of alive players, or of alive opponents of the
-// resolving controller. The life-total arguments read the set's extreme
-// life (PlayerCountOpponents$LowestLifeTotal is Vampire Lacerator's
-// "unless an opponent has 10 or less life"). The corpus's other arguments —
-// HighestValid, HighestCounters, HighestCardsInGraveyard/Hand,
-// PlayerCountPropertyYou* — name properties this evaluator does not model;
-// degrading them to zero follows the unmodelled-head convention here rather
-// than silently answering with the bare count, which the life-total and
-// hand-size comparisons would misread as a real total.
-func playerCountHead(g *state.Game, c *Ctx, head, arg string) int32 {
-	// The referenced set: all alive players, or the alive opponents of the
-	// resolving controller.
-	var ps []state.PlayerID
-	if head == "PlayerCountPlayers" {
-		ps = g.AliveFrom(0)
-	} else {
-		for _, p := range g.AliveFrom(c.Controller) {
-			if p != c.Controller {
-				ps = append(ps, p)
-			}
-		}
-	}
-	switch arg {
-	case "", "Amount":
-		return int32(len(ps))
-	case "LowestLifeTotal", "HighestLifeTotal":
-		if len(ps) == 0 {
-			return 0
-		}
-		best := g.Players[ps[0]].Life
-		for _, p := range ps[1:] {
-			l := g.Players[p].Life
-			if (arg == "LowestLifeTotal" && l < best) || (arg == "HighestLifeTotal" && l > best) {
-				best = l
-			}
-		}
-		return best
-	}
-	return 0
-}
-
-// bareCountHead reports whether h names a count head this evaluator
-// implements, for the bare (Count$-less) SVar-body form.
-func bareCountHead(h string) bool {
-	switch h {
-	case "Compare", "xPaid", "YourLifeTotal", "PlayerCountPlayers",
-		"PlayerCountOpponents", "ThisTurnCast", "RememberedSize",
-		"CardPower", "CardToughness", "Valid", "ValidExile", "ValidGraveyard",
-		"ValidHand", "ValidLibrary", "ValidStack":
-		return true
-	}
-	return false
 }

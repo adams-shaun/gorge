@@ -243,6 +243,52 @@ func TestSacrificeHonoursAmountTwo(t *testing.T) {
 	}
 }
 
+// TestGiantOpportunityStrictOptionalSacrifice drives Giant Opportunity's real
+// Optional$ True | Amount$ 2 | StrictAmount$ True carrier. Its first decision
+// is decline-or-sacrifice-two; accepting then permits only an EXACT two-Food
+// KChoose, never the old illegal one-Food partial sacrifice.
+func TestGiantOpportunityStrictOptionalSacrifice(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	giant := mustCorpusCard(t, reg, "Giant Opportunity")
+	food := card(t, "Name:Food\nTypes:Artifact Food\nOracle:x\n")
+	e := handEngine(t, giant)
+	first := onBoardCard(t, e, 0, food)
+	second := onBoardCard(t, e, 0, food)
+	third := onBoardCard(t, e, 0, food)
+	addMana(t, e, 0, "GGG")
+	e.askPriority(0)
+	submitChoices(t, e, passToCast(t, e, handIDsByFace(e)["Giant Opportunity"]))
+
+	d := passUntilNonPriority(t, e, 8)
+	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "sacrifice_optional" || d.Min != 1 || d.Max != 1 {
+		t.Fatalf("first sacrifice decision = %+v, want strict optional KModes", d)
+	}
+	if len(d.Options) != 2 || d.Options[0].Kind != "mode" || d.Options[1].Kind != "mode" {
+		t.Fatalf("strict optional options = %+v, want sacrifice/decline", d.Options)
+	}
+	submitChoices(t, e, d.Options[0].Index) // elect to sacrifice exactly two
+
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "sacrifice" || d.Min != 2 || d.Max != 2 || len(d.Options) != 3 {
+		t.Fatalf("exact sacrifice decision = %+v, want 2..2 over three Foods", d)
+	}
+	// One Food is not a legal answer to StrictAmount$: Validate must reject it
+	// while retaining the pending exact-batch decision.
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err == nil {
+		t.Fatal("one-Food answer to StrictAmount$ 2 was accepted")
+	}
+	if got := e.Pending(); got == nil || got.Min != 2 || got.Max != 2 {
+		t.Fatalf("invalid partial answer changed pending decision to %+v", got)
+	}
+	submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
+	if e.G.Obj(first).Zone != state.ZGraveyard || e.G.Obj(second).Zone != state.ZGraveyard {
+		t.Fatalf("chosen Foods zones = %v, %v; want graveyard", e.G.Obj(first).Zone, e.G.Obj(second).Zone)
+	}
+	if e.G.Obj(third).Zone != state.ZBattlefield {
+		t.Fatalf("unchosen Food zone = %v, want battlefield", e.G.Obj(third).Zone)
+	}
+}
+
 // TestMeathookUnlessPayPaysLife drives Meathook Massacre II's second trigger
 // ("Whenever a creature an opponent controls dies, they may pay 3 life. If
 // they don't, return that card under your control with a finality counter"):

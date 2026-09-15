@@ -516,6 +516,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// ask), threaded through the decision's ResumeTarget via the
 			// resume point — the same channel the "choice" and "dig" arms use.
 			ctx.UnlessNext = rp.target
+		case "sacrifice_optional":
+			// Optional$ + StrictAmount$ is a disjoint choice (decline, or
+			// exactly Amount) that KChoose cannot represent. Its first KModes
+			// answer records only the election; effSacrifice then asks an exact
+			// KChoose if several complete batches are available.
+			ctx.SacOptional = "decline"
+			if len(chosen) > 0 && chosen[0].Index == 0 {
+				ctx.SacOptional = "sacrifice"
+			}
+			ctx.SacOptionalTarget = rp.target
 		case "sacrifice":
 			// A player-targeted Sacrifice's KChoose (CR 701.21a: the
 			// sacrificing player chooses which of their permanents) was
