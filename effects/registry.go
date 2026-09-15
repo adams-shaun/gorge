@@ -165,6 +165,14 @@ type RepeatSuspension struct {
 	ChosenValid bool
 }
 
+// DamageSourceLKI is the pre-departure damage provenance of one object.
+// It remains separate from Ctx's own-source fields because DamageSource$ may
+// name an object distinct from the resolving spell or ability's source.
+type DamageSourceLKI struct {
+	Lifelink   bool
+	Controller state.PlayerID
+}
+
 // Ctx carries the bindings a Forge script refers to during resolution.
 type Ctx struct {
 	TriggerContext
@@ -193,6 +201,11 @@ type Ctx struct {
 	// to credit its last controller rather than its owner.
 	SourceControllerLKI      state.PlayerID
 	SourceControllerLKIValid bool
+	// DamageSourceLKI preserves lifelink and controller LKI by object id for
+	// a distinct DamageSource$ object that left while this resolution waited.
+	// Rules transports it with the stack object; DamageSource$ consults it only
+	// after that named object is no longer a battlefield permanent.
+	DamageSourceLKI map[state.ObjID]DamageSourceLKI
 	// Sacrificed carries the last-known-information snapshot of every object
 	// this resolving spell/ability sacrificed, as it was at the instant of the
 	// sacrifice (state.SacrificedInfo). Built two ways, feeding one field: a

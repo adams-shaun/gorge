@@ -240,6 +240,11 @@ type Engine struct {
 	// It is separate from sourceLifelinkLKI because false lifelink is still a
 	// valid snapshot, and a controller may be seat zero.
 	sourceControllerLKI map[state.ObjID]state.PlayerID
+	// damageSourceLKI carries snapshots keyed first by the waiting stack
+	// object and then by a departed named DamageSource$ object. Unlike the
+	// own-source maps above, every waiting resolution receives departures: the
+	// named source can be TriggeredCard, Targeted, or Remembered.
+	damageSourceLKI map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI
 	// orderedTriggers is how many LEADING entries of pendingTriggers have
 	// already had their order settled by an answered KTriggerOrder decision
 	// (or, for a lone trigger, by there being nothing to decide). It is the
@@ -971,6 +976,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			}
 			e.sourceControllerLKI[copyID] = controller
 		}
+		if lki := e.damageSourceLKI[ev.Obj]; lki != nil {
+			if e.damageSourceLKI == nil {
+				e.damageSourceLKI = make(map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI)
+			}
+			e.damageSourceLKI[copyID] = cloneDamageSourceLKI(lki)
+		}
 	}
 	if ev.Kind == events.MoveZone {
 		// CR 400.7: an object that changes zones is a new object with no
@@ -983,6 +994,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.sacrificedLKI, ev.Obj)
 		delete(e.sourceLifelinkLKI, ev.Obj)
 		delete(e.sourceControllerLKI, ev.Obj)
+		delete(e.damageSourceLKI, ev.Obj)
 	}
 	if ev.Kind == events.PutOnStack && e.deferCastTrigger {
 		// CR 601.2i: the cast trigger must not fire at the up-front push
@@ -1067,6 +1079,7 @@ func (e *Engine) captureSourceLifelinkLKI(ev events.Event) (bool, bool, state.Pl
 			e.sourceLifelinkLKI[id] = link
 			e.sourceControllerLKI[id] = controller
 		}
+		e.captureNamedDamageSourceLKI(id, ev.Obj, link, controller)
 	}
 	for i := range e.pendingTriggers {
 		if e.pendingTriggers[i].Source == ev.Obj {
@@ -1075,6 +1088,7 @@ func (e *Engine) captureSourceLifelinkLKI(ev events.Event) (bool, bool, state.Pl
 			e.pendingTriggers[i].Ctx.SourceControllerLKI = controller
 			e.pendingTriggers[i].Ctx.SourceControllerLKIValid = true
 		}
+		e.capturePendingNamedDamageSourceLKI(&e.pendingTriggers[i].Ctx, ev.Obj, link, controller)
 	}
 	return true, link, controller
 }
@@ -1093,7 +1107,33 @@ func (e *Engine) finishSourceLifelinkLKI(ev events.Event, departing, link bool, 
 			e.pendingTriggers[i].Ctx.SourceControllerLKI = controller
 			e.pendingTriggers[i].Ctx.SourceControllerLKIValid = true
 		}
+		e.capturePendingNamedDamageSourceLKI(&e.pendingTriggers[i].Ctx, ev.Obj, link, controller)
 	}
+}
+
+func (e *Engine) captureNamedDamageSourceLKI(stack, source state.ObjID, link bool, controller state.PlayerID) {
+	if e.damageSourceLKI == nil {
+		e.damageSourceLKI = make(map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI)
+	}
+	if e.damageSourceLKI[stack] == nil {
+		e.damageSourceLKI[stack] = make(map[state.ObjID]effects.DamageSourceLKI)
+	}
+	e.damageSourceLKI[stack][source] = effects.DamageSourceLKI{Lifelink: link, Controller: controller}
+}
+
+func (e *Engine) capturePendingNamedDamageSourceLKI(ctx *effects.Ctx, source state.ObjID, link bool, controller state.PlayerID) {
+	if ctx.DamageSourceLKI == nil {
+		ctx.DamageSourceLKI = make(map[state.ObjID]effects.DamageSourceLKI)
+	}
+	ctx.DamageSourceLKI[source] = effects.DamageSourceLKI{Lifelink: link, Controller: controller}
+}
+
+func cloneDamageSourceLKI(in map[state.ObjID]effects.DamageSourceLKI) map[state.ObjID]effects.DamageSourceLKI {
+	out := make(map[state.ObjID]effects.DamageSourceLKI, len(in))
+	for id, lki := range in {
+		out[id] = lki
+	}
+	return out
 }
 
 func (e *Engine) Pending() *decision.Decision { return e.pending }

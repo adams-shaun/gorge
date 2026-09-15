@@ -787,6 +787,9 @@ func (e *Engine) resolveTop() {
 			ctx.SourceControllerLKI = controller
 			ctx.SourceControllerLKIValid = true
 		}
+		if lki := e.damageSourceLKI[id]; lki != nil {
+			ctx.DamageSourceLKI = cloneDamageSourceLKI(lki)
+		}
 		effects.SetSVars(ctx, svars)
 		// CR 603.3c: the mode choice was announced at placement (pushTrigger
 		// asked KModes and handleModes recorded the answer into ChosenModes).

@@ -163,6 +163,41 @@ func TestScourgeOfValkasDealsDamageFromTheEnteringDragon(t *testing.T) {
 // creature (Adult Gold Dragon, 4/3 with lifelink) deals 4 to itself, and its
 // own lifelink pays its controller 4. Before the fix both halves were dead:
 // X evaluated to 0 (no damage at all) and the rider read the spell.
+// TestDepartedTriggeredDamageSourceCreditsLastController proves the LKI is
+// keyed by the NAMED DamageSource$, not only the resolving trigger's source.
+// The real Scourge trigger names its entering Dragon as TriggeredCard; after
+// its target is chosen, that stolen lifelink Dragon leaves before resolution.
+func TestDepartedTriggeredDamageSourceCreditsLastController(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, cfg, ids := dsBoard(t, reg, "Scourge of Valkas", "Adult Gold Dragon")
+	dragon := ids["Adult Gold Dragon"]
+	e.emit(events.Event{Kind: events.MoveZone, Obj: dragon, From: state.ZBattlefield, To: state.ZHand})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: dragon, From: state.ZHand, To: state.ZBattlefield})
+	e.pending = nil
+	e.Advance()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("Scourge target decision = %+v", d)
+	}
+	submitChoices(t, e, indexOfPlayerOption(d, 1))
+	// The entering Dragon is stolen then removed after the trigger's target
+	// selection. Its object now reports owner 0, so only the pre-departure
+	// named-source controller/Lifelink snapshot can credit seat 1.
+	e.emit(events.Event{Kind: events.ControlChange, Obj: dragon, Player: 1})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: dragon, From: state.ZBattlefield, To: state.ZGraveyard})
+	passUntilStackEmpty(t, e, 20)
+	// Stealing the Dragon means Scourge now controls only itself at resolution,
+	// so the real script deals one. The +1 must nevertheless go to its LAST
+	// controller, not its owner after the graveyard move reset it.
+	if got := e.G.Players[1].Life; got != 20 {
+		t.Fatalf("seat 1 life = %d, want 20 (1 damage and +1 departed-source lifelink)", got)
+	}
+	if n := countLifeChanges(t, e, 1, 1); n != 1 {
+		t.Fatalf("logged %d LifeChange(1, +1), want 1", n)
+	}
+	replayCheck(t, e, cfg)
+}
+
 func TestKikusShadowDamageSourceTargetedGainsLife(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, cfg, ids := dsBoard(t, reg, "Kiku's Shadow", "Adult Gold Dragon")

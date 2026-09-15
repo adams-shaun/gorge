@@ -356,6 +356,12 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			}
 			e.sourceControllerLKI[id] = pt.Ctx.SourceControllerLKI
 		}
+		if pt.Ctx.DamageSourceLKI != nil {
+			if e.damageSourceLKI == nil {
+				e.damageSourceLKI = make(map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI)
+			}
+			e.damageSourceLKI[id] = cloneDamageSourceLKI(pt.Ctx.DamageSourceLKI)
+		}
 	}
 	// Task 7: a trigger that declares ValidTgts$ asks its controller for
 	// targets RIGHT AFTER its TriggerPush -- the ability object is now top of

@@ -121,24 +121,31 @@ func newDamageRider(h Host, c *Ctx, sa *cards.SA, amount int32) damageRider {
 		}
 	}
 	hasLifelink := h.HasKeyword(source, "Lifelink")
-	// CR 608.2h: an independently resolving ability whose source is no
-	// longer on the battlefield uses that source's last known information.
-	// This matters for a granted keyword: Equipment stops applying once its
-	// bearer is sacrificed, but the source had lifelink at its last moment on
-	// the battlefield. While the source remains there, always prefer its live
-	// derived state so detaching the Equipment before resolution removes the
-	// rider as it should. The snapshot is about the ability's OWN source --
-	// a DamageSource$ naming a different object must not inherit it, because
-	// the departure capture never looked at that object.
-	if c.SourceLifelinkLKIValid && source == own {
-		hasLifelink = c.SourceLifelinkLKI
+	// CR 608.2h: a source that left while this resolution waited uses LKI.
+	// The own-source fields cover the independently resolving ability's own
+	// permanent; DamageSourceLKI covers a distinct named source such as
+	// TriggeredCard or Remembered. Live battlefield state always wins, so a
+	// detached lifelink grant is not retained after a source stays in play.
+	live := false
+	if o := h.Game().Obj(source); o != nil && o.Zone == state.ZBattlefield {
+		live = true
 	}
-	// Lifelink belongs to the resolved damaging object, not to the spell or
-	// ability's controller. Move resets Object.Controller to Owner, so the
-	// independently resolving source uses its pre-departure controller LKI.
 	controller := c.Controller
-	if c.SourceControllerLKIValid && source == own {
-		controller = c.SourceControllerLKI
+	if !live {
+		if source == own && c.SourceLifelinkLKIValid {
+			hasLifelink = c.SourceLifelinkLKI
+			controller = c.SourceControllerLKI
+			if !c.SourceControllerLKIValid {
+				controller = c.Controller
+			}
+		} else if lki, ok := c.DamageSourceLKI[source]; ok {
+			hasLifelink = lki.Lifelink
+			controller = lki.Controller
+		} else if o := h.Game().Obj(source); o != nil {
+			// A non-permanent source (for example a spell on the stack) still
+			// has a live controller even though it is not a battlefield object.
+			controller = o.Controller
+		}
 	} else if o := h.Game().Obj(source); o != nil {
 		controller = o.Controller
 	}

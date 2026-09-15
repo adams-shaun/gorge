@@ -148,6 +148,12 @@ func (e *Engine) Clone() *Engine {
 			c.sourceControllerLKI[id] = controller
 		}
 	}
+	if e.damageSourceLKI != nil {
+		c.damageSourceLKI = make(map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI, len(e.damageSourceLKI))
+		for stack, lki := range e.damageSourceLKI {
+			c.damageSourceLKI[stack] = cloneDamageSourceLKI(lki)
+		}
+	}
 	c.triggerFireCount = cloneCounts(e.triggerFireCount)
 	c.damageOnceFired = cloneCounts(e.damageOnceFired)
 	if e.phaseUnknownNoted != nil {
