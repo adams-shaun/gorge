@@ -1,10 +1,13 @@
 package effects
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -59,7 +62,7 @@ func handNoHostFixture(t *testing.T) (*fakeHost, []state.ObjID) {
 	return h, ids
 }
 
-const handAskSA = "DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land"
+const handAskSA = "DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | Mandatory$ True"
 
 // TestHandMoveChangeZoneAsksWhenMoreEligibleThanChangeNum is the ask leaf: a
 // hand with STRICTLY more ChangeType$-eligible cards than ChangeNum poses a
@@ -234,14 +237,16 @@ func TestHandMoveChangeZoneHonoursRememberChanged(t *testing.T) {
 	}
 }
 
-// TestHandMoveChangeZoneNonLiteralChangeNumStaysOnObjectPath pins the R2
-// scope restriction: a non-literal ChangeNum$ (an SVar name or inline
-// Count$) does NOT reach the hand path -- it stays on the pre-existing
-// object path, which for a selectorless Origin$ Hand shape moves nothing
-// (the same silent no-op the fix found before handmove1).
-func TestHandMoveChangeZoneNonLiteralChangeNumStaysOnObjectPath(t *testing.T) {
-	for _, num := range []string{"NumInHand", "X", "Count$Valid Land.YouCtrl"} {
+// TestHandMoveChangeZoneNonLiteralChangeNumEmitsNoteAndStaysSilent pins the
+// rv2b routing change for a non-literal ChangeNum$ (an SVar name, an inline
+// Count$, or a literal that cannot fit the count's range): it no longer
+// falls to the pre-handmove1 silent no-op -- the routing emits a Note naming
+// the unreadable count -- and it still never asks and never moves (the count
+// expression itself is the scoped-out follow-up).
+func TestHandMoveChangeZoneNonLiteralChangeNumEmitsNoteAndStaysSilent(t *testing.T) {
+	for _, num := range []string{"NumInHand", "X", "Count$Valid Land.YouCtrl", "2147483648"} {
 		h, ids := handAskFixture(t)
+		before := len(h.log)
 		Resolve(h, &Ctx{Controller: 0}, sa(t,
 			"DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | ChangeNum$ "+num))
 		if h.asked != nil {
@@ -249,16 +254,24 @@ func TestHandMoveChangeZoneNonLiteralChangeNumStaysOnObjectPath(t *testing.T) {
 		}
 		for _, id := range ids {
 			if o := h.g.Obj(id); o.Zone != state.ZHand {
-				t.Fatalf("ChangeNum$ %s moved ids[%d] to %s: must stay on the object path", num, id, o.Zone)
+				t.Fatalf("ChangeNum$ %s moved ids[%d] to %s", num, id, o.Zone)
 			}
+		}
+		notes := 0
+		for _, ev := range h.log[before:] {
+			if ev.Kind == events.Note {
+				notes++
+			}
+		}
+		if notes != 1 {
+			t.Fatalf("ChangeNum$ %s emitted %d Notes, want exactly 1: %+v", num, notes, h.log[before:])
 		}
 	}
 }
 
 // TestHandMoveChangeZoneRejectsOutOfRangeChangeNum proves a literal that
-// cannot fit Decision.Min/Max's int32 count stays on the old object path.
-// In particular, it must not narrow to a negative bound and create a
-// permanently unanswerable KChoose decision.
+// cannot fit Decision.Min/Max's int32 count routes through the non-literal
+// Note path: no ask, no move, no silent no-op.
 func TestHandMoveChangeZoneRejectsOutOfRangeChangeNum(t *testing.T) {
 	const overflow = "2147483648"
 	if n, ok := handChangeNum(sa(t,
@@ -274,7 +287,314 @@ func TestHandMoveChangeZoneRejectsOutOfRangeChangeNum(t *testing.T) {
 	}
 	for _, id := range ids {
 		if o := h.g.Obj(id); o.Zone != state.ZHand {
-			t.Fatalf("out-of-range ChangeNum moved ids[%d] to %s: must stay on the object path", id, o.Zone)
+			t.Fatalf("out-of-range ChangeNum moved ids[%d] to %s", id, o.Zone)
 		}
+	}
+	sawNote := false
+	for _, ev := range h.log {
+		if ev.Kind == events.Note {
+			sawNote = true
+		}
+	}
+	if !sawNote {
+		t.Fatalf("out-of-range ChangeNum emitted no Note: %+v", h.log)
+	}
+}
+
+// TestHandMoveChangeZoneUntypedSpecDefaultsToWholeHand is the rv2b core
+// leaf: with NO ChangeType$ the eligible pool is the whole hand --
+// Brainstorm's "put two cards from your hand on top" must offer every card
+// in hand, not silently no-op the way the pre-rv2b object path did.
+func TestHandMoveChangeZoneUntypedSpecDefaultsToWholeHand(t *testing.T) {
+	h, _ := handAskFixture(t)
+	Resolve(h, &Ctx{Controller: 0}, sa(t,
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Library | ChangeNum$ 2 | Mandatory$ True | Reorder$ True"))
+	if h.asked == nil {
+		t.Fatal("no decision was posed: the untyped put-back must offer the whole hand")
+	}
+	d := h.asked
+	if d.Min != 2 || d.Max != 2 || len(d.Options) != 4 {
+		t.Fatalf("decision = Min %d Max %d with %d options, want 2/2 and the whole hand", d.Min, d.Max, len(d.Options))
+	}
+	for _, o := range d.Options {
+		if o.Label != "Bear" && o.Label != "Isle" {
+			t.Fatalf("option label %q is not a hand card", o.Label)
+		}
+	}
+}
+
+// TestHandMoveChangeZonePutsBackOnTopInAnswerOrder is the placement leaf for
+// the Forge default: Destination$ Library with no LibraryPosition$ puts the
+// chosen cards on TOP of the library, in the player's answer order (one
+// Secret LibraryOrder; Brainstorm's Reorder$ True "in any order").
+func TestHandMoveChangeZonePutsBackOnTopInAnswerOrder(t *testing.T) {
+	h, ids := handAskFixture(t)
+	// The answer names the SECOND eligible card first: the order the answer
+	// gives, not hand order, must be the order on top.
+	Resolve(h, &Ctx{Controller: 0, HandMove: []state.ObjID{ids[2], ids[1]}, HandMoveDone: true},
+		sa(t, "DB$ ChangeZone | Origin$ Hand | Destination$ Library | ChangeNum$ 2 | Mandatory$ True | Reorder$ True"))
+	lib := h.g.Zone(state.ZLibrary, 0)
+	if len(lib) != 2 || lib[0] != ids[2] || lib[1] != ids[1] {
+		t.Fatalf("library = %v, want [%d %d] in answer order on top", lib, ids[2], ids[1])
+	}
+	sawOrder := false
+	for _, ev := range h.log {
+		if ev.Kind == events.LibraryOrder && ev.Player == 0 {
+			sawOrder = true
+		}
+	}
+	if !sawOrder {
+		t.Fatalf("no LibraryOrder placement event in %+v", h.log)
+	}
+	for _, id := range []state.ObjID{ids[0], ids[3]} {
+		if o := h.g.Obj(id); o.Zone != state.ZHand {
+			t.Fatalf("unchosen card %d moved to %s", id, o.Zone)
+		}
+	}
+}
+
+// TestHandMoveChangeZoneLibraryPositionZeroIsTop pins the explicit top
+// spelling (Jace, the Mind Sculptor's [0]: LibraryPosition$ 0).
+func TestHandMoveChangeZoneLibraryPositionZeroIsTop(t *testing.T) {
+	h, ids := handAskFixture(t)
+	Resolve(h, &Ctx{Controller: 0, HandMove: []state.ObjID{ids[1]}, HandMoveDone: true},
+		sa(t, "DB$ ChangeZone | Origin$ Hand | Destination$ Library | ChangeType$ Card | ChangeNum$ 2 | LibraryPosition$ 0 | Mandatory$ True"))
+	lib := h.g.Zone(state.ZLibrary, 0)
+	if len(lib) != 1 || lib[0] != ids[1] {
+		t.Fatalf("library = %v, want the chosen card on top", lib)
+	}
+}
+
+// TestHandMoveChangeZoneLibraryPositionMinusOneIsBottom pins the bottom
+// spelling (Sawtooth Loon, Amass the Components: LibraryPosition$ -1); the
+// Move itself appends at the bottom, so the placement re-affirms the chosen
+// order there and the rest of the library stays above.
+func TestHandMoveChangeZoneLibraryPositionMinusOneIsBottom(t *testing.T) {
+	h, ids := handAskFixture(t)
+	Resolve(h, &Ctx{Controller: 0, HandMove: []state.ObjID{ids[2], ids[1]}, HandMoveDone: true},
+		sa(t, "DB$ ChangeZone | Origin$ Hand | Destination$ Library | LibraryPosition$ -1 | ChangeNum$ 2 | Mandatory$ True"))
+	lib := h.g.Zone(state.ZLibrary, 0)
+	if len(lib) != 2 || lib[0] != ids[2] || lib[1] != ids[1] {
+		t.Fatalf("library = %v, want [%d %d] at the bottom in answer order", lib, ids[2], ids[1])
+	}
+}
+
+// TestHandMoveChangeZoneOptionalTakeAsksWithMinZero is the Mandatory$/
+// Optional$ leaf: Optional$ You (the 35 raw explicit "may" lines) and the
+// neither-parameter default (the 151 typed "you may put" lines, Burgeoning
+// among them) lower the ask's Min to 0, and an empty answer moves nothing.
+func TestHandMoveChangeZoneOptionalTakeAsksWithMinZero(t *testing.T) {
+	for _, saLine := range []string{
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | Optional$ You",
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land",
+	} {
+		h, _ := handAskFixture(t)
+		Resolve(h, &Ctx{Controller: 0}, sa(t, saLine))
+		if h.asked == nil {
+			t.Fatalf("%s: no decision posed", saLine)
+		}
+		if h.asked.Min != 0 || h.asked.Max != 1 {
+			t.Fatalf("%s: Min/Max = %d/%d, want 0/1 (the optional take)", saLine, h.asked.Min, h.asked.Max)
+		}
+	}
+	// The empty answer is legal: HandMoveDone with no ids moves nothing.
+	h, ids := handAskFixture(t)
+	Resolve(h, &Ctx{Controller: 0, HandMove: nil, HandMoveDone: true}, sa(t,
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | Optional$ You"))
+	for _, id := range ids {
+		if o := h.g.Obj(id); o.Zone != state.ZHand {
+			t.Fatalf("an empty optional answer moved ids[%d] to %s", id, o.Zone)
+		}
+	}
+	// Mandatory$ True keeps the take required: Min ChangeNum.
+	h2, _ := handAskFixture(t)
+	Resolve(h2, &Ctx{Controller: 0}, sa(t,
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | Optional$ You | Mandatory$ True"))
+	if h2.asked == nil || h2.asked.Min != 1 {
+		t.Fatalf("Mandatory$ True Min = %d, want 1 (the take is required)", h2.asked.Min)
+	}
+}
+
+// TestHandMoveChangeZoneShuffleParamShufflesTheLibrary pins Shuffle$ True on
+// a hand put-back (Slowtrip's "shuffle a card from your hand into your
+// library"): the move happens, then one Shuffle randomises the library, and
+// no LibraryPosition$ placement rides on top of it.
+func TestHandMoveChangeZoneShuffleParamShufflesTheLibrary(t *testing.T) {
+	h, ids := handAskFixture(t)
+	Resolve(h, &Ctx{Controller: 0, HandMove: []state.ObjID{ids[1]}, HandMoveDone: true}, sa(t,
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Library | ChangeType$ Card | Shuffle$ True | RememberChanged$ True"))
+	if o := h.g.Obj(ids[1]); o.Zone != state.ZLibrary {
+		t.Fatalf("moved card on %s, want library", o.Zone)
+	}
+	sawShuffle, sawOrder := false, false
+	for _, ev := range h.log {
+		if ev.Kind == events.Shuffle && ev.Player == 0 {
+			sawShuffle = true
+		}
+		if ev.Kind == events.LibraryOrder {
+			sawOrder = true
+		}
+	}
+	if !sawShuffle || sawOrder {
+		t.Fatalf("Shuffle$ True: shuffle %v, placement %v (want shuffle, no placement)", sawShuffle, sawOrder)
+	}
+}
+
+// --- rv2b: the two remaining brief leaves on the real corpus scripts. ---
+
+// brainstormSubAbility returns the real compiled ChangeZoneDB sub-ability of
+// the real corpus Brainstorm card (the Draw's SubAbility$ chain), so the
+// whole-hand mandatory put-back is exercised on the script the card ships.
+func brainstormSubAbility(t *testing.T, reg *cards.Registry) *cards.SA {
+	t.Helper()
+	brainstorm, ok := reg.Lookup("Brainstorm")
+	if !ok {
+		t.Fatal("corpus has no Brainstorm")
+	}
+	for _, ab := range brainstorm.Faces[0].Abilities {
+		if ab.API == "Draw" && ab.Sub != nil && ab.Sub.API == "ChangeZone" {
+			return ab.Sub
+		}
+	}
+	t.Fatal("Brainstorm's Draw has no ChangeZone sub-ability in the compiled corpus")
+	return nil
+}
+
+// TestBrainstormRealScriptMandatoryPutBackWithFewerEligibleCards runs the
+// REAL compiled Brainstorm sub-ability (ChangeNum$ 2, Mandatory$ True, no
+// ChangeType$) with only ONE eligible card in hand: the mandatory put-back
+// takes it without an ask (a decision nobody could answer differently), and
+// the card lands on top (Forge's absent-LibraryPosition$ default).
+func TestBrainstormRealScriptMandatoryPutBackWithFewerEligibleCards(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	db := brainstormSubAbility(t, reg)
+	if db.Params["ChangeNum"] != "2" || db.Params["Mandatory"] != "True" || db.Params["ChangeType"] != "" {
+		t.Fatalf("Brainstorm's compiled sub-ability drifted: %+v", db.Params)
+	}
+	g := state.NewGame(names(2))
+	bear := corpusObject(t, reg, g, "Grizzly Bears")
+	g.SetZone(state.ZHand, 0, []state.ObjID{bear.ID})
+	bear.Zone = state.ZHand
+
+	h := &askHost{}
+	h.g = g
+	Resolve(h, &Ctx{Controller: 0}, db)
+	if h.asked != nil {
+		t.Fatalf("a decision was posed with eligible (1) < ChangeNum (2): %+v", h.asked)
+	}
+	lib := h.g.Zone(state.ZLibrary, 0)
+	if len(lib) != 1 || lib[0] != bear.ID {
+		t.Fatalf("library = %v, want exactly the bear on top", lib)
+	}
+	if o := h.g.Obj(bear.ID); o.Zone != state.ZLibrary {
+		t.Fatalf("bear on %s, want library", o.Zone)
+	}
+}
+
+// TestOviyaRealScriptFilteredHandPutBack runs the real compiled Oviya,
+// Automech Artisan ability (Cost$ G T | Origin$ Hand | Destination$
+// Battlefield | ChangeType$ Creature,Vehicle | ChangeNum$ 1, neither
+// Mandatory$ nor Optional$ -- the Forge "you may" default): the ask offers
+// ONLY the creature and Vehicle cards, never the land or the instant beside
+// them, and Min is 0 (the take is optional).
+func TestOviyaRealScriptFilteredHandPutBack(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	oviya, ok := reg.Lookup("Oviya, Automech Artisan")
+	if !ok {
+		t.Fatal("corpus has no Oviya, Automech Artisan")
+	}
+	var ab *cards.SA
+	for _, a := range oviya.Faces[0].Abilities {
+		if a.API == "ChangeZone" && a.Params["Origin"] == "Hand" {
+			ab = a
+		}
+	}
+	if ab == nil {
+		t.Fatal("Oviya has no Origin$ Hand ChangeZone ability")
+	}
+	g := state.NewGame(names(2))
+	bear := corpusObject(t, reg, g, "Grizzly Bears")
+	mtn := corpusObject(t, reg, g, "Mountain")
+	bolt := corpusObject(t, reg, g, "Lightning Bolt")
+	copter := corpusObject(t, reg, g, "Smuggler's Copter")
+	ids := []state.ObjID{bear.ID, mtn.ID, bolt.ID, copter.ID}
+	g.SetZone(state.ZHand, 0, ids)
+	for _, id := range ids {
+		g.Obj(id).Zone = state.ZHand
+	}
+
+	h := &askHost{}
+	h.g = g
+	Resolve(h, &Ctx{Controller: 0}, ab)
+	if h.asked == nil {
+		t.Fatal("no decision posed: two eligible cards (bear, copter) strictly exceed ChangeNum 1")
+	}
+	d := h.asked
+	if d.Min != 0 || d.Max != 1 {
+		t.Fatalf("Min/Max = %d/%d, want 0/1 (Forge's optional default)", d.Min, d.Max)
+	}
+	if len(d.Options) != 2 {
+		t.Fatalf("options = %+v, want exactly the bear and the Copter", d.Options)
+	}
+	for _, o := range d.Options {
+		if o.Obj != bear.ID && o.Obj != copter.ID {
+			t.Fatalf("option %+v is neither the creature nor the Vehicle", o)
+		}
+	}
+	// Nothing moved while suspended.
+	for _, id := range ids {
+		if g.Obj(id).Zone != state.ZHand {
+			t.Fatalf("id %d moved during suspension", id)
+		}
+	}
+}
+
+// TestDreamCacheDestinationAlternativeEmitsNote pins the one genuinely
+// unsupported hidden-origin shape's loudness: Dream Cache's "both on top of
+// your library or both on the bottom" (DestinationAlternative$/
+// LibraryPositionAlternative$) cannot be asked yet, so the alternative is
+// named in a Note and the primary destination (top) is taken
+// deterministically -- never a silent no-op.
+func TestDreamCacheDestinationAlternativeEmitsNote(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	card, ok := reg.Lookup("Dream Cache")
+	if !ok {
+		t.Fatal("corpus has no Dream Cache")
+	}
+	var db *cards.SA
+	for _, f := range card.Faces {
+		for _, ab := range f.Abilities {
+			if ab.API == "Draw" && ab.Sub != nil && ab.Sub.API == "ChangeZone" {
+				db = ab.Sub
+			}
+		}
+	}
+	if db == nil || db.Params["DestinationAlternative"] == "" {
+		t.Fatalf("Dream Cache's compiled sub-ability drifted: %+v", db)
+	}
+	g := state.NewGame(names(2))
+	bear := corpusObject(t, reg, g, "Grizzly Bears")
+	mtn := corpusObject(t, reg, g, "Mountain")
+	g.SetZone(state.ZHand, 0, []state.ObjID{bear.ID, mtn.ID})
+	bear.Zone, mtn.Zone = state.ZHand, state.ZHand
+
+	h := &askHost{}
+	h.g = g
+	Resolve(h, &Ctx{Controller: 0}, db)
+	if h.asked != nil {
+		t.Fatalf("a decision was posed with eligible (2) == ChangeNum (2): %+v", h.asked)
+	}
+	lib := h.g.Zone(state.ZLibrary, 0)
+	if len(lib) != 2 {
+		t.Fatalf("library = %v, want both hand cards on top", lib)
+	}
+	sawNote := false
+	for _, ev := range h.log {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "DestinationAlternative$") {
+			sawNote = true
+		}
+	}
+	if !sawNote {
+		t.Fatalf("no DestinationAlternative$ Note in %+v", h.log)
 	}
 }

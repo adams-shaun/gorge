@@ -104,25 +104,36 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			effSearchLibrary(h, c, sa, to)
 			return
 		}
-		// A ChangeZone from exactly Hand with a ChangeType$ card filter and no
-		// object selector is Forge's "choose N cards matching ChangeType$ from
-		// your hand" shape (Burgeoning: "you may put a land card from your hand
-		// onto the battlefield"). With no Defined$/DefinedPlayer$/ValidTgts$
-		// the object path below would resolve Defined to the SOURCE default and
-		// then skip every candidate on the Origin$ precondition -- the silent
-		// no-op the handmove1 fix replaces with a real hand choice.
+		// A ChangeZone from exactly Hand with no object selector is Forge's
+		// hidden-origin hand put-back: the chooser picks ChangeNum$ cards (a
+		// ChangeType$ filter narrows the pool; its absence -- Brainstorm's "put
+		// two cards from your hand on top of your library", Jace, the Mind
+		// Sculptor's [0] -- offers the whole hand). With no Defined$/
+		// DefinedPlayer$/ValidTgts$ the object path below would resolve Defined
+		// to the SOURCE default and then skip every candidate on the Origin$
+		// precondition -- the silent no-op the handmove1 fix replaces with a
+		// real hand choice (the rv2b extension drops handmove1's ChangeType$
+		// requirement: the whole 246-line no-selector Origin$ Hand population
+		// routes here now, 19 of it untyped).
 		// DefinedPlayer$-bearing lines name another player's hand and stay on
 		// the (broken) object path until the per-player follow-up lands; a
 		// ValidTgts$-bearing line names real targets the object path moves; and
-		// a non-literal ChangeNum$ (an SVar name or inline Count$, ~45 raw
-		// lines) is a scoped-out follow-up that also stays on that old path.
+		// a non-literal ChangeNum$ (an SVar name or inline Count$, 15 raw
+		// lines -- Count$ValidHand, CountAuras, HandX, VoteNum, X, XFetch, Y)
+		// cannot yet be evaluated into a choice bound, so it no longer falls to
+		// the silent no-op: it emits a Note naming the unreadable count and
+		// moves nothing.
 		if len(originZones) == 1 && originZones[0] == state.ZHand && !originAll &&
-			sa.Params["ChangeType"] != "" && sa.Params["Defined"] == "" &&
+			sa.Params["Defined"] == "" &&
 			sa.Params["DefinedPlayer"] == "" && sa.Params["ValidTgts"] == "" {
 			if _, literal := handChangeNum(sa); literal {
 				effChangeZoneHand(h, c, sa, to)
 				return
 			}
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "cannot choose ChangeNum$ " + strings.TrimSpace(sa.Params["ChangeNum"]) +
+					" cards from hand (a non-literal count is not a bound this engine can evaluate)"})
+			return
 		}
 	}
 	// WithCountersType$/WithCountersAmount$ make the move put counters on the
@@ -208,24 +219,47 @@ func handChangeNum(sa *cards.SA) (int32, bool) {
 // Destination$ behave exactly as they do everywhere else.
 //
 // The ask (the dig1/effDiscard strict-supersets rule): when the hand holds
-// STRICTLY more ChangeType$-eligible cards than ChangeNum, the pick is a real
-// KChoose posed to the controller -- Min ChangeNum, Max ChangeNum -- so a
-// decision nobody could answer differently is never emitted; with ChangeNum
-// or fewer eligible cards they all move deterministically, no ask. With ZERO
-// eligible cards the effect resolves doing nothing (Burgeoning with no land
-// in hand is a legitimate no-op). The chooser's own hand is the option pool,
-// so no Secret Note/redaction is needed beyond the ordinary
+// STRICTLY more eligible cards than ChangeNum, the pick is a real
+// KChoose posed to the controller -- Min ChangeNum or 0, Max ChangeNum --
+// so a decision nobody could answer differently is never emitted; with
+// ChangeNum or fewer eligible cards they all move deterministically, no
+// ask (the same no-choice stand-in dig1 keeps for an Optional$ window: an
+// optional take with eligible <= ChangeNum still plays "you may" as
+// "do", an M4 deferral shared with effDig). With ZERO eligible cards the
+// effect resolves doing nothing (Burgeoning with no land in hand is a
+// legitimate no-op). The chooser's own hand is the option pool, so no
+// Secret Note/redaction is needed beyond the ordinary
 // decision-attaches-only-to-its-Player projection rule.
+//
+// Mandatory$ and Optional$ (rv2b): Forge's default for this shape is
+// "you may" -- the mandatory Brainstorm family carries Mandatory$ True,
+// while the 151 typed lines and 5 untyped lines with NEITHER parameter are
+// all "you may put" texts (Burgeoning, Volcanic Spite) -- so the take is
+// optional unless Mandatory$ True (or Optional$ False) makes it required;
+// Optional$ True/You is the explicit may spelling. An optional ask's Min
+// is 0: answering none moves nothing (Volcanic Spite's gated DBDraw then
+// does not fire, which RememberChanged$/ConditionDefined$ already model).
+// The no-choice path and the R-9 stand-in still take the full ChangeNum --
+// "you may" played as "do", deterministically.
+//
+// Destination$ Library placement (rv2b): a Move appends the moved cards at
+// the BOTTOM of the library in settle order; LibraryPosition$ makes the
+// placement exact afterwards -- absent or "0" puts the chosen cards on TOP
+// in chosen order (Forge's default: Brainstorm and Jace's [0] have no
+// LibraryPosition$ and put the cards on top; Sawtooth Loon's -1 puts them
+// on the bottom), one Secret LibraryOrder like the library search's. A
+// Shuffle$ True put-back (Slowtrip's "shuffle a card from your hand into
+// your library") randomises the whole library after the move instead.
 //
 // ChangeNum$ defaults to 1 when absent -- Forge's own ChangeZoneEffect
 // defaults the count to one card (ChangeNum$ absent reads as "a card" in
 // every text this shape carries: Burgeoning, Elvish Pioneer, Kami of Bamboo
 // Groves), and the corpus's 70 absent-ChangeNum$ exact-Hand lines are all
 // singular-take texts. Only a PLAIN INTEGER literal ChangeNum$ reaches this
-// path: the routing guard in effChangeZone leaves a non-literal value (an
-// SVar name or inline Count$, ~45 raw lines) on the pre-existing object
-// path, so this function never sees one and no count expression is
-// evaluated here (a scoped-out follow-up).
+// path: the routing guard in effChangeZone turns a non-literal value (an
+// SVar name or inline Count$, 15 raw lines) into a Note before this
+// function is ever reached, so no count expression is evaluated here (a
+// scoped-out follow-up).
 //
 // The answer re-enters through ResumeKind "hand_move" with Ctx.HandMove /
 // HandMoveDone set (rules/resolution.go); both are captured and cleared at
@@ -235,12 +269,16 @@ func handChangeNum(sa *cards.SA) (int32, bool) {
 // stand-in, R-9) takes the first ChangeNum eligible cards in the decision's
 // own deterministic option order, with the Note that records why the richer
 // path did not run. Still unread here, each a scoped-out follow-up: Tapped$
-// True (entry-tapped, unread on the object path too), Optional$
-// True on the ChangeZone itself (23 raw lines -- the optional take is asked
-// as mandatory), Destination$ Hand/Sideboard oddities (2 lines), and any
+// True (entry-tapped, unread on the object path too), Destination$
+// Hand/Sideboard oddities (2 lines), DestinationAlternative$/
+// LibraryPositionAlternative$ (Dream Cache's "both on top or both on the
+// bottom" -- the top reading is taken deterministically), and any
 // ConditionPresent$/ConditionDefined$ gate (the engine-wide Condition* gap).
 func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	spec := sa.Params["ChangeType"]
+	if spec == "" {
+		spec = "Card" // the whole hand: Brainstorm, Jace's [0], Sawtooth Loon
+	}
 	g := h.Game()
 	hand := zoneOf(g, state.ZHand, c.Controller)
 	// fx42 scoping: capture and clear the answered pick BEFORE anything else,
@@ -262,6 +300,9 @@ func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	settleHandMove := func(id state.ObjID) {
 		settleChangeZoneMove(h, c, sa, id, state.ZHand, to, withKind, withAmt)
 	}
+	// moved collects the cards this resolution actually moved, in settle
+	// order, for the library tail below (Shuffle$ / LibraryPosition$).
+	var moved []state.ObjID
 	if done {
 		// Re-entry: move exactly the answered cards that still sit in the
 		// controller's hand and still match the filter (a stray answer must
@@ -279,7 +320,9 @@ func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 				continue
 			}
 			settleHandMove(id)
+			moved = append(moved, id)
 		}
+		handLibraryTail(h, g, sa, c.Source, c.Controller, moved, to)
 		return
 	}
 	n, _ := handChangeNum(sa)
@@ -297,13 +340,19 @@ func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		// in hand order. No new decision of any kind.
 		for _, id := range eligible {
 			settleHandMove(id)
+			moved = append(moved, id)
 		}
+		handLibraryTail(h, g, sa, c.Source, c.Controller, moved, to)
 		return
 	}
+	min := int(n)
+	if handTakeOptional(sa) {
+		min = 0 // "you may put": none is a legal answer
+	}
 	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
-		Min: int(n), Max: int(n), Source: c.Source,
+		Min: min, Max: int(n), Source: c.Source,
 		ResumeKind: "hand_move", ResumeSA: sa,
-		Prompt: "Choose " + strconv.Itoa(int(n)) + " matching card(s) from your hand: they move to " + handDestPhrase(to)}
+		Prompt: handMovePrompt(sa, to, int(n))}
 	for _, id := range eligible {
 		name := "a card"
 		if o := g.Obj(id); o != nil && o.Face() != nil {
@@ -330,7 +379,70 @@ func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	}
 	for i := int32(0); i < n && i < int32(len(eligible)); i++ {
 		settleHandMove(eligible[i])
+		moved = append(moved, eligible[i])
 	}
+	handLibraryTail(h, g, sa, c.Source, c.Controller, moved, to)
+}
+
+// handTakeOptional reads Forge's optional-vs-mandatory markers for the
+// hidden-origin hand put-back. Forge's DEFAULT for this shape is "you may":
+// the mandatory Brainstorm/Sawtooth Loon family carries Mandatory$ True,
+// while every script with NEITHER parameter is a "you may put" text
+// (Burgeoning, Volcanic Spite, Oviya, Automech Artisan). Optional$ True and
+// Optional$ You are the explicit may spellings (19 and 35 raw lines);
+// Optional$ False and Mandatory$ False make the take required.
+func handTakeOptional(sa *cards.SA) bool {
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Mandatory"]), "True") {
+		return false
+	}
+	if o := strings.TrimSpace(sa.Params["Optional"]); o != "" {
+		return strings.EqualFold(o, "True") || strings.EqualFold(o, "You")
+	}
+	return true
+}
+
+// handMovePrompt builds the human-readable ask text, naming the top/bottom
+// placement when the destination is the library (the one destination where
+// WHERE matters to the chooser).
+func handMovePrompt(sa *cards.SA, to state.Zone, n int) string {
+	dest := handDestPhrase(to)
+	if to == state.ZLibrary {
+		if strings.TrimSpace(sa.Params["LibraryPosition"]) == "-1" {
+			dest = "the bottom of your library"
+		} else {
+			dest = "the top of your library"
+		}
+	}
+	return "Choose " + strconv.Itoa(n) + " card(s) from your hand: they move to " + dest
+}
+
+// handLibraryTail is the post-move library placement both hidden-origin
+// movers end with. A hand put-back only shuffles when its own script says
+// so (Shuffle$ True -- Slowtrip), while a library search shuffles by
+// default; the placement itself is the shared libraryOrderPlacement helper,
+// with Forge's absent-LibraryPosition$ default (TOP) applied for the hand
+// path -- Brainstorm and Jace's [0] name no LibraryPosition$ and their
+// oracle puts the cards on top.
+func handLibraryTail(h Host, g *state.Game, sa *cards.SA, source state.ObjID, owner state.PlayerID, moved []state.ObjID, to state.Zone) {
+	if to != state.ZLibrary || len(moved) == 0 {
+		return
+	}
+	// DestinationAlternative$/LibraryPositionAlternative$ (Dream Cache's "both
+	// on top of your library or both on the bottom", 1 raw line) is a modal
+	// destination choice this engine cannot yet ask: the alternative is named
+	// in a Note and the primary destination/position is taken
+	// deterministically, so the unsupported shape is never silent.
+	if alt := strings.TrimSpace(sa.Params["DestinationAlternative"]); alt != "" || strings.TrimSpace(sa.Params["LibraryPositionAlternative"]) != "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: source, Player: owner,
+			Text: "DestinationAlternative$ " + alt + " is not a choice this engine can ask; the cards take the primary destination"})
+	}
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Shuffle"]), "True") &&
+		!strings.EqualFold(strings.TrimSpace(sa.Params["NoShuffle"]), "True") {
+		shuffleLibrary(h, g, owner)
+		return // a shuffled library has no meaningful LibraryPosition$
+	}
+	bottom := strings.TrimSpace(sa.Params["LibraryPosition"]) == "-1"
+	libraryOrderPlacement(h, g, owner, moved, bottom)
 }
 
 // handDestPhrase names the hand-move destination in the human-readable
@@ -629,21 +741,43 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	shuffle := !strings.EqualFold(sa.Params["NoShuffle"], "True") &&
 		!strings.EqualFold(sa.Params["Shuffle"], "False")
 	if shuffle {
-		order := append([]state.ObjID(nil), g.Zone(state.ZLibrary, owner)...)
-		for i := len(order) - 1; i > 0; i-- {
-			j := h.Rand(i + 1)
-			order[i], order[j] = order[j], order[i]
-		}
-		h.Emit(events.Event{Kind: events.Shuffle, Player: owner, IDs: order, Secret: true})
+		shuffleLibrary(h, g, owner)
 	}
 
 	// "Shuffle, then put that card on top" tutors need the placement after
 	// the randomisation. MoveZone library->library first records the selected
-	// cards in answer order; this one LibraryOrder makes position 0/-1 exact.
+	// cards in answer order; the shared placement helper makes position 0/-1
+	// exact. Only an explicit LibraryPosition$ places here (the search's
+	// default has no order to fix); the hand put-back path applies Forge's
+	// absent-position TOP default on its own side of the helper.
 	position := strings.TrimSpace(sa.Params["LibraryPosition"])
 	if to != state.ZLibrary || len(moved) == 0 || (position != "0" && position != "-1") {
 		return
 	}
+	libraryOrderPlacement(h, g, owner, moved, position == "-1")
+}
+
+// shuffleLibrary randomises one player's library through the ordinary
+// Secret Shuffle event -- the one randomisation shape every hidden-origin
+// mover (library search, hand put-back) shares.
+func shuffleLibrary(h Host, g *state.Game, owner state.PlayerID) {
+	order := append([]state.ObjID(nil), g.Zone(state.ZLibrary, owner)...)
+	for i := len(order) - 1; i > 0; i-- {
+		j := h.Rand(i + 1)
+		order[i], order[j] = order[j], order[i]
+	}
+	h.Emit(events.Event{Kind: events.Shuffle, Player: owner, IDs: order, Secret: true})
+}
+
+// libraryOrderPlacement is the one LibraryPosition$ placement both
+// hidden-origin movers (the library search's tutor-back and the hand
+// put-back) share. The moved cards are already in the library (Move appended
+// them at the bottom, in settle order); this one Secret LibraryOrder makes
+// position exact: bottom=false puts the chosen cards on TOP in chosen order,
+// bottom=true leaves them at the bottom in that same order, with the rest of
+// the library beneath/above them respectively. Secret so the full order is
+// visible only to the library's owner (redaction rule (1)).
+func libraryOrderPlacement(h Host, g *state.Game, owner state.PlayerID, moved []state.ObjID, bottom bool) {
 	selected := make(map[state.ObjID]bool, len(moved))
 	for _, id := range moved {
 		selected[id] = true
@@ -662,7 +796,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		}
 	}
 	order := make([]state.ObjID, 0, len(lib))
-	if position == "0" {
+	if !bottom {
 		order = append(order, placed...)
 		order = append(order, rest...)
 	} else {

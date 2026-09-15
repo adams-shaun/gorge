@@ -3,8 +3,10 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -123,8 +125,8 @@ func TestBurgeoningAsksForTheHandLandAndHonoursTheAnswer(t *testing.T) {
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "hand_move" {
 		t.Fatalf("expected a pending hand_move KChoose, got %+v", d)
 	}
-	if d.Player != 0 || d.Min != 1 || d.Max != 1 {
-		t.Fatalf("Min/Max/Player = %d/%d/%d, want 1/1/0 (take one, the hand's owner)", d.Min, d.Max, d.Player)
+	if d.Player != 0 || d.Min != 0 || d.Max != 1 {
+		t.Fatalf("Min/Max/Player = %d/%d/%d, want 0/1/0 (Burgeoning's optional take: none is a legal answer, the hand's owner asks)", d.Min, d.Max, d.Player)
 	}
 	if d.ResumeKind != "hand_move" {
 		t.Fatalf("ResumeKind = %q, want \"hand_move\"", d.ResumeKind)
@@ -212,6 +214,181 @@ func TestBurgeoningSingleLandMovesWithoutAsk(t *testing.T) {
 	}
 	if n := handToBattlefieldMoves(e.L.Events, land); n != 1 {
 		t.Fatalf("land moved hand->battlefield %d times, want exactly 1", n)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// --- rv2b: the Brainstorm-shaped whole-hand put-back, end to end on the real
+// corpus scripts. ---
+
+// brainFinds returns the option index whose Obj is id in a pending hand_move
+// KChoose.
+func handMoveOption(t *testing.T, d *decision.Decision, id state.ObjID) int {
+	t.Helper()
+	for _, o := range d.Options {
+		if o.Obj == id {
+			return o.Index
+		}
+	}
+	t.Fatalf("hand card %d not offered in %+v", id, d.Options)
+	return -1
+}
+
+// TestBrainstormPutsTwoChosenCardsBackOnTop casts the real corpus Brainstorm
+// at a hand holding it and two bears: it draws three, then the mandatory
+// ChangeZoneDB put-back asks over the WHOLE hand (no ChangeType$), and the
+// answer -- the two bears named in REVERSE hand order, proving the choice and
+// the order are honoured -- lands on TOP of the library in answer order.
+func TestBrainstormPutsTwoChosenCardsBackOnTop(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	brainstorm := mustCorpusCard(t, reg, "Brainstorm")
+	bear := mustCorpusCard(t, reg, "Grizzly Bears")
+	cfg := Config{Seed: 5, Names: []string{"a", "b"}, Tokens: map[string]*cards.Card{},
+		Decks: [][]*cards.Card{append([]*cards.Card{brainstorm, bear, bear}, mountainDeck(t, 37)...),
+			mountainDeck(t, 40)}}
+	cfg = seatZeroStart(cfg)
+	e := New(cfg)
+	e.Advance()
+	// Arrange the hand through LOGGED zone moves (the setup every cast
+	// fixture uses, so the log-only replay reconstructs it): Brainstorm and
+	// both bears into hand, one blue mana into the pool, then drive to seat
+	// 0's own main1.
+	var bID state.ObjID
+	var bearIDs []state.ObjID
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Owner != 0 {
+			continue
+		}
+		switch o.Card {
+		case brainstorm:
+			bID = o.ID
+		case bear:
+			bearIDs = append(bearIDs, o.ID)
+		}
+	}
+	if bID == 0 || len(bearIDs) != 2 {
+		t.Fatalf("fixture deck lacks the cards: brainstorm %d, bears %v", bID, bearIDs)
+	}
+	for _, id := range append([]state.ObjID{bID}, bearIDs...) {
+		if o := e.G.Obj(id); o.Zone != state.ZHand {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZHand})
+		}
+	}
+	addMana(t, e, 0, "U")
+	e.pending = nil
+	e.Advance()
+	driveToStep(t, e, e.G.Turn, e.G.Active, state.StepMain1)
+
+	submitChoices(t, e, passToCast(t, e, bID))
+	d := passUntilNonPriority(t, e, 20)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "hand_move" {
+		t.Fatalf("expected the hand_move put-back ask, got %+v", d)
+	}
+	if d.Min != 2 || d.Max != 2 || d.Player != 0 {
+		t.Fatalf("Min/Max/Player = %d/%d/%d, want 2/2/0 (Mandatory$ True takes two)", d.Min, d.Max, d.Player)
+	}
+	// The whole hand is offered: the two bears + three drawn Mountains (the
+	// cast Brainstorm itself is on the stack, not in the hand).
+	handAtAsk := e.G.Zone(state.ZHand, 0)
+	if len(d.Options) != len(handAtAsk) {
+		t.Fatalf("options = %d, want the whole hand (%d: no ChangeType$ filter)", len(d.Options), len(handAtAsk))
+	}
+	var bearList []state.ObjID
+	for _, id := range e.G.Zone(state.ZHand, 0) {
+		if e.G.Obj(id).Face().Name == "Grizzly Bears" {
+			bearList = append(bearList, id)
+		}
+	}
+	if len(bearList) != 2 {
+		t.Fatalf("hand holds %d bears, want 2", len(bearList))
+	}
+	// Answer in REVERSE hand order: the order the answer gives is the order
+	// on top (Brainstorm's Reorder$ True "in any order").
+	secondFirst := bearList[1]
+	firstSecond := bearList[0]
+	submitChoices(t, e, handMoveOption(t, d, secondFirst), handMoveOption(t, d, firstSecond))
+	passUntilStackEmpty(t, e, 20)
+
+	lib := e.G.Zone(state.ZLibrary, 0)
+	if len(lib) < 2 || lib[0] != secondFirst || lib[1] != firstSecond {
+		t.Fatalf("library top = %v..., want [%d %d] in answer order on top", lib[:2], secondFirst, firstSecond)
+	}
+	if len(e.G.Zone(state.ZHand, 0)) != len(handAtAsk)-2 {
+		t.Fatalf("hand size %d, want %d (hand at ask minus the two put back)",
+			len(e.G.Zone(state.ZHand, 0)), len(handAtAsk)-2)
+	}
+	moved := 0
+	var sawOrder bool
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.MoveZone && (ev.Obj == secondFirst || ev.Obj == firstSecond) &&
+			ev.From == state.ZHand && ev.To == state.ZLibrary {
+			moved++
+		}
+		if ev.Kind == events.LibraryOrder && ev.Player == 0 {
+			sawOrder = true
+		}
+	}
+	if moved != 2 || !sawOrder {
+		t.Fatalf("put-back moves=%d (want 2), LibraryOrder=%v", moved, sawOrder)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestJaceTheMindSculptorZeroAbilityPutsTwoBackOnTop activates the real
+// corpus Jace's [0] on a board with two bears in hand: it draws three, then
+// the mandatory put-back (ChangeType$ Card, ChangeNum$ 2, LibraryPosition$
+// 0) asks over the whole hand, and the answered two bears land on TOP in
+// answer order, with the walker's loyalty untouched by the free [+0] cost.
+func TestJaceTheMindSculptorZeroAbilityPutsTwoBackOnTop(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	jaceCard := mustCorpusCard(t, reg, "Jace, the Mind Sculptor")
+	zero := jaceAbility(t, jaceCard, "AddCounter", 0)
+	bear := mustCorpusCard(t, reg, "Grizzly Bears")
+	e, cfg, jace := walkerBoard(t, reg, "Jace, the Mind Sculptor", bear, bear)
+	// BOTH bear copies into hand (cardToHand early-returns on a copy already
+	// in hand, so it cannot be called twice for two copies).
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Owner == 0 && o.Card == bear && o.Zone != state.ZHand {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: state.ZHand})
+		}
+	}
+	e.pending = nil
+	e.Advance()
+
+	opt := abilityOption(t, e, jace, zero)
+	submitChoices(t, e, opt.Index)
+	d := passUntilNonPriority(t, e, 20)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "hand_move" {
+		t.Fatalf("expected the [0] put-back ask, got %+v", d)
+	}
+	if d.Min != 2 || d.Max != 2 || d.Player != 0 {
+		t.Fatalf("Min/Max/Player = %d/%d/%d, want 2/2/0", d.Min, d.Max, d.Player)
+	}
+	handAtAsk := e.G.Zone(state.ZHand, 0)
+	if len(d.Options) != len(handAtAsk) {
+		t.Fatalf("options = %d, want the whole hand (%d)", len(d.Options), len(handAtAsk))
+	}
+	var bearIDs []state.ObjID
+	for _, id := range e.G.Zone(state.ZHand, 0) {
+		if e.G.Obj(id).Face().Name == "Grizzly Bears" {
+			bearIDs = append(bearIDs, id)
+		}
+	}
+	submitChoices(t, e, handMoveOption(t, d, bearIDs[1]), handMoveOption(t, d, bearIDs[0]))
+	passUntilStackEmpty(t, e, 20)
+
+	lib := e.G.Zone(state.ZLibrary, 0)
+	if len(lib) < 2 || lib[0] != bearIDs[1] || lib[1] != bearIDs[0] {
+		t.Fatalf("library top = %v, want [%d %d] in answer order on top", lib, bearIDs[1], bearIDs[0])
+	}
+	if got := e.G.Obj(jace).Counter("LOYALTY"); got != 3 {
+		t.Fatalf("Jace loyalty = %d, want 3 (the [+0] cost adds none)", got)
+	}
+	if len(e.G.Zone(state.ZHand, 0)) != len(handAtAsk)-2 {
+		t.Fatalf("hand size %d, want %d (the hand at ask minus the two put back)",
+			len(e.G.Zone(state.ZHand, 0)), len(handAtAsk)-2)
 	}
 	replayCheck(t, e, cfg)
 }
