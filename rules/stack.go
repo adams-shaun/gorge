@@ -420,6 +420,74 @@ func (e *Engine) legalTargetCandidates(p state.PlayerID, source, excludeSelf sta
 			}
 		}
 	}
+	return e.filterTargetsWithDefinedController(out, sa, sc)
+}
+
+// filterTargetsWithDefinedController implements the common target restriction
+// that says the chosen object must be controlled by an event-role player. It
+// is deliberately applied once after every zone's candidates are collected,
+// so battlefield, graveyard and stack target offers cannot drift apart.
+//
+// Only a selector this build binds narrows the offer. An unsupported selector
+// (ParentTarget, ParentTargetedController, TriggeredCauser, ...) and a
+// supported role the current trigger did not bind leave the candidates
+// unchanged -- the offer every such ability had before this restriction was
+// read -- so no existing ability silently loses its targets. The two roles
+// only an attack-declaration trigger binds (TriggeredAttackingPlayer,
+// TriggeredAttackedTarget: Karazikar, Firkraag, Seifer, Gornog, Whirlwind
+// Killer) fail closed when unbound instead, since offering every creature
+// would widen "target creature that player controls" to any player's.
+func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *cards.SA, sc effects.SpecContext) []targetCandidate {
+	ref := strings.TrimSpace(sa.Params["TargetsWithDefinedController"])
+	if ref == "" {
+		return in
+	}
+	var player state.PlayerID
+	var ok bool
+	failClosed := false
+	switch ref {
+	case "TriggeredTarget":
+		if sc.TriggerTarget.IsPlayer {
+			player, ok = sc.TriggerTarget.Player, true
+		} else if o := e.G.Obj(sc.TriggerTarget.Obj); o != nil {
+			player, ok = o.Controller, true
+		}
+	case "TriggeredDefendingPlayer":
+		if sc.DefendingPlayer.IsPlayer {
+			player, ok = sc.DefendingPlayer.Player, true
+		}
+	case "TriggeredPlayer":
+		if sc.TriggerPlayer.IsPlayer {
+			player, ok = sc.TriggerPlayer.Player, true
+		}
+	case "TriggeredAttackingPlayer":
+		failClosed = true
+		if sc.AttackingPlayer.IsPlayer {
+			player, ok = sc.AttackingPlayer.Player, true
+		}
+	case "TriggeredAttackedTarget":
+		failClosed = true
+		if sc.AttackedTarget.IsPlayer {
+			player, ok = sc.AttackedTarget.Player, true
+		}
+	case "TriggeredCardController":
+		player, ok = effects.TriggeredCardController(e.G, sc.TriggerContext, nil)
+	}
+	if !ok {
+		if failClosed {
+			return nil
+		}
+		return in
+	}
+	out := in[:0]
+	for _, candidate := range in {
+		if candidate.kind != "permanent" {
+			continue
+		}
+		if o := e.G.Obj(candidate.obj); o != nil && o.Controller == player {
+			out = append(out, candidate)
+		}
+	}
 	return out
 }
 
@@ -595,6 +663,9 @@ func (e *Engine) recordChosenTargets(targetObj state.ObjID, chosen []decision.Op
 func (e *Engine) resolveTop() {
 	id := e.G.Stack[len(e.G.Stack)-1]
 	o := e.G.Obj(id)
+	savedResolving := e.resolvingObj
+	e.resolvingObj = id
+	defer func() { e.resolvingObj = savedResolving }()
 
 	if o.Ability != nil {
 		// A triggered or activated ability with no printed card: Ruling
@@ -678,7 +749,7 @@ func (e *Engine) resolveTop() {
 		// latter) fall straight through to their effect below.
 		if t, ok := e.findTriggerForAbility(o.Source, o.Ability); ok {
 			if spec := t.Params["OptionalDecider"]; spec != "" {
-				who, askable := e.deciderFromSpec(spec, o.Controller, o.Remembered)
+				who, askable := e.deciderFromSpec(spec, o.Controller, o.Remembered, e.triggerContexts[id])
 				if !askable {
 					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 						From: state.ZStack, To: state.ZExile, Text: "ceased to exist: its optional decider left the game"})
@@ -730,12 +801,23 @@ func (e *Engine) resolveTop() {
 		// lookup two lines above already gets this right by reading from
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
-			Targets: targets, Remembered: o.Remembered, TriggerContext: e.triggerContexts[id]}
+			Targets: targets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id]}
+		if lki, ok := e.triggerLKI[id]; ok {
+			ctx.LKI = lki.object
+			ctx.LKIPower, ctx.LKIToughness, ctx.LKIPTValid =
+				lki.power, lki.toughness, lki.ptValid
+		}
 		// CR 107.3i: X is the value the activator chose for a Cost$ carrying
 		// {X} (recorded on the ability stack object by commitCast's CastInfo,
 		// emitted right after the AbilityPush). Zero for a trigger, which was
-		// never paid an X.
+		// never paid an X -- and for a trigger CR 107.3m rebinds X to the
+		// spell that became the permanent (an ETB trigger) or the spell the
+		// trigger fired on (a cast/magecraft trigger), which triggerPaidX
+		// reads off the causing event's card.
 		ctx.X = o.X
+		if ctx.X == 0 {
+			ctx.X = e.triggerPaidX(id, o)
+		}
 		// A cost-paid sacrifice carried its objects' LKI snapshot on the
 		// engine (rules/cast.go commitCast), keyed by this stack object id;
 		// load it so the ability's Sacrificed$<Property> heads resolve against
@@ -744,6 +826,13 @@ func (e *Engine) resolveTop() {
 		if link, ok := e.sourceLifelinkLKI[id]; ok {
 			ctx.SourceLifelinkLKI = link
 			ctx.SourceLifelinkLKIValid = true
+		}
+		if controller, ok := e.sourceControllerLKI[id]; ok {
+			ctx.SourceControllerLKI = controller
+			ctx.SourceControllerLKIValid = true
+		}
+		if lki := e.damageSourceLKI[id]; lki != nil {
+			ctx.DamageSourceLKI = cloneDamageSourceLKI(lki)
 		}
 		effects.SetSVars(ctx, svars)
 		// CR 603.3c: the mode choice was announced at placement (pushTrigger
@@ -755,6 +844,7 @@ func (e *Engine) resolveTop() {
 		ctx.Modes = o.ChosenModes
 		e.damaging = o.Source
 		e.contChain = e.contChain[:0]
+		e.repeatReported = nil
 		effects.Resolve(e, ctx, o.Ability)
 		e.damaging = 0
 		if e.resume != nil {
@@ -845,6 +935,7 @@ func (e *Engine) resolveTop() {
 		// that announcement instead of posing its old resolution-time ask.
 		ctx.Modes = o.ChosenModes
 		e.contChain = e.contChain[:0]
+		e.repeatReported = nil
 		effects.Resolve(e, ctx, sa)
 		e.damaging = 0
 		if e.resume != nil {
@@ -1030,6 +1121,41 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 func (e *Engine) Game() *state.Game    { return e.G }
 func (e *Engine) Emit(ev events.Event) { e.emit(ev) }
 func (e *Engine) Rand(n int) int       { return e.rng.IntN(n) }
+
+// EmitTap satisfies effects.Host's EmitTap: see emitTap.
+func (e *Engine) EmitTap(obj state.ObjID, tapper state.PlayerID, entering bool) {
+	e.emitTap(obj, tapper, entering)
+}
+
+// emitTap emits the plain Tap event for obj while its provenance -- who tapped
+// it, and whether it is only being given its entry state -- is visible to the
+// Taps/TapsForMana matcher and to trigger referents. The event payload is the
+// same one every Tap producer emitted before, so no chain head moves for a
+// game without such a trigger. The previous context is restored rather than
+// zeroed, so a Tap emitted from inside another Tap's trigger matching cannot
+// clobber the outer one.
+func (e *Engine) emitTap(obj state.ObjID, tapper state.PlayerID, entering bool) {
+	savedObj, savedPlayer, savedEntering := e.tapObj, e.tapPlayer, e.tapEntering
+	e.tapObj, e.tapPlayer, e.tapEntering = obj, tapper, entering
+	e.emit(events.Event{Kind: events.Tap, Obj: obj})
+	e.tapObj, e.tapPlayer, e.tapEntering = savedObj, savedPlayer, savedEntering
+}
+
+// LegalTargets satisfies effects.Host for target-changing effects. It exposes
+// the same census used by cast and trigger target decisions, so a redirect
+// cannot bypass protection, CantTarget, stack-kind, zone, or filter legality.
+func (e *Engine) LegalTargets(chooser state.PlayerID, source state.ObjID, sa *cards.SA) []state.Target {
+	cs := e.legalTargetCandidates(chooser, source, source, sa)
+	out := make([]state.Target, 0, len(cs))
+	for _, c := range cs {
+		if c.kind == "player" {
+			out = append(out, state.Target{Player: c.player, IsPlayer: true})
+		} else {
+			out = append(out, state.Target{Obj: c.obj})
+		}
+	}
+	return out
+}
 
 // CastThisTurn satisfies effects.Host's CastThisTurn for Count$ThisTurnCast
 // (Task 17/Storm): the spells cast this turn by ANY player, counted from

@@ -78,6 +78,9 @@ func (e *Engine) Clone() *Engine {
 		d := *e.pending
 		d.Options = append([]decision.Option(nil), e.pending.Options...)
 		d.ResumeModes = append([]string(nil), e.pending.ResumeModes...)
+		d.ResumeChoices = append([]state.Target(nil), e.pending.ResumeChoices...)
+		d.ResumeChosenValid = e.pending.ResumeChosenValid
+		d.ResumeRemembered = append([]state.Target(nil), e.pending.ResumeRemembered...)
 		c.pending = &d
 	}
 	if e.resume != nil {
@@ -91,6 +94,7 @@ func (e *Engine) Clone() *Engine {
 		// original's list.
 		c.resume = cloneResume(e.resume)
 	}
+	c.controlGrants = append([]controlGrant(nil), e.controlGrants...)
 	if e.continuous != nil {
 		c.continuous = make([]ContinuousEffect, len(e.continuous))
 		for i, ce := range e.continuous {
@@ -108,28 +112,22 @@ func (e *Engine) Clone() *Engine {
 		}
 	}
 	if e.pendingTriggers != nil {
-		c.pendingTriggers = make([]pendingTrigger, len(e.pendingTriggers))
-		for i, pt := range e.pendingTriggers {
-			pt.Ctx.Targets = append([]state.Target(nil), pt.Ctx.Targets...)
-			pt.Ctx.Remembered = append([]state.Target(nil), pt.Ctx.Remembered...)
-			if pt.Ctx.SVars != nil {
-				m := make(map[string]string, len(pt.Ctx.SVars))
-				for k, v := range pt.Ctx.SVars {
-					m[k] = v
-				}
-				pt.Ctx.SVars = m
-			}
-			if pt.Ctx.LKI != nil {
-				lki := pt.Ctx.LKI.CloneDeep()
-				pt.Ctx.LKI = &lki
-			}
-			c.pendingTriggers[i] = pt
-		}
+		c.pendingTriggers = clonePendingTriggers(e.pendingTriggers)
 	}
 	if e.triggerContexts != nil {
 		c.triggerContexts = make(map[state.ObjID]effects.TriggerContext, len(e.triggerContexts))
 		for id, tc := range e.triggerContexts {
 			c.triggerContexts[id] = tc
+		}
+	}
+	if e.triggerLKI != nil {
+		c.triggerLKI = make(map[state.ObjID]triggerObjectLKI, len(e.triggerLKI))
+		for id, lki := range e.triggerLKI {
+			if lki.object != nil {
+				cp := lki.object.CloneDeep()
+				lki.object = &cp
+			}
+			c.triggerLKI[id] = lki
 		}
 	}
 	if e.sacrificedLKI != nil {
@@ -144,8 +142,40 @@ func (e *Engine) Clone() *Engine {
 			c.sourceLifelinkLKI[id] = link
 		}
 	}
+	if e.sourceControllerLKI != nil {
+		c.sourceControllerLKI = make(map[state.ObjID]state.PlayerID, len(e.sourceControllerLKI))
+		for id, controller := range e.sourceControllerLKI {
+			c.sourceControllerLKI[id] = controller
+		}
+	}
+	if e.damageSourceLKI != nil {
+		c.damageSourceLKI = make(map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI, len(e.damageSourceLKI))
+		for stack, lki := range e.damageSourceLKI {
+			c.damageSourceLKI[stack] = cloneDamageSourceLKI(lki)
+		}
+	}
 	c.triggerFireCount = cloneCounts(e.triggerFireCount)
 	c.damageOnceFired = cloneCounts(e.damageOnceFired)
+	if e.phaseUnknownNoted != nil {
+		c.phaseUnknownNoted = make(map[string]bool, len(e.phaseUnknownNoted))
+		for k, v := range e.phaseUnknownNoted {
+			c.phaseUnknownNoted[k] = v
+		}
+	}
+	if e.triggerTurnFires != nil {
+		c.triggerTurnFires = make(map[triggerKey]turnFires, len(e.triggerTurnFires))
+		for k, v := range e.triggerTurnFires {
+			c.triggerTurnFires[k] = v
+		}
+	}
+	if e.tappedTurn != nil {
+		c.tappedTurn = make(map[state.ObjID]int32, len(e.tappedTurn))
+		for id, turn := range e.tappedTurn {
+			c.tappedTurn[id] = turn
+		}
+	}
+	// tapObj/tapPlayer/tapEntering and tappingForMana/tappingManaProduced are
+	// emitTap's synchronous context, zero at every intent boundary.
 	// triggerBefore is scoped to a batch emission/resumption, so it is nil
 	// at intent boundaries and is deliberately not copied. Parked replacement
 	// and commander choices and resume frames retain their own immutable
@@ -183,6 +213,10 @@ func (e *Engine) Clone() *Engine {
 	}
 	if e.manaColorActivation != nil {
 		ma := *e.manaColorActivation
+		ma.triggers = clonePendingTriggers(e.manaColorActivation.triggers)
+		if pt := e.manaColorActivation.trigger; pt != nil {
+			ma.trigger = &clonePendingTriggers([]pendingTrigger{*pt})[0]
+		}
 		c.manaColorActivation = &ma
 	}
 	if e.manaDiscardActivation != nil {
@@ -319,6 +353,33 @@ func cloneMulligan(m mulliganRound) mulliganRound {
 	return m
 }
 
+// clonePendingTriggers gives a clone ownership of the mutable context carried
+// by both the ordinary trigger queue and a CR 605.3b batch parked on a mana
+// colour choice. Card and SA pointers remain shared immutable corpus data.
+func clonePendingTriggers(src []pendingTrigger) []pendingTrigger {
+	if src == nil {
+		return nil
+	}
+	out := make([]pendingTrigger, len(src))
+	for i, pt := range src {
+		pt.Ctx.Targets = append([]state.Target(nil), pt.Ctx.Targets...)
+		pt.Ctx.Remembered = append([]state.Target(nil), pt.Ctx.Remembered...)
+		if pt.Ctx.SVars != nil {
+			m := make(map[string]string, len(pt.Ctx.SVars))
+			for k, v := range pt.Ctx.SVars {
+				m[k] = v
+			}
+			pt.Ctx.SVars = m
+		}
+		if pt.Ctx.LKI != nil {
+			lki := pt.Ctx.LKI.CloneDeep()
+			pt.Ctx.LKI = &lki
+		}
+		out[i] = pt
+	}
+	return out
+}
+
 // cloneCombatRound deep-copies the combat damage step's continuation state
 // (combat.go, Task jj-cmb): the division queue, answered divisions and the
 // pending ask's option-split table are all written in place while a pass
@@ -353,6 +414,16 @@ func cloneResume(rp *resumePoint) *resumePoint {
 		return nil
 	}
 	cp := *rp
+	cp.choices = append([]state.Target(nil), rp.choices...)
+	cp.chosenValid = rp.chosenValid
+	cp.remembered = append([]state.Target(nil), rp.remembered...)
+	cp.loopRemembered = append([]state.Target(nil), rp.loopRemembered...)
+	if rp.repeat != nil {
+		cur := *rp.repeat
+		cur.subjects = append([]state.Target(nil), rp.repeat.subjects...)
+		cur.last = append([]state.Target(nil), rp.repeat.last...)
+		cp.repeat = &cur
+	}
 	cp.outer = cloneResume(rp.outer)
 	return &cp
 }

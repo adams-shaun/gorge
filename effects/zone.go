@@ -104,6 +104,27 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			effSearchLibrary(h, c, sa, to)
 			return
 		}
+		// A ChangeZone from exactly Hand with a ChangeType$ card filter and no
+		// object selector is Forge's "choose N cards matching ChangeType$ from
+		// your hand" shape (Burgeoning: "you may put a land card from your hand
+		// onto the battlefield"). With no Defined$/DefinedPlayer$/ValidTgts$
+		// the object path below would resolve Defined to the SOURCE default and
+		// then skip every candidate on the Origin$ precondition -- the silent
+		// no-op the handmove1 fix replaces with a real hand choice.
+		// DefinedPlayer$-bearing lines name another player's hand and stay on
+		// the (broken) object path until the per-player follow-up lands; a
+		// ValidTgts$-bearing line names real targets the object path moves; and
+		// a non-literal ChangeNum$ (an SVar name or inline Count$, ~45 raw
+		// lines) is a scoped-out follow-up that also stays on that old path.
+		if len(originZones) == 1 && originZones[0] == state.ZHand && !originAll &&
+			sa.Params["ChangeType"] != "" && sa.Params["Defined"] == "" &&
+			sa.Params["DefinedPlayer"] == "" && sa.Params["ValidTgts"] == "" &&
+			!strings.EqualFold(sa.Params["Imprint"], "True") {
+			if _, literal := handChangeNum(sa); literal {
+				effChangeZoneHand(h, c, sa, to)
+				return
+			}
+		}
 	}
 	// WithCountersType$/WithCountersAmount$ make the move put counters on the
 	// permanent it lands on the battlefield with -- the Undying expansion's
@@ -114,28 +135,17 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	// is added post-move. Counter (not the Move carrying it along) is what
 	// keeps events/apply.go's Move from knowing anything about counters.
 	withKind := sa.Params["WithCountersType"]
-	withAmt := int32(1)
-	if v := strings.TrimSpace(sa.Params["WithCountersAmount"]); v != "" {
-		n, err := strconv.Atoi(v)
-		if err != nil {
-			// Malformed WithCountersAmount must be loud, not silently default to
-			// 1 (the reviewer's item): a wrong counter count on a Returning
-			// permanent is a hard-to-spot board-shape bug. A Note event (the way
-			// Resolve surfaces an unimplemented API) keeps this deterministic and
-			// replay-log-visible rather than dropping to a log line the event log
-			// cannot account for. The movement still proceeds with the safe
-			// default 1.
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "malformed WithCountersAmount " + v})
-		} else {
-			withAmt = int32(n)
-		}
+	var withAmt int32
+	// WithCounters* only takes effect when the object enters the battlefield.
+	// Parsing a dynamic/malformed amount emits a Note, so do not parse it for
+	// another destination where no CounterChange can ever be emitted.
+	if to == state.ZBattlefield && withKind != "" {
+		withAmt = withCounterAmount(h, c, sa)
 	}
 	targets := Defined(h, c, sa)
-	// Imprint effects such as Chrome Mox name Origin$ Hand and ChangeType$
-	// but no Defined$/target: select eligible cards from their controller's
-	// hand. A singleton needs no question; several pose the ordinary resumed
-	// KChoose, preserving the answer's order in the Imprint event.
+	// Imprint effects such as Chrome Mox select eligible cards from their
+	// controller's hand. Keep them out of the generic hand mover so their
+	// successful exile can be recorded in the replayable Imprint event.
 	if len(targets) == 1 && targets[0].Obj == c.Source && !targets[0].IsPlayer &&
 		len(originZones) == 1 && originZones[0] == state.ZHand && !originAll &&
 		strings.EqualFold(sa.Params["Imprint"], "True") {
@@ -188,34 +198,221 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if _, present := sa.Params["Origin"]; present && !originAll && !zoneIn(originZones, o.Zone) {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: to})
+		settleChangeZoneMove(h, c, sa, o.ID, o.Zone, to, withKind, withAmt)
 		if strings.EqualFold(sa.Params["Imprint"], "True") && to == state.ZExile {
-			// A replacement may redirect or suppress the proposed exile. Record
-			// the link only after observing the event's actual result; otherwise
-			// Defined.Imprinted would follow a card that was never imprinted.
 			if moved := h.Game().Obj(o.ID); moved != nil && moved.Zone == state.ZExile {
 				imprinted = append(imprinted, o.ID)
 			}
-		}
-		// RememberChanged$ True (Forge's spelling on the ChangeZone in the
-		// Flickerwisp delayed-trigger family): the moved object joins the
-		// ability's Remembered, so a DelayedTrigger that runs as a later
-		// SubAbility of this same chain captures it (TrigBounce's Defined$
-		// DelayTriggerRememberedLKI resolves against it when the delayed
-		// trigger fires). The value is a parameter of the ongoing resolution
-		// (Ctx), not game state, so mutating it here is fine -- the recall
-		// is persisted into the DelayedRegister event, not written to state
-		// directly.
-		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
-			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
-		}
-		if withKind != "" && to == state.ZBattlefield {
-			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: withKind, Amount: withAmt})
 		}
 	}
 	if len(imprinted) > 0 {
 		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: imprinted})
 	}
+}
+
+// settleChangeZoneMove is the one settle path every ChangeZone mover shares:
+// the MoveZone itself, then RememberChanged$ (the moved object joins the
+// ability's Remembered -- a DelayedTrigger running as a later SubAbility of
+// the same chain captures it, and the value is a parameter of the ongoing
+// resolution (Ctx), not game state, so mutating it here is fine), then the
+// WithCountersType$/WithCountersAmount$ entry counters when the move lands on
+// the battlefield. Keeping the object path and the hand-choice path on this
+// one helper means the two cannot drift apart on any of the three.
+func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32) {
+	h.Emit(moveZoneEvent(c, id, from, to))
+	if strings.EqualFold(sa.Params["RememberChanged"], "True") {
+		c.Remembered = append(c.Remembered, state.Target{Obj: id})
+	}
+	if withKind != "" && to == state.ZBattlefield {
+		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: withKind, Amount: withAmt})
+	}
+}
+
+// handChangeNum reads the SA's ChangeNum$ as a plain integer literal
+// (absent = 1, Forge's ChangeZoneEffect default for this shape). The second
+// return is false for anything else -- a non-integer, negative, or value
+// outside a decision count's signed 32-bit range -- and the caller routes
+// that SA to the pre-existing object path
+// instead: evaluating SVar/Count$ count expressions here is a scoped-out
+// follow-up, not part of handmove1.
+func handChangeNum(sa *cards.SA) (int32, bool) {
+	v, present := sa.Params["ChangeNum"]
+	if !present || v == "" {
+		return 1, true
+	}
+	n, err := strconv.ParseInt(v, 10, 32)
+	if err != nil || n < 0 {
+		return 0, false
+	}
+	return int32(n), true
+}
+
+// effChangeZoneHand implements Forge's "choose N cards matching ChangeType$
+// from your hand" ChangeZone shape (handmove1): Origin$ Hand, a ChangeType$
+// card filter, ChangeNum$ cards, no object selector. The eligible pool is the
+// resolving controller's own hand, rebuilt deterministically in hand order
+// through the same MatchesSpecCtx resolver the library search uses; the move
+// itself goes through the ordinary object mover so RememberChanged$ and any
+// Destination$ behave exactly as they do everywhere else.
+//
+// The ask (the dig1/effDiscard strict-supersets rule): when the hand holds
+// STRICTLY more ChangeType$-eligible cards than ChangeNum, the pick is a real
+// KChoose posed to the controller -- Min ChangeNum, Max ChangeNum -- so a
+// decision nobody could answer differently is never emitted; with ChangeNum
+// or fewer eligible cards they all move deterministically, no ask. With ZERO
+// eligible cards the effect resolves doing nothing (Burgeoning with no land
+// in hand is a legitimate no-op). The chooser's own hand is the option pool,
+// so no Secret Note/redaction is needed beyond the ordinary
+// decision-attaches-only-to-its-Player projection rule.
+//
+// ChangeNum$ defaults to 1 when absent -- Forge's own ChangeZoneEffect
+// defaults the count to one card (ChangeNum$ absent reads as "a card" in
+// every text this shape carries: Burgeoning, Elvish Pioneer, Kami of Bamboo
+// Groves), and the corpus's 70 absent-ChangeNum$ exact-Hand lines are all
+// singular-take texts. Only a PLAIN INTEGER literal ChangeNum$ reaches this
+// path: the routing guard in effChangeZone leaves a non-literal value (an
+// SVar name or inline Count$, ~45 raw lines) on the pre-existing object
+// path, so this function never sees one and no count expression is
+// evaluated here (a scoped-out follow-up).
+//
+// The answer re-enters through ResumeKind "hand_move" with Ctx.HandMove /
+// HandMoveDone set (rules/resolution.go); both are captured and cleared at
+// the top of this walk (the fx42 scoping discipline), so a nested hand-move
+// ask in the same SubAbility$ chain poses its own decision instead of
+// inheriting the outer answer. A host that cannot ask (the fuzz/no-engine
+// stand-in, R-9) takes the first ChangeNum eligible cards in the decision's
+// own deterministic option order, with the Note that records why the richer
+// path did not run. Still unread here, each a scoped-out follow-up: Tapped$
+// True (entry-tapped, unread on the object path too), Optional$
+// True on the ChangeZone itself (23 raw lines -- the optional take is asked
+// as mandatory), Destination$ Hand/Sideboard oddities (2 lines), and any
+// ConditionPresent$/ConditionDefined$ gate (the engine-wide Condition* gap).
+func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
+	spec := sa.Params["ChangeType"]
+	g := h.Game()
+	hand := zoneOf(g, state.ZHand, c.Controller)
+	// fx42 scoping: capture and clear the answered pick BEFORE anything else,
+	// so a nested hand-move ask below cannot inherit it.
+	ans := c.HandMove
+	done := c.HandMoveDone
+	c.HandMove, c.HandMoveDone = nil, false
+	withKind := sa.Params["WithCountersType"]
+	var withAmt int32
+	// Match the object path: WithCounters* has no effect away from the
+	// battlefield, and parsing a dynamic amount there must not emit a Note.
+	if to == state.ZBattlefield && withKind != "" {
+		withAmt = withCounterAmount(h, c, sa)
+	}
+	// settleHandMove settles one chosen card: exactly the shared ChangeZone
+	// mover. Tapped$ True is deliberately NOT read here -- it is unread on
+	// the object path too, a pre-existing gap recorded as a follow-up, not
+	// something to fix on this path alone.
+	settleHandMove := func(id state.ObjID) {
+		settleChangeZoneMove(h, c, sa, id, state.ZHand, to, withKind, withAmt)
+	}
+	if done {
+		// Re-entry: move exactly the answered cards that still sit in the
+		// controller's hand and still match the filter (a stray answer must
+		// not move an object that left the hand meanwhile), in the player's
+		// answer order.
+		for _, id := range ans {
+			if !containsID(hand, id) {
+				continue
+			}
+			o := g.Obj(id)
+			if o == nil || o.Zone != state.ZHand {
+				continue
+			}
+			if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				continue
+			}
+			settleHandMove(id)
+		}
+		return
+	}
+	n, _ := handChangeNum(sa)
+	eligible := make([]state.ObjID, 0, len(hand))
+	for _, id := range hand {
+		if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			eligible = append(eligible, id)
+		}
+	}
+	if len(eligible) == 0 {
+		return // a legitimate no-op: nothing matching in hand.
+	}
+	if int32(len(eligible)) <= n {
+		// No choice to ask about: every eligible card moves, deterministically,
+		// in hand order. No new decision of any kind.
+		for _, id := range eligible {
+			settleHandMove(id)
+		}
+		return
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+		Min: int(n), Max: int(n), Source: c.Source,
+		ResumeKind: "hand_move", ResumeSA: sa,
+		Prompt: "Choose " + strconv.Itoa(int(n)) + " matching card(s) from your hand: they move to " + handDestPhrase(to)}
+	for _, id := range eligible {
+		name := "a card"
+		if o := g.Obj(id); o != nil && o.Face() != nil {
+			name = o.Face().Name
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+			Kind: "hand_move", Label: name, Obj: id, Player: c.Controller})
+	}
+	if h.Ask(d) {
+		return // resolution suspended; the answer re-enters with Ctx.HandMove set.
+	}
+	// R-9: a host without a decision channel cannot ask a player, so it
+	// supplies the deterministic answer in the player's place -- the first
+	// ChangeNum eligible cards in the same ordered eligible list the
+	// decision's options were built from.
+	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+		Text: "moves the first matching card(s) from hand (no engine host to ask)"})
+	for i := int32(0); i < n && i < int32(len(eligible)); i++ {
+		settleHandMove(eligible[i])
+	}
+}
+
+// handDestPhrase names the hand-move destination in the human-readable
+// prompt; its own vocabulary so it cannot drift into digDestPhrase's or
+// destinationPhrase's.
+func handDestPhrase(to state.Zone) string {
+	switch to {
+	case state.ZBattlefield:
+		return "the battlefield"
+	case state.ZGraveyard:
+		return "the graveyard"
+	case state.ZExile:
+		return "exile"
+	case state.ZLibrary:
+		return "the library"
+	case state.ZHand:
+		return "the hand"
+	default:
+		return "its destination"
+	}
+}
+
+// withCounterAmount parses WithCountersAmount$ (default 1). Malformed values
+// must be loud, not silently default to 1 (the reviewer's item): a wrong
+// counter count on a Returning permanent is a hard-to-spot board-shape bug. A
+// Note event (the way Resolve surfaces an unimplemented API) keeps this
+// deterministic and replay-log-visible rather than dropping to a log line the
+// event log cannot account for. The movement still proceeds with the safe
+// default 1.
+func withCounterAmount(h Host, c *Ctx, sa *cards.SA) int32 {
+	v := strings.TrimSpace(sa.Params["WithCountersAmount"])
+	if v == "" {
+		return 1
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "malformed WithCountersAmount " + v})
+		return 1
+	}
+	return int32(n)
 }
 
 // effSearchLibrary implements the hidden-origin ChangeZone shape. The option
@@ -398,28 +595,23 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			!MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-			From: state.ZLibrary, To: to, Player: owner})
+		ev := moveZoneEvent(c, id, state.ZLibrary, to)
+		ev.Player = owner
+		h.Emit(ev)
 		moved = append(moved, id)
 		if to == state.ZBattlefield && sa.Params["WithCountersType"] != "" {
-			amount := int32(1)
-			if raw := strings.TrimSpace(sa.Params["WithCountersAmount"]); raw != "" {
-				n, err := strconv.Atoi(raw)
-				if err != nil {
-					h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-						Text: "malformed WithCountersAmount " + raw})
-				} else {
-					amount = int32(n)
-				}
-			}
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: id,
-				Counter: sa.Params["WithCountersType"], Amount: amount})
+				Counter: sa.Params["WithCountersType"], Amount: withCounterAmount(h, c, sa)})
 		}
 		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
 		}
 		if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
-			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: owner})
+			// This establishes the object's entry state; it is not the CR
+			// 701.21a event of becoming tapped. Text is part of the replayed
+			// event payload, so rules can distinguish it from an ordinary Tap
+			// while replay folds the same tapped state.
+			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: owner, Text: "entered tapped"})
 		}
 	}
 
@@ -494,7 +686,15 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 			ids := append([]state.ObjID(nil), g.Zone(z, p)...)
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-					h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: to})
+					h.Emit(moveZoneEvent(c, id, z, to))
+					// ChangeZoneAll's remembered movement is needed for the
+					// exiled-with-this-source cleanup/tally shape (Valakut
+					// Exploration). Other ChangeZoneAll RememberChanged forms
+					// remain outside this narrow provenance feature.
+					if strings.EqualFold(sa.Params["RememberChanged"], "True") &&
+						strings.Contains(sa.Params["ChangeType"], "ExiledWithSource") {
+						c.Remembered = append(c.Remembered, state.Target{Obj: id})
+					}
 				}
 			}
 		}
@@ -508,12 +708,29 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 // Indestructible in response, or protection from the source) between
 // targeting and resolution is not rechecked. See the Task 18 report.
 func effDestroy(h Host, c *Ctx, sa *cards.SA) {
+	// Same pre-batch discipline as effDestroyAll: the targets Defined
+	// resolves are destroyed as one simultaneous batch (a multi-target
+	// Destroy over a lifelink Equipment and its bearer must not make the
+	// bearer's LKI depend on battlefield order), so the snapshot covers all
+	// of them before the first move.
+	var victims []state.ObjID
 	for _, t := range Defined(h, c, sa) {
 		o := h.Game().Obj(t.Obj)
 		if t.IsPlayer || o == nil || o.Zone != state.ZBattlefield {
 			continue
 		}
 		if h.HasKeyword(o.ID, "Indestructible") {
+			continue
+		}
+		victims = append(victims, o.ID)
+	}
+	if len(victims) > 0 {
+		h.BatchDepartures(victims)
+		defer h.EndBatchDepartures()
+	}
+	for _, id := range victims {
+		o := h.Game().Obj(id)
+		if o == nil || o.Zone != state.ZBattlefield {
 			continue
 		}
 		// NoRegen$ is compared against "True", not against empty: an explicit
@@ -523,10 +740,10 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		// cards/link.go auto-links only SubAbility$, not the WinSubAbility$ it
 		// hangs off -- so this is correctness insurance for when that changes,
 		// not a live fix.
-		if sa.Params["NoRegen"] != "True" && ReplaceDestruction(h, o.ID) {
+		if sa.Params["NoRegen"] != "True" && ReplaceDestruction(h, id) {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 	}
 }
@@ -537,6 +754,14 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 		spec = "Permanent"
 	}
 	g := h.Game()
+	// One pre-batch victim list across every player, then ONE departure
+	// snapshot, then the emit loop (CR 704.3 simultaneity, as far as the
+	// sequential emit model can express it): the CR 603.10a lifelink LKI a
+	// later victim's departure capture reads must be the state from
+	// immediately before the FIRST move -- a destroy-all over a
+	// lifelink-granting Equipment and its bearer must not make the bearer's
+	// own lifelink LKI depend on battlefield order.
+	var victims []state.ObjID
 	for _, p := range g.AliveFrom(0) {
 		ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, p)...)
 		for _, id := range ids {
@@ -544,14 +769,24 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-				// NoRegen$ != "True", not == "": see effDestroy above.
-				if sa.Params["NoRegen"] != "True" && ReplaceDestruction(h, id) {
-					continue
-				}
-				h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-					From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
+				victims = append(victims, id)
 			}
 		}
+	}
+	if len(victims) > 0 {
+		h.BatchDepartures(victims)
+		defer h.EndBatchDepartures()
+	}
+	for _, id := range victims {
+		if g.Obj(id) == nil || g.Obj(id).Zone != state.ZBattlefield {
+			continue
+		}
+		// NoRegen$ != "True", not == "": see effDestroy's note above.
+		if sa.Params["NoRegen"] != "True" && ReplaceDestruction(h, id) {
+			continue
+		}
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
+			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 	}
 }
 
@@ -598,9 +833,31 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	rememberLKICapture := func(id state.ObjID) {
 		if remember {
 			c.Sacrificed = append(c.Sacrificed, state.SacrificedInfoOf(g, id))
+			// Forge's RememberSacrificed$ also remembers the card, which is
+			// what a following ConditionDefined$ Remembered, Remembered$Amount
+			// or RememberedCard reads (Braids, Scapeshift, Victimize).
+			c.Remembered = append(copyTargets(c.Remembered), state.Target{Obj: id})
 		}
 	}
-	for _, t := range Defined(h, c, sa) {
+	who := Defined(h, c, sa)
+	// A Sacrifice that names neither Defined$ nor ValidTgts$ but a SacValid$
+	// other than itself is Forge's default Defined$ You: its controller
+	// sacrifices a matching permanent (Braids's "you may sacrifice an
+	// artifact, creature, ..."). Only a SacValid$ Self/Card.Self line (or no
+	// SacValid$ at all) sacrifices the source object itself. Corpus: 66 such
+	// lines, which previously sacrificed the source whatever its type.
+	if _, targeted := sa.Params["ValidTgts"]; !targeted && strings.TrimSpace(sa.Params["Defined"]) == "" {
+		if v := strings.TrimSpace(sa.Params["SacValid"]); v != "" && v != "Self" && v != "Card.Self" {
+			who = []state.Target{{Player: c.Controller, IsPlayer: true}}
+		}
+	}
+	// Pre-batch discipline (effDestroyAll's): the objects this effect will
+	// move are chosen first, ONE departure snapshot covers them all, then
+	// the emit loop runs -- a sacrifice sweep over a lifelink-granting
+	// Equipment and its bearer must not make the bearer's lifelink LKI
+	// depend on battlefield order.
+	var victims []state.ObjID
+	for _, t := range who {
 		if t.IsPlayer {
 			// Bounds guard: g.Zone indexes g.zones[zoneIndex(z, p)] and
 			// zoneIndex has no bounds check, so an out-of-range target-supplied
@@ -621,9 +878,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, t.Player)...)
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(t.Player)) {
-					rememberLKICapture(id)
-					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-						From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
+					victims = append(victims, id)
 					break
 				}
 			}
@@ -638,8 +893,18 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		// "which one may be sacrificed" step does not re-filter a concrete
 		// object (and would misfire on the corpus's SacValid$ Self lines,
 		// where "Self" is not a type the filter grammar knows).
-		rememberLKICapture(o.ID)
-		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
+		victims = append(victims, o.ID)
+	}
+	if len(victims) > 0 {
+		h.BatchDepartures(victims)
+		defer h.EndBatchDepartures()
+	}
+	for _, id := range victims {
+		if g.Obj(id) == nil || g.Obj(id).Zone != state.ZBattlefield {
+			continue
+		}
+		rememberLKICapture(id)
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
 	}
 }

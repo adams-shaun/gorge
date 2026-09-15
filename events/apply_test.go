@@ -113,7 +113,7 @@ func TestChangeControlResetsWhenPermanentLeavesBattlefield(t *testing.T) {
 	g, l := twoPlayer(t)
 	id := g.Zone(state.ZLibrary, 1)[0]
 	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
-	Emit(g, l, Event{Kind: ChangeControl, Obj: id, Player: 0})
+	Emit(g, l, Event{Kind: ControlChange, Obj: id, Player: 0})
 	if got := g.Obj(id).Controller; got != 0 {
 		t.Fatalf("stolen permanent controller = %d, want 0", got)
 	}

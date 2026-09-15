@@ -2,6 +2,7 @@ package host
 
 import (
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -51,6 +52,24 @@ func drainNow(s *Session) []protocol.Frame {
 	var out []protocol.Frame
 	drainNonBlocking(s, &out)
 	return out
+}
+
+func TestSessionIDsAreUnguessableAndHelloIssued(t *testing.T) {
+	r, _ := New(testOptions(t))
+	defer r.Close()
+	a, b := r.OpenSession(), r.OpenSession()
+	if a.ID == b.ID || !strings.HasPrefix(a.ID, "s") || len(a.ID) != 33 || a.ID == "s1" || b.ID == "s2" {
+		t.Fatalf("session ids must be distinct opaque values, got %q and %q", a.ID, b.ID)
+	}
+	hello := decode[protocol.Hello](t, r.Hello(a))
+	if hello.Session != a.ID {
+		t.Fatalf("hello issued %q, want owner session %q", hello.Session, a.ID)
+	}
+	// The counter-shaped value an attacker could have predicted before this
+	// change is not a session and cannot be subscribed before the owner.
+	if _, ok := r.Session("s3"); ok {
+		t.Fatal("predictable session id s3 exists")
+	}
 }
 
 func TestFocusSubscriptionStreamsSnapshotThenEventsInChainOrder(t *testing.T) {

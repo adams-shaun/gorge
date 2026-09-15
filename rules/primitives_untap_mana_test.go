@@ -365,7 +365,7 @@ func TestManaFlareReflectsTheProducedManaType(t *testing.T) {
 	}
 	land := onBoard(t, e, 1, forestScript())
 	tc := e.triggerReferents(e.G.Obj(flare).Face().Triggers[0], flare,
-		events.Event{Kind: events.ManaAdd, Player: 1, Obj: land, Counter: "G", Amount: 1})
+		events.Event{Kind: events.ManaAdd, Player: 1, Obj: land, Counter: "G", Amount: 1}, nil)
 	ctx := &effects.Ctx{Source: flare, Controller: 0, TriggerContext: tc}
 	effects.Resolve(e, ctx, sa)
 	if got := e.G.Players[1].Pool[state.MG]; got != 1 {
@@ -558,7 +558,7 @@ func TestCumulativeUpkeepKeepsItsTriggerControllerAfterControlChanges(t *testing
 	}
 	// The source's live controller changes, while the stack object's
 	// controller remains the controller that put the trigger on the stack.
-	e.emit(events.Event{Kind: events.ChangeControl, Obj: remora, Player: 1})
+	e.emit(events.Event{Kind: events.ControlChange, Obj: remora, Player: 1})
 	e.resolveTop()
 	d := e.Pending()
 	if d == nil || d.Player != 0 {

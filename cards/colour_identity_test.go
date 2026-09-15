@@ -201,28 +201,146 @@ func TestBasicLandsHaveEmptyIdentity(t *testing.T) {
 	}
 }
 
-// TestDeriveColourIdentityFromScriptFields is a unit check (no corpus) that
-// the derivation walks the ability, trigger, static and SVar paths, and that
-// prose whose words carry an uppercase colour-initial (which is NOT a mana
-// symbol) is never read as a pip — the class of false positive a naive
-// "grep for WUBRG" scanner would fall into.
+// TestDeriveColourIdentityFromScriptFields is a unit check (no corpus) for
+// the derivation's sources: the mana cost, the colour indicator, the
+// brace-delimited mana symbols in the Oracle rules text and a
+// characteristic-defining SetColor$. The ability Cost$/Produced$ line and the
+// trigger's prose must contribute NOTHING by themselves — the same colour
+// symbols only count because the Oracle rules text repeats them as printed
+// rules text — and prose whose words carry an uppercase colour-initial (which
+// is NOT a mana symbol) is never read as a pip, in the Oracle either.
 func TestDeriveColourIdentityFromScriptFields(t *testing.T) {
 	c, _ := ParseBytes("s.txt", []byte(
 		"Name:Complex\n"+
 			"ManaCost:2 W\n"+
 			"Types:Creature\n"+
 			"A:AB$ Mana | Cost$ B T | Produced$ B | SpellDescription$ A White creature being targeted by Swamp words is prose and adds no Blue.\n"+
-			"T:Mode$ Tap | TriggerDescription$ Swamp and White are prose words here too.\n"))
-	// The prose carries no genuine colour pips and must introduce none; the
-	// ability Cost$ {B} must. Identity is {W} (cost) | {B} (ability).
+			"T:Mode$ Tap | TriggerDescription$ Swamp and White are prose words here too.\n"+
+			"Oracle:{B}, {T}: Add {B}. A White creature being targeted by Swamp words is prose and adds no Blue.\n"))
+	// The ability's Cost$ B is rules text ONLY because the Oracle prints it
+	// ("{B}, {T}: Add {B}."); the raw ability/param tokens contribute
+	// nothing on their own. Prose colour-initial words add nothing.
 	if want := ColourWhite | ColourBlack; c.Faces[0].ColourIdentity() != want {
 		t.Fatalf("Complex identity = %08b, want %08b", c.Faces[0].ColourIdentity(), want)
 	}
 
-	// And prose alone (with its colour-initial words) contributes nothing.
-	lone, _ := ParseBytes("s.txt", []byte("Name:Prose\nTypes:Creature\nOracle:The word Black here, and Blue, and Red, all prose or reminder.\n"))
-	if got := lone.Faces[0].ColourIdentity(); got != 0 {
-		t.Fatalf("Prose identity = %08b, want empty", got)
+	// Prose alone (with its colour-initial words) contributes nothing, and
+	// so does reminder text's mana symbols: the parenthesised example cost
+	// is CR 903.4c's ignored reminder text even though it braces a colour.
+	silent := []string{
+		"Name:Prose\nTypes:Creature\nOracle:The word Black here, and Blue, and Red, all prose or reminder.\n",
+		"Name:Reminder\nManaCost:3\nTypes:Artifact\nOracle:Each spell that would cost less than three mana to cast costs three mana to cast. (For example, a spell that would cost {1}{B} to cast costs {2}{B} to cast instead.)\n",
+		"Name:Basic\nManaCost:no cost\nTypes:Basic Land Mountain\nOracle:({T}: Add {R}.)\n",
+	}
+	for _, src := range silent {
+		c, _ := ParseBytes("s.txt", []byte(src))
+		if got := c.Faces[0].ColourIdentity(); got != 0 {
+			t.Fatalf("%s identity = %08b, want empty", c.Faces[0].Name, got)
+		}
+	}
+
+	// A characteristic-defining SetColor$ All on the card itself (Transguild
+	// Courier's "CARDNAME is all colors") is identity with no mana symbol
+	// anywhere; the same SetColor$ on a static that affects OTHER permanents
+	// (Leyline of the Guildpact's ability) or that is not
+	// characteristic-defining is not.
+	all, _ := ParseBytes("s.txt", []byte(
+		"Name:All\nManaCost:4\nTypes:Artifact Creature Golem\n"+
+			"S:Mode$ Continuous | Affected$ Card.Self | CharacteristicDefining$ True | SetColor$ All | Description$ CARDNAME is all colors.\n"+
+			"Oracle:Transguild Courier is all colors.\n"))
+	if want := ColourWhite | ColourBlue | ColourBlack | ColourRed | ColourGreen; all.Faces[0].ColourIdentity() != want {
+		t.Fatalf("SetColor$ All identity = %08b, want all five colours", all.Faces[0].ColourIdentity())
+	}
+	other, _ := ParseBytes("s.txt", []byte(
+		"Name:Other\nManaCost:G\nTypes:Enchantment\n"+
+			"S:Mode$ Continuous | Affected$ Permanent.nonLand+YouCtrl | SetColor$ All | Description$ Each nonland permanent you control is all colors.\n"+
+			"Oracle:Each nonland permanent you control is all colors.\n"))
+	if got := other.Faces[0].ColourIdentity(); got != ColourGreen {
+		t.Fatalf("a SetColor$ on other permanents is not the card's identity; got %08b, want green", got)
+	}
+	chosen, _ := ParseBytes("s.txt", []byte(
+		"Name:Chosen\nManaCost:5\nTypes:Creature\n"+
+			"S:Mode$ Continuous | Affected$ Card.Self | CharacteristicDefining$ True | SetColor$ ChosenColor | Description$ If CARDNAME is your commander, choose a color.\n"+
+			"Oracle:If CARDNAME is your commander, choose a color before the game begins.\n"))
+	if got := chosen.Faces[0].ColourIdentity(); got != 0 {
+		t.Fatalf("a commander-only chosen colour is not a deck-checkable identity; got %08b, want empty", got)
+	}
+}
+
+// TestColourIdentityConstructionRoutesAgree is the whole-corpus enforcement
+// of the one-derivation-route rule: the identity the parse route ends with
+// (compiledCorpus: ParseBytes' derive, Link's keyword expansion and SVar
+// linking, ApplyIntrinsics' final re-derive) and the identity the gob decode
+// route re-derives must be equal for every face of every card. The
+// derivation reads only printed fields (ManaCost, Colors, Oracle, CDA
+// statics), which Link and the intrinsic layer never change, so any
+// disagreement means a route scanned construction-time-only state — exactly
+// the defect that made four non-land faces (Clay Champion, Dredging Claw,
+// Lashwrithe, Veteran's Powerblade) differ by route when the old derivation
+// scanned post-Link ability tokens and the pre-Link parse skipped them.
+func TestColourIdentityConstructionRoutesAgree(t *testing.T) {
+	r := corpusCache(t)
+	dir := t.TempDir()
+	p := filepath.Join(dir, "ir.gob.gz")
+	if err := r.Save(p); err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	loaded, err := LoadRegistry(p)
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if len(loaded.Cards) != len(r.Cards) {
+		t.Fatalf("round trip lost cards: %d != %d", len(loaded.Cards), len(r.Cards))
+	}
+	for i, c := range r.Cards {
+		l := loaded.Cards[i]
+		if l.Path != c.Path {
+			t.Fatalf("round trip reordered cards at %d: %q != %q", i, l.Path, c.Path)
+		}
+		for j := range c.Faces {
+			if c.Faces[j].Name != l.Faces[j].Name || c.Faces[j].ColourIdentity() != l.Faces[j].ColourIdentity() {
+				t.Fatalf("%s face %d (%q): parse-route identity %08b != gob-route %08b", c.Path, j, c.Faces[j].Name, c.Faces[j].ColourIdentity(), l.Faces[j].ColourIdentity())
+			}
+		}
+	}
+}
+
+// TestColourIdentityCorpusPins pins the rv2c round's five named identities on
+// the real corpus, each against the CR class it exercises:
+//
+//   - Pox: the SVar parameters ("Amount$ G" on a land-sacrifice count) are
+//     not rules text; the identity is the cost's {B}{B}{B} exactly.
+//   - Trinisphere: the parenthesised example cost in its reminder text is
+//     CR 903.4c's ignored reminder; the identity is empty.
+//   - Lingering Souls: a keyword's cost (Flashback {1}{B}) is printed rules
+//     text the Oracle carries in braces; the identity is {2}{W}+{1}{B} = W|B.
+//   - Transguild Courier and Sphinx of the Guildpact: the SetColor$ All CDA
+//     ("CARDNAME is all colors") is identity with no mana symbol to scan.
+//   - Badlands and Mountain: a typed land's parenthesised mana ability is
+//     not scanned into identity — its deck legality comes from the CR 903.5d
+//     could-produce rule the deck validator enforces instead — so both keep
+//     an empty identity and deck/validate remains where that is enforced.
+func TestColourIdentityCorpusPins(t *testing.T) {
+	r := corpusCache(t)
+	for _, tc := range []struct {
+		name string
+		want uint8
+	}{
+		{"Pox", ColourBlack},
+		{"Trinisphere", 0},
+		{"Lingering Souls", ColourWhite | ColourBlack},
+		{"Transguild Courier", ColourWhite | ColourBlue | ColourBlack | ColourRed | ColourGreen},
+		{"Sphinx of the Guildpact", ColourWhite | ColourBlue | ColourBlack | ColourRed | ColourGreen},
+		{"Badlands", 0},
+		{"Mountain", 0},
+		// Dryad Arbor's identity is its colour indicator (Colors: green),
+		// not its parenthesised mana ability text — Forest -> green is
+		// separately enforced in the deck validator as CR 903.5d production.
+		{"Dryad Arbor", ColourGreen},
+	} {
+		if got := mustLookup(t, r, tc.name).ColourIdentity(); got != tc.want {
+			t.Errorf("%s colour identity = %08b, want %08b", tc.name, got, tc.want)
+		}
 	}
 }
 

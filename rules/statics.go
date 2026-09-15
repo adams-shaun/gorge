@@ -176,12 +176,12 @@ func activatedMatchesValidSA(ab *cards.SA, validSA string) bool {
 		}
 		switch {
 		case constraint == "!ManaAbility":
-			if ab.API != "Mana" {
+			if !isManaAbilityAPI(ab.API) {
 				return true
 			}
 			// else: mana abilities are expressly spared; try the next alt
 		case constraint == "ManaAbility" || strings.HasPrefix(constraint, "ManaAbility<"):
-			if ab.API != "Mana" {
+			if !isManaAbilityAPI(ab.API) {
 				break // not a mana ability; try the next alt
 			}
 			// Bare ManaAbility matches every mana ability. A
@@ -340,7 +340,7 @@ func parseAmount(s string, def int32) int32 {
 func init() {
 	effects.RegisterNonAPI("stat:CantBeCast", "stat:CantBeActivated", "stat:RaiseCost",
 		"stat:ReduceCost", "stat:AlternativeCost", "stat:CantBlock", "stat:CantBlockBy",
-		"stat:Continuous", "stat:ManaConvert")
+		"stat:Continuous", "stat:ManaConvert", "stat:NumLoyaltyAct")
 }
 
 // altCostLabel names the nth (0-indexed) alternative-cost option for a

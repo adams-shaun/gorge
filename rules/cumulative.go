@@ -482,7 +482,7 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 		return
 	case "cumulative_action_control":
 		for _, option := range chosen {
-			e.emit(events.Event{Kind: events.ChangeControl, Obj: option.Obj, Player: cu.player})
+			e.emit(events.Event{Kind: events.ControlChange, Obj: option.Obj, Player: cu.player})
 		}
 		cu.actionRemaining = 0
 		e.finishCumulative()

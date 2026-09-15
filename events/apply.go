@@ -33,6 +33,18 @@ func Apply(g *state.Game, e Event) {
 			g.SetZone(state.ZLibrary, e.Player, append([]state.ObjID(nil), e.IDs...))
 		}
 
+	case MonarchChange:
+		if validPlayer(g, e.Player) {
+			g.Monarch, g.HasMonarch = e.Player, true
+		}
+
+	case ControlChange:
+		if validPlayer(g, e.Player) {
+			if o := g.Obj(e.Obj); o != nil {
+				changeControl(g, o, e.Player)
+			}
+		}
+
 	case LibraryOrder:
 		// A library-arranging effect (Ponder, later Scry/Surveil) set a
 		// complete new order on a player's library. Mechanically identical to
@@ -63,6 +75,14 @@ func Apply(g *state.Game, e Event) {
 		}
 		Move(g, e.Obj, e.From, e.To)
 		if o := g.Obj(e.Obj); o != nil {
+			// MoveZone reserves its otherwise-unused IDs payload for the source
+			// when an effect exiles a card. This provenance is event-derived,
+			// hence survives replay, and clears as soon as the card leaves exile.
+			if e.To == state.ZExile && len(e.IDs) > 0 {
+				o.ExiledWith = e.IDs[0]
+			} else if e.To != state.ZExile {
+				o.ExiledWith = 0
+			}
 			if e.Text == "reversed" && o.HasPreStackEntry {
 				o.EnteredThisTurn = o.PreStackEntryThisTurn
 				o.EnteredFrom = o.PreStackEntryFrom
@@ -83,9 +103,40 @@ func Apply(g *state.Game, e Event) {
 
 	case Damage:
 		if o := g.Obj(e.Obj); o != nil {
-			o.Damage += e.Amount
-			if o.Damage < 0 {
-				o.Damage = 0
+			// CR 306.8 / 120.3c: damage dealt to a planeswalker permanent
+			// removes that many loyalty counters instead of being marked as
+			// damage. The conversion lives here, on the one fold every
+			// Damage event goes through, so spell/ability damage (effects/
+			// damage.go), future combat damage and any emitter this build
+			// gains later all convert the same way and a replay derives the
+			// same loyalty from the same log. A planeswalker that is ALSO a
+			// creature still takes marked damage (CR 120.3e -- the exchange
+			// is not exclusive), and either way a positive amount records
+			// that the object was dealt damage this turn. Prevention (CR
+			// 702.16d) and protection replace or note the Damage event
+			// before it reaches this fold, so a prevented hit converts
+			// nothing -- which is why the walker exchange no longer needs
+			// the bypass it used to travel by.
+			walker := false
+			if f := o.Face(); f != nil && f.IsPlaneswalker() {
+				walker = true
+				// Cleanup represents removal of marked damage with a negative
+				// Damage event. It must never restore loyalty; only positive
+				// damage has the CR 120.3c loyalty conversion.
+				if e.Amount > 0 {
+					o.AddCounter("LOYALTY", -e.Amount)
+				}
+			}
+			// Counter is Damage's existing, encoded characteristic carrier:
+			// effects/rules set it to creature from the current layer result.
+			// The printed-face fallback retains direct-event callers and normal
+			// printed creature behavior.
+			creature := e.Counter == "creature" || (o.Face() != nil && o.Face().IsCreature())
+			if !walker || creature {
+				o.Damage += e.Amount
+				if o.Damage < 0 {
+					o.Damage = 0
+				}
 			}
 			// A positive Damage event records that the object was dealt damage
 			// this turn even if a later prevention/healing event clears its
@@ -170,17 +221,6 @@ func Apply(g *state.Game, e Event) {
 		if o := g.Obj(e.Obj); o != nil {
 			o.Imprinted = append([]state.ObjID(nil), e.IDs...)
 		}
-
-	case ChangeControl:
-		o := g.Obj(e.Obj)
-		if o == nil || o.Zone != state.ZBattlefield || !validPlayer(g, e.Player) || o.Controller == e.Player {
-			break
-		}
-		old := o.Controller
-		remove(g, o.ID, state.ZBattlefield, old)
-		o.Controller = e.Player
-		o.SummonSick = true
-		g.SetZone(state.ZBattlefield, e.Player, append(g.Zone(state.ZBattlefield, e.Player), o.ID))
 
 	case DeclareAttackers:
 		// e.Player names the attacking player for every ID in this event, so
@@ -389,6 +429,10 @@ func Apply(g *state.Game, e Event) {
 				o.ChosenType = e.Text
 			case "number":
 				o.ChosenNumber = e.Amount
+			case "chosen":
+				o.Chosen = rememberedFrom(e.IDs)
+			case "remembered":
+				o.Remembered = append(o.Remembered, rememberedFrom(e.IDs)...)
 			}
 		}
 
@@ -656,6 +700,12 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	}
 
 	o.Zone = to
+	// A new object in a new zone has its owner's default control. The old
+	// controller is needed above to remove it from the battlefield/stack, so
+	// reset only after removal and placement have used that zone ownership.
+	if to != state.ZBattlefield && to != state.ZStack {
+		o.Controller = o.Owner
+	}
 	// A zone change is the single source of zone-entry provenance. Capture
 	// the actual old zone (not Event.From, which Move deliberately treats as
 	// advisory) so replay and a live game derive identical ThisTurnEntered*
@@ -717,6 +767,20 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		if wasBattlefield {
 			o.X, o.CastFlags = 0, 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber = "", "", 0
+			o.Chosen = nil
+		}
+		// CR 107.3m: the paid X belongs to the spell on the stack and to the
+		// permanent the spell becomes, and to nothing else. An object leaving
+		// the stack for a zone OTHER than the battlefield -- a countered or
+		// fizzled spell into the graveyard, a resolving instant/sorcery -- is
+		// a card in a non-battlefield zone, where X in its text is 0. Without
+		// this the stale paid X rides along: a countered Genesis Hydra
+		// reanimated later would resolve its ETB trigger with the dead cast's
+		// X instead of 0. (A stack->battlefield move keeps X/CastFlags -- the
+		// battlefield case above deliberately does not reset them, which is
+		// what lets an ETB trigger read them off the permanent.)
+		if wasStack {
+			o.X, o.CastFlags = 0, 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
 		// when a permanent spell carries its announcement onto the battlefield).
@@ -728,6 +792,45 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		}
 		o.AttachedTo = 0
 	}
+}
+
+// changeControl gives o to controller p. The battlefield is keyed by
+// controller (zoneOwner), so a permanent moves from its old controller's list
+// to the new one's, the way Forge's controllerChangeZoneCorrection does;
+// every per-controller reader (untap step, attackers, blockers, mana and
+// activation offers, statics, projections) then sees it under its controller.
+// The stack is one shared list, so a spell only changes its Controller.
+//
+// On the battlefield a control change also:
+//   - removes the permanent from combat (CR 506.4): it stops attacking, loses
+//     its blockers, and attackers it blocked keep a zero tombstone so they stay
+//     blocked (CR 509.1h), exactly as a departing blocker does in Move;
+//   - makes it summoning sick (CR 302.6): its new controller has not controlled
+//     it continuously since their most recent turn began. TurnChange clears it
+//     from the active player's list, i.e. at its new controller's next turn.
+func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
+	if o.Controller == p {
+		return
+	}
+	if o.Zone == state.ZBattlefield {
+		remove(g, o.ID, state.ZBattlefield, o.Controller)
+		g.SetZone(state.ZBattlefield, p, append(g.Zone(state.ZBattlefield, p), o.ID))
+		for i := range g.Objs {
+			other := &g.Objs[i]
+			if other.ID == o.ID {
+				continue
+			}
+			for j, blocker := range other.BlockedBy {
+				if blocker == o.ID {
+					other.BlockedBy[j] = 0
+				}
+			}
+		}
+		o.IsAttacking = false
+		o.BlockedBy = nil
+		o.SummonSick = true
+	}
+	o.Controller = p
 }
 
 // validPlayer reports whether p indexes an existing seat.

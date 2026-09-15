@@ -26,8 +26,9 @@ const (
 	// hand card -- exactly the distinct-index shape Validate already enforces
 	// for KTriggerOrder, so no new wire format is needed (Ruling U2).
 	KMulligan Kind = "mulligan"
-	// KModes is a modal pick: Min == Max == CharmNum$ (default 1) over one
-	// "mode" option per Choices$ sub-ability, in Choices$ order. Spell modes
+	// KModes is a modal pick: MinCharmNum$ (default CharmNum$) through
+	// CharmNum$ (default 1) over one "mode" option per Choices$ sub-ability,
+	// in Choices$ order. Spell modes
 	// are announced during casting (CR 601.2b), trigger modes at placement
 	// (CR 603.3c), while nested Charm and unless-pay asks may suspend
 	// resolution. handleModes records ModeChosen; ResumeKind and the trigger
@@ -264,7 +265,8 @@ type Decision struct {
 	// TargetEffect is host-independent targeting context. It is absent on
 	// other decision kinds and on older servers; absent means unknown.
 	TargetEffect *TargetEffect `json:"target_effect,omitempty"`
-	// ResumeKind, ResumeSA, ResumeModes and ResumeTarget are server-side only.
+	// ResumeKind, ResumeSA, ResumeModes, ResumeTarget, ResumeChoices and
+	// ResumeRemembered are server-side only.
 	// ResumeKind selects a cast/placement/resolution continuation ("cast_modes",
 	// "modes", "unless_pay", "discard", "arrange", "search", "imprint",
 	// "untap", "dig"); ResumeSA
@@ -280,6 +282,11 @@ type Decision struct {
 	ResumeSA     *cards.SA `json:"-"`
 	ResumeModes  []string  `json:"-"`
 	ResumeTarget int       `json:"-"`
+	// ResumeChoices carries selections completed by earlier per-player choice
+	// asks. It is runtime continuation state, never client input.
+	ResumeChoices     []state.Target `json:"-"`
+	ResumeChosenValid bool           `json:"-"`
+	ResumeRemembered  []state.Target `json:"-"`
 }
 
 // New is a convenience constructor that fills a Decision's Player, Kind,

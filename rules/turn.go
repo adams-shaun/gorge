@@ -57,6 +57,8 @@ func (e *Engine) setStep(s state.Step) {
 		// Ruling T21-e keeps the reset event-sourced so a log-only replay also
 		// learns that IsAttacking and BlockedBy were cleared.
 		e.emit(events.Event{Kind: events.EndCombatReset})
+		// CR 511.3: "until end of combat" control effects end with the step.
+		e.expireControl(controlAtEndOfCombat)
 	}
 }
 
@@ -567,7 +569,9 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 			e.continueCast()
 		}
 	case chooseManaColor:
-		if e.answerManaColor(chosen) {
+		// A CR 605.3b triggered mana ability may pose its own colour choice
+		// after this one; the cast resumes only once none is pending.
+		if e.answerManaColor(chosen) && e.choosing != chooseManaColor {
 			e.continueCast()
 		}
 	// Tasks 12, 18 add their cases here; Task D1 adds chooseCleanup.
