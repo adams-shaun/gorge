@@ -643,6 +643,13 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		}
 	}
 	remove(g, id, o.Zone, zoneOwner(o, o.Zone))
+	// CR 400.7: leaving the battlefield makes the object a new object in
+	// its next zone, so control-changing effects do not follow it. Reset
+	// before choosing the destination's zone owner: a later graveyard/hand
+	// re-entry must be placed under its owner, not its former controller.
+	if wasBattlefield && to != state.ZBattlefield {
+		o.Controller = o.Owner
+	}
 	if to != state.ZCeased {
 		dst := zoneOwner(o, to)
 		g.SetZone(to, dst, append(g.Zone(to, dst), id))

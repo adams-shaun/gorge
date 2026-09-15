@@ -545,6 +545,27 @@ func TestMysticRemoraCumulativeUpkeep(t *testing.T) {
 	}
 }
 
+// TestCumulativeUpkeepKeepsItsTriggerControllerAfterControlChanges proves a
+// response that steals Mystic Remora does not steal the already-triggered
+// upkeep's pay-or-sacrifice decision (CR 113.8).
+func TestCumulativeUpkeepKeepsItsTriggerControllerAfterControlChanges(t *testing.T) {
+	e := handEngine(t)
+	remora := onBoard(t, e, 0, mysticRemoraScript)
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepUpkeep})
+	e.putTriggersOnStack()
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("cumulative trigger stack = %v, want one", e.G.Stack)
+	}
+	// The source's live controller changes, while the stack object's
+	// controller remains the controller that put the trigger on the stack.
+	e.emit(events.Event{Kind: events.ChangeControl, Obj: remora, Player: 1})
+	e.resolveTop()
+	d := e.Pending()
+	if d == nil || d.Player != 0 {
+		t.Fatalf("cumulative payment decision = %+v, want original controller seat 0", d)
+	}
+}
+
 // TestCumulativeUpkeepOrdersWithOrdinaryUpkeepTriggers pins CR 603.3b: both
 // trigger from the same StepChange and the controller orders them. Resolving
 // the ordinary trigger first still leaves AGE at zero; resolving cumulative

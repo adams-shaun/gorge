@@ -109,6 +109,27 @@ func TestMoveKeepsExactlyOneZone(t *testing.T) {
 	}
 }
 
+func TestChangeControlResetsWhenPermanentLeavesBattlefield(t *testing.T) {
+	g, l := twoPlayer(t)
+	id := g.Zone(state.ZLibrary, 1)[0]
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
+	Emit(g, l, Event{Kind: ChangeControl, Obj: id, Player: 0})
+	if got := g.Obj(id).Controller; got != 0 {
+		t.Fatalf("stolen permanent controller = %d, want 0", got)
+	}
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
+	if got := g.Obj(id).Controller; got != 1 {
+		t.Fatalf("graveyard card controller = %d, want owner 1", got)
+	}
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZBattlefield})
+	if got := g.Obj(id).Controller; got != 1 {
+		t.Fatalf("re-entered permanent controller = %d, want owner 1", got)
+	}
+	if got := g.Zone(state.ZBattlefield, 1); len(got) != 1 || got[0] != id {
+		t.Fatalf("re-entered permanent battlefield zone = %v, want [%d]", got, id)
+	}
+}
+
 func TestMoveLeavingBattlefieldTombstonesBlockerReferences(t *testing.T) {
 	g, l := twoPlayer(t)
 	attackerID := g.Zone(state.ZLibrary, 0)[0]

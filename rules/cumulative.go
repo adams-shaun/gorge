@@ -145,14 +145,18 @@ func parseCumulativeAction(label string) (*cumulativeAction, bool) {
 // simultaneous upkeep trigger therefore observe the pre-resolution value.
 func (e *Engine) startCumulativeUpkeep(stackObj, source state.ObjID, sa *cards.SA) {
 	o := e.G.Obj(source)
-	if o == nil || o.Zone != state.ZBattlefield {
+	stack := e.G.Obj(stackObj)
+	if o == nil || o.Zone != state.ZBattlefield || stack == nil {
 		e.finishResumption(stackObj)
 		return
 	}
 	e.emit(events.Event{Kind: events.CounterChange, Obj: source, Counter: "AGE", Amount: 1})
 	label := sa.Params["Cost"]
 	action, actionOK := parseCumulativeAction(label)
-	cu := &cumulativeUpkeep{stackObj: stackObj, source: source, player: o.Controller,
+	// The triggered ability's controller was captured when it was placed on
+	// the stack. A response may change control of the cumulative permanent,
+	// but it must not transfer the already-triggered payment decision.
+	cu := &cumulativeUpkeep{stackObj: stackObj, source: source, player: stack.Controller,
 		amount: scaleCost(ParseCost(label), o.Counter("AGE")), costLabel: label,
 		actionRemaining: o.Counter("AGE")}
 	if actionOK {
