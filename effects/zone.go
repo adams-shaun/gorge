@@ -312,15 +312,22 @@ func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
 			Kind: "hand_move", Label: name, Obj: id, Player: c.Controller})
 	}
-	if h.Ask(d) {
+	// The shared ask boundary (effects.Ask): a ChangeNum$ 0 pick over a
+	// nonempty eligible hand is Min == Max == 0 -- the empty-answer-only
+	// shape -- so it is never posted; AskEmpty resolves silently through the
+	// stand-in below, which moves zero cards.
+	oc := Ask(h, d)
+	if oc == AskAsked {
 		return // resolution suspended; the answer re-enters with Ctx.HandMove set.
 	}
 	// R-9: a host without a decision channel cannot ask a player, so it
 	// supplies the deterministic answer in the player's place -- the first
 	// ChangeNum eligible cards in the same ordered eligible list the
 	// decision's options were built from.
-	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-		Text: "moves the first matching card(s) from hand (no engine host to ask)"})
+	if oc == AskNoHost {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "moves the first matching card(s) from hand (no engine host to ask)"})
+	}
 	for i := int32(0); i < n && i < int32(len(eligible)); i++ {
 		settleHandMove(eligible[i])
 	}

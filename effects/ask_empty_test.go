@@ -211,6 +211,25 @@ func TestAskingSitesResolveAnEmptyCandidateSetSilently(t *testing.T) {
 			},
 		},
 		{
+			// A selectorless Origin$ Hand ChangeZone with a literal
+			// ChangeNum$ 0 over a hand holding eligible cards: more eligible
+			// cards than ChangeNum, so the pick would be a Min == Max == 0
+			// KChoose -- the empty-answer-only shape. It moves nothing and
+			// records no R-9 note.
+			name:     "hand move ChangeNum$ 0, eligible cards in hand",
+			noteFree: true,
+			run: func(t *testing.T, h *askHost, c *Ctx) {
+				land := mkCard(t, "Name:Isle\nTypes:Basic Land Island\nOracle:x\n")
+				ids := []state.ObjID{h.g.AddObject(land, 0).ID, h.g.AddObject(land, 0).ID}
+				h.g.SetZone(state.ZHand, 0, ids) // fixture setup, as handAskFixture does.
+				for _, id := range ids {
+					h.g.Obj(id).Zone = state.ZHand
+				}
+				s := sa(t, "DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | ChangeNum$ 0")
+				Resolve(h, c, s)
+			},
+		},
+		{
 			// The caster-chooses discard against a hand with nothing
 			// DiscardValid$ allows: nothing is eligible, nothing is asked,
 			// nothing moves (Thoughtseize against an empty/filtered hand).
