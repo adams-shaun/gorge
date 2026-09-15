@@ -133,7 +133,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// to the SOURCE default and then skip every candidate on the Origin$
 		// precondition -- the silent no-op the handmove1 fix replaces with a
 		// real hand choice (the rv2b extension drops handmove1's ChangeType$
-		// requirement: the whole 246-line no-selector Origin$ Hand population
+		// requirement: the whole 239-line no-selector Origin$ Hand population
 		// routes here now, 19 of it untyped).
 		// An SVar or inline count expression is evaluated through Num where the
 		// count grammar supports it (for example Wrenn and Seven's SVar X counts
