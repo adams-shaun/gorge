@@ -211,6 +211,15 @@ type Ctx struct {
 	// declined empty choice distinct from the initial pass.
 	SoulbondPartner state.ObjID
 	SoulbondDone    bool
+	// Myriad is one per-opponent optional token decision. MyriadTarget is the
+	// index in the deterministic eligible-opponent list that just answered;
+	// MyriadDone distinguishes that answer from the first pass, and
+	// MyriadCreate says whether it creates that target's token. Re-entry emits
+	// the selected token, then asks the next opponent, so each may choice is
+	// independent and no answer is retained by a nested Myriad.
+	MyriadTarget int
+	MyriadDone   bool
+	MyriadCreate bool
 	// RevealOpt is the answered RevealOptional$ yes/no on a re-entered
 	// mid-resolution reveal (task fb-3f1cc033, the Delver of Secrets
 	// PeekAndReveal shape): "yes" means the peeking player chose to reveal

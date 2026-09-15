@@ -2,6 +2,7 @@ package effects
 
 import (
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -12,11 +13,12 @@ func init() { Register("Myriad", effMyriad) }
 // attacks, for each opponent OTHER than the defending player, the controller
 // creates a token that is a copy of the attacking creature, tapped and
 // attacking that opponent. The trigger (cards/keywords.go) fires on the
-// source's own DeclareAttackers event, so the combat is already in progress;
-// this effect emits one MyriadCopy event per non-defending opponent (the
-// DefendingPlayer comes from the trigger's active defender, carried in the
-// effect context). The tokens are created tapped and attacking, which is the
-// Myriad copy's entry condition.
+// source's own DeclareAttackers event, so the combat is already in progress.
+// For EACH eligible opponent, CR 702.109 says the controller MAY create a
+// copy. The choices are posed one at a time and resume with a deterministic
+// candidate cursor: an answer creates (or declines) precisely that opponent's
+// token before asking the next one. This avoids turning several independent
+// may choices into a mandatory all-or-none operation.
 //
 // events.MyriadCleanup exiles these marked tokens as end combat ends. The
 // copy is the source's current card/face, preserving its printed
@@ -27,24 +29,56 @@ func effMyriad(h Host, c *Ctx, sa *cards.SA) {
 	if src == nil || src.Face() == nil {
 		return
 	}
-	// The defending player is the player the source is attacking, captured by
-	// triggerRemembered (a DeclareAttackers trigger appends the defending
-	// player as the last Remembered entry), so it survives the resolveTop
-	// rebuild of the Ctx. The remaining alive players are the other opponents
-	// a Myriad token attacks.
-	defender := state.PlayerID(c.Controller)
+	eligible := myriadOpponents(g, c)
+	start := 0
+	if c.MyriadDone {
+		if c.MyriadTarget < 0 || c.MyriadTarget >= len(eligible) {
+			return
+		}
+		if c.MyriadCreate {
+			// Player is the token's controller (the attacking player) and IDs[0]
+			// is the opponent it attacks.
+			h.Emit(events.Event{Kind: events.MyriadCopy, Obj: c.Source, Player: c.Controller, IDs: []state.ObjID{state.ObjID(eligible[c.MyriadTarget])}})
+		}
+		start = c.MyriadTarget + 1
+		// Consume the answer before posing a later choice. A nested myriad (or
+		// another asking sub-ability) must never inherit this answer.
+		c.MyriadDone = false
+		c.MyriadCreate = false
+	}
+	if start >= len(eligible) {
+		return
+	}
+	q := eligible[start]
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+		Min: 1, Max: 1, Source: c.Source, ResumeKind: "myriad", ResumeSA: sa,
+		ResumeTarget: start,
+		Prompt:       "Myriad: create a copy attacking " + g.Players[q].Name + "?",
+		Options: []decision.Option{
+			{Index: 0, Kind: "yes", Label: "Create a copy attacking " + g.Players[q].Name, Obj: c.Source, Player: c.Controller},
+			{Index: 1, Kind: "no", Label: "Don't create a copy", Obj: c.Source, Player: c.Controller},
+		}}
+	// A host without decisions takes the legal optional decline for this and
+	// every remaining opponent (R-9); it does not manufacture a token.
+	h.Ask(d)
+}
+
+// myriadOpponents returns the players Myriad considers, in APNAP order. The
+// defending player is carried by triggerRemembered as the final player target,
+// so it survives the stack object's context rebuild on every resumed choice.
+func myriadOpponents(g *state.Game, c *Ctx) []state.PlayerID {
+	defender := c.Controller
 	for i := len(c.Remembered) - 1; i >= 0; i-- {
 		if c.Remembered[i].IsPlayer {
 			defender = c.Remembered[i].Player
 			break
 		}
 	}
+	out := make([]state.PlayerID, 0)
 	for _, q := range g.AliveFrom(c.Controller) {
-		if q == c.Controller || q == defender {
-			continue
+		if q != c.Controller && q != defender {
+			out = append(out, q)
 		}
-		// Player is the token's controller (the attacking player) and IDs[0]
-		// is the opponent it attacks.
-		h.Emit(events.Event{Kind: events.MyriadCopy, Obj: c.Source, Player: c.Controller, IDs: []state.ObjID{state.ObjID(q)}})
 	}
+	return out
 }

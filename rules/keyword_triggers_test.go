@@ -872,33 +872,17 @@ func passToDecision(t *testing.T, e *Engine, limit int) *decision.Decision {
 }
 
 func TestMyriadUsesRealCorpusCard(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	disperser, ok := reg.Lookup("Chittering Dispatcher")
-	if !ok {
-		t.Fatal("Chittering Dispatcher missing from corpus")
-	}
-	if d := disperser.Link(); len(d) != 0 {
-		t.Fatalf("link Chittering Dispatcher: %v", d)
-	}
-	deck := []*cards.Card{disperser}
-	cfg := seatZeroStart(Config{Seed: 196, Names: []string{"a", "b", "c"},
-		Decks: [][]*cards.Card{
-			append(append([]*cards.Card{}, deck...), mountainDeck(t, 39)...),
-			mountainDeck(t, 40), mountainDeck(t, 40)},
-		Tokens: map[string]*cards.Card{}})
-	e := New(cfg)
-	e.Advance()
-	var did state.ObjID
-	for _, id := range append(e.G.Zone(state.ZLibrary, 0), e.G.Zone(state.ZHand, 0)...) {
-		if e.G.Obj(id).Face() != nil && e.G.Obj(id).Face().Name == "Chittering Dispatcher" {
-			did = id
-		}
-	}
-	e.emit(events.Event{Kind: events.MoveZone, Obj: did, From: e.G.Obj(did).Zone, To: state.ZBattlefield})
+	e, cfg, _ := myriadCombat(t, 3)
 	// Dispatcher attacks seat 1; in a 3-seat game there are TWO other
-	// opponents (seat 1 defender, seat 2 the extra Myriad target).
-	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{did}})
-	e.priorityRound()
+	// opponents (seat 1 defender, seat 2 the extra Myriad target). CR 702.109
+	// makes the remaining token optional, so explicitly create it here.
+	d := passToDecision(t, e, 8)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "myriad" || d.Player != 0 {
+		t.Fatalf("Myriad choice = %+v", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{0}}); err != nil {
+		t.Fatalf("create Myriad copy: %v", err)
+	}
 	passUntilStackEmpty(t, e, 20)
 	// Expect one MyriadCopy token attacking seat 2 created (the defender is
 	// seat 1, excluded).
@@ -927,6 +911,98 @@ func TestMyriadUsesRealCorpusCard(t *testing.T) {
 	}
 	if !exiled {
 		t.Fatal("Myriad token was not exiled at end of combat")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// myriadCombat uses Chittering Dispatcher's actual corpus keyword expansion
+// and leaves its Myriad trigger ready to resolve. Seat 1 is the defender;
+// each additional opponent is an independent CR 702.109 may choice.
+func myriadCombat(t *testing.T, seats int) (*Engine, Config, state.ObjID) {
+	t.Helper()
+	reg := testutil.CorpusRegistry(t)
+	disperser, ok := reg.Lookup("Chittering Dispatcher")
+	if !ok {
+		t.Fatal("Chittering Dispatcher missing from corpus")
+	}
+	if d := disperser.Link(); len(d) != 0 {
+		t.Fatalf("link Chittering Dispatcher: %v", d)
+	}
+	names := make([]string, seats)
+	decks := make([][]*cards.Card, seats)
+	for i := range names {
+		names[i] = string(rune('a' + i))
+		decks[i] = mountainDeck(t, 40)
+	}
+	decks[0] = append([]*cards.Card{disperser}, mountainDeck(t, 39)...)
+	cfg := seatZeroStart(Config{Seed: 196, Names: names, Decks: decks, Tokens: map[string]*cards.Card{}})
+	e := New(cfg)
+	e.Advance()
+	var did state.ObjID
+	for _, id := range append(e.G.Zone(state.ZLibrary, 0), e.G.Zone(state.ZHand, 0)...) {
+		if e.G.Obj(id).Face() != nil && e.G.Obj(id).Face().Name == "Chittering Dispatcher" {
+			did = id
+		}
+	}
+	if did == 0 {
+		t.Fatal("Chittering Dispatcher was not dealt")
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: did, From: e.G.Obj(did).Zone, To: state.ZBattlefield})
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{did}})
+	e.priorityRound()
+	return e, cfg, did
+}
+
+// TestMyriadMayDeclineEveryOpponent proves the CR 702.109 may is not a
+// mandatory token creation: in a four-player combat the controller may
+// decline each non-defending opponent independently.
+func TestMyriadMayDeclineEveryOpponent(t *testing.T) {
+	e, cfg, _ := myriadCombat(t, 4)
+	for want := 2; want <= 3; want++ {
+		d := passToDecision(t, e, 8)
+		if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "myriad" || len(d.Options) != 2 {
+			t.Fatalf("Myriad choice for seat %d = %+v", want, d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{1}}); err != nil {
+			t.Fatalf("decline Myriad copy for seat %d: %v", want, err)
+		}
+	}
+	passUntilStackEmpty(t, e, 20)
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if e.G.Obj(id).IsMyriad {
+			t.Fatal("declined Myriad created a token")
+		}
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestMyriadMayChooseEachOpponentIndependently proves a mixed answer: creating
+// a copy for seat 2 does not force one for seat 3.
+func TestMyriadMayChooseEachOpponentIndependently(t *testing.T) {
+	e, cfg, _ := myriadCombat(t, 4)
+	for want, choice := range []int{0, 1} { // create for seat 2, decline seat 3
+		d := passToDecision(t, e, 8)
+		if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "myriad" {
+			t.Fatalf("Myriad choice %d = %+v", want, d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{choice}}); err != nil {
+			t.Fatalf("answer Myriad choice %d: %v", want, err)
+		}
+	}
+	passUntilStackEmpty(t, e, 20)
+	copies := 0
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		o := e.G.Obj(id)
+		if !o.IsMyriad {
+			continue
+		}
+		copies++
+		if o.Attacking != 2 {
+			t.Fatalf("Myriad copy attacks seat %d, want seat 2", o.Attacking)
+		}
+	}
+	if copies != 1 {
+		t.Fatalf("mixed Myriad choice created %d copies, want 1", copies)
 	}
 	replayCheck(t, e, cfg)
 }

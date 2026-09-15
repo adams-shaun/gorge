@@ -456,6 +456,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if len(chosen) == 1 {
 				ctx.SoulbondPartner = chosen[0].Obj
 			}
+		case "myriad":
+			// CR 702.109 makes a separate may choice for each eligible opponent.
+			// ResumeTarget is that opponent's stable index in effMyriad's
+			// deterministic list; only its explicit yes option creates the copy.
+			ctx.MyriadDone = true
+			ctx.MyriadTarget = rp.target
+			ctx.MyriadCreate = len(chosen) == 1 && chosen[0].Kind == "yes"
 		case "reveal_optional":
 			// Task fb-3f1cc033 (Delver of Secrets): the peeking player's
 			// RevealOptional$ yes/no was answered. Option 0 is "yes"; anything
