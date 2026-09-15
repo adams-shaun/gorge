@@ -469,6 +469,14 @@ func TestHandMoveTextOptionalKeepsTheMayInItsOwnSentence(t *testing.T) {
 // TestHandMoveChangeZoneMarkerlessWithoutTextIsLoud prevents a synthetic or
 // otherwise unannotated ChangeZone from inventing a "may" choice. Forge's
 // parameters do not encode the default; only real card/script wording does.
+func TestHandMovePromptNamesOtherPlayersLibrary(t *testing.T) {
+	line := sa(t, "DB$ ChangeZone | Origin$ Hand | Destination$ Library | LibraryPosition$ -1")
+	got := handMovePromptFor(line, state.ZLibrary, 1, false)
+	if !strings.Contains(got, "that player's hand") || !strings.Contains(got, "the bottom of that player's library") {
+		t.Fatalf("prompt = %q, want the other player's hand and library", got)
+	}
+}
+
 func TestHandMoveChangeZoneMarkerlessWithoutTextIsLoud(t *testing.T) {
 	h, ids := handAskFixture(t)
 	Resolve(h, &Ctx{Controller: 0}, sa(t,

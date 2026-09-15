@@ -281,14 +281,20 @@ func (e *Engine) Clone() *Engine {
 		c.cmdZone = append([]cmdZoneMove(nil), e.cmdZone...)
 	}
 	if e.replChoices != nil {
-		// The parked CR 616.1 replacement-order choices: same class as
-		// cmdZone. Plain value entries (an events.Event plus a []replMatch
-		// whose *cards.Repl pointers are shared corpus data), so one slice
-		// copy is a faithful clone; the candidate slice is re-allocated so
-		// the clone owns its own.
+		// Parked replacement choices (MoveZone/ProduceMana/BeginPhase order,
+		// replacement mana colour and optional phase apply/decline): same class
+		// as cmdZone. Event/scalar data copies by value;
+		// candidate pointers share immutable corpus data, while every mutable
+		// bookkeeping slice is re-allocated for the clone.
 		c.replChoices = make([]replChoice, len(e.replChoices))
 		for i, rc := range e.replChoices {
 			rc.cands = append([]replMatch(nil), rc.cands...)
+			rc.applied = append([]bool(nil), rc.applied...)
+			rc.applicable = append([]int(nil), rc.applicable...)
+			if rc.untap != nil {
+				resume := *rc.untap
+				rc.untap = &resume
+			}
 			c.replChoices[i] = rc
 		}
 	}

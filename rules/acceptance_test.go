@@ -110,8 +110,6 @@ var knownUnsupported = map[string][]string{
 	"Karazikar, the Eye Tyrant":    {"api:Goad"},
 	"Kederekt Parasite":            {"trig:Drawn"},
 	"Lord Windgrace":               {"kw:CARDNAME can be your commander."},
-	"Necrodominance":               {"repl:BeginPhase"},
-	"Necropotence":                 {"repl:BeginPhase"},
 	"Ob Nixilis, Captive Kingpin":  {"trig:LifeLostAll"},
 	"Ojer Axonil, Deepest Might":   {"api:ReplaceEffect", "repl:DamageDone"},
 	"Planetary Annihilation":       {"api:SacrificeAll"},
@@ -130,7 +128,6 @@ var knownUnsupported = map[string][]string{
 	"Valgavoth, Harrower of Souls": {"kw:Ward", "trig:LifeLost"},
 	"Vein Ripper":                  {"kw:Ward"},
 	"Vial Smasher the Fierce":      {"kw:Partner"},
-	"Virtue of Strength":           {"api:ReplaceMana", "repl:ProduceMana"},
 	"Walk-In Closet":               {"trig:UnlockDoor"},
 	"Ziatora's Proving Ground":     {"kw:Cycling"},
 }

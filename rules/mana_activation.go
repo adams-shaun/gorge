@@ -626,7 +626,17 @@ func (e *Engine) resolveManaEffectColor(p state.PlayerID, source state.ObjID, ma
 		copy.Params[k] = v
 	}
 	copy.Params["Produced"] = produced
+	// ProduceMana replacements need the ability's source and whether its
+	// paid cost included T. Preserve both only for effMana's synchronous emit:
+	// producer attribution is replacement matching context, not a durable
+	// property of the resulting ManaAdd (putting it in Event.Obj moved every
+	// replay chain head). A sacrifice-only KCI activation therefore identifies
+	// its source but is not tap-produced.
+	savedTap, savedProducer := e.manaFromTap, e.manaProducer
+	e.manaFromTap = ParseCost(ma.Params["Cost"]).Tap
+	e.manaProducer = source
 	e.resolveAbility(source, p, nil, &copy, o.Face().SVars)
+	e.manaFromTap, e.manaProducer = savedTap, savedProducer
 }
 
 // answerManaColor completes a Produced$ Any choice after the activation cost

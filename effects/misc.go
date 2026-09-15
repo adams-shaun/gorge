@@ -13,6 +13,7 @@ import (
 
 func init() {
 	Register("Mana", effMana)
+	Register("ReplaceMana", effReplaceMana)
 	Register("Effect", effEffect)
 	Register("Cleanup", effCleanup)
 	Register("SetState", effSetState)
@@ -744,6 +745,59 @@ func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
 // unrecognised Produced$ value therefore emits nothing and records a Note
 // naming it, following this repo's fail-closed convention (an unknown token
 // never invents a value).
+// effReplaceMana rewrites one in-flight ManaAdd event for a ProduceMana
+// replacement. The surrounding rules code supplies the amount and colour in
+// Ctx, then logs the rewritten ManaAdd; this effect itself has no game-state
+// mutation to emit. ReplaceAmount multiplies the whole production.
+// ReplaceType/ReplaceColor preserve its amount and replace only its colour;
+// ReplaceMana is Forge's "one mana instead of any other type and amount"
+// form (Damping Sphere, Contamination), so it sets the amount to exactly one
+// as well as replacing the colour. For a choice-valued replacement
+// (Any/Chosen), rules parks the ManaAdd and supplies the player's W/U/B/R/G
+// answer in Ctx.ManaChoice; without a valid answer this pure effect fails
+// closed rather than inventing colourless mana.
+func effReplaceMana(_ Host, c *Ctx, sa *cards.SA) {
+	if c == nil {
+		return
+	}
+	if only := strings.TrimSpace(sa.Params["ReplaceOnly"]); only != "" && only != c.ManaType {
+		return
+	}
+	if n := Num(nil, c, sa, "ReplaceAmount", 1); n > 0 {
+		c.ManaAmount *= n
+	}
+	kind := strings.TrimSpace(sa.Params["ReplaceMana"])
+	if kind != "" {
+		c.ManaAmount = 1
+	}
+	if kind == "" {
+		kind = strings.TrimSpace(sa.Params["ReplaceType"])
+	}
+	if kind == "" {
+		kind = strings.TrimSpace(sa.Params["ReplaceColor"])
+	}
+	if kind == "" {
+		return
+	}
+	switch strings.ToLower(kind) {
+	case "white":
+		kind = "W"
+	case "blue":
+		kind = "U"
+	case "black":
+		kind = "B"
+	case "red":
+		kind = "R"
+	case "green":
+		kind = "G"
+	case "any", "chosen":
+		kind = c.ManaChoice
+	}
+	if len(kind) == 1 && strings.ContainsRune(ManaSymbols, rune(kind[0])) {
+		c.ManaType = kind
+	}
+}
+
 func effMana(h Host, c *Ctx, sa *cards.SA) {
 	produced := strings.TrimSpace(sa.Params["Produced"])
 	if produced == "" || produced == "Any" || produced == "Combo Any" {
