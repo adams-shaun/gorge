@@ -10,7 +10,9 @@ import (
 
 // A Forge filter spec is alternatives separated by "," (OR). Each alternative
 // is a base type, optionally negated with a "non" prefix, followed by
-// ".pred+pred+..." (AND).
+// ".pred+pred+..." (AND). A raw comma in a named<Name>/notnamed<Name>
+// argument is part of the printed name when what follows is not another
+// filter alternative; filterAlternatives owns that ambiguity in one place.
 //
 // Unknown predicates never match. A filter that silently widens is how a rules
 // engine quietly does the wrong thing, so the failure mode is "this card does
@@ -77,7 +79,7 @@ var predicates = map[string]predFn{
 	},
 	"NamedCard": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		s := g.Obj(src)
-		return s != nil && s.ChosenName != "" && o.Face() != nil && o.Face().Name == s.ChosenName
+		return s != nil && s.ChosenName != "" && sharesName(o, s.ChosenName)
 	},
 	"ChosenType": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		s := g.Obj(src)
@@ -217,6 +219,18 @@ const (
 	// The two-token space form "AttachedTo <X>": <X> is a literal type or
 	// object class answerable from the object in hand (the base grammar).
 	wordAttachedTo
+	// IsRemembered is resolution-local: it compares the candidate against the
+	// resolving Ctx's remembered object list, never an object's persistent
+	// event-backed remembered state.
+	wordIsRemembered
+	// The name-predicate family (Forge CardProperty): named<Name> and
+	// notnamed<Name> compare the candidate's name characteristics with the
+	// argument text (key carries it, `;`/`_` normalised); sameName compares
+	// it with the source card, or with the name referent encoded by its own
+	// Remembered./Targeted./Triggered. base shape.
+	wordNamed
+	wordNotnamed
+	wordSameName
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -226,6 +240,26 @@ const (
 func wordPredicate(p string) (wordKind, string) {
 	if l, is := colorLetter[p]; is {
 		return wordColor, l
+	}
+	// notnamed before named: both prefixes are literal token prefixes and
+	// "notnamed..." does not start with "named", but checking in this order
+	// documents that neither is a prefix of the other's grammar. An empty
+	// argument (a bare `named`) stays recognised and never matches -- Forge
+	// sharesNameWith("") is false.
+	if name, ok := strings.CutPrefix(p, "notnamed"); ok {
+		if name == "" {
+			// A bare `notnamed` would negate to always-true (the negation of
+			// "no name at all"), which the fail-closed contract forbids; it
+			// stays unknown instead.
+			return wordUnknown, ""
+		}
+		return wordNotnamed, nameArg(name)
+	}
+	if name, ok := strings.CutPrefix(p, "named"); ok {
+		return wordNamed, nameArg(name)
+	}
+	if p == "sameName" {
+		return wordSameName, ""
 	}
 	switch p {
 	case "Colorless":
@@ -246,6 +280,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordBlockingSource, ""
 	case "blockedBySource":
 		return wordBlockedBySource, ""
+	case "IsRemembered":
+		return wordIsRemembered, ""
 	}
 	if targetReferent(p) {
 		return wordTargetedPlayerCtrl, ""
@@ -326,6 +362,29 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 	case wordTargetedPlayerCtrl:
 		matched, ok := matchTargetedPlayerCtrl(g, o, sc)
 		return ok && matched
+	case wordNamed:
+		// Forge CardProperty "named<X>": card.sharesNameWith the argument.
+		return sharesName(o, key)
+	case wordNotnamed:
+		// Forge implements no notnamed predicate and the corpus carries
+		// none (measured); this engine gives the token the negation
+		// semantics its shape implies rather than the always-true trap an
+		// unrecognised-but-plausible token could be mistaken for.
+		return !sharesName(o, key)
+	case wordSameName:
+		// Forge CardProperty "sameName": card.sharesNameWith(source). The
+		// referent is SpecContext.Source as MatchesObjectCtx rewrote it: the
+		// resolving ability's source card by default (Evil Twin's
+		// ValidTgts$ Creature.sameName), or the Remembered./Targeted./
+		// Triggered. context object the alternative's base prefix names
+		// (Eradicate's Remembered.sameName, Bifurcate's Targeted.*,
+		// Bloodbond March's Triggered.sameName). Both sides use their full
+		// name characteristics: a split card off the stack contributes both
+		// halves' names (CR 709.4) and a moved DFC only its front face.
+		if sc.Source == 0 {
+			return false
+		}
+		return sharesNameWithObject(o, g.Obj(sc.Source))
 	case wordAttachedTo:
 		// Forge's AttachedTo <X>: this object (an Aura or Equipment) is
 		// attached to something, and the permanent it is attached to (its
@@ -342,6 +401,13 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 			return false
 		}
 		return matchesBase(g, key, a)
+	case wordIsRemembered:
+		for _, t := range sc.Remembered {
+			if !t.IsPlayer && t.Obj == o.ID {
+				return true
+			}
+		}
+		return false
 	}
 	return false
 }
@@ -415,6 +481,132 @@ func recognisedPredicate(p string) bool {
 	}
 	if x, has := strings.CutPrefix(p, "!"); has && x != "" {
 		return positiveRecognised(x)
+	}
+	return false
+}
+
+// nameArg normalises a named<Name>/notnamed<Name> argument the way Forge's
+// CardProperty does: a card name containing a comma is written with ';' (the
+// spec's own ',' is the OR delimiter -- `namedCalim; Djinn Emperor` names
+// "Calim, Djinn Emperor"), and '_' stands for a space (`namedAether_Burst`).
+func nameArg(p string) string {
+	return strings.NewReplacer(";", ",", "_", " ").Replace(p)
+}
+
+// filterAlternatives splits the OR grammar without tearing a raw comma out of
+// a named<Name>/notnamed<Name> argument. Forge normally spells a name comma
+// as ';', but real scripts also carry e.g. Card.namedKorlash, Heir to
+// Blackblade in Grandeur costs. A comma remains part of that name unless its
+// right side begins a syntactic filter alternative (Card.namedX,Creature...;
+// both the dotted and bare-base forms are recognised). Keeping the splitter
+// shared means matching, quality classification, and the unknown-predicate
+// census all parse the same filter.
+func filterAlternatives(spec string) []string {
+	var out []string
+	start := 0
+	for i := 0; i < len(spec); i++ {
+		if spec[i] != ',' || rawNameComma(spec[start:i], spec[i+1:]) {
+			continue
+		}
+		out = append(out, spec[start:i])
+		start = i + 1
+	}
+	return append(out, spec[start:])
+}
+
+// rawNameComma reports whether the comma after left belongs to the last
+// predicate of the current alternative. Once '+' has started another
+// predicate, a name argument is complete and cannot own a following comma.
+func rawNameComma(left, right string) bool {
+	_, predicates, has := strings.Cut(left, ".")
+	if !has {
+		return false
+	}
+	parts := strings.Split(predicates, "+")
+	last := parts[len(parts)-1]
+	if _, ok := strings.CutPrefix(last, "named"); !ok {
+		if _, ok := strings.CutPrefix(last, "notnamed"); !ok {
+			return false
+		}
+	}
+	return !startsFilterAlternative(strings.TrimSpace(right))
+}
+
+// startsFilterAlternative recognises the base at the start of an alternative,
+// independently of the candidate object. The filter grammar permits the
+// universal bases and every known type word (with the ordinary non<X> base
+// negation); a name continuation such as "Heir to Blackblade" is none of
+// those. A card name literally ending in ", Creature" remains intrinsically
+// ambiguous with the documented OR grammar and must use Forge's ';' spelling.
+func startsFilterAlternative(s string) bool {
+	base := s
+	if i := strings.IndexAny(base, ".+,"); i >= 0 {
+		base = base[:i]
+	}
+	base = strings.TrimSpace(base)
+	if base == "CARDNAME" || base == "Any" || base == "Card" || base == "Permanent" || base == "Spell" {
+		return true
+	}
+	base = strings.TrimPrefix(base, "non")
+	return predicateTypeWords[base]
+}
+
+// nameCharacteristics returns o's names as a name-comparison sees them --
+// Forge Card.sharesNameWith. A SPLIT card away from the stack (and, as this
+// engine scopes it, the battlefield, where a selected face stands for the
+// permanent) has both halves' names combined (CR 709.4). A transforming DFC has
+// only its front-face characteristics in those zones (CR 712.8a), even when
+// its retained FaceIdx (events.Move does not reset it) still identifies the
+// face it had while transformed. On the battlefield and stack every layout
+// uses its selected face. Empty names are omitted; an ability object (Card
+// nil) has no name.
+func nameCharacteristics(o *state.Object) []string {
+	if o == nil || o.Card == nil {
+		return nil
+	}
+	offPlay := o.Zone != state.ZStack && o.Zone != state.ZBattlefield
+	if offPlay && o.Card.AlternateMode == "Split" {
+		var names []string
+		for _, f := range o.Card.Faces {
+			if f != nil && f.Name != "" {
+				names = append(names, f.Name)
+			}
+		}
+		return names
+	}
+	f := o.Face()
+	if offPlay && len(o.Card.Faces) != 0 {
+		f = o.Card.Faces[0]
+	}
+	if f == nil || f.Name == "" {
+		return nil
+	}
+	return []string{f.Name}
+}
+
+// sharesName reports whether o's name characteristics include name -- Forge
+// Card.sharesNameWith(String). An empty name never matches.
+func sharesName(o *state.Object, name string) bool {
+	if name == "" {
+		return false
+	}
+	for _, n := range nameCharacteristics(o) {
+		if n == name {
+			return true
+		}
+	}
+	return false
+}
+
+// sharesNameWithObject reports whether o and src have at least one name in
+// common -- Forge Card.sharesNameWith(Card), which compares the full name
+// sets of BOTH cards. A split source in a library or graveyard therefore
+// shares a name with a card named for either of its halves (CR 709.4).
+func sharesNameWithObject(o, src *state.Object) bool {
+	for _, n := range nameCharacteristics(src) {
+		if sharesName(o, n) {
+			return true
+		}
 	}
 	return false
 }
@@ -646,6 +838,64 @@ func parseCMC(cost string) int32 {
 	return n
 }
 
+// sameNameContextBase recognises only the three base-prefix forms which
+// carry sameName's referent. Keeping this rewrite name-specific is important:
+// Remembered.*, Targeted.*, and Triggered.* have many unrelated predicates
+// whose grammar and behaviour this task must not expand.
+func sameNameContextBase(base, rest string) bool {
+	if !hasPredicate(rest, "sameName") {
+		return false
+	}
+	return strings.HasPrefix(base, "Remembered") ||
+		strings.HasPrefix(base, "Targeted") ||
+		strings.HasPrefix(base, "Triggered")
+}
+
+func hasPredicate(rest, want string) bool {
+	for _, p := range strings.Split(rest, "+") {
+		if p == want {
+			return true
+		}
+	}
+	return false
+}
+
+// sameNameContextReferent resolves the object whose name a sameName context
+// base names. An absent binding fails closed rather than falling back to the
+// ability source.
+func sameNameContextReferent(g *state.Game, base string, sc SpecContext) (state.ObjID, bool) {
+	switch {
+	case strings.HasPrefix(base, "Remembered"):
+		for _, t := range sc.Remembered {
+			if !t.IsPlayer && t.Obj != 0 && g.Obj(t.Obj) != nil {
+				return t.Obj, true
+			}
+		}
+	case strings.HasPrefix(base, "Targeted"):
+		for _, t := range sc.ResolutionTargets {
+			if !t.IsPlayer && t.Obj != 0 && g.Obj(t.Obj) != nil {
+				return t.Obj, true
+			}
+		}
+	case strings.HasPrefix(base, "Triggered"):
+		if sc.TriggerCard != 0 && g.Obj(sc.TriggerCard) != nil {
+			return sc.TriggerCard, true
+		}
+	}
+	return 0, false
+}
+
+// isPermanentCard is Forge's card.isPermanent() reading used only by
+// Targeted.Permanent+sameName: a battlefield object is permanent, and away
+// from the battlefield a card's printed type decides it.
+func isPermanentCard(o *state.Object) bool {
+	if o.Zone == state.ZBattlefield {
+		return true
+	}
+	f := o.Face()
+	return f != nil && f.IsPermanent()
+}
+
 // matchesBase handles the base type, including a "non" prefix.
 func matchesBase(g *state.Game, base string, o *state.Object) bool {
 	if neg := strings.TrimPrefix(base, "non"); neg != base {
@@ -684,7 +934,9 @@ type SpecContext struct {
 	ResolutionTargets []state.Target
 	// Remembered is the resolving spell or ability's Remembered set (a
 	// RepeatEach iteration binds its subject here). Like ResolutionTargets it
-	// is meaningful only while Resolving.
+	// is meaningful only while Resolving. It is also the Remembered.* base
+	// prefix's context referent (contextReferent): Eradicate's
+	// `ChangeType$ Remembered.sameName` shares names with the captured card.
 	Remembered []state.Target
 	// Chosen is the current resolution's selected cards/players. It is used
 	// by Forge's ChosenCard/nonChosenCard predicates, not persisted game state.
@@ -721,12 +973,27 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 	if resolve == nil {
 		resolve = noResolve
 	}
-	for _, alt := range strings.Split(spec, ",") {
+	for _, alt := range filterAlternatives(spec) {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
 		}
 		base, rest, _ := strings.Cut(alt, ".")
+		asc := sc
+		contextualSameName := sameNameContextBase(base, rest)
+		// Forge's sameName forms can name their referent in the base:
+		// Remembered.sameName, Targeted.Permanent+sameName, and
+		// Triggered.sameName. Rewrite only those name-predicate alternatives;
+		// a global rewrite would activate unrelated Remembered/Targeted/
+		// Triggered filters outside this task's scope.
+		if contextualSameName {
+			ref, bound := sameNameContextReferent(g, base, asc)
+			if !bound {
+				continue
+			}
+			asc.Source = ref
+			base = "Card"
+		}
 		if base == "CARDNAME" {
 			// CR 201.5: a self-reference means this object, not another
 			// object with the same name. Without a source, fail closed.
@@ -741,6 +1008,17 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 			if p == "" {
 				continue
 			}
+			// Permanent is an auxiliary part of Forge's
+			// Targeted.Permanent+sameName base spelling, not a globally
+			// implemented predicate. Limit its type-based reading to that
+			// contextual sameName form so Card.Permanent remains fail-closed.
+			if contextualSameName && p == "Permanent" {
+				if !isPermanentCard(o) {
+					all = false
+					break
+				}
+				continue
+			}
 			// matchPredicate evaluates every recognised shape -- the predicates
 			// map, a numeric predicate, a generic non<X> negation, a
 			// wordPredicate classifier word, and a leading-'!' negation of any
@@ -748,7 +1026,7 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 			// unknown, so it fails closed: never an always-true fallback, which
 			// would silently widen the filter instead of showing up as a
 			// missing action.
-			res, ok := matchPredicate(g, p, o, sc)
+			res, ok := matchPredicate(g, p, o, asc)
 			if !ok || !res {
 				all = false
 				break
@@ -784,7 +1062,9 @@ func matchesZoneSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecConte
 	if zone == state.ZBattlefield {
 		return MatchesObjectCtx(g, spec, o, sc)
 	}
-	for _, alt := range strings.Split(spec, ",") {
+	// filterAlternatives, not a raw comma split: a Count$Valid<Zone>
+	// Card.named<Name> argument may carry its printed comma.
+	for _, alt := range filterAlternatives(spec) {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -912,7 +1192,7 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 // Forge's `Mandatory$` parameter, which is recorded in AGENTS.md as
 // deliberately unread and is a different thing.
 func SearchStatesQuality(spec string) bool {
-	for _, alt := range strings.Split(spec, ",") {
+	for _, alt := range filterAlternatives(spec) {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -952,7 +1232,7 @@ func possessionPredicate(p string) bool {
 // card-validation pass uses it to refuse cards it would otherwise misplay.
 func UnknownPredicates(spec string) []string {
 	var out []string
-	for _, alt := range strings.Split(spec, ",") {
+	for _, alt := range filterAlternatives(spec) {
 		_, rest, _ := strings.Cut(strings.TrimSpace(alt), ".")
 		for _, p := range strings.Split(rest, "+") {
 			if p == "" {

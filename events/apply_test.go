@@ -1270,6 +1270,12 @@ func TestTargetsChosenAppendShapes(t *testing.T) {
 	}
 }
 
+func TestKeywordTriggerPushKindString(t *testing.T) {
+	if got, want := KeywordTriggerPush.String(), "keyword_trigger_push"; got != want {
+		t.Fatalf("KeywordTriggerPush.String() = %q, want %q", got, want)
+	}
+}
+
 // TestModeChosenIsAMarkerOnly is M2d-2's purity append for the new kind: the
 // event records nothing on state — no object field, no player field — so a
 // valid targeted application and an invalid player application both leave

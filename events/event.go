@@ -230,9 +230,17 @@ const (
 	// distinct event: control is neither ownership nor a zone change, and a
 	// replay must retain it when the object later moves.
 	ControlChange
+	// CardToken mints a battlefield token that is a copy of the card object Obj
+	// names. Appending after main's existing events preserves their ordinals.
+	CardToken
+	// KeywordTriggerPush mints a mandatory keyword-provided triggered ability.
+	KeywordTriggerPush
 	// Imprint records cards this permanent exiled with Imprint$ True. Obj is
 	// the imprinting permanent and IDs are the cards, in the effect's chosen
-	// order. It is append-only so replay rebuilds Defined.Imprinted.
+	// order. It is append-only so replay rebuilds Defined.Imprinted. Appended
+	// AFTER main's CardToken/KeywordTriggerPush so the merge preserves main's
+	// ordinals (log.json serializes kind numerically; a committed fixture's
+	// replay pins them).
 	Imprint
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
@@ -258,7 +266,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
-	"delayed_register", "delayed_push", "library_order", "monarch_change", "control_change", "imprint"}
+	"delayed_register", "delayed_push", "library_order", "monarch_change", "control_change", "card_token", "keyword_trigger_push", "imprint"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -358,6 +366,14 @@ var flagNames = [...]struct {
 	{"surged", state.FlagSurged},
 	{"flashback", state.FlagFlashback},
 	{"miracle", state.FlagMiracle},
+	// Appended at the end, keeping the historic four first: a flag list is
+	// canonicalised in THIS table order, so appending new flags after the
+	// old ones keeps FlagsString(FlagsFrom(s)) stable for every name the
+	// original table already knew.
+	{"evoked", state.FlagEvoked},
+	{"dashed", state.FlagDashed},
+	{"overloaded", state.FlagOverloaded},
+	{"warped", state.FlagWarped},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

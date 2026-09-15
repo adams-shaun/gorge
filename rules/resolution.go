@@ -437,6 +437,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	if rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.loopRemembered...)
 	}
+	// A mid-resolution picker may have built a Remembered fetch list before
+	// it suspended. The stack object only carries trigger-time remembered
+	// entries, so restore the asking effect's snapshot after rebuilding this
+	// fresh context; otherwise Card.IsRemembered and Defined$ Remembered in a
+	// chained hidden-origin ChangeZone see an empty list on re-entry.
+	if rp.remembered != nil {
+		ctx.Remembered = append([]state.Target(nil), rp.remembered...)
+	}
 	effects.SetSVars(ctx, svars)
 	// An accepted optional trigger may itself carry Cost$ (Mana Vault's
 	// "you may pay {4}; if you do" untap). The optional answer chooses to
@@ -602,6 +610,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// event, not on Ctx, so this is a done-marker rather than an
 			// answer the effect re-reads.
 			ctx.Arrange = true
+		case "defined_library_optional":
+			// An Optional$ object-valued Defined$ library fetch list (Kenessos's
+			// DBBottom): option zero accepts the whole direct move; every other
+			// answer declines it. The effect consumes this marker before any
+			// nested optional fetch can see it.
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.DefinedLibraryMove = "yes"
+			} else {
+				ctx.DefinedLibraryMove = "no"
+			}
 		case "reveal_optional":
 			// Task fb-3f1cc033 (Delver of Secrets): the peeking player's
 			// RevealOptional$ yes/no was answered. Option 0 is "yes"; anything

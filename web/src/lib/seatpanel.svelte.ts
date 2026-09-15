@@ -1787,6 +1787,22 @@ export class SeatPanelState {
     void this.post([...this.picked], holdPriority);
   }
 
+  /**
+   * continueEmpty is the Pending tray's empty-answer safety net (the Squadron
+   * Hawk fail-to-find soft-lock; see lib/prompt stuckDecision): a pending
+   * decision with NO options and Min 0 has exactly one legal answer, the
+   * empty one, and no picker can offer it. It posts that answer through the
+   * ordinary setPicked + submit gate. Anything else — a decision with options,
+   * or a positive Min over nothing — is not answerable this way and is left
+   * alone.
+   */
+  continueEmpty() {
+    const d = this.pending;
+    if (d === null || d.options.length > 0 || d.min !== 0) return;
+    this.setPicked([]);
+    this.submit();
+  }
+
   private async post(choices: number[], holdPriority = false) {
     const d = this.pending;
     if (d === null || this.busy) return;

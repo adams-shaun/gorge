@@ -430,6 +430,18 @@ type targetCandidate struct {
 // ability object is not on the stack yet). Callers set excludeSelf == 0 to
 // disable the rule.
 func (e *Engine) legalTargetCandidates(p state.PlayerID, source, excludeSelf state.ObjID, sa *cards.SA) []targetCandidate {
+	return e.candidatesFor(p, source, excludeSelf, sa, true)
+}
+
+// affectedCandidates is the Overload counterpart of legalTargetCandidates.
+// It applies the script's object/player filter and zone/type restrictions but
+// deliberately omits every rule that exists only because something is a
+// target: protection, hexproof/CantTarget, and becomes-target bookkeeping.
+func (e *Engine) affectedCandidates(p state.PlayerID, source, excludeSelf state.ObjID, sa *cards.SA) []targetCandidate {
+	return e.candidatesFor(p, source, excludeSelf, sa, false)
+}
+
+func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID, sa *cards.SA, targeting bool) []targetCandidate {
 	spec := sa.Params["ValidTgts"]
 	sc := e.targetSpecContext(source, excludeSelf, p)
 	zones := targetZones(sa)
@@ -501,8 +513,8 @@ func (e *Engine) legalTargetCandidates(p state.PlayerID, source, excludeSelf sta
 				// gate as protection above. CR 115.5 excludes the source.
 				if o != nil && o.Face() != nil && (excludeSelf == 0 || oid != excludeSelf) &&
 					effects.MatchesSpecCtx(e.G, spec, oid, sc) &&
-					!(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc)) &&
-					!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p)) {
+					(!targeting || !(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc))) &&
+					(!targeting || !(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p))) {
 					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: q})
 				}
 			}
@@ -756,6 +768,18 @@ func (e *Engine) resolveTop() {
 	defer func() { e.resolvingObj = savedResolving }()
 
 	if o.Ability != nil {
+		// A keyword trigger that refers to one particular permanent incarnation
+		// (Evoke's "sacrifice it") loses track when that permanent changes
+		// zones. The ability still resolves and leaves the stack, but does
+		// nothing to the new object now sharing its stable ObjID (CR 400.7).
+		if o.SourceIncarnation != 0 {
+			src := e.G.Obj(o.Source)
+			if src == nil || src.Incarnation != o.SourceIncarnation {
+				e.emit(events.Event{Kind: events.Resolve, Obj: id})
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZExile})
+				return
+			}
+		}
 		// A triggered or activated ability with no printed card: Ruling
 		// T14-c / F3 -- Face() returns nil for these, so this branch must
 		// run before anything below touches it. Task 20 is what actually
@@ -822,6 +846,17 @@ func (e *Engine) resolveTop() {
 		// moving to a card zone. This build has no "ceases to exist" zone,
 		// so it is parked in exile as the closest existing approximation.
 		e.emit(events.Event{Kind: events.Resolve, Obj: id})
+		// CR 702.35b: the mandatory, respondable madness trigger makes its
+		// cast-or-graveyard choice only as it resolves. Stifle reaches this
+		// object before this branch; if the exiled card has moved meanwhile,
+		// the ability simply finishes with no choice.
+		if o.Ability.API == "MadnessCast" {
+			if e.askMadnessCast(o) {
+				return
+			}
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZExile})
+			return
+		}
 		// CR 603.5: an optional triggered ability goes on the stack regardless
 		// (putTriggersOnStack pushes it unconditionally), and its controller
 		// -- or whatever seat its OptionalDecider$ names -- chooses whether to
@@ -958,7 +993,26 @@ func (e *Engine) resolveTop() {
 	f := o.Face()
 	sa := f.SpellAbility()
 	targets := o.Targets
-	if sa != nil {
+	// An overloaded spell affects the matching set as it resolves, never as
+	// targets chosen during announcement. This fresh non-target census means
+	// protection/hexproof do not apply and objects entering or changing
+	// controller in response are included correctly. Effect primitives keep
+	// their generic Ctx.Targets recipient API; only the source of that list is
+	// different.
+	overloaded := o.CastFlags&state.FlagOverloaded != 0
+	if overloaded && sa != nil {
+		targetSA := modalTargetSA(f, sa, o.ChosenModes)
+		if targetSA != nil {
+			for _, cand := range e.affectedCandidates(o.Controller, id, id, targetSA) {
+				if cand.kind == "player" {
+					targets = append(targets, state.Target{Player: cand.player, IsPlayer: true})
+				} else {
+					targets = append(targets, state.Target{Obj: cand.obj})
+				}
+			}
+		}
+	}
+	if sa != nil && !overloaded {
 		// A modal spell's target declaration lives on its announced mode SVar,
 		// not the outer Charm SA. Use the same selected declaration targetAsk
 		// used during CR 601.2c, so its targets receive the ordinary CR 608.2b

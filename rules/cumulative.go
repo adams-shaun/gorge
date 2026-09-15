@@ -16,10 +16,14 @@ import (
 // trigger and can be responded to or countered before it resolves (CR 702.46a).
 // This file owns that trigger's resolution-time age counter and payment window.
 // triggeredEffectCost is the narrower sibling window for Mana Vault's Cost$-
-// bearing triggered Untap effect.
+// bearing triggered Untap effect. The merge with main added chooseManaExile
+// to mana_activation.go's block, taking the value these used to hold
+// (chooseManaDiscard + 1); chooseFor values are transient engine RAM —
+// Clone copies the struct, no event or wire field ever carries one — so the
+// two windows renumber above it.
 const (
-	chooseCumulative    chooseFor = chooseManaDiscard + 1
-	chooseTriggeredCost chooseFor = chooseManaDiscard + 2
+	chooseCumulative    chooseFor = chooseManaExile + 1
+	chooseTriggeredCost chooseFor = chooseManaExile + 2
 )
 
 type cumulativeAction struct {

@@ -13,6 +13,7 @@ import (
 
 func init() {
 	Register("Mana", effMana)
+	Register("ReplaceMana", effReplaceMana)
 	Register("Effect", effEffect)
 	Register("Cleanup", effCleanup)
 	Register("SetState", effSetState)
@@ -388,11 +389,13 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 					{Index: 0, Kind: "mode", Label: "Pay " + shown + " — don't counter", Obj: c.Source, Player: payer},
 					{Index: 1, Kind: "mode", Label: "Don't pay", Obj: c.Source, Player: payer},
 				}}
-			if h.Ask(d) {
+			if Ask(h, d) == AskAsked {
 				return // resolution suspended; the answer re-enters this effect.
 			}
 			// Fuzz/no-engine host: the deterministic decline (R-9). The pay
 			// was never posed, so resolve as if the player declined: counter.
+			// (AskEmpty is unreachable by construction -- Min == Max == 1 over
+			// two options -- but the shared helper owns the guard either way.)
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "may pay declined (UnlessCost not asked on this host)"})
 		}
@@ -657,11 +660,14 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		d.Options = append(d.Options, decision.Option{
 			Index: i, Kind: "mode", Label: label, Obj: c.Source, Player: c.Controller})
 	}
-	if h.Ask(d) {
+	if Ask(h, d) == AskAsked {
 		return // resolution suspended; the answer re-enters this effect with Ctx.Modes set.
 	}
 	// Fuzz/no-engine host: the deterministic first-mode default (R-9), with
-	// the Note that records why the richer path did not run.
+	// the Note that records why the richer path did not run. (AskEmpty is
+	// unreachable by construction -- charmNum is clamped to >= 1 and
+	// strings.Split never yields fewer than one choice -- but the shared
+	// helper owns the guard either way.)
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 		Text: "chose its first mode (no engine host to ask)"})
 	if subs[0] != nil {
@@ -739,6 +745,59 @@ func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
 // unrecognised Produced$ value therefore emits nothing and records a Note
 // naming it, following this repo's fail-closed convention (an unknown token
 // never invents a value).
+// effReplaceMana rewrites one in-flight ManaAdd event for a ProduceMana
+// replacement. The surrounding rules code supplies the amount and colour in
+// Ctx, then logs the rewritten ManaAdd; this effect itself has no game-state
+// mutation to emit. ReplaceAmount multiplies the whole production.
+// ReplaceType/ReplaceColor preserve its amount and replace only its colour;
+// ReplaceMana is Forge's "one mana instead of any other type and amount"
+// form (Damping Sphere, Contamination), so it sets the amount to exactly one
+// as well as replacing the colour. For a choice-valued replacement
+// (Any/Chosen), rules parks the ManaAdd and supplies the player's W/U/B/R/G
+// answer in Ctx.ManaChoice; without a valid answer this pure effect fails
+// closed rather than inventing colourless mana.
+func effReplaceMana(_ Host, c *Ctx, sa *cards.SA) {
+	if c == nil {
+		return
+	}
+	if only := strings.TrimSpace(sa.Params["ReplaceOnly"]); only != "" && only != c.ManaType {
+		return
+	}
+	if n := Num(nil, c, sa, "ReplaceAmount", 1); n > 0 {
+		c.ManaAmount *= n
+	}
+	kind := strings.TrimSpace(sa.Params["ReplaceMana"])
+	if kind != "" {
+		c.ManaAmount = 1
+	}
+	if kind == "" {
+		kind = strings.TrimSpace(sa.Params["ReplaceType"])
+	}
+	if kind == "" {
+		kind = strings.TrimSpace(sa.Params["ReplaceColor"])
+	}
+	if kind == "" {
+		return
+	}
+	switch strings.ToLower(kind) {
+	case "white":
+		kind = "W"
+	case "blue":
+		kind = "U"
+	case "black":
+		kind = "B"
+	case "red":
+		kind = "R"
+	case "green":
+		kind = "G"
+	case "any", "chosen":
+		kind = c.ManaChoice
+	}
+	if len(kind) == 1 && strings.ContainsRune(ManaSymbols, rune(kind[0])) {
+		c.ManaType = kind
+	}
+}
+
 func effMana(h Host, c *Ctx, sa *cards.SA) {
 	produced := strings.TrimSpace(sa.Params["Produced"])
 	if produced == "" || produced == "Any" || produced == "Combo Any" {
