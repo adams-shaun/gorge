@@ -909,6 +909,39 @@ type replChoice struct {
 	leaving      state.Step
 	before       *triggerSnapshot // immutable SBA look-back, safe to share in Clone
 	untap        *untapStep       // remaining turn-based untaps after an order answer
+	// life marks a life gain/loss competition (applyLifeReplacements): ev is
+	// then the event as already modified by appliedRepls, the affected player
+	// is ev.Player, and the answer continues the CR 616.1 loop rather than
+	// finishing after one application. damaging, combatDamaging and
+	// dmgSrcOverride are the synchronous damage context the parked event was
+	// proposed under, restored while the answer emits it so provenance-reading
+	// triggers and protection see the same source.
+	life           bool
+	appliedRepls   []replMatch
+	damaging       state.ObjID
+	combatDamaging bool
+	dmgSrcOverride state.ObjID
+}
+
+// replacementChoicePlayer is the affected player a parked competition asks:
+// a life event's player (the player whose life total changes), else mana/
+// phase candidates by role, else the moving object's controller.
+func (e *Engine) replacementChoicePlayer(rc replChoice) (state.PlayerID, bool) {
+	if rc.life {
+		return rc.ev.Player, int(rc.ev.Player) < len(e.G.Players)
+	}
+	switch rc.kind {
+	case replChoiceMana, replChoiceManaColor:
+		return rc.ev.Player, int(rc.ev.Player) < len(e.G.Players)
+	case replChoicePhaseOrder, replChoicePhaseOptional:
+		return e.G.Active, int(e.G.Active) < len(e.G.Players)
+	default:
+		o := e.G.Obj(rc.ev.Obj)
+		if o == nil || int(o.Controller) >= len(e.G.Players) {
+			return 0, false
+		}
+		return o.Controller, true
+	}
 }
 
 // poseReplacementChoice starts a CR 616.1 order-selection suspension: the
@@ -1073,7 +1106,15 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 		if o := e.G.Obj(rc.ev.Obj); o != nil && o.Face() != nil && o.Face().Name != "" {
 			name = o.Face().Name
 		}
-		d.Prompt = "Several replacement effects would change how " + name + " moves: choose which applies first."
+		prompt := "Several replacement effects would change how " + name + " moves: choose which applies first."
+		if rc.life {
+			what := "life gain"
+			if _, _, loss := lifeLoss(rc.ev); loss {
+				what = "life loss"
+			}
+			prompt = "Several replacement effects would change this " + what + ": choose the one that applies first."
+		}
+		d.Prompt = prompt
 	}
 	for _, candidate := range indices {
 		c := rc.cands[candidate]
@@ -1122,6 +1163,28 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	}
 	before := e.triggerBefore
 	e.triggerBefore = rc.before
+	if rc.life {
+		// Apply the chosen replacement, then re-evaluate what still applies
+		// to the modified event (CR 616.1e); a further non-commuting
+		// competition asks again at the front of the queue.
+		if chosen[0].Index >= len(rc.cands) {
+			e.triggerBefore = before
+			e.emit(events.Event{Kind: events.Note, Player: in.Player,
+				Text: "life replacement answer out of range"})
+			return
+		}
+		damaging, combat, override := e.damaging, e.combatDamaging, e.dmgSrcOverride
+		e.damaging, e.combatDamaging, e.dmgSrcOverride = rc.damaging, rc.combatDamaging, rc.dmgSrcOverride
+		m := rc.cands[chosen[0].Index]
+		if next, consumed := e.applyLifeReplacement(rc.ev, m); !consumed {
+			applied := append(append([]replMatch(nil), rc.appliedRepls...), m)
+			e.continueLifeReplacements(next, applied)
+		}
+		e.damaging, e.combatDamaging, e.dmgSrcOverride = damaging, combat, override
+		e.triggerBefore = before
+		e.askNextReplacementChoice()
+		return
+	}
 	manaDecision := rc.kind == replChoiceMana || rc.kind == replChoiceManaColor
 	switch rc.kind {
 	case replChoiceMana:
@@ -1232,147 +1295,244 @@ func (e *Engine) askNextReplacementChoice() {
 	}
 }
 
-func (e *Engine) replacementChoicePlayer(rc replChoice) (state.PlayerID, bool) {
-	switch rc.kind {
-	case replChoiceMana, replChoiceManaColor:
-		return rc.ev.Player, int(rc.ev.Player) < len(e.G.Players)
-	case replChoicePhaseOrder, replChoicePhaseOptional:
-		return e.G.Active, int(e.G.Active) < len(e.G.Players)
-	default:
-		o := e.G.Obj(rc.ev.Obj)
-		if o == nil || int(o.Controller) >= len(e.G.Players) {
-			return 0, false
-		}
-		return o.Controller, true
+// applyLifeReplacements evaluates the GainLife and LifeReduced replacements
+// that apply to a proposed life gain or life loss before it reaches the log.
+// The transformations are read from the replacement body's ReplaceCount$
+// grammar, not card names, so Archives, Reflection, Cleric Class, Bloodletter
+// and their corpus siblings share one path.
+//
+// CR 616.1: when more than one replacement would modify the event, the
+// affected player chooses one to apply, then applicability is re-checked
+// against the modified event (CR 616.1e) and the choice repeats until none is
+// left. Each replacement applies at most once to the event (CR 614.5). The
+// order choice reuses the engine's one KReplacement decision path
+// (poseLifeReplacementChoice / handleReplacement); it is skipped only when
+// every competing replacement is the same commuting operator (all doublers,
+// all "plus N", all prevention), where every order produces the same event.
+func (e *Engine) applyLifeReplacements(ev events.Event) (events.Event, bool) {
+	if ev.Kind == events.LifeChange && ev.Amount > 0 && e.lifeGainForbidden(ev.Player) {
+		return e.emit(events.Event{Kind: events.Note, Player: ev.Player, Text: "prevented: cannot gain life"}), true
 	}
+	return e.continueLifeReplacements(ev, nil)
 }
 
-// applyLifeReplacements evaluates all applicable GainLife and LifeReduced
-// replacements against the proposed event before it reaches the log. The
-// transformations are read from the replacement body's ReplaceCount$ grammar,
-// not card names, so Archives, Reflection, Cleric Class, Bloodletter and their
-// corpus siblings share one path. Each R: line is visited once in deterministic
-// battlefield order; repeated doublers therefore compose (3 -> 6 -> 12).
-func (e *Engine) applyLifeReplacements(ev events.Event) (events.Event, bool) {
-	changed := false
-	if ev.Kind == events.LifeChange && ev.Amount > 0 {
-		if e.lifeGainPrevented(ev.Player) {
-			return e.emit(events.Event{Kind: events.Note, Player: ev.Player, Text: "prevented: cannot gain life"}), true
-		}
-		e.forEachLifeReplacement("GainLife", ev.Player, func(source state.ObjID, r *cards.Repl) bool {
-			if !e.replacementCondition(source, r) || r.Params["ValidSource"] != "" {
-				return false
+// continueLifeReplacements applies the remaining applicable replacements to
+// ev, which the replacements in applied have already modified. It returns
+// handled=true whenever anything replaced the event or a choice was parked.
+func (e *Engine) continueLifeReplacements(ev events.Event, applied []replMatch) (events.Event, bool) {
+	for {
+		cands := e.lifeReplacementCandidates(ev, applied)
+		if len(cands) == 0 {
+			if len(applied) == 0 {
+				return ev, false
 			}
-			if amount, ok := e.replaceCount(source, r, "LifeGained", ev.Amount); ok {
-				ev.Amount, changed = amount, true
-				return false
-			}
-			// A gain replaced by a loss/draw does not log the original gain.
-			if r.With != nil && r.With.API == "LoseLife" {
-				// This is no longer a gain event, so no later GainLife
-				// replacement can modify it. The LifeReduced pass below then
-				// evaluates the resulting loss in its normal scan order.
-				ev.Amount = -ev.Amount
-				changed = true
-				return true
-			}
-			if r.With != nil && r.With.API == "Draw" {
-				for i := int32(0); i < ev.Amount; i++ {
-					effects.DrawFor(e, ev.Player)
-				}
-				changed = true
-				return true
-			}
-			return false
-		})
-		if changed && ev.Amount > 0 {
 			return e.emitLifeReplacement(ev)
 		}
-	}
-
-	p, loss, losing := lifeLoss(ev)
-	if !losing {
-		if changed { // Draw replacement consumed the original gain.
+		if len(cands) > 1 && !e.lifeReplacementsCommute(ev, cands) && e.poseLifeReplacementChoice(ev, cands, applied) {
 			return ev, true
 		}
-		return ev, false
+		m := cands[0]
+		next, consumed := e.applyLifeReplacement(ev, m)
+		if consumed {
+			return ev, true
+		}
+		ev = next
+		applied = append(applied[:len(applied):len(applied)], m)
 	}
-	consumed := false
-	e.forEachLifeReplacement("LifeReduced", p, func(source state.ObjID, r *cards.Repl) bool {
-		if strings.EqualFold(r.Params["IsDamage"], "True") && ev.Kind != events.Damage {
-			return false
-		}
-		if strings.EqualFold(r.Params["PlayerTurn"], "True") && e.G.Active != e.controllerOf(source) {
-			return false
-		}
-		if !e.replacementCondition(source, r) {
-			return false
-		}
-		if result := r.Params["Result"]; result != "" && !compareLife(e.G.Players[p].Life-loss, result) {
-			return false
-		}
-		if amount, ok := e.replaceCount(source, r, "Amount", loss); ok {
-			loss, changed = amount, true
-			return false
-		}
-		// A non-ReplaceEffect body (Enduring Angel's transform then SetLife)
-		// wholly replaces the loss. Its primitive chain emits all mutations.
-		if r.With != nil {
-			o := e.G.Obj(source)
-			if o != nil && o.Face() != nil {
-				e.runReplaceWith(&effects.Ctx{Source: source, Controller: o.Controller, SVars: o.Face().SVars}, 0, "", r.With)
-				changed, consumed = true, true
-				return true
-			}
-		}
+}
+
+// poseLifeReplacementChoice parks a life event whose competing replacements
+// do not commute and asks the affected player (CR 616.1: the player whose life
+// total the event changes) which applies first. It declines, and the caller
+// applies the first candidate in deterministic scan order, only where no
+// choice can be made: the player has left the game (CR 800.4a) or another
+// decision is already outstanding, which a second ask would overwrite.
+func (e *Engine) poseLifeReplacementChoice(ev events.Event, cands, applied []replMatch) bool {
+	p := ev.Player
+	if int(p) >= len(e.G.Players) || e.G.Players[p].Lost || e.pending != nil {
 		return false
-	})
-	if consumed {
-		return ev, true
 	}
-	if !changed {
-		return ev, false
-	}
-	if ev.Kind == events.Damage {
-		ev.Amount = loss
+	rc := replChoice{ev: ev, cands: cands, before: e.triggerBefore, life: true,
+		appliedRepls: applied, damaging: e.damaging, combatDamaging: e.combatDamaging,
+		dmgSrcOverride: e.dmgSrcOverride}
+	// The front of the queue is the competition being asked. A life choice is
+	// asked immediately (pending is nil), so it goes first.
+	e.replChoices = append([]replChoice{rc}, e.replChoices...)
+	e.askReplacementChoice(p)
+	return true
+}
+
+// lifeReplacementCandidates collects, in forEachObject's deterministic scan
+// order, every replacement not yet applied to ev that would modify it now.
+// A gain is only ever modified by GainLife replacements and a loss only by
+// LifeReduced ones, so a replacement that turns a gain into a loss (Tainted
+// Remedy) leaves every other GainLife replacement inapplicable.
+func (e *Engine) lifeReplacementCandidates(ev events.Event, applied []replMatch) []replMatch {
+	event, p, loss := "", state.PlayerID(0), int32(0)
+	if ev.Kind == events.LifeChange && ev.Amount > 0 {
+		event, p = "GainLife", ev.Player
+	} else if q, amount, ok := lifeLoss(ev); ok {
+		event, p, loss = "LifeReduced", q, amount
 	} else {
-		ev.Amount = -loss
+		return nil
 	}
-	return e.emitLifeReplacement(ev)
-}
-
-// emitLifeReplacement logs a fully transformed event without starting a new
-// replacement pass. A replacement may apply only once to a particular event;
-// all still-applicable siblings were already folded by applyLifeReplacements.
-func (e *Engine) emitLifeReplacement(ev events.Event) (events.Event, bool) {
-	saved := e.applyingReplacement
-	e.applyingReplacement = true
-	stored := e.emit(ev)
-	e.applyingReplacement = saved
-	return stored, true
-}
-
-// forEachLifeReplacement is the one deterministic collector for both life
-// replacement classes. Returning true stops early (a replacement consumed the
-// event, e.g. Lich's draw-instead body).
-func (e *Engine) forEachLifeReplacement(event string, p state.PlayerID, fn func(state.ObjID, *cards.Repl) bool) {
-	stop := false
+	var out []replMatch
 	e.forEachObject(func(id state.ObjID) {
-		if stop {
-			return
-		}
 		o := e.G.Obj(id)
 		if o == nil || o.Face() == nil {
 			return
 		}
 		for i := range o.Face().Repls {
 			r := &o.Face().Repls[i]
-			if r.Event == event && replacementActive(e, id, r) && replacementPlayerMatches(e, id, r, p) && fn(id, r) {
-				stop = true
-				return
+			if r.Event != event || !replacementActive(e, id, r) || !replacementPlayerMatches(e, id, r, p) ||
+				lifeReplacementApplied(applied, id, r) {
+				continue
+			}
+			if e.lifeReplacementApplies(ev, id, r, p, loss) {
+				out = append(out, replMatch{id: id, repl: r})
 			}
 		}
 	})
+	return out
+}
+
+func lifeReplacementApplied(applied []replMatch, id state.ObjID, r *cards.Repl) bool {
+	for _, m := range applied {
+		if m.id == id && m.repl == r {
+			return true
+		}
+	}
+	return false
+}
+
+// lifeReplacementApplies reports whether replacement r of source would do
+// something to ev. A replacement whose body this engine cannot perform is not
+// a candidate, so it never occupies an order choice.
+func (e *Engine) lifeReplacementApplies(ev events.Event, source state.ObjID, r *cards.Repl, p state.PlayerID, loss int32) bool {
+	if r.Event == "GainLife" {
+		if strings.EqualFold(r.Params["Prevent"], "True") {
+			return true
+		}
+		if !e.replacementCondition(source, r) || r.Params["ValidSource"] != "" {
+			return false
+		}
+		if _, ok := e.replaceCount(source, r, "LifeGained", ev.Amount); ok {
+			return true
+		}
+		return r.With != nil && (r.With.API == "LoseLife" || r.With.API == "Draw")
+	}
+	if strings.EqualFold(r.Params["IsDamage"], "True") && ev.Kind != events.Damage {
+		return false
+	}
+	if strings.EqualFold(r.Params["PlayerTurn"], "True") && e.G.Active != e.controllerOf(source) {
+		return false
+	}
+	if !e.replacementCondition(source, r) {
+		return false
+	}
+	if result := r.Params["Result"]; result != "" && !compareLife(e.G.Players[p].Life-loss, result) {
+		return false
+	}
+	if _, ok := e.replaceCount(source, r, "Amount", loss); ok {
+		return true
+	}
+	// A non-ReplaceEffect body (Enduring Angel's transform then SetLife)
+	// wholly replaces the loss.
+	o := e.G.Obj(source)
+	return r.With != nil && o != nil && o.Face() != nil
+}
+
+// lifeReplacementsCommute reports whether every order of cands yields the same
+// event: all prevent the gain, all double, or all add a constant, and none
+// gates its own applicability on the running amount (Result$).
+func (e *Engine) lifeReplacementsCommute(ev events.Event, cands []replMatch) bool {
+	name := "Amount"
+	if ev.Kind == events.LifeChange && ev.Amount > 0 {
+		name = "LifeGained"
+	}
+	kind := ""
+	for _, m := range cands {
+		if m.repl.Params["Result"] != "" {
+			return false
+		}
+		k := ""
+		switch op, ok := e.replaceCountOp(m.id, m.repl, name); {
+		case m.repl.Event == "GainLife" && strings.EqualFold(m.repl.Params["Prevent"], "True"):
+			k = "prevent"
+		case ok && op == "/Twice":
+			k = "twice"
+		case ok && strings.HasPrefix(op, "/Plus."):
+			k = "plus"
+		default:
+			return false
+		}
+		if kind != "" && k != kind {
+			return false
+		}
+		kind = k
+	}
+	return true
+}
+
+// applyLifeReplacement applies one chosen replacement to ev. It returns the
+// modified event, or consumed=true when the replacement's own body wholly
+// replaced the event (prevention, a draw or a primitive chain instead).
+func (e *Engine) applyLifeReplacement(ev events.Event, m replMatch) (events.Event, bool) {
+	r := m.repl
+	if r.Event == "GainLife" {
+		if strings.EqualFold(r.Params["Prevent"], "True") {
+			e.emit(events.Event{Kind: events.Note, Player: ev.Player, Text: "prevented: cannot gain life"})
+			return ev, true
+		}
+		if amount, ok := e.replaceCount(m.id, r, "LifeGained", ev.Amount); ok {
+			ev.Amount = amount
+			return ev, false
+		}
+		switch r.With.API {
+		case "LoseLife":
+			// That player loses that much life instead: the event is now a
+			// loss, so only LifeReduced replacements can modify it further.
+			ev.Amount = -ev.Amount
+			return ev, false
+		case "Draw":
+			for i := int32(0); i < ev.Amount; i++ {
+				effects.DrawFor(e, ev.Player)
+			}
+			return ev, true
+		}
+		return ev, false
+	}
+	_, loss, _ := lifeLoss(ev)
+	if amount, ok := e.replaceCount(m.id, r, "Amount", loss); ok {
+		if ev.Kind == events.Damage {
+			ev.Amount = amount
+		} else {
+			ev.Amount = -amount
+		}
+		return ev, false
+	}
+	o := e.G.Obj(m.id)
+	if o == nil || o.Face() == nil || r.With == nil {
+		// The source no longer exists (a parked choice answered after it
+		// left): its replacement has nothing left to perform.
+		return ev, false
+	}
+	e.runReplaceWith(&effects.Ctx{Source: m.id, Controller: o.Controller, SVars: o.Face().SVars}, 0, "", r.With)
+	return ev, true
+}
+
+// emitLifeReplacement logs a fully transformed event without starting a new
+// replacement pass: every applicable replacement has had its one opportunity.
+// A gain reduced to nothing (LimitMax of zero) is no event at all.
+func (e *Engine) emitLifeReplacement(ev events.Event) (events.Event, bool) {
+	if ev.Kind == events.LifeChange && ev.Amount == 0 {
+		return ev, true
+	}
+	saved := e.applyingReplacement
+	e.applyingReplacement = true
+	stored := e.emit(ev)
+	e.applyingReplacement = saved
+	return stored, true
 }
 
 // replacementCondition reads the common CheckSVar$/SVarCompare$ gate (Phial
@@ -1411,22 +1571,11 @@ func (e *Engine) replacementCondition(source state.ObjID, r *cards.Repl) bool {
 // forms. It follows SVar indirection and supports the three corpus operators:
 // Twice, Plus.N and LimitMax.<SVar>.
 func (e *Engine) replaceCount(source state.ObjID, r *cards.Repl, name string, amount int32) (int32, bool) {
-	if r.With == nil || r.With.API != "ReplaceEffect" || !strings.EqualFold(r.With.Params["VarName"], name) {
+	op, ok := e.replaceCountOp(source, r, name)
+	if !ok {
 		return 0, false
 	}
-	expr := r.With.Params["VarValue"]
 	o := e.G.Obj(source)
-	if o == nil || o.Face() == nil {
-		return 0, false
-	}
-	if body, ok := o.Face().SVars[expr]; ok {
-		expr = body
-	}
-	prefix := "ReplaceCount$" + name
-	if !strings.HasPrefix(expr, prefix) {
-		return 0, false
-	}
-	op := strings.TrimPrefix(expr, prefix)
 	if op == "/Twice" {
 		return amount * 2, true
 	}
@@ -1446,33 +1595,37 @@ func (e *Engine) replaceCount(source state.ObjID, r *cards.Repl, name string, am
 	return 0, false
 }
 
-// lifeGainPrevented checks active CantGainLife statics and R:Event$ GainLife
-// Prevent$ True replacements against the player who would gain life.
-func (e *Engine) lifeGainPrevented(p state.PlayerID) bool {
+// replaceCountOp returns the operator suffix ("/Twice", "/Plus.1", ...) of a
+// ReplaceEffect body's ReplaceCount$<name> value, following SVar indirection.
+func (e *Engine) replaceCountOp(source state.ObjID, r *cards.Repl, name string) (string, bool) {
+	if r.With == nil || r.With.API != "ReplaceEffect" || !strings.EqualFold(r.With.Params["VarName"], name) {
+		return "", false
+	}
+	expr := r.With.Params["VarValue"]
+	o := e.G.Obj(source)
+	if o == nil || o.Face() == nil {
+		return "", false
+	}
+	if body, ok := o.Face().SVars[expr]; ok {
+		expr = body
+	}
+	prefix := "ReplaceCount$" + name
+	if !strings.HasPrefix(expr, prefix) {
+		return "", false
+	}
+	return strings.TrimPrefix(expr, prefix), true
+}
+
+// lifeGainForbidden checks active CantGainLife statics against the player who
+// would gain life. R:Event$ GainLife Prevent$ True lines are replacement
+// effects and compete in the CR 616.1 order choice instead.
+func (e *Engine) lifeGainForbidden(p state.PlayerID) bool {
 	for _, sv := range e.activeStatics("CantGainLife") {
 		if replacementPlayerMatches(e, sv.Source, &cards.Repl{Params: sv.Params}, p) {
 			return true
 		}
 	}
-	prevented := false
-	e.forEachObject(func(id state.ObjID) {
-		if prevented {
-			return
-		}
-		o := e.G.Obj(id)
-		if o == nil || o.Face() == nil {
-			return
-		}
-		for i := range o.Face().Repls {
-			r := &o.Face().Repls[i]
-			if r.Event == "GainLife" && strings.EqualFold(r.Params["Prevent"], "True") &&
-				replacementActive(e, id, r) && replacementPlayerMatches(e, id, r, p) {
-				prevented = true
-				return
-			}
-		}
-	})
-	return prevented
+	return false
 }
 
 func replacementActive(e *Engine, source state.ObjID, r *cards.Repl) bool {

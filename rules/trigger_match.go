@@ -1139,10 +1139,6 @@ func (e *Engine) damageSource() state.ObjID {
 	return e.G.Stack[len(e.G.Stack)-1]
 }
 
-// damageMatches implements Mode$ DamageDone, DamageDealtOnce and
-// DamageDoneOnce (the once-per-turn gate itself lives in checkTriggers,
-// alongside the cascade bound; this is purely the per-event parameter match,
-// shared by all three modes).
 // drawnMatches implements Mode$ Drawn. A Draw event moves exactly one card
 // from a library to its controller's hand, so ValidCard$ is tested against the
 // drawn object and TriggeredPlayer is that event's Player. FirstCardInDrawStep$
@@ -1352,6 +1348,10 @@ func (e *Engine) firstLifeLossThisTurn(p state.PlayerID) bool {
 	return seenCurrent
 }
 
+// damageMatches implements Mode$ DamageDone, DamageDealtOnce and
+// DamageDoneOnce (the once-per-turn gate itself lives in checkTriggers,
+// alongside the cascade bound; this is purely the per-event parameter match,
+// shared by all three modes).
 func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.Damage {
 		return false

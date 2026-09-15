@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
@@ -316,22 +317,102 @@ func TestAlhammarretsArchiveDoublesGain(t *testing.T) {
 	}
 }
 
-func TestGainReplacedByLossSkipsLaterGainReplacements(t *testing.T) {
-	e := layerEngine(t)
-	remedy := onBoardCard(t, e, 0, corpusCard(t, "Tainted Remedy"))
-	archive := onBoardCard(t, e, 1, corpusCard(t, "Alhammarret's Archive"))
-	if got := e.G.Obj(remedy).Face().Repls[0].Event; got != "GainLife" {
-		t.Fatalf("Tainted Remedy replacement event = %q, want GainLife", got)
+// lifeReplacementOrder emits a life change that several non-commuting
+// replacements would modify, asserts that the affected player (and nobody
+// else) is offered the CR 616.1 order choice before any life moves, answers
+// it with the replacement owned by first, and returns the settled life total.
+func lifeReplacementOrder(t *testing.T, e *Engine, p state.PlayerID, amount int32,
+	sources []state.ObjID, first state.ObjID) int32 {
+	t.Helper()
+	before := e.G.Players[p].Life
+	e.emit(events.Event{Kind: events.LifeChange, Player: p, Amount: amount})
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement || d.Player != p {
+		t.Fatalf("pending = %+v, want a replacement-order choice for seat %d", d, p)
 	}
-	if got := e.G.Obj(archive).Face().Repls[0].Event; got != "GainLife" {
-		t.Fatalf("Alhammarret's Archive replacement event = %q, want GainLife", got)
+	if got := e.G.Players[p].Life; got != before {
+		t.Fatalf("life moved to %d before the order was chosen, want %d", got, before)
 	}
+	if len(d.Options) != len(sources) {
+		t.Fatalf("order options = %+v, want one per replacement %v", d.Options, sources)
+	}
+	pick := -1
+	for i, o := range d.Options {
+		if o.Obj != sources[i] {
+			t.Fatalf("option %d names %d, want %d in scan order", i, o.Obj, sources[i])
+		}
+		if o.Obj == first {
+			pick = o.Index
+		}
+	}
+	submitChoices(t, e, pick)
+	if d := e.Pending(); d != nil && d.Kind == decision.KReplacement {
+		t.Fatalf("a second order choice was posed with one replacement left: %+v", d)
+	}
+	return e.G.Players[p].Life
+}
 
-	// Battlefield scan reaches Remedy before Archive. Remedy transforms the
-	// gain into a loss, which means Archive can no longer double it.
-	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: 3})
-	if got := e.G.Players[1].Life; got != 17 {
-		t.Fatalf("life after Remedy replaces +3 under Archive = %d, want 17", got)
+// CR 616.1: Tainted Remedy (seat 0) and the gaining player's Alhammarret's
+// Archive both apply to seat 1's +3. The gaining player chooses. Remedy first
+// turns the gain into a loss, so Archive no longer applies (lose 3). Archive
+// first doubles the gain, and Remedy then turns the +6 into a loss of 6.
+func TestTaintedRemedyAndArchiveGainingPlayerChoosesOrder(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		first int // index into {remedy, archive}
+		want  int32
+	}{
+		{"remedy first", 0, 17},
+		{"archive first", 1, 14},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := layerEngine(t)
+			remedy := onBoardCard(t, e, 0, corpusCard(t, "Tainted Remedy"))
+			archive := onBoardCard(t, e, 1, corpusCard(t, "Alhammarret's Archive"))
+			sources := []state.ObjID{remedy, archive}
+			if got := lifeReplacementOrder(t, e, 1, 3, sources, sources[tc.first]); got != tc.want {
+				t.Fatalf("seat 1 life = %d, want %d", got, tc.want)
+			}
+		})
+	}
+}
+
+// CR 616.1: a player controlling Alhammarret's Archive and Cleric Class who
+// would gain 3 chooses between double-then-plus-one (7) and
+// plus-one-then-double (8).
+func TestArchiveAndClericClassControllerChoosesOrder(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		first int // index into {archive, cleric}
+		want  int32
+	}{
+		{"archive first", 0, 27},
+		{"cleric class first", 1, 28},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := layerEngine(t)
+			archive := onBoardCard(t, e, 0, corpusCard(t, "Alhammarret's Archive"))
+			cleric := onBoardCard(t, e, 0, corpusCard(t, "Cleric Class"))
+			sources := []state.ObjID{archive, cleric}
+			if got := lifeReplacementOrder(t, e, 0, 3, sources, sources[tc.first]); got != tc.want {
+				t.Fatalf("seat 0 life = %d, want %d", got, tc.want)
+			}
+		})
+	}
+}
+
+// Two doublers commute, so no order choice is posed and each applies once.
+func TestTwoArchivesCommuteWithoutOrderChoice(t *testing.T) {
+	e := layerEngine(t)
+	archive := corpusCard(t, "Alhammarret's Archive")
+	onBoardCard(t, e, 0, archive)
+	onBoardCard(t, e, 0, archive)
+	e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: 3})
+	if d := e.Pending(); d != nil && d.Kind == decision.KReplacement {
+		t.Fatalf("commuting doublers posed an order choice: %+v", d)
+	}
+	if got := e.G.Players[0].Life; got != 32 {
+		t.Fatalf("life after two Archives +3 = %d, want 32", got)
 	}
 }
 
