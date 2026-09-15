@@ -460,17 +460,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 		case "play":
 			// A Play effect (Conduit of Worlds, Spinerock Knoll) was answered:
-			// the chosen option's Obj is the card to play from its current zone
-			// (exile/graveyard). Begin a cast of it with mode "play", which
-			// zeroes its mana cost (WithoutManaCost$) and lets pushCast move it
-			// from wherever it is. The answered card that began the cast is
-			// recorded on Ctx.Play so the re-entered effPlay (if it re-enters)
-			// knows not to ask again; the cast flow runs to completion rather
-			// than re-posting its own ask here.
+			// the chosen option's Obj is the card to play from its current zone.
+			// Only the effect's own WithoutManaCost$ grants a free cast:
+			// Conduit has no such parameter, while Spinerock Knoll does.
 			if len(chosen) > 0 && chosen[0].Obj != 0 {
 				ctx.Play = chosen[0].Obj
 				ctx.PlayDone = true
-				e.beginPlay(ctx.Controller, chosen[0].Obj)
+				free := strings.EqualFold(rp.sa.Params["WithoutManaCost"], "True")
+				e.beginPlay(ctx.Controller, chosen[0].Obj, free)
 			}
 		case "extort":
 			// Extort's optional {W/B} payment was answered. Option 0 is "pay";

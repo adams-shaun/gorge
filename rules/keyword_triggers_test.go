@@ -491,6 +491,76 @@ func TestPlayUsesRealCorpusCard(t *testing.T) {
 	}
 }
 
+// TestConduitOfWorldsPlayPaysMana drives Conduit of Worlds' real Play SA.
+// Unlike Spinerock Knoll, Conduit has no WithoutManaCost$ parameter, so its
+// selected graveyard card must not be cast for free.
+func TestConduitOfWorldsPlayPaysMana(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	conduit, ok := reg.Lookup("Conduit of Worlds")
+	if !ok {
+		t.Fatal("Conduit of Worlds missing from corpus")
+	}
+	if d := conduit.Link(); len(d) != 0 {
+		t.Fatalf("link Conduit of Worlds: %v", d)
+	}
+	bear := card(t, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e, _, _ := newFixtureDeck(t, 197, "Name:Blank\nTypes:Sorcery\nOracle:x\n")
+	co := e.G.AddObject(conduit, 0)
+	co.Zone = state.ZBattlefield
+	bo := e.G.AddObject(bear, 0)
+	bo.Zone = state.ZGraveyard
+	e.G.SetZone(state.ZBattlefield, 0, append(e.G.Zone(state.ZBattlefield, 0), co.ID))
+	e.G.SetZone(state.ZGraveyard, 0, append(e.G.Zone(state.ZGraveyard, 0), bo.ID))
+	e.G.Step, e.G.Active, e.G.Priority, e.G.Turn = state.StepMain1, 0, 0, 1
+	e.pending = nil
+	e.Advance()
+
+	d := e.Pending()
+	ability := -1
+	for _, o := range d.Options {
+		if o.Kind == "ability" && o.Obj == co.ID {
+			ability = o.Index
+		}
+	}
+	if ability < 0 {
+		t.Fatalf("Conduit Play ability not offered (params=%v targetable=%v): %+v", co.Face().Abilities[0].Params, e.abilityTargetsAvailable(0, co.ID, co.Face().Abilities[0]), d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{ability}}); err != nil {
+		t.Fatalf("activate Conduit: %v", err)
+	}
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("Conduit target = %+v, want graveyard target", d)
+	}
+	target := -1
+	for _, o := range d.Options {
+		if o.Obj == bo.ID {
+			target = o.Index
+		}
+	}
+	if target < 0 {
+		t.Fatalf("Conduit did not offer Bear: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{target}}); err != nil {
+		t.Fatalf("target Bear: %v", err)
+	}
+	for d = e.Pending(); d != nil && d.Kind != decision.KModes; d = e.Pending() {
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if d == nil || d.Kind != decision.KModes {
+		t.Fatalf("Conduit Play choice = %+v", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{0}}); err != nil {
+		t.Fatalf("choose Bear for Play: %v", err)
+	}
+	passUntilStackEmpty(t, e, 40)
+	if bo.Zone != state.ZGraveyard {
+		t.Fatalf("Conduit cast Bear without its {1}{G}: zone=%v", bo.Zone)
+	}
+}
+
 // TestDredgeUsesRealCorpusCard drives Golgari Thug's real script: a card
 // with Dredge 4 in the graveyard replaces a draw -- the controller may instead
 // mill 4 and return it to hand. We put a Golgari Thug in seat 0's graveyard,

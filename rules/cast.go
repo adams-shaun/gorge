@@ -451,25 +451,6 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		} else {
 			cost = Cost{}
 		}
-	case "play":
-		// CR 117.3a's "play" verb as used by a Play effect (Conduit of Worlds,
-		// Spinerock Knoll): the referenced card is played from its current
-		// zone WITHOUT paying its mana cost (Forge's WithoutManaCost$). The
-		// card's own mana cost is zeroed here, exactly as a Miracle cast zeroes
-		// it for a one-shot alternative price. A Play cast may originate in
-		// exile or the graveyard, so zone-Gating agility is not required -- the
-		// push below moves the card from wherever it is. When the source Play
-		// does NOT carry WithoutManaCost$ (Conduit of Worlds plays the target
-		// for its printed cost), the effect's SA still sets this mode; the
-		// WithoutManaCost$ flag is what decides zero vs printed, read by the
-		// caller (effPlay's rules "play" resume arm) which sets the sag.
-		if v, ok := f.KeywordParam("Play"); ok && strings.TrimSpace(v) != "" {
-			// A printed alternative play cost (no corpus Play card uses one)
-			// would be priced here; the corpus shape is uniformly free.
-			cost = ParseCost(v)
-		} else {
-			cost = Cost{}
-		}
 	}
 	// CR 601.2b/f/h: a spell's own SpellAbility may carry an explicit Cost$
 	// (Forge's SP Cost) naming an additional cost -- most commonly a
@@ -505,24 +486,29 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	e.continueCast()
 }
 
-// beginPlay is the rules' hand-off for an answered Play effect: begin a cast
-// of card id from its CURRENT zone with mode "play", which zeroes the mana
-// cost (WithoutManaCost$) and moves the card from wherever it is. It reuses
-// beginCast's whole flow -- X/Delve/Sac/Discard/target/pay/push -- which is
-// what makes a Play effect's card go through the same transaction every other
-// cast does; only the cost basis differs. The card must still be on the stack
-// of the suspended Play resolution when this runs (the resume arm calls it
-// while that stack object is still live); a malformed answer (id gone or not
-// a card) degrades to a no-op rather than panicking.
-func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID) {
+// beginPlay is the rules' hand-off for an answered Play effect. It starts a
+// cast from the card's current zone and uses its printed cost unless that
+// specific Play SA said WithoutManaCost$ True. This distinction is material:
+// Spinerock Knoll grants a free cast, while Conduit of Worlds requires payment.
+// The card must still be on the stack of the suspended Play resolution when
+// this runs; a malformed answer degrades to a logged no-op rather than panic.
+func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost bool) {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		e.emit(events.Event{Kind: events.Note, Player: p, Text: "Play found no card to play"})
 		return
 	}
+	cost := e.rawBaseCost(p, id)
+	if withoutManaCost {
+		cost = Cost{}
+	}
+	// A normal Play cast pays its printed mana cost; a free Play cast does
+	// not. Both still pay non-mana additional costs, exactly as an ordinary
+	// cast does (CR 118.9 / 601.2f).
+	cost = withSpellAbilityExtras(o.Face(), cost)
 	raise, reduce := e.costModifiers(p, id, "Spell")
 	e.cast = &pendingCast{player: p, card: id, from: o.Zone, mode: "play", ability: -1,
-		cost: Cost{}, raise: raise, reduce: reduce}
+		cost: cost, raise: raise, reduce: reduce}
 	e.collectETBChoices(p)
 	e.continueCast()
 }

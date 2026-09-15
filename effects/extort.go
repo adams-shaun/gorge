@@ -24,7 +24,6 @@ func init() { Register("Extort", effExtort) }
 // actually happens on a pay.
 func effExtort(h Host, c *Ctx, sa *cards.SA) {
 
-
 	ans := c.Extort
 	c.Extort = ""
 	switch ans {

@@ -378,7 +378,7 @@ func (e *Engine) legalTargetCandidates(p state.PlayerID, source, excludeSelf sta
 				if !stackKindAdmits(toks, e.stackObjKind(o), o, o.Controller, p) {
 					continue
 				}
-				if effects.MatchesSpecCtx(e.G, spec, oid, sc) {
+				if effects.MatchesSpecCtx(e.G, targetSpecForZone(spec, z), oid, sc) {
 					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: o.Controller})
 				}
 			}
@@ -399,7 +399,7 @@ func (e *Engine) legalTargetCandidates(p state.PlayerID, source, excludeSelf sta
 				// Both function only on the battlefield (CR 604.3), the same
 				// gate as protection above. CR 115.5 excludes the source.
 				if o != nil && o.Face() != nil && (excludeSelf == 0 || oid != excludeSelf) &&
-					effects.MatchesSpecCtx(e.G, spec, oid, sc) &&
+					effects.MatchesSpecCtx(e.G, targetSpecForZone(spec, z), oid, sc) &&
 					!(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc)) &&
 					!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p)) {
 					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: q})
@@ -964,13 +964,35 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state
 		// source" as its Source permanent, the same object askTarget's own
 		// filter has now been made to see (Critical C2 -- one definition).
 		if o := e.G.Obj(t.Obj); o != nil && zoneIn(o.Zone, zones) &&
-			effects.MatchesSpecCtx(e.G, spec, t.Obj, sc) &&
+			effects.MatchesSpecCtx(e.G, targetSpecForZone(spec, o.Zone), t.Obj, sc) &&
 			!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(t.Obj, you)) &&
 			!e.protectedFrom(t.Obj, e.protectionSource(source)) {
 			legal = append(legal, t)
 		}
 	}
 	return legal
+}
+
+// targetSpecForZone preserves Forge's distinction between a battlefield
+// permanent and a permanent card in another zone. Forge spells both with a
+// `Permanent` base (Conduit of Worlds is a real `TgtZone$ Graveyard` example),
+// while the general matcher correctly treats a bare Permanent as a battlefield
+// object. Rewrite only the leading base token, retaining every qualifier, so
+// all target offer and target-legality callers share this rule.
+func targetSpecForZone(spec string, z state.Zone) string {
+	if z == state.ZBattlefield || z == state.ZStack {
+		return spec
+	}
+	if spec == "Permanent" {
+		return "PermanentCard"
+	}
+	if len(spec) > len("Permanent") && spec[:len("Permanent")] == "Permanent" {
+		next := spec[len("Permanent")]
+		if next == '.' || next == '+' || next == ',' {
+			return "PermanentCard" + spec[len("Permanent"):]
+		}
+	}
+	return spec
 }
 
 // zoneIn reports whether z is one of the zones in the set.

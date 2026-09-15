@@ -635,6 +635,12 @@ func matchesBase(g *state.Game, base string, o *state.Object) bool {
 		return true
 	case "Permanent":
 		return o.Zone == state.ZBattlefield
+	case "PermanentCard":
+		// This internal target-base spelling is selected by rules' target
+		// census for Forge's `Permanent` base in a non-battlefield zone. A
+		// permanent CARD is distinguishable from an instant/sorcery there;
+		// it is not a permanent on the stack.
+		return o.Zone != state.ZStack && o.Face() != nil && o.Face().IsPermanent()
 	case "Spell":
 		return o.Zone == state.ZStack
 	}
