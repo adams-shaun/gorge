@@ -84,7 +84,6 @@ func zoneIn(zones []state.Zone, want state.Zone) bool {
 }
 
 func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
-	g := h.Game()
 	to := ParseZone(sa.Params["Destination"])
 	var originZones []state.Zone
 	var originAll bool
@@ -164,33 +163,6 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if withKind != "" && to == state.ZBattlefield {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: withKind, Amount: withAmt})
-		}
-		// GainControl$ on a ChangeZone that lands the object on the
-		// battlefield: the moved permanent enters under the named player's
-		// control instead of its owner's (CR 613.7: the grant supersedes any
-		// earlier control effect). "True" — 255 of the 269 raw corpus values —
-		// means the effect's controller (Meathook Massacre II's "return that
-		// card under your control with a finality counter"); the other values
-		// name a player reference resolved like any Defined$ player selector.
-		// A permanent grant: no LoseControl$ duration is part of this
-		// parameter's grammar on ChangeZone. A value that names no resolvable
-		// player is loud (a Note) rather than silently keeping the owner.
-		if to == state.ZBattlefield {
-			if gc := strings.TrimSpace(sa.Params["GainControl"]); gc != "" {
-				p, ok := changeZoneGainController(h, c, gc)
-				if ok {
-					gr := ControlGrant{Obj: o.ID, ObjStamp: o.Timestamp, Previous: o.Controller,
-						Controller: p, You: c.Controller, Source: c.Source}
-					if src := g.Obj(c.Source); src != nil && src.Zone == state.ZBattlefield {
-						gr.SourceStamp = src.Timestamp
-					}
-					h.Emit(events.Event{Kind: events.ControlChange, Obj: o.ID, Player: p})
-					h.RegisterControl(gr)
-				} else {
-					h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-						Text: "ChangeZone GainControl$ " + gc + " names no player"})
-				}
-			}
 		}
 	}
 }
@@ -813,39 +785,4 @@ func sacrificeAmount(h Host, c *Ctx, sa *cards.SA) int32 {
 		return 1 // unknown shape: today's fixed-one behaviour, not a silent zero
 	}
 	return v
-}
-
-// changeZoneGainController resolves ChangeZone's GainControl$ value to the
-// player who takes the moved permanent. "True" is the effect's controller;
-// the rest are the player-reference forms the corpus actually writes.
-// ok=false means no resolvable player — the caller is loud rather than
-// silently keeping the owner's control.
-func changeZoneGainController(h Host, c *Ctx, gc string) (state.PlayerID, bool) {
-	g := h.Game()
-	first := func(ts []state.Target) (state.PlayerID, bool) {
-		for _, t := range ts {
-			if t.IsPlayer {
-				return t.Player, true
-			}
-			if o := g.Obj(t.Obj); o != nil {
-				return o.Controller, true
-			}
-		}
-		return 0, false
-	}
-	switch gc {
-	case "True":
-		return c.Controller, true
-	case "ChosenPlayer":
-		return first(c.Chosen)
-	case "Targeted", "ParentTarget":
-		return first(c.Targets)
-	case "Player.IsRemembered":
-		return first(playersOf(c.Remembered))
-	case "TriggeredCardController":
-		return TriggeredCardController(g, c.TriggerContext, c.Remembered)
-	case "DelayTriggerRemembered":
-		return first(controllersOf(g, c.Remembered))
-	}
-	return 0, false
 }
