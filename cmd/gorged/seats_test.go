@@ -17,19 +17,19 @@ import (
 func TestSeatGateMintsAndResolvesTokens(t *testing.T) {
 	// Fixed seed: the first human slot takes the literal string, later
 	// slots derive "<tok>-<slot>".
-	g, err := newSeatGate("tok", []int{0, 2})
+	g, err := newSeatGate("tok", "t1", []int{0, 2})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if tok := g.token(state.PlayerID(0)); tok != "tok" {
+	if tok := g.token("t1", state.PlayerID(0)); tok != "tok" {
 		t.Fatalf("slot 0 token %q, want %q", tok, "tok")
 	}
-	if tok := g.token(state.PlayerID(2)); tok != "tok-2" {
+	if tok := g.token("t1", state.PlayerID(2)); tok != "tok-2" {
 		t.Fatalf("slot 2 token %q, want %q", tok, "tok-2")
 	}
 	got, ok := g.resolve(httptest.NewRequest(http.MethodGet, "/pending?seat=0&token=tok-2", nil))
-	if !ok || got.Seat != state.PlayerID(2) {
-		t.Fatalf("resolved %+v ok=%v, want seat 2", got, ok)
+	if !ok || got.Table != "t1" || got.Seat != state.PlayerID(2) {
+		t.Fatalf("resolved %+v ok=%v, want table t1 seat 2", got, ok)
 	}
 
 	// The Authorization header is read first: a query token naming a
@@ -37,8 +37,8 @@ func TestSeatGateMintsAndResolvesTokens(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/intent?seat=0&token=tok-2", nil)
 	req.Header.Set("Authorization", "Bearer tok")
 	got, ok = g.resolve(req)
-	if !ok || got.Seat != state.PlayerID(0) {
-		t.Fatalf("header did not win: %+v ok=%v, want seat 0", got, ok)
+	if !ok || got.Table != "t1" || got.Seat != state.PlayerID(0) {
+		t.Fatalf("header did not win: %+v ok=%v, want table t1 seat 0", got, ok)
 	}
 
 	// An unknown or absent token declines the request (401 upstream).
@@ -50,11 +50,11 @@ func TestSeatGateMintsAndResolvesTokens(t *testing.T) {
 	}
 
 	// Random default: every slot gets its own 32-hex token, distinct.
-	gr, err := newSeatGate("", []int{0, 1})
+	gr, err := newSeatGate("", "t1", []int{0, 1})
 	if err != nil {
 		t.Fatal(err)
 	}
-	t0, t1 := gr.token(0), gr.token(1)
+	t0, t1 := gr.token("t1", 0), gr.token("t1", 1)
 	if t0 == "" || len(t0) != 32 || t0 == t1 {
 		t.Fatalf("random tokens not opaque and distinct: %q %q", t0, t1)
 	}
@@ -97,11 +97,11 @@ func (a stubAddr) String() string  { return string(a) }
 // "/" and spent the game looking at history while the real one waited. The
 // URL must land on the live table route.
 func TestJoinURLPointsAtTheLiveTable(t *testing.T) {
-	g, err := newSeatGate("tok", []int{0})
+	g, err := newSeatGate("tok", "t1", []int{0})
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := fmt.Sprintf("http://%s/t/t1?seat=%d&token=%s", joinHost(stubAddr("[::]:8080")), 0, g.token(0))
+	got := fmt.Sprintf("http://%s/t/t1?seat=%d&token=%s", joinHost(stubAddr("[::]:8080")), 0, g.token("t1", 0))
 	want := "http://127.0.0.1:8080/t/t1?seat=0&token=tok"
 	if got != want {
 		t.Fatalf("join URL = %q, want %q", got, want)
@@ -117,15 +117,15 @@ func TestJoinURLPointsAtTheLiveTable(t *testing.T) {
 // game does not invalidate an earlier one, since the seat is all a claim
 // carries).
 func TestSeatGateMintMintsResolvableDistinctTokens(t *testing.T) {
-	g, err := newSeatGate("", nil)
+	g, err := newSeatGate("", "t1", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	a, err := g.mint(0)
+	a, err := g.mint("g1", 0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := g.mint(0)
+	b, err := g.mint("g2", 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,8 +134,8 @@ func TestSeatGateMintMintsResolvableDistinctTokens(t *testing.T) {
 	}
 	for _, tok := range []string{a, b} {
 		got, ok := g.resolve(httptest.NewRequest(http.MethodGet, "/pending?seat=0&token="+tok, nil))
-		if !ok || got.Seat != state.PlayerID(0) {
-			t.Fatalf("token %q resolved %+v ok=%v, want seat 0", tok, got, ok)
+		if !ok || got.Seat != state.PlayerID(0) || (got.Table != "g1" && got.Table != "g2") {
+			t.Fatalf("token %q resolved %+v ok=%v, want a table-bound seat 0 claim", tok, got, ok)
 		}
 	}
 }
