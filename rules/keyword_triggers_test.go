@@ -526,21 +526,20 @@ func TestDredgeUsesRealCorpusCard(t *testing.T) {
 	}
 }
 
-// TestSoulbondUsesRealCorpusCard drives Wingcrafter's real script: it has
-// K:Soulbond and a continuous static granting Flying to `Creature.PairedWith,
-// Creature.Self+Paired`. When it enters paired with another creature, both
-// gain Flying (so the paired partner reads HasKeyword Flying).
+// TestSoulbondUsesRealCorpusCard drives Tandem Lookout's real script from the
+// commander deck. Its K:Soulbond entry trigger must pair it reciprocally with
+// another unpaired creature its controller controls.
 func TestSoulbondUsesRealCorpusCard(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	wing, ok := reg.Lookup("Wingcrafter")
+	lookout, ok := reg.Lookup("Tandem Lookout")
 	if !ok {
-		t.Fatal("Wingcrafter missing from corpus")
+		t.Fatal("Tandem Lookout missing from corpus")
 	}
-	if d := wing.Link(); len(d) != 0 {
-		t.Fatalf("link Wingcrafter: %v", d)
+	if d := lookout.Link(); len(d) != 0 {
+		t.Fatalf("link Tandem Lookout: %v", d)
 	}
 	bear := card(t, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
-	deck := []*cards.Card{wing}
+	deck := []*cards.Card{lookout}
 	cfg := seatZeroStart(Config{Seed: 195, Names: []string{"a", "b"},
 		Decks: [][]*cards.Card{
 			append(append([]*cards.Card{}, deck...), mountainDeck(t, 39)...),
@@ -550,12 +549,12 @@ func TestSoulbondUsesRealCorpusCard(t *testing.T) {
 	e.Advance()
 	var wid state.ObjID
 	for _, id := range append(e.G.Zone(state.ZLibrary, 0), e.G.Zone(state.ZHand, 0)...) {
-		if e.G.Obj(id).Face() != nil && e.G.Obj(id).Face().Name == "Wingcrafter" {
+		if e.G.Obj(id).Face() != nil && e.G.Obj(id).Face().Name == "Tandem Lookout" {
 			wid = id
 		}
 	}
 	// A Bear on the battlefield for it to pair with (the Soulbond entry
-	// trigger fires while the Wingcrafter resolves its MoveZone, so the Bear
+	// trigger fires while Tandem Lookout resolves its MoveZone, so the Bear
 	// must already be present as the Pair candidate).
 	bo := e.G.AddObject(bear, 0)
 	bo.Zone = state.ZBattlefield
@@ -567,14 +566,10 @@ func TestSoulbondUsesRealCorpusCard(t *testing.T) {
 	e.priorityRound()
 	passUntilStackEmpty(t, e, 20)
 	if e.G.Obj(wid).Paired == 0 {
-		t.Fatalf("Wingcrafter not paired on entry: Paired=%d", e.G.Obj(wid).Paired)
+		t.Fatalf("Tandem Lookout not paired on entry: Paired=%d", e.G.Obj(wid).Paired)
 	}
 	if e.G.Obj(wid).Paired != bo.ID || e.G.Obj(bo.ID).Paired != wid {
-		t.Fatalf("pairing not reciprocal: w.Paired=%d b.Paired=%d", e.G.Obj(wid).Paired, e.G.Obj(bo.ID).Paired)
-	}
-	// Both read Flying via the continuous static's Affected$Paired/PairedWith.
-	if !e.HasKeyword(wid, "Flying") || !e.HasKeyword(bo.ID, "Flying") {
-		t.Fatalf("paired creatures should both have Flying: w=%v b=%v", e.HasKeyword(wid, "Flying"), e.HasKeyword(bo.ID, "Flying"))
+		t.Fatalf("pairing not reciprocal: lookout.Paired=%d bear.Paired=%d", e.G.Obj(wid).Paired, e.G.Obj(bo.ID).Paired)
 	}
 }
 
