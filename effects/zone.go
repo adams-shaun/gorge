@@ -1013,13 +1013,15 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			if int(t.Player) >= len(g.Players) {
 				continue
 			}
-			// A player-targeted sacrifice takes Amount$ permanents (default one).
-			// The engine's no-host deterministic fallback remains battlefield
-			// order; it is also what makes an Annihilator trigger complete
-			// without leaving a headless match suspended.
+			// This ticket's multi-permanent amount and chooser belong only to the
+			// Annihilator expansion. Ordinary player-targeted Sacrifice retains its
+			// established one-permanent behavior until that broader primitive is
+			// implemented as its own task.
 			n := 1
-			if v, err := strconv.Atoi(sa.Params["Amount"]); err == nil && v >= 0 {
-				n = v
+			if sa.Params["Annihilator"] == "True" {
+				if v, err := strconv.Atoi(sa.Params["Amount"]); err == nil && v >= 0 {
+					n = v
+				}
 			}
 			ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, t.Player)...)
 			eligible := make([]state.ObjID, 0, len(ids))

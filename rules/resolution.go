@@ -454,6 +454,25 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					Last: cur.last, HasLast: cur.hasLast}
 			}
 		case "unless_pay":
+			// Ward has non-mana payment forms (sacrifice, discard, tap and
+			// several keyword-specific costs). Its payment handler owns those
+			// choices; ordinary unless-pay effects retain the shared mana path.
+			if rp.sa.API == "Ward" {
+				if len(chosen) > 0 && chosen[0].Index == 0 {
+					paid, asked := e.beginWardPayment(rp, ctx)
+					if asked {
+						return
+					}
+					if paid {
+						ctx.UnlessPay = "pay"
+					} else {
+						ctx.UnlessPay = "decline"
+					}
+				} else {
+					ctx.UnlessPay = "decline"
+				}
+				break
+			}
 			// The payer agreed to pay (option 0 is "Pay … — make a copy") or
 			// not. Payment happens HERE, in rules, because payMana owns the
 			// cost grammar and emits the ManaAdd events — so a replay
@@ -487,6 +506,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				} else {
 					ctx.UnlessPay = "decline"
 				}
+			} else {
+				ctx.UnlessPay = "decline"
+			}
+		case "ward_alt", "ward_blight", "ward_evidence", "ward_waterbend", "ward_tap", "ward_sac", "ward_discard":
+			if e.settleWardPayment(rp.kind, rp.sa, ctx, chosen) {
+				ctx.UnlessPay = "pay"
 			} else {
 				ctx.UnlessPay = "decline"
 			}

@@ -20,7 +20,7 @@ func corpusKeywordCard(t *testing.T, name string) *cards.Card {
 	paths := map[string]string{
 		"Vein Ripper": "v/vein_ripper.txt", "Artisan of Kozilek": "a/artisan_of_kozilek.txt",
 		"Fury": "f/fury.txt", "Shriekmaw": "s/shriekmaw.txt", "Dauthi Voidwalker": "d/dauthi_voidwalker.txt",
-		"Emrakul, the World Anew": "e/emrakul_the_world_anew.txt", "Yavimaya Scion": "y/yavimaya_scion.txt", "Guardian of the Guildpact": "g/guardian_of_the_guildpact.txt", "Frenemy of the Guildpact": "f/frenemy_of_the_guildpact.txt", "Kitesail Larcenist": "k/kitesail_larcenist.txt", "Karazikar, the Eye Tyrant": "k/karazikar_the_eye_tyrant.txt",
+		"Emrakul, the World Anew": "e/emrakul_the_world_anew.txt", "Yavimaya Scion": "y/yavimaya_scion.txt", "Guardian of the Guildpact": "g/guardian_of_the_guildpact.txt", "Frenemy of the Guildpact": "f/frenemy_of_the_guildpact.txt", "Kitesail Larcenist": "k/kitesail_larcenist.txt", "Karazikar, the Eye Tyrant": "k/karazikar_the_eye_tyrant.txt", "Jon Irenicus, Shattered One": "j/jon_irenicus_shattered_one.txt", "Vislor Turlough": "v/vislor_turlough.txt",
 	}
 	path, ok := paths[name]
 	if !ok {
@@ -53,6 +53,33 @@ func TestWardVeinRipperCountersAnUnpaidTargetingSpell(t *testing.T) {
 	}
 	if got := e.G.Obj(cause).Zone; got != state.ZGraveyard {
 		t.Fatalf("unpaid ward spell zone = %s, want graveyard", got)
+	}
+}
+
+func TestWardVeinRipperAcceptsItsRealSacrificePayment(t *testing.T) {
+	e := combatEngine(t)
+	warded := onBoardCard(t, e, 0, corpusKeywordCard(t, "Vein Ripper"))
+	sac := onBoard(t, e, 1, "Name:Payment\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	cause := e.G.Zone(state.ZLibrary, 1)[0]
+	e.emit(events.Event{Kind: events.PutOnStack, Obj: cause, Player: 1, From: state.ZLibrary, To: state.ZStack})
+	e.emit(events.Event{Kind: events.TargetsChosen, Obj: cause, IDs: []state.ObjID{warded}})
+	e.putTriggersOnStack()
+	e.resolveTop()
+	if err := e.Submit(decision.Intent{Seq: e.Pending().Seq, Player: 1, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	d := e.Pending()
+	if d == nil || d.ResumeKind != "ward_sac" {
+		t.Fatalf("Vein Ripper ward did not ask for sacrifice: %+v", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 1, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := e.G.Obj(sac).Zone; got != state.ZGraveyard {
+		t.Fatalf("ward payment creature zone = %s, want graveyard", got)
+	}
+	if got := e.G.Obj(cause).Zone; got != state.ZStack {
+		t.Fatalf("paid ward moved targeting spell to %s, want stack", got)
 	}
 }
 
@@ -163,7 +190,7 @@ func TestGoadKarazikarEnforcesEveryGoaderAtDeclaration(t *testing.T) {
 	for _, goader := range []state.PlayerID{0, 1} {
 		effects.Resolve(e, &effects.Ctx{Controller: goader, Targets: []state.Target{{Obj: victim}}}, goad)
 	}
-	if got := e.G.Obj(victim).Goaders; len(got) != 2 || got[0] != 0 || got[1] != 1 {
+	if got := e.G.Obj(victim).Goads; len(got) != 2 || got[0].Player != 0 || got[1].Player != 1 {
 		t.Fatalf("goad relationships = %v, want [0 1]", got)
 	}
 	e.askAttackers()
@@ -181,11 +208,37 @@ func TestGoadKarazikarEnforcesEveryGoaderAtDeclaration(t *testing.T) {
 		t.Fatal("goaded creature did not attack the only non-goader")
 	}
 	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 1})
-	if got := e.G.Obj(victim).Goaders; len(got) != 1 || got[0] != 1 {
+	if got := e.G.Obj(victim).Goads; len(got) != 1 || got[0].Player != 1 {
 		t.Fatalf("first goader expiry = %v, want [1]", got)
 	}
 	e.emit(events.Event{Kind: events.TurnChange, Player: 1, Amount: 2})
-	if got := e.G.Obj(victim).Goaders; len(got) != 0 {
+	if got := e.G.Obj(victim).Goads; len(got) != 0 {
 		t.Fatalf("second goader expiry = %v, want none", got)
+	}
+}
+
+func TestGoadDurationsUseRealJonAndVislorScripts(t *testing.T) {
+	e := combatEngine(t)
+	victim := onBoardReady(t, e, 1, "Name:Victim\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	jon := onBoardCard(t, e, 0, corpusKeywordCard(t, "Jon Irenicus, Shattered One"))
+	jonGoad := cards.ResolveSVar(e.G.Obj(jon).Face().SVars, "DBGoad")
+	effects.Resolve(e, &effects.Ctx{Source: jon, Controller: 0, Targets: []state.Target{{Obj: victim}}}, jonGoad)
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 1})
+	if got := e.G.Obj(victim).Goads; len(got) != 1 || got[0].Duration != "Permanent" {
+		t.Fatalf("Jon's permanent goad expired at next turn: %v", got)
+	}
+
+	vislor := onBoardCard(t, e, 0, corpusKeywordCard(t, "Vislor Turlough"))
+	vislorGoad := cards.ResolveSVar(e.G.Obj(vislor).Face().SVars, "DBGoad")
+	effects.Resolve(e, &effects.Ctx{Source: vislor, Controller: 0, Targets: []state.Target{{Obj: victim}}}, vislorGoad)
+	if got := e.G.Obj(vislor).Goads; len(got) != 1 || got[0].Duration != "AsLongAsControl" {
+		t.Fatalf("Vislor's conditional goad = %v", got)
+	}
+	// Gain-control has no event primitive yet; this is the state transition its
+	// eventual event will fold through. A later event prunes the inactive goad.
+	e.G.Obj(vislor).Controller = 1
+	e.emit(events.Event{Kind: events.MoveZone, Obj: victim, From: state.ZBattlefield, To: state.ZGraveyard})
+	if got := e.G.Obj(vislor).Goads; len(got) != 0 {
+		t.Fatalf("Vislor's AsLongAsControl goad survived control change: %v", got)
 	}
 }

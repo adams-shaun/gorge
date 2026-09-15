@@ -28,15 +28,24 @@ func init() {
 	Register("Ward", effWard)
 }
 
-// effGoad records the goading player on each targeted creature. The rules
-// engine enforces the resulting attack requirement when declarations are made.
+// effGoad records each independently-lived goad relationship. Duration and
+// source are event payload so replay can expire conditional goads identically.
 func effGoad(h Host, c *Ctx, sa *cards.SA) {
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
 		}
 		if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
-			h.Emit(events.Event{Kind: events.Goad, Obj: o.ID, Player: c.Controller})
+			if strings.EqualFold(sa.Params["NoLonger"], "True") {
+				h.Emit(events.Event{Kind: events.Goad, Obj: o.ID, Amount: -1})
+				continue
+			}
+			duration := sa.Params["Duration"]
+			if duration == "" {
+				duration = "UntilYourNextTurn"
+			}
+			h.Emit(events.Event{Kind: events.Goad, Obj: o.ID, Player: c.Controller,
+				Text: duration, IDs: []state.ObjID{c.Source}, Amount: int32(o.Controller) + 1})
 		}
 	}
 }

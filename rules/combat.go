@@ -315,7 +315,7 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 	if _, ok := e.encoreAttackDefender(id); ok {
 		return true
 	}
-	if len(o.Goaders) > 0 {
+	if e.hasActiveGoad(o) {
 		return true
 	}
 	for _, st := range f.Statics {
@@ -355,24 +355,48 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 // legal and the creature still has to attack if able.
 func (e *Engine) goadMayAttack(id state.ObjID, defender state.PlayerID) bool {
 	o := e.G.Obj(id)
-	if o == nil || !containsPlayer(o.Goaders, defender) {
+	if o == nil || !e.goadedBy(o, defender) {
 		return true
 	}
 	for _, p := range e.G.AliveFrom(0) {
-		if p != o.Controller && !containsPlayer(o.Goaders, p) {
+		if p != o.Controller && !e.goadedBy(o, p) {
 			return false
 		}
 	}
 	return true
 }
 
-func containsPlayer(ps []state.PlayerID, want state.PlayerID) bool {
-	for _, p := range ps {
-		if p == want {
+func (e *Engine) hasActiveGoad(o *state.Object) bool {
+	for _, ge := range o.Goads {
+		if e.activeGoad(o, ge) {
 			return true
 		}
 	}
 	return false
+}
+
+func (e *Engine) goadedBy(o *state.Object, p state.PlayerID) bool {
+	for _, ge := range o.Goads {
+		if ge.Player == p && e.activeGoad(o, ge) {
+			return true
+		}
+	}
+	return false
+}
+
+func (e *Engine) activeGoad(o *state.Object, ge state.GoadEffect) bool {
+	if o.Zone != state.ZBattlefield {
+		return false
+	}
+	switch ge.Duration {
+	case "AsLongAsInPlay":
+		src := e.G.Obj(ge.Source)
+		return src != nil && src.Zone == state.ZBattlefield
+	case "AsLongAsControl":
+		return o.Controller == ge.Controller
+	default:
+		return true
+	}
 }
 
 func (e *Engine) maxAttackers() int {

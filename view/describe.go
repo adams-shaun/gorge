@@ -31,6 +31,12 @@ func Describe(g *state.Game, ev events.Event) string {
 		return player(g, ev.Player) + " gains control of " + obj(g, ev.Obj)
 	case events.Goad:
 		return obj(g, ev.Obj) + " is goaded by " + player(g, ev.Player)
+	case events.PlayerCounterChange:
+		verb, n := "gets", ev.Amount
+		if n < 0 {
+			verb, n = "loses", -n
+		}
+		return player(g, ev.Player) + " " + verb + " " + itoa(int64(n)) + " " + strings.ToLower(ev.Counter) + " counter(s)"
 	case events.MoveZone:
 		return obj(g, ev.Obj) + " moves from " + zone(ev.From) + " to " + zone(ev.To)
 	case events.Draw:

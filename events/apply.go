@@ -95,6 +95,8 @@ func Apply(g *state.Game, e Event) {
 				o.HasPreStackEntry = false
 			}
 		}
+		// Source-dependent goads end as soon as their source leaves play.
+		pruneGoads(g)
 
 	case LifeChange:
 		if validPlayer(g, e.Player) {
@@ -185,21 +187,45 @@ func Apply(g *state.Game, e Event) {
 			for i := range g.Objs {
 				g.Objs[i].EnteredThisTurn = false
 				g.Objs[i].WasDealtDamageThisTurn = false
-				// Each goad lasts until that goader's next turn (CR 701.38a).
-				// Multiple opponents can goad one creature, so expire only this
-				// turn's player's relationship and retain every other one.
-				g.Objs[i].Goaders = removeGoader(g.Objs[i].Goaders, e.Player)
+				// Only default-duration goads expire at the goader's next turn.
+				g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, e.Player)
 			}
 		}
 
 	case Goad:
-		if o := g.Obj(e.Obj); o != nil && validPlayer(g, e.Player) {
-			for _, goader := range o.Goaders {
-				if goader == e.Player {
+		if o := g.Obj(e.Obj); o != nil {
+			if e.Amount == -1 {
+				o.Goads = nil
+				break
+			}
+			if !validPlayer(g, e.Player) {
+				break
+			}
+			duration := e.Text
+			if duration == "" {
+				duration = "UntilYourNextTurn"
+			}
+			var source state.ObjID
+			if len(e.IDs) > 0 {
+				source = e.IDs[0]
+			}
+			controller := o.Controller
+			if e.Amount > 0 && int(e.Amount-1) < len(g.Players) {
+				controller = state.PlayerID(e.Amount - 1)
+			}
+			ge := state.GoadEffect{Player: e.Player, Source: source, Controller: controller, Duration: duration}
+			for _, existing := range o.Goads {
+				if existing == ge {
 					return
 				}
 			}
-			o.Goaders = append(o.Goaders, e.Player)
+			o.Goads = append(o.Goads, ge)
+			pruneGoads(g)
+		}
+
+	case PlayerCounterChange:
+		if validPlayer(g, e.Player) {
+			g.Players[e.Player].AddCounter(e.Counter, e.Amount)
 		}
 
 	case Priority:
@@ -919,19 +945,45 @@ func validPlayer(g *state.Game, p state.PlayerID) bool {
 	return int(p) < len(g.Players)
 }
 
-// removeGoader removes one independently expiring goad relationship while
-// preserving the deterministic order in which the remaining players goaded
-// the creature. It returns nil once none remain, keeping the zero state small.
-func removeGoader(in []state.PlayerID, goader state.PlayerID) []state.PlayerID {
-	for i, p := range in {
-		if p == goader {
-			out := make([]state.PlayerID, 0, len(in)-1)
-			out = append(out, in[:i]...)
-			out = append(out, in[i+1:]...)
-			return out
+// expireTurnGoads drops only default-duration relationships made by p.
+func expireTurnGoads(in []state.GoadEffect, p state.PlayerID) []state.GoadEffect {
+	out := in[:0]
+	for _, ge := range in {
+		if ge.Player == p && (ge.Duration == "" || ge.Duration == "UntilYourNextTurn") {
+			continue
+		}
+		out = append(out, ge)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// pruneGoads enforces source/control conditions from replayable state.
+func pruneGoads(g *state.Game) {
+	for i := range g.Objs {
+		o := &g.Objs[i]
+		out := o.Goads[:0]
+		for _, ge := range o.Goads {
+			active := o.Zone == state.ZBattlefield
+			switch ge.Duration {
+			case "AsLongAsInPlay":
+				src := g.Obj(ge.Source)
+				active = active && src != nil && src.Zone == state.ZBattlefield
+			case "AsLongAsControl":
+				active = o.Zone == state.ZBattlefield && o.Controller == ge.Controller
+			}
+			if active {
+				out = append(out, ge)
+			}
+		}
+		if len(out) == 0 {
+			o.Goads = nil
+		} else {
+			o.Goads = out
 		}
 	}
-	return in
 }
 
 // zoneOwner picks whose zone list an object belongs to: the battlefield and the

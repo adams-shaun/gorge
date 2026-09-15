@@ -16,6 +16,17 @@ type Target struct {
 	IsPlayer bool
 }
 
+// GoadEffect is one independently-lived CR 701.38 goad relationship.
+// Source and Duration preserve the condition Forge attached to the effect;
+// Controller is the target creature's controller when an AsLongAsControl
+// relationship began. All fields are reconstructed by events.Apply.
+type GoadEffect struct {
+	Player     PlayerID
+	Source     ObjID
+	Controller PlayerID
+	Duration   string
+}
+
 // SacrificedInfo is the last-known-information snapshot of an object at the
 // instant it was sacrificed, captured before the sacrifice's zone change
 // (CR 608.2g "last known information"): the object is in the graveyard by
@@ -111,10 +122,9 @@ type Object struct {
 	EncoreAttackTurn     int32
 	EncoreAttackDefender PlayerID
 
-	// Goaders is the CR 701.38 attack requirement, one entry for each player
-	// that has goaded this creature. Each relationship clears independently at
-	// that goader's next turn boundary through events.Goad/TurnChange.
-	Goaders []PlayerID
+	// Goads holds CR 701.38 attack requirements. Relationships can have the
+	// default next-turn lifetime, be permanent, or depend on source/control.
+	Goads []GoadEffect
 
 	// Timestamp orders continuous effects. Assigned from Game.Clock whenever
 	// the object enters the battlefield.
@@ -214,7 +224,7 @@ func (o *Object) AddCounter(kind string, n int32) {
 }
 
 // CloneDeep returns a value copy of o whose slice fields (Counters, Targets,
-// Remembered, BlockedBy, Chosen, Goaders, ChosenModes) are independently backed, so mutating
+// Remembered, BlockedBy, Chosen, Goads, ChosenModes) are independently backed, so mutating
 // the copy's slices can never alias o's -- everything else (Card, a shared
 // pointer into the immutable compiled corpus, plus every scalar field) is
 // correct as a plain value copy. This is the one definition of "deep-copy an
@@ -231,7 +241,7 @@ func (o *Object) CloneDeep() Object {
 	c.Remembered = append([]Target(nil), o.Remembered...)
 	c.BlockedBy = append([]ObjID(nil), o.BlockedBy...)
 	c.Chosen = append([]Target(nil), o.Chosen...)
-	c.Goaders = append([]PlayerID(nil), o.Goaders...)
+	c.Goads = append([]GoadEffect(nil), o.Goads...)
 	c.ChosenModes = append([]string(nil), o.ChosenModes...)
 	return c
 }
