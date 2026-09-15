@@ -120,10 +120,9 @@ func ManaReflectedCandidates(h Host, c *Ctx, sa *cards.SA) []string {
 // "Any"/"Combo Any" Produced$ is every colour; a "Combo <colours>" shape is
 // exactly those colours (effects.ComboColours rejects every other combo
 // word); a plain brace/space-stripped rune list contributes its coloured and
-// colourless runes. Non-colourless non-literal amounts and RestrictValid$-style spend
-// restrictions are unread here -- the ability adds one mana of a COLOUR, and
-// "could produce" is the colours question, not the amount or the
-// restrictions one (CR 605.1b: a mana ability's add is what it reflects).
+// colourless runes. Amount$ and RestrictValid$ belong to the mana the
+// reflected ability itself produces, not the source ability it examines, so
+// they intentionally do not affect this candidate census.
 func producibleSymbols(o *state.Object) string {
 	f := o.Face()
 	if f == nil {
@@ -161,26 +160,35 @@ func producibleSymbols(o *state.Object) string {
 	return b.String()
 }
 
-// effManaReflected implements "AB$ ManaReflected": add one mana of a colour
-// the reflected set offers. The rules engine (rules/mana_activation.go) asks
-// the colour whenever more than one is available and re-enters this effect
-// with Produced$ overridden to the chosen letter, so the override is the
-// authoritative single-colour path. What remains here is the set computation
-// plus two deterministic fallbacks for the paths that reach the executor
-// without a chosen colour:
-//
-//   - exactly one candidate colour: it is added -- a decision nobody could
-//     answer differently is not a decision;
-//   - several candidates and no ask (a host that cannot ask, R-9): the FIRST
-//     candidate in manaReflectedOrder is added with a Note, the same
-//     deterministic-first stand-in the Charm first-mode and library-search
-//     no-host fallbacks carry.
+// effManaReflected implements "AB$ ManaReflected": add Amount$ (default one)
+// mana of a colour the reflected set offers. The rules engine
+// (rules/mana_activation.go) asks the colour whenever more than one is
+// available and re-enters this effect with Produced$ overridden to the chosen
+// letter, so the override is the authoritative single-colour path.
+// RestrictValid$ is retained on each ManaAdd event, rather than discarded when
+// the pool coalesces equal-colour mana; rules payment consumes that provenance
+// only for a matching spell or activated ability.
 //
 // An empty set adds nothing and records a Note: Exotic Orchard tapped with no
 // opponent land in play, or Chrome Mox with no imprinted card recorded, must
 // not invent a colour.
 func effManaReflected(h Host, c *Ctx, sa *cards.SA) {
 	produced := strings.TrimSpace(sa.Params["Produced"])
+	amount := Num(h, c, sa, "Amount", 1)
+	if amount < 0 {
+		amount = 0
+	}
+	restriction := strings.TrimSpace(sa.Params["RestrictValid"])
+	manaAdd := func(player state.PlayerID, color string) {
+		if amount == 0 {
+			return
+		}
+		ev := events.Event{Kind: events.ManaAdd, Player: player, Counter: color, Amount: amount}
+		if restriction != "" {
+			ev.Text = events.ManaRestrictionText(restriction)
+		}
+		h.Emit(ev)
+	}
 	recipient := c.Controller
 	if strings.TrimSpace(sa.Params["ReflectProperty"]) == "Produced" {
 		// On this corpus shape Defined$ names who receives the additional
@@ -200,10 +208,9 @@ func effManaReflected(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	// The rules-engine colour-ask path re-enters with Produced$ set to one
-	// plain letter: add exactly one mana of that colour.
+	// plain letter.
 	if len(produced) == 1 && strings.ContainsRune(ManaSymbols, rune(produced[0])) {
-		h.Emit(events.Event{Kind: events.ManaAdd, Player: recipient,
-			Counter: produced, Amount: 1})
+		manaAdd(recipient, produced)
 		return
 	}
 	cols := ManaReflectedCandidates(h, c, sa)
@@ -212,12 +219,10 @@ func effManaReflected(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "ManaReflected found no mana to reflect"})
 	case 1:
-		h.Emit(events.Event{Kind: events.ManaAdd, Player: recipient,
-			Counter: cols[0], Amount: 1})
+		manaAdd(recipient, cols[0])
 	default:
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "chose first reflected colour " + cols[0] + " (no ask possible)"})
-		h.Emit(events.Event{Kind: events.ManaAdd, Player: recipient,
-			Counter: cols[0], Amount: 1})
+		manaAdd(recipient, cols[0])
 	}
 }

@@ -204,12 +204,45 @@ func Apply(g *state.Game, e Event) {
 			if e.Counter != "" {
 				idx = state.ManaIndex(e.Counter[0])
 			}
-			g.Players[e.Player].Pool[idx] += e.Amount
+			player := &g.Players[e.Player]
+			player.Pool[idx] += e.Amount
+			if valid, restricted := ManaRestrictionFromText(e.Text); restricted {
+				if e.Amount > 0 {
+					player.RestrictedMana = append(player.RestrictedMana, state.ManaRestriction{
+						Color: e.Counter, Amount: e.Amount, Valid: valid,
+					})
+				} else if e.Amount < 0 {
+					// A restricted spend event names exactly the restriction batch it
+					// consumes. Walk insertion order so two matching additions replay
+					// identically, and tolerate a malformed historical event that
+					// over-spends its batch without making Pool negative here.
+					need := -e.Amount
+					for i := 0; i < len(player.RestrictedMana) && need > 0; {
+						r := &player.RestrictedMana[i]
+						if r.Color != e.Counter || r.Valid != valid {
+							i++
+							continue
+						}
+						used := r.Amount
+						if used > need {
+							used = need
+						}
+						r.Amount -= used
+						need -= used
+						if r.Amount == 0 {
+							player.RestrictedMana = append(player.RestrictedMana[:i], player.RestrictedMana[i+1:]...)
+							continue
+						}
+						i++
+					}
+				}
+			}
 		}
 
 	case ManaClear:
 		if validPlayer(g, e.Player) {
 			g.Players[e.Player].Pool = state.Mana{}
+			g.Players[e.Player].RestrictedMana = nil
 		}
 
 	case CounterChange:

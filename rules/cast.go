@@ -1617,7 +1617,7 @@ func (e *Engine) payCast() {
 		// The ability object was already minted by pushCast; targets are
 		// recorded onto it by handleTarget.
 		mana := e.manaToPay(pc)
-		if !e.payManaConv(pc.player, mana, e.paymentConv(pc.player, pc.card, true)) {
+		if !e.payManaConvFor(pc.player, pc.card, true, mana, e.paymentConv(pc.player, pc.card, true)) {
 			e.abortCast(pc, "activation aborted: cost no longer payable", true)
 			return
 		}
@@ -1710,7 +1710,7 @@ func (e *Engine) payCast() {
 	if mana.Generic < 0 {
 		mana.Generic = 0
 	}
-	if !e.payManaConv(pc.player, mana, e.paymentConv(pc.player, pc.card, false)) {
+	if !e.payManaConvFor(pc.player, pc.card, false, mana, e.paymentConv(pc.player, pc.card, false)) {
 		// E2 (round 2) / F05-2. This is the reachable no-progress arm: a Delve
 		// exile ask (Min:0, Max the shortfall) was answered with fewer cards
 		// than the shortfall needs, so the cast aborts with no state change

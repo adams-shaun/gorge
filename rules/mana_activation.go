@@ -70,6 +70,41 @@ func isManaAbilityAPI(api string) bool { return api == "Mana" || api == "ManaRef
 // p may activate from id now. Keeping the CantBeActivated gate here makes the
 // priority action, payment window, and the eventual chosen activation share
 // one member-by-member eligibility set.
+// manaReflectedPresentHolds evaluates an activated ManaReflected ability's
+// IsPresent$/PresentCompare$ activation gate. Most shapes use the shared
+// deterministic battlefield count. hasAbility Activated.otherAbility is a
+// property of the subject's face, so it is handled structurally here: a
+// native mana ability excludes itself, while a static-granted SVar (Tazri)
+// requires one printed activated ability on that creature.
+func (e *Engine) manaReflectedPresentHolds(p state.PlayerID, source state.ObjID, ma *cards.SA) bool {
+	spec, ok := ma.Params["IsPresent"]
+	if !ok || strings.TrimSpace(spec) == "" {
+		return true
+	}
+	if strings.Contains(spec, "hasAbility Activated.otherAbility") {
+		o := e.G.Obj(source)
+		if o == nil || o.Face() == nil || !effects.MatchesSpecFrom(e.G,
+			strings.TrimSpace(strings.Split(spec, "+hasAbility Activated.otherAbility")[0]), source, p, source) {
+			return false
+		}
+		n := 0
+		for _, ab := range o.Face().Abilities {
+			if ab.Kind == "AB" && ab != ma {
+				n++
+			}
+		}
+		if cmp := strings.TrimSpace(ma.Params["PresentCompare"]); cmp != "" {
+			return comparePresent(n, cmp)
+		}
+		return n > 0
+	}
+	n := e.countPresent(spec, source, p)
+	if cmp := strings.TrimSpace(ma.Params["PresentCompare"]); cmp != "" {
+		return comparePresent(n, cmp)
+	}
+	return n > 0
+}
+
 func (e *Engine) availableManaAbilities(p state.PlayerID, id state.ObjID) []*cards.SA {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
@@ -82,11 +117,39 @@ func (e *Engine) availableManaAbilities(p state.PlayerID, id state.ObjID) []*car
 			out = append(out, ma)
 		}
 	}
-	for _, ma := range o.Face().Abilities {
-		if ma.Kind != "AB" || ma.API != "ManaReflected" || e.abilityRestricted(p, id, ma) || !e.manaAbilityPayable(p, id, ma) {
-			continue
+	considerReflected := func(ma *cards.SA) {
+		if ma.Kind != "AB" || ma.API != "ManaReflected" || e.abilityRestricted(p, id, ma) || !e.manaAbilityPayable(p, id, ma) || !e.manaReflectedPresentHolds(p, id, ma) {
+			return
 		}
 		if len(effects.ManaReflectedCandidates(e, ctx, ma)) > 0 {
+			out = append(out, ma)
+		}
+	}
+	for _, ma := range o.Face().Abilities {
+		considerReflected(ma)
+	}
+	// A Continuous static may grant an activated ability through AddAbility$.
+	// Resolve its named SVar from the static's source but activate it from id:
+	// Tazri's ManaReflected reads the recipient creature's colours and its own
+	// "another activated ability" condition, not Tazri's.
+	for _, sv := range e.activeStatics("Continuous") {
+		name := strings.TrimSpace(sv.Params["AddAbility"])
+		if name == "" || !effects.MatchesSpecCtx(e.G, sv.Params["Affected"], id, e.specCtx(sv.Source, sv.Controller)) {
+			continue
+		}
+		source := e.G.Obj(sv.Source)
+		if source == nil || source.Face() == nil {
+			continue
+		}
+		ma := cards.ResolveSVar(source.Face().SVars, name)
+		if ma == nil || ma.Kind != "AB" {
+			continue
+		}
+		if ma.API == "ManaReflected" {
+			considerReflected(ma)
+			continue
+		}
+		if ma.API == "Mana" && !e.abilityRestricted(p, id, ma) && e.manaAbilityPayable(p, id, ma) {
 			out = append(out, ma)
 		}
 	}
@@ -261,7 +324,7 @@ func (e *Engine) continueManaDiscard() {
 
 func (e *Engine) commitManaDiscard() {
 	md := e.manaDiscardActivation
-	if md == nil || !e.payManaConv(md.player, md.cost, e.paymentConv(md.player, md.source, true)) {
+	if md == nil || !e.payManaConvFor(md.player, md.source, true, md.cost, e.paymentConv(md.player, md.source, true)) {
 		e.manaDiscardActivation = nil
 		e.choosing = chooseNone
 		return
@@ -470,7 +533,7 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 		e.continueManaDiscard()
 		return
 	}
-	if !e.payManaConv(p, cost, e.paymentConv(p, source, true)) {
+	if !e.payManaConvFor(p, source, true, cost, e.paymentConv(p, source, true)) {
 		return
 	}
 	var manaTriggers []pendingTrigger

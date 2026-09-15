@@ -61,6 +61,17 @@ const manaFlareScript = "Name:Mana Flare\nManaCost:2 R\nTypes:Enchantment\n" +
 	"T:Mode$ TapsForMana | ValidCard$ Land | Execute$ TrigMana | TriggerZones$ Battlefield | Static$ True | TriggerDescription$ Whenever a player taps a land for mana, that player adds one mana of any type that land produced.\n" +
 	"SVar:TrigMana:DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced | Defined$ TriggeredActivator\nOracle:x\n"
 
+const incubationDruidScript = "Name:Incubation Druid\nManaCost:1 G\nTypes:Creature Elf Druid\nPT:0/2\n" +
+	"A:AB$ PutCounter | Cost$ 3 G G | Adapt$ 3\n" +
+	"A:AB$ ManaReflected | Cost$ T | ColorOrType$ Type | Valid$ Land.YouCtrl | Amount$ IncubationAmount | ReflectProperty$ Produce | SpellDescription$ Add one mana of any type that a land you control could produce. If CARDNAME has a +1/+1 counter on it, add three mana of that type instead.\n" +
+	"SVar:Y:Count$Valid Card.Self+counters_GE1_P1P1\n" +
+	"SVar:IncubationAmount:Count$Compare Y GE1.3.1\nOracle:x\n"
+
+const tazriStalwartSurvivorScript = "Name:Tazri, Stalwart Survivor\nManaCost:W U B R G\nTypes:Legendary Creature Human Warrior\nPT:3/3\n" +
+	"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddAbility$ Mana | Description$ Each creature you control has {T}: Add one mana of any of this creature's colors. Spend this mana only to activate an ability of a creature. Activate only if this creature has another activated ability.\n" +
+	"SVar:Mana:AB$ ManaReflected | Cost$ T | Valid$ Defined.Self | ColorOrType$ Color | ReflectProperty$ Is | RestrictValid$ Activated.Creature+inZoneBattlefield | IsPresent$ Card.Self+hasAbility Activated.otherAbility | SpellDescription$ Add one mana of any of this creature's colors. Spend this mana only to activate an ability of a creature. Activate only if this creature has another activated ability.\n" +
+	"A:AB$ Mill | Cost$ W U B R G T | NumCards$ 5 | RememberMilled$ True\nOracle:x\n"
+
 const ancestralRecallScript = "Name:Ancestral Recall\nManaCost:U\nTypes:Instant\n" +
 	"A:SP$ Draw | NumCards$ 3 | SpellDescription$ Draw three cards.\nOracle:x\n"
 
@@ -387,6 +398,85 @@ func TestFellwarStoneAndChromeMoxReflectedShapes(t *testing.T) {
 // api:ManaReflected on Mana Flare's real SVar. Unlike Produce/Is, Defined$
 // names the player receiving mana; the candidate type comes from the
 // triggering mana event retained in TriggerContext.
+// TestIncubationDruidReflectedManaAmount proves Amount$ is evaluated on a
+// ManaReflected ability, rather than every reflected activation adding one.
+func TestIncubationDruidReflectedManaAmount(t *testing.T) {
+	e := handEngine(t)
+	druid := onBoard(t, e, 0, incubationDruidScript)
+	_ = onBoard(t, e, 0, mountainScript())
+	e.emit(events.Event{Kind: events.CounterChange, Obj: druid, Counter: "P1P1", Amount: 1})
+	e.priorityRound()
+	castFirst(t, e, "activate")
+	if got := e.G.Players[0].Pool[state.MR]; got != 3 {
+		t.Fatalf("Incubation Druid with a +1/+1 counter added %d R, want 3", got)
+	}
+}
+
+// TestTazriReflectedManaGateAndRestriction uses Tazri's real ManaReflected
+// SVar. The ability requires another activated ability, and its mana can pay
+// an activated ability of a creature but neither a spell nor an artifact
+// activation. The restriction is event-backed, so the successful payment also
+// proves a cloned/replayed game retains its provenance.
+func TestTazriReflectedManaGateAndRestriction(t *testing.T) {
+	e := handEngine(t)
+	tazri := onBoard(t, e, 0, tazriStalwartSurvivorScript)
+	ma := cards.ResolveSVar(e.G.Obj(tazri).Face().SVars, "Mana")
+	if ma == nil || !e.manaReflectedPresentHolds(0, tazri, ma) {
+		t.Fatal("Tazri's real ManaReflected SVar should see its other activated ability")
+	}
+	plain := onBoard(t, e, 0, "Name:Vanilla Creature\nManaCost:U\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	if e.manaReflectedPresentHolds(0, plain, ma) {
+		t.Fatal("Tazri's ManaReflected SVar was live without another activated ability")
+	}
+
+	// Tazri's Continuous AddAbility$ resolves the REAL SVar from Tazri while
+	// activating it from the affected creature. The vanilla creature is not
+	// offered; Mana Adept is, and its sole blue candidate needs no colour ask.
+	creature := onBoard(t, e, 0, "Name:Mana Adept\nManaCost:U\nTypes:Creature\nPT:1/1\nA:AB$ Draw | Cost$ U | NumCards$ 1\nOracle:x\n")
+	e.priorityRound()
+	d := e.Pending()
+	adeptOption := -1
+	for _, option := range d.Options {
+		if option.Kind == "activate" && option.Obj == creature {
+			adeptOption = option.Index
+		}
+		if option.Kind == "activate" && option.Obj == plain {
+			t.Fatal("Tazri granted mana to a creature with no other activated ability")
+		}
+	}
+	if adeptOption < 0 {
+		t.Fatalf("Tazri did not grant Mana Adept its reflected mana ability: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{adeptOption}}); err != nil {
+		t.Fatalf("activate Tazri-granted mana ability: %v", err)
+	}
+	if got := e.G.Players[0].Pool[state.MU]; got != 1 || len(e.G.Players[0].RestrictedMana) != 1 {
+		t.Fatalf("Tazri mana did not retain its restriction: pool=%+v restrictions=%+v", e.G.Players[0].Pool, e.G.Players[0].RestrictedMana)
+	}
+	spell := e.G.AddObject(card(t, ancestralRecallScript), 0)
+	spell.Zone = state.ZHand
+	if e.costPayable(0, spell.ID, false, ParseCost("U")) {
+		t.Fatal("Tazri mana incorrectly paid a spell")
+	}
+	artifact := onBoard(t, e, 0, "Name:Mana Rock\nTypes:Artifact\nA:AB$ Draw | Cost$ U | NumCards$ 1\nOracle:x\n")
+	if e.costPayable(0, artifact, true, ParseCost("U")) {
+		t.Fatal("Tazri mana incorrectly paid a noncreature activation")
+	}
+	if !e.costPayable(0, creature, true, ParseCost("U")) {
+		t.Fatal("Tazri mana did not pay a creature activation")
+	}
+	clone := e.Clone()
+	if !e.payManaConvFor(0, creature, true, ParseCost("U"), nil) || !clone.payManaConvFor(0, creature, true, ParseCost("U"), nil) {
+		t.Fatal("Tazri mana could not pay the allowed activation")
+	}
+	if diff := diffGames(e.G, clone.G); diff != "" {
+		t.Fatalf("restricted-mana replay diverged:\n%s", diff)
+	}
+	if got := e.G.Players[0].Pool[state.MU]; got != 0 || len(e.G.Players[0].RestrictedMana) != 0 {
+		t.Fatalf("Tazri restricted mana remained after payment: pool=%+v restrictions=%+v", e.G.Players[0].Pool, e.G.Players[0].RestrictedMana)
+	}
+}
+
 func TestManaFlareReflectsTheProducedManaType(t *testing.T) {
 	e := handEngine(t)
 	flare := onBoard(t, e, 0, manaFlareScript)

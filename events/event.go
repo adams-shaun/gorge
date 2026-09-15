@@ -269,6 +269,22 @@ func (k Kind) String() string {
 
 // Event is a state delta. The field set is a flat union so encoding stays
 // allocation-free and an external consumer needs no engine code to read it.
+// manaRestrictionPrefix marks a ManaAdd event whose added (or spent) mana is
+// governed by RestrictValid$. Text is otherwise unused by ManaAdd, so this
+// preserves the event wire shape while keeping the provenance replayable.
+const manaRestrictionPrefix = "mana-restriction:"
+
+// ManaRestrictionText encodes a RestrictValid$ constraint on a ManaAdd event.
+func ManaRestrictionText(valid string) string { return manaRestrictionPrefix + valid }
+
+// ManaRestrictionFromText returns the constraint carried by a restricted
+// ManaAdd event. It deliberately accepts no aliases: ordinary historical
+// ManaAdd events must remain unrestricted.
+func ManaRestrictionFromText(text string) (string, bool) {
+	valid, ok := strings.CutPrefix(text, manaRestrictionPrefix)
+	return valid, ok && valid != ""
+}
+
 type Event struct {
 	Seq     uint64           `json:"seq"`
 	Kind    Kind             `json:"kind"`
