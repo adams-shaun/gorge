@@ -220,12 +220,12 @@ func activatedMatchesValidSA(ab *cards.SA, validSA string) bool {
 	return false
 }
 
-// adjustedCost applies RaiseCost and ReduceCost to id's printed mana cost.
-// Both modes only ever touch the Generic component (never Colored), so
-// clamping Generic at zero is already CR 601.2f-safe on its own: a reduction
-// can consume the generic requirement down to nothing but can never reach
-// into the coloured pips to reduce those, because this function never
-// writes to c.Colored at all.
+// adjustedCost applies the full RaiseCost/ReduceCost/SetCost composition to
+// id's printed mana cost. RaiseCost Cost$ may add coloured pips (and fixed
+// life), while ReduceCost Color$ may remove matching coloured pips before its
+// remaining generic reduction and MinMana$ floor. costMods.apply owns that
+// CR 601.2f order and clamps only the generic component at zero; it never
+// lets a generic reduction consume a coloured pip.
 //
 // A missing object or a Face()-less one (an ability object or a token
 // mid-resolution) degrades to the zero Cost rather than panicking; nothing
