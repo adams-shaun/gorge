@@ -343,16 +343,33 @@ func TestDefinedHiddenOriginObjectsMoveDirectly(t *testing.T) {
 	})
 }
 
-// TestDefinedLibraryEndSelectorsUseDirectFetches covers the two corpus
-// library-end object selectors. A fresh library search would ask this
-// askable host; resolving the one selected card directly must not.
-func TestDefinedLibraryEndSelectorsUseDirectFetches(t *testing.T) {
+// TestDefinedLibraryObjectSelectorsMoveDirectly covers every resolved
+// object-valued selector in the exact-Library audit. A fresh library search
+// would ask this askable host; each selector instead moves only its established
+// fetch-list member and shuffles the source library once. In particular,
+// ChosenCard is the list recorded by an earlier ChooseCard answer, not a
+// request to search the whole library.
+func TestDefinedLibraryObjectSelectorsMoveDirectly(t *testing.T) {
 	cases := []struct {
 		name, defined string
 		want          int
+		bind          func(*Ctx, state.ObjID)
 	}{
-		{name: "top", defined: "TopOfLibrary", want: 0},
-		{name: "bottom", defined: "BottomOfLibrary", want: 2},
+		{
+			name: "remembered", defined: "Remembered", want: 1,
+			bind: func(c *Ctx, id state.ObjID) { c.Remembered = []state.Target{{Obj: id}} },
+		},
+		{
+			name: "chosen card", defined: "ChosenCard", want: 1,
+			bind: func(c *Ctx, id state.ObjID) {
+				// This is choiceRecord's post-answer binding. The selected object
+				// remains in the library until this ChangeZone consumes it.
+				c.Chosen = []state.Target{{Obj: id}}
+				c.ChosenValid = true
+			},
+		},
+		{name: "top", defined: "TopOfLibrary", want: 0, bind: func(*Ctx, state.ObjID) {}},
+		{name: "bottom", defined: "BottomOfLibrary", want: 2, bind: func(*Ctx, state.ObjID) {}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -360,13 +377,28 @@ func TestDefinedLibraryEndSelectorsUseDirectFetches(t *testing.T) {
 			h.g = state.NewGame(names(2))
 			src := h.g.AddObject(mkCard(t, "Name:Asker\nTypes:Sorcery\nOracle:x\n"), 0)
 			ids := fillLibrary(h.g, 0, mkCard(t, "Name:Forest\nTypes:Basic Land Forest\nOracle:x\n"), 3)
-			Resolve(h, &Ctx{Source: src.ID, Controller: 0},
-				sa(t, "DB$ ChangeZone | Defined$ "+tc.defined+" | Origin$ Library | Destination$ Hand"))
+			ctx := &Ctx{Source: src.ID, Controller: 0}
+			tc.bind(ctx, ids[tc.want])
+			// ChangeType$ deliberately cannot re-filter an already named fetch
+			// list: each Forest still moves even though it is not a Creature.
+			Resolve(h, ctx, sa(t, "DB$ ChangeZone | Defined$ "+tc.defined+" | Origin$ Library | Destination$ Hand | ChangeType$ Creature"))
 			if h.asked != nil {
 				t.Fatalf("posed %+v; %s must be a direct fetch", h.asked, tc.defined)
 			}
 			if got := h.g.Obj(ids[tc.want]).Zone; got != state.ZHand {
 				t.Fatalf("%s object in %s, want hand", tc.defined, got)
+			}
+			var moves, shuffles int
+			for _, ev := range h.log {
+				if ev.Kind == events.MoveZone && ev.Obj == ids[tc.want] {
+					moves++
+				}
+				if ev.Kind == events.Shuffle && ev.Player == 0 {
+					shuffles++
+				}
+			}
+			if moves != 1 || shuffles != 1 {
+				t.Fatalf("%s events moved=%d shuffled=%d, want one direct move and one shuffle: %v", tc.defined, moves, shuffles, h.log)
 			}
 		})
 	}
@@ -416,24 +448,42 @@ func TestBucolicRanchBottomContinuation(t *testing.T) {
 	}
 }
 
-// TestUnknownDefinedLibraryFetchFailsClosed prevents Defined's public source
-// fallback from treating an unmodelled selector as a hidden-library fetch.
-func TestUnknownDefinedLibraryFetchFailsClosed(t *testing.T) {
+// TestImprintedDefinedLibraryFetchFailsClosed pins the remaining audited
+// selector against Dichotomancy's real compiled continuation. Imprinted has
+// no persisted object context yet, so it must be a logged no-op rather than
+// Defined's source fallback or a whole-library search.
+func TestImprintedDefinedLibraryFetchFailsClosed(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	card, ok := reg.Lookup("Dichotomancy")
+	if !ok || len(card.Faces) == 0 {
+		t.Fatal("Dichotomancy is absent from the corpus")
+	}
+	fetch := cards.ResolveSVar(card.Faces[0].SVars, "DBChangeZone")
+	if fetch == nil || fetch.Params["Defined"] != "Imprinted" || fetch.Params["Origin"] != "Library" {
+		t.Fatalf("Dichotomancy DBChangeZone = %+v, want Defined$ Imprinted from Library", fetch)
+	}
 	h := &askHost{}
 	h.g = state.NewGame(names(2))
-	src := h.g.AddObject(mkCard(t, "Name:Asker\nTypes:Sorcery\nOracle:x\n"), 0)
+	src := h.g.AddObject(card, 0)
 	other := h.g.AddObject(mkCard(t, "Name:Forest\nTypes:Basic Land Forest\nOracle:x\n"), 0)
 	h.g.SetZone(state.ZLibrary, 0, []state.ObjID{src.ID, other.ID})
-	Resolve(h, &Ctx{Source: src.ID, Controller: 0},
-		sa(t, "DB$ ChangeZone | Defined$ UnmodelledSelector | Origin$ Library | Destination$ Hand"))
+	Resolve(h, &Ctx{Source: src.ID, Controller: 0}, fetch)
 	if h.asked != nil {
-		t.Fatalf("unmodelled Defined$ posed %+v, want fail-closed no-op", h.asked)
+		t.Fatalf("Imprinted Defined$ posed %+v, want fail-closed no-op", h.asked)
 	}
 	if got := h.g.Zone(state.ZLibrary, 0); len(got) != 2 || got[0] != src.ID || got[1] != other.ID {
-		t.Fatalf("unmodelled Defined$ changed library to %v, want [%d %d]", got, src.ID, other.ID)
+		t.Fatalf("Imprinted Defined$ changed library to %v, want [%d %d]", got, src.ID, other.ID)
 	}
 	if got := h.g.Obj(src.ID).Zone; got != state.ZLibrary {
-		t.Fatalf("unmodelled Defined$ moved source to %s, want library", got)
+		t.Fatalf("Imprinted Defined$ moved source to %s, want library", got)
+	}
+	if len(h.log) == 0 || h.log[0].Kind != events.Note || h.log[0].Text != "unrecognised Defined library fetch Imprinted" {
+		t.Fatalf("Imprinted Defined$ events = %v, want a fail-closed note", h.log)
+	}
+	for _, ev := range h.log {
+		if ev.Kind == events.MoveZone || ev.Kind == events.Shuffle {
+			t.Fatalf("Imprinted Defined$ emitted %v, want no move or shuffle", ev)
+		}
 	}
 }
 
