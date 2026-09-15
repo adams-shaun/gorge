@@ -1570,11 +1570,109 @@ func faceUnknownCostLabels(f *cards.Face) []string {
 	return out
 }
 
-// walkRepoDeckCensus does the card-side walk. Params are labelled only for
-// REGISTERED primitives (an unimplemented primitive's unread params are
-// noise -- the first ratchet owns the card); cost tokens are labelled
-// regardless, because an unmodelled token in a cost string is a real silent
-// substitution even when the primitive around it is already unsupported.
+// cardCensusLabels is the card-side census walk shared by the repo-deck
+// ratchet and focused fixtures. Params are labelled only for REGISTERED
+// primitives (an unimplemented primitive's unread params are noise -- the
+// first ratchet owns the card); cost tokens are labelled regardless, because
+// an unmodelled token in a cost string is a real silent substitution even
+// when the primitive around it is already unsupported.
+func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string]bool) []string {
+	labels := map[string]bool{}
+	addLabel := func(l string) { labels[l] = true }
+	labelFor := func(prim, key string) string { return "param:" + prim + "." + key }
+	for _, f := range c.Faces {
+		for _, label := range faceUnknownCostLabels(f) {
+			addLabel(label)
+		}
+		var walk func(sa *cards.SA)
+		walk = func(sa *cards.SA) {
+			if sa == nil {
+				return
+			}
+			prim := "api:" + sa.API
+			readSet := d.api[sa.API]
+			for k, v := range sa.Params {
+				if k == "Cost" || k == "UnlessCost" {
+					for _, tok := range ParseCost(v).Unknown {
+						addLabel("cost:" + tok)
+					}
+				}
+				if readSet == nil {
+					continue // unregistered primitive: ratchet 1 owns it
+				}
+				if structuralKeys["sa"][k] || ignoredParamKeys[k] != "" {
+					continue
+				}
+				if !readSet[k] || drop != nil && drop[prim][k] {
+					addLabel(labelFor(prim, k))
+				}
+			}
+			walk(sa.Sub)
+		}
+		for _, a := range f.Abilities {
+			walk(a)
+		}
+		for _, tr := range f.Triggers {
+			prim := "trig:" + tr.Mode
+			readSet := d.trig[tr.Mode]
+			if readSet != nil {
+				for k := range tr.Params {
+					if structuralKeys["trig"][k] || ignoredParamKeys[k] != "" {
+						continue
+					}
+					if !readSet[k] || drop != nil && drop[prim][k] {
+						addLabel(labelFor(prim, k))
+					}
+				}
+			}
+			walk(tr.Effect)
+		}
+		for _, st := range f.Statics {
+			prim := "stat:" + st.Mode
+			readSet := d.stat[st.Mode]
+			for k, v := range st.Params {
+				if k == "Cost" || k == "UnlessCost" {
+					for _, tok := range ParseCost(v).Unknown {
+						addLabel("cost:" + tok)
+					}
+				}
+				if readSet == nil {
+					continue // unregistered static mode: ratchet 1 owns it
+				}
+				if structuralKeys["stat"][k] || ignoredParamKeys[k] != "" {
+					continue
+				}
+				if !readSet[k] || drop != nil && drop[prim][k] {
+					addLabel(labelFor(prim, k))
+				}
+			}
+		}
+		for _, r := range f.Repls {
+			prim := "repl:" + r.Event
+			readSet := d.repl[r.Event]
+			if readSet != nil {
+				for k := range r.Params {
+					if structuralKeys["repl"][k] || ignoredParamKeys[k] != "" {
+						continue
+					}
+					if !readSet[k] || drop != nil && drop[prim][k] {
+						addLabel(labelFor(prim, k))
+					}
+				}
+			}
+			walk(r.With)
+		}
+	}
+	out := make([]string, 0, len(labels))
+	for label := range labels {
+		out = append(out, label)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// walkRepoDeckCensus applies the card-side walk to each distinct repo-deck
+// card and records its per-card plus aggregate labels.
 func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[string]bool) censusResult {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
@@ -1582,9 +1680,6 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 	paramSeen := map[string]bool{}
 	costSeen := map[string]bool{}
 	cardSeen := map[string]bool{}
-	labelFor := func(prim, key string) string {
-		return "param:" + prim + "." + key
-	}
 	for _, name := range testutil.RepoDeckNames() {
 		for _, c := range testutil.RepoDeck(t, reg, name) {
 			cardName := c.Faces[0].Name
@@ -1592,113 +1687,25 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 				continue
 			}
 			cardSeen[cardName] = true
-			labels := map[string]bool{}
-			addLabel := func(l string) {
-				labels[l] = true
-				if strings.HasPrefix(l, "param:") {
-					paramSeen[l] = true
+			labels := cardCensusLabels(c, d, drop)
+			if len(labels) == 0 {
+				continue
+			}
+			res.labels[cardName] = labels
+			for _, label := range labels {
+				if strings.HasPrefix(label, "param:") {
+					paramSeen[label] = true
 				} else {
-					costSeen[l] = true
+					costSeen[label] = true
 				}
-			}
-			for _, f := range c.Faces {
-				for _, label := range faceUnknownCostLabels(f) {
-					addLabel(label)
-				}
-				var walk func(sa *cards.SA)
-				walk = func(sa *cards.SA) {
-					if sa == nil {
-						return
-					}
-					prim := "api:" + sa.API
-					readSet := d.api[sa.API]
-					for k, v := range sa.Params {
-						if k == "Cost" || k == "UnlessCost" {
-							for _, tok := range ParseCost(v).Unknown {
-								addLabel("cost:" + tok)
-							}
-						}
-						if readSet == nil {
-							continue // unregistered primitive: ratchet 1 owns it
-						}
-						if structuralKeys["sa"][k] || ignoredParamKeys[k] != "" {
-							continue
-						}
-						if !readSet[k] || drop != nil && drop[prim][k] {
-							addLabel(labelFor(prim, k))
-						}
-					}
-					walk(sa.Sub)
-				}
-				for _, a := range f.Abilities {
-					walk(a)
-				}
-				for _, tr := range f.Triggers {
-					prim := "trig:" + tr.Mode
-					readSet := d.trig[tr.Mode]
-					if readSet != nil {
-						for k := range tr.Params {
-							if structuralKeys["trig"][k] || ignoredParamKeys[k] != "" {
-								continue
-							}
-							if !readSet[k] || drop != nil && drop[prim][k] {
-								addLabel(labelFor(prim, k))
-							}
-						}
-					}
-					walk(tr.Effect)
-				}
-				for _, st := range f.Statics {
-					prim := "stat:" + st.Mode
-					readSet := d.stat[st.Mode]
-					for k, v := range st.Params {
-						if k == "Cost" || k == "UnlessCost" {
-							for _, tok := range ParseCost(v).Unknown {
-								addLabel("cost:" + tok)
-							}
-						}
-						if readSet == nil {
-							continue // unregistered static mode: ratchet 1 owns it
-						}
-						if structuralKeys["stat"][k] || ignoredParamKeys[k] != "" {
-							continue
-						}
-						if !readSet[k] || drop != nil && drop[prim][k] {
-							addLabel(labelFor(prim, k))
-						}
-					}
-				}
-				for _, r := range f.Repls {
-					prim := "repl:" + r.Event
-					readSet := d.repl[r.Event]
-					if readSet != nil {
-						for k := range r.Params {
-							if structuralKeys["repl"][k] || ignoredParamKeys[k] != "" {
-								continue
-							}
-							if !readSet[k] || drop != nil && drop[prim][k] {
-								addLabel(labelFor(prim, k))
-							}
-						}
-					}
-					walk(r.With)
-				}
-			}
-			if len(labels) > 0 {
-				out := make([]string, 0, len(labels))
-				for l := range labels {
-					out = append(out, l)
-				}
-				sort.Strings(out)
-				res.labels[cardName] = out
 			}
 		}
 	}
-	for l := range paramSeen {
-		res.paramLabels = append(res.paramLabels, l)
+	for label := range paramSeen {
+		res.paramLabels = append(res.paramLabels, label)
 	}
-	for l := range costSeen {
-		res.costLabels = append(res.costLabels, l)
+	for label := range costSeen {
+		res.costLabels = append(res.costLabels, label)
 	}
 	sort.Strings(res.paramLabels)
 	sort.Strings(res.costLabels)
@@ -2207,26 +2214,33 @@ func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
 	}
 }
 
-// TestParamCensusCatchesPrintedAndKeywordCosts pins the cost sources that
-// are not Params maps: the normal printed cost plus Kicker, Surge, Flashback
-// and Miracle. All five are parsed by production cast paths, and an unknown
-// token in any of them must become a cost: label.
-func TestParamCensusCatchesPrintedAndKeywordCosts(t *testing.T) {
-	f := &cards.Face{
-		ManaCost: "PayEnergy<X>",
-		Keywords: []string{
-			"Kicker:Return<1/CARDNAME>",
-			"Surge:PaySurge<1>",
+// TestParamCensusCatchesFaceOwnedCosts pins the cost sources that are not
+// Params maps: the normal printed cost plus Kicker, Surge, Flashback and
+// Miracle. It drives a two-face card through cardCensusLabels, the same
+// card-side walk walkRepoDeckCensus uses, so removing faceUnknownCostLabels'
+// production call makes this test fail even though no current repo-deck card
+// carries one of these unknown face-owned cost tokens.
+func TestParamCensusCatchesFaceOwnedCosts(t *testing.T) {
+	c := &cards.Card{Faces: []*cards.Face{
+		{
+			ManaCost: "PayEnergy<X>",
+			Keywords: []string{
+				"Kicker:Return<1/CARDNAME>",
+				"Surge:PaySurge<1>",
+			},
+		},
+		{Keywords: []string{
 			"Flashback:ExileFromGrave<1/Card>",
 			"Miracle:PayMiracle<1>",
-		},
-	}
+		}},
+	}}
 	want := []string{
 		"cost:PayEnergy", "cost:Return", "cost:PaySurge",
 		"cost:ExileFromGrave", "cost:PayMiracle",
 	}
-	if got := faceUnknownCostLabels(f); !sameSet(got, want) {
-		t.Errorf("face-owned costs = %v, want %v", got, want)
+	d := &derivedReads{api: map[string]map[string]bool{}, trig: map[string]map[string]bool{}, stat: map[string]map[string]bool{}, repl: map[string]map[string]bool{}}
+	if got := cardCensusLabels(c, d, nil); !sameSet(got, want) {
+		t.Errorf("card-side face-owned costs = %v, want %v", got, want)
 	}
 }
 
