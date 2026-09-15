@@ -50,9 +50,15 @@ func effAddTurn(h Host, c *Ctx, sa *cards.SA) {
 	if int(player) < 0 || int(player) >= len(h.Game().Players) {
 		return
 	}
+	text := "extra turn"
+	if strings.EqualFold(sa.Params["SkipUntap"], "True") {
+		// Text is an encoded Event field. The canonical marker is folded by
+		// events.Apply into the individual queued grant, so replay retains
+		// this turn-specific rider without extending Event's fixed schema.
+		text = events.ExtraTurnSkipUntapText
+	}
 	h.Emit(events.Event{Kind: events.ExtraTurn, Player: player, Amount: n,
-		Obj: c.Source, Counter: sa.Params["ExtraTurnDelayedTriggerExecute"],
-		Text: "extra turn"})
+		Obj: c.Source, Counter: sa.Params["ExtraTurnDelayedTriggerExecute"], Text: text})
 }
 
 // effLosesGame implements DB$ LosesGame (53 corpus files): the Defined$

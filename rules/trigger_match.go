@@ -369,13 +369,12 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					// nothing to run.
 					continue
 				}
-				// An ALTERNATE face's trigger (an unlocked Room's second half)
-				// must be minted through the delayed-shape push: the ordinary
-				// TriggerPush re-derives its ability from the ACTIVE face's
-				// Triggers index (events.Apply cannot reach FaceIdx 1), while
-				// the delayed push resolves the Execute$ SVar out of the
-				// source's SVar table -- face-independent.
-				alt := fc.faceIdx == 1
+				// The non-active face of an unlocked Room must be minted through
+				// the delayed-shape push: TriggerPush re-derives an ability from
+				// the object's active Face(), while the delayed push resolves the
+				// other face's Execute$ SVar directly. This is independent of
+				// whether CR 309.4b cast face 0 or face 1.
+				alt := !fc.active
 				pt := pendingTrigger{
 					Source:     id,
 					Controller: o.Controller,
@@ -413,22 +412,24 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 	})
 }
 
-// triggerFace is one face's trigger walk: the face itself plus the index
-// that keys its fire-count memory (0 for the active face, 1 for an unlocked
-// Room's alternate face).
+// triggerFace is one face's trigger walk: its printed index keys fire-count
+// memory, and active says whether TriggerPush can re-derive it through the
+// object's current Face() (the other unlocked Room face must use a delayed
+// shape because Apply cannot select it).
 type triggerFace struct {
 	face    *cards.Face
 	faceIdx uint8
+	active  bool
 }
 
 // roomTriggerFaces returns the faces whose Triggers a scan walks for object
-// o: the active face always, plus an unlocked Room's alternate face
-// (rules/rooms.go) -- a room's rules text is both halves' combined once the
-// second door is unlocked (CR 309.6).
+// o: its cast face always, plus the other face once unlocked (CR 309.6).
+// FaceIdx need not be zero: CR 309.4b permits casting either Room door.
 func roomTriggerFaces(o *state.Object, active *cards.Face) []triggerFace {
-	out := []triggerFace{{face: active}}
-	if o.Unlocked && isRoom(o) && len(o.Card.Faces) > 1 {
-		out = append(out, triggerFace{face: o.Card.Faces[1], faceIdx: 1})
+	out := []triggerFace{{face: active, faceIdx: o.FaceIdx, active: true}}
+	if o.Unlocked && isRoom(o) && len(o.Card.Faces) == 2 && int(o.FaceIdx) < len(o.Card.Faces) {
+		other := uint8(1 - int(o.FaceIdx))
+		out = append(out, triggerFace{face: o.Card.Faces[other], faceIdx: other})
 	}
 	return out
 }

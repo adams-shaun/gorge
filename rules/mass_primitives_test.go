@@ -384,6 +384,34 @@ func TestFinalFortuneGrantsAndSpendsAnExtraTurn(t *testing.T) {
 // TestTimeStretchQueuesEveryGrantedTurn is AddTurn's multi-turn regression:
 // the real corpus Time Stretch has NumTurns$ 2, so its one grant event must
 // yield two separately consumed queue entries.
+// TestSavorTheMomentExtraTurnSkipsUntap is api:AddTurn's SkipUntap$ rider
+// regression. Savor the Moment is a real corpus script: the tapped Bear must
+// stay tapped when its granted turn begins, while the turn still proceeds to
+// upkeep and replays from its event log.
+func TestSavorTheMomentExtraTurnSkipsUntap(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	bear := card(t, bearSrc)
+	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{lookup(t, reg, "Savor the Moment"), bear}, nil)
+	bearID := moveByName(t, e, 0, "Bear", state.ZBattlefield)
+	e.emit(events.Event{Kind: events.Tap, Obj: bearID})
+	moveByName(t, e, 0, "Savor the Moment", state.ZHand)
+	addMana(t, e, 0, "CUU")
+	castNamed(t, e, "Savor the Moment")
+	passUntilStackEmpty(t, e, 40)
+	if got := len(e.G.ExtraTurnQueue); got != 1 || !e.G.ExtraTurnQueue[0].SkipUntap {
+		t.Fatalf("Savor the Moment queue = %+v, want one SkipUntap grant", e.G.ExtraTurnQueue)
+	}
+	e.setStep(state.StepCleanup)
+	e.advanceStep()
+	if e.G.Step != state.StepUpkeep {
+		t.Fatalf("extra turn starts at %s, want upkeep after skipped untap", e.G.Step)
+	}
+	if !e.G.Obj(bearID).Tapped {
+		t.Fatal("Savor the Moment untapped a permanent during its extra turn")
+	}
+	replayCheck(t, e, cfg)
+}
+
 func TestTimeStretchQueuesEveryGrantedTurn(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e := corpusEngine(t, reg, []*cards.Card{lookup(t, reg, "Time Stretch")}, nil)
@@ -640,6 +668,55 @@ func TestStationUsesDerivedCreatureType(t *testing.T) {
 // the locked half's mana cost pays for the unlock (one DoorUnlock event); the
 // unlocked face's "When you unlock this door" trigger fires and creates the
 // 6/6 black Demon token with flying.
+// TestRoomAlternateCastUnlocksFrontDoor is trig:UnlockDoor's front-door
+// regression (real corpus Spiked Corridor / Torture Pit). CR 309.4b permits
+// casting Torture Pit first; unlocking Spiked Corridor must then select the
+// front face's trigger and create its three Devils.
+func TestRoomAlternateCastUnlocksFrontDoor(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := corpusEngine(t, reg, []*cards.Card{lookup(t, reg, "Spiked Corridor")}, nil)
+	moveByName(t, e, 0, "Spiked Corridor", state.ZHand)
+	addMana(t, e, 0, "RRRRRRRR")
+	castNamed(t, e, "Torture Pit")
+	passUntilStackEmpty(t, e, 30)
+	room := state.ObjID(0)
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Torture Pit" {
+			room = id
+		}
+	}
+	if room == 0 || e.G.Obj(room).Unlocked {
+		t.Fatalf("alternate Room cast = %d unlocked=%v, want locked Torture Pit", room, room != 0 && e.G.Obj(room).Unlocked)
+	}
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("no priority to unlock Spiked Corridor (got %+v)", d)
+	}
+	unlock := -1
+	for _, o := range d.Options {
+		if o.Kind == "unlock" && o.Obj == room && o.Label == "Unlock Spiked Corridor" {
+			unlock = o.Index
+		}
+	}
+	if unlock < 0 {
+		t.Fatalf("no front-door unlock option in %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{unlock}}); err != nil {
+		t.Fatalf("submit front-door unlock: %v", err)
+	}
+	answerQuiet(t, e, 60)
+	devils := 0
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		o := e.G.Obj(id)
+		if o != nil && o.IsToken && o.Face() != nil && strings.Contains(o.Face().Name, "Devil") {
+			devils++
+		}
+	}
+	if devils != 3 {
+		t.Fatalf("Spiked Corridor unlock created %d Devils, want 3", devils)
+	}
+}
+
 func TestRoomUnlockCreatesTheDemon(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e := corpusEngine(t, reg,

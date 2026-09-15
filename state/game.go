@@ -32,6 +32,14 @@ type Player struct {
 	Speed int32
 }
 
+// ExtraTurn is one pending CR 500.7 turn. It is deliberately a queue entry,
+// rather than a per-player flag: several grants can be pending in LIFO order
+// and each grant can carry a different rider.
+type ExtraTurn struct {
+	Player    PlayerID
+	SkipUntap bool
+}
+
 // Game is the complete authoritative state. Everything a client sees is a
 // projection of this. Only the events package may mutate it.
 type Game struct {
@@ -61,11 +69,11 @@ type Game struct {
 	// one entry per un-consumed ExtraTurn grant (+Amount event), appended on
 	// the grant and removed (the seat's LAST entry) on the -1 consumption.
 	// CR 500.7 takes multiple extra turns MOST RECENTLY CREATED FIRST, so the
-	// turn structure consumes the queue from its end -- a count alone
-	// (ExtraTurns) cannot express that order, which is why the queue folds
-	// beside it and every mutation rides the same events. Empty when no extra
+	// turn structure consumes the queue from its end. Each entry retains the
+	// grant's turn-specific rider (currently SkipUntap), which a per-seat count
+	// cannot express. Every mutation rides the same events. Empty when no extra
 	// turn is pending.
-	ExtraTurnQueue []PlayerID
+	ExtraTurnQueue []ExtraTurn
 	// NextID hands out object ids one at a time, starting at 1 (see NewGame)
 	// and incrementing by exactly one per AddObject call below -- it can
 	// never reach playerRefBit (1<<31, ids.go): a single match would need
@@ -231,7 +239,7 @@ func (g *Game) Clone() *Game {
 			c.ExtraTurns[p] = n
 		}
 	}
-	c.ExtraTurnQueue = append([]PlayerID(nil), g.ExtraTurnQueue...)
+	c.ExtraTurnQueue = append([]ExtraTurn(nil), g.ExtraTurnQueue...)
 	return &c
 }
 

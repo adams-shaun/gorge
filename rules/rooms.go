@@ -9,46 +9,46 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// rooms.go implements the Enchantment Room mechanic (CR 309, Forge's
-// AlternateMode:Split two-face enchantments -- 128 corpus files). A Room is
-// cast as ONE half (the engine's ordinary card-cast flow casts
-// Faces[FaceIdx], i.e. the printed front half); that half's door is unlocked
-// from entry and the ALTERNATE half (Faces[1]) stays locked and inert. As a
-// sorcery the controller may pay the locked half's mana cost (its own
+// rooms.go implements Enchantment Rooms (CR 309, Forge's AlternateMode:Split
+// two-face enchantments -- 128 corpus files). Either Room half may be cast;
+// the chosen face is unlocked from entry and the other stays locked and inert.
+// As a sorcery the controller may pay the locked half's mana cost (its own
 // Face.ManaCost, priced through the ordinary offerCostFor/castable gate) to
-// unlock it: one DoorUnlock event, whose Apply flips the room's Unlocked
-// flag. The unlock trigger (T:Mode$ UnlockDoor on the unlocked face, gated by
-// ValidPlayer$ and ThisDoor$ True) queues off that same event, and the
-// alternate face's ongoing rules text (triggers, statics, activated
-// abilities) becomes live once unlocked -- the scans below and their callers
-// in staticEffects / checkFaceTriggers / legalActions consult o.Unlocked.
+// unlock it: one DoorUnlock event, whose Apply flips the room's Unlocked flag.
+// The unlock trigger (T:Mode$ UnlockDoor on the newly unlocked face, gated by
+// ValidPlayer$ and ThisDoor$ True) queues off that same event, and that face's
+// rules text (triggers, statics, activated abilities) becomes live.
 //
-// Face liveness convention: a room's live faces are its cast face (index 0)
-// always, plus its alternate face (index 1) once unlocked. The three engine
-// scans that read a permanent's face walk roomFaces; everything else keeps
-// reading Face() -- for rooms, the readers that matter (targeting legality,
-// P/T, types) read the cast face, which is correct: a room is one permanent,
-// its characteristics are both halves' combined only in the CR-613 sense this
-// build does not model, and no room half carries a P/T.
-//
-// Deliberately out of scope (reported in the ticket's Issues): casting a room
-// by its ALTERNATE half (CR 309.4b "you may cast either half" -- the engine's
-// cast flow always casts the front face), so a room whose unlock trigger
-// lives on the FRONT face (Spiked Corridor: cast the back half, then unlock
-// the front) can never fire its trigger here.
+// Face liveness convention: a room's live faces are its cast face (FaceIdx)
+// always, plus the other face once unlocked. The room-aware scans walk both
+// live faces; other readers keep using Face(). This engine does not model the
+// CR-613 characteristic combination of both doors, but no supported Room half
+// carries P/T.
 
-// roomLockedFace returns the locked alternate face of a room permanent, or
-// nil when the object is not a room, has no alternate face, or is already
-// unlocked.
+// roomLockedFace returns the other, still locked face of a room permanent,
+// or nil when the object is not a two-door room or is already unlocked.
 func roomLockedFace(o *state.Object) *cards.Face {
-	if o == nil || o.Unlocked || o.Card == nil || o.FaceIdx != 0 || len(o.Card.Faces) < 2 {
+	if o == nil || o.Unlocked || o.Card == nil || len(o.Card.Faces) != 2 || int(o.FaceIdx) >= len(o.Card.Faces) {
 		return nil
 	}
-	f := o.Card.Faces[1]
-	if !isRoomFace(o.Card.Faces[0]) {
+	locked := 1 - int(o.FaceIdx)
+	if !isRoomFace(o.Card.Faces[o.FaceIdx]) || !isRoomFace(o.Card.Faces[locked]) {
 		return nil
 	}
-	return f
+	return o.Card.Faces[locked]
+}
+
+// roomAlternateCastFace reports the other castable Room half. Both halves
+// must be Rooms, so generic split cards never enter through this path.
+func roomAlternateCastFace(o *state.Object) *cards.Face {
+	if o == nil || o.Card == nil || len(o.Card.Faces) != 2 || int(o.FaceIdx) >= len(o.Card.Faces) {
+		return nil
+	}
+	alt := 1 - int(o.FaceIdx)
+	if !isRoomFace(o.Card.Faces[o.FaceIdx]) || !isRoomFace(o.Card.Faces[alt]) {
+		return nil
+	}
+	return o.Card.Faces[alt]
 }
 
 // isRoomFace reports whether a face is a Room half (Enchantment Room). Both
@@ -77,10 +77,12 @@ func (e *Engine) checkUnlockTriggers(ev events.Event) {
 	if o == nil || o.Zone != state.ZBattlefield || !isRoom(o) || !o.Unlocked {
 		return
 	}
-	if len(o.Card.Faces) < 2 {
+	if o.Card == nil || len(o.Card.Faces) != 2 || int(o.FaceIdx) >= len(o.Card.Faces) {
 		return
 	}
-	alt := o.Card.Faces[1]
+	// DoorUnlock has already set Unlocked, so the face whose trigger fires is
+	// the one other than the face the Room was cast as.
+	alt := o.Card.Faces[1-int(o.FaceIdx)]
 	if !isRoomFace(alt) {
 		return
 	}

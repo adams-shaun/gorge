@@ -257,6 +257,21 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if e.castable(p, id, withSpellAbilityExtras(f, base), false) {
 			add("cast", "Cast "+f.Name, id)
 		}
+		// CR 309.4b: either door of a Room may be cast. Mode room_alt is
+		// consumed by beginCast, which records a FlipFace before the ordinary
+		// cast transaction; from then on every cost/target/resolution reader
+		// sees the selected face. This is structural over every two-door Room,
+		// not a card-name exception (Spiked Corridor is the front-trigger case).
+		if rf := roomAlternateCastFace(o); rf != nil {
+			instant := rf.IsInstant() || e.HasKeyword(id, "Flash")
+			if (instant || sorcery) && e.castTargetsAvailable(p, id, rf.SpellAbility()) {
+				cost := e.offerCostFor(p, id, ParseCost(rf.ManaCost), false)
+				if e.castable(p, id, withSpellAbilityExtras(rf, cost), false) {
+					out = append(out, decision.Option{Index: len(out), Kind: "cast",
+						Label: "Cast " + rf.Name, Obj: id, Mode: "room_alt"})
+				}
+			}
+		}
 		for i, alt := range e.alternativeCosts(p, id) {
 			// Ruling (Task 9 fix round 1, Important 1): this used to gate on
 			// mana-only alt.CanPay, but ParseCost now produces Sac/SubCounter/
@@ -512,7 +527,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				continue
 			}
 			if e.castable(p, id, e.offerCostFor(p, id, cost, true), true) {
-				add("unlock", "Unlock "+o.Card.Faces[1].Name, id)
+				add("unlock", "Unlock "+roomLockedFace(o).Name, id)
 			}
 		}
 	}

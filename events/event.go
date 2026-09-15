@@ -287,6 +287,12 @@ func (k Kind) String() string {
 	return "unknown"
 }
 
+// ExtraTurnSkipUntapText is the canonical Text marker on an ExtraTurn grant
+// whose Forge AddTurn source carries SkipUntap$ True. Text is already part of
+// Event's encoded union, so it preserves this turn-specific rider without a
+// schema change.
+const ExtraTurnSkipUntapText = "extra turn; skip untap"
+
 // Event is a state delta. The field set is a flat union so encoding stays
 // allocation-free and an external consumer needs no engine code to read it.
 type Event struct {

@@ -8,12 +8,18 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-func (e *Engine) beginTurn(active state.PlayerID) {
+func (e *Engine) beginTurn(active state.PlayerID, skipUntap ...bool) {
 	e.emit(events.Event{Kind: events.TurnChange, Player: active, Amount: e.G.Turn + 1})
-	e.setStep(state.StepUntap)
-	for _, id := range e.G.Zone(state.ZBattlefield, active) {
-		if e.G.Obj(id).Tapped {
-			e.emit(events.Event{Kind: events.Untap, Obj: id})
+	// CR 500.7 riders apply to the particular queued extra turn, not every
+	// later turn of its controller. The variadic form keeps ordinary callers
+	// explicit-free while advanceStep supplies the pending grant's SkipUntap.
+	skip := len(skipUntap) > 0 && skipUntap[0]
+	if !skip {
+		e.setStep(state.StepUntap)
+		for _, id := range e.G.Zone(state.ZBattlefield, active) {
+			if e.G.Obj(id).Tapped {
+				e.emit(events.Event{Kind: events.Untap, Obj: id})
+			}
 		}
 	}
 	e.setStep(state.StepUpkeep)
@@ -338,14 +344,15 @@ func (e *Engine) advanceStep() {
 		// no turn: it is consumed (so the fold agrees) and skipped, and the
 		// next pending grant, if any, is taken in the same cleanup.
 		for len(e.G.ExtraTurnQueue) > 0 {
-			seat := e.G.ExtraTurnQueue[len(e.G.ExtraTurnQueue)-1]
+			grant := e.G.ExtraTurnQueue[len(e.G.ExtraTurnQueue)-1]
+			seat := grant.Player
 			obj, counter := e.latestUnconsumedGrant(seat)
 			e.emit(events.Event{Kind: events.ExtraTurn, Player: seat, Amount: -1,
 				Obj: obj, Counter: counter})
 			if !e.G.Players[seat].Lost {
 				// beginTurn resets the pass count along with the repeated
 				// holder; the ordinary rotation pointer does not advance.
-				e.beginTurn(seat)
+				e.beginTurn(seat, grant.SkipUntap)
 				return
 			}
 		}

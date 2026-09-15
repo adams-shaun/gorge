@@ -62,8 +62,8 @@ func (e *Engine) staticEffects() []ContinuousEffect {
 			// permanent's rules text is both halves' combined after the
 			// unlock (CR 309.6), each face's Statics its own scan.
 			faces := []*cards.Face{f}
-			if o.Unlocked && isRoom(o) && len(o.Card.Faces) > 1 {
-				faces = append(faces, o.Card.Faces[1])
+			if o.Unlocked && isRoom(o) && len(o.Card.Faces) == 2 && int(o.FaceIdx) < len(o.Card.Faces) {
+				faces = append(faces, o.Card.Faces[1-int(o.FaceIdx)])
 			}
 			for _, fc := range faces {
 				for _, st := range fc.Statics {

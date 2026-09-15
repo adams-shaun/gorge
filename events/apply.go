@@ -97,13 +97,17 @@ func Apply(g *state.Game, e Event) {
 			if e.Amount > 0 {
 				// Amount is a number of distinct grants, not merely the
 				// aggregate counter. Keep one queue entry per granted turn so
-				// NumTurns$ 2 (Time Stretch) is consumed twice.
+				// NumTurns$ 2 (Time Stretch) is consumed twice. Text is an
+				// already encoded Event field; this canonical marker carries the
+				// Forge SkipUntap$ rider without changing Event's hash-chain
+				// schema.
+				skipUntap := e.Text == ExtraTurnSkipUntapText
 				for n := int32(0); n < e.Amount; n++ {
-					g.ExtraTurnQueue = append(g.ExtraTurnQueue, e.Player)
+					g.ExtraTurnQueue = append(g.ExtraTurnQueue, state.ExtraTurn{Player: e.Player, SkipUntap: skipUntap})
 				}
 			} else {
 				for i := len(g.ExtraTurnQueue) - 1; i >= 0; i-- {
-					if g.ExtraTurnQueue[i] == e.Player {
+					if g.ExtraTurnQueue[i].Player == e.Player {
 						g.ExtraTurnQueue = append(g.ExtraTurnQueue[:i], g.ExtraTurnQueue[i+1:]...)
 						break
 					}
