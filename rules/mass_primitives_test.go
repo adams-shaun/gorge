@@ -381,6 +381,33 @@ func TestFinalFortuneGrantsAndSpendsAnExtraTurn(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestTimeStretchQueuesEveryGrantedTurn is AddTurn's multi-turn regression:
+// the real corpus Time Stretch has NumTurns$ 2, so its one grant event must
+// yield two separately consumed queue entries.
+func TestTimeStretchQueuesEveryGrantedTurn(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := corpusEngine(t, reg, []*cards.Card{lookup(t, reg, "Time Stretch")}, nil)
+	moveByName(t, e, 0, "Time Stretch", state.ZHand)
+	addMana(t, e, 0, "CCCCCCCCUU")
+	castNamed(t, e, "Time Stretch")
+	passToKind(t, e, decision.KTarget)
+	submitChoices(t, e, 0)
+	passUntilStackEmpty(t, e, 60)
+	if got := len(e.G.ExtraTurnQueue); got != 2 {
+		t.Fatalf("Time Stretch queued %d extra turns, want 2", got)
+	}
+	for want := 1; want >= 0; want-- {
+		e.setStep(state.StepCleanup)
+		e.advanceStep()
+		if got := len(e.G.ExtraTurnQueue); got != want {
+			t.Fatalf("after consumption queue length = %d, want %d", got, want)
+		}
+		if got := e.G.ExtraTurns[0]; got != want {
+			t.Fatalf("after consumption count = %d, want %d", got, want)
+		}
+	}
+}
+
 // TestNameStickerGoblinRollsAndFiresItsRanges is api:RollDice's leaf (real
 // corpus "Name Sticker" Goblin): the ETB trigger rolls a d20 (one Note), the
 // result's range sub adds the matching {R} amount, and the chained amass
@@ -590,6 +617,21 @@ func TestStationTapsASummoningSickCreatureForChargeCounters(t *testing.T) {
 	}
 	if got := e.G.Obj(brood).Counter("CHARGE"); got != 2 {
 		t.Fatalf("the spacecraft has %d charge counters, want 2 (the Bear's power)", got)
+	}
+}
+
+// TestStationUsesDerivedCreatureType covers CR 702.150's current
+// characteristics requirement: a noncreature permanent animated by a live
+// type-layer effect is a legal station tap.
+func TestStationUsesDerivedCreatureType(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	artifact := card(t, "Name:Animated Relic\nTypes:Artifact\nOracle:x\n")
+	e := corpusEngine(t, reg, []*cards.Card{lookup(t, reg, "Exploration Broodship"), artifact}, nil)
+	brood := moveByName(t, e, 0, "Exploration Broodship", state.ZBattlefield)
+	relic := moveByName(t, e, 0, "Animated Relic", state.ZBattlefield)
+	e.AddContinuous(state.ContinuousEffect{Source: relic, Controller: 0, Affects: "Card.Self", Layer: state.LType, AddTypes: []string{"Creature"}, UntilEOT: true})
+	if got := e.stationCandidates(0, brood); len(got) != 1 || got[0] != relic {
+		t.Fatalf("animated artifact station candidates = %v, want [%d]", got, relic)
 	}
 }
 

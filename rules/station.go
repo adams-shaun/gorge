@@ -39,6 +39,15 @@ const chooseStation chooseFor = iota + 9
 // is the cast flow's; no handler exists, by design.
 const chooseUnlock chooseFor = iota + 10
 
+func hasCreatureType(types []string) bool {
+	for _, typ := range types {
+		if typ == "Creature" {
+			return true
+		}
+	}
+	return false
+}
+
 // stationCandidates lists the creatures p controls that may be tapped for
 // Station: on the battlefield and untapped, not the spacecraft itself
 // ("Tap ANOTHER creature you control"). Summoning sickness does NOT
@@ -53,7 +62,7 @@ func (e *Engine) stationCandidates(p state.PlayerID, station state.ObjID) []stat
 			continue
 		}
 		o := e.G.Obj(id)
-		if o == nil || o.Tapped || !o.Face().IsCreature() {
+		if o == nil || o.Tapped || !hasCreatureType(e.Derived(id).Types) {
 			continue
 		}
 		out = append(out, id)

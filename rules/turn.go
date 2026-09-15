@@ -672,11 +672,15 @@ func (e *Engine) latestUnconsumedGrant(seat state.PlayerID) (state.ObjID, string
 			continue
 		}
 		if ev.Amount < 0 {
-			consumed++
+			consumed += int(-ev.Amount)
 			continue
 		}
-		if consumed > 0 {
-			consumed--
+		// One +Amount event records Amount individual grants. Earlier
+		// consumptions may account for only its newest entries; otherwise this
+		// event is the source of the next queue entry and its rider belongs to
+		// that turn too.
+		if consumed >= int(ev.Amount) {
+			consumed -= int(ev.Amount)
 			continue
 		}
 		return ev.Obj, ev.Counter

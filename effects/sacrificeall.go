@@ -1,57 +1,56 @@
 package effects
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
 func init() { Register("SacrificeAll", effSacrificeAll) }
 
-// effSacrificeAll implements the mass-sacrifice primitive (CR 701.16 in its
-// multi-object shape; 124 corpus files carry the API). Two shapes cover the
-// whole measured population:
+// effSacrificeAll implements the mass-sacrifice primitive (CR 701.16). With a
+// Defined$ object target it sacrifices those battlefield objects; otherwise
+// every player sacrifices every permanent matching ValidCards$ (default
+// Permanent). RememberSacrificed$ preserves LKI for a following sub-ability.
 //
-//   - A Defined$-carrying line (Defined$ Targeted/Remembered/ChosenCard/
-//     Self/...): every OBJECT target Defined resolves that is still on the
-//     battlefield is sacrificed by its own controller, exactly the object
-//     path of effSacrifice -- the targeting step already chose which objects,
-//     so ValidCards$ does not re-filter them (and would misfire on the
-//     corpus's "Card.ChosenCardStrict"-style specs whose extra predicates the
-//     filter grammar fails closed on). `Controller$ You` (15 lines, all
-//     planeswalker ultimates' "you sacrifice it" riders) is the same object
-//     sacrifice -- the controller named is the sacrificer, which the move's
-//     "sacrificed" text records either way.
-//
-//   - A ValidCards$-carrying (or bare) line with no Defined$: each player
-//     sacrifices EVERY permanent they control matching the spec (All Is
-//     Dust's "each player sacrifices all permanents they control that are one
-//     or more colors"). The default spec is "Permanent" -- CR 701.16's
-//     "player sacrifices a permanent" reading, and the same default
-//     effSacrifice uses. The spec is evaluated with the resolving spell's
-//     controller as the spec's "You" (Emrakul's Creature.YouCtrl means the
-//     spell's controller's creatures), matching effDestroyAll's own context
-//     choice.
-//
-// Sacrifice ignores Indestructible and never consults the regeneration
-// shield (sacrifice is not destruction, CR 701.16a), the same convention
-// effSacrifice documents. RememberSacrificed$ True captures the LKI snapshot
-// of each sacrificed object into Ctx.Sacrificed for a chained SubAbility$, the
-// same channel effSacrifice feeds.
-//
-// Deliberately unread (6 corpus lines, all `UnlessCost$` + `UnlessPayer$`
-// compensated-sacrifice riders): the Unless machinery that effCounter prices
-// is not wired here; those lines' sacrifice degrades to unconditional. A Note
-// marks the first one so the gap is visible in a transcript rather than
-// silent.
+// UnlessCost$ is a real may-pay continuation: the named payer can pay to
+// prevent the whole sacrifice. The common engine continuation owns mana
+// payment, so this effect only poses the ask and interprets its answer.
 func effSacrificeAll(h Host, c *Ctx, sa *cards.SA) {
+	if cost := strings.TrimSpace(sa.Params["UnlessCost"]); cost != "" {
+		ans := c.UnlessPay
+		c.UnlessPay = ""
+		switch ans {
+		case "pay":
+			return
+		case "decline":
+			// Continue into the sacrifice below.
+		default:
+			payer := sacrificeAllPayer(h, c, sa)
+			d := &decision.Decision{Player: payer, Kind: decision.KModes,
+				Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay", ResumeSA: sa,
+				Prompt: "Pay " + cost + " to prevent the sacrifice, or decline",
+				Options: []decision.Option{
+					{Index: 0, Kind: "mode", Label: "Pay " + cost + " — prevent the sacrifice", Obj: c.Source, Player: payer},
+					{Index: 1, Kind: "mode", Label: "Don't pay — sacrifice", Obj: c.Source, Player: payer},
+				}}
+			if h.Ask(d) {
+				return
+			}
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "may pay declined (UnlessCost not asked on this host)"})
+		}
+	}
+
 	g := h.Game()
 	spec := sa.Params["ValidCards"]
 	if spec == "" {
 		spec = "Permanent"
 	}
 	remember := sa.Params["RememberSacrificed"] != ""
-	unlessMarked := false
 	sacrifice := func(id state.ObjID) {
 		o := g.Obj(id)
 		if o == nil || o.Zone != state.ZBattlefield {
@@ -65,20 +64,13 @@ func effSacrificeAll(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if def := sa.Params["Defined"]; def != "" || sa.Params["ValidTgts"] != "" {
 		for _, t := range Defined(h, c, sa) {
-			if t.IsPlayer {
-				continue
+			if !t.IsPlayer {
+				sacrifice(t.Obj)
 			}
-			sacrifice(t.Obj)
-		}
-		if sa.Params["UnlessCost"] != "" && !unlessMarked {
-			unlessMarked = true
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "SacrificeAll UnlessCost$ unread; the sacrifice is unconditional"})
 		}
 		return
 	}
 	for _, p := range g.AliveFrom(0) {
-		// Snapshot the zone: the emits below mutate it underneath us.
 		ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, p)...)
 		for _, id := range ids {
 			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
@@ -86,8 +78,27 @@ func effSacrificeAll(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
-	if sa.Params["UnlessCost"] != "" && !unlessMarked {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "SacrificeAll UnlessCost$ unread; the sacrifice is unconditional"})
+}
+
+// sacrificeAllPayer resolves every payer spelling used by the corpus's six
+// compensated-sacrifice scripts. EnchantedController is the controller of
+// this Aura's attached permanent; the target is deliberately not used because
+// the trigger has no target. Unknown future spellings fail conservatively to
+// the resolving controller, the same default the other unless-pay effects use.
+func sacrificeAllPayer(h Host, c *Ctx, sa *cards.SA) state.PlayerID {
+	switch strings.TrimSpace(sa.Params["UnlessPayer"]) {
+	case "", "You":
+		return c.Controller
+	case "EnchantedController":
+		if src := h.Game().Obj(c.Source); src != nil && src.AttachedTo != 0 {
+			if enchanted := h.Game().Obj(src.AttachedTo); enchanted != nil {
+				return enchanted.Controller
+			}
+		}
+	case "Targeted", "TargetedController", "TargetedOrController":
+		if len(c.Targets) > 0 {
+			return PlayerOf(h, c, c.Targets[0])
+		}
 	}
+	return c.Controller
 }

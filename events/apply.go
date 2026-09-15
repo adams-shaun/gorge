@@ -95,7 +95,12 @@ func Apply(g *state.Game, e Event) {
 				g.ExtraTurns[e.Player] = 0
 			}
 			if e.Amount > 0 {
-				g.ExtraTurnQueue = append(g.ExtraTurnQueue, e.Player)
+				// Amount is a number of distinct grants, not merely the
+				// aggregate counter. Keep one queue entry per granted turn so
+				// NumTurns$ 2 (Time Stretch) is consumed twice.
+				for n := int32(0); n < e.Amount; n++ {
+					g.ExtraTurnQueue = append(g.ExtraTurnQueue, e.Player)
+				}
 			} else {
 				for i := len(g.ExtraTurnQueue) - 1; i >= 0; i-- {
 					if g.ExtraTurnQueue[i] == e.Player {
