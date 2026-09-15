@@ -3,6 +3,7 @@ package rules
 import (
 	"math"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -65,6 +66,21 @@ type Cost struct {
 	TapPermanent []CostPart
 	Blight       []CostPart
 	Forage       bool
+
+	// Unknown lists the HEAD (the text before any "<...>") of every cost
+	// token this parse did not model, in order of appearance, deduplicated.
+	// A token lands here exactly when ParseCost could not give it real
+	// semantics and priced it as one generic mana (or one life-equivalent
+	// of nothing) instead: the final unrecognised-symbol fallback AND the
+	// malformed/out-of-range instances of otherwise-recognised heads (an
+	// unparseable or int-overflow "PayLife<...>", "Sac<...>",
+	// "AddCounter<...>" value — the head is known, that INSTANCE is not
+	// modelled). Payment behaviour is unchanged by this field: it is a pure
+	// report, read by the parameter census (rules/paramcensus_test.go) so
+	// the repo-deck ratchet can name cost tokens a card's script carries
+	// that the engine silently substitutes generic mana for (e.g. Chthonian
+	// Nightmare's "PayEnergy<X> ... Return<1/CARDNAME>").
+	Unknown []string
 }
 
 // nonManaCost matches Sac<N/Spec>, Discard<N/Spec>, and SubCounter<N/Kind> tokens. Forge
@@ -135,7 +151,11 @@ func ParseCost(s string) Cost {
 			if m := choiceCost.FindStringSubmatch(sym); m != nil {
 				n, err := strconv.ParseInt(m[2], 10, 64)
 				if err != nil || n <= 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
 					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
 					continue
 				}
 				part := CostPart{N: int32(n), Spec: strings.ReplaceAll(m[3], ";", ",")}
@@ -152,7 +172,11 @@ func ParseCost(s string) Cost {
 			if m := blightCost.FindStringSubmatch(sym); m != nil {
 				n, err := strconv.ParseInt(m[1], 10, 64)
 				if err != nil || n <= 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
 					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
 					continue
 				}
 				c.Blight = append(c.Blight, CostPart{N: int32(n), Spec: "Creature.YouCtrl"})
@@ -162,8 +186,10 @@ func ParseCost(s string) Cost {
 				n, err := strconv.ParseInt(m[1], 10, 64)
 				if err != nil || n < 0 || n > int64(math.MaxInt32) {
 					// Keep an out-of-range PayLife token on the same safe fallback
-					// as every other malformed cost token.
+					// as every other malformed cost token -- and REPORT it: the
+					// head is recognised, this instance is not modelled.
 					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
 					continue
 				}
 				c.Life = addClampedGeneric(c.Life, n)
@@ -174,8 +200,10 @@ func ParseCost(s string) Cost {
 				if err != nil || n < 0 || n > int64(math.MaxInt32) {
 					// A malformed Sac/Discard/SubCounter token degrades the same way
 					// an unrecognised mana token does: one generic mana,
-					// never a hard parse error.
+					// never a hard parse error -- and is reported (the head is
+					// recognised, this instance is not modelled).
 					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
 					continue
 				}
 				// Fold Forge's ";" OR alternation into the "," MatchesSpec
@@ -195,7 +223,11 @@ func ParseCost(s string) Cost {
 			if m := exileCost.FindStringSubmatch(sym); m != nil {
 				n, err := strconv.ParseInt(m[2], 10, 64)
 				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
 					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
 					continue
 				}
 				spec := strings.ReplaceAll(m[3], ";", ",")
@@ -210,8 +242,9 @@ func ParseCost(s string) Cost {
 				n, err := strconv.ParseInt(m[1], 10, 64)
 				if err != nil || n < 0 || n > int64(math.MaxInt32) {
 					// Same degrade-to-one-generic fallback as the other
-					// malformed tokens.
+					// malformed tokens -- and reported for the same reason.
 					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
 					continue
 				}
 				spec := strings.ReplaceAll(m[2], ";", ",")
@@ -225,11 +258,27 @@ func ParseCost(s string) Cost {
 				continue
 			}
 			// An unrecognised symbol (including a malformed hybrid/Phyrexian
-			// token) degrades to one generic mana, never a hard parse error.
+			// token) degrades to one generic mana, never a hard parse error -- and
+			// is REPORTED as unmodelled (Cost.Unknown), so the parameter census
+			// can name it instead of the substitution staying silent.
+			c.reportUnknown(sym)
 			c.Generic = addClampedGeneric(c.Generic, 1)
 		}
 	}
 	return c
+}
+
+// reportUnknown records the head of one degraded cost token in Unknown,
+// in order, deduplicated. Used by the final unrecognised-symbol fallback AND
+// by the malformed-instance branches of the recognised heads: both shapes
+// priced one generic without real semantics, so both are unmodelled.
+func (c *Cost) reportUnknown(sym string) {
+	if i := strings.IndexByte(sym, '<'); i > 0 {
+		sym = sym[:i]
+	}
+	if !slices.Contains(c.Unknown, sym) {
+		c.Unknown = append(c.Unknown, sym)
+	}
 }
 
 // splitCostTokens splits a cost string on whitespace, but keeps each <...>
