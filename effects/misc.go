@@ -389,11 +389,13 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 					{Index: 0, Kind: "mode", Label: "Pay " + shown + " — don't counter", Obj: c.Source, Player: payer},
 					{Index: 1, Kind: "mode", Label: "Don't pay", Obj: c.Source, Player: payer},
 				}}
-			if h.Ask(d) {
+			if Ask(h, d) == AskAsked {
 				return // resolution suspended; the answer re-enters this effect.
 			}
 			// Fuzz/no-engine host: the deterministic decline (R-9). The pay
 			// was never posed, so resolve as if the player declined: counter.
+			// (AskEmpty is unreachable by construction -- Min == Max == 1 over
+			// two options -- but the shared helper owns the guard either way.)
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "may pay declined (UnlessCost not asked on this host)"})
 		}
@@ -658,11 +660,14 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		d.Options = append(d.Options, decision.Option{
 			Index: i, Kind: "mode", Label: label, Obj: c.Source, Player: c.Controller})
 	}
-	if h.Ask(d) {
+	if Ask(h, d) == AskAsked {
 		return // resolution suspended; the answer re-enters this effect with Ctx.Modes set.
 	}
 	// Fuzz/no-engine host: the deterministic first-mode default (R-9), with
-	// the Note that records why the richer path did not run.
+	// the Note that records why the richer path did not run. (AskEmpty is
+	// unreachable by construction -- charmNum is clamped to >= 1 and
+	// strings.Split never yields fewer than one choice -- but the shared
+	// helper owns the guard either way.)
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 		Text: "chose its first mode (no engine host to ask)"})
 	if subs[0] != nil {

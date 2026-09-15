@@ -39,6 +39,8 @@
     view,
     seats,
     decision,
+    stuck = null,
+    onContinue = null,
     emphasizeTop = false,
     events = [],
     showLog = true,
@@ -51,6 +53,9 @@
     view: View;
     seats: SeatInfo[];
     decision: DecisionBody | null;
+    /** stuck/onContinue forward the empty-answer safety net to the pending tray (see PendingTray): the viewer seat's own option-less decision, named — and, when the empty answer is legal, continuable. Optional so every existing caller renders exactly as before. */
+    stuck?: { prompt: string; answerable: boolean } | null;
+    onContinue?: (() => void) | null;
     emphasizeTop?: boolean;
     /** the DVR's own event list, forwarded to SeatTable for the PlayerLost cause (Task: dead seats say why) and read by no one else here. Optional so every existing caller/test keeps rendering exactly as before with no cause shown. */
     events?: { event: { kind: string; player: number; text?: string } }[];
@@ -151,7 +156,7 @@
 
   <section class="pending">
     <h3>Pending</h3>
-    <PendingTray pending={view.pending} />
+    <PendingTray pending={view.pending} {stuck} {onContinue} />
   </section>
 </div>
 

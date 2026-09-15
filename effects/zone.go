@@ -312,15 +312,22 @@ func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
 			Kind: "hand_move", Label: name, Obj: id, Player: c.Controller})
 	}
-	if h.Ask(d) {
+	// The shared ask boundary (effects.Ask): a ChangeNum$ 0 pick over a
+	// nonempty eligible hand is Min == Max == 0 -- the empty-answer-only
+	// shape -- so it is never posted; AskEmpty resolves silently through the
+	// stand-in below, which moves zero cards.
+	oc := Ask(h, d)
+	if oc == AskAsked {
 		return // resolution suspended; the answer re-enters with Ctx.HandMove set.
 	}
 	// R-9: a host without a decision channel cannot ask a player, so it
 	// supplies the deterministic answer in the player's place -- the first
 	// ChangeNum eligible cards in the same ordered eligible list the
 	// decision's options were built from.
-	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-		Text: "moves the first matching card(s) from hand (no engine host to ask)"})
+	if oc == AskNoHost {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "moves the first matching card(s) from hand (no engine host to ask)"})
+	}
 	for i := int32(0); i < n && i < int32(len(eligible)); i++ {
 		settleHandMove(eligible[i])
 	}
@@ -378,6 +385,9 @@ func withCounterAmount(h Host, c *Ctx, sa *cards.SA) int32 {
 // restarting the primitive would otherwise re-ask the first library. The
 // narrowing and its measured corpus population are recorded in AGENTS.md.
 func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
+	if definedLibraryObjects(h, c, sa) {
+		return
+	}
 	players := searchPlayers(h, c, sa)
 	if len(players) == 0 {
 		return
@@ -444,7 +454,15 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
 			Kind: "search", Label: name, Obj: id, Player: owner})
 	}
-	if h.Ask(d) {
+	// The shared ask boundary (effects.Ask) refuses to post a decision whose
+	// only legal answer is the empty one -- with zero eligible cards max
+	// clamps to 0 and a stated-quality search's Min is already 0, so that is
+	// exactly the Squadron Hawk fail-to-find shape that used to soft-lock the
+	// game. AskEmpty resolves it silently through the stand-in below: the
+	// search still shuffles, and a fail-to-find is legitimate under
+	// CR 701.23b, so nothing is degraded and no R-9 Note is recorded.
+	oc := Ask(h, d)
+	if oc == AskAsked {
 		return
 	}
 	// R-9: a host without a decision channel cannot ask a player, so it
@@ -456,7 +474,9 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	// (701.23d's "as many as possible"). For a stated-quality search
 	// (CR 701.23b) finding nothing is a legitimate fail-to-find, so the
 	// stand-in still finds nothing, exactly as before. Either way the
-	// search's unconditional shuffle still happens.
+	// search's unconditional shuffle still happens. An AskEmpty run takes
+	// the same stand-in silently (no Note): skipping the ask is the correct
+	// resolution, not a degradation.
 	var picked []state.ObjID
 	if !SearchStatesQuality(spec) {
 		n := int(min)
@@ -466,13 +486,52 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		if n > 0 {
 			picked = append(picked, eligible[:n]...)
 		}
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
-			Text: "finds " + strconv.Itoa(n) + " card(s) (no engine host to ask)"})
-	} else {
+		if oc == AskNoHost {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
+				Text: "finds " + strconv.Itoa(n) + " card(s) (no engine host to ask)"})
+		}
+	} else if oc == AskNoHost {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
 			Text: "finds no card (no engine host to ask)"})
 	}
 	applyLibrarySearch(h, c, sa, owner, to, picked)
+}
+
+// definedLibraryObjects reports the ChangeType-less exact-`Origin$ Library`
+// ChangeZone whose Defined$ names OBJECTS rather than a library owner: the
+// "put the rest into your hand" step of Nissa's Pilgrimage (DBHand), Navigation
+// Orb and Troop of Ponies, all spelled `Defined$ Remembered` over the cards an
+// earlier search in the chain remembered. That is a move of already-known
+// cards (Forge's hidden-origin fetch list), not a search, and moving them is
+// unimplemented (ticket rv2d-nissas-pilgrimage-defined-library-fetch). Such a
+// step resolves with no ask and no move.
+//
+// Read as a filter search instead, Defined$ selected the library owner and
+// ChangeType defaulted to `Card`, so the step posed a mandatory pick-1 over the
+// owner's WHOLE library -- every hidden card by name -- whose resume then moved
+// nothing, because the resumed Ctx had lost the remembered set that named the
+// owner. The final state is unchanged by skipping it; only the leaking ask is
+// gone. The shape became routinely reachable once an empty-answer-only
+// sub-search stopped suspending the chain (effects.Ask keeps the Remembered set
+// alive into the next step), which is why the guard lives with that fix.
+//
+// Defined$ is resolved, not pattern-matched: a Defined$ that yields a player
+// (Defined$ You) still searches that player's library as before, and one that
+// yields nothing reaches searchPlayers' existing "no library" return.
+// DefinedPlayer$ always names a library owner, so it never takes this path.
+func definedLibraryObjects(h Host, c *Ctx, sa *cards.SA) bool {
+	if sa.Params["ChangeType"] != "" || strings.TrimSpace(sa.Params["Defined"]) == "" {
+		return false
+	}
+	if _, owner := sa.Params["DefinedPlayer"]; owner {
+		return false
+	}
+	for _, t := range Defined(h, c, sa) {
+		if !t.IsPlayer {
+			return true
+		}
+	}
+	return false
 }
 
 // searchPlayers resolves whose library is searched. DefinedPlayer$ takes
