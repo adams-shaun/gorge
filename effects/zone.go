@@ -385,6 +385,9 @@ func withCounterAmount(h Host, c *Ctx, sa *cards.SA) int32 {
 // restarting the primitive would otherwise re-ask the first library. The
 // narrowing and its measured corpus population are recorded in AGENTS.md.
 func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
+	if definedLibraryObjects(h, c, sa) {
+		return
+	}
 	players := searchPlayers(h, c, sa)
 	if len(players) == 0 {
 		return
@@ -402,19 +405,6 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		return
 	}
 
-	// NOTE (review r2): a ChangeType-less exact-`Origin$ Library` ChangeZone
-	// whose Defined$ names OBJECTS (Nissa's Pilgrimage's DBHand "the rest
-	// into your hand", `Defined$ Remembered`) is deliberately NOT given a
-	// special object-dispatch here. It keeps the pre-existing stand-in:
-	// Defined$ is read as the library-OWNER selector and the filter search
-	// below runs with the default `Card` spec, so the chained move offers
-	// the whole library as a take-anything pick-1. That narrowing became
-	// REACHABLE when the empty-answer-only fail-to-find stopped suspending
-	// the chain (the mid-resolution Remembered set now survives into the
-	// chained move), and an implementation of the object-dispatch shape was
-	// attempted and REJECTED in review as unauthorised scope for the
-	// empty-choose task. It is recorded in AGENTS.md's Count$Compare row and
-	// awaits its own brief.
 	spec := sa.Params["ChangeType"]
 	if spec == "" {
 		spec = "Card"
@@ -505,6 +495,43 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 			Text: "finds no card (no engine host to ask)"})
 	}
 	applyLibrarySearch(h, c, sa, owner, to, picked)
+}
+
+// definedLibraryObjects reports the ChangeType-less exact-`Origin$ Library`
+// ChangeZone whose Defined$ names OBJECTS rather than a library owner: the
+// "put the rest into your hand" step of Nissa's Pilgrimage (DBHand), Navigation
+// Orb and Troop of Ponies, all spelled `Defined$ Remembered` over the cards an
+// earlier search in the chain remembered. That is a move of already-known
+// cards (Forge's hidden-origin fetch list), not a search, and moving them is
+// unimplemented (ticket rv2d-nissas-pilgrimage-defined-library-fetch). Such a
+// step resolves with no ask and no move.
+//
+// Read as a filter search instead, Defined$ selected the library owner and
+// ChangeType defaulted to `Card`, so the step posed a mandatory pick-1 over the
+// owner's WHOLE library -- every hidden card by name -- whose resume then moved
+// nothing, because the resumed Ctx had lost the remembered set that named the
+// owner. The final state is unchanged by skipping it; only the leaking ask is
+// gone. The shape became routinely reachable once an empty-answer-only
+// sub-search stopped suspending the chain (effects.Ask keeps the Remembered set
+// alive into the next step), which is why the guard lives with that fix.
+//
+// Defined$ is resolved, not pattern-matched: a Defined$ that yields a player
+// (Defined$ You) still searches that player's library as before, and one that
+// yields nothing reaches searchPlayers' existing "no library" return.
+// DefinedPlayer$ always names a library owner, so it never takes this path.
+func definedLibraryObjects(h Host, c *Ctx, sa *cards.SA) bool {
+	if sa.Params["ChangeType"] != "" || strings.TrimSpace(sa.Params["Defined"]) == "" {
+		return false
+	}
+	if _, owner := sa.Params["DefinedPlayer"]; owner {
+		return false
+	}
+	for _, t := range Defined(h, c, sa) {
+		if !t.IsPlayer {
+			return true
+		}
+	}
+	return false
 }
 
 // searchPlayers resolves whose library is searched. DefinedPlayer$ takes
