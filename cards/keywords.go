@@ -104,9 +104,14 @@ func (f *Face) expandKeywords() {
 				"DB$ Pump | Defined$ Self | NumAtt$ +1 | NumDef$ +1", has)
 		case "Annihilator":
 			// CR 702.86: each time this creature attacks, its defending
-			// player sacrifices the stated number of permanents.
+			// player sacrifices the stated number of permanents. The count
+			// rides the Annihilator$ marker itself rather than Amount$: the
+			// generated trigger is this repo's own shape (no raw corpus card
+			// carries an Annihilator$ param), and keeping Amount$ off the
+			// expansion leaves api:Sacrifice.Amount genuinely unread for the
+			// ordinary Sacrifice lines the parameter census still labels.
 			f.addKeywordTrigger(head, k, "Mode$ Attacks | ValidCard$ Card.Self | TriggerDescription$ Annihilator",
-				"DB$ Sacrifice | Defined$ TriggeredDefendingPlayer | Amount$ "+param+" | SacValid$ Permanent | Annihilator$ True", has)
+				"DB$ Sacrifice | Defined$ TriggeredDefendingPlayer | SacValid$ Permanent | Annihilator$ "+param, has)
 		case "Ward":
 			// Ward is a becomes-target trigger. Ward$ lets the matcher exclude
 			// the permanent's controller; the effect counters the targeting

@@ -1014,12 +1014,14 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 			// This ticket's multi-permanent amount and chooser belong only to the
-			// Annihilator expansion. Ordinary player-targeted Sacrifice retains its
-			// established one-permanent behavior until that broader primitive is
-			// implemented as its own task.
+			// Annihilator expansion, whose generated SA carries the count in its
+			// Annihilator$ marker (cards/keywords.go) so that Amount$ stays a
+			// genuinely unread parameter for ordinary Sacrifice lines. Ordinary
+			// player-targeted Sacrifice retains its established one-permanent
+			// behavior until that broader primitive is implemented as its own task.
 			n := 1
-			if sa.Params["Annihilator"] == "True" {
-				if v, err := strconv.Atoi(sa.Params["Amount"]); err == nil && v >= 0 {
+			if ann := sa.Params["Annihilator"]; ann != "" {
+				if v, err := strconv.Atoi(ann); err == nil && v >= 0 {
 					n = v
 				}
 			}
@@ -1037,7 +1039,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			c.Sacrifice = nil
 			// Annihilator's one defending player makes this ask resumable without
 			// changing the established multi-player Sacrifice fallback.
-			if chosen == nil && sa.Params["Annihilator"] == "True" && len(eligible) > n {
+			if chosen == nil && sa.Params["Annihilator"] != "" && len(eligible) > n {
 				opts := make([]decision.Option, 0, len(eligible))
 				for _, id := range eligible {
 					opts = append(opts, decision.Option{Index: len(opts), Kind: "sacrifice", Obj: id, Label: g.Obj(id).Face().Name})

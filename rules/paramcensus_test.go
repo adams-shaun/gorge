@@ -1108,6 +1108,14 @@ var apiSpecificRulesSA = map[string][]string{
 	// suspend with an UnlessCost$ ask, so resumeResolution's UnlessCost$
 	// read belongs to those two APIs alone.
 	"Engine.resumeResolution": {"Counter", "CopySpellAbility"},
+	// The ward payment path: only the Ward keyword's expanded trigger
+	// reaches these (resumeResolution dispatches on rp.sa.API == "Ward"),
+	// so their UnlessCost$ reads belong to api:Ward alone -- left in the
+	// generic union they would mask every other API's unread UnlessCost$
+	// (measured: api:Tap on Blood Crypt/Hallowed Fountain, api:Sacrifice on
+	// Vexing Devil, api:LoseLife on Torment of Hailfire's shape).
+	"Engine.beginWardPayment":  {"Ward"},
+	"Engine.settleWardPayment": {"Ward"},
 }
 
 // handRoots declares ATTRIBUTION (which function to read for a primitive) for
