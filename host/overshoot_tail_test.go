@@ -23,12 +23,15 @@ package host
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/internal/testutil/feedback"
 	"github.com/adams-shaun/gorge/protocol"
 	"github.com/adams-shaun/gorge/replay"
 	"github.com/adams-shaun/gorge/seat"
@@ -471,5 +474,76 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 	last := snap.Log.Events[len(snap.Log.Events)-1]
 	if last.Kind != events.DecisionAsk {
 		t.Fatalf("crashed capture ends with %s, want the DecisionAsk boundary", last.Kind)
+	}
+}
+
+// committedCaptureRel is the REAL fb-20260915T094418Z capture, committed as
+// a fixture beside cmd/repro's fixture set (testdata — a fixture, not a
+// production package; cmd/repro's Go sources stay untouched, per the task's
+// host-only scope). The capture was recorded by the pre-fix host: its
+// reconcileLog cut the parked burst's overshoot tail (the two real events
+// after the commander_zone ask — the "lethal damage" sweep and the
+// end-combat step change) from log.json while the head field stayed the
+// chain hash over the FULL 1326-event stream. The committed copy carries
+// that tail RECONSTRUCTED: the recorded intents' replay reproduced it
+// byte for byte and the chain proves it (the trimmed prefix chains to
+// d5b4fa8fa12b16e7, the full stream to the recorded 7e35c9a40dedff68 —
+// measured at repair time), so the fixture verifies under plain
+// replay.Replay with no cut-tail tolerance anywhere and cmd/repro on it
+// exits 0. The test pins both, so an engine or corpus move that breaks the
+// capture fails loudly here instead of leaving a stale fixture behind.
+const committedCaptureRel = "../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
+
+// requireCommittedCapture skips when the worktree has no .cards/ corpus:
+// the capture replays against it (tokens resolve through the gitignored
+// sync dir when present, else the corpus at the same FORGE_REF — both
+// paths measured to replay). Skipping without a corpus matches
+// testutil.CorpusRegistry's convention; a green run without the corpus
+// proves nothing.
+func requireCommittedCapture(t *testing.T) {
+	t.Helper()
+	root, err := feedback.Root()
+	if err != nil {
+		t.Skipf("no repo root: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".cards")); err != nil {
+		t.Skip("no .cards/ corpus present — the committed capture cannot replay")
+	}
+}
+
+// TestCommittedOvershootCaptureReplaysToTheParkedAsk is the committed
+// capture's gate: the REAL reported match, parked on seat 0's commander_zone
+// ask with its overshoot tail on the log, verifies under plain
+// replay.Replay (no tolerance, host or otherwise) and the rebuilt engine is
+// parked on that ask — the state cmd/repro prints and a -emit-test
+// skeleton starts from.
+func TestCommittedOvershootCaptureReplaysToTheParkedAsk(t *testing.T) {
+	requireCommittedCapture(t)
+	l, cfg, meta, err := feedback.Load(committedCaptureRel)
+	if err != nil {
+		t.Fatalf("feedback.Load: %v", err)
+	}
+	if n := len(l.Events); n != 1326 {
+		t.Fatalf("capture carries %d events, want the full 1326-event stream (tail reconstructed)", n)
+	}
+	e, err := replay.Replay(l, cfg)
+	if err != nil {
+		t.Fatalf("replay.Replay: %v — the committed capture no longer verifies", err)
+	}
+	if got, want := e.L.Head(), meta.Head; got != want {
+		t.Fatalf("replayed head %q, want the recorded %q", got, want)
+	}
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KCommanderZone || d.Player != 0 {
+		t.Fatalf("pending is %+v, want seat 0's commander_zone ask", d)
+	}
+	// The tail events are on the rebuilt log, after the ask that parked it:
+	// the sweep and the step change the old host's capture cut.
+	last := l.Events[len(l.Events)-1]
+	if last.Kind != events.StepChange || last.Step != state.StepEndCombat {
+		t.Fatalf("capture ends with %+v, want the post-ask end-combat step change", last)
+	}
+	if sweep := l.Events[len(l.Events)-2]; sweep.Kind != events.MoveZone || sweep.Text != "lethal damage" {
+		t.Fatalf("second-to-last event is %+v, want the post-ask lethal-damage sweep", sweep)
 	}
 }

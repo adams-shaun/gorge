@@ -7345,6 +7345,19 @@
       "seq": 1323,
       "kind": 20,
       "text": "commander_zone"
+    },
+    {
+      "seq": 1324,
+      "kind": 2,
+      "obj": 112,
+      "from": 2,
+      "to": 3,
+      "text": "lethal damage"
+    },
+    {
+      "seq": 1325,
+      "kind": 8,
+      "step": 8
     }
   ],
   "intents": [

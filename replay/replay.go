@@ -28,7 +28,6 @@
 package replay
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/adams-shaun/gorge/events"
@@ -158,42 +157,6 @@ func Replay(l *events.Log, cfg rules.Config) (*rules.Engine, error) {
 		}
 	}
 	return e, nil
-}
-
-// CutTailReplayed reports whether err — a *Divergence that Replay or
-// ReplayTo returned — is the one shape a recording CUT AT A BURST TAIL
-// produces, and the cut tail is nonetheless verified: every recorded event
-// reproduced byte for byte (the incremental compare passed the whole
-// recording), the replay then running past the recording's end (Missing)
-// because the last recorded burst's own post-ask continuation — the SBA
-// pass and step handler a mid-burst DecisionAsk does not stop (rules
-// Engine.Submit) — legitimately emitted events the recording does not
-// carry (fb-20260915T094418Z), and the reproduced stream — reconstructed
-// tail included — chaining to recordedHead.
-//
-// The chain comparison is the whole proof, and it is what makes accepting
-// the shape safe: a head taken over the FULL stream at capture time (a
-// sidecar's, or log.json's, both of which hash the complete live log the
-// recorder held, not the trimmed copy it may have written) matches only a
-// byte-exact reproduction of that stream, so an accepted tail is exactly
-// what the live engine logged — never whatever the current engine happens
-// to produce. A corpus or engine change that alters any event, recorded or
-// tail, breaks the chain and leaves the divergence reported as-is.
-//
-// e is the engine Replay/ReplayTo returned alongside err (non-nil once a
-// log was supplied); recordedHead is the caller's own full-stream head. An
-// empty recordedHead matches nothing — a caller with no trusted full-stream
-// head has no way to verify a tail it cannot see, and must keep treating
-// the divergence as the error it is.
-func CutTailReplayed(err error, e *rules.Engine, recordedHead string) bool {
-	if err == nil || e == nil || recordedHead == "" {
-		return false
-	}
-	var div *Divergence
-	if !errors.As(err, &div) || !div.Missing {
-		return false
-	}
-	return e.L.Head() == recordedHead
 }
 
 // ReplayTo rebuilds state as of the first n recorded Intents and returns the

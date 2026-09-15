@@ -128,25 +128,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 // redundant head stored by the feedback capture. replay.Replay validates the
 // event stream's own chain; the explicit meta.Head check also catches a
 // log.json whose head field alone was corrupted.
-//
-// One recorded shape is tolerated rather than verified prefix-wise
-// (fb-20260915T094418Z): a capture whose server ran the pre-fix host —
-// SnapshotForFeedback reconciled the cloned log to the last burst's ask
-// boundary, cutting the burst's real overshoot tail, while log.json's head
-// field was taken over the FULL chain. The replay of the recorded intents
-// then runs past the recording's end; when the chain proves the
-// reconstructed tail (replay.CutTailReplayed — a head over the full stream
-// matches only a byte-exact reproduction, tail included), the capture
-// verifies exactly as an uncut one would. A corpus change that alters any
-// event, recorded or tail, still breaks the chain and still reports as a
-// divergence.
 func replayCapture(l *events.Log, cfg rules.Config, meta feedback.Meta) (*rules.Engine, error) {
 	e, err := replay.Replay(l, cfg)
 	if err != nil {
-		if !replay.CutTailReplayed(err, e, meta.Head) {
-			return e, err
-		}
-		return e, nil
+		return e, err
 	}
 	if len(e.L.Events) != len(l.Events) {
 		return e, fmt.Errorf("replay reached %d events, the recording has %d", len(e.L.Events), len(l.Events))

@@ -1,6 +1,7 @@
 package host
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -283,7 +284,7 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 		// transition, so a replayed log reaching the same head — and the
 		// same recorded event count — reproduced the cut tail byte for byte.
 		// Anything else stays the rejection it was.
-		if !(replay.CutTailReplayed(err, e, sc.Head) && len(e.L.Events) == sc.Events) {
+		if !(cutTailReplayed(err, e, sc.Head) && len(e.L.Events) == sc.Events) {
 			return nil, fmt.Errorf("host: %s/%d does not replay: %w", t.cfg.ID, sc.Match, err)
 		}
 		// Accepted: the engine's own log is the full, chain-verified stream,
@@ -294,6 +295,37 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 	return &match{table: t, k: sc.Match, seed: sc.Seed, cfg: cfg, seats: sc.Seats, decks: sc.Decks, e: e,
 		bounds: boundsOf(l.Events), turnStarts: turnStartsIn(l.Events, 0), state: sc.State, result: sc.Result,
 		winner: sc.Winner, head: sc.Head}, nil
+}
+
+// cutTailReplayed reports whether err — a *replay.Divergence that
+// replay.Replay returned — is the one shape a recording CUT AT A BURST
+// TAIL produces, and the cut tail is nonetheless verified: every recorded
+// event reproduced byte for byte (the incremental compare passed the whole
+// recording), the replay then running past the recording's end (Missing)
+// because the last recorded burst's own post-ask continuation — the SBA
+// pass and step handler a mid-burst DecisionAsk does not stop (rules
+// Engine.Submit) — legitimately emitted events the trimmed recording does
+// not carry (fb-20260915T094418Z), and the reproduced stream —
+// reconstructed tail included — chaining to the sidecar's full-stream head.
+// The chain comparison is the whole proof: a head taken over the FULL
+// stream matches only a byte-exact reproduction of that stream, so an
+// accepted tail is exactly what the live engine logged. A corpus or engine
+// change that alters any event, recorded or tail, breaks the chain.
+//
+// e is the engine replay.Replay returned alongside err; recordedHead is
+// the caller's own full-stream head. An empty recordedHead matches
+// nothing — a caller with no trusted full-stream head has no way to verify
+// a tail it cannot see, and must keep treating the divergence as the error
+// it is.
+func cutTailReplayed(err error, e *rules.Engine, recordedHead string) bool {
+	if err == nil || e == nil || recordedHead == "" {
+		return false
+	}
+	var div *replay.Divergence
+	if !errors.As(err, &div) || !div.Missing {
+		return false
+	}
+	return e.L.Head() == recordedHead
 }
 
 // viewAt is PL-1: find the last intent boundary j with bounds[j] <= seq+1,
