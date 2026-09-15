@@ -301,8 +301,8 @@ func TestCastNonCreatureRanksByCostNotOracle(t *testing.T) {
 
 // of Forge ManaCost strings, mirroring rules/mana.go's ParseCost.CMC() the
 // way both adapter halves need it (no rules import, Ruling F7). {X} counts
-// as 0 off the stack, hybrid/Phyrexian/colourless as one generic, brace
-// form normalised, "no cost"/"" as 0.
+// as 0 off the stack, ordinary hybrid/Phyrexian/colourless as one generic,
+// monocolour hybrid at its generic face, brace form normalised, "no cost"/"" as 0.
 func TestCmcOf(t *testing.T) {
 	cases := map[string]int32{
 		"R":         1,
@@ -315,6 +315,9 @@ func TestCmcOf(t *testing.T) {
 		"G":         1,
 		"C":         1,
 		"{2}{U}{U}": 4,
+		"2W":        2,
+		"2/W":       2,
+		"{2/W}":     2,
 		"no cost":   0,
 		"":          0,
 	}

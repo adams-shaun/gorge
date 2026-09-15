@@ -392,8 +392,15 @@ func isDigitRun(s string) bool {
 }
 
 func (c Cost) CMC() int32 {
+	// A monocolour hybrid's mana value is its generic face, not one: {2/W}
+	// has mana value 2 (CR 202.4b). This matters to SetCost/MinMana floors
+	// before its payment face is announced.
+	twobrid := int32(0)
+	for _, t := range c.Twobrid {
+		twobrid = addClampedGeneric(twobrid, int64(t.Generic))
+	}
 	return c.Colored.Total() + c.Generic + int32(len(c.Hybrid)) + int32(len(c.Phyrexian)) +
-		int32(len(c.Twobrid)) + int32(len(c.HybridPhyrexian)) + c.Snow
+		twobrid + int32(len(c.HybridPhyrexian)) + c.Snow
 }
 
 // WithX folds a chosen X value into Generic, once per X symbol the cost

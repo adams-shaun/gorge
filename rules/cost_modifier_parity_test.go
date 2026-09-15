@@ -318,6 +318,36 @@ func TestTrinisphereSetCostFloor(t *testing.T) {
 	}
 }
 
+// TestTrinisphereSetCostDoesNotRaiseTwobridGenericFace pins CR 202.4b at
+// the SetCost boundary. {2/W} already has mana value 2 before its face is
+// announced; Trinisphere therefore adds only one generic to its generic-face
+// payment, letting exactly {C}{C}{C} pay the resulting {3}.
+func TestTrinisphereSetCostDoesNotRaiseTwobridGenericFace(t *testing.T) {
+	if got := ParseCost("2/W").CMC(); got != 2 {
+		t.Fatalf("{2/W} mana value = %d, want 2", got)
+	}
+	prowlerSrc := "Name:Prowler\nManaCost:2/W\nTypes:Creature Cat\nPT:2/1\nOracle:x\n"
+	e, cfg, prowler := newFixtureDeck(t, 681, prowlerSrc, trinisphereSrc)
+	putCreature(t, e, 0, trinisphereSrc)
+	addMana(t, e, 0, "CCC")
+
+	opt := castByName(t, e, 0, "Prowler")
+	if opt == nil {
+		t.Fatal("{2/W} under Trinisphere must be castable with exactly {C}{C}{C}")
+	}
+	submitChoices(t, e, opt.Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 1 || d.Options[0].Kind != "pay_generic" {
+		t.Fatalf("{2/W} generic-face choice under Trinisphere = %+v, want only pay_generic", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	if e.G.Obj(prowler).Zone != state.ZStack || e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("after {3} generic payment: zone=%s pool=%v, want stack and empty pool",
+			e.G.Obj(prowler).Zone, e.G.Players[0].Pool)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestSpectralProcessionTwobridPayments pins the monocolour hybrid: each
 // {2/W} pip is announced as one decision, payable by one white OR two
 // generic (CR 107.4e).
@@ -508,10 +538,9 @@ func TestSnowCostPaidOnlyBySnowMana(t *testing.T) {
 	if castByName(t, e, 0, "Icehide Golem") != nil {
 		t.Fatal("a plain colourless mana must not pay {S}")
 	}
-	// Tap the snow land for its colourless snow mana (the effMana tag).
-	e.emit(events.Event{Kind: events.Tap, Obj: wastes})
-	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "SC", Amount: 1})
-	e.priorityRound()
+	// Use the normal mana-ability path, not a hand-written ManaAdd: effMana
+	// must inspect the snow source and tag its output as snow mana.
+	activateMana(t, e, wastes)
 	if e.G.Players[0].Pool[state.MC] != 2 || e.G.Players[0].Snow[state.MC] != 1 {
 		t.Fatalf("pool %+v snow %+v after the snow tap", e.G.Players[0].Pool, e.G.Players[0].Snow)
 	}

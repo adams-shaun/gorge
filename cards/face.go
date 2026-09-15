@@ -94,7 +94,8 @@ func (f *Face) Toughness() int { return int(f.toughness) }
 // printed ManaCost string. It mirrors botpolicy.CmcOf's arithmetic exactly
 // (cards cannot import botpolicy or rules, so the few lines are duplicated
 // here by design) so a face read the same way anywhere agrees. {X} counts as
-// 0 off the stack, a hybrid/Phyrexian/colourless symbol as one generic.
+// 0 off the stack; ordinary hybrid/Phyrexian/colourless symbols count one,
+// while a monocolour hybrid such as {2/W} counts its generic face (two).
 func (f *Face) Cmc() int32 { return f.cmc }
 
 // CharacteristicDefining reports whether the face's printed P/T is a
@@ -341,8 +342,43 @@ func cmcFromManaCost(mc string) int32 {
 			n += int32(v)
 			continue
 		}
+		if v, ok := twobridManaValue(sym); ok {
+			// CR 202.4b: a monocolour hybrid's mana value is its generic
+			// face. {2/W} is mana value 2, whether it is eventually paid
+			// with two mana or one white mana.
+			n += v
+			continue
+		}
 		// Hybrid ("W/U"), Phyrexian ("UP"), and any other symbol: one generic.
 		n++
 	}
 	return n
+}
+
+// twobridManaValue recognises Forge's concatenated ("2W") and slash
+// ("2/W") monocolour-hybrid spellings. It returns the generic face, which is
+// the symbol's mana value. This mirrors rules.ParseCost's twobrid parser
+// without importing rules (cards sits to its left in the dependency graph).
+func twobridManaValue(sym string) (int32, bool) {
+	generic, col := "", ""
+	if left, right, ok := strings.Cut(sym, "/"); ok {
+		generic, col = left, right
+	} else {
+		i := 0
+		for i < len(sym) && sym[i] >= '0' && sym[i] <= '9' {
+			i++
+		}
+		if i == 0 {
+			return 0, false
+		}
+		generic, col = sym[:i], sym[i:]
+	}
+	if len(col) != 1 || !strings.ContainsRune("WUBRGC", rune(col[0])) {
+		return 0, false
+	}
+	v, err := strconv.ParseInt(generic, 10, 32)
+	if err != nil || v < 0 {
+		return 0, false
+	}
+	return int32(v), true
 }
