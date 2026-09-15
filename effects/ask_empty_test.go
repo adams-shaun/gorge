@@ -343,6 +343,100 @@ func TestDefinedHiddenOriginObjectsMoveDirectly(t *testing.T) {
 	})
 }
 
+// TestDefinedLibraryEndSelectorsUseDirectFetches covers the two corpus
+// library-end object selectors. A fresh library search would ask this
+// askable host; resolving the one selected card directly must not.
+func TestDefinedLibraryEndSelectorsUseDirectFetches(t *testing.T) {
+	cases := []struct {
+		name, defined string
+		want          int
+	}{
+		{name: "top", defined: "TopOfLibrary", want: 0},
+		{name: "bottom", defined: "BottomOfLibrary", want: 2},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			h := &askHost{}
+			h.g = state.NewGame(names(2))
+			src := h.g.AddObject(mkCard(t, "Name:Asker\nTypes:Sorcery\nOracle:x\n"), 0)
+			ids := fillLibrary(h.g, 0, mkCard(t, "Name:Forest\nTypes:Basic Land Forest\nOracle:x\n"), 3)
+			Resolve(h, &Ctx{Source: src.ID, Controller: 0},
+				sa(t, "DB$ ChangeZone | Defined$ "+tc.defined+" | Origin$ Library | Destination$ Hand"))
+			if h.asked != nil {
+				t.Fatalf("posed %+v; %s must be a direct fetch", h.asked, tc.defined)
+			}
+			if got := h.g.Obj(ids[tc.want]).Zone; got != state.ZHand {
+				t.Fatalf("%s object in %s, want hand", tc.defined, got)
+			}
+		})
+	}
+}
+
+// TestBucolicRanchBottomContinuation is the real corpus continuation that
+// exposed TopOfLibrary's source fallback. Accepting its optional DBChangeZone2
+// must suspend for yes/no, then put the actual top card on the bottom.
+func TestBucolicRanchBottomContinuation(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	ranch, ok := reg.Lookup("Bucolic Ranch")
+	if !ok || len(ranch.Faces) == 0 {
+		t.Fatal("Bucolic Ranch is absent from the corpus")
+	}
+	bottom := cards.ResolveSVar(ranch.Faces[0].SVars, "DBChangeZone2")
+	if bottom == nil {
+		t.Fatal("Bucolic Ranch has no compiled DBChangeZone2 continuation")
+	}
+	h := newHost(t, 2)
+	src := h.g.AddObject(ranch, 0)
+	ids := fillLibrary(h.g, 0, mkCard(t, "Name:Forest\nTypes:Basic Land Forest\nOracle:x\n"), 3)
+	sh := &suspendHost{fakeHost: *h}
+	ctx := &Ctx{Source: src.ID, Controller: 0}
+
+	Resolve(sh, ctx, bottom)
+	if sh.asked == nil || sh.asked.ResumeKind != "defined_library_optional" {
+		t.Fatalf("DBChangeZone2 posed %+v, want an optional direct-fetch decision", sh.asked)
+	}
+	if len(sh.log) != 0 {
+		t.Fatalf("DBChangeZone2 moved before its answer: %v", sh.log)
+	}
+
+	sh.suspended = false
+	ctx.DefinedLibraryMove = "yes"
+	Resolve(sh, ctx, bottom)
+	lib := sh.g.Zone(state.ZLibrary, 0)
+	if len(lib) != len(ids) || lib[len(lib)-1] != ids[0] {
+		t.Fatalf("accepted DBChangeZone2 library = %v, want top %d on bottom", lib, ids[0])
+	}
+	var moved, ordered bool
+	for _, ev := range sh.log {
+		moved = moved || ev.Kind == events.MoveZone && ev.Obj == ids[0]
+		ordered = ordered || ev.Kind == events.LibraryOrder
+	}
+	if !moved || !ordered {
+		t.Fatalf("accepted DBChangeZone2 events = %v, want top-card move and library order", sh.log)
+	}
+}
+
+// TestUnknownDefinedLibraryFetchFailsClosed prevents Defined's public source
+// fallback from treating an unmodelled selector as a hidden-library fetch.
+func TestUnknownDefinedLibraryFetchFailsClosed(t *testing.T) {
+	h := &askHost{}
+	h.g = state.NewGame(names(2))
+	src := h.g.AddObject(mkCard(t, "Name:Asker\nTypes:Sorcery\nOracle:x\n"), 0)
+	other := h.g.AddObject(mkCard(t, "Name:Forest\nTypes:Basic Land Forest\nOracle:x\n"), 0)
+	h.g.SetZone(state.ZLibrary, 0, []state.ObjID{src.ID, other.ID})
+	Resolve(h, &Ctx{Source: src.ID, Controller: 0},
+		sa(t, "DB$ ChangeZone | Defined$ UnmodelledSelector | Origin$ Library | Destination$ Hand"))
+	if h.asked != nil {
+		t.Fatalf("unmodelled Defined$ posed %+v, want fail-closed no-op", h.asked)
+	}
+	if got := h.g.Zone(state.ZLibrary, 0); len(got) != 2 || got[0] != src.ID || got[1] != other.ID {
+		t.Fatalf("unmodelled Defined$ changed library to %v, want [%d %d]", got, src.ID, other.ID)
+	}
+	if got := h.g.Obj(src.ID).Zone; got != state.ZLibrary {
+		t.Fatalf("unmodelled Defined$ moved source to %s, want library", got)
+	}
+}
+
 // TestDefinedLibraryOptionalDeclineLeavesTheFetchListAlone guards the
 // Optional$ branch of the structural direct-fetch dispatcher with Kenessos's
 // real DBBottom continuation. Declining its "put it on the bottom" choice
