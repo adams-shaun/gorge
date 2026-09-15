@@ -631,6 +631,49 @@ func TestVolrathsDungeonRealScriptMarkerlessPutBackIsRequired(t *testing.T) {
 	}
 }
 
+// TestKastralMixedHandOriginEmitsNote pins the unsupported mixed-origin
+// chooser's loud fallback on the real corpus Kastral script. Its optional
+// Bird picker spans Hand and Graveyard, so neither exact hidden-origin walker
+// can make an option list without losing the origin of each card. The
+// source-default object path still cannot select either Bird, but it now emits
+// one replay-visible Note instead of silently resolving as it did before rv2b
+// sol3. Every explicit multi-zone Origin$ containing Hand shares the parsed
+// mixedOriginIncludesHand guard, not a card-name list.
+func TestKastralMixedHandOriginEmitsNote(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	kastral, ok := reg.Lookup("Kastral, the Windcrested")
+	if !ok {
+		t.Fatal("corpus has no Kastral, the Windcrested")
+	}
+	db := cards.ResolveSVar(kastral.Faces[0].SVars, "DBChangeZone")
+	if db == nil || db.Params["Origin"] != "Hand,Graveyard" ||
+		db.Params["ChangeType"] != "Creature.Bird+YouOwn" {
+		t.Fatalf("Kastral's compiled mixed-origin picker drifted: %+v", db)
+	}
+
+	g := state.NewGame(names(2))
+	source := corpusObject(t, reg, g, "Kastral, the Windcrested")
+	handBird := corpusObject(t, reg, g, "Storm Crow")
+	graveBird := corpusObject(t, reg, g, "Storm Crow")
+	g.SetZone(state.ZHand, 0, []state.ObjID{handBird.ID})
+	g.SetZone(state.ZGraveyard, 0, []state.ObjID{graveBird.ID})
+	handBird.Zone, graveBird.Zone = state.ZHand, state.ZGraveyard
+
+	h := &askHost{}
+	h.g = g
+	Resolve(h, &Ctx{Source: source.ID, Controller: 0}, db)
+	if h.asked != nil {
+		t.Fatalf("unsupported mixed origin posed a partial chooser: %+v", h.asked)
+	}
+	if handBird.Zone != state.ZHand || graveBird.Zone != state.ZGraveyard {
+		t.Fatalf("mixed-origin fallback moved cards: hand=%s grave=%s", handBird.Zone, graveBird.Zone)
+	}
+	if len(h.log) != 1 || h.log[0].Kind != events.Note ||
+		!strings.Contains(h.log[0].Text, "mixed ChangeZone Origin$ Hand,Graveyard") {
+		t.Fatalf("log = %+v, want one explicit mixed-origin Note", h.log)
+	}
+}
+
 // TestDreamCacheDestinationAlternativeEmitsNote pins the one genuinely
 // unsupported hidden-origin shape's loudness: Dream Cache's "both on top of
 // your library or both on the bottom" (DestinationAlternative$/

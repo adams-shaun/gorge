@@ -83,6 +83,13 @@ func zoneIn(zones []state.Zone, want state.Zone) bool {
 	return false
 }
 
+// mixedOriginIncludesHand identifies every explicit multi-zone Origin$ that
+// includes Hand. Such an effect needs one origin-aware hidden-zone chooser;
+// the exact-Hand and exact-Library walkers cannot safely stand in for it.
+func mixedOriginIncludesHand(zones []state.Zone, all bool) bool {
+	return !all && len(zones) > 1 && zoneIn(zones, state.ZHand)
+}
+
 func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	to := ParseZone(sa.Params["Destination"])
 	var originZones []state.Zone
@@ -103,6 +110,19 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if len(originZones) == 1 && originZones[0] == state.ZLibrary && !originAll {
 			effSearchLibrary(h, c, sa, to)
 			return
+		}
+		// A mixed origin which includes Hand needs one chooser over cards from
+		// every origin. The exact-Hand handlers below cannot provide that
+		// origin-aware option list, so record the gap before retaining the
+		// object path for a Defined$ card that is already known. In particular,
+		// a source-default mixed-origin picker (Kastral, the Windcrested) now
+		// fails loudly rather than silently doing nothing. Keep this test on
+		// parsed zones rather than a list of origin strings: every new
+		// Hand,<other-zone> spelling takes this same visible fallback.
+		if mixedOriginIncludesHand(originZones, originAll) {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "cannot choose cards from mixed ChangeZone Origin$ " + from +
+					" (an origin-aware hidden-zone chooser is not implemented)"})
 		}
 		// A ChangeZone from exactly Hand with no object selector is Forge's
 		// hidden-origin hand put-back: the chooser picks ChangeNum$ cards (a
