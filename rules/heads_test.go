@@ -883,7 +883,11 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	8: "fde5ae50e5f7e31b",
+	// 8 seats moved to c54d57bf94915dcb (autonomous orchestrator): resolving inbox-engine-gap-alt-costs-a (Engine: Alternative costs I: evoke, dash, encore, overload, warp, madness)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	8: "c54d57bf94915dcb",
 }
 
 func TestHeads(t *testing.T) {
