@@ -73,7 +73,10 @@ func TestBuybackSearingTouchFizzleGoesToGraveyard(t *testing.T) {
 	}
 }
 
-func TestSuspendProfaneTutorHasProvenanceAndForcedCast(t *testing.T) {
+// suspendToFinalCounter drives a suspended Profane Tutor to the upkeep whose
+// TIME counter hits 0 and returns the may-cast ask the engine poses there.
+func suspendToFinalCounter(t *testing.T) (*Engine, state.ObjID) {
+	t.Helper()
 	e := handEngine(t, corpusAlternativeCard(t, "Profane Tutor"))
 	profane := e.G.Zone(state.ZHand, 0)[0]
 	e.G.Players[0].Pool[state.MB] = 1
@@ -87,9 +90,46 @@ func TestSuspendProfaneTutorHasProvenanceAndForcedCast(t *testing.T) {
 		t.Fatalf("first suspend upkeep TIME=%d, want 1", got)
 	}
 	e.beginTurn(0)
-	if e.G.Obj(profane).Zone != state.ZStack {
-		t.Fatalf("last suspend counter did not force free cast, zone=%s", e.G.Obj(profane).Zone)
+	d := e.Pending()
+	if d == nil || len(d.Options) != 2 || d.Options[0].Kind != "suspend_cast_yes" || d.Options[1].Kind != "suspend_cast_no" {
+		t.Fatalf("final suspend counter did not offer the CR 702.62a may-cast ask: %+v", d)
 	}
+	return e, profane
+}
+
+func TestSuspendProfaneTutorHasProvenanceAndOptionalCast(t *testing.T) {
+	e, profane := suspendToFinalCounter(t)
+	// CR 702.62a: "you may play it without paying its mana cost if able" --
+	// answering the offer casts it; option 0 is Cast, option 1 is Leave.
+	submitChoices(t, e, 0)
+	if e.G.Obj(profane).Zone != state.ZStack {
+		t.Fatalf("accepted suspend cast left the card in %s, want stack", e.G.Obj(profane).Zone)
+	}
+}
+
+func TestSuspendDeclinedCastStaysInExileAndTurnContinues(t *testing.T) {
+	e, profane := suspendToFinalCounter(t)
+	// A decline (or a stale offer) leaves the card in exile with its Suspend
+	// provenance, and the upkeep completes: the next step is the draw step.
+	submitChoices(t, e, 1)
+	o := e.G.Obj(profane)
+	if o.Zone != state.ZExile || o.CastFlags&state.FlagSuspend == 0 || o.Counter("TIME") != 0 {
+		t.Fatalf("declined suspend cast moved the card: %+v", o)
+	}
+	if d := e.Pending(); d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("decline left an unexpected decision pending: %+v", d)
+	}
+	// The decline resumes the ordinary flow: the same upkeep priority the
+	// no-suspend path grants (step()'s default branch). Passing it reaches
+	// the draw step, so nothing wedged.
+	driveToStep(t, e, 3, 0, state.StepDraw)
+	if e.G.Step != state.StepDraw {
+		t.Fatalf("declined suspend cast wedged the turn at %s", e.G.Step)
+	}
+}
+
+func TestSuspendOrdinaryExiledCardNeverGetsTheOffer(t *testing.T) {
+	e := handEngine(t, corpusAlternativeCard(t, "Profane Tutor"))
 	// A different exiled copy with zero TIME is not a suspended card.
 	other := e.G.AddObject(corpusAlternativeCard(t, "Profane Tutor"), 0)
 	other.Zone = state.ZExile
@@ -98,6 +138,9 @@ func TestSuspendProfaneTutorHasProvenanceAndForcedCast(t *testing.T) {
 	e.beginTurn(0)
 	if other.Zone != state.ZExile {
 		t.Fatalf("ordinary exiled Suspend card was cast for free: %s", other.Zone)
+	}
+	if d := e.Pending(); d != nil {
+		t.Fatalf("ordinary exiled Suspend card was offered a cast: %+v", d)
 	}
 }
 

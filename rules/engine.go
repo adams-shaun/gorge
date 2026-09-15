@@ -127,8 +127,9 @@ type Engine struct {
 	// kept/taken counts and the phase cursor. Never a closure, so Clone copies
 	// it like cast/choosing.
 	mulligan mulliganRound
-	// opening is the optional opening-hand effects round, before mulligans and
-	// turn one. It holds only object IDs and parsed SVar names, so replay and
+	// opening is the optional opening-hand effects round, after the London
+	// mulligan round (a Gemstone Caverns may not be used from a hand its owner
+	// later mulliganed away) and before turn one. It holds only object IDs and parsed SVar names, so replay and
 	// Clone reproduce the same pregame choices without ambient state.
 	opening openingRound
 	// blockerRound is the declare-blockers step's per-defender cursor
