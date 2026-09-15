@@ -148,7 +148,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if _, present := sa.Params["Origin"]; present && !originAll && !zoneIn(originZones, o.Zone) {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: to})
+		h.Emit(moveZoneEvent(c, o.ID, o.Zone, to))
 		// RememberChanged$ True (Forge's spelling on the ChangeZone in the
 		// Flickerwisp delayed-trigger family): the moved object joins the
 		// ability's Remembered, so a DelayedTrigger that runs as a later
@@ -347,8 +347,9 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			!MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-			From: state.ZLibrary, To: to, Player: owner})
+		ev := moveZoneEvent(c, id, state.ZLibrary, to)
+		ev.Player = owner
+		h.Emit(ev)
 		moved = append(moved, id)
 		if to == state.ZBattlefield && sa.Params["WithCountersType"] != "" {
 			amount := int32(1)
@@ -447,7 +448,15 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 			ids := append([]state.ObjID(nil), g.Zone(z, p)...)
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-					h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: to})
+					h.Emit(moveZoneEvent(c, id, z, to))
+					// ChangeZoneAll's remembered movement is needed for the
+					// exiled-with-this-source cleanup/tally shape (Valakut
+					// Exploration). Other ChangeZoneAll RememberChanged forms
+					// remain outside this narrow provenance feature.
+					if strings.EqualFold(sa.Params["RememberChanged"], "True") &&
+						strings.Contains(sa.Params["ChangeType"], "ExiledWithSource") {
+						c.Remembered = append(c.Remembered, state.Target{Obj: id})
+					}
 				}
 			}
 		}
@@ -461,12 +470,29 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 // Indestructible in response, or protection from the source) between
 // targeting and resolution is not rechecked. See the Task 18 report.
 func effDestroy(h Host, c *Ctx, sa *cards.SA) {
+	// Same pre-batch discipline as effDestroyAll: the targets Defined
+	// resolves are destroyed as one simultaneous batch (a multi-target
+	// Destroy over a lifelink Equipment and its bearer must not make the
+	// bearer's LKI depend on battlefield order), so the snapshot covers all
+	// of them before the first move.
+	var victims []state.ObjID
 	for _, t := range Defined(h, c, sa) {
 		o := h.Game().Obj(t.Obj)
 		if t.IsPlayer || o == nil || o.Zone != state.ZBattlefield {
 			continue
 		}
 		if h.HasKeyword(o.ID, "Indestructible") {
+			continue
+		}
+		victims = append(victims, o.ID)
+	}
+	if len(victims) > 0 {
+		h.BatchDepartures(victims)
+		defer h.EndBatchDepartures()
+	}
+	for _, id := range victims {
+		o := h.Game().Obj(id)
+		if o == nil || o.Zone != state.ZBattlefield {
 			continue
 		}
 		// NoRegen$ is compared against "True", not against empty: an explicit
@@ -476,10 +502,10 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		// cards/link.go auto-links only SubAbility$, not the WinSubAbility$ it
 		// hangs off -- so this is correctness insurance for when that changes,
 		// not a live fix.
-		if sa.Params["NoRegen"] != "True" && ReplaceDestruction(h, o.ID) {
+		if sa.Params["NoRegen"] != "True" && ReplaceDestruction(h, id) {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 	}
 }
@@ -490,6 +516,14 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 		spec = "Permanent"
 	}
 	g := h.Game()
+	// One pre-batch victim list across every player, then ONE departure
+	// snapshot, then the emit loop (CR 704.3 simultaneity, as far as the
+	// sequential emit model can express it): the CR 603.10a lifelink LKI a
+	// later victim's departure capture reads must be the state from
+	// immediately before the FIRST move -- a destroy-all over a
+	// lifelink-granting Equipment and its bearer must not make the bearer's
+	// own lifelink LKI depend on battlefield order.
+	var victims []state.ObjID
 	for _, p := range g.AliveFrom(0) {
 		ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, p)...)
 		for _, id := range ids {
@@ -497,14 +531,24 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-				// NoRegen$ != "True", not == "": see effDestroy above.
-				if sa.Params["NoRegen"] != "True" && ReplaceDestruction(h, id) {
-					continue
-				}
-				h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-					From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
+				victims = append(victims, id)
 			}
 		}
+	}
+	if len(victims) > 0 {
+		h.BatchDepartures(victims)
+		defer h.EndBatchDepartures()
+	}
+	for _, id := range victims {
+		if g.Obj(id) == nil || g.Obj(id).Zone != state.ZBattlefield {
+			continue
+		}
+		// NoRegen$ != "True", not == "": see effDestroy's note above.
+		if sa.Params["NoRegen"] != "True" && ReplaceDestruction(h, id) {
+			continue
+		}
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
+			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 	}
 }
 
@@ -569,6 +613,12 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			who = []state.Target{{Player: c.Controller, IsPlayer: true}}
 		}
 	}
+	// Pre-batch discipline (effDestroyAll's): the objects this effect will
+	// move are chosen first, ONE departure snapshot covers them all, then
+	// the emit loop runs -- a sacrifice sweep over a lifelink-granting
+	// Equipment and its bearer must not make the bearer's lifelink LKI
+	// depend on battlefield order.
+	var victims []state.ObjID
 	for _, t := range who {
 		if t.IsPlayer {
 			// Bounds guard: g.Zone indexes g.zones[zoneIndex(z, p)] and
@@ -590,8 +640,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, t.Player)...)
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(t.Player)) {
-					rememberLKICapture(id)
-					h.Emit(events.Sacrifice(id))
+					victims = append(victims, id)
 					break
 				}
 			}
@@ -606,7 +655,18 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		// "which one may be sacrificed" step does not re-filter a concrete
 		// object (and would misfire on the corpus's SacValid$ Self lines,
 		// where "Self" is not a type the filter grammar knows).
-		rememberLKICapture(o.ID)
-		h.Emit(events.Sacrifice(o.ID))
+		victims = append(victims, o.ID)
+	}
+	if len(victims) > 0 {
+		h.BatchDepartures(victims)
+		defer h.EndBatchDepartures()
+	}
+	for _, id := range victims {
+		if g.Obj(id) == nil || g.Obj(id).Zone != state.ZBattlefield {
+			continue
+		}
+		rememberLKICapture(id)
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
+			From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
 	}
 }

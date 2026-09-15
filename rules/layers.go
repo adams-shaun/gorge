@@ -197,9 +197,11 @@ func statKeywords(st cards.Static) []string {
 func statList(st cards.Static, key string) []string {
 	var out []string
 	for _, v := range strings.Split(st.Params[key], ",") {
-		v = strings.TrimSpace(v)
-		if v != "" {
-			out = append(out, v)
+		for _, part := range strings.Split(strings.TrimSpace(v), " & ") {
+			part = strings.TrimSpace(part)
+			if part != "" {
+				out = append(out, part)
+			}
 		}
 	}
 	return out
@@ -584,6 +586,18 @@ func (e *Engine) Toughness(id state.ObjID) int32 {
 func (e *Engine) HasKeyword(id state.ObjID, kw string) bool {
 	for _, k := range e.Derived(id).Keywords {
 		if strings.EqualFold(cardsKeywordHead(k), kw) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsCreature reads the current layer-derived type list. In particular, a
+// planeswalker animated by a layer-4 effect is a creature for damage marking,
+// even though its printed face is not.
+func (e *Engine) IsCreature(id state.ObjID) bool {
+	for _, typ := range e.Derived(id).Types {
+		if typ == "Creature" {
 			return true
 		}
 	}

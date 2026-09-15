@@ -758,6 +758,11 @@ func (e *Engine) resolveTop() {
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
 			Targets: targets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id]}
+		if lki, ok := e.triggerLKI[id]; ok {
+			ctx.LKI = lki.object
+			ctx.LKIPower, ctx.LKIToughness, ctx.LKIPTValid =
+				lki.power, lki.toughness, lki.ptValid
+		}
 		// CR 107.3i: X is the value the activator chose for a Cost$ carrying
 		// {X} (recorded on the ability stack object by commitCast's CastInfo,
 		// emitted right after the AbilityPush). Zero for a trigger, which was
@@ -777,6 +782,13 @@ func (e *Engine) resolveTop() {
 		if link, ok := e.sourceLifelinkLKI[id]; ok {
 			ctx.SourceLifelinkLKI = link
 			ctx.SourceLifelinkLKIValid = true
+		}
+		if controller, ok := e.sourceControllerLKI[id]; ok {
+			ctx.SourceControllerLKI = controller
+			ctx.SourceControllerLKIValid = true
+		}
+		if lki := e.damageSourceLKI[id]; lki != nil {
+			ctx.DamageSourceLKI = cloneDamageSourceLKI(lki)
 		}
 		effects.SetSVars(ctx, svars)
 		// CR 603.3c: the mode choice was announced at placement (pushTrigger

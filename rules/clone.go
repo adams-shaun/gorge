@@ -120,6 +120,16 @@ func (e *Engine) Clone() *Engine {
 			c.triggerContexts[id] = tc
 		}
 	}
+	if e.triggerLKI != nil {
+		c.triggerLKI = make(map[state.ObjID]triggerObjectLKI, len(e.triggerLKI))
+		for id, lki := range e.triggerLKI {
+			if lki.object != nil {
+				cp := lki.object.CloneDeep()
+				lki.object = &cp
+			}
+			c.triggerLKI[id] = lki
+		}
+	}
 	if e.sacrificedLKI != nil {
 		c.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo, len(e.sacrificedLKI))
 		for id, info := range e.sacrificedLKI {
@@ -130,6 +140,18 @@ func (e *Engine) Clone() *Engine {
 		c.sourceLifelinkLKI = make(map[state.ObjID]bool, len(e.sourceLifelinkLKI))
 		for id, link := range e.sourceLifelinkLKI {
 			c.sourceLifelinkLKI[id] = link
+		}
+	}
+	if e.sourceControllerLKI != nil {
+		c.sourceControllerLKI = make(map[state.ObjID]state.PlayerID, len(e.sourceControllerLKI))
+		for id, controller := range e.sourceControllerLKI {
+			c.sourceControllerLKI[id] = controller
+		}
+	}
+	if e.damageSourceLKI != nil {
+		c.damageSourceLKI = make(map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI, len(e.damageSourceLKI))
+		for stack, lki := range e.damageSourceLKI {
+			c.damageSourceLKI[stack] = cloneDamageSourceLKI(lki)
 		}
 	}
 	c.triggerFireCount = cloneCounts(e.triggerFireCount)

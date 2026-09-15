@@ -293,16 +293,24 @@ func (e *Engine) snapshotTriggerBoard() *triggerSnapshot {
 	return &triggerSnapshot{game: e.G.Clone(), continuous: append([]ContinuousEffect(nil), e.continuous...)}
 }
 
-func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
+func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
+	lkiPower, lkiToughness int32, lkiPTValid bool) {
 	batch := e.triggerBefore != nil && ev.Kind == events.MoveZone &&
 		ev.From == state.ZBattlefield && ev.To != state.ZBattlefield
 	if batch {
 		// Only leaves-the-battlefield triggers look back. Always and other
 		// event modes continue to read the live board, not an obsolete state.
-		observer := &Engine{G: e.triggerBefore.game, continuous: e.triggerBefore.continuous}
-		e.checkFaceTriggers(observer, ev, observer.G.Obj(ev.Obj), true, true)
+		observer := &Engine{G: e.triggerBefore.game, L: e.L,
+			continuous: e.triggerBefore.continuous, continuousVersion: e.continuousVersion}
+		obj := observer.G.Obj(ev.Obj)
+		var power, toughness int32
+		valid := obj != nil && obj.Zone == state.ZBattlefield && obj.Face() != nil
+		if valid {
+			power, toughness = observer.Power(ev.Obj), observer.Toughness(ev.Obj)
+		}
+		e.checkFaceTriggers(observer, ev, obj, power, toughness, valid, true, true)
 	}
-	e.checkFaceTriggers(e, ev, lki, batch, false)
+	e.checkFaceTriggers(e, ev, lki, lkiPower, lkiToughness, lkiPTValid, batch, false)
 	if ev.Kind == events.Draw {
 		e.offerMiracle(ev)
 	}
@@ -314,7 +322,8 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object) {
 // checkFaceTriggers separates the read-only matching board from the live
 // queue and firing limits. Both walks use deterministic seat/zone/slice order;
 // the ordinary APNAP drain still asks each controller to order their triggers.
-func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state.Object, split, leaving bool) {
+func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state.Object,
+	lkiPower, lkiToughness int32, lkiPTValid, split, leaving bool) {
 	// phaseNotes collects the unresolvable Phase$ specs this walk encountered
 	// (live walks only -- the leaves-the-battlefield look-back observer is a
 	// scratch Engine that must never emit), each with the source that carries
@@ -435,6 +444,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					Remembered:     triggerRemembered(ev, id),
 					Captured:       triggerRemembered(ev, id),
 					LKI:            objLKI,
+					LKIPower:       lkiPower,
+					LKIToughness:   lkiToughness,
+					LKIPTValid:     objLKI != nil && lkiPTValid,
 					TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
 				},
 			})
@@ -1076,10 +1088,18 @@ func (e *Engine) eventCardAndPlayerMatch(t cards.Trigger, source, card state.Obj
 // called only from resolveTop while the resolving spell or ability is still
 // the top of the stack (resolveTop pops it only after Resolve returns), so
 // the current stack top is that source for every code path this build has
-// today. A future combat-damage implementation, or any Damage emission
-// outside ability resolution, would need Event to carry an explicit source
+// today. Two overrides win over the stack top, both rebuilt by replay
+// because replay re-executes the same setter: the published damage-source
+// override (rules.Engine.SetDamageSource -- DamageSource$ and the unwrapped
+// ability source, so a ValidSource$ trigger matches the PERMANENT that dealt
+// it, never the ability wrapper the stack top names) and the dealing
+// creature during combat's assignment loop (e.damaging). Any Damage emission
+// outside ability resolution would need Event to carry an explicit source
 // instead of relying on this.
 func (e *Engine) damageSource() state.ObjID {
+	if e.dmgSrcOverride != 0 {
+		return e.dmgSrcOverride
+	}
 	if len(e.G.Stack) == 0 {
 		return 0
 	}

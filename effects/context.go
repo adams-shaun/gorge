@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -25,116 +26,8 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	if spec, ok := strings.CutPrefix(sa.Params["Defined"], "ValidStack"); ok {
 		return validStackTargets(g, strings.TrimSpace(spec), c)
 	}
-	switch sa.Params["Defined"] {
-	case "":
-		// Forge's rule: an ability that names targets acts on them; one that
-		// names none acts on its source. A sub-ability that wants its
-		// parent's targets says so explicitly (Defined$ Targeted /
-		// ParentTarget), which every script in the corpus does.
-		if _, targeted := sa.Params["ValidTgts"]; targeted {
-			return copyTargets(c.Targets)
-		}
-		return []state.Target{{Obj: c.Source}}
-	case "You":
-		return []state.Target{{Player: c.Controller, IsPlayer: true}}
-	case "Self", "Parent":
-		return []state.Target{{Obj: c.Source}}
-	case "Remembered":
-		return copyTargets(c.Remembered)
-	case "ChosenCard", "ChosenPlayer":
-		// ChooseCard/ChoosePlayer bind the current resolution's most recent
-		// choice here. This is deliberately distinct from Remembered: Forge
-		// only copies the answer there when RememberChosen$ is set. A later,
-		// independently resolving ability reads the same event-backed choice
-		// from its source permanent.
-		if c.ChosenValid || len(c.Chosen) > 0 {
-			return copyTargets(c.Chosen)
-		}
-		if o := g.Obj(c.Source); o != nil {
-			return copyTargets(o.Chosen)
-		}
-		return nil
-	case "Player.IsRemembered":
-		return playersOf(c.Remembered)
-	case "Player.Chosen":
-		return playersOf(c.Chosen)
-	case "RememberedController":
-		return controllersOf(g, c.Remembered)
-	case "RememberedOwner":
-		return ownersOf(g, c.Remembered)
-	case "TargetedController", "TargetedPlayer":
-		return controllersOf(g, c.Targets)
-	case "ChosenController":
-		return controllersOf(g, c.Chosen)
-	case "Targeted", "ParentTarget":
-		return copyTargets(c.Targets)
-	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
-		"TriggeredSpellAbility", "TriggeredAttacker", "TriggeredSource":
-		// M1 does not model LKI copies, new-object identity or the
-		// ability-vs-card distinction separately: every one of these forms
-		// names the same Remembered object entry a trigger captured.
-		return objectsOf(c.Remembered)
-	case "DelayTriggerRememberedLKI", "RememberedLKI", "TriggeredAttackerLKICopy":
-		// A delayed trigger's Execute$ (Flickerwisp's TrigBounce) resolves its
-		// referent through Defined$ DelayTriggerRememberedLKI: the object(s)
-		// the delayed trigger captured at registration, which rules pushes
-		// onto the fired ability's Remembered. DelayTriggerRememberedLKI and
-		// the other LKI spellings are the same Remembered object set.
-		return objectsOf(c.Remembered)
-	case "ReplacedCard":
-		// The card a replacement is acting on (Rest in Peace shape: the R: line
-		// intercepts a "would go to the graveyard" Move, ReplaceWith$ needs to
-		// name the object the replaced event was about). "Replaced" is set only
-		// on a replacement's own context, so outside a replacement -- and for a
-		// replaced object that has since ceased to exist -- Defined falls back to
-		// nil (nothing to act on) rather than the chosen targets.
-		if c.Replaced != 0 && g.Obj(c.Replaced) != nil {
-			return []state.Target{{Obj: c.Replaced}}
-		}
-		return nil
-	case "TriggeredDefendingPlayer":
-		if out := oneTriggerPlayer(c.DefendingPlayer); out != nil {
-			return out
-		}
-		return playersOf(c.Remembered)
-	case "TriggeredPlayer":
-		if out := oneTriggerPlayer(c.TriggerPlayer); out != nil {
-			return out
-		}
-		return playersOf(c.Remembered)
-	case "TriggeredAttackingPlayer":
-		return oneTriggerPlayer(c.AttackingPlayer)
-	case "TriggeredAttackedTarget":
-		return oneTriggerPlayer(c.AttackedTarget)
-	case "TriggeredActivator":
-		return oneTriggerPlayer(c.TriggerActivator)
-	case "TriggeredCardController":
-		if p, ok := TriggeredCardController(g, c.TriggerContext, c.Remembered); ok {
-			return []state.Target{{Player: p, IsPlayer: true}}
-		}
-		return nil
-	case "Equipped", "Enchanted", "AttachedTo":
-		// The corpus spells this three ways depending on whether the source
-		// is Equipment, an Aura, or a generic script; all three name the
-		// same field (Task 14 wires its producer).
-		if o := g.Obj(c.Source); o != nil && o.AttachedTo != 0 && g.Obj(o.AttachedTo) != nil {
-			return []state.Target{{Obj: o.AttachedTo}}
-		}
-		return nil
-	case "Opponent", "Player.Opponent", "Player.Other":
-		var out []state.Target
-		for _, p := range g.AliveFrom(c.Controller) {
-			if p != c.Controller {
-				out = append(out, state.Target{Player: p, IsPlayer: true})
-			}
-		}
-		return out
-	case "Player":
-		var out []state.Target
-		for _, p := range g.AliveFrom(c.Controller) {
-			out = append(out, state.Target{Player: p, IsPlayer: true})
-		}
-		return out
+	if ts, ok := definedSpec(h, c, sa.Params["Defined"]); ok {
+		return ts
 	}
 	// Forge joins independent Defined selectors with " & " to name all of
 	// them (Karazikar's "TriggeredAttackingPlayer & You" is the corpus
@@ -153,9 +46,197 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		}
 		return out
 	}
-	// Any Defined$ form M1 does not model falls back to the chosen targets
-	// rather than silently acting on nothing.
-	return copyTargets(c.Targets)
+	// Forge's rule: an ability that names targets acts on them; one that
+	// names none acts on its source. A sub-ability that wants its
+	// parent's targets says so explicitly (Defined$ Targeted /
+	// ParentTarget), which every script in the corpus does.
+	if _, targeted := sa.Params["ValidTgts"]; targeted {
+		return copyTargets(c.Targets)
+	}
+	return []state.Target{{Obj: c.Source}}
+}
+
+// definedSpec resolves one RECOGNISED Defined$ value. The bool distinguishes
+// "this spec names an object reference this build models" from "unknown
+// spec": Defined's public contract keeps the chosen-targets fallback for
+// anything unmodelled, but a caller that must not guess (damage.go's
+// DamageSource$ resolution, damage.go's ValidPlayers$ resolution) reads the
+// bool and fails closed to its own conservative default instead of silently
+// redirecting at the chosen targets.
+func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
+	g := h.Game()
+	switch spec {
+	case "":
+		return nil, false
+	case "Self", "Parent", "EffectSource", "OriginalHost":
+		// EffectSource/OriginalHost name the ability's own source object --
+		// the permanent that pushed the resolving ability, or the card that
+		// originally generated it before any copies. newDamageRider unwraps
+		// an ability stack object to that source afterwards, so handing
+		// back the raw c.Source here is the same object every other
+		// source-defaulting path yields.
+		return []state.Target{{Obj: c.Source}}, true
+	case "You":
+		return []state.Target{{Player: c.Controller, IsPlayer: true}}, true
+	case "Remembered":
+		return copyTargets(c.Remembered), true
+	case "ChosenCard", "ChosenPlayer":
+		// ChooseCard/ChoosePlayer bind the current resolution's most recent
+		// choice here. This is deliberately distinct from Remembered: Forge
+		// only copies the answer there when RememberChosen$ is set. A later,
+		// independently resolving ability reads the same event-backed choice
+		// from its source permanent.
+		if c.ChosenValid || len(c.Chosen) > 0 {
+			return copyTargets(c.Chosen), true
+		}
+		if o := g.Obj(c.Source); o != nil {
+			return copyTargets(o.Chosen), true
+		}
+		return nil, true
+	case "Player.IsRemembered":
+		return playersOf(c.Remembered), true
+	case "Player.Chosen":
+		return playersOf(c.Chosen), true
+	case "RememberedController":
+		return controllersOf(g, c.Remembered), true
+	case "RememberedOwner":
+		return ownersOf(g, c.Remembered), true
+	case "TargetedController", "TargetedPlayer":
+		return controllersOf(g, c.Targets), true
+	case "ChosenController":
+		return controllersOf(g, c.Chosen), true
+	case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard":
+		return copyTargets(c.Targets), true
+	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCardLKICopy",
+		"TriggeredSpellAbility", "TriggeredAttacker", "TriggeredAttackerLKICopy",
+		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
+		"DelayTriggerRememberedLKI", "RememberedLKI":
+		// M1 does not model LKI copies, new-object identity or the
+		// ability-vs-card distinction separately: every one of these forms
+		// names the same Remembered object entry a trigger captured.
+		return objectsOf(c.Remembered), true
+	case "TriggeredTarget":
+		// The object or player that received the triggering event. Spiteful
+		// Shadows uses this as a DamageSource$: the enchanted creature, not the
+		// Aura whose trigger is resolving, deals the reflected damage. Preserve
+		// the target's kind here; callers that require an object (the damage
+		// rider) already reject player entries rather than guessing. When the
+		// causing event's mode did not capture a TriggerTarget (a hand-built
+		// context or an Attached-mode trigger the referent walk does not
+		// model), fall back to the chosen targets -- Defined's pre-branch
+		// convention for a trigger selector whose provenance was not recorded.
+		if c.TriggerTarget.Obj != 0 || c.TriggerTarget.IsPlayer {
+			return []state.Target{c.TriggerTarget}, true
+		}
+		return copyTargets(c.Targets), true
+	case "TriggeredSource":
+		// The damage source the causing event recorded (pg2's
+		// TriggerContext.TriggerSource): a DamageDone execute's "that source
+		// deals ..." reading. Prefer the event role when the firing trigger
+		// captured one -- for a DamageDone trigger Remembered holds the
+		// DAMAGED object, so the old objectsOf fallback names the recipient,
+		// not the dealer. No corpus card uses Defined$ TriggeredSource (the
+		// 6 DamageSource$ TriggeredSource lines are the only users), and the
+		// fallback keeps a non-trigger context behaving exactly as before.
+		if c.TriggerSource != 0 {
+			return []state.Target{{Obj: c.TriggerSource}}, true
+		}
+		return objectsOf(c.Remembered), true
+	case "TriggeredSourceController", "TriggeredTargetController":
+		// The controller of the source/target the causing event recorded:
+		// Flameblade Angel's and Harsh Justice's "deals 1 damage to that
+		// source's controller", Greatbow Doyen's "to that creature's
+		// controller". The role is preferred when the trigger captured one
+		// (a DamageDone trigger's Remembered is the DAMAGED object, whose
+		// controller is exactly wrong for the source form); the fallback --
+		// Remembered[0]'s controller -- is deciderFromSpec's convention for
+		// the same two spellings on OptionalDecider$ lines, so both reads of
+		// one spelling agree wherever the role is absent.
+		ref := c.TriggerSource
+		if spec == "TriggeredTargetController" {
+			if c.TriggerTarget.Obj != 0 || c.TriggerTarget.IsPlayer {
+				if c.TriggerTarget.IsPlayer {
+					return []state.Target{{Player: c.TriggerTarget.Player, IsPlayer: true}}, true
+				}
+				ref = c.TriggerTarget.Obj
+			} else if len(c.Remembered) > 0 {
+				ref = c.Remembered[0].Obj
+			}
+		} else if ref == 0 && len(c.Remembered) > 0 {
+			ref = c.Remembered[0].Obj
+		}
+		if o := g.Obj(ref); o != nil {
+			return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
+		}
+		return nil, true
+	case "ReplacedCard":
+		// The card a replacement is acting on (Rest in Peace shape: the R: line
+		// intercepts a "would go to the graveyard" Move, ReplaceWith$ needs to
+		// name the object the replaced event was about). "Replaced" is set only
+		// on a replacement's own context, so outside a replacement -- and for a
+		// replaced object that has since ceased to exist -- Defined falls back to
+		// nil (nothing to act on) rather than the chosen targets.
+		if c.Replaced != 0 && g.Obj(c.Replaced) != nil {
+			return []state.Target{{Obj: c.Replaced}}, true
+		}
+		return nil, true
+	case "TriggeredDefendingPlayer":
+		if out := oneTriggerPlayer(c.DefendingPlayer); out != nil {
+			return out, true
+		}
+		return playersOf(c.Remembered), true
+	case "TriggeredPlayer":
+		if out := oneTriggerPlayer(c.TriggerPlayer); out != nil {
+			return out, true
+		}
+		return playersOf(c.Remembered), true
+	case "TriggeredAttackingPlayer":
+		if out := oneTriggerPlayer(c.AttackingPlayer); out != nil {
+			return out, true
+		}
+		return nil, true
+	case "TriggeredAttackedTarget":
+		if out := oneTriggerPlayer(c.AttackedTarget); out != nil {
+			return out, true
+		}
+		return nil, true
+	case "TriggeredActivator":
+		if out := oneTriggerPlayer(c.TriggerActivator); out != nil {
+			return out, true
+		}
+		return nil, true
+	case "TriggeredCardController":
+		if p, ok := TriggeredCardController(g, c.TriggerContext, c.Remembered); ok {
+			return []state.Target{{Player: p, IsPlayer: true}}, true
+		}
+		return nil, true
+	case "Equipped", "Enchanted", "AttachedTo":
+		// The corpus spells this three ways depending on whether the source
+		// is Equipment, an Aura, or a generic script; all three name the
+		// same field (Task 14 wires its producer).
+		if o := g.Obj(c.Source); o != nil && o.AttachedTo != 0 && g.Obj(o.AttachedTo) != nil {
+			return []state.Target{{Obj: o.AttachedTo}}, true
+		}
+		return nil, true
+	case "Opponent", "Player.Opponent", "Player.Other":
+		var out []state.Target
+		for _, p := range g.AliveFrom(c.Controller) {
+			if p != c.Controller {
+				out = append(out, state.Target{Player: p, IsPlayer: true})
+			}
+		}
+		return out, true
+	case "Player":
+		var out []state.Target
+		for _, p := range g.AliveFrom(c.Controller) {
+			out = append(out, state.Target{Player: p, IsPlayer: true})
+		}
+		return out, true
+	}
+	// Any Defined$ form this build does not model falls back to the chosen
+	// targets rather than silently acting on nothing (the caller decides via
+	// the bool whether that fallback is acceptable).
+	return nil, false
 }
 
 // objectsOf returns Remembered's object entries (IsPlayer false) as a fresh
@@ -227,6 +308,34 @@ func relatedPlayers(g *state.Game, ts []state.Target, owner bool) []state.Target
 // aliasing is fixed.
 func copyTargets(s []state.Target) []state.Target {
 	return append([]state.Target(nil), s...)
+}
+
+// moveZoneEvent preserves an exile's source provenance in MoveZone's existing
+// IDs carrier. All effect primitives that move a card into exile use this one
+// constructor, so ExiledWithSource is derived from the logged move rather than
+// a live-only side table.
+func moveZoneEvent(c *Ctx, id state.ObjID, from, to state.Zone) events.Event {
+	ev := events.Event{Kind: events.MoveZone, Obj: id, From: from, To: to}
+	if to == state.ZExile && exileProvenanceNeeded(c) {
+		ev.IDs = []state.ObjID{c.Source}
+	}
+	return ev
+}
+
+// exileProvenanceNeeded avoids changing every ordinary exile event merely
+// because it shares the movement primitive. A source needs the association
+// only when its own compiled script later names ExiledWithSource; testing the
+// immutable SVar table makes that decision stable through replay.
+func exileProvenanceNeeded(c *Ctx) bool {
+	if c == nil || c.Source == 0 {
+		return false
+	}
+	for _, body := range c.SVars {
+		if strings.Contains(body, "ExiledWithSource") {
+			return true
+		}
+	}
+	return false
 }
 
 // PlayerOf resolves a target to a player: an explicit player target, or the

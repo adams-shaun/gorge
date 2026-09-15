@@ -131,6 +131,11 @@ type Object struct {
 	// "attached" once it isn't a permanent.
 	AttachedTo ObjID
 
+	// ExiledWith is the object whose effect most recently put this card into
+	// exile. events.Apply derives it from a MoveZone event's existing IDs
+	// carrier, so Card.ExiledWithSource filters replay without ambient state.
+	ExiledWith ObjID
+
 	// IsToken and IsCopy mark an object that only ever exists on the stack
 	// or the battlefield (CR 111.7 tokens, CR 707.10 copies). See Ephemeral.
 	IsToken bool

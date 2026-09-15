@@ -335,11 +335,32 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 		}
 		e.triggerContexts[id] = pt.Ctx.TriggerContext
+		if pt.Ctx.LKI != nil {
+			if e.triggerLKI == nil {
+				e.triggerLKI = make(map[state.ObjID]triggerObjectLKI)
+			}
+			lki := pt.Ctx.LKI.CloneDeep()
+			e.triggerLKI[id] = triggerObjectLKI{object: &lki,
+				power: pt.Ctx.LKIPower, toughness: pt.Ctx.LKIToughness,
+				ptValid: pt.Ctx.LKIPTValid}
+		}
 		if pt.Ctx.SourceLifelinkLKIValid {
 			if e.sourceLifelinkLKI == nil {
 				e.sourceLifelinkLKI = make(map[state.ObjID]bool)
 			}
 			e.sourceLifelinkLKI[id] = pt.Ctx.SourceLifelinkLKI
+		}
+		if pt.Ctx.SourceControllerLKIValid {
+			if e.sourceControllerLKI == nil {
+				e.sourceControllerLKI = make(map[state.ObjID]state.PlayerID)
+			}
+			e.sourceControllerLKI[id] = pt.Ctx.SourceControllerLKI
+		}
+		if pt.Ctx.DamageSourceLKI != nil {
+			if e.damageSourceLKI == nil {
+				e.damageSourceLKI = make(map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI)
+			}
+			e.damageSourceLKI[id] = cloneDamageSourceLKI(pt.Ctx.DamageSourceLKI)
 		}
 	}
 	// Task 7: a trigger that declares ValidTgts$ asks its controller for

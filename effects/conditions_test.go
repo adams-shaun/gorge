@@ -110,7 +110,7 @@ func TestConditionGateUnresolvedShapesRunUnconditionally(t *testing.T) {
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0}, sa(t, notPresent)); resolved {
 		t.Fatal("ConditionNotPresent$ resolved — out of the scoped shape")
 	}
-	unknownPred := "DB$ Pump | ConditionDefined$ Remembered | ConditionPresent$ Card.ExiledWithSource"
+	unknownPred := "DB$ Pump | ConditionDefined$ Remembered | ConditionPresent$ Card.IsImprinted"
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0}, sa(t, unknownPred)); resolved {
 		t.Fatal("an unknown predicate in Present resolved — would count a false zero")
 	}
@@ -174,8 +174,9 @@ func TestConditionGatePresentWithoutDefinedResolvesBattlefield(t *testing.T) {
 	}
 
 	// Out of scope: an unknown predicate in Present fails closed (would count
-	// a false zero).
-	unknown := sa(t, "DB$ Pump | ConditionPresent$ Card.ExiledWithSource")
+	// a false zero). (ExiledWithSource is a KNOWN predicate since the
+	// damage-provenance work registered it, so use a still-unknown one.)
+	unknown := sa(t, "DB$ Pump | ConditionPresent$ Card.IsRemembered")
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0, Source: 4}, unknown); resolved {
 		t.Fatal("an unknown predicate in Present resolved — would count a false zero")
 	}

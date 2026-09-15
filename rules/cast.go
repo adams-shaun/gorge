@@ -1608,6 +1608,7 @@ func (e *Engine) payCast() {
 		// this only if the source is gone; a source that remains in play uses
 		// its live derived state instead.
 		sourceLifelinkLKI := e.HasKeyword(pc.card, "Lifelink")
+		sourceControllerLKI := e.G.Obj(pc.card).Controller
 		// Task 10: an activated ability. The shared stages above (X, Delve --
 		// never present on an ability --, Sac) have already run and been
 		// recorded; what differs from a spell here is the cost's remaining
@@ -1694,7 +1695,11 @@ func (e *Engine) payCast() {
 			if e.sourceLifelinkLKI == nil {
 				e.sourceLifelinkLKI = make(map[state.ObjID]bool)
 			}
+			if e.sourceControllerLKI == nil {
+				e.sourceControllerLKI = make(map[state.ObjID]state.PlayerID)
+			}
 			e.sourceLifelinkLKI[pc.stackObj] = sourceLifelinkLKI
+			e.sourceControllerLKI[pc.stackObj] = sourceControllerLKI
 			break
 		}
 		e.cast, e.choosing = nil, chooseNone
@@ -1873,7 +1878,7 @@ func (e *Engine) fireDeferredCastTrigger() {
 	e.deferredPush = nil
 	lki := e.deferredPushLKI
 	e.deferredPushLKI = nil
-	e.checkTriggers(*ev, lki)
+	e.checkTriggers(*ev, lki, 0, 0, false)
 }
 
 // recordCmdCast increments the CmdCasts[k] bookkeeping parallel to

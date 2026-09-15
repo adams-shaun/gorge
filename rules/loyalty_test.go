@@ -203,13 +203,15 @@ func TestLightningBoltKillsAThreeLoyaltyJace(t *testing.T) {
 		t.Fatalf("3-loyalty Jace survived a bolt in %s (the reported defect)", e.G.Obj(jace).Zone)
 	}
 	if o := e.G.Obj(jace); o.Damage != 0 {
-		t.Fatalf("walker marked %d damage; spell damage must remove loyalty (CR 306.8)", o.Damage)
+		t.Fatalf("pure walker marked %d damage; spell damage must remove loyalty (CR 306.8/120.3c)", o.Damage)
 	}
-	// The exchange is visible in the log: one LOYALTY -3 CounterChange and the
-	// zero-loyalty SBA move, and no Damage event against the walker object.
+	// The exchange is visible in the log: one Damage event against the walker
+	// object (so protection, prevention and DamageDone triggers see it), the
+	// CR 306.8 loyalty conversion folded into events.Apply (no separate
+	// CounterChange), and the zero-loyalty SBA move.
 	sawLoyalty, sawSBA, sawDamage := false, false, false
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.CounterChange && ev.Obj == jace && ev.Counter == "LOYALTY" && ev.Amount == -3 {
+		if ev.Kind == events.CounterChange && ev.Obj == jace && ev.Counter == "LOYALTY" {
 			sawLoyalty = true
 		}
 		if ev.Kind == events.MoveZone && ev.Obj == jace && ev.To == state.ZGraveyard && ev.Text == "zero loyalty" {
@@ -219,8 +221,8 @@ func TestLightningBoltKillsAThreeLoyaltyJace(t *testing.T) {
 			sawDamage = true
 		}
 	}
-	if !sawLoyalty || !sawSBA || sawDamage {
-		t.Fatalf("log exchange wrong: loyalty removal %v, zero-loyalty SBA %v, Damage event %v", sawLoyalty, sawSBA, sawDamage)
+	if sawLoyalty || !sawSBA || !sawDamage {
+		t.Fatalf("log exchange wrong: folded loyalty conversion (CounterChange event must NOT appear) %v, zero-loyalty SBA %v, Damage event %v", sawLoyalty, sawSBA, sawDamage)
 	}
 	replayCheck(t, e, cfg)
 }
@@ -377,15 +379,15 @@ func TestBrotherhoodsEndDamageAllRemovesWalkerLoyalty(t *testing.T) {
 	}
 	sawWalkerLoyalty, sawWalkerDamage := false, false
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.CounterChange && ev.Obj == jace && ev.Counter == "LOYALTY" && ev.Amount == -3 {
+		if ev.Kind == events.CounterChange && ev.Obj == jace && ev.Counter == "LOYALTY" {
 			sawWalkerLoyalty = true
 		}
 		if ev.Kind == events.Damage && ev.Obj == jace {
 			sawWalkerDamage = true
 		}
 	}
-	if !sawWalkerLoyalty || sawWalkerDamage {
-		t.Fatalf("sweep exchange wrong: loyalty removal %v, Damage event %v", sawWalkerLoyalty, sawWalkerDamage)
+	if sawWalkerLoyalty || !sawWalkerDamage {
+		t.Fatalf("sweep exchange wrong: folded loyalty conversion (CounterChange event must NOT appear) %v, Damage event %v", sawWalkerLoyalty, sawWalkerDamage)
 	}
 	replayCheck(t, e, cfg)
 }
