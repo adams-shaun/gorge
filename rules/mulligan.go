@@ -76,9 +76,16 @@ func (e *Engine) stepPregame() {
 			e.askBottoming(i)
 			return
 		}
-		// Every seat that had something to bottom has bottomed: the round is
-		// over and the first alive seat begins turn 1, exactly as before.
+		// Every seat has kept and bottomed. Opening-hand effects now inspect
+		// these FINAL hands: a Gemstone Caverns may not be used from a hand its
+		// owner later mulliganed away. They remain before turn one, and may
+		// still replace the starting player.
 		e.pregame = false
+		e.opening = e.newOpeningRound(m.seats[0], 0)
+		if len(e.opening.effects) > 0 {
+			e.stepOpening()
+			return
+		}
 		e.beginTurn(m.seats[0])
 		return
 	}

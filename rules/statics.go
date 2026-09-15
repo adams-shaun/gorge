@@ -262,11 +262,132 @@ func (e *Engine) adjustedCost(p state.PlayerID, id state.ObjID) Cost {
 // later alternative permits casting from another zone.
 func (e *Engine) castWithFlash(p state.PlayerID, id state.ObjID) bool {
 	for _, sv := range e.activeStatics("CastWithFlash") {
-		if !e.actorMatches(sv, "Caster", p) {
+		if !e.actorMatches(sv, "Caster", p) || !e.staticTimingGate(sv) {
+			continue
+		}
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil || !spellMatchesValidSA(o.Face(), sv.Params["ValidSA"]) {
 			continue
 		}
 		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
 			return true
+		}
+	}
+	return false
+}
+
+// staticTimingGate evaluates the static conditions that can decide whether a
+// CastWithFlash permission exists before a spell is announced. An unknown
+// gate fails closed: granting instant timing without proving the script's
+// condition would permit an illegal cast.
+func (e *Engine) staticTimingGate(sv staticView) bool {
+	for _, key := range []string{"IsPresent", "IsPresent2"} {
+		spec, ok := sv.Params[key]
+		if !ok {
+			continue
+		}
+		n := e.countStaticPresent(sv, spec)
+		cmp := sv.Params["PresentCompare"]
+		if cmp == "" {
+			cmp = "GE1"
+		}
+		if !comparePresent(n, cmp) {
+			return false
+		}
+	}
+	if name, ok := sv.Params["CheckSVar"]; ok {
+		o := e.G.Obj(sv.Source)
+		if o == nil || o.Face() == nil {
+			return false
+		}
+		body, ok := o.Face().SVars[name]
+		if !ok {
+			return false
+		}
+		cmp := sv.Params["SVarCompare"]
+		if cmp == "" || !comparePresent(int(effects.EvalCount(e, &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: o.Face().SVars}, body)), cmp) {
+			return false
+		}
+	}
+	switch strings.TrimSpace(sv.Params["Condition"]) {
+	case "", "PlayerTurn":
+		if sv.Params["Condition"] == "PlayerTurn" && e.G.Active != sv.Controller {
+			return false
+		}
+	case "Ferocious":
+		found := false
+		for _, id := range e.G.Zone(state.ZBattlefield, sv.Controller) {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().IsCreature() && e.Derived(id).Power >= 4 {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	default:
+		return false
+	}
+	if phase := strings.TrimSpace(sv.Params["Phases"]); phase != "" && !(strings.Contains(phase, "End of Turn") && e.G.Step == state.StepEnd) {
+		return false
+	}
+	if turn := strings.TrimSpace(sv.Params["PlayerTurn"]); turn != "" {
+		switch turn {
+		case "Opponent":
+			if e.G.Active == sv.Controller {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+func (e *Engine) countStaticPresent(sv staticView, spec string) int {
+	zone := strings.TrimSpace(sv.Params["PresentZone"])
+	if zone == "" || zone == "Battlefield" {
+		return e.countPresent(spec, sv.Source, sv.Controller)
+	}
+	var want state.Zone
+	switch zone {
+	case "Graveyard":
+		want = state.ZGraveyard
+	default:
+		return 0
+	}
+	n := 0
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o != nil && o.Zone == want && effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
+			n++
+		}
+	})
+	return n
+}
+
+// spellMatchesValidSA checks the spell-side subset of Forge's ValidSA grammar.
+// Activated-only or target/X-dependent constraints are not knowable before
+// announcing a spell and therefore do not accidentally grant flash timing.
+func spellMatchesValidSA(f *cards.Face, raw string) bool {
+	if strings.TrimSpace(raw) == "" {
+		return true
+	}
+	for _, alt := range strings.Split(raw, ",") {
+		kind, constraint, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		switch kind {
+		case "Spell":
+			if constraint == "" {
+				return true
+			}
+		case "Instant":
+			if constraint == "" && f.IsInstant() {
+				return true
+			}
+		case "Sorcery":
+			if constraint == "" && f.IsSorcery() {
+				return true
+			}
 		}
 	}
 	return false

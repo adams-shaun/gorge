@@ -504,7 +504,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		// Flashback cast, and for a triggered ability object -- which has no
 		// graveyard -- exile per CR 608.2m, same as every ability fizzle in
 		// resolveTop).
-		rest := spellRestZone(e.G.Obj(source))
+		rest := spellFizzleZone(e.G.Obj(source))
 		if o := e.G.Obj(source); o != nil && o.Ability != nil {
 			rest = state.ZExile
 		}
@@ -912,7 +912,7 @@ func (e *Engine) resolveTop() {
 				// that spell shape, and the resting zone is where it
 				// belongs) -- exile instead of the graveyard for one cast
 				// via Flashback (CR 702.32b).
-				rest := spellRestZone(o)
+				rest := spellFizzleZone(o)
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: rest, Text: "fizzled: no legal targets remain"})
 				e.ensureLeftTheStack(id, rest, "a replacement fully discarded this "+
@@ -963,17 +963,25 @@ func (e *Engine) resolveTop() {
 	e.moveResolvedOffStack(o)
 }
 
-// spellRestZone is where a resolved (or fizzled) spell goes instead of the
-// graveyard: exile for one cast via Flashback (CR 702.32b), the graveyard
-// for everything else. o is read before the MoveZone that takes it off the
-// stack, so its CastFlags (set by commitCast's CastInfo, if any) still
-// reflect how it was cast.
+// spellRestZone is where a spell goes AFTER IT RESOLVES. Buyback is a
+// resolution replacement (CR 702.27a), not a replacement for being
+// countered, so only this resolved-spell helper may return it to hand.
 func spellRestZone(o *state.Object) state.Zone {
 	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 || o.IsCopy) {
 		return state.ZExile
 	}
 	if o != nil && o.CastFlags&state.FlagBuyback != 0 {
 		return state.ZHand
+	}
+	return state.ZGraveyard
+}
+
+// spellFizzleZone is the resting place when a spell never resolved. Flashback,
+// Harmonize and copies still use exile, but Buyback does not apply and the
+// card reaches its owner's graveyard.
+func spellFizzleZone(o *state.Object) state.Zone {
+	if o != nil && (o.CastFlags&state.FlagFlashback != 0 || o.CastFlags&state.FlagHarmonize != 0 || o.IsCopy) {
+		return state.ZExile
 	}
 	return state.ZGraveyard
 }

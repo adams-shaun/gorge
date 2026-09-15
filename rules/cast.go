@@ -819,8 +819,9 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	e.continueCast()
 }
 
-// continueCast runs the cast flow's stages in order -- X, Delve, each Sac
-// and Discard part -- stopping (and returning) the instant a stage asks a KChoose;
+// continueCast runs the cast flow's stages in order -- announced
+// Convoke/Harmonize contributions, X, Delve, each Sac and Discard part --
+// stopping (and returning) the instant a stage asks a KChoose;
 // commitCast runs once every stage has settled. A nil e.cast (a chooseCast
 // answer arriving with no flow in progress, only reachable from a
 // hand-built decision) is dropped rather than panicked on, mirroring
@@ -833,6 +834,12 @@ func (e *Engine) continueCast() {
 		return
 	}
 	if e.forageAsk() || e.revealCostAsk() || e.beholdCostAsk() || e.tapPermanentCostAsk() || e.blightCostAsk() {
+		return
+	}
+	// CR 601.2b announces Convoke/Harmonize before X: an announced creature
+	// contribution is part of the available payment for X, and cannot be used
+	// as a mana source in the later mana window.
+	if e.convokeAsk() {
 		return
 	}
 	if e.xAsk() {
@@ -884,9 +891,6 @@ func (e *Engine) continueCast() {
 	// half of a hybrid, whether a Phyrexian pip is paid with life -- before
 	// targets (601.2c) and payment (601.2h). Runs as one decision per pip.
 	if e.manaAsk() {
-		return
-	}
-	if e.convokeAsk() {
 		return
 	}
 	// CR 601.2c: choose targets, now that the object is on the stack. An SA
@@ -1228,13 +1232,23 @@ func (e *Engine) xAsk() bool {
 	}
 	pool := e.G.Players[pc.player].Pool
 	gy := int32(len(e.G.Zone(state.ZGraveyard, pc.player)))
-	// Bound: past this many mana no further X is ever payable, since a
-	// bigger X strictly grows Generic (X > 0 here) while both the pool and
-	// the best possible Delve credit are fixed at this instant.
-	bound := pool.Total() + gy + 1
+	// Bound: past this many mana no further X is ever payable. In addition to
+	// the pool and possible Delve, the already-announced Convoke/Harmonize
+	// payments can cover X's generic requirement. Their exact application
+	// below handles coloured costs before generic reductions; this bound need
+	// only be a safe finite ceiling.
+	credit := int32(0)
+	for _, pay := range pc.convoke {
+		if pay.power > 0 {
+			credit += pay.power
+		} else {
+			credit++
+		}
+	}
+	bound := pool.Total() + gy + credit + 1
 	var max int32
 	for x := min; x <= bound; x++ {
-		wx := e.manaToPayX(pc, x)
+		wx := e.paymentManaX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
 		if !wx.payable(pool, e.G.Players[pc.player].Life) {
 			break
@@ -1693,7 +1707,17 @@ func (e *Engine) manaToPay(pc *pendingCast) Cost {
 // paymentMana applies announced Convoke/Harmonize contributions to the
 // already-formed total. A stale answer can never make a requirement negative.
 func (e *Engine) paymentMana(pc *pendingCast) Cost {
-	m := e.manaToPay(pc)
+	return e.applyConvoke(pc, e.manaToPay(pc))
+}
+
+// paymentManaX applies the same announced creature contributions after X is
+// folded into the total. xAsk uses it so an X value funded by Convoke or
+// Harmonize is actually offered, not rejected before the payment is known.
+func (e *Engine) paymentManaX(pc *pendingCast, x int32) Cost {
+	return e.applyConvoke(pc, e.manaToPayX(pc, x))
+}
+
+func (e *Engine) applyConvoke(pc *pendingCast, m Cost) Cost {
 	for _, pay := range pc.convoke {
 		if pay.color != 0 {
 			i := state.ManaIndex(pay.color)
@@ -1729,7 +1753,12 @@ func (e *Engine) convokeAsk() bool {
 		return false
 	}
 	mana := e.manaToPay(pc)
-	if !mana.hasManaPayment() {
+	// Before X is announced, its generic requirement is not folded into
+	// mana. It nevertheless makes every creature a possible generic payment;
+	// the subsequent xAsk prices the selected contributions against the real
+	// X total.
+	hasX := pc.cost.X > 0
+	if !mana.hasManaPayment() && !hasX {
 		return false
 	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 0,
@@ -1740,7 +1769,7 @@ func (e *Engine) convokeAsk() bool {
 			continue
 		}
 		group := fmt.Sprintf("payment:%d", id)
-		if isHarmonize && mana.Generic > 0 && o.Face().Power() > 0 {
+		if isHarmonize && (mana.Generic > 0 || hasX) && o.Face().Power() > 0 {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "harmonize", Obj: id,
 				Group: group, Amount: o.Face().Power(), Label: "Tap " + o.Face().Name + " (reduce by " + strconv.Itoa(int(o.Face().Power())) + ")"})
 		}
@@ -1753,7 +1782,7 @@ func (e *Engine) convokeAsk() bool {
 					Group: group, Label: "Tap " + o.Face().Name + " for " + string(color)})
 			}
 		}
-		if mana.Generic > 0 {
+		if mana.Generic > 0 || hasX {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "convoke_generic", Obj: id,
 				Group: group, Label: "Tap " + o.Face().Name + " for 1"})
 		}
@@ -1965,16 +1994,16 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		pc.payLife += 2
 		pc.payIdx++
 	case "convoke_W", "convoke_U", "convoke_B", "convoke_R", "convoke_G", "convoke_generic":
-		if len(chosen) > 0 {
+		for _, choice := range chosen {
 			color := byte(0)
-			if chosen[0].Kind != "convoke_generic" {
-				color = chosen[0].Kind[len("convoke_")]
+			if choice.Kind != "convoke_generic" {
+				color = choice.Kind[len("convoke_")]
 			}
-			pc.convoke = append(pc.convoke, convokePayment{id: chosen[0].Obj, color: color})
+			pc.convoke = append(pc.convoke, convokePayment{id: choice.Obj, color: color})
 		}
 	case "harmonize":
-		if len(chosen) > 0 {
-			pc.convoke = append(pc.convoke, convokePayment{id: chosen[0].Obj, power: int32(chosen[0].Amount)})
+		for _, choice := range chosen {
+			pc.convoke = append(pc.convoke, convokePayment{id: choice.Obj, power: int32(choice.Amount)})
 		}
 	case "activate":
 		// CR 601.2g: a source's mana abilities are distinct activations that

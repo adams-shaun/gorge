@@ -11,8 +11,9 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// openingRound serializes "may begin the game" choices before the London
-// round. The source is an SVar name, rather than a card name, so every
+// openingRound serializes "may begin the game" choices after every London
+// mulligan and bottoming choice has fixed the opening hands, but before turn
+// one. The source is an SVar name, rather than a card name, so every
 // FromHand/FromOpeningHand script with the normal self-to-battlefield shape
 // shares this flow.
 // Existing chooseFor values occupy 0 through 9 (chooseManaExile is 9).
@@ -152,6 +153,7 @@ func (e *Engine) applyOpeningEffect(ef openingEffect) {
 		ctx := &effects.Ctx{Source: ef.card, Controller: ef.player}
 		effects.SetSVars(ctx, o.Face().SVars)
 		effects.Resolve(e, ctx, sa)
+		e.registerOpeningEffectTriggers(ef, sa)
 		return
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: ef.card, From: state.ZHand, To: state.ZBattlefield, Text: "opening hand effect"})
@@ -187,7 +189,15 @@ func (e *Engine) handleOpening(d *decision.Decision, in decision.Intent) {
 		return
 	}
 	if chosen[0].Kind == "opening_yes" && e.opening.index < len(e.opening.effects) {
-		e.applyOpeningEffect(e.opening.effects[e.opening.index])
+		ef := e.opening.effects[e.opening.index]
+		e.applyOpeningEffect(ef)
+		// Impatient Iguana's opening-hand effect changes the player who takes
+		// turn one. This round-local value is consumed by finishOpening.
+		if o := e.G.Obj(ef.card); o != nil && o.Face() != nil {
+			if sa := cards.ResolveSVar(o.Face().SVars, ef.svar); sa != nil && sa.Params["BecomeStartingPlayer"] == "True" {
+				e.opening.start = ef.player
+			}
+		}
 		if e.opening.exile != 0 {
 			return
 		}
@@ -196,14 +206,69 @@ func (e *Engine) handleOpening(d *decision.Decision, in decision.Intent) {
 	e.stepOpening()
 }
 
-func (e *Engine) finishOpening() {
-	start, mulligans := e.opening.start, e.opening.mulligans
-	e.opening = openingRound{}
-	if mulligans > 0 {
-		e.pregame = true
-		e.mulligan = newMulliganRound(e.G.AliveFrom(start), mulligans)
-		return
+// registerOpeningEffectTriggers turns an opening Effect's one-off phase
+// child into the ordinary event-backed delayed-trigger mechanism. The source
+// may remain in hand: delayed triggers intentionally survive their source
+// moving zones, and DelayedPush resolves the named SVar with the same normal
+// stack/resume machinery as any other trigger. Non-phase opening children
+// need general Effect-trigger registration and are left unregistered rather
+// than silently pretending to work.
+func (e *Engine) registerOpeningEffectTriggers(ef openingEffect, first *cards.SA) {
+	for sa := first; sa != nil; {
+		if sa.API == "Effect" {
+			for _, name := range strings.Fields(sa.Params["Triggers"]) {
+				o := e.G.Obj(ef.card)
+				if o == nil || o.Face() == nil {
+					return
+				}
+				params := openingTriggerParams(o.Face().SVars[name])
+				if params["Mode"] != "Phase" || params["OneOff"] != "True" {
+					continue
+				}
+				var step state.Step
+				switch strings.TrimSpace(params["Phase"]) {
+				case "Upkeep":
+					step = state.StepUpkeep
+				case "Main1":
+					step = state.StepMain1
+				default:
+					continue
+				}
+				exec := params["Execute"]
+				if exec == "" || cards.ResolveSVar(o.Face().SVars, exec) == nil {
+					continue
+				}
+				e.emit(events.Event{Kind: events.DelayedRegister, Obj: ef.card, Player: ef.player,
+					Step: step, Counter: exec, Text: "opening hand delayed trigger"})
+			}
+		}
+		next := sa.Sub
+		if next == nil && sa.Params["SubAbility"] != "" {
+			if o := e.G.Obj(ef.card); o != nil && o.Face() != nil {
+				next = cards.ResolveSVar(o.Face().SVars, sa.Params["SubAbility"])
+			}
+		}
+		sa = next
 	}
+}
+
+// openingTriggerParams parses the T: SVar's pipe grammar. T: lines held in
+// SVars are not Face.Triggers (the parser links only printed T: lines), so the
+// phase registration must read the raw, immutable script body here.
+func openingTriggerParams(body string) map[string]string {
+	params := make(map[string]string)
+	for _, part := range strings.Split(body, "|") {
+		key, value, ok := strings.Cut(strings.TrimSpace(part), "$")
+		if ok {
+			params[strings.TrimSpace(key)] = strings.TrimSpace(value)
+		}
+	}
+	return params
+}
+
+func (e *Engine) finishOpening() {
+	start := e.opening.start
+	e.opening = openingRound{}
 	e.beginTurn(start)
 }
 

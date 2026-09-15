@@ -760,11 +760,6 @@ func New(cfg Config) *Engine {
 		// transcript and on the web client with no UI work. Emitted exactly
 		// once per game, before the mulligan round / turn 1 begins.
 		e.recordToss(start, true)
-		e.opening = e.newOpeningRound(start, cfg.Mulligans)
-		if len(e.opening.effects) > 0 {
-			e.stepOpening()
-			return e
-		}
 		if cfg.Mulligans > 0 {
 			// Ruling R-8.4: the London mulligan round lives between the deal
 			// and turn 1. e.pregame makes step() dispatch to stepPregame
@@ -778,6 +773,11 @@ func New(cfg Config) *Engine {
 			e.pregame = true
 			e.mulligan = newMulliganRound(e.G.AliveFrom(start), cfg.Mulligans)
 		} else {
+			e.opening = e.newOpeningRound(start, 0)
+			if len(e.opening.effects) > 0 {
+				e.stepOpening()
+				return e
+			}
 			e.beginTurn(start)
 		}
 	}
