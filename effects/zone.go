@@ -541,8 +541,9 @@ type libraryFetch struct {
 // An unrecognised Defined$ selector is a fail-closed no-op here. In
 // particular it must not pass through Defined's public source fallback: that
 // fallback would make an unknown selector look like an object fetch list and
-// silently consume the hidden-origin effect. Player selectors still return
-// false to take the ordinary search-owner path below.
+// silently consume the hidden-origin effect. A resolved player target takes
+// the ordinary search-owner path below, regardless of which selector yielded
+// it; the target kind, not a closed spelling list, defines the role.
 func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool {
 	if strings.TrimSpace(sa.Params["Defined"]) == "" {
 		return false
@@ -559,6 +560,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 	}
 	var fetches []libraryFetch
 	objectList := false
+	playerList := false
 	addOwner := func(p state.PlayerID) int {
 		for i := range fetches {
 			if fetches[i].owner == p {
@@ -570,6 +572,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 	}
 	for _, t := range targets {
 		if t.IsPlayer {
+			playerList = true
 			continue
 		}
 		objectList = true
@@ -583,11 +586,14 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 		}
 	}
 	if !objectList {
-		// An empty object fetch (an empty Remembered/ChosenCard list or an
-		// empty library's TopOfLibrary) is still a direct fetch and must not
-		// degrade to a fresh whole-library search. Only selectors whose role is
-		// explicitly a library owner take that search path when empty.
-		return !definedSearchOwnerSelector(sa.Params["Defined"])
+		// A resolved player list identifies whose library to search. Deriving
+		// that role from the resolved target kind covers every selector with a
+		// player binding (Remembered, Targeted, ChosenPlayer, and future ones),
+		// instead of losing an unlisted spelling to a direct-fetch no-op. An
+		// empty object fetch (an empty Remembered/ChosenCard list or an empty
+		// library's TopOfLibrary) is still a direct fetch and must not degrade
+		// to a fresh whole-library search.
+		return !playerList
 	}
 
 	optional := strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True")
@@ -641,24 +647,6 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 		placeLibraryObjects(h, sa, f.owner, moved, to)
 	}
 	return true
-}
-
-// definedSearchOwnerSelector reports the Defined$ forms that identify a
-// library owner rather than a concrete object list. It is intentionally a
-// closed list: an unrecognised selector is handled as a no-op by
-// moveDefinedLibraryObjects, never promoted into a whole-library search.
-func definedSearchOwnerSelector(spec string) bool {
-	switch strings.TrimSpace(spec) {
-	case "You", "Player.IsRemembered", "Player.Chosen", "RememberedController",
-		"RememberedOwner", "TargetedController", "TargetedPlayer", "ChosenController",
-		"TriggeredSourceController", "TriggeredTargetController", "TriggeredDefendingPlayer",
-		"TriggeredPlayer", "TriggeredAttackingPlayer", "TriggeredAttackedTarget",
-		"TriggeredActivator", "TriggeredCardController", "Opponent", "Player.Opponent",
-		"Player.Other", "Player":
-		return true
-	default:
-		return false
-	}
 }
 
 // searchPlayers resolves whose library is searched. DefinedPlayer$ takes
