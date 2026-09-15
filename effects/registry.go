@@ -449,19 +449,6 @@ func RegisterNonAPI(prefixed ...string) {
 
 const maxChain = 32
 
-// Ask poses d through the host unless it offers nothing to choose. A
-// decision with no options cannot be answered meaningfully (a seat can only
-// submit the empty answer), so the asking effect takes its no-host path --
-// the same result an answered empty choice produces -- without a pending
-// decision or a resume. Effects should ask through this rather than
-// h.Ask directly.
-func Ask(h Host, d *decision.Decision) bool {
-	if d == nil || len(d.Options) == 0 {
-		return false
-	}
-	return h.Ask(d)
-}
-
 // Resolve runs an ability and every sub-ability chained beneath it.
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	reg := registry.load()

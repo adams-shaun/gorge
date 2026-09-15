@@ -132,3 +132,21 @@ export function promptContextText(ctx: PromptContext): string | null {
   if (ctx.shape !== null) parts.push(ctx.shape);
   return parts.length === 0 ? null : parts.join(' · ');
 }
+
+/**
+ * stuckDecision is the empty-answer safety net (the Squadron Hawk
+ * fail-to-find soft-lock): a pending decision for this seat with NO options
+ * is one the picker UI cannot render — there is nothing to click, and the
+ * game is blocked on an answer. The engine resolves every such shape
+ * silently since the empty-choose fix, so a server should never hold one;
+ * if one ever arrives anyway (an older server, a new engine shape), the
+ * caller surfaces it in the Pending tray instead of leaving the seat
+ * "waiting" on an invisible question. `answerable` says whether the minimum
+ * legal answer (the empty one, Min 0) can be submitted — a decision with no
+ * options AND a positive Min is unanswerable outright and can only be
+ * named. Null when the decision is renderable (or absent).
+ */
+export function stuckDecision(d: Decision | null | undefined): { prompt: string; answerable: boolean } | null {
+  if (!d || d.options.length > 0) return null;
+  return { prompt: d.prompt, answerable: d.min === 0 };
+}

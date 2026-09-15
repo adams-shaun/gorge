@@ -1,0 +1,269 @@
+package effects
+
+import (
+	"testing"
+
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// The class test for the empty-answer-only soft-lock (the Squadron Hawk
+// fail-to-find live bug): a decision whose only legal answer is the empty
+// one (Min 0 with Max 0, or no options at all) is NEVER posted. Every
+// asking primitive in this package resolves such a shape silently, through
+// the same deterministic path its no-host stand-in already runs, and every
+// site asks through the ONE shared helper (effects.Ask) rather than a
+// per-site `if` -- so the next asking primitive is covered by construction,
+// and rules' Engine.ask boundary guard panics if any site ever bypasses it.
+//
+// The table drives every asking site reachable with an empty candidate set
+// (search with no eligible card and with an empty library, the KArrange
+// family with an empty library, Dig with a window that holds nothing
+// eligible, and both discard asks with an empty target hand) against an
+// ASKABLE host (askHost records and returns true). Each leaf asserts three
+// things: no decision was posed, the resolution completed, and -- for the
+// sites that record an R-9 note on a genuine no-host run -- that note is
+// ABSENT, because skipping an unanswerable ask is the correct resolution,
+// not a degradation.
+
+// askEmptyCase is one asking site driven with an empty candidate set.
+type askEmptyCase struct {
+	name string
+	// run resolves the site's ability against the prepared host.
+	run func(t *testing.T, h *askHost, c *Ctx)
+	// wantMoves is how many library/hand MoveZone events the silent
+	// resolution must emit (0 everywhere: nothing moves on an empty
+	// candidate set).
+	wantMoves int
+	// wantShuffle: the search's unconditional shuffle still happens.
+	wantShuffle bool
+	// wantLibraryOrder: the KArrange stand-in still records the unchanged
+	// order (0 cards).
+	wantLibraryOrder bool
+	// noteFree asserts no "(no engine host to ask)" R-9 note was recorded:
+	// the ask was skipped because the decision was unanswerable, not because
+	// the host could not ask.
+	noteFree bool
+}
+
+func (tc askEmptyCase) runCase(t *testing.T) {
+	t.Helper()
+	h := &askHost{}
+	h.g = state.NewGame(names(2))
+	c := &Ctx{Source: 0, Controller: 0}
+	if c.Source == 0 {
+		src := h.g.AddObject(mkCard(t, "Name:Asker\nTypes:Sorcery\nOracle:x\n"), 0)
+		src.Zone = state.ZHand
+		c.Source = src.ID
+	}
+	tc.run(t, h, c)
+
+	if h.asked != nil {
+		t.Fatalf("%s: posed a decision %+v; an empty-answer-only ask must resolve silently", tc.name, h.asked)
+	}
+	moves := 0
+	shuffles := 0
+	orders := 0
+	notes := 0
+	for _, ev := range h.log {
+		switch ev.Kind {
+		case events.MoveZone:
+			moves++
+		case events.Shuffle:
+			shuffles++
+		case events.LibraryOrder:
+			orders++
+		case events.Note:
+			notes++
+		}
+	}
+	if moves != tc.wantMoves {
+		t.Fatalf("%s: %d MoveZone events, want %d: %+v", tc.name, moves, tc.wantMoves, h.log)
+	}
+	if tc.wantShuffle && shuffles == 0 {
+		t.Fatalf("%s: no Shuffle event; the search's unconditional shuffle still applies on a fail-to-find: %+v", tc.name, h.log)
+	}
+	if !tc.wantShuffle && shuffles != 0 {
+		t.Fatalf("%s: %d Shuffle events, want 0: %+v", tc.name, shuffles, h.log)
+	}
+	if tc.wantLibraryOrder && orders == 0 {
+		t.Fatalf("%s: no LibraryOrder event; the arrange stand-in still records the (unchanged) order: %+v", tc.name, h.log)
+	}
+	if tc.noteFree && notes != 0 {
+		t.Fatalf("%s: %d Note event(s) recorded; a skipped empty ask is silent, not an R-9 no-host degradation: %+v", tc.name, notes, h.log)
+	}
+}
+
+func TestAskingSitesResolveAnEmptyCandidateSetSilently(t *testing.T) {
+	cases := []askEmptyCase{
+		{
+			// The live bug's exact shape: Squadron Hawk's accepted ETB
+			// trigger searches for cards named Squadron Hawk with none in the
+			// library. The stated-quality filter keeps Min 0 (CR 701.23b),
+			// max clamps to 0 eligible, and the old code posted a Min 0 /
+			// Max 0 KChoose with no options. Now: no ask, the shuffle still
+			// happens, nothing is found.
+			name:        "search stated-quality, no eligible card",
+			wantShuffle: true,
+			noteFree:    true,
+			run: func(t *testing.T, h *askHost, c *Ctx) {
+				fillLibrary(h.g, 0, mkCard(t, "Name:Plains\nTypes:Basic Land Plains\nOracle:x\n"), 3)
+				s := sa(t, "SP$ ChangeZone | Origin$ Library | Destination$ Hand | ChangeType$ Creature")
+				Resolve(h, c, s)
+			},
+		},
+		{
+			// The same shape with an entirely EMPTY library: the search still
+			// shuffles (CR 701.23c) and finds nothing.
+			name:        "search, empty library",
+			wantShuffle: true,
+			noteFree:    true,
+			run: func(t *testing.T, h *askHost, c *Ctx) {
+				s := sa(t, "SP$ ChangeZone | Origin$ Library | Destination$ Hand | ChangeType$ Card")
+				Resolve(h, c, s)
+			},
+		},
+		{
+			// Rearranging the top of a library that holds nothing: k is 0,
+			// Min == Max == 0 with no options -- the exact wedge shape.
+			name:             "rearrange, empty library",
+			wantLibraryOrder: true,
+			run: func(t *testing.T, h *askHost, c *Ctx) {
+				s := sa(t, "SP$ RearrangeTopOfLibrary | Defined$ You | NumCards$ 3")
+				Resolve(h, c, s)
+			},
+		},
+		{
+			// Scrying an empty library: Min 0 / Max 0 with no options.
+			name:             "scry, empty library",
+			wantLibraryOrder: true,
+			run: func(t *testing.T, h *askHost, c *Ctx) {
+				s := sa(t, "SP$ Scry | Defined$ You | ScryNum$ 2")
+				Resolve(h, c, s)
+			},
+		},
+		{
+			// Surveiling an empty library: the same shared KArrange body.
+			name:             "surveil, empty library",
+			wantLibraryOrder: true,
+			run: func(t *testing.T, h *askHost, c *Ctx) {
+				s := sa(t, "SP$ Surveil | Defined$ You | Amount$ 2")
+				Resolve(h, c, s)
+			},
+		},
+		{
+			// Dig with a window that holds nothing eligible: dig1's own gate
+			// already declines to ask (eligible <= changeNum), and the empty
+			// guard would catch it even if the gate ever moved.
+			name: "dig, no eligible card in the window",
+			run: func(t *testing.T, h *askHost, c *Ctx) {
+				fillLibrary(h.g, 0, mkCard(t, "Name:Plains\nTypes:Basic Land Plains\nOracle:x\n"), 2)
+				s := sa(t, "SP$ Dig | DigNum$ 3 | ChangeNum$ 1 | DestinationZone$ Graveyard | ChangeValid$ Creature")
+				Resolve(h, c, s)
+			},
+		},
+		{
+			// Dig with an empty library: the window is empty, the no-choice
+			// take takes nothing.
+			name: "dig, empty library",
+			run: func(t *testing.T, h *askHost, c *Ctx) {
+				s := sa(t, "SP$ Dig | DigNum$ 3 | ChangeNum$ 1 | DestinationZone$ Graveyard")
+				Resolve(h, c, s)
+			},
+		},
+		{
+			// ChooseCard's filter can leave it no candidate. Its optional
+			// bounds clamp to Min == Max == 0, so it must record the empty
+			// choice rather than post an invisible KChoose.
+			name: "ChooseCard, no matching battlefield card",
+			run: func(t *testing.T, h *askHost, c *Ctx) {
+				s := sa(t, "SP$ ChooseCard | Choices$ Creature | ChoiceZone$ Battlefield")
+				Resolve(h, c, s)
+			},
+		},
+		{
+			// ChoosePlayer is normally required, but an unsupported qualifier
+			// fails closed. Its candidate clamp produces the same zero-option
+			// decision shape; it resolves as an empty recorded choice instead.
+			name: "ChoosePlayer, no matching player",
+			run: func(t *testing.T, h *askHost, c *Ctx) {
+				s := sa(t, "SP$ ChoosePlayer | Choices$ Player.NotARealQualifier")
+				Resolve(h, c, s)
+			},
+		},
+		{
+			// A target-changing effect can find a spell with an existing target
+			// but no legal replacement. It must leave that target alone rather
+			// than post its clamped 0..0 replacement picker.
+			name: "ChangeTargets, no legal replacement",
+			run: func(t *testing.T, h *askHost, c *Ctx) {
+				target := h.g.AddObject(mkCard(t, "Name:Target spell\nTypes:Sorcery\nOracle:x\n"), 0)
+				target.Zone = state.ZStack // fixture setup; effects never mutate game state directly.
+				target.Ability = &cards.SA{}
+				target.Targets = []state.Target{{Player: 1, IsPlayer: true}}
+				c.Targets = []state.Target{{Obj: target.ID}}
+				s := sa(t, "SP$ ChangeTargets | Defined$ Targeted")
+				Resolve(h, c, s)
+				if got := h.g.Obj(target.ID).Targets; len(got) != 1 || got[0].Player != 1 {
+					t.Fatalf("replacement-free ChangeTargets changed targets to %+v", got)
+				}
+			},
+		},
+		{
+			// The caster-chooses discard against a hand with nothing
+			// DiscardValid$ allows: nothing is eligible, nothing is asked,
+			// nothing moves (Thoughtseize against an empty/filtered hand).
+			name:     "discard RevealYouChoose, empty target hand",
+			noteFree: true,
+			run: func(t *testing.T, h *askHost, c *Ctx) {
+				c.Targets = []state.Target{{Player: 1, IsPlayer: true}}
+				s := sa(t, "SP$ Discard | ValidTgts$ Player | Mode$ RevealYouChoose | DiscardValid$ Creature | NumCards$ 1")
+				Resolve(h, c, s)
+			},
+		},
+		{
+			// The discarding-player-chooses discard against an empty hand:
+			// exactly the same contract on the TgtChoose arm.
+			name:     "discard TgtChoose, empty target hand",
+			noteFree: true,
+			run: func(t *testing.T, h *askHost, c *Ctx) {
+				c.Targets = []state.Target{{Player: 1, IsPlayer: true}}
+				s := sa(t, "SP$ Discard | ValidTgts$ Player | Mode$ TgtChoose | DiscardValid$ Card | NumCards$ 1")
+				Resolve(h, c, s)
+			},
+		},
+	}
+	for _, tc := range cases {
+		tc.runCase(t)
+	}
+}
+
+// TestAskingSitesStillAskWhenACandidateExists is the class test's negative
+// control: the same sites with a NON-empty candidate set must still pose
+// their real decisions. Guards the guard against over-suppressing -- the
+// failure mode where "resolve silently" quietly eats legitimate asks.
+func TestAskingSitesStillAskWhenACandidateExists(t *testing.T) {
+	t.Run("search with an eligible card asks", func(t *testing.T) {
+		h := &askHost{}
+		h.g = state.NewGame(names(2))
+		src := h.g.AddObject(mkCard(t, "Name:Asker\nTypes:Sorcery\nOracle:x\n"), 0)
+		fillLibrary(h.g, 0, mkCard(t, "Name:Grizzly Bears\nTypes:Creature\nPT:2/2\nOracle:x\n"), 2)
+		Resolve(h, &Ctx{Source: src.ID, Controller: 0},
+			sa(t, "SP$ ChangeZone | Origin$ Library | Destination$ Hand | ChangeType$ Creature"))
+		if h.asked == nil || string(h.asked.Kind) != "choose" || len(h.asked.Options) != 2 {
+			t.Fatalf("search with eligible cards posed %+v, want a 2-option choose", h.asked)
+		}
+	})
+	t.Run("scry with a card on top asks", func(t *testing.T) {
+		h := &askHost{}
+		h.g = state.NewGame(names(2))
+		src := h.g.AddObject(mkCard(t, "Name:Asker\nTypes:Sorcery\nOracle:x\n"), 0)
+		fillLibrary(h.g, 0, mkCard(t, "Name:Island\nTypes:Basic Land Island\nOracle:x\n"), 2)
+		Resolve(h, &Ctx{Source: src.ID, Controller: 0},
+			sa(t, "SP$ Scry | Defined$ You | ScryNum$ 2"))
+		if h.asked == nil || string(h.asked.Kind) != "arrange" || len(h.asked.Options) != 2 {
+			t.Fatalf("scry with cards posed %+v, want a 2-option arrange", h.asked)
+		}
+	})
+}

@@ -395,6 +395,19 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		return
 	}
 
+	// NOTE (review r2): a ChangeType-less exact-`Origin$ Library` ChangeZone
+	// whose Defined$ names OBJECTS (Nissa's Pilgrimage's DBHand "the rest
+	// into your hand", `Defined$ Remembered`) is deliberately NOT given a
+	// special object-dispatch here. It keeps the pre-existing stand-in:
+	// Defined$ is read as the library-OWNER selector and the filter search
+	// below runs with the default `Card` spec, so the chained move offers
+	// the whole library as a take-anything pick-1. That narrowing became
+	// REACHABLE when the empty-answer-only fail-to-find stopped suspending
+	// the chain (the mid-resolution Remembered set now survives into the
+	// chained move), and an implementation of the object-dispatch shape was
+	// attempted and REJECTED in review as unauthorised scope for the
+	// empty-choose task. It is recorded in AGENTS.md's Count$Compare row and
+	// awaits its own brief.
 	spec := sa.Params["ChangeType"]
 	if spec == "" {
 		spec = "Card"
@@ -444,7 +457,15 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
 			Kind: "search", Label: name, Obj: id, Player: owner})
 	}
-	if h.Ask(d) {
+	// The shared ask boundary (effects.Ask) refuses to post a decision whose
+	// only legal answer is the empty one -- with zero eligible cards max
+	// clamps to 0 and a stated-quality search's Min is already 0, so that is
+	// exactly the Squadron Hawk fail-to-find shape that used to soft-lock the
+	// game. AskEmpty resolves it silently through the stand-in below: the
+	// search still shuffles, and a fail-to-find is legitimate under
+	// CR 701.23b, so nothing is degraded and no R-9 Note is recorded.
+	oc := Ask(h, d)
+	if oc == AskAsked {
 		return
 	}
 	// R-9: a host without a decision channel cannot ask a player, so it
@@ -456,7 +477,9 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	// (701.23d's "as many as possible"). For a stated-quality search
 	// (CR 701.23b) finding nothing is a legitimate fail-to-find, so the
 	// stand-in still finds nothing, exactly as before. Either way the
-	// search's unconditional shuffle still happens.
+	// search's unconditional shuffle still happens. An AskEmpty run takes
+	// the same stand-in silently (no Note): skipping the ask is the correct
+	// resolution, not a degradation.
 	var picked []state.ObjID
 	if !SearchStatesQuality(spec) {
 		n := int(min)
@@ -466,9 +489,11 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		if n > 0 {
 			picked = append(picked, eligible[:n]...)
 		}
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
-			Text: "finds " + strconv.Itoa(n) + " card(s) (no engine host to ask)"})
-	} else {
+		if oc == AskNoHost {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
+				Text: "finds " + strconv.Itoa(n) + " card(s) (no engine host to ask)"})
+		}
+	} else if oc == AskNoHost {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
 			Text: "finds no card (no engine host to ask)"})
 	}

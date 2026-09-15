@@ -99,3 +99,43 @@ describe('showSubmit — a decision a click cannot answer must offer a way to co
     expect(p.showSubmit).toBe(true);
   });
 });
+
+describe('continueEmpty — the Pending tray Continue answers an option-less decision', () => {
+  // The live soft-lock's wire decision (demo game g4, seat 0): the Squadron
+  // Hawk search posed Min 0 / Max 0 with NO options. No picker can render
+  // it, so the Pending tray's Continue is the only way to answer; it must
+  // post the empty answer through the ordinary submit gate.
+  const emptyChoose = (min: number): Decision => ({
+    seq: 846,
+    player: 0,
+    kind: 'choose',
+    prompt: 'Search a library: choose up to 0 card(s)',
+    min,
+    max: 0,
+    options: [],
+  });
+
+  it('posts { seq, player, choices: [] } for a Min 0 decision with no options', async () => {
+    postIntentMock.mockReset();
+    postIntentMock.mockResolvedValue(undefined);
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    p.adoptView(emptyChoose(0));
+    p.continueEmpty();
+    for (let i = 0; i < 40 && p.postedSeq !== 846; i++) await Promise.resolve();
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(postIntentMock).toHaveBeenCalledWith('t1', 1, { seq: 846, player: 0, choices: [] }, ctx);
+    expect(p.postedSeq).toBe(846);
+    expect(p.pending).toBeNull();
+  });
+
+  it('posts nothing for a positive-Min decision over no options, or a decision that has options', () => {
+    postIntentMock.mockReset();
+    const p = new SeatPanelState('t1', 1, ctx, null);
+    p.adoptView({ ...emptyChoose(1), max: 1 });
+    p.continueEmpty();
+    const q = new SeatPanelState('t1', 1, ctx, null);
+    q.adoptView(attackers(2));
+    q.continueEmpty();
+    expect(postIntentMock).not.toHaveBeenCalled();
+  });
+});

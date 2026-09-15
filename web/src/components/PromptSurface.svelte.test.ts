@@ -594,3 +594,66 @@ describe('the discard-pick card-face row (fb-20260914T120705Z)', () => {
     await page.close();
   });
 });
+
+/**
+ * The empty-answer safety net (the Squadron Hawk fail-to-find soft-lock's
+ * client half): a pending decision for this seat that carries NO options is
+ * one no picker can render, so the Pending tray must never answer it with
+ * "Nothing waiting". The tray names the decision, and when the minimum legal
+ * answer is the empty one (Min 0) it offers a Continue that posts it.
+ *
+ * These cases share this file's dev server and browser rather than starting
+ * their own: another concurrent Vite server plus Chromium in the suite was
+ * measured to make unrelated browser tests flake on a cold optimizer cache.
+ * The seated route's wiring (Table renders the entry and Continue for the
+ * seat, none for a spectator) is pinned in Table.svelte.test.ts, and
+ * continueEmpty's gate in seatpanel.submit.test.ts.
+ */
+describe('PendingTray empty-answer safety net', () => {
+  const tray = (which: string) => `${url}src/components/PendingTray.fixture.html${which ? `?case=${which}` : ''}`;
+
+  it('an empty tray still reads Nothing waiting when nothing is stuck', async () => {
+    const page = await browser.newPage();
+    await page.goto(tray(''));
+    await page.waitForSelector('.empty');
+    expect(await page.locator('.empty').textContent()).toContain('Nothing waiting');
+    expect(await page.locator('[data-stuck]').count()).toBe(0);
+    await page.close();
+  });
+
+  it('a pending Min 0 / Max 0 choose with no options renders a visible, answerable Continue that posts the empty answer', async () => {
+    const page = await browser.newPage();
+    await page.goto(tray('stuck'));
+    const stuck = page.locator('[data-stuck]');
+    await stuck.waitFor();
+    expect(await stuck.isVisible()).toBe(true);
+    expect(await stuck.textContent()).toContain('Search a library: choose up to 0 card(s)');
+    // "Nothing waiting" is gone: the seat is NOT idle, it is blocked on a
+    // decision the tray now names.
+    expect(await page.locator('.empty').count()).toBe(0);
+    const cont = page.locator('[data-stuck] [data-continue]');
+    expect(await cont.isVisible()).toBe(true);
+    expect((await cont.textContent())?.trim()).toBe('Continue');
+    // The click goes through the real SeatPanelState.continueEmpty and the
+    // real postIntent: the wire body is the minimum legal (empty) answer.
+    await cont.click();
+    await page.waitForFunction(() => (window as unknown as { __posted?: string }).__posted !== undefined);
+    const posted = JSON.parse(await page.evaluate(() => (window as unknown as { __posted?: string }).__posted ?? 'null')) as unknown;
+    expect(posted).toEqual({ seq: 846, player: 0, choices: [] });
+    await page.close();
+  });
+
+  it('a decision with no options and no legal answer is named but offers no Continue', async () => {
+    const page = await browser.newPage();
+    await page.goto(tray('stuck-unanswerable'));
+    const stuck = page.locator('[data-stuck]');
+    await stuck.waitFor();
+    expect(await stuck.textContent()).toContain('Search a library: choose 1 card(s)');
+    // There is no minimum legal answer to submit (Min 1 over nothing), so the
+    // tray names the decision and says so instead of offering a control that
+    // could never succeed.
+    expect(await page.locator('[data-stuck] [data-continue]').count()).toBe(0);
+    expect(await stuck.textContent()).toContain('This decision offers no choices');
+    await page.close();
+  });
+});
