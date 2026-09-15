@@ -173,6 +173,28 @@ func TestWardUsesTargetingStackObjectsController(t *testing.T) {
 	}
 }
 
+// TestWardDoesNotTriggerForFriendlyTargetingStackObject is the inverse of
+// TestWardUsesTargetingStackObjectsController: source control and the stack
+// object's controller differ here too, but the stack object is controlled by
+// Ward's controller. CR 702.21a must not trigger Ward in that case.
+func TestWardDoesNotTriggerForFriendlyTargetingStackObject(t *testing.T) {
+	e := combatEngine(t)
+	warded := onBoardCard(t, e, 0, corpusKeywordCard(t, "Vein Ripper"))
+	source := onBoard(t, e, 1, "Name:Borrowed source\nTypes:Creature\nPT:1/1\nA:AB$ Draw | Cost$ T\nOracle:x\n")
+	e.emit(events.Event{Kind: events.AbilityPush, Obj: source, Player: 0})
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("ability stack = %v, want one ability", e.G.Stack)
+	}
+	ability := e.G.Stack[0]
+	if e.G.Obj(ability).Controller != 0 || e.G.Obj(ability).Source != source || e.G.Obj(source).Controller != 1 {
+		t.Fatalf("stack/source controllers = ability %+v source %+v", e.G.Obj(ability), e.G.Obj(source))
+	}
+	e.emit(events.Event{Kind: events.TargetsChosen, Obj: ability, IDs: []state.ObjID{warded}})
+	if e.putTriggersOnStack() || len(e.G.Stack) != 1 || e.Pending() != nil {
+		t.Fatalf("friendly-controlled stack ability incorrectly triggered Ward: stack=%v pending=%+v", e.G.Stack, e.Pending())
+	}
+}
+
 func TestWardManaPaymentActivatesManaAbilities(t *testing.T) {
 	e := combatEngine(t)
 	warded := onBoardCard(t, e, 0, corpusKeywordCard(t, "Kitesail Larcenist"))
