@@ -1618,10 +1618,12 @@ func (e *Engine) replaceCountOp(source state.ObjID, r *cards.Repl, name string) 
 
 // lifeGainForbidden checks active CantGainLife statics against the player who
 // would gain life. R:Event$ GainLife Prevent$ True lines are replacement
-// effects and compete in the CR 616.1 order choice instead.
+// effects and compete in the CR 616.1 order choice instead. The static's
+// ValidPlayer$ scope is read here, in the static's own parameter bucket.
 func (e *Engine) lifeGainForbidden(p state.PlayerID) bool {
 	for _, sv := range e.activeStatics("CantGainLife") {
-		if replacementPlayerMatches(e, sv.Source, &cards.Repl{Params: sv.Params}, p) {
+		if spec := sv.Params["ValidPlayer"]; spec == "" ||
+			effects.MatchesPlayerSpec(e.G, spec, p, sv.Controller) {
 			return true
 		}
 	}
