@@ -121,6 +121,37 @@ func TestChooseCardExiledWithCorpusSA(t *testing.T) {
 	}
 }
 
+// TestChangeZoneSkipsUnobservableExiledWithAssociation uses Flickerwisp's
+// real exile SA. Its delayed trigger returns the RememberChanged target, and
+// no face/SVar on Flickerwisp consumes DefinedCards$ ExiledWith, so the
+// association must not add an otherwise invisible replay event. Parallax
+// Wave above proves the same structural gate still records it whenever the
+// source script does consume that selector.
+func TestChangeZoneSkipsUnobservableExiledWithAssociation(t *testing.T) {
+	wisp, exile := corpusSA(t, "Flickerwisp", "TrigExile")
+	if exile.API != "ChangeZone" || exile.Params["Destination"] != "Exile" {
+		t.Fatalf("Flickerwisp exile fixture changed: %+v", exile)
+	}
+	h := newHost(t, 2)
+	src := h.g.AddObject(wisp, 0)
+	target := h.g.AddObject(mkCard(t, "Name:Target\nTypes:Creature\nPT:1/1\nOracle:x\n"), 1)
+	for _, o := range []*state.Object{src, target} {
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	}
+	effChangeZone(h, &Ctx{Source: src.ID, Controller: 0, Targets: []state.Target{{Obj: target.ID}}}, exile)
+	if got := h.g.Obj(src.ID).ExiledWith; len(got) != 0 {
+		t.Fatalf("Flickerwisp ExiledWith = %v, want no unobservable association", got)
+	}
+	for _, e := range h.log {
+		if e.Kind == events.Imprint && e.Obj == src.ID && e.Text == "exiled-with" {
+			t.Fatalf("Flickerwisp emitted unobservable ExiledWith event: %+v", e)
+		}
+		if e.Kind == events.Choose && e.Obj == src.ID && e.Counter == "remembered" {
+			t.Fatalf("Flickerwisp emitted unobservable persistent Remembered event: %+v", e)
+		}
+	}
+}
+
 func TestGainControlImprintedControllerSuddenSubstitution(t *testing.T) {
 	card, gain := corpusSA(t, "Sudden Substitution", "DBGainControl")
 	h := newHost(t, 2)

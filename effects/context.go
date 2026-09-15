@@ -285,7 +285,11 @@ func relatedPlayers(g *state.Game, ts []state.Target, owner bool) []state.Target
 // survives the resolution and is what Card.IsRemembered and
 // Count$RememberedSize read later (Forge's host card remembered list).
 func eventRemember(h Host, c *Ctx, id state.ObjID) {
-	if c.Source == 0 {
+	// The current resolution already carries its remembered set in Ctx. Keep
+	// source-object state (and its replay event) only when this source has a
+	// supported persistent consumer; otherwise the list is unobservable and
+	// recording it needlessly changes a game transcript.
+	if c.Source == 0 || !tracksPersistentRemembered(h.Game(), c.Source) {
 		return
 	}
 	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "remembered", IDs: []state.ObjID{id}})
