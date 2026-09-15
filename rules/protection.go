@@ -19,6 +19,8 @@ package rules
 // effect's business.
 
 import (
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/effects"
@@ -101,6 +103,23 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	if strings.EqualFold(q, "Permanent.ThisTurnCast") {
 		return o.Zone == state.ZBattlefield && o.EnteredThisTurn
 	}
+	// Forge's remaining printed parameterised K:Protection qualities include
+	// mana-value bounds, counters and "coloured spells". They cannot be sent
+	// through MatchesSpec unchanged: cmc/counters are value predicates and
+	// nonColorless is a colour-identity predicate, none of which the generic
+	// object filter can safely guess.
+	if m := protectionCMC.FindStringSubmatch(q); m != nil {
+		n, _ := strconv.Atoi(m[2])
+		cmc := o.Face().Cmc()
+		return (m[1] == "GE" && cmc >= int32(n)) || (m[1] == "LE" && cmc <= int32(n))
+	}
+	if m := protectionCounter.FindStringSubmatch(q); m != nil {
+		n, _ := strconv.Atoi(m[1])
+		return o.Zone == state.ZBattlefield && o.Counter(m[2]) >= int32(n)
+	}
+	if strings.EqualFold(q, "Spell.nonColorless") {
+		return o.Zone == state.ZStack && o.Face() != nil && effects.ColorsOf(o) != ""
+	}
 	// MonoColor and EnemyColor are Forge's colour-class predicates, rather
 	// than type predicates. They occur on Guardian/Frenemy of the Guildpact;
 	// keep them here with the other source-quality tests so generic
@@ -142,6 +161,11 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 
 // isMonoColor reports the CR colour-class meaning: exactly one colour, not
 // colourless. ColorsOf has already applied Devoid before this point.
+var (
+	protectionCMC     = regexp.MustCompile(`^Card\.cmc(GE|LE)([0-9]+)$`)
+	protectionCounter = regexp.MustCompile(`^Permanent\.counters_GE([0-9]+)_([^_]+)$`)
+)
+
 func isMonoColor(colors string) bool { return len(colors) == 1 }
 
 // hasEnemyColorPair reports whether a multicoloured object includes an enemy
@@ -176,11 +200,9 @@ func protecColourLetter(q string) rune {
 }
 
 // kw:Protection covers Forge's parameterised K:Protection:<Spec> spelling,
-// including Emrakul's Spell and Permanent.ThisTurnCast qualities. The older
-// colour-specific registrations remain for Forge's separate natural-language
-// "Protection from <colour>" keyword spelling. Other parameterised qualities
-// use the existing colour/type matching below or safely do not match until
-// their source-quality grammar is implemented.
+// including every parameterised quality printed on a K:Protection line in
+// the corpus. The older colour-specific registrations remain for Forge's
+// separate natural-language "Protection from <colour>" keyword spelling.
 func init() {
 	effects.RegisterNonAPI("kw:Protection", "kw:Protection from white", "kw:Protection from blue",
 		"kw:Protection from black", "kw:Protection from red", "kw:Protection from green")

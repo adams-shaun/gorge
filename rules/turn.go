@@ -544,7 +544,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	// Resume them before dispatching those flows; an empty chosen slice is
 	// the legitimate "fail to find" / Optional-decline answer.
 	if e.resume != nil && (e.resume.kind == "search" || e.resume.kind == "dig" || e.resume.kind == "choice" || e.resume.kind == "hand_move" || e.resume.kind == "sacrifice" ||
-		e.resume.kind == "ward_alt" || e.resume.kind == "ward_blight" || e.resume.kind == "ward_evidence" ||
+		e.resume.kind == "ward_mana" || e.resume.kind == "ward_alt" || e.resume.kind == "ward_blight" || e.resume.kind == "ward_evidence" ||
 		e.resume.kind == "ward_waterbend" || e.resume.kind == "ward_tap" || e.resume.kind == "ward_sac" || e.resume.kind == "ward_discard") {
 		rp := e.resume
 		e.resume = nil
@@ -620,23 +620,46 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.handleDamageDivision(chosen)
 	case chooseMana:
 		// Several individual mana abilities share one tap cost. A payment
-		// window resumes its cast after the selected ability resolves; an
-		// ordinary activation falls through to Advance's priority round.
-		if e.answerManaActivation(chosen) && e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
-			e.continueCast()
+		// window resumes its cast after the selected ability resolves; Ward's
+		// mid-resolution payment window reopens instead. An ordinary
+		// activation falls through to Advance's priority round.
+		cast := e.answerManaActivation(chosen)
+		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
+			if e.wardMana != nil {
+				e.continueWardMana()
+			} else if cast {
+				e.continueCast()
+			}
 		}
 	case chooseManaDiscard:
-		if e.answerManaDiscard(chosen) && e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
-			e.continueCast()
+		cast := e.answerManaDiscard(chosen)
+		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
+			if e.wardMana != nil {
+				e.continueWardMana()
+			} else if cast {
+				e.continueCast()
+			}
 		}
 	case chooseManaExile:
-		if e.answerManaExile(chosen) && e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
-			e.continueCast()
+		cast := e.answerManaExile(chosen)
+		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
+			if e.wardMana != nil {
+				e.continueWardMana()
+			} else if cast {
+				e.continueCast()
+			}
 		}
 	case chooseManaColor:
-		// A triggered mana ability may pose a further colour choice.
-		if e.answerManaColor(chosen) && e.pending == nil && e.choosing != chooseManaColor {
-			e.continueCast()
+		// A CR 605.3b triggered mana ability may pose its own colour choice
+		// after this one; the cast (or Ward's payment window) resumes only
+		// once none is pending.
+		cast := e.answerManaColor(chosen)
+		if e.pending == nil && e.choosing != chooseManaColor {
+			if e.wardMana != nil {
+				e.continueWardMana()
+			} else if cast {
+				e.continueCast()
+			}
 		}
 	// Tasks 12, 18 add their cases here; Task D1 adds chooseCleanup.
 	default:

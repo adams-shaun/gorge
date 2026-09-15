@@ -509,7 +509,29 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			} else {
 				ctx.UnlessPay = "decline"
 			}
-		case "ward_alt", "ward_blight", "ward_evidence", "ward_waterbend", "ward_tap", "ward_sac", "ward_discard":
+		case "ward_mana":
+			if e.answerWardMana(rp, chosen, ctx) {
+				return
+			}
+		case "ward_alt":
+			// The Discard<...>:<mana> Ward alternative can choose its mana
+			// half even when it is not already floating; it receives the same
+			// CR 702.21a activation window as an ordinary numeric Ward.
+			if len(chosen) == 1 && chosen[0].Kind == "ward_mana" {
+				_, manaRaw, _ := strings.Cut(rp.sa.Params["UnlessCost"], ">:")
+				cost := ParseCost(manaRaw)
+				if e.payMana(chosen[0].Player, cost) {
+					ctx.UnlessPay = "pay"
+				} else if cost.hasManaPayment() && e.hasUntappedManaSource(chosen[0].Player) {
+					e.askWardMana(rp, chosen[0].Player, cost)
+					return
+				} else {
+					ctx.UnlessPay = "decline"
+				}
+				break
+			}
+			fallthrough
+		case "ward_blight", "ward_evidence", "ward_waterbend", "ward_tap", "ward_sac", "ward_discard":
 			if e.settleWardPayment(rp.kind, rp.sa, ctx, chosen) {
 				ctx.UnlessPay = "pay"
 			} else {

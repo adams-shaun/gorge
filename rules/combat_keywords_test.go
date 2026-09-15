@@ -20,7 +20,7 @@ func corpusKeywordCard(t *testing.T, name string) *cards.Card {
 	paths := map[string]string{
 		"Vein Ripper": "v/vein_ripper.txt", "Artisan of Kozilek": "a/artisan_of_kozilek.txt",
 		"Fury": "f/fury.txt", "Shriekmaw": "s/shriekmaw.txt", "Dauthi Voidwalker": "d/dauthi_voidwalker.txt",
-		"Emrakul, the World Anew": "e/emrakul_the_world_anew.txt", "Yavimaya Scion": "y/yavimaya_scion.txt", "Guardian of the Guildpact": "g/guardian_of_the_guildpact.txt", "Frenemy of the Guildpact": "f/frenemy_of_the_guildpact.txt", "Kitesail Larcenist": "k/kitesail_larcenist.txt", "Karazikar, the Eye Tyrant": "k/karazikar_the_eye_tyrant.txt", "Jon Irenicus, Shattered One": "j/jon_irenicus_shattered_one.txt", "Vislor Turlough": "v/vislor_turlough.txt",
+		"Emrakul, the World Anew": "e/emrakul_the_world_anew.txt", "Emrakul, the Aeons Torn": "e/emrakul_the_aeons_torn.txt", "Geyadrone Dihada": "g/geyadrone_dihada.txt", "Yavimaya Scion": "y/yavimaya_scion.txt", "Guardian of the Guildpact": "g/guardian_of_the_guildpact.txt", "Frenemy of the Guildpact": "f/frenemy_of_the_guildpact.txt", "Kitesail Larcenist": "k/kitesail_larcenist.txt", "Auntie Ool, Cursewretch": "a/auntie_ool_cursewretch.txt", "The Serpent Society": "t/the_serpent_society.txt", "Karazikar, the Eye Tyrant": "k/karazikar_the_eye_tyrant.txt", "Jon Irenicus, Shattered One": "j/jon_irenicus_shattered_one.txt", "Vislor Turlough": "v/vislor_turlough.txt",
 	}
 	path, ok := paths[name]
 	if !ok {
@@ -107,6 +107,77 @@ func TestWardKitesailLarcenistChargesTheNonzeroPayer(t *testing.T) {
 	}
 }
 
+func TestWardBlightMayUseATappedCreatureAndPoisonLoses(t *testing.T) {
+	e := combatEngine(t)
+	warded := onBoardCard(t, e, 0, corpusKeywordCard(t, "Auntie Ool, Cursewretch"))
+	blighted := onBoard(t, e, 1, "Name:Tapped payment\nTypes:Creature\nPT:3/3\nOracle:x\n")
+	e.emit(events.Event{Kind: events.Tap, Obj: blighted})
+	cause := e.G.Zone(state.ZLibrary, 1)[0]
+	e.emit(events.Event{Kind: events.PutOnStack, Obj: cause, Player: 1, From: state.ZLibrary, To: state.ZStack})
+	e.emit(events.Event{Kind: events.TargetsChosen, Obj: cause, IDs: []state.ObjID{warded}})
+	e.putTriggersOnStack()
+	e.resolveTop()
+	if err := e.Submit(decision.Intent{Seq: e.Pending().Seq, Player: 1, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	d := e.Pending()
+	if d == nil || len(d.Options) != 1 || d.Options[0].Obj != blighted {
+		t.Fatalf("tapped Blight candidate = %+v, want tapped creature", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 1, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := e.G.Obj(blighted).Counter("M1M1"); got != 2 {
+		t.Fatalf("Blight counters = %d, want 2", got)
+	}
+
+	e2 := combatEngine(t)
+	serpent := onBoardCard(t, e2, 0, corpusKeywordCard(t, "The Serpent Society"))
+	e2.emit(events.Event{Kind: events.PlayerCounterChange, Player: 1, Counter: "POISON", Amount: 5})
+	cause = e2.G.Zone(state.ZLibrary, 1)[0]
+	e2.emit(events.Event{Kind: events.PutOnStack, Obj: cause, Player: 1, From: state.ZLibrary, To: state.ZStack})
+	e2.emit(events.Event{Kind: events.TargetsChosen, Obj: cause, IDs: []state.ObjID{serpent}})
+	e2.putTriggersOnStack()
+	e2.resolveTop()
+	if err := e2.Submit(decision.Intent{Seq: e2.Pending().Seq, Player: 1, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	if !e2.G.Players[1].Lost || e2.G.Players[1].Counter("POISON") != 10 {
+		t.Fatalf("five poison Ward payment: lost/counters = %v/%d, want true/10", e2.G.Players[1].Lost, e2.G.Players[1].Counter("POISON"))
+	}
+}
+
+func TestWardManaPaymentActivatesManaAbilities(t *testing.T) {
+	e := combatEngine(t)
+	warded := onBoardCard(t, e, 0, corpusKeywordCard(t, "Kitesail Larcenist"))
+	land := onBoard(t, e, 1, "Name:Ward Island\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ U\nOracle:x\n")
+	cause := e.G.Zone(state.ZLibrary, 1)[0]
+	e.emit(events.Event{Kind: events.PutOnStack, Obj: cause, Player: 1, From: state.ZLibrary, To: state.ZStack})
+	e.emit(events.Event{Kind: events.TargetsChosen, Obj: cause, IDs: []state.ObjID{warded}})
+	e.putTriggersOnStack()
+	e.resolveTop()
+	if err := e.Submit(decision.Intent{Seq: e.Pending().Seq, Player: 1, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	d := e.Pending()
+	if d == nil || d.ResumeKind != "ward_mana" || len(d.Options) != 2 || d.Options[0].Obj != land {
+		t.Fatalf("Ward mana window = %+v", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 1, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	d = e.Pending()
+	if d == nil || d.ResumeKind != "ward_mana" || len(d.Options) != 1 || d.Options[0].Kind != "done" {
+		t.Fatalf("Ward mana window after activation = %+v", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 1, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	if e.G.Obj(cause).Zone != state.ZStack || !e.G.Obj(land).Tapped {
+		t.Fatalf("paid Ward source/cause = tapped %v, zone %s", e.G.Obj(land).Tapped, e.G.Obj(cause).Zone)
+	}
+}
+
 func TestAnnihilatorArtisanSacrificesThePrintedAmount(t *testing.T) {
 	e := combatEngine(t)
 	a := onBoardCard(t, e, 0, corpusKeywordCard(t, "Artisan of Kozilek"))
@@ -168,6 +239,18 @@ func TestProtectionUsesAllLiveColourQualities(t *testing.T) {
 		t.Fatal("Guardian's Protection:Card.MonoColor did not match a monocolored source")
 	}
 	frenemy := onBoardCard(t, e, 0, corpusKeywordCard(t, "Frenemy of the Guildpact"))
+	eons := onBoardCard(t, e, 0, corpusKeywordCard(t, "Emrakul, the Aeons Torn"))
+	coloredSpell := onBoard(t, e, 1, "Name:Colored spell\nManaCost:R\nTypes:Instant\nOracle:x\n")
+	e.emit(events.Event{Kind: events.PutOnStack, Obj: coloredSpell, Player: 1, From: state.ZBattlefield, To: state.ZStack})
+	if !e.protectedFrom(eons, coloredSpell) {
+		t.Fatal("Spell.nonColorless protection did not recognize a colored spell")
+	}
+	geyadrone := onBoardCard(t, e, 0, corpusKeywordCard(t, "Geyadrone Dihada"))
+	corrupt := onBoard(t, e, 1, "Name:Corrupt source\nTypes:Artifact\nOracle:x\n")
+	e.emit(events.Event{Kind: events.CounterChange, Obj: corrupt, Counter: "CORRUPTION", Amount: 1})
+	if !e.protectedFrom(geyadrone, corrupt) {
+		t.Fatal("counter-qualified Protection did not recognize a corrupted permanent")
+	}
 	enemy := onBoard(t, e, 1, "Name:Enemy pair\nManaCost:U G\nTypes:Creature\nPT:1/1\nOracle:x\n")
 	ally := onBoard(t, e, 1, "Name:Ally pair\nManaCost:W U\nTypes:Creature\nPT:1/1\nOracle:x\n")
 	if !e.protectedFrom(frenemy, enemy) || e.protectedFrom(frenemy, ally) {

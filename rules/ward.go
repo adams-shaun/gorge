@@ -42,7 +42,8 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 				Label: "Discard " + e.G.Obj(id).Face().Name})
 		}
 		mana := ParseCost(manaRaw)
-		if mana.payable(e.G.Players[payer].Pool, e.G.Players[payer].Life) {
+		if mana.payable(e.G.Players[payer].Pool, e.G.Players[payer].Life) ||
+			(mana.hasManaPayment() && e.hasUntappedManaSource(payer)) {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "ward_mana", Amount: int(mana.Generic), Label: "Pay " + manaRaw})
 		}
 		if len(d.Options) == 0 {
@@ -60,8 +61,11 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 			e.emit(events.Event{Kind: events.PlayerCounterChange, Player: payer, Counter: "POISON", Amount: int32(n)})
 			return true, false
 		case "Blight":
+			// Blight's cost is "a creature you control gets -N/-N"; unlike
+			// Waterbend and a tap cost it does not require that creature to be
+			// untapped (Auntie Ool, Cursewretch).
 			return e.askWardObjects(rp, payer, "ward_blight", "Choose a creature to blight", 1, 1,
-				e.wardPermanents(payer, ctx.Source, "Creature", true))
+				e.wardPermanents(payer, ctx.Source, "Creature", false))
 		case "CollectEvidence":
 			ids := append([]state.ObjID(nil), e.G.Zone(state.ZGraveyard, payer)...)
 			if wardManaValue(e.G, ids) < int32(n) {
@@ -133,7 +137,17 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 		}
 		return e.askWardObjects(rp, payer, "ward_tap", "Choose a permanent to tap for ward", 1, 1, ids)
 	}
-	return e.payMana(payer, cost), false
+	if e.payMana(payer, cost) {
+		return true, false
+	}
+	// CR 702.21a payment is a mana-payment window, not a check of only
+	// floating mana. Give the payer the same chance to activate each currently
+	// legal mana ability as during a cast before finally charging the Ward cost.
+	if !cost.hasManaPayment() || !e.hasUntappedManaSource(payer) {
+		return false, false
+	}
+	e.askWardMana(rp, payer, cost)
+	return false, true
 }
 
 func (e *Engine) askWardObjects(rp *resumePoint, payer state.PlayerID, kind, prompt string, min, max int, ids []state.ObjID) (bool, bool) {
@@ -214,7 +228,7 @@ func (e *Engine) settleWardPayment(kind string, sa *cards.SA, ctx *effects.Ctx, 
 		e.emit(events.Event{Kind: events.MoveZone, Obj: ids[0], From: state.ZHand, To: state.ZGraveyard, Text: "discarded for ward"})
 		return true
 	case "ward_blight":
-		if len(ids) != 1 || !containsObj(e.wardPermanents(payer, ctx.Source, "Creature", true), ids[0]) {
+		if len(ids) != 1 || !containsObj(e.wardPermanents(payer, ctx.Source, "Creature", false), ids[0]) {
 			return false
 		}
 		m := wardSpecialCost.FindStringSubmatch(raw)
@@ -306,6 +320,88 @@ func wardManaCost(c Cost) Cost {
 	c.Sac = nil
 	c.Discard = nil
 	return c
+}
+
+// wardManaPayment is the resumable CR 702.21a mana-payment window. It keeps
+// the resolution frame attributes that Ask normally captures from an effects
+// call, because this window is opened by rules after an answered Ward mode.
+type wardManaPayment struct {
+	payer       state.PlayerID
+	cost        Cost
+	obj         state.ObjID
+	sa          *cards.SA
+	outer       *resumePoint
+	replacement bool
+	replaced    state.ObjID
+	before      *triggerSnapshot
+}
+
+// askWardMana offers every usable mana source plus Done. Unlike an ordinary
+// cast window, Done remains useful even after the last source is tapped: it
+// lets the player pay the now-floating mana or decline.
+func (e *Engine) askWardMana(rp *resumePoint, payer state.PlayerID, cost Cost) {
+	wm := &wardManaPayment{payer: payer, cost: cost, obj: rp.obj, sa: rp.sa,
+		outer: rp.outer, replacement: rp.replacement, replaced: rp.replaced, before: rp.before}
+	e.wardMana = wm
+	d := &decision.Decision{Player: payer, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Activate mana abilities to pay Ward", ResumeKind: "ward_mana", ResumeSA: rp.sa}
+	for _, id := range e.G.Zone(state.ZBattlefield, payer) {
+		if e.untappedManaSource(payer, id) {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "activate", Obj: id,
+				Label: "Tap " + e.G.Obj(id).Face().Name + " for mana"})
+		}
+	}
+	d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "done", Label: "Done"})
+	e.Ask(d)
+	// Ask sees the correct stack object but this payment window began while a
+	// prior Ward frame was resuming, so preserve that frame's continuation and
+	// replacement snapshot explicitly.
+	e.resume.outer = wm.outer
+	e.resume.replacement = wm.replacement
+	e.resume.replaced = wm.replaced
+	e.resume.before = wm.before
+}
+
+// continueWardMana reopens the payment window after one mana ability has
+// resolved, including abilities that required their own ability/colour/discard
+// decision.
+func (e *Engine) continueWardMana() {
+	wm := e.wardMana
+	if wm == nil {
+		return
+	}
+	e.askWardMana(&resumePoint{obj: wm.obj, sa: wm.sa, outer: wm.outer,
+		replacement: wm.replacement, replaced: wm.replaced, before: wm.before}, wm.payer, wm.cost)
+}
+
+// answerWardMana applies Done or activates the chosen source. It returns true
+// when a new decision was installed and the current resolution must remain
+// suspended; otherwise it sets ctx.UnlessPay for effWard's normal re-entry.
+func (e *Engine) answerWardMana(rp *resumePoint, chosen []decision.Option, ctx *effects.Ctx) bool {
+	wm := e.wardMana
+	if wm == nil || wm.obj != rp.obj || wm.sa != rp.sa || len(chosen) != 1 {
+		ctx.UnlessPay = "decline"
+		return false
+	}
+	if chosen[0].Kind == "done" {
+		e.wardMana = nil
+		if e.payMana(wm.payer, wm.cost) {
+			ctx.UnlessPay = "pay"
+		} else {
+			ctx.UnlessPay = "decline"
+		}
+		return false
+	}
+	if chosen[0].Kind != "activate" || !e.untappedManaSource(wm.payer, chosen[0].Obj) {
+		ctx.UnlessPay = "decline"
+		e.wardMana = nil
+		return false
+	}
+	e.activateMana(wm.payer, chosen[0].Obj, false)
+	if e.Pending() == nil {
+		e.continueWardMana()
+	}
+	return true
 }
 
 func containsObj(ids []state.ObjID, want state.ObjID) bool {
