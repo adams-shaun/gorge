@@ -115,10 +115,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// real hand choice (the rv2b extension drops handmove1's ChangeType$
 		// requirement: the whole 246-line no-selector Origin$ Hand population
 		// routes here now, 19 of it untyped).
-		// DefinedPlayer$-bearing lines name another player's hand and stay on
-		// the (broken) object path until the per-player follow-up lands; a
-		// ValidTgts$-bearing line names real targets the object path moves; and
-		// a non-literal ChangeNum$ (an SVar name or inline Count$, 15 raw
+		// A non-literal ChangeNum$ (an SVar name or inline Count$, 15 raw
 		// lines -- Count$ValidHand, CountAuras, HandX, VoteNum, X, XFetch, Y)
 		// cannot yet be evaluated into a choice bound, so it no longer falls to
 		// the silent no-op: it emits a Note naming the unreadable count and
@@ -134,6 +131,35 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 				Text: "cannot choose ChangeNum$ " + strings.TrimSpace(sa.Params["ChangeNum"]) +
 					" cards from hand (a non-literal count is not a bound this engine can evaluate)"})
 			return
+		}
+		// A ChangeZone from exactly Hand whose hand OWNER is selected --
+		// DefinedPlayer$-alone (Kynaios and Tiro's "each player may put a land
+		// card from their hand onto the battlefield", Braids, Conjurer Adept,
+		// Mindleech Ghoul) or ValidTgts$-alone naming the players (Karn
+		// Liberated's "[+4]: Target player exiles a card from their hand",
+		// Kyoki, Sanity's Eclipse) -- is the per-owner hidden-hand shape: one
+		// chooser ask per hand owner, chained through the persisted
+		// Ctx.HandMoveTarget cursor. The rv2b r2 finding: these shapes used to
+		// fall through to the object path, where Defined() resolved to the
+		// source (or to targets the Origin$ precondition then skipped because
+		// they are PLAYERS, not hand cards) -- another silent no-op.
+		if len(originZones) == 1 && originZones[0] == state.ZHand && !originAll &&
+			sa.Params["Defined"] == "" &&
+			(sa.Params["DefinedPlayer"] != "" || sa.Params["ValidTgts"] != "") {
+			effChangeZoneHandOwners(h, c, sa, to)
+			return
+		}
+		// DefinedPlayer$ alongside a Defined$ that names concrete objects
+		// (Wilt-Leaf Liege's DefinedPlayer$ ReplacedPlayer + Defined$
+		// ReplacedCard, 1 corpus line) keeps the object path -- the moved
+		// objects are already named -- but the owner parameter is unread
+		// there, so the shape is loud about it rather than silent.
+		if len(originZones) == 1 && originZones[0] == state.ZHand && !originAll &&
+			sa.Params["Defined"] != "" && sa.Params["DefinedPlayer"] != "" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "DefinedPlayer$ " + sa.Params["DefinedPlayer"] +
+					" is unread next to Defined$ " + sa.Params["Defined"] +
+					" (the move goes to the named objects alone)"})
 		}
 	}
 	// WithCountersType$/WithCountersAmount$ make the move put counters on the
@@ -182,7 +208,28 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 // the battlefield. Keeping the object path and the hand-choice path on this
 // one helper means the two cannot drift apart on any of the three.
 func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32) {
-	h.Emit(moveZoneEvent(c, id, from, to))
+	settleChangeZoneMoveAs(h, c, sa, id, from, to, withKind, withAmt, 0, false)
+}
+
+// settleChangeZoneMoveAs is the one settle path every ChangeZone mover shares
+// (settleChangeZoneMove is its event-Player-unset form), plus the explicit
+// event-Player form: a hidden-zone move of ANOTHER player's card carries that
+// player as the event's Player -- the same attribution the library search's
+// move applies -- so the view layer's hidden-card redaction sees the move the
+// way the owner does. The MoveZone itself, then RememberChanged$ (the moved
+// object joins the ability's Remembered -- a DelayedTrigger running as a
+// later SubAbility of the same chain captures it, and the value is a
+// parameter of the ongoing resolution (Ctx), not game state, so mutating it
+// here is fine), then the WithCountersType$/WithCountersAmount$ entry
+// counters when the move lands on the battlefield. Keeping the object path
+// and the hand-choice path on this one helper means the two cannot drift
+// apart on any of the three.
+func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32, player state.PlayerID, hasPlayer bool) {
+	ev := moveZoneEvent(c, id, from, to)
+	if hasPlayer {
+		ev.Player = player
+	}
+	h.Emit(ev)
 	if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 		c.Remembered = append(c.Remembered, state.Target{Obj: id})
 	}
@@ -210,82 +257,240 @@ func handChangeNum(sa *cards.SA) (int32, bool) {
 	return int32(n), true
 }
 
-// effChangeZoneHand implements Forge's "choose N cards matching ChangeType$
-// from your hand" ChangeZone shape (handmove1): Origin$ Hand, a ChangeType$
-// card filter, ChangeNum$ cards, no object selector. The eligible pool is the
-// resolving controller's own hand, rebuilt deterministically in hand order
-// through the same MatchesSpecCtx resolver the library search uses; the move
-// itself goes through the ordinary object mover so RememberChanged$ and any
-// Destination$ behave exactly as they do everywhere else.
-//
-// The ask (the dig1/effDiscard strict-supersets rule): when the hand holds
-// STRICTLY more eligible cards than ChangeNum, the pick is a real
-// KChoose posed to the controller -- Min ChangeNum or 0, Max ChangeNum --
-// so a decision nobody could answer differently is never emitted; with
-// ChangeNum or fewer eligible cards they all move deterministically, no
-// ask (the same no-choice stand-in dig1 keeps for an Optional$ window: an
-// optional take with eligible <= ChangeNum still plays "you may" as
-// "do", an M4 deferral shared with effDig). With ZERO eligible cards the
-// effect resolves doing nothing (Burgeoning with no land in hand is a
-// legitimate no-op). The chooser's own hand is the option pool, so no
-// Secret Note/redaction is needed beyond the ordinary
-// decision-attaches-only-to-its-Player projection rule.
-//
-// Mandatory$ and Optional$ (rv2b): Forge's default for this shape is
-// "you may" -- the mandatory Brainstorm family carries Mandatory$ True,
-// while the 151 typed lines and 5 untyped lines with NEITHER parameter are
-// all "you may put" texts (Burgeoning, Volcanic Spite) -- so the take is
-// optional unless Mandatory$ True (or Optional$ False) makes it required;
-// Optional$ True/You is the explicit may spelling. An optional ask's Min
-// is 0: answering none moves nothing (Volcanic Spite's gated DBDraw then
-// does not fire, which RememberChanged$/ConditionDefined$ already model).
-// The no-choice path and the R-9 stand-in still take the full ChangeNum --
-// "you may" played as "do", deterministically.
-//
-// Destination$ Library placement (rv2b): a Move appends the moved cards at
-// the BOTTOM of the library in settle order; LibraryPosition$ makes the
-// placement exact afterwards -- absent or "0" puts the chosen cards on TOP
-// in chosen order (Forge's default: Brainstorm and Jace's [0] have no
-// LibraryPosition$ and put the cards on top; Sawtooth Loon's -1 puts them
-// on the bottom), one Secret LibraryOrder like the library search's. A
-// Shuffle$ True put-back (Slowtrip's "shuffle a card from your hand into
-// your library") randomises the whole library after the move instead.
-//
-// ChangeNum$ defaults to 1 when absent -- Forge's own ChangeZoneEffect
-// defaults the count to one card (ChangeNum$ absent reads as "a card" in
-// every text this shape carries: Burgeoning, Elvish Pioneer, Kami of Bamboo
-// Groves), and the corpus's 70 absent-ChangeNum$ exact-Hand lines are all
-// singular-take texts. Only a PLAIN INTEGER literal ChangeNum$ reaches this
-// path: the routing guard in effChangeZone turns a non-literal value (an
-// SVar name or inline Count$, 15 raw lines) into a Note before this
-// function is ever reached, so no count expression is evaluated here (a
-// scoped-out follow-up).
-//
-// The answer re-enters through ResumeKind "hand_move" with Ctx.HandMove /
-// HandMoveDone set (rules/resolution.go); both are captured and cleared at
-// the top of this walk (the fx42 scoping discipline), so a nested hand-move
-// ask in the same SubAbility$ chain poses its own decision instead of
-// inheriting the outer answer. A host that cannot ask (the fuzz/no-engine
-// stand-in, R-9) takes the first ChangeNum eligible cards in the decision's
-// own deterministic option order, with the Note that records why the richer
-// path did not run. Still unread here, each a scoped-out follow-up: Tapped$
-// True (entry-tapped, unread on the object path too), Destination$
-// Hand/Sideboard oddities (2 lines), DestinationAlternative$/
-// LibraryPositionAlternative$ (Dream Cache's "both on top or both on the
-// bottom" -- the top reading is taken deterministically), and any
-// ConditionPresent$/ConditionDefined$ gate (the engine-wide Condition* gap).
+// effChangeZoneHand is the whole-hand shape (handmove1/rv2b r1): Origin$ Hand
+// with no player selector -- the resolving controller's own hand is the one
+// owner, and the controller is its own chooser (Brainstorm, Jace the Mind
+// Sculptor's [0], Sawtooth Loon, Burgeoning). The mechanics -- the ask gate
+// (the dig1/effDiscard strict-supersets rule), the optional-vs-mandatory
+// markers (Forge's default for this shape is "you may"), the fx42 re-entry
+// scoping, the R-9 stand-in, the Destination$ Library placement (absent
+// LibraryPosition$ = TOP in answer order; Shuffle$ True randomises instead)
+// and the unread-parameter list -- are handMoveOwnersWalk's, which this
+// delegates to with the one-owner, chooser==owner, no-random configuration.
+// Only a literal ChangeNum$ (or its absent default 1) reaches here: the
+// routing in effChangeZone Notes a non-literal before this is ever called.
 func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
+	count, _ := handMoveCountOf(h, c, sa)
+	handMoveOwnersWalk(h, c, sa, to, []state.PlayerID{c.Controller}, count, false, nil, false)
+}
+
+// handMoveCount is the ChangeNum$ bound one hidden-hand walk carries: either
+// a fixed bound resolved once for the whole resolution, or the per-owner
+// eligible count (ChangeNum$ NumInHand / HandSize -- Forge's "all matching
+// cards in that hand" texts: Eradicate, Extirpate, Kotose, Lost Legacy, The
+// Great Aurora).
+type handMoveCount struct {
+	fixed    int32
+	perOwner bool
+}
+
+// handMoveCountOf classifies a hidden-hand walk's ChangeNum$. Absent reads as
+// 1 (Forge's ChangeZoneEffect default). "NumInHand"/"HandSize" are the
+// per-owner spellings. A plain integer literal is that literal. An SVar-named
+// count (ChangeNum$ X / Y over an SVar: body) or a bare "X" (the paid X,
+// CR 107.3i) resolves through the ordinary count evaluator, bound to the
+// resolving context. Anything else returns false and the caller is loud (a
+// Note) rather than degrading to a silent zero-count no-op.
+func handMoveCountOf(h Host, c *Ctx, sa *cards.SA) (handMoveCount, bool) {
+	raw := strings.TrimSpace(sa.Params["ChangeNum"])
+	if raw == "" {
+		return handMoveCount{fixed: 1}, true
+	}
+	if strings.EqualFold(raw, "NumInHand") || strings.EqualFold(raw, "HandSize") {
+		return handMoveCount{perOwner: true}, true
+	}
+	if n, ok := handChangeNum(sa); ok {
+		return handMoveCount{fixed: n}, true
+	}
+	resolvable := raw == "X"
+	if c != nil && c.SVars != nil && c.SVars[raw] != "" {
+		resolvable = true
+	}
+	if !resolvable {
+		return handMoveCount{}, false
+	}
+	n := Num(h, c, sa, "ChangeNum", 1)
+	if n < 0 {
+		n = 0
+	}
+	return handMoveCount{fixed: n}, true
+}
+
+// effChangeZoneHandOwners implements the owner-SELECTED hidden-hand shape
+// (rv2b r2): Origin$ Hand with DefinedPlayer$-alone (Kynaios and Tiro's "each
+// player may put a land card from their hand onto the battlefield", Braids,
+// Conjurer Adept, Mindleech Ghoul) or ValidTgts$-alone naming the players
+// whose hand moves (Karn Liberated's "[+4]: Target player exiles a card from
+// their hand", Kyoki, Sanity's Eclipse). One chooser ask per hand owner,
+// chained across owners through the persisted Ctx.HandMoveTarget cursor --
+// the walk restarts on every answer, skips the owners already answered, and
+// asks the next one -- exactly effDig's per-target continuation, but with a
+// REAL ask for every later owner rather than a deterministic stand-in (the
+// hand owners are few and each ask is short). Whose hand and who answers are
+// the two selectors this shape carries: the owners come from
+// DefinedPlayer$/ValidTgts$, the chooser from Chooser$ (Forge's default is
+// the hand owner). Every shape this function cannot model emits a Note and
+// moves nothing -- the finding's floor: never a silent no-op.
+func effChangeZoneHandOwners(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
+	owners, ok := handMoveOwners(h, c, sa)
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "cannot resolve the hand owner (DefinedPlayer$ " + strings.TrimSpace(sa.Params["DefinedPlayer"]) +
+				"); no hand card moves"})
+		return
+	}
+	if len(owners) == 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "the hand owner selector names no player this engine can resolve; no hand card moves"})
+		return
+	}
+	count, ok := handMoveCountOf(h, c, sa)
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "cannot choose ChangeNum$ " + strings.TrimSpace(sa.Params["ChangeNum"]) +
+				" cards from a selected hand (a count this engine cannot evaluate)"})
+		return
+	}
+	choosers := make([]state.PlayerID, len(owners))
+	for i, owner := range owners {
+		ch, ok := handMoveChooserFor(h, c, sa, owner)
+		if !ok {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "Chooser$ " + strings.TrimSpace(sa.Params["Chooser"]) +
+					" is not a chooser this engine can resolve; no hand card moves"})
+			return
+		}
+		choosers[i] = ch
+	}
+	random := strings.EqualFold(strings.TrimSpace(sa.Params["AtRandom"]), "True")
+	handMoveOwnersWalk(h, c, sa, to, owners, count, random, func(_ Host, _ *Ctx, _ *cards.SA, owner state.PlayerID) (state.PlayerID, bool) {
+		return choosers[ownerIndex(owners, owner)], true
+	}, true)
+}
+
+// ownerIndex is the position of owner in owners (owners is small and built
+// without duplicates).
+func ownerIndex(owners []state.PlayerID, owner state.PlayerID) int {
+	for i, p := range owners {
+		if p == owner {
+			return i
+		}
+	}
+	return 0
+}
+
+// handMoveOwners resolves whose hands an owner-selected hidden-hand ChangeZone
+// moves from. DefinedPlayer$ takes precedence and resolves through the same
+// deterministic selector grammar the library search uses (searchPlayers); a
+// ValidTgts$-alone line's chosen targets are the hand owners. It fails
+// CLOSED: a player spec this build does not model returns ok=false and the
+// caller emits its loud Note -- degrading an unmodelled selector to the
+// resolving controller's hand would move (and reveal) cards from the WRONG
+// player's hidden hand, which is worse than moving none.
+func handMoveOwners(h Host, c *Ctx, sa *cards.SA) ([]state.PlayerID, bool) {
+	if spec := strings.TrimSpace(sa.Params["DefinedPlayer"]); spec != "" {
+		if _, modelled := definedSpec(h, c, spec); !modelled {
+			return nil, false
+		}
+		return searchPlayers(h, c, sa), true
+	}
+	// ValidTgts$-alone: Defined's own rule names the chosen targets.
+	owners := make([]state.PlayerID, 0, len(c.Targets))
+	seen := make(map[state.PlayerID]bool, len(c.Targets))
+	for _, t := range Defined(h, c, sa) {
+		if !t.IsPlayer {
+			// A hand-ownership selector that resolved to a card is not a shape
+			// this chooser can honour.
+			return nil, false
+		}
+		p := PlayerOf(h, c, t)
+		if int(p) >= len(h.Game().Players) || seen[p] {
+			continue
+		}
+		seen[p] = true
+		owners = append(owners, p)
+	}
+	return owners, true
+}
+
+// handMoveChooserFor resolves who answers one owner's hidden-hand ask.
+// Forge's default for the shape is the hand owner (Kynaios and Tiro's "each
+// player may put", Mindleech Ghoul's "defending player exiles a card from
+// their hand"); Chooser$ You is the caster picking out of another player's
+// hand (Kitesail Freebooter, Witness the End), Chooser$ Targeted the chosen
+// target (Karn Liberated), and the TriggeredTarget/TriggeredPlayer spellings
+// the causing event's bound player (Kheru Mind Eater, Widespread Panic). An
+// unmodelled value fails closed (ok=false) so the caller is loud rather than
+// handing the ask to a guessed seat.
+func handMoveChooserFor(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID) (state.PlayerID, bool) {
+	switch strings.TrimSpace(sa.Params["Chooser"]) {
+	case "", "Owner":
+		return owner, true
+	case "You":
+		return c.Controller, true
+	case "Targeted":
+		if len(c.Targets) > 0 {
+			return PlayerOf(h, c, c.Targets[0]), true
+		}
+		return owner, true
+	case "TriggeredTarget":
+		if c.TriggerTarget.IsPlayer {
+			return c.TriggerTarget.Player, true
+		}
+		if c.TriggerTarget.Obj != 0 {
+			if o := h.Game().Obj(c.TriggerTarget.Obj); o != nil {
+				return o.Controller, true
+			}
+		}
+		return owner, true
+	case "TriggeredPlayer":
+		if c.TriggerPlayer.IsPlayer {
+			return c.TriggerPlayer.Player, true
+		}
+		return owner, true
+	}
+	return owner, false
+}
+
+// handMoveOwnersWalk is the ONE hidden-hand mover both shapes share: for each
+// owner in order the eligible pool is that owner's hand filtered through
+// ChangeType$ (absent: the whole hand), the bound is the count (perOwner:
+// that pool's own size), and the pick is one of three shapes -- the chained
+// ask (STRICTLY more eligible cards than the bound: a real KChoose to the
+// chooser, Min 0 when the take is optional else the bound, Max the bound, the
+// answer re-entering through ResumeKind "hand_move" with ResumeTarget
+// binding it to this owner), the no-choice deterministic take (eligible <=
+// bound: every eligible card moves, in hand order, no ask -- the dig1/
+// effDiscard strict-supersets rule), or AtRandom$'s engine-random pick (no
+// ask: randomness, not a player choice, picks). The re-entry contract (fx42
+// scoping): Ctx.HandMove/HandMoveDone/HandMoveTarget are captured and
+// cleared at the top of the walk; owners before the cursor completed before a
+// later owner suspended and are skipped, the cursor's owner consumes the
+// answer (moved exactly as answered, revalidated against the CURRENT hand
+// and filter), and owners after it continue the chain.
+//
+// The whole-hand shape (handmove1/rv2b r1) is the one-owner case of this
+// walk, with the chooser == the owner -- the r1 contracts (ask shape, R-9
+// stand-in text, zero-eligible silence, library tail) are this walk's
+// contracts, unchanged. Still unread here, each a scoped-out follow-up:
+// Tapped$ True (unread on the object path too), Destination$
+// Hand/Sideboard oddities (2 lines), and any ConditionPresent$/
+// ConditionDefined$ gate (the engine-wide Condition* gap).
+func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []state.PlayerID,
+	count handMoveCount, random bool, chooserFor func(Host, *Ctx, *cards.SA, state.PlayerID) (state.PlayerID, bool),
+	eventPlayer bool) {
 	spec := sa.Params["ChangeType"]
 	if spec == "" {
 		spec = "Card" // the whole hand: Brainstorm, Jace's [0], Sawtooth Loon
 	}
 	g := h.Game()
-	hand := zoneOf(g, state.ZHand, c.Controller)
-	// fx42 scoping: capture and clear the answered pick BEFORE anything else,
-	// so a nested hand-move ask below cannot inherit it.
+	// fx42 scoping: capture and clear the answered pick (and the cursor that
+	// binds it to the owner that asked) BEFORE anything else, so a nested
+	// hand-move ask below cannot inherit them.
 	ans := c.HandMove
 	done := c.HandMoveDone
-	c.HandMove, c.HandMoveDone = nil, false
+	cursor := c.HandMoveTarget
+	c.HandMove, c.HandMoveDone, c.HandMoveTarget = nil, false, 0
 	withKind := sa.Params["WithCountersType"]
 	var withAmt int32
 	// Match the object path: WithCounters* has no effect away from the
@@ -294,94 +499,128 @@ func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		withAmt = withCounterAmount(h, c, sa)
 	}
 	// settleHandMove settles one chosen card: exactly the shared ChangeZone
-	// mover. Tapped$ True is deliberately NOT read here -- it is unread on
-	// the object path too, a pre-existing gap recorded as a follow-up, not
-	// something to fix on this path alone.
-	settleHandMove := func(id state.ObjID) {
-		settleChangeZoneMove(h, c, sa, id, state.ZHand, to, withKind, withAmt)
+	// mover; on the owner-SELECTED shapes the Move event also carries the
+	// hand's OWNER as its Player (a hidden-zone move of another player's
+	// card -- the same attribution the library search's move carries),
+	// while the whole-hand shape keeps its historical event shape
+	// (eventPlayer false, the r1 golden contract). Tapped$ True is
+	// deliberately NOT read here -- it is unread on the object path too, a
+	// pre-existing gap recorded as a follow-up, not something to fix on this
+	// path alone.
+	settleHandMove := func(id state.ObjID, owner state.PlayerID) {
+		settleChangeZoneMoveAs(h, c, sa, id, state.ZHand, to, withKind, withAmt, owner, eventPlayer)
 	}
-	// moved collects the cards this resolution actually moved, in settle
-	// order, for the library tail below (Shuffle$ / LibraryPosition$).
-	var moved []state.ObjID
-	if done {
-		// Re-entry: move exactly the answered cards that still sit in the
-		// controller's hand and still match the filter (a stray answer must
-		// not move an object that left the hand meanwhile), in the player's
-		// answer order.
-		for _, id := range ans {
-			if !containsID(hand, id) {
-				continue
+	for i, owner := range owners {
+		hand := zoneOf(g, state.ZHand, owner)
+		eligible := make([]state.ObjID, 0, len(hand))
+		for _, id := range hand {
+			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				eligible = append(eligible, id)
 			}
-			o := g.Obj(id)
-			if o == nil || o.Zone != state.ZHand {
-				continue
-			}
-			if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-				continue
-			}
-			settleHandMove(id)
-			moved = append(moved, id)
 		}
-		handLibraryTail(h, g, sa, c.Source, c.Controller, moved, to)
-		return
-	}
-	n, _ := handChangeNum(sa)
-	eligible := make([]state.ObjID, 0, len(hand))
-	for _, id := range hand {
-		if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-			eligible = append(eligible, id)
+		if done && i < cursor {
+			// This owner answered on an earlier pass, before a later owner
+			// suspended the walk. Re-running it could move a second batch, so
+			// skip it (effDig's per-target continuation contract).
+			continue
 		}
-	}
-	if len(eligible) == 0 {
-		return // a legitimate no-op: nothing matching in hand.
-	}
-	if int32(len(eligible)) <= n {
-		// No choice to ask about: every eligible card moves, deterministically,
-		// in hand order. No new decision of any kind.
+		if done && i == cursor {
+			// Re-entry: move exactly the answered cards that still sit in THIS
+			// owner's hand and still match the filter (a stray answer must not
+			// move an object that left the hand meanwhile), in the player's
+			// answer order.
+			var moved []state.ObjID
+			for _, id := range ans {
+				if !containsID(hand, id) {
+					continue
+				}
+				o := g.Obj(id)
+				if o == nil || o.Zone != state.ZHand {
+					continue
+				}
+				if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+					continue
+				}
+				settleHandMove(id, owner)
+				moved = append(moved, id)
+			}
+			handLibraryTail(h, g, sa, c.Source, owner, moved, to)
+			continue
+		}
+		n := count.fixed
+		if count.perOwner {
+			n = int32(len(eligible))
+		}
+		if len(eligible) == 0 {
+			continue // a legitimate no-op for this owner: nothing matching in hand.
+		}
+		var moved []state.ObjID
+		if random {
+			// AtRandom$ True: the engine picks, not a player -- ChangeNum$
+			// random distinct eligible cards (corpus: always 1, mandatory),
+			// through the seeded generator, so the pick replays.
+			pool := append([]state.ObjID(nil), eligible...)
+			for k := int32(0); k < n && len(pool) > 0; k++ {
+				j := h.Rand(len(pool))
+				settleHandMove(pool[j], owner)
+				moved = append(moved, pool[j])
+				pool = append(pool[:j], pool[j+1:]...)
+			}
+			handLibraryTail(h, g, sa, c.Source, owner, moved, to)
+			continue
+		}
+		if int32(len(eligible)) <= n {
+			// No choice to ask about: every eligible card moves,
+			// deterministically, in hand order. No new decision of any kind.
+			for _, id := range eligible {
+				settleHandMove(id, owner)
+				moved = append(moved, id)
+			}
+			handLibraryTail(h, g, sa, c.Source, owner, moved, to)
+			continue
+		}
+		chooser := owner
+		if chooserFor != nil {
+			chooser, _ = chooserFor(h, c, sa, owner)
+		}
+		min := int(n)
+		if handTakeOptional(sa) {
+			min = 0 // "you may put": none is a legal answer
+		}
+		d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
+			Min: min, Max: int(n), Source: c.Source,
+			ResumeKind: "hand_move", ResumeSA: sa, ResumeTarget: i,
+			Prompt: handMovePromptFor(sa, to, int(n), chooser == owner)}
 		for _, id := range eligible {
-			settleHandMove(id)
-			moved = append(moved, id)
+			name := "a card"
+			if o := g.Obj(id); o != nil && o.Face() != nil {
+				name = o.Face().Name
+			}
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "hand_move", Label: name, Obj: id, Player: owner})
 		}
-		handLibraryTail(h, g, sa, c.Source, c.Controller, moved, to)
-		return
-	}
-	min := int(n)
-	if handTakeOptional(sa) {
-		min = 0 // "you may put": none is a legal answer
-	}
-	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
-		Min: min, Max: int(n), Source: c.Source,
-		ResumeKind: "hand_move", ResumeSA: sa,
-		Prompt: handMovePrompt(sa, to, int(n))}
-	for _, id := range eligible {
-		name := "a card"
-		if o := g.Obj(id); o != nil && o.Face() != nil {
-			name = o.Face().Name
+		// The shared ask boundary (effects.Ask): a ChangeNum$ 0 pick over a
+		// nonempty eligible hand is Min == Max == 0 -- the empty-answer-only
+		// shape -- so it is never posted; AskEmpty resolves silently through
+		// the stand-in below, which moves zero cards.
+		oc := Ask(h, d)
+		if oc == AskAsked {
+			return // resolution suspended; the answer re-enters with Ctx.HandMove set.
 		}
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-			Kind: "hand_move", Label: name, Obj: id, Player: c.Controller})
+		// R-9: a host without a decision channel cannot ask a player, so it
+		// supplies the deterministic answer in the player's place -- the first
+		// ChangeNum eligible cards in the same ordered eligible list the
+		// decision's options were built from.
+		if oc == AskNoHost {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
+				Text: "moves the first matching card(s) from hand (no engine host to ask)"})
+		}
+		for k := int32(0); k < n && int(k) < len(eligible); k++ {
+			settleHandMove(eligible[k], owner)
+			moved = append(moved, eligible[k])
+		}
+		handLibraryTail(h, g, sa, c.Source, owner, moved, to)
 	}
-	// The shared ask boundary (effects.Ask): a ChangeNum$ 0 pick over a
-	// nonempty eligible hand is Min == Max == 0 -- the empty-answer-only
-	// shape -- so it is never posted; AskEmpty resolves silently through the
-	// stand-in below, which moves zero cards.
-	oc := Ask(h, d)
-	if oc == AskAsked {
-		return // resolution suspended; the answer re-enters with Ctx.HandMove set.
-	}
-	// R-9: a host without a decision channel cannot ask a player, so it
-	// supplies the deterministic answer in the player's place -- the first
-	// ChangeNum eligible cards in the same ordered eligible list the
-	// decision's options were built from.
-	if oc == AskNoHost {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-			Text: "moves the first matching card(s) from hand (no engine host to ask)"})
-	}
-	for i := int32(0); i < n && i < int32(len(eligible)); i++ {
-		settleHandMove(eligible[i])
-		moved = append(moved, eligible[i])
-	}
-	handLibraryTail(h, g, sa, c.Source, c.Controller, moved, to)
 }
 
 // handTakeOptional reads Forge's optional-vs-mandatory markers for the
@@ -403,8 +642,10 @@ func handTakeOptional(sa *cards.SA) bool {
 
 // handMovePrompt builds the human-readable ask text, naming the top/bottom
 // placement when the destination is the library (the one destination where
-// WHERE matters to the chooser).
-func handMovePrompt(sa *cards.SA, to state.Zone, n int) string {
+// WHERE matters to the chooser), and whose hand it is when the chooser is
+// not the hand's owner (Chooser$ You: the caster picks out of another
+// player's hand).
+func handMovePromptFor(sa *cards.SA, to state.Zone, n int, own bool) string {
 	dest := handDestPhrase(to)
 	if to == state.ZLibrary {
 		if strings.TrimSpace(sa.Params["LibraryPosition"]) == "-1" {
@@ -413,7 +654,11 @@ func handMovePrompt(sa *cards.SA, to state.Zone, n int) string {
 			dest = "the top of your library"
 		}
 	}
-	return "Choose " + strconv.Itoa(n) + " card(s) from your hand: they move to " + dest
+	whose := "your hand"
+	if !own {
+		whose = "that player's hand"
+	}
+	return "Choose " + strconv.Itoa(n) + " card(s) from " + whose + ": they move to " + dest
 }
 
 // handLibraryTail is the post-move library placement both hidden-origin

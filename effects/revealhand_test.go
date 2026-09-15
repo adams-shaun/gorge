@@ -119,23 +119,38 @@ func TestThoughtKnotSeerRevealHandRevealsTheWholeHand(t *testing.T) {
 		Targets: []state.Target{{Player: 1, IsPlayer: true}}}
 	Resolve(h, ctx, trig)
 
-	var note *events.Event
+	// Two Notes: the public whole-hand reveal, then the sub-ability's
+	// hand-move. Pre-rv2b-r2 the DBExile sub-ability silently no-op'd (the
+	// DefinedPlayer$ target is a PLAYER the object path skipped); now it
+	// asks (the chooser is seat 0, Chooser$ You) and the no-host stand-in
+	// answers deterministically with its own Note.
+	var notes []*events.Event
 	for i := range h.log {
 		if h.log[i].Kind == events.Note {
-			if note != nil {
-				t.Fatalf("more than one reveal Note: %+v", h.log)
-			}
-			note = &h.log[i]
+			notes = append(notes, &h.log[i])
 		}
 	}
-	if note == nil {
-		t.Fatalf("no reveal Note emitted: %+v", h.log)
+	if len(notes) != 2 {
+		t.Fatalf("%d Notes, want the reveal + the sub-ability's hand-move stand-in: %+v", len(notes), h.log)
 	}
+	note := notes[0]
 	if note.Secret {
 		t.Fatal("the public no-Look$ shape must reveal publicly")
 	}
 	if !slices.Equal(note.IDs, hand) {
 		t.Fatalf("Note ids = %v, want the WHOLE hand %v", note.IDs, hand)
+	}
+	r9 := notes[1]
+	if r9.Player != 0 || r9.Text != "moves the first matching card(s) from hand (no engine host to ask)" {
+		t.Fatalf("hand-move Note = %+v, want the chooser's (seat 0) R-9 stand-in", r9)
+	}
+	// The sub-ability now really moves the first eligible nonland card from
+	// the revealed hand to exile (the pre-fix silent no-op is gone).
+	if o := h.g.Obj(hand[0]); o.Zone != state.ZExile {
+		t.Fatalf("first eligible card on %s, want exile (DBExile no longer no-ops)", o.Zone)
+	}
+	if o := h.g.Obj(hand[1]); o.Zone != state.ZHand {
+		t.Fatalf("second eligible card moved: on %s", o.Zone)
 	}
 }
 

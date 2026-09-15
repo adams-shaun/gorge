@@ -392,3 +392,126 @@ func TestJaceTheMindSculptorZeroAbilityPutsTwoBackOnTop(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// --- rv2b r2: the owner-SELECTED hidden-hand shape, end to end on the real
+// corpus Kynaios and Tiro of Meletis -- the finding's breaking card. ---
+
+// TestKynaiosAndTiroAsksEachPlayerForItsOwnLand runs the real corpus
+// Kynaios and Tiro of Meletis end to end: seated on seat 0's battlefield and
+// driven to its controller's end step, the end-step trigger fires, draws,
+// then EachPlayLand (DefinedPlayer$ Player, ChangeType$ Land, ChangeNum$ 1,
+// RememberChanged$ True, no Chooser$ -- the hand's owner answers) asks EACH
+// player for its own hand in turn: one suspension per owner, the cursor
+// chaining the second ask off the first answer, and each answer moving
+// exactly that owner's chosen land. Pre-rv2b-r2 the whole sub-ability
+// silently no-op'd (the player targets fell off the object path's Origin$
+// precondition) and no ask of any kind was ever posed.
+func TestKynaiosAndTiroAsksEachPlayerForItsOwnLand(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	kyn := mustCorpusCard(t, reg, "Kynaios and Tiro of Meletis")
+	db := kynAbilities(t, reg)
+	if db.Params["DefinedPlayer"] != "Player" || db.Params["ChangeType"] != "Land" ||
+		db.Params["ChangeNum"] != "1" || db.Params["RememberChanged"] != "True" ||
+		db.Params["Chooser"] != "" {
+		t.Fatalf("Kynaios's compiled EachPlayLand drifted: %+v", db.Params)
+	}
+	cfg := Config{Seed: 5, Names: []string{"a", "b"}, Tokens: map[string]*cards.Card{},
+		Decks: [][]*cards.Card{append([]*cards.Card{kyn}, mountainDeck(t, 59)...),
+			mountainDeck(t, 60)}}
+	cfg = seatZeroStart(cfg)
+	e := New(cfg)
+	e.Advance()
+	var kynID state.ObjID
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Owner == 0 && o.Card == kyn {
+			kynID = o.ID
+		}
+	}
+	if kynID == 0 {
+		t.Fatal("fixture deck lacks Kynaios")
+	}
+	if o := e.G.Obj(kynID); o.Zone != state.ZBattlefield {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: kynID, From: o.Zone, To: state.ZBattlefield})
+	}
+	e.pending = nil
+	e.Advance()
+	driveToStep(t, e, e.G.Turn, 0, state.StepEnd)
+
+	// The trigger draws for seat 0, then EachPlayLand asks owner 0.
+	d := passUntilNonPriority(t, e, 40)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "hand_move" {
+		t.Fatalf("expected the first hand_move ask, got %+v", d)
+	}
+	if d.Player != 0 || d.ResumeTarget != 0 || d.Min != 0 || d.Max != 1 {
+		t.Fatalf("first ask = Player %d target %d Min/Max %d/%d, want 0/0/0/1 (the hand's owner answers its own optional take)", d.Player, d.ResumeTarget, d.Min, d.Max)
+	}
+	for _, o := range d.Options {
+		if o.Player != 0 || o.Label != "Mountain" {
+			t.Fatalf("first ask option %+v is not one of seat 0's Mountains", o)
+		}
+	}
+	if len(d.Options) != len(e.G.Zone(state.ZHand, 0)) {
+		t.Fatalf("first ask offers %d cards, want seat 0's whole hand (%d)", len(d.Options), len(e.G.Zone(state.ZHand, 0)))
+	}
+	land0 := e.G.Zone(state.ZHand, 0)[0]
+	submitChoices(t, e, handMoveOption(t, d, land0))
+
+	// The continuation: the SECOND ask belongs to seat 1, bound by
+	// ResumeTarget, over seat 1's own hand.
+	d = passUntilNonPriority(t, e, 40)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "hand_move" {
+		t.Fatalf("expected the second hand_move ask (the continuation), got %+v", d)
+	}
+	if d.Player != 1 || d.ResumeTarget != 1 || d.Min != 0 || d.Max != 1 {
+		t.Fatalf("second ask = Player %d target %d Min/Max %d/%d, want 1/1/0/1", d.Player, d.ResumeTarget, d.Min, d.Max)
+	}
+	land1 := e.G.Zone(state.ZHand, 1)[0]
+	submitChoices(t, e, handMoveOption(t, d, land1))
+	passUntilStackEmpty(t, e, 40)
+
+	if o := e.G.Obj(land0); o.Zone != state.ZBattlefield {
+		t.Fatalf("seat 0's chosen land on %s, want battlefield", o.Zone)
+	}
+	if o := e.G.Obj(land1); o.Zone != state.ZBattlefield {
+		t.Fatalf("seat 1's chosen land on %s, want battlefield", o.Zone)
+	}
+	for p := state.PlayerID(0); p < 2; p++ {
+		n := 0
+		for _, ev := range e.L.Events {
+			if ev.Kind == events.MoveZone && ev.From == state.ZHand && ev.To == state.ZBattlefield &&
+				e.G.Obj(ev.Obj) != nil && e.G.Obj(ev.Obj).Owner == p && ev.Obj != kynID {
+				n++
+			}
+		}
+		if n != 1 {
+			t.Fatalf("seat %d moved %d hand lands to the battlefield, want exactly 1", p, n)
+		}
+	}
+	replayCheck(t, e, cfg)
+}
+
+// kynAbilities returns the real compiled EachPlayLand ChangeZone sub-ability
+// of the real corpus Kynaios and Tiro of Meletis (the end-step trigger's
+// TrigDraw chain).
+func kynAbilities(t *testing.T, reg *cards.Registry) *cards.SA {
+	t.Helper()
+	kyn, ok := reg.Lookup("Kynaios and Tiro of Meletis")
+	if !ok {
+		t.Fatal("corpus has no Kynaios and Tiro of Meletis")
+	}
+	for _, face := range kyn.Faces {
+		for _, ab := range face.Abilities {
+			if ab.API == "Draw" && ab.Sub != nil && ab.Sub.API == "ChangeZone" {
+				return ab.Sub
+			}
+		}
+		for _, tr := range face.Triggers {
+			if tr.Effect != nil && tr.Effect.API == "Draw" && tr.Effect.Sub != nil && tr.Effect.Sub.API == "ChangeZone" {
+				return tr.Effect.Sub
+			}
+		}
+	}
+	t.Fatal("Kynaios's TrigDraw has no ChangeZone sub-ability in the compiled corpus")
+	return nil
+}

@@ -598,3 +598,259 @@ func TestDreamCacheDestinationAlternativeEmitsNote(t *testing.T) {
 		t.Fatalf("no DestinationAlternative$ Note in %+v", h.log)
 	}
 }
+
+// --- rv2b r2: the owner-SELECTED hidden-hand shapes (DefinedPlayer$ /
+// ValidTgts$ name the hand owners; Chooser$ names who answers). ---
+
+// ownersFixture seats two hands: seat 0 [bear, isle, isle], seat 1
+// [isle, bear]. Returns the host and both hands' ids in zone order.
+func ownersFixture(t *testing.T) (*askHost, []state.ObjID, []state.ObjID) {
+	t.Helper()
+	h := &askHost{}
+	h.g = state.NewGame(names(2))
+	bear := mkCard(t, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	land := mkCard(t, "Name:Isle\nTypes:Basic Land Island\nOracle:x\n")
+	hand0 := []state.ObjID{
+		h.g.AddObject(bear, 0).ID,
+		h.g.AddObject(land, 0).ID,
+		h.g.AddObject(land, 0).ID,
+	}
+	hand1 := []state.ObjID{
+		h.g.AddObject(land, 1).ID,
+		h.g.AddObject(bear, 1).ID,
+		h.g.AddObject(land, 1).ID,
+	}
+	h.g.SetZone(state.ZHand, 0, hand0)
+	h.g.SetZone(state.ZHand, 1, hand1)
+	for _, id := range append(append([]state.ObjID(nil), hand0...), hand1...) {
+		h.g.Obj(id).Zone = state.ZHand
+	}
+	return h, hand0, hand1
+}
+
+// TestHandMoveOwnersChainsOneAskPerPlayer is the finding's core leaf, on the
+// Kynaios and Tiro shape (DefinedPlayer$ Player, ChangeNum$ 1, ChangeType$
+// Land): the first ask belongs to owner 0 (the chooser defaults to the hand's
+// owner), and after that answer is consumed the walk continues -- the SECOND
+// ask belongs to owner 1, bound by ResumeTarget, and consumes its own
+// answer. Neither ask ever names the other owner's cards.
+func TestHandMoveOwnersChainsOneAskPerPlayer(t *testing.T) {
+	const kynaios = "DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | DefinedPlayer$ Player | ChangeNum$ 1 | RememberChanged$ True"
+	h, hand0, hand1 := ownersFixture(t)
+	Resolve(h, &Ctx{Controller: 0}, sa(t, kynaios))
+	d := h.asked
+	if d == nil {
+		t.Fatal("no decision was posed for owner 0")
+	}
+	if d.Player != 0 || d.Min != 0 || d.Max != 1 || d.ResumeTarget != 0 {
+		t.Fatalf("first ask = Player %d Min/Max %d/%d target %d, want 0, 0/1, 0 (owner 0 answers its own optional take)", d.Player, d.Min, d.Max, d.ResumeTarget)
+	}
+	for _, o := range d.Options {
+		if o.Player != 0 || o.Obj != hand0[1] && o.Obj != hand0[2] {
+			t.Fatalf("first ask option %+v is not one of owner 0's Isles", o)
+		}
+	}
+	if len(d.Options) != 2 {
+		t.Fatalf("first ask options = %d, want owner 0's two Isles", len(d.Options))
+	}
+	// Re-entry (the engine's contract): owner 0's answer, cursor 0.
+	Resolve(h, &Ctx{Controller: 0, HandMove: []state.ObjID{hand0[2]}, HandMoveDone: true,
+		HandMoveTarget: 0, Remembered: []state.Target{{Obj: hand0[2]}}}, sa(t, kynaios))
+	d2 := h.asked
+	if d2 == nil {
+		t.Fatal("no second decision was posed for owner 1 (the continuation did not chain)")
+	}
+	if d2.Player != 1 || d2.ResumeTarget != 1 {
+		t.Fatalf("second ask = Player %d target %d, want 1, 1 (owner 1 asks its own hand)", d2.Player, d2.ResumeTarget)
+	}
+	if len(d2.Options) != 2 || d2.Options[0].Obj != hand1[0] || d2.Options[1].Obj != hand1[2] {
+		t.Fatalf("second ask options = %+v, want owner 1's two Isles in hand order", d2.Options)
+	}
+	if o := h.g.Obj(hand0[2]); o.Zone != state.ZBattlefield {
+		t.Fatalf("owner 0's answered land on %s, want battlefield", o.Zone)
+	}
+	// Owner 1's second answer, cursor 1: nothing else asks.
+	h.asked = nil
+	Resolve(h, &Ctx{Controller: 0, HandMove: []state.ObjID{hand1[2]}, HandMoveDone: true,
+		HandMoveTarget: 1, Remembered: []state.Target{{Obj: hand0[2]}}}, sa(t, kynaios))
+	if h.asked != nil {
+		t.Fatalf("a third decision was posed: %+v", h.asked)
+	}
+	if o := h.g.Obj(hand1[2]); o.Zone != state.ZBattlefield {
+		t.Fatalf("owner 1's answered land on %s, want battlefield", o.Zone)
+	}
+	if o := h.g.Obj(hand1[1]); o.Zone != state.ZHand {
+		t.Fatalf("owner 1's bear moved: on %s", o.Zone)
+	}
+}
+
+// TestHandMoveOwnersSkipAnsweredOwnersOnReentry pins the cursor's skip
+// contract: on re-entry for owner 1, owner 0 (already answered and moved on
+// the earlier pass) must not move a second time.
+func TestHandMoveOwnersSkipAnsweredOwnersOnReentry(t *testing.T) {
+	const kynaios = "DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | DefinedPlayer$ Player | ChangeNum$ 1"
+	h, hand0, _ := ownersFixture(t)
+	Resolve(h, &Ctx{Controller: 0, HandMove: []state.ObjID{hand0[1]}, HandMoveDone: true,
+		HandMoveTarget: 0}, sa(t, kynaios))
+	d := h.asked
+	if d == nil || d.ResumeTarget != 1 {
+		t.Fatalf("re-entry did not continue to owner 1: %+v", d)
+	}
+	if o := h.g.Obj(hand0[1]); o.Zone != state.ZBattlefield {
+		t.Fatalf("owner 0's land on %s, want battlefield (moved exactly once)", o.Zone)
+	}
+	if o := h.g.Obj(hand0[2]); o.Zone != state.ZHand {
+		t.Fatalf("owner 0's second land moved on re-entry: on %s", o.Zone)
+	}
+}
+
+// TestHandMoveOwnersValidTgtsChooserTargeted is the Karn Liberated shape
+// (ValidTgts$ Player, Chooser$ Targeted, Mandatory$ True): the hand owners
+// are the chosen targets and the target answers for its own hand.
+func TestHandMoveOwnersValidTgtsChooserTargeted(t *testing.T) {
+	h, _, _ := ownersFixture(t)
+	Resolve(h, &Ctx{Controller: 0,
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}}, sa(t,
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ValidTgts$ Player | ChangeType$ Card | ChangeNum$ 1 | Chooser$ Targeted | Mandatory$ True"))
+	if h.asked == nil {
+		t.Fatal("no decision was posed for the targeted hand owner")
+	}
+	d := h.asked
+	if d.Player != 1 || d.Min != 1 || d.Max != 1 || d.ResumeTarget != 0 {
+		t.Fatalf("ask = Player %d Min/Max %d/%d, want 1, 1/1 (the target exiles from its own hand, mandatory)", d.Player, d.Min, d.Max)
+	}
+	if len(d.Options) != 3 {
+		t.Fatalf("options = %d, want the whole target hand", len(d.Options))
+	}
+}
+
+// TestHandMoveOwnersChooserYouPicksFromTheTargetHand is the Kitesail
+// Freebooter shape (DefinedPlayer$ Targeted, Chooser$ You): the CASTING
+// controller answers, over the target's hand, and the prompt names whose
+// hand it is.
+func TestHandMoveOwnersChooserYouPicksFromTheTargetHand(t *testing.T) {
+	h, _, hand1 := ownersFixture(t)
+	Resolve(h, &Ctx{Controller: 0,
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}}, sa(t,
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Card | DefinedPlayer$ Targeted | Chooser$ You | ChangeNum$ 1"))
+	if h.asked == nil {
+		t.Fatal("no decision was posed")
+	}
+	d := h.asked
+	if d.Player != 0 {
+		t.Fatalf("ask Player = %d, want 0 (Chooser$ You: the caster picks)", d.Player)
+	}
+	if len(d.Options) != 3 {
+		t.Fatalf("options = %d, want the target's whole hand", len(d.Options))
+	}
+	for _, o := range d.Options {
+		if o.Player != 1 || (o.Obj != hand1[0] && o.Obj != hand1[1] && o.Obj != hand1[2]) {
+			t.Fatalf("option %+v is not a card of the TARGET's hand", o)
+		}
+	}
+	if !strings.Contains(d.Prompt, "that player's hand") {
+		t.Fatalf("prompt %q, want it naming that player's hand", d.Prompt)
+	}
+}
+
+// TestHandMoveOwnersNumInHandTakesAllEligibleWithoutAsk is the
+// Eradicate/Extirpate shape (ChangeNum$ NumInHand): the per-owner bound is
+// the owner's own eligible count, so every matching card in the hand moves
+// and no ask exists (a decision nobody could answer differently).
+func TestHandMoveOwnersNumInHandTakesAllEligibleWithoutAsk(t *testing.T) {
+	h, _, hand1 := ownersFixture(t)
+	Resolve(h, &Ctx{Controller: 0,
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}}, sa(t,
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Creature | DefinedPlayer$ Targeted | ChangeNum$ NumInHand"))
+	if h.asked != nil {
+		t.Fatalf("a decision was posed under NumInHand: %+v", h.asked)
+	}
+	if o := h.g.Obj(hand1[1]); o.Zone != state.ZExile {
+		t.Fatalf("the hand's creature on %s, want exile", o.Zone)
+	}
+	if o := h.g.Obj(hand1[0]); o.Zone != state.ZHand {
+		t.Fatalf("the hand's land moved: on %s", o.Zone)
+	}
+}
+
+// TestHandMoveOwnersPaidXCountIsTheBound pins ChangeNum$ X resolving to the
+// resolution's paid X (CR 107.3i).
+func TestHandMoveOwnersPaidXCountIsTheBound(t *testing.T) {
+	h, _, _ := ownersFixture(t)
+	Resolve(h, &Ctx{Controller: 0, X: 1,
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}}, sa(t,
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Card | DefinedPlayer$ Targeted | Chooser$ You | ChangeNum$ X"))
+	if h.asked == nil || h.asked.Max != 1 {
+		t.Fatalf("X=1 bound: asked = %+v, want Max 1", h.asked)
+	}
+}
+
+// TestHandMoveOwnersUnmodelledSelectorAndChooserAreLoud pins the loudness
+// floor: a player selector this build does not model, and a Chooser$ value it
+// does not model, each emit exactly one Note and move NOTHING -- never the
+// silent no-op the object path used to be, and never a guessed seat.
+func TestHandMoveOwnersUnmodelledSelectorAndChooserAreLoud(t *testing.T) {
+	for _, tc := range []struct{ name, sa string }{
+		{"CardOwner selector", "DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | DefinedPlayer$ CardOwner | ChangeNum$ 1"},
+		{"unknown chooser", "DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Card | DefinedPlayer$ Targeted | Chooser$ Remembered | ChangeNum$ 1"},
+		{"unresolvable count", "DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Card | DefinedPlayer$ Targeted | ChangeNum$ Count$ValidHand"},
+	} {
+		h, _, hand1 := ownersFixture(t)
+		before := len(h.log)
+		ctx := &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}}
+		Resolve(h, ctx, sa(t, tc.sa))
+		if h.asked != nil {
+			t.Fatalf("%s: a decision was posed: %+v", tc.name, h.asked)
+		}
+		notes := 0
+		for _, ev := range h.log[before:] {
+			if ev.Kind == events.Note {
+				notes++
+			}
+		}
+		if notes != 1 {
+			t.Fatalf("%s: %d Notes, want exactly 1: %+v", tc.name, notes, h.log[before:])
+		}
+		for _, id := range hand1 {
+			if o := h.g.Obj(id); o.Zone != state.ZHand {
+				t.Fatalf("%s: hand card %d moved to %s", tc.name, id, o.Zone)
+			}
+		}
+	}
+}
+
+// TestHandMoveOwnersAtRandomPicksThroughTheSeededRng is the Elkin Lair shape
+// (AtRandom$ True): the ENGINE picks, not a player -- no ask, one random
+// eligible card per owner (the fakeHost's Rand always answers 0, so the pick
+// is the first eligible; the rules-level determinism rides the seeded rng).
+func TestHandMoveOwnersAtRandomPicksThroughTheSeededRng(t *testing.T) {
+	h, hand0, _ := ownersFixture(t)
+	Resolve(h, &Ctx{Controller: 0}, sa(t,
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Creature | DefinedPlayer$ Player | AtRandom$ True | Mandatory$ True | ChangeNum$ 1"))
+	if h.asked != nil {
+		t.Fatalf("a decision was posed under AtRandom$: %+v", h.asked)
+	}
+	if o := h.g.Obj(hand0[0]); o.Zone != state.ZExile {
+		t.Fatalf("the picked creature on %s, want exile", o.Zone)
+	}
+}
+
+// TestHandMoveOwnersChooserTriggeredPlayer is the Widespread Panic shape
+// (DefinedPlayer$ TriggeredPlayer, Chooser$ TriggeredPlayer): the causing
+// event's bound player both owns the hand and answers.
+func TestHandMoveOwnersChooserTriggeredPlayer(t *testing.T) {
+	h, _, _ := ownersFixture(t)
+	Resolve(h, &Ctx{Controller: 0,
+		TriggerContext: TriggerContext{TriggerPlayer: state.Target{Player: 1, IsPlayer: true}}}, sa(t,
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Library | LibraryPosition$ 0 | DefinedPlayer$ TriggeredPlayer | Chooser$ TriggeredPlayer | ChangeType$ Card | ChangeNum$ 1 | Mandatory$ True"))
+	if h.asked == nil {
+		t.Fatal("no decision was posed")
+	}
+	d := h.asked
+	if d.Player != 1 || d.ResumeTarget != 0 {
+		t.Fatalf("ask = Player %d target %d, want 1/0 (the triggered player asks and answers)", d.Player, d.ResumeTarget)
+	}
+	if len(d.Options) != 3 {
+		t.Fatalf("options = %d, want the triggered player's whole hand", len(d.Options))
+	}
+}
