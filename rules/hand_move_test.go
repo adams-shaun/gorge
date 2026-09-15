@@ -191,10 +191,11 @@ func TestBurgeoningNoLandInHandResolvesSilently(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestBurgeoningSingleLandMovesWithoutAsk is the no-choice leaf: with exactly
-// ChangeNum eligible cards the take is deterministic (there is no decision
-// anybody could answer differently), so the land moves without an ask.
-func TestBurgeoningSingleLandMovesWithoutAsk(t *testing.T) {
+// TestBurgeoningSingleLandCanBeDeclined is the one-eligible optional leaf:
+// even when taking its single land is the only nonempty selection, "you may"
+// makes declining a distinct legal answer. The hand move therefore poses a
+// Min 0 / Max 1 KChoose, and its empty answer leaves the land in hand.
+func TestBurgeoningSingleLandCanBeDeclined(t *testing.T) {
 	e, cfg := burgeoningFixture(t, 73, 1)
 	handBefore := append([]state.ObjID(nil), e.G.Zone(state.ZHand, 0)...)
 
@@ -202,18 +203,22 @@ func TestBurgeoningSingleLandMovesWithoutAsk(t *testing.T) {
 	if d == nil || d.Kind != decision.KTriggerOptional {
 		t.Fatalf("expected the trigger_optional ask, got %+v", d)
 	}
-	submitChoices(t, e, 0) // yes
+	submitChoices(t, e, 0) // accept the trigger; decline its hand move below
 
 	d = e.Pending()
-	if d == nil || d.Kind != decision.KPriority {
-		t.Fatalf("expected the resolution to complete back at priority, got %+v", d)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "hand_move" ||
+		d.Player != 0 || d.Min != 0 || d.Max != 1 || len(d.Options) != 1 {
+		t.Fatalf("single-land optional hand move = %+v, want one-option Min/Max 0/1 KChoose", d)
 	}
+	submitChoices(t, e) // the legal empty answer: decline to put it in play
+	passUntilStackEmpty(t, e, 20)
+
 	land := handBefore[0]
-	if o := e.G.Obj(land); o == nil || o.Zone != state.ZBattlefield {
-		t.Fatalf("the single hand land did not move: %+v", o)
+	if o := e.G.Obj(land); o == nil || o.Zone != state.ZHand {
+		t.Fatalf("the declined single hand land is on %+v, want hand", o)
 	}
-	if n := handToBattlefieldMoves(e.L.Events, land); n != 1 {
-		t.Fatalf("land moved hand->battlefield %d times, want exactly 1", n)
+	if n := handToBattlefieldMoves(e.L.Events, land); n != 0 {
+		t.Fatalf("declined land moved hand->battlefield %d times, want 0", n)
 	}
 	replayCheck(t, e, cfg)
 }

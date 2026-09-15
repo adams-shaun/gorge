@@ -129,13 +129,13 @@ func TestHandMoveChangeZoneReentryMovesExactlyTheAnswer(t *testing.T) {
 	}
 }
 
-// TestHandMoveChangeZoneNoChoiceMovesDeterministically is the no-choice leaf:
-// with exactly ChangeNum eligible cards (and with fewer), the take is
-// deterministic and no decision is posed.
+// TestHandMoveChangeZoneNoChoiceMovesDeterministically is the required
+// no-choice leaf: with exactly ChangeNum eligible cards (and with fewer), a
+// Mandatory$ True take is deterministic and no decision is posed.
 func TestHandMoveChangeZoneNoChoiceMovesDeterministically(t *testing.T) {
 	h, ids := handAskFixture(t)
 	Resolve(h, &Ctx{Controller: 0}, sa(t,
-		"DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | ChangeNum$ 2"))
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | ChangeNum$ 2 | Mandatory$ True"))
 	if h.asked != nil {
 		t.Fatalf("a decision was posed with eligible == ChangeNum: %+v", h.asked)
 	}
@@ -681,6 +681,35 @@ func TestHandMoveOwnersChainsOneAskPerPlayer(t *testing.T) {
 	}
 	if o := h.g.Obj(hand1[1]); o.Zone != state.ZHand {
 		t.Fatalf("owner 1's bear moved: on %s", o.Zone)
+	}
+}
+
+// TestHandMoveOwnersOptionalSingleEligibleCanDecline pins the Kynaios-shaped
+// owner-selected optional move where an owner has exactly one eligible land.
+// Taking it is the only nonempty answer, but declining remains a different
+// legal answer, so it must pose a Min 0 / Max 1 ask rather than force the
+// land onto the battlefield.
+func TestHandMoveOwnersOptionalSingleEligibleCanDecline(t *testing.T) {
+	const kynaios = "DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | DefinedPlayer$ Player | ChangeNum$ 1"
+	h, hand0, hand1 := ownersFixture(t)
+	h.g.SetZone(state.ZHand, 0, []state.ObjID{hand0[1]}) // exactly one Isle
+	h.g.SetZone(state.ZHand, 1, []state.ObjID{hand1[1]}) // no eligible land
+
+	Resolve(h, &Ctx{Controller: 0}, sa(t, kynaios))
+	d := h.asked
+	if d == nil || d.Player != 0 || d.Min != 0 || d.Max != 1 || len(d.Options) != 1 || d.Options[0].Obj != hand0[1] {
+		t.Fatalf("single-eligible optional ask = %+v, want owner 0 Min/Max 0/1 over its one Isle", d)
+	}
+
+	// Re-enter with the legal empty answer. Owner 1 has no eligible land, so
+	// the whole walk completes without another ask or movement.
+	h.asked = nil
+	Resolve(h, &Ctx{Controller: 0, HandMoveDone: true, HandMoveTarget: 0}, sa(t, kynaios))
+	if h.asked != nil {
+		t.Fatalf("a no-eligible later owner posed an ask: %+v", h.asked)
+	}
+	if o := h.g.Obj(hand0[1]); o.Zone != state.ZHand {
+		t.Fatalf("declined owner land is on %s, want hand", o.Zone)
 	}
 }
 

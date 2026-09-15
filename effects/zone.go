@@ -459,11 +459,14 @@ func handMoveChooserFor(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID) (sta
 // ask (STRICTLY more eligible cards than the bound: a real KChoose to the
 // chooser, Min 0 when the take is optional else the bound, Max the bound, the
 // answer re-entering through ResumeKind "hand_move" with ResumeTarget
-// binding it to this owner), the no-choice deterministic take (eligible <=
-// bound: every eligible card moves, in hand order, no ask -- the dig1/
-// effDiscard strict-supersets rule), or AtRandom$'s engine-random pick (no
-// ask: randomness, not a player choice, picks). The re-entry contract (fx42
-// scoping): Ctx.HandMove/HandMoveDone/HandMoveTarget are captured and
+// binding it to this owner), the no-choice deterministic take (a REQUIRED
+// move with eligible <= bound: every eligible card moves, in hand order, no
+// ask), or AtRandom$'s engine-random pick (no ask: randomness, not a player
+// choice, picks). An OPTIONAL move takes the choice path whenever there is
+// at least one eligible card, including eligible <= bound: declining remains
+// a meaningful answer even when taking every card is the only nonempty pick
+// (an empty-only ChangeNum$ 0 still resolves through AskEmpty). The re-entry
+// contract (fx42 scoping): Ctx.HandMove/HandMoveDone/HandMoveTarget are captured and
 // cleared at the top of the walk; owners before the cursor completed before a
 // later owner suspended and are skipped, the cursor's owner consumes the
 // answer (moved exactly as answered, revalidated against the CURRENT hand
@@ -569,9 +572,19 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 			handLibraryTail(h, g, sa, c.Source, owner, moved, to)
 			continue
 		}
-		if int32(len(eligible)) <= n {
-			// No choice to ask about: every eligible card moves,
-			// deterministically, in hand order. No new decision of any kind.
+		optional := handTakeOptional(sa)
+		// NumInHand/HandSize means "all matching cards in that hand", an
+		// intrinsically required all-cards move (Eradicate, Extirpate, The
+		// Great Aurora), not Forge's default "you may put" picker. Preserve
+		// an explicit Optional$ marker should a future script carry one.
+		if count.perOwner && strings.TrimSpace(sa.Params["Optional"]) == "" && strings.TrimSpace(sa.Params["Mandatory"]) == "" {
+			optional = false
+		}
+		if int32(len(eligible)) <= n && !optional {
+			// A required move with no possible nonempty selection alternative
+			// takes every eligible card deterministically. An OPTIONAL move
+			// must still ask here: declining is a distinct, legal answer even
+			// when every nonempty answer takes all eligible cards.
 			for _, id := range eligible {
 				settleHandMove(id, owner)
 				moved = append(moved, id)
@@ -584,7 +597,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 			chooser, _ = chooserFor(h, c, sa, owner)
 		}
 		min := int(n)
-		if handTakeOptional(sa) {
+		if optional {
 			min = 0 // "you may put": none is a legal answer
 		}
 		d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
@@ -624,12 +637,13 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 }
 
 // handTakeOptional reads Forge's optional-vs-mandatory markers for the
-// hidden-origin hand put-back. Forge's DEFAULT for this shape is "you may":
-// the mandatory Brainstorm/Sawtooth Loon family carries Mandatory$ True,
-// while every script with NEITHER parameter is a "you may put" text
-// (Burgeoning, Volcanic Spite, Oviya, Automech Artisan). Optional$ True and
-// Optional$ You are the explicit may spellings (19 and 35 raw lines);
-// Optional$ False and Mandatory$ False make the take required.
+// hidden-origin hand put-back. For a fixed ChangeNum$ picker Forge's DEFAULT
+// is "you may": the mandatory Brainstorm/Sawtooth Loon family carries
+// Mandatory$ True, while scripts with neither marker are "you may put"
+// texts (Burgeoning, Volcanic Spite, Oviya, Automech Artisan). The caller
+// separately recognises NumInHand/HandSize as required all-matching moves.
+// Optional$ True and Optional$ You are the explicit may spellings (19 and 35
+// raw lines); Optional$ False and Mandatory$ False make the take required.
 func handTakeOptional(sa *cards.SA) bool {
 	if strings.EqualFold(strings.TrimSpace(sa.Params["Mandatory"]), "True") {
 		return false
