@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/cmd/gorged
 
-budget_s: 32
+budget_s: 16
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|

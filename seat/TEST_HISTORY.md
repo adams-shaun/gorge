@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/seat
 
-budget_s: 24
+budget_s: 12
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|

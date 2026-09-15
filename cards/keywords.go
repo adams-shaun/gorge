@@ -130,12 +130,13 @@ func (f *Face) expandKeywords() {
 			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidActivatingPlayer$ You | TriggerDescription$ Extort",
 				"DB$ Extort", has)
 		case "Soulbond":
-			// CR 702.103: "You may pair this creature with another unpaired
-			// creature when either enters the battlefield." A ChangesZone
-			// trigger on the source's own entry runs DB$ Pair, which pairs it
-			// with the first eligible unpaired creature its controller controls
-			// (the deterministic pairing stand-in).
-			f.addKeywordTrigger(head, k, "Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | TriggerDescription$ Soulbond",
+			// CR 702.103 has two independently-triggering cases: this creature
+			// enters, and another unpaired creature its controller controls
+			// enters. The two synthetic KeywordLine suffixes retain idempotency
+			// for both expansions while Keyword remains the printed keyword.
+			f.addKeywordTrigger(head, k+"#self", "Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Creature.Self | TriggerDescription$ Soulbond",
+				"DB$ Pair", has)
+			f.addKeywordTrigger(head, k+"#other", "Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Creature.YouCtrl+Other | TriggerDescription$ Soulbond",
 				"DB$ Pair", has)
 		case "Myriad":
 			// CR 702.109: "Whenever this creature attacks, for each opponent other

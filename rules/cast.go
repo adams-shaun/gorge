@@ -543,8 +543,10 @@ func (e *Engine) applyDredge(p state.PlayerID, dredgeID state.ObjID) {
 		}
 	}
 	lib := e.G.Zone(state.ZLibrary, p)
-	if int(n) > len(lib) {
-		n = int32(len(lib))
+	// A stale or malformed answer must not turn an illegal insufficient-library
+	// dredge into a partial mill: CR 702.55 requires all N cards.
+	if n <= 0 || int(n) > len(lib) {
+		return
 	}
 	for _, id := range lib[:n] {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZGraveyard})

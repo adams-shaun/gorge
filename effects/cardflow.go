@@ -67,7 +67,7 @@ func DrawFor(h Host, p state.PlayerID) {
 		// leaves the draw to happen below.
 		d := &decision.Decision{Player: p, Kind: decision.KModes, Min: 1, Max: 1,
 			ResumeKind: "dredge",
-			Prompt: "Dredge " + strconv.Itoa(int(n)) + "?",
+			Prompt:     "Dredge " + strconv.Itoa(int(n)) + "?",
 			Options: []decision.Option{
 				{Index: 0, Kind: "mode", Label: "Dredge " + strconv.Itoa(int(n)) + " (mill, then return " + objName(g, id) + " to hand)", Obj: id, Player: p},
 				{Index: 1, Kind: "mode", Label: "Draw card", Obj: id, Player: p},
@@ -81,16 +81,18 @@ func DrawFor(h Host, p state.PlayerID) {
 }
 
 // dredgeCandidate finds the first card in p's graveyard that carries the
-// Dredge keyword, returning its id and dredge number. Zone scan order is
+// Dredge keyword and whose replacement is legal: CR 702.55 requires enough
+// cards in the library to mill the full dredge number. Zone scan order is
 // deterministic, so the choice is replay-stable.
 func dredgeCandidate(g *state.Game, p state.PlayerID) (state.ObjID, int32) {
+	library := g.Zone(state.ZLibrary, p)
 	for _, id := range g.Zone(state.ZGraveyard, p) {
 		o := g.Obj(id)
 		if o == nil || o.Face() == nil {
 			continue
 		}
 		if n, ok := o.Face().KeywordParam("Dredge"); ok {
-			if v, err := strconv.Atoi(strings.TrimSpace(n)); err == nil {
+			if v, err := strconv.Atoi(strings.TrimSpace(n)); err == nil && v > 0 && len(library) >= v {
 				return id, int32(v)
 			}
 		}
@@ -897,23 +899,90 @@ func destinationPhrase(kind string) string {
 // deterministic, legal name for whatever downstream sub-ability expects
 // one, recorded now as the Choose event so the choice survives replay.
 // effHideaway implements CR 702.75: when a permanent with Hideaway enters,
-// exile the top N cards of its controller's library face down. Exile
-// provenance is carried by the MoveZone event, so a later Play ability can
-// resolve Defined$ ExiledWith without guessing from names or zone order.
+// its controller looks at the top N cards, exiles one face down, then puts
+// the rest on the bottom in the order they chose. Exile provenance is carried
+// by MoveZone, so a later Play resolves Defined$ ExiledWith by identity.
 func effHideaway(h Host, c *Ctx, sa *cards.SA) {
+	if c.HideawayArranged {
+		c.HideawayArranged = false
+		return
+	}
+	g := h.Game()
+	if c.HideawayPicked {
+		// The choice was recorded by rules' hideaway_pick resume arm. Move the
+		// selected card before arranging: that leaves precisely the remaining
+		// cards at the top of the library for the KArrange handler.
+		id := c.Hideaway
+		c.Hideaway = 0
+		c.HideawayPicked = false
+		lib := zoneOf(g, state.ZLibrary, c.Controller)
+		if id == 0 || !containsObj(lib, id) {
+			return
+		}
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZExile,
+			Counter: "exiled_with", Amount: int32(c.Source), Secret: true})
+		hideawayBottom(h, c, sa)
+		return
+	}
 	n := int(Num(h, c, sa, "Amount", 4))
 	if n < 0 {
 		n = 0
 	}
-	g := h.Game()
 	lib := zoneOf(g, state.ZLibrary, c.Controller)
 	if n > len(lib) {
 		n = len(lib)
 	}
-	for _, id := range lib[:n] {
-		h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZExile,
-			Counter: "exiled_with", Amount: int32(c.Source), Secret: true})
+	if n == 0 {
+		return
 	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: c.Source, ResumeKind: "hideaway_pick", ResumeSA: sa,
+		Prompt: "Choose a card to exile with Hideaway"}
+	for i, id := range lib[:n] {
+		d.Options = append(d.Options, decision.Option{Index: i, Kind: "hideaway", Label: objName(g, id), Obj: id, Player: c.Controller})
+	}
+	if h.Ask(d) {
+		return
+	}
+	// The no-host degradation chooses the first card, then retains the offered
+	// order for the rest on the bottom.
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: lib[0], From: state.ZLibrary, To: state.ZExile,
+		Counter: "exiled_with", Amount: int32(c.Source), Secret: true})
+	hideawayBottom(h, c, sa)
+}
+
+func hideawayBottom(h Host, c *Ctx, sa *cards.SA) {
+	lib := zoneOf(h.Game(), state.ZLibrary, c.Controller)
+	n := int(Num(h, c, sa, "Amount", 4)) - 1
+	if n < 0 {
+		n = 0
+	}
+	if n > len(lib) {
+		n = len(lib)
+	}
+	if n == 0 {
+		return
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KArrange, Min: n, Max: n,
+		Source: c.Source, ResumeKind: "hideaway_arrange", ResumeSA: sa,
+		Prompt: "Put the remaining Hideaway cards on the bottom in any order"}
+	for i, id := range lib[:n] {
+		d.Options = append(d.Options, decision.Option{Index: i, Kind: "hideaway_bottom", Label: objName(h.Game(), id), Obj: id, Player: c.Controller})
+	}
+	if h.Ask(d) {
+		return
+	}
+	newLib := append(append([]state.ObjID(nil), lib[n:]...), lib[:n]...)
+	h.Emit(events.Event{Kind: events.LibraryOrder, Player: c.Controller, IDs: newLib, Secret: true})
+}
+
+func containsObj(ids []state.ObjID, want state.ObjID) bool {
+	for _, id := range ids {
+		if id == want {
+			return true
+		}
+	}
+	return false
 }
 
 func effNameCard(h Host, c *Ctx, sa *cards.SA) {

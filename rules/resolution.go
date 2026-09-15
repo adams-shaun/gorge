@@ -88,6 +88,10 @@ type resumePoint struct {
 	// target is Dig's index into its deterministic Defined$ target list. It
 	// keeps a resumed answer attached to the library that actually asked.
 	target int
+	// direct identifies an effect invoked outside stack resolution (currently
+	// an enters-the-battlefield replacement such as Hideaway). It resumes its
+	// source directly rather than requiring a stack object.
+	direct bool
 }
 
 // Ask implements effects.Host.Ask (rules' side of the interface, and the
@@ -101,8 +105,12 @@ type resumePoint struct {
 // effects.Resolve returns. Always returns true: this engine can always ask.
 func (e *Engine) Ask(d *decision.Decision) bool {
 	obj := state.ObjID(0)
+	direct := false
 	if n := len(e.G.Stack); n > 0 {
 		obj = e.G.Stack[n-1]
+	} else {
+		obj = d.Source
+		direct = true
 	}
 	kind := d.ResumeKind
 	if kind == "" {
@@ -116,7 +124,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 	// comment and resumeResolution's restore of it.
 	e.resume = &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA,
 		replacement: e.applyingReplacement, replaced: e.replReplaced, before: e.triggerBefore,
-		target: d.ResumeTarget}
+		target: d.ResumeTarget, direct: direct}
 	return true
 }
 
@@ -261,7 +269,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	e.triggerBefore = rp.before
 	defer func() { e.triggerBefore = before }()
 	o := e.G.Obj(rp.obj)
-	if o == nil || o.Zone != state.ZStack {
+	if o == nil || (!rp.direct && o.Zone != state.ZStack) {
 		// The suspended object left the stack while the decision was
 		// outstanding. Nothing but the answer can un-freeze the engine, so
 		// this is unreachable in a well-formed match; it degrades to a
@@ -420,6 +428,22 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// event, not on Ctx, so this is a done-marker rather than an
 			// answer the effect re-reads.
 			ctx.Arrange = true
+		case "hideaway_pick":
+			// Hideaway's first ask chooses exactly one of the looked-at cards.
+			// The effect validates it remains in the library before moving it,
+			// then asks the separate ordered-bottom question for the remainder.
+			ctx.HideawayPicked = true
+			if len(chosen) == 1 {
+				ctx.Hideaway = chosen[0].Obj
+			}
+		case "hideaway_arrange":
+			ctx.HideawayArranged = true
+		case "soulbond":
+			// Soulbond is a may choice: no option is a legitimate decline.
+			ctx.SoulbondDone = true
+			if len(chosen) == 1 {
+				ctx.SoulbondPartner = chosen[0].Obj
+			}
 		case "reveal_optional":
 			// Task fb-3f1cc033 (Delver of Secrets): the peeking player's
 			// RevealOptional$ yes/no was answered. Option 0 is "yes"; anything

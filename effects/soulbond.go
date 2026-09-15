@@ -2,49 +2,60 @@ package effects
 
 import (
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
 func init() { Register("Pair", effPair) }
 
-// effPair implements Soulbond's pairing (CR 702.103): when a Soulbond
-// creature enters the battlefield that isn't already paired, its controller
-// may pair it with another unpaired creature that can be paired. The
-// keyword expands (cards/keywords.go) into a ChangesZone trigger on the
-// source's own battlefield entry. This effect does the deterministic engine
-// stand-in: it pairs the source with the FIRST eligible unpaired creature its
-// controller controls (a real Soulbond is a player's choice, but the choice
-// machinery is M4's owner), then reciprocally sets the partner's Paired field
-// so both creatures read as paired and any Affected$Paired/PairedWith static
-// grants apply. If there is no eligible creature the source simply stays
-// unpaired.
-//
-// Both Paired writes go through events (Event Pair with the two object ids)
-// rather than direct field writes, so the pairing is replayed exactly.
+// effPair implements Soulbond's optional pairing choice (CR 702.103). The
+// keyword expansion supplies both trigger cases; this common body only pairs
+// an unpaired Soulbond creature with another unpaired creature controlled by
+// the same player. The selected partner is recorded by the decision intent and
+// the reciprocal mutation by one Pair event, so replay never depends on board
+// scan order.
 func effPair(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	src := g.Obj(c.Source)
-	if src == nil || src.Face() == nil || src.Zone != state.ZBattlefield {
+	if src == nil || !isBattlefieldCreature(src) || src.Paired != 0 {
 		return
 	}
-	if src.Paired != 0 {
-		return // already paired; Soulbond pairs on entry at most once.
+	if c.SoulbondDone {
+		partner := g.Obj(c.SoulbondPartner)
+		c.SoulbondDone = false
+		c.SoulbondPartner = 0
+		if soulbondPartner(src, partner, c.Controller) {
+			h.Emit(events.Event{Kind: events.Pair, Obj: c.Source, IDs: []state.ObjID{partner.ID}})
+		}
+		return
 	}
+	options := make([]decision.Option, 0)
 	for _, id := range g.Zone(state.ZBattlefield, c.Controller) {
-		if id == c.Source {
-			continue
-		}
 		o := g.Obj(id)
-		if o == nil || o.Face() == nil || o.Paired != 0 {
+		if !soulbondPartner(src, o, c.Controller) {
 			continue
 		}
-		// A creature can only be paired with a creature it could have been
-		// paired with (any other creature per CR 702.103, unless a restriction
-		// says otherwise). Do not pair it with itself; pick the first eligible
-		// in zone-walk order (the deterministic stand-in).
-		h.Emit(events.Event{Kind: events.Pair, Obj: c.Source, IDs: []state.ObjID{id}})
+		options = append(options, decision.Option{Index: len(options), Kind: "pair", Label: objName(g, id), Obj: id, Player: c.Controller})
+	}
+	if len(options) == 0 {
 		return
 	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 0, Max: 1,
+		Source: c.Source, ResumeKind: "soulbond", ResumeSA: sa,
+		Prompt:  "You may pair " + objName(g, c.Source) + " with another unpaired creature",
+		Options: options}
+	if h.Ask(d) {
+		return
+	}
+	// A host without decisions takes the legal optional decline.
 }
 
+func soulbondPartner(src, partner *state.Object, controller state.PlayerID) bool {
+	return partner != nil && partner.ID != src.ID && partner.Controller == controller &&
+		partner.Paired == 0 && isBattlefieldCreature(partner)
+}
+
+func isBattlefieldCreature(o *state.Object) bool {
+	return o != nil && o.Zone == state.ZBattlefield && o.Face() != nil && o.Face().IsCreature()
+}

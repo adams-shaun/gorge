@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/host/httpapi
 
-budget_s: 16
+budget_s: 8
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|

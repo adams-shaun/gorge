@@ -225,13 +225,35 @@ func TestRiotAndHideawayUseRealCorpusCards(t *testing.T) {
 	e2 := New(cfg)
 	kid := e2.G.Objs[0].ID
 	e2.emit(events.Event{Kind: events.MoveZone, Obj: kid, From: state.ZLibrary, To: state.ZBattlefield})
-	exiled := e2.G.Zone(state.ZExile, 0)
-	if len(exiled) != 4 {
-		t.Fatalf("Hideaway exiled %d cards, want 4", len(exiled))
+	pick := e2.Pending()
+	if pick == nil || pick.Kind != decision.KChoose || len(pick.Options) != 4 {
+		t.Fatalf("Hideaway pick = %+v, want four-card choice", pick)
 	}
-	for _, xid := range exiled {
-		if e2.G.Obj(xid).ExiledWith != kid {
-			t.Fatalf("Hideaway provenance for %d = %d, want %d", xid, e2.G.Obj(xid).ExiledWith, kid)
+	// Exile the second card, then put the other three on the bottom in the
+	// answer's order. This drives Spinerock Knoll's real Hideaway replacement.
+	exiledID := pick.Options[1].Obj
+	if err := e2.Submit(decision.Intent{Seq: pick.Seq, Player: 0, Choices: []int{1}}); err != nil {
+		t.Fatalf("submit Hideaway pick: %v", err)
+	}
+	bottom := e2.Pending()
+	if bottom == nil || bottom.Kind != decision.KArrange || len(bottom.Options) != 3 {
+		t.Fatalf("Hideaway bottom order = %+v, want three-card arrangement", bottom)
+	}
+	if err := e2.Submit(decision.Intent{Seq: bottom.Seq, Player: 0, Choices: []int{2, 0, 1}}); err != nil {
+		t.Fatalf("submit Hideaway bottom order: %v", err)
+	}
+	exiled := e2.G.Zone(state.ZExile, 0)
+	if len(exiled) != 1 || exiled[0] != exiledID {
+		t.Fatalf("Hideaway exile = %v, want selected card %d", exiled, exiledID)
+	}
+	if e2.G.Obj(exiledID).ExiledWith != kid {
+		t.Fatalf("Hideaway provenance = %d, want %d", e2.G.Obj(exiledID).ExiledWith, kid)
+	}
+	lib := e2.G.Zone(state.ZLibrary, 0)
+	wantBottom := []state.ObjID{bottom.Options[2].Obj, bottom.Options[0].Obj, bottom.Options[1].Obj}
+	for i, id := range wantBottom {
+		if lib[len(lib)-len(wantBottom)+i] != id {
+			t.Fatalf("Hideaway bottom[%d] = %d, want %d", i, lib[len(lib)-len(wantBottom)+i], id)
 		}
 	}
 }
@@ -380,18 +402,26 @@ func TestPlayUsesRealCorpusCard(t *testing.T) {
 		}
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: kid, From: e.G.Obj(kid).Zone, To: state.ZBattlefield})
-	if len(e.G.Zone(state.ZExile, 0)) != 4 {
-		t.Fatalf("Hideaway should exile 4, got %d", len(e.G.Zone(state.ZExile, 0)))
+	pick := e.Pending()
+	if pick == nil || pick.Kind != decision.KChoose || len(pick.Options) != 4 {
+		t.Fatalf("Hideaway pick = %+v, want four-card choice", pick)
 	}
-	// Swap the first exiled card for a Bear with the Knoll's provenance so the
-	// Play ability has a card to play.
-	var er state.ObjID
-	for _, xid := range e.G.Zone(state.ZExile, 0) {
-		if e.G.Obj(xid).ExiledWith == kid {
-			er = xid
-			break
-		}
+	if err := e.Submit(decision.Intent{Seq: pick.Seq, Player: 0, Choices: []int{0}}); err != nil {
+		t.Fatalf("submit Hideaway pick: %v", err)
 	}
+	bottom := e.Pending()
+	if bottom == nil || bottom.Kind != decision.KArrange || len(bottom.Options) != 3 {
+		t.Fatalf("Hideaway bottom order = %+v, want three-card arrangement", bottom)
+	}
+	if err := e.Submit(decision.Intent{Seq: bottom.Seq, Player: 0, Choices: []int{0, 1, 2}}); err != nil {
+		t.Fatalf("submit Hideaway bottom order: %v", err)
+	}
+	if len(e.G.Zone(state.ZExile, 0)) != 1 {
+		t.Fatalf("Hideaway should exile one card, got %d", len(e.G.Zone(state.ZExile, 0)))
+	}
+	// Swap the exiled card for a Bear with the Knoll's provenance so the Play
+	// ability has a card to play.
+	er := e.G.Zone(state.ZExile, 0)[0]
 	e.emit(events.Event{Kind: events.MoveZone, Obj: er, From: state.ZExile, To: state.ZGraveyard})
 	bo := e.G.AddObject(bear, 0)
 	bo.Zone = state.ZExile
@@ -529,6 +559,42 @@ func TestDredgeUsesRealCorpusCard(t *testing.T) {
 // TestSoulbondUsesRealCorpusCard drives Tandem Lookout's real script from the
 // commander deck. Its K:Soulbond entry trigger must pair it reciprocally with
 // another unpaired creature its controller controls.
+func TestDredgeCannotReplaceDrawWithInsufficientLibrary(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	thug, ok := reg.Lookup("Golgari Thug")
+	if !ok {
+		t.Fatal("Golgari Thug missing from corpus")
+	}
+	cfg := seatZeroStart(Config{Seed: 194, Names: []string{"a", "b"}, Decks: [][]*cards.Card{
+		append([]*cards.Card{thug}, mountainDeck(t, 39)...), mountainDeck(t, 40)}})
+	e := New(cfg)
+	e.Advance()
+	var tid state.ObjID
+	for _, id := range e.G.Zone(state.ZHand, 0) {
+		if o := e.G.Obj(id); o.Face() != nil && o.Face().Name == "Golgari Thug" {
+			tid = id
+		}
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: tid, From: state.ZHand, To: state.ZGraveyard})
+	for len(e.G.Zone(state.ZLibrary, 0)) > 3 {
+		id := e.G.Zone(state.ZLibrary, 0)[0]
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZHand, Secret: true})
+	}
+	e.drawCard(0)
+	if d := e.Pending(); d != nil && d.Kind == decision.KModes && d.ResumeKind == "dredge" {
+		t.Fatalf("Dredge 4 with three library cards offered illegal choice: %+v", d)
+	}
+	if e.G.Obj(tid).Zone != state.ZGraveyard {
+		t.Fatalf("Golgari Thug zone = %v, want graveyard after ordinary draw", e.G.Obj(tid).Zone)
+	}
+	if got := len(e.G.Zone(state.ZLibrary, 0)); got != 2 {
+		t.Fatalf("library after ordinary draw = %d, want 2", got)
+	}
+}
+
+// TestSoulbondUsesRealCorpusCard drives Tandem Lookout's real script from the
+// commander deck. Its K:Soulbond entry trigger must pair it reciprocally with
+// another unpaired creature its controller controls.
 func TestSoulbondUsesRealCorpusCard(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	lookout, ok := reg.Lookup("Tandem Lookout")
@@ -564,6 +630,13 @@ func TestSoulbondUsesRealCorpusCard(t *testing.T) {
 	// the stack so the pairing (applied by the resolving trigger) is in place
 	// before we check it.
 	e.priorityRound()
+	d := passToDecision(t, e, 8)
+	if d == nil || d.Kind != decision.KChoose || d.Min != 0 || d.Max != 1 {
+		t.Fatalf("Soulbond choice = %+v, want optional partner choice", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{0}}); err != nil {
+		t.Fatalf("submit Soulbond partner: %v", err)
+	}
 	passUntilStackEmpty(t, e, 20)
 	if e.G.Obj(wid).Paired == 0 {
 		t.Fatalf("Tandem Lookout not paired on entry: Paired=%d", e.G.Obj(wid).Paired)
@@ -573,9 +646,59 @@ func TestSoulbondUsesRealCorpusCard(t *testing.T) {
 	}
 }
 
+// TestSoulbondTriggersWhenAnotherCreatureEnters covers Soulbond's second CR
+// 702.103 trigger case and proves a noncreature cannot be offered as partner.
+func TestSoulbondTriggersWhenAnotherCreatureEnters(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	lookout, ok := reg.Lookup("Tandem Lookout")
+	if !ok {
+		t.Fatal("Tandem Lookout missing from corpus")
+	}
+	bear := card(t, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	rock := card(t, "Name:Rock\nTypes:Artifact\nOracle:x\n")
+	e, _, _ := newFixtureDeck(t, 196, "Name:Blank\nTypes:Sorcery\nOracle:x\n")
+	lo := e.G.AddObject(lookout, 0)
+	lo.Zone = state.ZBattlefield
+	rockObj := e.G.AddObject(rock, 0)
+	rockObj.Zone = state.ZBattlefield
+	bearObj := e.G.AddObject(bear, 0)
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{lo.ID, rockObj.ID})
+	e.G.SetZone(state.ZLibrary, 0, append([]state.ObjID{bearObj.ID}, e.G.Zone(state.ZLibrary, 0)...))
+	e.emit(events.Event{Kind: events.MoveZone, Obj: bearObj.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	e.priorityRound()
+	d := passToDecision(t, e, 8)
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 1 || d.Options[0].Obj != bearObj.ID {
+		t.Fatalf("Soulbond second-entry choices = %+v, want only entering creature", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{0}}); err != nil {
+		t.Fatalf("submit second-entry Soulbond: %v", err)
+	}
+	passUntilStackEmpty(t, e, 20)
+	if lo.Paired != bearObj.ID || bearObj.Paired != lo.ID || rockObj.Paired != 0 {
+		t.Fatalf("second-entry pairing = lookout:%d bear:%d rock:%d", lo.Paired, bearObj.Paired, rockObj.Paired)
+	}
+}
+
 // TestMyriadUsesRealCorpusCard drives Chittering Dispatcher's real script:
 // a K:Myriad creature, when it attacks, creates a tapped attacking token
 // copy for each opponent other than the defending player.
+// passToDecision advances priority until an effect ask interrupts stack
+// resolution. It is intentionally limited so a missing trigger fails instead
+// of allowing a turn to run indefinitely.
+func passToDecision(t *testing.T, e *Engine, limit int) *decision.Decision {
+	t.Helper()
+	for i := 0; i < limit; i++ {
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KPriority {
+			return d
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+			t.Fatalf("pass priority: %v", err)
+		}
+	}
+	return e.Pending()
+}
+
 func TestMyriadUsesRealCorpusCard(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	disperser, ok := reg.Lookup("Chittering Dispatcher")

@@ -1,6 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/cmd/allocgate
 
-budget_s: 10
+budget_s: 5
 
 | date (UTC) | commit | wall_s | tests | skipped | runner |
 |---|---|---|---|---|---|

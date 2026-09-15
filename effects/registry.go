@@ -195,6 +195,17 @@ type Ctx struct {
 	// applied by the rules handler, unlike Modes/UnlessPay/Discard where the
 	// effect re-reads the answer -- so the field is only a done-marker.
 	Arrange bool
+	// Hideaway holds the selected top-library card while the Hideaway
+	// replacement resumes to exile it; HideawayPicked distinguishes that
+	// selected answer from the first pass. HideawayArranged marks completion
+	// of the following bottom-order KArrange ask.
+	Hideaway         state.ObjID
+	HideawayPicked   bool
+	HideawayArranged bool
+	// SoulbondPartner is the optional pairing answer. SoulbondDone makes a
+	// declined empty choice distinct from the initial pass.
+	SoulbondPartner state.ObjID
+	SoulbondDone    bool
 	// RevealOpt is the answered RevealOptional$ yes/no on a re-entered
 	// mid-resolution reveal (task fb-3f1cc033, the Delver of Secrets
 	// PeekAndReveal shape): "yes" means the peeking player chose to reveal
