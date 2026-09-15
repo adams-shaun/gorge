@@ -261,10 +261,10 @@ func handChangeNum(sa *cards.SA) (int32, bool) {
 // with no player selector -- the resolving controller's own hand is the one
 // owner, and the controller is its own chooser (Brainstorm, Jace the Mind
 // Sculptor's [0], Sawtooth Loon, Burgeoning). The mechanics -- the ask gate
-// (the dig1/effDiscard strict-supersets rule), the optional-vs-mandatory
-// markers (Forge's default for this shape is "you may"), the fx42 re-entry
-// scoping, the R-9 stand-in, the Destination$ Library placement (absent
-// LibraryPosition$ = TOP in answer order; Shuffle$ True randomises instead)
+// (the dig1/effDiscard strict-supersets rule), explicit markers plus real
+// card/script text for markerless optionality (never an assumed "may"), the
+// fx42 re-entry scoping, the R-9 stand-in, the Destination$ Library placement
+// (absent LibraryPosition$ = TOP in answer order; Shuffle$ True randomises instead)
 // and the unread-parameter list -- are handMoveOwnersWalk's, which this
 // delegates to with the one-owner, chooser==owner, no-random configuration.
 // Only a literal ChangeNum$ (or its absent default 1) reaches here: the
@@ -473,9 +473,10 @@ func handMoveChooserFor(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID) (sta
 // and filter), and owners after it continue the chain.
 //
 // The whole-hand shape (handmove1/rv2b r1) is the one-owner case of this
-// walk, with the chooser == the owner -- the r1 contracts (ask shape, R-9
-// stand-in text, zero-eligible silence, library tail) are this walk's
-// contracts, unchanged. Still unread here, each a scoped-out follow-up:
+// walk, with the chooser == the owner -- the r1 contracts (ask shape, card
+// text/explicit-marker optionality, R-9 stand-in text, zero-eligible silence,
+// library tail) are this walk's contracts, unchanged. Still unread here, each
+// a scoped-out follow-up:
 // Tapped$ True (unread on the object path too), Destination$
 // Hand/Sideboard oddities (2 lines), and any ConditionPresent$/
 // ConditionDefined$ gate (the engine-wide Condition* gap).
@@ -554,8 +555,11 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 		if count.perOwner {
 			n = int32(len(eligible))
 		}
-		if len(eligible) == 0 {
-			continue // a legitimate no-op for this owner: nothing matching in hand.
+		if len(eligible) == 0 || n == 0 {
+			// No eligible card, or an empty-only ChangeNum$ 0 choice: both
+			// complete silently before optionality can matter (AskEmpty's
+			// shared contract).
+			continue
 		}
 		var moved []state.ObjID
 		if random {
@@ -572,13 +576,20 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 			handLibraryTail(h, g, sa, c.Source, owner, moved, to)
 			continue
 		}
-		optional := handTakeOptional(sa)
 		// NumInHand/HandSize means "all matching cards in that hand", an
 		// intrinsically required all-cards move (Eradicate, Extirpate, The
-		// Great Aurora), not Forge's default "you may put" picker. Preserve
-		// an explicit Optional$ marker should a future script carry one.
-		if count.perOwner && strings.TrimSpace(sa.Params["Optional"]) == "" && strings.TrimSpace(sa.Params["Mandatory"]) == "" {
-			optional = false
+		// Great Aurora). Its count semantics settle optionality even when the
+		// script has neither marker nor explanatory text; preserve an explicit
+		// Optional$ marker should a future script carry one.
+		intrinsicAll := count.perOwner && strings.TrimSpace(sa.Params["Optional"]) == "" && strings.TrimSpace(sa.Params["Mandatory"]) == ""
+		optional, optionalKnown := handTakeOptional(h, c, sa, to)
+		if intrinsicAll {
+			optional, optionalKnown = false, true
+		}
+		if !optionalKnown {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "cannot determine whether the markerless hand move is optional; no hand card moves"})
+			return
 		}
 		if int32(len(eligible)) <= n && !optional {
 			// A required move with no possible nonempty selection alternative
@@ -636,22 +647,180 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 	}
 }
 
-// handTakeOptional reads Forge's optional-vs-mandatory markers for the
-// hidden-origin hand put-back. For a fixed ChangeNum$ picker Forge's DEFAULT
-// is "you may": the mandatory Brainstorm/Sawtooth Loon family carries
-// Mandatory$ True, while scripts with neither marker are "you may put"
-// texts (Burgeoning, Volcanic Spite, Oviya, Automech Artisan). The caller
-// separately recognises NumInHand/HandSize as required all-matching moves.
-// Optional$ True and Optional$ You are the explicit may spellings (19 and 35
-// raw lines); Optional$ False and Mandatory$ False make the take required.
-func handTakeOptional(sa *cards.SA) bool {
+// handTakeOptional reads Forge's optional-vs-mandatory markers for a
+// hidden-origin hand move. A missing marker is NOT an optional default:
+// Volrath's Dungeon is markerless but requires its target to put a card back.
+// Forge does not encode that distinction in ChangeZone's parameters, so the
+// markerless may-shapes are recognised from their card/script text (Burgeoning,
+// Oviya, Volcanic Spite); text we cannot classify fails closed and loudly at
+// the caller rather than granting an invented decline.
+func handTakeOptional(h Host, c *Ctx, sa *cards.SA, to state.Zone) (optional, known bool) {
 	if strings.EqualFold(strings.TrimSpace(sa.Params["Mandatory"]), "True") {
-		return false
+		return false, true
 	}
 	if o := strings.TrimSpace(sa.Params["Optional"]); o != "" {
-		return strings.EqualFold(o, "True") || strings.EqualFold(o, "You")
+		return strings.EqualFold(o, "True") || strings.EqualFold(o, "You"), true
 	}
-	return true
+	text := sa.Params["SpellDescription"]
+	if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+		text += "\n" + o.Face().Oracle
+	}
+	if strings.TrimSpace(text) == "" {
+		return false, false
+	}
+	return handMoveTextOptional(text, to)
+}
+
+// handMoveTextOptional recognises the actual English may-forms for the one
+// ChangeZone move being resolved. "Put any number" is optional even without
+// the word may. It requires the destination's action verb and a hand
+// reference IN THE SAME sentence: an unrelated "may put" elsewhere on a
+// multi-ability card is not evidence that this move may be declined.
+// Conversely, text that lacks a matching action is unknown, so the caller
+// emits its fail-closed Note.
+func handMoveTextOptional(text string, to state.Zone) (optional, known bool) {
+	text = strings.ToLower(text)
+	var action string
+	switch to {
+	case state.ZBattlefield, state.ZLibrary:
+		action = "put"
+	case state.ZExile:
+		action = "exile"
+	case state.ZGraveyard:
+		action = "discard"
+	case state.ZHand:
+		action = "return"
+	default:
+		return false, false
+	}
+	if handMovePhraseMentionsHand(text, "may "+action) ||
+		handMovePhraseFollowsHandReveal(text, "may "+action) ||
+		(to == state.ZLibrary && handMovePhraseMentionsHand(text, "may shuffle")) ||
+		(handMovePhraseMentionsHand(text, "any number") && handMovePhraseMentionsHand(text, action)) {
+		return true, true
+	}
+	if handMovePhraseSupportsRequiredMove(text, action) ||
+		handMovePhraseFollowsHandChoice(text, action) ||
+		(to == state.ZLibrary && handMovePhraseSupportsRequiredMove(text, "shuffle")) {
+		return false, true
+	}
+	return false, false
+}
+
+// handMovePhraseSupportsRequiredMove also accepts "choose" in the action's
+// sentence: a preceding RevealHand can make the later "You choose ... and
+// exile that card" sentence omit the word hand (Thought-Knot Seer), but it is
+// still an unambiguously required chooser action.
+func handMovePhraseSupportsRequiredMove(text, phrase string) bool {
+	for start := 0; ; {
+		i := strings.Index(text[start:], phrase)
+		if i < 0 {
+			return false
+		}
+		i += start
+		begin := 0
+		if j := strings.LastIndexAny(text[:i], ".;"); j >= 0 {
+			begin = j + 1
+		}
+		end := len(text)
+		if j := strings.IndexAny(text[i:], ".;"); j >= 0 {
+			end = i + j
+		}
+		if strings.Contains(text[begin:end], "hand") || strings.Contains(text[begin:end], "choose") {
+			return true
+		}
+		start = i + len(phrase)
+	}
+}
+
+// handMovePhraseFollowsHandChoice recognises the same hidden-hand sequence
+// when Forge split its selection and movement into sentences: "reveal their
+// hand. You choose a card from it. Exile that card" (Kitesail Freebooter).
+// It scans only the action sentence and its three predecessors, all of which
+// must establish the hand -> choice -> pronoun chain.
+func handMovePhraseFollowsHandChoice(text, phrase string) bool {
+	for start := 0; ; {
+		i := strings.Index(text[start:], phrase)
+		if i < 0 {
+			return false
+		}
+		i += start
+		begin := 0
+		if j := strings.LastIndexAny(text[:i], ".;"); j >= 0 {
+			begin = j + 1
+		}
+		end := len(text)
+		if j := strings.IndexAny(text[i:], ".;"); j >= 0 {
+			end = i + j
+		}
+		contextStart := begin
+		for n := 0; n < 3 && contextStart > 0; n++ {
+			prior := strings.TrimRight(text[:contextStart], ".; ")
+			if j := strings.LastIndexAny(prior, ".;"); j >= 0 {
+				contextStart = j + 1
+			} else {
+				contextStart = 0
+			}
+		}
+		context := text[contextStart:end]
+		if (strings.Contains(text[begin:end], "that card") || strings.Contains(text[begin:end], " it")) &&
+			strings.Contains(context, "hand") && strings.Contains(context, "choose") && strings.Contains(context, "it") {
+			return true
+		}
+		start = i + len(phrase)
+	}
+}
+
+// handMovePhraseFollowsHandReveal recognises the usual two-sentence hidden
+// hand wording: "Target player reveals their hand. You may put ... from it."
+// The pronoun is enough only immediately after a hand-reveal sentence, so an
+// unrelated optional action elsewhere cannot make this move optional.
+func handMovePhraseFollowsHandReveal(text, phrase string) bool {
+	for start := 0; ; {
+		i := strings.Index(text[start:], phrase)
+		if i < 0 {
+			return false
+		}
+		i += start
+		begin := 0
+		if j := strings.LastIndexAny(text[:i], ".;"); j >= 0 {
+			begin = j + 1
+		}
+		end := len(text)
+		if j := strings.IndexAny(text[i:], ".;"); j >= 0 {
+			end = i + j
+		}
+		prior := strings.TrimRight(text[:begin], ".; ")
+		if j := strings.LastIndexAny(prior, ".;"); j >= 0 {
+			prior = prior[j+1:]
+		}
+		if strings.Contains(prior, "hand") && strings.Contains(text[begin:end], "it") {
+			return true
+		}
+		start = i + len(phrase)
+	}
+}
+
+// handMovePhraseMentionsHand keeps text classification local to the sentence
+// carrying a candidate action. Forge's Oracle text uses periods for sentence
+// boundaries; semicolons also separate instructions often enough to be a safe
+// boundary here.
+func handMovePhraseMentionsHand(text, phrase string) bool {
+	for start := 0; ; {
+		i := strings.Index(text[start:], phrase)
+		if i < 0 {
+			return false
+		}
+		i += start
+		end := len(text)
+		if j := strings.IndexAny(text[i:], ".;"); j >= 0 {
+			end = i + j
+		}
+		if strings.Contains(text[i:end], "hand") {
+			return true
+		}
+		start = i + len(phrase)
+	}
 }
 
 // handMovePrompt builds the human-readable ask text, naming the top/bottom

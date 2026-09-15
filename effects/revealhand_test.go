@@ -114,7 +114,8 @@ func TestThoughtKnotSeerRevealHandRevealsTheWholeHand(t *testing.T) {
 	if trig.Params["ValidTgts"] != "Opponent" {
 		t.Fatalf("corpus pin moved: ValidTgts = %q", trig.Params["ValidTgts"])
 	}
-	src := h.g.AddObject(mkCard(t, "Name:Thought-Knot Seer\nTypes:Creature Eldrazi\nPT:4/4\nOracle:x\n"), 0)
+	reg := testutil.CorpusRegistry(t)
+	src := corpusObject(t, reg, h.g, "Thought-Knot Seer")
 	ctx := &Ctx{Source: src.ID, Controller: 0,
 		Targets: []state.Target{{Player: 1, IsPlayer: true}}}
 	Resolve(h, ctx, trig)

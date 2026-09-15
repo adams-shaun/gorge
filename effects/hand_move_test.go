@@ -174,7 +174,7 @@ func TestHandMoveChangeZoneZeroEligibleIsASilentNoOp(t *testing.T) {
 func TestHandMoveChangeZoneNoHostTakesFirstEligible(t *testing.T) {
 	h, ids := handNoHostFixture(t)
 	Resolve(h, &Ctx{Controller: 0}, sa(t,
-		"DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Land | ChangeNum$ 1"))
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Land | ChangeNum$ 1 | Mandatory$ True"))
 	var note *events.Event
 	for i := range h.log {
 		if h.log[i].Kind == events.Note {
@@ -379,14 +379,13 @@ func TestHandMoveChangeZoneLibraryPositionMinusOneIsBottom(t *testing.T) {
 	}
 }
 
-// TestHandMoveChangeZoneOptionalTakeAsksWithMinZero is the Mandatory$/
-// Optional$ leaf: Optional$ You (the 35 raw explicit "may" lines) and the
-// neither-parameter default (the 151 typed "you may put" lines, Burgeoning
-// among them) lower the ask's Min to 0, and an empty answer moves nothing.
+// TestHandMoveChangeZoneOptionalTakeAsksWithMinZero is the explicit
+// Optional$ leaf: it lowers the ask's Min to 0, and an empty answer moves
+// nothing. Markerless scripts are classified from their real card text below;
+// they are never assumed optional.
 func TestHandMoveChangeZoneOptionalTakeAsksWithMinZero(t *testing.T) {
 	for _, saLine := range []string{
 		"DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | Optional$ You",
-		"DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land",
 	} {
 		h, _ := handAskFixture(t)
 		Resolve(h, &Ctx{Controller: 0}, sa(t, saLine))
@@ -412,6 +411,48 @@ func TestHandMoveChangeZoneOptionalTakeAsksWithMinZero(t *testing.T) {
 		"DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | Optional$ You | Mandatory$ True"))
 	if h2.asked == nil || h2.asked.Min != 1 {
 		t.Fatalf("Mandatory$ True Min = %d, want 1 (the take is required)", h2.asked.Min)
+	}
+}
+
+// TestHandMoveTextOptionalKeepsTheMayInItsOwnSentence prevents a card with
+// several instructions from borrowing an unrelated optional one. The later
+// hand-to-library instruction is Volrath's Dungeon's mandatory grammar.
+func TestHandMoveTextOptionalKeepsTheMayInItsOwnSentence(t *testing.T) {
+	optional, known := handMoveTextOptional(
+		"You may put a token onto the battlefield. Target player puts a card from their hand on top of their library.", state.ZLibrary)
+	if !known || optional {
+		t.Fatalf("optional/known = %v/%v, want false/true", optional, known)
+	}
+	optional, known = handMoveTextOptional(
+		"Target player reveals their hand. You may put a creature card from it onto the battlefield.", state.ZBattlefield)
+	if !known || !optional {
+		t.Fatalf("hand-reveal optional/known = %v/%v, want true/true", optional, known)
+	}
+	optional, known = handMoveTextOptional(
+		"Target player reveals their hand. You choose a card from it. Exile that card.", state.ZExile)
+	if !known || optional {
+		t.Fatalf("hand-choice required optional/known = %v/%v, want false/true", optional, known)
+	}
+}
+
+// TestHandMoveChangeZoneMarkerlessWithoutTextIsLoud prevents a synthetic or
+// otherwise unannotated ChangeZone from inventing a "may" choice. Forge's
+// parameters do not encode the default; only real card/script wording does.
+func TestHandMoveChangeZoneMarkerlessWithoutTextIsLoud(t *testing.T) {
+	h, ids := handAskFixture(t)
+	Resolve(h, &Ctx{Controller: 0}, sa(t,
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | ChangeNum$ 1"))
+	if h.asked != nil {
+		t.Fatalf("markerless, textless move posed a choice: %+v", h.asked)
+	}
+	if len(h.log) != 1 || h.log[0].Kind != events.Note ||
+		!strings.Contains(h.log[0].Text, "cannot determine whether") {
+		t.Fatalf("log = %+v, want one optionality Note", h.log)
+	}
+	for _, id := range ids {
+		if h.g.Obj(id).Zone != state.ZHand {
+			t.Fatalf("markerless, textless move changed card %d to %s", id, h.g.Obj(id).Zone)
+		}
 	}
 }
 
@@ -494,9 +535,9 @@ func TestBrainstormRealScriptMandatoryPutBackWithFewerEligibleCards(t *testing.T
 // TestOviyaRealScriptFilteredHandPutBack runs the real compiled Oviya,
 // Automech Artisan ability (Cost$ G T | Origin$ Hand | Destination$
 // Battlefield | ChangeType$ Creature,Vehicle | ChangeNum$ 1, neither
-// Mandatory$ nor Optional$ -- the Forge "you may" default): the ask offers
-// ONLY the creature and Vehicle cards, never the land or the instant beside
-// them, and Min is 0 (the take is optional).
+// marker but oracle text saying "You may put"): the ask offers ONLY the
+// creature and Vehicle cards, never the land or the instant beside them, and
+// Min is 0 (the take is optional).
 func TestOviyaRealScriptFilteredHandPutBack(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	oviya, ok := reg.Lookup("Oviya, Automech Artisan")
@@ -523,9 +564,10 @@ func TestOviyaRealScriptFilteredHandPutBack(t *testing.T) {
 		g.Obj(id).Zone = state.ZHand
 	}
 
+	source := corpusObject(t, reg, g, "Oviya, Automech Artisan")
 	h := &askHost{}
 	h.g = g
-	Resolve(h, &Ctx{Controller: 0}, ab)
+	Resolve(h, &Ctx{Controller: 0, Source: source.ID}, ab)
 	if h.asked == nil {
 		t.Fatal("no decision posed: two eligible cards (bear, copter) strictly exceed ChangeNum 1")
 	}
@@ -546,6 +588,46 @@ func TestOviyaRealScriptFilteredHandPutBack(t *testing.T) {
 		if g.Obj(id).Zone != state.ZHand {
 			t.Fatalf("id %d moved during suspension", id)
 		}
+	}
+}
+
+// TestVolrathsDungeonRealScriptMarkerlessPutBackIsRequired proves that
+// absent Optional$/Mandatory$ is not itself a decline. Volrath's Dungeon's
+// oracle says the target "puts a card"; with one hand card it therefore moves
+// deterministically to the top of that target's library rather than posing a
+// 0..1 chooser.
+func TestVolrathsDungeonRealScriptMarkerlessPutBackIsRequired(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	card, ok := reg.Lookup("Volrath's Dungeon")
+	if !ok {
+		t.Fatal("corpus has no Volrath's Dungeon")
+	}
+	var ab *cards.SA
+	for _, candidate := range card.Faces[0].Abilities {
+		if candidate.API == "ChangeZone" && candidate.Params["Origin"] == "Hand" {
+			ab = candidate
+			break
+		}
+	}
+	if ab == nil || ab.Params["Mandatory"] != "" || ab.Params["Optional"] != "" {
+		t.Fatalf("Volrath's Dungeon compiled ability drifted: %+v", ab)
+	}
+	g := state.NewGame(names(2))
+	dungeon := corpusObject(t, reg, g, "Volrath's Dungeon")
+	bear := corpusObject(t, reg, g, "Grizzly Bears")
+	bear.Owner, bear.Controller = 1, 1
+	g.SetZone(state.ZHand, 1, []state.ObjID{bear.ID})
+	bear.Zone = state.ZHand
+	h := &askHost{}
+	h.g = g
+	Resolve(h, &Ctx{Source: dungeon.ID, Controller: 0,
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}}, ab)
+	if h.asked != nil {
+		t.Fatalf("one-card mandatory hand move posed a decision: %+v", h.asked)
+	}
+	lib := g.Zone(state.ZLibrary, 1)
+	if len(lib) != 1 || lib[0] != bear.ID || g.Obj(bear.ID).Zone != state.ZLibrary {
+		t.Fatalf("target library = %v, bear zone = %s; want the required top-deck", lib, g.Obj(bear.ID).Zone)
 	}
 }
 
@@ -635,7 +717,7 @@ func ownersFixture(t *testing.T) (*askHost, []state.ObjID, []state.ObjID) {
 // ask belongs to owner 1, bound by ResumeTarget, and consumes its own
 // answer. Neither ask ever names the other owner's cards.
 func TestHandMoveOwnersChainsOneAskPerPlayer(t *testing.T) {
-	const kynaios = "DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | DefinedPlayer$ Player | ChangeNum$ 1 | RememberChanged$ True"
+	const kynaios = "DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | DefinedPlayer$ Player | ChangeNum$ 1 | RememberChanged$ True | Optional$ True"
 	h, hand0, hand1 := ownersFixture(t)
 	Resolve(h, &Ctx{Controller: 0}, sa(t, kynaios))
 	d := h.asked
@@ -690,7 +772,7 @@ func TestHandMoveOwnersChainsOneAskPerPlayer(t *testing.T) {
 // legal answer, so it must pose a Min 0 / Max 1 ask rather than force the
 // land onto the battlefield.
 func TestHandMoveOwnersOptionalSingleEligibleCanDecline(t *testing.T) {
-	const kynaios = "DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | DefinedPlayer$ Player | ChangeNum$ 1"
+	const kynaios = "DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | DefinedPlayer$ Player | ChangeNum$ 1 | Optional$ True"
 	h, hand0, hand1 := ownersFixture(t)
 	h.g.SetZone(state.ZHand, 0, []state.ObjID{hand0[1]}) // exactly one Isle
 	h.g.SetZone(state.ZHand, 1, []state.ObjID{hand1[1]}) // no eligible land
@@ -717,7 +799,7 @@ func TestHandMoveOwnersOptionalSingleEligibleCanDecline(t *testing.T) {
 // contract: on re-entry for owner 1, owner 0 (already answered and moved on
 // the earlier pass) must not move a second time.
 func TestHandMoveOwnersSkipAnsweredOwnersOnReentry(t *testing.T) {
-	const kynaios = "DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | DefinedPlayer$ Player | ChangeNum$ 1"
+	const kynaios = "DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | DefinedPlayer$ Player | ChangeNum$ 1 | Optional$ True"
 	h, hand0, _ := ownersFixture(t)
 	Resolve(h, &Ctx{Controller: 0, HandMove: []state.ObjID{hand0[1]}, HandMoveDone: true,
 		HandMoveTarget: 0}, sa(t, kynaios))
@@ -761,7 +843,7 @@ func TestHandMoveOwnersChooserYouPicksFromTheTargetHand(t *testing.T) {
 	h, _, hand1 := ownersFixture(t)
 	Resolve(h, &Ctx{Controller: 0,
 		Targets: []state.Target{{Player: 1, IsPlayer: true}}}, sa(t,
-		"DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Card | DefinedPlayer$ Targeted | Chooser$ You | ChangeNum$ 1"))
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Card | DefinedPlayer$ Targeted | Chooser$ You | ChangeNum$ 1 | Mandatory$ True"))
 	if h.asked == nil {
 		t.Fatal("no decision was posed")
 	}
@@ -808,7 +890,7 @@ func TestHandMoveOwnersPaidXCountIsTheBound(t *testing.T) {
 	h, _, _ := ownersFixture(t)
 	Resolve(h, &Ctx{Controller: 0, X: 1,
 		Targets: []state.Target{{Player: 1, IsPlayer: true}}}, sa(t,
-		"DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Card | DefinedPlayer$ Targeted | Chooser$ You | ChangeNum$ X"))
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Card | DefinedPlayer$ Targeted | Chooser$ You | ChangeNum$ X | Mandatory$ True"))
 	if h.asked == nil || h.asked.Max != 1 {
 		t.Fatalf("X=1 bound: asked = %+v, want Max 1", h.asked)
 	}

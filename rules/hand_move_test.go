@@ -23,7 +23,7 @@ import (
 // Origin$ Hand, a ChangeType$ filter, no Defined$/DefinedPlayer$/ValidTgts$.
 const burgeoningSrc = "Name:Burgeoning\nTypes:Enchantment\n" +
 	"T:Mode$ LandPlayed | ValidCard$ Land.OppCtrl | TriggerZones$ Battlefield | OptionalDecider$ You | Execute$ TrigDropLand\n" +
-	"SVar:TrigDropLand:DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land\nOracle:x\n"
+	"SVar:TrigDropLand:DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land\nOracle:Whenever an opponent plays a land, you may put a land card from your hand onto the battlefield.\n"
 
 // burgeoningFixture seats Burgeoning on seat 0's battlefield and arranges
 // seat 0's hand to hold EXACTLY handLands Mountains: the mountain-deck filler
