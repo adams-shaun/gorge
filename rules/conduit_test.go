@@ -243,6 +243,17 @@ func TestMayPlayRichGrantFailsClosed(t *testing.T) {
 			t.Fatalf("a Condition$ grant must fail closed (no play_land), got %d", n)
 		}
 	})
+
+	t.Run("unimplemented CheckSVar gate forces closed", func(t *testing.T) {
+		e := mayPlayBase(t)
+		gated := "Name:SVar Gated Grant\nManaCost:2\nTypes:Artifact\n" +
+			"S:Mode$ Continuous | Affected$ Land.YouOwn | MayPlay$ True | AffectedZone$ Graveyard | CheckSVar$ X | SVarCompare$ EQ1 | Description$ x\nOracle:x\n"
+		onBoardGrant(t, e, 0, gated)
+		grave := graveCard(e, card(t, landSrc("Mountain")), 0, 0)
+		if n := countPlayLand(e, grave); n != 0 {
+			t.Fatalf("a CheckSVar$ grant must fail closed (no play_land), got %d", n)
+		}
+	})
 }
 
 // Land.YouOwn grant must not offer an opponent's land or a non-land permanent,

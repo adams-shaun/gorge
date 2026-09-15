@@ -138,17 +138,16 @@ func (e *Engine) staticEffects() []ContinuousEffect {
 // mayPlayUnconditional reports whether a Mode$ Continuous static carries the
 // single unconditional "you may play <cards> from <zone>" grant this package
 // implements: MayPlay$ True, an Affects (Affected$) spec and an AffectedZone,
-// and nothing else gating it. A richer grant is out of scope and must fail
-// closed (MayPlay stays false) so it is never silently over-applied -- in
-// particular a MayPlayLimit$ once-per-turn/per-type grant (Muldrotha's
+// plus only display/placement metadata. A richer grant is out of scope and
+// must fail closed (MayPlay stays false) so it is never silently over-applied
+// -- in particular a MayPlayLimit$ once-per-turn/per-type grant (Muldrotha's
 // MayPlayLimit$ 1 + MayPlayText$) must NOT share the ordinary LandsPlayed
-// limit, and a Condition$/ValidAfterStack$/Secondary$ qualifier or any other
-// MayPlay* family key (MayPlayWithoutManaCost$, MayPlayPlayer$, etc.) changes
-// the semantics beyond the unconditional shape. The check is structural (any
-// MayPlay* key other than MayPlay itself rejects) so a new rich parameter
-// cannot slip past as a missed instance. Iterating st.Params only yields a
-// boolean, so map order never reaches an event/option/view -- determinism is
-// preserved.
+// limit, and a Condition$/CheckSVar$/ValidAfterStack$/Secondary$ qualifier
+// changes the semantics beyond the unconditional shape. The explicit
+// whitelist, rather than a blacklist of currently-known gating keys, means a
+// newly encountered semantic parameter also fails closed. Iterating st.Params
+// only yields a boolean, so map order never reaches an event/option/view --
+// determinism is preserved.
 func mayPlayUnconditional(st cards.Static) bool {
 	v, ok := st.Params["MayPlay"]
 	if !ok || !strings.EqualFold(strings.TrimSpace(v), "True") {
@@ -156,14 +155,10 @@ func mayPlayUnconditional(st cards.Static) bool {
 	}
 	for key := range st.Params {
 		switch key {
-		case "MayPlay", "Affected", "AffectedZone", "Description", "EffectZone":
+		case "Mode", "MayPlay", "Affected", "AffectedZone", "Description", "EffectZone":
 			// The keys the unconditional land grant (and only it) carries
 			// besides MayPlay itself.
-			continue
-		}
-		lower := strings.ToLower(key)
-		if strings.HasPrefix(lower, "mayplay") || lower == "condition" ||
-			lower == "validafterstack" || lower == "secondary" {
+		default:
 			return false
 		}
 	}
