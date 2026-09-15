@@ -275,6 +275,37 @@ func TestReflectingPoolTypeReflectsOnlyProducedColourless(t *testing.T) {
 	if got := effects.ManaReflectedCandidates(e, ctx, sa); len(got) != 1 || got[0] != "R" {
 		t.Fatalf("Reflecting Pool plus Mountain = %v, want [R]", got)
 	}
+	_ = onBoard(t, e, 0, "Name:Wastes\nTypes:Basic Land\nA:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\nOracle:x\n")
+	if got := effects.ManaReflectedCandidates(e, ctx, sa); len(got) != 2 || got[0] != "R" || got[1] != "C" {
+		t.Fatalf("Reflecting Pool plus Mountain and Wastes = %v, want [R C]", got)
+	}
+	// Type's colourless candidate is a real mana choice, not merely an offer:
+	// choose it through the activation path and prove the answer reaches ManaAdd.
+	e.priorityRound()
+	d := e.Pending()
+	poolOpt := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "activate" && opt.Obj == pool {
+			poolOpt = opt.Index
+			break
+		}
+	}
+	if poolOpt < 0 {
+		t.Fatalf("Reflecting Pool activation missing: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{poolOpt}}); err != nil {
+		t.Fatal(err)
+	}
+	d = e.Pending()
+	if d == nil || len(d.Options) != 2 || d.Options[1].Label != "Add C" {
+		t.Fatalf("Reflecting Pool Type choice = %+v", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{1}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := e.G.Players[0].Pool[state.MC]; got != 1 {
+		t.Fatalf("Reflecting Pool's chosen C = %d, want 1", got)
+	}
 }
 
 func TestFellwarStoneAndChromeMoxReflectedShapes(t *testing.T) {

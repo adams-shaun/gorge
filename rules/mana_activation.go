@@ -608,7 +608,7 @@ func (e *Engine) answerManaColor(chosen []decision.Option) bool {
 		return false
 	}
 	color := strings.TrimPrefix(chosen[0].Label, "Add ")
-	if len(color) != 1 || !strings.Contains("WUBRG", color) {
+	if len(color) != 1 || !strings.Contains("WUBRGC", color) {
 		return ma.cast
 	}
 	if ma.trigger != nil {
