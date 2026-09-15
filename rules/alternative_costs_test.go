@@ -74,6 +74,25 @@ func TestSuspendProfaneTutorHasProvenanceAndForcedCast(t *testing.T) {
 	}
 }
 
+func TestSuspendDoesNotCastThroughCantBeCast(t *testing.T) {
+	e := handEngine(t, corpusAlternativeCard(t, "Profane Tutor"))
+	profane := e.G.Zone(state.ZHand, 0)[0]
+	e.G.Players[0].Pool[state.MB], e.G.Players[0].Pool[state.MC] = 1, 1
+	castMode(t, e, profane, "suspend")
+
+	// A mandatory Suspend cast is still a cast. This live CantBeCast static
+	// makes it illegal rather than merely unaffordable, so "if able" leaves
+	// the zero-counter Profane Tutor in exile and never starts a cast flow.
+	restrictor := e.G.AddObject(card(t, "Name:Restrictor\nTypes:Artifact\nS:Mode$ CantBeCast | ValidCard$ Card\nOracle:x\n"), 1)
+	restrictor.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 1, []state.ObjID{restrictor.ID})
+	e.beginTurn(0)
+	e.beginTurn(0)
+	if o := e.G.Obj(profane); o.Zone != state.ZExile || o.Counter("TIME") != 0 || e.cast != nil {
+		t.Fatalf("restricted suspended spell was cast: %+v pending=%+v", o, e.cast)
+	}
+}
+
 func TestSuspendXBenalishCommanderAnnouncesTimeAndCost(t *testing.T) {
 	e := handEngine(t, corpusAlternativeCard(t, "Benalish Commander"))
 	commander := e.G.Zone(state.ZHand, 0)[0]

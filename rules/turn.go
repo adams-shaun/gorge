@@ -171,7 +171,12 @@ func (e *Engine) startSuspendedCast() bool {
 		if o == nil || o.Zone != state.ZExile || o.CastFlags&state.FlagSuspend == 0 || o.Face() == nil {
 			continue
 		}
-		if !e.castTargetsAvailable(o.Owner, id, o.Face().SpellAbility()) {
+		// "If able" includes every restriction that makes casting illegal,
+		// not merely whether the spell can find a target. In particular a
+		// CantBeCast static remains effective when Suspend supplies the mana
+		// cost; beginning the cast and discovering the restriction afterwards
+		// would incorrectly put the spell on the stack.
+		if e.castRestricted(o.Owner, id) || !e.castTargetsAvailable(o.Owner, id, o.Face().SpellAbility()) {
 			continue
 		}
 		e.beginCast(o.Owner, decision.Option{Kind: "cast", Obj: id, Mode: "suspend_cast"})
