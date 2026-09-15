@@ -54,11 +54,8 @@ func Describe(g *state.Game, ev events.Event) string {
 	case events.StepChange:
 		return "Step: " + ev.Step.String()
 	case events.Toss:
-		// CR 103.1's resolution (the state carrier, not the announcement): the
-		// pre-deal toss Note said who won the toss; this event -- emitted after
-		// the deal fixed the survivors -- says who actually takes the first
-		// turn, which the rejection-sampling stand-in may have moved off the
-		// toss winner when the deal eliminated them.
+		// Retained for replaying historical logs which carried an explicit toss
+		// resolution. New genesis streams use the ordinary TurnChange instead.
 		return player(g, ev.Player) + " takes the first turn"
 	case events.TurnChange:
 		return "Turn " + itoa(int64(ev.Amount)) + ": " + player(g, ev.Player)
@@ -122,13 +119,11 @@ func Describe(g *state.Game, ev events.Event) string {
 			return player(g, ev.Player) + " reveals " + objs(g, ev.IDs)
 		}
 		if ev.Text != "" {
-			// The toss announcement (rules.New's pre-deal Note) names a seat in
-			// deck-identity chain text. Its explicit Counter discriminator,
-			// rather than a phrase in arbitrary user-facing Note text, tells the
-			// transcript to render that subject through player() like every other
-			// seat-naming line; a seated human therefore reads their display name
-			// ("You won the toss") without changing the hashed text.
-			if ev.Counter == events.NoteToss {
+			// The genesis toss Note carries the deterministic deck identity in
+			// its hashed text. Recognize the complete, seat-bound text rather than
+			// a loose phrase, then render its subject like every other seat line
+			// so PlayerName remains visible without entering the event chain.
+			if g != nil && int(ev.Player) < len(g.Players) && ev.Text == g.Players[ev.Player].Name+" won the toss" {
 				return player(g, ev.Player) + " won the toss"
 			}
 			return ev.Text

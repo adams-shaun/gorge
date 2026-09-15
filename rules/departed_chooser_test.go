@@ -195,19 +195,11 @@ func TestDepartedChooserResumptionEventStreamIsDeterministic(t *testing.T) {
 	// chain in the graveyard with an empty stack, the departure sweep's 61
 	// MoveZone events, no stray Resolve from the abandoned continuation --
 	// holds unchanged, which is what says the added grant is all that moved.
-	// Regenerated for the rv2a toss-display work: the toss announcement Note
-	// moved before the first shuffle (CR 103.1 precedes 103.2-103.4) and the
-	// Toss resolution event was added after the deal, so this fixture's
-	// genesis prefix -- and with it this scenario's chain head -- moved. No
-	// card behaviour moved with it: the stream differs from the pre-rv2a one
-	// only in the Note's position, its shortened text, explicit NoteToss
-	// discriminator, and the one new Toss event; every other assertion here
-	// holds unchanged. Regenerated once more when rv2a merged after
-	// MonarchChange and ControlChange: append-only ordering keeps those mainline
-	// ordinals fixed and makes Toss the new final Kind, changing only Toss's
-	// encoded ordinal in this stream.
-	if got := e.L.Head(); got != "680aeb568d3073fd" {
-		t.Fatalf("chain head = %s, want 680aeb568d3073fd", got)
+	// Regenerated for rv2a: the sole stream change is moving the existing
+	// toss Note before the first Shuffle (CR 103.1 precedes 103.2-103.4).
+	// No event kind, field, text, or card behaviour changed.
+	if got := e.L.Head(); got != "17b98ee3668c4c1b" {
+		t.Fatalf("chain head = %s, want 17b98ee3668c4c1b", got)
 	}
 
 	// T21-e: a log-only replay must reconstruct the identical Game. If any

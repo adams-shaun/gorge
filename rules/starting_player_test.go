@@ -21,7 +21,7 @@ import (
 func tossNotes(e *Engine) []events.Event {
 	var out []events.Event
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && ev.Counter == events.NoteToss {
+		if ev.Kind == events.Note && strings.HasSuffix(ev.Text, " won the toss") {
 			out = append(out, ev)
 		}
 	}
@@ -91,8 +91,8 @@ func TestTossDeterminesTheStartingPlayerNotAlwaysSeatZero(t *testing.T) {
 // TestTossNoteIsEmittedExactlyOnceAndNamesTheStartingPlayer: the toss is
 // public -- exactly one Note per game carrying the "won the toss" claim,
 // emitted BEFORE the first shuffle (CR 103.1 precedes 103.2-103.4), carrying
-// the winner as its Player; who actually takes the first turn is the Toss
-// event, folded into g.Active.
+// the winner as its Player; its application supplies the pregame active
+// seat, while TurnChange records the resolved first turn.
 func TestTossNoteIsEmittedExactlyOnceAndNamesTheStartingPlayer(t *testing.T) {
 	for _, seed := range []uint64{1, 2, 42} {
 		cfg := tossedTwoSeat(t, seed, 0)
@@ -107,13 +107,6 @@ func TestTossNoteIsEmittedExactlyOnceAndNamesTheStartingPlayer(t *testing.T) {
 		want := tossName(e.G, e.G.Active) + " won the toss"
 		if notes[0].Text != want {
 			t.Fatalf("seed=%d: toss Note text %q, want %q", seed, notes[0].Text, want)
-		}
-		// The text cannot claim the first turn before the deal has fixed the
-		// survivors; the Toss event is the one that carries that resolution.
-		for _, ev := range e.L.Events {
-			if ev.Kind == events.Toss && ev.Player != e.G.Active {
-				t.Fatalf("seed=%d: Toss event names seat %d, game started at %d", seed, ev.Player, e.G.Active)
-			}
 		}
 	}
 }
@@ -131,7 +124,7 @@ func TestTossNotePrecedesTheFirstShuffle(t *testing.T) {
 		noteAt, shuffleAt := -1, -1
 		for i, ev := range e.L.Events {
 			switch {
-			case ev.Kind == events.Note && ev.Counter == events.NoteToss && noteAt < 0:
+			case ev.Kind == events.Note && strings.HasSuffix(ev.Text, " won the toss") && noteAt < 0:
 				noteAt = i
 			case ev.Kind == events.Shuffle && shuffleAt < 0:
 				shuffleAt = i
@@ -143,17 +136,13 @@ func TestTossNotePrecedesTheFirstShuffle(t *testing.T) {
 		if noteAt > shuffleAt {
 			t.Fatalf("mulligans=%d: toss Note (event %d) came after the first Shuffle (event %d)", mulligans, noteAt, shuffleAt)
 		}
-		// And the Toss resolution event comes after the deal (it needs the
-		// survivors) but before the first mulligan ask or the first turn.
-		tossAt := -1
-		for i, ev := range e.L.Events {
+		// A Toss Kind remains decodable for historical logs, but new genesis
+		// streams carry no extra resolution event: the normal TurnChange records
+		// the starter, and the moved Note is the sole stream delta.
+		for _, ev := range e.L.Events {
 			if ev.Kind == events.Toss {
-				tossAt = i
-				break
+				t.Fatalf("mulligans=%d: new genesis emitted obsolete Toss event", mulligans)
 			}
-		}
-		if tossAt < 0 || tossAt < shuffleAt {
-			t.Fatalf("mulligans=%d: Toss event at %d, want one after the first Shuffle (%d)", mulligans, tossAt, shuffleAt)
 		}
 	}
 }
@@ -181,13 +170,7 @@ func TestTossNoteIsEmittedWhenOpeningDealEndsTheGame(t *testing.T) {
 		if got, want := notes[0].Text, tossName(e.G, notes[0].Player)+" won the toss"; got != want {
 			t.Fatalf("short seat %d: toss Note text %q, want %q", shortSeat, got, want)
 		}
-		// No Toss resolution event in a game that never began a turn, and a
-		// resolution Note explaining why.
-		for _, ev := range e.L.Events {
-			if ev.Kind == events.Toss {
-				t.Fatalf("short seat %d: terminal genesis emitted a Toss event", shortSeat)
-			}
-		}
+		// The resolution Note explains why no turn began.
 		resolutions := 0
 		for _, ev := range e.L.Events {
 			if ev.Kind == events.Note && ev.Text == "The game ended before the first turn" {
@@ -262,16 +245,15 @@ func TestTossedGameReplaysByteIdentically(t *testing.T) {
 func TestMulliganRoundAsksTheTossWinnerFirst(t *testing.T) {
 	cfg := tossedTwoSeat(t, 1, 1) // measured: seed 1 tosses to seat 1
 	e := New(cfg)
-	// The Toss event has folded the toss winner into g.Active already, so
-	// the pregame projection (view) reads the real starting seat; the round
-	// order is what New built from it. The toss Note names the winner --
+	// Applying the pre-deal toss Note supplies the live pregame active seat;
+	// the round order is what New built from it. The Note names the winner --
 	// that is the fixture's precondition.
 	notes := tossNotes(e)
 	if len(notes) != 1 || notes[0].Player != 1 {
 		t.Fatalf("fixture precondition failed: toss notes %+v", notes)
 	}
-	if e.G.Active != 1 {
-		t.Fatalf("pregame g.Active = %d, want the toss winner (seat 1) via the Toss event", e.G.Active)
+	if start, ok := e.PregameStarter(); !ok || start != 1 {
+		t.Fatalf("pregame starter = %d, present=%v; want toss winner seat 1", start, ok)
 	}
 	e.Advance()
 	d := e.Pending()
@@ -336,12 +318,16 @@ func TestMulliganPromptNamesTheDisplayPlayerWithDuplicateDecks(t *testing.T) {
 func TestTossIsUniformOverGenesisSurvivors(t *testing.T) {
 	census := map[state.PlayerID]int{}
 	for seed := uint64(1); seed <= 600; seed++ {
-		e := New(Config{Seed: seed, Names: []string{"a", "b", "c"},
+		e := New(Config{Seed: seed, Mulligans: 1, Names: []string{"a", "b", "c"},
 			Decks: [][]*cards.Card{mountainDeck(t, 3), mountainDeck(t, 40), mountainDeck(t, 40)}})
 		if !e.G.Players[0].Lost || e.G.Over {
 			t.Fatalf("seed %d: fixture precondition failed (lost=%v over=%v)", seed, e.G.Players[0].Lost, e.G.Over)
 		}
-		census[e.G.Active]++
+		start, ok := e.PregameStarter()
+		if !ok {
+			t.Fatalf("seed %d: no pregame starter", seed)
+		}
+		census[start]++
 	}
 	if census[0] != 0 {
 		t.Fatalf("eliminated seat 0 started %d games", census[0])

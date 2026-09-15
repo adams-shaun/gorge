@@ -36,6 +36,17 @@ type mulliganRound struct {
 	cursor        int
 }
 
+// PregameStarter supplies the resolved CR 103.1 starting seat while the
+// London mulligan round is live. It deliberately lives outside state.Game:
+// the ordinary TurnChange will record Active at turn 1, and adding a separate
+// genesis event solely for this transient projection would alter every replay.
+func (e *Engine) PregameStarter() (state.PlayerID, bool) {
+	if e == nil || !e.pregame || len(e.mulligan.seats) == 0 {
+		return 0, false
+	}
+	return e.mulligan.seats[0], true
+}
+
 func newMulliganRound(seats []state.PlayerID, limit int) mulliganRound {
 	freeMulligans := 0
 	if len(seats) >= 3 {

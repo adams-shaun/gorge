@@ -53,7 +53,7 @@ func tossedEngine(t *testing.T, seed uint64, mulligans int, playerNames []string
 	for {
 		won := false
 		for _, ev := range e.L.Events {
-			if ev.Kind == events.Note && ev.Counter == events.NoteToss {
+			if ev.Kind == events.Note && ev.Text == "b won the toss" {
 				if ev.Player == 1 {
 					won = true
 				}
@@ -76,8 +76,8 @@ func tossedEngine(t *testing.T, seed uint64, mulligans int, playerNames []string
 // while the toss Note named another.
 func TestPregameViewProjectsTheTossWinnerAsActive(t *testing.T) {
 	e := tossedEngine(t, 1, 1, []string{"Alice", "Bob"})
-	if e.G.Active != 1 || e.G.Turn != 0 {
-		t.Fatalf("fixture precondition: active=%d turn=%d, want toss winner 1 pregame", e.G.Active, e.G.Turn)
+	if e.G.Turn != 0 {
+		t.Fatalf("fixture precondition: turn=%d, want pregame", e.G.Turn)
 	}
 	e.Advance()
 	d := e.Pending()
@@ -132,13 +132,13 @@ func TestDescribeRendersTheTossNoteThroughThePlayerName(t *testing.T) {
 	e := tossedEngine(t, 1, 1, []string{"Alice", "Bob"})
 	var note events.Event
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && ev.Counter == events.NoteToss {
+		if ev.Kind == events.Note && ev.Text == "b won the toss" {
 			note = ev
 			break
 		}
 	}
-	if note.Text != "b won the toss" || note.Counter != events.NoteToss {
-		t.Fatalf("fixture precondition: chain text/discriminator %q/%q", note.Text, note.Counter)
+	if note.Text != "b won the toss" {
+		t.Fatalf("fixture precondition: chain text %q", note.Text)
 	}
 	// The line names the seat the way the player box does -- the seat's own
 	// display name -- even though the chain text carries the deck identity.
@@ -147,49 +147,12 @@ func TestDescribeRendersTheTossNoteThroughThePlayerName(t *testing.T) {
 	}
 }
 
-// TestDescribeRendersTheTossResolution: the Toss event says who takes the
-// first turn, through player() as well; the terminal resolution Note
-// (no first turn began) renders its own text verbatim.
-// TestDescribeLeavesAnUnmarkedTossPhraseAlone proves the toss renderer uses
-// the Note's explicit discriminator rather than rewriting unrelated prose.
-func TestDescribeLeavesAnUnmarkedTossPhraseAlone(t *testing.T) {
+// TestDescribeLeavesAnUnmatchedTossPhraseAlone proves the renderer binds the
+// whole deterministic deck-name text, rather than rewriting arbitrary prose.
+func TestDescribeLeavesAnUnmatchedTossPhraseAlone(t *testing.T) {
 	g := state.NewGame([]string{"a", "b"})
 	ev := events.Event{Kind: events.Note, Player: 1, Text: "The crowd won the toss"}
 	if got, want := view.Describe(g, ev), ev.Text; got != want {
-		t.Fatalf("unmarked toss phrase = %q, want %q", got, want)
-	}
-}
-
-func TestDescribeRendersTheTossResolution(t *testing.T) {
-	e := tossedEngine(t, 1, 1, []string{"Alice", "Bob"})
-	var toss events.Event
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Toss {
-			toss = ev
-			break
-		}
-	}
-	if toss.Player != 1 {
-		t.Fatalf("fixture precondition: Toss event player = %d", toss.Player)
-	}
-	if got, want := view.Describe(e.G, toss), "Bob takes the first turn"; got != want {
-		t.Fatalf("describe Toss = %q, want %q", got, want)
-	}
-	decks := mountainDecks(t, 2)
-	decks[1] = decks[1][:3]
-	te := rules.New(rules.Config{Seed: 1, Names: []string{"a", "b"}, Decks: decks,
-		PlayerNames: []string{"Alice", "Bob"}})
-	var res events.Event
-	found := false
-	for _, ev := range te.L.Events {
-		if ev.Kind == events.Note && ev.Text == "The game ended before the first turn" {
-			res, found = ev, true
-		}
-	}
-	if !found {
-		t.Fatal("fixture precondition: no resolution note")
-	}
-	if got, want := view.Describe(te.G, res), "The game ended before the first turn"; got != want {
-		t.Fatalf("describe resolution = %q, want %q", got, want)
+		t.Fatalf("unmatched toss phrase = %q, want %q", got, want)
 	}
 }

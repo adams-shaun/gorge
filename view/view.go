@@ -385,10 +385,21 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 	v.Phase = PhaseOf(g.Step)
 	v.Active = g.Active
 	v.Priority = g.Priority
+	// The London mulligan round happens before the first TurnChange, so its
+	// resolved starting seat is transient engine flow rather than Game state.
+	// Ask the optional capability instead of widening Chars: test projections
+	// and non-rules embedders retain the ordinary state fallback.
+	if g.Turn == 0 && !g.Over {
+		if starter, ok := ch.(interface{ PregameStarter() (state.PlayerID, bool) }); ok {
+			if p, ok := starter.PregameStarter(); ok {
+				v.Active = p
+			}
+		}
+	}
 	// Terminal genesis (the game ended during its opening deal) never began
 	// a turn, so it has no active seat -- the zero value would read as seat
-	// 0 having the turn. A live pregame is different: rules.New's Toss event
-	// has folded the real starting seat into g.Active by then.
+	// 0 having the turn. A live pregame obtains its resolved starter through
+	// the optional capability above.
 	if g.Over && g.Turn == 0 {
 		v.Active = NoSeat
 	}

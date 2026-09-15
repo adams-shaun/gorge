@@ -574,15 +574,15 @@ func New(cfg Config) *Engine {
 	// too), so the keep/mulligan decisions are made with the toss already
 	// public. The Note names the seat the rng handed the toss to -- the true
 	// CR 103.1 winner -- even if the deal below then eliminates them; who
-	// actually takes the first turn is the Toss event after the deal has
-	// fixed the survivors, and a game the deal ended gets a separate
+	// actually takes the first turn is resolved after the deal has fixed the
+	// survivors, and a game the deal ended gets a separate
 	// resolution Note in finishTerminalGenesis saying why no turn began. The
 	// text carries the deck identity, never the display PlayerName (F3 keeps
 	// display names out of the chain); view/describe.go renders this one Note
 	// through player(), so a seated human still reads their own name.
 	if toss >= 0 {
 		e.emit(events.Event{Kind: events.Note, Player: state.PlayerID(toss),
-			Counter: events.NoteToss, Text: tossName(e.G, state.PlayerID(toss)) + " won the toss"})
+			Text: tossName(e.G, state.PlayerID(toss)) + " won the toss"})
 	}
 	// Match-wide dense commander indexing for Player.CmdDamage (assigned at
 	// genesis): a commander's dense index is the sum of (valid commanders in
@@ -704,15 +704,10 @@ func New(cfg Config) *Engine {
 	// priority); resolveToss is genesis's own equivalent for the very first
 	// turn.
 	if !e.G.Over {
-		// CR 103.1's resolution, now that the deal has fixed the survivors: the
-		// Toss event carries the seat that takes the first turn into state
-		// (events.Apply folds it into g.Active), so the pregame view -- and
-		// every other consumer of the active seat -- reports the real starter,
-		// never the seat-0 zero value. In every real game the toss candidate
-		// survived the deal and this is the seat the pre-deal Note named; when
-		// the deal eliminated the candidate, this event (not the Note) is the
-		// one that names who actually plays first.
-		e.emit(events.Event{Kind: events.Toss, Player: start})
+		// CR 103.1's resolution, now that the deal has fixed the survivors:
+		// beginTurn records start in its ordinary TurnChange. During a London
+		// mulligan, Engine.PregameStarter exposes the same resolved seat to the
+		// view without adding another hash-chained event to genesis.
 		if cfg.Mulligans > 0 {
 			// Ruling R-8.4: the London mulligan round lives between the deal
 			// and turn 1. e.pregame makes step() dispatch to stepPregame
