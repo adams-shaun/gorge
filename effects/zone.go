@@ -176,8 +176,9 @@ func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to
 
 // handChangeNum reads the SA's ChangeNum$ as a plain integer literal
 // (absent = 1, Forge's ChangeZoneEffect default for this shape). The second
-// return is false for anything else -- a non-integer value, or a negative
-// one -- and the caller routes that SA to the pre-existing object path
+// return is false for anything else -- a non-integer, negative, or value
+// outside a decision count's signed 32-bit range -- and the caller routes
+// that SA to the pre-existing object path
 // instead: evaluating SVar/Count$ count expressions here is a scoped-out
 // follow-up, not part of handmove1.
 func handChangeNum(sa *cards.SA) (int32, bool) {
@@ -185,7 +186,7 @@ func handChangeNum(sa *cards.SA) (int32, bool) {
 	if !present || v == "" {
 		return 1, true
 	}
-	n, err := strconv.Atoi(v)
+	n, err := strconv.ParseInt(v, 10, 32)
 	if err != nil || n < 0 {
 		return 0, false
 	}

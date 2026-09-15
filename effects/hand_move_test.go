@@ -236,3 +236,27 @@ func TestHandMoveChangeZoneNonLiteralChangeNumStaysOnObjectPath(t *testing.T) {
 		}
 	}
 }
+
+// TestHandMoveChangeZoneRejectsOutOfRangeChangeNum proves a literal that
+// cannot fit Decision.Min/Max's int32 count stays on the old object path.
+// In particular, it must not narrow to a negative bound and create a
+// permanently unanswerable KChoose decision.
+func TestHandMoveChangeZoneRejectsOutOfRangeChangeNum(t *testing.T) {
+	const overflow = "2147483648"
+	if n, ok := handChangeNum(sa(t,
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | ChangeNum$ "+overflow)); ok || n != 0 {
+		t.Fatalf("handChangeNum(%s) = %d, %v; want 0, false", overflow, n, ok)
+	}
+
+	h, ids := handAskFixture(t)
+	Resolve(h, &Ctx{Controller: 0}, sa(t,
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Battlefield | ChangeType$ Land | ChangeNum$ "+overflow))
+	if h.asked != nil {
+		t.Fatalf("out-of-range ChangeNum posed a decision: %+v", h.asked)
+	}
+	for _, id := range ids {
+		if o := h.g.Obj(id); o.Zone != state.ZHand {
+			t.Fatalf("out-of-range ChangeNum moved ids[%d] to %s: must stay on the object path", id, o.Zone)
+		}
+	}
+}
