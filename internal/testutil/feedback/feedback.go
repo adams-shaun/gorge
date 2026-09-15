@@ -196,7 +196,11 @@ func Load(dir string) (*events.Log, rules.Config, Meta, error) {
 	if err != nil {
 		return nil, cfg, meta, err
 	}
-	cfg, err = config(m, reg)
+	tokens, err := resolveTokens(dir, m, reg)
+	if err != nil {
+		return nil, cfg, meta, err
+	}
+	cfg, err = config(m, reg, tokens)
 	if err != nil {
 		return nil, cfg, meta, err
 	}
@@ -206,12 +210,12 @@ func Load(dir string) (*events.Log, rules.Config, Meta, error) {
 // config rebuilds a rules.Config from match.json's content: decks from the
 // recorded card-name lists (resolved through the registry exactly the way
 // deck.File.Resolve resolves a deck file — Lookup normalises the name, so
-// the recorded printed name finds its card), token scripts recompiled the
-// way the corpus's own compile pipeline compiles them (ParseBytes, Link,
-// ApplyIntrinsics), and the format/life/commander/mulligan settings. The
-// seed is carried but replay overwrites it with the log's own seed
-// (replay's Ruling P5), which is the one that produced the log.
-func config(m matchJSON, reg *cards.Registry) (rules.Config, error) {
+// the recorded printed name finds its card), the already-compiled token
+// scripts (resolved by resolveTokens — never raw text, which may be
+// GPL-3.0), and the format/life/commander/mulligan settings. The seed is
+// carried but replay overwrites it with the log's own seed (replay's
+// Ruling P5), which is the one that produced the log.
+func config(m matchJSON, reg *cards.Registry, tokens map[string]*cards.Card) (rules.Config, error) {
 	if len(m.DeckCards) == 0 {
 		return rules.Config{}, fmt.Errorf("feedback: match.json records no deck_cards")
 	}
@@ -232,26 +236,118 @@ func config(m matchJSON, reg *cards.Registry) (rules.Config, error) {
 		PlayerNames: m.PlayerNames,
 		Decks:       decks,
 		Mulligans:   m.Mulligans,
+		Tokens:      tokens,
 	}
 	if m.Format == "commander" {
 		cfg.Format = rules.FormatCommander
 		cfg.StartingLife = m.StartingLife
 		cfg.Commanders = m.Commanders
 	}
-	stems := make([]string, 0, len(m.Tokens))
-	for s := range m.Tokens {
+	return cfg, nil
+}
+
+// resolveTokens decides which token scripts a Load replays with. Three
+// sources, in priority order:
+//
+//  1. A live, uncommitted capture carries the exact script text in
+//     match.json's `tokens` field (host.FeedbackMatch.Tokens): compile it
+//     directly. That field is the whole cfg.Tokens the live match was
+//     built with, so this reproduces the match exactly.
+//  2. A committed fixture has that text stripped out — Forge token scripts
+//     are GPL-3.0 and must never be committed — so Load consults the
+//     gitignored token sync directory keyed by the fixture id: the exact
+//     historical text, preserved for reproducible replay after a corpus
+//     pin move.
+//  3. When the sync directory is missing (a fresh checkout that never ran
+//     the fixture generator), fall back to the whole live corpus token map
+//     at the current FORGE_REF. The fixture then replays against the corpus
+//     as it is today — never a hard fail, never the stripped text
+//     re-embedded into anything committed.
+func resolveTokens(dir string, m matchJSON, reg *cards.Registry) (map[string]*cards.Card, error) {
+	if len(m.Tokens) > 0 {
+		return compileTokenScripts(m.Tokens)
+	}
+	syncDir, err := TokenSyncDir(filepath.Base(dir))
+	if err != nil {
+		return nil, err
+	}
+	if texts, err := readTokenScripts(syncDir); err != nil {
+		return nil, err
+	} else if len(texts) > 0 {
+		return compileTokenScripts(texts)
+	}
+	return corpusTokens(reg), nil
+}
+
+// compileTokenScripts recompiles a token-script map (stem → script text)
+// into compiled cards, walking stems in sorted order so a failure message
+// is deterministic.
+func compileTokenScripts(texts map[string]string) (map[string]*cards.Card, error) {
+	if len(texts) == 0 {
+		return nil, nil
+	}
+	stems := make([]string, 0, len(texts))
+	for s := range texts {
 		stems = append(stems, s)
 	}
 	sort.Strings(stems)
-	cfg.Tokens = make(map[string]*cards.Card, len(stems))
+	out := make(map[string]*cards.Card, len(stems))
 	for _, s := range stems {
-		c, err := compileToken(s, m.Tokens[s])
+		c, err := compileToken(s, texts[s])
 		if err != nil {
-			return rules.Config{}, err
+			return nil, err
 		}
-		cfg.Tokens[s] = c
+		out[s] = c
 	}
-	return cfg, nil
+	return out, nil
+}
+
+// corpusTokens returns the whole live corpus token map (already compiled)
+// as cfg.Tokens. This is the superset the host itself captures, so a
+// stripped fixture with no sync directory replays against the same token
+// set the live match had.
+func corpusTokens(reg *cards.Registry) map[string]*cards.Card {
+	out := make(map[string]*cards.Card, len(reg.Tokens))
+	for k, v := range reg.Tokens {
+		out[k] = v
+	}
+	return out
+}
+
+// TokenSyncDir returns the gitignored directory holding the exact token
+// script text behind a feedback fixture id — the text a committed
+// match.json strips out of its `tokens` field because Forge scripts are
+// GPL-3.0 and must never be committed. It returns the path whether or not
+// it exists; callers consult existence (Load's fallback and cmd/repro's
+// sync writer both do). An empty id names no fixture and is an error.
+func TokenSyncDir(id string) (string, error) {
+	root, err := repoRoot()
+	if err != nil {
+		return "", err
+	}
+	if id == "" {
+		return "", fmt.Errorf("feedback: a token sync directory needs a fixture id")
+	}
+	return filepath.Join(root, "cmd", filepath.FromSlash("repro/testdata/.tokens"), id), nil
+}
+
+// readTokenScripts reads the token-script map a fixture's sync directory
+// carries (one tokens.json, keyed stem → text). Returns nil when the
+// directory holds nothing, which sends resolveTokens on to the live
+// corpus fallback.
+func readTokenScripts(syncDir string) (map[string]string, error) {
+	raw, err := os.ReadFile(filepath.Join(syncDir, "tokens.json"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("feedback: token sync dir %s: %w", syncDir, err)
+	}
+	var texts map[string]string
+	if err := json.Unmarshal(raw, &texts); err != nil {
+		return nil, fmt.Errorf("feedback: token sync dir %s: %w", syncDir, err)
+	}
+	return texts, nil
 }
 
 // compileToken recompiles one recorded token script through the corpus's

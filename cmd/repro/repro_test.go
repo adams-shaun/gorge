@@ -508,6 +508,96 @@ func TestReproEmitTestRejectsTamperedCapture(t *testing.T) {
 	}
 }
 
+// TestReproEmitTestStripsTokenScriptsFromLiveCapture is the ruling's
+// boundary for -emit-test on a LIVE capture: the source match.json carries
+// the raw token script text (host.FeedbackMatch.Tokens), and the committed
+// copy must NOT — Forge token scripts are GPL-3.0 and must never be
+// committed. The emitted match.json must carry neither `tokens` nor
+// `tokens_unread`, the exact text must be SYNced into the gitignored token
+// directory keyed by the fixture id, and the emitted snapshot must still
+// replay (resolving its tokens from that sync directory) to the recorded
+// head — the round-trip that keeps the sync path honest.
+func TestReproEmitTestStripsTokenScriptsFromLiveCapture(t *testing.T) {
+	requireCorpus(t)
+	root, err := feedback.Root()
+	if err != nil {
+		t.Skipf("no repo root: %v", err)
+	}
+	scratch := filepath.Join(root, "zzrepro-stripemittest")
+	t.Cleanup(func() { os.RemoveAll(scratch) })
+	if err := os.MkdirAll(scratch, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(scratch, "doc.go"), []byte("package striped\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// A live capture, not the committed fixture: match.json carries tokens.
+	advance, r := gatedFixtureRegistry(t)
+	advance(12)
+	src := t.TempDir()
+	captureSnapshotFiles(t, r, src)
+	id := filepath.Base(src)
+	// -emit-test syncs the stripped token text into the gitignored token
+	// directory keyed by this fixture id; remove it on cleanup so the test
+	// does not litter that directory with a per-run random id.
+	syncDir, err := feedback.TokenSyncDir(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.RemoveAll(syncDir) })
+	srcRaw, err := os.ReadFile(filepath.Join(src, "match.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(srcRaw), "tokens") {
+		t.Fatalf("live capture match.json carries no tokens field:\n%.200s", srcRaw)
+	}
+
+	var out bytes.Buffer
+	if code := run([]string{"-emit-test", "zzrepro-stripemittest", src}, &out, io.Discard); code != 0 {
+		t.Fatalf("emit exit %d, output:\n%s", code, out.String())
+	}
+
+	emitted := filepath.Join(scratch, "testdata", "feedback", id, "match.json")
+	emittedRaw, err := os.ReadFile(emitted)
+	if err != nil {
+		t.Fatalf("emitted match.json not found: %v", err)
+	}
+	if strings.Contains(string(emittedRaw), "tokens") {
+		t.Errorf("emitted match.json still carries token script text:\n%.300s", emittedRaw)
+	}
+
+	// The exact script text went to the gitignored sync directory instead,
+	// keyed by the fixture id.
+	syncRaw, err := os.ReadFile(filepath.Join(syncDir, "tokens.json"))
+	if err != nil {
+		t.Fatalf("token sync directory missing: %v", err)
+	}
+	var synced map[string]string
+	if err := json.Unmarshal(syncRaw, &synced); err != nil {
+		t.Fatalf("sync tokens.json: %v", err)
+	}
+	if len(synced) == 0 {
+		t.Fatalf("sync directory carried %d token scripts, the capture had more", len(synced))
+	}
+
+	// The emitted snapshot resolves its tokens from the sync directory and
+	// must still replay to the recorded head — the stripped copy is not a
+	// silent no-op.
+	l, cfg, meta, err := feedback.Load(filepath.Join(scratch, "testdata", "feedback", id))
+	if err != nil {
+		t.Fatalf("load emitted snapshot: %v", err)
+	}
+	ene, err := replay.Replay(l, cfg)
+	if err != nil {
+		t.Fatalf("replay emitted snapshot: %v", err)
+	}
+	if got := ene.L.Head(); got != meta.Head {
+		t.Errorf("emitted snapshot replayed head %q, recorded %q", got, meta.Head)
+	}
+}
+
 // TestPrintSeatsShowsOpponentAuraOnItsHost: the view groups battlefields by
 // controller, so an Aura seat 0 controls on seat 1's creature sits in seat
 // 0's list while its host sits in seat 1's. The summary must print it on the

@@ -239,7 +239,9 @@ func TestGenerateCommittedFixture(t *testing.T) {
 	captureSnapshotFiles(t, r, dir)
 
 	// Verify before writing: the fixture must replay to its own recorded
-	// head through the ordinary load path, or it is not a fixture.
+	// head through the ordinary load path, or it is not a fixture. This is
+	// the live-capture path (match.json still carries its token script
+	// text), before that text is stripped for the committed copy below.
 	l, cfg, meta, err := feedback.Load(dir)
 	if err != nil {
 		t.Fatalf("load: %v", err)
@@ -260,9 +262,40 @@ func TestGenerateCommittedFixture(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		// The committed match.json must not carry the token script text
+		// (Forge scripts are GPL-3.0; gorge is Apache-2.0). writeCommittedMatch
+		// strips `tokens`/`tokens_unread` and syncs the exact text into the
+		// gitignored token directory keyed by the fixture id, so the fixture
+		// still replays locally with the exact historical scripts.
+		if f == "match.json" {
+			raw, err = writeCommittedMatch(raw, fixtureID)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
 		if err := os.WriteFile(filepath.Join(dst, f), raw, 0o644); err != nil {
 			t.Fatal(err)
 		}
+	}
+
+	// Round-trip check: the committed copy has its token text stripped, so
+	// re-loading it must resolve those tokens through the gitignored sync
+	// directory and still replay to the same head. This is what keeps the
+	// sync path honest — a generator that wrote a stripped match.json the
+	// loader could not rebuild would fail here, not at the next `go test`.
+	l2, cfg2, meta2, err := feedback.Load(dst)
+	if err != nil {
+		t.Fatalf("load committed fixture: %v", err)
+	}
+	e2, err := replay.Replay(l2, cfg2)
+	if err != nil {
+		t.Fatalf("replay committed fixture: %v", err)
+	}
+	if got := e2.L.Head(); got != meta2.Head {
+		t.Fatalf("committed fixture replayed head %q, recorded %q", got, meta2.Head)
+	}
+	if meta2.Head != meta.Head {
+		t.Fatalf("stripped fixture head %q differs from capture head %q", meta2.Head, meta.Head)
 	}
 	t.Logf("fixture written to %s", dst)
 }

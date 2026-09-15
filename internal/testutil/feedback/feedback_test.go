@@ -41,7 +41,7 @@ func TestConfigResolvesDecksThroughTheRegistry(t *testing.T) {
 	reg.Add(c)
 
 	m := matchJSON{DeckCards: [][]string{{"Test Pipewhale"}}}
-	cfg, err := config(m, reg)
+	cfg, err := config(m, reg, nil)
 	if err != nil {
 		t.Fatalf("config: %v", err)
 	}
@@ -50,7 +50,7 @@ func TestConfigResolvesDecksThroughTheRegistry(t *testing.T) {
 	}
 
 	m.DeckCards = [][]string{{"Card The Corpus Never Knew"}}
-	if _, err := config(m, reg); err == nil {
+	if _, err := config(m, reg, nil); err == nil {
 		t.Fatal("config accepted an unknown card name")
 	} else if !strings.Contains(err.Error(), "seat 0 card 0") {
 		t.Errorf("error does not name the seat and card: %v", err)

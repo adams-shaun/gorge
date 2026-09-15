@@ -58,6 +58,9 @@ server's feedback capture). Turning it into a failing test is one command:
 go run ./cmd/repro <feedback-dir>              # replay, verify the head, print the board
                                              # at the report point (turn, step, life,
                                              # battlefield, stack, last ~20 log lines)
+                                             # (-at 0 also works flags-after-dir:
+                                             #  `repro <dir> -at 0` is parsed same as
+                                             #  `repro -at 0 <dir>`)
 go run ./cmd/repro -at N <feedback-dir>        # replay to intent N instead
                                              # (-list prints the intent timeline to find N)
 go run ./cmd/repro -omniscient <feedback-dir>  # show every hand in the summary
@@ -70,6 +73,16 @@ go run ./cmd/repro -emit-test <pkg> <feedback-dir>
                                              # engine tier, so an internal-package skeleton
                                              # would be an import cycle for an engine-side
                                              # target); replace the TODO with the assertion
+
+A committed fixture's `match.json` does not embed token script text — Forge
+scripts are GPL-3.0 and must never be committed — so `-emit-test` and the
+fixture generator strip `match.json`'s `tokens`/`tokens_unread` and sync the
+exact text into the gitignored `cmd/repro/testdata/.tokens/<id>/` keyed by
+the fixture id. `feedback.Load` resolves token scripts from that sync
+directory first (exact historical text) and falls back to the live corpus
+(`.cards/` at the current `FORGE_REF`) when it is missing (a fresh clone), so
+a fixture still replays without ever re-embedding the text into committed
+files.
 ```
 
 Exit 0 is a verified replay: the rebuilt event stream matches the recording

@@ -19,11 +19,14 @@
 //
 // The replay is the ordinary engine replay (replay.Replay/ReplayTo) against
 // a Config rebuilt from match.json — decks from the recorded card names,
-// token scripts recompiled from the recorded text — so a final head that
-// does not equal log.json's `head` means the engine or the corpus changed
-// since the report was filed. That is a real, expected cause (the corpus is
-// a moving pin), and repro says so when it happens, naming the first
-// event where the replay parted ways with the recording.
+// token scripts recompiled from the recorded or synced text — so a final
+// head that does not equal log.json's `head` means the engine or the corpus
+// changed since the report was filed. That is a real, expected cause (the
+// corpus is a moving pin), and repro says so when it happens, naming the
+// first event where the replay parted ways with the recording.
+//
+// Flags may come before or after the directory: `repro <dir> -at 0` and
+// `repro -at 0 <dir>` are equivalent.
 //
 // Exit codes: 0 a verified replay and summary; 1 a divergence or replay
 // error; 2 a usage or load error.
@@ -61,7 +64,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	list := fs.Bool("list", false, "print the intent timeline instead of the board summary")
 	omniscient := fs.Bool("omniscient", false, "show every seat's hand in the summary")
 	emit := fs.String("emit-test", "", "write a test skeleton into package <pkg> that reproduces this snapshot")
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(reorderArgs(args)); err != nil {
 		return 2
 	}
 	if fs.NArg() != 1 {
@@ -451,6 +454,16 @@ func emitTest(pkg, dir string, meta feedback.Meta, stdout io.Writer) error {
 			}
 			return fmt.Errorf("repro: %w", err)
 		}
+		// match.json carries the raw token script text (GPL-3.0 Forge
+		// scripts). The committed copy strips it and syncs the exact text
+		// into the gitignored token directory, so no script text lands in
+		// the repo while the fixture still replays locally.
+		if f == "match.json" {
+			raw, err = writeCommittedMatch(raw, id)
+			if err != nil {
+				return err
+			}
+		}
 		if err := os.WriteFile(filepath.Join(dst, f), raw, 0o644); err != nil {
 			return fmt.Errorf("repro: %w", err)
 		}
@@ -506,6 +519,35 @@ func packageOf(dir string) (string, error) {
 		return f.Name.Name, nil
 	}
 	return "", fmt.Errorf("repro: package %s has no .go files to name it", dir)
+}
+
+// reorderArgs moves flag tokens ahead of positional arguments so Go's
+// flag package — which stops parsing at the first non-flag argument — sees
+// everything it should. `repro <dir> -at 0` must behave the same as
+// `repro -at 0 <dir>`; the documented usage places flags after the
+// directory, and Go's parser would otherwise stop at the directory and
+// treat `-at` and `0` as extra positionals.
+func reorderArgs(args []string) []string {
+	// valueFlags take a following argument (which may itself start with '-'
+	// for a negative -at), so they must be moved together with it.
+	valueFlags := map[string]bool{
+		"-at": true, "--at": true,
+		"-emit-test": true, "--emit-test": true,
+	}
+	var flags, pos []string
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		if strings.HasPrefix(a, "-") && a != "-" {
+			flags = append(flags, a)
+			if valueFlags[a] && i+1 < len(args) {
+				flags = append(flags, args[i+1])
+				i++
+			}
+			continue
+		}
+		pos = append(pos, a)
+	}
+	return append(flags, pos...)
 }
 
 // sanitize folds a report id into a legal Go identifier body: report ids
