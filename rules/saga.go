@@ -61,14 +61,23 @@ func (e *Engine) advanceSagas(p state.PlayerID) {
 // just placed. Called for exactly two events: a MoveZone onto the battlefield
 // (the ETB lore counter events.Move grants -- the live counter read below
 // already includes it) and a CounterChange on the LORE counter kind (the
-// draw-step counter). The chapter number is the CURRENT lore count; a count
-// outside 1..N queues nothing (a counter beyond the final chapter is the SBA's
-// business, not a chapter ability's). The queue entry is the delayed-shape
-// pendingTrigger: DelayedID -1 encodes "no registration to remove" (every
-// real registration's ID is a monotonic uint32 from DelayedNext, so no
-// DelayedPush this build can mint ever removes a real registration by
-// accident), Execute names the chapter SVar, and the ability resolves out of
-// the source face's SVar table at push time (events.Apply's DelayedPush case).
+// draw-step counter). A CounterChange carrying MORE than one counter (a
+// Storyweave-style CounterNum$ 2 or Terra's CounterNum$ 3) crosses several
+// chapter thresholds at once, so EVERY newly crossed chapter is queued, in
+// ascending order -- CR 702.151b's "each chapter ability triggers when its
+// chapter number is reached" is per counter, not per event; queueing only the
+// final count's chapter would silently skip the crossed ones. The first
+// chapter crossed is the count the object had BEFORE the event: the folded
+// count minus the event's own Amount (the live counter read below already
+// includes it), floored at 1 -- a MoveZone's entry grant starts from chapter
+// 1 by construction. A count beyond the final chapter queues nothing past the
+// last chapter (the overflow is the SBA's business, not a chapter ability's).
+// The queue entry is the delayed-shape pendingTrigger: DelayedID -1 encodes
+// "no registration to remove" (every real registration's ID is a monotonic
+// uint32 from DelayedNext, so no DelayedPush this build can mint ever removes
+// a real registration by accident), Execute names the chapter SVar, and the
+// ability resolves out of the source face's SVar table at push time
+// (events.Apply's DelayedPush case).
 func (e *Engine) checkChapterTriggers(ev events.Event) {
 	if ev.Kind != events.MoveZone && ev.Kind != events.CounterChange {
 		return
@@ -89,26 +98,42 @@ func (e *Engine) checkChapterTriggers(ev events.Event) {
 		return
 	}
 	count := int(o.Counter("LORE"))
-	if count < 1 || count > n || count > len(names) {
+	if count < 1 {
 		return
 	}
-	name := names[count-1]
-	sa := cards.ResolveSVar(o.Face().SVars, name)
-	if sa == nil {
-		return
+	first := 1
+	if ev.Kind == events.CounterChange {
+		first = count - int(ev.Amount) + 1
+		if first < 1 {
+			first = 1
+		}
 	}
-	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
-		Source:     ev.Obj,
-		Controller: o.Controller,
-		Delayed:    true,
-		DelayedID:  ^uint32(0),
-		Execute:    name,
-		SA:         sa,
-		Ctx: effects.Ctx{
+	last := count
+	if last > n {
+		last = n
+	}
+	if last > len(names) {
+		last = len(names)
+	}
+	for i := first; i <= last; i++ {
+		name := names[i-1]
+		sa := cards.ResolveSVar(o.Face().SVars, name)
+		if sa == nil {
+			continue
+		}
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 			Source:     ev.Obj,
 			Controller: o.Controller,
-		},
-	})
+			Delayed:    true,
+			DelayedID:  ^uint32(0),
+			Execute:    name,
+			SA:         sa,
+			Ctx: effects.Ctx{
+				Source:     ev.Obj,
+				Controller: o.Controller,
+			},
+		})
+	}
 }
 
 // checkSagas is the CR 704.5v state-based action: a Saga with a lore counter

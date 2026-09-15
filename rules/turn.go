@@ -326,20 +326,35 @@ func (e *Engine) advanceStep() {
 		}
 	}
 	if e.G.Step == state.StepCleanup {
-		// CR 500.7: an extra turn is taken "after this one" by the SAME seat
-		// -- the turn rotation repeats the seat while its ExtraTurns count is
-		// positive, consuming one (the -1 ExtraTurn event is the state
-		// change; beginTurn then repeats the holder exactly as the ordinary
-		// rotation would), and only moves to the next living seat once the
-		// seat's extra turns are spent.
-		if e.G.ExtraTurns[e.G.Active] > 0 {
-			e.emit(events.Event{Kind: events.ExtraTurn, Player: e.G.Active, Amount: -1})
-			// beginTurn resets the pass count along with the repeated holder.
-			e.beginTurn(e.G.Active)
-			return
+		// CR 500.7: extra turns are taken in REVERSE order of creation (the
+		// most recently created extra turn is taken first), inserted
+		// immediately after the turn that created them, and the ordinary turn
+		// order resumes only once every pending extra turn is spent. The
+		// pending queue is the folded ExtraTurnQueue (events/apply.go); the
+		// consumption is the -1 ExtraTurn event, which also carries the
+		// grant's Final-Fortune-style rider (events.Apply registers the
+		// delayed end-step trigger on it -- the granted turn is exactly the
+		// turn about to begin). A grant to a seat that has since LOST takes
+		// no turn: it is consumed (so the fold agrees) and skipped, and the
+		// next pending grant, if any, is taken in the same cleanup.
+		for len(e.G.ExtraTurnQueue) > 0 {
+			seat := e.G.ExtraTurnQueue[len(e.G.ExtraTurnQueue)-1]
+			obj, counter := e.latestUnconsumedGrant(seat)
+			e.emit(events.Event{Kind: events.ExtraTurn, Player: seat, Amount: -1,
+				Obj: obj, Counter: counter})
+			if !e.G.Players[seat].Lost {
+				// beginTurn resets the pass count along with the repeated
+				// holder; the ordinary rotation pointer does not advance.
+				e.beginTurn(seat)
+				return
+			}
 		}
+		// No extra turn is pending: the next seat in the ordinary rotation is
+		// the seat after the most recent NORMAL turn's holder (rotationBase) --
+		// never after the seat that just finished an extra turn, whose turn
+		// was inserted into the rotation, not a part of it.
 		// beginTurn resets the pass count along with the new holder.
-		e.beginTurn(e.G.NextAlive(e.G.Active))
+		e.beginTurn(e.G.NextAlive(e.rotationBase()))
 		return
 	}
 	if e.G.Step == state.StepCombatDamage && e.combatRound.hasFirst && e.combatRound.firstDone && !e.combatRound.regularDone {
@@ -586,4 +601,85 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "choose answered with no flow waiting"})
 		e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
 	}
+}
+
+// rotationBase returns the seat whose turn the ordinary rotation is currently
+// ON: the holder of the most recent NORMAL turn -- a TurnChange that did not
+// begin an extra turn. An extra turn's TurnChange is the one a cleanup step
+// consumed a grant for: a -1 ExtraTurn event sits between the previous
+// TurnChange and it (backward window below), so scanning backward and
+// skipping every TurnChange whose backward window holds a consumption lands
+// on the last normal holder. When the pending-extra queue drains, the next
+// turn is this seat's successor (NextAlive) -- the extra turns were inserted
+// after that seat's turn, never in place of the seats that follow it. No
+// TurnChange at all cannot happen (turn 1 opens the log); the fallback names
+// seat 0 for totality.
+//
+// The scan is over the log, never live state, so a replay re-derives the
+// same base. Cost is one backward window per extra-turn cleanup -- a
+// window is one turn's events -- and zero for every cleanup of a normal
+// turn whose predecessor was also normal (the common case stops at the
+// first TurnChange).
+func (e *Engine) rotationBase() state.PlayerID {
+	evs := e.L.Events
+	for i := len(evs) - 1; i >= 0; i-- {
+		if evs[i].Kind != events.TurnChange {
+			continue
+		}
+		// Some focused rules fixtures deliberately seed Game.Active/Turn at a
+		// mid-turn state without rewriting their genesis log. That live state
+		// is authoritative: it is an ordinary turn unless an in-log consumption
+		// says otherwise, so its successor is based on the live active seat.
+		if evs[i].Player != e.G.Active || evs[i].Amount != e.G.Turn {
+			return e.G.Active
+		}
+		// Backward window: (previous TurnChange, exclusive) .. (this one,
+		// exclusive). A -1 consumption in it means THIS TurnChange began an
+		// extra turn (the consumption is emitted immediately before
+		// beginTurn); lost-seat skips consume several, all inside the window.
+		extra := false
+		for j := i - 1; j >= 0; j-- {
+			if evs[j].Kind == events.TurnChange {
+				break
+			}
+			if evs[j].Kind == events.ExtraTurn && evs[j].Amount < 0 {
+				extra = true
+				break
+			}
+		}
+		if !extra {
+			return evs[i].Player
+		}
+	}
+	return 0
+}
+
+// latestUnconsumedGrant returns the ExtraTurn grant event the NEXT
+// consumption of seat's pending grant consumes: walking the log backward, a
+// -1 consumption matches the most recent still-unconsumed +grant of the same
+// seat (the same latest-first order the turn structure consumes in), so the
+// first +grant reached with the running consumed-count at zero IS the grant
+// whose rider (Final Fortune's ExtraTurnDelayedTrigger$/Execute$ pair, carried
+// on the event's Obj/Counter) must ride the consumption that takes its turn.
+// A seat with no grant event left (never happens while its queue entry is
+// pending; the fold guarantees the count) returns zeros -- the consumption
+// then carries no rider and events.Apply registers nothing.
+func (e *Engine) latestUnconsumedGrant(seat state.PlayerID) (state.ObjID, string) {
+	consumed := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind != events.ExtraTurn || ev.Player != seat {
+			continue
+		}
+		if ev.Amount < 0 {
+			consumed++
+			continue
+		}
+		if consumed > 0 {
+			consumed--
+			continue
+		}
+		return ev.Obj, ev.Counter
+	}
+	return 0, ""
 }

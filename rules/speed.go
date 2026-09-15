@@ -32,7 +32,11 @@ import (
 const maxSpeed = 4
 
 // checkSpeedGain is called from Engine.emit after every folded LifeChange
-// with a negative Amount (a loss). Every living player WITH speed whose turn
+// with a negative Amount (a loss) and after every positive player-D Damage
+// event (combat and spell/ability damage fold straight to the life total,
+// and a Damage event that reaches emit has already been through prevention
+// -- a prevented hit is a Note, never a Damage -- so a positive player-arm
+// Damage event IS a landed loss). Every living player WITH speed whose turn
 // it is gains one speed when an opponent of theirs lost the life (any other
 // seat -- CR 800.4k: in a free-for-all every other player is an opponent);
 // at most one gain per turn, and never past max speed. In practice exactly

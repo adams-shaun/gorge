@@ -15,7 +15,7 @@ import (
 // distinguishable object in the right zone.
 const testCommanderSrc = `Name:Crown
 ManaCost:0
-Types:Legendary Artifact
+Types:Legendary Artifact Creature
 Oracle:x
 `
 

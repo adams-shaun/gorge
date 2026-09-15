@@ -77,11 +77,15 @@ func Apply(g *state.Game, e Event) {
 		}
 
 	case ExtraTurn:
-		// One grant or consumption of an extra turn (CR 500.7). The count is
-		// game state folded here so a log-only reconstruction holds the same
-		// pending extras the live game did; the turn structure's own
-		// consumption is the -1 form, emitted by rules' advanceStep at the
-		// exact boundary it repeats the seat instead of moving on.
+		// One grant or consumption of an extra turn (CR 500.7). The count and
+		// the ordered pending queue are game state folded here so a log-only
+		// reconstruction holds the same pending extras the live game did; the
+		// turn structure's own consumption is the -1 form, emitted by rules'
+		// advanceStep at the exact boundary it repeats the seat instead of
+		// moving on. The queue is the ORDER the rule takes them in: grants
+		// append in creation order, the -1 consumption removes the seat's LAST
+		// entry (most recently created first, CR 500.7), so the total counts and
+		// the queue agree by construction.
 		if validPlayer(g, e.Player) && e.Amount != 0 {
 			if g.ExtraTurns == nil {
 				g.ExtraTurns = map[state.PlayerID]int{}
@@ -90,17 +94,31 @@ func Apply(g *state.Game, e Event) {
 			if g.ExtraTurns[e.Player] < 0 {
 				g.ExtraTurns[e.Player] = 0
 			}
+			if e.Amount > 0 {
+				g.ExtraTurnQueue = append(g.ExtraTurnQueue, e.Player)
+			} else {
+				for i := len(g.ExtraTurnQueue) - 1; i >= 0; i-- {
+					if g.ExtraTurnQueue[i] == e.Player {
+						g.ExtraTurnQueue = append(g.ExtraTurnQueue[:i], g.ExtraTurnQueue[i+1:]...)
+						break
+					}
+				}
+			}
 		}
 		// Forge's ExtraTurnDelayedTrigger$ (Final Fortune: "At the beginning
 		// of that turn's end step, you lose the game") registers the delayed
-		// trigger HERE, at grant time, with the extra turn's number as its
-		// MinTurn -- so the ordinary Mode$ Phase delayed firing skips the
-		// granting turn's own end step and fires exactly once, in the granted
-		// turn. Only the +grant form registers; the -1 consumption carries no
-		// Counter. A grant with no source object, no Execute$ name, or a
-		// source whose face lacks the SVar degrades to no registration rather
-		// than panicking (the same totality stance DelayedRegister applies).
-		if e.Amount > 0 && e.Counter != "" && e.Obj != 0 && g.Obj(e.Obj) != nil {
+		// trigger HERE, at CONSUMPTION time, with the consumed turn's number
+		// as its MinTurn -- so the ordinary Mode$ Phase delayed firing skips
+		// the granting turn's own end step and fires exactly once, in the
+		// granted turn. Registration must ride the consumption, not the grant:
+		// with several extra turns pending (CR 500.7 takes them most recently
+		// created first) the turn a grant PRODUCES is not known at grant time
+		// -- it is exactly the turn about to begin when the -1 fires. Only the
+		// -1 form registers; the +grant carries no Counter at consumption. A
+		// consumption with no source object, no Execute$ name, or a source
+		// whose face lacks the SVar degrades to no registration rather than
+		// panicking (the same totality stance DelayedRegister applies).
+		if e.Amount < 0 && e.Counter != "" && e.Obj != 0 && g.Obj(e.Obj) != nil {
 			f := g.Obj(e.Obj).Face()
 			if f != nil && cards.ResolveSVar(f.SVars, e.Counter) != nil {
 				g.Delayed = append(g.Delayed, state.DelayedTrigger{

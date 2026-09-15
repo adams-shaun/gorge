@@ -142,8 +142,10 @@ func parseDieRanges(v string) []dieRange {
 // the reading "create a Treasure for each even result" needs), with a Note per
 // roll; ResultSVar$ with multiple dice stores only the LAST die's result
 // (every corpus multi-die line uses range tables, never ResultSVar$, so
-// nothing real is lost). Modifier$ (7 lines) is unread and noted: no corpus
-// line pairs it with anything this build would otherwise get right.
+// nothing real is lost). Modifier$ is added to every roll through the same
+// Num/SVar evaluator that reads Sides$ and Amount$ (Wyll's Reversal and Danse
+// Macabre's Y, Song of Inspiration's X). The unmodified die remains the only
+// random draw; the modified result selects ResultSubAbilities$ ranges.
 func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 	sides := Num(h, c, sa, "Sides", 6)
 	if sides <= 0 {
@@ -158,18 +160,19 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 		// the resolution; 20 is far past every corpus shape (max literal 5).
 		amount = 20
 	}
-	if sa.Params["Modifier"] != "" {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "RollDice Modifier$ " + sa.Params["Modifier"] + " unread"})
-	}
+	modifier := Num(h, c, sa, "Modifier", 0)
 	ranges := parseDieRanges(sa.Params["ResultSubAbilities"])
 	name := sa.Params["ResultSVar"]
 	var last int32
 	for i := int32(0); i < amount; i++ {
-		result := int32(h.Rand(int(sides))) + 1
+		die := int32(h.Rand(int(sides))) + 1
+		result := die + modifier
 		last = result
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "rolls a d" + strconv.FormatInt(int64(sides), 10) + ": " + strconv.FormatInt(int64(result), 10)})
+		text := "rolls a d" + strconv.FormatInt(int64(sides), 10) + ": " + strconv.FormatInt(int64(die), 10)
+		if modifier != 0 {
+			text += " + " + strconv.FormatInt(int64(modifier), 10) + " = " + strconv.FormatInt(int64(result), 10)
+		}
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: text})
 		if len(ranges) > 0 {
 			sub := ""
 			for _, r := range ranges {

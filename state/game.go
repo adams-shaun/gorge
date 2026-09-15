@@ -57,6 +57,15 @@ type Game struct {
 	// repeats the same seat) -- so a log-only reconstruction folds the same
 	// grants and consumptions to the same totals.
 	ExtraTurns map[PlayerID]int
+	// ExtraTurnQueue is the ORDERED pending extra turns, in creation order:
+	// one entry per un-consumed ExtraTurn grant (+Amount event), appended on
+	// the grant and removed (the seat's LAST entry) on the -1 consumption.
+	// CR 500.7 takes multiple extra turns MOST RECENTLY CREATED FIRST, so the
+	// turn structure consumes the queue from its end -- a count alone
+	// (ExtraTurns) cannot express that order, which is why the queue folds
+	// beside it and every mutation rides the same events. Empty when no extra
+	// turn is pending.
+	ExtraTurnQueue []PlayerID
 	// NextID hands out object ids one at a time, starting at 1 (see NewGame)
 	// and incrementing by exactly one per AddObject call below -- it can
 	// never reach playerRefBit (1<<31, ids.go): a single match would need
@@ -222,6 +231,7 @@ func (g *Game) Clone() *Game {
 			c.ExtraTurns[p] = n
 		}
 	}
+	c.ExtraTurnQueue = append([]PlayerID(nil), g.ExtraTurnQueue...)
 	return &c
 }
 

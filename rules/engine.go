@@ -15,6 +15,7 @@ package rules
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
@@ -465,6 +466,148 @@ type chooseFor uint8
 
 const chooseNone chooseFor = iota
 
+// commanderCardLegal reports whether ONE card may be a commander under
+// CR 903.4: a legendary creature, or a card whose printed text says it can
+// be your commander (the "CARDNAME can be your commander." keyword, which is
+// how every planeswalker commander -- and Lord Windgrace -- reads in the
+// corpus). The face checked is the PRINTED face (Faces[0]): commander
+// legality is a property of the card as printed, not of a half.
+func commanderCardLegal(c *cards.Card) bool {
+	if c == nil || len(c.Faces) == 0 {
+		return false
+	}
+	f := c.Faces[0]
+	if f.IsCreature() && f.IsLegendary() {
+		return true
+	}
+	// Spacecraft use a printed power/toughness and become artifact creatures
+	// through Station. Commander deck import treats a legendary Spacecraft as
+	// its commander even before its Station threshold is met (Hearthhull's
+	// repository deck is the live shape); retain that format convention here.
+	if f.IsLegendary() && f.IsSpacecraft() {
+		return true
+	}
+	for _, k := range f.Keywords {
+		if strings.EqualFold(cards.KeywordHead(k), "CARDNAME can be your commander.") {
+			return true
+		}
+	}
+	return false
+}
+
+// partnerHead reports the Partner-family head c carries, "" for none: the
+// plain Partner ability (whose "Friends forever" alias spells K:Partner:...
+// and shares the head, CR 903.13a), or "Partner with" (the CR 903.13c named
+// pair).
+func partnerHead(c *cards.Card) string {
+	if c == nil || len(c.Faces) == 0 {
+		return ""
+	}
+	for _, k := range c.Faces[0].Keywords {
+		h := cards.KeywordHead(k)
+		if h == "Partner" || h == "Partner with" {
+			return h
+		}
+	}
+	return ""
+}
+
+// partnerPairOK reports whether two cards may be a commander PAIR: each
+// carries a Partner-family ability and either both are plain Partners, or
+// each "Partner with" the other by printed name (CR 903.13a/c). A plain
+// Partner paired with a Partner-with card is not a legal pair (each half of
+// a named pair names its own partner); a Partner-with card paired with a
+// plain Partner fails the same way.
+func partnerPairOK(a, b *cards.Card) bool {
+	ha, hb := partnerHead(a), partnerHead(b)
+	if ha == "" || hb == "" {
+		return false
+	}
+	if ha == "Partner" && hb == "Partner" {
+		return true
+	}
+	return partnerWithNames(a, b.Faces[0].Name) && partnerWithNames(b, a.Faces[0].Name)
+}
+
+// partnerWithNames reports whether c carries a "Partner with" whose named
+// partner is other (the corpus form is "Partner with:<name>[:<display>]";
+// the first colon-field is the name).
+func partnerWithNames(c *cards.Card, other string) bool {
+	if c == nil || len(c.Faces) == 0 {
+		return false
+	}
+	for _, k := range c.Faces[0].Keywords {
+		if cards.KeywordHead(k) != "Partner with" {
+			continue
+		}
+		_, rest, ok := strings.Cut(k, ":")
+		if !ok {
+			continue
+		}
+		name, _, _ := strings.Cut(rest, ":")
+		if strings.EqualFold(strings.TrimSpace(name), other) {
+			return true
+		}
+	}
+	return false
+}
+
+// legalCommandersFor validates seat i's configured commander list against
+// the deck-construction rules (CR 903.4/903.13) and returns the indices
+// that MAY be seated, in Config order: a single commander must be a
+// legendary creature or a "can be your commander" card; a two-card seat is
+// a legal partner pair (plain Partners, or a mutual "Partner with" pair);
+// anything else -- a noncommander card, a pair without partner, more than
+// two -- is rejected WHOLE, never silently trimmed into a legal-looking
+// subset. This is what makes an illegal Config fail in play: the rejected
+// seat plays commander-less and the rejection is on the log as a Note (the
+// same degrade-don't-crash stance New takes for malformed decks elsewhere --
+// New cannot return an error, so the Note is the record).
+func (c *Config) legalCommandersFor(i, deckLen int, deck []*cards.Card) []int {
+	raw := c.commandersFor(i, deckLen)
+	if len(raw) == 0 {
+		return nil
+	}
+	// Construction legality belongs to Commander games. Config.Commanders also
+	// intentionally powers constructed-format fixture and compatibility paths
+	// (where it merely selects command-zone objects), so preserve that legacy
+	// plumbing outside FormatCommander.
+	if c.Format != FormatCommander {
+		return raw
+	}
+	bad := func(why string) ([]int, string) {
+		names := ""
+		for _, idx := range raw {
+			if idx >= 0 && idx < len(deck) && deck[idx] != nil {
+				names += deck[idx].Faces[0].Name + ", "
+			}
+		}
+		return nil, names + why
+	}
+	reject := ""
+	switch len(raw) {
+	case 1:
+		idx := raw[0]
+		if idx >= 0 && idx < len(deck) && !commanderCardLegal(deck[idx]) {
+			_, reject = bad("is not a legendary creature and does not say it can be your commander")
+		}
+	case 2:
+		a, b := raw[0], raw[1]
+		inRange := func(x int) bool { return x >= 0 && x < len(deck) && deck[x] != nil }
+		if !inRange(a) || !inRange(b) {
+			_, reject = bad("is not a card this deck carries")
+		} else if !commanderCardLegal(deck[a]) || !commanderCardLegal(deck[b]) || !partnerPairOK(deck[a], deck[b]) {
+			_, reject = bad("is not a partner pair")
+		}
+	default:
+		_, reject = bad("is not one or two commanders")
+	}
+	if reject != "" {
+		return nil
+	}
+	return raw
+}
+
 // commandersFor returns the VALID commander indices (into deck of length
 // deckLen) that Config names for seat i, in Config order. An index out of
 // range for the deck, or a seat with no Commanders entry, contributes
@@ -531,7 +674,7 @@ func New(cfg Config) *Engine {
 	totalCmd := 0
 	for i := range cfg.Names {
 		if i < len(cfg.Decks) {
-			totalCmd += len(cfg.commandersFor(i, len(cfg.Decks[i])))
+			totalCmd += len(cfg.legalCommandersFor(i, len(cfg.Decks[i]), cfg.Decks[i]))
 		}
 	}
 	// Opening hands are dealt as one genesis operation. Defer only the final
@@ -568,11 +711,19 @@ func New(cfg Config) *Engine {
 		// non-Commander Config commandersFor is empty, so nothing is emitted
 		// and the Shuffle below covers the whole library exactly as before.
 		var myCmds []state.ObjID
-		for _, idx := range cfg.commandersFor(i, len(deck)) {
+		for _, idx := range cfg.legalCommandersFor(i, len(deck), deck) {
 			id := ids[idx]
 			myCmds = append(myCmds, id)
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 				From: state.ZLibrary, To: state.ZCommand})
+		}
+		// A commander list that failed the deck-construction validation seats
+		// nothing; the rejection is on the log (rules/legal... engine.go's
+		// legalCommandersFor) so a transcript shows why the command zone is
+		// empty.
+		if len(myCmds) == 0 && len(cfg.commandersFor(i, len(deck))) > 0 {
+			e.emit(events.Event{Kind: events.Note, Player: p,
+				Text: "commander configuration rejected under CR 903.4/903.13"})
 		}
 		e.G.Players[p].Commanders = myCmds
 		if len(myCmds) > 0 {
@@ -833,8 +984,16 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// engines! permanent's battlefield entry starts a speed-less
 	// controller's speed at 1. Checked on the FOLDED event, after
 	// checkTriggers, so the gain event follows everything the loss itself
-	// caused -- and both checks are inert for every other event.
-	if ev.Kind == events.LifeChange && ev.Amount < 0 {
+	// caused -- and both checks are inert for every other event. The loss
+	// reaches here two ways: an explicit LifeChange with a negative amount
+	// (life payment, "each player loses N life"), and a player D_DAMAGE --
+	// combat damage and spell/ability damage fold straight to the life
+	// total (events.Apply's Damage case) without a LifeChange, and any
+	// Damage event that reaches emit has already been through prevention
+	// (a prevented hit is a Note, never a Damage), so a positive player
+	// Damage event here IS the life loss the rule reads.
+	if (ev.Kind == events.LifeChange && ev.Amount < 0) ||
+		(ev.Kind == events.Damage && ev.Obj == 0 && ev.Amount > 0) {
 		e.checkSpeedGain(ev)
 	}
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {

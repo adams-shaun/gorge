@@ -515,33 +515,38 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				add("unlock", "Unlock "+o.Card.Faces[1].Name, id)
 			}
 		}
-		// kw:Start your engines (CR 702.163c, rules/speed.go): a max-speed
-		// static grants its AddAbility$ while its controller has speed 4,
-		// and the granted ability is offered through the same cost/target
-		// gates every other activation uses.
-		for _, id := range e.G.Zone(state.ZBattlefield, p) {
-			o := e.G.Obj(id)
-			if o == nil || o.Face() == nil {
+	}
+
+	// kw:Start your engines (CR 702.163c, rules/speed.go): a max-speed
+	// static grants its AddAbility$ while its controller has speed 4, and
+	// the granted ability is offered through the same cost/target gates
+	// every other activation uses. NOT sorcery-gated: the grant is an
+	// ordinary activated ability (Amonkhet Raceway's {T}: pump) whose timing
+	// is its own cost's -- it needs a priority window, not a main phase, so
+	// the offer sits outside the sorcery block with the other activation
+	// offers.
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		for _, ab := range e.maxSpeedAbilities(p, id) {
+			if e.abilityRestricted(p, id, ab) {
 				continue
 			}
-			for _, ab := range e.maxSpeedAbilities(p, id) {
-				if e.abilityRestricted(p, id, ab) {
-					continue
-				}
-				cost := ParseCost(ab.Params["Cost"])
-				if cost.Tap && (o.Tapped || (o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
-					continue
-				}
-				if !e.castable(p, id, e.offerCostFor(p, id, cost, true), true) {
-					continue
-				}
-				if !e.abilityTargetsAvailable(p, id, ab) {
-					continue
-				}
-				out = append(out, decision.Option{Index: len(out), Kind: "granted",
-					Label: o.Face().Name + ": " + ab.Params["SpellDescription"],
-					Obj:   id, SVar: abSVarName(o.Face(), ab)})
+			cost := ParseCost(ab.Params["Cost"])
+			if cost.Tap && (o.Tapped || (o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
+				continue
 			}
+			if !e.castable(p, id, e.offerCostFor(p, id, cost, false), false) {
+				continue
+			}
+			if !e.abilityTargetsAvailable(p, id, ab) {
+				continue
+			}
+			out = append(out, decision.Option{Index: len(out), Kind: "granted",
+				Label: o.Face().Name + ": " + ab.Params["SpellDescription"],
+				Obj:   id, SVar: abSVarName(o.Face(), ab)})
 		}
 	}
 
