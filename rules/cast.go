@@ -1143,16 +1143,9 @@ func (e *Engine) repriceForTargets(pc *pendingCast) {
 // repriceForTargets will replace the potential snapshot with the actual one
 // as soon as the target answer arrives.
 func (e *Engine) targetDependentCostMayPay(pc *pendingCast) bool {
-	o := e.G.Obj(pc.card)
-	if o == nil || o.Face() == nil {
+	scope, ok := e.pendingCastScope(pc)
+	if !ok {
 		return false
-	}
-	scope := spellScope(pc.mode)
-	if pc.ability >= 0 {
-		if pc.ability >= len(o.Face().Abilities) {
-			return false
-		}
-		scope = abilityScope(o.Face().Abilities[pc.ability])
 	}
 	mods := e.costModifiersForPotentialTargets(pc.player, pc.card, scope, e.costPotentialTargets(pc.player, pc.card, scope))
 	m := mods.apply(pc.resolvedMana())
@@ -1165,6 +1158,68 @@ func (e *Engine) targetDependentCostMayPay(pc *pendingCast) bool {
 	}
 	pl := e.G.Players[pc.player]
 	return m.payable(pl.Pool, pl.Snow, pl.Life)
+}
+
+// pendingCastScope returns the exact spell or ability scope whose modifiers
+// price pc. Keeping this derivation shared by the potential-target gate and
+// the final target menu makes a new ValidSpell$/Type$ rule reach both sides
+// of the cast transaction rather than admitting a target the payment phase
+// will price under different modifiers.
+func (e *Engine) pendingCastScope(pc *pendingCast) (costScope, bool) {
+	o := e.G.Obj(pc.card)
+	if o == nil || o.Face() == nil {
+		return costScope{}, false
+	}
+	if pc.ability < 0 {
+		return spellScope(pc.mode), true
+	}
+	if pc.ability >= len(o.Face().Abilities) {
+		return costScope{}, false
+	}
+	return abilityScope(o.Face().Abilities[pc.ability]), true
+}
+
+// affordableTargetCandidates filters legal CR 115 targets to the choices
+// whose final target-dependent cost can complete this transaction. A target
+// is tested as the sole selection: that is exact for the normal one-target
+// shape and conservatively safe for multi-target declarations (where the
+// decision API cannot express that one option requires another option).
+func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []targetCandidate) []targetCandidate {
+	scope, ok := e.pendingCastScope(pc)
+	if !ok {
+		return nil
+	}
+	out := make([]targetCandidate, 0, len(candidates))
+	for _, candidate := range candidates {
+		target := state.Target{Obj: candidate.obj}
+		if candidate.kind == "player" {
+			target = state.Target{Player: candidate.player, IsPlayer: true}
+		}
+		mods := e.costModifiersForTargets(pc.player, pc.card, scope, []state.Target{target})
+		cost := mods.apply(pc.resolvedMana())
+		cost.Generic = addClampedGeneric(cost.Generic, int64(pc.taxGeneric))
+		if pc.ability < 0 {
+			cost.Generic -= int32(len(pc.delve))
+			if cost.Generic < 0 {
+				cost.Generic = 0
+			}
+		}
+		// Mana abilities cannot make a non-mana payment or a life shortage
+		// disappear, so preserve a candidate for the mana window only after
+		// those independent requirements pass.
+		if !e.nonManaCastable(pc.player, pc.card, cost, pc.ability >= 0) {
+			continue
+		}
+		pl := e.G.Players[pc.player]
+		if cost.Life > pl.Life {
+			continue
+		}
+		if cost.payable(pl.Pool, pl.Snow, pl.Life) ||
+			(cost.hasManaPayment() && e.hasUntappedManaSource(pc.player)) {
+			out = append(out, candidate)
+		}
+	}
+	return out
 }
 
 // manaToPay is the CR 601.2f total-cost composition for pc: resolvedMana
@@ -1580,6 +1635,19 @@ func (e *Engine) targetAsk() bool {
 		excludeSelf = pc.card
 	}
 	candidates := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sa)
+	// A ValidTarget$ cost modifier can make this proposal offerable only for
+	// particular targets. Once mana faces are announced, do not put a target
+	// on the menu unless repricing that target can still complete the cast:
+	// selecting an unaffordable target and then reversing the proposal is not
+	// a legal CR 601.2c choice. An untapped mana source keeps a candidate on
+	// the menu because the 601.2g window may make its final cost payable.
+	//
+	// For a multi-target declaration this is deliberately conservative: a
+	// target that needs another selected target to satisfy ValidTarget$ is
+	// withheld rather than exposing a selection subset that would abort. The
+	// engine's decision type cannot express cross-option dependencies, and
+	// withholding is safer than offering an illegal transaction.
+	candidates = e.affordableTargetCandidates(pc, candidates)
 	if min > 0 && len(candidates) < min {
 		// CR 601.2c: a proposal with fewer legal targets than its mandatory
 		// minimum cannot be announced. Reverse the whole proposal (CR 733.1):

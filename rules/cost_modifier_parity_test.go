@@ -678,25 +678,31 @@ func TestColorReductionSeesTheAnnouncedHybridFace(t *testing.T) {
 }
 
 // TestValidTargetModifierRepricesBeforePayment covers the target-dependent
-// half of CostAdjustment: the spell is announced at its printed {1}{G}, then
-// targeting the reducer's source applies its ValidTarget$ reduction before
-// mana is paid. Keeping C in the pool proves the cost was recomputed after
-// CR 601.2c rather than merely admitted by the offer gate.
+// half of CostAdjustment. The W half of {W/U} is free only when the spell
+// targets the reducer. The second, ordinary permanent must not appear in the
+// target menu: with no mana it would reprice to an unaffordable W cost and
+// used to reverse the already-announced cast after the player selected it.
 func TestValidTargetModifierRepricesBeforePayment(t *testing.T) {
-	spellSrc := "Name:Targeted Growth\nManaCost:1 G\nTypes:Sorcery\n" +
+	spellSrc := "Name:Targeted Growth\nManaCost:W/U\nTypes:Sorcery\n" +
 		"A:SP$ Pump | ValidTgts$ Permanent | NumAtt$ +1 | NumDef$ +1\nOracle:x\n"
 	reducerSrc := "Name:Target Discount\nManaCost:2\nTypes:Artifact\n" +
-		"S:Mode$ ReduceCost | ValidTarget$ Card.Self | Activator$ You | Type$ Spell | Amount$ 1 | Description$ Spells you cast that target CARDNAME cost {1} less.\nOracle:x\n"
-	e, cfg, spell := newFixtureDeck(t, 85, spellSrc, reducerSrc)
+		"S:Mode$ ReduceCost | ValidTarget$ Card.Self | Activator$ You | Type$ Spell | Color$ W | Amount$ 1 | Description$ Spells you cast that target CARDNAME cost {W} less.\nOracle:x\n"
+	otherSrc := "Name:Other Permanent\nManaCost:1\nTypes:Artifact\nOracle:x\n"
+	e, cfg, spell := newFixtureDeck(t, 85, spellSrc, reducerSrc, otherSrc)
 	reducer := putCreature(t, e, 0, reducerSrc)
-	addMana(t, e, 0, "G")
+	other := putCreature(t, e, 0, otherSrc)
 	e.priorityRound()
 	opt := castByName(t, e, 0, "Targeted Growth")
 	if opt == nil {
-		t.Fatal("a legal target that earns the discount must make {1}{G} offerable with only {G}")
+		t.Fatal("a target earning a Color$ reduction must make the W face offerable with no mana")
 	}
 	submitChoices(t, e, opt.Index)
 	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 1 || d.Options[0].Kind != "pay_W" {
+		t.Fatalf("hybrid payment decision = %+v, want only pay_W", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	d = e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("target decision = %+v", d)
 	}
@@ -705,16 +711,16 @@ func TestValidTargetModifierRepricesBeforePayment(t *testing.T) {
 		if target.Obj == reducer {
 			idx = target.Index
 		}
+		if target.Obj == other {
+			t.Fatalf("unaffordable nonmatching target was offered: %+v", d.Options)
+		}
 	}
-	if idx < 0 {
-		t.Fatalf("the reducer was not targetable: %+v", d.Options)
+	if idx < 0 || len(d.Options) != 1 {
+		t.Fatalf("the reducer must be the sole affordable target: %+v", d.Options)
 	}
 	submitChoices(t, e, idx)
 	if e.G.Obj(spell).Zone != state.ZStack {
 		t.Fatalf("targeted spell on %s, want stack", e.G.Obj(spell).Zone)
-	}
-	if e.G.Players[0].Pool.Total() != 0 {
-		t.Fatalf("pool after target discount = %v, want empty", e.G.Players[0].Pool)
 	}
 	replayCheck(t, e, cfg)
 }
