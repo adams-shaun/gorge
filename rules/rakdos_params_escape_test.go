@@ -50,7 +50,6 @@ func answerTriggerOrder(t *testing.T, e *Engine) {
 	}
 }
 
-
 func TestUnderworldBreachGrantsEscapeAndTheEscapeCastResolves(t *testing.T) {
 	e := handEngine(t, corpusAlternativeCard(t, "Underworld Breach"))
 	breach := e.G.Zone(state.ZHand, 0)[0]
