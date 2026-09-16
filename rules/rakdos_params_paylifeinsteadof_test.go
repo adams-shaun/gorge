@@ -135,4 +135,5 @@ func TestKrrikGrantDoesNotCoverOtherColours(t *testing.T) {
 		if x.Kind == "cast" && x.Obj == shock.ID {
 			t.Fatalf("a {R} pip payable via the B-only grant: %+v", d.Options)
 		}
-	}}
+	}
+}
