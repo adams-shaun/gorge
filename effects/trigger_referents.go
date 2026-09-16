@@ -225,6 +225,28 @@ func matchTargetedPlayerCtrl(g *state.Game, o *state.Object, sc SpecContext) (bo
 // that the old MatchesSpecFrom call sites did not have. That grammar is
 // independent of trigger provenance.
 func (c *Ctx) SpecContext(you state.PlayerID) SpecContext {
-	return SpecContext{You: you, Source: c.Source, TriggerContext: c.TriggerContext,
+	sc := SpecContext{You: you, Source: c.Source, TriggerContext: c.TriggerContext,
 		ResolutionTargets: c.Targets, Remembered: c.Remembered, Chosen: c.Chosen, ChosenValid: c.ChosenValid, Resolving: true}
+	// A DB$ RollDice publication of this same resolution (effects/dice.go) is
+	// the one numeric RHS a resolving filter spec can name that has no static
+	// expression: Valiant Endeavor's Creature.powerGEX (destroy each creature
+	// with power greater than or equal to the CHOSEN roll) and Arcane
+	// Endeavor's Instant.cmcLEY (cast for free up to the OTHER roll) read the
+	// published roll through here. Wired only when a roll published
+	// something, so no card without a roll in its resolution changes filter
+	// behaviour; inside a roll resolution the {X} a publication set and every
+	// published name resolve, everything else stays unresolvable (the
+	// recognised-shape-never-matches contract).
+	if c.LastRollName != "" || len(c.RollPubs) > 0 {
+		sc.Resolve = func(name string) (int32, bool) {
+			if v, ok := rollPublished(c, name); ok {
+				return v, true
+			}
+			if name == "X" {
+				return c.X, true
+			}
+			return 0, false
+		}
+	}
+	return sc
 }

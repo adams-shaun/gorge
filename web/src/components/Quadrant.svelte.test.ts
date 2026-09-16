@@ -2,6 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
 import type { CardView, PlayerView } from '../protocol';
 import Quadrant from './Quadrant.svelte';
+import { layoutStore } from '../lib/layoutsettings.svelte';
+
+/** elem returns one element with its content, matched by a data attribute ('' when absent). Same helper PlaySettingsPanel.svelte.test.ts uses. */
+function elem(html: string, attr: string): string {
+  const m = new RegExp(`<([a-z]+)[^>]*${attr.replace(/"/g, '\\"')}[^>]*>([\\s\\S]*?)</\\1>`).exec(html);
+  return m === null ? '' : m[0];
+}
 
 /**
  * CZ2: a commander is a creature, so its tile belongs in the creatures row,
@@ -80,5 +87,46 @@ describe('Quadrant — an eliminated seat is greyed out on the board (Task 3)', 
     const { html } = render(Quadrant, { props: { player: p, colour: '#e5484d' } });
     expect(html).toContain('data-lost="false"');
     expect(html).not.toMatch(/class="quadrant[^"]*\blost\b/);
+  });
+});
+
+describe('Quadrant — layout settings (fb-20260916T182801Z)', () => {
+  it('each battlefield row publishes its scale, alignment and zone key', () => {
+    const p = player({ battlefield: [card(2, 'Grizzly Bears')] });
+    const { html } = render(Quadrant, { props: { player: p, colour: '#e5484d' } });
+    for (const zone of ['creatures', 'others', 'lands'] as const) {
+      const row = elem(html, `data-zone-row="${zone}"`);
+      expect(row).not.toBe('');
+      expect(row).toContain('--row-scale');
+      expect(row).toContain('data-align="left"'); // the shipped default
+    }
+  });
+
+  it('the on-board resize stepper is mounted only on the viewer\'s own quadrant', () => {
+    const p = player({ battlefield: [card(2, 'Grizzly Bears')] });
+    const spectator = render(Quadrant, { props: { player: p, colour: '#e5484d' } }).html;
+    expect(spectator).not.toContain('data-zone-stepper');
+    const own = render(Quadrant, { props: { player: p, colour: '#e5484d', own: true } }).html;
+    expect(own).toContain('data-zone-stepper="creatures"');
+    expect(own).toContain('data-zone-stepper="others"');
+    expect(own).toContain('data-zone-stepper="lands"');
+    // ...and never the hand's stepper, which HandFan owns
+    expect(own).not.toContain('data-zone-stepper="hand"');
+  });
+
+  it('the dotted outline is up on every quadrant\'s row while the store pulses that zone, and down once the flash clears', () => {
+    const p = player({ battlefield: [card(2, 'Grizzly Bears')] });
+    // The store is the module singleton components read; bumping from a
+    // "panel" pulse must be visible here, which is the whole point of the
+    // one shared store.
+    layoutStore.bump('lands', 0.1);
+    const flashed = render(Quadrant, { props: { player: p, colour: '#e5484d' } }).html;
+    expect(elem(flashed, 'data-zone-row="lands"')).toContain('zone-outline');
+    expect(elem(flashed, 'data-zone-row="creatures"')).not.toContain('zone-outline');
+    expect(layoutStore.scale('lands')).toBe(1.1);
+    layoutStore.reset();
+    layoutStore.dispose();
+    const calm = render(Quadrant, { props: { player: p, colour: '#e5484d' } }).html;
+    expect(elem(calm, 'data-zone-row="lands"')).not.toContain('zone-outline');
   });
 });

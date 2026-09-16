@@ -39,6 +39,9 @@ func (e *Engine) Clone() *Engine {
 		// the same reference-sharing Clone already practises for
 		// orderedTriggers.
 		blockerRound: e.blockerRound,
+		// stationing (station.go): the plain-value spacecraft a pending
+		// Station tap pick belongs to; zero whenever none is outstanding.
+		stationing: e.stationing,
 		// combatRound (combat.go, Task jj-cmb): the combat damage step's
 		// pass/division continuation state. The queue, answered divisions
 		// and the pending ask's option-split table are all written in place
@@ -111,6 +114,13 @@ func (e *Engine) Clone() *Engine {
 				ce.RestrictParams = m
 			}
 			ce.Remembered = append([]state.ObjID(nil), ce.Remembered...)
+			if ce.ReplacementParams != nil {
+				m := make(map[string]string, len(ce.ReplacementParams))
+				for k, v := range ce.ReplacementParams {
+					m[k] = v
+				}
+				ce.ReplacementParams = m
+			}
 			c.continuous[i] = ce
 		}
 	}
@@ -158,7 +168,17 @@ func (e *Engine) Clone() *Engine {
 		}
 	}
 	c.triggerFireCount = cloneCounts(e.triggerFireCount)
-	c.damageOnceFired = cloneCounts(e.damageOnceFired)
+	if e.damageBatchOpen {
+		c.damageBatchOpen = true
+		c.damageBatchDepth = e.damageBatchDepth
+		if e.damageBatchIdx != nil {
+			c.damageBatchIdx = make(map[damageBatchKey]int, len(e.damageBatchIdx))
+			for k, v := range e.damageBatchIdx {
+				c.damageBatchIdx[k] = v
+			}
+		}
+		c.damageBatchLog = append([]damageBatchEntry(nil), e.damageBatchLog...)
+	}
 	if e.phaseUnknownNoted != nil {
 		c.phaseUnknownNoted = make(map[string]bool, len(e.phaseUnknownNoted))
 		for k, v := range e.phaseUnknownNoted {
@@ -255,6 +275,10 @@ func (e *Engine) Clone() *Engine {
 		pc.cost.Return = append([]CostPart(nil), e.cast.cost.Return...)
 		pc.cost.Hybrid = append([]ManaPair(nil), e.cast.cost.Hybrid...)
 		pc.cost.Phyrexian = append([]byte(nil), e.cast.cost.Phyrexian...)
+		pc.cost.Twobrid = append([]Twobrid(nil), e.cast.cost.Twobrid...)
+		pc.cost.HybridPhyrexian = append([]HybridPhyrexian(nil), e.cast.cost.HybridPhyrexian...)
+		pc.mods.reduces = append([]costMod(nil), e.cast.mods.reduces...)
+		pc.mods.raises = append([]int32(nil), e.cast.mods.raises...)
 		pc.delve = append([]state.ObjID(nil), e.cast.delve...)
 		pc.sacs = append([]state.ObjID(nil), e.cast.sacs...)
 		pc.discards = append([]state.ObjID(nil), e.cast.discards...)
@@ -298,6 +322,7 @@ func (e *Engine) Clone() *Engine {
 		c.replChoices = make([]replChoice, len(e.replChoices))
 		for i, rc := range e.replChoices {
 			rc.cands = append([]replMatch(nil), rc.cands...)
+			rc.used = append([]replMatch(nil), rc.used...)
 			rc.applied = append([]bool(nil), rc.applied...)
 			rc.appliedRepls = append([]replMatch(nil), rc.appliedRepls...)
 			rc.applicable = append([]int(nil), rc.applicable...)
@@ -396,6 +421,7 @@ func clonePendingTriggers(src []pendingTrigger) []pendingTrigger {
 // original's.
 func cloneCombatRound(cr combatRound) combatRound {
 	cr.queue = append([]state.ObjID(nil), cr.queue...)
+	cr.assignments = append([]assignment(nil), cr.assignments...)
 	if cr.done != nil {
 		done := make([]divChoice, len(cr.done))
 		for i, dc := range cr.done {

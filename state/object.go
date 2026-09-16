@@ -189,6 +189,14 @@ type Object struct {
 	// or the battlefield (CR 111.7 tokens, CR 707.10 copies). See Ephemeral.
 	IsToken bool
 	IsCopy  bool
+
+	// Unlocked marks one face of an Enchantment Room (CR 309): the door the
+	// room was CAST as is unlocked from entry; DoorUnlock (the unlock
+	// activation) flips this when the OTHER half's door is paid for. A
+	// room's locked half's abilities are inactive; after the unlock both
+	// halves' rules text is live (rules-side scans consult this field). Only
+	// events.Apply writes it, so a replay rebuilds it.
+	Unlocked bool
 }
 
 func (o *Object) Face() *cards.Face {

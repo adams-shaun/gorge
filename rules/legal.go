@@ -550,6 +550,48 @@ func (e *Engine) abilityTargetsAvailable(p state.PlayerID, id state.ObjID, ab *c
 	return e.targetsAvailable(p, id, 0, ab, costAnnouncesX(ParseCost(ab.Params["Cost"])))
 }
 
+// grantedAbility is one ability a continuous ability grant (CR 613.1f,
+// state.ContinuousEffect.AddAbilities -- a Saga chapter's Animate) gives an
+// object right now: the parsed AB and the SVar name on the granting face's
+// table that re-resolves it.
+type grantedAbility struct {
+	sa   *cards.SA
+	svar string
+}
+
+// grantedAbilities collects the activated abilities the battlefield's
+// AddAbilities grants give id right now. Each entry is gated on the granting
+// effect actually applying to id (its Affects spec, "You" bound to the
+// effect's own controller) and re-resolved against the granting source's
+// face SVar table -- the name travels, never a parsed copy, so a replay
+// re-executing the grant reads the identical body. Only AB$ lines grant;
+// a name whose body is missing or is not an AB degrades to no grant (the
+// same totality stance every SVar resolution takes). Order: active()'s own
+// stable layer/timestamp sort, names in the grant's own order.
+func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbility {
+	var out []grantedAbility
+	for _, ce := range e.active() {
+		if len(ce.AddAbilities) == 0 {
+			continue
+		}
+		if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+			continue
+		}
+		src := e.G.Obj(ce.Source)
+		if src == nil || src.Face() == nil {
+			continue
+		}
+		for _, nm := range ce.AddAbilities {
+			ab := cards.ResolveSVar(src.Face().SVars, nm)
+			if ab == nil || ab.Kind != "AB" {
+				continue
+			}
+			out = append(out, grantedAbility{sa: ab, svar: nm})
+		}
+	}
+	return out
+}
+
 // legalActions enumerates everything p may legally do with priority. The
 // result is the complete rules surface a client ever sees.
 func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
@@ -581,12 +623,13 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
-		// offerCostFor prices the MANA the offer will charge (601.2f
-		// modifiers, then the commander tax); withSpellAbilityExtras adds the
-		// spell's own ADDITIONAL non-mana parts on top. Both are needed and
-		// they compose in this order: an additional cost is never reduced by
-		// a cost modifier, the same reason the commander tax lands after the
-		// modifiers rather than before them.
+		// offerCastable prices the MANA the offer will charge (601.2f
+		// modifiers, then the commander tax) over the RAW base beginCast will
+		// store; withSpellAbilityExtras adds the spell's own ADDITIONAL
+		// non-mana parts on top. Both are needed and they compose in this
+		// order: an additional cost is never reduced by a cost modifier, the
+		// same reason the commander tax lands after the modifiers rather than
+		// before them.
 		//
 		// The gate must see the SAME cost beginCast will charge, additional
 		// non-mana parts included, or an unpayable cast gets offered and then
@@ -597,8 +640,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		// Only the plain cast folds the extras, matching beginCast's own
 		// condition: the kicked/surged/flashback/miracle offers below set
 		// Mode, and beginCast skips the fold for those.
-		base := e.offerCostFor(p, id, e.rawBaseCost(p, id), false)
-		convokeBase, _ := e.convokeCost(p, id, base)
+		convokeBase, _ := e.convokeCost(p, id, e.rawBaseCost(p, id))
 		// An either-or additional cost (AlternateAdditionalCost) makes the
 		// plain cast's gate existential: the cast is offerable when AT LEAST
 		// ONE alternative part is payable (the choice itself is asked by the
@@ -608,13 +650,27 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if targetsAvailable {
 			if len(altParts) > 0 {
 				for _, part := range altParts {
-					if e.castable(p, id, withSpellAbilityExtras(f, convokeBase).Plus(ParseCost(part)), false) {
+					if e.offerCastable(p, id, withSpellAbilityExtras(f, convokeBase).Plus(ParseCost(part)), spellScope(""), false) {
 						add("cast", "Cast "+f.Name, id)
 						break
 					}
 				}
-			} else if e.castable(p, id, withSpellAbilityExtras(f, convokeBase), false) {
+			} else if e.offerCastable(p, id, withSpellAbilityExtras(f, convokeBase), spellScope(""), false) {
 				add("cast", "Cast "+f.Name, id)
+			}
+		}
+		// CR 309.4b: either door of a Room may be cast. Mode room_alt is
+		// consumed by beginCast, which records a FlipFace before the ordinary
+		// cast transaction; from then on every cost/target/resolution reader
+		// sees the selected face. This is structural over every two-door Room,
+		// not a card-name exception (Spiked Corridor is the front-trigger case).
+		if rf := roomAlternateCastFace(o); rf != nil {
+			instant := rf.IsInstant() || e.HasKeyword(id, "Flash")
+			if (instant || sorcery) && e.castTargetsAvailable(p, id, rf.SpellAbility()) {
+				if e.offerCastable(p, id, withSpellAbilityExtras(rf, ParseCost(rf.ManaCost)), spellScope(""), false) {
+					out = append(out, decision.Option{Index: len(out), Kind: "cast",
+						Label: "Cast " + rf.Name, Obj: id, Mode: "room_alt"})
+				}
 			}
 		}
 		for i, alt := range e.alternativeCosts(p, id) {
@@ -628,7 +684,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			// matching permanents exist, and beginCast then asked a sacrifice
 			// decision with zero options that no answer could escape. castable
 			// is the same gate every other "cast" option uses.
-			if e.castable(p, id, e.offerCostFor(p, id, alt, false), false) {
+			if e.offerCastable(p, id, alt, spellScope(""), false) {
 				// AltCostIndex is i+1, not i: the zero value must mean "the
 				// card's own cost" so every other Option literal in the tree
 				// (play_land, activate, pass, and the base "cast" option
@@ -638,11 +694,11 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 					Label: altCostLabel(f.Name, i), Obj: id, AltCostIndex: i + 1})
 			}
 		}
-		if kc, ok := kickerCost(f); ok && targetsAvailable && e.castable(p, id, base.Plus(kc), false) {
+		if kc, ok := kickerCost(f); ok && targetsAvailable && e.offerCastable(p, id, e.rawBaseCost(p, id).Plus(kc), spellScope("kicked"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (kicked)", Obj: id, Mode: "kicked"})
 		}
-		if sc, ok := surgeCost(f); ok && targetsAvailable && e.spellsCastThisTurn(p) > 0 && e.castable(p, id, e.offerCostFor(p, id, sc, false), false) {
+		if sc, ok := surgeCost(f); ok && targetsAvailable && e.spellsCastThisTurn(p) > 0 && e.offerCastable(p, id, sc, spellScope("surged"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (surged)", Obj: id, Mode: "surged"})
 		}
@@ -659,13 +715,13 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		} {
 			alt, ok := keywordAltCost(f, ka.head)
 			if !ok || (ka.mode != "overloaded" && !targetsAvailable) ||
-				!e.castable(p, id, e.offerCostFor(p, id, alt, false), false) {
+				!e.offerCastable(p, id, alt, spellScope(ka.mode), false) {
 				continue
 			}
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode})
 		}
-		if bc, ok := buybackCost(f); ok && e.castable(p, id, e.offerCostFor(p, id, base.Plus(bc), false), false) {
+		if bc, ok := buybackCost(f); ok && e.offerCastable(p, id, e.rawBaseCost(p, id).Plus(bc), spellScope("buyback"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + f.Name + " (buyback)", Obj: id, Mode: "buyback"})
 		}
 		if sc, ok := suspendCost(f); ok {
@@ -676,7 +732,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				// even its smallest legal X.
 				offer = offer.WithX(sc.minTime)
 			}
-			if e.castable(p, id, e.offerCostFor(p, id, offer, false), false) {
+			if e.offerCastable(p, id, offer, spellScope("suspend"), false) {
 				out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Suspend " + f.Name, Obj: id, Mode: "suspend"})
 			}
 		}
@@ -723,7 +779,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		cost := withSpellAbilityExtras(f, e.offerCostFor(p, id, e.rawBaseCost(p, id), false))
+		cost := withSpellAbilityExtras(f, e.offerCostFor(p, id, e.rawBaseCost(p, id), spellScope("mayplay")))
 		if e.castable(p, id, cost, false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name, Obj: id, Mode: "mayplay"})
@@ -760,8 +816,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
-		cost := e.offerCostFor(p, id, e.rawBaseCost(p, id), false)
-		if targetsAvailable && e.castable(p, id, cost, false) {
+		if targetsAvailable && e.offerCastable(p, id, e.rawBaseCost(p, id), spellScope(""), false) {
 			add("cast", "Cast "+f.Name, id)
 		}
 		// Alternative costs replace the printed mana cost but not additional
@@ -773,7 +828,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		} {
 			alt, ok := keywordAltCost(f, ka.head)
 			if !ok || (ka.mode != "overloaded" && !targetsAvailable) ||
-				!e.castable(p, id, e.offerCostFor(p, id, alt, false), false) {
+				!e.offerCastable(p, id, alt, spellScope(ka.mode), false) {
 				continue
 			}
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
@@ -794,7 +849,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		}
 		if hc, ok := harmonizeCost(f); ok && e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			hc, _ = e.harmonizePayment(p, id, hc)
-			if e.castable(p, id, e.offerCostFor(p, id, hc, false), false) {
+			if e.offerCastable(p, id, hc, spellScope("harmonize"), false) {
 				out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + f.Name + " (harmonize)", Obj: id, Mode: "harmonize"})
 			}
 		}
@@ -821,7 +876,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		if fc := e.flashbackCost(id); e.castable(p, id, e.offerCostFor(p, id, fc, false), false) {
+		if fc := e.flashbackCost(id); e.offerCastable(p, id, fc, spellScope("flashback"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (flashback)", Obj: id, Mode: "flashback"})
 		}
@@ -847,7 +902,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		if !e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		if e.castable(p, id, e.offerCostFor(p, id, wc, false), false) {
+		if e.offerCastable(p, id, wc, spellScope("warped"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (warped)", Obj: id, Mode: "warped"})
 		}
@@ -876,7 +931,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			!e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		if e.castable(p, id, e.offerCostFor(p, id, ec, false), false) {
+		if e.castable(p, id, e.offerCostFor(p, id, ec, spellScope("escape")), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (escape)", Obj: id, Mode: "escape"})
 		}
@@ -907,7 +962,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		normal := e.rawBaseCost(p, id)
-		if e.castable(p, id, e.offerCostFor(p, id, normal, false), false) {
+		if e.offerCastable(p, id, normal, spellScope("warp_recast"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (from warp exile)", Obj: id, Mode: "warp_recast"})
 		}
@@ -1011,7 +1066,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				if cost.Tap && (o.Tapped || (z == state.ZBattlefield && o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
 					continue
 				}
-				if !e.castable(p, id, e.offerCostFor(p, id, cost, true), true) {
+				if !e.offerCastable(p, id, cost, abilityScope(ab), true) {
 					continue
 				}
 				if !e.abilityTargetsAvailable(p, id, ab) {
@@ -1021,6 +1076,115 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 					Label: f.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i,
 					Grant: e.abilityGrant(id, ab)})
 			}
+		}
+	}
+
+	// Granted activated abilities (CR 613.1f, rules/legal.go's
+	// grantedAbilities): the abilities an AddAbilities continuous grant -- a
+	// Saga chapter's Animate, "CARDNAME gains '{T}: Add {C}'." -- gives a
+	// permanent. Non-mana ones are offered here with the SVar anchor
+	// beginActivation resolves (the same anchor the max-speed "granted"
+	// option carries); mana ones flow through availableManaAbilities below so
+	// the "Tap for mana" priority action and the payment window share one
+	// member set. Gates mirror the printed loop above minus the two index-
+	// anchored gates (loyalty, ActivationLimit$): a grant is never a loyalty
+	// ability, and no corpus granted ability carries a limit -- if one ever
+	// does, the limit is unenforced on it, which this comment is the pin of.
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		o := e.G.Obj(id)
+		if o.Face() == nil {
+			continue
+		}
+		for _, ga := range e.grantedAbilities(p, id) {
+			ab := ga.sa
+			if ab.API == "Mana" {
+				continue
+			}
+			if ab.Params["SorcerySpeed"] == "True" && !sorcery {
+				continue
+			}
+			if e.abilityRestricted(p, id, ab) {
+				continue
+			}
+			cost := ParseCost(ab.Params["Cost"])
+			if cost.Tap && (o.Tapped || (o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
+				continue
+			}
+			if !e.offerCastable(p, id, cost, abilityScope(ab), true) {
+				continue
+			}
+			if !e.abilityTargetsAvailable(p, id, ab) {
+				continue
+			}
+			out = append(out, decision.Option{Index: len(out), Kind: "ability",
+				Label: o.Face().Name + ": " + ab.Params["SpellDescription"], Obj: id, SVar: ga.svar})
+		}
+	}
+
+	// kw:Station (CR 702.150, rules/station.go): each Spacecraft the player
+	// controls may be stationed as a sorcery by tapping another creature.
+	// The offer is gated on the sorcery window (Station only as a sorcery)
+	// and on a legal tap candidate existing, so an unpayable station is
+	// never offered; the tap candidate itself is the KChoose askStation
+	// poses after the option is chosen.
+	if sorcery {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o == nil || o.Face() == nil || !e.HasKeyword(id, "Station") {
+				continue
+			}
+			if len(e.stationCandidates(p, id)) == 0 {
+				continue
+			}
+			add("station", "Station "+o.Face().Name, id)
+		}
+		// Room unlock (CR 309.5, rules/rooms.go): a room whose second door is
+		// still locked may be unlocked as a sorcery by paying that half's own
+		// mana cost. The gate is the same castable total the cast options
+		// use, so an unpayable unlock is never offered (and the payment on
+		// the answer cannot disagree with the offer).
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			cost, ok := e.unlockRoomCost(o)
+			if !ok {
+				continue
+			}
+			if e.offerCastable(p, id, cost, costScope{kind: "Ability"}, true) {
+				add("unlock", "Unlock "+roomLockedFace(o).Name, id)
+			}
+		}
+	}
+
+	// kw:Start your engines (CR 702.163c, rules/speed.go): a max-speed
+	// static grants its AddAbility$ while its controller has speed 4, and
+	// the granted ability is offered through the same cost/target gates
+	// every other activation uses. NOT sorcery-gated: the grant is an
+	// ordinary activated ability (Amonkhet Raceway's {T}: pump) whose timing
+	// is its own cost's -- it needs a priority window, not a main phase, so
+	// the offer sits outside the sorcery block with the other activation
+	// offers.
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		for _, ab := range e.maxSpeedAbilities(p, id) {
+			if e.abilityRestricted(p, id, ab) {
+				continue
+			}
+			cost := ParseCost(ab.Params["Cost"])
+			if cost.Tap && (o.Tapped || (o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
+				continue
+			}
+			if !e.offerCastable(p, id, cost, abilityScope(ab), true) {
+				continue
+			}
+			if !e.abilityTargetsAvailable(p, id, ab) {
+				continue
+			}
+			out = append(out, decision.Option{Index: len(out), Kind: "granted",
+				Label: o.Face().Name + ": " + ab.Params["SpellDescription"],
+				Obj:   id, SVar: abSVarName(o.Face(), ab)})
 		}
 	}
 
@@ -1133,6 +1297,38 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		// everywhere (grantPriority, NextAlive, beginTurn).
 		e.emit(events.Event{Kind: events.PlayerLost, Player: in.Player, Text: "conceded"})
 		e.checkStateBased()
+
+	case "station":
+		// kw:Station (CR 702.150, rules/station.go): the spacecraft is
+		// stationed by tapping another creature the KChoose below names. The
+		// pass-count reset matches every other non-pass action.
+		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
+		e.askStation(in.Player, opt)
+
+	case "unlock":
+		// Room unlock (CR 309.5, rules/rooms.go): pay the locked half's mana
+		// cost and emit the DoorUnlock event. The offer gated on castable,
+		// so the payment here cannot disagree with the offer; a stale option
+		// (the room left play or was unlocked between offer and answer -- the
+		// same seat's answer, so the board cannot have moved) degrades to a
+		// no-op through unlockRoomCost's nil face.
+		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
+		o := e.G.Obj(opt.Obj)
+		cost, ok := e.unlockRoomCost(o)
+		if !ok {
+			return
+		}
+		if !e.payMana(in.Player, cost) {
+			return
+		}
+		e.emit(events.Event{Kind: events.DoorUnlock, Obj: opt.Obj})
+
+	case "granted":
+		// kw:Start your engines (CR 702.163c, rules/speed.go): a max-speed
+		// static's granted ability, activated through the ordinary cost
+		// payment and the delayed-shape ability mint.
+		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
+		e.beginGrantedActivation(in.Player, opt)
 
 	case "cast":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})

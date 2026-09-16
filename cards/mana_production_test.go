@@ -87,23 +87,104 @@ func TestManaProductionAnyIsHonest(t *testing.T) {
 	}
 }
 
-// TestManaProductionComboMirrorsExecutor pins the executor's unusual but
-// real rune-by-rune handling: Combo R G emits its two listed colours plus
-// five colourless runes from "Combo". It remains Any because its script-level
-// choice is not modelled.
+// TestManaProductionComboCountsOnlyItsTokens pins the fb-windgrace fix: a
+// "Combo R G" choice counts ONLY the colours its tokens name -- the rune
+// walk of the word "Combo" itself (five phantom colourless) is gone. It
+// remains Any because a Combo production is a script-level choice, never a
+// plain colour string.
 func TestManaProductionComboMirrorsExecutor(t *testing.T) {
 	mp := mpOf(t, "Name:Shock\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Combo R G | Oracle:x\n")
-	if !mp.Any || mp.Colour[3] != 1 || mp.Colour[4] != 1 || mp.Colour[5] != 5 {
-		t.Errorf("Combo R G = %v, want Any with 5C, R, and G", mp)
+	if !mp.Any || mp.Colour[3] != 1 || mp.Colour[4] != 1 || mp.Colour[5] != 0 {
+		t.Errorf("Combo R G = %v, want Any with R, G, and no colourless", mp)
 	}
 }
 
-// TestManaProductionChosenMirrorsExecutor ensures an unrecognised word is
-// not silently dropped: every rune in Chosen maps to colourless in effMana.
+// TestManaProductionChosenClaimsNothing pins the fail-closed half: a word
+// that is not a symbol token ("Chosen"; the same shape as "ColorIdentity",
+// "Special ...") claims NO mana at all -- never the colourless its runes
+// used to be counted as. The flag stays: the choice is unmodelled.
 func TestManaProductionChosenMirrorsExecutor(t *testing.T) {
 	mp := mpOf(t, "Name:Chosen\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Chosen | Oracle:x\n")
-	if !mp.Any || mp.Colour[5] != 6 {
-		t.Errorf("Chosen = %v, want Any with 6 colourless", mp)
+	if !mp.Any || mp.Colour[5] != 0 {
+		t.Errorf("Chosen = %v, want Any with no mana claimed", mp)
+	}
+}
+
+// TestProducedCounts pins cards.ProducedCounts, the one Produced$ parse the
+// per-face projection (ManaProduction.add) and rules' addAvailable both
+// fold through, on the shapes the fb-windgrace feedback report measured:
+// the corpus-real "Combo ColorIdentity" (Command Tower / Arcane Signet) that
+// counted 18 phantom colourless, the "Combo B R" dual (Blackcleave Cliffs)
+// that counted 5, and the token grammar itself.
+func TestProducedCounts(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want [6]int32
+		any  bool
+	}{
+		{"blank defaults to one colourless and a flag", "", [6]int32{0, 0, 0, 0, 0, 1}, true},
+		{"Any keeps its executor resolution", "Any", [6]int32{0, 0, 0, 0, 0, 1}, true},
+		{"Combo Any keeps its executor resolution", "Combo Any", [6]int32{0, 0, 0, 0, 0, 1}, true},
+		{"plain colour", "B", [6]int32{0, 0, 1, 0, 0, 0}, false},
+		{"same-symbol token counts two", "RR", [6]int32{0, 0, 0, 2, 0, 0}, false},
+		{"space-separated tokens survive", "R G", [6]int32{0, 0, 0, 1, 1, 0}, false},
+		{"five-colour literal", "W U B R G", [6]int32{1, 1, 1, 1, 1, 0}, false},
+		{"colourless token", "C", [6]int32{0, 0, 0, 0, 0, 1}, false},
+		{"braces are stripped", "{B}{R}", [6]int32{0, 0, 1, 1, 0, 0}, false},
+		// The fb-windgrace shapes:
+		{"Combo dual names its colours only", "Combo B R", [6]int32{0, 0, 1, 1, 0, 0}, true},
+		{"Combo triple", "Combo W U B", [6]int32{1, 1, 1, 0, 0, 0}, true},
+		{"ColorIdentity claims nothing", "Combo ColorIdentity", [6]int32{}, true},
+		{"ColorID claims nothing", "Combo ColorID", [6]int32{}, true},
+		{"Chosen claims nothing", "Combo R Chosen", [6]int32{0, 0, 0, 1, 0, 0}, true},
+		{"Special word claims nothing", "Special EachColorAmong_ExiledWith", [6]int32{}, true},
+		{"a token containing a letter is rejected whole", "Combo NotedColors", [6]int32{}, true},
+	}
+	for _, tc := range cases {
+		counts, any := ProducedCounts(tc.in)
+		if counts != tc.want || any != tc.any {
+			t.Errorf("%s: ProducedCounts(%q) = %v, %v; want %v, %v", tc.name, tc.in, counts, any, tc.want, tc.any)
+		}
+	}
+}
+
+// TestManaProductionCommandTowerShape pins the wire value the feedback
+// report caught: a commander-identity land ("Produced$ Combo ColorIdentity")
+// must project NO colourless -- the 18 phantom units came from counting the
+// runes of the words "Combo" and "ColorIdentity".
+func TestManaProductionCommandTowerShape(t *testing.T) {
+	mp := mpOf(t, "Name:Command Tower\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Combo ColorIdentity | Oracle:x\n")
+	if mp.Colour != [6]int32{} || !mp.Any {
+		t.Errorf("Command Tower shape = %v, want zero counts with the Any flag", mp.Colour)
+	}
+}
+
+// TestManaProductionTalismanKeepsItsRealColourless pins that a REAL
+// colourless ability (Talisman of Indulgence's "Produced$ C") is kept while
+// its sibling Combo choice loses its phantom -- the talisman projects
+// exactly one B, one R, one C.
+func TestManaProductionTalismanKeepsItsRealColourless(t *testing.T) {
+	mp := mpOf(t, "Name:Talisman\nTypes:Artifact\n"+
+		"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\n"+
+		"A:AB$ Mana | Cost$ T | Produced$ Combo B R | SpellDescription$ Add {B} or {R}.\nOracle:x\n")
+	want := [6]int32{0, 0, 1, 1, 0, 1}
+	if mp.Colour != want || !mp.Any {
+		t.Errorf("talisman = %v, want %v with Any", mp.Colour, want)
+	}
+}
+
+// TestManaProductionDistinctColoursUnmovedByPhantomFix pins the Any-semantics
+// guarantee: because a Combo choice keeps its flag, DistinctColours reports
+// 5 for it exactly as before the fix -- botpolicy's coloured rankings must
+// not move.
+func TestManaProductionDistinctColoursUnmovedByPhantomFix(t *testing.T) {
+	mp := mpOf(t, "Name:Dual\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Combo B R | Oracle:x\n")
+	if mp.DistinctColours() != 5 {
+		t.Errorf("Combo dual DistinctColours = %d, want 5 (the Any flag is unchanged)", mp.DistinctColours())
+	}
+	if !mp.ProducesColour(2) || !mp.ProducesColour(3) {
+		t.Errorf("Combo dual must still list its real colours: %v", mp.Colour)
 	}
 }
 

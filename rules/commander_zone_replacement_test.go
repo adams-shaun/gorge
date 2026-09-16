@@ -41,6 +41,7 @@ const tinyCmdSrc = `Name:Tiny
 ManaCost:0
 Types:Legendary Creature Bear
 PT:1/1
+K:Partner
 Oracle:x
 `
 

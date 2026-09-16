@@ -165,6 +165,23 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 	pw := Num(h, c, sa, "Power", 0)
 	tf := Num(h, c, sa, "Toughness", 0)
 	types := strings.Fields(sa.Params["Types"])
+	// Abilities$ names the SVar bodies (comma-separated, on THIS face's table)
+	// the animated object gains -- Urza's Saga's chapters ("CARDNAME gains
+	// '{T}: Add {C}'.") are the corpus's flagship shape. The grant is a
+	// layer-6 ability grant (CR 613.1f): rules' grantedAbilities resolves the
+	// names back through the SOURCE face's SVar table, so the name travels,
+	// never a parsed copy. Duration$ Permanent makes the grant last while the
+	// object is on the battlefield (the source-presence lifetime, which is
+	// also what the object's own text obeys); any other Duration -- the
+	// corpus's animate-a-land-for-a-turn lines -- keeps the ordinary
+	// until-end-of-turn lifetime.
+	var abilities []string
+	for _, nm := range strings.Split(sa.Params["Abilities"], ",") {
+		if nm = strings.TrimSpace(nm); nm != "" {
+			abilities = append(abilities, nm)
+		}
+	}
+	permanent := strings.EqualFold(strings.TrimSpace(sa.Params["Duration"]), "Permanent")
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -184,6 +201,13 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
 				Layer: state.LType, AddTypes: types, UntilEOT: true,
+			})
+		}
+		if len(abilities) > 0 {
+			h.AddContinuous(state.ContinuousEffect{
+				Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
+				Layer: state.LAbilities, AddAbilities: abilities,
+				UntilEOT: !permanent,
 			})
 		}
 	}

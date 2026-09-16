@@ -13,6 +13,14 @@ type Player struct {
 	// Counters records player counters (currently poison, used by Ward costs).
 	Counters []Counter
 
+	// Snow parallels Pool slot for slot: Snow[i] counts how many of the
+	// Pool[i] mana units were produced by a Snow permanent (CR 107.4h — a
+	// snow unit can pay a {S} pip as well as anything else one mana pays).
+	// It is written only by the ManaAdd event's "S<colour>" Counter form and
+	// cleared with the pool by ManaClear, so Snow[i] <= Pool[i] always holds
+	// and a replay derives both identically.
+	Snow Mana
+
 	// Commanders lists this seat's commanders, in Config order, sized at
 	// genesis and never grown. CmdCasts runs parallel to it: entry k counts
 	// how many times Commanders[k] has been cast from the command zone.
@@ -25,6 +33,21 @@ type Player struct {
 	Commanders []ObjID
 	CmdCasts   []int32
 	CmdDamage  []int32
+
+	// Speed is this seat's speed (CR 702.163, "Start your engines!"): it
+	// starts at 0 (or 1 the first time an engine grants speed), rises by one
+	// once on each of this seat's own turns when an opponent loses life,
+	// caps at 4 (max speed), and never resets. Written only by events.Apply's
+	// SpeedChange case, so a log-only reconstruction rebuilds it exactly.
+	Speed int32
+}
+
+// ExtraTurn is one pending CR 500.7 turn. It is deliberately a queue entry,
+// rather than a per-player flag: several grants can be pending in LIFO order
+// and each grant can carry a different rider.
+type ExtraTurn struct {
+	Player    PlayerID
+	SkipUntap bool
 }
 
 // Counter returns this player's count of kind.
@@ -71,6 +94,22 @@ type Game struct {
 	// Winner's zero value is PlayerID(0), a real seat, so Over alone cannot
 	// distinguish "seat 0 won" from "nobody did" -- Draw is what does.
 	Draw bool
+	// ExtraTurns counts, per seat, how many EXTRA turns (CR 500.7) that seat
+	// still takes after the seat's current one, before turn order resumes
+	// normally. Added by an api:AddTurn effect's ExtraTurn event (+Amount),
+	// consumed by the turn structure (rules advanceStep emits Amount -1 and
+	// repeats the same seat) -- so a log-only reconstruction folds the same
+	// grants and consumptions to the same totals.
+	ExtraTurns map[PlayerID]int
+	// ExtraTurnQueue is the ORDERED pending extra turns, in creation order:
+	// one entry per un-consumed ExtraTurn grant (+Amount event), appended on
+	// the grant and removed (the seat's LAST entry) on the -1 consumption.
+	// CR 500.7 takes multiple extra turns MOST RECENTLY CREATED FIRST, so the
+	// turn structure consumes the queue from its end. Each entry retains the
+	// grant's turn-specific rider (currently SkipUntap), which a per-seat count
+	// cannot express. Every mutation rides the same events. Empty when no extra
+	// turn is pending.
+	ExtraTurnQueue []ExtraTurn
 	// Monarch is the current monarch when HasMonarch is true. The presence bit
 	// keeps seat zero distinct from no monarch.
 	Monarch    PlayerID
@@ -126,6 +165,13 @@ type DelayedTrigger struct {
 	Controller PlayerID
 	Execute    string // the SVar name of the ability to run when it fires
 	Remembered []Target
+	// MinTurn is the earliest game turn the trigger may fire in (zero = no
+	// bound). rules' delayed-trigger scan skips an entry whose MinTurn is
+	// still ahead of the current turn, which is how an extra-turn grant's
+	// end-step trigger (Final Fortune) skips the granting turn's own end
+	// step and fires in the granted turn instead. Folded from the
+	// registering event's Amount, so a replay rebuilds it.
+	MinTurn int32
 	// EventMode and Trigger extend the registration to the non-phase
 	// (event-matched) shape: EventMode is the trigger Mode$ the registration
 	// fires on ("SpellCast" -- the first spell cast whose event satisfies the
@@ -247,6 +293,13 @@ func (g *Game) Clone() *Game {
 			c.zones[i] = append([]ObjID(nil), z...)
 		}
 	}
+	if g.ExtraTurns != nil {
+		c.ExtraTurns = make(map[PlayerID]int, len(g.ExtraTurns))
+		for p, n := range g.ExtraTurns {
+			c.ExtraTurns[p] = n
+		}
+	}
+	c.ExtraTurnQueue = append([]ExtraTurn(nil), g.ExtraTurnQueue...)
 	return &c
 }
 

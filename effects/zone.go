@@ -1641,6 +1641,15 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 // consultation -- a regenerated creature does not survive being sacrificed.
 // Same CR 608.2b caveat as effDestroy: only existence-and-zone is rechecked.
 func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
+	// UnlessCost$ gate: an unless-pay Sacrifice ("pay or sacrifice it", or
+	// Vexing Devil's inverted "any opponent may have it deal 4 damage to
+	// them; if a player does, sacrifice it") asks first. When the gate
+	// consumed the resolution -- an ask was posed (suspended), the answered
+	// choice spares the permanent, or every opponent declined the damage
+	// offer -- there is nothing to sacrifice and the body below must not run.
+	if sacrificeUnlessPay(h, c, sa) {
+		return
+	}
 	g := h.Game()
 	// SacValid$ narrows WHAT may be sacrificed ("Creature.nonToken",
 	// "Artifact"). With no SacValid$ at all the default is "Permanent" (any
@@ -1672,6 +1681,18 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	// this package (the sacrifice_audit test only counts its occurrence), so
 	// the absence is the conservative same-as-before no-op, not a regression.
 	remember := sa.Params["RememberSacrificed"] != ""
+	// Damage-replacement bodies carry the amount of the event they replace.
+	// The sole corpus Sacrifice body in that class is Dralnu's "sacrifice that
+	// many permanents"; consume Amount$ there without changing the broader
+	// primitive's documented one-per-player stand-in outside replacement
+	// resolution.
+	amount := int32(1)
+	if c.ReplacementAmount > 0 && sa.Params["Amount"] != "" {
+		amount = Num(h, c, sa, "Amount", 1)
+		if amount < 0 {
+			amount = 0
+		}
+	}
 	// rememberLKICapture captures the sacrificed object's LKI (before the
 	// MoveZone resets its counters) into c.Sacrificed, when the flag asks it
 	// to. Idempotent per call site; called exactly once per sacrificed object.
@@ -1713,13 +1734,15 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			if int(t.Player) >= len(g.Players) {
 				continue
 			}
-			// This ticket's multi-permanent amount and chooser belong only to the
-			// Annihilator expansion, whose generated SA carries the count in its
-			// Annihilator$ marker (cards/keywords.go) so that Amount$ stays a
-			// genuinely unread parameter for ordinary Sacrifice lines. Ordinary
-			// player-targeted Sacrifice retains its established one-permanent
-			// behavior until that broader primitive is implemented as its own task.
-			n := 1
+			// The multi-permanent count defaults to `amount` -- 1 for an
+			// ordinary Sacrifice line, or the damage-replacement Amount$
+			// resolved above (Dralnu, Lich Lord's "sacrifice that many
+			// permanents" DB$ ReplaceDamage body) when this call is a damage
+			// replacement's redirect. The Annihilator expansion's generated
+			// SA carries its own count in its Annihilator$ marker
+			// (cards/keywords.go) and overrides it; the two contexts never
+			// coincide in the corpus.
+			n := int(amount)
 			if ann := sa.Params["Annihilator"]; ann != "" {
 				if v, err := strconv.Atoi(ann); err == nil && v >= 0 {
 					n = v
@@ -1787,4 +1810,256 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
 	}
+}
+
+// sacrificeUnlessPay implements UnlessCost$/UnlessPayer$/UnlessSwitched$ on
+// Sacrifice (vexdev). Three shapes exist in the compiled corpus (155 raw
+// UnlessCost$ lines over 154 files):
+//
+//   - the damage-payment offer, UnlessCost$ DamageYou<N> — exactly two cards,
+//     Vexing Devil (N=4) and Longhorn Firebeast (N=5), both UnlessPayer$
+//     Opponent + UnlessSwitched$ True. Each alive opponent is offered, in
+//     turn order starting after the controller (CR 608.2d's one
+//     opportunity each), the choice to take N damage; the first acceptance
+//     deals it (rules' resume arm emits the Damage event — payment events
+//     belong to rules) and the sacrifice proceeds; every decline leaves the
+//     permanent in play.
+//   - plain mana UnlessCost$ ("1", "B", "G G", "1 U" — the echo /
+//     cumulative-upkeep family, UnlessPayer$ You), unswitched: the UnlessCost$
+//     resolves through rules' shared unless_pay resume arm, which pays it
+//     with payMana. A paid answer spares the permanent; a decline (or an
+//     affordable-looking answer the pool cannot cover) sacrifices.
+//   - everything else — Sac<>, Discard<>, Return<>, PayLife, PayEnergy,
+//     tapXType, ExileFromGrave, SubCounter, RemoveAnyCounter, UpkeepX,
+//     DefinedCost_*, and every exotic UnlessPayer$ selector — is
+//     deliberately NOT implemented: the gate returns false and today's
+//     behaviour stands (an unconditional first-pass sacrifice, decline
+//     semantics), so the blast radius stays inside the two shapes above.
+//
+// fx42 scoping: the answer is taken into a local and Ctx.UnlessPay cleared
+// BEFORE anything reads it, so a nested unless-pay consumer reached below
+// this gate in the same walk poses its own ask instead of inheriting the
+// answer. Sacrifice is a new top-of-walk UnlessPay consumer; the only other
+// readers are effCounter and effCopySpellAbility, neither of which reads it
+// again after its own top.
+func sacrificeUnlessPay(h Host, c *Ctx, sa *cards.SA) bool {
+	cost := strings.TrimSpace(sa.Params["UnlessCost"])
+	if cost == "" {
+		return false
+	}
+	switched := strings.EqualFold(strings.TrimSpace(sa.Params["UnlessSwitched"]), "True")
+	ans := c.UnlessPay
+	ansTarget := c.UnlessPayTarget
+	c.UnlessPay, c.UnlessPayTarget = "", 0
+
+	if n, dmg := ParseDamageUnlessCost(cost); dmg {
+		return sacrificeUnlessDamage(h, c, sa, n, switched, ans, ansTarget)
+	}
+	if switched {
+		// No corpus Sacrifice line carries a switched PLAIN-MANA cost (the
+		// four switched lines are the two DamageYou offers and two Sac<>
+		// forms, both unimplemented), so an inverted mana ask would be posed
+		// with no population to verify it against. Keep today's behaviour.
+		return false
+	}
+	if !isPlainManaCost(cost) {
+		// Unpriceable non-mana, non-damage spelling: today's behaviour
+		// (unconditional first-pass sacrifice — decline semantics). The
+		// rules-side resume arm would decline an unpriceable cost anyway;
+		// not asking at all keeps every one of those games byte-identical
+		// to the pre-gate engine instead of adding an ask nobody could pay.
+		return false
+	}
+	payer, ok := unlessPayer(h, c, sa)
+	if !ok {
+		// An exotic UnlessPayer$ selector (Remembered, Player.IsRemembered,
+		// TriggeredActivator, ...) cannot be resolved to a player here, and
+		// asking the WRONG player is worse than not asking. Today's
+		// behaviour (unconditional sacrifice) stands.
+		return false
+	}
+	switch ans {
+	case "pay":
+		// Re-entry, paid via rules' payMana: the permanent is spared — the
+		// body below must not run.
+		return true
+	case "decline":
+		// Re-entry, declined (or the pool could not cover it): the
+		// sacrifice proceeds in the body below.
+		return false
+	}
+	shown := unlessCostLabel(cost)
+	d := &decision.Decision{Player: payer, Kind: decision.KModes,
+		Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay", ResumeSA: sa,
+		Prompt: unlessSacrificePrompt(h, c, "Pay "+shown+" to keep it, or sacrifice it"),
+		Options: []decision.Option{
+			{Index: 0, Kind: "mode", Label: "Pay " + shown, Obj: c.Source, Player: payer},
+			{Index: 1, Kind: "mode", Label: "Sacrifice it", Obj: c.Source, Player: payer},
+		}}
+	if Ask(h, d) == AskAsked {
+		return true // resolution suspended; the answer re-enters this effect.
+	}
+	// Fuzz/no-engine host: the deterministic decline (R-9) — today's
+	// behaviour, the unconditional sacrifice. The Note records why the
+	// richer path did not run.
+	h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+		Text: "may pay declined (UnlessCost not asked on this host)"})
+	return false
+}
+
+// sacrificeUnlessDamage implements the DamageYou<N> offer shape. switched
+// (the only corpus population: Vexing Devil, Longhorn Firebeast) asks each
+// alive opponent in turn order; the first acceptance — signalled by rules'
+// resume arm as UnlessPay "pay" with the Damage event already emitted —
+// sacrifices the permanent; every decline leaves it in play. An unswitched
+// damage shape has no corpus population today; it is implemented for the
+// flag's boolean honesty as the echo orientation (paying the damage SPARES
+// the permanent) with the UnlessPayer$-resolved payer, and an unresolvable
+// payer keeps today's behaviour.
+func sacrificeUnlessDamage(h Host, c *Ctx, sa *cards.SA, n int, switched bool, ans string, ansTarget int) bool {
+	if !switched {
+		payer, ok := unlessPayer(h, c, sa)
+		if !ok {
+			return false // today's behaviour: unconditional sacrifice
+		}
+		switch ans {
+		case "pay":
+			// rules emitted the payer's damage on the resume arm; spared —
+			// the body below must not run.
+			return true
+		case "decline":
+			return false // the sacrifice proceeds below
+		}
+		d := &decision.Decision{Player: payer, Kind: decision.KModes,
+			Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay", ResumeSA: sa,
+			Prompt: unlessSacrificePrompt(h, c, "take "+strconv.Itoa(n)+" damage to spare it, or sacrifice it"),
+			Options: []decision.Option{
+				{Index: 0, Kind: "mode", Label: "Take " + strconv.Itoa(n) + " damage", Obj: c.Source, Player: payer},
+				{Index: 1, Kind: "mode", Label: "Sacrifice it", Obj: c.Source, Player: payer},
+			}}
+		if Ask(h, d) == AskAsked {
+			return true
+		}
+		// No-ask host: the deterministic decline — today's behaviour, the
+		// unconditional sacrifice, no damage dealt.
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "may pay declined (UnlessCost not asked on this host)"})
+		return false
+	}
+	// Switched: the offer is open to EVERY opponent, one at a time in turn
+	// order. On a decline re-entry the cursor (UnlessPayTarget, carried
+	// through the resume point) says which opponent declined; the next one
+	// is offered, and once the list is exhausted the permanent stays.
+	opp := opponentsInTurnOrder(h.Game(), c.Controller)
+	if ans == "pay" {
+		// The accepting opponent's Damage event was emitted by rules'
+		// resume arm; the sacrifice proceeds in the body below.
+		return false
+	}
+	if ans == "decline" {
+		if ansTarget+1 >= len(opp) {
+			return true // every opponent declined: the permanent stays
+		}
+		return poseSacrificeDamageOffer(h, c, sa, opp[ansTarget+1], ansTarget+1, n)
+	}
+	if len(opp) == 0 {
+		// No opponent may accept (nobody else alive): the offer is empty.
+		return true
+	}
+	if poseSacrificeDamageOffer(h, c, sa, opp[0], 0, n) {
+		return true // resolution suspended; the answer re-enters this effect.
+	}
+	// Fuzz/no-engine host: the deterministic stand-in takes option 0 (R-9,
+	// the accept arm) — the first opponent in turn order takes the damage
+	// and the sacrifice proceeds. The damage is emitted here, with the
+	// ordinary DealDamage emitter, because with no engine host there is no
+	// rules-side resume arm to pay it; in a real engine this branch is
+	// unreachable (Engine.Ask always returns true).
+	rider := newDamageRider(h, c, sa, int32(n))
+	prev := h.SetDamageSource(rider.source)
+	emitPlayerDamage(rider, opp[0])
+	h.SetDamageSource(prev)
+	return false
+}
+
+// poseSacrificeDamageOffer offers one opponent the Vexing Devil deal: take N
+// damage (and the permanent is sacrificed), or refuse (it stays). Returns
+// true when the ask was posed and the resolution suspended. ResumeTarget
+// carries the opponent's index in the deterministic turn-order list so the
+// decline cursor can continue after exactly that opponent.
+func poseSacrificeDamageOffer(h Host, c *Ctx, sa *cards.SA, p state.PlayerID, idx, n int) bool {
+	name := "the permanent"
+	if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+		name = o.Face().Name
+	}
+	d := &decision.Decision{Player: p, Kind: decision.KModes,
+		Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay", ResumeSA: sa,
+		ResumeTarget: idx,
+		Prompt:       name + " deals " + strconv.Itoa(n) + " damage to you — accept?",
+		Options: []decision.Option{
+			{Index: 0, Kind: "mode", Label: "Take " + strconv.Itoa(n) + " damage", Obj: c.Source, Player: p},
+			{Index: 1, Kind: "mode", Label: "Refuse — it stays", Obj: c.Source, Player: p},
+		}}
+	return Ask(h, d) == AskAsked
+}
+
+// ParseDamageUnlessCost reports whether an UnlessCost$ value is the
+// damage-payment offer form "DamageYou<N>" and returns N. Recognised: the
+// exact spelling DamageYou< followed by a positive integer literal and '>'.
+// Everything else — a bare SVar name, an X, another primitive's bracket
+// spellings — is not, so a future SVar-driven shape fails closed to the
+// unimplemented behaviour rather than asking the wrong offer.
+func ParseDamageUnlessCost(cost string) (int, bool) {
+	s := strings.TrimSpace(cost)
+	const head = "DamageYou<"
+	if !strings.HasPrefix(s, head) || !strings.HasSuffix(s, ">") {
+		return 0, false
+	}
+	n, err := strconv.Atoi(s[len(head) : len(s)-1])
+	if err != nil || n <= 0 {
+		return 0, false
+	}
+	return n, true
+}
+
+// unlessPayer resolves Sacrifice's UnlessPayer$ to a player. Recognised:
+// the empty default and "You" (the controller — the whole echo /
+// cumulative-upkeep population), and "Opponent" (the first alive opponent
+// in turn order). Any other selector fails closed: the caller keeps
+// today's behaviour instead of asking the wrong player.
+func unlessPayer(h Host, c *Ctx, sa *cards.SA) (state.PlayerID, bool) {
+	switch strings.TrimSpace(sa.Params["UnlessPayer"]) {
+	case "", "You":
+		return c.Controller, true
+	case "Opponent":
+		if opp := opponentsInTurnOrder(h.Game(), c.Controller); len(opp) > 0 {
+			return opp[0], true
+		}
+	}
+	return 0, false
+}
+
+// opponentsInTurnOrder lists the alive seats other than `you`, in turn
+// order starting after `you` (CR 608.2d's one opportunity each, in turn
+// order). There is no team model in this build — an opponent is any other
+// surviving seat.
+func opponentsInTurnOrder(g *state.Game, you state.PlayerID) []state.PlayerID {
+	out := make([]state.PlayerID, 0, len(g.Players))
+	for _, p := range g.AliveFrom(you) {
+		if p != you {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// unlessSacrificePrompt renders the ask prompt with the offering card's
+// name, so a seat reads "Vexing Devil — take 4 damage to spare it, or
+// sacrifice it" rather than raw Forge script.
+func unlessSacrificePrompt(h Host, c *Ctx, action string) string {
+	name := "The permanent"
+	if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+		name = o.Face().Name
+	}
+	return name + " — " + action
 }

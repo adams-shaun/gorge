@@ -8,10 +8,20 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-func (e *Engine) beginTurn(active state.PlayerID) {
+func (e *Engine) beginTurn(active state.PlayerID, skipUntap ...bool) {
 	e.emit(events.Event{Kind: events.TurnChange, Player: active, Amount: e.G.Turn + 1})
+	// CR 500.7 riders apply to the particular queued extra turn, not every
+	// later turn of its controller. The variadic form keeps ordinary callers
+	// explicit-free while advanceStep supplies the pending grant's SkipUntap.
+	// A skipped untap step never emits an Untap event for anything, and the
+	// turn structure jumps straight to upkeep, so its turn-based actions
+	// (Suspend's TIME decrement, ...) still run on schedule.
+	step := state.StepUntap
+	if len(skipUntap) > 0 && skipUntap[0] {
+		step = state.StepUpkeep
+	}
 	prior := e.pending
-	e.setStep(state.StepUntap)
+	e.setStep(step)
 	if e.pending != nil && e.pending != prior {
 		// An Optional$ BeginPhase replacement parked the entry. Its answer
 		// calls finishEnteredStep after entering or skipping the step.
@@ -157,13 +167,26 @@ func (e *Engine) finishUntapStep(next int) bool {
 //	reader who trusts "unreachable" here is invited to delete this guard,
 //	and deleting it is exactly the mutant that draws for an eliminated
 //	player.
+//
+// CR 702.151a (Sagas, kw:Chapter): "As this Saga enters and after your draw
+// step, add a lore counter." The ETB half is granted in events.Move (the
+// same every-entry-site convention the planeswalker starting loyalty uses);
+// advanceSagas here is the after-your-draw-step half -- one lore counter per
+// Saga the ACTIVE player controls, once per turn, after the draw. The
+// chapter triggers queue off the CounterChange events it emits (rules' chapter
+// check). Skipped when the draw itself ended the game (e.G.Over), mirroring
+// every other post-state-change guard in this file.
 func (e *Engine) drawStepTurnAction() bool {
 	if e.G.Step != state.StepDraw || (len(e.G.Players) == 2 && e.G.Turn <= 1) ||
 		e.G.Players[e.G.Active].Lost {
 		return false
 	}
 	e.drawCard(e.G.Active)
-	return e.G.Over
+	if e.G.Over {
+		return true
+	}
+	e.advanceSagas(e.G.Active)
+	return false
 }
 
 // startSuspendedCast consumes the next final-counter trigger before anyone
@@ -556,8 +579,36 @@ func (e *Engine) advanceStep() {
 		}
 	}
 	if e.G.Step == state.StepCleanup {
+		// CR 500.7: extra turns are taken in REVERSE order of creation (the
+		// most recently created extra turn is taken first), inserted
+		// immediately after the turn that created them, and the ordinary turn
+		// order resumes only once every pending extra turn is spent. The
+		// pending queue is the folded ExtraTurnQueue (events/apply.go); the
+		// consumption is the -1 ExtraTurn event, which also carries the
+		// grant's Final-Fortune-style rider (events.Apply registers the
+		// delayed end-step trigger on it -- the granted turn is exactly the
+		// turn about to begin). A grant to a seat that has since LOST takes
+		// no turn: it is consumed (so the fold agrees) and skipped, and the
+		// next pending grant, if any, is taken in the same cleanup.
+		for len(e.G.ExtraTurnQueue) > 0 {
+			grant := e.G.ExtraTurnQueue[len(e.G.ExtraTurnQueue)-1]
+			seat := grant.Player
+			obj, counter := e.latestUnconsumedGrant(seat)
+			e.emit(events.Event{Kind: events.ExtraTurn, Player: seat, Amount: -1,
+				Obj: obj, Counter: counter})
+			if !e.G.Players[seat].Lost {
+				// beginTurn resets the pass count along with the repeated
+				// holder; the ordinary rotation pointer does not advance.
+				e.beginTurn(seat, grant.SkipUntap)
+				return
+			}
+		}
+		// No extra turn is pending: the next seat in the ordinary rotation is
+		// the seat after the most recent NORMAL turn's holder (rotationBase) --
+		// never after the seat that just finished an extra turn, whose turn
+		// was inserted into the rotation, not a part of it.
 		// beginTurn resets the pass count along with the new holder.
-		e.beginTurn(e.G.NextAlive(e.G.Active))
+		e.beginTurn(e.G.NextAlive(e.rotationBase()))
 		return
 	}
 	if e.G.Step == state.StepCombatDamage && e.combatRound.hasFirst && e.combatRound.firstDone && !e.combatRound.regularDone {
@@ -636,12 +687,22 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 // hand-built decision -- is dropped with a Note and priority resumes.
 func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
-	// A hidden-library ChangeZone and a Dig look-and-take use KChoose's
-	// ordinary ordered subset wire shape, but they are mid-resolution effect
-	// asks rather than one of the cast/cleanup flows tracked by e.choosing.
-	// Resume them before dispatching those flows; an empty chosen slice is
-	// the legitimate "fail to find" / Optional-decline answer.
-	if e.resume != nil && (e.resume.kind == "search" || e.resume.kind == "dig" || e.resume.kind == "choice" || e.resume.kind == "hand_move" || e.resume.kind == "sacrifice" ||
+	// A Station tap pick (rules/station.go) is a plain priority-action ask,
+	// never a cast/cleanup flow and never a mid-resolution resume: route it
+	// first, by the flow marker the ask set.
+	if e.choosing == chooseStation {
+		e.choosing = chooseNone
+		e.handleStation(e.stationing, chosen)
+		return
+	}
+	// A hidden-library ChangeZone, a Dig look-and-take, and a RollDice
+	// choose-one-result use KChoose's ordinary ordered-subset wire shape, but
+	// they are mid-resolution effect asks rather than one of the cast/cleanup
+	// flows tracked by e.choosing. Resume them before dispatching those
+	// flows; an empty chosen slice is the legitimate "fail to find" /
+	// Optional-decline answer (for "roll" a malformed empty answer falls
+	// back to the first die inside the effect).
+	if e.resume != nil && (e.resume.kind == "search" || e.resume.kind == "dig" || e.resume.kind == "roll" || e.resume.kind == "choice" || e.resume.kind == "hand_move" || e.resume.kind == "sacrifice" ||
 		e.resume.kind == "ward_mana" || e.resume.kind == "ward_alt" || e.resume.kind == "ward_blight" || e.resume.kind == "ward_evidence" ||
 		e.resume.kind == "ward_waterbend" || e.resume.kind == "ward_tap" || e.resume.kind == "ward_sac" || e.resume.kind == "ward_discard") {
 		rp := e.resume
@@ -774,4 +835,89 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "choose answered with no flow waiting"})
 		e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
 	}
+}
+
+// rotationBase returns the seat whose turn the ordinary rotation is currently
+// ON: the holder of the most recent NORMAL turn -- a TurnChange that did not
+// begin an extra turn. An extra turn's TurnChange is the one a cleanup step
+// consumed a grant for: a -1 ExtraTurn event sits between the previous
+// TurnChange and it (backward window below), so scanning backward and
+// skipping every TurnChange whose backward window holds a consumption lands
+// on the last normal holder. When the pending-extra queue drains, the next
+// turn is this seat's successor (NextAlive) -- the extra turns were inserted
+// after that seat's turn, never in place of the seats that follow it. No
+// TurnChange at all cannot happen (turn 1 opens the log); the fallback names
+// seat 0 for totality.
+//
+// The scan is over the log, never live state, so a replay re-derives the
+// same base. Cost is one backward window per extra-turn cleanup -- a
+// window is one turn's events -- and zero for every cleanup of a normal
+// turn whose predecessor was also normal (the common case stops at the
+// first TurnChange).
+func (e *Engine) rotationBase() state.PlayerID {
+	evs := e.L.Events
+	for i := len(evs) - 1; i >= 0; i-- {
+		if evs[i].Kind != events.TurnChange {
+			continue
+		}
+		// Some focused rules fixtures deliberately seed Game.Active/Turn at a
+		// mid-turn state without rewriting their genesis log. That live state
+		// is authoritative: it is an ordinary turn unless an in-log consumption
+		// says otherwise, so its successor is based on the live active seat.
+		if evs[i].Player != e.G.Active || evs[i].Amount != e.G.Turn {
+			return e.G.Active
+		}
+		// Backward window: (previous TurnChange, exclusive) .. (this one,
+		// exclusive). A -1 consumption in it means THIS TurnChange began an
+		// extra turn (the consumption is emitted immediately before
+		// beginTurn); lost-seat skips consume several, all inside the window.
+		extra := false
+		for j := i - 1; j >= 0; j-- {
+			if evs[j].Kind == events.TurnChange {
+				break
+			}
+			if evs[j].Kind == events.ExtraTurn && evs[j].Amount < 0 {
+				extra = true
+				break
+			}
+		}
+		if !extra {
+			return evs[i].Player
+		}
+	}
+	return 0
+}
+
+// latestUnconsumedGrant returns the ExtraTurn grant event the NEXT
+// consumption of seat's pending grant consumes: walking the log backward, a
+// -1 consumption matches the most recent still-unconsumed +grant of the same
+// seat (the same latest-first order the turn structure consumes in), so the
+// first +grant reached with the running consumed-count at zero IS the grant
+// whose rider (Final Fortune's ExtraTurnDelayedTrigger$/Execute$ pair, carried
+// on the event's Obj/Counter) must ride the consumption that takes its turn.
+// A seat with no grant event left (never happens while its queue entry is
+// pending; the fold guarantees the count) returns zeros -- the consumption
+// then carries no rider and events.Apply registers nothing.
+func (e *Engine) latestUnconsumedGrant(seat state.PlayerID) (state.ObjID, string) {
+	consumed := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind != events.ExtraTurn || ev.Player != seat {
+			continue
+		}
+		if ev.Amount < 0 {
+			consumed += int(-ev.Amount)
+			continue
+		}
+		// One +Amount event records Amount individual grants. Earlier
+		// consumptions may account for only its newest entries; otherwise this
+		// event is the source of the next queue entry and its rider belongs to
+		// that turn too.
+		if consumed >= int(ev.Amount) {
+			consumed -= int(ev.Amount)
+			continue
+		}
+		return ev.Obj, ev.Counter
+	}
+	return 0, ""
 }

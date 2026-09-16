@@ -223,6 +223,40 @@ const (
 	// value, and therefore the hash chain and every golden replay already
 	// locked in, is unaffected.
 	LibraryOrder
+	// ExtraTurn records one grant or consumption of an extra turn (CR
+	// 500.7). Player is the seat the turn belongs to and Amount the delta:
+	// an api:AddTurn effect emits +NumTurns$, and the turn structure (rules
+	// advanceStep) emits -1 exactly when it hands that seat a repeat turn
+	// instead of moving to the next living seat. The state
+	// (state.Game.ExtraTurns) is folded here, so a log-only reconstruction
+	// arrives at the same pending counts the live game held. When the
+	// granting ability carries Forge's ExtraTurnDelayedTrigger$ (Final
+	// Fortune's "At the beginning of that turn's end step, you lose the
+	// game"), Counter names the Execute$ SVar and Obj the granting source,
+	// and this case ALSO registers the delayed trigger for the extra turn's
+	// end step: a delayed registration whose MinTurn is the extra turn's
+	// number (g.Turn+1 at grant time), so the ordinary delayed-trigger
+	// firing skips the CURRENT turn's end step and fires exactly once, in
+	// the granted turn. Appended here, after LibraryOrder, following every
+	// prior Kind's append-only precedent, so no earlier ordinal, hash chain
+	// or golden replay is affected.
+	ExtraTurn
+	// DoorUnlock records the unlock of an Enchantment Room's locked door
+	// (CR 309.5): the player paid the locked half's mana cost as a sorcery.
+	// Obj is the room permanent; Apply sets its Unlocked flag, which makes
+	// the alternate face's rules text live (rules' trigger/static/ability
+	// scans) and is what a Mode$ UnlockDoor trigger matches against. The
+	// unlock trigger itself is queued rules-side on this event (rules
+	// checkTriggers), so this event is the whole state delta. Appended
+	// after ExtraTurn, same append-only precedent.
+	DoorUnlock
+	// SpeedChange records one increment of a seat's speed (CR 702.163,
+	// "Start your engines!"). Player is the seat whose speed rises and
+	// Amount the delta (always +1 today; the engine caps the grant at max
+	// speed 4 and at once per turn before ever emitting). Folded into
+	// state.Player.Speed here, so a reconstruction rebuilds it. Appended
+	// after DoorUnlock, same append-only precedent.
+	SpeedChange
 	// MonarchChange gives the designation to Player. It is a state transition,
 	// not a Note, so conditional "if you're the monarch" triggers replay from
 	// the same state as the live match. Appended after LibraryOrder to preserve
@@ -269,7 +303,8 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
-	"delayed_register", "delayed_push", "library_order", "monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter"}
+	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
+	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -277,6 +312,12 @@ func (k Kind) String() string {
 	}
 	return "unknown"
 }
+
+// ExtraTurnSkipUntapText is the canonical Text marker on an ExtraTurn grant
+// whose Forge AddTurn source carries SkipUntap$ True. Text is already part of
+// Event's encoded union, so it preserves this turn-specific rider without a
+// schema change.
+const ExtraTurnSkipUntapText = "extra turn; skip untap"
 
 // Event is a state delta. The field set is a flat union so encoding stays
 // allocation-free and an external consumer needs no engine code to read it.

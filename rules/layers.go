@@ -58,82 +58,92 @@ func (e *Engine) staticEffects() []ContinuousEffect {
 			if f == nil {
 				continue
 			}
-			for _, st := range f.Statics {
-				if st.Mode != "Continuous" {
-					continue
-				}
-				affects := st.Params["Affected"]
-				if affects == "" {
-					continue
-				}
-				base := ContinuousEffect{
-					Source:     id,
-					Timestamp:  o.Timestamp,
-					Controller: o.Controller,
-					Affects:    affects,
-				}
-				if hasStat(st, "AddPower") || hasStat(st, "AddToughness") {
-					pt := base
-					pt.Layer, pt.Sub = LPT, SubModify
-					pt.AddPower = statInt(st, "AddPower")
-					pt.AddToughness = statInt(st, "AddToughness")
-					out = append(out, pt)
-				}
-				if hasStat(st, "AddKeyword") {
-					kw := base
-					kw.Layer = LAbilities
-					kw.AddKeywords = statKeywords(st)
-					kw.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
-					out = append(out, kw)
-				}
-				if hasStat(st, "AddType") || hasStat(st, "AddTypes") {
-					ty := base
-					ty.Layer = LType
-					ty.AddTypes = statList(st, "AddTypes")
-					if len(ty.AddTypes) == 0 {
-						ty.AddTypes = statList(st, "AddType")
+			// Enchantment Rooms (rules/rooms.go): once the room's second door
+			// is unlocked, the ALTERNATE face's statics are live too -- a room
+			// permanent's rules text is both halves' combined after the
+			// unlock (CR 309.6), each face's Statics its own scan.
+			faces := []*cards.Face{f}
+			if o.Unlocked && isRoom(o) && len(o.Card.Faces) == 2 && int(o.FaceIdx) < len(o.Card.Faces) {
+				faces = append(faces, o.Card.Faces[1-int(o.FaceIdx)])
+			}
+			for _, fc := range faces {
+				for _, st := range fc.Statics {
+					if st.Mode != "Continuous" {
+						continue
 					}
-					ty.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
-					out = append(out, ty)
-				}
-				// CR 613.1f / 613.4b (Humility): a base-setting static runs in
-				// layer 7b (SubSet), before the 7c modify a later Pump adds; and
-				// a RemoveAllAbilities static is a layer-6 ability removal.
-				if hasStat(st, "SetPower") || hasStat(st, "SetToughness") {
-					set := base
-					set.Layer, set.Sub = LPT, SubSet
-					set.SetPower = statInt(st, "SetPower")
-					set.SetToughness = statInt(st, "SetToughness")
-					set.HasSet = true
-					out = append(out, set)
-				}
-				if hasStat(st, "RemoveAllAbilities") {
-					ra := base
-					ra.Layer = LAbilities
-					ra.RemoveAbilities = true
-					out = append(out, ra)
-				}
-				// A may-play-from-zone grant (M2d?): the "You may play lands from
-				// your graveyard" static (Conduit of Worlds, Crucible of Worlds,
-				// Ramunap Excavator, ...). It changes no characteristic, so it is
-				// NOT a layer effect and is carried as a rules-mod on the effect
-				// itself (MayPlay + AffectedZone) rather than as a layer mark;
-				// rules/legal.go's may-play walks consult it. The implemented
-				// shape is the unconditional MayPlay$ True grant plus its two
-				// readable riders (MayPlayIgnoreColor$ -- mana as any colour --
-				// and MayPlayLimit$ 1, the once-per-turn cap); the
-				// mayPlayShape guard rejects a richer grant (MayPlayIgnoreType$/
-				// MayPlayWithoutManaCost$/MayPlayText$, Condition$/
-				// ValidAfterStack$/Secondary$ qualifiers) so it fails closed
-				// (MayPlay stays false) rather than being silently over-applied
-				// against the ordinary LandsPlayed limit. Expiry is the ordinary
-				// source-leaves rule (CR 611.3b) via active()'s battlefield scan.
-				if mayPlayGrant(st) {
-					mp := base
-					mp.MayPlay = true
-					mp.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
-					mp.MayPlayIgnoreColor, mp.MayPlayLimit, mp.MayPlayPlayerTurn, _ = effects.MayPlayStaticParams(st.Params)
-					out = append(out, mp)
+					affects := st.Params["Affected"]
+					if affects == "" {
+						continue
+					}
+					base := ContinuousEffect{
+						Source:     id,
+						Timestamp:  o.Timestamp,
+						Controller: o.Controller,
+						Affects:    affects,
+					}
+					if hasStat(st, "AddPower") || hasStat(st, "AddToughness") {
+						pt := base
+						pt.Layer, pt.Sub = LPT, SubModify
+						pt.AddPower = statInt(st, "AddPower")
+						pt.AddToughness = statInt(st, "AddToughness")
+						out = append(out, pt)
+					}
+					if hasStat(st, "AddKeyword") {
+						kw := base
+						kw.Layer = LAbilities
+						kw.AddKeywords = statKeywords(st)
+						kw.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+						out = append(out, kw)
+					}
+					if hasStat(st, "AddType") || hasStat(st, "AddTypes") {
+						ty := base
+						ty.Layer = LType
+						ty.AddTypes = statList(st, "AddTypes")
+						if len(ty.AddTypes) == 0 {
+							ty.AddTypes = statList(st, "AddType")
+						}
+						ty.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+						out = append(out, ty)
+					}
+					// CR 613.1f / 613.4b (Humility): a base-setting static runs in
+					// layer 7b (SubSet), before the 7c modify a later Pump adds; and
+					// a RemoveAllAbilities static is a layer-6 ability removal.
+					if hasStat(st, "SetPower") || hasStat(st, "SetToughness") {
+						set := base
+						set.Layer, set.Sub = LPT, SubSet
+						set.SetPower = statInt(st, "SetPower")
+						set.SetToughness = statInt(st, "SetToughness")
+						set.HasSet = true
+						out = append(out, set)
+					}
+					if hasStat(st, "RemoveAllAbilities") {
+						ra := base
+						ra.Layer = LAbilities
+						ra.RemoveAbilities = true
+						out = append(out, ra)
+					}
+					// A may-play-from-zone grant (M2d?): the "You may play lands from
+					// your graveyard" static (Conduit of Worlds, Crucible of Worlds,
+					// Ramunap Excavator, ...). It changes no characteristic, so it is
+					// NOT a layer effect and is carried as a rules-mod on the effect
+					// itself (MayPlay + AffectedZone) rather than as a layer mark;
+					// rules/legal.go's may-play walks consult it. The implemented
+					// shape is the unconditional MayPlay$ True grant plus its two
+					// readable riders (MayPlayIgnoreColor$ -- mana as any colour --
+					// and MayPlayLimit$ 1, the once-per-turn cap); the
+					// mayPlayShape guard rejects a richer grant (MayPlayIgnoreType$/
+					// MayPlayWithoutManaCost$/MayPlayText$, Condition$/
+					// ValidAfterStack$/Secondary$ qualifiers) so it fails closed
+					// (MayPlay stays false) rather than being silently over-applied
+					// against the ordinary LandsPlayed limit. Expiry is the ordinary
+					// source-leaves rule (CR 611.3b) via active()'s battlefield scan.
+					if mayPlayGrant(st) {
+						mp := base
+						mp.MayPlay = true
+						mp.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
+						mp.MayPlayIgnoreColor, mp.MayPlayLimit, mp.MayPlayPlayerTurn, _ = effects.MayPlayStaticParams(st.Params)
+						out = append(out, mp)
+					}
 				}
 			}
 		}
@@ -737,3 +747,18 @@ func (e *Engine) restrictionActorMatches(ce ContinuousEffect, actor state.Player
 // remains the field other engine-internal code should read when it also
 // wants Power/Toughness/Types in the same call.
 func (e *Engine) Keywords(id state.ObjID) []string { return e.Derived(id).Keywords }
+
+// fogActive reports whether an api:Fog continuous effect (Restriction
+// "PreventCombatDamage", effects/fog.go) is currently active. Consulted by
+// the combat-damage step's damage passes (rules/combat.go): while it holds,
+// no combat damage is dealt that turn. The active() list already applies the
+// UntilEOT expiry, so a Fog cast on turn N contributes nothing from turn N+1
+// on.
+func (e *Engine) fogActive() bool {
+	for _, ce := range e.active() {
+		if ce.Restriction == "PreventCombatDamage" {
+			return true
+		}
+	}
+	return false
+}

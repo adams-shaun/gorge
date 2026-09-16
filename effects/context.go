@@ -208,14 +208,41 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return nil, true
 	case "ReplacedCard":
-		// The card a replacement is acting on (Rest in Peace shape: the R: line
-		// intercepts a "would go to the graveyard" Move, ReplaceWith$ needs to
-		// name the object the replaced event was about). "Replaced" is set only
-		// on a replacement's own context, so outside a replacement -- and for a
-		// replaced object that has since ceased to exist -- Defined falls back to
-		// nil (nothing to act on) rather than the chosen targets.
+		// The card a zone-change replacement is acting on. Outside such a
+		// replacement (or after the object ceased to exist), resolve nothing.
 		if c.Replaced != 0 && g.Obj(c.Replaced) != nil {
 			return []state.Target{{Obj: c.Replaced}}, true
+		}
+		return nil, true
+	case "ReplacedTarget":
+		// Damage replacements may affect either an object or a player. Preserve
+		// that distinction rather than deriving a player through object zero.
+		if c.ReplacementTarget.IsPlayer {
+			if int(c.ReplacementTarget.Player) < len(g.Players) {
+				return []state.Target{c.ReplacementTarget}, true
+			}
+			return nil, true
+		}
+		if c.ReplacementTarget.Obj != 0 && g.Obj(c.ReplacementTarget.Obj) != nil {
+			return []state.Target{c.ReplacementTarget}, true
+		}
+		return nil, true
+	case "ReplacedSource":
+		if c.ReplacementSource != 0 && g.Obj(c.ReplacementSource) != nil {
+			return []state.Target{{Obj: c.ReplacementSource}}, true
+		}
+		return nil, true
+	case "ReplacedSourceController":
+		if o := g.Obj(c.ReplacementSource); o != nil && int(o.Controller) < len(g.Players) {
+			return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
+		}
+		return nil, true
+	case "ReplacedTargetController":
+		if c.ReplacementTarget.IsPlayer {
+			return []state.Target{c.ReplacementTarget}, true
+		}
+		if o := g.Obj(c.ReplacementTarget.Obj); o != nil && int(o.Controller) < len(g.Players) {
+			return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
 		}
 		return nil, true
 	case "TriggeredDefendingPlayer":
