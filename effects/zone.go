@@ -490,6 +490,7 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 		spec = "Permanent"
 	}
 	g := h.Game()
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberDestroyed"]), "True")
 	for _, p := range g.AliveFrom(0) {
 		ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, p)...)
 		for _, id := range ids {
@@ -503,6 +504,12 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 				}
 				h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
+				if remember {
+					// Forge's RememberDestroyed$ adds each destroyed card to
+					// the host's remembered list (Stench of Evil's RepeatEach
+					// over DirectRemembered iterates exactly these).
+					c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				}
 			}
 		}
 	}

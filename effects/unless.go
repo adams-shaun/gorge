@@ -245,11 +245,21 @@ func unlessPayerTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 		// Attachments to players are not represented by state.Object (its
 		// AttachedTo is an ObjID), so there is no honest binding to use.
 		return nil, false
-	case "ImprintedController":
-		// The engine currently has no persistent imprint relation. Do not use
-		// arbitrary Ctx.Remembered entries: those are often trigger subjects,
-		// not an imprint, and would charge the wrong player.
-		return nil, false
+	case "Imprinted", "ImprintedController":
+		// Forge's UseImprinted$ binds the RepeatEach iteration's current
+		// subject as "Imprinted" (Heroism's attacking red creature, Stench
+		// of Evil's destroyed Plains). The engine binds it on the iteration
+		// context and carries it through a resumed ask; a zero subject means
+		// this SA is outside such a loop (or the subject left the game
+		// entirely) — fail closed rather than guess from Remembered, whose
+		// last entry can be anything the body remembered.
+		if c.RepeatSubject.IsPlayer {
+			add(c.RepeatSubject.Player)
+		} else if o := g.Obj(c.RepeatSubject.Obj); o != nil {
+			add(o.Controller)
+		} else {
+			return nil, false
+		}
 	case "Targeted", "ParentTarget", "Player.targetedBy":
 		addTargets(c.Targets)
 	case "TriggeredTarget":

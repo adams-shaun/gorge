@@ -126,11 +126,13 @@ type RepeatCursor struct {
 
 // RepeatSuspension is what effRepeatEach reports when an iteration asks.
 // Body is the suspended iteration's Remembered (the loop subject plus
-// anything the iteration remembered before asking); Outer and Chosen are the
-// RepeatEach resolution's own bindings, restored when the loop re-enters.
+// anything the iteration remembered before asking); Subject is that
+// iteration's current subject (the Imprinted binding); Outer and Chosen are
+// the RepeatEach resolution's own bindings, restored when the loop re-enters.
 type RepeatSuspension struct {
 	RepeatCursor
 	Body        []state.Target
+	Subject     state.Target
 	Outer       []state.Target
 	Chosen      []state.Target
 	ChosenValid bool
@@ -226,6 +228,14 @@ type Ctx struct {
 	// Repeat is set only on the re-entry of a suspended RepeatEach loop; the
 	// RepeatEach whose SA it names consumes and clears it.
 	Repeat *RepeatCursor
+	// RepeatSubject is the RepeatEach iteration's current subject — what
+	// Forge's UseImprinted$ binds as "Imprinted" for the sub-ability the
+	// loop resolves (Heroism's attacking red creature, Stench of Evil's
+	// destroyed Plains). effRepeatEach sets it per iteration; the suspension
+	// machinery carries it through a resumed ask the way loopRemembered
+	// carries the iteration's Remembered. Zero outside a loop iteration, and
+	// the Imprinted/ImprintedController selectors fail closed on zero.
+	RepeatSubject state.Target
 	// Search is the answered hidden-library KChoose selection on a re-entered
 	// ChangeZone resolution. SearchDone distinguishes "answered with no cards"
 	// from the first pass; Search preserves the player's answer order. The

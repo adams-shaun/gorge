@@ -108,6 +108,11 @@ type resumePoint struct {
 	// binds its current subject there and the stack object never saw it.
 	loopBound      bool
 	loopRemembered []state.Target
+	// repeatSubject is the RepeatEach subject of the loop whose iteration
+	// this frame resumes inside (the Imprinted binding). It rides the frame
+	// so a resumed unless/dig/etc. ask re-enters with Ctx.RepeatSubject
+	// set; zero on frames outside any iteration.
+	repeatSubject state.Target
 	// repeat is a kind "repeat" frame's loop cursor.
 	repeat *repeatCursor
 }
@@ -126,12 +131,13 @@ type repeatCursor struct {
 // pass: a plain Resolve loop (resume at sa.Sub) or a RepeatEach loop
 // (repeat != nil; re-enter sa itself at the cursor).
 type contFrame struct {
-	sa          *cards.SA
-	repeat      *repeatCursor
-	bound       bool
-	remembered  []state.Target
-	choices     []state.Target
-	chosenValid bool
+	sa            *cards.SA
+	repeat        *repeatCursor
+	bound         bool
+	remembered    []state.Target
+	repeatSubject state.Target
+	choices       []state.Target
+	chosenValid   bool
 }
 
 // Ask implements effects.Host.Ask (rules' side of the interface, and the
@@ -244,11 +250,11 @@ func (e *Engine) SuspendRepeat(s effects.RepeatSuspension) {
 	}
 	body := append([]state.Target(nil), s.Body...)
 	if !e.resume.loopBound {
-		e.resume.loopBound, e.resume.loopRemembered = true, body
+		e.resume.loopBound, e.resume.loopRemembered, e.resume.repeatSubject = true, body, s.Subject
 	}
 	for i := range e.contChain {
 		if !e.contChain[i].bound {
-			e.contChain[i].bound, e.contChain[i].remembered = true, body
+			e.contChain[i].bound, e.contChain[i].remembered, e.contChain[i].repeatSubject = true, body, s.Subject
 		}
 	}
 	e.contChain = append(e.contChain, contFrame{
@@ -767,7 +773,7 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 		// replacement context).
 		f := &resumePoint{obj: obj, sa: sa.Sub, replacement: e.applyingReplacement,
 			replaced: e.replReplaced, action: e.replAction, before: e.triggerBefore,
-			loopBound: cf.bound, loopRemembered: cf.remembered}
+			loopBound: cf.bound, loopRemembered: cf.remembered, repeatSubject: cf.repeatSubject}
 		if cf.repeat != nil {
 			f.kind, f.sa, f.repeat = "repeat", sa, cf.repeat
 			f.choices, f.chosenValid = cf.choices, cf.chosenValid

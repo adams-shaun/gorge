@@ -81,6 +81,19 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 		// onto the fired ability's Remembered. DelayTriggerRememberedLKI and
 		// the other LKI spellings are the same Remembered object set.
 		return objectsOf(c.Remembered)
+	case "Imprinted", "ImprintedController":
+		// The RepeatEach iteration's current subject (Forge's UseImprinted$):
+		// Heroism pumps/remembers it, Stench of Evil deals its damage to its
+		// controller. Zero outside a loop iteration resolves to nothing —
+		// the imprint-pile spelling (Mirrorworks' exiled-with-imprint list)
+		// has no engine state yet and stays a known approximation.
+		if c.RepeatSubject.IsPlayer {
+			return []state.Target{{Player: c.RepeatSubject.Player, IsPlayer: true}}
+		}
+		if o := g.Obj(c.RepeatSubject.Obj); o != nil {
+			return []state.Target{{Obj: c.RepeatSubject.Obj}}
+		}
+		return nil
 	case "ReplacedCard":
 		// The card a replacement is acting on (Rest in Peace shape: the R: line
 		// intercepts a "would go to the graveyard" Move, ReplaceWith$ needs to
