@@ -161,16 +161,28 @@ describe('auto-ordered identical triggers', () => {
     expect(note?.text).toBe('Ordered 2 identical triggers automatically');
   });
 
-  it('a mixed pair stays manual as today', () => {
+  it('a mixed pair stays manual when the broad setting is ALSO off (casual turns it on — the fb-trigorder1 tests pin that path)', () => {
     const p = immediateSeat();
+    p.editSettings({ autoOrderAllTriggers: false });
     p.adoptView(triggerOrder(1, MIXED));
     expect(postIntentMock).not.toHaveBeenCalled();
     expect(p.pending?.seq).toBe(1);
   });
 
-  it('the setting off stays manual', () => {
+  it('the identical setting off, with the broad setting still on, answers an identical pair through the broad path (fb-trigorder1 precedence)', async () => {
     const p = immediateSeat();
     p.editSettings({ autoOrderIdenticalTriggers: false });
+    p.adoptView(triggerOrder(1, IDENTICAL));
+    await settle(() => p.postedSeq === 1);
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(postIntentMock.mock.calls[0][2].choices).toEqual([0, 1]);
+    const note = p.autoLog.find((n) => n.text.includes('triggers automatically'));
+    expect(note?.text).toBe('Ordered 2 triggers automatically'); // the broad path's wording
+  });
+
+  it('the setting off (both trigger-order settings) stays manual', () => {
+    const p = immediateSeat();
+    p.editSettings({ autoOrderIdenticalTriggers: false, autoOrderAllTriggers: false });
     p.adoptView(triggerOrder(1, IDENTICAL));
     expect(postIntentMock).not.toHaveBeenCalled();
     expect(p.pending?.seq).toBe(1);
