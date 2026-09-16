@@ -12,7 +12,11 @@
    * HandFan is the SEATED PLAYER'S OWN hand, drawn as real card faces along
    * the bottom edge — the competitive-client layout (Arena, MTGO, XMage:
    * full-size faces in a centred row that overlaps rather than shrinks as the
-   * hand grows). It is NOT the rail's HandList (see the note in
+   * hand grows). In the resting state the fan sits half a card LOW and the
+   * board clips the lower half (the peek): a hand card shows its top 50%
+   * until it is hovered or keyboard-focused, when it rises the same half back
+   * into the board (see the .handfan/.card:hover notes in the style block).
+   * It is NOT the rail's HandList (see the note in
    * lib/cardoptions.ts' sibling, HandList.svelte), which stays text because it
    * has to fit four hands in a rail (survey #24); that reasoning is about the
    * rail and four hands, and has no purchase on the one hand you own.
@@ -277,12 +281,22 @@
   }
   /* The fan owns the bottom edge after the fixed identity bay; together they
      make one seat strip. The track, not the cards, consumes --own-seat-w, so
-     overlap tightening still follows the actual room available. */
+     overlap tightening still follows the actual room available.
+
+     The peek (fb-20260916T024357Z-9005ad6a): the whole fan sits half a card
+     LOW so the board's own overflow:hidden (Table.svelte .board) clips the
+     lower half — the normal state exposes exactly the top 50% of every hand
+     card. The offset is relative (50% of the fan's own height, which is one
+     card height in the 63:88 ratio), so it stays exactly half whatever
+     --play-card-w becomes; no pixel constant. A card's hovered/focused
+     translateY(-50%) (below) pays exactly that half back, so its full face
+     returns inside the board on hover/focus. */
   .handfan {
     position: relative;
     margin-inline: auto;
     --card-w: var(--play-card-w);
     height: calc(var(--card-w) * 88 / 63);
+    transform: translateY(50%);
     pointer-events: none;
   }
   /* Each face is absolutely positioned by the layout's step, then that step
@@ -301,14 +315,29 @@
     filter: brightness(0.92);
   }
   /* The hovered / focused face lifts off the row, the competitive raise, and
-     the faces behind it go under rather than over it. */
+     the faces behind it go under rather than over it. The raise is the same
+     relative half the fan shifted down (the fan's height IS one card height),
+     so a hovered card's full face sits back inside the board — the peek is
+     repaid in full, and the card keeps the z-index that holds it above the
+     neighbours it overlaps.
+
+     The focus arm is `.card:has(.face:focus-visible)`, NOT `.card:focus-visible`:
+     since ui23 moved tabindex off the card onto the inner .face (so a real
+     options button is never nested inside a role=button), the element the
+     keyboard focuses is the FACE, and a :focus-visible on .card itself could
+     never match again — the old selector was dead, leaving a keyboard user
+     with neither the raise nor the outline (caught by the geometry fixture,
+     HandFan.geometry.test.ts). :has() restores the parity structurally, off
+     the element that is actually focused, so a future focus move cannot
+     silently strand it again. The outline moves onto the face for the same
+     reason (below). */
   .card:hover,
-  .card:focus-visible {
-    transform: translateY(-0.9rem);
+  .card:has(.face:focus-visible) {
+    transform: translateY(-50%);
     filter: brightness(1);
     z-index: 10;
   }
-  .card:focus-visible {
+  .face:focus-visible {
     outline: 2px solid var(--initiative);
     outline-offset: 1px;
   }
@@ -328,6 +357,22 @@
   }
   .face[data-tone=''] {
     box-shadow: none;
+  }
+  /* KEYBOARD FOCUS MUST NOT SCROLL THE BOARD. The resting face's lower half
+     lies outside the board's overflow:hidden box, and a browser reveals a
+     newly focused element by scrolling every scrollable ancestor — an
+     overflow:hidden box IS one — so Tab-focusing a hand card scrolled the
+     whole board up by the clip depth (measured 73-75px: the felt jumps, the
+     board's top row is cut). A negative scroll-margin shrinks the reveal rect
+     past the clipped half, so the face is already fully "revealed" and the
+     board never scrolls; it changes nothing else (no other scroll-into-view
+     targets a hand card — the transcript scroller is unrelated). The margin
+     is deliberately more than the exact half (44/63) so sub-pixel rounding at
+     the clip edge cannot leave a 1-2px scroll behind, and it stays relative
+     to the card width like every other offset here. Measured via
+     HandFan.geometry.test.ts. */
+  .face {
+    scroll-margin-bottom: calc(var(--card-w) * -50 / 63);
   }
   .face[data-selected] {
     box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px var(--felt-sunk);
