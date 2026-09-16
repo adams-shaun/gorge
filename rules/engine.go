@@ -1136,6 +1136,31 @@ func (e *Engine) ask(d *decision.Decision) {
 	// reaches ask the asking caller has already chosen its resolution path,
 	// and silently swallowing it here would leave the caller's suspended
 	// half-resolution dangling.
+	// One mid-resolution decision at a time (the structural guard for the
+	// overwrite class findings-sol4 proved on the life-replacement draw
+	// loop): a caller reaching ask while a SUSPENDED RESOLUTION is awaiting
+	// its answer would overwrite e.pending and orphan that resolution's
+	// ask -- no seat can ever answer it, and the surviving ask's answer is
+	// applied to the wrong resolution. Every guarded caller checks
+	// e.pending/e.Suspended() before asking (effDraw's cursor loop,
+	// lifeReplacementDraw's park, advanceStep's draw-step return, the
+	// replacement-choice queue's askNextReplacementChoice, DrawFor's
+	// suspended degrade); a caller that does not is a bug of exactly the
+	// class those guards exist for. Panic, the same stance as the two
+	// checks below: the host crashes the match loudly rather than shipping
+	// a log with a decision nobody can answer.
+	//
+	// A pending decision with e.resume == nil is deliberately NOT a panic:
+	// in engine flow nothing emits while such a decision is outstanding
+	// (Advance is parked on it and handle runs only after Submit cleared
+	// it), but the test probes drive e.emit directly while a setup priority
+	// ask is pending, and an emit that poses an ask is then the probe's
+	// intent -- the priority ask it displaces is re-granted by the same
+	// Submit tail. That displacement is engine-unreachable and probe-owned.
+	if e.resume != nil {
+		panic(fmt.Sprintf("rules: ask overwrote a suspended resolution's pending decision (%s, seat %d) with %s for seat %d",
+			e.pending.Kind, e.pending.Player, d.Kind, d.Player))
+	}
 	if effects.OnlyEmptyAnswer(d) {
 		panic(fmt.Sprintf("rules: decision %s for seat %d posed with only the empty answer legal (Min %d Max %d, %d options) -- asking primitives must resolve this shape silently (effects.Ask), never post it",
 			d.Kind, d.Player, d.Min, d.Max, len(d.Options)))

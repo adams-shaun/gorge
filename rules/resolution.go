@@ -114,6 +114,11 @@ type resumePoint struct {
 	loopRemembered []state.Target
 	// repeat is a kind "repeat" frame's loop cursor.
 	repeat *repeatCursor
+	// lifeDraws parks a GainLife→Draw replacement body's remaining draws
+	// (replacement.go's lifeReplacementDraw): the loop's DrawFor suspended
+	// on a Dredge ask (CR 702.55) mid-replacement, and the answered dredge
+	// re-drives the rest from this cursor. Zero for every other frame.
+	lifeDraws int32
 }
 
 // repeatCursor is the loop position a kind "repeat" frame re-enters with.
@@ -286,6 +291,18 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 		} else {
 			e.resumeOrdinaryDraw(in.Player)
 		}
+		// A GainLife→Draw replacement body parked its remaining draws on this
+		// ask (replacement.go's lifeReplacementDraw): the answer resolved the
+		// draw that asked, so re-drive the rest -- which may park again on
+		// the next dredge ask -- and then drain any replacement-order queue
+		// the interrupted pass left behind.
+		if rp := e.resume; rp != nil && rp.lifeDraws > 0 {
+			rest := rp.lifeDraws
+			e.resume = nil
+			e.lifeReplacementDraw(in.Player, rest)
+			e.askNextReplacementChoice()
+			return
+		}
 		e.resume = nil
 		return
 	}
@@ -363,6 +380,35 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 // continuation it carries have all completed — the fully-resolved object
 // goes where resolveTop's own tail would have sent it.
 func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
+	// A GainLife→Draw replacement body parked its remaining draws on this
+	// ask (replacement.go's lifeReplacementDraw). The body is not a stack
+	// resolution: there is no sub-ability to re-enter (rp.sa is nil -- the
+	// loop called DrawFor directly, which poses its own dredge ask). The
+	// answer resolved the draw that asked; apply it and re-drive the rest
+	// (which may park again on the next dredge ask). The frame's rp.outer
+	// continuation and the completion tail below still run after it -- the
+	// same order the body ran in before it suspended -- and the drain at
+	// this cascade's true end picks up any replacement-order queue the
+	// interrupted pass left behind.
+	parkedDraws := false
+	if rp.kind == "dredge" && rp.sa == nil && rp.lifeDraws > 0 {
+		parkedDraws = true
+		if !e.G.Players[rp.player].Lost {
+			// CR 800.4f: a departed player makes no choice and draws
+			// nothing; the outer continuation below still runs.
+			if len(chosen) > 0 && chosen[0].Kind == "dredge" {
+				e.applyDredge(rp.player, chosen[0].Obj)
+			} else {
+				e.resumeOrdinaryDraw(rp.player)
+			}
+			e.lifeReplacementDraw(rp.player, rp.lifeDraws)
+			if e.Suspended() || e.pending != nil {
+				// The re-drive parked on the next dredge ask: that frame's
+				// own resume arms carry the rest.
+				return
+			}
+		}
+	}
 	before := e.triggerBefore
 	e.triggerBefore = rp.before
 	defer func() { e.triggerBefore = before }()
@@ -850,12 +896,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			e.resume.outer = e.buildContinuationChain(e.contChain, rp.obj, rp.outer)
 			return
 		}
-	} else {
+	} else if !parkedDraws {
 		// A resume with no sub-ability recorded: only reachable from a
 		// hand-built Ask (every real asking primitive sets ResumeSA). The
 		// resolution still finishes — the object leaves the stack with no
 		// effect, the same degrade-to-nothing stance as an unrecognised
-		// choice, rather than stalling the match forever.
+		// choice, rather than stalling the match forever. (A parked
+		// GainLife→Draw frame answers above and needs no Note: its answer
+		// was applied, and the below says so to the log.)
 		e.emit(events.Event{Kind: events.Note, Obj: rp.obj,
 			Text: "mid-resolution answer resumed with no sub-ability recorded"})
 	}
@@ -883,6 +931,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 		}
 		e.resumeResolution(rp.outer, nil)
+		if parkedDraws {
+			e.askNextReplacementChoice()
+		}
 		return
 	}
 	e.finishResumption(rp.obj)
@@ -901,6 +952,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// is the same two-event shape an unsuspended resolution already produces
 	// (pass-branch grant + grantPriority), so the suspended path now matches.
 	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
+	if parkedDraws {
+		// The cascade's true end: any replacement-order choice the
+		// interrupted pass left queued is asked now, after the resolution's
+		// completion marker, never before it.
+		e.askNextReplacementChoice()
+	}
 }
 
 // buildContinuationChain turns the enclosing-loop suspension points reported

@@ -57,6 +57,21 @@ func drawFor(h Host, p state.PlayerID, cursor int, resumeSA *cards.SA) {
 		h.Emit(events.Event{Kind: events.PlayerLost, Player: p, Text: "drew from an empty library"})
 		return
 	}
+	// A DrawFor reached while the resolution is already suspended: a caller
+	// that does not check h.Suspended() between draws drove a second draw
+	// after the first one parked on a dredge ask. Posing a second ask here
+	// would overwrite the outstanding one (the orphaned-decision failure
+	// findings-sol4 proved); the guarded callers (effDraw's cursor loop,
+	// the turn draw, rules' lifeReplacementDraw park) never reach this
+	// suspended, so this degrades the unguarded one deterministically: no
+	// ask, an ordinary draw, one Note naming why.
+	if h.Suspended() {
+		h.Emit(events.Event{Kind: events.Note, Player: p,
+			Text: "drew without a dredge choice: another decision is already pending"})
+		h.Emit(events.Event{Kind: events.Draw, Player: p, Obj: lib[0],
+			From: state.ZLibrary, To: state.ZHand, Secret: true})
+		return
+	}
 	// Dredge (CR 702.55): before a player draws a card, if they have a card
 	// with Dredge in the graveyard they may instead mill N cards (N = the
 	// dredge number) and return that card from the graveyard to their hand,
