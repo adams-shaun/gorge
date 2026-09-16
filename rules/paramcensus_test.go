@@ -1096,13 +1096,14 @@ func (s *scan) closureReads(fi *fnInfo, exclude map[string]bool, visited map[str
 // params); a NEW api-specialised path must be added here or its reads
 // over-suppress every other API's real gaps.
 var apiSpecificRulesSA = map[string][]string{
-	// The mana-ability chain: activateManaFor's offer/payment/resolution
-	// chain (the activateMana entrypoint delegates and no longer reads SA
-	// params itself), the AvailableMana projection, and
+	// The mana-ability chain: the ability-choose wheel's Produced$ label read
+	// (manaAbilityLabel, called from activateManaFor which itself no longer
+	// touches SA params), manaAbilityPayable's offer/payment path, the
+	// AvailableMana projection, and
 	// activatedMatchesValidSA's Produced$-based mana-ability recognition --
 	// all run on mana abilities (api:Mana) only.
 	"Engine.manaAbilityPayable": {"Mana"},
-	"Engine.activateManaFor":    {"Mana"},
+	"manaAbilityLabel":          {"Mana"},
 	// The ManaReflected activation gate: only a reflected-mana ability's
 	// offer consults IsPresent$/PresentCompare$ on the SA itself (Tazri's
 	// "another activated ability" condition). A plain AB$ Mana ability's

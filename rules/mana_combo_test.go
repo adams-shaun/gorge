@@ -184,19 +184,20 @@ func TestKarplusanForestAddsOneChosenColourAndDealsOneDamage(t *testing.T) {
 	life := e.G.Players[0].Life
 	activateMana(t, e, id)
 	// Two distinct mana abilities share one tap cost, so the engine asks
-	// which one before the tap. Pick the Combo R G one.
+	// which one before the tap -- and the stage-1 label is human text now
+	// (fb-e079def5): "Add R or G", never the raw "Add Combo R G" token.
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("Karplusan ability decision = %+v, want a KChoose", d)
 	}
 	comboIdx := -1
 	for _, o := range d.Options {
-		if o.Kind == "mana" && o.Obj == id && o.Label == "Add Combo R G" {
+		if o.Kind == "mana" && o.Obj == id && o.Label == "Add R or G" {
 			comboIdx = o.Index
 		}
 	}
 	if comboIdx < 0 {
-		t.Fatalf("no Combo R G ability offered: %+v", d.Options)
+		t.Fatalf("no human Combo R G ability label offered: %+v", d.Options)
 	}
 	submitChoices(t, e, comboIdx)
 	d = e.Pending()
