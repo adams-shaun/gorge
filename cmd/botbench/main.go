@@ -1376,7 +1376,7 @@ func winRateFrac(wins, eff int) float64 {
 // the text table+pooled line or the JSON document. It shares playMatch, the
 // policies table and ci95 with run(), so the seat-trades-policies and
 // seed-determinism properties are the same two seats a single-pair run has.
-func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format string, pairs []pairDef, workers, maxTurns, maxIntents int, commander bool, out, prog io.Writer) error {
+func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format string, pairs []pairDef, workers, maxTurns, maxIntents int, commander bool, coverage *coveragePlan, out, prog io.Writer) error {
 	if seats != 2 {
 		return fmt.Errorf("-pairs requires -seats 2 (a matrix pits one deck pair against another), got %d", seats)
 	}
@@ -1463,6 +1463,10 @@ func runMatrix(baseSeed uint64, games, seats int, aName, bName, dir, format stri
 		}
 		collect.write(out)
 		return nil
+	}
+	if coverage != nil {
+		fmt.Fprintf(out, "coverage selection (static registered primitive metric): decks %s; historical default %d/%d, selected %d/%d\n",
+			strings.Join(coverage.Names, ","), coverage.Baseline, coverage.Available, coverage.Covered, coverage.Available)
 	}
 	if err := writeMatrixText(out, aName, bName, baseSeed, games, results, commander); err != nil {
 		return err
@@ -1638,7 +1642,7 @@ func main() {
 	seed := flag.Uint64("seed", 0, "base seed; game i plays at seed+i")
 	seats := flag.Int("seats", 2, "number of seats")
 	rotate := flag.Int("rotate", 0, "rotate the seat-to-deck assignment by N positions (seat s holds the (s+N)%%seats-th deck); 0 is today's fixed assignment")
-	pairs := flag.String("pairs", "", "deck-pair matrix: \"all\" for every unordered repo-deck pair, or a comma-separated \"a:b,c:d\" list; empty keeps today's single-pair behaviour")
+	pairs := flag.String("pairs", "", "deck-pair matrix: \"all\" for every unordered repo-deck pair, \"coverage\" for the deterministic primitive-covering deck subset, or a comma-separated \"a:b,c:d\" list; empty keeps today's single-pair behaviour")
 	format := flag.String("format", "constructed", "construction format: constructed or commander (commander deals commander decks into the command zone, starts at 40 life, and plays for -max-turns before a game is recorded as a stall)")
 	out := flag.String("out", "text", "matrix output format: text or json (json is machine-readable for diffing runs)")
 	workers := flag.Int("workers", 0, "parallelism budget for bench games, single-pair and matrix, across pairs and games; 0 = use all cores (result is deterministic regardless)")
@@ -1682,12 +1686,39 @@ func main() {
 			fmt.Fprintln(os.Stderr, "botbench: -rotate applies to the single-run bench only, not -pairs (a 2-seat pair already plays both seatings)")
 			os.Exit(1)
 		}
-		ps, err := parsePairsForMode(*pairs, deckPool, commander)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "botbench:", err)
-			os.Exit(1)
+		var coverage *coveragePlan
+		var ps []pairDef
+		if *pairs == "coverage" {
+			if *out != "text" {
+				fmt.Fprintln(os.Stderr, "botbench: -pairs coverage requires -out text so its static coverage metric is present")
+				os.Exit(1)
+			}
+			reg, err := testutil.OpenCorpusRegistry(*dir)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "botbench: opening corpus:", err)
+				os.Exit(1)
+			}
+			plan, err := coverageDeckPlan(reg, deckPool)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "botbench:", err)
+				os.Exit(1)
+			}
+			plan.Baseline, err = deckPrimitiveCoverage(reg, deckPool[:2])
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "botbench:", err)
+				os.Exit(1)
+			}
+			coverage = &plan
+			ps = fullPairs(plan.Names)
+		} else {
+			var err error
+			ps, err = parsePairsForMode(*pairs, deckPool, commander)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "botbench:", err)
+				os.Exit(1)
+			}
 		}
-		if err := runMatrix(*seed, *games, *seats, *a, *b, *dir, *out, ps, *workers, *maxTurns, *maxIntents, commander, os.Stdout, os.Stderr); err != nil {
+		if err := runMatrix(*seed, *games, *seats, *a, *b, *dir, *out, ps, *workers, *maxTurns, *maxIntents, commander, coverage, os.Stdout, os.Stderr); err != nil {
 			fmt.Fprintln(os.Stderr, "botbench:", err)
 			os.Exit(1)
 		}
