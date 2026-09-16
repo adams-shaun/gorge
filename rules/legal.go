@@ -37,7 +37,7 @@ func (e *Engine) sorcerySpeed(p state.PlayerID) bool {
 // twice. Only zones a land can meaningfully be played from (graveyard, exile)
 // are walked, since hand is covered by the normal walk and library is hidden.
 func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
-	if !e.sorcerySpeed(p) || e.G.Players[p].LandsPlayed >= 1 {
+	if !e.sorcerySpeed(p) || e.G.Players[p].LandsPlayed >= int32(1+e.adjustLandPlays(p)) {
 		return nil
 	}
 	type offered struct {
@@ -592,6 +592,35 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 	return out
 }
 
+// adjustLandPlays reports how many land drops BEYOND the ordinary one
+// (CR 305.2a) player p gets this turn: the SUM over the active
+// additional-land-drops grants (Azusa, Oracle of Mul Daya, Exploration)
+// whose Affects spec matches p -- the sum, never the max, because each
+// grant's printed sentence modifies the one-drop normal independently
+// (Azusa plus Exploration is three drops). Each grant's Affects is a
+// PLAYER spec evaluated with MatchesPlayerSpecFrom against the granting
+// effect's controller, so "Affected$ You" is the SOURCE's controller: a
+// stolen Azusa grants its new controller, and a spec with a qualifier the
+// matcher does not implement matches nobody (fail closed, no grant).
+// "On each of your turns" is not evaluated here -- the offer gates only
+// ever offer a play_land to the active player in a main phase, and the
+// per-turn counter resets at the TurnChange untap. The walk is a pure read
+// over active()'s sorted slice (never a map), so the resulting option list
+// stays reproducible run to run.
+func (e *Engine) adjustLandPlays(p state.PlayerID) int {
+	total := 0
+	for _, ce := range e.active() {
+		if ce.AdjustLandPlays <= 0 {
+			continue
+		}
+		if !effects.MatchesPlayerSpecFrom(e.G, ce.Affects, p, ce.Controller, ce.Source) {
+			continue
+		}
+		total += int(ce.AdjustLandPlays)
+	}
+	return total
+}
+
 // legalActions enumerates everything p may legally do with priority. The
 // result is the complete rules surface a client ever sees.
 func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
@@ -608,7 +637,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 			continue
 		}
 		if f.IsLand() {
-			if sorcery && e.G.Players[p].LandsPlayed < 1 {
+			if sorcery && e.G.Players[p].LandsPlayed < int32(1+e.adjustLandPlays(p)) {
 				add("play_land", "Play "+f.Name, id)
 			}
 			continue
