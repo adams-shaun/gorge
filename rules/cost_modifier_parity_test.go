@@ -51,6 +51,14 @@ const heartstoneSrc = "Name:Heartstone\nManaCost:3\nTypes:Artifact\n" +
 	"S:Mode$ ReduceCost | ValidCard$ Creature | Type$ Ability | Amount$ 1 | MinMana$ 1 | AffectedZone$ Battlefield | Description$ Activated abilities of creatures cost {1} less to activate. This effect can't reduce the mana in that cost to less than one mana.\n" +
 	"Oracle:Activated abilities of creatures cost {1} less to activate. This effect can't reduce the mana in that cost to less than one mana.\n"
 
+const biomancersFamiliarSrc = "Name:Biomancer's Familiar\nManaCost:G U\nTypes:Creature Mutant\nPT:2/2\n" +
+	"S:Mode$ ReduceCost | ValidCard$ Creature.YouCtrl | Type$ Ability | Amount$ 2 | MinMana$ 1 | AffectedZone$ Battlefield | Description$ Activated abilities of creatures you control cost {2} less to activate. This effect can't reduce the mana in that cost to less than one mana.\n" +
+	"Oracle:Activated abilities of creatures you control cost {2} less to activate. This effect can't reduce the mana in that cost to less than one mana.\n"
+
+const costlyCreatureAbilitySrc = "Name:Costly Creature\nManaCost:3 G\nTypes:Creature Beast\nPT:3/3\n" +
+	"A:AB$ Pump | Cost$ 3 | Defined$ Self | NumAtt$ +1 | NumDef$ +1 | SpellDescription$ CARDNAME gets +1/+1 until end of turn.\n" +
+	"Oracle:{3}: CARDNAME gets +1/+1 until end of turn.\n"
+
 const trinisphereSrc = "Name:Trinisphere\nManaCost:3\nTypes:Artifact\n" +
 	"S:Mode$ SetCost | ValidCard$ Card | Type$ Spell | Amount$ 3 | RaiseTo$ True | IsPresent$ Card.Self+untapped | Description$ As long as CARDNAME is untapped, each spell that would cost less than three mana to cast costs three mana to cast.\n" +
 	"Oracle:As long as Trinisphere is untapped, each spell that would cost less than three mana to cast costs three mana to cast.\n"
@@ -134,6 +142,27 @@ func TestAuriokSteelshaperDiscountsOnlyEquip(t *testing.T) {
 	if castByName(t, e2, 0, "Thalia, Guardian of Thraben") != nil {
 		t.Fatal("Steelshaper must not discount a plain creature cast (ValidSpell$ Activated.Equip)")
 	}
+}
+
+// TestBiomancersFamiliarOnlyReducesItsControllersCreatures pins the
+// controller-relative ValidCard$ context. The Familiar belongs to seat 1, so
+// its Creature.YouCtrl filter must not reduce seat 0's creature activation;
+// the same static does reduce seat 1's creature activation. In particular,
+// the payer is only the action actor -- it must never become the `You` used
+// to evaluate a static's ValidCard$.
+func TestBiomancersFamiliarOnlyReducesItsControllersCreatures(t *testing.T) {
+	e, cfg, _ := newFixtureDeck(t, 621, testBearSrc)
+	ours := putToken(t, e, 0, costlyCreatureAbilitySrc, state.ZBattlefield)
+	theirs := putToken(t, e, 1, costlyCreatureAbilitySrc, state.ZBattlefield)
+	putToken(t, e, 1, biomancersFamiliarSrc, state.ZBattlefield)
+
+	if got := e.AbilityCosts(0, ours); len(got) != 1 || got[0] != "3" {
+		t.Fatalf("opponent's Familiar reduced our creature activation to %v, want [3]", got)
+	}
+	if got := e.AbilityCosts(1, theirs); len(got) != 1 || got[0] != "1" {
+		t.Fatalf("Familiar did not reduce its controller's creature activation to %v, want [1]", got)
+	}
+	replayCheck(t, e, cfg)
 }
 
 // TestRakdosReduceCostEvaluatesTheLifeSVar pins the SVar Amount$: the

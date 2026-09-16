@@ -786,7 +786,7 @@ func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID,
 	if !e.costActorMatches(sv, p) {
 		return false
 	}
-	if spec, ok := sv.Params["ValidCard"]; ok && !effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, p)) {
+	if spec, ok := sv.Params["ValidCard"]; ok && !effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
 		return false
 	}
 	if vs, ok := sv.Params["ValidSpell"]; ok && !e.validSpellMatches(scope, p, id, vs) {
