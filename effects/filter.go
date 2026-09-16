@@ -94,6 +94,13 @@ var predicates = map[string]predFn{
 	"ExiledWithSourceLKI": func(_ *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		return src != 0 && o.ExiledWith == src
 	},
+	// escaped is the CastFlags provenance of an escape cast (CR 702.42a): the
+	// "sacrifice it unless it escaped" ETB family reads it through
+	// Card.Self+escaped (Kroxa, Uro, Phlage), as do the escape-with-counters
+	// replacement ValidCard$ specs. A card never escape-cast never matches.
+	"escaped": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.CastFlags&state.FlagEscaped != 0
+	},
 }
 
 // colorLetter maps a colour's English name to its WUBRG letter -- note Blue

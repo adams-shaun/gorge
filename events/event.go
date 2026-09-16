@@ -364,6 +364,7 @@ var flagNames = [...]struct {
 	{"buyback", state.FlagBuyback},
 	{"harmonize", state.FlagHarmonize},
 	{"suspend", state.FlagSuspend},
+	{"escaped", state.FlagEscaped},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

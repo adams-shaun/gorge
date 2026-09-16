@@ -621,6 +621,22 @@ func (e *Engine) HasKeyword(id state.ObjID, kw string) bool {
 	return false
 }
 
+// derivedKeywordParam is Face.KeywordParam over the object's CURRENT derived
+// keyword list (printed plus layer-6 granted), so a keyword a continuous
+// effect delivered (Underworld Breach's AddKeyword$ Escape grant, Snapcaster
+// Mage's Flashback) is readable exactly where the printed one would be.
+func (e *Engine) derivedKeywordParam(id state.ObjID, head string) (string, bool) {
+	for _, k := range e.Derived(id).Keywords {
+		if strings.EqualFold(cardsKeywordHead(k), head) {
+			if i := strings.IndexByte(k, ':'); i >= 0 {
+				return strings.TrimSpace(k[i+1:]), true
+			}
+			return "", true
+		}
+	}
+	return "", false
+}
+
 // IsCreature reads the current layer-derived type list. In particular, a
 // planeswalker animated by a layer-4 effect is a creature for damage marking,
 // even though its printed face is not.

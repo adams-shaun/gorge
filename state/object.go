@@ -64,6 +64,11 @@ const (
 	// FlagHarmonize and FlagSuspend exile the spell after it resolves.
 	FlagHarmonize
 	FlagSuspend
+	// FlagEscaped marks a cast paid for with its Escape cost (CR 702.42a);
+	// it survives onto the permanent, where the "sacrifice it unless it
+	// escaped" ETB family and the escape-with-counters replacements read it
+	// through the Card.Self+escaped spec.
+	FlagEscaped
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the

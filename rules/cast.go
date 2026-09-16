@@ -823,6 +823,12 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		} else {
 			cost = Cost{}
 		}
+	case "escape":
+		if ec, ok := e.escapeCost(id); ok {
+			cost = ec
+		} else {
+			cost = Cost{}
+		}
 	case "evoked", "dashed", "overloaded", "warped", "madness":
 		// The alternative-cost keyword family (altcosts): each mode's cost is
 		// the printed keyword parameter in place of the mana cost, exactly the
@@ -2398,6 +2404,8 @@ func modeFlags(mode string) string {
 	// The alternative-cost keyword family: the flag is what the ETB machinery
 	// (evoke's sacrifice trigger, dash's haste + delayed return, warp's
 	// delayed exile) and the warp recast offer read.
+	case "escape":
+		return events.FlagsString(state.FlagEscaped)
 	case "evoked":
 		return events.FlagsString(state.FlagEvoked)
 	case "dashed":

@@ -665,6 +665,35 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 		}
 	}
 
+	// Escape (CR 702.42a): a card in its owner's graveyard carrying the
+	// Escape keyword -- printed (Kroxa's K:Escape) or granted by a continuous
+	// effect (Underworld Breach's AddKeyword$ Escape, which Derived reads off
+	// the layer system) -- may be cast for its escape cost: the card's mana
+	// cost plus ExileFromGrave<N/Card.Other> parts, exiling N OTHER cards
+	// from the same graveyard. The cast is a normal cast (CR 702.42a gives
+	// no post-resolution destination change -- unlike flashback the spell
+	// goes where it would otherwise go), so modeFlags marks it FlagEscaped
+	// and the ETB machinery reads the flag through Card.Self+escaped.
+	for _, id := range e.G.Zone(state.ZGraveyard, p) {
+		o := e.G.Obj(id)
+		f := o.Face()
+		if f == nil || e.castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		if !e.HasKeyword(id, "Escape") {
+			continue
+		}
+		ec, ok := e.escapeCost(id)
+		if !ok || !e.spellTimingOK(p, id, f, sorcery) ||
+			!e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
+		if e.castable(p, id, e.offerCostFor(p, id, ec, false), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (escape)", Obj: id, Mode: "escape"})
+		}
+	}
+
 	// Warp recast from exile (CR 702: "exile this creature at the beginning
 	// of the next end step, then you may cast it from exile on a later
 	// turn"). The exile-zone walk offers the cast only to a warp card that
