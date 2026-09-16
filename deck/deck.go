@@ -343,26 +343,25 @@ func manaAbilityColours(f *cards.Face) uint8 {
 // would over-constrain a basic-typed card like Murmuring Bosk to all five
 // colours when it really produces only white, black (and green via its basic
 // land types).
+//
+// The token reading itself is cards.ProducedCounts, the one Produced$ parse
+// every projection shares: a plain symbol token contributes its listed
+// colours ("RR" and "R G" alike), and a token that names a script-level
+// choice ("Chosen", "ColorIdentity", a "Special ..." word) contributes
+// nothing -- never a phantom colour counted from the word's own runes. Only
+// the any-colour widening above is local: the deck builder WANTS "Any" to
+// bind a full-WUBRG commander (CR 903.5d), where the face projection
+// conservatively resolves Any to colourless.
 func producedColours(p string) uint8 {
 	switch p {
 	case "Any", "Combo Any":
 		return cards.ColourWhite | cards.ColourBlue | cards.ColourBlack | cards.ColourRed | cards.ColourGreen
-	case "", "C", "Colorless":
-		return 0
 	}
+	counts, _ := cards.ProducedCounts(p)
 	var m uint8
-	for _, r := range p {
-		switch r {
-		case 'W':
-			m |= cards.ColourWhite
-		case 'U':
-			m |= cards.ColourBlue
-		case 'B':
-			m |= cards.ColourBlack
-		case 'R':
-			m |= cards.ColourRed
-		case 'G':
-			m |= cards.ColourGreen
+	for i := 0; i < 5; i++ {
+		if counts[i] > 0 {
+			m |= 1 << uint(i)
 		}
 	}
 	return m

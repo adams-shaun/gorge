@@ -370,3 +370,72 @@ describe('SeatPanel — the mulligan prompt names the starting player (rv2a)', (
     expect(html).not.toContain('data-option="1"');
   });
 });
+
+describe('SeatPanel — the library-search picker (fb-20260916T181754Z)', () => {
+  // The wire shape the engine poses (effects/zone.go effSearchLibrary): a
+  // KChoose whose options are kind "search" with Obj set and the card's bare
+  // name as Label, in LIBRARY scan order — deliberately unalphabetical so
+  // the display sort has something to do. The predicate/sort/filter itself
+  // is pinned in lib/search.test.ts; these tests hold the component branch:
+  // the input renders, the display is sorted/filtered, and the data-option
+  // indexes stay the engine's whatever the display does.
+  const searchOpt = (index: number, label: string, obj: number): Option =>
+    ({ index, kind: 'search', label, obj, player: 1 });
+  const searchAsk: Decision = {
+    seq: 21, player: 1, kind: 'choose', prompt: 'Search your library for a card', min: 0, max: 1,
+    options: [
+      searchOpt(0, 'Wooded Foothills', 401),
+      searchOpt(1, 'an Island', 402),
+      searchOpt(2, 'Mistveil Plains', 403),
+      searchOpt(3, 'a card', 404),
+    ],
+  };
+  const modesAsk: Decision = {
+    seq: 22, player: 1, kind: 'modes', prompt: 'Choose a mode', min: 1, max: 1,
+    options: [opt(0, 'mode', 'Mode A'), opt(1, 'mode', 'Mode B')],
+  };
+
+  const optionOrder = (html: string): number[] =>
+    [...html.matchAll(/data-option="(\d+)"/g)].map((m) => Number(m[1]));
+
+  it('a search ask renders the filter input and its faces in ALPHABETICAL display order, with the wire indexes intact', () => {
+    const { html } = render(SeatPanel, { props: props(view(searchAsk)) });
+    expect(html).toContain('data-search-filter');
+    expect(html).toContain('data-search-grid');
+    // Sorted A→Z case-insensitively (library scan order would be 0,1,2,3)
+    expect(optionOrder(html)).toEqual([3, 1, 2, 0]);
+    expect(html).toContain('Wooded Foothills');
+    expect(html).toContain('a card');
+    // the submit gate is the decision's own shape: Min 0 / Max 1 shows the Confirm button
+    expect(html).toContain('data-submit');
+  });
+
+  it("filtering changes only the display: the surviving data-option indexes are the wire's", () => {
+    // Pre-seed the shared state with the adopted ask and a typed filter; the
+    // panel's init re-adopt early-returns on the same seq, so the filter
+    // survives into the render. (The interactive typing thread is the state
+    // contract pinned in lib/seatpanel.search.test.ts; here the render of a
+    // narrowed filter is what is held.)
+    const st = new SeatPanelState('t1', 1, ctx, null, null);
+    st.adoptView(searchAsk);
+    st.searchFilter = 'foo';
+    const { html } = render(SeatPanel, { props: { ...props(view(searchAsk)), state: st } });
+    expect(html).toContain('data-search-filter');
+    expect(optionOrder(html)).toEqual([0]); // only Wooded Foothills survives, under its own wire index
+  });
+
+  it('a filter matching nothing renders the no-match line and no option buttons', () => {
+    const st = new SeatPanelState('t1', 1, ctx, null, null);
+    st.adoptView(searchAsk);
+    st.searchFilter = 'delta';
+    const { html } = render(SeatPanel, { props: { ...props(view(searchAsk)), state: st } });
+    expect(optionOrder(html)).toEqual([]);
+    expect(html).toContain('No card matches');
+  });
+
+  it('a NON-search decision grows no filter input — the generic list renders exactly as before', () => {
+    const { html } = render(SeatPanel, { props: props(view(modesAsk)) });
+    expect(html).not.toContain('data-search-filter');
+    expect(html).toContain('Mode A');
+  });
+});
