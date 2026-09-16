@@ -46,6 +46,22 @@ func (e *Engine) attachmentSBAs() bool {
 				continue
 			}
 			if o.AttachedTo == 0 {
+				// A player-attached Aura (a Curse, K:Enchant:Opponent) attaches
+				// to no permanent at all: its bearer is a seat, and it dies
+				// when THAT player leaves the game or can no longer legally
+				// be enchanted (CR 704.5m's shape, one bearer kind over).
+				if o.HasAttachedPlayer {
+					if p := o.AttachedPlayer; int(p) < len(e.G.Players) && !e.G.Players[p].Lost &&
+						e.auraStillMatchesEnchantPlayer(o, p) {
+						continue
+					}
+					if isAura(o) {
+						e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+							From: state.ZBattlefield, To: state.ZGraveyard, Text: "Aura's enchanted player gone or illegal"})
+						changed = true
+					}
+					continue
+				}
 				// A detached Aura has nothing legal to do on the battlefield.
 				if isAura(o) {
 					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
@@ -102,6 +118,25 @@ func (e *Engine) auraStillMatchesEnchant(o, bearer *state.Object) bool {
 	}
 	spec, _, _ := strings.Cut(param, ":")
 	return effects.MatchesSpecFrom(e.G, strings.TrimSpace(spec), bearer.ID, o.Controller, o.ID)
+}
+
+// auraStillMatchesEnchantPlayer is auraStillMatchesEnchant's player-bearer
+// arm: the Enchant keyword's spec is checked against the PLAYER (the same
+// MatchesPlayerSpec grammar every trigger ValidPlayer$ uses), not against an
+// object. An Enchant-less or Player-spec aura stays; anything whose spec the
+// player no longer satisfies (or that names an object kind a player can
+// never be) bins the aura.
+func (e *Engine) auraStillMatchesEnchantPlayer(o *state.Object, p state.PlayerID) bool {
+	f := o.Face()
+	if f == nil {
+		return false
+	}
+	param, ok := f.KeywordParam("Enchant")
+	if !ok || strings.TrimSpace(param) == "" {
+		return true
+	}
+	spec, _, _ := strings.Cut(param, ":")
+	return effects.MatchesPlayerSpecFrom(e.G, strings.TrimSpace(spec), p, o.Controller, o.ID)
 }
 
 // isAura reports whether a permanent has the Aura subtype.

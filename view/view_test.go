@@ -954,13 +954,37 @@ func TestCardViewAttachedToRoundTripsJSON(t *testing.T) {
 	}
 
 	g.Obj(ench.ID).AttachedTo = 0
+	// Player zero is a real attachment bearer, so the view needs an explicit
+	// presence bit instead of treating its zero ID as unattached.
+	g.Obj(ench.ID).AttachedPlayer, g.Obj(ench.ID).HasAttachedPlayer = 0, true
+	playerAttached := Project(g, flatChars{g}, 0, nil)
+	pcv := playerAttached.Players[0].Battlefield[0]
+	if pcv.AttachedPlayer == nil || *pcv.AttachedPlayer != 0 || pcv.AttachedTo != 0 {
+		t.Fatalf("AttachedPlayer = %+v / AttachedTo = %d, want player 0 only", pcv.AttachedPlayer, pcv.AttachedTo)
+	}
+	pblob, err := json.Marshal(playerAttached)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(pblob), `"attached_player":0`) {
+		t.Fatalf("player attachment JSON missing attached_player: %s", pblob)
+	}
+	var playerBack View
+	if err := json.Unmarshal(pblob, &playerBack); err != nil {
+		t.Fatal(err)
+	}
+	if p := playerBack.Players[0].Battlefield[0].AttachedPlayer; p == nil || *p != 0 {
+		t.Fatalf("round-trip lost AttachedPlayer: %v", p)
+	}
+
+	g.Obj(ench.ID).HasAttachedPlayer = false
 	plain := Project(g, flatChars{g}, 0, nil)
 	pb, err := json.Marshal(plain)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(pb), "attached_to") {
-		t.Fatalf("an unattached permanent leaked an attached_to field: %s", pb)
+	if strings.Contains(string(pb), "attached_to") || strings.Contains(string(pb), "attached_player") {
+		t.Fatalf("an unattached permanent leaked an attachment field: %s", pb)
 	}
 }
 

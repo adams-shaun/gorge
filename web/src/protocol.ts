@@ -225,6 +225,12 @@ export interface CardView {
    */
   attached_to?: number;
   /**
+   * AttachedPlayer is the player this Aura enchants. It is a pointer rather
+   * than a zero-valued PlayerID because seat 0 is real: nil means no player
+   * attachment and preserves existing payloads, while &0 names seat 0.
+   */
+  attached_player?: number | null;
+  /**
    * AbilityCosts is the current offer-time Forge-notation cost of each
    * non-mana activated ability, in face ability order. Applicable
    * RaiseCost/ReduceCost statics have already been composed exactly as the

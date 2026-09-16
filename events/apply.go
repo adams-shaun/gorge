@@ -45,6 +45,20 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 
+	case AttachPlayer:
+		// An Aura attaching to a PLAYER (a Curse, K:Enchant:Opponent). An
+		// invalid seat or object is a no-op, the same totality stance as
+		// every other case here; clearing a player attachment is Move's job
+		// when the Aura leaves the battlefield.
+		if o := g.Obj(e.Obj); o != nil && validPlayer(g, e.Player) {
+			// An attachment has exactly one bearer. Clear an older object
+			// attachment before recording the player bearer; otherwise an
+			// Aura that changed attachment kinds would retain two incompatible
+			// bindings and the object-side SBA would win by accident.
+			o.AttachedTo = 0
+			o.AttachedPlayer, o.HasAttachedPlayer = e.Player, true
+		}
+
 	case LibraryOrder:
 		// A library-arranging effect (Ponder, later Scry/Surveil) set a
 		// complete new order on a player's library. Mechanically identical to
@@ -439,8 +453,15 @@ func Apply(g *state.Game, e Event) {
 	case Attach:
 		if o := g.Obj(e.Obj); o != nil {
 			if len(e.IDs) == 0 {
+				// The existing empty Attach is the generic detach operation;
+				// clear either kind of bearer.
 				o.AttachedTo = 0
+				o.AttachedPlayer, o.HasAttachedPlayer = 0, false
 			} else if g.Obj(e.IDs[0]) != nil {
+				// An attachment has exactly one bearer. Transitioning from a
+				// player attachment to an object attachment clears the player
+				// binding before recording the object one.
+				o.AttachedPlayer, o.HasAttachedPlayer = 0, false
 				o.AttachedTo = e.IDs[0]
 			}
 		}
@@ -724,6 +745,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ChosenModes = nil
 		}
 		o.AttachedTo = 0
+		o.AttachedPlayer, o.HasAttachedPlayer = 0, false
 	}
 }
 

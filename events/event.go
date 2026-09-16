@@ -230,6 +230,16 @@ const (
 	// distinct event: control is neither ownership nor a zone change, and a
 	// replay must retain it when the object later moves.
 	ControlChange
+	// AttachPlayer records what player permanent Obj is attached to — an Aura
+	// whose Enchant keyword names a player (a Curse, K:Enchant:Opponent). It
+	// is deliberately a distinct Kind from Attach (whose IDs hold an ObjID
+	// and whose empty form detaches an object attachment): a player is not an
+	// object id, and a detach is an object-attachment concept — a player
+	// attachment ends when the Aura itself leaves the battlefield, which Move
+	// already resets. Appended after ControlChange, following every prior
+	// Kind's append-only precedent, so no earlier ordinal, hash chain or
+	// golden replay is affected.
+	AttachPlayer
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -240,7 +250,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(ControlChange) + 1
+	NumKinds = int(AttachPlayer) + 1
 )
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
@@ -254,7 +264,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
-	"delayed_register", "delayed_push", "library_order", "monarch_change", "control_change"}
+	"delayed_register", "delayed_push", "library_order", "monarch_change", "control_change", "attach_player"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
