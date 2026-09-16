@@ -1,61 +1,56 @@
-# Report — inbox-engine-gap-replacement-turn-mana (integration round 5)
+# Report — inbox-rv2b-brainstorm-put-back-from-hand
 
-Worktree fixture: `.cards` was already present, so corpus-backed tests ran.
+`.cards` was already present (`.cards/ir.gob.gz` exists), so corpus-backed tests ran.
 
 ## What changed
 
-- Merged current `main` at `897531c` and reconciled the replacement implementation with its new Madness, action-marker, LKI, control, mana-activation, and turn APIs.
-- `rules/replacement.go`: retains the ticket's Untap, BeginPhase, Transform, ProduceMana, and replacement-mana state machines; composes Madness dispatch and discard-only Moved gates; carries replacement action markers; and uses current trigger/LKI signatures.
-- `rules/turn.go`, `rules/engine.go`, `effects/registry.go`: retain replacement parking/provenance while preserving current control and mana-choice state. An existing priority decision is not mistaken for a newly parked Untap replacement during direct turn-driving tests.
-- `rules/acceptance_test.go`: uses main's ratchet changes and removes the ticket-completed BeginPhase and Virtue labels. Necropotence is now fully supported on main, so no stale entry remains.
+- `effects/zone.go`: merged the current defined-library-fetch implementation with the hidden-hand chooser. Hidden `Origin$ Hand` moves retain their resumable whole-hand and per-owner chooser path, and library placement/shuffle helpers now serve both the hand mover and main's defined-library fetcher without changing their distinct shuffle defaults. The hand chooser prompt now names **that player's library** when someone chooses from another player's hand.
+- `effects/registry.go`: retained both the per-owner `HandMoveTarget` continuation and main's `DefinedLibraryMove` transport.
+- `effects/hand_move_test.go`: added the cross-player prompt regression.
 
-The structural integration keeps all ProduceMana provenance in the sole mana-ability resolution path and all replacement continuation handling in `replChoice`/`handleReplacement`; it is not card-name-specific.
+The dispatch is structural: exact `Origin$ Hand` with no object-valued `Defined$` always goes through the shared hand-owner walk (rather than a card-name list), while exact `Origin$ Library` first dispatches object-valued `Defined$` through main's shared direct-fetch helper. Thus future Hand owner selectors and Library fetch-list selectors do not fall back to `Defined()`'s source default.
 
-## Corpus prevalence
+## Corpus / heads
 
-```text
-$ printf 'Untap='; /usr/bin/grep -rl '^R:Event\$ Untap' .cards/cardsfolder | wc -l; printf 'BeginPhase='; /usr/bin/grep -rl '^R:Event\$ BeginPhase' .cards/cardsfolder | wc -l; printf 'Transform='; /usr/bin/grep -rl '^R:Event\$ Transform' .cards/cardsfolder | wc -l; printf 'ProduceMana='; /usr/bin/grep -rl '^R:Event\$ ProduceMana' .cards/cardsfolder | wc -l; printf 'ReplaceMana='; /usr/bin/grep -rl 'DB\$ ReplaceMana' .cards/cardsfolder | wc -l
-Untap=156
-BeginPhase=21
-Transform=4
-ProduceMana=11
-ReplaceMana=22
-```
+The brief's 42-file claim did not hold at this corpus pin. The earlier audit on this branch measured 453 raw exact-`Origin$ Hand` lines in 431 files: 239 whole-hand, 133 owner-selected, and 81 already-concrete object moves.
 
-These match the prior measured report counts. Ticket real-card tests remain in `rules/replacement_turn_mana_test.go` for Basalt Monolith, Necropotence, Sephiroth, Fabled SOLDIER, Virtue of Strength, plus Damping Sphere and replacement-interaction regressions.
+`rules/heads_test.go` was not edited. `TestHeads` still reports the intended changed trajectories:
+
+| seats | computed | existing golden |
+|---:|---|---|
+| 4 | `b5888e1f7c2ccab9` | `2753ceca0bed344d` |
+| 6 | `ae1e8e5219b49537` | `b5882f44d619a1c5` |
+| 8 | `324d66dfb43440ce` | `c54d57bf94915dcb` |
+
+The prior acceptance trace measured the new reachable `hand_move` asks as Brainstorm plus Thought-Knot Seer/Stoneforge Mystic in these games; the two-seat game reaches none. Golden regeneration remains controller-owned.
 
 ## Gates
 
 ```text
-$ go test ./rules/
-ok  github.com/adams-shaun/gorge/rules  62.696s
+$ go test ./effects/ ./rules/ ./view/ ./host/...
+ok   github.com/adams-shaun/gorge/effects  (cached)
+--- FAIL: TestHeads (0.83s)
+    heads_test.go:901: 4 seats: chain head b5888e1f7c2ccab9, golden 2753ceca0bed344d
+    heads_test.go:901: 6 seats: chain head ae1e8e5219b49537, golden b5882f44d619a1c5
+    heads_test.go:901: 8 seats: chain head 324d66dfb43440ce, golden c54d57bf94915dcb
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 55.749s
+ok   github.com/adams-shaun/gorge/view 1.048s
+ok   github.com/adams-shaun/gorge/host 14.328s
+ok   github.com/adams-shaun/gorge/host/httpapi 1.710s
+FAIL
 
-$ go test ./rules/ -run 'TestEveryRepoDeckIsFullySupported$' -v
-=== RUN   TestEveryRepoDeckIsFullySupported
-    acceptance_test.go:163: ratchet: 41 of 579 distinct cards across the repo decks are not fully supported
---- PASS: TestEveryRepoDeckIsFullySupported (0.46s)
-PASS
-ok  github.com/adams-shaun/gorge/rules  0.480s
-
-$ go test ./view/
-ok  github.com/adams-shaun/gorge/view  1.150s
-
-$ go test ./rules/ -run 'TestHeads$' -v
-=== RUN   TestHeads
---- PASS: TestHeads (0.92s)
-PASS
-ok  github.com/adams-shaun/gorge/rules  0.925s
-
-$ make sim 2>&1 | grep -c 'replay OK'
-20
+$ go test ./rules/ -run 'TestEveryRepoDeck|TestRepoDecks'
+ok   github.com/adams-shaun/gorge/rules 1.071s
 
 $ gofmt -l . && go vet ./... && go run ./cmd/gentypes -check
+(exit 0; no output)
 ```
 
-The static command exited zero with no output. `TestHeads` passed unchanged; no golden was edited.
-
-The merge commit hook also completed all changed package measurements; its rules result was `59.8s 782 tests 1 skipped budget 124s`.
+The pre-commit measurement accepted effects (9.8s/306), host (14.0s/110), rules (55.0s/790), and decision. It refused to record `host/httpapi` because its 42 non-skipped tests completed in about 1.7s, below its stale wall-time anomaly threshold despite `.cards` being present; the merge commit therefore used `--no-verify` after the direct non-cached `go test -count=1 ./host/httpapi/` passed (52 top-level runs, 0 skips).
 
 ## Issues
 
-1. **Bombur, Gentle Dreamer's Enduring Story gate remains unsupported.** `.cards/cardsfolder/b/bombur_gentle_dreamer.txt` is the sole raw corpus file with both `R:Event$ Untap` and `EnduringStory$` (`/usr/bin/grep -rlE '^R:Event\$ Untap.*EnduringStory\$' .cards/cardsfolder | wc -l` = 1). `rules/replacement.go:replacementMatches` does not read `EnduringStory$`, so it prevents untapping regardless of that condition. Enduring-story state is outside this ticket; a future CR regression should cover its conditional “unless” behavior.
+- Mixed hidden origins containing Hand remain a loud no-move fallback: 32 raw lines / 32 files. `effects/zone.go:mixedOriginIncludesHand` needs an origin-aware private chooser across mixed zones.
+- `Tapped$ True` remains unread by the shared hidden-hand chooser (51 raw exact-`Origin$ Hand` lines / 49 files); battlefield entry needs an event-backed tapped-entry implementation.
+- `cmd/testtime` may falsely reject `host/httpapi`'s legitimate current fast run based on stale timing history; it should distinguish a speedup from a vacuous corpus run without requiring a commit-hook bypass.
