@@ -20,7 +20,7 @@ var repoCommanderDecks = []struct {
 	{"foundations-wretched-ranks", "Ghoulcaller Gisa"},
 	{"foundations-reign-of-dragons", "Lathliss, Dragon Queen"},
 	{"foundations-tramplesaurus-rex", "Ghalta, Primal Hunger"},
-	{"hearthhull-worldseed-landfall", "Hearthhull, the Worldseed"},
+	{"hearthhull-worldseed-landfall", "Lord Windgrace"},
 	{"valgavoth-endless-punishment", "Valgavoth, Harrower of Souls"},
 }
 

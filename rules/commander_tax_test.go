@@ -18,14 +18,16 @@ import (
 const (
 	commanderBeatstickSrc = `Name:Beatstick
 ManaCost:0
-Types:Creature Zombie
+Types:Legendary Creature Zombie
 PT:1/1
+K:Partner
 Oracle:x
 `
 	commanderBattleGolemSrc = `Name:Battle Golem
 ManaCost:0
-Types:Creature Golem
+Types:Legendary Creature Golem
 PT:1/1
+K:Partner
 Oracle:x
 `
 )

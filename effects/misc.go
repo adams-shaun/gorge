@@ -122,10 +122,36 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	what := strings.TrimSpace(sa.Params["StaticAbilities"] + " " + sa.Params["Triggers"])
 	remembered := effectRemembered(h, c, sa)
 	registered := false
-	for _, name := range strings.Fields(sa.Params["StaticAbilities"]) {
+	// Effect can also create a replacement rather than a layer restriction.
+	// Forge stores its R: body behind an SVar name in ReplacementEffects$.
+	// Keep the parsed event data in state (which cannot import cards) and the
+	// body text for rules to resolve under this Effect's source context.
+	for _, name := range strings.FieldsFunc(sa.Params["ReplacementEffects"], func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	}) {
+		event, params := parseReplacementLine(c.SVars, name)
+		body := ""
+		if with := replacementLineWith(params); with != "" {
+			body = c.SVars[with]
+		}
+		if event == "DamageDone" && body != "" {
+			h.AddContinuous(state.ContinuousEffect{
+				Source: c.Source, Controller: c.Controller,
+				UntilEOT: effectUntilEOT(h, c.Source, dur), Duration: dur,
+				ReplacementEvent: event, ReplacementParams: params, ReplacementBody: body,
+			})
+			registered = true
+		} else if name != "" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "continuous replacement unimplemented (" + name + ")"})
+		}
+	}
+	for _, name := range strings.FieldsFunc(sa.Params["StaticAbilities"], func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	}) {
 		mode, params := parseStaticLine(c.SVars, name)
 		switch mode {
-		case "CantTarget", "CantRegenerate":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage":
 			// A compound IsRemembered spec (Card.IsRemembered+Creature) cannot
 			// be resolved by the remembered-set match alone -- the extra
 			// predicate would be silently dropped, over-applying the
@@ -179,6 +205,24 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 // the S: line's own grammar (cards/parse.go's "S" case). An empty or
 // malformed body degrades to "" mode and a nil map, which the switch in
 // effEffect treats as unimplemented rather than as a registration.
+// parseReplacementLine parses an Effect's SVar replacement body ("Event$
+// DamageDone | ...") using the same key/value grammar as parseStaticLine.
+func parseReplacementLine(svars map[string]string, name string) (string, map[string]string) {
+	body := strings.TrimSpace(svars[name])
+	if body == "" {
+		return "", nil
+	}
+	params := make(map[string]string)
+	for _, seg := range strings.Split(body, "|") {
+		key, val, ok := strings.Cut(strings.TrimSpace(seg), "$")
+		if !ok {
+			continue
+		}
+		params[strings.TrimSpace(key)] = strings.TrimSpace(val)
+	}
+	return params["Event"], params
+}
+
 func parseStaticLine(svars map[string]string, name string) (string, map[string]string) {
 	body := strings.TrimSpace(svars[name])
 	if body == "" {
@@ -286,6 +330,15 @@ func compoundRememberedSpec(params map[string]string) bool {
 		spec = params["ValidTarget"]
 	}
 	return strings.Contains(spec, "IsRemembered") && strings.ContainsAny(spec, "+,")
+}
+
+// replacementLineWith reads ReplaceWith$ off a parseReplacementLine-built
+// static line -- the SVar name of the R: body's own ReplaceWith$ body, not a
+// card Params map. Factored into its own function (mirroring
+// compoundRememberedSpec) so the paramcensus rot guard can classify the read
+// through a tracked helper parameter rather than an unclassified local.
+func replacementLineWith(params map[string]string) string {
+	return params["ReplaceWith"]
 }
 
 // effectUntilEOT decides expiry for an Effect registration: a one-shot spell
@@ -464,6 +517,13 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZStack {
 			continue
 		}
+		if !h.CounterAllowed(o.ID, c.Source) {
+			h.Emit(events.Event{Kind: events.Note, Obj: o.ID, Text: "counter prevented"})
+			if h.Suspended() {
+				return // replacement order must settle before any later target/SA
+			}
+			continue
+		}
 		if o.Ability != nil {
 			// CR 701.5a: to counter a spell or ability is to cancel it,
 			// removing it from the stack so it never resolves. An ability is
@@ -501,9 +561,24 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 // still ParseCost(sa.Params["UnlessCost"]) in rules' resumeResolution, and
 // AGENTS.md records what that substitution really costs.
 func unlessCostLabel(cost string) string {
+	if isPlainManaCost(cost) {
+		return cost
+	}
+	return "the cost"
+}
+
+// isPlainManaCost reports whether every whitespace field of an UnlessCost$
+// value is a generic number or a colour/colourless symbol — the same census
+// unlessCostLabel renders verbatim. It is the effects-side gate for "this
+// UnlessCost$ is plain mana": rules' shared unless_pay resume arm re-checks
+// the real ParseCost(...).Priceable() when it settles the answer, and the two
+// agree on every spelling this gate admits (a plain-mana spelling parses to
+// Generic/Colored parts only, no X, no non-mana component), so the gate
+// never poses an ask the resume arm would have to decline.
+func isPlainManaCost(cost string) bool {
 	fields := strings.Fields(cost)
 	if len(fields) == 0 {
-		return "the cost"
+		return false
 	}
 	for _, f := range fields {
 		if _, err := strconv.Atoi(f); err == nil {
@@ -512,9 +587,9 @@ func unlessCostLabel(cost string) string {
 		if strings.Trim(f, "WUBRGC") == "" {
 			continue // colour/colourless symbols
 		}
-		return "the cost"
+		return false
 	}
-	return cost
+	return true
 }
 
 // effDelayedTrigger implements Mode$ Phase delayed triggers -- the
@@ -872,10 +947,28 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	if amt < 0 {
 		amt = 0
 	}
+	// CR 107.4h: mana produced by a SNOW permanent is snow mana. A snow unit
+	// is tagged in the pool event itself — Counter "S<colour>" — so the pool
+	// slot and the parallel snow tally move through one event and a replay
+	// derives both identically. The {S} pips a cost may carry are paid only
+	// from that tally (rules/mana.go's resolveMana).
+	snow := false
+	if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+		for _, t := range o.Face().Types {
+			if t == "Snow" {
+				snow = true
+				break
+			}
+		}
+	}
 	for _, p := range ManaRecipients(h, c, sa) {
 		for _, r := range runes {
+			counter := string(r)
+			if snow {
+				counter = "S" + counter
+			}
 			h.Emit(events.Event{Kind: events.ManaAdd, Player: p,
-				Counter: string(r), Amount: amt})
+				Counter: counter, Amount: amt})
 		}
 	}
 }

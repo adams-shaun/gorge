@@ -10,8 +10,21 @@ type Player struct {
 	Lost        bool
 	LandsPlayed int32
 	Pool        Mana
+	// RestrictedMana retains the spend restriction on mana produced by a
+	// RestrictValid$ mana ability. It is cleared with the pool at step/phase
+	// cleanup and is reconstructed from ManaAdd events.
+	RestrictedMana []ManaRestriction
+
 	// Counters records player counters (currently poison, used by Ward costs).
 	Counters []Counter
+
+	// Snow parallels Pool slot for slot: Snow[i] counts how many of the
+	// Pool[i] mana units were produced by a Snow permanent (CR 107.4h — a
+	// snow unit can pay a {S} pip as well as anything else one mana pays).
+	// It is written only by the ManaAdd event's "S<colour>" Counter form and
+	// cleared with the pool by ManaClear, so Snow[i] <= Pool[i] always holds
+	// and a replay derives both identically.
+	Snow Mana
 
 	// Commanders lists this seat's commanders, in Config order, sized at
 	// genesis and never grown. CmdCasts runs parallel to it: entry k counts
@@ -25,6 +38,21 @@ type Player struct {
 	Commanders []ObjID
 	CmdCasts   []int32
 	CmdDamage  []int32
+
+	// Speed is this seat's speed (CR 702.163, "Start your engines!"): it
+	// starts at 0 (or 1 the first time an engine grants speed), rises by one
+	// once on each of this seat's own turns when an opponent loses life,
+	// caps at 4 (max speed), and never resets. Written only by events.Apply's
+	// SpeedChange case, so a log-only reconstruction rebuilds it exactly.
+	Speed int32
+}
+
+// ExtraTurn is one pending CR 500.7 turn. It is deliberately a queue entry,
+// rather than a per-player flag: several grants can be pending in LIFO order
+// and each grant can carry a different rider.
+type ExtraTurn struct {
+	Player    PlayerID
+	SkipUntap bool
 }
 
 // Counter returns this player's count of kind.
@@ -78,6 +106,22 @@ type Game struct {
 	// Winner's zero value is PlayerID(0), a real seat, so Over alone cannot
 	// distinguish "seat 0 won" from "nobody did" -- Draw is what does.
 	Draw bool
+	// ExtraTurns counts, per seat, how many EXTRA turns (CR 500.7) that seat
+	// still takes after the seat's current one, before turn order resumes
+	// normally. Added by an api:AddTurn effect's ExtraTurn event (+Amount),
+	// consumed by the turn structure (rules advanceStep emits Amount -1 and
+	// repeats the same seat) -- so a log-only reconstruction folds the same
+	// grants and consumptions to the same totals.
+	ExtraTurns map[PlayerID]int
+	// ExtraTurnQueue is the ORDERED pending extra turns, in creation order:
+	// one entry per un-consumed ExtraTurn grant (+Amount event), appended on
+	// the grant and removed (the seat's LAST entry) on the -1 consumption.
+	// CR 500.7 takes multiple extra turns MOST RECENTLY CREATED FIRST, so the
+	// turn structure consumes the queue from its end. Each entry retains the
+	// grant's turn-specific rider (currently SkipUntap), which a per-seat count
+	// cannot express. Every mutation rides the same events. Empty when no extra
+	// turn is pending.
+	ExtraTurnQueue []ExtraTurn
 	// Monarch is the current monarch when HasMonarch is true. The presence bit
 	// keeps seat zero distinct from no monarch.
 	Monarch    PlayerID
@@ -101,8 +145,9 @@ type Game struct {
 	// Forge script stem; set at genesis, never mutated, so Clone shares it.
 	Tokens map[string]*cards.Card
 
-	// Delayed holds delayed-trigger registrations (CR 603.7, Mode$ Phase)
-	// that have not yet fired. It is game state -- a delayed trigger is
+	// Delayed holds delayed-trigger registrations (CR 603.7: Mode$ Phase, or
+	// the event-matched shape a DelayedTrigger.EventMode names) that have not
+	// yet fired. It is game state -- a delayed trigger is
 	// registered during one resolution and fires later, in general a
 	// different turn, so the registration has to survive the event log to
 	// survive replay, and only events.Apply may write it. Each entry records
@@ -120,7 +165,8 @@ type Game struct {
 }
 
 // DelayedTrigger is one registered delayed triggered ability awaiting its
-// phase. It is reconstructed from the event log by events.Apply's
+// phase -- or, for an event-matched registration (EventMode set), awaiting its
+// triggering event. It is reconstructed from the event log by events.Apply's
 // DelayedRegister case, so a replay that folds the logged registrations
 // arrives at the same set. Firing (events.Apply's DelayedPush case) removes
 // the entry, which is what keeps a delayed trigger one-shot.
@@ -131,6 +177,24 @@ type DelayedTrigger struct {
 	Controller PlayerID
 	Execute    string // the SVar name of the ability to run when it fires
 	Remembered []Target
+	// MinTurn is the earliest game turn the trigger may fire in (zero = no
+	// bound). rules' delayed-trigger scan skips an entry whose MinTurn is
+	// still ahead of the current turn, which is how an extra-turn grant's
+	// end-step trigger (Final Fortune) skips the granting turn's own end
+	// step and fires in the granted turn instead. Folded from the
+	// registering event's Amount, so a replay rebuilds it.
+	MinTurn int32
+	// EventMode and Trigger extend the registration to the non-phase
+	// (event-matched) shape: EventMode is the trigger Mode$ the registration
+	// fires on ("SpellCast" -- the first spell cast whose event satisfies the
+	// body's validity clauses) and Trigger is the SVar name on the source's
+	// face holding that trigger body, re-parsed at fire time so ValidCard$/
+	// ValidActivatingPlayer$ are evaluated against the actual cast. Both are
+	// empty for a Mode$ Phase registration, so every already-registered shape
+	// is unchanged; the pair travels inside the DelayedRegister event's Text
+	// field ("<Mode>:<Trigger>") because the event gains no fields.
+	EventMode string
+	Trigger   string
 	// SourceIncarnation is captured for keyword promises whose effect applies
 	// to that exact permanent (dash/warp). Ordinary CR 603.7 delayed triggers,
 	// including Encore's group cleanup, intentionally leave TrackSource false:
@@ -216,6 +280,7 @@ func (g *Game) Clone() *Game {
 		c.Players[i].Commanders = append([]ObjID(nil), g.Players[i].Commanders...)
 		c.Players[i].CmdCasts = append([]int32(nil), g.Players[i].CmdCasts...)
 		c.Players[i].CmdDamage = append([]int32(nil), g.Players[i].CmdDamage...)
+		c.Players[i].RestrictedMana = append([]ManaRestriction(nil), g.Players[i].RestrictedMana...)
 	}
 	c.Objs = make([]Object, len(g.Objs))
 	for i := range g.Objs {
@@ -241,6 +306,13 @@ func (g *Game) Clone() *Game {
 			c.zones[i] = append([]ObjID(nil), z...)
 		}
 	}
+	if g.ExtraTurns != nil {
+		c.ExtraTurns = make(map[PlayerID]int, len(g.ExtraTurns))
+		for p, n := range g.ExtraTurns {
+			c.ExtraTurns[p] = n
+		}
+	}
+	c.ExtraTurnQueue = append([]ExtraTurn(nil), g.ExtraTurnQueue...)
 	return &c
 }
 

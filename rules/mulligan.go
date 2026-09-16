@@ -2,11 +2,8 @@ package rules
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
-	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -29,27 +26,6 @@ import (
 // the round's initial seat count. bottom is false during the keep/mulligan
 // phase and true during the bottoming phase; cursor names the next seat to ask
 // in whichever phase.
-// openingEffect is one optional !PlayFirst opening-hand SVar. It is plain
-// value data so clone/replay can preserve a decision waiting before the London
-// round; the SA points into the immutable compiled corpus.
-type openingEffect struct {
-	source     state.ObjID
-	controller state.PlayerID
-	sa         *cards.SA
-}
-
-// openingHost runs a pregame SVar outside the stack. Its outer may decision is
-// real; a nested effect chooser has no stack object to resume against, so it
-// takes effects' established no-host deterministic fallback instead of
-// creating an unresumable decision. Embedding keeps every state-changing call
-// on Engine's normal events.Emit path.
-type openingHost struct{ *Engine }
-
-func (openingHost) Ask(*decision.Decision) bool            { return false }
-func (openingHost) Suspended() bool                        { return false }
-func (openingHost) SuspendContinuation(*cards.SA)          {}
-func (openingHost) SuspendRepeat(effects.RepeatSuspension) {}
-
 type mulliganRound struct {
 	seats         []state.PlayerID
 	kept          []bool
@@ -97,23 +73,7 @@ func (e *Engine) stepPregame() {
 	if e.G.Over {
 		return
 	}
-	// An opening-hand !PlayFirst effect (Impatient Iguana, Gemstone Caverns)
-	// must see the toss designation before any mulligan declaration. Its outer
-	// may choice is explicit; the effect itself is the linked Forge SVar.
-	if e.openingCursor < len(e.opening) {
-		e.askOpeningEffect(e.opening[e.openingCursor])
-		return
-	}
 	m := &e.mulligan
-	if m.seats == nil {
-		if e.openingLimit == 0 {
-			e.pregame = false
-			e.beginTurn(e.G.StartingPlayer)
-			return
-		}
-		mCopy := newMulliganRound(e.G.AliveFrom(e.G.StartingPlayer), e.openingLimit)
-		*m = mCopy
-	}
 	if m.bottom {
 		// Bottoming phase: each seat bottoms its penalty count from its kept
 		// hand (the London end-of-round bottoming). A seat whose penalty is
@@ -127,11 +87,18 @@ func (e *Engine) stepPregame() {
 			e.askBottoming(i)
 			return
 		}
-		// Every seat that had something to bottom has bottomed: the round is
-		// over and the round's first seat -- m.seats[0], the toss winner the
-		// round was built from, not always seat 0 since the CR 103.1 toss --
-		// begins turn 1, exactly as before.
+		// Every seat has kept and bottomed. Opening-hand effects now inspect
+		// these FINAL hands: a Gemstone Caverns may not be used from a hand its
+		// owner later mulliganed away. They remain before turn one, and may
+		// still replace the starting player -- the round's first seat,
+		// m.seats[0] (the toss winner, not always seat 0 since the CR 103.1
+		// toss), begins turn 1, exactly as before.
 		e.pregame = false
+		e.opening = e.newOpeningRound(m.seats[0], 0)
+		if len(e.opening.effects) > 0 {
+			e.stepOpening()
+			return
+		}
 		e.beginTurn(m.seats[0])
 		return
 	}
@@ -331,73 +298,6 @@ func (e *Engine) handleMulligan(d *decision.Decision, in decision.Intent) {
 // of its owner's library -- a library's bottom is its last element (Move
 // appends to the destination zone's end) -- in the order the client
 // submitted them, then advances the round past this seat.
-// openingEffects finds every current opening-hand effect whose Forge keyword
-// carries !PlayFirst. The condition is evaluated from state.Game, not a toss
-// Note or an assumed seat zero, so the next card using the same keyword has
-// the same gate. Effects and seats are collected in turn order and hand order
-// only; neither source can reach a map iteration.
-func (e *Engine) openingEffects() []openingEffect {
-	var out []openingEffect
-	for _, p := range e.G.AliveFrom(e.G.StartingPlayer) {
-		if e.G.IsStartingPlayer(p) {
-			continue
-		}
-		for _, id := range e.G.Zone(state.ZHand, p) {
-			o := e.G.Obj(id)
-			if o == nil || o.Face() == nil {
-				continue
-			}
-			for _, keyword := range o.Face().Keywords {
-				if cards.KeywordHead(keyword) != "MayEffectFromOpeningHand" {
-					continue
-				}
-				param, ok := o.Face().KeywordParam("MayEffectFromOpeningHand")
-				if !ok {
-					continue
-				}
-				parts := strings.Split(param, ":")
-				if len(parts) < 2 || !strings.EqualFold(strings.TrimSpace(parts[len(parts)-1]), "!PlayFirst") {
-					continue
-				}
-				sa := cards.ResolveSVar(o.Face().SVars, strings.TrimSpace(parts[0]))
-				if sa != nil {
-					out = append(out, openingEffect{source: id, controller: p, sa: sa})
-				}
-			}
-		}
-	}
-	return out
-}
-
-func (e *Engine) askOpeningEffect(effect openingEffect) {
-	o := e.G.Obj(effect.source)
-	label := "Use opening-hand effect"
-	if o != nil && o.Face() != nil {
-		label = "Use " + o.Face().Name + "'s opening-hand effect"
-	}
-	e.ask(&decision.Decision{Player: effect.controller, Kind: decision.KChoose,
-		ResumeKind: "opening_effect", Source: effect.source,
-		Prompt: label + "?", Min: 1, Max: 1,
-		Options: []decision.Option{{Index: 0, Kind: "yes", Label: "Yes", Obj: effect.source, Player: effect.controller},
-			{Index: 1, Kind: "no", Label: "No", Obj: effect.source, Player: effect.controller}}})
-}
-
-func (e *Engine) handleOpeningEffect(d *decision.Decision, in decision.Intent) {
-	if e.openingCursor >= len(e.opening) {
-		return
-	}
-	effect := e.opening[e.openingCursor]
-	chosen := d.Chosen(in)
-	if len(chosen) == 1 && chosen[0].Kind == "yes" {
-		o := e.G.Obj(effect.source)
-		if o != nil && o.Zone == state.ZHand {
-			ctx := &effects.Ctx{Source: effect.source, Controller: effect.controller, SVars: o.Face().SVars}
-			effects.Resolve(openingHost{e}, ctx, effect.sa)
-		}
-	}
-	e.openingCursor++
-}
-
 func (e *Engine) handleBottoming(d *decision.Decision, in decision.Intent) {
 	e.mulligan.cursor++
 	for _, o := range d.Chosen(in) {

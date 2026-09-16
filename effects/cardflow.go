@@ -596,9 +596,28 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 		strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True")
 	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberRevealed"]), "True")
 	g := h.Game()
-	for _, t := range Defined(h, c, sa) {
+	// Forge's RevealDefined$ is the reveal family's equivalent of Defined$.
+	// Copy the SA and translate only the target selector, so the common
+	// resolver owns every Self/Targeted/Remembered spelling without mutating
+	// the shared compiled corpus. This matters for opening-hand reveals:
+	// Chancellor of the Tangle must reveal the chosen Chancellor, not an
+	// unrelated first card in its controller's hand.
+	revealSA := *sa
+	if spec := sa.Params["RevealDefined"]; spec != "" {
+		revealSA.Params = make(map[string]string, len(sa.Params)+1)
+		for key, value := range sa.Params {
+			revealSA.Params[key] = value
+		}
+		revealSA.Params["Defined"] = spec
+	}
+	for _, t := range Defined(h, c, &revealSA) {
 		p := PlayerOf(h, c, t)
 		pool := zoneOf(g, zone, p)
+		if sa.Params["RevealDefined"] != "" && !t.IsPlayer {
+			// A RevealDefined object is itself the card to reveal, not a
+			// selector for the first card in that player's zone.
+			pool = []state.ObjID{t.Obj}
+		}
 		if revealType != "" {
 			// RevealType$ (Slayer's Bounty: "look at the creature cards in
 			// target opponent's hand") narrows the pool to the cards of that

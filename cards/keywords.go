@@ -128,6 +128,16 @@ func (f *Face) expandKeywords() {
 			f.setSVar("__kwLWAttach", "DB$ Attach | Defined$ Remembered | Object$ Self")
 			f.addKeywordTrigger(head, k, "Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | TriggerDescription$ Living weapon",
 				"DB$ Token | TokenScript$ b_0_0_phyrexian_germ | TokenOwner$ You | RememberTokens$ True | SubAbility$ __kwLWAttach", has)
+		case "Cumulative upkeep":
+			// CR 702.46a is a triggered ability, not an upkeep turn action.
+			// Expanding it into the ordinary Phase-trigger pipeline gives it
+			// normal APNAP ordering, stack interaction and response windows.
+			// param may include Forge's trailing display text after a colon;
+			// only the first field is the actual upkeep cost.
+			cost, _, _ := strings.Cut(param, ":")
+			f.addKeywordTrigger(head, k,
+				"Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | TriggerDescription$ Cumulative upkeep",
+				"DB$ CumulativeUpkeep | Cost$ "+cost, has)
 		case "Equip":
 			if has("A", k) {
 				continue
@@ -142,6 +152,28 @@ func (f *Face) expandKeywords() {
 			// later Equip task's job, not this one's (Ledger).
 			cost, _, _ := strings.Cut(param, ":")
 			sa, _ := parseSA("", "AB$ Attach | Cost$ "+cost+" | ValidTgts$ Creature.YouCtrl | TgtPrompt$ Select target creature you control | SorcerySpeed$ True | Keyword$ Equip | SpellDescription$ Equip "+cost)
+			if sa != nil {
+				sa.Params["KeywordLine"] = k
+				f.Abilities = append(f.Abilities, sa)
+			}
+		case "Transmute":
+			if has("A", k) {
+				continue
+			}
+			// CR 702.53: transmute is a sorcery-speed hand activation. The
+			// searched card has the source card's printed mana value.
+			cost := strings.TrimSpace(param)
+			sa, _ := parseSA("", "AB$ ChangeZone | Cost$ "+cost+" Discard<1/CARDNAME> | ActivationZone$ Hand | SorcerySpeed$ True | Origin$ Library | Destination$ Hand | ChangeType$ Card.cmcEQ"+strconv.Itoa(int(f.Cmc()))+" | ChangeNum$ 1 | Keyword$ Transmute | SpellDescription$ Transmute "+cost)
+			if sa != nil {
+				sa.Params["KeywordLine"] = k
+				f.Abilities = append(f.Abilities, sa)
+			}
+		case "Cycling":
+			if has("A", k) {
+				continue
+			}
+			cost := strings.TrimSpace(param)
+			sa, _ := parseSA("", "AB$ Draw | Cost$ "+cost+" Discard<1/CARDNAME> | ActivationZone$ Hand | NumCards$ 1 | Keyword$ Cycling | SpellDescription$ Cycling "+cost)
 			if sa != nil {
 				sa.Params["KeywordLine"] = k
 				f.Abilities = append(f.Abilities, sa)

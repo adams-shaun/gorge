@@ -71,11 +71,43 @@ type pendingTrigger struct {
 
 // triggerKey identifies one T: line: the object that carries it, plus that
 // object's own Triggers index (a card can have more than one). Used both for
-// the cascade bound and for DamageDealtOnce/DamageDoneOnce's once-per-turn
+// the cascade bound and for DamageDealtOnce/DamageDoneOnce's once-per-batch
 // gate.
 type triggerKey struct {
 	Source state.ObjID
 	Idx    int
+	// Face distinguishes a Room's two faces (rules/rooms.go): an unlocked
+	// room's ALTERNATE face (index 1) carries its own triggers whose
+	// fire-count and once-per-turn memory must never share an entry with
+	// the cast face's same-index trigger. Zero for every ordinary read --
+	// the zero value keeps the field invisible to every existing key build.
+	Face uint8
+}
+
+// damageBatchKey identifies one DamageDealtOnce/DamageDoneOnce trigger's
+// referent within one damage batch. DamageDealtOnce latches per DEALING
+// source (Forge GameAction.triggerDamageDoneOnce's dealt half: one trigger per
+// source per batch, its referent amount the total that source dealt in the
+// batch); DamageDoneOnce latches per DAMAGED object (the done half: one
+// trigger per target, its referent amount the total that target took). The
+// embedded triggerKey keeps two T: lines of one card -- and the same line on
+// two cards -- independent.
+type damageBatchKey struct {
+	triggerKey
+	dealt  bool           // true: referent is the dealing source (DamageDealtOnce)
+	obj    state.ObjID    // the referent object (dealing source, or damaged object)
+	player state.PlayerID // the referent player when the damage went to a player
+}
+
+// damageBatchEntry records one (trigger, referent) pair already queued inside
+// the open damage batch: the pendingTriggers index it queued at (the queue is
+// append-only while a batch is open, so the index is stable until batch close)
+// and the batch amount accumulated so far, which closeDamageBatch patches into
+// the queued trigger's TriggerAmount referent.
+type damageBatchEntry struct {
+	key    damageBatchKey
+	idx    int
+	amount int32
 }
 
 // turnFires is one T: line's trigger count within the turn it last
@@ -255,7 +287,19 @@ func (e *Engine) controllerOf(id state.ObjID) state.PlayerID {
 func (e *Engine) checkDelayedTriggers(ev events.Event) {
 	for i := range e.G.Delayed {
 		dt := &e.G.Delayed[i]
+		if dt.EventMode != "" {
+			continue // an event-matched registration fires on its event, never a step
+		}
 		if dt.Phase != ev.Step {
+			continue
+		}
+		// CR 603.7 + CR 500.7 (rules/saga.go, events.ExtraTurn): a delayed
+		// trigger an extra-turn grant registered carries the granted turn's
+		// number as MinTurn, so the granting turn's own occurrence of the
+		// phase (Final Fortune's end step) does not consume the one-shot
+		// registration -- the trigger fires exactly once, in the granted
+		// turn, and the registration stays pending until then.
+		if dt.MinTurn > 0 && e.G.Turn < dt.MinTurn {
 			continue
 		}
 		if int(dt.Controller) >= len(e.G.Players) || e.G.Players[dt.Controller].Lost {
@@ -290,6 +334,107 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 	}
 }
 
+// checkEventDelayedTriggers queues a pending trigger for every event-matched
+// delayed registration (state.Game.Delayed entries with EventMode set) that
+// the event just folded satisfies. A Mode$ Phase registration fires on the
+// step it names (checkDelayedTriggers, above); the opening-hand Effect shape
+// (Chancellor of the Annex) registers Mode$ SpellCast one-off triggers, which
+// fire on a spell's PutOnStack exactly like a face SpellCast trigger. The
+// registration's STORED trigger body (dt.Trigger) is re-parsed at fire time
+// so its validity clauses are evaluated against the actual cast -- the
+// registration is the game state a replay rebuilds, the body is not.
+//
+// "You" inside that body is the REGISTRATION's controller -- the effect owner
+// the registration was minted for, not the source card's controller: the
+// Chancellor's Effect is EffectOwner$ Opponent, so each per-opponent
+// registration fires on that opponent's first cast, which is the oracle's
+// "when each opponent casts their first spell". TriggerZones$ is deliberately
+// not consulted: Forge parks the trigger on a command-zone Effect, while the
+// engine's registration itself is that presence -- the source Chancellor card
+// stays in its hand.
+func (e *Engine) checkEventDelayedTriggers(ev events.Event) {
+	for i := range e.G.Delayed {
+		dt := &e.G.Delayed[i]
+		if dt.EventMode != "SpellCast" {
+			continue
+		}
+		if int(dt.Controller) >= len(e.G.Players) || e.G.Players[dt.Controller].Lost {
+			continue
+		}
+		src := e.G.Obj(dt.Source)
+		if src == nil || src.Face() == nil || dt.Trigger == "" {
+			continue
+		}
+		t, ok := cards.ParseTriggerLine(src.Face().SVars[dt.Trigger])
+		if !ok || t.Mode != "SpellCast" {
+			continue
+		}
+		if !e.eventDelayedSpellCastMatches(t, dt, ev) {
+			continue
+		}
+		if !e.triggerConditionHoldsAs(t, dt.Source, dt.Controller) {
+			continue
+		}
+		sa := cards.ResolveSVar(src.Face().SVars, dt.Execute)
+		if sa == nil {
+			continue
+		}
+		remembered := triggerRemembered(ev, dt.Source)
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			Source:     dt.Source,
+			Controller: dt.Controller,
+			Delayed:    true,
+			DelayedID:  dt.ID,
+			Execute:    dt.Execute,
+			SA:         sa,
+			Ctx: effects.Ctx{
+				Source:     dt.Source,
+				Controller: dt.Controller,
+				Remembered: remembered,
+				Captured:   remembered,
+				// The same event-provenance capture the ordinary face
+				// SpellCast path takes (triggerReferents' SpellCast case),
+				// so the fired ability resolves TriggeredActivator/
+				// TriggeredSource exactly as a face trigger would.
+				TriggerContext: e.triggerReferents(t, dt.Source, ev, nil),
+			},
+		})
+	}
+}
+
+// eventDelayedSpellCastMatches is the event-matched registration's validity
+// evaluation, mirroring spellCastMatches' clause grammar (ValidCard$,
+// ValidActivatingPlayer$, PlayerTurn$) with one deliberate difference: the
+// "you" every player clause is measured against is dt.Controller, the
+// registration's effect owner, not the source card's controller (see
+// checkEventDelayedTriggers above).
+func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.DelayedTrigger, ev events.Event) bool {
+	if ev.Kind != events.PutOnStack {
+		return false
+	}
+	// Casting a spell means an actual card entering the stack (Ruling F3,
+	// the same guard spellCastMatches carries).
+	obj := e.G.Obj(ev.Obj)
+	if obj == nil || obj.Face() == nil {
+		return false
+	}
+	if actionTriggerModes[t.Mode] && strings.EqualFold(t.Params["PlayerTurn"], "True") &&
+		e.G.Active != dt.Controller {
+		return false
+	}
+	if v, ok := t.Params["ValidCard"]; ok {
+		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(dt.Source, dt.Controller)) {
+			return false
+		}
+	}
+	if v, ok := t.Params["ValidActivatingPlayer"]; ok {
+		if !effects.MatchesPlayerSpec(e.G, v, ev.Player, dt.Controller) {
+			return false
+		}
+	}
+	return true
+}
+
 // triggerSnapshot is immutable look-back state. Parked replacement choices
 // may retain it across intent/Clone boundaries; each matching walk constructs
 // its own Engine scratch caches, never mutating or sharing the snapshot's.
@@ -320,6 +465,14 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 		e.checkFaceTriggers(observer, ev, obj, power, toughness, valid, true, true)
 	}
 	e.checkFaceTriggers(e, ev, lki, lkiPower, lkiToughness, lkiPTValid, batch, false)
+	if ev.Kind == events.PutOnStack {
+		e.checkEventDelayedTriggers(ev)
+	}
+	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the
+	// two events that place lore counters -- the battlefield-entry Move
+	// (whose own grant is already folded into the live counter the check
+	// reads) and a LORE CounterChange (the draw-step half).
+	e.checkChapterTriggers(ev)
 	if ev.Kind == events.Draw {
 		e.offerMiracle(ev)
 	}
@@ -335,6 +488,13 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 	}
 	if ev.Kind == events.StepChange {
 		e.checkDelayedTriggers(ev)
+	}
+	// Rooms (CR 309.5): the unlocked half's "When you unlock this door"
+	// trigger queues off the DoorUnlock event itself -- its face is the
+	// alternate face (FaceIdx 1), which the ordinary face scan above does
+	// not walk.
+	if ev.Kind == events.DoorUnlock {
+		e.checkUnlockTriggers(ev)
 	}
 }
 
@@ -375,110 +535,198 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		if lki != nil && lki.ID == ev.Obj {
 			objLKI = lki
 		}
-		for ti, t := range f.Triggers {
-			// LifeLostAll is evaluated once at the end of a simultaneous
-			// life-loss batch. Do not queue it once per serialized Damage/
-			// LifeChange event, and do not let the finishing pass re-check
-			// unrelated trigger modes.
-			if t.Mode == "LifeLostAll" && e.lifeLossBatchDepth > 0 && !e.finishingLifeLossBatch {
-				continue
-			}
-			if e.finishingLifeLossBatch && t.Mode != "LifeLostAll" {
-				continue
-			}
-			if !leaving {
-				// Phase$ is a common Forge trigger gate, not a Mode$ Phase
-				// parameter: ChangesZone, SpellCast, and every other supported
-				// trigger mode may carry it. Report an unresolvable value once
-				// per engine per spec, while triggerMatches rejects it on every
-				// event. Keeping reporting outside the scratch look-back walk
-				// means a Note is a real event, never an observer side effect.
-				spec := t.Params["Phase"]
-				if strings.TrimSpace(spec) != "" {
-					if _, unknown := state.ParsePhases(spec); len(unknown) > 0 {
-						if e.phaseUnknownNoted == nil {
-							e.phaseUnknownNoted = map[string]bool{}
-						}
-						if !e.phaseUnknownNoted[spec] {
-							e.phaseUnknownNoted[spec] = true
-							phaseNotes = append(phaseNotes, phaseNote{id: id, spec: spec})
+		// Enchantment Rooms (rules/rooms.go): an UNLOCKED room's alternate
+		// face is live too, so its triggers walk in the same scan. The face
+		// index rides the triggerKey (Face field) so the alternate face's
+		// fire-count and once-per-turn memory never share an entry with the
+		// cast face's same-index trigger. roomTriggerFaces returns the faces
+		// to walk, cast face first.
+		for _, fc := range roomTriggerFaces(o, f) {
+			for ti, t := range fc.face.Triggers {
+				// LifeLostAll is evaluated once at the end of a simultaneous
+				// life-loss batch. Do not queue it once per serialized Damage/
+				// LifeChange event, and do not let the finishing pass re-check
+				// unrelated trigger modes.
+				if t.Mode == "LifeLostAll" && e.lifeLossBatchDepth > 0 && !e.finishingLifeLossBatch {
+					continue
+				}
+				if e.finishingLifeLossBatch && t.Mode != "LifeLostAll" {
+					continue
+				}
+				if !leaving {
+					// Phase$ is a common Forge trigger gate, not a Mode$ Phase
+					// parameter: ChangesZone, SpellCast, and every other supported
+					// trigger mode may carry it. Report an unresolvable value once
+					// per engine per spec, while triggerMatches rejects it on every
+					// event. Keeping reporting outside the scratch look-back walk
+					// means a Note is a real event, never an observer side effect.
+					spec := t.Params["Phase"]
+					if strings.TrimSpace(spec) != "" {
+						if _, unknown := state.ParsePhases(spec); len(unknown) > 0 {
+							if e.phaseUnknownNoted == nil {
+								e.phaseUnknownNoted = map[string]bool{}
+							}
+							if !e.phaseUnknownNoted[spec] {
+								e.phaseUnknownNoted[spec] = true
+								phaseNotes = append(phaseNotes, phaseNote{id: id, spec: spec})
+							}
 						}
 					}
 				}
-			}
-			// A "from anywhere" graveyard trigger is NOT a leaves-the-
-			// battlefield trigger (CR 603.6c), even when this particular
-			// move happens to leave the battlefield. Only the explicit
-			// battlefield-origin shape looks back; destination triggers
-			// still use the post-event source/zone in the live walk.
-			looksBack := t.Mode == "ChangesZone" && t.Params["Origin"] == "Battlefield"
-			if split && looksBack != leaving {
-				continue
-			}
-			// CR 603.8 state trigger: its condition is checked against the
-			// current state, not against the event under test, and it fires
-			// at most once per outstanding instance. A trigger that already
-			// has an instance queued or on the stack does not re-fire, so a
-			// condition that stays true cannot enqueue an unbounded run
-			// (the concise standing caveat against naively re-firing Always
-			// on every bookkeeping event).
-			if t.Mode == "Always" && e.stateTriggerOutstanding(id, ti) {
-				continue
-			}
-			if !observer.triggerMatches(t, id, ev, objLKI) {
-				continue
-			}
-			key := triggerKey{Source: id, Idx: ti}
-			if e.triggerFireCount == nil {
-				e.triggerFireCount = map[triggerKey]int32{}
-			}
-			if e.triggerFireCount[key] >= maxTriggerFires {
-				continue // cascade bound: see maxTriggerFires.
-			}
-			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
-				continue // ActivationLimit$: already triggered enough this turn.
-			}
-			if t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" {
-				if e.damageOnceFired == nil {
-					e.damageOnceFired = map[triggerKey]int32{}
+				// A "from anywhere" graveyard trigger is NOT a leaves-the-
+				// battlefield trigger (CR 603.6c), even when this particular
+				// move happens to leave the battlefield. Only the explicit
+				// battlefield-origin shape looks back; destination triggers
+				// still use the post-event source/zone in the live walk.
+				looksBack := t.Mode == "ChangesZone" && t.Params["Origin"] == "Battlefield"
+				if split && looksBack != leaving {
+					continue
 				}
-				if e.damageOnceFired[key] == e.G.Turn {
-					continue // already fired this turn.
+				// CR 603.8 state trigger: its condition is checked against the
+				// current state, not against the event under test, and it fires
+				// at most once per outstanding instance. A trigger that already
+				// has an instance queued or on the stack does not re-fire, so a
+				// condition that stays true cannot enqueue an unbounded run
+				// (the concise standing caveat against naively re-firing Always
+				// on every bookkeeping event).
+				if t.Mode == "Always" && e.stateTriggerOutstanding(id, ti) {
+					continue
 				}
-				e.damageOnceFired[key] = e.G.Turn
+				if !observer.triggerMatches(t, id, ev, objLKI) {
+					continue
+				}
+				if (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce") && ev.Amount <= 0 {
+					continue
+				}
+				key := triggerKey{Source: id, Idx: ti, Face: fc.faceIdx}
+				if e.triggerFireCount == nil {
+					e.triggerFireCount = map[triggerKey]int32{}
+				}
+				if e.triggerFireCount[key] >= maxTriggerFires {
+					continue // cascade bound: see maxTriggerFires.
+				}
+				if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
+					continue // ActivationLimit$: already triggered enough this turn.
+				}
+				if t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" {
+					// The "Once" gate latches once per DAMAGE BATCH, not per turn
+					// (CR 510.4; Forge PhaseHandler.dealAssignedDamage fires
+					// triggerDamageDoneOnce once per damage step, and one
+					// dealDamage call's damage per batch): a double striker's
+					// bearer triggers Jitte twice (two damage steps), and two
+					// separate damage events in one turn trigger an Enrage creature
+					// twice -- while two blockers hitting back at the same creature
+					// in ONE batch trigger it once, with the referent carrying the
+					// batch's accumulated total. Within an open batch the entry
+					// below IS the latch (a second matching event accumulates into
+					// it); no batch open means every Damage event is its own batch,
+					// so there is nothing to latch across and the trigger fires per
+					// event with its own event amount already the batch total.
+					// Non-positive amounts (the negative-amount Damage events the
+					// cleanup/regeneration repair paths emit to clear marked
+					// damage) are not damage and never latch or queue a Once
+					// trigger.
+					if ev.Amount > 0 {
+						bk := damageBatchKey{triggerKey: key, dealt: t.Mode == "DamageDealtOnce"}
+						if bk.dealt {
+							// Combat identifies the actual attacker/blocker in damaging;
+							// an effect batch's shared source is its published override
+							// or its resolving stack object otherwise. A watcher can
+							// match several sources in one batch, so never collapse
+							// non-combat sources onto ObjID zero. Same priority order as
+							// the ValidSource$ match above: an explicit override always
+							// wins, e.damaging is combat-only, damageSource is the
+							// non-combat fallback.
+							bk.obj = e.dmgSrcOverride
+							if bk.obj == 0 {
+								if e.combatDamaging {
+									bk.obj = e.damaging
+								} else {
+									bk.obj = e.damageSource()
+								}
+							}
+						} else if ev.Obj != 0 {
+							bk.obj = ev.Obj
+						} else {
+							bk.player = ev.Player
+						}
+						if e.damageBatchOpen {
+							if e.damageBatchIdx == nil {
+								e.damageBatchIdx = map[damageBatchKey]int{}
+							}
+							if entIdx, ok := e.damageBatchIdx[bk]; ok {
+								e.damageBatchLog[entIdx].amount += ev.Amount
+								continue // already queued once for this batch and referent.
+							}
+							e.damageBatchIdx[bk] = len(e.damageBatchLog)
+							e.damageBatchLog = append(e.damageBatchLog, damageBatchEntry{
+								key: bk, idx: len(e.pendingTriggers), amount: ev.Amount,
+							})
+							// Fall through: the trigger queues now, at the same point
+							// in the stream it queued at before this gate was
+							// batch-scoped; closeDamageBatch patches its referent
+							// amount to the batch total.
+						}
+					}
+				}
+				e.triggerFireCount[key]++
+				if t.Effect == nil {
+					// Execute$ named an SVar this face never defined (or one
+					// that failed to parse): the trigger matched, but there is
+					// nothing to run.
+					continue
+				}
+				// CR 603.3a/603.10a: a leaves-the-battlefield ability's source
+				// is controlled by whoever controlled it as it left, not by the
+				// owner the move has since reset it to (a stolen creature's own
+				// dies trigger belongs to the player who stole it).
+				controller := o.Controller
+				if objLKI != nil && id == ev.Obj && leftBattlefield(ev) {
+					controller = objLKI.Controller
+				}
+				// The non-active face of an unlocked Room must be minted through
+				// the delayed-shape push: TriggerPush re-derives an ability from
+				// the object's active Face(), while the delayed push resolves the
+				// other face's Execute$ SVar directly. This is independent of
+				// whether CR 309.4b cast face 0 or face 1.
+				alt := !fc.active
+				pt := pendingTrigger{
+					Source:     id,
+					Controller: controller,
+					Idx:        ti,
+					SA:         t.Effect,
+					Ctx: effects.Ctx{
+						Source:         id,
+						Controller:     controller,
+						Remembered:     triggerRemembered(ev, id),
+						Captured:       triggerRemembered(ev, id),
+						LKI:            objLKI,
+						LKIPower:       lkiPower,
+						LKIToughness:   lkiToughness,
+						LKIPTValid:     objLKI != nil && lkiPTValid,
+						TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+					},
+				}
+				if alt {
+					pt.Delayed = true
+					pt.DelayedID = ^uint32(0)
+					pt.Execute = t.Params["Execute"]
+				}
+				e.pendingTriggers = append(e.pendingTriggers, pt)
+				// stat:Panharmonicon (CR 702.109): "If a triggered ability of a
+				// ... permanent you control triggers, that ability triggers an
+				// additional time." Each battlefield Panharmonicon-shaped static
+				// whose ValidCard$ matches the triggering object appends ONE extra
+				// copy of this trigger immediately after the original, in scan
+				// order -- deterministic, and the extra copy is an ordinary queue
+				// entry that resolves like any other (the doubling does not fire on
+				// the copy again: the copy is not an event). Panharmonicon's own
+				// trigger is excluded by the spec's Other predicate, which is
+				// relative to the Panharmonicon permanent itself.
+				for k := 0; k < e.panharmoniconEchoes(observer.G, id, ev); k++ {
+					e.pendingTriggers = append(e.pendingTriggers, pt)
+				}
 			}
-			e.triggerFireCount[key]++
-			if t.Effect == nil {
-				// Execute$ named an SVar this face never defined (or one
-				// that failed to parse): the trigger matched, but there is
-				// nothing to run.
-				continue
-			}
-			// CR 603.3a/603.10a: a leaves-the-battlefield ability's source
-			// is controlled by whoever controlled it as it left, not by the
-			// owner the move has since reset it to (a stolen creature's own
-			// dies trigger belongs to the player who stole it).
-			controller := o.Controller
-			if objLKI != nil && id == ev.Obj && leftBattlefield(ev) {
-				controller = objLKI.Controller
-			}
-			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
-				Source:     id,
-				Controller: controller,
-				Idx:        ti,
-				SA:         t.Effect,
-				Ctx: effects.Ctx{
-					Source:         id,
-					Controller:     controller,
-					Remembered:     triggerRemembered(ev, id),
-					Captured:       triggerRemembered(ev, id),
-					LKI:            objLKI,
-					LKIPower:       lkiPower,
-					LKIToughness:   lkiToughness,
-					LKIPTValid:     objLKI != nil && lkiPTValid,
-					TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
-				},
-			})
 		}
 	})
 	for _, n := range phaseNotes {
@@ -486,6 +734,82 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 			Text: "Phase$ " + n.spec + " names no engine step; the trigger never fires"})
 	}
 }
+
+// triggerFace is one face's trigger walk: its printed index keys fire-count
+// memory, and active says whether TriggerPush can re-derive it through the
+// object's current Face() (the other unlocked Room face must use a delayed
+// shape because Apply cannot select it).
+type triggerFace struct {
+	face    *cards.Face
+	faceIdx uint8
+	active  bool
+}
+
+// roomTriggerFaces returns the faces whose Triggers a scan walks for object
+// o: its cast face always, plus the other face once unlocked (CR 309.6).
+// FaceIdx need not be zero: CR 309.4b permits casting either Room door.
+func roomTriggerFaces(o *state.Object, active *cards.Face) []triggerFace {
+	out := []triggerFace{{face: active, faceIdx: o.FaceIdx, active: true}}
+	if o.Unlocked && isRoom(o) && len(o.Card.Faces) == 2 && int(o.FaceIdx) < len(o.Card.Faces) {
+		other := uint8(1 - int(o.FaceIdx))
+		out = append(out, triggerFace{face: o.Card.Faces[other], faceIdx: other})
+	}
+	return out
+}
+
+// openDamageBatch opens a damage batch: the Damage events emitted until the
+// matching closeDamageBatch are one simultaneous batch for the
+// DamageDealtOnce/DamageDoneOnce latch (CR 510.4; Forge dealAssignedDamage).
+// Reentrant brackets belong to the same simultaneous batch: depth makes an
+// inner close consume only its own begin, so it cannot close the outer batch
+// early.
+func (e *Engine) openDamageBatch() {
+	if e.damageBatchDepth == 0 {
+		e.damageBatchOpen = true
+		e.damageBatchIdx = nil
+		e.damageBatchLog = nil
+	}
+	e.damageBatchDepth++
+}
+
+// closeDamageBatch closes the open damage batch: every entry's queued trigger
+// gets its referent patched to the batch's accumulated total (two blockers
+// hitting one Enrage creature is ONE trigger whose amount is the sum), then
+// the batch bookkeeping is dropped. The Once latch lives entirely inside the
+// open batch -- entries are the latch, and closing clears them -- so nothing
+// persists between batches and no per-turn latch remains. The pendingTriggers
+// index recorded at queue time is re-checked against the trigger it was
+// recorded for before patching; a mismatch (impossible today -- the queue is
+// append-only while a batch is open, and nothing drains mid-batch) falls back
+// to the first event's amount rather than patching a stranger.
+func (e *Engine) closeDamageBatch() {
+	if e.damageBatchDepth == 0 {
+		return
+	}
+	e.damageBatchDepth--
+	if e.damageBatchDepth != 0 {
+		return
+	}
+	e.damageBatchOpen = false
+	for _, ent := range e.damageBatchLog {
+		if ent.idx >= len(e.pendingTriggers) {
+			continue
+		}
+		pt := &e.pendingTriggers[ent.idx]
+		if pt.Source != ent.key.Source || pt.Idx != ent.key.Idx {
+			continue
+		}
+		pt.Ctx.TriggerContext.TriggerAmount = ent.amount
+	}
+	e.damageBatchIdx = nil
+	e.damageBatchLog = nil
+}
+
+// BeginDamageBatch/EndDamageBatch are effects.Host's damage-batch bracket
+// (effects/damage.go calls them around each dealDamage-style call); they are
+// openDamageBatch/closeDamageBatch on the engine. See there.
+func (e *Engine) BeginDamageBatch() { e.openDamageBatch() }
+func (e *Engine) EndDamageBatch()   { e.closeDamageBatch() }
 
 // triggerRemembered is what a matched trigger's Ctx.Remembered holds: the
 // object the triggering event was actually about (the card that changed
@@ -1349,9 +1673,9 @@ func (e *Engine) firstLifeLossThisTurn(p state.PlayerID) bool {
 }
 
 // damageMatches implements Mode$ DamageDone, DamageDealtOnce and
-// DamageDoneOnce (the once-per-turn gate itself lives in checkTriggers,
-// alongside the cascade bound; this is purely the per-event parameter match,
-// shared by all three modes).
+// DamageDoneOnce (the once-per-damage-batch gate itself lives in
+// checkTriggers, alongside the cascade bound; this is purely the per-event
+// parameter match, shared by all three modes).
 func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.Damage {
 		return false
@@ -1377,16 +1701,31 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 	}
 	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidSource"]; ok {
-		// The damage's source: the resolving spell or ability while it is the
-		// stack top (damageSource), or the dealing creature during combat's
-		// assignment loop (e.damaging, set alongside combatDamaging). During
-		// combat the stack is empty, so damageSource alone would return zero
-		// and every ValidSource$ CombatDamage$ trigger -- Umezawa's Jitte's
-		// ValidSource$ Creature.EquippedBy among them -- would stay dead even
-		// with the flag in place.
-		src := e.damageSource()
-		if src == 0 && e.combatDamaging {
-			src = e.damaging
+		// The damage's source, in priority order:
+		//  1. an explicit published override (rules.Engine.SetDamageSource --
+		//     DamageSource$ names the PERMANENT that dealt it, never the
+		//     ability wrapper resolving it) -- authoritative whenever an
+		//     emitter set one, combat included.
+		//  2. during combat's assignment loop, e.damaging (the actual
+		//     attacker/blocker dealing this hit). The stack is USUALLY empty
+		//     during combat, but not always -- the between-passes priority
+		//     round (CR 510.3/4) can leave a first-strike trigger on the
+		//     stack while the regular pass deals (measured:
+		//     TestUmezawasJitteGainsChargeCountersPerDamageStep's bearer
+		//     deals in both passes with the first pass's trigger unresolved
+		//     on the stack) -- so combat damage must prefer e.damaging over
+		//     the stack top, or every ValidSource$ CombatDamage$ trigger
+		//     (Umezawa's Jitte's ValidSource$ Creature.EquippedBy among them)
+		//     goes dead for the second pass.
+		//  3. otherwise, the resolving spell or ability while it is the
+		//     stack top (damageSource).
+		src := e.dmgSrcOverride
+		if src == 0 {
+			if e.combatDamaging {
+				src = e.damaging
+			} else {
+				src = e.damageSource()
+			}
 		}
 		if src == 0 || !effects.MatchesSpecCtx(e.G, v, src, e.specCtx(source, ctrl)) {
 			return false
@@ -1553,11 +1892,11 @@ func abilityCastValidSA(ab *cards.SA, validSA string) bool {
 			case "":
 				return true
 			case "!ManaAbility":
-				if ab.API != "Mana" {
+				if !isManaAbilityAPI(ab.API) {
 					return true
 				}
 			case "ManaAbility":
-				if ab.API == "Mana" {
+				if isManaAbilityAPI(ab.API) {
 					return true
 				}
 			}
@@ -1581,10 +1920,19 @@ func abilityCastValidSA(ab *cards.SA, validSA string) bool {
 // fire, never that an unreadable life/creature count is presumed large
 // enough to let a win or counter trigger slip through.
 func (e *Engine) triggerConditionHolds(t cards.Trigger, source state.ObjID) bool {
+	return e.triggerConditionHoldsAs(t, source, e.controllerOf(source))
+}
+
+// triggerConditionHoldsAs is triggerConditionHolds with "you" supplied
+// explicitly rather than derived from source's controller. An event-matched
+// delayed trigger's "you" is the registration's effect owner (dt.Controller),
+// which can differ from the source card's own controller -- see
+// checkEventDelayedTriggers.
+func (e *Engine) triggerConditionHoldsAs(t cards.Trigger, source state.ObjID, you state.PlayerID) bool {
 	// LifeLost's LifeAmount$ is matched against the causing loss by
 	// lifeLostMatches, rather than against a player's current life total.
 	if v, ok := t.Params["LifeAmount"]; ok && t.Mode != "LifeLost" && t.Mode != "LifeLostAll" {
-		if !e.lifeConditionHolds(t, source, v) {
+		if !e.lifeConditionHoldsAs(t, you, v) {
 			return false
 		}
 	}
@@ -1593,12 +1941,12 @@ func (e *Engine) triggerConditionHolds(t cards.Trigger, source state.ObjID) bool
 		if !ok {
 			return false
 		}
-		if !e.presentConditionHolds(t, source, spec, cmp) {
+		if !e.presentConditionHoldsAs(t, source, you, spec, cmp) {
 			return false
 		}
 	}
 	if spec, ok := t.Params["CheckDefinedPlayer"]; ok {
-		holds, supported := e.checkDefinedPlayerHolds(spec, e.controllerOf(source))
+		holds, supported := e.checkDefinedPlayerHolds(spec, you)
 		// A supported predicate is evaluated for every mode. An unsupported
 		// one fails closed only for actionTriggerModes; other modes keep
 		// firing as they did before the predicate was read at all.
@@ -1639,11 +1987,13 @@ func (e *Engine) checkDefinedPlayerHolds(spec string, you state.PlayerID) (holds
 	return false, false
 }
 
-// lifeConditionHolds evaluates the LifeTotal$/LifeAmount$ intervening-if.
-// The "you" for a You-qualified LifeTotal$ is the trigger's controller
-// (source's controller), matching how every other trigger param resolves it.
-func (e *Engine) lifeConditionHolds(t cards.Trigger, source state.ObjID, amount string) bool {
-	who := e.controllerOf(source)
+// lifeConditionHoldsAs evaluates the LifeTotal$/LifeAmount$ intervening-if.
+// The "you" for a You-qualified LifeTotal$ is the caller's chosen player --
+// normally the source's controller, but an event-matched delayed trigger
+// passes its registration's effect owner instead (see
+// checkEventDelayedTriggers).
+func (e *Engine) lifeConditionHoldsAs(t cards.Trigger, you state.PlayerID, amount string) bool {
+	who := you
 	if v, ok := t.Params["LifeTotal"]; ok {
 		v = strings.TrimSpace(v)
 		switch v {
@@ -1661,11 +2011,12 @@ func (e *Engine) lifeConditionHolds(t cards.Trigger, source state.ObjID, amount 
 	return compareLife(e.G.Players[who].Life, amount)
 }
 
-// presentConditionHolds evaluates the IsPresent$/PresentCompare$ intervening-
-// if by counting the objects on the battlefield that match the spec (relative
-// to the trigger's source and its controller) and comparing that count.
-func (e *Engine) presentConditionHolds(t cards.Trigger, source state.ObjID, spec, cmp string) bool {
-	n := e.countPresent(spec, source, e.controllerOf(source))
+// presentConditionHoldsAs evaluates the IsPresent$/PresentCompare$
+// intervening-if by counting the objects on the battlefield that match the
+// spec (relative to the trigger's source and the caller's chosen "you") and
+// comparing that count.
+func (e *Engine) presentConditionHoldsAs(t cards.Trigger, source state.ObjID, you state.PlayerID, spec, cmp string) bool {
+	n := e.countPresent(spec, source, you)
 	return comparePresent(n, cmp)
 }
 
@@ -1788,5 +2139,21 @@ func init() {
 		// since Task 11; registering the keyword here completes its
 		// semantics now that api:CopySpellAbility is implemented.
 		"kw:Storm", "kw:Ward", "kw:Annihilator",
+		// Mass effects, extra turns and new-set mechanics (the
+		// inbox-engine-gap-mass-turn-new-mechanics ticket):
+		//   - trig:UnlockDoor: a Room's unlock trigger (rules/rooms.go),
+		//     queued off the DoorUnlock event the unlock activation emits.
+		//   - kw:Station: the Spacecraft station activation (rules/station.go).
+		//   - kw:Chapter: the Saga mechanic (rules/saga.go).
+		//   - kw:Start your engines: the speed mechanic (rules/speed.go).
+		//   - stat:Panharmonicon: the trigger-doubling static (rules'
+		//     panharmoniconEchoes, consulted in checkFaceTriggers).
+		//   - kw:Partner and "kw:CARDNAME can be your commander." are
+		//     DECK-CONSTRUCTION keywords (CR 90.3a/702.129): the engine
+		//     already seats and casts commanders per Config, and nothing in
+		//     play reads them, so the registrations assert the corpus shape
+		//     is understood, not that play rules exist for it.
+		"trig:UnlockDoor", "kw:Station", "kw:Chapter", "kw:Start your engines",
+		"stat:Panharmonicon", "kw:Partner", "kw:CARDNAME can be your commander.",
 	)
 }

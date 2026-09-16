@@ -8,10 +8,20 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-func (e *Engine) beginTurn(active state.PlayerID) {
+func (e *Engine) beginTurn(active state.PlayerID, skipUntap ...bool) {
 	e.emit(events.Event{Kind: events.TurnChange, Player: active, Amount: e.G.Turn + 1})
+	// CR 500.7 riders apply to the particular queued extra turn, not every
+	// later turn of its controller. The variadic form keeps ordinary callers
+	// explicit-free while advanceStep supplies the pending grant's SkipUntap.
+	// A skipped untap step never emits an Untap event for anything, and the
+	// turn structure jumps straight to upkeep, so its turn-based actions
+	// (Suspend's TIME decrement, ...) still run on schedule.
+	step := state.StepUntap
+	if len(skipUntap) > 0 && skipUntap[0] {
+		step = state.StepUpkeep
+	}
 	prior := e.pending
-	e.setStep(state.StepUntap)
+	e.setStep(step)
 	if e.pending != nil && e.pending != prior {
 		// An Optional$ BeginPhase replacement parked the entry. Its answer
 		// calls finishEnteredStep after entering or skipping the step.
@@ -28,9 +38,37 @@ func (e *Engine) beginTurn(active state.PlayerID) {
 // without drawing. Untap is special: after its action the turn enters upkeep
 // before priority; a replacement may park either entry, in which case the
 // eventual answer resumes this helper again.
+// chooseSuspendCast is the chooseFor for CR 702.62a's may-cast ask, posed by
+// startSuspendedCast when a suspended card's last TIME counter is removed.
+// iota+11 is pairwise distinct from the shared package set (cast=1/etb=2/
+// miracle=3, cleanup=4, division=5, mana=6..9, opening=10); the exact numbers
+// only need to differ.
+const chooseSuspendCast chooseFor = iota + 11
+
 func (e *Engine) finishEnteredStep() {
 	if e.G.Step == state.StepUntap && !e.finishUntapStep(0) {
 		return
+	}
+	if e.G.Step == state.StepUpkeep {
+		// CR 702.62: only a card that entered exile through the Suspend action
+		// loses TIME counters. The final-counter trigger then casts it if able;
+		// it is not an optional priority action and arbitrary exiled Suspend
+		// cards never acquire that permission. Gated on the step actually
+		// entered, so a BeginPhase replacement that skipped the upkeep step
+		// (landing directly on the draw) does not decrement.
+		for _, id := range e.G.Zone(state.ZExile, e.G.Active) {
+			o := e.G.Obj(id)
+			if o == nil || o.CastFlags&state.FlagSuspend == 0 || o.Counter("TIME") <= 0 {
+				continue
+			}
+			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
+			if o.Counter("TIME") == 0 {
+				e.suspendedCasts = append(e.suspendedCasts, id)
+			}
+		}
+		if e.startSuspendedCast() {
+			return
+		}
 	}
 	// An upkeep skip can land the turn directly on the draw step, whose
 	// turn-based action must still run (CR 504.1 -- the skip took the upkeep
@@ -39,7 +77,10 @@ func (e *Engine) finishEnteredStep() {
 	if e.G.Step == state.StepDraw && e.drawStepTurnAction() {
 		return
 	}
-	// Entry resets the pass count along with the active holder.
+	// Entry resets the pass count along with the active holder. Cumulative
+	// upkeep is a real Phase trigger expanded from its keyword, so the upkeep
+	// StepChange queued it alongside every other upkeep trigger; the ordinary
+	// priority round orders and places them before anyone may act.
 	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 }
 
@@ -55,6 +96,15 @@ type untapStep struct {
 // Untap replacement competition can suspend on one permanent; its answered
 // choice resumes at the following permanent, rather than advancing to upkeep
 // while the choice is pending or re-processing the already replaced event.
+// stat:UntapOtherPlayer: after the active player's own battlefield, EVERY
+// other living player's battlefield permanent a matching static admits untaps
+// too (CR's "untap during each other player's untap step", and the
+// command-zone plane shape "all permanents untap during each player's untap
+// step"); AliveFrom(0) order keeps the event stream deterministic. No
+// repl:Untap replacement can park on those foreign untaps: every corpus line
+// scopes itself with ValidStepTurnToController$ You, which the matcher reads
+// against the untapped card's own controller, and a foreign card's controller
+// is not the step's active player.
 func (e *Engine) finishUntapStep(next int) bool {
 	ids := e.G.Zone(state.ZBattlefield, e.G.Active)
 	for i := next; i < len(ids); i++ {
@@ -64,7 +114,10 @@ func (e *Engine) finishUntapStep(next int) bool {
 		}
 		e.untapResume = &untapStep{next: i + 1}
 		prior := e.pending
-		e.emit(events.Event{Kind: events.Untap, Obj: ids[i]})
+		// effects.TryUntap, reached through untapTurnPermanent, applies the
+		// shared stun-counter replacement (CR 122.1d) ahead of the raw Untap
+		// event the repl:Untap replacement competition may park on.
+		e.untapTurnPermanent(ids[i])
 		if e.pending != nil && e.pending != prior {
 			// poseUntapReplacementChoice transferred this continuation to its
 			// queue entry. Do not enter upkeep until its answer finishes this
@@ -73,6 +126,17 @@ func (e *Engine) finishUntapStep(next int) bool {
 			return false
 		}
 		e.untapResume = nil
+	}
+	for _, p := range e.G.AliveFrom(0) {
+		if p == e.G.Active {
+			continue
+		}
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o != nil && o.Tapped && e.untapOtherStaticsMatch(id) {
+				e.untapTurnPermanent(id)
+			}
+		}
 	}
 	e.setStep(state.StepUpkeep)
 	return e.pending == nil
@@ -129,13 +193,93 @@ func (e *Engine) finishUntapStep(next int) bool {
 //	reader who trusts "unreachable" here is invited to delete this guard,
 //	and deleting it is exactly the mutant that draws for an eliminated
 //	player.
+//
+// CR 702.151a (Sagas, kw:Chapter): "As this Saga enters and after your draw
+// step, add a lore counter." The ETB half is granted in events.Move (the
+// same every-entry-site convention the planeswalker starting loyalty uses);
+// advanceSagas here is the after-your-draw-step half -- one lore counter per
+// Saga the ACTIVE player controls, once per turn, after the draw. The
+// chapter triggers queue off the CounterChange events it emits (rules' chapter
+// check). Skipped when the draw itself ended the game (e.G.Over), mirroring
+// every other post-state-change guard in this file.
 func (e *Engine) drawStepTurnAction() bool {
 	if e.G.Step != state.StepDraw || (len(e.G.Players) == 2 && e.G.Turn <= 1) ||
 		e.G.Players[e.G.Active].Lost {
 		return false
 	}
 	e.drawCard(e.G.Active)
-	return e.G.Over
+	if e.G.Over {
+		return true
+	}
+	e.advanceSagas(e.G.Active)
+	return false
+}
+
+// startSuspendedCast consumes the next final-counter trigger before anyone
+// gets priority. A targetless/un-castable card is simply left in exile, the
+// "if able" part of CR 702.62; a legal one is offered to its controller: CR
+// 702.62a's cast is OPTIONAL ("you may cast it without paying its mana cost
+// if able"), so the controller answers a real yes/no decision and a decline
+// leaves the card in exile. A yes enters the ordinary no-cost cast flow and
+// can still ask for targets.
+func (e *Engine) startSuspendedCast() bool {
+	for len(e.suspendedCasts) > 0 {
+		id := e.suspendedCasts[0]
+		e.suspendedCasts = e.suspendedCasts[1:]
+		o := e.G.Obj(id)
+		if o == nil || o.Zone != state.ZExile || o.CastFlags&state.FlagSuspend == 0 || o.Face() == nil {
+			continue
+		}
+		// "If able" includes every restriction that makes casting illegal,
+		// not merely whether the spell can find a target. In particular a
+		// CantBeCast static remains effective when Suspend supplies the mana
+		// cost; beginning the cast and discovering the restriction afterwards
+		// would incorrectly put the spell on the stack. An uncastable card is
+		// never offered: there is nothing to choose (CR 702.62a casts "if
+		// able"), so no decision is posed for it.
+		if e.castRestricted(o.Owner, id) || !e.castTargetsAvailable(o.Owner, id, o.Face().SpellAbility()) {
+			continue
+		}
+		name := "it"
+		if f := o.Face(); f != nil && f.Name != "" {
+			name = f.Name
+		}
+		e.choosing = chooseSuspendCast
+		e.ask(decision.New(o.Owner, decision.KChoose, "Cast "+name+" without paying its mana cost?", 1, 1,
+			[]decision.Option{{Index: 0, Kind: "suspend_cast_yes", Obj: id, Label: "Cast it"},
+				{Index: 1, Kind: "suspend_cast_no", Obj: id, Label: "Leave it in exile"}}))
+		return true
+	}
+	return false
+}
+
+// suspendCastAnswer applies CR 702.62a's may-cast answer. The offered card
+// was popped from suspendedCasts when its ask was posed, so the answer's
+// object is the only provenance this needs. A yes enters the ordinary cast
+// flow (suspend_cast mode, no mana cost); a decline — or a card that left
+// exile, changed hands or lost its Suspend provenance while the ask was
+// outstanding — leaves the card in exile, which is exactly what CR 702.62a
+// says a card whose cast was not made does. Remaining suspended casts, if
+// any, are offered next; when none are, the caller's Advance loop resumes
+// the step it was in (the same route the forced cast used after resolution).
+func (e *Engine) suspendCastAnswer(chosen []decision.Option) {
+	if len(chosen) == 0 {
+		return
+	}
+	id := chosen[0].Obj
+	o := e.G.Obj(id)
+	if chosen[0].Kind == "suspend_cast_yes" && o != nil && o.Zone == state.ZExile &&
+		o.CastFlags&state.FlagSuspend != 0 && o.Face() != nil {
+		e.beginCast(o.Owner, decision.Option{Kind: "cast", Obj: id, Mode: "suspend_cast"})
+		return
+	}
+	if e.pending == nil {
+		// Declined (or the card is no longer a castable suspended card): the
+		// offer is over, so the chooseFor it installed must not leak into the
+		// next KChoose a different flow asks.
+		e.choosing = chooseNone
+		e.startSuspendedCast()
+	}
 }
 
 func (e *Engine) setStep(s state.Step) {
@@ -176,6 +320,9 @@ func (e *Engine) finishStepBoundary(leaving, entering state.Step) {
 // step performs the smallest unit of automatic engine work.
 func (e *Engine) step() {
 	e.checkStateBased()
+	if e.startSuspendedCast() {
+		return
+	}
 	if e.G.Over {
 		return
 	}
@@ -458,8 +605,36 @@ func (e *Engine) advanceStep() {
 		}
 	}
 	if e.G.Step == state.StepCleanup {
+		// CR 500.7: extra turns are taken in REVERSE order of creation (the
+		// most recently created extra turn is taken first), inserted
+		// immediately after the turn that created them, and the ordinary turn
+		// order resumes only once every pending extra turn is spent. The
+		// pending queue is the folded ExtraTurnQueue (events/apply.go); the
+		// consumption is the -1 ExtraTurn event, which also carries the
+		// grant's Final-Fortune-style rider (events.Apply registers the
+		// delayed end-step trigger on it -- the granted turn is exactly the
+		// turn about to begin). A grant to a seat that has since LOST takes
+		// no turn: it is consumed (so the fold agrees) and skipped, and the
+		// next pending grant, if any, is taken in the same cleanup.
+		for len(e.G.ExtraTurnQueue) > 0 {
+			grant := e.G.ExtraTurnQueue[len(e.G.ExtraTurnQueue)-1]
+			seat := grant.Player
+			obj, counter := e.latestUnconsumedGrant(seat)
+			e.emit(events.Event{Kind: events.ExtraTurn, Player: seat, Amount: -1,
+				Obj: obj, Counter: counter})
+			if !e.G.Players[seat].Lost {
+				// beginTurn resets the pass count along with the repeated
+				// holder; the ordinary rotation pointer does not advance.
+				e.beginTurn(seat, grant.SkipUntap)
+				return
+			}
+		}
+		// No extra turn is pending: the next seat in the ordinary rotation is
+		// the seat after the most recent NORMAL turn's holder (rotationBase) --
+		// never after the seat that just finished an extra turn, whose turn
+		// was inserted into the rotation, not a part of it.
 		// beginTurn resets the pass count along with the new holder.
-		e.beginTurn(e.G.NextAlive(e.G.Active))
+		e.beginTurn(e.G.NextAlive(e.rotationBase()))
 		return
 	}
 	if e.G.Step == state.StepCombatDamage && e.combatRound.hasFirst && e.combatRound.firstDone && !e.combatRound.regularDone {
@@ -537,30 +712,30 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 // (Task 12). A choose nobody is waiting for -- only reachable from a
 // hand-built decision -- is dropped with a Note and priority resumes.
 func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
-	if d.ResumeKind == "opening_effect" {
-		e.handleOpeningEffect(d, in)
-		return
-	}
 	chosen := d.Chosen(in)
-	// A hidden-library ChangeZone and a Dig look-and-take use KChoose's
-	// ordinary ordered subset wire shape, but they are mid-resolution effect
-	// asks rather than one of the cast/cleanup flows tracked by e.choosing.
-	// Resume them before dispatching those flows; an empty chosen slice is
-	// the legitimate "fail to find" / Optional-decline answer.
-	if e.resume != nil && (e.resume.kind == "search" || e.resume.kind == "dig" || e.resume.kind == "choice" || e.resume.kind == "hand_move" || e.resume.kind == "sacrifice" ||
-		e.resume.kind == "ward_mana" || e.resume.kind == "ward_alt" || e.resume.kind == "ward_blight" || e.resume.kind == "ward_evidence" ||
-		e.resume.kind == "ward_waterbend" || e.resume.kind == "ward_tap" || e.resume.kind == "ward_sac" || e.resume.kind == "ward_discard") {
-		rp := e.resume
-		e.resume = nil
-		e.resumeResolution(rp, chosen)
+	// A Station tap pick (rules/station.go) is a plain priority-action ask,
+	// never a cast/cleanup flow and never a mid-resolution resume: route it
+	// first, by the flow marker the ask set.
+	if e.choosing == chooseStation {
+		e.choosing = chooseNone
+		e.handleStation(e.stationing, chosen)
 		return
 	}
-	// RevealOptional$ and Optional$ direct-library-fetch yes/no decisions are
-	// mid-resolution effect asks wearing KChoose's ordinary wire shape,
-	// exactly like "search" above: route them to the suspended resolution
-	// before the cast/cleanup flows get a look in. Their resume arms map the
-	// one chosen option onto the asking effect's scoped context field.
-	if e.resume != nil && (e.resume.kind == "reveal_optional" || e.resume.kind == "defined_library_optional") {
+	// Every KChoose carrying a resume point is a mid-resolution effect ask,
+	// regardless of its ResumeKind (search, dig, imprint, untap selection,
+	// reveal-optional, defined-library-optional, ward windows, hand_move,
+	// sacrifice, roll, and future siblings). Dispatch by role rather than an
+	// allowlist: the asking effect already recorded the exact SA and answer
+	// interpretation in e.resume, while cast/cleanup flows never do (the
+	// kinds that bypass this check -- madness, optional triggers, their
+	// Cost$ windows -- are answered through KTriggerOptional and the
+	// chooseTriggeredCost/chooseCumulative arms, never KChoose). This is the
+	// structural guard against silently dropping the next KChoose-based
+	// primitive merely because its string was not added here. An empty chosen
+	// slice is the legitimate "fail to find" / Optional-decline answer (for
+	// "roll" a malformed empty answer falls back to the first die inside
+	// the effect).
+	if e.resume != nil {
 		rp := e.resume
 		e.resume = nil
 		e.resumeResolution(rp, chosen)
@@ -590,6 +765,16 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 			e.resumeTriggerDrain()
 			return
 		}
+	case chooseOpening:
+		e.handleOpening(d, in)
+	case chooseSuspendCast:
+		// CR 702.62a: the may-cast offer on a suspended card's last TIME
+		// counter was answered. suspendCastAnswer either enters the ordinary
+		// cast flow (a yes) or leaves the card in exile and offers the next
+		// suspended cast, if any (a decline). There is no trigger drain to
+		// resume: the offer comes from the turn structure, never from inside
+		// one, so e.drainAwaitsTarget is necessarily false here.
+		e.suspendCastAnswer(chosen)
 	case chooseETB:
 		// Task 12: an "as this enters" choice was answered. Record it on the
 		// card (etbAnswer, via a Choose event), then continue the flow -- the
@@ -614,6 +799,14 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// trigger drain (only the turn structure asks it, when no step is
 		// mid-resolution), so e.drainAwaitsTarget is necessarily false here.
 		e.discardCleanup(chosen)
+	case chooseCumulative:
+		// The cumulative-upkeep trigger is resolving and waiting in its
+		// mana/payment window (rules/cumulative.go).
+		e.cumulativeAnswer(chosen)
+	case chooseTriggeredCost:
+		// A Cost$ carried by a triggered effect (Mana Vault's pay-{4} untap)
+		// is paid during resolution rather than being silently ignored.
+		e.triggeredCostAnswer(chosen)
 	case chooseDamageDivision:
 		// Task jj-cmb (F40): the combat damage step's controller
 		// damage-division decision (CR 510.1c) was answered.
@@ -670,4 +863,89 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "choose answered with no flow waiting"})
 		e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
 	}
+}
+
+// rotationBase returns the seat whose turn the ordinary rotation is currently
+// ON: the holder of the most recent NORMAL turn -- a TurnChange that did not
+// begin an extra turn. An extra turn's TurnChange is the one a cleanup step
+// consumed a grant for: a -1 ExtraTurn event sits between the previous
+// TurnChange and it (backward window below), so scanning backward and
+// skipping every TurnChange whose backward window holds a consumption lands
+// on the last normal holder. When the pending-extra queue drains, the next
+// turn is this seat's successor (NextAlive) -- the extra turns were inserted
+// after that seat's turn, never in place of the seats that follow it. No
+// TurnChange at all cannot happen (turn 1 opens the log); the fallback names
+// seat 0 for totality.
+//
+// The scan is over the log, never live state, so a replay re-derives the
+// same base. Cost is one backward window per extra-turn cleanup -- a
+// window is one turn's events -- and zero for every cleanup of a normal
+// turn whose predecessor was also normal (the common case stops at the
+// first TurnChange).
+func (e *Engine) rotationBase() state.PlayerID {
+	evs := e.L.Events
+	for i := len(evs) - 1; i >= 0; i-- {
+		if evs[i].Kind != events.TurnChange {
+			continue
+		}
+		// Some focused rules fixtures deliberately seed Game.Active/Turn at a
+		// mid-turn state without rewriting their genesis log. That live state
+		// is authoritative: it is an ordinary turn unless an in-log consumption
+		// says otherwise, so its successor is based on the live active seat.
+		if evs[i].Player != e.G.Active || evs[i].Amount != e.G.Turn {
+			return e.G.Active
+		}
+		// Backward window: (previous TurnChange, exclusive) .. (this one,
+		// exclusive). A -1 consumption in it means THIS TurnChange began an
+		// extra turn (the consumption is emitted immediately before
+		// beginTurn); lost-seat skips consume several, all inside the window.
+		extra := false
+		for j := i - 1; j >= 0; j-- {
+			if evs[j].Kind == events.TurnChange {
+				break
+			}
+			if evs[j].Kind == events.ExtraTurn && evs[j].Amount < 0 {
+				extra = true
+				break
+			}
+		}
+		if !extra {
+			return evs[i].Player
+		}
+	}
+	return 0
+}
+
+// latestUnconsumedGrant returns the ExtraTurn grant event the NEXT
+// consumption of seat's pending grant consumes: walking the log backward, a
+// -1 consumption matches the most recent still-unconsumed +grant of the same
+// seat (the same latest-first order the turn structure consumes in), so the
+// first +grant reached with the running consumed-count at zero IS the grant
+// whose rider (Final Fortune's ExtraTurnDelayedTrigger$/Execute$ pair, carried
+// on the event's Obj/Counter) must ride the consumption that takes its turn.
+// A seat with no grant event left (never happens while its queue entry is
+// pending; the fold guarantees the count) returns zeros -- the consumption
+// then carries no rider and events.Apply registers nothing.
+func (e *Engine) latestUnconsumedGrant(seat state.PlayerID) (state.ObjID, string) {
+	consumed := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind != events.ExtraTurn || ev.Player != seat {
+			continue
+		}
+		if ev.Amount < 0 {
+			consumed += int(-ev.Amount)
+			continue
+		}
+		// One +Amount event records Amount individual grants. Earlier
+		// consumptions may account for only its newest entries; otherwise this
+		// event is the source of the next queue entry and its rider belongs to
+		// that turn too.
+		if consumed >= int(ev.Amount) {
+			consumed -= int(ev.Amount)
+			continue
+		}
+		return ev.Obj, ev.Counter
+	}
+	return 0, ""
 }

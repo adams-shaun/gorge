@@ -5,6 +5,7 @@ import { render } from 'svelte/server';
 import { SeatPanelState } from '../lib/seatpanel.svelte';
 import { presetPatch, type StoppableStep } from '../lib/playsettings';
 import PlaySettingsPanel, { nextStop, stopPatch, stopWord } from './PlaySettingsPanel.svelte';
+import { layoutStore } from '../lib/layoutsettings.svelte';
 
 // Two layers, because the editor has two halves to defend:
 //
@@ -458,5 +459,39 @@ describe('PlaySettingsPanel — real clicks in a real browser (PlaySettingsPanel
     expect(labels).toEqual([]);
     await page.waitForSelector('[data-remembered-empty]');
     await page.close();
+  });
+});
+
+describe('PlaySettingsPanel — Layout section (fb-20260916T182801Z)', () => {
+  it('renders a row per zone with a size stepper, a live readout and an alignment select', () => {
+    const html = panel(new SeatPanelState('yt-layout', 1, ctx, null));
+    expect(html).toContain('data-layout-section');
+    for (const zone of ['creatures', 'others', 'lands', 'hand'] as const) {
+      const row = elem(html, `data-layout-zone="${zone}"`);
+      expect(row).not.toBe('');
+      expect(row).toContain('data-layout-smaller');
+      expect(row).toContain('data-layout-larger');
+      expect(elem(html, `data-layout-scale="${zone}"`)).toContain('100%');
+      expect(row).toContain('<select');
+      expect(row).toContain('data-layout-align');
+    }
+    expect(html).toContain('data-peek-picker');
+    expect(html).toContain('data-layout-reset');
+    // the hand's peek segmented control marks the shipped default
+    expect(tag(html, 'data-peek="hover"')).toContain('aria-pressed="true"');
+  });
+
+  it('the size readout follows the shared layout store, and Reset returns it', () => {
+    // The layout section edits the SEPARATE layoutsettings store, not the
+    // seat state: bumping it here is exactly what the panel's + button does,
+    // and the readout must show the new number (and Reset restore it).
+    const store = layoutStore;
+    store.bump('creatures', 0.1);
+    const html = panel(new SeatPanelState('yt-layout2', 1, ctx, null));
+    expect(elem(html, 'data-layout-scale="creatures"')).toContain('110%');
+    store.reset();
+    store.dispose();
+    const calm = panel(new SeatPanelState('yt-layout3', 1, ctx, null));
+    expect(elem(calm, 'data-layout-scale="creatures"')).toContain('100%');
   });
 });

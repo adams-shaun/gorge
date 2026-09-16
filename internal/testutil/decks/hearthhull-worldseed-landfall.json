@@ -1,9 +1,9 @@
 {
   "name": "Hearthhull, the Worldseed Landfall",
   "format": "commander",
-  "commander": "Hearthhull, the Worldseed",
+  "commander": "Lord Windgrace",
   "archetype": "landfall lands",
-  "notes": "MTGGoldfish list https://www.mtggoldfish.com/deck/7936759, downloaded 2026-09-14. Goldfish estimates bracket 3 (three Game Changers); no bracket-4 Hearthhull list was available, but this named list was requested. ENGINE-RISK: landfall and land-sacrifice triggers, graveyard land recursion and may-play-from-graveyard effects, extra land drops, land-search/shuffle effects, and Hearthhull's Station-gated {1}, tap, sacrifice-a-land activation.",
+  "notes": "MTGGoldfish list https://www.mtggoldfish.com/deck/7936759, downloaded 2026-09-14. Goldfish estimates bracket 3 (three Game Changers); no bracket-4 Hearthhull list was available, but this named list was requested. Lord Windgrace is the legal commander; Hearthhull is a legendary noncreature Spacecraft and cannot be a commander. ENGINE-RISK: landfall and land-sacrifice triggers, graveyard land recursion and may-play-from-graveyard effects, extra land drops, land-search/shuffle effects, and Hearthhull's Station-gated {1}, tap, sacrifice-a-land activation.",
   "cards": [
     {"name": "Aftermath Analyst", "count": 1},
     {"name": "Assassin's Trophy", "count": 1},

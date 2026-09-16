@@ -502,10 +502,16 @@ func TestBucolicRanchBottomContinuation(t *testing.T) {
 	}
 }
 
-// TestImprintedDefinedLibraryFetchFailsClosed pins the remaining audited
-// selector against Dichotomancy's real compiled continuation. Imprinted has
-// no persisted object context yet, so it must be a logged no-op rather than
-// Defined's source fallback or a whole-library search.
+// TestImprintedDefinedLibraryFetchFailsClosed pins Dichotomancy's real
+// compiled continuation. Defined$ Imprinted became a KNOWN selector when the
+// untap/mana wave persisted imprint context (events.Imprint +
+// Obj.Imprinted, read by Defined.Imprinted), so the old fail-closed note no
+// longer fires; the fetch now resolves the imprint set — empty on a source
+// with no imprint — moves nothing, shuffles nothing, and asks nothing. The
+// DBChangeZone's SubAbility$ DBShuffle is now a REAL api:Shuffle (registered
+// by main's shuffle primitive): it resolves its Defined$ ParentTarget, which
+// no trigger context binds in this synthetic resolution, so it shuffles no
+// library and the whole resolution is a silent no-op.
 func TestImprintedDefinedLibraryFetchFailsClosed(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	card, ok := reg.Lookup("Dichotomancy")
@@ -531,8 +537,8 @@ func TestImprintedDefinedLibraryFetchFailsClosed(t *testing.T) {
 	if got := h.g.Obj(src.ID).Zone; got != state.ZLibrary {
 		t.Fatalf("Imprinted Defined$ moved source to %s, want library", got)
 	}
-	if len(h.log) == 0 || h.log[0].Kind != events.Note || h.log[0].Text != "unrecognised Defined library fetch Imprinted" {
-		t.Fatalf("Imprinted Defined$ events = %v, want a fail-closed note", h.log)
+	if len(h.log) != 0 {
+		t.Fatalf("Imprinted Defined$ events = %v, want a silent no-op (no move, and DBShuffle's ParentTarget binds no player here)", h.log)
 	}
 	for _, ev := range h.log {
 		if ev.Kind == events.MoveZone || ev.Kind == events.Shuffle {

@@ -43,30 +43,50 @@ func TestCountStartingPlayerUsesTheRecordedToss(t *testing.T) {
 }
 
 // TestImpatientIguanaOpeningEffectBecomesStartingPlayer drives the real
-// !PlayFirst keyword and its linked RevealCard SVar from an opening hand. It
+// !PlayFirst keyword and its linked RevealCard SVar through the post-mulligan
+// opening round (rules/opening_hand.go, the CR 103.5/103.4 timing: mulligans
+// fix the hands first, then opening-hand effects run before turn one). It
 // finds a deterministic seed where seat 0 holds Iguana while seat 1 won the
-// toss, accepts the outer may choice, and proves the replayed state change
-// also rotates the later mulligan declaration order.
+// toss, keeps everywhere through the London round, accepts the opening
+// round's may choice, and proves the replayed StartingPlayerChange event both
+// records the designation in state.Game (Count$StartingPlayer reads it) and
+// rotates turn one to the accepting seat.
 func TestImpatientIguanaOpeningEffectBecomesStartingPlayer(t *testing.T) {
 	iguana := corpusCard(t, "Impatient Iguana")
 	var e *Engine
+	var openingAsk *decision.Decision
 	for seed := uint64(1); seed < 500; seed++ {
 		deck0 := mountainDeck(t, 40)
 		deck0[0] = iguana
 		candidate := New(Config{Seed: seed, Mulligans: 1, Names: []string{"a", "b"},
 			Decks: [][]*cards.Card{deck0, mountainDeck(t, 40)}})
-		candidate.Advance()
-		d := candidate.Pending()
-		if d != nil && d.ResumeKind == "opening_effect" && d.Player == 0 && candidate.G.IsStartingPlayer(1) {
-			e = candidate
-			break
+		if !candidate.G.IsStartingPlayer(1) {
+			continue // want the toss in seat 1's favour
 		}
+		candidate.Advance()
+		// CR 103.4/103.5 first: keep everywhere until the pending ask stops
+		// being the London round (the opening round runs after bottoming).
+		d := candidate.Pending()
+		for d != nil && d.Kind == decision.KMulligan {
+			if err := candidate.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+				t.Fatalf("seed %d mulligan keep: %v", seed, err)
+			}
+			d = candidate.Pending()
+		}
+		if d == nil || d.Kind != decision.KChoose || d.Player != 0 ||
+			len(d.Options) == 0 || d.Options[0].Kind != "opening_yes" {
+			continue // Iguana not in the opening hand at this seed
+		}
+		e, openingAsk = candidate, d
+		break
 	}
 	if e == nil {
 		t.Fatal("no seed below 500 dealt Impatient Iguana to non-starting seat 0")
 	}
-	d := e.Pending()
-	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+	if e.G.IsStartingPlayer(0) {
+		t.Fatal("the designation moved before Iguana was accepted")
+	}
+	if err := e.Submit(decision.Intent{Seq: openingAsk.Seq, Player: 0, Choices: []int{0}}); err != nil {
 		t.Fatalf("accept opening effect: %v", err)
 	}
 	if !e.G.IsStartingPlayer(0) || e.G.IsStartingPlayer(1) {
@@ -81,9 +101,53 @@ func TestImpatientIguanaOpeningEffectBecomesStartingPlayer(t *testing.T) {
 	if !found {
 		t.Fatal("Iguana starting-player change was not logged")
 	}
-	d = e.Pending()
-	if d == nil || d.Kind != decision.KMulligan || d.Player != 0 {
-		t.Fatalf("first mulligan after Iguana = %+v, want seat 0", d)
+	if e.G.Active != 0 || e.G.Turn != 1 {
+		t.Fatalf("turn one belongs to seat %d (turn %d), want the accepting seat 0", e.G.Active, e.G.Turn)
+	}
+}
+
+// TestDeclinedImpatientIguanaKeepsTheRecordedStarter is the other half of the
+// may choice: declining the opening round's ask leaves the toss winner as the
+// recorded starting player and hands turn one to seat 1. The seed search is
+// the acceptance test's, with the opposite answer.
+func TestDeclinedImpatientIguanaKeepsTheRecordedStarter(t *testing.T) {
+	iguana := corpusCard(t, "Impatient Iguana")
+	var e *Engine
+	var openingAsk *decision.Decision
+	for seed := uint64(1); seed < 500; seed++ {
+		deck0 := mountainDeck(t, 40)
+		deck0[0] = iguana
+		candidate := New(Config{Seed: seed, Mulligans: 1, Names: []string{"a", "b"},
+			Decks: [][]*cards.Card{deck0, mountainDeck(t, 40)}})
+		if !candidate.G.IsStartingPlayer(1) {
+			continue
+		}
+		candidate.Advance()
+		d := candidate.Pending()
+		for d != nil && d.Kind == decision.KMulligan {
+			if err := candidate.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+				t.Fatalf("seed %d mulligan keep: %v", seed, err)
+			}
+			d = candidate.Pending()
+		}
+		if d == nil || d.Kind != decision.KChoose || d.Player != 0 ||
+			len(d.Options) == 0 || d.Options[0].Kind != "opening_yes" {
+			continue
+		}
+		e, openingAsk = candidate, d
+		break
+	}
+	if e == nil {
+		t.Fatal("no seed below 500 dealt Impatient Iguana to non-starting seat 0")
+	}
+	if err := e.Submit(decision.Intent{Seq: openingAsk.Seq, Player: 0, Choices: []int{1}}); err != nil {
+		t.Fatalf("decline opening effect: %v", err)
+	}
+	if !e.G.IsStartingPlayer(1) || e.G.IsStartingPlayer(0) {
+		t.Fatalf("decline moved the starter: %t/%t", e.G.IsStartingPlayer(0), e.G.IsStartingPlayer(1))
+	}
+	if e.G.Active != 1 || e.G.Turn != 1 {
+		t.Fatalf("turn one belongs to seat %d (turn %d), want the toss winner seat 1", e.G.Active, e.G.Turn)
 	}
 }
 

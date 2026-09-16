@@ -48,7 +48,7 @@ type SacrificedInfo struct {
 // (a spell can be both kicked and cast via flashback), so they are
 // OR-combined into one byte rather than modeled as separate bools.
 const (
-	FlagKicked uint8 = 1 << iota // CR 601.2b: paid an optional additional cost
+	FlagKicked uint16 = 1 << iota // CR 601.2b: paid an optional additional cost
 	FlagSurged
 	FlagFlashback
 	FlagMiracle
@@ -59,6 +59,11 @@ const (
 	FlagDashed     // dash: paid the dash cost (CR 702)
 	FlagOverloaded // overload cast (CR 702)
 	FlagWarped     // warp cast: exile at next end step, may recast from exile (CR 702)
+	// FlagBuyback returns the resolving spell to its owner's hand.
+	FlagBuyback
+	// FlagHarmonize and FlagSuspend exile the spell after it resolves.
+	FlagHarmonize
+	FlagSuspend
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -136,7 +141,7 @@ type Object struct {
 	// permanent) -- events.Move resets both when the object leaves the
 	// battlefield.
 	X         int32
-	CastFlags uint8
+	CastFlags uint16
 
 	// Chosen* record answers to "as this enters/resolves, choose ..."
 	// effects: a card name, a creature type, a number. Reset alongside X/
@@ -159,6 +164,11 @@ type Object struct {
 	// source of truth. Nil when no modal announcement has been made.
 	ChosenModes []string
 
+	// Imprinted is the ordered set of cards exiled by this permanent's
+	// Imprint$ effect. It is state because later abilities (Chrome Mox) refer
+	// to it after the originating resolution has ended.
+	Imprinted []ObjID
+
 	// AttachedTo is the permanent this Aura or Equipment is attached to; 0
 	// means unattached. Reset whenever the object itself leaves the
 	// battlefield (events.Move) -- an Aura or Equipment cannot stay
@@ -174,6 +184,14 @@ type Object struct {
 	// or the battlefield (CR 111.7 tokens, CR 707.10 copies). See Ephemeral.
 	IsToken bool
 	IsCopy  bool
+
+	// Unlocked marks one face of an Enchantment Room (CR 309): the door the
+	// room was CAST as is unlocked from entry; DoorUnlock (the unlock
+	// activation) flips this when the OTHER half's door is paid for. A
+	// room's locked half's abilities are inactive; after the unlock both
+	// halves' rules text is live (rules-side scans consult this field). Only
+	// events.Apply writes it, so a replay rebuilds it.
+	Unlocked bool
 }
 
 func (o *Object) Face() *cards.Face {
@@ -243,6 +261,7 @@ func (o *Object) CloneDeep() Object {
 	c.Chosen = append([]Target(nil), o.Chosen...)
 	c.Goads = append([]GoadEffect(nil), o.Goads...)
 	c.ChosenModes = append([]string(nil), o.ChosenModes...)
+	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
 	return c
 }
 
