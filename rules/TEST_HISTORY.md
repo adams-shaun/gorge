@@ -1,6 +1,5 @@
 # Test history — github.com/adams-shaun/gorge/rules
 
-budget_s: 59
 budget_s: 300
 
 <!--
@@ -576,3 +575,8 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-16T19:49Z | 87fe417+ | 97.8 | 981 | 1 | sadams |
 | 2026-09-16T20:07Z | 87fe417+ | 101.3 | 981 | 1 | sadams |
 | 2026-09-16T20:22Z | c38636a+ | 100.9 | 981 | 1 | sadams |
+| 2026-09-16T21:57Z | c311b1f6+ | 170.9 | 1008 | 1 | sadams |
+| 2026-09-16T22:45Z | c311b1f6+ | 163.3 | 1008 | 1 | sadams |
+| 2026-09-16T22:49Z | c311b1f6+ | 161.6 | 1008 | 1 | sadams |
+| 2026-09-16T22:54Z | c311b1f6+ | 163.0 | 1008 | 1 | sadams |
+| 2026-09-16T22:59Z | abf96e08+ | 169.0 | 1008 | 1 | sadams |

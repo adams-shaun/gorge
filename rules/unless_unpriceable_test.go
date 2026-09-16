@@ -293,12 +293,20 @@ func TestParseCostPriceable(t *testing.T) {
 // Z (a cast choice or an SVar the answer does not carry), DamageYou<N>,
 // PayEnergy<N>, Return<...>, ExileFromGrave<...>, Reveal<...>, LifeTotalHalfUp,
 // DefinedCost_*, CopyCost and prose. Measured on the compiled .cards/ir.gob.gz
-// corpus at FORGE_REF: 223 distinct cards.
+// corpus at FORGE_REF: 212 distinct cards. API Ward is excluded: the ward
+// keyword expansion stamps the raw ward cost onto a DB$ Ward line, and ward
+// costs are priced by rules' ward payment handler (beginWardPayment's
+// mana/alt-cost/CollectEvidence/Blight/Waterbend arms), never by the shared
+// strict gate — counting them here would label a population the unless-pay
+// arm never sees.
 func strictUnpriceableCards(reg *cards.Registry) []string {
 	set := map[string]struct{}{}
 	for _, c := range reg.Cards {
 		for _, f := range c.Faces {
 			walkAllSAs(f, func(sa *cards.SA) {
+				if sa.API == "Ward" {
+					return
+				}
 				uc := sa.Params["UnlessCost"]
 				if uc == "" {
 					return
