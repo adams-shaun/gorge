@@ -45,9 +45,10 @@ import (
 // ResumeTarget (Ask stores it on the resume point), so a multi-payer
 // UnlessPayer$ asks each payer in turn until one pays.
 //
-// UnlessResolveSubs$ WhenPaid/WhenNotPaid (40 raw corpus lines) is not read:
-// the default 'Always' behaviour — subs run regardless — is what every
-// other UnlessCost$ line gets, and is what this build does.
+// UnlessResolveSubs$ WhenPaid/WhenNotPaid (41 raw corpus lines) gates the
+// SubAbility$ walk on the pay outcome (unlessSubsRun, applied in Resolve):
+// 'Always' — the corpus default — runs the subs either way; WhenPaid runs
+// them only when the cost was paid; WhenNotPaid only when it was not.
 
 // unlessProceed reports whether the effect's body should run for this pass,
 // and whether the UnlessCost$ was paid. Called from Resolve immediately
@@ -61,6 +62,17 @@ import (
 func unlessProceed(h Host, c *Ctx, sa *cards.SA) (bool, bool) {
 	cost := strings.TrimSpace(sa.Params["UnlessCost"])
 	if cost == "" {
+		return true, false
+	}
+	if sa.API == "Ward" {
+		// effWard owns Ward's ask end to end: its payer is the CONTROLLING
+		// object of the targeting spell/ability held in TriggerStack (not a
+		// UnlessPayer$ selector and not the warding permanent's controller),
+		// and its payment forms — the CR 702.21a mana window and the
+		// non-mana ward costs — are handled by rules' unless_pay arm
+		// (beginWardPayment) before the answer re-enters effWard. Gate it
+		// here and the generic ask would go to the wrong player and bypass
+		// those windows, so leave the shape to its own handler.
 		return true, false
 	}
 	switched := strings.EqualFold(strings.TrimSpace(sa.Params["UnlessSwitched"]), "True")
@@ -162,6 +174,27 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 			payLabel = "Pay " + cost + " — no copy"
 			declineLabel = "Don't pay — make a copy"
 		}
+	default:
+		if n, dmg := ParseDamageUnlessCost(cost); dmg {
+			// The damage-payment offer (Vexing Devil, Longhorn Firebeast —
+			// the Sacrifice UnlessSwitched$ True population): "paying" is
+			// taking the damage, so the labels must say so, never "Pay the
+			// cost". The switched offer is the fb-20260916T070855Z wording;
+			// the unswitched shape (no corpus carrier today) mirrors the
+			// plain unless orientation.
+			name := "The permanent"
+			if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+				name = o.Face().Name
+			}
+			payLabel = "Take " + strconv.Itoa(n) + " damage"
+			if strings.EqualFold(strings.TrimSpace(sa.Params["UnlessSwitched"]), "True") {
+				prompt = name + " deals " + strconv.Itoa(n) + " damage to you — accept?"
+				declineLabel = "Refuse — it stays"
+			} else {
+				prompt = name + " — take " + strconv.Itoa(n) + " damage to spare it, or sacrifice it"
+				declineLabel = "Sacrifice it"
+			}
+		}
 	}
 	d := &decision.Decision{Player: payer, Kind: decision.KModes,
 		Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay",
@@ -176,7 +209,7 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 			{Index: 0, Kind: "mode", Label: payLabel, Obj: c.Source, Player: payer},
 			{Index: 1, Kind: "mode", Label: declineLabel, Obj: c.Source, Player: payer},
 		}}
-	if Ask(h, d) {
+	if Ask(h, d) == AskAsked {
 		return true // resolution suspended; the answer re-enters this SA.
 	}
 	// Fuzz/no-engine host: the deterministic decline (R-9). The pay was
