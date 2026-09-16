@@ -155,6 +155,52 @@ func TestChancellorOfTheAnnexCountersOnlyEachOpponentsFirstSpell(t *testing.T) {
 	}
 }
 
+// TestEventDelayedTriggerInterveningIfUsesEffectOwnersLife pins the review
+// finding on checkEventDelayedTriggers: an event-matched registration's
+// intervening-if "you" must resolve to the registration's effect owner
+// (dt.Controller), not the source card's own controller. A synthetic
+// EffectOwner$ Opponent registration carries a LifeTotal$ You | LifeAmount$
+// GE10 condition; the revealer (source's controller) is left below 10 life
+// and the opponent (the registration's effect owner) above it, so the
+// trigger fires only if "you" is read as the effect owner.
+func TestEventDelayedTriggerInterveningIfUsesEffectOwnersLife(t *testing.T) {
+	watcher := card(t, "Name:Test Watcher\nManaCost:0\nTypes:Creature\nPT:1/1\n"+
+		"K:MayEffectFromOpeningHand:RevealCard\n"+
+		"SVar:RevealCard:DB$ Effect | Triggers$ TrigWatch | EffectOwner$ Opponent | Duration$ Permanent\n"+
+		"SVar:TrigWatch:Mode$ SpellCast | ValidActivatingPlayer$ You | LifeTotal$ You | LifeAmount$ GE10 | "+
+		"Execute$ TrigWatchNote | OneOff$ True | TriggerZones$ Command\n"+
+		"SVar:TrigWatchNote:DB$ Draw\n"+
+		"Oracle:x\n")
+
+	e := handEngine(t, watcher)
+	id := e.G.Zone(state.ZHand, 0)[0]
+	e.pending = nil
+	e.applyOpeningEffect(openingEffect{player: 0, card: id, svar: "RevealCard"})
+	if len(e.G.Delayed) != 1 {
+		t.Fatalf("registered %d delayed triggers, want 1", len(e.G.Delayed))
+	}
+
+	e.G.Players[0].Life = 5  // the revealer, source's controller: below the threshold
+	e.G.Players[1].Life = 20 // the effect owner, dt.Controller: above it
+
+	slow := slowSpellCard(t)
+	s1 := e.G.AddObject(slow, 1)
+	s1.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 1, []state.ObjID{s1.ID})
+
+	e.G.Active, e.G.Priority = 1, 1
+	e.askPriority(1)
+	pre := countDraw(e)
+	submitChoices(t, e, passToCast(t, e, s1.ID))
+	passUntilStackEmpty(t, e, 20)
+	// One draw from Slow Spell's own resolution, one more from TrigWatchNote
+	// if (and only if) the intervening-if held against the effect owner's
+	// life rather than the revealer's.
+	if got, want := countDraw(e)-pre, 2; got != want {
+		t.Fatalf("draws = %d, want %d (intervening-if must read the effect owner's life, not the revealer's)", got, want)
+	}
+}
+
 // TestChancellorOfTheAnnexOpeningRevealDrivesTheCounter drives the real
 // pregame flow (New -> the opening_yes decision -> handleOpening) rather than
 // calling applyOpeningEffect directly, so the registration is proven to come

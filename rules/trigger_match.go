@@ -331,7 +331,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event) {
 		if !e.eventDelayedSpellCastMatches(t, dt, ev) {
 			continue
 		}
-		if !e.triggerConditionHolds(t, dt.Source) {
+		if !e.triggerConditionHoldsAs(t, dt.Source, dt.Controller) {
 			continue
 		}
 		sa := cards.ResolveSVar(src.Face().SVars, dt.Execute)
@@ -1465,8 +1465,17 @@ func abilityCastValidSA(ab *cards.SA, validSA string) bool {
 // fire, never that an unreadable life/creature count is presumed large
 // enough to let a win or counter trigger slip through.
 func (e *Engine) triggerConditionHolds(t cards.Trigger, source state.ObjID) bool {
+	return e.triggerConditionHoldsAs(t, source, e.controllerOf(source))
+}
+
+// triggerConditionHoldsAs is triggerConditionHolds with "you" supplied
+// explicitly rather than derived from source's controller. An event-matched
+// delayed trigger's "you" is the registration's effect owner (dt.Controller),
+// which can differ from the source card's own controller -- see
+// checkEventDelayedTriggers.
+func (e *Engine) triggerConditionHoldsAs(t cards.Trigger, source state.ObjID, you state.PlayerID) bool {
 	if v, ok := t.Params["LifeAmount"]; ok {
-		if !e.lifeConditionHolds(t, source, v) {
+		if !e.lifeConditionHoldsAs(t, you, v) {
 			return false
 		}
 	}
@@ -1475,12 +1484,12 @@ func (e *Engine) triggerConditionHolds(t cards.Trigger, source state.ObjID) bool
 		if !ok {
 			return false
 		}
-		if !e.presentConditionHolds(t, source, spec, cmp) {
+		if !e.presentConditionHoldsAs(t, source, you, spec, cmp) {
 			return false
 		}
 	}
 	if spec, ok := t.Params["CheckDefinedPlayer"]; ok {
-		holds, supported := e.checkDefinedPlayerHolds(spec, e.controllerOf(source))
+		holds, supported := e.checkDefinedPlayerHolds(spec, you)
 		// A supported predicate is evaluated for every mode. An unsupported
 		// one fails closed only for actionTriggerModes; other modes keep
 		// firing as they did before the predicate was read at all.
@@ -1521,11 +1530,13 @@ func (e *Engine) checkDefinedPlayerHolds(spec string, you state.PlayerID) (holds
 	return false, false
 }
 
-// lifeConditionHolds evaluates the LifeTotal$/LifeAmount$ intervening-if.
-// The "you" for a You-qualified LifeTotal$ is the trigger's controller
-// (source's controller), matching how every other trigger param resolves it.
-func (e *Engine) lifeConditionHolds(t cards.Trigger, source state.ObjID, amount string) bool {
-	who := e.controllerOf(source)
+// lifeConditionHoldsAs evaluates the LifeTotal$/LifeAmount$ intervening-if.
+// The "you" for a You-qualified LifeTotal$ is the caller's chosen player --
+// normally the source's controller, but an event-matched delayed trigger
+// passes its registration's effect owner instead (see
+// checkEventDelayedTriggers).
+func (e *Engine) lifeConditionHoldsAs(t cards.Trigger, you state.PlayerID, amount string) bool {
+	who := you
 	if v, ok := t.Params["LifeTotal"]; ok {
 		v = strings.TrimSpace(v)
 		switch v {
@@ -1543,11 +1554,12 @@ func (e *Engine) lifeConditionHolds(t cards.Trigger, source state.ObjID, amount 
 	return compareLife(e.G.Players[who].Life, amount)
 }
 
-// presentConditionHolds evaluates the IsPresent$/PresentCompare$ intervening-
-// if by counting the objects on the battlefield that match the spec (relative
-// to the trigger's source and its controller) and comparing that count.
-func (e *Engine) presentConditionHolds(t cards.Trigger, source state.ObjID, spec, cmp string) bool {
-	n := e.countPresent(spec, source, e.controllerOf(source))
+// presentConditionHoldsAs evaluates the IsPresent$/PresentCompare$
+// intervening-if by counting the objects on the battlefield that match the
+// spec (relative to the trigger's source and the caller's chosen "you") and
+// comparing that count.
+func (e *Engine) presentConditionHoldsAs(t cards.Trigger, source state.ObjID, you state.PlayerID, spec, cmp string) bool {
+	n := e.countPresent(spec, source, you)
 	return comparePresent(n, cmp)
 }
 
