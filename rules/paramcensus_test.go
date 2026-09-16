@@ -1088,22 +1088,28 @@ func (s *scan) closureReads(fi *fnInfo, exclude map[string]bool, visited map[str
 // params); a NEW api-specialised path must be added here or its reads
 // over-suppress every other API's real gaps.
 var apiSpecificRulesSA = map[string][]string{
-	// The mana-ability chain: activateMana through resolveManaEffectColor,
-	// the AvailableMana projection, and activatedMatchesValidSA's
-	// Produced$-based mana-ability recognition -- all run on mana abilities
-	// (api:Mana) only.
-	"Engine.activateMana":           {"Mana"},
-	"Engine.manaAbilityPayable":     {"Mana"},
-	"Engine.emitManaTap":            {"Mana"},
-	"Engine.isTriggeredManaAbility": {"Mana"},
-	"triggeredManaColourChoice":     {"Mana"},
-	"Engine.resolveManaAbility":     {"Mana"},
-	"Engine.resolveManaEffect":      {"Mana"},
-	"manaColourPrompt":              {"Mana"},
-	"Engine.AvailableMana":          {"Mana"},
-	"addAvailable":                  {"Mana"},
-	"availableAmount":               {"Mana"},
-	"activatedMatchesValidSA":       {"Mana"},
+	// The mana-ability chain: activateManaFor's offer/payment/resolution
+	// chain (the activateMana entrypoint delegates and no longer reads SA
+	// params itself), the AvailableMana projection, and
+	// activatedMatchesValidSA's Produced$-based mana-ability recognition --
+	// all run on mana abilities (api:Mana) only.
+	"Engine.manaAbilityPayable": {"Mana"},
+	"Engine.activateManaFor":    {"Mana"},
+	// The ManaReflected activation gate: only a reflected-mana ability's
+	// offer consults IsPresent$/PresentCompare$ on the SA itself (Tazri's
+	// "another activated ability" condition). A plain AB$ Mana ability's
+	// IsPresent$ gate is a separate, still-unread shape.
+	"Engine.manaReflectedPresentHolds": {"ManaReflected"},
+	"Engine.emitManaTap":               {"Mana"},
+	"Engine.isTriggeredManaAbility":    {"Mana"},
+	"triggeredManaColourChoice":        {"Mana"},
+	"Engine.resolveManaAbility":        {"Mana"},
+	"Engine.resolveManaEffect":         {"Mana"},
+	"manaColourPrompt":                 {"Mana"},
+	"Engine.AvailableMana":             {"Mana"},
+	"addAvailable":                     {"Mana"},
+	"availableAmount":                  {"Mana"},
+	"activatedMatchesValidSA":          {"Mana"},
 	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
 	// the per-mode target declaration (modalTargetSA), the resume-side mode
 	// decisions/labels, and the modal-trigger placement ask (CharmNum$).
@@ -1170,6 +1176,12 @@ var handRoots = struct {
 		// mustAttackRequired scans MustAttack statics directly, with no
 		// activeStatics call; its Params reads are the whitelist switch.
 		"MustAttack": {"Engine.mustAttackRequired"},
+		// untapOtherStaticsMatch scans UntapOtherPlayer statics directly over
+		// the face's Statics slice (Endbringer's foreign-untap shape), with
+		// no activeStatics call -- the same direct-scan shape
+		// mustAttackRequired has. staticPresentHolds (its IsPresent$/
+		// PresentCompare$ gate) is reached through it.
+		"UntapOtherPlayer": {"Engine.untapOtherStaticsMatch"},
 	},
 	// The trigger-queue drain and the stack-resolution paths read trigger
 	// params (OptionalDecider$, TriggerDescription$, Static$, ValidCard$)
@@ -1889,6 +1901,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Hallowed Fountain":           {"param:api:Tap.UnlessCost", "param:api:Tap.UnlessPayer"},
 	"Hangarback Walker":           {"param:api:PutCounter.ETB"},
 	"Hearthhull, the Worldseed":   {"param:stat:Continuous.AddTrigger"},
+	"Horizon Explorer":            {"param:api:Untap.ETB"},
 	"Icetill Explorer":            {"param:stat:Continuous.AdjustLandPlays"},
 	"Impulse":                     {"param:api:Dig.NoReveal"},
 	"Incinerate":                  {"param:api:Cleanup.ClearRemembered", "param:api:Effect.ForgetOnMoved"},

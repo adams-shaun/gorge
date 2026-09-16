@@ -65,7 +65,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerCard = 0
 		}
 		c.TriggerSource = c.TriggerCard
-	case "Taps", "TapsForMana":
+	case "Taps":
 		c.TriggerActivator = player(e.tapActor(ev))
 	case "ChangesZone", "LandPlayed":
 		c.TriggerCard = ev.Obj
@@ -86,6 +86,16 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerActivator = player(ev.Player)
 	case "Phase":
 		c.TriggerPlayer = player(e.G.Active)
+	case "TapsForMana":
+		// The ManaAdd event names the activating player, producing permanent,
+		// produced type and amount without overloading Remembered. This mode's
+		// matcher remains a separate primitive; retaining all four roles here
+		// makes ReflectProperty$ Produced exact once that trigger is queued.
+		c.TriggerPlayer = player(ev.Player)
+		c.TriggerCard = ev.Obj
+		c.TriggerSource = ev.Obj
+		c.TriggerMana = ev.Counter
+		c.TriggerAmount = ev.Amount
 	}
 	// CR 107.3m binds X when the trigger fires, not when it resolves. In
 	// particular, an ETB trigger may remain on the stack after its permanent

@@ -459,7 +459,7 @@ func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32) in
 func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability bool) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic)
-	if !mana.payable(e.G.Players[p].Pool, e.G.Players[p].Snow, e.G.Players[p].Life) {
+	if !e.costPayable(p, id, ability, mana) {
 		return false
 	}
 	return e.nonManaCastable(p, id, cost, ability)
@@ -1298,7 +1298,7 @@ func (e *Engine) xAsk() bool {
 	for x := min; x <= bound; x++ {
 		wx := e.paymentManaX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
-		if !wx.payable(pool, e.G.Players[pc.player].Snow, e.G.Players[pc.player].Life) {
+		if !e.costPayable(pc.player, pc.card, pc.ability >= 0, wx) {
 			break
 		}
 		maxOld = x
@@ -1824,7 +1824,7 @@ func (e *Engine) targetDependentCostMayPay(pc *pendingCast) bool {
 	if pc.ability < 0 {
 		delve = int32(len(pc.delve))
 	}
-	return e.manaFeasible(pc.player, pc.resolvedMana(), mods, pc.taxGeneric, delve)
+	return e.manaFeasible(pc.player, pc.card, pc.ability >= 0, pc.resolvedMana(), mods, pc.taxGeneric, delve)
 }
 
 // pendingCastScope returns the exact spell or ability scope whose modifiers
@@ -1888,7 +1888,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		// resolvedMana carries no live pip, so manaFeasible (the shared
 		// primitive) here degenerates to the composed payable check — the same
 		// composition payCast will charge for this candidate's repricing.
-		if e.manaFeasible(pc.player, pc.resolvedMana(), mods, pc.taxGeneric, delve) ||
+		if e.manaFeasible(pc.player, pc.card, pc.ability >= 0, pc.resolvedMana(), mods, pc.taxGeneric, delve) ||
 			(cost.hasManaPayment() && e.hasUntappedManaSource(pc.player)) {
 			out = append(out, candidate)
 		}
@@ -2198,7 +2198,7 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 	// above), so their slots leave the cost; the pips after payIdx stay live
 	// for the shared primitive to enumerate.
 	c = c.dropAnnouncePrefix(pc.payIdx + 1)
-	return e.manaFeasible(pc.player, c, pc.mods, pc.taxGeneric, delve)
+	return e.manaFeasible(pc.player, pc.card, pc.ability >= 0, c, pc.mods, pc.taxGeneric, delve)
 }
 
 // manaAsk offers the player's payment choice for the next unsettled hybrid or
@@ -2552,9 +2552,11 @@ func (e *Engine) targetAsk() bool {
 	// are already settled, manaAsk runs before targetAsk), so the composed
 	// payable check here is the same composition manaToPay charges;
 	// paymentMana additionally folds the announced Convoke/Harmonize
-	// contributions in (zero when none were announced). The
+	// contributions in (zero when none were announced). costPayable is the
+	// conversion-aware equivalent: the SAME resolveMana payManaConvFor will
+	// run, including RestrictValid$ provenance. The
 	// targetDependentCostMayPay arm keeps the ValidTarget$ reducer exception.
-	if !mana.payable(e.G.Players[pc.player].Pool, e.G.Players[pc.player].Snow, e.G.Players[pc.player].Life) &&
+	if !e.costPayable(pc.player, pc.card, pc.ability >= 0, mana) &&
 		!e.hasUntappedManaSource(pc.player) && !e.targetDependentCostMayPay(pc) {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return true
@@ -2774,7 +2776,7 @@ func (e *Engine) manaWindowAsk() bool {
 	}
 	// A pool that already pays the total cost needs no window (nothing to
 	// gain by activating more mana abilities here).
-	if mana.payable(e.G.Players[pc.player].Pool, e.G.Players[pc.player].Snow, e.G.Players[pc.player].Life) {
+	if e.costPayable(pc.player, pc.card, pc.ability >= 0, mana) {
 		return false
 	}
 	var sources []state.ObjID
@@ -2917,7 +2919,7 @@ func (e *Engine) payCast() {
 		// The ability object was already minted by pushCast; targets are
 		// recorded onto it by handleTarget.
 		mana := e.manaToPay(pc)
-		if !e.payMana(pc.player, mana) {
+		if !e.payManaConvFor(pc.player, pc.card, true, mana, e.paymentConv(pc.player, pc.card, true)) {
 			e.abortCast(pc, "activation aborted: cost no longer payable", true)
 			return
 		}
@@ -3021,7 +3023,7 @@ func (e *Engine) payCast() {
 	if mana.Generic < 0 {
 		mana.Generic = 0
 	}
-	if !e.payMana(pc.player, mana) {
+	if !e.payManaConvFor(pc.player, pc.card, false, mana, e.paymentConv(pc.player, pc.card, false)) {
 		// E2 (round 2) / F05-2. This is the reachable no-progress arm: a Delve
 		// exile ask (Min:0, Max the shortfall) was answered with fewer cards
 		// than the shortfall needs, so the cast aborts with no state change

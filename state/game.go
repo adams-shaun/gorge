@@ -10,6 +10,11 @@ type Player struct {
 	Lost        bool
 	LandsPlayed int32
 	Pool        Mana
+	// RestrictedMana retains the spend restriction on mana produced by a
+	// RestrictValid$ mana ability. It is cleared with the pool at step/phase
+	// cleanup and is reconstructed from ManaAdd events.
+	RestrictedMana []ManaRestriction
+
 	// Counters records player counters (currently poison, used by Ward costs).
 	Counters []Counter
 
@@ -268,6 +273,7 @@ func (g *Game) Clone() *Game {
 		c.Players[i].Commanders = append([]ObjID(nil), g.Players[i].Commanders...)
 		c.Players[i].CmdCasts = append([]int32(nil), g.Players[i].CmdCasts...)
 		c.Players[i].CmdDamage = append([]int32(nil), g.Players[i].CmdDamage...)
+		c.Players[i].RestrictedMana = append([]ManaRestriction(nil), g.Players[i].RestrictedMana...)
 	}
 	c.Objs = make([]Object, len(g.Objs))
 	for i := range g.Objs {

@@ -378,18 +378,56 @@ func Apply(g *state.Game, e Event) {
 			if e.Counter != "" {
 				idx = state.ManaIndex(e.Counter[0])
 			}
-			g.Players[e.Player].Pool[idx] += e.Amount
+			player := &g.Players[e.Player]
+			player.Pool[idx] += e.Amount
+			if valid, restricted := ManaRestrictionFromText(e.Text); restricted {
+				if e.Amount > 0 {
+					player.RestrictedMana = append(player.RestrictedMana, state.ManaRestriction{
+						Color: e.Counter, Amount: e.Amount, Valid: valid,
+					})
+				} else if e.Amount < 0 {
+					// A restricted spend event names exactly the restriction batch it
+					// consumes. Walk insertion order so two matching additions replay
+					// identically, and tolerate a malformed historical event that
+					// over-spends its batch without making Pool negative here.
+					need := -e.Amount
+					for i := 0; i < len(player.RestrictedMana) && need > 0; {
+						r := &player.RestrictedMana[i]
+						if r.Color != e.Counter || r.Valid != valid {
+							i++
+							continue
+						}
+						used := r.Amount
+						if used > need {
+							used = need
+						}
+						r.Amount -= used
+						need -= used
+						if r.Amount == 0 {
+							player.RestrictedMana = append(player.RestrictedMana[:i], player.RestrictedMana[i+1:]...)
+							continue
+						}
+						i++
+					}
+				}
+			}
 		}
 
 	case ManaClear:
 		if validPlayer(g, e.Player) {
 			g.Players[e.Player].Pool = state.Mana{}
+			g.Players[e.Player].RestrictedMana = nil
 			g.Players[e.Player].Snow = state.Mana{}
 		}
 
 	case CounterChange:
 		if o := g.Obj(e.Obj); o != nil {
 			o.AddCounter(e.Counter, e.Amount)
+		}
+
+	case Imprint:
+		if o := g.Obj(e.Obj); o != nil {
+			o.Imprinted = append([]state.ObjID(nil), e.IDs...)
 		}
 
 	case DeclareAttackers:
@@ -945,6 +983,13 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		}
 	}
 	remove(g, id, o.Zone, zoneOwner(o, o.Zone))
+	// CR 400.7: leaving the battlefield makes the object a new object in
+	// its next zone, so control-changing effects do not follow it. Reset
+	// before choosing the destination's zone owner: a later graveyard/hand
+	// re-entry must be placed under its owner, not its former controller.
+	if wasBattlefield && to != state.ZBattlefield {
+		o.Controller = o.Owner
+	}
 	if to != state.ZCeased {
 		dst := zoneOwner(o, to)
 		g.SetZone(to, dst, append(g.Zone(to, dst), id))
@@ -1018,6 +1063,9 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.Counters = nil
 		o.Targets = nil
 		o.Remembered = nil
+		if wasBattlefield {
+			o.Imprinted = nil
+		}
 		// X/CastFlags/Chosen* carry cast-time and choose-time information
 		// forward from the stack onto the permanent it resolves into (an
 		// ETB "if it was kicked" trigger needs to read X/CastFlags off the

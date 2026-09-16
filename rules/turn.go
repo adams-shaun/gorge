@@ -77,7 +77,10 @@ func (e *Engine) finishEnteredStep() {
 	if e.G.Step == state.StepDraw && e.drawStepTurnAction() {
 		return
 	}
-	// Entry resets the pass count along with the active holder.
+	// Entry resets the pass count along with the active holder. Cumulative
+	// upkeep is a real Phase trigger expanded from its keyword, so the upkeep
+	// StepChange queued it alongside every other upkeep trigger; the ordinary
+	// priority round orders and places them before anyone may act.
 	e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 }
 
@@ -93,6 +96,15 @@ type untapStep struct {
 // Untap replacement competition can suspend on one permanent; its answered
 // choice resumes at the following permanent, rather than advancing to upkeep
 // while the choice is pending or re-processing the already replaced event.
+// stat:UntapOtherPlayer: after the active player's own battlefield, EVERY
+// other living player's battlefield permanent a matching static admits untaps
+// too (CR's "untap during each other player's untap step", and the
+// command-zone plane shape "all permanents untap during each player's untap
+// step"); AliveFrom(0) order keeps the event stream deterministic. No
+// repl:Untap replacement can park on those foreign untaps: every corpus line
+// scopes itself with ValidStepTurnToController$ You, which the matcher reads
+// against the untapped card's own controller, and a foreign card's controller
+// is not the step's active player.
 func (e *Engine) finishUntapStep(next int) bool {
 	ids := e.G.Zone(state.ZBattlefield, e.G.Active)
 	for i := next; i < len(ids); i++ {
@@ -102,7 +114,10 @@ func (e *Engine) finishUntapStep(next int) bool {
 		}
 		e.untapResume = &untapStep{next: i + 1}
 		prior := e.pending
-		e.emit(events.Event{Kind: events.Untap, Obj: ids[i]})
+		// effects.TryUntap, reached through untapTurnPermanent, applies the
+		// shared stun-counter replacement (CR 122.1d) ahead of the raw Untap
+		// event the repl:Untap replacement competition may park on.
+		e.untapTurnPermanent(ids[i])
 		if e.pending != nil && e.pending != prior {
 			// poseUntapReplacementChoice transferred this continuation to its
 			// queue entry. Do not enter upkeep until its answer finishes this
@@ -111,6 +126,17 @@ func (e *Engine) finishUntapStep(next int) bool {
 			return false
 		}
 		e.untapResume = nil
+	}
+	for _, p := range e.G.AliveFrom(0) {
+		if p == e.G.Active {
+			continue
+		}
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o != nil && o.Tapped && e.untapOtherStaticsMatch(id) {
+				e.untapTurnPermanent(id)
+			}
+		}
 	}
 	e.setStep(state.StepUpkeep)
 	return e.pending == nil
@@ -695,27 +721,21 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.handleStation(e.stationing, chosen)
 		return
 	}
-	// A hidden-library ChangeZone, a Dig look-and-take, and a RollDice
-	// choose-one-result use KChoose's ordinary ordered-subset wire shape, but
-	// they are mid-resolution effect asks rather than one of the cast/cleanup
-	// flows tracked by e.choosing. Resume them before dispatching those
-	// flows; an empty chosen slice is the legitimate "fail to find" /
-	// Optional-decline answer (for "roll" a malformed empty answer falls
-	// back to the first die inside the effect).
-	if e.resume != nil && (e.resume.kind == "search" || e.resume.kind == "dig" || e.resume.kind == "roll" || e.resume.kind == "choice" || e.resume.kind == "hand_move" || e.resume.kind == "sacrifice" ||
-		e.resume.kind == "ward_mana" || e.resume.kind == "ward_alt" || e.resume.kind == "ward_blight" || e.resume.kind == "ward_evidence" ||
-		e.resume.kind == "ward_waterbend" || e.resume.kind == "ward_tap" || e.resume.kind == "ward_sac" || e.resume.kind == "ward_discard") {
-		rp := e.resume
-		e.resume = nil
-		e.resumeResolution(rp, chosen)
-		return
-	}
-	// RevealOptional$ and Optional$ direct-library-fetch yes/no decisions are
-	// mid-resolution effect asks wearing KChoose's ordinary wire shape,
-	// exactly like "search" above: route them to the suspended resolution
-	// before the cast/cleanup flows get a look in. Their resume arms map the
-	// one chosen option onto the asking effect's scoped context field.
-	if e.resume != nil && (e.resume.kind == "reveal_optional" || e.resume.kind == "defined_library_optional") {
+	// Every KChoose carrying a resume point is a mid-resolution effect ask,
+	// regardless of its ResumeKind (search, dig, imprint, untap selection,
+	// reveal-optional, defined-library-optional, ward windows, hand_move,
+	// sacrifice, roll, and future siblings). Dispatch by role rather than an
+	// allowlist: the asking effect already recorded the exact SA and answer
+	// interpretation in e.resume, while cast/cleanup flows never do (the
+	// kinds that bypass this check -- madness, optional triggers, their
+	// Cost$ windows -- are answered through KTriggerOptional and the
+	// chooseTriggeredCost/chooseCumulative arms, never KChoose). This is the
+	// structural guard against silently dropping the next KChoose-based
+	// primitive merely because its string was not added here. An empty chosen
+	// slice is the legitimate "fail to find" / Optional-decline answer (for
+	// "roll" a malformed empty answer falls back to the first die inside
+	// the effect).
+	if e.resume != nil {
 		rp := e.resume
 		e.resume = nil
 		e.resumeResolution(rp, chosen)
@@ -779,6 +799,14 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// trigger drain (only the turn structure asks it, when no step is
 		// mid-resolution), so e.drainAwaitsTarget is necessarily false here.
 		e.discardCleanup(chosen)
+	case chooseCumulative:
+		// The cumulative-upkeep trigger is resolving and waiting in its
+		// mana/payment window (rules/cumulative.go).
+		e.cumulativeAnswer(chosen)
+	case chooseTriggeredCost:
+		// A Cost$ carried by a triggered effect (Mana Vault's pay-{4} untap)
+		// is paid during resolution rather than being silently ignored.
+		e.triggeredCostAnswer(chosen)
 	case chooseDamageDivision:
 		// Task jj-cmb (F40): the combat damage step's controller
 		// damage-division decision (CR 510.1c) was answered.

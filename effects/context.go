@@ -118,6 +118,19 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return []state.Target{{Obj: lib[i]}}, true
 	case "Remembered":
 		return copyTargets(c.Remembered), true
+	case "Imprinted":
+		if o := g.Obj(c.Source); o != nil {
+			out := make([]state.Target, 0, len(o.Imprinted))
+			for _, id := range o.Imprinted {
+				// Imprint links an exiled card only while the linked card remains
+				// in exile (CR 607.2a); its persistent ID cannot follow it later.
+				if linked := g.Obj(id); linked != nil && linked.Zone == state.ZExile {
+					out = append(out, state.Target{Obj: id})
+				}
+			}
+			return out, true
+		}
+		return nil, true
 	case "ChosenCard", "ChosenPlayer":
 		// ChooseCard/ChoosePlayer bind the current resolution's most recent
 		// choice here. This is deliberately distinct from Remembered: Forge

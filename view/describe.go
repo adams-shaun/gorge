@@ -57,6 +57,8 @@ func Describe(g *state.Game, ev events.Event) string {
 			verb, n = "loses", -n
 		}
 		return player(g, ev.Player) + " " + verb + " " + itoa(int64(n)) + " " + strings.ToLower(ev.Counter) + " counter(s)"
+	case events.Imprint:
+		return obj(g, ev.Obj) + " imprints " + objs(g, ev.IDs)
 	case events.MoveZone:
 		return obj(g, ev.Obj) + " moves from " + zone(ev.From) + " to " + zone(ev.To)
 	case events.Draw:

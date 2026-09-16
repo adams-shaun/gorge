@@ -177,12 +177,12 @@ func activatedMatchesValidSA(ab *cards.SA, validSA string) bool {
 		}
 		switch {
 		case constraint == "!ManaAbility":
-			if ab.API != "Mana" {
+			if !isManaAbilityAPI(ab.API) {
 				return true
 			}
 			// else: mana abilities are expressly spared; try the next alt
 		case constraint == "ManaAbility" || strings.HasPrefix(constraint, "ManaAbility<"):
-			if ab.API != "Mana" {
+			if !isManaAbilityAPI(ab.API) {
 				break // not a mana ability; try the next alt
 			}
 			// Bare ManaAbility matches every mana ability. A
@@ -602,7 +602,7 @@ func (m costMods) hasFloor() bool {
 // resolves one pip per level in announcePip order and stops at the first
 // payable assignment, so a payable cost is found without visiting the whole
 // tree.
-func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, delve int32) bool {
+func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, delve int32, conv *manaConv) bool {
 	composed := func(c Cost) bool {
 		cc := m.apply(c)
 		cc.Generic = addClampedGeneric(cc.Generic, int64(taxGeneric))
@@ -611,7 +611,8 @@ func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, d
 		} else {
 			cc.Generic = 0
 		}
-		return cc.payable(pool, snow, life)
+		_, ok := cc.resolveMana(pool, snow, life, conv)
+		return ok
 	}
 	if !m.hasFloor() || c.annPipCount() == 0 {
 		return composed(c)
@@ -641,15 +642,20 @@ func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, life, taxGeneric, d
 }
 
 // manaFeasible is the engine-facing form of the shared primitive: it reads
-// the payer's pool, snow tally and life and hands them to
-// costMods.feasibleAny. Every mana-feasibility gate of the cast flow goes
-// through it — the offer gate (offerCastable), each CR 601.2b announcement
-// menu (announceFeasible, over the partially announced cost) and the
-// target-repricing gates — so no site re-derives its own "payable so far"
-// answer.
-func (e *Engine) manaFeasible(p state.PlayerID, c Cost, mods costMods, taxGeneric, delve int32) bool {
+// the payer's restriction-aware pool (manaAvailableFor: RestrictValid$ mana
+// is invisible to a payment its restriction does not admit), snow tally and
+// life, the payer's stat:ManaConvert conversion set (paymentConv), and hands
+// them to costMods.feasibleAny. Every mana-feasibility gate of the cast flow
+// goes through it — the offer gate (offerCastable), each CR 601.2b
+// announcement menu (announceFeasible, over the partially announced cost) and
+// the target-repricing gates — so no site re-derives its own "payable so far"
+// answer. With no RestrictValid$ batch and no ManaConvert static on the
+// battlefield this is exactly the plain-pool payable check it was before the
+// mana-shaping primitives landed (paymentConv returns nil, manaAvailableFor
+// returns Pool verbatim), so every pre-existing game resolves byte-identically.
+func (e *Engine) manaFeasible(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32) bool {
 	pl := e.G.Players[p]
-	return mods.feasibleAny(c, pl.Pool, pl.Snow, pl.Life, taxGeneric, delve)
+	return mods.feasibleAny(c, e.manaAvailableFor(p, id, ability), pl.Snow, pl.Life, taxGeneric, delve, e.paymentConv(p, id, ability))
 }
 
 // effectZoneOK reports whether a static whose EffectZone$ reads v applies
@@ -1310,7 +1316,7 @@ func parseAmount(s string, def int32) int32 {
 func init() {
 	effects.RegisterNonAPI("stat:CantBeCast", "stat:CantBeActivated", "stat:RaiseCost", "stat:CastWithFlash",
 		"stat:ReduceCost", "stat:AlternativeCost", "stat:CantBlock", "stat:CantBlockBy",
-		"stat:CantGainLife", "stat:Continuous", "stat:NumLoyaltyAct")
+		"stat:CantGainLife", "stat:Continuous", "stat:ManaConvert", "stat:NumLoyaltyAct")
 }
 
 // altCostLabel names the nth (0-indexed) alternative-cost option for a

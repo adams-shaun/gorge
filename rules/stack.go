@@ -34,16 +34,37 @@ var manaLetters = [...]string{"W", "U", "B", "R", "G", "C"}
 // having paid nothing. Reporting failure explicitly is what lets castSpell
 // abort the cast instead.
 func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
-	before := e.G.Players[p].Pool
+	return e.payManaConvFor(p, 0, false, cost, nil)
+}
+
+// payManaConv is payMana under a stat:ManaConvert conversion set (or nil,
+// the plain exact-colour payment payMana always was). The conversion widens
+// (and the <-C restriction narrows) what the pool's mana may pay, never what
+// the cost demands.
+func (e *Engine) payManaConv(p state.PlayerID, cost Cost, conv *manaConv) bool {
+	return e.payManaConvFor(p, 0, false, cost, conv)
+}
+
+// payManaConvFor pays a specific spell or activated ability. RestrictValid$
+// mana remains distinct from ordinary floating mana until this point: it is
+// included only when its restriction admits this payment, then spent first
+// and marked on the negative ManaAdd event so events.Apply can reconstruct
+// the same provenance during replay.
+func (e *Engine) payManaConvFor(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv) bool {
+	before := e.manaAvailableFor(p, id, ability)
 	beforeSnow := e.G.Players[p].Snow
-	pay, ok := cost.resolveMana(before, beforeSnow, e.G.Players[p].Life)
+	pay, ok := cost.resolveMana(before, beforeSnow, e.G.Players[p].Life, conv)
 	if !ok {
 		return false
 	}
 	after, afterSnow, lifeSpent := pay.pool, pay.snow, pay.lifeSpent
+	spent := state.Mana{}
+	for i := range before {
+		spent[i] = before[i] - after[i]
+	}
+	e.emitRestrictedManaSpend(p, id, ability, &spent)
 	for i, letter := range manaLetters {
-		spent := before[i] - after[i]
-		if spent == 0 {
+		if spent[i] == 0 {
 			continue
 		}
 		// A slot whose snow units were spent (all or part) emits the
@@ -53,13 +74,13 @@ func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
 		// snow split here is exactly what the payment search did.
 		snowSpent := beforeSnow[i] - afterSnow[i]
 		if snowSpent > 0 {
-			if plain := spent - snowSpent; plain > 0 {
+			if plain := spent[i] - snowSpent; plain > 0 {
 				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -plain})
 			}
 			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: "S" + letter, Amount: -snowSpent})
 			continue
 		}
-		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -spent})
+		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -spent[i]})
 	}
 	// Fixed life costs and any Phyrexian pips paid with life are deducted
 	// through the ordinary LifeChange event so a replay learns them.
@@ -67,6 +88,102 @@ func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
 		e.emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -lifeSpent})
 	}
 	return true
+}
+
+// manaAvailableFor removes every restricted batch from the visible pool, then
+// restores exactly the batches valid for this payment. This means a cast or a
+// nonmatching activation can never borrow Tazri-style mana merely because it
+// shares a colour bucket with unrestricted mana.
+func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool) state.Mana {
+	available := e.G.Players[p].Pool
+	for _, r := range e.G.Players[p].RestrictedMana {
+		idx := state.ManaIndex(r.Color[0])
+		available[idx] -= r.Amount
+		if e.restrictValidMatches(p, id, ability, r.Valid) {
+			available[idx] += r.Amount
+		}
+	}
+	return available
+}
+
+// emitRestrictedManaSpend consumes matching restriction batches in insertion
+// order before ordinary mana. Every matching unit is interchangeable for the
+// current payment; using this fixed order keeps the log deterministic.
+func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, ability bool, spent *state.Mana) {
+	// Emit mutates RestrictedMana through events.Apply, so range a snapshot:
+	// otherwise removing the first of two matching batches would make the
+	// live slice shift under this loop and could skip or double-spend one.
+	batches := append([]state.ManaRestriction(nil), e.G.Players[p].RestrictedMana...)
+	for _, r := range batches {
+		if r.Amount <= 0 || !e.restrictValidMatches(p, id, ability, r.Valid) {
+			continue
+		}
+		idx := state.ManaIndex(r.Color[0])
+		used := spent[idx]
+		if used > r.Amount {
+			used = r.Amount
+		}
+		if used == 0 {
+			continue
+		}
+		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: r.Color, Amount: -used,
+			Text: events.ManaRestrictionText(r.Valid)})
+		spent[idx] -= used
+	}
+}
+
+// restrictValidMatches evaluates RestrictValid$'s payment class. Forge spells
+// it as <SA-kind>.<object filter>; the corpus shape is
+// Activated.Creature+inZoneBattlefield. The zone predicate is checked here
+// because it describes the ability's source, not the mana source that made
+// the restriction. Unknown classes fail closed so restricted mana is never
+// spent illegally.
+func (e *Engine) restrictValidMatches(p state.PlayerID, id state.ObjID, ability bool, valid string) bool {
+	kind, spec, ok := strings.Cut(strings.TrimSpace(valid), ".")
+	if !ok {
+		return false
+	}
+	switch kind {
+	case "Activated":
+		if !ability {
+			return false
+		}
+	case "Spell":
+		if ability {
+			return false
+		}
+	default:
+		return false
+	}
+	needsBattlefield := strings.Contains(spec, "inZoneBattlefield")
+	spec = strings.Trim(strings.ReplaceAll(spec, "+inZoneBattlefield", ""), "+")
+	o := e.G.Obj(id)
+	if o == nil || (needsBattlefield && o.Zone != state.ZBattlefield) {
+		return false
+	}
+	return spec == "" || effects.MatchesSpecFrom(e.G, spec, id, p, id)
+}
+
+// paymentConv is the conversion set for p paying id (ability selects the
+// ValidSA$ Spell/Activated scoping), or nil when no ManaConvert static would
+// change any pip match. Returning nil -- not a zero conv -- keeps the pure
+// resolveMana path (and every game without a converter on the board)
+// byte-identical.
+func (e *Engine) paymentConv(p state.PlayerID, id state.ObjID, ability bool) *manaConv {
+	conv := e.manaConversion(p, id, ability)
+	if conv.empty() {
+		return nil
+	}
+	return &conv
+}
+
+// costPayable is the conversion-aware equivalent of Cost.payable at the
+// offering and window gates: the SAME resolveMana payMana will run, so an
+// offered cost and the cost actually charged can never disagree about what
+// the payer's converted mana may satisfy.
+func (e *Engine) costPayable(p state.PlayerID, id state.ObjID, ability bool, cost Cost) bool {
+	_, ok := cost.resolveMana(e.manaAvailableFor(p, id, ability), e.G.Players[p].Snow, e.G.Players[p].Life, e.paymentConv(p, id, ability))
+	return ok
 }
 
 // targetBounds resolves a targeting subject's TargetMin$/TargetMax$ to the
@@ -856,6 +973,20 @@ func (e *Engine) resolveTop() {
 				e.askOptionalAtResolution(who, o, o.Ability, e.abilityLabel(o, t))
 				return
 			}
+		}
+		// Cumulative upkeep is an ordinary trigger through placement, but its
+		// age/payment resolution needs rules' cost machinery. Mana Vault's
+		// triggered Untap is the one ordinary effect shape authorized to use
+		// that window; unrelated Cost$-bearing trigger effects retain their
+		// established executor semantics.
+		if o.Ability.API == "CumulativeUpkeep" {
+			e.startCumulativeUpkeep(id, o.Source, o.Ability)
+			return
+		}
+		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
+			o.Ability.API == "Untap" && o.Ability.Params["Cost"] != "" {
+			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)
+			return
 		}
 		// The ability object itself has no Face, so its SVar table (needed
 		// for Num's SVar indirection, e.g. Goblin Piledriver's "NumAtt$ +X")
