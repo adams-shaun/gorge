@@ -71,10 +71,12 @@ func TestBenchIsDeterministic(t *testing.T) {
 
 // TestSeatAssignmentAlternates pins the M1 invariant: over an even N, A
 // holds each seat in exactly half the games. With the (game+seat) rule A
-// holds seat 0 on even games and seat 1 on odd games, so a seating
-// advantage (the first turn is seat 0's, and each seat keeps its own deck
-// list for the whole run) is spread equally across the policies instead of
-// masquerading as one of them being better.
+// holds seat 0 on even games and seat 1 on odd games, so a deck-list
+// advantage (each seat keeps its own deck list for the whole run) is spread
+// equally across the policies instead of masquerading as one of them being
+// better -- the FIRST TURN is not part of this any more, since the CR 103.1
+// toss draws the starting seat per game (the report's starting-player split
+// is the play/draw measurement now).
 func TestSeatAssignmentAlternates(t *testing.T) {
 	const games, seats = 8, 2
 	held := make([]int, seats)
@@ -1116,5 +1118,66 @@ func TestAllStalledReportsNoRate(t *testing.T) {
 	}
 	if !strings.Contains(out, "no rate") {
 		t.Errorf("all-stalled run must say the rate is unavailable, not 0:\n%s", out)
+	}
+}
+
+// TestTheSummaryReportsTheStartingPlayerSplit (rv2a): since the CR 103.1
+// toss the seat that plays first is drawn per game -- the seat-index split
+// no longer measures play/draw, so the summary carries a starting-player
+// split taken from each game's first TurnChange instead. The synthetic
+// schedule: game 0 starts at seat 0 and seat 0 wins it; game 1 starts at
+// seat 1 and seat 1 wins it; game 2 starts at seat 1 and draws. The line
+// must read 1/1 and 2/1 -- starts and wins-when-starting, not seat wins.
+func TestTheSummaryReportsTheStartingPlayerSplit(t *testing.T) {
+	var buf bytes.Buffer
+	starters := []int{0, 1, 1}
+	winners := []int{0, 1, -1} // -1: a draw
+	if err := bench(0, 3, 2, "bot", "bot", func(g uint64, _ []string) (gameOutcome, error) {
+		o := gameOutcome{turns: 10, intents: 50, starter: starters[g], starterSet: true}
+		if winners[g] >= 0 {
+			o.winner, o.winnerSeat = "bot", winners[g]
+		}
+		return o, nil
+	}, &buf); err != nil {
+		t.Fatalf("bench: %v", err)
+	}
+	out := buf.String()
+	startRe := regexp.MustCompile(`(?m)^starting player: seat 0 started (\d+) and won (\d+)  seat 1 started (\d+) and won (\d+)$`)
+	m := startRe.FindStringSubmatch(out)
+	if m == nil {
+		t.Fatalf("starting-player line missing from the summary:\n%s", out)
+	}
+	if s0, w0, s1, w1 := atoi(m[1]), atoi(m[2]), atoi(m[3]), atoi(m[4]); s0 != 1 || w0 != 1 || s1 != 2 || w1 != 1 {
+		t.Errorf("starting split = seat 0 %d/%d, seat 1 %d/%d, want 1/1 and 2/1", s0, w0, s1, w1)
+	}
+}
+
+// TestTheStartingPlayerLineIsSuppressedWithoutStarters (rv2a): an outcome
+// source that records no starter (a synthetic player predating the field)
+// must not grow a zeroed line -- the report stays byte-identical to the
+// pre-rv2a shape for every caller that does not carry starters.
+func TestTheStartingPlayerLineIsSuppressedWithoutStarters(t *testing.T) {
+	var buf bytes.Buffer
+	if err := bench(0, 3, 2, "bot", "bot", func(_ uint64, _ []string) (gameOutcome, error) {
+		// starterSet stays false: a hand-built outcome that leaves the field
+		// at its zero value must not invent a seat-0 start.
+		return gameOutcome{winner: "bot", winnerSeat: 0, turns: 10, intents: 50}, nil
+	}, &buf); err != nil {
+		t.Fatalf("bench: %v", err)
+	}
+	if strings.Contains(buf.String(), "starting player:") {
+		t.Errorf("starting-player line printed with no starters recorded:\n%s", buf.String())
+	}
+}
+
+// TestStartingPlayerRejectsAnInvalidRecordedSeat keeps the fold defensive:
+// only a present, in-range first TurnChange can index the per-seat split.
+func TestStartingPlayerRejectsAnInvalidRecordedSeat(t *testing.T) {
+	var buf bytes.Buffer
+	err := bench(0, 1, 2, "bot", "bot", func(_ uint64, _ []string) (gameOutcome, error) {
+		return gameOutcome{turns: 1, starter: 2, starterSet: true}, nil
+	}, &buf)
+	if err == nil || !strings.Contains(err.Error(), "starter seat 2 out of range [0,2)") {
+		t.Fatalf("bench invalid starter error = %v, want range error", err)
 	}
 }

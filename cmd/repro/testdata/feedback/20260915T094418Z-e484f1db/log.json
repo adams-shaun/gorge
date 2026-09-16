@@ -8,12 +8,17 @@
     },
     {
       "seq": 1,
+      "kind": 22,
+      "text": "valgavoth-endless-punishment won the toss"
+    },
+    {
+      "seq": 2,
       "kind": 2,
       "obj": 93,
       "to": 6
     },
     {
-      "seq": 2,
+      "seq": 3,
       "kind": 1,
       "ids": [
         62,
@@ -119,62 +124,62 @@
       "secret": true
     },
     {
-      "seq": 3,
+      "seq": 4,
       "kind": 3,
       "obj": 62,
       "to": 1,
       "secret": true
     },
     {
-      "seq": 4,
+      "seq": 5,
       "kind": 3,
       "obj": 80,
       "to": 1,
       "secret": true
     },
     {
-      "seq": 5,
+      "seq": 6,
       "kind": 3,
       "obj": 96,
       "to": 1,
       "secret": true
     },
     {
-      "seq": 6,
+      "seq": 7,
       "kind": 3,
       "obj": 48,
       "to": 1,
       "secret": true
     },
     {
-      "seq": 7,
+      "seq": 8,
       "kind": 3,
       "obj": 33,
       "to": 1,
       "secret": true
     },
     {
-      "seq": 8,
+      "seq": 9,
       "kind": 3,
       "obj": 29,
       "to": 1,
       "secret": true
     },
     {
-      "seq": 9,
+      "seq": 10,
       "kind": 3,
       "obj": 77,
       "to": 1,
       "secret": true
     },
     {
-      "seq": 10,
+      "seq": 11,
       "kind": 2,
       "obj": 101,
       "to": 6
     },
     {
-      "seq": 11,
+      "seq": 12,
       "kind": 1,
       "player": 1,
       "ids": [
@@ -281,7 +286,7 @@
       "secret": true
     },
     {
-      "seq": 12,
+      "seq": 13,
       "kind": 3,
       "player": 1,
       "obj": 180,
@@ -289,7 +294,7 @@
       "secret": true
     },
     {
-      "seq": 13,
+      "seq": 14,
       "kind": 3,
       "player": 1,
       "obj": 199,
@@ -297,7 +302,7 @@
       "secret": true
     },
     {
-      "seq": 14,
+      "seq": 15,
       "kind": 3,
       "player": 1,
       "obj": 177,
@@ -305,7 +310,7 @@
       "secret": true
     },
     {
-      "seq": 15,
+      "seq": 16,
       "kind": 3,
       "player": 1,
       "obj": 167,
@@ -313,7 +318,7 @@
       "secret": true
     },
     {
-      "seq": 16,
+      "seq": 17,
       "kind": 3,
       "player": 1,
       "obj": 168,
@@ -321,7 +326,7 @@
       "secret": true
     },
     {
-      "seq": 17,
+      "seq": 18,
       "kind": 3,
       "player": 1,
       "obj": 140,
@@ -329,17 +334,12 @@
       "secret": true
     },
     {
-      "seq": 18,
+      "seq": 19,
       "kind": 3,
       "player": 1,
       "obj": 112,
       "to": 1,
       "secret": true
-    },
-    {
-      "seq": 19,
-      "kind": 22,
-      "text": "valgavoth-endless-punishment won the toss and takes the first turn"
     },
     {
       "seq": 20,
@@ -9100,7 +9100,7 @@
       ]
     }
   ],
-  "head": "7e35c9a40dedff68",
+  "head": "7b4a235dcfd2cd87",
   "intent_count": 249,
   "turn": 10,
   "step": "end-combat",

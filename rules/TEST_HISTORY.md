@@ -1,9 +1,6 @@
 # Test history — github.com/adams-shaun/gorge/rules
 
 budget_s: 300
-budget_s: 124
-budget_s: 53
-budget_s: 51
 
 <!--
 A row far below the others is very likely VACUOUS, not fast. MEASURED
@@ -349,6 +346,8 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-14T16:02Z | 9d9bb63+ | 42.0 | 635 | 1 | sadams |
 | 2026-09-14T16:01Z | 9d9bb63+ | 40.8 | 635 | 1 | sadams |
 | 2026-09-14T16:19Z | a89576f+ | 41.4 | 635 | 1 | sadams |
+| 2026-09-14T19:18Z | 0b74a0a+ | 42.8 | 636 | 1 | sadams |
+| 2026-09-14T22:11Z | 7576dc7+ | 43.3 | 637 | 1 | sadams |
 | 2026-09-14T18:59Z | c9c2c65+ | 39.9 | 640 | 1 | sadams |
 | 2026-09-14T20:37Z | 16bcb78+ | 43.1 | 645 | 1 | sadams |
 | 2026-09-14T20:59Z | aa36939+ | 42.1 | 649 | 1 | sadams |
@@ -374,6 +373,12 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-14T20:33Z | f122941+ | 46.6 | 683 | 1 | sadams |
 | 2026-09-14T20:53Z | 4ea89c4+ | 47.7 | 663 | 1 | sadams |
 | 2026-09-14T21:23Z | 9ae45f4+ | 47.6 | 665 | 1 | sadams |
+| 2026-09-14T22:25Z | f15fca4+ | 49.8 | 692 | 1 | sadams |
+| 2026-09-14T22:26Z | f15fca4+ | 47.3 | 692 | 1 | sadams |
+| 2026-09-15T02:32Z | e3b6d58+ | 46.8 | 692 | 1 | sadams |
+| 2026-09-15T10:46Z | afff4dd+ | 56.3 | 692 | 1 | sadams |
+| 2026-09-15T10:48Z | afff4dd+ | 58.2 | 692 | 1 | sadams |
+| 2026-09-15T10:57Z | 69cf14f+ | 53.4 | 692 | 1 | sadams |
 | 2026-09-14T19:42Z | 8c3c9cd+ | 39.3 | 639 | 1 | sadams |
 | 2026-09-14T22:23Z | 459f78e+ | 40.6 | 639 | 1 | sadams |
 | 2026-09-14T22:36Z | 71ef51a+ | 47.7 | 695 | 1 | sadams |
@@ -438,6 +443,10 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-15T10:46Z | 65be547+ | 62.0 | 780 | 1 | sadams |
 | 2026-09-15T10:47Z | 92c6430+ | 63.9 | 780 | 1 | sadams |
 | 2026-09-15T22:42Z | f840f32+ | 117.0 | 813 | 1 | sadams |
+| 2026-09-16T00:16Z | 420e6b9+ | 117.7 | 815 | 1 | sadams |
+| 2026-09-16T00:25Z | 420e6b9+ | 135.1 | 815 | 1 | sadams |
+| 2026-09-16T00:29Z | 420e6b9+ | 113.1 | 815 | 1 | sadams |
+| 2026-09-16T02:23Z | 420e6b9+ | 121.0 | 815 | 1 | sadams |
 | 2026-09-16T00:13Z | 0e08d9d+ | 121.2 | 816 | 1 | sadams |
 | 2026-09-16T00:20Z | 921eee0+ | 117.9 | 816 | 1 | sadams |
 | 2026-09-14T17:37Z | c9c2c65+ | 40.9 | 642 | 1 | sadams |
@@ -449,3 +458,4 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-15T10:13Z | 96b7cca+ | 44.1 | 652 | 1 | sadams |
 | 2026-09-15T10:50Z | 5be5e75+ | 65.4 | 786 | 1 | sadams |
 | 2026-09-15T23:59Z | 91afe31+ | 123.8 | 832 | 1 | sadams |
+| 2026-09-16T02:45Z | a775140+ | 124.9 | 837 | 1 | sadams |

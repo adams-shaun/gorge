@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'svelte/server';
+import starterFixture from '../fixtures/mulligan-starter.json';
 import type { CardView, Decision, Option, PlayerView, SeatInfo, View } from '../protocol';
 import { SeatPanelState } from '../lib/seatpanel.svelte';
 import SeatPanel from './SeatPanel.svelte';
@@ -316,5 +317,56 @@ describe('SeatPanel — the prompt surface (fb prompts: never passed over, never
     const generic = render(SeatPanel, { props: props(bolt(target)) }).html;
     expect(generic).not.toContain('data-remember-answer');
     expect(generic).not.toContain('Remember this answer for identical future prompts');
+  });
+});
+
+describe('SeatPanel — the mulligan prompt names the starting player (rv2a)', () => {
+  // The fixture is the ENGINE'S OWN wire bytes, not a hand-written prompt:
+  // host's TestTheMulliganStarterFixtureIsTheEngineSOwnWireBytes drives a real
+  // two-human table (duplicate decks "a"/"a", PlayerNames Alice/Bob, table
+  // seed 1 — seat 1 wins the CR 103.1 toss and is asked first), captures the
+  // seat-scoped ViewAtSeat-at-head JSON the seated client fetches for the
+  // round's two asks (the first keep/mulligan, and the spent-allowance
+  // keep-only re-ask), and byte-compares both with this committed file. A
+  // revert of rules/mulligan.go's keepMulliganPrompt fails THAT test first;
+  // these tests prove the engine-produced prompt survives the wire and is
+  // rendered by SeatPanel without being truncated or hidden.
+  const fixtureAsk = (ask: typeof starterFixture.first_ask) =>
+    render(SeatPanel, {
+      props: {
+        view: ask as unknown as View,
+        seats: starterFixture.seats as SeatInfo[],
+        ctx: { seat: 1, token: 'tok' },
+        table: 't1',
+        match: 1,
+      },
+    });
+
+  it('the first keep/mulligan ask renders the engine-produced display-name prompt and its own options', () => {
+    const { html } = fixtureAsk(starterFixture.first_ask);
+    const prompt = /data-prompt[^>]*>([^<]+)</.exec(html)?.[1];
+    expect(prompt).toContain('Bob plays first.');
+    expect(prompt).not.toContain('same-deck plays first.');
+    // the first ask's own engine shape: both options, zero-card penalty
+    expect(prompt).toContain('put 0 cards on the bottom of your library');
+    expect(prompt).toContain('or take a mulligan?');
+    expect(html).toContain('data-option="0"');
+    expect(html).toContain('Keep this hand');
+    expect(html).toContain('data-option="1"');
+    expect(html).toContain('Mulligan');
+    expect(html).toContain('data-tone="initiative"');
+  });
+
+  it('the spent-allowance re-ask still names the starter, with the engine\'s keep-only shape', () => {
+    const { html } = fixtureAsk(starterFixture.spent_ask);
+    const prompt = /data-prompt[^>]*>([^<]+)</.exec(html)?.[1];
+    expect(prompt).toContain('Bob plays first.');
+    // the spent ask is genuinely the OTHER engine shape, not the first ask
+    // re-rendered: one card to bottom, and no mulligan option offered
+    expect(prompt).toContain('put 1 card on the bottom of your library');
+    expect(prompt).not.toContain('or take a mulligan?');
+    expect(html).toContain('data-option="0"');
+    expect(html).toContain('Keep this hand');
+    expect(html).not.toContain('data-option="1"');
   });
 });

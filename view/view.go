@@ -385,6 +385,24 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 	v.Phase = PhaseOf(g.Step)
 	v.Active = g.Active
 	v.Priority = g.Priority
+	// The London mulligan round happens before the first TurnChange, so its
+	// resolved starting seat is transient engine flow rather than Game state.
+	// Ask the optional capability instead of widening Chars: test projections
+	// and non-rules embedders retain the ordinary state fallback.
+	if g.Turn == 0 && !g.Over {
+		if starter, ok := ch.(interface{ PregameStarter() (state.PlayerID, bool) }); ok {
+			if p, ok := starter.PregameStarter(); ok {
+				v.Active = p
+			}
+		}
+	}
+	// Terminal genesis (the game ended during its opening deal) never began
+	// a turn, so it has no active seat -- the zero value would read as seat
+	// 0 having the turn. A live pregame obtains its resolved starter through
+	// the optional capability above.
+	if g.Over && g.Turn == 0 {
+		v.Active = NoSeat
+	}
 	v.Over = g.Over
 	v.Draw = g.Draw
 	if g.Over && !g.Draw && int(g.Winner) < len(g.Players) {
@@ -496,32 +514,38 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 // log-only reconstruction of the same game (replay reproduces the same
 // events, and this fold is deterministic on them).
 //
-// The rule, stated precisely: a round boundary is a TurnChange that hands
-// the turn to the FIRST STILL-LIVING SEAT in turn order (the lowest-index
-// survivor, seat order 0, 1, ..., N-1 being the cyclic turn order the
-// engine's NextAlive follows) -- i.e. play has returned to the seat that
-// opened the current pass. Round 1 is the initial pass, so the very first
-// TurnChange never counts as a boundary (the fold keeps a seen flag and
-// skips the increment on it); each later return to the then-first survivor
-// opens a new round. The fold tracks the alive set itself by folding
-// PlayerLost events, so it knows the first survivor at every moment rather
-// than only at the end -- the thing a snapshot cannot recover.
+// The rule, stated precisely: the fold is ANCHORED ON THE GAME'S STARTING
+// PLAYER -- the seat the first TurnChange hands the turn to (the CR 103.1
+// toss winner, resolved over the survivors). Turn order is the cyclic order
+// that begins at that anchor, not at seat 0 (before the toss it was seat 0,
+// which is why the old rule read "lowest-index survivor" -- a board clock
+// fed a game whose toss started seat 1 ran one round ahead all game, ~half
+// of 2-seat and ~3/4 of 4-seat games). A round boundary is a TurnChange
+// that hands the turn to the first still-living seat IN THAT CYCLIC ORDER --
+// i.e. play has returned to the seat that opened the current pass. Round 1
+// is the initial pass, so the very first TurnChange never counts as a
+// boundary (the fold reads it as the anchor and skips the increment); each
+// later return to the then-first survivor opens a new round. The fold
+// tracks the alive set itself by folding PlayerLost events, so it knows the
+// first survivor at every moment rather than only at the end -- the thing a
+// snapshot cannot recover.
 //
-// The three edge cases fall out of the one rule. First round before any
-// turn: no TurnChange has been seen, so RoundOf is 1; the first TurnChange
-// never increments. A seat eliminated MID-ROUND (not the anchor): the first
-// survivor is unchanged, so the survivors after the death simply get a
-// shorter cycle and no boundary fires until play genuinely returns to that
-// (unchanged) first survivor. A seat eliminated who WAS the anchor (the
-// first survivor): the first survivor becomes the next-lowest living seat,
-// and the next turn to reach that new first survivor -- which the old
-// anchor's death immediately makes imminent -- opens a new round. This is
-// the case that breaks a naive "the active index fell" wrap rule: when the
-// anchor (seat 0) dies during its own turn, the turn passes 0 -> 1 (an
-// index RISE), yet play has returned to the first still-living seat, so it
-// IS a round boundary. The count is monotonic non-decreasing: it only ever
-// increments, never repeats a value for a later state and never jumps
-// backwards.
+// The edge cases fall out of the one rule. First round before any turn: no
+// TurnChange has been seen, so RoundOf is 1 and the anchor is unset; the
+// first TurnChange establishes the anchor and never increments. A seat
+// eliminated MID-ROUND (not the anchor): the first survivor is unchanged,
+// so the survivors after the death simply get a shorter cycle and no
+// boundary fires until play genuinely returns to that (unchanged) first
+// survivor. A seat eliminated who WAS the anchor (the starting player): the
+// anchor moves to the next living seat in turn order from the starter, and
+// the next turn to reach that new anchor -- which the old anchor's death
+// immediately makes imminent -- opens a new round. This is the case that
+// breaks a naive "the active index fell" wrap rule: when the anchor dies
+// during its own turn, the turn passes to the next seat (an index RISE when
+// the starter was seat 0), yet play has returned to the first still-living
+// seat in the anchor's order, so it IS a round boundary. The count is
+// monotonic non-decreasing: it only ever increments, never repeats a value
+// for a later state and never jumps backwards.
 //
 // Extra turns (a card granting a seat two turns inside one round-trip) are
 // out of scope for this build: beginTurn is reached only from genesis and
@@ -538,6 +562,9 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 // snapshot-only approximation and the fallback for a consumer that has only
 // a state.Game.
 func RoundOf(g *state.Game, evs []events.Event) int32 {
+	if g == nil {
+		return 1
+	}
 	n := len(g.Players)
 	if n <= 0 {
 		return 1
@@ -547,7 +574,7 @@ func RoundOf(g *state.Game, evs []events.Event) int32 {
 		alive[i] = true
 	}
 	round := int32(1)
-	seen := false
+	start := -1
 	for _, ev := range evs {
 		switch ev.Kind {
 		case events.PlayerLost:
@@ -556,18 +583,29 @@ func RoundOf(g *state.Game, evs []events.Event) int32 {
 			}
 		case events.TurnChange:
 			cur := int(ev.Player)
-			// The first still-living seat in turn order: the lowest index
-			// among the survivors. If no seat is alive (defensive -- a
-			// finished game whose winner has not been flagged) there is no
-			// first survivor to return to, so no boundary can fire.
-			first := 0
-			for first < n && !alive[first] {
-				first++
+			if start < 0 {
+				// The first TurnChange IS the anchor: the game's starting
+				// player (always alive at that moment -- beginTurn only ever
+				// reaches a survivor). It opens round 1 and never counts as
+				// a boundary.
+				start = cur
+				continue
 			}
-			if seen && first < n && cur == first {
-				round++
+			// The anchor: the first still-living seat in the cyclic turn
+			// order that begins at the starting player. If no seat is alive
+			// (defensive -- a finished game whose winner has not been
+			// flagged) there is no first survivor to return to, so no
+			// boundary can fire.
+			for i := 0; i < n; i++ {
+				first := (start + i) % n
+				if !alive[first] {
+					continue
+				}
+				if cur == first {
+					round++
+				}
+				break
 			}
-			seen = true
 		}
 	}
 	return round
@@ -582,11 +620,13 @@ func RoundOf(g *state.Game, evs []events.Event) int32 {
 //
 // This is the SNAPSHOT-ONLY APPROXIMATION, kept as the fallback for a
 // consumer that has only a state.Game (the cmd/* tools and this package's
-// own tests are the ones that genuinely lack the log). It is exact before
-// the first elimination and, after one, runs AHEAD of the true round-trip
-// count -- the exact one is view.RoundOf, folded over the ordered event
-// stream, which is what host uses to build the board clock and what the
-// AGENTS.md row names as the honest fix. Do not route a log-bearing caller
+// own tests are the ones that genuinely lack the log). It is exact only when
+// the game's starting player is seat 0 (a snapshot cannot recover the CR
+// 103.1 toss winner the round anchor needs) and before the first
+// elimination; after either, it runs AHEAD of the true round-trip count --
+// the exact one is view.RoundOf, folded over the ordered event stream,
+// which is what host uses to build the board clock and what the AGENTS.md
+// row names as the honest fix. Do not route a log-bearing caller
 // through this function; it is here so a snapshot-only caller still gets a
 // never-wrong-direction round rather than a panic, and because the log is
 // genuinely unavailable in that shape.
@@ -602,8 +642,9 @@ func RoundOf(g *state.Game, evs []events.Event) int32 {
 // as Turn grows and only grows faster when AliveCount shrinks -- so it
 // never repeats a value for a later game state and never jumps backwards,
 // which is the failure the board's clock must not exhibit; it may run ahead
-// of the literal "when play returned to the first surviving seat" count,
-// because that count needs the death times this snapshot does not carry.
+// of the literal "when play returned to the round's anchored seat" count,
+// because that count needs the death times (and the starting player) this
+// snapshot does not carry.
 //
 // Extra turns (a card granting a seat two turns inside one round-trip) are
 // taken care of by the engine's shape, not by this function: beginTurn is

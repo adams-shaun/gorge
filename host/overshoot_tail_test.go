@@ -492,6 +492,17 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // replay.Replay with no cut-tail tolerance anywhere and cmd/repro on it
 // exits 0. The test pins both, so an engine or corpus move that breaks the
 // capture fails loudly here instead of leaving a stale fixture behind.
+//
+// rv2a integration (toss Note before the deal): the same repair was applied
+// once more. The rv2a engine moves the genesis toss Note from its post-deal
+// position to sequence 1 and shortens its text ("X won the toss"), so the
+// recorded stream diverged at event 1. The recorded intents' replay under
+// the rv2a engine reproduces the identical 1326-event stream except for
+// exactly that one Note's position and text (measured by diffing the rebuilt
+// stream against the recording: one changed event, every other event byte-identical,
+// and the game facts at the capture point — turn, step, priority, active —
+// unchanged), so log.json's events and head were regenerated the same way the
+// tail was: same match, engine-current bytes. The recorded Intents are untouched.
 const committedCaptureRel = "../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 
 // requireCommittedCapture skips when the worktree has no .cards/ corpus:
