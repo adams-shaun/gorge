@@ -316,6 +316,22 @@ type convokePayment struct {
 	power int32
 }
 
+// hasCastConvoke reports whether the spell being cast carries Convoke once
+// it is on the stack: the printed keyword, or a layer-6 grant (Chief
+// Engineer's "Artifact spells you cast have convoke") whose AffectedZone$
+// scope reaches the cast spell. The announcement (CR 601.2b) runs while the
+// announced spell is still in hand, so the evaluation pretends the zone is
+// the stack (derivedWith's override); a wasCast Affected$ predicate already
+// matches because it keys on the object being a cast spell, which it is.
+func (e *Engine) hasCastConvoke(id state.ObjID) bool {
+	for _, k := range e.derivedWith(id, state.ZStack).Keywords {
+		if strings.EqualFold(cardsKeywordHead(k), "Convoke") {
+			return true
+		}
+	}
+	return false
+}
+
 // suspendCost parses Forge's Suspend:<time>:<cost> keyword form. X-time
 // scripts put their lower bound in the leading XMin<N> cost token; the same
 // announced X pays the cost and becomes the number of TIME counters.
@@ -324,7 +340,7 @@ type convokePayment struct {
 // It returns the reduced cost and exactly the creatures that must be tapped.
 func (e *Engine) convokeCost(p state.PlayerID, id state.ObjID, c Cost) (Cost, []state.ObjID) {
 	o := e.G.Obj(id)
-	if o == nil || o.Face() == nil || !e.HasKeyword(id, "Convoke") {
+	if o == nil || o.Face() == nil || !e.hasCastConvoke(id) {
 		return c, nil
 	}
 	var tapped []state.ObjID
@@ -2068,7 +2084,7 @@ func (e *Engine) convokeAsk() bool {
 		return false
 	}
 	pc.convokeDone = true
-	isConvoke := e.HasKeyword(pc.card, "Convoke")
+	isConvoke := e.hasCastConvoke(pc.card)
 	isHarmonize := pc.mode == "harmonize"
 	if !isConvoke && !isHarmonize {
 		return false

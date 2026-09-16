@@ -7,27 +7,37 @@ import (
 	"github.com/adams-shaun/gorge/events"
 )
 
-// TestManaUnparsedComboFailsClosed pins effMana's fail-closed guard on the
-// exact bug shape: a Produced$ Combo R G reaching the primitive (from a path
-// with no colour chooser) must emit NO ManaAdd and instead record a Note
-// naming the unhandled value. Before the fix this value was walked one rune
-// at a time -- C,o,m,b,o,R,G -- adding five stray colourless plus a red and
-// a green.
+// TestManaUnparsedComboFailsClosed pins effMana's handling of a Produced$
+// Combo R G reaching the primitive (from a path with no colour chooser). The
+// original bug was a raw rune walk -- C,o,m,b,o,R,G -- adding five stray
+// colourless plus a red and a green; the head must be parsed, never walked.
+// The parse then applies the DEGENERATE but real reading: the full amount in
+// EVERY listed colour (the colour-combination ask is the M4 mana-choice
+// milestone), so Burnt Offering's Amount$ X resolves instead of hard-failing
+// to zero mana. Chosen/ChosenColor shapes keep the fail-closed note (the
+// next test): they have no degenerate reading at all.
 func TestManaUnparsedComboFailsClosed(t *testing.T) {
 	h := newHost(t, 2)
 	c := &Ctx{Source: 0, Controller: 0}
 	Resolve(h, c, sa(t, "AB$ Mana | Cost$ T | Produced$ Combo R G"))
+	var red, green int32
 	noteFound := false
 	for _, ev := range h.log {
-		if ev.Kind == events.ManaAdd {
-			t.Fatalf("unparsed Combo R G emitted a ManaAdd: %+v", ev)
+		if ev.Kind == events.ManaAdd && ev.Counter == "R" {
+			red += ev.Amount
+		}
+		if ev.Kind == events.ManaAdd && ev.Counter == "G" {
+			green += ev.Amount
 		}
 		if ev.Kind == events.Note && strings.Contains(ev.Text, "Combo R G") {
 			noteFound = true
 		}
 	}
-	if !noteFound {
-		t.Fatalf("no Note naming the unhandled Produced$ value: %+v", h.log)
+	if red != 1 || green != 1 {
+		t.Fatalf("Combo R G degenerate output red=%d green=%d, want 1 each (amount 1 per listed colour)", red, green)
+	}
+	if noteFound {
+		t.Fatalf("Combo R G still recorded an unhandled-Produced$ note: %+v", h.log)
 	}
 }
 

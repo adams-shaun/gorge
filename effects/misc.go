@@ -856,6 +856,15 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	if produced == "" || produced == "Any" || produced == "Combo Any" {
 		produced = "C"
 	}
+	// A "Combo" head lists every colour the production may be taken in (CR
+	// 107.5-style "any combination"). Forge asks for the combination; this
+	// executor still degenerates to the FULL amount in EVERY listed colour --
+	// the documented stand-in (the colour-choice ask is the M4 mana-choice
+	// milestone) -- but that must not be the hard "unhandled Produced$" no-op
+	// it was: Burnt Offering's Produced$ Combo B R added NOTHING. Chosen/
+	// ComboChosen shapes (a remembered or chosen colour) still fail loudly --
+	// they have no degenerate reading.
+	produced = strings.TrimSpace(strings.TrimPrefix(produced, "Combo "))
 	// Strip braces and spaces, then validate every remaining rune before any
 	// of them reaches the pool: ComboChosen/ChosenColor/Special ... values
 	// that do not name plain mana symbols fail closed instead of splitting

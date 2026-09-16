@@ -231,6 +231,11 @@ const (
 	wordNamed
 	wordNotnamed
 	wordSameName
+	// wasCast is Forge's Card.wasCast: the object is a SPELL currently on
+	// the stack -- announced, not yet resolved. The AffectedZone$ Stack
+	// convoke/cascade grants key on it (Chief Engineer). An ability object
+	// (Card == nil) was never cast.
+	wordWasCast
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -268,6 +273,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordMultiColor, ""
 	case "inZoneStack":
 		return wordInZoneStack, ""
+	case "wasCast":
+		return wordWasCast, ""
 	case "ActivePlayerCtrl":
 		return wordActivePlayerCtrl, ""
 	case "HasCounters":
@@ -321,6 +328,12 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return ColorsOf(o) == ""
 	case wordMultiColor:
 		return len(ColorsOf(o)) > 1
+	case wordWasCast:
+		// Forge's wasCast: a spell (Card != nil) currently on the stack. An
+		// ability object was activated, never cast. The AsStack override
+		// (rules.derivedWith) admits the spell a cast is announcing, which is
+		// still in hand at CR 601.2b but IS the spell being cast.
+		return (o.Zone == state.ZStack || sc.AsStack) && o.Card != nil
 	case wordInZoneStack:
 		// Forge's inZoneStack: the object is a spell or ability currently on
 		// the stack (a spell carries its card face; an ability object has
@@ -932,6 +945,13 @@ type SpecContext struct {
 	// its own targets have been chosen. Resolving distinguishes a real empty
 	// target list from no resolving object at all.
 	ResolutionTargets []state.Target
+	// AsStack is a DERIVED-CHARACTERISTICS override, not a resolution fact:
+	// rules.derivedWith sets it while evaluating an AffectedZone$ Stack grant
+	// for the spell a cast is announcing (CR 601.2b runs while the announced
+	// spell is still in hand). It makes the wasCast predicate treat the
+	// announced spell as the cast spell it is; nothing else reads it, and it
+	// is absent from every resolution- and target-time evaluation.
+	AsStack bool
 	// Remembered is the resolving spell or ability's Remembered set (a
 	// RepeatEach iteration binds its subject here). Like ResolutionTargets it
 	// is meaningful only while Resolving. It is also the Remembered.* base

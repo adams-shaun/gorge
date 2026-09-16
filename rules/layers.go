@@ -8,6 +8,7 @@
 package rules
 
 import (
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -82,6 +83,7 @@ func (e *Engine) staticEffects() []ContinuousEffect {
 					kw := base
 					kw.Layer = LAbilities
 					kw.AddKeywords = statKeywords(st)
+					kw.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
 					out = append(out, kw)
 				}
 				if hasStat(st, "AddType") || hasStat(st, "AddTypes") {
@@ -91,6 +93,7 @@ func (e *Engine) staticEffects() []ContinuousEffect {
 					if len(ty.AddTypes) == 0 {
 						ty.AddTypes = statList(st, "AddType")
 					}
+					ty.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
 					out = append(out, ty)
 				}
 				// CR 613.1f / 613.4b (Humility): a base-setting static runs in
@@ -523,12 +526,27 @@ func (e *Engine) derivedScalar(id state.ObjID) (power, toughness int32) {
 // guards its cache (a nested Derived mid-build gets private owned buffers
 // instead of clobbering the outer build's).
 func (e *Engine) Derived(id state.ObjID) Derived {
+	return e.derivedWith(id, 0)
+}
+
+// derivedWith is Derived with an optional ZONE OVERRIDE for the AffectedZone$
+// gate: atStack != 0 evaluates the grants against that zone instead of the
+// object's live one. The convoke announcement (CR 601.2b) happens while the
+// announced spell is still in hand -- the engine pushes it to the stack only
+// later in its own cast flow -- so convokeCost/hasCastConvoke evaluate an
+// AffectedZone$ Stack grant against ZStack via this override; everything
+// else reads the live zone.
+func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	power, toughness := e.derivedScalar(id)
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return Derived{Power: power, Toughness: toughness}
 	}
 	f := o.Face()
+	zone := o.Zone
+	if atStack != 0 {
+		zone = atStack
+	}
 	e.derivedDepth++
 	kw := e.derivedKW
 	ty := e.derivedTypes
@@ -544,8 +562,19 @@ func (e *Engine) Derived(id state.ObjID) Derived {
 	kw = append(kw[:0], f.Keywords...)
 	ty = append(ty[:0], f.Types...)
 	for _, ce := range e.active() {
-		if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+		sc := effects.SpecContext{You: ce.Controller, Source: ce.Source, AsStack: atStack != 0}
+		if !effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
 			continue
+		}
+		// An AffectedZone$ qualifier on a characteristic grant narrows where
+		// the granted characteristics function (Chief Engineer's "Artifact
+		// spells you cast have convoke" carries AffectedZone$ Stack, so the
+		// grant reaches the spell while it is on the stack and never a copy
+		// of the same card sitting in hand). Parse failure stays closed.
+		if ce.AffectedZone != "" && !ce.MayPlay {
+			if zones, all, ok := effects.ParseZones(ce.AffectedZone); !ok || (!all && !slices.Contains(zones, zone)) {
+				continue
+			}
 		}
 		switch ce.Layer {
 		case LAbilities:
