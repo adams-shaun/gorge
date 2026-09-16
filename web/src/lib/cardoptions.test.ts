@@ -18,6 +18,7 @@ import {
   tileScenario,
   ACTION_GLYPHS,
   singleTapOptionOf,
+  pileTone,
   type CardOptions,
 } from './cardoptions';
 
@@ -30,6 +31,38 @@ import {
 
 const opt = (index: number, obj: number | undefined, kind = 'cast', label = `option ${index}`): Option => ({
   index, kind, label, obj, player: 0,
+});
+
+describe('pileTone — a whole pile affordance tone (fb-20260916T225802Z)', () => {
+  const bundleFor = (options: Option[], tone: 'initiative' | 'offered' = 'initiative'): CardOptions => {
+    const d: Decision = {
+      seq: 1, player: 0, kind: 'priority', prompt: 'pile tone', min: 0, max: 1, options,
+    };
+    return { byObj: optionsByObj(d), byPlayer: optionsByPlayer(d), picked: [], tone, post: () => {} };
+  };
+
+  it('a pile holding a card the decision offers something to wears the bundle\'s tone', () => {
+    // the flashback-cast shape: an option whose obj is a graveyard card id
+    const bundle = bundleFor([opt(7, 3, 'cast', 'Flashback Bolt')], 'offered');
+    expect(pileTone(bundle, [{ id: 3 }, { id: 4 }])).toBe('offered');
+  });
+
+  it('an untouched pile reads idle — no ring, no claim', () => {
+    const bundle = bundleFor([opt(7, 3, 'cast', 'Flashback Bolt')]);
+    expect(pileTone(bundle, [{ id: 4 }, { id: 5 }])).toBe('idle');
+    expect(pileTone(bundle, [])).toBe('idle');
+  });
+
+  it('a null bundle (spectator, nothing pending) is idle even over a full pile', () => {
+    expect(pileTone(null, [{ id: 3 }])).toBe('idle');
+  });
+
+  it('not gated by pile owner: the same rule glows an opponent-targeted option', () => {
+    // a target option on a card in an OPPONENT's graveyard must glow there
+    // too; the engine validates every posted option.
+    const bundle = bundleFor([opt(21, 300, 'permanent', 'Target their Bolt')], 'initiative');
+    expect(pileTone(bundle, [{ id: 300 }])).toBe('initiative');
+  });
 });
 
 describe('optionsByObj — index a decision by the object each option concerns', () => {

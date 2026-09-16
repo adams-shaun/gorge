@@ -1,41 +1,41 @@
 <script lang="ts">
   import type { CardView, PlayerView, SeatInfo, View } from '../protocol';
-  import { visibleHand } from '../lib/board';
   import { seatColour } from '../lib/colours';
+  import type { CardOptions, OptionTone } from '../lib/cardoptions';
+  import { pileTone } from '../lib/cardoptions';
+  import { pileCards, pileLabel, pileOpener, type PileZone } from '../lib/pileopener.svelte';
   import { lossCauses, seatRows, stateLabel, type SeatState } from '../lib/seattable';
-  import { zonesFor, type ZoneName } from '../lib/zones';
-  import PileModal from './PileModal.svelte';
-
-  type PileZone = ZoneName | 'hand';
-  type OpenPile = { seat: number; zone: PileZone; trigger: HTMLButtonElement };
 
   /**
    * SeatTable is the rail's single per-seat summary. Each row preserves the
    * established seat-colour, active, priority and loss language while putting
    * all five public counts in one compact icon strip. Hand, graveyard and
    * exile become buttons only when this view actually carries cards for them;
-   * their lists open in PileModal rather than expanding the rail. The four
-   * zone counts (hand, library, graveyard, exile) stack two-high inside one
-   * cell — hand+library over graveyard+exile — so the rail's width floor is
-   * two count columns rather than four, and the board keeps the difference.
+   * their lists open in the table's ONE shared PileModal (lib/pileopener +
+   * PileHost, mounted by Table.svelte — the identity bar's pile icons open
+   * the same instance, so a pile cannot open twice at once) rather than
+   * expanding the rail. The four zone counts (hand, library, graveyard,
+   * exile) stack two-high inside one cell — hand+library over
+   * graveyard+exile — so the rail's width floor is two count columns rather
+   * than four, and the board keeps the difference.
+   *
+   * The pile buttons wear the same tone ring the identity bar's pile icons
+   * wear (fb-20260916T225802Z): when the pending decision offers something
+   * to a card in the pile (pileTone over the table's card-options bundle,
+   * the same data and the same rule — not gated by pile owner). options is
+   * optional and null by default so every existing caller renders exactly
+   * as before.
    */
-  let { view, seats = [], focus = null, onFocus, events = [] }: {
+  let { view, seats = [], focus = null, onFocus, events = [], options = null }: {
     view: View;
     seats?: SeatInfo[];
     focus?: number | null;
     onFocus: (seat: number) => void;
     events?: { event: { kind: string; player: number; text?: string } }[];
+    options?: CardOptions | null;
   } = $props();
 
   const rows = $derived(seatRows(view, seats, lossCauses(events)));
-  let openPile = $state<OpenPile | null>(null);
-  const modalPlayer = $derived(openPile === null ? null : (view.players.find((p) => p.seat === openPile?.seat) ?? null));
-  const modalCards = $derived(openPile === null || modalPlayer === null ? [] : cardsFor(modalPlayer, openPile.zone));
-  function possessive(name: string): string {
-    return name === 'You' ? 'Your' : `${name}'s`;
-  }
-  const modalTitle = $derived(openPile === null ? '' : `${possessive(rows.find((r) => r.seat === openPile?.seat)?.name ?? `Seat ${openPile.seat}`)} ${openPile.zone}`);
-
   function describe(name: string, deck: string | null, state: SeatState, lostReason: string | null): string {
     const parts = [name];
     if (deck) parts.push(deck);
@@ -48,16 +48,18 @@
   }
 
   function cardsFor(player: PlayerView, zone: PileZone): CardView[] {
-    if (zone === 'hand') return visibleHand(player) ?? [];
-    return zonesFor(player).find((summary) => summary.zone === zone)?.cards ?? [];
+    return pileCards(player, zone);
   }
 
   function showPile(seat: number, zone: PileZone, event: MouseEvent): void {
-    openPile = { seat, zone, trigger: event.currentTarget as HTMLButtonElement };
+    pileOpener.open(seat, zone, event.currentTarget as HTMLElement);
   }
 
-  function pileLabel(name: string, zone: PileZone, count: number): string {
-    return `View ${name}'s ${zone} (${count} ${count === 1 ? 'card' : 'cards'})`;
+  /** pileToneOf is this row's tone ring for one zone pile, off the shared
+   *  card-options bundle (null for a spectator / nothing pending → idle). */
+  function pileToneOf(player: PlayerView, zone: PileZone): OptionTone | undefined {
+    const tone = pileTone(options, cardsFor(player, zone));
+    return tone === 'idle' ? undefined : tone;
   }
 </script>
 
@@ -110,7 +112,7 @@
             <div class="zone-line">
               <span data-stat="hand" data-hand-hidden={r.handVisible ? undefined : ''} aria-label={`Hand: ${r.hand}`}>
                 {#if r.hand > 0 && handCards.length > 0}
-                  <button type="button" class="pile" data-pile="hand" aria-label={pileLabel(r.name, 'hand', r.hand)} onclick={(e) => showPile(r.seat, 'hand', e)}>
+                  <button type="button" class="pile" data-pile="hand" data-tone={player ? pileToneOf(player, 'hand') : undefined} aria-label={pileLabel(r.name, 'hand', r.hand)} onclick={(e) => showPile(r.seat, 'hand', e)}>
                     <svg data-icon="hand" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8V4.5a1 1 0 0 1 2 0V7 3.5a1 1 0 0 1 2 0V7 3a1 1 0 0 1 2 0v4-3a1 1 0 0 1 2 0v4.2l.7-.7a1.2 1.2 0 0 1 1.7 1.7L11 12.6A4 4 0 0 1 8 14H7a4 4 0 0 1-4-4V8Z"/></svg>
                     <span>{r.hand}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
                   </button>
@@ -125,7 +127,7 @@
             <div class="zone-line">
               <span data-stat="graveyard" aria-label={`Graveyard: ${r.graveyard}`}>
                 {#if r.graveyard > 0 && graveyardCards.length > 0}
-                  <button type="button" class="pile" data-pile="graveyard" aria-label={pileLabel(r.name, 'graveyard', r.graveyard)} onclick={(e) => showPile(r.seat, 'graveyard', e)}>
+                  <button type="button" class="pile" data-pile="graveyard" data-tone={player ? pileToneOf(player, 'graveyard') : undefined} aria-label={pileLabel(r.name, 'graveyard', r.graveyard)} onclick={(e) => showPile(r.seat, 'graveyard', e)}>
                     <svg data-icon="skull" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7a5 5 0 1 1 10 0c0 2-1 3-2 3.8V14H5v-3.2C4 10 3 9 3 7Zm3-1.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM7 9l1-1 1 1-1 1-1-1Z"/></svg>
                     <span>{r.graveyard}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
                   </button>
@@ -135,7 +137,7 @@
               </span>
               <span data-stat="exile" aria-label={`Exile: ${r.exile}`}>
                 {#if r.exile > 0 && exileCards.length > 0}
-                  <button type="button" class="pile" data-pile="exile" aria-label={pileLabel(r.name, 'exile', r.exile)} onclick={(e) => showPile(r.seat, 'exile', e)}>
+                  <button type="button" class="pile" data-pile="exile" data-tone={player ? pileToneOf(player, 'exile') : undefined} aria-label={pileLabel(r.name, 'exile', r.exile)} onclick={(e) => showPile(r.seat, 'exile', e)}>
                     <svg data-icon="exile" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg>
                     <span>{r.exile}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
                   </button>
@@ -150,14 +152,6 @@
     </tbody>
   </table>
 </section>
-
-<PileModal
-  open={openPile !== null}
-  title={modalTitle}
-  cards={modalCards}
-  returnFocus={openPile?.trigger ?? null}
-  onClose={() => (openPile = null)}
-/>
 
 <style>
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -180,6 +174,16 @@
   .caret { width: 0.36rem; fill: none; }
   .pile { width: 100%; border: 0; padding: 0; background: none; cursor: pointer; }
   .pile:hover { color: var(--ink-inst); }
+  /* The perimeter tone ring (fb-20260916T225802Z), the card-tile register:
+     a pending decision offering something to a card in this pile. */
+  .pile[data-tone='initiative'] {
+    box-shadow: 0 0 0 2px var(--initiative);
+    border-radius: 2px;
+  }
+  .pile[data-tone='offered'] {
+    box-shadow: 0 0 0 2px var(--offered);
+    border-radius: 2px;
+  }
   [data-hand-hidden] { color: var(--ink-faint); }
   tr.lost .name, tr.lost .life { text-decoration: line-through; color: var(--ink-faint); }
   .eliminated { margin: 1px 0 0; padding-left: var(--sp-2); font-size: var(--t-10); color: var(--danger); line-height: 1.3; }

@@ -1,4 +1,4 @@
-import type { Decision, Option } from '../protocol';
+import type { CardView, Decision, Option } from '../protocol';
 
 /**
  * cardoptions.ts is the ONE mechanism behind three symptoms (task ui21):
@@ -266,6 +266,28 @@ export function optionsByPlayer(decision: Decision | null): Map<number, Option[]
     else list.push(o);
   }
   return m;
+}
+
+/**
+ * pileTone is the tone a WHOLE pile affordance wears (task fb-20260916T225802Z):
+ * when the pending decision offers something to ANY card in the pile — a
+ * flashback/escape/warp cast option on a graveyard card, a warp-recast or a
+ * may-play land on an exile card, a target option on a card in an
+ * OPPONENT's graveyard — the pile's affordance (the identity bar's
+ * graveyard/exile icons, the rail's pile buttons) wears the SAME
+ * initiative/offered ring the card tiles wear, resolved from the same
+ * bundle.tone the tiles read, so "there is something to do in that pile"
+ * is the same fact everywhere. A null bundle (spectator, nothing pending)
+ * or a pile the decision does not touch reads idle — no ring, no claim.
+ * Do not gate by pile owner: a target option on an opponent's graveyard
+ * card must glow there too; the engine validates every posted option.
+ */
+export function pileTone(bundle: CardOptions | null, cards: readonly Pick<CardView, 'id'>[]): OptionTone {
+  if (bundle === null) return 'idle';
+  for (const card of cards) {
+    if (bundle.byObj.has(card.id)) return bundle.tone;
+  }
+  return 'idle';
 }
 
 /** cardOptions returns the options a decision offers concerning `obj`, in

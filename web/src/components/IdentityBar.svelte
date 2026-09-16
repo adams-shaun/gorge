@@ -1,8 +1,10 @@
 <script lang="ts">
   import type { PlayerView, SeatInfo } from '../protocol';
   import type { SeatCorner } from '../lib/seattable';
-  import type { CardOptions, TileOptions } from '../lib/cardoptions';
-  import { playerOptions } from '../lib/cardoptions';
+  import type { CardOptions, OptionTone, TileOptions } from '../lib/cardoptions';
+  import { pileTone, playerOptions } from '../lib/cardoptions';
+  import { pileLabel, pileOpener } from '../lib/pileopener.svelte';
+  import { zonesFor, type ZoneSummary } from '../lib/zones';
   import ManaPool from './ManaPool.svelte';
   import OptionPicker from './OptionPicker.svelte';
 
@@ -52,6 +54,25 @@
   } = $props();
 
   const tileOptions = $derived<TileOptions | null>(options ? playerOptions(options, player.seat) : null);
+
+  // The two card-list zones (fb-20260916T225802Z): graveyard and exile get
+  // real affordances in the counts row. Both are public on the wire (keyed
+  // by owner); zonesFor's null-guard absorbs a redacted zone, so a null
+  // list reads count 0 / no glow and cannot crash a spectator view.
+  const zones = $derived(zonesFor(player));
+  // The glow is the card-tile tone ring (data-tone, the same
+  // initiative/offered register): the pending decision's byObj index holds
+  // an option whose obj is a card id in that zone — a flashback/escape cast
+  // on a graveyard card, a warp-recast on an exile card, a target on a card
+  // in ANY seat's graveyard (not gated by pile owner; the engine validates
+  // every posted option). pileTone resolves it from the same bundle.tone
+  // the tiles read, so the icon and the tiles can never disagree.
+  const graveTone = $derived<OptionTone>(pileTone(options, zones[0].cards));
+  const exileTone = $derived<OptionTone>(pileTone(options, zones[1].cards));
+
+  function openPile(zone: ZoneSummary['zone'], event: MouseEvent): void {
+    pileOpener.open(player.seat, zone, event.currentTarget as HTMLElement);
+  }
 
   // The table knows a seat's name; a bare host that never registered one does
   // not, and PlayerView always carries a name of its own. Falling straight
@@ -110,7 +131,40 @@
   <div class="counts">
     <span class="count">library {player.library_size}</span>
     <span class="count">hand {player.hand_size}</span>
-    <span class="count">graveyard {player.graveyard_size}</span>
+    <span class="count" data-stat="graveyard">
+      {#if zones[0].cards.length > 0}
+        <!-- A pile with cards in it is a button (the rail's pile-button
+             style): it opens the table's one shared PileModal for THIS seat
+             and wears the tone ring whenever the pending decision offers
+             something to a card in the pile. -->
+        <button
+          type="button"
+          class="pile"
+          data-pile="graveyard"
+          data-tone={graveTone === 'idle' ? undefined : graveTone}
+          aria-label={pileLabel(who, 'graveyard', zones[0].count)}
+          title={pileLabel(who, 'graveyard', zones[0].count)}
+          onclick={(e) => openPile('graveyard', e)}
+        >graveyard {zones[0].count}</button>
+      {:else}
+        <span class="count">graveyard {zones[0].count}</span>
+      {/if}
+    </span>
+    <span class="count" data-stat="exile">
+      {#if zones[1].cards.length > 0}
+        <button
+          type="button"
+          class="pile"
+          data-pile="exile"
+          data-tone={exileTone === 'idle' ? undefined : exileTone}
+          aria-label={pileLabel(who, 'exile', zones[1].count)}
+          title={pileLabel(who, 'exile', zones[1].count)}
+          onclick={(e) => openPile('exile', e)}
+        >exile {zones[1].count}</button>
+      {:else}
+        <span class="count">exile {zones[1].count}</span>
+      {/if}
+    </span>
   </div>
   <div class="mana-row" data-mana-row>
     <ManaPool pool={player.pool} available={player.available} />
@@ -230,6 +284,33 @@
   }
   .count {
     font-variant-numeric: tabular-nums;
+  }
+  /* A disclosable pile count is a real button (the rail's pile-affordance
+     grammar) styled to read as the same count text it replaced. */
+  .pile {
+    border: 0;
+    padding: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+  }
+  .pile:hover {
+    color: var(--ink);
+  }
+  /* The perimeter tone ring, the card-tile register (CardTile's
+     data-tone box-shadow): a pending decision offering something to a card
+     in this pile is the SAME fact the tiles and the seat panel read. */
+  .pile[data-tone='initiative'] {
+    box-shadow: 0 0 0 2px var(--initiative);
+    border-radius: 2px;
+    padding: 0 0.1em;
+  }
+  .pile[data-tone='offered'] {
+    box-shadow: 0 0 0 2px var(--offered);
+    border-radius: 2px;
+    padding: 0 0.1em;
   }
   /* Line 3: the floating mana pool as bubbles, always rendered so the box
      does not grow a row when mana is floated and shrink the moment it is
