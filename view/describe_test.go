@@ -125,7 +125,6 @@ func TestDescribeTemplates(t *testing.T) {
 		{"token unknown script", events.Event{Kind: events.TokenCreate, Player: 1, Text: "nope"}, "Bob creates a token"},
 		{"copy", events.Event{Kind: events.StackCopy, Obj: bolt, Player: 0}, "Ann copies Bolt #2"},
 		{"attach", events.Event{Kind: events.Attach, Obj: bolt, IDs: []state.ObjID{bear}}, "Bolt #2 attaches to Bear #1"},
-		{"attach player", events.Event{Kind: events.AttachPlayer, Obj: bolt, Player: 0}, "Bolt #2 enchants Ann"},
 		{"detach", events.Event{Kind: events.Attach, Obj: bolt}, "Bolt #2 detaches"},
 		{"detach with reason", events.Event{Kind: events.Attach, Obj: bolt, Text: "Equipmentbearer is no longer a creature"}, "Bolt #2 detaches (Equipmentbearer is no longer a creature)"},
 		{"activate", events.Event{Kind: events.AbilityPush, Obj: bear, Player: 0, Amount: 0}, "Ann activates Bear #1"},

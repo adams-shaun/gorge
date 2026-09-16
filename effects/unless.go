@@ -248,13 +248,9 @@ func unlessPayerTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 		}
 		add(enchanted.Controller)
 	case "EnchantedPlayer":
-		// The player THIS source (the Aura asking) attaches to — a Curse's
-		// own unless (Overencumbered's {Y}) is paid by the player it enchants.
-		// Fail closed when the source has no player attachment: an object-
-		// attached Aura's UnlessPayer$ is not the resolving-controller.
-		if src := g.Obj(c.Source); src != nil && src.HasAttachedPlayer {
-			add(src.AttachedPlayer)
-		}
+		// Attachments to players are not represented by state.Object (its
+		// AttachedTo is an ObjID), so there is no honest binding to use.
+		return nil, false
 	case "ReplacedPlayer", "NonReplacedPlayer":
 		// The draw-er of a replaced Draw event, and its complement (Zur's
 		// Weirding's "any other player may pay 2 life"). Set only on a Draw

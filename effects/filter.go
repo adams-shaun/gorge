@@ -904,18 +904,6 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 				if p != you {
 					return true
 				}
-			case "EnchantedBy":
-				// The player is enchanted by THIS source — an Aura with a
-				// player attachment (events.AttachPlayer), the
-				// qualification the "at the beginning of enchanted
-				// player's upkeep" trigger family (Overencumbered,
-				// Warranty) gates on. Forge's isEnchantedBy is
-				// hasCardAttachment: the attachment's presence, without
-				// re-checking the Enchant spec (the attachment SBA does
-				// that continuously).
-				if a := g.Obj(source); a != nil && a.HasAttachedPlayer && a.AttachedPlayer == p {
-					return true
-				}
 			}
 		case "You":
 			if !qualified && p == you {

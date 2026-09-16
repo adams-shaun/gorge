@@ -62,36 +62,12 @@ func TestAttachOntoAPlayerRefusesWithANote(t *testing.T) {
 	Resolve(h, c, sa(t, "SP$ Attach | Object$ Self | Defined$ Remembered"))
 
 	for _, ev := range h.log {
-		if ev.Kind == events.Attach || ev.Kind == events.AttachPlayer {
-			t.Fatalf("unexpected attachment %+v onto a player", ev)
+		if ev.Kind == events.Attach {
+			t.Fatalf("unexpected Attach %+v onto a player", ev)
 		}
 	}
 	if !hasNoteLike(h.log, "no legal target") {
 		t.Fatalf("expected a Note refusing the attach, got %+v", h.log)
-	}
-}
-
-// TestAttachOntoAPlayerWithAPlayerTargetSpec records a player attachment
-// through the event stream. Enchant opponent expands to this exact Attach SA;
-// the state carries an explicit presence bit because seat zero is valid too.
-func TestAttachOntoAPlayerWithAPlayerTargetSpec(t *testing.T) {
-	h, c, ids := attachBoard(t)
-	c.Targets = []state.Target{{Player: 1, IsPlayer: true}}
-	Resolve(h, c, sa(t, "SP$ Attach | Object$ Self | ValidTgts$ Opponent"))
-
-	var got []events.Event
-	for _, ev := range h.log {
-		if ev.Kind == events.AttachPlayer {
-			got = append(got, ev)
-		}
-	}
-	if len(got) != 1 || got[0].Obj != ids["eq"] || got[0].Player != 1 {
-		t.Fatalf("AttachPlayer events = %+v, want eq->seat 1", got)
-	}
-	o := h.g.Obj(ids["eq"])
-	if !o.HasAttachedPlayer || o.AttachedPlayer != 1 || o.AttachedTo != 0 {
-		t.Fatalf("player attachment = {has:%v player:%d object:%d}, want seat 1 only",
-			o.HasAttachedPlayer, o.AttachedPlayer, o.AttachedTo)
 	}
 }
 

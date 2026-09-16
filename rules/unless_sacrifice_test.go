@@ -304,38 +304,6 @@ func TestGiantOpportunityStrictOptionalSacrifice(t *testing.T) {
 // enchantment belongs to seat 1: its upkeep trigger must offer the {2} to
 // seat 1 from the Aura's live attachment, not silently fall back to the Aura
 // controller or an unrelated target.
-func TestOverencumberedUnlessPayerEnchantedPlayer(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	e := stealEngine(t, 736)
-	aura := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Overencumbered"))
-	attach := e.G.Obj(aura).Face().SpellAbility()
-	if attach == nil || attach.API != "Attach" || attach.Params["ValidTgts"] != "Opponent" {
-		t.Fatalf("Overencumbered enchant ability = %+v, want Attach targeting Opponent", attach)
-	}
-	// K:Enchant:Opponent expands to Attach. Resolving it through the real
-	// effect records an event-backed player attachment rather than a test-only
-	// Ctx binding, so the subsequent UnlessPayer$ has the same state its combat
-	// trigger will have in play.
-	effects.Resolve(e, &effects.Ctx{Source: aura, Controller: 0,
-		Targets: []state.Target{{Player: 1, IsPlayer: true}}}, attach)
-	if o := e.G.Obj(aura); o == nil || !o.HasAttachedPlayer || o.AttachedPlayer != 1 {
-		t.Fatalf("Overencumbered attachment = %+v, want attached player seat 1", o)
-	}
-	e.checkStateBased()
-	if o := e.G.Obj(aura); o == nil || o.Zone != state.ZBattlefield {
-		t.Fatalf("player-attached Aura zone = %v, want battlefield", o)
-	}
-	pay := cards.ResolveSVar(e.G.Obj(aura).Face().SVars, "TrigEffect")
-	if pay == nil || pay.Params["UnlessPayer"] != "EnchantedPlayer" {
-		t.Fatalf("Overencumbered TrigEffect = %+v, want EnchantedPlayer unless payer", pay)
-	}
-	effects.Resolve(e, &effects.Ctx{Source: aura, Controller: 0}, pay)
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "unless_pay" || d.Player != 1 {
-		t.Fatalf("Overencumbered unless payer = %+v, want seat 1 unless-pay", d)
-	}
-}
-
 func TestPowerTaintUnlessPayerEnchantedController(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e := stealEngine(t, 737)

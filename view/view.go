@@ -291,10 +291,6 @@ type CardView struct {
 	// beneath the permanent it modifies -- could not tell what is attached
 	// to what at all.
 	AttachedTo state.ObjID `json:"attached_to,omitempty"`
-	// AttachedPlayer is the player this Aura enchants. It is a pointer rather
-	// than a zero-valued PlayerID because seat 0 is real: nil means no player
-	// attachment and preserves existing payloads, while &0 names seat 0.
-	AttachedPlayer *state.PlayerID `json:"attached_player,omitempty"`
 	// AbilityCosts is the current offer-time Forge-notation cost of each
 	// non-mana activated ability, in face ability order. Applicable
 	// RaiseCost/ReduceCost statics have already been composed exactly as the
@@ -733,10 +729,6 @@ func cardView(g *state.Game, ch Chars, id state.ObjID) CardView {
 		if p := f.ManaProduction(); !p.IsZero() {
 			cv.Produces = &p
 		}
-	}
-	if o.HasAttachedPlayer {
-		p := o.AttachedPlayer
-		cv.AttachedPlayer = &p
 	}
 	if o.IsAttacking {
 		p := o.Attacking

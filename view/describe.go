@@ -211,8 +211,6 @@ func Describe(g *state.Game, ev events.Event) string {
 		// 707.10a), placed on top of the stack. The copy itself gets a new
 		// id Apply assigns, so the line names the original it duplicates.
 		return player(g, ev.Player) + " copies " + obj(g, ev.Obj)
-	case events.AttachPlayer:
-		return obj(g, ev.Obj) + " enchants " + player(g, ev.Player)
 	case events.Attach:
 		// Aura/Equipment permanent Obj attaches to (IDs[0]) or detaches
 		// from (empty IDs) its bearer. rules/attach.go's one detach-with-

@@ -131,16 +131,6 @@ type Object struct {
 	// "attached" once it isn't a permanent.
 	AttachedTo ObjID
 
-	// AttachedPlayer is the player this Aura enchants — the state half of
-	// events.AttachPlayer. A player is not an object id, so the pair keeps
-	// its own validity bit: PlayerID(0) is a real seat, and an unset pair
-	// must be indistinguishable from "this Aura attaches to nothing"
-	// (the attachment SBA's bin condition). HasAttachedPlayer is cleared by
-	// events.Move whenever the Aura leaves the battlefield, exactly like
-	// AttachedTo.
-	AttachedPlayer    PlayerID
-	HasAttachedPlayer bool
-
 	// IsToken and IsCopy mark an object that only ever exists on the stack
 	// or the battlefield (CR 111.7 tokens, CR 707.10 copies). See Ephemeral.
 	IsToken bool

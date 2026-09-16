@@ -1,8 +1,6 @@
 package effects
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -36,11 +34,11 @@ func Attachable(g *state.Game, obj state.ObjID, target state.ObjID) bool {
 // legal target wins, which is what makes the living-weapon shape work (the
 // freshly minted germ is Remembered[0]).
 //
-// When no Defined$ target qualifies -- a player target whose spec does not
-// name players, a non-battlefield object, obj itself, or nothing legal at
-// all -- it refuses with a Note rather than emitting an Attach. The refusal
-// is how the effect stays deterministic and observable while it has nothing
-// legal to do.
+// When no Defined$ target qualifies -- a player target (a player is never an
+// attachment point), a non-battlefield object, obj itself, or nothing legal
+// at all -- it refuses with a Note rather than emitting an Attach. The
+// refusal is how the effect stays deterministic and observable while it has
+// nothing legal to do.
 func effAttach(h Host, c *Ctx, sa *cards.SA) {
 	obj := c.Source
 	switch sa.Params["Object"] {
@@ -50,13 +48,8 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 		}
 	default: // "Self" (and the empty default) keep obj = c.Source.
 	}
-	playerSpec := specTargetsPlayers(strings.TrimSpace(sa.Params["ValidTgts"]))
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
-			if playerSpec {
-				h.Emit(events.Event{Kind: events.AttachPlayer, Obj: obj, Player: t.Player})
-				return
-			}
 			continue
 		}
 		target := t.Obj
@@ -74,19 +67,4 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "cannot attach: no legal target"})
-}
-
-// specTargetsPlayers reports whether a target spec's alternatives name a
-// PLAYER as the subject — the same base-type grammar rules' targetsPlayers
-// uses (the two packages cannot share it: effects never imports rules). A
-// "Creature.YouCtrl"-shaped alternative scopes its controller and is NOT a
-// player target; only the bare Player/Any/Opponent/You bases are.
-func specTargetsPlayers(spec string) bool {
-	for _, alt := range strings.Split(spec, ",") {
-		switch base, _, _ := strings.Cut(strings.TrimSpace(alt), "."); base {
-		case "Player", "Any", "Opponent", "You":
-			return true
-		}
-	}
-	return false
 }

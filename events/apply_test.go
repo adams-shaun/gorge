@@ -1167,27 +1167,11 @@ func TestAttachAndDetach(t *testing.T) {
 		t.Fatal("not detached")
 	}
 	Apply(g, Event{Kind: Attach, Obj: eq, IDs: []state.ObjID{tgt}})
-	// A player and an object bearer are mutually exclusive. This also makes
-	// the seat-zero attachment distinguishable from the unset zero value.
-	Apply(g, Event{Kind: AttachPlayer, Obj: eq, Player: 0})
-	if o := g.Obj(eq); !o.HasAttachedPlayer || o.AttachedPlayer != 0 || o.AttachedTo != 0 {
-		t.Fatalf("player attachment = {has:%v player:%d object:%d}, want seat 0 only", o.HasAttachedPlayer, o.AttachedPlayer, o.AttachedTo)
-	}
-	Apply(g, Event{Kind: Attach, Obj: eq, IDs: []state.ObjID{tgt}})
-	if o := g.Obj(eq); o.HasAttachedPlayer || o.AttachedTo != tgt {
-		t.Fatalf("object attachment = {hasPlayer:%v object:%d}, want object only", o.HasAttachedPlayer, o.AttachedTo)
-	}
 	Move(g, eq, state.ZBattlefield, state.ZGraveyard)
-	if o := g.Obj(eq); o.AttachedTo != 0 || o.HasAttachedPlayer {
-		t.Fatal("leaving the battlefield must detach from an object or player")
+	if g.Obj(eq).AttachedTo != 0 {
+		t.Fatal("leaving the battlefield must detach")
 	}
 	Apply(g, Event{Kind: Attach, Obj: eq, IDs: []state.ObjID{999}}) // unknown target: no-op
-}
-
-func TestAttachPlayerKindString(t *testing.T) {
-	if got, want := AttachPlayer.String(), "attach_player"; got != want {
-		t.Fatalf("AttachPlayer.String() = %q, want %q", got, want)
-	}
 }
 
 func TestAttachKindString(t *testing.T) {
