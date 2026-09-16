@@ -35,7 +35,8 @@ var manaLetters = [...]string{"W", "U", "B", "R", "G", "C"}
 // abort the cast instead.
 func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
 	before := e.G.Players[p].Pool
-	after, lifeSpent, ok := cost.resolveMana(before, e.G.Players[p].Life)
+	after, lifeSpent, ok := cost.resolveManaWith(before, e.G.Players[p].Life,
+		e.payerGrantsPayLifeInsteadOfB(p))
 	if !ok {
 		return false
 	}

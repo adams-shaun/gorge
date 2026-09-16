@@ -468,7 +468,7 @@ func (e *Engine) delveCredit(p state.PlayerID, id state.ObjID, generic int32) in
 func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability bool) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic)
-	if !mana.payable(e.G.Players[p].Pool, e.G.Players[p].Life) {
+	if !e.payerPayable(p, mana) {
 		return false
 	}
 	reserved := map[state.ObjID]bool{}
@@ -1438,7 +1438,7 @@ func (e *Engine) xAsk() bool {
 	for x := min; x <= bound; x++ {
 		wx := e.paymentManaX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
-		if !wx.payable(pool, e.G.Players[pc.player].Life) {
+		if !e.payerPayable(pc.player, wx) {
 			break
 		}
 		maxOld = x
@@ -2478,7 +2478,7 @@ func (e *Engine) targetAsk() bool {
 			mana.Generic = 0
 		}
 	}
-	if !mana.payable(e.G.Players[pc.player].Pool, e.G.Players[pc.player].Life) && !e.hasUntappedManaSource(pc.player) {
+	if !e.payerPayable(pc.player, mana) && !e.hasUntappedManaSource(pc.player) {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return true
 	}
@@ -2684,7 +2684,7 @@ func (e *Engine) manaWindowAsk() bool {
 	}
 	// A pool that already pays the total cost needs no window (nothing to
 	// gain by activating more mana abilities here).
-	if mana.payable(e.G.Players[pc.player].Pool, e.G.Players[pc.player].Life) {
+	if e.payerPayable(pc.player, mana) {
 		return false
 	}
 	var sources []state.ObjID

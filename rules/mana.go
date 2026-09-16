@@ -8,6 +8,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -914,14 +915,15 @@ type pip struct {
 // pip list, in that order (exact colours first, then hybrids, then
 // Phyrexian). A coloured pip accepts exactly its own colour; a hybrid accepts
 // either of its pair; a Phyrexian pip accepts its colour or two life.
-func (c Cost) costPips() []pip {
+func (c Cost) costPips(bLifeOK bool) []pip {
 	var out []pip
 	// The coloured slots including the colourless one: a plain {C} pip is a
 	// strict colourless requirement generic must not satisfy by stealing the
 	// pool's only colourless, so it is reserved like any coloured pip.
 	for _, letter := range []byte{'W', 'U', 'B', 'R', 'G', 'C'} {
 		for n := c.Colored[state.ManaIndex(letter)]; n > 0; n-- {
-			out = append(out, pip{colors: [2]byte{letter, letter}, n: 1})
+			out = append(out, pip{colors: [2]byte{letter, letter}, n: 1,
+				lifeOK: bLifeOK && letter == 'B'})
 		}
 	}
 	for _, pair := range c.Hybrid {
@@ -942,10 +944,19 @@ func (c Cost) costPips() []pip {
 // The generic requirement is paid last from whatever the pips left, so
 // coloured mana is never spent on generic while a pip still needs it.
 func (c Cost) resolveMana(pool state.Mana, life int32) (state.Mana, int32, bool) {
+	return c.resolveManaWith(pool, life, false)
+}
+
+// resolveManaWith is resolveMana with the payer-side PayLifeInsteadOf:B grant
+// applied: when bLifeOK is set, every plain {B} pip additionally accepts 2
+// life (K'rrik, Son of Yawgmoth's "For each {B} in a cost, you may pay 2 life
+// rather than pay that mana"), under exactly the same deterministic
+// prefer-mana-then-life assignment the printed Phyrexian pips use.
+func (c Cost) resolveManaWith(pool state.Mana, life int32, bLifeOK bool) (state.Mana, int32, bool) {
 	if life < c.Life {
 		return pool, 0, false
 	}
-	pips := c.costPips()
+	pips := c.costPips(bLifeOK)
 	rem := pool
 	life -= c.Life
 	lifeSpent := c.Life
@@ -1029,4 +1040,32 @@ func (c Cost) Pay(p state.Mana) (state.Mana, bool) {
 	// deducts generic, so the returned pool is fully spent.
 	out, _, ok := c.resolveMana(p, 0)
 	return out, ok
+}
+
+// payerGrantsPayLifeInsteadOfB reports whether p's side of the battlefield
+// carries a Continuous static granting PayLifeInsteadOf:B to p (K'rrik's
+// "Affected$ You | AddKeyword$ PayLifeInsteadOf:B"). Every mana payment and
+// every cast/activation offer gate consults it, so a plain {B} pip is
+// payable with 2 life anywhere K'rrik is in play under its controller.
+func (e *Engine) payerGrantsPayLifeInsteadOfB(p state.PlayerID) bool {
+	for _, sv := range e.activeStatics("Continuous") {
+		if !slices.Contains(cards.SplitKeywordList(sv.Params["AddKeyword"]), "PayLifeInsteadOf:B") {
+			continue
+		}
+		if effects.MatchesPlayerSpec(e.G, sv.Params["Affected"], p, sv.Controller) {
+			return true
+		}
+	}
+	return false
+}
+
+// payerPayable is cost.payable with the payer's PayLifeInsteadOf:B grant
+// applied: every plain {B} pip also accepts 2 life. The offer gate
+// (castable), the X bounds, the mana window and the payment itself all go
+// through this, so a cost payable only by life is offered and paid the same
+// way everywhere.
+func (e *Engine) payerPayable(p state.PlayerID, c Cost) bool {
+	_, _, ok := c.resolveManaWith(e.G.Players[p].Pool, e.G.Players[p].Life,
+		e.payerGrantsPayLifeInsteadOfB(p))
+	return ok
 }
