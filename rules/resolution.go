@@ -384,14 +384,19 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// ask (replacement.go's lifeReplacementDraw). The body is not a stack
 	// resolution: there is no sub-ability to re-enter (rp.sa is nil -- the
 	// loop called DrawFor directly, which poses its own dredge ask). The
-	// answer resolved the draw that asked; apply it and re-drive the rest
-	// (which may park again on the next dredge ask). The frame's rp.outer
-	// continuation and the completion tail below still run after it -- the
-	// same order the body ran in before it suspended -- and the drain at
-	// this cascade's true end picks up any replacement-order queue the
-	// interrupted pass left behind.
+	// signature is exact: DrawFor is the only sa==nil dredge asker (effDraw's
+	// frames carry ResumeSA, and a turn-based draw's direct frame never
+	// reaches here -- handleModes routes those to its own arm). The answer
+	// resolved the draw that asked, whether or not draws remain parked
+	// (lifeDraws == 0 is the FINAL draw of the body -- findings-sol5: the old
+	// lifeDraws > 0 gate dropped that frame's answer into the no-sub-ability
+	// Note below); apply it and re-drive the rest (which may park again on
+	// the next dredge ask). The frame's rp.outer continuation and the
+	// completion tail below still run after it -- the same order the body ran
+	// in before it suspended -- and the drain at this cascade's true end
+	// picks up any replacement-order queue the interrupted pass left behind.
 	parkedDraws := false
-	if rp.kind == "dredge" && rp.sa == nil && rp.lifeDraws > 0 {
+	if rp.kind == "dredge" && rp.sa == nil {
 		parkedDraws = true
 		if !e.G.Players[rp.player].Lost {
 			// CR 800.4f: a departed player makes no choice and draws
@@ -404,7 +409,19 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			e.lifeReplacementDraw(rp.player, rp.lifeDraws)
 			if e.Suspended() || e.pending != nil {
 				// The re-drive parked on the next dredge ask: that frame's
-				// own resume arms carry the rest.
+				// own resume arms carry the rest. The new pending point is
+				// fresh (outer nil -- Ask builds it bare, and nothing in this
+				// re-drive reports continuations), so link the interrupted
+				// frame's own continuation onto it -- the same fx32 linking
+				// discipline the e.resume != nil branch below practises --
+				// or the cascade's last frame would complete the object
+				// without ever running what this interrupted resolution was
+				// still carrying (findings-sol5: the sub-ability after the
+				// GainLife never ran). Every later park re-links the same
+				// chain, so rp.outer survives until the cascade truly ends.
+				if e.resume != nil {
+					e.resume.outer = rp.outer
+				}
 				return
 			}
 		}
