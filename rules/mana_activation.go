@@ -703,6 +703,35 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 		e.askManaColor(p, source, ma, cast, cumulative, triggers, colours)
 		return
 	}
+	// "ColorIdentity" (Command Tower, Arcane Signet: "Add one mana of any
+	// color in your commander's color identity") is a colour choice scoped to
+	// the activating player's commander colour identity (CR 903.4). Every
+	// corpus occurrence is an AB$ Mana activation (6 files), so the branch
+	// lives on the activation path only; the token is matched on the Produced
+	// value itself (with or without the "Combo " prefix) rather than on the
+	// API, so a future trigger carrying it cannot silently degrade. Colours
+	// come in fixed WUBRG order: none (no commander, or a colourless one) keeps
+	// today's fail-closed fall-through (CR 903.4's "any color" of an empty
+	// identity is nothing, not colourless), one resolves directly (a decision
+	// nobody could answer differently must not be posed), two or more ask.
+	if isColourIdentityProduced(produced) {
+		cols := e.commanderIdentityColours(p)
+		switch len(cols) {
+		case 1:
+			e.resolveManaEffectColor(p, source, ma, cols[0])
+			e.resolveTriggeredManaAbilities(triggers, cast)
+			if cumulative && e.choosing == chooseNone {
+				e.paymentWindowAsk()
+			}
+			return
+		default:
+			if len(cols) > 1 {
+				e.askManaColor(p, source, ma, cast, cumulative, triggers, cols)
+				return
+			}
+			// 0 colours: fall through to the fail-closed resolve below.
+		}
+	}
 	e.resolveManaEffectColor(p, source, ma, produced)
 	e.resolveTriggeredManaAbilities(triggers, cast)
 	if cumulative && e.choosing == chooseNone {
@@ -737,9 +766,16 @@ func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA
 // verbatim from the oracle shape (Produced$ Any / Combo Any, CR 107.4) so the
 // player sees that the ONE choice covers all of the mana; a restricted
 // "Combo <colours>" shape is not "any" colour, so its prompt only names the
-// amount.
+// amount; a ColorIdentity shape names the commander-identity restriction so
+// the player knows WHY the offer is narrower than five colours (the oracle
+// wording, "any color in your commander's color identity", kept verbatim).
 func manaColourPrompt(ma *cards.SA) string {
 	generic := "Choose a colour of mana"
+	shape := strings.TrimSpace(ma.Params["Produced"])
+	identity := isColourIdentityProduced(shape)
+	if identity {
+		generic = "Choose a colour in your commander's color identity"
+	}
 	raw, ok := ma.Params["Amount"]
 	if !ok {
 		// No Amount$ param: stay generic — the prompt must not invent an
@@ -753,8 +789,10 @@ func manaColourPrompt(ma *cards.SA) string {
 		// wrong number in the prompt is worse than no number.
 		return generic
 	}
-	switch strings.TrimSpace(ma.Params["Produced"]) {
-	case "Any", "Combo Any":
+	switch {
+	case identity:
+		return fmt.Sprintf("Add %d mana of any color in your commander's color identity — choose the colour", n)
+	case shape == "Any" || shape == "Combo Any":
 		return fmt.Sprintf("Add %d mana of any one color — choose the colour", n)
 	default:
 		return fmt.Sprintf("Add %d mana — choose the colour", n)
@@ -833,4 +871,46 @@ func (e *Engine) answerManaActivation(chosen []decision.Option) bool {
 		e.resolveManaAbility(ma.player, ma.source, ma.abilities[idx], ma.cast, ma.cumulative)
 	}
 	return ma.cast
+}
+
+// isColourIdentityProduced reports whether a Produced$ value is the
+// commander-identity choice shape — the literal "ColorIdentity" or the combo
+// form "Combo ColorIdentity" (Command Tower, Arcane Signet, Commander's
+// Sphere, Hidden Hideout, Opal Palace, Path of Ancestry). Shared by the
+// activation-path branch in resolveManaEffect and manaColourPrompt's
+// restricted wording so the two cannot disagree.
+func isColourIdentityProduced(produced string) bool {
+	return produced == "ColorIdentity" || produced == "Combo ColorIdentity"
+}
+
+// commanderIdentityColours expands seat p's commander colour identity to the
+// colours it names, in fixed WUBRG order (the order cards.Face's colour bits
+// are declared in, and the order deck/deck.go's identity checks read — no map
+// range, so the offer order is deterministic). The identity is the bitwise
+// union of every commander's full-card identity (cards.Card.ColourIdentity
+// unions over faces), read off the live command-zone objects
+// (state.Player.Commanders, populated at genesis and stable across zone
+// moves). A seat with no commanders — or commanders whose identity is empty
+// (colourless, CR 903.4) — yields a nil slice: "any color" of an empty
+// identity is no colour at all, so the caller keeps its fail-closed
+// behaviour.
+func (e *Engine) commanderIdentityColours(p state.PlayerID) []string {
+	if int(p) >= len(e.G.Players) {
+		return nil
+	}
+	var m uint8
+	for _, cid := range e.G.Players[p].Commanders {
+		o := e.G.Obj(cid)
+		if o == nil || o.Card == nil {
+			continue
+		}
+		m |= o.Card.ColourIdentity()
+	}
+	var cols []string
+	for i, sym := range []string{"W", "U", "B", "R", "G"} {
+		if m&(1<<uint(i)) != 0 {
+			cols = append(cols, sym)
+		}
+	}
+	return cols
 }
