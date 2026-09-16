@@ -1144,8 +1144,8 @@ var handRoots = struct {
 		// []string{"RaiseCost", "ReduceCost"} both call activeStatics with a
 		// variable; the literals sit at their callers. Declared instead of
 		// refactored so the scan stays read-only over production code.
-		"RaiseCost":  {"Engine.adjustedCost", "Engine.costModifiers"},
-		"ReduceCost": {"Engine.adjustedCost", "Engine.costModifiers"},
+		"RaiseCost":  {"Engine.adjustedCost", "Engine.costModifiers", "Engine.costModifiersX"},
+		"ReduceCost": {"Engine.adjustedCost", "Engine.costModifiers", "Engine.costModifiersX"},
 		// staticEffects filters on st.Mode != "Continuous" before reading.
 		"Continuous": {"Engine.staticEffects", "warpGraveyardAllowed"},
 		// warpGraveyardAllowed scans Continuous MayPlay statics directly
@@ -1848,7 +1848,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Cultivate":                   {"param:api:ChangeZone.NoLooking", "param:api:ChangeZone.Reveal", "param:api:Cleanup.ClearRemembered"},
 	"Dark Fortress":               {"param:api:Mana.IsPresent"},
 	"Dauthi Voidwalker":           {"param:api:ChangeZone.Hidden", "param:api:Effect.ForgetOnMoved"},
-	"Daze":                        {"cost:Return", "param:stat:AlternativeCost.EffectZone", "param:stat:AlternativeCost.ValidSA"},
+	"Daze":                        {"param:stat:AlternativeCost.EffectZone", "param:stat:AlternativeCost.ValidSA"},
 	"Deadly Rollick":              {"param:stat:AlternativeCost.EffectZone", "param:stat:AlternativeCost.IsPresent", "param:stat:AlternativeCost.ValidPlayer", "param:stat:AlternativeCost.ValidSA"},
 	"Defense of the Heart":        {"param:trig:Phase.CheckSVar", "param:trig:Phase.SVarCompare"},
 	"Deflecting Swat":             {"param:stat:AlternativeCost.EffectZone", "param:stat:AlternativeCost.IsPresent", "param:stat:AlternativeCost.ValidPlayer", "param:stat:AlternativeCost.ValidSA"},
@@ -1895,7 +1895,7 @@ var knownUnsupportedParams = map[string][]string{
 	"Lord Windgrace":              {"param:api:Cleanup.ClearRemembered", "param:api:Destroy.Ultimate", "param:api:Discard.RememberDiscarded"},
 	"Master of Etherium":          {"param:stat:Continuous.CharacteristicDefining"},
 	"Matter Reshaper":             {"param:api:Dig.DestinationZone2", "param:api:Dig.Reveal"},
-	"Meathook Massacre II":        {"param:api:ChangeZone.GainControl", "param:api:ChangeZone.UnlessCost", "param:api:ChangeZone.UnlessPayer", "param:api:Sacrifice.Amount"},
+	"Meathook Massacre II":        {"param:api:ChangeZone.UnlessCost", "param:api:ChangeZone.UnlessPayer", "param:api:Sacrifice.Amount"},
 	"Mishra's Factory":            {"param:api:Animate.RemoveCreatureTypes"},
 	"Mistveil Plains":             {"param:api:ChangeZone.IsPresent", "param:api:ChangeZone.PresentCompare"},
 	"Mogis, God of Slaughter":     {"param:api:DealDamage.UnlessCost", "param:api:DealDamage.UnlessPayer", "param:stat:Continuous.CheckSVar", "param:stat:Continuous.RemoveType", "param:stat:Continuous.SVarCompare"},
@@ -1967,7 +1967,6 @@ var knownUnsupportedParams = map[string][]string{
 	"Vial Smasher the Fierce":     {"param:api:Cleanup.ClearChosenPlayer", "param:trig:SpellCast.ActivatorThisTurnCast"},
 	"Victimize":                   {"param:api:ChangeZone.ConditionCheckSVar", "param:api:ChangeZone.ConditionSVarCompare", "param:api:Cleanup.ClearRemembered"},
 	"Vines of Vastwood":           {"param:api:Effect.ExileOnMoved"},
-	"Virtue of Persistence":       {"param:api:ChangeZone.GainControl"},
 	"Voracious Hydra":             {"param:api:PutCounter.ETB"},
 	"Walk-In Closet":              {"param:api:ChangeZone.Hidden", "param:api:Effect.ReplacementEffects"},
 	"Walking Ballista":            {"param:api:PutCounter.ETB"},
@@ -2125,7 +2124,6 @@ func TestParamCensusPinsTheImportReviewExamples(t *testing.T) {
 	res, _ := measureParamCensus(t, nil)
 	want := map[string]string{
 		"Relic of Progenitus":       "cost:Exile",
-		"Daze":                      "cost:Return",
 		"Chandra, Awakened Inferno": "cost:SubCounter",
 		"Vexing Devil":              "cost:DamageYou",
 	}
@@ -2147,6 +2145,11 @@ func TestParamCensusPinsTheImportReviewExamples(t *testing.T) {
 	for card, label := range map[string]string{
 		"Force of Will": "cost:ExileFromHand",
 		"Whirler Rogue": "cost:tapXType",
+		// Daze's Return<1/Island> alternative cost retired with the
+		// Rakdos-params work: ParseCost models Return<N/Spec> (the source or a
+		// matching battlefield permanent returned to its owner's hand), so the
+		// silent one-generic substitution is gone.
+		"Daze": "cost:Return",
 	} {
 		for _, l := range res.labels[card] {
 			if l == label {
@@ -2315,9 +2318,9 @@ func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
 func TestParamCensusCatchesFaceOwnedCosts(t *testing.T) {
 	c := &cards.Card{Faces: []*cards.Face{
 		{
-			ManaCost: "PayEnergy<X>",
+			ManaCost: "Waterbend<X>",
 			Keywords: []string{
-				"Kicker:Return<1/CARDNAME>",
+				"Kicker:ChooseCard<1/CARDNAME>",
 				"Surge:PaySurge<1>",
 			},
 		},
@@ -2327,7 +2330,7 @@ func TestParamCensusCatchesFaceOwnedCosts(t *testing.T) {
 		}},
 	}}
 	want := []string{
-		"cost:PayEnergy", "cost:Return", "cost:PaySurge",
+		"cost:Waterbend", "cost:ChooseCard", "cost:PaySurge",
 		"cost:PayMiracle",
 	}
 	d := &derivedReads{api: map[string]map[string]bool{}, trig: map[string]map[string]bool{}, stat: map[string]map[string]bool{}, repl: map[string]map[string]bool{}}
@@ -2369,10 +2372,10 @@ func TestParamCensusCatchesSVarBodyGaps(t *testing.T) {
 		},
 		SVars: map[string]string{
 			"DBMode":  "DB$ LoseLife | UnlessCost$ 3 | Defined$ Remembered",
-			"DBMoney": "DB$ LoseLife | Cost$ PayEnergy<X>",
+			"DBMoney": "DB$ LoseLife | Cost$ Waterbend<X>",
 		},
 	}}}
-	want := []string{"param:api:LoseLife.UnlessCost", "cost:PayEnergy"}
+	want := []string{"param:api:LoseLife.UnlessCost", "cost:Waterbend"}
 	if got := cardCensusLabels(c, d, nil); !sameSet(got, want) {
 		t.Errorf("SVar-body census = %v, want %v -- an unread key or unmodelled token inside a Choices$/RepeatSubAbility$ body is not being reported", got, want)
 	}
@@ -2389,7 +2392,13 @@ func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 		cost string
 		want []string
 	}{
-		{"PayEnergy<X> Sac<1/Creature> Return<1/CARDNAME>", []string{"PayEnergy", "Return"}},
+		// The Chthonian Nightmare shape is now MODELLED (PayEnergy<X> is the
+		// announced X bound by the payer's energy total; Return<1/CARDNAME> is
+		// the source returned to its owner's hand), so nothing is degraded.
+		{"PayEnergy<X> Sac<1/Creature> Return<1/CARDNAME>", nil},
+		// A head ParseCost still does not model keeps reporting (the census
+		// fixture's own token: Waterbend, Kor Bladewhirl's ability cost).
+		{"Waterbend<X>", []string{"Waterbend"}},
 		{"PayLife<5>", nil},
 		{"PayLife<X>", []string{"PayLife"}},
 		// Recognised heads whose INSTANCE is malformed or out of range: the

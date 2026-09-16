@@ -22,6 +22,12 @@ type CostPart struct {
 	// ExileFromHand token (the default zero value) or ZGraveyard for an
 	// ExileFromGrave token. Sac/Discard/SubCounter parts never read it.
 	Zone state.Zone
+	// Announced marks the variable-count form of a Sac part (Sac<X/Spec> --
+	// Dargo's "sacrifice any number"): the player announces the count as the
+	// cast's X (CR 601.2b) and exactly that many permanents matching Spec are
+	// sacrificed; a ReduceCost static reading the paid X composes with it.
+	// N is unused for an Announced part.
+	Announced bool
 }
 
 // ManaPair is one two-colour hybrid symbol: both A and B are WUBRG letters,
@@ -66,6 +72,18 @@ type Cost struct {
 	TapPermanent []CostPart
 	Blight       []CostPart
 	Forage       bool
+	// Energy carries PayEnergy<N> tokens: N energy counters (a player
+	// counter, kind ENERGY) removed from the payer (CR 118.2d's energy
+	// payment). The dynamic form PayEnergy<X> is the SAME X the cast
+	// announces (Forge CostPayEnergy.getMaxAmountX bounds it by the payer's
+	// energy count) and is recorded as a part with Spec "X" (N 0) -- xAsk
+	// bounds the announced value, the settle spends exactly that many.
+	Energy []CostPart
+	// Return carries Return<N/Spec> tokens: a permanent (usually the source
+	// itself, Spec CARDNAME) returned to its OWNER's hand as the payment
+	// (Forge CostReturn.moveToHand; CR 118.2a lists returning a permanent to
+	// its owner's hand among the payment actions).
+	Return []CostPart
 
 	// Unknown lists the HEAD (the text before any "<...>") of every cost
 	// token this parse did not model, in order of appearance, deduplicated.
@@ -92,6 +110,15 @@ type Cost struct {
 // description is dropped right here; the ";" alternation is folded to ","
 // (MatchesSpec's own separator) at the parse site. Ruling FL-54.
 var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter|Discard)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+
+// sacXCost matches the announced-count sacrifice form Sac<X/Spec> (Dargo, the
+// Shipwrecker's "sacrifice any number of artifacts and/or creatures"): the
+// player announces X (0..candidates, CR 601.2b) and exactly X permanents are
+// sacrificed. The part is recorded with Spec "X" (N 0) -- the same announced
+// convention PayEnergy<X> uses -- and xAsk/sacAsk consume it; a ReduceCost
+// static that reads the paid X (Dargo's SVar X:Count$xPaid) resolves through
+// costModifiers' SVar-aware amount read.
+var sacXCost = regexp.MustCompile(`^Sac<X/([^/>]+)(?:/[^>]*)?>$`)
 
 // exileCost matches Forge's ExileFromHand<N/Spec> and ExileFromGrave<N/Spec>
 // tokens -- exiling a matching card from the named zone as a cost payment
@@ -123,6 +150,25 @@ var lifeCost = regexp.MustCompile(`^PayLife<(\d+)>$`)
 
 var choiceCost = regexp.MustCompile(`^(Reveal|Behold|tapXType)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 var blightCost = regexp.MustCompile(`^Blight<(\d+)>$`)
+
+// payEnergyCost matches Forge's PayEnergy<N> and PayEnergy<X> tokens --
+// removing N energy counters from the payer (CR 118.2d; Forge
+// CostPayEnergy.canPay reads the payer's ENERGY counter total, and its
+// getMaxAmountX bounds a dynamic PayEnergy<X> by that same total). The
+// trailing "/description" Forge may append is dropped like every other
+// head. The X form is recorded as a part with Spec "X": xAsk bounds the
+// announced value by the payer's energy count and the settle spends exactly
+// that many, so the announcement and the spend cannot disagree.
+var payEnergyCost = regexp.MustCompile(`^PayEnergy<([0-9]+|X)(?:/[^>]*)?>$`)
+
+// returnCost matches Forge's Return<N/Spec> tokens -- a permanent matching
+// Spec returned to its OWNER's hand as the payment (Forge CostReturn's
+// moveToHand; its payCostFromSource branch is a Spec of CARDNAME, the source
+// itself -- Chthonian Nightmare's "Return Chthonian Nightmare to its owner's
+// hand"). N is almost always 1 (94 corpus files carry the token; every
+// parsed one is 1). The trailing description is dropped, ";"
+// alternations fold to "," like every other non-mana head.
+var returnCost = regexp.MustCompile(`^Return<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
 // ParseCost accepts both Forge's space-separated form ("2 U U") and the
 // bracketed oracle form ("{2}{U}{U}"). "no cost" and "" are free.
@@ -249,6 +295,43 @@ func ParseCost(s string) Cost {
 				}
 				spec := strings.ReplaceAll(m[2], ";", ",")
 				c.AddCounter = append(c.AddCounter, CostPart{N: int32(n), Spec: spec})
+				continue
+			}
+			if m := sacXCost.FindStringSubmatch(sym); m != nil {
+				spec := strings.ReplaceAll(m[1], ";", ",")
+				c.Sac = append(c.Sac, CostPart{Spec: spec, Announced: true})
+				continue
+			}
+			if m := payEnergyCost.FindStringSubmatch(sym); m != nil {
+				if m[1] == "X" {
+					// The dynamic form: the SAME X the cast announces.
+					c.Energy = append(c.Energy, CostPart{Spec: "X"})
+					continue
+				}
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				c.Energy = append(c.Energy, CostPart{N: int32(n)})
+				continue
+			}
+			if m := returnCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				spec := strings.ReplaceAll(m[2], ";", ",")
+				c.Return = append(c.Return, CostPart{N: int32(n), Spec: spec})
 				continue
 			}
 			// Try to parse as a numeric token. Negative and out-of-range values
@@ -431,6 +514,12 @@ func (c Cost) Plus(d Cost) Cost {
 	if len(d.Blight) > 0 {
 		c.Blight = append(append([]CostPart(nil), c.Blight...), d.Blight...)
 	}
+	if len(d.Energy) > 0 {
+		c.Energy = append(append([]CostPart(nil), c.Energy...), d.Energy...)
+	}
+	if len(d.Return) > 0 {
+		c.Return = append(append([]CostPart(nil), c.Return...), d.Return...)
+	}
 	c.Forage = c.Forage || d.Forage
 	return c
 }
@@ -578,6 +667,13 @@ func formatCost(c Cost) string {
 	if c.Tap {
 		parts = append(parts, "T")
 	}
+	for _, part := range c.Energy {
+		if part.Spec == "X" {
+			parts = append(parts, "PayEnergy<X>")
+		} else {
+			parts = append(parts, "PayEnergy<"+strconv.FormatInt(int64(part.N), 10)+">")
+		}
+	}
 	appendCostParts := func(kind string, costs []CostPart) {
 		for _, part := range costs {
 			parts = append(parts, kind+"<"+strconv.FormatInt(int64(part.N), 10)+"/"+part.Spec+">")
@@ -600,6 +696,7 @@ func formatCost(c Cost) string {
 	for _, part := range c.Blight {
 		parts = append(parts, "Blight<"+strconv.FormatInt(int64(part.N), 10)+">")
 	}
+	appendCostParts("Return", c.Return)
 	if c.Forage {
 		parts = append(parts, "Forage")
 	}
@@ -611,20 +708,26 @@ func formatCost(c Cost) string {
 // even though it takes no payment), so a caller using this to skip the
 // cast-flow stages is told the truth.
 func (c Cost) HasNonMana() bool {
-	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage
+	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0
 }
 
 // costModifiers reports the RaiseCost and ReduceCost generic-mana amounts
-// that apply, per CR 601.2f, to a cost paid by p for the object id. kind is
+// that apply, per CR 601.2f, to a cost paid by p for the object id, with the
+// announced {X} not yet chosen (bound 0 -- an offer-time read).
+func (e *Engine) costModifiers(p state.PlayerID, id state.ObjID, kind string) (raise, reduce int32) {
+	return e.costModifiersX(p, id, kind, 0)
+}
+
+// costModifiersX is costModifiers with the announced {X} value bound, for the
+// in-cast recomputation manaToPay does when the cost announces a variable
+// sacrifice count (Sac<X/Spec>): Dargo's {2}-less-per-sacrifice ReduceCost
+// statics read the paid X, which does not exist at offer time. kind is
 // "Spell" (a cast) or "Ability" (an activation): a static whose Type$ names
 // the other kind is skipped, and one naming neither applies to both. This
 // engine's RaiseCost/ReduceCost only ever touch the Generic component (never
-// Colored), which is why the returned amounts fold into Generic at the point
-// the total cost is composed (after any chosen {X} folds in). Increases and
-// reductions are returned separately so the caller can apply them in the CR
-// 601.2f order (increases before reductions) rather than assuming they
-// commute through the same sign.
-func (e *Engine) costModifiers(p state.PlayerID, id state.ObjID, kind string) (raise, reduce int32) {
+// Colored). Increases and reductions are returned separately so the caller
+// can apply them in the CR 601.2f order (increases before reductions).
+func (e *Engine) costModifiersX(p state.PlayerID, id state.ObjID, kind string, x int32) (raise, reduce int32) {
 	for _, mode := range []string{"RaiseCost", "ReduceCost"} {
 		for _, sv := range e.activeStatics(mode) {
 			if !e.costActorMatches(sv, p) {
@@ -636,15 +739,130 @@ func (e *Engine) costModifiers(p state.PlayerID, id state.ObjID, kind string) (r
 			if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, p)) {
 				continue
 			}
-			amt := parseAmount(sv.Params["Amount"], 1)
+			// An unresolvable amount degrades asymmetrically: an unexplained
+			// RAISE prices the cost up (conservative), an unexplained REDUCE
+			// applies nothing (fail closed -- an invented {1} discount is a
+			// game-action error, an invented {1} surcharge is only an offer
+			// the seat may decline).
+			amt := e.staticAmount(sv, p, x, costModifierDef(mode))
 			if mode == "RaiseCost" {
 				raise += amt
 			} else {
 				reduce += amt
 			}
 		}
+		// The spell BEING CAST prices its own face statics: a self-scoped
+		// ReduceCost (Dargo's "costs {2} less for each permanent sacrificed
+		// this way", ValidCard$ Card.Self) sits on the spell's own face, and
+		// the spell's statics function while it is on the stack (CR 604.3's
+		// battlefield rule does not reach a spell's own cast composition --
+		// CR 601.2f's total cost is composed from the announced spell's own
+		// static). A battlefield scan can never see a hand/stack card, so the
+		// offer gate prices the un-reduced cost and the in-cast recompute
+		// (manaToPay, with the announced X) applies the real reduction.
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Zone == state.ZStack {
+			for _, st := range o.Face().Statics {
+				if st.Mode != mode {
+					continue
+				}
+				sv := staticView{Source: id, Controller: p, Params: st.Params}
+				if !e.costActorMatches(sv, p) {
+					continue
+				}
+				if ty, ok := sv.Params["Type"]; ok && ty != "" && ty != kind {
+					continue
+				}
+				if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, p)) {
+					continue
+				}
+				amt := e.staticAmount(sv, p, x, costModifierDef(mode))
+				if mode == "RaiseCost" {
+					raise += amt
+				} else {
+					reduce += amt
+				}
+			}
+		}
 	}
 	return
+}
+
+// costModifierDef is the degrade-to value an unresolvable cost-modifier
+// Amount$ falls back to: RaiseCost surcharges {1} (the conservative reading
+// parseAmount always applied), ReduceCost discounts nothing.
+func costModifierDef(mode string) int32 {
+	if mode == "RaiseCost" {
+		return 1
+	}
+	return 0
+}
+
+// staticAmount resolves one cost-modifier static's Amount$ parameter. A plain
+// integer is that integer (parseAmount's shape). Anything else is a face-SVar
+// reference in one of two spellings -- a bare name (Herald of War's
+// "Amount$ X" over SVar:X:Count$CardCounters.P1P1) or Forge's
+// "SVar$Name[/Op]" (Dargo's "Amount$ Y" over SVar:Y:SVar$X/Times.2) --
+// resolved through the shared count evaluator with the announced {X} bound
+// to the context (Count$xPaid reads it) and the /Op suffix applied through
+// the SAME arithmetic effects.ApplyCountOp wraps. An unresolvable amount
+// (no SVar, a name the face does not carry, a negative result) degrades to
+// def exactly as parseAmount did, never a hard failure.
+func (e *Engine) staticAmount(sv staticView, p state.PlayerID, x int32, def int32) int32 {
+	raw := strings.TrimSpace(sv.Params["Amount"])
+	if raw == "" {
+		return def
+	}
+	if n, err := strconv.ParseInt(raw, 10, 64); err == nil && n >= 0 && n <= math.MaxInt32 {
+		return int32(n)
+	}
+	n, ok := e.evalAmountRef(sv, p, x, raw, 0)
+	if !ok || n < 0 || n > math.MaxInt32 {
+		return def
+	}
+	return n
+}
+
+// evalAmountRef resolves one Amount$ reference recursively: a bare face-SVar
+// name, Forge's "SVar$Name[/Op]" spelling, or a Count$ body (whose own /Op
+// EvalCount already applies -- never double-applied here). depth bounds the
+// SVar-to-SVar chase so a cyclic table terminates deterministically.
+func (e *Engine) evalAmountRef(sv staticView, p state.PlayerID, x int32, expr string, depth int) (int32, bool) {
+	if depth > 4 {
+		return 0, false
+	}
+	expr = strings.TrimSpace(expr)
+	if expr == "" {
+		return 0, false
+	}
+	if inner, ok := strings.CutPrefix(expr, "SVar$"); ok {
+		// Forge's SVar-reference form: the op after the "/" belongs to THIS
+		// reference, applied after the named SVar's own value resolves.
+		ref, op, _ := strings.Cut(inner, "/")
+		n, ok := e.evalAmountRef(sv, p, x, strings.TrimSpace(ref), depth+1)
+		if !ok {
+			return 0, false
+		}
+		return effects.ApplyCountOp(n, op), true
+	}
+	if strings.HasPrefix(expr, "Count$") {
+		// The count grammar owns its own /Op -- hand the whole body over.
+		o := e.G.Obj(sv.Source)
+		if o == nil || o.Face() == nil {
+			return 0, false
+		}
+		f := o.Face()
+		ctx := &effects.Ctx{Source: sv.Source, Controller: p, SVars: f.SVars, X: x}
+		return effects.EvalCount(e, ctx, expr), true
+	}
+	o := e.G.Obj(sv.Source)
+	if o == nil || o.Face() == nil {
+		return 0, false
+	}
+	f := o.Face()
+	if body, ok := f.SVars[expr]; ok {
+		return e.evalAmountRef(sv, p, x, body, depth+1)
+	}
+	return 0, false
 }
 
 // costActorMatches is the cost-modifier actor gate: a RaiseCost/ReduceCost
@@ -677,7 +895,8 @@ func (e *Engine) costActorMatches(sv staticView, actor state.PlayerID) bool {
 func (c Cost) Priceable() bool {
 	return c.X == 0 && !c.Tap && len(c.Sac) == 0 && len(c.Discard) == 0 && len(c.SubCounter) == 0 &&
 		len(c.Exile) == 0 && len(c.Reveal) == 0 && len(c.Behold) == 0 && len(c.TapPermanent) == 0 &&
-		len(c.Blight) == 0 && !c.Forage && len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
+		len(c.Blight) == 0 && !c.Forage && len(c.Hybrid) == 0 && len(c.Phyrexian) == 0 &&
+		len(c.Energy) == 0 && len(c.Return) == 0
 }
 
 // pip is one coloured-or-flexible demand inside a cost's mana part: the set

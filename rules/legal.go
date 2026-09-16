@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -308,10 +309,13 @@ func (e *Engine) resolveActivationLimit(id state.ObjID, p state.PlayerID, raw st
 // TargetMin$/TargetMax$ pair is Forge's unconditional one-target shape.
 // Dynamic bounds and modal or announced choices stay offerable until the
 // post-announcement askTarget backstop can evaluate them with those choices
-// made. excludeSelf is the CR 115.5 self-targeting object: the offered card
+// made. xPending extends that same carve-out to the announced {X}: a cost
+// that announces an X makes a ValidTgts$ X-bound dynamic, so a spec whose
+// ONLY zero-candidate reason is its unresolvable X bound stays offerable.
+// excludeSelf is the CR 115.5 self-targeting object: the offered card
 // for a spell cast from a zone that could contain it, 0 for an activated
 // ability (whose Source permanent IS a legal target of its own ability).
-func (e *Engine) targetsAvailable(p state.PlayerID, id, excludeSelf state.ObjID, sa *cards.SA) bool {
+func (e *Engine) targetsAvailable(p state.PlayerID, id, excludeSelf state.ObjID, sa *cards.SA, xPending bool) bool {
 	if sa == nil || strings.TrimSpace(sa.Params["ValidTgts"]) == "" || sa.API == "Charm" ||
 		sa.Params["Choices"] != "" || sa.Params["Announce"] != "" {
 		return true
@@ -322,13 +326,61 @@ func (e *Engine) targetsAvailable(p state.PlayerID, id, excludeSelf state.ObjID,
 	if _, ok := sa.Params["TargetMax"]; ok {
 		return true
 	}
-	return len(e.legalTargetCandidates(p, id, excludeSelf, sa)) > 0
+	if n := len(e.legalTargetCandidates(p, id, excludeSelf, sa)); n > 0 {
+		return true
+	}
+	// A zero-candidate census is only a withhold when the spec's X bound is
+	// static. With an announced X pending the bound is dynamic: offer, and
+	// let the post-announcement backstop evaluate it against the chosen
+	// value (a wrong value still fizzles the proposal at 601.2c).
+	return xPending && specNamesXBound(sa.Params["ValidTgts"])
+}
+
+// costAnnouncesX reports whether paying this cost announces a value for {X}
+// before targets are chosen: a printed {X} mana symbol or a PayEnergy<X>
+// energy part (Forge announces both through the same ability X). A cost that
+// announces X makes every ValidTgts$ bound that reads that X (cmcEQX and its
+// siblings) a DYNAMIC bound -- the same carve-out TargetMin$/TargetMax$/
+// Announce$/Choices$ already have -- so the offer gate does not withhold the
+// action on a bound whose value does not exist yet; the post-announcement
+// askTarget backstop evaluates it once the X is fixed (CR 601.2b before
+// 601.2c).
+func costAnnouncesX(c Cost) bool {
+	if c.X > 0 {
+		return true
+	}
+	for _, part := range c.Energy {
+		if part.Spec == "X" {
+			return true
+		}
+	}
+	return false
+}
+
+// specNamesXBound reports whether a ValidTgts$ spec carries a numeric bound
+// whose right-hand side is the paid {X}: the <field><CMP>X family numericPred
+// resolves through SpecContext.Resolve (powerGEX, cmcEQX, toughnessLTX,
+// counters_GTX_<KIND>). Only these shapes are dynamic in X; a literal bound
+// (cmcGE3) is static and stays gated at offer time.
+var xBoundRe = regexp.MustCompile(`(?i)(power|toughness|cmc)(LE|GE|EQ|LT|GT)X|counters_(?:LE|GE|EQ|LT|GT)X_`)
+
+func specNamesXBound(spec string) bool {
+	return xBoundRe.MatchString(spec)
 }
 
 // castTargetsAvailable is the cast-offer guard: the spell card may not target
-// itself (CR 115.5), so excludeSelf is the card id.
+// itself (CR 115.5), so excludeSelf is the card id. A cost that announces an
+// X (printed {X} or a SpellAbility Cost$ PayEnergy<X>) relaxes an X-bound
+// spec to the post-announcement backstop (costAnnouncesX above).
 func (e *Engine) castTargetsAvailable(p state.PlayerID, id state.ObjID, sa *cards.SA) bool {
-	return e.targetsAvailable(p, id, id, sa)
+	xPending := false
+	if o := e.G.Obj(id); o != nil && o.Face() != nil {
+		xPending = costAnnouncesX(ParseCost(o.Face().ManaCost))
+		if ab := o.Face().SpellAbility(); ab != nil {
+			xPending = xPending || costAnnouncesX(ParseCost(ab.Params["Cost"]))
+		}
+	}
+	return e.targetsAvailable(p, id, id, sa, xPending)
 }
 
 // abilityTargetsAvailable is the activated-ability offer guard. It is what
@@ -336,9 +388,10 @@ func (e *Engine) castTargetsAvailable(p state.PlayerID, id state.ObjID, sa *card
 // the transaction aborts it (CR 602.2b / 601.2c: such an ability cannot be
 // activated at all). Unlike a cast, an activated ability CAN target its own
 // Source permanent (Mother of Runes targeting itself), so no self-exclusion
-// applies.
+// applies. An ability cost that announces an X (a {X} mana symbol or
+// PayEnergy<X>) relaxes an X-bound spec to the post-announcement backstop.
 func (e *Engine) abilityTargetsAvailable(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
-	return e.targetsAvailable(p, id, 0, ab)
+	return e.targetsAvailable(p, id, 0, ab, costAnnouncesX(ParseCost(ab.Params["Cost"])))
 }
 
 // legalActions enumerates everything p may legally do with priority. The
