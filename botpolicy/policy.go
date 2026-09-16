@@ -18,6 +18,7 @@ import (
 	"math/rand/v2"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -464,6 +465,15 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 		}
 
 	case decision.KModes:
+		// The Sacrifice unless-pay damage offer (Vexing Devil: "any opponent
+		// may have it deal 4 damage to them") gets a deliberate arm, not the
+		// first-option clamp: an opponent offered "take N to kill it"
+		// decides on the offered permanent's worth against the life the
+		// damage costs.
+		if c := b.unlessSacrificeOffer(d); c != nil {
+			in.Choices = c
+			return clamp(d, in)
+		}
 		// A modal announcement or mid-resolution pick: choose the first Min options
 		// in order — the recorded mirror of the engine-side first-mode
 		// stand-in, so bot-vs-bot behaviour is largely unchanged, and the
@@ -490,6 +500,43 @@ func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 		}
 	}
 	return clamp(d, in)
+}
+
+// unlessSacrificeOffer answers the Sacrifice unless-pay damage offer —
+// Vexing Devil's "any opponent may have it deal N damage to them; if a
+// player does, sacrifice it", posed as a KModes ask whose option 0 is
+// "Take N damage" and option 1 "Refuse — it stays". The arm is deliberate,
+// not the clamp fallback:
+//
+//   - accept when the offered permanent is worth more alive than the life
+//     the damage costs (cardWorth >= n — a creature prices at 30+4×power,
+//     so a real creature always clears a small N) AND the damage is not
+//     lethal (n < the deciding seat's life) — taking four to kill a 4/3 is
+//     normally correct; taking lethal damage to kill anything is not;
+//   - decline otherwise (a worthless or unreadable permanent, or lethal
+//     damage).
+//
+// It returns nil — leaving the ordinary KModes arm in charge — for every
+// other KModes ask, including Sacrifice's mana unless-pay ("pay {1} or
+// sacrifice it"), where the first-option arm's "pay" answer is right and the
+// engine declines it only when the pool cannot cover the cost.
+func (b Board) unlessSacrificeOffer(d *decision.Decision) []int {
+	if d.ResumeKind != "unless_pay" || d.ResumeSA == nil || d.ResumeSA.API != "Sacrifice" {
+		return nil
+	}
+	n, dmg := effects.ParseDamageUnlessCost(d.ResumeSA.Params["UnlessCost"])
+	if !dmg || len(d.Options) == 0 {
+		return nil
+	}
+	if b.cardWorth(d.Options[0].Obj) >= int32(n) && b.Life[d.Player] > int32(n) {
+		return []int{d.Options[0].Index}
+	}
+	for _, o := range d.Options {
+		if o.Index != d.Options[0].Index {
+			return []int{o.Index}
+		}
+	}
+	return []int{d.Options[0].Index}
 }
 
 // clamp enforces [Min, Max] on top of whatever Decide's switch (or its

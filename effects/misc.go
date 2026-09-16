@@ -501,9 +501,24 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 // still ParseCost(sa.Params["UnlessCost"]) in rules' resumeResolution, and
 // AGENTS.md records what that substitution really costs.
 func unlessCostLabel(cost string) string {
+	if isPlainManaCost(cost) {
+		return cost
+	}
+	return "the cost"
+}
+
+// isPlainManaCost reports whether every whitespace field of an UnlessCost$
+// value is a generic number or a colour/colourless symbol — the same census
+// unlessCostLabel renders verbatim. It is the effects-side gate for "this
+// UnlessCost$ is plain mana": rules' shared unless_pay resume arm re-checks
+// the real ParseCost(...).Priceable() when it settles the answer, and the two
+// agree on every spelling this gate admits (a plain-mana spelling parses to
+// Generic/Colored parts only, no X, no non-mana component), so the gate
+// never poses an ask the resume arm would have to decline.
+func isPlainManaCost(cost string) bool {
 	fields := strings.Fields(cost)
 	if len(fields) == 0 {
-		return "the cost"
+		return false
 	}
 	for _, f := range fields {
 		if _, err := strconv.Atoi(f); err == nil {
@@ -512,9 +527,9 @@ func unlessCostLabel(cost string) string {
 		if strings.Trim(f, "WUBRGC") == "" {
 			continue // colour/colourless symbols
 		}
-		return "the cost"
+		return false
 	}
-	return cost
+	return true
 }
 
 // effDelayedTrigger implements Mode$ Phase delayed triggers -- the

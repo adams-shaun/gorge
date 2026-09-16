@@ -94,7 +94,7 @@ var knownUnsupported = map[string][]string{
 	"Chandra, Awakened Inferno":  {"repl:Counter"},
 	"Chromatic Orrery":           {"stat:ManaConvert"},
 	"Conduit of Worlds":          {"api:Play"},
-	"Constant Mists":             {"api:Fog", "kw:Buyback"},
+	"Constant Mists":             {"api:Fog"},
 	"Crypt Ghast":                {"kw:Extort"},
 	"Exotic Orchard":             {"api:ManaReflected"},
 	"Exploration Broodship":      {"kw:Station"},
@@ -107,7 +107,6 @@ var knownUnsupported = map[string][]string{
 	"Lord Windgrace":             {"kw:CARDNAME can be your commander."},
 	"Ojer Axonil, Deepest Might": {"api:ReplaceEffect", "repl:DamageDone"},
 	"Planetary Annihilation":     {"api:SacrificeAll"},
-	"Profane Tutor":              {"kw:Suspend"},
 	"Solphim, Mayhem Dominus":    {"api:ReplaceEffect", "repl:DamageDone"},
 	"Spiked Corridor":            {"api:ReplaceEffect", "repl:DamageDone", "trig:UnlockDoor"},
 	"Spinerock Knoll":            {"api:Play", "kw:Hideaway"},
@@ -116,7 +115,6 @@ var knownUnsupported = map[string][]string{
 	"Unholy Annex":               {"trig:UnlockDoor"},
 	"Vial Smasher the Fierce":    {"kw:Partner"},
 	"Walk-In Closet":             {"trig:UnlockDoor"},
-	"Ziatora's Proving Ground":   {"kw:Cycling"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card
