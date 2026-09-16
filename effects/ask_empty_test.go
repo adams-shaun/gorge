@@ -508,8 +508,10 @@ func TestBucolicRanchBottomContinuation(t *testing.T) {
 // Obj.Imprinted, read by Defined.Imprinted), so the old fail-closed note no
 // longer fires; the fetch now resolves the imprint set — empty on a source
 // with no imprint — moves nothing, shuffles nothing, and asks nothing. The
-// DBChangeZone's SubAbility$ DBShuffle then surfaces its own note (api:Shuffle
-// is unimplemented), the R-9 unimplemented-API fallback.
+// DBChangeZone's SubAbility$ DBShuffle is now a REAL api:Shuffle (registered
+// by main's shuffle primitive): it resolves its Defined$ ParentTarget, which
+// no trigger context binds in this synthetic resolution, so it shuffles no
+// library and the whole resolution is a silent no-op.
 func TestImprintedDefinedLibraryFetchFailsClosed(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	card, ok := reg.Lookup("Dichotomancy")
@@ -535,8 +537,8 @@ func TestImprintedDefinedLibraryFetchFailsClosed(t *testing.T) {
 	if got := h.g.Obj(src.ID).Zone; got != state.ZLibrary {
 		t.Fatalf("Imprinted Defined$ moved source to %s, want library", got)
 	}
-	if len(h.log) != 1 || h.log[0].Kind != events.Note || h.log[0].Text != "unimplemented API Shuffle" {
-		t.Fatalf("Imprinted Defined$ events = %v, want only the unimplemented Shuffle-subability note", h.log)
+	if len(h.log) != 0 {
+		t.Fatalf("Imprinted Defined$ events = %v, want a silent no-op (no move, and DBShuffle's ParentTarget binds no player here)", h.log)
 	}
 	for _, ev := range h.log {
 		if ev.Kind == events.MoveZone || ev.Kind == events.Shuffle {

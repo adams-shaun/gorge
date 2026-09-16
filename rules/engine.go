@@ -15,6 +15,7 @@ package rules
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
@@ -127,12 +128,24 @@ type Engine struct {
 	// kept/taken counts and the phase cursor. Never a closure, so Clone copies
 	// it like cast/choosing.
 	mulligan mulliganRound
+	// opening is the optional opening-hand effects round, after the London
+	// mulligan round (a Gemstone Caverns may not be used from a hand its owner
+	// later mulliganed away) and before turn one. It holds only object IDs and parsed SVar names, so replay and
+	// Clone reproduce the same pregame choices without ambient state.
+	opening openingRound
 	// blockerRound is the declare-blockers step's per-defender cursor
 	// (rules/combat.go, Task m34): an attack may be split across several
 	// defending players, and each declares its own blocks, one KBlockers
 	// decision at a time. Plain-value state (a defender list plus an index),
 	// never a closure, so Clone copies it like the mulligan round.
 	blockerRound blockerRound
+
+	// stationing is the spacecraft a pending Station tap pick (rules/
+	// station.go) belongs to: the "station" priority option's object, held
+	// across the KChoose so the answer's charge counters land on the right
+	// permanent. Plain value, so Clone copies it like blockerRound; zero
+	// whenever no station ask is outstanding.
+	stationing state.ObjID
 
 	// combatRound is the combat damage step's continuation state
 	// (rules/combat.go, Task jj-cmb): which damage passes are done, and any
@@ -208,6 +221,12 @@ type Engine struct {
 	// triggerBefore is the immutable pre-departure board for an SBA death
 	// batch. Scoped to its emission/resumption, never carried as live state.
 	triggerBefore *triggerSnapshot
+	// lifeLossBatch holds the events in one simultaneous life-loss operation.
+	// It is scoped to one synchronous effect/combat pass, so it is always nil
+	// at an intent boundary and does not need log encoding or Clone state.
+	lifeLossBatch          []events.Event
+	lifeLossBatchDepth     int
+	finishingLifeLossBatch bool
 	// Per-stack-instance trigger provenance, derived while queuing/placing
 	// triggers, cloned at intent boundaries and removed when the stack object
 	// leaves. Never encoded in events or inferred from a resolving source.
@@ -273,6 +292,12 @@ type Engine struct {
 	// completed move never happens (fx44, Mox Diamond). Zero whenever no
 	// replacement is in flight.
 	replReplaced state.ObjID
+	// replacingEvent is the in-flight Damage event a DB$ ReplaceEffect body's
+	// ReplaceEvent call may rewrite (Amount/Affected). It exists only during
+	// emit, before the event is logged, so it is never part of
+	// cloned/replayed engine state.
+	replacingEvent  *events.Event
+	replacingSource state.ObjID
 	// replAction is the action marker (events.ActionMarker) of the event the
 	// in-flight destination-changing replacement discarded: "sacrificed",
 	// "discarded" or "discarded as a cost". emit re-labels the replacement
@@ -281,11 +306,26 @@ type Engine struct {
 	// action by Sacrificed/Discarded triggers. Empty whenever no such
 	// replacement is in flight; threaded across a suspension by resumePoint.
 	replAction string
-	// triggerFireCount and damageOnceFired are trigger_match.go's own
-	// bookkeeping (the cascade bound and the DamageDealtOnce/DamageDoneOnce
-	// once-per-turn gate); see there.
+	// triggerFireCount and the damage-batch fields below are trigger_match.go's
+	// own bookkeeping (the cascade bound and the DamageDealtOnce/DamageDoneOnce
+	// once-per-damage-batch gate); see there.
 	triggerFireCount map[triggerKey]int32
-	damageOnceFired  map[triggerKey]int32
+	// A damage batch is the set of Damage events dealt simultaneously: one
+	// combat-damage pass (rules/combat.go damageStep), or the Damage events
+	// one dealDamage-style effect call deals (effects/damage.go brackets each
+	// of those with Host.BeginDamageBatch/EndDamageBatch), or — when neither
+	// brackets it — one single Damage event, opened implicitly in emit.
+	// DamageDealtOnce/DamageDoneOnce latch once per batch per trigger and
+	// referent (dealing source / damaged object); the entries here carry the
+	// accumulated batch amount the queued trigger's referent is patched to at
+	// batch close. Never opened across a drain: pendingTriggers is append-only
+	// while a batch is open, so the batch entries' recorded indices stay valid.
+	// damageBatchDepth counts nested brackets, so an inner effect cannot close
+	// its caller's simultaneous batch early.
+	damageBatchOpen  bool
+	damageBatchDepth int
+	damageBatchIdx   map[damageBatchKey]int
+	damageBatchLog   []damageBatchEntry
 	// phaseUnknownNoted memoizes the Phase$ specs whose names this engine has
 	// already reported as unresolvable (rules.trigger_match.go's phaseMatches
 	// reporting), so one spec emits exactly one Note per game no matter how
@@ -338,6 +378,11 @@ type Engine struct {
 	// cast holds the in-progress cast-flow state while choosing ==
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
 	cast *pendingCast
+	// suspendedCasts is the mandatory "cast it if able" trigger created when
+	// a real suspended card loses its final TIME counter. IDs are appended in
+	// exile order and consumed before priority; it is plain replayable engine
+	// continuation state, not an inference from arbitrary exile cards.
+	suspendedCasts []state.ObjID
 	// manaActivation is non-nil while a source with several available mana
 	// abilities waits for its controller to select one. manaColorActivation
 	// similarly holds an already-paid Produced$ Any ability, and
@@ -351,6 +396,10 @@ type Engine struct {
 	// carrying Cost$ (Mana Vault). Both are plain data and Clone-copied.
 	cumulative  *cumulativeUpkeep
 	triggerCost *triggeredEffectCost
+
+	// wardMana holds a CR 702.21a mana-payment window while a Ward trigger
+	// is resolving. It is plain data so Clone preserves the suspended choice.
+	wardMana *wardManaPayment
 
 	// cmdZone is the queue of parked commander zone changes (CR 903.9, Task
 	// m32, rules/replacement.go): MoveZone events a commander is about to
@@ -578,6 +627,141 @@ type chooseFor uint8
 
 const chooseNone chooseFor = iota
 
+// commanderCardLegal reports whether ONE card may be a commander under
+// CR 903.4: a legendary creature, or a card whose printed text says it can
+// be your commander (the "CARDNAME can be your commander." keyword, which is
+// how every planeswalker commander -- and Lord Windgrace -- reads in the
+// corpus). The face checked is the PRINTED face (Faces[0]): commander
+// legality is a property of the card as printed, not of a half.
+func commanderCardLegal(c *cards.Card) bool {
+	if c == nil || len(c.Faces) == 0 {
+		return false
+	}
+	f := c.Faces[0]
+	if f.IsCreature() && f.IsLegendary() {
+		return true
+	}
+	for _, k := range f.Keywords {
+		if strings.EqualFold(cards.KeywordHead(k), "CARDNAME can be your commander.") {
+			return true
+		}
+	}
+	return false
+}
+
+// partnerHead reports the Partner-family head c carries, "" for none: the
+// plain Partner ability (whose "Friends forever" alias spells K:Partner:...
+// and shares the head, CR 903.13a), or "Partner with" (the CR 903.13c named
+// pair).
+func partnerHead(c *cards.Card) string {
+	if c == nil || len(c.Faces) == 0 {
+		return ""
+	}
+	for _, k := range c.Faces[0].Keywords {
+		h := cards.KeywordHead(k)
+		if h == "Partner" || h == "Partner with" {
+			return h
+		}
+	}
+	return ""
+}
+
+// partnerPairOK reports whether two cards may be a commander PAIR: each
+// carries a Partner-family ability and either both are plain Partners, or
+// each "Partner with" the other by printed name (CR 903.13a/c). A plain
+// Partner paired with a Partner-with card is not a legal pair (each half of
+// a named pair names its own partner); a Partner-with card paired with a
+// plain Partner fails the same way.
+func partnerPairOK(a, b *cards.Card) bool {
+	ha, hb := partnerHead(a), partnerHead(b)
+	if ha == "" || hb == "" {
+		return false
+	}
+	if ha == "Partner" && hb == "Partner" {
+		return true
+	}
+	return partnerWithNames(a, b.Faces[0].Name) && partnerWithNames(b, a.Faces[0].Name)
+}
+
+// partnerWithNames reports whether c carries a "Partner with" whose named
+// partner is other (the corpus form is "Partner with:<name>[:<display>]";
+// the first colon-field is the name).
+func partnerWithNames(c *cards.Card, other string) bool {
+	if c == nil || len(c.Faces) == 0 {
+		return false
+	}
+	for _, k := range c.Faces[0].Keywords {
+		if cards.KeywordHead(k) != "Partner with" {
+			continue
+		}
+		_, rest, ok := strings.Cut(k, ":")
+		if !ok {
+			continue
+		}
+		name, _, _ := strings.Cut(rest, ":")
+		if strings.EqualFold(strings.TrimSpace(name), other) {
+			return true
+		}
+	}
+	return false
+}
+
+// legalCommandersFor validates seat i's configured commander list against
+// the deck-construction rules (CR 903.4/903.13) and returns the indices
+// that MAY be seated, in Config order: a single commander must be a
+// legendary creature or a "can be your commander" card; a two-card seat is
+// a legal partner pair (plain Partners, or a mutual "Partner with" pair);
+// anything else -- a noncommander card, a pair without partner, more than
+// two -- is rejected WHOLE, never silently trimmed into a legal-looking
+// subset. This is what makes an illegal Config fail in play: the rejected
+// seat plays commander-less and the rejection is on the log as a Note (the
+// same degrade-don't-crash stance New takes for malformed decks elsewhere --
+// New cannot return an error, so the Note is the record).
+func (c *Config) legalCommandersFor(i, deckLen int, deck []*cards.Card) []int {
+	raw := c.commandersFor(i, deckLen)
+	if len(raw) == 0 {
+		return nil
+	}
+	// Construction legality belongs to Commander games. Config.Commanders also
+	// intentionally powers constructed-format fixture and compatibility paths
+	// (where it merely selects command-zone objects), so preserve that legacy
+	// plumbing outside FormatCommander.
+	if c.Format != FormatCommander {
+		return raw
+	}
+	bad := func(why string) ([]int, string) {
+		names := ""
+		for _, idx := range raw {
+			if idx >= 0 && idx < len(deck) && deck[idx] != nil {
+				names += deck[idx].Faces[0].Name + ", "
+			}
+		}
+		return nil, names + why
+	}
+	reject := ""
+	switch len(raw) {
+	case 1:
+		idx := raw[0]
+		if idx >= 0 && idx < len(deck) && !commanderCardLegal(deck[idx]) {
+			_, reject = bad("is not a legendary creature and does not say it can be your commander")
+		}
+	case 2:
+		a, b := raw[0], raw[1]
+		inRange := func(x int) bool { return x >= 0 && x < len(deck) && deck[x] != nil }
+		if !inRange(a) || !inRange(b) {
+			_, reject = bad("is not a card this deck carries")
+		} else if !commanderCardLegal(deck[a]) || !commanderCardLegal(deck[b]) || !partnerPairOK(deck[a], deck[b]) {
+			_, reject = bad("is not a partner pair")
+		}
+	default:
+		_, reject = bad("is not one or two commanders")
+	}
+	if reject != "" {
+		return nil
+	}
+	return raw
+}
+
 // commandersFor returns the VALID commander indices (into deck of length
 // deckLen) that Config names for seat i, in Config order. An index out of
 // range for the deck, or a seat with no Commanders entry, contributes
@@ -630,6 +814,21 @@ func New(cfg Config) *Engine {
 	if len(cfg.Names) > 0 {
 		toss = e.rng.IntN(len(cfg.Names))
 	}
+	// CR 103.1 precedes 103.2-103.4: the public toss announcement is emitted
+	// HERE -- before the first shuffle and the opening hand (Forge's
+	// GameAction and manabrew's game loop announce the toss before their deal
+	// too), so the keep/mulligan decisions are made with the toss already
+	// public. The Note names the seat the rng handed the toss to -- the true
+	// CR 103.1 winner -- even if the deal below then eliminates them; who
+	// actually takes the first turn is resolved after the deal has fixed the
+	// survivors. The text carries the deck identity, never the display
+	// PlayerName (F3 keeps display names out of the chain); view/describe.go
+	// renders this one Note through player(), so a seated human still reads
+	// their own name.
+	if toss >= 0 {
+		e.emit(events.Event{Kind: events.Note, Player: state.PlayerID(toss),
+			Text: tossName(e.G, state.PlayerID(toss)) + " won the toss"})
+	}
 	// Match-wide dense commander indexing for Player.CmdDamage (assigned at
 	// genesis): a commander's dense index is the sum of (valid commanders in
 	// seats before its owner) + (its own position within its owner's
@@ -644,7 +843,7 @@ func New(cfg Config) *Engine {
 	totalCmd := 0
 	for i := range cfg.Names {
 		if i < len(cfg.Decks) {
-			totalCmd += len(cfg.commandersFor(i, len(cfg.Decks[i])))
+			totalCmd += len(cfg.legalCommandersFor(i, len(cfg.Decks[i]), cfg.Decks[i]))
 		}
 	}
 	// Opening hands are dealt as one genesis operation. Defer only the final
@@ -681,11 +880,19 @@ func New(cfg Config) *Engine {
 		// non-Commander Config commandersFor is empty, so nothing is emitted
 		// and the Shuffle below covers the whole library exactly as before.
 		var myCmds []state.ObjID
-		for _, idx := range cfg.commandersFor(i, len(deck)) {
+		for _, idx := range cfg.legalCommandersFor(i, len(deck), deck) {
 			id := ids[idx]
 			myCmds = append(myCmds, id)
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 				From: state.ZLibrary, To: state.ZCommand})
+		}
+		// A commander list that failed the deck-construction validation seats
+		// nothing; the rejection is on the log (rules/legal... engine.go's
+		// legalCommandersFor) so a transcript shows why the command zone is
+		// empty.
+		if len(myCmds) == 0 && len(cfg.commandersFor(i, len(deck))) > 0 {
+			e.emit(events.Event{Kind: events.Note, Player: p,
+				Text: "commander configuration rejected under CR 903.4/903.13"})
 		}
 		e.G.Players[p].Commanders = myCmds
 		if len(myCmds) > 0 {
@@ -718,12 +925,12 @@ func New(cfg Config) *Engine {
 					e.emit(events.Event{Kind: events.PlayerLost, Player: state.PlayerID(next), Text: "drew from an empty library"})
 				}
 			}
-			if e.finishTerminalGenesis(toss, len(cfg.Names)) {
+			if e.finishTerminalGenesis() {
 				return e
 			}
 		}
 	}
-	if e.finishTerminalGenesis(toss, len(cfg.Names)) {
+	if e.finishTerminalGenesis() {
 		return e
 	}
 	e.deferGameOver = false
@@ -741,18 +948,19 @@ func New(cfg Config) *Engine {
 	// with seat 0 eliminated maps two of the three toss outcomes onto one
 	// survivor (measured 395/205 over 600 seeds on the pre-fix code).
 	start, _ := e.resolveToss(toss, alive, len(cfg.Names))
-	// Ruling T22-f: begin with the first seat still alive, not always seat
-	// 0 -- an early seat that decked out during its own opening draw (Over
-	// still false, since other seats remain, but that seat's own Lost is
-	// true) must not receive turn 1. A player already out of the game is
-	// simply skipped in turn order everywhere else (NextAlive, priority);
-	// this is genesis's own equivalent for the very first turn.
+	// The starting seat is the toss winner resolved over the survivors --
+	// never seat 0 (the pre-toss assumption Ruling T22-f removed) and never a
+	// seat the deal eliminated: an early seat that decked out during its own
+	// opening draw (Over still false, since other seats remain, but that
+	// seat's own Lost is true) must not receive turn 1. A player already out
+	// of the game is simply skipped in turn order everywhere else (NextAlive,
+	// priority); resolveToss is genesis's own equivalent for the very first
+	// turn.
 	if !e.G.Over {
-		// CR 103.1: record the toss publicly -- one Note naming the winner,
-		// rendered verbatim by view/describe.go, so it lands in every seat's
-		// transcript and on the web client with no UI work. Emitted exactly
-		// once per game, before the mulligan round / turn 1 begins.
-		e.recordToss(start, true)
+		// CR 103.1's resolution, now that the deal has fixed the survivors:
+		// beginTurn records start in its ordinary TurnChange. During a London
+		// mulligan, Engine.PregameStarter exposes the same resolved seat to the
+		// view without adding another hash-chained event to genesis.
 		if cfg.Mulligans > 0 {
 			// Ruling R-8.4: the London mulligan round lives between the deal
 			// and turn 1. e.pregame makes step() dispatch to stepPregame
@@ -766,35 +974,28 @@ func New(cfg Config) *Engine {
 			e.pregame = true
 			e.mulligan = newMulliganRound(e.G.AliveFrom(start), cfg.Mulligans)
 		} else {
+			e.opening = e.newOpeningRound(start, 0)
+			if len(e.opening.effects) > 0 {
+				e.stepOpening()
+				return e
+			}
 			e.beginTurn(start)
 		}
 	}
 	return e
 }
 
-// finishTerminalGenesis records and finalizes a game whose opening deal left
-// at most one survivor. The toss Note deliberately precedes checkGameOver:
-// host.boundsOf recognizes a complete terminal burst only when GameOver is its
-// final event. With one survivor, rejection sampling maps the toss uniformly
-// onto that survivor. With none, there is no possible starting player, so the
-// Note truthfully names the original randomly determined seat and says no first
-// turn began. A malformed zero-seat Config drew no toss and has nobody to name.
-func (e *Engine) finishTerminalGenesis(toss, seats int) bool {
-	alive := e.G.AliveFrom(0)
-	if len(alive) > 1 {
+// finishTerminalGenesis finalizes a game whose opening deal left at most one
+// survivor. The toss was already announced before the first shuffle (the
+// pre-deal Note in New); terminal genesis therefore needs no additional Note.
+// Ruling T22-e: nobody survived genesis is CR 104.4a's draw; one survivor is
+// CR 104.2a's winner. GameOver remains the final genesis event for the host's
+// persistence/replay burst boundaries.
+func (e *Engine) finishTerminalGenesis() bool {
+	if e.G.AliveCount() > 1 {
 		return false
 	}
 	e.deferGameOver = false
-	if toss >= 0 {
-		winner := state.PlayerID(toss)
-		if len(alive) == 1 {
-			winner, _ = e.resolveToss(toss, alive, seats)
-		}
-		e.recordToss(winner, false)
-	}
-	// Ruling T22-e: nobody survived genesis is CR 104.4a's draw; one
-	// survivor is CR 104.2a's winner. This MUST remain the final genesis
-	// event for persistence/replay burst boundaries.
 	e.checkGameOver()
 	return true
 }
@@ -816,19 +1017,6 @@ func (e *Engine) resolveToss(toss int, alive []state.PlayerID, seats int) (state
 		}
 		candidate = state.PlayerID(e.rng.IntN(seats))
 	}
-}
-
-// recordToss emits the one public record of the random determination. A game
-// that ended during its opening deal still records a winner, but it must not
-// claim that the first turn began.
-func (e *Engine) recordToss(winner state.PlayerID, takesFirstTurn bool) {
-	text := tossName(e.G, winner) + " won the toss"
-	if takesFirstTurn {
-		text += " and takes the first turn"
-	} else {
-		text += "; the game ended before the first turn"
-	}
-	e.emit(events.Event{Kind: events.Note, Player: winner, Text: text})
 }
 
 // tossName is the identity the toss Note's text carries: the deck-identity
@@ -869,9 +1057,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// source recorded) never suppresses a Damage event. A planeswalker's
 	// Damage event is protected exactly like any other now -- its CR 306.8
 	// loyalty conversion happens one fold later, in events.Apply, so a
-	// prevented hit converts nothing.
+	// prevented hit converts nothing. stat:CantPreventDamage (Spider-Punk)
+	// overrides protection's own damage-prevention arm exactly like every
+	// other prevention path, so the same cantPreventDamage gate applies here.
 	if ev.Kind == events.Damage && ev.Obj != 0 {
-		if src := e.inFlightDamageSource(); src != 0 && e.protectedFrom(ev.Obj, src) {
+		if src := e.inFlightDamageSource(); src != 0 && e.protectedFrom(ev.Obj, src) &&
+			!e.cantPreventDamage(src, ev.Obj) {
 			return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "prevented: protection"})
 		}
 	}
@@ -897,10 +1088,21 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if e.applyingReplacement {
 		ev = events.CarryAction(e.replAction, e.replReplaced, ev)
 	} else {
-		if replaced, handled := e.applyReplacements(ev); handled {
+		replaced, handled := e.applyReplacements(ev)
+		if handled {
 			return replaced
 		}
+		// Not replaced, but possibly REWRITTEN in place (a DamageDone
+		// ReplaceEffect body changed the amount): the returned event is what
+		// gets logged, not the emit caller's copy.
+		ev = replaced
 	}
+	// CR 306.8's planeswalker loyalty exchange (and CR 120.3e's exception for
+	// a permanent that is also a creature) is folded directly into this
+	// Damage event by events.Apply below -- AddCounter("LOYALTY", ...) runs
+	// in the same Apply call that would otherwise mark damage, so replay
+	// derives it from the one logged Damage event and no separate
+	// CounterChange is ever emitted for it.
 	// LKI (CR 603.10 "look back in time") is captured HERE, before
 	// events.Emit runs Apply and mutates the object -- a zone-change trigger
 	// needs the object exactly as it was a moment ago (its counters, tapped
@@ -970,6 +1172,20 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.sourceControllerLKI, ev.Obj)
 		delete(e.damageSourceLKI, ev.Obj)
 	}
+	// Damage batch (CR 510.4, Forge dealAssignedDamage): DamageDealtOnce/
+	// DamageDoneOnce latch once per damage BATCH. A Damage event arriving with
+	// no batch already open (combat's damageStep and effects' dealDamage calls
+	// open their own; see Host.BeginDamageBatch) is a batch of one -- its own
+	// batch, opened and closed around the trigger check, so the Once modes
+	// fire per event rather than per turn and the queued referent's amount is
+	// already the batch total. A prevented Damage never reaches here (emit
+	// returned the prevention Note above), and the deferred cast-trigger arm
+	// skips the trigger check entirely, so neither needs a batch.
+	onlyEventBatch := false
+	if ev.Kind == events.Damage && !e.damageBatchOpen {
+		e.openDamageBatch()
+		onlyEventBatch = true
+	}
 	if ev.Kind == events.PutOnStack && e.deferCastTrigger {
 		// CR 601.2i: the cast trigger must not fire at the up-front push
 		// (601.2a), because the spell is not yet cast -- targets (601.2c) and
@@ -981,7 +1197,13 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		cp, lp := stored, lki
 		e.deferredPush, e.deferredPushLKI = &cp, lp
 	} else {
+		if _, _, loss := lifeLoss(stored); loss && e.lifeLossBatchDepth > 0 {
+			e.lifeLossBatch = append(e.lifeLossBatch, stored)
+		}
 		e.checkTriggers(stored, lki, lkiPower, lkiToughness, lkiPTValid)
+	}
+	if onlyEventBatch {
+		e.closeDamageBatch()
 	}
 	if ev.Kind == events.Tap && !e.tapIsEntryState(ev) {
 		// Recorded after the triggers above were matched, so a FirstTime$
@@ -992,6 +1214,26 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.tappedTurn[ev.Obj] = e.G.Turn
 	}
 	e.finishSourceLifelinkLKI(ev, departingSource, departingSourceLifelink, departingSourceController)
+	// CR 702.163 ("Start your engines!", rules/speed.go): a loss may raise
+	// every eligible opponent's speed (if they have any), and a Start your
+	// engines! permanent's battlefield entry starts a speed-less
+	// controller's speed at 1. Checked on the FOLDED event, after
+	// checkTriggers, so the gain event follows everything the loss itself
+	// caused -- and both checks are inert for every other event. The loss
+	// reaches here two ways: an explicit LifeChange with a negative amount
+	// (life payment, "each player loses N life"), and a player D_DAMAGE --
+	// combat damage and spell/ability damage fold straight to the life
+	// total (events.Apply's Damage case) without a LifeChange, and any
+	// Damage event that reaches emit has already been through prevention
+	// (a prevented hit is a Note, never a Damage), so a positive player
+	// Damage event here IS the life loss the rule reads.
+	if (ev.Kind == events.LifeChange && ev.Amount < 0) ||
+		(ev.Kind == events.Damage && ev.Obj == 0 && ev.Amount > 0) {
+		e.checkSpeedGain(ev)
+	}
+	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
+		e.checkSpeedStart(ev.Obj)
+	}
 	// E2: any genuinely state-changing event proves the game is making
 	// progress, so it clears the held-out cast suppression (suppressedCast,
 	// see engine.go): a declined card's option comes back the moment the
@@ -1191,6 +1433,19 @@ func (e *Engine) Submit(in decision.Intent) error {
 		// (blocker, attacker) pair. Reject choosing the same ordinary blocker
 		// against multiple attackers while preserving the pending decision.
 		if err := e.validateBlockers(d, in); err != nil {
+			return err
+		}
+	}
+	if d.Kind == decision.KChoose {
+		// The cast flow's Convoke/Harmonize announcement (convokeAsk): the
+		// static option list cannot express "only while the outstanding
+		// cost can still absorb the contribution", so an over-selection
+		// (two white creatures for one {W}) passes Validate's per-index and
+		// group checks. Reject it here, before the intent is recorded and
+		// the pending decision consumed, so a legal subset can be
+		// resubmitted -- the same preserve-and-reject shape as
+		// validateAttackers above.
+		if err := e.validateCastContributions(d, in); err != nil {
 			return err
 		}
 	}

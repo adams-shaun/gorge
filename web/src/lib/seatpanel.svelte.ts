@@ -567,6 +567,19 @@ export class SeatPanelState {
   rememberChoice = $state(false);
 
   /**
+   * searchFilter is the library-search picker's display-only filter text
+   * (fb-20260916T181754Z): a case-insensitive substring over the search
+   * options' card-name labels, consumed by lib/search.ts's searchOptions to
+   * build the DISPLAY list. It is deliberately not part of the answer: it
+   * never touches `picked`, the submit gate or the posted intent — the
+   * search answer is the picked wire indexes in click order regardless of
+   * what the list shows. Reset on every newly adopted decision, so a filter
+   * typed for one ask can never silently narrow the next, different ask's
+   * list (the same adopt-reset contract as rememberChoice).
+   */
+  searchFilter = $state('');
+
+  /**
    * rememberedSeq is the seq the remembered-answer auto-reply last posted
    * for — the same loop guard autoOrderedSeq is, so a rejected auto-answer
    * is never retried forever against a refusing server.
@@ -1547,6 +1560,11 @@ export class SeatPanelState {
     // checkbox is reset FIRST so a tick left on the previous ask can never
     // remember this, different ask.
     this.rememberChoice = false;
+    // The search filter belongs to the PREVIOUS ask just as much (the
+    // library-search picker's display filter): a new decision starts with an
+    // empty filter, so a narrowing typed for one library can never hide
+    // cards of the next one.
+    this.searchFilter = '';
     if (!this.maybeAutoOrderTriggers()) this.maybeRememberedTrigger();
   }
 

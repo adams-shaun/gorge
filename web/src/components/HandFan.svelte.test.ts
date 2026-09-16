@@ -4,6 +4,7 @@ import type { CardView, PlayerView } from '../protocol';
 import type { CardOptions } from '../lib/cardoptions';
 import { optionsByObj, optionsByPlayer } from '../lib/cardoptions';
 import { PLAY_CARD_WIDTH } from '../lib/handfan';
+import { layoutStore } from '../lib/layoutsettings.svelte';
 import HandFan from './HandFan.svelte';
 
 // SSR via svelte/server, the repo's component-test pattern: no DOM, no
@@ -184,5 +185,33 @@ describe('HandFan options affordance (ui23)', () => {
     const { html } = render(HandFan, { props: { player: ballistaHand, width: BOARD_W, options: bundle({ picked: [3] }) } });
     expect(html).toContain('data-selected="1"');
     expect(html).toContain('class="sel data');
+  });
+});
+
+describe('HandFan — layout settings (fb-20260916T182801Z)', () => {
+  it('the fan publishes its peek mode, alignment and hand scale (shipped defaults)', () => {
+    const { html } = render(HandFan, { props: { player: player(hand(2)), width: BOARD_W } });
+    const fan = html.match(/<div class="handfan[^"]*"[^>]*>/)?.[0] ?? '';
+    expect(fan).toContain('data-peek="hover"');
+    expect(fan).toContain('data-align="center"');
+    expect(fan).toContain('--hand-scale');
+    // ...and the track is not outlined while no adjustment is pending
+    expect(html).not.toContain('zone-outline');
+  });
+
+  it('the card scale feeds the layout math: bigger faces, wider steps', () => {
+    const plain = render(HandFan, { props: { player: player(hand(3)), width: BOARD_W } }).html;
+    expect(lefts(plain)).toEqual([0, CARD_W + 10, (CARD_W + 10) * 2]);
+    layoutStore.bump('hand', 0.2);
+    const scaled = render(HandFan, { props: { player: player(hand(3)), width: BOARD_W } }).html;
+    const w = Math.round(CARD_W * 1.2);
+    expect(lefts(scaled)).toEqual([0, w + 10, (w + 10) * 2]);
+    const fan = scaled.match(/<div class="handfan[^"]*"[^>]*>/)?.[0] ?? '';
+    expect(fan).toContain('--hand-scale: 1.2');
+    // ...and the adjustment pulses the track's dotted outline, even though
+    // the change came from the shared store (the panel's path)
+    expect(scaled).toContain('zone-outline');
+    layoutStore.reset();
+    layoutStore.dispose();
   });
 });

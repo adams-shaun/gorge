@@ -83,6 +83,13 @@ func zoneIn(zones []state.Zone, want state.Zone) bool {
 	return false
 }
 
+// mixedOriginIncludesHand identifies every explicit multi-zone Origin$ that
+// includes Hand. Such an effect needs one origin-aware hidden-zone chooser;
+// the exact-Hand and exact-Library walkers cannot safely stand in for it.
+func mixedOriginIncludesHand(zones []state.Zone, all bool) bool {
+	return !all && len(zones) > 1 && zoneIn(zones, state.ZHand)
+}
+
 func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	to := ParseZone(sa.Params["Destination"])
 	var originZones []state.Zone
@@ -112,26 +119,75 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			effSearchLibrary(h, c, sa, to)
 			return
 		}
-		// A ChangeZone from exactly Hand with a ChangeType$ card filter and no
-		// object selector is Forge's "choose N cards matching ChangeType$ from
-		// your hand" shape (Burgeoning: "you may put a land card from your hand
-		// onto the battlefield"). With no Defined$/DefinedPlayer$/ValidTgts$
-		// the object path below would resolve Defined to the SOURCE default and
-		// then skip every candidate on the Origin$ precondition -- the silent
-		// no-op the handmove1 fix replaces with a real hand choice.
-		// DefinedPlayer$-bearing lines name another player's hand and stay on
-		// the (broken) object path until the per-player follow-up lands; a
-		// ValidTgts$-bearing line names real targets the object path moves; and
-		// a non-literal ChangeNum$ (an SVar name or inline Count$, ~45 raw
-		// lines) is a scoped-out follow-up that also stays on that old path.
+		// A mixed origin which includes Hand needs one chooser over cards from
+		// every origin. The exact-Hand handlers below cannot provide that
+		// origin-aware option list, so record the gap before retaining the
+		// object path for a Defined$ card that is already known. In particular,
+		// a source-default mixed-origin picker (Kastral, the Windcrested) now
+		// fails loudly rather than silently doing nothing. Keep this test on
+		// parsed zones rather than a list of origin strings: every new
+		// Hand,<other-zone> spelling takes this same visible fallback.
+		if mixedOriginIncludesHand(originZones, originAll) {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "cannot choose cards from mixed ChangeZone Origin$ " + from +
+					" (an origin-aware hidden-zone chooser is not implemented)"})
+		}
+		// A ChangeZone from exactly Hand with no object selector is Forge's
+		// hidden-origin hand put-back: the chooser picks ChangeNum$ cards (a
+		// ChangeType$ filter narrows the pool; its absence -- Brainstorm's "put
+		// two cards from your hand on top of your library", Jace, the Mind
+		// Sculptor's [0] -- offers the whole hand). With no Defined$/
+		// DefinedPlayer$/ValidTgts$ the object path below would resolve Defined
+		// to the SOURCE default and then skip every candidate on the Origin$
+		// precondition -- the silent no-op the handmove1 fix replaces with a
+		// real hand choice (the rv2b extension drops handmove1's ChangeType$
+		// requirement: the whole 239-line no-selector Origin$ Hand population
+		// routes here now, 19 of it untyped).
+		// An SVar or inline count expression is evaluated through Num where the
+		// count grammar supports it (for example Wrenn and Seven's SVar X counts
+		// lands in hand). An unknown count remains loud rather than falling through
+		// to the old source-default no-op: it emits a Note and moves nothing.
 		if len(originZones) == 1 && originZones[0] == state.ZHand && !originAll &&
-			sa.Params["ChangeType"] != "" && sa.Params["Defined"] == "" &&
+			sa.Params["Defined"] == "" &&
 			sa.Params["DefinedPlayer"] == "" && sa.Params["ValidTgts"] == "" &&
 			!strings.EqualFold(sa.Params["Imprint"], "True") {
-			if _, literal := handChangeNum(sa); literal {
+			if _, supported := handMoveCountOf(h, c, sa); supported {
 				effChangeZoneHand(h, c, sa, to)
 				return
 			}
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "cannot choose ChangeNum$ " + strings.TrimSpace(sa.Params["ChangeNum"]) +
+					" cards from hand (a non-literal count is not a bound this engine can evaluate)"})
+			return
+		}
+		// A ChangeZone from exactly Hand whose hand OWNER is selected --
+		// DefinedPlayer$-alone (Kynaios and Tiro's "each player may put a land
+		// card from their hand onto the battlefield", Braids, Conjurer Adept,
+		// Mindleech Ghoul) or ValidTgts$-alone naming the players (Karn
+		// Liberated's "[+4]: Target player exiles a card from their hand",
+		// Kyoki, Sanity's Eclipse) -- is the per-owner hidden-hand shape: one
+		// chooser ask per hand owner, chained through the persisted
+		// Ctx.HandMoveTarget cursor. The rv2b r2 finding: these shapes used to
+		// fall through to the object path, where Defined() resolved to the
+		// source (or to targets the Origin$ precondition then skipped because
+		// they are PLAYERS, not hand cards) -- another silent no-op.
+		if len(originZones) == 1 && originZones[0] == state.ZHand && !originAll &&
+			sa.Params["Defined"] == "" &&
+			(sa.Params["DefinedPlayer"] != "" || sa.Params["ValidTgts"] != "") {
+			effChangeZoneHandOwners(h, c, sa, to)
+			return
+		}
+		// DefinedPlayer$ alongside a Defined$ that names concrete objects
+		// (Wilt-Leaf Liege's DefinedPlayer$ ReplacedPlayer + Defined$
+		// ReplacedCard, 1 corpus line) keeps the object path -- the moved
+		// objects are already named -- but the owner parameter is unread
+		// there, so the shape is loud about it rather than silent.
+		if len(originZones) == 1 && originZones[0] == state.ZHand && !originAll &&
+			sa.Params["Defined"] != "" && sa.Params["DefinedPlayer"] != "" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "DefinedPlayer$ " + sa.Params["DefinedPlayer"] +
+					" is unread next to Defined$ " + sa.Params["Defined"] +
+					" (the move goes to the named objects alone)"})
 		}
 	}
 	// WithCountersType$/WithCountersAmount$ make the move put counters on the
@@ -227,7 +283,39 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 // the battlefield. Keeping the object path and the hand-choice path on this
 // one helper means the two cannot drift apart on any of the three.
 func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32) {
-	h.Emit(moveZoneEvent(c, id, from, to))
+	settleChangeZoneMoveAs(h, c, sa, id, from, to, withKind, withAmt, 0, false)
+}
+
+// settleChangeZoneMoveAs is the one settle path every ChangeZone mover shares
+// (settleChangeZoneMove is its event-Player-unset form), plus the explicit
+// event-Player form: a hidden-zone move of ANOTHER player's card carries that
+// player as the event's Player -- the same attribution the library search's
+// move applies -- so the view layer's hidden-card redaction sees the move the
+// way the owner does. The MoveZone itself, then RememberChanged$ (the moved
+// object joins the ability's Remembered -- a DelayedTrigger running as a
+// later SubAbility of the same chain captures it, and the value is a
+// parameter of the ongoing resolution (Ctx), not game state, so mutating it
+// here is fine), then the WithCountersType$/WithCountersAmount$ entry
+// counters when the move lands on the battlefield. Keeping the object path
+// and the hand-choice path on this one helper means the two cannot drift
+// apart on any of the three. Tapped$ True is event-backed for the hidden
+// library paths, but not for a card entering from hand; before every such
+// move this common path makes the narrowing replay-visible rather than
+// silently entering the card untapped.
+func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32, player state.PlayerID, hasPlayer bool) {
+	if from == state.ZHand && to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
+		notePlayer := c.Controller
+		if hasPlayer {
+			notePlayer = player
+		}
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: notePlayer,
+			Text: "Tapped$ True on a hand ChangeZone is not implemented; the card enters untapped"})
+	}
+	ev := moveZoneEvent(c, id, from, to)
+	if hasPlayer {
+		ev.Player = player
+	}
+	h.Emit(ev)
 	if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 		c.Remembered = append(c.Remembered, state.Target{Obj: id})
 	}
@@ -255,55 +343,246 @@ func handChangeNum(sa *cards.SA) (int32, bool) {
 	return int32(n), true
 }
 
-// effChangeZoneHand implements Forge's "choose N cards matching ChangeType$
-// from your hand" ChangeZone shape (handmove1): Origin$ Hand, a ChangeType$
-// card filter, ChangeNum$ cards, no object selector. The eligible pool is the
-// resolving controller's own hand, rebuilt deterministically in hand order
-// through the same MatchesSpecCtx resolver the library search uses; the move
-// itself goes through the ordinary object mover so RememberChanged$ and any
-// Destination$ behave exactly as they do everywhere else.
-//
-// The ask (the dig1/effDiscard strict-supersets rule): when the hand holds
-// STRICTLY more ChangeType$-eligible cards than ChangeNum, the pick is a real
-// KChoose posed to the controller -- Min ChangeNum, Max ChangeNum -- so a
-// decision nobody could answer differently is never emitted; with ChangeNum
-// or fewer eligible cards they all move deterministically, no ask. With ZERO
-// eligible cards the effect resolves doing nothing (Burgeoning with no land
-// in hand is a legitimate no-op). The chooser's own hand is the option pool,
-// so no Secret Note/redaction is needed beyond the ordinary
-// decision-attaches-only-to-its-Player projection rule.
-//
-// ChangeNum$ defaults to 1 when absent -- Forge's own ChangeZoneEffect
-// defaults the count to one card (ChangeNum$ absent reads as "a card" in
-// every text this shape carries: Burgeoning, Elvish Pioneer, Kami of Bamboo
-// Groves), and the corpus's 70 absent-ChangeNum$ exact-Hand lines are all
-// singular-take texts. Only a PLAIN INTEGER literal ChangeNum$ reaches this
-// path: the routing guard in effChangeZone leaves a non-literal value (an
-// SVar name or inline Count$, ~45 raw lines) on the pre-existing object
-// path, so this function never sees one and no count expression is
-// evaluated here (a scoped-out follow-up).
-//
-// The answer re-enters through ResumeKind "hand_move" with Ctx.HandMove /
-// HandMoveDone set (rules/resolution.go); both are captured and cleared at
-// the top of this walk (the fx42 scoping discipline), so a nested hand-move
-// ask in the same SubAbility$ chain poses its own decision instead of
-// inheriting the outer answer. A host that cannot ask (the fuzz/no-engine
-// stand-in, R-9) takes the first ChangeNum eligible cards in the decision's
-// own deterministic option order, with the Note that records why the richer
-// path did not run. Still unread here, each a scoped-out follow-up: Tapped$
-// True (entry-tapped, unread on the object path too), Optional$
-// True on the ChangeZone itself (23 raw lines -- the optional take is asked
-// as mandatory), Destination$ Hand/Sideboard oddities (2 lines), and any
-// ConditionPresent$/ConditionDefined$ gate (the engine-wide Condition* gap).
+// effChangeZoneHand is the whole-hand shape (handmove1/rv2b r1): Origin$ Hand
+// with no player selector -- the resolving controller's own hand is the one
+// owner, and the controller is its own chooser (Brainstorm, Jace the Mind
+// Sculptor's [0], Sawtooth Loon, Burgeoning). The mechanics -- the ask gate
+// (the dig1/effDiscard strict-supersets rule), explicit markers plus real
+// card/script text for markerless optionality (never an assumed "may"), the
+// fx42 re-entry scoping, the R-9 stand-in, the Destination$ Library placement
+// (absent LibraryPosition$ = TOP in answer order; Shuffle$ True randomises instead)
+// and the unread-parameter list -- are handMoveOwnersWalk's, which this
+// delegates to with the one-owner, chooser==owner, no-random configuration.
+// Only a literal ChangeNum$ (or its absent default 1) reaches here: the
+// routing in effChangeZone Notes a non-literal before this is ever called.
 func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
+	count, _ := handMoveCountOf(h, c, sa)
+	handMoveOwnersWalk(h, c, sa, to, []state.PlayerID{c.Controller}, count, false, nil, false)
+}
+
+// handMoveCount is the ChangeNum$ bound one hidden-hand walk carries: either
+// a fixed bound resolved once for the whole resolution, or the per-owner
+// eligible count (ChangeNum$ NumInHand / HandSize -- Forge's "all matching
+// cards in that hand" texts: Eradicate, Extirpate, Kotose, Lost Legacy, The
+// Great Aurora).
+type handMoveCount struct {
+	fixed    int32
+	perOwner bool
+}
+
+// handMoveCountOf classifies a hidden-hand walk's ChangeNum$. Absent reads as
+// 1 (Forge's ChangeZoneEffect default). "NumInHand"/"HandSize" are the
+// per-owner spellings. A plain integer literal is that literal. An SVar-named
+// count (ChangeNum$ X / Y over an SVar: body) or a bare "X" (the paid X,
+// CR 107.3i) resolves through the ordinary count evaluator, bound to the
+// resolving context. Anything else returns false and the caller is loud (a
+// Note) rather than degrading to a silent zero-count no-op.
+func handMoveCountOf(h Host, c *Ctx, sa *cards.SA) (handMoveCount, bool) {
+	raw := strings.TrimSpace(sa.Params["ChangeNum"])
+	if raw == "" {
+		return handMoveCount{fixed: 1}, true
+	}
+	if strings.EqualFold(raw, "NumInHand") || strings.EqualFold(raw, "HandSize") {
+		return handMoveCount{perOwner: true}, true
+	}
+	if n, ok := handChangeNum(sa); ok {
+		return handMoveCount{fixed: n}, true
+	}
+	resolvable := raw == "X" || strings.HasPrefix(raw, "Count$") ||
+		strings.HasPrefix(raw, "Sacrificed$") || strings.HasPrefix(raw, "TriggerCount$")
+	if c != nil && c.SVars != nil {
+		if _, exists := c.SVars[raw]; exists {
+			resolvable = true
+		}
+	}
+	if !resolvable {
+		return handMoveCount{}, false
+	}
+	n := Num(h, c, sa, "ChangeNum", 1)
+	if n < 0 {
+		n = 0
+	}
+	return handMoveCount{fixed: n}, true
+}
+
+// effChangeZoneHandOwners implements the owner-SELECTED hidden-hand shape
+// (rv2b r2): Origin$ Hand with DefinedPlayer$-alone (Kynaios and Tiro's "each
+// player may put a land card from their hand onto the battlefield", Braids,
+// Conjurer Adept, Mindleech Ghoul) or ValidTgts$-alone naming the players
+// whose hand moves (Karn Liberated's "[+4]: Target player exiles a card from
+// their hand", Kyoki, Sanity's Eclipse). One chooser ask per hand owner,
+// chained across owners through the persisted Ctx.HandMoveTarget cursor --
+// the walk restarts on every answer, skips the owners already answered, and
+// asks the next one -- exactly effDig's per-target continuation, but with a
+// REAL ask for every later owner rather than a deterministic stand-in (the
+// hand owners are few and each ask is short). Whose hand and who answers are
+// the two selectors this shape carries: the owners come from
+// DefinedPlayer$/ValidTgts$, the chooser from Chooser$ (Forge's default is
+// the hand owner). Every shape this function cannot model emits a Note and
+// moves nothing -- the finding's floor: never a silent no-op.
+func effChangeZoneHandOwners(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
+	owners, ok := handMoveOwners(h, c, sa)
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "cannot resolve the hand owner (DefinedPlayer$ " + strings.TrimSpace(sa.Params["DefinedPlayer"]) +
+				"); no hand card moves"})
+		return
+	}
+	if len(owners) == 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "the hand owner selector names no player this engine can resolve; no hand card moves"})
+		return
+	}
+	count, ok := handMoveCountOf(h, c, sa)
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "cannot choose ChangeNum$ " + strings.TrimSpace(sa.Params["ChangeNum"]) +
+				" cards from a selected hand (a count this engine cannot evaluate)"})
+		return
+	}
+	choosers := make([]state.PlayerID, len(owners))
+	for i, owner := range owners {
+		ch, ok := handMoveChooserFor(h, c, sa, owner)
+		if !ok {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "Chooser$ " + strings.TrimSpace(sa.Params["Chooser"]) +
+					" is not a chooser this engine can resolve; no hand card moves"})
+			return
+		}
+		choosers[i] = ch
+	}
+	random := strings.EqualFold(strings.TrimSpace(sa.Params["AtRandom"]), "True")
+	handMoveOwnersWalk(h, c, sa, to, owners, count, random, func(_ Host, _ *Ctx, _ *cards.SA, owner state.PlayerID) (state.PlayerID, bool) {
+		return choosers[ownerIndex(owners, owner)], true
+	}, true)
+}
+
+// ownerIndex is the position of owner in owners (owners is small and built
+// without duplicates).
+func ownerIndex(owners []state.PlayerID, owner state.PlayerID) int {
+	for i, p := range owners {
+		if p == owner {
+			return i
+		}
+	}
+	return 0
+}
+
+// handMoveOwners resolves whose hands an owner-selected hidden-hand ChangeZone
+// moves from. DefinedPlayer$ takes precedence and resolves through the same
+// deterministic selector grammar the library search uses (searchPlayers); a
+// ValidTgts$-alone line's chosen targets are the hand owners. It fails
+// CLOSED: a player spec this build does not model returns ok=false and the
+// caller emits its loud Note -- degrading an unmodelled selector to the
+// resolving controller's hand would move (and reveal) cards from the WRONG
+// player's hidden hand, which is worse than moving none.
+func handMoveOwners(h Host, c *Ctx, sa *cards.SA) ([]state.PlayerID, bool) {
+	if spec := strings.TrimSpace(sa.Params["DefinedPlayer"]); spec != "" {
+		if _, modelled := definedSpec(h, c, spec); !modelled {
+			return nil, false
+		}
+		return searchPlayers(h, c, sa), true
+	}
+	// ValidTgts$-alone: Defined's own rule names the chosen targets.
+	owners := make([]state.PlayerID, 0, len(c.Targets))
+	seen := make(map[state.PlayerID]bool, len(c.Targets))
+	for _, t := range Defined(h, c, sa) {
+		if !t.IsPlayer {
+			// A hand-ownership selector that resolved to a card is not a shape
+			// this chooser can honour.
+			return nil, false
+		}
+		p := PlayerOf(h, c, t)
+		if int(p) >= len(h.Game().Players) || seen[p] {
+			continue
+		}
+		seen[p] = true
+		owners = append(owners, p)
+	}
+	return owners, true
+}
+
+// handMoveChooserFor resolves who answers one owner's hidden-hand ask.
+// Forge's default for the shape is the hand owner (Kynaios and Tiro's "each
+// player may put", Mindleech Ghoul's "defending player exiles a card from
+// their hand"); Chooser$ You is the caster picking out of another player's
+// hand (Kitesail Freebooter, Witness the End), Chooser$ Targeted the chosen
+// target (Karn Liberated), and the TriggeredTarget/TriggeredPlayer spellings
+// the causing event's bound player (Kheru Mind Eater, Widespread Panic). An
+// unmodelled value fails closed (ok=false) so the caller is loud rather than
+// handing the ask to a guessed seat.
+func handMoveChooserFor(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID) (state.PlayerID, bool) {
+	switch strings.TrimSpace(sa.Params["Chooser"]) {
+	case "", "Owner":
+		return owner, true
+	case "You":
+		return c.Controller, true
+	case "Targeted":
+		if len(c.Targets) > 0 {
+			return PlayerOf(h, c, c.Targets[0]), true
+		}
+		return owner, true
+	case "TriggeredTarget":
+		if c.TriggerTarget.IsPlayer {
+			return c.TriggerTarget.Player, true
+		}
+		if c.TriggerTarget.Obj != 0 {
+			if o := h.Game().Obj(c.TriggerTarget.Obj); o != nil {
+				return o.Controller, true
+			}
+		}
+		return owner, true
+	case "TriggeredPlayer":
+		if c.TriggerPlayer.IsPlayer {
+			return c.TriggerPlayer.Player, true
+		}
+		return owner, true
+	}
+	return owner, false
+}
+
+// handMoveOwnersWalk is the ONE hidden-hand mover both shapes share: for each
+// owner in order the eligible pool is that owner's hand filtered through
+// ChangeType$ (absent: the whole hand), the bound is the count (perOwner:
+// that pool's own size), and the pick is one of three shapes -- the chained
+// ask (STRICTLY more eligible cards than the bound: a real KChoose to the
+// chooser, Min 0 when the take is optional else the bound, Max the bound, the
+// answer re-entering through ResumeKind "hand_move" with ResumeTarget
+// binding it to this owner), the no-choice deterministic take (a REQUIRED
+// move with eligible <= bound: every eligible card moves, in hand order, no
+// ask), or AtRandom$'s engine-random pick (no ask: randomness, not a player
+// choice, picks). An OPTIONAL move takes the choice path whenever there is
+// at least one eligible card, including eligible <= bound: declining remains
+// a meaningful answer even when taking every card is the only nonempty pick
+// (an empty-only ChangeNum$ 0 still resolves through AskEmpty). The re-entry
+// contract (fx42 scoping): Ctx.HandMove/HandMoveDone/HandMoveTarget are captured and
+// cleared at the top of the walk; owners before the cursor completed before a
+// later owner suspended and are skipped, the cursor's owner consumes the
+// answer (moved exactly as answered, revalidated against the CURRENT hand
+// and filter), and owners after it continue the chain.
+//
+// The whole-hand shape (handmove1/rv2b r1) is the one-owner case of this
+// walk, with the chooser == the owner -- the r1 contracts (ask shape, card
+// text/explicit-marker optionality, R-9 stand-in text, zero-eligible silence,
+// library tail) are this walk's contracts, unchanged. Still unread here, each
+// a scoped-out follow-up:
+// Destination$ Hand/Sideboard oddities (2 lines), and any ConditionPresent$/
+// ConditionDefined$ gate (the engine-wide Condition* gap).
+func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []state.PlayerID,
+	count handMoveCount, random bool, chooserFor func(Host, *Ctx, *cards.SA, state.PlayerID) (state.PlayerID, bool),
+	eventPlayer bool) {
 	spec := sa.Params["ChangeType"]
+	if spec == "" {
+		spec = "Card" // the whole hand: Brainstorm, Jace's [0], Sawtooth Loon
+	}
 	g := h.Game()
-	hand := zoneOf(g, state.ZHand, c.Controller)
-	// fx42 scoping: capture and clear the answered pick BEFORE anything else,
-	// so a nested hand-move ask below cannot inherit it.
+	// fx42 scoping: capture and clear the answered pick (and the cursor that
+	// binds it to the owner that asked) BEFORE anything else, so a nested
+	// hand-move ask below cannot inherit them.
 	ans := c.HandMove
 	done := c.HandMoveDone
-	c.HandMove, c.HandMoveDone = nil, false
+	cursor := c.HandMoveTarget
+	c.HandMove, c.HandMoveDone, c.HandMoveTarget = nil, false, 0
 	withKind := sa.Params["WithCountersType"]
 	var withAmt int32
 	// Match the object path: WithCounters* has no effect away from the
@@ -312,81 +591,385 @@ func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		withAmt = withCounterAmount(h, c, sa)
 	}
 	// settleHandMove settles one chosen card: exactly the shared ChangeZone
-	// mover. Tapped$ True is deliberately NOT read here -- it is unread on
-	// the object path too, a pre-existing gap recorded as a follow-up, not
-	// something to fix on this path alone.
-	settleHandMove := func(id state.ObjID) {
-		settleChangeZoneMove(h, c, sa, id, state.ZHand, to, withKind, withAmt)
+	// mover; on the owner-SELECTED shapes the Move event also carries the
+	// hand's OWNER as its Player (a hidden-zone move of another player's
+	// card -- the same attribution the library search's move carries),
+	// while the whole-hand shape keeps its historical event shape
+	// (eventPlayer false, the r1 golden contract). settleChangeZoneMoveAs is
+	// also the one loud Tapped$ True fallback for every hand-origin mover, so
+	// concrete Defined$ objects and future hand-owner selectors cannot silently
+	// miss the unsupported entry state.
+	settleHandMove := func(id state.ObjID, owner state.PlayerID) {
+		settleChangeZoneMoveAs(h, c, sa, id, state.ZHand, to, withKind, withAmt, owner, eventPlayer)
 	}
-	if done {
-		// Re-entry: move exactly the answered cards that still sit in the
-		// controller's hand and still match the filter (a stray answer must
-		// not move an object that left the hand meanwhile), in the player's
-		// answer order.
-		for _, id := range ans {
-			if !containsID(hand, id) {
-				continue
+	for i, owner := range owners {
+		hand := zoneOf(g, state.ZHand, owner)
+		eligible := make([]state.ObjID, 0, len(hand))
+		for _, id := range hand {
+			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				eligible = append(eligible, id)
 			}
-			o := g.Obj(id)
-			if o == nil || o.Zone != state.ZHand {
-				continue
-			}
-			if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-				continue
-			}
-			settleHandMove(id)
 		}
-		return
-	}
-	n, _ := handChangeNum(sa)
-	eligible := make([]state.ObjID, 0, len(hand))
-	for _, id := range hand {
-		if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-			eligible = append(eligible, id)
+		if done && i < cursor {
+			// This owner answered on an earlier pass, before a later owner
+			// suspended the walk. Re-running it could move a second batch, so
+			// skip it (effDig's per-target continuation contract).
+			continue
 		}
-	}
-	if len(eligible) == 0 {
-		return // a legitimate no-op: nothing matching in hand.
-	}
-	if int32(len(eligible)) <= n {
-		// No choice to ask about: every eligible card moves, deterministically,
-		// in hand order. No new decision of any kind.
+		if done && i == cursor {
+			// Re-entry: move exactly the answered cards that still sit in THIS
+			// owner's hand and still match the filter (a stray answer must not
+			// move an object that left the hand meanwhile), in the player's
+			// answer order.
+			var moved []state.ObjID
+			for _, id := range ans {
+				if !containsID(hand, id) {
+					continue
+				}
+				o := g.Obj(id)
+				if o == nil || o.Zone != state.ZHand {
+					continue
+				}
+				if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+					continue
+				}
+				settleHandMove(id, owner)
+				moved = append(moved, id)
+			}
+			handLibraryTail(h, g, sa, c.Source, owner, moved, to)
+			continue
+		}
+		n := count.fixed
+		if count.perOwner {
+			n = int32(len(eligible))
+		}
+		if len(eligible) == 0 || n == 0 {
+			// No eligible card, or an empty-only ChangeNum$ 0 choice: both
+			// complete silently before optionality can matter (AskEmpty's
+			// shared contract).
+			continue
+		}
+		var moved []state.ObjID
+		if random {
+			// AtRandom$ True: the engine picks, not a player -- ChangeNum$
+			// random distinct eligible cards (corpus: always 1, mandatory),
+			// through the seeded generator, so the pick replays.
+			pool := append([]state.ObjID(nil), eligible...)
+			for k := int32(0); k < n && len(pool) > 0; k++ {
+				j := h.Rand(len(pool))
+				settleHandMove(pool[j], owner)
+				moved = append(moved, pool[j])
+				pool = append(pool[:j], pool[j+1:]...)
+			}
+			handLibraryTail(h, g, sa, c.Source, owner, moved, to)
+			continue
+		}
+		// NumInHand/HandSize means "all matching cards in that hand", an
+		// intrinsically required all-cards move (Eradicate, Extirpate, The
+		// Great Aurora). Its count semantics settle optionality even when the
+		// script has neither marker nor explanatory text; preserve an explicit
+		// Optional$ marker should a future script carry one.
+		intrinsicAll := count.perOwner && strings.TrimSpace(sa.Params["Optional"]) == "" && strings.TrimSpace(sa.Params["Mandatory"]) == ""
+		optional, optionalKnown := handTakeOptional(h, c, sa, to)
+		if intrinsicAll {
+			optional, optionalKnown = false, true
+		}
+		if !optionalKnown {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "cannot determine whether the markerless hand move is optional; no hand card moves"})
+			return
+		}
+		if int32(len(eligible)) <= n && !optional {
+			// A required move with no possible nonempty selection alternative
+			// takes every eligible card deterministically. An OPTIONAL move
+			// must still ask here: declining is a distinct, legal answer even
+			// when every nonempty answer takes all eligible cards.
+			for _, id := range eligible {
+				settleHandMove(id, owner)
+				moved = append(moved, id)
+			}
+			handLibraryTail(h, g, sa, c.Source, owner, moved, to)
+			continue
+		}
+		chooser := owner
+		if chooserFor != nil {
+			chooser, _ = chooserFor(h, c, sa, owner)
+		}
+		min := int(n)
+		if optional {
+			min = 0 // "you may put": none is a legal answer
+		}
+		d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
+			Min: min, Max: int(n), Source: c.Source,
+			ResumeKind: "hand_move", ResumeSA: sa, ResumeTarget: i,
+			Prompt: handMovePromptFor(sa, to, int(n), chooser == owner)}
 		for _, id := range eligible {
-			settleHandMove(id)
+			name := "a card"
+			if o := g.Obj(id); o != nil && o.Face() != nil {
+				name = o.Face().Name
+			}
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "hand_move", Label: name, Obj: id, Player: owner})
 		}
+		// The shared ask boundary (effects.Ask): a ChangeNum$ 0 pick over a
+		// nonempty eligible hand is Min == Max == 0 -- the empty-answer-only
+		// shape -- so it is never posted; AskEmpty resolves silently through
+		// the stand-in below, which moves zero cards.
+		oc := Ask(h, d)
+		if oc == AskAsked {
+			return // resolution suspended; the answer re-enters with Ctx.HandMove set.
+		}
+		// R-9: a host without a decision channel cannot ask a player, so it
+		// supplies the deterministic answer in the player's place -- the first
+		// ChangeNum eligible cards in the same ordered eligible list the
+		// decision's options were built from.
+		if oc == AskNoHost {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
+				Text: "moves the first matching card(s) from hand (no engine host to ask)"})
+		}
+		for k := int32(0); k < n && int(k) < len(eligible); k++ {
+			settleHandMove(eligible[k], owner)
+			moved = append(moved, eligible[k])
+		}
+		handLibraryTail(h, g, sa, c.Source, owner, moved, to)
+	}
+}
+
+// handTakeOptional reads Forge's optional-vs-mandatory markers for a
+// hidden-origin hand move. A missing marker is NOT an optional default:
+// Volrath's Dungeon is markerless but requires its target to put a card back.
+// Forge does not encode that distinction in ChangeZone's parameters, so the
+// markerless may-shapes are recognised from their card/script text (Burgeoning,
+// Oviya, Volcanic Spite); text we cannot classify fails closed and loudly at
+// the caller rather than granting an invented decline.
+func handTakeOptional(h Host, c *Ctx, sa *cards.SA, to state.Zone) (optional, known bool) {
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Mandatory"]), "True") {
+		return false, true
+	}
+	if o := strings.TrimSpace(sa.Params["Optional"]); o != "" {
+		return strings.EqualFold(o, "True") || strings.EqualFold(o, "You"), true
+	}
+	text := sa.Params["SpellDescription"]
+	if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+		text += "\n" + o.Face().Oracle
+	}
+	if strings.TrimSpace(text) == "" {
+		return false, false
+	}
+	return handMoveTextOptional(text, to)
+}
+
+// handMoveTextOptional recognises the actual English may-forms for the one
+// ChangeZone move being resolved. "Put any number" is optional even without
+// the word may. It requires the destination's action verb and a hand
+// reference IN THE SAME sentence: an unrelated "may put" elsewhere on a
+// multi-ability card is not evidence that this move may be declined.
+// Conversely, text that lacks a matching action is unknown, so the caller
+// emits its fail-closed Note.
+func handMoveTextOptional(text string, to state.Zone) (optional, known bool) {
+	text = strings.ToLower(text)
+	var action string
+	switch to {
+	case state.ZBattlefield, state.ZLibrary:
+		action = "put"
+	case state.ZExile:
+		action = "exile"
+	case state.ZGraveyard:
+		action = "discard"
+	case state.ZHand:
+		action = "return"
+	default:
+		return false, false
+	}
+	if handMovePhraseMentionsHand(text, "may "+action) ||
+		handMovePhraseFollowsHandReveal(text, "may "+action) ||
+		(to == state.ZLibrary && handMovePhraseMentionsHand(text, "may shuffle")) ||
+		(handMovePhraseMentionsHand(text, "any number") && handMovePhraseMentionsHand(text, action)) {
+		return true, true
+	}
+	if handMovePhraseSupportsRequiredMove(text, action) ||
+		handMovePhraseFollowsHandChoice(text, action) ||
+		(to == state.ZLibrary && handMovePhraseSupportsRequiredMove(text, "shuffle")) {
+		return false, true
+	}
+	return false, false
+}
+
+// handMovePhraseSupportsRequiredMove also accepts "choose" in the action's
+// sentence: a preceding RevealHand can make the later "You choose ... and
+// exile that card" sentence omit the word hand (Thought-Knot Seer), but it is
+// still an unambiguously required chooser action.
+func handMovePhraseSupportsRequiredMove(text, phrase string) bool {
+	for start := 0; ; {
+		i := strings.Index(text[start:], phrase)
+		if i < 0 {
+			return false
+		}
+		i += start
+		begin := 0
+		if j := strings.LastIndexAny(text[:i], ".;"); j >= 0 {
+			begin = j + 1
+		}
+		end := len(text)
+		if j := strings.IndexAny(text[i:], ".;"); j >= 0 {
+			end = i + j
+		}
+		if strings.Contains(text[begin:end], "hand") || strings.Contains(text[begin:end], "choose") {
+			return true
+		}
+		start = i + len(phrase)
+	}
+}
+
+// handMovePhraseFollowsHandChoice recognises the same hidden-hand sequence
+// when Forge split its selection and movement into sentences: "reveal their
+// hand. You choose a card from it. Exile that card" (Kitesail Freebooter).
+// It scans only the action sentence and its three predecessors, all of which
+// must establish the hand -> choice -> pronoun chain.
+func handMovePhraseFollowsHandChoice(text, phrase string) bool {
+	for start := 0; ; {
+		i := strings.Index(text[start:], phrase)
+		if i < 0 {
+			return false
+		}
+		i += start
+		begin := 0
+		if j := strings.LastIndexAny(text[:i], ".;"); j >= 0 {
+			begin = j + 1
+		}
+		end := len(text)
+		if j := strings.IndexAny(text[i:], ".;"); j >= 0 {
+			end = i + j
+		}
+		contextStart := begin
+		for n := 0; n < 3 && contextStart > 0; n++ {
+			prior := strings.TrimRight(text[:contextStart], ".; ")
+			if j := strings.LastIndexAny(prior, ".;"); j >= 0 {
+				contextStart = j + 1
+			} else {
+				contextStart = 0
+			}
+		}
+		context := text[contextStart:end]
+		if (strings.Contains(text[begin:end], "that card") || strings.Contains(text[begin:end], " it")) &&
+			strings.Contains(context, "hand") && strings.Contains(context, "choose") && strings.Contains(context, "it") {
+			return true
+		}
+		start = i + len(phrase)
+	}
+}
+
+// handMovePhraseFollowsHandReveal recognises the usual two-sentence hidden
+// hand wording: "Target player reveals their hand. You may put ... from it."
+// The pronoun is enough only immediately after a hand-reveal sentence, so an
+// unrelated optional action elsewhere cannot make this move optional.
+func handMovePhraseFollowsHandReveal(text, phrase string) bool {
+	for start := 0; ; {
+		i := strings.Index(text[start:], phrase)
+		if i < 0 {
+			return false
+		}
+		i += start
+		begin := 0
+		if j := strings.LastIndexAny(text[:i], ".;"); j >= 0 {
+			begin = j + 1
+		}
+		end := len(text)
+		if j := strings.IndexAny(text[i:], ".;"); j >= 0 {
+			end = i + j
+		}
+		prior := strings.TrimRight(text[:begin], ".; ")
+		if j := strings.LastIndexAny(prior, ".;"); j >= 0 {
+			prior = prior[j+1:]
+		}
+		if strings.Contains(prior, "hand") && strings.Contains(text[begin:end], "it") {
+			return true
+		}
+		start = i + len(phrase)
+	}
+}
+
+// handMovePhraseMentionsHand keeps text classification local to the sentence
+// carrying a candidate action. Forge's Oracle text uses periods for sentence
+// boundaries; semicolons also separate instructions often enough to be a safe
+// boundary here.
+func handMovePhraseMentionsHand(text, phrase string) bool {
+	for start := 0; ; {
+		i := strings.Index(text[start:], phrase)
+		if i < 0 {
+			return false
+		}
+		i += start
+		end := len(text)
+		if j := strings.IndexAny(text[i:], ".;"); j >= 0 {
+			end = i + j
+		}
+		if strings.Contains(text[i:end], "hand") {
+			return true
+		}
+		start = i + len(phrase)
+	}
+}
+
+// handMovePrompt builds the human-readable ask text, naming the top/bottom
+// placement when the destination is the library (the one destination where
+// WHERE matters to the chooser), and whose hand it is when the chooser is
+// not the hand's owner (Chooser$ You: the caster picks out of another
+// player's hand).
+func handMovePromptFor(sa *cards.SA, to state.Zone, n int, own bool) string {
+	dest := handDestPhrase(to)
+	if to == state.ZLibrary {
+		if strings.TrimSpace(sa.Params["LibraryPosition"]) == "-1" {
+			dest = "the bottom of your library"
+		} else {
+			dest = "the top of your library"
+		}
+	}
+	whose := "your hand"
+	if !own {
+		whose = "that player's hand"
+		if to == state.ZLibrary {
+			if strings.TrimSpace(sa.Params["LibraryPosition"]) == "-1" {
+				dest = "the bottom of that player's library"
+			} else {
+				dest = "the top of that player's library"
+			}
+		}
+	}
+	return "Choose " + strconv.Itoa(n) + " card(s) from " + whose + ": they move to " + dest
+}
+
+// handLibraryTail is the post-move library placement both hidden-origin
+// movers end with. A hand put-back only shuffles when its own script says
+// so (Shuffle$ True -- Slowtrip), while a library search shuffles by
+// default; the placement itself is the shared libraryOrderPlacement helper,
+// with Forge's absent-LibraryPosition$ default (TOP) applied for the hand
+// path -- Brainstorm and Jace's [0] name no LibraryPosition$ and their
+// oracle puts the cards on top.
+func handLibraryTail(h Host, _ *state.Game, sa *cards.SA, source state.ObjID, owner state.PlayerID, moved []state.ObjID, to state.Zone) {
+	if to != state.ZLibrary || len(moved) == 0 {
 		return
 	}
-	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
-		Min: int(n), Max: int(n), Source: c.Source,
-		ResumeKind: "hand_move", ResumeSA: sa,
-		Prompt: "Choose " + strconv.Itoa(int(n)) + " matching card(s) from your hand: they move to " + handDestPhrase(to)}
-	for _, id := range eligible {
-		name := "a card"
-		if o := g.Obj(id); o != nil && o.Face() != nil {
-			name = o.Face().Name
-		}
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-			Kind: "hand_move", Label: name, Obj: id, Player: c.Controller})
+	// DestinationAlternative$/LibraryPositionAlternative$ (Dream Cache's "both
+	// on top of your library or both on the bottom", 1 raw line) is a modal
+	// destination choice this engine cannot yet ask: the alternative is named
+	// in a Note and the primary destination/position is taken
+	// deterministically, so the unsupported shape is never silent.
+	if alt := strings.TrimSpace(sa.Params["DestinationAlternative"]); alt != "" || strings.TrimSpace(sa.Params["LibraryPositionAlternative"]) != "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: source, Player: owner,
+			Text: "DestinationAlternative$ " + alt + " is not a choice this engine can ask; the cards take the primary destination"})
 	}
-	// The shared ask boundary (effects.Ask): a ChangeNum$ 0 pick over a
-	// nonempty eligible hand is Min == Max == 0 -- the empty-answer-only
-	// shape -- so it is never posted; AskEmpty resolves silently through the
-	// stand-in below, which moves zero cards.
-	oc := Ask(h, d)
-	if oc == AskAsked {
-		return // resolution suspended; the answer re-enters with Ctx.HandMove set.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Shuffle"]), "True") &&
+		!strings.EqualFold(strings.TrimSpace(sa.Params["NoShuffle"]), "True") {
+		shuffleLibraryExplicit(h, sa, owner)
+		return // a shuffled library has no meaningful LibraryPosition$
 	}
-	// R-9: a host without a decision channel cannot ask a player, so it
-	// supplies the deterministic answer in the player's place -- the first
-	// ChangeNum eligible cards in the same ordered eligible list the
-	// decision's options were built from.
-	if oc == AskNoHost {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-			Text: "moves the first matching card(s) from hand (no engine host to ask)"})
+	position := strings.TrimSpace(sa.Params["LibraryPosition"])
+	if position != "" && position != "0" && position != "-1" {
+		h.Emit(events.Event{Kind: events.Note, Obj: source, Player: owner,
+			Text: "LibraryPosition$ " + position + " is not implemented; the cards go on top"})
 	}
-	for i := int32(0); i < n && i < int32(len(eligible)); i++ {
-		settleHandMove(eligible[i])
-	}
+	libraryOrderPlacement(h, owner, moved, position == "-1")
 }
 
 // handDestPhrase names the hand-move destination in the human-readable
@@ -804,13 +1387,25 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	placeLibraryObjects(h, sa, owner, moved, to)
 }
 
-// shuffleLibrary is shared by an ordinary hidden search and an already-known
-// Defined$ fetch list. Forge's NoShuffle$/Shuffle$ controls apply to both;
-// the default is a shuffle.
+// shuffleLibrary applies the default hidden-library shuffle used by searches
+// and direct Defined$ fetches. A hand put-back is different: it shuffles only
+// when its own SA explicitly says Shuffle$ True, and uses
+// shuffleLibraryExplicit below.
 func shuffleLibrary(h Host, sa *cards.SA, owner state.PlayerID) {
 	if strings.EqualFold(sa.Params["NoShuffle"], "True") || strings.EqualFold(sa.Params["Shuffle"], "False") {
 		return
 	}
+	shuffleLibraryOrder(h, owner)
+}
+
+func shuffleLibraryExplicit(h Host, sa *cards.SA, owner state.PlayerID) {
+	if strings.EqualFold(sa.Params["Shuffle"], "True") &&
+		!strings.EqualFold(sa.Params["NoShuffle"], "True") {
+		shuffleLibraryOrder(h, owner)
+	}
+}
+
+func shuffleLibraryOrder(h Host, owner state.PlayerID) {
 	order := append([]state.ObjID(nil), h.Game().Zone(state.ZLibrary, owner)...)
 	for i := len(order) - 1; i > 0; i-- {
 		j := h.Rand(i + 1)
@@ -826,6 +1421,18 @@ func placeLibraryObjects(h Host, sa *cards.SA, owner state.PlayerID, moved []sta
 	if to != state.ZLibrary || len(moved) == 0 || (position != "0" && position != "-1") {
 		return
 	}
+	libraryOrderPlacement(h, owner, moved, position == "-1")
+}
+
+// libraryOrderPlacement is the one LibraryPosition$ placement both
+// hidden-origin movers (the library search's tutor-back and the hand
+// put-back) share. The moved cards are already in the library (Move appended
+// them at the bottom, in settle order); this one Secret LibraryOrder makes
+// position exact: bottom=false puts the chosen cards on TOP in chosen order,
+// bottom=true leaves them at the bottom in that same order, with the rest of
+// the library beneath/above them respectively. Secret so the full order is
+// visible only to the library's owner (redaction rule (1)).
+func libraryOrderPlacement(h Host, owner state.PlayerID, moved []state.ObjID, bottom bool) {
 	selected := make(map[state.ObjID]bool, len(moved))
 	for _, id := range moved {
 		selected[id] = true
@@ -844,7 +1451,7 @@ func placeLibraryObjects(h Host, sa *cards.SA, owner state.PlayerID, moved []sta
 		}
 	}
 	order := make([]state.ObjID, 0, len(lib))
-	if position == "0" {
+	if !bottom {
 		order = append(order, placed...)
 		order = append(order, rest...)
 	} else {
@@ -989,6 +1596,15 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 // consultation -- a regenerated creature does not survive being sacrificed.
 // Same CR 608.2b caveat as effDestroy: only existence-and-zone is rechecked.
 func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
+	// UnlessCost$ gate: an unless-pay Sacrifice ("pay or sacrifice it", or
+	// Vexing Devil's inverted "any opponent may have it deal 4 damage to
+	// them; if a player does, sacrifice it") asks first. When the gate
+	// consumed the resolution -- an ask was posed (suspended), the answered
+	// choice spares the permanent, or every opponent declined the damage
+	// offer -- there is nothing to sacrifice and the body below must not run.
+	if sacrificeUnlessPay(h, c, sa) {
+		return
+	}
 	g := h.Game()
 	// SacValid$ narrows WHAT may be sacrificed ("Creature.nonToken",
 	// "Artifact"). With no SacValid$ at all the default is "Permanent" (any
@@ -1020,6 +1636,18 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	// this package (the sacrifice_audit test only counts its occurrence), so
 	// the absence is the conservative same-as-before no-op, not a regression.
 	remember := sa.Params["RememberSacrificed"] != ""
+	// Damage-replacement bodies carry the amount of the event they replace.
+	// The sole corpus Sacrifice body in that class is Dralnu's "sacrifice that
+	// many permanents"; consume Amount$ there without changing the broader
+	// primitive's documented one-per-player stand-in outside replacement
+	// resolution.
+	amount := int32(1)
+	if c.ReplacementAmount > 0 && sa.Params["Amount"] != "" {
+		amount = Num(h, c, sa, "Amount", 1)
+		if amount < 0 {
+			amount = 0
+		}
+	}
 	// rememberLKICapture captures the sacrificed object's LKI (before the
 	// MoveZone resets its counters) into c.Sacrificed, when the flag asks it
 	// to. Idempotent per call site; called exactly once per sacrificed object.
@@ -1061,19 +1689,56 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			if int(t.Player) >= len(g.Players) {
 				continue
 			}
-			// A sacrifice aimed at a player: that player sacrifices one
-			// matching permanent. Real Magic has the player choose; this
-			// engine does not ask (the mid-resolution ask machinery is being
-			// reworked elsewhere), so the stand-in is deterministic and
-			// replay-stable: the first permanent in battlefield order that
-			// satisfies SacValid$. "You" in the spec is the sacrificing
-			// player, since they choose from their own permanents.
+			// The multi-permanent count defaults to `amount` -- 1 for an
+			// ordinary Sacrifice line, or the damage-replacement Amount$
+			// resolved above (Dralnu, Lich Lord's "sacrifice that many
+			// permanents" DB$ ReplaceDamage body) when this call is a damage
+			// replacement's redirect. The Annihilator expansion's generated
+			// SA carries its own count in its Annihilator$ marker
+			// (cards/keywords.go) and overrides it; the two contexts never
+			// coincide in the corpus.
+			n := int(amount)
+			if ann := sa.Params["Annihilator"]; ann != "" {
+				if v, err := strconv.Atoi(ann); err == nil && v >= 0 {
+					n = v
+				}
+			}
 			ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, t.Player)...)
+			eligible := make([]state.ObjID, 0, len(ids))
 			for _, id := range ids {
 				if MatchesSpecCtx(g, spec, id, c.SpecContext(t.Player)) {
-					victims = append(victims, id)
-					break
+					eligible = append(eligible, id)
 				}
+			}
+			if n > len(eligible) {
+				n = len(eligible)
+			}
+			chosen := c.Sacrifice
+			c.Sacrifice = nil
+			// Annihilator's one defending player makes this ask resumable without
+			// changing the established multi-player Sacrifice fallback.
+			if chosen == nil && sa.Params["Annihilator"] != "" && len(eligible) > n {
+				opts := make([]decision.Option, 0, len(eligible))
+				for _, id := range eligible {
+					opts = append(opts, decision.Option{Index: len(opts), Kind: "sacrifice", Obj: id, Label: g.Obj(id).Face().Name})
+				}
+				if h.Ask(&decision.Decision{Player: t.Player, Kind: decision.KChoose, Min: n, Max: n,
+					Prompt: "Choose permanents to sacrifice", Options: opts, ResumeKind: "sacrifice", ResumeSA: sa}) {
+					return
+				}
+			}
+			if chosen == nil {
+				chosen = eligible[:n]
+			}
+			// The chosen permanents join the batched victims below, so the
+			// departure snapshot and LKI capture stay one batch (effDestroyAll's
+			// discipline) whatever the sacrifice count.
+			for _, id := range chosen {
+				o := g.Obj(id)
+				if o == nil || o.Zone != state.ZBattlefield || o.Controller != t.Player || !MatchesSpecCtx(g, spec, id, c.SpecContext(t.Player)) {
+					continue
+				}
+				victims = append(victims, id)
 			}
 			continue
 		}
@@ -1100,4 +1765,256 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "sacrificed"})
 	}
+}
+
+// sacrificeUnlessPay implements UnlessCost$/UnlessPayer$/UnlessSwitched$ on
+// Sacrifice (vexdev). Three shapes exist in the compiled corpus (155 raw
+// UnlessCost$ lines over 154 files):
+//
+//   - the damage-payment offer, UnlessCost$ DamageYou<N> — exactly two cards,
+//     Vexing Devil (N=4) and Longhorn Firebeast (N=5), both UnlessPayer$
+//     Opponent + UnlessSwitched$ True. Each alive opponent is offered, in
+//     turn order starting after the controller (CR 608.2d's one
+//     opportunity each), the choice to take N damage; the first acceptance
+//     deals it (rules' resume arm emits the Damage event — payment events
+//     belong to rules) and the sacrifice proceeds; every decline leaves the
+//     permanent in play.
+//   - plain mana UnlessCost$ ("1", "B", "G G", "1 U" — the echo /
+//     cumulative-upkeep family, UnlessPayer$ You), unswitched: the UnlessCost$
+//     resolves through rules' shared unless_pay resume arm, which pays it
+//     with payMana. A paid answer spares the permanent; a decline (or an
+//     affordable-looking answer the pool cannot cover) sacrifices.
+//   - everything else — Sac<>, Discard<>, Return<>, PayLife, PayEnergy,
+//     tapXType, ExileFromGrave, SubCounter, RemoveAnyCounter, UpkeepX,
+//     DefinedCost_*, and every exotic UnlessPayer$ selector — is
+//     deliberately NOT implemented: the gate returns false and today's
+//     behaviour stands (an unconditional first-pass sacrifice, decline
+//     semantics), so the blast radius stays inside the two shapes above.
+//
+// fx42 scoping: the answer is taken into a local and Ctx.UnlessPay cleared
+// BEFORE anything reads it, so a nested unless-pay consumer reached below
+// this gate in the same walk poses its own ask instead of inheriting the
+// answer. Sacrifice is a new top-of-walk UnlessPay consumer; the only other
+// readers are effCounter and effCopySpellAbility, neither of which reads it
+// again after its own top.
+func sacrificeUnlessPay(h Host, c *Ctx, sa *cards.SA) bool {
+	cost := strings.TrimSpace(sa.Params["UnlessCost"])
+	if cost == "" {
+		return false
+	}
+	switched := strings.EqualFold(strings.TrimSpace(sa.Params["UnlessSwitched"]), "True")
+	ans := c.UnlessPay
+	ansTarget := c.UnlessPayTarget
+	c.UnlessPay, c.UnlessPayTarget = "", 0
+
+	if n, dmg := ParseDamageUnlessCost(cost); dmg {
+		return sacrificeUnlessDamage(h, c, sa, n, switched, ans, ansTarget)
+	}
+	if switched {
+		// No corpus Sacrifice line carries a switched PLAIN-MANA cost (the
+		// four switched lines are the two DamageYou offers and two Sac<>
+		// forms, both unimplemented), so an inverted mana ask would be posed
+		// with no population to verify it against. Keep today's behaviour.
+		return false
+	}
+	if !isPlainManaCost(cost) {
+		// Unpriceable non-mana, non-damage spelling: today's behaviour
+		// (unconditional first-pass sacrifice — decline semantics). The
+		// rules-side resume arm would decline an unpriceable cost anyway;
+		// not asking at all keeps every one of those games byte-identical
+		// to the pre-gate engine instead of adding an ask nobody could pay.
+		return false
+	}
+	payer, ok := unlessPayer(h, c, sa)
+	if !ok {
+		// An exotic UnlessPayer$ selector (Remembered, Player.IsRemembered,
+		// TriggeredActivator, ...) cannot be resolved to a player here, and
+		// asking the WRONG player is worse than not asking. Today's
+		// behaviour (unconditional sacrifice) stands.
+		return false
+	}
+	switch ans {
+	case "pay":
+		// Re-entry, paid via rules' payMana: the permanent is spared — the
+		// body below must not run.
+		return true
+	case "decline":
+		// Re-entry, declined (or the pool could not cover it): the
+		// sacrifice proceeds in the body below.
+		return false
+	}
+	shown := unlessCostLabel(cost)
+	d := &decision.Decision{Player: payer, Kind: decision.KModes,
+		Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay", ResumeSA: sa,
+		Prompt: unlessSacrificePrompt(h, c, "Pay "+shown+" to keep it, or sacrifice it"),
+		Options: []decision.Option{
+			{Index: 0, Kind: "mode", Label: "Pay " + shown, Obj: c.Source, Player: payer},
+			{Index: 1, Kind: "mode", Label: "Sacrifice it", Obj: c.Source, Player: payer},
+		}}
+	if Ask(h, d) == AskAsked {
+		return true // resolution suspended; the answer re-enters this effect.
+	}
+	// Fuzz/no-engine host: the deterministic decline (R-9) — today's
+	// behaviour, the unconditional sacrifice. The Note records why the
+	// richer path did not run.
+	h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+		Text: "may pay declined (UnlessCost not asked on this host)"})
+	return false
+}
+
+// sacrificeUnlessDamage implements the DamageYou<N> offer shape. switched
+// (the only corpus population: Vexing Devil, Longhorn Firebeast) asks each
+// alive opponent in turn order; the first acceptance — signalled by rules'
+// resume arm as UnlessPay "pay" with the Damage event already emitted —
+// sacrifices the permanent; every decline leaves it in play. An unswitched
+// damage shape has no corpus population today; it is implemented for the
+// flag's boolean honesty as the echo orientation (paying the damage SPARES
+// the permanent) with the UnlessPayer$-resolved payer, and an unresolvable
+// payer keeps today's behaviour.
+func sacrificeUnlessDamage(h Host, c *Ctx, sa *cards.SA, n int, switched bool, ans string, ansTarget int) bool {
+	if !switched {
+		payer, ok := unlessPayer(h, c, sa)
+		if !ok {
+			return false // today's behaviour: unconditional sacrifice
+		}
+		switch ans {
+		case "pay":
+			// rules emitted the payer's damage on the resume arm; spared —
+			// the body below must not run.
+			return true
+		case "decline":
+			return false // the sacrifice proceeds below
+		}
+		d := &decision.Decision{Player: payer, Kind: decision.KModes,
+			Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay", ResumeSA: sa,
+			Prompt: unlessSacrificePrompt(h, c, "take "+strconv.Itoa(n)+" damage to spare it, or sacrifice it"),
+			Options: []decision.Option{
+				{Index: 0, Kind: "mode", Label: "Take " + strconv.Itoa(n) + " damage", Obj: c.Source, Player: payer},
+				{Index: 1, Kind: "mode", Label: "Sacrifice it", Obj: c.Source, Player: payer},
+			}}
+		if Ask(h, d) == AskAsked {
+			return true
+		}
+		// No-ask host: the deterministic decline — today's behaviour, the
+		// unconditional sacrifice, no damage dealt.
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "may pay declined (UnlessCost not asked on this host)"})
+		return false
+	}
+	// Switched: the offer is open to EVERY opponent, one at a time in turn
+	// order. On a decline re-entry the cursor (UnlessPayTarget, carried
+	// through the resume point) says which opponent declined; the next one
+	// is offered, and once the list is exhausted the permanent stays.
+	opp := opponentsInTurnOrder(h.Game(), c.Controller)
+	if ans == "pay" {
+		// The accepting opponent's Damage event was emitted by rules'
+		// resume arm; the sacrifice proceeds in the body below.
+		return false
+	}
+	if ans == "decline" {
+		if ansTarget+1 >= len(opp) {
+			return true // every opponent declined: the permanent stays
+		}
+		return poseSacrificeDamageOffer(h, c, sa, opp[ansTarget+1], ansTarget+1, n)
+	}
+	if len(opp) == 0 {
+		// No opponent may accept (nobody else alive): the offer is empty.
+		return true
+	}
+	if poseSacrificeDamageOffer(h, c, sa, opp[0], 0, n) {
+		return true // resolution suspended; the answer re-enters this effect.
+	}
+	// Fuzz/no-engine host: the deterministic stand-in takes option 0 (R-9,
+	// the accept arm) — the first opponent in turn order takes the damage
+	// and the sacrifice proceeds. The damage is emitted here, with the
+	// ordinary DealDamage emitter, because with no engine host there is no
+	// rules-side resume arm to pay it; in a real engine this branch is
+	// unreachable (Engine.Ask always returns true).
+	rider := newDamageRider(h, c, sa, int32(n))
+	prev := h.SetDamageSource(rider.source)
+	emitPlayerDamage(rider, opp[0])
+	h.SetDamageSource(prev)
+	return false
+}
+
+// poseSacrificeDamageOffer offers one opponent the Vexing Devil deal: take N
+// damage (and the permanent is sacrificed), or refuse (it stays). Returns
+// true when the ask was posed and the resolution suspended. ResumeTarget
+// carries the opponent's index in the deterministic turn-order list so the
+// decline cursor can continue after exactly that opponent.
+func poseSacrificeDamageOffer(h Host, c *Ctx, sa *cards.SA, p state.PlayerID, idx, n int) bool {
+	name := "the permanent"
+	if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+		name = o.Face().Name
+	}
+	d := &decision.Decision{Player: p, Kind: decision.KModes,
+		Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay", ResumeSA: sa,
+		ResumeTarget: idx,
+		Prompt:       name + " deals " + strconv.Itoa(n) + " damage to you — accept?",
+		Options: []decision.Option{
+			{Index: 0, Kind: "mode", Label: "Take " + strconv.Itoa(n) + " damage", Obj: c.Source, Player: p},
+			{Index: 1, Kind: "mode", Label: "Refuse — it stays", Obj: c.Source, Player: p},
+		}}
+	return Ask(h, d) == AskAsked
+}
+
+// ParseDamageUnlessCost reports whether an UnlessCost$ value is the
+// damage-payment offer form "DamageYou<N>" and returns N. Recognised: the
+// exact spelling DamageYou< followed by a positive integer literal and '>'.
+// Everything else — a bare SVar name, an X, another primitive's bracket
+// spellings — is not, so a future SVar-driven shape fails closed to the
+// unimplemented behaviour rather than asking the wrong offer.
+func ParseDamageUnlessCost(cost string) (int, bool) {
+	s := strings.TrimSpace(cost)
+	const head = "DamageYou<"
+	if !strings.HasPrefix(s, head) || !strings.HasSuffix(s, ">") {
+		return 0, false
+	}
+	n, err := strconv.Atoi(s[len(head) : len(s)-1])
+	if err != nil || n <= 0 {
+		return 0, false
+	}
+	return n, true
+}
+
+// unlessPayer resolves Sacrifice's UnlessPayer$ to a player. Recognised:
+// the empty default and "You" (the controller — the whole echo /
+// cumulative-upkeep population), and "Opponent" (the first alive opponent
+// in turn order). Any other selector fails closed: the caller keeps
+// today's behaviour instead of asking the wrong player.
+func unlessPayer(h Host, c *Ctx, sa *cards.SA) (state.PlayerID, bool) {
+	switch strings.TrimSpace(sa.Params["UnlessPayer"]) {
+	case "", "You":
+		return c.Controller, true
+	case "Opponent":
+		if opp := opponentsInTurnOrder(h.Game(), c.Controller); len(opp) > 0 {
+			return opp[0], true
+		}
+	}
+	return 0, false
+}
+
+// opponentsInTurnOrder lists the alive seats other than `you`, in turn
+// order starting after `you` (CR 608.2d's one opportunity each, in turn
+// order). There is no team model in this build — an opponent is any other
+// surviving seat.
+func opponentsInTurnOrder(g *state.Game, you state.PlayerID) []state.PlayerID {
+	out := make([]state.PlayerID, 0, len(g.Players))
+	for _, p := range g.AliveFrom(you) {
+		if p != you {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// unlessSacrificePrompt renders the ask prompt with the offering card's
+// name, so a seat reads "Vexing Devil — take 4 damage to spare it, or
+// sacrifice it" rather than raw Forge script.
+func unlessSacrificePrompt(h Host, c *Ctx, action string) string {
+	name := "The permanent"
+	if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+		name = o.Face().Name
+	}
+	return name + " — " + action
 }

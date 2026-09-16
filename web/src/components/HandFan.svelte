@@ -7,12 +7,18 @@
   import CardImage from './CardImage.svelte';
   import CardDetail from './CardDetail.svelte';
   import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
+  import { layoutStore } from '../lib/layoutsettings.svelte';
+  import ZoneStepper from './ZoneStepper.svelte';
 
   /**
    * HandFan is the SEATED PLAYER'S OWN hand, drawn as real card faces along
    * the bottom edge — the competitive-client layout (Arena, MTGO, XMage:
    * full-size faces in a centred row that overlaps rather than shrinks as the
-   * hand grows). It is NOT the rail's HandList (see the note in
+   * hand grows). In the resting state the fan sits half a card LOW and the
+   * board clips the lower half (the peek): a hand card shows its top 50%
+   * until it is hovered or keyboard-focused, when it rises the same half back
+   * into the board (see the .handfan/.card:hover notes in the style block).
+   * It is NOT the rail's HandList (see the note in
    * lib/cardoptions.ts' sibling, HandList.svelte), which stays text because it
    * has to fit four hands in a rail (survey #24); that reasoning is about the
    * rail and four hands, and has no purchase on the one hand you own.
@@ -101,8 +107,18 @@
   });
   const room = $derived(width > 0 ? width : measured);
   const maxW = $derived(room > 0 ? Math.max(PLAY_CARD_WIDTH, room) : Number.MAX_SAFE_INTEGER);
-  const spec: HandFanSpec = $derived({ cardWidth: PLAY_CARD_WIDTH, gap: GAP, maxWidth: maxW });
+  // The hand's card scale is a layout setting (fb-20260916T182801Z): the
+  // layout MATH takes the scaled width so step/overlap tighten against the
+  // real face size, and the CSS --card-w below takes the same multiplier so
+  // the faces and the math agree.
+  const handScale = $derived(layoutStore.scale('hand'));
+  const spec: HandFanSpec = $derived({ cardWidth: Math.round(PLAY_CARD_WIDTH * handScale), gap: GAP, maxWidth: maxW });
   const layout = $derived(handFanLayout(hand.length, spec));
+  // The dotted outline (brief decision 4): up while the hand's on-board
+  // stepper is being used and for FLASH_MS after any hand adjustment —
+  // including one made in the Game Options panel, which pulses the same
+  // shared store this track reads.
+  let handHover = $state(false);
 
   // One hover state for the whole fan, same contract as CardTile/HandList.
   const hover = new HoverCard();
@@ -163,10 +179,11 @@
 
 {#if hand.length > 0}
   <!-- The track spans the board and is the measured element; the fan row is
-       centred inside it. Both are pointer-transparent; only a face claims the
-       pointer. -->
-  <div class="handtrack" bind:this={container}>
-  <div class="handfan" style:width="{layout.rowWidth}px">
+       packed per the layout setting (data-align, default centred) inside it.
+       Both are pointer-transparent; only a face claims the pointer — and the
+       resize stepper (ZoneStepper), which re-enables the pointer on itself. -->
+  <div class="handtrack" class:zone-outline={layoutStore.flash.hand || handHover} bind:this={container}>
+  <div class="handfan" style:width="{layout.rowWidth}px" style:--hand-scale={handScale} data-peek={layoutStore.peek} data-align={layoutStore.align('hand')}>
     {#each hand as c, i (c.id)}
       <!-- A hand card is NOT a board permanent: no tapped/attacking/counters
            chrome, just the face plus the shared hover inspector. When the
@@ -256,6 +273,7 @@
       </div>
     {/each}
   </div>
+  <ZoneStepper zone="hand" label="hand" onhover={(h) => (handHover = h)} />
   </div>
 {/if}
 
@@ -275,15 +293,59 @@
     z-index: 6;
     pointer-events: none;
   }
+  /* The dotted outline (fb-20260916T182801Z): up while the hand's resize
+     stepper is being used (handHover) and for FLASH_MS after any hand
+     adjustment — including one made in the Game Options panel, which pulses
+     the same shared store this track reads. */
+  .handtrack.zone-outline {
+    outline: 2px dashed var(--ink-dim);
+    outline-offset: 3px;
+  }
   /* The fan owns the bottom edge after the fixed identity bay; together they
      make one seat strip. The track, not the cards, consumes --own-seat-w, so
-     overlap tightening still follows the actual room available. */
+     overlap tightening still follows the actual room available.
+
+     The peek (fb-20260916T024357Z-9005ad6a): the whole fan sits half a card
+     LOW so the board's own overflow:hidden (Table.svelte .board) clips the
+     lower half — the normal state exposes exactly the top 50% of every hand
+     card. The offset is relative (50% of the fan's own height, which is one
+     card height in the 63:88 ratio), so it stays exactly half whatever
+     --play-card-w becomes; no pixel constant. A card's hovered/focused
+     translateY(-50%) (below) pays exactly that half back, so its full face
+     returns inside the board on hover/focus. */
   .handfan {
     position: relative;
     margin-inline: auto;
-    --card-w: var(--play-card-w);
+    --card-w: calc(var(--play-card-w) * var(--hand-scale, 1));
     height: calc(var(--card-w) * 88 / 63);
+    transform: translateY(50%);
     pointer-events: none;
+  }
+  /* The peek modes (fb-20260916T182801Z, brief decision 2 — the three
+     readings of "slide up"):
+     - hover (the shipped default): the half-clipped rest above, raised on
+       hover/focus — the base rules, unchanged.
+     - always: full cards, never clipped — the fan rests inside the board.
+       The hover raise stays as emphasis.
+     - never: no slide-up at all — the half-clipped rest stays and the hover
+       raise is suppressed (the pointer arm below); the keyboard arm
+       (.card:has(:focus-visible)) deliberately KEEPS its raise, because a
+       keyboard user must still be able to bring the focused card into view.
+       The hover CardDetail inspector still reads a card in this mode. */
+  .handfan[data-peek='always'] {
+    transform: translateY(0);
+  }
+  .handfan[data-peek='never'] .card:hover {
+    transform: translateY(0);
+  }
+  /* The fan's own alignment (data-align, layout settings): centre is the
+     shipped margin-inline: auto; left/right pin the packed row to that edge
+     of the track. */
+  .handfan[data-align='left'] {
+    margin-inline: 0 auto;
+  }
+  .handfan[data-align='right'] {
+    margin-inline: auto 0;
   }
   /* Each face is absolutely positioned by the layout's step, then that step
      is also the negative margin so a face slides UNDER the one ahead of it
@@ -301,14 +363,40 @@
     filter: brightness(0.92);
   }
   /* The hovered / focused face lifts off the row, the competitive raise, and
-     the faces behind it go under rather than over it. */
+     the faces behind it go under rather than over it. The raise is the same
+     relative half the fan shifted down (the fan's height IS one card height),
+     so a hovered card's full face sits back inside the board — the peek is
+     repaid in full, and the card keeps the z-index that holds it above the
+     neighbours it overlaps.
+
+     The focus arm is `.card:has(:focus-visible)`, NOT `.card:focus-visible`:
+     since ui23 moved tabindex off the card onto the inner .face (so a real
+     options button is never nested inside a role=button), the element the
+     keyboard focuses is the FACE, and a :focus-visible on .card itself could
+     never match again — the old selector was dead, leaving a keyboard user
+     with neither the raise nor the outline (caught by the geometry fixture,
+     HandFan.geometry.test.ts). :has() restores the parity structurally, off
+     the element that is actually focused.
+
+     The descendant form has NO .face qualifier on purpose: a card's options
+     affordance puts MORE focusables inside the card — the direct-action
+     icon, the count badge and (once open) its menu items, all real buttons
+     beside the role="button" face. Tabbing from the face onto any of them
+     blurs the face, so a `.face:focus-visible`-qualified :has() would drop
+     the card back to its half-clipped rest while keyboard focus stayed on
+     that card's action — the raise must follow ANY focused descendant, which
+     is also what keeps the badge and its open menu usable inside the raised
+     card (caught by the geometry fixture's action-control steps). A mouse
+     click on those controls does not set :focus-visible, but the pointer arm
+     `.card:hover` already holds the card up then. The outline stays on the
+     face for the same reason as before (below). */
   .card:hover,
-  .card:focus-visible {
-    transform: translateY(-0.9rem);
+  .card:has(:focus-visible) {
+    transform: translateY(-50%);
     filter: brightness(1);
     z-index: 10;
   }
-  .card:focus-visible {
+  .face:focus-visible {
     outline: 2px solid var(--initiative);
     outline-offset: 1px;
   }
@@ -328,6 +416,22 @@
   }
   .face[data-tone=''] {
     box-shadow: none;
+  }
+  /* KEYBOARD FOCUS MUST NOT SCROLL THE BOARD. The resting face's lower half
+     lies outside the board's overflow:hidden box, and a browser reveals a
+     newly focused element by scrolling every scrollable ancestor — an
+     overflow:hidden box IS one — so Tab-focusing a hand card scrolled the
+     whole board up by the clip depth (measured 73-75px: the felt jumps, the
+     board's top row is cut). A negative scroll-margin shrinks the reveal rect
+     past the clipped half, so the face is already fully "revealed" and the
+     board never scrolls; it changes nothing else (no other scroll-into-view
+     targets a hand card — the transcript scroller is unrelated). The margin
+     is deliberately more than the exact half (44/63) so sub-pixel rounding at
+     the clip edge cannot leave a 1-2px scroll behind, and it stays relative
+     to the card width like every other offset here. Measured via
+     HandFan.geometry.test.ts. */
+  .face {
+    scroll-margin-bottom: calc(var(--card-w) * -50 / 63);
   }
   .face[data-selected] {
     box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px var(--felt-sunk);

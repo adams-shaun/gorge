@@ -19,6 +19,35 @@ func Emit(g *state.Game, l *Log, e Event) Event {
 
 // Apply folds one event into state. It must stay a pure function of (g, e):
 // no randomness, no clock, no reads outside g.
+// resolveSVarAcrossFaces resolves an Execute$ SVar name against the source
+// object's card, trying the ACTIVE face's table first and then every face in
+// index order. A one-face card behaves exactly as before (the active face
+// IS the first hit). The multi-face case is why this helper exists: an
+// Enchantment Room's alternate-face trigger (an unlocked room's "When you
+// unlock this door", CR 309.5) names an SVar that lives on Face[1]'s table,
+// which src.Face() -- the active face -- does not carry. First face whose
+// table defines the name wins: deterministic, and a name defined on several
+// faces resolves to the lowest index consistently on live play and replay.
+func resolveSVarAcrossFaces(src *state.Object, name string) *cards.SA {
+	if name == "" {
+		return nil
+	}
+	if f := src.Face(); f != nil {
+		if sa := cards.ResolveSVar(f.SVars, name); sa != nil {
+			return sa
+		}
+	}
+	if src.Card == nil {
+		return nil
+	}
+	for _, cf := range src.Card.Faces {
+		if sa := cards.ResolveSVar(cf.SVars, name); sa != nil {
+			return sa
+		}
+	}
+	return nil
+}
+
 func Apply(g *state.Game, e Event) {
 	switch e.Kind {
 	case GameStart, DecisionAsk, DecisionMade, Note, Resolve, ModeChosen:
@@ -42,6 +71,10 @@ func Apply(g *state.Game, e Event) {
 		if validPlayer(g, e.Player) {
 			if o := g.Obj(e.Obj); o != nil {
 				changeControl(g, o, e.Player)
+				// An AsLongAsControl goad ends the moment its controller
+				// condition fails; pruning here keeps a later return of
+				// control from reviving it.
+				pruneGoads(g)
 			}
 		}
 
@@ -57,6 +90,97 @@ func Apply(g *state.Game, e Event) {
 		// Player is a no-op, never a panic.
 		if validPlayer(g, e.Player) {
 			g.SetZone(state.ZLibrary, e.Player, append([]state.ObjID(nil), e.IDs...))
+		}
+
+	case ExtraTurn:
+		// One grant or consumption of an extra turn (CR 500.7). The count and
+		// the ordered pending queue are game state folded here so a log-only
+		// reconstruction holds the same pending extras the live game did; the
+		// turn structure's own consumption is the -1 form, emitted by rules'
+		// advanceStep at the exact boundary it repeats the seat instead of
+		// moving on. The queue is the ORDER the rule takes them in: grants
+		// append in creation order, the -1 consumption removes the seat's LAST
+		// entry (most recently created first, CR 500.7), so the total counts and
+		// the queue agree by construction.
+		if validPlayer(g, e.Player) && e.Amount != 0 {
+			if g.ExtraTurns == nil {
+				g.ExtraTurns = map[state.PlayerID]int{}
+			}
+			g.ExtraTurns[e.Player] += int(e.Amount)
+			if g.ExtraTurns[e.Player] < 0 {
+				g.ExtraTurns[e.Player] = 0
+			}
+			if e.Amount > 0 {
+				// Amount is a number of distinct grants, not merely the
+				// aggregate counter. Keep one queue entry per granted turn so
+				// NumTurns$ 2 (Time Stretch) is consumed twice. Text is an
+				// already encoded Event field; this canonical marker carries the
+				// Forge SkipUntap$ rider without changing Event's hash-chain
+				// schema.
+				skipUntap := e.Text == ExtraTurnSkipUntapText
+				for n := int32(0); n < e.Amount; n++ {
+					g.ExtraTurnQueue = append(g.ExtraTurnQueue, state.ExtraTurn{Player: e.Player, SkipUntap: skipUntap})
+				}
+			} else {
+				for i := len(g.ExtraTurnQueue) - 1; i >= 0; i-- {
+					if g.ExtraTurnQueue[i].Player == e.Player {
+						g.ExtraTurnQueue = append(g.ExtraTurnQueue[:i], g.ExtraTurnQueue[i+1:]...)
+						break
+					}
+				}
+			}
+		}
+		// Forge's ExtraTurnDelayedTrigger$ (Final Fortune: "At the beginning
+		// of that turn's end step, you lose the game") registers the delayed
+		// trigger HERE, at CONSUMPTION time, with the consumed turn's number
+		// as its MinTurn -- so the ordinary Mode$ Phase delayed firing skips
+		// the granting turn's own end step and fires exactly once, in the
+		// granted turn. Registration must ride the consumption, not the grant:
+		// with several extra turns pending (CR 500.7 takes them most recently
+		// created first) the turn a grant PRODUCES is not known at grant time
+		// -- it is exactly the turn about to begin when the -1 fires. Only the
+		// -1 form registers; the +grant carries no Counter at consumption. A
+		// consumption with no source object, no Execute$ name, or a source
+		// whose face lacks the SVar degrades to no registration rather than
+		// panicking (the same totality stance DelayedRegister applies).
+		if e.Amount < 0 && e.Counter != "" && e.Obj != 0 && g.Obj(e.Obj) != nil {
+			f := g.Obj(e.Obj).Face()
+			if f != nil && cards.ResolveSVar(f.SVars, e.Counter) != nil {
+				g.Delayed = append(g.Delayed, state.DelayedTrigger{
+					ID:         g.DelayedNext,
+					Phase:      state.StepEnd,
+					Source:     e.Obj,
+					Controller: e.Player,
+					Execute:    e.Counter,
+					MinTurn:    g.Turn + 1,
+				})
+				g.DelayedNext++
+			}
+		}
+
+	case DoorUnlock:
+		// CR 309.5: the unlock activation paid the locked half's mana cost as
+		// a sorcery. The flag is what makes the alternate face's rules text
+		// live (rules' trigger/static/ability scans) and what a Mode$
+		// UnlockDoor trigger matches against. Totality: an unknown object, or
+		// one already unlocked, is a no-op.
+		if o := g.Obj(e.Obj); o != nil && !o.Unlocked {
+			o.Unlocked = true
+		}
+
+	case SpeedChange:
+		// One speed increment (CR 702.163). The cap and the once-per-turn
+		// gate are the EMITTER's (rules' emit-side speed check) responsibility,
+		// so Apply folds the delta plainly; a negative or oversized delta is
+		// still clamped to [0, 4] defensively.
+		if validPlayer(g, e.Player) {
+			g.Players[e.Player].Speed += e.Amount
+			if g.Players[e.Player].Speed < 0 {
+				g.Players[e.Player].Speed = 0
+			}
+			if g.Players[e.Player].Speed > 4 {
+				g.Players[e.Player].Speed = 4
+			}
 		}
 
 	case MoveZone, Draw, PutOnStack:
@@ -95,6 +219,8 @@ func Apply(g *state.Game, e Event) {
 				o.HasPreStackEntry = false
 			}
 		}
+		// Source-dependent goads end as soon as their source leaves play.
+		pruneGoads(g)
 
 	case LifeChange:
 		if validPlayer(g, e.Player) {
@@ -185,7 +311,45 @@ func Apply(g *state.Game, e Event) {
 			for i := range g.Objs {
 				g.Objs[i].EnteredThisTurn = false
 				g.Objs[i].WasDealtDamageThisTurn = false
+				// Only default-duration goads expire at the goader's next turn.
+				g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, e.Player)
 			}
+		}
+
+	case Goad:
+		if o := g.Obj(e.Obj); o != nil {
+			if e.Amount == -1 {
+				o.Goads = nil
+				break
+			}
+			if !validPlayer(g, e.Player) {
+				break
+			}
+			duration := e.Text
+			if duration == "" {
+				duration = "UntilYourNextTurn"
+			}
+			var source state.ObjID
+			if len(e.IDs) > 0 {
+				source = e.IDs[0]
+			}
+			controller := o.Controller
+			if e.Amount > 0 && int(e.Amount-1) < len(g.Players) {
+				controller = state.PlayerID(e.Amount - 1)
+			}
+			ge := state.GoadEffect{Player: e.Player, Source: source, Controller: controller, Duration: duration}
+			for _, existing := range o.Goads {
+				if existing == ge {
+					return
+				}
+			}
+			o.Goads = append(o.Goads, ge)
+			pruneGoads(g)
+		}
+
+	case PlayerCounterChange:
+		if validPlayer(g, e.Player) {
+			g.Players[e.Player].AddCounter(e.Counter, e.Amount)
 		}
 
 	case Priority:
@@ -200,6 +364,16 @@ func Apply(g *state.Game, e Event) {
 
 	case ManaAdd:
 		if validPlayer(g, e.Player) {
+			// "S<colour>" (e.g. "SW") is a SNOW mana unit (CR 107.4h): it lands
+			// in the colour's pool slot and is tallied in Player.Snow so a {S}
+			// pip can be paid only from it. One event moves both counters, so
+			// the snow tally can never drift from the pool it parallels.
+			if len(e.Counter) == 2 && e.Counter[0] == 'S' {
+				idx := state.ManaIndex(e.Counter[1])
+				g.Players[e.Player].Pool[idx] += e.Amount
+				g.Players[e.Player].Snow[idx] += e.Amount
+				break
+			}
 			idx := state.MC
 			if e.Counter != "" {
 				idx = state.ManaIndex(e.Counter[0])
@@ -243,6 +417,7 @@ func Apply(g *state.Game, e Event) {
 		if validPlayer(g, e.Player) {
 			g.Players[e.Player].Pool = state.Mana{}
 			g.Players[e.Player].RestrictedMana = nil
+			g.Players[e.Player].Snow = state.Mana{}
 		}
 
 	case CounterChange:
@@ -617,6 +792,17 @@ func Apply(g *state.Game, e Event) {
 		// changes zones and returns as a new incarnation.
 		track := strings.HasPrefix(e.Counter, "__kwDash") ||
 			strings.HasPrefix(e.Counter, "__kwWarp")
+		// Event-matched (non-phase) registrations encode
+		// "<Mode$ value>:<trigger SVar name>" in Text. The DelayedRegister
+		// event gains no field of its own (Ruling T20-a's field-reuse
+		// precedent); a Mode$ Phase registration's Text is the Forge Phase$
+		// string, which never contains a colon, and the decode only splits on
+		// the modes rules.registerOpeningEffectTriggers emits, so every
+		// already-logged registration decodes as a phase one.
+		mode, trigger := "", ""
+		if i := strings.Index(e.Text, ":"); i > 0 && e.Text[:i] == "SpellCast" {
+			mode, trigger = "SpellCast", e.Text[i+1:]
+		}
 		g.Delayed = append(g.Delayed, state.DelayedTrigger{
 			ID:                g.DelayedNext,
 			Phase:             e.Step,
@@ -624,8 +810,11 @@ func Apply(g *state.Game, e Event) {
 			Controller:        e.Player,
 			Execute:           e.Counter,
 			Remembered:        rememberedFrom(e.IDs),
+			MinTurn:           e.Amount,
 			SourceIncarnation: src.Incarnation,
 			TrackSource:       track,
+			EventMode:         mode,
+			Trigger:           trigger,
 		})
 		g.DelayedNext++
 
@@ -664,11 +853,10 @@ func Apply(g *state.Game, e Event) {
 			src.Incarnation != registration.SourceIncarnation {
 			break
 		}
-		f := src.Face()
-		if f == nil {
+		if src.Face() == nil {
 			break
 		}
-		sa := cards.ResolveSVar(f.SVars, e.Counter)
+		sa := resolveSVarAcrossFaces(src, e.Counter)
 		if sa == nil {
 			break
 		}
@@ -856,6 +1044,14 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 					o.AddCounter("LOYALTY", int32(n))
 				}
 			}
+			// CR 702.151a (Sagas, kw:Chapter): "As this Saga enters ... add a
+			// lore counter" -- the same every-entry-site grant the loyalty
+			// half above is. The chapter-I trigger queues rules-side off this
+			// Move event (rules' chapter check reads the live counter, which
+			// by then includes this grant).
+			if _, names := cards.SagaChapters(o.Face()); len(names) > 0 {
+				o.AddCounter("LORE", 1)
+			}
 		}
 	default:
 		// Leaving the battlefield or the stack resets everything that only
@@ -951,6 +1147,47 @@ func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 // validPlayer reports whether p indexes an existing seat.
 func validPlayer(g *state.Game, p state.PlayerID) bool {
 	return int(p) < len(g.Players)
+}
+
+// expireTurnGoads drops only default-duration relationships made by p.
+func expireTurnGoads(in []state.GoadEffect, p state.PlayerID) []state.GoadEffect {
+	out := in[:0]
+	for _, ge := range in {
+		if ge.Player == p && (ge.Duration == "" || ge.Duration == "UntilYourNextTurn") {
+			continue
+		}
+		out = append(out, ge)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// pruneGoads enforces source/control conditions from replayable state.
+func pruneGoads(g *state.Game) {
+	for i := range g.Objs {
+		o := &g.Objs[i]
+		out := o.Goads[:0]
+		for _, ge := range o.Goads {
+			active := o.Zone == state.ZBattlefield
+			switch ge.Duration {
+			case "AsLongAsInPlay":
+				src := g.Obj(ge.Source)
+				active = active && src != nil && src.Zone == state.ZBattlefield
+			case "AsLongAsControl":
+				active = o.Zone == state.ZBattlefield && o.Controller == ge.Controller
+			}
+			if active {
+				out = append(out, ge)
+			}
+		}
+		if len(out) == 0 {
+			o.Goads = nil
+		} else {
+			o.Goads = out
+		}
+	}
 }
 
 // zoneOwner picks whose zone list an object belongs to: the battlefield and the

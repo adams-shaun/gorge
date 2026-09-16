@@ -93,6 +93,9 @@ type cacheFile struct {
 // exactly the way a v1-vs-Tokens cache would. Version 4 carries Card's
 // AlternateMode, which name-characteristic matching needs to distinguish a
 // split card from a transforming double-faced card away from the battlefield.
+// Keyword expansions are also re-linked after decoding below, so a newly
+// added idempotent expansion does not force every worktree to rewrite its
+// corpus.
 const cacheVersion = 4
 
 func (r *Registry) Save(path string) error {
@@ -156,7 +159,22 @@ func LoadRegistry(path string) (*Registry, error) {
 		// gob construction route must end with the same derived values as the
 		// ParseBytes route.
 		for _, f := range c.Faces {
-			refreshKeywordExpansions(f)
+			// derive FIRST: a decoded face's cmc is zero, and link's keyword
+			// expansion reads it — Transmute's search spec is
+			// Card.cmcEQ<Cmc()>, so relinking before deriving would expand a
+			// reusable cache as cmcEQ0 instead of the source's mana value.
+			// The ParseBytes route has the same order (parse derives, then
+			// compileScripts links) for the same reason. derive is a pure
+			// function of printed fields, so the second derive after link is
+			// a no-op for them; it stays so both routes end with the same
+			// derived values link's added abilities could someday depend on.
+			f.derive()
+			// Re-link decoded faces so a newly added idempotent keyword expansion
+			// is present even when this worktree intentionally reuses the shared,
+			// read-only corpus cache. This covers the cumulative-upkeep keyword
+			// expansions this task added too: link re-runs expandKeywords and
+			// re-resolves every trigger's Execute$ SVar.
+			f.link(c.Path)
 			f.derive()
 		}
 		r.Add(c)
@@ -165,26 +183,16 @@ func LoadRegistry(path string) (*Registry, error) {
 		r.Tokens = cf.Tokens
 		for _, c := range r.Tokens {
 			for _, f := range c.Faces {
-				refreshKeywordExpansions(f)
+				// The same derive-before-link order as the cards loop above:
+				// token scripts share compileScripts' parse/link pipeline, so a
+				// stale token cache relinks its keyword expansions too.
+				f.derive()
+				f.link(c.Path)
 				f.derive()
 			}
 		}
 	}
 	return r, nil
-}
-
-// refreshKeywordExpansions applies newly added idempotent keyword expansions
-// to a decoded cache without forcing users to rewrite the gitignored corpus
-// cache merely because the Go implementation learned another keyword. Existing
-// cached expansions carry KeywordLine and are skipped. Any newly appended
-// trigger is linked from its generated Execute$ SVar here; cumulative upkeep
-// is the current such migration and touches only its roughly eighty faces.
-func refreshKeywordExpansions(f *Face) {
-	before := len(f.Triggers)
-	f.expandKeywords()
-	for i := before; i < len(f.Triggers); i++ {
-		f.Triggers[i].Effect = ResolveSVar(f.SVars, f.Triggers[i].Params["Execute"])
-	}
 }
 
 // CompileDir walks a cardsfolder tree, parses, links and applies intrinsics.

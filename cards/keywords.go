@@ -102,6 +102,22 @@ func (f *Face) expandKeywords() {
 		case "Prowess":
 			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.nonCreature | ValidActivatingPlayer$ You | TriggerDescription$ Prowess",
 				"DB$ Pump | Defined$ Self | NumAtt$ +1 | NumDef$ +1", has)
+		case "Annihilator":
+			// CR 702.86: each time this creature attacks, its defending
+			// player sacrifices the stated number of permanents. The count
+			// rides the Annihilator$ marker itself rather than Amount$: the
+			// generated trigger is this repo's own shape (no raw corpus card
+			// carries an Annihilator$ param), and keeping Amount$ off the
+			// expansion leaves api:Sacrifice.Amount genuinely unread for the
+			// ordinary Sacrifice lines the parameter census still labels.
+			f.addKeywordTrigger(head, k, "Mode$ Attacks | ValidCard$ Card.Self | TriggerDescription$ Annihilator",
+				"DB$ Sacrifice | Defined$ TriggeredDefendingPlayer | SacValid$ Permanent | Annihilator$ "+param, has)
+		case "Ward":
+			// Ward is a becomes-target trigger. Ward$ lets the matcher exclude
+			// the permanent's controller; the effect counters the targeting
+			// spell or ability unless that player pays the printed cost.
+			f.addKeywordTrigger(head, k, "Mode$ BecomesTarget | ValidTarget$ Card.Self | Ward$ True | TriggerDescription$ Ward",
+				"DB$ Ward | UnlessCost$ "+param, has)
 		case "Storm":
 			f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Storm",
 				"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$ThisTurnCast/Minus1 | MayChooseTarget$ True", has)
@@ -136,6 +152,28 @@ func (f *Face) expandKeywords() {
 			// later Equip task's job, not this one's (Ledger).
 			cost, _, _ := strings.Cut(param, ":")
 			sa, _ := parseSA("", "AB$ Attach | Cost$ "+cost+" | ValidTgts$ Creature.YouCtrl | TgtPrompt$ Select target creature you control | SorcerySpeed$ True | Keyword$ Equip | SpellDescription$ Equip "+cost)
+			if sa != nil {
+				sa.Params["KeywordLine"] = k
+				f.Abilities = append(f.Abilities, sa)
+			}
+		case "Transmute":
+			if has("A", k) {
+				continue
+			}
+			// CR 702.53: transmute is a sorcery-speed hand activation. The
+			// searched card has the source card's printed mana value.
+			cost := strings.TrimSpace(param)
+			sa, _ := parseSA("", "AB$ ChangeZone | Cost$ "+cost+" Discard<1/CARDNAME> | ActivationZone$ Hand | SorcerySpeed$ True | Origin$ Library | Destination$ Hand | ChangeType$ Card.cmcEQ"+strconv.Itoa(int(f.Cmc()))+" | ChangeNum$ 1 | Keyword$ Transmute | SpellDescription$ Transmute "+cost)
+			if sa != nil {
+				sa.Params["KeywordLine"] = k
+				f.Abilities = append(f.Abilities, sa)
+			}
+		case "Cycling":
+			if has("A", k) {
+				continue
+			}
+			cost := strings.TrimSpace(param)
+			sa, _ := parseSA("", "AB$ Draw | Cost$ "+cost+" Discard<1/CARDNAME> | ActivationZone$ Hand | NumCards$ 1 | Keyword$ Cycling | SpellDescription$ Cycling "+cost)
 			if sa != nil {
 				sa.Params["KeywordLine"] = k
 				f.Abilities = append(f.Abilities, sa)

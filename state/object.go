@@ -16,6 +16,17 @@ type Target struct {
 	IsPlayer bool
 }
 
+// GoadEffect is one independently-lived CR 701.38 goad relationship.
+// Source and Duration preserve the condition Forge attached to the effect;
+// Controller is the target creature's controller when an AsLongAsControl
+// relationship began. All fields are reconstructed by events.Apply.
+type GoadEffect struct {
+	Player     PlayerID
+	Source     ObjID
+	Controller PlayerID
+	Duration   string
+}
+
 // SacrificedInfo is the last-known-information snapshot of an object at the
 // instant it was sacrificed, captured before the sacrifice's zone change
 // (CR 608.2g "last known information"): the object is in the graveyard by
@@ -37,7 +48,7 @@ type SacrificedInfo struct {
 // (a spell can be both kicked and cast via flashback), so they are
 // OR-combined into one byte rather than modeled as separate bools.
 const (
-	FlagKicked uint8 = 1 << iota // CR 601.2b: paid an optional additional cost
+	FlagKicked uint16 = 1 << iota // CR 601.2b: paid an optional additional cost
 	FlagSurged
 	FlagFlashback
 	FlagMiracle
@@ -48,6 +59,11 @@ const (
 	FlagDashed     // dash: paid the dash cost (CR 702)
 	FlagOverloaded // overload cast (CR 702)
 	FlagWarped     // warp cast: exile at next end step, may recast from exile (CR 702)
+	// FlagBuyback returns the resolving spell to its owner's hand.
+	FlagBuyback
+	// FlagHarmonize and FlagSuspend exile the spell after it resolves.
+	FlagHarmonize
+	FlagSuspend
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -111,6 +127,10 @@ type Object struct {
 	EncoreAttackTurn     int32
 	EncoreAttackDefender PlayerID
 
+	// Goads holds CR 701.38 attack requirements. Relationships can have the
+	// default next-turn lifetime, be permanent, or depend on source/control.
+	Goads []GoadEffect
+
 	// Timestamp orders continuous effects. Assigned from Game.Clock whenever
 	// the object enters the battlefield.
 	Timestamp uint32
@@ -121,7 +141,7 @@ type Object struct {
 	// permanent) -- events.Move resets both when the object leaves the
 	// battlefield.
 	X         int32
-	CastFlags uint8
+	CastFlags uint16
 
 	// Chosen* record answers to "as this enters/resolves, choose ..."
 	// effects: a card name, a creature type, a number. Reset alongside X/
@@ -164,6 +184,14 @@ type Object struct {
 	// or the battlefield (CR 111.7 tokens, CR 707.10 copies). See Ephemeral.
 	IsToken bool
 	IsCopy  bool
+
+	// Unlocked marks one face of an Enchantment Room (CR 309): the door the
+	// room was CAST as is unlocked from entry; DoorUnlock (the unlock
+	// activation) flips this when the OTHER half's door is paid for. A
+	// room's locked half's abilities are inactive; after the unlock both
+	// halves' rules text is live (rules-side scans consult this field). Only
+	// events.Apply writes it, so a replay rebuilds it.
+	Unlocked bool
 }
 
 func (o *Object) Face() *cards.Face {
@@ -214,7 +242,7 @@ func (o *Object) AddCounter(kind string, n int32) {
 }
 
 // CloneDeep returns a value copy of o whose slice fields (Counters, Targets,
-// Remembered, BlockedBy, Chosen, ChosenModes) are independently backed, so mutating
+// Remembered, BlockedBy, Chosen, Goads, ChosenModes) are independently backed, so mutating
 // the copy's slices can never alias o's -- everything else (Card, a shared
 // pointer into the immutable compiled corpus, plus every scalar field) is
 // correct as a plain value copy. This is the one definition of "deep-copy an
@@ -231,6 +259,7 @@ func (o *Object) CloneDeep() Object {
 	c.Remembered = append([]Target(nil), o.Remembered...)
 	c.BlockedBy = append([]ObjID(nil), o.BlockedBy...)
 	c.Chosen = append([]Target(nil), o.Chosen...)
+	c.Goads = append([]GoadEffect(nil), o.Goads...)
 	c.ChosenModes = append([]string(nil), o.ChosenModes...)
 	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
 	return c

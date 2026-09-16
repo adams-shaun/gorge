@@ -141,9 +141,14 @@ func TestWanShiTongEtbTriggerReadsThePaidX(t *testing.T) {
 	if o := e.G.Obj(id); o.Zone != state.ZBattlefield || o.Counter("P1P1") != 2 {
 		t.Fatalf("Wan Shi Tong zone=%s counters=%d, want battlefield/2", o.Zone, o.Counter("P1P1"))
 	}
-	// Cast -1, draw half X = +1: net 0.
-	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore {
-		t.Fatalf("hand %d, want %d (cast one, drew X/2 = 1)", got, handBefore)
+	// handBefore is the POST-CAST hand (the cast's -1 already happened), so
+	// the ETB draw of half X rounded down (X=2 -> 1 card) shows as exactly
+	// +1. The SVar$X/HalfDown indirection resolves the paid X through the
+	// card's own SVar table (effects/count.go's SVar$ branch), so the draw
+	// actually happens -- an engine where that body degraded to zero would
+	// leave the hand at handBefore and this assertion catches it.
+	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+1 {
+		t.Fatalf("hand %d, want %d (cast one, drew X/2 = 1)", got, handBefore+1)
 	}
 	replayCheck(t, e, cfg)
 }

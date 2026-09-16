@@ -3,11 +3,12 @@ package rules
 import (
 	"math"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
 
-	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -23,9 +24,20 @@ type CostPart struct {
 	Zone state.Zone
 }
 
-// ManaPair is one two-colour hybrid symbol: both A and B are WUBRG letters,
+// ManaPair is one two-face hybrid symbol: each face is a WUBRGC mana symbol,
 // and either one spells the pip (CR 107.4e).
 type ManaPair struct{ A, B byte }
+
+// Twobrid is one monocolour hybrid symbol (CR 107.4e, Forge's `2B` shape):
+// it may be paid with Generic generic mana OR with one mana of colour Col.
+type Twobrid struct {
+	Generic int32
+	Col     byte
+}
+
+// HybridPhyrexian is one three-part symbol (Forge's `GWP` shape, CR 107.4f):
+// it may be paid with one mana of colour A, one of colour B, or two life.
+type HybridPhyrexian struct{ A, B byte }
 
 // Cost is a parsed cost. X counts how many "X" symbols appeared (almost
 // always 0 or 1; WithX folds a chosen value into Generic once per symbol).
@@ -48,23 +60,41 @@ type ManaPair struct{ A, B byte }
 // it; rule/cast.go's payment stage resolves the announced choice and spends
 // against both the pool and the payer's life (see Cost.payable).
 type Cost struct {
-	Colored      state.Mana
-	Generic      int32
-	Life         int32
-	X            int
-	Hybrid       []ManaPair
-	Phyrexian    []byte
-	Tap          bool
-	Sac          []CostPart
-	Discard      []CostPart
-	SubCounter   []CostPart
-	AddCounter   []CostPart
-	Exile        []CostPart
-	Reveal       []CostPart
-	Behold       []CostPart
-	TapPermanent []CostPart
-	Blight       []CostPart
-	Forage       bool
+	Colored         state.Mana
+	Generic         int32
+	Life            int32
+	X               int
+	Hybrid          []ManaPair
+	Phyrexian       []byte
+	Twobrid         []Twobrid
+	HybridPhyrexian []HybridPhyrexian
+	Snow            int32
+	Tap             bool
+	Sac             []CostPart
+	Discard         []CostPart
+	SubCounter      []CostPart
+	AddCounter      []CostPart
+	Exile           []CostPart
+	Reveal          []CostPart
+	Behold          []CostPart
+	TapPermanent    []CostPart
+	Blight          []CostPart
+	Forage          bool
+
+	// Unknown lists the HEAD (the text before any "<...>") of every cost
+	// token this parse did not model, in order of appearance, deduplicated.
+	// A token lands here exactly when ParseCost could not give it real
+	// semantics and priced it as one generic mana (or one life-equivalent
+	// of nothing) instead: the final unrecognised-symbol fallback AND the
+	// malformed/out-of-range instances of otherwise-recognised heads (an
+	// unparseable or int-overflow "PayLife<...>", "Sac<...>",
+	// "AddCounter<...>" value — the head is known, that INSTANCE is not
+	// modelled). Payment behaviour is unchanged by this field: it is a pure
+	// report, read by the parameter census (rules/paramcensus_test.go) so
+	// the repo-deck ratchet can name cost tokens a card's script carries
+	// that the engine silently substitutes generic mana for (e.g. Chthonian
+	// Nightmare's "PayEnergy<X> ... Return<1/CARDNAME>").
+	Unknown []string
 }
 
 // nonManaCost matches Sac<N/Spec>, Discard<N/Spec>, and SubCounter<N/Kind> tokens. Forge
@@ -123,6 +153,11 @@ func ParseCost(s string) Cost {
 			c.Tap = true
 		case sym == "X":
 			c.X++
+		case sym == "S":
+			// CR 107.4h: snow mana. One pip, payable only by a mana a snow
+			// permanent produced (rules/mana.go's resolveMana pays it from the
+			// parallel snow tally, never plain pool mana).
+			c.Snow++
 		case sym == "Forage":
 			c.Forage = true
 		case len(sym) == 1 && strings.ContainsAny(sym, "WUBRGC"):
@@ -131,11 +166,19 @@ func ParseCost(s string) Cost {
 			c.Hybrid = append(c.Hybrid, hybridPair(sym))
 		case isPhyrexian(sym):
 			c.Phyrexian = append(c.Phyrexian, phyrexianColor(sym))
+		case isTwobrid(sym):
+			c.Twobrid = append(c.Twobrid, twobridPair(sym))
+		case isHybridPhyrexian(sym):
+			c.HybridPhyrexian = append(c.HybridPhyrexian, hybridPhyrexianPair(sym))
 		default:
 			if m := choiceCost.FindStringSubmatch(sym); m != nil {
 				n, err := strconv.ParseInt(m[2], 10, 64)
 				if err != nil || n <= 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
 					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
 					continue
 				}
 				part := CostPart{N: int32(n), Spec: strings.ReplaceAll(m[3], ";", ",")}
@@ -152,7 +195,11 @@ func ParseCost(s string) Cost {
 			if m := blightCost.FindStringSubmatch(sym); m != nil {
 				n, err := strconv.ParseInt(m[1], 10, 64)
 				if err != nil || n <= 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
 					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
 					continue
 				}
 				c.Blight = append(c.Blight, CostPart{N: int32(n), Spec: "Creature.YouCtrl"})
@@ -162,8 +209,10 @@ func ParseCost(s string) Cost {
 				n, err := strconv.ParseInt(m[1], 10, 64)
 				if err != nil || n < 0 || n > int64(math.MaxInt32) {
 					// Keep an out-of-range PayLife token on the same safe fallback
-					// as every other malformed cost token.
+					// as every other malformed cost token -- and REPORT it: the
+					// head is recognised, this instance is not modelled.
 					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
 					continue
 				}
 				c.Life = addClampedGeneric(c.Life, n)
@@ -174,8 +223,10 @@ func ParseCost(s string) Cost {
 				if err != nil || n < 0 || n > int64(math.MaxInt32) {
 					// A malformed Sac/Discard/SubCounter token degrades the same way
 					// an unrecognised mana token does: one generic mana,
-					// never a hard parse error.
+					// never a hard parse error -- and is reported (the head is
+					// recognised, this instance is not modelled).
 					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
 					continue
 				}
 				// Fold Forge's ";" OR alternation into the "," MatchesSpec
@@ -195,7 +246,11 @@ func ParseCost(s string) Cost {
 			if m := exileCost.FindStringSubmatch(sym); m != nil {
 				n, err := strconv.ParseInt(m[2], 10, 64)
 				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
 					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
 					continue
 				}
 				spec := strings.ReplaceAll(m[3], ";", ",")
@@ -210,8 +265,9 @@ func ParseCost(s string) Cost {
 				n, err := strconv.ParseInt(m[1], 10, 64)
 				if err != nil || n < 0 || n > int64(math.MaxInt32) {
 					// Same degrade-to-one-generic fallback as the other
-					// malformed tokens.
+					// malformed tokens -- and reported for the same reason.
 					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
 					continue
 				}
 				spec := strings.ReplaceAll(m[2], ";", ",")
@@ -225,11 +281,27 @@ func ParseCost(s string) Cost {
 				continue
 			}
 			// An unrecognised symbol (including a malformed hybrid/Phyrexian
-			// token) degrades to one generic mana, never a hard parse error.
+			// token) degrades to one generic mana, never a hard parse error -- and
+			// is REPORTED as unmodelled (Cost.Unknown), so the parameter census
+			// can name it instead of the substitution staying silent.
+			c.reportUnknown(sym)
 			c.Generic = addClampedGeneric(c.Generic, 1)
 		}
 	}
 	return c
+}
+
+// reportUnknown records the head of one degraded cost token in Unknown,
+// in order, deduplicated. Used by the final unrecognised-symbol fallback AND
+// by the malformed-instance branches of the recognised heads: both shapes
+// priced one generic without real semantics, so both are unmodelled.
+func (c *Cost) reportUnknown(sym string) {
+	if i := strings.IndexByte(sym, '<'); i > 0 {
+		sym = sym[:i]
+	}
+	if !slices.Contains(c.Unknown, sym) {
+		c.Unknown = append(c.Unknown, sym)
+	}
 }
 
 // splitCostTokens splits a cost string on whitespace, but keeps each <...>
@@ -282,9 +354,9 @@ func addClampedGeneric(v int32, n int64) int32 {
 // isHybrid reports whether sym is a two-colour hybrid pip: either the
 // slash form ("W/U") or the concatenated form ("GW", "WB"). A second
 // character of 'P' is Phyrexian, not hybrid, and is handled by
-// isPhyrexian. Both letters must be distinct WUBRG colours (a doubled
+// isPhyrexian. Both faces must be distinct WUBRGC mana symbols (a doubled
 // letter, "WW", is not a hybrid — it is a script typo and degrades to
-// generic).
+// generic). This includes colourless hybrid, such as {C/W}.
 func isHybrid(sym string) bool {
 	var a, b byte
 	if len(sym) == 3 && sym[1] == '/' {
@@ -294,7 +366,7 @@ func isHybrid(sym string) bool {
 	} else {
 		return false
 	}
-	return a != b && strings.ContainsRune("WUBRG", rune(a)) && strings.ContainsRune("WUBRG", rune(b))
+	return a != b && strings.ContainsRune("WUBRGC", rune(a)) && strings.ContainsRune("WUBRGC", rune(b))
 }
 
 // hybridPair normalises a hybrid symbol to its two colours as a ManaPair.
@@ -325,8 +397,127 @@ func phyrexianColor(sym string) byte {
 	return sym[0]
 }
 
+// isTwobrid reports whether sym is a monocolour hybrid pip (CR 107.4e):
+// a positive number followed by one colour — Forge's concatenated `2B`, or
+// the slash form `2/B`. It may be paid with that many generic mana OR one
+// mana of the colour. A `2/C` (the colourless-hybrid shape the client
+// knows) parses the same way; the corpus carries none (measured), so the
+// shape is parse-for-parity, not corpus-driven.
+func isTwobrid(sym string) bool {
+	a, b, ok := splitHybridSlash(sym)
+	if ok {
+		return isDigitRun(a) && len(b) == 1 && strings.ContainsRune("WUBRGC", rune(b[0]))
+	}
+	// Concatenated form: leading digits then exactly one colour letter.
+	i := 0
+	for i < len(sym) && sym[i] >= '0' && sym[i] <= '9' {
+		i++
+	}
+	return i > 0 && i == len(sym)-1 && strings.ContainsRune("WUBRGC", rune(sym[i]))
+}
+
+// twobridPair normalises a monocolour hybrid symbol. sym is guaranteed by
+// isTwobrid.
+func twobridPair(sym string) Twobrid {
+	if a, b, ok := splitHybridSlash(sym); ok {
+		n, _ := strconv.ParseInt(a, 10, 64)
+		if n < 0 {
+			n = 0
+		}
+		if n > int64(math.MaxInt32) {
+			n = int64(math.MaxInt32)
+		}
+		return Twobrid{Generic: int32(n), Col: b[0]}
+	}
+	i := 0
+	for i < len(sym) && sym[i] >= '0' && sym[i] <= '9' {
+		i++
+	}
+	n, _ := strconv.ParseInt(sym[:i], 10, 64)
+	if n > int64(math.MaxInt32) {
+		n = int64(math.MaxInt32)
+	}
+	return Twobrid{Generic: int32(n), Col: sym[i]}
+}
+
+// isHybridPhyrexian reports whether sym is a three-part hybrid-Phyrexian
+// pip (CR 107.4f): two distinct WUBRG colours and P. Forge writes the usual
+// `GWP`/`G/W/P` spelling and also the P-first `PRG` spelling on Lukka, Bound
+// to Ruin; both mean a choice of either colour or two life. Measured corpus
+// population: 4 ManaCost files (Ajani Sleeper Agent, Lukka Bound to Ruin,
+// Nahiri the Unforgiving, Tamiyo Compleated Sage).
+func isHybridPhyrexian(sym string) bool {
+	if a, b, ok := splitHybridSlash(sym); ok {
+		if len(a) != 1 || len(b) != 3 || b[1] != '/' {
+			return false
+		}
+		if a[0] == 'P' {
+			return b[0] != b[2] && strings.ContainsRune("WUBRG", rune(b[0])) &&
+				strings.ContainsRune("WUBRG", rune(b[2]))
+		}
+		return b[2] == 'P' && a[0] != b[0] && strings.ContainsRune("WUBRG", rune(a[0])) &&
+			strings.ContainsRune("WUBRG", rune(b[0]))
+	}
+	if len(sym) != 3 {
+		return false
+	}
+	if sym[0] == 'P' {
+		return sym[1] != sym[2] && strings.ContainsRune("WUBRG", rune(sym[1])) &&
+			strings.ContainsRune("WUBRG", rune(sym[2]))
+	}
+	return sym[2] == 'P' && sym[0] != sym[1] && strings.ContainsRune("WUBRG", rune(sym[0])) &&
+		strings.ContainsRune("WUBRG", rune(sym[1]))
+}
+
+// hybridPhyrexianPair normalises a hybrid-Phyrexian symbol to its two
+// colours. sym is guaranteed by isHybridPhyrexian.
+func hybridPhyrexianPair(sym string) HybridPhyrexian {
+	if a, b, ok := splitHybridSlash(sym); ok {
+		if a[0] == 'P' {
+			return HybridPhyrexian{A: b[0], B: b[2]}
+		}
+		return HybridPhyrexian{A: a[0], B: b[0]}
+	}
+	if sym[0] == 'P' {
+		return HybridPhyrexian{A: sym[1], B: sym[2]}
+	}
+	return HybridPhyrexian{A: sym[0], B: sym[1]}
+}
+
+// splitHybridSlash reports whether sym is an `a/b` slash form and splits it.
+// The b side may itself carry slashes (`G/W/P`), so it returns the whole
+// remainder after the first slash.
+func splitHybridSlash(sym string) (a, b string, ok bool) {
+	i := strings.IndexByte(sym, '/')
+	if i <= 0 || i == len(sym)-1 {
+		return "", "", false
+	}
+	return sym[:i], sym[i+1:], true
+}
+
+// isDigitRun reports whether s is a non-empty run of decimal digits.
+func isDigitRun(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 func (c Cost) CMC() int32 {
-	return c.Colored.Total() + c.Generic + int32(len(c.Hybrid)) + int32(len(c.Phyrexian))
+	// A monocolour hybrid's mana value is its generic face, not one: {2/W}
+	// has mana value 2 (CR 202.4b). This matters to SetCost/MinMana floors
+	// before its payment face is announced.
+	twobrid := int32(0)
+	for _, t := range c.Twobrid {
+		twobrid = addClampedGeneric(twobrid, int64(t.Generic))
+	}
+	return c.Colored.Total() + c.Generic + int32(len(c.Hybrid)) + int32(len(c.Phyrexian)) +
+		twobrid + int32(len(c.HybridPhyrexian)) + c.Snow
 }
 
 // WithX folds a chosen X value into Generic, once per X symbol the cost
@@ -355,6 +546,13 @@ func (c Cost) Plus(d Cost) Cost {
 	if len(d.Phyrexian) > 0 {
 		c.Phyrexian = append(append([]byte(nil), c.Phyrexian...), d.Phyrexian...)
 	}
+	if len(d.Twobrid) > 0 {
+		c.Twobrid = append(append([]Twobrid(nil), c.Twobrid...), d.Twobrid...)
+	}
+	if len(d.HybridPhyrexian) > 0 {
+		c.HybridPhyrexian = append(append([]HybridPhyrexian(nil), c.HybridPhyrexian...), d.HybridPhyrexian...)
+	}
+	c.Snow = addClampedGeneric(c.Snow, int64(d.Snow))
 	if len(d.Sac) > 0 {
 		c.Sac = append(append([]CostPart(nil), c.Sac...), d.Sac...)
 	}
@@ -461,22 +659,97 @@ func (e *Engine) rawBaseCost(p state.PlayerID, id state.ObjID) Cost {
 // conservative (a spell offering itself is withheld only when even X=0 is
 // unpayable) while the actual charge (manaToPay) applies the modifiers after
 // X is folded -- the two never disagree on a card with no {X} in its cost.
-func (e *Engine) offerCostFor(p state.PlayerID, id state.ObjID, base Cost, ability bool) Cost {
-	kind := "Spell"
-	if ability {
-		kind = "Ability"
-	}
-	c := base
-	raise, reduce := e.costModifiers(p, id, kind)
-	c.Generic += raise
-	c.Generic -= reduce
-	if c.Generic < 0 {
-		c.Generic = 0
-	}
-	if !ability {
+func (e *Engine) offerCostFor(p state.PlayerID, id state.ObjID, base Cost, scope costScope) Cost {
+	return e.composedOfferCost(p, id, base, e.costModifiers(p, id, scope), scope)
+}
+
+// composedOfferCost is offerCostFor with the modifier collection factored
+// out, so offerCastable can evaluate the composition once and reuse it for
+// both the per-face enumeration and the composed castable check.
+func (e *Engine) composedOfferCost(p state.PlayerID, id state.ObjID, base Cost, mods costMods, scope costScope) Cost {
+	c := mods.apply(base)
+	if scope.kind != "Ability" {
 		c = e.commanderTaxFor(p, id, c)
 	}
 	return c
+}
+
+// offerCastable is THE offer-side gate every cast/activation option is gated
+// on. base is the RAW (pre-modifier) cost beginCast stores in pendingCast
+// for this exact option and scope the costScope its modifiers are collected
+// with, so the gate composes the very charge the payment will make: the
+// scope's CR 601.2f modifiers over base, then (for a spell) the CR 903.8
+// commander tax, never reduced by either.
+//
+// The mana feasibility question is posed over the still-unresolved flexible
+// pip faces (costMods.feasibleAny): with a SetCost/MinMana floor in the
+// composition, CR 202.4b's generic-face mana value of an unresolved twobrid
+// pip can overprice the cheaper face the announcement resolves it to, and a
+// composed-payable offer would then have no legal announcement. castable on
+// the composed cost runs on top, supplying the non-mana parts (Sac/Discard/
+// SubCounter/Tap) the enumeration does not model; composed and per-face
+// feasibility are conjunctive, and the stricter composed answer can only
+// withhold a legal offer (the safe direction), never offer an illegal one.
+func (e *Engine) offerCastable(p state.PlayerID, id state.ObjID, base Cost, scope costScope, ability bool) bool {
+	mods := e.costModifiers(p, id, scope)
+	tax := int32(0)
+	if scope.kind != "Ability" {
+		tax = e.commanderTaxAmount(p, id)
+	}
+	delve := int32(0)
+	if e.HasKeyword(id, "Delve") {
+		delve = int32(len(e.G.Zone(state.ZGraveyard, p)))
+	}
+	if !e.manaFeasible(p, id, ability, base, mods, tax, delve) {
+		// A target-dependent reducer cannot be in the ordinary pre-target
+		// snapshot, but it may make one legal target choice payable. Retry with
+		// exactly those potential reductions; target-dependent raises/floors
+		// remain absent until the actual target is known (see the helper's
+		// contract).
+		potential := e.costModifiersForPotentialTargets(p, id, scope, e.costPotentialTargets(p, id, scope))
+		if !e.manaFeasible(p, id, ability, base, potential, tax, delve) {
+			return false
+		}
+		mods = potential
+	}
+	// feasibleAny has established the mana half for a specific announced face
+	// when a floor or Color$ reduction is face-sensitive. Do not re-check
+	// that result against the unresolved Cost: Color$ W can make the W half
+	// of {W/U} free, while applying it before that half is chosen sees no W
+	// pip at all. The remaining cost parts are face-independent, so this
+	// shared tail preserves every Sac/Discard/counter/tap legality check.
+	return e.nonManaCastable(p, id, e.composedOfferCost(p, id, base, mods, scope), ability)
+}
+
+// costPotentialTargets returns the legal target candidates that can make a
+// target-conditional reduction available at offer time. The final selection
+// is still repriced before payment; this is only the "does SOME legal
+// announcement exist" half of CR 601.2. Modal spells have no selected mode
+// yet and therefore conservatively contribute no potential discount.
+func (e *Engine) costPotentialTargets(p state.PlayerID, id state.ObjID, scope costScope) []state.Target {
+	var sa *cards.SA
+	if scope.kind == "Ability" {
+		sa = scope.ab
+	} else if o := e.G.Obj(id); o != nil && o.Face() != nil {
+		sa = o.Face().SpellAbility()
+	}
+	if sa == nil || sa.Params["ValidTgts"] == "" || sa.Params["Choices"] != "" {
+		return nil
+	}
+	var excludeSelf state.ObjID
+	if scope.kind != "Ability" {
+		excludeSelf = id
+	}
+	candidates := e.legalTargetCandidates(p, id, excludeSelf, sa)
+	out := make([]state.Target, 0, len(candidates))
+	for _, candidate := range candidates {
+		if candidate.kind == "player" {
+			out = append(out, state.Target{Player: candidate.player, IsPlayer: true})
+		} else {
+			out = append(out, state.Target{Obj: candidate.obj})
+		}
+	}
+	return out
 }
 
 // AbilityCosts returns id's non-mana activated-ability costs after the same
@@ -493,7 +766,7 @@ func (e *Engine) AbilityCosts(p state.PlayerID, id state.ObjID) []string {
 		if ab.Kind != "AB" || isManaAbilityAPI(ab.API) {
 			continue
 		}
-		out = append(out, formatCost(e.offerCostFor(p, id, ParseCost(ab.Params["Cost"]), true)))
+		out = append(out, formatCost(e.offerCostFor(p, id, ParseCost(ab.Params["Cost"]), abilityScope(ab))))
 	}
 	return out
 }
@@ -520,8 +793,17 @@ func formatCost(c Cost) string {
 	for _, h := range c.Hybrid {
 		parts = append(parts, string([]byte{h.A, '/', h.B}))
 	}
+	for _, t := range c.Twobrid {
+		parts = append(parts, strconv.FormatInt(int64(t.Generic), 10)+"/"+string(t.Col))
+	}
 	for _, p := range c.Phyrexian {
 		parts = append(parts, string([]byte{p, 'P'}))
+	}
+	for _, hp := range c.HybridPhyrexian {
+		parts = append(parts, string([]byte{hp.A, '/', hp.B, '/', 'P'}))
+	}
+	for n := c.Snow; n > 0; n-- {
+		parts = append(parts, "S")
 	}
 	if c.Life > 0 {
 		parts = append(parts, "PayLife<"+strconv.FormatInt(int64(c.Life), 10)+">")
@@ -565,52 +847,6 @@ func (c Cost) HasNonMana() bool {
 	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage
 }
 
-// costModifiers reports the RaiseCost and ReduceCost generic-mana amounts
-// that apply, per CR 601.2f, to a cost paid by p for the object id. kind is
-// "Spell" (a cast) or "Ability" (an activation): a static whose Type$ names
-// the other kind is skipped, and one naming neither applies to both. This
-// engine's RaiseCost/ReduceCost only ever touch the Generic component (never
-// Colored), which is why the returned amounts fold into Generic at the point
-// the total cost is composed (after any chosen {X} folds in). Increases and
-// reductions are returned separately so the caller can apply them in the CR
-// 601.2f order (increases before reductions) rather than assuming they
-// commute through the same sign.
-func (e *Engine) costModifiers(p state.PlayerID, id state.ObjID, kind string) (raise, reduce int32) {
-	for _, mode := range []string{"RaiseCost", "ReduceCost"} {
-		for _, sv := range e.activeStatics(mode) {
-			if !e.costActorMatches(sv, p) {
-				continue
-			}
-			if ty, ok := sv.Params["Type"]; ok && ty != "" && ty != kind {
-				continue
-			}
-			if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, p)) {
-				continue
-			}
-			amt := parseAmount(sv.Params["Amount"], 1)
-			if mode == "RaiseCost" {
-				raise += amt
-			} else {
-				reduce += amt
-			}
-		}
-	}
-	return
-}
-
-// costActorMatches is the cost-modifier actor gate: a RaiseCost/ReduceCost
-// static with an Activator$ or Caster$ parameter scopes to whose cost it
-// modifies. With neither it applies regardless of actor.
-func (e *Engine) costActorMatches(sv staticView, actor state.PlayerID) bool {
-	if _, ok := sv.Params["Activator"]; ok {
-		return e.actorMatches(sv, "Activator", actor)
-	}
-	if _, ok := sv.Params["Caster"]; ok {
-		return e.actorMatches(sv, "Caster", actor)
-	}
-	return true
-}
-
 // Priceable reports whether payMana can actually charge every part of this
 // cost. payMana charges Colored and Generic from the pool and fixed Life from
 // the payer, but an {X} component that has not been folded into Generic, or a
@@ -628,24 +864,35 @@ func (e *Engine) costActorMatches(sv staticView, actor state.PlayerID) bool {
 func (c Cost) Priceable() bool {
 	return c.X == 0 && !c.Tap && len(c.Sac) == 0 && len(c.Discard) == 0 && len(c.SubCounter) == 0 &&
 		len(c.Exile) == 0 && len(c.Reveal) == 0 && len(c.Behold) == 0 && len(c.TapPermanent) == 0 &&
-		len(c.Blight) == 0 && !c.Forage && len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
+		len(c.Blight) == 0 && !c.Forage &&
+		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0 && len(c.Twobrid) == 0 && len(c.HybridPhyrexian) == 0
 }
 
-// pip is one coloured-or-flexible demand inside a cost's mana part: the set
-// of acceptable colours, and whether the pip may alternatively be paid with
-// two life (a Phyrexian pip). n is always 1 for the pips this engine builds
-// from a cost; the field exists so a caller that expands a multi-count
-// coloured requirement can reuse the same struct.
+// pip is one flexible mana demand inside a cost's mana part, as a list of
+// alternative payments tried in order. The alternative kinds are exactly the
+// mana symbols CR 107.4 knows: one unit of a colour, N generic mana (a
+// monocolour hybrid's "2" face), two life (a Phyrexian face), and snow mana
+// (a {S} pip, payable only by a mana a snow permanent produced). A pip with
+// one colour listed twice is just a strict colour pip.
 type pip struct {
-	colors [2]byte
-	n      int
-	lifeOK bool
+	alts []pipAlt
 }
 
-// costPips expands a cost's Colored, Hybrid and Phyrexian parts into a flat
-// pip list, in that order (exact colours first, then hybrids, then
-// Phyrexian). A coloured pip accepts exactly its own colour; a hybrid accepts
-// either of its pair; a Phyrexian pip accepts its colour or two life.
+type pipAlt struct {
+	color   byte  // one unit of this colour (0 = not a colour alternative)
+	generic int32 // this many generic mana (0 = not a generic alternative)
+	life    int32 // two life (0 = not a life alternative)
+	snow    bool  // one snow mana unit
+}
+
+// costPips expands a cost's mana part into a flat pip list, in a fixed order
+// (exact colours first — colourless included — then two-colour hybrids, then
+// monocolour hybrids, then Phyrexians, then hybrid-Phyrexians, then snow).
+// The order is a deterministic exploration order for resolveMana's search,
+// not a payment schedule: the backtracking search tries alternatives in
+// list order and each pip's alternatives in their own order, so the chosen
+// assignment is stable run to run. Snow pips come last so the search prefers
+// spending ordinary mana before touching a snow unit for generic.
 func (c Cost) costPips() []pip {
 	var out []pip
 	// The coloured slots including the colourless one: a plain {C} pip is a
@@ -653,50 +900,99 @@ func (c Cost) costPips() []pip {
 	// pool's only colourless, so it is reserved like any coloured pip.
 	for _, letter := range []byte{'W', 'U', 'B', 'R', 'G', 'C'} {
 		for n := c.Colored[state.ManaIndex(letter)]; n > 0; n-- {
-			out = append(out, pip{colors: [2]byte{letter, letter}, n: 1})
+			out = append(out, pip{alts: []pipAlt{{color: letter}}})
 		}
 	}
 	for _, pair := range c.Hybrid {
-		out = append(out, pip{colors: [2]byte{pair.A, pair.B}, n: 1})
+		out = append(out, pip{alts: []pipAlt{{color: pair.A}, {color: pair.B}}})
+	}
+	for _, t := range c.Twobrid {
+		alts := []pipAlt{{color: t.Col}}
+		if t.Generic > 0 {
+			alts = append(alts, pipAlt{generic: t.Generic})
+		}
+		out = append(out, pip{alts: alts})
 	}
 	for _, letter := range c.Phyrexian {
-		out = append(out, pip{colors: [2]byte{letter, letter}, n: 1, lifeOK: true})
+		out = append(out, pip{alts: []pipAlt{{color: letter}, {life: 2}}})
+	}
+	for _, hp := range c.HybridPhyrexian {
+		out = append(out, pip{alts: []pipAlt{{color: hp.A}, {color: hp.B}, {life: 2}}})
+	}
+	for n := c.Snow; n > 0; n-- {
+		out = append(out, pip{alts: []pipAlt{{snow: true}}})
 	}
 	return out
 }
 
+// manaPayment is what resolveMana found: the pool and snow tally after every
+// pip and the generic requirement were paid, and the life the fixed Life
+// component plus any Phyrexian face spent. Snow units are always consumed
+// alongside their pool slot (Snow[i] never exceeds Pool[i]).
+type manaPayment struct {
+	pool      state.Mana
+	snow      state.Mana
+	lifeSpent int32
+}
+
+// takeUnit consumes one mana unit from slot i of rem/sn, preferring a
+// NON-snow unit when one exists so a snow unit stays available for a later
+// {S} pip; the backtracking search undoes the choice if the rest of the
+// cost cannot be paid that way.
+func takeUnit(rem, sn *state.Mana, i int) {
+	if (*rem)[i] > (*sn)[i] {
+		(*rem)[i]--
+		return
+	}
+	(*rem)[i]--
+	(*sn)[i]--
+}
+
 // resolveMana finds a concrete payment of the cost's mana and fixed-life
-// parts from pool and the payer's life, preferring to spend coloured pool mana
-// over life for a Phyrexian pip and preferring the first colour of a hybrid
-// pair, so the assignment is deterministic. It returns the pool with the
-// coloured pips spent, total life spent (the fixed Life component plus two
-// for each Phyrexian pip paid by life), and whether the whole cost is payable.
-// The generic requirement is paid last from whatever the pips left, so
-// coloured mana is never spent on generic while a pip still needs it.
+// parts from pool, the pool's parallel snow tally and the payer's life,
+// preferring to spend coloured pool mana over life for a Phyrexian pip and
+// the first alternative of each pip, so the assignment is deterministic. It
+// returns the payment with the coloured pips and generic requirement spent,
+// and whether the whole cost is payable. The generic requirement is paid
+// last from whatever the pips left, so coloured mana is never spent on
+// generic while a pip still needs it; a monocolour hybrid's generic face
+// competes in the backtracking search as the pip's later alternative (its
+// generic amount joins the requirement for the rest of the search).
 //
 // conv, when non-nil, is the stat:ManaConvert conversion set this payment is
-// resolved under (rules/mana_convert.go): it WIDENS what a pip accepts -- the
-// payer's converted mana may be spent as though it were another colour -- and
-// onlyC may also NARROW it ("spend other mana only as though it were
-// colorless"). A nil conv is the plain exact-colour match every pre-existing
-// caller keeps, so games with no ManaConvert static on the battlefield
-// resolve byte-identically.
-func (c Cost) resolveMana(pool state.Mana, life int32, conv *manaConv) (state.Mana, int32, bool) {
+// resolved under (rules/mana_convert.go): it WIDENS what a pip's colour
+// alternatives accept -- the payer's converted mana may be spent as though
+// it were another colour -- and onlyC may also NARROW it ("spend other mana
+// only as though it were colorless"). A nil conv is the plain exact-colour
+// match every pre-existing caller keeps, so games with no ManaConvert static
+// on the battlefield resolve byte-identically.
+func (c Cost) resolveMana(pool, snow state.Mana, life int32, conv *manaConv) (manaPayment, bool) {
 	if life < c.Life {
-		return pool, 0, false
+		return manaPayment{}, false
 	}
 	pips := c.costPips()
 	rem := pool
+	sn := snow
 	life -= c.Life
 	lifeSpent := c.Life
-	// pipAccepts reports whether a pip accepts one unit of pool colour col
-	// (manaLetters index), under conv. Exact colours always match; conv
-	// widens (wild/to) and narrows (onlyC) around that base.
+	// pipExact reports whether col is one of the pip's colour alternatives
+	// (a strict colour pip lists its colour once; a hybrid lists two).
+	pipExact := func(p pip, col byte) bool {
+		for _, alt := range p.alts {
+			if alt.color == col {
+				return true
+			}
+		}
+		return false
+	}
+	// pipAccepts reports whether one unit of pool colour col (manaLetters
+	// index) may pay pip p under conv. Exact colours always match; conv
+	// widens (wild/to) and narrows (onlyC) around that base. Non-colour
+	// alternatives (generic, life, snow) are unaffected by conv.
 	pipAccepts := func(p pip, col byte, di int) bool {
-		exact := col == p.colors[0] || col == p.colors[1]
-		isC := p.colors[0] == 'C' && p.colors[1] == 'C'
+		isC := len(p.alts) == 1 && p.alts[0].color == 'C'
 		if conv == nil {
-			return exact
+			return pipExact(p, col)
 		}
 		if conv.onlyC[di] {
 			// The <-C restriction: this pool colour may be spent ONLY as
@@ -705,7 +1001,7 @@ func (c Cost) resolveMana(pool state.Mana, life int32, conv *manaConv) (state.Ma
 			// or hybrid pip, not even its own colour's.
 			return isC
 		}
-		if exact {
+		if pipExact(p, col) {
 			return true
 		}
 		if conv.wild[di] {
@@ -718,95 +1014,136 @@ func (c Cost) resolveMana(pool state.Mana, life int32, conv *manaConv) (state.Ma
 			}
 			return true
 		}
-		for _, pc := range p.colors {
-			if conv.to[di][state.ManaIndex(pc)] {
+		for _, alt := range p.alts {
+			if alt.color != 0 && conv.to[di][state.ManaIndex(alt.color)] {
 				return true
 			}
 		}
 		return false
 	}
-	var rec func(i int) bool
-	rec = func(i int) bool {
+	// finalGeneric is the successful search path's generic requirement: the
+	// cost's own Generic plus every monocolour-hybrid pip that paid its
+	// generic face on that path. The closing deduction spends exactly it.
+	finalGeneric := c.Generic
+	var rec func(i int, generic int32) bool
+	rec = func(i int, generic int32) bool {
 		if i == len(pips) {
-			return rem.Total() >= c.Generic
+			if rem.Total() < generic {
+				return false
+			}
+			finalGeneric = generic
+			return true
 		}
 		p := pips[i]
-		// Try each acceptable colour, in the order given. For a hybrid this
-		// prefers A over B; for a single-colour pip A==B so it is just once.
-		for _, col := range p.colors {
-			di := state.ManaIndex(col)
-			if rem[di] > 0 && pipAccepts(p, col, di) {
-				rem[di]--
-				if rec(i + 1) {
+		// Try each alternative in order: for a hybrid this prefers A over B;
+		// for a single-colour pip there is one colour alternative, then the
+		// pip's life face for a Phyrexian pip.
+		for _, alt := range p.alts {
+			switch {
+			case alt.color != 0:
+				di := state.ManaIndex(alt.color)
+				if rem[di] > 0 && pipAccepts(p, alt.color, di) {
+					before, beforeSnow := rem, sn
+					takeUnit(&rem, &sn, di)
+					if rec(i+1, generic) {
+						return true
+					}
+					rem, sn = before, beforeSnow
+				}
+			case alt.generic > 0:
+				// A monocolour hybrid's generic face: this pip joins the
+				// generic requirement (tried after the colour face, so a
+				// colour unit is preferred when the search can still pay).
+				if rec(i+1, generic+alt.generic) {
 					return true
 				}
-				rem[di]++
+			case alt.life > 0:
+				if life >= 2 {
+					life -= 2
+					lifeSpent += 2
+					if rec(i+1, generic) {
+						return true
+					}
+					lifeSpent -= 2
+					life += 2
+				}
+			case alt.snow:
+				// A {S} pip consumes an actual SNOW unit: both the pool slot
+				// and the parallel snow tally, so the unit that leaves is the
+				// unit that was snow (never a plain unit misattributed into
+				// the tally).
+				for di, s := range sn {
+					if s > 0 {
+						before, beforeSnow := rem, sn
+						rem[di]--
+						sn[di]--
+						if rec(i+1, generic) {
+							return true
+						}
+						rem, sn = before, beforeSnow
+					}
+				}
 			}
 		}
 		// A conversion may let OTHER pool colours pay this pip too -- e.g.
 		// "spend white mana as though it were red" offers the pool's white
-		// mana for a red pip, which the exact-colour list above cannot see.
-		// The walk order is manaLetters (WUBRGC), so the assignment stays
-		// deterministic; converted mana is tried only after every exact
-		// colour, so a conversion never displaces an exact payment.
+		// mana for a red pip, which the exact-colour alternatives above
+		// cannot see. The walk order is manaLetters (WUBRGC), so the
+		// assignment stays deterministic; converted mana is tried only after
+		// every exact alternative, so a conversion never displaces an exact
+		// payment.
 		if conv != nil {
 			for di := range manaLetters {
 				col := manaLetters[di][0]
-				exact := col == p.colors[0] || col == p.colors[1]
-				if !exact && rem[di] > 0 && pipAccepts(p, col, di) {
-					rem[di]--
-					if rec(i + 1) {
+				if !pipExact(p, col) && rem[di] > 0 && pipAccepts(p, col, di) {
+					before, beforeSnow := rem, sn
+					takeUnit(&rem, &sn, di)
+					if rec(i+1, generic) {
 						return true
 					}
-					rem[di]++
+					rem, sn = before, beforeSnow
 				}
 			}
 		}
-		if p.lifeOK && life >= 2 {
-			life -= 2
-			lifeSpent += 2
-			if rec(i + 1) {
-				return true
-			}
-			lifeSpent -= 2
-			life += 2
-		}
 		return false
 	}
-	if !rec(0) {
-		return pool, 0, false
+	if !rec(0, c.Generic) {
+		return manaPayment{}, false
 	}
 	// The search found a pip assignment that leaves enough total mana; deduct
 	// the generic requirement from that remainder, preferring colourless then
 	// colours in fixed WUBRG order so payment is deterministic. Generic can
 	// be paid by any leftover mana, so a total >= Generic always suffices.
-	need := c.Generic
+	need := finalGeneric
 	for _, i := range [...]int{state.MC, state.MW, state.MU, state.MB, state.MR, state.MG} {
 		for need > 0 && rem[i] > 0 {
-			rem[i]--
+			takeUnit(&rem, &sn, i)
 			need--
 		}
 	}
-	return rem, lifeSpent, true
+	return manaPayment{pool: rem, snow: sn, lifeSpent: lifeSpent}, true
 }
 
 // payable reports whether the cost's mana and fixed-life parts can be paid
-// by pool and the payer's current life (a Phyrexian pip may additionally be
-// paid with two life). This is the offering gate's feasibility question, and
-// the real answer to "is there ANY way this cost can be paid right now" -- the
-// same resolveMana the payment stage uses, so an offered cost and the cost it
-// charges can never disagree.
-func (c Cost) payable(pool state.Mana, life int32) bool {
-	_, _, ok := c.resolveMana(pool, life, nil)
+// by pool, its parallel snow tally and the payer's current life (a Phyrexian
+// pip may additionally be paid with two life; a {S} pip only by snow mana).
+// This is the offering gate's feasibility question, and the real answer to
+// "is there ANY way this cost can be paid right now" -- the same resolveMana
+// the payment stage uses, so an offered cost and the cost it charges can
+// never disagree.
+func (c Cost) payable(pool, snow state.Mana, life int32) bool {
+	_, ok := c.resolveMana(pool, snow, life, nil)
 	return ok
 }
 
 func (c Cost) CanPay(p state.Mana) bool {
-	// Pool-only feasibility, no life offered: a hybrid must be paid by one of
-	// its colours in the pool, a Phyrexian pip by its colour. This is the
-	// pure pricing question the corpus invariants ask, and it never treats a
-	// hybrid as generic nor lets colourless `pay` it.
-	_, _, ok := c.resolveMana(p, 0, nil)
+	// Pool-only feasibility, no life and no snow offered: a hybrid must be
+	// paid by one of its colours in the pool, a Phyrexian pip by its colour,
+	// a monocolour hybrid by its colour (its generic face is not offered
+	// here) and a {S} pip is unpayable. This is the pure pricing question the
+	// corpus invariants ask, and it never treats a hybrid as generic nor lets
+	// colourless `pay` it.
+	_, ok := c.resolveMana(p, state.Mana{}, 0, nil)
 	return ok
 }
 
@@ -818,10 +1155,14 @@ func (c Cost) CanPay(p state.Mana) bool {
 // (Tap/Sac/Discard/SubCounter) are the cast flow's own job (rules/cast.go), never
 // this function's.
 func (c Cost) Pay(p state.Mana) (state.Mana, bool) {
-	// Pool-only: no life is offered, so a Phyrexian pip is paid by its colour
-	// (the cast flow's payMana handles the life half and passes a fully
-	// resolved cost here). resolveMana already reserves the coloured pips and
-	// deducts generic, so the returned pool is fully spent.
-	out, _, ok := c.resolveMana(p, 0, nil)
-	return out, ok
+	// Pool-only: no life and no snow are offered, so a Phyrexian pip is paid
+	// by its colour (the cast flow's payMana handles the life half and passes
+	// a fully resolved cost here). resolveMana already reserves the coloured
+	// pips and deducts generic, so the returned pool is fully spent. A failed
+	// search returns the input pool untouched.
+	pay, ok := c.resolveMana(p, state.Mana{}, 0, nil)
+	if !ok {
+		return p, false
+	}
+	return pay.pool, true
 }

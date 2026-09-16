@@ -385,3 +385,173 @@ func TestAuthorizedDelveAnswersStayLegal(t *testing.T) {
 		replayCheck(t, e, cfg)
 	})
 }
+
+// livenessPhyrexianDrawer mirrors the activated-ability shape the commander
+// bench livelocked on (2026-09-15, seed 1295, Solphim Mayhem Dominus): an
+// ability with a Phyrexian pip and a generic remainder (cost {1}{R/P}, pool
+// {R}). Under the shared feasibility primitive the bench's strand is
+// structurally gone -- the pip ask offers only the life face (pay_R cannot
+// complete the generic) and the activation then completes legally -- so the
+// no-progress abort the F05-2 discipline governs is driven instead by the
+// target-conditional RaiseCost below: the offer gate prices the ability
+// pre-target, the CR 601.2c target answer reprices with the {2} raise, every
+// target reprices unaffordable, and the proposal reverses (CR 733.1) with no
+// state change.
+const livenessPhyrexianDrawer = "Name:Drawer\nManaCost:1 R\nTypes:Creature Human Wizard\nPT:1/1\n" +
+	"A:AB$ DealDamage | Cost$ 1 RP | ValidTgts$ Creature | NumDmg$ 1 | SpellDescription$ Deal 1 damage to target creature.\nOracle:x\n"
+
+// livenessTaxer raises by {2} the cost of every ability activated at it: a
+// target-dependent raise is deliberately invisible to the offer gate and to
+// targetDependentCostMayPay (potential mode skips raises), so it is the one
+// shape whose offer can still strand at the target gate and reach the
+// no-progress abort.
+const livenessTaxer = "Name:Taxer\nManaCost:2\nTypes:Creature\nPT:1/1\n" +
+	"S:Mode$ RaiseCost | ValidTarget$ Creature | Activator$ You | Type$ Ability | Amount$ 2 | Description$ Abilities you activate that target a creature cost {2} more.\nOracle:x\n"
+
+// TestAbilityNoProgressAbortHoldsTheAbilityOut pins the F05-2 (CR 733.2)
+// discipline at the ACTIVATION abort sites and the ability-offer path's duty
+// to read it. Before this pin the abort bookkeeping (suppressedCast/
+// castAborts) was written for "cast/activation" aborts alike, but only the
+// cast-option builder ever read the map: an activation that could not
+// complete re-offered forever inside one priority window -- the commander
+// bench spun 20000 intents on Solphim (seed 1295) with the turn count frozen
+// at 9. The sequence per attempt: choose the ability -> the phyrexian pip
+// ask (the only feasible face, life) -> the target gate reprices with the
+// {2} raise, finds no affordable target and aborts with no state change.
+// The FIRST abort leaves the ability offered (CR 733.2 retry); the SECOND
+// holds it out; a state-changing land play brings it back.
+func TestAbilityNoProgressAbortHoldsTheAbilityOut(t *testing.T) {
+	e, cfg, id := newFixtureDeck(t, 52, livenessPhyrexianDrawer, livenessTaxer)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	putCreature(t, e, 0, livenessTaxer)
+	addMana(t, e, 0, "R")
+	e.Advance()
+
+	// answerOneChoose answers the pending cost ask: a mana-window ask by its
+	// "done" option (declining to activate anything), anything else (the
+	// phyrexian pip) by its first offer.
+	answerOneChoose := func() {
+		t.Helper()
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KChoose {
+			t.Fatalf("expected a cost ask, got %+v", d)
+		}
+		for _, o := range d.Options {
+			if o.Kind == "done" {
+				submitChoices(t, e, o.Index)
+				return
+			}
+		}
+		submitChoices(t, e, d.Options[0].Index)
+	}
+	// attempt drives one full activation attempt to its no-progress abort:
+	// choose the ability -> the phyrexian pip ask (pay_life is the only
+	// feasible face; the fixture Mountains carry no mana-ability text, so
+	// the CR 601.2g window never opens) -> the target gate reprices with the
+	// {2} raise, finds no affordable target and reverses the proposal.
+	attempt := func() {
+		t.Helper()
+		if _, ok := findAbilityOption(e, id, 0); !ok {
+			t.Fatalf("the ability option is not offered at attempt start (suppressed=%v)", e.suppressedCast)
+		}
+		submitChoices(t, e, abilityOption(t, e, id, 0).Index)
+		answerOneChoose() // the phyrexian pip (pay_life, the only feasible face)
+		if d := e.Pending(); d == nil || d.Kind != decision.KPriority {
+			t.Fatalf("the aborted activation did not return to priority: %+v", d)
+		}
+	}
+
+	// First attempt: the abort leaves the option offered (the legal retry).
+	attempt()
+	if e.G.Over {
+		t.Fatal("the first no-progress activation abort ended the match")
+	}
+	if _, ok := findAbilityOption(e, id, 0); !ok {
+		t.Fatal("a FIRST no-progress activation abort held the ability out; CR 733.2 allows the legal retry")
+	}
+
+	// Second identical attempt: held out -- the repeat cannot loop the window.
+	attempt()
+	if e.G.Over {
+		t.Fatal("the second identical activation abort ended the match")
+	}
+	if _, ok := findAbilityOption(e, id, 0); ok {
+		t.Fatal("the ability is still offered after the second identical no-progress abort")
+	}
+
+	// Productive play (a land, a state-changing event) resets the hold-out.
+	playLand(t, e)
+	if e.G.Over {
+		t.Fatal("an activation abort pair plus a legal land play ended the match")
+	}
+	if _, ok := findAbilityOption(e, id, 0); !ok {
+		t.Fatal("the ability option did not return after a state-changing play")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// livenessShelter is the targetless-cast shape the bot bench livelocked on
+// (2026-09-15, seeds 1334 and 1386): a spell with a MANDATORY target
+// (ValidTgts$ Creature.YouCtrl, no TargetMin$/Max$, so min=1) plus a
+// Choices$ sub-effect parameter. The Choices$ shape is outside
+// castTargetsAvailable's narrow pre-offer census, so the cast is OFFERED even
+// with zero legal targets and aborts only after the push (CR 601.2c at
+// cast.go's target check), and the bot policy -- which cannot tell the offer
+// from a workable one -- re-picked it forever inside one window.
+const livenessShelter = "Name:Shelter\nManaCost:1 W\nTypes:Instant\n" +
+	"A:SP$ Protection | ValidTgts$ Creature.YouCtrl | Gains$ Choice | Choices$ AnyColor | SubAbility$ DBDraw | Oracle:x\n"
+
+// TestTargetlessCastAbortCannotSpinTheWindow pins the no-progress discipline
+// at the "cast aborted: no legal target" abort site (CR 601.2c + CR 733.1/733.2):
+// aborting a cast whose mandatory minimum target does not exist is a
+// no-progress reversal exactly like an unpayable cost, so it rides the same
+// F05-2 discipline every other abort site has -- the FIRST identical abort of
+// a card in the window leaves the option offered (a target could be created
+// first), the SECOND holds it out, and any state change resets both. Before
+// this site engaged suppression (abortCast suppress=false) a seat that kept
+// re-picking the same targetless cast spun that one priority window forever:
+// measured on the bench, 20000 intents of cast-abort-reverse with the turn
+// number frozen at 18 -- the exact livelock the -max-intents watchdog exists
+// to catch.
+func TestTargetlessCastAbortCannotSpinTheWindow(t *testing.T) {
+	e, cfg, shelter := newFixtureDeck(t, 51, livenessShelter)
+	addMana(t, e, 0, "WW")
+	// seat 0 controls no creature (the fixture decks are Mountains), so the
+	// cast's single Creature.YouCtrl target has zero candidates: the abort
+	// fires at the target check, before any target or colour ask.
+
+	// First attempt: the cast is offered (Choices$ keeps the narrow
+	// pre-offer census from withholding it), and choosing it aborts with no
+	// progress. CR 733.2: the FIRST abort leaves the option offered -- the
+	// seat may still make a play that creates a legal target.
+	submitChoices(t, e, castOptionFor(t, e, shelter).Index)
+	if e.G.Over {
+		t.Fatal("the first targetless cast attempt ended the match")
+	}
+	if d := e.Pending(); d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("the targetless cast did not reverse straight back to priority: %+v", d)
+	}
+	if !castOffered(e, shelter) {
+		t.Fatal("a FIRST targetless abort held the cast out; CR 733.2 allows the legal retry")
+	}
+
+	// Second identical attempt: held out -- the repeat cannot loop the window.
+	submitChoices(t, e, castOptionFor(t, e, shelter).Index)
+	if e.G.Over {
+		t.Fatal("the second identical targetless cast attempt ended the match")
+	}
+	if castOffered(e, shelter) {
+		t.Fatal("targetless shelter is still offered after the second identical no-progress abort")
+	}
+
+	// Productive play (a land, a state-changing event) resets the hold-out,
+	// so the option returns -- the cast may be retried after the board moves.
+	playLand(t, e)
+	if e.G.Over {
+		t.Fatal("a targetless abort pair plus a legal land play ended the match")
+	}
+	if !castOffered(e, shelter) {
+		t.Fatal("shelter's cast option did not return after a state-changing play")
+	}
+	replayCheck(t, e, cfg)
+}
