@@ -150,6 +150,103 @@ func TestNeverwinterHydraPublishesTheTotalOfXRolls(t *testing.T) {
 	}
 }
 
+// TestBerserkersFrenzyIgnoresItsLowerRoll is the IgnoreLower$ regression
+// (real corpus Berserker's Frenzy): rolls 2 then 20 still record both dice,
+// but only the retained 20 branch resolves. In particular, the ignored 2
+// must not reach MustBlock (an unimplemented ChooseCard); the 20 branch does
+// reach its real continuous-effect SVar.
+func TestBerserkersFrenzyIgnoresItsLowerRoll(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	bf, ok := reg.Lookup("Berserker's Frenzy")
+	if !ok {
+		t.Fatal("corpus fixture: Berserker's Frenzy missing")
+	}
+	g := state.NewGame([]string{"a", "b"})
+	h := &scriptedRollHost{seq: []int{1, 19}} // dice 2, 20
+	h.g = g
+	src := g.AddObject(bf, 0)
+	face := bf.Faces[0]
+	var saRoll *cards.SA
+	for _, a := range face.Abilities {
+		if a.API == "RollDice" {
+			saRoll = a
+			break
+		}
+	}
+	if saRoll == nil {
+		t.Fatal("corpus fixture: Berserker's Frenzy has no RollDice ability")
+	}
+	Resolve(h, &Ctx{Controller: 0, Source: src.ID, SVars: face.SVars}, saRoll)
+	if rolls := rollResults(t, h); len(rolls) != 2 || rolls[0] != 2 || rolls[1] != 20 {
+		t.Fatalf("roll Notes = %v, want [2 20]", rolls)
+	}
+	var ranHigh bool
+	for _, e := range h.log {
+		if e.Kind != events.Note {
+			continue
+		}
+		if e.Text == "unimplemented API ChooseCard" {
+			t.Fatal("ignored low roll reached Berserker's Frenzy MustBlock branch")
+		}
+		if strings.Contains(e.Text, "continuous effect Continuous") {
+			ranHigh = true
+		}
+	}
+	if !ranHigh {
+		t.Fatal("retained high roll did not reach Berserker's Frenzy ChooseBlock branch")
+	}
+}
+
+// TestIronMastiffUsesOnlyItsHighestRoll is the UseHighestRoll$ regression
+// (real corpus Iron Mastiff): its d20 rolls 20 then 1, but only the retained
+// 20 range deals 4 to the opponent. The ignored 1 must not also deal 4 to
+// Iron Mastiff's controller.
+func TestIronMastiffUsesOnlyItsHighestRoll(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	im, ok := reg.Lookup("Iron Mastiff")
+	if !ok {
+		t.Fatal("corpus fixture: Iron Mastiff missing")
+	}
+	// The corpus's NbAttackedPlayers SVar is populated by its attack trigger;
+	// supply the real two-player-attacked result here while retaining the real
+	// RollDice SA and its result ranges. (The Count evaluator does not yet
+	// parse Forge's bare PlayerCountOpponents$... body; see this task's report.)
+	g := state.NewGame([]string{"a", "b", "c"})
+	h := &scriptedRollHost{seq: []int{19, 0}} // dice 20, 1
+	h.g = g
+	src := g.AddObject(im, 0)
+	src.Zone = state.ZBattlefield
+	face := im.Faces[0]
+	saRoll := cards.ResolveSVar(face.SVars, "DBTrigRollDice")
+	if saRoll == nil {
+		t.Fatal("corpus fixture: Iron Mastiff has no DBTrigRollDice SVar")
+	}
+	svars := make(map[string]string, len(face.SVars))
+	for name, body := range face.SVars {
+		svars[name] = body
+	}
+	svars["NbAttackedPlayers"] = "2"
+	life0, life1, life2 := g.Players[0].Life, g.Players[1].Life, g.Players[2].Life
+	// Defined$ Player.Opponent is not yet a context selector, so carry the
+	// attacked opponent in the trigger's target slot -- the normal fallback
+	// for this unresolved Defined$ shape -- to make the real damage ranges
+	// observable.
+	Resolve(h, &Ctx{Controller: 0, Source: src.ID, SVars: svars,
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}}, saRoll)
+	if rolls := rollResults(t, h); len(rolls) != 2 || rolls[0] != 20 || rolls[1] != 1 {
+		t.Fatalf("roll Notes = %v, want [20 1]", rolls)
+	}
+	if got := life0 - g.Players[0].Life; got != 0 {
+		t.Fatalf("controller took %d damage, want 0: ignored low roll must not run its 1-9 range", got)
+	}
+	if got := life1 - g.Players[1].Life; got != 4 {
+		t.Fatalf("seat 1 took %d damage, want 4 from the retained 20 range", got)
+	}
+	if got := life2 - g.Players[2].Life; got != 0 {
+		t.Fatalf("seat 2 took %d damage, want 0: the trigger supplied only seat 1 as attacked", got)
+	}
+}
+
 // TestLuckBobbleheadRollsEveryControlledBobblehead is the computed-Amount$
 // leaf (real corpus Luck Bobblehead): X is the number of Bobbleheads you
 // control, so this 257-object battlefield rolls all 257 dice. In particular,

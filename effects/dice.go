@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 
@@ -126,6 +127,57 @@ func parseDieRanges(v string) []dieRange {
 	return out
 }
 
+// retainedDice applies RollDice's result-selection modifiers after every die
+// has been rolled and recorded, but before ResultSubAbilities$ is evaluated.
+// IgnoreLower$ drops that many lowest results; ties drop earlier dice first so
+// the outcome is deterministic. UseHighestRoll$ then retains one highest
+// result (the first rolled die when the high result ties). The latter is one
+// result, rather than every tied high die: "ignore all but the highest roll"
+// has one outcome table to apply, and result ranges do not attach actions to
+// individual dice.
+func retainedDice(dice []int32, ignoreLower int32, useHighest bool) []int32 {
+	if len(dice) == 0 {
+		return nil
+	}
+	if ignoreLower < 0 {
+		ignoreLower = 0
+	}
+	if ignoreLower > int32(len(dice)) {
+		ignoreLower = int32(len(dice))
+	}
+	type indexedResult struct {
+		value int32
+		index int
+	}
+	ordered := make([]indexedResult, len(dice))
+	for i, value := range dice {
+		ordered[i] = indexedResult{value: value, index: i}
+	}
+	// A stable value sort supplies the documented roll-order tie break without
+	// relying on any map iteration.
+	sort.SliceStable(ordered, func(i, j int) bool { return ordered[i].value < ordered[j].value })
+	dropped := make([]bool, len(dice))
+	for _, result := range ordered[:ignoreLower] {
+		dropped[result.index] = true
+	}
+	kept := make([]int32, 0, len(dice)-int(ignoreLower))
+	for i, value := range dice {
+		if !dropped[i] {
+			kept = append(kept, value)
+		}
+	}
+	if !useHighest || len(kept) < 2 {
+		return kept
+	}
+	highest := kept[0]
+	for _, value := range kept[1:] {
+		if value > highest {
+			highest = value
+		}
+	}
+	return []int32{highest}
+}
+
 // effRollDice implements DB$ RollDice (131 corpus files, measured with
 // /usr/bin/grep -rlE over .cards/cardsfolder): roll a die with
 // Sides$ sides (default 6, the corpus's unmarked "roll a die"), through the
@@ -170,10 +222,13 @@ func parseDieRanges(v string) []dieRange {
 //     "create a Treasure token for each even result" sub reads
 //     SVar$EvenResults through the ordinary SVar$ indirection).
 //
-// Amount$ (24 lines: "roll X dice" shapes) rolls that many dice and runs the
-// range table once PER DIE (each die's own result matched independently --
-// the reading "create a Treasure for each even result" needs), with a Note per
-// roll. Modifier$ is added to every roll through the same Num/SVar evaluator
+// Amount$ (24 lines: "roll X dice" shapes) rolls that many dice, records a
+// Note per roll, then runs the range table once per RETAINED result (each
+// die's own result normally matches independently -- the reading "create a
+// Treasure for each even result" needs). IgnoreLower$ (one corpus file,
+// Berserker's Frenzy) drops the requested number of low rolls; UseHighestRoll$
+// True (one corpus file, Iron Mastiff) retains just the high roll. Modifier$
+// is added to every roll through the same Num/SVar evaluator
 // that reads Sides$ and Amount$ (Wyll's Reversal and Danse Macabre's Y, Song
 // of Inspiration's X); the modified result is what ranges match and what
 // every publication totals. The unmodified die remains the only random draw.
@@ -263,30 +318,37 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 			text += " + " + strconv.FormatInt(int64(modifier), 10) + " = " + strconv.FormatInt(int64(result), 10)
 		}
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: text})
-		if len(ranges) > 0 {
-			sub := ""
+	}
+
+	// ResultSubAbilities$ is evaluated only after selection: both modifiers
+	// name results, not dice to suppress rolling, so every die is still noted
+	// and remains available to ResultSVar$/chosen-result publications.
+	for _, result := range retainedDice(dice, Num(h, c, sa, "IgnoreLower", 0), strings.EqualFold(sa.Params["UseHighestRoll"], "True")) {
+		if len(ranges) == 0 {
+			continue
+		}
+		sub := ""
+		for _, r := range ranges {
+			if r.isElse {
+				continue
+			}
+			if result >= r.lo && result <= r.hi {
+				sub = r.name
+				break
+			}
+		}
+		if sub == "" {
 			for _, r := range ranges {
 				if r.isElse {
-					continue
-				}
-				if result >= r.lo && result <= r.hi {
 					sub = r.name
 					break
 				}
 			}
-			if sub == "" {
-				for _, r := range ranges {
-					if r.isElse {
-						sub = r.name
-						break
-					}
-				}
-			}
-			if sub != "" && c.SVars != nil {
-				Resolve(h, c, cards.ResolveSVar(c.SVars, sub))
-				if h.Suspended() {
-					return
-				}
+		}
+		if sub != "" && c.SVars != nil {
+			Resolve(h, c, cards.ResolveSVar(c.SVars, sub))
+			if h.Suspended() {
+				return
 			}
 		}
 	}
