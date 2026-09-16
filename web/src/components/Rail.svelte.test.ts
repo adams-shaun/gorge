@@ -105,6 +105,28 @@ describe('Rail — the stack (Task 1/2)', () => {
   });
 });
 
+describe('Rail — the resolved card lives in the stack section (fb-20260916T225456Z)', () => {
+  it('a resolve in the events renders the labelled resolved card INSIDE the stack section, above the tiles still on it', () => {
+    const v = baseView({
+      players: [spectatorPlayer(0, 'Ari', { graveyard: [card({ id: 42, name: 'Resolved Thing' })] }), spectatorPlayer(1, 'Bo')],
+      stack: [{ id: 100, kind: 'spell', name: 'Still Here', text: '', controller: 0, targets: [], card: card({ id: 100, name: 'Still Here' }), optional: false }],
+    });
+    const events = [{ event: { seq: 9, kind: 'stack_resolve', player: 0, obj: 42 } }];
+    const { html } = render(Rail, { props: { view: v, seats, decision: null, events } });
+    const stackSection = html.slice(html.indexOf('class="stack'), html.indexOf('class="pending'));
+    expect(stackSection).toContain('data-resolved="42"');
+    expect(stackSection).toContain('just resolved');
+    expect(stackSection).toContain('Still Here'); // the tiles still on the stack render too
+    expect(stackSection.indexOf('data-resolved="42"')).toBeLessThan(stackSection.indexOf('Still Here')); // resolved at the TOP
+  });
+
+  it('with no resolve in the events, the stack section carries no resolved row', () => {
+    const { html } = render(Rail, { props: { view: baseView(), seats, decision: null } });
+    const stackSection = html.slice(html.indexOf('class="stack'), html.indexOf('class="pending'));
+    expect(stackSection).not.toContain('data-resolved');
+  });
+});
+
 describe('Rail — dead seats say why (Task 4)', () => {
   it('forwards the DVR event list down to SeatTable, which surfaces the PlayerLost cause', () => {
     const v = baseView({

@@ -1,4 +1,4 @@
-import type { CardView, EventBody, PlayerView } from '../protocol';
+import type { CardView, PlayerView, View } from '../protocol';
 import { seatCorner, type SeatCorner } from './seattable';
 
 export type Group = 'lands' | 'creatures' | 'others';
@@ -176,12 +176,31 @@ export function quadrantFor(seat: number, seats: number, viewer: number): SeatCo
  */
 export const RECENT_RESOLVE_WINDOW = 100;
 
-/** recentlyMattered is the object id of the most recent stack_resolve, for the strip, but only if that resolution sits inside the trailing RECENT_RESOLVE_WINDOW events. A resolve further back than the window returns null, so the strip clears itself instead of parking a stale card over the board's bottom centre indefinitely. */
-export function recentlyMattered(events: EventBody[]): number | null {
+/** recentlyMattered is the object id of the most recent stack_resolve, for the rail stack section's resolved-card display (the old board overlay's data path, kept), but only if that resolution sits inside the trailing RECENT_RESOLVE_WINDOW events. A resolve further back than the window returns null, so the display clears itself instead of lingering indefinitely. The parameter is structural — the display's caller (Rail) carries a widened event shape — so any object whose `event` names a kind (and optionally an obj) works. */
+export function recentlyMattered(events: { event: { kind: string; obj?: number } }[]): number | null {
   const lo = Math.max(0, events.length - RECENT_RESOLVE_WINDOW);
   for (let i = events.length - 1; i >= lo; i--) {
     const e = events[i].event;
     if (e.kind === 'stack_resolve' && e.obj) return e.obj;
   }
+  return null;
+}
+
+/** findCardAnywhere locates an object id across every visible zone of the
+ *  view: each seat's battlefield, graveyard, exile and visible hand, then
+ *  the stack. It exists for the resolved-card display — a resolved object
+ *  has already LEFT the stack by the time the view renders, so the id is
+ *  looked up where it landed. A card moved somewhere hidden (the library)
+ *  returns null, and the display simply shows nothing. Previously an
+ *  inline helper of the deleted RecentStrip; hoisted here so the display
+ *  and its tests share one implementation. */
+export function findCardAnywhere(v: View, obj: number): CardView | null {
+  for (const p of v.players) {
+    for (const list of [p.battlefield, p.graveyard, p.exile, visibleHand(p) ?? []]) {
+      const c = list.find((x) => x.id === obj);
+      if (c) return c;
+    }
+  }
+  for (const s of v.stack) if (s.card?.id === obj) return s.card;
   return null;
 }
