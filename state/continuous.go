@@ -147,6 +147,22 @@ type ContinuousEffect struct {
 	// live turn, never a mutable field.
 	MayPlayPlayerTurn bool
 
+	// AdjustLandPlays marks an additional-land-drops grant (Azusa, Lost but
+	// Seeking's "You may play two additional lands on each of your turns",
+	// Oracle of Mul Daya, Exploration): the number of EXTRA land drops the
+	// affected player gets each turn, ON TOP of the one ordinary drop
+	// (CR 305.2a reads the printed sentence as a modifier on the one-drop
+	// normal, so grants from multiple permanents SUM -- Azusa plus
+	// Exploration is three drops, never the max). Registered from an
+	// S:Mode$ Continuous static carrying a plain integer AdjustLandPlays$,
+	// alongside the Affects player spec (Affected$ You/Player); the effect
+	// is a rules-mod consulted by rules' land-play offer gates, never a
+	// CR 613 layer change -- no layer fields are read for it -- and it
+	// expires with its source permanent (CR 611.3b) through the ordinary
+	// source-on-battlefield check in active(). Zero means the effect grants
+	// no additional drop.
+	AdjustLandPlays int32
+
 	// UntilTurn is the turn number at whose END (its cleanup step) this
 	// effect expires, for a Duration$ that spans the controller's NEXT turn
 	// (UntilYourNextTurn, UntilTheEndOfYourNextTurn). Computed at

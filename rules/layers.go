@@ -144,11 +144,71 @@ func (e *Engine) staticEffects() []ContinuousEffect {
 						mp.MayPlayIgnoreColor, mp.MayPlayLimit, mp.MayPlayPlayerTurn, _ = effects.MayPlayStaticParams(st.Params)
 						out = append(out, mp)
 					}
+					// An additional-land-drops grant (Azusa, Lost but Seeking's "You
+					// may play two additional lands on each of your turns", Oracle of
+					// Mul Daya, Exploration, Icetill Explorer). Like the may-play
+					// grant it changes no characteristic, so it is NOT a layer effect
+					// and is carried as a rules-mod on the effect itself
+					// (AdjustLandPlays); rules/legal.go's land-play gates consult it
+					// through Engine.adjustLandPlays. The implemented shape is the
+					// plain one -- a literal positive integer value and only display
+					// metadata around it; the Affects spec is evaluated at the gate
+					// with MatchesPlayerSpecFrom, whose own fail-closed rule (an
+					// unhandled qualifier matches nobody) rejects the richer
+					// Affected$ forms. A richer VALUE or rider fails closed here: an
+					// AdjustLandPlays$ Unlimited/Z (Fastbond, an X-driven grant)
+					// must not silently become "one more", and an IsPresent$/
+					// Secondary$ qualifier changes when the grant lives. The explicit
+					// whitelist, rather than a blacklist of currently-known gating
+					// keys, means a newly encountered semantic parameter also fails
+					// closed. Expiry is the ordinary source-leaves rule (CR 611.3b)
+					// via active()'s battlefield scan; the turn scoping ("each of
+					// your turns") is the offer gate itself -- a play_land option is
+					// only offered to the active player in a main phase -- and the
+					// per-turn reset stays events' TurnChange LandsPlayed = 0.
+					if n, ok := adjustLandPlaysGrant(st.Params); ok {
+						al := base
+						al.AdjustLandPlays = n
+						out = append(out, al)
+					}
 				}
 			}
 		}
 	}
 	return out
+}
+
+// adjustLandPlaysGrant reports whether a Mode$ Continuous static carries the
+// additional-land-drops grant this package implements, and resolves its
+// value: a literal positive integer AdjustLandPlays$ plus only display
+// metadata (Description$), with the Affects player spec left to the gate's
+// own fail-closed evaluation. Anything else -- a non-literal value
+// (Unlimited, an SVar-driven Z), a rider that changes when the grant lives
+// (IsPresent$, Condition$, CheckSVar$, SVarCompare$, Secondary$,
+// EffectZone$) or any other semantic parameter -- fails closed so the grant
+// is never silently under- or over-applied. Iterating the params map only
+// yields a boolean, so map order never reaches an event/option/view --
+// determinism is preserved.
+func adjustLandPlaysGrant(params map[string]string) (int32, bool) {
+	raw, ok := params["AdjustLandPlays"]
+	if !ok {
+		return 0, false
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || n <= 0 {
+		// A value this build cannot price as a count (Unlimited, an SVar
+		// token) must not silently become a smaller grant.
+		return 0, false
+	}
+	for key := range params {
+		switch key {
+		case "Mode", "AdjustLandPlays", "Affected", "Description":
+			// The keys the implemented grant (and only it) carries.
+		default:
+			return 0, false
+		}
+	}
+	return int32(n), true
 }
 
 // mayPlayGrant reports whether a Mode$ Continuous static carries the
