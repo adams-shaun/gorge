@@ -49,15 +49,19 @@ import (
 // the default 'Always' behaviour — subs run regardless — is what every
 // other UnlessCost$ line gets, and is what this build does.
 
-// unlessProceed reports whether the effect's body should run for this pass.
-// Called from Resolve immediately before the dispatch, for every SA; a
-// zero-cost SA returns true with no work. On the first pass (no recorded
-// answer) it poses the pay decision and reports false for the suspended
-// pass; the answered re-entry applies the orientation.
-func unlessProceed(h Host, c *Ctx, sa *cards.SA) bool {
+// unlessProceed reports whether the effect's body should run for this pass,
+// and whether the UnlessCost$ was paid. Called from Resolve immediately
+// before the dispatch, for every SA; a zero-cost SA returns (true, false)
+// with no work. On the first pass (no recorded answer) it poses the pay
+// decision and reports (false, false) for the suspended pass; the answered
+// re-entry applies the orientation. The paid half feeds UnlessResolveSubs$
+// (Resolve gates the SubAbility$ walk on it); on every path where no cost
+// was charged — a decline, an unresolvable payer, a no-host fallback — it is
+// false.
+func unlessProceed(h Host, c *Ctx, sa *cards.SA) (bool, bool) {
 	cost := strings.TrimSpace(sa.Params["UnlessCost"])
 	if cost == "" {
-		return true
+		return true, false
 	}
 	switched := strings.EqualFold(strings.TrimSpace(sa.Params["UnlessSwitched"]), "True")
 	// The answer and payer cursor are consumed (and cleared) at the top of
@@ -73,7 +77,7 @@ func unlessProceed(h Host, c *Ctx, sa *cards.SA) bool {
 	// A paid answer is authoritative even if a re-entry fixture or nested
 	// continuation did not retain every transient payer binding from the ask.
 	if ans == "pay" {
-		return switched
+		return switched, true
 	}
 	payers, payerKnown := unlessPayerTargets(h, c, sa)
 	// A named selector whose binding is unavailable must not silently charge
@@ -82,7 +86,7 @@ func unlessProceed(h Host, c *Ctx, sa *cards.SA) bool {
 	// does not. The unqualified default remains known even when it has no
 	// target, and retains its historical controller fallback below.
 	if !payerKnown {
-		return !switched
+		return !switched, false
 	}
 	switch ans {
 	case "decline":
@@ -93,10 +97,10 @@ func unlessProceed(h Host, c *Ctx, sa *cards.SA) bool {
 		// every switched effect (the old `!poseUnlessAsk` inverted this case).
 		if idx+1 < len(payers) {
 			if poseUnlessAsk(h, c, sa, cost, payers, idx+1) {
-				return false
+				return false, false
 			}
 		}
-		return !switched
+		return !switched, false
 	}
 	// First pass: pose the pay decision to the first payer. With no
 	// resolvable payer the resolving controller is asked — the same fallback
@@ -106,11 +110,32 @@ func unlessProceed(h Host, c *Ctx, sa *cards.SA) bool {
 		payers = []state.Target{{Player: c.Controller, IsPlayer: true}}
 	}
 	if poseUnlessAsk(h, c, sa, cost, payers, 0) {
-		return false
+		return false, false
 	}
 	// No engine host means poseUnlessAsk deterministically declined. Apply
 	// exactly the same orientation as an answered decline.
-	return !switched
+	return !switched, false
+}
+
+// unlessSubsRun reports whether the SA's SubAbility$ chain resolves for the
+// pay outcome. Forge's AbilityUtils.handleUnlessCost: the value is absent
+// (the corpus default, 'Always') or WhenPaid — subs run when the cost was
+// paid — or WhenNotPaid — subs run when it was not. The 41 raw corpus lines
+// carrying the parameter were unread before this gate existed; every other
+// UnlessCost$ line keeps the default either way.
+func unlessSubsRun(sa *cards.SA, paid bool) bool {
+	switch strings.TrimSpace(sa.Params["UnlessResolveSubs"]) {
+	case "", "Always":
+		return true
+	case "WhenPaid":
+		return paid
+	case "WhenNotPaid":
+		return !paid
+	}
+	// An unknown value is the corpus default: every corpus occurrence spells
+	// one of the three above, and guessing 'always' keeps an unseen future
+	// spelling harmless rather than dropping chains.
+	return true
 }
 
 // poseUnlessAsk offers payer payers[i] the unless cost. Reports whether the

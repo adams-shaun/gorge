@@ -4,6 +4,7 @@
 package effects
 
 import (
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -449,24 +450,34 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// UnlessCost$ gate: every API with an UnlessCost$ pays (or declines)
 		// before its body runs. This is the one shared unless-cost path —
 		// the gate poses the pay decision, rules' resume arm charges the
-		// cost, and the re-entry applies the orientation. An SA whose body
-		// is skipped still walks sa.Sub (Forge's UnlessResolveSubs default
-		// 'Always').
-		if !unlessProceed(h, c, sa) {
-			if h.Suspended() {
-				// The gate posed the unless-pay ask and suspended the
-				// resolution: stop here exactly as an asking effect body
-				// would. The resume re-enters THIS SA (the ask's ResumeSA),
-				// where the gate consumes the answer and the loop walks
-				// sa.Sub — so this loop's own continuation is dropped, like
-				// any asking loop's (SuspendContinuation's innermost rule).
-				h.SuspendContinuation(sa)
+		// cost, and the re-entry applies the orientation. UnlessResolveSubs$
+		// (Forge's AbilityUtils.handleUnlessCost) then gates the SubAbility$
+		// walk on the pay outcome: absent/'Always' resolves the subs either
+		// way, WhenPaid only when the cost was paid, WhenNotPaid only when it
+		// was not. A gate that skips BOTH the body and the subs ends this
+		// SA's chain entirely — Forge returns from handleUnlessCost without
+		// resolveSubAbilities, so the enclosing chain stops here too.
+		runBody, paid := true, false
+		if strings.TrimSpace(sa.Params["UnlessCost"]) != "" {
+			runBody, paid = unlessProceed(h, c, sa)
+		}
+		if h.Suspended() {
+			// The gate posed the unless-pay ask and suspended the
+			// resolution: stop here exactly as an asking effect body
+			// would. The resume re-enters THIS SA (the ask's ResumeSA),
+			// where the gate consumes the answer and the loop walks
+			// sa.Sub — so this loop's own continuation is dropped, like
+			// any asking loop's (SuspendContinuation's innermost rule).
+			h.SuspendContinuation(sa)
+			return
+		}
+		if !runBody {
+			// The body is skipped (paid on an unswitched shape, or every
+			// payer declined on a switched one). The Sub chain walks only
+			// when UnlessResolveSubs$ says so for this pay outcome.
+			if !unlessSubsRun(sa, paid) {
 				return
 			}
-			// The body is skipped (paid on an unswitched shape, or every
-			// payer declined on a switched one) but the Sub chain still
-			// walks: Forge's UnlessResolveSubs default 'Always' resolves the
-			// subs whether the cost was paid or not.
 			continue
 		}
 		fn(h, c, sa)
@@ -489,6 +500,13 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			// outer continuations and drops this one when it is the asking
 			// loop's own level, which re-enters sa.Sub itself.
 			h.SuspendContinuation(sa)
+			return
+		}
+		// UnlessResolveSubs$ also gates the sub walk when the body RAN: Forge
+		// resolves the subs iff (paid && WhenPaid-or-default) or
+		// (!paid && WhenNotPaid-or-default), independent of the orientation —
+		// a paid unswitched body both runs AND suppresses a WhenNotPaid chain.
+		if strings.TrimSpace(sa.Params["UnlessCost"]) != "" && !unlessSubsRun(sa, paid) {
 			return
 		}
 	}
