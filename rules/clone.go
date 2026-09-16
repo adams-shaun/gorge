@@ -211,6 +211,7 @@ func (e *Engine) Clone() *Engine {
 		u.cost.Sac = append([]CostPart(nil), e.unlessPayment.cost.Sac...)
 		u.cost.Discard = append([]CostPart(nil), e.unlessPayment.cost.Discard...)
 		u.cost.SubCounter = append([]CostPart(nil), e.unlessPayment.cost.SubCounter...)
+		u.cost.Draw = append([]CostPart(nil), e.unlessPayment.cost.Draw...)
 		u.sacs = append([]state.ObjID(nil), e.unlessPayment.sacs...)
 		u.discards = append([]state.ObjID(nil), e.unlessPayment.discards...)
 		u.ctx = cloneUnlessCtx(e.unlessPayment.ctx)

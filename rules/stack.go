@@ -1193,24 +1193,33 @@ func (e *Engine) payUnlessCost(p state.PlayerID, cost Cost, ctx *effects.Ctx, st
 		}
 		drains = append(drains, counterDrain{obj: o.ID, kind: part.Spec, n: part.N})
 	}
+	// Resolve every drawer before charging mana/life. A Draw component whose
+	// role is unavailable makes the entire cost unpayable; validating first
+	// avoids a partial payment followed by a silent omitted draw.
+	drawers := make([][]state.PlayerID, len(cost.Draw))
+	for i, part := range cost.Draw {
+		players, ok := unlessDrawPlayers(ctx, p, part.Spec)
+		if !ok {
+			return false
+		}
+		for _, dp := range players {
+			if int(dp) < 0 || int(dp) >= len(g.Players) {
+				return false
+			}
+		}
+		drawers[i] = players
+	}
 	// Everything is affordable: charge mana/life through ordinary events,
-	// then apply the synchronous counter components, then the draws. A Draw
-	// component's spec names the drawer(s) (Forge's Draw<N/Player.targetedBy>
-	// and friends, Kuroki, Thief of Talents); an unresolvable spec leaves the
-	// cost unpaid — decline, never a free pass.
+	// then apply the synchronous counter components, then the draws.
 	if !e.payMana(p, cost) {
 		return false
 	}
 	for _, d := range drains {
 		e.emit(events.Event{Kind: events.CounterChange, Obj: d.obj, Counter: d.kind, Amount: -d.n})
 	}
-	for _, part := range cost.Draw {
-		players, ok := unlessDrawPlayers(ctx, p, part.Spec)
-		if !ok {
-			return false
-		}
-		for _, dp := range players {
-			for i := int32(0); i < part.N; i++ {
+	for i, part := range cost.Draw {
+		for _, dp := range drawers[i] {
+			for n := int32(0); n < part.N; n++ {
 				effects.DrawFor(e, dp)
 			}
 		}

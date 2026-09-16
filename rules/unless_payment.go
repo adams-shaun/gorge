@@ -96,6 +96,26 @@ func (e *Engine) advanceUnlessPayment() {
 		e.ask(d)
 		return
 	}
+	// Resolve every drawer before charging any component. A Draw<N/Spec> may
+	// name a role that this suspended resolution did not retain; that is an
+	// unpayable cost, not a reason to spend mana/life and then silently omit
+	// the draw. Keeping the resolved players also makes the selected-cost path
+	// use the same binding rules as payUnlessCost's no-choice path.
+	drawers := make([][]state.PlayerID, len(u.cost.Draw))
+	for i, part := range u.cost.Draw {
+		players, ok := unlessDrawPlayers(&u.ctx, u.payer, part.Spec)
+		if !ok {
+			e.finishUnlessPayment(false)
+			return
+		}
+		for _, p := range players {
+			if int(p) < 0 || int(p) >= len(e.G.Players) {
+				e.finishUnlessPayment(false)
+				return
+			}
+		}
+		drawers[i] = players
+	}
 	if !e.payMana(u.payer, u.cost) { // guarded above; retain totality if state changes.
 		e.finishUnlessPayment(false)
 		return
@@ -112,6 +132,13 @@ func (e *Engine) advanceUnlessPayment() {
 	}
 	for _, part := range u.cost.SubCounter {
 		e.emit(events.Event{Kind: events.CounterChange, Obj: src, Counter: part.Spec, Amount: -part.N})
+	}
+	for i, part := range u.cost.Draw {
+		for _, p := range drawers[i] {
+			for n := int32(0); n < part.N; n++ {
+				effects.DrawFor(e, p)
+			}
+		}
 	}
 	e.finishUnlessPayment(true)
 }

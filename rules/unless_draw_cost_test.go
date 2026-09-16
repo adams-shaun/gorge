@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -18,9 +19,14 @@ import (
 // UnlessSwitched$ True — paying CAUSES the reveal/cast body, and the payer
 // is the player the ability targeted.
 
-// driveKurokiTrig fires Kuroki's real end-step trigger through the ordinary
-// trigger path (TriggerPush, placement target ask), with Kuroki controlled by
-// seat 0. It returns once the unless-pay ask is pending.
+// driveKurokiTrig fires Kuroki's real TrigReveal by seeding the ordinary
+// stack events — the trigger pushed for seat 0, its target bound to the
+// targeted opponent (seat 1) — the same way
+// TestUnlessCostTresserhornPaysSacLifeAndDraw drives its carrier. The
+// trigger is not reached through Phase$ matching: this build's Phase$
+// matcher only admits spellings that are substrings of the hyphenated step
+// name, so TrigReveal's "End of Turn" (927 corpus trigger lines) stays a
+// documented approximation and the test does not depend on it.
 func driveKurokiTrig(t *testing.T) (*Engine, state.ObjID) {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
@@ -30,23 +36,11 @@ func driveKurokiTrig(t *testing.T) (*Engine, state.ObjID) {
 	if sa == nil || sa.Params["UnlessPayer"] != "Player.targetedBy" || sa.Params["UnlessCost"] != "Draw<4/Player.targetedBy>" {
 		t.Fatalf("Kuroki TrigReveal = %+v, want the targeted unless-draw shape", sa)
 	}
-	// Fire the trigger the way a real turn does: drive to Kuroki
-	// controller's end step, where "At the beginning of your end step"
-	// fires and the placement target ask appears.
-	driveToStep(t, e, e.G.Turn, 0, state.StepEnd)
-	e.putTriggersOnStack()
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KTarget || d.Player != 0 {
-		t.Fatalf("pending = %+v, want the placement target ask", d)
-	}
-	for _, o := range d.Options {
-		if o.Kind == "player" && o.Player == 1 {
-			submitChoices(t, e, o.Index)
-			break
-		}
-	}
-	// The placed ability resolves only after the priority rounds end.
-	if d := passUntilNonPriority(t, e, 8); d == nil || d.ResumeKind != "unless_pay" || d.Player != 1 {
+	e.emit(events.Event{Kind: events.TriggerPush, Obj: kuroki, Player: 0, Amount: 0})
+	ability := e.G.Stack[len(e.G.Stack)-1]
+	e.emit(events.Event{Kind: events.TargetsChosen, Obj: ability, Player: 1, Amount: 1})
+	e.resolveTop()
+	if d := e.Pending(); d == nil || d.ResumeKind != "unless_pay" || d.Player != 1 {
 		t.Fatalf("pending = %+v, want the unless-pay ask for seat 1", d)
 	}
 	return e, kuroki
@@ -83,6 +77,70 @@ func TestUnlessDrawCostKurokiDecline(t *testing.T) {
 	answerUnlessPay(t, e, false)
 	if got := countDraw(e) - before; got != 0 {
 		t.Fatalf("decline drew %d cards, want 0", got)
+	}
+}
+
+// TestUnlessCostTresserhornPaysSacLifeAndDraw exercises the selected-cost
+// continuation on Tresserhorn's Lord, Returned: its controller must
+// sacrifice three creatures, pay 3 life, and have its targeted opponent
+// draw three cards. All three cost components must happen before Forge's
+// switched Sacrifice body resolves.
+func TestUnlessCostTresserhornPaysSacLifeAndDraw(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := stealEngine(t, 742)
+	lord := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Tresserhorn's Lord, Returned"))
+	creatures := []state.ObjID{
+		onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Grizzly Bears")),
+		onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Goblin Piledriver")),
+		onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Grizzly Bears")),
+	}
+	life := e.G.Players[0].Life
+
+	// Forge spells this carrier as ValidTarget$ rather than ValidTgts$, so
+	// target offering is a separate gap. Seed the ordinary stack target event
+	// to exercise the real corpus SA with the target binding it requires.
+	e.emit(events.Event{Kind: events.TriggerPush, Obj: lord, Player: 0, Amount: 0})
+	ability := e.G.Stack[len(e.G.Stack)-1]
+	e.emit(events.Event{Kind: events.TargetsChosen, Obj: ability, Player: 1, Amount: 1})
+	e.resolveTop()
+	answerUnlessPay(t, e, true)
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "unless_cost" || d.Min != 3 || d.Max != 3 {
+		t.Fatalf("pending = %+v, want exact three-creature cost choice", d)
+	}
+	choices := make([]int, 0, len(creatures))
+	for _, want := range creatures {
+		found := -1
+		for _, o := range d.Options {
+			if o.Obj == want {
+				found = o.Index
+			}
+		}
+		if found < 0 {
+			t.Fatalf("creature %d absent from sacrifice-cost options: %+v", want, d.Options)
+		}
+		choices = append(choices, found)
+	}
+	before := countDraw(e)
+	submitChoices(t, e, choices...)
+
+	for _, id := range creatures {
+		if got := e.G.Obj(id).Zone; got != state.ZGraveyard {
+			t.Fatalf("cost creature %d zone = %v, want graveyard", id, got)
+		}
+	}
+	if got := e.G.Players[0].Life; got != life-3 {
+		t.Fatalf("payer life = %d, want %d", got, life-3)
+	}
+	if got := countDraw(e) - before; got != 3 {
+		t.Fatalf("targeted opponent drew %d cards, want 3", got)
+	}
+	// Forge's handleUnlessCost resolves the main body when paid ==
+	// UnlessSwitched, so this script's switched Sacrifice body still puts the
+	// Lord in the graveyard after the compound cost is paid.
+	if got := e.G.Obj(lord).Zone; got != state.ZGraveyard {
+		t.Fatalf("Lord zone = %v, want graveyard after the switched paid cost", got)
 	}
 }
 
