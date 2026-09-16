@@ -88,6 +88,16 @@ type resumePoint struct {
 	// target is Dig's index into its deterministic Defined$ target list. It
 	// keeps a resumed answer attached to the library that actually asked.
 	target int
+	// rolls is the per-die results of the RollDice ask whose answer this
+	// point resumes (effects/dice.go's ChosenSVar$/OtherSVar$ choose-one-
+	// result shape, the Endeavor cycle): the asking first pass carried them
+	// on the decision (decision.Decision.Rolls), Ask copies them here, and
+	// the "roll" arm hands them to the re-entered effect, which publishes
+	// the chosen/other sums WITHOUT re-rolling -- a re-roll would both
+	// re-draw the seeded generator and answer a different question. Plain
+	// value data, cloned with the point; a replay re-derives the same rolls
+	// from the same seeded draws. Nil for every other ask.
+	rolls []int32
 }
 
 // Ask implements effects.Host.Ask (rules' side of the interface, and the
@@ -116,7 +126,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 	// comment and resumeResolution's restore of it.
 	e.resume = &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA,
 		replacement: e.applyingReplacement, replaced: e.replReplaced, before: e.triggerBefore,
-		target: d.ResumeTarget}
+		target: d.ResumeTarget, rolls: d.Rolls}
 	return true
 }
 
@@ -388,6 +398,21 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 			ctx.DigDone = true
 			ctx.DigTarget = rp.target
+		case "roll":
+			// A RollDice choose-one-result answer (effects/dice.go's
+			// ChosenSVar$/OtherSVar$ shape, the Endeavor cycle): the chosen
+			// options' Index values name the dice (into the ask's own per-die
+			// results, rp.rolls) the player picked. The re-entered effRollDice
+			// publishes ChosenSVar$ = the sum of the picked dice's results,
+			// OtherSVar$ = the sum of the rest, and consumes and clears all
+			// three Ctx fields at its top (the fx42 scoping discipline).
+			ctx.RollResults = rp.rolls
+			pick := make([]int, 0, len(chosen))
+			for _, o := range chosen {
+				pick = append(pick, o.Index)
+			}
+			ctx.RollPick = pick
+			ctx.RollDone = true
 		case "arrange":
 			// Ruling J0: rules' handleArrange already applied the answered
 			// arrangement and emitted the LibraryOrder event before calling

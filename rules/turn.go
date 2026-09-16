@@ -509,12 +509,14 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.handleStation(e.stationing, chosen)
 		return
 	}
-	// A hidden-library ChangeZone and a Dig look-and-take use KChoose's
-	// ordinary ordered subset wire shape, but they are mid-resolution effect
-	// asks rather than one of the cast/cleanup flows tracked by e.choosing.
-	// Resume them before dispatching those flows; an empty chosen slice is
-	// the legitimate "fail to find" / Optional-decline answer.
-	if e.resume != nil && (e.resume.kind == "search" || e.resume.kind == "dig") {
+	// A hidden-library ChangeZone, a Dig look-and-take, and a RollDice
+	// choose-one-result use KChoose's ordinary ordered-subset wire shape, but
+	// they are mid-resolution effect asks rather than one of the cast/cleanup
+	// flows tracked by e.choosing. Resume them before dispatching those
+	// flows; an empty chosen slice is the legitimate "fail to find" /
+	// Optional-decline answer (for "roll" a malformed empty answer falls
+	// back to the first die inside the effect).
+	if e.resume != nil && (e.resume.kind == "search" || e.resume.kind == "dig" || e.resume.kind == "roll") {
 		rp := e.resume
 		e.resume = nil
 		e.resumeResolution(rp, chosen)

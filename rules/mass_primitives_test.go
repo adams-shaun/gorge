@@ -1172,3 +1172,117 @@ func TestIllegalCommanderConfigurationIsRejected(t *testing.T) {
 		})
 	}
 }
+
+// TestValiantEndeavorEngineLevelChooseOneResult drives the RollDice
+// choose-one-result ask (ChosenSVar$/OtherSVar$, real corpus Valiant
+// Endeavor) through the REAL engine: the two-die roll suspends mid-
+// resolution on a Min==Max==1 KChoose whose per-die results ride the
+// decision, the answered pick (the SECOND die, proving the answer and not a
+// first-option default drives the outcome) resumes through rules'
+// "roll" arm, and the chained DestroyAll reads the chosen result through the
+// published name (Creature.powerGEX) while the chained Token reads the other
+// (TokenAmount$ Y).
+func TestValiantEndeavorEngineLevelChooseOneResult(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := corpusEngine(t, reg,
+		[]*cards.Card{lookup(t, reg, "Valiant Endeavor"), lookup(t, reg, "Llanowar Elves"),
+			lookup(t, reg, "Grizzly Bears"), lookup(t, reg, "Craw Wurm")},
+		[]*cards.Card{})
+	moveByName(t, e, 0, "Valiant Endeavor", state.ZHand)
+	moveByName(t, e, 0, "Llanowar Elves", state.ZBattlefield)
+	moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	moveByName(t, e, 0, "Craw Wurm", state.ZBattlefield)
+	addMana(t, e, 0, "WWWWWW")
+	e.priorityRound()
+	castNamed(t, e, "Valiant Endeavor")
+
+	// Drain priority until the roll ask is pending.
+	var d *decision.Decision
+	for i := 0; i < 50; i++ {
+		p := e.Pending()
+		if p == nil {
+			continue
+		}
+		if p.Kind == decision.KChoose && p.ResumeKind == "roll" {
+			d = p
+			break
+		}
+		if p.Kind == decision.KPriority {
+			idx := -1
+			for _, o := range p.Options {
+				if o.Kind == "pass" {
+					idx = o.Index
+				}
+			}
+			if idx < 0 {
+				t.Fatalf("priority decision with no pass option: %+v", p)
+			}
+			if err := e.Submit(decision.Intent{Seq: p.Seq, Player: p.Player, Choices: []int{idx}}); err != nil {
+				t.Fatalf("submit pass: %v", err)
+			}
+			continue
+		}
+		t.Fatalf("unexpected non-priority decision while waiting for the roll ask: %+v", p)
+	}
+	if d == nil {
+		t.Fatal("no roll KChoose decision after the cast resolved")
+	}
+	if d.Player != 0 || d.Min != 1 || d.Max != 1 || len(d.Rolls) != 2 {
+		t.Fatalf("roll decision = %+v, want Min==Max==1 for seat 0 with two rolls", d)
+	}
+
+	// The creatures and their powers, captured before the answer resolves.
+	type vic struct {
+		name  string
+		power int
+	}
+	var victims []vic
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		o := e.G.Obj(id)
+		if o != nil && o.Face().IsCreature() {
+			victims = append(victims, vic{o.Face().Name, o.Face().Power()})
+		}
+	}
+	if len(victims) != 3 {
+		t.Fatalf("want three creature victims, got %v", victims)
+	}
+
+	// Answer: pick the SECOND die, so a first-option default cannot fake this.
+	chosen := d.Rolls[d.Options[1].Index]
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[1].Index}}); err != nil {
+		t.Fatalf("submit roll pick: %v", err)
+	}
+	other := d.Rolls[0]
+	for _, v := range victims {
+		o := findObjByName(t, e, v.name)
+		shouldBeDead := v.power >= int(chosen)
+		if shouldBeDead && o.Zone == state.ZBattlefield {
+			t.Fatalf("%s (power %d) survived a chosen roll of %d", v.name, v.power, chosen)
+		}
+		if !shouldBeDead && o.Zone != state.ZBattlefield {
+			t.Fatalf("%s (power %d) died but is below the chosen roll of %d", v.name, v.power, chosen)
+		}
+	}
+	knights := 0
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		o := e.G.Obj(id)
+		if o != nil && o.IsToken && o.Face() != nil && strings.Contains(o.Face().Name, "Knight") {
+			knights++
+		}
+	}
+	if knights != int(other) {
+		t.Fatalf("%d Knight tokens created, want %d (the other rolled result)", knights, other)
+	}
+}
+
+// findObjByName returns the object whose face is named name, in any zone.
+func findObjByName(t *testing.T, e *Engine, name string) *state.Object {
+	t.Helper()
+	for i := range e.G.Objs {
+		if o := &e.G.Objs[i]; o.Face() != nil && o.Face().Name == name {
+			return o
+		}
+	}
+	t.Fatalf("no object named %q", name)
+	return nil
+}

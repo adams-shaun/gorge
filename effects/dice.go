@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 )
 
@@ -129,30 +130,71 @@ func parseDieRanges(v string) []dieRange {
 // Sides$ sides (default 6, the corpus's unmarked "roll a die"), through the
 // engine's seeded generator -- the one randomness channel a replay can
 // reproduce. The result is recorded as a Note (the transcript's die roll) and
-// published two ways for the chained SubAbility$:
+// published for the chained SubAbility$ under the names the parameters
+// designate. Every publication lands in Ctx.RollPubs (and the primary one
+// mirrors into LastRoll/LastRollName), read through rollPublished by Num's
+// bare-name fallback, evalCountExpr's SVar$ head and a bare-name body, and
+// Ctx.SpecContext's numeric-RHS resolver:
 //
-//   - ResultSubAbilities$: the "lo-hi:name,n:name,Else:name" range table; the
-//     FIRST entry whose range contains the result has its SVar resolved and
-//     run. Name Sticker Goblin's "1-6:...,7-14:...,15-20:..." is exactly this
-//     shape.
-//   - ResultSVar$: the result is stored on the resolution under the SVar name
-//     the parameter names, so a chained SVar body can read it
-//     ("SVar:X:SVar$Result/Minus.1", Velukan Dragon) and a ConditionCheckSVar$
-//     can compare it (Kharis & The Beholder). The name "X" additionally
-//     becomes the resolution's own {X} value, which is how a sub's Num$
-//     X/NumCards$ X parameter reads the roll. Any other name is stored for the
-//     SVar$ head alone.
+//   - ResultSVar$: the "SVar$<name>" indirection. ONE die publishes that
+//     die's own result (Velukan Dragon's "SVar:X:SVar$Result/Minus.1" between
+//     rolls and any ConditionCheckSVar$); several dice publish the TOTAL of
+//     their results, which is exactly how the corpus's multi-roll readers
+//     read it -- Neverwinter Hydra "a number of +1/+1 counters on it equal to
+//     the total of those results", Pair o' Dice Lost "total mana value X or
+//     less ... where X is the total of those results" -- and Spark Fiend's
+//     StoreSVar Expression$ Result reads the same total through the
+//     bare-name body path. The r2 review's truncation is gone: multi-roll
+//     resolutions publish.
+//   - UseDifferenceBetweenRolls$ True (5 corpus lines, all two dice -- the
+//     Ungencoded CrankContraption family, Boomflinger et al.): publishes
+//     |die1 - die2| instead of the total, so "damage ... equal to the
+//     difference between those results" (NumDmg$ Result) and
+//     TokenAmount$/Amount$ Result read the difference.
+//   - ChosenSVar$ / OtherSVar$ (5 corpus lines, the Endeavor cycle, all two
+//     dice): the controller CHOOSES one of the rolled results -- a real
+//     KChoose (Min == Max == 1, one "roll" option per die in roll order),
+//     answered through ResumeKind "roll" with the per-die results carried on
+//     the decision (decision.Decision.Rolls) and the rules resume point, so
+//     the re-entry publishes ChosenSVar$ = the picked die's result and
+//     OtherSVar$ = the unpicked one's (sums, so the shape generalises past
+//     two dice) without re-rolling. A host that cannot ask (the fuzz
+//     stand-in, R-9) and botpolicy's clamp fallback both keep the FIRST die
+//     -- deterministic and non-wedging. A single-die ChosenSVar$ needs no
+//     ask: that die is the chosen result.
+//   - MaxRollsResults$ True / EvenOddResults$ True (Luck Bobblehead):
+//     publish "MaxRolls" (the count of results equal to the die's maximum,
+//     sides+modifier -- "If you rolled 6 exactly seven times") and
+//     "EvenResults"/"OddResults" (the counts of even/odd results -- the
+//     "create a Treasure token for each even result" sub reads
+//     SVar$EvenResults through the ordinary SVar$ indirection).
 //
 // Amount$ (24 lines: "roll X dice" shapes) rolls that many dice and runs the
 // range table once PER DIE (each die's own result matched independently --
 // the reading "create a Treasure for each even result" needs), with a Note per
-// roll; ResultSVar$ with multiple dice stores only the LAST die's result
-// (every corpus multi-die line uses range tables, never ResultSVar$, so
-// nothing real is lost). Modifier$ is added to every roll through the same
-// Num/SVar evaluator that reads Sides$ and Amount$ (Wyll's Reversal and Danse
-// Macabre's Y, Song of Inspiration's X). The unmodified die remains the only
-// random draw; the modified result selects ResultSubAbilities$ ranges.
+// roll. Modifier$ is added to every roll through the same Num/SVar evaluator
+// that reads Sides$ and Amount$ (Wyll's Reversal and Danse Macabre's Y, Song
+// of Inspiration's X); the modified result is what ranges match and what
+// every publication totals. The unmodified die remains the only random draw.
+//
+// maxDiceRolls bounds a computed Amount$: the roll loop is O(rolls) (one
+// seeded draw, one Note, one range match per die) and every real population
+// is far below the bound (max literal 5; Luck Bobblehead's computed
+// Count$Valid Card.Bobblehead+YouCtrl is bounded by the board), so 256 --
+// twice the 100-card deck maximum, headroom for a token board -- can never
+// truncate a reachable game state. The old cap of 20 DID truncate exactly
+// that card (the r2 review's finding); it is gone.
+const maxDiceRolls = 256
+
 func effRollDice(h Host, c *Ctx, sa *cards.SA) {
+	// fx42 scoping: capture and clear the answered choose-one-result BEFORE
+	// anything else, so a nested RollDice below this walk poses its own ask
+	// instead of inheriting the outer answer.
+	rolls := c.RollResults
+	pick := c.RollPick
+	done := c.RollDone
+	c.RollResults, c.RollPick, c.RollDone = nil, nil, false
+
 	sides := Num(h, c, sa, "Sides", 6)
 	if sides <= 0 {
 		sides = 6
@@ -161,19 +203,73 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 	if amount < 1 {
 		amount = 1
 	}
-	if amount > 20 {
-		// A computed absurdity (Amount$ X with a huge paid X) must not spin
-		// the resolution; 20 is far past every corpus shape (max literal 5).
-		amount = 20
+	if amount > maxDiceRolls {
+		amount = maxDiceRolls
 	}
 	modifier := Num(h, c, sa, "Modifier", 0)
+	chosenName := strings.TrimSpace(sa.Params["ChosenSVar"])
+	otherName := strings.TrimSpace(sa.Params["OtherSVar"])
+
+	publish := func(name string, v int32) {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			return
+		}
+		c.RollPubs = append(c.RollPubs, RollPub{Name: name, Value: v})
+		if name == "X" {
+			c.X = v
+		}
+	}
+
+	if done {
+		// Re-entry: the choose-one-result answer arrived. The chosen options'
+		// Index values name the dice (into `rolls`, the per-die results the
+		// asking first pass carried on the decision) the player picked; the
+		// chosen value is the sum of the picked dice's results, the other
+		// value the sum of the rest -- for the corpus's two-die Endeavor
+		// cycle that is exactly "one result" and "the other result".
+		chosenSum, otherSum, picked := int32(0), int32(0), 0
+		isPicked := func(i int) bool {
+			for _, idx := range pick {
+				if idx == i {
+					return true
+				}
+			}
+			return false
+		}
+		for i, r := range rolls {
+			if isPicked(i) {
+				chosenSum += r
+				picked++
+			} else {
+				otherSum += r
+			}
+		}
+		if picked == 0 && len(rolls) > 0 {
+			// A malformed or empty answer picks nothing: the first die stands
+			// in (deterministically, the same die the R-9 and clamp fallbacks
+			// keep) rather than publishing a chosen value no real choice
+			// could produce.
+			chosenSum, otherSum = rolls[0], 0
+			for _, r := range rolls[1:] {
+				otherSum += r
+			}
+		}
+		publish(chosenName, chosenSum)
+		publish(otherName, otherSum)
+		if chosenName != "" {
+			c.LastRoll, c.LastRollName = chosenSum, chosenName
+		}
+		return
+	}
+
+	// First pass: roll the dice.
+	dice := make([]int32, 0, amount)
 	ranges := parseDieRanges(sa.Params["ResultSubAbilities"])
-	name := sa.Params["ResultSVar"]
-	var last int32
 	for i := int32(0); i < amount; i++ {
 		die := int32(h.Rand(int(sides))) + 1
 		result := die + modifier
-		last = result
+		dice = append(dice, result)
 		text := "rolls a d" + strconv.FormatInt(int64(sides), 10) + ": " + strconv.FormatInt(int64(die), 10)
 		if modifier != 0 {
 			text += " + " + strconv.FormatInt(int64(modifier), 10) + " = " + strconv.FormatInt(int64(result), 10)
@@ -206,11 +302,110 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
-	if name != "" && amount == 1 {
-		c.LastRoll = last
-		c.LastRollName = name
-		if name == "X" {
-			c.X = last
+
+	// Primary result publication (ResultSVar$): one die's own result, the
+	// total of several, or the two-die difference.
+	total := int32(0)
+	for _, r := range dice {
+		total += r
+	}
+	pub := total
+	if strings.EqualFold(sa.Params["UseDifferenceBetweenRolls"], "True") && len(dice) == 2 {
+		pub = dice[0] - dice[1]
+		if pub < 0 {
+			pub = -pub
 		}
 	}
+	resultName := strings.TrimSpace(sa.Params["ResultSVar"])
+	if resultName != "" {
+		c.LastRoll, c.LastRollName = pub, resultName
+		publish(resultName, pub)
+	}
+	// MaxRollsResults$ / EvenOddResults$ (Luck Bobblehead): the counts a
+	// chained sub reads back through the published names.
+	if sa.Params["MaxRollsResults"] == "True" {
+		maxResult := sides + modifier
+		n := int32(0)
+		for _, r := range dice {
+			if r == maxResult {
+				n++
+			}
+		}
+		publish("MaxRolls", n)
+	}
+	if sa.Params["EvenOddResults"] == "True" {
+		even, odd := int32(0), int32(0)
+		for _, r := range dice {
+			if r%2 == 0 {
+				even++
+			} else {
+				odd++
+			}
+		}
+		publish("EvenResults", even)
+		publish("OddResults", odd)
+	}
+
+	// The choose-one-result ask (ChosenSVar$/OtherSVar$, the Endeavor
+	// cycle): one die of the rolled set becomes the chosen result, the rest
+	// the other. Exactly one die is chosen (Min == Max == 1), one "roll"
+	// option per die in roll order, answered through ResumeKind "roll" with
+	// the per-die results carried on the decision for the resume.
+	if chosenName != "" && len(dice) > 1 {
+		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+			Min:        1,
+			Max:        1,
+			Source:     c.Source,
+			ResumeKind: "roll",
+			ResumeSA:   sa,
+			Rolls:      append([]int32(nil), dice...),
+			Prompt:     "Choose one rolled result"}
+		for i, r := range dice {
+			d.Options = append(d.Options, decision.Option{Index: i,
+				Kind: "roll", Label: "die " + strconv.Itoa(i+1) + ": result " + strconv.FormatInt(int64(r), 10),
+				Player: c.Controller})
+		}
+		if h.Ask(d) {
+			return // resolution suspended; the answer re-enters with Ctx.RollResults/RollPick set.
+		}
+		// Fuzz/no-engine host (R-9): the deterministic stand-in keeps the
+		// first die -- the exact option botpolicy's clamp fallback takes.
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "keeps the first rolled result (no engine host to ask)"})
+		other := int32(0)
+		for _, r := range dice[1:] {
+			other += r
+		}
+		publish(chosenName, dice[0])
+		publish(otherName, other)
+		c.LastRoll, c.LastRollName = dice[0], chosenName
+		return
+	}
+	if chosenName != "" && len(dice) == 1 {
+		// A single-die choose is vacuous: that die is the chosen result; the
+		// other value has no die to name and publishes nothing.
+		publish(chosenName, dice[0])
+		c.LastRoll, c.LastRollName = dice[0], chosenName
+	}
+}
+
+// rollPublished reports the value a DB$ RollDice of this resolution
+// published under name: the primary ResultSVar$ slot (LastRollName/LastRoll)
+// or one of the Ctx.RollPubs entries (ChosenSVar$/OtherSVar$ and the
+// MaxRollsResults$/EvenOddResults$ counts). ok=false on any resolution that
+// rolled nothing or published no such name -- the conservative same-as-before
+// degrade every unmodelled head applies.
+func rollPublished(c *Ctx, name string) (int32, bool) {
+	if c == nil {
+		return 0, false
+	}
+	if c.LastRollName != "" && c.LastRollName == name {
+		return c.LastRoll, true
+	}
+	for _, p := range c.RollPubs {
+		if p.Name == name {
+			return p.Value, true
+		}
+	}
+	return 0, false
 }

@@ -287,6 +287,16 @@ type Decision struct {
 	ResumeSA     *cards.SA `json:"-"`
 	ResumeModes  []string  `json:"-"`
 	ResumeTarget int       `json:"-"`
+	// Rolls is engine-internal context for the one KChoose that asks a
+	// player to choose among ALREADY-ROLLED dice (effects/dice.go's
+	// ChosenSVar$/OtherSVar$ shape, the Endeavor cycle): the per-die results
+	// the asking first pass rolled, in roll order, so a rules-side resume
+	// point can carry them across the suspension and publish chosen/other
+	// without re-rolling (a re-roll would both re-draw the seeded generator
+	// and make the choice answer a different question). Each "roll" option's
+	// Index names a slot in this slice. Server-side only (json:"-"): a
+	// replay re-derives the same rolls from the same seeded draws.
+	Rolls []int32 `json:"-"`
 }
 
 // New is a convenience constructor that fills a Decision's Player, Kind,
