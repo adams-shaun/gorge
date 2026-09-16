@@ -573,159 +573,159 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 						}
 					}
 				}
-					// A "from anywhere" graveyard trigger is NOT a leaves-the-
-					// battlefield trigger (CR 603.6c), even when this particular
-					// move happens to leave the battlefield. Only the explicit
-					// battlefield-origin shape looks back; destination triggers
-					// still use the post-event source/zone in the live walk.
-					looksBack := t.Mode == "ChangesZone" && t.Params["Origin"] == "Battlefield"
-					if split && looksBack != leaving {
-						continue
-					}
-					// CR 603.8 state trigger: its condition is checked against the
-					// current state, not against the event under test, and it fires
-					// at most once per outstanding instance. A trigger that already
-					// has an instance queued or on the stack does not re-fire, so a
-					// condition that stays true cannot enqueue an unbounded run
-					// (the concise standing caveat against naively re-firing Always
-					// on every bookkeeping event).
-					if t.Mode == "Always" && e.stateTriggerOutstanding(id, ti) {
-						continue
-					}
-					if !observer.triggerMatches(t, id, ev, objLKI) {
-						continue
-					}
-					if (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce") && ev.Amount <= 0 {
-						continue
-					}
-					key := triggerKey{Source: id, Idx: ti, Face: fc.faceIdx}
-					if e.triggerFireCount == nil {
-						e.triggerFireCount = map[triggerKey]int32{}
-					}
-					if e.triggerFireCount[key] >= maxTriggerFires {
-						continue // cascade bound: see maxTriggerFires.
-					}
-					if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
-						continue // ActivationLimit$: already triggered enough this turn.
-					}
-					if t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" {
-						// The "Once" gate latches once per DAMAGE BATCH, not per turn
-						// (CR 510.4; Forge PhaseHandler.dealAssignedDamage fires
-						// triggerDamageDoneOnce once per damage step, and one
-						// dealDamage call's damage per batch): a double striker's
-						// bearer triggers Jitte twice (two damage steps), and two
-						// separate damage events in one turn trigger an Enrage creature
-						// twice -- while two blockers hitting back at the same creature
-						// in ONE batch trigger it once, with the referent carrying the
-						// batch's accumulated total. Within an open batch the entry
-						// below IS the latch (a second matching event accumulates into
-						// it); no batch open means every Damage event is its own batch,
-						// so there is nothing to latch across and the trigger fires per
-						// event with its own event amount already the batch total.
-						// Non-positive amounts (the negative-amount Damage events the
-						// cleanup/regeneration repair paths emit to clear marked
-						// damage) are not damage and never latch or queue a Once
-						// trigger.
-						if ev.Amount > 0 {
-							bk := damageBatchKey{triggerKey: key, dealt: t.Mode == "DamageDealtOnce"}
-							if bk.dealt {
-								// Combat identifies the actual attacker/blocker in damaging;
-								// an effect batch's shared source is its published override
-								// or its resolving stack object otherwise. A watcher can
-								// match several sources in one batch, so never collapse
-								// non-combat sources onto ObjID zero. Same priority order as
-								// the ValidSource$ match above: an explicit override always
-								// wins, e.damaging is combat-only, damageSource is the
-								// non-combat fallback.
-								bk.obj = e.dmgSrcOverride
-								if bk.obj == 0 {
-									if e.combatDamaging {
-										bk.obj = e.damaging
-									} else {
-										bk.obj = e.damageSource()
-									}
+				// A "from anywhere" graveyard trigger is NOT a leaves-the-
+				// battlefield trigger (CR 603.6c), even when this particular
+				// move happens to leave the battlefield. Only the explicit
+				// battlefield-origin shape looks back; destination triggers
+				// still use the post-event source/zone in the live walk.
+				looksBack := t.Mode == "ChangesZone" && t.Params["Origin"] == "Battlefield"
+				if split && looksBack != leaving {
+					continue
+				}
+				// CR 603.8 state trigger: its condition is checked against the
+				// current state, not against the event under test, and it fires
+				// at most once per outstanding instance. A trigger that already
+				// has an instance queued or on the stack does not re-fire, so a
+				// condition that stays true cannot enqueue an unbounded run
+				// (the concise standing caveat against naively re-firing Always
+				// on every bookkeeping event).
+				if t.Mode == "Always" && e.stateTriggerOutstanding(id, ti) {
+					continue
+				}
+				if !observer.triggerMatches(t, id, ev, objLKI) {
+					continue
+				}
+				if (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce") && ev.Amount <= 0 {
+					continue
+				}
+				key := triggerKey{Source: id, Idx: ti, Face: fc.faceIdx}
+				if e.triggerFireCount == nil {
+					e.triggerFireCount = map[triggerKey]int32{}
+				}
+				if e.triggerFireCount[key] >= maxTriggerFires {
+					continue // cascade bound: see maxTriggerFires.
+				}
+				if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
+					continue // ActivationLimit$: already triggered enough this turn.
+				}
+				if t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" {
+					// The "Once" gate latches once per DAMAGE BATCH, not per turn
+					// (CR 510.4; Forge PhaseHandler.dealAssignedDamage fires
+					// triggerDamageDoneOnce once per damage step, and one
+					// dealDamage call's damage per batch): a double striker's
+					// bearer triggers Jitte twice (two damage steps), and two
+					// separate damage events in one turn trigger an Enrage creature
+					// twice -- while two blockers hitting back at the same creature
+					// in ONE batch trigger it once, with the referent carrying the
+					// batch's accumulated total. Within an open batch the entry
+					// below IS the latch (a second matching event accumulates into
+					// it); no batch open means every Damage event is its own batch,
+					// so there is nothing to latch across and the trigger fires per
+					// event with its own event amount already the batch total.
+					// Non-positive amounts (the negative-amount Damage events the
+					// cleanup/regeneration repair paths emit to clear marked
+					// damage) are not damage and never latch or queue a Once
+					// trigger.
+					if ev.Amount > 0 {
+						bk := damageBatchKey{triggerKey: key, dealt: t.Mode == "DamageDealtOnce"}
+						if bk.dealt {
+							// Combat identifies the actual attacker/blocker in damaging;
+							// an effect batch's shared source is its published override
+							// or its resolving stack object otherwise. A watcher can
+							// match several sources in one batch, so never collapse
+							// non-combat sources onto ObjID zero. Same priority order as
+							// the ValidSource$ match above: an explicit override always
+							// wins, e.damaging is combat-only, damageSource is the
+							// non-combat fallback.
+							bk.obj = e.dmgSrcOverride
+							if bk.obj == 0 {
+								if e.combatDamaging {
+									bk.obj = e.damaging
+								} else {
+									bk.obj = e.damageSource()
 								}
-							} else if ev.Obj != 0 {
-								bk.obj = ev.Obj
-							} else {
-								bk.player = ev.Player
 							}
-							if e.damageBatchOpen {
-								if e.damageBatchIdx == nil {
-									e.damageBatchIdx = map[damageBatchKey]int{}
-								}
-								if entIdx, ok := e.damageBatchIdx[bk]; ok {
-									e.damageBatchLog[entIdx].amount += ev.Amount
-									continue // already queued once for this batch and referent.
-								}
-								e.damageBatchIdx[bk] = len(e.damageBatchLog)
-								e.damageBatchLog = append(e.damageBatchLog, damageBatchEntry{
-									key: bk, idx: len(e.pendingTriggers), amount: ev.Amount,
-								})
-								// Fall through: the trigger queues now, at the same point
-								// in the stream it queued at before this gate was
-								// batch-scoped; closeDamageBatch patches its referent
-								// amount to the batch total.
+						} else if ev.Obj != 0 {
+							bk.obj = ev.Obj
+						} else {
+							bk.player = ev.Player
+						}
+						if e.damageBatchOpen {
+							if e.damageBatchIdx == nil {
+								e.damageBatchIdx = map[damageBatchKey]int{}
 							}
+							if entIdx, ok := e.damageBatchIdx[bk]; ok {
+								e.damageBatchLog[entIdx].amount += ev.Amount
+								continue // already queued once for this batch and referent.
+							}
+							e.damageBatchIdx[bk] = len(e.damageBatchLog)
+							e.damageBatchLog = append(e.damageBatchLog, damageBatchEntry{
+								key: bk, idx: len(e.pendingTriggers), amount: ev.Amount,
+							})
+							// Fall through: the trigger queues now, at the same point
+							// in the stream it queued at before this gate was
+							// batch-scoped; closeDamageBatch patches its referent
+							// amount to the batch total.
 						}
 					}
-					e.triggerFireCount[key]++
-					if t.Effect == nil {
-						// Execute$ named an SVar this face never defined (or one
-						// that failed to parse): the trigger matched, but there is
-						// nothing to run.
-						continue
-					}
-					// CR 603.3a/603.10a: a leaves-the-battlefield ability's source
-					// is controlled by whoever controlled it as it left, not by the
-					// owner the move has since reset it to (a stolen creature's own
-					// dies trigger belongs to the player who stole it).
-					controller := o.Controller
-					if objLKI != nil && id == ev.Obj && leftBattlefield(ev) {
-						controller = objLKI.Controller
-					}
-					// The non-active face of an unlocked Room must be minted through
-					// the delayed-shape push: TriggerPush re-derives an ability from
-					// the object's active Face(), while the delayed push resolves the
-					// other face's Execute$ SVar directly. This is independent of
-					// whether CR 309.4b cast face 0 or face 1.
-					alt := !fc.active
-					pt := pendingTrigger{
-						Source:     id,
-						Controller: controller,
-						Idx:        ti,
-						SA:         t.Effect,
-						Ctx: effects.Ctx{
-							Source:         id,
-							Controller:     controller,
-							Remembered:     triggerRemembered(ev, id),
-							Captured:       triggerRemembered(ev, id),
-							LKI:            objLKI,
-							LKIPower:       lkiPower,
-							LKIToughness:   lkiToughness,
-							LKIPTValid:     objLKI != nil && lkiPTValid,
-							TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
-						},
-					}
-					if alt {
-						pt.Delayed = true
-						pt.DelayedID = ^uint32(0)
-						pt.Execute = t.Params["Execute"]
-					}
+				}
+				e.triggerFireCount[key]++
+				if t.Effect == nil {
+					// Execute$ named an SVar this face never defined (or one
+					// that failed to parse): the trigger matched, but there is
+					// nothing to run.
+					continue
+				}
+				// CR 603.3a/603.10a: a leaves-the-battlefield ability's source
+				// is controlled by whoever controlled it as it left, not by the
+				// owner the move has since reset it to (a stolen creature's own
+				// dies trigger belongs to the player who stole it).
+				controller := o.Controller
+				if objLKI != nil && id == ev.Obj && leftBattlefield(ev) {
+					controller = objLKI.Controller
+				}
+				// The non-active face of an unlocked Room must be minted through
+				// the delayed-shape push: TriggerPush re-derives an ability from
+				// the object's active Face(), while the delayed push resolves the
+				// other face's Execute$ SVar directly. This is independent of
+				// whether CR 309.4b cast face 0 or face 1.
+				alt := !fc.active
+				pt := pendingTrigger{
+					Source:     id,
+					Controller: controller,
+					Idx:        ti,
+					SA:         t.Effect,
+					Ctx: effects.Ctx{
+						Source:         id,
+						Controller:     controller,
+						Remembered:     triggerRemembered(ev, id),
+						Captured:       triggerRemembered(ev, id),
+						LKI:            objLKI,
+						LKIPower:       lkiPower,
+						LKIToughness:   lkiToughness,
+						LKIPTValid:     objLKI != nil && lkiPTValid,
+						TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+					},
+				}
+				if alt {
+					pt.Delayed = true
+					pt.DelayedID = ^uint32(0)
+					pt.Execute = t.Params["Execute"]
+				}
+				e.pendingTriggers = append(e.pendingTriggers, pt)
+				// stat:Panharmonicon (CR 702.109): "If a triggered ability of a
+				// ... permanent you control triggers, that ability triggers an
+				// additional time." Each battlefield Panharmonicon-shaped static
+				// whose ValidCard$ matches the triggering object appends ONE extra
+				// copy of this trigger immediately after the original, in scan
+				// order -- deterministic, and the extra copy is an ordinary queue
+				// entry that resolves like any other (the doubling does not fire on
+				// the copy again: the copy is not an event). Panharmonicon's own
+				// trigger is excluded by the spec's Other predicate, which is
+				// relative to the Panharmonicon permanent itself.
+				for k := 0; k < e.panharmoniconEchoes(observer.G, id, ev); k++ {
 					e.pendingTriggers = append(e.pendingTriggers, pt)
-					// stat:Panharmonicon (CR 702.109): "If a triggered ability of a
-					// ... permanent you control triggers, that ability triggers an
-					// additional time." Each battlefield Panharmonicon-shaped static
-					// whose ValidCard$ matches the triggering object appends ONE extra
-					// copy of this trigger immediately after the original, in scan
-					// order -- deterministic, and the extra copy is an ordinary queue
-					// entry that resolves like any other (the doubling does not fire on
-					// the copy again: the copy is not an event). Panharmonicon's own
-					// trigger is excluded by the spec's Other predicate, which is
-					// relative to the Panharmonicon permanent itself.
-					for k := 0; k < e.panharmoniconEchoes(observer.G, id, ev); k++ {
-						e.pendingTriggers = append(e.pendingTriggers, pt)
-					}
+				}
 			}
 		}
 	})
