@@ -48,21 +48,22 @@ function intersectH(a: Rect, b: Rect): number {
 // diagnosable rather than a bare timeout.
 async function settleRaised(
   page: Awaited<ReturnType<typeof browser.newPage>>,
+  obj: string,
   raisedTop: number,
 ): Promise<void> {
   try {
     await page.waitForFunction(
-      (exp) => {
-        const c = document.querySelector('[data-obj="1"]');
+      (a: { o: string; exp: number }) => {
+        const c = document.querySelector(`[data-obj="${a.o}"]`);
         if (!c) return false;
-        return Math.abs(c.getBoundingClientRect().top - exp) <= 1;
+        return Math.abs(c.getBoundingClientRect().top - a.exp) <= 1;
       },
-      raisedTop,
+      { o: obj, exp: raisedTop },
       { timeout: 10_000, polling: 50 },
     );
   } catch {
-    const diag = await page.evaluate(() => {
-      const c = document.querySelector('[data-obj="1"]');
+    const diag = await page.evaluate((o) => {
+      const c = document.querySelector(`[data-obj="${o}"]`);
       const face = c?.querySelector('.face');
       return {
         top: c?.getBoundingClientRect().top ?? null,
@@ -70,9 +71,31 @@ async function settleRaised(
         activeObj: document.activeElement?.closest('[data-obj]')?.getAttribute('data-obj') ?? null,
         faceFocusVisible: face?.matches(':focus-visible') ?? null,
       };
-    });
-    throw new Error(`raise never settled at ${raisedTop}: ${JSON.stringify(diag)}`);
+    }, obj);
+    throw new Error(`card ${obj} raise never settled at ${raisedTop}: ${JSON.stringify(diag)}`);
   }
+}
+
+// For a "STAYS raised" check the raise-wait above is the wrong shape: its
+// first poll can read the STALE pre-drop top (the transform is still the old
+// one on the frame the keypress resolves), so a card that is ABOUT to drop
+// passes a settleRaised raisedTop wait without ever settling. The honest
+// wait is for the card's CSS transitions to stop RUNNING, then measure: if
+// the card stays raised there is no transition at all, if it drops the
+// 0.12s transform transition finishes and the measurement reads the rest
+// top — either way the subsequent assertion sees the truth.
+async function settleTransitions(
+  page: Awaited<ReturnType<typeof browser.newPage>>,
+  obj: string,
+): Promise<void> {
+  await page.waitForFunction(
+    (o) => {
+      const c = document.querySelector(`[data-obj="${o}"]`);
+      return !!c && c.getAnimations({ subtree: true }).every((a) => a.playState !== 'running');
+    },
+    obj,
+    { timeout: 10_000, polling: 50 },
+  );
 }
 
 // Land KEYBOARD focus on a given card's face before measuring the focus
@@ -100,8 +123,8 @@ async function focusFaceByTab(
   throw new Error(`keyboard focus never landed on card ${obj}`);
 }
 
-async function measure(page: Awaited<ReturnType<typeof browser.newPage>>): Promise<Measure> {
-  return page.evaluate(() => {
+async function measure(page: Awaited<ReturnType<typeof browser.newPage>>, obj = '1'): Promise<Measure> {
+  return page.evaluate((o) => {
     const rect = (el: Element): Rect => {
       const b = el.getBoundingClientRect();
       return { top: b.top, bottom: b.bottom, left: b.left, right: b.right, width: b.width, height: b.height };
@@ -110,9 +133,9 @@ async function measure(page: Awaited<ReturnType<typeof browser.newPage>>): Promi
     // The FIRST card: its right-hand band is covered by card 2 at rest (later
     // siblings paint above), so only the hover raise's z-index can put it
     // back on top there — the z-order assertion discriminates.
-    const card = document.querySelector('[data-obj="1"]')!;
+    const card = document.querySelector(`[data-obj="${o}"]`)!;
     return { stage: rect(stage), card: rect(card), stageScrollTop: stage.scrollTop };
-  });
+  }, obj);
 }
 
 describe('HandFan — the hand-card peek (fb-20260916T024357Z-9005ad6a)', () => {
@@ -163,7 +186,7 @@ describe('HandFan — the hand-card peek (fb-20260916T024357Z-9005ad6a)', () => 
       //    must lie inside the board, and the card must come back above its
       //    neighbour in the shared band.
       await page.mouse.move(atRest.card.left + atRest.card.width * 0.35, atRest.card.top + h * 0.25);
-      await settleRaised(page, atRest.card.top - h / 2);
+      await settleRaised(page, '1', atRest.card.top - h / 2);
       const hovered = await measure(page);
       expect(Math.abs(hovered.card.top - (atRest.card.top - h / 2))).toBeLessThanOrEqual(TOL);
       expect(hovered.card.bottom).toBeLessThanOrEqual(stage.bottom + TOL);
@@ -179,7 +202,7 @@ describe('HandFan — the hand-card peek (fb-20260916T024357Z-9005ad6a)', () => 
       //    page's only focusables, so the first Tab lands on card 1's face.
       await page.mouse.move(5, 5);
       await focusFaceByTab(page, '1');
-      await settleRaised(page, atRest.card.top - h / 2);
+      await settleRaised(page, '1', atRest.card.top - h / 2);
       const focused = await measure(page);
       // The focus reveal must NOT have scrolled the clipped board to uncover
       // the resting face's lower half — the felt would jump by up to half a
@@ -197,6 +220,106 @@ describe('HandFan — the hand-card peek (fb-20260916T024357Z-9005ad6a)', () => 
       // The focused card is above its neighbour too (the same z-index rides
       // the :focus-visible rule).
       expect(await hitAt(band.x, band.y)).toBe('1');
+
+      await page.close();
+    }
+  });
+
+  it('keyboard focus stays fully raised when it moves from the face onto the card’s action controls (direct icon and open menu item)', { timeout: 30_000 }, async () => {
+    // The r3 finding: the raise arm was `.card:has(.face:focus-visible)` —
+    // qualified to the FACE. A hand card with an offered action has more
+    // focusables inside it: the direct `.action-icon` (one option) and the
+    // count badge plus its `.menu__item` controls (several). Tabbing from
+    // the face onto any of them blurs the face, so the qualified :has()
+    // stopped matching and the card dropped back to its half-clipped rest
+    // while keyboard focus stayed on that card’s action — the affordance
+    // was unusable with the keyboard. The selector is now unqualified
+    // `.card:has(:focus-visible)`; this fixture Tab-steps face → direct
+    // icon, and face → badge → Enter → menu item, and at EVERY step
+    // measures that the focused card’s geometry is still the full raised
+    // rect inside the board. Red with the face-qualified selector (the
+    // card drops at the icon/menu-item step), red with the compensation
+    // removed (never raises at all).
+    for (const { width, height } of VIEWPORTS) {
+      const page = await browser.newPage({ viewport: { width, height } });
+      await page.goto(`${url}src/components/HandFan.geometry.html`);
+      await page.waitForSelector('[data-obj="1"] .face', { timeout: 5000 });
+      await page.waitForTimeout(120);
+
+      const rest1 = await measure(page, '1');
+      const rest2 = await measure(page, '2');
+      const h = rest1.card.height;
+      const stage = rest1.stage;
+      // Both fans cards sit on the same row: same rest top, same height.
+      expect(Math.abs(rest2.card.top - rest1.card.top)).toBeLessThanOrEqual(TOL);
+      const raisedTop = rest1.card.top - h / 2;
+      const fullInside = (m: Measure) => {
+        expect(Math.abs(m.card.top - raisedTop)).toBeLessThanOrEqual(TOL);
+        expect(m.card.bottom).toBeLessThanOrEqual(stage.bottom + TOL);
+        expect(m.card.top).toBeGreaterThanOrEqual(stage.top - TOL);
+        expect(m.card.left).toBeGreaterThanOrEqual(stage.left - TOL);
+        expect(m.card.right).toBeLessThanOrEqual(stage.right + TOL);
+      };
+
+      // Clear the pointer and Tab into card 1’s face: the raise parity the
+      // earlier fixture step already pins, restated here as the baseline.
+      await page.mouse.move(5, 5);
+      await focusFaceByTab(page, '1');
+      await settleRaised(page, '1', raisedTop);
+      fullInside(await measure(page, '1'));
+
+      // Tab onto card 1’s DIRECT action icon (the fixture gave card 1 one
+      // option, so the affordance is a single `.action-icon` button): the
+      // face blurs, and the card must STAY raised under the icon’s focus.
+      await page.keyboard.press('Tab');
+      const onIcon = await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null;
+        return {
+          obj: el?.closest('[data-obj]')?.getAttribute('data-obj') ?? null,
+          isDirectIcon: el?.hasAttribute('data-single-action') ?? false,
+          iconFocusVisible: el?.matches(':focus-visible') ?? false,
+        };
+      });
+      expect(onIcon).toEqual({ obj: '1', isDirectIcon: true, iconFocusVisible: true });
+      await settleTransitions(page, '1');
+      fullInside(await measure(page, '1'));
+
+      // Tab onto card 2’s face (card 2 raises, card 1 drops back to rest),
+      // then onto card 2’s MULTI-action count badge.
+      await page.keyboard.press('Tab');
+      await settleRaised(page, '2', raisedTop);
+      await page.keyboard.press('Tab');
+      const onBadge = await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null;
+        return {
+          obj: el?.closest('[data-obj]')?.getAttribute('data-obj') ?? null,
+          expanded: el?.getAttribute('aria-expanded') ?? null,
+        };
+      });
+      expect(onBadge).toEqual({ obj: '2', expanded: 'false' });
+      await settleTransitions(page, '2');
+      fullInside(await measure(page, '2'));
+
+      // Enter opens the badge’s menu (Svelte binds aria-expanded to the same
+      // state), Tab steps into the first `.menu__item`: the card must STILL
+      // be fully raised while the menu item carries the focus.
+      await page.keyboard.press('Enter');
+      await page.waitForSelector('[data-obj="2"] .menu__item', { timeout: 5000 });
+      await page.keyboard.press('Tab');
+      const onItem = await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null;
+        return {
+          obj: el?.closest('[data-obj]')?.getAttribute('data-obj') ?? null,
+          isMenuItem: el?.getAttribute('role') === 'menuitem',
+          itemFocusVisible: el?.matches(':focus-visible') ?? false,
+        };
+      });
+      expect(onItem).toEqual({ obj: '2', isMenuItem: true, itemFocusVisible: true });
+      await settleTransitions(page, '2');
+      const m2 = await measure(page, '2');
+      fullInside(m2);
+      // And the focus reveal still never scrolled the clipped board.
+      expect(m2.stageScrollTop).toBe(0);
 
       await page.close();
     }

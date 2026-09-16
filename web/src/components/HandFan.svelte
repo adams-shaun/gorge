@@ -321,18 +321,29 @@
      repaid in full, and the card keeps the z-index that holds it above the
      neighbours it overlaps.
 
-     The focus arm is `.card:has(.face:focus-visible)`, NOT `.card:focus-visible`:
+     The focus arm is `.card:has(:focus-visible)`, NOT `.card:focus-visible`:
      since ui23 moved tabindex off the card onto the inner .face (so a real
      options button is never nested inside a role=button), the element the
      keyboard focuses is the FACE, and a :focus-visible on .card itself could
      never match again — the old selector was dead, leaving a keyboard user
      with neither the raise nor the outline (caught by the geometry fixture,
      HandFan.geometry.test.ts). :has() restores the parity structurally, off
-     the element that is actually focused, so a future focus move cannot
-     silently strand it again. The outline moves onto the face for the same
-     reason (below). */
+     the element that is actually focused.
+
+     The descendant form has NO .face qualifier on purpose: a card's options
+     affordance puts MORE focusables inside the card — the direct-action
+     icon, the count badge and (once open) its menu items, all real buttons
+     beside the role="button" face. Tabbing from the face onto any of them
+     blurs the face, so a `.face:focus-visible`-qualified :has() would drop
+     the card back to its half-clipped rest while keyboard focus stayed on
+     that card's action — the raise must follow ANY focused descendant, which
+     is also what keeps the badge and its open menu usable inside the raised
+     card (caught by the geometry fixture's action-control steps). A mouse
+     click on those controls does not set :focus-visible, but the pointer arm
+     `.card:hover` already holds the card up then. The outline stays on the
+     face for the same reason as before (below). */
   .card:hover,
-  .card:has(.face:focus-visible) {
+  .card:has(:focus-visible) {
     transform: translateY(-50%);
     filter: brightness(1);
     z-index: 10;
