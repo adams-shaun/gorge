@@ -65,6 +65,14 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// is per-resolution context, not game state, and replay re-derives it by
 	// re-running the same resolution (Task ce1).
 	remember := strings.TrimSpace(sa.Params["RememberDamaged"]) != ""
+	// One DealDamage call is ONE damage batch (Forge dealDamage): the events
+	// this loop emits latch the DamageDealtOnce/DamageDoneOnce triggers
+	// together, so a multi-target hit triggers the source's DealtOnce ability
+	// once with the batch total and each target's DoneOnce ability once with
+	// what that target took. The host opens the batch; emit opens a batch of
+	// one for a Damage event that arrives with none open, so a call this
+	// primitive never brackets (none today) still latches per event.
+	h.BeginDamageBatch()
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			emitPlayerDamage(rider, t.Player)
@@ -77,6 +85,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	h.EndDamageBatch()
 }
 
 // damageRider bundles the facts every non-combat damage emit site shares: the
@@ -256,6 +265,10 @@ func effDamageAll(h Host, c *Ctx, sa *cards.SA) {
 	rider := newDamageRider(h, c, sa, n)
 	prev := h.SetDamageSource(rider.source)
 	defer h.SetDamageSource(prev)
+	// One DamageAll call is ONE damage batch, exactly like DealDamage's
+	// (see effDealDamage): every creature and player it hits latches
+	// together.
+	h.BeginDamageBatch()
 	if spec != "" {
 		for _, p := range g.AliveFrom(0) {
 			for _, id := range g.Zone(state.ZBattlefield, p) {
@@ -268,6 +281,7 @@ func effDamageAll(h Host, c *Ctx, sa *cards.SA) {
 	for _, p := range validPlayers(h, c, sa.Params["ValidPlayers"]) {
 		emitPlayerDamage(rider, p)
 	}
+	h.EndDamageBatch()
 }
 
 // validPlayers resolves a DamageAll ValidPlayers$ spec to the players the

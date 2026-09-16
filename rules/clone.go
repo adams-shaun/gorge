@@ -168,7 +168,17 @@ func (e *Engine) Clone() *Engine {
 		}
 	}
 	c.triggerFireCount = cloneCounts(e.triggerFireCount)
-	c.damageOnceFired = cloneCounts(e.damageOnceFired)
+	if e.damageBatchOpen {
+		c.damageBatchOpen = true
+		c.damageBatchDepth = e.damageBatchDepth
+		if e.damageBatchIdx != nil {
+			c.damageBatchIdx = make(map[damageBatchKey]int, len(e.damageBatchIdx))
+			for k, v := range e.damageBatchIdx {
+				c.damageBatchIdx[k] = v
+			}
+		}
+		c.damageBatchLog = append([]damageBatchEntry(nil), e.damageBatchLog...)
+	}
 	if e.phaseUnknownNoted != nil {
 		c.phaseUnknownNoted = make(map[string]bool, len(e.phaseUnknownNoted))
 		for k, v := range e.phaseUnknownNoted {

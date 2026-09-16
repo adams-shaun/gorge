@@ -112,6 +112,17 @@ type Host interface {
 	// already walks sa.Sub. A host that never suspends (an effects-package
 	// double, where Ask returns false) never sees this call.
 	SuspendContinuation(sa *cards.SA)
+	// BeginDamageBatch/EndDamageBatch bracket the Damage events one
+	// dealDamage-style call deals simultaneously (Forge dealDamage, GameAction
+	// AddDamage/triggerDamageDoneOnce): within the bracket, the
+	// DamageDealtOnce/DamageDoneOnce triggers latch once per batch per
+	// referent (per dealing source / per damaged object) and the queued
+	// trigger's referent amount is the batch's accumulated total -- Fireball
+	// splitting among three creatures is ONE batch to a DamageDealtOnce
+	// trigger on the source, not three. rules.Engine implements both; the
+	// effects-package test double reports no-ops. Neither suspends.
+	BeginDamageBatch()
+	EndDamageBatch()
 	// ReplaceEvent applies a ReplaceEffect body's requested change to the
 	// event currently being replaced. It is inert outside replacement
 	// resolution; rules owns the event and records the resulting delta.

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -337,7 +338,7 @@ Oracle:x
 	}
 }
 
-func TestDamageDealtOnceFiresAtMostOncePerTurn(t *testing.T) {
+func TestDamageDealtOnceFiresPerDamageBatch(t *testing.T) {
 	src := `Name:Vampire
 ManaCost:1 B
 Types:Creature Vampire
@@ -348,19 +349,101 @@ Oracle:x
 `
 	e := layerEngine(t)
 	onBoard(t, e, 0, src)
+	// Two SEPARATE non-combat Damage events are two damage batches (Forge
+	// dealDamage brackets each call's damage; nothing here brackets them
+	// together), so the trigger fires per event. The old once-per-turn latch
+	// suppressed the second firing -- this test used to pin exactly that and
+	// was flipped by the per-batch fix.
 	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 2})
 	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 2})
-	e.putTriggersOnStack()
-	if len(e.G.Stack) != 1 {
-		t.Fatalf("stack = %v, want exactly one trigger for two damage events in the same turn", e.G.Stack)
+	if len(e.pendingTriggers) != 2 {
+		t.Fatalf("pendingTriggers = %d, want two (one per separate damage batch)", len(e.pendingTriggers))
+	}
+	e.putTriggersOnStack() // two same-controller triggers ask for an order
+	if d := e.Pending(); d == nil || d.Kind != decision.KTriggerOrder {
+		t.Fatalf("pending = %+v, want the two triggers to ask for an order", d)
+	}
+	submit(t, e, 0, 1)
+	if len(e.G.Stack) != 2 {
+		t.Fatalf("stack = %v, want both triggers placed", e.G.Stack)
 	}
 	e.resolveTop() // clear the stack so the next check counts only new triggers.
-	// Advancing to the next turn resets the gate.
+	e.resolveTop()
+	// A third event, a turn later, fires again.
 	e.G.Turn++
 	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 2})
 	e.putTriggersOnStack()
 	if len(e.G.Stack) != 1 {
 		t.Fatalf("stack = %v, want the trigger to fire again next turn", e.G.Stack)
+	}
+}
+
+// A damage producer can nest inside another batch owner (for example, an
+// effect or replacement that emits damage while resolving a DamageAll). The
+// inner bracket is part of the outer simultaneous batch, so its End must not
+// clear the outer latch: all three events below queue one trigger totaling 6.
+func TestNestedDamageBatchesKeepOuterOnceLatch(t *testing.T) {
+	src := `Name:Vampire
+ManaCost:1 B
+Types:Creature Vampire
+PT:2/2
+T:Mode$ DamageDealtOnce | ValidTarget$ Player | Execute$ TrigGain | TriggerDescription$ x
+SVar:TrigGain:DB$ GainLife | LifeAmount$ 1 | Defined$ You
+Oracle:x
+`
+	e := layerEngine(t)
+	onBoard(t, e, 0, src)
+
+	e.BeginDamageBatch()
+	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 1})
+	e.BeginDamageBatch()
+	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 2})
+	e.EndDamageBatch()
+	if !e.damageBatchOpen || e.damageBatchDepth != 1 {
+		t.Fatalf("inner End closed the outer batch: open=%v depth=%d", e.damageBatchOpen, e.damageBatchDepth)
+	}
+	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 3})
+	e.EndDamageBatch()
+
+	if e.damageBatchOpen || e.damageBatchDepth != 0 {
+		t.Fatalf("outer End left batch open=%v depth=%d", e.damageBatchOpen, e.damageBatchDepth)
+	}
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("pendingTriggers = %d, want 1 for the nested outer batch", len(e.pendingTriggers))
+	}
+	if got := e.pendingTriggers[0].Ctx.TriggerContext.TriggerAmount; got != 6 {
+		t.Fatalf("trigger damage amount = %d, want 6 (1 + 2 + 3 in one batch)", got)
+	}
+}
+
+// Negative Damage repairs clear marked damage during cleanup/regeneration;
+// they are not damage dealt. Both Once modes must ignore the repair, rather
+// than adding another trigger after the positive damage that it clears.
+func TestDamageOnceDoesNotTriggerOnNegativeDamageRepair(t *testing.T) {
+	src := `Name:Vampire
+ManaCost:1 B
+Types:Creature Vampire
+PT:2/2
+T:Mode$ DamageDealtOnce | ValidTarget$ Card.Self | Execute$ TrigGain | TriggerDescription$ x
+T:Mode$ DamageDoneOnce | ValidTarget$ Card.Self | Execute$ TrigGain | TriggerDescription$ x
+SVar:TrigGain:DB$ GainLife | LifeAmount$ 1 | Defined$ You
+Oracle:x
+`
+	e := layerEngine(t)
+	id := onBoard(t, e, 0, src)
+	e.emit(events.Event{Kind: events.Damage, Obj: id, Amount: 2})
+	if len(e.pendingTriggers) != 2 {
+		t.Fatalf("positive damage queued %d Once triggers, want 2", len(e.pendingTriggers))
+	}
+
+	// This is the same negative Damage shape cleanupBody emits to remove the
+	// two marked points. It must leave the positive-damage queue untouched.
+	e.emit(events.Event{Kind: events.Damage, Obj: id, Amount: -2})
+	if len(e.pendingTriggers) != 2 {
+		t.Fatalf("negative damage repair queued %d Once triggers, want 0 additional", len(e.pendingTriggers)-2)
+	}
+	if got := e.G.Obj(id).Damage; got != 0 {
+		t.Fatalf("damage after repair = %d, want 0", got)
 	}
 }
 

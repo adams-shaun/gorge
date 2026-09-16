@@ -306,11 +306,26 @@ type Engine struct {
 	// action by Sacrificed/Discarded triggers. Empty whenever no such
 	// replacement is in flight; threaded across a suspension by resumePoint.
 	replAction string
-	// triggerFireCount and damageOnceFired are trigger_match.go's own
-	// bookkeeping (the cascade bound and the DamageDealtOnce/DamageDoneOnce
-	// once-per-turn gate); see there.
+	// triggerFireCount and the damage-batch fields below are trigger_match.go's
+	// own bookkeeping (the cascade bound and the DamageDealtOnce/DamageDoneOnce
+	// once-per-damage-batch gate); see there.
 	triggerFireCount map[triggerKey]int32
-	damageOnceFired  map[triggerKey]int32
+	// A damage batch is the set of Damage events dealt simultaneously: one
+	// combat-damage pass (rules/combat.go damageStep), or the Damage events
+	// one dealDamage-style effect call deals (effects/damage.go brackets each
+	// of those with Host.BeginDamageBatch/EndDamageBatch), or — when neither
+	// brackets it — one single Damage event, opened implicitly in emit.
+	// DamageDealtOnce/DamageDoneOnce latch once per batch per trigger and
+	// referent (dealing source / damaged object); the entries here carry the
+	// accumulated batch amount the queued trigger's referent is patched to at
+	// batch close. Never opened across a drain: pendingTriggers is append-only
+	// while a batch is open, so the batch entries' recorded indices stay valid.
+	// damageBatchDepth counts nested brackets, so an inner effect cannot close
+	// its caller's simultaneous batch early.
+	damageBatchOpen  bool
+	damageBatchDepth int
+	damageBatchIdx   map[damageBatchKey]int
+	damageBatchLog   []damageBatchEntry
 	// phaseUnknownNoted memoizes the Phase$ specs whose names this engine has
 	// already reported as unresolvable (rules.trigger_match.go's phaseMatches
 	// reporting), so one spec emits exactly one Note per game no matter how
@@ -1151,6 +1166,20 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.sourceControllerLKI, ev.Obj)
 		delete(e.damageSourceLKI, ev.Obj)
 	}
+	// Damage batch (CR 510.4, Forge dealAssignedDamage): DamageDealtOnce/
+	// DamageDoneOnce latch once per damage BATCH. A Damage event arriving with
+	// no batch already open (combat's damageStep and effects' dealDamage calls
+	// open their own; see Host.BeginDamageBatch) is a batch of one -- its own
+	// batch, opened and closed around the trigger check, so the Once modes
+	// fire per event rather than per turn and the queued referent's amount is
+	// already the batch total. A prevented Damage never reaches here (emit
+	// returned the prevention Note above), and the deferred cast-trigger arm
+	// skips the trigger check entirely, so neither needs a batch.
+	onlyEventBatch := false
+	if ev.Kind == events.Damage && !e.damageBatchOpen {
+		e.openDamageBatch()
+		onlyEventBatch = true
+	}
 	if ev.Kind == events.PutOnStack && e.deferCastTrigger {
 		// CR 601.2i: the cast trigger must not fire at the up-front push
 		// (601.2a), because the spell is not yet cast -- targets (601.2c) and
@@ -1166,6 +1195,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			e.lifeLossBatch = append(e.lifeLossBatch, stored)
 		}
 		e.checkTriggers(stored, lki, lkiPower, lkiToughness, lkiPTValid)
+	}
+	if onlyEventBatch {
+		e.closeDamageBatch()
 	}
 	if ev.Kind == events.Tap && !e.tapIsEntryState(ev) {
 		// Recorded after the triggers above were matched, so a FirstTime$
