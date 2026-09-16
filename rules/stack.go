@@ -1153,7 +1153,10 @@ func targetsPermanents(spec string) bool {
 // refused here: beginUnlessPayment owns every such component and gathers the
 // payer's selected objects before it calls payMana. Keeping this guard makes
 // a future caller unable to silently revive the old first-in-zone-order
-// stand-in. Fixed mana/life and SubCounter components remain synchronous.
+// stand-in. Fixed mana/life, SubCounter and Draw components remain
+// synchronous: a Draw<N/Spec> pays by drawing N cards for the player(s) the
+// spec names (default the payer), resolved through the same Ctx roles the
+// UnlessPayer$ grammar reads.
 func (e *Engine) payUnlessCost(p state.PlayerID, cost Cost, ctx *effects.Ctx, stackObj state.ObjID) bool {
 	if len(cost.Sac) != 0 || len(cost.Discard) != 0 {
 		return false
@@ -1191,12 +1194,55 @@ func (e *Engine) payUnlessCost(p state.PlayerID, cost Cost, ctx *effects.Ctx, st
 		drains = append(drains, counterDrain{obj: o.ID, kind: part.Spec, n: part.N})
 	}
 	// Everything is affordable: charge mana/life through ordinary events,
-	// then apply the synchronous counter components.
+	// then apply the synchronous counter components, then the draws. A Draw
+	// component's spec names the drawer(s) (Forge's Draw<N/Player.targetedBy>
+	// and friends, Kuroki, Thief of Talents); an unresolvable spec leaves the
+	// cost unpaid — decline, never a free pass.
 	if !e.payMana(p, cost) {
 		return false
 	}
 	for _, d := range drains {
 		e.emit(events.Event{Kind: events.CounterChange, Obj: d.obj, Counter: d.kind, Amount: -d.n})
 	}
+	for _, part := range cost.Draw {
+		players, ok := unlessDrawPlayers(ctx, p, part.Spec)
+		if !ok {
+			return false
+		}
+		for _, dp := range players {
+			for i := int32(0); i < part.N; i++ {
+				effects.DrawFor(e, dp)
+			}
+		}
+	}
 	return true
+}
+
+// unlessDrawPlayers resolves a Draw<N/Spec> cost component's drawer(s). The
+// empty spec and "You" are the payer; every other spelling is one of the
+// player roles the unless-payment context carries, and an unresolvable or
+// unknown spec fails closed (the cost was not paid).
+func unlessDrawPlayers(ctx *effects.Ctx, payer state.PlayerID, spec string) ([]state.PlayerID, bool) {
+	one := func(t state.Target) ([]state.PlayerID, bool) {
+		if t.IsPlayer {
+			return []state.PlayerID{t.Player}, true
+		}
+		return nil, false
+	}
+	switch spec {
+	case "", "You", "Player", "Self":
+		return []state.PlayerID{payer}, true
+	case "Player.targetedBy", "Targeted", "TargetedPlayer":
+		if len(ctx.Targets) == 0 {
+			return nil, false
+		}
+		return one(ctx.Targets[0])
+	case "Player.Activator", "TriggeredActivator":
+		return one(ctx.TriggerActivator)
+	case "Player.TriggeredPlayer", "TriggeredPlayer":
+		return one(ctx.TriggerPlayer)
+	case "Player.TriggeredTarget", "TriggeredTarget":
+		return one(ctx.TriggerTarget)
+	}
+	return nil, false
 }

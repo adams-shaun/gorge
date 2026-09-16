@@ -250,7 +250,7 @@ func unlessPayerTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 		// arbitrary Ctx.Remembered entries: those are often trigger subjects,
 		// not an imprint, and would charge the wrong player.
 		return nil, false
-	case "Targeted", "ParentTarget":
+	case "Targeted", "ParentTarget", "Player.targetedBy":
 		addTargets(c.Targets)
 	case "TriggeredTarget":
 		if !c.TriggerTarget.IsPlayer && c.TriggerTarget.Obj == 0 {
@@ -322,8 +322,9 @@ func unlessPayerTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 		add(c.AttackingPlayer.Player)
 	default:
 		// Do not silently substitute c.Targets for a selector the context does
-		// not carry (ImprintedController, ReplacedPlayer, Player.targetedBy,
-		// etc.). That used to charge an unrelated target; fail closed instead.
+		// not carry (ReplacedPlayer, NonReplacedPlayer, ImprintedController and
+		// their kind). That used to charge an unrelated target; fail closed
+		// instead.
 		return nil, false
 	}
 	// Deterministic AliveFrom order, whoever named them.

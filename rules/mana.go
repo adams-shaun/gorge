@@ -53,9 +53,15 @@ type Cost struct {
 	Discard    []CostPart
 	SubCounter []CostPart
 	AddCounter []CostPart
+	// Draw carries Draw<N/Spec> components, which only ParseUnlessCost
+	// builds: paying one draws N cards for the player(s) the spec names
+	// (default the payer). payMana never charges it; the mid-resolution
+	// unless-pay path does.
+	Draw []CostPart
 }
 
-// nonManaCost matches Sac<N/Spec>, Discard<N/Spec>, and SubCounter<N/Kind> tokens. Forge
+// nonManaCost matches Sac<N/Spec>, Discard<N/Spec>, SubCounter<N/Kind> and
+// Draw<N/Spec> tokens. Forge
 // appends a human-readable "/description" after the spec and separates OR
 // alternatives with ";"; the description may itself contain spaces (e.g.
 // "Sac<1/Artifact;Creature/artifact or creature>"), which is why
@@ -63,7 +69,7 @@ type Cost struct {
 // sees it. The captured group only runs up to the first "/", so the trailing
 // description is dropped right here; the ";" alternation is folded to ","
 // (MatchesSpec's own separator) at the parse site. Ruling FL-54.
-var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter|Discard)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
+var nonManaCost = regexp.MustCompile(`^(Sac|SubCounter|Discard|Draw)<(\d+)/([^/>]+)(?:/[^>]*)?>$`)
 
 // addCounterCost matches Forge's AddCounter<N/LOYALTY> token -- the
 // planeswalker loyalty cost, and deliberately ONLY it (CR 107.4: the [+N]
@@ -528,7 +534,7 @@ func (e *Engine) costActorMatches(sv staticView, actor state.PlayerID) bool {
 // before trusting the pool and life total.
 func (c Cost) Priceable() bool {
 	return c.X == 0 && !c.Tap && len(c.Sac) == 0 && len(c.Discard) == 0 && len(c.SubCounter) == 0 &&
-		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
+		len(c.Draw) == 0 && len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
 }
 
 // pip is one coloured-or-flexible demand inside a cost's mana part: the set
@@ -717,6 +723,8 @@ func ParseUnlessCost(s string) (Cost, bool) {
 					c.Sac = append(c.Sac, part)
 				case "Discard":
 					c.Discard = append(c.Discard, part)
+				case "Draw":
+					c.Draw = append(c.Draw, part)
 				default:
 					c.SubCounter = append(c.SubCounter, part)
 				}
