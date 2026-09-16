@@ -127,6 +127,13 @@ type Engine struct {
 	// kept/taken counts and the phase cursor. Never a closure, so Clone copies
 	// it like cast/choosing.
 	mulligan mulliganRound
+	// opening holds !PlayFirst opening-hand may effects. They run after the
+	// toss is recorded and before the London round is constructed, so an
+	// accepted BecomeStartingPlayer effect changes both Count$StartingPlayer
+	// and the CR 103.5 declaration order.
+	opening       []openingEffect
+	openingCursor int
+	openingLimit  int
 	// blockerRound is the declare-blockers step's per-defender cursor
 	// (rules/combat.go, Task m34): an attack may be split across several
 	// defending players, and each declares its own blocks, one KBlockers
@@ -760,6 +767,12 @@ func New(cfg Config) *Engine {
 	// with seat 0 eliminated maps two of the three toss outcomes onto one
 	// survivor (measured 395/205 over 600 seeds on the pre-fix code).
 	start, _ := e.resolveToss(toss, alive, len(cfg.Names))
+	// The resolved toss is authoritative genesis state, not merely a Note or
+	// the later TurnChange: opening-hand effects and Count$StartingPlayer run
+	// before turn one. Fold it through events.Apply without appending a new
+	// event: genesis is replayed from Config (including its seeded toss), and
+	// preserving the historic event stream keeps recorded matches replayable.
+	events.Apply(e.G, events.Event{Kind: events.StartingPlayerChange, Player: start})
 	// The starting seat is the toss winner resolved over the survivors --
 	// never seat 0 (the pre-toss assumption Ruling T22-f removed) and never a
 	// seat the deal eliminated: an early seat that decked out during its own
@@ -773,20 +786,22 @@ func New(cfg Config) *Engine {
 		// beginTurn records start in its ordinary TurnChange. During a London
 		// mulligan, Engine.PregameStarter exposes the same resolved seat to the
 		// view without adding another hash-chained event to genesis.
-		if cfg.Mulligans > 0 {
-			// Ruling R-8.4: the London mulligan round lives between the deal
-			// and turn 1. e.pregame makes step() dispatch to stepPregame
-			// (rules/mulligan.go) instead of the ordinary turn steps; the
-			// round's end calls beginTurn below. Over is already false (the
-			// per-seat deck-out guard above returned early) -- a game that
-			// ended during the deal never starts a round.
-			// CR 103.5: the starting player declares first, then each other
-			// player in turn order -- AliveFrom(start) is that order, which
-			// is also beginTurn's seat at the round's end.
+		// !PlayFirst opening-hand effects are offered after the toss, while
+		// its state designation is readable, and before the mulligan round is
+		// ordered. An accepted Impatient Iguana can therefore replace the
+		// starting player before CR 103.5 begins.
+		e.opening = e.openingEffects()
+		e.openingLimit = cfg.Mulligans
+		if len(e.opening) > 0 || cfg.Mulligans > 0 {
 			e.pregame = true
-			e.mulligan = newMulliganRound(e.G.AliveFrom(start), cfg.Mulligans)
+			// Preserve the already-resolved pregame projection for ordinary
+			// games. When an opening effect exists, defer construction until it
+			// has had the chance to replace the starter.
+			if len(e.opening) == 0 && cfg.Mulligans > 0 {
+				e.mulligan = newMulliganRound(e.G.AliveFrom(e.G.StartingPlayer), cfg.Mulligans)
+			}
 		} else {
-			e.beginTurn(start)
+			e.beginTurn(e.G.StartingPlayer)
 		}
 	}
 	return e

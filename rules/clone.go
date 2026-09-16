@@ -57,8 +57,11 @@ func (e *Engine) Clone() *Engine {
 		// The three slices are re-allocated, not shared: kept and taken are
 		// written in place, so this is the cast/pendingTriggers class, not
 		// the blockerRound class above.
-		pregame:  e.pregame,
-		mulligan: cloneMulligan(e.mulligan),
+		pregame:       e.pregame,
+		mulligan:      cloneMulligan(e.mulligan),
+		opening:       append([]openingEffect(nil), e.opening...),
+		openingCursor: e.openingCursor,
+		openingLimit:  e.openingLimit,
 		// E2 held-out cast suppression (cast.go): the set of card ids whose
 		// cast option is held out of the current window after an unpayable
 		// decline. A clone taken at any intent boundary carries it forward so

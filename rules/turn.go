@@ -537,6 +537,10 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 // (Task 12). A choose nobody is waiting for -- only reachable from a
 // hand-built decision -- is dropped with a Note and priority resumes.
 func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
+	if d.ResumeKind == "opening_effect" {
+		e.handleOpeningEffect(d, in)
+		return
+	}
 	chosen := d.Chosen(in)
 	// A hidden-library ChangeZone and a Dig look-and-take use KChoose's
 	// ordinary ordered subset wire shape, but they are mid-resolution effect

@@ -242,6 +242,12 @@ const (
 	// PlayerCounterChange changes a counter on Player. Counter names the kind
 	// and Amount the delta; Ward's AddCounterYou<.../POISON> is its first use.
 	PlayerCounterChange
+	// StartingPlayerChange records CR 103.1's starting-player designation.
+	// It is also emitted by an opening-hand effect such as Impatient Iguana,
+	// rather than being inferred from TurnChange, because that effect resolves
+	// before turn one and Count$StartingPlayer must read its result. Appended so
+	// every previous event ordinal remains stable.
+	StartingPlayerChange
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -252,7 +258,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(PlayerCounterChange) + 1
+	NumKinds = int(StartingPlayerChange) + 1
 )
 
 // kindNames is declared with NumKinds's length, never [...] inferred, so
@@ -266,7 +272,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"decision_made", "note", "land_played", "targets_chosen", "flip_face",
 	"clock_tick", "trigger_push", "end_combat_reset", "cast_info", "choose",
 	"token_create", "stack_copy", "attach", "ability_push", "mode_chosen", "commander_damage",
-	"delayed_register", "delayed_push", "library_order", "monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter"}
+	"delayed_register", "delayed_push", "library_order", "monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "starting_player_change"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

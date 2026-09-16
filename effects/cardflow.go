@@ -711,6 +711,13 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// the naming in one place. Ruling T23-w still passes the Note
 			// through RedactEvents unchanged (it is non-Secret).
 			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: revealed})
+			// The opening-hand RevealCard ability of Impatient Iguana carries
+			// this flag. The public reveal happened, so its "If you do" clause
+			// takes effect as a replayed state transition; a declined optional
+			// reveal reaches the continue above and cannot change the starter.
+			if strings.EqualFold(strings.TrimSpace(sa.Params["BecomeStartingPlayer"]), "True") {
+				h.Emit(events.Event{Kind: events.StartingPlayerChange, Player: c.Controller})
+			}
 		}
 		if remember {
 			// RememberRevealed$ (task fb-3f1cc033): the revealed cards join

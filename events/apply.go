@@ -38,6 +38,11 @@ func Apply(g *state.Game, e Event) {
 			g.Monarch, g.HasMonarch = e.Player, true
 		}
 
+	case StartingPlayerChange:
+		if validPlayer(g, e.Player) {
+			g.StartingPlayer, g.HasStartingPlayer = e.Player, true
+		}
+
 	case ControlChange:
 		if validPlayer(g, e.Player) {
 			if o := g.Obj(e.Obj); o != nil {

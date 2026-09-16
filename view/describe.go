@@ -27,6 +27,8 @@ func Describe(g *state.Game, ev events.Event) string {
 		return player(g, ev.Player) + " rearranges the top of their library"
 	case events.MonarchChange:
 		return player(g, ev.Player) + " becomes the monarch"
+	case events.StartingPlayerChange:
+		return player(g, ev.Player) + " becomes the starting player"
 	case events.ControlChange:
 		return player(g, ev.Player) + " gains control of " + obj(g, ev.Obj)
 	case events.Goad:
