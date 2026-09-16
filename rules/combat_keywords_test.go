@@ -329,6 +329,12 @@ func TestGoadKarazikarEnforcesEveryGoaderAtDeclaration(t *testing.T) {
 	if d == nil || d.Kind != decision.KAttackers || len(d.Options) != 1 || d.Options[0].Obj != victim || d.Options[0].Player != 3 {
 		t.Fatalf("two-goader attack options = %+v, want only victim attacking player 3", d)
 	}
+	// CR 508.1d travels on the wire: the goaded option is marked Required so
+	// a rules-ignorant seat can build the legal declaration (validateAttack
+	// Declaration rejects the omission).
+	if !d.Options[0].Required {
+		t.Fatal("the goaded creature's attack option is not marked Required")
+	}
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 2}); err == nil {
 		t.Fatal("goaded creature was allowed to skip its required attack")
 	}
@@ -423,5 +429,42 @@ func TestProtectionThisTurnCastIgnoresUncastEntries(t *testing.T) {
 	e.emit(events.Event{Kind: events.TurnChange, Player: 1, Amount: 1})
 	if e.protectedFrom(emrakul, cast) {
 		t.Fatal("a permanent cast last turn is still treated as cast this turn")
+	}
+}
+
+// TestAttackersMaxExposesTheCeiling pins the wire half of CR 508.1j: when an
+// AttackRestrict static (Silent Arbiter's shape) caps the whole declaration,
+// the KAttackers decision's Max is that ceiling, not the option count, so a
+// rules-ignorant client capped at Max can never assemble a declaration the
+// engine would reject for size. Without a ceiling in force maxAttackers
+// returns the int maximum and Max stays len(opts) (today's value, pinned
+// everywhere else by construction).
+func TestAttackersMaxExposesTheCeiling(t *testing.T) {
+	e := New(seatZeroStart(Config{Seed: 1, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}}))
+	e.G.Active = 0
+	e.G.Step = state.StepDeclareAttackers
+	onBoard(t, e, 0, "Name:Arbiter\nManaCost:4\nTypes:Artifact Creature Construct\nPT:1/5\n"+
+		"S:Mode$ AttackRestrict | MaxAttackers$ 1 | Description$ No more than one creature can attack each combat.\nOracle:x\n")
+	onBoardReady(t, e, 0, "Name:Rusher A\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	onBoardReady(t, e, 0, "Name:Rusher B\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	e.askAttackers()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers || len(d.Options) != 2 {
+		t.Fatalf("arbiter attack options = %+v, want one option per creature", d)
+	}
+	if d.Max != 1 {
+		t.Fatalf("KAttackers Max = %d, want the MaxAttackers$ 1 ceiling", d.Max)
+	}
+	both := decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{0, 1}}
+	if err := d.Validate(both); err == nil {
+		t.Fatal("a two-attacker declaration passed the ceiling-capped decision's own Max")
+	}
+	if err := e.Submit(both); err == nil {
+		t.Fatal("a two-attacker declaration was accepted under a MaxAttackers$ 1 ceiling")
+	}
+	one := decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{0}}
+	if err := e.Submit(one); err != nil {
+		t.Fatalf("a one-attacker declaration rejected under its own ceiling: %v", err)
 	}
 }

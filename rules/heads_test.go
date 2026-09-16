@@ -827,7 +827,31 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	4: "1fe7ffc6e9116a60",
+	//
+	// 4 seats moved to 65ee3da5473a2c5a with task inbox-botbench-stability-run
+	// (prove the expanded bench has no deadlocks, crashes, stalls or loops):
+	// the production bot's KChoose mana-payment arm now prefers a phyrexian
+	// pip's "Pay 2 life" over its pool colour while the seat has life to
+	// spare (botpolicy/policy.go). Measured cause, by printing the arm's
+	// firings over the acceptance games: every firing is Dismember ({1}{B/P}
+	// {B/P}, the tron deck) -- the old first-offer answer paid the pip with
+	// the pool's only black, which can strand the generic {1} and abort the
+	// activation with no progress; the life payment never strands anything.
+	// 70 firings across the 4-seat game, zero on any other card. The engine
+	// changes in the same commit (the F05-2 no-progress suppression now also
+	// read by the ability-offer path, the KAttackers Required marking and Max
+	// ceiling) are heads-NEUTRAL: measured, reverting the pay arm and the
+	// required-attacker overrides with the engine diff in place leaves the
+	// four old heads standing, and the remaining botpolicy bits (the required
+	// set, the hold-back exclusion, the ceiling cap) are inert in these games
+	// because the 12 legacy decks carry no goad, encore, MustAttack or
+	// MaxAttackers card (deck census over internal/testutil/decks.go's list).
+	// The 2-seat head is unchanged: its game never reaches a Dismember pip
+	// ask before the old and new streams would part.
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	4: "65ee3da5473a2c5a",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -848,7 +872,15 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	6: "802424189c08c7d1",
+	// 6 seats moved to 59f6f1476c8a7f2d with task inbox-botbench-stability-run:
+	// the same Dismember phyrexian-pip life preference as the 4-seat entry
+	// above (measured: the arm's firings over the acceptance games are all
+	// Dismember; the engine-side changes are heads-neutral by the same
+	// revert measurement).
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	6: "59f6f1476c8a7f2d",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -915,7 +947,15 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	8: "46a7d9dcadfdccf7",
+	// 8 seats moved to 0122b7ae46b57cb4 with task inbox-botbench-stability-run:
+	// the same Dismember phyrexian-pip life preference as the 4-seat entry
+	// above (measured: the arm's firings over the acceptance games are all
+	// Dismember; the engine-side changes are heads-neutral by the same
+	// revert measurement).
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	8: "0122b7ae46b57cb4",
 }
 
 func TestHeads(t *testing.T) {

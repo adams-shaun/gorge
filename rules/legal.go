@@ -688,6 +688,20 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				if e.abilityRestricted(p, id, ab) {
 					continue
 				}
+				// F05-2 (CR 733.2): a card whose activation aborted with no
+				// progress twice in this window is held out here too, exactly
+				// like the cast options above -- the suppression is per CARD
+				// (abortCast keys it on pc.card, which for an activation is the
+				// source), and the abort sites cover "cast/activation" alike.
+				// Without this check an activation the payer cannot complete
+				// (a mis-answered phyrexian pip, a pool that moved) re-offered
+				// forever inside one priority window: measured, the commander
+				// bench spun 20000 intents on Solphim's {1}{R/P}{R/P} ability
+				// (seed 1295, 2026-09-15) because the ability-offer path never
+				// read the map the abort wrote.
+				if e.castSuppressed(p, id) {
+					continue
+				}
 				if raw, ok := ab.Params["ActivationLimit"]; ok && e.activationLimitReached(id, p, i, raw) {
 					continue
 				}
