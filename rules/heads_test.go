@@ -855,7 +855,11 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	4: "7012c79608844da6",
+	// 4 seats moved to 13ce7a60c8da708f (autonomous orchestrator): resolving inbox-rv2a-starting-player-state-and-mulligan-passes (Engine: record the starting player; CR 103.5 mulligan passes go round the table)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	4: "13ce7a60c8da708f",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -905,7 +909,11 @@ var acceptanceHeads = map[int]string{
 	// `make sim` 20/20 replay OK, the same proxy this repo has used by hand
 	// for every head move — neither check is sensitive to bot-choice quality,
 	// only engine correctness.
-	6: "6ffd29493be18d92",
+	// 6 seats moved to ee634ef28a13dfb8 (autonomous orchestrator): resolving inbox-rv2a-starting-player-state-and-mulligan-passes (Engine: record the starting player; CR 103.5 mulligan passes go round the table)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	6: "ee634ef28a13dfb8",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -984,7 +992,11 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	8: "cc24946a41837da8",
+	// 8 seats moved to c5487ff2d727e5d8 (autonomous orchestrator): resolving inbox-rv2a-starting-player-state-and-mulligan-passes (Engine: record the starting player; CR 103.5 mulligan passes go round the table)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	8: "c5487ff2d727e5d8",
 }
 
 func TestHeads(t *testing.T) {
