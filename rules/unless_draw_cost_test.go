@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
@@ -141,6 +142,49 @@ func TestUnlessCostTresserhornPaysSacLifeAndDraw(t *testing.T) {
 	// Lord in the graveyard after the compound cost is paid.
 	if got := e.G.Obj(lord).Zone; got != state.ZGraveyard {
 		t.Fatalf("Lord zone = %v, want graveyard after the switched paid cost", got)
+	}
+}
+
+// TestUnlessCostUnresolvableDrawerDeclinesWhole pins the ordering the Draw
+// fix exists for: a Draw<N/Spec> whose role the unless context cannot
+// resolve makes the whole cost unpayable BEFORE any mana or life is
+// charged — never a partial payment followed by a silently omitted draw.
+// The mirror half pins that a resolvable role (You, the payer) still pays
+// and draws in one pass.
+func TestUnlessCostUnresolvableDrawerDeclinesWhole(t *testing.T) {
+	e := stealEngine(t, 743)
+	cost := Cost{Life: 2, Draw: []CostPart{{N: 1, Spec: "Player.NoSuchRole"}}}
+	life := e.G.Players[0].Life
+	before := len(e.L.Events)
+	if e.payUnlessCost(0, cost, &effects.Ctx{Controller: 0}, 0) {
+		t.Fatal("payUnlessCost paid a cost whose Draw role cannot resolve")
+	}
+	if got := e.G.Players[0].Life; got != life {
+		t.Fatalf("payer life = %d, want the uncharged %d", got, life)
+	}
+	for _, ev := range e.L.Events[before:] {
+		if ev.Kind == events.Draw {
+			t.Fatalf("a declined cost drew: %+v", ev)
+		}
+	}
+	if len(e.L.Events) != before {
+		t.Fatalf("a declined cost emitted %d events, want none", len(e.L.Events)-before)
+	}
+	cost.Draw[0].Spec = "You"
+	if !e.payUnlessCost(0, cost, &effects.Ctx{Controller: 0}, 0) {
+		t.Fatal("payUnlessCost declined a cost whose Draw role is the payer")
+	}
+	if got := e.G.Players[0].Life; got != life-2 {
+		t.Fatalf("payer life = %d, want %d", got, life-2)
+	}
+	draws := 0
+	for _, ev := range e.L.Events[before:] {
+		if ev.Kind == events.Draw {
+			draws++
+		}
+	}
+	if draws != 1 {
+		t.Fatalf("draws = %d, want 1", draws)
 	}
 }
 
