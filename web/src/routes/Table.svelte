@@ -7,6 +7,7 @@
   import Arrows from '../components/Arrows.svelte';
   import Rail from '../components/Rail.svelte';
   import IdentityBar from '../components/IdentityBar.svelte';
+  import PileHost from '../components/PileHost.svelte';
   import RecentStrip from '../components/RecentStrip.svelte';
   import Transcript from '../components/Transcript.svelte';
   import DvrBar from '../components/DvrBar.svelte';
@@ -320,6 +321,7 @@
           yields={panel?.yields ?? null}
           onYield={panel ? (key) => panel.addYield(key) : null}
           viewerSeat={seated ? (seatCtx?.seat ?? null) : null}
+          options={boardOptions}
         >
           {#snippet logbar()}
             {#if panel && concede}
@@ -348,6 +350,13 @@
            by the table root the overlay's box contains both endpoints, and
            .table below is its positioned containing block. Still
            pointer-events: none; arrowsFor/previewArrowsFor are unchanged. -->
+      <!-- fb-20260916T225802Z: the table's ONE pile modal. The rail's pile
+           buttons and the identity bar's graveyard/exile icons open it
+           through the shared pileOpener store; PileHost renders the single
+           instance and hands it boardOptions, so pile cards are actionable
+           exactly where the cards are (tone ring, badge, menu — each item
+           posting the option's own wire index). -->
+      <PileHost view={m.view} seats={m.seats} options={boardOptions} />
       <Arrows view={m.view} options={boardOptions} />
     {:else if finished && m.loadError}
       <div class="load-error">
