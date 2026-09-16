@@ -143,10 +143,13 @@ export interface Printing {
    *
    * Any reports that at least one mana ability's Produced$ was not a plain
    * colour string: "Any"/"Combo Any", a listed "Combo X Y" choice, or a
-   * "Chosen"/"Special" word. Such a source is conditional in the card script,
-   * so a policy must not treat it as a dependable colour fixer. Colour still
-   * mirrors every rune effMana emits: its unrecognised runes become colourless
-   * through state.ManaIndex, including the words in Combo and Chosen.
+   * "Chosen"/"Special" word (any token the symbol grammar cannot read). Such a
+   * source is conditional in the card script, so a policy must not treat it as
+   * a dependable colour fixer. Colour carries only what a plain token names:
+   * the colour letters the token lists (one each for "R G", two for "RR"),
+   * never a phantom count for the words themselves -- an unrecognised token
+   * such as "Chosen" or "ColorIdentity" claims no mana at all (ProducedCounts),
+   * matching effMana's fail-closed executor convention.
    */
 export interface ManaProduction {
   colour: [number, number, number, number, number, number];
