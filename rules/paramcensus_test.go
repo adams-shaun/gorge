@@ -1116,6 +1116,19 @@ var apiSpecificRulesSA = map[string][]string{
 	// Vexing Devil, api:LoseLife on Torment of Hailfire's shape).
 	"Engine.beginWardPayment":  {"Ward"},
 	"Engine.settleWardPayment": {"Ward"},
+	// The opening-hand pregame actions: applyOpeningEffect, its delayed-
+	// trigger registration and the answer handler run ONLY on the expanded
+	// opening-action SVar of a MayEffectFromOpeningHand keyword (Chancellor
+	// of the Tangle, Gemstone Caverns, Impatient Iguana), so their
+	// Origin$/Destination$/BecomeStartingPlayer$/Triggers$/SubAbility$
+	// reads belong to the APIs such an action carries (ChangeZone for the
+	// put-onto-battlefield shape, PutCounter for the counter rider, Effect
+	// for the delayed-trigger shape) -- left in the generic union they
+	// would mask every other API's unread Destination$ (measured:
+	// api:Counter on Force of Will and Remand).
+	"Engine.applyOpeningEffect":            {"ChangeZone", "PutCounter", "Effect"},
+	"Engine.registerOpeningEffectTriggers": {"ChangeZone", "PutCounter", "Effect"},
+	"Engine.handleOpening":                 {"ChangeZone", "PutCounter", "Effect"},
 }
 
 // handRoots declares ATTRIBUTION (which function to read for a primitive) for

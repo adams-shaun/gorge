@@ -136,6 +136,36 @@ func (e *Engine) stepOpening() {
 // opening hand to the battlefield, then apply its immediate PutCounter sub.
 // A following mandatory hand-to-exile ChangeZone is represented by a real
 // KChoose continuation (Gemstone Caverns), rather than a deterministic card.
+// openingTrigger is one parsed T: SVar body: the handful of keys the
+// opening-hand delayed-trigger registration reads. A T: line held in SVars is
+// not a cards.Trigger (the parser links only printed T: lines), so the pipe
+// grammar is parsed here; named fields keep the reads on a struct rather than
+// a bare map[string]string, which the parameter census cannot attribute.
+type openingTrigger struct {
+	mode, oneOff, phase, execute string
+}
+
+func parseOpeningTrigger(body string) openingTrigger {
+	var t openingTrigger
+	for _, part := range strings.Split(body, "|") {
+		key, value, ok := strings.Cut(strings.TrimSpace(part), "$")
+		if !ok {
+			continue
+		}
+		switch strings.TrimSpace(key) {
+		case "Mode":
+			t.mode = strings.TrimSpace(value)
+		case "OneOff":
+			t.oneOff = strings.TrimSpace(value)
+		case "Phase":
+			t.phase = strings.TrimSpace(value)
+		case "Execute":
+			t.execute = strings.TrimSpace(value)
+		}
+	}
+	return t
+}
+
 func (e *Engine) applyOpeningEffect(ef openingEffect) {
 	o := e.G.Obj(ef.card)
 	if o == nil || o.Face() == nil {
@@ -157,12 +187,14 @@ func (e *Engine) applyOpeningEffect(ef openingEffect) {
 		return
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: ef.card, From: state.ZHand, To: state.ZBattlefield, Text: "opening hand effect"})
-	if sa.Sub != nil && sa.Sub.API == "PutCounter" {
-		n := effects.Num(e, &effects.Ctx{Source: ef.card, Controller: ef.player}, sa.Sub, "CounterNum", 1)
-		e.emit(events.Event{Kind: events.CounterChange, Obj: ef.card, Counter: sa.Sub.Params["CounterType"], Amount: n})
-		sa = sa.Sub
+	sub := sa.Sub
+	if sub != nil && sub.API == "PutCounter" {
+		n := effects.Num(e, &effects.Ctx{Source: ef.card, Controller: ef.player}, sub, "CounterNum", 1)
+		e.emit(events.Event{Kind: events.CounterChange, Obj: ef.card, Counter: sub.Params["CounterType"], Amount: n})
+		sa = sub
+		sub = sub.Sub
 	}
-	if sa.Sub != nil && sa.Sub.API == "ChangeZone" && sa.Sub.Params["Origin"] == "Hand" && sa.Sub.Params["Destination"] == "Exile" {
+	if sub != nil && sub.API == "ChangeZone" && sub.Params["Origin"] == "Hand" && sub.Params["Destination"] == "Exile" {
 		e.opening.exile = ef.card
 		d := &decision.Decision{Player: ef.player, Kind: decision.KChoose, Min: 1, Max: 1,
 			Prompt: "Exile a card from your hand", Source: ef.card}
@@ -221,12 +253,12 @@ func (e *Engine) registerOpeningEffectTriggers(ef openingEffect, first *cards.SA
 				if o == nil || o.Face() == nil {
 					return
 				}
-				params := openingTriggerParams(o.Face().SVars[name])
-				if params["Mode"] != "Phase" || params["OneOff"] != "True" {
+				tg := parseOpeningTrigger(o.Face().SVars[name])
+				if tg.mode != "Phase" || tg.oneOff != "True" {
 					continue
 				}
 				var step state.Step
-				switch strings.TrimSpace(params["Phase"]) {
+				switch strings.TrimSpace(tg.phase) {
 				case "Upkeep":
 					step = state.StepUpkeep
 				case "Main1":
@@ -234,7 +266,7 @@ func (e *Engine) registerOpeningEffectTriggers(ef openingEffect, first *cards.SA
 				default:
 					continue
 				}
-				exec := params["Execute"]
+				exec := tg.execute
 				if exec == "" || cards.ResolveSVar(o.Face().SVars, exec) == nil {
 					continue
 				}
@@ -250,20 +282,6 @@ func (e *Engine) registerOpeningEffectTriggers(ef openingEffect, first *cards.SA
 		}
 		sa = next
 	}
-}
-
-// openingTriggerParams parses the T: SVar's pipe grammar. T: lines held in
-// SVars are not Face.Triggers (the parser links only printed T: lines), so the
-// phase registration must read the raw, immutable script body here.
-func openingTriggerParams(body string) map[string]string {
-	params := make(map[string]string)
-	for _, part := range strings.Split(body, "|") {
-		key, value, ok := strings.Cut(strings.TrimSpace(part), "$")
-		if ok {
-			params[strings.TrimSpace(key)] = strings.TrimSpace(value)
-		}
-	}
-	return params
 }
 
 func (e *Engine) finishOpening() {

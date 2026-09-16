@@ -276,24 +276,27 @@ func (e *Engine) castWithFlash(p state.PlayerID, id state.ObjID) bool {
 	return false
 }
 
+// presentGate evaluates one IsPresent spec against PresentCompare (default
+// GE1); staticTimingGate fails closed when either present gate does not hold.
+func (e *Engine) presentGate(sv staticView, spec string) bool {
+	n := e.countStaticPresent(sv, spec)
+	cmp := sv.Params["PresentCompare"]
+	if cmp == "" {
+		cmp = "GE1"
+	}
+	return comparePresent(n, cmp)
+}
+
 // staticTimingGate evaluates the static conditions that can decide whether a
 // CastWithFlash permission exists before a spell is announced. An unknown
 // gate fails closed: granting instant timing without proving the script's
 // condition would permit an illegal cast.
 func (e *Engine) staticTimingGate(sv staticView) bool {
-	for _, key := range []string{"IsPresent", "IsPresent2"} {
-		spec, ok := sv.Params[key]
-		if !ok {
-			continue
-		}
-		n := e.countStaticPresent(sv, spec)
-		cmp := sv.Params["PresentCompare"]
-		if cmp == "" {
-			cmp = "GE1"
-		}
-		if !comparePresent(n, cmp) {
-			return false
-		}
+	if spec, ok := sv.Params["IsPresent"]; ok && !e.presentGate(sv, spec) {
+		return false
+	}
+	if spec, ok := sv.Params["IsPresent2"]; ok && !e.presentGate(sv, spec) {
+		return false
 	}
 	if name, ok := sv.Params["CheckSVar"]; ok {
 		o := e.G.Obj(sv.Source)
