@@ -1,5 +1,7 @@
 package state
 
+import "math"
+
 type (
 	ObjID    uint32
 	PlayerID uint8
@@ -138,10 +140,21 @@ func ManaIndex(sym byte) int {
 	return MC
 }
 
+// Total returns the sum of the six mana slots, saturated to the int32 range.
+// A projection may intentionally set several slots to math.MaxInt32 to
+// represent an indeterminate source's unbounded production; accumulating in
+// int64 keeps that conservative bound from wrapping negative during a cost
+// affordability check.
 func (m Mana) Total() int32 {
-	var n int32
+	var n int64
 	for _, v := range m {
-		n += v
+		n += int64(v)
 	}
-	return n
+	if n >= math.MaxInt32 {
+		return math.MaxInt32
+	}
+	if n <= math.MinInt32 {
+		return math.MinInt32
+	}
+	return int32(n)
 }

@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"math"
 	"strconv"
 	"strings"
 
@@ -15,9 +16,10 @@ import (
 // Titania) could produce any amount this turn; the stop decision the
 // projection serves must never lose an action to a source the engine cannot
 // statically price, so such a source is priced unbounded rather than at zero.
-// 99 is far past any real cost a game can present, while staying small enough
-// that sums of a few sources cannot overflow int32.
-const potentialUnbounded int32 = 99
+// It is math.MaxInt32, the largest representable mana cost. Potential-pool
+// additions saturate at that sentinel and Mana.Total does too, so several
+// open sources cannot wrap the hypothetical pool below a payable cost.
+const potentialUnbounded int32 = math.MaxInt32
 
 // PotentialMana is the hypothetical pool the potential-action walk prices
 // against: the seat's floating pool PLUS what every untapped mana source it
@@ -117,14 +119,26 @@ func addPotentialMana(m *state.Mana, ma *cards.SA) {
 	}
 	if indeterminate || producedOpen(raw) {
 		for i := range m {
-			m[i] += potentialUnbounded
+			m[i] = saturatingPotentialMana(m[i], potentialUnbounded)
 		}
 		return
 	}
 	s := strings.NewReplacer("{", "", "}", "", " ", "").Replace(raw)
 	for _, r := range s {
-		m[state.ManaIndex(byte(r))] += amt
+		i := state.ManaIndex(byte(r))
+		m[i] = saturatingPotentialMana(m[i], amt)
 	}
+}
+
+// saturatingPotentialMana adds a known non-negative production without
+// letting the deliberately-unbounded potential sentinel wrap int32. This is
+// projection-only; real mana still enters state through events.ManaAdd.
+func saturatingPotentialMana(have, add int32) int32 {
+	sum := int64(have) + int64(add)
+	if sum >= math.MaxInt32 {
+		return math.MaxInt32
+	}
+	return int32(sum)
 }
 
 // producedOpen reports whether a Produced$ value names an ALTERNATIVE or

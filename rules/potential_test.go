@@ -254,6 +254,34 @@ func TestPotentialActionsIndeterminateSource(t *testing.T) {
 	}
 }
 
+// TestPotentialActionsIndeterminateSourceIsUnbounded pins the upper boundary
+// of the indeterminate-source contract. A source that actually counts 100
+// creatures must keep a {100} spell visible; an arbitrary 99-mana sentinel
+// would eat that action. The potential representation saturates every slot at
+// math.MaxInt32, and the affordability total saturates too, so it cannot wrap
+// negative while checking the generic cost.
+func TestPotentialActionsIndeterminateSourceIsUnbounded(t *testing.T) {
+	e := layerEngine(t)
+	e.G.Step = state.StepMain1
+	e.G.SetZone(state.ZHand, 0, nil)
+	e.G.Players[0].LandsPlayed = 1
+	onBoard(t, e, 0, "Name:Countland\nTypes:Land\n"+
+		"A:AB$ Mana | Cost$ T | Produced$ G | Amount$ Count$Valid Creature.YouCtrl | SpellDescription$ Add G for each creature you control.\nOracle:x\n")
+	for range 100 {
+		onBoard(t, e, 0, "Name:Counter Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:1/1\nOracle:x\n")
+	}
+	big := onHand(t, e, 0, "Name:Century Beast\nManaCost:100\nTypes:Creature Beast\nPT:100/100\nOracle:x\n")
+	if got := e.PotentialMana(0).Total(); got != potentialUnbounded {
+		t.Fatalf("100-creature indeterminate potential total = %d, want saturated %d", got, potentialUnbounded)
+	}
+	for _, a := range e.PotentialActions(0) {
+		if a.Kind == "cast" && a.Obj == big {
+			return
+		}
+	}
+	t.Fatal("a source that can make 100 mana must keep a {100} spell as a potential action")
+}
+
 // TestPotentialActionsBlazeAtXZero pins the X half: an X spell is a potential
 // cast at X=0 from whatever its fixed pips need — CR 107.3b — the shape the
 // old client's variable-pip refusal ate (the pin autopilot.test.ts used to
