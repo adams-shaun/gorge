@@ -127,6 +127,26 @@ type ContinuousEffect struct {
 	// effects.ParseZones. Meaningful only when MayPlay is set.
 	AffectedZone string
 
+	// MayPlayIgnoreColor marks the grant's MayPlayIgnoreColor$ True rider:
+	// "you may spend mana as though it were mana of any color to cast it"
+	// (Opposition Agent, Kotose, ...). While it holds, every coloured pip of
+	// the may-play cast's cost is payable by any colour of mana in the pool;
+	// the {C} pip stays colourless-only (CR 107.4c: "any color" never
+	// includes colourless). Set only together with MayPlay.
+	MayPlayIgnoreColor bool
+
+	// MayPlayLimit is the grant's MayPlayLimit$ once-per-turn cap (Kotose's
+	// and Evelyn's "once each turn"): the number of cards p may play through
+	// THIS KIND of grant in one turn. Zero means unlimited. The count is a
+	// log scan (rules' mayPlaysThisTurn), never a mutable field.
+	MayPlayLimit int32
+
+	// MayPlayPlayerTurn marks the grant's Condition$ PlayerTurn rider (the
+	// Kess/Karador "during each of your turns" family): the grant is live
+	// only while its controller is the ACTIVE player. The walks check the
+	// live turn, never a mutable field.
+	MayPlayPlayerTurn bool
+
 	// UntilTurn is the turn number at whose END (its cleanup step) this
 	// effect expires, for a Duration$ that spans the controller's NEXT turn
 	// (UntilYourNextTurn, UntilTheEndOfYourNextTurn). Computed at

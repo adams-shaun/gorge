@@ -702,6 +702,17 @@ func Apply(g *state.Game, e Event) {
 		}
 		sa := cards.ResolveSVar(src.Face().SVars, e.Counter)
 		if sa == nil {
+			// A granted ward (rules.pushTrigger's __kwWard: payload) has no
+			// SVar to resolve: the ability is rebuilt structurally from the
+			// payload -- the same DB$ Ward | UnlessCost$ <cost> a printed
+			// K:Ward's compiled trigger carries -- so the live game and the
+			// replay mint identical objects from the event text alone.
+			if rest, ok := strings.CutPrefix(e.Counter, "__kwWard:"); ok {
+				sa = &cards.SA{Kind: "DB", API: "Ward",
+					Params: map[string]string{"UnlessCost": rest, "TriggerDescription": "Ward"}}
+			}
+		}
+		if sa == nil {
 			break
 		}
 		incarnation := src.Incarnation

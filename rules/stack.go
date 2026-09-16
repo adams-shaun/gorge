@@ -51,9 +51,20 @@ func (e *Engine) payManaConv(p state.PlayerID, cost Cost, conv *manaConv) bool {
 // and marked on the negative ManaAdd event so events.Apply can reconstruct
 // the same provenance during replay.
 func (e *Engine) payManaConvFor(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv) bool {
+	return e.payManaFor(p, id, ability, cost, conv, false)
+}
+
+// payManaFor is payManaConvFor with the may-play ignore-colour rider passed
+// explicitly, so the payment sites that know the cast's recorded rider (a
+// pendingCast's mayPlayIgnore, kept from the offer gate that proved it) keep
+// the grant after the card has moved to the stack -- at payment time the
+// card is no longer in the granted zone, so re-deriving from the zone would
+// wrongly drop it.
+func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, anyColor bool) bool {
 	before := e.manaAvailableFor(p, id, ability)
 	beforeSnow := e.G.Players[p].Snow
-	pay, ok := cost.resolveMana(before, beforeSnow, e.G.Players[p].Life, conv)
+	pay, ok := cost.resolveManaWith(before, beforeSnow, e.G.Players[p].Life,
+		e.payerGrantsPayLifeInsteadOfB(p), anyColor, conv)
 	if !ok {
 		return false
 	}
@@ -88,6 +99,16 @@ func (e *Engine) payManaConvFor(p state.PlayerID, id state.ObjID, ability bool, 
 		e.emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -lifeSpent})
 	}
 	return true
+}
+
+// payManaCast is the spell-cost payment: the shared payManaFor core with the
+// cast's recorded may-play ignore-colour rider (CR 401.5's "spend mana as
+// though it were mana of any color to cast it"). The rider was proved by the
+// offer gate while the card still sat in the granted zone; the payment keeps
+// it via pc.mayPlayIgnore because after the push (CR 601.2a) the card is on
+// the stack and a zone re-derivation would wrongly drop the grant.
+func (e *Engine) payManaCast(pc *pendingCast, cost Cost) bool {
+	return e.payManaFor(pc.player, pc.card, false, cost, e.paymentConv(pc.player, pc.card, false), pc.mayPlayIgnore)
 }
 
 // manaAvailableFor removes every restricted batch from the visible pool, then
@@ -177,13 +198,25 @@ func (e *Engine) paymentConv(p state.PlayerID, id state.ObjID, ability bool) *ma
 	return &conv
 }
 
+// costPayableGrant is costPayable with the may-play ignore-colour rider
+// passed explicitly, for the payment sites that know the cast's recorded
+// rider and cannot re-derive it from the card's zone.
+func (e *Engine) costPayableGrant(p state.PlayerID, id state.ObjID, ability bool, cost Cost, anyColor bool) bool {
+	_, ok := cost.resolveManaWith(e.manaAvailableFor(p, id, ability), e.G.Players[p].Snow, e.G.Players[p].Life,
+		e.payerGrantsPayLifeInsteadOfB(p), anyColor, e.paymentConv(p, id, ability))
+	return ok
+}
+
 // costPayable is the conversion-aware equivalent of Cost.payable at the
 // offering and window gates: the SAME resolveMana payMana will run, so an
 // offered cost and the cost actually charged can never disagree about what
-// the payer's converted mana may satisfy.
+// the payer's converted mana may satisfy. The payer-side grants (a
+// PayLifeInsteadOf:B static under its controller; a may-play grant's
+// MayPlayIgnoreColor$ rider, derived from the card's current zone) are
+// applied here too, so an offered cost and the charged cost agree about a
+// K'rrik-shaped or may-play-shaped payment as well.
 func (e *Engine) costPayable(p state.PlayerID, id state.ObjID, ability bool, cost Cost) bool {
-	_, ok := cost.resolveMana(e.manaAvailableFor(p, id, ability), e.G.Players[p].Snow, e.G.Players[p].Life, e.paymentConv(p, id, ability))
-	return ok
+	return e.costPayableGrant(p, id, ability, cost, e.payerGrantsIgnoreColor(p, id))
 }
 
 // targetBounds resolves a targeting subject's TargetMin$/TargetMax$ to the
