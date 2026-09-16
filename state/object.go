@@ -174,6 +174,11 @@ type Object struct {
 	// source of truth. Nil when no modal announcement has been made.
 	ChosenModes []string
 
+	// Imprinted is the ordered set of cards exiled by this permanent's
+	// Imprint$ effect. It is state because later abilities (Chrome Mox) refer
+	// to it after the originating resolution has ended.
+	Imprinted []ObjID
+
 	// AttachedTo is the permanent this Aura or Equipment is attached to; 0
 	// means unattached. Reset whenever the object itself leaves the
 	// battlefield (events.Move) -- an Aura or Equipment cannot stay
@@ -266,6 +271,7 @@ func (o *Object) CloneDeep() Object {
 	c.Chosen = append([]Target(nil), o.Chosen...)
 	c.Goads = append([]GoadEffect(nil), o.Goads...)
 	c.ChosenModes = append([]string(nil), o.ChosenModes...)
+	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
 	return c
 }
 

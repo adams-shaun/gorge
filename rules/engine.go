@@ -391,6 +391,12 @@ type Engine struct {
 	manaActivation        *manaActivation
 	manaColorActivation   *manaColorActivation
 	manaDiscardActivation *manaDiscardActivation
+	// Resolution-time payment windows. cumulative belongs to the replayable
+	// keyword trigger; triggerCost belongs to an ordinary triggered effect
+	// carrying Cost$ (Mana Vault). Both are plain data and Clone-copied.
+	cumulative  *cumulativeUpkeep
+	triggerCost *triggeredEffectCost
+
 	// wardMana holds a CR 702.21a mana-payment window while a Ward trigger
 	// is resolving. It is plain data so Clone preserves the suspended choice.
 	wardMana *wardManaPayment

@@ -1009,7 +1009,7 @@ func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
 				continue
 			}
 			for i, ab := range f.Abilities {
-				if ab.Kind != "AB" || ab.API == "Mana" {
+				if ab.Kind != "AB" || isManaAbilityAPI(ab.API) {
 					continue
 				}
 				if !abilityZoneOK(ab, z) {

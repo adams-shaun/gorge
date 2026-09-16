@@ -257,6 +257,47 @@ func (e *Engine) Clone() *Engine {
 		ma.exiles = append([]state.ObjID(nil), e.manaDiscardActivation.exiles...)
 		c.manaDiscardActivation = &ma
 	}
+	if e.cumulative != nil {
+		cu := *e.cumulative
+		cu.amount.Sac = append([]CostPart(nil), e.cumulative.amount.Sac...)
+		cu.amount.Discard = append([]CostPart(nil), e.cumulative.amount.Discard...)
+		cu.amount.SubCounter = append([]CostPart(nil), e.cumulative.amount.SubCounter...)
+		cu.amount.AddCounter = append([]CostPart(nil), e.cumulative.amount.AddCounter...)
+		cu.amount.Exile = append([]CostPart(nil), e.cumulative.amount.Exile...)
+		cu.amount.Reveal = append([]CostPart(nil), e.cumulative.amount.Reveal...)
+		cu.amount.Behold = append([]CostPart(nil), e.cumulative.amount.Behold...)
+		cu.amount.TapPermanent = append([]CostPart(nil), e.cumulative.amount.TapPermanent...)
+		cu.amount.Blight = append([]CostPart(nil), e.cumulative.amount.Blight...)
+		cu.amount.Hybrid = append([]ManaPair(nil), e.cumulative.amount.Hybrid...)
+		cu.amount.Twobrid = append([]Twobrid(nil), e.cumulative.amount.Twobrid...)
+		cu.amount.HybridPhyrexian = append([]HybridPhyrexian(nil), e.cumulative.amount.HybridPhyrexian...)
+		cu.amount.Phyrexian = append([]byte(nil), e.cumulative.amount.Phyrexian...)
+		cu.amount.Unknown = append([]string(nil), e.cumulative.amount.Unknown...)
+		if e.cumulative.action != nil {
+			action := *e.cumulative.action
+			cu.action = &action
+		}
+		c.cumulative = &cu
+	}
+	if e.triggerCost != nil {
+		tc := *e.triggerCost
+		tc.resume = cloneResume(e.triggerCost.resume)
+		tc.amount.Sac = append([]CostPart(nil), e.triggerCost.amount.Sac...)
+		tc.amount.Discard = append([]CostPart(nil), e.triggerCost.amount.Discard...)
+		tc.amount.SubCounter = append([]CostPart(nil), e.triggerCost.amount.SubCounter...)
+		tc.amount.AddCounter = append([]CostPart(nil), e.triggerCost.amount.AddCounter...)
+		tc.amount.Exile = append([]CostPart(nil), e.triggerCost.amount.Exile...)
+		tc.amount.Reveal = append([]CostPart(nil), e.triggerCost.amount.Reveal...)
+		tc.amount.Behold = append([]CostPart(nil), e.triggerCost.amount.Behold...)
+		tc.amount.TapPermanent = append([]CostPart(nil), e.triggerCost.amount.TapPermanent...)
+		tc.amount.Blight = append([]CostPart(nil), e.triggerCost.amount.Blight...)
+		tc.amount.Hybrid = append([]ManaPair(nil), e.triggerCost.amount.Hybrid...)
+		tc.amount.Twobrid = append([]Twobrid(nil), e.triggerCost.amount.Twobrid...)
+		tc.amount.HybridPhyrexian = append([]HybridPhyrexian(nil), e.triggerCost.amount.HybridPhyrexian...)
+		tc.amount.Phyrexian = append([]byte(nil), e.triggerCost.amount.Phyrexian...)
+		tc.amount.Unknown = append([]string(nil), e.triggerCost.amount.Unknown...)
+		c.triggerCost = &tc
+	}
 	if e.wardMana != nil {
 		wm := *e.wardMana
 		c.wardMana = &wm

@@ -1900,11 +1900,11 @@ func abilityCastValidSA(ab *cards.SA, validSA string) bool {
 			case "":
 				return true
 			case "!ManaAbility":
-				if ab.API != "Mana" {
+				if !isManaAbilityAPI(ab.API) {
 					return true
 				}
 			case "ManaAbility":
-				if ab.API == "Mana" {
+				if isManaAbilityAPI(ab.API) {
 					return true
 				}
 			}

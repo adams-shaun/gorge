@@ -149,7 +149,8 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// to the old source-default no-op: it emits a Note and moves nothing.
 		if len(originZones) == 1 && originZones[0] == state.ZHand && !originAll &&
 			sa.Params["Defined"] == "" &&
-			sa.Params["DefinedPlayer"] == "" && sa.Params["ValidTgts"] == "" {
+			sa.Params["DefinedPlayer"] == "" && sa.Params["ValidTgts"] == "" &&
+			!strings.EqualFold(sa.Params["Imprint"], "True") {
 			if _, supported := handMoveCountOf(h, c, sa); supported {
 				effChangeZoneHand(h, c, sa, to)
 				return
@@ -205,7 +206,46 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if to == state.ZBattlefield && withKind != "" {
 		withAmt = withCounterAmount(h, c, sa)
 	}
-	for _, t := range Defined(h, c, sa) {
+	targets := Defined(h, c, sa)
+	// Imprint effects such as Chrome Mox select eligible cards from their
+	// controller's hand. Keep them out of the generic hand mover so their
+	// successful exile can be recorded in the replayable Imprint event.
+	if len(targets) == 1 && targets[0].Obj == c.Source && !targets[0].IsPlayer &&
+		len(originZones) == 1 && originZones[0] == state.ZHand && !originAll &&
+		strings.EqualFold(sa.Params["Imprint"], "True") {
+		targets = nil
+		if c.ImprintDone {
+			for _, id := range c.Imprint {
+				targets = append(targets, state.Target{Obj: id})
+			}
+			c.Imprint, c.ImprintDone = nil, false
+		} else {
+			spec := sa.Params["ChangeType"]
+			if spec == "" {
+				spec = "Card"
+			}
+			for _, id := range h.Game().Zone(state.ZHand, c.Controller) {
+				if o := h.Game().Obj(id); o != nil && MatchesSpecCtx(h.Game(), spec, id, c.SpecContext(c.Controller)) {
+					targets = append(targets, state.Target{Obj: id})
+				}
+			}
+			max := Num(h, c, sa, "ChangeNum", 1)
+			if int32(len(targets)) > max {
+				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: int(max), Max: int(max), Source: c.Source,
+					ResumeKind: "imprint", ResumeSA: sa, Prompt: "Choose a card to imprint"}
+				for _, target := range targets {
+					o := h.Game().Obj(target.Obj)
+					d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "imprint", Obj: target.Obj, Label: o.Face().Name})
+				}
+				if h.Ask(d) {
+					return
+				}
+				targets = targets[:max]
+			}
+		}
+	}
+	var imprinted []state.ObjID
+	for _, t := range targets {
 		if t.IsPlayer {
 			continue
 		}
@@ -223,6 +263,14 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		settleChangeZoneMove(h, c, sa, o.ID, o.Zone, to, withKind, withAmt)
+		if strings.EqualFold(sa.Params["Imprint"], "True") && to == state.ZExile {
+			if moved := h.Game().Obj(o.ID); moved != nil && moved.Zone == state.ZExile {
+				imprinted = append(imprinted, o.ID)
+			}
+		}
+	}
+	if len(imprinted) > 0 {
+		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: imprinted})
 	}
 }
 

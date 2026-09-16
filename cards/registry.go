@@ -171,7 +171,9 @@ func LoadRegistry(path string) (*Registry, error) {
 			f.derive()
 			// Re-link decoded faces so a newly added idempotent keyword expansion
 			// is present even when this worktree intentionally reuses the shared,
-			// read-only corpus cache.
+			// read-only corpus cache. This covers the cumulative-upkeep keyword
+			// expansions this task added too: link re-runs expandKeywords and
+			// re-resolves every trigger's Execute$ SVar.
 			f.link(c.Path)
 			f.derive()
 		}
