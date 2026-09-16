@@ -405,7 +405,19 @@ func (e *Engine) advanceStep() {
 		// the game outright. A finished game must not emit a further
 		// Priority event or hand out a decision (mirrors priorityRound's own
 		// pre-Task-27 "if e.G.Over { return }" after a state-changing call).
-		if e.G.Over {
+		//
+		// The draw can also SUSPEND on a mid-draw ask: a Dredge replacement
+		// (CR 702.55) poses its KModes choice through the same DrawFor this
+		// turn-based action shares with the Draw primitive, and the ask leaves
+		// e.pending set (exactly the condition the Advance loop pauses on).
+		// CR 405.1: the step's priority comes only AFTER the turn-based action
+		// completes -- and the dredge answer's resume path (resolution.go's
+		// dredge arm -> Advance -> priorityRound) grants that one priority
+		// itself. Emitting one here while the ask is outstanding granted
+		// priority twice, and logged a Priority event before the player had
+		// even answered whether to replace the draw (findings-sol4 MAJOR;
+		// dredge_turn_draw_test.go is the committed probe).
+		if e.G.Over || e.pending != nil {
 			return
 		}
 	}
